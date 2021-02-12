@@ -27,7 +27,6 @@ linters:
     - tparallel
     - gomnd
     - nlreturn
-    - noctx
     - nestif
     - predeclared
     - thelper

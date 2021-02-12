@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -474,7 +475,7 @@ func (s *BoltState) getPodFromDB(id []byte, pod *Pod, podBkt *bolt.Bucket) error
 	return nil
 }
 
-func (s *BoltState) getVolumeFromDB(name []byte, volume *Volume, volBkt *bolt.Bucket) error {
+func (s *BoltState) getVolumeFromDB(ctx context.Context, name []byte, volume *Volume, volBkt *bolt.Bucket) error {
 	volDB := volBkt.Bucket(name)
 	if volDB == nil {
 		return errors.Wrapf(define.ErrNoSuchVolume, "volume with name %s not found", string(name))
@@ -499,7 +500,7 @@ func (s *BoltState) getVolumeFromDB(name []byte, volume *Volume, volBkt *bolt.Bu
 
 	// Retrieve volume driver
 	if volume.UsesVolumeDriver() {
-		plugin, err := s.runtime.getVolumePlugin(volume.config.Driver)
+		plugin, err := s.runtime.getVolumePlugin(ctx, volume.config.Driver)
 		if err != nil {
 			// We want to fail gracefully here, to ensure that we
 			// can still remove volumes even if their plugin is

@@ -205,7 +205,7 @@ func (r *Runtime) Import(ctx context.Context, source, reference, signaturePolicy
 	// if source is a url, download it and save to a temp file
 	u, err := url.ParseRequestURI(source)
 	if err == nil && u.Scheme != "" {
-		file, err := downloadFromURL(source)
+		file, err := downloadFromURL(ctx, source)
 		if err != nil {
 			return "", err
 		}
@@ -232,7 +232,7 @@ func (r *Runtime) Import(ctx context.Context, source, reference, signaturePolicy
 
 // downloadFromURL downloads an image in the format "https:/example.com/myimage.tar"
 // and temporarily saves in it $TMPDIR/importxyz, which is deleted after the image is imported
-func downloadFromURL(source string) (string, error) {
+func downloadFromURL(ctx context.Context, source string) (string, error) {
 	fmt.Printf("Downloading from %q\n", source)
 
 	outFile, err := ioutil.TempFile(util.Tmpdir(), "import")
@@ -241,7 +241,11 @@ func downloadFromURL(source string) (string, error) {
 	}
 	defer outFile.Close()
 
-	response, err := http.Get(source)
+	req, err := http.NewRequestWithContext(ctx, "GET", source, nil)
+	if err != nil {
+		return "", err
+	}
+	response, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", errors.Wrapf(err, "error downloading %q", source)
 	}

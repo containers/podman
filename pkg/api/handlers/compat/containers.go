@@ -1,6 +1,7 @@
 package compat
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -173,7 +174,7 @@ func GetContainer(w http.ResponseWriter, r *http.Request) {
 		utils.ContainerNotFound(w, name, err)
 		return
 	}
-	api, err := LibpodToContainerJSON(ctnr, query.Size)
+	api, err := LibpodToContainerJSON(r.Context(), ctnr, query.Size)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
@@ -331,9 +332,9 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 	}, nil
 }
 
-func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, error) {
+func LibpodToContainerJSON(ctx context.Context, l *libpod.Container, sz bool) (*types.ContainerJSON, error) {
 	_, imageName := l.Image()
-	inspect, err := l.Inspect(sz)
+	inspect, err := l.Inspect(ctx, sz)
 	if err != nil {
 		return nil, err
 	}

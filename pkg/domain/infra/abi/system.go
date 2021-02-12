@@ -294,7 +294,7 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 	}
 
 	//	Get volumes and iterate them
-	vols, err := ic.Libpod.GetAllVolumes()
+	vols, err := ic.Libpod.GetAllVolumes(ctx)
 	if err != nil {
 		return nil, err
 	}

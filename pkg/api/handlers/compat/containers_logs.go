@@ -109,7 +109,7 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 	writeHeader := true
 	// Docker does not write stream headers iff the container has a tty.
 	if !utils.IsLibpodRequest(r) {
-		inspectData, err := ctnr.Inspect(false)
+		inspectData, err := ctnr.Inspect(r.Context(), false)
 		if err != nil {
 			utils.InternalServerError(w, errors.Wrapf(err, "failed to obtain logs for Container '%s'", name))
 			return

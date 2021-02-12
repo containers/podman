@@ -133,7 +133,7 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 				}
 			}
 			if include {
-				vol, err := c.runtime.GetVolume(v.Name)
+				vol, err := c.runtime.GetVolume(ctx, v.Name)
 				if err != nil {
 					return nil, errors.Wrapf(err, "volume %s used in container %s has been removed", v.Name, c.ID())
 				}

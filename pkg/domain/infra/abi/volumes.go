@@ -47,13 +47,13 @@ func (ic *ContainerEngine) VolumeRm(ctx context.Context, namesOrIds []string, op
 	)
 
 	if opts.All {
-		vols, err = ic.Libpod.Volumes()
+		vols, err = ic.Libpod.Volumes(ctx)
 		if err != nil {
 			return nil, err
 		}
 	} else {
 		for _, id := range namesOrIds {
-			vol, err := ic.Libpod.LookupVolume(id)
+			vol, err := ic.Libpod.LookupVolume(ctx, id)
 			if err != nil {
 				reports = append(reports, &entities.VolumeRmReport{
 					Err: err,
@@ -83,13 +83,13 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 	// Note: as with previous implementation, a single failure here
 	// results a return.
 	if opts.All {
-		vols, err = ic.Libpod.GetAllVolumes()
+		vols, err = ic.Libpod.GetAllVolumes(ctx)
 		if err != nil {
 			return nil, nil, err
 		}
 	} else {
 		for _, v := range namesOrIds {
-			vol, err := ic.Libpod.LookupVolume(v)
+			vol, err := ic.Libpod.LookupVolume(ctx, v)
 			if err != nil {
 				if errors.Cause(err) == define.ErrNoSuchVolume {
 					errs = append(errs, errors.Errorf("no such volume %s", v))
@@ -103,7 +103,7 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 	}
 	reports := make([]*entities.VolumeInspectReport, 0, len(vols))
 	for _, v := range vols {
-		inspectOut, err := v.Inspect()
+		inspectOut, err := v.Inspect(ctx)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -136,13 +136,13 @@ func (ic *ContainerEngine) VolumeList(ctx context.Context, opts entities.VolumeL
 	if err != nil {
 		return nil, err
 	}
-	vols, err := ic.Libpod.Volumes(volumeFilters...)
+	vols, err := ic.Libpod.Volumes(ctx, volumeFilters...)
 	if err != nil {
 		return nil, err
 	}
 	reports := make([]*entities.VolumeListReport, 0, len(vols))
 	for _, v := range vols {
-		inspectOut, err := v.Inspect()
+		inspectOut, err := v.Inspect(ctx)
 		if err != nil {
 			return nil, err
 		}

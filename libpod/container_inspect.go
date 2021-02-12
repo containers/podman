@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -19,7 +20,7 @@ import (
 
 // inspectLocked inspects a container for low-level information.
 // The caller must held c.lock.
-func (c *Container) inspectLocked(size bool) (*define.InspectContainerData, error) {
+func (c *Container) inspectLocked(ctx context.Context, size bool) (*define.InspectContainerData, error) {
 	storeCtr, err := c.runtime.store.Container(c.ID())
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting container from store %q", c.ID())
@@ -32,11 +33,11 @@ func (c *Container) inspectLocked(size bool) (*define.InspectContainerData, erro
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting graph driver info %q", c.ID())
 	}
-	return c.getContainerInspectData(size, driverData)
+	return c.getContainerInspectData(ctx, size, driverData)
 }
 
 // Inspect a container for low-level information
-func (c *Container) Inspect(size bool) (*define.InspectContainerData, error) {
+func (c *Container) Inspect(ctx context.Context, size bool) (*define.InspectContainerData, error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -46,10 +47,10 @@ func (c *Container) Inspect(size bool) (*define.InspectContainerData, error) {
 		}
 	}
 
-	return c.inspectLocked(size)
+	return c.inspectLocked(ctx, size)
 }
 
-func (c *Container) getContainerInspectData(size bool, driverData *define.DriverData) (*define.InspectContainerData, error) {
+func (c *Container) getContainerInspectData(ctx context.Context, size bool, driverData *define.DriverData) (*define.InspectContainerData, error) {
 	config := c.config
 	runtimeInfo := c.state
 	ctrSpec, err := c.specFromState()
@@ -91,7 +92,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 	}
 
 	namedVolumes, mounts := c.sortUserVolumes(ctrSpec)
-	inspectMounts, err := c.getInspectMounts(namedVolumes, c.config.ImageVolumes, mounts)
+	inspectMounts, err := c.getInspectMounts(ctx, namedVolumes, c.config.ImageVolumes, mounts)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +192,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 // Get inspect-formatted mounts list.
 // Only includes user-specified mounts. Only includes bind mounts and named
 // volumes, not tmpfs volumes.
-func (c *Container) getInspectMounts(namedVolumes []*ContainerNamedVolume, imageVolumes []*ContainerImageVolume, mounts []spec.Mount) ([]define.InspectMount, error) {
+func (c *Container) getInspectMounts(ctx context.Context, namedVolumes []*ContainerNamedVolume, imageVolumes []*ContainerImageVolume, mounts []spec.Mount) ([]define.InspectMount, error) {
 	inspectMounts := []define.InspectMount{}
 
 	// No mounts, return early
@@ -207,7 +208,7 @@ func (c *Container) getInspectMounts(namedVolumes []*ContainerNamedVolume, image
 
 		// For src and driver, we need to look up the named
 		// volume.
-		volFromDB, err := c.runtime.state.Volume(volume.Name)
+		volFromDB, err := c.runtime.state.Volume(ctx, volume.Name)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error looking up volume %s in container %s config", volume.Name, c.ID())
 		}

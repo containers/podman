@@ -71,7 +71,7 @@ func (c *Container) unmountSHM(mount string) error {
 
 // prepare mounts the container and sets up other required resources like net
 // namespaces
-func (c *Container) prepare() error {
+func (c *Container) prepare(ctx context.Context) error {
 	var (
 		wg                              sync.WaitGroup
 		netNS                           ns.NetNS
@@ -117,7 +117,7 @@ func (c *Container) prepare() error {
 	// Mount storage if not mounted
 	go func() {
 		defer wg.Done()
-		mountPoint, mountStorageErr = c.mountStorage()
+		mountPoint, mountStorageErr = c.mountStorage(ctx)
 
 		if mountStorageErr != nil {
 			return
@@ -149,7 +149,7 @@ func (c *Container) prepare() error {
 	// Only trigger storage cleanup if mountStorage was successful.
 	// Otherwise, we may mess up mount counters.
 	if createNetNSErr != nil && mountStorageErr == nil {
-		if err := c.cleanupStorage(); err != nil {
+		if err := c.cleanupStorage(ctx); err != nil {
 			// createErr is guaranteed non-nil, so print
 			// unconditionally
 			logrus.Errorf("Error preparing container %s: %v", c.ID(), createErr)
@@ -176,7 +176,7 @@ func (c *Container) prepare() error {
 	}
 
 	// Make sure the workdir exists
-	if err := c.resolveWorkDir(); err != nil {
+	if err := c.resolveWorkDir(ctx); err != nil {
 		return err
 	}
 
@@ -186,7 +186,7 @@ func (c *Container) prepare() error {
 // resolveWorkDir resolves the container's workdir and, depending on the
 // configuration, will create it, or error out if it does not exist.
 // Note that the container must be mounted before.
-func (c *Container) resolveWorkDir() error {
+func (c *Container) resolveWorkDir(ctx context.Context) error {
 	workdir := c.WorkingDir()
 
 	// If the specified workdir is a subdir of a volume or mount,
@@ -197,7 +197,7 @@ func (c *Container) resolveWorkDir() error {
 		return nil
 	}
 
-	_, resolvedWorkdir, err := c.resolvePath(c.state.Mountpoint, workdir)
+	_, resolvedWorkdir, err := c.resolvePath(ctx, c.state.Mountpoint, workdir)
 	if err != nil {
 		return err
 	}
@@ -374,7 +374,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	// Add named volumes
 	for _, namedVol := range c.config.NamedVolumes {
-		volume, err := c.runtime.GetVolume(namedVol.Name)
+		volume, err := c.runtime.GetVolume(ctx, namedVol.Name)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error retrieving volume %s to add to container %s", namedVol.Name, c.ID())
 		}
@@ -837,7 +837,7 @@ func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr
 	return nil
 }
 
-func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
+func (c *Container) exportCheckpoint(ctx context.Context, options ContainerCheckpointOptions) error {
 	if len(c.Dependencies()) > 0 {
 		return errors.Errorf("Cannot export checkpoints of containers with dependencies")
 	}
@@ -938,7 +938,7 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 				return errors.Wrapf(err, "error creating %q", volumeTarFileFullPath)
 			}
 
-			volume, err := c.runtime.GetVolume(v.Name)
+			volume, err := c.runtime.GetVolume(ctx, v.Name)
 			if err != nil {
 				return err
 			}
@@ -1075,7 +1075,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	}
 
 	if options.TargetFile != "" {
-		if err = c.exportCheckpoint(options); err != nil {
+		if err = c.exportCheckpoint(ctx, options); err != nil {
 			return err
 		}
 	}
@@ -1265,7 +1265,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		}
 	}()
 
-	if err := c.prepare(); err != nil {
+	if err := c.prepare(ctx); err != nil {
 		return err
 	}
 
@@ -1338,7 +1338,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 			}
 			defer volumeFile.Close()
 
-			volume, err := c.runtime.GetVolume(v.Name)
+			volume, err := c.runtime.GetVolume(ctx, v.Name)
 			if err != nil {
 				return errors.Wrapf(err, "failed to retrieve volume %s", v.Name)
 			}
@@ -1391,7 +1391,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		}
 	}
 
-	if err := c.ociRuntime.CreateContainer(c, &options); err != nil {
+	if err := c.ociRuntime.CreateContainer(ctx, c, &options); err != nil {
 		return err
 	}
 

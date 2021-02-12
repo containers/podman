@@ -193,7 +193,7 @@ func hasCurrentUserMapped(ctr *Container) bool {
 }
 
 // CreateContainer creates a container.
-func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) error {
+func (r *ConmonOCIRuntime) CreateContainer(ctx context.Context, ctr *Container, restoreOptions *ContainerCheckpointOptions) error {
 	// always make the run dir accessible to the current user so that the PID files can be read without
 	// being in the rootless user namespace.
 	if err := makeAccessible(ctr.state.RunDir, 0, 0); err != nil {
@@ -250,7 +250,7 @@ func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *Conta
 							return errors.Wrapf(err, "cannot unmount %s", m.Mountpoint)
 						}
 					}
-					return r.createOCIContainer(ctr, restoreOptions)
+					return r.createOCIContainer(ctx, ctr, restoreOptions)
 				}()
 				ch <- err
 			}()
@@ -258,7 +258,7 @@ func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *Conta
 			return err
 		}
 	}
-	return r.createOCIContainer(ctr, restoreOptions)
+	return r.createOCIContainer(ctx, ctr, restoreOptions)
 }
 
 // UpdateContainerStatus retrieves the current status of the container from the
@@ -969,12 +969,12 @@ func waitPidStop(pid int, timeout time.Duration) error {
 	}
 }
 
-func (r *ConmonOCIRuntime) getLogTag(ctr *Container) (string, error) {
+func (r *ConmonOCIRuntime) getLogTag(ctx context.Context, ctr *Container) (string, error) {
 	logTag := ctr.LogTag()
 	if logTag == "" {
 		return "", nil
 	}
-	data, err := ctr.inspectLocked(false)
+	data, err := ctr.inspectLocked(ctx, false)
 	if err != nil {
 		return "", nil
 	}
@@ -991,7 +991,7 @@ func (r *ConmonOCIRuntime) getLogTag(ctr *Container) (string, error) {
 }
 
 // createOCIContainer generates this container's main conmon instance and prepares it for starting
-func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) error {
+func (r *ConmonOCIRuntime) createOCIContainer(ctx context.Context, ctr *Container, restoreOptions *ContainerCheckpointOptions) error {
 	var stderrBuf bytes.Buffer
 
 	runtimeDir, err := util.GetRuntimeDir()
@@ -1017,7 +1017,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		ociLog = filepath.Join(ctr.state.RunDir, "oci-log")
 	}
 
-	logTag, err := r.getLogTag(ctr)
+	logTag, err := r.getLogTag(ctx, ctr)
 	if err != nil {
 		return err
 	}

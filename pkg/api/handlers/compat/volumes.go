@@ -51,7 +51,7 @@ func ListVolumes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	vols, err := runtime.Volumes(volumeFilters...)
+	vols, err := runtime.Volumes(r.Context(), volumeFilters...)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
@@ -102,7 +102,7 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// See if the volume exists already
-	existingVolume, err := runtime.GetVolume(input.Name)
+	existingVolume, err := runtime.GetVolume(r.Context(), input.Name)
 	if err != nil && errors.Cause(err) != define.ErrNoSuchVolume {
 		utils.InternalServerError(w, err)
 		return
@@ -183,7 +183,7 @@ func InspectVolume(w http.ResponseWriter, r *http.Request) {
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
 	)
 	name := utils.GetName(r)
-	vol, err := runtime.GetVolume(name)
+	vol, err := runtime.GetVolume(r.Context(), name)
 	if err != nil {
 		utils.VolumeNotFound(w, name, err)
 		return
@@ -235,7 +235,7 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 	 * respectively.
 	 */
 	name := utils.GetName(r)
-	vol, err := runtime.LookupVolume(name)
+	vol, err := runtime.LookupVolume(r.Context(), name)
 	if err == nil {
 		// As above, we do not pass `force` from the query parameters here
 		if err := runtime.RemoveVolume(r.Context(), vol, false); err != nil {

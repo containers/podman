@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"context"
 	"path/filepath"
 	"strings"
 
@@ -18,7 +19,7 @@ import (
 // mountPoint (e.g., via a mount or volume), the resolved root (e.g., container
 // mount, bind mount or volume) and the resolved path on the root (absolute to
 // the host).
-func (c *Container) resolvePath(mountPoint string, containerPath string) (string, string, error) {
+func (c *Container) resolvePath(ctx context.Context, mountPoint string, containerPath string) (string, string, error) {
 	// Let's first make sure we have a path relative to the mount point.
 	pathRelativeToContainerMountPoint := containerPath
 	if !filepath.IsAbs(containerPath) {
@@ -43,7 +44,7 @@ func (c *Container) resolvePath(mountPoint string, containerPath string) (string
 
 	searchPath := pathRelativeToContainerMountPoint
 	for {
-		volume, err := findVolume(c, searchPath)
+		volume, err := findVolume(ctx, c, searchPath)
 		if err != nil {
 			return "", "", err
 		}
@@ -102,12 +103,12 @@ func (c *Container) resolvePath(mountPoint string, containerPath string) (string
 
 // findVolume checks if the specified containerPath matches the destination
 // path of a Volume.  Returns a matching Volume or nil.
-func findVolume(c *Container, containerPath string) (*Volume, error) {
+func findVolume(ctx context.Context, c *Container, containerPath string) (*Volume, error) {
 	runtime := c.Runtime()
 	cleanedContainerPath := filepath.Clean(containerPath)
 	for _, vol := range c.Config().NamedVolumes {
 		if cleanedContainerPath == filepath.Clean(vol.Dest) {
-			return runtime.GetVolume(vol.Name)
+			return runtime.GetVolume(ctx, vol.Name)
 		}
 	}
 	return nil, nil

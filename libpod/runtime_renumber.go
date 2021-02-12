@@ -1,6 +1,8 @@
 package libpod
 
 import (
+	"context"
+
 	"github.com/containers/podman/v2/libpod/events"
 	"github.com/pkg/errors"
 )
@@ -13,7 +15,7 @@ import (
 // lock as read, renumber attempting to take a write lock?
 // The alternative is some sort of session tracking, and I don't know how
 // reliable that can be.
-func (r *Runtime) renumberLocks() error {
+func (r *Runtime) renumberLocks(ctx context.Context) error {
 	// Start off by deallocating all locks
 	if err := r.lockManager.FreeAllLocks(); err != nil {
 		return err
@@ -53,7 +55,7 @@ func (r *Runtime) renumberLocks() error {
 			return err
 		}
 	}
-	allVols, err := r.state.AllVolumes()
+	allVols, err := r.state.AllVolumes(ctx)
 	if err != nil {
 		return err
 	}

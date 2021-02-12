@@ -250,7 +250,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 	}
 
 	for volName := range ctrNamedVolumes {
-		volume, err := r.state.Volume(volName)
+		volume, err := r.state.Volume(ctx, volName)
 		if err != nil && errors.Cause(err) != define.ErrNoSuchVolume {
 			logrus.Errorf("Error retrieving volume %s: %v", volName, err)
 			continue

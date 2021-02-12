@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -11,7 +12,7 @@ import (
 )
 
 func TestSupportedVersion(t *testing.T) {
-	req, err := http.NewRequest("GET",
+	req, err := http.NewRequestWithContext(context.TODO(), "GET",
 		fmt.Sprintf("/v%s/libpod/testing/versions", APIVersion[LibpodTree][CurrentAPIVersion]),
 		nil)
 	if err != nil {
@@ -54,7 +55,7 @@ func TestSupportedVersion(t *testing.T) {
 
 func TestUnsupportedVersion(t *testing.T) {
 	version := "999.999.999"
-	req, err := http.NewRequest("GET",
+	req, err := http.NewRequestWithContext(context.TODO(), "GET",
 		fmt.Sprintf("/v%s/libpod/testing/versions", version),
 		nil)
 	if err != nil {
@@ -97,7 +98,7 @@ func TestUnsupportedVersion(t *testing.T) {
 
 func TestEqualVersion(t *testing.T) {
 	version := "1.30.0"
-	req, err := http.NewRequest("GET",
+	req, err := http.NewRequestWithContext(context.TODO(), "GET",
 		fmt.Sprintf("/v%s/libpod/testing/versions", version),
 		nil)
 	if err != nil {

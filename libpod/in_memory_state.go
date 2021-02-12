@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"context"
 	"strings"
 
 	"github.com/containers/podman/v2/libpod/define"
@@ -863,7 +864,7 @@ func (s *InMemoryState) RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig
 }
 
 // Volume retrieves a volume from its full name
-func (s *InMemoryState) Volume(name string) (*Volume, error) {
+func (s *InMemoryState) Volume(ctx context.Context, name string) (*Volume, error) {
 	if name == "" {
 		return nil, define.ErrEmptyID
 	}
@@ -877,7 +878,7 @@ func (s *InMemoryState) Volume(name string) (*Volume, error) {
 }
 
 // LookupVolume finds a volume from an unambiguous partial ID.
-func (s *InMemoryState) LookupVolume(name string) (*Volume, error) {
+func (s *InMemoryState) LookupVolume(ctx context.Context, name string) (*Volume, error) {
 	if name == "" {
 		return nil, define.ErrEmptyID
 	}
@@ -1010,7 +1011,7 @@ func (s *InMemoryState) VolumeInUse(volume *Volume) ([]string, error) {
 }
 
 // AllVolumes returns all volumes that exist in the state
-func (s *InMemoryState) AllVolumes() ([]*Volume, error) {
+func (s *InMemoryState) AllVolumes(ctx context.Context) ([]*Volume, error) {
 	allVols := make([]*Volume, 0, len(s.volumes))
 	for _, v := range s.volumes {
 		allVols = append(allVols, v)

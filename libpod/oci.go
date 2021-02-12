@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/containers/podman/v2/libpod/define"
@@ -24,7 +25,7 @@ type OCIRuntime interface {
 	Path() string
 
 	// CreateContainer creates the container in the OCI runtime.
-	CreateContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) error
+	CreateContainer(ctx context.Context, ctr *Container, restoreOptions *ContainerCheckpointOptions) error
 	// UpdateContainerStatus updates the status of the given container.
 	UpdateContainerStatus(ctr *Container) error
 	// StartContainer starts the given container.

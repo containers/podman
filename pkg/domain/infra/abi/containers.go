@@ -332,7 +332,7 @@ func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []st
 			return nil, nil, err
 		}
 
-		inspect, err := ctr.Inspect(options.Size)
+		inspect, err := ctr.Inspect(ctx, options.Size)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -359,7 +359,7 @@ func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []st
 			return nil, nil, err
 		}
 
-		inspect, err := ctr.Inspect(options.Size)
+		inspect, err := ctr.Inspect(ctx, options.Size)
 		if err != nil {
 			return nil, nil, err
 		}

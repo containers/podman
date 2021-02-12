@@ -1,5 +1,7 @@
 package libpod
 
+import "context"
+
 // State is a storage backend for libpod's current state.
 // A State is only initialized once per instance of libpod.
 // As such, initialization methods for State implementations may safely assume
@@ -229,10 +231,10 @@ type State interface {
 
 	// Volume accepts full name of volume
 	// If the volume doesn't exist, an error will be returned
-	Volume(volName string) (*Volume, error)
+	Volume(ctx context.Context, volName string) (*Volume, error)
 	// LookupVolume accepts an unambiguous partial name or full name of a
 	// volume. Ambiguous names will result in an error.
-	LookupVolume(name string) (*Volume, error)
+	LookupVolume(ctx context.Context, name string) (*Volume, error)
 	// HasVolume returns true if volName exists in the state,
 	// otherwise it returns false
 	HasVolume(volName string) (bool, error)
@@ -251,5 +253,5 @@ type State interface {
 	// SaveVolume saves a volume's state to the database.
 	SaveVolume(volume *Volume) error
 	// AllVolumes returns all the volumes available in the state
-	AllVolumes() ([]*Volume, error)
+	AllVolumes(ctx context.Context) ([]*Volume, error)
 }

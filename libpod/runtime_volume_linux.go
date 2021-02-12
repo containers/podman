@@ -57,7 +57,7 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 
 	// Plugin can be nil if driver is local, but that's OK - superfluous
 	// assignment doesn't hurt much.
-	plugin, err := r.getVolumePlugin(volume.config.Driver)
+	plugin, err := r.getVolumePlugin(ctx, volume.config.Driver)
 	if err != nil {
 		return nil, errors.Wrapf(err, "volume %s uses volume plugin %s but it could not be retrieved", volume.config.Name, volume.config.Driver)
 	}
@@ -84,7 +84,7 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 		// TODO: reevaluate this once we actually have volume plugins in
 		// use in production - it may be safe, but I can't tell without
 		// knowing what the actual plugin does...
-		if err := makeVolumeInPluginIfNotExist(volume.config.Name, volume.config.Options, volume.plugin); err != nil {
+		if err := makeVolumeInPluginIfNotExist(ctx, volume.config.Name, volume.config.Options, volume.plugin); err != nil {
 			return nil, err
 		}
 	} else {
@@ -136,7 +136,7 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 
 // makeVolumeInPluginIfNotExist makes a volume in the given volume plugin if it
 // does not already exist.
-func makeVolumeInPluginIfNotExist(name string, options map[string]string, plugin *volplugin.VolumePlugin) error {
+func makeVolumeInPluginIfNotExist(ctx context.Context, name string, options map[string]string, plugin *volplugin.VolumePlugin) error {
 	// Ping the volume plugin to see if it exists first.
 	// If it does, use the existing volume in the plugin.
 	// Options may not match exactly, but not much we can do about
@@ -145,7 +145,7 @@ func makeVolumeInPluginIfNotExist(name string, options map[string]string, plugin
 	needsCreate := true
 	getReq := new(pluginapi.GetRequest)
 	getReq.Name = name
-	if resp, err := plugin.GetVolume(getReq); err == nil {
+	if resp, err := plugin.GetVolume(ctx, getReq); err == nil {
 		// TODO: What do we do if we get a 200 response, but the
 		// Volume is nil? The docs on the Plugin API are very
 		// nonspecific, so I don't know if this is valid or
@@ -159,7 +159,7 @@ func makeVolumeInPluginIfNotExist(name string, options map[string]string, plugin
 		createReq := new(pluginapi.CreateRequest)
 		createReq.Name = name
 		createReq.Options = options
-		if err := plugin.CreateVolume(createReq); err != nil {
+		if err := plugin.CreateVolume(ctx, createReq); err != nil {
 			return errors.Wrapf(err, "error creating volume %q in plugin %s", name, plugin.Name)
 		}
 	}
@@ -220,7 +220,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 	}
 
 	// If the volume is still mounted - force unmount it
-	if err := v.unmount(true); err != nil {
+	if err := v.unmount(ctx, true); err != nil {
 		if force {
 			// If force is set, evict the volume, even if errors
 			// occur. Otherwise we'll never be able to get rid of
@@ -257,7 +257,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 			// sync between c/storage and the Libpod DB.
 			getReq := new(pluginapi.GetRequest)
 			getReq.Name = v.Name()
-			if _, err := v.plugin.GetVolume(getReq); err != nil {
+			if _, err := v.plugin.GetVolume(ctx, getReq); err != nil {
 				canRemove = false
 				removalErr = errors.Wrapf(err, "volume %s could not be retrieved from plugin %s, but it has been removed from Podman", v.Name(), v.Driver())
 			}
@@ -265,7 +265,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 		if canRemove {
 			req := new(pluginapi.RemoveRequest)
 			req.Name = v.Name()
-			if err := v.plugin.RemoveVolume(req); err != nil {
+			if err := v.plugin.RemoveVolume(ctx, req); err != nil {
 				removalErr = errors.Wrapf(err, "volume %s could not be removed from plugin %s, but it has been removed from Podman", v.Name(), v.Driver())
 			}
 		}

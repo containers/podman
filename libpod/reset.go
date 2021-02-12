@@ -63,7 +63,7 @@ func (r *Runtime) Reset(ctx context.Context) error {
 			logrus.Errorf("Error removing image %s: %v", i.ID(), err)
 		}
 	}
-	volumes, err := r.state.AllVolumes()
+	volumes, err := r.state.AllVolumes(ctx)
 	if err != nil {
 		return err
 	}

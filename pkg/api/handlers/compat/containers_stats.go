@@ -98,7 +98,7 @@ streamLabel: // A label to flatten the scope
 			logrus.Errorf("Unable to get container stats: %v", err)
 			return
 		}
-		inspect, err := ctnr.Inspect(false)
+		inspect, err := ctnr.Inspect(r.Context(), false)
 		if err != nil {
 			logrus.Errorf("Unable to inspect container: %v", err)
 			return

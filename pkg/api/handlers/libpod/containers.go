@@ -135,7 +135,7 @@ func GetContainer(w http.ResponseWriter, r *http.Request) {
 		utils.ContainerNotFound(w, name, err)
 		return
 	}
-	data, err := container.Inspect(query.Size)
+	data, err := container.Inspect(r.Context(), query.Size)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return

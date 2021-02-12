@@ -1,6 +1,7 @@
 package compat
 
 import (
+	"context"
 	"encoding/json"
 	"net"
 	"net/http"
@@ -50,7 +51,7 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 		utils.NetworkNotFound(w, name, err)
 		return
 	}
-	report, err := getNetworkResourceByNameOrID(name, runtime, nil)
+	report, err := getNetworkResourceByNameOrID(r.Context(), name, runtime, nil)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
@@ -58,7 +59,7 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, report)
 }
 
-func getNetworkResourceByNameOrID(nameOrID string, runtime *libpod.Runtime, filters map[string][]string) (*types.NetworkResource, error) {
+func getNetworkResourceByNameOrID(ctx context.Context, nameOrID string, runtime *libpod.Runtime, filters map[string][]string) (*types.NetworkResource, error) {
 	var (
 		ipamConfigs []dockerNetwork.IPAMConfig
 	)
@@ -112,7 +113,7 @@ func getNetworkResourceByNameOrID(nameOrID string, runtime *libpod.Runtime, filt
 	}
 
 	for _, con := range cons {
-		data, err := con.Inspect(false)
+		data, err := con.Inspect(ctx, false)
 		if err != nil {
 			return nil, err
 		}
@@ -199,7 +200,7 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 	reports := []*types.NetworkResource{}
 	logrus.Debugf("netNames: %q", strings.Join(netNames, ", "))
 	for _, name := range netNames {
-		report, err := getNetworkResourceByNameOrID(name, runtime, query.Filters)
+		report, err := getNetworkResourceByNameOrID(r.Context(), name, runtime, query.Filters)
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return
@@ -271,7 +272,7 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	net, err := getNetworkResourceByNameOrID(name, runtime, nil)
+	net, err := getNetworkResourceByNameOrID(r.Context(), name, runtime, nil)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return

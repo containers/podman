@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"strings"
 	"sync"
@@ -2421,7 +2422,7 @@ func (s *BoltState) SaveVolume(volume *Volume) error {
 }
 
 // AllVolumes returns all volumes present in the state
-func (s *BoltState) AllVolumes() ([]*Volume, error) {
+func (s *BoltState) AllVolumes(ctx context.Context) ([]*Volume, error) {
 	if !s.valid {
 		return nil, define.ErrDBClosed
 	}
@@ -2456,7 +2457,7 @@ func (s *BoltState) AllVolumes() ([]*Volume, error) {
 			volume.config = new(VolumeConfig)
 			volume.state = new(VolumeState)
 
-			if err := s.getVolumeFromDB(id, volume, volBucket); err != nil {
+			if err := s.getVolumeFromDB(ctx, id, volume, volBucket); err != nil {
 				if errors.Cause(err) != define.ErrNSMismatch {
 					logrus.Errorf("Error retrieving volume %s from the database: %v", string(id), err)
 				}
@@ -2476,7 +2477,7 @@ func (s *BoltState) AllVolumes() ([]*Volume, error) {
 }
 
 // Volume retrieves a volume from full name
-func (s *BoltState) Volume(name string) (*Volume, error) {
+func (s *BoltState) Volume(ctx context.Context, name string) (*Volume, error) {
 	if name == "" {
 		return nil, define.ErrEmptyID
 	}
@@ -2503,7 +2504,7 @@ func (s *BoltState) Volume(name string) (*Volume, error) {
 			return err
 		}
 
-		return s.getVolumeFromDB(volName, volume, volBkt)
+		return s.getVolumeFromDB(ctx, volName, volume, volBkt)
 	})
 	if err != nil {
 		return nil, err
@@ -2513,7 +2514,7 @@ func (s *BoltState) Volume(name string) (*Volume, error) {
 }
 
 // LookupVolume locates a volume from a partial name.
-func (s *BoltState) LookupVolume(name string) (*Volume, error) {
+func (s *BoltState) LookupVolume(ctx context.Context, name string) (*Volume, error) {
 	if name == "" {
 		return nil, define.ErrEmptyID
 	}
@@ -2548,7 +2549,7 @@ func (s *BoltState) LookupVolume(name string) (*Volume, error) {
 		// Check for exact match on name
 		volDB := volBkt.Bucket(volName)
 		if volDB != nil {
-			return s.getVolumeFromDB(volName, volume, volBkt)
+			return s.getVolumeFromDB(ctx, volName, volume, volBkt)
 		}
 
 		// No exact match. Search all names.
@@ -2571,7 +2572,7 @@ func (s *BoltState) LookupVolume(name string) (*Volume, error) {
 			return errors.Wrapf(define.ErrNoSuchVolume, "no volume with name %q found", name)
 		}
 
-		return s.getVolumeFromDB(volName, volume, volBkt)
+		return s.getVolumeFromDB(ctx, volName, volume, volBkt)
 	})
 	if err != nil {
 		return nil, err

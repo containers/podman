@@ -136,7 +136,7 @@ func (r *Runtime) RenameContainer(ctx context.Context, ctr *Container, newName s
 		if volsLocked[namedVol.Name] {
 			continue
 		}
-		vol, err := r.state.Volume(namedVol.Name)
+		vol, err := r.state.Volume(ctx, namedVol.Name)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error retrieving volume used by container %s", ctr.ID())
 		}
@@ -416,7 +416,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 	}
 	defer func() {
 		if retErr != nil {
-			if err := ctr.teardownStorage(); err != nil {
+			if err := ctr.teardownStorage(ctx); err != nil {
 				logrus.Errorf("Error removing partially-created container root filesystem: %s", err)
 			}
 		}
@@ -451,7 +451,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 			isAnonymous = true
 		} else {
 			// Check if it exists already
-			dbVol, err := r.state.Volume(vol.Name)
+			dbVol, err := r.state.Volume(ctx, vol.Name)
 			if err == nil {
 				ctrNamedVolumes = append(ctrNamedVolumes, dbVol)
 				// The volume exists, we're good
@@ -684,7 +684,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 	}
 
 	// Stop the container's storage
-	if err := c.teardownStorage(); err != nil {
+	if err := c.teardownStorage(ctx); err != nil {
 		if cleanupErr == nil {
 			cleanupErr = err
 		} else {
@@ -748,7 +748,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 	}
 
 	for _, v := range c.config.NamedVolumes {
-		if volume, err := runtime.state.Volume(v.Name); err == nil {
+		if volume, err := runtime.state.Volume(ctx, v.Name); err == nil {
 			if !volume.Anonymous() {
 				continue
 			}
@@ -886,7 +886,7 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 	}
 
 	for _, v := range c.config.NamedVolumes {
-		if volume, err := r.state.Volume(v.Name); err == nil {
+		if volume, err := r.state.Volume(ctx, v.Name); err == nil {
 			if !volume.Anonymous() {
 				continue
 			}

@@ -55,7 +55,7 @@ func (c *Container) Init(ctx context.Context, recursive bool) error {
 		}
 	}
 
-	if err := c.prepare(); err != nil {
+	if err := c.prepare(ctx); err != nil {
 		if err2 := c.cleanup(ctx); err2 != nil {
 			logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
 		}
@@ -874,5 +874,5 @@ func (c *Container) ResolvePath(ctx context.Context, root string, path string) (
 		}
 	}
 
-	return c.resolvePath(root, path)
+	return c.resolvePath(ctx, root, path)
 }

@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"path/filepath"
@@ -67,7 +68,7 @@ func (r *MissingRuntime) Path() string {
 }
 
 // CreateContainer is not available as the runtime is missing
-func (r *MissingRuntime) CreateContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) error {
+func (r *MissingRuntime) CreateContainer(ctx context.Context, ctr *Container, restoreOptions *ContainerCheckpointOptions) error {
 	return r.printError()
 }
 

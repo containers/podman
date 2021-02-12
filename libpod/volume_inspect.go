@@ -1,6 +1,8 @@
 package libpod
 
 import (
+	"context"
+
 	"github.com/containers/podman/v2/libpod/define"
 	pluginapi "github.com/docker/go-plugins-helpers/volume"
 	"github.com/pkg/errors"
@@ -9,7 +11,7 @@ import (
 
 // Inspect provides detailed information about the configuration of the given
 // volume.
-func (v *Volume) Inspect() (*define.InspectVolumeData, error) {
+func (v *Volume) Inspect(ctx context.Context) (*define.InspectVolumeData, error) {
 	if !v.valid {
 		return nil, define.ErrVolumeRemoved
 	}
@@ -36,7 +38,7 @@ func (v *Volume) Inspect() (*define.InspectVolumeData, error) {
 		// Need to query the volume driver.
 		req := new(pluginapi.GetRequest)
 		req.Name = v.Name()
-		resp, err := v.plugin.GetVolume(req)
+		resp, err := v.plugin.GetVolume(ctx, req)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error retrieving volume %s information from plugin %s", v.Name(), v.Driver())
 		}

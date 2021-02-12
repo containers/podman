@@ -279,7 +279,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 			}
 		}
 	}()
-	if err := c.prepare(); err != nil {
+	if err := c.prepare(ctx); err != nil {
 		return false, err
 	}
 
@@ -514,7 +514,7 @@ func (c *Container) setupStorage(ctx context.Context) error {
 }
 
 // Tear down a container's storage prior to removal
-func (c *Container) teardownStorage() error {
+func (c *Container) teardownStorage(ctx context.Context) error {
 	if c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused) {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot remove storage for container %s as it is running or paused", c.ID())
 	}
@@ -524,7 +524,7 @@ func (c *Container) teardownStorage() error {
 		return errors.Wrapf(err, "error removing container %s artifacts %q", c.ID(), artifacts)
 	}
 
-	if err := c.cleanupStorage(); err != nil {
+	if err := c.cleanupStorage(ctx); err != nil {
 		return errors.Wrapf(err, "failed to cleanup container %s storage", c.ID())
 	}
 
@@ -805,7 +805,7 @@ func (c *Container) prepareToStart(ctx context.Context, recursive bool) (retErr 
 		}
 	}()
 
-	if err := c.prepare(); err != nil {
+	if err := c.prepare(ctx); err != nil {
 		return err
 	}
 
@@ -1056,13 +1056,13 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	}
 
 	for _, v := range c.config.NamedVolumes {
-		if err := c.chownVolume(v.Name); err != nil {
+		if err := c.chownVolume(ctx, v.Name); err != nil {
 			return err
 		}
 	}
 
 	// With the spec complete, do an OCI create
-	if err := c.ociRuntime.CreateContainer(c, nil); err != nil {
+	if err := c.ociRuntime.CreateContainer(ctx, c, nil); err != nil {
 		// Fedora 31 is carrying a patch to display improved error
 		// messages to better handle the V2 transition. This is NOT
 		// upstream in any OCI runtime.
@@ -1197,7 +1197,7 @@ func (c *Container) initAndStart(ctx context.Context) (retErr error) {
 		}
 	}()
 
-	if err := c.prepare(); err != nil {
+	if err := c.prepare(ctx); err != nil {
 		return err
 	}
 
@@ -1456,7 +1456,7 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (retEr
 			}
 		}
 	}()
-	if err := c.prepare(); err != nil {
+	if err := c.prepare(ctx); err != nil {
 		return err
 	}
 
@@ -1480,7 +1480,7 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (retEr
 // TODO: Add ability to override mount label so we can use this for Mount() too
 // TODO: Can we use this for export? Copying SHM into the export might not be
 // good
-func (c *Container) mountStorage() (_ string, deferredErr error) {
+func (c *Container) mountStorage(ctx context.Context) (_ string, deferredErr error) {
 	var err error
 	// Container already mounted, nothing to do
 	if c.state.Mounted {
@@ -1528,7 +1528,7 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 
 	// Request a mount of all named volumes
 	for _, v := range c.config.NamedVolumes {
-		vol, err := c.mountNamedVolume(v, mountPoint)
+		vol, err := c.mountNamedVolume(ctx, v, mountPoint)
 		if err != nil {
 			return "", err
 		}
@@ -1537,7 +1537,7 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 				return
 			}
 			vol.lock.Lock()
-			if err := vol.unmount(false); err != nil {
+			if err := vol.unmount(ctx, false); err != nil {
 				logrus.Errorf("Error unmounting volume %s after error mounting container %s: %v", vol.Name(), c.ID(), err)
 			}
 			vol.lock.Unlock()
@@ -1552,9 +1552,9 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 // Does not verify that the name volume given is actually present in container
 // config.
 // Returns the volume that was mounted.
-func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string) (*Volume, error) {
+func (c *Container) mountNamedVolume(ctx context.Context, v *ContainerNamedVolume, mountpoint string) (*Volume, error) {
 	logrus.Debugf("Going to mount named volume %s", v.Name)
-	vol, err := c.runtime.state.Volume(v.Name)
+	vol, err := c.runtime.state.Volume(ctx, v.Name)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error retrieving named volume %s for container %s", v.Name, c.ID())
 	}
@@ -1565,7 +1565,7 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 	vol.lock.Lock()
 	defer vol.lock.Unlock()
 	if vol.needsMount() {
-		if err := vol.mount(); err != nil {
+		if err := vol.mount(ctx); err != nil {
 			return nil, errors.Wrapf(err, "error mounting volume %s for container %s", vol.Name(), c.ID())
 		}
 	}
@@ -1655,8 +1655,8 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 }
 
 // Chown the specified volume if necessary.
-func (c *Container) chownVolume(volumeName string) error {
-	vol, err := c.runtime.state.Volume(volumeName)
+func (c *Container) chownVolume(ctx context.Context, volumeName string) error {
+	vol, err := c.runtime.state.Volume(ctx, volumeName)
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving named volume %s for container %s", volumeName, c.ID())
 	}
@@ -1713,7 +1713,7 @@ func (c *Container) chownVolume(volumeName string) error {
 }
 
 // cleanupStorage unmounts and cleans up the container's root filesystem
-func (c *Container) cleanupStorage() error {
+func (c *Container) cleanupStorage(ctx context.Context) error {
 	if !c.state.Mounted {
 		// Already unmounted, do nothing
 		logrus.Debugf("Container %s storage is already unmounted, skipping...", c.ID())
@@ -1758,7 +1758,7 @@ func (c *Container) cleanupStorage() error {
 
 	// Request an unmount of all named volumes
 	for _, v := range c.config.NamedVolumes {
-		vol, err := c.runtime.state.Volume(v.Name)
+		vol, err := c.runtime.state.Volume(ctx, v.Name)
 		if err != nil {
 			if cleanupErr != nil {
 				logrus.Errorf("Error unmounting container %s: %v", c.ID(), cleanupErr)
@@ -1772,7 +1772,7 @@ func (c *Container) cleanupStorage() error {
 
 		if vol.needsMount() {
 			vol.lock.Lock()
-			if err := vol.unmount(false); err != nil {
+			if err := vol.unmount(ctx, false); err != nil {
 				if cleanupErr != nil {
 					logrus.Errorf("Error unmounting container %s: %v", c.ID(), cleanupErr)
 				}
@@ -1831,7 +1831,7 @@ func (c *Container) cleanup(ctx context.Context) error {
 	}
 
 	// Unmount storage
-	if err := c.cleanupStorage(); err != nil {
+	if err := c.cleanupStorage(ctx); err != nil {
 		if lastError != nil {
 			logrus.Errorf("Error unmounting container %s storage: %v", c.ID(), err)
 		} else {

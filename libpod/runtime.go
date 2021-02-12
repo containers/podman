@@ -502,7 +502,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	// It breaks out of normal runtime init, and will not return a valid
 	// runtime.
 	if runtime.doRenumber {
-		if err := runtime.renumberLocks(); err != nil {
+		if err := runtime.renumberLocks(ctx); err != nil {
 			return err
 		}
 	}
@@ -517,7 +517,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 			}
 		}
 
-		if err2 := runtime.refresh(runtimeAliveFile); err2 != nil {
+		if err2 := runtime.refresh(ctx, runtimeAliveFile); err2 != nil {
 			return err2
 		}
 	}
@@ -619,7 +619,7 @@ func (r *Runtime) Shutdown(force bool) error {
 // Reconfigures the runtime after a reboot
 // Refreshes the state, recreating temporary files
 // Does not check validity as the runtime is not valid until after this has run
-func (r *Runtime) refresh(alivePath string) error {
+func (r *Runtime) refresh(ctx context.Context, alivePath string) error {
 	logrus.Debugf("Podman detected system restart - performing state refresh")
 
 	// First clear the state in the database
@@ -638,7 +638,7 @@ func (r *Runtime) refresh(alivePath string) error {
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving all pods from state")
 	}
-	vols, err := r.state.AllVolumes()
+	vols, err := r.state.AllVolumes(ctx)
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving all volumes from state")
 	}
@@ -886,7 +886,7 @@ func (r *Runtime) reloadStorageConf() error {
 }
 
 // getVolumePlugin gets a specific volume plugin given its name.
-func (r *Runtime) getVolumePlugin(name string) (*plugin.VolumePlugin, error) {
+func (r *Runtime) getVolumePlugin(ctx context.Context, name string) (*plugin.VolumePlugin, error) {
 	// There is no plugin for local.
 	if name == define.VolumeDriverLocal || name == "" {
 		return nil, nil
@@ -897,7 +897,7 @@ func (r *Runtime) getVolumePlugin(name string) (*plugin.VolumePlugin, error) {
 		return nil, errors.Wrapf(define.ErrMissingPlugin, "no volume plugin with name %s available", name)
 	}
 
-	return plugin.GetVolumePlugin(name, pluginPath)
+	return plugin.GetVolumePlugin(ctx, name, pluginPath)
 }
 
 // GetSecretsStoreageDir returns the directory that the secrets manager should take
