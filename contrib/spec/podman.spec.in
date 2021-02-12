@@ -380,6 +380,29 @@ tar zxf %{SOURCE1}
 %build
 mkdir _build
 pushd _build
+
+# These flags should work for all rpm distros and arches
+export CGO_CFLAGS="-O2 -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -ffat-lto-objects -fexceptions -fasynchronous-unwind-tables -fstack-protector-strong -fstack-clash-protection -D_GNU_SOURCE -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE"
+
+%if 0%{?fedora} || 0%{?rhel}
+# This flag is only present on RH-family distros
+export CGO_CFLAGS+=" -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1"
+%endif
+
+%ifnarch %{ix86}
+# Build fails on i686 with this flag
+export CGO_CFLAGS+=" -D_FILE_OFFSET_BITS=64"
+%endif
+
+%ifarch x86_64
+# Builds only on x86_64 with this flag
+export CGO_CFLAGS+=" -m64 -mtune=generic"
+%if 0%{?fedora} || 0%{?rhel} >= 8
+# Build fails on rhel7 and non-86_64 with this flag
+export CGO_CFLAGS+=" -fcf-protection"
+%endif
+%endif
+
 mkdir -p src/%{provider}.%{provider_tld}/%{project}
 ln -s ../../../../ src/%{import_path}
 popd
