@@ -120,6 +120,8 @@ github.com/containers/psgo v1.5.2/go.mod h1:2ubh0SsreMZjSXW1Hif58JrEcFudQyIy9EzP
 github.com/containers/storage v1.23.7/go.mod h1:cUT2zHjtx+WlVri30obWmM2gpqpi8jfPsmIzP1TVpEI=
 github.com/containers/storage v1.24.5 h1:BusfdU0rCS2/Daa/DPw+0iLfGRlYA7UVF7D0el3N7Vk=
 github.com/containers/storage v1.24.5/go.mod h1:YC+2pY8SkfEAcZkwycxYbpK8EiRbx5soPPwz9dxe4IQ=
+github.com/containers/storage v1.24.6 h1:9PBb9PoGuj5B/3MGfxx//RmUjMAklmx3rBbuCkuIc94=
+github.com/containers/storage v1.24.6/go.mod h1:YC+2pY8SkfEAcZkwycxYbpK8EiRbx5soPPwz9dxe4IQ=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.13+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-iptables v0.4.5 h1:DpHb9vJrZQEFMcVLFKAAGMUVX0XoRC0ptCthinRYm38=
