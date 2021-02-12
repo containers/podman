@@ -152,7 +152,7 @@ func jsonOut(responses []entities.ListContainer) error {
 		con.Status = psReporter{con}.Status()
 		jf := jsonFormat{
 			ListContainer: con,
-			Created:       con.Created.UnixNano(),
+			Created:       con.Created.Unix(),
 		}
 		r = append(r, jf)
 	}
