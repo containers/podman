@@ -521,14 +521,14 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			}}
 		}
 		for _, gid := range execUser.Sgids {
-			isGidAvailable := false
+			isGIDAvailable := false
 			for _, m := range gidMappings {
 				if gid >= m.ContainerID && gid < m.ContainerID+m.Size {
-					isGidAvailable = true
+					isGIDAvailable = true
 					break
 				}
 			}
-			if isGidAvailable {
+			if isGIDAvailable {
 				g.AddProcessAdditionalGid(uint32(gid))
 			} else {
 				logrus.Warnf("additional gid=%d is not present in the user namespace, skip setting it", gid)
@@ -1614,7 +1614,6 @@ func (c *Container) makeBindMounts() error {
 				return errors.Wrapf(err, "error setting timezone for container %s", c.ID())
 			}
 			c.state.BindMounts["/etc/localtime"] = localtimePath
-
 		}
 	}
 

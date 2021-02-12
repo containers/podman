@@ -20,7 +20,6 @@ linters:
     # All these break for one reason or another
     - nolintlint
     - gocognit
-    - stylecheck
     - testpackage
     - goerr113
     - exhaustivestruct
@@ -40,7 +39,6 @@ linters:
     - staticcheck
     - forbidigo
     - exhaustive
-    - whitespace
     - unparam
     - gofumpt
     - gci
@@ -52,7 +50,6 @@ linters:
     - gochecknoinits
     - goconst
     - gocyclo
-    - golint
     - lll
     - structcheck
     - typecheck

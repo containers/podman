@@ -65,7 +65,6 @@ func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string
 			},
 		}
 		reports = append(reports, report)
-
 	}
 
 	return reports, errs, nil

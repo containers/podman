@@ -62,7 +62,7 @@ func handleHeadAndGet(w http.ResponseWriter, r *http.Request, decoder *schema.De
 		w.Header().Add(copy.XDockerContainerPathStatHeader, statHeader)
 	}
 
-	if errors.Cause(err) == define.ErrNoSuchCtr || errors.Cause(err) == copy.ENOENT {
+	if errors.Cause(err) == define.ErrNoSuchCtr || errors.Cause(err) == copy.ErrENOENT {
 		// 404 is returned for an absent container and path.  The
 		// clients must deal with it accordingly.
 		utils.Error(w, "Not found.", http.StatusNotFound, err)

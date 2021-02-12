@@ -55,7 +55,6 @@ func getContainersByContext(contextWithConnection context.Context, all, ignore b
 				found = true
 				break
 			}
-
 		}
 
 		if !found && !ignore {
@@ -107,7 +106,6 @@ func getPodsByContext(contextWithConnection context.Context, all bool, namesOrID
 				found = true
 				break
 			}
-
 		}
 
 		if !found {

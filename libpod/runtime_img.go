@@ -313,9 +313,8 @@ func (r *Runtime) LoadImageFromSingleImageArchive(ctx context.Context, writer io
 		if err == nil && src != nil {
 			if newImages, err := r.ImageRuntime().LoadFromArchiveReference(ctx, src, signaturePolicy, writer); err == nil {
 				return getImageNames(newImages), nil
-			} else {
-				saveErr = err
 			}
+			saveErr = err
 		}
 	}
 	return "", errors.Wrapf(saveErr, "error pulling image")

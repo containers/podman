@@ -61,9 +61,9 @@ var (
 	gidMapOnce  sync.Once
 )
 
-// GetAvailableUidMap returns the UID mappings in the
+// GetAvailableUIDMap returns the UID mappings in the
 // current user namespace.
-func GetAvailableUidMap() ([]user.IDMap, error) {
+func GetAvailableUIDMap() ([]user.IDMap, error) {
 	uidMapOnce.Do(func() {
 		var err error
 		uidMap, err = user.ParseIDMapFile("/proc/self/uid_map")
@@ -75,9 +75,9 @@ func GetAvailableUidMap() ([]user.IDMap, error) {
 	return uidMap, uidMapError
 }
 
-// GetAvailableGidMap returns the GID mappings in the
+// GetAvailableGIDMap returns the GID mappings in the
 // current user namespace.
-func GetAvailableGidMap() ([]user.IDMap, error) {
+func GetAvailableGIDMap() ([]user.IDMap, error) {
 	gidMapOnce.Do(func() {
 		var err error
 		gidMap, err = user.ParseIDMapFile("/proc/self/gid_map")
@@ -92,11 +92,11 @@ func GetAvailableGidMap() ([]user.IDMap, error) {
 // GetAvailableIDMaps returns the UID and GID mappings in the
 // current user namespace.
 func GetAvailableIDMaps() ([]user.IDMap, []user.IDMap, error) {
-	u, err := GetAvailableUidMap()
+	u, err := GetAvailableUIDMap()
 	if err != nil {
 		return nil, nil, err
 	}
-	g, err := GetAvailableGidMap()
+	g, err := GetAvailableGIDMap()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -114,7 +114,7 @@ func countAvailableIDs(mappings []user.IDMap) int64 {
 // GetAvailableUids returns how many UIDs are available in the
 // current user namespace.
 func GetAvailableUids() (int64, error) {
-	uids, err := GetAvailableUidMap()
+	uids, err := GetAvailableUIDMap()
 	if err != nil {
 		return -1, err
 	}
@@ -125,7 +125,7 @@ func GetAvailableUids() (int64, error) {
 // GetAvailableGids returns how many GIDs are available in the
 // current user namespace.
 func GetAvailableGids() (int64, error) {
-	gids, err := GetAvailableGidMap()
+	gids, err := GetAvailableGIDMap()
 	if err != nil {
 		return -1, err
 	}

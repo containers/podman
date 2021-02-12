@@ -61,7 +61,6 @@ func (o *WaitOptions) ToParams() (url.Values, error) {
 			iter := f.MapRange()
 			for iter.Next() {
 				lowerCaseKeys[iter.Key().Interface().(string)] = iter.Value().Interface().([]string)
-
 			}
 			s, err := json.MarshalToString(lowerCaseKeys)
 			if err != nil {
@@ -70,7 +69,6 @@ func (o *WaitOptions) ToParams() (url.Values, error) {
 
 			params.Set(fieldName, s)
 		}
-
 	}
 	return params, nil
 }

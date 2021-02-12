@@ -26,5 +26,4 @@ func (c *ContainerCLIOpts) validate() error {
 		return errors.Errorf("invalid image-volume type %q. Pick one of bind, tmpfs, or ignore", c.ImageVolume)
 	}
 	return nil
-
 }

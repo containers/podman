@@ -59,7 +59,6 @@ func create(cmd *cobra.Command, args []string) error {
 		}
 		if (stat.Mode() & os.ModeNamedPipe) == 0 {
 			return errors.New("if `-` is used, data must be passed into stdin")
-
 		}
 		reader = os.Stdin
 	} else {

@@ -86,7 +86,6 @@ func generateEventSinceOption(timeSince time.Time) func(e *Event) bool {
 func generateEventUntilOption(timeUntil time.Time) func(e *Event) bool {
 	return func(e *Event) bool {
 		return e.Time.Before(timeUntil)
-
 	}
 }
 

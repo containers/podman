@@ -388,7 +388,6 @@ func GetKeepIDMapping() (*storage.IDMappingOptions, int, int, error) {
 
 		options.HostUIDMapping = false
 		options.HostGIDMapping = false
-
 	}
 	// Simply ignore the setting and do not setup an inner namespace for root as it is a no-op
 	return &options, uid, gid, nil
@@ -530,9 +529,9 @@ func ParseInputTime(inputTime string) (time.Time, error) {
 		}
 	}
 
-	unix_timestamp, err := strconv.ParseInt(inputTime, 10, 64)
+	unixTimestamp, err := strconv.ParseInt(inputTime, 10, 64)
 	if err == nil {
-		return time.Unix(unix_timestamp, 0), nil
+		return time.Unix(unixTimestamp, 0), nil
 	}
 
 	// input might be a duration

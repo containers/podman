@@ -42,7 +42,6 @@ func init() {
 	_ = showFlags.MarkHidden("policypath")
 	showFlags.StringVar(&showTrustOptions.RegistryPath, "registrypath", "", "")
 	_ = showFlags.MarkHidden("registrypath")
-
 }
 
 func showTrust(cmd *cobra.Command, args []string) error {

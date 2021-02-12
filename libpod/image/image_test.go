@@ -66,7 +66,6 @@ func makeLocalMatrix(b, bg *Image) []localImageTest {
 
 	l = append(l, busybox, busyboxGlibc)
 	return l
-
 }
 
 func TestMain(m *testing.M) {

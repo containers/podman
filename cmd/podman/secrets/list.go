@@ -48,7 +48,6 @@ func init() {
 	formatFlagName := "format"
 	flags.StringVar(&listFlag.format, formatFlagName, "{{.ID}}\t{{.Name}}\t{{.Driver}}\t{{.CreatedAt}}\t{{.UpdatedAt}}\t\n", "Format volume output using Go template")
 	_ = lsCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
-
 }
 
 func ls(cmd *cobra.Command, args []string) error {
@@ -65,7 +64,6 @@ func ls(cmd *cobra.Command, args []string) error {
 			UpdatedAt: units.HumanDuration(time.Since(response.UpdatedAt)) + " ago",
 			Driver:    response.Spec.Driver.Name,
 		})
-
 	}
 	return outputTemplate(cmd, listed)
 }

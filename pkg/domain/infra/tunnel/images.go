@@ -32,7 +32,6 @@ func (ir *ImageEngine) Remove(ctx context.Context, imagesArg []string, opts enti
 }
 
 func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions) ([]*entities.ImageSummary, error) {
-
 	filters := make(map[string][]string, len(opts.Filter))
 	for _, filter := range opts.Filter {
 		f := strings.Split(filter, "=")

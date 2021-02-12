@@ -266,7 +266,6 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 	if len(query.References) > 1 && query.Format != define.V2s2Archive {
 		utils.Error(w, "unsupported format", http.StatusInternalServerError, errors.Errorf("multi-image archives must use format of %s", define.V2s2Archive))
 		return
-
 	}
 
 	switch query.Format {
@@ -445,7 +444,6 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 	if authconf != nil {
 		username = authconf.Username
 		password = authconf.Password
-
 	}
 	options := entities.ImagePushOptions{
 		Authfile: authfile,

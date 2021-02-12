@@ -45,7 +45,7 @@ func (v *Volume) mount() error {
 	// If the count is non-zero, the volume is already mounted.
 	// Nothing to do.
 	if v.state.MountCount > 0 {
-		v.state.MountCount += 1
+		v.state.MountCount++
 		logrus.Debugf("Volume %s mount count now at %d", v.Name(), v.state.MountCount)
 		return v.save()
 	}
@@ -67,7 +67,7 @@ func (v *Volume) mount() error {
 			return err
 		}
 
-		v.state.MountCount += 1
+		v.state.MountCount++
 		v.state.MountPoint = mountPoint
 		return v.save()
 	}
@@ -109,7 +109,7 @@ func (v *Volume) mount() error {
 	logrus.Debugf("Mounted volume %s", v.Name())
 
 	// Increment the mount counter
-	v.state.MountCount += 1
+	v.state.MountCount++
 	logrus.Debugf("Volume %s mount count now at %d", v.Name(), v.state.MountCount)
 	return v.save()
 }
@@ -152,7 +152,7 @@ func (v *Volume) unmount(force bool) error {
 	}
 
 	if !force {
-		v.state.MountCount -= 1
+		v.state.MountCount--
 	} else {
 		v.state.MountCount = 0
 	}

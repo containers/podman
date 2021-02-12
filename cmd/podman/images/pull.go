@@ -110,11 +110,9 @@ func pullFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(authfileFlagName, completion.AutocompleteDefault)
 
 	if !registry.IsRemote() {
-
 		certDirFlagName := "cert-dir"
 		flags.StringVar(&pullOptions.CertDir, certDirFlagName, "", "`Pathname` of a directory containing TLS certificates and keys")
 		_ = cmd.RegisterFlagCompletionFunc(certDirFlagName, completion.AutocompleteDefault)
-
 	}
 	_ = flags.MarkHidden("signature-policy")
 }

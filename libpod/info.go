@@ -222,11 +222,11 @@ func (r *Runtime) getContainerStoreInfo() (define.ContainerStore, error) {
 		}
 		switch state {
 		case define.ContainerStateRunning:
-			running += 1
+			running++
 		case define.ContainerStatePaused:
-			paused += 1
+			paused++
 		default:
-			stopped += 1
+			stopped++
 		}
 	}
 	cs.Paused = paused
