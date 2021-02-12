@@ -113,7 +113,6 @@ func DevicesFromPath(g *generate.Generator, devicePath string) error {
 
 		// mount the internal devices recursively
 		if err := filepath.Walk(resolvedDevicePath, func(dpath string, f os.FileInfo, e error) error {
-
 			if f.Mode()&os.ModeDevice == os.ModeDevice {
 				found = true
 				device := fmt.Sprintf("%s:%s", dpath, filepath.Join(dest, strings.TrimPrefix(dpath, src)))

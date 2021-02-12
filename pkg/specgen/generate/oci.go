@@ -219,7 +219,6 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		if !mappingFound {
 			gid5Available = false
 		}
-
 	}
 	if !gid5Available {
 		// If we have no GID mappings, the gid=5 default option would fail, so drop it.

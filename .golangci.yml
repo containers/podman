@@ -4,14 +4,10 @@ run:
   deadline: 5m
   skip-dirs-use-default: true
   skip-dirs:
-    - dependencies
     - contrib
     - dependencies
     - test
-    - pkg/spec
-    - vendor
   skip-files:
-    - iopodman.go
     - swagger.go
   modules-download-mode: readonly
 linters:
@@ -51,12 +47,7 @@ linters:
     - goconst
     - gocyclo
     - lll
-    - structcheck
-    - typecheck
     - unconvert
-    - varcheck
-    - deadcode
-    - depguard
     - errcheck
     - gocritic
     - gosec
