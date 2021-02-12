@@ -105,6 +105,7 @@ func WaitContainerLibpod(w http.ResponseWriter, r *http.Request) {
 	query := waitQueryLibpod{}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		return
 	}
 
 	if _, found := r.URL.Query()["interval"]; found {
