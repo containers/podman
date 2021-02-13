@@ -5,6 +5,7 @@ import (
 
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // layerTree is an internal representation of local layers.
@@ -84,7 +85,12 @@ func (ir *Runtime) layerTree() (*layerTree, error) {
 		}
 		node, exists := tree.nodes[topLayer]
 		if !exists {
-			return nil, errors.Errorf("top layer %s of image %s not found in layer tree", img.TopLayer(), img.ID())
+			// Note: erroring out in this case has turned out having been a
+			// mistake. Users may not be able to recover, so we're now
+			// throwing a warning to guide them to resolve the issue and
+			// turn the errors non-fatal.
+			logrus.Warnf("Top layer %s of image %s not found in layer tree. The storage may be corrupted, consider running `podman system reset`.", topLayer, img.ID())
+			continue
 		}
 		node.images = append(node.images, img)
 	}
@@ -107,7 +113,12 @@ func (t *layerTree) children(ctx context.Context, parent *Image, all bool) ([]st
 
 	parentNode, exists := t.nodes[parent.TopLayer()]
 	if !exists {
-		return nil, errors.Errorf("layer not found in layer tree: %q", parent.TopLayer())
+		// Note: erroring out in this case has turned out having been a
+		// mistake. Users may not be able to recover, so we're now
+		// throwing a warning to guide them to resolve the issue and
+		// turn the errors non-fatal.
+		logrus.Warnf("Layer %s not found in layer. The storage may be corrupted, consider running `podman system reset`.", parent.TopLayer())
+		return children, nil
 	}
 
 	parentID := parent.ID()
