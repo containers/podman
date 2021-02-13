@@ -125,6 +125,15 @@ func init() {
 	graphdriver.Register("overlay2", Init)
 }
 
+func hasMetacopyOption(opts []string) bool {
+	for _, s := range opts {
+		if s == "metacopy=on" {
+			return true
+		}
+	}
+	return false
+}
+
 // Init returns the a native diff driver for overlay filesystem.
 // If overlay filesystem is not supported on the host, a wrapped graphdriver.ErrNotSupported is returned as error.
 // If an overlay filesystem is not supported over an existing filesystem then a wrapped graphdriver.ErrIncompatibleFS is returned.
@@ -863,7 +872,17 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	}
 	readWrite := true
 
-	for _, o := range options.Options {
+	optsList := options.Options
+	if len(optsList) == 0 {
+		optsList = strings.Split(d.options.mountOptions, ",")
+	} else {
+		// If metacopy=on is present in d.options.mountOptions it must be present in the mount
+		// options otherwise the kernel refuses to follow the metacopy xattr.
+		if hasMetacopyOption(strings.Split(d.options.mountOptions, ",")) && !hasMetacopyOption(options.Options) {
+			optsList = append(optsList, "metacopy=on")
+		}
+	}
+	for _, o := range optsList {
 		if o == "ro" {
 			readWrite = false
 			break
@@ -1001,10 +1020,8 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	} else {
 		opts = fmt.Sprintf("lowerdir=%s:%s", diffDir, strings.Join(absLowers, ":"))
 	}
-	if len(options.Options) > 0 {
-		opts = fmt.Sprintf("%s,%s", strings.Join(options.Options, ","), opts)
-	} else if d.options.mountOptions != "" {
-		opts = fmt.Sprintf("%s,%s", d.options.mountOptions, opts)
+	if len(optsList) > 0 {
+		opts = fmt.Sprintf("%s,%s", strings.Join(optsList, ","), opts)
 	}
 	mountData := label.FormatMountLabel(opts, options.MountLabel)
 	mountFunc := unix.Mount
