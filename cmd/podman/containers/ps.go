@@ -142,11 +142,19 @@ func checkFlags(c *cobra.Command) error {
 }
 
 func jsonOut(responses []entities.ListContainer) error {
-	r := make([]entities.ListContainer, 0)
+	type jsonFormat struct {
+		entities.ListContainer
+		Created int64
+	}
+	r := make([]jsonFormat, 0)
 	for _, con := range responses {
 		con.CreatedAt = units.HumanDuration(time.Since(con.Created)) + " ago"
 		con.Status = psReporter{con}.Status()
-		r = append(r, con)
+		jf := jsonFormat{
+			ListContainer: con,
+			Created:       con.Created.Unix(),
+		}
+		r = append(r, jf)
 	}
 	b, err := json.MarshalIndent(r, "", "  ")
 	if err != nil {
