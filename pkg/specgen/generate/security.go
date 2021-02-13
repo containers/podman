@@ -109,17 +109,15 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 			}
 		}
 		if !s.Privileged && len(capsRequiredRequested) > 0 {
-
 			// Pass capRequiredRequested in CapAdd field to normalize capabilities names
 			capsRequired, err := capabilities.MergeCapabilities(nil, capsRequiredRequested, nil)
 			if err != nil {
 				return errors.Wrapf(err, "capabilities requested by user or image are not valid: %q", strings.Join(capsRequired, ","))
-			} else {
-				// Verify all capRequired are in the capList
-				for _, cap := range capsRequired {
-					if !util.StringInSlice(cap, caplist) {
-						privCapsRequired = append(privCapsRequired, cap)
-					}
+			}
+			// Verify all capRequired are in the capList
+			for _, cap := range capsRequired {
+				if !util.StringInSlice(cap, caplist) {
+					privCapsRequired = append(privCapsRequired, cap)
 				}
 			}
 			if len(privCapsRequired) == 0 {
@@ -189,7 +187,6 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 		return err
 	}
 	for sysctlKey, sysctlVal := range defaultSysctls {
-
 		// Ignore mqueue sysctls if --ipc=host
 		if noUseIPC && strings.HasPrefix(sysctlKey, "fs.mqueue.") {
 			logrus.Infof("Sysctl %s=%s ignored in containers.conf, since IPC Namespace set to host", sysctlKey, sysctlVal)
@@ -213,7 +210,6 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 	}
 
 	for sysctlKey, sysctlVal := range s.Sysctl {
-
 		if s.IpcNS.IsHost() && strings.HasPrefix(sysctlKey, "fs.mqueue.") {
 			return errors.Wrapf(define.ErrInvalidArg, "sysctl %s=%s can't be set since IPC Namespace set to host", sysctlKey, sysctlVal)
 		}

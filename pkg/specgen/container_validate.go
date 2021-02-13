@@ -29,7 +29,6 @@ func exclusiveOptions(opt1, opt2 string) error {
 // Validate verifies that the given SpecGenerator is valid and satisfies required
 // input for creating a container.
 func (s *SpecGenerator) Validate() error {
-
 	if rootless.IsRootless() && len(s.CNINetworks) == 0 {
 		if s.StaticIP != nil || s.StaticIPv6 != nil {
 			return ErrNoStaticIPRootless

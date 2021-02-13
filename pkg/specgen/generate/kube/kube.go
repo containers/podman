@@ -384,7 +384,6 @@ func getPodPorts(containers []v1.Container) []specgen.PortMapping {
 			if p.HostPort != 0 {
 				infraPorts = append(infraPorts, portBinding)
 			}
-
 		}
 	}
 	return infraPorts
