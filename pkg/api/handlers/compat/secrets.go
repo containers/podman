@@ -30,7 +30,9 @@ func ListSecrets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(query.Filters) > 0 {
-		utils.Error(w, "filters not supported", http.StatusBadRequest, errors.New("bad parameter"))
+		utils.Error(w, "filters not supported", http.StatusBadRequest,
+			errors.Wrapf(errors.New("bad parameter"), "filters not supported"))
+		return
 	}
 	ic := abi.ContainerEngine{Libpod: runtime}
 	reports, err := ic.SecretList(r.Context())
@@ -95,7 +97,9 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(createParams.Labels) > 0 {
-		utils.Error(w, "labels not supported", http.StatusBadRequest, errors.New("bad parameter"))
+		utils.Error(w, "labels not supported", http.StatusBadRequest,
+			errors.Wrapf(errors.New("bad parameter"), "labels not supported"))
+		return
 	}
 
 	decoded, _ := base64.StdEncoding.DecodeString(createParams.Data)

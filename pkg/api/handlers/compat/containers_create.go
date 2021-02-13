@@ -47,6 +47,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	rtc, err := runtime.GetConfig()
 	if err != nil {
 		utils.Error(w, "unable to obtain runtime config", http.StatusInternalServerError, errors.Wrap(err, "unable to get runtime config"))
+		return
 	}
 
 	newImage, err := runtime.ImageRuntime().NewFromLocal(body.Config.Image)
