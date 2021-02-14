@@ -1,7 +1,6 @@
 package libpod
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 
@@ -186,7 +185,7 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 		options.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
 	}
 	imageEngine := abi.ImageEngine{Libpod: runtime}
-	digest, err := imageEngine.ManifestPush(context.Background(), source, query.Destination, options)
+	digest, err := imageEngine.ManifestPush(r.Context(), source, query.Destination, options)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "error pushing image %q", query.Destination))
 		return

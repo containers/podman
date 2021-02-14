@@ -268,7 +268,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	runCtx, cancel := context.WithCancel(context.Background())
+	runCtx, cancel := context.WithCancel(r.Context())
 	var imageID string
 	go func() {
 		defer cancel()

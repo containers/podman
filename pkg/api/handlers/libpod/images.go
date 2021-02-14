@@ -1,7 +1,6 @@
 package libpod
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -346,7 +345,7 @@ func ImagesLoad(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tmpfile.Close()
-	loadedImage, err := runtime.LoadImage(context.Background(), tmpfile.Name(), os.Stderr, "")
+	loadedImage, err := runtime.LoadImage(r.Context(), tmpfile.Name(), os.Stderr, "")
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to load image"))
 		return
@@ -391,7 +390,7 @@ func ImagesImport(w http.ResponseWriter, r *http.Request) {
 		tmpfile.Close()
 		source = tmpfile.Name()
 	}
-	importedImage, err := runtime.Import(context.Background(), source, query.Reference, "", query.Changes, query.Message, true)
+	importedImage, err := runtime.Import(r.Context(), source, query.Reference, "", query.Changes, query.Message, true)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to import image"))
 		return
@@ -457,7 +456,7 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	imageEngine := abi.ImageEngine{Libpod: runtime}
-	if err := imageEngine.Push(context.Background(), source, destination, options); err != nil {
+	if err := imageEngine.Push(r.Context(), source, destination, options); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "error pushing image %q", destination))
 		return
 	}

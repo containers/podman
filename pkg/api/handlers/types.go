@@ -211,7 +211,7 @@ func ImageToImageSummary(l *libpodImage.Image) (*entities.ImageSummary, error) {
 }
 
 func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageInspect, error) {
-	info, err := l.Inspect(context.Background())
+	info, err := l.Inspect(ctx)
 	if err != nil {
 		return nil, err
 	}

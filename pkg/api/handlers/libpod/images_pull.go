@@ -105,7 +105,7 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 	if !query.AllTags {
 		imagesToPull = append(imagesToPull, imageName)
 	} else {
-		tags, err := docker.GetRepositoryTags(context.Background(), sys, imageRef)
+		tags, err := docker.GetRepositoryTags(r.Context(), sys, imageRef)
 		if err != nil {
 			utils.InternalServerError(w, errors.Wrap(err, "error getting repository tags"))
 			return
@@ -122,7 +122,7 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 	defer stderr.Close()
 
 	images := make([]string, 0, len(imagesToPull))
-	runCtx, cancel := context.WithCancel(context.Background())
+	runCtx, cancel := context.WithCancel(r.Context())
 	go func(imgs []string) {
 		defer cancel()
 		// Finally pull the images
