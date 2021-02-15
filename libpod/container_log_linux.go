@@ -47,7 +47,7 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 		if time.Now().Before(options.Since) {
 			return nil
 		}
-		config.Since = time.Since(options.Since)
+		config.Since = -time.Since(options.Since)
 	}
 	config.Matches = append(config.Matches, journal.Match{
 		Field: "CONTAINER_ID_FULL",
