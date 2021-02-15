@@ -47,7 +47,7 @@ var _ = Describe("Podman run", func() {
 
 	It("podman run a container on an image with a workdir", func() {
 		dockerfile := `FROM alpine
-RUN  mkdir -p /home/foobar
+RUN  mkdir -p /home/foobar /etc/foobar; chown bin:bin /etc/foobar
 WORKDIR  /etc/foobar`
 		podmanTest.BuildImage(dockerfile, "test", "false")
 
@@ -55,6 +55,10 @@ WORKDIR  /etc/foobar`
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(Equal("/etc/foobar"))
+
+		session = podmanTest.Podman([]string{"run", "test", "ls", "-ld", "."})
+		session.WaitWithDefaultTimeout()
+		Expect(session.LineInOutputContains("bin")).To(BeTrue())
 
 		session = podmanTest.Podman([]string{"run", "--workdir", "/home/foobar", "test", "pwd"})
 		session.WaitWithDefaultTimeout()

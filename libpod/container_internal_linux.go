@@ -21,6 +21,7 @@ import (
 
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/buildah/pkg/overlay"
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/config"
@@ -202,10 +203,17 @@ func (c *Container) resolveWorkDir() error {
 	}
 	logrus.Debugf("Workdir %q resolved to host path %q", workdir, resolvedWorkdir)
 
-	// No need to create it (e.g., `--workdir=/foo`), so let's make sure
-	// the path exists on the container.
+	st, err := os.Stat(resolvedWorkdir)
+	if err == nil {
+		if !st.IsDir() {
+			return errors.Errorf("workdir %q exists on container %s, but is not a directory", workdir, c.ID())
+		}
+		return nil
+	}
 	if !c.config.CreateWorkingDir {
-		if _, err := os.Stat(resolvedWorkdir); err != nil {
+		// No need to create it (e.g., `--workdir=/foo`), so let's make sure
+		// the path exists on the container.
+		if err != nil {
 			if os.IsNotExist(err) {
 				return errors.Errorf("workdir %q does not exist on container %s", workdir, c.ID())
 			}
@@ -215,11 +223,6 @@ func (c *Container) resolveWorkDir() error {
 		}
 		return nil
 	}
-
-	// Ensure container entrypoint is created (if required).
-	rootUID := c.RootUID()
-	rootGID := c.RootGID()
-
 	if err := os.MkdirAll(resolvedWorkdir, 0755); err != nil {
 		if os.IsExist(err) {
 			return nil
@@ -227,7 +230,12 @@ func (c *Container) resolveWorkDir() error {
 		return errors.Wrapf(err, "error creating container %s workdir", c.ID())
 	}
 
-	if err := os.Chown(resolvedWorkdir, rootUID, rootGID); err != nil {
+	// Ensure container entrypoint is created (if required).
+	uid, gid, _, err := chrootuser.GetUser(c.state.Mountpoint, c.User())
+	if err != nil {
+		return errors.Wrapf(err, "error looking up %s inside of the container %s", c.User(), c.ID())
+	}
+	if err := os.Chown(resolvedWorkdir, int(uid), int(gid)); err != nil {
 		return errors.Wrapf(err, "error chowning container %s workdir to container root", c.ID())
 	}
 
