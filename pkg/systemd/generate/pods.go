@@ -162,7 +162,7 @@ func PodUnits(pod *libpod.Pod, options entities.GenerateSystemdOptions) (map[str
 	}
 	units[podInfo.ServiceName] = out
 	for _, info := range containerInfos {
-		info.pod = podInfo
+		info.Pod = podInfo
 		out, err := executeContainerTemplate(info, options)
 		if err != nil {
 			return nil, err
