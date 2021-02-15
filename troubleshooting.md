@@ -72,8 +72,8 @@ error pulling image "fedora": unable to pull fedora: error getting default regis
 #### Solution
 
   * Verify that the `/etc/containers/registries.conf` file exists.  If not, verify that the containers-common package is installed.
-  * Verify that the entries in the `[registries.search]` section of the /etc/containers/registries.conf file are valid and reachable.
-    *  i.e. `registries = ['registry.fedoraproject.org', 'quay.io', 'registry.access.redhat.com']`
+  * Verify that the entries in the `unqualified-search-registries` list of the `/etc/containers/registries.conf` file are valid and reachable.
+    * i.e. `unqualified-search-registries = ["registry.fedoraproject.org", "quay.io", "registry.access.redhat.com"]`
 
 ---
 ### 4) http: server gave HTTP response to HTTPS client
