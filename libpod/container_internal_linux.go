@@ -1329,6 +1329,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	c.state.State = define.ContainerStateRunning
 	c.state.ExitCode = 0
 	c.state.FinishedTime = time.Time{}
+	c.state.StartedTime = time.Now()
 
 	if !options.Keep {
 		// Delete all checkpoint related files. At this point, in theory, all files
