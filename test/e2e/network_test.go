@@ -407,6 +407,7 @@ var _ = Describe("Podman network", func() {
 		Expect(lines[0]).To(Equal(netName1))
 		Expect(lines[1]).To(Equal(netName2))
 	})
+
 	It("podman network with multiple aliases", func() {
 		var worked bool
 		netName := "aliasTest" + stringid.GenerateNonCryptoID()
@@ -424,7 +425,7 @@ var _ = Describe("Podman network", func() {
 			// Test curl against the container's name
 			c1 := podmanTest.Podman([]string{"run", "--network=" + netName, nginx, "curl", "web"})
 			c1.WaitWithDefaultTimeout()
-			worked = Expect(c1.ExitCode()).To(BeZero())
+			worked = c1.ExitCode() == 0
 			if worked {
 				break
 			}
