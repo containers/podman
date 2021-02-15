@@ -1079,7 +1079,9 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	logrus.Debugf("Checkpointed container %s", c.ID())
 
 	if !options.KeepRunning && !options.PreCheckPoint {
-		c.state.State = define.ContainerStateStopped
+		if err := c.waitForExitFileAndSync(); err != nil {
+			return err
+		}
 
 		// Cleanup Storage and Network
 		if err := c.cleanup(ctx); err != nil {
@@ -1102,7 +1104,6 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		}
 	}
 
-	c.state.FinishedTime = time.Now()
 	return c.save()
 }
 
