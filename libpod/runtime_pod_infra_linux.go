@@ -226,7 +226,10 @@ func (r *Runtime) createInfraContainer(ctx context.Context, p *Pod) (*Container,
 	if err != nil {
 		return nil, err
 	}
-	imageName := newImage.Names()[0]
+	imageName := "none"
+	if len(newImage.Names()) > 0 {
+		imageName = newImage.Names()[0]
+	}
 	imageID := data.ID
 
 	return r.makeInfraContainer(ctx, p, imageName, r.config.Engine.InfraImage, imageID, data.Config)
