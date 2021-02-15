@@ -34,6 +34,8 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 	var config journal.JournalReaderConfig
 	if options.Tail < 0 {
 		config.NumFromTail = 0
+	} else if options.Tail == 0 {
+		config.NumFromTail = math.MaxUint64
 	} else {
 		config.NumFromTail = uint64(options.Tail)
 	}
