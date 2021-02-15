@@ -222,7 +222,11 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 	// publish
 	for port, pbs := range cc.HostConfig.PortBindings {
 		for _, pb := range pbs {
-			hostport, err := strconv.Atoi(pb.HostPort)
+			var hostport int
+			var err error
+			if pb.HostPort != "" {
+				hostport, err = strconv.Atoi(pb.HostPort)
+			}
 			if err != nil {
 				return nil, nil, err
 			}
