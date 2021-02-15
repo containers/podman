@@ -46,6 +46,31 @@ EOF
     is "$output" ".*invalidflag" "failed when passing undefined flags to the runtime"
 }
 
+@test "podman build - set runtime" {
+    skip_if_remote "--runtime flag not supported for remote"
+    # Test on the CLI and via containers.conf
+
+    tmpdir=$PODMAN_TMPDIR/build-test
+    run mkdir -p $tmpdir
+    containerfile=$tmpdir/Containerfile
+    cat >$containerfile <<EOF
+FROM $IMAGE
+RUN echo $rand_content
+EOF
+
+    run_podman 125 --runtime=idonotexist build -t build_test $tmpdir
+    is "$output" ".*\"idonotexist\" not found.*" "failed when passing invalid OCI runtime via CLI"
+
+    containersconf=$tmpdir/containers.conf
+    cat >$containersconf <<EOF
+[engine]
+runtime="idonotexist"
+EOF
+
+    CONTAINERS_CONF="$containersconf" run_podman 125 build -t build_test $tmpdir
+    is "$output" ".*\"idonotexist\" not found.*" "failed when passing invalid OCI runtime via containers.conf"
+}
+
 # Regression from v1.5.0. This test passes fine in v1.5.0, fails in 1.6
 @test "podman build - cache (#3920)" {
     # Make an empty test directory, with a subdirectory used for tar
