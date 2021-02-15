@@ -68,7 +68,7 @@ type containerInfo struct {
 
 	// If not nil, the container is part of the pod.  We can use the
 	// podInfo to extract the relevant data.
-	pod *podInfo
+	Pod *podInfo
 }
 
 const containerTemplate = headerTemplate + `
@@ -215,8 +215,8 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		)
 		// If the container is in a pod, make sure that the
 		// --pod-id-file is set correctly.
-		if info.pod != nil {
-			podFlags := []string{"--pod-id-file", info.pod.PodIDFile}
+		if info.Pod != nil {
+			podFlags := []string{"--pod-id-file", "{{{{.Pod.PodIDFile}}}}"}
 			startCommand = append(startCommand, podFlags...)
 			info.CreateCommand = filterPodFlags(info.CreateCommand)
 		}
