@@ -82,16 +82,23 @@ func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []st
 
 func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []string, opts entities.StopOptions) ([]*entities.StopReport, error) {
 	reports := []*entities.StopReport{}
-	ctrs, err := getContainersByContext(ic.ClientCtx, opts.All, opts.Ignore, namesOrIds)
+	ctrs, rawInputs, err := getContainersAndInputByContext(ic.ClientCtx, opts.All, opts.Ignore, namesOrIds)
 	if err != nil {
 		return nil, err
+	}
+	ctrMap := map[string]string{}
+	for i := range ctrs {
+		ctrMap[ctrs[i].ID] = rawInputs[i]
 	}
 	options := new(containers.StopOptions).WithIgnore(opts.Ignore)
 	if to := opts.Timeout; to != nil {
 		options.WithTimeout(*to)
 	}
 	for _, c := range ctrs {
-		report := entities.StopReport{Id: c.ID}
+		report := entities.StopReport{
+			Id:       c.ID,
+			RawInput: ctrMap[c.ID],
+		}
 		if err = containers.Stop(ic.ClientCtx, c.ID, options); err != nil {
 			// These first two are considered non-fatal under the right conditions
 			if errors.Cause(err).Error() == define.ErrCtrStopped.Error() {

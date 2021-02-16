@@ -88,8 +88,9 @@ type StopOptions struct {
 }
 
 type StopReport struct {
-	Err error
-	Id  string //nolint
+	Err      error
+	Id       string //nolint
+	RawInput string
 }
 
 type TopOptions struct {

@@ -95,6 +95,23 @@ var _ = Describe("Podman start", func() {
 		Expect(session.OutputToString()).To(Equal(shortID))
 	})
 
+	It("podman container start single container by short id", func() {
+		session := podmanTest.Podman([]string{"container", "create", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid := session.OutputToString()
+		shortID := cid[0:10]
+		session = podmanTest.Podman([]string{"container", "start", shortID})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal(shortID))
+
+		session = podmanTest.Podman([]string{"stop", shortID})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal(shortID))
+	})
+
 	It("podman start single container by name", func() {
 		name := "foobar99"
 		session := podmanTest.Podman([]string{"create", "--name", name, ALPINE, "ls"})

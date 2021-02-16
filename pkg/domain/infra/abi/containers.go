@@ -138,9 +138,15 @@ func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []st
 }
 func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []string, options entities.StopOptions) ([]*entities.StopReport, error) {
 	names := namesOrIds
-	ctrs, err := getContainersByContext(options.All, options.Latest, names, ic.Libpod)
+	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, names, ic.Libpod)
 	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr) {
 		return nil, err
+	}
+	ctrMap := map[string]string{}
+	if len(rawInputs) == len(ctrs) {
+		for i := range ctrs {
+			ctrMap[ctrs[i].ID()] = rawInputs[i]
+		}
 	}
 	errMap, err := parallelctr.ContainerOp(ctx, ctrs, func(c *libpod.Container) error {
 		var err error
@@ -174,6 +180,11 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 	for ctr, err := range errMap {
 		report := new(entities.StopReport)
 		report.Id = ctr.ID()
+		if options.All {
+			report.RawInput = ctr.ID()
+		} else {
+			report.RawInput = ctrMap[ctr.ID()]
+		}
 		report.Err = err
 		reports = append(reports, report)
 	}
