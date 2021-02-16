@@ -51,6 +51,19 @@ var _ = Describe("Podman kill", func() {
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 	})
 
+	It("podman container kill a running container by short id", func() {
+		session := podmanTest.RunTopContainer("")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid := session.OutputToString()
+
+		result := podmanTest.Podman([]string{"container", "kill", cid[:5]})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result.OutputToString()).To(Equal(cid[:5]))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+	})
+
 	It("podman kill a running container by id", func() {
 		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
