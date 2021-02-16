@@ -86,6 +86,13 @@ class TestContainers(unittest.TestCase):
         containers = self.client.containers.list(all=True)
         self.assertEqual(len(containers), 2)
 
+    def test_start_container_with_random_port_bind(self):
+        container = self.client.containers.create(image=constant.ALPINE,
+                                                  name="containerWithRandomBind",
+                                                  ports={'1234/tcp': None})
+        containers = self.client.containers.list(all=True)
+        self.assertTrue(container in containers)
+
     def test_stop_container(self):
         top = self.client.containers.get(TestContainers.topContainerId)
         self.assertEqual(top.status, "running")
