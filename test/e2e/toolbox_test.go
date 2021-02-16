@@ -215,8 +215,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 		useradd := fmt.Sprintf("useradd --home-dir %s --shell %s --uid %s %s",
 			homeDir, shell, uid, username)
 		passwd := fmt.Sprintf("passwd --delete %s", username)
-		podmanTest.AddImageToRWStore(fedoraToolbox)
-		session = podmanTest.Podman([]string{"create", "--name", "test", "--userns=keep-id", "--user", "root:root", fedoraToolbox, "sh", "-c",
+		session = podmanTest.Podman([]string{"create", "--name", "test", "--userns=keep-id", "--user", "root:root", nginx, "sh", "-c",
 			fmt.Sprintf("%s; %s; echo READY; sleep 1000", useradd, passwd)})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -235,12 +234,18 @@ var _ = Describe("Toolbox-specific testing", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring(expectedOutput))
 
-		expectedOutput = "passwd: Note: deleting a password also unlocks the password."
+		session = podmanTest.Podman([]string{"exec", "test", "grep", username, "/etc/shadow"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		shadow := strings.Split(session.OutputToString(), ":")
+		Expect(len(shadow[1])).To(BeZero())
+
+		expectedOutput = "passwd: password expiry information changed. READY"
 
 		session = podmanTest.Podman([]string{"logs", "test"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.ErrorToString()).To(ContainSubstring(expectedOutput))
+		Expect(session.OutputToString()).To(ContainSubstring(expectedOutput))
 	})
 
 	It("podman create --userns=keep-id + podman exec - adding group with groupadd", func() {
@@ -251,8 +256,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 
 		groupadd := fmt.Sprintf("groupadd --gid %s %s", gid, groupName)
 
-		podmanTest.AddImageToRWStore(fedoraToolbox)
-		session = podmanTest.Podman([]string{"create", "--name", "test", "--userns=keep-id", "--user", "root:root", fedoraToolbox, "sh", "-c",
+		session = podmanTest.Podman([]string{"create", "--name", "test", "--userns=keep-id", "--user", "root:root", nginx, "sh", "-c",
 			fmt.Sprintf("%s; echo READY; sleep 1000", groupadd)})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -296,8 +300,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 		usermod := fmt.Sprintf("usermod --append --groups wheel --home %s --shell %s --uid %s --gid %s %s",
 			homeDir, shell, uid, gid, username)
 
-		podmanTest.AddImageToRWStore(fedoraToolbox)
-		session = podmanTest.Podman([]string{"create", "--name", "test", "--userns=keep-id", "--user", "root:root", fedoraToolbox, "sh", "-c",
+		session = podmanTest.Podman([]string{"create", "--name", "test", "--userns=keep-id", "--user", "root:root", nginx, "sh", "-c",
 			fmt.Sprintf("%s; %s; %s; echo READY; sleep 1000", useradd, groupadd, usermod)})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -341,7 +344,6 @@ var _ = Describe("Toolbox-specific testing", func() {
 
 		// These should be most of the switches that Toolbox uses to create a "toolbox" container
 		// https://github.com/containers/toolbox/blob/master/src/cmd/create.go
-		podmanTest.AddImageToRWStore(fedoraToolbox)
 		session = podmanTest.Podman([]string{"create",
 			"--dns", "none",
 			"--hostname", "toolbox",
@@ -356,7 +358,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 			"--ulimit", "host",
 			"--userns=keep-id",
 			"--user", "root:root",
-			fedoraToolbox, "sh", "-c", "echo READY; sleep 1000"})
+			nginx, "sh", "-c", "echo READY; sleep 1000"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -378,8 +380,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 		currentUser, err := user.Current()
 		Expect(err).To(BeNil())
 
-		podmanTest.AddImageToRWStore(fedoraToolbox)
-		session = podmanTest.Podman([]string{"run", "-v", fmt.Sprintf("%s:%s", currentUser.HomeDir, currentUser.HomeDir), "--userns=keep-id", fedoraToolbox, "sh", "-c", "echo $HOME"})
+		session = podmanTest.Podman([]string{"run", "-v", fmt.Sprintf("%s:%s", currentUser.HomeDir, currentUser.HomeDir), "--userns=keep-id", nginx, "sh", "-c", "echo $HOME"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring(currentUser.HomeDir))
@@ -390,7 +391,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 			session = podmanTest.Podman([]string{"run",
 				"--userns=keep-id",
 				"--volume", volumeArg,
-				fedoraToolbox, "sh", "-c", "echo $HOME"})
+				nginx, "sh", "-c", "echo $HOME"})
 			session.WaitWithDefaultTimeout()
 			Expect(session.ExitCode()).To(Equal(0))
 			Expect(session.OutputToString()).To(ContainSubstring(currentUser.HomeDir))

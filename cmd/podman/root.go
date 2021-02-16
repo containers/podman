@@ -88,7 +88,7 @@ func init() {
 	rootCmd.SetUsageTemplate(usageTemplate)
 }
 
-func Execute() {
+func Execute() int {
 	if err := rootCmd.ExecuteContext(registry.GetContextWithOptions()); err != nil {
 		fmt.Fprintln(os.Stderr, formatError(err))
 	} else if registry.GetExitCode() == registry.ExecErrorCodeGeneric {
@@ -99,7 +99,7 @@ func Execute() {
 		// otherwise command exited correctly.
 		registry.SetExitCode(0)
 	}
-	os.Exit(registry.GetExitCode())
+	return registry.GetExitCode()
 }
 
 func persistentPreRunE(cmd *cobra.Command, args []string) error {

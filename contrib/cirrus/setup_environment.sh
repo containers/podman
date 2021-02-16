@@ -50,7 +50,10 @@ echo -e "\n# Begin single-use VM global variables (${BASH_SOURCE[0]})" \
 #####
 ##### FIXME. /etc/containers/storage.conf should have a driver name set
 ##### Remove when VMs updated
-sed 's/^driver.*=.*""/driver = "overlay"/g' -i /etc/containers/storage.conf
+sed 's/driver = \".*\"/driver = \"overlay\"/g' -i /etc/containers/storage.conf
+sed 's/mountopt = \".*\"/mountopt = \"nodev,metacopy=on\"/g' -i /etc/containers/storage.conf
+
+cat /etc/containers/storage.conf
 
 # This is a possible manual maintenance gaff, check to be sure everything matches.
 # shellcheck disable=SC2154

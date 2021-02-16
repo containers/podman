@@ -125,7 +125,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	}
 
 	// Pull cirros but don't put it into the cache
-	pullImages := []string{cirros, fedoraToolbox, volumeTest}
+	pullImages := []string{cirros, volumeTest}
 	pullImages = append(pullImages, CACHE_IMAGES...)
 	for _, image := range pullImages {
 		podman.createArtifact(image)

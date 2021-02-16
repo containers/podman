@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"runtime/pprof"
 
 	_ "github.com/containers/podman/v2/cmd/podman/completion"
 	_ "github.com/containers/podman/v2/cmd/podman/containers"
@@ -31,11 +33,22 @@ func main() {
 		// had a specific job to do as a subprocess, and it's done.
 		return
 	}
-
+	f, err := ioutil.TempFile("/tmp", "pprof-podman")
+	if err != nil {
+		fmt.Println(err.Error())
+		os.exit(1)
+	}
+	fmt.Println(f.Name())
+	defer f.Close()
+	if err := pprof.StartCPUProfile(f); err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+	defer pprof.StopCPUProfile()
 	rootCmd = parseCommands()
 
-	Execute()
-	os.Exit(0)
+	exitCode := Execute()
+	defer os.Exit(exitCode)
 }
 
 func parseCommands() *cobra.Command {
