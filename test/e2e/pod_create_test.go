@@ -501,4 +501,18 @@ entrypoint ["/fromimage"]
 		Expect(session.OutputToString()).To(ContainSubstring("inet 127.0.0.1/8 scope host lo"))
 		Expect(len(session.OutputToStringArray())).To(Equal(1))
 	})
+
+	It("podman pod create --infra-image w/untagged image", func() {
+		podmanTest.AddImageToRWStore(ALPINE)
+		dockerfile := `FROM quay.io/libpod/alpine:latest
+ENTRYPOINT ["sleep","99999"]
+		`
+		// This builds a none/none image
+		iid := podmanTest.BuildImage(dockerfile, "", "true")
+
+		create := podmanTest.Podman([]string{"pod", "create", "--infra-image", iid})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(BeZero())
+	})
+
 })

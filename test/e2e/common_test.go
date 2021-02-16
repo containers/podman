@@ -436,13 +436,20 @@ func (p *PodmanTestIntegration) RunLsContainerInPod(name, pod string) (*PodmanSe
 
 // BuildImage uses podman build and buildah to build an image
 // called imageName based on a string dockerfile
-func (p *PodmanTestIntegration) BuildImage(dockerfile, imageName string, layers string) {
+func (p *PodmanTestIntegration) BuildImage(dockerfile, imageName string, layers string) string {
 	dockerfilePath := filepath.Join(p.TempDir, "Dockerfile")
 	err := ioutil.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
 	Expect(err).To(BeNil())
-	session := p.Podman([]string{"build", "--layers=" + layers, "-t", imageName, "--file", dockerfilePath, p.TempDir})
+	cmd := []string{"build", "--layers=" + layers, "--file", dockerfilePath}
+	if len(imageName) > 0 {
+		cmd = append(cmd, []string{"-t", imageName}...)
+	}
+	cmd = append(cmd, p.TempDir)
+	session := p.Podman(cmd)
 	session.Wait(240)
 	Expect(session).Should(Exit(0), fmt.Sprintf("BuildImage session output: %q", session.OutputToString()))
+	output := session.OutputToStringArray()
+	return output[len(output)-1]
 }
 
 // PodmanPID execs podman and returns its PID
