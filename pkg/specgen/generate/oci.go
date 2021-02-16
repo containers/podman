@@ -105,7 +105,10 @@ func makeCommand(ctx context.Context, s *specgen.SpecGenerator, img *image.Image
 		entrypoint = newEntry
 	}
 
-	finalCommand = append(finalCommand, entrypoint...)
+	// Don't append the entrypoint if it is [""]
+	if len(entrypoint) != 1 || entrypoint[0] != "" {
+		finalCommand = append(finalCommand, entrypoint...)
+	}
 
 	// Only use image command if the user did not manually set an
 	// entrypoint.
