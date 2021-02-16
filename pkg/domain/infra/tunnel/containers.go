@@ -124,16 +124,21 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 }
 
 func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []string, opts entities.KillOptions) ([]*entities.KillReport, error) {
-	ctrs, err := getContainersByContext(ic.ClientCtx, opts.All, false, namesOrIds)
+	ctrs, rawInputs, err := getContainersAndInputByContext(ic.ClientCtx, opts.All, false, namesOrIds)
 	if err != nil {
 		return nil, err
+	}
+	ctrMap := map[string]string{}
+	for i := range ctrs {
+		ctrMap[ctrs[i].ID] = rawInputs[i]
 	}
 	options := new(containers.KillOptions).WithSignal(opts.Signal)
 	reports := make([]*entities.KillReport, 0, len(ctrs))
 	for _, c := range ctrs {
 		reports = append(reports, &entities.KillReport{
-			Id:  c.ID,
-			Err: containers.Kill(ic.ClientCtx, c.ID, options),
+			Id:       c.ID,
+			Err:      containers.Kill(ic.ClientCtx, c.ID, options),
+			RawInput: ctrMap[c.ID],
 		})
 	}
 	return reports, nil

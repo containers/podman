@@ -208,15 +208,22 @@ func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []strin
 	if err != nil {
 		return nil, err
 	}
-	ctrs, err := getContainersByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
+	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
 	if err != nil {
 		return nil, err
+	}
+	ctrMap := map[string]string{}
+	if len(rawInputs) == len(ctrs) {
+		for i := range ctrs {
+			ctrMap[ctrs[i].ID()] = rawInputs[i]
+		}
 	}
 	reports := make([]*entities.KillReport, 0, len(ctrs))
 	for _, con := range ctrs {
 		reports = append(reports, &entities.KillReport{
-			Id:  con.ID(),
-			Err: con.Kill(uint(sig)),
+			Id:       con.ID(),
+			Err:      con.Kill(uint(sig)),
+			RawInput: ctrMap[con.ID()],
 		})
 	}
 	return reports, nil
