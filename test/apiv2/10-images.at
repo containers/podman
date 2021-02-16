@@ -45,6 +45,13 @@ t POST "images/create?fromImage=alpine" '' 200
 
 t POST "images/create?fromImage=alpine&tag=latest" '' 200
 
+# Make sure that new images are pulled
+old_iid=$(podman image inspect --format "{{.ID}}" docker.io/library/alpine:latest)
+podman rmi -f docker.io/library/alpine:latest
+podman tag $IMAGE docker.io/library/alpine:latest
+t POST "images/create?fromImage=alpine" '' 200 .error=null .status~".*$old_iid.*"
+podman untag $IMAGE docker.io/library/alpine:latest
+
 t POST "images/create?fromImage=quay.io/libpod/alpine&tag=sha256:fa93b01658e3a5a1686dc3ae55f170d8de487006fb53a28efcd12ab0710a2e5f" '' 200
 
 # Display the image history
