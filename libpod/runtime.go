@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
@@ -26,6 +27,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/docker/pkg/namesgenerator"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -622,9 +624,12 @@ func (r *Runtime) Shutdown(force bool) error {
 func (r *Runtime) refresh(alivePath string) error {
 	logrus.Debugf("Podman detected system restart - performing state refresh")
 
-	// First clear the state in the database
-	if err := r.state.Refresh(); err != nil {
-		return err
+	// Clear state of database if not running in container
+	if !graphRootMounted() {
+		// First clear the state in the database
+		if err := r.state.Refresh(); err != nil {
+			return err
+		}
 	}
 
 	// Next refresh the state of all containers to recreate dirs and
@@ -903,4 +908,30 @@ func (r *Runtime) getVolumePlugin(name string) (*plugin.VolumePlugin, error) {
 // GetSecretsStoreageDir returns the directory that the secrets manager should take
 func (r *Runtime) GetSecretsStorageDir() string {
 	return filepath.Join(r.store.GraphRoot(), "secrets")
+}
+
+func graphRootMounted() bool {
+	f, err := os.OpenFile("/run/.containerenv", os.O_RDONLY, os.ModePerm)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		if scanner.Text() == "graphRootMounted=1" {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *Runtime) graphRootMountedFlag(mounts []spec.Mount) string {
+	root := r.store.GraphRoot()
+	for _, val := range mounts {
+		if strings.HasPrefix(root, val.Source) {
+			return "graphRootMounted=1"
+		}
+	}
+	return ""
 }
