@@ -458,7 +458,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			break
 		}
 	}
-	if !hasHomeSet {
+	if !hasHomeSet && execUser.Home != "" {
 		c.config.Spec.Process.Env = append(c.config.Spec.Process.Env, fmt.Sprintf("HOME=%s", execUser.Home))
 	}
 

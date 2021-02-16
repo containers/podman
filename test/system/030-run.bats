@@ -662,4 +662,10 @@ json-file | f
     run_podman rm $cname
 }
 
+@test "podman run - do not set empty HOME" {
+    # Regression test for #9378.
+    run_podman run --rm --user 100 $IMAGE printenv
+    is "$output" ".*HOME=/.*"
+}
+
 # vim: filetype=sh
