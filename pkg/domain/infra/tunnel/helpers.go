@@ -14,16 +14,26 @@ import (
 // FIXME: the `ignore` parameter is very likely wrong here as it should rather
 //        be used on *errors* from operations such as remove.
 func getContainersByContext(contextWithConnection context.Context, all, ignore bool, namesOrIDs []string) ([]entities.ListContainer, error) {
+	ctrs, _, err := getContainersAndInputByContext(contextWithConnection, all, ignore, namesOrIDs)
+	return ctrs, err
+}
+
+func getContainersAndInputByContext(contextWithConnection context.Context, all, ignore bool, namesOrIDs []string) ([]entities.ListContainer, []string, error) {
 	if all && len(namesOrIDs) > 0 {
-		return nil, errors.New("cannot lookup containers and all")
+		return nil, nil, errors.New("cannot lookup containers and all")
 	}
 	options := new(containers.ListOptions).WithAll(true).WithSync(true)
 	allContainers, err := containers.List(contextWithConnection, options)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+	rawInputs := []string{}
 	if all {
-		return allContainers, err
+		for i := range allContainers {
+			rawInputs = append(rawInputs, allContainers[i].ID)
+		}
+
+		return allContainers, rawInputs, err
 	}
 
 	// Note: it would be nicer if the lists endpoint would support that as
@@ -42,7 +52,7 @@ func getContainersByContext(contextWithConnection context.Context, all, ignore b
 			if ignore && errorhandling.Contains(err, define.ErrNoSuchCtr) {
 				continue
 			}
-			return nil, err
+			return nil, nil, err
 		}
 
 		// Now we can do a full match of the ID to find the right
@@ -52,16 +62,17 @@ func getContainersByContext(contextWithConnection context.Context, all, ignore b
 		for _, ctr := range allContainers {
 			if ctr.ID == inspectData.ID {
 				filtered = append(filtered, ctr)
+				rawInputs = append(rawInputs, nameOrID)
 				found = true
 				break
 			}
 		}
 
 		if !found && !ignore {
-			return nil, errors.Wrapf(define.ErrNoSuchCtr, "unable to find container %q", nameOrID)
+			return nil, nil, errors.Wrapf(define.ErrNoSuchCtr, "unable to find container %q", nameOrID)
 		}
 	}
-	return filtered, nil
+	return filtered, rawInputs, nil
 }
 
 func getPodsByContext(contextWithConnection context.Context, all bool, namesOrIDs []string) ([]*entities.ListPodsReport, error) {
