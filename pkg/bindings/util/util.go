@@ -12,8 +12,7 @@ import (
 )
 
 func IsSimpleType(f reflect.Value) bool {
-	switch f.Interface().(type) {
-	case fmt.Stringer:
+	if _, ok := f.Interface().(fmt.Stringer); ok {
 		return true
 	}
 
@@ -26,9 +25,8 @@ func IsSimpleType(f reflect.Value) bool {
 }
 
 func SimpleTypeToParam(f reflect.Value) string {
-	switch cast := f.Interface().(type) {
-	case fmt.Stringer:
-		return cast.String()
+	if s, ok := f.Interface().(fmt.Stringer); ok {
+		return s.String()
 	}
 
 	switch f.Kind() {
