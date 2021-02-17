@@ -350,6 +350,21 @@ var _ = Describe("Podman ps", func() {
 		Expect(session).To(ExitWithError())
 	})
 
+	It("podman --format by size", func() {
+		session := podmanTest.Podman([]string{"create", "busybox", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"create", "-t", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"ps", "-a", "--format", "{{.Size}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.ErrorToString()).To(ContainSubstring("Size format requires --size option"))
+	})
+
 	It("podman --sort by size", func() {
 		session := podmanTest.Podman([]string{"create", "busybox", "ls"})
 		session.WaitWithDefaultTimeout()

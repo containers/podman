@@ -22,6 +22,7 @@ import (
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -390,6 +391,11 @@ func (l psReporter) Command() string {
 // Size returns the rootfs and virtual sizes in human duration in
 // and output form (string) suitable for ps
 func (l psReporter) Size() string {
+	if l.ListContainer.Size == nil {
+		logrus.Errorf("Size format requires --size option")
+		return ""
+	}
+
 	virt := units.HumanSizeWithPrecision(float64(l.ListContainer.Size.RootFsSize), 3)
 	s := units.HumanSizeWithPrecision(float64(l.ListContainer.Size.RwSize), 3)
 	return fmt.Sprintf("%s (virtual %s)", s, virt)
