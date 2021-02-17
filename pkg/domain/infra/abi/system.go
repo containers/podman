@@ -82,7 +82,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) 
 			unitName := fmt.Sprintf("podman-%d.scope", os.Getpid())
 			if runsUnderSystemd || conf.Engine.CgroupManager == config.SystemdCgroupsManager {
 				if err := utils.RunUnderSystemdScope(os.Getpid(), "user.slice", unitName); err != nil {
-					logrus.Warnf("Failed to add podman to systemd sandbox cgroup: %v", err)
+					logrus.Debugf("Failed to add podman to systemd sandbox cgroup: %v", err)
 				}
 			}
 		}
