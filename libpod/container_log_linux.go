@@ -11,8 +11,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/logs"
 	journal "github.com/coreos/go-systemd/v22/sdjournal"
+	"github.com/hpcloud/tail/watch"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -65,8 +67,12 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 	if options.Tail == math.MaxInt64 {
 		r.Rewind()
 	}
+	state, err := c.State()
+	if err != nil {
+		return err
+	}
 
-	if options.Follow {
+	if options.Follow && state == define.ContainerStateRunning {
 		go func() {
 			done := make(chan bool)
 			until := make(chan time.Time)
@@ -76,6 +82,21 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 					until <- time.Time{}
 				case <-done:
 					// nothing to do anymore
+				}
+			}()
+			go func() {
+				for {
+					state, err := c.State()
+					if err != nil {
+						until <- time.Time{}
+						logrus.Error(err)
+						break
+					}
+					time.Sleep(watch.POLL_DURATION)
+					if state != define.ContainerStateRunning && state != define.ContainerStatePaused {
+						until <- time.Time{}
+						break
+					}
 				}
 			}()
 			follower := FollowBuffer{logChannel}
