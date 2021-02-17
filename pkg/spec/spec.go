@@ -377,9 +377,9 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		if config.User != "" {
 			user := strings.SplitN(config.User, ":", 2)[0]
 			if user != "root" && user != "0" {
-				g.Spec().Process.Capabilities.Effective = []string{}
-				g.Spec().Process.Capabilities.Permitted = []string{}
-				g.Spec().Process.Capabilities.Ambient = []string{}
+				g.Config.Process.Capabilities.Effective = []string{}
+				g.Config.Process.Capabilities.Permitted = []string{}
+				g.Config.Process.Capabilities.Ambient = []string{}
 			}
 		}
 	}
