@@ -1617,6 +1617,17 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 		if !srcStat.IsDir() {
 			return vol, nil
 		}
+		// Read contents, do not bother continuing if it's empty. Fixes
+		// a bizarre issue where something copier.Get will ENOENT on
+		// empty directories and sometimes it will not.
+		// RHBZ#1928643
+		srcContents, err := ioutil.ReadDir(srcDir)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error reading contents of source directory for copy up into volume %s", vol.Name())
+		}
+		if len(srcContents) == 0 {
+			return vol, nil
+		}
 
 		// Buildah Copier accepts a reader, so we'll need a pipe.
 		reader, writer := io.Pipe()
