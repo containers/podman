@@ -19,6 +19,7 @@ func GetDiskUsage(w http.ResponseWriter, r *http.Request) {
 	df, err := ic.SystemDf(r.Context(), options)
 	if err != nil {
 		utils.InternalServerError(w, err)
+		return
 	}
 
 	imgs := make([]*docker.ImageSummary, len(df.Images))
