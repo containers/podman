@@ -1644,7 +1644,7 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 			getOptions := copier.GetOptions{
 				KeepDirectoryNames: false,
 			}
-			errChan <- copier.Get(mountpoint, "", getOptions, []string{v.Dest + "/."}, writer)
+			errChan <- copier.Get(srcDir, "", getOptions, []string{"/."}, writer)
 		}()
 
 		// Copy, volume side: stream what we've written to the pipe, into
