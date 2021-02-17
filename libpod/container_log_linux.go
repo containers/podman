@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"strings"
 	"time"
 
 	"github.com/containers/podman/v2/libpod/define"
@@ -41,7 +40,11 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 	} else {
 		config.NumFromTail = uint64(options.Tail)
 	}
-	config.Formatter = journalFormatter
+	if options.Multi {
+		config.Formatter = journalFormatterWithID
+	} else {
+		config.Formatter = journalFormatter
+	}
 	defaultTime := time.Time{}
 	if options.Since != defaultTime {
 		// coreos/go-systemd/sdjournal doesn't correctly handle requests for data in the future
@@ -137,7 +140,45 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 	return nil
 }
 
+func journalFormatterWithID(entry *journal.JournalEntry) (string, error) {
+	// get
+	output, err := formatterPrefix(entry)
+	if err != nil {
+		return "", err
+	}
+
+	id, ok := entry.Fields["CONTAINER_ID_FULL"]
+	if !ok {
+		return "", fmt.Errorf("no CONTAINER_ID_FULL field present in journal entry")
+	}
+	if len(id) > 12 {
+		id = id[:12]
+	}
+	output += fmt.Sprintf("%s ", id)
+	// Append message
+	msg, err := formatterMessage(entry)
+	if err != nil {
+		return "", err
+	}
+	output += msg
+	return output, nil
+}
+
 func journalFormatter(entry *journal.JournalEntry) (string, error) {
+	output, err := formatterPrefix(entry)
+	if err != nil {
+		return "", err
+	}
+	// Append message
+	msg, err := formatterMessage(entry)
+	if err != nil {
+		return "", err
+	}
+	output += msg
+	return output, nil
+}
+
+func formatterPrefix(entry *journal.JournalEntry) (string, error) {
 	usec := entry.RealtimeTimestamp
 	tsString := time.Unix(0, int64(usec)*int64(time.Microsecond)).Format(logs.LogTimeFormat)
 	output := fmt.Sprintf("%s ", tsString)
@@ -160,13 +201,16 @@ func journalFormatter(entry *journal.JournalEntry) (string, error) {
 		output += fmt.Sprintf("%s ", logs.FullLogType)
 	}
 
+	return output, nil
+}
+
+func formatterMessage(entry *journal.JournalEntry) (string, error) {
 	// Finally, append the message
 	msg, ok := entry.Fields["MESSAGE"]
 	if !ok {
 		return "", fmt.Errorf("no MESSAGE field present in journal entry")
 	}
-	output += strings.TrimSpace(msg)
-	return output, nil
+	return msg, nil
 }
 
 type FollowBuffer struct {
