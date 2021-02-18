@@ -18,6 +18,7 @@
 - Fixed a bug where Podman would change ownership of a container's working directory, even if it already existed ([#9387](https://github.com/containers/podman/issues/9387)).
 - Fixed a bug where the `podman generate systemd --new` command would incorrectly escape `%t` when generating the path for the PID file ([#9373](https://github.com/containers/podman/issues/9373)).
 - Fixed a bug where Podman could, when run inside a Podman container with the host's containers/storage directory mounted into the container, erroneously detect a reboot and reset container state if the temporary directory was not also mounted in ([#9191](https://github.com/containers/podman/issues/9191)).
+- Fixed a bug where some options of the `podman build` command (including but not limited to `--jobs`) were nonfunctional ([#9247](https://github.com/containers/podman/issues/9247)).
 
 ### API
 - Fixed a breaking change to the Libpod Wait API for Containers where the Conditions parameter changed type in Podman v3.0 ([#9351](https://github.com/containers/podman/issues/9351)).
