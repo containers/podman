@@ -18,6 +18,8 @@ load helpers
     echo "${randomcontent[0]}" > $srcdir/hostfile0
     echo "${randomcontent[1]}" > $srcdir/hostfile1
     echo "${randomcontent[2]}" > $srcdir/hostfile2
+    mkdir -p $srcdir/subdir
+    echo "${randomcontent[2]}" > $srcdir/subdir/dotfile.
 
     run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sleep infinity
     run_podman exec cpcontainer mkdir /srv/subdir
@@ -50,6 +52,11 @@ load helpers
         is "$output" "${randomcontent[$id]}" "$description (cp -> ctr:$dest)"
     done < <(parse_table "$tests")
 
+    # Dots are special for dirs not files.
+    run_podman cp $srcdir/subdir/dotfile. cpcontainer:/tmp
+    run_podman exec cpcontainer cat /tmp/dotfile.
+    is "$output" "${randomcontent[2]}" "$description (cp -> ctr:$dest)"
+
     # Host path does not exist.
     run_podman 125 cp $srcdir/IdoNotExist cpcontainer:/tmp
     is "$output" 'Error: ".*/IdoNotExist" could not be found on the host' \
@@ -76,12 +83,14 @@ load helpers
     )
     run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sleep infinity
     run_podman exec cpcontainer sh -c "echo ${randomcontent[0]} > /tmp/containerfile"
+    run_podman exec cpcontainer sh -c "echo ${randomcontent[0]} > /tmp/dotfile."
     run_podman exec cpcontainer sh -c "echo ${randomcontent[1]} > /srv/containerfile1"
     run_podman exec cpcontainer sh -c "mkdir /srv/subdir; echo ${randomcontent[2]} > /srv/subdir/containerfile2"
 
     # format is: <id> | <source arg to cp> | <destination arg (appended to $srcdir) to cp> | <full dest path (appended to $srcdir)> | <test name>
     tests="
 0 | /tmp/containerfile    |          | /containerfile  | copy to srcdir/
+0 | /tmp/dotfile.         |          | /dotfile.       | copy to srcdir/
 0 | /tmp/containerfile    | /        | /containerfile  | copy to srcdir/
 0 | /tmp/containerfile    | /.       | /containerfile  | copy to srcdir/.
 0 | /tmp/containerfile    | /newfile | /newfile        | copy to srcdir/newfile
@@ -117,12 +126,18 @@ load helpers
     echo "${randomcontent[0]}" > $srcdir/hostfile0
     echo "${randomcontent[1]}" > $srcdir/hostfile1
 
+    # "." and "dir/." will copy the contents, so make sure that a dir ending
+    # with dot is treated correctly.
+    mkdir -p $srcdir.
+    cp $srcdir/* $srcdir./
+
     run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sleep infinity
     run_podman exec cpcontainer mkdir /srv/subdir
 
     # format is: <source arg to cp (appended to srcdir)> | <destination arg to cp> | <full dest path> | <test name>
     tests="
     | /        | /dir-test             | copy to root
+ .  | /        | /dir-test.            | copy dotdir to root
  /  | /tmp     | /tmp/dir-test         | copy to tmp
  /. | /usr/    | /usr/                 | copy contents of dir to usr/
     | .        | /srv/dir-test         | copy to workdir (rel path)
@@ -153,6 +168,9 @@ load helpers
     run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sleep infinity
     run_podman exec cpcontainer sh -c 'mkdir /srv/subdir; echo "This first file is on the container" > /srv/subdir/containerfile1'
     run_podman exec cpcontainer sh -c 'echo "This second file is on the container as well" > /srv/subdir/containerfile2'
+    # "." and "dir/." will copy the contents, so make sure that a dir ending
+    # with dot is treated correctly.
+    run_podman exec cpcontainer sh -c 'mkdir /tmp/subdir.; cp /srv/subdir/* /tmp/subdir./'
 
     run_podman cp cpcontainer:/srv $srcdir
     run cat $srcdir/srv/subdir/containerfile1
@@ -174,6 +192,14 @@ load helpers
     is "$output" "This first file is on the container"
     run cat $srcdir/containerfile2
     is "$output" "This second file is on the container as well"
+    rm -rf $srcdir/subdir
+
+    run_podman cp cpcontainer:/tmp/subdir. $srcdir
+    run cat $srcdir/subdir./containerfile1
+    is "$output" "This first file is on the container"
+    run cat $srcdir/subdir./containerfile2
+    is "$output" "This second file is on the container as well"
+    rm -rf $srcdir/subdir.
 
     run_podman rm -f cpcontainer
 }
