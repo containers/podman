@@ -1,3 +1,50 @@
+- Changelog for v3.0.1 (2021-02-18):
+  * Final 3.0.1 release notes update
+  * Bump containers/buildah to v1.19.4
+  * Implement missing arguments for podman build
+  * Fix swagger generation
+  * Updated Buildah to v1.19.4
+  * Add release notes for v3.0.1
+  * Don't switch on a single case
+  * Quote URL
+  * bindings: support simple types that implement fmt.Stringer interface
+  * API: fix libpod's container wait endpoint condition conversion
+  * Do not reset storage when running inside of a container
+  * Add missing early returns in compat API
+  * [NO TESTS NEEDED] Refactor generated code
+  * Enable more golangci-lint linters
+  * Enable whitespace linter
+  * Enable golint linter
+  * Enable stylecheck linter
+  * [NO TESTS NEEDED] Update linter
+  * apiv2: handle docker-java clients pulling
+  * Fix superfluous response.WriteHeader call in WaitContainerLibpod()
+  * fix dns resolution on ubuntu
+  * e2e: fix network alias test
+  * fix failing image e2e test
+  * Fix broken podman generate systemd --new with pods
+  * Don't chown workdir if it already exists
+  * correct startup error message
+  * fix create container: handle empty host port
+  * podman build: pass runtime to buildah
+  * images/create: always pull image
+  * Fix panic in pod creation
+  * do not set empty $HOME
+  * infra: downgrade warning to debug
+  * Ignore entrypoint=[\"\"]
+  * podman ps --format '{{ .Size }}' requires --size option
+  * Change source path resolution for volume copy-up
+  * Fix an issue where copyup could fail with ENOENT
+  * change ps Created to unix
+  * container ps json format miscue
+  * make layer-tree lookup errors non-fatal
+  * Bump c/storage to v1.24.6
+  * utils: takes the longest path on cgroup v1
+  * utils: create parent cgroups
+  * utils: ignore unified on cgroupv1 if not present
+  * utils: skip empty lines
+  * hardening flags for fedora rpmbuilds
+
 - Changelog for v3.0.0 (2021-02-11):
   * Update release notes for v3.0 final
   * Rewrite copy-up to use buildah Copier
