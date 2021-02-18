@@ -4,12 +4,10 @@
 podman-play-kube - Create pods and containers based on Kubernetes YAML
 
 ## SYNOPSIS
-**podman play kube** [*options*] *file*__.yml__
+**podman play kube** [*options*] *file.yml|-*
 
 ## DESCRIPTION
-**podman play kube** will read in a structured file of Kubernetes YAML.  It will then recreate
-the pod and containers described in the YAML.  The containers within the pod are then started and
-the ID of the new Pod is output.
+**podman play kube** will read in a structured file of Kubernetes YAML.  It will then recreate the pod and containers described in the YAML.  The containers within the pod are then started and the ID of the new Pod is output. If the yaml file is specified as "-" then `podman play kube` with read the yaml file from stdin.
 
 Ideally the input file would be one created by Podman (see podman-generate-kube(1)).  This would guarantee a smooth import and expected results.
 
@@ -79,6 +77,12 @@ Print usage statement
 Recreate the pod and containers as described in a file called `demo.yml`
 ```
 $ podman play kube demo.yml
+52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
+```
+
+Recreate the pod and containers as described in a file `demo.yml` sent to stdin
+```
+$ cat demo.yml | podman play kube -
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
 ```
 
