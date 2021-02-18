@@ -972,8 +972,11 @@ func (r *Runtime) setupNetNS(ctr *Container) error {
 	if _, err := rand.Reader.Read(b); err != nil {
 		return errors.Wrapf(err, "failed to generate random netns name")
 	}
-
-	nsPath := fmt.Sprintf("/run/netns/cni-%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
+	nsPath, err := netns.GetNSRunDir()
+	if err != nil {
+		return err
+	}
+	nsPath = filepath.Join(nsPath, fmt.Sprintf("cni-%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:]))
 
 	if err := os.MkdirAll(filepath.Dir(nsPath), 0711); err != nil {
 		return err

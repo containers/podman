@@ -641,22 +641,26 @@ var _ = Describe("Podman run networking", func() {
 		Expect(run.OutputToString()).To(ContainSubstring(ipAddr))
 	})
 
-	It("podman rootless fails custom CNI network with --uidmap", func() {
-		SkipIfNotRootless("The configuration works with rootless")
-
+	It("podman cni network works across user ns", func() {
 		netName := stringid.GenerateNonCryptoID()
 		create := podmanTest.Podman([]string{"network", "create", netName})
 		create.WaitWithDefaultTimeout()
 		Expect(create.ExitCode()).To(BeZero())
 		defer podmanTest.removeCNINetwork(netName)
 
-		run := podmanTest.Podman([]string{"run", "--rm", "--net", netName, "--uidmap", "0:1:4096", ALPINE, "true"})
+		name := "nc-server"
+		run := podmanTest.Podman([]string{"run", "-d", "--name", name, "--net", netName, ALPINE, "nc", "-l", "-p", "8080"})
 		run.WaitWithDefaultTimeout()
-		Expect(run.ExitCode()).To(Equal(125))
+		Expect(run.ExitCode()).To(Equal(0))
 
-		remove := podmanTest.Podman([]string{"network", "rm", netName})
-		remove.WaitWithDefaultTimeout()
-		Expect(remove.ExitCode()).To(BeZero())
+		run = podmanTest.Podman([]string{"run", "--rm", "--net", netName, "--uidmap", "0:1:4096", ALPINE, "sh", "-c", fmt.Sprintf("echo podman | nc -w 1 %s.dns.podman 8080", name)})
+		run.WaitWithDefaultTimeout()
+		Expect(run.ExitCode()).To(Equal(0))
+
+		log := podmanTest.Podman([]string{"logs", name})
+		log.WaitWithDefaultTimeout()
+		Expect(log.ExitCode()).To(Equal(0))
+		Expect(log.OutputToString()).To(Equal("podman"))
 	})
 
 	It("podman run with new:pod and static-ip", func() {
