@@ -141,7 +141,6 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 }
 
 func journalFormatterWithID(entry *journal.JournalEntry) (string, error) {
-	// get
 	output, err := formatterPrefix(entry)
 	if err != nil {
 		return "", err
