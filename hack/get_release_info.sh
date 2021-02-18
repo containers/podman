@@ -14,11 +14,19 @@ valid_args() {
         cut -d '*' -f 1
 }
 
+# `git describe` does not reliably produce a useful version number.
+scrape_version() {
+    local versionfile='version/version.go'
+    local version_line=$(grep -m 1 'var Version =' $versionfile)
+    local version_string=$(cut -d '"' -f 2 <<<"$version_line")
+    echo "$version_string" | tr -d '[:space:]'
+}
+
 unset OUTPUT
 case "$1" in
     # Wild-card suffix needed by valid_args() e.g. possible bad grep of "$(echo $FOO)"
     VERSION*)
-        OUTPUT="${CIRRUS_TAG:-$(git fetch --tags && git describe HEAD 2> /dev/null)}"
+        OUTPUT="${CIRRUS_TAG:-$(scrape_version)}"
         ;;
     NUMBER*)
         OUTPUT="$($0 VERSION | sed 's/-.*//')"
