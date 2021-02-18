@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/containers/podman/v3/libpod"
+	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -94,8 +95,19 @@ func createPodOptions(p *specgen.PodSpecGenerator, rt *libpod.Runtime) ([]libpod
 	}
 
 	switch p.NetNS.NSMode {
-	case specgen.Bridge, specgen.Default, "":
-		logrus.Debugf("Pod using default network mode")
+	case specgen.Default, "":
+		if p.NoInfra {
+			logrus.Debugf("No networking because the infra container is missing")
+			break
+		}
+		if rootless.IsRootless() {
+			logrus.Debugf("Pod will use slirp4netns")
+			options = append(options, libpod.WithPodSlirp4netns(p.NetworkOptions))
+		} else {
+			logrus.Debugf("Pod using bridge network mode")
+		}
+	case specgen.Bridge:
+		logrus.Debugf("Pod using bridge network mode")
 	case specgen.Host:
 		logrus.Debugf("Pod will use host networking")
 		options = append(options, libpod.WithPodHostNetwork())
