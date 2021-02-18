@@ -1,7 +1,6 @@
 package swagger
 
 import (
-	"github.com/containers/podman/v2/libpod"
 	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/libpod/image"
 	"github.com/containers/podman/v2/pkg/api/handlers"
@@ -166,7 +165,7 @@ type swagInspectPodResponse struct {
 type swagInspectVolumeResponse struct {
 	// in:body
 	Body struct {
-		libpod.InspectVolumeData
+		define.InspectVolumeData
 	}
 }
 
