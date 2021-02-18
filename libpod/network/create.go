@@ -11,7 +11,6 @@ import (
 	"github.com/containernetworking/cni/pkg/version"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -223,9 +222,8 @@ func createBridge(name string, options entities.NetworkCreateOptions, runtimeCon
 	plugins = append(plugins, NewPortMapPlugin())
 	plugins = append(plugins, NewFirewallPlugin())
 	plugins = append(plugins, NewTuningPlugin())
-	// if we find the dnsname plugin or are rootless, we add configuration for it
-	// the rootless-cni-infra container has the dnsname plugin always installed
-	if (HasDNSNamePlugin(runtimeConfig.Network.CNIPluginDirs) || rootless.IsRootless()) && !options.DisableDNS {
+	// if we find the dnsname plugin we add configuration for it
+	if HasDNSNamePlugin(runtimeConfig.Network.CNIPluginDirs) && !options.DisableDNS {
 		if options.Internal {
 			logrus.Warnf("dnsname and --internal networks are incompatible.  dnsname plugin not configured for network %s", name)
 		} else {

@@ -436,13 +436,11 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	}
 
 	// Set up the CNI net plugin
-	if !rootless.IsRootless() {
-		netPlugin, err := ocicni.InitCNI(runtime.config.Network.DefaultNetwork, runtime.config.Network.NetworkConfigDir, runtime.config.Network.CNIPluginDirs...)
-		if err != nil {
-			return errors.Wrapf(err, "error configuring CNI network plugin")
-		}
-		runtime.netPlugin = netPlugin
+	netPlugin, err := ocicni.InitCNI(runtime.config.Network.DefaultNetwork, runtime.config.Network.NetworkConfigDir, runtime.config.Network.CNIPluginDirs...)
+	if err != nil {
+		return errors.Wrapf(err, "error configuring CNI network plugin")
 	}
+	runtime.netPlugin = netPlugin
 
 	// We now need to see if the system has restarted
 	// We check for the presence of a file in our tmp directory to verify this

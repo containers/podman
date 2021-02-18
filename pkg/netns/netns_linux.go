@@ -35,9 +35,9 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// get NSRunDir returns the dir of where to create the netNS. When running
+// GetNSRunDir returns the dir of where to create the netNS. When running
 // rootless, it needs to be at a location writable by user.
-func getNSRunDir() (string, error) {
+func GetNSRunDir() (string, error) {
 	if rootless.IsRootless() {
 		rootlessDir, err := util.GetRuntimeDir()
 		if err != nil {
@@ -51,15 +51,21 @@ func getNSRunDir() (string, error) {
 // NewNS creates a new persistent (bind-mounted) network namespace and returns
 // an object representing that namespace, without switching to it.
 func NewNS() (ns.NetNS, error) {
-	nsRunDir, err := getNSRunDir()
-	if err != nil {
-		return nil, err
-	}
-
 	b := make([]byte, 16)
-	_, err = rand.Reader.Read(b)
+	_, err := rand.Reader.Read(b)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate random netns name: %v", err)
+	}
+	nsName := fmt.Sprintf("cni-%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
+	return NewNSWithName(nsName)
+}
+
+// NewNSWithName creates a new persistent (bind-mounted) network namespace and returns
+// an object representing that namespace, without switching to it.
+func NewNSWithName(name string) (ns.NetNS, error) {
+	nsRunDir, err := GetNSRunDir()
+	if err != nil {
+		return nil, err
 	}
 
 	// Create the directory for mounting network namespaces
@@ -93,10 +99,8 @@ func NewNS() (ns.NetNS, error) {
 		}
 	}
 
-	nsName := fmt.Sprintf("cni-%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
-
 	// create an empty file at the mount point
-	nsPath := path.Join(nsRunDir, nsName)
+	nsPath := path.Join(nsRunDir, name)
 	mountPointFd, err := os.Create(nsPath)
 	if err != nil {
 		return nil, err
@@ -177,7 +181,7 @@ func NewNS() (ns.NetNS, error) {
 
 // UnmountNS unmounts the NS held by the netns object
 func UnmountNS(ns ns.NetNS) error {
-	nsRunDir, err := getNSRunDir()
+	nsRunDir, err := GetNSRunDir()
 	if err != nil {
 		return err
 	}

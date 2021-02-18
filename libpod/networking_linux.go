@@ -4,7 +4,6 @@ package libpod
 
 import (
 	"bytes"
-	"context"
 	"crypto/rand"
 	"fmt"
 	"io"
@@ -29,7 +28,9 @@ import (
 	"github.com/containers/podman/v3/pkg/netns"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/rootlessport"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/cri-o/ocicni/pkg/ocicni"
+	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
@@ -46,6 +47,9 @@ const (
 
 	// slirp4netnsMTU the default MTU override
 	slirp4netnsMTU = 65520
+
+	// rootlessCNINSName is the file name for the rootless network namespace bind mount
+	rootlessCNINSName = "rootless-cni-ns"
 )
 
 // Get an OCICNI network config
@@ -102,8 +106,222 @@ func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, port
 	return ctrNetwork
 }
 
+type rootlessCNI struct {
+	ns  ns.NetNS
+	dir string
+}
+
+func (r *rootlessCNI) Do(toRun func() error) error {
+	err := r.ns.Do(func(_ ns.NetNS) error {
+		// before we can run the given function
+		// we have to setup all mounts correctly
+
+		// create a new mount namespace
+		// this should happen inside the netns thread
+		err := unix.Unshare(unix.CLONE_NEWNS)
+		if err != nil {
+			return errors.Wrapf(err, "cannot create a new mount namespace")
+		}
+
+		netNsDir, err := netns.GetNSRunDir()
+		if err != nil {
+			return errors.Wrap(err, "could not get network namespace directory")
+		}
+		newNetNsDir := filepath.Join(r.dir, netNsDir)
+		// mount the netns into the new run to keep them accessible
+		// otherwise cni setup will fail because it cannot access the netns files
+		err = unix.Mount(netNsDir, newNetNsDir, "none", unix.MS_BIND|unix.MS_SHARED|unix.MS_REC, "")
+		if err != nil {
+			return errors.Wrap(err, "failed to mount netns directory for rootless cni")
+		}
+
+		// also keep /run/systemd if it exists
+		// many files are symlinked into this dir, for example systemd-resolved links
+		// /etc/resolv.conf but the dnsname plugin needs access to this file
+		runSystemd := "/run/systemd"
+		_, err = os.Stat(runSystemd)
+		if err == nil {
+			newRunSystemd := filepath.Join(r.dir, runSystemd[1:])
+			err = unix.Mount(runSystemd, newRunSystemd, "none", unix.MS_BIND|unix.MS_REC, "")
+			if err != nil {
+				return errors.Wrap(err, "failed to mount /run/systemd directory for rootless cni")
+			}
+		}
+
+		// cni plugins need access to /var and /run
+		runDir := filepath.Join(r.dir, "run")
+		varDir := filepath.Join(r.dir, "var")
+		// make sure to mount var first
+		err = unix.Mount(varDir, "/var", "none", unix.MS_BIND, "")
+		if err != nil {
+			return errors.Wrap(err, "failed to mount /var for rootless cni")
+		}
+		// recursive mount to keep the netns mount
+		err = unix.Mount(runDir, "/run", "none", unix.MS_BIND|unix.MS_REC, "")
+		if err != nil {
+			return errors.Wrap(err, "failed to mount /run for rootless cni")
+		}
+
+		// run the given function in the correct namespace
+		err = toRun()
+		return err
+	})
+	return err
+}
+
+// getRootlessCNINetNs returns the rootless cni object. If create is set to true
+// the rootless cni namespace will be created if it does not exists already.
+func (r *Runtime) getRootlessCNINetNs(new bool) (*rootlessCNI, error) {
+	var rootlessCNINS *rootlessCNI
+	if rootless.IsRootless() {
+		runDir, err := util.GetRuntimeDir()
+		if err != nil {
+			return nil, err
+		}
+		cniDir := filepath.Join(runDir, "rootless-cni")
+
+		nsDir, err := netns.GetNSRunDir()
+		if err != nil {
+			return nil, err
+		}
+		path := filepath.Join(nsDir, rootlessCNINSName)
+		ns, err := ns.GetNS(path)
+		if err != nil {
+			if new {
+				// create a new namespace
+				logrus.Debug("creating rootless cni network namespace")
+				ns, err = netns.NewNSWithName(rootlessCNINSName)
+				if err != nil {
+					return nil, errors.Wrap(err, "error creating rootless cni network namespace")
+				}
+
+				// setup slirp4netns here
+				path := r.config.Engine.NetworkCmdPath
+				if path == "" {
+					var err error
+					path, err = exec.LookPath("slirp4netns")
+					if err != nil {
+						return nil, err
+					}
+				}
+
+				syncR, syncW, err := os.Pipe()
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed to open pipe")
+				}
+				defer errorhandling.CloseQuiet(syncR)
+				defer errorhandling.CloseQuiet(syncW)
+
+				netOptions, err := parseSlirp4netnsNetworkOptions(r, nil)
+				if err != nil {
+					return nil, err
+				}
+				slirpFeatures, err := checkSlirpFlags(path)
+				if err != nil {
+					return nil, errors.Wrapf(err, "error checking slirp4netns binary %s: %q", path, err)
+				}
+				cmdArgs, err := createBasicSlirp4netnsCmdArgs(netOptions, slirpFeatures)
+				if err != nil {
+					return nil, err
+				}
+				// the slirp4netns arguments being passed are describes as follows:
+				// from the slirp4netns documentation: https://github.com/rootless-containers/slirp4netns
+				// -c, --configure Brings up the tap interface
+				// -e, --exit-fd=FD specify the FD for terminating slirp4netns
+				// -r, --ready-fd=FD specify the FD to write to when the initialization steps are finished
+				cmdArgs = append(cmdArgs, "-c", "-r", "3")
+				cmdArgs = append(cmdArgs, "--netns-type=path", ns.Path(), "tap0")
+
+				cmd := exec.Command(path, cmdArgs...)
+				logrus.Debugf("slirp4netns command: %s", strings.Join(cmd.Args, " "))
+				cmd.SysProcAttr = &syscall.SysProcAttr{
+					Setpgid: true,
+				}
+
+				// workaround for https://github.com/rootless-containers/slirp4netns/pull/153
+				if !netOptions.noPivotRoot && slirpFeatures.HasEnableSandbox {
+					cmd.SysProcAttr.Cloneflags = syscall.CLONE_NEWNS
+					cmd.SysProcAttr.Unshareflags = syscall.CLONE_NEWNS
+				}
+
+				// Leak one end of the pipe in slirp4netns
+				cmd.ExtraFiles = append(cmd.ExtraFiles, syncW)
+
+				logPath := filepath.Join(r.config.Engine.TmpDir, "slirp4netns-rootless-cni.log")
+				logFile, err := os.Create(logPath)
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed to open slirp4netns log file %s", logPath)
+				}
+				defer logFile.Close()
+				// Unlink immediately the file so we won't need to worry about cleaning it up later.
+				// It is still accessible through the open fd logFile.
+				if err := os.Remove(logPath); err != nil {
+					return nil, errors.Wrapf(err, "delete file %s", logPath)
+				}
+				cmd.Stdout = logFile
+				cmd.Stderr = logFile
+				if err := cmd.Start(); err != nil {
+					return nil, errors.Wrapf(err, "failed to start slirp4netns process")
+				}
+				defer func() {
+					if err := cmd.Process.Release(); err != nil {
+						logrus.Errorf("unable to release command process: %q", err)
+					}
+				}()
+
+				if err := waitForSync(syncR, cmd, logFile, 1*time.Second); err != nil {
+					return nil, err
+				}
+
+				// create cni directories to store files
+				// they will be bind mounted to the correct location in a extra mount ns
+				err = os.MkdirAll(filepath.Join(cniDir, "var"), 0700)
+				if err != nil {
+					return nil, errors.Wrap(err, "could not create rootless-cni var directory")
+				}
+				runDir := filepath.Join(cniDir, "run")
+				err = os.MkdirAll(runDir, 0700)
+				if err != nil {
+					return nil, errors.Wrap(err, "could not create rootless-cni run directory")
+				}
+				// relabel the new run directory to the iptables /run label
+				// this is important, otherwise the iptables command will fail
+				err = label.Relabel(runDir, "system_u:object_r:iptables_var_run_t:s0", false)
+				if err != nil {
+					return nil, errors.Wrap(err, "could not create relabel rootless-cni run directory")
+				}
+				// create systemd run directory
+				err = os.MkdirAll(filepath.Join(runDir, "systemd"), 0700)
+				if err != nil {
+					return nil, errors.Wrap(err, "could not create rootless-cni systemd directory")
+				}
+				// create the directory for the netns files at the same location
+				// relative to the rootless-cni location
+				err = os.MkdirAll(filepath.Join(cniDir, nsDir), 0700)
+				if err != nil {
+					return nil, errors.Wrap(err, "could not create rootless-cni netns directory")
+				}
+			} else {
+				// return a error if we could not get the namespace and should no create one
+				return nil, errors.Wrap(err, "error getting rootless cni network namespace")
+			}
+		}
+
+		rootlessCNINS = &rootlessCNI{
+			ns:  ns,
+			dir: cniDir,
+		}
+	}
+	return rootlessCNINS, nil
+}
+
 // Create and configure a new network namespace for a container
 func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Result, error) {
+	rootlessCNINS, err := r.getRootlessCNINetNs(true)
+	if err != nil {
+		return nil, err
+	}
+
 	var requestedIP net.IP
 	if ctr.requestedIP != nil {
 		requestedIP = ctr.requestedIP
@@ -147,17 +365,31 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 		podNetwork.Aliases = aliases
 	}
 
-	results, err := r.netPlugin.SetUpPod(podNetwork)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error configuring network namespace for container %s", ctr.ID())
-	}
-	defer func() {
+	var results []ocicni.NetResult
+	setUpPod := func() error {
+		results, err = r.netPlugin.SetUpPod(podNetwork)
 		if err != nil {
-			if err2 := r.netPlugin.TearDownPod(podNetwork); err2 != nil {
-				logrus.Errorf("Error tearing down partially created network namespace for container %s: %v", ctr.ID(), err2)
-			}
+			return errors.Wrapf(err, "error configuring network namespace for container %s", ctr.ID())
 		}
-	}()
+		defer func() {
+			if err != nil {
+				if err2 := r.netPlugin.TearDownPod(podNetwork); err2 != nil {
+					logrus.Errorf("Error tearing down partially created network namespace for container %s: %v", ctr.ID(), err2)
+				}
+			}
+		}()
+		return nil
+	}
+	// rootlessCNINS is nil if we are root
+	if rootlessCNINS != nil {
+		// execute the cni setup in the rootless net ns
+		err = rootlessCNINS.Do(setUpPod)
+	} else {
+		err = setUpPod()
+	}
+	if err != nil {
+		return nil, err
+	}
 
 	networkStatus := make([]*cnitypes.Result, 0)
 	for idx, r := range results {
@@ -192,7 +424,7 @@ func (r *Runtime) createNetNS(ctr *Container) (n ns.NetNS, q []*cnitypes.Result,
 	logrus.Debugf("Made network namespace at %s for container %s", ctrNS.Path(), ctr.ID())
 
 	networkStatus := []*cnitypes.Result{}
-	if !rootless.IsRootless() && !ctr.config.NetMode.IsSlirp4netns() {
+	if !ctr.config.NetMode.IsSlirp4netns() {
 		networkStatus, err = r.configureNetNS(ctr, ctrNS)
 	}
 	return ctrNS, networkStatus, err
@@ -219,6 +451,17 @@ type slirp4netnsCmdArg struct {
 type slirp4netnsCmd struct {
 	Execute string            `json:"execute"`
 	Args    slirp4netnsCmdArg `json:"arguments"`
+}
+
+type slirp4netnsNetworkOptions struct {
+	cidr                string
+	disableHostLoopback bool
+	enableIPv6          bool
+	isSlirpHostForward  bool
+	noPivotRoot         bool
+	mtu                 int
+	outboundAddr        string
+	outboundAddr6       string
 }
 
 func checkSlirpFlags(path string) (*slirpFeatures, error) {
@@ -256,11 +499,137 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 	return nil
 }
 
+func parseSlirp4netnsNetworkOptions(r *Runtime, extraOptions []string) (*slirp4netnsNetworkOptions, error) {
+	slirpOptions := append(r.config.Engine.NetworkCmdOptions, extraOptions...)
+	slirp4netnsOpts := &slirp4netnsNetworkOptions{
+		// overwrite defaults
+		disableHostLoopback: true,
+		mtu:                 slirp4netnsMTU,
+		noPivotRoot:         r.config.Engine.NoPivotRoot,
+	}
+	for _, o := range slirpOptions {
+		parts := strings.SplitN(o, "=", 2)
+		if len(parts) < 2 {
+			return nil, errors.Errorf("unknown option for slirp4netns: %q", o)
+		}
+		option, value := parts[0], parts[1]
+		switch option {
+		case "cidr":
+			ipv4, _, err := net.ParseCIDR(value)
+			if err != nil || ipv4.To4() == nil {
+				return nil, errors.Errorf("invalid cidr %q", value)
+			}
+			slirp4netnsOpts.cidr = value
+		case "port_handler":
+			switch value {
+			case "slirp4netns":
+				slirp4netnsOpts.isSlirpHostForward = true
+			case "rootlesskit":
+				slirp4netnsOpts.isSlirpHostForward = false
+			default:
+				return nil, errors.Errorf("unknown port_handler for slirp4netns: %q", value)
+			}
+		case "allow_host_loopback":
+			switch value {
+			case "true":
+				slirp4netnsOpts.disableHostLoopback = false
+			case "false":
+				slirp4netnsOpts.disableHostLoopback = true
+			default:
+				return nil, errors.Errorf("invalid value of allow_host_loopback for slirp4netns: %q", value)
+			}
+		case "enable_ipv6":
+			switch value {
+			case "true":
+				slirp4netnsOpts.enableIPv6 = true
+			case "false":
+				slirp4netnsOpts.enableIPv6 = false
+			default:
+				return nil, errors.Errorf("invalid value of enable_ipv6 for slirp4netns: %q", value)
+			}
+		case "outbound_addr":
+			ipv4 := net.ParseIP(value)
+			if ipv4 == nil || ipv4.To4() == nil {
+				_, err := net.InterfaceByName(value)
+				if err != nil {
+					return nil, errors.Errorf("invalid outbound_addr %q", value)
+				}
+			}
+			slirp4netnsOpts.outboundAddr = value
+		case "outbound_addr6":
+			ipv6 := net.ParseIP(value)
+			if ipv6 == nil || ipv6.To4() != nil {
+				_, err := net.InterfaceByName(value)
+				if err != nil {
+					return nil, errors.Errorf("invalid outbound_addr6: %q", value)
+				}
+			}
+			slirp4netnsOpts.outboundAddr6 = value
+		case "mtu":
+			var err error
+			slirp4netnsOpts.mtu, err = strconv.Atoi(value)
+			if slirp4netnsOpts.mtu < 68 || err != nil {
+				return nil, errors.Errorf("invalid mtu %q", value)
+			}
+		default:
+			return nil, errors.Errorf("unknown option for slirp4netns: %q", o)
+		}
+	}
+	return slirp4netnsOpts, nil
+}
+
+func createBasicSlirp4netnsCmdArgs(options *slirp4netnsNetworkOptions, features *slirpFeatures) ([]string, error) {
+	cmdArgs := []string{}
+	if options.disableHostLoopback && features.HasDisableHostLoopback {
+		cmdArgs = append(cmdArgs, "--disable-host-loopback")
+	}
+	if options.mtu > -1 && features.HasMTU {
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--mtu=%d", options.mtu))
+	}
+	if !options.noPivotRoot && features.HasEnableSandbox {
+		cmdArgs = append(cmdArgs, "--enable-sandbox")
+	}
+	if features.HasEnableSeccomp {
+		cmdArgs = append(cmdArgs, "--enable-seccomp")
+	}
+
+	if options.cidr != "" {
+		if !features.HasCIDR {
+			return nil, errors.Errorf("cidr not supported")
+		}
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--cidr=%s", options.cidr))
+	}
+
+	if options.enableIPv6 {
+		if !features.HasIPv6 {
+			return nil, errors.Errorf("enable_ipv6 not supported")
+		}
+		cmdArgs = append(cmdArgs, "--enable-ipv6")
+	}
+
+	if options.outboundAddr != "" {
+		if !features.HasOutboundAddr {
+			return nil, errors.Errorf("outbound_addr not supported")
+		}
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--outbound-addr=%s", options.outboundAddr))
+	}
+
+	if options.outboundAddr6 != "" {
+		if !features.HasOutboundAddr || !features.HasIPv6 {
+			return nil, errors.Errorf("outbound_addr6 not supported")
+		}
+		if !options.enableIPv6 {
+			return nil, errors.Errorf("enable_ipv6=true is required for outbound_addr6")
+		}
+		cmdArgs = append(cmdArgs, fmt.Sprintf("--outbound-addr6=%s", options.outboundAddr6))
+	}
+
+	return cmdArgs, nil
+}
+
 // setupSlirp4netns can be called in rootful as well as in rootless
 func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 	path := r.config.Engine.NetworkCmdPath
-	slirpOptions := r.config.Engine.NetworkCmdOptions
-	noPivotRoot := r.config.Engine.NoPivotRoot
 	if path == "" {
 		var err error
 		path, err = exec.LookPath("slirp4netns")
@@ -280,139 +649,21 @@ func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 	havePortMapping := len(ctr.Config().PortMappings) > 0
 	logPath := filepath.Join(ctr.runtime.config.Engine.TmpDir, fmt.Sprintf("slirp4netns-%s.log", ctr.config.ID))
 
-	cidr := ""
-	isSlirpHostForward := false
-	disableHostLoopback := true
-	enableIPv6 := false
-	outboundAddr := ""
-	outboundAddr6 := ""
-	mtu := slirp4netnsMTU
-
+	ctrNetworkSlipOpts := []string{}
 	if ctr.config.NetworkOptions != nil {
-		slirpOptions = append(slirpOptions, ctr.config.NetworkOptions["slirp4netns"]...)
+		ctrNetworkSlipOpts = append(ctrNetworkSlipOpts, ctr.config.NetworkOptions["slirp4netns"]...)
 	}
-
-	for _, o := range slirpOptions {
-		parts := strings.SplitN(o, "=", 2)
-		if len(parts) < 2 {
-			return errors.Errorf("unknown option for slirp4netns: %q", o)
-		}
-		option, value := parts[0], parts[1]
-		switch option {
-		case "cidr":
-			ipv4, _, err := net.ParseCIDR(value)
-			if err != nil || ipv4.To4() == nil {
-				return errors.Errorf("invalid cidr %q", value)
-			}
-			cidr = value
-		case "port_handler":
-			switch value {
-			case "slirp4netns":
-				isSlirpHostForward = true
-			case "rootlesskit":
-				isSlirpHostForward = false
-			default:
-				return errors.Errorf("unknown port_handler for slirp4netns: %q", value)
-			}
-		case "allow_host_loopback":
-			switch value {
-			case "true":
-				disableHostLoopback = false
-			case "false":
-				disableHostLoopback = true
-			default:
-				return errors.Errorf("invalid value of allow_host_loopback for slirp4netns: %q", value)
-			}
-		case "enable_ipv6":
-			switch value {
-			case "true":
-				enableIPv6 = true
-			case "false":
-				enableIPv6 = false
-			default:
-				return errors.Errorf("invalid value of enable_ipv6 for slirp4netns: %q", value)
-			}
-		case "outbound_addr":
-			ipv4 := net.ParseIP(value)
-			if ipv4 == nil || ipv4.To4() == nil {
-				_, err := net.InterfaceByName(value)
-				if err != nil {
-					return errors.Errorf("invalid outbound_addr %q", value)
-				}
-			}
-			outboundAddr = value
-		case "outbound_addr6":
-			ipv6 := net.ParseIP(value)
-			if ipv6 == nil || ipv6.To4() != nil {
-				_, err := net.InterfaceByName(value)
-				if err != nil {
-					return errors.Errorf("invalid outbound_addr6: %q", value)
-				}
-			}
-			outboundAddr6 = value
-		case "mtu":
-			mtu, err = strconv.Atoi(value)
-			if mtu < 68 || err != nil {
-				return errors.Errorf("invalid mtu %q", value)
-			}
-		default:
-			return errors.Errorf("unknown option for slirp4netns: %q", o)
-		}
+	netOptions, err := parseSlirp4netnsNetworkOptions(r, ctrNetworkSlipOpts)
+	if err != nil {
+		return err
 	}
-
-	cmdArgs := []string{}
 	slirpFeatures, err := checkSlirpFlags(path)
 	if err != nil {
 		return errors.Wrapf(err, "error checking slirp4netns binary %s: %q", path, err)
 	}
-	if disableHostLoopback && slirpFeatures.HasDisableHostLoopback {
-		cmdArgs = append(cmdArgs, "--disable-host-loopback")
-	}
-	if mtu > -1 && slirpFeatures.HasMTU {
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--mtu=%d", mtu))
-	}
-	if !noPivotRoot && slirpFeatures.HasEnableSandbox {
-		cmdArgs = append(cmdArgs, "--enable-sandbox")
-	}
-	if slirpFeatures.HasEnableSeccomp {
-		cmdArgs = append(cmdArgs, "--enable-seccomp")
-	}
-
-	if cidr != "" {
-		if !slirpFeatures.HasCIDR {
-			return errors.Errorf("cidr not supported")
-		}
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--cidr=%s", cidr))
-	}
-
-	if enableIPv6 {
-		if !slirpFeatures.HasIPv6 {
-			return errors.Errorf("enable_ipv6 not supported")
-		}
-		cmdArgs = append(cmdArgs, "--enable-ipv6")
-	}
-
-	if outboundAddr != "" {
-		if !slirpFeatures.HasOutboundAddr {
-			return errors.Errorf("outbound_addr not supported")
-		}
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--outbound-addr=%s", outboundAddr))
-	}
-
-	if outboundAddr6 != "" {
-		if !slirpFeatures.HasOutboundAddr || !slirpFeatures.HasIPv6 {
-			return errors.Errorf("outbound_addr6 not supported")
-		}
-		if !enableIPv6 {
-			return errors.Errorf("enable_ipv6=true is required for outbound_addr6")
-		}
-		cmdArgs = append(cmdArgs, fmt.Sprintf("--outbound-addr6=%s", outboundAddr6))
-	}
-
-	var apiSocket string
-	if havePortMapping && isSlirpHostForward {
-		apiSocket = filepath.Join(ctr.runtime.config.Engine.TmpDir, fmt.Sprintf("%s.net", ctr.config.ID))
-		cmdArgs = append(cmdArgs, "--api-socket", apiSocket)
+	cmdArgs, err := createBasicSlirp4netnsCmdArgs(netOptions, slirpFeatures)
+	if err != nil {
+		return err
 	}
 
 	// the slirp4netns arguments being passed are describes as follows:
@@ -421,6 +672,12 @@ func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 	// -e, --exit-fd=FD specify the FD for terminating slirp4netns
 	// -r, --ready-fd=FD specify the FD to write to when the initialization steps are finished
 	cmdArgs = append(cmdArgs, "-c", "-e", "3", "-r", "4")
+
+	var apiSocket string
+	if havePortMapping && netOptions.isSlirpHostForward {
+		apiSocket = filepath.Join(ctr.runtime.config.Engine.TmpDir, fmt.Sprintf("%s.net", ctr.config.ID))
+		cmdArgs = append(cmdArgs, "--api-socket", apiSocket)
+	}
 	netnsPath := ""
 	if !ctr.config.PostConfigureNetNS {
 		ctr.rootlessSlirpSyncR, ctr.rootlessSlirpSyncW, err = os.Pipe()
@@ -444,7 +701,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 	}
 
 	// workaround for https://github.com/rootless-containers/slirp4netns/pull/153
-	if !noPivotRoot && slirpFeatures.HasEnableSandbox {
+	if !netOptions.noPivotRoot && slirpFeatures.HasEnableSandbox {
 		cmd.SysProcAttr.Cloneflags = syscall.CLONE_NEWNS
 		cmd.SysProcAttr.Unshareflags = syscall.CLONE_NEWNS
 	}
@@ -478,7 +735,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 	}
 
 	if havePortMapping {
-		if isSlirpHostForward {
+		if netOptions.isSlirpHostForward {
 			return r.setupRootlessPortMappingViaSlirp(ctr, cmd, apiSocket)
 		}
 		return r.setupRootlessPortMappingViaRLK(ctr, netnsPath)
@@ -789,8 +1046,11 @@ func (r *Runtime) teardownCNI(ctr *Container) error {
 		return err
 	}
 
-	// rootless containers do not use the CNI plugin directly
-	if !rootless.IsRootless() && !ctr.config.NetMode.IsSlirp4netns() && len(networks) > 0 {
+	if !ctr.config.NetMode.IsSlirp4netns() && len(networks) > 0 {
+		rootlessCNINS, err := r.getRootlessCNINetNs(false)
+		if err != nil {
+			return err
+		}
 		var requestedIP net.IP
 		if ctr.requestedIP != nil {
 			requestedIP = ctr.requestedIP
@@ -811,9 +1071,21 @@ func (r *Runtime) teardownCNI(ctr *Container) error {
 
 		podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), networks, ctr.config.PortMappings, requestedIP, requestedMAC, ctr.state.NetInterfaceDescriptions)
 
-		if err := r.netPlugin.TearDownPod(podNetwork); err != nil {
-			return errors.Wrapf(err, "error tearing down CNI namespace configuration for container %s", ctr.ID())
+		tearDownPod := func() error {
+			if err := r.netPlugin.TearDownPod(podNetwork); err != nil {
+				return errors.Wrapf(err, "error tearing down CNI namespace configuration for container %s", ctr.ID())
+			}
+			return nil
 		}
+
+		// rootlessCNINS is nil if we are root
+		if rootlessCNINS != nil {
+			// execute the cni setup in the rootless net ns
+			err = rootlessCNINS.Do(tearDownPod)
+		} else {
+			err = tearDownPod()
+		}
+		return err
 	}
 	return nil
 }
@@ -822,18 +1094,6 @@ func (r *Runtime) teardownCNI(ctr *Container) error {
 func (r *Runtime) teardownNetNS(ctr *Container) error {
 	if err := r.teardownCNI(ctr); err != nil {
 		return err
-	}
-
-	networks, _, err := ctr.networks()
-	if err != nil {
-		return err
-	}
-
-	// CNI-in-slirp4netns
-	if rootless.IsRootless() && len(networks) != 0 {
-		if err := DeallocRootlessCNI(context.Background(), ctr); err != nil {
-			return errors.Wrapf(err, "error tearing down CNI-in-slirp4netns for container %s", ctr.ID())
-		}
 	}
 
 	// First unmount the namespace
