@@ -2,6 +2,7 @@ package util
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 	"reflect"
 	"strconv"
@@ -11,14 +12,23 @@ import (
 )
 
 func IsSimpleType(f reflect.Value) bool {
+	if _, ok := f.Interface().(fmt.Stringer); ok {
+		return true
+	}
+
 	switch f.Kind() {
 	case reflect.Bool, reflect.Int, reflect.Int64, reflect.Uint, reflect.Uint64, reflect.String:
 		return true
 	}
+
 	return false
 }
 
 func SimpleTypeToParam(f reflect.Value) string {
+	if s, ok := f.Interface().(fmt.Stringer); ok {
+		return s.String()
+	}
+
 	switch f.Kind() {
 	case reflect.Bool:
 		return strconv.FormatBool(f.Bool())
@@ -31,6 +41,7 @@ func SimpleTypeToParam(f reflect.Value) string {
 	case reflect.String:
 		return f.String()
 	}
+
 	panic("the input parameter is not a simple type")
 }
 
