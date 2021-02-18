@@ -3,6 +3,7 @@ package abi
 import (
 	"context"
 	"io"
+	"path/filepath"
 	"strings"
 
 	buildahCopiah "github.com/containers/buildah/copier"
@@ -93,7 +94,7 @@ func (ic *ContainerEngine) ContainerCopyToArchive(ctx context.Context, nameOrID 
 		containerPath = "/."
 	}
 
-	_, resolvedRoot, resolvedContainerPath, err := ic.containerStat(container, containerMountPoint, containerPath)
+	statInfo, resolvedRoot, resolvedContainerPath, err := ic.containerStat(container, containerMountPoint, containerPath)
 	if err != nil {
 		unmount()
 		return nil, err
@@ -110,8 +111,8 @@ func (ic *ContainerEngine) ContainerCopyToArchive(ctx context.Context, nameOrID 
 	return func() error {
 		defer container.Unmount(false)
 		getOptions := buildahCopiah.GetOptions{
-			// Unless the specified path ends with ".", we want to copy the base directory.
-			KeepDirectoryNames: !strings.HasSuffix(resolvedContainerPath, "."),
+			// Unless the specified points to ".", we want to copy the base directory.
+			KeepDirectoryNames: statInfo.IsDir && filepath.Base(containerPath) != ".",
 			UIDMap:             idMappings.UIDMap,
 			GIDMap:             idMappings.GIDMap,
 			ChownDirs:          idPair,
