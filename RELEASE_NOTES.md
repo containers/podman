@@ -1,5 +1,34 @@
 # Release Notes
 
+## 3.0.1
+### Changes
+- Several frequently-occurring `WARN` level log messages have been downgraded to `INFO` or `DEBUG` to not clutter terminal output.
+
+### Bugfixes
+- Fixed a bug where the `Created` field of `podman ps --format=json` was formatted as a string instead of an Unix timestamp (integer) ([#9315](https://github.com/containers/podman/issues/9315)).
+- Fixed a bug where failing lookups of individual layers during the `podman images` command would cause the whole command to fail without printing output.
+- Fixed a bug where `--cgroups=split` did not function properly on cgroups v1 systems.
+- Fixed a bug where mounting a volume over an directory in the container that existed, but was empty, could fail ([#9393](https://github.com/containers/podman/issues/9393)).
+- Fixed a bug where mounting a volume over a directory in the container that existed could copy the entirety of the container's rootfs, instead of just the directory mounted over, into the volume ([#9415](https://github.com/containers/podman/pull/9415)).
+- Fixed a bug where Podman would treat the `--entrypoint=[""]` option to `podman run` and `podman create` as a literal empty string in the entrypoint, when instead it should have been ignored ([#9377](https://github.com/containers/podman/issues/9377)).
+- Fixed a bug where Podman would set the `HOME` environment variable to `""` when the container ran as a user without an assigned home directory ([#9378](https://github.com/containers/podman/issues/9378)).
+- Fixed a bug where specifying a pod infra image that had no tags (by using its ID) would cause `podman pod create` to panic ([#9374](https://github.com/containers/podman/issues/9374)).
+- Fixed a bug where the `--runtime` option was not properly handled by the `podman build` command ([#9365](https://github.com/containers/podman/issues/9365)).
+- Fixed a bug where Podman would incorrectly print an error message related to the remote API when the remote API was not in use and starting Podman failed.
+- Fixed a bug where Podman would change ownership of a container's working directory, even if it already existed ([#9387](https://github.com/containers/podman/issues/9387)).
+- Fixed a bug where the `podman generate systemd --new` command would incorrectly escape `%t` when generating the path for the PID file ([#9373](https://github.com/containers/podman/issues/9373)).
+- Fixed a bug where Podman could, when run inside a Podman container with the host's containers/storage directory mounted into the container, erroneously detect a reboot and reset container state if the temporary directory was not also mounted in ([#9191](https://github.com/containers/podman/issues/9191)).
+
+### API
+- Fixed a breaking change to the Libpod Wait API for Containers where the Conditions parameter changed type in Podman v3.0 ([#9351](https://github.com/containers/podman/issues/9351)).
+- Fixed a bug where the Compat Create endpoint for Containers did not properly handle forwarded ports that did not specify a host port.
+- Fixed a bug where the Libpod Wait endpoint for Containers could write duplicate headers after an error occurred.
+- Fixed a bug where the Compat Create endpoint for Images would not pull images that already had a matching tag present locally, even if a more recent version was available at the registry ([#9232](https://github.com/containers/podman/issues/9232)).
+- The Compat Create endpoint for Images has had its compatibility with Docker improved, allowing its use with the `docker-java` library.
+
+### Misc
+- Updated the containers/storage library to v1.24.6
+
 ## 3.0.0
 ### Features
 - Podman now features initial support for Docker Compose.
