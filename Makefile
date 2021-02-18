@@ -260,7 +260,7 @@ run-docker-py-tests:
 	$(eval testLogs=$(shell mktemp))
 	./bin/podman run --rm --security-opt label=disable --privileged -v $(testLogs):/testLogs --net=host -e DOCKER_HOST=tcp://localhost:8080 $(DOCKERPY_IMAGE) sh -c "pytest $(DOCKERPY_TEST) "
 
-pkg/api/swagger.yaml: .gopathok release.txt
+pkg/api/swagger.yaml: .gopathok
 	make -C pkg/api
 
 .PHONY: swagger
@@ -271,7 +271,6 @@ clean: ## Clean artifacts
 	rm -rf \
 		.gopathok \
 		_output \
-		release.txt \
 		$(wildcard podman-remote*.zip) \
 		$(wildcard podman*.tar.gz) \
 		bin \
@@ -425,53 +424,29 @@ tests-included:
 codespell:
 	codespell -S bin,vendor,.git,go.sum,changelog.txt,.cirrus.yml,"RELEASE_NOTES.md,*.xz,*.gz,*.tar,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked,splitted,marge,ERRO,hist -w
 
-# When publishing releases include critical build-time details
-.PHONY: release.txt
-release.txt:
-	# X-RELEASE-INFO format depended upon by automated tooling
-	echo -n "X-RELEASE-INFO:" > "$@"
-	for field in "$(RELEASE_BASENAME)" "$(RELEASE_VERSION)" \
-			 "$(RELEASE_DIST)" "$(RELEASE_DIST_VER)" "$(RELEASE_ARCH)"; do \
-		echo -n " $$field"; done >> "$@"
-	echo "" >> "$@"
-
-podman-release.tar.gz: binaries docs release.txt
+podman-release.tar.gz: binaries docs
 	$(eval TMPDIR := $(shell mktemp -d -p '' podman_XXXX))
 	$(eval SUBDIR := podman-v$(RELEASE_NUMBER))
 	mkdir -p "$(TMPDIR)/$(SUBDIR)"
 	$(MAKE) install.bin install.man install.cni install.systemd "DESTDIR=$(TMPDIR)/$(SUBDIR)" "PREFIX=/usr"
-	# release.txt location and content depended upon by automated tooling
-	cp release.txt "$(TMPDIR)/"
-	tar -czvf $@ --xattrs -C "$(TMPDIR)" "./release.txt" "./$(SUBDIR)"
+	tar -czvf $@ --xattrs -C "$(TMPDIR)" "./$(SUBDIR)"
 	-rm -rf "$(TMPDIR)"
 
 # Must call make in-line: Dependency-spec. w/ wild-card.
 podman-remote-release-%.zip:
-	$(MAKE) podman-remote-$* install-podman-remote-$*-docs release.txt \
+	$(MAKE) podman-remote-$* install-podman-remote-$*-docs \
 		RELEASE_BASENAME=$(shell hack/get_release_info.sh REMOTENAME) \
 		RELEASE_DIST=$* RELEASE_DIST_VER="-"
 	$(eval TMPDIR := $(shell mktemp -d -p '' $podman_remote_XXXX))
 	$(eval SUBDIR := podman-$(RELEASE_VERSION))
 	$(eval BINSFX := $(shell test "$*" != "windows" || echo ".exe"))
 	mkdir -p "$(TMPDIR)/$(SUBDIR)"
-	# release.txt location and content depended upon by automated tooling
-	cp release.txt "$(TMPDIR)/"
 	cp ./bin/podman-remote-$*$(BINSFX) "$(TMPDIR)/$(SUBDIR)/podman$(BINSFX)"
 	cp -r ./docs/build/remote/$* "$(TMPDIR)/$(SUBDIR)/docs/"
 	cp ./contrib/remote/containers.conf "$(TMPDIR)/$(SUBDIR)/"
 	cd "$(TMPDIR)/$(SUBDIR)" && \
-		zip --recurse-paths "$(CURDIR)/$@" "./release.txt" "./"
+		zip --recurse-paths "$(CURDIR)/$@" "./"
 	-rm -rf "$(TMPDIR)"
-
-.PHONY: podman-release
-podman-release:
-	rm -f release.txt
-	$(MAKE) podman-release.tar.gz
-
-.PHONY: podman-remote-%-release
-podman-remote-%-release:
-	rm -f release.txt
-	$(MAKE) podman-remote-release-$*.zip
 
 .PHONY: generate-bindings
 generate-bindings:
