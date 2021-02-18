@@ -27,6 +27,7 @@
 - The Compat Create endpoint for Images has had its compatibility with Docker improved, allowing its use with the `docker-java` library.
 
 ### Misc
+- Updated Buildah to v1.19.4
 - Updated the containers/storage library to v1.24.6
 
 ## 3.0.0

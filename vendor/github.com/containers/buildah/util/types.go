@@ -1,7 +1,7 @@
 package util
 
 const (
-	// DefaultRuntime is the default command to use to run the container.
+	// Deprecated: Default runtime should come from containers.conf
 	DefaultRuntime = "runc"
 	// DefaultCNIPluginPath is the default location of CNI plugin helpers.
 	DefaultCNIPluginPath = "/usr/libexec/cni:/opt/cni/bin"
