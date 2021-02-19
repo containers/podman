@@ -303,6 +303,13 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 		renameTarget = filepath.Base(extractDirectory)
 		extractDirectory = filepath.Dir(extractDirectory)
 	}
+
+	// if the destination is a directory that doesn't yet exist, let's copy it.
+	newDestDirFound := false
+	if (len(destStats) == 1 || len(destStats[0].Globbed) == 0) && destMustBeDirectory && !destCanBeFile {
+		newDestDirFound = true
+	}
+
 	if len(destStats) == 1 && len(destStats[0].Globbed) == 1 && destStats[0].Results[destStats[0].Globbed[0]].IsRegular {
 		if destMustBeDirectory {
 			return errors.Errorf("destination %v already exists but is not a directory", destination)
@@ -414,6 +421,11 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 					globInfo := localSourceStat.Results[glob]
 					if !globInfo.IsDir || !includeDirectoryAnyway(rel, pm) {
 						continue
+					}
+				} else {
+					// if the destination is a directory that doesn't yet exist, and is not excluded, let's copy it.
+					if newDestDirFound {
+						itemsCopied++
 					}
 				}
 			} else {
