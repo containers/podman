@@ -148,17 +148,16 @@ func getMemoryLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts) (*specs.Linu
 	}
 	if m := c.MemorySwap; len(m) > 0 {
 		var ms int64
-		if m == "-1" {
-			ms = int64(-1)
-			s.ResourceLimits.Memory.Swap = &ms
-		} else {
+		// only set memory swap if it was set
+		// -1 indicates unlimited
+		if m != "-1" {
 			ms, err = units.RAMInBytes(m)
+			memory.Swap = &ms
 			if err != nil {
 				return nil, errors.Wrapf(err, "invalid value for memory")
 			}
+			hasLimits = true
 		}
-		memory.Swap = &ms
-		hasLimits = true
 	}
 	if m := c.KernelMemory; len(m) > 0 {
 		mk, err := units.RAMInBytes(m)
