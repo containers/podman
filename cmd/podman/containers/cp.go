@@ -311,8 +311,8 @@ func copyToContainer(container string, containerPath string, hostPath string) er
 		}
 
 		getOptions := buildahCopiah.GetOptions{
-			// Unless the specified path ends with ".", we want to copy the base directory.
-			KeepDirectoryNames: !strings.HasSuffix(hostPath, "."),
+			// Unless the specified points to ".", we want to copy the base directory.
+			KeepDirectoryNames: hostInfo.IsDir && filepath.Base(hostPath) != ".",
 		}
 		if !hostInfo.IsDir && (!containerInfo.IsDir || containerInfoErr != nil) {
 			// If we're having a file-to-file copy, make sure to
