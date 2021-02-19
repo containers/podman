@@ -196,7 +196,11 @@ can_use_shortcut ()
     return false;
 
   if (strstr (argv[0], "podman") == NULL)
-    return false;
+    {
+      free (argv[0]);
+      free (argv);
+      return false;
+    }
 
   for (argc = 0; argv[argc]; argc++)
     {
