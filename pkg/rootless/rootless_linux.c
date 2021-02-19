@@ -398,7 +398,7 @@ static void __attribute__((constructor)) init()
 
       if (chdir (cwd) < 0)
         {
-          fprintf (stderr, "cannot chdir: %s\n", strerror (errno));
+          fprintf (stderr, "cannot chdir to %s: %s\n", cwd, strerror (errno));
           _exit (EXIT_FAILURE);
         }
 
@@ -689,7 +689,7 @@ reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
 
   if (chdir (cwd) < 0)
     {
-      fprintf (stderr, "cannot chdir: %s\n", strerror (errno));
+      fprintf (stderr, "cannot chdir to %s: %s\n", cwd, strerror (errno));
       _exit (EXIT_FAILURE);
     }
   free (cwd);
@@ -893,7 +893,7 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
 
   if (chdir (cwd) < 0)
     {
-      fprintf (stderr, "cannot chdir: %s\n", strerror (errno));
+      fprintf (stderr, "cannot chdir to %s: %s\n", cwd, strerror (errno));
       TEMP_FAILURE_RETRY (write (ready, "1", 1));
       _exit (EXIT_FAILURE);
     }
