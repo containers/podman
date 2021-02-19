@@ -6,6 +6,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/podman/v2/libpod/define"
 	"github.com/containers/podman/v2/pkg/util"
 	"github.com/gorilla/schema"
 	"github.com/sirupsen/logrus"
@@ -19,6 +20,7 @@ func NewAPIDecoder() *schema.Decoder {
 	d.IgnoreUnknownKeys(true)
 	d.RegisterConverter(map[string][]string{}, convertURLValuesString)
 	d.RegisterConverter(time.Time{}, convertTimeString)
+	d.RegisterConverter(define.ContainerStatus(0), convertContainerStatusString)
 
 	var Signal syscall.Signal
 	d.RegisterConverter(Signal, convertSignal)
@@ -44,6 +46,19 @@ func convertURLValuesString(query string) reflect.Value {
 	}
 
 	return reflect.ValueOf(f)
+}
+
+func convertContainerStatusString(query string) reflect.Value {
+	result, err := define.StringToContainerStatus(query)
+	if err != nil {
+		logrus.Infof("convertContainerStatusString: Failed to parse %s: %s", query, err.Error())
+
+		// We return nil here instead of result because reflect.ValueOf().IsValid() will be true
+		// in github.com/gorilla/schema's decoder, which means there's no parsing error
+		return reflect.ValueOf(nil)
+	}
+
+	return reflect.ValueOf(result)
 }
 
 // isZero() can be used to determine if parsing failed.

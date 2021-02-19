@@ -277,10 +277,10 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	body := struct {
-		Id      string
+		ID      string `json:"Id"`
 		Warning []string
 	}{
-		Id: net.ID,
+		ID: net.ID,
 	}
 	utils.WriteResponse(w, http.StatusCreated, body)
 }

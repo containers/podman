@@ -22,6 +22,7 @@ import (
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -253,12 +254,12 @@ func ps(cmd *cobra.Command, _ []string) error {
 		// responses will grow to the largest number of processes reported on, but will not thrash the gc
 		var responses []psReporter
 		for ; ; responses = responses[:0] {
-			if ctnrs, err := getResponses(); err != nil {
+			ctnrs, err := getResponses()
+			if err != nil {
 				return err
-			} else {
-				for _, r := range ctnrs {
-					responses = append(responses, psReporter{r})
-				}
+			}
+			for _, r := range ctnrs {
+				responses = append(responses, psReporter{r})
 			}
 
 			tm.Clear()
@@ -392,6 +393,11 @@ func (l psReporter) Command() string {
 // Size returns the rootfs and virtual sizes in human duration in
 // and output form (string) suitable for ps
 func (l psReporter) Size() string {
+	if l.ListContainer.Size == nil {
+		logrus.Errorf("Size format requires --size option")
+		return ""
+	}
+
 	virt := units.HumanSizeWithPrecision(float64(l.ListContainer.Size.RootFsSize), 3)
 	s := units.HumanSizeWithPrecision(float64(l.ListContainer.Size.RwSize), 3)
 	return fmt.Sprintf("%s (virtual %s)", s, virt)

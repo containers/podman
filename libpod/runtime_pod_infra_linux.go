@@ -24,7 +24,6 @@ const (
 )
 
 func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawImageName, imgID string, config *v1.ImageConfig) (*Container, error) {
-
 	// Set up generator for infra container defaults
 	g, err := generate.New("linux")
 	if err != nil {
@@ -226,7 +225,10 @@ func (r *Runtime) createInfraContainer(ctx context.Context, p *Pod) (*Container,
 	if err != nil {
 		return nil, err
 	}
-	imageName := newImage.Names()[0]
+	imageName := "none"
+	if len(newImage.Names()) > 0 {
+		imageName = newImage.Names()[0]
+	}
 	imageID := data.ID
 
 	return r.makeInfraContainer(ctx, p, imageName, r.config.Engine.InfraImage, imageID, data.Config)

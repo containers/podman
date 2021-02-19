@@ -150,10 +150,10 @@ func resolveImage(ctx context.Context, systemContext *types.SystemContext, store
 		return nil, "", nil, err
 	}
 
-	// If we could resolve the image locally, check if it was referenced by
-	// ID.  In that case, we don't need to bother any further and can
-	// prevent prompting the user.
-	if localImage != nil && strings.HasPrefix(localImage.ID, options.FromImage) {
+	// If we could resolve the image locally, check if it was clearly
+	// referring to a local image, either by ID or digest.  In that case,
+	// we don't need to perform a remote lookup.
+	if localImage != nil && (strings.HasPrefix(localImage.ID, options.FromImage) || strings.HasPrefix(options.FromImage, "sha256:")) {
 		return localImageRef, localImageRef.Transport().Name(), localImage, nil
 	}
 

@@ -26,7 +26,6 @@ func createTmpFile(content []byte) (string, error) {
 
 	if _, err := tmpfile.Write(content); err != nil {
 		return "", err
-
 	}
 	if err := tmpfile.Close(); err != nil {
 		return "", err

@@ -66,7 +66,6 @@ func GetUserGroupInfo(containerMount, containerUser string, override *Overrides)
 		//	Gid:  0,
 		//	Home: "/",
 		defaultExecUser = nil
-
 	}
 
 	return user.GetExecUserPath(containerUser, defaultExecUser, passwdDest, groupDest)

@@ -290,7 +290,6 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 				ctrs = append(ctrs, c)
 			}
 		}
-
 	} else {
 		ctrs, err = getContainersByContext(ic.ClientCtx, false, false, namesOrIds)
 		if err != nil {
@@ -326,7 +325,6 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 				ctrs = append(ctrs, c)
 			}
 		}
-
 	} else {
 		ctrs, err = getContainersByContext(ic.ClientCtx, false, false, namesOrIds)
 		if err != nil {
@@ -570,7 +568,6 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 		}
 		// Start the container if it's not running already.
 		if !ctrRunning {
-
 			err = containers.Start(ic.ClientCtx, name, new(containers.StartOptions).WithDetachKeys(options.DetachKeys))
 			if err != nil {
 				if ctr.AutoRemove {

@@ -1,9 +1,11 @@
 package images
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/imagebuildah"
@@ -11,6 +13,8 @@ import (
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
+	encconfig "github.com/containers/ocicrypt/config"
+	enchelpers "github.com/containers/ocicrypt/helpers"
 	"github.com/containers/podman/v2/cmd/podman/common"
 	"github.com/containers/podman/v2/cmd/podman/registry"
 	"github.com/containers/podman/v2/cmd/podman/utils"
@@ -78,7 +82,8 @@ func useLayers() string {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Mode: []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+
 		Command: buildCmd,
 	})
 	buildFlags(buildCmd)
@@ -151,8 +156,21 @@ func buildFlags(cmd *cobra.Command) {
 	// Add the completion functions
 	fromAndBudFlagsCompletions := buildahCLI.GetFromAndBudFlagsCompletions()
 	completion.CompleteCommandFlags(cmd, fromAndBudFlagsCompletions)
-	_ = flags.MarkHidden("signature-policy")
 	flags.SetNormalizeFunc(buildahCLI.AliasFlags)
+	if registry.IsRemote() {
+		flag = flags.Lookup("isolation")
+		buildOpts.Isolation = buildah.OCI
+		if err := flag.Value.Set(buildah.OCI); err != nil {
+			logrus.Errorf("unable to set --isolation to %v: %v", buildah.OCI, err)
+		}
+		flag.DefValue = buildah.OCI
+		_ = flags.MarkHidden("disable-content-trust")
+		_ = flags.MarkHidden("cache-from")
+		_ = flags.MarkHidden("sign-by")
+		_ = flags.MarkHidden("signature-policy")
+		_ = flags.MarkHidden("tls-verify")
+		_ = flags.MarkHidden("compress")
+	}
 }
 
 // build executes the build command.
@@ -246,7 +264,18 @@ func build(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	_, err = registry.ImageEngine().Build(registry.GetContext(), containerFiles, *apiBuildOpts)
+	report, err := registry.ImageEngine().Build(registry.GetContext(), containerFiles, *apiBuildOpts)
+
+	if cmd.Flag("iidfile").Changed {
+		f, err := os.Create(buildOpts.Iidfile)
+		if err != nil {
+			return err
+		}
+		if _, err := f.WriteString("sha256:" + report.ID); err != nil {
+			return err
+		}
+	}
+
 	return err
 }
 
@@ -308,6 +337,10 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		flags.Layers = false
 	}
 
+	var stdin io.Reader
+	if flags.Stdin {
+		stdin = os.Stdin
+	}
 	var stdout, stderr, reporter *os.File
 	stdout = os.Stdout
 	stderr = os.Stderr
@@ -402,10 +435,21 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		runtimeFlags = append(runtimeFlags, "--systemd-cgroup")
 	}
 
+	imageOS, arch, err := parse.PlatformFromOptions(c)
+	if err != nil {
+		return nil, err
+	}
+
+	decConfig, err := getDecryptConfig(flags.DecryptionKeys)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to obtain decrypt config")
+	}
+
 	opts := imagebuildah.BuildOptions{
 		AddCapabilities: flags.CapAdd,
 		AdditionalTags:  tags,
 		Annotations:     flags.Annotation,
+		Architecture:    arch,
 		Args:            args,
 		BlobDirectory:   flags.BlobCache,
 		CNIConfigDir:    flags.CNIConfigDir,
@@ -433,17 +477,25 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		DropCapabilities:        flags.CapDrop,
 		Err:                     stderr,
 		ForceRmIntermediateCtrs: flags.ForceRm,
+		From:                    flags.From,
 		IDMappingOptions:        idmappingOptions,
-		IIDFile:                 flags.Iidfile,
+		In:                      stdin,
 		Isolation:               isolation,
+		Jobs:                    &flags.Jobs,
 		Labels:                  flags.Label,
 		Layers:                  flags.Layers,
+		LogRusage:               flags.LogRusage,
+		Manifest:                flags.Manifest,
+		MaxPullPushRetries:      3,
 		NamespaceOptions:        nsValues,
 		NoCache:                 flags.NoCache,
+		OS:                      imageOS,
+		OciDecryptConfig:        decConfig,
 		Out:                     stdout,
 		Output:                  output,
 		OutputFormat:            format,
 		PullPolicy:              pullPolicy,
+		PullPushRetryDelay:      2 * time.Second,
 		Quiet:                   flags.Quiet,
 		RemoveIntermediateCtrs:  flags.Rm,
 		ReportWriter:            reporter,
@@ -458,4 +510,19 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 	}
 
 	return &entities.BuildOptions{BuildOptions: opts}, nil
+}
+
+func getDecryptConfig(decryptionKeys []string) (*encconfig.DecryptConfig, error) {
+	decConfig := &encconfig.DecryptConfig{}
+	if len(decryptionKeys) > 0 {
+		// decryption
+		dcc, err := enchelpers.CreateCryptoConfig([]string{}, decryptionKeys)
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid decryption keys")
+		}
+		cc := encconfig.CombineCryptoConfigs([]encconfig.CryptoConfig{dcc})
+		decConfig = cc.DecryptConfig
+	}
+
+	return decConfig, nil
 }

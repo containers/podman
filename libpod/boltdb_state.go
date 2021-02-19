@@ -269,9 +269,9 @@ func (s *BoltState) Refresh() error {
 				if err != nil {
 					return err
 				}
-				for _, execId := range toRemove {
-					if err := ctrExecBkt.Delete([]byte(execId)); err != nil {
-						return errors.Wrapf(err, "error removing exec session %s from container %s", execId, string(id))
+				for _, execID := range toRemove {
+					if err := ctrExecBkt.Delete([]byte(execID)); err != nil {
+						return errors.Wrapf(err, "error removing exec session %s from container %s", execID, string(id))
 					}
 				}
 			}
@@ -904,7 +904,6 @@ func (s *BoltState) ContainerInUse(ctr *Container) ([]string, error) {
 	}
 
 	return depCtrs, nil
-
 }
 
 // AllContainers retrieves all the containers in the database
@@ -962,7 +961,6 @@ func (s *BoltState) AllContainers() ([]*Container, error) {
 			}
 
 			return nil
-
 		})
 	})
 	if err != nil {
@@ -2580,7 +2578,6 @@ func (s *BoltState) LookupVolume(name string) (*Volume, error) {
 	}
 
 	return volume, nil
-
 }
 
 // HasVolume returns true if the given volume exists in the state, otherwise it returns false

@@ -137,7 +137,6 @@ func Kill(ctx context.Context, nameOrID string, options *KillOptions) error {
 		return err
 	}
 	return response.Process(nil)
-
 }
 
 // Pause pauses a given container.  The nameOrID can be a container name
@@ -270,8 +269,8 @@ func Top(ctx context.Context, nameOrID string, options *TopOptions) ([]string, e
 	}
 	params := url.Values{}
 	if options.Changed("Descriptors") {
-		ps_args := strings.Join(options.GetDescriptors(), ",")
-		params.Add("ps_args", ps_args)
+		psArgs := strings.Join(options.GetDescriptors(), ",")
+		params.Add("ps_args", psArgs)
 	}
 	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/top", params, nil, nameOrID)
 	if err != nil {

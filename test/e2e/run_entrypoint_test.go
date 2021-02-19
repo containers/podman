@@ -43,6 +43,18 @@ CMD []
 		Expect(session.ExitCode()).To(Equal(125))
 	})
 
+	It("podman run entrypoint == [\"\"]", func() {
+		dockerfile := `FROM quay.io/libpod/alpine:latest
+ENTRYPOINT [""]
+CMD []
+`
+		podmanTest.BuildImage(dockerfile, "foobar.com/entrypoint:latest", "false")
+		session := podmanTest.Podman([]string{"run", "foobar.com/entrypoint:latest", "echo", "hello"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal("hello"))
+	})
+
 	It("podman run entrypoint", func() {
 		dockerfile := `FROM quay.io/libpod/alpine:latest
 ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]

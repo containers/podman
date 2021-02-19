@@ -111,7 +111,6 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 			Until:        query.Until,
 		}
 		errorChannel <- runtime.Events(r.Context(), readOpts)
-
 	}()
 
 	var flush = func() {}

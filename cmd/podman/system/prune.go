@@ -51,7 +51,6 @@ func init() {
 	filterFlagName := "filter"
 	flags.StringArrayVar(&filters, filterFlagName, []string{}, "Provide filter values (e.g. 'label=<key>=<value>')")
 	_ = pruneCommand.RegisterFlagCompletionFunc(filterFlagName, completion.AutocompleteNone)
-
 }
 
 func prune(cmd *cobra.Command, args []string) error {

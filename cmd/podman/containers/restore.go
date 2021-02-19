@@ -118,5 +118,4 @@ func restore(_ *cobra.Command, args []string) error {
 		}
 	}
 	return errs.PrintErrors()
-
 }

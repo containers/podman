@@ -17,6 +17,7 @@ const (
 	kubeFilePermission = 0644
 )
 
+// nolint:golint
 type KubeVolumeType int
 
 const (
@@ -24,6 +25,7 @@ const (
 	KubeVolumeTypeNamed     KubeVolumeType = iota
 )
 
+// nolint:golint
 type KubeVolume struct {
 	// Type of volume to create
 	Type KubeVolumeType

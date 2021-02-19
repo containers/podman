@@ -60,7 +60,6 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 	default:
 		return nil, errors.Errorf("invalid YAML kind: %q. [Pod|Deployment] are the only supported Kubernetes Kinds", kubeObject.Kind)
 	}
-
 }
 
 func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAML *v1apps.Deployment, options entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {

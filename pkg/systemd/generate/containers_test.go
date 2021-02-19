@@ -170,7 +170,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/jadda-jadda.pid %t/jadda-jadda.ctr-id
-ExecStart=/usr/bin/podman run --conmon-pidfile %t/jadda-jadda.pid --cidfile %t/jadda-jadda.ctr-id --cgroups=no-conmon --pod-id-file /tmp/pod-foobar.pod-id-file --replace -d --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
+ExecStart=/usr/bin/podman run --conmon-pidfile %t/jadda-jadda.pid --cidfile %t/jadda-jadda.ctr-id --cgroups=no-conmon --pod-id-file %t/pod-foobar.pod-id-file --replace -d --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
 ExecStop=/usr/bin/podman stop --ignore --cidfile %t/jadda-jadda.ctr-id -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/jadda-jadda.ctr-id
 PIDFile=%t/jadda-jadda.pid
@@ -487,8 +487,8 @@ WantedBy=multi-user.target default.target
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "run", "-d", "--name", "jadda-jadda", "--hostname", "hello-world", "awesome-image:latest", "command", "arg1", "...", "argN"},
 				EnvVariable:       EnvVariable,
-				pod: &podInfo{
-					PodIDFile: "/tmp/pod-foobar.pod-id-file",
+				Pod: &podInfo{
+					PodIDFile: "%t/pod-foobar.pod-id-file",
 				},
 			},
 			goodNameNewWithPodFile,

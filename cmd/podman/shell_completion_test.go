@@ -26,14 +26,11 @@ import (
 )
 
 func TestShellCompletionFunctions(t *testing.T) {
-
 	rootCmd := parseCommands()
 	checkCommand(t, rootCmd)
-
 }
 
 func checkCommand(t *testing.T, cmd *cobra.Command) {
-
 	if cmd.HasSubCommands() {
 		for _, childCmd := range cmd.Commands() {
 			checkCommand(t, childCmd)
@@ -46,7 +43,6 @@ func checkCommand(t *testing.T, cmd *cobra.Command) {
 
 	// loop over all local flags
 	cmd.LocalFlags().VisitAll(func(flag *pflag.Flag) {
-
 		// an error means that there is a completion function for this flag
 		err := cmd.RegisterFlagCompletionFunc(flag.Name, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			return nil, cobra.ShellCompDirectiveDefault

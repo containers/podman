@@ -322,6 +322,30 @@ RUN sh -c "cd /etc/apk && ln -s ../../testfile"`
 		Expect(outputSession.OutputToString()).To(Equal(baselineOutput))
 	})
 
+	It("podman named volume copyup empty directory", func() {
+		baselineSession := podmanTest.Podman([]string{"run", "--rm", "-t", "-i", ALPINE, "ls", "/srv"})
+		baselineSession.WaitWithDefaultTimeout()
+		Expect(baselineSession.ExitCode()).To(Equal(0))
+		baselineOutput := baselineSession.OutputToString()
+
+		outputSession := podmanTest.Podman([]string{"run", "-t", "-i", "-v", "/srv", ALPINE, "ls", "/srv"})
+		outputSession.WaitWithDefaultTimeout()
+		Expect(outputSession.ExitCode()).To(Equal(0))
+		Expect(outputSession.OutputToString()).To(Equal(baselineOutput))
+	})
+
+	It("podman named volume copyup of /var", func() {
+		baselineSession := podmanTest.Podman([]string{"run", "--rm", "-t", "-i", fedoraMinimal, "ls", "/var"})
+		baselineSession.WaitWithDefaultTimeout()
+		Expect(baselineSession.ExitCode()).To(Equal(0))
+		baselineOutput := baselineSession.OutputToString()
+
+		outputSession := podmanTest.Podman([]string{"run", "-t", "-i", "-v", "/var", fedoraMinimal, "ls", "/var"})
+		outputSession.WaitWithDefaultTimeout()
+		Expect(outputSession.ExitCode()).To(Equal(0))
+		Expect(outputSession.OutputToString()).To(Equal(baselineOutput))
+	})
+
 	It("podman read-only tmpfs conflict with volume", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "-t", "-i", "--read-only", "-v", "tmp_volume:" + dest, ALPINE, "touch", dest + "/a"})
 		session.WaitWithDefaultTimeout()

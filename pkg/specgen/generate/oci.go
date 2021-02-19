@@ -105,7 +105,10 @@ func makeCommand(ctx context.Context, s *specgen.SpecGenerator, img *image.Image
 		entrypoint = newEntry
 	}
 
-	finalCommand = append(finalCommand, entrypoint...)
+	// Don't append the entrypoint if it is [""]
+	if len(entrypoint) != 1 || entrypoint[0] != "" {
+		finalCommand = append(finalCommand, entrypoint...)
+	}
 
 	// Only use image command if the user did not manually set an
 	// entrypoint.
@@ -219,7 +222,6 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		if !mappingFound {
 			gid5Available = false
 		}
-
 	}
 	if !gid5Available {
 		// If we have no GID mappings, the gid=5 default option would fail, so drop it.

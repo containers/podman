@@ -45,7 +45,6 @@ func findImageInRepotags(search imageParts, images []*Image) (*storage.Image, er
 		}
 	}
 	if len(candidates) == 0 {
-
 		return nil, errors.Wrapf(define.ErrNoSuchImage, "unable to find a name and tag match for %s in repotags", searchName)
 	}
 
@@ -75,9 +74,8 @@ func findImageInRepotags(search imageParts, images []*Image) (*storage.Image, er
 		}
 		if rwImageCnt > 1 {
 			return nil, errors.Wrapf(define.ErrMultipleImages, "found multiple read/write images %s", strings.Join(keys, ","))
-		} else {
-			return nil, errors.Wrapf(define.ErrMultipleImages, "found multiple read/only images %s", strings.Join(keys, ","))
 		}
+		return nil, errors.Wrapf(define.ErrMultipleImages, "found multiple read/only images %s", strings.Join(keys, ","))
 	}
 	return candidates[0].image.image, nil
 }

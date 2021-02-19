@@ -7,7 +7,6 @@ import (
 )
 
 func TestNewIPAMDefaultRoute(t *testing.T) {
-
 	tests := []struct {
 		name   string
 		isIPv6 bool

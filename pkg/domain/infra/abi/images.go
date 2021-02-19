@@ -40,10 +40,9 @@ func (ir *ImageEngine) Exists(_ context.Context, nameOrID string) (*entities.Boo
 	if err != nil {
 		if errors.Cause(err) == define.ErrMultipleImages {
 			return &entities.BoolReport{Value: true}, nil
-		} else {
-			if errors.Cause(err) != define.ErrNoSuchImage {
-				return nil, err
-			}
+		}
+		if errors.Cause(err) != define.ErrNoSuchImage {
+			return nil, err
 		}
 	}
 	return &entities.BoolReport{Value: err == nil}, nil
@@ -270,7 +269,6 @@ func pull(ctx context.Context, runtime *image.Runtime, rawImage string, options 
 	}
 	if _, isTagged := namedRef.(reference.Tagged); isTagged {
 		return nil, errors.New("--all-tags requires a reference without a tag")
-
 	}
 
 	systemContext := image.GetSystemContext("", options.Authfile, false)
@@ -503,7 +501,6 @@ func (ir *ImageEngine) Config(_ context.Context) (*config.Config, error) {
 }
 
 func (ir *ImageEngine) Build(ctx context.Context, containerFiles []string, opts entities.BuildOptions) (*entities.BuildReport, error) {
-
 	id, _, err := ir.Libpod.Build(ctx, opts.BuildOptions, containerFiles...)
 	if err != nil {
 		return nil, err

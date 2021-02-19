@@ -796,5 +796,4 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 		"Configure cgroup v2 (key=value)",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(cgroupConfFlagName, completion.AutocompleteNone)
-
 }

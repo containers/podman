@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/containers/buildah"
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v2/libpod"
 	image2 "github.com/containers/podman/v2/libpod/image"
@@ -18,6 +17,7 @@ import (
 	"github.com/containers/podman/v2/pkg/api/handlers/utils"
 	"github.com/containers/podman/v2/pkg/auth"
 	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v2/pkg/util"
 	"github.com/gorilla/schema"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
@@ -202,7 +202,6 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 		ProgressDetail: map[string]string{},
 		Id:             iid,
 	})
-
 }
 
 func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
@@ -237,16 +236,6 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 	if sys := runtime.SystemContext(); sys != nil {
 		registryOpts.DockerCertPath = sys.DockerCertPath
 	}
-	rtc, err := runtime.GetConfig()
-	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
-		return
-	}
-	pullPolicy, err := config.ValidatePullPolicy(rtc.Engine.PullPolicy)
-	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
-		return
-	}
 	img, err := runtime.ImageRuntime().New(r.Context(),
 		fromImage,
 		"", // signature policy
@@ -255,7 +244,7 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 		&registryOpts,
 		image2.SigningOptions{},
 		nil, // label
-		pullPolicy,
+		util.PullImageAlways,
 	)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
@@ -265,12 +254,12 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 	// Success
 	utils.WriteResponse(w, http.StatusOK, struct {
 		Status         string            `json:"status"`
-		Error          string            `json:"error"`
+		Error          string            `json:"error,omitempty"`
 		Progress       string            `json:"progress"`
 		ProgressDetail map[string]string `json:"progressDetail"`
 		Id             string            `json:"id"` // nolint
 	}{
-		Status:         fmt.Sprintf("pulling image (%s) from %s", img.Tag, strings.Join(img.Names(), ", ")),
+		Status:         fmt.Sprintf("pulling image (%s) from %s (Download complete)", img.Tag, strings.Join(img.Names(), ", ")),
 		ProgressDetail: map[string]string{},
 		Id:             img.ID(),
 	})

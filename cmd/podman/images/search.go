@@ -156,12 +156,12 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 			return errors.Errorf("filters are not applicable to list tags result")
 		}
 		if report.IsJSON(searchOptions.Format) {
-			listTagsEntries := buildListTagsJson(searchReport)
-			return printJson(listTagsEntries)
+			listTagsEntries := buildListTagsJSON(searchReport)
+			return printArbitraryJSON(listTagsEntries)
 		}
 		row = "{{.Name}}\t{{.Tag}}\n"
 	case report.IsJSON(searchOptions.Format):
-		return printJson(searchReport)
+		return printArbitraryJSON(searchReport)
 	case cmd.Flags().Changed("format"):
 		renderHeaders = parse.HasTable(searchOptions.Format)
 		row = report.NormalizeFormat(searchOptions.Format)
@@ -186,7 +186,7 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 	return tmpl.Execute(w, searchReport)
 }
 
-func printJson(v interface{}) error {
+func printArbitraryJSON(v interface{}) error {
 	prettyJSON, err := json.MarshalIndent(v, "", "    ")
 	if err != nil {
 		return err
@@ -195,7 +195,7 @@ func printJson(v interface{}) error {
 	return nil
 }
 
-func buildListTagsJson(searchReport []entities.ImageSearchReport) []listEntryTag {
+func buildListTagsJSON(searchReport []entities.ImageSearchReport) []listEntryTag {
 	entries := []listEntryTag{}
 
 ReportLoop:

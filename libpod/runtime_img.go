@@ -166,6 +166,11 @@ func (r *Runtime) newImageBuildCompleteEvent(idOrName string) {
 
 // Build adds the runtime to the imagebuildah call
 func (r *Runtime) Build(ctx context.Context, options imagebuildah.BuildOptions, dockerfiles ...string) (string, reference.Canonical, error) {
+	if options.Runtime == "" {
+		// Make sure that build containers use the same runtime as Podman (see #9365).
+		conf := util.DefaultContainerConfig()
+		options.Runtime = conf.Engine.OCIRuntime
+	}
 	id, ref, err := imagebuildah.BuildDockerfiles(ctx, r.store, options, dockerfiles...)
 	// Write event for build completion
 	r.newImageBuildCompleteEvent(id)
@@ -313,9 +318,8 @@ func (r *Runtime) LoadImageFromSingleImageArchive(ctx context.Context, writer io
 		if err == nil && src != nil {
 			if newImages, err := r.ImageRuntime().LoadFromArchiveReference(ctx, src, signaturePolicy, writer); err == nil {
 				return getImageNames(newImages), nil
-			} else {
-				saveErr = err
 			}
+			saveErr = err
 		}
 	}
 	return "", errors.Wrapf(saveErr, "error pulling image")

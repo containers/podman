@@ -39,7 +39,6 @@ func (e EventLogFile) Write(ee Event) error {
 		return err
 	}
 	return nil
-
 }
 
 // Reads from the log file

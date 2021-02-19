@@ -32,7 +32,6 @@ func (ir *ImageEngine) Remove(ctx context.Context, imagesArg []string, opts enti
 }
 
 func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions) ([]*entities.ImageSummary, error) {
-
 	filters := make(map[string][]string, len(opts.Filter))
 	for _, filter := range opts.Filter {
 		f := strings.Split(filter, "=")
@@ -349,17 +348,6 @@ func (ir *ImageEngine) Build(_ context.Context, containerFiles []string, opts en
 	report, err := images.Build(ir.ClientCtx, containerFiles, opts)
 	if err != nil {
 		return nil, err
-	}
-	// For remote clients, if the option for writing to a file was
-	// selected, we need to write to the *client's* filesystem.
-	if len(opts.IIDFile) > 0 {
-		f, err := os.Create(opts.IIDFile)
-		if err != nil {
-			return nil, err
-		}
-		if _, err := f.WriteString(report.ID); err != nil {
-			return nil, err
-		}
 	}
 	return report, nil
 }

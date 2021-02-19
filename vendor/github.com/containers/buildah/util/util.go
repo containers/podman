@@ -20,6 +20,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/docker/distribution/registry/api/errcode"
+	"github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -67,6 +68,19 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 			// we need only expand the ID.
 			return []string{img.ID}, "", false, nil
 		}
+	}
+	// If we're referring to an image by digest, it *must* be local and we
+	// should not have any fall through/back logic.
+	if strings.HasPrefix(name, "sha256:") {
+		d, err := digest.Parse(name)
+		if err != nil {
+			return nil, "", false, err
+		}
+		img, err := store.Image(d.Encoded())
+		if err != nil {
+			return nil, "", false, err
+		}
+		return []string{img.ID}, "", false, nil
 	}
 
 	// Transports are not supported for local image look ups.
@@ -263,7 +277,12 @@ func Runtime() string {
 		return "crun"
 	}
 
-	return DefaultRuntime
+	conf, err := config.Default()
+	if err != nil {
+		logrus.Warnf("Error loading container config when searching for local runtime: %v", err)
+		return DefaultRuntime
+	}
+	return conf.Engine.OCIRuntime
 }
 
 // StringInSlice returns a boolean indicating if the exact value s is present

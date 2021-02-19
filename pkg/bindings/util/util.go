@@ -1,19 +1,34 @@
 package util
 
 import (
+	"errors"
+	"fmt"
+	"net/url"
 	"reflect"
 	"strconv"
+	"strings"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 func IsSimpleType(f reflect.Value) bool {
+	if _, ok := f.Interface().(fmt.Stringer); ok {
+		return true
+	}
+
 	switch f.Kind() {
 	case reflect.Bool, reflect.Int, reflect.Int64, reflect.Uint, reflect.Uint64, reflect.String:
 		return true
 	}
+
 	return false
 }
 
 func SimpleTypeToParam(f reflect.Value) string {
+	if s, ok := f.Interface().(fmt.Stringer); ok {
+		return s.String()
+	}
+
 	switch f.Kind() {
 	case reflect.Bool:
 		return strconv.FormatBool(f.Bool())
@@ -26,5 +41,62 @@ func SimpleTypeToParam(f reflect.Value) string {
 	case reflect.String:
 		return f.String()
 	}
+
 	panic("the input parameter is not a simple type")
+}
+
+func Changed(o interface{}, fieldName string) bool {
+	r := reflect.ValueOf(o)
+	value := reflect.Indirect(r).FieldByName(fieldName)
+	return !value.IsNil()
+}
+
+func ToParams(o interface{}) (url.Values, error) {
+	params := url.Values{}
+	if o == nil || reflect.ValueOf(o).IsNil() {
+		return params, nil
+	}
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
+	s := reflect.ValueOf(o)
+	if reflect.Ptr == s.Kind() {
+		s = s.Elem()
+	}
+	sType := s.Type()
+	for i := 0; i < s.NumField(); i++ {
+		fieldName := sType.Field(i).Name
+		if !Changed(o, fieldName) {
+			continue
+		}
+		fieldName = strings.ToLower(fieldName)
+		f := s.Field(i)
+		if reflect.Ptr == f.Kind() {
+			f = f.Elem()
+		}
+		switch {
+		case IsSimpleType(f):
+			params.Set(fieldName, SimpleTypeToParam(f))
+		case f.Kind() == reflect.Slice:
+			for i := 0; i < f.Len(); i++ {
+				elem := f.Index(i)
+				if IsSimpleType(elem) {
+					params.Add(fieldName, SimpleTypeToParam(elem))
+				} else {
+					return nil, errors.New("slices must contain only simple types")
+				}
+			}
+		case f.Kind() == reflect.Map:
+			lowerCaseKeys := make(map[string][]string)
+			iter := f.MapRange()
+			for iter.Next() {
+				lowerCaseKeys[iter.Key().Interface().(string)] = iter.Value().Interface().([]string)
+			}
+			s, err := json.MarshalToString(lowerCaseKeys)
+			if err != nil {
+				return nil, err
+			}
+
+			params.Set(fieldName, s)
+		}
+	}
+	return params, nil
 }

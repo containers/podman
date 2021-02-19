@@ -7,30 +7,47 @@ run:
     - contrib
     - dependencies
     - test
-    - pkg/spec
-    - vendor
   skip-files:
-    - iopodman.go
     - swagger.go
   modules-download-mode: readonly
 linters:
   enable-all: true
   disable:
     # All these break for one reason or another
+    - nolintlint
+    - gocognit
+    - testpackage
+    - goerr113
+    - exhaustivestruct
+    - errorlint
+    - wrapcheck
+    - paralleltest
+    - wsl
+    - godox
+    - tparallel
+    - gomnd
+    - nlreturn
+    - noctx
+    - nestif
+    - predeclared
+    - thelper
+    - ifshort
+    - staticcheck
+    - forbidigo
+    - exhaustive
+    - unparam
+    - gofumpt
+    - gci
+    - godot
+    - makezero
     - dupl
     - funlen
     - gochecknoglobals
     - gochecknoinits
     - goconst
     - gocyclo
-    - golint
     - lll
-    - structcheck
-    - typecheck
     - unconvert
-    - varcheck
-    - deadcode
-    - depguard
     - errcheck
     - gocritic
     - gosec

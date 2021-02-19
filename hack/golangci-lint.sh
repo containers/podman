@@ -5,7 +5,7 @@ set -e
 
 declare -A BUILD_TAGS
 # TODO: add systemd tag
-BUILD_TAGS[default]="apparmor,seccomp,selinux"
+BUILD_TAGS[default]="apparmor,seccomp,selinux,linter"
 BUILD_TAGS[abi]="${BUILD_TAGS[default]},!remoteclient"
 BUILD_TAGS[tunnel]="${BUILD_TAGS[default]},remote,remoteclient"
 

@@ -264,7 +264,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 	c.newContainerEvent(events.Restart)
 
 	// Increment restart count
-	c.state.RestartCount += 1
+	c.state.RestartCount++
 	logrus.Debugf("Container %s now on retry %d", c.ID(), c.state.RestartCount)
 	if err := c.save(); err != nil {
 		return false, err
@@ -1615,6 +1615,17 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 		if !srcStat.IsDir() {
 			return vol, nil
 		}
+		// Read contents, do not bother continuing if it's empty. Fixes
+		// a bizarre issue where something copier.Get will ENOENT on
+		// empty directories and sometimes it will not.
+		// RHBZ#1928643
+		srcContents, err := ioutil.ReadDir(srcDir)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error reading contents of source directory for copy up into volume %s", vol.Name())
+		}
+		if len(srcContents) == 0 {
+			return vol, nil
+		}
 
 		// Buildah Copier accepts a reader, so we'll need a pipe.
 		reader, writer := io.Pipe()
@@ -1631,7 +1642,7 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 			getOptions := copier.GetOptions{
 				KeepDirectoryNames: false,
 			}
-			errChan <- copier.Get(mountpoint, "", getOptions, []string{v.Dest + "/."}, writer)
+			errChan <- copier.Get(srcDir, "", getOptions, []string{"/."}, writer)
 		}()
 
 		// Copy, volume side: stream what we've written to the pipe, into

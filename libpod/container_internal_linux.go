@@ -21,6 +21,7 @@ import (
 
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/buildah/pkg/overlay"
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/config"
@@ -202,10 +203,17 @@ func (c *Container) resolveWorkDir() error {
 	}
 	logrus.Debugf("Workdir %q resolved to host path %q", workdir, resolvedWorkdir)
 
-	// No need to create it (e.g., `--workdir=/foo`), so let's make sure
-	// the path exists on the container.
+	st, err := os.Stat(resolvedWorkdir)
+	if err == nil {
+		if !st.IsDir() {
+			return errors.Errorf("workdir %q exists on container %s, but is not a directory", workdir, c.ID())
+		}
+		return nil
+	}
 	if !c.config.CreateWorkingDir {
-		if _, err := os.Stat(resolvedWorkdir); err != nil {
+		// No need to create it (e.g., `--workdir=/foo`), so let's make sure
+		// the path exists on the container.
+		if err != nil {
 			if os.IsNotExist(err) {
 				return errors.Errorf("workdir %q does not exist on container %s", workdir, c.ID())
 			}
@@ -215,11 +223,6 @@ func (c *Container) resolveWorkDir() error {
 		}
 		return nil
 	}
-
-	// Ensure container entrypoint is created (if required).
-	rootUID := c.RootUID()
-	rootGID := c.RootGID()
-
 	if err := os.MkdirAll(resolvedWorkdir, 0755); err != nil {
 		if os.IsExist(err) {
 			return nil
@@ -227,7 +230,12 @@ func (c *Container) resolveWorkDir() error {
 		return errors.Wrapf(err, "error creating container %s workdir", c.ID())
 	}
 
-	if err := os.Chown(resolvedWorkdir, rootUID, rootGID); err != nil {
+	// Ensure container entrypoint is created (if required).
+	uid, gid, _, err := chrootuser.GetUser(c.state.Mountpoint, c.User())
+	if err != nil {
+		return errors.Wrapf(err, "error looking up %s inside of the container %s", c.User(), c.ID())
+	}
+	if err := os.Chown(resolvedWorkdir, int(uid), int(gid)); err != nil {
 		return errors.Wrapf(err, "error chowning container %s workdir to container root", c.ID())
 	}
 
@@ -457,7 +465,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			break
 		}
 	}
-	if !hasHomeSet {
+	if !hasHomeSet && execUser.Home != "" {
 		c.config.Spec.Process.Env = append(c.config.Spec.Process.Env, fmt.Sprintf("HOME=%s", execUser.Home))
 	}
 
@@ -520,14 +528,14 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			}}
 		}
 		for _, gid := range execUser.Sgids {
-			isGidAvailable := false
+			isGIDAvailable := false
 			for _, m := range gidMappings {
 				if gid >= m.ContainerID && gid < m.ContainerID+m.Size {
-					isGidAvailable = true
+					isGIDAvailable = true
 					break
 				}
 			}
-			if isGidAvailable {
+			if isGIDAvailable {
 				g.AddProcessAdditionalGid(uint32(gid))
 			} else {
 				logrus.Warnf("additional gid=%d is not present in the user namespace, skip setting it", gid)
@@ -1613,13 +1621,12 @@ func (c *Container) makeBindMounts() error {
 				return errors.Wrapf(err, "error setting timezone for container %s", c.ID())
 			}
 			c.state.BindMounts["/etc/localtime"] = localtimePath
-
 		}
 	}
 
 	// Make .containerenv if it does not exist
 	if _, ok := c.state.BindMounts["/run/.containerenv"]; !ok {
-		var containerenv string
+		containerenv := c.runtime.graphRootMountedFlag(c.config.Spec.Mounts)
 		isRootless := 0
 		if rootless.IsRootless() {
 			isRootless = 1
@@ -1634,7 +1641,7 @@ id=%q
 image=%q
 imageid=%q
 rootless=%d
-`, version.Version.String(), c.Name(), c.ID(), imageName, imageID, isRootless)
+%s`, version.Version.String(), c.Name(), c.ID(), imageName, imageID, isRootless, containerenv)
 		}
 		containerenvPath, err := c.writeStringToRundir(".containerenv", containerenv)
 		if err != nil {

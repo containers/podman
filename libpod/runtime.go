@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
@@ -26,6 +27,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/docker/pkg/namesgenerator"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -146,7 +148,6 @@ func NewRuntime(ctx context.Context, options ...RuntimeOption) (*Runtime, error)
 // An error will be returned if the configuration file at the given path does
 // not exist or cannot be loaded
 func NewRuntimeFromConfig(ctx context.Context, userConfig *config.Config, options ...RuntimeOption) (*Runtime, error) {
-
 	return newRuntimeFromConfig(ctx, userConfig, options...)
 }
 
@@ -382,7 +383,6 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 
 	// Initialize remaining OCI runtimes
 	for name, paths := range runtime.config.Engine.OCIRuntimes {
-
 		ociRuntime, err := newConmonOCIRuntime(name, paths, runtime.conmonPath, runtime.runtimeFlags, runtime.config)
 		if err != nil {
 			// Don't fatally error.
@@ -437,7 +437,6 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 
 	// Set up the CNI net plugin
 	if !rootless.IsRootless() {
-
 		netPlugin, err := ocicni.InitCNI(runtime.config.Network.DefaultNetwork, runtime.config.Network.NetworkConfigDir, runtime.config.Network.CNIPluginDirs...)
 		if err != nil {
 			return errors.Wrapf(err, "error configuring CNI network plugin")
@@ -484,7 +483,6 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 			if became {
 				os.Exit(ret)
 			}
-
 		}
 		// If the file doesn't exist, we need to refresh the state
 		// This will trigger on first use as well, but refreshing an
@@ -626,9 +624,12 @@ func (r *Runtime) Shutdown(force bool) error {
 func (r *Runtime) refresh(alivePath string) error {
 	logrus.Debugf("Podman detected system restart - performing state refresh")
 
-	// First clear the state in the database
-	if err := r.state.Refresh(); err != nil {
-		return err
+	// Clear state of database if not running in container
+	if !graphRootMounted() {
+		// First clear the state in the database
+		if err := r.state.Refresh(); err != nil {
+			return err
+		}
 	}
 
 	// Next refresh the state of all containers to recreate dirs and
@@ -787,7 +788,6 @@ type DBConfig struct {
 
 // mergeDBConfig merges the configuration from the database.
 func (r *Runtime) mergeDBConfig(dbConfig *DBConfig) {
-
 	c := &r.config.Engine
 	if !r.storageSet.RunRootSet && dbConfig.StorageTmp != "" {
 		if r.storageConfig.RunRoot != dbConfig.StorageTmp &&
@@ -903,4 +903,30 @@ func (r *Runtime) getVolumePlugin(name string) (*plugin.VolumePlugin, error) {
 	}
 
 	return plugin.GetVolumePlugin(name, pluginPath)
+}
+
+func graphRootMounted() bool {
+	f, err := os.OpenFile("/run/.containerenv", os.O_RDONLY, os.ModePerm)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		if scanner.Text() == "graphRootMounted=1" {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *Runtime) graphRootMountedFlag(mounts []spec.Mount) string {
+	root := r.store.GraphRoot()
+	for _, val := range mounts {
+		if strings.HasPrefix(root, val.Source) {
+			return "graphRootMounted=1"
+		}
+	}
+	return ""
 }
