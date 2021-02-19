@@ -750,8 +750,22 @@ func (d *Driver) getLowerDirs(id string) ([]string, error) {
 		for _, s := range strings.Split(string(lowers), ":") {
 			lower := d.dir(s)
 			lp, err := os.Readlink(lower)
+			// if the link does not exist, we lost the symlinks during a sudden reboot.
+			// Let's go ahead and recreate those symlinks.
 			if err != nil {
-				return nil, err
+				if os.IsNotExist(err) {
+					logrus.Warnf("Can't read link %q because it does not exist. Going through storage to recreate the missing symlinks.", lower)
+					if err := d.recreateSymlinks(); err != nil {
+						return nil, fmt.Errorf("error recreating the missing symlinks: %v", err)
+					}
+					// let's call Readlink on lower again now that we have recreated the missing symlinks
+					lp, err = os.Readlink(lower)
+					if err != nil {
+						return nil, err
+					}
+				} else {
+					return nil, err
+				}
 			}
 			lowersArray = append(lowersArray, path.Clean(d.dir(path.Join("link", lp))))
 		}
@@ -879,7 +893,11 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		// If metacopy=on is present in d.options.mountOptions it must be present in the mount
 		// options otherwise the kernel refuses to follow the metacopy xattr.
 		if hasMetacopyOption(strings.Split(d.options.mountOptions, ",")) && !hasMetacopyOption(options.Options) {
-			optsList = append(optsList, "metacopy=on")
+			if d.usingMetacopy {
+				optsList = append(optsList, "metacopy=on")
+			} else {
+				logrus.Warnf("ignoring metacopy option from storage.conf, not supported with booted kernel")
+			}
 		}
 	}
 	for _, o := range optsList {

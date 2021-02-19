@@ -145,6 +145,10 @@ func doesMetacopy(d, mountOpts string) (bool, error) {
 		opts = fmt.Sprintf("%s,%s", opts, data)
 	}
 	if err := unix.Mount("overlay", filepath.Join(td, "merged"), "overlay", uintptr(flags), opts); err != nil {
+		if errors.Cause(err) == unix.EINVAL {
+			logrus.Info("metacopy option not supported on this kernel", mountOpts)
+			return false, nil
+		}
 		return false, errors.Wrapf(err, "failed to mount overlay for metacopy check with %q options", mountOpts)
 	}
 	defer func() {
