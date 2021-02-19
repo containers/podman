@@ -1176,15 +1176,19 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    description: the name or ID of the container
 	//  - in: query
 	//    name: condition
-	//    type: string
-	//    description: |
-	//      wait until container is to a given condition. default is stopped. valid conditions are:
-	//        - configured
-	//        - created
-	//        - exited
-	//        - paused
-	//        - running
-	//        - stopped
+	//    type: array
+	//    items:
+	//      type: string
+	//      enum:
+	//       - configured
+	//       - created
+	//       - running
+	//       - stopped
+	//       - paused
+	//       - exited
+	//       - removing
+	//       - stopping
+	//    description: "Conditions to wait for. If no condition provided the 'exited' condition is assumed."
 	// produces:
 	// - application/json
 	// responses:
