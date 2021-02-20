@@ -310,13 +310,36 @@ func (r *Runtime) getRootlessCNINetNs(new bool) (*rootlessCNI, error) {
 	return rootlessCNINS, nil
 }
 
-// Create and configure a new network namespace for a container
-func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Result, error) {
+// setUpOCICNIPod will set up the cni networks, on error it will also tear down the cni
+// networks. If rootless it will join/create the rootless cni namespace.
+func (r *Runtime) setUpOCICNIPod(podNetwork ocicni.PodNetwork) ([]ocicni.NetResult, error) {
 	rootlessCNINS, err := r.getRootlessCNINetNs(true)
 	if err != nil {
 		return nil, err
 	}
+	var results []ocicni.NetResult
+	setUpPod := func() error {
+		results, err = r.netPlugin.SetUpPod(podNetwork)
+		if err != nil {
+			if err2 := r.netPlugin.TearDownPod(podNetwork); err2 != nil {
+				logrus.Errorf("Error tearing down partially created network namespace for container %s: %v", podNetwork.ID, err2)
+			}
+			return errors.Wrapf(err, "error configuring network namespace for container %s", podNetwork.ID)
+		}
+		return nil
+	}
+	// rootlessCNINS is nil if we are root
+	if rootlessCNINS != nil {
+		// execute the cni setup in the rootless net ns
+		err = rootlessCNINS.Do(setUpPod)
+	} else {
+		err = setUpPod()
+	}
+	return results, err
+}
 
+// Create and configure a new network namespace for a container
+func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Result, error) {
 	var requestedIP net.IP
 	if ctr.requestedIP != nil {
 		requestedIP = ctr.requestedIP
@@ -360,28 +383,7 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 		podNetwork.Aliases = aliases
 	}
 
-	var results []ocicni.NetResult
-	setUpPod := func() error {
-		results, err = r.netPlugin.SetUpPod(podNetwork)
-		if err != nil {
-			return errors.Wrapf(err, "error configuring network namespace for container %s", ctr.ID())
-		}
-		defer func() {
-			if err != nil {
-				if err2 := r.netPlugin.TearDownPod(podNetwork); err2 != nil {
-					logrus.Errorf("Error tearing down partially created network namespace for container %s: %v", ctr.ID(), err2)
-				}
-			}
-		}()
-		return nil
-	}
-	// rootlessCNINS is nil if we are root
-	if rootlessCNINS != nil {
-		// execute the cni setup in the rootless net ns
-		err = rootlessCNINS.Do(setUpPod)
-	} else {
-		err = setUpPod()
-	}
+	results, err := r.setUpOCICNIPod(podNetwork)
 	if err != nil {
 		return nil, err
 	}
@@ -514,6 +516,28 @@ func (r *Runtime) closeNetNS(ctr *Container) error {
 	return nil
 }
 
+// Tear down a container's CNI network configuration and joins the
+// rootless net ns as rootless user
+func (r *Runtime) teardownOCICNIPod(podNetwork ocicni.PodNetwork) error {
+	rootlessCNINS, err := r.getRootlessCNINetNs(false)
+	if err != nil {
+		return err
+	}
+	tearDownPod := func() error {
+		err := r.netPlugin.TearDownPod(podNetwork)
+		return errors.Wrapf(err, "error tearing down CNI namespace configuration for container %s", podNetwork.ID)
+	}
+
+	// rootlessCNINS is nil if we are root
+	if rootlessCNINS != nil {
+		// execute the cni setup in the rootless net ns
+		err = rootlessCNINS.Do(tearDownPod)
+	} else {
+		err = tearDownPod()
+	}
+	return err
+}
+
 // Tear down a container's CNI network configuration, but do not tear down the
 // namespace itself.
 func (r *Runtime) teardownCNI(ctr *Container) error {
@@ -530,10 +554,6 @@ func (r *Runtime) teardownCNI(ctr *Container) error {
 	}
 
 	if !ctr.config.NetMode.IsSlirp4netns() && len(networks) > 0 {
-		rootlessCNINS, err := r.getRootlessCNINetNs(false)
-		if err != nil {
-			return err
-		}
 		var requestedIP net.IP
 		if ctr.requestedIP != nil {
 			requestedIP = ctr.requestedIP
@@ -553,21 +573,7 @@ func (r *Runtime) teardownCNI(ctr *Container) error {
 		}
 
 		podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), networks, ctr.config.PortMappings, requestedIP, requestedMAC, ctr.state.NetInterfaceDescriptions)
-
-		tearDownPod := func() error {
-			if err := r.netPlugin.TearDownPod(podNetwork); err != nil {
-				return errors.Wrapf(err, "error tearing down CNI namespace configuration for container %s", ctr.ID())
-			}
-			return nil
-		}
-
-		// rootlessCNINS is nil if we are root
-		if rootlessCNINS != nil {
-			// execute the cni setup in the rootless net ns
-			err = rootlessCNINS.Do(tearDownPod)
-		} else {
-			err = tearDownPod()
-		}
+		err = r.teardownOCICNIPod(podNetwork)
 		return err
 	}
 	return nil
@@ -920,7 +926,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 	}
 
 	podConfig := c.runtime.getPodNetwork(c.ID(), c.Name(), c.state.NetNS.Path(), []string{netName}, c.config.PortMappings, nil, nil, c.state.NetInterfaceDescriptions)
-	if err := c.runtime.netPlugin.TearDownPod(podConfig); err != nil {
+	if err := c.runtime.teardownOCICNIPod(podConfig); err != nil {
 		return err
 	}
 
@@ -984,7 +990,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, aliases []string) e
 	podConfig := c.runtime.getPodNetwork(c.ID(), c.Name(), c.state.NetNS.Path(), []string{netName}, c.config.PortMappings, nil, nil, c.state.NetInterfaceDescriptions)
 	podConfig.Aliases = make(map[string][]string, 1)
 	podConfig.Aliases[netName] = aliases
-	results, err := c.runtime.netPlugin.SetUpPod(podConfig)
+	results, err := c.runtime.setUpOCICNIPod(podConfig)
 	if err != nil {
 		return err
 	}
@@ -1031,9 +1037,6 @@ func (c *Container) NetworkConnect(nameOrID, netName string, aliases []string) e
 
 // DisconnectContainerFromNetwork removes a container from its CNI network
 func (r *Runtime) DisconnectContainerFromNetwork(nameOrID, netName string, force bool) error {
-	if rootless.IsRootless() {
-		return errors.New("network connect is not enabled for rootless containers")
-	}
 	ctr, err := r.LookupContainer(nameOrID)
 	if err != nil {
 		return err
@@ -1043,9 +1046,6 @@ func (r *Runtime) DisconnectContainerFromNetwork(nameOrID, netName string, force
 
 // ConnectContainerToNetwork connects a container to a CNI network
 func (r *Runtime) ConnectContainerToNetwork(nameOrID, netName string, aliases []string) error {
-	if rootless.IsRootless() {
-		return errors.New("network disconnect is not enabled for rootless containers")
-	}
 	ctr, err := r.LookupContainer(nameOrID)
 	if err != nil {
 		return err

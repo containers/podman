@@ -33,14 +33,12 @@ var _ = Describe("Podman network connect and disconnect", func() {
 	})
 
 	It("bad network name in disconnect should result in error", func() {
-		SkipIfRootless("network connect and disconnect are only rootful")
 		dis := podmanTest.Podman([]string{"network", "disconnect", "foobar", "test"})
 		dis.WaitWithDefaultTimeout()
 		Expect(dis.ExitCode()).ToNot(BeZero())
 	})
 
 	It("bad container name in network disconnect should result in error", func() {
-		SkipIfRootless("network connect and disconnect are only rootful")
 		netName := "aliasTest" + stringid.GenerateNonCryptoID()
 		session := podmanTest.Podman([]string{"network", "create", netName})
 		session.WaitWithDefaultTimeout()
@@ -72,7 +70,6 @@ var _ = Describe("Podman network connect and disconnect", func() {
 	})
 
 	It("podman network disconnect", func() {
-		SkipIfRootless("network connect and disconnect are only rootful")
 		netName := "aliasTest" + stringid.GenerateNonCryptoID()
 		session := podmanTest.Podman([]string{"network", "create", netName})
 		session.WaitWithDefaultTimeout()
@@ -102,14 +99,12 @@ var _ = Describe("Podman network connect and disconnect", func() {
 	})
 
 	It("bad network name in connect should result in error", func() {
-		SkipIfRootless("network connect and disconnect are only rootful")
 		dis := podmanTest.Podman([]string{"network", "connect", "foobar", "test"})
 		dis.WaitWithDefaultTimeout()
 		Expect(dis.ExitCode()).ToNot(BeZero())
 	})
 
 	It("bad container name in network connect should result in error", func() {
-		SkipIfRootless("network connect and disconnect are only rootful")
 		netName := "aliasTest" + stringid.GenerateNonCryptoID()
 		session := podmanTest.Podman([]string{"network", "create", netName})
 		session.WaitWithDefaultTimeout()
@@ -141,7 +136,6 @@ var _ = Describe("Podman network connect and disconnect", func() {
 	})
 
 	It("podman connect on a container that already is connected to the network should error", func() {
-		SkipIfRootless("network connect and disconnect are only rootful")
 		netName := "aliasTest" + stringid.GenerateNonCryptoID()
 		session := podmanTest.Podman([]string{"network", "create", netName})
 		session.WaitWithDefaultTimeout()
@@ -159,7 +153,6 @@ var _ = Describe("Podman network connect and disconnect", func() {
 
 	It("podman network connect", func() {
 		SkipIfRemote("This requires a pending PR to be merged before it will work")
-		SkipIfRootless("network connect and disconnect are only rootful")
 		netName := "aliasTest" + stringid.GenerateNonCryptoID()
 		session := podmanTest.Podman([]string{"network", "create", netName})
 		session.WaitWithDefaultTimeout()
@@ -203,18 +196,23 @@ var _ = Describe("Podman network connect and disconnect", func() {
 	})
 
 	It("podman network connect when not running", func() {
-		SkipIfRootless("network connect and disconnect are only rootful")
-		netName := "aliasTest" + stringid.GenerateNonCryptoID()
-		session := podmanTest.Podman([]string{"network", "create", netName})
+		netName1 := "connect1" + stringid.GenerateNonCryptoID()
+		session := podmanTest.Podman([]string{"network", "create", netName1})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(BeZero())
-		defer podmanTest.removeCNINetwork(netName)
+		defer podmanTest.removeCNINetwork(netName1)
 
-		ctr := podmanTest.Podman([]string{"create", "--name", "test", ALPINE, "top"})
+		netName2 := "connect2" + stringid.GenerateNonCryptoID()
+		session = podmanTest.Podman([]string{"network", "create", netName2})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		defer podmanTest.removeCNINetwork(netName2)
+
+		ctr := podmanTest.Podman([]string{"create", "--name", "test", "--network", netName1, ALPINE, "top"})
 		ctr.WaitWithDefaultTimeout()
 		Expect(ctr.ExitCode()).To(BeZero())
 
-		dis := podmanTest.Podman([]string{"network", "connect", netName, "test"})
+		dis := podmanTest.Podman([]string{"network", "connect", netName2, "test"})
 		dis.WaitWithDefaultTimeout()
 		Expect(dis.ExitCode()).To(BeZero())
 
@@ -286,7 +284,6 @@ var _ = Describe("Podman network connect and disconnect", func() {
 	})
 
 	It("podman network disconnect when not running", func() {
-		SkipIfRootless("network connect and disconnect are only rootful")
 		netName1 := "aliasTest" + stringid.GenerateNonCryptoID()
 		session := podmanTest.Podman([]string{"network", "create", netName1})
 		session.WaitWithDefaultTimeout()
