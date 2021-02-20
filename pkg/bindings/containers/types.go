@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"io"
 
-	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v3/libpod/define"
 )
 
 //go:generate go run ../generator/generator.go LogOptions

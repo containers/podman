@@ -3,7 +3,7 @@ package cgroups
 import (
 	"testing"
 
-	"github.com/containers/podman/v2/pkg/rootless"
+	"github.com/containers/podman/v3/pkg/rootless"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 

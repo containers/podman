@@ -7,8 +7,8 @@ import (
 
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/image/v5/types"
-	podmanRegistry "github.com/containers/podman/v2/hack/podman-registry-go"
-	"github.com/containers/podman/v2/pkg/bindings/images"
+	podmanRegistry "github.com/containers/podman/v3/hack/podman-registry-go"
+	"github.com/containers/podman/v3/pkg/bindings/images"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"

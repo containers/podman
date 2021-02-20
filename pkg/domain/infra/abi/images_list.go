@@ -3,8 +3,8 @@ package abi
 import (
 	"context"
 
-	libpodImage "github.com/containers/podman/v2/libpod/image"
-	"github.com/containers/podman/v2/pkg/domain/entities"
+	libpodImage "github.com/containers/podman/v3/libpod/image"
+	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/pkg/errors"
 )
 

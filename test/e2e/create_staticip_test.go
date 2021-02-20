@@ -4,8 +4,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/containers/podman/v2/pkg/rootless"
-	. "github.com/containers/podman/v2/test/utils"
+	"github.com/containers/podman/v3/pkg/rootless"
+	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

@@ -4,9 +4,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/podman/v2/libpod/define"
-	"github.com/containers/podman/v2/pkg/rootless"
-	"github.com/containers/podman/v2/pkg/util"
+	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/pkg/rootless"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 )

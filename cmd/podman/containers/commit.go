@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/completion"
-	"github.com/containers/podman/v2/cmd/podman/common"
-	"github.com/containers/podman/v2/cmd/podman/registry"
-	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v3/cmd/podman/common"
+	"github.com/containers/podman/v3/cmd/podman/registry"
+	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )

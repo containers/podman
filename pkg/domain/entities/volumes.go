@@ -3,7 +3,7 @@ package entities
 import (
 	"net/url"
 
-	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v3/libpod/define"
 	docker_api_types "github.com/docker/docker/api/types"
 	docker_api_types_volume "github.com/docker/docker/api/types/volume"
 )

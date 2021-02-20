@@ -3,10 +3,10 @@ package compat
 import (
 	"net/http"
 
-	"github.com/containers/podman/v2/libpod"
-	"github.com/containers/podman/v2/libpod/define"
-	"github.com/containers/podman/v2/pkg/api/handlers/utils"
-	"github.com/containers/podman/v2/pkg/api/server/idle"
+	"github.com/containers/podman/v3/libpod"
+	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/pkg/api/handlers/utils"
+	"github.com/containers/podman/v3/pkg/api/server/idle"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

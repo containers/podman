@@ -3,11 +3,11 @@ package compat
 import (
 	"net/http"
 
-	"github.com/containers/podman/v2/libpod"
-	"github.com/containers/podman/v2/libpod/define"
-	"github.com/containers/podman/v2/pkg/api/handlers/utils"
-	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/containers/podman/v2/pkg/domain/infra/abi"
+	"github.com/containers/podman/v3/libpod"
+	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/pkg/api/handlers/utils"
+	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/domain/infra/abi"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )

@@ -3,7 +3,7 @@ package manifests
 import (
 	"net/url"
 
-	"github.com/containers/podman/v2/pkg/bindings/util"
+	"github.com/containers/podman/v3/pkg/bindings/util"
 )
 
 /*

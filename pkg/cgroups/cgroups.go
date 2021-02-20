@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/podman/v2/pkg/rootless"
+	"github.com/containers/podman/v3/pkg/rootless"
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	"github.com/godbus/dbus/v5"
 	spec "github.com/opencontainers/runtime-spec/specs-go"

@@ -1,11 +1,11 @@
 package swagger
 
 import (
-	"github.com/containers/podman/v2/libpod/define"
-	"github.com/containers/podman/v2/libpod/image"
-	"github.com/containers/podman/v2/pkg/api/handlers"
-	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/containers/podman/v2/pkg/inspect"
+	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/libpod/image"
+	"github.com/containers/podman/v3/pkg/api/handlers"
+	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/inspect"
 	"github.com/docker/docker/api/types"
 )
 

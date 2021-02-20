@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/containers/podman/v2/pkg/util"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/coreos/go-systemd/v22/journal"
 	"github.com/coreos/go-systemd/v22/sdjournal"
 	"github.com/pkg/errors"

@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 
 	"github.com/containers/common/pkg/sysinfo"
-	"github.com/containers/podman/v2/pkg/cgroups"
-	"github.com/containers/podman/v2/pkg/specgen"
-	"github.com/containers/podman/v2/utils"
+	"github.com/containers/podman/v3/pkg/cgroups"
+	"github.com/containers/podman/v3/pkg/specgen"
+	"github.com/containers/podman/v3/utils"
 	"github.com/pkg/errors"
 )
 

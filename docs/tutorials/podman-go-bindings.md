@@ -35,11 +35,8 @@ $ cd $HOME
 $ mkdir example && cd example
 $ go mod init example.com
 go: creating new go.mod: module example.com
-$ go get github.com/containers/podman/v2@v2.0.4
-go: downloading github.com/containers/podman/v2 v2.0.4
-go get: github.com/containers/podman/v2@v2.0.4: parsing go.mod:
-    module declares its path as: github.com/containers/libpod/v2
-            but was required as: github.com/containers/podman/v2
+$ go get github.com/containers/podman/v3
+[...]
 ```
 
 This creates a new `go.mod` file in the current directory that looks as follows:
@@ -47,9 +44,9 @@ This creates a new `go.mod` file in the current directory that looks as follows:
 ```bash
 module example.com
 
-go 1.14
+go 1.16
 
-require github.com/containers/libpod/v2 v2.0.4 // indirect
+require github.com/containers/libpod/v3 v3.0.1 // indirect
 ```
 
 You can also try a demo application with the Go modules created already:
@@ -136,12 +133,12 @@ import (
         "fmt"
         "os"
 
-        "github.com/containers/libpod/v2/libpod/define"
-        "github.com/containers/libpod/v2/pkg/bindings"
-        "github.com/containers/libpod/v2/pkg/bindings/containers"
-        "github.com/containers/libpod/v2/pkg/bindings/images"
-        "github.com/containers/libpod/v2/pkg/domain/entities"
-        "github.com/containers/libpod/v2/pkg/specgen"
+        "github.com/containers/libpod/v3/libpod/define"
+        "github.com/containers/libpod/v3/pkg/bindings"
+        "github.com/containers/libpod/v3/pkg/bindings/containers"
+        "github.com/containers/libpod/v3/pkg/bindings/images"
+        "github.com/containers/libpod/v3/pkg/domain/entities"
+        "github.com/containers/libpod/v3/pkg/specgen"
 )
 
 func main() {
@@ -530,7 +527,7 @@ $
 
 
 ## Wrap Up
-Podman v2 provides a set of Go bindings to allow developers to integrate Podman
+Podman provides a set of Go bindings to allow developers to integrate Podman
 functionality conveniently in their Go application.  These Go bindings require
 the Podman system service to be running in the background and this can easily
 be achieved using systemd socket activation. Once set up, you are able to use a
@@ -539,7 +536,7 @@ containers and pods in a way which fits very nicely in many production environme
 
 
 ## References
-- Podman v2 is available for most major distributions along with MacOS and Windows.
+- Podman is available for most major distributions along with MacOS and Windows.
 Installation details are available on the [Podman official website](https://podman.io/getting-started/).
 
 - Documentation can be found at the [Podman Docs page](https://docs.podman.io).
