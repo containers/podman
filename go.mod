@@ -71,3 +71,5 @@ require (
 	k8s.io/apimachinery v0.20.2
 	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
 )
+
+replace github.com/cri-o/ocicni => github.com/Luap99/ocicni v0.2.1-0.20210220142841-f6f6adc9d8c4

@@ -275,13 +275,19 @@ func loadNetworks(confDir string, cni *libcni.CNIConfig) (map[string]*cniNetwork
 		if strings.HasSuffix(confFile, ".conflist") {
 			confList, err = libcni.ConfListFromFile(confFile)
 			if err != nil {
-				logrus.Errorf("Error loading CNI config list file %s: %v", confFile, err)
+				// do not log ENOENT errors
+				if !os.IsNotExist(err) {
+					logrus.Errorf("Error loading CNI config list file %s: %v", confFile, err)
+				}
 				continue
 			}
 		} else {
 			conf, err := libcni.ConfFromFile(confFile)
 			if err != nil {
-				logrus.Errorf("Error loading CNI config file %s: %v", confFile, err)
+				// do not log ENOENT errors
+				if !os.IsNotExist(err) {
+					logrus.Errorf("Error loading CNI config file %s: %v", confFile, err)
+				}
 				continue
 			}
 			if conf.Network.Type == "" {
@@ -489,8 +495,15 @@ func (plugin *cniNetworkPlugin) forEachNetwork(podNetwork *PodNetwork, fromCache
 		if cniNet == nil {
 			cniNet, err = plugin.getNetwork(network.Name)
 			if err != nil {
-				logrus.Errorf(err.Error())
-				return err
+				// try to load the networks again
+				if err2 := plugin.syncNetworkConfig(); err2 != nil {
+					logrus.Error(err2)
+					return err
+				}
+				cniNet, err = plugin.getNetwork(network.Name)
+				if err != nil {
+					return err
+				}
 			}
 		}
 
