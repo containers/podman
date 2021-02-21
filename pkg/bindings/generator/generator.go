@@ -81,7 +81,7 @@ func main() {
 		panic(err)
 	}
 	// always add reflect
-	imports := []string{"\"reflect\"", "\"github.com/containers/podman/v3/pkg/bindings/util\""}
+	imports := []string{"\"reflect\"", "\"github.com/containers/podman/v3/pkg/bindings/internal/util\""}
 	for _, imp := range f.Imports {
 		imports = append(imports, imp.Path.Value)
 	}

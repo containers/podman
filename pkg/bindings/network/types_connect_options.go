@@ -3,7 +3,7 @@ package network
 import (
 	"net/url"
 
-	"github.com/containers/podman/v3/pkg/bindings/util"
+	"github.com/containers/podman/v3/pkg/bindings/internal/util"
 )
 
 /*
