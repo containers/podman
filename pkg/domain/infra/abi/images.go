@@ -640,6 +640,10 @@ func (ir *ImageEngine) Remove(ctx context.Context, images []string, opts entitie
 	for _, id := range images {
 		img, err := ir.Libpod.ImageRuntime().NewFromLocal(id)
 		if err != nil {
+			// attempt to remove image from storage
+			if forceErr := ir.Libpod.RemoveImageFromStorage(id); forceErr == nil {
+				continue
+			}
 			rmErrors = append(rmErrors, err)
 			continue
 		}

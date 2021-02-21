@@ -325,6 +325,15 @@ func (r *Runtime) LoadImageFromSingleImageArchive(ctx context.Context, writer io
 	return "", errors.Wrapf(saveErr, "error pulling image")
 }
 
+// RemoveImageFromStorage goes directly to storage and attempts to remove
+// the specified image. This is dangerous and should only be done if libpod
+// reports that image is not known. This call is useful if you have a corrupted
+// image that was never fully added to the libpod database.
+func (r *Runtime) RemoveImageFromStorage(id string) error {
+	_, err := r.store.DeleteImage(id, true)
+	return err
+}
+
 func getImageNames(images []*image.Image) string {
 	var names string
 	for i := range images {
