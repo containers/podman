@@ -88,10 +88,6 @@ func (entry *Entry) Dup() *Entry {
 
 // Returns the bytes representation of this entry from the formatter.
 func (entry *Entry) Bytes() ([]byte, error) {
-	return entry.bytes_nolock()
-}
-
-func (entry *Entry) bytes_nolock() ([]byte, error) {
 	return entry.Logger.Formatter.Format(entry)
 }
 
@@ -222,8 +218,6 @@ func (entry Entry) HasCaller() (has bool) {
 		entry.Caller != nil
 }
 
-// This function is not declared with a pointer value because otherwise
-// race conditions will occur when using multiple goroutines
 func (entry *Entry) log(level Level, msg string) {
 	var buffer *bytes.Buffer
 
@@ -279,13 +273,11 @@ func (entry *Entry) write() {
 		fmt.Fprintf(os.Stderr, "Failed to obtain reader, %v\n", err)
 		return
 	}
-	func() {
-		entry.Logger.mu.Lock()
-		defer entry.Logger.mu.Unlock()
-		if _, err := entry.Logger.Out.Write(serialized); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to write to log, %v\n", err)
-		}
-	}()
+	entry.Logger.mu.Lock()
+	defer entry.Logger.mu.Unlock()
+	if _, err := entry.Logger.Out.Write(serialized); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to write to log, %v\n", err)
+	}
 }
 
 func (entry *Entry) Log(level Level, args ...interface{}) {
