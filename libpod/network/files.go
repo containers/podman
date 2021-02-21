@@ -81,9 +81,9 @@ func GetCNIConfigPathByNameOrID(config *config.Config, name string) (string, err
 	return "", errors.Wrap(define.ErrNoSuchNetwork, fmt.Sprintf("unable to find network configuration for %s", name))
 }
 
-// ReadRawCNIConfByName reads the raw CNI configuration for a CNI
+// ReadRawCNIConfByNameOrID reads the raw CNI configuration for a CNI
 // network by name
-func ReadRawCNIConfByName(config *config.Config, name string) ([]byte, error) {
+func ReadRawCNIConfByNameOrID(config *config.Config, name string) ([]byte, error) {
 	confFile, err := GetCNIConfigPathByNameOrID(config, name)
 	if err != nil {
 		return nil, err

@@ -1139,12 +1139,11 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 		return err
 	}
 
-	exists, err := network.Exists(c.runtime.config, netName)
+	// check if network exists and if the input is a ID we get the name
+	// ocicni only uses names so it is important that we only use the name
+	netName, err = network.NormalizeName(c.runtime.config, netName)
 	if err != nil {
 		return err
-	}
-	if !exists {
-		return errors.Wrap(define.ErrNoSuchNetwork, netName)
 	}
 
 	index, nameExists := networks[netName]
@@ -1196,12 +1195,11 @@ func (c *Container) NetworkConnect(nameOrID, netName string, aliases []string) e
 		return err
 	}
 
-	exists, err := network.Exists(c.runtime.config, netName)
+	// check if network exists and if the input is a ID we get the name
+	// ocicni only uses names so it is important that we only use the name
+	netName, err = network.NormalizeName(c.runtime.config, netName)
 	if err != nil {
 		return err
-	}
-	if !exists {
-		return errors.Wrap(define.ErrNoSuchNetwork, netName)
 	}
 
 	c.lock.Lock()
