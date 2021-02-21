@@ -482,3 +482,13 @@ func RandomString(n int) string {
 	}
 	return string(b)
 }
+
+//SkipIfInContainer skips a test if the test is run inside a container
+func SkipIfInContainer(reason string) {
+	if len(reason) < 5 {
+		panic("SkipIfInContainer must specify a reason to skip")
+	}
+	if os.Getenv("TEST_ENVIRON") == "container" {
+		Skip("[container]: " + reason)
+	}
+}
