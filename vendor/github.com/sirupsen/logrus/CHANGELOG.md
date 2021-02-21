@@ -1,4 +1,11 @@
+# 1.8.0
+
+Correct versioning number replacing v1.7.1.
+
 # 1.7.1
+
+Beware this release has introduced a new public API and its semver is therefore incorrect.
+
 Code quality:
   * use go 1.15 in travis
   * use magefile as task runner
