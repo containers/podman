@@ -4,7 +4,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/domain/entities"
 )
 
 func Test_validateBridgeOptions(t *testing.T) {

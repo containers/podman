@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/containers/podman/v2/libpod/define"
-	"github.com/containers/podman/v2/libpod/lock"
-	"github.com/containers/podman/v2/libpod/plugin"
+	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/libpod/lock"
+	"github.com/containers/podman/v3/libpod/plugin"
 )
 
 // Volume is a libpod named volume.

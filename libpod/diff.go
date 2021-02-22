@@ -3,7 +3,7 @@ package libpod
 import (
 	"io"
 
-	"github.com/containers/podman/v2/libpod/layers"
+	"github.com/containers/podman/v3/libpod/layers"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
 )

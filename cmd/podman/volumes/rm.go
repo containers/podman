@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containers/podman/v2/cmd/podman/common"
-	"github.com/containers/podman/v2/cmd/podman/registry"
-	"github.com/containers/podman/v2/cmd/podman/utils"
-	"github.com/containers/podman/v2/libpod/define"
-	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v3/cmd/podman/common"
+	"github.com/containers/podman/v3/cmd/podman/registry"
+	"github.com/containers/podman/v3/cmd/podman/utils"
+	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )

@@ -3,11 +3,11 @@ package tunnel
 import (
 	"context"
 
-	"github.com/containers/podman/v2/libpod/define"
-	"github.com/containers/podman/v2/pkg/bindings/pods"
-	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/containers/podman/v2/pkg/specgen"
-	"github.com/containers/podman/v2/pkg/util"
+	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/pkg/bindings/pods"
+	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/specgen"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/pkg/errors"
 )
 

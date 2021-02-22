@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/containers/podman/v2/libpod/define"
-	"github.com/containers/podman/v2/pkg/bindings/system"
-	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/pkg/bindings/system"
+	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
 

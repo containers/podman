@@ -5,9 +5,9 @@ import (
 	"io"
 
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/podman/v2/libpod/define"
-	"github.com/containers/podman/v2/pkg/domain/entities/reports"
-	"github.com/containers/podman/v2/pkg/specgen"
+	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/pkg/domain/entities/reports"
+	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/spf13/cobra"
 )
 

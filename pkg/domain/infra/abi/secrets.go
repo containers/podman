@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/containers/common/pkg/secrets"
-	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/pkg/errors"
 )
 

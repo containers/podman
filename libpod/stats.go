@@ -7,8 +7,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/podman/v2/libpod/define"
-	"github.com/containers/podman/v2/pkg/cgroups"
+	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/pkg/errors"
 )
 

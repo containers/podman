@@ -3,7 +3,7 @@ package libpod
 import (
 	"testing"
 
-	"github.com/containers/podman/v2/utils"
+	"github.com/containers/podman/v3/utils"
 	"github.com/stretchr/testify/assert"
 )
 

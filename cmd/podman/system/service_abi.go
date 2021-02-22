@@ -8,9 +8,9 @@ import (
 	"os"
 	"strings"
 
-	api "github.com/containers/podman/v2/pkg/api/server"
-	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/containers/podman/v2/pkg/domain/infra"
+	api "github.com/containers/podman/v3/pkg/api/server"
+	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/domain/infra"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"

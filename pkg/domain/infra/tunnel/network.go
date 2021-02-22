@@ -3,9 +3,9 @@ package tunnel
 import (
 	"context"
 
-	"github.com/containers/podman/v2/pkg/bindings/network"
-	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/containers/podman/v2/pkg/errorhandling"
+	"github.com/containers/podman/v3/pkg/bindings/network"
+	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/errorhandling"
 	"github.com/pkg/errors"
 )
 

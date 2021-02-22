@@ -11,7 +11,7 @@ import (
 
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
-	"github.com/containers/podman/v2/pkg/rootless"
+	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/pkg/errors"
 )
 

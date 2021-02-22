@@ -6,7 +6,7 @@ import (
 
 	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/image/v5/manifest"
-	"github.com/containers/podman/v2/pkg/namespaces"
+	"github.com/containers/podman/v3/pkg/namespaces"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"

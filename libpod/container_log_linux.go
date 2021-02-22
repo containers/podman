@@ -10,8 +10,8 @@ import (
 	"math"
 	"time"
 
-	"github.com/containers/podman/v2/libpod/define"
-	"github.com/containers/podman/v2/libpod/logs"
+	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/libpod/logs"
 	journal "github.com/coreos/go-systemd/v22/sdjournal"
 	"github.com/hpcloud/tail/watch"
 	"github.com/pkg/errors"
