@@ -231,8 +231,6 @@ func copyToContainer(container string, containerPath string, hostPath string) er
 	if hostPath == "-" {
 		hostPath = os.Stdin.Name()
 		isStdin = true
-	} else if hostPath == os.Stdin.Name() {
-		isStdin = true
 	}
 
 	// Make sure that host path exists.
