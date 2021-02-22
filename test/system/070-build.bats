@@ -478,6 +478,45 @@ EOF
     run_podman rmi -a --force
 }
 
+@test "build with copy-from referencing the base image" {
+  skip_if_rootless "cannot mount as rootless"
+  target=busybox-derived
+  target_mt=busybox-mt-derived
+  tmpdir=$PODMAN_TMPDIR/build-test
+  mkdir -p $tmpdir
+  containerfile1=$tmpdir/Containerfile1
+    cat >$containerfile1 <<EOF
+FROM quay.io/libpod/busybox AS build
+RUN rm -f /bin/paste
+USER 1001
+COPY --from=quay.io/libpod/busybox /bin/paste /test/
+EOF
+  containerfile2=$tmpdir/Containerfile2
+    cat >$containerfile2 <<EOF
+FROM quay.io/libpod/busybox AS test
+RUN rm -f /bin/nl
+FROM quay.io/libpod/alpine AS final
+COPY --from=quay.io/libpod/busybox /bin/nl /test/
+EOF
+  run_podman build -t ${target} -f ${containerfile1} ${tmpdir}
+  run_podman build --jobs 4 -t ${target} -f ${containerfile1} ${tmpdir}
+
+  run_podman build -t ${target} -f ${containerfile2} ${tmpdir}
+  run_podman build --no-cache --jobs 4 -t ${target_mt} -f ${containerfile2} ${tmpdir}
+
+  # (can only test locally; podman-remote has no image mount command)
+  if ! is_remote; then
+    run_podman image mount ${target}
+    root_single_job=$output
+
+    run_podman image mount ${target_mt}
+    root_multi_job=$output
+
+    # Check that both the version with --jobs 1 and --jobs=N have the same number of files
+    test $(find $root_single_job -type f | wc -l) = $(find $root_multi_job -type f | wc -l)
+  fi
+}
+
 @test "podman build --logfile test" {
     tmpdir=$PODMAN_TMPDIR/build-test
     mkdir -p $tmpdir

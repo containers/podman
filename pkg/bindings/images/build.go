@@ -57,6 +57,13 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		}
 		params.Set("buildargs", bArgs)
 	}
+	if excludes := options.Excludes; len(excludes) > 0 {
+		bArgs, err := jsoniter.MarshalToString(excludes)
+		if err != nil {
+			return nil, err
+		}
+		params.Set("excludes", bArgs)
+	}
 	if cpuShares := options.CommonBuildOpts.CPUShares; cpuShares > 0 {
 		params.Set("cpushares", strconv.Itoa(int(cpuShares)))
 	}
@@ -94,7 +101,9 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	if len(options.From) > 0 {
 		params.Set("from", options.From)
 	}
-
+	if options.IgnoreUnrecognizedInstructions {
+		params.Set("ignore", "1")
+	}
 	params.Set("isolation", strconv.Itoa(int(options.Isolation)))
 	if options.CommonBuildOpts.HTTPProxy {
 		params.Set("httpproxy", "1")
@@ -158,6 +167,13 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 			return nil, err
 		}
 		params.Set("extrahosts", h)
+	}
+	if nsoptions := options.NamespaceOptions; len(nsoptions) > 0 {
+		ns, err := jsoniter.MarshalToString(nsoptions)
+		if err != nil {
+			return nil, err
+		}
+		params.Set("nsoptions", ns)
 	}
 	if shmSize := options.CommonBuildOpts.ShmSize; len(shmSize) > 0 {
 		shmBytes, err := units.RAMInBytes(shmSize)

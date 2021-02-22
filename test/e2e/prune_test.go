@@ -111,7 +111,6 @@ var _ = Describe("Podman prune", func() {
 	It("podman image prune dangling images", func() {
 		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
 		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
-
 		none := podmanTest.Podman([]string{"images", "-a"})
 		none.WaitWithDefaultTimeout()
 		Expect(none.ExitCode()).To(Equal(0))
