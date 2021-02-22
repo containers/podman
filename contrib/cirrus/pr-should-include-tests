@@ -22,7 +22,8 @@ base=$(git merge-base ${DEST_BRANCH:-master} $head)
 #    A    foo.c
 #    M    bar.c
 # We look for Added or Modified (not Deleted!) files under 'test'.
-if git diff --name-status $base $head | egrep -q '^[AM]\s+(test/|.*_test\.go)'; then
+# --no-renames ensures that renamed tests (#9420) show up as 'A'dded.
+if git diff --name-status --no-renames $base $head | egrep -q '^[AM]\s+(test/|.*_test\.go)'; then
     exit 0
 fi
 
