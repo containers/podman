@@ -52,6 +52,22 @@ func (o *SystemdOptions) GetNew() bool {
 	return *o.New
 }
 
+// WithNoHeader
+func (o *SystemdOptions) WithNoHeader(value bool) *SystemdOptions {
+	v := &value
+	o.NoHeader = v
+	return o
+}
+
+// GetNoHeader
+func (o *SystemdOptions) GetNoHeader() bool {
+	var noHeader bool
+	if o.NoHeader == nil {
+		return noHeader
+	}
+	return *o.NoHeader
+}
+
 // WithRestartPolicy
 func (o *SystemdOptions) WithRestartPolicy(value string) *SystemdOptions {
 	v := &value
