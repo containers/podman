@@ -121,7 +121,9 @@ func copyFromContainer(container string, containerPath string, hostPath string) 
 		return err
 	}
 
+	isStdout := false
 	if hostPath == "-" {
+		isStdout = true
 		hostPath = os.Stdout.Name()
 	}
 
@@ -152,10 +154,16 @@ func copyFromContainer(container string, containerPath string, hostPath string) 
 		hostBaseName = filepath.Base(hostInfo.LinkTarget)
 	}
 
+	if !isStdout {
+		if err := validateFileInfo(hostInfo); err != nil {
+			return errors.Wrap(err, "invalid destination")
+		}
+	}
+
 	reader, writer := io.Pipe()
 	hostCopy := func() error {
 		defer reader.Close()
-		if hostInfo.LinkTarget == os.Stdout.Name() {
+		if isStdout {
 			_, err := io.Copy(os.Stdout, reader)
 			return err
 		}
@@ -362,4 +370,13 @@ func containerParentDir(container string, containerPath string) (string, error) 
 	workDir := filepath.Join("/", inspectData[0].Config.WorkingDir)
 	workDir = filepath.Join(workDir, containerPath)
 	return filepath.Dir(workDir), nil
+}
+
+// validateFileInfo returns an error if the specified FileInfo doesn't point to
+// a directory or a regular file.
+func validateFileInfo(info *copy.FileInfo) error {
+	if info.Mode.IsDir() || info.Mode.IsRegular() {
+		return nil
+	}
+	return errors.Errorf("%q must be a directory or a regular file", info.LinkTarget)
 }
