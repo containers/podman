@@ -1,13 +1,17 @@
-# Save the output of this file and use kubectl create -f to import
-# it into Kubernetes.
+#!/usr/bin/env bats   -*- bats -*-
 #
-# Created with podman-1.6.2
+# Test podman play
+#
+
+load helpers
+
+testYaml="
 apiVersion: v1
 kind: Pod
 metadata:
   labels:
     app: test
-  name: test
+  name: test_pod
 spec:
   containers:
   - command:
@@ -20,7 +24,7 @@ spec:
       value: xterm
     - name: container
       value: podman
-    image: docker.io/library/fedora:latest
+    image: quay.io/libpod/alpine:latest
     name: test
     resources: {}
     securityContext:
@@ -31,7 +35,20 @@ spec:
       capabilities: {}
       privileged: false
       seLinuxOptions:
-	  level: "s0:c1,c2"
+         level: "s0:c1,c2"
       readOnlyRootFilesystem: false
     workingDir: /
 status: {}
+"
+
+@test "podman play with stdin" {
+    echo "$testYaml" > $PODMAN_TMPDIR/test.yaml
+    run_podman play kube - < $PODMAN_TMPDIR/test.yaml
+    run_podman pod rm -f test_pod
+}
+
+@test "podman play" {
+    echo "$testYaml" > $PODMAN_TMPDIR/test.yaml
+    run_podman play kube $PODMAN_TMPDIR/test.yaml
+    run_podman pod rm -f test_pod
+}
