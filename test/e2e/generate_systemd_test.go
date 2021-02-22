@@ -235,6 +235,29 @@ var _ = Describe("Podman generate systemd", func() {
 		session := podmanTest.Podman([]string{"generate", "systemd", "--time", "42", "--name", "--new", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(" pod create "))
+	})
+
+	It("podman generate systemd --new=false pod", func() {
+		n := podmanTest.Podman([]string{"pod", "create", "--name", "foo"})
+		n.WaitWithDefaultTimeout()
+		Expect(n.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"generate", "systemd", "--time", "42", "--name", "--new=false", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).NotTo(ContainSubstring(" pod create "))
+	})
+
+	It("podman generate systemd --new=true pod", func() {
+		n := podmanTest.Podman([]string{"pod", "create", "--name", "foo"})
+		n.WaitWithDefaultTimeout()
+		Expect(n.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"generate", "systemd", "--time", "42", "--name", "--new=true", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(" pod create "))
 	})
 
 	It("podman generate systemd --container-prefix con", func() {
