@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"reflect"
+	"regexp"
 	"strings"
 	"text/template"
 
@@ -154,4 +155,19 @@ func (t *Template) Funcs(funcMap FuncMap) *Template {
 // IsTable returns true if format string defines a "table"
 func (t *Template) IsTable() bool {
 	return t.isTable
+}
+
+var rangeRegex = regexp.MustCompile(`{{\s*range\s*\.\s*}}.*{{\s*end\s*}}`)
+
+// EnforceRange ensures that the format string contains a range
+func EnforceRange(format string) string {
+	if !rangeRegex.MatchString(format) {
+		return "{{range .}}" + format + "{{end}}"
+	}
+	return format
+}
+
+// HasTable returns whether the format is a table
+func HasTable(format string) bool {
+	return strings.HasPrefix(format, "table ")
 }
