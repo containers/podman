@@ -331,18 +331,24 @@ func Load(path string) (*CgroupControl, error) {
 		control.additionalControllers = controllers
 	}
 	if !cgroup2 {
+		oneExists := false
+		// check that the cgroup exists at least under one controller
 		for name := range handlers {
 			p := control.getCgroupv1Path(name)
-			if _, err := os.Stat(p); err != nil {
-				if os.IsNotExist(err) {
-					if rootless.IsRootless() {
-						return nil, ErrCgroupV1Rootless
-					}
-					// compatible with the error code
-					// used by containerd/cgroups
-					return nil, ErrCgroupDeleted
-				}
+			if _, err := os.Stat(p); err == nil {
+				oneExists = true
+				break
 			}
+		}
+
+		// if there is no controller at all, raise an error
+		if !oneExists {
+			if rootless.IsRootless() {
+				return nil, ErrCgroupV1Rootless
+			}
+			// compatible with the error code
+			// used by containerd/cgroups
+			return nil, ErrCgroupDeleted
 		}
 	}
 	return control, nil
