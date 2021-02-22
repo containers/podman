@@ -38,6 +38,7 @@ tests="
 0  c342583da  12f835d12   PR 8523, version.go + podman.spec.in
 0  c342583da  db1d2ff11   version bump to v2.2.0
 0  8f75ed958  7b3ad6d89   PR 8835, only a README.md change
+0  b6db60e58  f06dd45e0   PR 9420, a test rename
 "
 
 # The script we're testing
