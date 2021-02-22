@@ -475,9 +475,9 @@ load helpers
     run_podman exec cpcontainer rm -rf /tmp/$srcdir
 
     # Now for "/dev/stdin".
+    # Note: while this works, the content ends up in Nirvana.
+    #       Same for Docker.
     run_podman cp /dev/stdin cpcontainer:/tmp < $tar_file
-    run_podman exec cpcontainer cat /tmp/$srcdir/$rand_filename
-    is "$output" "$rand_content"
 
     # Error checks below ...
 
@@ -487,11 +487,11 @@ load helpers
 
     # Destination must be a directory (on an existing file).
     run_podman exec cpcontainer touch /tmp/file.txt
-    run_podman 125 cp /dev/stdin cpcontainer:/tmp/file.txt < $tar_file
+    run_podman 125 cp - cpcontainer:/tmp/file.txt < $tar_file
     is "$output" 'Error: destination must be a directory when copying from stdin'
 
     # Destination must be a directory (on an absent path).
-    run_podman 125 cp /dev/stdin cpcontainer:/tmp/IdoNotExist < $tar_file
+    run_podman 125 cp - cpcontainer:/tmp/IdoNotExist < $tar_file
     is "$output" 'Error: destination must be a directory when copying from stdin'
 
     run_podman rm -f cpcontainer
