@@ -508,6 +508,10 @@ load helpers
     run_podman exec cpcontainer sh -c "echo '$rand_content' > /tmp/file.txt"
     run_podman exec cpcontainer touch /tmp/empty.txt
 
+    # Make sure that only "-" gets special treatment. "/dev/stdout"
+    run_podman 125 cp cpcontainer:/tmp/file.txt /dev/stdout
+    is "$output" 'Error: invalid destination: "/dev/stdout" must be a directory or a regular file'
+
     # Copying from stdout will always compress.  So let's copy the previously
     # created file from the container via stdout, untar the archive and make
     # sure the file exists with the expected content.
