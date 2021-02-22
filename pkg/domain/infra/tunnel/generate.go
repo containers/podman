@@ -8,7 +8,7 @@ import (
 )
 
 func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string, opts entities.GenerateSystemdOptions) (*entities.GenerateSystemdReport, error) {
-	options := new(generate.SystemdOptions).WithUseName(opts.Name).WithContainerPrefix(opts.ContainerPrefix).WithNew(opts.New)
+	options := new(generate.SystemdOptions).WithUseName(opts.Name).WithContainerPrefix(opts.ContainerPrefix).WithNew(opts.New).WithNoHeader(opts.NoHeader)
 	options.WithPodPrefix(opts.PodPrefix).WithRestartPolicy(opts.RestartPolicy).WithSeparator(opts.Separator)
 	if to := opts.StopTimeout; to != nil {
 		options.WithStopTimeout(*opts.StopTimeout)

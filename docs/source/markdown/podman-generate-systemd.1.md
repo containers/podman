@@ -32,6 +32,10 @@ Use the name of the container for the start, stop, and description in the unit f
 
 Using this flag will yield unit files that do not expect containers and pods to exist.  Instead, new containers and pods are created based on their configuration files.  The unit files are created best effort and may need to be further edited; please review the generated files carefully before using them in production.
 
+#### **--no-header**
+
+Do not generate the header including meta data such as the Podman version and the timestamp.
+
 #### **--time**, **-t**=*value*
 
 Override the default stop timeout for the container with the given value.
