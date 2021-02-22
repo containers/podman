@@ -1,7 +1,6 @@
 package network
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -11,7 +10,6 @@ import (
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v3/cmd/podman/common"
-	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/libpod/network"
@@ -38,7 +36,6 @@ var (
 	networkListOptions entities.NetworkListOptions
 	filters            []string
 	noTrunc            bool
-	defaultListRow     = "{{.Name}}\t{{.Version}}\t{{.Plugins}}\n"
 )
 
 func networkListFlags(flags *pflag.FlagSet) {
@@ -81,23 +78,24 @@ func networkList(cmd *cobra.Command, args []string) error {
 	switch {
 	// quiet means we only print the network names
 	case networkListOptions.Quiet:
-		return quietOut(responses)
+		quietOut(responses)
 
-	// TODO remove references to parse package
-	case parse.MatchesJSONFormat(networkListOptions.Format):
-		return jsonOut(responses)
+	// JSON output formatting
+	case report.IsJSON(networkListOptions.Format):
+		err = jsonOut(responses)
 
 	// table or other format output
 	default:
-		return templateOut(responses, cmd)
+		err = templateOut(responses, cmd)
 	}
+
+	return err
 }
 
-func quietOut(responses []*entities.NetworkListReport) error {
+func quietOut(responses []*entities.NetworkListReport) {
 	for _, r := range responses {
 		fmt.Println(r.Name)
 	}
-	return nil
 }
 
 func jsonOut(responses []*entities.NetworkListReport) error {
@@ -125,15 +123,15 @@ func templateOut(responses []*entities.NetworkListReport, cmd *cobra.Command) er
 		"ID":         "network id",
 	})
 
-	renderHeaders := strings.HasPrefix(networkListOptions.Format, "table ")
+	renderHeaders := report.HasTable(networkListOptions.Format)
 	var row, format string
 	if cmd.Flags().Changed("format") {
 		row = report.NormalizeFormat(networkListOptions.Format)
-	} else { // 'podman network ls' equivalent to 'podman network ls --format="table {{ .Name }} {{ .Version }} {{ .Plugins }}" '
+	} else { // 'podman network ls' equivalent to 'podman network ls --format="table {{.ID}} {{.Name}} {{.Version}} {{.Plugins}}" '
 		renderHeaders = true
-		row = defaultListRow
+		row = "{{.ID}}\t{{.Name}}\t{{.Version}}\t{{.Plugins}}\n"
 	}
-	format = "{{range .}}" + row + "{{end}}"
+	format = report.EnforceRange(row)
 
 	tmpl, err := template.New("listNetworks").Parse(format)
 	if err != nil {
