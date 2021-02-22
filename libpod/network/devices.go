@@ -5,8 +5,8 @@ import (
 	"os/exec"
 
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/podman/v2/pkg/util"
-	"github.com/containers/podman/v2/utils"
+	"github.com/containers/podman/v3/pkg/util"
+	"github.com/containers/podman/v3/utils"
 	"github.com/sirupsen/logrus"
 )
 

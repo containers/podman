@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v2/pkg/ps/define"
+	"github.com/containers/podman/v3/pkg/ps/define"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 )

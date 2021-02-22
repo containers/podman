@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	buildahCopiah "github.com/containers/buildah/copier"
-	"github.com/containers/podman/v2/libpod"
-	"github.com/containers/podman/v2/pkg/copy"
-	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v3/libpod"
+	"github.com/containers/podman/v3/pkg/copy"
+	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

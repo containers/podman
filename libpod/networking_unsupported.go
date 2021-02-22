@@ -4,7 +4,7 @@ package libpod
 
 import (
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
-	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v3/libpod/define"
 )
 
 func (r *Runtime) setupRootlessNetNS(ctr *Container) error {

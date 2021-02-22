@@ -5,8 +5,8 @@ import (
 
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
-	"github.com/containers/podman/v2/cmd/podman/registry"
-	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v3/cmd/podman/registry"
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/spf13/cobra"
 )
 

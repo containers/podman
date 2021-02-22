@@ -16,9 +16,9 @@ import (
 	"strings"
 
 	"github.com/containers/buildah"
-	"github.com/containers/podman/v2/pkg/auth"
-	"github.com/containers/podman/v2/pkg/bindings"
-	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/auth"
+	"github.com/containers/podman/v3/pkg/bindings"
+	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/docker/go-units"
 	"github.com/hashicorp/go-multierror"

@@ -11,9 +11,9 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/containers/podman/v2/pkg/auth"
-	"github.com/containers/podman/v2/pkg/bindings"
-	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/auth"
+	"github.com/containers/podman/v3/pkg/bindings"
+	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/hashicorp/go-multierror"
 )
 
