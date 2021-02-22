@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	. "github.com/containers/podman/v3/test/utils"
+	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -576,15 +577,20 @@ var _ = Describe("Podman create", func() {
 		Expect(session.ExitCode()).ToNot(BeZero())
 	})
 
-	It("create container in pod with network should fail", func() {
+	It("create container in pod with network should not fail", func() {
 		name := "createwithnetwork"
 		pod := podmanTest.RunTopContainerInPod("", "new:"+name)
 		pod.WaitWithDefaultTimeout()
 		Expect(pod.ExitCode()).To(BeZero())
 
-		session := podmanTest.Podman([]string{"create", "--pod", name, "--network", "foobar", ALPINE, "top"})
+		netName := "pod" + stringid.GenerateNonCryptoID()
+		session := podmanTest.Podman([]string{"network", "create", netName})
 		session.WaitWithDefaultTimeout()
-		//Expect(session.ExitCode()).ToNot(BeZero())
+		Expect(session.ExitCode()).To(BeZero())
+		defer podmanTest.removeCNINetwork(netName)
+
+		session = podmanTest.Podman([]string{"create", "--pod", name, "--network", netName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(BeZero())
 	})
 

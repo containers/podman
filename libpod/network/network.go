@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 
+	"github.com/containernetworking/cni/libcni"
 	"github.com/containernetworking/cni/pkg/types"
 	"github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator"
 	"github.com/containers/common/pkg/config"
@@ -222,7 +223,7 @@ func RemoveNetwork(config *config.Config, name string) error {
 
 // InspectNetwork reads a CNI config and returns its configuration
 func InspectNetwork(config *config.Config, name string) (map[string]interface{}, error) {
-	b, err := ReadRawCNIConfByName(config, name)
+	b, err := ReadRawCNIConfByNameOrID(config, name)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +235,7 @@ func InspectNetwork(config *config.Config, name string) (map[string]interface{},
 // Exists says whether a given network exists or not; it meant
 // specifically for restful responses so 404s can be used
 func Exists(config *config.Config, name string) (bool, error) {
-	_, err := ReadRawCNIConfByName(config, name)
+	_, err := ReadRawCNIConfByNameOrID(config, name)
 	if err != nil {
 		if errors.Cause(err) == define.ErrNoSuchNetwork {
 			return false, nil
@@ -276,4 +277,18 @@ func PruneNetworks(rtc *config.Config, usedNetworks map[string]bool) ([]*entitie
 		}
 	}
 	return reports, nil
+}
+
+// NormalizeName translates a network ID into a name.
+// If the input is a name the name is returned.
+func NormalizeName(config *config.Config, nameOrID string) (string, error) {
+	path, err := GetCNIConfigPathByNameOrID(config, nameOrID)
+	if err != nil {
+		return "", err
+	}
+	conf, err := libcni.ConfListFromFile(path)
+	if err != nil {
+		return "", err
+	}
+	return conf.Name, nil
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
+	"github.com/containers/podman/v3/libpod/network"
 	"github.com/containers/podman/v3/libpod/shutdown"
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/domain/entities/reports"
@@ -283,6 +284,21 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 	// Validate the container
 	if err := ctr.validate(); err != nil {
 		return nil, err
+	}
+
+	// normalize the networks to names
+	// ocicni only knows about cni names so we have to make
+	// sure we do not use ids internally
+	if len(ctr.config.Networks) > 0 {
+		netNames := make([]string, 0, len(ctr.config.Networks))
+		for _, nameOrID := range ctr.config.Networks {
+			netName, err := network.NormalizeName(r.config, nameOrID)
+			if err != nil {
+				return nil, err
+			}
+			netNames = append(netNames, netName)
+		}
+		ctr.config.Networks = netNames
 	}
 
 	// Inhibit shutdown until creation succeeds
