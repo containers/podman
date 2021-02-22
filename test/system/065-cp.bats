@@ -475,9 +475,9 @@ load helpers
     run_podman exec cpcontainer rm -rf /tmp/$srcdir
 
     # Now for "/dev/stdin".
+    # Note: while this works, the content ends up in Nirvana.
+    #       Same for Docker.
     run_podman cp /dev/stdin cpcontainer:/tmp < $tar_file
-    run_podman exec cpcontainer cat /tmp/$srcdir/$rand_filename
-    is "$output" "$rand_content"
 
     # Error checks below ...
 
@@ -487,11 +487,11 @@ load helpers
 
     # Destination must be a directory (on an existing file).
     run_podman exec cpcontainer touch /tmp/file.txt
-    run_podman 125 cp /dev/stdin cpcontainer:/tmp/file.txt < $tar_file
+    run_podman 125 cp - cpcontainer:/tmp/file.txt < $tar_file
     is "$output" 'Error: destination must be a directory when copying from stdin'
 
     # Destination must be a directory (on an absent path).
-    run_podman 125 cp /dev/stdin cpcontainer:/tmp/IdoNotExist < $tar_file
+    run_podman 125 cp - cpcontainer:/tmp/IdoNotExist < $tar_file
     is "$output" 'Error: destination must be a directory when copying from stdin'
 
     run_podman rm -f cpcontainer
@@ -507,6 +507,10 @@ load helpers
 
     run_podman exec cpcontainer sh -c "echo '$rand_content' > /tmp/file.txt"
     run_podman exec cpcontainer touch /tmp/empty.txt
+
+    # Make sure that only "-" gets special treatment. "/dev/stdout"
+    run_podman 125 cp cpcontainer:/tmp/file.txt /dev/stdout
+    is "$output" 'Error: invalid destination: "/dev/stdout" must be a directory or a regular file'
 
     # Copying from stdout will always compress.  So let's copy the previously
     # created file from the container via stdout, untar the archive and make
