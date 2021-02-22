@@ -313,6 +313,9 @@ func (r *containerStore) Create(id string, names []string, image, layer, metadat
 	if options.MountOpts != nil {
 		options.Flags["MountOpts"] = append([]string{}, options.MountOpts...)
 	}
+	if options.Volatile {
+		options.Flags["Volatile"] = true
+	}
 	names = dedupeNames(names)
 	for _, name := range names {
 		if _, nameInUse := r.byname[name]; nameInUse {

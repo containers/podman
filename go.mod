@@ -13,10 +13,10 @@ require (
 	github.com/containers/buildah v1.19.6
 	github.com/containers/common v0.34.3-0.20210208115708-8668c76dd577
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.10.2
+	github.com/containers/image/v5 v5.10.3
 	github.com/containers/ocicrypt v1.1.0
 	github.com/containers/psgo v1.5.2
-	github.com/containers/storage v1.25.0
+	github.com/containers/storage v1.26.0
 	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/cri-o/ocicni v0.2.1-0.20201204103948-b6cbe99b9756
 	github.com/cyphar/filepath-securejoin v0.2.2
@@ -38,13 +38,13 @@ require (
 	github.com/json-iterator/go v1.1.10
 	github.com/kr/text v0.2.0 // indirect
 	github.com/moby/term v0.0.0-20201110203204-bea5bbe245bf
-	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618
+	github.com/mrunalp/fileutils v0.5.0
 	github.com/onsi/ginkgo v1.15.0
 	github.com/onsi/gomega v1.10.5
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
-	github.com/opencontainers/runc v1.0.0-rc91.0.20200708210054-ce54a9d4d79b
-	github.com/opencontainers/runtime-spec v1.0.3-0.20200817204227-f9c09b4ea1df
+	github.com/opencontainers/runc v1.0.0-rc93
+	github.com/opencontainers/runtime-spec v1.0.3-0.20200929063507-e6143ca7d51d
 	github.com/opencontainers/runtime-tools v0.9.0
 	github.com/opencontainers/selinux v1.8.0
 	github.com/opentracing/opentracing-go v1.2.0
@@ -55,7 +55,7 @@ require (
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
-	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
+	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 	github.com/uber/jaeger-client-go v2.25.0+incompatible
 	github.com/uber/jaeger-lib v2.2.0+incompatible // indirect
 	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
