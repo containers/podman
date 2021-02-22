@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 
-	"github.com/containers/podman/v2/pkg/errorhandling"
+	"github.com/containers/podman/v3/pkg/errorhandling"
 	"github.com/pkg/errors"
 )
 

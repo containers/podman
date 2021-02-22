@@ -2,7 +2,7 @@
 
 package libpod
 
-import "github.com/containers/podman/v2/libpod/define"
+import "github.com/containers/podman/v3/libpod/define"
 
 // GetPodPidInformation is exclusive to linux
 func (p *Pod) GetPodPidInformation(descriptors []string) ([]string, error) {

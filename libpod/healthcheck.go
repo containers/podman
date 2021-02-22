@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

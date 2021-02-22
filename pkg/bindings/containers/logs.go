@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/containers/podman/v2/pkg/bindings"
+	"github.com/containers/podman/v3/pkg/bindings"
 	"github.com/pkg/errors"
 )
 
