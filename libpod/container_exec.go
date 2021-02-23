@@ -954,18 +954,22 @@ func (c *Container) removeAllExecSessions() error {
 	}
 	// Delete all exec sessions
 	if err := c.runtime.state.RemoveContainerExecSessions(c); err != nil {
-		if lastErr != nil {
-			logrus.Errorf("Error stopping container %s exec sessions: %v", c.ID(), lastErr)
+		if errors.Cause(err) != define.ErrCtrRemoved {
+			if lastErr != nil {
+				logrus.Errorf("Error stopping container %s exec sessions: %v", c.ID(), lastErr)
+			}
+			lastErr = err
 		}
-		lastErr = err
 	}
 	c.state.ExecSessions = nil
 	c.state.LegacyExecSessions = nil
 	if err := c.save(); err != nil {
-		if lastErr != nil {
-			logrus.Errorf("Error stopping container %s exec sessions: %v", c.ID(), lastErr)
+		if errors.Cause(err) != define.ErrCtrRemoved {
+			if lastErr != nil {
+				logrus.Errorf("Error stopping container %s exec sessions: %v", c.ID(), lastErr)
+			}
+			lastErr = err
 		}
-		lastErr = err
 	}
 
 	return lastErr

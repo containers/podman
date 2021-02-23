@@ -319,12 +319,18 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 
 	errMap, err := parallelctr.ContainerOp(ctx, ctrs, func(c *libpod.Container) error {
 		err := ic.Libpod.RemoveContainer(ctx, c, options.Force, options.Volumes)
-		if err != nil {
-			if options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr {
+		if err == nil {
+			return nil
+		}
+		logrus.Debugf("Failed to remove container %s: %s", c.ID(), err.Error())
+		switch errors.Cause(err) {
+		case define.ErrNoSuchCtr:
+			if options.Ignore {
 				logrus.Debugf("Ignoring error (--allow-missing): %v", err)
 				return nil
 			}
-			logrus.Debugf("Failed to remove container %s: %s", c.ID(), err.Error())
+		case define.ErrCtrRemoved:
+			return nil
 		}
 		return err
 	})
