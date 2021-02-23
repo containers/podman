@@ -127,6 +127,12 @@ func getNetworkResourceByNameOrID(nameOrID string, runtime *libpod.Runtime, filt
 			containerEndpoints[con.ID()] = containerEndpoint
 		}
 	}
+
+	labels := network.GetNetworkLabels(conf)
+	if labels == nil {
+		labels = map[string]string{}
+	}
+
 	report := types.NetworkResource{
 		Name:       conf.Name,
 		ID:         network.GetNetworkID(conf.Name),
@@ -136,7 +142,7 @@ func getNetworkResourceByNameOrID(nameOrID string, runtime *libpod.Runtime, filt
 		EnableIPv6: false,
 		IPAM: dockerNetwork.IPAM{
 			Driver:  "default",
-			Options: nil,
+			Options: map[string]string{},
 			Config:  ipamConfigs,
 		},
 		Internal:   !bridge.IsGW,
@@ -145,8 +151,8 @@ func getNetworkResourceByNameOrID(nameOrID string, runtime *libpod.Runtime, filt
 		ConfigFrom: dockerNetwork.ConfigReference{},
 		ConfigOnly: false,
 		Containers: containerEndpoints,
-		Options:    nil,
-		Labels:     network.GetNetworkLabels(conf),
+		Options:    map[string]string{},
+		Labels:     labels,
 		Peers:      nil,
 		Services:   nil,
 	}
