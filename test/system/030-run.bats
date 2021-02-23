@@ -139,7 +139,7 @@ echo $rand        |   0 | $rand
     is "$output" "" "--pull=never [present]: no output"
 
     # Now test with a remote image which we don't have present (the 00 tag)
-    NONLOCAL_IMAGE="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME:00000000"
+    NONLOCAL_IMAGE="$PODMAN_NONLOCAL_IMAGE_FQN"
 
     run_podman 125 run --pull=never $NONLOCAL_IMAGE true
     is "$output" "Error: unable to find a name and tag match for $NONLOCAL_IMAGE in repotags: no such image" "--pull=never [with image not present]: error"
@@ -175,7 +175,7 @@ echo $rand        |   0 | $rand
 # 'run --rmi' deletes the image in the end unless it's used by another container
 @test "podman run --rmi" {
     # Name of a nonlocal image. It should be pulled in by the first 'run'
-    NONLOCAL_IMAGE="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME:00000000"
+    NONLOCAL_IMAGE="$PODMAN_NONLOCAL_IMAGE_FQN"
     run_podman 1 image exists $NONLOCAL_IMAGE
 
     # Run a container, without --rm; this should block subsequent --rmi

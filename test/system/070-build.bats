@@ -305,8 +305,10 @@ Cmd[0]             | /bin/mydefaultcmd
 Cmd[1]             | $s_echo
 WorkingDir         | $workdir
 Labels.$label_name | $label_value
-Labels.\"io.buildah.version\" | $buildah_version
 "
+    # FIXME: 2021-02-24: Fixed in buildah #3036; reenable this once podman
+    #        vendors in a newer buildah!
+    # Labels.\"io.buildah.version\" | $buildah_version
 
     parse_table "$tests" | while read field expect; do
         actual=$(jq -r ".[0].Config.$field" <<<"$output")
