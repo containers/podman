@@ -766,7 +766,7 @@ var _ = Describe("Podman run networking", func() {
 		Expect(session.ExitCode()).To(Equal(1))
 		Expect(session.ErrorToString()).To(ContainSubstring("can't resolve 'con1'"))
 
-		session = podmanTest.Podman([]string{"run", "--name", "con4", "--network", net, ALPINE, "nslookup", pod2})
+		session = podmanTest.Podman([]string{"run", "--name", "con4", "--network", net, ALPINE, "nslookup", pod2 + ".dns.podman"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(BeZero())
 	})
