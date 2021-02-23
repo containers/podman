@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/containers/common/pkg/config"
@@ -698,6 +699,8 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 		for cap := range boundingCaps {
 			capDrop = append(capDrop, cap)
 		}
+		// Sort CapDrop so it displays in consistent order (GH #9490)
+		sort.Strings(capDrop)
 	}
 	hostConfig.CapAdd = capAdd
 	hostConfig.CapDrop = capDrop
