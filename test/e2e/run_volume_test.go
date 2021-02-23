@@ -2,8 +2,10 @@ package integration
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"strings"
 
@@ -589,5 +591,56 @@ VOLUME /test/`
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(2))
+	})
+
+	It("podman run with U volume flag", func() {
+		SkipIfRemote("Overlay volumes only work locally")
+
+		u, err := user.Current()
+		Expect(err).To(BeNil())
+		name := u.Username
+		if name == "root" {
+			name = "containers"
+		}
+
+		content, err := ioutil.ReadFile("/etc/subuid")
+		if err != nil {
+			Skip("cannot read /etc/subuid")
+		}
+		if !strings.Contains(string(content), name) {
+			Skip("cannot find mappings for the current user")
+		}
+
+		if os.Getenv("container") != "" {
+			Skip("Overlay mounts not supported when running in a container")
+		}
+		if rootless.IsRootless() {
+			if _, err := exec.LookPath("fuse_overlay"); err != nil {
+				Skip("Fuse-Overlayfs required for rootless overlay mount test")
+			}
+		}
+
+		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
+		os.Mkdir(mountPath, 0755)
+		vol := mountPath + ":" + dest + ":U"
+
+		session := podmanTest.Podman([]string{"run", "--rm", "--user", "888:888", "-v", vol, ALPINE, "stat", "-c", "%u:%g", dest})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		found, _ := session.GrepString("888:888")
+		Expect(found).Should(BeTrue())
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--user", "888:888", "--userns", "auto", "-v", vol, ALPINE, "stat", "-c", "%u:%g", dest})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		found, _ = session.GrepString("888:888")
+		Expect(found).Should(BeTrue())
+
+		vol = vol + ",O"
+		session = podmanTest.Podman([]string{"run", "--rm", "--user", "888:888", "--userns", "keep-id", "-v", vol, ALPINE, "stat", "-c", "%u:%g", dest})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		found, _ = session.GrepString("888:888")
+		Expect(found).Should(BeTrue())
 	})
 })

@@ -25,7 +25,7 @@ type defaultMountOptions struct {
 // The sourcePath variable, if not empty, contains a bind mount source.
 func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string, error) {
 	var (
-		foundWrite, foundSize, foundProp, foundMode, foundExec, foundSuid, foundDev, foundCopyUp, foundBind, foundZ bool
+		foundWrite, foundSize, foundProp, foundMode, foundExec, foundSuid, foundDev, foundCopyUp, foundBind, foundZ, foundU bool
 	)
 
 	newOptions := make([]string, 0, len(options))
@@ -116,6 +116,11 @@ func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string
 				return nil, errors.Wrapf(ErrDupeMntOption, "only one of 'z' and 'Z' can be used")
 			}
 			foundZ = true
+		case "U":
+			if foundU {
+				return nil, errors.Wrapf(ErrDupeMntOption, "the 'U' option can only be set once")
+			}
+			foundU = true
 		default:
 			return nil, errors.Wrapf(ErrBadMntOption, "unknown mount option %q", opt)
 		}

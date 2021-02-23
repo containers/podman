@@ -247,8 +247,9 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 		var vols []*libpod.ContainerOverlayVolume
 		for _, v := range overlays {
 			vols = append(vols, &libpod.ContainerOverlayVolume{
-				Dest:   v.Destination,
-				Source: v.Source,
+				Dest:    v.Destination,
+				Source:  v.Source,
+				Options: v.Options,
 			})
 		}
 		options = append(options, libpod.WithOverlayVolumes(vols))

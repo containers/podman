@@ -31,6 +31,8 @@ type OverlayVolume struct {
 	Destination string `json:"destination"`
 	// Source specifies the source path of the mount.
 	Source string `json:"source,omitempty"`
+	// Options holds overlay volume options.
+	Options []string `json:"options,omitempty"`
 }
 
 // ImageVolume is a volume based on a container image.  The container image is
@@ -100,10 +102,17 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 		if strings.HasPrefix(src, "/") || strings.HasPrefix(src, ".") {
 			// This is not a named volume
 			overlayFlag := false
+			chownFlag := false
 			for _, o := range options {
 				if o == "O" {
 					overlayFlag = true
-					if len(options) > 1 {
+
+					joinedOpts := strings.Join(options, "")
+					if strings.Contains(joinedOpts, "U") {
+						chownFlag = true
+					}
+
+					if len(options) > 2 || (len(options) == 2 && !chownFlag) {
 						return nil, nil, nil, errors.New("can't use 'O' with other options")
 					}
 				}
@@ -113,6 +122,8 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 				newOverlayVol := new(OverlayVolume)
 				newOverlayVol.Destination = cleanDest
 				newOverlayVol.Source = src
+				newOverlayVol.Options = options
+
 				if _, ok := overlayVolumes[newOverlayVol.Destination]; ok {
 					return nil, nil, nil, errors.Wrapf(errDuplicateDest, newOverlayVol.Destination)
 				}

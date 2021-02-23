@@ -1429,8 +1429,9 @@ func WithOverlayVolumes(volumes []*ContainerOverlayVolume) CtrCreateOption {
 
 		for _, vol := range volumes {
 			ctr.config.OverlayVolumes = append(ctr.config.OverlayVolumes, &ContainerOverlayVolume{
-				Dest:   vol.Dest,
-				Source: vol.Source,
+				Dest:    vol.Dest,
+				Source:  vol.Source,
+				Options: vol.Options,
 			})
 		}
 
