@@ -1134,6 +1134,11 @@ func (w *logrusDebugWriter) Write(p []byte) (int, error) {
 
 // NetworkDisconnect removes a container from the network
 func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) error {
+	// only the bridge mode supports cni networks
+	if !c.config.NetMode.IsBridge() {
+		return errors.Errorf("network mode %q is not supported", c.config.NetMode)
+	}
+
 	networks, err := c.networksByNameIndex()
 	if err != nil {
 		return err
@@ -1190,6 +1195,11 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 
 // ConnectNetwork connects a container to a given network
 func (c *Container) NetworkConnect(nameOrID, netName string, aliases []string) error {
+	// only the bridge mode supports cni networks
+	if !c.config.NetMode.IsBridge() {
+		return errors.Errorf("network mode %q is not supported", c.config.NetMode)
+	}
+
 	networks, err := c.networksByNameIndex()
 	if err != nil {
 		return err
