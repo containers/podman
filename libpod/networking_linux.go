@@ -436,7 +436,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 	if err != nil {
 		return err
 	}
-	if len(networks) > 0 {
+	if len(networks) > 0 && len(ctr.config.PortMappings) > 0 {
 		// set up port forwarder for CNI-in-slirp4netns
 		netnsPath := ctr.state.NetNS.Path()
 		// TODO: support slirp4netns port forwarder as well
