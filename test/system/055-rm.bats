@@ -51,6 +51,13 @@ load helpers
     run_podman rm $rand $external_cid
 }
 
+@test "podman rm <-> run --rm race" {
+    # A container's lock is released before attempting to stop it.  This opens
+    # the window for race conditions that led to #9479.
+    run_podman run --rm -d $IMAGE sleep infinity
+    run_podman rm -af
+}
+
 # I'm sorry! This test takes 13 seconds. There's not much I can do about it,
 # please know that I think it's justified: podman 1.5.0 had a strange bug
 # in with exit status was not preserved on some code paths with 'rm -f'
