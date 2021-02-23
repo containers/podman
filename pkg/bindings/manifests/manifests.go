@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"github.com/containers/image/v5/manifest"
-	"github.com/containers/podman/v2/pkg/api/handlers"
-	"github.com/containers/podman/v2/pkg/bindings"
-	"github.com/containers/podman/v2/pkg/bindings/images"
+	"github.com/containers/podman/v3/pkg/api/handlers"
+	"github.com/containers/podman/v3/pkg/bindings"
+	"github.com/containers/podman/v3/pkg/bindings/images"
 	jsoniter "github.com/json-iterator/go"
 )
 

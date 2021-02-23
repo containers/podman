@@ -1,10 +1,10 @@
 package containers
 
 import (
-	"github.com/containers/podman/v2/cmd/podman/registry"
-	"github.com/containers/podman/v2/cmd/podman/validate"
-	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/containers/podman/v2/pkg/util"
+	"github.com/containers/podman/v3/cmd/podman/registry"
+	"github.com/containers/podman/v3/cmd/podman/validate"
+	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/spf13/cobra"
 )
 

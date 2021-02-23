@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v2/pkg/util"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/pkg/errors"
 )
 

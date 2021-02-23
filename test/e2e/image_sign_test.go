@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	. "github.com/containers/podman/v2/test/utils"
+	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

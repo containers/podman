@@ -3,9 +3,9 @@ package libpod
 import (
 	"context"
 
-	"github.com/containers/podman/v2/libpod/define"
-	"github.com/containers/podman/v2/libpod/events"
-	"github.com/containers/podman/v2/pkg/domain/entities/reports"
+	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/libpod/events"
+	"github.com/containers/podman/v3/pkg/domain/entities/reports"
 	"github.com/pkg/errors"
 )
 

@@ -3,8 +3,8 @@ package registrar_test
 import (
 	"testing"
 
-	"github.com/containers/podman/v2/pkg/registrar"
-	. "github.com/containers/podman/v2/test/framework"
+	"github.com/containers/podman/v3/pkg/registrar"
+	. "github.com/containers/podman/v3/test/framework"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

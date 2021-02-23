@@ -4,9 +4,9 @@ import (
 	"context"
 	"strings"
 
-	"github.com/containers/podman/v2/libpod/events"
-	"github.com/containers/podman/v2/pkg/bindings/system"
-	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v3/libpod/events"
+	"github.com/containers/podman/v3/pkg/bindings/system"
+	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/pkg/errors"
 )
 

@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 
-	"github.com/containers/podman/v2/cmd/podman/common"
-	"github.com/containers/podman/v2/cmd/podman/containers"
-	"github.com/containers/podman/v2/cmd/podman/images"
-	"github.com/containers/podman/v2/cmd/podman/registry"
-	"github.com/containers/podman/v2/cmd/podman/validate"
-	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v3/cmd/podman/common"
+	"github.com/containers/podman/v3/cmd/podman/containers"
+	"github.com/containers/podman/v3/cmd/podman/images"
+	"github.com/containers/podman/v3/cmd/podman/registry"
+	"github.com/containers/podman/v3/cmd/podman/validate"
+	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
 

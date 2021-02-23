@@ -2,7 +2,7 @@
 
 package libpod
 
-import "github.com/containers/podman/v2/libpod/define"
+import "github.com/containers/podman/v3/libpod/define"
 
 // GetContainerStats gets the running stats for a given container
 func (c *Container) GetContainerStats(previousStats *define.ContainerStats) (*define.ContainerStats, error) {

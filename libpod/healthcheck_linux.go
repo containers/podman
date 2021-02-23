@@ -6,8 +6,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/containers/podman/v2/pkg/rootless"
-	"github.com/containers/podman/v2/pkg/systemd"
+	"github.com/containers/podman/v3/pkg/rootless"
+	"github.com/containers/podman/v3/pkg/systemd"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

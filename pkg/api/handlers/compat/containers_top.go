@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/containers/podman/v2/libpod"
-	"github.com/containers/podman/v2/pkg/api/handlers"
-	"github.com/containers/podman/v2/pkg/api/handlers/utils"
+	"github.com/containers/podman/v3/libpod"
+	"github.com/containers/podman/v3/pkg/api/handlers"
+	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )

@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"runtime"
 
-	"github.com/containers/podman/v2/pkg/api/handlers/utils"
-	"github.com/containers/podman/v2/pkg/auth"
+	"github.com/containers/podman/v3/pkg/api/handlers/utils"
+	"github.com/containers/podman/v3/pkg/auth"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )

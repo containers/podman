@@ -3,8 +3,8 @@ package images
 import (
 	"strings"
 
-	"github.com/containers/podman/v2/cmd/podman/registry"
-	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v3/cmd/podman/registry"
+	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
 

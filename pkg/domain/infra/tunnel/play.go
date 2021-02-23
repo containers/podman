@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/containers/image/v5/types"
-	"github.com/containers/podman/v2/pkg/bindings/play"
-	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/bindings/play"
+	"github.com/containers/podman/v3/pkg/domain/entities"
 )
 
 func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, opts entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {

@@ -3,8 +3,8 @@ package entities
 import (
 	"time"
 
-	"github.com/containers/podman/v2/libpod/define"
-	"github.com/containers/podman/v2/pkg/domain/entities/reports"
+	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/pkg/domain/entities/reports"
 	"github.com/docker/docker/api/types"
 	"github.com/spf13/cobra"
 )

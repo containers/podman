@@ -5,7 +5,7 @@ package libpod
 import (
 	"context"
 
-	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v3/libpod/define"
 )
 
 func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error {

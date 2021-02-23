@@ -5,7 +5,7 @@ package libpod
 import (
 	"github.com/containers/common/pkg/config"
 
-	"github.com/containers/podman/v2/libpod/define"
+	"github.com/containers/podman/v3/libpod/define"
 )
 
 const (

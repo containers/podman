@@ -3,7 +3,7 @@
 package specgen
 
 import (
-	"github.com/containers/podman/v2/libpod/image"
+	"github.com/containers/podman/v3/libpod/image"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 )

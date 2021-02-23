@@ -3,8 +3,8 @@ package abi
 import (
 	"context"
 
-	"github.com/containers/podman/v2/libpod/events"
-	"github.com/containers/podman/v2/pkg/domain/entities"
+	"github.com/containers/podman/v3/libpod/events"
+	"github.com/containers/podman/v3/pkg/domain/entities"
 )
 
 func (ic *ContainerEngine) Events(ctx context.Context, opts entities.EventsOptions) error {
