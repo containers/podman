@@ -1228,9 +1228,10 @@ USER mail`
 		for _, line := range lines {
 			parts := strings.SplitN(line, ":", 3)
 			if !CGROUPSV2 {
-				// ignore unified on cgroup v1
+				// ignore unified on cgroup v1.
 				// both runc and crun do not set it.
-				if parts[1] == "" {
+				// crun does not set named hierarchies.
+				if parts[1] == "" || strings.Contains(parts[1], "name=") {
 					continue
 				}
 			}
