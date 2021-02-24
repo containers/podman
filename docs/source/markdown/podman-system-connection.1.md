@@ -3,7 +3,7 @@
 ## NAME
 podman\-system\-connection - Manage the destination(s) for Podman service(s)
 
-## SYNOPSISManage the destination(s) for Podman service(s)
+## SYNOPSIS
 **podman system connection** *subcommand*
 
 ## DESCRIPTION
