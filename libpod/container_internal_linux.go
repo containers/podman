@@ -1713,8 +1713,9 @@ rootless=%d
 // generateResolvConf generates a containers resolv.conf
 func (c *Container) generateResolvConf() (string, error) {
 	var (
-		nameservers    []string
-		cniNameServers []string
+		nameservers      []string
+		cniNameServers   []string
+		cniSearchDomains []string
 	)
 
 	resolvConf := "/etc/resolv.conf"
@@ -1766,6 +1767,10 @@ func (c *Container) generateResolvConf() (string, error) {
 			cniNameServers = append(cniNameServers, i.DNS.Nameservers...)
 			logrus.Debugf("adding nameserver(s) from cni response of '%q'", i.DNS.Nameservers)
 		}
+		if i.DNS.Search != nil {
+			cniSearchDomains = append(cniSearchDomains, i.DNS.Search...)
+			logrus.Debugf("adding search domain(s) from cni response of '%q'", i.DNS.Search)
+		}
 	}
 
 	dns := make([]net.IP, 0, len(c.runtime.config.Containers.DNSServers))
@@ -1797,10 +1802,11 @@ func (c *Container) generateResolvConf() (string, error) {
 	}
 
 	var search []string
-	if len(c.config.DNSSearch) > 0 || len(c.runtime.config.Containers.DNSSearches) > 0 {
+	if len(c.config.DNSSearch) > 0 || len(c.runtime.config.Containers.DNSSearches) > 0 || len(cniSearchDomains) > 0 {
 		if !util.StringInSlice(".", c.config.DNSSearch) {
 			search = c.runtime.config.Containers.DNSSearches
 			search = append(search, c.config.DNSSearch...)
+			search = append(search, cniSearchDomains...)
 		}
 	} else {
 		search = resolvconf.GetSearchDomains(resolv.Content)
