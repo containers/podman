@@ -31,6 +31,9 @@ verify_iid_and_name() {
     invalid=$PODMAN_TMPDIR/invalid
     echo "I am an invalid file and should cause a podman-load error" > $invalid
     run_podman 125 load -i $invalid
+    # podman and podman-remote emit different messages; this is a common string
+    is "$output" ".*error pulling image: unable to pull .*" \
+       "load -i INVALID fails with expected diagnostic"
 }
 
 @test "podman save to pipe and load" {
