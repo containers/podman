@@ -37,7 +37,6 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		dis := podmanTest.Podman([]string{"network", "disconnect", "foobar", "test"})
 		dis.WaitWithDefaultTimeout()
 		Expect(dis.ExitCode()).ToNot(BeZero())
-
 	})
 
 	It("bad container name in network disconnect should result in error", func() {
@@ -51,7 +50,25 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		dis := podmanTest.Podman([]string{"network", "disconnect", netName, "foobar"})
 		dis.WaitWithDefaultTimeout()
 		Expect(dis.ExitCode()).ToNot(BeZero())
+	})
 
+	It("network disconnect with net mode slirp4netns should result in error", func() {
+		SkipIfRootless("network connect and disconnect are only rootful")
+		netName := "slirp" + stringid.GenerateNonCryptoID()
+		session := podmanTest.Podman([]string{"network", "create", netName})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		defer podmanTest.removeCNINetwork(netName)
+
+		session = podmanTest.Podman([]string{"create", "--name", "test", "--network", "slirp4netns", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		defer podmanTest.removeCNINetwork(netName)
+
+		con := podmanTest.Podman([]string{"network", "disconnect", netName, "test"})
+		con.WaitWithDefaultTimeout()
+		Expect(con.ExitCode()).ToNot(BeZero())
+		Expect(con.ErrorToString()).To(ContainSubstring(`network mode "slirp4netns" is not supported`))
 	})
 
 	It("podman network disconnect", func() {
@@ -89,7 +106,6 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		dis := podmanTest.Podman([]string{"network", "connect", "foobar", "test"})
 		dis.WaitWithDefaultTimeout()
 		Expect(dis.ExitCode()).ToNot(BeZero())
-
 	})
 
 	It("bad container name in network connect should result in error", func() {
@@ -103,7 +119,25 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		dis := podmanTest.Podman([]string{"network", "connect", netName, "foobar"})
 		dis.WaitWithDefaultTimeout()
 		Expect(dis.ExitCode()).ToNot(BeZero())
+	})
 
+	It("network connect with net mode slirp4netns should result in error", func() {
+		SkipIfRootless("network connect and disconnect are only rootful")
+		netName := "slirp" + stringid.GenerateNonCryptoID()
+		session := podmanTest.Podman([]string{"network", "create", netName})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		defer podmanTest.removeCNINetwork(netName)
+
+		session = podmanTest.Podman([]string{"create", "--name", "test", "--network", "slirp4netns", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		defer podmanTest.removeCNINetwork(netName)
+
+		con := podmanTest.Podman([]string{"network", "connect", netName, "test"})
+		con.WaitWithDefaultTimeout()
+		Expect(con.ExitCode()).ToNot(BeZero())
+		Expect(con.ErrorToString()).To(ContainSubstring(`network mode "slirp4netns" is not supported`))
 	})
 
 	It("podman connect on a container that already is connected to the network should error", func() {
