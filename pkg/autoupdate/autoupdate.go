@@ -304,6 +304,7 @@ func updateImage(runtime *libpod.Runtime, name string, options Options) (*image.
 		image.SigningOptions{},
 		nil,
 		util.PullImageAlways,
+		nil,
 	)
 	if err != nil {
 		return nil, err

@@ -94,9 +94,9 @@ func TestImage_NewFromLocal(t *testing.T) {
 	ir, err := NewImageRuntimeFromOptions(so)
 	assert.NoError(t, err)
 	ir.Eventer = events.NewNullEventer()
-	bb, err := ir.New(context.Background(), "docker.io/library/busybox:latest", "", "", writer, nil, SigningOptions{}, nil, util.PullImageMissing)
+	bb, err := ir.New(context.Background(), "docker.io/library/busybox:latest", "", "", writer, nil, SigningOptions{}, nil, util.PullImageMissing, nil)
 	assert.NoError(t, err)
-	bbglibc, err := ir.New(context.Background(), "docker.io/library/busybox:glibc", "", "", writer, nil, SigningOptions{}, nil, util.PullImageMissing)
+	bbglibc, err := ir.New(context.Background(), "docker.io/library/busybox:glibc", "", "", writer, nil, SigningOptions{}, nil, util.PullImageMissing, nil)
 	assert.NoError(t, err)
 
 	tm := makeLocalMatrix(bb, bbglibc)
@@ -140,7 +140,7 @@ func TestImage_New(t *testing.T) {
 	// Iterate over the names and delete the image
 	// after the pull
 	for _, img := range names {
-		newImage, err := ir.New(context.Background(), img, "", "", writer, nil, SigningOptions{}, nil, util.PullImageMissing)
+		newImage, err := ir.New(context.Background(), img, "", "", writer, nil, SigningOptions{}, nil, util.PullImageMissing, nil)
 		assert.NoError(t, err)
 		assert.NotEqual(t, newImage.ID(), "")
 		err = newImage.Remove(context.Background(), false)
@@ -169,7 +169,7 @@ func TestImage_MatchRepoTag(t *testing.T) {
 	ir, err := NewImageRuntimeFromOptions(so)
 	assert.NoError(t, err)
 	ir.Eventer = events.NewNullEventer()
-	newImage, err := ir.New(context.Background(), "busybox", "", "", os.Stdout, nil, SigningOptions{}, nil, util.PullImageMissing)
+	newImage, err := ir.New(context.Background(), "busybox", "", "", os.Stdout, nil, SigningOptions{}, nil, util.PullImageMissing, nil)
 	assert.NoError(t, err)
 	err = newImage.TagImage("foo:latest")
 	assert.NoError(t, err)

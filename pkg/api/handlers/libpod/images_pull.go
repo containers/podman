@@ -136,7 +136,8 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 				&dockerRegistryOptions,
 				image.SigningOptions{},
 				nil,
-				util.PullImageAlways)
+				util.PullImageAlways,
+				nil)
 			if err != nil {
 				stderr.Write([]byte(err.Error() + "\n"))
 			} else {

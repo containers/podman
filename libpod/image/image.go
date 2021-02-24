@@ -143,7 +143,7 @@ func (ir *Runtime) NewFromLocal(name string) (*Image, error) {
 
 // New creates a new image object where the image could be local
 // or remote
-func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *DockerRegistryOptions, signingoptions SigningOptions, label *string, pullType util.PullType) (*Image, error) {
+func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *DockerRegistryOptions, signingoptions SigningOptions, label *string, pullType util.PullType, progress chan types.ProgressProperties) (*Image, error) {
 	span, _ := opentracing.StartSpanFromContext(ctx, "newImage")
 	span.SetTag("type", "runtime")
 	defer span.Finish()
@@ -162,7 +162,7 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 	if signaturePolicyPath == "" {
 		signaturePolicyPath = ir.SignaturePolicyPath
 	}
-	imageName, err := ir.pullImageFromHeuristicSource(ctx, name, writer, authfile, signaturePolicyPath, signingoptions, dockeroptions, &retry.RetryOptions{MaxRetry: maxRetry}, label)
+	imageName, err := ir.pullImageFromHeuristicSource(ctx, name, writer, authfile, signaturePolicyPath, signingoptions, dockeroptions, &retry.RetryOptions{MaxRetry: maxRetry}, label, progress)
 	if err != nil {
 		return nil, err
 	}
@@ -323,7 +323,7 @@ func (ir *Runtime) LoadAllImagesFromDockerArchive(ctx context.Context, fileName 
 	}
 
 	defer goal.cleanUp()
-	imageNames, err := ir.doPullImage(ctx, sc, goal, writer, SigningOptions{}, &DockerRegistryOptions{}, &retry.RetryOptions{}, nil)
+	imageNames, err := ir.doPullImage(ctx, sc, goal, writer, SigningOptions{}, &DockerRegistryOptions{}, &retry.RetryOptions{}, nil, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -216,7 +216,7 @@ func (r *Runtime) createInfraContainer(ctx context.Context, p *Pod) (*Container,
 	if img == "" {
 		img = r.config.Engine.InfraImage
 	}
-	newImage, err := r.ImageRuntime().New(ctx, img, "", "", nil, nil, image.SigningOptions{}, nil, util.PullImageMissing)
+	newImage, err := r.ImageRuntime().New(ctx, img, "", "", nil, nil, image.SigningOptions{}, nil, util.PullImageMissing, nil)
 	if err != nil {
 		return nil, err
 	}
