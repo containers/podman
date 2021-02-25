@@ -150,6 +150,13 @@ var _ = Describe("Podman network", func() {
 		defer podmanTest.removeCNINetwork(net)
 		Expect(session.ExitCode()).To(BeZero())
 
+		// Tests Default Table Output
+		session = podmanTest.Podman([]string{"network", "ls", "--filter", "id=" + netID})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+		expectedTable := "NETWORK ID NAME VERSION PLUGINS"
+		Expect(session.OutputToString()).To(ContainSubstring(expectedTable))
+
 		session = podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}} {{.ID}}", "--filter", "id=" + netID})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(BeZero())
