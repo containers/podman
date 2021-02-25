@@ -14,7 +14,6 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"k8s.io/client-go/tools/remotecommand"
 )
 
 // Init creates a container in the OCI runtime, moving a container from
@@ -110,7 +109,7 @@ func (c *Container) Start(ctx context.Context, recursive bool) error {
 // Attach call occurs before Start).
 // In overall functionality, it is identical to the Start call, with the added
 // side effect that an attach session will also be started.
-func (c *Container) StartAndAttach(ctx context.Context, streams *define.AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, recursive bool) (<-chan error, error) {
+func (c *Container) StartAndAttach(ctx context.Context, streams *define.AttachStreams, keys string, resize <-chan define.TerminalSize, recursive bool) (<-chan error, error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -236,7 +235,7 @@ func (c *Container) Kill(signal uint) error {
 // Attach attaches to a container.
 // This function returns when the attach finishes. It does not hold the lock for
 // the duration of its runtime, only using it at the beginning to verify state.
-func (c *Container) Attach(streams *define.AttachStreams, keys string, resize <-chan remotecommand.TerminalSize) error {
+func (c *Container) Attach(streams *define.AttachStreams, keys string, resize <-chan define.TerminalSize) error {
 	if !c.batched {
 		c.lock.Lock()
 		if err := c.syncContainer(); err != nil {
@@ -319,7 +318,7 @@ func (c *Container) HTTPAttach(r *http.Request, w http.ResponseWriter, streams *
 
 // AttachResize resizes the container's terminal, which is displayed by Attach
 // and HTTPAttach.
-func (c *Container) AttachResize(newSize remotecommand.TerminalSize) error {
+func (c *Container) AttachResize(newSize define.TerminalSize) error {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()

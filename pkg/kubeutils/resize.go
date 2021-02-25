@@ -17,14 +17,14 @@ limitations under the License.
 package kubeutils
 
 import (
+	"github.com/containers/podman/v3/libpod/define"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/tools/remotecommand"
 )
 
 // HandleResizing spawns a goroutine that processes the resize channel, calling resizeFunc for each
 // remotecommand.TerminalSize received from the channel. The resize channel must be closed elsewhere to stop the
 // goroutine.
-func HandleResizing(resize <-chan remotecommand.TerminalSize, resizeFunc func(size remotecommand.TerminalSize)) {
+func HandleResizing(resize <-chan define.TerminalSize, resizeFunc func(size define.TerminalSize)) {
 	if resize == nil {
 		return
 	}

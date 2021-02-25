@@ -39,6 +39,7 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/moby/term v0.0.0-20201110203204-bea5bbe245bf
 	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618
+	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/onsi/ginkgo v1.15.0
 	github.com/onsi/gomega v1.10.5
 	github.com/opencontainers/go-digest v1.0.0
@@ -62,10 +63,9 @@ require (
 	go.etcd.io/bbolt v1.3.5
 	go.uber.org/atomic v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
-	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d // indirect
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	golang.org/x/sys v0.0.0-20210119212857-b64e53b001e4
-	google.golang.org/appengine v1.6.6 // indirect
+	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 	k8s.io/api v0.0.0-20190620084959-7cf5895f2711
 	k8s.io/apimachinery v0.20.4

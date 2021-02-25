@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/containers/podman/v3/libpod/define"
-	"k8s.io/client-go/tools/remotecommand"
 )
 
 // OCIRuntime is an implementation of an OCI runtime.
@@ -64,7 +63,7 @@ type OCIRuntime interface {
 	// client.
 	HTTPAttach(ctr *Container, r *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool, hijackDone chan<- bool, streamAttach, streamLogs bool) error
 	// AttachResize resizes the terminal in use by the given container.
-	AttachResize(ctr *Container, newSize remotecommand.TerminalSize) error
+	AttachResize(ctr *Container, newSize define.TerminalSize) error
 
 	// ExecContainer executes a command in a running container.
 	// Returns an int (PID of exec session), error channel (errors from
@@ -86,7 +85,7 @@ type OCIRuntime interface {
 	ExecContainerDetached(ctr *Container, sessionID string, options *ExecOptions, stdin bool) (int, error)
 	// ExecAttachResize resizes the terminal of a running exec session. Only
 	// allowed with sessions that were created with a TTY.
-	ExecAttachResize(ctr *Container, sessionID string, newSize remotecommand.TerminalSize) error
+	ExecAttachResize(ctr *Container, sessionID string, newSize define.TerminalSize) error
 	// ExecStopContainer stops a given exec session in a running container.
 	// SIGTERM with be sent initially, then SIGKILL after the given timeout.
 	// If timeout is 0, SIGKILL will be sent immediately, and SIGTERM will

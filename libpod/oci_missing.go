@@ -9,7 +9,6 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"k8s.io/client-go/tools/remotecommand"
 )
 
 var (
@@ -115,7 +114,7 @@ func (r *MissingRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.Re
 }
 
 // AttachResize is not available as the runtime is missing
-func (r *MissingRuntime) AttachResize(ctr *Container, newSize remotecommand.TerminalSize) error {
+func (r *MissingRuntime) AttachResize(ctr *Container, newSize define.TerminalSize) error {
 	return r.printError()
 }
 
@@ -135,7 +134,7 @@ func (r *MissingRuntime) ExecContainerDetached(ctr *Container, sessionID string,
 }
 
 // ExecAttachResize is not available as the runtime is missing.
-func (r *MissingRuntime) ExecAttachResize(ctr *Container, sessionID string, newSize remotecommand.TerminalSize) error {
+func (r *MissingRuntime) ExecAttachResize(ctr *Container, sessionID string, newSize define.TerminalSize) error {
 	return r.printError()
 }
 
