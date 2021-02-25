@@ -10,7 +10,6 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -67,10 +66,6 @@ func (metadata *RuntimeContainerMetadata) SetMountLabel(mountLabel string) {
 // CreateContainerStorage creates the storage end of things.  We already have the container spec created
 // TO-DO We should be passing in an Image object in the future.
 func (r *storageService) CreateContainerStorage(ctx context.Context, systemContext *types.SystemContext, imageName, imageID, containerName, containerID string, options storage.ContainerOptions) (_ ContainerInfo, retErr error) {
-	span, _ := opentracing.StartSpanFromContext(ctx, "createContainerStorage")
-	span.SetTag("type", "storageService")
-	defer span.Finish()
-
 	var imageConfig *v1.Image
 	if imageName != "" {
 		var ref types.ImageReference

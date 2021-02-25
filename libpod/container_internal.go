@@ -33,7 +33,6 @@ import (
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -399,10 +398,6 @@ func (c *Container) setupStorageMapping(dest, from *storage.IDMappingOptions) {
 
 // Create container root filesystem for use
 func (c *Container) setupStorage(ctx context.Context) error {
-	span, _ := opentracing.StartSpanFromContext(ctx, "setupStorage")
-	span.SetTag("type", "container")
-	defer span.Finish()
-
 	if !c.valid {
 		return errors.Wrapf(define.ErrCtrRemoved, "container %s is not valid", c.ID())
 	}
@@ -1035,10 +1030,6 @@ func (c *Container) cniHosts() string {
 
 // Initialize a container, creating it in the runtime
 func (c *Container) init(ctx context.Context, retainRetries bool) error {
-	span, _ := opentracing.StartSpanFromContext(ctx, "init")
-	span.SetTag("struct", "container")
-	defer span.Finish()
-
 	// Unconditionally remove conmon temporary files.
 	// We've been running into far too many issues where they block startup.
 	if err := c.removeConmonFiles(); err != nil {
@@ -1111,10 +1102,6 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 // Deletes the container in the runtime, and resets its state to Exited.
 // The container can be restarted cleanly after this.
 func (c *Container) cleanupRuntime(ctx context.Context) error {
-	span, _ := opentracing.StartSpanFromContext(ctx, "cleanupRuntime")
-	span.SetTag("struct", "container")
-	defer span.Finish()
-
 	// If the container is not ContainerStateStopped or
 	// ContainerStateCreated, do nothing.
 	if !c.ensureState(define.ContainerStateStopped, define.ContainerStateCreated) {
@@ -1156,10 +1143,6 @@ func (c *Container) cleanupRuntime(ctx context.Context) error {
 // Not necessary for ContainerStateExited - the container has already been
 // removed from the runtime, so init() can proceed freely.
 func (c *Container) reinit(ctx context.Context, retainRetries bool) error {
-	span, _ := opentracing.StartSpanFromContext(ctx, "reinit")
-	span.SetTag("struct", "container")
-	defer span.Finish()
-
 	logrus.Debugf("Recreating container %s in OCI runtime", c.ID())
 
 	if err := c.cleanupRuntime(ctx); err != nil {
@@ -1820,10 +1803,6 @@ func (c *Container) cleanupStorage() error {
 func (c *Container) cleanup(ctx context.Context) error {
 	var lastError error
 
-	span, _ := opentracing.StartSpanFromContext(ctx, "cleanup")
-	span.SetTag("struct", "container")
-	defer span.Finish()
-
 	logrus.Debugf("Cleaning up container %s", c.ID())
 
 	// Remove healthcheck unit/timer file if it execs
@@ -1884,10 +1863,6 @@ func (c *Container) cleanup(ctx context.Context) error {
 // delete deletes the container and runs any configured poststop
 // hooks.
 func (c *Container) delete(ctx context.Context) error {
-	span, _ := opentracing.StartSpanFromContext(ctx, "delete")
-	span.SetTag("struct", "container")
-	defer span.Finish()
-
 	if err := c.ociRuntime.DeleteContainer(c); err != nil {
 		return errors.Wrapf(err, "error removing container %s from runtime", c.ID())
 	}
@@ -1903,10 +1878,6 @@ func (c *Container) delete(ctx context.Context) error {
 // the OCI Runtime Specification (which requires them to run
 // post-delete, despite the stage name).
 func (c *Container) postDeleteHooks(ctx context.Context) error {
-	span, _ := opentracing.StartSpanFromContext(ctx, "postDeleteHooks")
-	span.SetTag("struct", "container")
-	defer span.Finish()
-
 	if c.state.ExtensionStageHooks != nil {
 		extensionHooks, ok := c.state.ExtensionStageHooks["poststop"]
 		if ok {

@@ -12,7 +12,6 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/pkg/signal"
-	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -28,10 +27,6 @@ import (
 // containers). The `recursive` parameter will, if set to true, start these
 // dependency containers before initializing this container.
 func (c *Container) Init(ctx context.Context, recursive bool) error {
-	span, _ := opentracing.StartSpanFromContext(ctx, "containerInit")
-	span.SetTag("struct", "container")
-	defer span.Finish()
-
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -84,10 +79,6 @@ func (c *Container) Init(ctx context.Context, recursive bool) error {
 // running before being run. The recursive parameter, if set, will start all
 // dependencies before starting this container.
 func (c *Container) Start(ctx context.Context, recursive bool) error {
-	span, _ := opentracing.StartSpanFromContext(ctx, "containerStart")
-	span.SetTag("struct", "container")
-	defer span.Finish()
-
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()

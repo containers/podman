@@ -38,7 +38,6 @@ import (
 	"github.com/containers/storage"
 	digest "github.com/opencontainers/go-digest"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
-	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -144,10 +143,6 @@ func (ir *Runtime) NewFromLocal(name string) (*Image, error) {
 // New creates a new image object where the image could be local
 // or remote
 func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *DockerRegistryOptions, signingoptions SigningOptions, label *string, pullType util.PullType, progress chan types.ProgressProperties) (*Image, error) {
-	span, _ := opentracing.StartSpanFromContext(ctx, "newImage")
-	span.SetTag("type", "runtime")
-	defer span.Finish()
-
 	// We don't know if the image is local or not ... check local first
 	if pullType != util.PullImageAlways {
 		newImage, err := ir.NewFromLocal(name)
@@ -1297,21 +1292,11 @@ func (i *Image) inspect(ctx context.Context, calculateSize bool) (*inspect.Image
 
 // Inspect returns an image's inspect data
 func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
-	span, _ := opentracing.StartSpanFromContext(ctx, "imageInspect")
-
-	span.SetTag("type", "image")
-	defer span.Finish()
-
 	return i.inspect(ctx, true)
 }
 
 // InspectNoSize returns an image's inspect data without calculating the size for the image
 func (i *Image) InspectNoSize(ctx context.Context) (*inspect.ImageData, error) {
-	span, _ := opentracing.StartSpanFromContext(ctx, "imageInspectNoSize")
-
-	span.SetTag("type", "image")
-	defer span.Finish()
-
 	return i.inspect(ctx, false)
 }
 
