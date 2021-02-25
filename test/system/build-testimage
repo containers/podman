@@ -12,6 +12,9 @@
 # still need a fedora image for that.
 #
 
+# Buildah binary
+BUILDAH=${BUILDAH:-buildah}
+
 # Tag for this new image
 YMD=$(date +%Y%m%d)
 
@@ -58,7 +61,8 @@ chmod 755 pause
 #    - check for updates @ https://hub.docker.com/_/alpine
 # busybox-extras provides httpd needed in 500-networking.bats
 cat >Containerfile <<EOF
-FROM docker.io/library/alpine:3.12.0
+ARG ARCH=please-override-arch
+FROM docker.io/\${ARCH}/alpine:3.12.0
 RUN apk add busybox-extras
 ADD testimage-id pause /home/podman/
 LABEL created_by=$create_script
@@ -69,26 +73,44 @@ EOF
 
 # --squash-all    : needed by 'tree' test in 070-build.bats
 podman rmi -f testimage &> /dev/null || true
-podman build --squash-all -t testimage .
+
+# We need to use buildah because (as of 2021-02-23) only buildah has --manifest
+# and because Dan says arch emulation is not currently working on podman
+# (no further details).
+# Arch emulation on Fedora requires the qemu-user-static package.
+for arch in amd64 ppc64le s390x;do
+    ${BUILDAH} bud \
+               --arch=$arch \
+               --build-arg ARCH=$arch \
+               --manifest=testimage \
+               --squash \
+               .
+done
 
 # Clean up
 cd /tmp
 rm -rf $tmpdir
 
-# Tag and push to quay.
-podman tag testimage quay.io/libpod/testimage:$YMD
-podman push quay.io/libpod/testimage:$YMD
+# Tag image and push (all arches) to quay.
+remote_tag=quay.io/libpod/testimage:$YMD
+podman tag testimage ${remote_tag}
+${BUILDAH} manifest push --all  ${remote_tag} docker://${remote_tag}
 
-# Side note: there should always be a testimage tagged ':00000000'
-# (eight zeroes) in the same location; this is used by tests which
-# need to pull a non-locally-cached image. This image will rarely
-# if ever need to change, nor in fact does it even have to be a
-# copy of this testimage since all we use it for is 'true'.
+# Side note: there should always be a testimage tagged ':0000000<X>'
+# (eight digits, zero-padded sequence ID) in the same location; this is
+# used by tests which need to pull a non-locally-cached image. This
+# image will rarely if ever need to change, nor in fact does it even
+# have to be a copy of this testimage since all we use it for is 'true'.
+# However, it does need to be multiarch :-(
 #
-# As of 2020-09-02 it is simply busybox, because it is super small:
+# As of 2021-02-24 it is simply busybox, because it is super small,
+# but it's complicated because of multiarch:
 #
-#    podman pull docker.io/library/busybox:1.32.0
-#    podman tag  docker.io/library/busybox:1.32.0 \
-#                quay.io/libpod/testimage:00000000
-#    podman push quay.io/libpod/testimage:00000000
+#    img=quay.io/libpod/testimage:00000001
+#    buildah manifest create $img
+#    for arch in amd64 ppc64le s390x;do
+#        buildah pull --arch $arch docker.io/$arch/busybox:1.32.0
+#        buildah manifest add $img docker.io/$arch/busybox:1.32.0
+#    done
+#    buildah manifest push --all $img docker://$img
 #
