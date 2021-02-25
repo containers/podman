@@ -311,6 +311,15 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 		netInfo.CNINetworks = []string{string(cc.HostConfig.NetworkMode)}
 	}
 
+	parsedTmp := make([]string, 0, len(cc.HostConfig.Tmpfs))
+	for path, options := range cc.HostConfig.Tmpfs {
+		finalString := path
+		if options != "" {
+			finalString += ":" + options
+		}
+		parsedTmp = append(parsedTmp, finalString)
+	}
+
 	// Note: several options here are marked as "don't need". this is based
 	// on speculation by Matt and I. We think that these come into play later
 	// like with start. We believe this is just a difference in podman/compat
@@ -367,7 +376,7 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 		StorageOpt:       stringMaptoArray(cc.HostConfig.StorageOpt),
 		Sysctl:           stringMaptoArray(cc.HostConfig.Sysctls),
 		Systemd:          "true", // podman default
-		TmpFS:            stringMaptoArray(cc.HostConfig.Tmpfs),
+		TmpFS:            parsedTmp,
 		TTY:              cc.Config.Tty,
 		User:             cc.Config.User,
 		UserNS:           string(cc.HostConfig.UsernsMode),
