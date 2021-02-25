@@ -43,7 +43,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
-	"k8s.io/client-go/tools/remotecommand"
 )
 
 const (
@@ -746,7 +745,7 @@ func openControlFile(ctr *Container, parentDir string) (*os.File, error) {
 }
 
 // AttachResize resizes the terminal used by the given container.
-func (r *ConmonOCIRuntime) AttachResize(ctr *Container, newSize remotecommand.TerminalSize) error {
+func (r *ConmonOCIRuntime) AttachResize(ctr *Container, newSize define.TerminalSize) error {
 	controlFile, err := openControlFile(ctr, ctr.bundlePath())
 	if err != nil {
 		return err

@@ -5,11 +5,11 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/containers/podman/v3/libpod/define"
 	lsignal "github.com/containers/podman/v3/pkg/signal"
 	"github.com/moby/term"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"k8s.io/client-go/tools/remotecommand"
 )
 
 // RawTtyFormatter ...
@@ -18,20 +18,20 @@ type RawTtyFormatter struct {
 
 // getResize returns a TerminalSize command matching stdin's current
 // size on success, and nil on errors.
-func getResize() *remotecommand.TerminalSize {
+func getResize() *define.TerminalSize {
 	winsize, err := term.GetWinsize(os.Stdin.Fd())
 	if err != nil {
 		logrus.Warnf("Could not get terminal size %v", err)
 		return nil
 	}
-	return &remotecommand.TerminalSize{
+	return &define.TerminalSize{
 		Width:  winsize.Width,
 		Height: winsize.Height,
 	}
 }
 
 // Helper for prepareAttach - set up a goroutine to generate terminal resize events
-func resizeTty(ctx context.Context, resize chan remotecommand.TerminalSize) {
+func resizeTty(ctx context.Context, resize chan define.TerminalSize) {
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, lsignal.SIGWINCH)
 	go func() {
@@ -78,7 +78,7 @@ func (f *RawTtyFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	return bytes, err
 }
 
-func handleTerminalAttach(ctx context.Context, resize chan remotecommand.TerminalSize) (context.CancelFunc, *term.State, error) {
+func handleTerminalAttach(ctx context.Context, resize chan define.TerminalSize) (context.CancelFunc, *term.State, error) {
 	logrus.Debugf("Handling terminal attach")
 
 	subCtx, cancel := context.WithCancel(ctx)

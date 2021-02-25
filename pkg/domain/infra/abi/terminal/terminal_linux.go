@@ -11,12 +11,11 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
-	"k8s.io/client-go/tools/remotecommand"
 )
 
 // ExecAttachCtr execs and attaches to a container
 func ExecAttachCtr(ctx context.Context, ctr *libpod.Container, execConfig *libpod.ExecConfig, streams *define.AttachStreams) (int, error) {
-	resize := make(chan remotecommand.TerminalSize)
+	resize := make(chan define.TerminalSize)
 	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))
 
 	// Check if we are attached to a terminal. If we are, generate resize
@@ -41,7 +40,7 @@ func ExecAttachCtr(ctx context.Context, ctr *libpod.Container, execConfig *libpo
 // if you change the signature of this function from os.File to io.Writer, it will trigger a downstream
 // error. we may need to just lint disable this one.
 func StartAttachCtr(ctx context.Context, ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys string, sigProxy bool, startContainer bool, recursive bool) error { //nolint-interfacer
-	resize := make(chan remotecommand.TerminalSize)
+	resize := make(chan define.TerminalSize)
 
 	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))
 

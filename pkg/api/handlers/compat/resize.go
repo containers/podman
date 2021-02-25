@@ -11,7 +11,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
-	"k8s.io/client-go/tools/remotecommand"
 )
 
 func ResizeTTY(w http.ResponseWriter, r *http.Request) {
@@ -32,7 +31,7 @@ func ResizeTTY(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sz := remotecommand.TerminalSize{
+	sz := define.TerminalSize{
 		Width:  query.Width,
 		Height: query.Height,
 	}
