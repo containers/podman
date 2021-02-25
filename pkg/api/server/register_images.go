@@ -652,6 +652,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//           example: |
 	//             (build details...)
 	//             Successfully built 8ba084515c724cbf90d447a63600c0a6
+	//             Successfully tagged your_image:latest
 	//   400:
 	//     $ref: "#/responses/BadParamError"
 	//   500:
@@ -1485,7 +1486,6 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//           description: output from build process
 	//           example: |
 	//             (build details...)
-	//             Successfully built 8ba084515c724cbf90d447a63600c0a6
 	//   400:
 	//     $ref: "#/responses/BadParamError"
 	//   500:

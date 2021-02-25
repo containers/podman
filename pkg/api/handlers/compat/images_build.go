@@ -395,6 +395,13 @@ loop:
 						logrus.Warnf("Failed to json encode error %v", err)
 					}
 					flush()
+					for _, tag := range query.Tag {
+						m.Stream = fmt.Sprintf("Successfully tagged %s\n", tag)
+						if err := enc.Encode(m); err != nil {
+							logrus.Warnf("Failed to json encode error %v", err)
+						}
+						flush()
+					}
 				}
 			}
 			break loop
