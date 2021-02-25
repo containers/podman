@@ -19,6 +19,7 @@ import (
 	"syscall"
 	"time"
 
+	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/buildah/pkg/chrootuser"
@@ -885,12 +886,13 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 	logrus.Debugf("Exporting checkpoint image of container %q to %q", c.ID(), options.TargetFile)
 
 	includeFiles := []string{
-		"checkpoint",
 		"artifacts",
 		"ctr.log",
-		"config.dump",
-		"spec.dump",
-		"network.status"}
+		metadata.CheckpointDirectory,
+		metadata.ConfigDumpFile,
+		metadata.SpecDumpFile,
+		metadata.NetworkStatusFile,
+	}
 
 	if options.PreCheckPoint {
 		includeFiles[0] = "pre-checkpoint"
@@ -1031,11 +1033,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	// Save network.status. This is needed to restore the container with
 	// the same IP. Currently limited to one IP address in a container
 	// with one interface.
-	formatJSON, err := json.MarshalIndent(c.state.NetworkStatus, "", "     ")
-	if err != nil {
-		return err
-	}
-	if err := ioutil.WriteFile(filepath.Join(c.bundlePath(), "network.status"), formatJSON, 0644); err != nil {
+	if _, err := metadata.WriteJSONFile(c.state.NetworkStatus, c.bundlePath(), metadata.NetworkStatusFile); err != nil {
 		return err
 	}
 
@@ -1051,7 +1049,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	}
 
 	if options.TargetFile != "" {
-		if err = c.exportCheckpoint(options); err != nil {
+		if err := c.exportCheckpoint(options); err != nil {
 			return err
 		}
 	}
@@ -1071,8 +1069,8 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		cleanup := []string{
 			"dump.log",
 			"stats-dump",
-			"config.dump",
-			"spec.dump",
+			metadata.ConfigDumpFile,
+			metadata.SpecDumpFile,
 		}
 		for _, del := range cleanup {
 			file := filepath.Join(c.bundlePath(), del)
@@ -1165,7 +1163,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 
 	// Read network configuration from checkpoint
 	// Currently only one interface with one IP is supported.
-	networkStatusFile, err := os.Open(filepath.Join(c.bundlePath(), "network.status"))
+	networkStatus, _, err := metadata.ReadContainerCheckpointNetworkStatus(c.bundlePath())
 	// If the restored container should get a new name, the IP address of
 	// the container will not be restored. This assumes that if a new name is
 	// specified, the container is restored multiple times.
@@ -1175,43 +1173,14 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	if err == nil && options.Name == "" && (!options.IgnoreStaticIP || !options.IgnoreStaticMAC) {
 		// The file with the network.status does exist. Let's restore the
 		// container with the same IP address / MAC address as during checkpointing.
-		defer networkStatusFile.Close()
-		var networkStatus []*cnitypes.Result
-		networkJSON, err := ioutil.ReadAll(networkStatusFile)
-		if err != nil {
-			return err
-		}
-		if err := json.Unmarshal(networkJSON, &networkStatus); err != nil {
-			return err
-		}
 		if !options.IgnoreStaticIP {
-			// Take the first IP address
-			var IP net.IP
-			if len(networkStatus) > 0 {
-				if len(networkStatus[0].IPs) > 0 {
-					IP = networkStatus[0].IPs[0].Address.IP
-				}
-			}
-			if IP != nil {
+			if IP := metadata.GetIPFromNetworkStatus(networkStatus); IP != nil {
 				// Tell CNI which IP address we want.
 				c.requestedIP = IP
 			}
 		}
 		if !options.IgnoreStaticMAC {
-			// Take the first device with a defined sandbox.
-			var MAC net.HardwareAddr
-			if len(networkStatus) > 0 {
-				for _, n := range networkStatus[0].Interfaces {
-					if n.Sandbox != "" {
-						MAC, err = net.ParseMAC(n.Mac)
-						if err != nil {
-							return err
-						}
-						break
-					}
-				}
-			}
-			if MAC != nil {
+			if MAC := metadata.GetMACFromNetworkStatus(networkStatus); MAC != nil {
 				// Tell CNI which MAC address we want.
 				c.requestedMAC = MAC
 			}
@@ -1349,7 +1318,15 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		if err != nil {
 			logrus.Debugf("Non-fatal: removal of pre-checkpoint directory (%s) failed: %v", c.PreCheckPointPath(), err)
 		}
-		cleanup := [...]string{"restore.log", "dump.log", "stats-dump", "stats-restore", "network.status", "rootfs-diff.tar", "deleted.files"}
+		cleanup := [...]string{
+			"restore.log",
+			"dump.log",
+			"stats-dump",
+			"stats-restore",
+			metadata.NetworkStatusFile,
+			metadata.RootFsDiffTar,
+			metadata.DeletedFilesFile,
+		}
 		for _, del := range cleanup {
 			file := filepath.Join(c.bundlePath(), del)
 			err = os.Remove(file)

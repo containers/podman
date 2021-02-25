@@ -32,13 +32,13 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 	options := &archive.TarOptions{
 		// Here we only need the files config.dump and spec.dump
 		ExcludePatterns: []string{
-			"checkpoint",
-			"artifacts",
-			"ctr.log",
-			"rootfs-diff.tar",
-			"network.status",
-			"deleted.files",
 			"volumes",
+			"ctr.log",
+			"artifacts",
+			metadata.RootFsDiffTar,
+			metadata.DeletedFilesFile,
+			metadata.NetworkStatusFile,
+			metadata.CheckpointDirectory,
 		},
 	}
 	dir, err := ioutil.TempDir("", "checkpoint")
