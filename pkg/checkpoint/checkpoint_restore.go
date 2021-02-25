@@ -4,36 +4,20 @@ import (
 	"context"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 
+	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/errorhandling"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage/pkg/archive"
-	jsoniter "github.com/json-iterator/go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 // Prefixing the checkpoint/restore related functions with 'cr'
-
-// crImportFromJSON imports the JSON files stored in the exported
-// checkpoint tarball
-func crImportFromJSON(filePath string, v interface{}) error {
-	content, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		return errors.Wrap(err, "failed to read container definition for restore")
-	}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	if err = json.Unmarshal(content, v); err != nil {
-		return errors.Wrapf(err, "failed to unmarshal container definition %s for restore", filePath)
-	}
-
-	return nil
-}
 
 // CRImportCheckpoint it the function which imports the information
 // from checkpoint tarball and re-creates the container from that information
@@ -73,13 +57,13 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 
 	// Load spec.dump from temporary directory
 	dumpSpec := new(spec.Spec)
-	if err := crImportFromJSON(filepath.Join(dir, "spec.dump"), dumpSpec); err != nil {
+	if _, err := metadata.ReadJSONFile(dumpSpec, dir, metadata.SpecDumpFile); err != nil {
 		return nil, err
 	}
 
 	// Load config.dump from temporary directory
 	config := new(libpod.ContainerConfig)
-	if err = crImportFromJSON(filepath.Join(dir, "config.dump"), config); err != nil {
+	if _, err = metadata.ReadJSONFile(config, dir, metadata.ConfigDumpFile); err != nil {
 		return nil, err
 	}
 

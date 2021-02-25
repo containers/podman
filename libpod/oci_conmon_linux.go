@@ -28,6 +28,7 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/logs"
 	"github.com/containers/podman/v3/pkg/cgroups"
+	"github.com/containers/podman/v3/pkg/checkpoint/crutils"
 	"github.com/containers/podman/v3/pkg/errorhandling"
 	"github.com/containers/podman/v3/pkg/lookup"
 	"github.com/containers/podman/v3/pkg/rootless"
@@ -837,16 +838,7 @@ func (r *ConmonOCIRuntime) CheckConmonRunning(ctr *Container) (bool, error) {
 // SupportsCheckpoint checks if the OCI runtime supports checkpointing
 // containers.
 func (r *ConmonOCIRuntime) SupportsCheckpoint() bool {
-	// Check if the runtime implements checkpointing. Currently only
-	// runc's checkpoint/restore implementation is supported.
-	cmd := exec.Command(r.path, "checkpoint", "--help")
-	if err := cmd.Start(); err != nil {
-		return false
-	}
-	if err := cmd.Wait(); err == nil {
-		return true
-	}
-	return false
+	return crutils.CRRuntimeSupportsCheckpointRestore(r.path)
 }
 
 // SupportsJSONErrors checks if the OCI runtime supports JSON-formatted error
