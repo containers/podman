@@ -180,15 +180,17 @@ func findPluginByName(plugins []*libcni.NetworkConfig, pluginType string) ([]byt
 
 func ListNetworks(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
-	query := struct {
-		Filters map[string][]string `schema:"filters"`
-	}{
-		// override any golang type defaults
-	}
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+	filters, err := filtersFromRequest(r)
+	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
+	}
+	filterMap := map[string][]string{}
+	for _, filter := range filters {
+		split := strings.SplitN(filter, "=", 2)
+		if len(split) > 1 {
+			filterMap[split[0]] = append(filterMap[split[0]], split[1])
+		}
 	}
 	config, err := runtime.GetConfig()
 	if err != nil {
@@ -205,7 +207,7 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 	reports := []*types.NetworkResource{}
 	logrus.Debugf("netNames: %q", strings.Join(netNames, ", "))
 	for _, name := range netNames {
-		report, err := getNetworkResourceByNameOrID(name, runtime, query.Filters)
+		report, err := getNetworkResourceByNameOrID(name, runtime, filterMap)
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return
