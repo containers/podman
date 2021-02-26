@@ -80,7 +80,7 @@ func DefineNetFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(publishFlagName, completion.AutocompleteNone)
 
 	netFlags.Bool(
-		"no-hosts", false,
+		"no-hosts", containerConfig.Containers.NoHosts,
 		"Do not create /etc/hosts within the container, instead use the version from the image",
 	)
 }
