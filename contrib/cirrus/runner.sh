@@ -70,6 +70,10 @@ function _run_sys() {
     dotest system
 }
 
+function _run_upgrade_test() {
+    bats test/upgrade |& logformatter
+}
+
 function _run_bindings() {
     # shellcheck disable=SC2155
     export PATH=$PATH:$GOSRC/hack

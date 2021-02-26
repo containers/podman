@@ -154,7 +154,7 @@ function run_podman() {
     echo "$_LOG_PROMPT $PODMAN $*"
     # BATS hangs if a subprocess remains and keeps FD 3 open; this happens
     # if podman crashes unexpectedly without cleaning up subprocesses.
-    run timeout --foreground -v --kill=10 $PODMAN_TIMEOUT $PODMAN "$@" 3>/dev/null
+    run timeout --foreground -v --kill=10 $PODMAN_TIMEOUT $PODMAN $_PODMAN_TEST_OPTS "$@" 3>/dev/null
     # without "quotes", multiple lines are glommed together into one
     if [ -n "$output" ]; then
         echo "$output"
