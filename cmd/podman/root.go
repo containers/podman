@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"runtime/pprof"
+	"strconv"
 	"strings"
 
 	"github.com/containers/common/pkg/completion"
@@ -249,14 +251,21 @@ func loggingHook() {
 
 	if logLevel == "debug" {
 		logrus.SetReportCaller(true)
-
 	}
 	logrus.SetFormatter(&logrus.TextFormatter{
+		FieldMap: logrus.FieldMap{
+			logrus.FieldKeyFunc: "origin",
+		},
 		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
-			s := strings.Split(f.Function, ".")
-			funcname := s[len(s)-1]
-			_, filename := path.Split(f.File)
-			return funcname, filename
+			r := regexp.MustCompile(`(?:github\.com\/)(.+?\/.+?)(?:\/)`)
+			s := r.FindStringSubmatch(f.Function)
+			origin := ""
+			if s != nil {
+				origin = s[1]
+			}
+			_, filename := filepath.Split(f.File)
+			filename = filename + ":" + strconv.Itoa(f.Line)
+			return origin, filename
 		},
 		PadLevelText:           true,
 		DisableLevelTruncation: true,
