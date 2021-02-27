@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/containernetworking/cni/libcni"
-	"github.com/containers/podman/v2/pkg/util"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/pkg/errors"
 )
 

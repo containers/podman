@@ -6,11 +6,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/containers/podman/v2/libpod"
-	"github.com/containers/podman/v2/pkg/bindings"
-	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/containers/podman/v2/pkg/domain/infra/abi"
-	"github.com/containers/podman/v2/pkg/domain/infra/tunnel"
+	"github.com/containers/podman/v3/libpod"
+	"github.com/containers/podman/v3/pkg/bindings"
+	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/domain/infra/abi"
+	"github.com/containers/podman/v3/pkg/domain/infra/tunnel"
 )
 
 // NewContainerEngine factory provides a libpod runtime for container-related operations

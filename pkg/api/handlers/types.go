@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/containers/image/v5/manifest"
-	libpodImage "github.com/containers/podman/v2/libpod/image"
-	"github.com/containers/podman/v2/pkg/domain/entities"
+	libpodImage "github.com/containers/podman/v3/libpod/image"
+	"github.com/containers/podman/v3/pkg/domain/entities"
 	docker "github.com/docker/docker/api/types"
 	dockerContainer "github.com/docker/docker/api/types/container"
 	dockerNetwork "github.com/docker/docker/api/types/network"

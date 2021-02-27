@@ -3,7 +3,7 @@ package abi
 import (
 	"sync"
 
-	"github.com/containers/podman/v2/libpod"
+	"github.com/containers/podman/v3/libpod"
 )
 
 // Image-related runtime linked against libpod library

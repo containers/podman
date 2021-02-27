@@ -7,14 +7,14 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/podman/v2/cmd/podman/registry"
-	"github.com/containers/podman/v2/libpod"
-	"github.com/containers/podman/v2/libpod/define"
-	"github.com/containers/podman/v2/pkg/domain/entities"
-	"github.com/containers/podman/v2/pkg/registries"
-	"github.com/containers/podman/v2/pkg/rootless"
-	systemdGen "github.com/containers/podman/v2/pkg/systemd/generate"
-	"github.com/containers/podman/v2/pkg/util"
+	"github.com/containers/podman/v3/cmd/podman/registry"
+	"github.com/containers/podman/v3/libpod"
+	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/registries"
+	"github.com/containers/podman/v3/pkg/rootless"
+	systemdGen "github.com/containers/podman/v3/pkg/systemd/generate"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/spf13/cobra"
 )
 

@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/podman/v2/libpod/image"
-	"github.com/containers/podman/v2/pkg/specgen"
+	"github.com/containers/podman/v3/libpod/image"
+	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

@@ -5,8 +5,8 @@ package libpod
 import (
 	"context"
 
-	"github.com/containers/podman/v2/libpod/define"
-	"github.com/containers/podman/v2/pkg/lookup"
+	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/pkg/lookup"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 

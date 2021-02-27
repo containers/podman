@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/podman/v2/libpod/define"
-	"github.com/containers/podman/v2/utils"
+	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/utils"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/fsnotify/fsnotify"
 	spec "github.com/opencontainers/runtime-spec/specs-go"

@@ -5,8 +5,8 @@ package generate
 import (
 	"errors"
 
-	"github.com/containers/podman/v2/libpod/image"
-	"github.com/containers/podman/v2/pkg/specgen"
+	"github.com/containers/podman/v3/libpod/image"
+	"github.com/containers/podman/v3/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
