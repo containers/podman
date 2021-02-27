@@ -599,6 +599,7 @@ type ContainerOptions struct {
 	LabelOpts []string
 	Flags     map[string]interface{}
 	MountOpts []string
+	Volatile  bool
 }
 
 type store struct {
@@ -2813,6 +2814,9 @@ func (s *store) Mount(id, mountLabel string) (string, error) {
 		options.UidMaps = container.UIDMap
 		options.GidMaps = container.GIDMap
 		options.Options = container.MountOpts()
+		if v, found := container.Flags["Volatile"]; found {
+			options.Volatile = v.(bool)
+		}
 	}
 	return s.mount(id, options)
 }

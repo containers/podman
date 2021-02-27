@@ -139,3 +139,17 @@ func AutocompleteOS(cmd *cobra.Command, args []string, toComplete string) ([]str
 	completions := []string{"linux", "windows"}
 	return completions, cobra.ShellCompDirectiveNoFileComp
 }
+
+// AutocompleteJSONFormat - Autocomplete format flag option.
+// -> "json"
+func AutocompleteJSONFormat(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return []string{"json"}, cobra.ShellCompDirectiveNoFileComp
+}
+
+// AutocompleteOneArg - Autocomplete one random arg
+func AutocompleteOneArg(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) == 1 {
+		return nil, cobra.ShellCompDirectiveDefault
+	}
+	return nil, cobra.ShellCompDirectiveNoFileComp
+}
