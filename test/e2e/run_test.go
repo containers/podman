@@ -1412,7 +1412,28 @@ USER mail`
 	})
 
 	It("podman run --tz", func() {
-		session := podmanTest.Podman([]string{"run", "--tz", "foo", "--rm", ALPINE, "date"})
+		testDir := filepath.Join(podmanTest.RunRoot, "tz-test")
+		err := os.MkdirAll(testDir, 0755)
+		Expect(err).To(BeNil())
+
+		tzFile := filepath.Join(testDir, "tzfile.txt")
+		file, err := os.Create(tzFile)
+		Expect(err).To(BeNil())
+
+		_, err = file.WriteString("Hello")
+		Expect(err).To(BeNil())
+		file.Close()
+
+		badTZFile := fmt.Sprintf("../../../%s", tzFile)
+		session := podmanTest.Podman([]string{"run", "--tz", badTZFile, "--rm", ALPINE, "date"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session.ErrorToString()).To(ContainSubstring("error finding timezone for container"))
+
+		err = os.Remove(tzFile)
+		Expect(err).To(BeNil())
+
+		session = podmanTest.Podman([]string{"run", "--tz", "foo", "--rm", ALPINE, "date"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Not(Equal(0)))
 
