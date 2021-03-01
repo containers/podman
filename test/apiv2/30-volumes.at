@@ -45,18 +45,17 @@ t GET libpod/volumes/json 200 \
     .[0].Name~.* \
     .[0].Mountpoint~.* \
     .[0].CreatedAt~[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}.*
-# -G --data-urlencode 'filters={"name":["foo1"]}'
-t GET libpod/volumes/json?filters=%7B%22name%22%3A%5B%22foo1%22%5D%7D 200 length=1 .[0].Name=foo1
-# -G --data-urlencode 'filters={"name":["foo1","foo2"]}'
-t GET libpod/volumes/json?filters=%7B%22name%22%3A%20%5B%22foo1%22%2C%20%22foo2%22%5D%7D 200 length=2 .[0].Name=foo1 .[1].Name=foo2
-# -G --data-urlencode 'filters={"name":["nonexistent"]}'
-t GET libpod/volumes/json?filters=%7B%22name%22%3A%5B%22nonexistent%22%5D%7D 200 length=0
-# -G --data-urlencode 'filters={"label":["testlabel"]}'
-t GET libpod/volumes/json?filters=%7B%22label%22:%5B%22testlabel%22%5D%7D 200 length=2
-# -G --data-urlencode 'filters={"label":["testlabel=testonly"]}'
-t GET libpod/volumes/json?filters=%7B%22label%22:%5B%22testlabel=testonly%22%5D%7D 200 length=1
-# -G --data-urlencode 'filters={"label":["testlabel1=testonly"]}'
-t GET libpod/volumes/json?filters=%7B%22label%22:%5B%22testlabel1=testonly%22%5D%7D 200 length=1
+t GET libpod/volumes/json?filters='{"name":["foo1"]}' 200 \
+  length=1 \
+  .[0].Name=foo1
+t GET libpod/volumes/json?filters='{"name":%20["foo1",%20"foo2"]}' 200 \
+  length=2 \
+  .[0].Name=foo1 \
+  .[1].Name=foo2
+t GET libpod/volumes/json?filters='{"name":["nonexistent"]}' 200 length=0
+t GET libpod/volumes/json?filters='{"label":["testlabel"]}' 200 length=2
+t GET libpod/volumes/json?filters='{"label":["testlabel=testonly"]}' 200 length=1
+t GET libpod/volumes/json?filters='{"label":["testlabel1=testonly"]}' 200 length=1
 
 ## inspect volume
 t GET libpod/volumes/foo1/json 200 \
@@ -79,16 +78,12 @@ t DELETE libpod/volumes/foo1 404 \
     .response=404
 
 ## Prune volumes with label matching 'testlabel1=testonly'
-# -G --data-urlencode 'filters={"label":["testlabel1=testonly"]}'
-t POST libpod/volumes/prune?filters=%7B%22label%22:%5B%22testlabel1=testonly%22%5D%7D "" 200
-# -G --data-urlencode 'filters={"label":["testlabel1=testonly"]}'
-t GET libpod/volumes/json?filters=%7B%22label%22:%5B%22testlabel1=testonly%22%5D%7D 200 length=0
+t POST libpod/volumes/prune?filters='{"label":["testlabel1=testonly"]}' "" 200
+t GET libpod/volumes/json?filters='{"label":["testlabel1=testonly"]}' 200 length=0
 
 ## Prune volumes with label matching 'testlabel'
-# -G --data-urlencode 'filters={"label":["testlabel"]}'
-t POST libpod/volumes/prune?filters=%7B%22label%22:%5B%22testlabel%22%5D%7D "" 200
-# -G --data-urlencode 'filters={"label":["testlabel"]}'
-t GET libpod/volumes/json?filters=%7B%22label%22:%5B%22testlabel%22%5D%7D 200 length=0
+t POST libpod/volumes/prune?filters='{"label":["testlabel"]}' "" 200
+t GET libpod/volumes/json?filters='{"label":["testlabel"]}' 200 length=0
 
 ## Prune volumes
 t POST libpod/volumes/prune "" 200
