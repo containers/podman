@@ -523,6 +523,7 @@ class TestApi(unittest.TestCase):
             "Labels",
             "Scope",
             "Options",
+            "CreatedAt",
         )
 
         obj = json.loads(create.content)
@@ -530,6 +531,7 @@ class TestApi(unittest.TestCase):
         for k in required_keys:
             self.assertIn(k, obj)
         self.assertEqual(obj["Name"], name)
+        created_at = obj["CreatedAt"]
 
         inspect = requests.get(PODMAN_URL + f"/v1.40/volumes/{name}")
         self.assertEqual(inspect.status_code, 200, inspect.content)
@@ -538,6 +540,7 @@ class TestApi(unittest.TestCase):
         self.assertIn(type(obj), (dict,))
         for k in required_keys:
             self.assertIn(k, obj)
+        self.assertEqual(obj["CreatedAt"], created_at)
 
         rm = requests.delete(PODMAN_URL + f"/v1.40/volumes/{name}")
         self.assertEqual(rm.status_code, 204, rm.content)

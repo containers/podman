@@ -2,6 +2,7 @@ package entities
 
 import (
 	"net/url"
+	"time"
 
 	"github.com/containers/podman/v3/libpod/define"
 	docker_api_types "github.com/docker/docker/api/types"
@@ -34,7 +35,7 @@ type VolumeConfigResponse struct {
 type VolumeInfo struct {
 
 	// Date/Time the volume was created.
-	CreatedAt string `json:"CreatedAt,omitempty"`
+	CreatedAt time.Time `json:"CreatedAt,omitempty"`
 
 	// Name of the volume driver used by the volume. Only supports local driver
 	// Required: true
