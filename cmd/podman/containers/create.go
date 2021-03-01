@@ -166,7 +166,11 @@ func createInit(c *cobra.Command) error {
 		return errors.Errorf("--cpu-quota and --cpus cannot be set together")
 	}
 
-	if c.Flag("no-hosts").Changed && c.Flag("add-host").Changed {
+	noHosts, err := c.Flags().GetBool("no-hosts")
+	if err != nil {
+		return err
+	}
+	if noHosts && c.Flag("add-host").Changed {
 		return errors.Errorf("--no-hosts and --add-host cannot be set together")
 	}
 	cliVals.UserNS = c.Flag("userns").Value.String()
