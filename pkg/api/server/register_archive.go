@@ -91,7 +91,7 @@ func (s *APIServer) registerArchiveHandlers(r *mux.Router) error {
 		Libpod
 	*/
 
-	// swagger:operation POST /libpod/containers/{name}/archive libpod libpodPutArchive
+	// swagger:operation PUT /libpod/containers/{name}/archive libpod libpodPutArchive
 	// ---
 	//  summary: Copy files into a container
 	//  description: Copy a tar archive of files into a container
