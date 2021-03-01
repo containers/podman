@@ -64,7 +64,9 @@ class TestApi(unittest.TestCase):
         super().setUpClass()
 
         TestApi.podman = Podman()
-        TestApi.service = TestApi.podman.open("system", "service", "tcp:localhost:8080", "--time=0")
+        TestApi.service = TestApi.podman.open(
+            "system", "service", "tcp:localhost:8080", "--time=0"
+        )
         # give the service some time to be ready...
         time.sleep(2)
 
@@ -241,7 +243,9 @@ class TestApi(unittest.TestCase):
 
     def test_post_create_compat(self):
         """Create network and connect container during create"""
-        net = requests.post(PODMAN_URL + "/v1.40/networks/create", json={"Name": "TestNetwork"})
+        net = requests.post(
+            PODMAN_URL + "/v1.40/networks/create", json={"Name": "TestNetwork"}
+        )
         self.assertEqual(net.status_code, 201, net.text)
 
         create = requests.post(
@@ -450,11 +454,15 @@ class TestApi(unittest.TestCase):
                 self.assertIn(k, o)
 
     def test_network_compat(self):
-        name = "Network_" + "".join(random.choice(string.ascii_letters) for i in range(10))
+        name = "Network_" + "".join(
+            random.choice(string.ascii_letters) for i in range(10)
+        )
 
         # Cannot test for 0 existing networks because default "podman" network always exists
 
-        create = requests.post(PODMAN_URL + "/v1.40/networks/create", json={"Name": name})
+        create = requests.post(
+            PODMAN_URL + "/v1.40/networks/create", json={"Name": name}
+        )
         self.assertEqual(create.status_code, 201, create.content)
         obj = json.loads(create.content)
         self.assertIn(type(obj), (dict,))
@@ -484,8 +492,12 @@ class TestApi(unittest.TestCase):
         self.assertEqual(inspect.status_code, 404, inspect.content)
 
         # network prune
-        prune_name = "Network_" + "".join(random.choice(string.ascii_letters) for i in range(10))
-        prune_create = requests.post(PODMAN_URL + "/v1.40/networks/create", json={"Name": prune_name})
+        prune_name = "Network_" + "".join(
+            random.choice(string.ascii_letters) for i in range(10)
+        )
+        prune_create = requests.post(
+            PODMAN_URL + "/v1.40/networks/create", json={"Name": prune_name}
+        )
         self.assertEqual(create.status_code, 201, prune_create.content)
 
         prune = requests.post(PODMAN_URL + "/v1.40/networks/prune")
@@ -493,9 +505,10 @@ class TestApi(unittest.TestCase):
         obj = json.loads(prune.content)
         self.assertTrue(prune_name in obj["NetworksDeleted"])
 
-
     def test_volumes_compat(self):
-        name = "Volume_" + "".join(random.choice(string.ascii_letters) for i in range(10))
+        name = "Volume_" + "".join(
+            random.choice(string.ascii_letters) for i in range(10)
+        )
 
         ls = requests.get(PODMAN_URL + "/v1.40/volumes")
         self.assertEqual(ls.status_code, 200, ls.content)
@@ -511,7 +524,9 @@ class TestApi(unittest.TestCase):
         for k in required_keys:
             self.assertIn(k, obj)
 
-        create = requests.post(PODMAN_URL + "/v1.40/volumes/create", json={"Name": name})
+        create = requests.post(
+            PODMAN_URL + "/v1.40/volumes/create", json={"Name": name}
+        )
         self.assertEqual(create.status_code, 201, create.content)
 
         # See https://docs.docker.com/engine/api/v1.40/#operation/VolumeCreate
@@ -688,15 +703,21 @@ class TestApi(unittest.TestCase):
         """Verify issue #8865"""
 
         pod_name = list()
-        pod_name.append("Pod_" + "".join(random.choice(string.ascii_letters) for i in range(10)))
-        pod_name.append("Pod_" + "".join(random.choice(string.ascii_letters) for i in range(10)))
+        pod_name.append(
+            "Pod_" + "".join(random.choice(string.ascii_letters) for i in range(10))
+        )
+        pod_name.append(
+            "Pod_" + "".join(random.choice(string.ascii_letters) for i in range(10))
+        )
 
         r = requests.post(
             _url("/pods/create"),
             json={
                 "name": pod_name[0],
                 "no_infra": False,
-                "portmappings": [{"host_ip": "127.0.0.1", "host_port": 8889, "container_port": 89}],
+                "portmappings": [
+                    {"host_ip": "127.0.0.1", "host_port": 8889, "container_port": 89}
+                ],
             },
         )
         self.assertEqual(r.status_code, 201, r.text)
@@ -715,7 +736,9 @@ class TestApi(unittest.TestCase):
             json={
                 "name": pod_name[1],
                 "no_infra": False,
-                "portmappings": [{"host_ip": "127.0.0.1", "host_port": 8889, "container_port": 89}],
+                "portmappings": [
+                    {"host_ip": "127.0.0.1", "host_port": 8889, "container_port": 89}
+                ],
             },
         )
         self.assertEqual(r.status_code, 201, r.text)

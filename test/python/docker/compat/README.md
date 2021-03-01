@@ -13,26 +13,26 @@ To run the tests locally in your sandbox (Fedora 32,33):
 
 ### Run the entire test suite
 
+All commands are run from the root of the repository.
+
 ```shell
-# python3 -m unittest discover test/python/docker
+# python3 -m unittest discover -s test/python/docker
 ```
 
 Passing the -v option to your test script will instruct unittest.main() to enable a higher level of verbosity, and produce detailed output:
 
 ```shell
-# python3 -m unittest -v discover test/python/docker
+# python3 -m unittest -v discover -s test/python/docker
 ```
 
 ### Run a specific test class
 
 ```shell
-# cd test/python/docker
-# python3 -m unittest -v tests.test_images
+# python3 -m unittest -v test.python.docker.compat.test_images.TestImages
 ```
 
 ### Run a specific test within the test class
 
 ```shell
-# cd test/python/docker
-# python3 -m unittest tests.test_images.TestImages.test_import_image
+# python3 -m unittest test.python.docker.compat.test_images.TestImages.test_tag_valid_image
 ```

@@ -5,7 +5,8 @@ import unittest
 
 from docker import DockerClient, errors
 
-from test.python.docker import Podman, common, constant
+from test.python.docker import Podman
+from test.python.docker.compat import common, constant
 
 
 class TestContainers(unittest.TestCase):
@@ -87,9 +88,11 @@ class TestContainers(unittest.TestCase):
         self.assertEqual(len(containers), 2)
 
     def test_start_container_with_random_port_bind(self):
-        container = self.client.containers.create(image=constant.ALPINE,
-                                                  name="containerWithRandomBind",
-                                                  ports={'1234/tcp': None})
+        container = self.client.containers.create(
+            image=constant.ALPINE,
+            name="containerWithRandomBind",
+            ports={"1234/tcp": None},
+        )
         containers = self.client.containers.list(all=True)
         self.assertTrue(container in containers)
 

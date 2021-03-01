@@ -7,7 +7,8 @@ import unittest
 
 from docker import DockerClient, errors
 
-from test.python.docker import Podman, common, constant
+from test.python.docker import Podman
+from test.python.docker.compat import common, constant
 
 
 class TestImages(unittest.TestCase):
@@ -78,7 +79,9 @@ class TestImages(unittest.TestCase):
         self.assertEqual(len(self.client.images.list()), 2)
 
         # List images with filter
-        self.assertEqual(len(self.client.images.list(filters={"reference": "alpine"})), 1)
+        self.assertEqual(
+            len(self.client.images.list(filters={"reference": "alpine"})), 1
+        )
 
     def test_search_image(self):
         """Search for image"""
@@ -91,7 +94,7 @@ class TestImages(unittest.TestCase):
             r = self.client.images.search("bogus/bogus")
         except:
             return
-        self.assertTrue(len(r)==0)
+        self.assertTrue(len(r) == 0)
 
     def test_remove_image(self):
         """Remove image"""
