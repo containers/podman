@@ -149,6 +149,14 @@ class TestImages(unittest.TestCase):
 
         self.assertEqual(len(self.client.images.list()), 2)
 
+    def test_build_image(self):
+        labels = {"apple": "red", "grape": "green"}
+        _ = self.client.images.build(path="test/python/docker/build_labels", labels=labels, tag="labels")
+        image = self.client.images.get("labels")
+        self.assertEqual(image.labels["apple"], labels["apple"])
+        self.assertEqual(image.labels["grape"], labels["grape"])
+
+
 
 if __name__ == "__main__":
     # Setup temporary space
