@@ -24,13 +24,13 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ####
-    FEDORA_NAME: "fedora-33"
-    PRIOR_FEDORA_NAME: "fedora-32"
+    FEDORA_NAME: "fedora-34beta"
+    PRIOR_FEDORA_NAME: "fedora-33"
     UBUNTU_NAME: "ubuntu-2010"
     PRIOR_UBUNTU_NAME: "ubuntu-2004"
 
     # Google-cloud VM Images
-    IMAGE_SUFFIX: "c6518453914828800"
+    IMAGE_SUFFIX: "c5032481331085312"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
@@ -151,11 +151,11 @@ build_task:
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
               # ID for re-use of build output
               _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
-        # - env:
-        #       DISTRO_NV: ${PRIOR_FEDORA_NAME}
-        #       VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-        #       CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
-        #       _BUILD_CACHE_HANDLE: ${PRIOR_FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
+        - env:
+              DISTRO_NV: ${PRIOR_FEDORA_NAME}
+              VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
+              CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
+              _BUILD_CACHE_HANDLE: ${PRIOR_FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
         - env:
               DISTRO_NV: ${UBUNTU_NAME}
               VM_IMAGE_NAME: ${UBUNTU_CACHE_IMAGE_NAME}
@@ -515,11 +515,11 @@ container_integration_test_task:
               _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
               VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-        # - env:
-        #       DISTRO_NV: ${PRIOR_FEDORA_NAME}
-        #       _BUILD_CACHE_HANDLE: ${PRIOR_FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
-        #       VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-        #       CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
+        - env:
+              DISTRO_NV: ${PRIOR_FEDORA_NAME}
+              _BUILD_CACHE_HANDLE: ${PRIOR_FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
+              VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
+              CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
     gce_instance: *standardvm
     timeout_in: 90m
     env:

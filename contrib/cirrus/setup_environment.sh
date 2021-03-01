@@ -50,14 +50,9 @@ echo -e "\n# Begin single-use VM global variables (${BASH_SOURCE[0]})" \
     done <<<"$(passthrough_envars)"
 ) >> "/etc/ci_environment"
 
-#####
-##### FIXME. /etc/containers/storage.conf should have a driver name set
-##### Remove when VMs updated
-sed 's/^driver.*=.*""/driver = "overlay"/g' -i /etc/containers/storage.conf
-
 # This is a possible manual maintenance gaff, check to be sure everything matches.
 # shellcheck disable=SC2154
-[[ "$DISTRO_NV" == "$OS_REL_VER" ]] || \
+[[ "$DISTRO_NV" =~ $OS_REL_VER ]] || \
     die "Automation spec. '$DISTRO_NV'; actual host '$OS_REL_VER'"
 
 # Only allow this script to execute once
@@ -200,7 +195,9 @@ case "$TEST_FLAVOR" in
     build) make clean ;;
     unit) ;;
     apiv2) ;&  # use next item
-    compose) ;&
+    compose)
+        dnf install -y $PACKAGE_DOWNLOAD_DIR/podman-docker*
+        ;&  # continue with next item
     int) ;&
     sys) ;&
     upgrade_test) ;&
