@@ -188,6 +188,13 @@ function t() {
     # entrypoint path can include a descriptive comment; strip it off
     path=${path%% *}
 
+    # path may include JSONish params that curl will barf on; url-encode them
+    path="${path//'['/%5B}"
+    path="${path//']'/%5D}"
+    path="${path//'{'/%7B}"
+    path="${path//'}'/%7D}"
+    path="${path//':'/%3A}"
+
     # curl -X HEAD but without --head seems to wait for output anyway
     if [[ $method == "HEAD" ]]; then
         curl_args="--head"
