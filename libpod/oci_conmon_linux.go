@@ -1107,7 +1107,7 @@ func prepareProcessExec(c *Container, cmd, env []string, tty bool, cwd, user, se
 	pspec.Capabilities.Effective = []string{}
 	if privileged {
 		pspec.Capabilities.Bounding = allCaps
-	} else {
+	} else if execUser.Uid != 0 {
 		pspec.Capabilities.Bounding = []string{}
 	}
 	pspec.Capabilities.Inheritable = pspec.Capabilities.Bounding
