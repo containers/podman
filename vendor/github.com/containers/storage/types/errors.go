@@ -1,56 +1,56 @@
-package storage
+package types
 
 import (
-	"github.com/containers/storage/types"
+	"errors"
 )
 
 var (
 	// ErrContainerUnknown indicates that there was no container with the specified name or ID.
-	ErrContainerUnknown = types.ErrContainerUnknown
+	ErrContainerUnknown = errors.New("container not known")
 	// ErrDigestUnknown indicates that we were unable to compute the digest of a specified item.
-	ErrDigestUnknown = types.ErrDigestUnknown
+	ErrDigestUnknown = errors.New("could not compute digest of item")
 	// ErrDuplicateID indicates that an ID which is to be assigned to a new item is already being used.
-	ErrDuplicateID = types.ErrDuplicateID
+	ErrDuplicateID = errors.New("that ID is already in use")
 	// ErrDuplicateImageNames indicates that the read-only store uses the same name for multiple images.
-	ErrDuplicateImageNames = types.ErrDuplicateImageNames
+	ErrDuplicateImageNames = errors.New("read-only image store assigns the same name to multiple images")
 	// ErrDuplicateLayerNames indicates that the read-only store uses the same name for multiple layers.
-	ErrDuplicateLayerNames = types.ErrDuplicateLayerNames
+	ErrDuplicateLayerNames = errors.New("read-only layer store assigns the same name to multiple layers")
 	// ErrDuplicateName indicates that a name which is to be assigned to a new item is already being used.
-	ErrDuplicateName = types.ErrDuplicateName
+	ErrDuplicateName = errors.New("that name is already in use")
 	// ErrImageUnknown indicates that there was no image with the specified name or ID.
-	ErrImageUnknown = types.ErrImageUnknown
+	ErrImageUnknown = errors.New("image not known")
 	// ErrImageUsedByContainer is returned when the caller attempts to delete an image that is a container's image.
-	ErrImageUsedByContainer = types.ErrImageUsedByContainer
+	ErrImageUsedByContainer = errors.New("image is in use by a container")
 	// ErrIncompleteOptions is returned when the caller attempts to initialize a Store without providing required information.
-	ErrIncompleteOptions = types.ErrIncompleteOptions
+	ErrIncompleteOptions = errors.New("missing necessary StoreOptions")
 	// ErrInvalidBigDataName indicates that the name for a big data item is not acceptable; it may be empty.
-	ErrInvalidBigDataName = types.ErrInvalidBigDataName
+	ErrInvalidBigDataName = errors.New("not a valid name for a big data item")
 	// ErrLayerHasChildren is returned when the caller attempts to delete a layer that has children.
-	ErrLayerHasChildren = types.ErrLayerHasChildren
+	ErrLayerHasChildren = errors.New("layer has children")
 	// ErrLayerNotMounted is returned when the requested information can only be computed for a mounted layer, and the layer is not mounted.
-	ErrLayerNotMounted = types.ErrLayerNotMounted
+	ErrLayerNotMounted = errors.New("layer is not mounted")
 	// ErrLayerUnknown indicates that there was no layer with the specified name or ID.
-	ErrLayerUnknown = types.ErrLayerUnknown
+	ErrLayerUnknown = errors.New("layer not known")
 	// ErrLayerUsedByContainer is returned when the caller attempts to delete a layer that is a container's layer.
-	ErrLayerUsedByContainer = types.ErrLayerUsedByContainer
+	ErrLayerUsedByContainer = errors.New("layer is in use by a container")
 	// ErrLayerUsedByImage is returned when the caller attempts to delete a layer that is an image's top layer.
-	ErrLayerUsedByImage = types.ErrLayerUsedByImage
+	ErrLayerUsedByImage = errors.New("layer is in use by an image")
 	// ErrLoadError indicates that there was an initialization error.
-	ErrLoadError = types.ErrLoadError
+	ErrLoadError = errors.New("error loading storage metadata")
 	// ErrNotAContainer is returned when the caller attempts to delete a container that isn't a container.
-	ErrNotAContainer = types.ErrNotAContainer
+	ErrNotAContainer = errors.New("identifier is not a container")
 	// ErrNotALayer is returned when the caller attempts to delete a layer that isn't a layer.
-	ErrNotALayer = types.ErrNotALayer
+	ErrNotALayer = errors.New("identifier is not a layer")
 	// ErrNotAnID is returned when the caller attempts to read or write metadata from an item that doesn't exist.
-	ErrNotAnID = types.ErrNotAnID
+	ErrNotAnID = errors.New("identifier is not a layer, image, or container")
 	// ErrNotAnImage is returned when the caller attempts to delete an image that isn't an image.
-	ErrNotAnImage = types.ErrNotAnImage
+	ErrNotAnImage = errors.New("identifier is not an image")
 	// ErrParentIsContainer is returned when a caller attempts to create a layer as a child of a container's layer.
-	ErrParentIsContainer = types.ErrParentIsContainer
+	ErrParentIsContainer = errors.New("would-be parent layer is a container")
 	// ErrParentUnknown indicates that we didn't record the ID of the parent of the specified layer.
-	ErrParentUnknown = types.ErrParentUnknown
+	ErrParentUnknown = errors.New("parent of layer not known")
 	// ErrSizeUnknown is returned when the caller asks for the size of a big data item, but the Store couldn't determine the answer.
-	ErrSizeUnknown = types.ErrSizeUnknown
+	ErrSizeUnknown = errors.New("size is not known")
 	// ErrStoreIsReadOnly is returned when the caller makes a call to a read-only store that would require modifying its contents.
-	ErrStoreIsReadOnly = types.ErrStoreIsReadOnly
+	ErrStoreIsReadOnly = errors.New("called a write method on a read-only store")
 )

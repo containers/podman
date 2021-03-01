@@ -24,6 +24,8 @@ var (
 	CopyDir = dirCopy
 )
 
+const defaultPerms = os.FileMode(0555)
+
 func init() {
 	graphdriver.Register("vfs", Init)
 }
@@ -167,15 +169,17 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, ro bool
 		}
 	}()
 
+	rootPerms := defaultPerms
 	if parent != "" {
 		st, err := system.Stat(d.dir(parent))
 		if err != nil {
 			return err
 		}
+		rootPerms = os.FileMode(st.Mode())
 		rootIDs.UID = int(st.UID())
 		rootIDs.GID = int(st.GID())
 	}
-	if err := idtools.MkdirAndChown(dir, 0755, rootIDs); err != nil {
+	if err := idtools.MkdirAndChown(dir, rootPerms, rootIDs); err != nil {
 		return err
 	}
 	labelOpts := []string{"level:s0"}

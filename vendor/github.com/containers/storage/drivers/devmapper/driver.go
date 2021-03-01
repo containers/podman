@@ -20,6 +20,8 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+const defaultPerms = os.FileMode(0555)
+
 func init() {
 	graphdriver.Register("devicemapper", Init)
 }
@@ -215,7 +217,7 @@ func (d *Driver) Get(id string, options graphdriver.MountOpts) (string, error) {
 		return "", err
 	}
 
-	if err := idtools.MkdirAllAs(rootFs, 0755, uid, gid); err != nil {
+	if err := idtools.MkdirAllAs(rootFs, defaultPerms, uid, gid); err != nil {
 		d.ctr.Decrement(mp)
 		d.DeviceSet.UnmountDevice(id, mp)
 		return "", err
