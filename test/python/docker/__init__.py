@@ -8,7 +8,7 @@ import tempfile
 
 from docker import DockerClient
 
-from test.python.docker import constant
+from .compat import constant
 
 
 class Podman(object):
@@ -39,7 +39,9 @@ class Podman(object):
         self.cmd.append("--root=" + os.path.join(self.anchor_directory, "crio"))
         self.cmd.append("--runroot=" + os.path.join(self.anchor_directory, "crio-run"))
 
-        os.environ["REGISTRIES_CONFIG_PATH"] = os.path.join(self.anchor_directory, "registry.conf")
+        os.environ["REGISTRIES_CONFIG_PATH"] = os.path.join(
+            self.anchor_directory, "registry.conf"
+        )
         p = configparser.ConfigParser()
         p.read_dict(
             {
@@ -51,10 +53,14 @@ class Podman(object):
         with open(os.environ["REGISTRIES_CONFIG_PATH"], "w") as w:
             p.write(w)
 
-        os.environ["CNI_CONFIG_PATH"] = os.path.join(self.anchor_directory, "cni", "net.d")
+        os.environ["CNI_CONFIG_PATH"] = os.path.join(
+            self.anchor_directory, "cni", "net.d"
+        )
         os.makedirs(os.environ["CNI_CONFIG_PATH"], exist_ok=True)
         self.cmd.append("--cni-config-dir=" + os.environ["CNI_CONFIG_PATH"])
-        cni_cfg = os.path.join(os.environ["CNI_CONFIG_PATH"], "87-podman-bridge.conflist")
+        cni_cfg = os.path.join(
+            os.environ["CNI_CONFIG_PATH"], "87-podman-bridge.conflist"
+        )
         # json decoded and encoded to ensure legal json
         buf = json.loads(
             """

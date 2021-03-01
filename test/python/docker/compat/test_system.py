@@ -5,7 +5,8 @@ import unittest
 
 from docker import DockerClient
 
-from test.python.docker import Podman, common, constant
+from test.python.docker import Podman, constant
+from test.python.docker.compat import common
 
 
 class TestSystem(unittest.TestCase):
