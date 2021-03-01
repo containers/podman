@@ -247,7 +247,7 @@ func pull(ctx context.Context, runtime *image.Runtime, rawImage string, options 
 	}
 
 	if !options.AllTags {
-		newImage, err := runtime.New(ctx, rawImage, options.SignaturePolicy, options.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, label, options.PullPolicy)
+		newImage, err := runtime.New(ctx, rawImage, options.SignaturePolicy, options.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, label, options.PullPolicy, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -280,7 +280,7 @@ func pull(ctx context.Context, runtime *image.Runtime, rawImage string, options 
 	foundIDs := []string{}
 	for _, tag := range tags {
 		name := rawImage + ":" + tag
-		newImage, err := runtime.New(ctx, name, options.SignaturePolicy, options.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, nil, util.PullImageAlways)
+		newImage, err := runtime.New(ctx, name, options.SignaturePolicy, options.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, nil, util.PullImageAlways, nil)
 		if err != nil {
 			logrus.Errorf("error pulling image %q", name)
 			continue

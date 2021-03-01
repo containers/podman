@@ -1,6 +1,7 @@
 package compat
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,11 +12,13 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod"
 	image2 "github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/pkg/api/handlers"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/containers/podman/v3/pkg/auth"
+	"github.com/containers/podman/v3/pkg/channel"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/gorilla/schema"
@@ -236,33 +239,103 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 	if sys := runtime.SystemContext(); sys != nil {
 		registryOpts.DockerCertPath = sys.DockerCertPath
 	}
-	img, err := runtime.ImageRuntime().New(r.Context(),
-		fromImage,
-		"", // signature policy
-		authfile,
-		nil, // writer
-		&registryOpts,
-		image2.SigningOptions{},
-		nil, // label
-		util.PullImageAlways,
-	)
-	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
-		return
+
+	stderr := channel.NewWriter(make(chan []byte))
+	defer stderr.Close()
+
+	progress := make(chan types.ProgressProperties)
+
+	var img string
+	runCtx, cancel := context.WithCancel(context.Background())
+	go func() {
+		defer cancel()
+
+		newImage, err := runtime.ImageRuntime().New(
+			runCtx,
+			fromImage,
+			"", // signature policy
+			authfile,
+			nil, // writer
+			&registryOpts,
+			image2.SigningOptions{},
+			nil, // label
+			util.PullImageAlways,
+			progress)
+		if err != nil {
+			stderr.Write([]byte(err.Error() + "\n"))
+		} else {
+			img = newImage.ID()
+		}
+	}()
+
+	flush := func() {
+		if flusher, ok := w.(http.Flusher); ok {
+			flusher.Flush()
+		}
 	}
 
-	// Success
-	utils.WriteResponse(w, http.StatusOK, struct {
-		Status         string            `json:"status"`
-		Error          string            `json:"error,omitempty"`
-		Progress       string            `json:"progress"`
-		ProgressDetail map[string]string `json:"progressDetail"`
-		Id             string            `json:"id"` // nolint
-	}{
-		Status:         fmt.Sprintf("pulling image (%s) from %s (Download complete)", img.Tag, strings.Join(img.Names(), ", ")),
-		ProgressDetail: map[string]string{},
-		Id:             img.ID(),
-	})
+	w.WriteHeader(http.StatusOK)
+	w.Header().Add("Content-Type", "application/json")
+	flush()
+
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(true)
+	var failed bool
+
+loop: // break out of for/select infinite loop
+	for {
+		var report struct {
+			Stream   string `json:"stream,omitempty"`
+			Status   string `json:"status,omitempty"`
+			Progress struct {
+				Current uint64 `json:"current,omitempty"`
+				Total   int64  `json:"total,omitempty"`
+			} `json:"progressDetail,omitempty"`
+			Error string `json:"error,omitempty"`
+			Id    string `json:"id,omitempty"` // nolint
+		}
+
+		select {
+		case e := <-progress:
+			switch e.Event {
+			case types.ProgressEventNewArtifact:
+				report.Status = "Pulling fs layer"
+			case types.ProgressEventRead:
+				report.Status = "Downloading"
+				report.Progress.Current = e.Offset
+				report.Progress.Total = e.Artifact.Size
+			case types.ProgressEventSkipped:
+				report.Status = "Already exists"
+			case types.ProgressEventDone:
+				report.Status = "Download complete"
+			}
+			report.Id = e.Artifact.Digest.Encoded()[0:12]
+			if err := enc.Encode(report); err != nil {
+				stderr.Write([]byte(err.Error()))
+			}
+			flush()
+		case e := <-stderr.Chan():
+			failed = true
+			report.Error = string(e)
+			if err := enc.Encode(report); err != nil {
+				logrus.Warnf("Failed to json encode error %q", err.Error())
+			}
+			flush()
+		case <-runCtx.Done():
+			if !failed {
+				report.Status = "Pull complete"
+				report.Id = img[0:12]
+				if err := enc.Encode(report); err != nil {
+					logrus.Warnf("Failed to json encode error %q", err.Error())
+				}
+				flush()
+			}
+			break loop // break out of for/select infinite loop
+		case <-r.Context().Done():
+			// Client has closed connection
+			break loop // break out of for/select infinite loop
+		}
+	}
 }
 
 func GetImage(w http.ResponseWriter, r *http.Request) {

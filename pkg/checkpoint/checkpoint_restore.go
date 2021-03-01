@@ -121,7 +121,7 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 		return nil, err
 	}
 
-	_, err = runtime.ImageRuntime().New(ctx, config.RootfsImageName, rtc.Engine.SignaturePolicyPath, "", writer, nil, image.SigningOptions{}, nil, util.PullImageMissing)
+	_, err = runtime.ImageRuntime().New(ctx, config.RootfsImageName, rtc.Engine.SignaturePolicyPath, "", writer, nil, image.SigningOptions{}, nil, util.PullImageMissing, nil)
 	if err != nil {
 		return nil, err
 	}

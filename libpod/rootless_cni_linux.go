@@ -265,7 +265,7 @@ func startRootlessCNIInfraContainer(ctx context.Context, r *Runtime) (*Container
 	}
 	logrus.Debugf("rootless CNI: ensuring image %q to exist", imageName)
 	newImage, err := r.ImageRuntime().New(ctx, imageName, "", "", nil, nil,
-		image.SigningOptions{}, nil, util.PullImageMissing)
+		image.SigningOptions{}, nil, util.PullImageMissing, nil)
 	if err != nil {
 		return nil, err
 	}
