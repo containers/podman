@@ -628,6 +628,7 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run in custom CNI network with --static-ip", func() {
+		SkipIfRootless("rootless CNI is tech preview in RHEL 8.3.1")
 		netName := stringid.GenerateNonCryptoID()
 		ipAddr := "10.25.30.128"
 		create := podmanTest.Podman([]string{"network", "create", "--subnet", "10.25.30.0/24", netName})
@@ -660,6 +661,7 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run with new:pod and static-ip", func() {
+		SkipIfRootless("rootless CNI is tech preview in RHEL 8.3.1")
 		netName := stringid.GenerateNonCryptoID()
 		ipAddr := "10.25.40.128"
 		podname := "testpod"
@@ -733,6 +735,7 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run check dnsname plugin", func() {
+		SkipIfRootless("rootless CNI is tech preview in RHEL 8.3.1")
 		pod := "testpod"
 		session := podmanTest.Podman([]string{"pod", "create", "--name", pod})
 		session.WaitWithDefaultTimeout()

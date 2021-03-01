@@ -48,6 +48,7 @@ var _ = Describe("Podman run with --mac-address flag", func() {
 	})
 
 	It("Podman run --mac-address with custom network", func() {
+		SkipIfRootless("rootless CNI is tech preview in RHEL 8.3.1")
 		net := "n1" + stringid.GenerateNonCryptoID()
 		session := podmanTest.Podman([]string{"network", "create", net})
 		session.WaitWithDefaultTimeout()
