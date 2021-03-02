@@ -2,6 +2,7 @@ package images
 
 import (
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -512,6 +513,14 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		TransientMounts:         flags.Volumes,
 	}
 
+	if flags.IgnoreFile != "" {
+		excludes, err := parseDockerignore(flags.IgnoreFile)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to obtain decrypt config")
+		}
+		opts.Excludes = excludes
+	}
+
 	if c.Flag("timestamp").Changed {
 		timestamp := time.Unix(flags.Timestamp, 0).UTC()
 		opts.Timestamp = &timestamp
@@ -533,4 +542,19 @@ func getDecryptConfig(decryptionKeys []string) (*encconfig.DecryptConfig, error)
 	}
 
 	return decConfig, nil
+}
+
+func parseDockerignore(ignoreFile string) ([]string, error) {
+	excludes := []string{}
+	ignore, err := ioutil.ReadFile(ignoreFile)
+	if err != nil {
+		return excludes, err
+	}
+	for _, e := range strings.Split(string(ignore), "\n") {
+		if len(e) == 0 || e[0] == '#' {
+			continue
+		}
+		excludes = append(excludes, e)
+	}
+	return excludes, nil
 }

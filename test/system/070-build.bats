@@ -362,6 +362,82 @@ Labels.$label_name | $label_value
     run_podman rmi -f build_test
 }
 
+@test "podman build - COPY with ignore" {
+    local tmpdir=$PODMAN_TMPDIR/build-test-$(random_string 10)
+    mkdir -p $tmpdir/subdir
+
+    # Create a bunch of files. Declare this as an array to avoid duplication
+    # because we iterate over that list below, checking for each file.
+    # A leading "-" indicates that the file SHOULD NOT exist in the built image
+    local -a files=(
+        -test1 -test1.txt
+         test2  test2.txt
+         subdir/sub1  subdir/sub1.txt
+         -subdir/sub2 -subdir/sub2.txt
+         this-file-does-not-match-anything-in-ignore-file
+         comment
+    )
+    for f in ${files[@]}; do
+        # The magic '##-' strips off the '-' prefix
+        echo "$f" > $tmpdir/${f##-}
+    done
+
+    # Directory that doesn't exist in the image; COPY should create it
+    local newdir=/newdir-$(random_string 12)
+    cat >$tmpdir/Containerfile <<EOF
+FROM $IMAGE
+COPY ./ $newdir/
+EOF
+
+    # Run twice: first with a custom --ignorefile, then with a default one.
+    # This ordering is deliberate: if we were to run with .dockerignore
+    # first, and forget to rm it, and then run with --ignorefile, _and_
+    # there was a bug in podman where --ignorefile was a NOP (eg #9570),
+    # the test might pass because of the existence of .dockerfile.
+    for ignorefile in ignoreme-$(random_string 5) .dockerignore; do
+        # Patterns to ignore. Mostly copied from buildah/tests/bud/dockerignore
+        cat >$tmpdir/$ignorefile <<EOF
+# comment
+test*
+!test2*
+subdir
+!*/sub1*
+EOF
+
+        # Build an image. For .dockerignore
+        local -a ignoreflag
+	unset ignoreflag
+        if [[ $ignorefile != ".dockerignore" ]]; then
+            ignoreflag="--ignorefile $tmpdir/$ignorefile"
+        fi
+        run_podman build -t build_test ${ignoreflag} $tmpdir
+
+        # Delete the ignore file! Otherwise, in the next iteration of the loop,
+        # we could end up with an existing .dockerignore that invisibly
+        # takes precedence over --ignorefile
+        rm -f $tmpdir/$ignorefile
+
+        # It would be much more readable, and probably safer, to iterate
+        # over each file, running 'podman run ... ls -l $f'. But each podman run
+        # takes a second or so, and we are mindful of each second.
+        run_podman run --rm build_test find $newdir -type f
+        for f in ${files[@]}; do
+            if [[ $f =~ ^- ]]; then
+                f=${f##-}
+                if [[ $output =~ $f ]]; then
+                    die "File '$f' found in image; it should have been ignored via $ignorefile"
+                fi
+            else
+                is "$output" ".*$newdir/$f" \
+                   "File '$f' should exist in container (no match in $ignorefile)"
+            fi
+        done
+
+        # Clean up
+        run_podman rmi -f build_test
+    done
+}
+
 @test "podman build - stdin test" {
     # Random workdir, and random string to verify build output
     workdir=/$(random_string 10)
