@@ -29,7 +29,6 @@ func (c *Container) ReadLog(ctx context.Context, options *logs.LogOptions, logCh
 	case define.NoLogging:
 		return errors.Wrapf(define.ErrNoLogs, "this container is using the 'none' log driver, cannot read logs")
 	case define.JournaldLogging:
-		// TODO Skip sending logs until journald logs can be read
 		return c.readFromJournal(ctx, options, logChannel)
 	case define.JSONLogging:
 		// TODO provide a separate implementation of this when Conmon

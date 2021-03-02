@@ -52,6 +52,7 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 		if time.Now().Before(options.Since) {
 			return nil
 		}
+		// coreos/go-systemd/sdjournal expects a negative time.Duration for times in the past
 		config.Since = -time.Since(options.Since)
 	}
 	config.Matches = append(config.Matches, journal.Match{
