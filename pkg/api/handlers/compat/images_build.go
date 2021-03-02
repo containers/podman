@@ -104,6 +104,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Squash      bool     `schema:"squash"`
 		Tag         []string `schema:"t"`
 		Target      string   `schema:"target"`
+		Timestamp   int64    `schema:"timestamp"`
 	}{
 		Dockerfile: "Dockerfile",
 		Registry:   "docker.io",
@@ -316,6 +317,11 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			DockerAuthConfig: creds,
 		},
 		Target: query.Target,
+	}
+
+	if _, found := r.URL.Query()["timestamp"]; found {
+		ts := time.Unix(query.Timestamp, 0)
+		buildOptions.Timestamp = &ts
 	}
 
 	runCtx, cancel := context.WithCancel(context.Background())

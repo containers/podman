@@ -185,6 +185,12 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	if options.Squash {
 		params.Set("squash", "1")
 	}
+
+	if options.Timestamp != nil {
+		t := *options.Timestamp
+		params.Set("timestamp", strconv.FormatInt(t.Unix(), 10))
+	}
+
 	var (
 		headers map[string]string
 		err     error

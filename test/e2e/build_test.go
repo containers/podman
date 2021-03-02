@@ -532,4 +532,20 @@ RUN grep CapEff /proc/self/status`
 		// Then
 		Expect(session.ExitCode()).To(Equal(125))
 	})
+
+	It("podman build --timestamp flag", func() {
+		containerfile := `FROM quay.io/libpod/alpine:latest
+RUN echo hello`
+
+		containerfilePath := filepath.Join(podmanTest.TempDir, "Containerfile")
+		err := ioutil.WriteFile(containerfilePath, []byte(containerfile), 0755)
+		Expect(err).To(BeNil())
+		session := podmanTest.Podman([]string{"build", "-t", "test", "--timestamp", "0", "--file", containerfilePath, podmanTest.TempDir})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"image", "inspect", "--format", "{{ .Created }}", "test"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.OutputToString()).To(Equal("1970-01-01 00:00:00 +0000 UTC"))
+	})
 })
