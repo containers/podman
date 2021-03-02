@@ -19,7 +19,7 @@ const (
 // Request and Response are encoded as JSON with uint32le length header.
 type Request struct {
 	Type  string // "init" or "connect"
-	Proto string // "tcp" or "udp"
+	Proto string // "tcp", "tcp4", "tcp6", "udp", "udp4", "udp6"
 	IP    string
 	Port  int
 }
