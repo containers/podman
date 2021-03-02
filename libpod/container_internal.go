@@ -467,7 +467,7 @@ func (c *Container) setupStorage(ctx context.Context) error {
 
 	processLabel := containerInfo.ProcessLabel
 	switch {
-	case c.ociRuntime.SupportsKVM():
+	case c.ociRuntime.SupportsKVM(), strings.Contains(strings.ToLower(filepath.Base(c.ociRuntime.Path())), "kata"):
 		processLabel, err = selinux.KVMLabel(processLabel)
 		if err != nil {
 			return err
