@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"context"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -349,10 +350,6 @@ func (c *Container) Mount() (string, error) {
 		}
 	}
 
-	if c.state.State == define.ContainerStateRemoving {
-		return "", errors.Wrapf(define.ErrCtrStateInvalid, "cannot mount container %s as it is being removed", c.ID())
-	}
-
 	defer c.newContainerEvent(events.Mount)
 	return c.mount()
 }
@@ -367,7 +364,6 @@ func (c *Container) Unmount(force bool) error {
 			return err
 		}
 	}
-
 	if c.state.Mounted {
 		mounted, err := c.runtime.storageService.MountedContainerImage(c.ID())
 		if err != nil {
@@ -847,31 +843,59 @@ func (c *Container) ShouldRestart(ctx context.Context) bool {
 	return c.shouldRestart()
 }
 
-// ResolvePath resolves the specified path on the root for the container.  The
-// root must either be the mounted image of the container or the already
-// mounted container storage.
-//
-// It returns the resolved root and the resolved path.  Note that the path may
-// resolve to the container's mount point or to a volume or bind mount.
-func (c *Container) ResolvePath(ctx context.Context, root string, path string) (string, string, error) {
-	logrus.Debugf("Resolving path %q (root %q) on container %s", path, root, c.ID())
-
-	// Minimal sanity checks.
-	if len(root)*len(path) == 0 {
-		return "", "", errors.Wrapf(define.ErrInternal, "ResolvePath: root (%q) and path (%q) must be non empty", root, path)
-	}
-	if _, err := os.Stat(root); err != nil {
-		return "", "", errors.Wrapf(err, "cannot locate root to resolve path on container %s", c.ID())
-	}
-
+// CopyFromArchive copies the contents from the specified tarStream to path
+// *inside* the container.
+func (c *Container) CopyFromArchive(ctx context.Context, containerPath string, tarStream io.Reader) (func() error, error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
 		if err := c.syncContainer(); err != nil {
-			return "", "", err
+			return nil, err
 		}
 	}
 
-	return c.resolvePath(root, path)
+	return c.copyFromArchive(ctx, containerPath, tarStream)
+}
+
+// CopyToArchive copies the contents from the specified path *inside* the
+// container to the tarStream.
+func (c *Container) CopyToArchive(ctx context.Context, containerPath string, tarStream io.Writer) (func() error, error) {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return nil, err
+		}
+	}
+
+	return c.copyToArchive(ctx, containerPath, tarStream)
+}
+
+// Stat the specified path *inside* the container and return a file info.
+func (c *Container) Stat(ctx context.Context, containerPath string) (*define.FileInfo, error) {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return nil, err
+		}
+	}
+
+	var mountPoint string
+	var err error
+	if c.state.Mounted {
+		mountPoint = c.state.Mountpoint
+	} else {
+		mountPoint, err = c.mount()
+		if err != nil {
+			return nil, err
+		}
+		defer c.unmount(false)
+	}
+
+	info, _, _, err := c.stat(ctx, mountPoint, containerPath)
+	return info, err
 }

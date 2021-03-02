@@ -189,8 +189,9 @@ func copyFromContainer(container string, containerPath string, hostPath string) 
 		}
 
 		putOptions := buildahCopiah.PutOptions{
-			ChownDirs:  &idPair,
-			ChownFiles: &idPair,
+			ChownDirs:     &idPair,
+			ChownFiles:    &idPair,
+			IgnoreDevices: true,
 		}
 		if !containerInfo.IsDir && (!hostInfo.IsDir || hostInfoErr != nil) {
 			// If we're having a file-to-file copy, make sure to
