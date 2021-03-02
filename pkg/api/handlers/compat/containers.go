@@ -321,6 +321,19 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 			Type:        portMapping.Protocol,
 		}
 	}
+	inspect, err := l.Inspect(false)
+	if err != nil {
+		return nil, err
+	}
+
+	n, err := json.Marshal(inspect.NetworkSettings)
+	if err != nil {
+		return nil, err
+	}
+	networkSettings := types.SummaryNetworkSettings{}
+	if err := json.Unmarshal(n, &networkSettings); err != nil {
+		return nil, err
+	}
 
 	return &handlers.Container{Container: types.Container{
 		ID:         l.ID(),
@@ -339,7 +352,7 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 			NetworkMode string `json:",omitempty"`
 		}{
 			"host"},
-		NetworkSettings: nil,
+		NetworkSettings: &networkSettings,
 		Mounts:          nil,
 	},
 		ContainerCreateConfig: types.ContainerCreateConfig{},
