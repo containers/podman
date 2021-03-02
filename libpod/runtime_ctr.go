@@ -74,8 +74,7 @@ func (r *Runtime) RestoreContainer(ctx context.Context, rSpec *spec.Spec, config
 }
 
 // RenameContainer renames the given container.
-// The given container object will be rendered unusable, and a new, renamed
-// Container will be returned.
+// Returns a copy of the container that has been renamed if successful.
 func (r *Runtime) RenameContainer(ctx context.Context, ctr *Container, newName string) (*Container, error) {
 	ctr.lock.Lock()
 	defer ctr.lock.Unlock()
@@ -88,26 +87,6 @@ func (r *Runtime) RenameContainer(ctx context.Context, ctr *Container, newName s
 		return nil, define.RegexError
 	}
 
-	// Check if the name is available.
-	// This is *100% NOT ATOMIC* so any failures in-flight will do
-	// *VERY BAD THINGS* to the state. So we have to try and catch all we
-	// can before starting.
-	if _, err := r.state.LookupContainerID(newName); err == nil {
-		return nil, errors.Wrapf(define.ErrCtrExists, "name %s is already in use by another container", newName)
-	}
-	if _, err := r.state.LookupPod(newName); err == nil {
-		return nil, errors.Wrapf(define.ErrPodExists, "name %s is already in use by another pod", newName)
-	}
-
-	// TODO: Investigate if it is possible to remove this limitation.
-	depCtrs, err := r.state.ContainerInUse(ctr)
-	if err != nil {
-		return nil, err
-	}
-	if len(depCtrs) > 0 {
-		return nil, errors.Wrapf(define.ErrCtrExists, "cannot rename container %s as it is in use by other containers: %v", ctr.ID(), strings.Join(depCtrs, ","))
-	}
-
 	// We need to pull an updated config, in case another rename fired and
 	// the config was re-written.
 	newConf, err := r.state.GetContainerConfig(ctr.ID())
@@ -116,95 +95,33 @@ func (r *Runtime) RenameContainer(ctx context.Context, ctr *Container, newName s
 	}
 	ctr.config = newConf
 
-	// TODO: This is going to fail if we have active exec sessions, too.
-	// Investigate fixing that at a later date.
-
-	var pod *Pod
-	if ctr.config.Pod != "" {
-		tmpPod, err := r.state.Pod(ctr.config.Pod)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error retrieving container %s pod", ctr.ID())
-		}
-		pod = tmpPod
-		// Lock pod to ensure it's not removed while we're working
-		pod.lock.Lock()
-		defer pod.lock.Unlock()
-	}
-
-	// Lock all volumes to ensure they are not removed while we're working
-	volsLocked := make(map[string]bool)
-	for _, namedVol := range ctr.config.NamedVolumes {
-		if volsLocked[namedVol.Name] {
-			continue
-		}
-		vol, err := r.state.Volume(namedVol.Name)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error retrieving volume used by container %s", ctr.ID())
-		}
-
-		volsLocked[vol.Name()] = true
-		vol.lock.Lock()
-		defer vol.lock.Unlock()
-	}
-
 	logrus.Infof("Going to rename container %s from %q to %q", ctr.ID(), ctr.Name(), newName)
 
-	// Step 1: remove the old container.
-	if pod != nil {
-		if err := r.state.RemoveContainerFromPod(pod, ctr); err != nil {
-			return nil, errors.Wrapf(err, "error renaming container %s", ctr.ID())
-		}
-	} else {
-		if err := r.state.RemoveContainer(ctr); err != nil {
-			return nil, errors.Wrapf(err, "error renaming container %s", ctr.ID())
-		}
+	// Step 1: Alter the config. Save the old name, we need it to rewrite
+	// the config.
+	oldName := ctr.config.Name
+	ctr.config.Name = newName
+
+	// Step 2: rewrite the old container's config in the DB.
+	if err := r.state.SafeRewriteContainerConfig(ctr, oldName, ctr.config.Name, ctr.config); err != nil {
+		// Assume the rename failed.
+		// Set config back to the old name so reflect what is actually
+		// present in the DB.
+		ctr.config.Name = oldName
+		return nil, errors.Wrapf(err, "error renaming container %s", ctr.ID())
 	}
 
-	// Step 2: Make a new container based on the old one.
-	// TODO: Should we deep-copy the container config and state, to be safe?
-	newCtr := new(Container)
-	newCtr.config = ctr.config
-	newCtr.state = ctr.state
-	newCtr.lock = ctr.lock
-	newCtr.ociRuntime = ctr.ociRuntime
-	newCtr.runtime = r
-	newCtr.rootlessSlirpSyncR = ctr.rootlessSlirpSyncR
-	newCtr.rootlessSlirpSyncW = ctr.rootlessSlirpSyncW
-	newCtr.rootlessPortSyncR = ctr.rootlessPortSyncR
-	newCtr.rootlessPortSyncW = ctr.rootlessPortSyncW
-
-	newCtr.valid = true
-	newCtr.config.Name = newName
-
-	// Step 3: Add that new container to the DB
-	if pod != nil {
-		if err := r.state.AddContainerToPod(pod, newCtr); err != nil {
-			return nil, errors.Wrapf(err, "error renaming container %s", newCtr.ID())
-		}
-	} else {
-		if err := r.state.AddContainer(newCtr); err != nil {
-			return nil, errors.Wrapf(err, "error renaming container %s", newCtr.ID())
-		}
-	}
-
-	// Step 4: Save the new container, to force the state to be written to
-	// the DB. This may not be necessary, depending on DB implementation,
-	// but let's do it to be safe.
-	if err := newCtr.save(); err != nil {
-		return nil, err
-	}
-
-	// Step 5: rename the container in c/storage.
+	// Step 3: rename the container in c/storage.
 	// This can fail if the name is already in use by a non-Podman
 	// container. This puts us in a bad spot - we've already renamed the
 	// container in Podman. We can swap the order, but then we have the
 	// opposite problem. Atomicity is a real problem here, with no easy
 	// solution.
-	if err := r.store.SetNames(newCtr.ID(), []string{newCtr.Name()}); err != nil {
+	if err := r.store.SetNames(ctr.ID(), []string{ctr.Name()}); err != nil {
 		return nil, err
 	}
 
-	return newCtr, nil
+	return ctr, nil
 }
 
 func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConfig) (*Container, error) {
