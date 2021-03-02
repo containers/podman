@@ -168,6 +168,9 @@ EOF
         CAT_SECRET="cat /run/secrets/$secret_filename"
     fi
 
+    # For --dns-search: a domain that is unlikely to exist
+    local nosuchdomain=nx$(random_string 10).net
+
     # Command to run on container startup with no args
     cat >$tmpdir/mycmd <<EOF
 #!/bin/sh
@@ -218,16 +221,21 @@ RUN chown 2:3 /bin/mydefaultcmd
 RUN $CAT_SECRET
 
 CMD ["/bin/mydefaultcmd","$s_echo"]
+RUN cat /etc/resolv.conf
 EOF
 
     # cd to the dir, so we test relative paths (important for podman-remote)
     cd $PODMAN_TMPDIR
     run_podman ${MOUNTS_CONF} build \
+               --dns-search $nosuchdomain \
                -t build_test -f build-test/Containerfile build-test
     local iid="${lines[-1]}"
 
     # Make sure 'podman build' had the secret mounted
     is "$output" ".*$secret_contents.*" "podman build has /run/secrets mounted"
+
+    is "$output" ".*search $nosuchdomain" \
+       "--dns-search added to /etc/resolv.conf"
 
     if is_remote; then
         ENVHOST=""

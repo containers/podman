@@ -20,7 +20,6 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/utils"
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -299,6 +298,11 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		}
 	}
 
+	commonOpts, err := parse.CommonBuildOptions(c)
+	if err != nil {
+		return nil, err
+	}
+
 	pullPolicy := imagebuildah.PullIfMissing
 	if c.Flags().Changed("pull") && flags.Pull {
 		pullPolicy = imagebuildah.PullAlways
@@ -360,22 +364,6 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		stdout = logfile
 		stderr = logfile
 		reporter = logfile
-	}
-
-	var memoryLimit, memorySwap int64
-	var err error
-	if c.Flags().Changed("memory") {
-		memoryLimit, err = units.RAMInBytes(flags.Memory)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if c.Flags().Changed("memory-swap") {
-		memorySwap, err = units.RAMInBytes(flags.MemorySwap)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	nsValues, networkPolicy, err := parse.NamespaceOptions(c)
@@ -455,29 +443,15 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 	}
 
 	opts := imagebuildah.BuildOptions{
-		AddCapabilities: flags.CapAdd,
-		AdditionalTags:  tags,
-		Annotations:     flags.Annotation,
-		Architecture:    arch,
-		Args:            args,
-		BlobDirectory:   flags.BlobCache,
-		CNIConfigDir:    flags.CNIConfigDir,
-		CNIPluginPath:   flags.CNIPlugInPath,
-		CommonBuildOpts: &buildah.CommonBuildOptions{
-			AddHost:      flags.AddHost,
-			CPUPeriod:    flags.CPUPeriod,
-			CPUQuota:     flags.CPUQuota,
-			CPUSetCPUs:   flags.CPUSetCPUs,
-			CPUSetMems:   flags.CPUSetMems,
-			CPUShares:    flags.CPUShares,
-			CgroupParent: flags.CgroupParent,
-			HTTPProxy:    flags.HTTPProxy,
-			Memory:       memoryLimit,
-			MemorySwap:   memorySwap,
-			ShmSize:      flags.ShmSize,
-			Ulimit:       flags.Ulimit,
-			Volumes:      flags.Volumes,
-		},
+		AddCapabilities:         flags.CapAdd,
+		AdditionalTags:          tags,
+		Annotations:             flags.Annotation,
+		Architecture:            arch,
+		Args:                    args,
+		BlobDirectory:           flags.BlobCache,
+		CNIConfigDir:            flags.CNIConfigDir,
+		CNIPluginPath:           flags.CNIPlugInPath,
+		CommonBuildOpts:         commonOpts,
 		Compression:             compression,
 		ConfigureNetwork:        networkPolicy,
 		ContextDirectory:        contextDir,

@@ -77,6 +77,9 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Devices                string `schema:"devices"`
 		Dockerfile             string `schema:"dockerfile"`
 		DropCapabilities       string `schema:"dropcaps"`
+		DNSServers             string `schema:"dnsservers"`
+		DNSOptions             string `schema:"dnsoptions"`
+		DNSSearch              string `schema:"dnssearch"`
 		Excludes               string `schema:"excludes"`
 		ForceRm                bool   `schema:"forcerm"`
 		From                   string `schema:"from"`
@@ -158,6 +161,36 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		devices = m
+	}
+
+	var dnsservers = []string{}
+	if _, found := r.URL.Query()["dnsservers"]; found {
+		var m = []string{}
+		if err := json.Unmarshal([]byte(query.DNSServers), &m); err != nil {
+			utils.BadRequest(w, "dnsservers", query.DNSServers, err)
+			return
+		}
+		dnsservers = m
+	}
+
+	var dnsoptions = []string{}
+	if _, found := r.URL.Query()["dnsoptions"]; found {
+		var m = []string{}
+		if err := json.Unmarshal([]byte(query.DNSOptions), &m); err != nil {
+			utils.BadRequest(w, "dnsoptions", query.DNSOptions, err)
+			return
+		}
+		dnsoptions = m
+	}
+
+	var dnssearch = []string{}
+	if _, found := r.URL.Query()["dnssearch"]; found {
+		var m = []string{}
+		if err := json.Unmarshal([]byte(query.DNSSearch), &m); err != nil {
+			utils.BadRequest(w, "dnssearches", query.DNSSearch, err)
+			return
+		}
+		dnssearch = m
 	}
 
 	var output string
@@ -285,6 +318,9 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			CPUQuota:   query.CpuQuota,
 			CPUShares:  query.CpuShares,
 			CPUSetCPUs: query.CpuSetCpus,
+			DNSServers: dnsservers,
+			DNSOptions: dnsoptions,
+			DNSSearch:  dnssearch,
 			HTTPProxy:  query.HTTPProxy,
 			Memory:     query.Memory,
 			MemorySwap: query.MemSwap,
