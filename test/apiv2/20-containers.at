@@ -246,3 +246,13 @@ t GET containers/$cid/json 200 \
   .Mounts[0].Destination="/test"
 
 t DELETE containers/$cid?v=true 204
+
+# test port mapping
+podman run -d --rm --name bar -p 8080:9090 $IMAGE top
+
+t GET containers/json 200 \
+  .[0].Ports[0].PrivatePort=9090 \
+  .[0].Ports[0].PublicPort=8080 \
+  .[0].Ports[0].Type="tcp"
+
+podman stop bar

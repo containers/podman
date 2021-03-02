@@ -307,6 +307,21 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 		}
 	}
 
+	portMappings, err := l.PortMappings()
+	if err != nil {
+		return nil, err
+	}
+
+	ports := make([]types.Port, len(portMappings))
+	for idx, portMapping := range portMappings {
+		ports[idx] = types.Port{
+			IP:          portMapping.HostIP,
+			PrivatePort: uint16(portMapping.ContainerPort),
+			PublicPort:  uint16(portMapping.HostPort),
+			Type:        portMapping.Protocol,
+		}
+	}
+
 	return &handlers.Container{Container: types.Container{
 		ID:         l.ID(),
 		Names:      []string{fmt.Sprintf("/%s", l.Name())},
@@ -314,7 +329,7 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 		ImageID:    imageID,
 		Command:    strings.Join(l.Command(), " "),
 		Created:    l.CreatedTime().Unix(),
-		Ports:      nil,
+		Ports:      ports,
 		SizeRw:     sizeRW,
 		SizeRootFs: sizeRootFs,
 		Labels:     l.Labels(),
