@@ -15,6 +15,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/rootless-containers/rootlesskit/pkg/api"
 	"github.com/rootless-containers/rootlesskit/pkg/port"
 	"github.com/rootless-containers/rootlesskit/pkg/port/builtin/msg"
 	"github.com/rootless-containers/rootlesskit/pkg/port/builtin/opaque"
@@ -54,6 +55,14 @@ type driver struct {
 	ports              map[int]*port.Status
 	stoppers           map[int]func() error
 	nextID             int
+}
+
+func (d *driver) Info(ctx context.Context) (*api.PortDriverInfo, error) {
+	info := &api.PortDriverInfo{
+		Driver: "builtin",
+		Protos: []string{"tcp", "tcp4", "tcp6", "udp", "udp4", "udp6"},
+	}
+	return info, nil
 }
 
 func (d *driver) OpaqueForChild() map[string]string {
@@ -134,9 +143,9 @@ func (d *driver) AddPort(ctx context.Context, spec port.Spec) (*port.Status, err
 		return nil // FIXME
 	}
 	switch spec.Proto {
-	case "tcp":
+	case "tcp", "tcp4", "tcp6":
 		err = tcp.Run(d.socketPath, spec, routineStopCh, d.logWriter)
-	case "udp":
+	case "udp", "udp4", "udp6":
 		err = udp.Run(d.socketPath, spec, routineStopCh, d.logWriter)
 	default:
 		// NOTREACHED

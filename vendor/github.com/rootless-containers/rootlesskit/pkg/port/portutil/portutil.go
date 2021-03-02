@@ -152,7 +152,10 @@ func ValidatePortSpec(spec port.Spec, existingPorts map[int]*port.Status) error 
 
 func validateProto(proto string) error {
 	switch proto {
-	case "tcp", "udp", "sctp":
+	case
+		"tcp", "tcp4", "tcp6",
+		"udp", "udp4", "udp6",
+		"sctp", "sctp4", "sctp6":
 		return nil
 	default:
 		return errors.Errorf("unknown proto: %q", proto)

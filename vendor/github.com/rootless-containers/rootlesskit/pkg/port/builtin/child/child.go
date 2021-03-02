@@ -1,10 +1,11 @@
 package child
 
 import (
-	"fmt"
 	"io"
 	"net"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
@@ -101,10 +102,16 @@ func (d *childDriver) handleConnectInit(c *net.UnixConn, req *msg.Request) error
 func (d *childDriver) handleConnectRequest(c *net.UnixConn, req *msg.Request) error {
 	switch req.Proto {
 	case "tcp":
+	case "tcp4":
+	case "tcp6":
 	case "udp":
+	case "udp4":
+	case "udp6":
 	default:
 		return errors.Errorf("unknown proto: %q", req.Proto)
 	}
+	// dialProto does not need "4", "6" suffix
+	dialProto := strings.TrimSuffix(strings.TrimSuffix(req.Proto, "6"), "4")
 	var dialer net.Dialer
 	ip := req.IP
 	if ip == "" {
@@ -114,13 +121,9 @@ func (d *childDriver) handleConnectRequest(c *net.UnixConn, req *msg.Request) er
 		if p == nil {
 			return errors.Errorf("invalid IP: %q", ip)
 		}
-		p = p.To4()
-		if p == nil {
-			return errors.Errorf("unsupported IP (v6?): %s", ip)
-		}
 		ip = p.String()
 	}
-	targetConn, err := dialer.Dial(req.Proto, fmt.Sprintf("%s:%d", ip, req.Port))
+	targetConn, err := dialer.Dial(dialProto, net.JoinHostPort(ip, strconv.Itoa(req.Port)))
 	if err != nil {
 		return err
 	}
