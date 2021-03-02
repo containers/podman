@@ -212,6 +212,7 @@ var _ = Describe("Podman cp", func() {
 
 	// Copy the root dir "/" of a container to the host.
 	It("podman cp the root directory from the ctr to an existing directory on the host ", func() {
+		SkipIfRootless("cannot copy tty devices in rootless mode")
 		container := "copyroottohost"
 		session := podmanTest.RunTopContainer(container)
 		session.WaitWithDefaultTimeout()
