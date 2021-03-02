@@ -40,7 +40,21 @@ func ListSecrets(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, reports)
+	if utils.IsLibpodRequest(r) {
+		utils.WriteResponse(w, http.StatusOK, reports)
+		return
+	}
+	// Docker compat expects a version field that increments when the secret is updated
+	// We currently can't update a secret, so we default the version to 1
+	compatReports := make([]entities.SecretInfoReportCompat, 0, len(reports))
+	for _, report := range reports {
+		compatRep := entities.SecretInfoReportCompat{
+			SecretInfoReport: *report,
+			Version:          entities.SecretVersion{Index: 1},
+		}
+		compatReports = append(compatReports, compatRep)
+	}
+	utils.WriteResponse(w, http.StatusOK, compatReports)
 }
 
 func InspectSecret(w http.ResponseWriter, r *http.Request) {
@@ -59,7 +73,21 @@ func InspectSecret(w http.ResponseWriter, r *http.Request) {
 		utils.SecretNotFound(w, name, errs[0])
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, reports[0])
+	if len(reports) < 1 {
+		utils.InternalServerError(w, err)
+		return
+	}
+	if utils.IsLibpodRequest(r) {
+		utils.WriteResponse(w, http.StatusOK, reports[0])
+		return
+	}
+	// Docker compat expects a version field that increments when the secret is updated
+	// We currently can't update a secret, so we default the version to 1
+	compatReport := entities.SecretInfoReportCompat{
+		SecretInfoReport: *reports[0],
+		Version:          entities.SecretVersion{Index: 1},
+	}
+	utils.WriteResponse(w, http.StatusOK, compatReport)
 }
 
 func RemoveSecret(w http.ResponseWriter, r *http.Request) {

@@ -115,7 +115,7 @@ func (s *APIServer) registerSecretHandlers(r *mux.Router) error {
 	// parameters:
 	// responses:
 	//   '200':
-	//     "$ref": "#/responses/SecretListResponse"
+	//     "$ref": "#/responses/SecretListCompatResponse"
 	//   '500':
 	//      "$ref": "#/responses/InternalError"
 	r.Handle(VersionedPath("/secrets"), s.APIHandler(compat.ListSecrets)).Methods(http.MethodGet)
@@ -158,7 +158,7 @@ func (s *APIServer) registerSecretHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   '200':
-	//     "$ref": "#/responses/SecretInspectResponse"
+	//     "$ref": "#/responses/SecretInspectCompatResponse"
 	//   '404':
 	//     "$ref": "#/responses/NoSuchSecret"
 	//   '500':
