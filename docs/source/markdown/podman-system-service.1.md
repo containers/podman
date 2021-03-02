@@ -34,7 +34,7 @@ Print usage statement.
 
 Run an API listening for 5 seconds using the default socket.
 ```
-podman system service --timeout 5000
+podman system service --time 5
 ```
 
 ## SEE ALSO
