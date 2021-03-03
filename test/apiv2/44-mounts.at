@@ -4,7 +4,7 @@ podman pull $IMAGE &>/dev/null
 
 # Test various HostConfig options
 tmpfs_name="/mytmpfs"
-t POST containers/create?name=hostconfig_test '"Image":"'$IMAGE'","Cmd":["df"],"HostConfig":{"TmpFs":{"'$tmpfs_name'":"rw"}}' 201 \
+t POST containers/create?name=hostconfig_test '"Image":"'$IMAGE'","Cmd":["df"],"HostConfig":{"Binds":["/tmp/doesnotexist:/test1"],"TmpFs":{"'$tmpfs_name'":"rw"}}' 201 \
   .Id~[0-9a-f]\\{64\\}
 cid=$(jq -r '.Id' <<<"$output")
 
