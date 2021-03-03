@@ -42,6 +42,15 @@ type SecretInfoReport struct {
 	Spec      SecretSpec
 }
 
+type SecretInfoReportCompat struct {
+	SecretInfoReport
+	Version SecretVersion
+}
+
+type SecretVersion struct {
+	Index int
+}
+
 type SecretSpec struct {
 	Name   string
 	Driver SecretDriverSpec
@@ -78,11 +87,25 @@ type SwagSecretListResponse struct {
 	Body []*SecretInfoReport
 }
 
+// Secret list response
+// swagger:response SecretListCompatResponse
+type SwagSecretListCompatResponse struct {
+	// in:body
+	Body []*SecretInfoReportCompat
+}
+
 // Secret inspect response
 // swagger:response SecretInspectResponse
 type SwagSecretInspectResponse struct {
 	// in:body
 	Body SecretInfoReport
+}
+
+// Secret inspect compat
+// swagger:response SecretInspectCompatResponse
+type SwagSecretInspectCompatResponse struct {
+	// in:body
+	Body SecretInfoReportCompat
 }
 
 // No such secret
