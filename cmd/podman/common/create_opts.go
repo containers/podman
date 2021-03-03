@@ -13,6 +13,7 @@ import (
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/specgen"
+	"github.com/pkg/errors"
 )
 
 type ContainerCLIOpts struct {
@@ -394,6 +395,13 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 			}
 			cliOpts.Ulimit = ulimits
 		}
+	}
+	if cc.HostConfig.Resources.NanoCPUs > 0 {
+		if cliOpts.CPUPeriod != 0 || cliOpts.CPUQuota != 0 {
+			return nil, nil, errors.Errorf("NanoCpus conflicts with CpuPeriod and CpuQuota")
+		}
+		cliOpts.CPUPeriod = 100000
+		cliOpts.CPUQuota = cc.HostConfig.Resources.NanoCPUs / 10000
 	}
 
 	// volumes
