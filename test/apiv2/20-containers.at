@@ -31,6 +31,13 @@ t GET libpod/containers/json?all=true 200 \
   .[0].ExitCode=0 \
   .[0].IsInfra=false
 
+# Test compat API for Network Settings
+t GET /containers/json?all=true 200 \
+  length=1 \
+  .[0].Id~[0-9a-f]\\{64\\} \
+  .[0].Image=$IMAGE \
+  .[0].NetworkSettings.Networks.podman.NetworkID=podman
+
 # Make sure `limit` works.
 t GET libpod/containers/json?limit=1 200 \
   length=1 \
