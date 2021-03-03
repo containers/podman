@@ -265,6 +265,9 @@ func build(cmd *cobra.Command, args []string) error {
 	}
 
 	report, err := registry.ImageEngine().Build(registry.GetContext(), containerFiles, *apiBuildOpts)
+	if err != nil {
+		return err
+	}
 
 	if cmd.Flag("iidfile").Changed {
 		f, err := os.Create(buildOpts.Iidfile)
@@ -276,7 +279,7 @@ func build(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	return err
+	return nil
 }
 
 // buildFlagsWrapperToOptions converts the local build flags to the build options used
