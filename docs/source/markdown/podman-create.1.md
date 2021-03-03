@@ -859,7 +859,7 @@ Security Options
 
 - `unmask=ALL or /path/1:/path/2` : Paths to unmask separated by a colon. If set to **ALL**, it will
   unmask all the paths that are masked or made read only by default.
-  The default masked paths are **/proc/acpi, /proc/kcore, /proc/keys, /proc/latency_stats, /proc/sched_debug, /proc/scsi, /proc/timer_list, /proc/timer_stats, /sys/firmware, and /sys/fs/selinux.**  The default paths that are read only are **/proc/asound, /proc/bus, /proc/fs, /proc/irq, /proc/sys, /proc/sysrq-trigger**.
+  The default masked paths are **/proc/acpi, /proc/kcore, /proc/keys, /proc/latency_stats, /proc/sched_debug, /proc/scsi, /proc/timer_list, /proc/timer_stats, /sys/firmware, and /sys/fs/selinux.**  The default paths that are read only are **/proc/asound, /proc/bus, /proc/fs, /proc/irq, /proc/sys, /proc/sysrq-trigger, /sys/fs/cgroup**.
 
 - `proc-opts=OPTIONS` : Comma separated list of options to use for the /proc mount. More details for the
   possible mount options are specified at **proc(5)** man page.
