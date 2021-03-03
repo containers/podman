@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/containers/buildah/copier"
 	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/podman/v3/libpod/define"
@@ -135,7 +136,7 @@ func (c *Container) ControlSocketPath() string {
 
 // CheckpointPath returns the path to the directory containing the checkpoint
 func (c *Container) CheckpointPath() string {
-	return filepath.Join(c.bundlePath(), "checkpoint")
+	return filepath.Join(c.bundlePath(), metadata.CheckpointDirectory)
 }
 
 // PreCheckpointPath returns the path to the directory containing the pre-checkpoint-images
@@ -2141,26 +2142,11 @@ func (c *Container) canWithPrevious() error {
 	return err
 }
 
-// writeJSONFile marshalls and writes the given data to a JSON file
-// in the bundle path
-func (c *Container) writeJSONFile(v interface{}, file string) error {
-	fileJSON, err := json.MarshalIndent(v, "", "  ")
-	if err != nil {
-		return errors.Wrapf(err, "error writing JSON to %s for container %s", file, c.ID())
-	}
-	file = filepath.Join(c.bundlePath(), file)
-	if err := ioutil.WriteFile(file, fileJSON, 0644); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // prepareCheckpointExport writes the config and spec to
 // JSON files for later export
 func (c *Container) prepareCheckpointExport() error {
 	// save live config
-	if err := c.writeJSONFile(c.Config(), "config.dump"); err != nil {
+	if _, err := metadata.WriteJSONFile(c.Config(), c.bundlePath(), metadata.ConfigDumpFile); err != nil {
 		return err
 	}
 
@@ -2171,7 +2157,7 @@ func (c *Container) prepareCheckpointExport() error {
 		logrus.Debugf("generating spec for container %q failed with %v", c.ID(), err)
 		return err
 	}
-	if err := c.writeJSONFile(g.Config, "spec.dump"); err != nil {
+	if _, err := metadata.WriteJSONFile(g.Config, c.bundlePath(), metadata.SpecDumpFile); err != nil {
 		return err
 	}
 

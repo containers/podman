@@ -19,6 +19,7 @@ import (
 	"syscall"
 	"time"
 
+	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/buildah/pkg/chrootuser"
@@ -33,6 +34,7 @@ import (
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/pkg/annotations"
 	"github.com/containers/podman/v3/pkg/cgroups"
+	"github.com/containers/podman/v3/pkg/checkpoint/crutils"
 	"github.com/containers/podman/v3/pkg/criu"
 	"github.com/containers/podman/v3/pkg/lookup"
 	"github.com/containers/podman/v3/pkg/resolvconf"
@@ -884,80 +886,32 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 	logrus.Debugf("Exporting checkpoint image of container %q to %q", c.ID(), options.TargetFile)
 
 	includeFiles := []string{
-		"checkpoint",
 		"artifacts",
 		"ctr.log",
-		"config.dump",
-		"spec.dump",
-		"network.status"}
+		metadata.CheckpointDirectory,
+		metadata.ConfigDumpFile,
+		metadata.SpecDumpFile,
+		metadata.NetworkStatusFile,
+	}
 
 	if options.PreCheckPoint {
 		includeFiles[0] = "pre-checkpoint"
 	}
 	// Get root file-system changes included in the checkpoint archive
-	rootfsDiffPath := filepath.Join(c.bundlePath(), "rootfs-diff.tar")
-	deleteFilesList := filepath.Join(c.bundlePath(), "deleted.files")
+	var addToTarFiles []string
 	if !options.IgnoreRootfs {
 		// To correctly track deleted files, let's go through the output of 'podman diff'
-		tarFiles, err := c.runtime.GetDiff("", c.ID())
+		rootFsChanges, err := c.runtime.GetDiff("", c.ID())
 		if err != nil {
-			return errors.Wrapf(err, "error exporting root file-system diff to %q", rootfsDiffPath)
-		}
-		var rootfsIncludeFiles []string
-		var deletedFiles []string
-
-		for _, file := range tarFiles {
-			if file.Kind == archive.ChangeAdd {
-				rootfsIncludeFiles = append(rootfsIncludeFiles, file.Path)
-				continue
-			}
-			if file.Kind == archive.ChangeDelete {
-				deletedFiles = append(deletedFiles, file.Path)
-				continue
-			}
-			fileName, err := os.Stat(file.Path)
-			if err != nil {
-				continue
-			}
-			if !fileName.IsDir() && file.Kind == archive.ChangeModify {
-				rootfsIncludeFiles = append(rootfsIncludeFiles, file.Path)
-				continue
-			}
+			return errors.Wrapf(err, "error exporting root file-system diff for %q", c.ID())
 		}
 
-		if len(rootfsIncludeFiles) > 0 {
-			rootfsTar, err := archive.TarWithOptions(c.state.Mountpoint, &archive.TarOptions{
-				Compression:      archive.Uncompressed,
-				IncludeSourceDir: true,
-				IncludeFiles:     rootfsIncludeFiles,
-			})
-			if err != nil {
-				return errors.Wrapf(err, "error exporting root file-system diff to %q", rootfsDiffPath)
-			}
-			rootfsDiffFile, err := os.Create(rootfsDiffPath)
-			if err != nil {
-				return errors.Wrapf(err, "error creating root file-system diff file %q", rootfsDiffPath)
-			}
-			defer rootfsDiffFile.Close()
-			_, err = io.Copy(rootfsDiffFile, rootfsTar)
-			if err != nil {
-				return err
-			}
-
-			includeFiles = append(includeFiles, "rootfs-diff.tar")
+		addToTarFiles, err := crutils.CRCreateRootFsDiffTar(&rootFsChanges, c.state.Mountpoint, c.bundlePath())
+		if err != nil {
+			return err
 		}
 
-		if len(deletedFiles) > 0 {
-			formatJSON, err := json.MarshalIndent(deletedFiles, "", "     ")
-			if err != nil {
-				return errors.Wrapf(err, "error creating delete files list file %q", deleteFilesList)
-			}
-			if err := ioutil.WriteFile(deleteFilesList, formatJSON, 0600); err != nil {
-				return errors.Wrap(err, "error creating delete files list file")
-			}
-
-			includeFiles = append(includeFiles, "deleted.files")
-		}
+		includeFiles = append(includeFiles, addToTarFiles...)
 	}
 
 	// Folder containing archived volumes that will be included in the export
@@ -1034,8 +988,9 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 		return err
 	}
 
-	os.Remove(rootfsDiffPath)
-	os.Remove(deleteFilesList)
+	for _, file := range addToTarFiles {
+		os.Remove(filepath.Join(c.bundlePath(), file))
+	}
 
 	if !options.IgnoreVolumes {
 		os.RemoveAll(expVolDir)
@@ -1054,23 +1009,6 @@ func (c *Container) checkpointRestoreSupported() error {
 	return nil
 }
 
-func (c *Container) checkpointRestoreLabelLog(fileName string) error {
-	// Create the CRIU log file and label it
-	dumpLog := filepath.Join(c.bundlePath(), fileName)
-
-	logFile, err := os.OpenFile(dumpLog, os.O_CREATE, 0600)
-	if err != nil {
-		return errors.Wrap(err, "failed to create CRIU log file")
-	}
-	if err := logFile.Close(); err != nil {
-		logrus.Error(err)
-	}
-	if err = label.SetFileLabel(dumpLog, c.MountLabel()); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointOptions) error {
 	if err := c.checkpointRestoreSupported(); err != nil {
 		return err
@@ -1084,7 +1022,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		return errors.Errorf("cannot checkpoint containers that have been started with '--rm' unless '--export' is used")
 	}
 
-	if err := c.checkpointRestoreLabelLog("dump.log"); err != nil {
+	if err := crutils.CRCreateFileWithLabel(c.bundlePath(), "dump.log", c.MountLabel()); err != nil {
 		return err
 	}
 
@@ -1095,11 +1033,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	// Save network.status. This is needed to restore the container with
 	// the same IP. Currently limited to one IP address in a container
 	// with one interface.
-	formatJSON, err := json.MarshalIndent(c.state.NetworkStatus, "", "     ")
-	if err != nil {
-		return err
-	}
-	if err := ioutil.WriteFile(filepath.Join(c.bundlePath(), "network.status"), formatJSON, 0644); err != nil {
+	if _, err := metadata.WriteJSONFile(c.state.NetworkStatus, c.bundlePath(), metadata.NetworkStatusFile); err != nil {
 		return err
 	}
 
@@ -1115,7 +1049,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	}
 
 	if options.TargetFile != "" {
-		if err = c.exportCheckpoint(options); err != nil {
+		if err := c.exportCheckpoint(options); err != nil {
 			return err
 		}
 	}
@@ -1135,8 +1069,8 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		cleanup := []string{
 			"dump.log",
 			"stats-dump",
-			"config.dump",
-			"spec.dump",
+			metadata.ConfigDumpFile,
+			metadata.SpecDumpFile,
 		}
 		for _, del := range cleanup {
 			file := filepath.Join(c.bundlePath(), del)
@@ -1151,28 +1085,13 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 }
 
 func (c *Container) importCheckpoint(input string) error {
-	archiveFile, err := os.Open(input)
-	if err != nil {
-		return errors.Wrap(err, "failed to open checkpoint archive for import")
-	}
-
-	defer archiveFile.Close()
-	options := &archive.TarOptions{
-		ExcludePatterns: []string{
-			// config.dump and spec.dump are only required
-			// container creation
-			"config.dump",
-			"spec.dump",
-		},
-	}
-	err = archive.Untar(archiveFile, c.bundlePath(), options)
-	if err != nil {
-		return errors.Wrapf(err, "unpacking of checkpoint archive %s failed", input)
+	if err := crutils.CRImportCheckpointWithoutConfig(c.bundlePath(), input); err != nil {
+		return err
 	}
 
 	// Make sure the newly created config.json exists on disk
 	g := generate.Generator{Config: c.config.Spec}
-	if err = c.saveSpec(g.Config); err != nil {
+	if err := c.saveSpec(g.Config); err != nil {
 		return errors.Wrap(err, "saving imported container specification for restore failed")
 	}
 
@@ -1221,7 +1140,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		return errors.Wrapf(err, "a complete checkpoint for this container cannot be found, cannot restore")
 	}
 
-	if err := c.checkpointRestoreLabelLog("restore.log"); err != nil {
+	if err := crutils.CRCreateFileWithLabel(c.bundlePath(), "restore.log", c.MountLabel()); err != nil {
 		return err
 	}
 
@@ -1244,7 +1163,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 
 	// Read network configuration from checkpoint
 	// Currently only one interface with one IP is supported.
-	networkStatusFile, err := os.Open(filepath.Join(c.bundlePath(), "network.status"))
+	networkStatus, _, err := metadata.ReadContainerCheckpointNetworkStatus(c.bundlePath())
 	// If the restored container should get a new name, the IP address of
 	// the container will not be restored. This assumes that if a new name is
 	// specified, the container is restored multiple times.
@@ -1254,43 +1173,14 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	if err == nil && options.Name == "" && (!options.IgnoreStaticIP || !options.IgnoreStaticMAC) {
 		// The file with the network.status does exist. Let's restore the
 		// container with the same IP address / MAC address as during checkpointing.
-		defer networkStatusFile.Close()
-		var networkStatus []*cnitypes.Result
-		networkJSON, err := ioutil.ReadAll(networkStatusFile)
-		if err != nil {
-			return err
-		}
-		if err := json.Unmarshal(networkJSON, &networkStatus); err != nil {
-			return err
-		}
 		if !options.IgnoreStaticIP {
-			// Take the first IP address
-			var IP net.IP
-			if len(networkStatus) > 0 {
-				if len(networkStatus[0].IPs) > 0 {
-					IP = networkStatus[0].IPs[0].Address.IP
-				}
-			}
-			if IP != nil {
+			if IP := metadata.GetIPFromNetworkStatus(networkStatus); IP != nil {
 				// Tell CNI which IP address we want.
 				c.requestedIP = IP
 			}
 		}
 		if !options.IgnoreStaticMAC {
-			// Take the first device with a defined sandbox.
-			var MAC net.HardwareAddr
-			if len(networkStatus) > 0 {
-				for _, n := range networkStatus[0].Interfaces {
-					if n.Sandbox != "" {
-						MAC, err = net.ParseMAC(n.Mac)
-						if err != nil {
-							return err
-						}
-						break
-					}
-				}
-			}
-			if MAC != nil {
+			if MAC := metadata.GetMACFromNetworkStatus(networkStatus); MAC != nil {
 				// Tell CNI which MAC address we want.
 				c.requestedMAC = MAC
 			}
@@ -1398,36 +1288,12 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 
 	// Before actually restarting the container, apply the root file-system changes
 	if !options.IgnoreRootfs {
-		rootfsDiffPath := filepath.Join(c.bundlePath(), "rootfs-diff.tar")
-		if _, err := os.Stat(rootfsDiffPath); err == nil {
-			// Only do this if a rootfs-diff.tar actually exists
-			rootfsDiffFile, err := os.Open(rootfsDiffPath)
-			if err != nil {
-				return errors.Wrap(err, "failed to open root file-system diff file")
-			}
-			defer rootfsDiffFile.Close()
-			if err := c.runtime.ApplyDiffTarStream(c.ID(), rootfsDiffFile); err != nil {
-				return errors.Wrapf(err, "failed to apply root file-system diff file %s", rootfsDiffPath)
-			}
+		if err := crutils.CRApplyRootFsDiffTar(c.bundlePath(), c.state.Mountpoint); err != nil {
+			return err
 		}
-		deletedFilesPath := filepath.Join(c.bundlePath(), "deleted.files")
-		if _, err := os.Stat(deletedFilesPath); err == nil {
-			var deletedFiles []string
-			deletedFilesJSON, err := ioutil.ReadFile(deletedFilesPath)
-			if err != nil {
-				return errors.Wrapf(err, "failed to read deleted files file")
-			}
-			if err := json.Unmarshal(deletedFilesJSON, &deletedFiles); err != nil {
-				return errors.Wrapf(err, "failed to unmarshal deleted files file %s", deletedFilesPath)
-			}
-			for _, deleteFile := range deletedFiles {
-				// Using RemoveAll as deletedFiles, which is generated from 'podman diff'
-				// lists completely deleted directories as a single entry: 'D /root'.
-				err = os.RemoveAll(filepath.Join(c.state.Mountpoint, deleteFile))
-				if err != nil {
-					return errors.Wrapf(err, "failed to delete files from container %s during restore", c.ID())
-				}
-			}
+
+		if err := crutils.CRRemoveDeletedFiles(c.ID(), c.bundlePath(), c.state.Mountpoint); err != nil {
+			return err
 		}
 	}
 
@@ -1452,7 +1318,15 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		if err != nil {
 			logrus.Debugf("Non-fatal: removal of pre-checkpoint directory (%s) failed: %v", c.PreCheckPointPath(), err)
 		}
-		cleanup := [...]string{"restore.log", "dump.log", "stats-dump", "stats-restore", "network.status", "rootfs-diff.tar", "deleted.files"}
+		cleanup := [...]string{
+			"restore.log",
+			"dump.log",
+			"stats-dump",
+			"stats-restore",
+			metadata.NetworkStatusFile,
+			metadata.RootFsDiffTar,
+			metadata.DeletedFilesFile,
+		}
 		for _, del := range cleanup {
 			file := filepath.Join(c.bundlePath(), del)
 			err = os.Remove(file)
