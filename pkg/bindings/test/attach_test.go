@@ -35,7 +35,7 @@ var _ = Describe("Podman containers attach", func() {
 
 	It("can run top in container", func() {
 		name := "TopAttachTest"
-		id, err := bt.RunTopContainer(&name, nil, nil)
+		id, err := bt.RunTopContainer(&name, nil)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		tickTock := time.NewTimer(2 * time.Second)

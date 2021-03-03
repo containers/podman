@@ -14,6 +14,7 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/containers/podman/v3/pkg/terminal"
+	"github.com/containers/podman/v3/version"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -25,7 +26,7 @@ var (
 	BasePath = &url.URL{
 		Scheme: "http",
 		Host:   "d",
-		Path:   "/v" + APIVersion.String() + "/libpod",
+		Path:   "/v" + version.APIVersion[version.Libpod][version.CurrentAPI].String() + "/libpod",
 	}
 )
 
@@ -168,15 +169,16 @@ func pingNewConnection(ctx context.Context) error {
 			return err
 		}
 
-		switch APIVersion.Compare(versionSrv) {
+		switch version.APIVersion[version.Libpod][version.MinimalAPI].Compare(versionSrv) {
 		case -1, 0:
 			// Server's job when Client version is equal or older
 			return nil
 		case 1:
-			return errors.Errorf("server API version is too old. Client %q server %q", APIVersion.String(), versionSrv.String())
+			return errors.Errorf("server API version is too old. Client %q server %q",
+				version.APIVersion[version.Libpod][version.MinimalAPI].String(), versionSrv.String())
 		}
 	}
-	return errors.Errorf("ping response was %q", response.StatusCode)
+	return errors.Errorf("ping response was %d", response.StatusCode)
 }
 
 func sshClient(_url *url.URL, secure bool, passPhrase string, identity string) (Connection, error) {

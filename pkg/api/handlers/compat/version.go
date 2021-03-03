@@ -10,6 +10,7 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/version"
 	docker "github.com/docker/docker/api/types"
 	"github.com/pkg/errors"
 )
@@ -35,20 +36,20 @@ func VersionHandler(w http.ResponseWriter, r *http.Request) {
 		Name:    "Podman Engine",
 		Version: versionInfo.Version,
 		Details: map[string]string{
-			"APIVersion":    utils.APIVersion[utils.LibpodTree][utils.CurrentAPIVersion].String(),
+			"APIVersion":    version.APIVersion[version.Libpod][version.CurrentAPI].String(),
 			"Arch":          goRuntime.GOARCH,
 			"BuildTime":     time.Unix(versionInfo.Built, 0).Format(time.RFC3339),
 			"Experimental":  "true",
 			"GitCommit":     versionInfo.GitCommit,
 			"GoVersion":     versionInfo.GoVersion,
 			"KernelVersion": infoData.Host.Kernel,
-			"MinAPIVersion": utils.APIVersion[utils.LibpodTree][utils.MinimalAPIVersion].String(),
+			"MinAPIVersion": version.APIVersion[version.Libpod][version.MinimalAPI].String(),
 			"Os":            goRuntime.GOOS,
 		},
 	}}
 
-	apiVersion := utils.APIVersion[utils.CompatTree][utils.CurrentAPIVersion]
-	minVersion := utils.APIVersion[utils.CompatTree][utils.MinimalAPIVersion]
+	apiVersion := version.APIVersion[version.Compat][version.CurrentAPI]
+	minVersion := version.APIVersion[version.Compat][version.MinimalAPI]
 
 	utils.WriteResponse(w, http.StatusOK, entities.ComponentVersion{
 		Version: docker.Version{

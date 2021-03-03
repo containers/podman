@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/containers/podman/v3/pkg/api/handlers"
-	"github.com/containers/podman/v3/pkg/bindings"
 	"github.com/containers/podman/v3/pkg/bindings/containers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -33,7 +32,7 @@ var _ = Describe("Podman containers exec", func() {
 
 	It("Podman exec create makes an exec session", func() {
 		name := "testCtr"
-		cid, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
+		cid, err := bt.RunTopContainer(&name, nil)
 		Expect(err).To(BeNil())
 
 		execConfig := new(handlers.ExecCreateConfig)
@@ -53,7 +52,7 @@ var _ = Describe("Podman containers exec", func() {
 
 	It("Podman exec create with bad command fails", func() {
 		name := "testCtr"
-		_, err := bt.RunTopContainer(&name, bindings.PFalse, nil)
+		_, err := bt.RunTopContainer(&name, nil)
 		Expect(err).To(BeNil())
 
 		execConfig := new(handlers.ExecCreateConfig)

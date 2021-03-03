@@ -10,49 +10,14 @@ import (
 	"unsafe"
 
 	"github.com/blang/semver"
+	"github.com/containers/podman/v3/version"
 	"github.com/gorilla/mux"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
-type (
-	// VersionTree determines which API endpoint tree for version
-	VersionTree int
-	// VersionLevel determines which API level, current or something from the past
-	VersionLevel int
-)
-
-const (
-	// LibpodTree supports Libpod endpoints
-	LibpodTree = VersionTree(iota)
-	// CompatTree supports Libpod endpoints
-	CompatTree
-
-	// CurrentAPIVersion announces what is the current API level
-	CurrentAPIVersion = VersionLevel(iota)
-	// MinimalAPIVersion announces what is the oldest API level supported
-	MinimalAPIVersion
-)
-
 var (
-	// See https://docs.docker.com/engine/api/v1.40/
-	// libpod compat handlers are expected to honor docker API versions
-
-	// APIVersion provides the current and minimal API versions for compat and libpod endpoint trees
-	// Note: GET|HEAD /_ping is never versioned and provides the API-Version and Libpod-API-Version headers to allow
-	//       clients to shop for the Version they wish to support
-	APIVersion = map[VersionTree]map[VersionLevel]semver.Version{
-		LibpodTree: {
-			CurrentAPIVersion: semver.MustParse("3.0.0"),
-			MinimalAPIVersion: semver.MustParse("3.0.0"),
-		},
-		CompatTree: {
-			CurrentAPIVersion: semver.MustParse("1.40.0"),
-			MinimalAPIVersion: semver.MustParse("1.24.0"),
-		},
-	}
-
 	// ErrVersionNotGiven returned when version not given by client
 	ErrVersionNotGiven = errors.New("version not given in URL path")
 	// ErrVersionNotSupported returned when given version is too old
@@ -98,14 +63,14 @@ func SupportedVersion(r *http.Request, condition string) (semver.Version, error)
 // SupportedVersionWithDefaults validates that the version provided by client valid is supported by server
 // minimal API version <= client path version <= maximum API version focused on the endpoint tree from URL
 func SupportedVersionWithDefaults(r *http.Request) (semver.Version, error) {
-	tree := CompatTree
+	tree := version.Compat
 	if IsLibpodRequest(r) {
-		tree = LibpodTree
+		tree = version.Libpod
 	}
 
 	return SupportedVersion(r,
-		fmt.Sprintf(">=%s <=%s", APIVersion[tree][MinimalAPIVersion].String(),
-			APIVersion[tree][CurrentAPIVersion].String()))
+		fmt.Sprintf(">=%s <=%s", version.APIVersion[tree][version.MinimalAPI].String(),
+			version.APIVersion[tree][version.CurrentAPI].String()))
 }
 
 // WriteResponse encodes the given value as JSON or string and renders it for http client

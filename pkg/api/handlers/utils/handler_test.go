@@ -7,17 +7,18 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/containers/podman/v3/version"
 	"github.com/gorilla/mux"
 )
 
 func TestSupportedVersion(t *testing.T) {
 	req, err := http.NewRequest("GET",
-		fmt.Sprintf("/v%s/libpod/testing/versions", APIVersion[LibpodTree][CurrentAPIVersion]),
+		fmt.Sprintf("/v%s/libpod/testing/versions", version.APIVersion[version.Libpod][version.CurrentAPI]),
 		nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	req = mux.SetURLVars(req, map[string]string{"version": APIVersion[LibpodTree][CurrentAPIVersion].String()})
+	req = mux.SetURLVars(req, map[string]string{"version": version.APIVersion[version.Libpod][version.CurrentAPI].String()})
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
