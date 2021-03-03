@@ -113,9 +113,11 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 
 	// TODO: probe OCI runtime for feature and enable automatically if
 	// available.
-	runtime.supportsJSON = supportsJSON[name]
-	runtime.supportsNoCgroups = supportsNoCgroups[name]
-	runtime.supportsKVM = supportsKVM[name]
+
+	base := filepath.Base(name)
+	runtime.supportsJSON = supportsJSON[base]
+	runtime.supportsNoCgroups = supportsNoCgroups[base]
+	runtime.supportsKVM = supportsKVM[base]
 
 	foundPath := false
 	for _, path := range paths {

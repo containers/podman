@@ -2,6 +2,7 @@ package integration
 
 import (
 	"os"
+	"path/filepath"
 
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -293,5 +294,53 @@ var _ = Describe("Podman run", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("container_t"))
+	})
+
+	It("podman test --ipc=net", func() {
+		session := podmanTest.Podman([]string{"run", "--net=host", ALPINE, "cat", "/proc/self/attr/current"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("container_t"))
+	})
+
+	It("podman test --ipc=net", func() {
+		session := podmanTest.Podman([]string{"run", "--net=host", ALPINE, "cat", "/proc/self/attr/current"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("container_t"))
+	})
+
+	It("podman test --runtime=/PATHTO/kata-runtime", func() {
+		runtime := podmanTest.OCIRuntime
+		podmanTest.OCIRuntime = filepath.Join(podmanTest.TempDir, "kata-runtime")
+		err := os.Symlink("/bin/true", podmanTest.OCIRuntime)
+		Expect(err).To(BeNil())
+		if IsRemote() {
+			podmanTest.StopRemoteService()
+			podmanTest.StartRemoteService()
+		}
+		session := podmanTest.Podman([]string{"create", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid := session.OutputToString()
+		session = podmanTest.Podman([]string{"inspect", "--format", "{{ .ProcessLabel }}", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(ContainSubstring("container_kvm_t"))
+
+		podmanTest.OCIRuntime = runtime
+		if IsRemote() {
+			podmanTest.StopRemoteService()
+			podmanTest.StartRemoteService()
+		}
+	})
+
+	It("podman test init labels", func() {
+		session := podmanTest.Podman([]string{"create", ubi_init, "/sbin/init"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid := session.OutputToString()
+		session = podmanTest.Podman([]string{"inspect", "--format", "{{ .ProcessLabel }}", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(ContainSubstring("container_init_t"))
 	})
 })
