@@ -509,6 +509,11 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		TransientMounts:         flags.Volumes,
 	}
 
+	if c.Flag("timestamp").Changed {
+		timestamp := time.Unix(flags.Timestamp, 0).UTC()
+		opts.Timestamp = &timestamp
+	}
+
 	return &entities.BuildOptions{BuildOptions: opts}, nil
 }
 
