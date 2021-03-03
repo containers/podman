@@ -89,4 +89,25 @@ var _ = Describe("podman rename", func() {
 		Expect(ps.ExitCode()).To(Equal(0))
 		Expect(ps.OutputToString()).To(ContainSubstring(newName))
 	})
+
+	It("Rename a running container with exec sessions", func() {
+		ctrName := "testCtr"
+		ctr := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, ALPINE, "top"})
+		ctr.WaitWithDefaultTimeout()
+		Expect(ctr.ExitCode()).To(Equal(0))
+
+		exec := podmanTest.Podman([]string{"exec", "-d", ctrName, "top"})
+		exec.WaitWithDefaultTimeout()
+		Expect(exec.ExitCode()).To(Equal(0))
+
+		newName := "aNewName"
+		rename := podmanTest.Podman([]string{"rename", ctrName, newName})
+		rename.WaitWithDefaultTimeout()
+		Expect(rename.ExitCode()).To(Equal(0))
+
+		ps := podmanTest.Podman([]string{"ps", "-aq", "--filter", fmt.Sprintf("name=%s", newName), "--format", "{{ .Names }}"})
+		ps.WaitWithDefaultTimeout()
+		Expect(ps.ExitCode()).To(Equal(0))
+		Expect(ps.OutputToString()).To(ContainSubstring(newName))
+	})
 })

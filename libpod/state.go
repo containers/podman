@@ -155,6 +155,19 @@ type State interface {
 	// answer is this: use this only very sparingly, and only if you really
 	// know what you're doing.
 	RewriteContainerConfig(ctr *Container, newCfg *ContainerConfig) error
+	// This is a more limited version of RewriteContainerConfig, though it
+	// comes with the added ability to alter a container's name. In exchange
+	// it loses the ability to manipulate the container's locks.
+	// It is not intended to be as restrictive as RewriteContainerConfig, in
+	// that we allow it to be run while other Podman processes are running,
+	// and without holding the alive lock.
+	// Container ID and pod membership still *ABSOLUTELY CANNOT* be altered.
+	// Also, you cannot change a container's dependencies - shared namespace
+	// containers or generic dependencies - at present. This is
+	// theoretically possible but not yet implemented.
+	// If newName is not "" the container will be renamed to the new name.
+	// The oldName parameter is only required if newName is given.
+	SafeRewriteContainerConfig(ctr *Container, oldName, newName string, newCfg *ContainerConfig) error
 	// PLEASE READ THE DESCRIPTION FOR RewriteContainerConfig BEFORE USING.
 	// This function is identical to RewriteContainerConfig, save for the
 	// fact that it is used with pods instead.
