@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 	"net"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/specgen"
+	"github.com/pkg/errors"
 )
 
 type ContainerCLIOpts struct {
@@ -397,6 +399,7 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 	}
 
 	// volumes
+	volSources := make(map[string]bool)
 	volDestinations := make(map[string]bool)
 	for _, vol := range cc.HostConfig.Binds {
 		cliOpts.Volume = append(cliOpts.Volume, vol)
@@ -407,6 +410,7 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 		case 1:
 			volDestinations[vol] = true
 		default:
+			volSources[splitVol[0]] = true
 			volDestinations[splitVol[1]] = true
 		}
 	}
@@ -420,6 +424,19 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 			continue
 		}
 		cliOpts.Volume = append(cliOpts.Volume, vol)
+	}
+	// Make mount points for compat volumes
+	for vol := range volSources {
+		// This might be a named volume.
+		// Assume it is if it's not an absolute path.
+		if !filepath.IsAbs(vol) {
+			continue
+		}
+		if err := os.MkdirAll(vol, 0755); err != nil {
+			if !os.IsExist(err) {
+				return nil, nil, errors.Wrapf(err, "error making volume mountpoint for volume %s", vol)
+			}
+		}
 	}
 	if len(cc.HostConfig.BlkioWeightDevice) > 0 {
 		devices := make([]string, 0, len(cc.HostConfig.BlkioWeightDevice))
