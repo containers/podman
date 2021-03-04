@@ -222,9 +222,17 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	// convert label formats
 	var labels = []string{}
 	if _, found := r.URL.Query()["labels"]; found {
-		if err := json.Unmarshal([]byte(query.Labels), &labels); err != nil {
-			utils.BadRequest(w, "labels", query.Labels, err)
-			return
+		makeLabels := make(map[string]string)
+		err := json.Unmarshal([]byte(query.Labels), &makeLabels)
+		if err == nil {
+			for k, v := range makeLabels {
+				labels = append(labels, k+"="+v)
+			}
+		} else {
+			if err := json.Unmarshal([]byte(query.Labels), &labels); err != nil {
+				utils.BadRequest(w, "labels", query.Labels, err)
+				return
+			}
 		}
 	}
 	jobs := 1
