@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/containers/podman/v3/pkg/auth"
+	"github.com/containers/podman/v3/version"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -55,10 +56,10 @@ func (s *APIServer) APIHandler(h http.HandlerFunc) http.HandlerFunc {
 			c = context.WithValue(c, "idletracker", s.idleTracker)    // nolint
 			r = r.WithContext(c)
 
-			cv := utils.APIVersion[utils.CompatTree][utils.CurrentAPIVersion]
+			cv := version.APIVersion[version.Compat][version.CurrentAPI]
 			w.Header().Set("API-Version", fmt.Sprintf("%d.%d", cv.Major, cv.Minor))
 
-			lv := utils.APIVersion[utils.LibpodTree][utils.CurrentAPIVersion].String()
+			lv := version.APIVersion[version.Libpod][version.CurrentAPI].String()
 			w.Header().Set("Libpod-API-Version", lv)
 			w.Header().Set("Server", "Libpod/"+lv+" ("+runtime.GOOS+")")
 
@@ -72,5 +73,5 @@ func (s *APIServer) APIHandler(h http.HandlerFunc) http.HandlerFunc {
 // VersionedPath prepends the version parsing code
 // any handler may override this default when registering URL(s)
 func VersionedPath(p string) string {
-	return "/v{version:[0-9][0-9.]*}" + p
+	return "/v{version:[0-9][0-9A-Za-z.-]*}" + p
 }
