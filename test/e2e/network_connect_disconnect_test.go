@@ -193,6 +193,13 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		exec = podmanTest.Podman([]string{"exec", "-it", "test", "ip", "addr", "show", "eth1"})
 		exec.WaitWithDefaultTimeout()
 		Expect(exec.ExitCode()).To(BeZero())
+
+		// make sure no logrus errors are shown https://github.com/containers/podman/issues/9602
+		rm := podmanTest.Podman([]string{"rm", "-f", "test"})
+		rm.WaitWithDefaultTimeout()
+		Expect(rm.ExitCode()).To(BeZero())
+		Expect(rm.ErrorToString()).To(Equal(""))
+
 	})
 
 	It("podman network connect when not running", func() {

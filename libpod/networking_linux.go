@@ -809,7 +809,7 @@ func (r *Runtime) teardownCNI(ctr *Container) error {
 			requestedMAC = ctr.config.StaticMAC
 		}
 
-		podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), networks, ctr.config.PortMappings, requestedIP, requestedMAC, ContainerNetworkDescriptions{})
+		podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), networks, ctr.config.PortMappings, requestedIP, requestedMAC, ctr.state.NetInterfaceDescriptions)
 
 		if err := r.netPlugin.TearDownPod(podNetwork); err != nil {
 			return errors.Wrapf(err, "error tearing down CNI namespace configuration for container %s", ctr.ID())
