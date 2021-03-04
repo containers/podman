@@ -583,8 +583,9 @@ func (ir *ImageEngine) Remove(ctx context.Context, images []string, opts entitie
 			report.Deleted = append(report.Deleted, results.Deleted)
 			report.Untagged = append(report.Untagged, results.Untagged...)
 			return nil
-		case storage.ErrImageUnknown:
-			// The image must have been removed already (see #6510).
+		case storage.ErrImageUnknown, storage.ErrLayerUnknown:
+			// The image must have been removed already (see #6510)
+			// or the storage is corrupted (see #9617).
 			report.Deleted = append(report.Deleted, img.ID())
 			report.Untagged = append(report.Untagged, img.ID())
 			return nil
