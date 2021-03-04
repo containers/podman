@@ -39,15 +39,15 @@ function check_label() {
 }
 
 @test "podman selinux: container with label=disable" {
-    skip_if_rootless
-
     check_label "--security-opt label=disable" "spc_t"
 }
 
 @test "podman selinux: privileged container" {
-    skip_if_rootless
-
     check_label "--privileged --userns=host" "spc_t"
+}
+
+@test "podman selinux: init container" {
+    check_label "--systemd=always" "container_init_t"
 }
 
 @test "podman selinux: pid=host" {
@@ -72,6 +72,18 @@ function check_label() {
 
 @test "podman selinux: container with overridden range" {
     check_label "--security-opt label=level:s0:c1,c2" "container_t" "s0:c1,c2"
+}
+
+@test "podman selinux: inspect kvm labels" {
+    skip_if_no_selinux
+    skip_if_remote "runtime flag is not passed over remote"
+    if [ ! -e /usr/bin/kata-runtime ]; then
+        skip "kata-runtime not available"
+    fi
+
+    run_podman create --runtime=kata --name myc $IMAGE
+    run_podman inspect --format='{{ .ProcessLabel }}' myc
+    is "$output" ".*container_kvm_t.*"
 }
 
 # pr #6752
