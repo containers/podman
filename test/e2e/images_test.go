@@ -188,23 +188,23 @@ WORKDIR /test
 	})
 
 	It("podman images filter since image", func() {
-		dockerfile := `FROM quay.io/libpod/alpine:latest
+		dockerfile := `FROM quay.io/libpod/alpine:3.2
 `
 		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest", "false")
 		result := podmanTest.Podman([]string{"images", "-q", "-f", "since=quay.io/libpod/alpine:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(7))
+		Expect(len(result.OutputToStringArray())).To(Equal(8))
 	})
 
 	It("podman image list filter after image", func() {
-		dockerfile := `FROM quay.io/libpod/alpine:latest
+		dockerfile := `FROM quay.io/libpod/alpine:3.2
 `
 		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest", "false")
 		result := podmanTest.Podman([]string{"image", "list", "-q", "-f", "after=quay.io/libpod/alpine:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(result.OutputToStringArray()).Should(HaveLen(7), "list filter output: %q", result.OutputToString())
+		Expect(result.OutputToStringArray()).Should(HaveLen(8), "list filter output: %q", result.OutputToString())
 	})
 
 	It("podman images filter dangling", func() {
