@@ -1304,9 +1304,7 @@ func (c *Container) stop(timeout uint) error {
 		c.lock.Unlock()
 	}
 
-	if err := c.ociRuntime.StopContainer(c, timeout, all); err != nil {
-		return err
-	}
+	stopErr := c.ociRuntime.StopContainer(c, timeout, all)
 
 	if !c.batched {
 		c.lock.Lock()
@@ -1315,11 +1313,21 @@ func (c *Container) stop(timeout uint) error {
 			// If the container has already been removed (e.g., via
 			// the cleanup process), there's nothing left to do.
 			case define.ErrNoSuchCtr, define.ErrCtrRemoved:
-				return nil
+				return stopErr
 			default:
+				if stopErr != nil {
+					logrus.Errorf("Error syncing container %s status: %v", c.ID(), err)
+					return stopErr
+				}
 				return err
 			}
 		}
+	}
+
+	// We have to check stopErr *after* we lock again - otherwise, we have a
+	// change of panicing on a double-unlock. Ref: GH Issue 9615
+	if stopErr != nil {
+		return stopErr
 	}
 
 	// Since we're now subject to a race condition with other processes who
