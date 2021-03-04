@@ -56,9 +56,6 @@ func getSystemContext(store storage.Store, defaults *types.SystemContext, signat
 		sc.SignaturePolicyPath = signaturePolicyPath
 	}
 	if store != nil {
-		if sc.BlobInfoCacheDir == "" {
-			sc.BlobInfoCacheDir = filepath.Join(store.GraphRoot(), "cache")
-		}
 		if sc.SystemRegistriesConfPath == "" && unshare.IsRootless() {
 			userRegistriesFile := filepath.Join(store.GraphRoot(), "registries.conf")
 			if _, err := os.Stat(userRegistriesFile); err == nil {

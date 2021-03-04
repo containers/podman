@@ -1,3 +1,16 @@
+
+- Changelog for v1.19.6 (2021-02-18)
+  * Bump c/containers/storage v1.24.6
+  * Don't fail copy to emptydir
+  * Workaround for RHEL gating test failure
+  * Fix config-flags-verification test on F33
+  * Fix bud capabilities test
+  * Stop overriding the location of the blob info cache
+  * Fix caching layers with build args
+
+- Changelog for v1.19.5 (2021-02-09)
+  * Vendor in latest containers/image and common
+
 - Changelog for v1.19.4 (2021-02-06)
   * run: fix check for host pid namespace
   * bump containernetworking/cni library to v0.8.1 - fix for CVE-2021-20206

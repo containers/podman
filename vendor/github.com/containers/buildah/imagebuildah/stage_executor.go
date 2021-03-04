@@ -834,11 +834,12 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 		// Check if there's already an image based on our parent that
 		// has the same change that we're about to make, so far as we
 		// can tell.
-		// Only do this if there were no build args given by the user,
+		// Only do this if the step we are on is not an ARG step,
 		// we need to call ib.Run() to correctly put the args together before
 		// determining if a cached layer with the same build args already exists
 		// and that is done in the if block below.
-		if checkForLayers && len(s.builder.Args) == 0 {
+		if checkForLayers && step.Command != "arg" {
+
 			cacheID, err = s.intermediateImageExists(ctx, node, addedContentSummary, s.stepRequiresLayer(step))
 			if err != nil {
 				return "", nil, errors.Wrap(err, "error checking if cached image exists from a previous build")
