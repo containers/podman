@@ -263,3 +263,12 @@ t GET containers/json 200 \
   .[0].Ports[0].Type="tcp"
 
 podman stop bar
+
+# Test CPU limit (NanoCPUs)
+t POST containers/create '"Image":"'$IMAGE'","HostConfig":{"NanoCpus":500000}' 201 \
+  .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+t GET containers/$cid/json 200 \
+  .HostConfig.NanoCpus=500000
+
+t DELETE containers/$cid?v=true 204
