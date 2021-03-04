@@ -191,11 +191,17 @@ EOF
 https_proxy=https-proxy-in-env-file
 EOF
 
+    # Build args: one explicit (foo=bar), one implicit (foo)
+    local arg_implicit_value=implicit_$(random_string 15)
+    local arg_explicit_value=explicit_$(random_string 15)
+
     # NOTE: it's important to not create the workdir.
     # Podman will make sure to create a missing workdir
     # if needed. See #9040.
     cat >$tmpdir/Containerfile <<EOF
 FROM $IMAGE
+ARG arg_explicit
+ARG arg_implicit
 LABEL $label_name=$label_value
 WORKDIR $workdir
 
@@ -220,20 +226,44 @@ RUN chown 2:3 /bin/mydefaultcmd
 
 RUN $CAT_SECRET
 
+RUN echo explicit-build-arg=\$arg_explicit
+RUN echo implicit-build-arg=\$arg_implicit
+
 CMD ["/bin/mydefaultcmd","$s_echo"]
 RUN cat /etc/resolv.conf
 EOF
 
+    # The goal is to test that a missing value will be inherited from
+    # environment - but that can't work with remote, so for simplicity
+    # just make it explicit in that case too.
+    local build_arg_implicit="--build-arg arg_implicit"
+    if is_remote; then
+        build_arg_implicit+="=$arg_implicit_value"
+    fi
+
     # cd to the dir, so we test relative paths (important for podman-remote)
     cd $PODMAN_TMPDIR
+    export arg_explicit="THIS SHOULD BE OVERRIDDEN BY COMMAND LINE!"
+    export arg_implicit=${arg_implicit_value}
     run_podman ${MOUNTS_CONF} build \
+               --build-arg arg_explicit=${arg_explicit_value} \
+               $build_arg_implicit \
                --dns-search $nosuchdomain \
                -t build_test -f build-test/Containerfile build-test
     local iid="${lines[-1]}"
 
+    if [[ $output =~ missing.*build.argument ]]; then
+        die "podman did not see the given --build-arg(s)"
+    fi
+
     # Make sure 'podman build' had the secret mounted
     is "$output" ".*$secret_contents.*" "podman build has /run/secrets mounted"
 
+    # --build-arg should be set, both via 'foo=bar' and via just 'foo' ($foo)
+    is "$output" ".*explicit-build-arg=${arg_explicit_value}" \
+       "--build-arg arg_explicit=explicit-value works"
+    is "$output" ".*implicit-build-arg=${arg_implicit_value}" \
+       "--build-arg arg_implicit works (inheriting from environment)"
     is "$output" ".*search $nosuchdomain" \
        "--dns-search added to /etc/resolv.conf"
 
