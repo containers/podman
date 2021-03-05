@@ -8,7 +8,6 @@ import (
 
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/pkg/copy"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 )
@@ -145,7 +144,7 @@ type ContainerInspectReport struct {
 }
 
 type ContainerStatReport struct {
-	copy.FileInfo
+	define.FileInfo
 }
 
 type CommitOptions struct {

@@ -1,3 +1,4 @@
+// +linux
 package libpod
 
 import (
@@ -10,6 +11,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// pathAbs returns an absolute path.  If the specified path is
+// relative, it will be resolved relative to the container's working dir.
+func (c *Container) pathAbs(path string) string {
+	if !filepath.IsAbs(path) {
+		// If the containerPath is not absolute, it's relative to the
+		// container's working dir.  To be extra careful, let's first
+		// join the working dir with "/", and the add the containerPath
+		// to it.
+		path = filepath.Join(filepath.Join("/", c.WorkingDir()), path)
+	}
+	return path
+}
+
 // resolveContainerPaths resolves the container's mount point and the container
 // path as specified by the user.  Both may resolve to paths outside of the
 // container's mount point when the container path hits a volume or bind mount.
@@ -20,14 +34,7 @@ import (
 // the host).
 func (c *Container) resolvePath(mountPoint string, containerPath string) (string, string, error) {
 	// Let's first make sure we have a path relative to the mount point.
-	pathRelativeToContainerMountPoint := containerPath
-	if !filepath.IsAbs(containerPath) {
-		// If the containerPath is not absolute, it's relative to the
-		// container's working dir.  To be extra careful, let's first
-		// join the working dir with "/", and the add the containerPath
-		// to it.
-		pathRelativeToContainerMountPoint = filepath.Join(filepath.Join("/", c.WorkingDir()), containerPath)
-	}
+	pathRelativeToContainerMountPoint := c.pathAbs(containerPath)
 	resolvedPathOnTheContainerMountPoint := filepath.Join(mountPoint, pathRelativeToContainerMountPoint)
 	pathRelativeToContainerMountPoint = strings.TrimPrefix(pathRelativeToContainerMountPoint, mountPoint)
 	pathRelativeToContainerMountPoint = filepath.Join("/", pathRelativeToContainerMountPoint)

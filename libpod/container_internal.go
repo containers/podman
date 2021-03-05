@@ -2086,6 +2086,10 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (map[s
 
 // mount mounts the container's root filesystem
 func (c *Container) mount() (string, error) {
+	if c.state.State == define.ContainerStateRemoving {
+		return "", errors.Wrapf(define.ErrCtrStateInvalid, "cannot mount container %s as it is being removed", c.ID())
+	}
+
 	mountPoint, err := c.runtime.storageService.MountContainerImage(c.ID())
 	if err != nil {
 		return "", errors.Wrapf(err, "error mounting storage for container %s", c.ID())

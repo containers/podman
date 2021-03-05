@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/pkg/errors"
 )
 
@@ -22,14 +22,7 @@ var ErrENOENT = errors.New("No such file or directory")
 
 // FileInfo describes a file or directory and is returned by
 // (*CopyItem).Stat().
-type FileInfo struct {
-	Name       string      `json:"name"`
-	Size       int64       `json:"size"`
-	Mode       os.FileMode `json:"mode"`
-	ModTime    time.Time   `json:"mtime"`
-	IsDir      bool        `json:"isDir"`
-	LinkTarget string      `json:"linkTarget"`
-}
+type FileInfo = define.FileInfo
 
 // EncodeFileInfo serializes the specified FileInfo as a base64 encoded JSON
 // payload.  Intended for Docker compat.

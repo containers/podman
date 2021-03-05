@@ -904,6 +904,12 @@ func (c *Container) NamespacePath(linuxNS LinuxNS) (string, error) { //nolint:in
 		}
 	}
 
+	return c.namespacePath(linuxNS)
+}
+
+// namespacePath returns the path of one of the container's namespaces
+// If the container is not running, an error will be returned
+func (c *Container) namespacePath(linuxNS LinuxNS) (string, error) { //nolint:interfacer
 	if c.state.State != define.ContainerStateRunning && c.state.State != define.ContainerStatePaused {
 		return "", errors.Wrapf(define.ErrCtrStopped, "cannot get namespace path unless container %s is running", c.ID())
 	}
