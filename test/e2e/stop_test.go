@@ -150,7 +150,7 @@ var _ = Describe("Podman stop", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"stop", "--time", "1", "test4"})
+		session = podmanTest.Podman([]string{"stop", "--time", "0", "test4"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		output := session.OutputToString()
@@ -166,7 +166,7 @@ var _ = Describe("Podman stop", func() {
 		session := podmanTest.Podman([]string{"run", "-d", "--name", "test5", ALPINE, "sleep", "100"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session = podmanTest.Podman([]string{"stop", "--timeout", "1", "test5"})
+		session = podmanTest.Podman([]string{"stop", "--timeout", "0", "test5"})
 		// Without timeout container stops in 10 seconds
 		// If not stopped in 5 seconds, then --timeout did not work
 		session.Wait(5)
