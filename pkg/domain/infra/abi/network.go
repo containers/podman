@@ -96,7 +96,15 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 		}
 		// We need to iterate containers looking to see if they belong to the given network
 		for _, c := range containers {
-			if util.StringInSlice(name, c.Config().Networks) {
+			networks, _, err := c.Networks()
+			// if container vanished or network does not exist, go to next container
+			if errors.Is(err, define.ErrNoSuchNetwork) || errors.Is(err, define.ErrNoSuchCtr) {
+				continue
+			}
+			if err != nil {
+				return reports, err
+			}
+			if util.StringInSlice(name, networks) {
 				// if user passes force, we nuke containers and pods
 				if !options.Force {
 					// Without the force option, we return an error
