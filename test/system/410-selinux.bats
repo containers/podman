@@ -77,13 +77,14 @@ function check_label() {
 @test "podman selinux: inspect kvm labels" {
     skip_if_no_selinux
     skip_if_remote "runtime flag is not passed over remote"
-    if [ ! -e /usr/bin/kata-runtime ]; then
-        skip "kata-runtime not available"
-    fi
 
-    run_podman create --runtime=kata --name myc $IMAGE
+    tmpdir=$PODMAN_TMPDIR/kata-test
+    mkdir -p $tmpdir
+    KATA=${tmpdir}/kata-runtime
+    ln -s /bin/true ${KATA}
+    run_podman create --runtime=${KATA} --name myc $IMAGE
     run_podman inspect --format='{{ .ProcessLabel }}' myc
-    is "$output" ".*container_kvm_t.*"
+    is "$output" ".*container_kvm_t"
 }
 
 # pr #6752
