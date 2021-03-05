@@ -14,6 +14,7 @@ import (
 	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/buildah/util"
 	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -153,6 +154,11 @@ func (c *Container) copyToArchive(ctx context.Context, path string, writer io.Wr
 			ChownDirs:          &idPair,
 			ChownFiles:         &idPair,
 			Excludes:           []string{"dev", "proc", "sys"},
+			// Ignore EPERMs when copying from rootless containers
+			// since we cannot read TTY devices.  Those are owned
+			// by the host's root and hence "nobody" inside the
+			// container's user namespace.
+			IgnoreUnreadable: rootless.IsRootless() && c.state.State == define.ContainerStateRunning,
 		}
 		return c.joinMountAndExec(ctx,
 			func() error {

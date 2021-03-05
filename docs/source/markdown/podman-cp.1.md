@@ -57,6 +57,8 @@ If you use a : in a local machine path, you must be explicit with a relative or 
 
 Using `-` as the *src_path* streams the contents of STDIN as a tar archive. The command extracts the content of the tar to the *DEST_PATH* in the container. In this case, *dest_path* must specify a directory. Using `-` as the *dest_path* streams the contents of the resource (can be a directory) as a tar archive to STDOUT.
 
+Note that `podman cp` ignores permission errors when copying from a running rootless container.  The TTY devices inside a rootless container are owned by the host's root user and hence cannot be read inside the container's user namespace.
+
 ## OPTIONS
 
 ## ALTERNATIVES
