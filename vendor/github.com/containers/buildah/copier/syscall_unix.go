@@ -3,10 +3,10 @@
 package copier
 
 import (
-	"fmt"
 	"os"
 	"time"
 
+	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
 
@@ -15,13 +15,13 @@ var canChroot = os.Getuid() == 0
 func chroot(root string) (bool, error) {
 	if canChroot {
 		if err := os.Chdir(root); err != nil {
-			return false, fmt.Errorf("error changing to intended-new-root directory %q: %v", root, err)
+			return false, errors.Wrapf(err, "error changing to intended-new-root directory %q", root)
 		}
 		if err := unix.Chroot(root); err != nil {
-			return false, fmt.Errorf("error chrooting to directory %q: %v", root, err)
+			return false, errors.Wrapf(err, "error chrooting to directory %q", root)
 		}
 		if err := os.Chdir(string(os.PathSeparator)); err != nil {
-			return false, fmt.Errorf("error changing to just-became-root directory %q: %v", root, err)
+			return false, errors.Wrapf(err, "error changing to just-became-root directory %q", root)
 		}
 		return true, nil
 	}

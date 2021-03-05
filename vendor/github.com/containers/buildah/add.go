@@ -324,13 +324,33 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 		return errors.Wrapf(err, "error processing excludes list %v", options.Excludes)
 	}
 
-	// Copy each source in turn.
+	// Make sure that, if it's a symlink, we'll chroot to the target of the link;
+	// knowing that target requires that we resolve it within the chroot.
+	evalOptions := copier.EvalOptions{}
+	evaluated, err := copier.Eval(mountPoint, extractDirectory, evalOptions)
+	if err != nil {
+		return errors.Wrapf(err, "error checking on destination %v", extractDirectory)
+	}
+	extractDirectory = evaluated
+
+	// Set up ID maps.
 	var srcUIDMap, srcGIDMap []idtools.IDMap
 	if options.IDMappingOptions != nil {
 		srcUIDMap, srcGIDMap = convertRuntimeIDMaps(options.IDMappingOptions.UIDMap, options.IDMappingOptions.GIDMap)
 	}
 	destUIDMap, destGIDMap := convertRuntimeIDMaps(b.IDMappingOptions.UIDMap, b.IDMappingOptions.GIDMap)
 
+	// Create the target directory if it doesn't exist yet.
+	mkdirOptions := copier.MkdirOptions{
+		UIDMap:   destUIDMap,
+		GIDMap:   destGIDMap,
+		ChownNew: chownDirs,
+	}
+	if err := copier.Mkdir(mountPoint, extractDirectory, mkdirOptions); err != nil {
+		return errors.Wrapf(err, "error ensuring target directory exists")
+	}
+
+	// Copy each source in turn.
 	for _, src := range sources {
 		var multiErr *multierror.Error
 		var getErr, closeErr, renameErr, putErr error
@@ -363,7 +383,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 						ChmodFiles:    nil,
 						IgnoreDevices: rsystem.RunningInUserNS(),
 					}
-					putErr = copier.Put(mountPoint, extractDirectory, putOptions, io.TeeReader(pipeReader, hasher))
+					putErr = copier.Put(extractDirectory, extractDirectory, putOptions, io.TeeReader(pipeReader, hasher))
 				}
 				hashCloser.Close()
 				pipeReader.Close()
@@ -498,7 +518,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 						ChmodFiles:      nil,
 						IgnoreDevices:   rsystem.RunningInUserNS(),
 					}
-					putErr = copier.Put(mountPoint, extractDirectory, putOptions, io.TeeReader(pipeReader, hasher))
+					putErr = copier.Put(extractDirectory, extractDirectory, putOptions, io.TeeReader(pipeReader, hasher))
 				}
 				hashCloser.Close()
 				pipeReader.Close()
