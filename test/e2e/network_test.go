@@ -352,6 +352,29 @@ var _ = Describe("Podman network", func() {
 		Expect(rmAll.ExitCode()).To(BeZero())
 	})
 
+	It("podman network remove after disconnect when container initially created with the network", func() {
+		SkipIfRootless("disconnect works only in non rootless container")
+
+		container := "test"
+		network := "foo"
+
+		session := podmanTest.Podman([]string{"network", "create", network})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"run", "--name", container, "--network", network, "-d", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"network", "disconnect", network, container})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"network", "rm", network})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	It("podman network remove bogus", func() {
 		session := podmanTest.Podman([]string{"network", "rm", "bogus"})
 		session.WaitWithDefaultTimeout()
