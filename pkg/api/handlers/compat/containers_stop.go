@@ -39,11 +39,11 @@ func StopContainer(w http.ResponseWriter, r *http.Request) {
 		Ignore: query.Ignore,
 	}
 	if utils.IsLibpodRequest(r) {
-		if query.LibpodTimeout > 0 {
+		if _, found := r.URL.Query()["timeout"]; found {
 			options.Timeout = &query.LibpodTimeout
 		}
 	} else {
-		if query.DockerTimeout > 0 {
+		if _, found := r.URL.Query()["t"]; found {
 			options.Timeout = &query.DockerTimeout
 		}
 	}
