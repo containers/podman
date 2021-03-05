@@ -88,6 +88,7 @@ load helpers
     run_podman rmi -f $cpimage
 }
 
+
 @test "podman cp file from host to container tmpfs mount" {
     srcdir=$PODMAN_TMPDIR/cp-test-file-host-to-ctr
     mkdir -p $srcdir
@@ -108,6 +109,22 @@ load helpers
     run_podman start cpcontainer
     run_podman exec cpcontainer cat /tmp/file
     is "$output" "${content}" "cp to created container's tmpfs"
+    run_podman kill cpcontainer
+    run_podman rm -f cpcontainer
+}
+
+
+@test "podman cp file from host to container and check ownership" {
+    srcdir=$PODMAN_TMPDIR/cp-test-file-host-to-ctr
+    mkdir -p $srcdir
+    content=cp-user-test-$(random_string 10)
+    echo "content" > $srcdir/hostfile
+    userid=$(id -u)
+
+    run_podman run --user=$userid --userns=keep-id -d --name cpcontainer $IMAGE sleep infinity
+    run_podman cp $srcdir/hostfile cpcontainer:/tmp/hostfile
+    run_podman exec cpcontainer stat -c "%u" /tmp/hostfile
+    is "$output" "$userid" "copied file is chowned to the container user"
     run_podman kill cpcontainer
     run_podman rm -f cpcontainer
 }
