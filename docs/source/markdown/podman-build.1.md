@@ -821,9 +821,13 @@ $ podman build --no-cache --rm=false -t imageName .
 
 ### Building an multi-architecture image using a --manifest option (Requires emulation software)
 
-podman build --arch arm --manifest myimage /tmp/mysrc
-podman build --arch amd64 --manifest myimage /tmp/mysrc
-podman build --arch s390x --manifest myimage /tmp/mysrc
+```
+$ podman build --arch arm --manifest myimage /tmp/mysrc
+
+$ podman build --arch amd64 --manifest myimage /tmp/mysrc
+
+$ podman build --arch s390x --manifest myimage /tmp/mysrc
+```
 
 ### Building an image using a URL, Git repo, or archive
 
