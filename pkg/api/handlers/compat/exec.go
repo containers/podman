@@ -178,8 +178,12 @@ func ExecStartHandler(w http.ResponseWriter, r *http.Request) {
 		logrus.Error(errors.Wrapf(e, "error attaching to container %s exec session %s", sessionCtr.ID(), sessionID))
 	}
 
+	streams := new(libpod.HTTPAttachStreams)
+	streams.Stdout = true
+	streams.Stderr = true
+
 	hijackChan := make(chan bool, 1)
-	err = sessionCtr.ExecHTTPStartAndAttach(sessionID, r, w, nil, nil, nil, hijackChan)
+	err = sessionCtr.ExecHTTPStartAndAttach(sessionID, r, w, streams, nil, nil, hijackChan)
 
 	if <-hijackChan {
 		// If connection was Hijacked, we have to signal it's being closed
