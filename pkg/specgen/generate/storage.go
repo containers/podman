@@ -10,22 +10,13 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod"
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-)
-
-// TODO unify this in one place - maybe libpod/define
-const (
-	// TypeBind is the type for mounting host dir
-	TypeBind = "bind"
-	// TypeVolume is the type for named volumes
-	TypeVolume = "volume"
-	// TypeTmpfs is the type for mounting tmpfs
-	TypeTmpfs = "tmpfs"
 )
 
 var (
@@ -156,7 +147,7 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 	// Final step: maps to arrays
 	finalMounts := make([]spec.Mount, 0, len(baseMounts))
 	for _, mount := range baseMounts {
-		if mount.Type == TypeBind {
+		if mount.Type == define.TypeBind {
 			absSrc, err := filepath.Abs(mount.Source)
 			if err != nil {
 				return nil, nil, nil, errors.Wrapf(err, "error getting absolute path of %s", mount.Source)
@@ -208,8 +199,8 @@ func getImageVolumes(ctx context.Context, img *image.Image, s *specgen.SpecGener
 		case "tmpfs":
 			mount := spec.Mount{
 				Destination: cleanDest,
-				Source:      TypeTmpfs,
-				Type:        TypeTmpfs,
+				Source:      define.TypeTmpfs,
+				Type:        define.TypeTmpfs,
 				Options:     []string{"rprivate", "rw", "nodev", "exec"},
 			}
 			mounts[cleanDest] = mount
@@ -277,7 +268,7 @@ func getVolumesFrom(volumesFrom []string, runtime *libpod.Runtime) (map[string]s
 			return nil, nil, errors.Errorf("error retrieving container %s spec for volumes-from", ctr.ID())
 		}
 		for _, mnt := range spec.Mounts {
-			if mnt.Type != TypeBind {
+			if mnt.Type != define.TypeBind {
 				continue
 			}
 			if _, exists := userVolumes[mnt.Destination]; exists {
@@ -338,9 +329,9 @@ func getVolumesFrom(volumesFrom []string, runtime *libpod.Runtime) (map[string]s
 func addContainerInitBinary(s *specgen.SpecGenerator, path string) (spec.Mount, error) {
 	mount := spec.Mount{
 		Destination: "/dev/init",
-		Type:        TypeBind,
+		Type:        define.TypeBind,
 		Source:      path,
-		Options:     []string{TypeBind, "ro"},
+		Options:     []string{define.TypeBind, "ro"},
 	}
 
 	if path == "" {
@@ -393,13 +384,13 @@ func SupersedeUserMounts(mounts []spec.Mount, configMount []spec.Mount) []spec.M
 func InitFSMounts(mounts []spec.Mount) error {
 	for i, m := range mounts {
 		switch {
-		case m.Type == TypeBind:
+		case m.Type == define.TypeBind:
 			opts, err := util.ProcessOptions(m.Options, false, m.Source)
 			if err != nil {
 				return err
 			}
 			mounts[i].Options = opts
-		case m.Type == TypeTmpfs && filepath.Clean(m.Destination) != "/dev":
+		case m.Type == define.TypeTmpfs && filepath.Clean(m.Destination) != "/dev":
 			opts, err := util.ProcessOptions(m.Options, true, "")
 			if err != nil {
 				return err

@@ -6,21 +6,11 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/parse"
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
-)
-
-const (
-	// TypeBind is the type for mounting host dir
-	TypeBind = "bind"
-	// TypeVolume is the type for named volumes
-	TypeVolume = "volume"
-	// TypeTmpfs is the type for mounting tmpfs
-	TypeTmpfs = "tmpfs"
-	// TypeDevpts is the type for creating a devpts
-	TypeDevpts = "devpts"
 )
 
 var (
@@ -90,7 +80,7 @@ func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string, addReadOnlyTmpfs bo
 			}
 			unifiedMounts[dest] = spec.Mount{
 				Destination: dest,
-				Type:        TypeTmpfs,
+				Type:        define.TypeTmpfs,
 				Source:      "tmpfs",
 				Options:     options,
 			}
@@ -131,7 +121,7 @@ func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string, addReadOnlyTmpfs bo
 	// Final step: maps to arrays
 	finalMounts := make([]spec.Mount, 0, len(unifiedMounts))
 	for _, mount := range unifiedMounts {
-		if mount.Type == TypeBind {
+		if mount.Type == define.TypeBind {
 			absSrc, err := filepath.Abs(mount.Source)
 			if err != nil {
 				return nil, nil, nil, nil, errors.Wrapf(err, "error getting absolute path of %s", mount.Source)
@@ -194,7 +184,7 @@ func getMounts(mountFlag []string) (map[string]spec.Mount, map[string]*specgen.N
 			return nil, nil, nil, err
 		}
 		switch mountType {
-		case TypeBind:
+		case define.TypeBind:
 			mount, err := getBindMount(tokens)
 			if err != nil {
 				return nil, nil, nil, err
@@ -203,7 +193,7 @@ func getMounts(mountFlag []string) (map[string]spec.Mount, map[string]*specgen.N
 				return nil, nil, nil, errors.Wrapf(errDuplicateDest, mount.Destination)
 			}
 			finalMounts[mount.Destination] = mount
-		case TypeTmpfs:
+		case define.TypeTmpfs:
 			mount, err := getTmpfsMount(tokens)
 			if err != nil {
 				return nil, nil, nil, err
@@ -212,7 +202,7 @@ func getMounts(mountFlag []string) (map[string]spec.Mount, map[string]*specgen.N
 				return nil, nil, nil, errors.Wrapf(errDuplicateDest, mount.Destination)
 			}
 			finalMounts[mount.Destination] = mount
-		case TypeDevpts:
+		case define.TypeDevpts:
 			mount, err := getDevptsMount(tokens)
 			if err != nil {
 				return nil, nil, nil, err
@@ -250,7 +240,7 @@ func getMounts(mountFlag []string) (map[string]spec.Mount, map[string]*specgen.N
 // Parse a single bind mount entry from the --mount flag.
 func getBindMount(args []string) (spec.Mount, error) {
 	newMount := spec.Mount{
-		Type: TypeBind,
+		Type: define.TypeBind,
 	}
 
 	var setSource, setDest, setRORW, setSuid, setDev, setExec, setRelabel bool
@@ -381,8 +371,8 @@ func getBindMount(args []string) (spec.Mount, error) {
 // Parse a single tmpfs mount entry from the --mount flag
 func getTmpfsMount(args []string) (spec.Mount, error) {
 	newMount := spec.Mount{
-		Type:   TypeTmpfs,
-		Source: TypeTmpfs,
+		Type:   define.TypeTmpfs,
+		Source: define.TypeTmpfs,
 	}
 
 	var setDest, setRORW, setSuid, setDev, setExec, setTmpcopyup bool
@@ -460,8 +450,8 @@ func getTmpfsMount(args []string) (spec.Mount, error) {
 // Parse a single devpts mount entry from the --mount flag
 func getDevptsMount(args []string) (spec.Mount, error) {
 	newMount := spec.Mount{
-		Type:   TypeDevpts,
-		Source: TypeDevpts,
+		Type:   define.TypeDevpts,
+		Source: define.TypeDevpts,
 	}
 
 	var setDest bool
@@ -630,9 +620,9 @@ func getTmpfsMounts(tmpfsFlag []string) (map[string]spec.Mount, error) {
 
 		mount := spec.Mount{
 			Destination: filepath.Clean(destPath),
-			Type:        string(TypeTmpfs),
+			Type:        string(define.TypeTmpfs),
 			Options:     options,
-			Source:      string(TypeTmpfs),
+			Source:      string(define.TypeTmpfs),
 		}
 		m[destPath] = mount
 	}

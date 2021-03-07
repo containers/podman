@@ -277,7 +277,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		g.RemoveMount("/proc")
 		procMount := spec.Mount{
 			Destination: "/proc",
-			Type:        TypeBind,
+			Type:        define.TypeBind,
 			Source:      "/proc",
 			Options:     []string{"rbind", "nosuid", "noexec", "nodev"},
 		}

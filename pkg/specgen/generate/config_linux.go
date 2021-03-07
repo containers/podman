@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -37,7 +38,7 @@ func addPrivilegedDevices(g *generate.Generator) error {
 		for _, d := range hostDevices {
 			devMnt := spec.Mount{
 				Destination: d.Path,
-				Type:        TypeBind,
+				Type:        define.TypeBind,
 				Source:      d.Path,
 				Options:     []string{"slave", "nosuid", "noexec", "rw", "rbind"},
 			}
@@ -259,7 +260,7 @@ func addDevice(g *generate.Generator, device string) error {
 		}
 		devMnt := spec.Mount{
 			Destination: dst,
-			Type:        TypeBind,
+			Type:        define.TypeBind,
 			Source:      src,
 			Options:     []string{"slave", "nosuid", "noexec", perm, "rbind"},
 		}
