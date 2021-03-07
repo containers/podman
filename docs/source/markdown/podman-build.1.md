@@ -86,7 +86,7 @@ resulting image's configuration.
 #### **--cache-from**
 
 Images to utilize as potential cache sources. Podman does not currently support
-caching so this is a NOOP.
+caching so this is a NOOP. (This option is not available with the remote Podman client)
 
 #### **--cap-add**=*CAP\_xxx*
 
@@ -111,8 +111,7 @@ given.
 #### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
-Default certificates directory is _/etc/containers/certs.d_. (Not available for
-remote commands)
+Default certificates directory is _/etc/containers/certs.d_. (This option is not available with the remote Podman client)
 
 #### **--cgroup-parent**=*path*
 
@@ -124,7 +123,7 @@ of the init process. Cgroups will be created if they do not already exist.
 
 This option is added to be aligned with other containers CLIs.
 Podman doesn't communicate with a daemon or a remote server.
-Thus, compressing the data before sending it is irrelevant to Podman.
+Thus, compressing the data before sending it is irrelevant to Podman. (This option is not available with the remote Podman client)
 
 #### **--cni-config-dir**=*directory*
 
@@ -255,7 +254,7 @@ specifying **--disable-compression=false**.
 
 This is a Docker specific option to disable image verification to a Docker
 registry and is not supported by Podman.  This flag is a NOOP and provided
-solely for scripting compatibility.
+solely for scripting compatibility. (This option is not available with the remote Podman client)
 
 #### **--dns**=*dns*
 
@@ -521,7 +520,7 @@ size entirely, the system uses `64m`.
 
 #### **--sign-by**=*fingerprint*
 
-Sign the image using a GPG key with the specified FINGERPRINT.
+Sign the image using a GPG key with the specified FINGERPRINT. (This option is not available with the remote Podman client)
 
 #### **--squash**
 
@@ -566,7 +565,7 @@ timestamp.
 #### **--tls-verify**=*true|false*
 
 Require HTTPS and verify certificates when talking to container registries
-(defaults to true).
+(defaults to true). (This option is not available with the remote Podman client)
 
 #### **--ulimit**=*type*=*soft-limit*[:*hard-limit*]
 
@@ -679,7 +678,9 @@ Set the architecture variant of the image to be pulled.
 
    Create a bind mount. If you specify, ` -v /HOST-DIR:/CONTAINER-DIR`, Podman
    bind mounts `/HOST-DIR` in the host to `/CONTAINER-DIR` in the Podman
-   container. The `OPTIONS` are a comma delimited list and can be: <sup>[[1]](#Footnote1)</sup>
+   container. (This option is not available with the remote Podman client)
+
+   The `OPTIONS` are a comma delimited list and can be: <sup>[[1]](#Footnote1)</sup>
 
    * [rw|ro]
    * [z|Z|O]

@@ -17,9 +17,7 @@ Display the running processes of containers in a pod. The *format-descriptors* a
 
 #### **--latest**, **-l**
 
-Instead of providing the pod name or ID, use the last created pod.
-
-The latest option is not supported on the remote client.
+Instead of providing the pod name or ID, use the last created pod. (This option is not available with the remote Podman client)
 
 ## FORMAT DESCRIPTORS
 

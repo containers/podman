@@ -1,7 +1,7 @@
 % podman-generate-systemd(1)
 
 ## NAME
-podman\-generate\-systemd - Generate systemd unit file(s) for a container or pod. Not supported for the remote client
+podman\-generate\-systemd - Generate systemd unit file(s) for a container or pod
 
 ## SYNOPSIS
 **podman generate systemd** [*options*] *container|pod*

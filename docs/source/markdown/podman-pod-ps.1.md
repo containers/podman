@@ -40,9 +40,7 @@ Includes the container statuses in the container info field
 
 #### **--latest**, **-l**
 
-Show the latest pod created (all states)
-
-The latest option is not supported on the remote client.
+Show the latest pod created (all states) (This option is not available with the remote Podman client)
 
 #### **--no-trunc**
 

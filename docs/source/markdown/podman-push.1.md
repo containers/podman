@@ -71,7 +71,7 @@ value can be entered.  The password is entered without echo.
 #### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
-Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands)
+Default certificates directory is _/etc/containers/certs.d_. (This option is not available with the remote Podman client)
 
 #### **--compress**
 
@@ -80,7 +80,7 @@ Note: This flag can only be set when using the **dir** transport
 
 #### **--digestfile** *Digestfile*
 
-After copying the image, write the digest of the resulting image to the file.  (Not available for remote commands)
+After copying the image, write the digest of the resulting image to the file.  (This option is not available with the remote Podman client)
 
 #### **--disable-content-trust**
 
@@ -98,11 +98,11 @@ When writing the output image, suppress progress output
 
 #### **--remove-signatures**
 
-Discard any pre-existing signatures in the image. (Not available for remote commands)
+Discard any pre-existing signatures in the image. (This option is not available with the remote Podman client)
 
 #### **--sign-by**=*key*
 
-Add a signature at the destination using the specified key. (Not available for remote commands)
+Add a signature at the destination using the specified key. (This option is not available with the remote Podman client)
 
 #### **--tls-verify**=*true|false*
 

@@ -380,7 +380,7 @@ See [**Environment**](#environment) note below for precedence and examples.
 
 #### **--env-host**=**true**|**false**
 
-Use host environment inside of the container. See **Environment** note below for precedence. (Not available for remote commands)
+Use host environment inside of the container. See **Environment** note below for precedence. (This option is not available with the remote Podman client)
 
 #### **--env-file**=*file*
 
@@ -456,7 +456,7 @@ the container should not use any proxy. Proxy environment variables specified
 for the container in any other way will override the values that would have
 been passed through from the host. (Other ways to specify the proxy for the
 container include passing the values with the **--env** flag, or hard coding the
-proxy environment at container build time.) (Not available for remote commands)
+proxy environment at container build time.) (This option is not available with the remote Podman client)
 
 Defaults to **true**.
 

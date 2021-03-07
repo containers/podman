@@ -23,9 +23,7 @@ Checkpoint all running containers.
 
 #### **--latest**, **-l**
 
-Instead of providing the container name or ID, checkpoint the last created container.
-
-The latest option is not supported on the remote client.
+Instead of providing the container name or ID, checkpoint the last created container. (This option is not available with the remote Podman client)
 
 #### **--leave-running**, **-R**
 
