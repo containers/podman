@@ -98,7 +98,6 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 			if err := terminal.Restore(int(file.Fd()), state); err != nil {
 				logrus.Errorf("unable to restore terminal: %q", err)
 			}
-			logrus.SetFormatter(&logrus.TextFormatter{})
 		}()
 	}
 
@@ -315,18 +314,6 @@ func resizeTTY(ctx context.Context, endpoint string, height *int, width *int) er
 	return rsp.Process(nil)
 }
 
-type rawFormatter struct {
-	logrus.TextFormatter
-}
-
-func (f *rawFormatter) Format(entry *logrus.Entry) ([]byte, error) {
-	buffer, err := f.TextFormatter.Format(entry)
-	if err != nil {
-		return buffer, err
-	}
-	return append(buffer, '\r'), nil
-}
-
 // This is intended to be run as a goroutine, handling resizing for a container
 // or exec session.
 func attachHandleResize(ctx, winCtx context.Context, winChange chan os.Signal, isExec bool, id string, file *os.File) {
@@ -361,8 +348,6 @@ func setRawTerminal(file *os.File) (*terminal.State, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	logrus.SetFormatter(&rawFormatter{})
 
 	return state, err
 }
@@ -411,7 +396,6 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 			if err := terminal.Restore(int(terminalFile.Fd()), state); err != nil {
 				logrus.Errorf("unable to restore terminal: %q", err)
 			}
-			logrus.SetFormatter(&logrus.TextFormatter{})
 		}()
 	}
 

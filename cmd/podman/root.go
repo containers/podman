@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -53,9 +54,25 @@ Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "he
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
 
 Options:
-{{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
+{{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInhkeritedFlags}}
 {{end}}
 `
+
+// LogFormatter embeds the default TextFormatter provided by logrus
+type LogFormatter struct {
+	logrus.TextFormatter
+}
+
+// Format appends a carriage return to fix formatting in raw mode
+func (f *LogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
+	bytes, err := f.TextFormatter.Format(entry)
+
+	if err == nil {
+		bytes = append(bytes, '\r')
+	}
+
+	return bytes, err
+}
 
 var (
 	rootCmd = &cobra.Command{
@@ -252,23 +269,29 @@ func loggingHook() {
 	if logLevel == "debug" {
 		logrus.SetReportCaller(true)
 	}
-	logrus.SetFormatter(&logrus.TextFormatter{
-		FieldMap: logrus.FieldMap{
-			logrus.FieldKeyFunc: "origin",
+
+	logrus.SetFormatter(&LogFormatter{
+		logrus.TextFormatter{
+			FieldMap: logrus.FieldMap{
+				// Set the key for function to repository of origin
+				logrus.FieldKeyFunc: "repo",
+			},
+			CallerPrettyfier: func(f *runtime.Frame) (string, string) {
+				// Capture the name of the repository from which the log entry originates
+				r := regexp.MustCompile(`(?:github\.com\/)(.+?\/.+?)(?:\/)`)
+				s := r.FindStringSubmatch(f.Function)
+				var repo string
+				if s != nil {
+					repo = s[1]
+				}
+
+				_, filename := path.Split(f.File)
+				filename = filename + ":" + strconv.Itoa(f.Line)
+				return repo, filename
+			},
+			PadLevelText:           true,
+			DisableLevelTruncation: true,
 		},
-		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
-			r := regexp.MustCompile(`(?:github\.com\/)(.+?\/.+?)(?:\/)`)
-			s := r.FindStringSubmatch(f.Function)
-			origin := ""
-			if s != nil {
-				origin = s[1]
-			}
-			_, filename := filepath.Split(f.File)
-			filename = filename + ":" + strconv.Itoa(f.Line)
-			return origin, filename
-		},
-		PadLevelText:           true,
-		DisableLevelTruncation: true,
 	})
 
 	level, err := logrus.ParseLevel(logLevel)

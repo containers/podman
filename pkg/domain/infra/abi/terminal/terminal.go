@@ -12,10 +12,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// RawTtyFormatter ...
-type RawTtyFormatter struct {
-}
-
 // getResize returns a TerminalSize command matching stdin's current
 // size on success, and nil on errors.
 func getResize() *define.TerminalSize {
@@ -62,20 +58,7 @@ func resizeTty(ctx context.Context, resize chan define.TerminalSize) {
 }
 
 func restoreTerminal(state *term.State) error {
-	logrus.SetFormatter(&logrus.TextFormatter{})
 	return term.RestoreTerminal(os.Stdin.Fd(), state)
-}
-
-// Format ...
-func (f *RawTtyFormatter) Format(entry *logrus.Entry) ([]byte, error) {
-	textFormatter := logrus.TextFormatter{}
-	bytes, err := textFormatter.Format(entry)
-
-	if err == nil {
-		bytes = append(bytes, '\r')
-	}
-
-	return bytes, err
 }
 
 func handleTerminalAttach(ctx context.Context, resize chan define.TerminalSize) (context.CancelFunc, *term.State, error) {
@@ -92,7 +75,6 @@ func handleTerminalAttach(ctx context.Context, resize chan define.TerminalSize) 
 		return nil, nil, errors.Wrapf(err, "unable to save terminal state")
 	}
 
-	logrus.SetFormatter(&RawTtyFormatter{})
 	if _, err := term.SetRawTerminal(os.Stdin.Fd()); err != nil {
 		return cancel, nil, err
 	}
