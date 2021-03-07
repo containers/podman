@@ -203,6 +203,8 @@ type ImagePushOptions struct {
 	SignBy string
 	// SkipTLSVerify to skip HTTPS and certificate verification.
 	SkipTLSVerify types.OptionalBool
+	// Progress to get progress notifications
+	Progress chan types.ProgressProperties
 }
 
 // ImageSearchOptions are the arguments for searching images.

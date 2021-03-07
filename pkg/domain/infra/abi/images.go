@@ -376,7 +376,8 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 		options.Compress,
 		signOptions,
 		&dockerRegistryOptions,
-		nil)
+		nil,
+		options.Progress)
 	if err != nil && errors.Cause(err) != storage.ErrImageUnknown {
 		// Image might be a manifest list so attempt a manifest push
 		if _, manifestErr := ir.ManifestPush(ctx, source, destination, options); manifestErr == nil {
