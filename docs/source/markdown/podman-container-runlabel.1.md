@@ -57,7 +57,7 @@ The runlabel command will not execute if --display is specified.
 #### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
-Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands)
+Default certificates directory is _/etc/containers/certs.d_. (This option is not available with the remote Podman client)
 
 #### **--creds**=*[username[:password]]*
 

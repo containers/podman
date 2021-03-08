@@ -28,7 +28,7 @@ environment variable. `export REGISTRY_AUTH_FILE=path`
 #### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
-Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands)
+Default certificates directory is _/etc/containers/certs.d_. (This option is not available with the remote Podman client)
 
 #### **--configmap**=*path*
 
@@ -56,7 +56,7 @@ Suppress output information when pulling images
 
 #### **--seccomp-profile-root**=*path*
 
-Directory path for seccomp profiles (default: "/var/lib/kubelet/seccomp"). (Not available for remote commands)
+Directory path for seccomp profiles (default: "/var/lib/kubelet/seccomp"). (This option is not available with the remote Podman client)
 
 #### **--start**=*true|false*
 

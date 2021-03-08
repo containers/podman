@@ -170,6 +170,7 @@ func buildFlags(cmd *cobra.Command) {
 		_ = flags.MarkHidden("signature-policy")
 		_ = flags.MarkHidden("tls-verify")
 		_ = flags.MarkHidden("compress")
+		_ = flags.MarkHidden("volume")
 	}
 }
 

@@ -17,9 +17,7 @@ Sends signal to all containers associated with a pod.
 #### **--latest**, **-l**
 
 Instead of providing the pod name or ID, use the last created pod. If you use methods other than Podman
-to run pods such as CRI-O, the last started pod could be from either of those methods.
-
-The latest option is not supported on the remote client.
+to run pods such as CRI-O, the last started pod could be from either of those methods. (This option is not available with the remote Podman client)
 
 #### **--signal**, **-s**
 

@@ -39,9 +39,7 @@ The keys of the returned JSON can be used as the values for the --format flag (s
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
 
-This option can be used to inspect the latest pod created when used with --type pod
-
-The latest option is not supported on the remote client or when invoked as *podman image inspect*.
+This option can be used to inspect the latest pod created when used with --type pod. (This option is not available with the remote Podman client or when invoked as *podman image inspect*.)
 
 #### **--size**, **-s**
 

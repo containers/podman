@@ -30,9 +30,7 @@ Restore all checkpointed containers.
 
 #### **--latest**, **-l**
 
-Instead of providing the container name or ID, restore the last created container.
-
-The latest option is not supported on the remote client.
+Instead of providing the container name or ID, restore the last created container. (This option is not available with the remote Podman client)
 
 #### **--tcp-established**
 
