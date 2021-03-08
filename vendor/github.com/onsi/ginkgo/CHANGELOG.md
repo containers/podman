@@ -1,3 +1,8 @@
+## 1.15.1
+
+### Fixes
+- reporters/junit: Use `system-out` element instead of `passed` (#769) [9eda305]
+
 ## 1.15.0
 
 ### Features
