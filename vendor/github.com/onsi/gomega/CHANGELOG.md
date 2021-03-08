@@ -1,3 +1,16 @@
+## 1.11.0
+
+### Features
+- feature: add index to gstruct element func (#419) [334e00d]
+- feat(gexec) Add CompileTest functions. Close #410 (#411) [47c613f]
+
+### Fixes
+- Check more carefully for nils in WithTransform (#423) [3c60a15]
+- fix: typo in Makefile [b82522a]
+- Allow WithTransform function to accept a nil value (#422) [b75d2f2]
+- fix: print value type for interface{} containers (#409) [f08e2dc]
+- fix(BeElementOf): consistently flatten expected values [1fa9468]
+
 ## 1.10.5
 
 ### Fixes

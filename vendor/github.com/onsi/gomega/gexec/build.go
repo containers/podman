@@ -3,6 +3,8 @@
 package gexec
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"go/build"
@@ -46,29 +48,10 @@ func BuildIn(gopath string, packagePath string, args ...string) (compiledPath st
 	return doBuild(gopath, packagePath, nil, args...)
 }
 
-func replaceGoPath(environ []string, newGoPath string) []string {
-	newEnviron := []string{}
-	for _, v := range environ {
-		if !strings.HasPrefix(v, "GOPATH=") {
-			newEnviron = append(newEnviron, v)
-		}
-	}
-	return append(newEnviron, "GOPATH="+newGoPath)
-}
-
 func doBuild(gopath, packagePath string, env []string, args ...string) (compiledPath string, err error) {
-	tmpDir, err := temporaryDirectory()
+	executable, err := newExecutablePath(gopath, packagePath)
 	if err != nil {
 		return "", err
-	}
-
-	if len(gopath) == 0 {
-		return "", errors.New("$GOPATH not provided when building " + packagePath)
-	}
-
-	executable := filepath.Join(tmpDir, path.Base(packagePath))
-	if runtime.GOOS == "windows" {
-		executable += ".exe"
 	}
 
 	cmdArgs := append([]string{"build"}, args...)
@@ -81,6 +64,145 @@ func doBuild(gopath, packagePath string, env []string, args ...string) (compiled
 	output, err := build.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("Failed to build %s:\n\nError:\n%s\n\nOutput:\n%s", packagePath, err, string(output))
+	}
+
+	return executable, nil
+}
+
+/*
+CompileTest uses go test to compile the test package at packagePath.  The resulting binary is saved off in a temporary directory.
+A path pointing to this binary is returned.
+
+CompileTest uses the $GOPATH set in your environment. If $GOPATH is not set and you are using Go 1.8+,
+it will use the default GOPATH instead.  It passes the variadic args on to `go test`.
+*/
+func CompileTest(packagePath string, args ...string) (compiledPath string, err error) {
+	return doCompileTest(build.Default.GOPATH, packagePath, nil, args...)
+}
+
+/*
+GetAndCompileTest is identical to CompileTest but `go get` the package before compiling tests.
+*/
+func GetAndCompileTest(packagePath string, args ...string) (compiledPath string, err error) {
+	if err := getForTest(build.Default.GOPATH, packagePath, nil); err != nil {
+		return "", err
+	}
+
+	return doCompileTest(build.Default.GOPATH, packagePath, nil, args...)
+}
+
+/*
+CompileTestWithEnvironment is identical to CompileTest but allows you to specify env vars to be set at build time.
+*/
+func CompileTestWithEnvironment(packagePath string, env []string, args ...string) (compiledPath string, err error) {
+	return doCompileTest(build.Default.GOPATH, packagePath, env, args...)
+}
+
+/*
+GetAndCompileTestWithEnvironment is identical to GetAndCompileTest but allows you to specify env vars to be set at build time.
+*/
+func GetAndCompileTestWithEnvironment(packagePath string, env []string, args ...string) (compiledPath string, err error) {
+	if err := getForTest(build.Default.GOPATH, packagePath, env); err != nil {
+		return "", err
+	}
+
+	return doCompileTest(build.Default.GOPATH, packagePath, env, args...)
+}
+
+/*
+CompileTestIn is identical to CompileTest but allows you to specify a custom $GOPATH (the first argument).
+*/
+func CompileTestIn(gopath string, packagePath string, args ...string) (compiledPath string, err error) {
+	return doCompileTest(gopath, packagePath, nil, args...)
+}
+
+/*
+GetAndCompileTestIn is identical to GetAndCompileTest but allows you to specify a custom $GOPATH (the first argument).
+*/
+func GetAndCompileTestIn(gopath string, packagePath string, args ...string) (compiledPath string, err error) {
+	if err := getForTest(gopath, packagePath, nil); err != nil {
+		return "", err
+	}
+
+	return doCompileTest(gopath, packagePath, nil, args...)
+}
+
+func isLocalPackage(packagePath string) bool {
+	return strings.HasPrefix(packagePath, ".")
+}
+
+func getForTest(gopath, packagePath string, env []string) error {
+	if isLocalPackage(packagePath) {
+		return nil
+	}
+
+	return doGet(gopath, packagePath, env, "-t")
+}
+
+func doGet(gopath, packagePath string, env []string, args ...string) error {
+	args = append(args, packagePath)
+	args = append([]string{"get"}, args...)
+
+	goGet := exec.Command("go", args...)
+	goGet.Dir = gopath
+	goGet.Env = replaceGoPath(os.Environ(), gopath)
+	goGet.Env = append(goGet.Env, env...)
+
+	output, err := goGet.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("Failed to get %s:\n\nError:\n%s\n\nOutput:\n%s", packagePath, err, string(output))
+	}
+
+	return nil
+}
+
+func doCompileTest(gopath, packagePath string, env []string, args ...string) (compiledPath string, err error) {
+	executable, err := newExecutablePath(gopath, packagePath, ".test")
+	if err != nil {
+		return "", err
+	}
+
+	cmdArgs := append([]string{"test", "-c"}, args...)
+	cmdArgs = append(cmdArgs, "-o", executable, packagePath)
+
+	build := exec.Command("go", cmdArgs...)
+	build.Env = replaceGoPath(os.Environ(), gopath)
+	build.Env = append(build.Env, env...)
+
+	output, err := build.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("Failed to build %s:\n\nError:\n%s\n\nOutput:\n%s", packagePath, err, string(output))
+	}
+
+	return executable, nil
+}
+
+func replaceGoPath(environ []string, newGoPath string) []string {
+	newEnviron := []string{}
+	for _, v := range environ {
+		if !strings.HasPrefix(v, "GOPATH=") {
+			newEnviron = append(newEnviron, v)
+		}
+	}
+	return append(newEnviron, "GOPATH="+newGoPath)
+}
+
+func newExecutablePath(gopath, packagePath string, suffixes ...string) (string, error) {
+	tmpDir, err := temporaryDirectory()
+	if err != nil {
+		return "", err
+	}
+
+	if len(gopath) == 0 {
+		return "", errors.New("$GOPATH not provided when building " + packagePath)
+	}
+
+	hash := md5.Sum([]byte(packagePath))
+	filename := fmt.Sprintf("%s-%x%s", path.Base(packagePath), hex.EncodeToString(hash[:]), strings.Join(suffixes, ""))
+	executable := filepath.Join(tmpDir, filename)
+
+	if runtime.GOOS == "windows" {
+		executable += ".exe"
 	}
 
 	return executable, nil
