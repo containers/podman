@@ -156,19 +156,23 @@ function _bump() {
 #  jsonify  #  convert 'foo=bar,x=y' to json {"foo":"bar","x":"y"}
 #############
 function jsonify() {
-    # split by comma
-    local -a settings_in
-    read -ra settings_in <<<"$1"
-
     # convert each to double-quoted form
     local -a settings_out
-    for i in ${settings_in[*]}; do
-        settings_out+=$(sed -e 's/\(.*\)=\(.*\)/"\1":"\2"/' <<<$i)
+    for i in "$@"; do
+        # Each argument is of the form foo=bar. Separate into left and right.
+        local lhs
+        local rhs
+        IFS='=' read lhs rhs <<<"$i"
+
+        # If right-hand side already includes double quotes, do nothing
+        if [[ ! $rhs =~ \" ]]; then
+            rhs="\"${rhs}\""
+        fi
+        settings_out+=("\"${lhs}\":${rhs}")
     done
 
-    # ...and wrap inside braces.
-    # FIXME: handle commas
-    echo "{${settings_out[*]}}"
+    # ...and wrap inside braces, with comma separator if multiple fields
+    (IFS=','; echo "{${settings_out[*]}}")
 }
 
 #######
@@ -180,11 +184,19 @@ function t() {
     local curl_args
 
     local testname="$method $path"
-    # POST requests require an extra params arg
+    # POST requests may be followed by one or more key=value pairs.
+    # Slurp the command line until we see a 3-digit status code.
     if [[ $method = "POST" ]]; then
-        curl_args="-d $(jsonify $1)"
+        local -a post_args
+        for arg; do
+            case "$arg" in
+                *=*)              post_args+=("$arg"); shift ;;
+                [1-9][0-9][0-9])  break;;
+                *)                die "Internal error: invalid POST arg '$arg'" ;;
+            esac
+        done
+        curl_args="-d $(jsonify ${post_args[@]})"
         testname="$testname [$curl_args]"
-        shift
     fi
 
     # entrypoint path can include a descriptive comment; strip it off

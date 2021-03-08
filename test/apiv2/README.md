@@ -52,9 +52,14 @@ Notes:
 If there's no leading slash, `t` prepends `/v1.40`. This is a simple
 convenience for simplicity of writing tests.
 
-* When method is POST, the argument after the endpoint must be a series
-of POST arguments in the form 'key=value', separated by commas. `t` will
-convert those to JSON form for passing to the server.
+* When method is POST, the argument(s) after the endpoint may be a series
+of POST parameters in the form 'key=value', separated by spaces:
+     t POST myentrypoint 200                                 ! no params
+     t POST myentrypoint id=$id 200                          ! just one
+     t POST myentrypoint id=$id filter='{"foo":"bar"}' 200   ! two, with json
+     t POST myentrypoint name=$name badparam='["foo","bar"]' 500  ! etc...
+`t` will convert the param list to JSON form for passing to the server.
+A numeric status code terminates processing of POST parameters.
 
 * The final arguments are one or more expected string results. If an
 argument starts with a dot, `t` will invoke `jq` on the output to

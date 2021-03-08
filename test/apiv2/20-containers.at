@@ -31,12 +31,16 @@ t GET libpod/containers/json?all=true 200 \
   .[0].ExitCode=0 \
   .[0].IsInfra=false
 
-# Test compat API for Network Settings
+# Test compat API for Network Settings (.Network is N/A when rootless)
+network_expect=
+if root; then
+    network_expect='.[0].NetworkSettings.Networks.podman.NetworkID=podman'
+fi
 t GET /containers/json?all=true 200 \
   length=1 \
   .[0].Id~[0-9a-f]\\{64\\} \
   .[0].Image=$IMAGE \
-  .[0].NetworkSettings.Networks.podman.NetworkID=podman
+  $network_expect
 
 # Make sure `limit` works.
 t GET libpod/containers/json?limit=1 200 \
@@ -68,9 +72,9 @@ t POST libpod/containers/create?name=test_noargs Image=${IMAGE} 201 \
   .Id~[0-9a-f]\\{64\\}
 cid=$(jq -r '.Id' <<<"$output")
 # Prior to the fix in #6835, this would fail 500 "args must not be empty"
-t POST   libpod/containers/${cid}/start '' 204
+t POST   libpod/containers/${cid}/start 204
 # Container should exit almost immediately. Wait for it, confirm successful run
-t POST   "libpod/containers/${cid}/wait?condition=stopped&condition=exited"  '' 200 '0'
+t POST   "libpod/containers/${cid}/wait?condition=stopped&condition=exited"  200 '0'
 t GET    libpod/containers/${cid}/json 200 \
   .Id=$cid \
   .State.Status~\\\(exited\\\|stopped\\\) \
@@ -85,15 +89,15 @@ t GET libpod/containers/json?all=true 200 \
 cid=$(jq -r '.[0].Id' <<<"$output")
 
 # No such container
-t POST "libpod/commit?container=nonesuch" '' 404
+t POST "libpod/commit?container=nonesuch" 404
 
 # Comment can only be used with docker format, not OCI
 cparam="repo=newrepo&comment=foo&author=bob"
-t POST "libpod/commit?container=$CNAME&$cparam"  '' 500 \
+t POST "libpod/commit?container=$CNAME&$cparam"  500 \
   .cause="messages are only compatible with the docker image format (-f docker)"
 
 # Commit a new image from the container
-t POST "libpod/commit?container=$CNAME" '' 200 \
+t POST "libpod/commit?container=$CNAME" 200 \
   .Id~[0-9a-f]\\{64\\}
 iid=$(jq -r '.Id' <<<"$output")
 t GET libpod/images/$iid/json 200 \
@@ -103,7 +107,7 @@ t GET libpod/images/$iid/json 200 \
 
 # Commit a new image w/o tag
 cparam="repo=newrepo&comment=foo&author=bob&format=docker"
-t POST "libpod/commit?container=$CNAME&$cparam" '' 200
+t POST "libpod/commit?container=$CNAME&$cparam" 200
 t GET libpod/images/newrepo:latest/json 200 \
   .RepoTags[0]=localhost/newrepo:latest	\
   .Author=bob \
@@ -111,7 +115,7 @@ t GET libpod/images/newrepo:latest/json 200 \
 
 # Commit a new image w/ specified tag and author
 cparam="repo=newrepo&tag=v1&author=alice"
-t POST "libpod/commit?container=$cid&$cparam&pause=false" '' 200
+t POST "libpod/commit?container=$cid&$cparam&pause=false" 200
 t GET libpod/images/newrepo:v1/json 200 \
   .RepoTags[0]=localhost/newrepo:v1     \
   .Author=alice
@@ -119,7 +123,7 @@ t GET libpod/images/newrepo:v1/json 200 \
 # Commit a new image w/ full parameters
 cparam="repo=newrepo&tag=v2&comment=bar&author=eric"
 cparam="$cparam&format=docker&changes=CMD=/bin/foo"
-t POST "libpod/commit?container=${cid:0:12}&$cparam&pause=true" '' 200
+t POST "libpod/commit?container=${cid:0:12}&$cparam&pause=true" 200
 t GET libpod/images/newrepo:v2/json 200 \
   .RepoTags[0]=localhost/newrepo:v2	\
   .Author=eric \
@@ -143,7 +147,7 @@ cpid_file=$(jq -r '.ConmonPidFile' <<<"$output")
 userdata_path=$(dirname $cpid_file)
 
 # Initializing the container
-t POST libpod/containers/myctr/init '' 204
+t POST libpod/containers/myctr/init 204
 
 # Check configuration after initializing
 t GET libpod/containers/myctr/json 200 \
@@ -166,7 +170,11 @@ t DELETE libpod/containers/myctr 204
 
 # test apiv2 create container with correct entrypoint and cmd
 # --data '{"Image":"quay.io/libpod/alpine_labels:latest","Entrypoint":["echo"],"Cmd":["param1","param2"]}'
-t POST containers/create '"Image":"'$IMAGE'","Entrypoint":["echo"],"Cmd":["param1","param2"]' 201 \
+t POST containers/create \
+  Image=$IMAGE \
+  Entrypoint='["echo"]' \
+  Cmd='["param1","param2"]' \
+  201 \
   .Id~[0-9a-f]\\{64\\}
 cid=$(jq -r '.Id' <<<"$output")
 t GET containers/$cid/json 200 \
@@ -179,7 +187,10 @@ t GET containers/$cid/json 200 \
 t DELETE containers/$cid 204
 
 # test only set the entrypoint, Cmd should be []
-t POST containers/create '"Image":"'$IMAGE'","Entrypoint":["echo","param1"]' 201 \
+t POST containers/create \
+  Image=$IMAGE \
+  Entrypoint='["echo","param1"]' \
+  201 \
   .Id~[0-9a-f]\\{64\\}
 cid=$(jq -r '.Id' <<<"$output")
 t GET containers/$cid/json 200 \
@@ -190,14 +201,14 @@ t GET containers/$cid/json 200 \
   .Args[0]="param1"
 
 # create a running container for after
-t POST containers/create '"Image":"'$IMAGE'","Entrypoint":["top"]' 201 \
+t POST containers/create Image=$IMAGE Entrypoint='["top"]' 201 \
   .Id~[0-9a-f]\\{64\\}
 cid_top=$(jq -r '.Id' <<<"$output")
 t GET containers/${cid_top}/json 200 \
   .Config.Entrypoint[0]="top" \
   .Config.Cmd='[]' \
   .Path="top"
-t POST  containers/${cid_top}/start '' 204
+t POST  containers/${cid_top}/start 204
 # make sure the container is running
 t GET containers/${cid_top}/json 200 \
   .State.Status="running"
@@ -219,13 +230,17 @@ t GET containers/json?filters='{"id":["'${cid}'","'${cid_top}'"],"status":["runn
   length=1 \
   .[0].Id=${cid_top}
 
-t POST containers/${cid_top}/stop "" 204
+t POST containers/${cid_top}/stop 204
 
 t DELETE containers/$cid 204
 t DELETE containers/$cid_top 204
 
 # test the WORKDIR and StopSignal
-t POST containers/create '"Image":"'$ENV_WORKDIR_IMG'","WorkingDir":"/dataDir","StopSignal":"9"' 201 \
+t POST containers/create \
+  Image=$ENV_WORKDIR_IMG \
+  WorkingDir=/dataDir \
+  StopSignal=9 \
+  201 \
   .Id~[0-9a-f]\\{64\\}
 cid=$(jq -r '.Id' <<<"$output")
 t GET containers/$cid/json 200 \
@@ -246,7 +261,7 @@ t DELETE images/${MultiTagName}?force=true 200
 # vim: filetype=sh
 
 # Test Volumes field adds an anonymous volume
-t POST containers/create '"Image":"'$IMAGE'","Volumes":{"/test":{}}' 201 \
+t POST containers/create Image=$IMAGE Volumes='{"/test":{}}' 201 \
   .Id~[0-9a-f]\\{64\\}
 cid=$(jq -r '.Id' <<<"$output")
 t GET containers/$cid/json 200 \
@@ -265,7 +280,7 @@ t GET containers/json 200 \
 podman stop bar
 
 # Test CPU limit (NanoCPUs)
-t POST containers/create '"Image":"'$IMAGE'","HostConfig":{"NanoCpus":500000}' 201 \
+t POST containers/create Image=$IMAGE HostConfig='{"NanoCpus":500000}' 201 \
   .Id~[0-9a-f]\\{64\\}
 cid=$(jq -r '.Id' <<<"$output")
 t GET containers/$cid/json 200 \

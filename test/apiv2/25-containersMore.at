@@ -17,7 +17,7 @@ t GET libpod/containers/nonesuch/exists 404
 t GET libpod/containers/foo/exists 204
 
 # Pause the container
-t POST libpod/containers/foo/pause '' 204
+t POST libpod/containers/foo/pause 204
 
 t GET libpod/containers/foo/json 200 \
   .Id~[0-9a-f]\\{64\\} \
@@ -27,7 +27,7 @@ t GET libpod/containers/foo/json 200 \
   .Name=foo
 
 # Unpause the container
-t POST libpod/containers/foo/unpause '' 204
+t POST libpod/containers/foo/unpause 204
 
 t GET libpod/containers/foo/json 200 \
   .Id~[0-9a-f]\\{64\\} \
@@ -44,11 +44,11 @@ t GET libpod/containers/foo/top 200 \
 t GET libpod/containers/nonesuch/top 404
 
 # Mount the container to host filesystem
-t POST libpod/containers/foo/mount '' 200
+t POST libpod/containers/foo/mount 200
 like "$output" ".*merged" "Check container mount"
 
 # Unmount the container
-t POST libpod/containers/foo/unmount '' 204
+t POST libpod/containers/foo/unmount 204
 
 t DELETE libpod/containers/foo?force=true 204
 
@@ -85,7 +85,7 @@ podman run $IMAGE true
 podman run $IMAGE true
 podman run $IMAGE true
 
-t POST libpod/containers/prune '' 200
+t POST libpod/containers/prune 200
 t GET libpod/containers/json 200 \
   length=0
 # vim: filetype=sh

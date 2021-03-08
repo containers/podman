@@ -6,18 +6,21 @@
 t GET networks/non-existing-network 404 \
   .cause='network not found'
 
-t POST libpod/networks/create?name=network1 '' 200 \
+t POST libpod/networks/create?name=network1 200 \
   .Filename~.*/network1\\.conflist
 
 # --data '{"Subnet":{"IP":"10.10.254.0","Mask":[255,255,255,0]},"Labels":{"abc":"val"}}'
-t POST libpod/networks/create?name=network2 '"Subnet":{"IP":"10.10.254.0","Mask":[255,255,255,0]},"Labels":{"abc":"val"}' 200 \
+t POST libpod/networks/create?name=network2 \
+  Subnet='{"IP":"10.10.254.0","Mask":[255,255,255,0]}' \
+  Labels='{"abc":"val"}' \
+  200 \
   .Filename~.*/network2\\.conflist
 
 # test for empty mask
-t POST libpod/networks/create '"Subnet":{"IP":"10.10.1.0","Mask":[]}' 500 \
+t POST libpod/networks/create Subnet='{"IP":"10.10.1.0","Mask":[]}' 500 \
   .cause~'.*cannot be empty'
 # test for invalid mask
-t POST libpod/networks/create '"Subnet":{"IP":"10.10.1.0","Mask":[0,255,255,0]}' 500 \
+t POST libpod/networks/create Subnet='{"IP":"10.10.1.0","Mask":[0,255,255,0]}' 500 \
   .cause~'.*mask is invalid'
 
 # network list
@@ -55,7 +58,7 @@ t GET networks/a7662f44d65029fd4635c91feea3d720a57cef52e2a9fcc7772b69072cc1ccd1 
   .Scope=local
 
 # network create docker
-t POST networks/create '"Name":"net3","IPAM":{"Config":[]}' 201
+t POST networks/create Name=net3\ IPAM='{"Config":[]}' 201
 # network delete docker
 t DELETE networks/net3 204
 

@@ -25,70 +25,70 @@ t POST "libpod/pods/create (dup pod)" name=foo 409 \
 
 #t POST libpod/pods/create a=b 400 .cause='bad parameter'  # FIXME: unimplemented
 
-t POST libpod/pods/foo/start '' 200 \
+t POST libpod/pods/foo/start 200 \
   .Errs=null \
   .Id=$pod_id
 
-t POST libpod/pods/foo/start '' 304 \
+t POST libpod/pods/foo/start 304 \
 
-t POST libpod/pods/fakename/start '' 404 \
+t POST libpod/pods/fakename/start 404 \
   .cause="no such pod" \
   .message="no pod with name or ID fakename found: no such pod"
 
 if root || have_cgroupsv2; then
-    t POST libpod/pods/foo/pause   '' 200
+    t POST libpod/pods/foo/pause 200
 else
     # Rootless cgroupsv1 : unsupported
-    t POST "libpod/pods/foo/pause (rootless cgroups v1)" '' 500 \
+    t POST "libpod/pods/foo/pause (rootless cgroups v1)" 500 \
       .cause="this container does not have a cgroup" \
       .message~".*pause pods containing rootless containers with cgroup V1"
 fi
-t POST  libpod/pods/foo/unpause '' 200
-t POST "libpod/pods/foo/unpause (2nd unpause in a row)" '' 200
-t POST "libpod/pods/fakename/unpause" '' 404\
+t POST  libpod/pods/foo/unpause 200
+t POST "libpod/pods/foo/unpause (2nd unpause in a row)" 200
+t POST "libpod/pods/fakename/unpause" 404\
   .cause="no such pod" \
   .message="no pod with name or ID fakename found: no such pod"
 
 
-t POST libpod/pods/foo/stop '' 200 \
+t POST libpod/pods/foo/stop 200 \
   .Errs=null \
   .Id=$pod_id
 
-t POST "libpod/pods/foo/stop (pod is already stopped)"  '' 304
-t POST "libpod/pods/fakename/stop" '' 404\
+t POST "libpod/pods/foo/stop (pod is already stopped)" 304
+t POST "libpod/pods/fakename/stop" 404\
   .cause="no such pod" \
   .message="no pod with name or ID fakename found: no such pod"
 
-t POST  libpod/pods/foo/restart '' 200 \
+t POST  libpod/pods/foo/restart 200 \
   .Errs=null \
   .Id=$pod_id
 
-t POST  "libpod/pods/bar/restart (restart on nonexistent pod)" '' 404
+t POST  "libpod/pods/bar/restart (restart on nonexistent pod)" 404
 t POST libpod/pods/create name=bar 201 .Id~[0-9a-f]\\{64\\}
 pod_bar_id=$(jq -r .Id <<<"$output")
 
-t POST  libpod/pods/bar/restart '' 200 \
+t POST  libpod/pods/bar/restart 200 \
   .Errs=null \
   .Id=$pod_bar_id
 
-t GET  libpod/pods/bar/json        200 \
+t GET  libpod/pods/bar/json     200 \
   .State=Running
 
-t POST  libpod/pods/bar/restart '' 200 \
+t POST  libpod/pods/bar/restart 200 \
   .Errs=null \
   .Id=$pod_bar_id
 
-t POST "libpod/pods/bar/stop?t=invalid" '' 400 \
+t POST "libpod/pods/bar/stop?t=invalid" 400 \
   .cause="schema: error converting value for \"t\"" \
   .message~"failed to parse parameters for"
 
 podman run -d --pod bar busybox sleep 999
 
-t POST libpod/pods/bar/stop?t=1 '' 200 \
+t POST libpod/pods/bar/stop?t=1 200 \
   .Errs=null \
   .Id=$pod_bar_id
 
-t POST libpod/pods/bar/start '' 200
+t POST libpod/pods/bar/start 200
 
 t GET libpod/pods/stats?all=true 200
 is $(jq '. | length' <<<"$output") 3 "stats?all=true: number of records found"
@@ -118,7 +118,7 @@ t GET libpod/pods/foo/top?ps_args=args,pid 200 \
 
 # FIXME: I'm not sure what 'prune' is supposed to do; as of 20200224 it
 # just returns 200 (ok) with empty result list.
-#t POST libpod/pods/prune ''    200     # FIXME: 2020-02-24 returns 200 {}
+#t POST libpod/pods/prune       200     # FIXME: 2020-02-24 returns 200 {}
 #t POST libpod/pods/prune 'a=b' 400     # FIXME: 2020-02-24 returns 200
 
 # Clean up; and try twice, making sure that the second time fails
