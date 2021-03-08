@@ -37,7 +37,7 @@ func TestGetRegistries(t *testing.T) {
 	registryPath, err := createTmpFile([]byte(registry))
 	assert.NoError(t, err)
 	defer os.Remove(registryPath)
-	os.Setenv("REGISTRIES_CONFIG_PATH", registryPath)
+	os.Setenv("CONTAINERS_REGISTRIES_CONF", registryPath)
 	registries, err := sysreg.GetRegistries()
 	assert.NoError(t, err)
 	assert.True(t, reflect.DeepEqual(registries, []string{"one"}))
@@ -46,7 +46,7 @@ func TestGetRegistries(t *testing.T) {
 func TestGetInsecureRegistries(t *testing.T) {
 	registryPath, err := createTmpFile([]byte(registry))
 	assert.NoError(t, err)
-	os.Setenv("REGISTRIES_CONFIG_PATH", registryPath)
+	os.Setenv("CONTAINERS_REGISTRIES_CONF", registryPath)
 	defer os.Remove(registryPath)
 	registries, err := sysreg.GetInsecureRegistries()
 	assert.NoError(t, err)

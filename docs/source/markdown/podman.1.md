@@ -279,6 +279,8 @@ Distributions ship the `/usr/share/containers/containers.conf` file with their d
 
 Podman uses builtin defaults if no containers.conf file is found.
 
+If the **CONTAINERS_CONF** environment variable is set, then its value is used for the containers.conf file rather than the default.
+
 **mounts.conf** (`/usr/share/containers/mounts.conf`)
 
     The mounts.conf file specifies volume mount directories that are automatically mounted inside containers when executing the `podman run` or `podman start` commands. Administrators can override the defaults file by creating `/etc/containers/mounts.conf`.
@@ -295,6 +297,8 @@ When Podman runs in rootless mode, the file `$HOME/.config/containers/mounts.con
 
     Non root users of Podman can create the `$HOME/.config/containers/registries.conf` file to be used instead of the system defaults.
 
+    If the **CONTAINERS_REGISTRIES_CONF** environment variable is set, then its value is used for the registries.conf file rather than the default.
+
 **storage.conf** (`/etc/containers/storage.conf`, `$HOME/.config/containers/storage.conf`)
 
     storage.conf is the storage configuration file for all tools using containers/storage
@@ -303,8 +307,10 @@ When Podman runs in rootless mode, the file `$HOME/.config/containers/mounts.con
 
     When Podman runs in rootless mode, the file `$HOME/.config/containers/storage.conf` is used instead of the system defaults.
 
+    If the **CONTAINERS_STORAGE_CONF** environment variable is set, the its value is used for the storage.conf file rather than the default.
+
 ## Rootless mode
-Podman can also be used as non-root user.  When podman runs in rootless mode, a user namespace is automatically created for the user, defined in /etc/subuid and /etc/subgid.
+Podman can also be used as non-root user. When podman runs in rootless mode, a user namespace is automatically created for the user, defined in /etc/subuid and /etc/subgid.
 
 Containers created by a non-root user are not visible to other users and are not seen or managed by Podman running as root.
 

@@ -24,7 +24,10 @@ var userRegistriesFile = filepath.Join(os.Getenv("HOME"), ".config/containers/re
 // FIXME: This should be centralized in a global SystemContext initializer inherited throughout the code,
 // not haphazardly called throughout the way it is being called now.
 func SystemRegistriesConfPath() string {
-	if envOverride := os.Getenv("REGISTRIES_CONFIG_PATH"); len(envOverride) > 0 {
+	if envOverride, ok := os.LookupEnv("CONTAINERS_REGISTRIES_CONF"); ok {
+		return envOverride
+	}
+	if envOverride, ok := os.LookupEnv("REGISTRIES_CONFIG_PATH"); ok {
 		return envOverride
 	}
 

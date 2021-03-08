@@ -125,15 +125,15 @@ var _ = Describe("Podman login and logout", func() {
 
 		// Environment is per-process, so this looks very unsafe; actually it seems fine because tests are not
 		// run in parallel unless they opt in by calling t.Parallel().  So don’t do that.
-		oldRCP, hasRCP := os.LookupEnv("REGISTRIES_CONFIG_PATH")
+		oldRCP, hasRCP := os.LookupEnv("CONTAINERS_REGISTRIES_CONF")
 		defer func() {
 			if hasRCP {
-				os.Setenv("REGISTRIES_CONFIG_PATH", oldRCP)
+				os.Setenv("CONTAINERS_REGISTRIES_CONF", oldRCP)
 			} else {
-				os.Unsetenv("REGISTRIES_CONFIG_PATH")
+				os.Unsetenv("CONTAINERS_REGISTRIES_CONF")
 			}
 		}()
-		os.Setenv("REGISTRIES_CONFIG_PATH", registriesConf.Name())
+		os.Setenv("CONTAINERS_REGISTRIES_CONF", registriesConf.Name())
 
 		session := podmanTest.Podman([]string{"login", "-u", "podmantest", "-p", "test"})
 		session.WaitWithDefaultTimeout()

@@ -31,17 +31,17 @@ func (p *PodmanTestIntegration) PodmanExtraFiles(args []string, extraFiles []*os
 
 func (p *PodmanTestIntegration) setDefaultRegistriesConfigEnv() {
 	defaultFile := filepath.Join(INTEGRATION_ROOT, "test/registries.conf")
-	os.Setenv("REGISTRIES_CONFIG_PATH", defaultFile)
+	os.Setenv("CONTAINERS_REGISTRIES_CONF", defaultFile)
 }
 
 func (p *PodmanTestIntegration) setRegistriesConfigEnv(b []byte) {
 	outfile := filepath.Join(p.TempDir, "registries.conf")
-	os.Setenv("REGISTRIES_CONFIG_PATH", outfile)
+	os.Setenv("CONTAINERS_REGISTRIES_CONF", outfile)
 	ioutil.WriteFile(outfile, b, 0644)
 }
 
 func resetRegistriesConfigEnv() {
-	os.Setenv("REGISTRIES_CONFIG_PATH", "")
+	os.Setenv("CONTAINERS_REGISTRIES_CONF", "")
 }
 
 func PodmanTestCreate(tempDir string) *PodmanTestIntegration {

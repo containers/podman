@@ -27,7 +27,7 @@ class Podman(object):
         self.cmd.append("--root=" + os.path.join(self.anchor_directory, "crio"))
         self.cmd.append("--runroot=" + os.path.join(self.anchor_directory, "crio-run"))
 
-        os.environ["REGISTRIES_CONFIG_PATH"] = os.path.join(self.anchor_directory, "registry.conf")
+        os.environ["CONTAINERS_REGISTRIES_CONF"] = os.path.join(self.anchor_directory, "registry.conf")
         p = configparser.ConfigParser()
         p.read_dict(
             {
@@ -36,7 +36,7 @@ class Podman(object):
                 "registries.block": {"registries": "[]"},
             }
         )
-        with open(os.environ["REGISTRIES_CONFIG_PATH"], "w") as w:
+        with open(os.environ["CONTAINERS_REGISTRIES_CONF"], "w") as w:
             p.write(w)
 
         os.environ["CNI_CONFIG_PATH"] = os.path.join(self.anchor_directory, "cni", "net.d")
