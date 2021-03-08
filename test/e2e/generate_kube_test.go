@@ -734,4 +734,36 @@ ENTRYPOINT /bin/sleep`
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 	})
+
+	It("podman generate kube based on user in container", func() {
+		// Build an image with an entrypoint.
+		containerfile := `FROM quay.io/libpod/alpine:latest
+RUN adduser -u 10001 -S test1
+USER test1`
+
+		targetPath, err := CreateTempDirInTempDir()
+		Expect(err).To(BeNil())
+		containerfilePath := filepath.Join(targetPath, "Containerfile")
+		err = ioutil.WriteFile(containerfilePath, []byte(containerfile), 0644)
+		Expect(err).To(BeNil())
+
+		image := "generatekube:test"
+		session := podmanTest.Podman([]string{"build", "-f", containerfilePath, "-t", image})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"create", "--pod", "new:testpod", image, "test1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "testpod"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+		Expect(*pod.Spec.Containers[0].SecurityContext.RunAsUser).To(Equal(int64(10001)))
+	})
+
 })
