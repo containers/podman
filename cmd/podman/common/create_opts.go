@@ -439,6 +439,10 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 		if !filepath.IsAbs(vol) {
 			continue
 		}
+		// If volume already exists, there is nothing to do
+		if _, err := os.Stat(vol); err == nil {
+			continue
+		}
 		if err := os.MkdirAll(vol, 0755); err != nil {
 			if !os.IsExist(err) {
 				return nil, nil, errors.Wrapf(err, "error making volume mountpoint for volume %s", vol)
