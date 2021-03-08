@@ -87,6 +87,28 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		params.Add("devices", d)
 	}
 
+	if dnsservers := options.CommonBuildOpts.DNSServers; len(dnsservers) > 0 {
+		c, err := jsoniter.MarshalToString(dnsservers)
+		if err != nil {
+			return nil, err
+		}
+		params.Add("dnsservers", c)
+	}
+	if dnsoptions := options.CommonBuildOpts.DNSOptions; len(dnsoptions) > 0 {
+		c, err := jsoniter.MarshalToString(dnsoptions)
+		if err != nil {
+			return nil, err
+		}
+		params.Add("dnsoptions", c)
+	}
+	if dnssearch := options.CommonBuildOpts.DNSSearch; len(dnssearch) > 0 {
+		c, err := jsoniter.MarshalToString(dnssearch)
+		if err != nil {
+			return nil, err
+		}
+		params.Add("dnssearch", c)
+	}
+
 	if caps := options.DropCapabilities; len(caps) > 0 {
 		c, err := jsoniter.MarshalToString(caps)
 		if err != nil {

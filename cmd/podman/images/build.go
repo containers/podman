@@ -2,6 +2,7 @@ package images
 
 import (
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,7 +20,6 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/utils"
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -298,6 +298,11 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		}
 	}
 
+	commonOpts, err := parse.CommonBuildOptions(c)
+	if err != nil {
+		return nil, err
+	}
+
 	pullPolicy := imagebuildah.PullIfMissing
 	if c.Flags().Changed("pull") && flags.Pull {
 		pullPolicy = imagebuildah.PullAlways
@@ -317,7 +322,12 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 			if len(av) > 1 {
 				args[av[0]] = av[1]
 			} else {
-				delete(args, av[0])
+				// check if the env is set in the local environment and use that value if it is
+				if val, present := os.LookupEnv(av[0]); present {
+					args[av[0]] = val
+				} else {
+					delete(args, av[0])
+				}
 			}
 		}
 	}
@@ -354,22 +364,6 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		stdout = logfile
 		stderr = logfile
 		reporter = logfile
-	}
-
-	var memoryLimit, memorySwap int64
-	var err error
-	if c.Flags().Changed("memory") {
-		memoryLimit, err = units.RAMInBytes(flags.Memory)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if c.Flags().Changed("memory-swap") {
-		memorySwap, err = units.RAMInBytes(flags.MemorySwap)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	nsValues, networkPolicy, err := parse.NamespaceOptions(c)
@@ -449,29 +443,15 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 	}
 
 	opts := imagebuildah.BuildOptions{
-		AddCapabilities: flags.CapAdd,
-		AdditionalTags:  tags,
-		Annotations:     flags.Annotation,
-		Architecture:    arch,
-		Args:            args,
-		BlobDirectory:   flags.BlobCache,
-		CNIConfigDir:    flags.CNIConfigDir,
-		CNIPluginPath:   flags.CNIPlugInPath,
-		CommonBuildOpts: &buildah.CommonBuildOptions{
-			AddHost:      flags.AddHost,
-			CPUPeriod:    flags.CPUPeriod,
-			CPUQuota:     flags.CPUQuota,
-			CPUSetCPUs:   flags.CPUSetCPUs,
-			CPUSetMems:   flags.CPUSetMems,
-			CPUShares:    flags.CPUShares,
-			CgroupParent: flags.CgroupParent,
-			HTTPProxy:    flags.HTTPProxy,
-			Memory:       memoryLimit,
-			MemorySwap:   memorySwap,
-			ShmSize:      flags.ShmSize,
-			Ulimit:       flags.Ulimit,
-			Volumes:      flags.Volumes,
-		},
+		AddCapabilities:         flags.CapAdd,
+		AdditionalTags:          tags,
+		Annotations:             flags.Annotation,
+		Architecture:            arch,
+		Args:                    args,
+		BlobDirectory:           flags.BlobCache,
+		CNIConfigDir:            flags.CNIConfigDir,
+		CNIPluginPath:           flags.CNIPlugInPath,
+		CommonBuildOpts:         commonOpts,
 		Compression:             compression,
 		ConfigureNetwork:        networkPolicy,
 		ContextDirectory:        contextDir,
@@ -512,6 +492,14 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		TransientMounts:         flags.Volumes,
 	}
 
+	if flags.IgnoreFile != "" {
+		excludes, err := parseDockerignore(flags.IgnoreFile)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to obtain decrypt config")
+		}
+		opts.Excludes = excludes
+	}
+
 	if c.Flag("timestamp").Changed {
 		timestamp := time.Unix(flags.Timestamp, 0).UTC()
 		opts.Timestamp = &timestamp
@@ -533,4 +521,19 @@ func getDecryptConfig(decryptionKeys []string) (*encconfig.DecryptConfig, error)
 	}
 
 	return decConfig, nil
+}
+
+func parseDockerignore(ignoreFile string) ([]string, error) {
+	excludes := []string{}
+	ignore, err := ioutil.ReadFile(ignoreFile)
+	if err != nil {
+		return excludes, err
+	}
+	for _, e := range strings.Split(string(ignore), "\n") {
+		if len(e) == 0 || e[0] == '#' {
+			continue
+		}
+		excludes = append(excludes, e)
+	}
+	return excludes, nil
 }

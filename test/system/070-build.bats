@@ -168,6 +168,9 @@ EOF
         CAT_SECRET="cat /run/secrets/$secret_filename"
     fi
 
+    # For --dns-search: a domain that is unlikely to exist
+    local nosuchdomain=nx$(random_string 10).net
+
     # Command to run on container startup with no args
     cat >$tmpdir/mycmd <<EOF
 #!/bin/sh
@@ -188,11 +191,17 @@ EOF
 https_proxy=https-proxy-in-env-file
 EOF
 
+    # Build args: one explicit (foo=bar), one implicit (foo)
+    local arg_implicit_value=implicit_$(random_string 15)
+    local arg_explicit_value=explicit_$(random_string 15)
+
     # NOTE: it's important to not create the workdir.
     # Podman will make sure to create a missing workdir
     # if needed. See #9040.
     cat >$tmpdir/Containerfile <<EOF
 FROM $IMAGE
+ARG arg_explicit
+ARG arg_implicit
 LABEL $label_name=$label_value
 WORKDIR $workdir
 
@@ -217,17 +226,46 @@ RUN chown 2:3 /bin/mydefaultcmd
 
 RUN $CAT_SECRET
 
+RUN echo explicit-build-arg=\$arg_explicit
+RUN echo implicit-build-arg=\$arg_implicit
+
 CMD ["/bin/mydefaultcmd","$s_echo"]
+RUN cat /etc/resolv.conf
 EOF
+
+    # The goal is to test that a missing value will be inherited from
+    # environment - but that can't work with remote, so for simplicity
+    # just make it explicit in that case too.
+    local build_arg_implicit="--build-arg arg_implicit"
+    if is_remote; then
+        build_arg_implicit+="=$arg_implicit_value"
+    fi
 
     # cd to the dir, so we test relative paths (important for podman-remote)
     cd $PODMAN_TMPDIR
+    export arg_explicit="THIS SHOULD BE OVERRIDDEN BY COMMAND LINE!"
+    export arg_implicit=${arg_implicit_value}
     run_podman ${MOUNTS_CONF} build \
+               --build-arg arg_explicit=${arg_explicit_value} \
+               $build_arg_implicit \
+               --dns-search $nosuchdomain \
                -t build_test -f build-test/Containerfile build-test
     local iid="${lines[-1]}"
 
+    if [[ $output =~ missing.*build.argument ]]; then
+        die "podman did not see the given --build-arg(s)"
+    fi
+
     # Make sure 'podman build' had the secret mounted
     is "$output" ".*$secret_contents.*" "podman build has /run/secrets mounted"
+
+    # --build-arg should be set, both via 'foo=bar' and via just 'foo' ($foo)
+    is "$output" ".*explicit-build-arg=${arg_explicit_value}" \
+       "--build-arg arg_explicit=explicit-value works"
+    is "$output" ".*implicit-build-arg=${arg_implicit_value}" \
+       "--build-arg arg_implicit works (inheriting from environment)"
+    is "$output" ".*search $nosuchdomain" \
+       "--dns-search added to /etc/resolv.conf"
 
     if is_remote; then
         ENVHOST=""
@@ -360,6 +398,82 @@ Labels.$label_name | $label_value
 
     # Clean up
     run_podman rmi -f build_test
+}
+
+@test "podman build - COPY with ignore" {
+    local tmpdir=$PODMAN_TMPDIR/build-test-$(random_string 10)
+    mkdir -p $tmpdir/subdir
+
+    # Create a bunch of files. Declare this as an array to avoid duplication
+    # because we iterate over that list below, checking for each file.
+    # A leading "-" indicates that the file SHOULD NOT exist in the built image
+    local -a files=(
+        -test1 -test1.txt
+         test2  test2.txt
+         subdir/sub1  subdir/sub1.txt
+         -subdir/sub2 -subdir/sub2.txt
+         this-file-does-not-match-anything-in-ignore-file
+         comment
+    )
+    for f in ${files[@]}; do
+        # The magic '##-' strips off the '-' prefix
+        echo "$f" > $tmpdir/${f##-}
+    done
+
+    # Directory that doesn't exist in the image; COPY should create it
+    local newdir=/newdir-$(random_string 12)
+    cat >$tmpdir/Containerfile <<EOF
+FROM $IMAGE
+COPY ./ $newdir/
+EOF
+
+    # Run twice: first with a custom --ignorefile, then with a default one.
+    # This ordering is deliberate: if we were to run with .dockerignore
+    # first, and forget to rm it, and then run with --ignorefile, _and_
+    # there was a bug in podman where --ignorefile was a NOP (eg #9570),
+    # the test might pass because of the existence of .dockerfile.
+    for ignorefile in ignoreme-$(random_string 5) .dockerignore; do
+        # Patterns to ignore. Mostly copied from buildah/tests/bud/dockerignore
+        cat >$tmpdir/$ignorefile <<EOF
+# comment
+test*
+!test2*
+subdir
+!*/sub1*
+EOF
+
+        # Build an image. For .dockerignore
+        local -a ignoreflag
+	unset ignoreflag
+        if [[ $ignorefile != ".dockerignore" ]]; then
+            ignoreflag="--ignorefile $tmpdir/$ignorefile"
+        fi
+        run_podman build -t build_test ${ignoreflag} $tmpdir
+
+        # Delete the ignore file! Otherwise, in the next iteration of the loop,
+        # we could end up with an existing .dockerignore that invisibly
+        # takes precedence over --ignorefile
+        rm -f $tmpdir/$ignorefile
+
+        # It would be much more readable, and probably safer, to iterate
+        # over each file, running 'podman run ... ls -l $f'. But each podman run
+        # takes a second or so, and we are mindful of each second.
+        run_podman run --rm build_test find $newdir -type f
+        for f in ${files[@]}; do
+            if [[ $f =~ ^- ]]; then
+                f=${f##-}
+                if [[ $output =~ $f ]]; then
+                    die "File '$f' found in image; it should have been ignored via $ignorefile"
+                fi
+            else
+                is "$output" ".*$newdir/$f" \
+                   "File '$f' should exist in container (no match in $ignorefile)"
+            fi
+        done
+
+        # Clean up
+        run_podman rmi -f build_test
+    done
 }
 
 @test "podman build - stdin test" {

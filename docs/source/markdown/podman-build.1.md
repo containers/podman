@@ -259,7 +259,7 @@ solely for scripting compatibility.
 
 #### **--dns**=*dns*
 
-Set custom DNS servers
+Set custom DNS servers to be used during the build.
 
 This option can be used to override the DNS configuration passed to the
 container. Typically this is necessary when the host DNS configuration is
@@ -272,11 +272,11 @@ image will be used without changes.
 
 #### **--dns-option**=*option*
 
-Set custom DNS options
+Set custom DNS options to be used during the build.
 
 #### **--dns-search**=*domain*
 
-Set custom DNS search domains
+Set custom DNS search domains to be used during the build.
 
 #### **--file**, **-f**=*Containerfile*
 
