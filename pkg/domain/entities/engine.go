@@ -1,11 +1,7 @@
 package entities
 
 import (
-	"context"
-	"io"
-
 	"github.com/containers/common/pkg/config"
-	"github.com/opentracing/opentracing-go"
 	"github.com/spf13/pflag"
 )
 
@@ -37,22 +33,19 @@ type PodmanConfig struct {
 	*config.Config
 	*pflag.FlagSet
 
-	CGroupUsage    string           // rootless code determines Usage message
-	ConmonPath     string           // --conmon flag will set Engine.ConmonPath
-	CPUProfile     string           // Hidden: Should CPU profile be taken
-	EngineMode     EngineMode       // ABI or Tunneling mode
-	Identity       string           // ssh identity for connecting to server
-	MaxWorks       int              // maximum number of parallel threads
-	RegistriesConf string           // allows for specifying a custom registries.conf
-	Remote         bool             // Connection to Podman API Service will use RESTful API
-	RuntimePath    string           // --runtime flag will set Engine.RuntimePath
-	RuntimeFlags   []string         // global flags for the container runtime
-	Span           opentracing.Span // tracing object
-	SpanCloser     io.Closer        // Close() for tracing object
-	SpanCtx        context.Context  // context to use when tracing
-	Syslog         bool             // write to StdOut and Syslog, not supported when tunneling
-	Trace          bool             // Hidden: Trace execution
-	URI            string           // URI to RESTful API Service
+	CGroupUsage    string     // rootless code determines Usage message
+	ConmonPath     string     // --conmon flag will set Engine.ConmonPath
+	CPUProfile     string     // Hidden: Should CPU profile be taken
+	EngineMode     EngineMode // ABI or Tunneling mode
+	Identity       string     // ssh identity for connecting to server
+	MaxWorks       int        // maximum number of parallel threads
+	RegistriesConf string     // allows for specifying a custom registries.conf
+	Remote         bool       // Connection to Podman API Service will use RESTful API
+	RuntimePath    string     // --runtime flag will set Engine.RuntimePath
+	RuntimeFlags   []string   // global flags for the container runtime
+	Syslog         bool       // write to StdOut and Syslog, not supported when tunneling
+	Trace          bool       // Hidden: Trace execution
+	URI            string     // URI to RESTful API Service
 
 	Runroot       string
 	StorageDriver string

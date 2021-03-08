@@ -10,11 +10,11 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/containers/storage/pkg/homedir"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
 	"golang.org/x/crypto/ssh/terminal"
-	"k8s.io/client-go/util/homedir"
 )
 
 var (
@@ -105,7 +105,7 @@ func ReadLogin() []byte {
 func HostKey(host string) ssh.PublicKey {
 	// parse OpenSSH known_hosts file
 	// ssh or use ssh-keyscan to get initial key
-	knownHosts := filepath.Join(homedir.HomeDir(), ".ssh", "known_hosts")
+	knownHosts := filepath.Join(homedir.Get(), ".ssh", "known_hosts")
 	fd, err := os.Open(knownHosts)
 	if err != nil {
 		logrus.Error(err)

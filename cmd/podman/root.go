@@ -17,9 +17,7 @@ import (
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/parallel"
 	"github.com/containers/podman/v3/pkg/rootless"
-	"github.com/containers/podman/v3/pkg/tracing"
 	"github.com/containers/podman/v3/version"
-	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -103,7 +101,6 @@ func Execute() {
 }
 
 func persistentPreRunE(cmd *cobra.Command, args []string) error {
-	// TODO: Remove trace statement in podman V2.1
 	logrus.Debugf("Called %s.PersistentPreRunE(%s)", cmd.Name(), strings.Join(os.Args, " "))
 
 	// Help, completion and commands with subcommands are special cases, no need for more setup
@@ -194,16 +191,6 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 			}
 		}
 
-		if cmd.Flag("trace").Changed {
-			tracer, closer := tracing.Init("podman")
-			opentracing.SetGlobalTracer(tracer)
-			cfg.SpanCloser = closer
-
-			cfg.Span = tracer.StartSpan("before-context")
-			cfg.SpanCtx = opentracing.ContextWithSpan(registry.Context(), cfg.Span)
-			opentracing.StartSpanFromContext(cfg.SpanCtx, cmd.Name())
-		}
-
 		if cfg.MaxWorks <= 0 {
 			return errors.Errorf("maximum workers must be set to a positive number (got %d)", cfg.MaxWorks)
 		}
@@ -226,21 +213,15 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 }
 
 func persistentPostRunE(cmd *cobra.Command, args []string) error {
-	// TODO: Remove trace statement in podman V2.1
 	logrus.Debugf("Called %s.PersistentPostRunE(%s)", cmd.Name(), strings.Join(os.Args, " "))
 
 	if !requireCleanup {
 		return nil
 	}
 
-	cfg := registry.PodmanConfig()
 	if !registry.IsRemote() {
 		if cmd.Flag("cpu-profile").Changed {
 			pprof.StopCPUProfile()
-		}
-		if cmd.Flag("trace").Changed {
-			cfg.Span.Finish()
-			cfg.SpanCloser.Close()
 		}
 	}
 

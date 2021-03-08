@@ -22,7 +22,6 @@ import (
 	"github.com/docker/go-units"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -179,10 +178,6 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 }
 
 func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ...CtrCreateOption) (*Container, error) {
-	span, _ := opentracing.StartSpanFromContext(ctx, "newContainer")
-	span.SetTag("type", "runtime")
-	defer span.Finish()
-
 	ctr, err := r.initContainerVariables(rSpec, nil)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error initializing container variables")
@@ -472,10 +467,6 @@ func (r *Runtime) RemoveContainer(ctx context.Context, c *Container, force bool,
 // infra container protections, and *not* remove from the database (as pod
 // remove will handle that).
 func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, removeVolume, removePod bool) error {
-	span, _ := opentracing.StartSpanFromContext(ctx, "removeContainer")
-	span.SetTag("type", "runtime")
-	defer span.Finish()
-
 	if !c.valid {
 		if ok, _ := r.state.HasContainer(c.ID()); !ok {
 			// Container probably already removed
