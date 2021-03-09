@@ -64,15 +64,22 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 			setField = true
 		}
 
+		graphDriverChanged := false
 		if config.GraphDriverName != "" {
 			rt.storageConfig.GraphDriverName = config.GraphDriverName
 			rt.storageSet.GraphDriverNameSet = true
 			setField = true
+			graphDriverChanged = true
 		}
 
 		if config.GraphDriverOptions != nil {
-			rt.storageConfig.GraphDriverOptions = make([]string, len(config.GraphDriverOptions))
-			copy(rt.storageConfig.GraphDriverOptions, config.GraphDriverOptions)
+			if graphDriverChanged {
+				rt.storageConfig.GraphDriverOptions = make([]string, len(config.GraphDriverOptions))
+				copy(rt.storageConfig.GraphDriverOptions, config.GraphDriverOptions)
+			} else {
+				// append new options after what is specified in the config files
+				rt.storageConfig.GraphDriverOptions = append(rt.storageConfig.GraphDriverOptions, config.GraphDriverOptions...)
+			}
 			setField = true
 		}
 
