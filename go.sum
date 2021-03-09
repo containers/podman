@@ -94,8 +94,8 @@ github.com/containernetworking/cni v0.8.1/go.mod h1:LGwApLUm2FpoOfxTDEeq8T9ipbpZ
 github.com/containernetworking/plugins v0.8.7/go.mod h1:R7lXeZaBzpfqapcAbHRW8/CYwm0dHzbz0XEjofx0uB0=
 github.com/containernetworking/plugins v0.9.1 h1:FD1tADPls2EEi3flPc2OegIY1M9pUa9r2Quag7HMLV8=
 github.com/containernetworking/plugins v0.9.1/go.mod h1:xP/idU2ldlzN6m4p5LmGiwRDjeJr6FLK6vuiUwoH7P8=
-github.com/containers/buildah v1.19.7 h1:/g11GlhTo177xFex+5GHlF22hq01SyWaJuSA26UGFNU=
-github.com/containers/buildah v1.19.7/go.mod h1:VnyHWgNmfR1d89/zJ/F4cbwOzaQS+6sBky46W7dCo3E=
+github.com/containers/buildah v1.19.8 h1:4TzmetfKPQF5hh6GgMwbAfrD50j+PAcsRiWDnx+gCI8=
+github.com/containers/buildah v1.19.8/go.mod h1:VnyHWgNmfR1d89/zJ/F4cbwOzaQS+6sBky46W7dCo3E=
 github.com/containers/common v0.33.4/go.mod h1:PhgL71XuC4jJ/1BIqeP7doke3aMFkCP90YBXwDeUr9g=
 github.com/containers/common v0.35.0 h1:1OLZ2v+Tj/CN9BTQkKZ5VOriOiArJedinMMqfJRUI38=
 github.com/containers/common v0.35.0/go.mod h1:gs1th7XFTOvVUl4LDPdQjOfOeNiVRDbQ7CNrZ0wS6F8=
