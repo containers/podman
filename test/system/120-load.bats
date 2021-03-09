@@ -26,6 +26,13 @@ verify_iid_and_name() {
     is "$new_img_name" "$1"   "Name & tag of restored image"
 }
 
+@test "podman load invalid file" {
+    # Regression test for #9672 to make sure invalid input yields errors.
+    invalid=$PODMAN_TMPDIR/invalid
+    echo "I am an invalid file and should cause a podman-load error" > $invalid
+    run_podman 125 load -i $invalid
+}
+
 @test "podman save to pipe and load" {
     # Generate a random name and tag (must be lower-case)
     local random_name=x0$(random_string 12 | tr A-Z a-z)

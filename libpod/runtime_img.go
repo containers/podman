@@ -316,7 +316,8 @@ func (r *Runtime) LoadImageFromSingleImageArchive(ctx context.Context, writer io
 	} {
 		src, err := referenceFn()
 		if err == nil && src != nil {
-			if newImages, err := r.ImageRuntime().LoadFromArchiveReference(ctx, src, signaturePolicy, writer); err == nil {
+			newImages, err := r.ImageRuntime().LoadFromArchiveReference(ctx, src, signaturePolicy, writer)
+			if err == nil {
 				return getImageNames(newImages), nil
 			}
 			saveErr = err
