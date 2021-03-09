@@ -301,14 +301,14 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 		for _, ctr := range names {
 			logrus.Debugf("Evicting container %q", ctr)
 			report := entities.RmReport{Id: ctr}
-			id, err := ic.Libpod.EvictContainer(ctx, ctr, options.Volumes)
+			_, err := ic.Libpod.EvictContainer(ctx, ctr, options.Volumes)
 			if err != nil {
 				if options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr {
 					logrus.Debugf("Ignoring error (--allow-missing): %v", err)
 					reports = append(reports, &report)
 					continue
 				}
-				report.Err = errors.Wrapf(err, "failed to evict container: %q", id)
+				report.Err = err
 				reports = append(reports, &report)
 				continue
 			}

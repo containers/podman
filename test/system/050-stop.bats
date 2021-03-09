@@ -66,7 +66,7 @@ load helpers
     name=thiscontainerdoesnotexist
     run_podman 125 stop $name
     is "$output" \
-       "Error: no container with name or ID $name found: no such container" \
+       "Error: no container with name or ID \"$name\" found: no such container" \
        "podman stop nonexistent container"
 
     run_podman stop --ignore $name
