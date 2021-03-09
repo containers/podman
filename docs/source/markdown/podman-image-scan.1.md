@@ -1,7 +1,7 @@
 % podman-image-scan(1)
 
 ## NAME
-podman\-image\-scan - Scan an image's contents for problems
+podman\-image\-scan - Scan an image's contents
 
 ## SYNOPSIS
 **podman image scan** [*options*] *name*[:*tag*] -- [*scanner options*]
@@ -9,10 +9,6 @@ podman\-image\-scan - Scan an image's contents for problems
 ## DESCRIPTION
 Scans the contents of an image with a pluggable scanner tool. All stdout and stderr from the scanner tool is written to
 stderr and stdout of **podman image scan**. The tool exits with a non-zero code if the scan fails.
-
-The target image being scanned is presented to the scanner tool container as a volume mount in one of the following formats:
-**oci-archive, oci-dir** (directory with oci manifest type), **docker-archive, docker-dir** (directory with v2s2 manifest type), 
-or **squash** (a squashed representation of the image filesystem). The default format option is **squash**.
 
 Any arguments after `--` are provided to the scanner tool. Templating is performed against the scanner tool arguments
 to allow for providing the mount point of the target image to be scanned to the scanner tool. Specifically all references
@@ -35,19 +31,6 @@ If an environment variable is specified without a value, Podman will check the h
 only if it is set on the host. If an environment variable ending in __*__ is specified, Podman will search the host environment
 for variables starting with the prefix and will add those variables to the container. If an environment variable with a
 trailing ***** is specified, then a value must be supplied.
-
-#### **--format**, **-f** [*format*]
-
-The image format to present to the scanner tool container. The options are **oci-archive, oci-dir** (directory with
-oci manifest type), **docker-archive, docker-dir** (directory with v2s2 manifest type), or **squash** (a squashed 
-representation of the image filesystem). The default option is **squash**.
-```
---format squash
---format docker-archive
---format oci-archive
---format oci-dir
---format docker-dir
-```
 
 #### **--mount-point**, **-m** [*path*]
 

@@ -2,13 +2,9 @@ package images
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"github.com/containers/common/pkg/completion"
-	"github.com/containers/podman/v2/cmd/podman/parse"
-	"io/ioutil"
 	"os"
-	"strings"
 	"text/template"
 
 	"github.com/containers/podman/v2/cmd/podman/common"
@@ -35,7 +31,6 @@ var (
 func scanFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 
-	// TODO: derive default from containers.conf configuration
 	flagName := "scanner"
 	flags.StringVarP(
 		&scanOptions.ScannerImage,
@@ -49,14 +44,6 @@ func scanFlags(cmd *cobra.Command) {
 		&scanOptions.MountPoint,
 		flagName, "m", "/podman-scan-image-mount",
 		"Mount-point of the target image to be scanned",
-	)
-	_ = cmd.RegisterFlagCompletionFunc(flagName, completion.AutocompleteNone)
-
-	flagName = "format"
-	flags.StringVarP(
-		&scanOptions.Format,
-		flagName, "f", "squash",
-		"The image format of the target image to be scanned (options: oci-dir, oci-archive, docker-dir, docker-archive, squash)",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(flagName, completion.AutocompleteNone)
 
@@ -77,52 +64,6 @@ func init() {
 		Parent:  imageCmd,
 	})
 	scanFlags(imageScanCommand)
-}
-
-func prepareImageMount(image string) (func(), string, error) {
-	var location string
-	var mountOptions string
-	var cleanupFn func()
-
-	switch {
-	case strings.HasSuffix(scanOptions.Format, "-archive"):
-		file, err := ioutil.TempFile("", "podman-scan-image-archive")
-		if err != nil {
-			return nil, "", fmt.Errorf("unable to create temporary image archive: %w", err)
-		}
-		cleanupFn = func() {
-			os.Remove(file.Name())
-		}
-		location = file.Name()
-		mountOptions = fmt.Sprintf("type=bind,source=%s,target=%s,ro=true", location, scanOptions.MountPoint)
-	case strings.HasSuffix(scanOptions.Format, "-dir"):
-		dir, err := ioutil.TempDir("dir", "podman-scan-image-dir")
-		if err != nil {
-			return nil, "", fmt.Errorf("unable to create temporary image archive: %w", err)
-		}
-		cleanupFn = func() {
-			os.RemoveAll(dir)
-		}
-		location = dir
-		mountOptions = fmt.Sprintf("type=bind,source=%s,target=%s,ro=true", location, scanOptions.MountPoint)
-	case scanOptions.Format == "squash":
-		mountOptions = fmt.Sprintf("type=image,src=%s,target=%s,readwrite=false", image, scanOptions.MountPoint)
-		return nil, mountOptions, nil
-	default:
-		return nil, "", fmt.Errorf("unknown image save format: %q", scanOptions.Format)
-	}
-
-	if err := parse.ValidateFileName(location); err != nil {
-		return cleanupFn, "", err
-	}
-
-	tempSaveOpts := entities.ImageSaveOptions{
-		Format: scanOptions.Format,
-		Output: location,
-	}
-
-	return cleanupFn, mountOptions, registry.ImageEngine().Save(context.Background(), image, nil, tempSaveOpts)
-
 }
 
 func scan(cmd *cobra.Command, args []string) error {
@@ -149,14 +90,7 @@ func scan(cmd *cobra.Command, args []string) error {
 		scannerArgs[i] = buf.String()
 	}
 
-	// save the image (if necessary)
-	cleanupFn, mountOptions, err := prepareImageMount(imageToScan)
-	if cleanupFn != nil {
-		defer cleanupFn()
-	}
-	if err != nil {
-		return err
-	}
+	mountOptions := fmt.Sprintf("type=image,src=%s,target=%s,readwrite=false", imageToScan, scanOptions.MountPoint)
 
 	ctrConfig := registry.PodmanConfig()
 
