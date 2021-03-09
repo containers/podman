@@ -333,6 +333,46 @@ load helpers
 }
 
 
+@test "podman cp symlinked directory from container" {
+    destdir=$PODMAN_TMPDIR/cp-weird-symlink
+    mkdir -p $destdir
+
+    # Create 3 files with random content in the container.
+    local -a randomcontent=(
+        random-0-$(random_string 10)
+        random-1-$(random_string 15)
+    )
+
+    run_podman run -d --name cpcontainer $IMAGE sleep infinity
+    run_podman exec cpcontainer sh -c "echo ${randomcontent[0]} > /tmp/containerfile0"
+    run_podman exec cpcontainer sh -c "echo ${randomcontent[1]} > /tmp/containerfile1"
+    run_podman exec cpcontainer sh -c "mkdir /tmp/sub && cd /tmp/sub && ln -s .. weirdlink"
+
+    # Commit the image for testing non-running containers
+    run_podman commit -q cpcontainer
+    cpimage="$output"
+
+    # RUNNING container
+    # NOTE: /dest does not exist yet but is expected to be created during copy
+    run_podman cp cpcontainer:/tmp/sub/weirdlink $destdir/dest
+    run cat $destdir/dest/containerfile0 $destdir/dest/containerfile1
+    is "${lines[0]}" "${randomcontent[0]}" "eval symlink - running container"
+    is "${lines[1]}" "${randomcontent[1]}" "eval symlink - running container"
+
+    run_podman kill cpcontainer
+    run_podman rm -f cpcontainer
+    run rm -rf $srcdir/dest
+
+    # CREATED container
+    run_podman create --name cpcontainer $cpimage
+    run_podman cp cpcontainer:/tmp/sub/weirdlink $destdir/dest
+    run cat $destdir/dest/containerfile0 $destdir/dest/containerfile1
+    is "${lines[0]}" "${randomcontent[0]}" "eval symlink - created container"
+    is "${lines[1]}" "${randomcontent[1]}" "eval symlink - created container"
+    run_podman rm -f cpcontainer
+}
+
+
 @test "podman cp file from host to container volume" {
     srcdir=$PODMAN_TMPDIR/cp-test-volume
     mkdir -p $srcdir

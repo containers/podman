@@ -64,6 +64,13 @@ func (c *Container) stat(ctx context.Context, containerMountPoint string, contai
 		containerPath = "/."
 	}
 
+	// Wildcards are not allowed.
+	// TODO: it's now technically possible wildcards.
+	// We may consider enabling support in the future.
+	if strings.Contains(containerPath, "*") {
+		return nil, "", "", copy.ErrENOENT
+	}
+
 	if c.state.State == define.ContainerStateRunning {
 		// If the container is running, we need to join it's mount namespace
 		// and stat there.
@@ -88,7 +95,8 @@ func (c *Container) stat(ctx context.Context, containerMountPoint string, contai
 	}
 
 	if statInfo.IsSymlink {
-		// Evaluated symlinks are always relative to the container's mount point.
+		// Symlinks are already evaluated and always relative to the
+		// container's mount point.
 		absContainerPath = statInfo.ImmediateTarget
 	} else if strings.HasPrefix(resolvedPath, containerMountPoint) {
 		// If the path is on the container's mount point, strip it off.
@@ -143,15 +151,31 @@ func secureStat(root string, path string) (*copier.StatForItem, error) {
 	if len(globStats) != 1 {
 		return nil, errors.Errorf("internal error: secureStat: expected 1 item but got %d", len(globStats))
 	}
-
-	stat, exists := globStats[0].Results[glob] // only one glob passed, so that's okay
-	if !exists {
-		return nil, copy.ErrENOENT
+	if len(globStats) != 1 {
+		return nil, errors.Errorf("internal error: secureStat: expected 1 result but got %d", len(globStats[0].Results))
 	}
 
-	var statErr error
-	if stat.Error != "" {
-		statErr = errors.New(stat.Error)
+	// NOTE: the key in the map differ from `glob` when hitting symlink.
+	// Hence, we just take the first (and only) key/value pair.
+	for _, stat := range globStats[0].Results {
+		var statErr error
+		if stat.Error != "" {
+			statErr = errors.New(stat.Error)
+		}
+		// If necessary evaluate the symlink
+		if stat.IsSymlink {
+			target, err := copier.Eval(root, path, copier.EvalOptions{})
+			if err != nil {
+				return nil, errors.Wrap(err, "error evaluating symlink in container")
+			}
+			// Need to make sure the symlink is relative to the root!
+			target = strings.TrimPrefix(target, root)
+			target = filepath.Join("/", target)
+			stat.ImmediateTarget = target
+		}
+		return stat, statErr
 	}
-	return stat, statErr
+
+	// Nothing found!
+	return nil, copy.ErrENOENT
 }
