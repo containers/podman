@@ -284,6 +284,7 @@ type GetOptions struct {
 	KeepDirectoryNames bool              // don't strip the top directory's basename from the paths of items in subdirectories
 	Rename             map[string]string // rename items with the specified names, or under the specified names
 	NoDerefSymlinks    bool              // don't follow symlinks when globs match them
+	IgnoreUnreadable   bool              // ignore errors reading items, instead of returning an error
 }
 
 // Get produces an archive containing items that match the specified glob
@@ -1035,6 +1036,14 @@ func copierHandlerStat(req request, pm *fileutils.PatternMatcher) *response {
 	return &response{Stat: statResponse{Globs: stats}}
 }
 
+func errorIsPermission(err error) bool {
+	err = errors.Cause(err)
+	if err == nil {
+		return false
+	}
+	return os.IsPermission(err) || strings.Contains(err.Error(), "permission denied")
+}
+
 func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMatcher, idMappings *idtools.IDMappings) (*response, func() error, error) {
 	statRequest := req
 	statRequest.Request = requestStat
@@ -1111,6 +1120,12 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 				options.ExpandArchives = false
 				walkfn := func(path string, info os.FileInfo, err error) error {
 					if err != nil {
+						if options.IgnoreUnreadable && errorIsPermission(err) {
+							if info != nil && info.IsDir() {
+								return filepath.SkipDir
+							}
+							return nil
+						}
 						return errors.Wrapf(err, "copier: get: error reading %q", path)
 					}
 					// compute the path of this item
@@ -1150,7 +1165,13 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 						symlinkTarget = target
 					}
 					// add the item to the outgoing tar stream
-					return copierHandlerGetOne(info, symlinkTarget, rel, path, options, tw, hardlinkChecker, idMappings)
+					if err := copierHandlerGetOne(info, symlinkTarget, rel, path, options, tw, hardlinkChecker, idMappings); err != nil {
+						if req.GetOptions.IgnoreUnreadable && errorIsPermission(err) {
+							return nil
+						}
+						return err
+					}
+					return nil
 				}
 				// walk the directory tree, checking/adding items individually
 				if err := filepath.Walk(item, walkfn); err != nil {
@@ -1170,6 +1191,9 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 				// dereferenced, be sure to use the name of the
 				// link.
 				if err := copierHandlerGetOne(info, "", filepath.Base(queue[i]), item, req.GetOptions, tw, hardlinkChecker, idMappings); err != nil {
+					if req.GetOptions.IgnoreUnreadable && errorIsPermission(err) {
+						continue
+					}
 					return errors.Wrapf(err, "copier: get: %q", queue[i])
 				}
 				itemsCopied++
@@ -1250,7 +1274,7 @@ func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath str
 		if options.ExpandArchives && isArchivePath(contentPath) {
 			f, err := os.Open(contentPath)
 			if err != nil {
-				return errors.Wrapf(err, "error opening %s", contentPath)
+				return errors.Wrapf(err, "error opening file for reading archive contents")
 			}
 			defer f.Close()
 			rc, _, err := compression.AutoDecompress(f)
@@ -1321,17 +1345,21 @@ func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath str
 			hdr.Mode = int64(*options.ChmodFiles)
 		}
 	}
+	var f *os.File
+	if hdr.Typeflag == tar.TypeReg {
+		// open the file first so that we don't write a header for it if we can't actually read it
+		f, err = os.Open(contentPath)
+		if err != nil {
+			return errors.Wrapf(err, "error opening file for adding its contents to archive")
+		}
+		defer f.Close()
+	}
 	// output the header
 	if err = tw.WriteHeader(hdr); err != nil {
 		return errors.Wrapf(err, "error writing header for %s (%s)", contentPath, hdr.Name)
 	}
 	if hdr.Typeflag == tar.TypeReg {
 		// output the content
-		f, err := os.Open(contentPath)
-		if err != nil {
-			return errors.Wrapf(err, "error opening %s", contentPath)
-		}
-		defer f.Close()
 		n, err := io.Copy(tw, f)
 		if err != nil {
 			return errors.Wrapf(err, "error copying %s", contentPath)

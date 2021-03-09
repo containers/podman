@@ -160,6 +160,25 @@ func copyFromContainer(container string, containerPath string, hostPath string) 
 		}
 	}
 
+	// If we copy a directory via the "." notation and the host path does
+	// not exist, we need to make sure that the destination on the host
+	// gets created; otherwise the contents of the source directory will be
+	// written to the destination's parent directory.
+	//
+	// While we could cut it short on the host and do create the directory
+	// ourselves, we would run into problems trying to that the other way
+	// around when copying into a container.  Instead, to keep both
+	// implementations symmetrical, we need to massage the code a bit to
+	// let Buildah's copier package create the destination.
+	//
+	// Hence, whenever "." is the source and the destination does not exist,
+	// we copy the source's parent and let the copier package create the
+	// destination via the Rename option.
+	containerTarget := containerInfo.LinkTarget
+	if hostInfoErr != nil && containerInfo.IsDir && strings.HasSuffix(containerTarget, ".") {
+		containerTarget = filepath.Dir(containerTarget)
+	}
+
 	reader, writer := io.Pipe()
 	hostCopy := func() error {
 		defer reader.Close()
@@ -193,10 +212,10 @@ func copyFromContainer(container string, containerPath string, hostPath string) 
 			ChownFiles:    &idPair,
 			IgnoreDevices: true,
 		}
-		if !containerInfo.IsDir && (!hostInfo.IsDir || hostInfoErr != nil) {
+		if (!containerInfo.IsDir && !hostInfo.IsDir) || hostInfoErr != nil {
 			// If we're having a file-to-file copy, make sure to
 			// rename accordingly.
-			putOptions.Rename = map[string]string{filepath.Base(containerInfo.LinkTarget): hostBaseName}
+			putOptions.Rename = map[string]string{filepath.Base(containerTarget): hostBaseName}
 		}
 		dir := hostInfo.LinkTarget
 		if !hostInfo.IsDir {
@@ -210,7 +229,7 @@ func copyFromContainer(container string, containerPath string, hostPath string) 
 
 	containerCopy := func() error {
 		defer writer.Close()
-		copyFunc, err := registry.ContainerEngine().ContainerCopyToArchive(registry.GetContext(), container, containerInfo.LinkTarget, writer)
+		copyFunc, err := registry.ContainerEngine().ContainerCopyToArchive(registry.GetContext(), container, containerTarget, writer)
 		if err != nil {
 			return err
 		}
@@ -278,6 +297,19 @@ func copyToContainer(container string, containerPath string, hostPath string) er
 		containerBaseName = filepath.Base(containerInfo.LinkTarget)
 	}
 
+	// If we copy a directory via the "." notation and the container path
+	// does not exist, we need to make sure that the destination on the
+	// container gets created; otherwise the contents of the source
+	// directory will be written to the destination's parent directory.
+	//
+	// Hence, whenever "." is the source and the destination does not
+	// exist, we copy the source's parent and let the copier package create
+	// the destination via the Rename option.
+	hostTarget := hostInfo.LinkTarget
+	if containerInfoErr != nil && hostInfo.IsDir && strings.HasSuffix(hostTarget, ".") {
+		hostTarget = filepath.Dir(hostTarget)
+	}
+
 	var stdinFile string
 	if isStdin {
 		if !containerInfo.IsDir {
@@ -318,15 +350,16 @@ func copyToContainer(container string, containerPath string, hostPath string) er
 		}
 
 		getOptions := buildahCopiah.GetOptions{
-			// Unless the specified points to ".", we want to copy the base directory.
-			KeepDirectoryNames: hostInfo.IsDir && filepath.Base(hostPath) != ".",
+			// Unless the specified path points to ".", we want to
+			// copy the base directory.
+			KeepDirectoryNames: hostInfo.IsDir && filepath.Base(hostTarget) != ".",
 		}
-		if !hostInfo.IsDir && (!containerInfo.IsDir || containerInfoErr != nil) {
+		if (!hostInfo.IsDir && !containerInfo.IsDir) || containerInfoErr != nil {
 			// If we're having a file-to-file copy, make sure to
 			// rename accordingly.
-			getOptions.Rename = map[string]string{filepath.Base(hostInfo.LinkTarget): containerBaseName}
+			getOptions.Rename = map[string]string{filepath.Base(hostTarget): containerBaseName}
 		}
-		if err := buildahCopiah.Get("/", "", getOptions, []string{hostInfo.LinkTarget}, writer); err != nil {
+		if err := buildahCopiah.Get("/", "", getOptions, []string{hostTarget}, writer); err != nil {
 			return errors.Wrap(err, "error copying from host")
 		}
 		return nil

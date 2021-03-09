@@ -14,7 +14,7 @@ import (
 	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/buildah/util"
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/storage"
+	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -62,15 +62,16 @@ func (c *Container) copyFromArchive(ctx context.Context, path string, reader io.
 		}
 	}
 
-	decompressed, err := archive.DecompressStream(reader)
+	// Make sure we chown the files to the container's main user and group ID.
+	user, err := getContainerUser(c, mountPoint)
 	if err != nil {
 		unmount()
 		return nil, err
 	}
+	idPair := idtools.IDPair{UID: int(user.UID), GID: int(user.GID)}
 
-	idMappings, idPair, err := getIDMappingsAndPair(c, mountPoint)
+	decompressed, err := archive.DecompressStream(reader)
 	if err != nil {
-		decompressed.Close()
 		unmount()
 		return nil, err
 	}
@@ -81,10 +82,10 @@ func (c *Container) copyFromArchive(ctx context.Context, path string, reader io.
 		defer unmount()
 		defer decompressed.Close()
 		putOptions := buildahCopiah.PutOptions{
-			UIDMap:     idMappings.UIDMap,
-			GIDMap:     idMappings.GIDMap,
-			ChownDirs:  idPair,
-			ChownFiles: idPair,
+			UIDMap:     c.config.IDMappings.UIDMap,
+			GIDMap:     c.config.IDMappings.GIDMap,
+			ChownDirs:  &idPair,
+			ChownFiles: &idPair,
 		}
 
 		return c.joinMountAndExec(ctx,
@@ -121,11 +122,25 @@ func (c *Container) copyToArchive(ctx context.Context, path string, writer io.Wr
 		return nil, err
 	}
 
-	idMappings, idPair, err := getIDMappingsAndPair(c, mountPoint)
+	// We optimistically chown to the host user.  In case of a hypothetical
+	// container-to-container copy, the reading side will chown back to the
+	// container user.
+	user, err := getContainerUser(c, mountPoint)
 	if err != nil {
 		unmount()
 		return nil, err
 	}
+	hostUID, hostGID, err := util.GetHostIDs(
+		idtoolsToRuntimeSpec(c.config.IDMappings.UIDMap),
+		idtoolsToRuntimeSpec(c.config.IDMappings.GIDMap),
+		user.UID,
+		user.GID,
+	)
+	if err != nil {
+		unmount()
+		return nil, err
+	}
+	idPair := idtools.IDPair{UID: int(hostUID), GID: int(hostGID)}
 
 	logrus.Debugf("Container copy *from* %q (resolved: %q) on container %q (ID: %s)", path, resolvedPath, c.Name(), c.ID())
 
@@ -134,11 +149,16 @@ func (c *Container) copyToArchive(ctx context.Context, path string, writer io.Wr
 		getOptions := buildahCopiah.GetOptions{
 			// Unless the specified points to ".", we want to copy the base directory.
 			KeepDirectoryNames: statInfo.IsDir && filepath.Base(path) != ".",
-			UIDMap:             idMappings.UIDMap,
-			GIDMap:             idMappings.GIDMap,
-			ChownDirs:          idPair,
-			ChownFiles:         idPair,
+			UIDMap:             c.config.IDMappings.UIDMap,
+			GIDMap:             c.config.IDMappings.GIDMap,
+			ChownDirs:          &idPair,
+			ChownFiles:         &idPair,
 			Excludes:           []string{"dev", "proc", "sys"},
+			// Ignore EPERMs when copying from rootless containers
+			// since we cannot read TTY devices.  Those are owned
+			// by the host's root and hence "nobody" inside the
+			// container's user namespace.
+			IgnoreUnreadable: rootless.IsRootless() && c.state.State == define.ContainerStateRunning,
 		}
 		return c.joinMountAndExec(ctx,
 			func() error {
@@ -148,29 +168,7 @@ func (c *Container) copyToArchive(ctx context.Context, path string, writer io.Wr
 	}, nil
 }
 
-// getIDMappingsAndPair returns the ID mappings for the container and the host
-// ID pair.
-func getIDMappingsAndPair(container *Container, containerMount string) (*storage.IDMappingOptions, *idtools.IDPair, error) {
-	user, err := getContainerUser(container, containerMount)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	idMappingOpts, err := container.IDMappings()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	hostUID, hostGID, err := util.GetHostIDs(idtoolsToRuntimeSpec(idMappingOpts.UIDMap), idtoolsToRuntimeSpec(idMappingOpts.GIDMap), user.UID, user.GID)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	idPair := idtools.IDPair{UID: int(hostUID), GID: int(hostGID)}
-	return &idMappingOpts, &idPair, nil
-}
-
-// getContainerUser returns the specs.User of the container.
+// getContainerUser returns the specs.User and ID mappings of the container.
 func getContainerUser(container *Container, mountPoint string) (specs.User, error) {
 	userspec := container.Config().User
 
