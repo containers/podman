@@ -714,7 +714,7 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 
 	id, err := r.state.LookupContainerID(idOrName)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to find container %q in state", idOrName)
+		return "", err
 	}
 
 	// Begin by trying a normal removal. Valid containers will be removed normally.
@@ -744,7 +744,7 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 		return id, err
 	}
 	if !exists {
-		return id, errors.Wrapf(err, "failed to find container ID %q for eviction", id)
+		return id, err
 	}
 
 	// Re-create a container struct for removal purposes

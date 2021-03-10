@@ -162,6 +162,7 @@ t DELETE images/localhost/newrepo:v1?force=true 200
 t DELETE images/localhost/newrepo:v2?force=true 200
 t DELETE libpod/containers/$cid 204
 t DELETE libpod/containers/myctr 204
+t DELETE libpod/containers/bogus 404
 
 
 # test apiv2 create container with correct entrypoint and cmd

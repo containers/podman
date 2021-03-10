@@ -76,7 +76,12 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(report) > 0 && report[0].Err != nil {
-		utils.InternalServerError(w, report[0].Err)
+		err = report[0].Err
+		if errors.Cause(err) == define.ErrNoSuchCtr {
+			utils.ContainerNotFound(w, name, err)
+			return
+		}
+		utils.InternalServerError(w, err)
 		return
 	}
 

@@ -879,7 +879,7 @@ func (s *BoltState) ContainerInUse(ctr *Container) ([]string, error) {
 		ctrDB := ctrBucket.Bucket([]byte(ctr.ID()))
 		if ctrDB == nil {
 			ctr.valid = false
-			return errors.Wrapf(define.ErrNoSuchCtr, "no container with ID %s found in DB", ctr.ID())
+			return errors.Wrapf(define.ErrNoSuchCtr, "no container with ID %q found in DB", ctr.ID())
 		}
 
 		dependsBkt := ctrDB.Bucket(dependenciesBkt)
@@ -1669,7 +1669,7 @@ func (s *BoltState) RewriteContainerConfig(ctr *Container, newCfg *ContainerConf
 		ctrDB := ctrBkt.Bucket([]byte(ctr.ID()))
 		if ctrDB == nil {
 			ctr.valid = false
-			return errors.Wrapf(define.ErrNoSuchCtr, "no container with ID %s found in DB", ctr.ID())
+			return errors.Wrapf(define.ErrNoSuchCtr, "no container with ID %q found in DB", ctr.ID())
 		}
 
 		if err := ctrDB.Put(configKey, newCfgJSON); err != nil {
@@ -1767,7 +1767,7 @@ func (s *BoltState) SafeRewriteContainerConfig(ctr *Container, oldName, newName 
 		ctrDB := ctrBkt.Bucket([]byte(ctr.ID()))
 		if ctrDB == nil {
 			ctr.valid = false
-			return errors.Wrapf(define.ErrNoSuchCtr, "no container with ID %s found in DB", ctr.ID())
+			return errors.Wrapf(define.ErrNoSuchCtr, "no container with ID %q found in DB", ctr.ID())
 		}
 
 		if err := ctrDB.Put(configKey, newCfgJSON); err != nil {
