@@ -9,6 +9,7 @@ import (
 	_ "github.com/containers/podman/v3/cmd/podman/generate"
 	_ "github.com/containers/podman/v3/cmd/podman/healthcheck"
 	_ "github.com/containers/podman/v3/cmd/podman/images"
+	_ "github.com/containers/podman/v3/cmd/podman/machine"
 	_ "github.com/containers/podman/v3/cmd/podman/manifest"
 	_ "github.com/containers/podman/v3/cmd/podman/networks"
 	_ "github.com/containers/podman/v3/cmd/podman/play"
