@@ -1,0 +1,29 @@
+# -*- sh -*-
+#
+# registry-related tests
+#
+
+start_registry
+
+# FIXME FIXME FIXME: remove the 'if false' for use with PR 9589
+if false; then
+
+# FIXME FIXME: please forgive the horrible POST params format; I have an
+#              upcoming PR which should fix that.
+
+# Test with wrong password. Confirm bad status and appropriate error message
+t POST /v1.40/auth "\"username\":\"${REGISTRY_USERNAME}\",\"password\":\"WrOnGPassWord\",\"serveraddress\":\"localhost:$REGISTRY_PORT/\"" \
+  400 \
+  .Status~'.* invalid username/password'
+
+# Test with the right password. Confirm status message and reasonable token
+t POST /v1.40/auth "\"username\":\"${REGISTRY_USERNAME}\",\"password\":\"${REGISTRY_PASSWORD}\",\"serveraddress\":\"localhost:$REGISTRY_PORT/\"" \
+  200 \
+  .Status="Login Succeeded" \
+  .IdentityToken~[a-zA-Z0-9]
+
+# FIXME: now what? Try something-something using that token?
+token=$(jq -r .IdentityToken <<<"$output")
+# ...
+
+fi    # FIXME FIXME FIXME: remove when working
