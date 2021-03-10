@@ -32,6 +32,7 @@ NATIVETAGS :=
 AUTOTAGS := $(shell ./hack/btrfs_tag.sh) $(shell ./hack/libdm_tag.sh)
 BUILDFLAGS := -tags "$(AUTOTAGS) $(TAGS)" $(FLAGS)
 GO ?= go
+TESTFLAGS := $(shell go test -race $(BUILDFLAGS) ./pkg/stringutils 2>&1 > /dev/null && echo -race)
 
 # Go module support: set `-mod=vendor` to use the vendored sources
 ifeq ($(shell $(GO) help mod >/dev/null 2>&1 && echo true), true)
@@ -95,7 +96,7 @@ test: local-binary ## build the binaries and run the tests using VMs
 	$(RUNINVM) make local-binary local-cross local-test-unit local-test-integration
 
 local-test-unit: local-binary ## run the unit tests on the host (requires\nsuperuser privileges)
-	@$(GO) test $(MOD_VENDOR) $(BUILDFLAGS) $(shell $(GO) list ./... | grep -v ^$(PACKAGE)/vendor)
+	@$(GO) test $(MOD_VENDOR) $(BUILDFLAGS) $(TESTFLAGS) $(shell $(GO) list ./... | grep -v ^$(PACKAGE)/vendor)
 
 test-unit: local-binary ## run the unit tests using VMs
 	$(RUNINVM) make local-$@

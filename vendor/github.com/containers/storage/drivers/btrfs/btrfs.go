@@ -39,6 +39,8 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+const defaultPerms = os.FileMode(0555)
+
 func init() {
 	graphdriver.Register("btrfs", Init)
 }
@@ -515,6 +517,9 @@ func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
 	}
 	if parent == "" {
 		if err := subvolCreate(subvolumes, id); err != nil {
+			return err
+		}
+		if err := os.Chmod(path.Join(subvolumes, id), defaultPerms); err != nil {
 			return err
 		}
 	} else {

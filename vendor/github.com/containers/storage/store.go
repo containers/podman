@@ -15,29 +15,24 @@ import (
 	// register all of the built-in drivers
 	_ "github.com/containers/storage/drivers/register"
 
-	"github.com/BurntSushi/toml"
 	drivers "github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/archive"
-	cfg "github.com/containers/storage/pkg/config"
 	"github.com/containers/storage/pkg/directory"
-	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/parsers"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/containers/storage/pkg/stringutils"
+	"github.com/containers/storage/types"
 	"github.com/hashicorp/go-multierror"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 var (
-	// DefaultStoreOptions is a reasonable default set of options.
-	defaultStoreOptions StoreOptions
-	stores              []*store
-	storesLock          sync.Mutex
+	stores     []*store
+	storesLock sync.Mutex
 )
 
 // ROFileBasedStore wraps up the methods of the various types of file-based
@@ -155,37 +150,7 @@ type FlaggableStore interface {
 	SetFlag(id string, flag string, value interface{}) error
 }
 
-// StoreOptions is used for passing initialization options to GetStore(), for
-// initializing a Store object and the underlying storage that it controls.
-type StoreOptions struct {
-	// RunRoot is the filesystem path under which we can store run-time
-	// information, such as the locations of active mount points, that we
-	// want to lose if the host is rebooted.
-	RunRoot string `json:"runroot,omitempty"`
-	// GraphRoot is the filesystem path under which we will store the
-	// contents of layers, images, and containers.
-	GraphRoot string `json:"root,omitempty"`
-	// RootlessStoragePath is the storage path for rootless users
-	// default $HOME/.local/share/containers/storage
-	RootlessStoragePath string `toml:"rootless_storage_path"`
-	// GraphDriverName is the underlying storage driver that we'll be
-	// using.  It only needs to be specified the first time a Store is
-	// initialized for a given RunRoot and GraphRoot.
-	GraphDriverName string `json:"driver,omitempty"`
-	// GraphDriverOptions are driver-specific options.
-	GraphDriverOptions []string `json:"driver-options,omitempty"`
-	// UIDMap and GIDMap are used for setting up a container's root filesystem
-	// for use inside of a user namespace where UID mapping is being used.
-	UIDMap []idtools.IDMap `json:"uidmap,omitempty"`
-	GIDMap []idtools.IDMap `json:"gidmap,omitempty"`
-	// RootAutoNsUser is the user used to pick a subrange when automatically setting
-	// a user namespace for the root user.
-	RootAutoNsUser string `json:"root_auto_ns_user,omitempty"`
-	// AutoNsMinSize is the minimum size for an automatic user namespace.
-	AutoNsMinSize uint32 `json:"auto_userns_min_size,omitempty"`
-	// AutoNsMaxSize is the maximum size for an automatic user namespace.
-	AutoNsMaxSize uint32 `json:"auto_userns_max_size,omitempty"`
-}
+type StoreOptions = types.StoreOptions
 
 // Store wraps up the various types of file-based stores that we use into a
 // singleton object that initializes and manages them all together.
@@ -526,46 +491,9 @@ type Store interface {
 	GetDigestLock(digest.Digest) (Locker, error)
 }
 
-// AutoUserNsOptions defines how to automatically create a user namespace.
-type AutoUserNsOptions struct {
-	// Size defines the size for the user namespace.  If it is set to a
-	// value bigger than 0, the user namespace will have exactly this size.
-	// If it is not set, some heuristics will be used to find its size.
-	Size uint32
-	// InitialSize defines the minimum size for the user namespace.
-	// The created user namespace will have at least this size.
-	InitialSize uint32
-	// PasswdFile to use if the container uses a volume.
-	PasswdFile string
-	// GroupFile to use if the container uses a volume.
-	GroupFile string
-	// AdditionalUIDMappings specified additional UID mappings to include in
-	// the generated user namespace.
-	AdditionalUIDMappings []idtools.IDMap
-	// AdditionalGIDMappings specified additional GID mappings to include in
-	// the generated user namespace.
-	AdditionalGIDMappings []idtools.IDMap
-}
+type AutoUserNsOptions = types.AutoUserNsOptions
 
-// IDMappingOptions are used for specifying how ID mapping should be set up for
-// a layer or container.
-type IDMappingOptions struct {
-	// UIDMap and GIDMap are used for setting up a layer's root filesystem
-	// for use inside of a user namespace where ID mapping is being used.
-	// If HostUIDMapping/HostGIDMapping is true, no mapping of the
-	// respective type will be used.  Otherwise, if UIDMap and/or GIDMap
-	// contain at least one mapping, one or both will be used.  By default,
-	// if neither of those conditions apply, if the layer has a parent
-	// layer, the parent layer's mapping will be used, and if it does not
-	// have a parent layer, the mapping which was passed to the Store
-	// object when it was initialized will be used.
-	HostUIDMapping bool
-	HostGIDMapping bool
-	UIDMap         []idtools.IDMap
-	GIDMap         []idtools.IDMap
-	AutoUserNs     bool
-	AutoUserNsOpts AutoUserNsOptions
-}
+type IDMappingOptions = types.IDMappingOptions
 
 // LayerOptions is used for passing options to a Store's CreateLayer() and PutLayer() methods.
 type LayerOptions struct {
@@ -573,7 +501,7 @@ type LayerOptions struct {
 	// used for this layer.  If nothing is specified, the layer will
 	// inherit settings from its parent layer or, if it has no parent
 	// layer, the Store object.
-	IDMappingOptions
+	types.IDMappingOptions
 	// TemplateLayer is the ID of a layer whose contents will be used to
 	// initialize this layer.  If set, it should be a child of the layer
 	// which we want to use as the parent of the new layer.
@@ -595,10 +523,11 @@ type ContainerOptions struct {
 	// used for this container's layer.  If nothing is specified, the
 	// container's layer will inherit settings from the image's top layer
 	// or, if it is not being created based on an image, the Store object.
-	IDMappingOptions
+	types.IDMappingOptions
 	LabelOpts []string
 	Flags     map[string]interface{}
 	MountOpts []string
+	Volatile  bool
 }
 
 type store struct {
@@ -642,9 +571,9 @@ type store struct {
 //   if reexec.Init() {
 //       return
 //   }
-func GetStore(options StoreOptions) (Store, error) {
+func GetStore(options types.StoreOptions) (Store, error) {
 	if options.RunRoot == "" && options.GraphRoot == "" && options.GraphDriverName == "" && len(options.GraphDriverOptions) == 0 {
-		options = defaultStoreOptions
+		options = types.Options()
 	}
 
 	if options.GraphRoot != "" {
@@ -1057,10 +986,10 @@ func (s *store) PutLayer(id, parent string, names []string, mountLabel string, w
 	}
 	var layerOptions *LayerOptions
 	if s.graphDriver.SupportsShifting() {
-		layerOptions = &LayerOptions{IDMappingOptions: IDMappingOptions{HostUIDMapping: true, HostGIDMapping: true, UIDMap: nil, GIDMap: nil}}
+		layerOptions = &LayerOptions{IDMappingOptions: types.IDMappingOptions{HostUIDMapping: true, HostGIDMapping: true, UIDMap: nil, GIDMap: nil}}
 	} else {
 		layerOptions = &LayerOptions{
-			IDMappingOptions: IDMappingOptions{
+			IDMappingOptions: types.IDMappingOptions{
 				HostUIDMapping: options.HostUIDMapping,
 				HostGIDMapping: options.HostGIDMapping,
 				UIDMap:         copyIDMap(uidMap),
@@ -1135,8 +1064,8 @@ func (s *store) CreateImage(id string, names []string, layer, metadata string, o
 	return ristore.Create(id, names, layer, metadata, creationDate, options.Digest)
 }
 
-func (s *store) imageTopLayerForMapping(image *Image, ristore ROImageStore, createMappedLayer bool, rlstore LayerStore, lstores []ROLayerStore, options IDMappingOptions) (*Layer, error) {
-	layerMatchesMappingOptions := func(layer *Layer, options IDMappingOptions) bool {
+func (s *store) imageTopLayerForMapping(image *Image, ristore ROImageStore, createMappedLayer bool, rlstore LayerStore, lstores []ROLayerStore, options types.IDMappingOptions) (*Layer, error) {
+	layerMatchesMappingOptions := func(layer *Layer, options types.IDMappingOptions) bool {
 		// If the driver supports shifting and the layer has no mappings, we can use it.
 		if s.graphDriver.SupportsShifting() && len(layer.UIDMap) == 0 && len(layer.GIDMap) == 0 {
 			return true
@@ -1216,7 +1145,7 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore ROImageStore, crea
 		var layerOptions LayerOptions
 		if s.graphDriver.SupportsShifting() {
 			layerOptions = LayerOptions{
-				IDMappingOptions: IDMappingOptions{
+				IDMappingOptions: types.IDMappingOptions{
 					HostUIDMapping: true,
 					HostGIDMapping: true,
 					UIDMap:         nil,
@@ -1225,7 +1154,7 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore ROImageStore, crea
 			}
 		} else {
 			layerOptions = LayerOptions{
-				IDMappingOptions: IDMappingOptions{
+				IDMappingOptions: types.IDMappingOptions{
 					HostUIDMapping: options.HostUIDMapping,
 					HostGIDMapping: options.HostGIDMapping,
 					UIDMap:         copyIDMap(options.UIDMap),
@@ -1376,7 +1305,7 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 	var layerOptions *LayerOptions
 	if s.graphDriver.SupportsShifting() {
 		layerOptions = &LayerOptions{
-			IDMappingOptions: IDMappingOptions{
+			IDMappingOptions: types.IDMappingOptions{
 				HostUIDMapping: true,
 				HostGIDMapping: true,
 				UIDMap:         nil,
@@ -1385,7 +1314,7 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		}
 	} else {
 		layerOptions = &LayerOptions{
-			IDMappingOptions: IDMappingOptions{
+			IDMappingOptions: types.IDMappingOptions{
 				HostUIDMapping: idMappingsOptions.HostUIDMapping,
 				HostGIDMapping: idMappingsOptions.HostGIDMapping,
 				UIDMap:         copyIDMap(uidMap),
@@ -1428,7 +1357,7 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 			return nil, err
 		}
 	}
-	options.IDMappingOptions = IDMappingOptions{
+	options.IDMappingOptions = types.IDMappingOptions{
 		HostUIDMapping: len(options.UIDMap) == 0,
 		HostGIDMapping: len(options.GIDMap) == 0,
 		UIDMap:         copyIDMap(options.UIDMap),
@@ -2813,6 +2742,9 @@ func (s *store) Mount(id, mountLabel string) (string, error) {
 		options.UidMaps = container.UIDMap
 		options.GidMaps = container.GIDMap
 		options.Options = container.MountOpts()
+		if v, found := container.Flags["Volatile"]; found {
+			options.Volatile = v.(bool)
+		}
 	}
 	return s.mount(id, options)
 }
@@ -2929,6 +2861,7 @@ func (s *store) Diff(from, to string, options *DiffOptions) (io.ReadCloser, erro
 		store.RLock()
 		if modified, err := store.Modified(); modified || err != nil {
 			if err = store.Load(); err != nil {
+				store.Unlock()
 				return nil, err
 			}
 		}
@@ -3580,12 +3513,6 @@ func copyStringInterfaceMap(m map[string]interface{}) map[string]interface{} {
 	return ret
 }
 
-// defaultConfigFile path to the system wide storage.conf file
-var (
-	defaultConfigFile    = "/etc/containers/storage.conf"
-	defaultConfigFileSet = false
-)
-
 // AutoUserNsMinSize is the minimum size for automatically created user namespaces
 const AutoUserNsMinSize = 1024
 
@@ -3598,183 +3525,23 @@ const RootAutoUserNsUser = "containers"
 
 // SetDefaultConfigFilePath sets the default configuration to the specified path
 func SetDefaultConfigFilePath(path string) {
-	defaultConfigFile = path
-	defaultConfigFileSet = true
-	reloadConfigurationFileIfNeeded(defaultConfigFile, &defaultStoreOptions)
+	types.SetDefaultConfigFilePath(path)
 }
 
 // DefaultConfigFile returns the path to the storage config file used
 func DefaultConfigFile(rootless bool) (string, error) {
-	if defaultConfigFileSet || !rootless {
-		return defaultConfigFile, nil
-	}
-
-	if configHome := os.Getenv("XDG_CONFIG_HOME"); configHome != "" {
-		return filepath.Join(configHome, "containers/storage.conf"), nil
-	}
-	home := homedir.Get()
-	if home == "" {
-		return "", errors.New("cannot determine user's homedir")
-	}
-	return filepath.Join(home, ".config/containers/storage.conf"), nil
-}
-
-// TOML-friendly explicit tables used for conversions.
-type tomlConfig struct {
-	Storage struct {
-		Driver              string            `toml:"driver"`
-		RunRoot             string            `toml:"runroot"`
-		GraphRoot           string            `toml:"graphroot"`
-		RootlessStoragePath string            `toml:"rootless_storage_path"`
-		Options             cfg.OptionsConfig `toml:"options"`
-	} `toml:"storage"`
+	return types.DefaultConfigFile(rootless)
 }
 
 // ReloadConfigurationFile parses the specified configuration file and overrides
 // the configuration in storeOptions.
-func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
-	data, err := ioutil.ReadFile(configFile)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			fmt.Printf("Failed to read %s %v\n", configFile, err.Error())
-			return
-		}
-	}
-
-	config := new(tomlConfig)
-
-	if _, err := toml.Decode(string(data), config); err != nil {
-		fmt.Printf("Failed to parse %s %v\n", configFile, err.Error())
-		return
-	}
-	if config.Storage.Driver != "" {
-		storeOptions.GraphDriverName = config.Storage.Driver
-	}
-	if os.Getenv("STORAGE_DRIVER") != "" {
-		config.Storage.Driver = os.Getenv("STORAGE_DRIVER")
-		storeOptions.GraphDriverName = config.Storage.Driver
-	}
-	if storeOptions.GraphDriverName == "" {
-		logrus.Errorf("The storage 'driver' option must be set in %s, guarantee proper operation.", configFile)
-	}
-	if config.Storage.RunRoot != "" {
-		storeOptions.RunRoot = config.Storage.RunRoot
-	}
-	if config.Storage.GraphRoot != "" {
-		storeOptions.GraphRoot = config.Storage.GraphRoot
-	}
-	if config.Storage.RootlessStoragePath != "" {
-		storeOptions.RootlessStoragePath = config.Storage.RootlessStoragePath
-	}
-	for _, s := range config.Storage.Options.AdditionalImageStores {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.imagestore=%s", config.Storage.Driver, s))
-	}
-	if config.Storage.Options.Size != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.size=%s", config.Storage.Driver, config.Storage.Options.Size))
-	}
-	if config.Storage.Options.MountProgram != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.mount_program=%s", config.Storage.Driver, config.Storage.Options.MountProgram))
-	}
-	if config.Storage.Options.SkipMountHome != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.skip_mount_home=%s", config.Storage.Driver, config.Storage.Options.SkipMountHome))
-	}
-	if config.Storage.Options.IgnoreChownErrors != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.ignore_chown_errors=%s", config.Storage.Driver, config.Storage.Options.IgnoreChownErrors))
-	}
-	if config.Storage.Options.ForceMask != 0 {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.force_mask=%o", config.Storage.Driver, config.Storage.Options.ForceMask))
-	}
-	if config.Storage.Options.MountOpt != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.mountopt=%s", config.Storage.Driver, config.Storage.Options.MountOpt))
-	}
-	if config.Storage.Options.RemapUser != "" && config.Storage.Options.RemapGroup == "" {
-		config.Storage.Options.RemapGroup = config.Storage.Options.RemapUser
-	}
-	if config.Storage.Options.RemapGroup != "" && config.Storage.Options.RemapUser == "" {
-		config.Storage.Options.RemapUser = config.Storage.Options.RemapGroup
-	}
-	if config.Storage.Options.RemapUser != "" && config.Storage.Options.RemapGroup != "" {
-		mappings, err := idtools.NewIDMappings(config.Storage.Options.RemapUser, config.Storage.Options.RemapGroup)
-		if err != nil {
-			fmt.Printf("Error initializing ID mappings for %s:%s %v\n", config.Storage.Options.RemapUser, config.Storage.Options.RemapGroup, err)
-			return
-		}
-		storeOptions.UIDMap = mappings.UIDs()
-		storeOptions.GIDMap = mappings.GIDs()
-	}
-
-	uidmap, err := idtools.ParseIDMap([]string{config.Storage.Options.RemapUIDs}, "remap-uids")
-	if err != nil {
-		fmt.Print(err)
-	} else {
-		storeOptions.UIDMap = append(storeOptions.UIDMap, uidmap...)
-	}
-	gidmap, err := idtools.ParseIDMap([]string{config.Storage.Options.RemapGIDs}, "remap-gids")
-	if err != nil {
-		fmt.Print(err)
-	} else {
-		storeOptions.GIDMap = append(storeOptions.GIDMap, gidmap...)
-	}
-	storeOptions.RootAutoNsUser = config.Storage.Options.RootAutoUsernsUser
-	if config.Storage.Options.AutoUsernsMinSize > 0 {
-		storeOptions.AutoNsMinSize = config.Storage.Options.AutoUsernsMinSize
-	}
-	if config.Storage.Options.AutoUsernsMaxSize > 0 {
-		storeOptions.AutoNsMaxSize = config.Storage.Options.AutoUsernsMaxSize
-	}
-
-	storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, cfg.GetGraphDriverOptions(storeOptions.GraphDriverName, config.Storage.Options)...)
-
-	if os.Getenv("STORAGE_OPTS") != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, strings.Split(os.Getenv("STORAGE_OPTS"), ",")...)
-	}
-	if len(storeOptions.GraphDriverOptions) == 1 && storeOptions.GraphDriverOptions[0] == "" {
-		storeOptions.GraphDriverOptions = nil
-	}
-}
-
-var prevReloadConfig = struct {
-	storeOptions *StoreOptions
-	mod          time.Time
-	mutex        sync.Mutex
-	configFile   string
-}{}
-
-func reloadConfigurationFileIfNeeded(configFile string, storeOptions *StoreOptions) {
-	prevReloadConfig.mutex.Lock()
-	defer prevReloadConfig.mutex.Unlock()
-
-	fi, err := os.Stat(configFile)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			fmt.Printf("Failed to read %s %v\n", configFile, err.Error())
-		}
-		return
-	}
-
-	mtime := fi.ModTime()
-	if prevReloadConfig.storeOptions != nil && prevReloadConfig.mod == mtime && prevReloadConfig.configFile == configFile {
-		*storeOptions = *prevReloadConfig.storeOptions
-		return
-	}
-
-	ReloadConfigurationFile(configFile, storeOptions)
-
-	prevReloadConfig.storeOptions = storeOptions
-	prevReloadConfig.mod = mtime
-	prevReloadConfig.configFile = configFile
-}
-
-func init() {
-	defaultStoreOptions.RunRoot = "/run/containers/storage"
-	defaultStoreOptions.GraphRoot = "/var/lib/containers/storage"
-	defaultStoreOptions.GraphDriverName = ""
-
-	reloadConfigurationFileIfNeeded(defaultConfigFile, &defaultStoreOptions)
+func ReloadConfigurationFile(configFile string, storeOptions *types.StoreOptions) {
+	types.ReloadConfigurationFile(configFile, storeOptions)
 }
 
 // GetDefaultMountOptions returns the default mountoptions defined in container/storage
 func GetDefaultMountOptions() ([]string, error) {
+	defaultStoreOptions := types.Options()
 	return GetMountOptions(defaultStoreOptions.GraphDriverName, defaultStoreOptions.GraphDriverOptions)
 }
 

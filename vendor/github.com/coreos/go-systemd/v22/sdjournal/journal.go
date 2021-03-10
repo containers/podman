@@ -300,24 +300,6 @@ package sdjournal
 //   return sd_journal_get_catalog(j, ret);
 // }
 //
-// int
-// my_sd_id128_get_boot(void *f, sd_id128_t *boot_id)
-// {
-//   int(*sd_id128_get_boot)(sd_id128_t *);
-//
-//   sd_id128_get_boot = f;
-//   return sd_id128_get_boot(boot_id);
-// }
-//
-// char *
-// my_sd_id128_to_string(void *f, sd_id128_t boot_id, char s[_SD_ARRAY_STATIC SD_ID128_STRING_MAX])
-// {
-//   char *(*sd_id128_to_string)(sd_id128_t, char *);
-//
-//   sd_id128_to_string = f;
-//   return sd_id128_to_string(boot_id, s);
-// }
-//
 import "C"
 import (
 	"bytes"
@@ -946,7 +928,7 @@ func (j *Journal) SeekHead() error {
 }
 
 // SeekTail may be used to seek to the end of the journal, i.e. the most recent
-// available entry. This call must be followed by a call to Previous before any
+// available entry. This call must be followed by a call to Next before any
 // call to Get* will return data about the last element.
 func (j *Journal) SeekTail() error {
 	sd_journal_seek_tail, err := getFunction("sd_journal_seek_tail")
@@ -1135,34 +1117,4 @@ func (j *Journal) GetCatalog() (string, error) {
 	catalog := C.GoString(c)
 
 	return catalog, nil
-}
-
-// GetBootID get systemd boot id
-func (j *Journal) GetBootID() (string, error) {
-	sd_id128_get_boot, err := getFunction("sd_id128_get_boot")
-	if err != nil {
-		return "", err
-	}
-
-	var boot_id C.sd_id128_t
-	r := C.my_sd_id128_get_boot(sd_id128_get_boot, &boot_id)
-	if r < 0 {
-		return "", fmt.Errorf("failed to get boot id: %s", syscall.Errno(-r).Error())
-	}
-
-	sd_id128_to_string, err := getFunction("sd_id128_to_string")
-	if err != nil {
-		return "", err
-	}
-
-	c := (*C.char)(C.malloc(33))
-	defer C.free(unsafe.Pointer(c))
-	C.my_sd_id128_to_string(sd_id128_to_string, boot_id, c)
-
-	bootID := C.GoString(c)
-	if len(bootID) <= 0 {
-		return "", fmt.Errorf("get boot id %s is not valid", bootID)
-	}
-
-	return bootID, nil
 }

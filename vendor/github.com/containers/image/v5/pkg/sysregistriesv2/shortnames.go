@@ -34,15 +34,9 @@ func shortNameAliasesConfPath(ctx *types.SystemContext) (string, error) {
 	}
 
 	// Rootless user
-	var cacheRoot string
-	if xdgCache := os.Getenv("XDG_CACHE_HOME"); xdgCache != "" {
-		cacheRoot = xdgCache
-	} else {
-		configHome, err := homedir.GetConfigHome()
-		if err != nil {
-			return "", err
-		}
-		cacheRoot = filepath.Join(configHome, ".cache")
+	cacheRoot, err := homedir.GetCacheHome()
+	if err != nil {
+		return "", err
 	}
 
 	return filepath.Join(cacheRoot, userShortNamesFile), nil

@@ -29,6 +29,8 @@ func Usage(dir string) (usage *DiskUsage, err error) {
 			return err
 		}
 
+		usage.InodeCount++
+
 		// Ignore directory sizes
 		if fileInfo == nil {
 			return nil
@@ -40,7 +42,6 @@ func Usage(dir string) (usage *DiskUsage, err error) {
 		}
 
 		usage.Size += s
-		usage.InodeCount++
 
 		return nil
 	})

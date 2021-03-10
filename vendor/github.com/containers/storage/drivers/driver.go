@@ -53,6 +53,10 @@ type MountOpts struct {
 	UidMaps []idtools.IDMap // nolint: golint
 	GidMaps []idtools.IDMap // nolint: golint
 	Options []string
+
+	// Volatile specifies whether the container storage can be optimized
+	// at the cost of not syncing all the dirty files in memory.
+	Volatile bool
 }
 
 // ApplyDiffOpts contains optional arguments for ApplyDiff methods.

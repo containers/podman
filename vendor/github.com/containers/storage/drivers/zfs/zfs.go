@@ -30,6 +30,8 @@ type zfsOptions struct {
 	mountOptions string
 }
 
+const defaultPerms = os.FileMode(0555)
+
 func init() {
 	graphdriver.Register("zfs", Init)
 }
@@ -106,7 +108,7 @@ func Init(base string, opt graphdriver.Options) (graphdriver.Driver, error) {
 
 	rootUID, rootGID, err := idtools.GetRootUIDGID(opt.UIDMaps, opt.GIDMaps)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get root uid/guid: %v", err)
+		return nil, fmt.Errorf("Failed to get root uid/gid: %v", err)
 	}
 	if err := idtools.MkdirAllAs(base, 0700, rootUID, rootGID); err != nil {
 		return nil, fmt.Errorf("Failed to create '%s': %v", base, err)
@@ -273,12 +275,7 @@ func (d *Driver) CreateReadWrite(id, parent string, opts *graphdriver.CreateOpts
 
 // Create prepares the dataset and filesystem for the ZFS driver for the given id under the parent.
 func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
-	var storageOpt map[string]string
-	if opts != nil {
-		storageOpt = opts.StorageOpt
-	}
-
-	err := d.create(id, parent, storageOpt)
+	err := d.create(id, parent, opts)
 	if err == nil {
 		return nil
 	}
@@ -297,16 +294,31 @@ func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
 	}
 
 	// retry
-	return d.create(id, parent, storageOpt)
+	return d.create(id, parent, opts)
 }
 
-func (d *Driver) create(id, parent string, storageOpt map[string]string) error {
+func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts) error {
+	var storageOpt map[string]string
+	if opts != nil {
+		storageOpt = opts.StorageOpt
+	}
+
 	name := d.zfsPath(id)
+	mountpoint := d.mountPath(id)
 	quota, err := parseStorageOpt(storageOpt)
 	if err != nil {
 		return err
 	}
 	if parent == "" {
+		var rootUID, rootGID int
+		var mountLabel string
+		if opts != nil {
+			rootUID, rootGID, err = idtools.GetRootUIDGID(opts.UIDs(), opts.GIDs())
+			if err != nil {
+				return fmt.Errorf("Failed to get root uid/gid: %v", err)
+			}
+			mountLabel = opts.MountLabel
+		}
 		mountoptions := map[string]string{"mountpoint": "legacy"}
 		fs, err := zfs.CreateFilesystem(name, mountoptions)
 		if err == nil {
@@ -316,6 +328,37 @@ func (d *Driver) create(id, parent string, storageOpt map[string]string) error {
 				d.filesystemsCache[fs.Name] = true
 				d.Unlock()
 			}
+
+			if err := idtools.MkdirAllAs(mountpoint, defaultPerms, rootUID, rootGID); err != nil {
+				return err
+			}
+			defer func() {
+				if err := unix.Rmdir(mountpoint); err != nil && !os.IsNotExist(err) {
+					logrus.Debugf("Failed to remove %s mount point %s: %v", id, mountpoint, err)
+				}
+			}()
+
+			mountOpts := label.FormatMountLabel(d.options.mountOptions, mountLabel)
+
+			if err := mount.Mount(name, mountpoint, "zfs", mountOpts); err != nil {
+				return errors.Wrap(err, "error creating zfs mount")
+			}
+			defer func() {
+				if err := unix.Unmount(mountpoint, unix.MNT_DETACH); err != nil {
+					logrus.Warnf("Failed to unmount %s mount %s: %v", id, mountpoint, err)
+				}
+			}()
+
+			if err := os.Chmod(mountpoint, defaultPerms); err != nil {
+				return errors.Wrap(err, "error setting permissions on zfs mount")
+			}
+
+			// this is our first mount after creation of the filesystem, and the root dir may still have root
+			// permissions instead of the remapped root uid:gid (if user namespaces are enabled):
+			if err := os.Chown(mountpoint, rootUID, rootGID); err != nil {
+				return errors.Wrapf(err, "modifying zfs mountpoint (%s) ownership", mountpoint)
+			}
+
 		}
 		return err
 	}
@@ -417,12 +460,6 @@ func (d *Driver) Get(id string, options graphdriver.MountOpts) (_ string, retErr
 
 	if err := mount.Mount(filesystem, mountpoint, "zfs", opts); err != nil {
 		return "", errors.Wrap(err, "error creating zfs mount")
-	}
-
-	// this could be our first mount after creation of the filesystem, and the root dir may still have root
-	// permissions instead of the remapped root uid:gid (if user namespaces are enabled):
-	if err := os.Chown(mountpoint, rootUID, rootGID); err != nil {
-		return "", errors.Wrapf(err, "modifying zfs mountpoint (%s) ownership", mountpoint)
 	}
 
 	if remountReadOnly {
