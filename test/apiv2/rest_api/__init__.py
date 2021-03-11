@@ -3,6 +3,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 
 
@@ -27,7 +28,9 @@ class Podman(object):
         self.cmd.append("--root=" + os.path.join(self.anchor_directory, "crio"))
         self.cmd.append("--runroot=" + os.path.join(self.anchor_directory, "crio-run"))
 
-        os.environ["CONTAINERS_REGISTRIES_CONF"] = os.path.join(self.anchor_directory, "registry.conf")
+        os.environ["CONTAINERS_REGISTRIES_CONF"] = os.path.join(
+            self.anchor_directory, "registry.conf"
+        )
         p = configparser.ConfigParser()
         p.read_dict(
             {
@@ -114,13 +117,20 @@ class Podman(object):
         check = kwargs.get("check", False)
         shell = kwargs.get("shell", False)
 
-        return subprocess.run(
-            cmd,
-            shell=shell,
-            check=check,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
+        try:
+            return subprocess.run(
+                cmd,
+                shell=shell,
+                check=check,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+        except subprocess.CalledProcessError as e:
+            if e.stdout:
+                sys.stdout.write("\nRun Stdout:\n" + e.stdout.decode("utf-8"))
+            if e.stderr:
+                sys.stderr.write("\nRun Stderr:\n" + e.stderr.decode("utf-8"))
+            raise
 
     def tear_down(self):
         shutil.rmtree(self.anchor_directory, ignore_errors=True)
