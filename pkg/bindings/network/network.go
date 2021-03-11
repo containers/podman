@@ -40,6 +40,7 @@ func Create(ctx context.Context, options *CreateOptions) (*entities.NetworkCreat
 // Inspect returns low level information about a CNI network configuration
 func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) ([]entities.NetworkInspectReport, error) {
 	var reports []entities.NetworkInspectReport
+	reports = append(reports, entities.NetworkInspectReport{})
 	if options == nil {
 		options = new(InspectOptions)
 	}
@@ -52,7 +53,7 @@ func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) ([]e
 	if err != nil {
 		return nil, err
 	}
-	return reports, response.Process(&reports)
+	return reports, response.Process(&reports[0])
 }
 
 // Remove deletes a defined CNI network configuration by name.  The optional force boolean

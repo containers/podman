@@ -27,6 +27,10 @@ t GET libpod/networks/json?filters='{"name":["network1"]}' 200 \
   .[0].Name=network1
 t GET networks 200
 
+#inspect network
+t GET libpod/networks/network1/json 200 \
+  .name="network1"
+
 #network list docker endpoint
 t GET networks?filters='{"name":["network1","network2"]}' 200 \
   length=2

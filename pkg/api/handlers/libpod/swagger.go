@@ -102,7 +102,7 @@ type swagNetworkRmReport struct {
 // swagger:response NetworkInspectReport
 type swagNetworkInspectReport struct {
 	// in:body
-	Body []entities.NetworkInspectReport
+	Body entities.NetworkInspectReport
 }
 
 // Network list
