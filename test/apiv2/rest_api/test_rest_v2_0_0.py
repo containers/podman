@@ -50,14 +50,13 @@ class TestApi(unittest.TestCase):
     def setUp(self):
         super().setUp()
 
-        try:
-            TestApi.podman.run("run", "alpine", "/bin/ls", check=True)
-        except subprocess.CalledProcessError as e:
-            if e.stdout:
-                sys.stdout.write("\nRun Stdout:\n" + e.stdout.decode("utf-8"))
-            if e.stderr:
-                sys.stderr.write("\nRun Stderr:\n" + e.stderr.decode("utf-8"))
-            raise
+        TestApi.podman.run("run", "alpine", "/bin/ls", check=True)
+
+    def tearDown(self) -> None:
+        super().tearDown()
+
+        TestApi.podman.run("pod", "rm", "--all", "--force", check=True)
+        TestApi.podman.run("rm", "--all", "--force", check=True)
 
     @classmethod
     def setUpClass(cls):
@@ -241,7 +240,9 @@ class TestApi(unittest.TestCase):
 
     def test_post_create_compat(self):
         """Create network and connect container during create"""
-        net = requests.post(PODMAN_URL + "/v1.40/networks/create", json={"Name": "TestNetwork"})
+        net = requests.post(
+            PODMAN_URL + "/v1.40/networks/create", json={"Name": "TestNetwork"}
+        )
         self.assertEqual(net.status_code, 201, net.text)
 
         create = requests.post(
@@ -355,17 +356,51 @@ class TestApi(unittest.TestCase):
         self.assertTrue(keys["stream"], "Expected to find stream progress stanza's")
 
     def test_search_compat(self):
+        url = PODMAN_URL + "/v1.40/images/search"
+
         # Had issues with this test hanging when repositories not happy
-        def do_search():
-            r = requests.get(PODMAN_URL + "/v1.40/images/search?term=alpine", timeout=5)
+        def do_search1():
+            payload = {"term": "alpine"}
+            r = requests.get(url, params=payload, timeout=5)
             self.assertEqual(r.status_code, 200, r.text)
             objs = json.loads(r.text)
             self.assertIn(type(objs), (list,))
 
-        search = Process(target=do_search)
-        search.start()
-        search.join(timeout=10)
-        self.assertFalse(search.is_alive(), "/images/search took too long")
+        def do_search2():
+            payload = {"term": "alpine", "limit": 1}
+            r = requests.get(url, params=payload, timeout=5)
+            self.assertEqual(r.status_code, 200, r.text)
+            objs = json.loads(r.text)
+            self.assertIn(type(objs), (list,))
+            self.assertEqual(len(objs), 1)
+
+        def do_search3():
+            payload = {"term": "alpine", "filters": '{"is-official":["true"]}'}
+            r = requests.get(url, params=payload, timeout=5)
+            self.assertEqual(r.status_code, 200, r.text)
+            objs = json.loads(r.text)
+            self.assertIn(type(objs), (list,))
+            # There should be only one offical image
+            self.assertEqual(len(objs), 1)
+
+        def do_search4():
+            headers = {"X-Registry-Auth": "null"}
+            payload = {"term": "alpine"}
+            r = requests.get(url, params=payload, headers=headers, timeout=5)
+            self.assertEqual(r.status_code, 200, r.text)
+
+        def do_search5():
+            headers = {"X-Registry-Auth": "invalid value"}
+            payload = {"term": "alpine"}
+            r = requests.get(url, params=payload, headers=headers, timeout=5)
+            self.assertEqual(r.status_code, 400, r.text)
+
+        search_methods = [do_search1, do_search2, do_search3, do_search4, do_search5]
+        for search_method in search_methods:
+            search = Process(target=search_method)
+            search.start()
+            search.join(timeout=10)
+            self.assertFalse(search.is_alive(), "/images/search took too long")
 
     def test_ping(self):
         required_headers = (
@@ -416,11 +451,15 @@ class TestApi(unittest.TestCase):
                 self.assertIn(k, o)
 
     def test_network_compat(self):
-        name = "Network_" + "".join(random.choice(string.ascii_letters) for i in range(10))
+        name = "Network_" + "".join(
+            random.choice(string.ascii_letters) for i in range(10)
+        )
 
         # Cannot test for 0 existing networks because default "podman" network always exists
 
-        create = requests.post(PODMAN_URL + "/v1.40/networks/create", json={"Name": name})
+        create = requests.post(
+            PODMAN_URL + "/v1.40/networks/create", json={"Name": name}
+        )
         self.assertEqual(create.status_code, 201, create.content)
         obj = json.loads(create.content)
         self.assertIn(type(obj), (dict,))
@@ -449,11 +488,24 @@ class TestApi(unittest.TestCase):
         inspect = requests.get(PODMAN_URL + f"/v1.40/networks/{ident}")
         self.assertEqual(inspect.status_code, 404, inspect.content)
 
+        # network prune
+        prune_name = "Network_" + "".join(
+            random.choice(string.ascii_letters) for i in range(10)
+        )
+        prune_create = requests.post(
+            PODMAN_URL + "/v1.40/networks/create", json={"Name": prune_name}
+        )
+        self.assertEqual(create.status_code, 201, prune_create.content)
+
         prune = requests.post(PODMAN_URL + "/v1.40/networks/prune")
-        self.assertEqual(prune.status_code, 404, prune.content)
+        self.assertEqual(prune.status_code, 200, prune.content)
+        obj = json.loads(prune.content)
+        self.assertTrue(prune_name in obj["NetworksDeleted"])
 
     def test_volumes_compat(self):
-        name = "Volume_" + "".join(random.choice(string.ascii_letters) for i in range(10))
+        name = "Volume_" + "".join(
+            random.choice(string.ascii_letters) for i in range(10)
+        )
 
         ls = requests.get(PODMAN_URL + "/v1.40/volumes")
         self.assertEqual(ls.status_code, 200, ls.content)
@@ -469,7 +521,9 @@ class TestApi(unittest.TestCase):
         for k in required_keys:
             self.assertIn(k, obj)
 
-        create = requests.post(PODMAN_URL + "/v1.40/volumes/create", json={"Name": name})
+        create = requests.post(
+            PODMAN_URL + "/v1.40/volumes/create", json={"Name": name}
+        )
         self.assertEqual(create.status_code, 201, create.content)
 
         # See https://docs.docker.com/engine/api/v1.40/#operation/VolumeCreate
@@ -646,15 +700,21 @@ class TestApi(unittest.TestCase):
         """Verify issue #8865"""
 
         pod_name = list()
-        pod_name.append("Pod_" + "".join(random.choice(string.ascii_letters) for i in range(10)))
-        pod_name.append("Pod_" + "".join(random.choice(string.ascii_letters) for i in range(10)))
+        pod_name.append(
+            "Pod_" + "".join(random.choice(string.ascii_letters) for i in range(10))
+        )
+        pod_name.append(
+            "Pod_" + "".join(random.choice(string.ascii_letters) for i in range(10))
+        )
 
         r = requests.post(
             _url("/pods/create"),
             json={
                 "name": pod_name[0],
                 "no_infra": False,
-                "portmappings": [{"host_ip": "127.0.0.1", "host_port": 8889, "container_port": 89}],
+                "portmappings": [
+                    {"host_ip": "127.0.0.1", "host_port": 8889, "container_port": 89}
+                ],
             },
         )
         self.assertEqual(r.status_code, 201, r.text)
@@ -673,7 +733,9 @@ class TestApi(unittest.TestCase):
             json={
                 "name": pod_name[1],
                 "no_infra": False,
-                "portmappings": [{"host_ip": "127.0.0.1", "host_port": 8889, "container_port": 89}],
+                "portmappings": [
+                    {"host_ip": "127.0.0.1", "host_port": 8889, "container_port": 89}
+                ],
             },
         )
         self.assertEqual(r.status_code, 201, r.text)
