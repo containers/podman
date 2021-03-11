@@ -13,15 +13,15 @@ podman rm -a -f &>/dev/null
 
 CTR="WaitTestingCtr"
 
-t POST "containers/nonExistent/wait?condition=next-exit" '' 404
+t POST "containers/nonExistent/wait?condition=next-exit" 404
 
 podman create --name "${CTR}" --entrypoint '["sleep", "0.5"]' "${IMAGE}"
 
-t POST "containers/${CTR}/wait?condition=non-existent-cond" '' 400
+t POST "containers/${CTR}/wait?condition=non-existent-cond" 400
 
-t POST "containers/${CTR}/wait?condition=not-running" '' 200
+t POST "containers/${CTR}/wait?condition=not-running" 200
 
-t POST "containers/${CTR}/wait?condition=next-exit" '' 200 &
+t POST "containers/${CTR}/wait?condition=next-exit" 200 &
 child_pid=$!
 podman start "${CTR}"
 wait "${child_pid}"
@@ -37,7 +37,7 @@ if kill -2 "${child_pid}" 2> "/dev/null"; then
   WAIT_TEST_ERROR="1"
 fi
 
-t POST "containers/${CTR}/wait?condition=removed" '' 200 &
+t POST "containers/${CTR}/wait?condition=removed" 200 &
 child_pid=$!
 podman container rm "${CTR}"
 wait "${child_pid}"
