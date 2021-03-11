@@ -42,14 +42,22 @@ function _start_socat() {
     _SOCAT_LOG="$PODMAN_TMPDIR/socat.log"
 
     rm -f $_SOCAT_LOG
-    socat unix-recvfrom:"$NOTIFY_SOCKET",fork \
-          system:"(cat;echo) >> $_SOCAT_LOG" &
+    # Execute in subshell so we can close fd3 (which BATS uses).
+    # This is a superstitious ritual to try to avoid leaving processes behind,
+    # and thus prevent CI hangs.
+    (exec socat unix-recvfrom:"$NOTIFY_SOCKET",fork \
+          system:"(cat;echo) >> $_SOCAT_LOG" 3>&-) &
     _SOCAT_PID=$!
 }
 
 # Stop the socat background process and clean up logs
 function _stop_socat() {
     if [[ -n "$_SOCAT_PID" ]]; then
+        # Kill all child processes, then the process itself.
+        # This is a superstitious incantation to avoid leaving processes behind.
+        # The '|| true' is because only f35 leaves behind socat processes;
+        # f33 (and perhaps others?) behave nicely. ARGH!
+        pkill -P $_SOCAT_PID || true
         kill $_SOCAT_PID
     fi
     _SOCAT_PID=
@@ -57,6 +65,7 @@ function _stop_socat() {
     if [[ -n "$_SOCAT_LOG" ]]; then
         rm -f $_SOCAT_LOG
     fi
+    _SOCAT_LOG=
 }
 
 # Check that MAINPID=xxxxx points to a running conmon process
