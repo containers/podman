@@ -16,6 +16,13 @@ import (
 	"github.com/pkg/errors"
 )
 
+func stripAddressOfScheme(address string) string {
+	for _, s := range []string{"https", "http"} {
+		address = strings.TrimPrefix(address, s+"://")
+	}
+	return address
+}
+
 func Auth(w http.ResponseWriter, r *http.Request) {
 	var authConfig docker.AuthConfig
 	err := json.NewDecoder(r.Body).Decode(&authConfig)
@@ -25,7 +32,7 @@ func Auth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	skipTLS := types.NewOptionalBool(false)
-	if strings.HasPrefix(authConfig.ServerAddress, "http://localhost/") || strings.HasPrefix(authConfig.ServerAddress, "http://localhost:") {
+	if strings.HasPrefix(authConfig.ServerAddress, "https://localhost/") || strings.HasPrefix(authConfig.ServerAddress, "https://localhost:") || strings.HasPrefix(authConfig.ServerAddress, "localhost:") {
 		// support for local testing
 		skipTLS = types.NewOptionalBool(true)
 	}
@@ -37,7 +44,8 @@ func Auth(w http.ResponseWriter, r *http.Request) {
 		DockerInsecureSkipTLSVerify: skipTLS,
 		SystemRegistriesConfPath:    registries.SystemRegistriesConfPath(),
 	}
-	if err := DockerClient.CheckAuth(context.Background(), &sysCtx, authConfig.Username, authConfig.Password, authConfig.ServerAddress); err == nil {
+	registry := stripAddressOfScheme(authConfig.ServerAddress)
+	if err := DockerClient.CheckAuth(context.Background(), &sysCtx, authConfig.Username, authConfig.Password, registry); err == nil {
 		utils.WriteResponse(w, http.StatusOK, entities.AuthReport{
 			IdentityToken: "",
 			Status:        "Login Succeeded",
