@@ -246,8 +246,7 @@ func (s *storageImageSource) LayerInfosForCopy(ctx context.Context, instanceDige
 	case imgspecv1.MediaTypeImageManifest:
 		uncompressedLayerType = imgspecv1.MediaTypeImageLayer
 	case manifest.DockerV2Schema1MediaType, manifest.DockerV2Schema1SignedMediaType, manifest.DockerV2Schema2MediaType:
-		// This is actually a compressed type, but there's no uncompressed type defined
-		uncompressedLayerType = manifest.DockerV2Schema2LayerMediaType
+		uncompressedLayerType = manifest.DockerV2SchemaLayerMediaTypeUncompressed
 	}
 
 	physicalBlobInfos := []types.BlobInfo{}
