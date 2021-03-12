@@ -357,7 +357,8 @@ func writeYaml(content string, fileName string) error {
 	return nil
 }
 
-func generateKubeYaml(kind string, object interface{}, pathname string) error {
+// getKubeYaml returns a kubernetes YAML document.
+func getKubeYaml(kind string, object interface{}) (string, error) {
 	var yamlTemplate string
 	templateBytes := &bytes.Buffer{}
 
@@ -369,19 +370,41 @@ func generateKubeYaml(kind string, object interface{}, pathname string) error {
 	case "deployment":
 		yamlTemplate = deploymentYamlTemplate
 	default:
-		return fmt.Errorf("unsupported kubernetes kind")
+		return "", fmt.Errorf("unsupported kubernetes kind")
 	}
 
 	t, err := template.New(kind).Parse(yamlTemplate)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if err := t.Execute(templateBytes, object); err != nil {
+		return "", err
+	}
+
+	return templateBytes.String(), nil
+}
+
+// generateKubeYaml writes a kubernetes YAML document.
+func generateKubeYaml(kind string, object interface{}, pathname string) error {
+	k, err := getKubeYaml(kind, object)
+	if err != nil {
 		return err
 	}
 
-	return writeYaml(templateBytes.String(), pathname)
+	return writeYaml(k, pathname)
+}
+
+// generateMultiDocKubeYaml writes multiple kube objects in one Yaml document.
+func generateMultiDocKubeYaml(kubeObjects []string, pathname string) error {
+	var multiKube string
+
+	for _, k := range kubeObjects {
+		multiKube += "---\n"
+		multiKube += k
+	}
+
+	return writeYaml(multiKube, pathname)
 }
 
 // ConfigMap describes the options a kube yaml can be configured at configmap level
@@ -1697,5 +1720,103 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
 		Expect(inspect.OutputToString()).To(Equal("true"))
+	})
+
+	// Multi doc related tests
+	It("podman play kube multi doc yaml", func() {
+		yamlDocs := []string{}
+		podNames := []string{}
+
+		serviceTemplate := `apiVersion: v1
+kind: Service
+metadata:
+  name: %s
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 9376
+  selector:
+    app: %s
+`
+		// generate servies, pods and deployments
+		for i := 0; i < 2; i++ {
+			podName := fmt.Sprintf("testPod%d", i)
+			deploymentName := fmt.Sprintf("testDeploy%d", i)
+			deploymentPodName := fmt.Sprintf("%s-pod-0", deploymentName)
+
+			podNames = append(podNames, podName)
+			podNames = append(podNames, deploymentPodName)
+
+			pod := getPod(withPodName(podName))
+			podDeployment := getPod(withPodName(deploymentName))
+			deployment := getDeployment(withPod(podDeployment))
+			deployment.Name = deploymentName
+
+			// add services
+			yamlDocs = append([]string{
+				fmt.Sprintf(serviceTemplate, podName, podName),
+				fmt.Sprintf(serviceTemplate, deploymentPodName, deploymentPodName)}, yamlDocs...)
+
+			// add pods
+			k, err := getKubeYaml("pod", pod)
+			Expect(err).To(BeNil())
+			yamlDocs = append(yamlDocs, k)
+
+			// add deployments
+			k, err = getKubeYaml("deployment", deployment)
+			Expect(err).To(BeNil())
+			yamlDocs = append(yamlDocs, k)
+		}
+
+		// generate multi doc yaml
+		err = generateMultiDocKubeYaml(yamlDocs, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		for _, n := range podNames {
+			inspect := podmanTest.Podman([]string{"inspect", n, "--format", "'{{ .State }}'"})
+			inspect.WaitWithDefaultTimeout()
+			Expect(inspect.ExitCode()).To(Equal(0))
+			Expect(inspect.OutputToString()).To(ContainSubstring(`Running`))
+		}
+	})
+
+	It("podman play kube invalid multi doc yaml", func() {
+		yamlDocs := []string{}
+
+		serviceTemplate := `apiVersion: v1
+kind: Service
+metadata:
+  name: %s
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 9376
+  selector:
+	app: %s
+---
+invalid kube kind
+`
+		// add invalid multi doc yaml
+		yamlDocs = append(yamlDocs, fmt.Sprintf(serviceTemplate, "foo", "foo"))
+
+		// add pod
+		pod := getPod()
+		k, err := getKubeYaml("pod", pod)
+		Expect(err).To(BeNil())
+		yamlDocs = append(yamlDocs, k)
+
+		// generate multi doc yaml
+		err = generateMultiDocKubeYaml(yamlDocs, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Not(Equal(0)))
 	})
 })

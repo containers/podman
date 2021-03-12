@@ -155,6 +155,23 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(numContainers).To(Equal(1))
 	})
 
+	It("podman generate kube multiple pods", func() {
+		pod1 := podmanTest.Podman([]string{"run", "-dt", "--pod", "new:pod1", ALPINE, "top"})
+		pod1.WaitWithDefaultTimeout()
+		Expect(pod1.ExitCode()).To(Equal(0))
+
+		pod2 := podmanTest.Podman([]string{"run", "-dt", "--pod", "new:pod2", ALPINE, "top"})
+		pod2.WaitWithDefaultTimeout()
+		Expect(pod2.ExitCode()).To(Equal(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "pod1", "pod2"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		Expect(string(kube.Out.Contents())).To(ContainSubstring(`name: pod1`))
+		Expect(string(kube.Out.Contents())).To(ContainSubstring(`name: pod2`))
+	})
+
 	It("podman generate kube on pod with host network", func() {
 		podSession := podmanTest.Podman([]string{"pod", "create", "--name", "testHostNetwork", "--network", "host"})
 		podSession.WaitWithDefaultTimeout()
@@ -537,21 +554,6 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(inspect.OutputToString()).To(ContainSubstring(`"pid"`))
 	})
 
-	It("podman generate kube multiple pods should fail", func() {
-		SkipIfRootlessCgroupsV1("Not supported for rootless + CGroupsV1")
-		pod1 := podmanTest.Podman([]string{"run", "-dt", "--pod", "new:pod1", ALPINE, "top"})
-		pod1.WaitWithDefaultTimeout()
-		Expect(pod1.ExitCode()).To(Equal(0))
-
-		pod2 := podmanTest.Podman([]string{"run", "-dt", "--pod", "new:pod2", ALPINE, "top"})
-		pod2.WaitWithDefaultTimeout()
-		Expect(pod2.ExitCode()).To(Equal(0))
-
-		kube := podmanTest.Podman([]string{"generate", "kube", "pod1", "pod2"})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube.ExitCode()).ToNot(Equal(0))
-	})
-
 	It("podman generate kube with pods and containers should fail", func() {
 		pod1 := podmanTest.Podman([]string{"run", "-dt", "--pod", "new:pod1", ALPINE, "top"})
 		pod1.WaitWithDefaultTimeout()
@@ -594,7 +596,7 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(kube.ExitCode()).To(Equal(0))
 	})
 
-	It("podman generate kube with containers in a pod should fail", func() {
+	It("podman generate kube with containers in pods should fail", func() {
 		pod1 := podmanTest.Podman([]string{"run", "-dt", "--pod", "new:pod1", "--name", "top1", ALPINE, "top"})
 		pod1.WaitWithDefaultTimeout()
 		Expect(pod1.ExitCode()).To(Equal(0))
@@ -603,7 +605,7 @@ var _ = Describe("Podman generate kube", func() {
 		pod2.WaitWithDefaultTimeout()
 		Expect(pod2.ExitCode()).To(Equal(0))
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "pod1", "pod2"})
+		kube := podmanTest.Podman([]string{"generate", "kube", "top1", "top2"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).ToNot(Equal(0))
 	})
