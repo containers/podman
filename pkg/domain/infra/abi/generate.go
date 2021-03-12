@@ -44,11 +44,10 @@ func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string,
 func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string, options entities.GenerateKubeOptions) (*entities.GenerateKubeReport, error) {
 	var (
 		pods         []*libpod.Pod
-		podYAML      *k8sAPI.Pod
-		err          error
 		ctrs         []*libpod.Container
-		servicePorts []k8sAPI.ServicePort
-		serviceYAML  k8sAPI.Service
+		kubePods     []*k8sAPI.Pod
+		kubeServices []k8sAPI.Service
+		content      []byte
 	)
 	for _, nameOrID := range nameOrIDs {
 		// Get the container in question
@@ -59,9 +58,6 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 				return nil, err
 			}
 			pods = append(pods, pod)
-			if len(pods) > 1 {
-				return nil, errors.New("can only generate single pod at a time")
-			}
 		} else {
 			if len(ctr.Dependencies()) > 0 {
 				return nil, errors.Wrapf(define.ErrNotImplemented, "containers with dependencies")
@@ -79,20 +75,29 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 		return nil, errors.New("cannot generate pods and containers at the same time")
 	}
 
-	if len(pods) == 1 {
-		podYAML, servicePorts, err = pods[0].GenerateForKube()
+	if len(pods) >= 1 {
+		pos, svcs, err := getKubePods(pods, options.Service)
+		if err != nil {
+			return nil, err
+		}
+
+		kubePods = append(kubePods, pos...)
+		if options.Service {
+			kubeServices = append(kubeServices, svcs...)
+		}
 	} else {
-		podYAML, err = libpod.GenerateForKube(ctrs)
-	}
-	if err != nil {
-		return nil, err
+		po, err := libpod.GenerateForKube(ctrs)
+		if err != nil {
+			return nil, err
+		}
+
+		kubePods = append(kubePods, po)
+		if options.Service {
+			kubeServices = append(kubeServices, libpod.GenerateKubeServiceFromV1Pod(po, []k8sAPI.ServicePort{}))
+		}
 	}
 
-	if options.Service {
-		serviceYAML = libpod.GenerateKubeServiceFromV1Pod(podYAML, servicePorts)
-	}
-
-	content, err := generateKubeOutput(podYAML, &serviceYAML, options.Service)
+	content, err := generateKubeOutput(kubePods, kubeServices, options.Service)
 	if err != nil {
 		return nil, err
 	}
@@ -100,23 +105,55 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 	return &entities.GenerateKubeReport{Reader: bytes.NewReader(content)}, nil
 }
 
-func generateKubeOutput(podYAML *k8sAPI.Pod, serviceYAML *k8sAPI.Service, hasService bool) ([]byte, error) {
-	var (
-		output            []byte
-		marshalledPod     []byte
-		marshalledService []byte
-		err               error
-	)
+func getKubePods(pods []*libpod.Pod, getService bool) ([]*k8sAPI.Pod, []k8sAPI.Service, error) {
+	kubePods := make([]*k8sAPI.Pod, 0)
+	kubeServices := make([]k8sAPI.Service, 0)
 
-	marshalledPod, err = yaml.Marshal(podYAML)
-	if err != nil {
-		return nil, err
+	for _, p := range pods {
+		po, svc, err := p.GenerateForKube()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		kubePods = append(kubePods, po)
+		if getService {
+			kubeServices = append(kubeServices, libpod.GenerateKubeServiceFromV1Pod(po, svc))
+		}
+	}
+
+	return kubePods, kubeServices, nil
+}
+
+func generateKubeOutput(kubePods []*k8sAPI.Pod, kubeServices []k8sAPI.Service, hasService bool) ([]byte, error) {
+	output := make([]byte, 0)
+	marshalledPods := make([]byte, 0)
+	marshalledServices := make([]byte, 0)
+
+	for i, p := range kubePods {
+		if i != 0 {
+			marshalledPods = append(marshalledPods, []byte("---\n")...)
+		}
+
+		b, err := yaml.Marshal(p)
+		if err != nil {
+			return nil, err
+		}
+
+		marshalledPods = append(marshalledPods, b...)
 	}
 
 	if hasService {
-		marshalledService, err = yaml.Marshal(serviceYAML)
-		if err != nil {
-			return nil, err
+		for i, s := range kubeServices {
+			if i != 0 {
+				marshalledServices = append(marshalledServices, []byte("---\n")...)
+			}
+
+			b, err := yaml.Marshal(s)
+			if err != nil {
+				return nil, err
+			}
+
+			marshalledServices = append(marshalledServices, b...)
 		}
 	}
 
@@ -133,11 +170,12 @@ func generateKubeOutput(podYAML *k8sAPI.Pod, serviceYAML *k8sAPI.Service, hasSer
 	}
 
 	output = append(output, []byte(fmt.Sprintf(header, podmanVersion.Version))...)
-	output = append(output, marshalledPod...)
+	// kube generate order is based on helm install order (service, pod...)
 	if hasService {
+		output = append(output, marshalledServices...)
 		output = append(output, []byte("---\n")...)
-		output = append(output, marshalledService...)
 	}
+	output = append(output, marshalledPods...)
 
 	return output, nil
 }
