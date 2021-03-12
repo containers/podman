@@ -220,28 +220,6 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	*/
 
 	r.HandleFunc(VersionedPath("/libpod/networks/{name}"), s.APIHandler(libpod.RemoveNetwork)).Methods(http.MethodDelete)
-	// swagger:operation GET /libpod/networks/{name}/json libpod libpodInspectNetwork
-	// ---
-	// tags:
-	//  - networks
-	// summary: Inspect a network
-	// description: Display low level configuration for a CNI network
-	// parameters:
-	//  - in: path
-	//    name: name
-	//    type: string
-	//    required: true
-	//    description: the name of the network
-	// produces:
-	// - application/json
-	// responses:
-	//   200:
-	//     $ref: "#/responses/NetworkInspectReport"
-	//   404:
-	//     $ref: "#/responses/NoSuchNetwork"
-	//   500:
-	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/networks/{name}/json"), s.APIHandler(libpod.InspectNetwork)).Methods(http.MethodGet)
 	// swagger:operation GET /libpod/networks/{name}/exists libpod libpodExistsNetwork
 	// ---
 	// tags:
@@ -289,6 +267,29 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/networks/json"), s.APIHandler(libpod.ListNetworks)).Methods(http.MethodGet)
+	// swagger:operation GET /libpod/networks/{name}/json libpod libpodInspectNetwork
+	// ---
+	// tags:
+	//  - networks
+	// summary: Inspect a network
+	// description: Display low level configuration for a CNI network
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name of the network
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     $ref: "#/responses/NetworkInspectReport"
+	//   404:
+	//     $ref: "#/responses/NoSuchNetwork"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/networks/{name}/json"), s.APIHandler(libpod.InspectNetwork)).Methods(http.MethodGet)
+	r.HandleFunc(VersionedPath("/libpod/networks/{name}"), s.APIHandler(libpod.InspectNetwork)).Methods(http.MethodGet)
 	// swagger:operation POST /libpod/networks/create libpod libpodCreateNetwork
 	// ---
 	// tags:
