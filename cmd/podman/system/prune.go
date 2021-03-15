@@ -8,11 +8,11 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/completion"
+	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/utils"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	dfilters "github.com/containers/podman/v3/pkg/domain/filters"
 	"github.com/docker/go-units"
 	"github.com/spf13/cobra"
 )
@@ -80,7 +80,7 @@ Are you sure you want to continue? [y/N] `, volumeString)
 		}
 	}
 
-	pruneOptions.Filters, err = dfilters.ParseFilterArgumentsIntoFilters(filters)
+	pruneOptions.Filters, err = parse.FilterArgumentsIntoFilters(filters)
 	if err != nil {
 		return err
 	}

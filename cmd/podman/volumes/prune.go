@@ -9,11 +9,11 @@ import (
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v3/cmd/podman/common"
+	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/utils"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/containers/podman/v3/pkg/domain/filters"
 	"github.com/spf13/cobra"
 )
 
@@ -58,14 +58,14 @@ func prune(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	pruneOptions.Filters, err = filters.ParseFilterArgumentsIntoFilters(filter)
+	pruneOptions.Filters, err = parse.FilterArgumentsIntoFilters(filter)
 	if !force {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Println("WARNING! This will remove all volumes not used by at least one container. The following volumes will be removed:")
 		if err != nil {
 			return err
 		}
-		listOptions.Filter, err = filters.ParseFilterArgumentsIntoFilters(filter)
+		listOptions.Filter, err = parse.FilterArgumentsIntoFilters(filter)
 		if err != nil {
 			return err
 		}

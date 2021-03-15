@@ -13,7 +13,7 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/pkg/systemd"
-	systemdGen "github.com/containers/podman/v3/pkg/systemd/generate"
+	systemdDefine "github.com/containers/podman/v3/pkg/systemd/define"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -178,10 +178,10 @@ func AutoUpdate(runtime *libpod.Runtime, options Options) ([]string, []error) {
 	updatedUnits := []string{}
 	for _, ctr := range containersToRestart {
 		labels := ctr.Labels()
-		unit, exists := labels[systemdGen.EnvVariable]
+		unit, exists := labels[systemdDefine.EnvVariable]
 		if !exists {
 			// Shouldn't happen but let's be sure of it.
-			errs = append(errs, errors.Errorf("error auto-updating container %q: no %s label found", ctr.ID(), systemdGen.EnvVariable))
+			errs = append(errs, errors.Errorf("error auto-updating container %q: no %s label found", ctr.ID(), systemdDefine.EnvVariable))
 			continue
 		}
 		_, err := conn.RestartUnit(unit, "replace", nil)

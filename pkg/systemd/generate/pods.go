@@ -11,6 +11,7 @@ import (
 
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/systemd/define"
 	"github.com/containers/podman/v3/version"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -237,7 +238,7 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 		info.Executable = executable
 	}
 
-	info.EnvVariable = EnvVariable
+	info.EnvVariable = define.EnvVariable
 	info.ExecStart = "{{{{.Executable}}}} start {{{{.InfraNameOrID}}}}"
 	info.ExecStop = "{{{{.Executable}}}} stop {{{{if (ge .StopTimeout 0)}}}}-t {{{{.StopTimeout}}}}{{{{end}}}} {{{{.InfraNameOrID}}}}"
 	info.ExecStopPost = "{{{{.Executable}}}} stop {{{{if (ge .StopTimeout 0)}}}}-t {{{{.StopTimeout}}}}{{{{end}}}} {{{{.InfraNameOrID}}}}"

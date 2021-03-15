@@ -173,13 +173,13 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	var ctrRestartPolicy string
 	switch podYAML.Spec.RestartPolicy {
 	case v1.RestartPolicyAlways:
-		ctrRestartPolicy = libpod.RestartPolicyAlways
+		ctrRestartPolicy = define.RestartPolicyAlways
 	case v1.RestartPolicyOnFailure:
-		ctrRestartPolicy = libpod.RestartPolicyOnFailure
+		ctrRestartPolicy = define.RestartPolicyOnFailure
 	case v1.RestartPolicyNever:
-		ctrRestartPolicy = libpod.RestartPolicyNo
+		ctrRestartPolicy = define.RestartPolicyNo
 	default: // Default to Always
-		ctrRestartPolicy = libpod.RestartPolicyAlways
+		ctrRestartPolicy = define.RestartPolicyAlways
 	}
 
 	configMaps := []v1.ConfigMap{}

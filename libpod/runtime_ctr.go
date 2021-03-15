@@ -12,6 +12,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
+	"github.com/containers/podman/v3/libpod/network"
 	"github.com/containers/podman/v3/libpod/shutdown"
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/domain/entities/reports"
@@ -203,7 +204,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 	if len(ctr.config.Networks) > 0 {
 		netNames := make([]string, 0, len(ctr.config.Networks))
 		for _, nameOrID := range ctr.config.Networks {
-			netName, err := normalizeNetworkName(r.config, nameOrID)
+			netName, err := network.NormalizeName(r.config, nameOrID)
 			if err != nil {
 				return nil, err
 			}

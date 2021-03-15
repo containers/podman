@@ -219,14 +219,14 @@ func (c *Container) shouldRestart() bool {
 	// If we did not get a restart policy match, return false
 	// Do the same if we're not a policy that restarts.
 	if !c.state.RestartPolicyMatch ||
-		c.config.RestartPolicy == RestartPolicyNo ||
-		c.config.RestartPolicy == RestartPolicyNone {
+		c.config.RestartPolicy == define.RestartPolicyNo ||
+		c.config.RestartPolicy == define.RestartPolicyNone {
 		return false
 	}
 
 	// If we're RestartPolicyOnFailure, we need to check retries and exit
 	// code.
-	if c.config.RestartPolicy == RestartPolicyOnFailure {
+	if c.config.RestartPolicy == define.RestartPolicyOnFailure {
 		if c.state.ExitCode == 0 {
 			return false
 		}
@@ -332,7 +332,7 @@ func (c *Container) syncContainer() error {
 		// Only save back to DB if state changed
 		if c.state.State != oldState {
 			// Check for a restart policy match
-			if c.config.RestartPolicy != RestartPolicyNone && c.config.RestartPolicy != RestartPolicyNo &&
+			if c.config.RestartPolicy != define.RestartPolicyNone && c.config.RestartPolicy != define.RestartPolicyNo &&
 				(oldState == define.ContainerStateRunning || oldState == define.ContainerStatePaused) &&
 				(c.state.State == define.ContainerStateStopped || c.state.State == define.ContainerStateExited) &&
 				!c.state.StoppedByUser {

@@ -11,6 +11,7 @@ import (
 
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/systemd/define"
 	"github.com/containers/podman/v3/version"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -173,7 +174,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		info.Executable = executable
 	}
 
-	info.EnvVariable = EnvVariable
+	info.EnvVariable = define.EnvVariable
 	info.ExecStart = "{{{{.Executable}}}} start {{{{.ContainerNameOrID}}}}"
 	info.ExecStop = "{{{{.Executable}}}} stop {{{{if (ge .StopTimeout 0)}}}}-t {{{{.StopTimeout}}}}{{{{end}}}} {{{{.ContainerNameOrID}}}}"
 	info.ExecStopPost = "{{{{.Executable}}}} stop {{{{if (ge .StopTimeout 0)}}}}-t {{{{.StopTimeout}}}}{{{{end}}}} {{{{.ContainerNameOrID}}}}"
