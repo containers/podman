@@ -6,7 +6,7 @@ import (
 
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/libpod/network"
+	"github.com/containers/podman/v3/pkg/network"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/pkg/errors"
 )

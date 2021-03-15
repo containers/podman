@@ -1,4 +1,4 @@
-package filters
+package parse
 
 import (
 	"net/url"
@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func ParseFilterArgumentsIntoFilters(filters []string) (url.Values, error) {
+func FilterArgumentsIntoFilters(filters []string) (url.Values, error) {
 	parsedFilters := make(url.Values)
 	for _, f := range filters {
 		t := strings.SplitN(f, "=", 2)

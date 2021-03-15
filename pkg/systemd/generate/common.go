@@ -4,25 +4,18 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/podman/v3/pkg/systemd/define"
 	"github.com/pkg/errors"
 )
-
-// EnvVariable "PODMAN_SYSTEMD_UNIT" is set in all generated systemd units and
-// is set to the unit's (unique) name.
-const EnvVariable = "PODMAN_SYSTEMD_UNIT"
 
 // minTimeoutStopSec is the minimal stop timeout for generated systemd units.
 // Once exceeded, processes of the services are killed and the cgroup(s) are
 // cleaned up.
 const minTimeoutStopSec = 60
 
-// RestartPolicies includes all valid restart policies to be used in a unit
-// file.
-var RestartPolicies = []string{"no", "on-success", "on-failure", "on-abnormal", "on-watchdog", "on-abort", "always"}
-
 // validateRestartPolicy checks that the user-provided policy is valid.
 func validateRestartPolicy(restart string) error {
-	for _, i := range RestartPolicies {
+	for _, i := range define.RestartPolicies {
 		if i == restart {
 			return nil
 		}

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/containernetworking/cni/libcni"
+	"github.com/containers/podman/v3/pkg/network"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/pkg/errors"
 )
@@ -211,7 +212,7 @@ func IfPassesFilter(netconf *libcni.NetworkConfigList, filters map[string][]stri
 
 		case "plugin":
 			// match one plugin
-			plugins := GetCNIPlugins(netconf)
+			plugins := network.GetCNIPlugins(netconf)
 			for _, val := range filterValues {
 				if strings.Contains(plugins, val) {
 					result = true
@@ -243,7 +244,7 @@ func IfPassesFilter(netconf *libcni.NetworkConfigList, filters map[string][]stri
 		case "driver":
 			// matches only for the DefaultNetworkDriver
 			for _, filterValue := range filterValues {
-				plugins := GetCNIPlugins(netconf)
+				plugins := network.GetCNIPlugins(netconf)
 				if filterValue == DefaultNetworkDriver &&
 					strings.Contains(plugins, DefaultNetworkDriver) {
 					result = true
@@ -253,7 +254,7 @@ func IfPassesFilter(netconf *libcni.NetworkConfigList, filters map[string][]stri
 		case "id":
 			// matches part of one id
 			for _, filterValue := range filterValues {
-				if strings.Contains(GetNetworkID(netconf.Name), filterValue) {
+				if strings.Contains(network.GetNetworkID(netconf.Name), filterValue) {
 					result = true
 					break
 				}

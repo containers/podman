@@ -14,7 +14,7 @@ import (
 	envLib "github.com/containers/podman/v3/pkg/env"
 	ns "github.com/containers/podman/v3/pkg/namespaces"
 	"github.com/containers/podman/v3/pkg/specgen"
-	systemdGen "github.com/containers/podman/v3/pkg/systemd/generate"
+	systemdDefine "github.com/containers/podman/v3/pkg/systemd/define"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -342,8 +342,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 		return errors.Wrapf(err, "unable to process labels")
 	}
 
-	if systemdUnit, exists := osEnv[systemdGen.EnvVariable]; exists {
-		labels[systemdGen.EnvVariable] = systemdUnit
+	if systemdUnit, exists := osEnv[systemdDefine.EnvVariable]; exists {
+		labels[systemdDefine.EnvVariable] = systemdUnit
 	}
 
 	s.Labels = labels

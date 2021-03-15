@@ -16,6 +16,7 @@ import (
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
+	networkid "github.com/containers/podman/v3/pkg/network"
 	"github.com/docker/docker/api/types"
 	dockerNetwork "github.com/docker/docker/api/types/network"
 	"github.com/gorilla/schema"
@@ -135,7 +136,7 @@ func getNetworkResourceByNameOrID(nameOrID string, runtime *libpod.Runtime, filt
 
 	report := types.NetworkResource{
 		Name:       conf.Name,
-		ID:         network.GetNetworkID(conf.Name),
+		ID:         networkid.GetNetworkID(conf.Name),
 		Created:    time.Unix(int64(stat.Ctim.Sec), int64(stat.Ctim.Nsec)), // nolint: unconvert
 		Scope:      "local",
 		Driver:     network.DefaultNetworkDriver,

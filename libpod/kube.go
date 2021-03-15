@@ -83,11 +83,11 @@ func (p *Pod) GenerateForKube() (*v1.Pod, []v1.ServicePort, error) {
 	for _, ctr := range allContainers {
 		if !ctr.IsInfra() {
 			switch ctr.Config().RestartPolicy {
-			case RestartPolicyAlways:
+			case define.RestartPolicyAlways:
 				pod.Spec.RestartPolicy = v1.RestartPolicyAlways
-			case RestartPolicyOnFailure:
+			case define.RestartPolicyOnFailure:
 				pod.Spec.RestartPolicy = v1.RestartPolicyOnFailure
-			case RestartPolicyNo:
+			case define.RestartPolicyNo:
 				pod.Spec.RestartPolicy = v1.RestartPolicyNever
 			default: // some pod create from cmdline, such as "", so set it to Never
 				pod.Spec.RestartPolicy = v1.RestartPolicyNever

@@ -311,7 +311,7 @@ var _ = Describe("Podman run", func() {
 		session = podmanTest.Podman([]string{"run", ALPINE, "date", "+'%H %Z'"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.OutputToString()).To(ContainSubstring("EST"))
+		Expect(session.OutputToString()).To(Or(ContainSubstring("EST"), ContainSubstring("EDT")))
 
 		// Umask
 		session = podmanTest.Podman([]string{"run", "--rm", ALPINE, "sh", "-c", "umask"})
