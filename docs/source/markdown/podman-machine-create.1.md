@@ -22,20 +22,21 @@ tied to the Linux kernel.
 
 Number of CPUs.
 
+#### **--ignition-path**
+
+Fully qualified path of the ignition file
+
+#### **--image-path**
+
+Fully qualified path of the uncompressed image file
+
 #### **--memory**, **-m**=*number*
 
 Memory (in MB).
 
-#### **--kernel-path**=*path*
+#### **--name**
 
-Print usage statement.
-
-#### **--device**=_device_[**:**_permissions_]
-
-Add a device to the virtual machine. Optional *permissions* parameter
-can be used to specify device permissions. **ro** means the device is read-only.
-
-Example: **--device=/dev/xvdc:ro**.
+Name to assign to the VM
 
 #### **--help**
 

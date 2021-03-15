@@ -22,11 +22,21 @@ import (
 	"golang.org/x/crypto/ssh/agent"
 )
 
+/*
+	WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+	WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+
+	DO NOT MERGE WITHOUT REVERTING THE HACK BELOW
+
+	WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+	WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+*/
 var (
 	BasePath = &url.URL{
 		Scheme: "http",
 		Host:   "d",
-		Path:   "/v" + version.APIVersion[version.Libpod][version.CurrentAPI].String() + "/libpod",
+		//Path:   "/v" + version.APIVersion[version.Libpod][version.CurrentAPI].String() + "/libpod",
+		Path: "/v3.0.0/libpod",
 	}
 )
 
