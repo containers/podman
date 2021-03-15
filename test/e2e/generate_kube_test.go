@@ -675,7 +675,7 @@ ENTRYPOINT /bin/sleep`
 		Expect(err).To(BeNil())
 
 		image := "generatekube:test"
-		session := podmanTest.Podman([]string{"build", "-f", containerfilePath, "-t", image})
+		session := podmanTest.Podman([]string{"build", "--pull-never", "-f", containerfilePath, "-t", image})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -748,7 +748,7 @@ USER test1`
 		Expect(err).To(BeNil())
 
 		image := "generatekube:test"
-		session := podmanTest.Podman([]string{"build", "-f", containerfilePath, "-t", image})
+		session := podmanTest.Podman([]string{"build", "--pull-never", "-f", containerfilePath, "-t", image})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
