@@ -370,6 +370,7 @@ load helpers
     is "${lines[0]}" "${randomcontent[0]}" "eval symlink - created container"
     is "${lines[1]}" "${randomcontent[1]}" "eval symlink - created container"
     run_podman rm -f cpcontainer
+    run_podman rmi $cpimage
 }
 
 

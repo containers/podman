@@ -241,11 +241,21 @@ EOF
         build_arg_implicit+="=$arg_implicit_value"
     fi
 
+    # FIXME FIXME FIXME: 2021-03-15: workaround for #9567 (slow ubuntu 2004):
+    # we're seeing lots of timeouts in CI. Until/unless #9567 gets fixed,
+    # let's get CI passing by extending the timeout when remote on ubuntu
+    local localtimeout=${PODMAN_TIMEOUT}
+    if is_remote; then
+        if grep -qi ubuntu /etc/os-release; then
+            localtimeout=$(( 2 * $localtimeout ))
+        fi
+    fi
+
     # cd to the dir, so we test relative paths (important for podman-remote)
     cd $PODMAN_TMPDIR
     export arg_explicit="THIS SHOULD BE OVERRIDDEN BY COMMAND LINE!"
     export arg_implicit=${arg_implicit_value}
-    run_podman ${MOUNTS_CONF} build \
+    PODMAN_TIMEOUT=$localtimeout run_podman ${MOUNTS_CONF} build \
                --build-arg arg_explicit=${arg_explicit_value} \
                $build_arg_implicit \
                --dns-search $nosuchdomain \
@@ -594,34 +604,46 @@ EOF
     run_podman rmi -a --force
 }
 
+# Caveat lector: this test was mostly copy-pasted from buildah in #9275.
+# It's not entirely clear what it's testing, or if the 'mount' section is
+# necessary.
 @test "build with copy-from referencing the base image" {
-  skip_if_rootless "cannot mount as rootless"
-  target=busybox-derived
-  target_mt=busybox-mt-derived
+  target=derived
+  target_mt=derived-mt
   tmpdir=$PODMAN_TMPDIR/build-test
   mkdir -p $tmpdir
-  containerfile1=$tmpdir/Containerfile1
-    cat >$containerfile1 <<EOF
-FROM quay.io/libpod/busybox AS build
-RUN rm -f /bin/paste
-USER 1001
-COPY --from=quay.io/libpod/busybox /bin/paste /test/
-EOF
-  containerfile2=$tmpdir/Containerfile2
-    cat >$containerfile2 <<EOF
-FROM quay.io/libpod/busybox AS test
-RUN rm -f /bin/nl
-FROM quay.io/libpod/alpine AS final
-COPY --from=quay.io/libpod/busybox /bin/nl /test/
-EOF
-  run_podman build -t ${target} -f ${containerfile1} ${tmpdir}
-  run_podman build --jobs 4 -t ${target} -f ${containerfile1} ${tmpdir}
 
-  run_podman build -t ${target} -f ${containerfile2} ${tmpdir}
+  containerfile1=$tmpdir/Containerfile1
+  cat >$containerfile1 <<EOF
+FROM $IMAGE AS build
+RUN rm -f /etc/issue
+USER 1001
+COPY --from=$IMAGE /etc/issue /test/
+EOF
+
+  containerfile2=$tmpdir/Containerfile2
+  cat >$containerfile2 <<EOF
+FROM $IMAGE AS test
+RUN rm -f /etc/alpine-release
+FROM quay.io/libpod/alpine AS final
+COPY --from=$IMAGE /etc/alpine-release /test/
+EOF
+
+  # Before the build, $IMAGE's base image should not be present
+  local base_image=quay.io/libpod/alpine:latest
+  run_podman 1 image exists $base_image
+
+  run_podman build --jobs 1 -t ${target} -f ${containerfile2} ${tmpdir}
   run_podman build --no-cache --jobs 4 -t ${target_mt} -f ${containerfile2} ${tmpdir}
 
+  # After the build, the base image should exist
+  run_podman image exists $base_image
+
   # (can only test locally; podman-remote has no image mount command)
-  if ! is_remote; then
+  # (can also only test as root; mounting under rootless podman is too hard)
+  # We perform the test as a conditional, not a 'skip', because there's
+  # value in testing the above 'build' commands even remote & rootless.
+  if ! is_remote && ! is_rootless; then
     run_podman image mount ${target}
     root_single_job=$output
 
@@ -629,8 +651,21 @@ EOF
     root_multi_job=$output
 
     # Check that both the version with --jobs 1 and --jobs=N have the same number of files
-    test $(find $root_single_job -type f | wc -l) = $(find $root_multi_job -type f | wc -l)
+    nfiles_single=$(find $root_single_job -type f | wc -l)
+    nfiles_multi=$(find $root_multi_job -type f | wc -l)
+    run_podman image umount ${target_mt}
+    run_podman image umount ${target}
+
+    is "$nfiles_single" "$nfiles_multi" \
+       "Number of files (--jobs=1) == (--jobs=4)"
+
+    # Make sure the number is reasonable
+    test "$nfiles_single" -gt 50
   fi
+
+  # Clean up
+  run_podman rmi ${target_mt} ${target} ${base_image}
+  run_podman image prune -f
 }
 
 @test "podman build --logfile test" {

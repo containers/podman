@@ -5,6 +5,20 @@
 
 load helpers
 
+# This is a long ugly way to clean up pods and remove the pause image
+function teardown() {
+    run_podman pod rm -f -a
+    run_podman rm -f -a
+    run_podman image list --format '{{.ID}} {{.Repository}}'
+    while read id name; do
+        if [[ "$name" =~ /pause ]]; then
+            run_podman rmi $id
+        fi
+    done <<<"$output"
+
+    basic_teardown
+}
+
 testYaml="
 apiVersion: v1
 kind: Pod
@@ -24,7 +38,7 @@ spec:
       value: xterm
     - name: container
       value: podman
-    image: quay.io/libpod/alpine:latest
+    image: $IMAGE
     name: test
     resources: {}
     securityContext:

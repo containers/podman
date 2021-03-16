@@ -6,7 +6,7 @@ podman pull $IMAGE &>/dev/null
 tmpfs_name="/mytmpfs"
 t POST containers/create?name=hostconfig_test \
   Image=$IMAGE \
-  Cmd='["df"]' \
+  Cmd='["df","-P","'$tmpfs_name'"]' \
   HostConfig='{"Binds":["/tmp/doesnotexist:/test1"]' \
   TmpFs="{\"$tmpfs_name\":\"rw\"}}" \
   201 \
@@ -22,5 +22,10 @@ t POST containers/${cid}/start 204
 t POST containers/${cid}/wait  200
 t GET  containers/${cid}/logs?stdout=true  200
 
-like "$(<$WORKDIR/curl.result.out)" ".* ${tmpfs_name}" \
+# /logs returns application/octet-stream, which our test helper saves in
+# an outfile rather than returning in $output. That's why we can't test
+# this directly in the /logs test above; instead, we rely on knowing the
+# path to the stored results. The 'tr' is needed because there may be
+# null bytes in the outfile.
+like "$(tr -d \\0 <$WORKDIR/curl.result.out)" ".* ${tmpfs_name}" \
      "'df' output includes tmpfs name"
