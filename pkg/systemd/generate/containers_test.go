@@ -48,6 +48,7 @@ Description=Podman container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
+RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -73,6 +74,7 @@ Description=Podman container-foobar.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
+RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -96,6 +98,7 @@ Description=Podman container-foobar.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
+RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
 BindsTo=a.service b.service c.service pod.service
 After=a.service b.service c.service pod.service
 
@@ -121,6 +124,7 @@ Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
+RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -145,6 +149,7 @@ Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
+RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -169,6 +174,7 @@ Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
+RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -193,6 +199,7 @@ Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
+RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -217,6 +224,7 @@ Description=Podman container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
+RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -242,6 +250,7 @@ Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
+RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -270,6 +279,7 @@ Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
+RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -294,6 +304,7 @@ Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
+RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -318,6 +329,7 @@ Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
+RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -342,6 +354,7 @@ Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
+RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -366,6 +379,7 @@ Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
+RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -400,6 +414,8 @@ WantedBy=multi-user.target default.target
 				StopTimeout:       22,
 				PodmanVersion:     "CI",
 				EnvVariable:       define.EnvVariable,
+				GraphRoot:         "/var/lib/containers/storage",
+				RunRoot:           "/var/run/containers/storage",
 			},
 			goodID,
 			false,
@@ -416,6 +432,8 @@ WantedBy=multi-user.target default.target
 				StopTimeout:       22,
 				PodmanVersion:     "CI",
 				EnvVariable:       define.EnvVariable,
+				GraphRoot:         "/var/lib/containers/storage",
+				RunRoot:           "/var/run/containers/storage",
 			},
 			goodIDNoHeaderInfo,
 			false,
@@ -432,6 +450,8 @@ WantedBy=multi-user.target default.target
 				StopTimeout:       10,
 				PodmanVersion:     "CI",
 				EnvVariable:       define.EnvVariable,
+				GraphRoot:         "/var/lib/containers/storage",
+				RunRoot:           "/var/run/containers/storage",
 			},
 			goodName,
 			false,
@@ -449,6 +469,8 @@ WantedBy=multi-user.target default.target
 				PodmanVersion:     "CI",
 				BoundToServices:   []string{"pod", "a", "b", "c"},
 				EnvVariable:       define.EnvVariable,
+				GraphRoot:         "/var/lib/containers/storage",
+				RunRoot:           "/var/run/containers/storage",
 			},
 			goodNameBoundTo,
 			false,
@@ -464,6 +486,8 @@ WantedBy=multi-user.target default.target
 				StopTimeout:   10,
 				PodmanVersion: "CI",
 				EnvVariable:   define.EnvVariable,
+				GraphRoot:     "/var/lib/containers/storage",
+				RunRoot:       "/var/run/containers/storage",
 			},
 			"",
 			false,
@@ -481,6 +505,8 @@ WantedBy=multi-user.target default.target
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "container", "run", "--name", "jadda-jadda", "--hostname", "hello-world", "awesome-image:latest", "command", "arg1", "...", "argN", "foo=arg \"with \" space"},
 				EnvVariable:       define.EnvVariable,
+				GraphRoot:         "/var/lib/containers/storage",
+				RunRoot:           "/var/run/containers/storage",
 			},
 			goodWithNameAndGeneric,
 			true,
@@ -498,6 +524,8 @@ WantedBy=multi-user.target default.target
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "run", "-d", "--name", "jadda-jadda", "--hostname", "hello-world", "awesome-image:latest", "command", "arg1", "...", "argN"},
 				EnvVariable:       define.EnvVariable,
+				GraphRoot:         "/var/lib/containers/storage",
+				RunRoot:           "/var/run/containers/storage",
 			},
 			goodWithExplicitShortDetachParam,
 			true,
@@ -515,6 +543,8 @@ WantedBy=multi-user.target default.target
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "run", "-d", "--name", "jadda-jadda", "--hostname", "hello-world", "awesome-image:latest", "command", "arg1", "...", "argN"},
 				EnvVariable:       define.EnvVariable,
+				GraphRoot:         "/var/lib/containers/storage",
+				RunRoot:           "/var/run/containers/storage",
 				Pod: &podInfo{
 					PodIDFile: "%t/pod-foobar.pod-id-file",
 				},
@@ -535,6 +565,8 @@ WantedBy=multi-user.target default.target
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "run", "--detach", "--name", "jadda-jadda", "--hostname", "hello-world", "awesome-image:latest", "command", "arg1", "...", "argN"},
 				EnvVariable:       define.EnvVariable,
+				GraphRoot:         "/var/lib/containers/storage",
+				RunRoot:           "/var/run/containers/storage",
 			},
 			goodNameNewDetach,
 			true,
@@ -552,6 +584,8 @@ WantedBy=multi-user.target default.target
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "run", "awesome-image:latest"},
 				EnvVariable:       define.EnvVariable,
+				GraphRoot:         "/var/lib/containers/storage",
+				RunRoot:           "/var/run/containers/storage",
 			},
 			goodIDNew,
 			true,
@@ -569,6 +603,8 @@ WantedBy=multi-user.target default.target
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "run", "--detach=true", "awesome-image:latest"},
 				EnvVariable:       define.EnvVariable,
+				GraphRoot:         "/var/lib/containers/storage",
+				RunRoot:           "/var/run/containers/storage",
 			},
 			genGoodNewDetach("--detach=true"),
 			true,
@@ -586,6 +622,8 @@ WantedBy=multi-user.target default.target
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "run", "--detach=false", "awesome-image:latest"},
 				EnvVariable:       define.EnvVariable,
+				GraphRoot:         "/var/lib/containers/storage",
+				RunRoot:           "/var/run/containers/storage",
 			},
 			genGoodNewDetach("-d"),
 			true,
@@ -603,6 +641,8 @@ WantedBy=multi-user.target default.target
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "run", "--name", "test", "-p", "80:80", "--detach=false", "awesome-image:latest", "somecmd", "--detach=false"},
 				EnvVariable:       define.EnvVariable,
+				GraphRoot:         "/var/lib/containers/storage",
+				RunRoot:           "/var/run/containers/storage",
 			},
 			goodNameNewDetachFalseWithCmd,
 			true,
@@ -620,6 +660,8 @@ WantedBy=multi-user.target default.target
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "run", "--name", "test", "-p", "80:80", "--detach=false", "--detach=false", "awesome-image:latest", "somecmd", "--detach=false"},
 				EnvVariable:       define.EnvVariable,
+				GraphRoot:         "/var/lib/containers/storage",
+				RunRoot:           "/var/run/containers/storage",
 			},
 			goodNameNewDetachFalseWithCmd,
 			true,
@@ -637,6 +679,8 @@ WantedBy=multi-user.target default.target
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "run", "-dti", "awesome-image:latest"},
 				EnvVariable:       define.EnvVariable,
+				GraphRoot:         "/var/lib/containers/storage",
+				RunRoot:           "/var/run/containers/storage",
 			},
 			genGoodNewDetach("-dti"),
 			true,
@@ -654,6 +698,8 @@ WantedBy=multi-user.target default.target
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "run", "-tid", "awesome-image:latest"},
 				EnvVariable:       define.EnvVariable,
+				GraphRoot:         "/var/lib/containers/storage",
+				RunRoot:           "/var/run/containers/storage",
 			},
 			genGoodNewDetach("-tid"),
 			true,
@@ -671,6 +717,8 @@ WantedBy=multi-user.target default.target
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "--events-backend", "none", "--runroot", "/root", "run", "awesome-image:latest"},
 				EnvVariable:       define.EnvVariable,
+				GraphRoot:         "/var/lib/containers/storage",
+				RunRoot:           "/var/run/containers/storage",
 			},
 			goodNewRootFlags,
 			true,
@@ -688,6 +736,8 @@ WantedBy=multi-user.target default.target
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "container", "create", "awesome-image:latest"},
 				EnvVariable:       define.EnvVariable,
+				GraphRoot:         "/var/lib/containers/storage",
+				RunRoot:           "/var/run/containers/storage",
 			},
 			goodContainerCreate,
 			true,
@@ -705,6 +755,8 @@ WantedBy=multi-user.target default.target
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "create", "--name", "test", "--log-driver=journald", "--log-opt=tag={{.Name}}", "awesome-image:latest"},
 				EnvVariable:       define.EnvVariable,
+				GraphRoot:         "/var/lib/containers/storage",
+				RunRoot:           "/var/run/containers/storage",
 			},
 			goodNewWithJournaldTag,
 			true,
@@ -722,6 +774,8 @@ WantedBy=multi-user.target default.target
 				PodmanVersion:     "CI",
 				CreateCommand:     []string{"I'll get stripped", "create", "--name", "test", "awesome-image:latest", "sh", "-c", "kill $$ && echo %\\"},
 				EnvVariable:       define.EnvVariable,
+				GraphRoot:         "/var/lib/containers/storage",
+				RunRoot:           "/var/run/containers/storage",
 			},
 			goodNewWithSpecialChars,
 			true,
