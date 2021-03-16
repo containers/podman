@@ -86,6 +86,10 @@ t DELETE libpod/volumes/foo1 404 \
     .message~.* \
     .response=404
 
+# Prune volumes - bad filter input
+t POST volumes/prune?filters='garb1age}' 500 \
+    .cause="invalid character 'g' looking for beginning of value"
+
 ## Prune volumes with label matching 'testlabel1=testonly'
 t POST libpod/volumes/prune?filters='{"label":["testlabel1=testonly"]}' 200
 t GET libpod/volumes/json?filters='{"label":["testlabel1=testonly"]}' 200 length=0
