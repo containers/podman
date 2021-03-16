@@ -61,7 +61,7 @@ Set the systemd unit name separator between the name/id of a container/pod and t
 
 ### Generate and print a systemd unit file for a container
 
-Generate a systemd unit file for a container running nginx with an *always* restart policy and 1-second timeout to stdout.
+Generate a systemd unit file for a container running nginx with an *always* restart policy and 1-second timeout to stdout. Note that the **RequiresMountsFor** option in the **Unit** section ensures that the container storage for both the GraphRoot and the RunRoot are mounted prior to starting the service. For systems with container storage on disks like iSCSI or other remote block protocols, this ensures that Podman is not executed prior to any necessary storage operations coming online.
 
 ```
 $ podman create --name nginx nginx:latest
@@ -73,6 +73,9 @@ $ podman generate systemd --restart-policy=always -t 1 nginx
 [Unit]
 Description=Podman container-de1e3223b1b888bc02d0962dd6cb5855eb00734061013ffdd3479d225abacdc6.service
 Documentation=man:podman-generate-systemd(1)
+Wants=network.target
+After=network-online.target
+RequiresMountsFor=/var/lib/containers/storage /var/run/container/storage
 
 [Service]
 Restart=always
@@ -101,6 +104,7 @@ Description=Podman container-busy_moser.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
+RequiresMountsFor=/var/lib/containers/storage /var/run/container/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -140,6 +144,9 @@ Description=Podman pod-systemd-pod.service
 Documentation=man:podman-generate-systemd(1)
 Requires=container-amazing_chandrasekhar.service container-jolly_shtern.service
 Before=container-amazing_chandrasekhar.service container-jolly_shtern.service
+Wants=network.target
+After=network-online.target
+RequiresMountsFor=/var/lib/containers/storage /var/run/container/storage
 
 [Service]
 Restart=on-failure

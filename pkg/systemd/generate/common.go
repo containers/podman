@@ -36,6 +36,7 @@ Description=Podman {{{{.ServiceName}}}}.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
+RequiresMountsFor={{{{.GraphRoot}}}} {{{{.RunRoot}}}}
 `
 
 // filterPodFlags removes --pod and --pod-id-file from the specified command.

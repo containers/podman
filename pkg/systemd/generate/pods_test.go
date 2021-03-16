@@ -47,6 +47,7 @@ Description=Podman pod-123abc.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
+RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
 Requires=container-1.service container-2.service
 Before=container-1.service container-2.service
 
@@ -74,6 +75,7 @@ Description=Podman pod-123abc.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
+RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
 Requires=container-1.service container-2.service
 Before=container-1.service container-2.service
 
@@ -101,6 +103,7 @@ Description=Podman pod-123abc.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
+RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
 Requires=container-1.service container-2.service
 Before=container-1.service container-2.service
 
@@ -128,6 +131,7 @@ Description=Podman pod-123abc.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
+RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
 Requires=container-1.service container-2.service
 Before=container-1.service container-2.service
 
@@ -155,6 +159,7 @@ Description=Podman pod-123abc.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
+RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
 Requires=container-1.service container-2.service
 Before=container-1.service container-2.service
 
@@ -191,6 +196,8 @@ WantedBy=multi-user.target default.target
 				PIDFile:          "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:      42,
 				PodmanVersion:    "CI",
+				GraphRoot:        "/var/lib/containers/storage",
+				RunRoot:          "/var/run/containers/storage",
 				RequiredServices: []string{"container-1", "container-2"},
 				CreateCommand:    []string{"podman", "pod", "create", "--name", "foo", "bar=arg with space"},
 			},
@@ -208,6 +215,8 @@ WantedBy=multi-user.target default.target
 				PIDFile:          "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:      42,
 				PodmanVersion:    "CI",
+				GraphRoot:        "/var/lib/containers/storage",
+				RunRoot:          "/var/run/containers/storage",
 				RequiredServices: []string{"container-1", "container-2"},
 				CreateCommand:    []string{"podman", "pod", "create", "--name", "foo", "bar=arg with space"},
 			},
@@ -225,6 +234,8 @@ WantedBy=multi-user.target default.target
 				PIDFile:          "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:      42,
 				PodmanVersion:    "CI",
+				GraphRoot:        "/var/lib/containers/storage",
+				RunRoot:          "/var/run/containers/storage",
 				RequiredServices: []string{"container-1", "container-2"},
 				CreateCommand:    []string{"podman", "--events-backend", "none", "--runroot", "/root", "pod", "create", "--name", "foo", "bar=arg with space"},
 			},
@@ -242,6 +253,8 @@ WantedBy=multi-user.target default.target
 				PIDFile:          "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:      10,
 				PodmanVersion:    "CI",
+				GraphRoot:        "/var/lib/containers/storage",
+				RunRoot:          "/var/run/containers/storage",
 				RequiredServices: []string{"container-1", "container-2"},
 				CreateCommand:    []string{"podman", "pod", "create", "--name", "foo", "bar=arg with space"},
 			},
@@ -259,6 +272,8 @@ WantedBy=multi-user.target default.target
 				PIDFile:          "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:      10,
 				PodmanVersion:    "CI",
+				GraphRoot:        "/var/lib/containers/storage",
+				RunRoot:          "/var/run/containers/storage",
 				RequiredServices: []string{"container-1", "container-2"},
 				CreateCommand:    []string{"podman", "--events-backend", "none", "--runroot", "/root", "pod", "create", "--name", "foo", "bar=arg with space"},
 			},
@@ -276,6 +291,8 @@ WantedBy=multi-user.target default.target
 				PIDFile:          "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:      10,
 				PodmanVersion:    "CI",
+				GraphRoot:        "/var/lib/containers/storage",
+				RunRoot:          "/var/run/containers/storage",
 				RequiredServices: []string{"container-1", "container-2"},
 				CreateCommand:    []string{"podman", "pod", "create", "--name", "foo", "--replace=false"},
 			},
@@ -293,6 +310,8 @@ WantedBy=multi-user.target default.target
 				PIDFile:          "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:      10,
 				PodmanVersion:    "CI",
+				GraphRoot:        "/var/lib/containers/storage",
+				RunRoot:          "/var/run/containers/storage",
 				RequiredServices: []string{"container-1", "container-2"},
 				CreateCommand:    []string{"podman", "pod", "create", "--name", "foo", "--label", "key={{someval}}"},
 			},
