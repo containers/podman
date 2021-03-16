@@ -128,7 +128,7 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, reports)
+	utils.WriteResponse(w, http.StatusOK, reports[0])
 }
 
 // Connect adds a container to a network
