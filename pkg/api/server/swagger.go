@@ -226,3 +226,12 @@ type swagSystemPruneReport struct {
 		entities.SystemPruneReport
 	}
 }
+
+// Auth response
+// swagger:response SystemAuthResponse
+type swagSystemAuthResponse struct {
+	// in:body
+	Body struct {
+		entities.AuthReport
+	}
+}

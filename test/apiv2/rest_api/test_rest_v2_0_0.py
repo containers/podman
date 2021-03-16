@@ -555,17 +555,6 @@ class TestApi(unittest.TestCase):
         self.assertIn(name, payload["VolumesDeleted"])
         self.assertGreater(payload["SpaceReclaimed"], 0)
 
-    def test_auth_compat(self):
-        r = requests.post(
-            PODMAN_URL + "/v1.40/auth",
-            json={
-                "username": "bozo",
-                "password": "wedontneednopasswords",
-                "serveraddress": "https://localhost/v1.40/",
-            },
-        )
-        self.assertEqual(r.status_code, 404, r.content)
-
     def test_version(self):
         r = requests.get(PODMAN_URL + "/v1.40/version")
         self.assertEqual(r.status_code, 200, r.content)

@@ -107,3 +107,14 @@ type ComponentVersion struct {
 type ListRegistriesReport struct {
 	Registries []string
 }
+
+// swagger:model AuthConfig
+type AuthConfig struct {
+	types.AuthConfig
+}
+
+// AuthReport describes the response for authentication check
+type AuthReport struct {
+	IdentityToken string
+	Status        string
+}
