@@ -338,6 +338,18 @@ func (r *Runtime) setUpOCICNIPod(podNetwork ocicni.PodNetwork) ([]ocicni.NetResu
 	return results, err
 }
 
+// getCNIPodName return the pod name (hostname) used by CNI and the dnsname plugin.
+// If we are in the pod network namespace use the pod name otherwise the container name
+func getCNIPodName(c *Container) string {
+	if c.config.NetMode.IsPod() || c.IsInfra() {
+		pod, err := c.runtime.GetPod(c.PodID())
+		if err == nil {
+			return pod.Name()
+		}
+	}
+	return c.Name()
+}
+
 // Create and configure a new network namespace for a container
 func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Result, error) {
 	var requestedIP net.IP
