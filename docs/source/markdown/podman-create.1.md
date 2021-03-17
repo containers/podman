@@ -833,6 +833,11 @@ A secret is a blob of sensitive data which a container needs at runtime but
 should not be stored in the image or in source control, such as usernames and passwords,
 TLS certificates and keys, SSH keys or other important generic strings or binary content (up to 500 kb in size).
 
+Secrets are copied and mounted into the container when a container is created. If a secret is deleted using
+`podman secret rm`, the container will still have access to the secret. If a secret is deleted and
+another secret is created with the same name, the secret inside the container will not change; the old
+secret value will still remain.
+
 Secrets are managed using the `podman secret` command.
 
 #### **--security-opt**=*option*
