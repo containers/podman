@@ -330,8 +330,6 @@ func containerToV1Container(c *Container) (v1.Container, []v1.Volume, *v1.PodDNS
 	}
 
 	if len(c.config.UserVolumes) > 0 {
-		// TODO When we until we can resolve what the volume name should be, this is disabled
-		// Volume names need to be coordinated "globally" in the kube files.
 		volumeMounts, volumes, err := libpodMountsToKubeVolumeMounts(c)
 		if err != nil {
 			return kubeContainer, kubeVolumes, nil, err
@@ -493,8 +491,7 @@ func libpodEnvVarsToKubeEnvVars(envs []string) ([]v1.EnvVar, error) {
 
 // libpodMountsToKubeVolumeMounts converts the containers mounts to a struct kube understands
 func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, []v1.Volume, error) {
-	// TODO when named volumes are supported in play kube, also parse named volumes here
-	_, mounts := c.sortUserVolumes(c.config.Spec)
+	namedVolumes, mounts := c.sortUserVolumes(c.config.Spec)
 	vms := make([]v1.VolumeMount, 0, len(mounts))
 	vos := make([]v1.Volume, 0, len(mounts))
 	for _, m := range mounts {
@@ -505,7 +502,32 @@ func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, []v1.Volume
 		vms = append(vms, vm)
 		vos = append(vos, vo)
 	}
+	for _, v := range namedVolumes {
+		vm, vo := generateKubePersistentVolumeClaim(v)
+		vms = append(vms, vm)
+		vos = append(vos, vo)
+	}
 	return vms, vos, nil
+}
+
+// generateKubePersistentVolumeClaim converts a ContainerNamedVolume to a Kubernetes PersistentVolumeClaim
+func generateKubePersistentVolumeClaim(v *ContainerNamedVolume) (v1.VolumeMount, v1.Volume) {
+	ro := util.StringInSlice("ro", v.Options)
+
+	// To avoid naming conflicts with any host path mounts, add a unique suffix to the volume's name.
+	name := v.Name + "-pvc"
+
+	vm := v1.VolumeMount{}
+	vm.Name = name
+	vm.MountPath = v.Dest
+	vm.ReadOnly = ro
+
+	pvc := v1.PersistentVolumeClaimVolumeSource{ClaimName: v.Name, ReadOnly: ro}
+	vs := v1.VolumeSource{}
+	vs.PersistentVolumeClaim = &pvc
+	vo := v1.Volume{Name: name, VolumeSource: vs}
+
+	return vm, vo
 }
 
 // generateKubeVolumeMount takes a user specified mount and returns
@@ -519,6 +541,8 @@ func generateKubeVolumeMount(m specs.Mount) (v1.VolumeMount, v1.Volume, error) {
 	if err != nil {
 		return vm, vo, err
 	}
+	// To avoid naming conflicts with any persistent volume mounts, add a unique suffix to the volume's name.
+	name += "-host"
 	vm.Name = name
 	vm.MountPath = m.Destination
 	if util.StringInSlice("ro", m.Options) {
