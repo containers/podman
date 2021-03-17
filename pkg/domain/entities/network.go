@@ -92,4 +92,6 @@ type NetworkPruneReport struct {
 
 // NetworkPruneOptions describes options for pruning
 // unused cni networks
-type NetworkPruneOptions struct{}
+type NetworkPruneOptions struct {
+	Filters map[string][]string
+}

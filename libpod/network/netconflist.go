@@ -5,8 +5,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/containernetworking/cni/libcni"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/pkg/network"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/pkg/errors"
@@ -222,24 +225,7 @@ func IfPassesFilter(netconf *libcni.NetworkConfigList, filters map[string][]stri
 
 		case "label":
 			// matches all labels
-			labels := GetNetworkLabels(netconf)
-		outer:
-			for _, filterValue := range filterValues {
-				filterArray := strings.SplitN(filterValue, "=", 2)
-				filterKey := filterArray[0]
-				if len(filterArray) > 1 {
-					filterValue = filterArray[1]
-				} else {
-					filterValue = ""
-				}
-				for labelKey, labelValue := range labels {
-					if labelKey == filterKey && (filterValue == "" || labelValue == filterValue) {
-						result = true
-						continue outer
-					}
-				}
-				result = false
-			}
+			result = matchPruneLabelFilters(netconf, filterValues)
 
 		case "driver":
 			// matches only for the DefaultNetworkDriver
@@ -267,4 +253,66 @@ func IfPassesFilter(netconf *libcni.NetworkConfigList, filters map[string][]stri
 		}
 	}
 	return result, nil
+}
+
+// IfPassesPruneFilter filters NetworkListReport and returns true if the prune filter match the given config
+func IfPassesPruneFilter(config *config.Config, netconf *libcni.NetworkConfigList, f map[string][]string) (bool, error) {
+	for key, filterValues := range f {
+		switch strings.ToLower(key) {
+		case "label":
+			return matchPruneLabelFilters(netconf, filterValues), nil
+		case "until":
+			until, err := util.ComputeUntilTimestamp(key, filterValues)
+			if err != nil {
+				return false, err
+			}
+			created, err := getCreatedTimestamp(config, netconf)
+			if err != nil {
+				return false, err
+			}
+			if created.Before(until) {
+				return true, nil
+			}
+		default:
+			return false, errors.Errorf("invalid filter %q", key)
+		}
+	}
+	return false, nil
+}
+
+func matchPruneLabelFilters(netconf *libcni.NetworkConfigList, filterValues []string) bool {
+	labels := GetNetworkLabels(netconf)
+	result := true
+outer:
+	for _, filterValue := range filterValues {
+		filterArray := strings.SplitN(filterValue, "=", 2)
+		filterKey := filterArray[0]
+		if len(filterArray) > 1 {
+			filterValue = filterArray[1]
+		} else {
+			filterValue = ""
+		}
+		for labelKey, labelValue := range labels {
+			if labelKey == filterKey && (filterValue == "" || labelValue == filterValue) {
+				result = true
+				continue outer
+			}
+		}
+		result = false
+	}
+	return result
+}
+
+func getCreatedTimestamp(config *config.Config, netconf *libcni.NetworkConfigList) (*time.Time, error) {
+	networkConfigPath, err := GetCNIConfigPathByNameOrID(config, netconf.Name)
+	if err != nil {
+		return nil, err
+	}
+	f, err := os.Stat(networkConfigPath)
+	if err != nil {
+		return nil, err
+	}
+	stat := f.Sys().(*syscall.Stat_t)
+	created := time.Unix(int64(stat.Ctim.Sec), int64(stat.Ctim.Nsec)) // nolint: unconvert
+	return &created, nil
 }

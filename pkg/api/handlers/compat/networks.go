@@ -400,10 +400,24 @@ func Disconnect(w http.ResponseWriter, r *http.Request) {
 
 // Prune removes unused networks
 func Prune(w http.ResponseWriter, r *http.Request) {
-	// TODO Filters are not implemented
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	filters, err := filtersFromRequest(r)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		return
+	}
+	filterMap := map[string][]string{}
+	for _, filter := range filters {
+		split := strings.SplitN(filter, "=", 2)
+		if len(split) > 1 {
+			filterMap[split[0]] = append(filterMap[split[0]], split[1])
+		}
+	}
+
 	ic := abi.ContainerEngine{Libpod: runtime}
-	pruneOptions := entities.NetworkPruneOptions{}
+	pruneOptions := entities.NetworkPruneOptions{
+		Filters: filterMap,
+	}
 	pruneReports, err := ic.NetworkPrune(r.Context(), pruneOptions)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)

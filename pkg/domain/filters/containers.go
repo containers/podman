@@ -8,7 +8,6 @@ import (
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/network"
-	"github.com/containers/podman/v3/pkg/timetype"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/pkg/errors"
 )
@@ -186,18 +185,10 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 			return false
 		}, nil
 	case "until":
-		if len(filterValues) != 1 {
-			return nil, errors.Errorf("specify exactly one timestamp for %s", filter)
-		}
-		ts, err := timetype.GetTimestamp(filterValues[0], time.Now())
+		until, err := util.ComputeUntilTimestamp(filter, filterValues)
 		if err != nil {
 			return nil, err
 		}
-		seconds, nanoseconds, err := timetype.ParseTimestamps(ts, 0)
-		if err != nil {
-			return nil, err
-		}
-		until := time.Unix(seconds, nanoseconds)
 		return func(c *libpod.Container) bool {
 			if !until.IsZero() && c.CreatedTime().After((until)) {
 				return true

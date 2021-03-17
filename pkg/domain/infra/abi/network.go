@@ -174,17 +174,37 @@ func (ic *ContainerEngine) NetworkPrune(ctx context.Context, options entities.Ne
 	if err != nil {
 		return nil, err
 	}
+	networks, err := network.LoadCNIConfsFromDir(network.GetCNIConfDir(runtimeConfig))
+	if err != nil {
+		return nil, err
+	}
+
 	// Gather up all the non-default networks that the
 	// containers want
-	usedNetworks := make(map[string]bool)
+	networksToKeep := make(map[string]bool)
 	for _, c := range cons {
 		nets, _, err := c.Networks()
 		if err != nil {
 			return nil, err
 		}
 		for _, n := range nets {
-			usedNetworks[n] = true
+			networksToKeep[n] = true
 		}
 	}
-	return network.PruneNetworks(runtimeConfig, usedNetworks)
+	if len(options.Filters) != 0 {
+		for _, n := range networks {
+			// This network will be kept anyway
+			if _, found := networksToKeep[n.Name]; found {
+				continue
+			}
+			ok, err := network.IfPassesPruneFilter(runtimeConfig, n, options.Filters)
+			if err != nil {
+				return nil, err
+			}
+			if !ok {
+				networksToKeep[n.Name] = true
+			}
+		}
+	}
+	return network.PruneNetworks(runtimeConfig, networksToKeep)
 }
