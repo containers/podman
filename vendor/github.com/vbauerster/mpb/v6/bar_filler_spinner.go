@@ -3,10 +3,10 @@ package mpb
 import (
 	"io"
 	"strings"
-	"unicode/utf8"
 
-	"github.com/vbauerster/mpb/v5/decor"
-	"github.com/vbauerster/mpb/v5/internal"
+	"github.com/mattn/go-runewidth"
+	"github.com/vbauerster/mpb/v6/decor"
+	"github.com/vbauerster/mpb/v6/internal"
 )
 
 // SpinnerAlignment enum.
@@ -19,8 +19,8 @@ const (
 	SpinnerOnRight
 )
 
-// DefaultSpinnerStyle is a slice of strings, which makes a spinner.
-var DefaultSpinnerStyle = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+// SpinnerDefaultStyle is a style for rendering a spinner.
+var SpinnerDefaultStyle = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 
 type spinnerFiller struct {
 	frames    []string
@@ -28,10 +28,12 @@ type spinnerFiller struct {
 	alignment SpinnerAlignment
 }
 
-// NewSpinnerFiller constucts mpb.BarFiller, to be used with *Progress.Add(...) *Bar method.
+// NewSpinnerFiller returns a BarFiller implementation which renders
+// a spinner. If style is nil or zero length, SpinnerDefaultStyle is
+// applied. To be used with `*Progress.Add(...) *Bar` method.
 func NewSpinnerFiller(style []string, alignment SpinnerAlignment) BarFiller {
 	if len(style) == 0 {
-		style = DefaultSpinnerStyle
+		style = SpinnerDefaultStyle
 	}
 	filler := &spinnerFiller{
 		frames:    style,
@@ -41,10 +43,10 @@ func NewSpinnerFiller(style []string, alignment SpinnerAlignment) BarFiller {
 }
 
 func (s *spinnerFiller) Fill(w io.Writer, reqWidth int, stat decor.Statistics) {
-	width := internal.WidthForBarFiller(reqWidth, stat.AvailableWidth)
+	width := internal.CheckRequestedWidth(reqWidth, stat.AvailableWidth)
 
 	frame := s.frames[s.count%uint(len(s.frames))]
-	frameWidth := utf8.RuneCountInString(frame)
+	frameWidth := runewidth.StringWidth(frame)
 
 	if width < frameWidth {
 		return

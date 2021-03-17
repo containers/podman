@@ -3,19 +3,20 @@ package mpb
 import (
 	"io"
 
-	"github.com/vbauerster/mpb/v5/decor"
+	"github.com/vbauerster/mpb/v6/decor"
 )
 
 // BarFiller interface.
 // Bar (without decorators) renders itself by calling BarFiller's Fill method.
 //
-//	`reqWidth` is requested width, which is set via:
-//	func WithWidth(width int) ContainerOption
-//	func BarWidth(width int) BarOption
+//	reqWidth is requested width, set by `func WithWidth(int) ContainerOption`.
+//	If not set, it defaults to terminal width.
 //
 // Default implementations can be obtained via:
 //
-//	func NewBarFiller(style string, reverse bool) BarFiller
+//	func NewBarFiller(style string) BarFiller
+//	func NewBarFillerRev(style string) BarFiller
+//	func NewBarFillerPick(style string, rev bool) BarFiller
 //	func NewSpinnerFiller(style []string, alignment SpinnerAlignment) BarFiller
 //
 type BarFiller interface {

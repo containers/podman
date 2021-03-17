@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vbauerster/mpb/v5/cwriter"
-	"github.com/vbauerster/mpb/v5/decor"
+	"github.com/vbauerster/mpb/v6/cwriter"
+	"github.com/vbauerster/mpb/v6/decor"
 )
 
 const (
@@ -22,7 +22,8 @@ const (
 	prr = 120 * time.Millisecond
 )
 
-// Progress represents the container that renders Progress bars
+// Progress represents a container that renders one or more progress
+// bars.
 type Progress struct {
 	ctx          context.Context
 	uwg          *sync.WaitGroup
@@ -35,6 +36,8 @@ type Progress struct {
 	dlogger      *log.Logger
 }
 
+// pState holds bars in its priorityQueue. It gets passed to
+// *Progress.serve(...) monitor goroutine.
 type pState struct {
 	bHeap            priorityQueue
 	heapUpdated      bool
@@ -46,9 +49,10 @@ type pState struct {
 	idCount          int
 	reqWidth         int
 	popCompleted     bool
+	outputDiscarded  bool
 	rr               time.Duration
 	uwg              *sync.WaitGroup
-	refreshSrc       <-chan time.Time
+	externalRefresh  <-chan interface{}
 	renderDelay      <-chan struct{}
 	shutdownNotifier chan struct{}
 	parkedBars       map[*Bar]*Bar
@@ -95,18 +99,21 @@ func NewWithContext(ctx context.Context, options ...ContainerOption) *Progress {
 	return p
 }
 
-// AddBar creates a new progress bar and adds it to the rendering queue.
+// AddBar creates a bar with default bar filler. Different filler can
+// be choosen and applied via `*Progress.Add(...) *Bar` method.
 func (p *Progress) AddBar(total int64, options ...BarOption) *Bar {
-	return p.Add(total, NewBarFiller(DefaultBarStyle, false), options...)
+	return p.Add(total, NewBarFiller(BarDefaultStyle), options...)
 }
 
-// AddSpinner creates a new spinner bar and adds it to the rendering queue.
+// AddSpinner creates a bar with default spinner filler. Different
+// filler can be choosen and applied via `*Progress.Add(...) *Bar`
+// method.
 func (p *Progress) AddSpinner(total int64, alignment SpinnerAlignment, options ...BarOption) *Bar {
-	return p.Add(total, NewSpinnerFiller(DefaultSpinnerStyle, alignment), options...)
+	return p.Add(total, NewSpinnerFiller(SpinnerDefaultStyle, alignment), options...)
 }
 
 // Add creates a bar which renders itself by provided filler.
-// Set total to 0, if you plan to update it later.
+// If `total <= 0` trigger complete event is disabled until reset with *bar.SetTotal(int64, bool).
 // Panics if *Progress instance is done, i.e. called after *Progress.Wait().
 func (p *Progress) Add(total int64, filler BarFiller, options ...BarOption) *Bar {
 	if filler == nil {
@@ -168,7 +175,7 @@ func (p *Progress) UpdateBarPriority(b *Bar, priority int) {
 	p.setBarPriority(b, priority)
 }
 
-// BarCount returns bars count
+// BarCount returns bars count.
 func (p *Progress) BarCount() int {
 	result := make(chan int, 1)
 	select {
@@ -234,15 +241,26 @@ func (s *pState) newTicker(done <-chan struct{}) chan time.Time {
 		if s.renderDelay != nil {
 			<-s.renderDelay
 		}
-		if s.refreshSrc == nil {
-			ticker := time.NewTicker(s.rr)
-			defer ticker.Stop()
-			s.refreshSrc = ticker.C
+		var internalRefresh <-chan time.Time
+		if !s.outputDiscarded {
+			if s.externalRefresh == nil {
+				ticker := time.NewTicker(s.rr)
+				defer ticker.Stop()
+				internalRefresh = ticker.C
+			}
+		} else {
+			s.externalRefresh = nil
 		}
 		for {
 			select {
-			case tick := <-s.refreshSrc:
-				ch <- tick
+			case t := <-internalRefresh:
+				ch <- t
+			case x := <-s.externalRefresh:
+				if t, ok := x.(time.Time); ok {
+					ch <- t
+				} else {
+					ch <- time.Now()
+				}
 			case <-done:
 				close(s.shutdownNotifier)
 				return
@@ -347,6 +365,10 @@ func (s *pState) makeBarState(total int64, filler BarFiller, options ...BarOptio
 		filler:   filler,
 		extender: func(r io.Reader, _ int, _ decor.Statistics) (io.Reader, int) { return r, 0 },
 		debugOut: s.debugOut,
+	}
+
+	if total > 0 {
+		bs.triggerComplete = true
 	}
 
 	for _, opt := range options {

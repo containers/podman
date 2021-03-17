@@ -313,7 +313,10 @@ func Resolve(ctx *types.SystemContext, name string) (*Resolved, error) {
 	}
 	// Error out if there's no matching alias and no search registries.
 	if len(unqualifiedSearchRegistries) == 0 {
-		return nil, errors.Errorf("short-name %q did not resolve to an alias and no unqualified-search registries are defined in %q", name, usrConfig)
+		if usrConfig != "" {
+			return nil, errors.Errorf("short-name %q did not resolve to an alias and no unqualified-search registries are defined in %q", name, usrConfig)
+		}
+		return nil, errors.Errorf("short-name %q did not resolve to an alias and no containers-registries.conf(5) was found", name)
 	}
 	resolved.originDescription = usrConfig
 

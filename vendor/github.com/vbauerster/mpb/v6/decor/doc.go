@@ -1,6 +1,5 @@
+// Package decor provides common decorators for "github.com/vbauerster/mpb/v6" module.
 /*
- Package decor provides common decorators for "github.com/vbauerster/mpb/v5" module.
-
  Some decorators returned by this package might have a closure state. It is ok to use
  decorators concurrently, unless you share the same decorator among multiple
  *mpb.Bar instances. To avoid data races, create new decorator per *mpb.Bar instance.

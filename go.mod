@@ -38,7 +38,6 @@ require (
 	github.com/json-iterator/go v1.1.10
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
-	github.com/mattn/go-runewidth v0.0.10 // indirect
 	github.com/moby/term v0.0.0-20201110203204-bea5bbe245bf
 	github.com/mrunalp/fileutils v0.5.0
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
@@ -52,7 +51,6 @@ require (
 	github.com/opencontainers/selinux v1.8.0
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0
-	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/rootless-containers/rootlesskit v0.14.0-beta.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.1.3
@@ -70,3 +68,5 @@ require (
 	k8s.io/api v0.20.5
 	k8s.io/apimachinery v0.20.5
 )
+
+replace github.com/containers/image/v5 => github.com/vrothberg/image/v5 v5.0.0-20210323100216-538c2f8b194c

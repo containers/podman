@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/vbauerster/mpb/v5/decor"
+	"github.com/vbauerster/mpb/v6/decor"
+	"github.com/vbauerster/mpb/v6/internal"
 )
 
-// BarOption is a function option which changes the default behavior of a bar.
+// BarOption is a func option to alter default behavior of a bar.
 type BarOption func(*bState)
 
 func (s *bState) addDecorators(dest *[]decor.Decorator, decorators ...decor.Decorator) {
@@ -88,7 +89,7 @@ func BarFillerOnComplete(message string) BarOption {
 	})
 }
 
-// BarFillerMiddleware provides a way to augment default BarFiller.
+// BarFillerMiddleware provides a way to augment the underlying BarFiller.
 func BarFillerMiddleware(middle func(BarFiller) BarFiller) BarOption {
 	return func(s *bState) {
 		s.middleware = middle
@@ -104,18 +105,17 @@ func BarPriority(priority int) BarOption {
 	}
 }
 
-// BarExtender is an option to extend bar to the next new line, with
-// arbitrary output.
+// BarExtender provides a way to extend bar to the next new line.
 func BarExtender(filler BarFiller) BarOption {
 	if filler == nil {
 		return nil
 	}
 	return func(s *bState) {
-		s.extender = makeExtFunc(filler)
+		s.extender = makeExtenderFunc(filler)
 	}
 }
 
-func makeExtFunc(filler BarFiller) extFunc {
+func makeExtenderFunc(filler BarFiller) extenderFunc {
 	buf := new(bytes.Buffer)
 	return func(r io.Reader, reqWidth int, st decor.Statistics) (io.Reader, int) {
 		filler.Fill(buf, reqWidth, st)
@@ -123,34 +123,10 @@ func makeExtFunc(filler BarFiller) extFunc {
 	}
 }
 
-// BarFillerTrim bar filler is rendered with leading and trailing space
-// like ' [===] ' by default. With this option leading and trailing
-// space will be removed.
+// BarFillerTrim removes leading and trailing space around the underlying BarFiller.
 func BarFillerTrim() BarOption {
 	return func(s *bState) {
 		s.trimSpace = true
-	}
-}
-
-// TrimSpace is an alias to BarFillerTrim.
-func TrimSpace() BarOption {
-	return BarFillerTrim()
-}
-
-// BarStyle overrides mpb.DefaultBarStyle which is "[=>-]<+".
-// It's ok to pass string containing just 5 runes, for example "╢▌▌░╟",
-// if you don't need to override '<' (reverse tip) and '+' (refill rune).
-func BarStyle(style string) BarOption {
-	if style == "" {
-		return nil
-	}
-	type styleSetter interface {
-		SetStyle(string)
-	}
-	return func(s *bState) {
-		if t, ok := s.filler.(styleSetter); ok {
-			t.SetStyle(style)
-		}
 	}
 }
 
@@ -162,51 +138,15 @@ func BarNoPop() BarOption {
 	}
 }
 
-// BarReverse reverse mode, bar will progress from right to left.
-func BarReverse() BarOption {
-	type revSetter interface {
-		SetReverse(bool)
-	}
-	return func(s *bState) {
-		if t, ok := s.filler.(revSetter); ok {
-			t.SetReverse(true)
-		}
-	}
+// BarOptional will invoke provided option only when pick is true.
+func BarOptional(option BarOption, pick bool) BarOption {
+	return BarOptOn(option, internal.Predicate(pick))
 }
 
-// SpinnerStyle sets custom spinner style.
-// Effective when Filler type is spinner.
-func SpinnerStyle(frames []string) BarOption {
-	if len(frames) == 0 {
-		return nil
-	}
-	chk := func(filler BarFiller) (interface{}, bool) {
-		t, ok := filler.(*spinnerFiller)
-		return t, ok
-	}
-	cb := func(t interface{}) {
-		t.(*spinnerFiller).frames = frames
-	}
-	return MakeFillerTypeSpecificBarOption(chk, cb)
-}
-
-// MakeFillerTypeSpecificBarOption makes BarOption specific to Filler's
-// actual type. If you implement your own Filler, so most probably
-// you'll need this. See BarStyle or SpinnerStyle for example.
-func MakeFillerTypeSpecificBarOption(
-	typeChecker func(BarFiller) (interface{}, bool),
-	cb func(interface{}),
-) BarOption {
-	return func(s *bState) {
-		if t, ok := typeChecker(s.filler); ok {
-			cb(t)
-		}
-	}
-}
-
-// BarOptOn returns option when condition evaluates to true.
-func BarOptOn(option BarOption, condition func() bool) BarOption {
-	if condition() {
+// BarOptOn will invoke provided option only when higher order predicate
+// evaluates to true.
+func BarOptOn(option BarOption, predicate func() bool) BarOption {
+	if predicate() {
 		return option
 	}
 	return nil

@@ -6,8 +6,9 @@ import (
 	"unicode/utf8"
 
 	"github.com/mattn/go-runewidth"
-	"github.com/vbauerster/mpb/v5/decor"
-	"github.com/vbauerster/mpb/v5/internal"
+	"github.com/rivo/uniseg"
+	"github.com/vbauerster/mpb/v6/decor"
+	"github.com/vbauerster/mpb/v6/internal"
 )
 
 const (
@@ -20,8 +21,8 @@ const (
 	rRefill
 )
 
-// DefaultBarStyle is a string containing 7 runes.
-// Each rune is a building block of a progress bar.
+// BarDefaultStyle is a style for rendering a progress bar.
+// It consist of 7 ordered runes:
 //
 //	'1st rune' stands for left boundary rune
 //
@@ -37,7 +38,7 @@ const (
 //
 //	'7th rune' stands for refill rune
 //
-const DefaultBarStyle string = "[=>-]<+"
+const BarDefaultStyle string = "[=>-]<+"
 
 type barFiller struct {
 	format  [][]byte
@@ -54,55 +55,72 @@ type space struct {
 	count  int
 }
 
-// NewBarFiller constucts mpb.BarFiller, to be used with *Progress.Add(...) *Bar method.
-func NewBarFiller(style string, reverse bool) BarFiller {
+// NewBarFiller returns a BarFiller implementation which renders a
+// progress bar in regular direction. If style is empty string,
+// BarDefaultStyle is applied. To be used with `*Progress.Add(...)
+// *Bar` method.
+func NewBarFiller(style string) BarFiller {
+	return newBarFiller(style, false)
+}
+
+// NewBarFillerRev returns a BarFiller implementation which renders a
+// progress bar in reverse direction. If style is empty string,
+// BarDefaultStyle is applied. To be used with `*Progress.Add(...)
+// *Bar` method.
+func NewBarFillerRev(style string) BarFiller {
+	return newBarFiller(style, true)
+}
+
+// NewBarFillerPick pick between regular and reverse BarFiller implementation
+// based on rev param. To be used with `*Progress.Add(...) *Bar` method.
+func NewBarFillerPick(style string, rev bool) BarFiller {
+	return newBarFiller(style, rev)
+}
+
+func newBarFiller(style string, rev bool) BarFiller {
 	bf := &barFiller{
-		format:  make([][]byte, len(DefaultBarStyle)),
-		rwidth:  make([]int, len(DefaultBarStyle)),
-		reverse: reverse,
+		format:  make([][]byte, len(BarDefaultStyle)),
+		rwidth:  make([]int, len(BarDefaultStyle)),
+		reverse: rev,
 	}
-	bf.SetStyle(style)
+	bf.parse(BarDefaultStyle)
+	if style != "" && style != BarDefaultStyle {
+		bf.parse(style)
+	}
 	return bf
 }
 
-func (s *barFiller) SetStyle(style string) {
+func (s *barFiller) parse(style string) {
 	if !utf8.ValidString(style) {
 		panic("invalid bar style")
 	}
-	if style == "" {
-		style = DefaultBarStyle
+	srcFormat := make([][]byte, 0, len(BarDefaultStyle))
+	srcRwidth := make([]int, 0, len(BarDefaultStyle))
+	gr := uniseg.NewGraphemes(style)
+	for gr.Next() {
+		srcFormat = append(srcFormat, gr.Bytes())
+		srcRwidth = append(srcRwidth, runewidth.StringWidth(gr.Str()))
 	}
-	src := make([][]byte, utf8.RuneCountInString(style))
-	i := 0
-	for _, r := range style {
-		s.rwidth[i] = runewidth.RuneWidth(r)
-		src[i] = []byte(string(r))
-		i++
-	}
-	copy(s.format, src)
-	s.SetReverse(s.reverse)
-}
-
-func (s *barFiller) SetReverse(reverse bool) {
-	if reverse {
+	copy(s.format, srcFormat)
+	copy(s.rwidth, srcRwidth)
+	if s.reverse {
 		s.tip = s.format[rRevTip]
 		s.flush = reverseFlush
 	} else {
 		s.tip = s.format[rTip]
 		s.flush = regularFlush
 	}
-	s.reverse = reverse
 }
 
 func (s *barFiller) Fill(w io.Writer, reqWidth int, stat decor.Statistics) {
-	width := internal.WidthForBarFiller(reqWidth, stat.AvailableWidth)
-
-	if brackets := s.rwidth[rLeft] + s.rwidth[rRight]; width < brackets {
+	width := internal.CheckRequestedWidth(reqWidth, stat.AvailableWidth)
+	brackets := s.rwidth[rLeft] + s.rwidth[rRight]
+	if width < brackets {
 		return
-	} else {
-		// don't count brackets as progress
-		width -= brackets
 	}
+	// don't count brackets as progress
+	width -= brackets
+
 	w.Write(s.format[rLeft])
 	defer w.Write(s.format[rRight])
 

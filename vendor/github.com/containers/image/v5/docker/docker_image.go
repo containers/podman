@@ -139,6 +139,7 @@ func GetDigest(ctx context.Context, sys *types.SystemContext, ref types.ImageRef
 		return "", err
 	}
 
+	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
 		return "", errors.Wrapf(registryHTTPResponseToError(res), "Error reading digest %s in %s", tagOrDigest, dr.ref.Name())
 	}

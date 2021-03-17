@@ -123,14 +123,6 @@ var compatibility = map[string][]string{
 	"arm64": {"v8"},
 }
 
-// baseVariants contains, for a specified architecture, a variant that is known to be
-// supported by _all_ machines using that architecture.
-// Architectures that don’t have variants, or where there are possible versions without
-// an established variant name, should not have an entry here.
-var baseVariants = map[string]string{
-	"arm64": "v8",
-}
-
 // WantedPlatforms returns all compatible platforms with the platform specifics possibly overridden by user,
 // the most compatible platform is first.
 // If some option (arch, os, variant) is not present, a value from current platform is detected.
@@ -158,6 +150,8 @@ func WantedPlatforms(ctx *types.SystemContext) ([]imgspecv1.Platform, error) {
 
 	var variants []string = nil
 	if wantedVariant != "" {
+		// If the user requested a specific variant, we'll walk down
+		// the list from most to least compatible.
 		if compatibility[wantedArch] != nil {
 			variantOrder := compatibility[wantedArch]
 			for i, v := range variantOrder {
@@ -171,12 +165,14 @@ func WantedPlatforms(ctx *types.SystemContext) ([]imgspecv1.Platform, error) {
 			// user wants a variant which we know nothing about - not even compatibility
 			variants = []string{wantedVariant}
 		}
+		// Make sure to have a candidate with an empty variant as well.
 		variants = append(variants, "")
 	} else {
-		variants = append(variants, "") // No variant specified, use a “no variant specified” image if present
-		if baseVariant, ok := baseVariants[wantedArch]; ok {
-			// But also accept an image with the “base” variant for the architecture, if it exists.
-			variants = append(variants, baseVariant)
+		// Make sure to have a candidate with an empty variant as well.
+		variants = append(variants, "")
+		// If available add the entire compatibility matrix for the specific architecture.
+		if possibleVariants, ok := compatibility[wantedArch]; ok {
+			variants = append(variants, possibleVariants...)
 		}
 	}
 

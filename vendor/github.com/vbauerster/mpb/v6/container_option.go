@@ -5,10 +5,13 @@ import (
 	"io/ioutil"
 	"sync"
 	"time"
+
+	"github.com/vbauerster/mpb/v6/internal"
 )
 
-// ContainerOption is a function option which changes the default
-// behavior of progress container, if passed to mpb.New(...ContainerOption).
+// ContainerOption is a func option to alter default behavior of a bar
+// container. Container term refers to a Progress struct which can
+// hold one or more Bars.
 type ContainerOption func(*pState)
 
 // WithWaitGroup provides means to have a single joint point. If
@@ -21,8 +24,9 @@ func WithWaitGroup(wg *sync.WaitGroup) ContainerOption {
 	}
 }
 
-// WithWidth sets container width. If not set underlying bars will
-// occupy whole term width.
+// WithWidth sets container width. If not set it defaults to terminal
+// width. A bar added to the container will inherit its width, unless
+// overridden by `func BarWidth(int) BarOption`.
 func WithWidth(width int) ContainerOption {
 	return func(s *pState) {
 		s.reqWidth = width
@@ -38,9 +42,9 @@ func WithRefreshRate(d time.Duration) ContainerOption {
 
 // WithManualRefresh disables internal auto refresh time.Ticker.
 // Refresh will occur upon receive value from provided ch.
-func WithManualRefresh(ch <-chan time.Time) ContainerOption {
+func WithManualRefresh(ch <-chan interface{}) ContainerOption {
 	return func(s *pState) {
-		s.refreshSrc = ch
+		s.externalRefresh = ch
 	}
 }
 
@@ -68,8 +72,8 @@ func WithShutdownNotifier(ch chan struct{}) ContainerOption {
 func WithOutput(w io.Writer) ContainerOption {
 	return func(s *pState) {
 		if w == nil {
-			s.refreshSrc = make(chan time.Time)
 			s.output = ioutil.Discard
+			s.outputDiscarded = true
 			return
 		}
 		s.output = w
@@ -93,9 +97,15 @@ func PopCompletedMode() ContainerOption {
 	}
 }
 
-// ContainerOptOn returns option when condition evaluates to true.
-func ContainerOptOn(option ContainerOption, condition func() bool) ContainerOption {
-	if condition() {
+// ContainerOptional will invoke provided option only when pick is true.
+func ContainerOptional(option ContainerOption, pick bool) ContainerOption {
+	return ContainerOptOn(option, internal.Predicate(pick))
+}
+
+// ContainerOptOn will invoke provided option only when higher order
+// predicate evaluates to true.
+func ContainerOptOn(option ContainerOption, predicate func() bool) ContainerOption {
+	if predicate() {
 		return option
 	}
 	return nil
