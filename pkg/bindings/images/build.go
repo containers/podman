@@ -20,6 +20,7 @@ import (
 	"github.com/containers/podman/v3/pkg/bindings"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/storage/pkg/fileutils"
+	"github.com/containers/storage/pkg/ioutils"
 	"github.com/docker/go-units"
 	"github.com/hashicorp/go-multierror"
 	jsoniter "github.com/json-iterator/go"
@@ -252,7 +253,11 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		logrus.Errorf("cannot tar container entries %v error: %v", entries, err)
 		return nil, err
 	}
-	defer tarfile.Close()
+	defer func() {
+		if err := tarfile.Close(); err != nil {
+			logrus.Errorf("%v\n", err)
+		}
+	}()
 
 	containerFile, err := filepath.Abs(entries[0])
 	if err != nil {
@@ -340,7 +345,7 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 	gw := gzip.NewWriter(pw)
 	tw := tar.NewWriter(gw)
 
-	var merr error
+	var merr *multierror.Error
 	go func() {
 		defer pw.Close()
 		defer gw.Close()
@@ -421,7 +426,14 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 			merr = multierror.Append(merr, err)
 		}
 	}()
-	return pr, merr
+	rc := ioutils.NewReadCloserWrapper(pr, func() error {
+		if merr != nil {
+			merr = multierror.Append(merr, pr.Close())
+			return merr.ErrorOrNil()
+		}
+		return pr.Close()
+	})
+	return rc, nil
 }
 
 func parseDockerignore(root string) ([]string, error) {
