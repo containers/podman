@@ -584,11 +584,13 @@ USER bin`
 			}
 		}
 		if CGROUPSV2 {
-			// convert linearly from [10-1000] to [1-10000]
 			session := podmanTest.Podman([]string{"run", "--rm", "--blkio-weight=15", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/io.bfq.weight"})
 			session.WaitWithDefaultTimeout()
 			Expect(session.ExitCode()).To(Equal(0))
-			Expect(session.OutputToString()).To(ContainSubstring("51"))
+			// there was a documentation issue in the kernel that reported a different range [1-10000] for the io controller.
+			// older versions of crun/runc used it.  For the time being allow both versions to pass the test.
+			// FIXME: drop "|51" once all the runtimes we test have the fix in place.
+			Expect(strings.Replace(session.OutputToString(), "default ", "", 1)).To(MatchRegexp("15|51"))
 		} else {
 			session := podmanTest.Podman([]string{"run", "--rm", "--blkio-weight=15", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.weight"})
 			session.WaitWithDefaultTimeout()
