@@ -585,7 +585,7 @@ USER bin`
 		}
 		if CGROUPSV2 {
 			// convert linearly from [10-1000] to [1-10000]
-			session := podmanTest.Podman([]string{"run", "--rm", "--blkio-weight=15", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/io.bfq.weight"})
+			session := podmanTest.Podman([]string{"run", "--rm", "--blkio-weight=15", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/io.bfq.weight"})
 			session.WaitWithDefaultTimeout()
 			Expect(session.ExitCode()).To(Equal(0))
 			Expect(session.OutputToString()).To(ContainSubstring("51"))
