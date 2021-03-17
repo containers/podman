@@ -9,6 +9,7 @@ import (
 	drivers "github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/unshare"
+	"github.com/containers/storage/types"
 	libcontainerUser "github.com/opencontainers/runc/libcontainer/user"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -184,7 +185,7 @@ outer:
 	}
 
 	layerOptions := &LayerOptions{
-		IDMappingOptions: IDMappingOptions{
+		IDMappingOptions: types.IDMappingOptions{
 			HostUIDMapping: true,
 			HostGIDMapping: true,
 			UIDMap:         nil,
@@ -357,7 +358,7 @@ func findAvailableRange(sizeUID, sizeGID uint32, availableUIDs, availableGIDs, u
 }
 
 // getAutoUserNS creates an automatic user namespace
-func (s *store) getAutoUserNS(id string, options *AutoUserNsOptions, image *Image) ([]idtools.IDMap, []idtools.IDMap, error) {
+func (s *store) getAutoUserNS(id string, options *types.AutoUserNsOptions, image *Image) ([]idtools.IDMap, []idtools.IDMap, error) {
 	requestedSize := uint32(0)
 	initialSize := uint32(1)
 	if options.Size > 0 {

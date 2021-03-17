@@ -3,6 +3,7 @@
 package graphdriver
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"syscall"
@@ -49,7 +50,7 @@ func platformLChown(path string, info os.FileInfo, toHost, toContainer *idtools.
 	}
 	if uid != int(st.Uid) || gid != int(st.Gid) {
 		cap, err := system.Lgetxattr(path, "security.capability")
-		if err != nil && err != system.ErrNotSupportedPlatform {
+		if err != nil && !errors.Is(err, system.EOPNOTSUPP) && err != system.ErrNotSupportedPlatform {
 			return fmt.Errorf("%s: %v", os.Args[0], err)
 		}
 

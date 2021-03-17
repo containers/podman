@@ -3,9 +3,9 @@ package computestorage
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/Microsoft/hcsshim/internal/oc"
+	"github.com/pkg/errors"
 	"go.opencensus.io/trace"
 )
 
@@ -40,7 +40,7 @@ func ExportLayer(ctx context.Context, layerPath, exportFolderPath string, layerD
 
 	err = hcsExportLayer(layerPath, exportFolderPath, string(ldbytes), string(obytes))
 	if err != nil {
-		return fmt.Errorf("failed to export layer: %s", err)
+		return errors.Wrap(err, "failed to export layer")
 	}
 	return nil
 }

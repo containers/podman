@@ -3,9 +3,9 @@ package computestorage
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/Microsoft/hcsshim/internal/oc"
+	"github.com/pkg/errors"
 	"go.opencensus.io/trace"
 )
 
@@ -32,7 +32,7 @@ func AttachLayerStorageFilter(ctx context.Context, layerPath string, layerData L
 
 	err = hcsAttachLayerStorageFilter(layerPath, string(bytes))
 	if err != nil {
-		return fmt.Errorf("failed to attach layer storage filter: %s", err)
+		return errors.Wrap(err, "failed to attach layer storage filter")
 	}
 	return nil
 }

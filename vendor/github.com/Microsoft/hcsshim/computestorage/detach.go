@@ -2,9 +2,9 @@ package computestorage
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/Microsoft/hcsshim/internal/oc"
+	"github.com/pkg/errors"
 	"go.opencensus.io/trace"
 )
 
@@ -20,7 +20,7 @@ func DetachLayerStorageFilter(ctx context.Context, layerPath string) (err error)
 
 	err = hcsDetachLayerStorageFilter(layerPath)
 	if err != nil {
-		return fmt.Errorf("failed to detach layer storage filter: %s", err)
+		return errors.Wrap(err, "failed to detach layer storage filter")
 	}
 	return nil
 }

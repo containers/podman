@@ -312,6 +312,13 @@ func IsOperationInvalidState(err error) bool {
 	return err == ErrVmcomputeOperationInvalidState
 }
 
+// IsAccessIsDenied returns true when err is caused by
+// `ErrVmcomputeOperationAccessIsDenied`.
+func IsAccessIsDenied(err error) bool {
+	err = getInnerError(err)
+	return err == ErrVmcomputeOperationAccessIsDenied
+}
+
 func getInnerError(err error) error {
 	switch pe := err.(type) {
 	case nil:

@@ -12,7 +12,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func getWhiteoutConverter(format WhiteoutFormat, data interface{}) tarWhiteoutConverter {
+func GetWhiteoutConverter(format WhiteoutFormat, data interface{}) TarWhiteoutConverter {
 	if format == OverlayWhiteoutFormat {
 		if rolayers, ok := data.([]string); ok && len(rolayers) > 0 {
 			return overlayWhiteoutConverter{rolayers: rolayers}
@@ -108,13 +108,13 @@ func (o overlayWhiteoutConverter) ConvertWrite(hdr *tar.Header, path string, fi 
 	return
 }
 
-func (overlayWhiteoutConverter) ConvertRead(hdr *tar.Header, path string) (bool, error) {
+func (overlayWhiteoutConverter) ConvertReadWithHandler(hdr *tar.Header, path string, handler TarWhiteoutHandler) (bool, error) {
 	base := filepath.Base(path)
 	dir := filepath.Dir(path)
 
 	// if a directory is marked as opaque by the AUFS special file, we need to translate that to overlay
 	if base == WhiteoutOpaqueDir {
-		err := unix.Setxattr(dir, "trusted.overlay.opaque", []byte{'y'}, 0)
+		err := handler.Setxattr(dir, "trusted.overlay.opaque", []byte{'y'})
 		// don't write the file itself
 		return false, err
 	}
@@ -124,10 +124,10 @@ func (overlayWhiteoutConverter) ConvertRead(hdr *tar.Header, path string) (bool,
 		originalBase := base[len(WhiteoutPrefix):]
 		originalPath := filepath.Join(dir, originalBase)
 
-		if err := unix.Mknod(originalPath, unix.S_IFCHR, 0); err != nil {
+		if err := handler.Mknod(originalPath, unix.S_IFCHR, 0); err != nil {
 			return false, err
 		}
-		if err := idtools.SafeChown(originalPath, hdr.Uid, hdr.Gid); err != nil {
+		if err := handler.Chown(originalPath, hdr.Uid, hdr.Gid); err != nil {
 			return false, err
 		}
 
@@ -138,12 +138,32 @@ func (overlayWhiteoutConverter) ConvertRead(hdr *tar.Header, path string) (bool,
 	return true, nil
 }
 
+type directHandler struct {
+}
+
+func (d directHandler) Setxattr(path, name string, value []byte) error {
+	return unix.Setxattr(path, name, value, 0)
+}
+
+func (d directHandler) Mknod(path string, mode uint32, dev int) error {
+	return unix.Mknod(path, mode, dev)
+}
+
+func (d directHandler) Chown(path string, uid, gid int) error {
+	return idtools.SafeChown(path, uid, gid)
+}
+
+func (o overlayWhiteoutConverter) ConvertRead(hdr *tar.Header, path string) (bool, error) {
+	var handler directHandler
+	return o.ConvertReadWithHandler(hdr, path, handler)
+}
+
 func isWhiteOut(stat os.FileInfo) bool {
 	s := stat.Sys().(*syscall.Stat_t)
 	return major(uint64(s.Rdev)) == 0 && minor(uint64(s.Rdev)) == 0
 }
 
-func getFileOwner(path string) (uint32, uint32, uint32, error) {
+func GetFileOwner(path string) (uint32, uint32, uint32, error) {
 	f, err := os.Stat(path)
 	if err != nil {
 		return 0, 0, 0, err
