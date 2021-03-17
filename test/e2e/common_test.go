@@ -440,7 +440,7 @@ func (p *PodmanTestIntegration) BuildImage(dockerfile, imageName string, layers 
 	dockerfilePath := filepath.Join(p.TempDir, "Dockerfile")
 	err := ioutil.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
 	Expect(err).To(BeNil())
-	cmd := []string{"build", "--layers=" + layers, "--file", dockerfilePath}
+	cmd := []string{"build", "--pull-never", "--layers=" + layers, "--file", dockerfilePath}
 	if len(imageName) > 0 {
 		cmd = append(cmd, []string{"-t", imageName}...)
 	}
