@@ -478,6 +478,36 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(inspect.OutputToString()).To(ContainSubstring(vol1))
 	})
 
+	It("podman generate kube with persistent volume claim", func() {
+		vol := "vol-test-persistent-volume-claim"
+
+		// we need a container name because IDs don't persist after rm/play
+		ctrName := "test-persistent-volume-claim"
+		ctrNameInKubePod := "test1-test-persistent-volume-claim"
+
+		session := podmanTest.Podman([]string{"run", "-d", "--pod", "new:test1", "--name", ctrName, "-v", vol + ":/volume/:z", "alpine", "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		outputFile := filepath.Join(podmanTest.RunRoot, "pod.yaml")
+		kube := podmanTest.Podman([]string{"generate", "kube", "test1", "-f", outputFile})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		rm := podmanTest.Podman([]string{"pod", "rm", "-f", "test1"})
+		rm.WaitWithDefaultTimeout()
+		Expect(rm.ExitCode()).To(Equal(0))
+
+		play := podmanTest.Podman([]string{"play", "kube", outputFile})
+		play.WaitWithDefaultTimeout()
+		Expect(play.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrNameInKubePod})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(vol))
+	})
+
 	It("podman generate kube sharing pid namespace", func() {
 		podName := "test"
 		podSession := podmanTest.Podman([]string{"pod", "create", "--name", podName, "--share", "pid"})
