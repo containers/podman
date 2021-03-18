@@ -576,23 +576,23 @@ USER bin`
 	})
 
 	It("podman run blkio-weight test", func() {
-		SkipIfRootless("FIXME: This is blowing up because of no /sys/fs/cgroup/user.slice/user-14467.slice/user@14467.service/cgroup.subtree_control file")
 		SkipIfRootlessCgroupsV1("Setting blkio-weight not supported on cgroupv1 for rootless users")
-		if !CGROUPSV2 {
+		SkipIfRootless("By default systemd doesn't delegate io to rootless users")
+		if CGROUPSV2 {
+			if _, err := os.Stat("/sys/fs/cgroup/io.stat"); os.IsNotExist(err) {
+				Skip("Kernel does not have io.stat")
+			}
+			session := podmanTest.Podman([]string{"run", "--rm", "--blkio-weight=15", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/io.bfq.weight"})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(0))
+			// there was a documentation issue in the kernel that reported a different range [1-10000] for the io controller.
+			// older versions of crun/runc used it.  For the time being allow both versions to pass the test.
+			// FIXME: drop "|51" once all the runtimes we test have the fix in place.
+			Expect(strings.Replace(session.OutputToString(), "default ", "", 1)).To(MatchRegexp("15|51"))
+		} else {
 			if _, err := os.Stat("/sys/fs/cgroup/blkio/blkio.weight"); os.IsNotExist(err) {
 				Skip("Kernel does not support blkio.weight")
 			}
-		}
-		if podmanTest.Host.Distribution == "ubuntu" {
-			Skip("Ubuntu <= 20.10 lacks BFQ scheduler")
-		}
-		if CGROUPSV2 {
-			// convert linearly from [10-1000] to [1-10000]
-			session := podmanTest.Podman([]string{"run", "--rm", "--blkio-weight=15", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/io.bfq.weight"})
-			session.WaitWithDefaultTimeout()
-			Expect(session.ExitCode()).To(Equal(0))
-			Expect(session.OutputToString()).To(ContainSubstring("51"))
-		} else {
 			session := podmanTest.Podman([]string{"run", "--rm", "--blkio-weight=15", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.weight"})
 			session.WaitWithDefaultTimeout()
 			Expect(session.ExitCode()).To(Equal(0))
