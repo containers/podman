@@ -1,68 +1,18 @@
 package compat
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/gorilla/schema"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
-
-// filtersFromRequests extracts the "filters" parameter from the specified
-// http.Request.  The parameter can either be a `map[string][]string` as done
-// in new versions of Docker and libpod, or a `map[string]map[string]bool` as
-// done in older versions of Docker.  We have to do a bit of Yoga to support
-// both - just as Docker does as well.
-//
-// Please refer to https://github.com/containers/podman/issues/6899 for some
-// background.
-func filtersFromRequest(r *http.Request) ([]string, error) {
-	var (
-		compatFilters map[string]map[string]bool
-		filters       map[string][]string
-		libpodFilters []string
-		raw           []byte
-	)
-
-	if _, found := r.URL.Query()["filters"]; found {
-		raw = []byte(r.Form.Get("filters"))
-	} else if _, found := r.URL.Query()["Filters"]; found {
-		raw = []byte(r.Form.Get("Filters"))
-	} else {
-		return []string{}, nil
-	}
-
-	// Backwards compat with older versions of Docker.
-	if err := json.Unmarshal(raw, &compatFilters); err == nil {
-		for filterKey, filterMap := range compatFilters {
-			for filterValue, toAdd := range filterMap {
-				if toAdd {
-					libpodFilters = append(libpodFilters, fmt.Sprintf("%s=%s", filterKey, filterValue))
-				}
-			}
-		}
-		return libpodFilters, nil
-	}
-
-	if err := json.Unmarshal(raw, &filters); err != nil {
-		return nil, err
-	}
-
-	for filterKey, filterSlice := range filters {
-		for _, filterValue := range filterSlice {
-			libpodFilters = append(libpodFilters, fmt.Sprintf("%s=%s", filterKey, filterValue))
-		}
-	}
-
-	return libpodFilters, nil
-}
 
 // NOTE: this endpoint serves both the docker-compatible one and the new libpod
 // one.
@@ -92,7 +42,7 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 		fromStart = true
 	}
 
-	libpodFilters, err := filtersFromRequest(r)
+	libpodFilters, err := util.FiltersFromRequest(r)
 	if err != nil {
 		utils.Error(w, "failed to parse parameters", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return

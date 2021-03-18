@@ -10,6 +10,7 @@ import (
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -45,20 +46,15 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 }
 func ListNetworks(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
-	query := struct {
-		Filters map[string][]string `schema:"filters"`
-	}{
-		// override any golang type defaults
-	}
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+	filterMap, err := util.PrepareFilters(r)
+	if err != nil {
+		utils.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError,
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
 	options := entities.NetworkListOptions{
-		Filters: query.Filters,
+		Filters: *filterMap,
 	}
 	ic := abi.ContainerEngine{Libpod: runtime}
 	reports, err := ic.NetworkList(r.Context(), options)
@@ -78,7 +74,7 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 		// override any golang type defaults
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+		utils.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError,
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
@@ -111,7 +107,7 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 		// override any golang type defaults
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+		utils.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError,
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
@@ -178,20 +174,15 @@ func ExistsNetwork(w http.ResponseWriter, r *http.Request) {
 // Prune removes unused networks
 func Prune(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
-	query := struct {
-		Filters map[string][]string `schema:"filters"`
-	}{
-		// override any golang type defaults
-	}
 
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+	filterMap, err := util.PrepareFilters(r)
+	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
 
 	pruneOptions := entities.NetworkPruneOptions{
-		Filters: query.Filters,
+		Filters: *filterMap,
 	}
 	ic := abi.ContainerEngine{Libpod: runtime}
 	pruneReports, err := ic.NetworkPrune(r.Context(), pruneOptions)

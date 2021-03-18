@@ -17,6 +17,7 @@ import (
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
 	networkid "github.com/containers/podman/v3/pkg/network"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/docker/docker/api/types"
 	dockerNetwork "github.com/docker/docker/api/types/network"
 	"github.com/gorilla/schema"
@@ -181,18 +182,12 @@ func findPluginByName(plugins []*libcni.NetworkConfig, pluginType string) ([]byt
 
 func ListNetworks(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	filters, err := filtersFromRequest(r)
+	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-	filterMap := map[string][]string{}
-	for _, filter := range filters {
-		split := strings.SplitN(filter, "=", 2)
-		if len(split) > 1 {
-			filterMap[split[0]] = append(filterMap[split[0]], split[1])
-		}
-	}
+
 	config, err := runtime.GetConfig()
 	if err != nil {
 		utils.InternalServerError(w, err)
@@ -208,7 +203,7 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 	reports := []*types.NetworkResource{}
 	logrus.Debugf("netNames: %q", strings.Join(netNames, ", "))
 	for _, name := range netNames {
-		report, err := getNetworkResourceByNameOrID(name, runtime, filterMap)
+		report, err := getNetworkResourceByNameOrID(name, runtime, *filterMap)
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return
@@ -401,22 +396,15 @@ func Disconnect(w http.ResponseWriter, r *http.Request) {
 // Prune removes unused networks
 func Prune(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	filters, err := filtersFromRequest(r)
+	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
-	filterMap := map[string][]string{}
-	for _, filter := range filters {
-		split := strings.SplitN(filter, "=", 2)
-		if len(split) > 1 {
-			filterMap[split[0]] = append(filterMap[split[0]], split[1])
-		}
-	}
 
 	ic := abi.ContainerEngine{Libpod: runtime}
 	pruneOptions := entities.NetworkPruneOptions{
-		Filters: filterMap,
+		Filters: *filterMap,
 	}
 	pruneReports, err := ic.NetworkPrune(r.Context(), pruneOptions)
 	if err != nil {
