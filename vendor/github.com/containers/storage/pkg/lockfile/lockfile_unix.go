@@ -191,7 +191,7 @@ func (l *lockfile) Touch() error {
 	if !l.locked || (l.locktype != unix.F_WRLCK) {
 		panic("attempted to update last-writer in lockfile without the write lock")
 	}
-	l.stateMutex.Unlock()
+	defer l.stateMutex.Unlock()
 	l.lw = stringid.GenerateRandomID()
 	id := []byte(l.lw)
 	_, err := unix.Seek(int(l.fd), 0, os.SEEK_SET)
@@ -211,12 +211,12 @@ func (l *lockfile) Touch() error {
 // Modified indicates if the lockfile has been updated since the last time it
 // was loaded.
 func (l *lockfile) Modified() (bool, error) {
-	id := []byte(l.lw)
 	l.stateMutex.Lock()
+	id := []byte(l.lw)
 	if !l.locked {
 		panic("attempted to check last-writer in lockfile without locking it first")
 	}
-	l.stateMutex.Unlock()
+	defer l.stateMutex.Unlock()
 	_, err := unix.Seek(int(l.fd), 0, os.SEEK_SET)
 	if err != nil {
 		return true, err

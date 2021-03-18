@@ -35,7 +35,7 @@ func Usage(dir string) (usage *DiskUsage, err error) {
 			return nil
 		}
 
-		// Check inode to handle hard links correctly
+		// Check inode to only count the sizes of files with multiple hard links once.
 		inode := fileInfo.Sys().(*syscall.Stat_t).Ino
 		// inode is not a uint64 on all platforms. Cast it to avoid issues.
 		if _, exists := data[uint64(inode)]; exists {
@@ -44,9 +44,6 @@ func Usage(dir string) (usage *DiskUsage, err error) {
 
 		// inode is not a uint64 on all platforms. Cast it to avoid issues.
 		data[uint64(inode)] = struct{}{}
-
-		// Count the unique inode
-		usage.InodeCount++
 
 		// Ignore directory sizes
 		if fileInfo.IsDir() {
@@ -57,5 +54,7 @@ func Usage(dir string) (usage *DiskUsage, err error) {
 
 		return nil
 	})
+	// inode count is the number of unique inode numbers we saw
+	usage.InodeCount = int64(len(data))
 	return
 }

@@ -296,23 +296,20 @@ func parseDirent(buf []byte, names []nameIno) (consumed int, newnames []nameIno)
 		if dirent.Ino == 0 { // File absent in directory.
 			continue
 		}
-		bytes := (*[10000]byte)(unsafe.Pointer(&dirent.Name[0]))
-		var name = string(bytes[0:clen(bytes[:])])
+		builder := make([]byte, 0, dirent.Reclen)
+		for i := 0; i < len(dirent.Name); i++ {
+			if dirent.Name[i] == 0 {
+				break
+			}
+			builder = append(builder, byte(dirent.Name[i]))
+		}
+		name := string(builder)
 		if name == "." || name == ".." { // Useless names
 			continue
 		}
 		names = append(names, nameIno{name, dirent.Ino})
 	}
 	return origlen - len(buf), names
-}
-
-func clen(n []byte) int {
-	for i := 0; i < len(n); i++ {
-		if n[i] == 0 {
-			return i
-		}
-	}
-	return len(n)
 }
 
 // OverlayChanges walks the path rw and determines changes for the files in the path,

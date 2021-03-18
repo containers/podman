@@ -28,6 +28,7 @@ import (
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/parsers"
 	"github.com/containers/storage/pkg/system"
+	"github.com/containers/storage/pkg/unshare"
 	units "github.com/docker/go-units"
 	rsystem "github.com/opencontainers/runc/libcontainer/system"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -98,18 +99,19 @@ type overlayOptions struct {
 
 // Driver contains information about the home directory and the list of active mounts that are created using this driver.
 type Driver struct {
-	name          string
-	home          string
-	runhome       string
-	uidMaps       []idtools.IDMap
-	gidMaps       []idtools.IDMap
-	ctr           *graphdriver.RefCounter
-	quotaCtl      *quota.Control
-	options       overlayOptions
-	naiveDiff     graphdriver.DiffDriver
-	supportsDType bool
-	usingMetacopy bool
-	locker        *locker.Locker
+	name             string
+	home             string
+	runhome          string
+	uidMaps          []idtools.IDMap
+	gidMaps          []idtools.IDMap
+	ctr              *graphdriver.RefCounter
+	quotaCtl         *quota.Control
+	options          overlayOptions
+	naiveDiff        graphdriver.DiffDriver
+	supportsDType    bool
+	supportsVolatile bool
+	usingMetacopy    bool
+	locker           *locker.Locker
 }
 
 var (
@@ -123,6 +125,51 @@ var (
 func init() {
 	graphdriver.Register("overlay", Init)
 	graphdriver.Register("overlay2", Init)
+}
+
+func hasMetacopyOption(opts []string) bool {
+	for _, s := range opts {
+		if s == "metacopy=on" {
+			return true
+		}
+	}
+	return false
+}
+
+func hasVolatileOption(opts []string) bool {
+	for _, s := range opts {
+		if s == "volatile" {
+			return true
+		}
+	}
+	return false
+}
+
+func checkSupportVolatile(home, runhome string) (bool, error) {
+	feature := fmt.Sprintf("volatile")
+	volatileCacheResult, _, err := cachedFeatureCheck(runhome, feature)
+	var usingVolatile bool
+	if err == nil {
+		if volatileCacheResult {
+			logrus.Debugf("cached value indicated that volatile is being used")
+		} else {
+			logrus.Debugf("cached value indicated that volatile is not being used")
+		}
+		usingVolatile = volatileCacheResult
+	} else {
+		usingVolatile, err = doesVolatile(home)
+		if err == nil {
+			if usingVolatile {
+				logrus.Debugf("overlay test mount indicated that volatile is being used")
+			} else {
+				logrus.Debugf("overlay test mount indicated that volatile is not being used")
+			}
+			if err = cachedFeatureRecord(runhome, feature, usingVolatile, ""); err != nil {
+				return false, errors.Wrap(err, "error recording volatile-being-used status")
+			}
+		}
+	}
+	return usingVolatile, nil
 }
 
 // Init returns the a native diff driver for overlay filesystem.
@@ -169,8 +216,10 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 
 	var usingMetacopy bool
 	var supportsDType bool
+	var supportsVolatile bool
 	if opts.mountProgram != "" {
 		supportsDType = true
+		supportsVolatile = true
 	} else {
 		feature := "overlay"
 		overlayCacheResult, overlayCacheText, err := cachedFeatureCheck(runhome, feature)
@@ -229,6 +278,10 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 				return nil, err
 			}
 		}
+		supportsVolatile, err = checkSupportVolatile(home, runhome)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if !opts.skipMountHome {
@@ -243,16 +296,17 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 	}
 
 	d := &Driver{
-		name:          "overlay",
-		home:          home,
-		runhome:       runhome,
-		uidMaps:       options.UIDMaps,
-		gidMaps:       options.GIDMaps,
-		ctr:           graphdriver.NewRefCounter(graphdriver.NewFsChecker(fileSystemType)),
-		supportsDType: supportsDType,
-		usingMetacopy: usingMetacopy,
-		locker:        locker.New(),
-		options:       *opts,
+		name:             "overlay",
+		home:             home,
+		runhome:          runhome,
+		uidMaps:          options.UIDMaps,
+		gidMaps:          options.GIDMaps,
+		ctr:              graphdriver.NewRefCounter(graphdriver.NewFsChecker(fileSystemType)),
+		supportsDType:    supportsDType,
+		usingMetacopy:    usingMetacopy,
+		supportsVolatile: supportsVolatile,
+		locker:           locker.New(),
+		options:          *opts,
 	}
 
 	d.naiveDiff = graphdriver.NewNaiveDiffDriver(d, graphdriver.NewNaiveLayerIDMapUpdater(d))
@@ -758,8 +812,22 @@ func (d *Driver) getLowerDirs(id string) ([]string, error) {
 		for _, s := range strings.Split(string(lowers), ":") {
 			lower := d.dir(s)
 			lp, err := os.Readlink(lower)
+			// if the link does not exist, we lost the symlinks during a sudden reboot.
+			// Let's go ahead and recreate those symlinks.
 			if err != nil {
-				return nil, err
+				if os.IsNotExist(err) {
+					logrus.Warnf("Can't read link %q because it does not exist. A storage corruption might have occurred, attempting to recreate the missing symlinks. It might be best wipe the storage to avoid further errors due to storage corruption.", lower)
+					if err := d.recreateSymlinks(); err != nil {
+						return nil, fmt.Errorf("error recreating the missing symlinks: %v", err)
+					}
+					// let's call Readlink on lower again now that we have recreated the missing symlinks
+					lp, err = os.Readlink(lower)
+					if err != nil {
+						return nil, err
+					}
+				} else {
+					return nil, err
+				}
 			}
 			lowersArray = append(lowersArray, path.Clean(d.dir(path.Join("link", lp))))
 		}
@@ -880,7 +948,21 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	}
 	readWrite := true
 
-	for _, o := range options.Options {
+	optsList := options.Options
+	if len(optsList) == 0 {
+		optsList = strings.Split(d.options.mountOptions, ",")
+	} else {
+		// If metacopy=on is present in d.options.mountOptions it must be present in the mount
+		// options otherwise the kernel refuses to follow the metacopy xattr.
+		if hasMetacopyOption(strings.Split(d.options.mountOptions, ",")) && !hasMetacopyOption(options.Options) {
+			if d.usingMetacopy {
+				optsList = append(optsList, "metacopy=on")
+			} else {
+				logrus.Warnf("ignoring metacopy option from storage.conf, not supported with booted kernel")
+			}
+		}
+	}
+	for _, o := range optsList {
 		if o == "ro" {
 			readWrite = false
 			break
@@ -1018,11 +1100,25 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	} else {
 		opts = fmt.Sprintf("lowerdir=%s:%s", diffDir, strings.Join(absLowers, ":"))
 	}
-	if len(options.Options) > 0 {
-		opts = fmt.Sprintf("%s,%s", strings.Join(options.Options, ","), opts)
-	} else if d.options.mountOptions != "" {
-		opts = fmt.Sprintf("%s,%s", d.options.mountOptions, opts)
+	if len(optsList) > 0 {
+		opts = fmt.Sprintf("%s,%s", strings.Join(optsList, ","), opts)
 	}
+
+	if d.options.mountProgram == "" && unshare.IsRootless() {
+		opts = fmt.Sprintf("%s,userxattr", opts)
+	}
+
+	// overlay has a check in place to prevent mounting the same file system twice
+	// if volatile was already specified.
+	err = os.RemoveAll(filepath.Join(dir, "work", "incompat/volatile"))
+	if err != nil && !os.IsNotExist(err) {
+		return "", err
+	}
+	// If "volatile" is not supported by the file system, just ignore the request
+	if d.supportsVolatile && options.Volatile && !hasVolatileOption(strings.Split(opts, ",")) {
+		opts = fmt.Sprintf("%s,volatile", opts)
+	}
+
 	mountData := label.FormatMountLabel(opts, options.MountLabel)
 	mountFunc := unix.Mount
 	mountTarget := mergedDir
