@@ -17,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 var (
@@ -104,6 +105,11 @@ func run(cmd *cobra.Command, args []string) error {
 	cliVals.Net, err = common.NetFlagsToNetOptions(cmd)
 	if err != nil {
 		return err
+	}
+
+	// TODO: Breaking change should be made fatal in next major Release
+	if cliVals.TTY && cliVals.Interactive && !terminal.IsTerminal(int(os.Stdin.Fd())) {
+		logrus.Warnf("The input device is not a TTY. The --tty and --interactive flags might not work properly")
 	}
 
 	if af := cliVals.Authfile; len(af) > 0 {
