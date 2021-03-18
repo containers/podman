@@ -1,4 +1,5 @@
 import collections
+import io
 import os
 import subprocess
 import sys
@@ -6,6 +7,7 @@ import time
 import unittest
 
 from docker import DockerClient, errors
+from docker.errors import APIError
 
 from test.python.docker import Podman
 from test.python.docker.compat import common, constant
@@ -79,9 +81,7 @@ class TestImages(unittest.TestCase):
         self.assertEqual(len(self.client.images.list()), 2)
 
         # List images with filter
-        self.assertEqual(
-            len(self.client.images.list(filters={"reference": "alpine"})), 1
-        )
+        self.assertEqual(len(self.client.images.list(filters={"reference": "alpine"})), 1)
 
     def test_search_image(self):
         """Search for image"""
@@ -149,13 +149,20 @@ class TestImages(unittest.TestCase):
 
         self.assertEqual(len(self.client.images.list()), 2)
 
+    def test_load_corrupt_image(self):
+        """Import|Load Image failure"""
+        tarball = io.BytesIO("This is a corrupt tarball".encode("utf-8"))
+        with self.assertRaises(APIError):
+            self.client.images.load(tarball)
+
     def test_build_image(self):
         labels = {"apple": "red", "grape": "green"}
-        _ = self.client.images.build(path="test/python/docker/build_labels", labels=labels, tag="labels")
+        _ = self.client.images.build(
+            path="test/python/docker/build_labels", labels=labels, tag="labels"
+        )
         image = self.client.images.get("labels")
         self.assertEqual(image.labels["apple"], labels["apple"])
         self.assertEqual(image.labels["grape"], labels["grape"])
-
 
 
 if __name__ == "__main__":

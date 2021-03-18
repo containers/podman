@@ -32,7 +32,7 @@ verify_iid_and_name() {
     echo "I am an invalid file and should cause a podman-load error" > $invalid
     run_podman 125 load -i $invalid
     # podman and podman-remote emit different messages; this is a common string
-    is "$output" ".*error pulling image: unable to pull .*" \
+    is "$output" ".*payload does not match any of the supported image formats .*" \
        "load -i INVALID fails with expected diagnostic"
 }
 
@@ -135,6 +135,13 @@ verify_iid_and_name() {
     is "$output" \
        "Error: cannot read from terminal. Use command-line redirection" \
        "Diagnostic from 'podman load' without redirection or -i"
+}
+
+@test "podman load - redirect corrupt payload" {
+    run_podman 125 load <<< "Danger, Will Robinson!! This is a corrupt tarball!"
+    is "$output" \
+        ".*payload does not match any of the supported image formats .*" \
+        "Diagnostic from 'podman load' unknown/corrupt payload"
 }
 
 @test "podman load - multi-image archive" {
