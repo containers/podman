@@ -177,10 +177,23 @@ func ExistsNetwork(w http.ResponseWriter, r *http.Request) {
 
 // Prune removes unused networks
 func Prune(w http.ResponseWriter, r *http.Request) {
-	// TODO Filters are not implemented
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	query := struct {
+		Filters map[string][]string `schema:"filters"`
+	}{
+		// override any golang type defaults
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		return
+	}
+
+	pruneOptions := entities.NetworkPruneOptions{
+		Filters: query.Filters,
+	}
 	ic := abi.ContainerEngine{Libpod: runtime}
-	pruneOptions := entities.NetworkPruneOptions{}
 	pruneReports, err := ic.NetworkPrune(r.Context(), pruneOptions)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)

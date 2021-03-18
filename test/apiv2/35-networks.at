@@ -16,6 +16,20 @@ t POST libpod/networks/create?name=network2 \
   200 \
   .Filename~.*/network2\\.conflist
 
+# --data '{"Subnet":{"IP":"10.10.133.0","Mask":[255,255,255,0]},"Labels":{"xyz":"val"}}'
+t POST libpod/networks/create?name=network3 \
+  Subnet='{"IP":"10.10.133.0","Mask":[255,255,255,0]}' \
+  Labels='{"xyz":"val"}' \
+  200 \
+  .Filename~.*/network3\\.conflist
+
+# --data '{"Subnet":{"IP":"10.10.134.0","Mask":[255,255,255,0]},"Labels":{"zaq":"val"}}'
+t POST libpod/networks/create?name=network4 \
+  Subnet='{"IP":"10.10.134.0","Mask":[255,255,255,0]}' \
+  Labels='{"zaq":"val"}' \
+  200 \
+  .Filename~.*/network4\\.conflist
+
 # test for empty mask
 t POST libpod/networks/create Subnet='{"IP":"10.10.1.0","Mask":[]}' 500 \
   .cause~'.*cannot be empty'
@@ -38,7 +52,7 @@ t GET libpod/networks/network1/json 200 \
 t GET networks?filters='{"name":["network1","network2"]}' 200 \
   length=2
 t GET networks?filters='{"name":["network"]}' 200 \
-  length=2
+  length=4
 t GET networks?filters='{"label":["abc"]}' 200 \
   length=1
 # old docker filter type see #9526
@@ -65,6 +79,18 @@ t GET networks/a7662f44d65029fd4635c91feea3d720a57cef52e2a9fcc7772b69072cc1ccd1 
 t POST networks/create Name=net3\ IPAM='{"Config":[]}' 201
 # network delete docker
 t DELETE networks/net3 204
+
+# Prune networks compat api - bad filter input
+t POST networks/prune?filters='garb1age}' 500 \
+    .cause="invalid character 'g' looking for beginning of value"
+
+# prune networks using filter - compat api
+t POST networks/prune?filters='{"label":["xyz"]}' 200
+t GET networks/json?filters='{"label":["xyz"]}' 404
+
+# prune networks using filter - libpod api
+t POST libpod/networks/prune?filters='{"label":["zaq=val"]}' 200
+t GET libpod/networks/json?filters='{"label":["zaq=val"]}' 200 length=0
 
 # clean the network
 t DELETE libpod/networks/network1 200 \
