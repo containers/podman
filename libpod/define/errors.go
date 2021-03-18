@@ -31,6 +31,10 @@ var (
 	// not exist.
 	ErrNoSuchExecSession = errors.New("no such exec session")
 
+	// ErrDepExists indicates that the current object has dependencies and
+	// cannot be removed before them.
+	ErrDepExists = errors.New("dependency exists")
+
 	// ErrNoAliases indicates that the container does not have any network
 	// aliases.
 	ErrNoAliases = errors.New("no aliases for container")

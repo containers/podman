@@ -585,7 +585,7 @@ func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrID string,
 	}
 
 	// If the container is in a pod, also set to recursively start dependencies
-	err = terminal.StartAttachCtr(ctx, ctr, options.Stdout, options.Stderr, options.Stdin, options.DetachKeys, options.SigProxy, false, ctr.PodID() != "")
+	err = terminal.StartAttachCtr(ctx, ctr, options.Stdout, options.Stderr, options.Stdin, options.DetachKeys, options.SigProxy, false)
 	if err != nil && errors.Cause(err) != define.ErrDetach {
 		return errors.Wrapf(err, "error attaching to container %s", ctr.ID())
 	}
@@ -708,7 +708,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 		ctrRunning := ctrState == define.ContainerStateRunning
 
 		if options.Attach {
-			err = terminal.StartAttachCtr(ctx, ctr, options.Stdout, options.Stderr, options.Stdin, options.DetachKeys, options.SigProxy, !ctrRunning, ctr.PodID() != "")
+			err = terminal.StartAttachCtr(ctx, ctr, options.Stdout, options.Stderr, options.Stdin, options.DetachKeys, options.SigProxy, !ctrRunning)
 			if errors.Cause(err) == define.ErrDetach {
 				// User manually detached
 				// Exit cleanly immediately
@@ -784,7 +784,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 				RawInput: rawInput,
 				ExitCode: 125,
 			}
-			if err := ctr.Start(ctx, ctr.PodID() != ""); err != nil {
+			if err := ctr.Start(ctx, true); err != nil {
 				// if lastError != nil {
 				//	fmt.Fprintln(os.Stderr, lastError)
 				// }
@@ -845,10 +845,6 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 		}
 	}
 
-	var joinPod bool
-	if len(ctr.PodID()) > 0 {
-		joinPod = true
-	}
 	report := entities.ContainerRunReport{Id: ctr.ID()}
 
 	if logrus.GetLevel() == logrus.DebugLevel {
@@ -859,7 +855,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	}
 	if opts.Detach {
 		// if the container was created as part of a pod, also start its dependencies, if any.
-		if err := ctr.Start(ctx, joinPod); err != nil {
+		if err := ctr.Start(ctx, true); err != nil {
 			// This means the command did not exist
 			report.ExitCode = define.ExitCode(err)
 			return &report, err
@@ -869,7 +865,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	}
 
 	// if the container was created as part of a pod, also start its dependencies, if any.
-	if err := terminal.StartAttachCtr(ctx, ctr, opts.OutputStream, opts.ErrorStream, opts.InputStream, opts.DetachKeys, opts.SigProxy, true, joinPod); err != nil {
+	if err := terminal.StartAttachCtr(ctx, ctr, opts.OutputStream, opts.ErrorStream, opts.InputStream, opts.DetachKeys, opts.SigProxy, true); err != nil {
 		// We've manually detached from the container
 		// Do not perform cleanup, or wait for container exit code
 		// Just exit immediately

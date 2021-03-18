@@ -160,10 +160,17 @@ type ContainerBasicConfig struct {
 	// to 0, 1, 2) that will be passed to the executed process. The total FDs
 	// passed will be 3 + PreserveFDs.
 	// set tags as `json:"-"` for not supported remote
+	// Optional.
 	PreserveFDs uint `json:"-"`
 	// Timezone is the timezone inside the container.
 	// Local means it has the same timezone as the host machine
+	// Optional.
 	Timezone string `json:"timezone,omitempty"`
+	// DependencyContainers is an array of containers this container
+	// depends on. Dependency containers must be started before this
+	// container. Dependencies can be specified by name or full/partial ID.
+	// Optional.
+	DependencyContainers []string `json:"dependencyContainers,omitempty"`
 }
 
 // ContainerStorageConfig contains information on the storage configuration of a

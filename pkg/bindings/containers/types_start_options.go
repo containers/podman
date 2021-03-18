@@ -35,3 +35,19 @@ func (o *StartOptions) GetDetachKeys() string {
 	}
 	return *o.DetachKeys
 }
+
+// WithRecursive
+func (o *StartOptions) WithRecursive(value bool) *StartOptions {
+	v := &value
+	o.Recursive = v
+	return o
+}
+
+// GetRecursive
+func (o *StartOptions) GetRecursive() bool {
+	var recursive bool
+	if o.Recursive == nil {
+		return recursive
+	}
+	return *o.Recursive
+}

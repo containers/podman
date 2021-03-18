@@ -364,6 +364,17 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	if len(s.Secrets) != 0 {
 		options = append(options, libpod.WithSecrets(s.Secrets))
 	}
+	if len(s.DependencyContainers) > 0 {
+		deps := make([]*libpod.Container, 0, len(s.DependencyContainers))
+		for _, ctr := range s.DependencyContainers {
+			depCtr, err := rt.LookupContainer(ctr)
+			if err != nil {
+				return nil, errors.Wrapf(err, "%q is not a valid container, cannot be used as a dependency", ctr)
+			}
+			deps = append(deps, depCtr)
+		}
+		options = append(options, libpod.WithDependencyCtrs(deps))
+	}
 	return options, nil
 }
 
