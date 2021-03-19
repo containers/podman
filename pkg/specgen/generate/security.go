@@ -89,11 +89,27 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 	// NOTE: Must happen before SECCOMP
 	if s.Privileged {
 		g.SetupPrivileged(true)
-		caplist = capabilities.AllCapabilities()
-	} else {
-		caplist, err = capabilities.MergeCapabilities(rtc.Containers.DefaultCapabilities, s.CapAdd, s.CapDrop)
+		caplist, err = capabilities.BoundingSet()
 		if err != nil {
 			return err
+		}
+	} else {
+		mergedCaps, err := capabilities.MergeCapabilities(rtc.Containers.DefaultCapabilities, s.CapAdd, s.CapDrop)
+		if err != nil {
+			return err
+		}
+		boundingSet, err := capabilities.BoundingSet()
+		if err != nil {
+			return err
+		}
+		boundingCaps := make(map[string]interface{})
+		for _, b := range boundingSet {
+			boundingCaps[b] = b
+		}
+		for _, c := range mergedCaps {
+			if _, ok := boundingCaps[c]; ok {
+				caplist = append(caplist, c)
+			}
 		}
 
 		privCapsRequired := []string{}
@@ -139,9 +155,23 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 		configSpec.Process.Capabilities.Permitted = caplist
 		configSpec.Process.Capabilities.Inheritable = caplist
 	} else {
-		userCaps, err := capabilities.MergeCapabilities(nil, s.CapAdd, nil)
+		mergedCaps, err := capabilities.MergeCapabilities(nil, s.CapAdd, nil)
 		if err != nil {
 			return errors.Wrapf(err, "capabilities requested by user are not valid: %q", strings.Join(s.CapAdd, ","))
+		}
+		boundingSet, err := capabilities.BoundingSet()
+		if err != nil {
+			return err
+		}
+		boundingCaps := make(map[string]interface{})
+		for _, b := range boundingSet {
+			boundingCaps[b] = b
+		}
+		var userCaps []string
+		for _, c := range mergedCaps {
+			if _, ok := boundingCaps[c]; ok {
+				userCaps = append(userCaps, c)
+			}
 		}
 		configSpec.Process.Capabilities.Effective = userCaps
 		configSpec.Process.Capabilities.Permitted = userCaps
