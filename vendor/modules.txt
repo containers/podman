@@ -753,7 +753,7 @@ gopkg.in/yaml.v3
 # k8s.io/api v0.20.1
 k8s.io/api/apps/v1
 k8s.io/api/core/v1
-# k8s.io/apimachinery v0.20.4
+# k8s.io/apimachinery v0.20.5
 k8s.io/apimachinery/pkg/api/resource
 k8s.io/apimachinery/pkg/apis/meta/v1
 k8s.io/apimachinery/pkg/conversion
