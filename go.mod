@@ -70,5 +70,3 @@ require (
 	k8s.io/api v0.20.1
 	k8s.io/apimachinery v0.20.5
 )
-
-replace github.com/syndtr/gocapability => github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
