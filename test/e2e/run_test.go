@@ -585,10 +585,14 @@ USER bin`
 			session := podmanTest.Podman([]string{"run", "--rm", "--blkio-weight=15", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/io.bfq.weight"})
 			session.WaitWithDefaultTimeout()
 			Expect(session.ExitCode()).To(Equal(0))
+<<<<<<< HEAD
 			// there was a documentation issue in the kernel that reported a different range [1-10000] for the io controller.
 			// older versions of crun/runc used it.  For the time being allow both versions to pass the test.
 			// FIXME: drop "|51" once all the runtimes we test have the fix in place.
 			Expect(strings.Replace(session.OutputToString(), "default ", "", 1)).To(MatchRegexp("15|51"))
+=======
+			Expect(session.OutputToString()).To(ContainSubstring("15"))
+>>>>>>> 7998e2243 (Bump github.com/containers/image/v5 from 5.10.2 to 5.10.5)
 		} else {
 			if _, err := os.Stat("/sys/fs/cgroup/blkio/blkio.weight"); os.IsNotExist(err) {
 				Skip("Kernel does not support blkio.weight")

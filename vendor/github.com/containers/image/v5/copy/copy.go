@@ -1067,6 +1067,26 @@ type diffIDResult struct {
 // copyLayer copies a layer with srcInfo (with known Digest and Annotations and possibly known Size) in src to dest, perhaps (de/re/)compressing it,
 // and returns a complete blobInfo of the copied layer, and a value for LayerDiffIDs if diffIDIsNeeded
 func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, toEncrypt bool, pool *mpb.Progress) (types.BlobInfo, digest.Digest, error) {
+	// If the srcInfo doesn't contain compression information, try to compute it from the
+	// MediaType, which was either read from a manifest by way of LayerInfos() or constructed
+	// by LayerInfosForCopy(), if it was supplied at all.  If we succeed in copying the blob,
+	// the BlobInfo we return will be passed to UpdatedImage() and then to UpdateLayerInfos(),
+	// which uses the compression information to compute the updated MediaType values.
+	// (Sadly UpdatedImage() is documented to not update MediaTypes from
+	//  ManifestUpdateOptions.LayerInfos[].MediaType, so we are doing it indirectly.)
+	//
+	// This MIME type → compression mapping belongs in manifest-specific code in our manifest
+	// package (but we should preferably replace/change UpdatedImage instead of productizing
+	// this workaround).
+	if srcInfo.CompressionAlgorithm == nil {
+		switch srcInfo.MediaType {
+		case manifest.DockerV2Schema2LayerMediaType, imgspecv1.MediaTypeImageLayerGzip:
+			srcInfo.CompressionAlgorithm = &compression.Gzip
+		case imgspecv1.MediaTypeImageLayerZstd:
+			srcInfo.CompressionAlgorithm = &compression.Zstd
+		}
+	}
+
 	cachedDiffID := ic.c.blobInfoCache.UncompressedDigest(srcInfo.Digest) // May be ""
 	// Diffs are needed if we are encrypting an image or trying to decrypt an image
 	diffIDIsNeeded := ic.diffIDsAreNeeded && cachedDiffID == "" || toEncrypt || (isOciEncrypted(srcInfo.MediaType) && ic.c.ociDecryptConfig != nil)
@@ -1094,6 +1114,19 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 					Event:    types.ProgressEventSkipped,
 					Artifact: srcInfo,
 				}
+			}
+
+			// If the reused blob has the same digest as the one we asked for, but
+			// the transport didn't/couldn't supply compression info, fill it in based
+			// on what we know from the srcInfos we were given.
+			// If the srcInfos came from LayerInfosForCopy(), then UpdatedImage() will
+			// call UpdateLayerInfos(), which uses this information to compute the
+			// MediaType value for the updated layer infos, and it the transport
+			// didn't pass the information along from its input to its output, then
+			// it can derive the MediaType incorrectly.
+			if blobInfo.Digest == srcInfo.Digest && blobInfo.CompressionAlgorithm == nil {
+				blobInfo.CompressionOperation = srcInfo.CompressionOperation
+				blobInfo.CompressionAlgorithm = srcInfo.CompressionAlgorithm
 			}
 			return blobInfo, cachedDiffID, nil
 		}
@@ -1349,7 +1382,15 @@ func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, sr
 		compressionOperation = types.PreserveOriginal
 		inputInfo = srcInfo
 		uploadCompressorName = srcCompressorName
-		uploadCompressionFormat = nil
+		// Remember if the original blob was compressed, and if so how, so that if
+		// LayerInfosForCopy() returned something that differs from what was in the
+		// source's manifest, and UpdatedImage() needs to call UpdateLayerInfos(),
+		// it will be able to correctly derive the MediaType for the copied blob.
+		if isCompressed {
+			uploadCompressionFormat = &compressionFormat
+		} else {
+			uploadCompressionFormat = nil
+		}
 	}
 
 	// Perform image encryption for valid mediatypes if ociEncryptConfig provided
