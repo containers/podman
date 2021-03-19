@@ -62,6 +62,8 @@ Describe("the strings package", func() {
 
 - [Completions for VSCode](https://github.com/onsi/vscode-ginkgo): just use VSCode's extension installer to install `vscode-ginkgo`.
 
+- [Ginkgo tools for VSCode](https://marketplace.visualstudio.com/items?itemName=joselitofilho.ginkgotestexplorer): just use VSCode's extension installer to install `ginkgoTestExplorer`.
+
 - Straightforward support for third-party testing libraries such as [Gomock](https://code.google.com/p/gomock/) and [Testify](https://github.com/stretchr/testify).  Check out the [docs](https://onsi.github.io/ginkgo/#third-party-integrations) for details.
 
 - A modular architecture that lets you easily:

@@ -1,3 +1,8 @@
+## 1.15.2
+
+### Fixes
+- ignore blank `-focus` and `-skip` flags (#780) [e90a4a0]
+
 ## 1.15.1
 
 ### Fixes
