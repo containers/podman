@@ -67,7 +67,8 @@ Briefly describe the problem you are having in a few paragraphs.
 (paste your output here)
 ```
 
-**Have you tested with the latest version of Podman and have you checked the Podman Troubleshooting Guide?**
+**Have you tested with the latest version of Podman and have you checked the Podman Troubleshooting Guide? (https://github.com/containers/podman/blob/master/troubleshooting.md)**
+
 
 Yes/No
 
