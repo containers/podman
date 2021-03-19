@@ -16,6 +16,9 @@ var (
 	// Used internally and populated during init().
 	capabilityList []string
 
+	// Used internally and populated during init().
+	capsList []capability.Cap
+
 	// ErrUnknownCapability is thrown when an unknown capability is processed.
 	ErrUnknownCapability = errors.New("unknown capability")
 
@@ -28,6 +31,10 @@ var (
 // Useful on the CLI for `--cap-add=all` etc.
 const All = "ALL"
 
+func getCapName(c capability.Cap) string {
+	return "CAP_" + strings.ToUpper(c.String())
+}
+
 func init() {
 	last := capability.CAP_LAST_CAP
 	// hack for RHEL6 which has no /proc/sys/kernel/cap_last_cap
@@ -38,7 +45,8 @@ func init() {
 		if cap > last {
 			continue
 		}
-		capabilityList = append(capabilityList, "CAP_"+strings.ToUpper(cap.String()))
+		capsList = append(capsList, cap)
+		capabilityList = append(capabilityList, getCapName(cap))
 	}
 }
 
@@ -50,6 +58,26 @@ func stringInSlice(s string, sl []string) bool {
 		}
 	}
 	return false
+}
+
+// BoundingSet returns the capabilities in the current bounding set
+func BoundingSet() ([]string, error) {
+	currentCaps, err := capability.NewPid2(0)
+	if err != nil {
+		return nil, err
+	}
+	err = currentCaps.Load()
+	if err != nil {
+		return nil, err
+	}
+	var r []string
+	for _, c := range capsList {
+		if !currentCaps.Get(capability.BOUNDING, c) {
+			continue
+		}
+		r = append(r, getCapName(c))
+	}
+	return r, nil
 }
 
 // AllCapabilities returns all known capabilities.

@@ -1268,7 +1268,10 @@ func prepareProcessExec(c *Container, options *ExecOptions, env []string, sessio
 		return nil, err
 	}
 
-	allCaps := capabilities.AllCapabilities()
+	allCaps, err := capabilities.BoundingSet()
+	if err != nil {
+		return nil, err
+	}
 	if options.Privileged {
 		pspec.Capabilities.Bounding = allCaps
 	} else {

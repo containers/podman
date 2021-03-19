@@ -11,9 +11,9 @@ require (
 	github.com/containernetworking/cni v0.8.1
 	github.com/containernetworking/plugins v0.9.1
 	github.com/containers/buildah v1.19.8
-	github.com/containers/common v0.35.0
+	github.com/containers/common v0.35.3
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.10.2
+	github.com/containers/image/v5 v5.10.5
 	github.com/containers/ocicrypt v1.1.0
 	github.com/containers/psgo v1.5.2
 	github.com/containers/storage v1.28.0
@@ -70,5 +70,3 @@ require (
 	k8s.io/api v0.20.1
 	k8s.io/apimachinery v0.20.5
 )
-
-replace github.com/syndtr/gocapability => github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
