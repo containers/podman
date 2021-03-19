@@ -13,6 +13,7 @@ import (
 	"github.com/containers/podman/v3/pkg/domain/filters"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi/parse"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -29,7 +30,7 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 	}
 	input := entities.VolumeCreateOptions{}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+		utils.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError,
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
@@ -95,22 +96,16 @@ func InspectVolume(w http.ResponseWriter, r *http.Request) {
 
 func ListVolumes(w http.ResponseWriter, r *http.Request) {
 	var (
-		decoder = r.Context().Value("decoder").(*schema.Decoder)
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
 	)
-	query := struct {
-		Filters map[string][]string `schema:"filters"`
-	}{
-		// override any golang type defaults
-	}
-
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+	filterMap, err := util.PrepareFilters(r)
+	if err != nil {
+		utils.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError,
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
-	volumeFilters, err := filters.GenerateVolumeFilters(query.Filters)
+	volumeFilters, err := filters.GenerateVolumeFilters(*filterMap)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
@@ -148,19 +143,13 @@ func PruneVolumes(w http.ResponseWriter, r *http.Request) {
 func pruneVolumesHelper(r *http.Request) ([]*reports.PruneReport, error) {
 	var (
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
-		decoder = r.Context().Value("decoder").(*schema.Decoder)
 	)
-	query := struct {
-		Filters map[string][]string `schema:"filters"`
-	}{
-		// override any golang type defaults
-	}
-
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+	filterMap, err := util.PrepareFilters(r)
+	if err != nil {
 		return nil, err
 	}
 
-	f := (url.Values)(query.Filters)
+	f := (url.Values)(*filterMap)
 	filterFuncs, err := filters.GenerateVolumeFilters(f)
 	if err != nil {
 		return nil, err
@@ -172,6 +161,7 @@ func pruneVolumesHelper(r *http.Request) ([]*reports.PruneReport, error) {
 	}
 	return reports, nil
 }
+
 func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 	var (
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
@@ -184,7 +174,7 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+		utils.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError,
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}

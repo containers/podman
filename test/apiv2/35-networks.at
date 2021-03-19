@@ -80,9 +80,29 @@ t POST networks/create Name=net3\ IPAM='{"Config":[]}' 201
 # network delete docker
 t DELETE networks/net3 204
 
-# Prune networks compat api - bad filter input
+#compat api list networks sanity checks
+t GET networks?filters='garb1age}' 500 \
+    .cause="invalid character 'g' looking for beginning of value"
+t GET networks?filters='{"label":["testl' 500 \
+    .cause="unexpected end of JSON input"
+
+#libpod api list networks sanity checks
+t GET libpod/networks/json?filters='garb1age}' 500 \
+    .cause="invalid character 'g' looking for beginning of value"
+t GET libpod/networks/json?filters='{"label":["testl' 500 \
+    .cause="unexpected end of JSON input"
+
+# Prune networks compat api
 t POST networks/prune?filters='garb1age}' 500 \
     .cause="invalid character 'g' looking for beginning of value"
+t POST networks/prune?filters='{"label":["tes' 500 \
+    .cause="unexpected end of JSON input"
+
+# Prune networks libpod api
+t POST libpod/networks/prune?filters='garb1age}' 500 \
+    .cause="invalid character 'g' looking for beginning of value"
+t POST libpod/networks/prune?filters='{"label":["tes' 500 \
+    .cause="unexpected end of JSON input"
 
 # prune networks using filter - compat api
 t POST networks/prune?filters='{"label":["xyz"]}' 200

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/containers/podman/v3/libpod"
@@ -14,6 +13,7 @@ import (
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/containers/podman/v3/pkg/domain/filters"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi/parse"
+	"github.com/containers/podman/v3/pkg/util"
 	docker_api_types "github.com/docker/docker/api/types"
 	docker_api_types_volume "github.com/docker/docker/api/types/volume"
 	"github.com/gorilla/schema"
@@ -22,16 +22,10 @@ import (
 
 func ListVolumes(w http.ResponseWriter, r *http.Request) {
 	var (
-		decoder = r.Context().Value("decoder").(*schema.Decoder)
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
 	)
-	query := struct {
-		Filters map[string][]string `schema:"filters"`
-	}{
-		// override any golang type defaults
-	}
-
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+	filtersMap, err := util.PrepareFilters(r)
+	if err != nil {
 		utils.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError,
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
@@ -39,14 +33,14 @@ func ListVolumes(w http.ResponseWriter, r *http.Request) {
 
 	// Reject any libpod specific filters since `GenerateVolumeFilters()` will
 	// happily parse them for us.
-	for filter := range query.Filters {
+	for filter := range *filtersMap {
 		if filter == "opts" {
 			utils.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError,
 				errors.Errorf("unsupported libpod filters passed to docker endpoint"))
 			return
 		}
 	}
-	volumeFilters, err := filters.GenerateVolumeFilters(query.Filters)
+	volumeFilters, err := filters.GenerateVolumeFilters(*filtersMap)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
@@ -265,20 +259,13 @@ func PruneVolumes(w http.ResponseWriter, r *http.Request) {
 	var (
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
 	)
-	filtersList, err := filtersFromRequest(r)
+	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
-	filterMap := map[string][]string{}
-	for _, filter := range filtersList {
-		split := strings.SplitN(filter, "=", 2)
-		if len(split) > 1 {
-			filterMap[split[0]] = append(filterMap[split[0]], split[1])
-		}
-	}
 
-	f := (url.Values)(filterMap)
+	f := (url.Values)(*filterMap)
 	filterFuncs, err := filters.GenerateVolumeFilters(f)
 	if err != nil {
 		utils.Error(w, "Something when wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to parse filters for %s", f.Encode()))
