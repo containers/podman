@@ -23,7 +23,7 @@ touch: cannot touch '/content/file': Permission denied
 
 #### Solution
 
-This is usually caused by SELinux.
+This is sometimes caused by SELinux, and sometimes by user namespaces.
 
 Labeling systems like SELinux require that proper labels are placed on volume
 content mounted into a container. Without a label, the security system might
@@ -46,6 +46,14 @@ types of containers we recommend that disable SELinux separation.  The option `-
 will disable SELinux separation for the container.
 
 $ podman run --security-opt label=disable -v ~:/home/user fedora touch /home/user/file
+
+In cases where the container image runs as a specific, non-root user, though, the
+solution is to fix the user namespace.  This would include container images such as
+the Jupyter Notebook image (which runs as "jovyan") and the Postgres image (which runs
+as "postgres").  In either case, use the `--userns` switch to map user namespaces,
+most of the time by using keep_id option.
+
+$ podman run -v "$PWD":/home/jovyan/work --userns=keep_id jupyter/scipy-notebook
 
 ---
 ### 3) No such image or Bare keys cannot contain ':'
