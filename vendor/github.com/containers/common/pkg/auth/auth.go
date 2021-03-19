@@ -22,9 +22,7 @@ import (
 func GetDefaultAuthFile() string {
 	authfile := os.Getenv("REGISTRY_AUTH_FILE")
 	if authfile == "" {
-		if authfile, ok := os.LookupEnv("DOCKER_CONFIG"); ok {
-			logrus.Infof("Using DOCKER_CONFIG environment variable for authfile path %s", authfile)
-		}
+		authfile = os.Getenv("DOCKER_CONFIG")
 	}
 	return authfile
 }
