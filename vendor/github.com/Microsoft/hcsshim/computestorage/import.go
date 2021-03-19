@@ -3,9 +3,9 @@ package computestorage
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/Microsoft/hcsshim/internal/oc"
+	"github.com/pkg/errors"
 	"go.opencensus.io/trace"
 )
 
@@ -35,7 +35,7 @@ func ImportLayer(ctx context.Context, layerPath, sourceFolderPath string, layerD
 
 	err = hcsImportLayer(layerPath, sourceFolderPath, string(bytes))
 	if err != nil {
-		return fmt.Errorf("failed to import layer: %s", err)
+		return errors.Wrap(err, "failed to import layer")
 	}
 	return nil
 }

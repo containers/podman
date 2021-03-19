@@ -2,10 +2,10 @@ package computestorage
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/Microsoft/hcsshim/internal/interop"
 	"github.com/Microsoft/hcsshim/internal/oc"
+	"github.com/pkg/errors"
 	"go.opencensus.io/trace"
 	"golang.org/x/sys/windows"
 )
@@ -20,7 +20,7 @@ func GetLayerVhdMountPath(ctx context.Context, vhdHandle windows.Handle) (path s
 	var mountPath *uint16
 	err = hcsGetLayerVhdMountPath(vhdHandle, &mountPath)
 	if err != nil {
-		return "", fmt.Errorf("failed to get vhd mount path: %s", err)
+		return "", errors.Wrap(err, "failed to get vhd mount path")
 	}
 	path = interop.ConvertAndFreeCoTaskMemString(mountPath)
 	return path, nil

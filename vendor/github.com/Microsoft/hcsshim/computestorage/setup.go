@@ -3,11 +3,10 @@ package computestorage
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 
 	"github.com/Microsoft/hcsshim/internal/oc"
 	"github.com/Microsoft/hcsshim/osversion"
+	"github.com/pkg/errors"
 	"go.opencensus.io/trace"
 	"golang.org/x/sys/windows"
 )
@@ -37,7 +36,7 @@ func SetupBaseOSLayer(ctx context.Context, layerPath string, vhdHandle windows.H
 
 	err = hcsSetupBaseOSLayer(layerPath, vhdHandle, string(bytes))
 	if err != nil {
-		return fmt.Errorf("failed to setup base OS layer: %s", err)
+		return errors.Wrap(err, "failed to setup base OS layer")
 	}
 	return nil
 }
@@ -69,7 +68,7 @@ func SetupBaseOSVolume(ctx context.Context, layerPath, volumePath string, option
 
 	err = hcsSetupBaseOSVolume(layerPath, volumePath, string(bytes))
 	if err != nil {
-		return fmt.Errorf("failed to setup base OS layer: %s", err)
+		return errors.Wrap(err, "failed to setup base OS layer")
 	}
 	return nil
 }

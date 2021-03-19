@@ -1945,7 +1945,7 @@ func (j *tarAppender) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 		buf.WriteString(`,"ChownOpts":null`)
 	}
 	buf.WriteString(`,"WhiteoutConverter":`)
-	/* Interface types must use runtime reflection. type=archive.tarWhiteoutConverter kind=interface */
+	/* Interface types must use runtime reflection. type=archive.TarWhiteoutConverter kind=interface */
 	err = buf.Encode(j.WhiteoutConverter)
 	if err != nil {
 		return err
@@ -2393,10 +2393,10 @@ handle_ChownOpts:
 
 handle_WhiteoutConverter:
 
-	/* handler: j.WhiteoutConverter type=archive.tarWhiteoutConverter kind=interface quoted=false*/
+	/* handler: j.WhiteoutConverter type=archive.TarWhiteoutConverter kind=interface quoted=false*/
 
 	{
-		/* Falling back. type=archive.tarWhiteoutConverter kind=interface */
+		/* Falling back. type=archive.TarWhiteoutConverter kind=interface */
 		tbuf, err := fs.CaptureField(tok)
 		if err != nil {
 			return fs.WrapErr(err)

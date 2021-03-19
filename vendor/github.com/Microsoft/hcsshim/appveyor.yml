@@ -1,14 +1,16 @@
 version: 0.1.{build}
 
-image: Visual Studio 2017
+image: Visual Studio 2019
 
 clone_folder: c:\gopath\src\github.com\Microsoft\hcsshim
 
 environment:
   GOPATH: c:\gopath
   PATH: "%GOPATH%\\bin;C:\\gometalinter-2.0.12-windows-amd64;%PATH%"
+  GOPROXY: 'off'
+  GOFLAGS: '-mod=vendor'
 
-stack: go 1.13.4
+stack: go 1.15
 
 build_script:
   - appveyor DownloadFile https://github.com/alecthomas/gometalinter/releases/download/v2.0.12/gometalinter-2.0.12-windows-amd64.zip
@@ -19,16 +21,17 @@ build_script:
   - go build ./cmd/tar2ext4
   - go build ./cmd/wclayer
   - go build ./cmd/device-util
-  - go build ./internal/tools/grantvmgroupaccess 
+  - go build ./internal/tools/grantvmgroupaccess
   - go build ./internal/tools/uvmboot
   - go build ./internal/tools/zapdir
-  - go test -v ./... -tags admin
+  - go test -gcflags=all=-d=checkptr -v ./... -tags admin
   - cd test
-  - go test -v ./internal -tags admin
-  - go test -c ./containerd-shim-runhcs-v1/ -tags functional
-  - go test -c ./cri-containerd/ -tags functional
-  - go test -c ./functional/ -tags functional
-  - go test -c ./runhcs/ -tags functional
+  - go test -gcflags=all=-d=checkptr -v ./internal -tags admin
+  - go test -gcflags=all=-d=checkptr -c ./containerd-shim-runhcs-v1/ -tags functional
+  - go test -gcflags=all=-d=checkptr -c ./cri-containerd/ -tags functional
+  - go test -gcflags=all=-d=checkptr -c ./functional/ -tags functional
+  - go test -gcflags=all=-d=checkptr -c ./runhcs/ -tags functional
+  - go build -o sample-logging-driver.exe ./cri-containerd/helpers/log.go
 
 artifacts:
   - path: 'containerd-shim-runhcs-v1.exe'
@@ -43,3 +46,4 @@ artifacts:
   - path: './test/cri-containerd.test.exe'
   - path: './test/functional.test.exe'
   - path: './test/runhcs.test.exe'
+  - path: './test/sample-logging-driver.exe'

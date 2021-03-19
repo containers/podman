@@ -99,6 +99,12 @@ func NewDefaultArchiver() *Archiver {
 // in order for the test to pass.
 type breakoutError error
 
+// overwriteError is used to differentiate errors related to attempting to
+// overwrite a directory with a non-directory or vice-versa.  When testing
+// copying a file over a directory, this error is expected in order for the
+// test to pass.
+type overwriteError error
+
 const (
 	// Uncompressed represents the uncompressed.
 	Uncompressed Compression = iota
@@ -437,9 +443,16 @@ func ReadUserXattrToTarHeader(path string, hdr *tar.Header) error {
 	return nil
 }
 
-type tarWhiteoutConverter interface {
+type TarWhiteoutHandler interface {
+	Setxattr(path, name string, value []byte) error
+	Mknod(path string, mode uint32, dev int) error
+	Chown(path string, uid, gid int) error
+}
+
+type TarWhiteoutConverter interface {
 	ConvertWrite(*tar.Header, string, os.FileInfo) (*tar.Header, error)
 	ConvertRead(*tar.Header, string) (bool, error)
+	ConvertReadWithHandler(*tar.Header, string, TarWhiteoutHandler) (bool, error)
 }
 
 type tarAppender struct {
@@ -455,7 +468,7 @@ type tarAppender struct {
 	// non standard format. The whiteout files defined
 	// by the AUFS standard are used as the tar whiteout
 	// standard.
-	WhiteoutConverter tarWhiteoutConverter
+	WhiteoutConverter TarWhiteoutConverter
 	// CopyPass indicates that the contents of any archive we're creating
 	// will instantly be extracted and written to disk, so we can deviate
 	// from the traditional behavior/format to get features like subsecond
@@ -792,7 +805,7 @@ func TarWithOptions(srcPath string, options *TarOptions) (io.ReadCloser, error) 
 			compressWriter,
 			options.ChownOpts,
 		)
-		ta.WhiteoutConverter = getWhiteoutConverter(options.WhiteoutFormat, options.WhiteoutData)
+		ta.WhiteoutConverter = GetWhiteoutConverter(options.WhiteoutFormat, options.WhiteoutData)
 		ta.CopyPass = options.CopyPass
 
 		defer func() {
@@ -952,11 +965,11 @@ func Unpack(decompressedArchive io.Reader, dest string, options *TarOptions) err
 	var dirs []*tar.Header
 	idMappings := idtools.NewIDMappingsFromMaps(options.UIDMaps, options.GIDMaps)
 	rootIDs := idMappings.RootPair()
-	whiteoutConverter := getWhiteoutConverter(options.WhiteoutFormat, options.WhiteoutData)
+	whiteoutConverter := GetWhiteoutConverter(options.WhiteoutFormat, options.WhiteoutData)
 	buffer := make([]byte, 1<<20)
 
 	if options.ForceMask != nil {
-		uid, gid, mode, err := getFileOwner(dest)
+		uid, gid, mode, err := GetFileOwner(dest)
 		if err == nil {
 			value := fmt.Sprintf("%d:%d:0%o", uid, gid, mode)
 			if err := system.Lsetxattr(dest, containersOverrideXattr, []byte(value), 0); err != nil {
@@ -1020,13 +1033,13 @@ loop:
 			if options.NoOverwriteDirNonDir && fi.IsDir() && hdr.Typeflag != tar.TypeDir {
 				// If NoOverwriteDirNonDir is true then we cannot replace
 				// an existing directory with a non-directory from the archive.
-				return fmt.Errorf("cannot overwrite directory %q with non-directory %q", path, dest)
+				return overwriteError(fmt.Errorf("cannot overwrite directory %q with non-directory %q", path, dest))
 			}
 
 			if options.NoOverwriteDirNonDir && !fi.IsDir() && hdr.Typeflag == tar.TypeDir {
 				// If NoOverwriteDirNonDir is true then we cannot replace
 				// an existing non-directory with a directory from the archive.
-				return fmt.Errorf("cannot overwrite non-directory %q with directory %q", path, dest)
+				return overwriteError(fmt.Errorf("cannot overwrite non-directory %q with directory %q", path, dest))
 			}
 
 			if fi.IsDir() && hdr.Name == "." {

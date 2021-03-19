@@ -17,14 +17,28 @@ limitations under the License.
 package v1
 
 const (
-	LabelHostname          = "kubernetes.io/hostname"
-	LabelZoneFailureDomain = "failure-domain.beta.kubernetes.io/zone"
-	LabelZoneRegion        = "failure-domain.beta.kubernetes.io/region"
+	LabelHostname = "kubernetes.io/hostname"
 
-	LabelInstanceType = "beta.kubernetes.io/instance-type"
+	LabelFailureDomainBetaZone   = "failure-domain.beta.kubernetes.io/zone"
+	LabelFailureDomainBetaRegion = "failure-domain.beta.kubernetes.io/region"
+	LabelTopologyZone            = "topology.kubernetes.io/zone"
+	LabelTopologyRegion          = "topology.kubernetes.io/region"
+
+	// Legacy names for compat.
+	LabelZoneFailureDomain       = LabelFailureDomainBetaZone   // deprecated, remove after 1.20
+	LabelZoneRegion              = LabelFailureDomainBetaRegion // deprecated, remove after 1.20
+	LabelZoneFailureDomainStable = LabelTopologyZone
+	LabelZoneRegionStable        = LabelTopologyRegion
+
+	LabelInstanceType       = "beta.kubernetes.io/instance-type"
+	LabelInstanceTypeStable = "node.kubernetes.io/instance-type"
 
 	LabelOSStable   = "kubernetes.io/os"
 	LabelArchStable = "kubernetes.io/arch"
+
+	// LabelWindowsBuild is used on Windows nodes to specify the Windows build number starting with v1.17.0.
+	// It's in the format MajorVersion.MinorVersion.BuildNumber (for ex: 10.0.17763)
+	LabelWindowsBuild = "node.kubernetes.io/windows-build"
 
 	// LabelNamespaceSuffixKubelet is an allowed label namespace suffix kubelets can self-set ([*.]kubelet.kubernetes.io/*)
 	LabelNamespaceSuffixKubelet = "kubelet.kubernetes.io"
@@ -33,4 +47,10 @@ const (
 
 	// LabelNamespaceNodeRestriction is a forbidden label namespace that kubelets may not self-set when the NodeRestriction admission plugin is enabled
 	LabelNamespaceNodeRestriction = "node-restriction.kubernetes.io"
+
+	// IsHeadlessService is added by Controller to an Endpoint denoting if its parent
+	// Service is Headless. The existence of this label can be used further by other
+	// controllers and kube-proxy to check if the Endpoint objects should be replicated when
+	// using Headless Services
+	IsHeadlessService = "service.kubernetes.io/headless"
 )

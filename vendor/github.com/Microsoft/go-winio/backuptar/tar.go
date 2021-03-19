@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/Microsoft/go-winio"
+	"golang.org/x/sys/windows"
 )
 
 const (
@@ -297,11 +298,11 @@ func FileInfoFromHeader(hdr *tar.Header) (name string, size int64, fileInfo *win
 		size = hdr.Size
 	}
 	fileInfo = &winio.FileBasicInfo{
-		LastAccessTime: syscall.NsecToFiletime(hdr.AccessTime.UnixNano()),
-		LastWriteTime:  syscall.NsecToFiletime(hdr.ModTime.UnixNano()),
-		ChangeTime:     syscall.NsecToFiletime(hdr.ChangeTime.UnixNano()),
+		LastAccessTime: windows.NsecToFiletime(hdr.AccessTime.UnixNano()),
+		LastWriteTime:  windows.NsecToFiletime(hdr.ModTime.UnixNano()),
+		ChangeTime:     windows.NsecToFiletime(hdr.ChangeTime.UnixNano()),
 		// Default to ModTime, we'll pull hdrCreationTime below if present
-		CreationTime: syscall.NsecToFiletime(hdr.ModTime.UnixNano()),
+		CreationTime: windows.NsecToFiletime(hdr.ModTime.UnixNano()),
 	}
 	if attrStr, ok := hdr.PAXRecords[hdrFileAttributes]; ok {
 		attr, err := strconv.ParseUint(attrStr, 10, 32)
@@ -319,7 +320,7 @@ func FileInfoFromHeader(hdr *tar.Header) (name string, size int64, fileInfo *win
 		if err != nil {
 			return "", 0, nil, err
 		}
-		fileInfo.CreationTime = syscall.NsecToFiletime(creationTime.UnixNano())
+		fileInfo.CreationTime = windows.NsecToFiletime(creationTime.UnixNano())
 	}
 	return
 }

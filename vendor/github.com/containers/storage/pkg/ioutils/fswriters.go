@@ -156,6 +156,9 @@ type syncFileCloser struct {
 }
 
 func (w syncFileCloser) Close() error {
+	if !defaultWriterOptions.NoSync {
+		return w.File.Close()
+	}
 	err := fdatasync(w.File)
 	if err1 := w.File.Close(); err == nil {
 		err = err1

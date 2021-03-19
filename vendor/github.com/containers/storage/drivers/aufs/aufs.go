@@ -63,6 +63,8 @@ var (
 	enableDirperm     bool
 )
 
+const defaultPerms = os.FileMode(0555)
+
 func init() {
 	graphdriver.Register("aufs", Init)
 }
@@ -312,20 +314,22 @@ func (a *Driver) createDirsFor(id, parent string) error {
 		"diff",
 	}
 
-	// Directory permission is 0755.
+	// Directory permission is 0555.
 	// The path of directories are <aufs_root_path>/mnt/<image_id>
 	// and <aufs_root_path>/diff/<image_id>
 	for _, p := range paths {
 		rootPair := idtools.NewIDMappingsFromMaps(a.uidMaps, a.gidMaps).RootPair()
+		rootPerms := defaultPerms
 		if parent != "" {
 			st, err := system.Stat(path.Join(a.rootPath(), p, parent))
 			if err != nil {
 				return err
 			}
+			rootPerms = os.FileMode(st.Mode())
 			rootPair.UID = int(st.UID())
 			rootPair.GID = int(st.GID())
 		}
-		if err := idtools.MkdirAllAndChownNew(path.Join(a.rootPath(), p, id), os.FileMode(0755), rootPair); err != nil {
+		if err := idtools.MkdirAllAndChownNew(path.Join(a.rootPath(), p, id), rootPerms, rootPair); err != nil {
 			return err
 		}
 	}

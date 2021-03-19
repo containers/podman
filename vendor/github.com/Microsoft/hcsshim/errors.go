@@ -230,6 +230,18 @@ func IsNotSupported(err error) bool {
 	return hcs.IsNotSupported(getInnerError(err))
 }
 
+// IsOperationInvalidState returns true when err is caused by
+// `ErrVmcomputeOperationInvalidState`.
+func IsOperationInvalidState(err error) bool {
+	return hcs.IsOperationInvalidState(getInnerError(err))
+}
+
+// IsAccessIsDenied returns true when err is caused by
+// `ErrVmcomputeOperationAccessIsDenied`.
+func IsAccessIsDenied(err error) bool {
+	return hcs.IsAccessIsDenied(getInnerError(err))
+}
+
 func getInnerError(err error) error {
 	switch pe := err.(type) {
 	case nil:
