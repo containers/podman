@@ -650,6 +650,10 @@ If --userns-gid-map-group is specified, but --userns-uid-map-user is not
 specified, `podman` will assume that the specified group name is also a
 suitable user name to use as the default setting for this option.
 
+**NOTE:** When this option is specified by a rootless user, the specified
+mappings are relative to the rootless usernamespace in the container, rather
+than being relative to the host as it would be when run rootful.
+
 #### **--userns-gid-map-group**=*group*
 
 Specifies that a GID mapping which should be used to set ownership, at the
@@ -660,6 +664,10 @@ their own user namespaces, configured using the UID and GID maps.
 If --userns-uid-map-user is specified, but --userns-gid-map-group is not
 specified, `podman` will assume that the specified user name is also a
 suitable group name to use as the default setting for this option.
+
+**NOTE:** When this option is specified by a rootless user, the specified
+mappings are relative to the rootless usernamespace in the container, rather
+than being relative to the host as it would be when run rootful.
 
 #### **--uts**=*how*
 
