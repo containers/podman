@@ -11,6 +11,7 @@ import (
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -59,20 +60,21 @@ func ContainerExists(w http.ResponseWriter, r *http.Request) {
 func ListContainers(w http.ResponseWriter, r *http.Request) {
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
-		All       bool                `schema:"all"`
-		External  bool                `schema:"external"`
-		Filters   map[string][]string `schema:"filters"`
-		Last      int                 `schema:"last"` // alias for limit
-		Limit     int                 `schema:"limit"`
-		Namespace bool                `schema:"namespace"`
-		Size      bool                `schema:"size"`
-		Sync      bool                `schema:"sync"`
+		All       bool `schema:"all"`
+		External  bool `schema:"external"`
+		Last      int  `schema:"last"` // alias for limit
+		Limit     int  `schema:"limit"`
+		Namespace bool `schema:"namespace"`
+		Size      bool `schema:"size"`
+		Sync      bool `schema:"sync"`
 	}{
 		// override any golang type defaults
 	}
 
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+	filterMap, err := util.PrepareFilters(r)
+
+	if dErr := decoder.Decode(&query, r.URL.Query()); dErr != nil || err != nil {
+		utils.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError,
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
@@ -94,7 +96,7 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 	opts := entities.ContainerListOptions{
 		All:       query.All,
 		External:  query.External,
-		Filters:   query.Filters,
+		Filters:   *filterMap,
 		Last:      limit,
 		Namespace: query.Namespace,
 		// Always return Pod, should not be part of the API.
