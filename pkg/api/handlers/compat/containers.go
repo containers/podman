@@ -19,6 +19,7 @@ import (
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
 	"github.com/containers/podman/v3/pkg/ps"
 	"github.com/containers/podman/v3/pkg/signal"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
@@ -92,23 +93,24 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
-		All     bool                `schema:"all"`
-		Limit   int                 `schema:"limit"`
-		Size    bool                `schema:"size"`
-		Filters map[string][]string `schema:"filters"`
+		All   bool `schema:"all"`
+		Limit int  `schema:"limit"`
+		Size  bool `schema:"size"`
 	}{
 		// override any golang type defaults
 	}
 
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+	filterMap, err := util.PrepareFilters(r)
+
+	if dErr := decoder.Decode(&query, r.URL.Query()); dErr != nil || err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
-	filterFuncs := make([]libpod.ContainerFilter, 0, len(query.Filters))
+	filterFuncs := make([]libpod.ContainerFilter, 0, len(*filterMap))
 	all := query.All || query.Limit > 0
-	if len(query.Filters) > 0 {
-		for k, v := range query.Filters {
+	if len((*filterMap)) > 0 {
+		for k, v := range *filterMap {
 			generatedFunc, err := filters.GenerateContainerFilterFuncs(k, v, runtime)
 			if err != nil {
 				utils.InternalServerError(w, err)
@@ -120,7 +122,7 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 
 	// Docker thinks that if status is given as an input, then we should override
 	// the all setting and always deal with all containers.
-	if len(query.Filters["status"]) > 0 {
+	if len((*filterMap)["status"]) > 0 {
 		all = true
 	}
 	if !all {
