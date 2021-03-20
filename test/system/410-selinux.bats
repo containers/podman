@@ -61,9 +61,6 @@ function check_label() {
             # SELinux not enabled on Ubuntu, so we should never get here
             die "WHOA! SELinux enabled, but no /usr/bin/rpm!"
         fi
-        if [[ "$cs_version" < "2.146" ]]; then
-            skip "FIXME: #7939: requires container-selinux-2.146.0 (currently installed: $cs_version)"
-        fi
     fi
     # FIXME FIXME FIXME: delete up to here, leaving just check_label
 
