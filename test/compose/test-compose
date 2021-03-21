@@ -13,7 +13,8 @@ TEST_ROOTDIR=$(realpath $(dirname $0))
 # Podman executable
 PODMAN_BIN=$(realpath $TEST_ROOTDIR/../../bin)/podman
 
-# Local path to docker socket (we will add the unix:/ prefix when we need it)
+# Local path to docker socket with unix prefix
+# The path will be changed for rootless users
 DOCKER_SOCK=/var/run/docker.sock
 
 # END   stuff you can but probably shouldn't customize
@@ -39,6 +40,13 @@ echo 0 >$failures_file
 # END   setup
 ###############################################################################
 # BEGIN infrastructure code - the helper functions used in tests themselves
+
+#################
+#  is_rootless  #  Check if we run as normal user
+#################
+function is_rootless() {
+    [ "$(id -u)" -ne 0 ]
+}
 
 #########
 #  die  #  Exit error with a message to stderr
@@ -155,7 +163,7 @@ function test_port() {
     local op="$2"                # '=' or '~'
     local expect="$3"            # what to expect from curl output
 
-    local actual=$(curl --retry 5 --retry-connrefused -s http://127.0.0.1:$port/)
+    local actual=$(curl --retry 10 --retry-all-errors -s http://127.0.0.1:$port/)
     local curl_rc=$?
     if [ $curl_rc -ne 0 ]; then
         _show_ok 0 "$testname - curl failed with status $curl_rc"
@@ -179,7 +187,12 @@ function start_service() {
     test -x $PODMAN_BIN || die "Not found: $PODMAN_BIN"
 
     # FIXME: use ${testname} subdir but we can't: 50-char limit in runroot
-    rm -rf            $WORKDIR/{root,runroot,cni}
+    if ! is_rootless; then
+        rm -rf $WORKDIR/{root,runroot,cni}
+    else
+        $PODMAN_BIN unshare rm -rf $WORKDIR/{root,runroot,cni}
+    fi
+    rm -f $DOCKER_SOCK
     mkdir --mode 0755 $WORKDIR/{root,runroot,cni}
     chcon --reference=/var/lib/containers $WORKDIR/root
     cp /etc/cni/net.d/*podman*conflist $WORKDIR/cni/
@@ -190,7 +203,7 @@ function start_service() {
         --cgroup-manager=systemd \
         --cni-config-dir $WORKDIR/cni \
         system service \
-        --time 0 unix:/$DOCKER_SOCK \
+        --time 0 unix://$DOCKER_SOCK \
         &> $WORKDIR/server.log &
     service_pid=$!
 
@@ -238,6 +251,14 @@ done
 # END   sanity checks
 ###############################################################################
 # BEGIN entry handler (subtest invoker)
+
+# When rootless use a socket path accessible by the rootless user
+if is_rootless; then
+    DOCKER_SOCK="$WORKDIR/docker.sock"
+    DOCKER_HOST="unix://$DOCKER_SOCK"
+    # export DOCKER_HOST docker-compose will use it
+    export DOCKER_HOST
+fi
 
 # Identify the tests to run. If called with args, use those as globs.
 tests_to_run=()
@@ -322,7 +343,11 @@ for t in ${tests_to_run[@]}; do
     wait $service_pid
 
     # FIXME: otherwise we get EBUSY
-    umount $WORKDIR/root/overlay  &>/dev/null
+    if ! is_rootless; then
+        umount $WORKDIR/root/overlay  &>/dev/null
+    else
+        $PODMAN_BIN unshare umount $WORKDIR/root/overlay  &>/dev/null
+    fi
 
     # FIXME: run 'podman ps'?
 #    rm -rf $WORKDIR/${testname}
@@ -336,9 +361,13 @@ done
 test_count=$(<$testcounter_file)
 failure_count=$(<$failures_file)
 
-#if [ -z "$PODMAN_TESTS_KEEP_WORKDIR" ]; then
-#    rm -rf $WORKDIR
-#fi
+if [ -z "$PODMAN_TESTS_KEEP_WORKDIR" ]; then
+     if ! is_rootless; then
+        rm -rf $WORKDIR
+    else
+        $PODMAN_BIN unshare rm -rf $WORKDIR
+    fi
+fi
 
 echo "1..${test_count}"
 
