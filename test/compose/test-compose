@@ -224,10 +224,11 @@ function start_service() {
 ############
 function podman() {
     echo "\$ podman $*"           >>$WORKDIR/output.log
-    $PODMAN_BIN \
+    output=$($PODMAN_BIN \
         --root    $WORKDIR/root    \
         --runroot $WORKDIR/runroot \
-        "$@"    >>$WORKDIR/output.log 2>&1
+        "$@")
+    echo -n "$output" >>$WORKDIR/output.log
 }
 
 ###################
@@ -329,7 +330,7 @@ for t in ${tests_to_run[@]}; do
         fi
 
         # Done. Clean up.
-        docker-compose down     &> $logfile
+        docker-compose down     &>> $logfile
         rc=$?
         if [[ $rc -eq 0 ]]; then
             _show_ok 1 "$testname - down"
