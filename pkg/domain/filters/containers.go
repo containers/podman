@@ -23,27 +23,7 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 	case "label":
 		// we have to match that all given labels exits on that container
 		return func(c *libpod.Container) bool {
-			labels := c.Labels()
-			for _, filterValue := range filterValues {
-				matched := false
-				filterArray := strings.SplitN(filterValue, "=", 2)
-				filterKey := filterArray[0]
-				if len(filterArray) > 1 {
-					filterValue = filterArray[1]
-				} else {
-					filterValue = ""
-				}
-				for labelKey, labelValue := range labels {
-					if labelKey == filterKey && (filterValue == "" || labelValue == filterValue) {
-						matched = true
-						break
-					}
-				}
-				if !matched {
-					return false
-				}
-			}
-			return true
+			return util.MatchLabelFilters(filterValues, c.Labels())
 		}, nil
 	case "name":
 		// we only have to match one name
