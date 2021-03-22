@@ -293,9 +293,14 @@ func (v *MachineVM) SSH(name string, opts machine.SSHOptions) error {
 	sshDestination := v.RemoteUsername + "@localhost"
 	port := strconv.Itoa(v.Port)
 
-	fmt.Printf("Connecting to vm %s. To close connection, use `~.` or `exit`\n", v.Name)
+	args := []string{"-i", v.IdentityPath, "-p", port, sshDestination}
+	if opts.Execute {
+		args = append(args, opts.Args...)
+	} else {
+		fmt.Printf("Connecting to vm %s. To close connection, use `~.` or `exit`\n", v.Name)
+	}
 
-	cmd := exec.Command("ssh", "-i", v.IdentityPath, "-p", port, sshDestination)
+	cmd := exec.Command("ssh", args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin

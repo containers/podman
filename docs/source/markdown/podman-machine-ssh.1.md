@@ -4,7 +4,7 @@
 podman\-machine\-ssh - SSH into a virtual machine
 
 ## SYNOPSIS
-**podman machine ssh** *name*
+**podman machine ssh** [*options*] *name* [*command* [*arg* ...]]
 
 ## DESCRIPTION
 

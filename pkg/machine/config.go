@@ -42,7 +42,10 @@ type Download struct {
 	VMName                string
 }
 
-type SSHOptions struct{}
+type SSHOptions struct {
+	Execute bool
+	Args    []string
+}
 type StartOptions struct{}
 
 type StopOptions struct{}
