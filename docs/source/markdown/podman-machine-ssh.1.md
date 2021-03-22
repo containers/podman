@@ -16,14 +16,24 @@ tied to the Linux kernel.
 
 ## OPTIONS
 
+#### **--execute**, **-e**
+
+Execute the given command on the VM
+
 #### **--help**
 
 Print usage statement.
 
 ## EXAMPLES
 
+To get an interactive session with a VM called `myvm`:
 ```
 $ podman machine ssh myvm
+```
+
+To run a command on a VM called `myvm`:
+```
+$ podman machine ssh -e myvm -- rpm -q podman
 ```
 
 ## SEE ALSO

@@ -4,7 +4,7 @@
 podman\-machine\-create - Create a new virtual machine
 
 ## SYNOPSIS
-**podman machine create** [*options*] *name*
+**podman machine create** [*options*] [*name*]
 
 ## DESCRIPTION
 
@@ -33,10 +33,6 @@ Fully qualified path of the uncompressed image file
 #### **--memory**, **-m**=*number*
 
 Memory (in MB).
-
-#### **--name**
-
-Name to assign to the VM
 
 #### **--help**
 

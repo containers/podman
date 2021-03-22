@@ -31,10 +31,6 @@ func (v *MachineVM) archRemovalFiles() []string {
 	return []string{ovmDir}
 }
 
-func getDataDir() (string, error) {
-	return "/tmp", nil
-}
-
 func getOvmfDir(imagePath, vmName string) string {
 	return filepath.Join(filepath.Dir(imagePath), vmName+"_ovmf_vars.fd")
 }

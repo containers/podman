@@ -10,8 +10,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/containers/podman/v3/utils"
+
 	"github.com/containers/podman/v3/pkg/machine"
-	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/digitalocean/go-qemu/qmp"
 	"github.com/pkg/errors"
@@ -56,7 +57,7 @@ func NewMachine(opts machine.CreateOptions) (machine.VM, error) {
 	}
 
 	// Add a random port for ssh
-	port, err := specgen.GetRandomPort()
+	port, err := utils.GetRandomPort()
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +171,7 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 	attr := new(os.ProcAttr)
 	files := []*os.File{os.Stdin, os.Stdout, os.Stderr}
 	attr.Files = files
-	fmt.Print(v.CmdLine)
+	logrus.Debug(v.CmdLine)
 	_, err = os.StartProcess(v.CmdLine[0], v.CmdLine, attr)
 	return err
 }
@@ -211,22 +212,29 @@ func (v *MachineVM) Stop(name string, _ machine.StopOptions) error {
 
 // NewQMPMonitor creates the monitor subsection of our vm
 func NewQMPMonitor(network, name string, timeout time.Duration) (Monitor, error) {
-	rtDir, err := getDataDir()
+	rtDir, err := getSocketDir()
 	if err != nil {
 		return Monitor{}, err
+	}
+	rtDir = filepath.Join(rtDir, "podman")
+	if _, err := os.Stat(filepath.Join(rtDir)); os.IsNotExist(err) {
+		// TODO 0644 is fine on linux but macos is weird
+		if err := os.MkdirAll(rtDir, 0755); err != nil {
+			return Monitor{}, err
+		}
 	}
 	if timeout == 0 {
 		timeout = defaultQMPTimeout
 	}
 	monitor := Monitor{
 		Network: network,
-		Address: filepath.Join(rtDir, "podman", "qmp_"+name+".sock"),
+		Address: filepath.Join(rtDir, "qmp_"+name+".sock"),
 		Timeout: timeout,
 	}
 	return monitor, nil
 }
 
-func (v *MachineVM) Destroy(name string, opts machine.DestroyOptions) (string, func() error, error) {
+func (v *MachineVM) Remove(name string, opts machine.RemoveOptions) (string, func() error, error) {
 	var (
 		files []string
 	)

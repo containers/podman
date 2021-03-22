@@ -50,7 +50,7 @@ type StartOptions struct{}
 
 type StopOptions struct{}
 
-type DestroyOptions struct {
+type RemoveOptions struct {
 	Force        bool
 	SaveKeys     bool
 	SaveImage    bool
@@ -59,7 +59,7 @@ type DestroyOptions struct {
 
 type VM interface {
 	Create(opts CreateOptions) error
-	Destroy(name string, opts DestroyOptions) (string, func() error, error)
+	Remove(name string, opts RemoveOptions) (string, func() error, error)
 	SSH(name string, opts SSHOptions) error
 	Start(name string, opts StartOptions) error
 	Stop(name string, opts StopOptions) error
@@ -70,33 +70,18 @@ type DistributionDownload interface {
 	Get() *Download
 }
 
-// TODO is this even needed?
-type TestVM struct{}
-
-func (vm *TestVM) Create(opts CreateOptions) error {
-	return nil
-}
-
-func (vm *TestVM) Start(name string, opts StartOptions) error {
-	return nil
-}
-func (vm *TestVM) Stop(name string, opts StopOptions) error {
-	return nil
-}
-
 func (rc RemoteConnectionType) MakeSSHURL(host, path, port, userName string) url.URL {
 	userInfo := url.User(userName)
 	uri := url.URL{
-		Scheme:      "ssh",
-		Opaque:      "",
-		User:        userInfo,
-		Host:        host,
-		Path:        path,
-		RawPath:     "",
-		ForceQuery:  false,
-		RawQuery:    "",
-		Fragment:    "",
-		RawFragment: "",
+		Scheme:     "ssh",
+		Opaque:     "",
+		User:       userInfo,
+		Host:       host,
+		Path:       path,
+		RawPath:    "",
+		ForceQuery: false,
+		RawQuery:   "",
+		Fragment:   "",
 	}
 	if len(port) > 0 {
 		uri.Host = net.JoinHostPort(uri.Hostname(), port)

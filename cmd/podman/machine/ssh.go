@@ -1,7 +1,9 @@
+// +build amd64,linux amd64,darwin arm64,darwin
+
 package machine
 
 import (
-	"github.com/containers/common/pkg/completion"
+	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/machine"
@@ -14,13 +16,13 @@ var (
 	sshCmd = &cobra.Command{
 		Use:   "ssh [options] NAME [COMMAND [ARG ...]]",
 		Short: "SSH into a virtual machine",
-		Long:  "SSH into a podman-managed virtual machine ",
+		Long:  "SSH into a virtual machine ",
 		RunE:  ssh,
 		Args:  cobra.MinimumNArgs(1),
 		Example: `podman machine ssh myvm
   podman machine ssh -e  myvm echo hello`,
 
-		ValidArgsFunction: completion.AutocompleteNone,
+		ValidArgsFunction: common.AutocompleteMachineSSH,
 	}
 )
 
@@ -38,7 +40,6 @@ func init() {
 	flags := sshCmd.Flags()
 	executeFlagName := "execute"
 	flags.BoolVarP(&sshOpts.Execute, executeFlagName, "e", false, "Execute command from args")
-	_ = sshCmd.RegisterFlagCompletionFunc(executeFlagName, completion.AutocompleteDefault)
 }
 
 func ssh(cmd *cobra.Command, args []string) error {

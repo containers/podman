@@ -1,3 +1,5 @@
+// +build amd64,linux amd64,darwin arm64,darwin
+
 package machine
 
 import (
@@ -15,7 +17,7 @@ var (
 	machineCmd = &cobra.Command{
 		Use:                "machine",
 		Short:              "Manage a virtual machine",
-		Long:               "Manage a virtual machine. Virtual machines are used to run Podman on Macs.",
+		Long:               "Manage a virtual machine. Virtual machines are used to run Podman.",
 		PersistentPreRunE:  noOp,
 		PersistentPostRunE: noOp,
 		RunE:               validate.SubCommandExists,

@@ -1,3 +1,5 @@
+// +build amd64,linux amd64,darwin arm64,darwin
+
 package machine
 
 import (
@@ -6,17 +8,16 @@ import (
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/machine"
 	"github.com/containers/podman/v3/pkg/machine/qemu"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
 var (
 	createCmd = &cobra.Command{
-		Use:               "create [options] NAME",
+		Use:               "create [options] [NAME]",
 		Short:             "Create a vm",
-		Long:              "Create a virtual machine for Podman to run on. Virtual machines are used to run Podman on Macs. ",
+		Long:              "Create a virtual machine for Podman to run on. Virtual machines are used to run Podman.",
 		RunE:              create,
-		Args:              cobra.NoArgs,
+		Args:              cobra.MaximumNArgs(1),
 		Example:           `podman machine create myvm`,
 		ValidArgsFunction: completion.AutocompleteNone,
 	}
@@ -32,7 +33,8 @@ type CreateCLIOptions struct {
 }
 
 var (
-	createOpts = CreateCLIOptions{}
+	createOpts                = CreateCLIOptions{}
+	defaultMachineName string = "podman-machine-default"
 )
 
 func init() {
@@ -59,14 +61,6 @@ func init() {
 	)
 	_ = createCmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
 
-	deviceFlagName := "name"
-	flags.StringVar(
-		&createOpts.Name,
-		deviceFlagName, "",
-		"set vm name",
-	)
-	_ = createCmd.RegisterFlagCompletionFunc(deviceFlagName, completion.AutocompleteDefault)
-
 	ImagePathFlagName := "image-path"
 	flags.StringVar(&createOpts.ImagePath, ImagePathFlagName, "", "Path to qcow image")
 	_ = createCmd.RegisterFlagCompletionFunc(ImagePathFlagName, completion.AutocompleteDefault)
@@ -78,9 +72,9 @@ func init() {
 
 // TODO should we allow for a users to append to the qemu cmdline?
 func create(cmd *cobra.Command, args []string) error {
-	// TODO add ability to create default, not name required
-	if len(createOpts.Name) < 1 {
-		return errors.New("required --name not provided")
+	createOpts.Name = defaultMachineName
+	if len(args) > 0 {
+		createOpts.Name = args[0]
 	}
 	vmOpts := machine.CreateOptions{
 		CPUS:         createOpts.CPUS,
@@ -95,8 +89,6 @@ func create(cmd *cobra.Command, args []string) error {
 		err    error
 	)
 	switch vmType {
-	case "foobar":
-		// do nothing
 	default: // qemu is the default
 		vm, err = qemu.NewMachine(vmOpts)
 	}

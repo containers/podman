@@ -1,11 +1,7 @@
 package qemu
 
-import (
-	"github.com/containers/podman/v3/pkg/util"
-)
-
 var (
-	QemuCommand = "qemu-kvm"
+	QemuCommand = "qemu-system-x86_64"
 )
 
 func (v *MachineVM) addArchOptions() []string {
@@ -19,8 +15,4 @@ func (v *MachineVM) prepare() error {
 
 func (v *MachineVM) archRemovalFiles() []string {
 	return []string{}
-}
-
-func getDataDir() (string, error) {
-	return util.GetRuntimeDir()
 }

@@ -1,3 +1,5 @@
+// +build amd64,linux amd64,darwin arm64,darwin
+
 package machine
 
 import (
@@ -7,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/completion"
-	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/machine"
@@ -16,47 +17,43 @@ import (
 )
 
 var (
-	destroyCmd = &cobra.Command{
-		Use:               "destroy [options] NAME",
-		Short:             "Destroy an existing machine",
-		Long:              "Destroy an existing machine ",
-		RunE:              destroy,
+	removeCmd = &cobra.Command{
+		Use:               "remove [options] NAME",
+		Short:             "Remove an existing machine",
+		Long:              "Remove an existing machine ",
+		RunE:              remove,
 		Args:              cobra.ExactArgs(1),
-		Example:           `podman machine destroy myvm`,
+		Example:           `podman machine remove myvm`,
 		ValidArgsFunction: completion.AutocompleteNone,
 	}
 )
 
 var (
-	destoryOptions machine.DestroyOptions
+	destoryOptions machine.RemoveOptions
 )
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
-		Command: destroyCmd,
+		Command: removeCmd,
 		Parent:  machineCmd,
 	})
 
-	flags := destroyCmd.Flags()
+	flags := removeCmd.Flags()
 	formatFlagName := "force"
-	flags.BoolVar(&destoryOptions.Force, formatFlagName, false, "Do not prompt before destroying")
-	_ = destroyCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+	flags.BoolVar(&destoryOptions.Force, formatFlagName, false, "Do not prompt before removeing")
 
 	keysFlagName := "save-keys"
 	flags.BoolVar(&destoryOptions.SaveKeys, keysFlagName, false, "Do not delete SSH keys")
-	_ = destroyCmd.RegisterFlagCompletionFunc(keysFlagName, common.AutocompleteJSONFormat)
 
 	ignitionFlagName := "save-ignition"
 	flags.BoolVar(&destoryOptions.SaveIgnition, ignitionFlagName, false, "Do not delete ignition file")
-	_ = destroyCmd.RegisterFlagCompletionFunc(ignitionFlagName, common.AutocompleteJSONFormat)
 
 	imageFlagName := "save-image"
 	flags.BoolVar(&destoryOptions.SaveImage, imageFlagName, false, "Do not delete the image file")
-	_ = destroyCmd.RegisterFlagCompletionFunc(imageFlagName, common.AutocompleteJSONFormat)
 }
 
-func destroy(cmd *cobra.Command, args []string) error {
+func remove(cmd *cobra.Command, args []string) error {
 	var (
 		err    error
 		vm     machine.VM
@@ -69,7 +66,7 @@ func destroy(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	confirmationMessage, doIt, err := vm.Destroy(args[0], machine.DestroyOptions{})
+	confirmationMessage, doIt, err := vm.Remove(args[0], machine.RemoveOptions{})
 	if err != nil {
 		return err
 	}

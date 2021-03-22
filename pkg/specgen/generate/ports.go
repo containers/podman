@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/podman/v3/utils"
+
 	"github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -218,7 +220,7 @@ func parsePortMapping(portMappings []specgen.PortMapping) ([]ocicni.PortMapping,
 				// Only get a random candidate for single entries or the start
 				// of a range. Otherwise we just increment the candidate.
 				if !tmp.isInRange || tmp.startOfRange {
-					candidate, err = specgen.GetRandomPort()
+					candidate, err = utils.GetRandomPort()
 					if err != nil {
 						return nil, nil, nil, errors.Wrapf(err, "error getting candidate host port for container port %d", p.ContainerPort)
 					}
@@ -344,7 +346,7 @@ func createPortMappings(ctx context.Context, s *specgen.SpecGenerator, img *imag
 			for hostPort == 0 && tries > 0 {
 				// We can't select a specific protocol, which is
 				// unfortunate for the UDP case.
-				candidate, err := specgen.GetRandomPort()
+				candidate, err := utils.GetRandomPort()
 				if err != nil {
 					return nil, err
 				}

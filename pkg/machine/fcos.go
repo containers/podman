@@ -11,10 +11,8 @@ import (
 	"strings"
 
 	"github.com/containers/storage/pkg/archive"
-
-	"github.com/sirupsen/logrus"
-
 	digest "github.com/opencontainers/go-digest"
+	"github.com/sirupsen/logrus"
 )
 
 // These should eventually be moved into machine/qemu as
