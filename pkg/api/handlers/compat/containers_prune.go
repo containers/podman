@@ -9,23 +9,20 @@ import (
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/containers/podman/v3/pkg/domain/entities/reports"
 	"github.com/containers/podman/v3/pkg/domain/filters"
-	"github.com/gorilla/schema"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/pkg/errors"
 )
 
 func PruneContainers(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
-
-	query := struct {
-		Filters map[string][]string `schema:"filters"`
-	}{}
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+	filtersMap, err := util.PrepareFilters(r)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-	filterFuncs := make([]libpod.ContainerFilter, 0, len(query.Filters))
-	for k, v := range query.Filters {
+
+	filterFuncs := make([]libpod.ContainerFilter, 0, len(*filtersMap))
+	for k, v := range *filtersMap {
 		generatedFunc, err := filters.GenerateContainerFilterFuncs(k, v, runtime)
 		if err != nil {
 			utils.InternalServerError(w, err)
