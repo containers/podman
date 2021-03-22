@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/containers/podman/v3/libpod"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/pkg/errors"
 )
 
@@ -29,21 +30,9 @@ func GenerateVolumeFilters(filters url.Values) ([]libpod.VolumeFilter, error) {
 					return v.Scope() == scopeVal
 				})
 			case "label":
-				filterArray := strings.SplitN(val, "=", 2)
-				filterKey := filterArray[0]
-				var filterVal string
-				if len(filterArray) > 1 {
-					filterVal = filterArray[1]
-				} else {
-					filterVal = ""
-				}
+				filter := val
 				vf = append(vf, func(v *libpod.Volume) bool {
-					for labelKey, labelValue := range v.Labels() {
-						if labelKey == filterKey && (filterVal == "" || labelValue == filterVal) {
-							return true
-						}
-					}
-					return false
+					return util.MatchLabelFilters([]string{filter}, v.Labels())
 				})
 			case "opt":
 				filterArray := strings.SplitN(val, "=", 2)

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v3/pkg/inspect"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -78,23 +79,14 @@ func ReadOnlyFilter(readOnly bool) ResultFilter {
 }
 
 // LabelFilter allows you to filter by images labels key and/or value
-func LabelFilter(ctx context.Context, labelfilter string) ResultFilter {
+func LabelFilter(ctx context.Context, filter string) ResultFilter {
 	// We need to handle both label=key and label=key=value
 	return func(i *Image) bool {
-		var value string
-		splitFilter := strings.SplitN(labelfilter, "=", 2)
-		key := splitFilter[0]
-		if len(splitFilter) > 1 {
-			value = splitFilter[1]
-		}
 		labels, err := i.Labels(ctx)
 		if err != nil {
 			return false
 		}
-		if len(strings.TrimSpace(labels[key])) > 0 && len(strings.TrimSpace(value)) == 0 {
-			return true
-		}
-		return labels[key] == value
+		return util.MatchLabelFilters([]string{filter}, labels)
 	}
 }
 
