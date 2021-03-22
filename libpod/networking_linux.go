@@ -5,12 +5,14 @@ package libpod
 import (
 	"crypto/rand"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -24,6 +26,7 @@ import (
 	"github.com/containers/podman/v3/pkg/netns"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/util"
+	"github.com/containers/storage/pkg/lockfile"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -102,8 +105,9 @@ func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, port
 }
 
 type rootlessCNI struct {
-	ns  ns.NetNS
-	dir string
+	ns   ns.NetNS
+	dir  string
+	lock lockfile.Locker
 }
 
 func (r *rootlessCNI) Do(toRun func() error) error {
@@ -164,6 +168,66 @@ func (r *rootlessCNI) Do(toRun func() error) error {
 	return err
 }
 
+// cleanup the rootless cni namespace if needed
+// check if we have running containers with the bridge network mode
+func (r *rootlessCNI) cleanup(runtime *Runtime) error {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	running := func(c *Container) bool {
+		// we cannot use c.state() because it will try to lock the container
+		// using c.state.State directly should be good enough for this use case
+		state := c.state.State
+		return state == define.ContainerStateRunning
+	}
+	ctrs, err := runtime.GetContainersWithoutLock(running)
+	if err != nil {
+		return err
+	}
+	cleanup := true
+	for _, ctr := range ctrs {
+		if ctr.config.NetMode.IsBridge() {
+			cleanup = false
+		}
+	}
+	if cleanup {
+		// make sure the the cni results (cache) dir is empty
+		// libpod instances with another root dir are not covered by the check above
+		// this allows several libpod instances to use the same rootless cni ns
+		contents, err := ioutil.ReadDir(filepath.Join(r.dir, "var/lib/cni/results"))
+		if (err == nil && len(contents) == 0) || os.IsNotExist(err) {
+			logrus.Debug("Cleaning up rootless cni namespace")
+			err = netns.UnmountNS(r.ns)
+			if err != nil {
+				return err
+			}
+			// make the following errors not fatal
+			err = r.ns.Close()
+			if err != nil {
+				logrus.Error(err)
+			}
+			b, err := ioutil.ReadFile(filepath.Join(r.dir, "rootless-cni-slirp4netns.pid"))
+			if err == nil {
+				var i int
+				i, err = strconv.Atoi(string(b))
+				if err == nil {
+					// kill the slirp process so we do not leak it
+					err = syscall.Kill(i, syscall.SIGTERM)
+				}
+			}
+			if err != nil {
+				logrus.Errorf("failed to kill slirp4netns process: %s", err)
+			}
+			err = os.RemoveAll(r.dir)
+			if err != nil {
+				logrus.Error(err)
+			}
+		} else if err != nil && !os.IsNotExist(err) {
+			logrus.Errorf("could not read rootless cni directory, skipping cleanup: %s", err)
+		}
+	}
+	return nil
+}
+
 // getRootlessCNINetNs returns the rootless cni object. If create is set to true
 // the rootless cni namespace will be created if it does not exists already.
 func (r *Runtime) getRootlessCNINetNs(new bool) (*rootlessCNI, error) {
@@ -174,6 +238,18 @@ func (r *Runtime) getRootlessCNINetNs(new bool) (*rootlessCNI, error) {
 			return nil, err
 		}
 		cniDir := filepath.Join(runDir, "rootless-cni")
+		err = os.MkdirAll(cniDir, 0700)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not create rootless-cni directory")
+		}
+
+		lfile := filepath.Join(cniDir, "rootless-cni.lck")
+		lock, err := lockfile.GetLockfile(lfile)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get rootless-cni lockfile")
+		}
+		lock.Lock()
+		defer lock.Unlock()
 
 		nsDir, err := netns.GetNSRunDir()
 		if err != nil {
@@ -219,11 +295,7 @@ func (r *Runtime) getRootlessCNINetNs(new bool) (*rootlessCNI, error) {
 				if err != nil {
 					return nil, err
 				}
-				// the slirp4netns arguments being passed are describes as follows:
-				// from the slirp4netns documentation: https://github.com/rootless-containers/slirp4netns
-				// -c, --configure Brings up the tap interface
-				// -e, --exit-fd=FD specify the FD for terminating slirp4netns
-				// -r, --ready-fd=FD specify the FD to write to when the initialization steps are finished
+				// Note we do not use --exit-fd, we kill this process by pid
 				cmdArgs = append(cmdArgs, "-c", "-r", "3")
 				cmdArgs = append(cmdArgs, "--netns-type=path", ns.Path(), "tap0")
 
@@ -258,6 +330,14 @@ func (r *Runtime) getRootlessCNINetNs(new bool) (*rootlessCNI, error) {
 				if err := cmd.Start(); err != nil {
 					return nil, errors.Wrapf(err, "failed to start slirp4netns process")
 				}
+				// create pid file for the slirp4netns process
+				// this is need to kill the process in the cleanup
+				pid := strconv.Itoa(cmd.Process.Pid)
+				err = ioutil.WriteFile(filepath.Join(cniDir, "rootless-cni-slirp4netns.pid"), []byte(pid), 0700)
+				if err != nil {
+					errors.Wrap(err, "unable to write rootless-cni slirp4netns pid file")
+				}
+
 				defer func() {
 					if err := cmd.Process.Release(); err != nil {
 						logrus.Errorf("unable to release command process: %q", err)
@@ -303,8 +383,9 @@ func (r *Runtime) getRootlessCNINetNs(new bool) (*rootlessCNI, error) {
 		}
 
 		rootlessCNINS = &rootlessCNI{
-			ns:  ns,
-			dir: cniDir,
+			ns:   ns,
+			dir:  cniDir,
+			lock: lock,
 		}
 	}
 	return rootlessCNINS, nil
@@ -544,6 +625,9 @@ func (r *Runtime) teardownOCICNIPod(podNetwork ocicni.PodNetwork) error {
 	if rootlessCNINS != nil {
 		// execute the cni setup in the rootless net ns
 		err = rootlessCNINS.Do(tearDownPod)
+		if err == nil {
+			err = rootlessCNINS.cleanup(r)
+		}
 	} else {
 		err = tearDownPod()
 	}
