@@ -20,7 +20,7 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
-		Network   string `schema:"reference"`
+		Network   string `schema:"network"`
 		TLSVerify bool   `schema:"tlsVerify"`
 		LogDriver string `schema:"logDriver"`
 		Start     bool   `schema:"start"`
