@@ -481,7 +481,7 @@ func parseNetworkConfigurationPolicy(network string) buildah.NetworkConfiguratio
 	}
 }
 
-func parseLibPodIsolation(isolation string) buildah.Isolation {
+func parseLibPodIsolation(isolation string) buildah.Isolation { // nolint
 	if val, err := strconv.Atoi(isolation); err == nil {
 		return buildah.Isolation(val)
 	}
