@@ -1,3 +1,59 @@
+- Changelog for v3.1.0-rc2 (2021-03-23):
+  * Update release notes for v3.1.0-RC2
+  * Bump github.com/coreos/go-systemd/v22 from 22.1.0 to 22.3.0
+  * Fix system prune cmd user message with options
+  * System tests: reenable a bunch of skipped tests
+  * Cleanup /libpod/images/load handler
+  * vendor: drop replace for github.com/syndtr/gocapability
+  * security: use the bounding caps with --privileged
+  * Bump github.com/containers/common from 0.35.0 to 0.35.3
+  * Bump k8s.io/apimachinery from 0.20.4 to 0.20.5
+  * Fix volumes and networks list/prune filters in http api
+  * Bump github.com/containers/storage from 1.25.0 to 1.28.0
+  * add a dependabot config to automate vendoring
+  * Bump github.com/onsi/ginkgo from 1.15.1 to 1.15.2
+  * network prune filters for http compat and libpod api
+  * test: check for io.stat existence on cgroup v2
+  * test: fix test for last crun/runc
+  * test: simplify cgroup path
+  * Latest crun/runc should handle blkio-weight test
+  * fix user message image prune --all
+  * Docs: removing secrets is safe for in-use secrets
+  * Downgrade github.com/coreos/go-systemd/v22
+  * pkg/bindings/images.Build(): fix a race condition in error reporting
+  * Switch all builds to pull-never
+  * System test cleanup
+  * Fix for volumes prune in http compat api
+  * Fix remote client timezone test
+  * Do not leak libpod package into the remote client
+  * Split libpod/network package
+  * fix use with localhost (testing)
+  * add /auth for docker compatibility
+  * create endpoint for querying libpod networks
+  * Bump github.com/sirupsen/logrus from 1.8.0 to 1.8.1
+  * sdnotify tests: try real hard to kill socat processes
+  * Fix array instead of one elem network http api
+  * Delete all containers and pods between tests
+  * apiv2 tests: finally fix POST as originally intended
+  * Document CONTAINERS_CONF/CONTAINERS_STORAGE_CONF Env variables
+  * Removing a non existing container API should return 404
+  * Docs: Add docs to access APIs inside container
+  * options: append CLI graph driver options
+  * podman load: fix error handling
+  * podman cp: evaluate symlink correctly when copying from container
+  * rm pkg/api/handlers/libpod/copy.go
+  * podman cp: fix copying to a non-existent dir
+  * podman cp: fix ownership
+  * podman cp: ignore EPERMs in rootless mode
+  * vendor buildah@v1.19.8
+  * apiv2 tests: add helpers to start/stop a local registry
+  * Bump to v3.1.0-dev
+  * allow the removal of storage images
+  * podman-remote build does not support volumes
+  * Update nix pin with `make nixpkgs`
+  * Bump github.com/coreos/go-systemd/v22 from 22.1.0 to 22.2.0
+  * [Compat API] Also print successfully tagging images in /build endpoint
+
 - Changelog for v3.1.0-rc1 (2021-03-08)
   * Compat API: Avoid trying to create volumes if they already exist
   * Bump github.com/onsi/gomega from 1.10.5 to 1.11.0
