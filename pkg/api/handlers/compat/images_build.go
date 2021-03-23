@@ -69,7 +69,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		BuildArgs              string `schema:"buildargs"`
 		CacheFrom              string `schema:"cachefrom"`
 		Compression            uint64 `schema:"compression"`
-		ConfigureNetwork       int64  `schema:"networkmode"`
+		ConfigureNetwork       string `schema:"networkmode"`
 		CpuPeriod              uint64 `schema:"cpuperiod"`  // nolint
 		CpuQuota               int64  `schema:"cpuquota"`   // nolint
 		CpuSetCpus             string `schema:"cpusetcpus"` // nolint
@@ -84,7 +84,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		ForceRm                bool   `schema:"forcerm"`
 		From                   string `schema:"from"`
 		HTTPProxy              bool   `schema:"httpproxy"`
-		Isolation              int64  `schema:"isolation"`
+		Isolation              string `schema:"isolation"`
 		Ignore                 bool   `schema:"ignore"`
 		Jobs                   int    `schema:"jobs"` // nolint
 		Labels                 string `schema:"labels"`
@@ -205,9 +205,15 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		isolation := buildah.IsolationDefault
 	*/
 	if utils.IsLibpodRequest(r) {
-		//		isolation = buildah.Isolation(query.Isolation)
+		// isolation = parseLibPodIsolation(query.Isolation)
 		registry = ""
 		format = query.OutputFormat
+	} else {
+		if _, found := r.URL.Query()["isolation"]; found {
+			if query.Isolation != "" && query.Isolation != "default" {
+				logrus.Debugf("invalid `isolation` parameter: %q", query.Isolation)
+			}
+		}
 	}
 	var additionalTags []string
 	if len(query.Tag) > 1 {
@@ -329,7 +335,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		CNIConfigDir:                   rtc.Network.CNIPluginDirs[0],
 		CNIPluginPath:                  util.DefaultCNIPluginPath,
 		Compression:                    compression,
-		ConfigureNetwork:               buildah.NetworkConfigurationPolicy(query.ConfigureNetwork),
+		ConfigureNetwork:               parseNetworkConfigurationPolicy(query.ConfigureNetwork),
 		ContextDirectory:               contextDirectory,
 		Devices:                        devices,
 		DropCapabilities:               dropCaps,
@@ -456,6 +462,40 @@ loop:
 			}
 			break loop
 		}
+	}
+}
+
+func parseNetworkConfigurationPolicy(network string) buildah.NetworkConfigurationPolicy {
+	if val, err := strconv.Atoi(network); err == nil {
+		return buildah.NetworkConfigurationPolicy(val)
+	}
+	switch network {
+	case "NetworkDefault":
+		return buildah.NetworkDefault
+	case "NetworkDisabled":
+		return buildah.NetworkDisabled
+	case "NetworkEnabled":
+		return buildah.NetworkEnabled
+	default:
+		return buildah.NetworkDefault
+	}
+}
+
+func parseLibPodIsolation(isolation string) buildah.Isolation {
+	if val, err := strconv.Atoi(isolation); err == nil {
+		return buildah.Isolation(val)
+	}
+	switch isolation {
+	case "IsolationDefault", "default":
+		return buildah.IsolationDefault
+	case "IsolationOCI":
+		return buildah.IsolationOCI
+	case "IsolationChroot":
+		return buildah.IsolationChroot
+	case "IsolationOCIRootless":
+		return buildah.IsolationOCIRootless
+	default:
+		return buildah.IsolationDefault
 	}
 }
 
