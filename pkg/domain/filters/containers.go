@@ -165,7 +165,7 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 			return false
 		}, nil
 	case "until":
-		until, err := util.ComputeUntilTimestamp(filter, filterValues)
+		until, err := util.ComputeUntilTimestamp(filterValues)
 		if err != nil {
 			return nil, err
 		}

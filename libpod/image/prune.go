@@ -3,11 +3,9 @@ package image
 import (
 	"context"
 	"strings"
-	"time"
 
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/pkg/domain/entities/reports"
-	"github.com/containers/podman/v3/pkg/timetype"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
@@ -26,15 +24,10 @@ func generatePruneFilterFuncs(filter, filterValue string) (ImageFilter, error) {
 		}, nil
 
 	case "until":
-		ts, err := timetype.GetTimestamp(filterValue, time.Now())
+		until, err := util.ComputeUntilTimestamp([]string{filterValue})
 		if err != nil {
 			return nil, err
 		}
-		seconds, nanoseconds, err := timetype.ParseTimestamps(ts, 0)
-		if err != nil {
-			return nil, err
-		}
-		until := time.Unix(seconds, nanoseconds)
 		return func(i *Image) bool {
 			if !until.IsZero() && i.Created().After((until)) {
 				return true
