@@ -116,7 +116,7 @@ func tryMappingTool(uid bool, pid int, hostID int, mappings []idtools.IDMap) err
 	}
 	path, err := exec.LookPath(tool)
 	if err != nil {
-		return errors.Wrapf(err, "cannot find %s", tool)
+		return errors.Wrapf(err, "command required for rootless mode with multiple IDs")
 	}
 
 	appendTriplet := func(l []string, a, b, c int) []string {

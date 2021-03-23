@@ -203,12 +203,12 @@ Rootless Podman requires the newuidmap and newgidmap programs to be installed.
 
 #### Symptom
 
-If you are running Podman or buildah as a not root user, you get an error complaining about
+If you are running Podman or Buildah as a rootless user, you get an error complaining about
 a missing newuidmap executable.
 
 ```
 podman run -ti fedora sh
-cannot find newuidmap: exec: "newuidmap": executable file not found in $PATH
+command required for rootless mode with multiple IDs: exec: "newuidmap": executable file not found in $PATH
 ```
 
 #### Solution
