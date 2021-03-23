@@ -1,6 +1,8 @@
 package util
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestMatchLabelFilters(t *testing.T) {
 	testLabels := map[string]string{
@@ -71,6 +73,40 @@ func TestMatchLabelFilters(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := MatchLabelFilters(tt.args.filterValues, tt.args.labels); got != tt.want {
 				t.Errorf("MatchLabelFilters() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestComputeUntilTimestamp(t *testing.T) {
+	tests := []struct {
+		name    string
+		args    []string
+		wantErr bool
+	}{
+		{
+			name:    "Return error when more values in list",
+			args:    []string{"5h", "6s"},
+			wantErr: true,
+		},
+		{
+			name:    "Return error when invalid time",
+			args:    []string{"invalidTime"},
+			wantErr: true,
+		},
+		{
+			name:    "Do not return error when correct time format supplied",
+			args:    []string{"44m"},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := ComputeUntilTimestamp(tt.args)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ComputeUntilTimestamp() error = %v, wantErr %v", err, tt.wantErr)
+				return
 			}
 		})
 	}

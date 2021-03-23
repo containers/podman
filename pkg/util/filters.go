@@ -12,10 +12,10 @@ import (
 )
 
 // ComputeUntilTimestamp extracts until timestamp from filters
-func ComputeUntilTimestamp(filter string, filterValues []string) (time.Time, error) {
+func ComputeUntilTimestamp(filterValues []string) (time.Time, error) {
 	invalid := time.Time{}
 	if len(filterValues) != 1 {
-		return invalid, errors.Errorf("specify exactly one timestamp for %s", filter)
+		return invalid, errors.Errorf("specify exactly one timestamp for until")
 	}
 	ts, err := timetype.GetTimestamp(filterValues[0], time.Now())
 	if err != nil {

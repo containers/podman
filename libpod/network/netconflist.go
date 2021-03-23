@@ -262,7 +262,7 @@ func IfPassesPruneFilter(config *config.Config, netconf *libcni.NetworkConfigLis
 		case "label":
 			return util.MatchLabelFilters(filterValues, GetNetworkLabels(netconf)), nil
 		case "until":
-			until, err := util.ComputeUntilTimestamp(key, filterValues)
+			until, err := util.ComputeUntilTimestamp(filterValues)
 			if err != nil {
 				return false, err
 			}
