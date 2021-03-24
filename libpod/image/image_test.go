@@ -13,6 +13,7 @@ import (
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/opencontainers/go-digest"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -106,7 +107,7 @@ func TestImage_NewFromLocal(t *testing.T) {
 		assert.NoError(t, err)
 		for _, name := range image.names {
 			newImage, err := ir.NewFromLocal(name)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, newImage.ID(), image.img.ID())
 		}
 	}
@@ -141,7 +142,7 @@ func TestImage_New(t *testing.T) {
 	// after the pull
 	for _, img := range names {
 		newImage, err := ir.New(context.Background(), img, "", "", writer, nil, SigningOptions{}, nil, util.PullImageMissing, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEqual(t, newImage.ID(), "")
 		err = newImage.Remove(context.Background(), false)
 		assert.NoError(t, err)
@@ -167,14 +168,14 @@ func TestImage_MatchRepoTag(t *testing.T) {
 		GraphRoot: workdir,
 	}
 	ir, err := NewImageRuntimeFromOptions(so)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	ir.Eventer = events.NewNullEventer()
 	newImage, err := ir.New(context.Background(), "busybox", "", "", os.Stdout, nil, SigningOptions{}, nil, util.PullImageMissing, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	err = newImage.TagImage("foo:latest")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	err = newImage.TagImage("foo:bar")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Tests start here.
 	for _, name := range bbNames {
@@ -187,12 +188,12 @@ func TestImage_MatchRepoTag(t *testing.T) {
 
 	// foo should resolve to foo:latest
 	repoTag, err := newImage.MatchRepoTag("foo")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "localhost/foo:latest", repoTag)
 
 	// foo:bar should resolve to foo:bar
 	repoTag, err = newImage.MatchRepoTag("foo:bar")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "localhost/foo:bar", repoTag)
 	// Shutdown the runtime and remove the temporary storage
 	cleanup(workdir, ir)
@@ -201,9 +202,7 @@ func TestImage_MatchRepoTag(t *testing.T) {
 // TestImage_RepoDigests tests RepoDigest generation.
 func TestImage_RepoDigests(t *testing.T) {
 	dgst, err := digest.Parse("sha256:7173b809ca12ec5dee4506cd86be934c4596dd234ee82c0662eac04a8c2c71dc")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	for _, tt := range []struct {
 		name     string
@@ -235,10 +234,7 @@ func TestImage_RepoDigests(t *testing.T) {
 				},
 			}
 			actual, err := image.RepoDigests()
-			if err != nil {
-				t.Fatal(err)
-			}
-
+			require.NoError(t, err)
 			assert.Equal(t, test.expected, actual)
 
 			image = &Image{
@@ -248,10 +244,7 @@ func TestImage_RepoDigests(t *testing.T) {
 				},
 			}
 			actual, err = image.RepoDigests()
-			if err != nil {
-				t.Fatal(err)
-			}
-
+			require.NoError(t, err)
 			assert.Equal(t, test.expected, actual)
 		})
 	}
