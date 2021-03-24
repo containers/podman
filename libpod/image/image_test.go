@@ -95,6 +95,8 @@ func TestImage_NewFromLocal(t *testing.T) {
 	// Need images to be present for this test
 	ir, err := NewImageRuntimeFromOptions(so)
 	assert.NoError(t, err)
+	defer cleanup(workdir, ir)
+
 	ir.Eventer = events.NewNullEventer()
 	bb, err := ir.New(context.Background(), "docker.io/library/busybox:latest", "", "", writer, nil, SigningOptions{}, nil, util.PullImageMissing, nil)
 	assert.NoError(t, err)
@@ -112,9 +114,6 @@ func TestImage_NewFromLocal(t *testing.T) {
 			assert.Equal(t, newImage.ID(), image.img.ID())
 		}
 	}
-
-	// Shutdown the runtime and remove the temporary storage
-	cleanup(workdir, ir)
 }
 
 // TestImage_New tests pulling the image by various names, tags, and from
@@ -127,13 +126,14 @@ func TestImage_New(t *testing.T) {
 	var names []string
 	workdir, err := mkWorkDir()
 	assert.NoError(t, err)
-
 	so := storage.StoreOptions{
 		RunRoot:   workdir,
 		GraphRoot: workdir,
 	}
 	ir, err := NewImageRuntimeFromOptions(so)
 	assert.NoError(t, err)
+	defer cleanup(workdir, ir)
+
 	ir.Eventer = events.NewNullEventer()
 	// Build the list of pull names
 	names = append(names, bbNames...)
@@ -148,9 +148,6 @@ func TestImage_New(t *testing.T) {
 		err = newImage.Remove(context.Background(), false)
 		assert.NoError(t, err)
 	}
-
-	// Shutdown the runtime and remove the temporary storage
-	cleanup(workdir, ir)
 }
 
 // TestImage_MatchRepoTag tests the various inputs we need to match
@@ -163,13 +160,14 @@ func TestImage_MatchRepoTag(t *testing.T) {
 	//Set up
 	workdir, err := mkWorkDir()
 	assert.NoError(t, err)
-
 	so := storage.StoreOptions{
 		RunRoot:   workdir,
 		GraphRoot: workdir,
 	}
 	ir, err := NewImageRuntimeFromOptions(so)
 	require.NoError(t, err)
+	defer cleanup(workdir, ir)
+
 	ir.Eventer = events.NewNullEventer()
 	newImage, err := ir.New(context.Background(), "busybox", "", "", os.Stdout, nil, SigningOptions{}, nil, util.PullImageMissing, nil)
 	require.NoError(t, err)
@@ -196,8 +194,6 @@ func TestImage_MatchRepoTag(t *testing.T) {
 	repoTag, err = newImage.MatchRepoTag("foo:bar")
 	require.NoError(t, err)
 	assert.Equal(t, "localhost/foo:bar", repoTag)
-	// Shutdown the runtime and remove the temporary storage
-	cleanup(workdir, ir)
 }
 
 // TestImage_RepoDigests tests RepoDigest generation.
