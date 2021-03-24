@@ -138,11 +138,14 @@ func TestImage_New(t *testing.T) {
 	names = append(names, bbNames...)
 	writer := os.Stdout
 
+	opts := DockerRegistryOptions{
+		RegistriesConfPath: "testdata/registries.conf",
+	}
 	// Iterate over the names and delete the image
 	// after the pull
 	for _, img := range names {
-		newImage, err := ir.New(context.Background(), img, "", "", writer, nil, SigningOptions{}, nil, util.PullImageMissing, nil)
-		require.NoError(t, err)
+		newImage, err := ir.New(context.Background(), img, "", "", writer, &opts, SigningOptions{}, nil, util.PullImageMissing, nil)
+		require.NoError(t, err, img)
 		assert.NotEqual(t, newImage.ID(), "")
 		err = newImage.Remove(context.Background(), false)
 		assert.NoError(t, err)
@@ -167,8 +170,11 @@ func TestImage_MatchRepoTag(t *testing.T) {
 	require.NoError(t, err)
 	defer cleanup(workdir, ir)
 
+	opts := DockerRegistryOptions{
+		RegistriesConfPath: "testdata/registries.conf",
+	}
 	ir.Eventer = events.NewNullEventer()
-	newImage, err := ir.New(context.Background(), "busybox", "", "", os.Stdout, nil, SigningOptions{}, nil, util.PullImageMissing, nil)
+	newImage, err := ir.New(context.Background(), "busybox", "", "", os.Stdout, &opts, SigningOptions{}, nil, util.PullImageMissing, nil)
 	require.NoError(t, err)
 	err = newImage.TagImage("foo:latest")
 	require.NoError(t, err)
