@@ -32,8 +32,10 @@ func (v *Volume) mount() error {
 		return nil
 	}
 
-	// We cannot mount volumes as rootless.
-	if rootless.IsRootless() {
+	// We cannot mount 'local' volumes as rootless.
+	if !v.UsesVolumeDriver() && rootless.IsRootless() {
+		// This check should only be applied to 'local' driver
+		// so Volume Drivers must be excluded
 		return errors.Wrapf(define.ErrRootless, "cannot mount volumes without root privileges")
 	}
 
@@ -137,8 +139,8 @@ func (v *Volume) unmount(force bool) error {
 		return nil
 	}
 
-	// We cannot unmount volumes as rootless.
-	if rootless.IsRootless() {
+	// We cannot unmount 'local' volumes as rootless.
+	if !v.UsesVolumeDriver() && rootless.IsRootless() {
 		// If force is set, just clear the counter and bail without
 		// error, so we can remove volumes from the state if they are in
 		// an awkward configuration.
