@@ -245,6 +245,7 @@ func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName s
 		sc.OSChoice = dockerOptions.OSChoice
 		sc.ArchitectureChoice = dockerOptions.ArchitectureChoice
 		sc.VariantChoice = dockerOptions.VariantChoice
+		sc.SystemRegistriesConfPath = dockerOptions.RegistriesConfPath
 	}
 	if signaturePolicyPath == "" {
 		sc.SignaturePolicyPath = ir.SignaturePolicyPath
@@ -306,7 +307,12 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 		}
 	}()
 
-	systemRegistriesConfPath := registries.SystemRegistriesConfPath()
+	var systemRegistriesConfPath string
+	if dockerOptions != nil && dockerOptions.RegistriesConfPath != "" {
+		systemRegistriesConfPath = dockerOptions.RegistriesConfPath
+	} else {
+		systemRegistriesConfPath = registries.SystemRegistriesConfPath()
+	}
 
 	var (
 		images     []string
