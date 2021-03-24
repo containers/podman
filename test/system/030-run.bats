@@ -668,4 +668,15 @@ json-file | f
     is "$output" ".*HOME=/.*"
 }
 
+@test "podman run --tty -i failure with no tty" {
+    run_podman run --tty -i --rm $IMAGE echo hello < /dev/null
+    is "$output" ".*The input device is not a TTY.*"
+
+    run_podman run --tty=false -i --rm $IMAGE echo hello < /dev/null
+    is "$output" "hello"
+
+    run_podman run --tty -i=false --rm $IMAGE echo hello < /dev/null
+    is "$output" "hello"
+}
+
 # vim: filetype=sh
