@@ -422,6 +422,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			newMount.Options = append(newMount.Options, "ro", "nosuid", "noexec", "nodev")
 		}
 		if !MountExists(g.Mounts(), dstPath) {
+			logrus.Warnf("Mounting %q to %q", srcPath, dstPath)
 			g.AddMount(newMount)
 		} else {
 			logrus.Infof("User mount overriding libpod mount at %q", dstPath)
@@ -691,6 +692,11 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 	if !foundContainerEnv {
 		g.AddProcessEnv("container", "libpod")
+	}
+
+	// Set notify
+	if c.config.SdNotifyMode == define.SdNotifyModeContainer {
+		g.AddProcessEnv("NOTIFY_SOCKET", "/run/notify/notify.sock")
 	}
 
 	cgroupPath, err := c.getOCICgroupPath()
@@ -1624,6 +1630,25 @@ rootless=%d
 			c.state.BindMounts[dest] = src
 		}
 	}
+
+	// Bind notify proxy
+	if c.config.SdNotifyMode == define.SdNotifyModeContainer {
+		notifyDir := filepath.Join(c.bundlePath(), "notify")
+		logrus.Debugf("checking notify %q dir", notifyDir)
+		if err := os.MkdirAll(notifyDir, 0755); err != nil {
+			if !os.IsExist(err) {
+				return errors.Wrapf(err, "unable to create notify %q dir", notifyDir)
+			}
+		}
+		if err := label.Relabel(notifyDir, c.MountLabel(), true); err != nil {
+			return errors.Wrapf(err, "relabel failed %q", notifyDir)
+		}
+		logrus.Debugf("add bindmount notify %q dir", notifyDir)
+		if _, ok := c.state.BindMounts["/run/notify"]; !ok {
+			c.state.BindMounts["/run/notify"] = notifyDir
+		}
+	}
+
 	return nil
 }
 
