@@ -225,7 +225,7 @@ func IfPassesFilter(netconf *libcni.NetworkConfigList, filters map[string][]stri
 
 		case "label":
 			// matches all labels
-			result = matchPruneLabelFilters(netconf, filterValues)
+			result = util.MatchLabelFilters(filterValues, GetNetworkLabels(netconf))
 
 		case "driver":
 			// matches only for the DefaultNetworkDriver
@@ -260,9 +260,9 @@ func IfPassesPruneFilter(config *config.Config, netconf *libcni.NetworkConfigLis
 	for key, filterValues := range f {
 		switch strings.ToLower(key) {
 		case "label":
-			return matchPruneLabelFilters(netconf, filterValues), nil
+			return util.MatchLabelFilters(filterValues, GetNetworkLabels(netconf)), nil
 		case "until":
-			until, err := util.ComputeUntilTimestamp(key, filterValues)
+			until, err := util.ComputeUntilTimestamp(filterValues)
 			if err != nil {
 				return false, err
 			}
@@ -278,29 +278,6 @@ func IfPassesPruneFilter(config *config.Config, netconf *libcni.NetworkConfigLis
 		}
 	}
 	return false, nil
-}
-
-func matchPruneLabelFilters(netconf *libcni.NetworkConfigList, filterValues []string) bool {
-	labels := GetNetworkLabels(netconf)
-	result := true
-outer:
-	for _, filterValue := range filterValues {
-		filterArray := strings.SplitN(filterValue, "=", 2)
-		filterKey := filterArray[0]
-		if len(filterArray) > 1 {
-			filterValue = filterArray[1]
-		} else {
-			filterValue = ""
-		}
-		for labelKey, labelValue := range labels {
-			if labelKey == filterKey && (filterValue == "" || labelValue == filterValue) {
-				result = true
-				continue outer
-			}
-		}
-		result = false
-	}
-	return result
 }
 
 func getCreatedTimestamp(config *config.Config, netconf *libcni.NetworkConfigList) (*time.Time, error) {
