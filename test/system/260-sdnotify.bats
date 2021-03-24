@@ -130,6 +130,8 @@ function _assert_mainpid_is_conmon() {
     _stop_socat
 }
 
+# These tests can fail in dev. environment because of SELinux.
+# quick fix: chcon -t container_runtime_exec_t ./bin/podman
 @test "sdnotify : container" {
     # Sigh... we need to pull a humongous image because it has systemd-notify.
     # (IMPORTANT: fedora:32 and above silently removed systemd-notify; this
@@ -150,7 +152,7 @@ function _assert_mainpid_is_conmon() {
     wait_for_ready $cid
 
     run_podman logs $cid
-    is "${lines[0]}" "/.*/container\.sock/notify" "NOTIFY_SOCKET is passed to container"
+    is "${lines[0]}" "/run/notify/notify.sock" "NOTIFY_SOCKET is passed to container"
 
     # With container, READY=1 isn't necessarily the last message received;
     # just look for it anywhere in received messages

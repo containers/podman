@@ -364,11 +364,6 @@ func (r *ConmonOCIRuntime) StartContainer(ctr *Container) error {
 		return err
 	}
 	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
-	if ctr.config.SdNotifyMode == define.SdNotifyModeContainer {
-		if notify, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
-			env = append(env, fmt.Sprintf("NOTIFY_SOCKET=%s", notify))
-		}
-	}
 	if path, ok := os.LookupEnv("PATH"); ok {
 		env = append(env, fmt.Sprintf("PATH=%s", path))
 	}
@@ -1014,18 +1009,16 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		}
 	}
 
-	if ctr.config.SdNotifyMode == define.SdNotifyModeIgnore {
-		if err := os.Unsetenv("NOTIFY_SOCKET"); err != nil {
-			logrus.Warnf("Error unsetting NOTIFY_SOCKET %v", err)
-		}
-	}
-
 	pidfile := ctr.config.PidFile
 	if pidfile == "" {
 		pidfile = filepath.Join(ctr.state.RunDir, "pidfile")
 	}
 
 	args := r.sharedConmonArgs(ctr, ctr.ID(), ctr.bundlePath(), pidfile, ctr.LogPath(), r.exitsDir, ociLog, ctr.LogDriver(), logTag)
+
+	if ctr.config.SdNotifyMode == define.SdNotifyModeContainer && ctr.notifySocket != "" {
+		args = append(args, fmt.Sprintf("--sdnotify-socket=%s", ctr.notifySocket))
+	}
 
 	if ctr.config.Spec.Process.Terminal {
 		args = append(args, "-t")
@@ -1171,7 +1164,8 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		}
 	}
 
-	err = startCommandGivenSelinux(cmd)
+	err = startCommandGivenSelinux(cmd, ctr)
+
 	// regardless of whether we errored or not, we no longer need the children pipes
 	childSyncPipe.Close()
 	childStartPipe.Close()
@@ -1203,7 +1197,13 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		// conmon not having a pid file is a valid state, so don't set it if we don't have it
 		logrus.Infof("Got Conmon PID as %d", conmonPID)
 		ctr.state.ConmonPID = conmonPID
-		if ctr.config.SdNotifyMode != define.SdNotifyModeIgnore {
+
+		// Send the MAINPID via sdnotify if needed.
+		switch ctr.config.SdNotifyMode {
+		case define.SdNotifyModeContainer, define.SdNotifyModeIgnore:
+		// Nothing to do or conmon takes care of it already.
+
+		default:
 			if sent, err := daemon.SdNotify(false, fmt.Sprintf("MAINPID=%d", conmonPID)); err != nil {
 				logrus.Errorf("Error notifying systemd of Conmon PID: %v", err)
 			} else if sent {
@@ -1239,11 +1239,6 @@ func (r *ConmonOCIRuntime) configureConmonEnv(ctr *Container, runtimeDir string)
 	}
 
 	extraFiles := make([]*os.File, 0)
-	if ctr.config.SdNotifyMode == define.SdNotifyModeContainer {
-		if notify, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
-			env = append(env, fmt.Sprintf("NOTIFY_SOCKET=%s", notify))
-		}
-	}
 	if !r.sdNotify {
 		if listenfds, ok := os.LookupEnv("LISTEN_FDS"); ok {
 			env = append(env, fmt.Sprintf("LISTEN_FDS=%s", listenfds), "LISTEN_PID=1")
@@ -1335,7 +1330,23 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 
 // startCommandGivenSelinux starts a container ensuring to set the labels of
 // the process to make sure SELinux doesn't block conmon communication, if SELinux is enabled
-func startCommandGivenSelinux(cmd *exec.Cmd) error {
+func startCommandGivenSelinux(cmd *exec.Cmd, ctr *Container) error {
+	// Make sure to unset the NOTIFY_SOCKET and reset if afterwards if needed.
+	switch ctr.config.SdNotifyMode {
+	case define.SdNotifyModeContainer, define.SdNotifyModeIgnore:
+		if ctr.notifySocket != "" {
+			if err := os.Unsetenv("NOTIFY_SOCKET"); err != nil {
+				logrus.Warnf("Error unsetting NOTIFY_SOCKET %v", err)
+			}
+
+			defer func() {
+				if err := os.Setenv("NOTIFY_SOCKET", ctr.notifySocket); err != nil {
+					logrus.Errorf("Error resetting NOTIFY_SOCKET=%s", ctr.notifySocket)
+				}
+			}()
+		}
+	}
+
 	if !selinux.GetEnabled() {
 		return cmd.Start()
 	}
