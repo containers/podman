@@ -352,6 +352,10 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		return nil, err
 	}
 
+	if err := c.mountNotifySocket(g); err != nil {
+		return nil, err
+	}
+
 	// Get host UID and GID based on the container process UID and GID.
 	hostUID, hostGID, err := butil.GetHostIDs(util.IDtoolsToRuntimeSpec(c.config.IDMappings.UIDMap), util.IDtoolsToRuntimeSpec(c.config.IDMappings.GIDMap), uint32(execUser.Uid), uint32(execUser.Gid))
 	if err != nil {
@@ -775,6 +779,41 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	return g.Config, nil
+}
+
+// mountNotifySocket mounts the NOTIFY_SOCKET into the container if it's set
+// and if the sdnotify mode is set to container.  It also sets c.notifySocket
+// to avoid redundantly looking up the env variable.
+func (c *Container) mountNotifySocket(g generate.Generator) error {
+	notify, ok := os.LookupEnv("NOTIFY_SOCKET")
+	if !ok {
+		return nil
+	}
+	c.notifySocket = notify
+
+	if c.config.SdNotifyMode != define.SdNotifyModeContainer {
+		return nil
+	}
+
+	notifyDir := filepath.Join(c.bundlePath(), "notify")
+	logrus.Debugf("checking notify %q dir", notifyDir)
+	if err := os.MkdirAll(notifyDir, 0755); err != nil {
+		if !os.IsExist(err) {
+			return errors.Wrapf(err, "unable to create notify %q dir", notifyDir)
+		}
+	}
+	if err := label.Relabel(notifyDir, c.MountLabel(), true); err != nil {
+		return errors.Wrapf(err, "relabel failed %q", notifyDir)
+	}
+	logrus.Debugf("add bindmount notify %q dir", notifyDir)
+	if _, ok := c.state.BindMounts["/run/notify"]; !ok {
+		c.state.BindMounts["/run/notify"] = notifyDir
+	}
+
+	// Set the container's notify socket to the proxy socket created by conmon
+	g.AddProcessEnv("NOTIFY_SOCKET", "/run/notify/notify.sock")
+
+	return nil
 }
 
 // systemd expects to have /run, /run/lock and /tmp on tmpfs
@@ -1730,6 +1769,7 @@ rootless=%d
 			c.state.BindMounts[dest] = src
 		}
 	}
+
 	return nil
 }
 

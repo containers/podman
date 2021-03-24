@@ -462,7 +462,7 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 		Setpgid: true,
 	}
 
-	err = startCommandGivenSelinux(execCmd)
+	err = startCommandGivenSelinux(execCmd, c)
 
 	// We don't need children pipes  on the parent side
 	errorhandling.CloseQuiet(childSyncPipe)
