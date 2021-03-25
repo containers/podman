@@ -22,6 +22,7 @@ import (
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
 	"github.com/containers/podman/v3/pkg/errorhandling"
+	"github.com/containers/podman/v3/pkg/util"
 	utils2 "github.com/containers/podman/v3/utils"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
@@ -125,31 +126,32 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
-		All     bool                `schema:"all"`
-		Filters map[string][]string `schema:"filters"`
+		All bool `schema:"all"`
 	}{
 		// override any golang type defaults
 	}
 
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+	filterMap, err := util.PrepareFilters(r)
+
+	if dErr := decoder.Decode(&query, r.URL.Query()); dErr != nil || err != nil {
+		utils.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError,
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
 	var libpodFilters = []string{}
 	if _, found := r.URL.Query()["filters"]; found {
-		dangling := query.Filters["all"]
+		dangling := (*filterMap)["all"]
 		if len(dangling) > 0 {
-			query.All, err = strconv.ParseBool(query.Filters["all"][0])
+			query.All, err = strconv.ParseBool((*filterMap)["all"][0])
 			if err != nil {
 				utils.InternalServerError(w, err)
 				return
 			}
 		}
 		// dangling is special and not implemented in the libpod side of things
-		delete(query.Filters, "dangling")
-		for k, v := range query.Filters {
+		delete(*filterMap, "dangling")
+		for k, v := range *filterMap {
 			libpodFilters = append(libpodFilters, fmt.Sprintf("%s=%s", k, v[0]))
 		}
 	}
