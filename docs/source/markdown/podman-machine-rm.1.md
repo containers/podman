@@ -1,17 +1,17 @@
-% podman-machine-remove(1)
+% podman-machine-rm(1)
 
 ## NAME
-podman\-machine\-remove - Remove a virtual machine
+podman\-machine\-rm - Remove a virtual machine
 
 ## SYNOPSIS
-**podman machine remove** [*options*] *name*
+**podman machine rm** [*options*] [*name*]
 
 ## DESCRIPTION
 
 Remove a virtual machine and its related files.  What is actually deleted
 depends on the virtual machine type.  For all virtual machines, the generated
 SSH keys and the podman system connection are deleted.  The ignition files
-generated for that VM are also removeed as is its image file on the filesystem.
+generated for that VM are also removed as is its image file on the filesystem.
 
 Users get a display of what will be deleted and are required to confirm unless the option `--force`
 is used.
@@ -45,7 +45,7 @@ deleted.
 Remove a VM named "test1"
 
 ```
-$ podman machine remove test1
+$ podman machine rm test1
 
 The following files will be deleted:
 

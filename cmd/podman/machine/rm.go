@@ -17,13 +17,13 @@ import (
 )
 
 var (
-	removeCmd = &cobra.Command{
-		Use:               "remove [options] NAME",
+	rmCmd = &cobra.Command{
+		Use:               "rm [options] [NAME]",
 		Short:             "Remove an existing machine",
 		Long:              "Remove an existing machine ",
-		RunE:              remove,
-		Args:              cobra.ExactArgs(1),
-		Example:           `podman machine remove myvm`,
+		RunE:              rm,
+		Args:              cobra.MaximumNArgs(1),
+		Example:           `podman machine rm myvm`,
 		ValidArgsFunction: completion.AutocompleteNone,
 	}
 )
@@ -35,13 +35,13 @@ var (
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
-		Command: removeCmd,
+		Command: rmCmd,
 		Parent:  machineCmd,
 	})
 
-	flags := removeCmd.Flags()
+	flags := rmCmd.Flags()
 	formatFlagName := "force"
-	flags.BoolVar(&destoryOptions.Force, formatFlagName, false, "Do not prompt before removeing")
+	flags.BoolVar(&destoryOptions.Force, formatFlagName, false, "Do not prompt before rming")
 
 	keysFlagName := "save-keys"
 	flags.BoolVar(&destoryOptions.SaveKeys, keysFlagName, false, "Do not delete SSH keys")
@@ -53,20 +53,24 @@ func init() {
 	flags.BoolVar(&destoryOptions.SaveImage, imageFlagName, false, "Do not delete the image file")
 }
 
-func remove(cmd *cobra.Command, args []string) error {
+func rm(cmd *cobra.Command, args []string) error {
 	var (
 		err    error
 		vm     machine.VM
 		vmType string
 	)
+	vmName := defaultMachineName
+	if len(args) > 0 && len(args[0]) > 0 {
+		vmName = args[0]
+	}
 	switch vmType {
 	default:
-		vm, err = qemu.LoadVMByName(args[0])
+		vm, err = qemu.LoadVMByName(vmName)
 	}
 	if err != nil {
 		return err
 	}
-	confirmationMessage, doIt, err := vm.Remove(args[0], machine.RemoveOptions{})
+	confirmationMessage, remove, err := vm.Remove(vmName, machine.RemoveOptions{})
 	if err != nil {
 		return err
 	}
@@ -84,5 +88,5 @@ func remove(cmd *cobra.Command, args []string) error {
 			return nil
 		}
 	}
-	return doIt()
+	return remove()
 }

@@ -2,6 +2,7 @@ package machine
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 )
 
@@ -37,10 +38,17 @@ func getNodeGrp(grpName string) NodeGroup {
 	return NodeGroup{Name: &grpName}
 }
 
+type DynamicIgnition struct {
+	Name      string
+	Key       string
+	VMName    string
+	WritePath string
+}
+
 // NewIgnitionFile
-func NewIgnitionFile(name, key, writePath string) error {
-	if len(name) < 1 {
-		name = DefaultIgnitionUserName
+func NewIgnitionFile(ign DynamicIgnition) error {
+	if len(ign.Name) < 1 {
+		ign.Name = DefaultIgnitionUserName
 	}
 	ignVersion := Ignition{
 		Version: "3.2.0",
@@ -48,23 +56,44 @@ func NewIgnitionFile(name, key, writePath string) error {
 
 	ignPassword := Passwd{
 		Users: []PasswdUser{{
-			Name:              name,
-			SSHAuthorizedKeys: []SSHAuthorizedKey{SSHAuthorizedKey(key)},
+			Name:              ign.Name,
+			SSHAuthorizedKeys: []SSHAuthorizedKey{SSHAuthorizedKey(ign.Key)},
 		}},
 	}
 
 	ignStorage := Storage{
-		Directories: getDirs(name),
-		Files:       getFiles(name),
-		Links:       getLinks(name),
+		Directories: getDirs(ign.Name),
+		Files:       getFiles(ign.Name),
+		Links:       getLinks(ign.Name),
 	}
+
+	// ready is a unit file that sets up the virtual serial device
+	// where when the VM is done configuring, it will send an ack
+	// so a listening host knows it can being interacting with it
+	ready := `[Unit]
+Requires=dev-virtio\\x2dports-%s.device
+OnFailure=emergency.target
+OnFailureJobMode=isolate
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/sh -c '/usr/bin/echo Ready >/dev/%s'
+[Install]
+RequiredBy=multi-user.target
+`
+	_ = ready
 	ignSystemd := Systemd{
 		Units: []Unit{
 			{
 				Enabled: boolToPtr(true),
 				Name:    "podman.socket",
-			}}}
-
+			},
+			{
+				Enabled:  boolToPtr(true),
+				Name:     "ready.service",
+				Contents: strToPtr(fmt.Sprintf(ready, "vport1p1", "vport1p1")),
+			},
+		}}
 	ignConfig := Config{
 		Ignition: ignVersion,
 		Passwd:   ignPassword,
@@ -75,7 +104,7 @@ func NewIgnitionFile(name, key, writePath string) error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(writePath, b, 0644)
+	return ioutil.WriteFile(ign.WritePath, b, 0644)
 }
 
 func getDirs(usrName string) []Directory {

@@ -8,6 +8,7 @@ import (
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/machine"
 	"github.com/containers/podman/v3/pkg/machine/qemu"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -23,17 +24,8 @@ var (
 	}
 )
 
-type InitCLIOptions struct {
-	CPUS         uint64
-	Memory       uint64
-	Devices      []string
-	ImagePath    string
-	IgnitionPath string
-	Name         string
-}
-
 var (
-	initOpts                  = InitCLIOptions{}
+	initOpts                  = machine.InitOptions{}
 	defaultMachineName string = "podman-machine-default"
 )
 
@@ -52,6 +44,15 @@ func init() {
 		"Number of CPUs. The default is 1.",
 	)
 	_ = initCmd.RegisterFlagCompletionFunc(cpusFlagName, completion.AutocompleteNone)
+
+	diskSizeFlagName := "disk-size"
+	flags.Uint64Var(
+		&initOpts.DiskSize,
+		diskSizeFlagName, 10,
+		"Disk size in GB",
+	)
+
+	_ = initCmd.RegisterFlagCompletionFunc(diskSizeFlagName, completion.AutocompleteNone)
 
 	memoryFlagName := "memory"
 	flags.Uint64VarP(
@@ -72,28 +73,24 @@ func init() {
 
 // TODO should we allow for a users to append to the qemu cmdline?
 func initMachine(cmd *cobra.Command, args []string) error {
-	initOpts.Name = defaultMachineName
-	if len(args) > 0 {
-		initOpts.Name = args[0]
-	}
-	vmOpts := machine.InitOptions{
-		CPUS:         initOpts.CPUS,
-		Memory:       initOpts.Memory,
-		IgnitionPath: initOpts.IgnitionPath,
-		ImagePath:    initOpts.ImagePath,
-		Name:         initOpts.Name,
-	}
 	var (
 		vm     machine.VM
 		vmType string
 		err    error
 	)
+	initOpts.Name = defaultMachineName
+	if len(args) > 0 {
+		initOpts.Name = args[0]
+	}
 	switch vmType {
 	default: // qemu is the default
-		vm, err = qemu.NewMachine(vmOpts)
+		if _, err := qemu.LoadVMByName(initOpts.Name); err == nil {
+			return errors.Wrap(machine.ErrVMAlreadyExists, initOpts.Name)
+		}
+		vm, err = qemu.NewMachine(initOpts)
 	}
 	if err != nil {
 		return err
 	}
-	return vm.Init(vmOpts)
+	return vm.Init(initOpts)
 }

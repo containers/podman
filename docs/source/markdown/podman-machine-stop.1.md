@@ -4,7 +4,7 @@
 podman\-machine\-stop - Stop a virtual machine
 
 ## SYNOPSIS
-**podman machine stop** *name*
+**podman machine stop** [*name*]
 
 ## DESCRIPTION
 
