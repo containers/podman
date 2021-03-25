@@ -126,17 +126,6 @@ verify_iid_and_name() {
     verify_iid_and_name $img_name
 }
 
-@test "podman load - will not read from tty" {
-    if [ ! -t 0 ]; then
-        skip "STDIN is not a tty"
-    fi
-
-    run_podman 125 load
-    is "$output" \
-       "Error: cannot read from terminal. Use command-line redirection" \
-       "Diagnostic from 'podman load' without redirection or -i"
-}
-
 @test "podman load - redirect corrupt payload" {
     run_podman 125 load <<< "Danger, Will Robinson!! This is a corrupt tarball!"
     is "$output" \
