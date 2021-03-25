@@ -30,7 +30,9 @@ import (
 	"github.com/containers/storage/pkg/system"
 	"github.com/containers/storage/pkg/unshare"
 	units "github.com/docker/go-units"
+	"github.com/hashicorp/go-multierror"
 	rsystem "github.com/opencontainers/runc/libcontainer/system"
+	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -43,7 +45,10 @@ var (
 	untar = chrootarchive.UntarUncompressed
 )
 
-const defaultPerms = os.FileMode(0555)
+const (
+	defaultPerms     = os.FileMode(0555)
+	selinuxLabelTest = "system_u:object_r:container_file_t:s0"
+)
 
 // This backend uses the overlay union filesystem for containers
 // with diff directories for each layer.
@@ -539,6 +544,12 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 		_ = idtools.MkdirAs(upperDir, 0700, rootUID, rootGID)
 		_ = idtools.MkdirAs(workDir, 0700, rootUID, rootGID)
 		flags := fmt.Sprintf("lowerdir=%s:%s,upperdir=%s,workdir=%s", lower1Dir, lower2Dir, upperDir, workDir)
+		if selinux.GetEnabled() {
+			// Linux 5.11 introduced unprivileged overlay mounts but it has an issue
+			// when used together with selinux labels.
+			// Check that overlay supports selinux labels as well.
+			flags = label.FormatMountLabel(flags, selinuxLabelTest)
+		}
 		if len(flags) < unix.Getpagesize() {
 			err := unix.Mount("overlay", mergedDir, "overlay", 0, flags)
 			if err == nil {
@@ -548,6 +559,9 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 			logrus.Debugf("overlay test mount with multiple lowers failed %v", err)
 		}
 		flags = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", lower1Dir, upperDir, workDir)
+		if selinux.GetEnabled() {
+			flags = label.FormatMountLabel(flags, selinuxLabelTest)
+		}
 		if len(flags) < unix.Getpagesize() {
 			err := unix.Mount("overlay", mergedDir, "overlay", 0, flags)
 			if err == nil {
@@ -824,7 +838,17 @@ func (d *Driver) getLower(parent string) (string, error) {
 	// Read Parent link fileA
 	parentLink, err := ioutil.ReadFile(path.Join(parentDir, "link"))
 	if err != nil {
-		return "", err
+		if !os.IsNotExist(err) {
+			return "", err
+		}
+		logrus.Warnf("Can't read parent link %q because it does not exist. Going through storage to recreate the missing links.", path.Join(parentDir, "link"))
+		if err := d.recreateSymlinks(); err != nil {
+			return "", errors.Wrap(err, "error recreating the links")
+		}
+		parentLink, err = ioutil.ReadFile(path.Join(parentDir, "link"))
+		if err != nil {
+			return "", err
+		}
 	}
 	lowers := []string{path.Join(linkDir, string(parentLink))}
 
@@ -946,6 +970,7 @@ func (d *Driver) recreateSymlinks() error {
 	if err != nil {
 		return fmt.Errorf("error reading driver home directory %q: %v", d.home, err)
 	}
+	linksDir := filepath.Join(d.home, "l")
 	// This makes the link directory if it doesn't exist
 	rootUID, rootGID, err := idtools.GetRootUIDGID(d.uidMaps, d.gidMaps)
 	if err != nil {
@@ -954,27 +979,79 @@ func (d *Driver) recreateSymlinks() error {
 	if err := idtools.MkdirAllAs(path.Join(d.home, linkDir), 0700, rootUID, rootGID); err != nil {
 		return err
 	}
-	for _, dir := range dirs {
-		// Skip over the linkDir and anything that is not a directory
-		if dir.Name() == linkDir || !dir.Mode().IsDir() {
+	// Keep looping as long as we take some corrective action in each iteration
+	var errs *multierror.Error
+	madeProgress := true
+	for madeProgress {
+		errs = nil
+		madeProgress = false
+		// Check that for each layer, there's a link in "l" with the name in
+		// the layer's "link" file that points to the layer's "diff" directory.
+		for _, dir := range dirs {
+			// Skip over the linkDir and anything that is not a directory
+			if dir.Name() == linkDir || !dir.Mode().IsDir() {
+				continue
+			}
+			// Read the "link" file under each layer to get the name of the symlink
+			data, err := ioutil.ReadFile(path.Join(d.dir(dir.Name()), "link"))
+			if err != nil {
+				errs = multierror.Append(errs, errors.Wrapf(err, "error reading name of symlink for %q", dir))
+				continue
+			}
+			linkPath := path.Join(d.home, linkDir, strings.Trim(string(data), "\n"))
+			// Check if the symlink exists, and if it doesn't, create it again with the
+			// name we got from the "link" file
+			_, err = os.Lstat(linkPath)
+			if err != nil && os.IsNotExist(err) {
+				if err := os.Symlink(path.Join("..", dir.Name(), "diff"), linkPath); err != nil {
+					errs = multierror.Append(errs, err)
+					continue
+				}
+				madeProgress = true
+			} else if err != nil {
+				errs = multierror.Append(errs, errors.Wrapf(err, "error trying to stat %q", linkPath))
+				continue
+			}
+		}
+		// Now check if we somehow lost a "link" file, by making sure
+		// that each symlink we have corresponds to one.
+		links, err := ioutil.ReadDir(linksDir)
+		if err != nil {
+			errs = multierror.Append(errs, errors.Wrapf(err, "error reading links directory %q", linksDir))
 			continue
 		}
-		// Read the "link" file under each layer to get the name of the symlink
-		data, err := ioutil.ReadFile(path.Join(d.dir(dir.Name()), "link"))
-		if err != nil {
-			return fmt.Errorf("error reading name of symlink for %q: %v", dir, err)
-		}
-		linkPath := path.Join(d.home, linkDir, strings.Trim(string(data), "\n"))
-		// Check if the symlink exists, and if it doesn't create it again with the name we
-		// got from the "link" file
-		_, err = os.Stat(linkPath)
-		if err != nil && os.IsNotExist(err) {
-			if err := os.Symlink(path.Join("..", dir.Name(), "diff"), linkPath); err != nil {
-				return err
+		// Go through all of the symlinks in the "l" directory
+		for _, link := range links {
+			// Read the symlink's target, which should be "../$layer/diff"
+			target, err := os.Readlink(filepath.Join(linksDir, link.Name()))
+			if err != nil {
+				errs = multierror.Append(errs, errors.Wrapf(err, "error reading target of link %q", link))
+				continue
 			}
-		} else if err != nil {
-			return fmt.Errorf("error trying to stat %q: %v", linkPath, err)
+			targetComponents := strings.Split(target, string(os.PathSeparator))
+			if len(targetComponents) != 3 || targetComponents[0] != ".." || targetComponents[2] != "diff" {
+				errs = multierror.Append(errs, errors.Errorf("link target of %q looks weird: %q", link, target))
+				// force the link to be recreated on the next pass
+				os.Remove(filepath.Join(linksDir, link.Name()))
+				madeProgress = true
+				continue
+			}
+			// Reconstruct the name of the target's link file and check that
+			// it has the basename of our symlink in it.
+			targetID := targetComponents[1]
+			linkFile := filepath.Join(d.dir(targetID), "link")
+			data, err := ioutil.ReadFile(linkFile)
+			if err != nil || string(data) != link.Name() {
+				if err := ioutil.WriteFile(linkFile, []byte(link.Name()), 0644); err != nil {
+					errs = multierror.Append(errs, errors.Wrapf(err, "error correcting link for layer %q", targetID))
+					continue
+				}
+				madeProgress = true
+			}
 		}
+	}
+	if errs != nil {
+		return errs.ErrorOrNil()
 	}
 	return nil
 }
@@ -1032,7 +1109,17 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	// lists that we're building.  "diff" itself is the upper, so it won't be in the lists.
 	link, err := ioutil.ReadFile(path.Join(dir, "link"))
 	if err != nil {
-		return "", err
+		if !os.IsNotExist(err) {
+			return "", err
+		}
+		logrus.Warnf("Can't read parent link %q because it does not exist. Going through storage to recreate the missing links.", path.Join(dir, "link"))
+		if err := d.recreateSymlinks(); err != nil {
+			return "", errors.Wrap(err, "error recreating the links")
+		}
+		link, err = ioutil.ReadFile(path.Join(dir, "link"))
+		if err != nil {
+			return "", err
+		}
 	}
 	diffN := 1
 	perms := defaultPerms
