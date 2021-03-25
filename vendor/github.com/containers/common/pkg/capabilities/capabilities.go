@@ -7,6 +7,7 @@ package capabilities
 
 import (
 	"strings"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/syndtr/gocapability/capability"
@@ -27,7 +28,7 @@ var (
 	ContainerImageLabels = []string{"io.containers.capabilities"}
 )
 
-// All is a special value used to add/drop all known capababilities.
+// All is a special value used to add/drop all known capabilities.
 // Useful on the CLI for `--cap-add=all` etc.
 const All = "ALL"
 
@@ -60,24 +61,36 @@ func stringInSlice(s string, sl []string) bool {
 	return false
 }
 
+var (
+	boundingSetOnce sync.Once
+	boundingSetRet  []string
+	boundingSetErr  error
+)
+
 // BoundingSet returns the capabilities in the current bounding set
 func BoundingSet() ([]string, error) {
-	currentCaps, err := capability.NewPid2(0)
-	if err != nil {
-		return nil, err
-	}
-	err = currentCaps.Load()
-	if err != nil {
-		return nil, err
-	}
-	var r []string
-	for _, c := range capsList {
-		if !currentCaps.Get(capability.BOUNDING, c) {
-			continue
+	boundingSetOnce.Do(func() {
+		currentCaps, err := capability.NewPid2(0)
+		if err != nil {
+			boundingSetErr = err
+			return
 		}
-		r = append(r, getCapName(c))
-	}
-	return r, nil
+		err = currentCaps.Load()
+		if err != nil {
+			boundingSetErr = err
+			return
+		}
+		var r []string
+		for _, c := range capsList {
+			if !currentCaps.Get(capability.BOUNDING, c) {
+				continue
+			}
+			r = append(r, getCapName(c))
+		}
+		boundingSetRet = r
+		boundingSetErr = err
+	})
+	return boundingSetRet, boundingSetErr
 }
 
 // AllCapabilities returns all known capabilities.
@@ -116,7 +129,7 @@ func ValidateCapabilities(caps []string) error {
 	return nil
 }
 
-// MergeCapabilities computes a set of capabilities by adding capapbitilities
+// MergeCapabilities computes a set of capabilities by adding capabilities
 // to or dropping them from base.
 //
 // Note that:
@@ -150,7 +163,7 @@ func MergeCapabilities(base, adds, drops []string) ([]string, error) {
 
 	if stringInSlice(All, capAdd) {
 		// "Add" all capabilities;
-		return capabilityList, nil
+		return BoundingSet()
 	}
 
 	for _, add := range capAdd {
