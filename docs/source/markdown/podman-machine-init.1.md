@@ -1,20 +1,20 @@
-% podman-machine-create(1)
+% podman-machine-init(1)
 
 ## NAME
-podman\-machine\-create - Create a new virtual machine
+podman\-machine\-init - Initialize a new virtual machine
 
 ## SYNOPSIS
-**podman machine create** [*options*] [*name*]
+**podman machine init** [*options*] [*name*]
 
 ## DESCRIPTION
 
-Creates a new virtual machine for Podman.
+Initialize a new virtual machine for Podman.
 
 Podman on MacOS requires a virtual machine. This is because containers are Linux -
 containers do not run on any other OS because containers' core functionality are
 tied to the Linux kernel.
 
-**podman machine create** creates a new Linux virtual machine where containers are run.
+**podman machine init** initializes a new Linux virtual machine where containers are run.
 
 ## OPTIONS
 
@@ -41,9 +41,9 @@ Print usage statement.
 ## EXAMPLES
 
 ```
-$ podman machine create myvm
-$ podman machine create --device=/dev/xvdc:rw myvm
-$ podman machine create --memory=1024 myvm
+$ podman machine init myvm
+$ podman machine init --device=/dev/xvdc:rw myvm
+$ podman machine init --memory=1024 myvm
 ```
 
 ## SEE ALSO
