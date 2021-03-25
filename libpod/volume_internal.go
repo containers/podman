@@ -17,6 +17,7 @@ func newVolume(runtime *Runtime) *Volume {
 	volume.config.Labels = make(map[string]string)
 	volume.config.Options = make(map[string]string)
 	volume.state.NeedsCopyUp = true
+	volume.state.NeedsChown = true
 	return volume
 }
 

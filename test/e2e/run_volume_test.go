@@ -643,4 +643,30 @@ VOLUME /test/`
 		found, _ = session.GrepString("888:888")
 		Expect(found).Should(BeTrue())
 	})
+
+	It("volume permissions after run", func() {
+		imgName := "testimg"
+		dockerfile := `FROM fedora-minimal
+RUN useradd -m testuser -u 1005
+USER testuser`
+		podmanTest.BuildImage(dockerfile, imgName, "false")
+
+		testString := "testuser testuser"
+
+		test1 := podmanTest.Podman([]string{"run", "-v", "testvol1:/test", imgName, "bash", "-c", "ls -al /test | grep -v root | grep -v total"})
+		test1.WaitWithDefaultTimeout()
+		Expect(test1.ExitCode()).To(Equal(0))
+		Expect(strings.Contains(test1.OutputToString(), testString)).To(BeTrue())
+
+		volName := "testvol2"
+		vol := podmanTest.Podman([]string{"volume", "create", volName})
+		vol.WaitWithDefaultTimeout()
+		Expect(vol.ExitCode()).To(Equal(0))
+
+		test2 := podmanTest.Podman([]string{"run", "-v", fmt.Sprintf("%s:/test", volName), imgName, "bash", "-c", "ls -al /test | grep -v root | grep -v total"})
+		test2.WaitWithDefaultTimeout()
+		Expect(test2.ExitCode()).To(Equal(0))
+		Expect(strings.Contains(test2.OutputToString(), testString)).To(BeTrue())
+
+	})
 })
