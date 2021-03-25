@@ -3,72 +3,47 @@
 package seccomp
 
 import (
-	"bufio"
-	"errors"
-	"os"
-	"strings"
+	"sync"
 
-	perrors "github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
 
-const statusFilePath = "/proc/self/status"
+var (
+	supported bool
+	supOnce   sync.Once
+)
 
 // IsSupported returns true if the system has been configured to support
-// seccomp.
+// seccomp (including the check for CONFIG_SECCOMP_FILTER kernel option).
 func IsSupported() bool {
-	// Since Linux 3.8, the Seccomp field of the /proc/[pid]/status file
-	// provides a method of obtaining the same information, without the risk
-	// that the process is killed; see proc(5).
-	status, err := parseStatusFile(statusFilePath)
-	if err == nil {
-		_, ok := status["Seccomp"]
-		return ok
-	}
+	// Excerpts from prctl(2), section ERRORS:
+	//
+	// EACCES
+	//	option is PR_SET_SECCOMP and arg2 is SECCOMP_MODE_FILTER, but
+	//	the process does not have the CAP_SYS_ADMIN capability or has
+	//	not set the no_new_privs attribute <...>.
+	// <...>
+	// EFAULT
+	//	option is PR_SET_SECCOMP, arg2 is SECCOMP_MODE_FILTER, the
+	//	system was built with CONFIG_SECCOMP_FILTER, and arg3 is an
+	//	invalid address.
+	// <...>
+	// EINVAL
+	//	option is PR_SET_SECCOMP or PR_GET_SECCOMP, and the kernel
+	//	was not configured with CONFIG_SECCOMP.
+	//
+	// EINVAL
+	//	option is PR_SET_SECCOMP, arg2 is SECCOMP_MODE_FILTER,
+	//	and the kernel was not configured with CONFIG_SECCOMP_FILTER.
+	// <end of quote>
+	//
+	// Meaning, in case these kernel options are set (this is what we check
+	// for here), we will get some other error (most probably EACCES or
+	// EFAULT). IOW, EINVAL means "seccomp not supported", any other error
+	// means it is supported.
 
-	// PR_GET_SECCOMP (since Linux 2.6.23)
-	// Return (as the function result) the secure computing mode of the calling
-	// thread. If the caller is not in secure computing mode, this operation
-	// returns 0; if the caller is in strict secure computing mode, then the
-	// prctl() call will cause a SIGKILL signal to be sent to the process. If
-	// the caller is in filter mode, and this system call is allowed by the
-	// seccomp filters, it returns 2; otherwise, the process is killed with a
-	// SIGKILL signal. This operation is available only if the kernel is
-	// configured with CONFIG_SECCOMP enabled.
-	if err := unix.Prctl(unix.PR_GET_SECCOMP, 0, 0, 0, 0); !errors.Is(err, unix.EINVAL) {
-		// Make sure the kernel has CONFIG_SECCOMP_FILTER.
-		if err := unix.Prctl(unix.PR_SET_SECCOMP, unix.SECCOMP_MODE_FILTER, 0, 0, 0); !errors.Is(err, unix.EINVAL) {
-			return true
-		}
-	}
-
-	return false
-}
-
-// parseStatusFile reads the provided `file` into a map of strings.
-func parseStatusFile(file string) (map[string]string, error) {
-	f, err := os.Open(file)
-	if err != nil {
-		return nil, perrors.Wrapf(err, "open status file %s", file)
-	}
-	defer f.Close()
-
-	status := make(map[string]string)
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		text := scanner.Text()
-		parts := strings.SplitN(text, ":", 2)
-
-		if len(parts) <= 1 {
-			continue
-		}
-
-		status[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, perrors.Wrapf(err, "scan status file %s", file)
-	}
-
-	return status, nil
+	supOnce.Do(func() {
+		supported = unix.Prctl(unix.PR_SET_SECCOMP, unix.SECCOMP_MODE_FILTER, 0, 0, 0) != unix.EINVAL
+	})
+	return supported
 }

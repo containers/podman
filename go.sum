@@ -179,8 +179,8 @@ github.com/containernetworking/plugins v0.9.1/go.mod h1:xP/idU2ldlzN6m4p5LmGiwRD
 github.com/containers/buildah v1.19.8 h1:4TzmetfKPQF5hh6GgMwbAfrD50j+PAcsRiWDnx+gCI8=
 github.com/containers/buildah v1.19.8/go.mod h1:VnyHWgNmfR1d89/zJ/F4cbwOzaQS+6sBky46W7dCo3E=
 github.com/containers/common v0.33.4/go.mod h1:PhgL71XuC4jJ/1BIqeP7doke3aMFkCP90YBXwDeUr9g=
-github.com/containers/common v0.35.3 h1:6tEBSIHlJzpmt35zA1ZcjBqbtUilAHDWaa7buPvaqWY=
-github.com/containers/common v0.35.3/go.mod h1:rMzxgD7nMGw++cEbsp+NZv0UJO4rgXbm7F7IbJPTwIE=
+github.com/containers/common v0.35.4 h1:szyWRncsHkBwCVpu1dkEOXUjkwCetlfcLmKJTwo1Sp8=
+github.com/containers/common v0.35.4/go.mod h1:rMzxgD7nMGw++cEbsp+NZv0UJO4rgXbm7F7IbJPTwIE=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.10.1/go.mod h1:JlRLJZv7elVbtHaaaR6Kz8i6G3k2ttj4t7fubwxD9Hs=
