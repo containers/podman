@@ -237,6 +237,7 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-login(1)](podman-login.1.md)             | Login to a container registry.                                              |
 | [podman-logout(1)](podman-logout.1.md)           | Logout of a container registry.                                             |
 | [podman-logs(1)](podman-logs.1.md)               | Display the logs of one or more containers.                                 |
+| [podman-machine(1)](podman-machine.1.md)         | Manage Podman's virtual machine                                             |
 | [podman-manifest(1)](podman-manifest.1.md)       | Create and manipulate manifest lists and image indexes.                     |
 | [podman-mount(1)](podman-mount.1.md)             | Mount a working container's root filesystem.                                |
 | [podman-network(1)](podman-network.1.md)         | Manage Podman CNI networks.                                                 |

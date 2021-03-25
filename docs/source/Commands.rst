@@ -55,6 +55,8 @@ Commands
 
 :doc:`logs <markdown/podman-logs.1>` Fetch the logs of a container
 
+:doc:`machine <markdown/podman-machine.1>` Manage podman's virtual machine
+
 :doc:`manifest <manifest>` Create and manipulate manifest lists and image indexes
 
 :doc:`mount <markdown/podman-mount.1>` Mount a working container's root filesystem
