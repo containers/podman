@@ -2,6 +2,7 @@ package image
 
 import (
 	"context"
+	"strconv"
 	"strings"
 
 	"github.com/containers/podman/v3/libpod/events"
@@ -34,6 +35,12 @@ func generatePruneFilterFuncs(filter, filterValue string) (ImageFilter, error) {
 			}
 			return false
 		}, nil
+	case "dangling":
+		danglingImages, err := strconv.ParseBool(filterValue)
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid filter dangling=%s", filterValue)
+		}
+		return ImageFilter(DanglingFilter(danglingImages)), nil
 	}
 	return nil, nil
 }

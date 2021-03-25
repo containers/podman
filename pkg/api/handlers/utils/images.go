@@ -11,6 +11,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/image"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -58,11 +59,15 @@ func GetImages(w http.ResponseWriter, r *http.Request) ([]*image.Image, error) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	query := struct {
 		All     bool
-		Filters map[string][]string `schema:"filters"`
 		Digests bool
 		Filter  string // Docker 1.24 compatibility
 	}{
 		// This is where you can override the golang default value for one of fields
+	}
+
+	filterMap, err := util.PrepareFilters(r)
+	if err != nil {
+		return nil, err
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
@@ -72,12 +77,9 @@ func GetImages(w http.ResponseWriter, r *http.Request) ([]*image.Image, error) {
 	if _, found := r.URL.Query()["digests"]; found && query.Digests {
 		UnSupportedParameter("digests")
 	}
-	var (
-		images []*image.Image
-		err    error
-	)
+	var images []*image.Image
 
-	queryFilters := query.Filters
+	queryFilters := *filterMap
 	if !IsLibpodRequest(r) && len(query.Filter) > 0 { // Docker 1.24 compatibility
 		if queryFilters == nil {
 			queryFilters = make(map[string][]string)
