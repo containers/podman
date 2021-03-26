@@ -38,7 +38,6 @@ func (c *Client) VersionWithContext(ctx context.Context) (*Env, error) {
 // DockerInfo contains information about the Docker server
 //
 // See https://goo.gl/bHUoz9 for more details.
-//nolint:golint
 type DockerInfo struct {
 	ID                 string
 	Containers         int

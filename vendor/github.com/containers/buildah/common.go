@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/containers/buildah/define"
 	"github.com/containers/common/pkg/retry"
 	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/docker"
@@ -19,9 +20,9 @@ import (
 
 const (
 	// OCI used to define the "oci" image format
-	OCI = "oci"
+	OCI = define.OCI
 	// DOCKER used to define the "docker" image format
-	DOCKER = "docker"
+	DOCKER = define.DOCKER
 )
 
 func getCopyOptions(store storage.Store, reportWriter io.Writer, sourceSystemContext *types.SystemContext, destinationSystemContext *types.SystemContext, manifestType string, removeSignatures bool, addSigner string, ociEncryptLayers *[]int, ociEncryptConfig *encconfig.EncryptConfig, ociDecryptConfig *encconfig.DecryptConfig) *cp.Options {

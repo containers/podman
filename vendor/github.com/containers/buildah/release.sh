@@ -18,13 +18,29 @@ LAST_TAG=$(git describe --tags --abbrev=0)
 write_go_version()
 {
 	LOCAL_VERSION="$1"
-	sed -i "s/^\(.*Version = \"\).*/\1${LOCAL_VERSION}\"/" buildah.go
+	sed -i "s/^\(.*Version = \"\).*/\1${LOCAL_VERSION}\"/" define/types.go
 }
 
 write_spec_version()
 {
 	LOCAL_VERSION="$1"
 	sed -i "s/^\(Version: *\).*/\1${LOCAL_VERSION}/" contrib/rpm/buildah.spec
+}
+
+write_spec_changelog()
+{
+	sed '/\*.*-dev-1/d' -i ./contrib/rpm/buildah.spec
+	VERSION=$1
+	date=$(date "+%a %b %d, %Y")
+	name=$(getent passwd $USERNAME | cut -d ':' -f 5)
+	echo "* ${date} ${name} <${USER}@redhat.com> ${VERSION}-1" >.changelog.txt
+	if [[ "${VERSION}" != *-dev ]]; then
+	   git log --no-merges --format='- %s' "${LAST_TAG}..HEAD" >>.changelog.txt
+	else
+	    echo "" >>.changelog.txt
+	fi
+	sed '/^%changelog.*/r .changelog.txt' -i ./contrib/rpm/buildah.spec
+	rm -f .changelog.txt
 }
 
 write_makefile_epoch()
@@ -46,6 +62,7 @@ release_commit()
 {
 	write_go_version "${VERSION}" &&
 	write_spec_version "${VERSION}" &&
+	write_spec_changelog "${VERSION}" &&
 	write_changelog &&
 	git commit -asm "Bump to v${VERSION}"
 }
@@ -53,7 +70,8 @@ release_commit()
 dev_version_commit()
 {
 	write_go_version "${NEXT_VERSION}-dev" &&
-	write_spec_version "${NEXT_VERSION}" &&
+	write_spec_version "${NEXT_VERSION}-dev" &&
+	write_spec_changelog "${NEXT_VERSION}-dev" &&
 	git commit -asm "Bump to v${NEXT_VERSION}-dev"
 }
 

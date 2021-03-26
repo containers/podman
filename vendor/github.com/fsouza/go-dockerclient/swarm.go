@@ -42,7 +42,8 @@ func (c *Client) InitSwarm(opts InitSwarmOptions) (string, error) {
 		context:   opts.Context,
 	})
 	if err != nil {
-		if e, ok := err.(*Error); ok && (e.Status == http.StatusNotAcceptable || e.Status == http.StatusServiceUnavailable) {
+		var e *Error
+		if errors.As(err, &e) && (e.Status == http.StatusNotAcceptable || e.Status == http.StatusServiceUnavailable) {
 			return "", ErrNodeAlreadyInSwarm
 		}
 		return "", err
@@ -72,7 +73,8 @@ func (c *Client) JoinSwarm(opts JoinSwarmOptions) error {
 		context:   opts.Context,
 	})
 	if err != nil {
-		if e, ok := err.(*Error); ok && (e.Status == http.StatusNotAcceptable || e.Status == http.StatusServiceUnavailable) {
+		var e *Error
+		if errors.As(err, &e) && (e.Status == http.StatusNotAcceptable || e.Status == http.StatusServiceUnavailable) {
 			return ErrNodeAlreadyInSwarm
 		}
 	}
@@ -97,7 +99,8 @@ func (c *Client) LeaveSwarm(opts LeaveSwarmOptions) error {
 		context: opts.Context,
 	})
 	if err != nil {
-		if e, ok := err.(*Error); ok && (e.Status == http.StatusNotAcceptable || e.Status == http.StatusServiceUnavailable) {
+		var e *Error
+		if errors.As(err, &e) && (e.Status == http.StatusNotAcceptable || e.Status == http.StatusServiceUnavailable) {
 			return ErrNodeNotInSwarm
 		}
 	}
@@ -129,7 +132,8 @@ func (c *Client) UpdateSwarm(opts UpdateSwarmOptions) error {
 		context:   opts.Context,
 	})
 	if err != nil {
-		if e, ok := err.(*Error); ok && (e.Status == http.StatusNotAcceptable || e.Status == http.StatusServiceUnavailable) {
+		var e *Error
+		if errors.As(err, &e) && (e.Status == http.StatusNotAcceptable || e.Status == http.StatusServiceUnavailable) {
 			return ErrNodeNotInSwarm
 		}
 	}
@@ -145,7 +149,8 @@ func (c *Client) InspectSwarm(ctx context.Context) (swarm.Swarm, error) {
 		context: ctx,
 	})
 	if err != nil {
-		if e, ok := err.(*Error); ok && (e.Status == http.StatusNotAcceptable || e.Status == http.StatusServiceUnavailable) {
+		var e *Error
+		if errors.As(err, &e) && (e.Status == http.StatusNotAcceptable || e.Status == http.StatusServiceUnavailable) {
 			return response, ErrNodeNotInSwarm
 		}
 		return response, err

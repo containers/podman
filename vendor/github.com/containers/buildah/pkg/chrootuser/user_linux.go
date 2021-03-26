@@ -15,7 +15,6 @@ import (
 	"sync"
 
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
@@ -92,36 +91,13 @@ type lookupGroupEntry struct {
 	user string
 }
 
-func readWholeLine(rc *bufio.Reader) ([]byte, error) {
-	line, isPrefix, err := rc.ReadLine()
-	if err != nil {
-		return nil, err
-	}
-	for isPrefix {
-		// We didn't get a whole line.  Keep reading chunks until we find an end of line, and discard them.
-		for isPrefix {
-			logrus.Debugf("discarding partial line %q", string(line))
-			_, isPrefix, err = rc.ReadLine()
-			if err != nil {
-				return nil, err
-			}
-		}
-		// That last read was the end of a line, so now we try to read the (beginning of?) the next line.
-		line, isPrefix, err = rc.ReadLine()
-		if err != nil {
-			return nil, err
-		}
-	}
-	return line, nil
-}
-
-func parseNextPasswd(rc *bufio.Reader) *lookupPasswdEntry {
-	line, err := readWholeLine(rc)
-	if err != nil {
+func parseNextPasswd(rc *bufio.Scanner) *lookupPasswdEntry {
+	if !rc.Scan() {
 		return nil
 	}
-	fields := strings.Split(string(line), ":")
-	if len(fields) < 7 {
+	line := rc.Text()
+	fields := strings.Split(line, ":")
+	if len(fields) != 7 {
 		return nil
 	}
 	uid, err := strconv.ParseUint(fields[2], 10, 32)
@@ -140,13 +116,13 @@ func parseNextPasswd(rc *bufio.Reader) *lookupPasswdEntry {
 	}
 }
 
-func parseNextGroup(rc *bufio.Reader) *lookupGroupEntry {
-	line, err := readWholeLine(rc)
-	if err != nil {
+func parseNextGroup(rc *bufio.Scanner) *lookupGroupEntry {
+	if !rc.Scan() {
 		return nil
 	}
-	fields := strings.Split(string(line), ":")
-	if len(fields) < 4 {
+	line := rc.Text()
+	fields := strings.Split(line, ":")
+	if len(fields) != 4 {
 		return nil
 	}
 	gid, err := strconv.ParseUint(fields[2], 10, 32)
@@ -168,7 +144,7 @@ func lookupUserInContainer(rootdir, username string) (uid uint64, gid uint64, er
 	defer func() {
 		_ = cmd.Wait()
 	}()
-	rc := bufio.NewReader(f)
+	rc := bufio.NewScanner(f)
 	defer f.Close()
 
 	lookupUser.Lock()
@@ -194,7 +170,7 @@ func lookupGroupForUIDInContainer(rootdir string, userid uint64) (username strin
 	defer func() {
 		_ = cmd.Wait()
 	}()
-	rc := bufio.NewReader(f)
+	rc := bufio.NewScanner(f)
 	defer f.Close()
 
 	lookupUser.Lock()
@@ -226,7 +202,7 @@ func lookupAdditionalGroupsForUIDInContainer(rootdir string, userid uint64) (gid
 	defer func() {
 		_ = cmd.Wait()
 	}()
-	rc := bufio.NewReader(f)
+	rc := bufio.NewScanner(f)
 	defer f.Close()
 
 	lookupGroup.Lock()
@@ -250,7 +226,7 @@ func lookupGroupInContainer(rootdir, groupname string) (gid uint64, err error) {
 	defer func() {
 		_ = cmd.Wait()
 	}()
-	rc := bufio.NewReader(f)
+	rc := bufio.NewScanner(f)
 	defer f.Close()
 
 	lookupGroup.Lock()
@@ -276,7 +252,7 @@ func lookupUIDInContainer(rootdir string, uid uint64) (string, uint64, error) {
 	defer func() {
 		_ = cmd.Wait()
 	}()
-	rc := bufio.NewReader(f)
+	rc := bufio.NewScanner(f)
 	defer f.Close()
 
 	lookupUser.Lock()
@@ -302,7 +278,7 @@ func lookupHomedirInContainer(rootdir string, uid uint64) (string, error) {
 	defer func() {
 		_ = cmd.Wait()
 	}()
-	rc := bufio.NewReader(f)
+	rc := bufio.NewScanner(f)
 	defer f.Close()
 
 	lookupUser.Lock()
