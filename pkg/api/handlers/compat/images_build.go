@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/containers/buildah"
+	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/buildah/util"
 	"github.com/containers/image/v5/types"
@@ -98,6 +99,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		OutputFormat           string `schema:"outputformat"`
 		Platform               string `schema:"platform"`
 		Pull                   bool   `schema:"pull"`
+		PullPolicy             string `schema:"pullpolicy"`
 		Quiet                  bool   `schema:"q"`
 		Registry               string `schema:"registry"`
 		Rm                     bool   `schema:"rm"`
@@ -273,10 +275,14 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		jobs = query.Jobs
 	}
 
-	pullPolicy := buildah.PullIfMissing
-	if _, found := r.URL.Query()["pull"]; found {
-		if query.Pull {
-			pullPolicy = buildah.PullAlways
+	pullPolicy := define.PullIfMissing
+	if utils.IsLibpodRequest(r) {
+		pullPolicy = define.PolicyMap[query.PullPolicy]
+	} else {
+		if _, found := r.URL.Query()["pull"]; found {
+			if query.Pull {
+				pullPolicy = define.PullAlways
+			}
 		}
 	}
 

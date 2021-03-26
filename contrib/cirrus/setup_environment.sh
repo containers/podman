@@ -36,6 +36,9 @@ do
     fi
 done
 
+# Make sure cni network plugins directory exists
+mkdir -p /etc/cni/net.d
+
 # Ensure that all lower-level contexts and child-processes have
 # ready access to higher level orchestration (e.g Cirrus-CI)
 # variables.

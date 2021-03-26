@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -150,7 +151,7 @@ var _ = Describe("Podman build", func() {
 		}
 
 		fakeFile := filepath.Join(os.TempDir(), "Containerfile")
-		Expect(ioutil.WriteFile(fakeFile, []byte("FROM alpine"), 0755)).To(BeNil())
+		Expect(ioutil.WriteFile(fakeFile, []byte(fmt.Sprintf("FROM %s", ALPINE)), 0755)).To(BeNil())
 
 		targetFile := filepath.Join(targetPath, "Containerfile")
 		Expect(ioutil.WriteFile(targetFile, []byte("FROM scratch"), 0755)).To(BeNil())
@@ -219,8 +220,8 @@ var _ = Describe("Podman build", func() {
 			podmanTest.StartRemoteService()
 		}
 		podmanTest.AddImageToRWStore(ALPINE)
-		dockerfile := `FROM quay.io/libpod/alpine:latest
-RUN printenv http_proxy`
+		dockerfile := fmt.Sprintf(`FROM %s
+RUN printenv http_proxy`, ALPINE)
 
 		dockerfilePath := filepath.Join(podmanTest.TempDir, "Dockerfile")
 		err := ioutil.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
@@ -263,9 +264,9 @@ RUN printenv http_proxy`
 		err = ioutil.WriteFile(dummyFile, []byte("dummy"), 0644)
 		Expect(err).To(BeNil())
 
-		containerfile := `FROM quay.io/libpod/alpine:latest
+		containerfile := fmt.Sprintf(`FROM %s
 ADD . /test
-RUN find /test`
+RUN find /test`, ALPINE)
 
 		containerfilePath := filepath.Join(targetPath, "Containerfile")
 		err = ioutil.WriteFile(containerfilePath, []byte(containerfile), 0644)
@@ -307,7 +308,7 @@ RUN find /test`
 		err = os.Mkdir(targetSubPath, 0755)
 		Expect(err).To(BeNil())
 
-		containerfile := `FROM quay.io/libpod/alpine:latest`
+		containerfile := fmt.Sprintf("FROM %s", ALPINE)
 
 		containerfilePath := filepath.Join(targetSubPath, "Containerfile")
 		err = ioutil.WriteFile(containerfilePath, []byte(containerfile), 0644)
@@ -344,9 +345,9 @@ RUN find /test`
 		targetPath, err := CreateTempDirInTempDir()
 		Expect(err).To(BeNil())
 
-		containerfile := `FROM quay.io/libpod/alpine:latest
+		containerfile := fmt.Sprintf(`FROM %s
 ADD . /testfilter/
-RUN find /testfilter/`
+RUN find /testfilter/`, ALPINE)
 
 		containerfilePath := filepath.Join(targetPath, "Containerfile")
 		err = ioutil.WriteFile(containerfilePath, []byte(containerfile), 0644)
@@ -428,10 +429,10 @@ subdir**`
 		Expect(os.Chdir(targetSubPath)).To(BeNil())
 		Expect(os.Symlink("dummy", "dummy-symlink")).To(BeNil())
 
-		containerfile := `FROM quay.io/libpod/alpine:latest
+		containerfile := fmt.Sprintf(`FROM %s
 ADD . /test
 RUN find /test
-RUN [[ -L /test/dummy-symlink ]] && echo SYMLNKOK || echo SYMLNKERR`
+RUN [[ -L /test/dummy-symlink ]] && echo SYMLNKOK || echo SYMLNKERR`, ALPINE)
 
 		containerfilePath := filepath.Join(targetSubPath, "Containerfile")
 		err = ioutil.WriteFile(containerfilePath, []byte(containerfile), 0644)
@@ -475,14 +476,14 @@ RUN grep CapEff /proc/self/status`
 
 		// When
 		session := podmanTest.Podman([]string{
-			"build", "--pull-never", "--cap-drop=all", "--cap-add=net_bind_service", "--add-host", "testhost:1.2.3.4", "--from", "alpine", targetPath,
+			"build", "--pull-never", "--cap-drop=all", "--cap-add=net_bind_service", "--add-host", "testhost:1.2.3.4", "--from", ALPINE, targetPath,
 		})
 		session.WaitWithDefaultTimeout()
 
 		// Then
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(strings.Fields(session.OutputToString())).
-			To(ContainElement("alpine"))
+			To(ContainElement(ALPINE))
 		Expect(strings.Fields(session.OutputToString())).
 			To(ContainElement("testhost"))
 		Expect(strings.Fields(session.OutputToString())).
@@ -494,7 +495,7 @@ RUN grep CapEff /proc/self/status`
 		Expect(err).To(BeNil())
 
 		containerFile := filepath.Join(targetPath, "Containerfile")
-		Expect(ioutil.WriteFile(containerFile, []byte("FROM alpine"), 0755)).To(BeNil())
+		Expect(ioutil.WriteFile(containerFile, []byte(fmt.Sprintf("FROM %s", ALPINE)), 0755)).To(BeNil())
 
 		defer func() {
 			Expect(os.RemoveAll(containerFile)).To(BeNil())
@@ -502,7 +503,7 @@ RUN grep CapEff /proc/self/status`
 
 		// When
 		session := podmanTest.Podman([]string{
-			"build", "--pull-never", "--isolation", "oci", "--arch", "arm64", targetPath,
+			"build", "--isolation", "oci", "--arch", "arm64", targetPath,
 		})
 		session.WaitWithDefaultTimeout()
 		// Then
@@ -510,7 +511,7 @@ RUN grep CapEff /proc/self/status`
 
 		// When
 		session = podmanTest.Podman([]string{
-			"build", "--pull-never", "--isolation", "chroot", "--arch", "arm64", targetPath,
+			"build", "--isolation", "chroot", "--arch", "arm64", targetPath,
 		})
 		session.WaitWithDefaultTimeout()
 		// Then
@@ -534,8 +535,8 @@ RUN grep CapEff /proc/self/status`
 	})
 
 	It("podman build --timestamp flag", func() {
-		containerfile := `FROM quay.io/libpod/alpine:latest
-RUN echo hello`
+		containerfile := fmt.Sprintf(`FROM %s
+RUN echo hello`, ALPINE)
 
 		containerfilePath := filepath.Join(podmanTest.TempDir, "Containerfile")
 		err := ioutil.WriteFile(containerfilePath, []byte(containerfile), 0755)
