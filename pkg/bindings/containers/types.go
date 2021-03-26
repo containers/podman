@@ -210,8 +210,9 @@ type RenameOptions struct {
 // ResizeTTYOptions are optional options for resizing
 // container TTYs
 type ResizeTTYOptions struct {
-	Height *int
-	Width  *int
+	Height  *int
+	Width   *int
+	Running *bool
 }
 
 //go:generate go run ../generator/generator.go ResizeExecTTYOptions
