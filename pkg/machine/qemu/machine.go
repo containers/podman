@@ -27,9 +27,9 @@ var (
 	//qemuCommon  = []string{"-cpu", "host", "-qmp", "tcp:localhost:4444,server,nowait"}
 )
 
-// NewMachine creates an instance of a virtual machine based on the qemu
+// NewMachine initializes an instance of a virtual machine based on the qemu
 // virtualization.
-func NewMachine(opts machine.CreateOptions) (machine.VM, error) {
+func NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	vmConfigDir, err := machine.GetConfDir(vmtype)
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func NewMachine(opts machine.CreateOptions) (machine.VM, error) {
 	// Add memory
 	cmd = append(cmd, []string{"-m", strconv.Itoa(int(vm.Memory))}...)
 	// Add cpus
-	// TODO
+	cmd = append(cmd, []string{"-smp", strconv.Itoa(int(vm.CPUs))}...)
 	// Add ignition file
 	cmd = append(cmd, []string{"-fw_cfg", "name=opt/com.coreos/config,file=" + vm.IgnitionFilePath}...)
 	// Add qmp socket
@@ -88,8 +88,8 @@ func NewMachine(opts machine.CreateOptions) (machine.VM, error) {
 
 	// Add network
 	cmd = append(cmd, "-nic", "user,model=virtio,hostfwd=tcp::"+strconv.Itoa(vm.Port)+"-:22")
+
 	vm.CmdLine = cmd
-	fmt.Println("///")
 	return vm, nil
 }
 
@@ -111,9 +111,9 @@ func LoadVMByName(name string) (machine.VM, error) {
 	return vm, err
 }
 
-// Create writes the json configuration file to the filesystem for
+// Init writes the json configuration file to the filesystem for
 // other verbs (start, stop)
-func (v *MachineVM) Create(opts machine.CreateOptions) error {
+func (v *MachineVM) Init(opts machine.InitOptions) error {
 	sshDir := filepath.Join(homedir.Get(), ".ssh")
 	// GetConfDir creates the directory so no need to check for
 	// its existence
@@ -172,7 +172,15 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 	files := []*os.File{os.Stdin, os.Stdout, os.Stderr}
 	attr.Files = files
 	logrus.Debug(v.CmdLine)
-	_, err = os.StartProcess(v.CmdLine[0], v.CmdLine, attr)
+	cmd := v.CmdLine
+
+	// Disable graphic window when not in debug mode
+	// Done in start, so we're not suck with the debug level we used on init
+	if logrus.GetLevel() != logrus.DebugLevel {
+		cmd = append(cmd, "-display", "none")
+	}
+
+	_, err = os.StartProcess(v.CmdLine[0], cmd, attr)
 	return err
 }
 

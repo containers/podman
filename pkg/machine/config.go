@@ -9,7 +9,7 @@ import (
 	"github.com/containers/storage/pkg/homedir"
 )
 
-type CreateOptions struct {
+type InitOptions struct {
 	Name         string
 	CPUS         uint64
 	Memory       uint64
@@ -58,7 +58,7 @@ type RemoveOptions struct {
 }
 
 type VM interface {
-	Create(opts CreateOptions) error
+	Init(opts InitOptions) error
 	Remove(name string, opts RemoveOptions) (string, func() error, error)
 	SSH(name string, opts SSHOptions) error
 	Start(name string, opts StartOptions) error

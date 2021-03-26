@@ -2,7 +2,7 @@ package libvirt
 
 import "github.com/containers/podman/v3/pkg/machine"
 
-func (v *MachineVM) Create(name string, opts machine.CreateOptions) error {
+func (v *MachineVM) Init(name string, opts machine.InitOptions) error {
 	return nil
 }
 
