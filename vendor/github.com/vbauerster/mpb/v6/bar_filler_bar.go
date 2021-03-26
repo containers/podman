@@ -94,15 +94,15 @@ func (s *barFiller) parse(style string) {
 	if !utf8.ValidString(style) {
 		panic("invalid bar style")
 	}
-	srcFormat := make([][]byte, 0, len(BarDefaultStyle))
-	srcRwidth := make([]int, 0, len(BarDefaultStyle))
-	gr := uniseg.NewGraphemes(style)
-	for gr.Next() {
-		srcFormat = append(srcFormat, gr.Bytes())
-		srcRwidth = append(srcRwidth, runewidth.StringWidth(gr.Str()))
+	srcFormat := make([][]byte, len(BarDefaultStyle))
+	srcRwidth := make([]int, len(BarDefaultStyle))
+	i := 0
+	for gr := uniseg.NewGraphemes(style); i < len(BarDefaultStyle) && gr.Next(); i++ {
+		srcFormat[i] = gr.Bytes()
+		srcRwidth[i] = runewidth.StringWidth(gr.Str())
 	}
-	copy(s.format, srcFormat)
-	copy(s.rwidth, srcRwidth)
+	copy(s.format, srcFormat[:i])
+	copy(s.rwidth, srcRwidth[:i])
 	if s.reverse {
 		s.tip = s.format[rRevTip]
 		s.flush = reverseFlush
