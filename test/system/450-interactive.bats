@@ -49,8 +49,6 @@ function teardown() {
 # BEGIN tests
 
 @test "podman detects correct tty size" {
-    skip_if_remote "FIXME: resolved in #9782"
-
     # Set the pty to a random size. Make rows/columns odd/even, to guarantee
     # that they can never be the same
     rows=$(( 15 + RANDOM % 60 |   1 ))

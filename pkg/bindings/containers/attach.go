@@ -336,7 +336,7 @@ func attachHandleResize(ctx, winCtx context.Context, winChange chan os.Signal, i
 		case <-winCtx.Done():
 			return
 		case <-winChange:
-			h, w, err := terminal.GetSize(int(file.Fd()))
+			w, h, err := terminal.GetSize(int(file.Fd()))
 			if err != nil {
 				logrus.Warnf("failed to obtain TTY size: %v", err)
 			}
