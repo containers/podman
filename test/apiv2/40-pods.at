@@ -116,6 +116,12 @@ t GET libpod/pods/foo/top?ps_args=args,pid 200 \
   .Titles[0]="COMMAND" \
   .Titles[1]="PID" \
 
+#api list pods sanity checks
+t GET libpod/pods/json?filters='garb1age}' 400 \
+    .cause="invalid character 'g' looking for beginning of value"
+t GET libpod/pods/json?filters='{"label":["testl' 400 \
+    .cause="unexpected end of JSON input"
+
 # FIXME: I'm not sure what 'prune' is supposed to do; as of 20200224 it
 # just returns 200 (ok) with empty result list.
 #t POST libpod/pods/prune       200     # FIXME: 2020-02-24 returns 200 {}
