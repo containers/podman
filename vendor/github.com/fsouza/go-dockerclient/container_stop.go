@@ -2,6 +2,7 @@ package docker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 )
@@ -19,7 +20,6 @@ func (c *Client) StopContainer(id string, timeout uint) error {
 // container request.
 //
 // See https://goo.gl/R9dZcV for more details.
-//nolint:golint
 func (c *Client) StopContainerWithContext(id string, timeout uint, ctx context.Context) error {
 	return c.stopContainer(id, timeout, doOptions{context: ctx})
 }
@@ -28,7 +28,8 @@ func (c *Client) stopContainer(id string, timeout uint, opts doOptions) error {
 	path := fmt.Sprintf("/containers/%s/stop?t=%d", id, timeout)
 	resp, err := c.do(http.MethodPost, path, opts)
 	if err != nil {
-		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
+		var e *Error
+		if errors.As(err, &e) && e.Status == http.StatusNotFound {
 			return &NoSuchContainer{ID: id}
 		}
 		return err

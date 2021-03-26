@@ -3,7 +3,7 @@
 package parse
 
 import (
-	"github.com/containers/buildah"
+	"github.com/containers/buildah/define"
 	"github.com/pkg/errors"
 )
 
@@ -11,6 +11,6 @@ func getDefaultProcessLimits() []string {
 	return []string{}
 }
 
-func DeviceFromPath(device string) (buildah.ContainerDevices, error) {
-	return buildah.ContainerDevices{}, errors.Errorf("devices not supported")
+func DeviceFromPath(device string) (define.ContainerDevices, error) {
+	return nil, errors.Errorf("devices not supported")
 }

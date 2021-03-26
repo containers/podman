@@ -2,6 +2,7 @@ package docker
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 )
@@ -27,7 +28,8 @@ func (c *Client) TopContainer(id string, psArgs string) (TopResult, error) {
 	path := fmt.Sprintf("/containers/%s/top%s", id, args)
 	resp, err := c.do(http.MethodGet, path, doOptions{})
 	if err != nil {
-		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
+		var e *Error
+		if errors.As(err, &e) && e.Status == http.StatusNotFound {
 			return result, &NoSuchContainer{ID: id}
 		}
 		return result, err

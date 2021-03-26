@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/pkg/blobcache"
 	"github.com/containers/image/v5/directory"
 	"github.com/containers/image/v5/docker"
@@ -61,7 +62,7 @@ type PullOptions struct {
 	// encrypted if non-nil. If nil, it does not attempt to decrypt an image.
 	OciDecryptConfig *encconfig.DecryptConfig
 	// PullPolicy takes the value PullIfMissing, PullAlways, PullIfNewer, or PullNever.
-	PullPolicy PullPolicy
+	PullPolicy define.PullPolicy
 }
 
 func localImageNameForReference(ctx context.Context, store storage.Store, srcRef types.ImageReference) (string, error) {

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/containers/buildah"
-	"github.com/containers/buildah/imagebuildah"
+	"github.com/containers/buildah/define"
 	buildahCLI "github.com/containers/buildah/pkg/cli"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/pkg/completion"
@@ -196,7 +196,7 @@ func build(cmd *cobra.Command, args []string) error {
 	var contextDir string
 	if len(args) > 0 {
 		// The context directory could be a URL.  Try to handle that.
-		tempDir, subDir, err := imagebuildah.TempDirForURL("", "buildah", args[0])
+		tempDir, subDir, err := define.TempDirForURL("", "buildah", args[0])
 		if err != nil {
 			return errors.Wrapf(err, "error prepping temporary context directory")
 		}
@@ -304,16 +304,16 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		return nil, err
 	}
 
-	pullPolicy := imagebuildah.PullIfMissing
+	pullPolicy := define.PullIfMissing
 	if c.Flags().Changed("pull") && flags.Pull {
-		pullPolicy = imagebuildah.PullAlways
+		pullPolicy = define.PullAlways
 	}
 	if flags.PullAlways {
-		pullPolicy = imagebuildah.PullAlways
+		pullPolicy = define.PullAlways
 	}
 
 	if flags.PullNever {
-		pullPolicy = imagebuildah.PullIfMissing
+		pullPolicy = define.PullIfMissing
 	}
 
 	args := make(map[string]string)
@@ -388,9 +388,9 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		flags.Layers = false
 	}
 
-	compression := imagebuildah.Gzip
+	compression := define.Gzip
 	if flags.DisableCompression {
-		compression = imagebuildah.Uncompressed
+		compression = define.Uncompressed
 	}
 
 	isolation, err := parse.IsolationOption(flags.Isolation)
@@ -443,7 +443,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		return nil, errors.Wrapf(err, "unable to obtain decrypt config")
 	}
 
-	opts := imagebuildah.BuildOptions{
+	opts := define.BuildOptions{
 		AddCapabilities:         flags.CapAdd,
 		AdditionalTags:          tags,
 		Annotations:             flags.Annotation,

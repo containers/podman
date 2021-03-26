@@ -13,6 +13,7 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/copier"
+	"github.com/containers/buildah/define"
 	buildahdocker "github.com/containers/buildah/docker"
 	"github.com/containers/buildah/pkg/rusage"
 	"github.com/containers/buildah/util"
@@ -27,6 +28,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 	digest "github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/openshift/imagebuilder"
 	"github.com/openshift/imagebuilder/dockerfile/parser"
 	"github.com/pkg/errors"
@@ -184,7 +186,7 @@ func (s *StageExecutor) volumeCacheInvalidate(path string) error {
 
 // Save the contents of each of the executor's list of volumes for which we
 // don't already have a cache file.
-func (s *StageExecutor) volumeCacheSave() error {
+func (s *StageExecutor) volumeCacheSaveVFS() error {
 	for cachedPath, cacheFile := range s.volumeCache {
 		archivedPath := filepath.Join(s.mountPoint, cachedPath)
 		_, err := os.Stat(cacheFile)
@@ -218,7 +220,7 @@ func (s *StageExecutor) volumeCacheSave() error {
 }
 
 // Restore the contents of each of the executor's list of volumes.
-func (s *StageExecutor) volumeCacheRestore() error {
+func (s *StageExecutor) volumeCacheRestoreVFS() (err error) {
 	for cachedPath, cacheFile := range s.volumeCache {
 		archivedPath := filepath.Join(s.mountPoint, cachedPath)
 		logrus.Debugf("restoring contents of volume %q from %q", archivedPath, cacheFile)
@@ -258,6 +260,45 @@ func (s *StageExecutor) volumeCacheRestore() error {
 	return nil
 }
 
+// Save the contents of each of the executor's list of volumes for which we
+// don't already have a cache file.
+func (s *StageExecutor) volumeCacheSaveOverlay() (mounts []specs.Mount, err error) {
+	for cachedPath := range s.volumeCache {
+		volumePath := filepath.Join(s.mountPoint, cachedPath)
+		mount := specs.Mount{
+			Source:      volumePath,
+			Destination: cachedPath,
+			Options:     []string{"O", "private"},
+		}
+		mounts = append(mounts, mount)
+	}
+	return mounts, nil
+}
+
+// Reset the contents of each of the executor's list of volumes.
+func (s *StageExecutor) volumeCacheRestoreOverlay() error {
+	return nil
+}
+
+// Save the contents of each of the executor's list of volumes for which we
+// don't already have a cache file.
+func (s *StageExecutor) volumeCacheSave() (mounts []specs.Mount, err error) {
+	switch s.executor.store.GraphDriverName() {
+	case "overlay":
+		return s.volumeCacheSaveOverlay()
+	}
+	return nil, s.volumeCacheSaveVFS()
+}
+
+// Reset the contents of each of the executor's list of volumes.
+func (s *StageExecutor) volumeCacheRestore() error {
+	switch s.executor.store.GraphDriverName() {
+	case "overlay":
+		return s.volumeCacheRestoreOverlay()
+	}
+	return s.volumeCacheRestoreVFS()
+}
+
 // Copy copies data into the working tree.  The "Download" field is how
 // imagebuilder tells us the instruction was "ADD" and not "COPY".
 func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) error {
@@ -275,7 +316,7 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 		// The From field says to read the content from another
 		// container.  Update the ID mappings and
 		// all-content-comes-from-below-this-directory value.
-		var idMappingOptions *buildah.IDMappingOptions
+		var idMappingOptions *define.IDMappingOptions
 		var copyExcludes []string
 		stripSetuid := false
 		stripSetgid := false
@@ -321,6 +362,7 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 			}
 		}
 		options := buildah.AddAndCopyOptions{
+			Chmod:             copy.Chmod,
 			Chown:             copy.Chown,
 			PreserveOwnership: preserveOwnership,
 			ContextDir:        contextDir,
@@ -378,16 +420,18 @@ func (s *StageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 
 	args := run.Args
 	if run.Shell {
-		if len(config.Shell) > 0 && s.builder.Format == buildah.Dockerv2ImageManifest {
+		if len(config.Shell) > 0 && s.builder.Format == define.Dockerv2ImageManifest {
 			args = append(config.Shell, args...)
 		} else {
 			args = append([]string{"/bin/sh", "-c"}, args...)
 		}
 	}
-	if err := s.volumeCacheSave(); err != nil {
+	mounts, err := s.volumeCacheSave()
+	if err != nil {
 		return err
 	}
-	err := s.builder.Run(args, options)
+	options.Mounts = append(options.Mounts, mounts...)
+	err = s.builder.Run(args, options)
 	if err2 := s.volumeCacheRestore(); err2 != nil {
 		if err == nil {
 			return err2
@@ -722,15 +766,15 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 		}
 
 		// Check if there's a --from if the step command is COPY.
-		// Also check the chown flag for validity.
+		// Also check the chmod and the chown flags for validity.
 		for _, flag := range step.Flags {
 			command := strings.ToUpper(step.Command)
-			// chown and from flags should have an '=' sign, '--chown=' or '--from='
-			if command == "COPY" && (flag == "--chown" || flag == "--from") {
-				return "", nil, errors.Errorf("COPY only supports the --chown=<uid:gid> and the --from=<image|stage> flags")
+			// chmod, chown and from flags should have an '=' sign, '--chmod=', '--chown=' or '--from='
+			if command == "COPY" && (flag == "--chmod" || flag == "--chown" || flag == "--from") {
+				return "", nil, errors.Errorf("COPY only supports the --chmod=<permissions> --chown=<uid:gid> and the --from=<image|stage> flags")
 			}
-			if command == "ADD" && flag == "--chown" {
-				return "", nil, errors.Errorf("ADD only supports the --chown=<uid:gid> flag")
+			if command == "ADD" && (flag == "--chmod" || flag == "--chown") {
+				return "", nil, errors.Errorf("ADD only supports the --chmod=<permissions> and the --chown=<uid:gid> flags")
 			}
 			if strings.Contains(flag, "--from") && command == "COPY" {
 				arr := strings.Split(flag, "=")
@@ -1234,7 +1278,7 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 		s.builder.SetHealthcheck(nil)
 	}
 	s.builder.ClearLabels()
-	s.builder.SetLabel(buildah.BuilderIdentityAnnotation, buildah.Version)
+
 	for k, v := range config.Labels {
 		s.builder.SetLabel(k, v)
 	}
@@ -1246,6 +1290,7 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 			s.builder.SetLabel(label[0], "")
 		}
 	}
+	s.builder.SetLabel(buildah.BuilderIdentityAnnotation, define.Version)
 	for _, annotationSpec := range s.executor.annotations {
 		annotation := strings.SplitN(annotationSpec, "=", 2)
 		if len(annotation) > 1 {
