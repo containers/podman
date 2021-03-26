@@ -25,10 +25,10 @@ import (
 const (
 	// Package is the name of this package, used in help output and to
 	// identify working containers.
-	Package = "buildah"
+	Package = define.Package
 	// Version for the Package.  Bump version in contrib/rpm/buildah.spec
 	// too.
-	Version = "1.19.8"
+	Version = define.Version
 	// The value we use to identify what type of information, currently a
 	// serialized Builder structure, we are using as per-container state.
 	// This should only be changed when we make incompatible changes to
@@ -66,34 +66,21 @@ const (
 
 // NetworkConfigurationPolicy takes the value NetworkDefault, NetworkDisabled,
 // or NetworkEnabled.
-type NetworkConfigurationPolicy int
+type NetworkConfigurationPolicy = define.NetworkConfigurationPolicy
 
 const (
 	// NetworkDefault is one of the values that BuilderOptions.ConfigureNetwork
 	// can take, signalling that the default behavior should be used.
-	NetworkDefault NetworkConfigurationPolicy = iota
+	NetworkDefault = define.NetworkDefault
 	// NetworkDisabled is one of the values that BuilderOptions.ConfigureNetwork
 	// can take, signalling that network interfaces should NOT be configured for
 	// newly-created network namespaces.
-	NetworkDisabled
+	NetworkDisabled = define.NetworkDisabled
 	// NetworkEnabled is one of the values that BuilderOptions.ConfigureNetwork
 	// can take, signalling that network interfaces should be configured for
 	// newly-created network namespaces.
-	NetworkEnabled
+	NetworkEnabled = define.NetworkEnabled
 )
-
-// String formats a NetworkConfigurationPolicy as a string.
-func (p NetworkConfigurationPolicy) String() string {
-	switch p {
-	case NetworkDefault:
-		return "NetworkDefault"
-	case NetworkDisabled:
-		return "NetworkDisabled"
-	case NetworkEnabled:
-		return "NetworkEnabled"
-	}
-	return fmt.Sprintf("unknown NetworkConfigurationPolicy %d", p)
-}
 
 // Builder objects are used to represent containers which are being used to
 // build images.  They also carry potential updates which will be applied to
@@ -149,15 +136,15 @@ type Builder struct {
 	DefaultMountsFilePath string `json:"defaultMountsFilePath,omitempty"`
 
 	// Isolation controls how we handle "RUN" statements and the Run() method.
-	Isolation Isolation
+	Isolation define.Isolation
 	// NamespaceOptions controls how we set up the namespaces for processes that we run in the container.
-	NamespaceOptions NamespaceOptions
+	NamespaceOptions define.NamespaceOptions
 	// ConfigureNetwork controls whether or not network interfaces and
 	// routing are configured for a new network namespace (i.e., when not
 	// joining another's namespace and not just using the host's
 	// namespace), effectively deciding whether or not the process has a
 	// usable network.
-	ConfigureNetwork NetworkConfigurationPolicy
+	ConfigureNetwork define.NetworkConfigurationPolicy
 	// CNIPluginPath is the location of CNI plugin helpers, if they should be
 	// run from a location other than the default location.
 	CNIPluginPath string
@@ -165,7 +152,7 @@ type Builder struct {
 	// the default configuration directory shouldn't be used.
 	CNIConfigDir string
 	// ID mapping options to use when running processes in the container with non-host user namespaces.
-	IDMappingOptions IDMappingOptions
+	IDMappingOptions define.IDMappingOptions
 	// Capabilities is a list of capabilities to use when running commands in the container.
 	Capabilities []string
 	// PrependedEmptyLayers are history entries that we'll add to a
@@ -177,7 +164,7 @@ type Builder struct {
 	// committed image after the history item for the layer that we're
 	// committing.
 	AppendedEmptyLayers []v1.History
-	CommonBuildOpts     *CommonBuildOptions
+	CommonBuildOpts     *define.CommonBuildOptions
 	// TopLayer is the top layer of the image
 	TopLayer string
 	// Format for the build Image
@@ -187,7 +174,7 @@ type Builder struct {
 	// ContentDigester counts the digest of all Add()ed content
 	ContentDigester CompositeDigester
 	// Devices are the additional devices to add to the containers
-	Devices ContainerDevices
+	Devices define.ContainerDevices
 }
 
 // BuilderInfo are used as objects to display container information
@@ -209,14 +196,14 @@ type BuilderInfo struct {
 	Docker                docker.V2Image
 	DefaultMountsFilePath string
 	Isolation             string
-	NamespaceOptions      NamespaceOptions
+	NamespaceOptions      define.NamespaceOptions
 	Capabilities          []string
 	ConfigureNetwork      string
 	CNIPluginPath         string
 	CNIConfigDir          string
-	IDMappingOptions      IDMappingOptions
+	IDMappingOptions      define.IDMappingOptions
 	History               []v1.History
-	Devices               ContainerDevices
+	Devices               define.ContainerDevices
 }
 
 // GetBuildInfo gets a pointer to a Builder object and returns a BuilderInfo object from it.
@@ -256,66 +243,7 @@ func GetBuildInfo(b *Builder) BuilderInfo {
 }
 
 // CommonBuildOptions are resources that can be defined by flags for both buildah from and build-using-dockerfile
-type CommonBuildOptions struct {
-	// AddHost is the list of hostnames to add to the build container's /etc/hosts.
-	AddHost []string
-	// CgroupParent is the path to cgroups under which the cgroup for the container will be created.
-	CgroupParent string
-	// CPUPeriod limits the CPU CFS (Completely Fair Scheduler) period
-	CPUPeriod uint64
-	// CPUQuota limits the CPU CFS (Completely Fair Scheduler) quota
-	CPUQuota int64
-	// CPUShares (relative weight
-	CPUShares uint64
-	// CPUSetCPUs in which to allow execution (0-3, 0,1)
-	CPUSetCPUs string
-	// CPUSetMems memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.
-	CPUSetMems string
-	// HTTPProxy determines whether *_proxy env vars from the build host are passed into the container.
-	HTTPProxy bool
-	// Memory is the upper limit (in bytes) on how much memory running containers can use.
-	Memory int64
-	// DNSSearch is the list of DNS search domains to add to the build container's /etc/resolv.conf
-	DNSSearch []string
-	// DNSServers is the list of DNS servers to add to the build container's /etc/resolv.conf
-	DNSServers []string
-	// DNSOptions is the list of DNS
-	DNSOptions []string
-	// MemorySwap limits the amount of memory and swap together.
-	MemorySwap int64
-	// LabelOpts is the a slice of fields of an SELinux context, given in "field:pair" format, or "disable".
-	// Recognized field names are "role", "type", and "level".
-	LabelOpts []string
-	// OmitTimestamp forces epoch 0 as created timestamp to allow for
-	// deterministic, content-addressable builds.
-	OmitTimestamp bool
-	// SeccompProfilePath is the pathname of a seccomp profile.
-	SeccompProfilePath string
-	// ApparmorProfile is the name of an apparmor profile.
-	ApparmorProfile string
-	// ShmSize is the "size" value to use when mounting an shmfs on the container's /dev/shm directory.
-	ShmSize string
-	// Ulimit specifies resource limit options, in the form type:softlimit[:hardlimit].
-	// These types are recognized:
-	// "core": maximum core dump size (ulimit -c)
-	// "cpu": maximum CPU time (ulimit -t)
-	// "data": maximum size of a process's data segment (ulimit -d)
-	// "fsize": maximum size of new files (ulimit -f)
-	// "locks": maximum number of file locks (ulimit -x)
-	// "memlock": maximum amount of locked memory (ulimit -l)
-	// "msgqueue": maximum amount of data in message queues (ulimit -q)
-	// "nice": niceness adjustment (nice -n, ulimit -e)
-	// "nofile": maximum number of open files (ulimit -n)
-	// "nproc": maximum number of processes (ulimit -u)
-	// "rss": maximum size of a process's (ulimit -m)
-	// "rtprio": maximum real-time scheduling priority (ulimit -r)
-	// "rttime": maximum amount of real-time execution between blocking syscalls
-	// "sigpending": maximum number of pending signals (ulimit -i)
-	// "stack": maximum stack size (ulimit -s)
-	Ulimit []string
-	// Volumes to bind mount into the container
-	Volumes []string
-}
+type CommonBuildOptions = define.CommonBuildOptions
 
 // BuilderOptions are used to initialize a new Builder.
 type BuilderOptions struct {
@@ -331,7 +259,7 @@ type BuilderOptions struct {
 	// PullPolicy decides whether or not we should pull the image that
 	// we're using as a base image.  It should be PullIfMissing,
 	// PullAlways, or PullNever.
-	PullPolicy PullPolicy
+	PullPolicy define.PullPolicy
 	// Registry is a value which is prepended to the image's name, if it
 	// needs to be pulled and the image name alone can not be resolved to a
 	// reference to a source image.  No separator is implicitly added.
@@ -360,16 +288,16 @@ type BuilderOptions struct {
 	DefaultMountsFilePath string
 	// Isolation controls how we handle "RUN" statements and the Run()
 	// method.
-	Isolation Isolation
+	Isolation define.Isolation
 	// NamespaceOptions controls how we set up namespaces for processes that
 	// we might need to run using the container's root filesystem.
-	NamespaceOptions NamespaceOptions
+	NamespaceOptions define.NamespaceOptions
 	// ConfigureNetwork controls whether or not network interfaces and
 	// routing are configured for a new network namespace (i.e., when not
 	// joining another's namespace and not just using the host's
 	// namespace), effectively deciding whether or not the process has a
 	// usable network.
-	ConfigureNetwork NetworkConfigurationPolicy
+	ConfigureNetwork define.NetworkConfigurationPolicy
 	// CNIPluginPath is the location of CNI plugin helpers, if they should be
 	// run from a location other than the default location.
 	CNIPluginPath string
@@ -377,15 +305,15 @@ type BuilderOptions struct {
 	// the default configuration directory shouldn't be used.
 	CNIConfigDir string
 	// ID mapping options to use if we're setting up our own user namespace.
-	IDMappingOptions *IDMappingOptions
+	IDMappingOptions *define.IDMappingOptions
 	// Capabilities is a list of capabilities to use when
 	// running commands in the container.
 	Capabilities    []string
-	CommonBuildOpts *CommonBuildOptions
+	CommonBuildOpts *define.CommonBuildOptions
 	// Format for the container image
 	Format string
 	// Devices are the additional devices to add to the containers
-	Devices ContainerDevices
+	Devices define.ContainerDevices
 	//DefaultEnv for containers
 	DefaultEnv []string
 	// MaxPullRetries is the maximum number of attempts we'll make to pull
@@ -460,7 +388,7 @@ func OpenBuilder(store storage.Store, container string) (*Builder, error) {
 		return nil, errors.Wrapf(err, "error parsing %q, read from %q", string(buildstate), filepath.Join(cdir, stateFile))
 	}
 	if b.Type != containerType {
-		return nil, errors.Errorf("container %q is not a %s container (is a %q container)", container, Package, b.Type)
+		return nil, errors.Errorf("container %q is not a %s container (is a %q container)", container, define.Package, b.Type)
 	}
 	b.store = store
 	b.fixupConfig()
@@ -504,7 +432,7 @@ func OpenBuilderByPath(store storage.Store, path string) (*Builder, error) {
 		if err != nil {
 			logrus.Debugf("error parsing %q, read from %q: %v", string(buildstate), filepath.Join(cdir, stateFile), err)
 		} else if b.Type != containerType {
-			logrus.Debugf("container %q is not a %s container (is a %q container)", container.ID, Package, b.Type)
+			logrus.Debugf("container %q is not a %s container (is a %q container)", container.ID, define.Package, b.Type)
 		}
 	}
 	return nil, storage.ErrContainerUnknown
@@ -541,7 +469,7 @@ func OpenAllBuilders(store storage.Store) (builders []*Builder, err error) {
 		if err != nil {
 			logrus.Debugf("error parsing %q, read from %q: %v", string(buildstate), filepath.Join(cdir, stateFile), err)
 		} else if b.Type != containerType {
-			logrus.Debugf("container %q is not a %s container (is a %q container)", container.ID, Package, b.Type)
+			logrus.Debugf("container %q is not a %s container (is a %q container)", container.ID, define.Package, b.Type)
 		}
 	}
 	return builders, nil

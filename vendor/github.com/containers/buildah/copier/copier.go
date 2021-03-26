@@ -1128,6 +1128,10 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 						}
 						return errors.Wrapf(err, "copier: get: error reading %q", path)
 					}
+					if info.Mode()&os.ModeType == os.ModeSocket {
+						logrus.Warningf("buildah/copier: skipping socket %q", info.Name())
+						return nil
+					}
 					// compute the path of this item
 					// relative to the top-level directory,
 					// for the tar header

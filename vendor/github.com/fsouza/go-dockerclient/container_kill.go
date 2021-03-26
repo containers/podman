@@ -2,6 +2,7 @@ package docker
 
 import (
 	"context"
+	"errors"
 	"net/http"
 )
 
@@ -27,8 +28,8 @@ func (c *Client) KillContainer(opts KillContainerOptions) error {
 	path := "/containers/" + opts.ID + "/kill" + "?" + queryString(opts)
 	resp, err := c.do(http.MethodPost, path, doOptions{context: opts.Context})
 	if err != nil {
-		e, ok := err.(*Error)
-		if !ok {
+		var e *Error
+		if !errors.As(err, &e) {
 			return err
 		}
 		switch e.Status {

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/containers/buildah/copier"
+	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/docker"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/image"
@@ -35,14 +36,16 @@ const (
 	// OCIv1ImageManifest is the MIME type of an OCIv1 image manifest,
 	// suitable for specifying as a value of the PreferredManifestType
 	// member of a CommitOptions structure.  It is also the default.
-	OCIv1ImageManifest = v1.MediaTypeImageManifest
+	OCIv1ImageManifest = define.OCIv1ImageManifest
 	// Dockerv2ImageManifest is the MIME type of a Docker v2s2 image
 	// manifest, suitable for specifying as a value of the
 	// PreferredManifestType member of a CommitOptions structure.
-	Dockerv2ImageManifest = manifest.DockerV2Schema2MediaType
+	Dockerv2ImageManifest = define.Dockerv2ImageManifest
 )
 
 type containerImageRef struct {
+	fromImageName         string
+	fromImageID           string
 	store                 storage.Store
 	compression           archive.Compression
 	name                  reference.Named
@@ -60,7 +63,7 @@ type containerImageRef struct {
 	exporting             bool
 	squash                bool
 	emptyLayer            bool
-	idMappingOptions      *IDMappingOptions
+	idMappingOptions      *define.IDMappingOptions
 	parent                string
 	blobDirectory         string
 	preEmptyLayers        []v1.History
@@ -143,14 +146,16 @@ func computeLayerMIMEType(what string, layerCompression archive.Compression) (om
 }
 
 // Extract the container's whole filesystem as if it were a single layer.
-func (i *containerImageRef) extractRootfs() (io.ReadCloser, error) {
+func (i *containerImageRef) extractRootfs() (io.ReadCloser, chan error, error) {
 	var uidMap, gidMap []idtools.IDMap
 	mountPoint, err := i.store.Mount(i.containerID, i.mountLabel)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error mounting container %q", i.containerID)
+		return nil, nil, errors.Wrapf(err, "error mounting container %q", i.containerID)
 	}
 	pipeReader, pipeWriter := io.Pipe()
+	errChan := make(chan error, 1)
 	go func() {
+		defer close(errChan)
 		if i.idMappingOptions != nil {
 			uidMap, gidMap = convertRuntimeIDMaps(i.idMappingOptions.UIDMap, i.idMappingOptions.GIDMap)
 		}
@@ -159,7 +164,9 @@ func (i *containerImageRef) extractRootfs() (io.ReadCloser, error) {
 			GIDMap: gidMap,
 		}
 		err = copier.Get(mountPoint, mountPoint, copierOptions, []string{"."}, pipeWriter)
+		errChan <- err
 		pipeWriter.Close()
+
 	}()
 	return ioutils.NewReadCloserWrapper(pipeReader, func() error {
 		if err = pipeReader.Close(); err != nil {
@@ -172,7 +179,7 @@ func (i *containerImageRef) extractRootfs() (io.ReadCloser, error) {
 			err = err2
 		}
 		return err
-	}), nil
+	}), errChan, nil
 }
 
 // Build fresh copies of the container configuration structures so that we can edit them
@@ -279,7 +286,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 	logrus.Debugf("layer list: %q", layers)
 
 	// Make a temporary directory to hold blobs.
-	path, err := ioutil.TempDir(os.TempDir(), Package)
+	path, err := ioutil.TempDir(os.TempDir(), define.Package)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating temporary directory to hold layer blobs")
 	}
@@ -354,9 +361,10 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 			Compression: &noCompression,
 		}
 		var rc io.ReadCloser
+		var errChan chan error
 		if i.squash {
 			// Extract the root filesystem as a single layer.
-			rc, err = i.extractRootfs()
+			rc, errChan, err = i.extractRootfs()
 			if err != nil {
 				return nil, err
 			}
@@ -414,6 +422,14 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		writeCloser.Close()
 		layerFile.Close()
 		rc.Close()
+
+		if errChan != nil {
+			err = <-errChan
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		if err != nil {
 			return nil, errors.Wrapf(err, "error storing %s to file", what)
 		}
@@ -483,11 +499,16 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 	if i.created != nil {
 		created = (*i.created).UTC()
 	}
+	comment := i.historyComment
+	// Add a comment for which base image is being used
+	if strings.Contains(i.parent, i.fromImageID) && i.fromImageName != i.fromImageID {
+		comment += "FROM " + i.fromImageName
+	}
 	onews := v1.History{
 		Created:    &created,
 		CreatedBy:  i.createdBy,
 		Author:     oimage.Author,
-		Comment:    i.historyComment,
+		Comment:    comment,
 		EmptyLayer: i.emptyLayer,
 	}
 	oimage.History = append(oimage.History, onews)
@@ -495,7 +516,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		Created:    created,
 		CreatedBy:  i.createdBy,
 		Author:     dimage.Author,
-		Comment:    i.historyComment,
+		Comment:    comment,
 		EmptyLayer: i.emptyLayer,
 	}
 	dimage.History = append(dimage.History, dnews)
@@ -697,7 +718,7 @@ func (b *Builder) makeImageRef(options CommitOptions, exporting bool) (types.Ima
 	}
 	manifestType := options.PreferredManifestType
 	if manifestType == "" {
-		manifestType = OCIv1ImageManifest
+		manifestType = define.OCIv1ImageManifest
 	}
 	oconfig, err := json.Marshal(&b.OCIv1)
 	if err != nil {
@@ -729,6 +750,8 @@ func (b *Builder) makeImageRef(options CommitOptions, exporting bool) (types.Ima
 	}
 
 	ref := &containerImageRef{
+		fromImageName:         b.FromImage,
+		fromImageID:           b.FromImageID,
 		store:                 b.store,
 		compression:           options.Compression,
 		name:                  name,

@@ -7,6 +7,7 @@ package docker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"time"
@@ -78,7 +79,8 @@ func (c *Client) RemoveService(opts RemoveServiceOptions) error {
 	path := "/services/" + opts.ID
 	resp, err := c.do(http.MethodDelete, path, doOptions{context: opts.Context})
 	if err != nil {
-		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
+		var e *Error
+		if errors.As(err, &e) && e.Status == http.StatusNotFound {
 			return &NoSuchService{ID: opts.ID}
 		}
 		return err
@@ -113,7 +115,8 @@ func (c *Client) UpdateService(id string, opts UpdateServiceOptions) error {
 		context:   opts.Context,
 	})
 	if err != nil {
-		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
+		var e *Error
+		if errors.As(err, &e) && e.Status == http.StatusNotFound {
 			return &NoSuchService{ID: id}
 		}
 		return err
@@ -129,7 +132,8 @@ func (c *Client) InspectService(id string) (*swarm.Service, error) {
 	path := "/services/" + id
 	resp, err := c.do(http.MethodGet, path, doOptions{})
 	if err != nil {
-		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
+		var e *Error
+		if errors.As(err, &e) && e.Status == http.StatusNotFound {
 			return nil, &NoSuchService{ID: id}
 		}
 		return nil, err

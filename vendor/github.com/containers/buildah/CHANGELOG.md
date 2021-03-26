@@ -2,44 +2,6 @@
 
 # Changelog
 
-## v1.19.6 (2021-02-18)
-    Bump c/containers/storage v1.24.6
-    Don't fail copy to emptydir
-    Workaround for RHEL gating test failure
-    Fix config-flags-verification test on F33
-    Fix bud capabilities test
-    Stop overriding the location of the blob info cache
-    Fix caching layers with build args
-
-## v1.19.5 (2021-02-09)
-    Vendor in latest containers/image and common
-
-## v1.19.4 (2021-02-06)
-    run: fix check for host pid namespace
-    bump containernetworking/cni library to v0.8.1 - fix for CVE-2021-20206
-    Finish plumbing for buildah bud --manifest
-    buildah manifest add localimage should work
-    Fix build arg check
-    --iidfile: print hash prefix
-
-## v1.19.3 (2021-01-28)
-    [ci:docs] Fix man page for buildah push
-    Vendor in containers/image v5.10.1
-    Rebuild layer if a change in ARG is detected
-    Bump golang.org/x/crypto to latest rel-1.19
-    local image lookup by digest
-    Use build-arg ENV val from local environment if set
-    Pick default OCI Runtime from containers.conf
-
-## v1.19.2 (2021-01-15)
-    If overlay mount point destination does not exists, do not throw error
-    Vendor in containers/common
-
-## v1.19.1 (2021-01-14)
-    Cherry pick localhost fix and update CI configuration for release-1.19
-    use local image name for pull policy checks
-    Vendor in common 0.33.1
-
 ## v1.19.0 (2021-01-08)
     Update vendor of containers/storage and containers/common
     Buildah inspect should be able to inspect manifests

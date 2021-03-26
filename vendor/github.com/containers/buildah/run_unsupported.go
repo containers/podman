@@ -6,9 +6,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ContainerDevices is currently not implemented.
-type ContainerDevices = []struct{}
-
 func setChildProcess() error {
 	return errors.New("function not supported on non-linux systems")
 }
