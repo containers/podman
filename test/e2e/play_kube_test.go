@@ -141,6 +141,7 @@ spec:
         configMapKeyRef:
           name: {{ .RefName }}
           key: {{ .RefKey }}
+          optional: {{ .Optional }}
     {{ else }}
       value: {{ .Value }}
     {{ end }}
@@ -151,6 +152,7 @@ spec:
     {{ if (eq .From "configmap") }}
     - configMapRef:
         name: {{ .Name }}
+        optional: {{ .Optional }}
     {{ end }}
     {{ end }}
     {{ end }}
@@ -746,7 +748,7 @@ func withVolumeMount(mountPath string, readonly bool) ctrOption {
 	}
 }
 
-func withEnv(name, value, valueFrom, refName, refKey string) ctrOption {
+func withEnv(name, value, valueFrom, refName, refKey string, optional bool) ctrOption {
 	return func(c *Ctr) {
 		e := Env{
 			Name:      name,
@@ -754,17 +756,19 @@ func withEnv(name, value, valueFrom, refName, refKey string) ctrOption {
 			ValueFrom: valueFrom,
 			RefName:   refName,
 			RefKey:    refKey,
+			Optional:  optional,
 		}
 
 		c.Env = append(c.Env, e)
 	}
 }
 
-func withEnvFrom(name, from string) ctrOption {
+func withEnvFrom(name, from string, optional bool) ctrOption {
 	return func(c *Ctr) {
 		e := EnvFrom{
-			Name: name,
-			From: from,
+			Name:     name,
+			From:     from,
+			Optional: optional,
 		}
 
 		c.EnvFrom = append(c.EnvFrom, e)
@@ -822,11 +826,13 @@ type Env struct {
 	ValueFrom string
 	RefName   string
 	RefKey    string
+	Optional  bool
 }
 
 type EnvFrom struct {
-	Name string
-	From string
+	Name     string
+	From     string
+	Optional bool
 }
 
 func milliCPUToQuota(milliCPU string) int {
@@ -1062,7 +1068,7 @@ var _ = Describe("Podman play kube", func() {
 		err := generateKubeYaml("configmap", cm, cmYamlPathname)
 		Expect(err).To(BeNil())
 
-		pod := getPod(withCtr(getCtr(withEnv("FOO", "", "configmap", "foo", "FOO"))))
+		pod := getPod(withCtr(getCtr(withEnv("FOO", "", "configmap", "foo", "FOO", false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -1076,6 +1082,68 @@ var _ = Describe("Podman play kube", func() {
 		Expect(inspect.OutputToString()).To(ContainSubstring(`FOO=foo`))
 	})
 
+	It("podman play kube test required env value from configmap with missing key", func() {
+		SkipIfRemote("configmap list is not supported as a param")
+		cmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
+		cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
+		err := generateKubeYaml("configmap", cm, cmYamlPathname)
+		Expect(err).To(BeNil())
+
+		pod := getPod(withCtr(getCtr(withEnv("FOO", "", "configmap", "foo", "MISSING_KEY", false))))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml, "--configmap", cmYamlPathname})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Not(Equal(0)))
+	})
+
+	It("podman play kube test required env value from missing configmap", func() {
+		pod := getPod(withCtr(getCtr(withEnv("FOO", "", "configmap", "missing_cm", "FOO", false))))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Not(Equal(0)))
+	})
+
+	It("podman play kube test optional env value from configmap with missing key", func() {
+		SkipIfRemote("configmap list is not supported as a param")
+		cmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
+		cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
+		err := generateKubeYaml("configmap", cm, cmYamlPathname)
+		Expect(err).To(BeNil())
+
+		pod := getPod(withCtr(getCtr(withEnv("FOO", "", "configmap", "foo", "MISSING_KEY", true))))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml, "--configmap", cmYamlPathname})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ range .Config.Env }}[{{ . }}]{{end}}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`[FOO=]`))
+	})
+
+	It("podman play kube test optional env value from missing configmap", func() {
+		pod := getPod(withCtr(getCtr(withEnv("FOO", "", "configmap", "missing_cm", "FOO", true))))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ range .Config.Env }}[{{ . }}]{{end}}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`[FOO=]`))
+	})
+
 	It("podman play kube test get all key-value pairs from configmap as envs", func() {
 		SkipIfRemote("configmap list is not supported as a param")
 		cmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
@@ -1083,7 +1151,7 @@ var _ = Describe("Podman play kube", func() {
 		err := generateKubeYaml("configmap", cm, cmYamlPathname)
 		Expect(err).To(BeNil())
 
-		pod := getPod(withCtr(getCtr(withEnvFrom("foo", "configmap"))))
+		pod := getPod(withCtr(getCtr(withEnvFrom("foo", "configmap", false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -1096,6 +1164,26 @@ var _ = Describe("Podman play kube", func() {
 		Expect(inspect.ExitCode()).To(Equal(0))
 		Expect(inspect.OutputToString()).To(ContainSubstring(`FOO1=foo1`))
 		Expect(inspect.OutputToString()).To(ContainSubstring(`FOO2=foo2`))
+	})
+
+	It("podman play kube test get all key-value pairs from required configmap as envs", func() {
+		pod := getPod(withCtr(getCtr(withEnvFrom("missing_cm", "configmap", false))))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Not(Equal(0)))
+	})
+
+	It("podman play kube test get all key-value pairs from optional configmap as envs", func() {
+		pod := getPod(withCtr(getCtr(withEnvFrom("missing_cm", "configmap", true))))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
 	})
 
 	It("podman play kube test hostname", func() {

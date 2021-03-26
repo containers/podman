@@ -210,12 +210,18 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	}
 
 	for _, env := range opts.Container.Env {
-		value := envVarValue(env, opts)
+		value, err := envVarValue(env, opts)
+		if err != nil {
+			return nil, err
+		}
 
 		envs[env.Name] = value
 	}
 	for _, envFrom := range opts.Container.EnvFrom {
-		cmEnvs := envVarsFrom(envFrom, opts)
+		cmEnvs, err := envVarsFrom(envFrom, opts)
+		if err != nil {
+			return nil, err
+		}
 
 		for k, v := range cmEnvs {
 			envs[k] = v
@@ -326,39 +332,54 @@ func quantityToInt64(quantity *resource.Quantity) (int64, error) {
 }
 
 // envVarsFrom returns all key-value pairs as env vars from a configMap that matches the envFrom setting of a container
-func envVarsFrom(envFrom v1.EnvFromSource, opts *CtrSpecGenOptions) map[string]string {
+func envVarsFrom(envFrom v1.EnvFromSource, opts *CtrSpecGenOptions) (map[string]string, error) {
 	envs := map[string]string{}
 
 	if envFrom.ConfigMapRef != nil {
-		cmName := envFrom.ConfigMapRef.Name
+		cmRef := envFrom.ConfigMapRef
+		err := errors.Errorf("Configmap %v not found", cmRef.Name)
 
 		for _, c := range opts.ConfigMaps {
-			if cmName == c.Name {
+			if cmRef.Name == c.Name {
 				envs = c.Data
+				err = nil
 				break
 			}
 		}
+
+		if err != nil && (cmRef.Optional == nil || !*cmRef.Optional) {
+			return nil, err
+		}
 	}
 
-	return envs
+	return envs, nil
 }
 
 // envVarValue returns the environment variable value configured within the container's env setting.
 // It gets the value from a configMap if specified, otherwise returns env.Value
-func envVarValue(env v1.EnvVar, opts *CtrSpecGenOptions) string {
+func envVarValue(env v1.EnvVar, opts *CtrSpecGenOptions) (string, error) {
 	if env.ValueFrom != nil {
 		if env.ValueFrom.ConfigMapKeyRef != nil {
+			cmKeyRef := env.ValueFrom.ConfigMapKeyRef
+			err := errors.Errorf("Cannot set env %v: configmap %v not found", env.Name, cmKeyRef.Name)
+
 			for _, c := range opts.ConfigMaps {
-				if env.ValueFrom.ConfigMapKeyRef.Name == c.Name {
-					if value, ok := c.Data[env.ValueFrom.ConfigMapKeyRef.Key]; ok {
-						return value
+				if cmKeyRef.Name == c.Name {
+					if value, ok := c.Data[cmKeyRef.Key]; ok {
+						return value, nil
 					}
+					err = errors.Errorf("Cannot set env %v: key %s not found in configmap %v", env.Name, cmKeyRef.Key, cmKeyRef.Name)
+					break
 				}
 			}
+			if cmKeyRef.Optional == nil || !*cmKeyRef.Optional {
+				return "", err
+			}
+			return "", nil
 		}
 	}
 
-	return env.Value
+	return env.Value, nil
 }
 
 // getPodPorts converts a slice of kube container descriptions to an

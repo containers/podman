@@ -13,6 +13,7 @@ func TestEnvVarsFrom(t *testing.T) {
 		name     string
 		envFrom  v1.EnvFromSource
 		options  CtrSpecGenOptions
+		succeed  bool
 		expected map[string]string
 	}{
 		{
@@ -27,6 +28,7 @@ func TestEnvVarsFrom(t *testing.T) {
 			CtrSpecGenOptions{
 				ConfigMaps: configMapList,
 			},
+			true,
 			map[string]string{
 				"myvar": "foo",
 			},
@@ -43,6 +45,23 @@ func TestEnvVarsFrom(t *testing.T) {
 			CtrSpecGenOptions{
 				ConfigMaps: configMapList,
 			},
+			false,
+			nil,
+		},
+		{
+			"OptionalConfigMapDoesNotExist",
+			v1.EnvFromSource{
+				ConfigMapRef: &v1.ConfigMapEnvSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: "doesnotexist",
+					},
+					Optional: &optional,
+				},
+			},
+			CtrSpecGenOptions{
+				ConfigMaps: configMapList,
+			},
+			true,
 			map[string]string{},
 		},
 		{
@@ -57,6 +76,23 @@ func TestEnvVarsFrom(t *testing.T) {
 			CtrSpecGenOptions{
 				ConfigMaps: []v1.ConfigMap{},
 			},
+			false,
+			nil,
+		},
+		{
+			"OptionalEmptyConfigMapList",
+			v1.EnvFromSource{
+				ConfigMapRef: &v1.ConfigMapEnvSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: "foo",
+					},
+					Optional: &optional,
+				},
+			},
+			CtrSpecGenOptions{
+				ConfigMaps: []v1.ConfigMap{},
+			},
+			true,
 			map[string]string{},
 		},
 	}
@@ -64,7 +100,8 @@ func TestEnvVarsFrom(t *testing.T) {
 	for _, test := range tests {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
-			result := envVarsFrom(test.envFrom, &test.options)
+			result, err := envVarsFrom(test.envFrom, &test.options)
+			assert.Equal(t, err == nil, test.succeed)
 			assert.Equal(t, test.expected, result)
 		})
 	}
@@ -75,6 +112,7 @@ func TestEnvVarValue(t *testing.T) {
 		name     string
 		envVar   v1.EnvVar
 		options  CtrSpecGenOptions
+		succeed  bool
 		expected string
 	}{
 		{
@@ -93,6 +131,7 @@ func TestEnvVarValue(t *testing.T) {
 			CtrSpecGenOptions{
 				ConfigMaps: configMapList,
 			},
+			true,
 			"foo",
 		},
 		{
@@ -111,6 +150,27 @@ func TestEnvVarValue(t *testing.T) {
 			CtrSpecGenOptions{
 				ConfigMaps: configMapList,
 			},
+			false,
+			"",
+		},
+		{
+			"OptionalContainerKeyDoesNotExistInConfigMap",
+			v1.EnvVar{
+				Name: "FOO",
+				ValueFrom: &v1.EnvVarSource{
+					ConfigMapKeyRef: &v1.ConfigMapKeySelector{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: "foo",
+						},
+						Key:      "doesnotexist",
+						Optional: &optional,
+					},
+				},
+			},
+			CtrSpecGenOptions{
+				ConfigMaps: configMapList,
+			},
+			true,
 			"",
 		},
 		{
@@ -129,6 +189,27 @@ func TestEnvVarValue(t *testing.T) {
 			CtrSpecGenOptions{
 				ConfigMaps: configMapList,
 			},
+			false,
+			"",
+		},
+		{
+			"OptionalConfigMapDoesNotExist",
+			v1.EnvVar{
+				Name: "FOO",
+				ValueFrom: &v1.EnvVarSource{
+					ConfigMapKeyRef: &v1.ConfigMapKeySelector{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: "doesnotexist",
+						},
+						Key:      "myvar",
+						Optional: &optional,
+					},
+				},
+			},
+			CtrSpecGenOptions{
+				ConfigMaps: configMapList,
+			},
+			true,
 			"",
 		},
 		{
@@ -147,6 +228,27 @@ func TestEnvVarValue(t *testing.T) {
 			CtrSpecGenOptions{
 				ConfigMaps: []v1.ConfigMap{},
 			},
+			false,
+			"",
+		},
+		{
+			"OptionalEmptyConfigMapList",
+			v1.EnvVar{
+				Name: "FOO",
+				ValueFrom: &v1.EnvVarSource{
+					ConfigMapKeyRef: &v1.ConfigMapKeySelector{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: "foo",
+						},
+						Key:      "myvar",
+						Optional: &optional,
+					},
+				},
+			},
+			CtrSpecGenOptions{
+				ConfigMaps: []v1.ConfigMap{},
+			},
+			true,
 			"",
 		},
 	}
@@ -154,7 +256,8 @@ func TestEnvVarValue(t *testing.T) {
 	for _, test := range tests {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
-			result := envVarValue(test.envVar, &test.options)
+			result, err := envVarValue(test.envVar, &test.options)
+			assert.Equal(t, err == nil, test.succeed)
 			assert.Equal(t, test.expected, result)
 		})
 	}
@@ -184,3 +287,5 @@ var configMapList = []v1.ConfigMap{
 		},
 	},
 }
+
+var optional = true
