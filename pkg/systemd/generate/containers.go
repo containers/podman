@@ -71,6 +71,12 @@ type containerInfo struct {
 	// If not nil, the container is part of the pod.  We can use the
 	// podInfo to extract the relevant data.
 	Pod *podInfo
+	// Location of the GraphRoot for the container.  Required for ensuring the
+	// volume has finished mounting when coming online at boot.
+	GraphRoot string
+	// Location of the RunRoot for the container.  Required for ensuring the tmpfs
+	// or volume exists and is mounted when coming online at boot.
+	RunRoot string
 }
 
 const containerTemplate = headerTemplate + `
@@ -132,6 +138,21 @@ func generateContainerInfo(ctr *libpod.Container, options entities.GenerateSyste
 
 	nameOrID, serviceName := containerServiceName(ctr, options)
 
+	store := ctr.Runtime().GetStore()
+	if store == nil {
+		return nil, errors.Errorf("could not determine storage store for container")
+	}
+
+	graphRoot := store.GraphRoot()
+	if graphRoot == "" {
+		return nil, errors.Errorf("could not lookup container's graphroot: got empty string")
+	}
+
+	runRoot := store.RunRoot()
+	if runRoot == "" {
+		return nil, errors.Errorf("could not lookup container's runroot: got empty string")
+	}
+
 	info := containerInfo{
 		ServiceName:       serviceName,
 		ContainerNameOrID: nameOrID,
@@ -140,6 +161,8 @@ func generateContainerInfo(ctr *libpod.Container, options entities.GenerateSyste
 		StopTimeout:       timeout,
 		GenerateTimestamp: true,
 		CreateCommand:     createCommand,
+		GraphRoot:         graphRoot,
+		RunRoot:           runRoot,
 	}
 
 	return &info, nil
