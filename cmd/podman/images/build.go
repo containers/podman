@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/buildah"
 	"github.com/containers/buildah/define"
 	buildahCLI "github.com/containers/buildah/pkg/cli"
 	"github.com/containers/buildah/pkg/parse"
@@ -159,11 +158,11 @@ func buildFlags(cmd *cobra.Command) {
 	flags.SetNormalizeFunc(buildahCLI.AliasFlags)
 	if registry.IsRemote() {
 		flag = flags.Lookup("isolation")
-		buildOpts.Isolation = buildah.OCI
-		if err := flag.Value.Set(buildah.OCI); err != nil {
-			logrus.Errorf("unable to set --isolation to %v: %v", buildah.OCI, err)
+		buildOpts.Isolation = define.OCI
+		if err := flag.Value.Set(define.OCI); err != nil {
+			logrus.Errorf("unable to set --isolation to %v: %v", define.OCI, err)
 		}
-		flag.DefValue = buildah.OCI
+		flag.DefValue = define.OCI
 		_ = flags.MarkHidden("disable-content-trust")
 		_ = flags.MarkHidden("cache-from")
 		_ = flags.MarkHidden("sign-by")
@@ -412,10 +411,10 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 	format := ""
 	flags.Format = strings.ToLower(flags.Format)
 	switch {
-	case strings.HasPrefix(flags.Format, buildah.OCI):
-		format = buildah.OCIv1ImageManifest
-	case strings.HasPrefix(flags.Format, buildah.DOCKER):
-		format = buildah.Dockerv2ImageManifest
+	case strings.HasPrefix(flags.Format, define.OCI):
+		format = define.OCIv1ImageManifest
+	case strings.HasPrefix(flags.Format, define.DOCKER):
+		format = define.Dockerv2ImageManifest
 	default:
 		return nil, errors.Errorf("unrecognized image type %q", flags.Format)
 	}

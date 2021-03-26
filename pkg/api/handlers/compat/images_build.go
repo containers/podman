@@ -199,13 +199,9 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	}
 	format := buildah.Dockerv2ImageManifest
 	registry := query.Registry
-	isolation := buildah.IsolationChroot
-	/*
-		// FIXME, This is very broken.  Buildah will only work with chroot
-		isolation := buildah.IsolationDefault
-	*/
+	isolation := buildah.IsolationDefault
 	if utils.IsLibpodRequest(r) {
-		// isolation = parseLibPodIsolation(query.Isolation)
+		isolation = parseLibPodIsolation(query.Isolation)
 		registry = ""
 		format = query.OutputFormat
 	} else {
