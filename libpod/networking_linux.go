@@ -24,6 +24,7 @@ import (
 	"github.com/containers/podman/v3/libpod/network"
 	"github.com/containers/podman/v3/pkg/errorhandling"
 	"github.com/containers/podman/v3/pkg/netns"
+	"github.com/containers/podman/v3/pkg/resolvconf"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage/pkg/lockfile"
@@ -134,9 +135,14 @@ func (r *rootlessCNI) Do(toRun func() error) error {
 			return errors.Wrap(err, "failed to mount netns directory for rootless cni")
 		}
 
+		// mount resolv.conf to make use of the host dns
+		err = unix.Mount(filepath.Join(r.dir, "resolv.conf"), "/etc/resolv.conf", "none", unix.MS_BIND, "")
+		if err != nil {
+			return errors.Wrap(err, "failed to mount resolv.conf for rootless cni")
+		}
+
 		// also keep /run/systemd if it exists
-		// many files are symlinked into this dir, for example systemd-resolved links
-		// /etc/resolv.conf but the dnsname plugin needs access to this file
+		// many files are symlinked into this dir, for example /dev/log
 		runSystemd := "/run/systemd"
 		_, err = os.Stat(runSystemd)
 		if err == nil {
@@ -346,6 +352,29 @@ func (r *Runtime) getRootlessCNINetNs(new bool) (*rootlessCNI, error) {
 
 				if err := waitForSync(syncR, cmd, logFile, 1*time.Second); err != nil {
 					return nil, err
+				}
+
+				// build a new resolv.conf file which uses the slirp4netns dns server address
+				resolveIP := slirp4netnsDNS
+				if netOptions.cidr != "" {
+					_, cidr, err := net.ParseCIDR(netOptions.cidr)
+					if err != nil {
+						return nil, errors.Wrap(err, "failed to parse slirp4netns cidr")
+					}
+					// the slirp dns ip is always the third ip in the subnet
+					cidr.IP[len(cidr.IP)-1] = cidr.IP[len(cidr.IP)-1] + 3
+					resolveIP = cidr.IP.String()
+				}
+				conf, err := resolvconf.Get()
+				if err != nil {
+					return nil, err
+				}
+				searchDomains := resolvconf.GetSearchDomains(conf.Content)
+				dnsOptions := resolvconf.GetOptions(conf.Content)
+
+				_, err = resolvconf.Build(filepath.Join(cniDir, "resolv.conf"), []string{resolveIP}, searchDomains, dnsOptions)
+				if err != nil {
+					return nil, errors.Wrap(err, "failed to create rootless cni resolv.conf")
 				}
 
 				// create cni directories to store files
