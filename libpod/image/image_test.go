@@ -9,6 +9,7 @@ import (
 
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/pkg/util"
+	podmanVersion "github.com/containers/podman/v3/version"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/opencontainers/go-digest"
@@ -291,5 +292,27 @@ func TestNormalizedTag(t *testing.T) {
 			assert.NoError(t, err, c.input)
 			assert.Equal(t, c.expected, res.String())
 		}
+	}
+}
+
+func TestGetSystemContext(t *testing.T) {
+	sc := GetSystemContext("", "", false)
+	assert.Equal(t, sc.SignaturePolicyPath, "")
+	assert.Equal(t, sc.AuthFilePath, "")
+	assert.Equal(t, sc.DirForceCompress, false)
+	assert.Equal(t, sc.DockerRegistryUserAgent, fmt.Sprintf("libpod/%s", podmanVersion.Version))
+	assert.Equal(t, sc.BigFilesTemporaryDir, "/var/tmp")
+
+	oldtmpdir := os.Getenv("TMPDIR")
+	os.Setenv("TMPDIR", "/mnt")
+	sc = GetSystemContext("/tmp/foo", "/tmp/bar", true)
+	assert.Equal(t, sc.SignaturePolicyPath, "/tmp/foo")
+	assert.Equal(t, sc.AuthFilePath, "/tmp/bar")
+	assert.Equal(t, sc.DirForceCompress, true)
+	assert.Equal(t, sc.BigFilesTemporaryDir, "/mnt")
+	if oldtmpdir != "" {
+		os.Setenv("TMPDIR", oldtmpdir)
+	} else {
+		os.Unsetenv("TMPDIR")
 	}
 }
