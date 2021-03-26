@@ -2,11 +2,13 @@ package kube
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"strings"
 
 	"github.com/containers/common/pkg/parse"
+	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/podman/v3/libpod/image"
 	ann "github.com/containers/podman/v3/pkg/annotations"
 	"github.com/containers/podman/v3/pkg/specgen"
@@ -94,6 +96,8 @@ type CtrSpecGenOptions struct {
 	RestartPolicy string
 	// NetNSIsHost tells the container to use the host netns
 	NetNSIsHost bool
+	// SecretManager to access the secrets
+	SecretsManager *secrets.SecretsManager
 }
 
 func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGenerator, error) {
@@ -331,7 +335,21 @@ func quantityToInt64(quantity *resource.Quantity) (int64, error) {
 	return 0, errors.Errorf("Quantity cannot be represented as int64: %v", quantity)
 }
 
-// envVarsFrom returns all key-value pairs as env vars from a configMap that matches the envFrom setting of a container
+// read a k8s secret in JSON format from the secret manager
+func k8sSecretFromSecretManager(name string, secretsManager *secrets.SecretsManager) (map[string][]byte, error) {
+	_, jsonSecret, err := secretsManager.LookupSecretData(name)
+	if err != nil {
+		return nil, err
+	}
+
+	var secrets map[string][]byte
+	if err := json.Unmarshal(jsonSecret, &secrets); err != nil {
+		return nil, errors.Errorf("Secret %v is not valid JSON: %v", name, err)
+	}
+	return secrets, nil
+}
+
+// envVarsFrom returns all key-value pairs as env vars from a configMap or secret that matches the envFrom setting of a container
 func envVarsFrom(envFrom v1.EnvFromSource, opts *CtrSpecGenOptions) (map[string]string, error) {
 	envs := map[string]string{}
 
@@ -352,11 +370,23 @@ func envVarsFrom(envFrom v1.EnvFromSource, opts *CtrSpecGenOptions) (map[string]
 		}
 	}
 
+	if envFrom.SecretRef != nil {
+		secRef := envFrom.SecretRef
+		secret, err := k8sSecretFromSecretManager(secRef.Name, opts.SecretsManager)
+		if err == nil {
+			for k, v := range secret {
+				envs[k] = string(v)
+			}
+		} else if secRef.Optional == nil || !*secRef.Optional {
+			return nil, err
+		}
+	}
+
 	return envs, nil
 }
 
 // envVarValue returns the environment variable value configured within the container's env setting.
-// It gets the value from a configMap if specified, otherwise returns env.Value
+// It gets the value from a configMap or secret if specified, otherwise returns env.Value
 func envVarValue(env v1.EnvVar, opts *CtrSpecGenOptions) (string, error) {
 	if env.ValueFrom != nil {
 		if env.ValueFrom.ConfigMapKeyRef != nil {
@@ -374,6 +404,21 @@ func envVarValue(env v1.EnvVar, opts *CtrSpecGenOptions) (string, error) {
 			}
 			if cmKeyRef.Optional == nil || !*cmKeyRef.Optional {
 				return "", err
+			}
+			return "", nil
+		}
+
+		if env.ValueFrom.SecretKeyRef != nil {
+			secKeyRef := env.ValueFrom.SecretKeyRef
+			secret, err := k8sSecretFromSecretManager(secKeyRef.Name, opts.SecretsManager)
+			if err == nil {
+				if val, ok := secret[secKeyRef.Key]; ok {
+					return string(val), nil
+				}
+				err = errors.Errorf("Secret %v has not %v key", secKeyRef.Name, secKeyRef.Key)
+			}
+			if secKeyRef.Optional == nil || !*secKeyRef.Optional {
+				return "", errors.Errorf("Cannot set env %v: %v", env.Name, err)
 			}
 			return "", nil
 		}

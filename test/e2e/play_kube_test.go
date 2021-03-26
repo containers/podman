@@ -142,7 +142,15 @@ spec:
           name: {{ .RefName }}
           key: {{ .RefKey }}
           optional: {{ .Optional }}
-    {{ else }}
+    {{ end }}
+    {{ if (eq .ValueFrom "secret") }}
+      valueFrom:
+        secretKeyRef:
+          name: {{ .RefName }}
+          key: {{ .RefKey }}
+          optional: {{ .Optional }}
+    {{ end }}
+    {{ if (eq .ValueFrom "") }}
       value: {{ .Value }}
     {{ end }}
     {{ end }}
@@ -151,6 +159,11 @@ spec:
     {{ range . }}
     {{ if (eq .From "configmap") }}
     - configMapRef:
+        name: {{ .Name }}
+        optional: {{ .Optional }}
+    {{ end }}
+    {{ if (eq .From "secret") }}
+    - secretRef:
         name: {{ .Name }}
         optional: {{ .Optional }}
     {{ end }}
@@ -342,6 +355,8 @@ var (
 	seccompPwdEPERM       = []byte(`{"defaultAction":"SCMP_ACT_ALLOW","syscalls":[{"name":"getcwd","action":"SCMP_ACT_ERRNO"}]}`)
 	// CPU Period in ms
 	defaultCPUPeriod = 100
+	// Default secret in JSON. Note that the values ("foo" and "bar") are base64 encoded.
+	defaultSecret = []byte(`{"FOO":"Zm9v","BAR":"YmFy"}`)
 )
 
 func writeYaml(content string, fileName string) error {
@@ -407,6 +422,16 @@ func generateMultiDocKubeYaml(kubeObjects []string, pathname string) error {
 	}
 
 	return writeYaml(multiKube, pathname)
+}
+
+func createSecret(podmanTest *PodmanTestIntegration, name string, value []byte) {
+	secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
+	err := ioutil.WriteFile(secretFilePath, value, 0755)
+	Expect(err).To(BeNil())
+
+	secret := podmanTest.Podman([]string{"secret", "create", name, secretFilePath})
+	secret.WaitWithDefaultTimeout()
+	Expect(secret.ExitCode()).To(Equal(0))
 }
 
 // ConfigMap describes the options a kube yaml can be configured at configmap level
@@ -1178,6 +1203,111 @@ var _ = Describe("Podman play kube", func() {
 
 	It("podman play kube test get all key-value pairs from optional configmap as envs", func() {
 		pod := getPod(withCtr(getCtr(withEnvFrom("missing_cm", "configmap", true))))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+	})
+
+	It("podman play kube test env value from secret", func() {
+		createSecret(podmanTest, "foo", defaultSecret)
+		pod := getPod(withCtr(getCtr(withEnv("FOO", "", "secret", "foo", "FOO", false))))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Env }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`FOO=foo`))
+	})
+
+	It("podman play kube test required env value from missing secret", func() {
+		pod := getPod(withCtr(getCtr(withEnv("FOO", "", "secret", "foo", "FOO", false))))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Not(Equal(0)))
+	})
+
+	It("podman play kube test required env value from secret with missing key", func() {
+		createSecret(podmanTest, "foo", defaultSecret)
+		pod := getPod(withCtr(getCtr(withEnv("FOO", "", "secret", "foo", "MISSING", false))))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Not(Equal(0)))
+	})
+
+	It("podman play kube test optional env value from missing secret", func() {
+		pod := getPod(withCtr(getCtr(withEnv("FOO", "", "secret", "foo", "FOO", true))))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ range .Config.Env }}[{{ . }}]{{end}}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`[FOO=]`))
+	})
+
+	It("podman play kube test optional env value from secret with missing key", func() {
+		createSecret(podmanTest, "foo", defaultSecret)
+		pod := getPod(withCtr(getCtr(withEnv("FOO", "", "secret", "foo", "MISSING", true))))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ range .Config.Env }}[{{ . }}]{{end}}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`[FOO=]`))
+	})
+
+	It("podman play kube test get all key-value pairs from secret as envs", func() {
+		createSecret(podmanTest, "foo", defaultSecret)
+		pod := getPod(withCtr(getCtr(withEnvFrom("foo", "secret", false))))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Env }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`FOO=foo`))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`BAR=bar`))
+	})
+
+	It("podman play kube test get all key-value pairs from required secret as envs", func() {
+		pod := getPod(withCtr(getCtr(withEnvFrom("missing_secret", "secret", false))))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Not(Equal(0)))
+	})
+
+	It("podman play kube test get all key-value pairs from optional secret as envs", func() {
+		pod := getPod(withCtr(getCtr(withEnvFrom("missing_secret", "secret", true))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 

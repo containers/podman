@@ -1,14 +1,43 @@
 package kube
 
 import (
+	"encoding/json"
+	"io/ioutil"
+	"os"
 	"testing"
 
+	"github.com/containers/common/pkg/secrets"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+func createSecrets(t *testing.T, d string) *secrets.SecretsManager {
+	secretsManager, err := secrets.NewManager(d)
+	assert.NoError(t, err)
+
+	driver := "file"
+	driverOpts := map[string]string{
+		"path": d,
+	}
+
+	for _, s := range k8sSecrets {
+		data, err := json.Marshal(s.Data)
+		assert.NoError(t, err)
+
+		_, err = secretsManager.Store(s.ObjectMeta.Name, data, driver, driverOpts)
+		assert.NoError(t, err)
+	}
+
+	return secretsManager
+}
+
 func TestEnvVarsFrom(t *testing.T) {
+	d, err := ioutil.TempDir("", "secrets")
+	assert.NoError(t, err)
+	defer os.RemoveAll(d)
+	secretsManager := createSecrets(t, d)
+
 	tests := []struct {
 		name     string
 		envFrom  v1.EnvFromSource
@@ -95,6 +124,54 @@ func TestEnvVarsFrom(t *testing.T) {
 			true,
 			map[string]string{},
 		},
+		{
+			"SecretExists",
+			v1.EnvFromSource{
+				SecretRef: &v1.SecretEnvSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: "foo",
+					},
+				},
+			},
+			CtrSpecGenOptions{
+				SecretsManager: secretsManager,
+			},
+			true,
+			map[string]string{
+				"myvar": "foo",
+			},
+		},
+		{
+			"SecretDoesNotExist",
+			v1.EnvFromSource{
+				SecretRef: &v1.SecretEnvSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: "doesnotexist",
+					},
+				},
+			},
+			CtrSpecGenOptions{
+				SecretsManager: secretsManager,
+			},
+			false,
+			nil,
+		},
+		{
+			"OptionalSecretDoesNotExist",
+			v1.EnvFromSource{
+				SecretRef: &v1.SecretEnvSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: "doesnotexist",
+					},
+					Optional: &optional,
+				},
+			},
+			CtrSpecGenOptions{
+				SecretsManager: secretsManager,
+			},
+			true,
+			map[string]string{},
+		},
 	}
 
 	for _, test := range tests {
@@ -108,6 +185,11 @@ func TestEnvVarsFrom(t *testing.T) {
 }
 
 func TestEnvVarValue(t *testing.T) {
+	d, err := ioutil.TempDir("", "secrets")
+	assert.NoError(t, err)
+	defer os.RemoveAll(d)
+	secretsManager := createSecrets(t, d)
+
 	tests := []struct {
 		name     string
 		envVar   v1.EnvVar
@@ -251,6 +333,103 @@ func TestEnvVarValue(t *testing.T) {
 			true,
 			"",
 		},
+		{
+			"SecretExists",
+			v1.EnvVar{
+				Name: "FOO",
+				ValueFrom: &v1.EnvVarSource{
+					SecretKeyRef: &v1.SecretKeySelector{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: "foo",
+						},
+						Key: "myvar",
+					},
+				},
+			},
+			CtrSpecGenOptions{
+				SecretsManager: secretsManager,
+			},
+			true,
+			"foo",
+		},
+		{
+			"ContainerKeyDoesNotExistInSecret",
+			v1.EnvVar{
+				Name: "FOO",
+				ValueFrom: &v1.EnvVarSource{
+					SecretKeyRef: &v1.SecretKeySelector{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: "foo",
+						},
+						Key: "doesnotexist",
+					},
+				},
+			},
+			CtrSpecGenOptions{
+				SecretsManager: secretsManager,
+			},
+			false,
+			"",
+		},
+		{
+			"OptionalContainerKeyDoesNotExistInSecret",
+			v1.EnvVar{
+				Name: "FOO",
+				ValueFrom: &v1.EnvVarSource{
+					SecretKeyRef: &v1.SecretKeySelector{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: "foo",
+						},
+						Key:      "doesnotexist",
+						Optional: &optional,
+					},
+				},
+			},
+			CtrSpecGenOptions{
+				SecretsManager: secretsManager,
+			},
+			true,
+			"",
+		},
+		{
+			"SecretDoesNotExist",
+			v1.EnvVar{
+				Name: "FOO",
+				ValueFrom: &v1.EnvVarSource{
+					SecretKeyRef: &v1.SecretKeySelector{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: "doesnotexist",
+						},
+						Key: "myvar",
+					},
+				},
+			},
+			CtrSpecGenOptions{
+				SecretsManager: secretsManager,
+			},
+			false,
+			"",
+		},
+		{
+			"OptionalSecretDoesNotExist",
+			v1.EnvVar{
+				Name: "FOO",
+				ValueFrom: &v1.EnvVarSource{
+					SecretKeyRef: &v1.SecretKeySelector{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: "doesnotexist",
+						},
+						Key:      "myvar",
+						Optional: &optional,
+					},
+				},
+			},
+			CtrSpecGenOptions{
+				SecretsManager: secretsManager,
+			},
+			true,
+			"",
+		},
 	}
 
 	for _, test := range tests {
@@ -289,3 +468,28 @@ var configMapList = []v1.ConfigMap{
 }
 
 var optional = true
+
+var k8sSecrets = []v1.Secret{
+	{
+		TypeMeta: v12.TypeMeta{
+			Kind: "Secret",
+		},
+		ObjectMeta: v12.ObjectMeta{
+			Name: "bar",
+		},
+		Data: map[string][]byte{
+			"myvar": []byte("bar"),
+		},
+	},
+	{
+		TypeMeta: v12.TypeMeta{
+			Kind: "Secret",
+		},
+		ObjectMeta: v12.ObjectMeta{
+			Name: "foo",
+		},
+		Data: map[string][]byte{
+			"myvar": []byte("foo"),
+		},
+	},
+}
