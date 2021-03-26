@@ -308,9 +308,9 @@ var _ = Describe("Podman run with volumes", func() {
 
 	It("podman named volume copyup symlink", func() {
 		imgName := "testimg"
-		dockerfile := `FROM alpine
+		dockerfile := fmt.Sprintf(`FROM %s
 RUN touch /testfile
-RUN sh -c "cd /etc/apk && ln -s ../../testfile"`
+RUN sh -c "cd /etc/apk && ln -s ../../testfile"`, ALPINE)
 		podmanTest.BuildImage(dockerfile, imgName, "false")
 
 		baselineSession := podmanTest.Podman([]string{"run", "--rm", "-t", "-i", imgName, "ls", "/etc/apk/"})
@@ -479,9 +479,8 @@ RUN sh -c "cd /etc/apk && ln -s ../../testfile"`
 
 	It("Podman mount over image volume with trailing /", func() {
 		image := "podman-volume-test:trailing"
-		dockerfile := `
-FROM alpine:latest
-VOLUME /test/`
+		dockerfile := fmt.Sprintf(`FROM %s
+VOLUME /test/`, ALPINE)
 		podmanTest.BuildImage(dockerfile, image, "false")
 
 		ctrName := "testCtr"
@@ -646,9 +645,9 @@ VOLUME /test/`
 
 	It("volume permissions after run", func() {
 		imgName := "testimg"
-		dockerfile := `FROM fedora-minimal
+		dockerfile := fmt.Sprintf(`FROM %s
 RUN useradd -m testuser -u 1005
-USER testuser`
+USER testuser`, fedoraMinimal)
 		podmanTest.BuildImage(dockerfile, imgName, "false")
 
 		testString := "testuser testuser"

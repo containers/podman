@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -128,9 +129,9 @@ var _ = Describe("Podman generate kube", func() {
 
 	It("podman container runlabel (podman --version)", func() {
 		SkipIfRemote("runlabel not supported on podman-remote")
-		PodmanDockerfile := `
-FROM  alpine:latest
-LABEL io.containers.capabilities=chown,kill`
+		PodmanDockerfile := fmt.Sprintf(`
+FROM  %s
+LABEL io.containers.capabilities=chown,kill`, ALPINE)
 
 		image := "podman-caps:podman"
 		podmanTest.BuildImage(PodmanDockerfile, image, "false")

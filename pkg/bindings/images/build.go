@@ -15,7 +15,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/buildah"
 	"github.com/containers/podman/v3/pkg/auth"
 	"github.com/containers/podman/v3/pkg/bindings"
 	"github.com/containers/podman/v3/pkg/domain/entities"
@@ -175,9 +174,9 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	if len(platform) > 0 {
 		params.Set("platform", platform)
 	}
-	if options.PullPolicy == buildah.PullAlways {
-		params.Set("pull", "1")
-	}
+
+	params.Set("pullpolicy", options.PullPolicy.String())
+
 	if options.Quiet {
 		params.Set("q", "1")
 	}

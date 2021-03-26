@@ -184,19 +184,20 @@ var _ = Describe("Podman rmi", func() {
 
 	It("podman rmi with cached images", func() {
 		podmanTest.AddImageToRWStore(cirros)
-		dockerfile := `FROM quay.io/libpod/cirros:latest
+		dockerfile := fmt.Sprintf(`FROM %s
 		RUN mkdir hello
 		RUN touch test.txt
 		ENV foo=bar
-		`
+		`, cirros)
 		podmanTest.BuildImage(dockerfile, "test", "true")
 
-		dockerfile = `FROM quay.io/libpod/cirros:latest
+		dockerfile = fmt.Sprintf(`FROM %s
 		RUN mkdir hello
 		RUN touch test.txt
 		RUN mkdir blah
 		ENV foo=bar
-		`
+		`, cirros)
+
 		podmanTest.BuildImage(dockerfile, "test2", "true")
 
 		session := podmanTest.Podman([]string{"images", "-q", "-a"})
@@ -249,14 +250,15 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi -a with parent|child images", func() {
-		dockerfile := `FROM quay.io/libpod/cirros:latest AS base
+		podmanTest.AddImageToRWStore(cirros)
+		dockerfile := fmt.Sprintf(`FROM %s AS base
 RUN touch /1
 ENV LOCAL=/1
 RUN find $LOCAL
 FROM base
 RUN find $LOCAL
 
-`
+`, cirros)
 		podmanTest.BuildImage(dockerfile, "test", "true")
 		session := podmanTest.Podman([]string{"rmi", "-a"})
 		session.WaitWithDefaultTimeout()
@@ -284,14 +286,15 @@ RUN find $LOCAL
 		// a race, we may not hit the condition a 100 percent of times
 		// but ocal reproducers hit it all the time.
 
+		podmanTest.AddImageToRWStore(cirros)
 		var wg sync.WaitGroup
 
 		buildAndRemove := func(i int) {
 			defer GinkgoRecover()
 			defer wg.Done()
 			imageName := fmt.Sprintf("rmtest:%d", i)
-			containerfile := `FROM quay.io/libpod/cirros:latest
-RUN ` + fmt.Sprintf("touch %s", imageName)
+			containerfile := fmt.Sprintf(`FROM %s
+RUN touch %s`, cirros, imageName)
 
 			podmanTest.BuildImage(containerfile, imageName, "false")
 			session := podmanTest.Podman([]string{"rmi", "-f", imageName})
