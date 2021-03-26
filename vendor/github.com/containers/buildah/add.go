@@ -10,12 +10,14 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 
 	"github.com/containers/buildah/copier"
+	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
@@ -28,6 +30,8 @@ import (
 
 // AddAndCopyOptions holds options for add and copy commands.
 type AddAndCopyOptions struct {
+	//Chmod sets the access permissions of the destination content.
+	Chmod string
 	// Chown is a spec for the user who should be given ownership over the
 	// newly-added content, potentially overriding permissions which would
 	// otherwise be set to 0:0.
@@ -51,7 +55,7 @@ type AddAndCopyOptions struct {
 	// ID mapping options to use when contents to be copied are part of
 	// another container, and need ownerships to be mapped from the host to
 	// that container's values before copying them into the container.
-	IDMappingOptions *IDMappingOptions
+	IDMappingOptions *define.IDMappingOptions
 	// DryRun indicates that the content should be digested, but not actually
 	// copied into the container.
 	DryRun bool
@@ -72,7 +76,7 @@ func sourceIsRemote(source string) bool {
 }
 
 // getURL writes a tar archive containing the named content
-func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, writer io.Writer) error {
+func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, writer io.Writer, chmod *os.FileMode) error {
 	url, err := url.Parse(src)
 	if err != nil {
 		return err
@@ -129,13 +133,17 @@ func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, 
 		uid = chown.UID
 		gid = chown.GID
 	}
+	var mode int64 = 0600
+	if chmod != nil {
+		mode = int64(*chmod)
+	}
 	hdr := tar.Header{
 		Typeflag: tar.TypeReg,
 		Name:     name,
 		Size:     size,
 		Uid:      uid,
 		Gid:      gid,
-		Mode:     0600,
+		Mode:     mode,
 		ModTime:  date,
 	}
 	err = tw.WriteHeader(&hdr)
@@ -243,15 +251,25 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 
 	// Find out which user (and group) the destination should belong to.
 	var chownDirs, chownFiles *idtools.IDPair
-	var user specs.User
+	var userUID, userGID uint32
 	if options.Chown != "" {
-		user, _, err = b.user(mountPoint, options.Chown)
+		userUID, userGID, err = b.userForCopy(mountPoint, options.Chown)
 		if err != nil {
 			return errors.Wrapf(err, "error looking up UID/GID for %q", options.Chown)
 		}
 	}
-	chownDirs = &idtools.IDPair{UID: int(user.UID), GID: int(user.GID)}
-	chownFiles = &idtools.IDPair{UID: int(user.UID), GID: int(user.GID)}
+	var chmodDirsFiles *os.FileMode
+	if options.Chmod != "" {
+		p, err := strconv.ParseUint(options.Chmod, 8, 32)
+		if err != nil {
+			return errors.Wrapf(err, "error parsing chmod %q", options.Chmod)
+		}
+		perm := os.FileMode(p)
+		chmodDirsFiles = &perm
+	}
+
+	chownDirs = &idtools.IDPair{UID: int(userUID), GID: int(userGID)}
+	chownFiles = &idtools.IDPair{UID: int(userUID), GID: int(userGID)}
 	if options.Chown == "" && options.PreserveOwnership {
 		chownDirs = nil
 		chownFiles = nil
@@ -359,7 +377,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 			pipeReader, pipeWriter := io.Pipe()
 			wg.Add(1)
 			go func() {
-				getErr = getURL(src, chownFiles, mountPoint, renameTarget, pipeWriter)
+				getErr = getURL(src, chownFiles, mountPoint, renameTarget, pipeWriter, chmodDirsFiles)
 				pipeWriter.Close()
 				wg.Done()
 			}()
@@ -478,9 +496,9 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 					Excludes:       options.Excludes,
 					ExpandArchives: extract,
 					ChownDirs:      chownDirs,
-					ChmodDirs:      nil,
+					ChmodDirs:      chmodDirsFiles,
 					ChownFiles:     chownFiles,
-					ChmodFiles:     nil,
+					ChmodFiles:     chmodDirsFiles,
 					StripSetuidBit: options.StripSetuidBit,
 					StripSetgidBit: options.StripSetgidBit,
 					StripStickyBit: options.StripStickyBit,
@@ -552,8 +570,9 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 	return nil
 }
 
-// user returns the user (and group) information which the destination should belong to.
-func (b *Builder) user(mountPoint string, userspec string) (specs.User, string, error) {
+// userForRun returns the user (and group) information which we should use for
+// running commands
+func (b *Builder) userForRun(mountPoint string, userspec string) (specs.User, string, error) {
 	if userspec == "" {
 		userspec = b.User()
 	}
@@ -576,4 +595,19 @@ func (b *Builder) user(mountPoint string, userspec string) (specs.User, string, 
 
 	}
 	return u, homeDir, err
+}
+
+// userForCopy returns the user (and group) information which we should use for
+// setting ownership of contents being copied.  It's just like what
+// userForRun() does, except for the case where we're passed a single numeric
+// value, where we need to use that value for both the UID and the GID.
+func (b *Builder) userForCopy(mountPoint string, userspec string) (uint32, uint32, error) {
+	if id, err := strconv.ParseUint(userspec, 10, 32); err == nil {
+		return uint32(id), uint32(id), nil
+	}
+	user, _, err := b.userForRun(mountPoint, userspec)
+	if err != nil {
+		return 0xffffffff, 0xffffffff, err
+	}
+	return user.UID, user.GID, nil
 }

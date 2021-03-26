@@ -2,6 +2,7 @@ package docker
 
 import (
 	"context"
+	"errors"
 	"net/http"
 )
 
@@ -27,7 +28,6 @@ func (c *Client) StartContainer(id string, hostConfig *HostConfig) error {
 // API 1.24 or greater.
 //
 // See https://goo.gl/fbOSZy for more details.
-//nolint:golint
 func (c *Client) StartContainerWithContext(id string, hostConfig *HostConfig, ctx context.Context) error {
 	return c.startContainer(id, hostConfig, doOptions{context: ctx})
 }
@@ -43,7 +43,8 @@ func (c *Client) startContainer(id string, hostConfig *HostConfig, opts doOption
 	}
 	resp, err := c.do(http.MethodPost, path, opts)
 	if err != nil {
-		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
+		var e *Error
+		if errors.As(err, &e) && e.Status == http.StatusNotFound {
 			return &NoSuchContainer{ID: id, Err: err}
 		}
 		return err

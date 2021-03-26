@@ -3,6 +3,7 @@ package docker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -175,8 +176,8 @@ func (c *Client) Stats(opts StatsOptions) (retErr error) {
 			reqSent:           reqSent,
 		})
 		if err != nil {
-			dockerError, ok := err.(*Error)
-			if ok {
+			var dockerError *Error
+			if errors.As(err, &dockerError) {
 				if dockerError.Status == http.StatusNotFound {
 					err = &NoSuchContainer{ID: opts.ID}
 				}
@@ -203,7 +204,7 @@ func (c *Client) Stats(opts StatsOptions) (retErr error) {
 	decoder := json.NewDecoder(readCloser)
 	stats := new(Stats)
 	<-reqSent
-	for err := decoder.Decode(stats); err != io.EOF; err = decoder.Decode(stats) {
+	for err := decoder.Decode(stats); !errors.Is(err, io.EOF); err = decoder.Decode(stats) {
 		if err != nil {
 			return err
 		}

@@ -139,6 +139,7 @@ func add(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 		return errAtLeastOneArgument("ADD")
 	}
 	var chown string
+	var chmod string
 	last := len(args) - 1
 	dest := makeAbsolute(args[last], b.RunConfig.WorkingDir)
 	userArgs := mergeEnv(envMapAsSlice(b.Args), b.Env)
@@ -150,11 +151,17 @@ func add(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 		switch {
 		case strings.HasPrefix(arg, "--chown="):
 			chown = strings.TrimPrefix(arg, "--chown=")
+		case strings.HasPrefix(arg, "--chmod="):
+			chmod = strings.TrimPrefix(arg, "--chmod=")
+			err = checkChmodConversion(chmod)
+			if err != nil {
+				return err
+			}
 		default:
-			return fmt.Errorf("ADD only supports the --chown=<uid:gid> flag")
+			return fmt.Errorf("ADD only supports the --chmod=<permissions> and the --chown=<uid:gid> flag")
 		}
 	}
-	b.PendingCopies = append(b.PendingCopies, Copy{Src: args[0:last], Dest: dest, Download: true, Chown: chown})
+	b.PendingCopies = append(b.PendingCopies, Copy{Src: args[0:last], Dest: dest, Download: true, Chown: chown, Chmod: chmod})
 	return nil
 }
 
@@ -169,6 +176,7 @@ func dispatchCopy(b *Builder, args []string, attributes map[string]bool, flagArg
 	last := len(args) - 1
 	dest := makeAbsolute(args[last], b.RunConfig.WorkingDir)
 	var chown string
+	var chmod string
 	var from string
 	userArgs := mergeEnv(envMapAsSlice(b.Args), b.Env)
 	for _, a := range flagArgs {
@@ -179,13 +187,19 @@ func dispatchCopy(b *Builder, args []string, attributes map[string]bool, flagArg
 		switch {
 		case strings.HasPrefix(arg, "--chown="):
 			chown = strings.TrimPrefix(arg, "--chown=")
+		case strings.HasPrefix(arg, "--chmod="):
+			chmod = strings.TrimPrefix(arg, "--chmod=")
+			err = checkChmodConversion(chmod)
+			if err != nil {
+				return err
+			}
 		case strings.HasPrefix(arg, "--from="):
 			from = strings.TrimPrefix(arg, "--from=")
 		default:
-			return fmt.Errorf("COPY only supports the --chown=<uid:gid> and the --from=<image|stage> flags")
+			return fmt.Errorf("COPY only supports the --chmod=<permissions> --chown=<uid:gid> and the --from=<image|stage> flags")
 		}
 	}
-	b.PendingCopies = append(b.PendingCopies, Copy{From: from, Src: args[0:last], Dest: dest, Download: false, Chown: chown})
+	b.PendingCopies = append(b.PendingCopies, Copy{From: from, Src: args[0:last], Dest: dest, Download: false, Chown: chown, Chmod: chmod})
 	return nil
 }
 
@@ -620,6 +634,14 @@ func shell(b *Builder, args []string, attributes map[string]bool, flagArgs []str
 	default:
 		// SHELL powershell -command - not JSON
 		return errNotJSON("SHELL")
+	}
+	return nil
+}
+
+func checkChmodConversion(chmod string) error {
+	_, err := strconv.ParseUint(chmod, 8, 32)
+	if err != nil {
+		return fmt.Errorf("Error parsing chmod %s", chmod)
 	}
 	return nil
 }

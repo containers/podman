@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"runtime"
 	"strings"
 
+	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/util"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/image"
@@ -86,7 +88,7 @@ func imageNamePrefix(imageName string) string {
 	return prefix
 }
 
-func newContainerIDMappingOptions(idmapOptions *IDMappingOptions) storage.IDMappingOptions {
+func newContainerIDMappingOptions(idmapOptions *define.IDMappingOptions) storage.IDMappingOptions {
 	var options storage.IDMappingOptions
 	if idmapOptions != nil {
 		options.HostUIDMapping = idmapOptions.HostUIDMapping
@@ -126,6 +128,34 @@ func resolveLocalImage(systemContext *types.SystemContext, store storage.Store, 
 	return nil, "", "", nil, nil
 }
 
+func imageMatch(ctx context.Context, ref types.ImageReference, systemContext *types.SystemContext) bool {
+	img, err := ref.NewImage(ctx, systemContext)
+	if err != nil {
+		logrus.Warnf("Failed to create newImage in imageMatch: %v", err)
+		return false
+	}
+	defer img.Close()
+	data, err := img.Inspect(ctx)
+	if err != nil {
+		logrus.Warnf("Failed to inspect img %s: %v", ref, err)
+		return false
+	}
+	os := systemContext.OSChoice
+	if os == "" {
+		os = runtime.GOOS
+	}
+	arch := systemContext.ArchitectureChoice
+	if arch == "" {
+		arch = runtime.GOARCH
+	}
+	if os == data.Os && arch == data.Architecture {
+		if systemContext.VariantChoice == "" || systemContext.VariantChoice == data.Variant {
+			return true
+		}
+	}
+	return false
+}
+
 func resolveImage(ctx context.Context, systemContext *types.SystemContext, store storage.Store, options BuilderOptions) (types.ImageReference, string, *storage.Image, error) {
 	if systemContext == nil {
 		systemContext = &types.SystemContext{}
@@ -157,11 +187,11 @@ func resolveImage(ctx context.Context, systemContext *types.SystemContext, store
 		return localImageRef, localImageRef.Transport().Name(), localImage, nil
 	}
 
-	if options.PullPolicy == PullNever || options.PullPolicy == PullIfMissing {
-		if localImage != nil {
+	if options.PullPolicy == define.PullNever || options.PullPolicy == define.PullIfMissing {
+		if localImage != nil && imageMatch(ctx, localImageRef, systemContext) {
 			return localImageRef, localImageRef.Transport().Name(), localImage, nil
 		}
-		if options.PullPolicy == PullNever {
+		if options.PullPolicy == define.PullNever {
 			return nil, "", nil, errors.Errorf("pull policy is %q but %q could not be found locally", "never", options.FromImage)
 		}
 	}
@@ -183,7 +213,7 @@ func resolveImage(ctx context.Context, systemContext *types.SystemContext, store
 	// localImage`).
 	if desc := resolved.Description(); len(desc) > 0 {
 		logrus.Debug(desc)
-		if !(options.PullPolicy == PullIfNewer && localImage != nil) {
+		if !(options.PullPolicy == define.PullIfNewer && localImage != nil) {
 			if options.ReportWriter != nil {
 				if _, err := options.ReportWriter.Write([]byte(desc + "\n")); err != nil {
 					return nil, "", nil, err
@@ -206,7 +236,7 @@ func resolveImage(ctx context.Context, systemContext *types.SystemContext, store
 		// If there's a local image, the `pullCandidate` is considered
 		// to be newer if its time stamp differs from the local one.
 		// Otherwise, we don't pull and skip it.
-		if options.PullPolicy == PullIfNewer && localImage != nil {
+		if options.PullPolicy == define.PullIfNewer && localImage != nil {
 			remoteImage, err := ref.NewImage(ctx, systemContext)
 			if err != nil {
 				logrus.Debugf("unable to remote-inspect image %q: %v", pullCandidate.Value.String(), err)
@@ -249,7 +279,7 @@ func resolveImage(ctx context.Context, systemContext *types.SystemContext, store
 
 	// If we were looking for a newer image but could not find one, return
 	// the local image if present.
-	if options.PullPolicy == PullIfNewer && localImage != nil {
+	if options.PullPolicy == define.PullIfNewer && localImage != nil {
 		return localImageRef, localImageRef.Transport().Name(), localImage, nil
 	}
 
@@ -359,6 +389,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		coptions := storage.ContainerOptions{
 			LabelOpts:        options.CommonBuildOpts.LabelOpts,
 			IDMappingOptions: newContainerIDMappingOptions(options.IDMappingOptions),
+			Volatile:         true,
 		}
 		container, err = store.CreateContainer("", []string{tmpName}, imageID, "", "", &coptions)
 		if err == nil {
@@ -407,7 +438,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		ConfigureNetwork:      options.ConfigureNetwork,
 		CNIPluginPath:         options.CNIPluginPath,
 		CNIConfigDir:          options.CNIConfigDir,
-		IDMappingOptions: IDMappingOptions{
+		IDMappingOptions: define.IDMappingOptions{
 			HostUIDMapping: len(uidmap) == 0,
 			HostGIDMapping: len(uidmap) == 0,
 			UIDMap:         uidmap,

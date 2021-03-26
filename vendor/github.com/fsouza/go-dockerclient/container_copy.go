@@ -38,7 +38,8 @@ func (c *Client) CopyFromContainer(opts CopyFromContainerOptions) error {
 		context: opts.Context,
 	})
 	if err != nil {
-		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
+		var e *Error
+		if errors.As(err, &e) && e.Status == http.StatusNotFound {
 			return &NoSuchContainer{ID: opts.Container}
 		}
 		return err

@@ -3,6 +3,7 @@ package docker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 )
 
@@ -17,7 +18,6 @@ func (c *Client) InspectContainer(id string) (*Container, error) {
 // The context object can be used to cancel the inspect request.
 //
 // Deprecated: Use InspectContainerWithOptions instead.
-//nolint:golint
 func (c *Client) InspectContainerWithContext(id string, ctx context.Context) (*Container, error) {
 	return c.InspectContainerWithOptions(InspectContainerOptions{ID: id, Context: ctx})
 }
@@ -31,7 +31,8 @@ func (c *Client) InspectContainerWithOptions(opts InspectContainerOptions) (*Con
 		context: opts.Context,
 	})
 	if err != nil {
-		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
+		var e *Error
+		if errors.As(err, &e) && e.Status == http.StatusNotFound {
 			return nil, &NoSuchContainer{ID: opts.ID}
 		}
 		return nil, err

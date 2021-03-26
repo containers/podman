@@ -2,6 +2,7 @@ package docker
 
 import (
 	"context"
+	"errors"
 	"net/http"
 )
 
@@ -29,7 +30,8 @@ func (c *Client) RemoveContainer(opts RemoveContainerOptions) error {
 	path := "/containers/" + opts.ID + "?" + queryString(opts)
 	resp, err := c.do(http.MethodDelete, path, doOptions{context: opts.Context})
 	if err != nil {
-		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
+		var e *Error
+		if errors.As(err, &e) && e.Status == http.StatusNotFound {
 			return &NoSuchContainer{ID: opts.ID}
 		}
 		return err
