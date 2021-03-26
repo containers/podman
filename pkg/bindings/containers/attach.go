@@ -307,6 +307,7 @@ func resizeTTY(ctx context.Context, endpoint string, height *int, width *int) er
 	if width != nil {
 		params.Set("w", strconv.Itoa(*width))
 	}
+	params.Set("running", "true")
 	rsp, err := conn.DoRequest(nil, http.MethodPost, endpoint, params, nil)
 	if err != nil {
 		return err
