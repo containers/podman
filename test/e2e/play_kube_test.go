@@ -1449,6 +1449,7 @@ spec:
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).NotTo(Equal(0))
+		Expect(kube.ErrorToString()).To(ContainSubstring(defaultVolName))
 	})
 
 	It("podman play kube test with empty HostPath type volume", func() {
