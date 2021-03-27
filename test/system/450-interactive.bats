@@ -57,9 +57,6 @@ function teardown() {
 
     # ...and make sure stty under podman reads that.
     # FIXME: 'sleep 1' is needed for podman-remote; without it, there's
-    # a race condition resulting in the following warning:
-    #   WARN[0000] failed to resize TTY: container "xx" in wrong state "stopped"
-    # (also "created")
     run_podman run -it --name mystty $IMAGE sh -c 'sleep 1;stty size' <$PODMAN_TEST_PTY
     is "$output" "$rows $cols" "stty under podman reads the correct dimensions"
 }
