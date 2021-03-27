@@ -16,6 +16,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -111,6 +112,50 @@ func (p *Pod) getInfraContainer() (*Container, error) {
 		return nil, err
 	}
 	return p.runtime.GetContainer(infraID)
+}
+
+// GenerateForKube generates a v1.PersistentVolumeClaim from a libpod volume.
+func (v *Volume) GenerateForKube() *v1.PersistentVolumeClaim {
+	annotations := make(map[string]string)
+	annotations[util.VolumeDriverAnnotation] = v.Driver()
+
+	for k, v := range v.Options() {
+		switch k {
+		case "o":
+			annotations[util.VolumeMountOptsAnnotation] = v
+		case "device":
+			annotations[util.VolumeDeviceAnnotation] = v
+		case "type":
+			annotations[util.VolumeTypeAnnotation] = v
+		case "UID":
+			annotations[util.VolumeUIDAnnotation] = v
+		case "GID":
+			annotations[util.VolumeGIDAnnotation] = v
+		}
+	}
+
+	return &v1.PersistentVolumeClaim{
+		TypeMeta: v12.TypeMeta{
+			Kind:       "PersistentVolumeClaim",
+			APIVersion: "v1",
+		},
+		ObjectMeta: v12.ObjectMeta{
+			Name:              v.Name(),
+			Labels:            v.Labels(),
+			Annotations:       annotations,
+			CreationTimestamp: v12.Now(),
+		},
+		Spec: v1.PersistentVolumeClaimSpec{
+			Resources: v1.ResourceRequirements{
+				Requests: map[v1.ResourceName]resource.Quantity{
+					v1.ResourceStorage: resource.MustParse("1Gi"),
+				},
+			},
+			AccessModes: []v1.PersistentVolumeAccessMode{
+				v1.ReadWriteOnce,
+			},
+		},
+	}
 }
 
 // GenerateKubeServiceFromV1Pod creates a v1 service object from a v1 pod object

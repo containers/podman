@@ -45,8 +45,16 @@ type PlayKubePod struct {
 	ContainerErrors []string
 }
 
+// PlayKubeVolume represents a single volume created by play kube.
+type PlayKubeVolume struct {
+	// Name - Name of the volume created by play kube.
+	Name string
+}
+
 // PlayKubeReport contains the results of running play kube.
 type PlayKubeReport struct {
 	// Pods - pods created by play kube.
 	Pods []PlayKubePod
+	// Volumes - volumes created by play kube.
+	Volumes []PlayKubeVolume
 }

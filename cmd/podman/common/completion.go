@@ -405,6 +405,20 @@ func AutocompletePodsRunning(cmd *cobra.Command, args []string, toComplete strin
 	return getPods(cmd, toComplete, completeDefault, "running", "degraded")
 }
 
+// AutocompleteForKube - Autocomplete all Podman objects supported by kube generate.
+func AutocompleteForKube(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if !validCurrentCmdLine(cmd, args, toComplete) {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	containers, _ := getContainers(cmd, toComplete, completeDefault)
+	pods, _ := getPods(cmd, toComplete, completeDefault)
+	volumes, _ := getVolumes(cmd, toComplete)
+	objs := containers
+	objs = append(objs, pods...)
+	objs = append(objs, volumes...)
+	return objs, cobra.ShellCompDirectiveNoFileComp
+}
+
 // AutocompleteContainersAndPods - Autocomplete container names and pod names.
 func AutocompleteContainersAndPods(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if !validCurrentCmdLine(cmd, args, toComplete) {

@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/containers/common/pkg/secrets"
@@ -41,6 +42,12 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 	documentList, err := splitMultiDocYAML(content)
 	if err != nil {
 		return nil, err
+	}
+
+	// sort kube kinds
+	documentList, err = sortKubeKinds(documentList)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to sort kube kinds in %q", path)
 	}
 
 	// create pod on each document if it is a pod or deployment
@@ -83,6 +90,20 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 			}
 
 			report.Pods = append(report.Pods, r.Pods...)
+			validKinds++
+		case "PersistentVolumeClaim":
+			var pvcYAML v1.PersistentVolumeClaim
+
+			if err := yaml.Unmarshal(document, &pvcYAML); err != nil {
+				return nil, errors.Wrapf(err, "unable to read YAML %q as Kube PersistentVolumeClaim", path)
+			}
+
+			r, err := ic.playKubePVC(ctx, &pvcYAML, options)
+			if err != nil {
+				return nil, err
+			}
+
+			report.Volumes = append(report.Volumes, r.Volumes...)
 			validKinds++
 		default:
 			logrus.Infof("kube kind %s not supported", kind)
@@ -313,6 +334,68 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	return &report, nil
 }
 
+// playKubePVC creates a podman volume from a kube persistent volume claim.
+func (ic *ContainerEngine) playKubePVC(ctx context.Context, pvcYAML *v1.PersistentVolumeClaim, options entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {
+	var report entities.PlayKubeReport
+	opts := make(map[string]string)
+
+	// Get pvc name.
+	// This is the only required pvc attribute to create a podman volume.
+	name := pvcYAML.GetName()
+	if strings.TrimSpace(name) == "" {
+		return nil, fmt.Errorf("persistent volume claim name can not be empty")
+	}
+
+	// Create podman volume options.
+	volOptions := []libpod.VolumeCreateOption{
+		libpod.WithVolumeName(name),
+		libpod.WithVolumeLabels(pvcYAML.GetLabels()),
+	}
+
+	// Get pvc annotations and create remaining podman volume options if available.
+	// These are podman volume options that do not match any of the persistent volume claim
+	// attributes, so they can be configured using annotations since they will not affect k8s.
+	for k, v := range pvcYAML.GetAnnotations() {
+		switch k {
+		case util.VolumeDriverAnnotation:
+			volOptions = append(volOptions, libpod.WithVolumeDriver(v))
+		case util.VolumeDeviceAnnotation:
+			opts["device"] = v
+		case util.VolumeTypeAnnotation:
+			opts["type"] = v
+		case util.VolumeUIDAnnotation:
+			uid, err := strconv.Atoi(v)
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot convert uid %s to integer", v)
+			}
+			volOptions = append(volOptions, libpod.WithVolumeUID(uid))
+			opts["UID"] = v
+		case util.VolumeGIDAnnotation:
+			gid, err := strconv.Atoi(v)
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot convert gid %s to integer", v)
+			}
+			volOptions = append(volOptions, libpod.WithVolumeGID(gid))
+			opts["GID"] = v
+		case util.VolumeMountOptsAnnotation:
+			opts["o"] = v
+		}
+	}
+	volOptions = append(volOptions, libpod.WithVolumeOptions(opts))
+
+	// Create volume.
+	vol, err := ic.Libpod.NewVolume(ctx, volOptions...)
+	if err != nil {
+		return nil, err
+	}
+
+	report.Volumes = append(report.Volumes, entities.PlayKubeVolume{
+		Name: vol.Name(),
+	})
+
+	return &report, nil
+}
+
 // readConfigMapFromFile returns a kubernetes configMap obtained from --configmap flag
 func readConfigMapFromFile(r io.Reader) (v1.ConfigMap, error) {
 	var cm v1.ConfigMap
@@ -373,4 +456,26 @@ func getKubeKind(obj []byte) (string, error) {
 	}
 
 	return kubeObject.Kind, nil
+}
+
+// sortKubeKinds adds the correct creation order for the kube kinds.
+// Any pod dependecy will be created first like volumes, secrets, etc.
+func sortKubeKinds(documentList [][]byte) ([][]byte, error) {
+	var sortedDocumentList [][]byte
+
+	for _, document := range documentList {
+		kind, err := getKubeKind(document)
+		if err != nil {
+			return nil, err
+		}
+
+		switch kind {
+		case "Pod", "Deployment":
+			sortedDocumentList = append(sortedDocumentList, document)
+		default:
+			sortedDocumentList = append([][]byte{document}, sortedDocumentList...)
+		}
+	}
+
+	return sortedDocumentList, nil
 }

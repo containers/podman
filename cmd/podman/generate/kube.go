@@ -17,20 +17,22 @@ import (
 var (
 	kubeOptions     = entities.GenerateKubeOptions{}
 	kubeFile        = ""
-	kubeDescription = `Command generates Kubernetes pod and service YAML (v1 specification) from Podman containers or a pod.
+	kubeDescription = `Command generates Kubernetes Pod, Service or PersistenVolumeClaim YAML (v1 specification) from Podman containers, pods or volumes.
 
-Whether the input is for a container or pod, Podman will always generate the specification as a pod.`
+  Whether the input is for a container or pod, Podman will always generate the specification as a pod.`
 
 	kubeCmd = &cobra.Command{
-		Use:               "kube [options] {CONTAINER...|POD}",
-		Short:             "Generate Kubernetes YAML from a container or pod.",
+		Use:               "kube [options] {CONTAINER...|POD...|VOLUME...}",
+		Short:             "Generate Kubernetes YAML from containers, pods or volumes.",
 		Long:              kubeDescription,
 		RunE:              kube,
 		Args:              cobra.MinimumNArgs(1),
-		ValidArgsFunction: common.AutocompleteContainersAndPods,
+		ValidArgsFunction: common.AutocompleteForKube,
 		Example: `podman generate kube ctrID
   podman generate kube podID
-  podman generate kube --service podID`,
+  podman generate kube --service podID
+  podman generate kube volumeName
+  podman generate kube ctrID podID volumeName --service`,
 	}
 )
 

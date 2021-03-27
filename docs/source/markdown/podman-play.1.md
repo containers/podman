@@ -1,20 +1,20 @@
 % podman-play(1)
 
 ## NAME
-podman\-play - Play pods and containers based on a structured input file
+podman\-play - Play containers, pods or volumes based on a structured input file
 
 ## SYNOPSIS
 **podman play** *subcommand*
 
 ## DESCRIPTION
-The play command will recreate pods and containers based on the input from a structured (like YAML)
+The play command will recreate containers, pods or volumes based on the input from a structured (like YAML)
 file input.  Containers will be automatically started.
 
 ## COMMANDS
 
 | Command  | Man Page                                            | Description                                                                  |
 | -------  | --------------------------------------------------- | ---------------------------------------------------------------------------- |
-| kube     | [podman-play-kube(1)](podman-play-kube.1.md)        | Create pods and containers based on Kubernetes YAML.                         |
+| kube     | [podman-play-kube(1)](podman-play-kube.1.md)        | Create containers, pods or volumes based on Kubernetes YAML.                         |
 
 ## SEE ALSO
 podman, podman-pod(1), podman-container(1), podman-generate(1), podman-play(1), podman-play-kube(1)

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/containers/podman/v3/pkg/util"
 	. "github.com/containers/podman/v3/test/utils"
 	"github.com/ghodss/yaml"
 	. "github.com/onsi/ginkgo"
@@ -554,7 +555,7 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(inspect.OutputToString()).To(ContainSubstring(`"pid"`))
 	})
 
-	It("podman generate kube with pods and containers should fail", func() {
+	It("podman generate kube with pods and containers", func() {
 		pod1 := podmanTest.Podman([]string{"run", "-dt", "--pod", "new:pod1", ALPINE, "top"})
 		pod1.WaitWithDefaultTimeout()
 		Expect(pod1.ExitCode()).To(Equal(0))
@@ -565,7 +566,7 @@ var _ = Describe("Podman generate kube", func() {
 
 		kube := podmanTest.Podman([]string{"generate", "kube", "pod1", "top"})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube.ExitCode()).ToNot(Equal(0))
+		Expect(kube.ExitCode()).To(Equal(0))
 	})
 
 	It("podman generate kube with containers in a pod should fail", func() {
@@ -630,7 +631,7 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(*pod.Spec.DNSConfig.Options[0].Value).To(Equal("blue"))
 	})
 
-	It("podman generate kube multiple contianer dns servers and options are cumulative", func() {
+	It("podman generate kube multiple container dns servers and options are cumulative", func() {
 		top1 := podmanTest.Podman([]string{"run", "-dt", "--name", "top1", "--dns", "8.8.8.8", "--dns-search", "foobar.com", ALPINE, "top"})
 		top1.WaitWithDefaultTimeout()
 		Expect(top1.ExitCode()).To(BeZero())
@@ -798,4 +799,55 @@ USER test1`
 		Expect(*pod.Spec.Containers[0].SecurityContext.RunAsUser).To(Equal(int64(10001)))
 	})
 
+	It("podman generate kube on named volume", func() {
+		vol := "simple-named-volume"
+
+		session := podmanTest.Podman([]string{"volume", "create", vol})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", vol})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		pvc := new(v1.PersistentVolumeClaim)
+		err := yaml.Unmarshal(kube.Out.Contents(), pvc)
+		Expect(err).To(BeNil())
+		Expect(pvc.GetName()).To(Equal(vol))
+		Expect(pvc.Spec.AccessModes[0]).To(Equal(v1.ReadWriteOnce))
+		Expect(pvc.Spec.Resources.Requests.Storage().String()).To(Equal("1Gi"))
+	})
+
+	It("podman generate kube on named volume with options", func() {
+		vol := "complex-named-volume"
+		volDevice := "tmpfs"
+		volType := "tmpfs"
+		volOpts := "nodev,noexec"
+
+		session := podmanTest.Podman([]string{"volume", "create", "--opt", "device=" + volDevice, "--opt", "type=" + volType, "--opt", "o=" + volOpts, vol})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", vol})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		pvc := new(v1.PersistentVolumeClaim)
+		err := yaml.Unmarshal(kube.Out.Contents(), pvc)
+		Expect(err).To(BeNil())
+		Expect(pvc.GetName()).To(Equal(vol))
+		Expect(pvc.Spec.AccessModes[0]).To(Equal(v1.ReadWriteOnce))
+		Expect(pvc.Spec.Resources.Requests.Storage().String()).To(Equal("1Gi"))
+
+		for k, v := range pvc.GetAnnotations() {
+			switch k {
+			case util.VolumeDeviceAnnotation:
+				Expect(v).To(Equal(volDevice))
+			case util.VolumeTypeAnnotation:
+				Expect(v).To(Equal(volType))
+			case util.VolumeMountOptsAnnotation:
+				Expect(v).To(Equal(volOpts))
+			}
+		}
+	})
 })

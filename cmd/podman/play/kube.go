@@ -32,11 +32,11 @@ var (
 	kubeOptions        = playKubeOptionsWrapper{}
 	kubeDescription    = `Command reads in a structured file of Kubernetes YAML.
 
-  It creates the pod and containers described in the YAML.  The containers within the pod are then started and the ID of the new Pod is output.`
+  It creates pods or volumes based on the Kubernetes kind described in the YAML. Supported kinds are Pods, Deployments and PersistentVolumeClaims.`
 
 	kubeCmd = &cobra.Command{
 		Use:               "kube [options] KUBEFILE|-",
-		Short:             "Play a pod based on Kubernetes YAML.",
+		Short:             "Play a pod or volume based on Kubernetes YAML.",
 		Long:              kubeDescription,
 		RunE:              kube,
 		Args:              cobra.ExactArgs(1),
@@ -129,6 +129,15 @@ func kube(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// Print volumes report
+	for i, volume := range report.Volumes {
+		if i == 0 {
+			fmt.Println("Volumes:")
+		}
+		fmt.Println(volume.Name)
+	}
+
+	// Print pods report
 	for _, pod := range report.Pods {
 		for _, l := range pod.Logs {
 			fmt.Fprint(os.Stderr, l)
