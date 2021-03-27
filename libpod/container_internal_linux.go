@@ -607,10 +607,16 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	availableUIDs, availableGIDs, err := rootless.GetAvailableIDMaps()
 	if err != nil {
-		return nil, err
+		if os.IsNotExist(err) {
+			// The kernel-provided files only exist if user namespaces are supported
+			logrus.Debugf("user or group ID mappings not available: %s", err)
+		} else {
+			return nil, err
+		}
+	} else {
+		g.Config.Linux.UIDMappings = rootless.MaybeSplitMappings(g.Config.Linux.UIDMappings, availableUIDs)
+		g.Config.Linux.GIDMappings = rootless.MaybeSplitMappings(g.Config.Linux.GIDMappings, availableGIDs)
 	}
-	g.Config.Linux.UIDMappings = rootless.MaybeSplitMappings(g.Config.Linux.UIDMappings, availableUIDs)
-	g.Config.Linux.GIDMappings = rootless.MaybeSplitMappings(g.Config.Linux.GIDMappings, availableGIDs)
 
 	// Hostname handling:
 	// If we have a UTS namespace, set Hostname in the OCI spec.
