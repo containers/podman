@@ -210,12 +210,12 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	}
 
 	for _, env := range opts.Container.Env {
-		value := envVarValue(env, opts.ConfigMaps)
+		value := envVarValue(env, opts)
 
 		envs[env.Name] = value
 	}
 	for _, envFrom := range opts.Container.EnvFrom {
-		cmEnvs := envVarsFromConfigMap(envFrom, opts.ConfigMaps)
+		cmEnvs := envVarsFrom(envFrom, opts)
 
 		for k, v := range cmEnvs {
 			envs[k] = v
@@ -325,14 +325,14 @@ func quantityToInt64(quantity *resource.Quantity) (int64, error) {
 	return 0, errors.Errorf("Quantity cannot be represented as int64: %v", quantity)
 }
 
-// envVarsFromConfigMap returns all key-value pairs as env vars from a configMap that matches the envFrom setting of a container
-func envVarsFromConfigMap(envFrom v1.EnvFromSource, configMaps []v1.ConfigMap) map[string]string {
+// envVarsFrom returns all key-value pairs as env vars from a configMap that matches the envFrom setting of a container
+func envVarsFrom(envFrom v1.EnvFromSource, opts *CtrSpecGenOptions) map[string]string {
 	envs := map[string]string{}
 
 	if envFrom.ConfigMapRef != nil {
 		cmName := envFrom.ConfigMapRef.Name
 
-		for _, c := range configMaps {
+		for _, c := range opts.ConfigMaps {
 			if cmName == c.Name {
 				envs = c.Data
 				break
@@ -345,10 +345,10 @@ func envVarsFromConfigMap(envFrom v1.EnvFromSource, configMaps []v1.ConfigMap) m
 
 // envVarValue returns the environment variable value configured within the container's env setting.
 // It gets the value from a configMap if specified, otherwise returns env.Value
-func envVarValue(env v1.EnvVar, configMaps []v1.ConfigMap) string {
-	for _, c := range configMaps {
-		if env.ValueFrom != nil {
-			if env.ValueFrom.ConfigMapKeyRef != nil {
+func envVarValue(env v1.EnvVar, opts *CtrSpecGenOptions) string {
+	if env.ValueFrom != nil {
+		if env.ValueFrom.ConfigMapKeyRef != nil {
+			for _, c := range opts.ConfigMaps {
 				if env.ValueFrom.ConfigMapKeyRef.Name == c.Name {
 					if value, ok := c.Data[env.ValueFrom.ConfigMapKeyRef.Key]; ok {
 						return value

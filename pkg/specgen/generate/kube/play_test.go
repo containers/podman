@@ -8,12 +8,12 @@ import (
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestEnvVarsFromConfigMap(t *testing.T) {
+func TestEnvVarsFrom(t *testing.T) {
 	tests := []struct {
-		name          string
-		envFrom       v1.EnvFromSource
-		configMapList []v1.ConfigMap
-		expected      map[string]string
+		name     string
+		envFrom  v1.EnvFromSource
+		options  CtrSpecGenOptions
+		expected map[string]string
 	}{
 		{
 			"ConfigMapExists",
@@ -24,7 +24,9 @@ func TestEnvVarsFromConfigMap(t *testing.T) {
 					},
 				},
 			},
-			configMapList,
+			CtrSpecGenOptions{
+				ConfigMaps: configMapList,
+			},
 			map[string]string{
 				"myvar": "foo",
 			},
@@ -38,7 +40,9 @@ func TestEnvVarsFromConfigMap(t *testing.T) {
 					},
 				},
 			},
-			configMapList,
+			CtrSpecGenOptions{
+				ConfigMaps: configMapList,
+			},
 			map[string]string{},
 		},
 		{
@@ -50,7 +54,9 @@ func TestEnvVarsFromConfigMap(t *testing.T) {
 					},
 				},
 			},
-			[]v1.ConfigMap{},
+			CtrSpecGenOptions{
+				ConfigMaps: []v1.ConfigMap{},
+			},
 			map[string]string{},
 		},
 	}
@@ -58,7 +64,7 @@ func TestEnvVarsFromConfigMap(t *testing.T) {
 	for _, test := range tests {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
-			result := envVarsFromConfigMap(test.envFrom, test.configMapList)
+			result := envVarsFrom(test.envFrom, &test.options)
 			assert.Equal(t, test.expected, result)
 		})
 	}
@@ -66,10 +72,10 @@ func TestEnvVarsFromConfigMap(t *testing.T) {
 
 func TestEnvVarValue(t *testing.T) {
 	tests := []struct {
-		name          string
-		envVar        v1.EnvVar
-		configMapList []v1.ConfigMap
-		expected      string
+		name     string
+		envVar   v1.EnvVar
+		options  CtrSpecGenOptions
+		expected string
 	}{
 		{
 			"ConfigMapExists",
@@ -84,7 +90,9 @@ func TestEnvVarValue(t *testing.T) {
 					},
 				},
 			},
-			configMapList,
+			CtrSpecGenOptions{
+				ConfigMaps: configMapList,
+			},
 			"foo",
 		},
 		{
@@ -100,7 +108,9 @@ func TestEnvVarValue(t *testing.T) {
 					},
 				},
 			},
-			configMapList,
+			CtrSpecGenOptions{
+				ConfigMaps: configMapList,
+			},
 			"",
 		},
 		{
@@ -116,7 +126,9 @@ func TestEnvVarValue(t *testing.T) {
 					},
 				},
 			},
-			configMapList,
+			CtrSpecGenOptions{
+				ConfigMaps: configMapList,
+			},
 			"",
 		},
 		{
@@ -132,7 +144,9 @@ func TestEnvVarValue(t *testing.T) {
 					},
 				},
 			},
-			[]v1.ConfigMap{},
+			CtrSpecGenOptions{
+				ConfigMaps: []v1.ConfigMap{},
+			},
 			"",
 		},
 	}
@@ -140,7 +154,7 @@ func TestEnvVarValue(t *testing.T) {
 	for _, test := range tests {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
-			result := envVarValue(test.envVar, test.configMapList)
+			result := envVarValue(test.envVar, &test.options)
 			assert.Equal(t, test.expected, result)
 		})
 	}
