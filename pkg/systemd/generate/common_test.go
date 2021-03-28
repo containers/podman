@@ -1,7 +1,6 @@
 package generate
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,22 +8,144 @@ import (
 
 func TestFilterPodFlags(t *testing.T) {
 	tests := []struct {
-		input []string
+		input    []string
+		output   []string
+		argCount int
 	}{
-		{[]string{"podman", "pod", "create"}},
-		{[]string{"podman", "pod", "create", "--name", "foo"}},
-		{[]string{"podman", "pod", "create", "--pod-id-file", "foo"}},
-		{[]string{"podman", "pod", "create", "--pod-id-file=foo"}},
-		{[]string{"podman", "run", "--pod", "foo"}},
-		{[]string{"podman", "run", "--pod=foo"}},
+		{
+			[]string{"podman", "pod", "create"},
+			[]string{"podman", "pod", "create"},
+			0,
+		},
+		{
+			[]string{"podman", "pod", "create", "--name", "foo"},
+			[]string{"podman", "pod", "create", "--name", "foo"},
+			0,
+		},
+		{
+			[]string{"podman", "pod", "create", "--pod-id-file", "foo"},
+			[]string{"podman", "pod", "create"},
+			0,
+		},
+		{
+			[]string{"podman", "pod", "create", "--pod-id-file=foo"},
+			[]string{"podman", "pod", "create"},
+			0,
+		},
+		{
+			[]string{"podman", "pod", "create", "--pod-id-file", "foo", "--infra-conmon-pidfile", "foo"},
+			[]string{"podman", "pod", "create"},
+			0,
+		},
+		{
+			[]string{"podman", "pod", "create", "--pod-id-file", "foo", "--infra-conmon-pidfile=foo"},
+			[]string{"podman", "pod", "create"},
+			0,
+		},
+		{
+			[]string{"podman", "run", "--pod", "foo"},
+			[]string{"podman", "run"},
+			0,
+		},
+		{
+			[]string{"podman", "run", "--pod=foo"},
+			[]string{"podman", "run"},
+			0,
+		},
+		{
+			[]string{"podman", "run", "--pod=foo", "fedora", "podman", "run", "--pod=test", "alpine"},
+			[]string{"podman", "run", "fedora", "podman", "run", "--pod=test", "alpine"},
+			5,
+		},
+		{
+			[]string{"podman", "run", "--pod", "foo", "fedora", "podman", "run", "--pod", "test", "alpine"},
+			[]string{"podman", "run", "fedora", "podman", "run", "--pod", "test", "alpine"},
+			6,
+		},
+		{
+			[]string{"podman", "run", "--pod-id-file=foo", "fedora", "podman", "run", "--pod-id-file=test", "alpine"},
+			[]string{"podman", "run", "fedora", "podman", "run", "--pod-id-file=test", "alpine"},
+			5,
+		},
+		{
+			[]string{"podman", "run", "--pod-id-file", "foo", "fedora", "podman", "run", "--pod-id-file", "test", "alpine"},
+			[]string{"podman", "run", "fedora", "podman", "run", "--pod-id-file", "test", "alpine"},
+			6,
+		},
 	}
 
 	for _, test := range tests {
-		processed := filterPodFlags(test.input)
-		for _, s := range processed {
-			assert.False(t, strings.HasPrefix(s, "--pod-id-file"))
-			assert.False(t, strings.HasPrefix(s, "--pod"))
-		}
+		processed := filterPodFlags(test.input, test.argCount)
+		assert.Equal(t, test.output, processed)
+	}
+}
+
+func TestFilterCommonContainerFlags(t *testing.T) {
+	tests := []struct {
+		input    []string
+		output   []string
+		argCount int
+	}{
+		{
+			[]string{"podman", "run", "alpine"},
+			[]string{"podman", "run", "alpine"},
+			1,
+		},
+		{
+			[]string{"podman", "run", "--conmon-pidfile", "foo", "alpine"},
+			[]string{"podman", "run", "alpine"},
+			1,
+		},
+		{
+			[]string{"podman", "run", "--conmon-pidfile=foo", "alpine"},
+			[]string{"podman", "run", "alpine"},
+			1,
+		},
+		{
+			[]string{"podman", "run", "--cidfile", "foo", "alpine"},
+			[]string{"podman", "run", "alpine"},
+			1,
+		},
+		{
+			[]string{"podman", "run", "--cidfile=foo", "alpine"},
+			[]string{"podman", "run", "alpine"},
+			1,
+		},
+		{
+			[]string{"podman", "run", "--cgroups", "foo", "alpine"},
+			[]string{"podman", "run", "alpine"},
+			1,
+		},
+		{
+			[]string{"podman", "run", "--cgroups=foo", "alpine"},
+			[]string{"podman", "run", "alpine"},
+			1,
+		},
+		{
+			[]string{"podman", "run", "--cgroups", "foo", "--conmon-pidfile", "foo", "--cidfile", "foo", "alpine"},
+			[]string{"podman", "run", "alpine"},
+			1,
+		},
+		{
+			[]string{"podman", "run", "--cgroups=foo", "--conmon-pidfile=foo", "--cidfile=foo", "alpine"},
+			[]string{"podman", "run", "alpine"},
+			1,
+		},
+		{
+			[]string{"podman", "run", "--cgroups", "foo", "--conmon-pidfile", "foo", "--cidfile", "foo", "alpine", "--cgroups", "foo", "--conmon-pidfile", "foo", "--cidfile", "foo"},
+			[]string{"podman", "run", "alpine", "--cgroups", "foo", "--conmon-pidfile", "foo", "--cidfile", "foo"},
+			7,
+		},
+		{
+			[]string{"podman", "run", "--cgroups=foo", "--conmon-pidfile=foo", "--cidfile=foo", "alpine", "--cgroups=foo", "--conmon-pidfile=foo", "--cidfile=foo"},
+			[]string{"podman", "run", "alpine", "--cgroups=foo", "--conmon-pidfile=foo", "--cidfile=foo"},
+			4,
+		},
+	}
+
+	for _, test := range tests {
+		processed := filterCommonContainerFlags(test.input, test.argCount)
+		assert.Equal(t, test.output, processed)
 	}
 }
 

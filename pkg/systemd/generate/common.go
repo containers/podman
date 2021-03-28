@@ -39,20 +39,46 @@ After=network-online.target
 RequiresMountsFor={{{{.GraphRoot}}}} {{{{.RunRoot}}}}
 `
 
-// filterPodFlags removes --pod and --pod-id-file from the specified command.
-func filterPodFlags(command []string) []string {
+// filterPodFlags removes --pod, --pod-id-file and --infra-conmon-pidfile from the specified command.
+// argCount is the number of last arguments which should not be filtered, e.g. the container entrypoint.
+func filterPodFlags(command []string, argCount int) []string {
 	processed := []string{}
-	for i := 0; i < len(command); i++ {
+	for i := 0; i < len(command)-argCount; i++ {
 		s := command[i]
-		if s == "--pod" || s == "--pod-id-file" {
+		if s == "--pod" || s == "--pod-id-file" || s == "--infra-conmon-pidfile" {
 			i++
 			continue
 		}
-		if strings.HasPrefix(s, "--pod=") || strings.HasPrefix(s, "--pod-id-file=") {
+		if strings.HasPrefix(s, "--pod=") ||
+			strings.HasPrefix(s, "--pod-id-file=") ||
+			strings.HasPrefix(s, "--infra-conmon-pidfile=") {
 			continue
 		}
 		processed = append(processed, s)
 	}
+	processed = append(processed, command[len(command)-argCount:]...)
+	return processed
+}
+
+// filterCommonContainerFlags removes --conmon-pidfile, --cidfile and --cgroups from the specified command.
+// argCount is the number of last arguments which should not be filtered, e.g. the container entrypoint.
+func filterCommonContainerFlags(command []string, argCount int) []string {
+	processed := []string{}
+	for i := 0; i < len(command)-argCount; i++ {
+		s := command[i]
+
+		switch {
+		case s == "--conmon-pidfile", s == "--cidfile", s == "--cgroups":
+			i++
+			continue
+		case strings.HasPrefix(s, "--conmon-pidfile="),
+			strings.HasPrefix(s, "--cidfile="),
+			strings.HasPrefix(s, "--cgroups="):
+			continue
+		}
+		processed = append(processed, s)
+	}
+	processed = append(processed, command[len(command)-argCount:]...)
 	return processed
 }
 
