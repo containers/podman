@@ -14,10 +14,10 @@ podman\-machine - Manage Podman's virtual machine
 | Command | Man Page                                                | Description                       |
 | ------- | ------------------------------------------------------- | --------------------------------- |
 | init    | [podman-machine-init(1)](podman-machine-init.1.md)      | Initialize a new virtual machine  |
-| remove  | [podman-machine-remove(1)](podman-machine-remove.1.md)  | Remove a virtual machine          |
-| ssh     | [podman-machine-ssh(1)](podman-machine-ssh.1.md)        | SSH into a virtual machine        |
-| start   | [podman-machine-start(1)](podman-machine-start.1.md)    | Start a virtual machine           |
-| stop    | [podman-machine-stop(1)](podman-machine-stop.1.md)      | Stop a virtual machine            |
+| rm | [podman-machine-rm(1)](podman-machine-rm.1.md)| Remove a virtual machine     |
+| ssh     | [podman-machine-ssh(1)](podman-machine-ssh.1.md)   | SSH into a virtual machine    |
+| start   | [podman-machine-start(1)](podman-machine-start.1.md)    | Start a virtual machine       |
+| stop    | [podman-machine-stop(1)](podman-machine-stop.1.md)      | Stop a virtual machine        |
 
 ## SEE ALSO
 podman(1)

@@ -14,11 +14,11 @@ import (
 
 var (
 	sshCmd = &cobra.Command{
-		Use:   "ssh [options] NAME [COMMAND [ARG ...]]",
+		Use:   "ssh [options] [NAME] [COMMAND [ARG ...]]",
 		Short: "SSH into a virtual machine",
 		Long:  "SSH into a virtual machine ",
 		RunE:  ssh,
-		Args:  cobra.MinimumNArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 		Example: `podman machine ssh myvm
   podman machine ssh -e  myvm echo hello`,
 
@@ -48,6 +48,10 @@ func ssh(cmd *cobra.Command, args []string) error {
 		vm     machine.VM
 		vmType string
 	)
+	vmName := defaultMachineName
+	if len(args) > 0 && len(args[0]) > 1 {
+		vmName = args[0]
+	}
 	sshOpts.Args = args[1:]
 
 	// Error if no execute but args given
@@ -61,10 +65,10 @@ func ssh(cmd *cobra.Command, args []string) error {
 
 	switch vmType {
 	default:
-		vm, err = qemu.LoadVMByName(args[0])
+		vm, err = qemu.LoadVMByName(vmName)
 	}
 	if err != nil {
 		return errors.Wrapf(err, "vm %s not found", args[0])
 	}
-	return vm.SSH(args[0], sshOpts)
+	return vm.SSH(vmName, sshOpts)
 }

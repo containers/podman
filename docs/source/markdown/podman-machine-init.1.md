@@ -22,6 +22,10 @@ tied to the Linux kernel.
 
 Number of CPUs.
 
+#### **--disk-size**=*number*
+
+Size of the disk for the guest VM in GB.
+
 #### **--ignition-path**
 
 Fully qualified path of the ignition file

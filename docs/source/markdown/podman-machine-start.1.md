@@ -4,7 +4,7 @@
 podman\-machine\-start - Start a virtual machine
 
 ## SYNOPSIS
-**podman machine start** *name*
+**podman machine start** [*name*]
 
 ## DESCRIPTION
 

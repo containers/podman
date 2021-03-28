@@ -7,19 +7,19 @@ import (
 	"path/filepath"
 
 	"github.com/containers/storage/pkg/homedir"
+	"github.com/pkg/errors"
 )
 
 type InitOptions struct {
-	Name         string
 	CPUS         uint64
-	Memory       uint64
+	DiskSize     uint64
 	IgnitionPath string
 	ImagePath    string
-	Username     string
-	URI          url.URL
 	IsDefault    bool
-	//KernelPath string
-	//Devices    []VMDevices
+	Memory       uint64
+	Name         string
+	URI          url.URL
+	Username     string
 }
 
 type RemoteConnectionType string
@@ -27,6 +27,8 @@ type RemoteConnectionType string
 var (
 	SSHRemoteConnection     RemoteConnectionType = "ssh"
 	DefaultIgnitionUserName                      = "core"
+	ErrNoSuchVM                                  = errors.New("VM does not exist")
+	ErrVMAlreadyExists                           = errors.New("VM already exists")
 )
 
 type Download struct {

@@ -1,9 +1,11 @@
 package qemu
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -22,9 +24,6 @@ import (
 var (
 	// vmtype refers to qemu (vs libvirt, krun, etc)
 	vmtype = "qemu"
-	// qemuCommon are the common command line arguments between the arches
-	//qemuCommon = []string{"-cpu", "host", "-qmp", "unix://tmp/qmp.sock,server,nowait"}
-	//qemuCommon  = []string{"-cpu", "host", "-qmp", "tcp:localhost:4444,server,nowait"}
 )
 
 // NewMachine initializes an instance of a virtual machine based on the qemu
@@ -89,6 +88,16 @@ func NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	// Add network
 	cmd = append(cmd, "-nic", "user,model=virtio,hostfwd=tcp::"+strconv.Itoa(vm.Port)+"-:22")
 
+	socketPath, err := getSocketDir()
+	if err != nil {
+		return nil, err
+	}
+	virtualSocketPath := filepath.Join(socketPath, "podman", vm.Name+"_ready.sock")
+	// Add serial port for readiness
+	cmd = append(cmd, []string{
+		"-device", "virtio-serial",
+		"-chardev", "socket,path=" + virtualSocketPath + ",server,nowait,id=" + vm.Name + "_ready",
+		"-device", "virtserialport,chardev=" + vm.Name + "_ready" + ",name=org.fedoraproject.port.0"}...)
 	vm.CmdLine = cmd
 	return vm, nil
 }
@@ -96,13 +105,15 @@ func NewMachine(opts machine.InitOptions) (machine.VM, error) {
 // LoadByName reads a json file that describes a known qemu vm
 // and returns a vm instance
 func LoadVMByName(name string) (machine.VM, error) {
-	// TODO need to define an error relating to ErrMachineNotFound
 	vm := new(MachineVM)
 	vmConfigDir, err := machine.GetConfDir(vmtype)
 	if err != nil {
 		return nil, err
 	}
 	b, err := ioutil.ReadFile(filepath.Join(vmConfigDir, name+".json"))
+	if os.IsNotExist(err) {
+		return nil, errors.Wrap(machine.ErrNoSuchVM, name)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -159,14 +170,28 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 	if err := v.prepare(); err != nil {
 		return err
 	}
+
+	// Resize the disk image to input disk size
+	resize := exec.Command("qemu-img", []string{"resize", v.ImagePath, strconv.Itoa(int(opts.DiskSize)) + "G"}...)
+	if err := resize.Run(); err != nil {
+		return errors.Errorf("error resizing image: %q", err)
+	}
 	// Write the ignition file
-	return machine.NewIgnitionFile(opts.Username, key, v.IgnitionFilePath)
+	ign := machine.DynamicIgnition{
+		Name:      opts.Username,
+		Key:       key,
+		VMName:    v.Name,
+		WritePath: v.IgnitionFilePath,
+	}
+	return machine.NewIgnitionFile(ign)
 }
 
 // Start executes the qemu command line and forks it
 func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 	var (
-		err error
+		conn net.Conn
+		err  error
+		wait time.Duration = time.Millisecond * 500
 	)
 	attr := new(os.ProcAttr)
 	files := []*os.File{os.Stdin, os.Stdout, os.Stderr}
@@ -181,6 +206,30 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 	}
 
 	_, err = os.StartProcess(v.CmdLine[0], cmd, attr)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Waiting for VM ...")
+	socketPath, err := getSocketDir()
+	if err != nil {
+		return err
+	}
+
+	// The socket is not made until the qemu process is running so here
+	// we do a backoff waiting for it.  Once we have a conn, we break and
+	// then wait to read it.
+	for i := 0; i < 6; i++ {
+		conn, err = net.Dial("unix", filepath.Join(socketPath, "podman", v.Name+"_ready.sock"))
+		if err == nil {
+			break
+		}
+		time.Sleep(wait)
+		wait++
+	}
+	if err != nil {
+		return err
+	}
+	_, err = bufio.NewReader(conn).ReadString('\n')
 	return err
 }
 

@@ -13,11 +13,11 @@ import (
 
 var (
 	startCmd = &cobra.Command{
-		Use:               "start NAME",
+		Use:               "start [NAME]",
 		Short:             "Start an existing machine",
 		Long:              "Start an existing machine ",
 		RunE:              start,
-		Args:              cobra.ExactArgs(1),
+		Args:              cobra.MaximumNArgs(1),
 		Example:           `podman machine start myvm`,
 		ValidArgsFunction: completion.AutocompleteNone,
 	}
@@ -37,12 +37,16 @@ func start(cmd *cobra.Command, args []string) error {
 		vm     machine.VM
 		vmType string
 	)
+	vmName := defaultMachineName
+	if len(args) > 0 && len(args[0]) > 0 {
+		vmName = args[0]
+	}
 	switch vmType {
 	default:
-		vm, err = qemu.LoadVMByName(args[0])
+		vm, err = qemu.LoadVMByName(vmName)
 	}
 	if err != nil {
 		return err
 	}
-	return vm.Start(args[0], machine.StartOptions{})
+	return vm.Start(vmName, machine.StartOptions{})
 }

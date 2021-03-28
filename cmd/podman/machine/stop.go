@@ -13,11 +13,11 @@ import (
 
 var (
 	stopCmd = &cobra.Command{
-		Use:               "stop NAME",
+		Use:               "stop [NAME]",
 		Short:             "Stop an existing machine",
 		Long:              "Stop an existing machine ",
 		RunE:              stop,
-		Args:              cobra.ExactArgs(1),
+		Args:              cobra.MaximumNArgs(1),
 		Example:           `podman machine stop myvm`,
 		ValidArgsFunction: completion.AutocompleteNone,
 	}
@@ -38,12 +38,16 @@ func stop(cmd *cobra.Command, args []string) error {
 		vm     machine.VM
 		vmType string
 	)
+	vmName := defaultMachineName
+	if len(args) > 0 && len(args[0]) > 0 {
+		vmName = args[0]
+	}
 	switch vmType {
 	default:
-		vm, err = qemu.LoadVMByName(args[0])
+		vm, err = qemu.LoadVMByName(vmName)
 	}
 	if err != nil {
 		return err
 	}
-	return vm.Stop(args[0], machine.StopOptions{})
+	return vm.Stop(vmName, machine.StopOptions{})
 }
