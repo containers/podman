@@ -384,7 +384,11 @@ function die() {
 function is() {
     local actual="$1"
     local expect="$2"
-    local testname="${3:-FIXME}"
+    #FUNCNAME is used to determine function caller to be utilized in case of missing testname.
+    #sed substitutes are used for cosmetic corrections.	
+    local callerchain="${FUNCNAME[1]}"
+    local caller="$(echo FIXME - Caller: $callerchain|sed -e 's/-3a/:/g' -e 's/-2d/-/g' -e 's/_/ /g')"
+    local testname="${3:-$caller}"
 
     if [ -z "$expect" ]; then
         if [ -z "$actual" ]; then
