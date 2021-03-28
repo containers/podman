@@ -4,7 +4,10 @@ import (
 	"net/http"
 
 	"github.com/containers/podman/v3/libpod"
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
+	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/domain/infra/abi"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -30,28 +33,32 @@ func RemoveImage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	name := utils.GetName(r)
-	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
-	if err != nil {
-		utils.ImageNotFound(w, name, errors.Wrapf(err, "failed to find image %s", name))
-		return
-	}
+	imageEngine := abi.ImageEngine{Libpod: runtime}
 
-	results, err := runtime.RemoveImage(r.Context(), newImage, query.Force)
-	if err != nil {
+	options := entities.ImageRemoveOptions{
+		Force: query.Force,
+	}
+	report, rmerrors := imageEngine.Remove(r.Context(), []string{name}, options)
+	if len(rmerrors) > 0 && rmerrors[0] != nil {
+		err := rmerrors[0]
+		if errors.Cause(err) == define.ErrNoSuchImage {
+			utils.ImageNotFound(w, name, errors.Wrapf(err, "failed to find image %s", name))
+			return
+		}
+
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
-
-	response := make([]map[string]string, 0, len(results.Untagged)+1)
-	deleted := make(map[string]string, 1)
-	deleted["Deleted"] = results.Deleted
-	response = append(response, deleted)
-
-	for _, u := range results.Untagged {
+	response := make([]map[string]string, 0, len(report.Untagged)+1)
+	for _, d := range report.Deleted {
+		deleted := make(map[string]string, 1)
+		deleted["Deleted"] = d
+		response = append(response, deleted)
+	}
+	for _, u := range report.Untagged {
 		untagged := make(map[string]string, 1)
 		untagged["Untagged"] = u
 		response = append(response, untagged)
 	}
-
 	utils.WriteResponse(w, http.StatusOK, response)
 }
