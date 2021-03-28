@@ -70,7 +70,7 @@ function html_fn() {
         local link=$(sed -e 's?.so man1/\(.*\)?\1?' <$dir/links/${file%.md})
         markdown=$dir/$link.md
     fi
-    pandoc --ascii --lua-filter=docs/links-to-html.lua -o $TARGET/${file%%.*}.html $markdown
+    pandoc --ascii -f gfm --lua-filter=docs/links-to-html.lua -o $TARGET/${file%%.*}.html $markdown
 }
 
 # Run 'podman help' (possibly against a subcommand, e.g. 'podman help image')
