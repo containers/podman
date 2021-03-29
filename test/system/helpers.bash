@@ -72,6 +72,9 @@ function basic_setup() {
     # on cleanup.
     # TODO: do this outside of setup, so it carries across tests?
     PODMAN_TMPDIR=$(mktemp -d --tmpdir=${BATS_TMPDIR:-/tmp} podman_bats.XXXXXX)
+
+    # In the unlikely event that a test runs is() before a run_podman()
+    MOST_RECENT_PODMAN_COMMAND=
 }
 
 # Basic teardown: remove all pods and containers
@@ -149,6 +152,9 @@ function run_podman() {
         [12][0-9][0-9])  expected_rc=$1; shift;;
         '?')             expected_rc=  ; shift;;  # ignore exit code
     esac
+
+    # Remember command args, for possible use in later diagnostic messages
+    MOST_RECENT_PODMAN_COMMAND="podman $*"
 
     # stdout is only emitted upon error; this echo is to help a debugger
     echo "$_LOG_PROMPT $PODMAN $*"
@@ -384,7 +390,7 @@ function die() {
 function is() {
     local actual="$1"
     local expect="$2"
-    local testname="${3:-FIXME}"
+    local testname="${3:-${MOST_RECENT_PODMAN_COMMAND:-[no test name given]}}"
 
     if [ -z "$expect" ]; then
         if [ -z "$actual" ]; then
