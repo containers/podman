@@ -8,33 +8,32 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/pkg/inspect"
 	"github.com/containers/podman/v3/pkg/trust"
-	docker "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 type Image struct {
-	ID              string                 `json:"Id"`
-	RepoTags        []string               `json:",omitempty"`
-	RepoDigests     []string               `json:",omitempty"`
-	Parent          string                 `json:",omitempty"`
-	Comment         string                 `json:",omitempty"`
-	Created         string                 `json:",omitempty"`
-	Container       string                 `json:",omitempty"`
-	ContainerConfig *container.Config      `json:",omitempty"`
-	DockerVersion   string                 `json:",omitempty"`
-	Author          string                 `json:",omitempty"`
-	Config          *container.Config      `json:",omitempty"`
-	Architecture    string                 `json:",omitempty"`
-	Variant         string                 `json:",omitempty"`
-	Os              string                 `json:",omitempty"`
-	OsVersion       string                 `json:",omitempty"`
-	Size            int64                  `json:",omitempty"`
-	VirtualSize     int64                  `json:",omitempty"`
-	GraphDriver     docker.GraphDriverData `json:",omitempty"`
-	RootFS          docker.RootFS          `json:",omitempty"`
-	Metadata        docker.ImageMetadata   `json:",omitempty"`
+	ID              string            `json:"Id"`
+	RepoTags        []string          `json:",omitempty"`
+	RepoDigests     []string          `json:",omitempty"`
+	Parent          string            `json:",omitempty"`
+	Comment         string            `json:",omitempty"`
+	Created         string            `json:",omitempty"`
+	Container       string            `json:",omitempty"`
+	ContainerConfig *container.Config `json:",omitempty"`
+	DockerVersion   string            `json:",omitempty"`
+	Author          string            `json:",omitempty"`
+	Config          *container.Config `json:",omitempty"`
+	Architecture    string            `json:",omitempty"`
+	Variant         string            `json:",omitempty"`
+	Os              string            `json:",omitempty"`
+	OsVersion       string            `json:",omitempty"`
+	Size            int64             `json:",omitempty"`
+	VirtualSize     int64             `json:",omitempty"`
+	GraphDriver     string            `json:",omitempty"`
+	RootFS          string            `json:",omitempty"`
+	Metadata        string            `json:",omitempty"`
 
 	// Podman extensions
 	Digest        digest.Digest                 `json:",omitempty"`

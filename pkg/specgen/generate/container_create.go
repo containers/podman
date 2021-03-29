@@ -11,7 +11,7 @@ import (
 	"github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
-	"github.com/containers/storage"
+	"github.com/containers/storage/types"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -367,7 +367,7 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	return options, nil
 }
 
-func CreateExitCommandArgs(storageConfig storage.StoreOptions, config *config.Config, syslog, rm, exec bool) ([]string, error) {
+func CreateExitCommandArgs(storageConfig types.StoreOptions, config *config.Config, syslog, rm, exec bool) ([]string, error) {
 	// We need a cleanup process for containers in the current model.
 	// But we can't assume that the caller is Podman - it could be another
 	// user of the API.

@@ -3,7 +3,7 @@ package entities
 import (
 	"net"
 
-	"github.com/containers/buildah/imagebuildah"
+	buildahDefine "github.com/containers/buildah/define"
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/storage/pkg/archive"
@@ -91,7 +91,7 @@ type ContainerCreateResponse struct {
 
 // BuildOptions describe the options for building container images.
 type BuildOptions struct {
-	imagebuildah.BuildOptions
+	buildahDefine.BuildOptions
 }
 
 // BuildReport is the image-build report.

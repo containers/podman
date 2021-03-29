@@ -174,7 +174,6 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	if len(platform) > 0 {
 		params.Set("platform", platform)
 	}
-
 	params.Set("pullpolicy", options.PullPolicy.String())
 
 	if options.Quiet {

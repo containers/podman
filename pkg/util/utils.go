@@ -20,8 +20,8 @@ import (
 	"github.com/containers/podman/v3/pkg/namespaces"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/signal"
-	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
+	stypes "github.com/containers/storage/types"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -344,8 +344,8 @@ func ParseSignal(rawSignal string) (syscall.Signal, error) {
 }
 
 // GetKeepIDMapping returns the mappings and the user to use when keep-id is used
-func GetKeepIDMapping() (*storage.IDMappingOptions, int, int, error) {
-	options := storage.IDMappingOptions{
+func GetKeepIDMapping() (*stypes.IDMappingOptions, int, int, error) {
+	options := stypes.IDMappingOptions{
 		HostUIDMapping: true,
 		HostGIDMapping: true,
 	}
@@ -395,8 +395,8 @@ func GetKeepIDMapping() (*storage.IDMappingOptions, int, int, error) {
 }
 
 // ParseIDMapping takes idmappings and subuid and subgid maps and returns a storage mapping
-func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []string, subUIDMap, subGIDMap string) (*storage.IDMappingOptions, error) {
-	options := storage.IDMappingOptions{
+func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []string, subUIDMap, subGIDMap string) (*stypes.IDMappingOptions, error) {
+	options := stypes.IDMappingOptions{
 		HostUIDMapping: true,
 		HostGIDMapping: true,
 	}
@@ -479,7 +479,7 @@ type tomlConfig struct {
 	} `toml:"storage"`
 }
 
-func getTomlStorage(storeOptions *storage.StoreOptions) *tomlConfig {
+func getTomlStorage(storeOptions *stypes.StoreOptions) *tomlConfig {
 	config := new(tomlConfig)
 
 	config.Storage.Driver = storeOptions.GraphDriverName
@@ -496,7 +496,7 @@ func getTomlStorage(storeOptions *storage.StoreOptions) *tomlConfig {
 }
 
 // WriteStorageConfigFile writes the configuration to a file
-func WriteStorageConfigFile(storageOpts *storage.StoreOptions, storageConf string) error {
+func WriteStorageConfigFile(storageOpts *stypes.StoreOptions, storageConf string) error {
 	if err := os.MkdirAll(filepath.Dir(storageConf), 0755); err != nil {
 		return err
 	}
