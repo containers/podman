@@ -279,16 +279,16 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 			}
 			podRootArgs = info.CreateCommand[1 : podCreateIndex-1]
 			info.RootFlags = strings.Join(escapeSystemdArguments(podRootArgs), " ")
-			podCreateArgs = filterPodFlags(info.CreateCommand[podCreateIndex+1:])
+			podCreateArgs = filterPodFlags(info.CreateCommand[podCreateIndex+1:], 0)
 		}
 		// We're hard-coding the first five arguments and append the
 		// CreateCommand with a stripped command and subcommand.
 		startCommand := []string{info.Executable}
 		startCommand = append(startCommand, podRootArgs...)
 		startCommand = append(startCommand,
-			[]string{"pod", "create",
-				"--infra-conmon-pidfile", "{{{{.PIDFile}}}}",
-				"--pod-id-file", "{{{{.PodIDFile}}}}"}...)
+			"pod", "create",
+			"--infra-conmon-pidfile", "{{{{.PIDFile}}}}",
+			"--pod-id-file", "{{{{.PodIDFile}}}}")
 
 		// Presence check for certain flags/options.
 		fs := pflag.NewFlagSet("args", pflag.ContinueOnError)

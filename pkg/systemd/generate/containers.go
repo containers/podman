@@ -238,13 +238,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 			"--cidfile", "{{{{.ContainerIDFile}}}}",
 			"--cgroups=no-conmon",
 		)
-		// If the container is in a pod, make sure that the
-		// --pod-id-file is set correctly.
-		if info.Pod != nil {
-			podFlags := []string{"--pod-id-file", "{{{{.Pod.PodIDFile}}}}"}
-			startCommand = append(startCommand, podFlags...)
-			info.CreateCommand = filterPodFlags(info.CreateCommand)
-		}
+		remainingCmd := info.CreateCommand[index:]
 
 		// Presence check for certain flags/options.
 		fs := pflag.NewFlagSet("args", pflag.ContinueOnError)
@@ -254,7 +248,16 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		fs.BoolP("detach", "d", false, "")
 		fs.String("name", "", "")
 		fs.Bool("replace", false, "")
-		fs.Parse(info.CreateCommand[index:])
+		fs.Parse(remainingCmd)
+
+		remainingCmd = filterCommonContainerFlags(remainingCmd, fs.NArg())
+		// If the container is in a pod, make sure that the
+		// --pod-id-file is set correctly.
+		if info.Pod != nil {
+			podFlags := []string{"--pod-id-file", "{{{{.Pod.PodIDFile}}}}"}
+			startCommand = append(startCommand, podFlags...)
+			remainingCmd = filterPodFlags(remainingCmd, fs.NArg())
+		}
 
 		hasDetachParam, err := fs.GetBool("detach")
 		if err != nil {
@@ -265,8 +268,6 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		if err != nil {
 			return "", err
 		}
-
-		remainingCmd := info.CreateCommand[index:]
 
 		if !hasDetachParam {
 			// Enforce detaching
