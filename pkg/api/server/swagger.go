@@ -205,7 +205,7 @@ type swagHealthCheckRunResponse struct {
 type swagVersion struct {
 	// in:body
 	Body struct {
-		entities.SystemVersionReport
+		entities.ComponentVersion
 	}
 }
 
