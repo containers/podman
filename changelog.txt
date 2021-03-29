@@ -1,3 +1,41 @@
+- Changelog for v3.1.0 (2021-03-29):
+  * Fix test failure
+  * Update release notes for v3.1.0 final release
+  * [NO TESTS NEEDED] Turn on podman-remote build --isolation
+  * Fix long option format on docs.podman.io
+  * Fix containers list/prune http api filter behaviour
+  * [CI:DOCS] Add note to mappings for user/group userns in build
+  * Validate passed in timezone from tz option
+  * Generate Kubernetes PersistentVolumeClaims from named volumes
+  * libpod/image: unit tests: use a `registries.conf` for aliases
+  * libpod/image: unit tests: defer cleanup
+  * libpod/image: unit tests: use `require.NoError`
+  * Unification of until filter across list/prune endpoints
+  * Unification of label filter across list/prune endpoints
+  * fixup
+  * fix: build endpoint for compat API
+  * [NO TESTS NEEDED] Remove /tmp/containers-users-* files on reboot
+  * Check if stdin is a term in --interactive --tty mode
+  * [NO TESTS NEEDED] Fix rootless volume plugins
+  * Ensure manually-created volumes have correct ownership
+  * Support multi doc yaml for generate/play kube
+  * Correct json field name
+  * Fix filters in image http compat/libpod api endpoints
+  * podman generate systemd --new do not duplicate params
+  * Fix podman build --pull-never
+  * man pages: correct seccomp-policy label
+  * [NO TESTS NEEDED] Use same function podman-remote rmi as podman
+  * Add problematic volume name to kube play error messages
+  * Fix list pods filter handling in libpod api
+  * [NO TESTS NEEDED] Fix for kernel without CONFIG_USER_NS
+  * Remove resize race condition
+  * [NO TESTS NEEDED] Vendor in containers/buildah v1.20.0
+  * Use TMPDIR when commiting images
+  * Add RequiresMountsFor= to systemd generate
+  * Fix swapped dimensions from terminal.GetSize
+  * Revert go-systemd to v2.22.0
+  * Cirrus: Update configuration for v3.1 branch
+
 - Changelog for v3.1.0-rc2 (2021-03-23):
   * Update release notes for v3.1.0-RC2
   * Bump github.com/coreos/go-systemd/v22 from 22.1.0 to 22.3.0
