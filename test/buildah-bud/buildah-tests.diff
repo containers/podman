@@ -1,16 +1,16 @@
-From 6f8e097d8b46190df60e830adce1185532a939d0 Mon Sep 17 00:00:00 2001
+From a49a2e48421c6f3bb1a56ae372de1f3d1a45d1f1 Mon Sep 17 00:00:00 2001
 From: Ed Santiago <santiago@redhat.com>
 Date: Tue, 9 Feb 2021 17:28:05 -0700
 Subject: [PATCH] tweaks for running buildah tests under podman
 
 Signed-off-by: Ed Santiago <santiago@redhat.com>
 ---
- tests/bud.bats     | 27 +++++++++++++++++----------
+ tests/bud.bats     | 26 ++++++++++++++++----------
  tests/helpers.bash | 28 ++++++++++++++++++++++++----
- 2 files changed, 41 insertions(+), 14 deletions(-)
+ 2 files changed, 40 insertions(+), 14 deletions(-)
 
 diff --git a/tests/bud.bats b/tests/bud.bats
-index cf55d9a4..e55b05b5 100644
+index cf55d9a4..60cb6f96 100644
 --- a/tests/bud.bats
 +++ b/tests/bud.bats
 @@ -4,7 +4,7 @@ load helpers
@@ -103,15 +103,7 @@ index cf55d9a4..e55b05b5 100644
  }
 
  @test "bud with additional directory of devices" {
-@@ -2115,6 +2120,7 @@ _EOF
- }
-
- @test "bud pull never" {
-+  skip "FIXME: podman issue #9573"
-   target=pull
-   run_buildah 125 bud --signature-policy ${TESTSDIR}/policy.json -t ${target} --pull-never ${TESTSDIR}/bud/pull
-   expect_output --substring "pull policy is \"never\" but \""
-@@ -2134,6 +2140,7 @@ _EOF
+@@ -2134,6 +2139,7 @@ _EOF
  }
 
  @test "bud with Containerfile should fail with nonexistent authfile" {
@@ -119,7 +111,7 @@ index cf55d9a4..e55b05b5 100644
    target=alpine-image
    run_buildah 125 bud --authfile /tmp/nonexistent --signature-policy ${TESTSDIR}/policy.json -t ${target} ${TESTSDIR}/bud/containerfile
  }
-@@ -2261,6 +2268,7 @@ EOM
+@@ -2261,6 +2267,7 @@ EOM
  }
 
  @test "bud with encrypted FROM image" {
@@ -127,7 +119,7 @@ index cf55d9a4..e55b05b5 100644
    _prefetch busybox
    mkdir ${TESTDIR}/tmp
    openssl genrsa -out ${TESTDIR}/tmp/mykey.pem 1024
-@@ -2333,8 +2341,6 @@ EOM
+@@ -2333,8 +2340,6 @@ EOM
    _prefetch alpine
    run_buildah bud --timestamp=0 --quiet --pull=false --signature-policy ${TESTSDIR}/policy.json -t timestamp -f Dockerfile.1 ${TESTSDIR}/bud/cache-stages
    cid=$output
@@ -136,7 +128,7 @@ index cf55d9a4..e55b05b5 100644
    run_buildah inspect --format '{{ .OCIv1.Created }}' timestamp
    expect_output --substring "1970-01-01"
    run_buildah inspect --format '{{ .History }}' timestamp
-@@ -2594,6 +2600,7 @@ _EOF
+@@ -2594,6 +2599,7 @@ _EOF
  }
 
  @test "bud with --arch flag" {
