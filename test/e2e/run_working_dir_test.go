@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 
 	. "github.com/containers/podman/v3/test/utils"
@@ -46,9 +47,9 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run a container on an image with a workdir", func() {
-		dockerfile := `FROM alpine
+		dockerfile := fmt.Sprintf(`FROM %s
 RUN  mkdir -p /home/foobar /etc/foobar; chown bin:bin /etc/foobar
-WORKDIR  /etc/foobar`
+WORKDIR  /etc/foobar`, ALPINE)
 		podmanTest.BuildImage(dockerfile, "test", "false")
 
 		session := podmanTest.Podman([]string{"run", "test", "pwd"})

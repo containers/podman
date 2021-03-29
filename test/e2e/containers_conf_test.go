@@ -91,7 +91,7 @@ var _ = Describe("Podman run", func() {
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
 		}
-		session := podmanTest.Podman([]string{"run", "busybox", "grep", "CapEff", "/proc/self/status"})
+		session := podmanTest.Podman([]string{"run", BB, "grep", "CapEff", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).ToNot(Equal(cap.OutputToString()))

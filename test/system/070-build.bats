@@ -668,6 +668,33 @@ EOF
   run_podman image prune -f
 }
 
+@test "podman build --pull-never" {
+    local tmpdir=$PODMAN_TMPDIR/build-test
+    mkdir -p $tmpdir
+
+    # First, confirm that --pull-never is a NOP if image exists locally
+    local random_string=$(random_string 15)
+
+    cat >$tmpdir/Containerfile <<EOF
+FROM $IMAGE
+RUN echo $random_string
+EOF
+
+    run_podman build -t build_test --pull-never $tmpdir
+    is "$output" ".*$random_string" "pull-never is OK if image already exists"
+    run_podman rmi build_test
+
+    # Now try an image that does not exist locally nor remotely
+    cat >$tmpdir/Containerfile <<EOF
+FROM quay.io/libpod/nosuchimage:nosuchtag
+RUN echo $random_string
+EOF
+
+    run_podman 125 build -t build_test --pull-never $tmpdir
+    is "$output" ".* pull policy is .never. but .* could not be found locally" \
+       "--pull-never fails with expected error message"
+}
+
 @test "podman build --logfile test" {
     tmpdir=$PODMAN_TMPDIR/build-test
     mkdir -p $tmpdir

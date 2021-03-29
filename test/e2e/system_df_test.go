@@ -44,7 +44,7 @@ var _ = Describe("podman system df", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"create", "-v", "data:/data", "--name", "container1", "busybox"})
+		session = podmanTest.Podman([]string{"create", "-v", "data:/data", "--name", "container1", BB})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 

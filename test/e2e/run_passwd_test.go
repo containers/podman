@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 
 	. "github.com/containers/podman/v3/test/utils"
@@ -60,9 +61,9 @@ var _ = Describe("Podman run passwd", func() {
 	})
 
 	It("podman can run container without /etc/passwd", func() {
-		dockerfile := `FROM alpine
+		dockerfile := fmt.Sprintf(`FROM %s
 RUN rm -f /etc/passwd /etc/shadow /etc/group
-USER 1000`
+USER 1000`, ALPINE)
 		imgName := "testimg"
 		podmanTest.BuildImage(dockerfile, imgName, "false")
 		session := podmanTest.Podman([]string{"run", "--rm", imgName, "ls", "/etc/"})
@@ -113,9 +114,9 @@ USER 1000`
 	})
 
 	It("podman run numeric group from image and no group file", func() {
-		dockerfile := `FROM alpine
+		dockerfile := fmt.Sprintf(`FROM %s
 RUN rm -f /etc/passwd /etc/shadow /etc/group
-USER 1000`
+USER 1000`, ALPINE)
 		imgName := "testimg"
 		podmanTest.BuildImage(dockerfile, imgName, "false")
 		session := podmanTest.Podman([]string{"run", "--rm", imgName, "ls", "/etc/"})

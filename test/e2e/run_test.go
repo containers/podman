@@ -489,8 +489,8 @@ var _ = Describe("Podman run", func() {
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
 		}
-		dockerfile := `FROM busybox
-USER bin`
+		dockerfile := fmt.Sprintf(`FROM %s
+USER bin`, BB)
 		podmanTest.BuildImage(dockerfile, "test", "false")
 		session := podmanTest.Podman([]string{"run", "--rm", "--user", "bin", "test", "grep", "CapBnd", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
@@ -898,10 +898,10 @@ USER bin`
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		dockerfile := `FROM busybox
+		dockerfile := fmt.Sprintf(`FROM %s
 RUN mkdir -p /myvol/data && chown -R mail.0 /myvol
 VOLUME ["/myvol/data"]
-USER mail`
+USER mail`, BB)
 
 		podmanTest.BuildImage(dockerfile, "test", "false")
 		session = podmanTest.Podman([]string{"run", "--rm", "test", "ls", "-al", "/myvol/data"})
@@ -1499,8 +1499,8 @@ USER mail`
 
 	It("podman run makes workdir from image", func() {
 		// BuildImage does not seem to work remote
-		dockerfile := `FROM busybox
-WORKDIR /madethis`
+		dockerfile := fmt.Sprintf(`FROM %s
+WORKDIR /madethis`, BB)
 		podmanTest.BuildImage(dockerfile, "test", "false")
 		session := podmanTest.Podman([]string{"run", "--rm", "test", "pwd"})
 		session.WaitWithDefaultTimeout()

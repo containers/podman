@@ -303,6 +303,21 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		return nil, err
 	}
 
+	pullFlagsCount := 0
+	if c.Flag("pull").Changed {
+		pullFlagsCount++
+	}
+	if c.Flag("pull-always").Changed {
+		pullFlagsCount++
+	}
+	if c.Flag("pull-never").Changed {
+		pullFlagsCount++
+	}
+
+	if pullFlagsCount > 1 {
+		return nil, errors.Errorf("can only set one of 'pull' or 'pull-always' or 'pull-never'")
+	}
+
 	pullPolicy := define.PullIfMissing
 	if c.Flags().Changed("pull") && flags.Pull {
 		pullPolicy = define.PullAlways
@@ -312,7 +327,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 	}
 
 	if flags.PullNever {
-		pullPolicy = define.PullIfMissing
+		pullPolicy = define.PullNever
 	}
 
 	args := make(map[string]string)
