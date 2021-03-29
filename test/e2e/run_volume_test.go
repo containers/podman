@@ -645,9 +645,9 @@ VOLUME /test/`, ALPINE)
 
 	It("volume permissions after run", func() {
 		imgName := "testimg"
-		dockerfile := `FROM fedora-minimal
+		dockerfile := fmt.Sprintf(`FROM %s
 RUN useradd -m testuser -u 1005
-USER testuser`
+USER testuser`, fedoraMinimal)
 		podmanTest.BuildImage(dockerfile, imgName, "false")
 
 		testString := "testuser testuser"
