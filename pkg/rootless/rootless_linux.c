@@ -233,9 +233,8 @@ int
 is_fd_inherited(int fd)
 {
   if (open_files_set == NULL || fd > open_files_max_fd || fd < 0)
-  {
     return 0;
-  }
+
   return FD_ISSET(fd % FD_SETSIZE, &(open_files_set[fd / FD_SETSIZE])) ? 1 : 0;
 }
 
@@ -633,9 +632,10 @@ reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
       close (user_ns);
       close (mnt_ns);
 
-      for (f = 3; f < open_files_max_fd; f++)
-        if (open_files_set == NULL || FD_ISSET (f % FD_SETSIZE, &(open_files_set[f / FD_SETSIZE])))
+      for (f = 3; f <= open_files_max_fd; f++)
+        if (is_fd_inherited (f))
           close (f);
+
       return pid;
     }
 
@@ -813,13 +813,14 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
       if (do_socket_activation)
         {
           long num_fds;
+
           num_fds = strtol (listen_fds, NULL, 10);
           if (num_fds != LONG_MIN && num_fds != LONG_MAX)
             {
               int f;
 
               for (f = 3; f < num_fds + 3; f++)
-                if (open_files_set == NULL || FD_ISSET (f % FD_SETSIZE, &(open_files_set[f / FD_SETSIZE])))
+                if (is_fd_inherited (f))
                   close (f);
             }
           unsetenv ("LISTEN_PID");
