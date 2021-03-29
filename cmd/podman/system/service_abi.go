@@ -24,16 +24,28 @@ func restService(opts entities.ServiceOptions, flags *pflag.FlagSet, cfg *entiti
 	)
 
 	if opts.URI != "" {
-		fields := strings.Split(opts.URI, ":")
-		if len(fields) == 1 {
-			return errors.Errorf("%s is an invalid socket destination", opts.URI)
+		if os.Getenv("LISTEN_FDS") != "" {
+			// If it is activated by systemd, use the first LISTEN_FD (3)
+			// instead of opening the socket file.
+			f := os.NewFile(uintptr(3), "podman.sock")
+			l, err := net.FileListener(f)
+			if err != nil {
+				return err
+			}
+			listener = &l
+		} else {
+			fields := strings.Split(opts.URI, ":")
+			if len(fields) == 1 {
+				return errors.Errorf("%s is an invalid socket destination", opts.URI)
+			}
+			network := fields[0]
+			address := strings.Join(fields[1:], ":")
+			l, err := net.Listen(network, address)
+			if err != nil {
+				return errors.Wrapf(err, "unable to create socket")
+			}
+			listener = &l
 		}
-		address := strings.Join(fields[1:], ":")
-		l, err := net.Listen(fields[0], address)
-		if err != nil {
-			return errors.Wrapf(err, "unable to create socket")
-		}
-		listener = &l
 	}
 
 	// Close stdin, so shortnames will not prompt
