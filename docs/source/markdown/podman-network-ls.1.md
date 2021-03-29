@@ -10,7 +10,7 @@ podman\-network\-ls - Display a summary of CNI networks
 Displays a list of existing podman networks.
 
 ## OPTIONS
-#### **--filter**, **-f**
+#### **\-\-filter**, **-f**
 
 Filter output based on conditions given.
 Multiple filters can be given with multiple uses of the --filter flag.
@@ -27,7 +27,7 @@ Valid filters are listed below:
 | plugin     | [Plugin] CNI plugins included in a network (e.g `bridge`,`portmap`,`firewall`,`tuning`,`dnsname`,`macvlan`) |
 | driver     | [Driver] Only `bridge` is supported                                                   |
 
-#### **--format**
+#### **\-\-format**
 
 Change the default output format.  This can be of a supported type like 'json'
 or a Go template.
@@ -41,11 +41,11 @@ Valid placeholders for the Go template are listed below:
 | .Labels         | Network labels                  |
 | .Version        | CNI Version of the config file	|
 
-#### **--no-trunc**
+#### **\-\-no-trunc**
 
-Do not truncate the network ID. The network ID is not displayed by default and must be specified with **--format**.
+Do not truncate the network ID. The network ID is not displayed by default and must be specified with **\-\-format**.
 
-#### **--quiet**, **-q**
+#### **\-\-quiet**, **-q**
 
 The `quiet` option will restrict the output to only the network names.
 

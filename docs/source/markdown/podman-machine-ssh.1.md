@@ -16,11 +16,11 @@ tied to the Linux kernel.
 
 ## OPTIONS
 
-#### **--execute**, **-e**
+#### **\-\-execute**, **-e**
 
 Execute the given command on the VM
 
-#### **--help**
+#### **\-\-help**
 
 Print usage statement.
 

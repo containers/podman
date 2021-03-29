@@ -26,35 +26,35 @@ By default it lists:
 
 ## OPTIONS
 
-#### **--ctr-names**
+#### **\-\-ctr-names**
 
 Includes the container names in the container info field
 
-#### **--ctr-ids**
+#### **\-\-ctr-ids**
 
 Includes the container IDs in the container info field
 
-#### **--ctr-status**
+#### **\-\-ctr-status**
 
 Includes the container statuses in the container info field
 
-#### **--latest**, **-l**
+#### **\-\-latest**, **-l**
 
 Show the latest pod created (all states) (This option is not available with the remote Podman client)
 
-#### **--no-trunc**
+#### **\-\-no-trunc**
 
 Display the extended information
 
-#### **--ns**
+#### **\-\-ns**
 
 Display namespace information of the pod
 
-#### **--quiet**, **-q**
+#### **\-\-quiet**, **-q**
 
 Print the numeric IDs of the pods only
 
-#### **--format**=*format*
+#### **\-\-format**=*format*
 
 Pretty-print containers to JSON or using a Go template
 
@@ -72,13 +72,13 @@ Valid placeholders for the Go template are listed below:
 | .InfraID            | Pod infra container ID                                                                          |
 | .Networks           | Show all networks connected to the infra container                                              |
 
-#### **--sort**
+#### **\-\-sort**
 
 Sort by created, ID, name, status, or number of containers
 
 Default: created
 
-#### **--filter**, **-f**=*filter*
+#### **\-\-filter**, **-f**=*filter*
 
 Filter output based on conditions given.
 Multiple filters can be given with multiple uses of the --filter flag.
@@ -99,7 +99,7 @@ Valid filters are listed below:
 | ctr-status | Container status within the pod                                                       |
 | ctr-number | Number of containers in the pod                                                       |
 
-#### **--help**, **-h**
+#### **\-\-help**, **-h**
 
 Print usage statement
 

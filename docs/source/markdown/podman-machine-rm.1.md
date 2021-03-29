@@ -19,23 +19,23 @@ is used.
 
 ## OPTIONS
 
-#### **--help**
+#### **\-\-help**
 
 Print usage statement.
 
-#### **--force**
+#### **\-\-force**
 
 Delete without confirmation
 
-#### **--save-ignition**
+#### **\-\-save-ignition**
 
 Do not delete the generated ignition file
 
-#### **--save-image**
+#### **\-\-save-image**
 
 Do not delete the VM image
 
-#### **--save-keys**
+#### **\-\-save-keys**
 
 Do not delete the SSH keys for the VM.  The system connection is always
 deleted.

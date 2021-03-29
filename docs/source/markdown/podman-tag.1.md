@@ -16,7 +16,7 @@ provided, then podman will default to `latest` for both the *image* and the
 
 ## OPTIONS
 
-#### **--help**, **-h**
+#### **\-\-help**, **-h**
 
 Print usage statement
 
