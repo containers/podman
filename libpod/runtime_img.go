@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 
+	buildahDefine "github.com/containers/buildah/define"
 	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/image/v5/directory"
 	"github.com/containers/image/v5/docker/reference"
@@ -165,7 +166,7 @@ func (r *Runtime) newImageBuildCompleteEvent(idOrName string) {
 }
 
 // Build adds the runtime to the imagebuildah call
-func (r *Runtime) Build(ctx context.Context, options imagebuildah.BuildOptions, dockerfiles ...string) (string, reference.Canonical, error) {
+func (r *Runtime) Build(ctx context.Context, options buildahDefine.BuildOptions, dockerfiles ...string) (string, reference.Canonical, error) {
 	if options.Runtime == "" {
 		// Make sure that build containers use the same runtime as Podman (see #9365).
 		conf := util.DefaultContainerConfig()

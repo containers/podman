@@ -5,7 +5,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/lockfile"
 	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -25,7 +25,7 @@ func TryJoinPauseProcess(pausePidPath string) (bool, int, error) {
 	}
 
 	// It could not join the pause process, let's lock the file before trying to delete it.
-	pidFileLock, err := storage.GetLockfile(pausePidPath)
+	pidFileLock, err := lockfile.GetLockfile(pausePidPath)
 	if err != nil {
 		// The file was deleted by another process.
 		if os.IsNotExist(err) {
