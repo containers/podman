@@ -331,6 +331,15 @@ sub podman_man {
             @most_recent_flags = ();
             # As of PR #8292, all options are <h4> and anchored
             if ($line =~ s/^\#{4}\s+//) {
+                # 2021-03: PR #9856: some (bleep) markdown processor converts
+                # double dashes to a single em-dash. We need to escape every
+                # instance with backslashes. This is anti-intuitive, and
+                # developers will naturally write --foo; try to catch that
+                # and warn with a helpful message.
+                if ($line =~ /--([a-z]+)/) {
+                    warn "$ME: $subpath:$.: You probably need to backslash-escape '--$1' as '\\-\\-$1'\n";
+                }
+
                 # If option has long and short form, long must come first.
                 # This is a while-loop because there may be multiple long
                 # option names, e.g. --net/--network
