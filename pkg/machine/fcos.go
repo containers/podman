@@ -2,17 +2,13 @@ package machine
 
 import (
 	"crypto/sha256"
-	"io"
 	"io/ioutil"
 	url2 "net/url"
-	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 
-	"github.com/containers/storage/pkg/archive"
 	digest "github.com/opencontainers/go-digest"
-	"github.com/sirupsen/logrus"
 )
 
 // These should eventually be moved into machine/qemu as
@@ -75,41 +71,7 @@ func (f FcosDownload) DownloadImage() error {
 			return err
 		}
 	}
-	uncompressedFileWriter, err := os.OpenFile(f.getLocalUncompressedName(), os.O_CREATE|os.O_RDWR, 0600)
-	if err != nil {
-		return err
-	}
-	sourceFile, err := ioutil.ReadFile(f.LocalPath)
-	if err != nil {
-		return err
-	}
-	compressionType := archive.DetectCompression(sourceFile)
-	f.CompressionType = compressionType.Extension()
-
-	switch f.CompressionType {
-	case "tar.xz":
-		return decompressXZ(f.LocalPath, uncompressedFileWriter)
-	default:
-		// File seems to be uncompressed, make a copy
-		if err := copyFile(f.LocalPath, uncompressedFileWriter); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func copyFile(src string, dest *os.File) error {
-	source, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := source.Close(); err != nil {
-			logrus.Error(err)
-		}
-	}()
-	_, err = io.Copy(dest, source)
-	return err
+	return Decompress(f.LocalPath, f.getLocalUncompressedName())
 }
 
 func (f FcosDownload) Get() *Download {

@@ -12,9 +12,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/containers/podman/v3/utils"
-
 	"github.com/containers/podman/v3/pkg/machine"
+	"github.com/containers/podman/v3/utils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/digitalocean/go-qemu/qmp"
 	"github.com/pkg/errors"
@@ -135,15 +134,29 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 	jsonFile := filepath.Join(vmConfigDir, v.Name) + ".json"
 	v.IdentityPath = filepath.Join(sshDir, v.Name)
 
-	dd, err := machine.NewFcosDownloader(vmtype, v.Name)
-	if err != nil {
-		return err
+	// The user has provided an alternate image which can be a file path
+	// or URL.
+	if len(opts.ImagePath) > 0 {
+		g, err := machine.NewGenericDownloader(vmtype, v.Name, opts.ImagePath)
+		if err != nil {
+			return err
+		}
+		v.ImagePath = g.Get().LocalUncompressedFile
+		if err := g.DownloadImage(); err != nil {
+			return err
+		}
+	} else {
+		// Get the image as usual
+		dd, err := machine.NewFcosDownloader(vmtype, v.Name)
+		if err != nil {
+			return err
+		}
+		v.ImagePath = dd.Get().LocalUncompressedFile
+		if err := dd.DownloadImage(); err != nil {
+			return err
+		}
 	}
 
-	v.ImagePath = dd.Get().LocalUncompressedFile
-	if err := dd.DownloadImage(); err != nil {
-		return err
-	}
 	// Add arch specific options including image location
 	v.CmdLine = append(v.CmdLine, v.addArchOptions()...)
 
@@ -171,10 +184,20 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 		return err
 	}
 
+	originalDiskSize, err := getDiskSize(v.ImagePath)
+	if err != nil {
+		return err
+	}
 	// Resize the disk image to input disk size
-	resize := exec.Command("qemu-img", []string{"resize", v.ImagePath, strconv.Itoa(int(opts.DiskSize)) + "G"}...)
-	if err := resize.Run(); err != nil {
-		return errors.Errorf("error resizing image: %q", err)
+	// only if the virtualdisk size is less than
+	// the given disk size
+	if opts.DiskSize<<(10*3) > originalDiskSize {
+		resize := exec.Command("qemu-img", []string{"resize", v.ImagePath, strconv.Itoa(int(opts.DiskSize)) + "G"}...)
+		resize.Stdout = os.Stdout
+		resize.Stderr = os.Stderr
+		if err := resize.Run(); err != nil {
+			return errors.Errorf("error resizing image: %q", err)
+		}
 	}
 	// Write the ignition file
 	ign := machine.DynamicIgnition{
@@ -371,4 +394,35 @@ func (v *MachineVM) SSH(name string, opts machine.SSHOptions) error {
 	cmd.Stdin = os.Stdin
 
 	return cmd.Run()
+}
+
+// executes qemu-image info to get the virtual disk size
+// of the diskimage
+func getDiskSize(path string) (uint64, error) {
+	diskInfo := exec.Command("qemu-img", "info", "--output", "json", path)
+	stdout, err := diskInfo.StdoutPipe()
+	if err != nil {
+		return 0, err
+	}
+	if err := diskInfo.Start(); err != nil {
+		return 0, err
+	}
+	tmpInfo := struct {
+		VirtualSize    uint64 `json:"virtual-size"`
+		Filename       string `json:"filename"`
+		ClusterSize    int64  `json:"cluster-size"`
+		Format         string `json:"format"`
+		FormatSpecific struct {
+			Type string            `json:"type"`
+			Data map[string]string `json:"data"`
+		}
+		DirtyFlag bool `json:"dirty-flag"`
+	}{}
+	if err := json.NewDecoder(stdout).Decode(&tmpInfo); err != nil {
+		return 0, err
+	}
+	if err := diskInfo.Wait(); err != nil {
+		return 0, err
+	}
+	return tmpInfo.VirtualSize, nil
 }
