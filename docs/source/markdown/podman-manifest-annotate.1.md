@@ -12,39 +12,39 @@ Adds or updates information about an image included in a manifest list or image 
 
 ## OPTIONS
 
-#### **--annotation** *annotation=value*
+#### **\-\-annotation** *annotation=value*
 
 Set an annotation on the entry for the specified image.
 
-#### **--arch**
+#### **\-\-arch**
 
 Override the architecture which the list or index records as a requirement for
 the image.  This is usually automatically retrieved from the image's
 configuration information, so it is rarely necessary to use this option.
 
 
-#### **--features**
+#### **\-\-features**
 
 Specify the features list which the list or index records as requirements for
 the image.  This option is rarely used.
 
-#### **--os**
+#### **\-\-os**
 
 Override the OS which the list or index records as a requirement for the image.
 This is usually automatically retrieved from the image's configuration
 information, so it is rarely necessary to use this option.
 
-#### **--os-features**
+#### **\-\-os-features**
 
 Specify the OS features list which the list or index records as requirements
 for the image.  This option is rarely used.
 
-#### **--os-version**
+#### **\-\-os-version**
 
 Specify the OS version which the list or index records as a requirement for the
 image.  This option is rarely used.
 
-#### **--variant**
+#### **\-\-variant**
 
 Specify the variant which the list or index records for the image.  This option
 is typically used to distinguish between multiple entries which share the same

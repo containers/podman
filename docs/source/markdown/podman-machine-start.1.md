@@ -18,7 +18,7 @@ tied to the Linux kernel.
 
 ## OPTIONS
 
-#### **--help**
+#### **\-\-help**
 
 Print usage statement.
 

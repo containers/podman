@@ -22,39 +22,39 @@ If *image* is not provided, the values for the `REPOSITORY` and `TAG` values of 
 
 ## OPTIONS
 
-#### **--author**, **-a**=*author*
+#### **\-\-author**, **-a**=*author*
 
 Set the author for the committed image
 
-#### **--change**, **-c**=*instruction*
+#### **\-\-change**, **-c**=*instruction*
 
 Apply the following possible instructions to the created image:
 **CMD** | **ENTRYPOINT** | **ENV** | **EXPOSE** | **LABEL** | **ONBUILD** | **STOPSIGNAL** | **USER** | **VOLUME** | **WORKDIR**
 
 Can be set multiple times
 
-#### **--format**, **-f**=*format*
+#### **\-\-format**, **-f**=*format*
 
 Set the format of the image manifest and metadata.  The currently supported formats are _oci_ and _docker_.  If
 not specifically set, the default format used is _oci_.
 
-#### **--iidfile**=*ImageIDfile*
+#### **\-\-iidfile**=*ImageIDfile*
 
 Write the image ID to the file.
 
-#### **--include-volumes**
+#### **\-\-include-volumes**
 
 Include in the committed image any volumes added to the container by the `--volume` or `--mount` options to the `podman create` and `podman run` commands.
 
-#### **--message**, **-m**=*message*
+#### **\-\-message**, **-m**=*message*
 
 Set commit message for committed image.  The message field is not supported in _oci_ format.
 
-#### **--pause**, **-p**
+#### **\-\-pause**, **-p**
 
 Pause the container when creating an image
 
-#### **--quiet**, **-q**
+#### **\-\-quiet**, **-q**
 
 Suppress output
 

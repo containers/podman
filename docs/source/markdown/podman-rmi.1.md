@@ -13,11 +13,11 @@ Removes one or more locally stored images.
 
 ## OPTIONS
 
-#### **--all**, **-a**
+#### **\-\-all**, **-a**
 
 Remove all images in the local storage.
 
-#### **--force**, **-f**
+#### **\-\-force**, **-f**
 
 This option will cause podman to remove all containers that are using the image before removing the image from the system.
 

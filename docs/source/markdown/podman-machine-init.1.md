@@ -18,27 +18,27 @@ tied to the Linux kernel.
 
 ## OPTIONS
 
-#### **--cpus**=*number*
+#### **\-\-cpus**=*number*
 
 Number of CPUs.
 
-#### **--disk-size**=*number*
+#### **\-\-disk-size**=*number*
 
 Size of the disk for the guest VM in GB.
 
-#### **--ignition-path**
+#### **\-\-ignition-path**
 
 Fully qualified path of the ignition file
 
-#### **--image-path**
+#### **\-\-image-path**
 
 Fully qualified path of the uncompressed image file
 
-#### **--memory**, **-m**=*number*
+#### **\-\-memory**, **-m**=*number*
 
 Memory (in MB).
 
-#### **--help**
+#### **\-\-help**
 
 Print usage statement.
 

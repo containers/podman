@@ -12,9 +12,9 @@ podman\-history - Show the history of an image
 **podman history** displays the history of an image by printing out information
 about each layer used in the image. The information printed out for each layer
 include Created (time and date), Created By, Size, and Comment. The output can
-be truncated or not using the **--no-trunc** flag. If the **--human** flag is
+be truncated or not using the **\-\-no-trunc** flag. If the **\-\-human** flag is
 set, the time of creation and size are printed out in a human readable format.
-The **--quiet** flag displays the ID of the image only when set and the **--format**
+The **\-\-quiet** flag displays the ID of the image only when set and the **\-\-format**
 flag is used to print the information using the Go template provided by the user.
 
 Valid placeholders for the Go template are listed below:
@@ -29,26 +29,26 @@ Valid placeholders for the Go template are listed below:
 
 ## OPTIONS
 
-#### **--human**, **-H**=*true|false*
+#### **\-\-human**, **-H**=*true|false*
 
 Display sizes and dates in human readable format (default *true*).
 
-#### **--no-trunc**=*true|false*
+#### **\-\-no-trunc**=*true|false*
 
 Do not truncate the output (default *false*).
 
-#### **--notruncate**
+#### **\-\-notruncate**
 
 Do not truncate the output
 
-#### **--quiet**, **-q**=*true|false*
+#### **\-\-quiet**, **-q**=*true|false*
 
 Print the numeric IDs only (default *false*).
-#### **--format**=*format*
+#### **\-\-format**=*format*
 
 Alter the output for a format like 'json' or a Go template.
 
-#### **--help**, **-h**
+#### **\-\-help**, **-h**
 
 Print usage statement
 

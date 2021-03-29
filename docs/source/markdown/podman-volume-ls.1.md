@@ -8,25 +8,25 @@ podman\-volume\-ls - List all the available volumes
 
 ## DESCRIPTION
 
-Lists all the volumes that exist. The output can be filtered using the **--filter**
-flag and can be formatted to either JSON or a Go template using the **--format**
-flag. Use the **--quiet** flag to print only the volume names.
+Lists all the volumes that exist. The output can be filtered using the **\-\-filter**
+flag and can be formatted to either JSON or a Go template using the **\-\-format**
+flag. Use the **\-\-quiet** flag to print only the volume names.
 
 ## OPTIONS
 
-#### **--filter**=*filter*, **-f**
+#### **\-\-filter**=*filter*, **-f**
 
 Filter volume output.
 
-#### **--format**=*format*
+#### **\-\-format**=*format*
 
 Format volume output using Go template.
 
-#### **--help**
+#### **\-\-help**
 
 Print usage statement.
 
-#### **--quiet**, **-q**
+#### **\-\-quiet**, **-q**
 
 Print volume output in quiet mode. Only print the volume names.
 
