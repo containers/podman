@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v3/pkg/util"
-	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/lockfile"
 	"github.com/pkg/errors"
 )
 
@@ -20,7 +20,7 @@ type EventLogFile struct {
 // Writes to the log file
 func (e EventLogFile) Write(ee Event) error {
 	// We need to lock events file
-	lock, err := storage.GetLockfile(e.options.LogFilePath + ".lock")
+	lock, err := lockfile.GetLockfile(e.options.LogFilePath + ".lock")
 	if err != nil {
 		return err
 	}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/containers/podman/v3/pkg/api/handlers"
+	"github.com/containers/podman/v3/pkg/api/handlers/types"
 	"github.com/containers/podman/v3/pkg/bindings"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/errorhandling"
@@ -19,7 +19,7 @@ func Remove(ctx context.Context, images []string, options *RemoveOptions) (*enti
 	// FIXME - bindings tests are missing for this endpoint. Once the CI is
 	// re-enabled for bindings, we need to add them.  At the time of writing,
 	// the tests don't compile.
-	var report handlers.LibpodImagesRemoveReport
+	var report types.LibpodImagesRemoveReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, []error{err}

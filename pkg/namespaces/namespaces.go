@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/storage"
+	"github.com/containers/storage/types"
 )
 
 const (
@@ -109,12 +109,12 @@ func (n UsernsMode) IsDefaultValue() bool {
 
 // GetAutoOptions returns a AutoUserNsOptions with the settings to setup automatically
 // a user namespace.
-func (n UsernsMode) GetAutoOptions() (*storage.AutoUserNsOptions, error) {
+func (n UsernsMode) GetAutoOptions() (*types.AutoUserNsOptions, error) {
 	parts := strings.SplitN(string(n), ":", 2)
 	if parts[0] != "auto" {
 		return nil, fmt.Errorf("wrong user namespace mode")
 	}
-	options := storage.AutoUserNsOptions{}
+	options := types.AutoUserNsOptions{}
 	if len(parts) == 1 {
 		return &options, nil
 	}
@@ -131,13 +131,13 @@ func (n UsernsMode) GetAutoOptions() (*storage.AutoUserNsOptions, error) {
 			}
 			options.Size = uint32(s)
 		case "uidmapping":
-			mapping, err := storage.ParseIDMapping([]string{v[1]}, nil, "", "")
+			mapping, err := types.ParseIDMapping([]string{v[1]}, nil, "", "")
 			if err != nil {
 				return nil, err
 			}
 			options.AdditionalUIDMappings = append(options.AdditionalUIDMappings, mapping.UIDMap...)
 		case "gidmapping":
-			mapping, err := storage.ParseIDMapping(nil, []string{v[1]}, "", "")
+			mapping, err := types.ParseIDMapping(nil, []string{v[1]}, "", "")
 			if err != nil {
 				return nil, err
 			}

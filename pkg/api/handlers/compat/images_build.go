@@ -13,8 +13,7 @@ import (
 	"time"
 
 	"github.com/containers/buildah"
-	"github.com/containers/buildah/define"
-	"github.com/containers/buildah/imagebuildah"
+	buildahDefine "github.com/containers/buildah/define"
 	"github.com/containers/buildah/util"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod"
@@ -277,13 +276,13 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		jobs = query.Jobs
 	}
 
-	pullPolicy := define.PullIfMissing
+	pullPolicy := buildahDefine.PullIfMissing
 	if utils.IsLibpodRequest(r) {
-		pullPolicy = define.PolicyMap[query.PullPolicy]
+		pullPolicy = buildahDefine.PolicyMap[query.PullPolicy]
 	} else {
 		if _, found := r.URL.Query()["pull"]; found {
 			if query.Pull {
-				pullPolicy = define.PullAlways
+				pullPolicy = buildahDefine.PullAlways
 			}
 		}
 	}
@@ -315,7 +314,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
-	buildOptions := imagebuildah.BuildOptions{
+	buildOptions := buildahDefine.BuildOptions{
 		AddCapabilities: addCaps,
 		AdditionalTags:  additionalTags,
 		Annotations:     annotations,

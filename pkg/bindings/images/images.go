@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/containers/podman/v3/pkg/api/handlers"
+	"github.com/containers/podman/v3/pkg/api/handlers/types"
 	"github.com/containers/podman/v3/pkg/auth"
 	"github.com/containers/podman/v3/pkg/bindings"
 	"github.com/containers/podman/v3/pkg/domain/entities"
@@ -96,12 +96,12 @@ func Tree(ctx context.Context, nameOrID string, options *TreeOptions) (*entities
 }
 
 // History returns the parent layers of an image.
-func History(ctx context.Context, nameOrID string, options *HistoryOptions) ([]*handlers.HistoryResponse, error) {
+func History(ctx context.Context, nameOrID string, options *HistoryOptions) ([]*types.HistoryResponse, error) {
 	if options == nil {
 		options = new(HistoryOptions)
 	}
 	_ = options
-	var history []*handlers.HistoryResponse
+	var history []*types.HistoryResponse
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err

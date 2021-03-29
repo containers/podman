@@ -1,7 +1,7 @@
 package images
 
 import (
-	"github.com/containers/buildah/imagebuildah"
+	buildahDefine "github.com/containers/buildah/define"
 )
 
 //go:generate go run ../generator/generator.go RemoveOptions
@@ -162,7 +162,7 @@ type PullOptions struct {
 
 //BuildOptions are optional options for building images
 type BuildOptions struct {
-	imagebuildah.BuildOptions
+	buildahDefine.BuildOptions
 }
 
 //go:generate go run ../generator/generator.go ExistsOptions

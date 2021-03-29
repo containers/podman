@@ -28,10 +28,6 @@ type ContainerConfig struct {
 	dockerContainer.Config
 }
 
-type LibpodImagesLoadReport struct {
-	ID string `json:"id"`
-}
-
 type LibpodImagesPullReport struct {
 	entities.ImagePullReport
 }
