@@ -24,6 +24,19 @@ The unshare session defines two environment variables:
 - **CONTAINERS_GRAPHROOT**: the path to the persistent container's data.
 - **CONTAINERS_RUNROOT**: the path to the volatile container's data.
 
+## OPTIONS
+
+#### **\-\-help**, **-h**
+
+Print usage statement
+
+#### **\-\-rootless-cni**
+
+Join the rootless network namespace used for CNI networking. It can be used to
+connect to a rootless container via IP address (CNI networking). This is otherwise
+not possible from the host network namespace.
+_Note: Using this option with more than one unshare session can have unexpected results._
+
 ## EXAMPLE
 
 ```
@@ -35,6 +48,30 @@ $ podman unshare cat /proc/self/uid_map /proc/self/gid_map
          1      10000      65536
          0       1000          1
          1      10000      65536
+
+$ podman unshare --rootless-cni ip addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host
+       valid_lft forever preferred_lft forever
+2: tap0: <BROADCAST,UP,LOWER_UP> mtu 65520 qdisc fq_codel state UNKNOWN group default qlen 1000
+    link/ether 36:0e:4a:c7:45:7e brd ff:ff:ff:ff:ff:ff
+    inet 10.0.2.100/24 brd 10.0.2.255 scope global tap0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::340e:4aff:fec7:457e/64 scope link
+       valid_lft forever preferred_lft forever
+3: cni-podman2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
+    link/ether 5e:3a:71:d2:b4:3a brd ff:ff:ff:ff:ff:ff
+    inet 10.89.1.1/24 brd 10.89.1.255 scope global cni-podman2
+       valid_lft forever preferred_lft forever
+    inet6 fe80::5c3a:71ff:fed2:b43a/64 scope link
+       valid_lft forever preferred_lft forever
+4: vethd4ba3a2f@if3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master cni-podman2 state UP group default
+    link/ether 8a:c9:56:32:17:0c brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet6 fe80::88c9:56ff:fe32:170c/64 scope link
+       valid_lft forever preferred_lft forever
 ```
 
 

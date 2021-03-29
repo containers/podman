@@ -390,13 +390,25 @@ func unshareEnv(graphroot, runroot string) []string {
 		fmt.Sprintf("CONTAINERS_RUNROOT=%s", runroot))
 }
 
-func (ic *ContainerEngine) Unshare(ctx context.Context, args []string) error {
-	cmd := exec.Command(args[0], args[1:]...)
-	cmd.Env = unshareEnv(ic.Libpod.StorageConfig().GraphRoot, ic.Libpod.StorageConfig().RunRoot)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+func (ic *ContainerEngine) Unshare(ctx context.Context, args []string, options entities.SystemUnshareOptions) error {
+	unshare := func() error {
+		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Env = unshareEnv(ic.Libpod.StorageConfig().GraphRoot, ic.Libpod.StorageConfig().RunRoot)
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		return cmd.Run()
+	}
+
+	if options.RootlessCNI {
+		rootlesscni, err := ic.Libpod.GetRootlessCNINetNs(true)
+		if err != nil {
+			return err
+		}
+		defer rootlesscni.Cleanup(ic.Libpod)
+		return rootlesscni.Do(unshare)
+	}
+	return unshare()
 }
 
 func (ic ContainerEngine) Version(ctx context.Context) (*entities.SystemVersionReport, error) {

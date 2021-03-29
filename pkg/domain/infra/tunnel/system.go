@@ -28,7 +28,7 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 	return system.DiskUsage(ic.ClientCtx, nil)
 }
 
-func (ic *ContainerEngine) Unshare(ctx context.Context, args []string) error {
+func (ic *ContainerEngine) Unshare(ctx context.Context, args []string, options entities.SystemUnshareOptions) error {
 	return errors.New("unshare is not supported on remote clients")
 }
 
