@@ -18,11 +18,11 @@ of the relevant configurations. If the administrator modified the configuration 
 `podman system reset` might not be able to clean up the previous storage.
 
 ## OPTIONS
-#### **--force**, **-f**
+#### **\-\-force**, **-f**
 
 Do not prompt for confirmation
 
-#### **--help**, **-h**
+#### **\-\-help**, **-h**
 
 Print usage statement
 

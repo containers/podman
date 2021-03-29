@@ -8,18 +8,18 @@ podman\-volume\-prune - Remove all unused volumes
 
 ## DESCRIPTION
 
-Removes unused volumes. By default all unused volumes will be removed, the **--filter** flag can
+Removes unused volumes. By default all unused volumes will be removed, the **\-\-filter** flag can
 be used to filter specific volumes. You will be prompted to confirm the removal of all the
-unused volumes. To bypass the confirmation, use the **--force** flag.
+unused volumes. To bypass the confirmation, use the **\-\-force** flag.
 
 
 ## OPTIONS
 
-#### **--force**, **-f**
+#### **\-\-force**, **-f**
 
 Do not prompt for confirmation.
 
-#### **--filter**
+#### **\-\-filter**
 
 Filter volumes to be pruned. Volumes can be filtered by the following attributes:
 
@@ -30,7 +30,7 @@ Filter volumes to be pruned. Volumes can be filtered by the following attributes
 - opt
 - scope
 
-#### **--help**
+#### **\-\-help**
 
 Print usage statement
 

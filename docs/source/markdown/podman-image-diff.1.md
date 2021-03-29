@@ -11,7 +11,7 @@ Displays changes on a container or image's filesystem.  The container or image w
 
 ## OPTIONS
 
-#### **--format**
+#### **\-\-format**
 
 Alter the output into a different format.  The only valid format for diff is `json`.
 

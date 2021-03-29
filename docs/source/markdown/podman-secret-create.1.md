@@ -20,11 +20,11 @@ Secrets will not be commited to an image with `podman commit`, and will not be i
 
 ## OPTIONS
 
-#### **--driver**=*driver*
+#### **\-\-driver**=*driver*
 
 Specify the secret driver (default **file**, which is unencrypted).
 
-#### **--help**
+#### **\-\-help**
 
 Print usage statement.
 

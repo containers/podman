@@ -11,7 +11,7 @@ podman-container-prune - Remove all stopped containers from local storage
 
 ## OPTIONS
 
-#### **--filter**=*filters*
+#### **\-\-filter**=*filters*
 
 Provide filter values.
 
@@ -26,11 +26,11 @@ The until filter can be Unix timestamps, date formatted timestamps, or Go durati
 
 The label filter accepts two formats. One is the label=... (label=_key_ or label=_key=value_), which removes containers with the specified labels. The other format is the label!=... (label!=_key_ or label!=_key=value_), which removes containers without the specified labels.
 
-#### **--force**, **-f**
+#### **\-\-force**, **-f**
 
 Do not provide an interactive prompt for container removal.
 
-**-h**, **--help**
+**-h**, **\-\-help**
 
 Print usage statement
 

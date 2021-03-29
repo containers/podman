@@ -15,24 +15,24 @@ By default, the signature will be written into `/var/lib/containers/sigstore` fo
 
 ## OPTIONS
 
-#### **--help**, **-h**
+#### **\-\-help**, **-h**
 
 Print usage statement.
 
-#### **--all**, **-a**
+#### **\-\-all**, **-a**
 
 Sign all the manifests of the multi-architecture image (default false).
 
-#### **--cert-dir**=*path*
+#### **\-\-cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
 Default certificates directory is _/etc/containers/certs.d_. (This option is not available with the remote Podman client)
 
-#### **--directory**, **-d**=*dir*
+#### **\-\-directory**, **-d**=*dir*
 
 Store the signatures in the specified directory.  Default: /var/lib/containers/sigstore
 
-#### **--sign-by**=*identity*
+#### **\-\-sign-by**=*identity*
 
 Override the default identity of the signature.
 

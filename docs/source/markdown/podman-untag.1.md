@@ -13,7 +13,7 @@ Remove one or more names from an image in the local storage.  The image can be r
 
 ## OPTIONS
 
-#### **--help**, **-h**
+#### **\-\-help**, **-h**
 
 Print usage statement
 

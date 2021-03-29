@@ -12,11 +12,11 @@ OS, and Architecture.
 
 ## OPTIONS
 
-#### **--help**, **-h**
+#### **\-\-help**, **-h**
 
 Print usage statement
 
-#### **--format**, **-f**=*format*
+#### **\-\-format**, **-f**=*format*
 
 Change output format to "json" or a Go template.
 

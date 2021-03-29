@@ -16,7 +16,7 @@ index.
 
 ## OPTIONS
 
-#### **--all**
+#### **\-\-all**
 
 If any of the images which should be added to the new list or index are
 themselves lists or indexes, add all of their contents.  By default, only one
