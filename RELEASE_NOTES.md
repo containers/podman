@@ -14,6 +14,8 @@
 - The Podman remote client's `podman search` command now supports the `--no-trunc` and `--list-tags` options.
 - The `podman play kube` command can now read in Kubernetes YAML from `STDIN` when `-` is specified as file name (`podman play kube -`), allowing input to be piped into the command for scripting ([#8996](https://github.com/containers/podman/issues/8996)).
 - The `podman generate systemd` command now supports a `--no-header` option, which disables creation of the header comment automatically added by Podman to generated unit files.
+- The `podman generate kube` command can now generate `PersistentVolumeClaim` YAML for Podman named volumes ([#5788](https://github.com/containers/podman/issues/5788)).
+- The `podman generate kube` command can now generate YAML files containing multiple resources (pods or deployments) ([#9129](https://github.com/containers/podman/issues/9129)).
 
 ### Changes
 - The Podman remote client's `podman build` command no longer allows the `-v` flag to be used. Volumes are not yet supported with remote Podman when the client and service are on different machines.
@@ -23,12 +25,15 @@
 - The `podman rename` command has been improved to be more atomic, eliminating many race conditions that could potentially render a renamed container unusable.
 - Detection of which OCI runtimes run using virtual machines and thus require custom SELinux labelling has been improved ([#9582](https://github.com/containers/podman/issues/9582)).
 - The hidden `--trace` option to `podman` has been turned into a no-op. It was used in very early versions for performance tracing, but has not been supported for some time.
+- The `podman generate systemd` command now generates `RequiresMountsFor` lines to ensure necessary storage directories are mounted before systemd starts Podman.
+- Podman will now emit a warning when `--tty` and `--interactive` are both passed, but `STDIN` is not a TTY. This will be made into an error in the next major Podman release some time next year.
 
 ### Bugfixes
 - Fixed a bug where rootless Podman containers joined to CNI networks could not receive traffic from forwarded ports ([#9065](https://github.com/containers/podman/issues/9065)).
 - Fixed a bug where `podman network create` with the `--macvlan` flag did not honor the `--gateway`, `--subnet`, and `--opt` options ([#9167](https://github.com/containers/podman/issues/9167)).
 - Fixed a bug where the `podman generate kube` command generated invalid YAML for privileged containers ([#8897](https://github.com/containers/podman/issues/8897)).
 - Fixed a bug where the `podman generate kube` command could not be used with containers that were not running.
+- Fixed a bug where the `podman generate systemd` command could duplicate some parameters to Podman in generated unit files ([#9776](https://github.com/containers/podman/issues/9776)).
 - Fixed a bug where Podman did not add annotations specified in `containers.conf` to containers.
 - Foxed a bug where Podman did not respect the `no_hosts` default in `containers.conf` when creating containers.
 - Fixed a bug where the `--tail=0`, `--since`, and `--follow` options to the `podman logs` command did not function properly when using the `journald` log backend.
@@ -48,13 +53,21 @@
 - Fixed a bug where the `--timestamp` option to `podman build` was nonfunctional ([#9569](https://github.com/containers/podman/issues/9569)).
 - Fixed a bug where the `--iidfile` option to `podman build` could cause Podman to panic if an error occurred during the build.
 - Fixed a bug where the `--dns-search` option to `podman build` was nonfunctional ([#9574](https://github.com/containers/podman/issues/9574)).
+- Fixed a bug where the `--pull-never` option to `podman build` was nonfunctional ([#9573](https://github.com/containers/podman/issues/9573)).
 - Fixed a bug where the `--build-arg` option to `podman build` would, when given a key but not a value, error (instead of attempting to look up the key as an environment variable) ([#9571](https://github.com/containers/podman/issues/9571)).
+- Fixed a bug where the `--isolation` option to `podman build` in the remote Podman client was nonfunctional.
 - Fixed a bug where the `podman network disconnect` command could cause errors when the container that had a network removed was stopped and its network was cleaned up ([#9602](https://github.com/containers/podman/issues/9602)).
 - Fixed a bug where the `podman network rm` command did not properly check what networks a container was present in, resulting in unexpected behavior if `podman network connect` or `podman network disconnect` had been used with the network ([#9632](https://github.com/containers/podman/issues/9632)).
 - Fixed a bug where some errors with stopping a container could cause Podman to panic, and the container to be stuck in an unusable `stopping` state ([#9615](https://github.com/containers/podman/issues/9615)).
 - Fixed a bug where the `podman load` command could return 0 even in cases where an error occurred ([#9672](https://github.com/containers/podman/issues/9672)).
 - Fixed a bug where specifying storage options to Podman using the `--storage-opt` option would override all storage options. Instead, storage options are now overridden only when the `--storage-driver` option is used to override the current graph driver ([#9657](https://github.com/containers/podman/issues/9657)).
 - Fixed a bug where containers created with `--privileged` could request more capabilities than were available to Podman.
+- Fixed a bug where `podman commit` did not use the `TMPDIR` environment variable to place temporary files created during the commit ([#9825](https://github.com/containers/podman/issues/9825)).
+- Fixed a bug where remote Podman could error when attempting to resize short-lived containers ([#9831](https://github.com/containers/podman/issues/9831)).
+- Fixed a bug where Podman was unusable on kernels built without `CONFIG_USER_NS`.
+- Fixed a bug where the ownership of volumes created by `podman volume create` and then mounted into a container could be incorrect ([#9608](https://github.com/containers/podman/issues/9608)).
+- Fixed a bug where Podman volumes using a volume plugin could not pass certain options, and could not be used as non-root users.
+- Fixed a bug where the `--tz` option to `podman create` and `podman run` did not properly validate its input.
 
 ### API
 - Fixed a bug where the `X-Registry-Auth` header did not accept `null` as a valid value.
@@ -72,17 +85,20 @@
 - Fixed a bug where the compat Create endpoint for Containers did not properly handle tmpfs filesystems specified with options ([#9511](https://github.com/containers/podman/issues/9511)).
 - Fixed a bug where the compat Create endpoint for Containers did not create bind-mount source directories ([#9510](https://github.com/containers/podman/issues/9510)).
 - Fixed a bug where the compat Create endpoint for Containers did not properly handle the `NanoCpus` option ([#9523](https://github.com/containers/podman/issues/9523)).
+- Fixed a bug where the Libpod create endpoint for Containers has a misnamed field in its JSON.
 - Fixed a bug where the compat List endpoint for Containers did not populate information on forwarded ports ([#9553](https://github.com/containers/podman/issues/9553))
 - Fixed a bug where the compat List endpoint for Containers did not populate information on container CNI networks ([#9529](https://github.com/containers/podman/issues/9529)).
 - Fixed a bug where the compat and libpod Stop endpoints for Containers would ignore a timeout of 0.
+- Fixed a bug where the compat and libpod Resize endpoints for Containers did not set the correct terminal sizes (dimensions were reversed) ([#9756](https://github.com/containers/podman/issues/9756)).
 - Fixed a bug where the compat Remove endpoint for Containers would not return 404 when attempting to remove a container that does not exist ([#9675](https://github.com/containers/podman/issues/9675)).
 - Fixed a bug where the compat Prune endpoint for Volumes would still prune even if an invalid filter was specified.
+- Numerous bugs related to filters have been addressed.
 
 ### Misc
-- Updated Buildah to v1.19.8
-- Updated the containers/storage library to v1.28.0
+- Updated Buildah to v1.20.0
+- Updated the containers/storage library to v1.28.1
 - Updated the containers/image library to v5.10.5
-- Updated the containers/common library to v0.35.3
+- Updated the containers/common library to v0.35.4
 
 ## 3.0.1
 ### Changes
