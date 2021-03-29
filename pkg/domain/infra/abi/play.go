@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
@@ -134,6 +135,12 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		playKubePod   entities.PlayKubePod
 		report        entities.PlayKubeReport
 	)
+
+	// Create the secret manager before hand
+	secretsManager, err := secrets.NewManager(ic.Libpod.GetSecretsStorageDir())
+	if err != nil {
+		return nil, err
+	}
 
 	// check for name collision between pod and container
 	if podName == "" {
@@ -261,16 +268,17 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		}
 
 		specgenOpts := kube.CtrSpecGenOptions{
-			Container:     container,
-			Image:         newImage,
-			Volumes:       volumes,
-			PodID:         pod.ID(),
-			PodName:       podName,
-			PodInfraID:    podInfraID,
-			ConfigMaps:    configMaps,
-			SeccompPaths:  seccompPaths,
-			RestartPolicy: ctrRestartPolicy,
-			NetNSIsHost:   p.NetNS.IsHost(),
+			Container:      container,
+			Image:          newImage,
+			Volumes:        volumes,
+			PodID:          pod.ID(),
+			PodName:        podName,
+			PodInfraID:     podInfraID,
+			ConfigMaps:     configMaps,
+			SeccompPaths:   seccompPaths,
+			RestartPolicy:  ctrRestartPolicy,
+			NetNSIsHost:    p.NetNS.IsHost(),
+			SecretsManager: secretsManager,
 		}
 		specGen, err := kube.ToSpecGen(ctx, &specgenOpts)
 		if err != nil {
