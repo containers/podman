@@ -1,11 +1,14 @@
 package qemu
 
 var (
-	QemuCommand = "qemu-kvm"
+	QemuCommand = "qemu-system-x86_64"
 )
 
 func (v *MachineVM) addArchOptions() []string {
-	opts := []string{"-cpu", "host"}
+	opts := []string{
+		"-accel", "kvm",
+		"-cpu", "host",
+	}
 	return opts
 }
 
