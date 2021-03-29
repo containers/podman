@@ -21,7 +21,7 @@ const (
 var (
 	file          string
 	noDesc        bool
-	shells        = []string{"bash", "zsh", "fish"}
+	shells        = []string{"bash", "zsh", "fish", "powershell"}
 	completionCmd = &cobra.Command{
 		Use:       fmt.Sprintf("completion [options] {%s}", strings.Join(shells, "|")),
 		Short:     "Generate shell autocompletions",
@@ -76,6 +76,12 @@ func completion(cmd *cobra.Command, args []string) error {
 		}
 	case "fish":
 		err = cmd.Root().GenFishCompletion(w, !noDesc)
+	case "powershell":
+		if noDesc {
+			err = cmd.Root().GenPowerShellCompletion(w)
+		} else {
+			err = cmd.Root().GenPowerShellCompletionWithDesc(w)
+		}
 	}
 
 	if err != nil {

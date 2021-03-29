@@ -536,6 +536,7 @@ install.completions:
 	install ${SELINUXOPT} -d -m 755 ${DESTDIR}${FISHINSTALLDIR}
 	install ${SELINUXOPT} -m 644 completions/fish/podman.fish ${DESTDIR}${FISHINSTALLDIR}
 	install ${SELINUXOPT} -m 644 completions/fish/podman-remote.fish ${DESTDIR}${FISHINSTALLDIR}
+	# There is no common location for powershell files so do not install them. Users have to source the file from their powershell profile.
 
 .PHONY: install.cni
 install.cni:
@@ -658,7 +659,7 @@ install.libseccomp.sudo:
 .PHONY: completions
 completions: podman podman-remote
 	# key = shell, value = completion filename
-	declare -A outfiles=([bash]=%s [zsh]=_%s [fish]=%s.fish);\
+	declare -A outfiles=([bash]=%s [zsh]=_%s [fish]=%s.fish [powershell]=%s.ps1);\
 	for shell in $${!outfiles[*]}; do \
 	    for remote in "" "-remote"; do \
 	        podman="podman$$remote"; \
