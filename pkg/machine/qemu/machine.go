@@ -83,7 +83,7 @@ func NewMachine(opts machine.InitOptions) (machine.VM, error) {
 		return nil, err
 	}
 	vm.QMPMonitor = monitor
-	cmd = append(cmd, []string{"-qmp", monitor.Network + ":/" + monitor.Address + ",server,nowait"}...)
+	cmd = append(cmd, []string{"-qmp", monitor.Network + ":/" + monitor.Address + ",server=on,wait=off"}...)
 
 	// Add network
 	cmd = append(cmd, "-nic", "user,model=virtio,hostfwd=tcp::"+strconv.Itoa(vm.Port)+"-:22")
@@ -96,7 +96,7 @@ func NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	// Add serial port for readiness
 	cmd = append(cmd, []string{
 		"-device", "virtio-serial",
-		"-chardev", "socket,path=" + virtualSocketPath + ",server,nowait,id=" + vm.Name + "_ready",
+		"-chardev", "socket,path=" + virtualSocketPath + ",server=on,wait=off,id=" + vm.Name + "_ready",
 		"-device", "virtserialport,chardev=" + vm.Name + "_ready" + ",name=org.fedoraproject.port.0"}...)
 	vm.CmdLine = cmd
 	return vm, nil
