@@ -67,7 +67,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) 
 	if os.Geteuid() == 0 {
 		ownsCgroup, err := cgroups.UserOwnsCurrentSystemdCgroup()
 		if err != nil {
-			logrus.Warnf("Failed to detect the owner for the current cgroup: %v", err)
+			logrus.Infof("Failed to detect the owner for the current cgroup: %v", err)
 		}
 		if !ownsCgroup {
 			conf, err := ic.Config(context.Background())
