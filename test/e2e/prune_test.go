@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 
 	. "github.com/containers/podman/v3/test/utils"
@@ -8,11 +9,11 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var pruneImage = `
-FROM  alpine:latest
+var pruneImage = fmt.Sprintf(`
+FROM  %s
 LABEL RUN podman --version
 RUN apk update
-RUN apk add bash`
+RUN apk add bash`, ALPINE)
 
 var _ = Describe("Podman prune", func() {
 	var (

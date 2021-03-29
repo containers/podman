@@ -158,7 +158,7 @@ class TestImages(unittest.TestCase):
     def test_build_image(self):
         labels = {"apple": "red", "grape": "green"}
         _ = self.client.images.build(
-            path="test/python/docker/build_labels", labels=labels, tag="labels"
+            path="test/python/docker/build_labels", labels=labels, tag="labels", isolation="default"
         )
         image = self.client.images.get("labels")
         self.assertEqual(image.labels["apple"], labels["apple"])

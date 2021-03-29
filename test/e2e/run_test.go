@@ -489,8 +489,8 @@ var _ = Describe("Podman run", func() {
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
 		}
-		dockerfile := `FROM busybox
-USER bin`
+		dockerfile := fmt.Sprintf(`FROM %s
+USER bin`, BB)
 		podmanTest.BuildImage(dockerfile, "test", "false")
 		session := podmanTest.Podman([]string{"run", "--rm", "--user", "bin", "test", "grep", "CapBnd", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
@@ -898,10 +898,10 @@ USER bin`
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		dockerfile := `FROM busybox
+		dockerfile := fmt.Sprintf(`FROM %s
 RUN mkdir -p /myvol/data && chown -R mail.0 /myvol
 VOLUME ["/myvol/data"]
-USER mail`
+USER mail`, BB)
 
 		podmanTest.BuildImage(dockerfile, "test", "false")
 		session = podmanTest.Podman([]string{"run", "--rm", "test", "ls", "-al", "/myvol/data"})
@@ -1412,7 +1412,28 @@ USER mail`
 	})
 
 	It("podman run --tz", func() {
-		session := podmanTest.Podman([]string{"run", "--tz", "foo", "--rm", ALPINE, "date"})
+		testDir := filepath.Join(podmanTest.RunRoot, "tz-test")
+		err := os.MkdirAll(testDir, 0755)
+		Expect(err).To(BeNil())
+
+		tzFile := filepath.Join(testDir, "tzfile.txt")
+		file, err := os.Create(tzFile)
+		Expect(err).To(BeNil())
+
+		_, err = file.WriteString("Hello")
+		Expect(err).To(BeNil())
+		file.Close()
+
+		badTZFile := fmt.Sprintf("../../../%s", tzFile)
+		session := podmanTest.Podman([]string{"run", "--tz", badTZFile, "--rm", ALPINE, "date"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session.ErrorToString()).To(ContainSubstring("error finding timezone for container"))
+
+		err = os.Remove(tzFile)
+		Expect(err).To(BeNil())
+
+		session = podmanTest.Podman([]string{"run", "--tz", "foo", "--rm", ALPINE, "date"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Not(Equal(0)))
 
@@ -1478,8 +1499,8 @@ USER mail`
 
 	It("podman run makes workdir from image", func() {
 		// BuildImage does not seem to work remote
-		dockerfile := `FROM busybox
-WORKDIR /madethis`
+		dockerfile := fmt.Sprintf(`FROM %s
+WORKDIR /madethis`, BB)
 		podmanTest.BuildImage(dockerfile, "test", "false")
 		session := podmanTest.Podman([]string{"run", "--rm", "test", "pwd"})
 		session.WaitWithDefaultTimeout()

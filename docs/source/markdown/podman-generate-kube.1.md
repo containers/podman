@@ -6,26 +6,30 @@ podman-generate-kube - Generate Kubernetes YAML based on a pod or container
 **podman generate kube** [*options*] *container...* | *pod*
 
 ## DESCRIPTION
-**podman generate kube** will generate Kubernetes Pod YAML (v1 specification) from Podman one or more containers or a single pod. Whether
+**podman generate kube** will generate Kubernetes Pod YAML (v1 specification) from Podman from one or more containers or a single pod. Whether
 the input is for containers or a pod, Podman will always generate the specification as a Pod. The input may be in the form
 of a pod or one or more container names or IDs.
+
+Volumes appear in the generated YAML according to two different volume types. Bind-mounted volumes become *hostPath* volume types and named volumes become *persistentVolumeClaim* volume types. Generated *hostPath* volume types will be one of three subtypes depending on the state of the host path: *DirectoryOrCreate* when no file or directory exists at the host, *Directory* when host path is a directory, or *File* when host path is a file. The value for *claimName* for a *persistentVolumeClaim* is the name of the named volume registered in Podman.
+
+Potential name conflicts between volumes are avoided by using a standard naming scheme for each volume type. The *hostPath* volume types are named according to the path on the host machine, replacing forward slashes with hyphens less any leading and trailing forward slashes. The special case of the filesystem root, `/`, translates to the name `root`. Additionally, the name is suffixed with `-host` to avoid naming conflicts with *persistentVolumeClaim* volumes. Each *persistentVolumeClaim* volume type uses the name of its associated named volume suffixed with `-pvc`.
 
 Note that the generated Kubernetes YAML file can be used to re-run the deployment via podman-play-kube(1).
 
 ## OPTIONS
 
-#### **--filename**, **-f**=**filename**
+#### **\-\-filename**, **-f**=**filename**
 
 Output to the given file, instead of STDOUT. If the file already exists, `generate kube` will refuse to replace it and return an error.
 
-#### **--service**, **-s**
+#### **\-\-service**, **-s**
 
 Generate a Kubernetes service object in addition to the Pods. Used to generate a Service specification for the corresponding Pod output. In particular, if the object has portmap bindings, the service specification will include a NodePort declaration to expose the service. A
 random port is assigned by Podman in the specification.
 
 ## EXAMPLES
 
-Create Kubernetes Pod YAML for a container called `some-mariadb` .
+Create Kubernetes Pod YAML for a container called `some-mariadb`.
 ```
 $ sudo podman generate kube some-mariadb
 # Generation of Kubernetes YAML is still under development!
@@ -78,6 +82,113 @@ spec:
       readOnlyRootFilesystem: false
     tty: true
     workingDir: /
+status: {}
+```
+
+Create Kubernetes Pod YAML for a container with the directory `/home/user/my-data` on the host bind-mounted in the container to `/volume`.
+```
+$ podman generate kube my-container-with-bind-mounted-data
+# Generation of Kubernetes YAML is still under development!
+#
+# Save the output of this file and use kubectl create -f to import
+# it into Kubernetes.
+#
+# Created with podman-3.1.0-dev
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2021-03-18T16:26:08Z"
+  labels:
+    app: my-container-with-bind-mounted-data
+  name: my-container-with-bind-mounted-data
+spec:
+  containers:
+  - command:
+    - /bin/sh
+    env:
+    - name: PATH
+      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    - name: TERM
+      value: xterm
+    - name: container
+      value: podman
+    image: docker.io/library/alpine:latest
+    name: test-bind-mount
+    resources: {}
+    securityContext:
+      allowPrivilegeEscalation: true
+      capabilities:
+        drop:
+        - CAP_MKNOD
+        - CAP_NET_RAW
+        - CAP_AUDIT_WRITE
+      privileged: false
+      readOnlyRootFilesystem: false
+      seLinuxOptions: {}
+    volumeMounts:
+    - mountPath: /volume
+      name: home-user-my-data-host
+    workingDir: /
+  dnsConfig: {}
+  restartPolicy: Never
+  volumes:
+  - hostPath:
+      path: /home/user/my-data
+      type: Directory
+    name: home-user-my-data-host
+status: {}
+```
+
+Create Kubernetes Pod YAML for a container with the named volume `priceless-data` mounted in the container at `/volume`.
+```
+$ podman generate kube my-container-using-priceless-data
+# Generation of Kubernetes YAML is still under development!
+#
+# Save the output of this file and use kubectl create -f to import
+# it into Kubernetes.
+#
+# Created with podman-3.1.0-dev
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2021-03-18T16:26:08Z"
+  labels:
+    app: my-container-using-priceless-data
+  name: my-container-using-priceless-data
+spec:
+  containers:
+  - command:
+    - /bin/sh
+    env:
+    - name: PATH
+      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    - name: TERM
+      value: xterm
+    - name: container
+      value: podman
+    image: docker.io/library/alpine:latest
+    name: test-bind-mount
+    resources: {}
+    securityContext:
+      allowPrivilegeEscalation: true
+      capabilities:
+        drop:
+        - CAP_MKNOD
+        - CAP_NET_RAW
+        - CAP_AUDIT_WRITE
+      privileged: false
+      readOnlyRootFilesystem: false
+      seLinuxOptions: {}
+    volumeMounts:
+    - mountPath: /volume
+      name: priceless-data-pvc
+    workingDir: /
+  dnsConfig: {}
+  restartPolicy: Never
+  volumes:
+  - name: priceless-data-pvc
+    persistentVolumeClaim:
+      claimName: priceless-data
 status: {}
 ```
 

@@ -1,2 +1,2 @@
-FROM alpine
+FROM quay.io/libpod/alpine:latest
 VOLUME "/volume0"

@@ -1,2 +1,2 @@
-FROM alpine
+FROM quay.io/libpod/alpine:latest
 ENV PATH=/tmp:/bin:/usr/bin:/usr/sbin

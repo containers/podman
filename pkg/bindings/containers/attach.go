@@ -307,6 +307,7 @@ func resizeTTY(ctx context.Context, endpoint string, height *int, width *int) er
 	if width != nil {
 		params.Set("w", strconv.Itoa(*width))
 	}
+	params.Set("running", "true")
 	rsp, err := conn.DoRequest(nil, http.MethodPost, endpoint, params, nil)
 	if err != nil {
 		return err
@@ -336,7 +337,7 @@ func attachHandleResize(ctx, winCtx context.Context, winChange chan os.Signal, i
 		case <-winCtx.Done():
 			return
 		case <-winChange:
-			h, w, err := terminal.GetSize(int(file.Fd()))
+			w, h, err := terminal.GetSize(int(file.Fd()))
 			if err != nil {
 				logrus.Warnf("failed to obtain TTY size: %v", err)
 			}

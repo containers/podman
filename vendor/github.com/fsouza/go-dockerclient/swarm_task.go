@@ -7,6 +7,7 @@ package docker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/docker/docker/api/types/swarm"
@@ -56,7 +57,8 @@ func (c *Client) ListTasks(opts ListTasksOptions) ([]swarm.Task, error) {
 func (c *Client) InspectTask(id string) (*swarm.Task, error) {
 	resp, err := c.do(http.MethodGet, "/tasks/"+id, doOptions{})
 	if err != nil {
-		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
+		var e *Error
+		if errors.As(err, &e) && e.Status == http.StatusNotFound {
 			return nil, &NoSuchTask{ID: id}
 		}
 		return nil, err

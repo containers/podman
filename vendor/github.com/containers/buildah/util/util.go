@@ -10,6 +10,7 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/containers/buildah/define"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/pkg/shortnames"
@@ -280,7 +281,7 @@ func Runtime() string {
 	conf, err := config.Default()
 	if err != nil {
 		logrus.Warnf("Error loading container config when searching for local runtime: %v", err)
-		return DefaultRuntime
+		return define.DefaultRuntime
 	}
 	return conf.Engine.OCIRuntime
 }

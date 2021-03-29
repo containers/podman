@@ -21,7 +21,7 @@ Possible errors that can occur during the healthcheck are:
 * container is not running
 
 ## OPTIONS
-#### **--help**
+#### **\-\-help**
 
 Print usage statement
 

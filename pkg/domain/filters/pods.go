@@ -114,26 +114,7 @@ func GeneratePodFilterFunc(filter string, filterValues []string) (
 	case "label":
 		return func(p *libpod.Pod) bool {
 			labels := p.Labels()
-			for _, filterValue := range filterValues {
-				matched := false
-				filterArray := strings.SplitN(filterValue, "=", 2)
-				filterKey := filterArray[0]
-				if len(filterArray) > 1 {
-					filterValue = filterArray[1]
-				} else {
-					filterValue = ""
-				}
-				for labelKey, labelValue := range labels {
-					if labelKey == filterKey && (filterValue == "" || labelValue == filterValue) {
-						matched = true
-						break
-					}
-				}
-				if !matched {
-					return false
-				}
-			}
-			return true
+			return util.MatchLabelFilters(filterValues, labels)
 		}, nil
 	case "network":
 		return func(p *libpod.Pod) bool {

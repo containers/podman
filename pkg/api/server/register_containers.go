@@ -587,6 +587,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    type: integer
 	//    required: false
 	//    description: Width to set for the terminal, in characters
+	//  - in: query
+	//    name: running
+	//    type: boolean
+	//    required: false
+	//    description: Ignore containers not running errors
 	// produces:
 	// - application/json
 	// responses:

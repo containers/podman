@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 
 	. "github.com/containers/podman/v3/test/utils"
@@ -8,18 +9,17 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var PodmanDockerfile = `
-FROM  alpine:latest
-LABEL RUN podman --version`
+var PodmanDockerfile = fmt.Sprintf(`
+FROM  %s
+LABEL RUN podman --version`, ALPINE)
 
-var LsDockerfile = `
-FROM  alpine:latest
-LABEL RUN ls -la`
+var LsDockerfile = fmt.Sprintf(`
+FROM  %s
+LABEL RUN ls -la`, ALPINE)
 
-var GlobalDockerfile = `
-FROM alpine:latest
-LABEL RUN echo \$GLOBAL_OPTS
-`
+var GlobalDockerfile = fmt.Sprintf(`
+FROM %s
+LABEL RUN echo \$GLOBAL_OPTS`, ALPINE)
 
 var _ = Describe("podman container runlabel", func() {
 	var (

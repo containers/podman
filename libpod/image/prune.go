@@ -2,12 +2,12 @@ package image
 
 import (
 	"context"
+	"strconv"
 	"strings"
-	"time"
 
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/pkg/domain/entities/reports"
-	"github.com/containers/podman/v3/pkg/timetype"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -16,42 +16,31 @@ import (
 func generatePruneFilterFuncs(filter, filterValue string) (ImageFilter, error) {
 	switch filter {
 	case "label":
-		var filterArray = strings.SplitN(filterValue, "=", 2)
-		var filterKey = filterArray[0]
-		if len(filterArray) > 1 {
-			filterValue = filterArray[1]
-		} else {
-			filterValue = ""
-		}
 		return func(i *Image) bool {
 			labels, err := i.Labels(context.Background())
 			if err != nil {
 				return false
 			}
-			for labelKey, labelValue := range labels {
-				if labelKey == filterKey && (filterValue == "" || labelValue == filterValue) {
-					return true
-				}
-			}
-			return false
+			return util.MatchLabelFilters([]string{filterValue}, labels)
 		}, nil
 
 	case "until":
-		ts, err := timetype.GetTimestamp(filterValue, time.Now())
+		until, err := util.ComputeUntilTimestamp([]string{filterValue})
 		if err != nil {
 			return nil, err
 		}
-		seconds, nanoseconds, err := timetype.ParseTimestamps(ts, 0)
-		if err != nil {
-			return nil, err
-		}
-		until := time.Unix(seconds, nanoseconds)
 		return func(i *Image) bool {
 			if !until.IsZero() && i.Created().After((until)) {
 				return true
 			}
 			return false
 		}, nil
+	case "dangling":
+		danglingImages, err := strconv.ParseBool(filterValue)
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid filter dangling=%s", filterValue)
+		}
+		return ImageFilter(DanglingFilter(danglingImages)), nil
 	}
 	return nil, nil
 }

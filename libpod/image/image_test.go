@@ -9,10 +9,12 @@ import (
 
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/pkg/util"
+	podmanVersion "github.com/containers/podman/v3/version"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/opencontainers/go-digest"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -93,6 +95,8 @@ func TestImage_NewFromLocal(t *testing.T) {
 	// Need images to be present for this test
 	ir, err := NewImageRuntimeFromOptions(so)
 	assert.NoError(t, err)
+	defer cleanup(workdir, ir)
+
 	ir.Eventer = events.NewNullEventer()
 	bb, err := ir.New(context.Background(), "docker.io/library/busybox:latest", "", "", writer, nil, SigningOptions{}, nil, util.PullImageMissing, nil)
 	assert.NoError(t, err)
@@ -106,13 +110,10 @@ func TestImage_NewFromLocal(t *testing.T) {
 		assert.NoError(t, err)
 		for _, name := range image.names {
 			newImage, err := ir.NewFromLocal(name)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, newImage.ID(), image.img.ID())
 		}
 	}
-
-	// Shutdown the runtime and remove the temporary storage
-	cleanup(workdir, ir)
 }
 
 // TestImage_New tests pulling the image by various names, tags, and from
@@ -125,30 +126,31 @@ func TestImage_New(t *testing.T) {
 	var names []string
 	workdir, err := mkWorkDir()
 	assert.NoError(t, err)
-
 	so := storage.StoreOptions{
 		RunRoot:   workdir,
 		GraphRoot: workdir,
 	}
 	ir, err := NewImageRuntimeFromOptions(so)
 	assert.NoError(t, err)
+	defer cleanup(workdir, ir)
+
 	ir.Eventer = events.NewNullEventer()
 	// Build the list of pull names
 	names = append(names, bbNames...)
 	writer := os.Stdout
 
+	opts := DockerRegistryOptions{
+		RegistriesConfPath: "testdata/registries.conf",
+	}
 	// Iterate over the names and delete the image
 	// after the pull
 	for _, img := range names {
-		newImage, err := ir.New(context.Background(), img, "", "", writer, nil, SigningOptions{}, nil, util.PullImageMissing, nil)
-		assert.NoError(t, err)
+		newImage, err := ir.New(context.Background(), img, "", "", writer, &opts, SigningOptions{}, nil, util.PullImageMissing, nil)
+		require.NoError(t, err, img)
 		assert.NotEqual(t, newImage.ID(), "")
 		err = newImage.Remove(context.Background(), false)
 		assert.NoError(t, err)
 	}
-
-	// Shutdown the runtime and remove the temporary storage
-	cleanup(workdir, ir)
 }
 
 // TestImage_MatchRepoTag tests the various inputs we need to match
@@ -161,20 +163,24 @@ func TestImage_MatchRepoTag(t *testing.T) {
 	//Set up
 	workdir, err := mkWorkDir()
 	assert.NoError(t, err)
-
 	so := storage.StoreOptions{
 		RunRoot:   workdir,
 		GraphRoot: workdir,
 	}
 	ir, err := NewImageRuntimeFromOptions(so)
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	defer cleanup(workdir, ir)
+
+	opts := DockerRegistryOptions{
+		RegistriesConfPath: "testdata/registries.conf",
+	}
 	ir.Eventer = events.NewNullEventer()
-	newImage, err := ir.New(context.Background(), "busybox", "", "", os.Stdout, nil, SigningOptions{}, nil, util.PullImageMissing, nil)
-	assert.NoError(t, err)
+	newImage, err := ir.New(context.Background(), "busybox", "", "", os.Stdout, &opts, SigningOptions{}, nil, util.PullImageMissing, nil)
+	require.NoError(t, err)
 	err = newImage.TagImage("foo:latest")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	err = newImage.TagImage("foo:bar")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Tests start here.
 	for _, name := range bbNames {
@@ -187,23 +193,19 @@ func TestImage_MatchRepoTag(t *testing.T) {
 
 	// foo should resolve to foo:latest
 	repoTag, err := newImage.MatchRepoTag("foo")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "localhost/foo:latest", repoTag)
 
 	// foo:bar should resolve to foo:bar
 	repoTag, err = newImage.MatchRepoTag("foo:bar")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "localhost/foo:bar", repoTag)
-	// Shutdown the runtime and remove the temporary storage
-	cleanup(workdir, ir)
 }
 
 // TestImage_RepoDigests tests RepoDigest generation.
 func TestImage_RepoDigests(t *testing.T) {
 	dgst, err := digest.Parse("sha256:7173b809ca12ec5dee4506cd86be934c4596dd234ee82c0662eac04a8c2c71dc")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	for _, tt := range []struct {
 		name     string
@@ -235,10 +237,7 @@ func TestImage_RepoDigests(t *testing.T) {
 				},
 			}
 			actual, err := image.RepoDigests()
-			if err != nil {
-				t.Fatal(err)
-			}
-
+			require.NoError(t, err)
 			assert.Equal(t, test.expected, actual)
 
 			image = &Image{
@@ -248,10 +247,7 @@ func TestImage_RepoDigests(t *testing.T) {
 				},
 			}
 			actual, err = image.RepoDigests()
-			if err != nil {
-				t.Fatal(err)
-			}
-
+			require.NoError(t, err)
 			assert.Equal(t, test.expected, actual)
 		})
 	}
@@ -296,5 +292,27 @@ func TestNormalizedTag(t *testing.T) {
 			assert.NoError(t, err, c.input)
 			assert.Equal(t, c.expected, res.String())
 		}
+	}
+}
+
+func TestGetSystemContext(t *testing.T) {
+	sc := GetSystemContext("", "", false)
+	assert.Equal(t, sc.SignaturePolicyPath, "")
+	assert.Equal(t, sc.AuthFilePath, "")
+	assert.Equal(t, sc.DirForceCompress, false)
+	assert.Equal(t, sc.DockerRegistryUserAgent, fmt.Sprintf("libpod/%s", podmanVersion.Version))
+	assert.Equal(t, sc.BigFilesTemporaryDir, "/var/tmp")
+
+	oldtmpdir := os.Getenv("TMPDIR")
+	os.Setenv("TMPDIR", "/mnt")
+	sc = GetSystemContext("/tmp/foo", "/tmp/bar", true)
+	assert.Equal(t, sc.SignaturePolicyPath, "/tmp/foo")
+	assert.Equal(t, sc.AuthFilePath, "/tmp/bar")
+	assert.Equal(t, sc.DirForceCompress, true)
+	assert.Equal(t, sc.BigFilesTemporaryDir, "/mnt")
+	if oldtmpdir != "" {
+		os.Setenv("TMPDIR", oldtmpdir)
+	} else {
+		os.Unsetenv("TMPDIR")
 	}
 }

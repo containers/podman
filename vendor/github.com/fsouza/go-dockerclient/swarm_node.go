@@ -7,6 +7,7 @@ package docker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -58,7 +59,8 @@ func (c *Client) ListNodes(opts ListNodesOptions) ([]swarm.Node, error) {
 func (c *Client) InspectNode(id string) (*swarm.Node, error) {
 	resp, err := c.do(http.MethodGet, "/nodes/"+id, doOptions{})
 	if err != nil {
-		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
+		var e *Error
+		if errors.As(err, &e) && e.Status == http.StatusNotFound {
 			return nil, &NoSuchNode{ID: id}
 		}
 		return nil, err
@@ -93,7 +95,8 @@ func (c *Client) UpdateNode(id string, opts UpdateNodeOptions) error {
 		data:      opts.NodeSpec,
 	})
 	if err != nil {
-		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
+		var e *Error
+		if errors.As(err, &e) && e.Status == http.StatusNotFound {
 			return &NoSuchNode{ID: id}
 		}
 		return err
@@ -120,7 +123,8 @@ func (c *Client) RemoveNode(opts RemoveNodeOptions) error {
 	path := "/nodes/" + opts.ID + "?" + params.Encode()
 	resp, err := c.do(http.MethodDelete, path, doOptions{context: opts.Context})
 	if err != nil {
-		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
+		var e *Error
+		if errors.As(err, &e) && e.Status == http.StatusNotFound {
 			return &NoSuchNode{ID: opts.ID}
 		}
 		return err

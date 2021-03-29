@@ -7,6 +7,7 @@ package docker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 )
@@ -207,7 +208,6 @@ func (c *Client) ListFilteredPlugins(opts ListFilteredPluginsOptions) ([]PluginD
 // GetPluginPrivileges returns pluginPrivileges or an error.
 //
 // See https://goo.gl/C4t7Tz for more details.
-//nolint:golint
 func (c *Client) GetPluginPrivileges(remote string, ctx context.Context) ([]PluginPrivilege, error) {
 	return c.GetPluginPrivilegesWithOptions(
 		GetPluginPrivilegesOptions{
@@ -228,7 +228,6 @@ type GetPluginPrivilegesOptions struct {
 // GetPluginPrivilegesWithOptions returns pluginPrivileges or an error.
 //
 // See https://goo.gl/C4t7Tz for more details.
-//nolint:golint
 func (c *Client) GetPluginPrivilegesWithOptions(opts GetPluginPrivilegesOptions) ([]PluginPrivilege, error) {
 	headers, err := headersWithAuth(opts.Auth)
 	if err != nil {
@@ -254,13 +253,13 @@ func (c *Client) GetPluginPrivilegesWithOptions(opts GetPluginPrivilegesOptions)
 // InspectPlugins returns a pluginDetail or an error.
 //
 // See https://goo.gl/C4t7Tz for more details.
-//nolint:golint
 func (c *Client) InspectPlugins(name string, ctx context.Context) (*PluginDetail, error) {
 	resp, err := c.do(http.MethodGet, "/plugins/"+name+"/json", doOptions{
 		context: ctx,
 	})
 	if err != nil {
-		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
+		var e *Error
+		if errors.As(err, &e) && e.Status == http.StatusNotFound {
 			return nil, &NoSuchPlugin{ID: name}
 		}
 		return nil, err
@@ -291,7 +290,8 @@ func (c *Client) RemovePlugin(opts RemovePluginOptions) (*PluginDetail, error) {
 	path := "/plugins/" + opts.Name + "?" + queryString(opts)
 	resp, err := c.do(http.MethodDelete, path, doOptions{context: opts.Context})
 	if err != nil {
-		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
+		var e *Error
+		if errors.As(err, &e) && e.Status == http.StatusNotFound {
 			return nil, &NoSuchPlugin{ID: opts.Name}
 		}
 		return nil, err
@@ -437,7 +437,8 @@ func (c *Client) ConfigurePlugin(opts ConfigurePluginOptions) error {
 		context: opts.Context,
 	})
 	if err != nil {
-		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
+		var e *Error
+		if errors.As(err, &e) && e.Status == http.StatusNotFound {
 			return &NoSuchPlugin{ID: opts.Name}
 		}
 		return err

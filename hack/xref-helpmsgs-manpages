@@ -320,7 +320,7 @@ sub podman_man {
             }
         }
 
-        # Options should always be of the form '**-f**' or '**--flag**',
+        # Options should always be of the form '**-f**' or '**\-\-flag**',
         # possibly separated by comma-space.
         elsif ($section eq 'flags') {
             # e.g. 'podman run --ip6', documented in man page, but nonexistent
@@ -334,9 +334,11 @@ sub podman_man {
                 # If option has long and short form, long must come first.
                 # This is a while-loop because there may be multiple long
                 # option names, e.g. --net/--network
-                while ($line =~ s/^\*\*(--[a-z0-9-]+)\*\*(=\*[a-zA-Z0-9-]+\*)?(,\s+)?//g) {
-                    $man{$1} = 1;
-                    push @most_recent_flags, $1;
+                while ($line =~ s/^\*\*\\-\\-([a-z0-9-]+)\*\*(=\*[a-zA-Z0-9-]+\*)?(,\s+)?//g) {
+                    # add -- to the flag name
+                    my $flag = "--".$1;
+                    $man{$flag} = 1;
+                    push @most_recent_flags, $flag;
                 }
                 # Short form
                 if ($line =~ s/^\*\*(-[a-zA-Z0-9])\*\*(=\*[a-zA-Z0-9-]+\*)?//g) {

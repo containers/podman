@@ -2,6 +2,7 @@ package docker
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 )
 
@@ -12,7 +13,8 @@ func (c *Client) ContainerChanges(id string) ([]Change, error) {
 	path := "/containers/" + id + "/changes"
 	resp, err := c.do(http.MethodGet, path, doOptions{})
 	if err != nil {
-		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
+		var e *Error
+		if errors.As(err, &e) && e.Status == http.StatusNotFound {
 			return nil, &NoSuchContainer{ID: id}
 		}
 		return nil, err

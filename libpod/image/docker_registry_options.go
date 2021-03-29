@@ -69,6 +69,7 @@ func GetSystemContext(signaturePolicyPath, authFilePath string, forceCompress bo
 	sc.AuthFilePath = authFilePath
 	sc.DirForceCompress = forceCompress
 	sc.DockerRegistryUserAgent = fmt.Sprintf("libpod/%s", podmanVersion.Version)
+	sc.BigFilesTemporaryDir = parse.GetTempDir()
 
 	return sc
 }

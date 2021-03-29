@@ -51,3 +51,19 @@ func (o *ResizeTTYOptions) GetWidth() int {
 	}
 	return *o.Width
 }
+
+// WithRunning
+func (o *ResizeTTYOptions) WithRunning(value bool) *ResizeTTYOptions {
+	v := &value
+	o.Running = v
+	return o
+}
+
+// GetRunning
+func (o *ResizeTTYOptions) GetRunning() bool {
+	var running bool
+	if o.Running == nil {
+		return running
+	}
+	return *o.Running
+}

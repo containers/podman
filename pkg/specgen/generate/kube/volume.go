@@ -116,7 +116,7 @@ func InitializeVolumes(specVolumes []v1.Volume) (map[string]*KubeVolume, error) 
 	for _, specVolume := range specVolumes {
 		volume, err := VolumeFromSource(specVolume.VolumeSource)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to create volume %q", specVolume.Name)
 		}
 
 		volumes[specVolume.Name] = volume

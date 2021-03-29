@@ -26,7 +26,7 @@ newly configured mappings.
 
 ## OPTIONS
 
-#### **--new-runtime**=*runtime*
+#### **\-\-new-runtime**=*runtime*
 
 Set a new OCI runtime for all containers.
 This can be used after a system upgrade which changes the default OCI runtime to move all containers to the new runtime.

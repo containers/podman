@@ -1577,8 +1577,6 @@ func WithVolumeLabels(labels map[string]string) VolumeCreateOption {
 }
 
 // WithVolumeOptions sets the options of the volume.
-// If the "local" driver has been selected, options will be validated. There are
-// currently 3 valid options for the "local" driver - o, type, and device.
 func WithVolumeOptions(options map[string]string) VolumeCreateOption {
 	return func(volume *Volume) error {
 		if volume.valid {
@@ -1587,13 +1585,6 @@ func WithVolumeOptions(options map[string]string) VolumeCreateOption {
 
 		volume.config.Options = make(map[string]string)
 		for key, value := range options {
-			switch key {
-			case "type", "device", "o", "UID", "GID":
-				volume.config.Options[key] = value
-			default:
-				return errors.Wrapf(define.ErrInvalidArg, "unrecognized volume option %q is not supported with local driver", key)
-			}
-
 			volume.config.Options[key] = value
 		}
 
@@ -1622,19 +1613,6 @@ func WithVolumeGID(gid int) VolumeCreateOption {
 		}
 
 		volume.config.GID = gid
-
-		return nil
-	}
-}
-
-// WithVolumeNeedsChown sets the NeedsChown flag for the volume.
-func WithVolumeNeedsChown() VolumeCreateOption {
-	return func(volume *Volume) error {
-		if volume.valid {
-			return define.ErrVolumeFinalized
-		}
-
-		volume.state.NeedsChown = true
 
 		return nil
 	}

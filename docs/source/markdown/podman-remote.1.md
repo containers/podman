@@ -25,15 +25,15 @@ The `containers.conf` file should be placed under `$HOME/.config/containers/cont
 
 ## GLOBAL OPTIONS
 
-#### **--connection**=*name*, **-c**
+#### **\-\-connection**=*name*, **-c**
 
 Remote connection name
 
-#### **--help**, **-h**
+#### **\-\-help**, **-h**
 
 Print usage statement
 
-#### **--identity**=*path*
+#### **\-\-identity**=*path*
 
 Path to ssh identity file. If the identity file has been encrypted, Podman prompts the user for the passphrase.
 If no identity file is provided and no user is given, Podman defaults to the user running the podman command.
@@ -44,11 +44,11 @@ Identity value resolution precedence:
  - environment variable `CONTAINER_SSHKEY`, if `CONTAINER_HOST` is found
  - `containers.conf`
 
-#### **--log-level**=*level*
+#### **\-\-log-level**=*level*
 
 Log messages above specified level: debug, info, warn, error (default), fatal or panic
 
-#### **--url**=*value*
+#### **\-\-url**=*value*
 
 URL to access Podman service (default from `containers.conf`, rootless "unix://run/user/$UID/podman/podman.sock" or as root "unix://run/podman/podman.sock).
 
@@ -67,7 +67,7 @@ URL value resolution precedence:
  - `containers.conf`
  - `unix://run/podman/podman.sock`
 
-#### **--version**
+#### **\-\-version**
 
 Print the version
 

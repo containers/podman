@@ -65,16 +65,16 @@ Images are stored in local image storage.
 
 ## OPTIONS
 
-#### **--all-tags**, **a**
+#### **\-\-all-tags**, **a**
 
 All tagged images in the repository will be pulled.
 
 Note: When using the all-tags flag, Podman will not iterate over the search registries in the containers-registries.conf(5) but will always use docker.io for unqualified image names.
 
-#### **--arch**=*ARCH*
+#### **\-\-arch**=*ARCH*
 Override the architecture, defaults to hosts, of the image to be pulled. For example, `arm`.
 
-#### **--authfile**=*path*
+#### **\-\-authfile**=*path*
 
 Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
 If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.
@@ -82,46 +82,46 @@ If the authorization state is not found there, $HOME/.docker/config.json is chec
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
 environment variable. `export REGISTRY_AUTH_FILE=path`
 
-#### **--cert-dir**=*path*
+#### **\-\-cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
 Default certificates directory is _/etc/containers/certs.d_. (This option is not available with the remote Podman client)
 
-#### **--creds**=*[username[:password]]*
+#### **\-\-creds**=*[username[:password]]*
 
 The [username[:password]] to use to authenticate with the registry if required.
 If one or both values are not supplied, a command line prompt will appear and the
 value can be entered.  The password is entered without echo.
 
-#### **--disable-content-trust**
+#### **\-\-disable-content-trust**
 
 This is a Docker specific option to disable image verification to a Docker
 registry and is not supported by Podman.  This flag is a NOOP and provided
 solely for scripting compatibility.
 
-#### **--help**, **-h**
+#### **\-\-help**, **-h**
 
 Print usage statement
 
-#### **--os**=*OS*
+#### **\-\-os**=*OS*
 Override the OS, defaults to hosts, of the image to be pulled. For example, `windows`.
 
-#### **--platform**=*OS/ARCH*
+#### **\-\-platform**=*OS/ARCH*
 
 Specify the platform for selecting the image.  (Conflicts with --arch and --os)
 The `--platform` option can be used to override the current architecture and operating system.
 
-#### **--quiet**, **-q**
+#### **\-\-quiet**, **-q**
 
 Suppress output information when pulling images
 
-#### **--tls-verify**=*true|false*
+#### **\-\-tls-verify**=*true|false*
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
 then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,
 TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf.
 
-#### **--variant**=*VARIANT*
+#### **\-\-variant**=*VARIANT*
 
 Use _VARIANT_ instead of the default architecture variant of the container image.  Some images can use multiple variants of the arm architectures, such as arm/v5 and arm/v7.
 

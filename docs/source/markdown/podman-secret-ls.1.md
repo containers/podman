@@ -8,11 +8,11 @@ podman\-secret\-ls - List all available secrets
 
 ## DESCRIPTION
 
-Lists all the secrets that exist. The output can be formatted to a Go template using the **--format** option.
+Lists all the secrets that exist. The output can be formatted to a Go template using the **\-\-format** option.
 
 ## OPTIONS
 
-#### **--format**=*format*
+#### **\-\-format**=*format*
 
 Format secret output using Go template.
 

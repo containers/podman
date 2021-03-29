@@ -607,10 +607,16 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	availableUIDs, availableGIDs, err := rootless.GetAvailableIDMaps()
 	if err != nil {
-		return nil, err
+		if os.IsNotExist(err) {
+			// The kernel-provided files only exist if user namespaces are supported
+			logrus.Debugf("user or group ID mappings not available: %s", err)
+		} else {
+			return nil, err
+		}
+	} else {
+		g.Config.Linux.UIDMappings = rootless.MaybeSplitMappings(g.Config.Linux.UIDMappings, availableUIDs)
+		g.Config.Linux.GIDMappings = rootless.MaybeSplitMappings(g.Config.Linux.GIDMappings, availableGIDs)
 	}
-	g.Config.Linux.UIDMappings = rootless.MaybeSplitMappings(g.Config.Linux.UIDMappings, availableUIDs)
-	g.Config.Linux.GIDMappings = rootless.MaybeSplitMappings(g.Config.Linux.GIDMappings, availableGIDs)
 
 	// Hostname handling:
 	// If we have a UTS namespace, set Hostname in the OCI spec.
@@ -1503,16 +1509,24 @@ func (c *Container) makeBindMounts() error {
 	}
 
 	// Make /etc/localtime
-	if c.Timezone() != "" {
+	ctrTimezone := c.Timezone()
+	if ctrTimezone != "" {
+		// validate the format of the timezone specified if it's not "local"
+		if ctrTimezone != "local" {
+			_, err = time.LoadLocation(ctrTimezone)
+			if err != nil {
+				return errors.Wrapf(err, "error finding timezone for container %s", c.ID())
+			}
+		}
 		if _, ok := c.state.BindMounts["/etc/localtime"]; !ok {
 			var zonePath string
-			if c.Timezone() == "local" {
+			if ctrTimezone == "local" {
 				zonePath, err = filepath.EvalSymlinks("/etc/localtime")
 				if err != nil {
 					return errors.Wrapf(err, "error finding local timezone for container %s", c.ID())
 				}
 			} else {
-				zone := filepath.Join("/usr/share/zoneinfo", c.Timezone())
+				zone := filepath.Join("/usr/share/zoneinfo", ctrTimezone)
 				zonePath, err = filepath.EvalSymlinks(zone)
 				if err != nil {
 					return errors.Wrapf(err, "error setting timezone for container %s", c.ID())

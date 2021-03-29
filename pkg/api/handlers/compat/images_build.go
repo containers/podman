@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/containers/buildah"
+	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/buildah/util"
 	"github.com/containers/image/v5/types"
@@ -69,7 +70,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		BuildArgs              string `schema:"buildargs"`
 		CacheFrom              string `schema:"cachefrom"`
 		Compression            uint64 `schema:"compression"`
-		ConfigureNetwork       int64  `schema:"networkmode"`
+		ConfigureNetwork       string `schema:"networkmode"`
 		CpuPeriod              uint64 `schema:"cpuperiod"`  // nolint
 		CpuQuota               int64  `schema:"cpuquota"`   // nolint
 		CpuSetCpus             string `schema:"cpusetcpus"` // nolint
@@ -84,7 +85,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		ForceRm                bool   `schema:"forcerm"`
 		From                   string `schema:"from"`
 		HTTPProxy              bool   `schema:"httpproxy"`
-		Isolation              int64  `schema:"isolation"`
+		Isolation              string `schema:"isolation"`
 		Ignore                 bool   `schema:"ignore"`
 		Jobs                   int    `schema:"jobs"` // nolint
 		Labels                 string `schema:"labels"`
@@ -98,6 +99,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		OutputFormat           string `schema:"outputformat"`
 		Platform               string `schema:"platform"`
 		Pull                   bool   `schema:"pull"`
+		PullPolicy             string `schema:"pullpolicy"`
 		Quiet                  bool   `schema:"q"`
 		Registry               string `schema:"registry"`
 		Rm                     bool   `schema:"rm"`
@@ -199,15 +201,17 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	}
 	format := buildah.Dockerv2ImageManifest
 	registry := query.Registry
-	isolation := buildah.IsolationChroot
-	/*
-		// FIXME, This is very broken.  Buildah will only work with chroot
-		isolation := buildah.IsolationDefault
-	*/
+	isolation := buildah.IsolationDefault
 	if utils.IsLibpodRequest(r) {
-		//		isolation = buildah.Isolation(query.Isolation)
+		isolation = parseLibPodIsolation(query.Isolation)
 		registry = ""
 		format = query.OutputFormat
+	} else {
+		if _, found := r.URL.Query()["isolation"]; found {
+			if query.Isolation != "" && query.Isolation != "default" {
+				logrus.Debugf("invalid `isolation` parameter: %q", query.Isolation)
+			}
+		}
 	}
 	var additionalTags []string
 	if len(query.Tag) > 1 {
@@ -273,10 +277,14 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		jobs = query.Jobs
 	}
 
-	pullPolicy := buildah.PullIfMissing
-	if _, found := r.URL.Query()["pull"]; found {
-		if query.Pull {
-			pullPolicy = buildah.PullAlways
+	pullPolicy := define.PullIfMissing
+	if utils.IsLibpodRequest(r) {
+		pullPolicy = define.PolicyMap[query.PullPolicy]
+	} else {
+		if _, found := r.URL.Query()["pull"]; found {
+			if query.Pull {
+				pullPolicy = define.PullAlways
+			}
 		}
 	}
 
@@ -329,7 +337,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		CNIConfigDir:                   rtc.Network.CNIPluginDirs[0],
 		CNIPluginPath:                  util.DefaultCNIPluginPath,
 		Compression:                    compression,
-		ConfigureNetwork:               buildah.NetworkConfigurationPolicy(query.ConfigureNetwork),
+		ConfigureNetwork:               parseNetworkConfigurationPolicy(query.ConfigureNetwork),
 		ContextDirectory:               contextDirectory,
 		Devices:                        devices,
 		DropCapabilities:               dropCaps,
@@ -456,6 +464,40 @@ loop:
 			}
 			break loop
 		}
+	}
+}
+
+func parseNetworkConfigurationPolicy(network string) buildah.NetworkConfigurationPolicy {
+	if val, err := strconv.Atoi(network); err == nil {
+		return buildah.NetworkConfigurationPolicy(val)
+	}
+	switch network {
+	case "NetworkDefault":
+		return buildah.NetworkDefault
+	case "NetworkDisabled":
+		return buildah.NetworkDisabled
+	case "NetworkEnabled":
+		return buildah.NetworkEnabled
+	default:
+		return buildah.NetworkDefault
+	}
+}
+
+func parseLibPodIsolation(isolation string) buildah.Isolation { // nolint
+	if val, err := strconv.Atoi(isolation); err == nil {
+		return buildah.Isolation(val)
+	}
+	switch isolation {
+	case "IsolationDefault", "default":
+		return buildah.IsolationDefault
+	case "IsolationOCI":
+		return buildah.IsolationOCI
+	case "IsolationChroot":
+		return buildah.IsolationChroot
+	case "IsolationOCIRootless":
+		return buildah.IsolationOCIRootless
+	default:
+		return buildah.IsolationDefault
 	}
 }
 

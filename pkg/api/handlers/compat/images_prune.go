@@ -8,8 +8,8 @@ import (
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/api/handlers"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/docker/docker/api/types"
-	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
 
@@ -17,27 +17,20 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 	var (
 		filters []string
 	)
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
-	query := struct {
-		All     bool
-		Filters map[string][]string `schema:"filters"`
-	}{
-		// This is where you can override the golang default value for one of fields
-	}
-
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+	filterMap, err := util.PrepareFilters(r)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
-	for k, v := range query.Filters {
+	for k, v := range *filterMap {
 		for _, val := range v {
 			filters = append(filters, fmt.Sprintf("%s=%s", k, val))
 		}
 	}
-	imagePruneReports, err := runtime.ImageRuntime().PruneImages(r.Context(), query.All, filters)
+	imagePruneReports, err := runtime.ImageRuntime().PruneImages(r.Context(), false, filters)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return

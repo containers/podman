@@ -10,24 +10,24 @@ podman\-volume\-create - Create a new volume
 
 Creates an empty volume and prepares it to be used by containers. The volume
 can be created with a specific name, if a name is not given a random name is
-generated. You can add metadata to the volume by using the **--label** flag and
-driver options can be set using the **--opt** flag.
+generated. You can add metadata to the volume by using the **\-\-label** flag and
+driver options can be set using the **\-\-opt** flag.
 
 ## OPTIONS
 
-#### **--driver**=*driver*
+#### **\-\-driver**=*driver*
 
 Specify the volume driver name (default **local**). Setting this to a value other than **local** Podman will attempt to create the volume using a volume plugin with the given name. Such plugins must be defined in the **volume_plugins** section of the **containers.conf**(5) configuration file.
 
-#### **--help**
+#### **\-\-help**
 
 Print usage statement
 
-#### **--label**=*label*, **-l**
+#### **\-\-label**=*label*, **-l**
 
 Set metadata for a volume (e.g., --label mykey=value).
 
-#### **--opt**=*option*, **-o**
+#### **\-\-opt**=*option*, **-o**
 
 Set driver specific options.
 For the default driver, **local**, this allows a volume to be configured to mount a filesystem on the host.
