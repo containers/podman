@@ -22,14 +22,6 @@ import (
 	"golang.org/x/crypto/ssh/agent"
 )
 
-var (
-	BasePath = &url.URL{
-		Scheme: "http",
-		Host:   "d",
-		Path:   "/v" + version.APIVersion[version.Libpod][version.CurrentAPI].String() + "/libpod",
-	}
-)
-
 type APIResponse struct {
 	*http.Response
 	Request *http.Request
@@ -318,16 +310,24 @@ func (c *Connection) DoRequest(httpBody io.Reader, httpMethod, endpoint string, 
 		err      error
 		response *http.Response
 	)
-	safePathValues := make([]interface{}, len(pathValues))
-	// Make sure path values are http url safe
+
+	params := make([]interface{}, len(pathValues)+3)
+
+	// Including the semver suffices breaks older services... so do not include them
+	v := version.APIVersion[version.Libpod][version.CurrentAPI]
+	params[0] = v.Major
+	params[1] = v.Minor
+	params[2] = v.Patch
 	for i, pv := range pathValues {
-		safePathValues[i] = url.PathEscape(pv)
+		// url.URL lacks the semantics for escaping embedded path parameters... so we manually
+		//   escape each one and assume the caller included the correct formatting in "endpoint"
+		params[i+3] = url.PathEscape(pv)
 	}
-	// Lets eventually use URL for this which might lead to safer
-	// usage
-	safeEndpoint := fmt.Sprintf(endpoint, safePathValues...)
-	e := BasePath.String() + safeEndpoint
-	req, err := http.NewRequest(httpMethod, e, httpBody)
+
+	uri := fmt.Sprintf("http://d/v%d.%d.%d/libpod"+endpoint, params...)
+	logrus.Debugf("DoRequest Method: %s URI: %v", httpMethod, uri)
+
+	req, err := http.NewRequest(httpMethod, uri, httpBody)
 	if err != nil {
 		return nil, err
 	}
