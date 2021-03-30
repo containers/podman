@@ -34,7 +34,7 @@ func getFCOSDownload() (*fcosDownloadInfo, error) {
 		return nil, err
 	}
 	return &fcosDownloadInfo{
-		Location:  "https://fedorapeople.org/groups/fcos-images/builds/latest/aarch64/fedora-coreos-33.20210310.dev.0-qemu.aarch64.qcow2",
+		Location:  aarchBaseURL + "/" + meta.BuildArtifacts.Qemu.Path,
 		Release:   "",
 		Sha256Sum: meta.BuildArtifacts.Qemu.Sha256,
 	}, nil
