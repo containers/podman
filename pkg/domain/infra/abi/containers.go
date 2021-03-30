@@ -194,7 +194,7 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 func (ic *ContainerEngine) ContainerPrune(ctx context.Context, options entities.ContainerPruneOptions) ([]*reports.PruneReport, error) {
 	filterFuncs := make([]libpod.ContainerFilter, 0, len(options.Filters))
 	for k, v := range options.Filters {
-		generatedFunc, err := dfilters.GenerateContainerFilterFuncs(k, v, ic.Libpod)
+		generatedFunc, err := dfilters.GeneratePruneContainerFilterFuncs(k, v, ic.Libpod)
 		if err != nil {
 			return nil, err
 		}
