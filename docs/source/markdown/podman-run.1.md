@@ -744,7 +744,7 @@ If a container is run within a pod, and the pod has an infra-container, the infr
 #### **\-\-preserve-fds**=*N*
 
 Pass down to the process N additional file descriptors (in addition to 0, 1, 2).
-The total FDs will be 3+N.
+The total FDs will be 3+N. (This option is not available with the remote Podman client)
 
 #### **\-\-privileged**=**true**|**false**
 
@@ -1104,7 +1104,7 @@ Create a bind mount. If you specify _/HOST-DIR_:_/CONTAINER-DIR_, Podman
 bind mounts _host-dir_ in the host to _CONTAINER-DIR_ in the Podman
 container. Similarly, _SOURCE-VOLUME_:_/CONTAINER-DIR_ will mount the volume
 in the host to the container. If no such named volume exists, Podman will
-create one.
+create one. (Note when using the remote client, the volumes will be mounted from the remote server, not necessarly the client machine.)
 
 The _options_ is a comma delimited list and can be: <sup>[[1]](#Footnote1)</sup>
 

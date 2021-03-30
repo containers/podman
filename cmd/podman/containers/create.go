@@ -63,11 +63,6 @@ func createFlags(cmd *cobra.Command) {
 	common.DefineNetFlags(cmd)
 
 	flags.SetNormalizeFunc(utils.AliasFlags)
-
-	_ = flags.MarkHidden("signature-policy")
-	if registry.IsRemote() {
-		_ = flags.MarkHidden("http-proxy")
-	}
 }
 
 func init() {
