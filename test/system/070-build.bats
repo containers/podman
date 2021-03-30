@@ -712,6 +712,46 @@ EOF
     run_podman rmi -f build_test
 }
 
+@test "podman build check_label" {
+    skip_if_no_selinux
+    tmpdir=$PODMAN_TMPDIR/build-test
+    mkdir -p $tmpdir
+    tmpbuilddir=$tmpdir/build
+    mkdir -p $tmpbuilddir
+    dockerfile=$tmpbuilddir/Dockerfile
+    cat >$dockerfile <<EOF
+FROM $IMAGE
+RUN cat /proc/self/attr/current
+EOF
+
+    run_podman build -t build_test --security-opt label=level:s0:c3,c4 --format=docker $tmpbuilddir
+    is "$output" ".*s0:c3,c4STEP 3: COMMIT" "label setting level"
+
+    run_podman rmi -f build_test
+}
+
+@test "podman build check_seccomp_ulimits" {
+    tmpdir=$PODMAN_TMPDIR/build-test
+    mkdir -p $tmpdir
+    tmpbuilddir=$tmpdir/build
+    mkdir -p $tmpbuilddir
+    dockerfile=$tmpbuilddir/Dockerfile
+    cat >$dockerfile <<EOF
+FROM $IMAGE
+RUN grep Seccomp: /proc/self/status |awk '{ print \$1\$2 }'
+RUN grep "Max open files" /proc/self/limits |awk '{ print \$4":"\$5 }'
+EOF
+
+    run_podman build --ulimit nofile=101:102 -t build_test $tmpbuilddir
+    is "$output" ".*Seccomp:2" "setting seccomp"
+    is "$output" ".*101:102" "setting ulimits"
+    run_podman rmi -f build_test
+
+    run_podman build -t build_test --security-opt seccomp=unconfined $tmpbuilddir
+    is "$output" ".*Seccomp:0" "setting seccomp"
+    run_podman rmi -f build_test
+}
+
 function teardown() {
     # A timeout or other error in 'build' can leave behind stale images
     # that podman can't even see and which will cascade into subsequent

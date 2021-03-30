@@ -120,6 +120,9 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	if options.ForceRmIntermediateCtrs {
 		params.Set("forcerm", "1")
 	}
+	if options.RemoveIntermediateCtrs {
+		params.Set("rm", "1")
+	}
 	if len(options.From) > 0 {
 		params.Set("from", options.From)
 	}
@@ -140,6 +143,23 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		}
 		params.Set("labels", l)
 	}
+
+	if opt := options.CommonBuildOpts.LabelOpts; len(opt) > 0 {
+		o, err := jsoniter.MarshalToString(opt)
+		if err != nil {
+			return nil, err
+		}
+		params.Set("labelopts", o)
+	}
+
+	if len(options.CommonBuildOpts.SeccompProfilePath) > 0 {
+		params.Set("seccomp", options.CommonBuildOpts.SeccompProfilePath)
+	}
+
+	if len(options.CommonBuildOpts.ApparmorProfile) > 0 {
+		params.Set("apparmor", options.CommonBuildOpts.ApparmorProfile)
+	}
+
 	if options.Layers {
 		params.Set("layers", "1")
 	}
@@ -174,6 +194,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	if len(platform) > 0 {
 		params.Set("platform", platform)
 	}
+
 	params.Set("pullpolicy", options.PullPolicy.String())
 
 	if options.Quiet {
@@ -182,6 +203,10 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	if options.RemoveIntermediateCtrs {
 		params.Set("rm", "1")
 	}
+	if len(options.Target) > 0 {
+		params.Set("target", options.Target)
+	}
+
 	if hosts := options.CommonBuildOpts.AddHost; len(hosts) > 0 {
 		h, err := jsoniter.MarshalToString(hosts)
 		if err != nil {
@@ -212,6 +237,13 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		params.Set("timestamp", strconv.FormatInt(t.Unix(), 10))
 	}
 
+	if len(options.CommonBuildOpts.Ulimit) > 0 {
+		ulimitsJSON, err := json.Marshal(options.CommonBuildOpts.Ulimit)
+		if err != nil {
+			return nil, err
+		}
+		params.Set("ulimits", string(ulimitsJSON))
+	}
 	var (
 		headers map[string]string
 		err     error
