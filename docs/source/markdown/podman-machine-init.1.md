@@ -28,7 +28,12 @@ Size of the disk for the guest VM in GB.
 
 #### **\-\-ignition-path**
 
-Fully qualified path of the ignition file
+Fully qualified path of the ignition file.
+
+If an ignition file is provided, the file
+will be copied into the user's CONF_DIR and renamed.  Additionally, no SSH keys will
+be generated nor will a system connection be made.  It is assumed that the user will
+do these things manually or handle otherwise.
 
 #### **\-\-image-path**
 
