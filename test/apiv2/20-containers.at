@@ -298,13 +298,29 @@ t POST containers/prune?filters='garb1age}' 500 \
 t POST libpod/containers/prune?filters='garb1age}' 500 \
     .cause="invalid character 'g' looking for beginning of value"
 
-## Prune containers with illformed label
+# Prune containers with illformed label
 t POST containers/prune?filters='{"label":["tes' 500 \
     .cause="unexpected end of JSON input"
 t POST libpod/containers/prune?filters='{"label":["tes' 500 \
     .cause="unexpected end of JSON input"
 
 t GET libpod/containers/json?filters='{"label":["testlabel"]}' 200 length=0
+
+# libpod api: do not use list filters for prune
+t POST libpod/containers/prune?filters='{"name":["anyname"]}' 500 \
+    .cause="name is an invalid filter"
+t POST libpod/containers/prune?filters='{"id":["anyid"]}' 500 \
+    .cause="id is an invalid filter"
+t POST libpod/containers/prune?filters='{"network":["anynetwork"]}' 500 \
+    .cause="network is an invalid filter"
+
+# compat api: do not use list filters for prune
+t POST containers/prune?filters='{"name":["anyname"]}' 500 \
+    .cause="name is an invalid filter"
+t POST containers/prune?filters='{"id":["anyid"]}' 500 \
+    .cause="id is an invalid filter"
+t POST containers/prune?filters='{"network":["anynetwork"]}' 500 \
+    .cause="network is an invalid filter"
 
 # Test CPU limit (NanoCPUs)
 t POST containers/create Image=$IMAGE HostConfig='{"NanoCpus":500000}' 201 \
