@@ -765,11 +765,15 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 	)
 	_ = cmd.RegisterFlagCompletionFunc(mountFlagName, AutocompleteMountFlag)
 
+	volumeDesciption := "Bind mount a volume into the container"
+	if registry.IsRemote() {
+		volumeDesciption = "Bind mount a volume into the container. Volume src will be on the server machine, not the client"
+	}
 	volumeFlagName := "volume"
 	createFlags.StringArrayVarP(
 		&cf.Volume,
 		volumeFlagName, "v", volumes(),
-		"Bind mount a volume into the container",
+		volumeDesciption,
 	)
 	_ = cmd.RegisterFlagCompletionFunc(volumeFlagName, AutocompleteVolumeFlag)
 
@@ -804,4 +808,10 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 		"Configure cgroup v2 (key=value)",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(cgroupConfFlagName, completion.AutocompleteNone)
+
+	_ = createFlags.MarkHidden("signature-policy")
+	if registry.IsRemote() {
+		_ = createFlags.MarkHidden("env-host")
+		_ = createFlags.MarkHidden("http-proxy")
+	}
 }
