@@ -916,7 +916,8 @@ func (r *Runtime) reloadContainerNetwork(ctr *Container) ([]*cnitypes.Result, er
 		// teardownCNI will error if the iptables rules do not exists and this is the case after
 		// a firewall reload. The purpose of network reload is to recreate the rules if they do
 		// not exists so we should not log this specific error as error. This would confuse users otherwise.
-		b, rerr := regexp.MatchString("Couldn't load target `CNI-[a-f0-9]{24}':No such file or directory", err.Error())
+		// iptables-legacy and iptables-nft will create different errors make sure to match both.
+		b, rerr := regexp.MatchString("Couldn't load target `CNI-[a-f0-9]{24}':No such file or directory|Chain 'CNI-[a-f0-9]{24}' does not exist", err.Error())
 		if rerr == nil && !b {
 			logrus.Error(err)
 		} else {
