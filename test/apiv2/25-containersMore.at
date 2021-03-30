@@ -38,7 +38,8 @@ t GET libpod/containers/foo/json 200 \
 
 # List processes of the container
 t GET libpod/containers/foo/top 200 \
-  length=2
+  length=2 \
+  .Processes[0][7]="top"
 
 # List processes of none such
 t GET libpod/containers/nonesuch/top 404
