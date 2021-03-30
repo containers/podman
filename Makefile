@@ -558,6 +558,9 @@ install.docker-docs-nobuild:
 .PHONY: install.docker-docs
 install.docker-docs: docker-docs install.docker-docs-nobuild
 
+.PHONY: install.docker-full
+install.docker-full: install.docker install.docker-docs
+
 .PHONY: install.systemd
 ifneq (,$(findstring systemd,$(BUILDTAGS)))
 install.systemd:
