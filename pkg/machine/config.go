@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/pkg/errors"
@@ -42,6 +43,16 @@ type Download struct {
 	Sha256sum             string
 	URL                   *url.URL
 	VMName                string
+}
+
+type ListOptions struct{}
+
+type ListResponse struct {
+	Name      string
+	CreatedAt time.Time
+	LastUp    time.Time
+	Running   bool
+	VMType    string
 }
 
 type SSHOptions struct {

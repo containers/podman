@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/containers/podman/v3/pkg/machine"
@@ -425,4 +426,53 @@ func getDiskSize(path string) (uint64, error) {
 		return 0, err
 	}
 	return tmpInfo.VirtualSize, nil
+}
+
+// List lists all vm's that use qemu virtualization
+func List(opts machine.ListOptions) ([]*machine.ListResponse, error) {
+	vmConfigDir, err := machine.GetConfDir(vmtype)
+	if err != nil {
+		return nil, err
+	}
+
+	var listed []*machine.ListResponse
+
+	if err = filepath.Walk(vmConfigDir, func(path string, info os.FileInfo, err error) error {
+		vm := new(MachineVM)
+		if strings.HasSuffix(info.Name(), ".json") {
+			fullPath := filepath.Join(vmConfigDir, info.Name())
+			b, err := ioutil.ReadFile(fullPath)
+			if err != nil {
+				return err
+			}
+			err = json.Unmarshal(b, vm)
+			if err != nil {
+				return err
+			}
+			listEntry := new(machine.ListResponse)
+
+			listEntry.Name = vm.Name
+			listEntry.VMType = "qemu"
+			fi, err := os.Stat(fullPath)
+			if err != nil {
+				return err
+			}
+			listEntry.CreatedAt = fi.ModTime()
+
+			fi, err = os.Stat(vm.ImagePath)
+			if err != nil {
+				return err
+			}
+			listEntry.LastUp = fi.ModTime()
+			if vm.isRunning() {
+				listEntry.Running = true
+			}
+
+			listed = append(listed, listEntry)
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return listed, err
 }
