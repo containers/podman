@@ -2,6 +2,7 @@ package integration
 
 import (
 	"os"
+	"os/exec"
 
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -93,5 +94,23 @@ var _ = Describe("Podman run device", func() {
 		session := podmanTest.Podman([]string{"run", "--privileged", ALPINE, "ls", "/dev/kvm"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman run CDI device test", func() {
+		SkipIfRootless("Rootless will not be able to create files/folders in /etc")
+		cdiDir := "/etc/cdi"
+		if _, err := os.Stat(cdiDir); os.IsNotExist(err) {
+			Expect(os.MkdirAll(cdiDir, os.ModePerm)).To(BeNil())
+		}
+		defer os.RemoveAll(cdiDir)
+
+		cmd := exec.Command("cp", "cdi/device.json", cdiDir)
+		err = cmd.Run()
+		Expect(err).To(BeNil())
+
+		session := podmanTest.Podman([]string{"run", "-q", "--security-opt", "label=disable", "--device", "myKmsg", ALPINE, "ls", "--color=never", "/dev/kmsg1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal("/dev/kmsg1"))
 	})
 })

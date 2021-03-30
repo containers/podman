@@ -20,6 +20,7 @@ import (
 	"time"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
+	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg"
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/buildah/pkg/chrootuser"
@@ -703,6 +704,13 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		return nil, err
 	}
 	g.SetLinuxCgroupsPath(cgroupPath)
+
+	// Warning: CDI may alter g.Config in place.
+	if len(c.config.CDIDevices) > 0 {
+		if err = cdi.UpdateOCISpecForDevices(g.Config, c.config.CDIDevices); err != nil {
+			return nil, errors.Wrapf(err, "error setting up CDI devices")
+		}
+	}
 
 	// Mounts need to be sorted so paths will not cover other paths
 	mounts := sortMounts(g.Mounts())

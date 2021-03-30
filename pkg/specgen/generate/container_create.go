@@ -6,12 +6,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage/types"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -136,11 +138,42 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		options = append(options, libpod.WithNetworkAliases(s.Aliases))
 	}
 
+	if len(s.Devices) > 0 {
+		opts = extractCDIDevices(s)
+		options = append(options, opts...)
+	}
+
 	runtimeSpec, err := SpecGenToOCI(ctx, s, rt, rtc, newImage, finalMounts, pod, command)
 	if err != nil {
 		return nil, err
 	}
 	return rt.NewContainer(ctx, runtimeSpec, options...)
+}
+
+func extractCDIDevices(s *specgen.SpecGenerator) []libpod.CtrCreateOption {
+	devs := make([]spec.LinuxDevice, 0, len(s.Devices))
+	var cdiDevs []string
+	var options []libpod.CtrCreateOption
+
+	for _, device := range s.Devices {
+		isCDIDevice, err := cdi.HasDevice(device.Path)
+		if err != nil {
+			logrus.Debugf("CDI HasDevice Error: %v", err)
+		}
+		if err == nil && isCDIDevice {
+			cdiDevs = append(cdiDevs, device.Path)
+			continue
+		}
+
+		devs = append(devs, device)
+	}
+
+	s.Devices = devs
+	if len(cdiDevs) > 0 {
+		options = append(options, libpod.WithCDI(cdiDevs))
+	}
+
+	return options
 }
 
 func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGenerator, pod *libpod.Pod, volumes []*specgen.NamedVolume, overlays []*specgen.OverlayVolume, img *image.Image, command []string) ([]libpod.CtrCreateOption, error) {

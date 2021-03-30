@@ -366,4 +366,6 @@ type ContainerMiscConfig struct {
 	Umask string `json:"umask,omitempty"`
 	// PidFile is the file that saves the pid of the container process
 	PidFile string `json:"pid_file,omitempty"`
+	// CDIDevices contains devices that use the CDI
+	CDIDevices []string `json:"cdiDevices,omitempty"`
 }
