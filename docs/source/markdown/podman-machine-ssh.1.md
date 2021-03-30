@@ -4,21 +4,18 @@
 podman\-machine\-ssh - SSH into a virtual machine
 
 ## SYNOPSIS
-**podman machine ssh** [*options*] [*name*] [*command* [*arg* ...]]
+**podman machine ssh** [*name*] [*command* [*arg* ...]]
 
 ## DESCRIPTION
 
-SSH into a Podman-managed virtual machine.
+SSH into a Podman-managed virtual machine and optionally execute a command
+on the virtual machine.  Unless using the default virtual machine, the
+first argument must be the virtual machine name. The optional command to
+execute can then follow. If no command is provided, an interactive session
+with the virtual machine is established.
 
-Podman on MacOS requires a virtual machine. This is because containers are Linux -
-containers do not run on any other OS because containers' core functionality are
-tied to the Linux kernel.
 
 ## OPTIONS
-
-#### **\-\-execute**, **-e**
-
-Execute the given command on the VM
 
 #### **\-\-help**
 
@@ -26,14 +23,25 @@ Print usage statement.
 
 ## EXAMPLES
 
+To get an interactive session with the default virtual machine:
+
+```
+$ podman machine ssh
+```
+
 To get an interactive session with a VM called `myvm`:
 ```
 $ podman machine ssh myvm
 ```
 
+To run a command on the default virtual machine:
+```
+$ podman machine ssh rpm -q podman
+```
+
 To run a command on a VM called `myvm`:
 ```
-$ podman machine ssh -e myvm -- rpm -q podman
+$ podman machine ssh  myvm rpm -q podman
 ```
 
 ## SEE ALSO
