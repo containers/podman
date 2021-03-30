@@ -191,5 +191,33 @@ function check_label() {
     is "$output" "Error.*: \`/proc/thread-self/attr/exec\`: OCI runtime error: unable to assign security attribute" "useful diagnostic"
 }
 
+@test "podman selinux: check relabel" {
+    skip_if_no_selinux
+
+    LABEL="system_u:object_r:tmp_t:s0"
+    tmpdir=$PODMAN_TMPDIR/vol
+    touch $tmpdir
+    chcon -vR ${LABEL} $tmpdir
+    ls -Z $tmpdir
+
+    run_podman run -v $tmpdir:/test $IMAGE cat /proc/self/attr/current
+    level=$(secon -l $output)
+    run ls -dZ ${tmpdir}
+    is "$output" ${LABEL} "No Relabel Correctly"
+
+    run_podman run -v $tmpdir:/test:Z --security-opt label=disable $IMAGE cat /proc/self/attr/current
+    level=$(secon -l $output)
+    run ls -dZ $tmpdir
+    is "$output" ${LABEL} "No Privileged Relabel Correctly"
+
+    run_podman run -v $tmpdir:/test:Z $IMAGE cat /proc/self/attr/current
+    level=$(secon -l $output)
+    run ls -dZ $tmpdir
+    is "$output" "system_u:object_r:container_file_t:$level" "Confined Relabel Correctly"
+
+    run_podman run -v $tmpdir:/test:z $IMAGE cat /proc/self/attr/current
+    run ls -dZ $tmpdir
+    is "$output" "system_u:object_r:container_file_t:s0" "Shared Relabel Correctly"
+}
 
 # vim: filetype=sh
