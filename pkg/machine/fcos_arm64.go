@@ -2,9 +2,9 @@ package machine
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
+	url2 "net/url"
 
 	"github.com/sirupsen/logrus"
 )
@@ -14,9 +14,7 @@ const aarchBaseURL = "https://fedorapeople.org/groups/fcos-images/builds/latest/
 // Total hack until automation is possible.
 // We need a proper json file at least to automate
 func getFCOSDownload() (*fcosDownloadInfo, error) {
-
 	meta := Build{}
-	fmt.Println(aarchBaseURL + "meta.json")
 	resp, err := http.Get(aarchBaseURL + "meta.json")
 	if err != nil {
 		return nil, err
@@ -33,8 +31,18 @@ func getFCOSDownload() (*fcosDownloadInfo, error) {
 	if err := json.Unmarshal(body, &meta); err != nil {
 		return nil, err
 	}
+	pathURL, err := url2.Parse(meta.BuildArtifacts.Qemu.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	baseURL, err := url2.Parse(aarchBaseURL)
+	if err != nil {
+		return nil, err
+	}
+	pullURL := baseURL.ResolveReference(pathURL)
 	return &fcosDownloadInfo{
-		Location:  aarchBaseURL + "/" + meta.BuildArtifacts.Qemu.Path,
+		Location:  pullURL.String(),
 		Release:   "",
 		Sha256Sum: meta.BuildArtifacts.Qemu.Sha256,
 	}, nil
