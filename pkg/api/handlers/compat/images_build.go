@@ -349,6 +349,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Jobs:                           &jobs,
 		Labels:                         labels,
 		Layers:                         query.Layers,
+		LogRusage:                      query.LogRusage,
 		Manifest:                       query.Manifest,
 		MaxPullPushRetries:             3,
 		NamespaceOptions:               nsoptions,
