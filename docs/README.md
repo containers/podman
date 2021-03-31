@@ -52,3 +52,19 @@ likely caused by broken metadata needed to protect clients from cross-site-scrip
 style attacks.  Please [notify a maintainer](https://github.com/containers/podman#communications)
 so they may investigate how/why the `swagger.yaml` file's CORS-metadata is
 incorrect, or the file isn't accessible for some other reason.
+
+## Local Testing
+
+Assuming that you have the [dependencies](https://podman.io/getting-started/installation#build-and-run-dependencies)
+installed, then also install (showing Fedora in the example):
+
+```
+# dnf install python3-sphinx python3-recommonmark
+# pip install sphinx-markdown-tables
+```
+After that completes, cd to the `docs` directory in your Podman sandbox and then do `make html`.
+
+You can then preview the html files in `docs/build/html` with:
+```
+python -m http.server 8000 --directory build/html
+```
