@@ -288,18 +288,6 @@ dotest() {
         exec_container  # does not return
     fi;
 
-    # shellcheck disable=SC2154
-    if [[ "$PRIV_NAME" == "rootless" ]] && [[ "$UID" -eq 0 ]]; then
-        req_env_vars ROOTLESS_USER
-        msg "Re-executing runner through ssh as user '$ROOTLESS_USER'"
-        msg "************************************************************"
-        set -x
-        exec ssh $ROOTLESS_USER@localhost \
-                -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
-                -o CheckHostIP=no $GOSRC/$SCRIPT_BASE/runner.sh
-        # does not return
-    fi
-
     # containers/automation sets this to 0 for its dbg() function
     # but the e2e integration tests are also sensitive to it.
     unset DEBUG
@@ -339,6 +327,19 @@ msg "************************************************************"
 
 ((${SETUP_ENVIRONMENT:-0})) || \
     die "Expecting setup_environment.sh to have completed successfully"
+
+# shellcheck disable=SC2154
+if [[ "$PRIV_NAME" == "rootless" ]] && [[ "$UID" -eq 0 ]]; then
+    req_env_vars ROOTLESS_USER
+    msg "Re-executing runner through ssh as user '$ROOTLESS_USER'"
+    msg "************************************************************"
+    set -x
+    exec ssh $ROOTLESS_USER@localhost \
+            -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
+            -o CheckHostIP=no $GOSRC/$SCRIPT_BASE/runner.sh
+    # Does not return!
+fi
+# else: not running rootless, do nothing special
 
 cd "${GOSRC}/"
 

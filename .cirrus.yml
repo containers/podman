@@ -440,7 +440,7 @@ apiv2_test_task:
         time_script: '$SCRIPT_BASE/logcollector.sh time'
 
 compose_test_task:
-    name: "compose test on $DISTRO_NV"
+    name: "compose test on $DISTRO_NV ($PRIV_NAME)"
     alias: compose_test
     only_if: *not_docs
     skip: *tags
@@ -450,6 +450,11 @@ compose_test_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: compose
+    matrix:
+      - env:
+            PRIV_NAME: root
+      - env:
+            PRIV_NAME: rootless
     clone_script: *noop  # Comes from cache
     gopath_cache: *ro_gopath_cache
     setup_script: *setup
