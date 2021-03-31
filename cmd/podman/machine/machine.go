@@ -3,9 +3,13 @@
 package machine
 
 import (
+	"strings"
+
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/machine"
+	"github.com/containers/podman/v3/pkg/machine/qemu"
 	"github.com/spf13/cobra"
 )
 
@@ -29,4 +33,35 @@ func init() {
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: machineCmd,
 	})
+}
+
+// autocompleteMachineSSH - Autocomplete machine ssh command.
+func autocompleteMachineSSH(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) == 0 {
+		return getMachines(toComplete)
+	}
+	return nil, cobra.ShellCompDirectiveDefault
+}
+
+// autocompleteMachine - Autocomplete machines.
+func autocompleteMachine(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) == 0 {
+		return getMachines(toComplete)
+	}
+	return nil, cobra.ShellCompDirectiveNoFileComp
+}
+
+func getMachines(toComplete string) ([]string, cobra.ShellCompDirective) {
+	suggestions := []string{}
+	machines, err := qemu.List(machine.ListOptions{})
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	for _, m := range machines {
+		if strings.HasPrefix(m.Name, toComplete) {
+			suggestions = append(suggestions, m.Name)
+		}
+	}
+	return suggestions, cobra.ShellCompDirectiveNoFileComp
 }

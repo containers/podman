@@ -3,7 +3,6 @@
 package machine
 
 import (
-	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/machine"
@@ -14,7 +13,7 @@ import (
 
 var (
 	sshCmd = &cobra.Command{
-		Use:   "ssh [options] [NAME] [COMMAND [ARG ...]]",
+		Use:   "ssh [options] [MACHINE] [COMMAND [ARG ...]]",
 		Short: "SSH into a virtual machine",
 		Long:  "SSH into a virtual machine ",
 		RunE:  ssh,
@@ -22,7 +21,7 @@ var (
 		Example: `podman machine ssh myvm
   podman machine ssh -e  myvm echo hello`,
 
-		ValidArgsFunction: common.AutocompleteMachineSSH,
+		ValidArgsFunction: autocompleteMachineSSH,
 	}
 )
 

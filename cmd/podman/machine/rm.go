@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/machine"
@@ -18,13 +17,13 @@ import (
 
 var (
 	rmCmd = &cobra.Command{
-		Use:               "rm [options] [NAME]",
+		Use:               "rm [options] [MACHINE]",
 		Short:             "Remove an existing machine",
 		Long:              "Remove an existing machine ",
 		RunE:              rm,
 		Args:              cobra.MaximumNArgs(1),
 		Example:           `podman machine rm myvm`,
-		ValidArgsFunction: completion.AutocompleteNone,
+		ValidArgsFunction: autocompleteMachine,
 	}
 )
 
