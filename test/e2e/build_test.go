@@ -549,4 +549,21 @@ RUN echo hello`, ALPINE)
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.OutputToString()).To(Equal("1970-01-01 00:00:00 +0000 UTC"))
 	})
+
+	It("podman build --log-rusage", func() {
+		targetPath, err := CreateTempDirInTempDir()
+		Expect(err).To(BeNil())
+
+		containerFile := filepath.Join(targetPath, "Containerfile")
+		content := `FROM scratch`
+
+		Expect(ioutil.WriteFile(containerFile, []byte(content), 0755)).To(BeNil())
+
+		session := podmanTest.Podman([]string{"build", "--log-rusage", "--pull-never", targetPath})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("(system)"))
+		Expect(session.OutputToString()).To(ContainSubstring("(user)"))
+		Expect(session.OutputToString()).To(ContainSubstring("(elapsed)"))
+	})
 })
