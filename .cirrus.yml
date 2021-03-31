@@ -539,7 +539,7 @@ rootless_integration_test_task:
     skip: *branches_and_tags
     depends_on:
         - unit_test
-    matrix: *fedora_vm_axis
+    matrix: *platform_axis
     gce_instance: *standardvm
     timeout_in: 90m
     env:
