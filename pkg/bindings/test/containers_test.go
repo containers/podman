@@ -568,15 +568,6 @@ var _ = Describe("Podman containers ", func() {
 		Expect(err).To(BeNil())
 		Expect(len(reports.PruneReportsIds(pruneResponse))).To(Equal(0))
 		Expect(len(reports.PruneReportsErrs(pruneResponse))).To(Equal(0))
-
-		// Valid filter params container should be pruned now.
-		filters := map[string][]string{
-			"until": {"0s"},
-		}
-		pruneResponse, err = containers.Prune(bt.conn, new(containers.PruneOptions).WithFilters(filters))
-		Expect(err).To(BeNil())
-		Expect(len(reports.PruneReportsErrs(pruneResponse))).To(Equal(0))
-		Expect(len(reports.PruneReportsIds(pruneResponse))).To(Equal(1))
 	})
 
 	It("podman prune running containers", func() {
