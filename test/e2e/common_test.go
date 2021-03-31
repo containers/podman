@@ -606,9 +606,8 @@ func SkipIfRootlessCgroupsV1(reason string) {
 }
 
 func SkipIfUnprivilegedCPULimits() {
-	info := GetHostDistributionInfo()
-	if isRootless() && info.Distribution == "fedora" {
-		ginkgo.Skip("Rootless Fedora doesn't have permission to set CPU limits")
+	if isRootless() {
+		ginkgo.Skip("Rootless doesn't have permission to set CPU limits")
 	}
 }
 
