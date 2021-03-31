@@ -37,12 +37,8 @@ func NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	if len(opts.Name) > 0 {
 		vm.Name = opts.Name
 	}
-	vm.IgnitionFilePath = opts.IgnitionPath
-	// If no ignitionfilepath was provided, use defaults
-	if len(vm.IgnitionFilePath) < 1 {
-		ignitionFile := filepath.Join(vmConfigDir, vm.Name+".ign")
-		vm.IgnitionFilePath = ignitionFile
-	}
+	ignitionFile := filepath.Join(vmConfigDir, vm.Name+".ign")
+	vm.IgnitionFilePath = ignitionFile
 
 	// An image was specified
 	if len(opts.ImagePath) > 0 {
@@ -125,6 +121,9 @@ func LoadVMByName(name string) (machine.VM, error) {
 // Init writes the json configuration file to the filesystem for
 // other verbs (start, stop)
 func (v *MachineVM) Init(opts machine.InitOptions) error {
+	var (
+		key string
+	)
 	sshDir := filepath.Join(homedir.Get(), ".ssh")
 	// GetConfDir creates the directory so no need to check for
 	// its existence
@@ -164,9 +163,13 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 	// Add location of bootable image
 	v.CmdLine = append(v.CmdLine, "-drive", "if=virtio,file="+v.ImagePath)
 	// This kind of stinks but no other way around this r/n
-	uri := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/user/1000/podman/podman.sock", strconv.Itoa(v.Port), v.RemoteUsername)
-	if err := machine.AddConnection(&uri, v.Name, filepath.Join(sshDir, v.Name), opts.IsDefault); err != nil {
-		return err
+	if len(opts.IgnitionPath) < 1 {
+		uri := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/user/1000/podman/podman.sock", strconv.Itoa(v.Port), v.RemoteUsername)
+		if err := machine.AddConnection(&uri, v.Name, filepath.Join(sshDir, v.Name), opts.IsDefault); err != nil {
+			return err
+		}
+	} else {
+		fmt.Println("An ignition path was provided.  No SSH connection was added to Podman")
 	}
 	// Write the JSON file
 	b, err := json.MarshalIndent(v, "", " ")
@@ -176,9 +179,14 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 	if err := ioutil.WriteFile(jsonFile, b, 0644); err != nil {
 		return err
 	}
-	key, err := machine.CreateSSHKeys(v.IdentityPath)
-	if err != nil {
-		return err
+
+	// User has provided ignition file so keygen
+	// will be skipped.
+	if len(opts.IgnitionPath) < 1 {
+		key, err = machine.CreateSSHKeys(v.IdentityPath)
+		if err != nil {
+			return err
+		}
 	}
 	// Run arch specific things that need to be done
 	if err := v.prepare(); err != nil {
@@ -199,6 +207,15 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 		if err := resize.Run(); err != nil {
 			return errors.Errorf("error resizing image: %q", err)
 		}
+	}
+	// If the user provides an ignition file, we need to
+	// copy it into the conf dir
+	if len(opts.IgnitionPath) > 0 {
+		inputIgnition, err := ioutil.ReadFile(opts.IgnitionPath)
+		if err != nil {
+			return err
+		}
+		return ioutil.WriteFile(v.IgnitionFilePath, inputIgnition, 0644)
 	}
 	// Write the ignition file
 	ign := machine.DynamicIgnition{
