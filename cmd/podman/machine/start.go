@@ -3,7 +3,6 @@
 package machine
 
 import (
-	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/machine"
@@ -13,13 +12,13 @@ import (
 
 var (
 	startCmd = &cobra.Command{
-		Use:               "start [NAME]",
+		Use:               "start [MACHINE]",
 		Short:             "Start an existing machine",
 		Long:              "Start an existing machine ",
 		RunE:              start,
 		Args:              cobra.MaximumNArgs(1),
 		Example:           `podman machine start myvm`,
-		ValidArgsFunction: completion.AutocompleteNone,
+		ValidArgsFunction: autocompleteMachine,
 	}
 )
 
