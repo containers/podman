@@ -59,8 +59,9 @@ type driver struct {
 
 func (d *driver) Info(ctx context.Context) (*api.PortDriverInfo, error) {
 	info := &api.PortDriverInfo{
-		Driver: "builtin",
-		Protos: []string{"tcp", "tcp4", "tcp6", "udp", "udp4", "udp6"},
+		Driver:                  "builtin",
+		Protos:                  []string{"tcp", "tcp4", "tcp6", "udp", "udp4", "udp6"},
+		DisallowLoopbackChildIP: false,
 	}
 	return info, nil
 }
