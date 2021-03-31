@@ -180,6 +180,10 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 		os.Setenv("TMPDIR", "/var/tmp")
 	}
 
+	context := cmd.Root().LocalFlags().Lookup("context")
+	if context.Value.String() != "default" {
+		return errors.New("Podman does not support swarm, the only --context value allowed is \"default\"")
+	}
 	if !registry.IsRemote() {
 		if cmd.Flag("cpu-profile").Changed {
 			f, err := os.Create(cfg.CPUProfile)
@@ -268,6 +272,10 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	urlFlagName := "url"
 	lFlags.StringVar(&opts.URI, urlFlagName, uri, "URL to access Podman service (CONTAINER_HOST)")
 	_ = cmd.RegisterFlagCompletionFunc(urlFlagName, completion.AutocompleteDefault)
+
+	// Context option added just for compatibility with DockerCLI.
+	lFlags.String("context", "default", "Name of the context to use to connect to the daemon (This flag is a NOOP and provided solely for scripting compatibility.)")
+	_ = lFlags.MarkHidden("context")
 
 	identityFlagName := "identity"
 	lFlags.StringVar(&opts.Identity, identityFlagName, ident, "path to SSH identity file, (CONTAINER_SSHKEY)")
