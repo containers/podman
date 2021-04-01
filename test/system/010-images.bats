@@ -236,9 +236,16 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
     iid=$output
 
     run_podman manifest create test:1.0
-    run_podman images --format '{{.ID}}' --no-trunc
-    [[ "$output" == *"sha256:$iid"* ]]
-
+     # Check sha256 ID of test:1.0 and $IMAGE
+    run_podman images --format '{{.ID}}' --no-trunc $IMAGE
+    is  "$output" \
+        "sha256:$iid" \
+        "podman images - bare manifest list (old image)"
+    run_podman images --format '{{.ID}}' --no-trunc test:1.0
+    iid_new=$output
+    is  "$output" \
+        "$iid_new" \
+        "podman images - bare manifest list (new image)"
     run_podman rmi test:1.0
 }
 # vim: filetype=sh
