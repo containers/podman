@@ -228,8 +228,8 @@ podman.msi: podman-remote podman-remote-windows install-podman-remote-windows-do
 	wixl -D VERSION=$(RELEASE_NUMBER) -D ManSourceDir=$(DOCFILE) -o podman-v$(RELEASE_NUMBER).msi contrib/msi/podman.wxs $(DOCFILE)/pages.wsx
 
 podman-remote-%: .gopathok ## Build podman for a specific GOOS
-	$(eval BINSFX := $(shell test "$*" != "windows" || echo ".exe"))
-	CGO_ENABLED=0 GOOS=$* $(GO) build $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "${REMOTETAGS}" -o bin/$@$(BINSFX) ./cmd/podman
+	$(eval BINSFX := $(shell if [ "$*" == "windows" ]; then echo "podman.exe"; elif [ "$*" == "darwin" ]; then echo "podman"; else echo "podman-remote"; fi))
+	CGO_ENABLED=0 GOOS=$* $(GO) build $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "${REMOTETAGS}" -o bin/$(BINSFX) ./cmd/podman
 
 local-cross: $(CROSS_BUILD_TARGETS) ## Cross local compilation
 
@@ -449,11 +449,11 @@ podman-remote-release-%.zip:
 		RELEASE_DIST=$* RELEASE_DIST_VER="-"
 	$(eval TMPDIR := $(shell mktemp -d -p '' $podman_remote_XXXX))
 	$(eval SUBDIR := podman-$(RELEASE_VERSION))
-	$(eval BINSFX := $(shell test "$*" != "windows" || echo ".exe"))
+	$(eval BINSFX := $(shell if [ "$*" == "windows" ]; then echo "podman.exe"; elif [ "$*" == "darwin" ]; then echo "podman"; else echo "podman-remote"; fi))
 	mkdir -p "$(TMPDIR)/$(SUBDIR)"
 	# release.txt location and content depended upon by automated tooling
 	cp release.txt "$(TMPDIR)/"
-	cp ./bin/podman-remote-$*$(BINSFX) "$(TMPDIR)/$(SUBDIR)/podman$(BINSFX)"
+	cp ./bin/$(BINSFX) "$(TMPDIR)/$(SUBDIR)/podman$(BINSFX)"
 	cp -r ./docs/build/remote/$* "$(TMPDIR)/$(SUBDIR)/docs/"
 	cp ./contrib/remote/containers.conf "$(TMPDIR)/$(SUBDIR)/"
 	cd "$(TMPDIR)/$(SUBDIR)" && \
