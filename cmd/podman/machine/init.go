@@ -15,8 +15,8 @@ import (
 var (
 	initCmd = &cobra.Command{
 		Use:               "init [options] [NAME]",
-		Short:             "initialize a vm",
-		Long:              "initialize a virtual machine for Podman to run on. Virtual machines are used to run Podman.",
+		Short:             "Initialize a virtual machine",
+		Long:              "initialize a virtual machine ",
 		RunE:              initMachine,
 		Args:              cobra.MaximumNArgs(1),
 		Example:           `podman machine init myvm`,

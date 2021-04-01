@@ -28,7 +28,7 @@ var (
 		Use:     "list [options]",
 		Aliases: []string{"ls"},
 		Short:   "List machines",
-		Long:    "List Podman managed virtual machines.",
+		Long:    "List managed virtual machines.",
 		RunE:    list,
 		Args:    validate.NoArgs,
 		Example: `podman machine list,

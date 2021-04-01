@@ -14,7 +14,7 @@ var (
 	stopCmd = &cobra.Command{
 		Use:               "stop [MACHINE]",
 		Short:             "Stop an existing machine",
-		Long:              "Stop an existing machine ",
+		Long:              "Stop a managed virtual machine ",
 		RunE:              stop,
 		Args:              cobra.MaximumNArgs(1),
 		Example:           `podman machine stop myvm`,

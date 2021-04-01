@@ -14,7 +14,7 @@ var (
 	startCmd = &cobra.Command{
 		Use:               "start [MACHINE]",
 		Short:             "Start an existing machine",
-		Long:              "Start an existing machine ",
+		Long:              "Start a managed virtual machine ",
 		RunE:              start,
 		Args:              cobra.MaximumNArgs(1),
 		Example:           `podman machine start myvm`,
