@@ -168,6 +168,11 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 		if err := machine.AddConnection(&uri, v.Name, filepath.Join(sshDir, v.Name), opts.IsDefault); err != nil {
 			return err
 		}
+
+		uriRoot := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/podman/podman.sock", strconv.Itoa(v.Port), "root")
+		if err := machine.AddConnection(&uriRoot, v.Name+"-root", filepath.Join(sshDir, v.Name), opts.IsDefault); err != nil {
+			return err
+		}
 	} else {
 		fmt.Println("An ignition path was provided.  No SSH connection was added to Podman")
 	}
@@ -357,6 +362,10 @@ func (v *MachineVM) Remove(name string, opts machine.RemoveOptions) (string, fun
 	if err := machine.RemoveConnection(v.Name); err != nil {
 		logrus.Error(err)
 	}
+	if err := machine.RemoveConnection(v.Name + "-root"); err != nil {
+		logrus.Error(err)
+	}
+
 	vmConfigDir, err := machine.GetConfDir(vmtype)
 	if err != nil {
 		return "", nil, err

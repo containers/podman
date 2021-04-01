@@ -55,10 +55,16 @@ func NewIgnitionFile(ign DynamicIgnition) error {
 	}
 
 	ignPassword := Passwd{
-		Users: []PasswdUser{{
-			Name:              ign.Name,
-			SSHAuthorizedKeys: []SSHAuthorizedKey{SSHAuthorizedKey(ign.Key)},
-		}},
+		Users: []PasswdUser{
+			{
+				Name:              ign.Name,
+				SSHAuthorizedKeys: []SSHAuthorizedKey{SSHAuthorizedKey(ign.Key)},
+			},
+			{
+				Name:              "root",
+				SSHAuthorizedKeys: []SSHAuthorizedKey{SSHAuthorizedKey(ign.Key)},
+			},
+		},
 	}
 
 	ignStorage := Storage{
