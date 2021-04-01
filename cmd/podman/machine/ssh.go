@@ -13,14 +13,12 @@ import (
 
 var (
 	sshCmd = &cobra.Command{
-		Use:   "ssh [options] [MACHINE] [COMMAND [ARG ...]]",
+		Use:   "ssh [NAME] [COMMAND [ARG ...]]",
 		Short: "SSH into a virtual machine",
 		Long:  "SSH into a virtual machine ",
 		RunE:  ssh,
-		Args:  cobra.MaximumNArgs(1),
 		Example: `podman machine ssh myvm
   podman machine ssh -e  myvm echo hello`,
-
 		ValidArgsFunction: autocompleteMachineSSH,
 	}
 )
@@ -30,36 +28,49 @@ var (
 )
 
 func init() {
+	sshCmd.Flags().SetInterspersed(false)
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: sshCmd,
 		Parent:  machineCmd,
 	})
-
-	flags := sshCmd.Flags()
-	executeFlagName := "execute"
-	flags.BoolVarP(&sshOpts.Execute, executeFlagName, "e", false, "Execute command from args")
 }
 
 func ssh(cmd *cobra.Command, args []string) error {
 	var (
-		err    error
-		vm     machine.VM
-		vmType string
+		err     error
+		validVM bool
+		vm      machine.VM
+		vmType  string
 	)
-	vmName := defaultMachineName
-	if len(args) > 0 && len(args[0]) > 1 {
-		vmName = args[0]
-	}
-	sshOpts.Args = args[1:]
 
-	// Error if no execute but args given
-	if !sshOpts.Execute && len(sshOpts.Args) > 0 {
-		return errors.New("too many args: to execute commands via ssh, use -e flag")
+	// Set the VM to default
+	vmName := defaultMachineName
+	// If len is greater than 0, it means we may have been
+	// provided the VM name.  If so, we check.  The VM name,
+	// if provided, must be in args[0].
+	if len(args) > 0 {
+		switch vmType {
+		default:
+			validVM, err = qemu.IsValidVMName(args[0])
+			if err != nil {
+				return err
+			}
+			if validVM {
+				vmName = args[0]
+			} else {
+				sshOpts.Args = append(sshOpts.Args, args[0])
+			}
+		}
 	}
-	// Error if execute but no args given
-	if sshOpts.Execute && len(sshOpts.Args) < 1 {
-		return errors.New("must proivde at least one command to execute")
+	// If len is greater than 1, it means we might have been
+	// given a vmname and args or just args
+	if len(args) > 1 {
+		if validVM {
+			sshOpts.Args = args[1:]
+		} else {
+			sshOpts.Args = args
+		}
 	}
 
 	switch vmType {

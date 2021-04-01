@@ -56,8 +56,7 @@ type ListResponse struct {
 }
 
 type SSHOptions struct {
-	Execute bool
-	Args    []string
+	Args []string
 }
 type StartOptions struct{}
 

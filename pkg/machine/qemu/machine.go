@@ -400,7 +400,7 @@ func (v *MachineVM) SSH(name string, opts machine.SSHOptions) error {
 	port := strconv.Itoa(v.Port)
 
 	args := []string{"-i", v.IdentityPath, "-p", port, sshDestination}
-	if opts.Execute {
+	if len(opts.Args) > 0 {
 		args = append(args, opts.Args...)
 	} else {
 		fmt.Printf("Connecting to vm %s. To close connection, use `~.` or `exit`\n", v.Name)
@@ -446,7 +446,11 @@ func getDiskSize(path string) (uint64, error) {
 }
 
 // List lists all vm's that use qemu virtualization
-func List(opts machine.ListOptions) ([]*machine.ListResponse, error) {
+func List(_ machine.ListOptions) ([]*machine.ListResponse, error) {
+	return GetVMInfos()
+}
+
+func GetVMInfos() ([]*machine.ListResponse, error) {
 	vmConfigDir, err := machine.GetConfDir(vmtype)
 	if err != nil {
 		return nil, err
@@ -492,4 +496,17 @@ func List(opts machine.ListOptions) ([]*machine.ListResponse, error) {
 		return nil, err
 	}
 	return listed, err
+}
+
+func IsValidVMName(name string) (bool, error) {
+	infos, err := GetVMInfos()
+	if err != nil {
+		return false, err
+	}
+	for _, vm := range infos {
+		if vm.Name == name {
+			return true, nil
+		}
+	}
+	return false, nil
 }
