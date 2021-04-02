@@ -1155,7 +1155,7 @@ func (j *Journal) GetBootID() (string, error) {
 		return "", err
 	}
 
-	id128StringMax := C.ulong(C.SD_ID128_STRING_MAX)
+	id128StringMax := C.size_t(C.SD_ID128_STRING_MAX)
 	c := (*C.char)(C.malloc(id128StringMax))
 	defer C.free(unsafe.Pointer(c))
 	C.my_sd_id128_to_string(sd_id128_to_string, boot_id, c)

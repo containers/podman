@@ -17,7 +17,7 @@ require (
 	github.com/containers/ocicrypt v1.1.0
 	github.com/containers/psgo v1.5.2
 	github.com/containers/storage v1.28.1
-	github.com/coreos/go-systemd/v22 v22.3.0
+	github.com/coreos/go-systemd/v22 v22.3.1
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
 	github.com/cri-o/ocicni v0.2.1-0.20210301205850-541cf7c703cf
 	github.com/cyphar/filepath-securejoin v0.2.2
@@ -30,7 +30,7 @@ require (
 	github.com/docker/go-units v0.4.0
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/ghodss/yaml v1.0.0
-	github.com/godbus/dbus/v5 v5.0.3
+	github.com/godbus/dbus/v5 v5.0.4
 	github.com/google/shlex v0.0.0-20181106134648-c34317bd91bf
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/mux v1.8.0
