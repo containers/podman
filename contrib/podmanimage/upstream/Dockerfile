@@ -17,7 +17,7 @@ ENV GOPATH=/root/podman
 # to the container.
 # Finally remove the podman directory and a few other packages
 # that are needed for building but not running Podman
-RUN useradd podman; yum -y update; yum -y reinstall shadow-utils; yum -y install --exclude container-selinux \
+RUN yum -y update; yum -y reinstall shadow-utils; yum -y install --exclude container-selinux \
      --enablerepo=updates-testing \
      btrfs-progs-devel \
      containernetworking-cni \
@@ -63,7 +63,17 @@ RUN useradd podman; yum -y update; yum -y reinstall shadow-utils; yum -y install
      yum -y remove git golang go-md2man make; \
      yum clean all;
 
-ADD https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/containers.conf /etc/containers/
+RUN useradd podman; \
+echo podman:10000:5000 > /etc/subuid; \
+echo podman:10000:5000 > /etc/subgid;
+
+VOLUME /var/lib/containers
+VOLUME /home/podman/.local/share/containers
+
+ADD https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/containers.conf /etc/containers/containers.conf
+ADD https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/podman-containers.conf /home/podman/.config/containers/containers.conf
+
+RUN chown podman:podman -R /home/podman
 
 # chmod containers.conf and adjust storage.conf to enable Fuse storage.
 RUN chmod 644 /etc/containers/containers.conf; sed -i -e 's|^#mount_program|mount_program|g' -e '/additionalimage.*/a "/var/lib/shared",' -e 's|^mountopt[[:space:]]*=.*$|mountopt = "nodev,fsync=0"|g' /etc/containers/storage.conf
