@@ -15,6 +15,8 @@ containers do not run on any other OS because containers' core functionality are
 tied to the Linux kernel.
 
 **podman machine init** initializes a new Linux virtual machine where containers are run.
+SSH keys are automatically generated to access the VM, and system connections to the root account
+and a user account inside the VM are added.
 
 ## OPTIONS
 
