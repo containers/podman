@@ -237,7 +237,7 @@ func prepareUntilFilterFunc(filterValues []string) (func(container *libpod.Conta
 		return nil, err
 	}
 	return func(c *libpod.Container) bool {
-		if !until.IsZero() && c.CreatedTime().After((until)) {
+		if !until.IsZero() && c.CreatedTime().Before(until) {
 			return true
 		}
 		return false

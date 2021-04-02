@@ -568,6 +568,35 @@ var _ = Describe("Podman containers ", func() {
 		Expect(err).To(BeNil())
 		Expect(len(reports.PruneReportsIds(pruneResponse))).To(Equal(0))
 		Expect(len(reports.PruneReportsErrs(pruneResponse))).To(Equal(0))
+
+		// Valid filter params container should be pruned now.
+		filters := map[string][]string{
+			"until": {"5000000000"}, //Friday, June 11, 2128
+		}
+		pruneResponse, err = containers.Prune(bt.conn, new(containers.PruneOptions).WithFilters(filters))
+		Expect(err).To(BeNil())
+		Expect(len(reports.PruneReportsErrs(pruneResponse))).To(Equal(0))
+		Expect(len(reports.PruneReportsIds(pruneResponse))).To(Equal(1))
+	})
+
+	It("podman list containers with until filter", func() {
+		var name = "top"
+		_, err := bt.RunTopContainer(&name, nil)
+		Expect(err).To(BeNil())
+
+		filters := map[string][]string{
+			"until": {"5000000000"}, //Friday, June 11, 2128
+		}
+		c, err := containers.List(bt.conn, new(containers.ListOptions).WithFilters(filters).WithAll(true))
+		Expect(err).To(BeNil())
+		Expect(len(c)).To(Equal(1))
+
+		filters = map[string][]string{
+			"until": {"500000"}, // Tuesday, January 6, 1970
+		}
+		c, err = containers.List(bt.conn, new(containers.ListOptions).WithFilters(filters).WithAll(true))
+		Expect(err).To(BeNil())
+		Expect(len(c)).To(Equal(0))
 	})
 
 	It("podman prune running containers", func() {
