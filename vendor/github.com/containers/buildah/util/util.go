@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"syscall"
@@ -473,4 +475,27 @@ func MergeEnv(defaults, overrides []string) []string {
 		index[envVar[0]] = len(s) - 1
 	}
 	return s
+}
+
+type byDestination []specs.Mount
+
+func (m byDestination) Len() int {
+	return len(m)
+}
+
+func (m byDestination) Less(i, j int) bool {
+	return m.parts(i) < m.parts(j)
+}
+
+func (m byDestination) Swap(i, j int) {
+	m[i], m[j] = m[j], m[i]
+}
+
+func (m byDestination) parts(i int) int {
+	return strings.Count(filepath.Clean(m[i].Destination), string(os.PathSeparator))
+}
+
+func SortMounts(m []specs.Mount) []specs.Mount {
+	sort.Sort(byDestination(m))
+	return m
 }

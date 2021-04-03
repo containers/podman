@@ -20,6 +20,7 @@ import (
 	"unsafe"
 
 	"github.com/containers/buildah/bind"
+	"github.com/containers/buildah/copier"
 	"github.com/containers/buildah/util"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/mount"
@@ -1161,7 +1162,18 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 			}
 		}
 		target := filepath.Join(spec.Root.Path, m.Destination)
-		if _, err := os.Stat(target); err != nil {
+		// Check if target is a symlink
+		stat, err := os.Lstat(target)
+		// If target is a symlink, follow the link and ensure the destination exists
+		if err == nil && stat != nil && (stat.Mode()&os.ModeSymlink != 0) {
+			target, err = copier.Eval(spec.Root.Path, m.Destination, copier.EvalOptions{})
+			if err != nil {
+				return nil, errors.Wrapf(err, "evaluating symlink %q", target)
+			}
+			// Stat the destination of the evaluated symlink
+			_, err = os.Stat(target)
+		}
+		if err != nil {
 			// If the target can't be stat()ted, check the error.
 			if !os.IsNotExist(err) {
 				return undoBinds, errors.Wrapf(err, "error examining %q for mounting in mount namespace", target)

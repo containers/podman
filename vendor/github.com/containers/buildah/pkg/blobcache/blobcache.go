@@ -13,6 +13,7 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/archive"
@@ -301,25 +302,32 @@ func (s *blobCacheSource) LayerInfosForCopy(ctx context.Context, instanceDigest 
 				alternate = filepath.Join(filepath.Dir(alternate), makeFilename(digest.Digest(replaceDigest), false))
 				fileInfo, err := os.Stat(alternate)
 				if err == nil {
-					logrus.Debugf("suggesting cached blob with digest %q and compression %v in place of blob with digest %q", string(replaceDigest), s.reference.compress, info.Digest.String())
-					info.Digest = digest.Digest(replaceDigest)
-					info.Size = fileInfo.Size()
 					switch info.MediaType {
 					case v1.MediaTypeImageLayer, v1.MediaTypeImageLayerGzip:
 						switch s.reference.compress {
 						case types.Compress:
 							info.MediaType = v1.MediaTypeImageLayerGzip
+							info.CompressionAlgorithm = &compression.Gzip
 						case types.Decompress:
 							info.MediaType = v1.MediaTypeImageLayer
+							info.CompressionAlgorithm = nil
 						}
 					case docker.V2S2MediaTypeUncompressedLayer, manifest.DockerV2Schema2LayerMediaType:
 						switch s.reference.compress {
 						case types.Compress:
 							info.MediaType = manifest.DockerV2Schema2LayerMediaType
+							info.CompressionAlgorithm = &compression.Gzip
 						case types.Decompress:
-							info.MediaType = docker.V2S2MediaTypeUncompressedLayer
+							// nope, not going to suggest anything, it's not allowed by the spec
+							replacedInfos = append(replacedInfos, info)
+							continue
 						}
 					}
+					logrus.Debugf("suggesting cached blob with digest %q, type %q, and compression %v in place of blob with digest %q", string(replaceDigest), info.MediaType, s.reference.compress, info.Digest.String())
+					info.CompressionOperation = s.reference.compress
+					info.Digest = digest.Digest(replaceDigest)
+					info.Size = fileInfo.Size()
+					logrus.Debugf("info = %#v", info)
 				}
 			}
 			replacedInfos = append(replacedInfos, info)
@@ -422,8 +430,9 @@ func (d *blobCacheDestination) PutBlob(ctx context.Context, stream io.Reader, in
 	var err error
 	var n int
 	var alternateDigest digest.Digest
+	var closer io.Closer
 	wg := new(sync.WaitGroup)
-	defer wg.Wait()
+	needToWait := false
 	compression := archive.Uncompressed
 	if inputInfo.Digest != "" {
 		filename := filepath.Join(d.reference.directory, makeFilename(inputInfo.Digest, isConfig))
@@ -458,7 +467,7 @@ func (d *blobCacheDestination) PutBlob(ctx context.Context, stream io.Reader, in
 				if n >= len(initial) {
 					compression = archive.DetectCompression(initial[:n])
 				}
-				if compression != archive.Uncompressed {
+				if compression == archive.Gzip {
 					// The stream is compressed, so create a file which we'll
 					// use to store a decompressed copy.
 					decompressedTemp, err2 := ioutil.TempFile(d.reference.directory, makeFilename(inputInfo.Digest, isConfig))
@@ -470,10 +479,11 @@ func (d *blobCacheDestination) PutBlob(ctx context.Context, stream io.Reader, in
 						// closing the writing end of the pipe after
 						// PutBlob() returns.
 						decompressReader, decompressWriter := io.Pipe()
-						defer decompressWriter.Close()
+						closer = decompressWriter
 						stream = io.TeeReader(stream, decompressWriter)
 						// Let saveStream() close the reading end and handle the temporary file.
 						wg.Add(1)
+						needToWait = true
 						go saveStream(wg, decompressReader, decompressedTemp, filename, inputInfo.Digest, isConfig, &alternateDigest)
 					}
 				}
@@ -481,6 +491,12 @@ func (d *blobCacheDestination) PutBlob(ctx context.Context, stream io.Reader, in
 		}
 	}
 	newBlobInfo, err := d.destination.PutBlob(ctx, stream, inputInfo, cache, isConfig)
+	if closer != nil {
+		closer.Close()
+	}
+	if needToWait {
+		wg.Wait()
+	}
 	if err != nil {
 		return newBlobInfo, errors.Wrapf(err, "error storing blob to image destination for cache %q", transports.ImageName(d.reference))
 	}

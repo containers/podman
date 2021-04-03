@@ -566,4 +566,42 @@ RUN echo hello`, ALPINE)
 		Expect(session.OutputToString()).To(ContainSubstring("(user)"))
 		Expect(session.OutputToString()).To(ContainSubstring("(elapsed)"))
 	})
+
+	It("podman build --arch --os flag", func() {
+		containerfile := `FROM scratch`
+		containerfilePath := filepath.Join(podmanTest.TempDir, "Containerfile")
+		err := ioutil.WriteFile(containerfilePath, []byte(containerfile), 0755)
+		Expect(err).To(BeNil())
+		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", "--arch", "foo", "--os", "bar", "--file", containerfilePath, podmanTest.TempDir})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"image", "inspect", "--format", "{{ .Architecture }}", "test"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.OutputToString()).To(Equal("foo"))
+
+		inspect = podmanTest.Podman([]string{"image", "inspect", "--format", "{{ .Os }}", "test"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.OutputToString()).To(Equal("bar"))
+
+	})
+
+	It("podman build --os windows flag", func() {
+		containerfile := `FROM scratch`
+		containerfilePath := filepath.Join(podmanTest.TempDir, "Containerfile")
+		err := ioutil.WriteFile(containerfilePath, []byte(containerfile), 0755)
+		Expect(err).To(BeNil())
+		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", "--os", "windows", "--file", containerfilePath, podmanTest.TempDir})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"image", "inspect", "--format", "{{ .Architecture }}", "test"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.OutputToString()).To(Equal(runtime.GOARCH))
+
+		inspect = podmanTest.Podman([]string{"image", "inspect", "--format", "{{ .Os }}", "test"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.OutputToString()).To(Equal("windows"))
+
+	})
 })

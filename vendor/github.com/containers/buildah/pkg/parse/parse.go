@@ -629,7 +629,7 @@ func SystemContextFromOptions(c *cobra.Command) (*types.SystemContext, error) {
 	}
 	if c.Flag("platform") != nil && c.Flag("platform").Changed {
 		if platform, err := c.Flags().GetString("platform"); err == nil {
-			os, arch, variant, err := parsePlatform(platform)
+			os, arch, variant, err := Platform(platform)
 			if err != nil {
 				return nil, err
 			}
@@ -672,7 +672,7 @@ func PlatformFromOptions(c *cobra.Command) (os, arch string, err error) {
 
 	if c.Flag("platform").Changed {
 		if pf, err := c.Flags().GetString("platform"); err == nil {
-			selectedOS, selectedArch, _, err := parsePlatform(pf)
+			selectedOS, selectedArch, _, err := Platform(pf)
 			if err != nil {
 				return "", "", errors.Wrap(err, "unable to parse platform")
 			}
@@ -691,7 +691,8 @@ func DefaultPlatform() string {
 	return runtime.GOOS + platformSep + runtime.GOARCH
 }
 
-func parsePlatform(platform string) (os, arch, variant string, err error) {
+// Platform separates the platform string into os, arch and variant
+func Platform(platform string) (os, arch, variant string, err error) {
 	split := strings.Split(platform, platformSep)
 	if len(split) < 2 {
 		return "", "", "", errors.Errorf("invalid platform syntax for %q (use OS/ARCH)", platform)

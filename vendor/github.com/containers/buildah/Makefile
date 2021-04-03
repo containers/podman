@@ -149,7 +149,7 @@ install.runc:
 
 .PHONY: test-conformance
 test-conformance:
-	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -cover -timeout 15m ./tests/conformance
+	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -cover -timeout 20m ./tests/conformance
 
 .PHONY: test-integration
 test-integration: install.tools
