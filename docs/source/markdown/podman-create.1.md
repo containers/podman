@@ -996,8 +996,7 @@ Without this argument the command will be run as root in the container.
 #### **\-\-userns**=private
 #### **\-\-userns**=*ns:my_namespace*
 
-Set the user namespace mode for the container. It defaults to the **PODMAN_USERNS** environment variable. An empty value means user namespaces are disabled.
-
+Set the user namespace mode for the container. It defaults to the **PODMAN_USERNS** environment variable. An empty value ("") means user namespaces are disabled unless an explicit mapping is set with the **\-\-uidmap** and **\-\-gidmap** options.
 
 - `auto`: automatically create a namespace. It is possible to specify other options to `auto`. The supported options are
   **size=SIZE** to specify an explicit size for the automatic user namespace. e.g. `--userns=auto:size=8192`. If `size` is not specified, `auto` will guess a size for the user namespace.
