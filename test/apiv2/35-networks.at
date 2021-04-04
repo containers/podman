@@ -106,7 +106,7 @@ t POST libpod/networks/prune?filters='{"label":["tes' 500 \
 
 # prune networks using filter - compat api
 t POST networks/prune?filters='{"label":["xyz"]}' 200
-t GET networks/json?filters='{"label":["xyz"]}' 404
+t GET networks?filters='{"label":["xyz"]}' 200 length=0
 
 # prune networks using filter - libpod api
 t POST libpod/networks/prune?filters='{"label":["zaq=val"]}' 200
@@ -120,5 +120,26 @@ t DELETE libpod/networks/network2 200 \
   .[0].Name~network2 \
   .[0].Err=null
 
+# test until filter - libpod api
+podman network create network5 --label xyz
+
+# with date way back in the past, network should not be deleted
+t POST libpod/networks/prune?filters='{"until":["500000"]}' 200
+t GET libpod/networks/json?filters='{"label":["xyz"]}' 200 length=1
+
+# with date far in the future, network should be deleted
+t POST libpod/networks/prune?filters='{"until":["5000000000"]}' 200
+t GET libpod/networks/json?filters='{"label":["xyz"]}' 200 length=0
+
+# test until filter - compat api
+podman network create network6 --label zaq
+
+# with date way back in the past, network should not be deleted
+t POST networks/prune?filters='{"until":["500000"]}' 200
+t GET networks?filters='{"label":["zaq"]}' 200 length=1
+
+# with date far in the future, network should be deleted
+t POST networks/prune?filters='{"until":["5000000000"]}' 200
+t GET networks?filters='{"label":["zaq"]}' 200 length=0
 
 # vim: filetype=sh
