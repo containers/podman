@@ -232,7 +232,9 @@ func ps(cmd *cobra.Command, _ []string) error {
 	ns := strings.NewReplacer(".Namespaces.", ".")
 	format = ns.Replace(format)
 
-	tmpl, err := template.New("listContainers").Parse(format)
+	tmpl, err := template.New("listContainers").
+		Funcs(template.FuncMap(report.DefaultFuncs)).
+		Parse(format)
 	if err != nil {
 		return err
 	}
