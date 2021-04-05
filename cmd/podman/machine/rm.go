@@ -19,7 +19,7 @@ var (
 	rmCmd = &cobra.Command{
 		Use:               "rm [options] [MACHINE]",
 		Short:             "Remove an existing machine",
-		Long:              "Remove an existing machine ",
+		Long:              "Remove a managed virtual machine ",
 		RunE:              rm,
 		Args:              cobra.MaximumNArgs(1),
 		Example:           `podman machine rm myvm`,
