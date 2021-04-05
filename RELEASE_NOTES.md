@@ -17,6 +17,9 @@
 - The `podman generate kube` command can now generate `PersistentVolumeClaim` YAML for Podman named volumes ([#5788](https://github.com/containers/podman/issues/5788)).
 - The `podman generate kube` command can now generate YAML files containing multiple resources (pods or deployments) ([#9129](https://github.com/containers/podman/issues/9129)).
 
+### Security
+- This release resolves CVE-2021-20291, a deadlock vulnerability in the storage library caused by pulling a specially-crafted container image.
+
 ### Changes
 - The Podman remote client's `podman build` command no longer allows the `-v` flag to be used. Volumes are not yet supported with remote Podman when the client and service are on different machines.
 - The `podman kill` and `podman stop` commands now print the name given by the user for each container, instead of the full ID.
