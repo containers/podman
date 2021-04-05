@@ -696,6 +696,24 @@ func (c *Container) ExecResize(sessionID string, newSize define.TerminalSize) er
 		return errors.Wrapf(define.ErrExecSessionStateInvalid, "cannot resize container %s exec session %s as it is not running", c.ID(), session.ID())
 	}
 
+	// The exec session may have exited since we last updated.
+	// Needed to prevent race conditions around short-running exec sessions.
+	running, err := c.ociRuntime.ExecUpdateStatus(c, session.ID())
+	if err != nil {
+		return err
+	}
+	if !running {
+		session.State = define.ExecStateStopped
+
+		if err := c.save(); err != nil {
+			logrus.Errorf("Error saving state of container %s: %v", c.ID(), err)
+		}
+
+		return errors.Wrapf(define.ErrExecSessionStateInvalid, "cannot resize container %s exec session %s as it has stopped", c.ID(), session.ID())
+	}
+
+	// Make sure the exec session is still running.
+
 	return c.ociRuntime.ExecAttachResize(c, sessionID, newSize)
 }
 
@@ -720,8 +738,13 @@ func (c *Container) Exec(config *ExecConfig, streams *define.AttachStreams, resi
 			logrus.Debugf("Sending resize events to exec session %s", sessionID)
 			for resizeRequest := range resize {
 				if err := c.ExecResize(sessionID, resizeRequest); err != nil {
-					// Assume the exec session went down.
-					logrus.Warnf("Error resizing exec session %s: %v", sessionID, err)
+					if errors.Cause(err) == define.ErrExecSessionStateInvalid {
+						// The exec session stopped
+						// before we could resize.
+						logrus.Infof("Missed resize on exec session %s, already stopped", sessionID)
+					} else {
+						logrus.Warnf("Error resizing exec session %s: %v", sessionID, err)
+					}
 					return
 				}
 			}

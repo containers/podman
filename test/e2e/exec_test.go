@@ -119,6 +119,19 @@ var _ = Describe("Podman exec", func() {
 		Expect(session.ExitCode()).To(Equal(100))
 	})
 
+	It("podman exec in keep-id container drops privileges", func() {
+		SkipIfNotRootless("This function is not enabled for rootful podman")
+		ctrName := "testctr1"
+		testCtr := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, "--userns=keep-id", ALPINE, "top"})
+		testCtr.WaitWithDefaultTimeout()
+		Expect(testCtr.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"exec", ctrName, "grep", "CapEff", "/proc/self/status"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("0000000000000000"))
+	})
+
 	It("podman exec --privileged", func() {
 		session := podmanTest.Podman([]string{"run", "--privileged", "--rm", ALPINE, "sh", "-c", "grep ^CapBnd /proc/self/status | cut -f 2"})
 		session.WaitWithDefaultTimeout()
@@ -143,7 +156,6 @@ var _ = Describe("Podman exec", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring(bndPerms))
-
 	})
 
 	It("podman exec --privileged", func() {
