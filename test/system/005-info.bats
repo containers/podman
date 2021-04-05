@@ -53,4 +53,13 @@ store.imageStore.number   | 1
 
 }
 
+@test "podman info --storage-opt='' " {
+    skip_if_remote "--storage-opt flag is not supported for remote"
+    skip_if_rootless "storage opts are required for rootless running"
+    run_podman --storage-opt='' info
+    # Note this will not work in rootless mode, unless you specify
+    # storage-driver=vfs, until we have kernels that support rootless overlay
+    # mounts.
+    is "$output" ".*graphOptions: {}" "output includes graphOptions: {}"
+}
 # vim: filetype=sh
