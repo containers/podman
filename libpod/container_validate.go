@@ -126,5 +126,11 @@ func (c *Container) validate() error {
 		}
 	}
 
+	// If User in the OCI spec is set, require that c.config.User is set for
+	// security reasons (a lot of our code relies on c.config.User).
+	if c.config.User == "" && (c.config.Spec.Process.User.UID != 0 || c.config.Spec.Process.User.GID != 0) {
+		return errors.Wrapf(define.ErrInvalidArg, "please set User explicitly via WithUser() instead of in OCI spec directly")
+	}
+
 	return nil
 }
