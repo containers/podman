@@ -15,6 +15,7 @@ import (
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/ginkgo/interrupthandler"
 	"github.com/onsi/ginkgo/ginkgo/testrunner"
+	colorable "github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable"
 	"github.com/onsi/ginkgo/types"
 )
 
@@ -52,6 +53,26 @@ type SpecRunner struct {
 func (r *SpecRunner) RunSpecs(args []string, additionalArgs []string) {
 	r.commandFlags.computeNodes()
 	r.notifier.VerifyNotificationsAreAvailable()
+
+	deprecationTracker := types.NewDeprecationTracker()
+
+	if r.commandFlags.ParallelStream {
+		deprecationTracker.TrackDeprecation(types.Deprecation{
+			Message: "--stream is deprecated and will be removed in Ginkgo 2.0",
+			DocLink: "removed--stream",
+		})
+	}
+
+	if r.commandFlags.Notify {
+		deprecationTracker.TrackDeprecation(types.Deprecation{
+			Message: "--notify is deprecated and will be removed in Ginkgo 2.0",
+			DocLink: "removed--notify",
+		})
+	}
+
+	if deprecationTracker.DidTrackDeprecations() {
+		fmt.Fprintln(colorable.NewColorableStderr(), deprecationTracker.DeprecationsReport())
+	}
 
 	suites, skippedPackages := findSuites(args, r.commandFlags.Recurse, r.commandFlags.SkipPackage, true)
 	if len(skippedPackages) > 0 {
