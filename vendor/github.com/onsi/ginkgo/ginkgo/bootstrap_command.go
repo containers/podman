@@ -12,6 +12,7 @@ import (
 
 	"go/build"
 
+	sprig "github.com/go-task/slim-sprig"
 	"github.com/onsi/ginkgo/ginkgo/nodot"
 )
 
@@ -176,7 +177,7 @@ func generateBootstrap(agouti, noDot, internal bool, customBootstrapFile string)
 		templateText = bootstrapText
 	}
 
-	bootstrapTemplate, err := template.New("bootstrap").Parse(templateText)
+	bootstrapTemplate, err := template.New("bootstrap").Funcs(sprig.TxtFuncMap()).Parse(templateText)
 	if err != nil {
 		panic(err.Error())
 	}
