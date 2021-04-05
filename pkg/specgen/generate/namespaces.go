@@ -236,9 +236,6 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 	case specgen.Private:
 		fallthrough
 	case specgen.Bridge:
-		if postConfigureNetNS && rootless.IsRootless() {
-			return nil, errors.New("CNI networks not supported with user namespaces")
-		}
 		portMappings, err := createPortMappings(ctx, s, img)
 		if err != nil {
 			return nil, err

@@ -92,11 +92,7 @@ func (c *Container) prepare() error {
 		// Set up network namespace if not already set up
 		noNetNS := c.state.NetNS == nil
 		if c.config.CreateNetNS && noNetNS && !c.config.PostConfigureNetNS {
-			if rootless.IsRootless() && len(c.config.Networks) > 0 {
-				netNS, networkStatus, createNetNSErr = AllocRootlessCNI(context.Background(), c)
-			} else {
-				netNS, networkStatus, createNetNSErr = c.runtime.createNetNS(c)
-			}
+			netNS, networkStatus, createNetNSErr = c.runtime.createNetNS(c)
 			if createNetNSErr != nil {
 				return
 			}

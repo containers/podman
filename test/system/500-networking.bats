@@ -143,13 +143,6 @@ load helpers
 
     run_podman network rm $mynetname
     run_podman 1 network rm $mynetname
-
-    # rootless CNI leaves behind an image pulled by SHA, hence with no tag.
-    # Remove it if present; we can only remove it by ID.
-    run_podman images --format '{{.Id}}' rootless-cni-infra
-    if [ -n "$output" ]; then
-        run_podman rmi $output
-    fi
 }
 
 @test "podman network reload" {
