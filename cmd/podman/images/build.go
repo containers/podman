@@ -11,6 +11,7 @@ import (
 	buildahDefine "github.com/containers/buildah/define"
 	buildahCLI "github.com/containers/buildah/pkg/cli"
 	"github.com/containers/buildah/pkg/parse"
+	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
 	encconfig "github.com/containers/ocicrypt/config"
@@ -328,6 +329,12 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 
 	if flags.PullNever {
 		pullPolicy = buildahDefine.PullNever
+	}
+
+	if c.Flag("authfile").Changed {
+		if err := auth.CheckAuthFile(flags.Authfile); err != nil {
+			return nil, err
+		}
 	}
 
 	args := make(map[string]string)

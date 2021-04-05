@@ -752,6 +752,11 @@ EOF
     run_podman rmi -f build_test
 }
 
+@test "podman build --authfile bogus test" {
+    run_podman 125 build --authfile=/tmp/bogus - <<< "from scratch"
+    is "$output" ".*/tmp/bogus: no such file or directory"
+}
+
 function teardown() {
     # A timeout or other error in 'build' can leave behind stale images
     # that podman can't even see and which will cascade into subsequent
