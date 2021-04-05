@@ -376,8 +376,14 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			case "z":
 				fallthrough
 			case "Z":
-				if err := label.Relabel(m.Source, c.MountLabel(), label.IsShared(o)); err != nil {
-					return nil, err
+				if c.MountLabel() != "" {
+					if c.ProcessLabel() != "" {
+						if err := label.Relabel(m.Source, c.MountLabel(), label.IsShared(o)); err != nil {
+							return nil, err
+						}
+					} else {
+						logrus.Infof("Not relabeling volume %q in container %s as SELinux is disabled", m.Source, c.ID())
+					}
 				}
 
 			default:
