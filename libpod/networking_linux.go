@@ -577,7 +577,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 		// set up port forwarder for CNI-in-slirp4netns
 		netnsPath := ctr.state.NetNS.Path()
 		// TODO: support slirp4netns port forwarder as well
-		return r.setupRootlessPortMappingViaRLK(ctr, netnsPath)
+		return r.setupRootlessPortMappingViaRLK(ctr, netnsPath, "")
 	}
 	return nil
 }

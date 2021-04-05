@@ -312,7 +312,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 		if netOptions.isSlirpHostForward {
 			return r.setupRootlessPortMappingViaSlirp(ctr, cmd, apiSocket)
 		}
-		return r.setupRootlessPortMappingViaRLK(ctr, netnsPath)
+		return r.setupRootlessPortMappingViaRLK(ctr, netnsPath, netOptions.cidr)
 	}
 	return nil
 }
@@ -363,7 +363,7 @@ func waitForSync(syncR *os.File, cmd *exec.Cmd, logFile io.ReadSeeker, timeout t
 	return nil
 }
 
-func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath string) error {
+func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath, slirp4CIDR string) error {
 	syncR, syncW, err := os.Pipe()
 	if err != nil {
 		return errors.Wrapf(err, "failed to open pipe")
@@ -391,6 +391,16 @@ func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath strin
 	}
 
 	childIP := slirp4netnsIP
+	// set the correct childIP when a custom cidr is set
+	if slirp4CIDR != "" {
+		_, cidr, err := net.ParseCIDR(slirp4CIDR)
+		if err != nil {
+			return errors.Wrap(err, "failed to parse slirp4netns cidr")
+		}
+		// the slirp container ip is always the hundredth ip in the subnet
+		cidr.IP[len(cidr.IP)-1] = cidr.IP[len(cidr.IP)-1] + 100
+		childIP = cidr.IP.String()
+	}
 outer:
 	for _, r := range ctr.state.NetworkStatus {
 		for _, i := range r.IPs {
