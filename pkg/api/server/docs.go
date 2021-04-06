@@ -1,4 +1,4 @@
-// Package api Provides a container compatible interface.
+// Package api Provides an API for the  Libpod library
 //
 // This documentation describes the Podman v2.0 RESTful API.
 // It replaces the Podman v1.0 API and was initially delivered
@@ -21,22 +21,22 @@
 //
 //   'podman info'
 //
-//      curl --unix-socket /run/podman/podman.sock http://d/v1.0.0/libpod/info
+//      curl --unix-socket /run/podman/podman.sock http://d/v3.0.0/libpod/info
 //
 //   'podman pull quay.io/containers/podman'
 //
-//      curl -XPOST --unix-socket /run/podman/podman.sock -v 'http://d/v1.0.0/images/create?fromImage=quay.io%2Fcontainers%2Fpodman'
+//      curl -XPOST --unix-socket /run/podman/podman.sock -v 'http://d/v3.0.0/images/create?fromImage=quay.io%2Fcontainers%2Fpodman'
 //
 //   'podman list images'
 //
-//      curl --unix-socket /run/podman/podman.sock -v 'http://d/v1.0.0/libpod/images/json' | jq
+//      curl --unix-socket /run/podman/podman.sock -v 'http://d/v3.0.0/libpod/images/json' | jq
 //
 // Terms Of Service:
 //
 //     Schemes: http, https
 //     Host: podman.io
 //     BasePath: /
-//     Version: 0.0.1
+//     Version: 3.2.0
 //     License: Apache-2.0 https://opensource.org/licenses/Apache-2.0
 //     Contact: Podman <podman@lists.podman.io> https://podman.io/community/
 //
@@ -47,8 +47,8 @@
 //
 //     Produces:
 //     - application/json
+//     - application/octet-stream
 //     - text/plain
-//     - text/html
 //
 //     Consumes:
 //     - application/json

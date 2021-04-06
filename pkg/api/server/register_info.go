@@ -9,7 +9,7 @@ import (
 )
 
 func (s *APIServer) registerInfoHandlers(r *mux.Router) error {
-	// swagger:operation GET /info compat getInfo
+	// swagger:operation GET /info compat SystemInfo
 	// ---
 	// tags:
 	//  - system (compat)
@@ -25,7 +25,7 @@ func (s *APIServer) registerInfoHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/info"), s.APIHandler(compat.GetInfo)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/info", s.APIHandler(compat.GetInfo)).Methods(http.MethodGet)
-	// swagger:operation GET /libpod/info libpod libpodGetInfo
+	// swagger:operation GET /libpod/info libpod SystemInfoLibpod
 	// ---
 	// tags:
 	//  - system
