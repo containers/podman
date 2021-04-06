@@ -75,7 +75,25 @@ func GenerateVolumeFilters(filters url.Values) ([]libpod.VolumeFilter, error) {
 					return dangling
 				})
 			default:
-				return nil, errors.Errorf("%q is in an invalid volume filter", filter)
+				return nil, errors.Errorf("%q is an invalid volume filter", filter)
+			}
+		}
+	}
+	return vf, nil
+}
+
+func GeneratePruneVolumeFilters(filters url.Values) ([]libpod.VolumeFilter, error) {
+	var vf []libpod.VolumeFilter
+	for filter, v := range filters {
+		for _, val := range v {
+			switch filter {
+			case "label":
+				filter := val
+				vf = append(vf, func(v *libpod.Volume) bool {
+					return util.MatchLabelFilters([]string{filter}, v.Labels())
+				})
+			default:
+				return nil, errors.Errorf("%q is an invalid volume filter", filter)
 			}
 		}
 	}
