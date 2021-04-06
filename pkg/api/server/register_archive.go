@@ -91,7 +91,7 @@ func (s *APIServer) registerArchiveHandlers(r *mux.Router) error {
 		Libpod
 	*/
 
-	// swagger:operation PUT /libpod/containers/{name}/archive libpod libpodPutArchive
+	// swagger:operation PUT /libpod/containers/{name}/archive libpod PutContainerArchiveLibpod
 	// ---
 	//  summary: Copy files into a container
 	//  description: Copy a tar archive of files into a container
@@ -132,7 +132,7 @@ func (s *APIServer) registerArchiveHandlers(r *mux.Router) error {
 	//    500:
 	//      $ref: "#/responses/InternalError"
 
-	// swagger:operation GET /libpod/containers/{name}/archive libpod libpodGetArchive
+	// swagger:operation GET /libpod/containers/{name}/archive libpod ContainerArchiveLibpod
 	// ---
 	//  summary: Copy files from a container
 	//  description: Copy a tar archive of files from a container

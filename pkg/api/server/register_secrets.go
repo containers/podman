@@ -9,7 +9,7 @@ import (
 )
 
 func (s *APIServer) registerSecretHandlers(r *mux.Router) error {
-	// swagger:operation POST /libpod/secrets/create libpod libpodCreateSecret
+	// swagger:operation POST /libpod/secrets/create libpod SecretCreateLibpod
 	// ---
 	// tags:
 	//  - secrets
@@ -38,7 +38,7 @@ func (s *APIServer) registerSecretHandlers(r *mux.Router) error {
 	//   '500':
 	//      "$ref": "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/secrets/create"), s.APIHandler(libpod.CreateSecret)).Methods(http.MethodPost)
-	// swagger:operation GET /libpod/secrets/json libpod libpodListSecret
+	// swagger:operation GET /libpod/secrets/json libpod SecretListLibpod
 	// ---
 	// tags:
 	//  - secrets
@@ -53,7 +53,7 @@ func (s *APIServer) registerSecretHandlers(r *mux.Router) error {
 	//   '500':
 	//      "$ref": "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/secrets/json"), s.APIHandler(compat.ListSecrets)).Methods(http.MethodGet)
-	// swagger:operation GET /libpod/secrets/{name}/json libpod libpodInspectSecret
+	// swagger:operation GET /libpod/secrets/{name}/json libpod SecretInspectLibpod
 	// ---
 	// tags:
 	//  - secrets
@@ -74,7 +74,7 @@ func (s *APIServer) registerSecretHandlers(r *mux.Router) error {
 	//   '500':
 	//     "$ref": "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/secrets/{name}/json"), s.APIHandler(compat.InspectSecret)).Methods(http.MethodGet)
-	// swagger:operation DELETE /libpod/secrets/{name} libpod libpodRemoveSecret
+	// swagger:operation DELETE /libpod/secrets/{name} libpod SecretDeleteLibpod
 	// ---
 	// tags:
 	//  - secrets
@@ -104,7 +104,7 @@ func (s *APIServer) registerSecretHandlers(r *mux.Router) error {
 	/*
 	 * Docker compatibility endpoints
 	 */
-	// swagger:operation GET /secrets compat ListSecret
+	// swagger:operation GET /secrets compat SecretList
 	// ---
 	// tags:
 	//  - secrets (compat)
@@ -120,7 +120,7 @@ func (s *APIServer) registerSecretHandlers(r *mux.Router) error {
 	//      "$ref": "#/responses/InternalError"
 	r.Handle(VersionedPath("/secrets"), s.APIHandler(compat.ListSecrets)).Methods(http.MethodGet)
 	r.Handle("/secrets", s.APIHandler(compat.ListSecrets)).Methods(http.MethodGet)
-	// swagger:operation POST /secrets/create compat CreateSecret
+	// swagger:operation POST /secrets/create compat SecretCreate
 	// ---
 	// tags:
 	//  - secrets (compat)
@@ -143,7 +143,7 @@ func (s *APIServer) registerSecretHandlers(r *mux.Router) error {
 	//      "$ref": "#/responses/InternalError"
 	r.Handle(VersionedPath("/secrets/create"), s.APIHandler(compat.CreateSecret)).Methods(http.MethodPost)
 	r.Handle("/secrets/create", s.APIHandler(compat.CreateSecret)).Methods(http.MethodPost)
-	// swagger:operation GET /secrets/{name} compat InspectSecret
+	// swagger:operation GET /secrets/{name} compat SecretInspect
 	// ---
 	// tags:
 	//  - secrets (compat)
@@ -165,7 +165,7 @@ func (s *APIServer) registerSecretHandlers(r *mux.Router) error {
 	//     "$ref": "#/responses/InternalError"
 	r.Handle(VersionedPath("/secrets/{name}"), s.APIHandler(compat.InspectSecret)).Methods(http.MethodGet)
 	r.Handle("/secrets/{name}", s.APIHandler(compat.InspectSecret)).Methods(http.MethodGet)
-	// swagger:operation DELETE /secrets/{name} compat RemoveSecret
+	// swagger:operation DELETE /secrets/{name} compat SecretDelete
 	// ---
 	// tags:
 	//  - secrets (compat)

@@ -8,7 +8,7 @@ import (
 )
 
 func (s *APIServer) registerPlayHandlers(r *mux.Router) error {
-	// swagger:operation POST /libpod/play/kube libpod libpodPlayKube
+	// swagger:operation POST /libpod/play/kube libpod KubePlayLibpod
 	// ---
 	// tags:
 	//  - containers

@@ -37,7 +37,7 @@ func (s *APIServer) registerEventsHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/events"), s.APIHandler(compat.GetEvents)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/events", s.APIHandler(compat.GetEvents)).Methods(http.MethodGet)
-	// swagger:operation GET /libpod/events system libpodGetEvents
+	// swagger:operation GET /libpod/events system SystemEventsLibpod
 	// ---
 	// tags:
 	//   - system
