@@ -209,4 +209,19 @@ load helpers
     run_podman rm -f $cid
 }
 
+@test "podman rootless cni adds /usr/sbin to PATH" {
+    is_rootless || skip "only meaningful for rootless"
+
+    local mynetname=testnet-$(random_string 10)
+    run_podman network create $mynetname
+
+    # Test that rootless cni adds /usr/sbin to $PATH
+    # iptables is located under /usr/sbin and is needed for the CNI plugins.
+    # Debian doesn't add /usr/sbin to $PATH for rootless users so we have to add it.
+    PATH=/usr/local/bin:/usr/bin run_podman run --rm --network $mynetname $IMAGE ip addr
+    is "$output" ".*eth0.*" "Interface eth0 not found in ip addr output"
+
+    run_podman network rm -f $mynetname
+}
+
 # vim: filetype=sh
