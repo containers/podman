@@ -774,7 +774,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/prune"), s.APIHandler(compat.PruneContainers)).Methods(http.MethodPost)
-	// swagger:operation GET /libpod/containers/showmounted libpod ShowMountedContainersLibpod
+	// swagger:operation GET /libpod/containers/showmounted libpod ContainerShowMountedLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -1468,8 +1468,8 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/restore"), s.APIHandler(libpod.Restore)).Methods(http.MethodPost)
-	// swagger:operation GET /containers/{name}/changes libpod ContainerChangesLibpod
-	// swagger:operation GET /libpod/containers/{name}/changes compat ContainerChanges
+	// swagger:operation GET /containers/{name}/changes compat ContainerChanges
+	// swagger:operation GET /libpod/containers/{name}/changes libpod ContainerChangesLibpod
 	// ---
 	// tags:
 	//   - containers
