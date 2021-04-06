@@ -154,6 +154,7 @@ type RestartOptions struct {
 // StartOptions are optional options for starting containers
 type StartOptions struct {
 	DetachKeys *string
+	Recursive  *bool
 }
 
 //go:generate go run ../generator/generator.go StatsOptions

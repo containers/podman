@@ -93,6 +93,7 @@ type ContainerCLIOpts struct {
 	ReadOnlyTmpFS     bool
 	Restart           string
 	Replace           bool
+	Requires          []string
 	Rm                bool
 	RootFS            bool
 	Secrets           []string

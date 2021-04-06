@@ -919,7 +919,7 @@ func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error
 		return err
 	}
 	if len(deps) != 0 {
-		return errors.Wrapf(define.ErrCtrExists, "container %s is a dependency of the following containers: %s", ctr.ID(), strings.Join(deps, ", "))
+		return errors.Wrapf(define.ErrDepExists, "container %s is a dependency of the following containers: %s", ctr.ID(), strings.Join(deps, ", "))
 	}
 
 	if err := ctrBucket.DeleteBucket(ctrID); err != nil {

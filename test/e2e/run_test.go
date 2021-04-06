@@ -1588,4 +1588,29 @@ WORKDIR /madethis`, BB)
 		Expect(session.OutputToString()).To(ContainSubstring("mysecret"))
 
 	})
+
+	It("podman run --requires", func() {
+		depName := "ctr1"
+		depContainer := podmanTest.Podman([]string{"create", "--name", depName, ALPINE, "top"})
+		depContainer.WaitWithDefaultTimeout()
+		Expect(depContainer.ExitCode()).To(Equal(0))
+
+		mainName := "ctr2"
+		mainContainer := podmanTest.Podman([]string{"run", "--name", mainName, "--requires", depName, "-d", ALPINE, "top"})
+		mainContainer.WaitWithDefaultTimeout()
+		Expect(mainContainer.ExitCode()).To(Equal(0))
+
+		stop := podmanTest.Podman([]string{"stop", "--all"})
+		stop.WaitWithDefaultTimeout()
+		Expect(stop.ExitCode()).To(Equal(0))
+
+		start := podmanTest.Podman([]string{"start", mainName})
+		start.WaitWithDefaultTimeout()
+		Expect(start.ExitCode()).To(Equal(0))
+
+		running := podmanTest.Podman([]string{"ps", "-q"})
+		running.WaitWithDefaultTimeout()
+		Expect(running.ExitCode()).To(Equal(0))
+		Expect(len(running.OutputToStringArray())).To(Equal(2))
+	})
 })

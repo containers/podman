@@ -781,6 +781,12 @@ If container is running in --read-only mode, then mount a read-write tmpfs on /r
 
 If another container with the same name already exists, replace and remove it. The default is **false**.
 
+#### **\-\-requires**=**container**
+
+Specify one or more requirements.
+A requirement is a dependency container that will be started before this container.
+Containers can be specified by name or ID, with multiple containers being separated by commas.
+
 #### **\-\-restart**=*policy*
 
 Restart policy to follow when containers exit.
@@ -1250,6 +1256,25 @@ $ podman create --tz=Asia/Shanghai alpine date
 $ podman create --tz=US/Eastern alpine date
 ```
 
+### Adding dependency containers
+
+Podman will make sure the first container, container1, is running before the second container (container2) is started.
+
+```
+$ podman create --name container1 -t -i fedora bash
+$ podman create --name container2 --requires container1 -t -i fedora bash
+$ podman start --attach container2
+```
+
+Multiple containers can be required.
+
+```
+$ podman create --name container1 -t -i fedora bash
+$ podman create --name container2 -t -i fedora bash
+$ podman create --name container3 --requires container1,container2 -t -i fedora bash
+$ podman start --attach container3
+```
+
 ### Rootless Containers
 
 Podman runs as a non root user on most systems. This feature requires that a new enough version of shadow-utils
@@ -1297,7 +1322,7 @@ b
 NOTE: Use the environment variable `TMPDIR` to change the temporary storage location of downloaded container images. Podman defaults to use `/var/tmp`.
 
 ## SEE ALSO
-**podman**(1), **podman-secret**(1), **podman-save**(1), **podman-ps**(1), **podman-attach**(1), **podman-pod-create**(1), **podman-port**(1), **podman-kill**(1), **podman-stop**(1),
+**podman**(1), **podman-secret**(1), **podman-save**(1), **podman-ps**(1), **podman-attach**(1), **podman-pod-create**(1), **podman-port**(1), **podman-start*(1), **podman-kill**(1), **podman-stop**(1),
 **podman-generate-systemd**(1) **podman-rm**(1), **subgid**(5), **subuid**(5), **containers.conf**(5), **systemd.unit**(5), **setsebool**(8), **slirp4netns**(1), **fuse-overlayfs**(1), **proc**(5)**.
 
 ## HISTORY

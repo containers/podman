@@ -629,7 +629,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 
 	if opts.Detach {
 		// Detach and return early
-		err := containers.Start(ic.ClientCtx, con.ID, nil)
+		err := containers.Start(ic.ClientCtx, con.ID, new(containers.StartOptions).WithRecursive(true))
 		if err != nil {
 			report.ExitCode = define.ExitCode(err)
 		}

@@ -391,7 +391,7 @@ func (s *InMemoryState) RemoveContainer(ctr *Container) error {
 	deps, ok := s.ctrDepends[ctr.ID()]
 	if ok && len(deps) != 0 {
 		depsStr := strings.Join(deps, ", ")
-		return errors.Wrapf(define.ErrCtrExists, "the following containers depend on container %s: %s", ctr.ID(), depsStr)
+		return errors.Wrapf(define.ErrDepExists, "the following containers depend on container %s: %s", ctr.ID(), depsStr)
 	}
 
 	// Ensure we don't have active exec sessions
@@ -1497,7 +1497,7 @@ func (s *InMemoryState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 	deps, ok := s.ctrDepends[ctr.ID()]
 	if ok && len(deps) != 0 {
 		depsStr := strings.Join(deps, ", ")
-		return errors.Wrapf(define.ErrCtrExists, "the following containers depend on container %s: %s", ctr.ID(), depsStr)
+		return errors.Wrapf(define.ErrDepExists, "the following containers depend on container %s: %s", ctr.ID(), depsStr)
 	}
 
 	// Ensure we don't have active exec sessions

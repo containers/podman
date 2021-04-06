@@ -42,7 +42,7 @@ func StartContainer(w http.ResponseWriter, r *http.Request) {
 		utils.WriteResponse(w, http.StatusNotModified, nil)
 		return
 	}
-	if err := con.Start(r.Context(), len(con.PodID()) > 0); err != nil {
+	if err := con.Start(r.Context(), true); err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}

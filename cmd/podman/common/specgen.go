@@ -486,6 +486,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.ReadOnlyFilesystem = c.ReadOnly
 	s.ConmonPidFile = c.ConmonPIDFile
 
+	s.DependencyContainers = c.Requires
+
 	// TODO
 	// outside of specgen and oci though
 	// defaults to true, check spec/storage

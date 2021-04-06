@@ -576,6 +576,14 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 		`If a container with the same name exists, replace it`,
 	)
 
+	requiresFlagName := "requires"
+	createFlags.StringSliceVar(
+		&cf.Requires,
+		requiresFlagName, []string{},
+		"Add one or more requirement containers that must be started before this container will start",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(requiresFlagName, AutocompleteContainers)
+
 	restartFlagName := "restart"
 	createFlags.StringVar(
 		&cf.Restart,
