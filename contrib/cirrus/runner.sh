@@ -269,13 +269,18 @@ function _run_release() {
 }
 
 logformatter() {
-    # Use similar format as human-friendly task name from .cirrus.yml
-    # shellcheck disable=SC2154
-    output_name="$TEST_FLAVOR-$PODBIN_NAME-$DISTRO_NV-$PRIV_NAME-$TEST_ENVIRON"
-    # Requires stdin and stderr combined!
-    cat - \
-        |& awk --file "${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/timestamp.awk" \
-        |& "${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/logformatter" "$output_name"
+    if [[ "$CI" == "true" ]]; then
+        # Use similar format as human-friendly task name from .cirrus.yml
+        # shellcheck disable=SC2154
+        output_name="$TEST_FLAVOR-$PODBIN_NAME-$DISTRO_NV-$PRIV_NAME-$TEST_ENVIRON"
+        # Requires stdin and stderr combined!
+        cat - \
+            |& awk --file "${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/timestamp.awk" \
+            |& "${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/logformatter" "$output_name"
+    else
+        # Assume script is run by a human, they want output immediatly
+        cat -
+    fi
 }
 
 # Handle local|remote integration|system testing in a uniform way
