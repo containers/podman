@@ -305,7 +305,7 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/{name}/top"), s.APIHandler(libpod.PodTop)).Methods(http.MethodGet)
-	// swagger:operation GET /libpod/pods/stats pods PodStatsLibpod
+	// swagger:operation GET /libpod/pods/stats pods PodStatsAllLibpod
 	// ---
 	// tags:
 	//  - pods

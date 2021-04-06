@@ -252,11 +252,6 @@ sub handle_handle {
         $tag = 'system';
     }
 
-    # Special case: /changes is libpod even though it says compat
-    if ($endpoint =~ m!/changes!) {
-        $tag = 'libpod';
-    }
-
     state $previous_path;                # Previous path name, to avoid dups
 
     #
