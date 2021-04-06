@@ -59,11 +59,6 @@ says 'libpod'.
 
 OPTIONS:
 
-  --pedantic     Compare operation names (the last part of swagger comment).
-                 There are far too many of these inconsistencies to allow us
-                 to enable this by default, but it still might be a useful
-                 check in some circumstances.
-
   -v, --verbose  show verbose progress indicators
   -n, --dry-run  make no actual changes
 
@@ -75,7 +70,6 @@ END_USAGE
 }
 
 # Command-line options.  Note that this operates directly on @ARGV !
-our $pedantic;
 our $debug   = 0;
 our $force   = 0;
 our $verbose = 0;
@@ -83,8 +77,6 @@ our $NOT     = '';              # print "blahing the blah$NOT\n" if $debug
 sub handle_opts {
     use Getopt::Long;
     GetOptions(
-        'pedantic'   => \$pedantic,
-
         'debug!'     => \$debug,
         'dry-run|n!' => sub { $NOT = ' [NOT]' },
         'force'      => \$force,
@@ -225,26 +217,14 @@ sub handle_handle {
     my $tag = ($endpoint =~ /(libpod)/ ? $1 : 'compat');
 
     #
-    # Determine the OPERATION. *** NOTE: This is mostly useless! ***
-    # In an ideal world the swagger comment would match actual function call;
-    # in reality there are over thirty mismatches. Use --pedantic to see.
+    # Determine the OPERATION. Done in a helper function because there
+    # are a lot of complicated special cases.
     #
-    my $operation = '';
-    if ($line =~ /(generic|handlers|compat)\.(\w+)/) {
-        $operation = lcfirst $2;
-        if ($endpoint =~ m!/libpod/! && $operation !~ /^libpod/) {
-            $operation = 'libpod' . ucfirst $operation;
-        }
-    }
-    elsif ($line =~ /(libpod)\.(\w+)/) {
-        $operation = "$1$2";
-    }
+    my $operation = operation_name($method, $endpoint);
 
     # Special case: the following endpoints all get a custom tag
     if ($endpoint =~ m!/(pods|manifests)/!) {
         $tag = $1;
-        $operation =~ s/^libpod//;
-        $operation = lcfirst $operation;
     }
 
     # Special case: anything related to 'events' gets a system tag
@@ -263,13 +243,6 @@ sub handle_handle {
     return 1 if !@actual;         # No swagger comment in file; oh well
 
     my $actual = $actual[0];
-
-    # By default, don't compare the operation: there are far too many
-    # mismatches here.
-    if (! $pedantic) {
-        $actual =~ s/\s+\S+\s*$//;
-        $expect =~ s/\s+\S+\s*$//;
-    }
 
     # (Ignore whitespace discrepancies)
     (my $a_trimmed = $actual) =~ s/\s+/ /g;
@@ -308,5 +281,73 @@ sub handle_handle {
 
     return;
 }
+
+
+####################
+#  operation_name  #  Given a method + endpoint, return the swagger operation
+####################
+sub operation_name {
+    my ($method, $endpoint) = @_;
+
+    # /libpod/foo/bar -> (libpod, foo, bar)
+    my @endpoints = grep { /\S/ } split '/', $endpoint;
+
+    # /libpod endpoints -> add 'Libpod' to end, e.g. PodStatsLibpod
+    my $Libpod = '';
+    my $main = shift(@endpoints);
+    if ($main eq 'libpod') {
+        $Libpod = ucfirst($main);
+        $main = shift(@endpoints);
+    }
+    $main =~ s/s$//;         # e.g. Volumes -> Volume
+
+    # Next path component is an optional action:
+    #    GET    /containers/json               -> ContainerList
+    #    DELETE /libpod/containers/{name}      -> ContainerDelete
+    #    GET    /libpod/containers/{name}/logs -> ContainerLogsLibpod
+    my $action = shift(@endpoints) || 'list';
+    $action = 'list'   if $action eq 'json';
+    $action = 'delete' if $method eq 'DELETE';
+
+    # Anything with {id}, {name}, {name:..} may have a following component
+    if ($action =~ m!\{.*\}!) {
+        $action = shift(@endpoints) || 'inspect';
+        $action = 'inspect' if $action eq 'json';
+    }
+
+    # All sorts of special cases
+    if ($action eq 'df') {
+        $action = 'dataUsage';
+    }
+    # Grrrrrr, this one is annoying: some operations get an extra 'All'
+    elsif ($action =~ /^(delete|get|stats)$/ && $endpoint !~ /\{/) {
+        $action .= "All";
+        $main .= 's' if $main eq 'container';
+    }
+    # No real way to used MixedCase in an endpoint, so we have to hack it here
+    elsif ($action eq 'showmounted') {
+        $action = 'showMounted';
+    }
+    # Ping is a special endpoint, and even if /libpod/_ping, no 'Libpod'
+    elsif ($main eq '_ping') {
+        $main = 'system';
+        $action = 'ping';
+        $Libpod = '';
+    }
+    # Top-level compat endpoints
+    elsif ($main =~ /^(build|commit)$/) {
+        $main   = 'image';
+        $action = $1;
+    }
+    # Top-level system endpoints
+    elsif ($main =~ /^(auth|event|info|version)$/) {
+        $main   = 'system';
+        $action = $1;
+        $action .= 's' if $action eq 'event';
+    }
+
+    return "\u${main}\u${action}$Libpod";
+}
+
 
 1;
