@@ -10,7 +10,7 @@ import (
 func (s *APIServer) registerPingHandlers(r *mux.Router) error {
 	r.Handle("/_ping", s.APIHandler(compat.Ping)).Methods(http.MethodGet, http.MethodHead)
 	r.Handle(VersionedPath("/_ping"), s.APIHandler(compat.Ping)).Methods(http.MethodGet, http.MethodHead)
-	// swagger:operation GET /libpod/_ping libpod libpodPingGet
+	// swagger:operation GET /libpod/_ping libpod SystemPing
 	// ---
 	//   summary: Ping service
 	//   description: |

@@ -9,19 +9,6 @@ import (
 )
 
 func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
-	// swagger:operation POST /networks/prune compat NetworkPrune
-	// ---
-	// tags:
-	// - networks (compat)
-	// Summary: Delete unused networks
-	// description: Not supported
-	// produces:
-	// - application/json
-	// responses:
-	//   404:
-	//     $ref: "#/responses/NoSuchNetwork"
-	r.HandleFunc(VersionedPath("/networks/prune"), compat.UnsupportedHandler).Methods(http.MethodPost)
-	r.HandleFunc("/networks/prune", compat.UnsupportedHandler).Methods(http.MethodPost)
 	// swagger:operation DELETE /networks/{name} compat NetworkDelete
 	// ---
 	// tags:
@@ -172,7 +159,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/networks/{name}/disconnect"), s.APIHandler(compat.Disconnect)).Methods(http.MethodPost)
 	r.HandleFunc("/networks/{name}/disconnect", s.APIHandler(compat.Disconnect)).Methods(http.MethodPost)
-	// swagger:operation POST /networks/prune compat compatPruneNetwork
+	// swagger:operation POST /networks/prune compat NetworkPrune
 	// ---
 	// tags:
 	//  - networks (compat)
@@ -201,7 +188,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/networks/prune"), s.APIHandler(compat.Prune)).Methods(http.MethodPost)
 	r.HandleFunc("/networks/prune", s.APIHandler(compat.Prune)).Methods(http.MethodPost)
 
-	// swagger:operation DELETE /libpod/networks/{name} libpod libpodRemoveNetwork
+	// swagger:operation DELETE /libpod/networks/{name} libpod NetworkDeleteLibpod
 	// ---
 	// tags:
 	//  - networks
@@ -226,35 +213,8 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchNetwork"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-
-	/*
-		Libpod
-	*/
-
 	r.HandleFunc(VersionedPath("/libpod/networks/{name}"), s.APIHandler(libpod.RemoveNetwork)).Methods(http.MethodDelete)
-	// swagger:operation GET /libpod/networks/{name}/json libpod libpodInspectNetwork
-	// ---
-	// tags:
-	//  - networks
-	// summary: Inspect a network
-	// description: Display low level configuration for a CNI network
-	// parameters:
-	//  - in: path
-	//    name: name
-	//    type: string
-	//    required: true
-	//    description: the name of the network
-	// produces:
-	// - application/json
-	// responses:
-	//   200:
-	//     $ref: "#/responses/NetworkInspectReport"
-	//   404:
-	//     $ref: "#/responses/NoSuchNetwork"
-	//   500:
-	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/networks/{name}/json"), s.APIHandler(libpod.InspectNetwork)).Methods(http.MethodGet)
-	// swagger:operation GET /libpod/networks/{name}/exists libpod libpodExistsNetwork
+	// swagger:operation GET /libpod/networks/{name}/exists libpod NetworkExistsLibpod
 	// ---
 	// tags:
 	//  - networks
@@ -276,7 +236,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/networks/{name}/exists"), s.APIHandler(libpod.ExistsNetwork)).Methods(http.MethodGet)
-	// swagger:operation GET /libpod/networks/json libpod libpodListNetwork
+	// swagger:operation GET /libpod/networks/json libpod NetworkListLibpod
 	// ---
 	// tags:
 	//  - networks
@@ -301,7 +261,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/networks/json"), s.APIHandler(libpod.ListNetworks)).Methods(http.MethodGet)
-	// swagger:operation GET /libpod/networks/{name}/json libpod libpodInspectNetwork
+	// swagger:operation GET /libpod/networks/{name}/json libpod NetworkInspectLibpod
 	// ---
 	// tags:
 	//  - networks
@@ -324,7 +284,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/networks/{name}/json"), s.APIHandler(libpod.InspectNetwork)).Methods(http.MethodGet)
 	r.HandleFunc(VersionedPath("/libpod/networks/{name}"), s.APIHandler(libpod.InspectNetwork)).Methods(http.MethodGet)
-	// swagger:operation POST /libpod/networks/create libpod libpodCreateNetwork
+	// swagger:operation POST /libpod/networks/create libpod NetworkCreateLibpod
 	// ---
 	// tags:
 	//  - networks
@@ -350,7 +310,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/networks/create"), s.APIHandler(libpod.CreateNetwork)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/networks/{name}/connect libpod libpodConnectNetwork
+	// swagger:operation POST /libpod/networks/{name}/connect libpod NetworkConnectLibpod
 	// ---
 	// tags:
 	//  - networks
@@ -377,7 +337,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/networks/{name}/connect"), s.APIHandler(libpod.Connect)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/networks/{name}/disconnect libpod libpodDisconnectNetwork
+	// swagger:operation POST /libpod/networks/{name}/disconnect libpod NetworkDisconnectLibpod
 	// ---
 	// tags:
 	//  - networks
@@ -404,7 +364,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/networks/{name}/disconnect"), s.APIHandler(compat.Disconnect)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/networks/prune libpod libpodPruneNetwork
+	// swagger:operation POST /libpod/networks/prune libpod NetworkPruneLibpod
 	// ---
 	// tags:
 	//  - networks

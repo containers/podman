@@ -8,7 +8,7 @@ import (
 )
 
 func (s *APIServer) registerAuthHandlers(r *mux.Router) error {
-	// swagger:operation POST /auth compat auth
+	// swagger:operation POST /auth compat SystemAuth
 	// ---
 	//   summary: Check auth configuration
 	//   tags:
