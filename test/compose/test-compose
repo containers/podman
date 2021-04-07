@@ -163,7 +163,13 @@ function test_port() {
     local op="$2"                # '=' or '~'
     local expect="$3"            # what to expect from curl output
 
-    local actual=$(curl --retry 10 --retry-all-errors -s http://127.0.0.1:$port/)
+    local actual=$(curl --retry 3 --retry-all-errors -s http://127.0.0.1:$port/)
+    # The test is flaking with an empty result. The curl retry doesn't solve this.
+    # If the result is empty sleep one second and try again.
+    if [[ "$actual" == "" ]]; then
+        sleep 1
+        local actual=$(curl --retry 3 --retry-all-errors -s http://127.0.0.1:$port/)
+    fi
     local curl_rc=$?
     if [ $curl_rc -ne 0 ]; then
         _show_ok 0 "$testname - curl failed with status $curl_rc"
