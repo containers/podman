@@ -1,6 +1,8 @@
-{ system ? builtins.currentSystem }:
 let
   pkgs = (import ./nixpkgs.nix {
+    crossSystem = {
+      config = "aarch64-unknown-linux-gnu";
+    };
     config = {
       packageOverrides = pkg: {
         gpgme = (static pkg.gpgme);
