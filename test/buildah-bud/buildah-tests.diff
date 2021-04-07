@@ -1,16 +1,16 @@
-From a49a2e48421c6f3bb1a56ae372de1f3d1a45d1f1 Mon Sep 17 00:00:00 2001
+From 47cc8f54d272039bdab389b29c8b2b5bb085e923 Mon Sep 17 00:00:00 2001
 From: Ed Santiago <santiago@redhat.com>
 Date: Tue, 9 Feb 2021 17:28:05 -0700
 Subject: [PATCH] tweaks for running buildah tests under podman
 
 Signed-off-by: Ed Santiago <santiago@redhat.com>
 ---
- tests/bud.bats     | 26 ++++++++++++++++----------
+ tests/bud.bats     | 22 +++++++++++++---------
  tests/helpers.bash | 28 ++++++++++++++++++++++++----
- 2 files changed, 40 insertions(+), 14 deletions(-)
+ 2 files changed, 37 insertions(+), 13 deletions(-)
 
 diff --git a/tests/bud.bats b/tests/bud.bats
-index cf55d9a4..60cb6f96 100644
+index fe3af27a..d1ccced5 100644
 --- a/tests/bud.bats
 +++ b/tests/bud.bats
 @@ -4,7 +4,7 @@ load helpers
@@ -30,7 +30,7 @@ index cf55d9a4..60cb6f96 100644
    run_buildah 125 bud /tmp/tmpdockerfile/ -t blabla
    check_options_flag_err "-t"
 
-@@ -1416,13 +1417,13 @@ function _test_http() {
+@@ -1436,13 +1437,13 @@ function _test_http() {
  @test "bud with dir for file but no Dockerfile in dir" {
    target=alpine-image
    run_buildah 125 bud --signature-policy ${TESTSDIR}/policy.json -t ${target} -f ${TESTSDIR}/bud/empty-dir ${TESTSDIR}/bud/empty-dir
@@ -46,18 +46,7 @@ index cf55d9a4..60cb6f96 100644
  }
 
  @test "bud with ARG before FROM default value" {
-@@ -1834,7 +1835,9 @@ _EOF
-   run_buildah bud --signature-policy ${TESTSDIR}/policy.json --layers -t test-img-2 --build-arg TEST=foo -f Dockerfile4 ${TESTSDIR}/bud/build-arg
-   run_buildah inspect -f '{{.FromImageID}}' test-img-2
-   argsid="$output"
--  [[ "$argsid" != "$initialid" ]]
-+  if [[ "$argsid" == "$initialid" ]]; then
-+      die ".FromImageID of test-img-2 ($argsid) == same as test-img, it should be different"
-+  fi
-
-   # Set the build-arg via an ENV in the local environment and verify that the cached layers are not used
-   export TEST=bar
-@@ -1887,6 +1890,7 @@ _EOF
+@@ -1913,6 +1914,7 @@ _EOF
  }
 
  @test "bud without any arguments should succeed" {
@@ -65,7 +54,7 @@ index cf55d9a4..60cb6f96 100644
    cd ${TESTSDIR}/bud/from-scratch
    run_buildah bud --signature-policy ${TESTSDIR}/policy.json
  }
-@@ -1894,7 +1898,7 @@ _EOF
+@@ -1920,7 +1922,7 @@ _EOF
  @test "bud without any arguments should fail when no Dockerfile exist" {
    cd $(mktemp -d)
    run_buildah 125 bud --signature-policy ${TESTSDIR}/policy.json
@@ -74,7 +63,7 @@ index cf55d9a4..60cb6f96 100644
  }
 
  @test "bud with specified context should fail if directory contains no Dockerfile" {
-@@ -1907,16 +1911,17 @@ _EOF
+@@ -1933,16 +1935,17 @@ _EOF
    DIR=$(mktemp -d)
    mkdir -p "$DIR"/Dockerfile
    run_buildah 125 bud --signature-policy ${TESTSDIR}/policy.json "$DIR"
@@ -94,7 +83,7 @@ index cf55d9a4..60cb6f96 100644
    DIR=$(mktemp -d)
    echo "FROM alpine" > "$DIR"/Dockerfile
    run_buildah 0 bud --signature-policy ${TESTSDIR}/policy.json "$DIR"/Dockerfile
-@@ -1968,7 +1973,7 @@ _EOF
+@@ -1994,7 +1997,7 @@ _EOF
 
  @test "bud-squash-hardlinks" {
    _prefetch busybox
@@ -103,7 +92,7 @@ index cf55d9a4..60cb6f96 100644
  }
 
  @test "bud with additional directory of devices" {
-@@ -2134,6 +2139,7 @@ _EOF
+@@ -2159,6 +2162,7 @@ _EOF
  }
 
  @test "bud with Containerfile should fail with nonexistent authfile" {
@@ -111,7 +100,7 @@ index cf55d9a4..60cb6f96 100644
    target=alpine-image
    run_buildah 125 bud --authfile /tmp/nonexistent --signature-policy ${TESTSDIR}/policy.json -t ${target} ${TESTSDIR}/bud/containerfile
  }
-@@ -2261,6 +2267,7 @@ EOM
+@@ -2286,6 +2290,7 @@ EOM
  }
 
  @test "bud with encrypted FROM image" {
@@ -119,7 +108,7 @@ index cf55d9a4..60cb6f96 100644
    _prefetch busybox
    mkdir ${TESTDIR}/tmp
    openssl genrsa -out ${TESTDIR}/tmp/mykey.pem 1024
-@@ -2333,8 +2340,6 @@ EOM
+@@ -2358,8 +2363,6 @@ EOM
    _prefetch alpine
    run_buildah bud --timestamp=0 --quiet --pull=false --signature-policy ${TESTSDIR}/policy.json -t timestamp -f Dockerfile.1 ${TESTSDIR}/bud/cache-stages
    cid=$output
@@ -128,7 +117,7 @@ index cf55d9a4..60cb6f96 100644
    run_buildah inspect --format '{{ .OCIv1.Created }}' timestamp
    expect_output --substring "1970-01-01"
    run_buildah inspect --format '{{ .History }}' timestamp
-@@ -2594,6 +2599,7 @@ _EOF
+@@ -2619,6 +2622,7 @@ _EOF
  }
 
  @test "bud with --arch flag" {
@@ -137,18 +126,18 @@ index cf55d9a4..60cb6f96 100644
    mytmpdir=${TESTDIR}/my-dir
    mkdir -p ${mytmpdir}
 diff --git a/tests/helpers.bash b/tests/helpers.bash
-index b28fd2c3..d42a6b82 100644
+index 99c290af..c5572840 100644
 --- a/tests/helpers.bash
 +++ b/tests/helpers.bash
 @@ -70,7 +70,7 @@ function _prefetch() {
-             mkdir -p ${_BUILDAH_IMAGE_CACHEDIR}
-         fi
+         mkdir -p ${_BUILDAH_IMAGE_CACHEDIR}
+     fi
 
--        local _podman_opts="--root ${TESTDIR}/root --storage-driver ${STORAGE_DRIVER}"
-+        local _podman_opts="--root ${TESTDIR}/root --runroot ${TESTDIR}/runroot --storage-driver ${STORAGE_DRIVER}"
+-    local _podman_opts="--root ${TESTDIR}/root --storage-driver ${STORAGE_DRIVER}"
++    local _podman_opts="--root ${TESTDIR}/root --runroot ${TESTDIR}/runroot --storage-driver ${STORAGE_DRIVER}"
 
-         for img in "$@"; do
-             echo "# [checking for: $img]" >&2
+     for img in "$@"; do
+         echo "# [checking for: $img]" >&2
 @@ -138,15 +138,35 @@ function run_buildah() {
          --retry)         retry=3;        shift;;  # retry network flakes
      esac
