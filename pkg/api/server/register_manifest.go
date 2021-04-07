@@ -81,6 +81,7 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/libpod/manifests/{name:.*}/json"), s.APIHandler(libpod.ManifestInspect)).Methods(http.MethodGet)
 	// swagger:operation POST /libpod/manifests/{name:.*}/add manifests ManifestAddLibpod
 	// ---
+	// summary: Add image
 	// description: Add an image to a manifest list
 	// produces:
 	// - application/json
