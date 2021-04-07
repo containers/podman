@@ -178,9 +178,10 @@ sub handle_handle {
         or die "$ME: $path:$.: Cannot grok '$line'\n";
     my $endpoint = $1;
 
-    # FIXME: in older code, '{name:..*}' meant 'nameOrID'. As of 2020-02
-    # it looks like most of the '{name:..*}' entries are gone, except for one.
-###FIXME-obsolete?    $endpoint =~ s|\{name:\.\.\*\}|{nameOrID}|;
+    # Some function declarations require an argument of the form '{name:.*}'
+    # but the swagger (which gets derived from the comments) should not
+    # include them. Normalize all such args to just '{name}'.
+    $endpoint =~ s/\{name:\.\*\}/\{name\}/;
 
     # e.g. /auth, /containers/*/rename, /distribution, /monitor, /plugins
     return 1 if $line =~ /\.UnsupportedHandler/;
