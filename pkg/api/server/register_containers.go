@@ -1194,11 +1194,22 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//       - removing
 	//       - stopping
 	//    description: "Conditions to wait for. If no condition provided the 'exited' condition is assumed."
+	//  - in: query
+	//    name: interval
+	//    type: string
+	//    default: "250ms"
+	//    description: Time Interval to wait before polling for completion.
 	// produces:
 	// - application/json
+	// - text/plain
 	// responses:
 	//   200:
-	//     $ref: "#/responses/ContainerWaitResponse"
+	//     description: Status code
+	//     schema:
+	//       type: integer
+	//       format: int32
+	//     examples:
+	//       text/plain: 137
 	//   404:
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
