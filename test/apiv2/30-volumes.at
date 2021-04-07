@@ -123,4 +123,20 @@ t POST libpod/volumes/prune 200
 #After prune volumes, there should be no volume existing
 t GET libpod/volumes/json 200 length=0
 
+# libpod api: do not use list filters for prune
+t POST libpod/volumes/prune?filters='{"name":["anyname"]}' 500 \
+    .cause="\"name\" is an invalid volume filter"
+t POST libpod/volumes/prune?filters='{"driver":["anydriver"]}' 500 \
+    .cause="\"driver\" is an invalid volume filter"
+t POST libpod/volumes/prune?filters='{"scope":["anyscope"]}' 500 \
+    .cause="\"scope\" is an invalid volume filter"
+
+# compat api: do not use list filters for prune
+t POST volumes/prune?filters='{"name":["anyname"]}' 500 \
+    .cause="\"name\" is an invalid volume filter"
+t POST volumes/prune?filters='{"driver":["anydriver"]}' 500 \
+    .cause="\"driver\" is an invalid volume filter"
+t POST volumes/prune?filters='{"scope":["anyscope"]}' 500 \
+    .cause="\"scope\" is an invalid volume filter"
+
 # vim: filetype=sh

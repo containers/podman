@@ -150,7 +150,7 @@ func pruneVolumesHelper(r *http.Request) ([]*reports.PruneReport, error) {
 	}
 
 	f := (url.Values)(*filterMap)
-	filterFuncs, err := filters.GenerateVolumeFilters(f)
+	filterFuncs, err := filters.GeneratePruneVolumeFilters(f)
 	if err != nil {
 		return nil, err
 	}

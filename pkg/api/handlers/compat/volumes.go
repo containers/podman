@@ -266,7 +266,7 @@ func PruneVolumes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	f := (url.Values)(*filterMap)
-	filterFuncs, err := filters.GenerateVolumeFilters(f)
+	filterFuncs, err := filters.GeneratePruneVolumeFilters(f)
 	if err != nil {
 		utils.Error(w, "Something when wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to parse filters for %s", f.Encode()))
 		return
