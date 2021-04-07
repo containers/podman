@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -190,6 +191,10 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 			platform = "linux"
 		}
 		platform += "/" + options.Architecture
+	} else {
+		if len(platform) > 0 {
+			platform += "/" + runtime.GOARCH
+		}
 	}
 	if len(platform) > 0 {
 		params.Set("platform", platform)

@@ -72,7 +72,7 @@ function die() {
 
 # From here on out, any unexpected abort will try to offer helpful hints
 failhint=
-trap 'if [[ $? != 0 ]]; then if [[ -n $failhint ]]; then echo;echo "***************************************";echo $failhint;echo;echo "Please see $BUD_TEST_DIR_REL/README.md for advice";fi;fi' 0
+trap 'if [[ $? != 0 ]]; then if [[ -n $failhint ]]; then echo;echo "***************************************";echo "$failhint";echo;echo "Please see $BUD_TEST_DIR_REL/README.md for advice";fi;fi' 0
 
 # Find the version of buildah we've vendored in, so we can run the right tests
 buildah_version=$(awk "\$1 == \"$BUILDAH_REPO\" { print \$2 }" <go.mod)
@@ -110,10 +110,27 @@ if [[ -n $do_checkout ]]; then
         die "Directory already exists: $buildah_dir"
     fi
 
+    # buildah_version should usually be vX.Y, but sometimes a PR under test
+    # will need a special unreleased version (go calls then "pseudoversions").
+    # In the usual case, we can do a shallow git clone:
+    shallow_checkout="--branch $buildah_version"
+    if [[ $buildah_version =~ .*-.*\.[0-9]{14}-.* ]]; then
+        # ...but with a pseudoversion, we must git-clone the entire repo,
+        # then do a git checkout within it
+        shallow_checkout=
+    fi
+
     failhint="'git clone' failed - this should never happen!"
-    (set -x;git clone -q --branch $buildah_version https://$BUILDAH_REPO $buildah_dir)
+    (set -x;git clone -q $shallow_checkout https://$BUILDAH_REPO $buildah_dir)
 
     cd $buildah_dir
+    if [[ -z $shallow_checkout ]]; then
+        # extract the SHA (rightmost field) from, e.g., v1.2-YYYMMDD-<sha>
+        sha=${buildah_version##*-}
+
+        failhint="'git checkout $sha' failed - this should never happen!"
+        (set -x;git checkout -q $sha)
+    fi
 
     # Give it a recognizable tag; this will be useful if we need to update
     # the set of patches
@@ -123,18 +140,22 @@ if [[ -n $do_checkout ]]; then
     failhint="error building buildah. This should never happen."
     (set -x;make bin/buildah)
 
-    # Apply custom patches. We do this _after_ building, although it shouldn't
-    # matter because these patches should only apply to test scripts.
-    failhint="
-Error applying patch file. This can happen when you vendor in a new buildah."
-    (set -x;git am <$PATCHES)
-
+    # The upcoming patch may fail. Before we try it, create a helper script
+    # for a developer to push a new set of diffs to podman-land.
     failhint=
     sed -e "s,\[BASETAG\],${BASE_TAG},g" \
         -e "s,\[BUILDAHREPO\],${BUILDAH_REPO},g" \
         < ${BUD_TEST_DIR}/make-new-buildah-diffs \
         > make-new-buildah-diffs
     chmod 755 make-new-buildah-diffs
+
+    # Apply custom patches. We do this _after_ building, although it shouldn't
+    # matter because these patches should only apply to test scripts.
+    failhint="
+Error applying patch file. This can happen when you vendor in a new buildah.
+
+Look for '*.rej' files to resolve the conflict(s) manually."
+    (set -x;git am --reject <$PATCHES)
 else
     # Called with --no-checkout
     test -d $buildah_dir || die "Called with --no-checkout, but $buildah_dir does not exist"

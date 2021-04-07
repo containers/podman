@@ -15,6 +15,7 @@ import (
 
 	"github.com/containers/buildah"
 	buildahDefine "github.com/containers/buildah/define"
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/util"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod"
@@ -445,6 +446,17 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
+	if len(query.Platform) > 0 {
+		variant := ""
+		buildOptions.OS, buildOptions.Architecture, variant, err = parse.Platform(query.Platform)
+		if err != nil {
+			utils.BadRequest(w, "platform", query.Platform, err)
+			return
+		}
+		buildOptions.SystemContext.OSChoice = buildOptions.OS
+		buildOptions.SystemContext.ArchitectureChoice = buildOptions.Architecture
+		buildOptions.SystemContext.VariantChoice = variant
+	}
 	if _, found := r.URL.Query()["timestamp"]; found {
 		ts := time.Unix(query.Timestamp, 0)
 		buildOptions.Timestamp = &ts

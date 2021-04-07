@@ -164,7 +164,7 @@ conformance_task:
     gce_instance:
         image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
 
-    timeout_in: 20m
+    timeout_in: 25m
 
     setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
     conformance_test_script: '${SCRIPT_BASE}/test.sh conformance |& ${_TIMESTAMP}'
