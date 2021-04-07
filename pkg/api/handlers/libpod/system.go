@@ -72,6 +72,7 @@ func DiskUsage(w http.ResponseWriter, r *http.Request) {
 	response, err := ic.SystemDf(r.Context(), options)
 	if err != nil {
 		utils.InternalServerError(w, err)
+		return
 	}
 	utils.WriteResponse(w, http.StatusOK, response)
 }
