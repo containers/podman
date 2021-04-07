@@ -25,7 +25,7 @@ type swagInspectPodResponse struct {
 // swagger:response InspectManifest
 type swagInspectManifestResponse struct {
 	// in:body
-	Body manifest.List
+	Body manifest.Schema2List
 }
 
 // Kill Pod
