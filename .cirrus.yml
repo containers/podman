@@ -366,8 +366,7 @@ osx_alt_build_task:
     script:
         - brew install go
         - brew install go-md2man
-        - make podman-remote-darwin
-        - make install-podman-remote-darwin-docs
+        - make podman-remote-release-darwin.zip
     always: *binary_artifacts
 
 

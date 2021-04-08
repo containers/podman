@@ -147,6 +147,23 @@ CROSS_BUILD_TARGETS := \
 # Dereference variable $(1), return value if non-empty, otherwise raise an error.
 err_if_empty = $(if $(strip $($(1))),$(strip $($(1))),$(error Required variable $(1) value is undefined, whitespace, or empty))
 
+# Podman does not work w/o CGO_ENABLED, except in some very specific cases
+CGO_ENABLED ?= 1
+# Default to the native OS type and archetecture unless otherwise specified
+GOOS ?= $(shell $(GO) env GOOS)
+ifeq ($(call err_if_empty,GOOS),windows)
+BINSFX := .exe
+SRCBINDIR := bin/windows
+else ifeq ($(GOOS),darwin)
+BINSFX :=
+SRCBINDIR := bin/darwin
+else
+BINSFX := -remote
+SRCBINDIR := bin
+endif
+# Necessary for nested-$(MAKE) calls and docs/remote-docs.sh
+export GOOS CGO_ENABLED BINSFX SRCBINDIR
+
 define go-get
 	env GO111MODULE=off \
 		$(GO) get -u ${1}
@@ -163,7 +180,7 @@ default: all
 all: binaries docs
 
 .PHONY: binaries
-binaries: podman podman-remote ## Build podman
+binaries: podman podman-remote ## Build podman and podman-remote binaries
 
 # Extract text following double-# for targets, as their description for
 # the `help` target.  Otherwise These simple-substitutions are resolved
@@ -272,7 +289,8 @@ ifeq (,$(findstring systemd,$(BUILDTAGS)))
 		Install libsystemd on Ubuntu or systemd-devel on rpm based \
 		distro for journald support."
 endif
-	$(GO) build \
+	CGO_ENABLED=$(CGO_ENABLED) \
+		$(GO) build \
 		$(BUILDFLAGS) \
 		-gcflags '$(GCFLAGS)' \
 		-asmflags '$(ASMFLAGS)' \
@@ -280,23 +298,62 @@ endif
 		-tags "$(BUILDTAGS)" \
 		-o $@ ./cmd/podman
 
+# Disambiguate Linux vs Darwin/Windows platform binaries under distinct "bin" dirs
+$(SRCBINDIR):
+	mkdir -p $(SRCBINDIR)
+
+$(SRCBINDIR)/podman$(BINSFX): $(SRCBINDIR) .gopathok $(SOURCES) go.mod go.sum
+	CGO_ENABLED=$(CGO_ENABLED) \
+		GOOS=$(GOOS) \
+		$(GO) build \
+		$(BUILDFLAGS) \
+		-gcflags '$(GCFLAGS)' \
+		-asmflags '$(ASMFLAGS)' \
+		-ldflags '$(LDFLAGS_PODMAN)' \
+		-tags "${REMOTETAGS}" \
+		-o $@ ./cmd/podman
+
+$(SRCBINDIR)/podman-remote-static: $(SRCBINDIR) .gopathok $(SOURCES) go.mod go.sum
+	CGO_ENABLED=$(CGO_ENABLED) \
+		GOOS=$(GOOS) \
+		$(GO) build \
+		$(BUILDFLAGS) \
+		-gcflags '$(GCFLAGS)' \
+		-asmflags '$(ASMFLAGS)' \
+		-ldflags '$(LDFLAGS_PODMAN_STATIC)' \
+		-tags "${REMOTETAGS}" \
+		-o $@ ./cmd/podman
+
 .PHONY: podman
 podman: bin/podman
 
 .PHONY: podman-remote
-podman-remote: bin/podman-remote
+podman-remote: $(SRCBINDIR) $(SRCBINDIR)/podman$(BINSFX)  ## Build podman-remote binary
 
-bin/podman-remote: .gopathok $(SOURCES) go.mod go.sum ## Build with podman on remote environment
-	$(GO) build $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "${REMOTETAGS}" -o $@ ./cmd/podman
+# A wildcard podman-remote-% target incorrectly sets GOOS for release targets
+.PHONY: podman-remote-linux
+podman-remote-linux: ## Build podman-remote for Linux
+	$(MAKE) \
+		CGO_ENABLED=0 \
+		GOOS=linux \
+		bin/podman-remote
 
-.PHONY: bin/podman-remote-static
-podman-remote-static: bin/podman-remote-static
-	CGO_ENABLED=0 $(GO) build $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN_STATIC)' -tags "${REMOTETAGS}" -o bin/podman-remote-static ./cmd/podman
+PHONY: podman-remote-static
+podman-remote-static: $(SRCBINDIR)/podman-remote-static
 
-# Most-specific, first-match wins: must appear _after_ podman-remote-static
-podman-remote-%: .gopathok ## Build podman for a specific GOOS
-	$(eval BINSFX := $(shell test "$*" != "windows" || echo ".exe"))
-	CGO_ENABLED=0 GOOS=$* $(GO) build $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "${REMOTETAGS}" -o bin/$@$(BINSFX) ./cmd/podman
+.PHONY: podman-remote-windows
+podman-remote-windows: ## Build podman-remote for Windows
+	$(MAKE) \
+		CGO_ENABLED=0 \
+		GOOS=windows \
+		bin/windows/podman.exe
+
+.PHONY: podman-remote-darwin
+podman-remote-darwin: ## Build podman-remote for MacOS
+	$(MAKE) \
+		CGO_ENABLED=0 \
+		GOOS=darwin \
+		bin/darwin/podman
 
 ###
 ### Secondary binary-build targets
@@ -304,15 +361,23 @@ podman-remote-%: .gopathok ## Build podman for a specific GOOS
 
 .PHONY: generate-bindings
 generate-bindings:
-ifneq ($(shell uname -s), Darwin)
+ifneq ($(GOOS),darwin)
 	GO111MODULE=off $(GO) generate ./pkg/bindings/... ;
 endif
 
+# DO NOT USE: use local-cross instead
 bin/podman.cross.%: .gopathok
 	TARGET="$*"; \
-	GOOS="$${TARGET%%.*}" \
-	GOARCH="$${TARGET##*.}" \
-	CGO_ENABLED=0 $(GO) build $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags '$(BUILDTAGS_CROSS)' -o "$@" ./cmd/podman
+	GOOS="$${TARGET%%.*}"; \
+	GOARCH="$${TARGET##*.}"; \
+	CGO_ENABLED=0 \
+		$(GO) build \
+		$(BUILDFLAGS) \
+		-gcflags '$(GCFLAGS)' \
+		-asmflags '$(ASMFLAGS)' \
+		-ldflags '$(LDFLAGS_PODMAN)' \
+		-tags '$(BUILDTAGS_CROSS)' \
+		-o "$@" ./cmd/podman
 
 .PHONY: local-cross
 local-cross: $(CROSS_BUILD_TARGETS) ## Cross compile podman binary for multiple architectures
@@ -371,7 +436,9 @@ docdir:
 .PHONY: docs
 docs: $(MANPAGES) ## Generate documentation
 
-install-podman-remote-%-docs: podman-remote docs $(MANPAGES)
+# docs/remote-docs.sh requires a locally executable 'podman-remote' binary
+# in addition to the target-archetecture binary (if any).
+install-podman-remote-%-docs: podman-remote-$(shell env -i HOME=$$HOME PATH=$$PATH go env GOOS) docs $(MANPAGES)
 	rm -rf docs/build/remote
 	mkdir -p docs/build/remote
 	ln -sf $(CURDIR)/docs/source/markdown/links docs/build/man/
@@ -399,7 +466,7 @@ docker-docs: docs
 .PHONY: changelog
 changelog: ## Generate updated changelog.txt from git logs
 	@echo "Creating changelog from $(CHANGELOG_BASE) to $(CHANGELOG_TARGET)"
-	$(eval TMPFILE := $(shell mktemp))
+	$(eval TMPFILE := $(shell mktemp podman_tmp_XXXX))
 	$(shell cat changelog.txt > $(TMPFILE))
 	$(shell echo "- Changelog for $(CHANGELOG_TARGET) ($(ISODATE)):" > changelog.txt)
 	$(shell git log --no-merges --format="  * %s" $(CHANGELOG_BASE)..$(CHANGELOG_TARGET) >> changelog.txt)
@@ -423,7 +490,7 @@ validate.completions:
 
 .PHONY: run-docker-py-tests
 run-docker-py-tests:
-	$(eval testLogs=$(shell mktemp))
+	$(eval testLogs=$(shell mktemp podman_tmp_XXXX))
 	./bin/podman run --rm --security-opt label=disable --privileged -v $(testLogs):/testLogs --net=host -e DOCKER_HOST=tcp://localhost:8080 $(DOCKERPY_IMAGE) sh -c "pytest $(DOCKERPY_TEST) "
 
 .PHONY: localunit
@@ -480,7 +547,7 @@ remotesystem:
 	# podman server spews copious unhelpful output; ignore it.
 	rc=0;\
 	if timeout -v 1 true; then \
-		SOCK_FILE=$(shell mktemp --dry-run --tmpdir podman.XXXXXX);\
+		SOCK_FILE=$(shell mktemp --dry-run --tmpdir podman_tmp_XXXX);\
 		export PODMAN_SOCKET=unix:$$SOCK_FILE; \
 		./bin/podman system service --timeout=0 $$PODMAN_SOCKET > $(if $(PODMAN_SERVER_LOG),$(PODMAN_SERVER_LOG),/dev/null) 2>&1 & \
 		retry=5;\
@@ -529,7 +596,7 @@ tests-included:
 ###
 
 podman-release.tar.gz: binaries docs  ## Build all binaries, docs., and installation tree, into a tarball.
-	$(eval TMPDIR := $(shell mktemp -d -p '' podman_XXXX))
+	$(eval TMPDIR := $(shell mktemp -d podman_tmp_XXXX))
 	$(eval SUBDIR := podman-v$(RELEASE_NUMBER))
 	mkdir -p "$(TMPDIR)/$(SUBDIR)"
 	$(MAKE) install.bin install.man install.cni \
@@ -537,24 +604,25 @@ podman-release.tar.gz: binaries docs  ## Build all binaries, docs., and installa
 	tar -czvf $@ --xattrs -C "$(TMPDIR)" "./$(SUBDIR)"
 	-rm -rf "$(TMPDIR)"
 
-# Must call make in-line: Dependency-spec. w/ wild-card.
-podman-remote-release-%.zip:
-	$(MAKE) podman-remote-$* install-podman-remote-$*-docs \
-		RELEASE_BASENAME=$(shell hack/get_release_info.sh REMOTENAME) \
-		RELEASE_DIST=$* RELEASE_DIST_VER="-"
-	$(eval TMPDIR := $(shell mktemp -d -p '' $podman_remote_XXXX))
-	$(eval SUBDIR := podman-$(RELEASE_VERSION))
-	$(eval BINSFX := $(shell test "$*" != "windows" || echo ".exe"))
+podman-remote-release-%.zip: podman-remote-% install-podman-remote-%-docs  ## Build podman-remote for GOOS=%, docs., and installation zip.
+	$(eval TMPDIR := $(shell mktemp -d podman_tmp_XXXX))
+	$(eval SUBDIR := podman-$(RELEASE_NUMBER))
 	mkdir -p "$(TMPDIR)/$(SUBDIR)"
-	cp ./bin/podman-remote-$*$(BINSFX) "$(TMPDIR)/$(SUBDIR)/podman$(BINSFX)"
+	$(MAKE) \
+		GOOS=$* \
+		DESTDIR=$(TMPDIR)/ \
+		BINDIR=$(SUBDIR) \
+		SELINUXOPT="" \
+		install.remote-nobuild
 	cp -r ./docs/build/remote/$* "$(TMPDIR)/$(SUBDIR)/docs/"
 	cp ./contrib/remote/containers.conf "$(TMPDIR)/$(SUBDIR)/"
-	cd "$(TMPDIR)/$(SUBDIR)" && \
+	cd "$(TMPDIR)" && \
 		zip --recurse-paths "$(CURDIR)/$@" "./"
 	-rm -rf "$(TMPDIR)"
 
 .PHONY: podman.msi
-podman.msi: podman-remote podman-remote-windows install-podman-remote-windows-docs ## Will always rebuild exe as there is no podman-remote-windows.exe target to verify timestamp
+podman.msi: podman-v$(RELEASE_NUMBER).msi  ## Build podman-remote, package for installation on Windows
+podman-v$(RELEASE_NUMBER).msi: podman-remote-windows install-podman-remote-windows-docs
 	$(eval DOCFILE := docs/build/remote/windows)
 	find $(DOCFILE) -print | \
 		wixl-heat --var var.ManSourceDir --component-group ManFiles \
@@ -593,8 +661,11 @@ install.catatonit:
 .PHONY: install.remote-nobuild
 install.remote-nobuild:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
-	install ${SELINUXOPT} -m 755 bin/podman-remote $(DESTDIR)$(BINDIR)/podman-remote
-	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(BINDIR)/podman-remote bin/podman-remote
+	install ${SELINUXOPT} -m 755 $(SRCBINDIR)/podman$(BINSFX) \
+		$(DESTDIR)$(BINDIR)/podman$(BINSFX)
+	test -z "${SELINUXOPT}" || \
+		chcon --verbose --reference=$(DESTDIR)$(BINDIR)/podman-remote \
+		bin/podman-remote
 
 .PHONY: install.remote
 install.remote: podman-remote install.remote-nobuild
@@ -746,11 +817,13 @@ uninstall:
 	rm -f ${DESTDIR}${USERSYSTEMDDIR}/podman.service
 
 .PHONY: clean
-clean: ## Clean artifacts
+clean: ## Clean all make artifacts
 	rm -rf \
 		.gopathok \
 		_output \
+		$(wildcard podman-*.msi) \
 		$(wildcard podman-remote*.zip) \
+		$(wildcard podman_tmp_*) \
 		$(wildcard podman*.tar.gz) \
 		bin \
 		build \

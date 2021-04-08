@@ -24,7 +24,7 @@
               <CreateFolder/>
             </Component>
             <Component Id="MainExecutable" Guid="73752F94-6589-4C7B-ABED-39D655A19714">
-              <File Id="520C6E17-77A2-4F41-9611-30FA763A0702" Name="podman.exe" Source="bin/podman-remote-windows.exe" KeyPath="yes"/>
+              <File Id="520C6E17-77A2-4F41-9611-30FA763A0702" Name="podman.exe" Source="bin/windows/podman.exe" KeyPath="yes"/>
             </Component>
           </Directory>
         </Directory>

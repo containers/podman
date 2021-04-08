@@ -6,7 +6,17 @@ PLATFORM=$1                         ## linux, windows or darwin
 TARGET=${2}                         ## where to output files
 SOURCES=${@:3}                      ## directories to find markdown files
 
-PODMAN=${PODMAN:-bin/podman-remote} ## location overridden for testing
+# Overriden for testing.  Native podman-remote binary expected filepaths
+if [[ -z "$PODMAN" ]]; then
+    case $(env -i HOME=$HOME PATH=$PATH go env GOOS) in
+        windows)
+            PODMAN=bin/windows/podman.exe ;;
+        darwin)
+            PODMAN=bin/darwin/podman ;;
+        *)  # Assume "linux"
+            PODMAN=bin/podman-remote ;;
+    esac
+fi
 
 function usage() {
     echo >&2 "$0 PLATFORM TARGET SOURCES..."

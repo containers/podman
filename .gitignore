@@ -17,10 +17,12 @@ coverprofile
 *.o
 *.orig
 /_output/
+/podman_tmp_*
 /pause/pause.o
 pkg/api/swagger.yaml
-podman-remote*.zip
-podman*.tar.gz
+/podman-remote*.zip
+/podman*.tar.gz
+/podman-*.msi
 __pycache__
 release.txt
 .ropeproject
