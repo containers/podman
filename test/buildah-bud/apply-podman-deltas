@@ -1,0 +1,157 @@
+#!/bin/bash
+#
+# *** NOTE TO READER: Please skip down to "user-customizable section" below!
+#
+# Not all tests in buildah/tests/bud.bats work under podman.
+# Some work, but emit different error messages.
+#
+# This script is used to skip the former, and munge expect_output messages
+# for the latter.
+#
+ME=$(basename $0)
+
+BUD=tests/bud.bats
+
+if [[ ! -e $BUD ]]; then
+    echo "$ME: $BUD not found: please run me from buildah subdir" >&2
+    exit 1
+fi
+
+###############################################################################
+# BEGIN handlers
+#
+# *** NOTE TO READER (again): Please skip down to "user-customizable section"
+#
+# You almost certainly don't care about anything in this section.
+#
+set -e
+
+RC=0
+
+ECHO=':'
+if [[ -n $DEBUG_PODMAN_DELTAS ]]; then
+    ECHO='echo'
+fi
+
+# Issue a warning, and set exit status (but do not exit now)
+function warn() {
+    echo "$ME: ERROR: $*" >&2
+    RC=1
+}
+
+# errmsg: used to change the text of a message, probably in expect_output()
+function errmsg() {
+    local msg_orig=${1//\//\\/}; shift
+    local msg_new=${1//\//\\/};  shift
+
+    for t in "$@"; do
+        if fgrep -qx "@test \"$t\" {" $BUD; then
+            $ECHO "@test \"$t\" : updating to \"$msg_new\""
+            t=${t//\//\\/}
+            # FIXME: emit error if msg_orig not found
+            sed -i -e "/^\@test \"$t\" {/,/^}/s/\"$msg_orig\"/\"$msg_new\"/" $BUD
+        else
+            warn "[errmsg] Did not find test \"$t\" in $BUD"
+        fi
+    done
+}
+
+# skip: used to add a 'skip' to one specific test
+function skip() {
+    local reason=$1; shift
+
+    # All further arguments are test names
+    for t in "$@"; do
+        if fgrep -qx "@test \"$t\" {" $BUD; then
+            $ECHO "@test \"$t\" : skip \"$reason\""
+            t=${t//\//\\/}
+            sed -i -e "/^\@test \"$t\" {/ a \ \ skip \"$reason\"" $BUD
+        else
+            warn "[skip] Did not find test \"$t\" in $BUD"
+        fi
+    done
+}
+
+# END   handlers
+###############################################################################
+# BEGIN user-customizable section
+#
+# These are the hand-maintained exceptions. This is what you want to edit
+# or update as needed.
+#
+# There are two directives you can use below:
+#
+#    errmsg "old-message" "new-message" "test name" ["test name"...]
+#
+# This replaced "old-message" with "new-message" in @test "test name".
+# It is used when a podman error message differs from buildah's.
+#
+#    skip "reason" "test name" ["test name"...]
+#
+# This adds a 'skip' statement as the first line of @test "test name".
+# It is used when a test does not work in podman, either for permanent
+# design-related reasons or for hopefully-temporary bug-in-podman reasons.
+# (If the latter, please file an issue before adding the skip, and include
+# the issue number in your skip message. This makes it possible to remove
+# the skip once the issue is fixed).
+#
+# For both cases, you can list multiple "test names" at the end. This
+# is not used much right now, but will be once I file my podman-remote PR
+# because there are some cases where the same issue affects up to fifty
+# different bud.bats tests.
+#
+
+###############################################################################
+# BEGIN differences in error messages between buildah and podman
+errmsg "non-directory/Dockerfile: not a directory" \
+       "Error: context must be a directory:" \
+       "bud with a path to a Dockerfile (-f) containing a non-directory entry"
+
+errmsg "no such file or directory" \
+       "Error: context must be a directory:" \
+       "bud with dir for file but no Dockerfile in dir" \
+       "bud with bad dir Dockerfile"
+
+errmsg "no such file or directory" \
+       "Error: no context directory and no Containerfile specified" \
+       "bud without any arguments should fail when no Dockerfile exist"
+
+errmsg "is not a file" \
+       "Error: open .*: no such file or directory" \
+       "bud with specified context should fail if assumed Dockerfile is a directory"
+
+errmsg "no such file or directory" \
+       "context must be a directory" \
+       "bud with specified context should fail if context contains not-existing Dockerfile"
+
+###############################################################################
+# BEGIN tests that don't make sense under podman due to fundamental differences
+skip "N/A under podman" \
+     "bud-flags-order-verification"
+
+skip "does not work under podman" \
+     "bud without any arguments should succeed"
+
+skip "podman requires a directory, not a Dockerfile" \
+     "bud with specified context should succeed if context contains existing Dockerfile"
+
+# ...or due to Ed's laziness
+skip "Too much effort to spin up a local registry" \
+     "bud with encrypted FROM image"
+
+# ...or due to a fundamental arg-parsing difference between buildah and podman
+# which we could and perhaps should fix in the buildah repo via:
+#    - ... ${TESTSDIR}/bud/layers-squash/Dockerfile.hardlinks
+#    + ... -f Dockerfile.hardlinks ${TESTSDIR}/bud/layers-squash
+skip "FIXME FIXME FIXME: argument-order incompatible with podman" \
+     "bud-squash-hardlinks"
+
+###############################################################################
+# BEGIN tests which are skipped due to actual podman bugs.
+skip "FIXME: podman #9915" \
+     "bud with --arch flag"
+
+###############################################################################
+# Done.
+
+exit $RC
