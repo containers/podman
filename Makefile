@@ -1,3 +1,25 @@
+###
+### Makefile Navigation
+###
+#
+# This file is organized based on approximate end-to-end workflow:
+#
+# 1.  Variables and common definitions are located at the top
+#     to make finding them quicker.
+# 2.  Main entry-point targets, like "default", "all", and "help"
+# 3.  Targets for code formatting and validation
+# 4.  Primary build targets, like podman and podman-remote
+# 5.  Secondary build targets, shell completions, static and multi-arch.
+# 6.  Targets that format and build documentation
+# 7.  Testing targets
+# 8.  Release and package-building targets
+# 9.  Targets that install tools, utilities, binaries and packages
+# 10. Uninstall / Cleanup targets
+#
+###
+### Variables & Definitions
+###
+
 export GOPROXY=https://proxy.golang.org
 
 GO ?= go
@@ -46,6 +68,10 @@ BUILDFLAGS := -mod=vendor $(BUILDFLAGS)
 BUILDTAGS_CROSS ?= containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_overlay
 CONTAINER_RUNTIME := $(shell command -v podman 2> /dev/null || echo docker)
 OCI_RUNTIME ?= ""
+
+MANPAGES_MD ?= $(wildcard docs/source/markdown/*.md pkg/*/docs/*.md)
+MANPAGES ?= $(MANPAGES_MD:%.md=%)
+MANPAGES_DEST ?= $(subst markdown,man, $(subst source,build,$(MANPAGES)))
 
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 ZSHINSTALLDIR=${PREFIX}/share/zsh/site-functions
@@ -118,14 +144,26 @@ CROSS_BUILD_TARGETS := \
 	bin/podman.cross.linux.mips64 \
 	bin/podman.cross.linux.mips64le
 
+# Dereference variable $(1), return value if non-empty, otherwise raise an error.
+err_if_empty = $(if $(strip $($(1))),$(strip $($(1))),$(error Required variable $(1) value is undefined, whitespace, or empty))
+
+define go-get
+	env GO111MODULE=off \
+		$(GO) get -u ${1}
+endef
+
+###
+### Primary entry-point targets
+###
+
 .PHONY: default
 default: all
 
 .PHONY: all
 all: binaries docs
 
-# Dereference variable $(1), return value if non-empty, otherwise raise an error.
-err_if_empty = $(if $(strip $($(1))),$(strip $($(1))),$(error Required variable $(1) value is undefined, whitespace, or empty))
+.PHONY: binaries
+binaries: podman podman-remote ## Build podman
 
 # Extract text following double-# for targets, as their description for
 # the `help` target.  Otherwise These simple-substitutions are resolved
@@ -142,12 +180,21 @@ help: ## (Default) Print listing of key targets with their descriptions
 		awk 'BEGIN {FS = ":(.*)?## "}; \
 			{printf $(_HLPFMT), $$1, $$2}'
 
+###
+### Linting/Formatting/Code Validation targets
+###
+
 .gopathok:
 ifeq ("$(wildcard $(GOPKGDIR))","")
 	mkdir -p "$(GOPKGBASEDIR)"
 	ln -sfn "$(CURDIR)" "$(GOPKGDIR)"
 endif
 	touch $@
+
+.PHONY: .gitvalidation
+.gitvalidation: .gopathok
+	@echo "Validating vs commit '$(call err_if_empty,EPOCH_TEST_COMMIT)'"
+	GIT_CHECK_EXCLUDE="./vendor:docs/make.bat" $(GOBIN)/git-validation -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
 
 .PHONY: lint
 lint: golangci-lint
@@ -189,17 +236,55 @@ volume-plugin-test-img:
 test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
 	$(GO) build $(BUILDFLAGS) -ldflags '$(LDFLAGS_PODMAN)' -o $@ ./test/goecho
 
+.PHONY: codespell
+codespell:
+	codespell -S bin,vendor,.git,go.sum,changelog.txt,.cirrus.yml,"RELEASE_NOTES.md,*.xz,*.gz,*.tar,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked,splitted,marge,ERRO,hist -w
 
-bin/podman: .gopathok $(SOURCES) go.mod go.sum ## Build with podman
+.PHONY: validate
+validate: gofmt lint .gitvalidation validate.completions man-page-check swagger-check tests-included
+
+.PHONY: build-all-new-commits
+build-all-new-commits:
+	# Validate that all the commits build on top of $(GIT_BASE_BRANCH)
+	git rebase $(GIT_BASE_BRANCH) -x make
+
+.PHONY: vendor
+vendor:
+	GO111MODULE=on $(GO) mod tidy
+	GO111MODULE=on $(GO) mod vendor
+	GO111MODULE=on $(GO) mod verify
+
+.PHONY: vendor-in-container
+vendor-in-container:
+	podman run --privileged --rm --env HOME=/root \
+		-v $(CURDIR):/src -w /src \
+		docker.io/library/golang:1.16 \
+		make vendor
+
+###
+### Primary binary-build targets
+###
+
 # Make sure to warn in case we're building without the systemd buildtag.
+bin/podman: .gopathok $(SOURCES) go.mod go.sum
 ifeq (,$(findstring systemd,$(BUILDTAGS)))
-	@echo "Podman is being compiled without the systemd build tag. Install libsystemd on \
-		Ubuntu or systemd-devel on rpm based distro for journald support."
+	@echo "Podman is being compiled without the systemd build tag. \
+		Install libsystemd on Ubuntu or systemd-devel on rpm based \
+		distro for journald support."
 endif
-	$(GO) build $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o $@ ./cmd/podman
+	$(GO) build \
+		$(BUILDFLAGS) \
+		-gcflags '$(GCFLAGS)' \
+		-asmflags '$(ASMFLAGS)' \
+		-ldflags '$(LDFLAGS_PODMAN)' \
+		-tags "$(BUILDTAGS)" \
+		-o $@ ./cmd/podman
 
 .PHONY: podman
 podman: bin/podman
+
+.PHONY: podman-remote
+podman-remote: bin/podman-remote
 
 bin/podman-remote: .gopathok $(SOURCES) go.mod go.sum ## Build with podman on remote environment
 	$(GO) build $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "${REMOTETAGS}" -o $@ ./cmd/podman
@@ -208,27 +293,29 @@ bin/podman-remote: .gopathok $(SOURCES) go.mod go.sum ## Build with podman on re
 podman-remote-static: bin/podman-remote-static
 	CGO_ENABLED=0 $(GO) build $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN_STATIC)' -tags "${REMOTETAGS}" -o bin/podman-remote-static ./cmd/podman
 
-.PHONY: podman-remote
-podman-remote: bin/podman-remote
-
-.PHONY: podman.msi
-podman.msi: podman-remote podman-remote-windows install-podman-remote-windows-docs ## Will always rebuild exe as there is no podman-remote-windows.exe target to verify timestamp
-	$(eval DOCFILE := docs/build/remote/windows)
-	find $(DOCFILE) -print \
-	|wixl-heat --var var.ManSourceDir --component-group ManFiles --directory-ref INSTALLDIR --prefix $(DOCFILE)/ >$(DOCFILE)/pages.wsx
-	wixl -D VERSION=$(RELEASE_NUMBER) -D ManSourceDir=$(DOCFILE) -o podman-v$(RELEASE_NUMBER).msi contrib/msi/podman.wxs $(DOCFILE)/pages.wsx
-
+# Most-specific, first-match wins: must appear _after_ podman-remote-static
 podman-remote-%: .gopathok ## Build podman for a specific GOOS
 	$(eval BINSFX := $(shell test "$*" != "windows" || echo ".exe"))
 	CGO_ENABLED=0 GOOS=$* $(GO) build $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "${REMOTETAGS}" -o bin/$@$(BINSFX) ./cmd/podman
 
-local-cross: $(CROSS_BUILD_TARGETS) ## Cross local compilation
+###
+### Secondary binary-build targets
+###
+
+.PHONY: generate-bindings
+generate-bindings:
+ifneq ($(shell uname -s), Darwin)
+	GO111MODULE=off $(GO) generate ./pkg/bindings/... ;
+endif
 
 bin/podman.cross.%: .gopathok
 	TARGET="$*"; \
 	GOOS="$${TARGET%%.*}" \
 	GOARCH="$${TARGET##*.}" \
 	CGO_ENABLED=0 $(GO) build $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags '$(BUILDTAGS_CROSS)' -o "$@" ./cmd/podman
+
+.PHONY: local-cross
+local-cross: $(CROSS_BUILD_TARGETS) ## Cross compile podman binary for multiple architectures
 
 # Update nix/nixpkgs.json its latest stable commit
 .PHONY: nixpkgs
@@ -246,36 +333,98 @@ static:
 	mkdir -p ./bin
 	cp -rfp ./result/bin/* ./bin/
 
-.PHONY: run-docker-py-tests
-run-docker-py-tests:
-	$(eval testLogs=$(shell mktemp))
-	./bin/podman run --rm --security-opt label=disable --privileged -v $(testLogs):/testLogs --net=host -e DOCKER_HOST=tcp://localhost:8080 $(DOCKERPY_IMAGE) sh -c "pytest $(DOCKERPY_TEST) "
+.PHONY: build-no-cgo
+build-no-cgo:
+	BUILDTAGS="containers_image_openpgp exclude_graphdriver_btrfs \
+		exclude_graphdriver_devicemapper exclude_disk_quota" \
+	CGO_ENABLED=0 \
+	$(MAKE) all
+
+.PHONY: completions
+completions: podman podman-remote
+	# key = shell, value = completion filename
+	declare -A outfiles=([bash]=%s [zsh]=_%s [fish]=%s.fish [powershell]=%s.ps1);\
+	for shell in $${!outfiles[*]}; do \
+	    for remote in "" "-remote"; do \
+	        podman="podman$$remote"; \
+	        outfile=$$(printf "completions/$$shell/$${outfiles[$$shell]}" $$podman); \
+	        ./bin/$$podman completion $$shell >| $$outfile; \
+	    done;\
+	done
+
+###
+### Documentation targets
+###
 
 pkg/api/swagger.yaml: .gopathok
 	make -C pkg/api
 
+$(MANPAGES): %: %.md .install.md2man docdir
+	@sed -e 's/\((podman.*\.md)\)//' -e 's/\[\(podman.*\)\]/\1/' \
+		-e 's;<\(/\)\?\(a[^>]*\|sup\)>;;g' $<  | \
+	$(GOMD2MAN) -in /dev/stdin -out $(subst source/markdown,build/man,$@)
+
+.PHONY: docdir
+docdir:
+	mkdir -p docs/build/man
+
+.PHONY: docs
+docs: $(MANPAGES) ## Generate documentation
+
+install-podman-remote-%-docs: podman-remote docs $(MANPAGES)
+	rm -rf docs/build/remote
+	mkdir -p docs/build/remote
+	ln -sf $(CURDIR)/docs/source/markdown/links docs/build/man/
+	docs/remote-docs.sh \
+		$* \
+		docs/build/remote/$* \
+		$(if $(findstring windows,$*),docs/source/markdown,docs/build/man)
+
+.PHONY: man-page-check
+man-page-check: bin/podman
+	hack/man-page-checker
+	hack/xref-helpmsgs-manpages
+
+.PHONY: swagger-check
+swagger-check:
+	hack/swagger-check
+
 .PHONY: swagger
 swagger: pkg/api/swagger.yaml
 
-.PHONY: clean
-clean: ## Clean artifacts
-	rm -rf \
-		.gopathok \
-		_output \
-		$(wildcard podman-remote*.zip) \
-		$(wildcard podman*.tar.gz) \
-		bin \
-		build \
-		test/checkseccomp/checkseccomp \
-		test/goecho/goecho \
-		test/testdata/redis-image \
-		libpod/container_ffjson.go \
-		libpod/pod_ffjson.go \
-		libpod/container_easyjson.go \
-		libpod/pod_easyjson.go \
-		.install.goimports \
-		docs/build
-	make -C docs clean
+.PHONY: docker-docs
+docker-docs: docs
+	(cd docs; ./dckrman.sh ./build/man/*.1)
+
+.PHONY: changelog
+changelog: ## Generate updated changelog.txt from git logs
+	@echo "Creating changelog from $(CHANGELOG_BASE) to $(CHANGELOG_TARGET)"
+	$(eval TMPFILE := $(shell mktemp))
+	$(shell cat changelog.txt > $(TMPFILE))
+	$(shell echo "- Changelog for $(CHANGELOG_TARGET) ($(ISODATE)):" > changelog.txt)
+	$(shell git log --no-merges --format="  * %s" $(CHANGELOG_BASE)..$(CHANGELOG_TARGET) >> changelog.txt)
+	$(shell echo "" >> changelog.txt)
+	$(shell cat $(TMPFILE) >> changelog.txt)
+	$(shell rm $(TMPFILE))
+
+# Workaround vim syntax highlighting bug: "
+
+###
+### Utility and Testing targets
+###
+
+.PHONY: validate.completions
+validate.completions: SHELL:=/usr/bin/env bash # Set shell to bash for this target
+validate.completions:
+	# Check if the files can be loaded by the shell
+	. completions/bash/podman
+	if [ -x /bin/zsh ]; then /bin/zsh completions/zsh/_podman; fi
+	if [ -x /bin/fish ]; then /bin/fish completions/fish/podman.fish; fi
+
+.PHONY: run-docker-py-tests
+run-docker-py-tests:
+	$(eval testLogs=$(shell mktemp))
+	./bin/podman run --rm --security-opt label=disable --privileged -v $(testLogs):/testLogs --net=host -e DOCKER_HOST=tcp://localhost:8080 $(DOCKERPY_IMAGE) sh -c "pytest $(DOCKERPY_TEST) "
 
 .PHONY: localunit
 localunit: test/goecho/goecho
@@ -368,58 +517,23 @@ remoteapiv2:
 system.test-binary: .install.ginkgo
 	$(GO) test -c ./test/system
 
-.PHONY: binaries
-binaries: podman podman-remote ## Build podman
-
-.PHONY: install.catatonit
-install.catatonit:
-	./hack/install_catatonit.sh
-
 .PHONY: test-binaries
 test-binaries: test/checkseccomp/checkseccomp test/goecho/goecho install.catatonit
-
-MANPAGES_MD ?= $(wildcard docs/source/markdown/*.md pkg/*/docs/*.md)
-MANPAGES ?= $(MANPAGES_MD:%.md=%)
-MANPAGES_DEST ?= $(subst markdown,man, $(subst source,build,$(MANPAGES)))
-
-$(MANPAGES): %: %.md .install.md2man docdir
-	@sed -e 's/\((podman.*\.md)\)//' -e 's/\[\(podman.*\)\]/\1/' -e 's;<\(/\)\?\(a[^>]*\|sup\)>;;g' $<  | $(GOMD2MAN) -in /dev/stdin -out $(subst source/markdown,build/man,$@)
-
-.PHONY: docdir
-docdir:
-	mkdir -p docs/build/man
-
-.PHONY: docs
-docs: $(MANPAGES) ## Generate documentation
-
-install-podman-remote-%-docs: podman-remote docs $(MANPAGES)
-	rm -rf docs/build/remote
-	mkdir -p docs/build/remote
-	ln -sf $(CURDIR)/docs/source/markdown/links docs/build/man/
-	docs/remote-docs.sh $* docs/build/remote/$* $(if $(findstring windows,$*),docs/source/markdown,docs/build/man)
-
-.PHONY: man-page-check
-man-page-check: bin/podman
-	hack/man-page-checker
-	hack/xref-helpmsgs-manpages
-
-.PHONY: swagger-check
-swagger-check:
-	hack/swagger-check
 
 .PHONY: tests-included
 tests-included:
 	contrib/cirrus/pr-should-include-tests
 
-.PHONY: codespell
-codespell:
-	codespell -S bin,vendor,.git,go.sum,changelog.txt,.cirrus.yml,"RELEASE_NOTES.md,*.xz,*.gz,*.tar,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked,splitted,marge,ERRO,hist -w
+###
+### Release/Packaging targets
+###
 
-podman-release.tar.gz: binaries docs
+podman-release.tar.gz: binaries docs  ## Build all binaries, docs., and installation tree, into a tarball.
 	$(eval TMPDIR := $(shell mktemp -d -p '' podman_XXXX))
 	$(eval SUBDIR := podman-v$(RELEASE_NUMBER))
 	mkdir -p "$(TMPDIR)/$(SUBDIR)"
-	$(MAKE) install.bin install.man install.cni install.systemd "DESTDIR=$(TMPDIR)/$(SUBDIR)" "PREFIX=/usr"
+	$(MAKE) install.bin install.man install.cni \
+		install.systemd "DESTDIR=$(TMPDIR)/$(SUBDIR)" "PREFIX=/usr"
 	tar -czvf $@ --xattrs -C "$(TMPDIR)" "./$(SUBDIR)"
 	-rm -rf "$(TMPDIR)"
 
@@ -439,31 +553,42 @@ podman-remote-release-%.zip:
 		zip --recurse-paths "$(CURDIR)/$@" "./"
 	-rm -rf "$(TMPDIR)"
 
-.PHONY: generate-bindings
-generate-bindings:
-ifneq ($(shell uname -s), Darwin)
-	GO111MODULE=off $(GO) generate ./pkg/bindings/... ;
-endif
+.PHONY: podman.msi
+podman.msi: podman-remote podman-remote-windows install-podman-remote-windows-docs ## Will always rebuild exe as there is no podman-remote-windows.exe target to verify timestamp
+	$(eval DOCFILE := docs/build/remote/windows)
+	find $(DOCFILE) -print | \
+		wixl-heat --var var.ManSourceDir --component-group ManFiles \
+		--directory-ref INSTALLDIR --prefix $(DOCFILE)/ > \
+			$(DOCFILE)/pages.wsx
+	wixl -D VERSION=$(RELEASE_VERSION) -D ManSourceDir=$(DOCFILE) \
+		-o $@ contrib/msi/podman.wxs $(DOCFILE)/pages.wsx
 
-.PHONY: docker-docs
-docker-docs: docs
-	(cd docs; ./dckrman.sh ./build/man/*.1)
+.PHONY: package
+package:  ## Build rpm packages
+	## TODO(ssbarnea): make version number predictable, it should not change
+	## on each execution, producing duplicates.
+	rm -rf build/* *.src.rpm ~/rpmbuild/RPMS/*
+	./contrib/build_rpm.sh
 
-.PHONY: changelog
-changelog: ## Generate changelog
-	@echo "Creating changelog from $(CHANGELOG_BASE) to $(CHANGELOG_TARGET)"
-	$(eval TMPFILE := $(shell mktemp))
-	$(shell cat changelog.txt > $(TMPFILE))
-	$(shell echo "- Changelog for $(CHANGELOG_TARGET) ($(ISODATE)):" > changelog.txt)
-	$(shell git log --no-merges --format="  * %s" $(CHANGELOG_BASE)..$(CHANGELOG_TARGET) >> changelog.txt)
-	$(shell echo "" >> changelog.txt)
-	$(shell cat $(TMPFILE) >> changelog.txt)
-	$(shell rm $(TMPFILE))
+###
+### Installation targets
+###
 
-# Workaround vim syntax highlighting bug: "
+# Remember that rpms install exec to /usr/bin/podman while a `make install`
+# installs them to /usr/local/bin/podman which is likely before. Always use
+# a full path to test installed podman or you risk to call another executable.
+.PHONY: package-install
+package-install: package  ## Install rpm packages
+	sudo ${PKG_MANAGER} -y install ${HOME}/rpmbuild/RPMS/*/*.rpm
+	/usr/bin/podman version
+	/usr/bin/podman info  # will catch a broken conmon
 
 .PHONY: install
 install: .gopathok install.bin install.remote install.man install.cni install.systemd  ## Install binaries to system locations
+
+.PHONY: install.catatonit
+install.catatonit:
+	./hack/install_catatonit.sh
 
 .PHONY: install.remote-nobuild
 install.remote-nobuild:
@@ -550,40 +675,8 @@ else
 install.systemd:
 endif
 
-.PHONY: uninstall
-uninstall:
-	for i in $(filter %.1,$(MANPAGES_DEST)); do \
-		rm -f $(DESTDIR)$(MANDIR)/man1/$$(basename $${i}); \
-	done; \
-	for i in $(filter %.5,$(MANPAGES_DEST)); do \
-		rm -f $(DESTDIR)$(MANDIR)/man5/$$(basename $${i}); \
-	done
-	# Remove podman and remote bin
-	rm -f $(DESTDIR)$(BINDIR)/podman
-	rm -f $(DESTDIR)$(BINDIR)/podman-remote
-	# Remove related config files
-	rm -f ${DESTDIR}${ETCDIR}/cni/net.d/87-podman-bridge.conflist
-	rm -f ${DESTDIR}${TMPFILESDIR}/podman.conf
-	rm -f ${DESTDIR}${SYSTEMDDIR}/io.podman.socket
-	rm -f ${DESTDIR}${USERSYSTEMDDIR}/io.podman.socket
-	rm -f ${DESTDIR}${SYSTEMDDIR}/io.podman.service
-	rm -f ${DESTDIR}${SYSTEMDDIR}/podman.service
-	rm -f ${DESTDIR}${SYSTEMDDIR}/podman.socket
-	rm -f ${DESTDIR}${USERSYSTEMDDIR}/podman.socket
-	rm -f ${DESTDIR}${USERSYSTEMDDIR}/podman.service
-
-.PHONY: .gitvalidation
-.gitvalidation: .gopathok
-	@echo "Validating vs commit '$(call err_if_empty,EPOCH_TEST_COMMIT)'"
-	GIT_CHECK_EXCLUDE="./vendor:docs/make.bat" $(GOBIN)/git-validation -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
-
 .PHONY: install.tools
 install.tools: .install.goimports .install.gitvalidation .install.md2man .install.ginkgo .install.golangci-lint .install.bats ## Install needed tools
-
-define go-get
-	env GO111MODULE=off \
-		$(GO) get -u ${1}
-endef
 
 .install.goimports: .gopathok
 	if [ ! -x "$(GOBIN)/goimports" ]; then \
@@ -630,61 +723,44 @@ install.libseccomp.sudo:
 	git clone https://github.com/seccomp/libseccomp ../../seccomp/libseccomp
 	cd ../../seccomp/libseccomp && git checkout --detach $(LIBSECCOMP_COMMIT) && ./autogen.sh && ./configure --prefix=/usr && make all && make install
 
-
-.PHONY: completions
-completions: podman podman-remote
-	# key = shell, value = completion filename
-	declare -A outfiles=([bash]=%s [zsh]=_%s [fish]=%s.fish [powershell]=%s.ps1);\
-	for shell in $${!outfiles[*]}; do \
-	    for remote in "" "-remote"; do \
-	        podman="podman$$remote"; \
-	        outfile=$$(printf "completions/$$shell/$${outfiles[$$shell]}" $$podman); \
-	        ./bin/$$podman completion $$shell >| $$outfile; \
-	    done;\
+.PHONY: uninstall
+uninstall:
+	for i in $(filter %.1,$(MANPAGES_DEST)); do \
+		rm -f $(DESTDIR)$(MANDIR)/man1/$$(basename $${i}); \
+	done; \
+	for i in $(filter %.5,$(MANPAGES_DEST)); do \
+		rm -f $(DESTDIR)$(MANDIR)/man5/$$(basename $${i}); \
 	done
+	# Remove podman and remote bin
+	rm -f $(DESTDIR)$(BINDIR)/podman
+	rm -f $(DESTDIR)$(BINDIR)/podman-remote
+	# Remove related config files
+	rm -f ${DESTDIR}${ETCDIR}/cni/net.d/87-podman-bridge.conflist
+	rm -f ${DESTDIR}${TMPFILESDIR}/podman.conf
+	rm -f ${DESTDIR}${SYSTEMDDIR}/io.podman.socket
+	rm -f ${DESTDIR}${USERSYSTEMDDIR}/io.podman.socket
+	rm -f ${DESTDIR}${SYSTEMDDIR}/io.podman.service
+	rm -f ${DESTDIR}${SYSTEMDDIR}/podman.service
+	rm -f ${DESTDIR}${SYSTEMDDIR}/podman.socket
+	rm -f ${DESTDIR}${USERSYSTEMDDIR}/podman.socket
+	rm -f ${DESTDIR}${USERSYSTEMDDIR}/podman.service
 
-.PHONY: validate.completions
-validate.completions: SHELL:=/usr/bin/env bash # Set shell to bash for this target
-validate.completions:
-	# Check if the files can be loaded by the shell
-	. completions/bash/podman
-	if [ -x /bin/zsh ]; then /bin/zsh completions/zsh/_podman; fi
-	if [ -x /bin/fish ]; then /bin/fish completions/fish/podman.fish; fi
-
-.PHONY: validate
-validate: gofmt lint .gitvalidation validate.completions man-page-check swagger-check tests-included
-
-.PHONY: build-all-new-commits
-build-all-new-commits:
-	# Validate that all the commits build on top of $(GIT_BASE_BRANCH)
-	git rebase $(GIT_BASE_BRANCH) -x make
-
-.PHONY: build-no-cgo
-build-no-cgo:
-	env BUILDTAGS="containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_disk_quota" CGO_ENABLED=0 $(MAKE)
-
-.PHONY: vendor
-vendor:
-	GO111MODULE=on $(GO) mod tidy
-	GO111MODULE=on $(GO) mod vendor
-	GO111MODULE=on $(GO) mod verify
-
-.PHONY: vendor-in-container
-vendor-in-container:
-	podman run --privileged --rm --env HOME=/root -v $(CURDIR):/src -w /src docker.io/library/golang:1.16 make vendor
-
-.PHONY: package
-package:  ## Build rpm packages
-	## TODO(ssbarnea): make version number predictable, it should not change
-	## on each execution, producing duplicates.
-	rm -rf build/* *.src.rpm ~/rpmbuild/RPMS/*
-	./contrib/build_rpm.sh
-
-# Remember that rpms install exec to /usr/bin/podman while a `make install`
-# installs them to /usr/local/bin/podman which is likely before. Always use
-# a full path to test installed podman or you risk to call another executable.
-.PHONY: package-install
-package-install: package  ## Install rpm packages
-	sudo ${PKG_MANAGER} -y install ${HOME}/rpmbuild/RPMS/*/*.rpm
-	/usr/bin/podman version
-	/usr/bin/podman info  # will catch a broken conmon
+.PHONY: clean
+clean: ## Clean artifacts
+	rm -rf \
+		.gopathok \
+		_output \
+		$(wildcard podman-remote*.zip) \
+		$(wildcard podman*.tar.gz) \
+		bin \
+		build \
+		test/checkseccomp/checkseccomp \
+		test/goecho/goecho \
+		test/testdata/redis-image \
+		libpod/container_ffjson.go \
+		libpod/pod_ffjson.go \
+		libpod/container_easyjson.go \
+		libpod/pod_easyjson.go \
+		.install.goimports \
+		docs/build
+	make -C docs clean
