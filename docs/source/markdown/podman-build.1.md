@@ -12,8 +12,8 @@ podman\-build - Build a container image using a Containerfile
 **podman build** Builds an image using instructions from one or more
 Containerfiles or Dockerfiles and a specified build context directory. A
 Containerfile uses the same syntax as a Dockerfile internally. For this
-document, a file referred to as a Containerfile can be a file named either
-'Containerfile' or 'Dockerfile'.
+document, a file referred to as a Containerfile can be a file named
+either 'Containerfile' or 'Dockerfile'.
 
 The build context directory can be specified as the http(s) URL of an archive,
 git repository or Containerfile.
