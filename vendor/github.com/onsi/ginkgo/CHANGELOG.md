@@ -1,3 +1,8 @@
+## 1.16.1
+
+### Fixes
+- Supress --stream deprecation warning on windows (#793)
+
 ## 1.16.0
 
 ### Features
