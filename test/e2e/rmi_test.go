@@ -221,7 +221,7 @@ var _ = Describe("Podman rmi", func() {
 		session = podmanTest.Podman([]string{"images", "-q", "-a"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(12))
+		Expect(len(session.OutputToStringArray())).To(Equal(len(CACHE_IMAGES) + 1))
 
 		podmanTest.BuildImage(dockerfile, "test3", "true")
 
@@ -236,7 +236,7 @@ var _ = Describe("Podman rmi", func() {
 		session = podmanTest.Podman([]string{"images", "-q", "-a"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToString())).To(Equal(142))
+		Expect(len(session.OutputToString())).To(Equal(155))
 	})
 
 	It("podman rmi -a with no images should be exit 0", func() {

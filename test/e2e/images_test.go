@@ -78,7 +78,7 @@ var _ = Describe("Podman images", func() {
 		session = podmanTest.Podman([]string{"images", "-qn"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically("==", 11))
+		Expect(len(session.OutputToStringArray())).To(BeNumerically("==", len(CACHE_IMAGES)))
 	})
 
 	It("podman images with digests", func() {
@@ -194,7 +194,7 @@ WORKDIR /test
 		result := podmanTest.Podman([]string{"images", "-q", "-f", "since=quay.io/libpod/alpine:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(8))
+		Expect(len(result.OutputToStringArray())).To(Equal(9))
 	})
 
 	It("podman image list filter after image", func() {
@@ -204,7 +204,7 @@ WORKDIR /test
 		result := podmanTest.Podman([]string{"image", "list", "-q", "-f", "after=quay.io/libpod/alpine:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(result.OutputToStringArray()).Should(HaveLen(8), "list filter output: %q", result.OutputToString())
+		Expect(result.OutputToStringArray()).Should(HaveLen(9), "list filter output: %q", result.OutputToString())
 	})
 
 	It("podman images filter dangling", func() {
