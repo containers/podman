@@ -8,7 +8,7 @@ import (
 )
 
 func (s *APIServer) registerGenerateHandlers(r *mux.Router) error {
-	// swagger:operation GET /libpod/generate/{name:.*}/systemd libpod GenerateSystemdLibpod
+	// swagger:operation GET /libpod/generate/{name}/systemd libpod GenerateSystemdLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -17,7 +17,7 @@ func (s *APIServer) registerGenerateHandlers(r *mux.Router) error {
 	// description: Generate Systemd Units based on a pod or container.
 	// parameters:
 	//  - in: path
-	//    name: name:.*
+	//    name: name
 	//    type: string
 	//    required: true
 	//    description: Name or ID of the container or pod.

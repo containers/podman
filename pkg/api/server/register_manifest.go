@@ -59,7 +59,7 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/manifests/{name}/exists"), s.APIHandler(libpod.ExistsManifest)).Methods(http.MethodGet)
-	// swagger:operation GET /libpod/manifests/{name:.*}/json manifests ManifestInspectLibpod
+	// swagger:operation GET /libpod/manifests/{name}/json manifests ManifestInspectLibpod
 	// ---
 	// summary: Inspect
 	// description: Display a manifest list
@@ -67,7 +67,7 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	// - application/json
 	// parameters:
 	//  - in: path
-	//    name: name:.*
+	//    name: name
 	//    type: string
 	//    required: true
 	//    description: the name or ID of the manifest
@@ -79,7 +79,7 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/manifests/{name:.*}/json"), s.APIHandler(libpod.ManifestInspect)).Methods(http.MethodGet)
-	// swagger:operation POST /libpod/manifests/{name:.*}/add manifests ManifestAddLibpod
+	// swagger:operation POST /libpod/manifests/{name}/add manifests ManifestAddLibpod
 	// ---
 	// summary: Add image
 	// description: Add an image to a manifest list
@@ -87,7 +87,7 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	// - application/json
 	// parameters:
 	//  - in: path
-	//    name: name:.*
+	//    name: name
 	//    type: string
 	//    required: true
 	//    description: the name or ID of the manifest
@@ -107,7 +107,7 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/manifests/{name:.*}/add"), s.APIHandler(libpod.ManifestAdd)).Methods(http.MethodPost)
-	// swagger:operation DELETE /libpod/manifests/{name:.*} manifests ManifestDeleteLibpod
+	// swagger:operation DELETE /libpod/manifests/{name} manifests ManifestDeleteLibpod
 	// ---
 	// summary: Remove
 	// description: Remove an image from a manifest list
@@ -115,7 +115,7 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	// - application/json
 	// parameters:
 	//  - in: path
-	//    name: name:.*
+	//    name: name
 	//    type: string
 	//    required: true
 	//    description: the image associated with the manifest

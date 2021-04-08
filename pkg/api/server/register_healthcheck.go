@@ -8,7 +8,7 @@ import (
 )
 
 func (s *APIServer) registerHealthCheckHandlers(r *mux.Router) error {
-	// swagger:operation GET /libpod/containers/{name:.*}/healthcheck libpod ContainerHealthcheckLibpod
+	// swagger:operation GET /libpod/containers/{name}/healthcheck libpod ContainerHealthcheckLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -16,7 +16,7 @@ func (s *APIServer) registerHealthCheckHandlers(r *mux.Router) error {
 	// description: Execute the defined healthcheck and return information about the results
 	// parameters:
 	//  - in: path
-	//    name: name:.*
+	//    name: name
 	//    type: string
 	//    required: true
 	//    description: the name or ID of the container

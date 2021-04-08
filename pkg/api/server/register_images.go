@@ -188,7 +188,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/images/search"), s.APIHandler(compat.SearchImages)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/images/search", s.APIHandler(compat.SearchImages)).Methods(http.MethodGet)
-	// swagger:operation DELETE /images/{name:.*} compat ImageDelete
+	// swagger:operation DELETE /images/{name} compat ImageDelete
 	// ---
 	// tags:
 	//  - images (compat)
@@ -196,7 +196,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// description: Delete an image from local storage
 	// parameters:
 	//  - in: path
-	//    name: name:.*
+	//    name: name
 	//    type: string
 	//    required: true
 	//    description: name or ID of image to delete
@@ -222,7 +222,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/images/{name:.*}"), s.APIHandler(compat.RemoveImage)).Methods(http.MethodDelete)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/images/{name:.*}", s.APIHandler(compat.RemoveImage)).Methods(http.MethodDelete)
-	// swagger:operation POST /images/{name:.*}/push compat ImagePush
+	// swagger:operation POST /images/{name}/push compat ImagePush
 	// ---
 	// tags:
 	//  - images (compat)
@@ -230,7 +230,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// description: Push an image to a container registry
 	// parameters:
 	//  - in: path
-	//    name: name:.*
+	//    name: name
 	//    type: string
 	//    required: true
 	//    description: Name of image to push.
@@ -269,7 +269,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/images/{name:.*}/push"), s.APIHandler(compat.PushImage)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/images/{name:.*}/push", s.APIHandler(compat.PushImage)).Methods(http.MethodPost)
-	// swagger:operation GET /images/{name:.*}/get compat ImageGet
+	// swagger:operation GET /images/{name}/get compat ImageGet
 	// ---
 	// tags:
 	//  - images (compat)
@@ -277,7 +277,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// description: Export an image in tarball format
 	// parameters:
 	//  - in: path
-	//    name: name:.*
+	//    name: name
 	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
@@ -319,7 +319,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/images/get"), s.APIHandler(compat.ExportImages)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/images/get", s.APIHandler(compat.ExportImages)).Methods(http.MethodGet)
-	// swagger:operation GET /images/{name:.*}/history compat ImageHistory
+	// swagger:operation GET /images/{name}/history compat ImageHistory
 	// ---
 	// tags:
 	//  - images (compat)
@@ -327,7 +327,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// description: Return parent layers of an image.
 	// parameters:
 	//  - in: path
-	//    name: name:.*
+	//    name: name
 	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
@@ -343,7 +343,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/images/{name:.*}/history"), s.APIHandler(compat.HistoryImage)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/images/{name:.*}/history", s.APIHandler(compat.HistoryImage)).Methods(http.MethodGet)
-	// swagger:operation GET /images/{name:.*}/json compat ImageInspect
+	// swagger:operation GET /images/{name}/json compat ImageInspect
 	// ---
 	// tags:
 	//  - images (compat)
@@ -351,7 +351,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// description: Return low-level information about an image.
 	// parameters:
 	//  - in: path
-	//    name: name:.*
+	//    name: name
 	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
@@ -367,7 +367,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/images/{name:.*}/json"), s.APIHandler(compat.GetImage)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/images/{name:.*}/json", s.APIHandler(compat.GetImage)).Methods(http.MethodGet)
-	// swagger:operation POST /images/{name:.*}/tag compat ImageTag
+	// swagger:operation POST /images/{name}/tag compat ImageTag
 	// ---
 	// tags:
 	//  - images (compat)
@@ -375,7 +375,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// description: Tag an image so that it becomes part of a repository.
 	// parameters:
 	//  - in: path
-	//    name: name:.*
+	//    name: name
 	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
@@ -667,7 +667,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 		libpod endpoints
 	*/
 
-	// swagger:operation POST /libpod/images/{name:.*}/push libpod ImagePushLibpod
+	// swagger:operation POST /libpod/images/{name}/push libpod ImagePushLibpod
 	// ---
 	// tags:
 	//  - images
@@ -675,7 +675,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// description: Push an image to a container registry
 	// parameters:
 	//  - in: path
-	//    name: name:.*
+	//    name: name
 	//    type: string
 	//    required: true
 	//    description: Name of image to push.
@@ -705,7 +705,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/{name:.*}/push"), s.APIHandler(libpod.PushImage)).Methods(http.MethodPost)
-	// swagger:operation GET /libpod/images/{name:.*}/exists libpod ImageExistsLibpod
+	// swagger:operation GET /libpod/images/{name}/exists libpod ImageExistsLibpod
 	// ---
 	// tags:
 	//  - images
@@ -713,7 +713,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// description: Check if image exists in local store
 	// parameters:
 	//  - in: path
-	//    name: name:.*
+	//    name: name
 	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
@@ -727,7 +727,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/{name:.*}/exists"), s.APIHandler(libpod.ImageExists)).Methods(http.MethodGet)
-	// swagger:operation GET /libpod/images/{name:.*}/tree libpod ImageTreeLibpod
+	// swagger:operation GET /libpod/images/{name}/tree libpod ImageTreeLibpod
 	// ---
 	// tags:
 	//  - images
@@ -735,7 +735,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// description: Retrieve the image tree for the provided image name or ID
 	// parameters:
 	//  - in: path
-	//    name: name:.*
+	//    name: name
 	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
@@ -753,7 +753,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/{name:.*}/tree"), s.APIHandler(libpod.ImageTree)).Methods(http.MethodGet)
-	// swagger:operation GET /libpod/images/{name:.*}/history libpod ImageHistoryLibpod
+	// swagger:operation GET /libpod/images/{name}/history libpod ImageHistoryLibpod
 	// ---
 	// tags:
 	//  - images
@@ -761,7 +761,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// description: Return parent layers of an image.
 	// parameters:
 	//  - in: path
-	//    name: name:.*
+	//    name: name
 	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
@@ -906,7 +906,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/remove"), s.APIHandler(libpod.ImagesBatchRemove)).Methods(http.MethodDelete)
-	// swagger:operation DELETE /libpod/images/{name:.*} libpod ImageDeleteLibpod
+	// swagger:operation DELETE /libpod/images/{name} libpod ImageDeleteLibpod
 	// ---
 	// tags:
 	//  - images
@@ -914,7 +914,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// description: Remove an image from the local storage.
 	// parameters:
 	//  - in: path
-	//    name: name:.*
+	//    name: name
 	//    type: string
 	//    required: true
 	//    description: name or ID of image to remove
@@ -1042,7 +1042,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/search"), s.APIHandler(compat.SearchImages)).Methods(http.MethodGet)
-	// swagger:operation GET /libpod/images/{name:.*}/get libpod ImageGetLibpod
+	// swagger:operation GET /libpod/images/{name}/get libpod ImageGetLibpod
 	// ---
 	// tags:
 	//  - images
@@ -1050,7 +1050,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// description: Export an image
 	// parameters:
 	//  - in: path
-	//    name: name:.*
+	//    name: name
 	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
@@ -1109,7 +1109,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/export"), s.APIHandler(libpod.ExportImages)).Methods(http.MethodGet)
-	// swagger:operation GET /libpod/images/{name:.*}/json libpod ImageInspectLibpod
+	// swagger:operation GET /libpod/images/{name}/json libpod ImageInspectLibpod
 	// ---
 	// tags:
 	//  - images
@@ -1117,7 +1117,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// description: Obtain low-level information about an image
 	// parameters:
 	//  - in: path
-	//    name: name:.*
+	//    name: name
 	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
@@ -1131,7 +1131,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/{name:.*}/json"), s.APIHandler(libpod.GetImage)).Methods(http.MethodGet)
-	// swagger:operation POST /libpod/images/{name:.*}/tag libpod ImageTagLibpod
+	// swagger:operation POST /libpod/images/{name}/tag libpod ImageTagLibpod
 	// ---
 	// tags:
 	//  - images
@@ -1139,7 +1139,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// description: Tag an image so that it becomes part of a repository.
 	// parameters:
 	//  - in: path
-	//    name: name:.*
+	//    name: name
 	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
@@ -1217,7 +1217,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/commit"), s.APIHandler(libpod.CommitContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/images/{name:.*}/untag libpod ImageUntagLibpod
+	// swagger:operation POST /libpod/images/{name}/untag libpod ImageUntagLibpod
 	// ---
 	// tags:
 	//  - images
@@ -1225,7 +1225,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// description: Untag an image. If not repo and tag are specified, all tags are removed from the image.
 	// parameters:
 	//  - in: path
-	//    name: name:.*
+	//    name: name
 	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
