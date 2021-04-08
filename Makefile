@@ -118,38 +118,29 @@ CROSS_BUILD_TARGETS := \
 	bin/podman.cross.linux.mips64 \
 	bin/podman.cross.linux.mips64le
 
+.PHONY: default
+default: all
+
 .PHONY: all
 all: binaries docs
-
-.PHONY: default
-default: help
-
-define PRINT_HELP_PYSCRIPT
-import re, sys
-
-print("Usage: make <target>")
-cmds = {}
-for line in sys.stdin:
-	match = re.match(r'^([a-zA-Z_-]+):.*?## (.*)$$', line)
-	if match:
-	  target, help = match.groups()
-	  cmds.update({target: help})
-for cmd in sorted(cmds):
-		print(" * '%s' - %s" % (cmd, cmds[cmd]))
-endef
-export PRINT_HELP_PYSCRIPT
 
 # Dereference variable $(1), return value if non-empty, otherwise raise an error.
 err_if_empty = $(if $(strip $($(1))),$(strip $($(1))),$(error Required variable $(1) value is undefined, whitespace, or empty))
 
+# Extract text following double-# for targets, as their description for
+# the `help` target.  Otherwise These simple-substitutions are resolved
+# at reference-time (due to `=` and not `=:`).
+_HLP_TGTS_RX = '^[[:print:]]+:.*?\#\# .*$$'
+_HLP_TGTS_CMD = grep -E $(_HLP_TGTS_RX) $(MAKEFILE_LIST)
+_HLP_TGTS_LEN = $(shell $(_HLP_TGTS_CMD) | cut -d : -f 1 | wc -L)
+_HLPFMT = "%-$(_HLP_TGTS_LEN)s %s\n"
 .PHONY: help
-ifneq (, ${PYTHON})
-help:
-	@$(PYTHON) -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
-else
-help:
-	$(error python required for 'make help', executable not found)
-endif
+help: ## (Default) Print listing of key targets with their descriptions
+	@printf $(_HLPFMT) "Target:" "Description:"
+	@printf $(_HLPFMT) "--------------" "--------------------"
+	@$(_HLP_TGTS_CMD) | sort | \
+		awk 'BEGIN {FS = ":(.*)?## "}; \
+			{printf $(_HLPFMT), $$1, $$2}'
 
 .gopathok:
 ifeq ("$(wildcard $(GOPKGDIR))","")
@@ -468,6 +459,8 @@ changelog: ## Generate changelog
 	$(shell echo "" >> changelog.txt)
 	$(shell cat $(TMPFILE) >> changelog.txt)
 	$(shell rm $(TMPFILE))
+
+# Workaround vim syntax highlighting bug: "
 
 .PHONY: install
 install: .gopathok install.bin install.remote install.man install.cni install.systemd  ## Install binaries to system locations
