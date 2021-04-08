@@ -64,8 +64,8 @@ else
 	ISODATE ?= $(shell date --iso-8601)
 endif
 LIBPOD := ${PROJECT}/v3/libpod
-GCFLAGS ?= all=-trimpath=${PWD}
-ASMFLAGS ?= all=-trimpath=${PWD}
+GCFLAGS ?= all=-trimpath=$(CURDIR)
+ASMFLAGS ?= all=-trimpath=$(CURDIR)
 LDFLAGS_PODMAN ?= \
 	  -X $(LIBPOD)/define.gitCommit=$(GIT_COMMIT) \
 	  -X $(LIBPOD)/define.buildInfo=$(BUILD_INFO) \
@@ -329,7 +329,7 @@ remoteintegration: test-binaries ginkgo-remote
 localsystem:
 	# Wipe existing config, database, and cache: start with clean slate.
 	$(RM) -rf ${HOME}/.local/share/containers ${HOME}/.config/containers
-	if timeout -v 1 true; then PODMAN=$(shell pwd)/bin/podman bats test/system/; else echo "Skipping $@: 'timeout -v' unavailable'"; fi
+	if timeout -v 1 true; then PODMAN=$(CURDIR)/bin/podman bats test/system/; else echo "Skipping $@: 'timeout -v' unavailable'"; fi
 
 .PHONY: remotesystem
 remotesystem:
@@ -354,7 +354,7 @@ remotesystem:
 			echo "Error: ./bin/podman system service did not come up on $$SOCK_FILE" >&2;\
 			exit 1;\
 		fi;\
-		env PODMAN="$(shell pwd)/bin/podman-remote --url $$PODMAN_SOCKET" bats test/system/ ;\
+		env PODMAN="$(CURDIR)/bin/podman-remote --url $$PODMAN_SOCKET" bats test/system/ ;\
 		rc=$$?;\
 		kill %1;\
 		rm -f $$SOCK_FILE;\
@@ -404,7 +404,7 @@ docs: $(MANPAGES) ## Generate documentation
 install-podman-remote-%-docs: podman-remote docs $(MANPAGES)
 	rm -rf docs/build/remote
 	mkdir -p docs/build/remote
-	ln -sf $(shell pwd)/docs/source/markdown/links docs/build/man/
+	ln -sf $(CURDIR)/docs/source/markdown/links docs/build/man/
 	docs/remote-docs.sh $* docs/build/remote/$* $(if $(findstring windows,$*),docs/source/markdown,docs/build/man)
 
 .PHONY: man-page-check
@@ -678,7 +678,7 @@ vendor:
 
 .PHONY: vendor-in-container
 vendor-in-container:
-	podman run --privileged --rm --env HOME=/root -v `pwd`:/src -w /src docker.io/library/golang:1.16 make vendor
+	podman run --privileged --rm --env HOME=/root -v $(CURDIR):/src -w /src docker.io/library/golang:1.16 make vendor
 
 .PHONY: package
 package:  ## Build rpm packages
