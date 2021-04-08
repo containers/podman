@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -56,7 +57,7 @@ func (r *SpecRunner) RunSpecs(args []string, additionalArgs []string) {
 
 	deprecationTracker := types.NewDeprecationTracker()
 
-	if r.commandFlags.ParallelStream {
+	if r.commandFlags.ParallelStream && (runtime.GOOS != "windows") {
 		deprecationTracker.TrackDeprecation(types.Deprecation{
 			Message: "--stream is deprecated and will be removed in Ginkgo 2.0",
 			DocLink: "removed--stream",
