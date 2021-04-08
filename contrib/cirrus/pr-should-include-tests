@@ -32,6 +32,7 @@ fi
 # This is OK if the only files being touched are "safe" ones.
 filtered_changes=$(git diff --name-status $base $head |
                        awk '{print $2}'               |
+                       fgrep -vx Makefile             |
                        fgrep -vx .cirrus.yml          |
                        fgrep -vx changelog.txt        |
                        fgrep -vx go.mod               |

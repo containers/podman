@@ -703,7 +703,7 @@ vendor:
 
 .PHONY: vendor-in-container
 vendor-in-container:
-	podman run --privileged --rm --env HOME=/root -v `pwd`:/src -w /src docker.io/library/golang:1.13 make vendor
+	podman run --privileged --rm --env HOME=/root -v `pwd`:/src -w /src docker.io/library/golang:1.16 make vendor
 
 .PHONY: package
 package:  ## Build rpm packages
