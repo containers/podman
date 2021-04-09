@@ -78,7 +78,7 @@ func ssh(cmd *cobra.Command, args []string) error {
 		vm, err = qemu.LoadVMByName(vmName)
 	}
 	if err != nil {
-		return errors.Wrapf(err, "vm %s not found", args[0])
+		return errors.Wrapf(err, "vm %s not found", vmName)
 	}
 	return vm.SSH(vmName, sshOpts)
 }
