@@ -92,5 +92,6 @@ func (ic *ContainerEngine) NetworkExists(ctx context.Context, networkname string
 
 // Network prune removes unused cni networks
 func (ic *ContainerEngine) NetworkPrune(ctx context.Context, options entities.NetworkPruneOptions) ([]*entities.NetworkPruneReport, error) {
-	return network.Prune(ic.ClientCtx, nil)
+	opts := new(network.PruneOptions).WithFilters(options.Filters)
+	return network.Prune(ic.ClientCtx, opts)
 }

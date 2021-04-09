@@ -79,4 +79,7 @@ type ExistsOptions struct {
 // PruneOptions are optional options for removing unused
 // CNI networks
 type PruneOptions struct {
+	// Filters are applied to the prune of networks to be more
+	// specific on choosing
+	Filters map[string][]string
 }
