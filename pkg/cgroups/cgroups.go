@@ -265,7 +265,7 @@ func readFileAsUint64(path string) (uint64, error) {
 	if v == "max" {
 		return math.MaxUint64, nil
 	}
-	ret, err := strconv.ParseUint(v, 10, 0)
+	ret, err := strconv.ParseUint(v, 10, 64)
 	if err != nil {
 		return ret, errors.Wrapf(err, "parse %s from %s", v, path)
 	}

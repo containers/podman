@@ -40,7 +40,7 @@ func readAcctList(ctr *CgroupControl, name string) ([]uint64, error) {
 		if s == "" {
 			break
 		}
-		v, err := strconv.ParseUint(s, 10, 0)
+		v, err := strconv.ParseUint(s, 10, 64)
 		if err != nil {
 			return nil, errors.Wrapf(err, "parsing %s", s)
 		}
@@ -80,14 +80,14 @@ func (c *cpuHandler) Stat(ctr *CgroupControl, m *Metrics) error {
 			return err
 		}
 		if val, found := values["usage_usec"]; found {
-			usage.Total, err = strconv.ParseUint(cleanString(val[0]), 10, 0)
+			usage.Total, err = strconv.ParseUint(cleanString(val[0]), 10, 64)
 			if err != nil {
 				return err
 			}
 			usage.Kernel *= 1000
 		}
 		if val, found := values["system_usec"]; found {
-			usage.Kernel, err = strconv.ParseUint(cleanString(val[0]), 10, 0)
+			usage.Kernel, err = strconv.ParseUint(cleanString(val[0]), 10, 64)
 			if err != nil {
 				return err
 			}
@@ -149,7 +149,7 @@ func GetSystemCPUUsage() (uint64, error) {
 		}
 
 		if val, found := values["usage_usec"]; found {
-			v, err := strconv.ParseUint(cleanString(val[0]), 10, 0)
+			v, err := strconv.ParseUint(cleanString(val[0]), 10, 64)
 			if err != nil {
 				return 0, err
 			}
