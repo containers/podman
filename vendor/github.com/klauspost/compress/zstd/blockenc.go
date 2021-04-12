@@ -22,28 +22,44 @@ type blockEnc struct {
 	dictLitEnc *huff0.Scratch
 	wr         bitWriter
 
-	extraLits int
-	last      bool
-
+	extraLits         int
 	output            []byte
 	recentOffsets     [3]uint32
 	prevRecentOffsets [3]uint32
+
+	last   bool
+	lowMem bool
 }
 
 // init should be used once the block has been created.
 // If called more than once, the effect is the same as calling reset.
 func (b *blockEnc) init() {
-	if cap(b.literals) < maxCompressedLiteralSize {
-		b.literals = make([]byte, 0, maxCompressedLiteralSize)
+	if b.lowMem {
+		// 1K literals
+		if cap(b.literals) < 1<<10 {
+			b.literals = make([]byte, 0, 1<<10)
+		}
+		const defSeqs = 20
+		if cap(b.sequences) < defSeqs {
+			b.sequences = make([]seq, 0, defSeqs)
+		}
+		// 1K
+		if cap(b.output) < 1<<10 {
+			b.output = make([]byte, 0, 1<<10)
+		}
+	} else {
+		if cap(b.literals) < maxCompressedBlockSize {
+			b.literals = make([]byte, 0, maxCompressedBlockSize)
+		}
+		const defSeqs = 200
+		if cap(b.sequences) < defSeqs {
+			b.sequences = make([]seq, 0, defSeqs)
+		}
+		if cap(b.output) < maxCompressedBlockSize {
+			b.output = make([]byte, 0, maxCompressedBlockSize)
+		}
 	}
-	const defSeqs = 200
-	b.literals = b.literals[:0]
-	if cap(b.sequences) < defSeqs {
-		b.sequences = make([]seq, 0, defSeqs)
-	}
-	if cap(b.output) < maxCompressedBlockSize {
-		b.output = make([]byte, 0, maxCompressedBlockSize)
-	}
+
 	if b.coders.mlEnc == nil {
 		b.coders.mlEnc = &fseEncoder{}
 		b.coders.mlPrev = &fseEncoder{}

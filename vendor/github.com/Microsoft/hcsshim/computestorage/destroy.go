@@ -13,7 +13,7 @@ import (
 // `layerPath` is a path to a directory containing the layer to export.
 func DestroyLayer(ctx context.Context, layerPath string) (err error) {
 	title := "hcsshim.DestroyLayer"
-	ctx, span := trace.StartSpan(ctx, title)
+	ctx, span := trace.StartSpan(ctx, title) //nolint:ineffassign,staticcheck
 	defer span.End()
 	defer func() { oc.SetSpanStatus(span, err) }()
 	span.AddAttributes(trace.StringAttribute("layerPath", layerPath))

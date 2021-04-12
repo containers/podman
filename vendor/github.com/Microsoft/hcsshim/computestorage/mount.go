@@ -13,7 +13,7 @@ import (
 // GetLayerVhdMountPath returns the volume path for a virtual disk of a writable container layer.
 func GetLayerVhdMountPath(ctx context.Context, vhdHandle windows.Handle) (path string, err error) {
 	title := "hcsshim.GetLayerVhdMountPath"
-	ctx, span := trace.StartSpan(ctx, title)
+	ctx, span := trace.StartSpan(ctx, title) //nolint:ineffassign,staticcheck
 	defer span.End()
 	defer func() { oc.SetSpanStatus(span, err) }()
 
