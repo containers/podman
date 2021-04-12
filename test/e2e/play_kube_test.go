@@ -10,6 +10,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/containers/podman/v3/pkg/util"
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -81,6 +82,26 @@ data:
     {{ $key }}: {{ $value }}
   {{ end }}
 {{ end }}
+`
+
+var persistentVolumeClaimYamlTemplate = `
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Name }}
+{{ with .Annotations }}
+  annotations:
+  {{ range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+  {{ end }}
+{{ end }}
+spec:
+  accessModes:
+    - "ReadWriteOnce"
+  resources:
+    requests:
+      storage: "1Gi"
+  storageClassName: default
 `
 
 var podYamlTemplate = `
@@ -337,10 +358,31 @@ spec:
           privileged: false
           readOnlyRootFilesystem: false
         workingDir: /
+        volumeMounts:
+        {{ if .VolumeMount }}
+        - name: {{.VolumeName}}
+          mountPath: {{ .VolumeMountPath }}
+          readonly: {{.VolumeReadOnly}}
+        {{ end }}
         {{ end }}
       {{ end }}
     {{ end }}
-  {{ end }}
+    {{ with .Volumes }}
+      volumes:
+      {{ range . }}
+      - name: {{ .Name }}
+        {{- if (eq .VolumeType "HostPath") }}
+        hostPath:
+          path: {{ .HostPath.Path }}
+          type: {{ .HostPath.Type }}
+        {{- end }}
+        {{- if (eq .VolumeType "PersistentVolumeClaim") }}
+        persistentVolumeClaim:
+          claimName: {{ .PersistentVolumeClaim.ClaimName }}
+        {{- end }}
+      {{ end }}
+    {{ end }}
+{{ end }}
 `
 
 var (
@@ -352,6 +394,7 @@ var (
 	defaultVolName        = "testVol"
 	defaultDeploymentName = "testDeployment"
 	defaultConfigMapName  = "testConfigMap"
+	defaultPVCName        = "testPVC"
 	seccompPwdEPERM       = []byte(`{"defaultAction":"SCMP_ACT_ALLOW","syscalls":[{"name":"getcwd","action":"SCMP_ACT_ERRNO"}]}`)
 	// CPU Period in ms
 	defaultCPUPeriod = 100
@@ -386,6 +429,8 @@ func getKubeYaml(kind string, object interface{}) (string, error) {
 		yamlTemplate = podYamlTemplate
 	case "deployment":
 		yamlTemplate = deploymentYamlTemplate
+	case "persistentVolumeClaim":
+		yamlTemplate = persistentVolumeClaimYamlTemplate
 	default:
 		return "", fmt.Errorf("unsupported kubernetes kind")
 	}
@@ -464,6 +509,39 @@ func withConfigMapName(name string) configMapOption {
 func withConfigMapData(k, v string) configMapOption {
 	return func(configmap *ConfigMap) {
 		configmap.Data[k] = v
+	}
+}
+
+// PVC describes the options a kube yaml can be configured at persistent volume claim level
+type PVC struct {
+	Name        string
+	Annotations map[string]string
+}
+
+func getPVC(options ...pvcOption) *PVC {
+	pvc := PVC{
+		Name:        defaultPVCName,
+		Annotations: map[string]string{},
+	}
+
+	for _, option := range options {
+		option(&pvc)
+	}
+
+	return &pvc
+}
+
+type pvcOption func(*PVC)
+
+func withPVCName(name string) pvcOption {
+	return func(pvc *PVC) {
+		pvc.Name = name
+	}
+}
+
+func withPVCAnnotations(k, v string) pvcOption {
+	return func(pvc *PVC) {
+		pvc.Annotations[k] = v
 	}
 }
 
@@ -1941,8 +2019,106 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		Expect(inspect.OutputToString()).To(Equal("true"))
 	})
 
+	It("podman play kube persistentVolumeClaim", func() {
+		volName := "myvol"
+		volDevice := "tmpfs"
+		volType := "tmpfs"
+		volOpts := "nodev,noexec"
+
+		pvc := getPVC(withPVCName(volName),
+			withPVCAnnotations(util.VolumeDeviceAnnotation, volDevice),
+			withPVCAnnotations(util.VolumeTypeAnnotation, volType),
+			withPVCAnnotations(util.VolumeMountOptsAnnotation, volOpts))
+		err = generateKubeYaml("persistentVolumeClaim", pvc, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", volName, "--format", `
+Name: {{ .Name }}
+Device: {{ .Options.device }}
+Type: {{ .Options.type }}
+o: {{ .Options.o }}`})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring("Name: " + volName))
+		Expect(inspect.OutputToString()).To(ContainSubstring("Device: " + volDevice))
+		Expect(inspect.OutputToString()).To(ContainSubstring("Type: " + volType))
+		Expect(inspect.OutputToString()).To(ContainSubstring("o: " + volOpts))
+	})
+
 	// Multi doc related tests
-	It("podman play kube multi doc yaml", func() {
+	It("podman play kube multi doc yaml with persistentVolumeClaim, service and deployment", func() {
+		yamlDocs := []string{}
+
+		serviceTemplate := `apiVersion: v1
+kind: Service
+metadata:
+  name: %s
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 9376
+  selector:
+    app: %s
+`
+		// generate persistentVolumeClaim
+		volName := "multiFoo"
+		pvc := getPVC(withPVCName(volName))
+
+		// generate deployment
+		deploymentName := "multiFoo"
+		podName := "multiFoo"
+		ctrName := "ctr-01"
+		ctr := getCtr(withVolumeMount("/test", false))
+		ctr.Name = ctrName
+		pod := getPod(withPodName(podName), withVolume(getPersistentVolumeClaimVolume(volName)), withCtr(ctr))
+		deployment := getDeployment(withPod(pod))
+		deployment.Name = deploymentName
+
+		// add pvc
+		k, err := getKubeYaml("persistentVolumeClaim", pvc)
+		Expect(err).To(BeNil())
+		yamlDocs = append(yamlDocs, k)
+
+		// add service
+		yamlDocs = append(yamlDocs, fmt.Sprintf(serviceTemplate, deploymentName, deploymentName))
+
+		// add deployment
+		k, err = getKubeYaml("deployment", deployment)
+		Expect(err).To(BeNil())
+		yamlDocs = append(yamlDocs, k)
+
+		// generate multi doc yaml
+		err = generateMultiDocKubeYaml(yamlDocs, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspectVolume := podmanTest.Podman([]string{"inspect", volName, "--format", "'{{ .Name }}'"})
+		inspectVolume.WaitWithDefaultTimeout()
+		Expect(inspectVolume.ExitCode()).To(Equal(0))
+		Expect(inspectVolume.OutputToString()).To(ContainSubstring(volName))
+
+		inspectPod := podmanTest.Podman([]string{"inspect", podName + "-pod-0", "--format", "'{{ .State }}'"})
+		inspectPod.WaitWithDefaultTimeout()
+		Expect(inspectPod.ExitCode()).To(Equal(0))
+		Expect(inspectPod.OutputToString()).To(ContainSubstring(`Running`))
+
+		inspectMounts := podmanTest.Podman([]string{"inspect", podName + "-pod-0-" + ctrName, "--format", "{{ (index .Mounts 0).Type }}:{{ (index .Mounts 0).Name }}"})
+		inspectMounts.WaitWithDefaultTimeout()
+		Expect(inspectMounts.ExitCode()).To(Equal(0))
+
+		correct := fmt.Sprintf("volume:%s", volName)
+		Expect(inspectMounts.OutputToString()).To(Equal(correct))
+	})
+
+	It("podman play kube multi doc yaml with multiple services, pods and deployments", func() {
 		yamlDocs := []string{}
 		podNames := []string{}
 
@@ -1958,7 +2134,7 @@ spec:
   selector:
     app: %s
 `
-		// generate servies, pods and deployments
+		// generate services, pods and deployments
 		for i := 0; i < 2; i++ {
 			podName := fmt.Sprintf("testPod%d", i)
 			deploymentName := fmt.Sprintf("testDeploy%d", i)

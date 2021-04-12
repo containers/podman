@@ -1,14 +1,16 @@
 % podman-generate-kube(1)
 ## NAME
-podman-generate-kube - Generate Kubernetes YAML based on a pod or container
+podman-generate-kube - Generate Kubernetes YAML based on containers, pods or volumes
 
 ## SYNOPSIS
-**podman generate kube** [*options*] *container...* | *pod*
+**podman generate kube** [*options*] *container...* | *pod...* | *volume...*
 
 ## DESCRIPTION
-**podman generate kube** will generate Kubernetes Pod YAML (v1 specification) from Podman from one or more containers or a single pod. Whether
-the input is for containers or a pod, Podman will always generate the specification as a Pod. The input may be in the form
-of a pod or one or more container names or IDs.
+**podman generate kube** will generate Kubernetes YAML (v1 specification) from Podman containers, pods or volumes. Whether
+the input is for containers or pods, Podman will always generate the specification as a Pod. The input may be in the form
+of one or more containers, pods or volumes names or IDs.
+
+`Podman Containers or Pods`
 
 Volumes appear in the generated YAML according to two different volume types. Bind-mounted volumes become *hostPath* volume types and named volumes become *persistentVolumeClaim* volume types. Generated *hostPath* volume types will be one of three subtypes depending on the state of the host path: *DirectoryOrCreate* when no file or directory exists at the host, *Directory* when host path is a directory, or *File* when host path is a file. The value for *claimName* for a *persistentVolumeClaim* is the name of the named volume registered in Podman.
 

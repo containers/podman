@@ -1,21 +1,39 @@
 % podman-play-kube(1)
 
 ## NAME
-podman-play-kube - Create pods and containers based on Kubernetes YAML
+podman-play-kube - Create containers, pods or volumes based on Kubernetes YAML
 
 ## SYNOPSIS
 **podman play kube** [*options*] *file.yml|-*
 
 ## DESCRIPTION
-**podman play kube** will read in a structured file of Kubernetes YAML.  It will then recreate the pod and containers described in the YAML.  The containers within the pod are then started and the ID of the new Pod is output. If the yaml file is specified as "-" then `podman play kube` with read the yaml file from stdin.
+**podman play kube** will read in a structured file of Kubernetes YAML.  It will then recreate the containers, pods or volumes described in the YAML.  Containers within a pod are then started and the ID of the new Pod or the name of the new Volume is output. If the yaml file is specified as "-" then `podman play kube` will read the YAML file from stdin.
 
 Ideally the input file would be one created by Podman (see podman-generate-kube(1)).  This would guarantee a smooth import and expected results.
+
+Currently, the supported Kubernetes kinds are:
+- Pod
+- Deployment
+- PersistentVolumeClaim
+
+`Kubernetes Pods or Deployments`
 
 Only two volume types are supported by play kube, the *hostPath* and *persistentVolumeClaim* volume types. For the *hostPath* volume type, only the  *default (empty)*, *DirectoryOrCreate*, *Directory*, *FileOrCreate*, *File*, and *Socket* subtypes are supported. The *CharDevice* and *BlockDevice* subtypes are not supported. Podman interprets the value of *hostPath* *path* as a file path when it contains at least one forward slash, otherwise Podman treats the value as the name of a named volume. When using a *persistentVolumeClaim*, the value for *claimName* is the name for the Podman named volume.
 
 Note: *hostPath* volume types created by play kube will be given an SELinux private label (Z)
 
 Note: If the `:latest` tag is used, Podman will attempt to pull the image from a registry. If the image was built locally with Podman or Buildah, it will have `localhost` as the domain, in that case, Podman will use the image from the local store even if it has the `:latest` tag.
+
+`Kubernetes PersistentVolumeClaims`
+
+A Kubernetes PersistentVolumeClaim represents a Podman named volume. Only the PersistentVolumeClaim name is required by Podman to create a volume. Kubernetes annotations can be used to make use of the available options for Podman volumes.
+
+- volume.podman.io/driver
+- volume.podman.io/device
+- volume.podman.io/type
+- volume.podman.io/uid
+- volume.podman.io/gid
+- volume.podman.io/mount-options
 
 ## OPTIONS
 

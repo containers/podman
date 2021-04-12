@@ -12,8 +12,8 @@ var (
 	// Command: podman _generate_
 	generateCmd = &cobra.Command{
 		Use:   "generate",
-		Short: "Generate structured data based on containers and pods.",
-		Long:  "Generate structured data (e.g., Kubernetes yaml or systemd units) based on containers and pods.",
+		Short: "Generate structured data based on containers, pods or volumes.",
+		Long:  "Generate structured data (e.g., Kubernetes YAML or systemd units) based on containers, pods or volumes.",
 		RunE:  validate.SubCommandExists,
 	}
 	containerConfig = util.DefaultContainerConfig()
