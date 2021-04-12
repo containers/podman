@@ -349,7 +349,7 @@ func overlayDeletedFile(layers []string, root, path string, fi os.FileInfo) (str
 		return "", nil
 	}
 	// If the directory isn't marked as opaque, then it's just a normal directory.
-	opaque, err := system.Lgetxattr(filepath.Join(root, path), "trusted.overlay.opaque")
+	opaque, err := system.Lgetxattr(filepath.Join(root, path), getOverlayOpaqueXattrName())
 	if err != nil {
 		return "", err
 	}

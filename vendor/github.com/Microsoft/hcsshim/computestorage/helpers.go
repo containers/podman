@@ -70,11 +70,9 @@ func SetupContainerBaseLayer(ctx context.Context, layerPath, baseVhdPath, diffVh
 
 	defer func() {
 		if err != nil {
-			syscall.CloseHandle(handle)
+			_ = syscall.CloseHandle(handle)
 			os.RemoveAll(baseVhdPath)
-			if os.Stat(diffVhdPath); err == nil {
-				os.RemoveAll(diffVhdPath)
-			}
+			os.RemoveAll(diffVhdPath)
 		}
 	}()
 
@@ -148,11 +146,9 @@ func SetupUtilityVMBaseLayer(ctx context.Context, uvmPath, baseVhdPath, diffVhdP
 
 	defer func() {
 		if err != nil {
-			syscall.CloseHandle(handle)
+			_ = syscall.CloseHandle(handle)
 			os.RemoveAll(baseVhdPath)
-			if os.Stat(diffVhdPath); err == nil {
-				os.RemoveAll(diffVhdPath)
-			}
+			os.RemoveAll(diffVhdPath)
 		}
 	}()
 

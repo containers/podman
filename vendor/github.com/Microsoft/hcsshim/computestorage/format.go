@@ -14,7 +14,7 @@ import (
 // If the VHD is not mounted it will be temporarily mounted.
 func FormatWritableLayerVhd(ctx context.Context, vhdHandle windows.Handle) (err error) {
 	title := "hcsshim.FormatWritableLayerVhd"
-	ctx, span := trace.StartSpan(ctx, title)
+	ctx, span := trace.StartSpan(ctx, title) //nolint:ineffassign,staticcheck
 	defer span.End()
 	defer func() { oc.SetSpanStatus(span, err) }()
 
