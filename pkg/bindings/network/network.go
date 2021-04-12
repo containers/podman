@@ -184,7 +184,13 @@ func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool,
 
 // Prune removes unused CNI networks
 func Prune(ctx context.Context, options *PruneOptions) ([]*entities.NetworkPruneReport, error) {
-	// TODO Filters is not implemented
+	if options == nil {
+		options = new(PruneOptions)
+	}
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
+	}
 	var (
 		prunedNetworks []*entities.NetworkPruneReport
 	)
@@ -193,7 +199,7 @@ func Prune(ctx context.Context, options *PruneOptions) ([]*entities.NetworkPrune
 		return nil, err
 	}
 
-	response, err := conn.DoRequest(nil, http.MethodPost, "/networks/prune", nil, nil)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/networks/prune", params, nil)
 	if err != nil {
 		return nil, err
 	}
