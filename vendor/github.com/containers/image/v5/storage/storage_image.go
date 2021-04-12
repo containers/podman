@@ -18,6 +18,7 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/internal/tmpdir"
+	internalTypes "github.com/containers/image/v5/internal/types"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/blobinfocache/none"
 	"github.com/containers/image/v5/types"
@@ -45,6 +46,7 @@ var (
 type storageImageSource struct {
 	imageRef        storageReference
 	image           *storage.Image
+	systemContext   *types.SystemContext    // SystemContext used in GetBlob() to create temporary files
 	layerPosition   map[digest.Digest]int   // Where we are in reading a blob's layers
 	cachedManifest  []byte                  // A cached copy of the manifest, if already known, or nil
 	getBlobMutex    sync.Mutex              // Mutex to sync state for parallel GetBlob executions
@@ -54,17 +56,31 @@ type storageImageSource struct {
 
 type storageImageDestination struct {
 	imageRef        storageReference
-	directory       string                          // Temporary directory where we store blobs until Commit() time
-	nextTempFileID  int32                           // A counter that we use for computing filenames to assign to blobs
-	manifest        []byte                          // Manifest contents, temporary
-	signatures      []byte                          // Signature contents, temporary
-	signatureses    map[digest.Digest][]byte        // Instance signature contents, temporary
-	putBlobMutex    sync.Mutex                      // Mutex to sync state for parallel PutBlob executions
-	blobDiffIDs     map[digest.Digest]digest.Digest // Mapping from layer blobsums to their corresponding DiffIDs
-	fileSizes       map[digest.Digest]int64         // Mapping from layer blobsums to their sizes
-	filenames       map[digest.Digest]string        // Mapping from layer blobsums to names of files we used to hold them
-	SignatureSizes  []int                           `json:"signature-sizes,omitempty"`  // List of sizes of each signature slice
-	SignaturesSizes map[digest.Digest][]int         `json:"signatures-sizes,omitempty"` // Sizes of each manifest's signature slice
+	directory       string                   // Temporary directory where we store blobs until Commit() time
+	nextTempFileID  int32                    // A counter that we use for computing filenames to assign to blobs
+	manifest        []byte                   // Manifest contents, temporary
+	signatures      []byte                   // Signature contents, temporary
+	signatureses    map[digest.Digest][]byte // Instance signature contents, temporary
+	SignatureSizes  []int                    `json:"signature-sizes,omitempty"`  // List of sizes of each signature slice
+	SignaturesSizes map[digest.Digest][]int  `json:"signatures-sizes,omitempty"` // Sizes of each manifest's signature slice
+
+	// A storage destination may be used concurrently.  Accesses are
+	// serialized via a mutex.  Please refer to the individual comments
+	// below for details.
+	lock sync.Mutex
+	// Mapping from layer (by index) to the associated ID in the storage.
+	// It's protected *implicitly* since `commitLayer()`, at any given
+	// time, can only be executed by *one* goroutine.  Please refer to
+	// `queueOrCommit()` for further details on how the single-caller
+	// guarantee is implemented.
+	indexToStorageID map[int]*string
+	// All accesses to below data are protected by `lock` which is made
+	// *explicit* in the code.
+	blobDiffIDs       map[digest.Digest]digest.Digest // Mapping from layer blobsums to their corresponding DiffIDs
+	fileSizes         map[digest.Digest]int64         // Mapping from layer blobsums to their sizes
+	filenames         map[digest.Digest]string        // Mapping from layer blobsums to names of files we used to hold them
+	currentIndex      int                             // The index of the layer to be committed (i.e., lower indices have already been committed)
+	indexToPulledBlob map[int]*types.BlobInfo         // Mapping from layer (by index) to pulled down blob
 }
 
 type storageImageCloser struct {
@@ -96,6 +112,7 @@ func newImageSource(ctx context.Context, sys *types.SystemContext, imageRef stor
 	// Build the reader object.
 	image := &storageImageSource{
 		imageRef:        imageRef,
+		systemContext:   sys,
 		image:           img,
 		layerPosition:   make(map[digest.Digest]int),
 		SignatureSizes:  []int{},
@@ -131,8 +148,35 @@ func (s *storageImageSource) GetBlob(ctx context.Context, info types.BlobInfo, c
 	if info.Digest == image.GzippedEmptyLayerDigest {
 		return ioutil.NopCloser(bytes.NewReader(image.GzippedEmptyLayer)), int64(len(image.GzippedEmptyLayer)), nil
 	}
+
+	// NOTE: the blob is first written to a temporary file and subsequently
+	// closed.  The intention is to keep the time we own the storage lock
+	// as short as possible to allow other processes to access the storage.
 	rc, n, _, err = s.getBlobAndLayerID(info)
-	return rc, n, err
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rc.Close()
+
+	tmpFile, err := ioutil.TempFile(tmpdir.TemporaryDirectoryForBigFiles(s.systemContext), "")
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if _, err := io.Copy(tmpFile, rc); err != nil {
+		return nil, 0, err
+	}
+
+	if _, err := tmpFile.Seek(0, 0); err != nil {
+		return nil, 0, err
+	}
+
+	wrapper := ioutils.NewReadCloserWrapper(tmpFile, func() error {
+		defer os.Remove(tmpFile.Name())
+		return tmpFile.Close()
+	})
+
+	return wrapper, n, err
 }
 
 // getBlobAndLayer reads the data blob or filesystem layer which matches the digest and size, if given.
@@ -347,14 +391,16 @@ func newImageDestination(sys *types.SystemContext, imageRef storageReference) (*
 		return nil, errors.Wrapf(err, "error creating a temporary directory")
 	}
 	image := &storageImageDestination{
-		imageRef:        imageRef,
-		directory:       directory,
-		signatureses:    make(map[digest.Digest][]byte),
-		blobDiffIDs:     make(map[digest.Digest]digest.Digest),
-		fileSizes:       make(map[digest.Digest]int64),
-		filenames:       make(map[digest.Digest]string),
-		SignatureSizes:  []int{},
-		SignaturesSizes: make(map[digest.Digest][]int),
+		imageRef:          imageRef,
+		directory:         directory,
+		signatureses:      make(map[digest.Digest][]byte),
+		blobDiffIDs:       make(map[digest.Digest]digest.Digest),
+		fileSizes:         make(map[digest.Digest]int64),
+		filenames:         make(map[digest.Digest]string),
+		SignatureSizes:    []int{},
+		SignaturesSizes:   make(map[digest.Digest][]int),
+		indexToStorageID:  make(map[int]*string),
+		indexToPulledBlob: make(map[int]*types.BlobInfo),
 	}
 	return image, nil
 }
@@ -379,6 +425,26 @@ func (s *storageImageDestination) DesiredLayerCompression() types.LayerCompressi
 
 func (s *storageImageDestination) computeNextBlobCacheFile() string {
 	return filepath.Join(s.directory, fmt.Sprintf("%d", atomic.AddInt32(&s.nextTempFileID, 1)))
+}
+
+// PutBlobWithOptions is a wrapper around PutBlob.  If options.LayerIndex is
+// set, the blob will be committed directly.  Either by the calling goroutine
+// or by another goroutine already committing layers.
+//
+// Please not that TryReusingBlobWithOptions and PutBlobWithOptions *must* be
+// used the together.  Mixing the two with non "WithOptions" functions is not
+// supported.
+func (s *storageImageDestination) PutBlobWithOptions(ctx context.Context, stream io.Reader, blobinfo types.BlobInfo, options internalTypes.PutBlobOptions) (types.BlobInfo, error) {
+	info, err := s.PutBlob(ctx, stream, blobinfo, options.Cache, options.IsConfig)
+	if err != nil {
+		return info, err
+	}
+
+	if options.IsConfig || options.LayerIndex == nil {
+		return info, nil
+	}
+
+	return info, s.queueOrCommit(ctx, info, *options.LayerIndex)
 }
 
 // HasThreadSafePutBlob indicates whether PutBlob can be executed concurrently.
@@ -436,11 +502,11 @@ func (s *storageImageDestination) PutBlob(ctx context.Context, stream io.Reader,
 		return errorBlobInfo, errors.WithStack(ErrBlobSizeMismatch)
 	}
 	// Record information about the blob.
-	s.putBlobMutex.Lock()
+	s.lock.Lock()
 	s.blobDiffIDs[hasher.Digest()] = diffID.Digest()
 	s.fileSizes[hasher.Digest()] = counter.Count
 	s.filenames[hasher.Digest()] = filename
-	s.putBlobMutex.Unlock()
+	s.lock.Unlock()
 	blobDigest := blobinfo.Digest
 	if blobDigest.Validate() != nil {
 		blobDigest = hasher.Digest()
@@ -458,6 +524,22 @@ func (s *storageImageDestination) PutBlob(ctx context.Context, stream io.Reader,
 	}, nil
 }
 
+// TryReusingBlobWithOptions is a wrapper around TryReusingBlob.  If
+// options.LayerIndex is set, the reused blob will be recoreded as already
+// pulled.
+//
+// Please not that TryReusingBlobWithOptions and PutBlobWithOptions *must* be
+// used the together.  Mixing the two with the non "WithOptions" functions
+// is not supported.
+func (s *storageImageDestination) TryReusingBlobWithOptions(ctx context.Context, blobinfo types.BlobInfo, options internalTypes.TryReusingBlobOptions) (bool, types.BlobInfo, error) {
+	reused, info, err := s.TryReusingBlob(ctx, blobinfo, options.Cache, options.CanSubstitute)
+	if err != nil || !reused || options.LayerIndex == nil {
+		return reused, info, err
+	}
+
+	return reused, info, s.queueOrCommit(ctx, info, *options.LayerIndex)
+}
+
 // TryReusingBlob checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination
 // (e.g. if the blob is a filesystem layer, this signifies that the changes it describes need to be applied again when composing a filesystem tree).
 // info.Digest must not be empty.
@@ -469,8 +551,8 @@ func (s *storageImageDestination) PutBlob(ctx context.Context, stream io.Reader,
 // May use and/or update cache.
 func (s *storageImageDestination) TryReusingBlob(ctx context.Context, blobinfo types.BlobInfo, cache types.BlobInfoCache, canSubstitute bool) (bool, types.BlobInfo, error) {
 	// lock the entire method as it executes fairly quickly
-	s.putBlobMutex.Lock()
-	defer s.putBlobMutex.Unlock()
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	if blobinfo.Digest == "" {
 		return false, types.BlobInfo{}, errors.Errorf(`Can not check for a blob with unknown digest`)
 	}
@@ -607,6 +689,192 @@ func (s *storageImageDestination) getConfigBlob(info types.BlobInfo) ([]byte, er
 	return nil, errors.New("blob not found")
 }
 
+// queueOrCommit queues in the specified blob to be committed to the storage.
+// If no other goroutine is already committing layers, the layer and all
+// subsequent layers (if already queued) will be committed to the storage.
+func (s *storageImageDestination) queueOrCommit(ctx context.Context, blob types.BlobInfo, index int) error {
+	// NOTE: whenever the code below is touched, make sure that all code
+	// paths unlock the lock and to unlock it exactly once.
+	//
+	// Conceptually, the code is divided in two stages:
+	//
+	// 1) Queue in work by marking the layer as ready to be committed.
+	//    If at least one previous/parent layer with a lower index has
+	//    not yet been committed, return early.
+	//
+	// 2) Process the queued-in work by committing the "ready" layers
+	//    in sequence.  Make sure that more items can be queued-in
+	//    during the comparatively I/O expensive task of committing a
+	//    layer.
+	//
+	// The conceptual benefit of this design is that caller can continue
+	// pulling layers after an early return.  At any given time, only one
+	// caller is the "worker" routine comitting layers.  All other routines
+	// can continue pulling and queuing in layers.
+	s.lock.Lock()
+	s.indexToPulledBlob[index] = &blob
+
+	// We're still waiting for at least one previous/parent layer to be
+	// committed, so there's nothing to do.
+	if index != s.currentIndex {
+		s.lock.Unlock()
+		return nil
+	}
+
+	for info := s.indexToPulledBlob[index]; info != nil; info = s.indexToPulledBlob[index] {
+		s.lock.Unlock()
+		layerInfo := manifest.LayerInfo{
+			BlobInfo:   *info,
+			EmptyLayer: info.Digest == image.GzippedEmptyLayerDigest,
+		}
+		// Note: commitLayer locks on-demand.
+		if err := s.commitLayer(ctx, layerInfo, index); err != nil {
+			return err
+		}
+		s.lock.Lock()
+		index++
+	}
+
+	// Set the index at the very end to make sure that only one routine
+	// enters stage 2).
+	s.currentIndex = index
+	s.lock.Unlock()
+	return nil
+}
+
+// commitLayer commits the specified blob with the given index to the storage.
+// Note that the previous layer is expected to already be committed.
+//
+// Caution: this function must be called without holding `s.lock`.  Callers
+// must guarantee that, at any given time, at most one goroutine may execute
+// `commitLayer()`.
+func (s *storageImageDestination) commitLayer(ctx context.Context, blob manifest.LayerInfo, index int) error {
+	// Already commited?  Return early.
+	if _, alreadyCommitted := s.indexToStorageID[index]; alreadyCommitted {
+		return nil
+	}
+
+	// Start with an empty string or the previous layer ID.  Note that
+	// `s.indexToStorageID` can only be accessed by *one* goroutine at any
+	// given time. Hence, we don't need to lock accesses.
+	var lastLayer string
+	if prev := s.indexToStorageID[index-1]; prev != nil {
+		lastLayer = *prev
+	}
+
+	// Carry over the previous ID for empty non-base layers.
+	if blob.EmptyLayer && index > 0 {
+		s.indexToStorageID[index] = &lastLayer
+		return nil
+	}
+
+	// Check if there's already a layer with the ID that we'd give to the result of applying
+	// this layer blob to its parent, if it has one, or the blob's hex value otherwise.
+	s.lock.Lock()
+	diffID, haveDiffID := s.blobDiffIDs[blob.Digest]
+	s.lock.Unlock()
+	if !haveDiffID {
+		// Check if it's elsewhere and the caller just forgot to pass it to us in a PutBlob(),
+		// or to even check if we had it.
+		// Use none.NoCache to avoid a repeated DiffID lookup in the BlobInfoCache; a caller
+		// that relies on using a blob digest that has never been seen by the store had better call
+		// TryReusingBlob; not calling PutBlob already violates the documented API, so there’s only
+		// so far we are going to accommodate that (if we should be doing that at all).
+		logrus.Debugf("looking for diffID for blob %+v", blob.Digest)
+		// NOTE: use `TryReusingBlob` to prevent recursion.
+		has, _, err := s.TryReusingBlob(ctx, blob.BlobInfo, none.NoCache, false)
+		if err != nil {
+			return errors.Wrapf(err, "error checking for a layer based on blob %q", blob.Digest.String())
+		}
+		if !has {
+			return errors.Errorf("error determining uncompressed digest for blob %q", blob.Digest.String())
+		}
+		diffID, haveDiffID = s.blobDiffIDs[blob.Digest]
+		if !haveDiffID {
+			return errors.Errorf("we have blob %q, but don't know its uncompressed digest", blob.Digest.String())
+		}
+	}
+	id := diffID.Hex()
+	if lastLayer != "" {
+		id = digest.Canonical.FromBytes([]byte(lastLayer + "+" + diffID.Hex())).Hex()
+	}
+	if layer, err2 := s.imageRef.transport.store.Layer(id); layer != nil && err2 == nil {
+		// There's already a layer that should have the right contents, just reuse it.
+		lastLayer = layer.ID
+		s.indexToStorageID[index] = &lastLayer
+		return nil
+	}
+	// Check if we previously cached a file with that blob's contents.  If we didn't,
+	// then we need to read the desired contents from a layer.
+	s.lock.Lock()
+	filename, ok := s.filenames[blob.Digest]
+	s.lock.Unlock()
+	if !ok {
+		// Try to find the layer with contents matching that blobsum.
+		layer := ""
+		layers, err2 := s.imageRef.transport.store.LayersByUncompressedDigest(diffID)
+		if err2 == nil && len(layers) > 0 {
+			layer = layers[0].ID
+		} else {
+			layers, err2 = s.imageRef.transport.store.LayersByCompressedDigest(blob.Digest)
+			if err2 == nil && len(layers) > 0 {
+				layer = layers[0].ID
+			}
+		}
+		if layer == "" {
+			return errors.Wrapf(err2, "error locating layer for blob %q", blob.Digest)
+		}
+		// Read the layer's contents.
+		noCompression := archive.Uncompressed
+		diffOptions := &storage.DiffOptions{
+			Compression: &noCompression,
+		}
+		diff, err2 := s.imageRef.transport.store.Diff("", layer, diffOptions)
+		if err2 != nil {
+			return errors.Wrapf(err2, "error reading layer %q for blob %q", layer, blob.Digest)
+		}
+		// Copy the layer diff to a file.  Diff() takes a lock that it holds
+		// until the ReadCloser that it returns is closed, and PutLayer() wants
+		// the same lock, so the diff can't just be directly streamed from one
+		// to the other.
+		filename = s.computeNextBlobCacheFile()
+		file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY|os.O_EXCL, 0600)
+		if err != nil {
+			diff.Close()
+			return errors.Wrapf(err, "error creating temporary file %q", filename)
+		}
+		// Copy the data to the file.
+		// TODO: This can take quite some time, and should ideally be cancellable using
+		// ctx.Done().
+		_, err = io.Copy(file, diff)
+		diff.Close()
+		file.Close()
+		if err != nil {
+			return errors.Wrapf(err, "error storing blob to file %q", filename)
+		}
+		// Make sure that we can find this file later, should we need the layer's
+		// contents again.
+		s.lock.Lock()
+		s.filenames[blob.Digest] = filename
+		s.lock.Unlock()
+	}
+	// Read the cached blob and use it as a diff.
+	file, err := os.Open(filename)
+	if err != nil {
+		return errors.Wrapf(err, "error opening file %q", filename)
+	}
+	defer file.Close()
+	// Build the new layer using the diff, regardless of where it came from.
+	// TODO: This can take quite some time, and should ideally be cancellable using ctx.Done().
+	layer, _, err := s.imageRef.transport.store.PutLayer(id, lastLayer, nil, "", false, nil, file)
+	if err != nil && errors.Cause(err) != storage.ErrDuplicateID {
+		return errors.Wrapf(err, "error adding layer with blob %q", blob.Digest)
+	}
+
+	s.indexToStorageID[index] = &layer.ID
+	return nil
+}
+
 func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel types.UnparsedImage) error {
 	if len(s.manifest) == 0 {
 		return errors.New("Internal error: storageImageDestination.Commit() called without PutManifest()")
@@ -644,108 +912,19 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 		return errors.Wrapf(err, "error parsing manifest")
 	}
 	layerBlobs := man.LayerInfos()
-	// Extract or find the layers.
-	lastLayer := ""
-	for _, blob := range layerBlobs {
-		if blob.EmptyLayer {
-			continue
+	// Extract, commit, or find the layers.
+	for i, blob := range layerBlobs {
+		if err := s.commitLayer(ctx, blob, i); err != nil {
+			return err
 		}
-
-		// Check if there's already a layer with the ID that we'd give to the result of applying
-		// this layer blob to its parent, if it has one, or the blob's hex value otherwise.
-		diffID, haveDiffID := s.blobDiffIDs[blob.Digest]
-		if !haveDiffID {
-			// Check if it's elsewhere and the caller just forgot to pass it to us in a PutBlob(),
-			// or to even check if we had it.
-			// Use none.NoCache to avoid a repeated DiffID lookup in the BlobInfoCache; a caller
-			// that relies on using a blob digest that has never been seen by the store had better call
-			// TryReusingBlob; not calling PutBlob already violates the documented API, so there’s only
-			// so far we are going to accommodate that (if we should be doing that at all).
-			logrus.Debugf("looking for diffID for blob %+v", blob.Digest)
-			has, _, err := s.TryReusingBlob(ctx, blob.BlobInfo, none.NoCache, false)
-			if err != nil {
-				return errors.Wrapf(err, "error checking for a layer based on blob %q", blob.Digest.String())
-			}
-			if !has {
-				return errors.Errorf("error determining uncompressed digest for blob %q", blob.Digest.String())
-			}
-			diffID, haveDiffID = s.blobDiffIDs[blob.Digest]
-			if !haveDiffID {
-				return errors.Errorf("we have blob %q, but don't know its uncompressed digest", blob.Digest.String())
-			}
+	}
+	var lastLayer string
+	if len(layerBlobs) > 0 { // Can happen when using caches
+		prev := s.indexToStorageID[len(layerBlobs)-1]
+		if prev == nil {
+			return errors.Errorf("Internal error: StorageImageDestination.Commit(): previous layer %d hasn't been commited (lastLayer == nil)", len(layerBlobs)-1)
 		}
-		id := diffID.Hex()
-		if lastLayer != "" {
-			id = digest.Canonical.FromBytes([]byte(lastLayer + "+" + diffID.Hex())).Hex()
-		}
-		if layer, err2 := s.imageRef.transport.store.Layer(id); layer != nil && err2 == nil {
-			// There's already a layer that should have the right contents, just reuse it.
-			lastLayer = layer.ID
-			continue
-		}
-		// Check if we previously cached a file with that blob's contents.  If we didn't,
-		// then we need to read the desired contents from a layer.
-		filename, ok := s.filenames[blob.Digest]
-		if !ok {
-			// Try to find the layer with contents matching that blobsum.
-			layer := ""
-			layers, err2 := s.imageRef.transport.store.LayersByUncompressedDigest(diffID)
-			if err2 == nil && len(layers) > 0 {
-				layer = layers[0].ID
-			} else {
-				layers, err2 = s.imageRef.transport.store.LayersByCompressedDigest(blob.Digest)
-				if err2 == nil && len(layers) > 0 {
-					layer = layers[0].ID
-				}
-			}
-			if layer == "" {
-				return errors.Wrapf(err2, "error locating layer for blob %q", blob.Digest)
-			}
-			// Read the layer's contents.
-			noCompression := archive.Uncompressed
-			diffOptions := &storage.DiffOptions{
-				Compression: &noCompression,
-			}
-			diff, err2 := s.imageRef.transport.store.Diff("", layer, diffOptions)
-			if err2 != nil {
-				return errors.Wrapf(err2, "error reading layer %q for blob %q", layer, blob.Digest)
-			}
-			// Copy the layer diff to a file.  Diff() takes a lock that it holds
-			// until the ReadCloser that it returns is closed, and PutLayer() wants
-			// the same lock, so the diff can't just be directly streamed from one
-			// to the other.
-			filename = s.computeNextBlobCacheFile()
-			file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY|os.O_EXCL, 0600)
-			if err != nil {
-				diff.Close()
-				return errors.Wrapf(err, "error creating temporary file %q", filename)
-			}
-			// Copy the data to the file.
-			// TODO: This can take quite some time, and should ideally be cancellable using
-			// ctx.Done().
-			_, err = io.Copy(file, diff)
-			diff.Close()
-			file.Close()
-			if err != nil {
-				return errors.Wrapf(err, "error storing blob to file %q", filename)
-			}
-			// Make sure that we can find this file later, should we need the layer's
-			// contents again.
-			s.filenames[blob.Digest] = filename
-		}
-		// Read the cached blob and use it as a diff.
-		file, err := os.Open(filename)
-		if err != nil {
-			return errors.Wrapf(err, "error opening file %q", filename)
-		}
-		defer file.Close()
-		// Build the new layer using the diff, regardless of where it came from.
-		// TODO: This can take quite some time, and should ideally be cancellable using ctx.Done().
-		layer, _, err := s.imageRef.transport.store.PutLayer(id, lastLayer, nil, "", false, nil, file)
-		if err != nil && errors.Cause(err) != storage.ErrDuplicateID {
-			return errors.Wrapf(err, "error adding layer with blob %q", blob.Digest)
-		}
-		lastLayer = layer.ID
+		lastLayer = *prev
 	}
 
 	// If one of those blobs was a configuration blob, then we can try to dig out the date when the image

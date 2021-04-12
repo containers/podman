@@ -9,9 +9,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const keyDescribePrefix = "container-registry-login:"
+// NOTE: none of the functions here are currently used.  If we ever want to
+// reenable keyring support, we should introduce a similar built-in credential
+// helpers as for `sysregistriesv2.AuthenticationFileHelper`.
 
-func getAuthFromKernelKeyring(registry string) (string, string, error) {
+const keyDescribePrefix = "container-registry-login:" // nolint
+
+func getAuthFromKernelKeyring(registry string) (string, string, error) { // nolint
 	userkeyring, err := keyctl.UserKeyring()
 	if err != nil {
 		return "", "", err
@@ -31,7 +35,7 @@ func getAuthFromKernelKeyring(registry string) (string, string, error) {
 	return parts[0], parts[1], nil
 }
 
-func deleteAuthFromKernelKeyring(registry string) error {
+func deleteAuthFromKernelKeyring(registry string) error { // nolint
 	userkeyring, err := keyctl.UserKeyring()
 
 	if err != nil {
@@ -44,7 +48,7 @@ func deleteAuthFromKernelKeyring(registry string) error {
 	return key.Unlink()
 }
 
-func removeAllAuthFromKernelKeyring() error {
+func removeAllAuthFromKernelKeyring() error { // nolint
 	keys, err := keyctl.ReadUserKeyring()
 	if err != nil {
 		return err
@@ -77,7 +81,7 @@ func removeAllAuthFromKernelKeyring() error {
 	return nil
 }
 
-func setAuthToKernelKeyring(registry, username, password string) error {
+func setAuthToKernelKeyring(registry, username, password string) error { // nolint
 	keyring, err := keyctl.SessionKeyring()
 	if err != nil {
 		return err
@@ -110,6 +114,6 @@ func setAuthToKernelKeyring(registry, username, password string) error {
 	return nil
 }
 
-func genDescription(registry string) string {
+func genDescription(registry string) string { // nolint
 	return fmt.Sprintf("%s%s", keyDescribePrefix, registry)
 }
