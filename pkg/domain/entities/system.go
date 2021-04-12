@@ -98,6 +98,11 @@ type SystemVersionReport struct {
 	Server *define.Version `json:",omitempty"`
 }
 
+// SystemUnshareOptions describes the options for the unshare command
+type SystemUnshareOptions struct {
+	RootlessCNI bool
+}
+
 type ComponentVersion struct {
 	types.Version
 }

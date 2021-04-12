@@ -88,7 +88,7 @@ type ContainerEngine interface {
 	SecretRm(ctx context.Context, nameOrID []string, opts SecretRmOptions) ([]*SecretRmReport, error)
 	Shutdown(ctx context.Context)
 	SystemDf(ctx context.Context, options SystemDfOptions) (*SystemDfReport, error)
-	Unshare(ctx context.Context, args []string) error
+	Unshare(ctx context.Context, args []string, options SystemUnshareOptions) error
 	Version(ctx context.Context) (*SystemVersionReport, error)
 	VolumeCreate(ctx context.Context, opts VolumeCreateOptions) (*IDOrNameResponse, error)
 	VolumeExists(ctx context.Context, namesOrID string) (*BoolReport, error)

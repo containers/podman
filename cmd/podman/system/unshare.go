@@ -12,9 +12,10 @@ import (
 )
 
 var (
+	unshareOptions     = entities.SystemUnshareOptions{}
 	unshareDescription = "Runs a command in a modified user namespace."
 	unshareCommand     = &cobra.Command{
-		Use:                   "unshare [COMMAND [ARG...]]",
+		Use:                   "unshare [options] [COMMAND [ARG...]]",
 		DisableFlagsInUseLine: true,
 		Short:                 "Run a command in a modified user namespace",
 		Long:                  unshareDescription,
@@ -33,6 +34,7 @@ func init() {
 	})
 	flags := unshareCommand.Flags()
 	flags.SetInterspersed(false)
+	flags.BoolVar(&unshareOptions.RootlessCNI, "rootless-cni", false, "Join the rootless network namespace used for CNI networking")
 }
 
 func unshare(cmd *cobra.Command, args []string) error {
@@ -49,5 +51,5 @@ func unshare(cmd *cobra.Command, args []string) error {
 		args = []string{shell}
 	}
 
-	return registry.ContainerEngine().Unshare(registry.Context(), args)
+	return registry.ContainerEngine().Unshare(registry.Context(), args, unshareOptions)
 }

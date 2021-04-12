@@ -105,13 +105,13 @@ func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, port
 	return ctrNetwork
 }
 
-type rootlessCNI struct {
+type RootlessCNI struct {
 	ns   ns.NetNS
 	dir  string
 	lock lockfile.Locker
 }
 
-func (r *rootlessCNI) Do(toRun func() error) error {
+func (r *RootlessCNI) Do(toRun func() error) error {
 	err := r.ns.Do(func(_ ns.NetNS) error {
 		// before we can run the given function
 		// we have to setup all mounts correctly
@@ -174,9 +174,14 @@ func (r *rootlessCNI) Do(toRun func() error) error {
 	return err
 }
 
-// cleanup the rootless cni namespace if needed
+// Cleanup the rootless cni namespace if needed
 // check if we have running containers with the bridge network mode
-func (r *rootlessCNI) cleanup(runtime *Runtime) error {
+func (r *RootlessCNI) Cleanup(runtime *Runtime) error {
+	_, err := os.Stat(r.dir)
+	if os.IsNotExist(err) {
+		// the directory does not exists no need for cleanup
+		return nil
+	}
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	running := func(c *Container) bool {
@@ -234,10 +239,10 @@ func (r *rootlessCNI) cleanup(runtime *Runtime) error {
 	return nil
 }
 
-// getRootlessCNINetNs returns the rootless cni object. If create is set to true
+// GetRootlessCNINetNs returns the rootless cni object. If create is set to true
 // the rootless cni namespace will be created if it does not exists already.
-func (r *Runtime) getRootlessCNINetNs(new bool) (*rootlessCNI, error) {
-	var rootlessCNINS *rootlessCNI
+func (r *Runtime) GetRootlessCNINetNs(new bool) (*RootlessCNI, error) {
+	var rootlessCNINS *RootlessCNI
 	if rootless.IsRootless() {
 		runDir, err := util.GetRuntimeDir()
 		if err != nil {
@@ -421,7 +426,7 @@ func (r *Runtime) getRootlessCNINetNs(new bool) (*rootlessCNI, error) {
 			os.Setenv("PATH", path)
 		}
 
-		rootlessCNINS = &rootlessCNI{
+		rootlessCNINS = &RootlessCNI{
 			ns:   ns,
 			dir:  cniDir,
 			lock: lock,
@@ -433,7 +438,7 @@ func (r *Runtime) getRootlessCNINetNs(new bool) (*rootlessCNI, error) {
 // setUpOCICNIPod will set up the cni networks, on error it will also tear down the cni
 // networks. If rootless it will join/create the rootless cni namespace.
 func (r *Runtime) setUpOCICNIPod(podNetwork ocicni.PodNetwork) ([]ocicni.NetResult, error) {
-	rootlessCNINS, err := r.getRootlessCNINetNs(true)
+	rootlessCNINS, err := r.GetRootlessCNINetNs(true)
 	if err != nil {
 		return nil, err
 	}
@@ -651,7 +656,7 @@ func (r *Runtime) closeNetNS(ctr *Container) error {
 // Tear down a container's CNI network configuration and joins the
 // rootless net ns as rootless user
 func (r *Runtime) teardownOCICNIPod(podNetwork ocicni.PodNetwork) error {
-	rootlessCNINS, err := r.getRootlessCNINetNs(false)
+	rootlessCNINS, err := r.GetRootlessCNINetNs(false)
 	if err != nil {
 		return err
 	}
@@ -665,7 +670,7 @@ func (r *Runtime) teardownOCICNIPod(podNetwork ocicni.PodNetwork) error {
 		// execute the cni setup in the rootless net ns
 		err = rootlessCNINS.Do(tearDownPod)
 		if err == nil {
-			err = rootlessCNINS.cleanup(r)
+			err = rootlessCNINS.Cleanup(r)
 		}
 	} else {
 		err = tearDownPod()

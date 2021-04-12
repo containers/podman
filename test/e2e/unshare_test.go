@@ -49,4 +49,11 @@ var _ = Describe("Podman unshare", func() {
 		ok, _ := session.GrepString(userNS)
 		Expect(ok).To(BeFalse())
 	})
+
+	It("podman unshare --rootles-cni", func() {
+		session := podmanTest.Podman([]string{"unshare", "--rootless-cni", "ip", "addr"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("tap0"))
+	})
 })
