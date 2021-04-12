@@ -2216,7 +2216,7 @@ func (c *Container) getOCICgroupPath() (string, error) {
 	}
 	cgroupManager := c.CgroupManager()
 	switch {
-	case (rootless.IsRootless() && !unified) || c.config.NoCgroups:
+	case (rootless.IsRootless() && (cgroupManager == config.CgroupfsCgroupsManager || !unified)) || c.config.NoCgroups:
 		return "", nil
 	case c.config.CgroupsMode == cgroupSplit:
 		if c.config.CgroupParent != "" {
