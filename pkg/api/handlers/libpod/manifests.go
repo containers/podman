@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod"
@@ -34,6 +35,16 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
+
+	// TODO: (jhonce) When c/image is refactored the roadmap calls for this check to be pushed into that library.
+	for _, n := range query.Name {
+		if _, err := reference.ParseNormalizedNamed(n); err != nil {
+			utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+				errors.Wrapf(err, "invalid image name %s", n))
+			return
+		}
+	}
+
 	rtc, err := runtime.GetConfig()
 	if err != nil {
 		utils.InternalServerError(w, err)
@@ -75,11 +86,16 @@ func ManifestInspect(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusNotFound, inspectError)
 		return
 	}
+
 	var list manifest.Schema2List
 	if err := json.Unmarshal(inspectReport, &list); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Unmarshal()"))
 		return
 	}
+	if list.Manifests == nil {
+		list.Manifests = make([]manifest.Schema2ManifestDescriptor, 0)
+	}
+
 	utils.WriteResponse(w, http.StatusOK, &list)
 }
 
