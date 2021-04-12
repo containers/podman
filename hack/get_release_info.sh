@@ -14,11 +14,27 @@ valid_args() {
         cut -d '*' -f 1
 }
 
+# `git describe` will never produce a useful version number under all
+# branches.  This is because the podman release process (see `RELEASE_PROCESS.md`)
+# tags release versions only on release-branches (i.e. never on master).
+# Scraping the version number directly from the source, is the only way
+# to reliably obtain the number from all the various contexts supported by
+# the `Makefile`.
+scrape_version() {
+    local v
+    # extract the value of 'var Version'
+    v=$(sed -ne 's/^var\s\+Version\s\+=\s.*("\(.*\)").*/\1/p' <version/version.go)
+    # If it's empty, something has changed in version.go, that would be bad!
+    test -n "$v"
+    # Value consumed literally, must not have any embedded newlines
+    echo -n "$v"
+}
+
 unset OUTPUT
 case "$1" in
     # Wild-card suffix needed by valid_args() e.g. possible bad grep of "$(echo $FOO)"
     VERSION*)
-        OUTPUT="${CIRRUS_TAG:-$(git fetch --tags && git describe HEAD 2> /dev/null)}"
+        OUTPUT="${CIRRUS_TAG:-$(scrape_version)}"
         ;;
     NUMBER*)
         OUTPUT="$($0 VERSION | sed 's/-.*//')"
