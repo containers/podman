@@ -14,16 +14,25 @@ BASE_TAG=buildah-bud-in-podman
 # END   user-customizable section
 ###############################################################################
 
-usage="Usage: $ME [--help] [--no-checkout] [--no-test]
+usage="Usage: $ME [--help] [--no-checkout] [--no-test] [--filter=TESTNAME]
+
+Flags, useful for manual debugging:
+
+  --no-checkout   Skip checkout step, go directly to running tests
+  --no-test       Do checkout only, but do not run tests
+  --filter=NAME   Passed on to bats; runs only tests that match NAME
 "
 
 # Parse command-line options (used in development only, not in CI)
 do_checkout=y
 do_test=y
+declare -a bats_filter=()
 for i; do
+    value=$(expr "$i" : '[^=]*=\(.*\)')
     case "$i" in
         --no-checkout)  do_checkout= ; shift;;
         --no-test)      do_test=     ; shift;;
+        --filter=*)     bats_filter=("--filter" "$value"); shift;;
         -h|--help)      echo "$usage"; exit 0;;
         *)              echo "$ME: Unrecognized option '$i'" >&2; exit 1;;
     esac
@@ -150,12 +159,33 @@ if [[ -n $do_checkout ]]; then
     chmod 755 make-new-buildah-diffs
 
     # Apply custom patches. We do this _after_ building, although it shouldn't
-    # matter because these patches should only apply to test scripts.
+    # matter because these patches should only apply to test scripts and not
+    # to any buildah sources.
     failhint="
 Error applying patch file. This can happen when you vendor in a new buildah.
+You will want to:
 
-Look for '*.rej' files to resolve the conflict(s) manually."
+  - look for 'test/*.rej'
+  - resolve conflicts manually
+  - git add test/helpers.bash
+  - git am --continue
+  - ./make-new-buildah-diffs
+"
     (set -x;git am --reject <$PATCHES)
+
+    # Now apply our custom skips and error-message changes. This is maintained
+    # in a custom script, not a .diff file, because diffs are WAY too hard for
+    # humans to read and update.
+    APPLY=apply-podman-deltas
+    failhint="
+Error applying podman-specific deltas. This sometimes happens when you
+vendor in a new buildah. You will want to:
+
+  - inspect the errors shown above
+  - find the corresponding lines in $BUD_TEST_DIR_REL/$APPLY
+  - edit/delete them as necessary
+"
+    (set -x;$BUD_TEST_DIR/$APPLY)
 else
     # Called with --no-checkout
     test -d $buildah_dir || die "Called with --no-checkout, but $buildah_dir does not exist"
@@ -183,5 +213,5 @@ review the test failure and double-check your changes.
     (set -x;sudo env TMPDIR=/var/tmp \
                  PODMAN_BINARY=$PODMAN_BINARY \
                  BUILDAH_BINARY=$(pwd)/bin/buildah \
-                 bats tests/bud.bats)
+                 bats "${bats_filter[@]}" tests/bud.bats)
 fi
