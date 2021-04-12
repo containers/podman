@@ -445,7 +445,7 @@ func successStatus(status int) bool {
 	return status >= 200 && status <= 399
 }
 
-// isManifestInvalidError returns true iff err from client.HandleErrorReponse is a “manifest invalid” error.
+// isManifestInvalidError returns true iff err from client.HandleErrorResponse is a “manifest invalid” error.
 func isManifestInvalidError(err error) bool {
 	errors, ok := err.(errcode.Errors)
 	if !ok || len(errors) == 0 {

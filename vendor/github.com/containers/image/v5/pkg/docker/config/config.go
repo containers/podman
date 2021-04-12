@@ -6,14 +6,17 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 
+	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/homedir"
 	helperclient "github.com/docker/docker-credential-helpers/client"
 	"github.com/docker/docker-credential-helpers/credentials"
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -41,12 +44,6 @@ var (
 	dockerLegacyHomePath    = ".dockercfg"
 	nonLinuxAuthFilePath    = filepath.FromSlash(".config/containers/auth.json")
 
-	// Note that the keyring support has been disabled as it was causing
-	// regressions. Before enabling, please revisit TODO(keyring) comments
-	// which need to be addressed if the need remerged to support the
-	// kernel keyring.
-	enableKeyring = false
-
 	// ErrNotLoggedIn is returned for users not logged into a registry
 	// that they are trying to logout of
 	ErrNotLoggedIn = errors.New("not logged in")
@@ -54,72 +51,114 @@ var (
 	ErrNotSupported = errors.New("not supported")
 )
 
-// SetAuthentication stores the username and password in the auth.json file
+// SetAuthentication stores the username and password in the credential helper or file
 func SetAuthentication(sys *types.SystemContext, registry, username, password string) error {
-	return modifyJSON(sys, func(auths *dockerConfigFile) (bool, error) {
-		if ch, exists := auths.CredHelpers[registry]; exists {
-			return false, setAuthToCredHelper(ch, registry, username, password)
-		}
+	helpers, err := sysregistriesv2.CredentialHelpers(sys)
+	if err != nil {
+		return err
+	}
 
-		// Set the credentials to kernel keyring if enableKeyring is true.
-		// The keyring might not work in all environments (e.g., missing capability) and isn't supported on all platforms.
-		// Hence, we want to fall-back to using the authfile in case the keyring failed.
-		// However, if the enableKeyring is false, we want adhere to the user specification and not use the keyring.
-		if enableKeyring {
-			err := setAuthToKernelKeyring(registry, username, password)
-			if err == nil {
-				logrus.Debugf("credentials for (%s, %s) were stored in the kernel keyring\n", registry, username)
-				return false, nil
-			}
-			logrus.Debugf("failed to authenticate with the kernel keyring, falling back to authfiles. %v", err)
+	// Make sure to collect all errors.
+	var multiErr error
+	for _, helper := range helpers {
+		var err error
+		switch helper {
+		// Special-case the built-in helpers for auth files.
+		case sysregistriesv2.AuthenticationFileHelper:
+			err = modifyJSON(sys, func(auths *dockerConfigFile) (bool, error) {
+				if ch, exists := auths.CredHelpers[registry]; exists {
+					return false, setAuthToCredHelper(ch, registry, username, password)
+				}
+				creds := base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
+				newCreds := dockerAuthConfig{Auth: creds}
+				auths.AuthConfigs[registry] = newCreds
+				return true, nil
+			})
+		// External helpers.
+		default:
+			err = setAuthToCredHelper(helper, registry, username, password)
 		}
-		creds := base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
-		newCreds := dockerAuthConfig{Auth: creds}
-		auths.AuthConfigs[registry] = newCreds
-		return true, nil
-	})
+		if err != nil {
+			multiErr = multierror.Append(multiErr, err)
+			logrus.Debugf("Error storing credentials for %s in credential helper %s: %v", registry, helper, err)
+			continue
+		}
+		logrus.Debugf("Stored credentials for %s in credential helper %s", registry, helper)
+		return nil
+	}
+	return multiErr
 }
 
 // GetAllCredentials returns the registry credentials for all registries stored
-// in either the auth.json file or the docker/config.json.
+// in any of the configured credential helpers.
 func GetAllCredentials(sys *types.SystemContext) (map[string]types.DockerAuthConfig, error) {
-	// Note: we need to read the auth files in the inverse order to prevent
-	// a priority inversion when writing to the map.
-	authConfigs := make(map[string]types.DockerAuthConfig)
-	paths := getAuthFilePaths(sys, homedir.Get())
-	for i := len(paths) - 1; i >= 0; i-- {
-		path := paths[i]
-		// readJSONFile returns an empty map in case the path doesn't exist.
-		auths, err := readJSONFile(path.path, path.legacyFormat)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error reading JSON file %q", path.path)
-		}
+	// To keep things simple, let's first extract all registries from all
+	// possible sources, and then call `GetCredentials` on them.  That
+	// prevents us from having to reverse engineer the logic in
+	// `GetCredentials`.
+	allRegistries := make(map[string]bool)
+	addRegistry := func(s string) {
+		allRegistries[s] = true
+	}
 
-		for registry, data := range auths.AuthConfigs {
-			conf, err := decodeDockerAuth(data)
-			if err != nil {
-				return nil, err
-			}
-			authConfigs[normalizeRegistry(registry)] = conf
-		}
-
-		// Credential helpers may override credentials from the auth file.
-		for registry, credHelper := range auths.CredHelpers {
-			username, password, err := getAuthFromCredHelper(credHelper, registry)
-			if err != nil {
-				if credentials.IsErrCredentialsNotFoundMessage(err.Error()) {
-					continue
+	helpers, err := sysregistriesv2.CredentialHelpers(sys)
+	if err != nil {
+		return nil, err
+	}
+	for _, helper := range helpers {
+		switch helper {
+		// Special-case the built-in helper for auth files.
+		case sysregistriesv2.AuthenticationFileHelper:
+			for _, path := range getAuthFilePaths(sys, homedir.Get()) {
+				// readJSONFile returns an empty map in case the path doesn't exist.
+				auths, err := readJSONFile(path.path, path.legacyFormat)
+				if err != nil {
+					return nil, errors.Wrapf(err, "error reading JSON file %q", path.path)
 				}
+				// Credential helpers in the auth file have a
+				// direct mapping to a registry, so we can just
+				// walk the map.
+				for registry := range auths.CredHelpers {
+					addRegistry(registry)
+				}
+				for registry := range auths.AuthConfigs {
+					addRegistry(registry)
+				}
+			}
+		// External helpers.
+		default:
+			creds, err := listAuthsFromCredHelper(helper)
+			if err != nil {
+				logrus.Debugf("Error listing credentials stored in credential helper %s: %v", helper, err)
+			}
+			switch errors.Cause(err) {
+			case nil:
+				for registry := range creds {
+					addRegistry(registry)
+				}
+			case exec.ErrNotFound:
+				// It's okay if the helper doesn't exist.
+			default:
 				return nil, err
 			}
-
-			conf := types.DockerAuthConfig{Username: username, Password: password}
-			authConfigs[normalizeRegistry(registry)] = conf
 		}
 	}
 
-	// TODO(keyring): if we ever re-enable the keyring support, we had to
-	// query all credentials from the keyring here.
+	// Now use `GetCredentials` to the specific auth configs for each
+	// previously listed registry.
+	authConfigs := make(map[string]types.DockerAuthConfig)
+	for registry := range allRegistries {
+		authConf, err := GetCredentials(sys, registry)
+		if err != nil {
+			if credentials.IsErrCredentialsNotFoundMessage(err.Error()) {
+				// Ignore if the credentials could not be found (anymore).
+				continue
+			}
+			// Note: we rely on the logging in `GetCredentials`.
+			return nil, err
+		}
+		authConfigs[registry] = authConf
+	}
 
 	return authConfigs, nil
 }
@@ -159,7 +198,9 @@ func getAuthFilePaths(sys *types.SystemContext, homeDir string) []authPath {
 	return paths
 }
 
-// GetCredentials returns the registry credentials stored in either auth.json
+// GetCredentials returns the registry credentials stored in the
+// registry-specific credential helpers or in the default global credentials
+// helpers with falling back to using either auth.json
 // file or .docker/config.json, including support for OAuth2 and IdentityToken.
 // If an entry is not found, an empty struct is returned.
 func GetCredentials(sys *types.SystemContext, registry string) (types.DockerAuthConfig, error) {
@@ -170,41 +211,65 @@ func GetCredentials(sys *types.SystemContext, registry string) (types.DockerAuth
 // it exists only to allow testing it with an artificial home directory.
 func getCredentialsWithHomeDir(sys *types.SystemContext, registry, homeDir string) (types.DockerAuthConfig, error) {
 	if sys != nil && sys.DockerAuthConfig != nil {
-		logrus.Debug("Returning credentials from DockerAuthConfig")
+		logrus.Debugf("Returning credentials for %s from DockerAuthConfig", registry)
 		return *sys.DockerAuthConfig, nil
 	}
 
-	if enableKeyring {
-		username, password, err := getAuthFromKernelKeyring(registry)
-		if err == nil {
-			logrus.Debug("returning credentials from kernel keyring")
-			return types.DockerAuthConfig{
-				Username: username,
-				Password: password,
-			}, nil
+	// Anonymous function to query credentials from auth files.
+	getCredentialsFromAuthFiles := func() (types.DockerAuthConfig, error) {
+		for _, path := range getAuthFilePaths(sys, homeDir) {
+			authConfig, err := findAuthentication(registry, path.path, path.legacyFormat)
+			if err != nil {
+				return types.DockerAuthConfig{}, err
+			}
+
+			if (authConfig.Username != "" && authConfig.Password != "") || authConfig.IdentityToken != "" {
+				return authConfig, nil
+			}
 		}
+		return types.DockerAuthConfig{}, nil
 	}
 
-	for _, path := range getAuthFilePaths(sys, homeDir) {
-		authConfig, err := findAuthentication(registry, path.path, path.legacyFormat)
+	helpers, err := sysregistriesv2.CredentialHelpers(sys)
+	if err != nil {
+		return types.DockerAuthConfig{}, err
+	}
+
+	var multiErr error
+	for _, helper := range helpers {
+		var creds types.DockerAuthConfig
+		var err error
+		switch helper {
+		// Special-case the built-in helper for auth files.
+		case sysregistriesv2.AuthenticationFileHelper:
+			creds, err = getCredentialsFromAuthFiles()
+		// External helpers.
+		default:
+			creds, err = getAuthFromCredHelper(helper, registry)
+		}
 		if err != nil {
-			logrus.Debugf("Credentials not found")
-			return types.DockerAuthConfig{}, err
+			logrus.Debugf("Error looking up credentials for %s in credential helper %s: %v", registry, helper, err)
+			multiErr = multierror.Append(multiErr, err)
+			continue
 		}
-
-		if (authConfig.Username != "" && authConfig.Password != "") || authConfig.IdentityToken != "" {
-			logrus.Debugf("Returning credentials from %s", path.path)
-			return authConfig, nil
+		if len(creds.Username)+len(creds.Password)+len(creds.IdentityToken) == 0 {
+			continue
 		}
+		logrus.Debugf("Found credentials for %s in credential helper %s", registry, helper)
+		return creds, nil
+	}
+	if multiErr != nil {
+		return types.DockerAuthConfig{}, multiErr
 	}
 
-	logrus.Debugf("Credentials not found")
+	logrus.Debugf("No credentials for %s found", registry)
 	return types.DockerAuthConfig{}, nil
 }
 
-// GetAuthentication returns the registry credentials stored in
-// either auth.json file or .docker/config.json
-// If an entry is not found empty strings are returned for the username and password
+// GetAuthentication returns the registry credentials stored in the
+// registry-specific credential helpers or in the default global credentials
+// helpers with falling back to using either auth.json file or
+// .docker/config.json
 //
 // Deprecated: This API only has support for username and password. To get the
 // support for oauth2 in docker registry authentication, we added the new
@@ -227,53 +292,132 @@ func getAuthenticationWithHomeDir(sys *types.SystemContext, registry, homeDir st
 	return auth.Username, auth.Password, nil
 }
 
-// RemoveAuthentication deletes the credentials stored in auth.json
+// RemoveAuthentication removes credentials for `registry` from all possible
+// sources such as credential helpers and auth files.
 func RemoveAuthentication(sys *types.SystemContext, registry string) error {
-	return modifyJSON(sys, func(auths *dockerConfigFile) (bool, error) {
-		// First try cred helpers.
-		if ch, exists := auths.CredHelpers[registry]; exists {
-			return false, deleteAuthFromCredHelper(ch, registry)
-		}
+	helpers, err := sysregistriesv2.CredentialHelpers(sys)
+	if err != nil {
+		return err
+	}
 
-		// Next if keyring is enabled try kernel keyring
-		if enableKeyring {
-			err := deleteAuthFromKernelKeyring(registry)
-			if err == nil {
-				logrus.Debugf("credentials for %s were deleted from the kernel keyring", registry)
-				return false, nil
+	var multiErr error
+	isLoggedIn := false
+
+	removeFromCredHelper := func(helper string) {
+		err := deleteAuthFromCredHelper(helper, registry)
+		if err == nil {
+			logrus.Debugf("Credentials for %q were deleted from credential helper %s", registry, helper)
+			isLoggedIn = true
+			return
+		}
+		if credentials.IsErrCredentialsNotFoundMessage(err.Error()) {
+			logrus.Debugf("Not logged in to %s with credential helper %s", registry, helper)
+			return
+		}
+		multiErr = multierror.Append(multiErr, errors.Wrapf(err, "error removing credentials for %s from credential helper %s", registry, helper))
+	}
+
+	for _, helper := range helpers {
+		var err error
+		switch helper {
+		// Special-case the built-in helper for auth files.
+		case sysregistriesv2.AuthenticationFileHelper:
+			err = modifyJSON(sys, func(auths *dockerConfigFile) (bool, error) {
+				if innerHelper, exists := auths.CredHelpers[registry]; exists {
+					removeFromCredHelper(innerHelper)
+				}
+				if _, ok := auths.AuthConfigs[registry]; ok {
+					isLoggedIn = true
+					delete(auths.AuthConfigs, registry)
+				} else if _, ok := auths.AuthConfigs[normalizeRegistry(registry)]; ok {
+					isLoggedIn = true
+					delete(auths.AuthConfigs, normalizeRegistry(registry))
+				}
+				return true, multiErr
+			})
+			if err != nil {
+				multiErr = multierror.Append(multiErr, err)
 			}
-			logrus.Debugf("failed to delete credentials from the kernel keyring, falling back to authfiles")
+		// External helpers.
+		default:
+			removeFromCredHelper(helper)
 		}
+	}
 
-		if _, ok := auths.AuthConfigs[registry]; ok {
-			delete(auths.AuthConfigs, registry)
-		} else if _, ok := auths.AuthConfigs[normalizeRegistry(registry)]; ok {
-			delete(auths.AuthConfigs, normalizeRegistry(registry))
-		} else {
-			return false, ErrNotLoggedIn
-		}
-		return true, nil
-	})
+	if multiErr != nil {
+		return multiErr
+	}
+	if !isLoggedIn {
+		return ErrNotLoggedIn
+	}
+
+	return nil
 }
 
-// RemoveAllAuthentication deletes all the credentials stored in auth.json and kernel keyring
+// RemoveAllAuthentication deletes all the credentials stored in credential
+// helpers and auth files.
 func RemoveAllAuthentication(sys *types.SystemContext) error {
-	return modifyJSON(sys, func(auths *dockerConfigFile) (bool, error) {
-		if enableKeyring {
-			err := removeAllAuthFromKernelKeyring()
-			if err == nil {
-				logrus.Debugf("removing all credentials from kernel keyring")
-				return false, nil
+	helpers, err := sysregistriesv2.CredentialHelpers(sys)
+	if err != nil {
+		return err
+	}
+
+	var multiErr error
+	for _, helper := range helpers {
+		var err error
+		switch helper {
+		// Special-case the built-in helper for auth files.
+		case sysregistriesv2.AuthenticationFileHelper:
+			err = modifyJSON(sys, func(auths *dockerConfigFile) (bool, error) {
+				for registry, helper := range auths.CredHelpers {
+					// Helpers in auth files are expected
+					// to exist, so no special treatment
+					// for them.
+					if err := deleteAuthFromCredHelper(helper, registry); err != nil {
+						return false, err
+					}
+				}
+				auths.CredHelpers = make(map[string]string)
+				auths.AuthConfigs = make(map[string]dockerAuthConfig)
+				return true, nil
+			})
+		// External helpers.
+		default:
+			var creds map[string]string
+			creds, err = listAuthsFromCredHelper(helper)
+			switch errors.Cause(err) {
+			case nil:
+				for registry := range creds {
+					err = deleteAuthFromCredHelper(helper, registry)
+					if err != nil {
+						break
+					}
+				}
+			case exec.ErrNotFound:
+				// It's okay if the helper doesn't exist.
+				continue
+			default:
+				// fall through
 			}
-			logrus.Debugf("error removing credentials from kernel keyring")
 		}
-		auths.CredHelpers = make(map[string]string)
-		auths.AuthConfigs = make(map[string]dockerAuthConfig)
-		return true, nil
-	})
+		if err != nil {
+			logrus.Debugf("Error removing credentials from credential helper %s: %v", helper, err)
+			multiErr = multierror.Append(multiErr, err)
+			continue
+		}
+		logrus.Debugf("All credentials removed from credential helper %s", helper)
+	}
+
+	return multiErr
 }
 
-// getPathToAuth gets the path of the auth.json file used for reading and writing credentials
+func listAuthsFromCredHelper(credHelper string) (map[string]string, error) {
+	helperName := fmt.Sprintf("docker-credential-%s", credHelper)
+	p := helperclient.NewShellProgramFunc(helperName)
+	return helperclient.List(p)
+}
+
+// getPathToAuth gets the path of the auth.json file used for reading and writting credentials
 // returns the path, and a bool specifies whether the file is in legacy format
 func getPathToAuth(sys *types.SystemContext) (string, bool, error) {
 	return getPathToAuthWithOS(sys, runtime.GOOS)
@@ -387,14 +531,17 @@ func modifyJSON(sys *types.SystemContext, editor func(auths *dockerConfigFile) (
 	return nil
 }
 
-func getAuthFromCredHelper(credHelper, registry string) (string, string, error) {
+func getAuthFromCredHelper(credHelper, registry string) (types.DockerAuthConfig, error) {
 	helperName := fmt.Sprintf("docker-credential-%s", credHelper)
 	p := helperclient.NewShellProgramFunc(helperName)
 	creds, err := helperclient.Get(p, registry)
 	if err != nil {
-		return "", "", err
+		return types.DockerAuthConfig{}, err
 	}
-	return creds.Username, creds.Secret, nil
+	return types.DockerAuthConfig{
+		Username: creds.Username,
+		Password: creds.Secret,
+	}, nil
 }
 
 func setAuthToCredHelper(credHelper, registry, username, password string) error {
@@ -423,15 +570,7 @@ func findAuthentication(registry, path string, legacyFormat bool) (types.DockerA
 
 	// First try cred helpers. They should always be normalized.
 	if ch, exists := auths.CredHelpers[registry]; exists {
-		username, password, err := getAuthFromCredHelper(ch, registry)
-		if err != nil {
-			return types.DockerAuthConfig{}, err
-		}
-
-		return types.DockerAuthConfig{
-			Username: username,
-			Password: password,
-		}, nil
+		return getAuthFromCredHelper(ch, registry)
 	}
 
 	// I'm feeling lucky

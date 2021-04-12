@@ -282,7 +282,7 @@ func (bdc *cache) RecordKnownLocation(transport types.ImageTransport, scope type
 	}) // FIXME? Log error (but throttle the log volume on repeated accesses)?
 }
 
-// appendReplacementCandiates creates prioritize.CandidateWithTime values for digest in scopeBucket with corresponding compression info from compressionBucket (if compressionBucket is not nil), and returns the result of appending them to candidates.
+// appendReplacementCandidates creates prioritize.CandidateWithTime values for digest in scopeBucket with corresponding compression info from compressionBucket (if compressionBucket is not nil), and returns the result of appending them to candidates.
 func (bdc *cache) appendReplacementCandidates(candidates []prioritize.CandidateWithTime, scopeBucket, compressionBucket *bolt.Bucket, digest digest.Digest, requireCompressionInfo bool) []prioritize.CandidateWithTime {
 	digestKey := []byte(digest.String())
 	b := scopeBucket.Bucket(digestKey)
@@ -321,7 +321,7 @@ func (bdc *cache) appendReplacementCandidates(candidates []prioritize.CandidateW
 // CandidateLocations2 returns a prioritized, limited, number of blobs and their locations that could possibly be reused
 // within the specified (transport scope) (if they still exist, which is not guaranteed).
 //
-// If !canSubstitute, the returned cadidates will match the submitted digest exactly; if canSubstitute,
+// If !canSubstitute, the returned candidates will match the submitted digest exactly; if canSubstitute,
 // data from previous RecordDigestUncompressedPair calls is used to also look up variants of the blob which have the same
 // uncompressed digest.
 func (bdc *cache) CandidateLocations2(transport types.ImageTransport, scope types.BICTransportScope, primaryDigest digest.Digest, canSubstitute bool) []blobinfocache.BICReplacementCandidate2 {

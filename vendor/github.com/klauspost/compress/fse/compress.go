@@ -301,7 +301,7 @@ func (s *Scratch) writeCount() error {
 	out[outP+1] = byte(bitStream >> 8)
 	outP += (bitCount + 7) / 8
 
-	if uint16(charnum) > s.symbolLen {
+	if charnum > s.symbolLen {
 		return errors.New("internal error: charnum > s.symbolLen")
 	}
 	s.Out = out[:outP]
@@ -331,7 +331,7 @@ type cTable struct {
 func (s *Scratch) allocCtable() {
 	tableSize := 1 << s.actualTableLog
 	// get tableSymbol that is big enough.
-	if cap(s.ct.tableSymbol) < int(tableSize) {
+	if cap(s.ct.tableSymbol) < tableSize {
 		s.ct.tableSymbol = make([]byte, tableSize)
 	}
 	s.ct.tableSymbol = s.ct.tableSymbol[:tableSize]
@@ -565,8 +565,8 @@ func (s *Scratch) normalizeCount2() error {
 		distributed  uint32
 		total        = uint32(s.br.remain())
 		tableLog     = s.actualTableLog
-		lowThreshold = uint32(total >> tableLog)
-		lowOne       = uint32((total * 3) >> (tableLog + 1))
+		lowThreshold = total >> tableLog
+		lowOne       = (total * 3) >> (tableLog + 1)
 	)
 	for i, cnt := range s.count[:s.symbolLen] {
 		if cnt == 0 {
@@ -591,7 +591,7 @@ func (s *Scratch) normalizeCount2() error {
 
 	if (total / toDistribute) > lowOne {
 		// risk of rounding to zero
-		lowOne = uint32((total * 3) / (toDistribute * 2))
+		lowOne = (total * 3) / (toDistribute * 2)
 		for i, cnt := range s.count[:s.symbolLen] {
 			if (s.norm[i] == notYetAssigned) && (cnt <= lowOne) {
 				s.norm[i] = 1

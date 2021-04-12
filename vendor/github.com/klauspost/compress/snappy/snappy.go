@@ -94,5 +94,5 @@ var crcTable = crc32.MakeTable(crc32.Castagnoli)
 // https://github.com/google/snappy/blob/master/framing_format.txt
 func crc(b []byte) uint32 {
 	c := crc32.Update(0, crcTable, b)
-	return uint32(c>>15|c<<17) + 0xa282ead8
+	return c>>15 | c<<17 + 0xa282ead8
 }

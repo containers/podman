@@ -20,7 +20,7 @@ const (
 	systemBlobInfoCacheDir = "/var/lib/containers/cache"
 )
 
-// blobInfoCacheDir returns a path to a blob info cache appropripate for sys and euid.
+// blobInfoCacheDir returns a path to a blob info cache appropriate for sys and euid.
 // euid is used so that (sudo …) does not write root-owned files into the unprivileged users’ home directory.
 func blobInfoCacheDir(sys *types.SystemContext, euid int) (string, error) {
 	if sys != nil && sys.BlobInfoCacheDir != "" {
