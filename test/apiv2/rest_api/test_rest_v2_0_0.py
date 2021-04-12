@@ -735,5 +735,6 @@ class TestApi(unittest.TestCase):
         r = requests.get(_url("/system/df"))
         self.assertEqual(r.status_code, 200, r.text)
 
+
 if __name__ == "__main__":
     unittest.main()
