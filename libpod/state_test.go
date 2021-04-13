@@ -28,8 +28,7 @@ const (
 
 var (
 	testedStates = map[string]emptyStateFunc{
-		"in-memory": getEmptyInMemoryState,
-		"boltdb":    getEmptyBoltState,
+		"boltdb": getEmptyBoltState,
 	}
 )
 
@@ -58,31 +57,6 @@ func getEmptyBoltState() (_ State, _ string, _ lock.Manager, retErr error) {
 	runtime.lockManager = lockManager
 
 	state, err := NewBoltState(dbPath, runtime)
-	if err != nil {
-		return nil, "", nil, err
-	}
-
-	return state, tmpDir, lockManager, nil
-}
-
-// Get an empty in-memory state for use in tests
-func getEmptyInMemoryState() (_ State, _ string, _ lock.Manager, retErr error) {
-	tmpDir, err := ioutil.TempDir("", tmpDirPrefix)
-	if err != nil {
-		return nil, "", nil, err
-	}
-	defer func() {
-		if retErr != nil {
-			os.RemoveAll(tmpDir)
-		}
-	}()
-
-	state, err := NewInMemoryState()
-	if err != nil {
-		return nil, "", nil, err
-	}
-
-	lockManager, err := lock.NewInMemoryManager(16)
 	if err != nil {
 		return nil, "", nil, err
 	}
