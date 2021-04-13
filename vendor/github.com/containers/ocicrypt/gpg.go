@@ -27,7 +27,7 @@ import (
 
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 // GPGVersion enum representing the GPG client version to use.
@@ -387,7 +387,7 @@ func GPGGetPrivateKey(descs []ocispec.Descriptor, gpgClient GPGClient, gpgVault 
 						fmt.Printf("Passphrase required for Key id 0x%x: \n%v", keyid, string(keyinfo))
 						fmt.Printf("Enter passphrase for key with Id 0x%x: ", keyid)
 
-						password, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+						password, err := term.ReadPassword(int(os.Stdin.Fd()))
 						fmt.Printf("\n")
 						if err != nil {
 							return nil, nil, err

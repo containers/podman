@@ -95,11 +95,11 @@ func ParsePrivateKey(privKey, privKeyPassword []byte, prefix string) (interface{
 		block, _ := pem.Decode(privKey)
 		if block != nil {
 			var der []byte
-			if x509.IsEncryptedPEMBlock(block) {
+			if x509.IsEncryptedPEMBlock(block) { //nolint:staticcheck // ignore SA1019, which is kept for backward compatibility
 				if privKeyPassword == nil {
 					return nil, errors.Errorf("%s: Missing password for encrypted private key", prefix)
 				}
-				der, err = x509.DecryptPEMBlock(block, privKeyPassword)
+				der, err = x509.DecryptPEMBlock(block, privKeyPassword) //nolint:staticcheck // ignore SA1019, which is kept for backward compatibility
 				if err != nil {
 					return nil, errors.Errorf("%s: Wrong password: could not decrypt private key", prefix)
 				}

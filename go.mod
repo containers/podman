@@ -14,7 +14,7 @@ require (
 	github.com/containers/common v0.35.4
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.11.0
-	github.com/containers/ocicrypt v1.1.0
+	github.com/containers/ocicrypt v1.1.1
 	github.com/containers/psgo v1.5.2
 	github.com/containers/storage v1.29.0
 	github.com/coreos/go-systemd/v22 v22.3.1
@@ -61,7 +61,7 @@ require (
 	github.com/vbauerster/mpb/v6 v6.0.3
 	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
 	go.etcd.io/bbolt v1.3.5
-	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
+	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 	golang.org/x/sys v0.0.0-20210324051608-47abb6519492
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
