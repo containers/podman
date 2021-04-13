@@ -616,20 +616,6 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 		}
 	}
 
-	// Delete the container.
-	// Not needed in Configured and Exited states, where the container
-	// doesn't exist in the runtime
-	if c.state.State != define.ContainerStateConfigured &&
-		c.state.State != define.ContainerStateExited {
-		if err := c.delete(ctx); err != nil {
-			if cleanupErr == nil {
-				cleanupErr = err
-			} else {
-				logrus.Errorf("delete container: %v", err)
-			}
-		}
-	}
-
 	// Remove the container from the state
 	if c.config.Pod != "" {
 		// If we're removing the pod, the container will be evicted
