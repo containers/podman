@@ -243,10 +243,16 @@ END_HTML
             $cirrus_task = $1;
         }
 
-        # BATS handling (used also for apiv2 tests, which emit TAP output)
-        if ($line =~ /^1\.\.(\d+)$/ || $line =~ m!/test-apiv2!) {
+        # BATS handling. This will recognize num_tests both at start and end
+        if ($line =~ /^1\.\.(\d+)$/) {
             $looks_like_bats = 1;
             $bats_count{expected_total} = $1;
+        }
+        # Since the number of tests can't always be predicted, recognize
+        # some leading text strings that indicate BATS output to come.
+        elsif ($line =~ /^TAP\s+version\s/ || $line =~ m!/test-apiv2!) {
+            $looks_like_bats = 1;
+            $bats_count{expected_total} = -1; # Expect to be overridden at end!
         }
         if ($looks_like_bats) {
             my $css;
