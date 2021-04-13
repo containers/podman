@@ -81,6 +81,14 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	// summary: Prune volumes
 	// produces:
 	// - application/json
+	// parameters:
+	//  - in: query
+	//    name: filters
+	//    type: string
+	//    description: |
+	//      JSON encoded value of filters (a map[string][]string) to match volumes against before pruning.
+	//      Available filters:
+	//	      - label (label=<key>, label=<key>=<value>, label!=<key>, or label!=<key>=<value>) Prune volumes with (or without, in case label!=... is used) the specified labels.
 	// responses:
 	//   '200':
 	//      "$ref": "#/responses/VolumePruneResponse"
@@ -259,8 +267,8 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//    type: string
 	//    description: |
 	//      JSON encoded value of filters (a map[string][]string) to match volumes against before pruning.
-	//
-	//      Note: No filters are currently supported and any filters specified will cause an error response.
+	//      Available filters:
+	//	      - label (label=<key>, label=<key>=<value>, label!=<key>, or label!=<key>=<value>) Prune volumes with (or without, in case label!=... is used) the specified labels.
 	// responses:
 	//   '200':
 	//      "$ref": "#/responses/DockerVolumePruneResponse"
