@@ -9,6 +9,7 @@ PODMAN_TEST_IMAGE_USER=${PODMAN_TEST_IMAGE_USER:-"libpod"}
 PODMAN_TEST_IMAGE_NAME=${PODMAN_TEST_IMAGE_NAME:-"testimage"}
 PODMAN_TEST_IMAGE_TAG=${PODMAN_TEST_IMAGE_TAG:-"20210223"}
 PODMAN_TEST_IMAGE_FQN="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME:$PODMAN_TEST_IMAGE_TAG"
+PODMAN_TEST_IMAGE_ID=
 
 # Remote image that we *DO NOT* fetch or keep by default; used for testing pull
 # This changed from 0 to 1 on 2021-02-24 due to multiarch considerations; it
@@ -53,11 +54,21 @@ function basic_setup() {
     for line in "${lines[@]}"; do
         set $line
         if [ "$1" == "$PODMAN_TEST_IMAGE_FQN" ]; then
+            if [[ -z "$PODMAN_TEST_IMAGE_ID" ]]; then
+                # This will probably only trigger the 2nd time through setup
+                PODMAN_TEST_IMAGE_ID=$2
+            fi
             found_needed_image=1
         else
-            echo "# setup(): removing stray images $1 $2" >&3
+            # Always remove image that doesn't match by name
+            echo "# setup(): removing stray image $1" >&3
             run_podman rmi --force "$1" >/dev/null 2>&1 || true
-            run_podman rmi --force "$2" >/dev/null 2>&1 || true
+
+            # Tagged image will have same IID as our test image; don't rmi it.
+            if [[ $2 != "$PODMAN_TEST_IMAGE_ID" ]]; then
+                echo "# setup(): removing stray image $2" >&3
+                run_podman rmi --force "$2" >/dev/null 2>&1 || true
+            fi
         fi
     done
 
