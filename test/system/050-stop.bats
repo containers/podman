@@ -132,6 +132,7 @@ load helpers
     is "$output" "stopping" "Status of container should be 'stopping'"
 
     run_podman kill stopme
+    run_podman wait stopme
 
     # Exit code should be 137 as it was killed
     run_podman inspect --format '{{.State.ExitCode}}' stopme
