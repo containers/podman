@@ -102,7 +102,7 @@ func save(cmd *cobra.Command, args []string) (finalErr error) {
 		tags      []string
 		succeeded = false
 	)
-	if cmd.Flag("compress").Changed && (saveOpts.Format != define.OCIManifestDir && saveOpts.Format != define.V2s2ManifestDir && saveOpts.Format == "") {
+	if cmd.Flag("compress").Changed && (saveOpts.Format != define.OCIManifestDir && saveOpts.Format != define.V2s2ManifestDir) {
 		return errors.Errorf("--compress can only be set when --format is either 'oci-dir' or 'docker-dir'")
 	}
 	if len(saveOpts.Output) == 0 {
