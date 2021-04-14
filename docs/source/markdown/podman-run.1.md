@@ -1155,9 +1155,14 @@ read-write mode, respectively. By default, the volumes are mounted read-write.
 
   `Chowning Volume Mounts`
 
-By default, Podman does not change the owner and group of source volume directories mounted into containers. If a container is created in a new user namespace, the UID and GID in the container may correspond to another UID and GID on the host.
+By default, Podman does not change the owner and group of source volume
+directories mounted into containers. If a container is created in a new user
+namespace, the UID and GID in the container may correspond to another UID and
+GID on the host.
 
-The `:U` suffix tells Podman to use the correct host UID and GID based on the UID and GID within the container, to change recursively the owner and group of the source volume.
+The `:U` suffix tells Podman to use the correct host UID and GID based on the
+UID and GID within the container, to change recursively the owner and group of
+the source volume.
 
 **Warning** use with caution since this will modify the host filesystem.
 
