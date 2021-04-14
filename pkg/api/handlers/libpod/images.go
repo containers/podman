@@ -270,6 +270,16 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// if format is dir, server will save to an archive
+	// the client will unArchive after receive the archive file
+	// so must convert is at here
+	switch query.Format {
+	case define.OCIManifestDir:
+		query.Format = define.OCIArchive
+	case define.V2s2ManifestDir:
+		query.Format = define.V2s2Archive
+	}
+
 	switch query.Format {
 	case define.V2s2Archive, define.OCIArchive:
 		tmpfile, err := ioutil.TempFile("", "api.tar")
