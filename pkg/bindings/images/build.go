@@ -340,6 +340,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	re := regexp.MustCompile(`[0-9a-f]{12}`)
 
 	var id string
+	var mErr error
 	for {
 		var s struct {
 			Stream string `json:"stream,omitempty"`
@@ -347,9 +348,19 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		}
 		if err := dec.Decode(&s); err != nil {
 			if errors.Is(err, io.EOF) {
-				return &entities.BuildReport{ID: id}, nil
+				if mErr == nil && id == "" {
+					mErr = errors.New("stream dropped, unexpected failure")
+				}
+				break
 			}
 			s.Error = err.Error() + "\n"
+		}
+
+		select {
+		case <-response.Request.Context().Done():
+			return &entities.BuildReport{ID: id}, mErr
+		default:
+			// non-blocking select
 		}
 
 		switch {
@@ -359,11 +370,12 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 				id = strings.TrimSuffix(s.Stream, "\n")
 			}
 		case s.Error != "":
-			return nil, errors.New(s.Error)
+			mErr = errors.New(s.Error)
 		default:
 			return &entities.BuildReport{ID: id}, errors.New("failed to parse build results stream, unexpected input")
 		}
 	}
+	return &entities.BuildReport{ID: id}, mErr
 }
 
 func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
