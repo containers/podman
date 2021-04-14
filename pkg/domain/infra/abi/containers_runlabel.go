@@ -177,6 +177,16 @@ func generateRunlabelCommand(runlabel string, img *image.Image, args []string, o
 	return cmd, env, nil
 }
 
+func replaceName(arg, name string) string {
+	newarg := strings.ReplaceAll(arg, "$NAME", name)
+	return strings.ReplaceAll(newarg, "${NAME}", name)
+}
+
+func replaceImage(arg, image string) string {
+	newarg := strings.ReplaceAll(arg, "$IMAGE", image)
+	return strings.ReplaceAll(newarg, "${IMAGE}", image)
+}
+
 // generateCommand takes a label (string) and converts it to an executable command
 func generateCommand(command, imageName, name, globalOpts string) ([]string, error) {
 	if name == "" {
@@ -196,26 +206,15 @@ func generateCommand(command, imageName, name, globalOpts string) ([]string, err
 	for _, arg := range cmd[1:] {
 		var newArg string
 		switch arg {
-		case "IMAGE":
-			newArg = imageName
-		case "$IMAGE":
-			newArg = imageName
 		case "IMAGE=IMAGE":
 			newArg = fmt.Sprintf("IMAGE=%s", imageName)
-		case "IMAGE=$IMAGE":
-			newArg = fmt.Sprintf("IMAGE=%s", imageName)
-		case "NAME":
-			newArg = name
 		case "NAME=NAME":
 			newArg = fmt.Sprintf("NAME=%s", name)
-		case "NAME=$NAME":
-			newArg = fmt.Sprintf("NAME=%s", name)
-		case "$NAME":
-			newArg = name
 		case "$GLOBAL_OPTS":
 			newArg = globalOpts
 		default:
-			newArg = arg
+			newArg = replaceName(arg, name)
+			newArg = replaceImage(newArg, imageName)
 		}
 		newCommand = append(newCommand, newArg)
 	}
