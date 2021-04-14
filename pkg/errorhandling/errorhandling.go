@@ -24,6 +24,9 @@ func JoinErrors(errs []error) error {
 	if finalErr == nil {
 		return finalErr
 	}
+	if len(multiE.WrappedErrors()) == 1 && logrus.IsLevelEnabled(logrus.TraceLevel) {
+		return multiE.WrappedErrors()[0]
+	}
 	return errors.New(strings.TrimSpace(finalErr.Error()))
 }
 
