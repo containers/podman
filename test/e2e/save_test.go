@@ -111,6 +111,24 @@ var _ = Describe("Podman save", func() {
 		Expect(save.ExitCode()).To(Equal(0))
 	})
 
+	It("podman save to directory with --compress but not use docker-dir and oci-dir", func() {
+		if rootless.IsRootless() && podmanTest.RemoteTest {
+			Skip("Requires a fix in containers image for chown/lchown")
+		}
+		outdir := filepath.Join(podmanTest.TempDir, "save")
+
+		save := podmanTest.Podman([]string{"save", "--compress", "--format", "docker-archive", "-o", outdir, ALPINE})
+		save.WaitWithDefaultTimeout()
+		// should not be 0
+		Expect(save.ExitCode()).ToNot(Equal(0))
+
+		save = podmanTest.Podman([]string{"save", "--compress", "--format", "oci-archive", "-o", outdir, ALPINE})
+		save.WaitWithDefaultTimeout()
+		// should not be 0
+		Expect(save.ExitCode()).ToNot(Equal(0))
+
+	})
+
 	It("podman save bad filename", func() {
 		outdir := filepath.Join(podmanTest.TempDir, "save:colon")
 
