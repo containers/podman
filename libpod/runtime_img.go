@@ -65,7 +65,8 @@ func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool)
 
 	hasChildren, err := img.IsParent(ctx)
 	if err != nil {
-		return nil, err
+		logrus.Warnf("error determining if an image is a parent: %v, ignoring the error", err)
+		hasChildren = false
 	}
 
 	if (len(img.Names()) > 1 && !img.InputIsID()) || hasChildren {
