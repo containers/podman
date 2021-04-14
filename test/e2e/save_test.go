@@ -79,7 +79,7 @@ var _ = Describe("Podman save", func() {
 	})
 
 	It("podman save to directory with oci format", func() {
-		if rootless.IsRootless() && podmanTest.RemoteTest {
+		if rootless.IsRootless() {
 			Skip("Requires a fix in containers image for chown/lchown")
 		}
 		outdir := filepath.Join(podmanTest.TempDir, "save")
@@ -90,7 +90,7 @@ var _ = Describe("Podman save", func() {
 	})
 
 	It("podman save to directory with v2s2 docker format", func() {
-		if rootless.IsRootless() && podmanTest.RemoteTest {
+		if rootless.IsRootless() {
 			Skip("Requires a fix in containers image for chown/lchown")
 		}
 		outdir := filepath.Join(podmanTest.TempDir, "save")
