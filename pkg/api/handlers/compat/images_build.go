@@ -378,15 +378,16 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 
 	var (
 		imageID string
-		failed  bool
+		success bool
 	)
 
 	runCtx, cancel := context.WithCancel(context.Background())
 	go func() {
 		defer cancel()
 		imageID, _, err = runtime.Build(r.Context(), buildOptions, query.Dockerfile)
-		if err != nil {
-			failed = true
+		if err == nil {
+			success = true
+		} else {
 			stderr.Write([]byte(err.Error() + "\n"))
 		}
 	}()
@@ -448,7 +449,8 @@ loop:
 			}
 			flush()
 		case <-runCtx.Done():
-			if !failed {
+			flush()
+			if success {
 				if !utils.IsLibpodRequest(r) {
 					m.Stream = fmt.Sprintf("Successfully built %12.12s\n", imageID)
 					if err := enc.Encode(m); err != nil {
