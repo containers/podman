@@ -462,12 +462,17 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		buildOptions.Timestamp = &ts
 	}
 
+	var (
+		imageID string
+		failed  bool
+	)
+
 	runCtx, cancel := context.WithCancel(context.Background())
-	var imageID string
 	go func() {
 		defer cancel()
 		imageID, _, err = runtime.Build(r.Context(), buildOptions, query.Dockerfile)
 		if err != nil {
+			failed = true
 			stderr.Write([]byte(err.Error() + "\n"))
 		}
 	}()
@@ -482,8 +487,6 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Add("Content-Type", "application/json")
 	flush()
-
-	var failed bool
 
 	body := w.(io.Writer)
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
@@ -525,7 +528,6 @@ loop:
 			}
 			flush()
 		case e := <-stderr.Chan():
-			failed = true
 			m.Error = string(e)
 			if err := enc.Encode(m); err != nil {
 				logrus.Warnf("Failed to json encode error %v", err)
