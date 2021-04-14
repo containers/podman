@@ -163,18 +163,21 @@ function test_port() {
     local op="$2"                # '=' or '~'
     local expect="$3"            # what to expect from curl output
 
-    local actual=$(curl --retry 3 --retry-all-errors -s http://127.0.0.1:$port/)
-    # The test is flaking with an empty result. The curl retry doesn't solve this.
-    # If the result is empty sleep one second and try again.
-    if [[ "$actual" == "" ]]; then
-        sleep 1
-        local actual=$(curl --retry 3 --retry-all-errors -s http://127.0.0.1:$port/)
-    fi
+    # -s -S means "silent, but show errors"
+    local actual=$(curl --retry 3 --retry-all-errors -s -S http://127.0.0.1:$port/)
     local curl_rc=$?
+
+    # FIXME 2021-04-13: test is flaking, curl succeeds but returns empty result.
+    # Could it be that the container is not actually ready? Wait, and retry.
+    if [[ $curl_rc -eq 0 && -z "$actual" ]]; then
+        sleep 1
+        echo "# Retrying curl:"
+        actual=$(curl --retry 3 --retry-all-errors -s -S http://127.0.0.1:$port/)
+        curl_rc=$?
+    fi
+
     if [ $curl_rc -ne 0 ]; then
         _show_ok 0 "$testname - curl failed with status $curl_rc"
-###        docker-compose down >>$logfile 2>&1
-###        exit 1
     fi
 
     case "$op" in
@@ -285,6 +288,10 @@ fi
 
 # Too hard to precompute the number of tests; just spit it out at the end.
 n_tests=0
+
+# We aren't really TAP 13; this helps logformatter recognize our output as BATS
+echo "TAP version 13"
+
 for t in ${tests_to_run[@]}; do
     testdir="$(dirname $t)"
     testname="$(basename $testdir)"
