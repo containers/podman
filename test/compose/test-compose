@@ -136,8 +136,11 @@ function _show_ok() {
     local expect=$3
     local actual=$4
     printf "${red}not ok $count $testname${reset}\n"
-    printf "${red}#  expected: %s${reset}\n" "$expect"
-    printf "${red}#    actual: ${bold}%s${reset}\n" "$actual"
+    # Not all errors include actual/expect
+    if [[ -n "$expect" || -n "$actual" ]]; then
+        printf "${red}#  expected: %s${reset}\n" "$expect"
+        printf "${red}#    actual: ${bold}%s${reset}\n" "$actual"
+    fi
 
     echo    "not ok $count $testname" >>$LOG
     echo    "  expected: $expect"                     >>$LOG
@@ -164,20 +167,22 @@ function test_port() {
     local expect="$3"            # what to expect from curl output
 
     # -s -S means "silent, but show errors"
-    local actual=$(curl --retry 3 --retry-all-errors -s -S http://127.0.0.1:$port/)
+    local actual
+    actual=$(curl --retry 3 --retry-all-errors -s -S http://127.0.0.1:$port/)
     local curl_rc=$?
 
-    # FIXME 2021-04-13: test is flaking, curl succeeds but returns empty result.
-    # Could it be that the container is not actually ready? Wait, and retry.
-    if [[ $curl_rc -eq 0 && -z "$actual" ]]; then
-        sleep 1
-        echo "# Retrying curl:"
-        actual=$(curl --retry 3 --retry-all-errors -s -S http://127.0.0.1:$port/)
-        curl_rc=$?
-    fi
-
     if [ $curl_rc -ne 0 ]; then
-        _show_ok 0 "$testname - curl failed with status $curl_rc"
+        _show_ok 0 "$testname - curl (port $port) failed with status $curl_rc"
+        # FIXME: is this useful? What else can we do to diagnose?
+        echo "# docker-compose logs:"
+        docker-compose logs
+        echo "# podman ps -a:"
+        $PODMAN_BIN --root $WORKDIR/root --runroot $WORKDIR/runroot ps -a
+        if type -p ss; then
+            echo "# ss -tulpn:"
+            ss -tulpn
+        fi
+        return
     fi
 
     case "$op" in
