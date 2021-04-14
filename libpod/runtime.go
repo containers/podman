@@ -282,11 +282,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	// package.
 	switch runtime.config.Engine.StateType {
 	case config.InMemoryStateStore:
-		state, err := NewInMemoryState()
-		if err != nil {
-			return err
-		}
-		runtime.state = state
+		return errors.Wrapf(define.ErrInvalidArg, "in-memory state is currently disabled")
 	case config.SQLiteStateStore:
 		return errors.Wrapf(define.ErrInvalidArg, "SQLite state is currently disabled")
 	case config.BoltDBStateStore:
