@@ -261,16 +261,17 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		}
 
 		specgenOpts := kube.CtrSpecGenOptions{
-			Container:     container,
-			Image:         newImage,
-			Volumes:       volumes,
-			PodID:         pod.ID(),
-			PodName:       podName,
-			PodInfraID:    podInfraID,
-			ConfigMaps:    configMaps,
-			SeccompPaths:  seccompPaths,
-			RestartPolicy: ctrRestartPolicy,
-			NetNSIsHost:   p.NetNS.IsHost(),
+			Container:      container,
+			Image:          newImage,
+			Volumes:        volumes,
+			PodID:          pod.ID(),
+			PodName:        podName,
+			PodInfraID:     podInfraID,
+			ConfigMaps:     configMaps,
+			SeccompPaths:   seccompPaths,
+			RestartPolicy:  ctrRestartPolicy,
+			NetNSIsHost:    p.NetNS.IsHost(),
+			LogDriver:      options.LogDriver,
 		}
 		specGen, err := kube.ToSpecGen(ctx, &specgenOpts)
 		if err != nil {
