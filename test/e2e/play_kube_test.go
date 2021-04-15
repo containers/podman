@@ -1970,7 +1970,6 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 	})
 
 	It("podman play kube applies log driver to containers", func() {
-		Skip("need to verify images have correct packages for journald")
 		pod := getPod()
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
