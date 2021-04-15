@@ -98,6 +98,8 @@ type CtrSpecGenOptions struct {
 	NetNSIsHost bool
 	// SecretManager to access the secrets
 	SecretsManager *secrets.SecretsManager
+	// LogDriver which should be used for the container
+	LogDriver string
 }
 
 func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGenerator, error) {
@@ -114,6 +116,10 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	s.Terminal = opts.Container.TTY
 
 	s.Pod = opts.PodID
+
+	s.LogConfiguration = &specgen.LogConfig{
+		Driver: opts.LogDriver,
+	}
 
 	setupSecurityContext(s, opts.Container)
 
