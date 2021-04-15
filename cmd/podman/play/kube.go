@@ -65,6 +65,10 @@ func init() {
 	flags.StringVar(&kubeOptions.Network, networkFlagName, "", "Connect pod to CNI network(s)")
 	_ = kubeCmd.RegisterFlagCompletionFunc(networkFlagName, common.AutocompleteNetworkFlag)
 
+	staticIPFlagName := "ip"
+	flags.IPSliceVar(&kubeOptions.StaticIPs, staticIPFlagName, nil, "Static IP addresses to assign to the pods")
+	_ = kubeCmd.RegisterFlagCompletionFunc(staticIPFlagName, completion.AutocompleteNone)
+
 	logDriverFlagName := "log-driver"
 	flags.StringVar(&kubeOptions.LogDriver, logDriverFlagName, "", "Logging driver for the container")
 	_ = kubeCmd.RegisterFlagCompletionFunc(logDriverFlagName, common.AutocompleteLogDriver)
