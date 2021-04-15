@@ -1,4 +1,5 @@
-package types // import "github.com/docker/docker/api/types"
+// copied from github.com/docker/docker/api/types
+package types
 
 // ComponentVersion describes the version information for a specific component.
 type ComponentVersion struct {
