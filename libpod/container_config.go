@@ -364,4 +364,6 @@ type ContainerMiscConfig struct {
 	Timezone string `json:"timezone,omitempty"`
 	// Umask is the umask inside the container.
 	Umask string `json:"umask,omitempty"`
+	// PidFile is the file that saves the pid of the container process
+	PidFile string `json:"pid_file,omitempty"`
 }

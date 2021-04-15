@@ -817,6 +817,12 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 	)
 	_ = cmd.RegisterFlagCompletionFunc(cgroupConfFlagName, completion.AutocompleteNone)
 
+	pidFileFlagName := "pidfile"
+	createFlags.StringVar(
+		&cf.PidFile,
+		pidFileFlagName, "",
+		"Write the container process ID to the file")
+
 	_ = createFlags.MarkHidden("signature-policy")
 	if registry.IsRemote() {
 		_ = createFlags.MarkHidden("env-host")

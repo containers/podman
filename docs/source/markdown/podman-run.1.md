@@ -1305,6 +1305,12 @@ The default working directory for running binaries within a container is the roo
 The image developer can set a different default with the WORKDIR instruction. The operator
 can override the working directory by using the **-w** option.
 
+#### **\-\-pidfile**=*path*
+
+Write the pid of the container process to a file.
+
+The default pidfile is RunDir/pidfile.
+
 ## Exit Status
 
 The exit code from **podman run** gives information about why the container

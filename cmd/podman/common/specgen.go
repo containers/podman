@@ -644,6 +644,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.Timezone = c.Timezone
 	s.Umask = c.Umask
 	s.Secrets = c.Secrets
+	s.PidFile = c.PidFile
 
 	return nil
 }

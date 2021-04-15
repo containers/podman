@@ -122,6 +122,7 @@ type ContainerCLIOpts struct {
 	VolumesFrom       []string
 	Workdir           string
 	SeccompPolicy     string
+	PidFile           string
 
 	Net *entities.NetOptions
 

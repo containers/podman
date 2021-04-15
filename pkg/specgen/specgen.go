@@ -171,6 +171,10 @@ type ContainerBasicConfig struct {
 	// container. Dependencies can be specified by name or full/partial ID.
 	// Optional.
 	DependencyContainers []string `json:"dependencyContainers,omitempty"`
+	// PidFile is the file that saves container process id.
+	// set tags as `json:"-"` for not supported remote
+	// Optional.
+	PidFile string `json:"-"`
 }
 
 // ContainerStorageConfig contains information on the storage configuration of a
