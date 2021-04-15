@@ -173,15 +173,16 @@ function test_port() {
 
     if [ $curl_rc -ne 0 ]; then
         _show_ok 0 "$testname - curl (port $port) failed with status $curl_rc"
-        # FIXME: is this useful? What else can we do to diagnose?
-        echo "# docker-compose logs:"
-        docker-compose logs
         echo "# podman ps -a:"
         $PODMAN_BIN --root $WORKDIR/root --runroot $WORKDIR/runroot ps -a
         if type -p ss; then
             echo "# ss -tulpn:"
             ss -tulpn
+            echo "# podman unshare --rootless-cni ss -tulpn:"
+            $PODMAN_BIN --root $WORKDIR/root --runroot $WORKDIR/runroot unshare --rootless-cni ss -tulpn
         fi
+        echo "# cat $WORKDIR/server.log:"
+        cat $WORKDIR/server.log
         return
     fi
 
@@ -212,6 +213,7 @@ function start_service() {
     cp /etc/cni/net.d/*podman*conflist $WORKDIR/cni/
 
     $PODMAN_BIN \
+        --log-level debug \
         --root $WORKDIR/root \
         --runroot $WORKDIR/runroot \
         --cgroup-manager=systemd \
