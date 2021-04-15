@@ -12,9 +12,9 @@
 %global debug_package   %{nil}
 %endif
 
-# %if ! 0% {?gobuild:1}
-%define gobuild(o:) go build -tags="$BUILDTAGS" -ldflags "${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n')" -a -v -x %{?**};
-#% endif
+%if ! 0%{?gobuild:1}
+%define gobuild(o:) go build -buildmode pie -compiler gc -tags="rpm_crashtraceback ${BUILDTAGS:-}" -ldflags "${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -extldflags '-Wl,-z,relro -Wl,--as-needed  -Wl,-z,now -specs=/usr/lib/rpm/redhat/redhat-hardened-ld  '" -a -v -x %{?**};
+%endif
 
 # podman hack directory
 %define hackdir %{_builddir}/%{repo}-%{shortcommit0}
@@ -29,12 +29,6 @@
 %global git0 https://%{provider}.%{provider_tld}/%{project}/%{repo}
 %global commit0 #COMMIT#
 %global shortcommit0 %(c=%{commit0}; echo ${c:0:8})
-
-# People want conmon packaged with the copr rpm
-%global import_path_conmon      github.com/containers/conmon
-%global git_conmon      https://%{import_path_conmon}
-%global commit_conmon   41877362fc4685d55e0473d2e4a1cbe5e1debee0
-%global shortcommit_conmon %(c=%{commit_conmon}; echo ${c:0:7})
 
 Name: podman
 %if 0%{?fedora}
@@ -74,7 +68,8 @@ BuildRequires: libselinux-devel
 BuildRequires: pkgconfig
 BuildRequires: make
 BuildRequires: systemd-devel
-Requires: skopeo-containers
+Requires: containers-common
+Requires: conmon
 Requires: containernetworking-plugins >= 0.6.0-3
 Requires: iptables
 %if 0%{?rhel} < 8 || 0%{?centos} < 8
@@ -371,6 +366,26 @@ BuildArch: noarch
 Man pages for the %{name} commands
 %endif
 
+%if 0%{?fedora} && ! 0%{?centos}
+%package tests
+Summary: Tests for %{name}
+
+Requires: %{name} = %{epoch}:%{version}-%{release}
+Requires: bats
+Requires: jq
+Requires: skopeo
+Requires: nmap-ncat
+Requires: httpd-tools
+Requires: openssl
+Requires: socat
+Requires: buildah
+
+%description tests
+%{summary}
+
+This package contains system tests for %{name}
+%endif
+
 %prep
 %autosetup -Sgit -n %{repo}-%{shortcommit0}
 
@@ -416,18 +431,6 @@ BUILDTAGS=$BUILDTAGS make binaries docs
 %else
 BUILDTAGS=$BUILDTAGS make binaries
 %endif
-# build conmon
-pushd conmon
-
-mkdir _output
-pushd _output
-mkdir -p src/%{provider}.%{provider_tld}/{containers,opencontainers}
-ln -s $(dirs +1 -l) src/%{import_path_conmon}
-popd
-
-export BUILDTAGS="selinux seccomp systemd $(%{hackdir}/hack/btrfs_installed_tag.sh) $(%{hackdir}/hack/btrfs_tag.sh)"
-BUILDTAGS=$BUILDTAGS make
-popd
 
 %install
 install -dp %{buildroot}%{_unitdir}
@@ -443,10 +446,6 @@ PODMAN_VERSION=%{version} %{__make} PREFIX=%{buildroot}%{_prefix} ETCDIR=%{build
         install.completions
 
 mv pkg/hooks/README.md pkg/hooks/README-hooks.md
-
-# install conmon
-install -dp %{buildroot}%{_libexecdir}/%{name}
-install -p -m 755 conmon/bin/conmon %{buildroot}%{_libexecdir}/%{name}
 
 # source codes for building projects
 %if 0%{?with_devel}
@@ -465,6 +464,11 @@ for file in $(find . \( -iname "*.go" -or -iname "*.s" \) \! -iname "*_test.go" 
         dirprefix=$(dirname $dirprefix)
     done
 done
+%endif
+
+%if 0%{?fedora} && ! 0%{?centos}
+install -d -p %{buildroot}/%{_datadir}/%{name}/test/system
+cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
 %endif
 
 # testing files for this project
@@ -522,7 +526,6 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %{_datadir}/bash-completion/completions/*
 %{_datadir}/zsh/site-functions/*
 %{_datadir}/fish/vendor_completions.d/*
-%{_libexecdir}/%{name}/conmon
 %config(noreplace) %{_sysconfdir}/cni/net.d/87-%{name}-bridge.conflist
 %{_unitdir}/podman-auto-update.service
 %{_unitdir}/podman-auto-update.timer
@@ -556,6 +559,13 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %files manpages
 %{_mandir}/man1/*.1*
 %{_mandir}/man5/*.5*
+%endif
+
+%if 0%{?fedora} && ! 0%{?centos}
+%files tests
+%license LICENSE
+%{_datadir}/%{name}/test
+%dir %{_datadir}/%{name}/test/system
 %endif
 
 %changelog

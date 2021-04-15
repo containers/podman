@@ -1,4 +1,5 @@
-package types // import "github.com/docker/docker/api/types"
+// copied from github.com/docker/docker/api/types
+package types
 
 // AuthConfig contains authorization information for connecting to a Registry
 type AuthConfig struct {
