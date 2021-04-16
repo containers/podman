@@ -149,6 +149,7 @@ Write the container ID to the file
 #### **\-\-conmon-pidfile**=*path*
 
 Write the pid of the `conmon` process to a file. `conmon` runs in a separate process than Podman, so this is necessary when using systemd to restart Podman containers.
+(This option is not available with the remote Podman client)
 
 #### **\-\-cpu-period**=*limit*
 
@@ -1226,9 +1227,15 @@ can override the working directory by using the **-w** option.
 
 #### **\-\-pidfile**=*path*
 
-Write the pid of the container process to a file.
+When the pidfile location is specified, the container process' PID will be written to the pidfile. (This option is not available with the remote Podman client)
+After the container is started, the location for the pidfile can be discovered with the following `podman inspect` command:
 
-The default pidfile is RunDir/pidfile.
+    $ podman inspect --format '{{ .Config.CreateCommand }}' $CID
+    podman run --pidfile $pidfilepath image
+
+If the pidfile option is not specified, the container process' PID will be written to
+/run/containers/storage/${storage-driver}-containers/$CID/userdata/pidfile.
+The default pidfile location is not listed in the `podman inspect` output.
 
 
 ## EXAMPLES
