@@ -9,7 +9,7 @@ github.com/Microsoft/go-winio/backuptar
 github.com/Microsoft/go-winio/pkg/guid
 github.com/Microsoft/go-winio/pkg/security
 github.com/Microsoft/go-winio/vhd
-# github.com/Microsoft/hcsshim v0.8.15
+# github.com/Microsoft/hcsshim v0.8.16
 github.com/Microsoft/hcsshim
 github.com/Microsoft/hcsshim/computestorage
 github.com/Microsoft/hcsshim/internal/cow
@@ -49,9 +49,9 @@ github.com/checkpoint-restore/go-criu
 github.com/checkpoint-restore/go-criu/rpc
 # github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 github.com/chzyer/readline
-# github.com/containerd/cgroups v0.0.0-20200824123100-0b889c03f102
+# github.com/containerd/cgroups v0.0.0-20210114181951-8a68de567b68
 github.com/containerd/cgroups/stats/v1
-# github.com/containerd/containerd v1.5.0-beta.1
+# github.com/containerd/containerd v1.5.0-beta.4
 github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/log
 github.com/containerd/containerd/platforms
@@ -74,7 +74,7 @@ github.com/containernetworking/plugins/pkg/utils/hwaddr
 github.com/containernetworking/plugins/pkg/utils/sysctl
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator
-# github.com/containers/buildah v1.20.0
+# github.com/containers/buildah v1.20.1
 github.com/containers/buildah
 github.com/containers/buildah/bind
 github.com/containers/buildah/chroot
@@ -93,7 +93,7 @@ github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/supplemented
 github.com/containers/buildah/util
-# github.com/containers/common v0.35.4
+# github.com/containers/common v0.36.0
 github.com/containers/common/pkg/apparmor
 github.com/containers/common/pkg/apparmor/internal/supported
 github.com/containers/common/pkg/auth
@@ -115,7 +115,7 @@ github.com/containers/common/pkg/umask
 github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.10.5
+# github.com/containers/image/v5 v5.11.0
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
 github.com/containers/image/v5/directory/explicitfilepath
@@ -133,6 +133,7 @@ github.com/containers/image/v5/internal/pkg/keyctl
 github.com/containers/image/v5/internal/pkg/platform
 github.com/containers/image/v5/internal/rootless
 github.com/containers/image/v5/internal/tmpdir
+github.com/containers/image/v5/internal/types
 github.com/containers/image/v5/internal/uploadreader
 github.com/containers/image/v5/manifest
 github.com/containers/image/v5/oci/archive
@@ -187,7 +188,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.28.1
+# github.com/containers/storage v1.29.0
 github.com/containers/storage
 github.com/containers/storage/drivers
 github.com/containers/storage/drivers/aufs
@@ -315,6 +316,8 @@ github.com/fsouza/go-dockerclient
 github.com/ghodss/yaml
 # github.com/go-logr/logr v0.2.0
 github.com/go-logr/logr
+# github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0
+github.com/go-task/slim-sprig
 # github.com/godbus/dbus/v5 v5.0.3
 github.com/godbus/dbus/v5
 # github.com/gogo/protobuf v1.3.2
@@ -330,6 +333,8 @@ github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
+# github.com/google/go-intervals v0.0.2
+github.com/google/go-intervals/intervalset
 # github.com/google/gofuzz v1.1.0
 github.com/google/gofuzz
 # github.com/google/shlex v0.0.0-20181106134648-c34317bd91bf
@@ -361,7 +366,7 @@ github.com/json-iterator/go
 # github.com/juju/ansiterm v0.0.0-20180109212912-720a0952cc2a
 github.com/juju/ansiterm
 github.com/juju/ansiterm/tabwriter
-# github.com/klauspost/compress v1.11.12
+# github.com/klauspost/compress v1.11.13
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
@@ -413,10 +418,11 @@ github.com/nxadm/tail/ratelimiter
 github.com/nxadm/tail/util
 github.com/nxadm/tail/watch
 github.com/nxadm/tail/winfile
-# github.com/onsi/ginkgo v1.15.2
+# github.com/onsi/ginkgo v1.16.1
 github.com/onsi/ginkgo
 github.com/onsi/ginkgo/config
 github.com/onsi/ginkgo/extensions/table
+github.com/onsi/ginkgo/formatter
 github.com/onsi/ginkgo/ginkgo
 github.com/onsi/ginkgo/ginkgo/convert
 github.com/onsi/ginkgo/ginkgo/interrupthandler
@@ -567,11 +573,11 @@ github.com/ulikunitz/xz/lzma
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
 github.com/vbatts/tar-split/tar/storage
-# github.com/vbauerster/mpb/v5 v5.4.0
-github.com/vbauerster/mpb/v5
-github.com/vbauerster/mpb/v5/cwriter
-github.com/vbauerster/mpb/v5/decor
-github.com/vbauerster/mpb/v5/internal
+# github.com/vbauerster/mpb/v6 v6.0.3
+github.com/vbauerster/mpb/v6
+github.com/vbauerster/mpb/v6/cwriter
+github.com/vbauerster/mpb/v6/decor
+github.com/vbauerster/mpb/v6/internal
 # github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
 github.com/vishvananda/netlink
 github.com/vishvananda/netlink/nl

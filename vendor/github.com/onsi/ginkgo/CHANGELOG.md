@@ -1,3 +1,21 @@
+## 1.16.1
+
+### Fixes
+- Supress --stream deprecation warning on windows (#793)
+
+## 1.16.0
+
+### Features
+- Advertise Ginkgo 2.0.  Introduce deprecations. [9ef1913]
+    - Update README.md to advertise that Ginkgo 2.0 is coming.
+    - Backport the 2.0 DeprecationTracker and start alerting users
+    about upcoming deprecations.
+
+- Add slim-sprig template functions to bootstrap/generate (#775) [9162b86]
+
+### Fixes
+- Fix accidental reference to 1488 (#784) [9fb7fe4]
+
 ## 1.15.2
 
 ### Fixes

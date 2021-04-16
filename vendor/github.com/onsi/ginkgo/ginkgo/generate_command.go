@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+
+	sprig "github.com/go-task/slim-sprig"
 )
 
 func BuildGenerateCommand() *Command {
@@ -157,7 +159,7 @@ func generateSpecForSubject(subject string, agouti, noDot, internal bool, custom
 		templateText = specText
 	}
 
-	specTemplate, err := template.New("spec").Parse(templateText)
+	specTemplate, err := template.New("spec").Funcs(sprig.TxtFuncMap()).Parse(templateText)
 	if err != nil {
 		return err
 	}

@@ -122,6 +122,13 @@ type OptionsConfig struct {
 	// for shared image content
 	AdditionalImageStores []string `toml:"additionalimagestores"`
 
+	// AdditionalLayerStores is the location of additional read/only
+	// Layer stores.  Usually used to access Networked File System
+	// for shared image content
+	// This API is experimental and can be changed without bumping the
+	// major version number.
+	AdditionalLayerStores []string `toml:"additionallayerstores"`
+
 	// Size
 	Size string `toml:"size"`
 

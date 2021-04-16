@@ -122,6 +122,10 @@ func resolveLocalImage(systemContext *types.SystemContext, store storage.Store, 
 		if err != nil {
 			return nil, "", "", nil, errors.Wrapf(err, "error parsing reference to image %q", img.ID)
 		}
+		if !imageMatch(context.Background(), ref, systemContext) {
+			logrus.Debugf("Found local image %s but it does not match the provided context", imageName)
+			continue
+		}
 		return ref, ref.Transport().Name(), imageName, img, nil
 	}
 
@@ -188,7 +192,7 @@ func resolveImage(ctx context.Context, systemContext *types.SystemContext, store
 	}
 
 	if options.PullPolicy == define.PullNever || options.PullPolicy == define.PullIfMissing {
-		if localImage != nil && imageMatch(ctx, localImageRef, systemContext) {
+		if localImage != nil {
 			return localImageRef, localImageRef.Transport().Name(), localImage, nil
 		}
 		if options.PullPolicy == define.PullNever {

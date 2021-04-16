@@ -502,6 +502,8 @@ func (c *dockerClient) makeRequestToResolvedURL(ctx context.Context, method, url
 			attempts == backoffNumIterations {
 			return res, err
 		}
+		// close response body before retry or context done
+		res.Body.Close()
 
 		delay = parseRetryAfter(res, delay)
 		if delay > backoffMaxDelay {

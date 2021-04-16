@@ -174,15 +174,15 @@ func recreate(contentDir string) error {
 		if os.IsNotExist(err) {
 			return nil
 		}
-		return errors.Wrapf(err, "failed to stat overlay upper %s directory", contentDir)
+		return errors.Wrap(err, "failed to stat overlay upper directory")
 	}
 
 	if err := os.RemoveAll(contentDir); err != nil {
-		return errors.Wrapf(err, "failed to cleanup overlay %s directory", contentDir)
+		return errors.WithStack(err)
 	}
 
 	if err := idtools.MkdirAllAs(contentDir, os.FileMode(st.Mode()), int(st.UID()), int(st.GID())); err != nil {
-		return errors.Wrapf(err, "failed to create the overlay %s directory", contentDir)
+		return errors.Wrap(err, "failed to create overlay directory")
 	}
 	return nil
 }
@@ -208,7 +208,7 @@ func CleanupContent(containerDir string) (Err error) {
 		if os.IsNotExist(err) {
 			return nil
 		}
-		return errors.Wrapf(err, "read directory")
+		return errors.Wrap(err, "read directory")
 	}
 	for _, f := range files {
 		dir := filepath.Join(contentDir, f.Name())
@@ -218,7 +218,7 @@ func CleanupContent(containerDir string) (Err error) {
 	}
 
 	if err := os.RemoveAll(contentDir); err != nil && !os.IsNotExist(err) {
-		return errors.Wrapf(err, "failed to cleanup overlay %s directory", contentDir)
+		return errors.Wrap(err, "failed to cleanup overlay directory")
 	}
 	return nil
 }

@@ -250,6 +250,11 @@ type LayerStore interface {
 	// LoadLocked wraps Load in a locked state. This means it loads the store
 	// and cleans-up invalid layers if needed.
 	LoadLocked() error
+
+	// PutAdditionalLayer creates a layer using the diff contained in the additional layer
+	// store.
+	// This API is experimental and can be changed without bumping the major version number.
+	PutAdditionalLayer(id string, parentLayer *Layer, names []string, aLayer drivers.AdditionalLayer) (layer *Layer, err error)
 }
 
 type layerStore struct {
@@ -608,6 +613,58 @@ func (r *layerStore) SetFlag(id string, flag string, value interface{}) error {
 
 func (r *layerStore) Status() ([][2]string, error) {
 	return r.driver.Status(), nil
+}
+
+func (r *layerStore) PutAdditionalLayer(id string, parentLayer *Layer, names []string, aLayer drivers.AdditionalLayer) (layer *Layer, err error) {
+	if duplicateLayer, idInUse := r.byid[id]; idInUse {
+		return duplicateLayer, ErrDuplicateID
+	}
+	for _, name := range names {
+		if _, nameInUse := r.byname[name]; nameInUse {
+			return nil, ErrDuplicateName
+		}
+	}
+
+	parent := ""
+	if parentLayer != nil {
+		parent = parentLayer.ID
+	}
+
+	info, err := aLayer.Info()
+	if err != nil {
+		return nil, err
+	}
+	defer info.Close()
+	layer = &Layer{}
+	if err := json.NewDecoder(info).Decode(layer); err != nil {
+		return nil, err
+	}
+	layer.ID = id
+	layer.Parent = parent
+	layer.Created = time.Now().UTC()
+
+	if err := aLayer.CreateAs(id, parent); err != nil {
+		return nil, err
+	}
+
+	// TODO: check if necessary fields are filled
+	r.layers = append(r.layers, layer)
+	r.idindex.Add(id)
+	r.byid[id] = layer
+	for _, name := range names { // names got from the additional layer store won't be used
+		r.byname[name] = layer
+	}
+	if layer.CompressedDigest != "" {
+		r.bycompressedsum[layer.CompressedDigest] = append(r.bycompressedsum[layer.CompressedDigest], layer.ID)
+	}
+	if layer.UncompressedDigest != "" {
+		r.byuncompressedsum[layer.CompressedDigest] = append(r.byuncompressedsum[layer.CompressedDigest], layer.ID)
+	}
+	if err := r.Save(); err != nil {
+		r.driver.Remove(id)
+		return nil, err
+	}
+	return copyLayer(layer), nil
 }
 
 func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLabel string, options map[string]string, moreOptions *LayerOptions, writeable bool, flags map[string]interface{}, diff io.Reader) (layer *Layer, size int64, err error) {

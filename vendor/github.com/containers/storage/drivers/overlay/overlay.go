@@ -4,6 +4,7 @@ package overlay
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -31,6 +32,7 @@ import (
 	"github.com/containers/storage/pkg/unshare"
 	units "github.com/docker/go-units"
 	"github.com/hashicorp/go-multierror"
+	digest "github.com/opencontainers/go-digest"
 	rsystem "github.com/opencontainers/runc/libcontainer/system"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -94,6 +96,7 @@ const (
 
 type overlayOptions struct {
 	imageStores       []string
+	layerStores       []additionalLayerStore
 	quota             quota.Quota
 	mountProgram      string
 	skipMountHome     bool
@@ -117,6 +120,17 @@ type Driver struct {
 	supportsVolatile bool
 	usingMetacopy    bool
 	locker           *locker.Locker
+}
+
+type additionalLayerStore struct {
+
+	// path is the directory where this store is available on the host.
+	path string
+
+	// withReference is true when the store contains image reference information (base64-encoded)
+	// in its layer search path so the path to the diff will be
+	//  <path>/base64(reference)/<layerdigest>/
+	withReference bool
 }
 
 var (
@@ -397,6 +411,42 @@ func parseOptions(options []string) (*overlayOptions, error) {
 				}
 				o.imageStores = append(o.imageStores, store)
 			}
+		case "additionallayerstore":
+			logrus.Debugf("overlay: additionallayerstore=%s", val)
+			// Additional read only layer stores to use for lower paths
+			if val == "" {
+				continue
+			}
+			for _, lstore := range strings.Split(val, ",") {
+				elems := strings.Split(lstore, ":")
+				lstore = filepath.Clean(elems[0])
+				if !filepath.IsAbs(lstore) {
+					return nil, fmt.Errorf("overlay: additionallayerstore path %q is not absolute.  Can not be relative", lstore)
+				}
+				st, err := os.Stat(lstore)
+				if err != nil {
+					return nil, errors.Wrap(err, "overlay: can't stat additionallayerstore dir")
+				}
+				if !st.IsDir() {
+					return nil, fmt.Errorf("overlay: additionallayerstore path %q must be a directory", lstore)
+				}
+				var withReference bool
+				for _, e := range elems[1:] {
+					switch e {
+					case "ref":
+						if withReference {
+							return nil, fmt.Errorf("overlay: additionallayerstore config of %q contains %q option twice", lstore, e)
+						}
+						withReference = true
+					default:
+						return nil, fmt.Errorf("overlay: additionallayerstore config %q contains unknown option %q", lstore, e)
+					}
+				}
+				o.layerStores = append(o.layerStores, additionalLayerStore{
+					path:          lstore,
+					withReference: withReference,
+				})
+			}
 		case "mount_program":
 			logrus.Debugf("overlay: mount_program=%s", val)
 			if val != "" {
@@ -550,6 +600,10 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 			// Check that overlay supports selinux labels as well.
 			flags = label.FormatMountLabel(flags, selinuxLabelTest)
 		}
+		if unshare.IsRootless() {
+			flags = fmt.Sprintf("%s,userxattr", flags)
+		}
+
 		if len(flags) < unix.Getpagesize() {
 			err := unix.Mount("overlay", mergedDir, "overlay", 0, flags)
 			if err == nil {
@@ -651,6 +705,24 @@ func (d *Driver) Metadata(id string) (map[string]string, error) {
 // we had created.
 func (d *Driver) Cleanup() error {
 	return mount.Unmount(d.home)
+}
+
+// LookupAdditionalLayer looks up additional layer store by the specified
+// digest and ref and returns an object representing that layer.
+// This API is experimental and can be changed without bumping the major version number.
+func (d *Driver) LookupAdditionalLayer(dgst digest.Digest, ref string) (graphdriver.AdditionalLayer, error) {
+	l, err := d.getAdditionalLayerPath(dgst, ref)
+	if err != nil {
+		return nil, err
+	}
+	// Tell the additional layer store that we use this layer.
+	// This will increase reference counter on the store's side.
+	// This will be decreased on Release() method.
+	notifyUseAdditionalLayer(l)
+	return &additionalLayer{
+		path: l,
+		d:    d,
+	}, nil
 }
 
 // CreateFromTemplate creates a layer with the same contents and parent as another layer.
@@ -954,6 +1026,8 @@ func (d *Driver) Remove(id string) error {
 			logrus.Debugf("Failed to remove link: %v", err)
 		}
 	}
+
+	d.releaseAdditionalLayerByID(id)
 
 	if err := system.EnsureRemoveAll(dir); err != nil && !os.IsNotExist(err) {
 		return err
@@ -1418,7 +1492,10 @@ func (f fileGetNilCloser) Close() error {
 // DiffGetter returns a FileGetCloser that can read files from the directory that
 // contains files for the layer differences. Used for direct access for tar-split.
 func (d *Driver) DiffGetter(id string) (graphdriver.FileGetCloser, error) {
-	p := d.getDiffPath(id)
+	p, err := d.getDiffPath(id)
+	if err != nil {
+		return nil, err
+	}
 	return fileGetNilCloser{storage.NewPathFileGetter(p)}, nil
 }
 
@@ -1440,7 +1517,10 @@ func (d *Driver) ApplyDiff(id, parent string, options graphdriver.ApplyDiffOpts)
 		idMappings = &idtools.IDMappings{}
 	}
 
-	applyDir := d.getDiffPath(id)
+	applyDir, err := d.getDiffPath(id)
+	if err != nil {
+		return 0, err
+	}
 
 	logrus.Debugf("Applying tar in %s", applyDir)
 	// Overlay doesn't need the parent id to apply the diff
@@ -1458,10 +1538,23 @@ func (d *Driver) ApplyDiff(id, parent string, options graphdriver.ApplyDiffOpts)
 	return directory.Size(applyDir)
 }
 
-func (d *Driver) getDiffPath(id string) string {
+func (d *Driver) getDiffPath(id string) (string, error) {
 	dir := d.dir(id)
+	return redirectDiffIfAdditionalLayer(path.Join(dir, "diff"))
+}
 
-	return path.Join(dir, "diff")
+func (d *Driver) getLowerDiffPaths(id string) ([]string, error) {
+	layers, err := d.getLowerDirs(id)
+	if err != nil {
+		return nil, err
+	}
+	for i, l := range layers {
+		layers[i], err = redirectDiffIfAdditionalLayer(l)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return layers, nil
 }
 
 // DiffSize calculates the changes between the specified id
@@ -1472,7 +1565,11 @@ func (d *Driver) DiffSize(id string, idMappings *idtools.IDMappings, parent stri
 		return d.naiveDiff.DiffSize(id, idMappings, parent, parentMappings, mountLabel)
 	}
 
-	return directory.Size(d.getDiffPath(id))
+	p, err := d.getDiffPath(id)
+	if err != nil {
+		return 0, err
+	}
+	return directory.Size(p)
 }
 
 // Diff produces an archive of the changes between the specified
@@ -1486,12 +1583,15 @@ func (d *Driver) Diff(id string, idMappings *idtools.IDMappings, parent string, 
 		idMappings = &idtools.IDMappings{}
 	}
 
-	lowerDirs, err := d.getLowerDirs(id)
+	lowerDirs, err := d.getLowerDiffPaths(id)
 	if err != nil {
 		return nil, err
 	}
 
-	diffPath := d.getDiffPath(id)
+	diffPath, err := d.getDiffPath(id)
+	if err != nil {
+		return nil, err
+	}
 	logrus.Debugf("Tar with options on %s", diffPath)
 	return archive.TarWithOptions(diffPath, &archive.TarOptions{
 		Compression:    archive.Uncompressed,
@@ -1510,8 +1610,11 @@ func (d *Driver) Changes(id string, idMappings *idtools.IDMappings, parent strin
 	}
 	// Overlay doesn't have snapshots, so we need to get changes from all parent
 	// layers.
-	diffPath := d.getDiffPath(id)
-	layers, err := d.getLowerDirs(id)
+	diffPath, err := d.getDiffPath(id)
+	if err != nil {
+		return nil, err
+	}
+	layers, err := d.getLowerDiffPaths(id)
 	if err != nil {
 		return nil, err
 	}
@@ -1622,4 +1725,140 @@ func nameWithSuffix(name string, number int) string {
 		return name
 	}
 	return fmt.Sprintf("%s%d", name, number)
+}
+
+func (d *Driver) getAdditionalLayerPath(dgst digest.Digest, ref string) (string, error) {
+	refElem := base64.StdEncoding.EncodeToString([]byte(ref))
+	for _, ls := range d.options.layerStores {
+		ref := ""
+		if ls.withReference {
+			ref = refElem
+		}
+		target := path.Join(ls.path, ref, dgst.String())
+		// Check if all necessary files exist
+		for _, p := range []string{
+			filepath.Join(target, "diff"),
+			filepath.Join(target, "info"),
+			// TODO(ktock): We should have an API to expose the stream data of this layer
+			//              to enable the client to retrieve the entire contents of this
+			//              layer when it exports this layer.
+		} {
+			if _, err := os.Stat(p); err != nil {
+				return "", errors.Wrapf(graphdriver.ErrLayerUnknown,
+					"failed to stat additional layer %q: %v", p, err)
+			}
+		}
+		return target, nil
+	}
+
+	return "", errors.Wrapf(graphdriver.ErrLayerUnknown,
+		"additional layer (%q, %q) not found", dgst, ref)
+}
+
+func (d *Driver) releaseAdditionalLayerByID(id string) {
+	if al, err := ioutil.ReadFile(path.Join(d.dir(id), "additionallayer")); err == nil {
+		notifyReleaseAdditionalLayer(string(al))
+	} else if !os.IsNotExist(err) {
+		logrus.Warnf("unexpected error on reading Additional Layer Store pointer %v", err)
+	}
+}
+
+// additionalLayer represents a layer in Additional Layer Store.
+type additionalLayer struct {
+	path        string
+	d           *Driver
+	releaseOnce sync.Once
+}
+
+// Info returns arbitrary information stored along with this layer (i.e. `info` file).
+// This API is experimental and can be changed without bumping the major version number.
+func (al *additionalLayer) Info() (io.ReadCloser, error) {
+	return os.Open(filepath.Join(al.path, "info"))
+}
+
+// CreateAs creates a new layer from this additional layer.
+// This API is experimental and can be changed without bumping the major version number.
+func (al *additionalLayer) CreateAs(id, parent string) error {
+	// TODO: support opts
+	if err := al.d.Create(id, parent, nil); err != nil {
+		return err
+	}
+	dir := al.d.dir(id)
+	diffDir := path.Join(dir, "diff")
+	if err := os.RemoveAll(diffDir); err != nil {
+		return err
+	}
+	// tell the additional layer store that we use this layer.
+	// mark this layer as "additional layer"
+	if err := ioutil.WriteFile(path.Join(dir, "additionallayer"), []byte(al.path), 0644); err != nil {
+		return err
+	}
+	notifyUseAdditionalLayer(al.path)
+	return os.Symlink(filepath.Join(al.path, "diff"), diffDir)
+}
+
+// Release tells the additional layer store that we don't use this handler.
+// This API is experimental and can be changed without bumping the major version number.
+func (al *additionalLayer) Release() {
+	// Tell the additional layer store that we don't use this layer handler.
+	// This will decrease the reference counter on the store's side, which was
+	// increased in LookupAdditionalLayer (so this must be called only once).
+	al.releaseOnce.Do(func() {
+		notifyReleaseAdditionalLayer(al.path)
+	})
+}
+
+// notifyUseAdditionalLayer notifies Additional Layer Store that we use the specified layer.
+// This is done by creating "use" file in the layer directory. This is useful for
+// Additional Layer Store to consider when to perform GC. Notification-aware Additional
+// Layer Store must return ENOENT.
+func notifyUseAdditionalLayer(al string) {
+	if !path.IsAbs(al) {
+		logrus.Warnf("additionallayer must be absolute (got: %v)", al)
+		return
+	}
+	useFile := path.Join(al, "use")
+	f, err := os.Create(useFile)
+	if os.IsNotExist(err) {
+		return
+	} else if err == nil {
+		f.Close()
+		if err := os.Remove(useFile); err != nil {
+			logrus.Warnf("failed to remove use file")
+		}
+	}
+	logrus.Warnf("unexpected error by Additional Layer Store %v during use; GC doesn't seem to be supported", err)
+}
+
+// notifyReleaseAdditionalLayer notifies Additional Layer Store that we don't use the specified
+// layer anymore. This is done by rmdir-ing the layer directory. This is useful for
+// Additional Layer Store to consider when to perform GC. Notification-aware Additional
+// Layer Store must return ENOENT.
+func notifyReleaseAdditionalLayer(al string) {
+	if !path.IsAbs(al) {
+		logrus.Warnf("additionallayer must be absolute (got: %v)", al)
+		return
+	}
+	// tell the additional layer store that we don't use this layer anymore.
+	err := unix.Rmdir(al)
+	if os.IsNotExist(err) {
+		return
+	}
+	logrus.Warnf("unexpected error by Additional Layer Store %v during release; GC doesn't seem to be supported", err)
+}
+
+// redirectDiffIfAdditionalLayer checks if the passed diff path is Additional Layer and
+// returns the redirected path. If the passed diff is not the one in Additional Layer
+// Store, it returns the original path without changes.
+func redirectDiffIfAdditionalLayer(diffPath string) (string, error) {
+	if ld, err := os.Readlink(diffPath); err == nil {
+		// diff is the link to Additional Layer Store
+		if !path.IsAbs(ld) {
+			return "", fmt.Errorf("linkpath must be absolute (got: %q)", ld)
+		}
+		diffPath = ld
+	} else if err.(*os.PathError).Err != syscall.EINVAL {
+		return "", err
+	}
+	return diffPath, nil
 }
