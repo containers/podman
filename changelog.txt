@@ -1,3 +1,57 @@
+- Changelog for HEAD (2021-04-16):
+  * Update release notes for v3.1.1
+  * podman play kube apply correct log driver
+  * Fix build with GO111MODULE=off
+  * [CI:DOCS] Set all operation id to be compatibile
+  * Move operationIds to swagger:operation line
+  * swagger: add operationIds that match with docker
+  * Fix missing podman-remote build options
+  * [NO TESTS NEEDED] Shrink the size of podman-remote
+  * Move socket activation check into init() and set global condition.
+  * rootless: use is_fd_inherited
+  * Recreate until container prune tests for bindings
+  * System tests: special case for RHEL: require runc
+  * Document --volume from podman-remote run/create client
+  * Containers prune endpoint should use only prune filters
+  * Trim white space from /top endpoint results
+  * Fix unmount doc reference in image.rst
+  * Fix handling of remove --log-rusage param
+  * Makefile: introduce install.docker-full
+  * Makefile: ensure install.docker creates BINDIR
+  * Should send the OCI runtime path not just the name to buildah
+  * Fixed podman-remote --network flag
+  * podman-run.1.md, podman-create.1.md : Adjust Markdown layout for --userns
+  * Fix typos --uidmapping and --gidmapping
+  * Add default template functions
+  * Don't relabel volumes if running in a privileged container
+  * Allow users to override default storage opts with --storage-opt
+  * Add transport and destination info to manifest doc
+  * Verify existence of auth file if specified
+  * Ensure that `--userns=keep-id` sets user in config
+  * [CI:DOCS] Update swagger definition of inspect manifest
+  * Volumes prune endpoint should use only prune filters
+  * Adjust libpod API Container Wait documentation to the code
+  * Add missing return
+  * [CI:DOCS] Fix formatting of podman-build man page
+  * cgroups: force 64 bits to ParseUint
+  * Fix slashes in socket URLs
+  * [CI:DOCS] Correct status code for /pods/create
+  * cgroup: do not set cgroup parent when rootless and cgroupfs
+  * Reflect current state of prune implementation in docs
+  * Do not delete container twice
+  * Test that we don't error out on advertised --log-level values
+  * At trace log level, print error text using %+v instead of %v
+  * pkg/errorhandling.JoinErrors: don't throw away context for lone errors
+  * Recognize --log-level=trace
+  * Fix message about runtime to show only the actual runtime
+  * Fix handling of $NAME and $IMAGE in runlabel
+  * Fix flake on failed podman-remote build : try 2
+  * Fix flake on failed podman-remote build
+  * Update documentation of podman-run to reflect volume "U" option
+  * Fixes invalid expression in save command
+  * Fix possible panic in libpod/image/prune.go
+  * Update all containers/ project vendors
+
 - Changelog for v3.1.0 (2021-03-29):
   * Fix test failure
   * Update release notes for v3.1.0 final release
