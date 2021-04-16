@@ -79,6 +79,7 @@ func runFlags(cmd *cobra.Command) {
 
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("preserve-fds")
+		_ = flags.MarkHidden("conmon-pidfile")
 		_ = flags.MarkHidden("pidfile")
 	}
 }

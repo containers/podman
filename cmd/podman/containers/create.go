@@ -65,6 +65,7 @@ func createFlags(cmd *cobra.Command) {
 	flags.SetNormalizeFunc(utils.AliasFlags)
 
 	if registry.IsRemote() {
+		_ = flags.MarkHidden("conmon-pidfile")
 		_ = flags.MarkHidden("pidfile")
 	}
 }
