@@ -1613,4 +1613,12 @@ WORKDIR /madethis`, BB)
 		Expect(running.ExitCode()).To(Equal(0))
 		Expect(len(running.OutputToStringArray())).To(Equal(2))
 	})
+
+	It("podman run with pidfile", func() {
+		session := podmanTest.Podman([]string{"run", "--pidfile", tempdir + "pidfile", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		err := os.Remove(tempdir + "pidfile")
+		Expect(err).To(BeNil())
+	})
 })
