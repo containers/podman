@@ -1,5 +1,40 @@
 # Release Notes
 
+## 3.1.1
+### Changes
+- Podman now recognizes `trace` as a valid argument to the `--log-level` command. Trace logging is now the most verbose level of logging available.
+- The `:z` and `:Z` options for volume mounts are now ignored when the container is privileged or is run with SELinux isolation disabled (`--security-opt label=disable`). This matches better matches Docker's behavior in this case.
+
+### Bugfixes
+- Fixed a bug where pruning images with the `podman image prune` or `podman system prune` commands could cause Podman to panic.
+- Fixed a bug where the `podman save` command did not properly error when the `--compress` flag was used with incompatible format types.
+- Fixed a bug where the `--security-opt` and `--ulimit` options to the remote Podman client's `podman build` command were nonfunctional.
+- Fixed a bug where the `--log-rusage` option to the remote Podman client's `podman build` command was nonfunctional ([#9489](https://github.com/containers/podman/issues/9889)).
+- Fixed a bug where the `podman build` command could, in some circumstances, use the wrong OCI runtime ([#9459](https://github.com/containers/podman/issues/9459)).
+- Fixed a bug where the remote Podman client's `podman build` command could return 0 despite failing ([#10029](https://github.com/containers/podman/issues/10029)).
+- Fixed a bug where the `podman container runlabel` command did not properly expand the `IMAGE` and `NAME` variables in the label ([#9405](https://github.com/containers/podman/issues/9405)).
+- Fixed a bug where poststop OCI hooks would be executed twice on containers started with the `--rm` argument ([#9983](https://github.com/containers/podman/issues/9983)).
+- Fixed a bug where rootless Podman could fail to launch containers on cgroups v2 systems when the `cgroupfs` cgroup manager was in use.
+- Fixed a bug where the `podman stats` command could error when statistics tracked exceeded the maximum size of a 32-bit signed integer ([#9979](https://github.com/containers/podman/issues/9979)).
+- Fixed a bug where rootless Podman containers run with `--userns=keepid` (without a `--user` flag in addition) would grant exec sessions run in them too many capabilities ([#9919](https://github.com/containers/podman/issues/9919)).
+- Fixed a bug where the `--authfile` option to `podman build` did not validate that the path given existed ([#9572](https://github.com/containers/podman/issues/9572)).
+- Fixed a bug where the `--storage-opt` option to Podman was appending to, instead of overriding (as is documented), the default storage options.
+- Fixed a bug where the `podman system service` connection did not function properly when run in a socket-activated systemd unit file as a non-root user.
+- Fixed a bug where the `--network` option to the `podman play kube` command of the remote Podman client was being ignored ([#9698](https://github.com/containers/podman/issues/9698)).
+- Fixed a bug where the `--log-driver` option to the `podman play kube` command was nonfunctional ([#10015](https://github.com/containers/podman/issues/10015)).
+
+### API
+- Fixed a bug where the Libpod Create endpoint for Manifests did not properly validate the image the manifest was being created with.
+- Fixed a bug where the Libpod DF endpoint could, in error cases, append an extra null to the JSON response, causing decode errors.
+- Fixed a bug where the Libpod and Compat Top endpoint for Containers would return process names that included extra whitespace.
+- Fixed a bug where the Compat Prune endpoint for Containers accepted too many types of filter.
+
+### Misc
+- Updated Buildah to v1.20.1
+- Updated the containers/storage library to v1.29.0
+- Updated the containers/image library to v5.11.0
+- Updated the containers/common library to v0.36.0
+
 ## 3.1.0
 ### Features
 - A set of new commands has been added to manage secrets! The `podman secret create`, `podman secret inspect`, `podman secret ls` and `podman secret rm` commands have been added to handle secrets, along with the `--secret` option to `podman run` and `podman create` to add secrets to containers. The initial driver for secrets does not support encryption - this will be added in a future release.
