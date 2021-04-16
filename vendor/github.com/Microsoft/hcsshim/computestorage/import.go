@@ -20,7 +20,7 @@ import (
 // `layerData` is the parent layer data.
 func ImportLayer(ctx context.Context, layerPath, sourceFolderPath string, layerData LayerData) (err error) {
 	title := "hcsshim.ImportLayer"
-	ctx, span := trace.StartSpan(ctx, title)
+	ctx, span := trace.StartSpan(ctx, title) //nolint:ineffassign,staticcheck
 	defer span.End()
 	defer func() { oc.SetSpanStatus(span, err) }()
 	span.AddAttributes(

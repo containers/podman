@@ -40,6 +40,6 @@ Image
 
 :doc:`trust <markdown/podman-image-trust.1>` Manage container image trust policy
 
-:doc:`unmount <markdown/podman-unmount.1>` Unmount an image's root filesystem
+:doc:`unmount <markdown/podman-image-unmount.1>` Unmount an image's root filesystem
 
 :doc:`untag <markdown/podman-untag.1>` Removes one or more names from a locally-stored image

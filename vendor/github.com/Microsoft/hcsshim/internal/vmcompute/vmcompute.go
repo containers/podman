@@ -62,7 +62,7 @@ type HcsCallback syscall.Handle
 type HcsProcessInformation struct {
 	// ProcessId is the pid of the created process.
 	ProcessId uint32
-	reserved  uint32
+	reserved  uint32 //nolint:structcheck
 	// StdInput is the handle associated with the stdin of the process.
 	StdInput syscall.Handle
 	// StdOutput is the handle associated with the stdout of the process.

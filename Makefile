@@ -544,17 +544,21 @@ install.cni:
 
 .PHONY: install.docker
 install.docker:
+	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
 	install ${SELINUXOPT} -m 755 docker $(DESTDIR)$(BINDIR)/docker
 	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${SYSTEMDDIR}  ${DESTDIR}${USERSYSTEMDDIR} ${DESTDIR}${TMPFILESDIR}
 	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-docker.conf -t ${DESTDIR}${TMPFILESDIR}
 
 .PHONY: install.docker-docs-nobuild
 install.docker-docs-nobuild:
-	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR) $(DESTDIR)$(MANDIR)/man1
+	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(MANDIR)/man1
 	install ${SELINUXOPT} -m 644 docs/build/man/docker*.1 -t $(DESTDIR)$(MANDIR)/man1
 
 .PHONY: install.docker-docs
 install.docker-docs: docker-docs install.docker-docs-nobuild
+
+.PHONY: install.docker-full
+install.docker-full: install.docker install.docker-docs
 
 .PHONY: install.systemd
 ifneq (,$(findstring systemd,$(BUILDTAGS)))

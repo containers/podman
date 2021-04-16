@@ -21,8 +21,8 @@ import (
 // possible to use an arbitrary entry in /etc/sub*id.
 // Differently, if the username is not specified for root users, a
 // default name is used.
-func getAdditionalSubIDs(username string) ([]idtools.IDMap, []idtools.IDMap, error) {
-	var uids, gids []idtools.IDMap
+func getAdditionalSubIDs(username string) (*idSet, *idSet, error) {
+	var uids, gids *idSet
 
 	if unshare.IsRootless() {
 		username = os.Getenv("USER")
@@ -45,48 +45,36 @@ func getAdditionalSubIDs(username string) ([]idtools.IDMap, []idtools.IDMap, err
 	if err != nil {
 		logrus.Errorf("cannot find mappings for user %q: %v", username, err)
 	} else {
-		uids = mappings.UIDs()
-		gids = mappings.GIDs()
+		uids = getHostIDs(mappings.UIDs())
+		gids = getHostIDs(mappings.GIDs())
 	}
 	return uids, gids, nil
 }
 
-// getAvailableMappings returns the list of ranges that are usable by the current user.
+// getAvailableIDs returns the list of ranges that are usable by the current user.
 // When running as root, it looks up the additional IDs assigned to the specified user.
 // When running as rootless, the mappings assigned to the unprivileged user are converted
 // to the IDs inside of the initial rootless user namespace.
-func (s *store) getAvailableMappings() ([]idtools.IDMap, []idtools.IDMap, error) {
-	if s.autoUIDMap == nil {
+func (s *store) getAvailableIDs() (*idSet, *idSet, error) {
+	if s.additionalUIDs == nil {
 		uids, gids, err := getAdditionalSubIDs(s.autoUsernsUser)
 		if err != nil {
 			return nil, nil, err
 		}
 		// Store the result so we don't need to look it up again next time
-		s.autoUIDMap, s.autoGIDMap = uids, gids
+		s.additionalUIDs, s.additionalGIDs = uids, gids
 	}
-
-	uids := s.autoUIDMap
-	gids := s.autoGIDMap
 
 	if !unshare.IsRootless() {
 		// No mapping to inner namespace needed
-		return copyIDMap(uids), copyIDMap(gids), nil
+		return s.additionalUIDs, s.additionalGIDs, nil
 	}
 
 	// We are already inside of the rootless user namespace.
 	// We need to remap the configured mappings to what is available
 	// inside of the rootless userns.
-	totaluid := 0
-	totalgid := 0
-	for _, u := range uids {
-		totaluid += u.Size
-	}
-	for _, g := range gids {
-		totalgid += g.Size
-	}
-
-	u := []idtools.IDMap{{ContainerID: 0, HostID: 1, Size: totaluid}}
-	g := []idtools.IDMap{{ContainerID: 0, HostID: 1, Size: totalgid}}
+	u := newIDSet([]interval{{start: 1, end: s.additionalUIDs.size() + 1}})
+	g := newIDSet([]interval{{start: 1, end: s.additionalGIDs.size() + 1}})
 	return u, g, nil
 }
 
@@ -222,141 +210,6 @@ outer:
 	return size, nil
 }
 
-func minInt(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func maxInt(a, b int) int {
-	if a < b {
-		return b
-	}
-	return a
-}
-
-// subtractHostIDs return the subtraction of the range USED from AVAIL.  The range is specified
-// by [HostID, HostID+Size).
-// ContainerID is ignored.
-func subtractHostIDs(avail idtools.IDMap, used idtools.IDMap) []idtools.IDMap {
-	var out []idtools.IDMap
-	availEnd := avail.HostID + avail.Size
-	usedEnd := used.HostID + used.Size
-	// Intersection of [avail.HostID, availEnd) and (-inf, used.HostID) is [avail.HostID, newEnd).
-	if newEnd := minInt(availEnd, used.HostID); newEnd > avail.HostID {
-		out = append(out, idtools.IDMap{
-			ContainerID: avail.ContainerID,
-			HostID:      avail.HostID,
-			Size:        newEnd - avail.HostID,
-		})
-	}
-	// Intersection of [avail.HostID, availEnd) and [usedEnd, +inf) is [newStart, availEnd).
-	if newStart := maxInt(avail.HostID, usedEnd); newStart < availEnd {
-		out = append(out, idtools.IDMap{
-			ContainerID: newStart + avail.ContainerID - avail.HostID,
-			HostID:      newStart,
-			Size:        availEnd - newStart,
-		})
-	}
-	return out
-}
-
-// subtractContainerIDs return the subtraction of the range USED from AVAIL.  The range is specified
-// by [ContainerID, ContainerID+Size).
-// HostID is ignored.
-func subtractContainerIDs(avail idtools.IDMap, used idtools.IDMap) []idtools.IDMap {
-	var out []idtools.IDMap
-	availEnd := avail.ContainerID + avail.Size
-	usedEnd := used.ContainerID + used.Size
-	// Intersection of [avail.ContainerID, availEnd) and (-inf, used.ContainerID) is
-	// [avail.ContainerID, newEnd).
-	if newEnd := minInt(availEnd, used.ContainerID); newEnd > avail.ContainerID {
-		out = append(out, idtools.IDMap{
-			ContainerID: avail.ContainerID,
-			HostID:      avail.HostID,
-			Size:        newEnd - avail.ContainerID,
-		})
-	}
-	// Intersection of [avail.ContainerID, availEnd) and [usedEnd, +inf) is [newStart, availEnd).
-	if newStart := maxInt(avail.ContainerID, usedEnd); newStart < availEnd {
-		out = append(out, idtools.IDMap{
-			ContainerID: newStart,
-			HostID:      newStart + avail.HostID - avail.ContainerID,
-			Size:        availEnd - newStart,
-		})
-	}
-	return out
-}
-
-// subtractAll subtracts all usedIDs from the available IDs.
-func subtractAll(availableIDs, usedIDs []idtools.IDMap, host bool) []idtools.IDMap {
-	for _, u := range usedIDs {
-		var newAvailableIDs []idtools.IDMap
-		for _, cur := range availableIDs {
-			var newRanges []idtools.IDMap
-			if host {
-				newRanges = subtractHostIDs(cur, u)
-			} else {
-				newRanges = subtractContainerIDs(cur, u)
-			}
-			newAvailableIDs = append(newAvailableIDs, newRanges...)
-		}
-		availableIDs = newAvailableIDs
-	}
-	return availableIDs
-}
-
-// findAvailableIDRange returns the list of IDs that are not used by existing containers.
-// This function is used to lookup both UIDs and GIDs.
-func findAvailableIDRange(size uint32, availableIDs, usedIDs []idtools.IDMap) ([]idtools.IDMap, error) {
-	var avail []idtools.IDMap
-
-	// ContainerID will be adjusted later.
-	for _, i := range availableIDs {
-		n := idtools.IDMap{
-			ContainerID: 0,
-			HostID:      i.HostID,
-			Size:        i.Size,
-		}
-		avail = append(avail, n)
-	}
-	avail = subtractAll(avail, usedIDs, true)
-
-	currentID := 0
-	remaining := size
-	// We know the size for each intervals, let's adjust the ContainerID for each
-	// of them.
-	for i := 0; i < len(avail); i++ {
-		avail[i].ContainerID = currentID
-		if uint32(avail[i].Size) >= remaining {
-			avail[i].Size = int(remaining)
-			return avail[:i+1], nil
-		}
-		remaining -= uint32(avail[i].Size)
-		currentID += avail[i].Size
-	}
-
-	return nil, errors.New("could not find enough available IDs")
-}
-
-// findAvailableRange returns both the list of UIDs and GIDs ranges that are not
-// currently used by other containers.
-// It is a wrapper for findAvailableIDRange.
-func findAvailableRange(sizeUID, sizeGID uint32, availableUIDs, availableGIDs, usedUIDs, usedGIDs []idtools.IDMap) ([]idtools.IDMap, []idtools.IDMap, error) {
-	UIDMap, err := findAvailableIDRange(sizeUID, availableUIDs, usedUIDs)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	GIDMap, err := findAvailableIDRange(sizeGID, availableGIDs, usedGIDs)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return UIDMap, GIDMap, nil
-}
-
 // getAutoUserNS creates an automatic user namespace
 func (s *store) getAutoUserNS(id string, options *types.AutoUserNsOptions, image *Image) ([]idtools.IDMap, []idtools.IDMap, error) {
 	requestedSize := uint32(0)
@@ -368,7 +221,7 @@ func (s *store) getAutoUserNS(id string, options *types.AutoUserNsOptions, image
 		initialSize = options.InitialSize
 	}
 
-	availableUIDs, availableGIDs, err := s.getAvailableMappings()
+	availableUIDs, availableGIDs, err := s.getAvailableIDs()
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "cannot read mappings")
 	}
@@ -409,22 +262,41 @@ func (s *store) getAutoUserNS(id string, options *types.AutoUserNsOptions, image
 			return nil, nil, errors.Errorf("the container needs a user namespace with size %q that is bigger than the maximum value allowed with userns=auto %q", size, s.autoNsMaxSize)
 		}
 	}
+
+	return getAutoUserNSIDMappings(
+		int(size),
+		availableUIDs, availableGIDs,
+		usedUIDs, usedGIDs,
+		options.AdditionalUIDMappings, options.AdditionalGIDMappings,
+	)
+}
+
+// getAutoUserNSIDMappings computes the user/group id mappings for the automatic user namespace.
+func getAutoUserNSIDMappings(
+	size int,
+	availableUIDs, availableGIDs *idSet,
+	usedUIDMappings, usedGIDMappings, additionalUIDMappings, additionalGIDMappings []idtools.IDMap,
+) ([]idtools.IDMap, []idtools.IDMap, error) {
+	usedUIDs := getHostIDs(append(usedUIDMappings, additionalUIDMappings...))
+	usedGIDs := getHostIDs(append(usedGIDMappings, additionalGIDMappings...))
+
+	// Exclude additional uids and gids from requested range.
+	targetIDs := newIDSet([]interval{{start: 0, end: size}})
+	requestedContainerUIDs := targetIDs.subtract(getContainerIDs(additionalUIDMappings))
+	requestedContainerGIDs := targetIDs.subtract(getContainerIDs(additionalGIDMappings))
+
 	// Make sure the specified additional IDs are not used as part of the automatic
 	// mapping
-	usedUIDs = append(usedUIDs, options.AdditionalUIDMappings...)
-	usedGIDs = append(usedGIDs, options.AdditionalGIDMappings...)
-	availableUIDs, availableGIDs, err = findAvailableRange(size, size, availableUIDs, availableGIDs, usedUIDs, usedGIDs)
+	availableUIDs, err := availableUIDs.subtract(usedUIDs).findAvailable(requestedContainerUIDs.size())
+	if err != nil {
+		return nil, nil, err
+	}
+	availableGIDs, err = availableGIDs.subtract(usedGIDs).findAvailable(requestedContainerGIDs.size())
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// We need to make sure the specified container IDs are also dropped from the automatic
-	// namespaces we have found.
-	if len(options.AdditionalUIDMappings) > 0 {
-		availableUIDs = subtractAll(availableUIDs, options.AdditionalUIDMappings, false)
-	}
-	if len(options.AdditionalGIDMappings) > 0 {
-		availableGIDs = subtractAll(availableGIDs, options.AdditionalGIDMappings, false)
-	}
-	return append(availableUIDs, options.AdditionalUIDMappings...), append(availableGIDs, options.AdditionalGIDMappings...), nil
+	uidMap := append(availableUIDs.zip(requestedContainerUIDs), additionalUIDMappings...)
+	gidMap := append(availableGIDs.zip(requestedContainerGIDs), additionalGIDMappings...)
+	return uidMap, gidMap, nil
 }

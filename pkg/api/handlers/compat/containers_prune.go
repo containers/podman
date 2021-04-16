@@ -23,7 +23,7 @@ func PruneContainers(w http.ResponseWriter, r *http.Request) {
 
 	filterFuncs := make([]libpod.ContainerFilter, 0, len(*filtersMap))
 	for k, v := range *filtersMap {
-		generatedFunc, err := filters.GenerateContainerFilterFuncs(k, v, runtime)
+		generatedFunc, err := filters.GeneratePruneContainerFilterFuncs(k, v, runtime)
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return

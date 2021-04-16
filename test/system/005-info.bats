@@ -53,4 +53,34 @@ store.imageStore.number   | 1
 
 }
 
+# 2021-04-06 discussed in watercooler: RHEL must never use crun, even if
+# using cgroups v2.
+@test "podman info - RHEL8 must use runc" {
+    local osrelease=/etc/os-release
+    test -e $osrelease || skip "Not a RHEL system (no $osrelease)"
+
+    local osname=$(source $osrelease; echo $NAME)
+    if [[ $osname =~ Red.Hat || $osname =~ CentOS ]]; then
+        # Version can include minor; strip off first dot an all beyond it
+        local osver=$(source $osrelease; echo $VERSION_ID)
+        test ${osver%%.*} -le 8 || skip "$osname $osver > RHEL8"
+
+        # RHEL or CentOS 8.
+        # FIXME: what does 'CentOS 8' even mean? What is $VERSION_ID in CentOS?
+        run_podman info --format '{{.Host.OCIRuntime.Name}}'
+        is "$output" "runc" "$osname only supports OCI Runtime = runc"
+    else
+        skip "only applicable on RHEL, this is $osname"
+    fi
+}
+
+@test "podman info --storage-opt='' " {
+    skip_if_remote "--storage-opt flag is not supported for remote"
+    skip_if_rootless "storage opts are required for rootless running"
+    run_podman --storage-opt='' info
+    # Note this will not work in rootless mode, unless you specify
+    # storage-driver=vfs, until we have kernels that support rootless overlay
+    # mounts.
+    is "$output" ".*graphOptions: {}" "output includes graphOptions: {}"
+}
 # vim: filetype=sh

@@ -10,8 +10,8 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/domain/entities/types"
 	"github.com/containers/podman/v3/version"
-	docker "github.com/docker/docker/api/types"
 	"github.com/pkg/errors"
 )
 
@@ -32,7 +32,7 @@ func VersionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	components := []docker.ComponentVersion{{
+	components := []types.ComponentVersion{{
 		Name:    "Podman Engine",
 		Version: versionInfo.Version,
 		Details: map[string]string{
@@ -52,7 +52,7 @@ func VersionHandler(w http.ResponseWriter, r *http.Request) {
 	minVersion := version.APIVersion[version.Compat][version.MinimalAPI]
 
 	utils.WriteResponse(w, http.StatusOK, entities.ComponentVersion{
-		Version: docker.Version{
+		Version: types.Version{
 			Platform: struct {
 				Name string
 			}{

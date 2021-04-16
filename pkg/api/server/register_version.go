@@ -8,7 +8,7 @@ import (
 )
 
 func (s *APIServer) registerVersionHandlers(r *mux.Router) error {
-	// swagger:operation GET /version compat CompatSystemVersion
+	// swagger:operation GET /version compat SystemVersion
 	// ---
 	// summary: Component Version information
 	// tags:
@@ -20,7 +20,7 @@ func (s *APIServer) registerVersionHandlers(r *mux.Router) error {
 	//    $ref: "#/responses/Version"
 	r.Handle("/version", s.APIHandler(compat.VersionHandler)).Methods(http.MethodGet)
 	r.Handle(VersionedPath("/version"), s.APIHandler(compat.VersionHandler)).Methods(http.MethodGet)
-	// swagger:operation GET /libpod/version libpod SystemVersion
+	// swagger:operation GET /libpod/version libpod SystemVersionLibpod
 	// ---
 	// summary: Component Version information
 	// tags:

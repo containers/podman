@@ -8,7 +8,7 @@ import (
 )
 
 func (s *APIServer) registerExecHandlers(r *mux.Router) error {
-	// swagger:operation POST /containers/{name}/exec compat createExec
+	// swagger:operation POST /containers/{name}/exec compat ContainerExec
 	// ---
 	// tags:
 	//   - exec (compat)
@@ -77,7 +77,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/containers/{name}/exec"), s.APIHandler(compat.ExecCreateHandler)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/containers/{name}/exec", s.APIHandler(compat.ExecCreateHandler)).Methods(http.MethodPost)
-	// swagger:operation POST /exec/{id}/start compat startExec
+	// swagger:operation POST /exec/{id}/start compat ExecStart
 	// ---
 	// tags:
 	//   - exec (compat)
@@ -102,7 +102,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//          type: boolean
 	//          description: Allocate a pseudo-TTY. Presently ignored.
 	// produces:
-	// - application/json
+	// - application/octet-stream
 	// responses:
 	//   200:
 	//     description: no error
@@ -115,7 +115,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/exec/{id}/start"), s.APIHandler(compat.ExecStartHandler)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/exec/{id}/start", s.APIHandler(compat.ExecStartHandler)).Methods(http.MethodPost)
-	// swagger:operation POST /exec/{id}/resize compat resizeExec
+	// swagger:operation POST /exec/{id}/resize compat ExecResize
 	// ---
 	// tags:
 	//   - exec (compat)
@@ -153,7 +153,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/exec/{id}/resize"), s.APIHandler(compat.ResizeTTY)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/exec/{id}/resize", s.APIHandler(compat.ResizeTTY)).Methods(http.MethodPost)
-	// swagger:operation GET /exec/{id}/json compat inspectExec
+	// swagger:operation GET /exec/{id}/json compat ExecInspect
 	// ---
 	// tags:
 	//   - exec (compat)
@@ -182,7 +182,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 		libpod api follows
 	*/
 
-	// swagger:operation POST /libpod/containers/{name}/exec libpod libpodCreateExec
+	// swagger:operation POST /libpod/containers/{name}/exec libpod ContainerExecLibpod
 	// ---
 	// tags:
 	//   - exec
@@ -249,7 +249,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/containers/{name}/exec"), s.APIHandler(compat.ExecCreateHandler)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/exec/{id}/start libpod libpodStartExec
+	// swagger:operation POST /libpod/exec/{id}/start libpod ExecStartLibpod
 	// ---
 	// tags:
 	//   - exec
@@ -285,7 +285,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/exec/{id}/start"), s.APIHandler(compat.ExecStartHandler)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/exec/{id}/resize libpod libpodResizeExec
+	// swagger:operation POST /libpod/exec/{id}/resize libpod ExecResizeLibpod
 	// ---
 	// tags:
 	//   - exec
@@ -316,7 +316,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/exec/{id}/resize"), s.APIHandler(compat.ResizeTTY)).Methods(http.MethodPost)
-	// swagger:operation GET /libpod/exec/{id}/json libpod libpodInspectExec
+	// swagger:operation GET /libpod/exec/{id}/json libpod ExecInspectLibpod
 	// ---
 	// tags:
 	//   - exec

@@ -119,9 +119,9 @@ type PropertyType string
 
 const (
 	PropertyTypeStatistics        PropertyType = "Statistics"        // V1 and V2
-	PropertyTypeProcessList                    = "ProcessList"       // V1 and V2
-	PropertyTypeMappedVirtualDisk              = "MappedVirtualDisk" // Not supported in V2 schema call
-	PropertyTypeGuestConnection                = "GuestConnection"   // V1 and V2. Nil return from HCS before RS5
+	PropertyTypeProcessList       PropertyType = "ProcessList"       // V1 and V2
+	PropertyTypeMappedVirtualDisk PropertyType = "MappedVirtualDisk" // Not supported in V2 schema call
+	PropertyTypeGuestConnection   PropertyType = "GuestConnection"   // V1 and V2. Nil return from HCS before RS5
 )
 
 type PropertyQuery struct {

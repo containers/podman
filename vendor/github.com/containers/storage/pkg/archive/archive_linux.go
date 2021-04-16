@@ -12,6 +12,10 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+func getOverlayOpaqueXattrName() string {
+	return GetOverlayXattrName("opaque")
+}
+
 func GetWhiteoutConverter(format WhiteoutFormat, data interface{}) TarWhiteoutConverter {
 	if format == OverlayWhiteoutFormat {
 		if rolayers, ok := data.([]string); ok && len(rolayers) > 0 {
@@ -39,13 +43,13 @@ func (o overlayWhiteoutConverter) ConvertWrite(hdr *tar.Header, path string, fi 
 
 	if fi.Mode()&os.ModeDir != 0 {
 		// convert opaque dirs to AUFS format by writing an empty file with the whiteout prefix
-		opaque, err := system.Lgetxattr(path, "trusted.overlay.opaque")
+		opaque, err := system.Lgetxattr(path, getOverlayOpaqueXattrName())
 		if err != nil {
 			return nil, err
 		}
 		if len(opaque) == 1 && opaque[0] == 'y' {
 			if hdr.Xattrs != nil {
-				delete(hdr.Xattrs, "trusted.overlay.opaque")
+				delete(hdr.Xattrs, getOverlayOpaqueXattrName())
 			}
 			// If there are no lower layers, then it can't have been deleted in this layer.
 			if len(o.rolayers) == 0 {
@@ -114,7 +118,7 @@ func (overlayWhiteoutConverter) ConvertReadWithHandler(hdr *tar.Header, path str
 
 	// if a directory is marked as opaque by the AUFS special file, we need to translate that to overlay
 	if base == WhiteoutOpaqueDir {
-		err := handler.Setxattr(dir, "trusted.overlay.opaque", []byte{'y'})
+		err := handler.Setxattr(dir, getOverlayOpaqueXattrName(), []byte{'y'})
 		// don't write the file itself
 		return false, err
 	}

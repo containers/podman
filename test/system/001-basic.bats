@@ -104,4 +104,17 @@ function setup() {
     is "$output" "you found me" "sample invocation of 'jq'"
 }
 
+@test "podman --log-level recognizes log levels" {
+    run_podman 1 --log-level=telepathic info
+    is "$output" 'Log Level "telepathic" is not supported.*'
+    run_podman --log-level=trace   info
+    run_podman --log-level=debug   info
+    run_podman --log-level=info    info
+    run_podman --log-level=warn    info
+    run_podman --log-level=warning info
+    run_podman --log-level=error   info
+    run_podman --log-level=fatal   info
+    run_podman --log-level=panic   info
+}
+
 # vim: filetype=sh

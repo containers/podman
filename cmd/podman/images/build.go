@@ -8,9 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/buildah/define"
+	buildahDefine "github.com/containers/buildah/define"
 	buildahCLI "github.com/containers/buildah/pkg/cli"
 	"github.com/containers/buildah/pkg/parse"
+	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
 	encconfig "github.com/containers/ocicrypt/config"
@@ -158,11 +159,11 @@ func buildFlags(cmd *cobra.Command) {
 	flags.SetNormalizeFunc(buildahCLI.AliasFlags)
 	if registry.IsRemote() {
 		flag = flags.Lookup("isolation")
-		buildOpts.Isolation = define.OCI
-		if err := flag.Value.Set(define.OCI); err != nil {
-			logrus.Errorf("unable to set --isolation to %v: %v", define.OCI, err)
+		buildOpts.Isolation = buildahDefine.OCI
+		if err := flag.Value.Set(buildahDefine.OCI); err != nil {
+			logrus.Errorf("unable to set --isolation to %v: %v", buildahDefine.OCI, err)
 		}
-		flag.DefValue = define.OCI
+		flag.DefValue = buildahDefine.OCI
 		_ = flags.MarkHidden("disable-content-trust")
 		_ = flags.MarkHidden("cache-from")
 		_ = flags.MarkHidden("sign-by")
@@ -195,7 +196,7 @@ func build(cmd *cobra.Command, args []string) error {
 	var contextDir string
 	if len(args) > 0 {
 		// The context directory could be a URL.  Try to handle that.
-		tempDir, subDir, err := define.TempDirForURL("", "buildah", args[0])
+		tempDir, subDir, err := buildahDefine.TempDirForURL("", "buildah", args[0])
 		if err != nil {
 			return errors.Wrapf(err, "error prepping temporary context directory")
 		}
@@ -318,16 +319,22 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		return nil, errors.Errorf("can only set one of 'pull' or 'pull-always' or 'pull-never'")
 	}
 
-	pullPolicy := define.PullIfMissing
+	pullPolicy := buildahDefine.PullIfMissing
 	if c.Flags().Changed("pull") && flags.Pull {
-		pullPolicy = define.PullAlways
+		pullPolicy = buildahDefine.PullAlways
 	}
 	if flags.PullAlways {
-		pullPolicy = define.PullAlways
+		pullPolicy = buildahDefine.PullAlways
 	}
 
 	if flags.PullNever {
-		pullPolicy = define.PullNever
+		pullPolicy = buildahDefine.PullNever
+	}
+
+	if c.Flag("authfile").Changed {
+		if err := auth.CheckAuthFile(flags.Authfile); err != nil {
+			return nil, err
+		}
 	}
 
 	args := make(map[string]string)
@@ -402,9 +409,9 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		flags.Layers = false
 	}
 
-	compression := define.Gzip
+	compression := buildahDefine.Gzip
 	if flags.DisableCompression {
-		compression = define.Uncompressed
+		compression = buildahDefine.Uncompressed
 	}
 
 	isolation, err := parse.IsolationOption(flags.Isolation)
@@ -426,10 +433,10 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 	format := ""
 	flags.Format = strings.ToLower(flags.Format)
 	switch {
-	case strings.HasPrefix(flags.Format, define.OCI):
-		format = define.OCIv1ImageManifest
-	case strings.HasPrefix(flags.Format, define.DOCKER):
-		format = define.Dockerv2ImageManifest
+	case strings.HasPrefix(flags.Format, buildahDefine.OCI):
+		format = buildahDefine.OCIv1ImageManifest
+	case strings.HasPrefix(flags.Format, buildahDefine.DOCKER):
+		format = buildahDefine.Dockerv2ImageManifest
 	default:
 		return nil, errors.Errorf("unrecognized image type %q", flags.Format)
 	}
@@ -457,7 +464,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		return nil, errors.Wrapf(err, "unable to obtain decrypt config")
 	}
 
-	opts := define.BuildOptions{
+	opts := buildahDefine.BuildOptions{
 		AddCapabilities:         flags.CapAdd,
 		AdditionalTags:          tags,
 		Annotations:             flags.Annotation,

@@ -8,7 +8,7 @@ import (
 )
 
 func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
-	// swagger:operation GET /libpod/pods/json pods ListPods
+	// swagger:operation GET /libpod/pods/json pods PodListLibpod
 	// ---
 	// summary: List pods
 	// produces:
@@ -26,7 +26,7 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/json"), s.APIHandler(libpod.Pods)).Methods(http.MethodGet)
-	// swagger:operation POST /libpod/pods/create pods CreatePod
+	// swagger:operation POST /libpod/pods/create pods PodCreateLibpod
 	// ---
 	// summary: Create a pod
 	// produces:
@@ -38,7 +38,7 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//   schema:
 	//     $ref: "#/definitions/PodSpecGenerator"
 	// responses:
-	//   200:
+	//   201:
 	//     schema:
 	//       $ref: "#/definitions/IdResponse"
 	//   400:
@@ -51,7 +51,7 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/create"), s.APIHandler(libpod.PodCreate)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/pods/prune pods PrunePods
+	// swagger:operation POST /libpod/pods/prune pods PodPruneLibpod
 	// ---
 	// summary: Prune unused pods
 	// produces:
@@ -66,7 +66,7 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/prune"), s.APIHandler(libpod.PodPrune)).Methods(http.MethodPost)
-	// swagger:operation DELETE /libpod/pods/{name} pods removePod
+	// swagger:operation DELETE /libpod/pods/{name} pods PodDeleteLibpod
 	// ---
 	// summary: Remove pod
 	// produces:
@@ -91,7 +91,7 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/{name}"), s.APIHandler(libpod.PodDelete)).Methods(http.MethodDelete)
-	// swagger:operation GET /libpod/pods/{name}/json pods inspectPod
+	// swagger:operation GET /libpod/pods/{name}/json pods PodInspectLibpod
 	// ---
 	// summary: Inspect pod
 	// produces:
@@ -110,7 +110,7 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//   500:
 	//      $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/{name}/json"), s.APIHandler(libpod.PodInspect)).Methods(http.MethodGet)
-	// swagger:operation GET /libpod/pods/{name}/exists pods podExists
+	// swagger:operation GET /libpod/pods/{name}/exists pods PodExistsLibpod
 	// ---
 	// summary: Pod exists
 	// description: Check if a pod exists by name or ID
@@ -130,7 +130,7 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/{name}/exists"), s.APIHandler(libpod.PodExists)).Methods(http.MethodGet)
-	// swagger:operation POST /libpod/pods/{name}/kill pods killPod
+	// swagger:operation POST /libpod/pods/{name}/kill pods PodKillLibpod
 	// ---
 	// summary: Kill a pod
 	// produces:
@@ -158,7 +158,7 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/{name}/kill"), s.APIHandler(libpod.PodKill)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/pods/{name}/pause pods pausePod
+	// swagger:operation POST /libpod/pods/{name}/pause pods PodPauseLibpod
 	// ---
 	// summary: Pause a pod
 	// description: Pause a pod
@@ -180,7 +180,7 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/{name}/pause"), s.APIHandler(libpod.PodPause)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/pods/{name}/restart pods restartPod
+	// swagger:operation POST /libpod/pods/{name}/restart pods PodRestartLibpod
 	// ---
 	// summary: Restart a pod
 	// produces:
@@ -201,7 +201,7 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/{name}/restart"), s.APIHandler(libpod.PodRestart)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/pods/{name}/start pods startPod
+	// swagger:operation POST /libpod/pods/{name}/start pods PodStartLibpod
 	// ---
 	// summary: Start a pod
 	// produces:
@@ -224,7 +224,7 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/{name}/start"), s.APIHandler(libpod.PodStart)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/pods/{name}/stop pods stopPod
+	// swagger:operation POST /libpod/pods/{name}/stop pods PodStopLibpod
 	// ---
 	// summary: Stop a pod
 	// produces:
@@ -253,7 +253,7 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/{name}/stop"), s.APIHandler(libpod.PodStop)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/pods/{name}/unpause pods unpausePod
+	// swagger:operation POST /libpod/pods/{name}/unpause pods PodUnpauseLibpod
 	// ---
 	// summary: Unpause a pod
 	// produces:
@@ -274,7 +274,7 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/{name}/unpause"), s.APIHandler(libpod.PodUnpause)).Methods(http.MethodPost)
-	// swagger:operation GET /libpod/pods/{name}/top pods topPod
+	// swagger:operation GET /libpod/pods/{name}/top pods PodTopLibpod
 	// ---
 	// summary: List processes
 	// description: List processes running inside a pod
@@ -305,7 +305,7 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/{name}/top"), s.APIHandler(libpod.PodTop)).Methods(http.MethodGet)
-	// swagger:operation GET /libpod/pods/stats pods statsPod
+	// swagger:operation GET /libpod/pods/stats pods PodStatsLibpod
 	// ---
 	// tags:
 	//  - pods

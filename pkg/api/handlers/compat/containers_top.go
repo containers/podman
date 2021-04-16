@@ -46,8 +46,16 @@ func TopContainer(w http.ResponseWriter, r *http.Request) {
 	var body = handlers.ContainerTopOKBody{}
 	if len(output) > 0 {
 		body.Titles = strings.Split(output[0], "\t")
+		for i := range body.Titles {
+			body.Titles[i] = strings.TrimSpace(body.Titles[i])
+		}
+
 		for _, line := range output[1:] {
-			body.Processes = append(body.Processes, strings.Split(line, "\t"))
+			process := strings.Split(line, "\t")
+			for i := range process {
+				process[i] = strings.TrimSpace(process[i])
+			}
+			body.Processes = append(body.Processes, process)
 		}
 	}
 	utils.WriteJSON(w, http.StatusOK, body)

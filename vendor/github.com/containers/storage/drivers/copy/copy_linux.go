@@ -25,6 +25,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/pools"
 	"github.com/containers/storage/pkg/system"
+	"github.com/containers/storage/pkg/unshare"
 	rsystem "github.com/opencontainers/runc/libcontainer/system"
 	"golang.org/x/sys/unix"
 )
@@ -291,6 +292,10 @@ func doCopyXattrs(srcPath, dstPath string) error {
 				return err
 			}
 		}
+	}
+
+	if unshare.IsRootless() {
+		return nil
 	}
 
 	// We need to copy this attribute if it appears in an overlay upper layer, as

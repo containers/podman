@@ -12,8 +12,8 @@ podman\-build - Build a container image using a Containerfile
 **podman build** Builds an image using instructions from one or more
 Containerfiles or Dockerfiles and a specified build context directory. A
 Containerfile uses the same syntax as a Dockerfile internally. For this
-document, a file referred to as a Containerfile can be a file named either
-'Containerfile' or 'Dockerfile'.
+document, a file referred to as a Containerfile can be a file named
+either 'Containerfile' or 'Dockerfile'.
 
 The build context directory can be specified as the http(s) URL of an archive,
 git repository or Containerfile.
@@ -692,6 +692,7 @@ Set the architecture variant of the image to be pulled.
 
    * [rw|ro]
    * [z|Z|O]
+   * [U]
    * [`[r]shared`|`[r]slave`|`[r]private`]
 
 The `CONTAINER-DIR` must be an absolute path such as `/src/docs`. The `HOST-DIR`
@@ -706,6 +707,18 @@ container.
 You can add the `:ro` or `:rw` suffix to a volume to mount it read-only or
 read-write mode, respectively. By default, the volumes are mounted read-write.
 See examples.
+
+  `Chowning Volume Mounts`
+
+By default, Podman does not change the owner and group of source volume
+directories mounted. When running using user namespaces, the UID and GID inside
+the namespace may correspond to another UID and GID on the host.
+
+The `:U` suffix tells Podman to use the correct host UID and GID based on the
+UID and GID within the namespace, to change recursively the owner and group of
+the source volume.
+
+**Warning** use with caution since this will modify the host filesystem.
 
   `Labeling Volume Mounts`
 

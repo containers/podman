@@ -727,6 +727,11 @@ class TestApi(unittest.TestCase):
         start = json.loads(r.text)
         self.assertGreater(len(start["Errs"]), 0, r.text)
 
+    def test_df(self):
+        r = requests.get(_url("/system/df"))
+        self.assertEqual(r.status_code, 200, r.text)
+
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -9,7 +9,7 @@ import (
 )
 
 func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
-	// swagger:operation POST /containers/create compat createContainer
+	// swagger:operation POST /containers/create compat ContainerCreate
 	// ---
 	//   summary: Create a container
 	//   tags:
@@ -35,7 +35,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/create"), s.APIHandler(compat.CreateContainer)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/create", s.APIHandler(compat.CreateContainer)).Methods(http.MethodPost)
-	// swagger:operation GET /containers/json compat listContainers
+	// swagger:operation GET /containers/json compat ContainerList
 	// ---
 	// tags:
 	//  - containers (compat)
@@ -92,7 +92,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/json"), s.APIHandler(compat.ListContainers)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/json", s.APIHandler(compat.ListContainers)).Methods(http.MethodGet)
-	// swagger:operation POST  /containers/prune compat pruneContainers
+	// swagger:operation POST  /containers/prune compat ContainerPrune
 	// ---
 	// tags:
 	//   - containers (compat)
@@ -116,7 +116,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/prune"), s.APIHandler(compat.PruneContainers)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/prune", s.APIHandler(compat.PruneContainers)).Methods(http.MethodPost)
-	// swagger:operation DELETE /containers/{name} compat removeContainer
+	// swagger:operation DELETE /containers/{name} compat ContainerDelete
 	// ---
 	// tags:
 	//  - containers (compat)
@@ -157,7 +157,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}"), s.APIHandler(compat.RemoveContainer)).Methods(http.MethodDelete)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}", s.APIHandler(compat.RemoveContainer)).Methods(http.MethodDelete)
-	// swagger:operation GET /containers/{name}/json compat getContainer
+	// swagger:operation GET /containers/{name}/json compat ContainerInspect
 	// ---
 	// tags:
 	//  - containers (compat)
@@ -186,7 +186,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/json"), s.APIHandler(compat.GetContainer)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/json", s.APIHandler(compat.GetContainer)).Methods(http.MethodGet)
-	// swagger:operation POST /containers/{name}/kill compat killContainer
+	// swagger:operation POST /containers/{name}/kill compat ContainerKill
 	// ---
 	// tags:
 	//   - containers (compat)
@@ -223,7 +223,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/kill"), s.APIHandler(compat.KillContainer)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/kill", s.APIHandler(compat.KillContainer)).Methods(http.MethodPost)
-	// swagger:operation GET /containers/{name}/logs compat logsFromContainer
+	// swagger:operation GET /containers/{name}/logs compat ContainerLogs
 	// ---
 	// tags:
 	//   - containers (compat)
@@ -277,7 +277,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/logs"), s.APIHandler(compat.LogsFromContainer)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/logs", s.APIHandler(compat.LogsFromContainer)).Methods(http.MethodGet)
-	// swagger:operation POST /containers/{name}/pause compat pauseContainer
+	// swagger:operation POST /containers/{name}/pause compat ContainerPause
 	// ---
 	// tags:
 	//   - containers (compat)
@@ -301,7 +301,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/pause"), s.APIHandler(compat.PauseContainer)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/pause", s.APIHandler(compat.PauseContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /containers/{name}/restart compat restartContainer
+	// swagger:operation POST /containers/{name}/restart compat ContainerRestart
 	// ---
 	// tags:
 	//   - containers (compat)
@@ -328,7 +328,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/restart"), s.APIHandler(compat.RestartContainer)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/restart", s.APIHandler(compat.RestartContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /containers/{name}/start compat startContainer
+	// swagger:operation POST /containers/{name}/start compat ContainerStart
 	// ---
 	// tags:
 	//   - containers (compat)
@@ -358,7 +358,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/start"), s.APIHandler(compat.StartContainer)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/start", s.APIHandler(compat.StartContainer)).Methods(http.MethodPost)
-	// swagger:operation GET /containers/{name}/stats compat statsContainer
+	// swagger:operation GET /containers/{name}/stats compat ContainerStats
 	// ---
 	// tags:
 	//   - containers (compat)
@@ -387,7 +387,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/stats"), s.APIHandler(compat.StatsContainer)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/stats", s.APIHandler(compat.StatsContainer)).Methods(http.MethodGet)
-	// swagger:operation POST /containers/{name}/stop compat stopContainer
+	// swagger:operation POST /containers/{name}/stop compat ContainerStop
 	// ---
 	// tags:
 	//   - containers (compat)
@@ -417,7 +417,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/stop"), s.APIHandler(compat.StopContainer)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/stop", s.APIHandler(compat.StopContainer)).Methods(http.MethodPost)
-	// swagger:operation GET /containers/{name}/top compat topContainer
+	// swagger:operation GET /containers/{name}/top compat ContainerTop
 	// ---
 	// tags:
 	//   - containers (compat)
@@ -444,7 +444,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/top"), s.APIHandler(compat.TopContainer)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/top", s.APIHandler(compat.TopContainer)).Methods(http.MethodGet)
-	// swagger:operation POST /containers/{name}/unpause compat unpauseContainer
+	// swagger:operation POST /containers/{name}/unpause compat ContainerUnpause
 	// ---
 	// tags:
 	//   - containers (compat)
@@ -468,7 +468,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/unpause"), s.APIHandler(compat.UnpauseContainer)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/unpause", s.APIHandler(compat.UnpauseContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /containers/{name}/wait compat waitContainer
+	// swagger:operation POST /containers/{name}/wait compat ContainerWait
 	// ---
 	// tags:
 	//   - containers (compat)
@@ -508,7 +508,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/wait"), s.APIHandler(compat.WaitContainer)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/wait", s.APIHandler(compat.WaitContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /containers/{name}/attach compat attachContainer
+	// swagger:operation POST /containers/{name}/attach compat ContainerAttach
 	// ---
 	// tags:
 	//   - containers (compat)
@@ -565,7 +565,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/attach"), s.APIHandler(compat.AttachContainer)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/attach", s.APIHandler(compat.AttachContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /containers/{name}/resize compat resizeContainer
+	// swagger:operation POST /containers/{name}/resize compat ContainerResize
 	// ---
 	// tags:
 	//  - containers (compat)
@@ -604,7 +604,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/resize"), s.APIHandler(compat.ResizeTTY)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/resize", s.APIHandler(compat.ResizeTTY)).Methods(http.MethodPost)
-	// swagger:operation GET /containers/{name}/export compat exportContainer
+	// swagger:operation GET /containers/{name}/export compat ContainerExport
 	// ---
 	// tags:
 	//   - containers (compat)
@@ -627,7 +627,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/{name}/export"), s.APIHandler(compat.ExportContainer)).Methods(http.MethodGet)
 	r.HandleFunc("/containers/{name}/export", s.APIHandler(compat.ExportContainer)).Methods(http.MethodGet)
-	// swagger:operation POST /containers/{name}/rename compat renameContainer
+	// swagger:operation POST /containers/{name}/rename compat ContainerRename
 	// ---
 	// tags:
 	//   - containers (compat)
@@ -662,7 +662,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 		libpod endpoints
 	*/
 
-	// swagger:operation POST /libpod/containers/create libpod libpodCreateContainer
+	// swagger:operation POST /libpod/containers/create libpod ContainerCreateLibpod
 	// ---
 	//   summary: Create a container
 	//   tags:
@@ -687,7 +687,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//     500:
 	//       $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/create"), s.APIHandler(libpod.CreateContainer)).Methods(http.MethodPost)
-	// swagger:operation GET /libpod/containers/json libpod libpodListContainers
+	// swagger:operation GET /libpod/containers/json libpod ContainerListLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -752,7 +752,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/json"), s.APIHandler(libpod.ListContainers)).Methods(http.MethodGet)
-	// swagger:operation POST  /libpod/containers/prune libpod libpodPruneContainers
+	// swagger:operation POST  /libpod/containers/prune libpod ContainerPruneLibpod
 	// ---
 	// tags:
 	//   - containers
@@ -774,7 +774,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/prune"), s.APIHandler(compat.PruneContainers)).Methods(http.MethodPost)
-	// swagger:operation GET /libpod/containers/showmounted libpod libpodShowMountedContainers
+	// swagger:operation GET /libpod/containers/showmounted libpod ShowMountedContainersLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -792,7 +792,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//      $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/showmounted"), s.APIHandler(libpod.ShowMountedContainers)).Methods(http.MethodGet)
-	// swagger:operation DELETE /libpod/containers/{name} libpod libpodRemoveContainer
+	// swagger:operation DELETE /libpod/containers/{name} libpod ContainerDeleteLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -826,7 +826,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}"), s.APIHandler(compat.RemoveContainer)).Methods(http.MethodDelete)
-	// swagger:operation GET /libpod/containers/{name}/json libpod libpodGetContainer
+	// swagger:operation GET /libpod/containers/{name}/json libpod ContainerInspectLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -852,7 +852,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/json"), s.APIHandler(libpod.GetContainer)).Methods(http.MethodGet)
-	// swagger:operation POST /libpod/containers/{name}/kill libpod libpodKillContainer
+	// swagger:operation POST /libpod/containers/{name}/kill libpod ContainerKillLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -881,7 +881,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/kill"), s.APIHandler(compat.KillContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/containers/{name}/mount libpod libpodMountContainer
+	// swagger:operation POST /libpod/containers/{name}/mount libpod ContainerMountLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -907,7 +907,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/mount"), s.APIHandler(libpod.MountContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/containers/{name}/unmount libpod libpodUnmountContainer
+	// swagger:operation POST /libpod/containers/{name}/unmount libpod ContainerUnmountLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -929,7 +929,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/unmount"), s.APIHandler(libpod.UnmountContainer)).Methods(http.MethodPost)
-	// swagger:operation GET /libpod/containers/{name}/logs libpod libpodLogsFromContainer
+	// swagger:operation GET /libpod/containers/{name}/logs libpod ContainerLogsLibpod
 	// ---
 	// tags:
 	//   - containers
@@ -981,7 +981,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//      $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/logs"), s.APIHandler(compat.LogsFromContainer)).Methods(http.MethodGet)
-	// swagger:operation POST /libpod/containers/{name}/pause libpod libpodPauseContainer
+	// swagger:operation POST /libpod/containers/{name}/pause libpod ContainerPauseLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -1003,7 +1003,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/pause"), s.APIHandler(compat.PauseContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/containers/{name}/restart libpod libpodRestartContainer
+	// swagger:operation POST /libpod/containers/{name}/restart libpod ContainerRestartLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -1028,7 +1028,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/restart"), s.APIHandler(compat.RestartContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/containers/{name}/start libpod libpodStartContainer
+	// swagger:operation POST /libpod/containers/{name}/start libpod ContainerStartLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -1056,7 +1056,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/start"), s.APIHandler(compat.StartContainer)).Methods(http.MethodPost)
-	// swagger:operation GET /libpod/containers/{name}/stats libpod libpodStatsContainer
+	// swagger:operation GET /libpod/containers/{name}/stats libpod ContainerStatsLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -1083,7 +1083,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/stats"), s.APIHandler(compat.StatsContainer)).Methods(http.MethodGet)
-	// swagger:operation GET /libpod/containers/stats libpod libpodStatsContainers
+	// swagger:operation GET /libpod/containers/stats libpod ContainersStatsAllLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -1112,7 +1112,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/stats"), s.APIHandler(libpod.StatsContainer)).Methods(http.MethodGet)
 
-	// swagger:operation GET /libpod/containers/{name}/top libpod libpodTopContainer
+	// swagger:operation GET /libpod/containers/{name}/top libpod ContainerTopLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -1146,7 +1146,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/top"), s.APIHandler(compat.TopContainer)).Methods(http.MethodGet)
-	// swagger:operation POST /libpod/containers/{name}/unpause libpod libpodUnpauseContainer
+	// swagger:operation POST /libpod/containers/{name}/unpause libpod ContainerUnpauseLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -1167,7 +1167,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/unpause"), s.APIHandler(compat.UnpauseContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/containers/{name}/wait libpod libpodWaitContainer
+	// swagger:operation POST /libpod/containers/{name}/wait libpod ContainerWaitLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -1194,17 +1194,28 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//       - removing
 	//       - stopping
 	//    description: "Conditions to wait for. If no condition provided the 'exited' condition is assumed."
+	//  - in: query
+	//    name: interval
+	//    type: string
+	//    default: "250ms"
+	//    description: Time Interval to wait before polling for completion.
 	// produces:
 	// - application/json
+	// - text/plain
 	// responses:
 	//   200:
-	//     $ref: "#/responses/ContainerWaitResponse"
+	//     description: Status code
+	//     schema:
+	//       type: integer
+	//       format: int32
+	//     examples:
+	//       text/plain: 137
 	//   404:
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/wait"), s.APIHandler(libpod.WaitContainer)).Methods(http.MethodPost)
-	// swagger:operation GET /libpod/containers/{name}/exists libpod libpodContainerExists
+	// swagger:operation GET /libpod/containers/{name}/exists libpod ContainerExistsLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -1226,7 +1237,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/exists"), s.APIHandler(libpod.ContainerExists)).Methods(http.MethodGet)
-	// swagger:operation POST /libpod/containers/{name}/stop libpod libpodStopContainer
+	// swagger:operation POST /libpod/containers/{name}/stop libpod ContainerStopLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -1264,7 +1275,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/stop"), s.APIHandler(compat.StopContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/containers/{name}/attach libpod libpodAttachContainer
+	// swagger:operation POST /libpod/containers/{name}/attach libpod ContainerAttachLibpod
 	// ---
 	// tags:
 	//   - containers
@@ -1319,7 +1330,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/attach"), s.APIHandler(compat.AttachContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/containers/{name}/resize libpod libpodResizeContainer
+	// swagger:operation POST /libpod/containers/{name}/resize libpod ContainerResizeLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -1351,7 +1362,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/resize"), s.APIHandler(compat.ResizeTTY)).Methods(http.MethodPost)
-	// swagger:operation GET /libpod/containers/{name}/export libpod libpodExportContainer
+	// swagger:operation GET /libpod/containers/{name}/export libpod ContainerExportLibpod
 	// ---
 	// tags:
 	//   - containers
@@ -1373,7 +1384,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/export"), s.APIHandler(compat.ExportContainer)).Methods(http.MethodGet)
-	// swagger:operation POST /libpod/containers/{name}/checkpoint libpod libpodCheckpointContainer
+	// swagger:operation POST /libpod/containers/{name}/checkpoint libpod ContainerCheckpointLibpod
 	// ---
 	// tags:
 	//   - containers
@@ -1414,7 +1425,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/checkpoint"), s.APIHandler(libpod.Checkpoint)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/containers/{name}/restore libpod libpodRestoreContainer
+	// swagger:operation POST /libpod/containers/{name}/restore libpod ContainerRestoreLibpod
 	// ---
 	// tags:
 	//   - containers
@@ -1468,8 +1479,8 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/restore"), s.APIHandler(libpod.Restore)).Methods(http.MethodPost)
-	// swagger:operation GET /containers/{name}/changes libpod libpodChangesContainer
-	// swagger:operation GET /libpod/containers/{name}/changes compat changesContainer
+	// swagger:operation GET /containers/{name}/changes libpod ContainerChangesLibpod
+	// swagger:operation GET /libpod/containers/{name}/changes compat ContainerChanges
 	// ---
 	// tags:
 	//   - containers
@@ -1501,7 +1512,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name}/changes"), s.APIHandler(compat.Changes)).Methods(http.MethodGet)
 	r.HandleFunc("/containers/{name}/changes", s.APIHandler(compat.Changes)).Methods(http.MethodGet)
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/changes"), s.APIHandler(compat.Changes)).Methods(http.MethodGet)
-	// swagger:operation POST /libpod/containers/{name}/init libpod libpodInitContainer
+	// swagger:operation POST /libpod/containers/{name}/init libpod ContainerInitLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -1525,7 +1536,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/init"), s.APIHandler(libpod.InitContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/containers/{name}/rename libpod libpodRenameContainer
+	// swagger:operation POST /libpod/containers/{name}/rename libpod ContainerRenameLibpod
 	// ---
 	// tags:
 	//   - containers

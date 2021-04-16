@@ -5,7 +5,7 @@ import (
 	"syscall"
 
 	"github.com/containers/image/v5/manifest"
-	"github.com/containers/storage"
+	"github.com/containers/storage/types"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 )
@@ -302,7 +302,7 @@ type ContainerSecurityConfig struct {
 	// IDMappings are UID and GID mappings that will be used by user
 	// namespaces.
 	// Required if UserNS is private.
-	IDMappings *storage.IDMappingOptions `json:"idmappings,omitempty"`
+	IDMappings *types.IDMappingOptions `json:"idmappings,omitempty"`
 	// ReadOnlyFilesystem indicates that everything will be mounted
 	// as read-only
 	ReadOnlyFilesystem bool `json:"read_only_filesystem,omitempty"`

@@ -8,7 +8,7 @@ import (
 )
 
 func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
-	// swagger:operation POST /libpod/manifests/create manifests Create
+	// swagger:operation POST /libpod/manifests/create manifests ManifestCreateLibpod
 	// ---
 	// summary: Create
 	// description: Create a manifest list
@@ -39,7 +39,7 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/manifests/create"), s.APIHandler(libpod.ManifestCreate)).Methods(http.MethodPost)
-	// swagger:operation GET /libpod/manifests/{name}/exists manifests Exists
+	// swagger:operation GET /libpod/manifests/{name}/exists manifests ManifestExistsLibpod
 	// ---
 	// summary: Exists
 	// description: Check if manifest list exists
@@ -59,7 +59,7 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/manifests/{name}/exists"), s.APIHandler(libpod.ExistsManifest)).Methods(http.MethodGet)
-	// swagger:operation GET /libpod/manifests/{name:.*}/json manifests Inspect
+	// swagger:operation GET /libpod/manifests/{name:.*}/json manifests ManifestInspectLibpod
 	// ---
 	// summary: Inspect
 	// description: Display a manifest list
@@ -79,8 +79,9 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/manifests/{name:.*}/json"), s.APIHandler(libpod.ManifestInspect)).Methods(http.MethodGet)
-	// swagger:operation POST /libpod/manifests/{name:.*}/add manifests AddManifest
+	// swagger:operation POST /libpod/manifests/{name:.*}/add manifests ManifestAddLibpod
 	// ---
+	// summary: Add image
 	// description: Add an image to a manifest list
 	// produces:
 	// - application/json
@@ -106,7 +107,7 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/manifests/{name:.*}/add"), s.APIHandler(libpod.ManifestAdd)).Methods(http.MethodPost)
-	// swagger:operation DELETE /libpod/manifests/{name:.*} manifests RemoveManifest
+	// swagger:operation DELETE /libpod/manifests/{name:.*} manifests ManifestDeleteLibpod
 	// ---
 	// summary: Remove
 	// description: Remove an image from a manifest list
@@ -133,7 +134,7 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/manifests/{name:.*}"), s.APIHandler(libpod.ManifestRemove)).Methods(http.MethodDelete)
-	// swagger:operation POST /libpod/manifests/{name}/push manifests PushManifest
+	// swagger:operation POST /libpod/manifests/{name}/push manifests ManifestPushLibpod
 	// ---
 	// summary: Push
 	// description: Push a manifest list or image index to a registry

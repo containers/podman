@@ -4,7 +4,7 @@
 podman\-manifest\-add - Add an image to a manifest list or image index
 
 ## SYNOPSIS
-**podman manifest add** [*options*] *listnameorindexname* *imagename*
+**podman manifest add** [*options*] *listnameorindexname* [*transport*]:*imagename*
 
 ## DESCRIPTION
 
@@ -78,6 +78,20 @@ Require HTTPS and verify certificates when talking to container registries (defa
 Specify the variant which the list or index records for the image.  This option
 is typically used to distinguish between multiple entries which share the same
 architecture value, but which expect different versions of its instruction set.
+
+## Transport
+
+ Multiple transports are supported:
+
+  **docker://**_docker-reference_ _(default)_
+  An image in a registry implementing the "Docker Registry HTTP API V2". By default, uses the authorization state in `$XDG_RUNTIME_DIR/containers/auth.json`, which is set using `(podman login)`. If the authorization state is not found there, `$HOME/.docker/config.json` is checked, which is set using `(docker login)`.
+
+    $ podman manifest add mylist:v1.11 docker://quay.io/username/myimage
+
+  **containers-storage:**_oci-reference_
+  An image in _oci-reference_ format stored in the local container storage. _oci-reference_ must contain a tag.
+
+    $ podman manifest add mylist:v1.11 containers-storage:quay.io/username/myimage
 
 ## EXAMPLE
 

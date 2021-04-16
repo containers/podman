@@ -357,6 +357,9 @@ type ImportFromImageOptions struct {
 
 // NewBuilder creates a new build container.
 func NewBuilder(ctx context.Context, store storage.Store, options BuilderOptions) (*Builder, error) {
+	if options.CommonBuildOpts == nil {
+		options.CommonBuildOpts = &CommonBuildOptions{}
+	}
 	return newBuilder(ctx, store, options)
 }
 

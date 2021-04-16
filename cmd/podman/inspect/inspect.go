@@ -1,7 +1,6 @@
 package inspect
 
 import (
-	"bytes"
 	"context"
 	"encoding/json" // due to a bug in json-iterator it cannot be used here
 	"fmt"
@@ -246,15 +245,8 @@ func printJSON(data []interface{}) error {
 }
 
 func printTmpl(typ, row string, data []interface{}) error {
-	t, err := template.New(typ + " inspect").Funcs(map[string]interface{}{
-		"json": func(v interface{}) string {
-			b := &bytes.Buffer{}
-			e := registry.JSONLibrary().NewEncoder(b)
-			e.SetEscapeHTML(false)
-			_ = e.Encode(v)
-			return strings.TrimSpace(b.String())
-		},
-	}).Parse(row)
+	// We cannot use c/common/reports here, too many levels of interface{}
+	t, err := template.New(typ + " inspect").Funcs(template.FuncMap(report.DefaultFuncs)).Parse(row)
 	if err != nil {
 		return err
 	}

@@ -550,26 +550,53 @@ var _ = Describe("Podman containers ", func() {
 		filtersIncorrect := map[string][]string{
 			"status": {"dummy"},
 		}
-		pruneResponse, err := containers.Prune(bt.conn, new(containers.PruneOptions).WithFilters(filtersIncorrect))
+		_, err = containers.Prune(bt.conn, new(containers.PruneOptions).WithFilters(filtersIncorrect))
+		Expect(err).ToNot(BeNil())
+
+		// List filter params should not work with prune.
+		filtersIncorrect = map[string][]string{
+			"name": {"top"},
+		}
+		_, err = containers.Prune(bt.conn, new(containers.PruneOptions).WithFilters(filtersIncorrect))
 		Expect(err).ToNot(BeNil())
 
 		// Mismatched filter params no container should be pruned.
 		filtersIncorrect = map[string][]string{
-			"name": {"r"},
+			"label": {"xyz"},
 		}
-		pruneResponse, err = containers.Prune(bt.conn, new(containers.PruneOptions).WithFilters(filtersIncorrect))
+		pruneResponse, err := containers.Prune(bt.conn, new(containers.PruneOptions).WithFilters(filtersIncorrect))
 		Expect(err).To(BeNil())
 		Expect(len(reports.PruneReportsIds(pruneResponse))).To(Equal(0))
 		Expect(len(reports.PruneReportsErrs(pruneResponse))).To(Equal(0))
 
 		// Valid filter params container should be pruned now.
 		filters := map[string][]string{
-			"name": {"top"},
+			"until": {"5000000000"}, //Friday, June 11, 2128
 		}
 		pruneResponse, err = containers.Prune(bt.conn, new(containers.PruneOptions).WithFilters(filters))
 		Expect(err).To(BeNil())
 		Expect(len(reports.PruneReportsErrs(pruneResponse))).To(Equal(0))
 		Expect(len(reports.PruneReportsIds(pruneResponse))).To(Equal(1))
+	})
+
+	It("podman list containers with until filter", func() {
+		var name = "top"
+		_, err := bt.RunTopContainer(&name, nil)
+		Expect(err).To(BeNil())
+
+		filters := map[string][]string{
+			"until": {"5000000000"}, //Friday, June 11, 2128
+		}
+		c, err := containers.List(bt.conn, new(containers.ListOptions).WithFilters(filters).WithAll(true))
+		Expect(err).To(BeNil())
+		Expect(len(c)).To(Equal(1))
+
+		filters = map[string][]string{
+			"until": {"500000"}, // Tuesday, January 6, 1970
+		}
+		c, err = containers.List(bt.conn, new(containers.ListOptions).WithFilters(filters).WithAll(true))
+		Expect(err).To(BeNil())
+		Expect(len(c)).To(Equal(0))
 	})
 
 	It("podman prune running containers", func() {

@@ -403,6 +403,8 @@ func AliasFlags(f *pflag.FlagSet, name string) pflag.NormalizedName {
 		name = "os"
 	case "purge":
 		name = "rm"
+	case "tty":
+		name = "terminal"
 	}
 	return pflag.NormalizedName(name)
 }

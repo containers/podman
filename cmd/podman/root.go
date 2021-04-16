@@ -408,7 +408,11 @@ func formatError(err error) string {
 			strings.TrimSuffix(err.Error(), ": "+define.ErrOCIRuntime.Error()),
 		)
 	} else {
-		message = "Error: " + err.Error()
+		if logrus.IsLevelEnabled(logrus.TraceLevel) {
+			message = fmt.Sprintf("Error: %+v", err)
+		} else {
+			message = fmt.Sprintf("Error: %v", err)
+		}
 	}
 	return message
 }

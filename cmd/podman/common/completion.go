@@ -21,7 +21,7 @@ var (
 	// ChangeCmds is the list of valid Change commands to passed to the Commit call
 	ChangeCmds = []string{"CMD", "ENTRYPOINT", "ENV", "EXPOSE", "LABEL", "ONBUILD", "STOPSIGNAL", "USER", "VOLUME", "WORKDIR"}
 	// LogLevels supported by podman
-	LogLevels = []string{"debug", "info", "warn", "warning", "error", "fatal", "panic"}
+	LogLevels = []string{"trace", "debug", "info", "warn", "warning", "error", "fatal", "panic"}
 )
 
 type completeType int
@@ -995,7 +995,7 @@ func AutocompleteEventBackend(cmd *cobra.Command, args []string, toComplete stri
 }
 
 // AutocompleteLogLevel - Autocomplete log level options.
-// -> "debug", "info", "warn", "error", "fatal", "panic"
+// -> "trace", "debug", "info", "warn", "error", "fatal", "panic"
 func AutocompleteLogLevel(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	return LogLevels, cobra.ShellCompDirectiveNoFileComp
 }

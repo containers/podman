@@ -14,6 +14,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/directory"
 	"github.com/containers/storage/pkg/idtools"
+	digest "github.com/opencontainers/go-digest"
 )
 
 // FsMagic unsigned id of the filesystem in use.
@@ -33,7 +34,9 @@ var (
 	// ErrPrerequisites returned when driver does not meet prerequisites.
 	ErrPrerequisites = errors.New("prerequisites for driver not satisfied (wrong filesystem?)")
 	// ErrIncompatibleFS returned when file system is not supported.
-	ErrIncompatibleFS = fmt.Errorf("backing file system is unsupported for this graph driver")
+	ErrIncompatibleFS = errors.New("backing file system is unsupported for this graph driver")
+	// ErrLayerUnknown returned when the specified layer is unknown by the driver.
+	ErrLayerUnknown = errors.New("unknown layer")
 )
 
 //CreateOpts contains optional arguments for Create() and CreateReadWrite()
@@ -117,6 +120,7 @@ type ProtoDriver interface {
 	// known to this driver.
 	Cleanup() error
 	// AdditionalImageStores returns additional image stores supported by the driver
+	// This API is experimental and can be changed without bumping the major version number.
 	AdditionalImageStores() []string
 }
 
@@ -178,6 +182,30 @@ type Capabilities struct {
 // can report on their Capabilities.
 type CapabilityDriver interface {
 	Capabilities() Capabilities
+}
+
+// AdditionalLayer reprents a layer that is stored in the additional layer store
+// This API is experimental and can be changed without bumping the major version number.
+type AdditionalLayer interface {
+	// CreateAs creates a new layer from this additional layer
+	CreateAs(id, parent string) error
+
+	// Info returns arbitrary information stored along with this layer (i.e. `info` file)
+	Info() (io.ReadCloser, error)
+
+	// Release tells the additional layer store that we don't use this handler.
+	Release()
+}
+
+// AdditionalLayerStoreDriver is the interface for driver that supports
+// additional layer store functionality.
+// This API is experimental and can be changed without bumping the major version number.
+type AdditionalLayerStoreDriver interface {
+	Driver
+
+	// LookupAdditionalLayer looks up additional layer store by the specified
+	// digest and ref and returns an object representing that layer.
+	LookupAdditionalLayer(d digest.Digest, ref string) (AdditionalLayer, error)
 }
 
 // DiffGetterDriver is the interface for layered file system drivers that

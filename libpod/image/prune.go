@@ -134,10 +134,11 @@ func (ir *Runtime) PruneImages(ctx context.Context, all bool, filter []string) (
 			}
 			nameOrID := img.ID()
 			s, err := img.Size(ctx)
-			imgSize := *s
+			imgSize := uint64(0)
 			if err != nil {
 				logrus.Warnf("Failed to collect image size for: %s, %s", nameOrID, err)
-				imgSize = 0
+			} else {
+				imgSize = *s
 			}
 			if err := img.Remove(ctx, false); err != nil {
 				if errors.Cause(err) == storage.ErrImageUsedByContainer {

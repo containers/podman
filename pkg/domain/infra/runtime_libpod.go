@@ -15,8 +15,8 @@ import (
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/namespaces"
 	"github.com/containers/podman/v3/pkg/rootless"
-	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/containers/storage/types"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
@@ -100,7 +100,7 @@ func GetRuntimeNoStore(ctx context.Context, fs *flag.FlagSet, cfg *entities.Podm
 
 func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpod.Runtime, error) {
 	options := []libpod.RuntimeOption{}
-	storageOpts := storage.StoreOptions{}
+	storageOpts := types.StoreOptions{}
 	cfg := opts.config
 
 	storageSet := false
@@ -146,7 +146,11 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 	// This should always be checked after storage-driver is checked
 	if len(cfg.StorageOpts) > 0 {
 		storageSet = true
-		storageOpts.GraphDriverOptions = cfg.StorageOpts
+		if len(cfg.StorageOpts) == 1 && cfg.StorageOpts[0] == "" {
+			storageOpts.GraphDriverOptions = []string{}
+		} else {
+			storageOpts.GraphDriverOptions = cfg.StorageOpts
+		}
 	}
 	if opts.migrate {
 		options = append(options, libpod.WithMigrate())
@@ -237,8 +241,8 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 }
 
 // ParseIDMapping takes idmappings and subuid and subgid maps and returns a storage mapping
-func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []string, subUIDMap, subGIDMap string) (*storage.IDMappingOptions, error) {
-	options := storage.IDMappingOptions{
+func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []string, subUIDMap, subGIDMap string) (*types.IDMappingOptions, error) {
+	options := types.IDMappingOptions{
 		HostUIDMapping: true,
 		HostGIDMapping: true,
 	}

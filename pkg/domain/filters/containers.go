@@ -165,16 +165,7 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 			return false
 		}, nil
 	case "until":
-		until, err := util.ComputeUntilTimestamp(filterValues)
-		if err != nil {
-			return nil, err
-		}
-		return func(c *libpod.Container) bool {
-			if !until.IsZero() && c.CreatedTime().After((until)) {
-				return true
-			}
-			return false
-		}, nil
+		return prepareUntilFilterFunc(filterValues)
 	case "pod":
 		var pods []*libpod.Pod
 		for _, podNameOrID := range filterValues {
@@ -225,4 +216,30 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 		}, nil
 	}
 	return nil, errors.Errorf("%s is an invalid filter", filter)
+}
+
+// GeneratePruneContainerFilterFuncs return ContainerFilter functions based of filter for prune operation
+func GeneratePruneContainerFilterFuncs(filter string, filterValues []string, r *libpod.Runtime) (func(container *libpod.Container) bool, error) {
+	switch filter {
+	case "label":
+		return func(c *libpod.Container) bool {
+			return util.MatchLabelFilters(filterValues, c.Labels())
+		}, nil
+	case "until":
+		return prepareUntilFilterFunc(filterValues)
+	}
+	return nil, errors.Errorf("%s is an invalid filter", filter)
+}
+
+func prepareUntilFilterFunc(filterValues []string) (func(container *libpod.Container) bool, error) {
+	until, err := util.ComputeUntilTimestamp(filterValues)
+	if err != nil {
+		return nil, err
+	}
+	return func(c *libpod.Container) bool {
+		if !until.IsZero() && c.CreatedTime().Before(until) {
+			return true
+		}
+		return false
+	}, nil
 }

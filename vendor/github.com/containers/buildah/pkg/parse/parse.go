@@ -178,11 +178,11 @@ func parseSecurityOpts(securityOpts []string, commonOpts *define.CommonBuildOpti
 			commonOpts.SeccompProfilePath = SeccompOverridePath
 		} else {
 			if !os.IsNotExist(err) {
-				return errors.Wrapf(err, "can't check if %q exists", SeccompOverridePath)
+				return errors.WithStack(err)
 			}
 			if _, err := os.Stat(SeccompDefaultPath); err != nil {
 				if !os.IsNotExist(err) {
-					return errors.Wrapf(err, "can't check if %q exists", SeccompDefaultPath)
+					return errors.WithStack(err)
 				}
 			} else {
 				commonOpts.SeccompProfilePath = SeccompDefaultPath
@@ -454,7 +454,7 @@ func ValidateVolumeHostDir(hostDir string) error {
 	}
 	if filepath.IsAbs(hostDir) {
 		if _, err := os.Stat(hostDir); err != nil {
-			return errors.Wrapf(err, "error checking path %q", hostDir)
+			return errors.WithStack(err)
 		}
 	}
 	// If hostDir is not an absolute path, that means the user wants to create a
@@ -468,7 +468,7 @@ func validateVolumeMountHostDir(hostDir string) error {
 		return errors.Errorf("invalid host path, must be an absolute path %q", hostDir)
 	}
 	if _, err := os.Stat(hostDir); err != nil {
-		return errors.Wrapf(err, "error checking path %q", hostDir)
+		return errors.WithStack(err)
 	}
 	return nil
 }
@@ -629,7 +629,7 @@ func SystemContextFromOptions(c *cobra.Command) (*types.SystemContext, error) {
 	}
 	if c.Flag("platform") != nil && c.Flag("platform").Changed {
 		if platform, err := c.Flags().GetString("platform"); err == nil {
-			os, arch, variant, err := parsePlatform(platform)
+			os, arch, variant, err := Platform(platform)
 			if err != nil {
 				return nil, err
 			}
@@ -672,7 +672,7 @@ func PlatformFromOptions(c *cobra.Command) (os, arch string, err error) {
 
 	if c.Flag("platform").Changed {
 		if pf, err := c.Flags().GetString("platform"); err == nil {
-			selectedOS, selectedArch, _, err := parsePlatform(pf)
+			selectedOS, selectedArch, _, err := Platform(pf)
 			if err != nil {
 				return "", "", errors.Wrap(err, "unable to parse platform")
 			}
@@ -691,7 +691,8 @@ func DefaultPlatform() string {
 	return runtime.GOOS + platformSep + runtime.GOARCH
 }
 
-func parsePlatform(platform string) (os, arch, variant string, err error) {
+// Platform separates the platform string into os, arch and variant
+func Platform(platform string) (os, arch, variant string, err error) {
 	split := strings.Split(platform, platformSep)
 	if len(split) < 2 {
 		return "", "", "", errors.Errorf("invalid platform syntax for %q (use OS/ARCH)", platform)
@@ -831,7 +832,7 @@ func IDMappingOptions(c *cobra.Command, isolation define.Isolation) (usernsOptio
 		default:
 			how = strings.TrimPrefix(how, "ns:")
 			if _, err := os.Stat(how); err != nil {
-				return nil, nil, errors.Wrapf(err, "error checking for %s namespace at %q", string(specs.UserNamespace), how)
+				return nil, nil, errors.Wrapf(err, "checking %s namespace", string(specs.UserNamespace))
 			}
 			logrus.Debugf("setting %q namespace to %q", string(specs.UserNamespace), how)
 			usernsOption.Path = how
@@ -921,7 +922,7 @@ func NamespaceOptions(c *cobra.Command) (namespaceOptions define.NamespaceOption
 				}
 				how = strings.TrimPrefix(how, "ns:")
 				if _, err := os.Stat(how); err != nil {
-					return nil, define.NetworkDefault, errors.Wrapf(err, "error checking for %s namespace", what)
+					return nil, define.NetworkDefault, errors.Wrapf(err, "checking %s namespace", what)
 				}
 				policy = define.NetworkEnabled
 				logrus.Debugf("setting %q namespace to %q", what, how)

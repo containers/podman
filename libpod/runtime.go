@@ -389,7 +389,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 			// This will allow us to ship configs including optional
 			// runtimes that might not be installed (crun, kata).
 			// Only a infof so default configs don't spec errors.
-			logrus.Infof("Error initializing configured OCI runtime %s: %v", name, err)
+			logrus.Debugf("configured OCI runtime %s initialization failed: %v", name, err)
 			continue
 		}
 
@@ -416,6 +416,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 			runtime.defaultOCIRuntime = ociRuntime
 		}
 	}
+	logrus.Debugf("Using OCI runtime %q", runtime.defaultOCIRuntime.Path())
 
 	// Do we have at least one valid OCI runtime?
 	if len(runtime.ociRuntimes) == 0 {

@@ -148,7 +148,7 @@ specify additional options via the `--storage-opt` flag.
 
 #### **\-\-storage-opt**=*value*
 
-Storage driver option, Default storage driver options are configured in /etc/containers/storage.conf (`$HOME/.config/containers/storage.conf` in rootless mode). The `STORAGE_OPTS` environment variable overrides the default. The --storage-opt specified options overrides all.
+Storage driver option, Default storage driver options are configured in /etc/containers/storage.conf (`$HOME/.config/containers/storage.conf` in rootless mode). The `STORAGE_OPTS` environment variable overrides the default. The --storage-opt specified options overrides all. If you specify --storage-opt="", no storage options will be used.
 
 #### **\-\-syslog**=*true|false*
 

@@ -61,6 +61,10 @@ static int open_files_max_fd;
 static fd_set *open_files_set;
 static uid_t rootless_uid_init;
 static gid_t rootless_gid_init;
+static bool do_socket_activation = false;
+static char *saved_systemd_listen_fds;
+static char *saved_systemd_listen_pid;
+static char *saved_systemd_listen_fdnames;
 
 static int
 syscall_setresuid (uid_t ruid, uid_t euid, uid_t suid)
@@ -233,9 +237,8 @@ int
 is_fd_inherited(int fd)
 {
   if (open_files_set == NULL || fd > open_files_max_fd || fd < 0)
-  {
     return 0;
-  }
+
   return FD_ISSET(fd % FD_SETSIZE, &(open_files_set[fd / FD_SETSIZE])) ? 1 : 0;
 }
 
@@ -243,6 +246,10 @@ static void __attribute__((constructor)) init()
 {
   const char *xdg_runtime_dir;
   const char *pause;
+  const char *listen_pid;
+  const char *listen_fds;
+  const char *listen_fdnames;
+
   DIR *d;
 
   pause = getenv ("_PODMAN_PAUSE");
@@ -293,6 +300,26 @@ static void __attribute__((constructor)) init()
         }
       closedir (d);
     }
+
+    listen_pid = getenv("LISTEN_PID");
+    listen_fds = getenv("LISTEN_FDS");
+    listen_fdnames = getenv("LISTEN_FDNAMES");
+
+    if (listen_pid != NULL && listen_fds != NULL && strtol(listen_pid, NULL, 10) == getpid())
+      {
+        // save systemd socket environment for rootless child
+        do_socket_activation = true;
+        saved_systemd_listen_pid = strdup(listen_pid);
+        saved_systemd_listen_fds = strdup(listen_fds);
+        saved_systemd_listen_fdnames = strdup(listen_fdnames);
+        if (saved_systemd_listen_pid == NULL
+                || saved_systemd_listen_fds == NULL
+                || saved_systemd_listen_fdnames == NULL)
+          {
+            fprintf (stderr, "save socket listen environments error: %s\n", strerror (errno));
+            _exit (EXIT_FAILURE);
+          }
+      }
 
   /* Shortcut.  If we are able to join the pause pid file, do it now so we don't
      need to re-exec.  */
@@ -633,9 +660,16 @@ reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
       close (user_ns);
       close (mnt_ns);
 
-      for (f = 3; f < open_files_max_fd; f++)
-        if (open_files_set == NULL || FD_ISSET (f % FD_SETSIZE, &(open_files_set[f / FD_SETSIZE])))
+      for (f = 3; f <= open_files_max_fd; f++)
+        if (is_fd_inherited (f))
           close (f);
+      if (do_socket_activation)
+        {
+          unsetenv ("LISTEN_PID");
+          unsetenv ("LISTEN_FDS");
+          unsetenv ("LISTEN_FDNAMES");
+        }
+
       return pid;
     }
 
@@ -658,6 +692,15 @@ reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
     {
       fprintf (stderr, "cannot block signals: %s\n", strerror (errno));
       _exit (EXIT_FAILURE);
+    }
+
+  if (do_socket_activation)
+    {
+      char s[32];
+      sprintf (s, "%d", getpid());
+      setenv ("LISTEN_PID", s, true);
+      setenv ("LISTEN_FDS", saved_systemd_listen_fds, true);
+      setenv ("LISTEN_FDNAMES", saved_systemd_listen_fdnames, true);
     }
 
   setenv ("_CONTAINERS_USERNS_CONFIGURED", "init", 1);
@@ -777,9 +820,6 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
   char **argv;
   char uid[16];
   char gid[16];
-  char *listen_fds = NULL;
-  char *listen_pid = NULL;
-  bool do_socket_activation = false;
   char *cwd = getcwd (NULL, 0);
   sigset_t sigset, oldsigset;
 
@@ -789,14 +829,6 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
       _exit (EXIT_FAILURE);
     }
 
-  listen_pid = getenv("LISTEN_PID");
-  listen_fds = getenv("LISTEN_FDS");
-
-  if (listen_pid != NULL && listen_fds != NULL)
-    {
-      if (strtol(listen_pid, NULL, 10) == getpid())
-        do_socket_activation = true;
-    }
 
   sprintf (uid, "%d", geteuid ());
   sprintf (gid, "%d", getegid ());
@@ -813,13 +845,14 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
       if (do_socket_activation)
         {
           long num_fds;
-          num_fds = strtol (listen_fds, NULL, 10);
+
+          num_fds = strtol (saved_systemd_listen_fds, NULL, 10);
           if (num_fds != LONG_MIN && num_fds != LONG_MAX)
             {
               int f;
 
               for (f = 3; f < num_fds + 3; f++)
-                if (open_files_set == NULL || FD_ISSET (f % FD_SETSIZE, &(open_files_set[f / FD_SETSIZE])))
+                if (is_fd_inherited (f))
                   close (f);
             }
           unsetenv ("LISTEN_PID");
@@ -862,6 +895,8 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
       char s[32];
       sprintf (s, "%d", getpid());
       setenv ("LISTEN_PID", s, true);
+      setenv ("LISTEN_FDS", saved_systemd_listen_fds, true);
+      setenv ("LISTEN_FDNAMES", saved_systemd_listen_fdnames, true);
     }
 
   setenv ("_CONTAINERS_USERNS_CONFIGURED", "init", 1);

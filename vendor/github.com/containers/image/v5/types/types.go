@@ -147,7 +147,7 @@ type BlobInfo struct {
 }
 
 // BICTransportScope encapsulates transport-dependent representation of a “scope” where blobs are or are not present.
-// BlobInfocache.RecordKnownLocations / BlobInfocache.CandidateLocations record data aboud blobs keyed by (scope, digest).
+// BlobInfocache.RecordKnownLocations / BlobInfocache.CandidateLocations record data about blobs keyed by (scope, digest).
 // The scope will typically be similar to an ImageReference, or a superset of it within which blobs are reusable.
 //
 // NOTE: The contents of this structure may be recorded in a persistent file, possibly shared across different
@@ -179,7 +179,7 @@ type BICReplacementCandidate struct {
 // It records two kinds of data:
 // - Sets of corresponding digest vs. uncompressed digest ("DiffID") pairs:
 //   One of the two digests is known to be uncompressed, and a single uncompressed digest may correspond to more than one compressed digest.
-//   This allows matching compressed layer blobs to existing local uncompressed layers (to avoid unnecessary download and decompresssion),
+//   This allows matching compressed layer blobs to existing local uncompressed layers (to avoid unnecessary download and decompression),
 //   or uncompressed layer blobs to existing remote compressed layers (to avoid unnecessary compression and upload)/
 //
 //   It is allowed to record an (uncompressed digest, the same uncompressed digest) correspondence, to express that the digest is known
@@ -219,7 +219,7 @@ type BlobInfoCache interface {
 	// CandidateLocations returns a prioritized, limited, number of blobs and their locations that could possibly be reused
 	// within the specified (transport scope) (if they still exist, which is not guaranteed).
 	//
-	// If !canSubstitute, the returned cadidates will match the submitted digest exactly; if canSubstitute,
+	// If !canSubstitute, the returned candidates will match the submitted digest exactly; if canSubstitute,
 	// data from previous RecordDigestUncompressedPair calls is used to also look up variants of the blob which have the same
 	// uncompressed digest.
 	CandidateLocations(transport ImageTransport, scope BICTransportScope, digest digest.Digest, canSubstitute bool) []BICReplacementCandidate
@@ -582,7 +582,7 @@ type SystemContext struct {
 
 	// === OCI.Transport overrides ===
 	// If not "", a directory containing a CA certificate (ending with ".crt"),
-	// a client certificate (ending with ".cert") and a client ceritificate key
+	// a client certificate (ending with ".cert") and a client certificate key
 	// (ending with ".key") used when downloading OCI image layers.
 	OCICertPath string
 	// Allow downloading OCI image layers over HTTP, or HTTPS with failed TLS verification. Note that this does not affect other TLS connections.
@@ -594,7 +594,7 @@ type SystemContext struct {
 
 	// === docker.Transport overrides ===
 	// If not "", a directory containing a CA certificate (ending with ".crt"),
-	// a client certificate (ending with ".cert") and a client ceritificate key
+	// a client certificate (ending with ".cert") and a client certificate key
 	// (ending with ".key") used when talking to a Docker Registry.
 	DockerCertPath string
 	// If not "", overrides the system’s default path for a directory containing host[:port] subdirectories with the same structure as DockerCertPath above.

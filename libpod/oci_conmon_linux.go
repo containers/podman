@@ -22,7 +22,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/common/pkg/config"
 	conmonConfig "github.com/containers/conmon/runner/config"
 	"github.com/containers/podman/v3/libpod/define"
@@ -30,7 +29,6 @@ import (
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/checkpoint/crutils"
 	"github.com/containers/podman/v3/pkg/errorhandling"
-	"github.com/containers/podman/v3/pkg/lookup"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/podman/v3/utils"
@@ -132,8 +130,8 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 			continue
 		}
 		foundPath = true
+		logrus.Tracef("found runtime %q", runtime.path)
 		runtime.path = path
-		logrus.Debugf("using runtime %q", path)
 		break
 	}
 
@@ -1193,124 +1191,6 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	}
 
 	return nil
-}
-
-// prepareProcessExec returns the path of the process.json used in runc exec -p
-// caller is responsible to close the returned *os.File if needed.
-func prepareProcessExec(c *Container, options *ExecOptions, env []string, sessionID string) (*os.File, error) {
-	f, err := ioutil.TempFile(c.execBundlePath(sessionID), "exec-process-")
-	if err != nil {
-		return nil, err
-	}
-	pspec := new(spec.Process)
-	if err := JSONDeepCopy(c.config.Spec.Process, pspec); err != nil {
-		return nil, err
-	}
-	pspec.SelinuxLabel = c.config.ProcessLabel
-	pspec.Args = options.Cmd
-
-	// We need to default this to false else it will inherit terminal as true
-	// from the container.
-	pspec.Terminal = false
-	if options.Terminal {
-		pspec.Terminal = true
-	}
-	if len(env) > 0 {
-		pspec.Env = append(pspec.Env, env...)
-	}
-
-	if options.Cwd != "" {
-		pspec.Cwd = options.Cwd
-	}
-
-	var addGroups []string
-	var sgids []uint32
-
-	// if the user is empty, we should inherit the user that the container is currently running with
-	user := options.User
-	if user == "" {
-		user = c.config.User
-		addGroups = c.config.Groups
-	}
-
-	overrides := c.getUserOverrides()
-	execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, user, overrides)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(addGroups) > 0 {
-		sgids, err = lookup.GetContainerGroups(addGroups, c.state.Mountpoint, overrides)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error looking up supplemental groups for container %s exec session %s", c.ID(), sessionID)
-		}
-	}
-
-	// If user was set, look it up in the container to get a UID to use on
-	// the host
-	if user != "" || len(sgids) > 0 {
-		if user != "" {
-			for _, sgid := range execUser.Sgids {
-				sgids = append(sgids, uint32(sgid))
-			}
-		}
-		processUser := spec.User{
-			UID:            uint32(execUser.Uid),
-			GID:            uint32(execUser.Gid),
-			AdditionalGids: sgids,
-		}
-
-		pspec.User = processUser
-	}
-
-	ctrSpec, err := c.specFromState()
-	if err != nil {
-		return nil, err
-	}
-
-	allCaps, err := capabilities.BoundingSet()
-	if err != nil {
-		return nil, err
-	}
-	if options.Privileged {
-		pspec.Capabilities.Bounding = allCaps
-	} else {
-		pspec.Capabilities.Bounding = ctrSpec.Process.Capabilities.Bounding
-	}
-	if execUser.Uid == 0 {
-		pspec.Capabilities.Effective = pspec.Capabilities.Bounding
-		pspec.Capabilities.Inheritable = pspec.Capabilities.Bounding
-		pspec.Capabilities.Permitted = pspec.Capabilities.Bounding
-		pspec.Capabilities.Ambient = pspec.Capabilities.Bounding
-	} else {
-		if user == c.config.User {
-			pspec.Capabilities.Effective = ctrSpec.Process.Capabilities.Effective
-			pspec.Capabilities.Inheritable = ctrSpec.Process.Capabilities.Effective
-			pspec.Capabilities.Permitted = ctrSpec.Process.Capabilities.Effective
-			pspec.Capabilities.Ambient = ctrSpec.Process.Capabilities.Effective
-		}
-	}
-
-	hasHomeSet := false
-	for _, s := range pspec.Env {
-		if strings.HasPrefix(s, "HOME=") {
-			hasHomeSet = true
-			break
-		}
-	}
-	if !hasHomeSet {
-		pspec.Env = append(pspec.Env, fmt.Sprintf("HOME=%s", execUser.Home))
-	}
-
-	processJSON, err := json.Marshal(pspec)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := ioutil.WriteFile(f.Name(), processJSON, 0644); err != nil {
-		return nil, err
-	}
-	return f, nil
 }
 
 // configureConmonEnv gets the environment values to add to conmon's exec struct

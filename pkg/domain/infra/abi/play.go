@@ -271,6 +271,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			SeccompPaths:  seccompPaths,
 			RestartPolicy: ctrRestartPolicy,
 			NetNSIsHost:   p.NetNS.IsHost(),
+			LogDriver:     options.LogDriver,
 		}
 		specGen, err := kube.ToSpecGen(ctx, &specgenOpts)
 		if err != nil {

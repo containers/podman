@@ -359,7 +359,17 @@ func runSetupBuiltinVolumes(mountLabel, mountPoint, containerDir string, builtin
 			}
 			initializeVolume = true
 		}
-		stat, err := os.Stat(srcPath)
+		// Check if srcPath is a symlink
+		stat, err := os.Lstat(srcPath)
+		// If srcPath is a symlink, follow the link and ensure the destination exists
+		if err == nil && stat != nil && (stat.Mode()&os.ModeSymlink != 0) {
+			srcPath, err = copier.Eval(mountPoint, volume, copier.EvalOptions{})
+			if err != nil {
+				return nil, errors.Wrapf(err, "evaluating symlink %q", srcPath)
+			}
+			// Stat the destination of the evaluated symlink
+			stat, err = os.Stat(srcPath)
+		}
 		if err != nil {
 			if !os.IsNotExist(err) {
 				return nil, err
@@ -519,8 +529,9 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 		return err
 	}
 
+	allMounts := util.SortMounts(append(append(append(append(append(volumes, builtins...), secretMounts...), bindFileMounts...), specMounts...), sysfsMount...))
 	// Add them all, in the preferred order, except where they conflict with something that was previously added.
-	for _, mount := range append(append(append(append(append(volumes, builtins...), secretMounts...), bindFileMounts...), specMounts...), sysfsMount...) {
+	for _, mount := range allMounts {
 		if haveMount(mount.Destination) {
 			// Already mounting something there, no need to bother with this one.
 			continue

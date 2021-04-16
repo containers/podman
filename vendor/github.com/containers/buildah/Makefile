@@ -51,8 +51,11 @@ all: bin/buildah bin/imgtype docs
 # Update nix/nixpkgs.json its latest stable commit
 .PHONY: nixpkgs
 nixpkgs:
-	@nix run -f channel:nixos-20.09 nix-prefetch-git -c nix-prefetch-git \
-		--no-deepClone https://github.com/nixos/nixpkgs > nix/nixpkgs.json
+	@nix run \
+		-f channel:nixos-20.09 nix-prefetch-git \
+		-c nix-prefetch-git \
+		--no-deepClone \
+		https://github.com/nixos/nixpkgs refs/head/nixos-20.09 > nix/nixpkgs.json
 
 # Build statically linked binary
 .PHONY: static
@@ -149,7 +152,7 @@ install.runc:
 
 .PHONY: test-conformance
 test-conformance:
-	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -cover -timeout 15m ./tests/conformance
+	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -cover -timeout 20m ./tests/conformance
 
 .PHONY: test-integration
 test-integration: install.tools
@@ -161,7 +164,7 @@ tests/testreport/testreport: tests/testreport/testreport.go
 
 .PHONY: test-unit
 test-unit: tests/testreport/testreport
-	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -cover -race $(shell $(GO) list ./... | grep -v vendor | grep -v tests | grep -v cmd) -timeout 40m
+	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -cover -race $(shell $(GO) list ./... | grep -v vendor | grep -v tests | grep -v cmd) -timeout 45m
 	tmp=$(shell mktemp -d) ; \
 	mkdir -p $$tmp/root $$tmp/runroot; \
 	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -cover -race ./cmd/buildah -args --root $$tmp/root --runroot $$tmp/runroot --storage-driver vfs --signature-policy $(shell pwd)/tests/policy.json --registries-conf $(shell pwd)/tests/registries.conf

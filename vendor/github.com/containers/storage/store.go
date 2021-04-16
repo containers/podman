@@ -2,6 +2,7 @@ package storage
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -489,6 +490,30 @@ type Store interface {
 
 	// GetDigestLock returns digest-specific Locker.
 	GetDigestLock(digest.Digest) (Locker, error)
+
+	// LayerFromAdditionalLayerStore searches layers from the additional layer store and
+	// returns the object for handling this. Note that this hasn't been stored to this store
+	// yet so this needs to be done through PutAs method.
+	// Releasing AdditionalLayer handler is caller's responsibility.
+	// This API is experimental and can be changed without bumping the major version number.
+	LookupAdditionalLayer(d digest.Digest, imageref string) (AdditionalLayer, error)
+}
+
+// AdditionalLayer reprents a layer that is contained in the additional layer store
+// This API is experimental and can be changed without bumping the major version number.
+type AdditionalLayer interface {
+	// PutAs creates layer based on this handler, using diff contents from the additional
+	// layer store.
+	PutAs(id, parent string, names []string) (*Layer, error)
+
+	// UncompressedDigest returns the uncompressed digest of this layer
+	UncompressedDigest() digest.Digest
+
+	// CompressedSize returns the compressed size of this layer
+	CompressedSize() int64
+
+	// Release tells the additional layer store that we don't use this handler.
+	Release()
 }
 
 type AutoUserNsOptions = types.AutoUserNsOptions
@@ -541,8 +566,8 @@ type store struct {
 	uidMap          []idtools.IDMap
 	gidMap          []idtools.IDMap
 	autoUsernsUser  string
-	autoUIDMap      []idtools.IDMap // Set by getAvailableMappings()
-	autoGIDMap      []idtools.IDMap // Set by getAvailableMappings()
+	additionalUIDs  *idSet // Set by getAvailableIDs()
+	additionalGIDs  *idSet // Set by getAvailableIDs()
 	autoNsMinSize   uint32
 	autoNsMaxSize   uint32
 	graphDriver     drivers.Driver
@@ -648,8 +673,8 @@ func GetStore(options types.StoreOptions) (Store, error) {
 		autoUsernsUser:  options.RootAutoNsUser,
 		autoNsMinSize:   autoNsMinSize,
 		autoNsMaxSize:   autoNsMaxSize,
-		autoUIDMap:      nil,
-		autoGIDMap:      nil,
+		additionalUIDs:  nil,
+		additionalGIDs:  nil,
 		usernsLock:      usernsLock,
 	}
 	if err := s.load(); err != nil {
@@ -3132,6 +3157,91 @@ func (s *store) Layer(id string) (*Layer, error) {
 		}
 	}
 	return nil, ErrLayerUnknown
+}
+
+func (s *store) LookupAdditionalLayer(d digest.Digest, imageref string) (AdditionalLayer, error) {
+	adriver, ok := s.graphDriver.(drivers.AdditionalLayerStoreDriver)
+	if !ok {
+		return nil, ErrLayerUnknown
+	}
+
+	al, err := adriver.LookupAdditionalLayer(d, imageref)
+	if err != nil {
+		if errors.Is(err, drivers.ErrLayerUnknown) {
+			return nil, ErrLayerUnknown
+		}
+		return nil, err
+	}
+	info, err := al.Info()
+	if err != nil {
+		return nil, err
+	}
+	defer info.Close()
+	var layer Layer
+	if err := json.NewDecoder(info).Decode(&layer); err != nil {
+		return nil, err
+	}
+	return &additionalLayer{&layer, al, s}, nil
+}
+
+type additionalLayer struct {
+	layer   *Layer
+	handler drivers.AdditionalLayer
+	s       *store
+}
+
+func (al *additionalLayer) UncompressedDigest() digest.Digest {
+	return al.layer.UncompressedDigest
+}
+
+func (al *additionalLayer) CompressedSize() int64 {
+	return al.layer.CompressedSize
+}
+
+func (al *additionalLayer) PutAs(id, parent string, names []string) (*Layer, error) {
+	rlstore, err := al.s.LayerStore()
+	if err != nil {
+		return nil, err
+	}
+	rlstore.Lock()
+	defer rlstore.Unlock()
+	if modified, err := rlstore.Modified(); modified || err != nil {
+		if err = rlstore.Load(); err != nil {
+			return nil, err
+		}
+	}
+	rlstores, err := al.s.ROLayerStores()
+	if err != nil {
+		return nil, err
+	}
+
+	var parentLayer *Layer
+	if parent != "" {
+		for _, lstore := range append([]ROLayerStore{rlstore}, rlstores...) {
+			if lstore != rlstore {
+				lstore.RLock()
+				defer lstore.Unlock()
+				if modified, err := lstore.Modified(); modified || err != nil {
+					if err = lstore.Load(); err != nil {
+						return nil, err
+					}
+				}
+			}
+			parentLayer, err = lstore.Get(parent)
+			if err == nil {
+				break
+			}
+		}
+		if parentLayer == nil {
+			return nil, ErrLayerUnknown
+		}
+	}
+
+	return rlstore.PutAdditionalLayer(id, parentLayer, names, al.handler)
+}
+
+func (al *additionalLayer) Release() {
+	al.handler.Release()
 }
 
 func (s *store) Image(id string) (*Image, error) {

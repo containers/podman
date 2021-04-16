@@ -24,7 +24,7 @@ tags:
     - name: images (compat)
       description: Actions related to images for the compatibility endpoints
     - name: networks (compat)
-      description: Actions related to compatibility networks
+      description: Actions related to networks for the compatibility endpoints
     - name: volumes (compat)
       description: Actions related to volumes for the compatibility endpoints
     - name: secrets (compat)

@@ -24,7 +24,7 @@ import (
 	"golang.org/x/net/http2"
 )
 
-// restTLSClientConfig is a modified copy of k8s.io/kubernets/pkg/client/restclient.TLSClientConfig.
+// restTLSClientConfig is a modified copy of k8s.io/kubernetes/pkg/client/restclient.TLSClientConfig.
 // restTLSClientConfig contains settings to enable transport layer security
 type restTLSClientConfig struct {
 	// Server requires TLS client certificate authentication
@@ -45,7 +45,7 @@ type restTLSClientConfig struct {
 	CAData []byte
 }
 
-// restConfig is a modified copy of k8s.io/kubernets/pkg/client/restclient.Config.
+// restConfig is a modified copy of k8s.io/kubernetes/pkg/client/restclient.Config.
 // Config holds the common attributes that can be passed to a Kubernetes client on
 // initialization.
 type restConfig struct {
@@ -254,7 +254,7 @@ func getServerIdentificationPartialConfig(configAuthInfo clientcmdAuthInfo, conf
 // we want this order of precedence for user identification
 // 1.  configAuthInfo minus auth-path (the final result of command line flags and merged .kubeconfig files)
 // 2.  configAuthInfo.auth-path (this file can contain information that conflicts with #1, and we want #1 to win the priority)
-// 3.  if there is not enough information to idenfity the user, load try the ~/.kubernetes_auth file
+// 3.  if there is not enough information to identify the user, load try the ~/.kubernetes_auth file
 // 4.  if there is not enough information to identify the user, prompt if possible
 func getUserIdentificationPartialConfig(configAuthInfo clientcmdAuthInfo) (*restConfig, error) {
 	mergedConfig := &restConfig{}
@@ -538,7 +538,7 @@ func (e errConfigurationInvalid) Error() string {
 // ClientConfigLoadingRules is an ExplicitPath and string slice of specific locations that are used for merging together a Config
 // Callers can put the chain together however they want, but we'd recommend:
 // EnvVarPathFiles if set (a list of files if set) OR the HomeDirectoryPath
-// ExplicitPath is special, because if a user specifically requests a certain file be used and error is reported if thie file is not present
+// ExplicitPath is special, because if a user specifically requests a certain file be used and error is reported if this file is not present
 type clientConfigLoadingRules struct {
 	Precedence []string
 }
@@ -741,7 +741,7 @@ func resolvePaths(refs []*string, base string) error {
 	return nil
 }
 
-// restClientFor is a modified copy of k8s.io/kubernets/pkg/client/restclient.RESTClientFor.
+// restClientFor is a modified copy of k8s.io/kubernetes/pkg/client/restclient.RESTClientFor.
 // RESTClientFor returns a RESTClient that satisfies the requested attributes on a client Config
 // object. Note that a RESTClient may require fields that are optional when initializing a Client.
 // A RESTClient created by this method is generic - it expects to operate on an API that follows
@@ -769,7 +769,7 @@ func restClientFor(config *restConfig) (*url.URL, *http.Client, error) {
 	return baseURL, httpClient, nil
 }
 
-// defaultServerURL is a modified copy of k8s.io/kubernets/pkg/client/restclient.DefaultServerURL.
+// defaultServerURL is a modified copy of k8s.io/kubernetes/pkg/client/restclient.DefaultServerURL.
 // DefaultServerURL converts a host, host:port, or URL string to the default base server API path
 // to use with a Client at a given API version following the standard conventions for a
 // Kubernetes API.
@@ -800,7 +800,7 @@ func defaultServerURL(host string, defaultTLS bool) (*url.URL, error) {
 	return hostURL, nil
 }
 
-// defaultServerURLFor is a modified copy of k8s.io/kubernets/pkg/client/restclient.defaultServerURLFor.
+// defaultServerURLFor is a modified copy of k8s.io/kubernetes/pkg/client/restclient.defaultServerURLFor.
 // defaultServerUrlFor is shared between IsConfigTransportTLS and RESTClientFor. It
 // requires Host and Version to be set prior to being called.
 func defaultServerURLFor(config *restConfig) (*url.URL, error) {
@@ -818,7 +818,7 @@ func defaultServerURLFor(config *restConfig) (*url.URL, error) {
 	return defaultServerURL(host, defaultTLS)
 }
 
-// transportFor is a modified copy of k8s.io/kubernets/pkg/client/restclient.transportFor.
+// transportFor is a modified copy of k8s.io/kubernetes/pkg/client/restclient.transportFor.
 // TransportFor returns an http.RoundTripper that will provide the authentication
 // or transport level security defined by the provided Config. Will return the
 // default http.DefaultTransport if no special case behavior is needed.
@@ -827,7 +827,7 @@ func transportFor(config *restConfig) (http.RoundTripper, error) {
 	return transportNew(config)
 }
 
-// isConfigTransportTLS is a modified copy of k8s.io/kubernets/pkg/client/restclient.IsConfigTransportTLS.
+// isConfigTransportTLS is a modified copy of k8s.io/kubernetes/pkg/client/restclient.IsConfigTransportTLS.
 // IsConfigTransportTLS returns true if and only if the provided
 // config will result in a protected connection to the server when it
 // is passed to restclient.RESTClientFor().  Use to determine when to
@@ -1055,11 +1055,11 @@ func (c *restConfig) HasCertAuth() bool {
 // Config holds the information needed to build connect to remote kubernetes clusters as a given user
 // IMPORTANT if you add fields to this struct, please update IsConfigEmpty()
 type clientcmdConfig struct {
-	// Clusters is a map of referencable names to cluster configs
+	// Clusters is a map of referenceable names to cluster configs
 	Clusters clustersMap `json:"clusters"`
-	// AuthInfos is a map of referencable names to user configs
+	// AuthInfos is a map of referenceable names to user configs
 	AuthInfos authInfosMap `json:"users"`
-	// Contexts is a map of referencable names to context configs
+	// Contexts is a map of referenceable names to context configs
 	Contexts contextsMap `json:"contexts"`
 	// CurrentContext is the name of the context that you would like to use by default
 	CurrentContext string `json:"current-context"`
