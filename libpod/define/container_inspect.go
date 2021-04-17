@@ -647,6 +647,7 @@ type InspectContainerData struct {
 	IsInfra         bool                        `json:"IsInfra"`
 	Config          *InspectContainerConfig     `json:"Config"`
 	HostConfig      *InspectContainerHostConfig `json:"HostConfig"`
+	PidFile         string                      `json:"PidFile"`
 }
 
 // InspectExecSession contains information about a given exec session.
