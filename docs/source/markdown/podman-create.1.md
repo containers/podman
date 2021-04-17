@@ -1228,14 +1228,12 @@ can override the working directory by using the **-w** option.
 #### **\-\-pidfile**=*path*
 
 When the pidfile location is specified, the container process' PID will be written to the pidfile. (This option is not available with the remote Podman client)
+If the pidfile option is not specified, the container process' PID will be written to /run/containers/storage/${storage-driver}-containers/$CID/userdata/pidfile.
+
 After the container is started, the location for the pidfile can be discovered with the following `podman inspect` command:
 
-    $ podman inspect --format '{{ .Config.CreateCommand }}' $CID
-    podman run --pidfile $pidfilepath image
-
-If the pidfile option is not specified, the container process' PID will be written to
-/run/containers/storage/${storage-driver}-containers/$CID/userdata/pidfile.
-The default pidfile location is not listed in the `podman inspect` output.
+    $ podman inspect --format '{{ .PidFile }}' $CID
+    /run/containers/storage/${storage-driver}-containers/$CID/userdata/pidfile
 
 
 ## EXAMPLES
