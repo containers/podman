@@ -627,6 +627,7 @@ type InspectContainerData struct {
 	OCIConfigPath   string                      `json:"OCIConfigPath,omitempty"`
 	OCIRuntime      string                      `json:"OCIRuntime,omitempty"`
 	ConmonPidFile   string                      `json:"ConmonPidFile"`
+	PidFile         string                      `json:"PidFile"`
 	Name            string                      `json:"Name"`
 	RestartCount    int32                       `json:"RestartCount"`
 	Driver          string                      `json:"Driver"`
@@ -647,7 +648,6 @@ type InspectContainerData struct {
 	IsInfra         bool                        `json:"IsInfra"`
 	Config          *InspectContainerConfig     `json:"Config"`
 	HostConfig      *InspectContainerHostConfig `json:"HostConfig"`
-	PidFile         string                      `json:"PidFile"`
 }
 
 // InspectExecSession contains information about a given exec session.

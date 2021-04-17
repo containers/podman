@@ -219,6 +219,7 @@ var _ = Describe("Podman start", func() {
 		cid := session.OutputToString()
 
 		session = podmanTest.Podman([]string{"start", cid})
+		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		readFirstLine := func(path string) string {
 			content, err := ioutil.ReadFile(path)
