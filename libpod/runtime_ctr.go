@@ -366,6 +366,10 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		ctr.config.ConmonPidFile = filepath.Join(ctr.state.RunDir, "conmon.pid")
 	}
 
+	if ctr.config.PidFile == "" {
+		ctr.config.PidFile = filepath.Join(ctr.state.RunDir, "pidfile")
+	}
+
 	// Go through named volumes and add them.
 	// If they don't exist they will be created using basic options.
 	// Maintain an array of them - we need to lock them later.
