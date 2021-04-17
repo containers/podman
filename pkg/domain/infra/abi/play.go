@@ -16,6 +16,7 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/specgen/generate"
 	"github.com/containers/podman/v3/pkg/specgen/generate/kube"
 	"github.com/containers/podman/v3/pkg/util"
@@ -50,6 +51,8 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 		return nil, errors.Wrapf(err, "unable to sort kube kinds in %q", path)
 	}
 
+	ipIndex := 0
+
 	// create pod on each document if it is a pod or deployment
 	// any other kube kind will be skipped
 	for _, document := range documentList {
@@ -70,7 +73,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 			podTemplateSpec.ObjectMeta = podYAML.ObjectMeta
 			podTemplateSpec.Spec = podYAML.Spec
 
-			r, err := ic.playKubePod(ctx, podTemplateSpec.ObjectMeta.Name, &podTemplateSpec, options)
+			r, err := ic.playKubePod(ctx, podTemplateSpec.ObjectMeta.Name, &podTemplateSpec, options, &ipIndex)
 			if err != nil {
 				return nil, err
 			}
@@ -84,7 +87,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 				return nil, errors.Wrapf(err, "unable to read YAML %q as Kube Deployment", path)
 			}
 
-			r, err := ic.playKubeDeployment(ctx, &deploymentYAML, options)
+			r, err := ic.playKubeDeployment(ctx, &deploymentYAML, options, &ipIndex)
 			if err != nil {
 				return nil, err
 			}
@@ -118,7 +121,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 	return report, nil
 }
 
-func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAML *v1apps.Deployment, options entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {
+func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAML *v1apps.Deployment, options entities.PlayKubeOptions, ipIndex *int) (*entities.PlayKubeReport, error) {
 	var (
 		deploymentName string
 		podSpec        v1.PodTemplateSpec
@@ -140,7 +143,7 @@ func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAM
 	// create "replicas" number of pods
 	for i = 0; i < numReplicas; i++ {
 		podName := fmt.Sprintf("%s-pod-%d", deploymentName, i)
-		podReport, err := ic.playKubePod(ctx, podName, &podSpec, options)
+		podReport, err := ic.playKubePod(ctx, podName, &podSpec, options, ipIndex)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error encountered while bringing up pod %s", podName)
 		}
@@ -149,7 +152,7 @@ func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAM
 	return &report, nil
 }
 
-func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec, options entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {
+func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec, options entities.PlayKubeOptions, ipIndex *int) (*entities.PlayKubeReport, error) {
 	var (
 		registryCreds *types.DockerAuthConfig
 		writer        io.Writer
@@ -190,8 +193,16 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			// networks.
 			networks := strings.Split(options.Network, ",")
 			logrus.Debugf("Pod joining CNI networks: %v", networks)
+			p.NetNS.NSMode = specgen.Bridge
 			p.CNINetworks = append(p.CNINetworks, networks...)
 		}
+	}
+	if len(options.StaticIPs) > *ipIndex {
+		p.StaticIP = &options.StaticIPs[*ipIndex]
+		*ipIndex++
+	} else if len(options.StaticIPs) > 0 {
+		// only warn if the user has set at least one ip ip
+		logrus.Warn("No more static ips left using a random one")
 	}
 
 	// Create the Pod

@@ -1,6 +1,10 @@
 package entities
 
-import "github.com/containers/image/v5/types"
+import (
+	"net"
+
+	"github.com/containers/image/v5/types"
+)
 
 // PlayKubeOptions controls playing kube YAML files.
 type PlayKubeOptions struct {
@@ -24,6 +28,8 @@ type PlayKubeOptions struct {
 	// SeccompProfileRoot - path to a directory containing seccomp
 	// profiles.
 	SeccompProfileRoot string
+	// StaticIPs - Static IP address used by the pod(s).
+	StaticIPs []net.IP
 	// ConfigMaps - slice of pathnames to kubernetes configmap YAMLs.
 	ConfigMaps []string
 	// LogDriver for the container. For example: journald

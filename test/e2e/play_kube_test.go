@@ -12,6 +12,7 @@ import (
 
 	"github.com/containers/podman/v3/pkg/util"
 	. "github.com/containers/podman/v3/test/utils"
+	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/selinux/go-selinux"
@@ -1713,6 +1714,38 @@ spec:
 			inspect.WaitWithDefaultTimeout()
 			Expect(inspect.ExitCode()).To(Equal(0))
 			Expect(inspect.OutputToString()).To(ContainSubstring(strings.Join(defaultCtrCmd, " ")))
+		}
+	})
+
+	It("podman play kube --ip", func() {
+		var i, numReplicas int32
+		numReplicas = 3
+		deployment := getDeployment(withReplicas(numReplicas))
+		err := generateKubeYaml("deployment", deployment, kubeYaml)
+		Expect(err).To(BeNil())
+
+		net := "playkube" + stringid.GenerateNonCryptoID()
+		session := podmanTest.Podman([]string{"network", "create", "--subnet", "10.25.31.0/24", net})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net)
+		Expect(session.ExitCode()).To(BeZero())
+
+		ips := []string{"10.25.31.5", "10.25.31.10", "10.25.31.15"}
+		playArgs := []string{"play", "kube", "--network", net}
+		for _, ip := range ips {
+			playArgs = append(playArgs, "--ip", ip)
+		}
+
+		kube := podmanTest.Podman(append(playArgs, kubeYaml))
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		podNames := getPodNamesInDeployment(deployment)
+		for i = 0; i < numReplicas; i++ {
+			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&podNames[i]), "--format", "{{ .NetworkSettings.Networks." + net + ".IPAddress }}"})
+			inspect.WaitWithDefaultTimeout()
+			Expect(inspect.ExitCode()).To(Equal(0))
+			Expect(inspect.OutputToString()).To(Equal(ips[i]))
 		}
 	})
 

@@ -62,6 +62,10 @@ The [username[:password]] to use to authenticate with the registry if required.
 If one or both values are not supplied, a command line prompt will appear and the
 value can be entered.  The password is entered without echo.
 
+#### **\-\-ip**=*IP address*
+
+Assign a static ip address to the pod. This option can be specified several times when play kube creates more than one pod.
+
 #### **\-\-log-driver**=driver
 
 Set logging driver for all created containers.

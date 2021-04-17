@@ -34,6 +34,12 @@ func (s *APIServer) registerPlayHandlers(r *mux.Router) error {
 	//    type: boolean
 	//    default: true
 	//    description: Start the pod after creating it.
+	//  - in: query
+	//    name: staticIPs
+	//    type: array
+	//    description: Static IPs used for the pods.
+	//    items:
+	//      type: string
 	//  - in: body
 	//    name: request
 	//    description: Kubernetes YAML file.
