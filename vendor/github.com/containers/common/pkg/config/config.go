@@ -606,7 +606,7 @@ func (c *EngineConfig) findRuntime() string {
 			}
 		}
 		if path, err := exec.LookPath(name); err == nil {
-			logrus.Warningf("Found default OCIruntime %s path which is missing from [engine.runtimes] in containers.conf", path)
+			logrus.Tracef("Found default OCIruntime %s path via PATH environment variable", path)
 			return name
 		}
 	}
