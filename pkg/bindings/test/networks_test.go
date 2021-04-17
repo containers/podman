@@ -2,10 +2,12 @@ package test_bindings
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/containers/podman/v3/pkg/bindings"
+	"github.com/containers/podman/v3/pkg/bindings/containers"
 	"github.com/containers/podman/v3/pkg/bindings/network"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -115,5 +117,89 @@ var _ = Describe("Podman networks", func() {
 		data, err := network.Inspect(connText, name, nil)
 		Expect(err).To(BeNil())
 		Expect(data[0]["name"]).To(Equal(name))
+	})
+
+	It("list networks", func() {
+		// create a bunch of named networks and make verify with list
+		netNames := []string{"homer", "bart", "lisa", "maggie", "marge"}
+		for i := 0; i < 5; i++ {
+			opts := network.CreateOptions{
+				Name: &netNames[i],
+			}
+			_, err = network.Create(connText, &opts)
+			Expect(err).To(BeNil())
+		}
+		list, err := network.List(connText, nil)
+		Expect(err).To(BeNil())
+		Expect(len(list)).To(BeNumerically(">=", 5))
+		for _, n := range list {
+			if n.Name != "podman" {
+				Expect(StringInSlice(n.Name, netNames)).To(BeTrue())
+			}
+		}
+
+		// list with bad filter should be 500
+		filters := make(map[string][]string)
+		filters["foobar"] = []string{"1234"}
+		options := new(network.ListOptions).WithFilters(filters)
+		_, err = network.List(connText, options)
+		Expect(err).ToNot(BeNil())
+		code, _ := bindings.CheckResponseCode(err)
+		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
+
+		// filter list with success
+		filters = make(map[string][]string)
+		filters["name"] = []string{"homer"}
+		options = new(network.ListOptions).WithFilters(filters)
+		list, err = network.List(connText, options)
+		Expect(err).To(BeNil())
+		Expect(len(list)).To(BeNumerically("==", 1))
+		Expect(list[0].Name).To(Equal("homer"))
+	})
+
+	It("remove network", func() {
+		// removing a noName network should result in 404
+		_, err := network.Remove(connText, "noName", nil)
+		code, err := bindings.CheckResponseCode(err)
+		Expect(err).To(BeNil())
+		Expect(code).To(BeNumerically("==", http.StatusNotFound))
+
+		// Removing an unused network should work
+		name := "unused"
+		opts := network.CreateOptions{
+			Name: &name,
+		}
+		_, err = network.Create(connText, &opts)
+		Expect(err).To(BeNil())
+		report, err := network.Remove(connText, name, nil)
+		Expect(err).To(BeNil())
+		Expect(report[0].Name).To(Equal(name))
+
+		// Removing a network that is being used without force should be 500
+		name = "used"
+		opts = network.CreateOptions{
+			Name: &name,
+		}
+		_, err = network.Create(connText, &opts)
+		Expect(err).To(BeNil())
+
+		// Start container and wait
+		container := "ntest"
+		session := bt.runPodman([]string{"run", "-dt", fmt.Sprintf("--network=%s", name), "--name", container, alpine.name, "top"})
+		session.Wait(45)
+		Expect(session.ExitCode()).To(BeZero())
+
+		_, err = network.Remove(connText, name, nil)
+		code, err = bindings.CheckResponseCode(err)
+		Expect(err).To(BeNil())
+		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
+
+		// Removing with a network in use with force should work with a stopped container
+		err = containers.Stop(connText, container, new(containers.StopOptions).WithTimeout(0))
+		Expect(err).To(BeNil())
+		options := new(network.RemoveOptions).WithForce(true)
+		report, err = network.Remove(connText, name, options)
+		Expect(err).To(BeNil())
+		Expect(report[0].Name).To(Equal(name))
 	})
 })

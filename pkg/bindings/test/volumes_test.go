@@ -83,7 +83,8 @@ var _ = Describe("Podman volumes", func() {
 	It("remove volume", func() {
 		// removing a bogus volume should result in 404
 		err := volumes.Remove(connText, "foobar", nil)
-		code, _ := bindings.CheckResponseCode(err)
+		code, err := bindings.CheckResponseCode(err)
+		Expect(err).To(BeNil())
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
 		// Removing an unused volume should work
@@ -97,9 +98,12 @@ var _ = Describe("Podman volumes", func() {
 		Expect(err).To(BeNil())
 		session := bt.runPodman([]string{"run", "-dt", "-v", fmt.Sprintf("%s:/foobar", vol.Name), "--name", "vtest", alpine.name, "top"})
 		session.Wait(45)
+		Expect(session.ExitCode()).To(BeZero())
+
 		err = volumes.Remove(connText, vol.Name, nil)
 		Expect(err).ToNot(BeNil())
-		code, _ = bindings.CheckResponseCode(err)
+		code, err = bindings.CheckResponseCode(err)
+		Expect(err).To(BeNil())
 		Expect(code).To(BeNumerically("==", http.StatusConflict))
 
 		// Removing with a volume in use with force should work with a stopped container
