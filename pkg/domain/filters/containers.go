@@ -83,7 +83,19 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 		return func(c *libpod.Container) bool {
 			for _, filterValue := range filterValues {
 				containerConfig := c.Config()
-				if strings.Contains(containerConfig.RootfsImageID, filterValue) || strings.Contains(containerConfig.RootfsImageName, filterValue) {
+				var imageTag string
+				var imageNameWithoutTag string
+				// Compare with ImageID, ImageName
+				// Will match ImageName if running image has tag latest for other tags exact complete filter must be given
+				imageNameSlice := strings.SplitN(containerConfig.RootfsImageName, ":", 2)
+				if len(imageNameSlice) == 2 {
+					imageNameWithoutTag = imageNameSlice[0]
+					imageTag = imageNameSlice[1]
+				}
+
+				if (containerConfig.RootfsImageID == filterValue) ||
+					(containerConfig.RootfsImageName == filterValue) ||
+					(imageNameWithoutTag == filterValue && imageTag == "latest") {
 					return true
 				}
 			}
