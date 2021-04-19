@@ -180,8 +180,11 @@ func GetConfiguredMappings() ([]idtools.IDMap, []idtools.IDMap, error) {
 	}
 	mappings, err := idtools.NewIDMappings(username, username)
 	if err != nil {
-		logrus.Errorf(
-			"cannot find UID/GID for user %s: %v - check rootless mode in man pages.", username, err)
+		logLevel := logrus.ErrorLevel
+		if os.Geteuid() == 0 && GetRootlessUID() == 0 {
+			logLevel = logrus.DebugLevel
+		}
+		logrus.StandardLogger().Logf(logLevel, "cannot find UID/GID for user %s: %v - check rootless mode in man pages.", username, err)
 	} else {
 		uids = mappings.UIDs()
 		gids = mappings.GIDs()
