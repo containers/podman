@@ -706,3 +706,26 @@ func IDtoolsToRuntimeSpec(idMaps []idtools.IDMap) (convertedIDMap []specs.LinuxI
 	}
 	return convertedIDMap
 }
+
+var socketPath string
+
+func SetSocketPath(path string) {
+	socketPath = path
+}
+
+func SocketPath() (string, error) {
+	if socketPath != "" {
+		return socketPath, nil
+	}
+	xdg, err := GetRuntimeDir()
+	if err != nil {
+		return "", err
+	}
+	if len(xdg) == 0 {
+		// If no xdg is returned, assume root socket
+		xdg = "/run"
+	}
+
+	// Glue the socket path together
+	return filepath.Join(xdg, "podman", "podman.sock"), nil
+}
