@@ -1894,6 +1894,54 @@ spec:
 		Expect(inspect.OutputToString()).To(ContainSubstring(correct))
 	})
 
+	It("podman play kube test duplicate volume destination between host path and image volumes", func() {
+		// Create host test directory and file
+		testdir := "testdir"
+		testfile := "testfile"
+
+		hostPathDir := filepath.Join(tempdir, testdir)
+		err := os.Mkdir(hostPathDir, 0755)
+		Expect(err).To(BeNil())
+
+		hostPathDirFile := filepath.Join(hostPathDir, testfile)
+		f, err := os.Create(hostPathDirFile)
+		Expect(err).To(BeNil())
+		f.Close()
+
+		// Create container image with named volume
+		containerfile := fmt.Sprintf(`
+FROM  %s
+VOLUME %s`, ALPINE, hostPathDir+"/")
+
+		image := "podman-kube-test:podman"
+		podmanTest.BuildImage(containerfile, image, "false")
+
+		// Create and play kube pod
+		ctr := getCtr(withVolumeMount(hostPathDir+"/", false), withImage(image))
+		pod := getPod(withCtr(ctr), withVolume(getHostPathVolume("Directory", hostPathDir+"/")))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		result := podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "ls", hostPathDir + "/" + testfile})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod)})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+
+		// If two volumes are specified and share the same destination,
+		// only one will be mounted. Host path volumes take precedence.
+		ctrJSON := inspect.InspectContainerToJSON()
+		Expect(len(ctrJSON[0].Mounts)).To(Equal(1))
+		Expect(ctrJSON[0].Mounts[0].Type).To(Equal("bind"))
+
+	})
+
 	It("podman play kube test with PersistentVolumeClaim volume", func() {
 		volumeName := "namedVolume"
 

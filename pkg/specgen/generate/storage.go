@@ -57,10 +57,13 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 	}
 
 	for _, m := range s.Mounts {
-		if _, ok := unifiedMounts[m.Destination]; ok {
-			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict in specified mounts - multiple mounts at %q", m.Destination)
+		// Ensure that mount dest is clean, so that it can be
+		// compared against named volumes and avoid duplicate mounts.
+		cleanDestination := filepath.Clean(m.Destination)
+		if _, ok := unifiedMounts[cleanDestination]; ok {
+			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict in specified mounts - multiple mounts at %q", cleanDestination)
 		}
-		unifiedMounts[m.Destination] = m
+		unifiedMounts[cleanDestination] = m
 	}
 
 	for _, m := range commonMounts {
