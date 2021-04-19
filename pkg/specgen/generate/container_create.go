@@ -375,6 +375,9 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 		}
 		options = append(options, libpod.WithDependencyCtrs(deps))
 	}
+	if s.PidFile != "" {
+		options = append(options, libpod.WithPidFile(s.PidFile))
+	}
 	return options, nil
 }
 

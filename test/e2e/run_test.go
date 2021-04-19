@@ -1613,4 +1613,20 @@ WORKDIR /madethis`, BB)
 		Expect(running.ExitCode()).To(Equal(0))
 		Expect(len(running.OutputToStringArray())).To(Equal(2))
 	})
+
+	It("podman run with pidfile", func() {
+		SkipIfRemote("pidfile not handled by remote")
+		pidfile := tempdir + "pidfile"
+		session := podmanTest.Podman([]string{"run", "--pidfile", pidfile, ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		readFirstLine := func(path string) string {
+			content, err := ioutil.ReadFile(path)
+			Expect(err).To(BeNil())
+			return strings.Split(string(content), "\n")[0]
+		}
+		containerPID := readFirstLine(pidfile)
+		_, err = strconv.Atoi(containerPID) // Make sure it's a proper integer
+		Expect(err).To(BeNil())
+	})
 })

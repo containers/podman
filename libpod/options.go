@@ -1692,6 +1692,17 @@ func WithSecrets(secretNames []string) CtrCreateOption {
 	}
 }
 
+// WithPidFile adds pidFile to the container
+func WithPidFile(pidFile string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.PidFile = pidFile
+		return nil
+	}
+}
+
 // Pod Creation Options
 
 // WithInfraImage sets the infra image for libpod.

@@ -69,6 +69,13 @@ func (r *Runtime) RestoreContainer(ctx context.Context, rSpec *spec.Spec, config
 		ctr.config.ConmonPidFile = ""
 	}
 
+	// If the path to PidFile starts with the default value (RunRoot), then
+	// the user has not specified '--pidfile' during run or create (probably).
+	// In that case reset PidFile to be set to the default value later.
+	if strings.HasPrefix(ctr.config.PidFile, r.storageConfig.RunRoot) {
+		ctr.config.PidFile = ""
+	}
+
 	return r.setupContainer(ctx, ctr)
 }
 
@@ -364,6 +371,10 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 
 	if ctr.config.ConmonPidFile == "" {
 		ctr.config.ConmonPidFile = filepath.Join(ctr.state.RunDir, "conmon.pid")
+	}
+
+	if ctr.config.PidFile == "" {
+		ctr.config.PidFile = filepath.Join(ctr.state.RunDir, "pidfile")
 	}
 
 	// Go through named volumes and add them.

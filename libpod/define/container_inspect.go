@@ -627,6 +627,7 @@ type InspectContainerData struct {
 	OCIConfigPath   string                      `json:"OCIConfigPath,omitempty"`
 	OCIRuntime      string                      `json:"OCIRuntime,omitempty"`
 	ConmonPidFile   string                      `json:"ConmonPidFile"`
+	PidFile         string                      `json:"PidFile"`
 	Name            string                      `json:"Name"`
 	RestartCount    int32                       `json:"RestartCount"`
 	Driver          string                      `json:"Driver"`

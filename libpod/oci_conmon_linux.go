@@ -1025,7 +1025,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		}
 	}
 
-	args := r.sharedConmonArgs(ctr, ctr.ID(), ctr.bundlePath(), filepath.Join(ctr.state.RunDir, "pidfile"), ctr.LogPath(), r.exitsDir, ociLog, ctr.LogDriver(), logTag)
+	args := r.sharedConmonArgs(ctr, ctr.ID(), ctr.bundlePath(), ctr.config.PidFile, ctr.LogPath(), r.exitsDir, ociLog, ctr.LogDriver(), logTag)
 
 	if ctr.config.Spec.Process.Terminal {
 		args = append(args, "-t")

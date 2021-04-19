@@ -76,8 +76,11 @@ func runFlags(cmd *cobra.Command) {
 	detachKeysFlagName := "detach-keys"
 	flags.StringVar(&runOpts.DetachKeys, detachKeysFlagName, containerConfig.DetachKeys(), "Override the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-cf`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`")
 	_ = cmd.RegisterFlagCompletionFunc(detachKeysFlagName, common.AutocompleteDetachKeys)
+
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("preserve-fds")
+		_ = flags.MarkHidden("conmon-pidfile")
+		_ = flags.MarkHidden("pidfile")
 	}
 }
 

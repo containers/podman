@@ -167,6 +167,7 @@ Write the container ID to *file*.
 #### **\-\-conmon-pidfile**=*file*
 
 Write the pid of the **conmon** process to a file. As **conmon** runs in a separate process than Podman, this is necessary when using systemd to restart Podman containers.
+(This option is not available with the remote Podman client)
 
 #### **\-\-cpu-period**=*limit*
 
@@ -1304,6 +1305,16 @@ Working directory inside the container.
 The default working directory for running binaries within a container is the root directory (**/**).
 The image developer can set a different default with the WORKDIR instruction. The operator
 can override the working directory by using the **-w** option.
+
+#### **\-\-pidfile**=*path*
+
+When the pidfile location is specified, the container process' PID will be written to the pidfile. (This option is not available with the remote Podman client)
+If the pidfile option is not specified, the container process' PID will be written to /run/containers/storage/${storage-driver}-containers/$CID/userdata/pidfile.
+
+After the container is started, the location for the pidfile can be discovered with the following `podman inspect` command:
+
+    $ podman inspect --format '{{ .PidFile }}' $CID
+    /run/containers/storage/${storage-driver}-containers/$CID/userdata/pidfile
 
 ## Exit Status
 

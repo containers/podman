@@ -1,7 +1,10 @@
 package integration
 
 import (
+	"io/ioutil"
 	"os"
+	"strconv"
+	"strings"
 
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -205,5 +208,26 @@ var _ = Describe("Podman start", func() {
 		session = podmanTest.Podman([]string{"start", "-l", "--sig-proxy"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(125))
+	})
+
+	It("podman start container with special pidfile", func() {
+		SkipIfRemote("pidfile not handled by remote")
+		pidfile := tempdir + "pidfile"
+		session := podmanTest.Podman([]string{"create", "--pidfile", pidfile, ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"start", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		readFirstLine := func(path string) string {
+			content, err := ioutil.ReadFile(path)
+			Expect(err).To(BeNil())
+			return strings.Split(string(content), "\n")[0]
+		}
+		containerPID := readFirstLine(pidfile)
+		_, err = strconv.Atoi(containerPID) // Make sure it's a proper integer
+		Expect(err).To(BeNil())
 	})
 })

@@ -508,4 +508,14 @@ var _ = Describe("Podman inspect", func() {
 		Expect(data[0].HostConfig.CapDrop[1]).To(Equal("CAP_MKNOD"))
 		Expect(data[0].HostConfig.CapDrop[2]).To(Equal("CAP_NET_RAW"))
 	})
+
+	It("podman inspect container with GO format for PidFile", func() {
+		SkipIfRemote("pidfile not handled by remote")
+		session, ec, _ := podmanTest.RunLsContainer("test1")
+		Expect(ec).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"inspect", "--format", "{{.PidFile}}", "test1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
 })

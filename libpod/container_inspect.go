@@ -128,6 +128,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 		StaticDir:       config.StaticDir,
 		OCIRuntime:      config.OCIRuntime,
 		ConmonPidFile:   config.ConmonPidFile,
+		PidFile:         config.PidFile,
 		Name:            config.Name,
 		RestartCount:    int32(runtimeInfo.RestartCount),
 		Driver:          driverData.Name,
