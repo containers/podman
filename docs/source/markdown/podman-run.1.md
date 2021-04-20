@@ -1079,6 +1079,7 @@ The first mapping step is derived by Podman from the contents of the file
 _/etc/subuid_ and the UID of the user calling Podman.
 
 First mapping step:
+
 | host UID                                         | intermediate UID |
 | -                                                |                - |
 | UID for the user starting Podman                 |                0 |
