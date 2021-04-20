@@ -1047,23 +1047,71 @@ Remote connections use local containers.conf for defaults
 Set the umask inside the container. Defaults to `0022`.
 Remote connections use local containers.conf for defaults
 
-#### **\-\-uidmap**=*container_uid*:*host_uid*:*amount*
+#### **\-\-uidmap**=*container_uid*:*from_uid*:*amount*
 
-Run the container in a new user namespace using the supplied mapping. This option conflicts
-with the **\-\-userns** and **\-\-subuidname** flags.
-This option can be passed several times to map different ranges. If calling **podman run**
-as an unprivileged user, the user needs to have the right to use the mapping. See **subuid**(5).
+Run the container in a new user namespace using the supplied mapping. This
+option conflicts with the **\-\-userns** and **\-\-subuidname** options. This
+option provides a way to map host UIDs to container UIDs. It can be passed
+several times to map different ranges.
 
-The following example maps uids 0-1999 in the container to the uids 30000-31999 on the host: **\-\-uidmap=0:30000:2000**.
+The _from_uid_ value is based upon the user running the command, either rootful or rootless users.
+* rootful user:  *container_uid*:*host_uid*:*amount*
+* rootless user: *container_uid*:*intermediate_uid*:*amount*
 
-**Important note:** The new user namespace mapping based on **\-\-uidmap** is based on the initial mapping made in the  _/etc/subuid_  file.
-Assuming there is a  _/etc/subuid_  mapping **username:100000:65536**, then **username** is initially mapped to a namespace starting with
-uid **100000** for **65536** ids. From here the **\-\-uidmap** mapping to the new namespace starts from **0** again, but is based on the initial mapping.
-Meaning **username** is initially mapped to uid **100000** which is referenced as **0** in the following **\-\-uidmap** mapping. In terms of the example
-above: The user **username** is mapped to user **100000** of the initial namespace then the
-**30000**st id of this namespace (which is uid 130000 in this namespace) is mapped to container namespace user id **0**. (username -> 100000 / 30000 -> 0)
+When **podman run** is called by a privileged user, the option **\-\-uidmap**
+works as a direct mapping between host UIDs and container UIDs.
 
-_Note_: A minimal mapping has to have at least container uid **0** mapped to the parent user namespace.
+host UID -> container UID
+
+The _amount_ specifies the number of consecutive UIDs that will be mapped.
+If for example _amount_ is **4** the mapping would look like:
+
+|   host UID     |    container UID    |
+| -              | -                   |
+| _from_uid_     | _container_uid_     |
+| _from_uid_ + 1 | _container_uid_ + 1 |
+| _from_uid_ + 2 | _container_uid_ + 2 |
+| _from_uid_ + 3 | _container_uid_ + 3 |
+
+When **podman run** is called by an unprivileged user (i.e. running rootless),
+the value _from_uid_ is interpreted as an "intermediate UID". In the rootless
+case, host UIDs are not mapped directly to container UIDs. Instead the mapping
+happens over two mapping steps:
+
+host UID -> intermediate UID -> container UID
+
+The **\-\-uidmap** option only influences the second mapping step.
+
+The first mapping step is derived by Podman from the contents of the file
+_/etc/subuid_ and the UID of the user calling Podman.
+
+First mapping step:
+| host UID                                         | intermediate UID |
+| -                                                |                - |
+| UID for the user starting Podman                 |                0 |
+| 1st subordinate UID for the user starting Podman |                1 |
+| 2nd subordinate UID for the user starting Podman |                2 |
+| 3rd subordinate UID for the user starting Podman |                3 |
+| nth subordinate UID for the user starting Podman |                n |
+
+To be able to use intermediate UIDs greater than zero, the user needs to have
+subordinate UIDs configured in _/etc/subuid_. See **subuid**(5).
+
+The second mapping step is configured with **\-\-uidmap**.
+
+If for example _amount_ is **5** the second mapping step would look like:
+
+|   intermediate UID   |    container UID    |
+| -                    | -                   |
+| _from_uid_           | _container_uid_     |
+| _from_uid_ + 1       | _container_uid_ + 1 |
+| _from_uid_ + 2       | _container_uid_ + 2 |
+| _from_uid_ + 3       | _container_uid_ + 3 |
+| _from_uid_ + 4       | _container_uid_ + 4 |
+
+Even if a user does not have any subordinate UIDs in  _/etc/subuid_,
+**\-\-uidmap** could still be used to map the normal UID of the user to a
+container UID by running `podman run --uidmap $container_uid:0:1 --user $container_uid ...`.
 
 #### **\-\-ulimit**=*option*
 
