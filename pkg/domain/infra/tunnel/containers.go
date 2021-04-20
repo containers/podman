@@ -506,7 +506,30 @@ func startAndAttach(ic *ContainerEngine, name string, detachKeys *string, input,
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
 	reports := []*entities.ContainerStartReport{}
 	var exitCode = define.ExecErrorCodeGeneric
-	ctrs, err := getContainersByContext(ic.ClientCtx, options.All, false, namesOrIds)
+	containersNamesOrIds := namesOrIds
+	if len(options.Filters) > 0 {
+		containersNamesOrIds = []string{}
+		opts := new(containers.ListOptions).WithFilters(options.Filters).WithAll(true)
+		candidates, listErr := containers.List(ic.ClientCtx, opts)
+		if listErr != nil {
+			return nil, listErr
+		}
+		for _, candidate := range candidates {
+			for _, nameOrID := range namesOrIds {
+				if nameOrID == candidate.ID {
+					containersNamesOrIds = append(containersNamesOrIds, nameOrID)
+					continue
+				}
+				for _, containerName := range candidate.Names {
+					if containerName == nameOrID {
+						containersNamesOrIds = append(containersNamesOrIds, nameOrID)
+						continue
+					}
+				}
+			}
+		}
+	}
+	ctrs, err := getContainersByContext(ic.ClientCtx, options.All, false, containersNamesOrIds)
 	if err != nil {
 		return nil, err
 	}

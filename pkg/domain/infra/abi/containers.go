@@ -694,7 +694,33 @@ func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrID s
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
 	reports := []*entities.ContainerStartReport{}
 	var exitCode = define.ExecErrorCodeGeneric
-	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
+	containersNamesOrIds := namesOrIds
+	if len(options.Filters) > 0 {
+		filterFuncs := make([]libpod.ContainerFilter, 0, len(options.Filters))
+		if len(options.Filters) > 0 {
+			for k, v := range options.Filters {
+				generatedFunc, err := dfilters.GenerateContainerFilterFuncs(k, v, ic.Libpod)
+				if err != nil {
+					return nil, err
+				}
+				filterFuncs = append(filterFuncs, generatedFunc)
+			}
+		}
+		candidates, err := ic.Libpod.GetContainers(filterFuncs...)
+		if err != nil {
+			return nil, err
+		}
+		containersNamesOrIds = []string{}
+		for _, candidate := range candidates {
+			for _, nameOrID := range namesOrIds {
+				if nameOrID == candidate.ID() || nameOrID == candidate.Name() {
+					containersNamesOrIds = append(containersNamesOrIds, nameOrID)
+				}
+			}
+		}
+	}
+
+	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, containersNamesOrIds, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}

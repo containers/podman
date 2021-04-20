@@ -1,6 +1,7 @@
 package filters
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -226,6 +227,32 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 			}
 			return false
 		}, nil
+	case "restart-policy":
+		invalidPolicyNames := []string{}
+		for _, policy := range filterValues {
+			if _, ok := define.RestartPolicyMap[policy]; !ok {
+				invalidPolicyNames = append(invalidPolicyNames, policy)
+			}
+		}
+		var filterValueError error = nil
+		if len(invalidPolicyNames) > 0 {
+			errPrefix := "invalid restart policy"
+			if len(invalidPolicyNames) > 1 {
+				errPrefix = "invalid restart policies"
+			}
+			filterValueError = fmt.Errorf("%s %s", strings.Join(invalidPolicyNames, ", "), errPrefix)
+		}
+		return func(c *libpod.Container) bool {
+			for _, policy := range filterValues {
+				if policy == "none" && c.RestartPolicy() == define.RestartPolicyNone {
+					return true
+				}
+				if c.RestartPolicy() == policy {
+					return true
+				}
+			}
+			return false
+		}, filterValueError
 	}
 	return nil, errors.Errorf("%s is an invalid filter", filter)
 }
