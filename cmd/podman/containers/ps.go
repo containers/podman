@@ -97,6 +97,7 @@ func listFlagSet(cmd *cobra.Command) {
 	flags.BoolVar(&noTrunc, "no-trunc", false, "Display the extended information")
 	flags.BoolVarP(&listOpts.Pod, "pod", "p", false, "Print the ID and name of the pod the containers are associated with")
 	flags.BoolVarP(&listOpts.Quiet, "quiet", "q", false, "Print the numeric IDs of the containers only")
+	flags.Bool("noheading", false, "Do not print headers")
 	flags.BoolVarP(&listOpts.Size, "size", "s", false, "Display the total file sizes")
 	flags.BoolVar(&listOpts.Sync, "sync", false, "Sync container state with OCI runtime")
 
@@ -242,7 +243,8 @@ func ps(cmd *cobra.Command, _ []string) error {
 	defer w.Flush()
 
 	headers := func() error { return nil }
-	if !(listOpts.Quiet || cmd.Flags().Changed("format")) {
+	noHeading, _ := cmd.Flags().GetBool("noheading")
+	if !(noHeading || listOpts.Quiet || cmd.Flags().Changed("format")) {
 		headers = func() error {
 			return tmpl.Execute(w, hdrs)
 		}

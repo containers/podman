@@ -5,6 +5,19 @@
 
 load helpers
 
+@test "podman network - basic tests" {
+    heading="*NETWORK*ID*NAME*VERSION*PLUGINS*"
+    run_podman network ls
+    if  [[ ${output} != ${heading} ]]; then
+       die "network ls expected heading is not available"
+    fi
+
+    run_podman network ls --noheading
+    if  [[ ${output} = ${heading} ]]; then
+       die "network ls --noheading did not remove heading: $output"
+    fi
+}
+
 # Copied from tsweeney's https://github.com/containers/podman/issues/4827
 @test "podman networking: port on localhost" {
     skip_if_remote "FIXME: reevaluate this one after #7360 is fixed"
@@ -20,9 +33,9 @@ load helpers
 
     # Bind-mount this file with a different name to a container running httpd
     run_podman run -d --name myweb -p "$HOST_PORT:80" \
-               -v $INDEX1:/var/www/index.txt \
-               -w /var/www \
-               $IMAGE /bin/busybox-extras httpd -f -p 80
+	       -v $INDEX1:/var/www/index.txt \
+	       -w /var/www \
+	       $IMAGE /bin/busybox-extras httpd -f -p 80
     cid=$output
 
     # In that container, create a second file, using exec and redirection
@@ -71,7 +84,7 @@ load helpers
     # We could get more parseable output by using $NCAT_REMOTE_ADDR,
     # but busybox nc doesn't support that.
     run_podman run -d --userns=keep-id -p 127.0.0.1:$myport:$myport \
-               $IMAGE nc -l -n -v -p $myport
+	       $IMAGE nc -l -n -v -p $myport
     cid="$output"
 
     # emit random string, and check it
@@ -108,7 +121,7 @@ load helpers
     # (Assert that output is formatted, not a one-line blob: #8011)
     run_podman network inspect $mynetname
     if [[ "${#lines[*]}" -lt 5 ]]; then
-        die "Output from 'pod inspect' is only ${#lines[*]} lines; see #8011"
+	die "Output from 'pod inspect' is only ${#lines[*]} lines; see #8011"
     fi
 
     run_podman run --rm --network $mynetname $IMAGE ip a
@@ -116,7 +129,7 @@ load helpers
        "sdfsdf"
 
     run_podman run --rm -d --network $mynetname -p 127.0.0.1:$myport:$myport \
-               $IMAGE nc -l -n -v -p $myport
+	       $IMAGE nc -l -n -v -p $myport
     cid="$output"
 
     # emit random string, and check it
@@ -159,9 +172,9 @@ load helpers
 
     # Bind-mount this file with a different name to a container running httpd
     run_podman run -d --name myweb -p "$HOST_PORT:80" \
-               -v $INDEX1:/var/www/index.txt \
-               -w /var/www \
-               $IMAGE /bin/busybox-extras httpd -f -p 80
+	       -v $INDEX1:/var/www/index.txt \
+	       -w /var/www \
+	       $IMAGE /bin/busybox-extras httpd -f -p 80
     cid=$output
 
     run_podman inspect $cid --format "{{.NetworkSettings.IPAddress}}"
@@ -179,7 +192,7 @@ load helpers
     # check that we cannot curl (timeout after 5 sec)
     run timeout 5 curl -s $SERVER/index.txt
     if [ "$status" -ne 124 ]; then
-        die "curl did not timeout, status code: $status"
+	die "curl did not timeout, status code: $status"
     fi
 
     # reload the network to recreate the iptables rules
