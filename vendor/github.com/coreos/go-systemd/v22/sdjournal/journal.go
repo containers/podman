@@ -310,7 +310,7 @@ package sdjournal
 // }
 //
 // char *
-// my_sd_id128_to_string(void *f, sd_id128_t boot_id, char s[_SD_ARRAY_STATIC SD_ID128_STRING_MAX])
+// my_sd_id128_to_string(void *f, sd_id128_t boot_id, char s[SD_ID128_STRING_MAX])
 // {
 //   char *(*sd_id128_to_string)(sd_id128_t, char *);
 //
@@ -1155,7 +1155,8 @@ func (j *Journal) GetBootID() (string, error) {
 		return "", err
 	}
 
-	c := (*C.char)(C.malloc(33))
+	id128StringMax := C.size_t(C.SD_ID128_STRING_MAX)
+	c := (*C.char)(C.malloc(id128StringMax))
 	defer C.free(unsafe.Pointer(c))
 	C.my_sd_id128_to_string(sd_id128_to_string, boot_id, c)
 

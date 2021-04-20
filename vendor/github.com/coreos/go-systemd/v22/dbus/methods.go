@@ -24,6 +24,18 @@ import (
 	"github.com/godbus/dbus/v5"
 )
 
+// Who can be used to specify which process to kill in the unit via the KillUnitWithTarget API
+type Who string
+
+const (
+	// All sends the signal to all processes in the unit
+	All Who = "all"
+	// Main sends the signal to the main process of the unit
+	Main Who = "main"
+	// Control sends the signal to the control process of the unit
+	Control Who = "control"
+)
+
 func (c *Conn) jobComplete(signal *dbus.Signal) {
 	var id uint32
 	var job dbus.ObjectPath
@@ -196,7 +208,12 @@ func (c *Conn) KillUnit(name string, signal int32) {
 
 // KillUnitContext same as KillUnit with context
 func (c *Conn) KillUnitContext(ctx context.Context, name string, signal int32) {
-	c.sysobj.CallWithContext(ctx, "org.freedesktop.systemd1.Manager.KillUnit", 0, name, "all", signal).Store()
+	c.KillUnitWithTarget(ctx, name, All, signal)
+}
+
+// KillUnitWithTarget is like KillUnitContext, but allows you to specify which process in the unit to send the signal to
+func (c *Conn) KillUnitWithTarget(ctx context.Context, name string, target Who, signal int32) error {
+	return c.sysobj.CallWithContext(ctx, "org.freedesktop.systemd1.Manager.KillUnit", 0, name, string(target), signal).Store()
 }
 
 // ResetFailedUnit resets the "failed" state of a specific unit.
@@ -360,7 +377,7 @@ func (c *Conn) SetUnitPropertiesContext(ctx context.Context, name string, runtim
 
 // Deprecated: use GetUnitTypePropertyContext instead
 func (c *Conn) GetUnitTypeProperty(unit string, unitType string, propertyName string) (*Property, error) {
-	return c.GetUnitTypePropertyContext(context.Background(), unitType, unitType, propertyName)
+	return c.GetUnitTypePropertyContext(context.Background(), unit, unitType, propertyName)
 }
 
 // GetUnitTypePropertyContext same as GetUnitTypeProperty with context
