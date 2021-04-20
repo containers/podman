@@ -43,6 +43,10 @@ type digestingReader struct {
 	validationSucceeded bool
 }
 
+// FIXME: disable early layer commits temporarily until a solid solution to
+// address #1205 has been found.
+const enableEarlyCommit = false
+
 var (
 	// ErrDecryptParamsMissing is returned if there is missing decryption parameters
 	ErrDecryptParamsMissing = errors.New("Necessary DecryptParameters not present")
@@ -1185,7 +1189,7 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 		// layers which requires passing the index of the layer.
 		// Hence, we need to special case and cast.
 		dest, ok := ic.c.dest.(internalTypes.ImageDestinationWithOptions)
-		if ok {
+		if ok && enableEarlyCommit {
 			options := internalTypes.TryReusingBlobOptions{
 				Cache:         ic.c.blobInfoCache,
 				CanSubstitute: ic.canSubstituteBlobs,
@@ -1546,7 +1550,7 @@ func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, sr
 	// which requires passing the index of the layer.  Hence, we need to
 	// special case and cast.
 	dest, ok := c.dest.(internalTypes.ImageDestinationWithOptions)
-	if ok {
+	if ok && enableEarlyCommit {
 		options := internalTypes.PutBlobOptions{
 			Cache:    c.blobInfoCache,
 			IsConfig: isConfig,
