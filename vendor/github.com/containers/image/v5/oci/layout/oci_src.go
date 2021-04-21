@@ -15,7 +15,6 @@ import (
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 type ociImageSource struct {
@@ -95,7 +94,6 @@ func (s *ociImageSource) GetManifest(ctx context.Context, instanceDigest *digest
 
 	m, err := ioutil.ReadFile(manifestPath)
 	if err != nil {
-		logrus.Errorf("Error HERE")
 		return nil, "", err
 	}
 	if mimeType == "" {
