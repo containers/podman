@@ -34,7 +34,7 @@ Set commit message for imported image
 
 Shows progress on the import
 
-**-verbose**
+**\-\-verbose**
 
 Print additional debugging information
 

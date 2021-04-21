@@ -620,8 +620,8 @@ func (ir *ImageEngine) Remove(ctx context.Context, images []string, opts entitie
 			for _, img := range storageImages {
 				isParent, err := img.IsParent(ctx)
 				if err != nil {
-					rmErrors = append(rmErrors, err)
-					continue
+					logrus.Warnf("%v, ignoring the error", err)
+					isParent = false
 				}
 				// Skip parent images.
 				if isParent {
