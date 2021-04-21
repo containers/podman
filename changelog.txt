@@ -1,3 +1,14 @@
+- Changelog for HEAD (2021-04-21):
+  * Update release notes for v3.1.2
+  * Ensure mount destination is clean, no trailing slash
+  * Fixes podman-remote save to directories does not work
+  * [CI:DOCS] Add missing dash to verbose option
+  * [CI:DOCS] Fix Markdown table layout bugs
+  * [CI:DOCS] Rewrite --uidmap doc in podman-create.1.md and podman-run.1.md
+  * rmi: don't break when the image is missing a manifest
+  * Bump containers/image to v5.11.1
+  * Bump github.com/coreos/go-systemd from 22.2.0 to 22.3.1
+
 - Changelog for HEAD (2021-04-16):
   * Update release notes for v3.1.1
   * podman play kube apply correct log driver
