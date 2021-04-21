@@ -6,11 +6,13 @@ import (
 	"context"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 
 	api "github.com/containers/podman/v3/pkg/api/server"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -24,6 +26,17 @@ func restService(opts entities.ServiceOptions, flags *pflag.FlagSet, cfg *entiti
 	)
 
 	if opts.URI != "" {
+		fields := strings.Split(opts.URI, ":")
+		if len(fields) == 1 {
+			return errors.Errorf("%s is an invalid socket destination", opts.URI)
+		}
+		path := opts.URI
+		if fields[0] == "unix" {
+			if path, err = filepath.Abs(fields[1]); err != nil {
+				return err
+			}
+		}
+		util.SetSocketPath(path)
 		if os.Getenv("LISTEN_FDS") != "" {
 			// If it is activated by systemd, use the first LISTEN_FD (3)
 			// instead of opening the socket file.
@@ -34,10 +47,6 @@ func restService(opts entities.ServiceOptions, flags *pflag.FlagSet, cfg *entiti
 			}
 			listener = &l
 		} else {
-			fields := strings.Split(opts.URI, ":")
-			if len(fields) == 1 {
-				return errors.Errorf("%s is an invalid socket destination", opts.URI)
-			}
 			network := fields[0]
 			address := strings.Join(fields[1:], ":")
 			l, err := net.Listen(network, address)

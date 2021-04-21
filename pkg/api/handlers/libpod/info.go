@@ -5,11 +5,13 @@ import (
 
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
+	"github.com/containers/podman/v3/pkg/domain/infra/abi"
 )
 
 func GetInfo(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	info, err := runtime.Info()
+	containerEngine := abi.ContainerEngine{Libpod: runtime}
+	info, err := containerEngine.Info(r.Context())
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return

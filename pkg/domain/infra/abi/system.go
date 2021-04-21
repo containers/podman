@@ -32,17 +32,11 @@ func (ic *ContainerEngine) Info(ctx context.Context) (*define.Info, error) {
 	if err != nil {
 		return nil, err
 	}
-	xdg, err := util.GetRuntimeDir()
+
+	socketPath, err := util.SocketPath()
 	if err != nil {
 		return nil, err
 	}
-	if len(xdg) == 0 {
-		// If no xdg is returned, assume root socket
-		xdg = "/run"
-	}
-
-	// Glue the socket path together
-	socketPath := filepath.Join(xdg, "podman", "podman.sock")
 	rs := define.RemoteSocket{
 		Path:   socketPath,
 		Exists: false,
