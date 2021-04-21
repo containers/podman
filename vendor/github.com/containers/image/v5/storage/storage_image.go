@@ -763,7 +763,7 @@ func (s *storageImageDestination) commitLayer(ctx context.Context, blob manifest
 	}
 
 	// Carry over the previous ID for empty non-base layers.
-	if blob.EmptyLayer && index > 0 {
+	if blob.EmptyLayer {
 		s.indexToStorageID[index] = &lastLayer
 		return nil
 	}
