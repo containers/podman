@@ -52,7 +52,7 @@ func init() {
 
 	formatFlagName := "format"
 	flags.StringVar(&eventFormat, formatFlagName, "", "format the output using a Go template")
-	_ = eventsCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+	_ = eventsCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(events.Event{}))
 
 	flags.BoolVar(&eventOptions.Stream, "stream", true, "stream new events; for testing only")
 

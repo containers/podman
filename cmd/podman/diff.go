@@ -43,7 +43,7 @@ func init() {
 
 	formatFlagName := "format"
 	flags.StringVar(&diffOpts.Format, formatFlagName, "", "Change the output format")
-	_ = diffCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+	_ = diffCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(nil))
 
 	validate.AddLatestFlag(diffCmd, &diffOpts.Latest)
 }

@@ -38,7 +38,7 @@ func init() {
 
 	formatFlagName := "format"
 	flags.StringVarP(&versionFormat, formatFlagName, "f", "", "Change the output format to JSON or a Go template")
-	_ = versionCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+	_ = versionCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(entities.SystemVersionReport{}))
 }
 
 func version(cmd *cobra.Command, args []string) error {

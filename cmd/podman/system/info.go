@@ -10,6 +10,7 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/ghodss/yaml"
 	"github.com/spf13/cobra"
@@ -68,7 +69,7 @@ func infoFlags(cmd *cobra.Command) {
 
 	formatFlagName := "format"
 	flags.StringVarP(&inFormat, formatFlagName, "f", "", "Change the output format to JSON or a Go template")
-	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(define.Info{Host: &define.HostInfo{}, Store: &define.StoreInfo{}}))
 }
 
 func info(cmd *cobra.Command, args []string) error {

@@ -83,7 +83,7 @@ func imageListFlagSet(cmd *cobra.Command) {
 
 	formatFlagName := "format"
 	flags.StringVar(&listFlag.format, formatFlagName, "", "Change the output format to JSON or a Go template")
-	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(entities.ImageSummary{}))
 
 	flags.BoolVar(&listFlag.digests, "digests", false, "Show digests")
 	flags.BoolVarP(&listFlag.noHeading, "noheading", "n", false, "Do not print column headings")

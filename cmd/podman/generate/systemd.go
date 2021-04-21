@@ -72,7 +72,7 @@ func init() {
 
 	formatFlagName := "format"
 	flags.StringVar(&format, formatFlagName, "", "Print the created units in specified format (json)")
-	_ = systemdCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+	_ = systemdCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(nil))
 
 	flags.SetNormalizeFunc(utils.AliasFlags)
 }

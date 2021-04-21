@@ -5,6 +5,7 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/inspect"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
@@ -35,7 +36,12 @@ func init() {
 
 	formatFlagName := "format"
 	flags.StringVarP(&inspectOpts.Format, formatFlagName, "f", "json", "Format the output to a Go template or json")
-	_ = inspectCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+	_ = inspectCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(define.InspectContainerData{
+		State:           &define.InspectContainerState{},
+		NetworkSettings: &define.InspectNetworkSettings{},
+		Config:          &define.InspectContainerConfig{},
+		HostConfig:      &define.InspectContainerHostConfig{},
+	}))
 
 	validate.AddLatestFlag(inspectCmd, &inspectOpts.Latest)
 }

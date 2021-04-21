@@ -51,7 +51,7 @@ func mountFlags(cmd *cobra.Command) {
 
 	formatFlagName := "format"
 	flags.StringVar(&mountOpts.Format, formatFlagName, "", "Print the mounted images in specified format (json)")
-	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(nil))
 }
 
 func init() {

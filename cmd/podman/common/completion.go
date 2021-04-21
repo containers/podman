@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 
 	"github.com/containers/common/pkg/config"
@@ -891,10 +892,85 @@ func AutocompleteNetworkFlag(cmd *cobra.Command, args []string, toComplete strin
 	return append(networks, suggestions...), dir
 }
 
-// AutocompleteJSONFormat - Autocomplete format flag option.
-// -> "json"
-func AutocompleteJSONFormat(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	return []string{"json"}, cobra.ShellCompDirectiveNoFileComp
+// AutocompleteFormat - Autocomplete json or a given struct to use for a go template.
+// The input can be nil, In this case only json will be autocompleted.
+// This function will only work for structs other types are not supported.
+// When "{{." is typed the field and method names of the given struct will be completed.
+// This also works recursive for nested structs.
+func AutocompleteFormat(o interface{}) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	// this function provides shell completion for go templates
+	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		// autocomplete json when nothing or json is typed
+		if strings.HasPrefix("json", toComplete) {
+			return []string{"json"}, cobra.ShellCompDirectiveNoFileComp
+		}
+		// no input struct we cannot provide completion return nothing
+		if o == nil {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+
+		// toComplete could look like this: {{ .Config }} {{ .Field.F
+		// 1. split the template variable delimiter
+		vars := strings.Split(toComplete, "{{")
+		if len(vars) == 1 {
+			// no variables return no completion
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		// clean the spaces from the last var
+		field := strings.Split(vars[len(vars)-1], " ")
+		// split this into it struct field names
+		fields := strings.Split(field[len(field)-1], ".")
+		f := reflect.ValueOf(o)
+		for i := 1; i < len(fields); i++ {
+			if f.Kind() == reflect.Ptr {
+				f = f.Elem()
+			}
+
+			// // the only supported type is struct
+			if f.Kind() != reflect.Struct {
+				return nil, cobra.ShellCompDirectiveNoFileComp
+			}
+
+			// last field get all names to suggest
+			if i == len(fields)-1 {
+				suggestions := []string{}
+				for j := 0; j < f.NumField(); j++ {
+					fname := f.Type().Field(j).Name
+					suffix := "}}"
+					kind := f.Type().Field(j).Type.Kind()
+					if kind == reflect.Ptr {
+						// make sure to read the actual type when it is a pointer
+						kind = f.Type().Field(j).Type.Elem().Kind()
+					}
+					// when we have a nested struct do not append braces instead append a dot
+					if kind == reflect.Struct {
+						suffix = "."
+					}
+					if strings.HasPrefix(fname, fields[i]) {
+						// add field name with closing braces
+						suggestions = append(suggestions, fname+suffix)
+					}
+				}
+
+				for j := 0; j < f.NumMethod(); j++ {
+					fname := f.Type().Method(j).Name
+					if strings.HasPrefix(fname, fields[i]) {
+						// add method name with closing braces
+						suggestions = append(suggestions, fname+"}}")
+					}
+				}
+
+				// add the current toComplete value in front so that the shell can complete this correctly
+				toCompArr := strings.Split(toComplete, ".")
+				toCompArr[len(toCompArr)-1] = ""
+				toComplete = strings.Join(toCompArr, ".")
+				return prefixSlice(toComplete, suggestions), cobra.ShellCompDirectiveNoSpace | cobra.ShellCompDirectiveNoFileComp
+			}
+			// set the next struct field
+			f = f.FieldByName(fields[i])
+		}
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
 }
 
 // AutocompleteEventFilter - Autocomplete event filter flag options.

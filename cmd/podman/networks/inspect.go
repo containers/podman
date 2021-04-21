@@ -33,7 +33,7 @@ func init() {
 
 	formatFlagName := "format"
 	flags.StringVarP(&inspectOpts.Format, formatFlagName, "f", "", "Pretty-print network to JSON or using a Go template")
-	_ = networkinspectCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+	_ = networkinspectCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(nil))
 }
 
 func networkInspect(_ *cobra.Command, args []string) error {
