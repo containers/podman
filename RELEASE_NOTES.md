@@ -1,5 +1,16 @@
 # Release Notes
 
+## 3.1.2
+### Bugfixes
+- Fixed a bug where images with empty layers were stored incorrectly, causing them to be unable to be pushed or saved.
+- Fixed a bug where the `podman rmi` command could fail to remove corrupt images from storage.
+- Fixed a bug where the remote Podman client's `podman save` command did not support the `oci-dir` and `docker-dir` formats ([#9742](https://github.com/containers/podman/issues/9742)).
+- Fixed a bug where volume mounts from `podman play kube` created with a trailing `/` in the container path were were not properly superceding named volumes from the image ([#9618](https://github.com/containers/podman/issues/9618)).
+- Fixed a bug where Podman could fail to build on 32-bit architectures.
+
+### Misc
+- Updated the containers/image library to v5.11.1
+
 ## 3.1.1
 ### Changes
 - Podman now recognizes `trace` as a valid argument to the `--log-level` command. Trace logging is now the most verbose level of logging available.
