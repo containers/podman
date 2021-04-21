@@ -42,6 +42,10 @@ Includes the container statuses in the container info field
 
 Show the latest pod created (all states) (This option is not available with the remote Podman client)
 
+#### **\-\-noheading**
+
+Omit the table headings from the listing of pods.
+
 #### **\-\-no-trunc**
 
 Display the extended information

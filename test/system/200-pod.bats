@@ -17,6 +17,17 @@ function teardown() {
 }
 
 
+@test "podman pod - basic tests" {
+    run_podman pod list --noheading
+    is "$output" "" "baseline: empty results from list --noheading"
+
+    run_podman pod ls --noheading
+    is "$output" "" "baseline: empty results from ls --noheading"
+
+    run_podman pod ps --noheading
+    is "$output" "" "baseline: empty results from ps --noheading"
+}
+
 @test "podman pod top - containers in different PID namespaces" {
     # With infra=false, we don't get a /pause container (we also
     # don't pull k8s.gcr.io/pause )

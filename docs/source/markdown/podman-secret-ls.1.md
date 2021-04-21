@@ -16,6 +16,10 @@ Lists all the secrets that exist. The output can be formatted to a Go template u
 
 Format secret output using Go template.
 
+#### **\-\-noheading**
+
+Omit the table headings from the listing of secrets.	.
+
 ## EXAMPLES
 
 ```

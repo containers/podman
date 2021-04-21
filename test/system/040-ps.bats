@@ -5,6 +5,9 @@ load helpers
 @test "podman ps - basic tests" {
     rand_name=$(random_string 30)
 
+    run_podman ps --noheading
+    is "$output" "" "baseline: empty results from ps --noheading"
+
     run_podman run -d --name $rand_name $IMAGE sleep 5
     cid=$output
     is "$cid" "[0-9a-f]\{64\}$"
@@ -29,8 +32,6 @@ load helpers
     is "${lines[1]}" \
        "${cid:0:12} \+$IMAGE *sleep .* Exited .* $rand_name" \
        "podman ps -a"
-
-
 
     run_podman rm $cid
 }

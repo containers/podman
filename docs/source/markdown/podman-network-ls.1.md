@@ -41,6 +41,10 @@ Valid placeholders for the Go template are listed below:
 | .Labels         | Network labels                  |
 | .Version        | CNI Version of the config file	|
 
+#### **\-\-noheading**
+
+Omit the table headings from the listing of networks.
+
 #### **\-\-no-trunc**
 
 Do not truncate the network ID. The network ID is not displayed by default and must be specified with **\-\-format**.

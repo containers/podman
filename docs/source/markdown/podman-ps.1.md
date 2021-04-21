@@ -100,6 +100,10 @@ Show the latest container created (all states) (This option is not available wit
 
 Display namespace information
 
+#### **\-\-noheading**
+
+Omit the table headings from the listing of containers.
+
 #### **\-\-no-trunc**
 
 Display the extended information

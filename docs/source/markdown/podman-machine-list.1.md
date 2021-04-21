@@ -35,6 +35,10 @@ Valid placeholders for the Go template are listed below:
 
 Print usage statement.
 
+#### **\-\-noheading**
+
+Omit the table headings from the listing of pods.
+
 ## EXAMPLES
 
 ```

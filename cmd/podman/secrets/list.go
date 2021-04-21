@@ -48,6 +48,7 @@ func init() {
 	formatFlagName := "format"
 	flags.StringVar(&listFlag.format, formatFlagName, "{{.ID}}\t{{.Name}}\t{{.Driver}}\t{{.CreatedAt}}\t{{.UpdatedAt}}\t\n", "Format volume output using Go template")
 	_ = lsCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+	flags.BoolVar(&listFlag.noHeading, "noheading", false, "Do not print headers")
 }
 
 func ls(cmd *cobra.Command, args []string) error {

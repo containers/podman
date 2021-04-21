@@ -61,6 +61,7 @@ func init() {
 	formatFlagName := "format"
 	flags.StringVar(&listFlag.format, formatFlagName, "{{.Name}}\t{{.VMType}}\t{{.Created}}\t{{.LastUp}}\n", "Format volume output using Go template")
 	_ = lsCmd.RegisterFlagCompletionFunc(formatFlagName, completion.AutocompleteNone)
+	flags.BoolVar(&listFlag.noHeading, "noheading", false, "Do not print headers")
 }
 
 func list(cmd *cobra.Command, args []string) error {

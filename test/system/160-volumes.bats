@@ -23,6 +23,9 @@ function teardown() {
 @test "podman run --volumes : basic" {
     skip_if_remote "volumes cannot be shared across hosts"
 
+    run_podman volume list --noheading
+    is "$output" "" "baseline: empty results from list --noheading"
+
     # Create three temporary directories
     vol1=${PODMAN_TMPDIR}/v1_$(random_string)
     vol2=${PODMAN_TMPDIR}/v2_$(random_string)

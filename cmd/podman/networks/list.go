@@ -48,6 +48,7 @@ func networkListFlags(flags *pflag.FlagSet) {
 
 	filterFlagName := "filter"
 	flags.StringArrayVarP(&filters, filterFlagName, "f", nil, "Provide filter values (e.g. 'name=podman')")
+	flags.Bool("noheading", false, "Do not print headers")
 	_ = networklistCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteNetworkFilters)
 }
 
@@ -140,7 +141,8 @@ func templateOut(responses []*entities.NetworkListReport, cmd *cobra.Command) er
 	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
 	defer w.Flush()
 
-	if renderHeaders {
+	noHeading, _ := cmd.Flags().GetBool("noheading")
+	if !noHeading && renderHeaders {
 		if err := tmpl.Execute(w, headers); err != nil {
 			return err
 		}

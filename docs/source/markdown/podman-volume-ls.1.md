@@ -26,6 +26,10 @@ Format volume output using Go template.
 
 Print usage statement.
 
+#### **\-\-noheading**
+
+Omit the table headings from the listing of volumes.
+
 #### **\-\-quiet**, **-q**
 
 Print volume output in quiet mode. Only print the volume names.
