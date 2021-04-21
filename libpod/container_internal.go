@@ -685,7 +685,11 @@ func (c *Container) removeIPv4Allocations() error {
 // This is necessary for restarting containers
 func (c *Container) removeConmonFiles() error {
 	// Files are allowed to not exist, so ignore ENOENT
-	attachFile := filepath.Join(c.bundlePath(), "attach")
+	attachFile, err := c.AttachSocketPath()
+	if err != nil {
+		return errors.Wrapf(err, "failed to get attach socket path for container %s", c.ID())
+	}
+
 	if err := os.Remove(attachFile); err != nil && !os.IsNotExist(err) {
 		return errors.Wrapf(err, "error removing container %s attach file", c.ID())
 	}

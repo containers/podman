@@ -773,7 +773,7 @@ func (c *Container) cleanupExecBundle(sessionID string) error {
 		return err
 	}
 
-	return c.ociRuntime.ExecContainerCleanup(c, sessionID)
+	return nil
 }
 
 // the path to a containers exec session bundle

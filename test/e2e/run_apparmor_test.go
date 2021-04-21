@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+// wip
 func skipIfAppArmorEnabled() {
 	if apparmor.IsEnabled() {
 		Skip("Apparmor is enabled")
