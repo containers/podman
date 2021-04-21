@@ -196,7 +196,7 @@ spelled with complete minutiae.
    1. Merge the PR (or ask someone else to review and merge, to be safer).
    1. **Note:** This is the last point where any test-failures can be addressed
       by code changes. After pushing the new version-tag upstream, no further
-      changes can be made to the code without lots of unpleasent efforts.  Please
+      changes can be made to the code without lots of unpleasant efforts.  Please
       seek assistance if needed, before proceeding.
 
    1. Assuming the "Bump to ..." PR merged successfully, and you're **really**

@@ -199,8 +199,8 @@ func TestEscapeSystemdArguments(t *testing.T) {
 			[]string{"foo", `"command with backslash \\"`},
 		},
 		{
-			[]string{"foo", `command with two backslashs \\`},
-			[]string{"foo", `"command with two backslashs \\\\"`},
+			[]string{"foo", `command with two backslashes \\`},
+			[]string{"foo", `"command with two backslashes \\\\"`},
 		},
 	}
 

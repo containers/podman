@@ -378,7 +378,7 @@ class TestApi(unittest.TestCase):
             self.assertEqual(r.status_code, 200, r.text)
             objs = json.loads(r.text)
             self.assertIn(type(objs), (list,))
-            # There should be only one offical image
+            # There should be only one official image
             self.assertEqual(len(objs), 1)
 
         def do_search4():

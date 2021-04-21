@@ -161,7 +161,7 @@ Register-ArgumentCompleter -CommandName 'podman-remote' -ScriptBlock {
 
     $Values | ForEach-Object {
 
-        # store temporay because switch will overwrite $_
+        # store temporary because switch will overwrite $_
         $comp = $_
 
         # PowerShell supports three different completion modes
@@ -216,7 +216,7 @@ Register-ArgumentCompleter -CommandName 'podman-remote' -ScriptBlock {
             Default {
                 # Like MenuComplete but we don't want to add a space here because
                 # the user need to press space anyway to get the completion.
-                # Description will not be shown because thats not possible with TabCompleteNext
+                # Description will not be shown because that's not possible with TabCompleteNext
                 [System.Management.Automation.CompletionResult]::new($($comp.Name | __podman-remote_escapeStringWithSpecialChars), "$($comp.Name)", 'ParameterValue', "$($comp.Description)")
             }
         }

@@ -50,7 +50,7 @@ func findImageInRepotags(search imageParts, images []*Image) (*storage.Image, er
 
 	// If more then one candidate and the candidates all have same name
 	// and only one is read/write return it.
-	// Othewise return error with the list of candidates
+	// Otherwise return error with the list of candidates
 	if len(candidates) > 1 {
 		var (
 			rwImage    *Image

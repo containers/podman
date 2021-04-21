@@ -6,7 +6,7 @@ PLATFORM=$1                         ## linux, windows or darwin
 TARGET=${2}                         ## where to output files
 SOURCES=${@:3}                      ## directories to find markdown files
 
-# Overriden for testing.  Native podman-remote binary expected filepaths
+# Overridden for testing.  Native podman-remote binary expected filepaths
 if [[ -z "$PODMAN" ]]; then
     case $(env -i HOME=$HOME PATH=$PATH go env GOOS) in
         windows)

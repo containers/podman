@@ -94,7 +94,7 @@ func PrepareFilters(r *http.Request) (*map[string][]string, error) {
 	return &filterMap, nil
 }
 
-// MatchLabelFilters matches labels and returs true if they are valid
+// MatchLabelFilters matches labels and returns true if they are valid
 func MatchLabelFilters(filterValues []string, labels map[string]string) bool {
 outer:
 	for _, filterValue := range filterValues {

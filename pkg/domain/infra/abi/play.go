@@ -428,7 +428,7 @@ func readConfigMapFromFile(r io.Reader) (v1.ConfigMap, error) {
 	return cm, nil
 }
 
-// splitMultiDocYAML reads mutiple documents in a YAML file and
+// splitMultiDocYAML reads multiple documents in a YAML file and
 // returns them as a list.
 func splitMultiDocYAML(yamlContent []byte) ([][]byte, error) {
 	var documentList [][]byte
@@ -471,7 +471,7 @@ func getKubeKind(obj []byte) (string, error) {
 }
 
 // sortKubeKinds adds the correct creation order for the kube kinds.
-// Any pod dependecy will be created first like volumes, secrets, etc.
+// Any pod dependency will be created first like volumes, secrets, etc.
 func sortKubeKinds(documentList [][]byte) ([][]byte, error) {
 	var sortedDocumentList [][]byte
 

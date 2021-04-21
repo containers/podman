@@ -16,7 +16,7 @@ A secret is a blob of sensitive data which a container needs at runtime but
 should not be stored in the image or in source control, such as usernames and passwords,
 TLS certificates and keys, SSH keys or other important generic strings or binary content (up to 500 kb in size).
 
-Secrets will not be commited to an image with `podman commit`, and will not be in the archive created by a `podman export`
+Secrets will not be committed to an image with `podman commit`, and will not be in the archive created by a `podman export`
 
 ## OPTIONS
 
