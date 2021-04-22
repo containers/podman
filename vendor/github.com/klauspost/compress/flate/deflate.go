@@ -440,8 +440,7 @@ func (d *compressor) deflateLazy() {
 			// index and index-1 are already inserted. If there is not enough
 			// lookahead, the last two strings are not inserted into the hash
 			// table.
-			var newIndex int
-			newIndex = s.index + prevLength - 1
+			newIndex := s.index + prevLength - 1
 			// Calculate missing hashes
 			end := newIndex
 			if end > s.maxInsertIndex {
