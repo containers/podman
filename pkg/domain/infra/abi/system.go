@@ -21,6 +21,7 @@ import (
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/podman/v3/utils"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -58,7 +59,11 @@ func (ic *ContainerEngine) Info(ctx context.Context) (*define.Info, error) {
 
 func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) error {
 	// do it only after podman has already re-execed and running with uid==0.
-	if os.Geteuid() == 0 {
+	hasCapSysAdmin, err := unshare.HasCapSysAdmin()
+	if err != nil {
+		return err
+	}
+	if hasCapSysAdmin {
 		ownsCgroup, err := cgroups.UserOwnsCurrentSystemdCgroup()
 		if err != nil {
 			logrus.Infof("Failed to detect the owner for the current cgroup: %v", err)

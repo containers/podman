@@ -29,6 +29,7 @@ import (
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/docker/pkg/namesgenerator"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -338,9 +339,16 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	}
 	logrus.Debugf("Set libpod namespace to %q", runtime.config.Engine.Namespace)
 
+	hasCapSysAdmin, err := unshare.HasCapSysAdmin()
+	if err != nil {
+		return err
+	}
+
+	needsUserns := !hasCapSysAdmin
+
 	// Set up containers/storage
 	var store storage.Store
-	if os.Geteuid() != 0 {
+	if needsUserns {
 		logrus.Debug("Not configuring container store")
 	} else if runtime.noStore {
 		logrus.Debug("No store required. Not opening container store.")
@@ -480,7 +488,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		// If we need to refresh, then it is safe to assume there are
 		// no containers running.  Create immediately a namespace, as
 		// we will need to access the storage.
-		if os.Geteuid() != 0 {
+		if needsUserns {
 			aliveLock.Unlock() // Unlock to avoid deadlock as BecomeRootInUserNS will reexec.
 			pausePid, err := util.GetRootlessPauseProcessPidPathGivenDir(runtime.config.Engine.TmpDir)
 			if err != nil {
