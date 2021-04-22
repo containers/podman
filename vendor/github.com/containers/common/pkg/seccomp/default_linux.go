@@ -299,6 +299,7 @@ func DefaultProfile() *Seccomp {
 				"sendmmsg",
 				"sendmsg",
 				"sendto",
+				"setns",
 				"set_robust_list",
 				"set_thread_area",
 				"set_tid_address",

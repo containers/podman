@@ -16,7 +16,7 @@ func ChangeHostPathOwnership(path string, recursive bool, uid, gid int) error {
 	// Validate if host path can be chowned
 	isDangerous, err := DangerousHostPath(path)
 	if err != nil {
-		return errors.Wrapf(err, "failed to validate if host path is dangerous")
+		return errors.Wrap(err, "failed to validate if host path is dangerous")
 	}
 
 	if isDangerous {
@@ -42,13 +42,13 @@ func ChangeHostPathOwnership(path string, recursive bool, uid, gid int) error {
 		})
 
 		if err != nil {
-			return errors.Wrapf(err, "failed to chown recursively host path")
+			return errors.Wrap(err, "failed to chown recursively host path")
 		}
 	} else {
 		// Get host path info
 		f, err := os.Lstat(path)
 		if err != nil {
-			return errors.Wrapf(err, "failed to get host path information")
+			return errors.Wrap(err, "failed to get host path information")
 		}
 
 		// Get current ownership
@@ -57,7 +57,7 @@ func ChangeHostPathOwnership(path string, recursive bool, uid, gid int) error {
 
 		if uid != currentUID || gid != currentGID {
 			if err := os.Lchown(path, uid, gid); err != nil {
-				return errors.Wrapf(err, "failed to chown host path")
+				return errors.Wrap(err, "failed to chown host path")
 			}
 		}
 	}

@@ -331,10 +331,10 @@ func defaultTmpDir() (string, error) {
 
 	if err := os.Mkdir(libpodRuntimeDir, 0700|os.ModeSticky); err != nil {
 		if !os.IsExist(err) {
-			return "", errors.Wrapf(err, "cannot mkdir %s", libpodRuntimeDir)
+			return "", err
 		} else if err := os.Chmod(libpodRuntimeDir, 0700|os.ModeSticky); err != nil {
 			// The directory already exist, just set the sticky bit
-			return "", errors.Wrapf(err, "could not set sticky bit on %s", libpodRuntimeDir)
+			return "", errors.Wrap(err, "set sticky bit on")
 		}
 	}
 	return filepath.Join(libpodRuntimeDir, "tmp"), nil

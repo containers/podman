@@ -138,11 +138,11 @@ func isValidDeviceMode(mode string) bool {
 // ValidateVolumeHostDir validates a volume mount's source directory
 func ValidateVolumeHostDir(hostDir string) error {
 	if hostDir == "" {
-		return errors.Errorf("host directory cannot be empty")
+		return errors.New("host directory cannot be empty")
 	}
 	if filepath.IsAbs(hostDir) {
 		if _, err := os.Stat(hostDir); err != nil {
-			return errors.Wrapf(err, "error checking path %q", hostDir)
+			return err
 		}
 	}
 	// If hostDir is not an absolute path, that means the user wants to create a
@@ -153,7 +153,7 @@ func ValidateVolumeHostDir(hostDir string) error {
 // ValidateVolumeCtrDir validates a volume mount's destination directory.
 func ValidateVolumeCtrDir(ctrDir string) error {
 	if ctrDir == "" {
-		return errors.Errorf("container directory cannot be empty")
+		return errors.New("container directory cannot be empty")
 	}
 	if !filepath.IsAbs(ctrDir) {
 		return errors.Errorf("invalid container path %q, must be an absolute path", ctrDir)
