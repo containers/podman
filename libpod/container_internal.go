@@ -1313,7 +1313,7 @@ func (c *Container) stop(timeout uint) error {
 	}
 
 	// We have to check stopErr *after* we lock again - otherwise, we have a
-	// change of panicing on a double-unlock. Ref: GH Issue 9615
+	// change of panicking on a double-unlock. Ref: GH Issue 9615
 	if stopErr != nil {
 		return stopErr
 	}
@@ -1676,7 +1676,7 @@ func (c *Container) chownVolume(volumeName string) error {
 
 	// TODO: For now, I've disabled chowning volumes owned by non-Podman
 	// drivers. This may be safe, but it's really going to be a case-by-case
-	// thing, I think - safest to leave disabled now and reenable later if
+	// thing, I think - safest to leave disabled now and re-enable later if
 	// there is a demand.
 	if vol.state.NeedsChown && !vol.UsesVolumeDriver() {
 		vol.state.NeedsChown = false

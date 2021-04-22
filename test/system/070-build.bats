@@ -354,7 +354,7 @@ Cmd[1]             | $s_echo
 WorkingDir         | $workdir
 Labels.$label_name | $label_value
 "
-    # FIXME: 2021-02-24: Fixed in buildah #3036; reenable this once podman
+    # FIXME: 2021-02-24: Fixed in buildah #3036; re-enable this once podman
     #        vendors in a newer buildah!
     # Labels.\"io.buildah.version\" | $buildah_version
 

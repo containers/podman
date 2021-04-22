@@ -277,7 +277,7 @@ logformatter() {
             |& awk --file "${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/timestamp.awk" \
             |& "${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/logformatter" "$output_name"
     else
-        # Assume script is run by a human, they want output immediatly
+        # Assume script is run by a human, they want output immediately
         cat -
     fi
 }

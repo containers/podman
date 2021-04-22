@@ -149,7 +149,7 @@ err_if_empty = $(if $(strip $($(1))),$(strip $($(1))),$(error Required variable 
 
 # Podman does not work w/o CGO_ENABLED, except in some very specific cases
 CGO_ENABLED ?= 1
-# Default to the native OS type and archetecture unless otherwise specified
+# Default to the native OS type and architecture unless otherwise specified
 GOOS ?= $(shell $(GO) env GOOS)
 ifeq ($(call err_if_empty,GOOS),windows)
 BINSFX := .exe
@@ -255,7 +255,7 @@ test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
 
 .PHONY: codespell
 codespell:
-	codespell -S bin,vendor,.git,go.sum,changelog.txt,.cirrus.yml,"RELEASE_NOTES.md,*.xz,*.gz,*.tar,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked,splitted,marge,ERRO,hist -w
+	codespell -S bin,vendor,.git,go.sum,changelog.txt,.cirrus.yml,"RELEASE_NOTES.md,*.xz,*.gz,*.tar,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked,splitted,marge,ERRO,hist,ether -w
 
 .PHONY: validate
 validate: gofmt lint .gitvalidation validate.completions man-page-check swagger-check tests-included

@@ -76,7 +76,7 @@ func WaitContainerDocker(w http.ResponseWriter, r *http.Request) {
 	exitCode, err := waitDockerCondition(ctx, name, interval, condition)
 	msg := ""
 	if err != nil {
-		logrus.Errorf("error while waiting on condtion: %q", err)
+		logrus.Errorf("error while waiting on condition: %q", err)
 		msg = err.Error()
 	}
 	responseData := handlers.ContainerWaitOKBody{

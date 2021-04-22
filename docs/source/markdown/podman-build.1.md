@@ -688,7 +688,7 @@ Set the architecture variant of the image to be pulled.
    bind mounts `/HOST-DIR` in the host to `/CONTAINER-DIR` in the Podman
    container. (This option is not available with the remote Podman client)
 
-   The `OPTIONS` are a comma delimited list and can be: <sup>[[1]](#Footnote1)</sup>
+   The `OPTIONS` are a comma-separated list and can be: <sup>[[1]](#Footnote1)</sup>
 
    * [rw|ro]
    * [z|Z|O]

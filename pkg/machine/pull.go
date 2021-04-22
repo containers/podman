@@ -170,7 +170,7 @@ func Decompress(localPath, uncompressedPath string) error {
 
 // Will error out if file without .xz already exists
 // Maybe extracting then renameing is a good idea here..
-// depends on xz: not pre-installed on mac, so it becomes a brew dependecy
+// depends on xz: not pre-installed on mac, so it becomes a brew dependency
 func decompressXZ(src string, output io.Writer) error {
 	fmt.Println("Extracting compressed file")
 	cmd := exec.Command("xzcat", "-k", src)

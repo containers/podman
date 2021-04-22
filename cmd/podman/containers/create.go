@@ -193,6 +193,25 @@ func createInit(c *cobra.Command) error {
 		val := c.Flag("entrypoint").Value.String()
 		cliVals.Entrypoint = &val
 	}
+
+	if c.Flags().Changed("group-add") {
+		groups := []string{}
+		for _, g := range cliVals.GroupAdd {
+			if g == "keep-groups" {
+				if len(cliVals.GroupAdd) > 1 {
+					return errors.New("the '--group-add keep-groups' option is not allowed with any other --group-add options")
+				}
+				if registry.IsRemote() {
+					return errors.New("the '--group-add keep-groups' option is not supported in remote mode")
+				}
+				cliVals.Annotation = append(cliVals.Annotation, "run.oci.keep_original_groups=1")
+			} else {
+				groups = append(groups, g)
+			}
+		}
+		cliVals.GroupAdd = groups
+	}
+
 	if c.Flags().Changed("pids-limit") {
 		val := c.Flag("pids-limit").Value.String()
 		pidsLimit, err := strconv.ParseInt(val, 10, 32)

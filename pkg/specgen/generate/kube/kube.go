@@ -56,7 +56,7 @@ func ToPodGen(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec) 
 			}
 			p.DNSServer = servers
 		}
-		// search domans
+		// search domains
 		if domains := dnsConfig.Searches; len(domains) > 0 {
 			p.DNSSearch = domains
 		}

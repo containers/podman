@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// FileInfo describes the attributes of a file or diretory.
+// FileInfo describes the attributes of a file or directory.
 type FileInfo struct {
 	Name       string      `json:"name"`
 	Size       int64       `json:"size"`

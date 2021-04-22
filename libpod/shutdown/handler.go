@@ -18,7 +18,7 @@ var (
 	stopped    bool
 	sigChan    chan os.Signal
 	cancelChan chan bool
-	// Syncronize accesses to the map
+	// Synchronize accesses to the map
 	handlerLock sync.Mutex
 	// Definitions of all on-shutdown handlers
 	handlers map[string]func(os.Signal) error
