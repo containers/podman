@@ -26,6 +26,7 @@ import (
 	"github.com/docker/go-units"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 func RemoveContainer(w http.ResponseWriter, r *http.Request) {
@@ -148,14 +149,19 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 			containers = containers[:query.Limit]
 		}
 	}
-	var list = make([]*handlers.Container, len(containers))
-	for i, ctnr := range containers {
+	list := make([]*handlers.Container, 0, len(containers))
+	for _, ctnr := range containers {
 		api, err := LibpodToContainer(ctnr, query.Size)
 		if err != nil {
+			if errors.Cause(err) == define.ErrNoSuchCtr {
+				// container was removed between the initial fetch of the list and conversion
+				logrus.Debugf("Container %s removed between initial fetch and conversion, ignoring in output", ctnr.ID())
+				continue
+			}
 			utils.InternalServerError(w, err)
 			return
 		}
-		list[i] = api
+		list = append(list, api)
 	}
 	utils.WriteResponse(w, http.StatusOK, list)
 }
