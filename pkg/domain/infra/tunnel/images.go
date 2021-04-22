@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
-	"github.com/containers/podman/v3/libpod/image"
 	images "github.com/containers/podman/v3/pkg/bindings/images"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/entities/reports"
@@ -311,7 +311,7 @@ func (ir *ImageEngine) Diff(ctx context.Context, nameOrID string, _ entities.Dif
 
 func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.ImageSearchOptions) ([]entities.ImageSearchReport, error) {
 	mappedFilters := make(map[string][]string)
-	filters, err := image.ParseSearchFilter(opts.Filters)
+	filters, err := libimage.ParseSearchFilter(opts.Filters)
 	if err != nil {
 		return nil, err
 	}

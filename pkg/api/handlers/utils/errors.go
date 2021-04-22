@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/errorhandling"
+	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
@@ -49,7 +50,7 @@ func ContainerNotFound(w http.ResponseWriter, name string, err error) {
 }
 
 func ImageNotFound(w http.ResponseWriter, name string, err error) {
-	if errors.Cause(err) != define.ErrNoSuchImage {
+	if errors.Cause(err) != storage.ErrImageUnknown {
 		InternalServerError(w, err)
 	}
 	msg := fmt.Sprintf("No such image: %s", name)

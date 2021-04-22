@@ -2,158 +2,50 @@ package libpod
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
-	"net/url"
 	"os"
 
 	buildahDefine "github.com/containers/buildah/define"
 	"github.com/containers/buildah/imagebuildah"
-	"github.com/containers/image/v5/directory"
+	"github.com/containers/common/libimage"
 	"github.com/containers/image/v5/docker/reference"
-	ociarchive "github.com/containers/image/v5/oci/archive"
-	"github.com/containers/image/v5/oci/layout"
-	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
-	"github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/pkg/util"
-	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-
-	dockerarchive "github.com/containers/image/v5/docker/archive"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // Runtime API
 
-// RemoveImage deletes an image from local storage
-// Images being used by running containers can only be removed if force=true
-func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool) (*image.ImageDeleteResponse, error) {
-	response := image.ImageDeleteResponse{}
-	r.lock.Lock()
-	defer r.lock.Unlock()
+// RemoveContainersForImageCallback returns a callback that can be used in
+// `libimage`.  When forcefully removing images, containers using the image
+// should be removed as well.  The callback allows for more graceful removal as
+// we can use the libpod-internal removal logic.
+func (r *Runtime) RemoveContainersForImageCallback(ctx context.Context) libimage.RemoveContainerFunc {
+	return func(imageID string) error {
+		r.lock.Lock()
+		defer r.lock.Unlock()
 
-	if !r.valid {
-		return nil, define.ErrRuntimeStopped
-	}
-
-	// Get all containers, filter to only those using the image, and remove those containers
-	ctrs, err := r.state.AllContainers()
-	if err != nil {
-		return nil, err
-	}
-	imageCtrs := []*Container{}
-	for _, ctr := range ctrs {
-		if ctr.config.RootfsImageID == img.ID() {
-			imageCtrs = append(imageCtrs, ctr)
+		if !r.valid {
+			return define.ErrRuntimeStopped
 		}
-	}
-	if len(imageCtrs) > 0 && (len(img.Names()) <= 1 || (force && img.InputIsID())) {
-		if force {
-			for _, ctr := range imageCtrs {
+		ctrs, err := r.state.AllContainers()
+		if err != nil {
+			return err
+		}
+		for _, ctr := range ctrs {
+			if ctr.config.RootfsImageID == imageID {
 				if err := r.removeContainer(ctx, ctr, true, false, false); err != nil {
-					return nil, errors.Wrapf(err, "error removing image %s: container %s using image could not be removed", img.ID(), ctr.ID())
+					return errors.Wrapf(err, "error removing image %s: container %s using image could not be removed", imageID, ctr.ID())
 				}
 			}
-		} else {
-			return nil, errors.Wrapf(define.ErrImageInUse, "could not remove image %s as it is being used by %d containers", img.ID(), len(imageCtrs))
 		}
+		// Note that `libimage` will take care of removing any leftover
+		// containers from the storage.
+		return nil
 	}
-
-	hasChildren, err := img.IsParent(ctx)
-	if err != nil {
-		logrus.Warnf("error determining if an image is a parent: %v, ignoring the error", err)
-		hasChildren = false
-	}
-
-	if (len(img.Names()) > 1 && !img.InputIsID()) || hasChildren {
-		// If the image has multiple reponames, we do not technically delete
-		// the image. we figure out which repotag the user is trying to refer
-		// to and untag it.
-		repoName, err := img.MatchRepoTag(img.InputName)
-		if hasChildren && errors.Cause(err) == image.ErrRepoTagNotFound {
-			return nil, errors.Wrapf(define.ErrImageInUse,
-				"unable to delete %q (cannot be forced) - image has dependent child images", img.ID())
-		}
-		if err != nil {
-			return nil, err
-		}
-		if err := img.UntagImage(repoName); err != nil {
-			return nil, err
-		}
-		response.Untagged = append(response.Untagged, repoName)
-		return &response, nil
-	} else if len(img.Names()) > 1 && img.InputIsID() && !force {
-		// If the user requests to delete an image by ID and the image has multiple
-		// reponames and no force is applied, we error out.
-		return nil, errors.Wrapf(define.ErrImageInUse,
-			"unable to delete %s (must force) - image is referred to in multiple tags", img.ID())
-	}
-	err = img.Remove(ctx, force)
-	if err != nil && errors.Cause(err) == storage.ErrImageUsedByContainer {
-		if errStorage := r.rmStorageContainers(force, img); errStorage == nil {
-			// Containers associated with the image should be deleted now,
-			// let's try removing the image again.
-			err = img.Remove(ctx, force)
-		} else {
-			err = errStorage
-		}
-	}
-	response.Untagged = append(response.Untagged, img.Names()...)
-	response.Deleted = img.ID()
-	return &response, err
-}
-
-// Remove containers that are in storage rather than Podman.
-func (r *Runtime) rmStorageContainers(force bool, image *image.Image) error {
-	ctrIDs, err := storageContainers(image.ID(), r.store)
-	if err != nil {
-		return errors.Wrapf(err, "error getting containers for image %q", image.ID())
-	}
-
-	if len(ctrIDs) > 0 && !force {
-		return storage.ErrImageUsedByContainer
-	}
-
-	if len(ctrIDs) > 0 && force {
-		if err = removeStorageContainers(ctrIDs, r.store); err != nil {
-			return errors.Wrapf(err, "error removing containers %v for image %q", ctrIDs, image.ID())
-		}
-	}
-	return nil
-}
-
-// Returns a list of storage containers associated with the given ImageReference
-func storageContainers(imageID string, store storage.Store) ([]string, error) {
-	ctrIDs := []string{}
-	containers, err := store.Containers()
-	if err != nil {
-		return nil, err
-	}
-	for _, ctr := range containers {
-		if ctr.ImageID == imageID {
-			ctrIDs = append(ctrIDs, ctr.ID)
-		}
-	}
-	return ctrIDs, nil
-}
-
-// Removes the containers passed in the array.
-func removeStorageContainers(ctrIDs []string, store storage.Store) error {
-	for _, ctrID := range ctrIDs {
-		if _, err := store.Unmount(ctrID, true); err != nil {
-			return errors.Wrapf(err, "could not unmount container %q to remove it", ctrID)
-		}
-
-		if err := store.DeleteContainer(ctrID); err != nil {
-			return errors.Wrapf(err, "could not remove container %q", ctrID)
-		}
-	}
-	return nil
 }
 
 // newBuildEvent creates a new event based on completion of a built image
@@ -177,89 +69,6 @@ func (r *Runtime) Build(ctx context.Context, options buildahDefine.BuildOptions,
 	return id, ref, err
 }
 
-// Import is called as an intermediary to the image library Import
-func (r *Runtime) Import(ctx context.Context, source, reference, signaturePolicyPath string, changes []string, history string, quiet bool) (string, error) {
-	var (
-		writer io.Writer
-		err    error
-	)
-
-	ic := v1.ImageConfig{}
-	if len(changes) > 0 {
-		config, err := util.GetImageConfig(changes)
-		if err != nil {
-			return "", errors.Wrapf(err, "error adding config changes to image %q", source)
-		}
-		ic = config.ImageConfig
-	}
-
-	hist := []v1.History{
-		{Comment: history},
-	}
-
-	config := v1.Image{
-		Config:  ic,
-		History: hist,
-	}
-
-	writer = nil
-	if !quiet {
-		writer = os.Stderr
-	}
-
-	// if source is a url, download it and save to a temp file
-	u, err := url.ParseRequestURI(source)
-	if err == nil && u.Scheme != "" {
-		file, err := downloadFromURL(source)
-		if err != nil {
-			return "", err
-		}
-		defer os.Remove(file)
-		source = file
-	}
-	// if it's stdin, buffer it, too
-	if source == "-" {
-		file, err := DownloadFromFile(os.Stdin)
-		if err != nil {
-			return "", err
-		}
-		defer os.Remove(file)
-		source = file
-	}
-
-	r.imageRuntime.SignaturePolicyPath = signaturePolicyPath
-	newImage, err := r.imageRuntime.Import(ctx, source, reference, writer, image.SigningOptions{}, config)
-	if err != nil {
-		return "", err
-	}
-	return newImage.ID(), nil
-}
-
-// downloadFromURL downloads an image in the format "https:/example.com/myimage.tar"
-// and temporarily saves in it $TMPDIR/importxyz, which is deleted after the image is imported
-func downloadFromURL(source string) (string, error) {
-	fmt.Printf("Downloading from %q\n", source)
-
-	outFile, err := ioutil.TempFile(util.Tmpdir(), "import")
-	if err != nil {
-		return "", errors.Wrap(err, "error creating file")
-	}
-	defer outFile.Close()
-
-	response, err := http.Get(source)
-	if err != nil {
-		return "", errors.Wrapf(err, "error downloading %q", source)
-	}
-	defer response.Body.Close()
-
-	_, err = io.Copy(outFile, response.Body)
-	if err != nil {
-		return "", errors.Wrapf(err, "error saving %s to %s", source, outFile.Name())
-	}
-
-	return outFile.Name(), nil
-}
-
 // DownloadFromFile reads all of the content from the reader and temporarily
 // saves in it $TMPDIR/importxyz, which is deleted after the image is imported
 func DownloadFromFile(reader *os.File) (string, error) {
@@ -277,80 +86,4 @@ func DownloadFromFile(reader *os.File) (string, error) {
 	}
 
 	return outFile.Name(), nil
-}
-
-// LoadImage loads a container image into local storage
-func (r *Runtime) LoadImage(ctx context.Context, inputFile string, writer io.Writer, signaturePolicy string) (string, error) {
-	if newImages, err := r.LoadAllImageFromArchive(ctx, writer, inputFile, signaturePolicy); err == nil {
-		return newImages, nil
-	}
-
-	return r.LoadImageFromSingleImageArchive(ctx, writer, inputFile, signaturePolicy)
-}
-
-// LoadAllImageFromArchive loads all images from the archive of multi-image that inputFile points to.
-func (r *Runtime) LoadAllImageFromArchive(ctx context.Context, writer io.Writer, inputFile, signaturePolicy string) (string, error) {
-	newImages, err := r.ImageRuntime().LoadAllImagesFromDockerArchive(ctx, inputFile, signaturePolicy, writer)
-	if err == nil {
-		return getImageNames(newImages), nil
-	}
-	return "", err
-}
-
-// LoadImageFromSingleImageArchive load image from the archive of single image that inputFile points to.
-func (r *Runtime) LoadImageFromSingleImageArchive(ctx context.Context, writer io.Writer, inputFile, signaturePolicy string) (string, error) {
-	var saveErr error
-	for _, referenceFn := range []func() (types.ImageReference, error){
-		func() (types.ImageReference, error) {
-			return dockerarchive.ParseReference(inputFile)
-		},
-		func() (types.ImageReference, error) {
-			return ociarchive.NewReference(inputFile, "")
-		},
-		func() (types.ImageReference, error) {
-			return directory.NewReference(inputFile)
-		},
-		func() (types.ImageReference, error) {
-			return layout.NewReference(inputFile, "")
-		},
-		func() (types.ImageReference, error) {
-			// This item needs to be last to break out of loop and report meaningful error message
-			return nil,
-				errors.New("payload does not match any of the supported image formats (oci-archive, oci-dir, docker-archive, docker-dir)")
-		},
-	} {
-		src, err := referenceFn()
-		if err != nil {
-			saveErr = err
-			continue
-		}
-
-		newImages, err := r.ImageRuntime().LoadFromArchiveReference(ctx, src, signaturePolicy, writer)
-		if err == nil {
-			return getImageNames(newImages), nil
-		}
-		saveErr = err
-	}
-	return "", errors.Wrapf(saveErr, "error pulling image")
-}
-
-// RemoveImageFromStorage goes directly to storage and attempts to remove
-// the specified image. This is dangerous and should only be done if libpod
-// reports that image is not known. This call is useful if you have a corrupted
-// image that was never fully added to the libpod database.
-func (r *Runtime) RemoveImageFromStorage(id string) error {
-	_, err := r.store.DeleteImage(id, true)
-	return err
-}
-
-func getImageNames(images []*image.Image) string {
-	var names string
-	for i := range images {
-		if i == 0 {
-			names = images[i].InputName
-		} else {
-			names += ", " + images[i].InputName
-		}
-	}
-	return names
 }

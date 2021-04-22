@@ -165,11 +165,22 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 }
 
 func warnOnUnsetBuildArgs(node *parser.Node, args map[string]string) {
+	argFound := make(map[string]bool)
 	for _, child := range node.Children {
 		switch strings.ToUpper(child.Value) {
 		case "ARG":
 			argName := child.Next.Value
-			if _, ok := args[argName]; !strings.Contains(argName, "=") && !ok {
+			if strings.Contains(argName, "=") {
+				res := strings.Split(argName, "=")
+				if res[1] != "" {
+					argFound[res[0]] = true
+				}
+			}
+			argHasValue := true
+			if !strings.Contains(argName, "=") {
+				argHasValue = argFound[argName]
+			}
+			if _, ok := args[argName]; !argHasValue && !ok {
 				logrus.Warnf("missing %q build argument. Try adding %q to the command line", argName, fmt.Sprintf("--build-arg %s=<VALUE>", argName))
 			}
 		default:

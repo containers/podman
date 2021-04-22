@@ -1,27 +1,18 @@
-From b948e99cb6cb4765987711e8d8948841f6d3f7e2 Mon Sep 17 00:00:00 2001
+From a51192239fafdb59f26c9ddaab1ca9fcac2bb664 Mon Sep 17 00:00:00 2001
 From: Ed Santiago <santiago@redhat.com>
 Date: Tue, 9 Feb 2021 17:28:05 -0700
 Subject: [PATCH] tweaks for running buildah tests under podman
 
 Signed-off-by: Ed Santiago <santiago@redhat.com>
 ---
- tests/helpers.bash | 28 ++++++++++++++++++++++++----
- 1 file changed, 24 insertions(+), 4 deletions(-)
+ tests/helpers.bash | 26 +++++++++++++++++++++++---
+ 1 file changed, 23 insertions(+), 3 deletions(-)
 
 diff --git a/tests/helpers.bash b/tests/helpers.bash
-index 99c290af..c5572840 100644
+index 4dc3a7dbda13..003575f48cec 100644
 --- a/tests/helpers.bash
 +++ b/tests/helpers.bash
-@@ -70,7 +70,7 @@ function _prefetch() {
-         mkdir -p ${_BUILDAH_IMAGE_CACHEDIR}
-     fi
-
--    local _podman_opts="--root ${TESTDIR}/root --storage-driver ${STORAGE_DRIVER}"
-+    local _podman_opts="--root ${TESTDIR}/root --runroot ${TESTDIR}/runroot --storage-driver ${STORAGE_DRIVER}"
-
-     for img in "$@"; do
-         echo "# [checking for: $img]" >&2
-@@ -138,15 +138,35 @@ function run_buildah() {
+@@ -140,15 +140,35 @@ function run_buildah() {
          --retry)         retry=3;        shift;;  # retry network flakes
      esac
 
@@ -54,11 +45,11 @@ index 99c290af..c5572840 100644
 
          # stdout is only emitted upon error; this echo is to help a debugger
 -        echo "\$ $BUILDAH_BINARY $*"
--        run timeout --foreground --kill=10 $BUILDAH_TIMEOUT ${BUILDAH_BINARY} --registries-conf ${TESTSDIR}/registries.conf --root ${TESTDIR}/root --runroot ${TESTDIR}/runroot --storage-driver ${STORAGE_DRIVER} "$@"
+-        run timeout --foreground --kill=10 $BUILDAH_TIMEOUT ${BUILDAH_BINARY} ${REGISTRY_OPTS} ${ROOTDIR_OPTS} "$@"
 +        echo "\$ $cmd_basename $*"
 +        run timeout --foreground --kill=10 $BUILDAH_TIMEOUT ${podman_or_buildah} --registries-conf ${TESTSDIR}/registries.conf --root ${TESTDIR}/root --runroot ${TESTDIR}/runroot --storage-driver ${STORAGE_DRIVER} "$@"
          # without "quotes", multiple lines are glommed together into one
          if [ -n "$output" ]; then
              echo "$output"
 --
-2.30.2
+2.31.1

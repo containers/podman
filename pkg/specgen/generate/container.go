@@ -5,90 +5,45 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/image/v5/manifest"
+	"github.com/containers/common/libimage"
 	"github.com/containers/podman/v3/libpod"
-	"github.com/containers/podman/v3/libpod/image"
 	ann "github.com/containers/podman/v3/pkg/annotations"
 	envLib "github.com/containers/podman/v3/pkg/env"
 	"github.com/containers/podman/v3/pkg/signal"
 	"github.com/containers/podman/v3/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
 // Fill any missing parts of the spec generator (e.g. from the image).
 // Returns a set of warnings or any fatal error that occurred.
 func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerator) ([]string, error) {
-	var (
-		newImage *image.Image
-		err      error
-	)
-
 	// Only add image configuration if we have an image
+	var newImage *libimage.Image
+	var inspectData *libimage.ImageData
+	var err error
 	if s.Image != "" {
-		newImage, err = r.ImageRuntime().NewFromLocal(s.Image)
+		newImage, _, err = r.LibimageRuntime().LookupImage(s.Image, nil)
 		if err != nil {
 			return nil, err
 		}
 
-		_, mediaType, err := newImage.Manifest(ctx)
+		inspectData, err = newImage.Inspect(ctx, false)
 		if err != nil {
-			if errors.Cause(err) != image.ErrImageIsBareList {
-				return nil, err
-			}
-			// if err is not runnable image
-			// use the local store image with repo@digest matches with the list, if exists
-			manifestByte, manifestType, err := newImage.GetManifest(ctx, nil)
-			if err != nil {
-				return nil, err
-			}
-			list, err := manifest.ListFromBlob(manifestByte, manifestType)
-			if err != nil {
-				return nil, err
-			}
-			images, err := r.ImageRuntime().GetImages()
-			if err != nil {
-				return nil, err
-			}
-			findLocal := false
-			listDigest, err := list.ChooseInstance(r.SystemContext())
-			if err != nil {
-				return nil, err
-			}
-			for _, img := range images {
-				for _, imageDigest := range img.Digests() {
-					if imageDigest == listDigest {
-						newImage = img
-						s.Image = img.ID()
-						mediaType = manifestType
-						findLocal = true
-						logrus.Debug("image contains manifest list, using image from local storage")
-						break
-					}
-				}
-			}
-			if !findLocal {
-				return nil, image.ErrImageIsBareList
-			}
+			return nil, err
 		}
 
-		if s.HealthConfig == nil && mediaType == manifest.DockerV2Schema2MediaType {
-			s.HealthConfig, err = newImage.GetHealthCheck(ctx)
-			if err != nil {
-				return nil, err
-			}
+		if s.HealthConfig == nil {
+			// NOTE: the health check is only set for Docker images
+			// but inspect will take care of it.
+			s.HealthConfig = inspectData.HealthCheck
 		}
 
 		// Image stop signal
 		if s.StopSignal == nil {
-			stopSignal, err := newImage.StopSignal(ctx)
-			if err != nil {
-				return nil, err
-			}
-			if stopSignal != "" {
-				sig, err := signal.ParseSignalNameOrNumber(stopSignal)
+			if inspectData.Config.StopSignal != "" {
+				sig, err := signal.ParseSignalNameOrNumber(inspectData.Config.StopSignal)
 				if err != nil {
 					return nil, err
 				}
@@ -113,15 +68,10 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	var envs map[string]string
 
 	// Image Environment defaults
-	if newImage != nil {
+	if inspectData != nil {
 		// Image envs from the image if they don't exist
 		// already, overriding the default environments
-		imageEnvs, err := newImage.Env(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		envs, err = envLib.ParseSlice(imageEnvs)
+		envs, err = envLib.ParseSlice(inspectData.Config.Env)
 		if err != nil {
 			return nil, errors.Wrap(err, "Env fields from image failed to parse")
 		}
@@ -175,11 +125,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		}
 
 		// Add annotations from the image
-		imgAnnotations, err := newImage.Annotations(ctx)
-		if err != nil {
-			return nil, err
-		}
-		for k, v := range imgAnnotations {
+		for k, v := range inspectData.Annotations {
 			annotations[k] = v
 		}
 	}
@@ -221,11 +167,8 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		s.SeccompProfilePath = p
 	}
 
-	if len(s.User) == 0 && newImage != nil {
-		s.User, err = newImage.User(ctx)
-		if err != nil {
-			return nil, err
-		}
+	if len(s.User) == 0 && inspectData != nil {
+		s.User = inspectData.Config.User
 	}
 	if err := finishThrottleDevices(s); err != nil {
 		return nil, err

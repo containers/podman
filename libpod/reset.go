@@ -6,7 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/containers/common/libimage"
 	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/pkg/errorhandling"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage"
@@ -49,20 +51,11 @@ func (r *Runtime) Reset(ctx context.Context) error {
 		logrus.Errorf("Error stopping pause process: %v", err)
 	}
 
-	ir := r.ImageRuntime()
-	images, err := ir.GetImages()
-	if err != nil {
-		return err
+	rmiOptions := &libimage.RemoveImagesOptions{Filters: []string{"readonly=false"}}
+	if _, rmiErrors := r.LibimageRuntime().RemoveImages(ctx, nil, rmiOptions); rmiErrors != nil {
+		return errorhandling.JoinErrors(rmiErrors)
 	}
 
-	for _, i := range images {
-		if err := i.Remove(ctx, true); err != nil {
-			if errors.Cause(err) == define.ErrNoSuchImage {
-				continue
-			}
-			logrus.Errorf("Error removing image %s: %v", i.ID(), err)
-		}
-	}
 	volumes, err := r.state.AllVolumes()
 	if err != nil {
 		return err

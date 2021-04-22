@@ -4,19 +4,6 @@
 
 ## Installing packaged versions of buildah
 
-#### [Amazon Linux 2](https://aws.amazon.com/amazon-linux-2/)
-
-The [Kubic project](https://build.opensuse.org/project/show/devel:kubic:libcontainers:stable)
-provides updated packages for CentOS 7 which can be used unmodified on Amazon Linux 2.
-
-```bash
-cd /etc/yum.repos.d/
-sudo wget https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/CentOS_7/devel:kubic:libcontainers:stable.repo
-sudo yum -y install yum-plugin-copr
-sudo yum -y copr enable lsm5/container-selinux
-sudo yum -y install buildah
-```
-
 ### [Arch Linux](https://www.archlinux.org)
 
 ```bash
@@ -34,26 +21,28 @@ sudo yum -y install buildah
 ```
 
 The [Kubic project](https://build.opensuse.org/project/show/devel:kubic:libcontainers:stable)
-provides updated packages for CentOS 7, 8 and Stream.
+provides updated packages for CentOS 8 and CentOS 8 Stream.
 
 ```bash
-# CentOS 7
-sudo curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/CentOS_7/devel:kubic:libcontainers:stable.repo
-sudo yum -y install buildah
-
 # CentOS 8
 sudo dnf -y module disable container-tools
 sudo dnf -y install 'dnf-command(copr)'
 sudo dnf -y copr enable rhcontainerbot/container-selinux
 sudo curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/CentOS_8/devel:kubic:libcontainers:stable.repo
-sudo dnf -y install buildah
+# OPTIONAL FOR RUNC USERS: crun will be installed by default. Install runc first if you prefer runc
+sudo dnf -y --refresh install runc
+# Install Buildah
+sudo dnf -y --refresh install buildah
 
-# CentOS Stream
+# CentOS 8 Stream
 sudo dnf -y module disable container-tools
 sudo dnf -y install 'dnf-command(copr)'
 sudo dnf -y copr enable rhcontainerbot/container-selinux
 sudo curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/CentOS_8_Stream/devel:kubic:libcontainers:stable.repo
-sudo dnf -y install buildah
+# OPTIONAL FOR RUNC USERS: crun will be installed by default. Install runc first if you prefer runc
+sudo dnf -y --refresh install runc
+# Install Buildah
+sudo dnf -y --refresh install buildah
 ```
 
 
@@ -68,36 +57,6 @@ will be the next stable release (Debian 11) as well as Debian Unstable/Sid.
 sudo apt-get update
 sudo apt-get -y install buildah
 ```
-
-If you would prefer newer (though not as well-tested) packages,
-the [Kubic project](https://build.opensuse.org/package/show/devel:kubic:libcontainers:stable/buildah)
-provides packages for Debian 10 and newer. The packages in Kubic project repos are more frequently
-updated than the one in Debian's official repositories, due to how Debian works.
-The build sources for the Kubic packages can be found [here](https://gitlab.com/rhcontainerbot/buildah/-/tree/debian/debian).
-
-CAUTION: On Debian 11 and newer, including Testing and Sid/Unstable, we highly recommend you use Buildah, Podman and Skopeo ONLY from EITHER the Kubic repo
-OR the official Debian repos. Mixing and matching may lead to unpredictable situations including installation conflicts.
-
-```bash
-# Debian 10
-echo 'deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_10/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
-curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_10/Release.key | sudo apt-key add -
-sudo apt-get update
-sudo apt-get -y install buildah
-
-# Debian Testing
-echo 'deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_Testing/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
-curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_Testing/Release.key | sudo apt-key add -
-sudo apt-get update
-sudo apt-get -y install buildah
-
-# Debian Sid/Unstable
-echo 'deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_Unstable/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
-curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_Unstable/Release.key | sudo apt-key add -
-sudo apt-get update
-sudo apt-get -y install buildah
-```
-
 
 
 ### [Fedora](https://www.fedoraproject.org)
@@ -143,21 +102,6 @@ sudo subscription-manager repos --enable=rhel-7-server-extras-rpms
 sudo yum -y install buildah
 ```
 
-#### [Raspberry Pi OS armhf (ex Raspbian)](https://www.raspberrypi.org/downloads/raspberry-pi-os/)
-
-The [Kubic project](https://build.opensuse.org/package/show/devel:kubic:libcontainers:stable/buildah) provides
-packages for Raspbian 10.
-
-```bash
-# Raspbian 10
-echo 'deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Raspbian_10/ /' | sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
-curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Raspbian_10/Release.key | sudo apt-key add -
-sudo apt-get update -qq
-sudo apt-get -qq -y install buildah
-```
-
-The build sources for the Kubic packages can be found [here](https://gitlab.com/rhcontainerbot/buildah/-/tree/debian/debian).
-
 #### [Raspberry Pi OS arm64 (beta)](https://downloads.raspberrypi.org/raspios_arm64/images/)
 
 Raspberry Pi OS use the standard Debian's repositories,
@@ -185,7 +129,7 @@ sudo apt-get -y install buildah
 
 If you would prefer newer (though not as well-tested) packages,
 the [Kubic project](https://build.opensuse.org/package/show/devel:kubic:libcontainers:stable/buildah)
-provides packages for active Ubuntu releases 18.04 and newer (it should also work with direct derivatives like Pop!\_OS).
+provides packages for active Ubuntu releases 20.04 and newer (it should also work with direct derivatives like Pop!\_OS).
 The packages in Kubic project repos are more frequently updated than the one in Ubuntu's official repositories, due to how Debian/Ubuntu works.
 Checkout the Kubic project page for a list of supported Ubuntu version and architecture combinations.
 The build sources for the Kubic packages can be found [here](https://gitlab.com/rhcontainerbot/buildah/-/tree/debian/debian).

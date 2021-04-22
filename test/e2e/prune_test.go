@@ -104,8 +104,9 @@ var _ = Describe("Podman prune", func() {
 		after := podmanTest.Podman([]string{"images", "-a"})
 		after.WaitWithDefaultTimeout()
 		Expect(none.ExitCode()).To(Equal(0))
+		// Check if all "dangling" images were pruned.
 		hasNoneAfter, _ := after.GrepString("<none>")
-		Expect(hasNoneAfter).To(BeTrue())
+		Expect(hasNoneAfter).To(BeFalse())
 		Expect(len(after.OutputToStringArray()) > 1).To(BeTrue())
 	})
 
@@ -135,12 +136,18 @@ var _ = Describe("Podman prune", func() {
 	It("podman image prune unused images", func() {
 		podmanTest.AddImageToRWStore(ALPINE)
 		podmanTest.AddImageToRWStore(BB)
+
+		images := podmanTest.Podman([]string{"images", "-a"})
+		images.WaitWithDefaultTimeout()
+		Expect(images.ExitCode()).To(Equal(0))
+
 		prune := podmanTest.Podman([]string{"image", "prune", "-af"})
 		prune.WaitWithDefaultTimeout()
 		Expect(prune.ExitCode()).To(Equal(0))
 
-		images := podmanTest.Podman([]string{"images", "-aq"})
+		images = podmanTest.Podman([]string{"images", "-aq"})
 		images.WaitWithDefaultTimeout()
+		Expect(images.ExitCode()).To(Equal(0))
 		// all images are unused, so they all should be deleted!
 		Expect(len(images.OutputToStringArray())).To(Equal(len(CACHE_IMAGES)))
 	})

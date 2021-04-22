@@ -8,15 +8,15 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/image/v5/storage"
+	storageTransport "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/utils"
-	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
+	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -238,6 +238,8 @@ func createInit(c *cobra.Command) error {
 	return nil
 }
 
+// TODO: we should let the backend take care of the pull policy (which it
+// does!). The code below is at risk of causing regression and code divergence.
 func pullImage(imageName string) (string, error) {
 	pullPolicy, err := config.ValidatePullPolicy(cliVals.Pull)
 	if err != nil {
@@ -252,7 +254,7 @@ func pullImage(imageName string) (string, error) {
 		// Assume we specified a local image without the explicit storage transport.
 		fallthrough
 
-	case imageRef.Transport().Name() == storage.Transport.Name():
+	case imageRef.Transport().Name() == storageTransport.Transport.Name():
 		br, err := registry.ImageEngine().Exists(registry.GetContext(), imageName)
 		if err != nil {
 			return "", err
@@ -272,15 +274,15 @@ func pullImage(imageName string) (string, error) {
 			}
 		}
 
-		if pullPolicy != config.PullImageAlways {
+		if pullPolicy != config.PullPolicyAlways {
 			logrus.Info("--platform --arch and --os causes the pull policy to be \"always\"")
-			pullPolicy = config.PullImageAlways
+			pullPolicy = config.PullPolicyAlways
 		}
 	}
 
-	if imageMissing || pullPolicy == config.PullImageAlways {
-		if pullPolicy == config.PullImageNever {
-			return "", errors.Wrapf(define.ErrNoSuchImage, "unable to find a name and tag match for %s in repotags", imageName)
+	if imageMissing || pullPolicy == config.PullPolicyAlways {
+		if pullPolicy == config.PullPolicyNever {
+			return "", errors.Wrap(storage.ErrImageUnknown, imageName)
 		}
 		pullReport, pullErr := registry.ImageEngine().Pull(registry.GetContext(), imageName, entities.ImagePullOptions{
 			Authfile:        cliVals.Authfile,

@@ -3,20 +3,16 @@ package libpod
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"strings"
 
-	"github.com/containers/image/v5/docker"
-	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/common/libimage"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod"
-	"github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/containers/podman/v3/pkg/auth"
 	"github.com/containers/podman/v3/pkg/channel"
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/containers/podman/v3/pkg/util"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -51,28 +47,23 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	imageRef, err := utils.ParseDockerReference(query.Reference)
-	if err != nil {
+	// Make sure that the reference has no transport or the docker one.
+	if _, err := utils.ParseDockerReference(query.Reference); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
 		return
 	}
 
-	// Trim the docker-transport prefix.
-	rawImage := strings.TrimPrefix(query.Reference, fmt.Sprintf("%s://", docker.Transport.Name()))
+	pullOptions := &libimage.PullOptions{}
+	pullOptions.AllTags = query.AllTags
+	pullOptions.Architecture = query.Arch
+	pullOptions.OS = query.OS
+	pullOptions.Variant = query.Variant
 
-	// all-tags doesn't work with a tagged reference, so let's check early
-	namedRef, err := reference.Parse(rawImage)
-	if err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "error parsing reference %q", rawImage))
-		return
-	}
-	if _, isTagged := namedRef.(reference.Tagged); isTagged && query.AllTags {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Errorf("reference %q must not have a tag for all-tags", rawImage))
-		return
+	if _, found := r.URL.Query()["tlsVerify"]; found {
+		pullOptions.InsecureSkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
 	}
 
+	// Do the auth dance.
 	authConf, authfile, key, err := auth.GetCredentials(r)
 	if err != nil {
 		utils.Error(w, "failed to retrieve repository credentials", http.StatusBadRequest, errors.Wrapf(err, "failed to parse %q header for %s", key, r.URL.String()))
@@ -80,71 +71,25 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 	}
 	defer auth.RemoveAuthfile(authfile)
 
-	// Setup the registry options
-	dockerRegistryOptions := image.DockerRegistryOptions{
-		DockerRegistryCreds: authConf,
-		OSChoice:            query.OS,
-		ArchitectureChoice:  query.Arch,
-		VariantChoice:       query.Variant,
-	}
-	if _, found := r.URL.Query()["tlsVerify"]; found {
-		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
-	}
-
-	sys := runtime.SystemContext()
-	if sys == nil {
-		sys = image.GetSystemContext("", authfile, false)
-	}
-	dockerRegistryOptions.DockerCertPath = sys.DockerCertPath
-	sys.DockerAuthConfig = authConf
-
-	// Prepare the images we want to pull
-	imagesToPull := []string{}
-	imageName := namedRef.String()
-
-	if !query.AllTags {
-		imagesToPull = append(imagesToPull, imageName)
-	} else {
-		tags, err := docker.GetRepositoryTags(context.Background(), sys, imageRef)
-		if err != nil {
-			utils.InternalServerError(w, errors.Wrap(err, "error getting repository tags"))
-			return
-		}
-		for _, tag := range tags {
-			imagesToPull = append(imagesToPull, fmt.Sprintf("%s:%s", imageName, tag))
-		}
+	pullOptions.AuthFilePath = authfile
+	if authConf != nil {
+		pullOptions.Username = authConf.Username
+		pullOptions.Password = authConf.Password
+		pullOptions.IdentityToken = authConf.IdentityToken
 	}
 
 	writer := channel.NewWriter(make(chan []byte))
 	defer writer.Close()
 
-	stderr := channel.NewWriter(make(chan []byte))
-	defer stderr.Close()
+	pullOptions.Writer = writer
 
-	images := make([]string, 0, len(imagesToPull))
+	var pulledImages []*libimage.Image
+	var pullError error
 	runCtx, cancel := context.WithCancel(context.Background())
-	go func(imgs []string) {
+	go func() {
 		defer cancel()
-		// Finally pull the images
-		for _, img := range imgs {
-			newImage, err := runtime.ImageRuntime().New(
-				runCtx,
-				img,
-				"",
-				authfile,
-				writer,
-				&dockerRegistryOptions,
-				image.SigningOptions{},
-				nil,
-				util.PullImageAlways,
-				nil)
-			if err != nil {
-				stderr.Write([]byte(err.Error() + "\n"))
-			} else {
-				images = append(images, newImage.ID())
-			}
-		}
-	}(imagesToPull)
+		pulledImages, pullError = runtime.LibimageRuntime().Pull(runCtx, query.Reference, config.PullPolicyAlways, pullOptions)
+	}()
 
 	flush := func() {
 		if flusher, ok := w.(http.Flusher); ok {
@@ -158,45 +103,32 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 
 	enc := json.NewEncoder(w)
 	enc.SetEscapeHTML(true)
-	var failed bool
-loop: // break out of for/select infinite loop
 	for {
 		var report entities.ImagePullReport
 		select {
-		case e := <-writer.Chan():
-			report.Stream = string(e)
+		case s := <-writer.Chan():
+			report.Stream = string(s)
 			if err := enc.Encode(report); err != nil {
-				stderr.Write([]byte(err.Error()))
-			}
-			flush()
-		case e := <-stderr.Chan():
-			failed = true
-			report.Error = string(e)
-			if err := enc.Encode(report); err != nil {
-				logrus.Warnf("Failed to json encode error %q", err.Error())
+				logrus.Warnf("Failed to encode json: %v", err)
 			}
 			flush()
 		case <-runCtx.Done():
-			if !failed {
-				// Send all image id's pulled in 'images' stanza
-				report.Images = images
-				if err := enc.Encode(report); err != nil {
-					logrus.Warnf("Failed to json encode error %q", err.Error())
-				}
-
-				report.Images = nil
+			for _, image := range pulledImages {
+				report.Images = append(report.Images, image.ID())
 				// Pull last ID from list and publish in 'id' stanza.  This maintains previous API contract
-				report.ID = images[len(images)-1]
-				if err := enc.Encode(report); err != nil {
-					logrus.Warnf("Failed to json encode error %q", err.Error())
-				}
-
-				flush()
+				report.ID = image.ID()
 			}
-			break loop // break out of for/select infinite loop
+			if pullError != nil {
+				report.Error = pullError.Error()
+			}
+			if err := enc.Encode(report); err != nil {
+				logrus.Warnf("Failed to encode json: %v", err)
+			}
+			flush()
+			return
 		case <-r.Context().Done():
 			// Client has closed connection
-			break loop // break out of for/select infinite loop
+			return
 		}
 	}
 }

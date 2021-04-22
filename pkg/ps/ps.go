@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/common/libimage"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/domain/entities"
@@ -257,12 +258,13 @@ func ListStorageContainer(rt *libpod.Runtime, ctr storage.Container, opts entiti
 
 	imageName := ""
 	if ctr.ImageID != "" {
-		names, err := rt.ImageRuntime().ImageNames(ctr.ImageID)
+		lookupOptions := &libimage.LookupImageOptions{IgnorePlatform: true}
+		image, _, err := rt.LibimageRuntime().LookupImage(ctr.ImageID, lookupOptions)
 		if err != nil {
 			return ps, err
 		}
-		if len(names) > 0 {
-			imageName = names[0]
+		if len(image.NamesHistory()) > 0 {
+			imageName = image.NamesHistory()[0]
 		}
 	} else if buildahCtr {
 		imageName = "scratch"

@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"github.com/containers/common/libimage"
 	"github.com/containers/podman/v3/libpod/layers"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
@@ -49,7 +50,7 @@ func (r *Runtime) GetDiff(from, to string) ([]archive.Change, error) {
 // If the id matches a layer, the top layer id is returned
 func (r *Runtime) getLayerID(id string) (string, error) {
 	var toLayer string
-	toImage, err := r.imageRuntime.NewFromLocal(id)
+	toImage, _, err := r.libimageRuntime.LookupImage(id, &libimage.LookupImageOptions{IgnorePlatform: true})
 	if err == nil {
 		return toImage.TopLayer(), nil
 	}

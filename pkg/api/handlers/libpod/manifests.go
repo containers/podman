@@ -9,7 +9,6 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod"
-	"github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/pkg/api/handlers"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/containers/podman/v3/pkg/auth"
@@ -45,13 +44,10 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	rtc, err := runtime.GetConfig()
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
-	sc := image.GetSystemContext(rtc.Engine.SignaturePolicyPath, "", false)
-	manID, err := image.CreateManifestList(runtime.ImageRuntime(), *sc, query.Name, query.Image, query.All)
+	imageEngine := abi.ImageEngine{Libpod: runtime}
+
+	createOptions := entities.ManifestCreateOptions{All: query.All}
+	manID, err := imageEngine.ManifestCreate(r.Context(), query.Name, query.Image, createOptions)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
@@ -64,8 +60,8 @@ func ExistsManifest(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := utils.GetName(r)
 
-	ic := abi.ImageEngine{Libpod: runtime}
-	report, err := ic.ManifestExists(r.Context(), name)
+	imageEngine := abi.ImageEngine{Libpod: runtime}
+	report, err := imageEngine.ManifestExists(r.Context(), name)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
@@ -80,45 +76,46 @@ func ExistsManifest(w http.ResponseWriter, r *http.Request) {
 func ManifestInspect(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := utils.GetName(r)
+
 	imageEngine := abi.ImageEngine{Libpod: runtime}
-	inspectReport, inspectError := imageEngine.ManifestInspect(r.Context(), name)
-	if inspectError != nil {
-		utils.Error(w, "Something went wrong.", http.StatusNotFound, inspectError)
+	rawManifest, err := imageEngine.ManifestInspect(r.Context(), name)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusNotFound, err)
 		return
 	}
 
-	var list manifest.Schema2List
-	if err := json.Unmarshal(inspectReport, &list); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Unmarshal()"))
+	var schema2List manifest.Schema2List
+	if err := json.Unmarshal(rawManifest, &schema2List); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
-	if list.Manifests == nil {
-		list.Manifests = make([]manifest.Schema2ManifestDescriptor, 0)
-	}
 
-	utils.WriteResponse(w, http.StatusOK, &list)
+	utils.WriteResponse(w, http.StatusOK, schema2List)
 }
 
 func ManifestAdd(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	var manifestInput image.ManifestAddOpts
-	if err := json.NewDecoder(r.Body).Decode(&manifestInput); err != nil {
+	var addOptions entities.ManifestAddOptions
+	if err := json.NewDecoder(r.Body).Decode(&addOptions); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
+
 	name := utils.GetName(r)
-	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
-	if err != nil {
-		utils.ImageNotFound(w, name, err)
+	if _, err := runtime.LibimageRuntime().LookupManifestList(name); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusNotFound, err)
 		return
 	}
-	rtc, err := runtime.GetConfig()
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
+
+	// FIXME: we really need to clean up the manifest API.  Swagger states
+	// the arguments were strings not string slices.  The use of string
+	// slices, mixing lists and images is incredibly confusing.
+	if len(addOptions.Images) == 1 {
+		addOptions.Images = append(addOptions.Images, name)
 	}
-	sc := image.GetSystemContext(rtc.Engine.SignaturePolicyPath, "", false)
-	newID, err := newImage.AddManifest(*sc, manifestInput)
+
+	imageEngine := abi.ImageEngine{Libpod: runtime}
+	newID, err := imageEngine.ManifestAdd(r.Context(), addOptions)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
@@ -140,9 +137,9 @@ func ManifestRemove(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
+	manifestList, err := runtime.LibimageRuntime().LookupManifestList(name)
 	if err != nil {
-		utils.ImageNotFound(w, name, err)
+		utils.Error(w, "Something went wrong.", http.StatusNotFound, err)
 		return
 	}
 	d, err := digest.Parse(query.Digest)
@@ -150,13 +147,13 @@ func ManifestRemove(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "invalid digest", http.StatusBadRequest, err)
 		return
 	}
-	newID, err := newImage.RemoveManifest(d)
-	if err != nil {
+	if err := manifestList.RemoveInstance(d); err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, handlers.IDResponse{ID: newID})
+	utils.WriteResponse(w, http.StatusOK, handlers.IDResponse{ID: manifestList.ID()})
 }
+
 func ManifestPush(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)

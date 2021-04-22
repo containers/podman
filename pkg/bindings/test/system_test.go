@@ -83,8 +83,6 @@ var _ = Describe("Podman system", func() {
 		Expect(len(systemPruneResponse.ContainerPruneReports)).To(Equal(1))
 		Expect(len(systemPruneResponse.ImagePruneReports)).
 			To(BeNumerically(">", 0))
-		Expect(reports.PruneReportsIds(systemPruneResponse.ImagePruneReports)).
-			To(ContainElement("docker.io/library/alpine:latest"))
 		Expect(len(systemPruneResponse.VolumePruneReports)).To(Equal(0))
 	})
 
@@ -193,13 +191,8 @@ var _ = Describe("Podman system", func() {
 		systemPruneResponse, err := system.Prune(bt.conn, options)
 		Expect(err).To(BeNil())
 		Expect(len(systemPruneResponse.PodPruneReport)).To(Equal(0))
-		// TODO fix system filter handling so all components can handle filters
-		//      This check **should** be "Equal(0)" since we are passing label
-		//      filters however the Prune function doesn't seem to pass filters
-		//      to each component.
-		Expect(len(systemPruneResponse.ContainerPruneReports)).To(Equal(1))
-		Expect(len(systemPruneResponse.ImagePruneReports)).
-			To(BeNumerically(">", 0))
+		Expect(len(systemPruneResponse.ContainerPruneReports)).To(Equal(0))
+		Expect(len(systemPruneResponse.ImagePruneReports)).To(Equal(0))
 		// Alpine image should not be pruned as used by running container
 		Expect(reports.PruneReportsIds(systemPruneResponse.ImagePruneReports)).
 			ToNot(ContainElement("docker.io/library/alpine:latest"))

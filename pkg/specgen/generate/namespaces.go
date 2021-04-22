@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
@@ -79,7 +79,7 @@ func GetDefaultNamespaceMode(nsType string, cfg *config.Config, pod *libpod.Pod)
 // joining a pod.
 // TODO: Consider grouping options that are not directly attached to a namespace
 // elsewhere.
-func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.Pod, img *image.Image) ([]libpod.CtrCreateOption, error) {
+func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.Pod, imageData *libimage.ImageData) ([]libpod.CtrCreateOption, error) {
 	toReturn := []libpod.CtrCreateOption{}
 
 	// If pod is not nil, get infra container.
@@ -234,7 +234,7 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 		}
 		toReturn = append(toReturn, libpod.WithNetNSFrom(netCtr))
 	case specgen.Slirp:
-		portMappings, err := createPortMappings(ctx, s, img)
+		portMappings, err := createPortMappings(ctx, s, imageData)
 		if err != nil {
 			return nil, err
 		}
@@ -246,7 +246,7 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 	case specgen.Private:
 		fallthrough
 	case specgen.Bridge:
-		portMappings, err := createPortMappings(ctx, s, img)
+		portMappings, err := createPortMappings(ctx, s, imageData)
 		if err != nil {
 			return nil, err
 		}

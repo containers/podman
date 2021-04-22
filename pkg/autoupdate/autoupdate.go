@@ -5,16 +5,16 @@ import (
 	"os"
 	"sort"
 
+	"github.com/containers/common/libimage"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/pkg/systemd"
 	systemdDefine "github.com/containers/podman/v3/pkg/systemd/define"
-	"github.com/containers/podman/v3/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -126,12 +126,15 @@ func AutoUpdate(runtime *libpod.Runtime, options Options) ([]string, []error) {
 		return nil, errs
 	}
 
-	// Create a map from `image ID -> *image.Image` for image lookups.
-	imagesSlice, err := runtime.ImageRuntime().GetImages()
+	// Create a map from `image ID -> *libimage.Image` for image lookups.
+	listOptions := &libimage.ListImagesOptions{
+		Filters: []string{"readonly=false"},
+	}
+	imagesSlice, err := runtime.LibimageRuntime().ListImages(context.Background(), nil, listOptions)
 	if err != nil {
 		return nil, []error{err}
 	}
-	imageMap := make(map[string]*image.Image)
+	imageMap := make(map[string]*libimage.Image)
 	for i := range imagesSlice {
 		imageMap[imagesSlice[i].ID()] = imagesSlice[i]
 	}
@@ -190,7 +193,7 @@ func AutoUpdate(runtime *libpod.Runtime, options Options) ([]string, []error) {
 				errs = append(errs, errors.Errorf("error locally auto-updating container %q: raw-image name is empty", cid))
 			}
 			// This avoids restarting containers unnecessarily.
-			needsUpdate, err := newerLocalImageAvailable(image, rawImageName)
+			needsUpdate, err := newerLocalImageAvailable(runtime, image, rawImageName)
 			if err != nil {
 				errs = append(errs, errors.Wrapf(err, "error locally auto-updating container %q: image check for %q failed", cid, rawImageName))
 				continue
@@ -288,13 +291,13 @@ func readAuthenticationPath(ctr *libpod.Container, options Options) {
 
 // newerRemoteImageAvailable returns true if there corresponding image on the remote
 // registry is newer.
-func newerRemoteImageAvailable(runtime *libpod.Runtime, img *image.Image, origName string, options Options) (bool, error) {
+func newerRemoteImageAvailable(runtime *libpod.Runtime, img *libimage.Image, origName string, options Options) (bool, error) {
 	remoteRef, err := docker.ParseReference("//" + origName)
 	if err != nil {
 		return false, err
 	}
 
-	data, err := img.Inspect(context.Background())
+	data, err := img.Inspect(context.Background(), false)
 	if err != nil {
 		return false, err
 	}
@@ -326,13 +329,8 @@ func newerRemoteImageAvailable(runtime *libpod.Runtime, img *image.Image, origNa
 }
 
 // newerLocalImageAvailable returns true if the container and local image have different digests
-func newerLocalImageAvailable(img *image.Image, rawImageName string) (bool, error) {
-	rt, err := libpod.NewRuntime(context.TODO())
-	if err != nil {
-		return false, err
-	}
-
-	localImg, err := rt.ImageRuntime().NewFromLocal(rawImageName)
+func newerLocalImageAvailable(runtime *libpod.Runtime, img *libimage.Image, rawImageName string) (bool, error) {
+	localImg, _, err := runtime.LibimageRuntime().LookupImage(rawImageName, nil)
 	if err != nil {
 		return false, err
 	}
@@ -345,31 +343,14 @@ func newerLocalImageAvailable(img *image.Image, rawImageName string) (bool, erro
 }
 
 // updateImage pulls the specified image.
-func updateImage(runtime *libpod.Runtime, name string, options Options) (*image.Image, error) {
-	sys := runtime.SystemContext()
-	registryOpts := image.DockerRegistryOptions{}
-	signaturePolicyPath := ""
+func updateImage(runtime *libpod.Runtime, name string, options Options) (*libimage.Image, error) {
+	pullOptions := &libimage.PullOptions{}
+	pullOptions.AuthFilePath = options.Authfile
+	pullOptions.Writer = os.Stderr
 
-	if sys != nil {
-		registryOpts.OSChoice = sys.OSChoice
-		registryOpts.ArchitectureChoice = sys.OSChoice
-		registryOpts.DockerCertPath = sys.DockerCertPath
-		signaturePolicyPath = sys.SignaturePolicyPath
-	}
-
-	newImage, err := runtime.ImageRuntime().New(context.Background(),
-		docker.Transport.Name()+"://"+name,
-		signaturePolicyPath,
-		options.Authfile,
-		os.Stderr,
-		&registryOpts,
-		image.SigningOptions{},
-		nil,
-		util.PullImageAlways,
-		nil,
-	)
+	pulledImages, err := runtime.LibimageRuntime().Pull(context.Background(), name, config.PullPolicyAlways, pullOptions)
 	if err != nil {
 		return nil, err
 	}
-	return newImage, nil
+	return pulledImages[0], nil
 }

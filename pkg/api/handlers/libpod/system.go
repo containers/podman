@@ -4,21 +4,19 @@ import (
 	"net/http"
 
 	"github.com/containers/podman/v3/libpod"
-	"github.com/containers/podman/v3/pkg/api/handlers/compat"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
 
 // SystemPrune removes unused data
 func SystemPrune(w http.ResponseWriter, r *http.Request) {
-	var (
-		decoder           = r.Context().Value("decoder").(*schema.Decoder)
-		runtime           = r.Context().Value("runtime").(*libpod.Runtime)
-		systemPruneReport = new(entities.SystemPruneReport)
-	)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+
 	query := struct {
 		All     bool `schema:"all"`
 		Volumes bool `schema:"volumes"`
@@ -29,39 +27,27 @@ func SystemPrune(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
+	filterMap, err := util.PrepareFilters(r)
+	if err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		return
+	}
 
-	podPruneReport, err := PodPruneHelper(r)
+	containerEngine := abi.ContainerEngine{Libpod: runtime}
+
+	pruneOptions := entities.SystemPruneOptions{
+		All:     query.All,
+		Volume:  query.Volumes,
+		Filters: *filterMap,
+	}
+	report, err := containerEngine.SystemPrune(r.Context(), pruneOptions)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
-	systemPruneReport.PodPruneReport = podPruneReport
 
-	// We could parallelize this, should we?
-	containerPruneReports, err := compat.PruneContainersHelper(r, nil)
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
-	systemPruneReport.ContainerPruneReports = containerPruneReports
-
-	imagePruneReports, err := runtime.ImageRuntime().PruneImages(r.Context(), query.All, nil)
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
-
-	systemPruneReport.ImagePruneReports = imagePruneReports
-
-	if query.Volumes {
-		volumePruneReports, err := pruneVolumesHelper(r)
-		if err != nil {
-			utils.InternalServerError(w, err)
-			return
-		}
-		systemPruneReport.VolumePruneReports = volumePruneReports
-	}
-	utils.WriteResponse(w, http.StatusOK, systemPruneReport)
+	utils.WriteResponse(w, http.StatusOK, report)
 }
 
 func DiskUsage(w http.ResponseWriter, r *http.Request) {

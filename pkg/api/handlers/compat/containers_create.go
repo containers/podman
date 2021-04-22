@@ -6,12 +6,12 @@ import (
 
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/libpod"
-	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/api/handlers"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
 	"github.com/containers/podman/v3/pkg/specgen"
+	"github.com/containers/storage"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -50,14 +50,14 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newImage, err := runtime.ImageRuntime().NewFromLocal(body.Config.Image)
+	newImage, resolvedName, err := runtime.LibimageRuntime().LookupImage(body.Config.Image, nil)
 	if err != nil {
-		if errors.Cause(err) == define.ErrNoSuchImage {
+		if errors.Cause(err) == storage.ErrImageUnknown {
 			utils.Error(w, "No such image", http.StatusNotFound, err)
 			return
 		}
 
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "NewFromLocal()"))
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error looking up image"))
 		return
 	}
 
@@ -71,7 +71,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	imgNameOrID := newImage.ID()
 	// if the img had multi names with the same sha256 ID, should use the InputName, not the ID
 	if len(newImage.Names()) > 1 {
-		imageRef, err := utils.ParseDockerReference(newImage.InputName)
+		imageRef, err := utils.ParseDockerReference(resolvedName)
 		if err != nil {
 			utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
 			return

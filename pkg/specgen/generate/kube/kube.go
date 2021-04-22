@@ -7,9 +7,9 @@ import (
 	"net"
 	"strings"
 
+	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/parse"
 	"github.com/containers/common/pkg/secrets"
-	"github.com/containers/podman/v3/libpod/image"
 	ann "github.com/containers/podman/v3/pkg/annotations"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
@@ -79,7 +79,7 @@ type CtrSpecGenOptions struct {
 	// Container as read from the pod yaml
 	Container v1.Container
 	// Image available to use (pulled or found local)
-	Image *image.Image
+	Image *libimage.Image
 	// Volumes for all containers
 	Volumes map[string]*KubeVolume
 	// PodID of the parent pod
@@ -165,7 +165,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 
 	// TODO: We don't understand why specgen does not take of this, but
 	// integration tests clearly pointed out that it was required.
-	imageData, err := opts.Image.Inspect(ctx)
+	imageData, err := opts.Image.Inspect(ctx, false)
 	if err != nil {
 		return nil, err
 	}

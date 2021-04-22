@@ -554,23 +554,6 @@ func OpenExclusiveFile(path string) (*os.File, error) {
 	return os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
 }
 
-type PullType = config.PullPolicy
-
-var (
-	// PullImageAlways always try to pull new image when create or run
-	PullImageAlways = config.PullImageAlways
-	// PullImageMissing pulls image if it is not locally
-	PullImageMissing = config.PullImageMissing
-	// PullImageNever will never pull new image
-	PullImageNever = config.PullImageNever
-)
-
-// ValidatePullType check if the pullType from CLI is valid and returns the valid enum type
-// if the value from CLI is invalid returns the error
-func ValidatePullType(pullType string) (PullType, error) {
-	return config.ValidatePullPolicy(pullType)
-}
-
 // ExitCode reads the error message when failing to executing container process
 // and then returns 0 if no error, 126 if command does not exist, or 127 for
 // all other errors

@@ -393,9 +393,9 @@ Labels.$label_name | $label_value
        "image tree: third line"
     is "${lines[3]}" "Image Layers" \
        "image tree: fourth line"
-    is "${lines[4]}"  "...  ID: [0-9a-f]\{12\} Size: .* Top Layer of: \[$IMAGE]" \
+    is "${lines[4]}"  ".* ID: [0-9a-f]\{12\} Size: .* Top Layer of: \[localhost/build_test:latest]" \
        "image tree: first layer line"
-    is "${lines[-1]}" "...  ID: [0-9a-f]\{12\} Size: .* Top Layer of: \[localhost/build_test:latest]" \
+    is "${lines[-1]}" ".* ID: [0-9a-f]\{12\} Size: .* Top Layer of: \[$IMAGE]" \
        "image tree: last layer line"
 
     # FIXME: 'image tree --whatrequires' does not work via remote
@@ -553,6 +553,7 @@ STEP 2: RUN echo x${random2}y
 x${random2}y${remote_extra}
 STEP 3: COMMIT build_test${remote_extra}
 --> [0-9a-f]\{11\}
+Successfully tagged localhost/build_test:latest
 [0-9a-f]\{64\}
 a${random3}z"
 
@@ -698,7 +699,7 @@ EOF
     # we're happy.
     if ! is_remote; then
         is "$output" \
-           ".* pull policy is .never. but .* could not be found locally" \
+           ".*Error: error creating build container: quay.io/libpod/nosuchimage:nosuchtag: image not known" \
            "--pull-never fails with expected error message"
     fi
 }

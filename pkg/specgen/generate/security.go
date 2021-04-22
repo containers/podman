@@ -3,12 +3,12 @@ package generate
 import (
 	"strings"
 
+	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -80,7 +80,7 @@ func setupApparmor(s *specgen.SpecGenerator, rtc *config.Config, g *generate.Gen
 	return nil
 }
 
-func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator, newImage *image.Image, rtc *config.Config) error {
+func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator, newImage *libimage.Image, rtc *config.Config) error {
 	var (
 		caplist []string
 		err     error
