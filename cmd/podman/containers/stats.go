@@ -71,7 +71,7 @@ func statFlags(cmd *cobra.Command) {
 
 	formatFlagName := "format"
 	flags.StringVar(&statsOptions.Format, formatFlagName, "", "Pretty-print container statistics to JSON or using a Go template")
-	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(define.ContainerStats{}))
 
 	flags.BoolVar(&statsOptions.NoReset, "no-reset", false, "Disable resetting the screen between intervals")
 	flags.BoolVar(&statsOptions.NoStream, "no-stream", false, "Disable streaming stats and only pull the first result, default setting is false")

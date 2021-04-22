@@ -41,7 +41,7 @@ func diffFlags(flags *pflag.FlagSet) {
 
 	formatFlagName := "format"
 	flags.StringVar(&diffOpts.Format, formatFlagName, "", "Change the output format")
-	_ = diffCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteJSONFormat)
+	_ = diffCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(nil))
 }
 
 func diff(cmd *cobra.Command, args []string) error {
