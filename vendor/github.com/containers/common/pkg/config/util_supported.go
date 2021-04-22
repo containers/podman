@@ -40,7 +40,7 @@ func getRuntimeDir() (string, error) {
 		if runtimeDir == "" {
 			tmpDir := filepath.Join("/run", "user", uid)
 			if err := os.MkdirAll(tmpDir, 0700); err != nil {
-				logrus.Debugf("unable to make temp dir %s", tmpDir)
+				logrus.Debugf("unable to make temp dir: %v", err)
 			}
 			st, err := os.Stat(tmpDir)
 			if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() && st.Mode().Perm() == 0700 {
@@ -50,7 +50,7 @@ func getRuntimeDir() (string, error) {
 		if runtimeDir == "" {
 			tmpDir := filepath.Join(os.TempDir(), fmt.Sprintf("run-%s", uid))
 			if err := os.MkdirAll(tmpDir, 0700); err != nil {
-				logrus.Debugf("unable to make temp dir %s", tmpDir)
+				logrus.Debugf("unable to make temp dir %v", err)
 			}
 			st, err := os.Stat(tmpDir)
 			if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() && st.Mode().Perm() == 0700 {
@@ -65,7 +65,7 @@ func getRuntimeDir() (string, error) {
 			}
 			resolvedHome, err := filepath.EvalSymlinks(home)
 			if err != nil {
-				rootlessRuntimeDirError = errors.Wrapf(err, "cannot resolve %s", home)
+				rootlessRuntimeDirError = errors.Wrap(err, "cannot resolve home")
 				return
 			}
 			runtimeDir = filepath.Join(resolvedHome, "rundir")
