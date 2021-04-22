@@ -53,7 +53,6 @@ github.com/Microsoft/hcsshim v0.8.7-0.20190325164909-8abdbb8205e4/go.mod h1:Op3h
 github.com/Microsoft/hcsshim v0.8.7/go.mod h1:OHd7sQqRFrYd3RmSgbgji+ctCwkbq2wbEYNSzOYtcBQ=
 github.com/Microsoft/hcsshim v0.8.9/go.mod h1:5692vkUqntj1idxauYlpoINNKeqCiG6Sg38RRsjT5y8=
 github.com/Microsoft/hcsshim v0.8.14/go.mod h1:NtVKoYxQuTLx6gEq0L96c9Ju4JbRJ4nY2ow3VK6a9Lg=
-github.com/Microsoft/hcsshim v0.8.15 h1:Aof83YILRs2Vx3GhHqlvvfyx1asRJKMFIMeVlHsZKtI=
 github.com/Microsoft/hcsshim v0.8.15/go.mod h1:x38A4YbHbdxJtc0sF6oIz+RG0npwSCAvn69iY6URG00=
 github.com/Microsoft/hcsshim v0.8.16 h1:8/auA4LFIZFTGrqfKhGBSXwM6/4X1fHa/xniyEHu8ac=
 github.com/Microsoft/hcsshim v0.8.16/go.mod h1:o5/SZqmR7x9JNKsW3pu+nqHm0MF8vbA+VxGOoXdC600=
@@ -130,7 +129,6 @@ github.com/containerd/cgroups v0.0.0-20190717030353-c4b9ac5c7601/go.mod h1:X9rLE
 github.com/containerd/cgroups v0.0.0-20190919134610-bf292b21730f/go.mod h1:OApqhQ4XNSNC13gXIwDjhOQxjWa/NxkwZXJ1EvqT0ko=
 github.com/containerd/cgroups v0.0.0-20200531161412-0dbf7f05ba59/go.mod h1:pA0z1pT8KYB3TCXK/ocprsh7MAkoW8bZVzPdih9snmM=
 github.com/containerd/cgroups v0.0.0-20200710171044-318312a37340/go.mod h1:s5q4SojHctfxANBDvMeIaIovkq29IP48TKAxnhYRxvo=
-github.com/containerd/cgroups v0.0.0-20200824123100-0b889c03f102 h1:Qf4HiqfvmB7zS6scsmNgTLmByHbq8n9RTF39v+TzP7A=
 github.com/containerd/cgroups v0.0.0-20200824123100-0b889c03f102/go.mod h1:s5q4SojHctfxANBDvMeIaIovkq29IP48TKAxnhYRxvo=
 github.com/containerd/cgroups v0.0.0-20210114181951-8a68de567b68 h1:hkGVFjz+plgr5UfxZUTPFbUFIF/Km6/s+RVRIRHLrrY=
 github.com/containerd/cgroups v0.0.0-20210114181951-8a68de567b68/go.mod h1:ZJeTFisyysqgcCdecO57Dj79RfL0LNeGiFUqLYQRYLE=
@@ -147,7 +145,6 @@ github.com/containerd/containerd v1.3.2/go.mod h1:bC6axHOhabU15QhwfG7w5PipXdVtMX
 github.com/containerd/containerd v1.4.0-beta.2.0.20200729163537-40b22ef07410/go.mod h1:bC6axHOhabU15QhwfG7w5PipXdVtMXFTttgp+kVtyUA=
 github.com/containerd/containerd v1.4.1/go.mod h1:bC6axHOhabU15QhwfG7w5PipXdVtMXFTttgp+kVtyUA=
 github.com/containerd/containerd v1.4.3/go.mod h1:bC6axHOhabU15QhwfG7w5PipXdVtMXFTttgp+kVtyUA=
-github.com/containerd/containerd v1.5.0-beta.1 h1:IK6yirB4X7wpKyFSikWiT++nZsyIxGAAgNEv3fEGuls=
 github.com/containerd/containerd v1.5.0-beta.1/go.mod h1:5HfvG1V2FsKesEGQ17k5/T7V960Tmcumvqn8Mc+pCYQ=
 github.com/containerd/containerd v1.5.0-beta.3/go.mod h1:/wr9AVtEM7x9c+n0+stptlo/uBBoBORwEx6ardVcmKU=
 github.com/containerd/containerd v1.5.0-beta.4 h1:zjz4MOAOFgdBlwid2nNUlJ3YLpVi/97L36lfMYJex60=
@@ -195,13 +192,11 @@ github.com/containernetworking/plugins v0.9.1 h1:FD1tADPls2EEi3flPc2OegIY1M9pUa9
 github.com/containernetworking/plugins v0.9.1/go.mod h1:xP/idU2ldlzN6m4p5LmGiwRDjeJr6FLK6vuiUwoH7P8=
 github.com/containers/buildah v1.20.1 h1:gKbzgdqJs09pfkgP9Vi6/gUaNabFy1NOhJZRIes4/+4=
 github.com/containers/buildah v1.20.1/go.mod h1:kBNK5fy77zkwHrjPZkFI6SXAFzM8pDX6I/ETb5viHLg=
-github.com/containers/common v0.35.4 h1:szyWRncsHkBwCVpu1dkEOXUjkwCetlfcLmKJTwo1Sp8=
 github.com/containers/common v0.35.4/go.mod h1:rMzxgD7nMGw++cEbsp+NZv0UJO4rgXbm7F7IbJPTwIE=
 github.com/containers/common v0.36.0 h1:7/0GM3oi2ROmKAg/8pDWJ8BU2BXdbmy7Gk2/SFCTV38=
 github.com/containers/common v0.36.0/go.mod h1:rMzxgD7nMGw++cEbsp+NZv0UJO4rgXbm7F7IbJPTwIE=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
-github.com/containers/image/v5 v5.10.5 h1:VK1UbsZMzjdw5Xqr3Im9h4iOqHWU0naFs+I78kavc7I=
 github.com/containers/image/v5 v5.10.5/go.mod h1:SgIbWEedCNBbn2FI5cH0/jed1Ecy2s8XK5zTxvJTzII=
 github.com/containers/image/v5 v5.11.1 h1:mNybUvU6zXUwcMsQaa3n+Idsru5pV+GE7k4oRuPzYi0=
 github.com/containers/image/v5 v5.11.1/go.mod h1:HC9lhJ/Nz5v3w/5Co7H431kLlgzlVlOC+auD/er3OqE=
@@ -215,10 +210,10 @@ github.com/containers/psgo v1.5.2 h1:3aoozst/GIwsrr/5jnFy3FrJay98uujPCu9lTuSZ/Cw
 github.com/containers/psgo v1.5.2/go.mod h1:2ubh0SsreMZjSXW1Hif58JrEcFudQyIy9EzPUWfawVU=
 github.com/containers/storage v1.23.5/go.mod h1:ha26Q6ngehFNhf3AWoXldvAvwI4jFe3ETQAf/CeZPyM=
 github.com/containers/storage v1.24.8/go.mod h1:YC+2pY8SkfEAcZkwycxYbpK8EiRbx5soPPwz9dxe4IQ=
-github.com/containers/storage v1.28.0 h1:lA/9i9BIjfmIRxCI8GuzasYHmU4IUXVcfZZiDceD0Eg=
 github.com/containers/storage v1.28.0/go.mod h1:ixAwO7Bj31cigqPEG7aCz+PYmxkDxbIFdUFioYdxbzI=
-github.com/containers/storage v1.29.0 h1:l3Vh6+IiMKLGfQZ3rDkF84m+KF1Qb0XEcilWC+pYo2o=
 github.com/containers/storage v1.29.0/go.mod h1:u84RU4CCufGeJBNTRNwMB+FoE+AiFeFw4SsMoqAOeCM=
+github.com/containers/storage v1.30.0 h1:KS6zmoPyy0Qcx1HCCiseQ0ysSckRvtiuoVpIGh9iwQA=
+github.com/containers/storage v1.30.0/go.mod h1:M/xn0pg6ReYFrLtWl5YELI/a4Xjq+Z3e5GJxQrJCcDI=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.13+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-iptables v0.4.5/go.mod h1:/mVI274lEDI2ns62jHCDnCyBF9Iwsmekav8Dbxlm1MU=
@@ -335,7 +330,6 @@ github.com/godbus/dbus v0.0.0-20151105175453-c7fdd8b5cd55/go.mod h1:/YcGZj5zSblf
 github.com/godbus/dbus v0.0.0-20180201030542-885f9cc04c9c/go.mod h1:/YcGZj5zSblfDWMMoOzV4fas9FZnQYTkDnsGvmh2Grw=
 github.com/godbus/dbus v0.0.0-20190422162347-ade71ed3457e h1:BWhy2j3IXJhjCbC68FptL43tDKIq8FladmaTs3Xs7Z8=
 github.com/godbus/dbus v0.0.0-20190422162347-ade71ed3457e/go.mod h1:bBOAhwG1umN6/6ZUMtDFBMQR8jRg9O75tm9K00oMsK4=
-github.com/godbus/dbus/v5 v5.0.3 h1:ZqHaoEF7TBzh4jzPmqVhE/5A1z9of6orkAe5uHoAeME=
 github.com/godbus/dbus/v5 v5.0.3/go.mod h1:xhWf0FNVPg57R7Z0UbKHbJfkEywrmjJnf7w5xrFpKfA=
 github.com/godbus/dbus/v5 v5.0.4 h1:9349emZab16e7zQvpmsbtjc18ykshndd8y2PG3sgJbA=
 github.com/godbus/dbus/v5 v5.0.4/go.mod h1:xhWf0FNVPg57R7Z0UbKHbJfkEywrmjJnf7w5xrFpKfA=
@@ -376,6 +370,8 @@ github.com/golang/protobuf v1.4.1/go.mod h1:U8fpvMrcmy5pZrNK1lt4xCsGvpyWQ/VVv6QD
 github.com/golang/protobuf v1.4.2/go.mod h1:oDoupMAO8OvCJWAcko0GGGIgR6R6ocIYbsSw735rRwI=
 github.com/golang/protobuf v1.4.3 h1:JjCZWpVbqXDqFVmTfYWEVTMIYrL/NPdPSCHPJ0T/raM=
 github.com/golang/protobuf v1.4.3/go.mod h1:oDoupMAO8OvCJWAcko0GGGIgR6R6ocIYbsSw735rRwI=
+github.com/golang/snappy v0.0.3 h1:fHPg5GQYlCeLIPB9BZqMVR5nR9A+IM5zcgeTdjMYmLA=
+github.com/golang/snappy v0.0.3/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=
 github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c/go.mod h1:lNA+9X1NB3Zf8V7Ke586lFgjr2dZNuvo3lPJSGZ5JPQ=
 github.com/google/btree v1.0.0/go.mod h1:lNA+9X1NB3Zf8V7Ke586lFgjr2dZNuvo3lPJSGZ5JPQ=
 github.com/google/go-cmp v0.2.0/go.mod h1:oXzfMopK8JAjlY9xF4vHSVASa0yLyX7SntLO5aqRK0M=
@@ -493,10 +489,10 @@ github.com/klauspost/compress v1.11.0/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYs
 github.com/klauspost/compress v1.11.3/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
 github.com/klauspost/compress v1.11.5/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
 github.com/klauspost/compress v1.11.7/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
-github.com/klauspost/compress v1.11.12 h1:famVnQVu7QwryBN4jNseQdUKES71ZAOnB6UQQJPZvqk=
 github.com/klauspost/compress v1.11.12/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
-github.com/klauspost/compress v1.11.13 h1:eSvu8Tmq6j2psUJqJrLcWH6K3w5Dwc+qipbaA6eVEN4=
 github.com/klauspost/compress v1.11.13/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
+github.com/klauspost/compress v1.12.1 h1:/+xsCsk06wE38cyiqOR/o7U2fSftcH72xD+BQXmja/g=
+github.com/klauspost/compress v1.12.1/go.mod h1:8dP1Hq4DHOhN9w426knH3Rhby4rFm6D8eO+e+Dq5Gzg=
 github.com/klauspost/pgzip v1.2.5 h1:qnWYvvKqedOF2ulHpMG72XQol4ILEJ8k2wwRl/Km8oE=
 github.com/klauspost/pgzip v1.2.5/go.mod h1:Ch1tH69qFZu15pkjo5kYi6mth2Zzwzt50oCQKQE9RUs=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
@@ -607,7 +603,6 @@ github.com/onsi/ginkgo v1.10.3/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+
 github.com/onsi/ginkgo v1.11.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.12.1/go.mod h1:zj2OWP4+oCPe1qIXoGWkgMRwljMUYCdkwsT2108oapk=
 github.com/onsi/ginkgo v1.15.0/go.mod h1:hF8qUzuuC8DJGygJH3726JnCZX4MYbRB8yFfISqnKUg=
-github.com/onsi/ginkgo v1.15.2 h1:l77YT15o814C2qVL47NOyjV/6RbaP7kKdrvZnxQ3Org=
 github.com/onsi/ginkgo v1.15.2/go.mod h1:Dd6YFfwBW84ETqqtL0CPyPXillHgY6XhQH3uuCCTr/o=
 github.com/onsi/ginkgo v1.16.1 h1:foqVmeWDD6yYpK+Yz3fHyNIxFYNxswxqNFjSKe+vI54=
 github.com/onsi/ginkgo v1.16.1/go.mod h1:CObGmKUOKaSC0RjmoAK7tKyn4Azo5P2IWuoMnvwxz1E=
@@ -784,7 +779,6 @@ github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5/go.mod h1
 github.com/u-root/u-root v7.0.0+incompatible/go.mod h1:RYkpo8pTHrNjW08opNd/U6p/RJE7K0D8fXO0d47+3YY=
 github.com/uber/jaeger-client-go v2.25.0+incompatible h1:IxcNZ7WRY1Y3G4poYlx24szfsn/3LvK9QHCq9oQw8+U=
 github.com/uber/jaeger-client-go v2.25.0+incompatible/go.mod h1:WVhlPFC8FDjOFMMWRy2pZqQJSXxYSwNYOkTr/Z6d3Kk=
-github.com/ulikunitz/xz v0.5.9 h1:RsKRIA2MO8x56wkkcd3LbtcE/uMszhb6DpRf+3uwa3I=
 github.com/ulikunitz/xz v0.5.9/go.mod h1:nbz6k7qbPmH4IRqmfOplQw/tblSgqTqBwxkY0oWt/14=
 github.com/ulikunitz/xz v0.5.10 h1:t92gobL9l3HE202wg3rlk19F6X+JOxl9BBrCCMYEYd8=
 github.com/ulikunitz/xz v0.5.10/go.mod h1:nbz6k7qbPmH4IRqmfOplQw/tblSgqTqBwxkY0oWt/14=
@@ -795,7 +789,6 @@ github.com/urfave/cli v1.22.2/go.mod h1:Gos4lmkARVdJ6EkW0WaNv/tZAAMe9V7XWyB60NtX
 github.com/urfave/cli/v2 v2.3.0/go.mod h1:LJmUH05zAU44vOAcrfzZQKsZbVcdbOG8rtL3/XcUArI=
 github.com/vbatts/tar-split v0.11.1 h1:0Odu65rhcZ3JZaPHxl7tCI3V/C/Q9Zf82UFravl02dE=
 github.com/vbatts/tar-split v0.11.1/go.mod h1:LEuURwDEiWjRjwu46yU3KVGuUdVv/dcnpcEPSzR8z6g=
-github.com/vbauerster/mpb/v5 v5.4.0 h1:n8JPunifvQvh6P1D1HAl2Ur9YcmKT1tpoUuiea5mlmg=
 github.com/vbauerster/mpb/v5 v5.4.0/go.mod h1:fi4wVo7BVQ22QcvFObm+VwliQXlV1eBT8JDaKXR4JGI=
 github.com/vbauerster/mpb/v6 v6.0.3 h1:j+twHHhSUe8aXWaT/27E98G5cSBeqEuJSVCMjmLg0PI=
 github.com/vbauerster/mpb/v6 v6.0.3/go.mod h1:5luBx4rDLWxpA4t6I5sdeeQuZhqDxc+wr5Nqf35+tnM=
