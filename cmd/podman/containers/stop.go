@@ -72,7 +72,8 @@ func stopFlags(cmd *cobra.Command) {
 		_ = flags.MarkHidden("cidfile")
 		_ = flags.MarkHidden("ignore")
 	}
-	flags.SetNormalizeFunc(utils.AliasFlags)
+
+	flags.SetNormalizeFunc(utils.TimeoutAliasFlags)
 }
 
 func init() {

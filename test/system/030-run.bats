@@ -668,4 +668,27 @@ json-file | f
     is "$output" ".*HOME=/.*"
 }
 
+@test "podman run --timeout - basic test" {
+    cid=timeouttest
+    t0=$SECONDS
+    run_podman 255 run --name $cid --timeout 10 $IMAGE sleep 60
+    t1=$SECONDS
+    # Confirm that container is stopped. Podman-remote unfortunately
+    # cannot tell the difference between "stopped" and "exited", and
+    # spits them out interchangeably, so we need to recognize either.
+    run_podman inspect --format '{{.State.Status}} {{.State.ExitCode}}' $cid
+    is "$output" "\\(stopped\|exited\\) \-1" \
+       "Status and exit code of stopped container"
+
+    # This operation should take
+    # exactly 10 seconds. Give it some leeway.
+    delta_t=$(( $t1 - $t0 ))
+    [ $delta_t -gt 8 ]  ||\
+        die "podman stop: ran too quickly! ($delta_t seconds; expected >= 10)"
+    [ $delta_t -le 14 ] ||\
+        die "podman stop: took too long ($delta_t seconds; expected ~10)"
+
+    run_podman rm $cid
+}
+
 # vim: filetype=sh

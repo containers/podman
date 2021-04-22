@@ -83,6 +83,11 @@ type ContainerBasicConfig struct {
 	// instead.
 	// Optional.
 	StopTimeout *uint `json:"stop_timeout,omitempty"`
+	// Timeout is a maximum time in seconds the container will run before
+	// main process is sent SIGKILL.
+	// If 0 is used, signal will not be sent. Container can run indefinitely
+	// Optional.
+	Timeout uint `json:"timeout,omitempty"`
 	// LogConfiguration describes the logging for a container including
 	// driver, path, and options.
 	// Optional

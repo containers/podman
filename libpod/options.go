@@ -758,6 +758,19 @@ func WithStopTimeout(timeout uint) CtrCreateOption {
 	}
 }
 
+// WithTimeout sets the maximum time a container is allowed to run"
+func WithTimeout(timeout uint) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.Timeout = timeout
+
+		return nil
+	}
+}
+
 // WithIDMappings sets the idmappings for the container
 func WithIDMappings(idmappings storage.IDMappingOptions) CtrCreateOption {
 	return func(ctr *Container) error {

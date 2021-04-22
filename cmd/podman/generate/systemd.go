@@ -74,7 +74,7 @@ func init() {
 	flags.StringVar(&format, formatFlagName, "", "Print the created units in specified format (json)")
 	_ = systemdCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(nil))
 
-	flags.SetNormalizeFunc(utils.AliasFlags)
+	flags.SetNormalizeFunc(utils.TimeoutAliasFlags)
 }
 
 func systemd(cmd *cobra.Command, args []string) error {

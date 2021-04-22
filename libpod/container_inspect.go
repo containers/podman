@@ -304,6 +304,8 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 		ctrConfig.WorkingDir = spec.Process.Cwd
 	}
 
+	ctrConfig.StopTimeout = c.config.StopTimeout
+	ctrConfig.Timeout = c.config.Timeout
 	ctrConfig.OpenStdin = c.config.Stdin
 	ctrConfig.Image = c.config.RootfsImageName
 	ctrConfig.SystemdMode = c.config.Systemd

@@ -651,7 +651,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 	createFlags.UintVar(
 		&cf.StopTimeout,
 		stopTimeoutFlagName, containerConfig.Engine.StopTimeout,
-		"Timeout (in seconds) to stop a container. Default is 10",
+		"Timeout (in seconds) that containers stopped by user command have to exit. If exceeded, the container will be forcibly stopped via SIGKILL.",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(stopTimeoutFlagName, completion.AutocompleteNone)
 
@@ -696,6 +696,14 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 		`Run container in systemd mode ("true"|"false"|"always")`,
 	)
 	_ = cmd.RegisterFlagCompletionFunc(systemdFlagName, AutocompleteSystemdFlag)
+
+	timeoutFlagName := "timeout"
+	createFlags.UintVar(
+		&cf.Timeout,
+		timeoutFlagName, 0,
+		"Maximum length of time a container is allowed to run. The container will be killed automatically after the time expires.",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(timeoutFlagName, completion.AutocompleteNone)
 
 	tmpfsFlagName := "tmpfs"
 	createFlags.StringArrayVar(

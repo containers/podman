@@ -242,7 +242,7 @@ var _ = Describe("Podman generate systemd", func() {
 		n.WaitWithDefaultTimeout()
 		Expect(n.ExitCode()).To(Equal(0))
 
-		session := podmanTest.Podman([]string{"generate", "systemd", "--timeout", "42", "--name", "--new", "foo"})
+		session := podmanTest.Podman([]string{"generate", "systemd", "--time", "42", "--name", "--new", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
