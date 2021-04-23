@@ -69,55 +69,73 @@ jobs:
       - name: Generate image information
         id: image_info
         run: |
+          VERSION='v${{ steps.sniff_test.outputs.version }}'
+          # workaround vim syntax-hilighting bug: '
           if [[ "${{ matrix.source }}" == 'stable' ]]; then
             # quay.io/podman/stable:vX.X.X
             ALLTAGS=$(skopeo list-tags \
-                      docker://${{ env.PODMAN_QUAY_REGISTRY }}/stable | \
+                      docker://$PODMAN_QUAY_REGISTRY/stable | \
                       jq -r '.Tags[]')
             PUSH="false"
             if fgrep -qx "$VERSION" <<<"$ALLTAGS"; then
                 PUSH="true"
             fi
 
-            FQIN='${{ env.PODMAN_QUAY_REGISTRY }}/stable:v${{ steps.sniff_test.outputs.version }}' # workaround vim syntax-hilighting bug: '
+            FQIN="$PODMAN_QUAY_REGISTRY/stable:$VERSION"
             # Only push if version tag does not exist
             if [[ "$PUSH" == "true" ]]; then
               echo "Will push $FQIN"
               echo "::set-output name=podman_push::${PUSH}"
               echo "::set-output name=podman_fqin::${FQIN}"
+            else
+              echo "Not pushing, $FQIN already exists."
             fi
 
             # quay.io/containers/podman:vX.X.X
             unset ALLTAGS
             ALLTAGS=$(skopeo list-tags \
-                      docker://${{ env.CONTAINERS_QUAY_REGISTRY }}/podman | \
+                      docker://$CONTAINERS_QUAY_REGISTRY/podman | \
                       jq -r '.Tags[]')
             PUSH="false"
             if fgrep -qx "$VERSION" <<<"$ALLTAGS"; then
                 PUSH="true"
             fi
 
-            FQIN='${{ env.CONTAINERS_QUAY_REGISTRY}}/podman:v${{ steps.sniff_test.outputs.version }}' # workaround vim syntax-hilighting bug: '
+            FQIN="$CONTAINERS_QUAY_REGISTRY/podman:$VERSION"
             # Only push if version tag does not exist
             if [[ "$PUSH" == "true" ]]; then
               echo "Will push $FQIN"
               echo "::set-output name=containers_push::${PUSH}"
               echo "::set-output name=containers_fqin::$FQIN"
+            else
+              echo "Not pushing, $FQIN already exists."
             fi
-          else  # upstream and testing podman image
-            P_FQIN='${{ env.PODMAN_QUAY_REGISTRY }}/${{ matrix.source }}:master' # workaround vim syntax-hilighting bug: '
-            C_FQIN='${{ env.CONTAINERS_QUAY_REGISTRY}}/podman:master' # workaround vim syntax-hilighting bug: '
+          elif [[ "${{ matrix.source }}" == 'testing' ]]; then
+            P_FQIN="$PODMAN_QUAY_REGISTRY/testing:master"
+            echo "Will push $P_FQIN"
+            echo "::set-output name=podman_fqin::${P_FQIN}"
+            echo '::set-output name=podman_push::true'
+          elif [[ "${{ matrix.source }}" == 'upstream' ]]; then
+            P_FQIN="$PODMAN_QUAY_REGISTRY/upstream:master"
+            C_FQIN="$CONTAINERS_QUAY_REGISTRY/podman:master"
             echo "Will push $P_FQIN and $C_FQIN"
             echo "::set-output name=podman_fqin::${P_FQIN}"
             echo "::set-output name=containers_fqin::${C_FQIN}"
             # Always push 'master' tag
             echo '::set-output name=podman_push::true'
             echo '::set-output name=containers_push::true'
+          else
+            echo "::error ::Unknown matrix value ${{ matrix.source }}"
+            exit 1
           fi
 
-          # Hack to set $LABELS env. var. in _future_ steps.
+      - name: Define LABELS multi-line env. var. value
+        run: |
+          # This is a really hacky/strange workflow idiom, required
+          # for setting multi-line $LABELS value for consumption in
+          # a future step.
           # https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#multiline-strings
-          cat << EOF | tee $GITHUB_ENV
+          cat << EOF | tee -a $GITHUB_ENV
           LABELS<<DELIMITER
           org.opencontainers.image.source=https://github.com/${{ github.repository }}.git
           org.opencontainers.image.revision=${{ github.sha }}
