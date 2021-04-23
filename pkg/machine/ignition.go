@@ -168,6 +168,22 @@ func getFiles(usrName string) []File {
 		},
 		FileEmbedded1: FileEmbedded1{Mode: intToPtr(420)},
 	})
+
+	// Set machine_enabled to true to indicate we're in a VM
+	files = append(files, File{
+		Node: Node{
+			Group: getNodeGrp("root"),
+			Path:  "/etc/containers/containers.conf",
+			User:  getNodeUsr("root"),
+		},
+		FileEmbedded1: FileEmbedded1{
+			Append: nil,
+			Contents: Resource{
+				Source: strToPtr("data:,%5Bengine%5D%0Amachine_enabled%3Dtrue%0A"),
+			},
+			Mode: intToPtr(420),
+		},
+	})
 	return files
 }
 
