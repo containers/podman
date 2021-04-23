@@ -34,7 +34,7 @@ const (
 	// PolicyDefault is the default policy denoting no auto updates.
 	PolicyDefault Policy = "disabled"
 	// PolicyRegistryImage is the policy to update as soon as there's a new image found.
-	PolicyRegistryImage = "image"
+	PolicyRegistryImage = "registry"
 	// PolicyLocalImage is the policy to run auto-update based on a local image
 	PolicyLocalImage = "local"
 )
@@ -48,11 +48,8 @@ var supportedPolicies = map[string]Policy{
 	"local":    PolicyLocalImage,
 }
 
-// Struct for tying a container to it's autoupdate policy
-type PolicyContainer struct {
-	p   Policy
-	ctr *libpod.Container
-}
+// policyMapper is used for tying a container to it's autoupdate policy
+type policyMapper map[Policy][]*libpod.Container
 
 // LookupPolicy looks up the corresponding Policy for the specified
 // string. If none is found, an errors is returned including the list of
@@ -150,7 +147,7 @@ func AutoUpdate(runtime *libpod.Runtime, options Options) ([]string, []error) {
 	// Update images.
 	containersToRestart := []*libpod.Container{}
 	updatedRawImages := make(map[string]bool)
-	for imageID, policyContainers := range containerMap {
+	for imageID, policyMapper := range containerMap {
 		image, exists := imageMap[imageID]
 		if !exists {
 			errs = append(errs, errors.Errorf("container image ID %q not found in local storage", imageID))
@@ -159,52 +156,49 @@ func AutoUpdate(runtime *libpod.Runtime, options Options) ([]string, []error) {
 		// Now we have to check if the image of any containers must be updated.
 		// Note that the image ID is NOT enough for this check as a given image
 		// may have multiple tags.
-		for i, pc := range policyContainers {
-			cid := pc.ctr.ID()
-			rawImageName := pc.ctr.RawImageName()
+		for _, registryCtr := range policyMapper[PolicyRegistryImage] {
+			cid := registryCtr.ID()
+			rawImageName := registryCtr.RawImageName()
 			if rawImageName == "" {
-				errs = append(errs, errors.Errorf("error auto-updating container %q: raw-image name is empty", pc.ctr.ID()))
+				errs = append(errs, errors.Errorf("error registry auto-updating container %q: raw-image name is empty", cid))
+			}
+			readAuthenticationPath(registryCtr, options)
+			needsUpdate, err := newerRemoteImageAvailable(runtime, image, rawImageName, options)
+			if err != nil {
+				errs = append(errs, errors.Wrapf(err, "error registry auto-updating container %q: image check for %q failed", cid, rawImageName))
+				continue
 			}
 
-			switch pc.p {
-			// Sanity Check, should be unreachable code
-			case PolicyDefault:
-				errs = append(errs, errors.Errorf("error auto-updating container %q: invalid policy", cid))
-
-			// Registry Autoupdate Containers pull new images and are flagged for restart.
-			case PolicyRegistryImage:
-				readAuthenticationPath(pc.ctr, options)
-				needsUpdate, err := newerRemoteImageAvailable(runtime, image, rawImageName, options)
-				if err != nil {
-					errs = append(errs, errors.Wrapf(err, "error auto-updating container %q: image check for %q failed", cid, rawImageName))
-					continue
-				}
-
-				if needsUpdate {
-					logrus.Infof("Auto-updating container %q using registry image %q", cid, rawImageName)
-					if _, updated := updatedRawImages[rawImageName]; !updated {
-						_, err = updateImage(runtime, rawImageName, options)
-						if err != nil {
-							errs = append(errs, errors.Wrapf(err, "error auto-updating container %q: image update for %q failed", cid, rawImageName))
-							continue
-						}
-						updatedRawImages[rawImageName] = true
+			if needsUpdate {
+				logrus.Infof("Auto-updating container %q using registry image %q", cid, rawImageName)
+				if _, updated := updatedRawImages[rawImageName]; !updated {
+					_, err = updateImage(runtime, rawImageName, options)
+					if err != nil {
+						errs = append(errs, errors.Wrapf(err, "error registry auto-updating container %q: image update for %q failed", cid, rawImageName))
+						continue
 					}
-					containersToRestart = append(containersToRestart, policyContainers[i].ctr)
+					updatedRawImages[rawImageName] = true
 				}
-			// Local Autoupdate Containers with an update are flagged for restart.
-			case PolicyLocalImage:
-				// This avoids restarting containers unnecessarily.
-				needsUpdate, err := newerLocalImageAvailable(image, rawImageName)
-				if err != nil {
-					errs = append(errs, errors.Wrapf(err, "error auto-updating container %q: image check for %q failed", cid, rawImageName))
-					continue
-				}
+				containersToRestart = append(containersToRestart, registryCtr)
+			}
+		}
 
-				if needsUpdate {
-					logrus.Infof("Auto-updating container %q using local image %q", cid, rawImageName)
-					containersToRestart = append(containersToRestart, policyContainers[i].ctr)
-				}
+		for _, localCtr := range policyMapper[PolicyLocalImage] {
+			cid := localCtr.ID()
+			rawImageName := localCtr.RawImageName()
+			if rawImageName == "" {
+				errs = append(errs, errors.Errorf("error locally auto-updating container %q: raw-image name is empty", cid))
+			}
+			// This avoids restarting containers unnecessarily.
+			needsUpdate, err := newerLocalImageAvailable(image, rawImageName)
+			if err != nil {
+				errs = append(errs, errors.Wrapf(err, "error locally auto-updating container %q: image check for %q failed", cid, rawImageName))
+				continue
+			}
+
+			if needsUpdate {
+				logrus.Infof("Auto-updating container %q using local image %q", cid, rawImageName)
+				containersToRestart = append(containersToRestart, localCtr)
 			}
 		}
 	}
@@ -233,15 +227,15 @@ func AutoUpdate(runtime *libpod.Runtime, options Options) ([]string, []error) {
 
 // imageContainersMap generates a map[image ID] -> [containers using the image]
 // of all containers with a valid auto-update policy.
-func imageContainersMap(runtime *libpod.Runtime) (map[string][]PolicyContainer, []error) {
+func imageContainersMap(runtime *libpod.Runtime) (map[string]policyMapper, []error) {
 	allContainers, err := runtime.GetAllContainers()
 	if err != nil {
 		return nil, []error{err}
 	}
 
 	errors := []error{}
-	containerMap := make(map[string][]PolicyContainer)
-	for i, ctr := range allContainers {
+	containerMap := make(map[string]policyMapper)
+	for _, ctr := range allContainers {
 		state, err := ctr.State()
 		if err != nil {
 			errors = append(errors, err)
@@ -266,16 +260,17 @@ func imageContainersMap(runtime *libpod.Runtime) (map[string][]PolicyContainer, 
 		}
 
 		// Skip labels not related to autoupdate
-		if policy != PolicyDefault {
-			id, _ := ctr.Image()
-			pc := PolicyContainer{
-				p:   policy,
-				ctr: allContainers[i],
-			}
-			containerMap[id] = append(containerMap[id], pc)
-			// Now we know that `ctr` is configured for auto updates.
-		} else {
+		if policy == PolicyDefault {
 			continue
+		} else {
+			id, _ := ctr.Image()
+			policyMap, exists := containerMap[id]
+			if !exists {
+				policyMap = make(map[Policy][]*libpod.Container)
+			}
+			policyMap[policy] = append(policyMap[policy], ctr)
+			containerMap[id] = policyMap
+			// Now we know that `ctr` is configured for auto updates.
 		}
 	}
 
