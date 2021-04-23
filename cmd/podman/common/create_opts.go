@@ -252,21 +252,24 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 		return nil, nil, err
 	}
 
-	netNS := specgen.Namespace{
-		NSMode: nsmode.NSMode,
-		Value:  nsmode.Value,
+	var netOpts map[string][]string
+	parts := strings.SplitN(string(cc.HostConfig.NetworkMode), ":", 2)
+	if len(parts) > 1 {
+		netOpts = make(map[string][]string)
+		netOpts[parts[0]] = strings.Split(parts[1], ",")
 	}
 
 	// network
 	// Note: we cannot emulate compat exactly here. we only allow specifics of networks to be
 	// defined when there is only one network.
 	netInfo := entities.NetOptions{
-		AddHosts:     cc.HostConfig.ExtraHosts,
-		DNSOptions:   cc.HostConfig.DNSOptions,
-		DNSSearch:    cc.HostConfig.DNSSearch,
-		DNSServers:   dns,
-		Network:      netNS,
-		PublishPorts: specPorts,
+		AddHosts:       cc.HostConfig.ExtraHosts,
+		DNSOptions:     cc.HostConfig.DNSOptions,
+		DNSSearch:      cc.HostConfig.DNSSearch,
+		DNSServers:     dns,
+		Network:        nsmode,
+		PublishPorts:   specPorts,
+		NetworkOptions: netOpts,
 	}
 
 	// network names

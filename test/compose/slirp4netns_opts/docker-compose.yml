@@ -1,0 +1,5 @@
+services:
+  alpine:
+    image: alpine
+    network_mode: "slirp4netns:allow_host_loopback=true"
+    command: sh -c "echo teststring | nc 10.0.2.2 5001"
