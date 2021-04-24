@@ -30,7 +30,7 @@ func generatePruneFilterFuncs(filter, filterValue string) (ImageFilter, error) {
 			return nil, err
 		}
 		return func(i *Image) bool {
-			if !until.IsZero() && i.Created().After((until)) {
+			if !until.IsZero() && i.Created().Before(until) {
 				return true
 			}
 			return false
