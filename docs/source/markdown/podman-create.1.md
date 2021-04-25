@@ -1365,6 +1365,7 @@ $ podman create --name container1 -t -i fedora bash
 $ podman create --name container2 -t -i fedora bash
 $ podman create --name container3 --requires container1,container2 -t -i fedora bash
 $ podman start --attach container3
+```
 
 ### Configure keep supplemental groups for access to volume
 
