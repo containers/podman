@@ -4,6 +4,7 @@ package rootless
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/containers/podman/v3/pkg/errorhandling"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -67,6 +69,15 @@ func IsRootless() bool {
 			}
 		}
 		isRootless = os.Geteuid() != 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != ""
+		if !isRootless {
+			hasCapSysAdmin, err := unshare.HasCapSysAdmin()
+			if err != nil {
+				logrus.Warnf("failed to read CAP_SYS_ADMIN presence for the current process")
+			}
+			if err == nil && !hasCapSysAdmin {
+				isRootless = true
+			}
+		}
 	})
 	return isRootless
 }
@@ -142,8 +153,12 @@ func tryMappingTool(uid bool, pid int, hostID int, mappings []idtools.IDMap) err
 // namespace of the specified PID without looking up its parent.  Useful to join directly
 // the conmon process.
 func joinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
-	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
-		return false, -1, nil
+	hasCapSysAdmin, err := unshare.HasCapSysAdmin()
+	if err != nil {
+		return false, 0, err
+	}
+	if hasCapSysAdmin || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
+		return false, 0, nil
 	}
 
 	cPausePid := C.CString(pausePid)
@@ -180,8 +195,11 @@ func GetConfiguredMappings() ([]idtools.IDMap, []idtools.IDMap, error) {
 	}
 	mappings, err := idtools.NewIDMappings(username, username)
 	if err != nil {
-		logrus.Errorf(
-			"cannot find UID/GID for user %s: %v - check rootless mode in man pages.", username, err)
+		logLevel := logrus.ErrorLevel
+		if os.Geteuid() == 0 && GetRootlessUID() == 0 {
+			logLevel = logrus.DebugLevel
+		}
+		logrus.StandardLogger().Logf(logLevel, "cannot find UID/GID for user %s: %v - check rootless mode in man pages.", username, err)
 	} else {
 		uids = mappings.UIDs()
 		gids = mappings.GIDs()
@@ -189,8 +207,28 @@ func GetConfiguredMappings() ([]idtools.IDMap, []idtools.IDMap, error) {
 	return uids, gids, nil
 }
 
+func copyMappings(from, to string) error {
+	content, err := ioutil.ReadFile(from)
+	if err != nil {
+		return err
+	}
+	// Both runc and crun check whether the current process is in a user namespace
+	// by looking up 4294967295 in /proc/self/uid_map.  If the mappings would be
+	// copied as they are, the check in the OCI runtimes would fail.  So just split
+	// it in two different ranges.
+	if bytes.Contains(content, []byte("4294967295")) {
+		content = []byte("0 0 1\n1 1 4294967294\n")
+	}
+	return ioutil.WriteFile(to, content, 0600)
+}
+
 func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ bool, _ int, retErr error) {
-	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
+	hasCapSysAdmin, err := unshare.HasCapSysAdmin()
+	if err != nil {
+		return false, 0, err
+	}
+
+	if hasCapSysAdmin || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
 		if os.Getenv("_CONTAINERS_USERNS_CONFIGURED") == "init" {
 			return false, 0, runInUser()
 		}
@@ -247,8 +285,16 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		return false, -1, err
 	}
 
+	uidMap := fmt.Sprintf("/proc/%d/uid_map", pid)
+	gidMap := fmt.Sprintf("/proc/%d/gid_map", pid)
+
 	uidsMapped := false
-	if uids != nil {
+
+	if err := copyMappings("/proc/self/uid_map", uidMap); err == nil {
+		uidsMapped = true
+	}
+
+	if uids != nil && !uidsMapped {
 		err := tryMappingTool(true, pid, os.Geteuid(), uids)
 		// If some mappings were specified, do not ignore the error
 		if err != nil && len(uids) > 0 {
@@ -265,7 +311,6 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		}
 		logrus.Debugf("write setgroups file exited with 0")
 
-		uidMap := fmt.Sprintf("/proc/%d/uid_map", pid)
 		err = ioutil.WriteFile(uidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Geteuid())), 0666)
 		if err != nil {
 			return false, -1, errors.Wrapf(err, "cannot write uid_map")
@@ -274,7 +319,10 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 	}
 
 	gidsMapped := false
-	if gids != nil {
+	if err := copyMappings("/proc/self/gid_map", gidMap); err == nil {
+		gidsMapped = true
+	}
+	if gids != nil && !gidsMapped {
 		err := tryMappingTool(false, pid, os.Getegid(), gids)
 		// If some mappings were specified, do not ignore the error
 		if err != nil && len(gids) > 0 {
@@ -283,7 +331,6 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		gidsMapped = err == nil
 	}
 	if !gidsMapped {
-		gidMap := fmt.Sprintf("/proc/%d/gid_map", pid)
 		err = ioutil.WriteFile(gidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Getegid())), 0666)
 		if err != nil {
 			return false, -1, errors.Wrapf(err, "cannot write gid_map")
