@@ -308,6 +308,12 @@ func TestPullGoalFromPossiblyUnqualifiedName(t *testing.T) {
 	sc.UserShortNameAliasConfPath = aliasesConf.Name()
 	sc.SystemRegistriesConfPath = registriesConf.Name()
 
+	// Make sure to not sure the system's registries.conf.d
+	dir, err := ioutil.TempDir("", "example")
+	require.NoError(t, err)
+	sc.SystemRegistriesConfDirPath = dir
+	defer os.RemoveAll(dir) // clean up
+
 	for _, c := range []struct {
 		input    string
 		expected []pullRefStrings
