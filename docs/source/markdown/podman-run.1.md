@@ -1763,6 +1763,20 @@ $ podman run --env ENV*****=b alpine printenv ENV*****
 b
 ```
 
+## CONMON
+
+When Podman starts a container it actually executes the conmon program, which
+then executes the OCI Runtime.  Conmon is the container monitor.  It is a small
+program whose job is to watch the primary process of the container, and if the
+container dies, save the exit code.  It also holds open the tty of the
+container, so that it can be attached to later. This is what allows Podman to
+run in detached mode (backgrounded), so Podman can exit but conmon continues to
+run.  Each container has their own instance of conmon. Conmon waits for the
+container to exit, gathers and saves the exit code, and then launches a Podman
+process to complete the container cleanup, by shutting down the network and
+storage.   For more information on conmon, please reference the conmon(8) man
+page.
+
 ## FILES
 
 **/etc/subuid**
@@ -1773,7 +1787,7 @@ NOTE: Use the environment variable `TMPDIR` to change the temporary storage loca
 
 ## SEE ALSO
 **podman**(1), **podman-save**(1), **podman-ps**(1), **podman-attach**(1), **podman-pod-create**(1), **podman-port**(1), **podman-start**(1), **podman-kill**(1), **podman-stop**(1),
-**podman-generate-systemd**(1) **podman-rm**(1), **subgid**(5), **subuid**(5), **containers.conf**(5), **systemd.unit**(5), **setsebool**(8), **slirp4netns**(1), **fuse-overlayfs**(1), **proc**(5)**.
+**podman-generate-systemd**(1) **podman-rm**(1), **subgid**(5), **subuid**(5), **containers.conf**(5), **systemd.unit**(5), **setsebool**(8), **slirp4netns**(1), **fuse-overlayfs**(1), **proc**(5), **conmon**(8).
 
 ## HISTORY
 September 2018, updated by Kunal Kushwaha `<kushwaha_kunal_v7@lab.ntt.co.jp>`
