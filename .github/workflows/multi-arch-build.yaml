@@ -77,7 +77,7 @@ jobs:
                       docker://$PODMAN_QUAY_REGISTRY/stable | \
                       jq -r '.Tags[]')
             PUSH="false"
-            if fgrep -qx "$VERSION" <<<"$ALLTAGS"; then
+            if ! fgrep -qx "$VERSION" <<<"$ALLTAGS"; then
                 PUSH="true"
             fi
 
@@ -85,7 +85,7 @@ jobs:
             # Only push if version tag does not exist
             if [[ "$PUSH" == "true" ]]; then
               echo "Will push $FQIN"
-              echo "::set-output name=podman_push::${PUSH}"
+              echo "::set-output name=podman_push::true"
               echo "::set-output name=podman_fqin::${FQIN}"
             else
               echo "Not pushing, $FQIN already exists."
@@ -97,7 +97,7 @@ jobs:
                       docker://$CONTAINERS_QUAY_REGISTRY/podman | \
                       jq -r '.Tags[]')
             PUSH="false"
-            if fgrep -qx "$VERSION" <<<"$ALLTAGS"; then
+            if ! fgrep -qx "$VERSION" <<<"$ALLTAGS"; then
                 PUSH="true"
             fi
 
@@ -105,7 +105,7 @@ jobs:
             # Only push if version tag does not exist
             if [[ "$PUSH" == "true" ]]; then
               echo "Will push $FQIN"
-              echo "::set-output name=containers_push::${PUSH}"
+              echo "::set-output name=containers_push::true"
               echo "::set-output name=containers_fqin::$FQIN"
             else
               echo "Not pushing, $FQIN already exists."
