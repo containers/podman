@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"fmt"
 	"math/rand"
 	"os"
 	"strconv"
@@ -539,11 +540,17 @@ func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, []v1.Volume
 	namedVolumes, mounts := c.sortUserVolumes(c.config.Spec)
 	vms := make([]v1.VolumeMount, 0, len(mounts))
 	vos := make([]v1.Volume, 0, len(mounts))
-	for _, m := range mounts {
+
+	var suffix string
+	for index, m := range mounts {
 		vm, vo, err := generateKubeVolumeMount(m)
 		if err != nil {
 			return vms, vos, err
 		}
+		// Name will be the same, so use the index as suffix
+		suffix = fmt.Sprintf("-%d", index)
+		vm.Name += suffix
+		vo.Name += suffix
 		vms = append(vms, vm)
 		vos = append(vos, vo)
 	}
