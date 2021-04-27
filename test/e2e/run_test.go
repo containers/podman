@@ -582,6 +582,9 @@ USER bin`, BB)
 			if _, err := os.Stat("/sys/fs/cgroup/io.stat"); os.IsNotExist(err) {
 				Skip("Kernel does not have io.stat")
 			}
+			if _, err := os.Stat("/sys/fs/cgroup/system.slice/io.bfq.weight"); os.IsNotExist(err) {
+				Skip("Kernel does not support BFQ IO scheduler")
+			}
 			session := podmanTest.Podman([]string{"run", "--rm", "--blkio-weight=15", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/io.bfq.weight"})
 			session.WaitWithDefaultTimeout()
 			Expect(session.ExitCode()).To(Equal(0))

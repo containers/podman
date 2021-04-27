@@ -10,27 +10,17 @@ set -a
 # handling of the (otherwise) default shell setup is non-uniform.  Rather
 # than attempt to workaround differences, simply force-load/set required
 # items every time this library is utilized.
-_waserrexit=0
-if [[ "$SHELLOPTS" =~ errexit ]]; then _waserrexit=1; fi
-set +e  # Assumed in F33 for setting global vars
-if [[ -r "/etc/automation_environment" ]]; then
-    source /etc/automation_environment
-else # prior to automation library v2.0, this was necessary
-    source /etc/profile
-    source /etc/environment
-fi
-if [[ -r "/etc/ci_environment" ]]; then source /etc/ci_environment; fi
 USER="$(whoami)"
 HOME="$(getent passwd $USER | cut -d : -f 6)"
 # Some platforms set and make this read-only
 [[ -n "$UID" ]] || \
     UID=$(getent passwd $USER | cut -d : -f 3)
-if ((_waserrexit)); then set -e; fi
 
-# During VM Image build, the 'containers/automation' installation
-# was performed.  The final step of installation sets the library
-# location $AUTOMATION_LIB_PATH in /etc/environment or in the
-# default shell profile depending on distribution.
+# Automation library installed at image-build time,
+# defining $AUTOMATION_LIB_PATH in this file.
+if [[ -r "/etc/automation_environment" ]]; then
+    source /etc/automation_environment
+fi
 # shellcheck disable=SC2154
 if [[ -n "$AUTOMATION_LIB_PATH" ]]; then
         # shellcheck source=/usr/share/automation/lib/common_lib.sh
@@ -42,6 +32,9 @@ else
     echo "         This ${BASH_SOURCE[0]} was loaded by ${BASH_SOURCE[1]}"
     ) > /dev/stderr
 fi
+
+# Managed by setup_environment.sh; holds task-specific definitions.
+if [[ -r "/etc/ci_environment" ]]; then source /etc/ci_environment; fi
 
 OS_RELEASE_ID="$(source /etc/os-release; echo $ID)"
 # GCE image-name compatible string representation of distribution _major_ version
