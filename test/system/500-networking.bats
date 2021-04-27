@@ -77,35 +77,47 @@ load helpers
     # FIXME: randomize port, and create second random host port
     myport=54321
 
-    # Container will exit as soon as 'nc' receives input
-    # We use '-n -v' to give us log messages showing an incoming connection
-    # and its IP address; the purpose of that is guaranteeing that the
-    # remote IP is not 127.0.0.1 (podman PR #9052).
-    # We could get more parseable output by using $NCAT_REMOTE_ADDR,
-    # but busybox nc doesn't support that.
-    run_podman run -d --userns=keep-id -p 127.0.0.1:$myport:$myport \
-	       $IMAGE nc -l -n -v -p $myport
-    cid="$output"
+    for cidr in "" "$(random_rfc1918_subnet).0/24"; do
+        myport=$(( myport + 1 ))
+        if [[ -z $cidr ]]; then
+            # regex to match that we are in 10.X subnet
+            match="10\..*"
+        else
+            # Issue #9828 make sure a custom slir4netns cidr also works
+            network_arg="--network slirp4netns:cidr=$cidr"
+            # slirp4netns interface ip is always .100
+            match="${cidr%.*}.100"
+        fi
 
-    # emit random string, and check it
-    teststring=$(random_string 30)
-    echo "$teststring" | nc 127.0.0.1 $myport
+        # Container will exit as soon as 'nc' receives input
+        # We use '-n -v' to give us log messages showing an incoming connection
+        # and its IP address; the purpose of that is guaranteeing that the
+        # remote IP is not 127.0.0.1 (podman PR #9052).
+        # We could get more parseable output by using $NCAT_REMOTE_ADDR,
+        # but busybox nc doesn't support that.
+        run_podman run -d --userns=keep-id $network_arg -p 127.0.0.1:$myport:$myport \
+                   $IMAGE nc -l -n -v -p $myport
+        cid="$output"
 
-    run_podman logs $cid
-    # Sigh. We can't check line-by-line, because 'nc' output order is
-    # unreliable. We usually get the 'connect to' line before the random
-    # string, but sometimes we get it after. So, just do substring checks.
-    is "$output" ".*listening on \[::\]:$myport .*" "nc -v shows right port"
+        # emit random string, and check it
+        teststring=$(random_string 30)
+        echo "$teststring" | nc 127.0.0.1 $myport
 
-    # This is the truly important check: make sure the remote IP is
-    # in the 10.X range, not 127.X.
-    is "$output" \
-       ".*connect to \[::ffff:10\..*\]:$myport from \[::ffff:10\..*\]:.*" \
-       "nc -v shows remote IP address in 10.X space (not 127.0.0.1)"
-    is "$output" ".*${teststring}.*" "test string received on container"
+        run_podman logs $cid
+        # Sigh. We can't check line-by-line, because 'nc' output order is
+        # unreliable. We usually get the 'connect to' line before the random
+        # string, but sometimes we get it after. So, just do substring checks.
+        is "$output" ".*listening on \[::\]:$myport .*" "nc -v shows right port"
 
-    # Clean up
-    run_podman rm $cid
+        # This is the truly important check: make sure the remote IP is not 127.X.
+        is "$output" \
+           ".*connect to \[::ffff:$match*\]:$myport from \[::ffff:$match\]:.*" \
+           "nc -v shows remote IP address is not 127.0.0.1"
+        is "$output" ".*${teststring}.*" "test string received on container"
+
+        # Clean up
+        run_podman rm $cid
+    done
 }
 
 # "network create" now works rootless, with the help of a special container
