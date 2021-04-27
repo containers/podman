@@ -425,8 +425,8 @@ pkg/api/swagger.yaml: .gopathok
 	make -C pkg/api
 
 $(MANPAGES): %: %.md .install.md2man docdir
-	@sed -e 's/\((podman.*\.md)\)//' -e 's/\[\(podman.*\)\]/\1/' \
-		-e 's;<\(/\)\?\(a[^>]*\|sup\)>;;g' $<  | \
+	@sed -e 's/\((podman[^)]*\.md)\)//g' -e 's/\[\(podman[^]]*\)\]/\1/g' \
+		-e 's;<\(/\)\?\(a\|a\s\+[^>]*\|sup\)>;;g' $<  | \
 	$(GOMD2MAN) -in /dev/stdin -out $(subst source/markdown,build/man,$@)
 
 .PHONY: docdir
