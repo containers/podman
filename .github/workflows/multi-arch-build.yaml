@@ -1,3 +1,8 @@
+---
+
+# Please see contrib/podmanimage/README.md for details on the intentions
+# of this workflow.
+
 name: build multi-arch images
 
 on:
@@ -54,8 +59,10 @@ jobs:
           push: true
           tags: localhost:5000/podman/${{ matrix.source }}
 
-      # Simple verification that container works + grab version number
+      # Simple verification that stable images work, and
+      # also grab version number use in forming the FQIN.
       - name: amd64 container sniff test
+        if: matrix.source = 'stable'
         id: sniff_test
         run: |
           VERSION_OUTPUT="$(docker run localhost:5000/podman/${{ matrix.source }} \
@@ -65,69 +72,69 @@ jobs:
           test -n "$VERSION"
           echo "::set-output name=version::${VERSION}"
 
-      # Generate image FQINs, labels, check whether to push
-      - name: Generate image information
-        id: image_info
+      - name: Generate podman reg. image FQIN(s)
+        id: podman_reg
         run: |
-          VERSION='v${{ steps.sniff_test.outputs.version }}'
-          # workaround vim syntax-hilighting bug: '
           if [[ "${{ matrix.source }}" == 'stable' ]]; then
-            # quay.io/podman/stable:vX.X.X
+            # The `podman version` in image just built
+            VERSION='v${{ steps.sniff_test.outputs.version }}'
+            # workaround vim syntax-highlight bug: '
+            # Image tags previously pushed to quay
             ALLTAGS=$(skopeo list-tags \
                       docker://$PODMAN_QUAY_REGISTRY/stable | \
                       jq -r '.Tags[]')
-            PUSH="false"
+
+            # New image? Push quay.io/podman/stable:vX.X.X and :latest
             if ! fgrep -qx "$VERSION" <<<"$ALLTAGS"; then
-                PUSH="true"
+              # Assume version-tag is also the most up to date (i.e. "latest")
+              FQIN="$PODMAN_QUAY_REGISTRY/stable:$VERSION,$PODMAN_QUAY_REGISTRY/stable:latest"
+            else # Not a new version-tagged image
+              # Assume other contents changed, so this is the "new" latest.
+              FQIN="$PODMAN_QUAY_REGISTRY/stable:latest"
             fi
+          elif [[ "${{ matrix.source }}" == 'testing' ]]; then
+            # Assume some contents changed, always push latest testing.
+            FQIN="$PODMAN_QUAY_REGISTRY/testing:latest"
+          elif [[ "${{ matrix.source }}" == 'upstream' ]]; then
+            # Assume some contents changed, always push latest upstream.
+            FQIN="$PODMAN_QUAY_REGISTRY/upstream:latest"
+          else
+            echo "::error::Unknown matrix item '${{ matrix.source }}'"
+            exit 1
+          fi
+          echo "::warning::Pushing $FQIN"
+          echo "::set-output name=fqin::${FQIN}"
+          echo '::set-output name=push::true'
 
-            FQIN="$PODMAN_QUAY_REGISTRY/stable:$VERSION"
-            # Only push if version tag does not exist
-            if [[ "$PUSH" == "true" ]]; then
-              echo "Will push $FQIN"
-              echo "::set-output name=podman_push::true"
-              echo "::set-output name=podman_fqin::${FQIN}"
-            else
-              echo "Not pushing, $FQIN already exists."
-            fi
-
-            # quay.io/containers/podman:vX.X.X
-            unset ALLTAGS
+      # This is substantially the same as the above step, except the
+      # $CONTAINERS_QUAY_REGISTRY is used and the "testing"
+      # flavor is never pushed.
+      - name: Generate containers reg. image FQIN(s)
+        if: matrix.source != 'testing'
+        id: containers_reg
+        run: |
+          if [[ "${{ matrix.source }}" == 'stable' ]]; then
+            VERSION='v${{ steps.sniff_test.outputs.version }}'
+            # workaround vim syntax-highlight bug: '
             ALLTAGS=$(skopeo list-tags \
                       docker://$CONTAINERS_QUAY_REGISTRY/podman | \
                       jq -r '.Tags[]')
-            PUSH="false"
-            if ! fgrep -qx "$VERSION" <<<"$ALLTAGS"; then
-                PUSH="true"
-            fi
 
-            FQIN="$CONTAINERS_QUAY_REGISTRY/podman:$VERSION"
-            # Only push if version tag does not exist
-            if [[ "$PUSH" == "true" ]]; then
-              echo "Will push $FQIN"
-              echo "::set-output name=containers_push::true"
-              echo "::set-output name=containers_fqin::$FQIN"
-            else
-              echo "Not pushing, $FQIN already exists."
+            # New image? Push quay.io/containers/podman:vX.X.X and :latest
+            if ! fgrep -qx "$VERSION" <<<"$ALLTAGS"; then
+              FQIN="$CONTAINERS_QUAY_REGISTRY/podman:$VERSION,$CONTAINERS_QUAY_REGISTRY/podman:latest"
+            else # Not a new version-tagged image, but contents may be updated
+              FQIN="$CONTAINERS_QUAY_REGISTRY/podman:latest"
             fi
-          elif [[ "${{ matrix.source }}" == 'testing' ]]; then
-            P_FQIN="$PODMAN_QUAY_REGISTRY/testing:master"
-            echo "Will push $P_FQIN"
-            echo "::set-output name=podman_fqin::${P_FQIN}"
-            echo '::set-output name=podman_push::true'
           elif [[ "${{ matrix.source }}" == 'upstream' ]]; then
-            P_FQIN="$PODMAN_QUAY_REGISTRY/upstream:master"
-            C_FQIN="$CONTAINERS_QUAY_REGISTRY/podman:master"
-            echo "Will push $P_FQIN and $C_FQIN"
-            echo "::set-output name=podman_fqin::${P_FQIN}"
-            echo "::set-output name=containers_fqin::${C_FQIN}"
-            # Always push 'master' tag
-            echo '::set-output name=podman_push::true'
-            echo '::set-output name=containers_push::true'
+            FQIN="$CONTAINERS_QUAY_REGISTRY/podman:latest"
           else
-            echo "::error ::Unknown matrix value ${{ matrix.source }}"
+            echo "::error::Unknown matrix item '${{ matrix.source }}'"
             exit 1
           fi
+          echo "::warning::Pushing $FQIN"
+          echo "::set-output name=fqin::${FQIN}"
+          echo '::set-output name=push::true'
 
       - name: Define LABELS multi-line env. var. value
         run: |
@@ -153,7 +160,7 @@ jobs:
       # Push to 'podman' Quay repo for stable, testing. and upstream
       - name: Login to 'podman' Quay registry
         uses: docker/login-action@v1
-        if: ${{ steps.image_info.outputs.podman_push == 'true' }}
+        if: steps.podman_reg.outputs.push == 'true'
         with:
           registry: ${{ env.PODMAN_QUAY_REGISTRY }}
           # N/B: Secrets are not passed to workflows that are triggered
@@ -163,7 +170,7 @@ jobs:
 
       - name: Push images to 'podman' Quay
         uses: docker/build-push-action@v2
-        if: ${{ steps.image_info.outputs.podman_push == 'true' }}
+        if: steps.podman_reg.outputs.push == 'true'
         with:
           cache-from: type=registry,ref=localhost:5000/podman/${{ matrix.source }}
           cache-to: type=inline
@@ -171,13 +178,13 @@ jobs:
           file: ./contrib/podmanimage/${{ matrix.source }}/Dockerfile
           platforms: ${{ env.PLATFORMS }}
           push: true
-          tags: ${{ steps.image_info.outputs.podman_fqin }}
+          tags: ${{ steps.podman_push.outputs.fqin }}
           labels: |
             ${{ env.LABELS }}
 
       # Push to 'containers' Quay repo only stable podman
       - name: Login to 'containers' Quay registry
-        if: ${{ steps.image_info.outputs.containers_push == 'true' }}
+        if: steps.containers_reg.outputs.push == 'true'
         uses: docker/login-action@v1
         with:
           registry: ${{ env.CONTAINERS_QUAY_REGISTRY}}
@@ -185,7 +192,7 @@ jobs:
           password: ${{ secrets.CONTAINERS_QUAY_PASSWORD }}
 
       - name: Push images to 'containers' Quay
-        if: ${{ steps.image_info.outputs.containers_push == 'true' }}
+        if: steps.containers_reg.outputs.push == 'true'
         uses: docker/build-push-action@v2
         with:
           cache-from: type=registry,ref=localhost:5000/podman/${{ matrix.source }}
@@ -194,6 +201,6 @@ jobs:
           file: ./contrib/podmanimage/${{ matrix.source }}/Dockerfile
           platforms: ${{ env.PLATFORMS }}
           push: true
-          tags: ${{ steps.image_info.outputs.containers_fqin }}
+          tags: ${{ steps.containers_reg.outputs.fqin }}
           labels: |
             ${{ env.LABELS }}
