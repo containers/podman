@@ -64,6 +64,10 @@ type InspectContainerConfig struct {
 	Umask string `json:"Umask,omitempty"`
 	// Secrets are the secrets mounted in the container
 	Secrets []*InspectSecret `json:"Secrets,omitempty"`
+	// Timeout is time before container is killed by conmon
+	Timeout uint `json:"Timeout"`
+	// StopTimeout is time before container is stoped when calling stop
+	StopTimeout uint `json:"StopTimeout"`
 }
 
 // InspectRestartPolicy holds information about the container's restart policy.

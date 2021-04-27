@@ -108,6 +108,7 @@ type ContainerCLIOpts struct {
 	SubGIDName        string
 	Sysctl            []string
 	Systemd           string
+	Timeout           uint
 	TmpFS             []string
 	TTY               bool
 	Timezone          string

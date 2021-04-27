@@ -325,6 +325,9 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	if s.StopTimeout != nil {
 		options = append(options, libpod.WithStopTimeout(*s.StopTimeout))
 	}
+	if s.Timeout != 0 {
+		options = append(options, libpod.WithTimeout(s.Timeout))
+	}
 	if s.LogConfiguration != nil {
 		if len(s.LogConfiguration.Path) > 0 {
 			options = append(options, libpod.WithLogPath(s.LogConfiguration.Path))

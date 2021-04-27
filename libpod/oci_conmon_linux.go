@@ -1024,6 +1024,10 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		args = append(args, "-i")
 	}
 
+	if ctr.config.Timeout > 0 {
+		args = append(args, fmt.Sprintf("--timeout=%d", ctr.config.Timeout))
+	}
+
 	if !r.enableKeyring {
 		args = append(args, "--no-new-keyring")
 	}
