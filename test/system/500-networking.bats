@@ -116,6 +116,7 @@ load helpers
         is "$output" ".*${teststring}.*" "test string received on container"
 
         # Clean up
+        run_podman wait $cid
         run_podman rm $cid
     done
 }

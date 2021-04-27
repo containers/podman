@@ -501,6 +501,7 @@ json-file | f
     run_podman inspect --format '{{.OCIRuntime}}' $cid
     is "$output" "$new_runtime" "podman inspect shows configured runtime"
     run_podman kill $cid
+    run_podman wait $cid
     run_podman rm $cid
     rm -f $new_runtime
 }
