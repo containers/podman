@@ -496,6 +496,29 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(inspect.OutputToString()).To(ContainSubstring(vol1))
 	})
 
+	It("podman generate kube when bind-mounting '/' and '/root' at the same time ", func() {
+		// Fixes https://github.com/containers/podman/issues/9764
+
+		ctrName := "mount-root-ctr"
+		session1 := podmanTest.Podman([]string{"run", "-d", "--pod", "new:mount-root-conflict", "--name", ctrName,
+			"-v", "/:/volume1/",
+			"-v", "/root:/volume2/",
+			"alpine", "top"})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1.ExitCode()).To(Equal(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "mount-root-conflict"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+
+		Expect(len(pod.Spec.Volumes)).To(Equal(2))
+
+	})
+
 	It("podman generate kube with persistent volume claim", func() {
 		vol := "vol-test-persistent-volume-claim"
 
