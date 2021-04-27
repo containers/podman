@@ -96,11 +96,17 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// See if the volume exists already
-	existingVolume, err := runtime.GetVolume(input.Name)
-	if err != nil && errors.Cause(err) != define.ErrNoSuchVolume {
-		utils.InternalServerError(w, err)
-		return
+	var (
+		existingVolume *libpod.Volume
+		err            error
+	)
+	if len(input.Name) != 0 {
+		// See if the volume exists already
+		existingVolume, err = runtime.GetVolume(input.Name)
+		if err != nil && errors.Cause(err) != define.ErrNoSuchVolume {
+			utils.InternalServerError(w, err)
+			return
+		}
 	}
 
 	// if using the compat layer and the volume already exists, we
