@@ -89,6 +89,10 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 			}
 
 			e := entities.ConvertToEntitiesEvent(*evt)
+			if !utils.IsLibpodRequest(r) && e.Status == "died" {
+				e.Status = "die"
+			}
+
 			if err := coder.Encode(e); err != nil {
 				logrus.Errorf("unable to write json: %q", err)
 			}
