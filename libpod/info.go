@@ -87,6 +87,12 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting hostname")
 	}
+
+	seccompProfilePath, err := DefaultSeccompPath()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting Seccomp profile path")
+	}
+
 	info := define.HostInfo{
 		Arch:           runtime.GOARCH,
 		BuildahVersion: buildah.Version,
@@ -106,6 +112,7 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 			DefaultCapabilities: strings.Join(r.config.Containers.DefaultCapabilities, ","),
 			Rootless:            rootless.IsRootless(),
 			SECCOMPEnabled:      seccomp.IsEnabled(),
+			SECCOMPProfilePath:  seccompProfilePath,
 			SELinuxEnabled:      selinux.GetEnabled(),
 		},
 		Slirp4NetNS: define.SlirpInfo{},

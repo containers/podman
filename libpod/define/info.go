@@ -17,6 +17,7 @@ type SecurityInfo struct {
 	DefaultCapabilities string `json:"capabilities"`
 	Rootless            bool   `json:"rootless"`
 	SECCOMPEnabled      bool   `json:"seccompEnabled"`
+	SECCOMPProfilePath  string `json:"seccompProfilePath"`
 	SELinuxEnabled      bool   `json:"selinuxEnabled"`
 }
 

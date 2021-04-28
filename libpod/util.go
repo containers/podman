@@ -194,7 +194,15 @@ func programVersion(mountProgram string) (string, error) {
 // if it exists, first it checks OverrideSeccomp and then default.
 // If neither exist function returns ""
 func DefaultSeccompPath() (string, error) {
-	_, err := os.Stat(config.SeccompOverridePath)
+	def, err := config.Default()
+	if err != nil {
+		return "", err
+	}
+	if def.Containers.SeccompProfile != "" {
+		return def.Containers.SeccompProfile, nil
+	}
+
+	_, err = os.Stat(config.SeccompOverridePath)
 	if err == nil {
 		return config.SeccompOverridePath, nil
 	}
