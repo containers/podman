@@ -141,7 +141,7 @@ load helpers
     is "$output" ".* inet ${mysubnet}\.2/24 brd ${mysubnet}\.255 " \
        "sdfsdf"
 
-    run_podman run --rm -d --network $mynetname -p 127.0.0.1:$myport:$myport \
+    run_podman run -d --network $mynetname -p 127.0.0.1:$myport:$myport \
 	       $IMAGE nc -l -n -v -p $myport
     cid="$output"
 
@@ -167,6 +167,7 @@ load helpers
     is "$output" "Error: the network name $mynetname is already used" \
        "Trying to create an already-existing network"
 
+    run_podman rm $cid
     run_podman network rm $mynetname
     run_podman 1 network rm $mynetname
 }
