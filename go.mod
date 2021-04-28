@@ -38,7 +38,7 @@ require (
 	github.com/gorilla/schema v1.2.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hpcloud/tail v1.0.0
-	github.com/json-iterator/go v1.1.10
+	github.com/json-iterator/go v1.1.11
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/moby/term v0.0.0-20201216013528-df9cb8a40635
 	github.com/mrunalp/fileutils v0.5.0
