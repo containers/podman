@@ -353,4 +353,23 @@ var _ = Describe("Podman run", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("test"))
 	})
+
+	It("podman info seccomp profile path", func() {
+		configPath := filepath.Join(podmanTest.TempDir, "containers.conf")
+		os.Setenv("CONTAINERS_CONF", configPath)
+
+		profile := filepath.Join(podmanTest.TempDir, "seccomp.json")
+		containersConf := []byte(fmt.Sprintf("[containers]\nseccomp_profile=\"%s\"", profile))
+		err = ioutil.WriteFile(configPath, containersConf, os.ModePerm)
+		Expect(err).To(BeNil())
+
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		session := podmanTest.Podman([]string{"info", "--format", "{{.Host.Security.SECCOMPProfilePath}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal(profile))
+	})
 })
