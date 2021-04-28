@@ -14,6 +14,8 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
+import re
+from recommonmark.transform import AutoStructify
 
 # -- Project information -----------------------------------------------------
 
@@ -59,3 +61,27 @@ html_css_files = [
 ]
 
 # -- Extension configuration -------------------------------------------------
+
+def convert_markdown_title(app, docname, source):
+    # Process markdown files only
+    docpath = app.env.doc2path(docname)
+    if docpath.endswith(".md"):
+        # Convert pandoc title line into eval_rst block for recommonmark
+        source[0] = re.sub(
+            r"^% (.*)",
+            r"```eval_rst\n.. title:: \g<1>\n```",
+            source[0])
+
+
+def setup(app):
+    app.connect("source-read", convert_markdown_title)
+
+    app.add_config_value(
+        "recommonmark_config", {
+            "enable_eval_rst": True,
+            "enable_auto_doc_ref": False,
+            "enable_auto_toc_tree": False,
+            "enable_math": False,
+            "enable_inline_math": False,
+        }, True)
+    app.add_transform(AutoStructify)
