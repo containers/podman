@@ -33,16 +33,23 @@ type Policy string
 const (
 	// PolicyDefault is the default policy denoting no auto updates.
 	PolicyDefault Policy = "disabled"
-	// PolicyNewImage is the policy to update as soon as there's a new image found.
-	PolicyNewImage = "image"
+	// PolicyRegistryImage is the policy to update as soon as there's a new image found.
+	PolicyRegistryImage = "registry"
+	// PolicyLocalImage is the policy to run auto-update based on a local image
+	PolicyLocalImage = "local"
 )
 
 // Map for easy lookups of supported policies.
 var supportedPolicies = map[string]Policy{
 	"":         PolicyDefault,
 	"disabled": PolicyDefault,
-	"image":    PolicyNewImage,
+	"image":    PolicyRegistryImage,
+	"registry": PolicyRegistryImage,
+	"local":    PolicyLocalImage,
 }
+
+// policyMapper is used for tying a container to it's autoupdate policy
+type policyMapper map[Policy][]*libpod.Container
 
 // LookupPolicy looks up the corresponding Policy for the specified
 // string. If none is found, an errors is returned including the list of
@@ -99,10 +106,16 @@ func ValidateImageReference(imageName string) error {
 }
 
 // AutoUpdate looks up containers with a specified auto-update policy and acts
-// accordingly.  If the policy is set to PolicyNewImage, it checks if the image
+// accordingly.
+//
+// If the policy is set to PolicyRegistryImage, it checks if the image
 // on the remote registry is different than the local one. If the image digests
 // differ, it pulls the remote image and restarts the systemd unit running the
 // container.
+//
+// If the policy is set to PolicyLocalImage, it checks if the image
+// of a running container is different than the local one. If the image digests
+// differ, it restarts the systemd unit with the new image.
 //
 // It returns a slice of successfully restarted systemd units and a slice of
 // errors encountered during auto update.
@@ -134,7 +147,7 @@ func AutoUpdate(runtime *libpod.Runtime, options Options) ([]string, []error) {
 	// Update images.
 	containersToRestart := []*libpod.Container{}
 	updatedRawImages := make(map[string]bool)
-	for imageID, containers := range containerMap {
+	for imageID, policyMapper := range containerMap {
 		image, exists := imageMap[imageID]
 		if !exists {
 			errs = append(errs, errors.Errorf("container image ID %q not found in local storage", imageID))
@@ -143,34 +156,50 @@ func AutoUpdate(runtime *libpod.Runtime, options Options) ([]string, []error) {
 		// Now we have to check if the image of any containers must be updated.
 		// Note that the image ID is NOT enough for this check as a given image
 		// may have multiple tags.
-		for i, ctr := range containers {
-			rawImageName := ctr.RawImageName()
+		for _, registryCtr := range policyMapper[PolicyRegistryImage] {
+			cid := registryCtr.ID()
+			rawImageName := registryCtr.RawImageName()
 			if rawImageName == "" {
-				errs = append(errs, errors.Errorf("error auto-updating container %q: raw-image name is empty", ctr.ID()))
+				errs = append(errs, errors.Errorf("error registry auto-updating container %q: raw-image name is empty", cid))
 			}
-			labels := ctr.Labels()
-			authFilePath, exists := labels[AuthfileLabel]
-			if exists {
-				options.Authfile = authFilePath
-			}
-			needsUpdate, err := newerImageAvailable(runtime, image, rawImageName, options)
+			readAuthenticationPath(registryCtr, options)
+			needsUpdate, err := newerRemoteImageAvailable(runtime, image, rawImageName, options)
 			if err != nil {
-				errs = append(errs, errors.Wrapf(err, "error auto-updating container %q: image check for %q failed", ctr.ID(), rawImageName))
+				errs = append(errs, errors.Wrapf(err, "error registry auto-updating container %q: image check for %q failed", cid, rawImageName))
 				continue
 			}
-			if !needsUpdate {
-				continue
-			}
-			logrus.Infof("Auto-updating container %q using image %q", ctr.ID(), rawImageName)
-			if _, updated := updatedRawImages[rawImageName]; !updated {
-				_, err = updateImage(runtime, rawImageName, options)
-				if err != nil {
-					errs = append(errs, errors.Wrapf(err, "error auto-updating container %q: image update for %q failed", ctr.ID(), rawImageName))
-					continue
+
+			if needsUpdate {
+				logrus.Infof("Auto-updating container %q using registry image %q", cid, rawImageName)
+				if _, updated := updatedRawImages[rawImageName]; !updated {
+					_, err = updateImage(runtime, rawImageName, options)
+					if err != nil {
+						errs = append(errs, errors.Wrapf(err, "error registry auto-updating container %q: image update for %q failed", cid, rawImageName))
+						continue
+					}
+					updatedRawImages[rawImageName] = true
 				}
-				updatedRawImages[rawImageName] = true
+				containersToRestart = append(containersToRestart, registryCtr)
 			}
-			containersToRestart = append(containersToRestart, containers[i])
+		}
+
+		for _, localCtr := range policyMapper[PolicyLocalImage] {
+			cid := localCtr.ID()
+			rawImageName := localCtr.RawImageName()
+			if rawImageName == "" {
+				errs = append(errs, errors.Errorf("error locally auto-updating container %q: raw-image name is empty", cid))
+			}
+			// This avoids restarting containers unnecessarily.
+			needsUpdate, err := newerLocalImageAvailable(image, rawImageName)
+			if err != nil {
+				errs = append(errs, errors.Wrapf(err, "error locally auto-updating container %q: image check for %q failed", cid, rawImageName))
+				continue
+			}
+
+			if needsUpdate {
+				logrus.Infof("Auto-updating container %q using local image %q", cid, rawImageName)
+				containersToRestart = append(containersToRestart, localCtr)
+			}
 		}
 	}
 
@@ -198,15 +227,15 @@ func AutoUpdate(runtime *libpod.Runtime, options Options) ([]string, []error) {
 
 // imageContainersMap generates a map[image ID] -> [containers using the image]
 // of all containers with a valid auto-update policy.
-func imageContainersMap(runtime *libpod.Runtime) (map[string][]*libpod.Container, []error) {
+func imageContainersMap(runtime *libpod.Runtime) (map[string]policyMapper, []error) {
 	allContainers, err := runtime.GetAllContainers()
 	if err != nil {
 		return nil, []error{err}
 	}
 
 	errors := []error{}
-	imageMap := make(map[string][]*libpod.Container)
-	for i, ctr := range allContainers {
+	containerMap := make(map[string]policyMapper)
+	for _, ctr := range allContainers {
 		state, err := ctr.State()
 		if err != nil {
 			errors = append(errors, err)
@@ -230,22 +259,36 @@ func imageContainersMap(runtime *libpod.Runtime) (map[string][]*libpod.Container
 			continue
 		}
 
-		// Skip non-image labels (could be explicitly disabled).
-		if policy != PolicyNewImage {
+		// Skip labels not related to autoupdate
+		if policy == PolicyDefault {
 			continue
+		} else {
+			id, _ := ctr.Image()
+			policyMap, exists := containerMap[id]
+			if !exists {
+				policyMap = make(map[Policy][]*libpod.Container)
+			}
+			policyMap[policy] = append(policyMap[policy], ctr)
+			containerMap[id] = policyMap
+			// Now we know that `ctr` is configured for auto updates.
 		}
-
-		// Now we know that `ctr` is configured for auto updates.
-		id, _ := ctr.Image()
-		imageMap[id] = append(imageMap[id], allContainers[i])
 	}
 
-	return imageMap, errors
+	return containerMap, errors
 }
 
-// newerImageAvailable returns true if there corresponding image on the remote
+// readAuthenticationPath reads a container's labels and reads authentication path into options
+func readAuthenticationPath(ctr *libpod.Container, options Options) {
+	labels := ctr.Labels()
+	authFilePath, exists := labels[AuthfileLabel]
+	if exists {
+		options.Authfile = authFilePath
+	}
+}
+
+// newerRemoteImageAvailable returns true if there corresponding image on the remote
 // registry is newer.
-func newerImageAvailable(runtime *libpod.Runtime, img *image.Image, origName string, options Options) (bool, error) {
+func newerRemoteImageAvailable(runtime *libpod.Runtime, img *image.Image, origName string, options Options) (bool, error) {
 	remoteRef, err := docker.ParseReference("//" + origName)
 	if err != nil {
 		return false, err
@@ -280,6 +323,25 @@ func newerImageAvailable(runtime *libpod.Runtime, img *image.Image, origName str
 	}
 
 	return img.Digest().String() != remoteDigest.String(), nil
+}
+
+// newerLocalImageAvailable returns true if the container and local image have different digests
+func newerLocalImageAvailable(img *image.Image, rawImageName string) (bool, error) {
+	rt, err := libpod.NewRuntime(context.TODO())
+	if err != nil {
+		return false, err
+	}
+
+	localImg, err := rt.ImageRuntime().NewFromLocal(rawImageName)
+	if err != nil {
+		return false, err
+	}
+
+	localDigest := localImg.Digest().String()
+
+	ctrDigest := img.Digest().String()
+
+	return localDigest != ctrDigest, nil
 }
 
 // updateImage pulls the specified image.

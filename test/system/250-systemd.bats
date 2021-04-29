@@ -27,23 +27,23 @@ function teardown() {
     run '?' $SYSTEMCTL stop "$SERVICE_NAME"
     rm -f "$UNIT_FILE"
     $SYSTEMCTL daemon-reload
+    run_podman rmi -a
+
     basic_teardown
 }
 
-# This test can fail in dev. environment because of SELinux.
-# quick fix: chcon -t container_runtime_exec_t ./bin/podman
-@test "podman generate - systemd - basic" {
+# Helper to setup xdg runtime for rootless
+function xdg_rootless() {
     # podman initializes this if unset, but systemctl doesn't
     if is_rootless; then
         if [ -z "$XDG_RUNTIME_DIR" ]; then
             export XDG_RUNTIME_DIR=/run/user/$(id -u)
         fi
     fi
+}
 
-    cname=$(random_string)
-    # See #7407 for --pull=always.
-    run_podman create --pull=always --name $cname --label "io.containers.autoupdate=image" $IMAGE top
-
+# Helper to start a systemd service running a container
+function service_setup() {
     run_podman generate systemd --new $cname
     echo "$output" > "$UNIT_FILE"
     run_podman rm $cname
@@ -59,6 +59,30 @@ function teardown() {
     if [ $status -ne 0 ]; then
         die "Non-zero status of systemd unit $SERVICE_NAME, output: $output"
     fi
+}
+
+# Helper to stop a systemd service running a container
+function service_cleanup() {
+    run $SYSTEMCTL stop "$SERVICE_NAME"
+    if [ $status -ne 0 ]; then
+        die "Error stopping systemd unit $SERVICE_NAME, output: $output"
+    fi
+
+    rm -f "$UNIT_FILE"
+    $SYSTEMCTL daemon-reload
+}
+
+# These tests can fail in dev. environment because of SELinux.
+# quick fix: chcon -t container_runtime_exec_t ./bin/podman
+@test "podman generate - systemd - basic" {
+    xdg_rootless
+
+    cname=$(random_string)
+    # See #7407 for --pull=always.
+    run_podman create --pull=always --name $cname --label "io.containers.autoupdate=registry" $IMAGE top
+
+    # Start systemd service to run this container
+    service_setup
 
     # Give container time to start; make sure output looks top-like
     sleep 2
@@ -72,13 +96,33 @@ function teardown() {
     run_podman auto-update
 
     # All good. Stop service, clean up.
-    run $SYSTEMCTL stop "$SERVICE_NAME"
-    if [ $status -ne 0 ]; then
-        die "Error stopping systemd unit $SERVICE_NAME, output: $output"
-    fi
+    service_cleanup
+}
 
-    rm -f "$UNIT_FILE"
-    $SYSTEMCTL daemon-reload
+@test "podman autoupdate local" {
+    xdg_rootless
+
+    cname=$(random_string)
+    run_podman create --name $cname --label "io.containers.autoupdate=local" $IMAGE top
+
+    # Start systemd service to run this container
+    service_setup
+
+    # Give container time to start; make sure output looks top-like
+    sleep 2
+    run_podman logs $cname
+    is "$output" ".*Load average:.*" "running container 'top'-like output"
+
+    # Save the container id before updating
+    run_podman ps --format '{{.ID}}'
+
+    # Run auto-update and check that it restarted the container
+    run_podman commit --change "CMD=/bin/bash" $cname $IMAGE
+    run_podman auto-update
+    is $output $SERVICE_NAME "autoupdate local restarted container"
+
+    # All good. Stop service, clean up.
+    service_cleanup
 }
 
 # vim: filetype=sh
