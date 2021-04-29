@@ -594,7 +594,8 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 		_ = idtools.MkdirAs(upperDir, 0700, rootUID, rootGID)
 		_ = idtools.MkdirAs(workDir, 0700, rootUID, rootGID)
 		flags := fmt.Sprintf("lowerdir=%s:%s,upperdir=%s,workdir=%s", lower1Dir, lower2Dir, upperDir, workDir)
-		if selinux.GetEnabled() {
+		if selinux.GetEnabled() &&
+			selinux.SecurityCheckContext(selinuxLabelTest) == nil {
 			// Linux 5.11 introduced unprivileged overlay mounts but it has an issue
 			// when used together with selinux labels.
 			// Check that overlay supports selinux labels as well.
