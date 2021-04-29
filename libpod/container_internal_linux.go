@@ -2224,8 +2224,19 @@ func (c *Container) getOCICgroupPath() (string, error) {
 	}
 	cgroupManager := c.CgroupManager()
 	switch {
-	case (rootless.IsRootless() && (cgroupManager == config.CgroupfsCgroupsManager || !unified)) || c.config.NoCgroups:
+	case c.config.NoCgroups:
 		return "", nil
+	case (rootless.IsRootless() && (cgroupManager == config.CgroupfsCgroupsManager || !unified)):
+		if c.config.CgroupParent == CgroupfsDefaultCgroupParent {
+			// old versions of podman were setting the CgroupParent to CgroupfsDefaultCgroupParent
+			// by default.  Avoid breaking these versions and check whether the cgroup parent is
+			// set to the default and in this case enable the old behavior.  It should not be a real
+			// problem because the default CgroupParent is usually owned by root so rootless users
+			// cannot access it.
+			// This check might be lifted in a future version of Podman.
+			return "", nil
+		}
+		return c.config.CgroupParent, nil
 	case c.config.CgroupsMode == cgroupSplit:
 		if c.config.CgroupParent != "" {
 			return c.config.CgroupParent, nil
