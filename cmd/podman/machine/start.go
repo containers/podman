@@ -7,6 +7,7 @@ import (
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/machine"
 	"github.com/containers/podman/v3/pkg/machine/qemu"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -39,6 +40,18 @@ func start(cmd *cobra.Command, args []string) error {
 	vmName := defaultMachineName
 	if len(args) > 0 && len(args[0]) > 0 {
 		vmName = args[0]
+	}
+
+	// We only have qemu VM's for now
+	active, activeName, err := qemu.CheckActiveVM()
+	if err != nil {
+		return err
+	}
+	if active {
+		if vmName == activeName {
+			return errors.Wrapf(machine.ErrVMAlreadyRunning, "cannot start VM %s", vmName)
+		}
+		return errors.Wrapf(machine.ErrMultipleActiveVM, "cannot start VM %s. VM %s is currently running", vmName, activeName)
 	}
 	switch vmType {
 	default:

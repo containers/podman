@@ -519,3 +519,17 @@ func IsValidVMName(name string) (bool, error) {
 	}
 	return false, nil
 }
+
+// CheckActiveVM checks if there is a VM already running
+func CheckActiveVM() (bool, string, error) {
+	vms, err := GetVMInfos()
+	if err != nil {
+		return false, "", errors.Wrap(err, "error checking VM active")
+	}
+	for _, vm := range vms {
+		if vm.Running {
+			return true, vm.Name, nil
+		}
+	}
+	return false, "", nil
+}

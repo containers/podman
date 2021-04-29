@@ -30,6 +30,8 @@ var (
 	DefaultIgnitionUserName                      = "core"
 	ErrNoSuchVM                                  = errors.New("VM does not exist")
 	ErrVMAlreadyExists                           = errors.New("VM already exists")
+	ErrVMAlreadyRunning                          = errors.New("VM already running")
+	ErrMultipleActiveVM                          = errors.New("only one VM can be active at a time")
 )
 
 type Download struct {

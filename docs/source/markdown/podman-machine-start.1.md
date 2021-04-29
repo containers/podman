@@ -14,6 +14,9 @@ Podman on MacOS requires a virtual machine. This is because containers are Linux
 containers do not run on any other OS because containers' core functionality are
 tied to the Linux kernel.
 
+Only one Podman managed VM can be active at a time. If a VM is already running,
+`podman machine start` will return an error.
+
 **podman machine start** starts a Linux virtual machine where containers are run.
 
 ## OPTIONS
