@@ -77,7 +77,7 @@ function _corrupt_image_test() {
 
         # Run the requested command. Confirm it succeeds, with suitable warnings
         run_podman $*
-        is "$output" ".*error determining parent of image" \
+        is "$output" ".*file does not exist, ignoring the error" \
            "$* with missing $what_to_rm"
 
         run_podman images -a --noheading
