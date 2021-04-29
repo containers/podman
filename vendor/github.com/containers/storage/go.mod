@@ -9,7 +9,7 @@ require (
 	github.com/docker/go-units v0.4.0
 	github.com/google/go-intervals v0.0.2
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/klauspost/compress v1.12.1
+	github.com/klauspost/compress v1.12.2
 	github.com/klauspost/pgzip v1.2.5
 	github.com/mattn/go-shellwords v1.0.11
 	github.com/mistifyio/go-zfs v2.1.2-0.20190413222219-f784269be439+incompatible

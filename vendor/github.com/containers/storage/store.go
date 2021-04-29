@@ -2115,6 +2115,37 @@ func (s *store) SetNames(id string, names []string) error {
 		return ristore.SetNames(id, deduped)
 	}
 
+	// Check is id refers to a RO Store
+	ristores, err := s.ROImageStores()
+	if err != nil {
+		return err
+	}
+	for _, s := range ristores {
+		store := s
+		store.RLock()
+		defer store.Unlock()
+		if modified, err := store.Modified(); modified || err != nil {
+			if err = store.Load(); err != nil {
+				return err
+			}
+		}
+		if i, err := store.Get(id); err == nil {
+			// Unlock R/O lock and lock with R/W lock
+			// Previous defer.Unlock() will free the new lock.
+			ristore.Unlock()
+			ristore.Lock()
+			if len(deduped) > 1 {
+				// Do not want to create image name in R/W storage
+				deduped = deduped[1:]
+			}
+			_, err := ristore.Create(id, deduped, i.TopLayer, i.Metadata, i.Created, i.Digest)
+			if err == nil {
+				return ristore.Save()
+			}
+			return err
+		}
+	}
+
 	rcstore, err := s.ContainerStore()
 	if err != nil {
 		return err
