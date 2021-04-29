@@ -16,11 +16,24 @@ default to `/`.
 
 The container images are:
 
-  * quay.io/containers/podman - This image is built using the latest stable version of Podman in a Fedora based container.  Built with [podmanimage/stable/Dockerfile](stable/Dockerfile).
-  * quay.io/podman/stable - This image is built using the latest stable version of Podman in a Fedora based container.  Built with [podmanimage/stable/Dockerfile](stable/Dockerfile).
-  * quay.io/podman/upstream - This image is built using the latest code found in this GitHub repository.  When someone creates a commit and pushes it, the image is created.  Due to that the image changes frequently and is not guaranteed to be stable.  Built with [podmanimage/upstream/Dockerfile](upstream/Dockerfile).
-  * quay.io/podman/testing - This image is built using the latest version of Podman that is or was in updates testing for Fedora.  At times this may be the same as the stable image.  This container image will primarily be used by the development teams for verification testing when a new package is created.  Built with [podmanimage/testing/Dockerfile](testing/Dockerfile).
-  * quay.io/podman/stable:version - This image is built manually using a Fedora based container.  An RPM is first pulled from the [Fedora Updates System](https://bodhi.fedoraproject.org/) and the image is built from there.  For more details, see the Containerfile used to build it, [podmanimage/stable/manual/Containerfile](stable/manual/Containerfile).
+  * `quay.io/containers/podman:<version>` and `quay.io/podman/stable:<version>` -
+    These images are built when a new podman version becomes available in
+    Fedora.  These images are intended to be unchanging and stable, they will
+    never be updated by automation once they've been pushed.  For build
+    details, see the configuration used to build it,
+    [podmanimage/stable/Dockerfile](stable/Dockerfile).
+  * `quay.io/containers/podman:latest` and `quay.io/podman/stable:latest` -
+    Built daily using the same Containerfile as above.  The podman version
+    will remain the "latest" available in Fedora, however the other image
+    contents may vary compared to the version-tagged images.
+  * `quay.io/podman/testing:latest` - This image is built daily, using the
+    latest version of Podman that was in the Fedora `updates-testing` repository.
+    The image is Built with [podmanimage/testing/Dockerfile](testing/Dockerfile).
+  * `quay.io/podman/upstream:latest` - This image is built daily using the latest
+    code found in this GitHub repository.  Due to the image changing frequently,
+    it's not guaranteed to be stable or even executable.  The image is built with
+    [podmanimage/upstream/Dockerfile](upstream/Dockerfile).
+
 ## Sample Usage
 
 
