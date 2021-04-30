@@ -55,6 +55,8 @@ FSTYPE=$(findmnt --first-only --noheadings --output FSTYPE ${SLASH_DEVICE}1)
 echo "Expanding $FSTYPE filesystem on ${SLASH_DEVICE}1"
 case $FSTYPE in
     ext*) resize2fs ${SLASH_DEVICE}1 ;;
+    btrfs) btrfs filesystem resize max / ;;
+    xfs) xfs_growfs / ;;
     *) die "Script $(basename $0) doesn't know how to resize a $FSTYPE filesystem." ;;
 esac
 
