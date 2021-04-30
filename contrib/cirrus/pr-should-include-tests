@@ -39,6 +39,7 @@ filtered_changes=$(git diff --name-status $base $head |
                        fgrep -vx go.mod               |
                        fgrep -vx go.sum               |
                        egrep -v  '^[^/]+\.md$'        |
+                       egrep -v  '^.github'           |
                        egrep -v  '^contrib/'          |
                        egrep -v  '^docs/'             |
                        egrep -v  '^hack/'             |
