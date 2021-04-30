@@ -62,7 +62,7 @@ jobs:
       # Simple verification that stable images work, and
       # also grab version number use in forming the FQIN.
       - name: amd64 container sniff test
-        if: matrix.source = 'stable'
+        if: matrix.source == 'stable'
         id: sniff_test
         run: |
           VERSION_OUTPUT="$(docker run localhost:5000/podman/${{ matrix.source }} \
