@@ -149,7 +149,18 @@ type DNSNameConfig struct {
 	Capabilities map[string]bool `json:"capabilities"`
 }
 
+//  PodmanMachineConfig enables port handling on the host OS
+type PodmanMachineConfig struct {
+	PluginType   string          `json:"type"`
+	Capabilities map[string]bool `json:"capabilities"`
+}
+
 // Bytes outputs the configuration as []byte
 func (d DNSNameConfig) Bytes() ([]byte, error) {
 	return json.MarshalIndent(d, "", "\t")
+}
+
+// Bytes outputs the configuration as []byte
+func (p PodmanMachineConfig) Bytes() ([]byte, error) {
+	return json.MarshalIndent(p, "", "\t")
 }

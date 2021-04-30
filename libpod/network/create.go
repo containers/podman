@@ -231,6 +231,10 @@ func createBridge(name string, options entities.NetworkCreateOptions, runtimeCon
 			plugins = append(plugins, NewDNSNamePlugin(DefaultPodmanDomainName))
 		}
 	}
+	// Add the podman-machine CNI plugin if we are in a machine
+	if runtimeConfig.MachineEnabled() { // check if we are in a machine vm
+		plugins = append(plugins, NewPodmanMachinePlugin())
+	}
 	ncList["plugins"] = plugins
 	b, err := json.MarshalIndent(ncList, "", "   ")
 	if err != nil {
