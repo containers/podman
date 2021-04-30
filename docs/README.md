@@ -26,6 +26,7 @@ link on that page.
 | ------------------------------------ | --------------------------- |
 | docs/remote-docs.sh | Read the docs/source/markdown files and format for each platform |
 | docs/links-to-html.lua | pandoc filter to do aliases for html files |
+| docs/use-pagetitle.lua | pandoc filter to set html document title |
 
 ## API Reference
 
