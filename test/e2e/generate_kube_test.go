@@ -873,4 +873,54 @@ USER test1`
 			}
 		}
 	})
+
+	It("podman generate kube on container with auto update labels", func() {
+		top := podmanTest.Podman([]string{"run", "-dt", "--name", "top", "--label", "io.containers.autoupdate=local", ALPINE, "top"})
+		top.WaitWithDefaultTimeout()
+		Expect(top.ExitCode()).To(Equal(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "top"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+
+		v, ok := pod.GetAnnotations()["io.containers.autoupdate/top"]
+		Expect(ok).To(Equal(true))
+		Expect(v).To(Equal("local"))
+	})
+
+	It("podman generate kube on pod with auto update labels in all containers", func() {
+		pod1 := podmanTest.Podman([]string{"pod", "create", "--name", "pod1"})
+		pod1.WaitWithDefaultTimeout()
+		Expect(pod1.ExitCode()).To(Equal(0))
+
+		top1 := podmanTest.Podman([]string{"run", "-dt", "--name", "top1", "--pod", "pod1", "--label", "io.containers.autoupdate=registry", "--label", "io.containers.autoupdate.authfile=/some/authfile.json", ALPINE, "top"})
+		top1.WaitWithDefaultTimeout()
+		Expect(top1.ExitCode()).To(Equal(0))
+
+		top2 := podmanTest.Podman([]string{"run", "-dt", "--name", "top2", "--pod", "pod1", "--label", "io.containers.autoupdate=registry", "--label", "io.containers.autoupdate.authfile=/some/authfile.json", ALPINE, "top"})
+		top2.WaitWithDefaultTimeout()
+		Expect(top2.ExitCode()).To(Equal(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "pod1"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+
+		for _, ctr := range []string{"top1", "top2"} {
+			v, ok := pod.GetAnnotations()["io.containers.autoupdate/"+ctr]
+			Expect(ok).To(Equal(true))
+			Expect(v).To(Equal("registry"))
+
+			v, ok = pod.GetAnnotations()["io.containers.autoupdate.authfile/"+ctr]
+			Expect(ok).To(Equal(true))
+			Expect(v).To(Equal("/some/authfile.json"))
+		}
+	})
 })

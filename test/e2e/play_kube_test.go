@@ -768,6 +768,12 @@ func getCtr(options ...ctrOption) *Ctr {
 
 type ctrOption func(*Ctr)
 
+func withName(name string) ctrOption {
+	return func(c *Ctr) {
+		c.Name = name
+	}
+}
+
 func withCmd(cmd []string) ctrOption {
 	return func(c *Ctr) {
 		c.Cmd = cmd
@@ -2304,5 +2310,80 @@ invalid kube kind
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Not(Equal(0)))
+	})
+
+	It("podman play kube with auto update annotations for all containers", func() {
+		ctr01Name := "ctr01"
+		ctr02Name := "ctr02"
+		podName := "foo"
+		autoUpdateRegistry := "io.containers.autoupdate"
+		autoUpdateRegistryValue := "registry"
+		autoUpdateAuthfile := "io.containers.autoupdate.authfile"
+		autoUpdateAuthfileValue := "/some/authfile.json"
+
+		ctr01 := getCtr(withName(ctr01Name))
+		ctr02 := getCtr(withName(ctr02Name))
+
+		pod := getPod(
+			withPodName(podName),
+			withCtr(ctr01),
+			withCtr(ctr02),
+			withAnnotation(autoUpdateRegistry, autoUpdateRegistryValue),
+			withAnnotation(autoUpdateAuthfile, autoUpdateAuthfileValue))
+
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		for _, ctr := range []string{podName + "-" + ctr01Name, podName + "-" + ctr02Name} {
+			inspect := podmanTest.Podman([]string{"inspect", ctr, "--format", "'{{.Config.Labels}}'"})
+			inspect.WaitWithDefaultTimeout()
+			Expect(inspect.ExitCode()).To(Equal(0))
+
+			Expect(inspect.OutputToString()).To(ContainSubstring(autoUpdateRegistry + ":" + autoUpdateRegistryValue))
+			Expect(inspect.OutputToString()).To(ContainSubstring(autoUpdateAuthfile + ":" + autoUpdateAuthfileValue))
+		}
+	})
+
+	It("podman play kube with auto update annotations for first container only", func() {
+		ctr01Name := "ctr01"
+		ctr02Name := "ctr02"
+		autoUpdateRegistry := "io.containers.autoupdate"
+		autoUpdateRegistryValue := "local"
+
+		ctr01 := getCtr(withName(ctr01Name))
+		ctr02 := getCtr(withName(ctr02Name))
+
+		pod := getPod(
+			withCtr(ctr01),
+			withCtr(ctr02),
+		)
+
+		deployment := getDeployment(
+			withPod(pod),
+			withDeploymentAnnotation(autoUpdateRegistry+"/"+ctr01Name, autoUpdateRegistryValue),
+		)
+
+		err = generateKubeYaml("deployment", deployment, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		podName := getPodNamesInDeployment(deployment)[0].Name
+
+		inspect := podmanTest.Podman([]string{"inspect", podName + "-" + ctr01Name, "--format", "'{{.Config.Labels}}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(autoUpdateRegistry + ":" + autoUpdateRegistryValue))
+
+		inspect = podmanTest.Podman([]string{"inspect", podName + "-" + ctr02Name, "--format", "'{{.Config.Labels}}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`map[]`))
 	})
 })

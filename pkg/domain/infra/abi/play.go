@@ -16,6 +16,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/pkg/autoupdate"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/specgen/generate"
@@ -73,7 +74,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 			podTemplateSpec.ObjectMeta = podYAML.ObjectMeta
 			podTemplateSpec.Spec = podYAML.Spec
 
-			r, err := ic.playKubePod(ctx, podTemplateSpec.ObjectMeta.Name, &podTemplateSpec, options, &ipIndex)
+			r, err := ic.playKubePod(ctx, podTemplateSpec.ObjectMeta.Name, &podTemplateSpec, options, &ipIndex, podYAML.Annotations)
 			if err != nil {
 				return nil, err
 			}
@@ -143,7 +144,7 @@ func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAM
 	// create "replicas" number of pods
 	for i = 0; i < numReplicas; i++ {
 		podName := fmt.Sprintf("%s-pod-%d", deploymentName, i)
-		podReport, err := ic.playKubePod(ctx, podName, &podSpec, options, ipIndex)
+		podReport, err := ic.playKubePod(ctx, podName, &podSpec, options, ipIndex, deploymentYAML.Annotations)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error encountered while bringing up pod %s", podName)
 		}
@@ -152,7 +153,7 @@ func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAM
 	return &report, nil
 }
 
-func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec, options entities.PlayKubeOptions, ipIndex *int) (*entities.PlayKubeReport, error) {
+func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec, options entities.PlayKubeOptions, ipIndex *int, annotations map[string]string) (*entities.PlayKubeReport, error) {
 	var (
 		writer      io.Writer
 		playKubePod entities.PlayKubePod
@@ -265,6 +266,9 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 
 	containers := make([]*libpod.Container, 0, len(podYAML.Spec.Containers))
 	for _, container := range podYAML.Spec.Containers {
+		// Contains all labels obtained from kube
+		labels := make(map[string]string)
+
 		// NOTE: set the pull policy to "newer".  This will cover cases
 		// where the "latest" tag requires a pull and will also
 		// transparently handle "localhost/" prefixed files which *may*
@@ -292,6 +296,22 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			return nil, err
 		}
 
+		// Handle kube annotations
+		for k, v := range annotations {
+			switch k {
+			// Auto update annotation without container name will apply to
+			// all containers within the pod
+			case autoupdate.Label, autoupdate.AuthfileLabel:
+				labels[k] = v
+			// Auto update annotation with container name will apply only
+			// to the specified container
+			case fmt.Sprintf("%s/%s", autoupdate.Label, container.Name),
+				fmt.Sprintf("%s/%s", autoupdate.AuthfileLabel, container.Name):
+				prefixAndCtr := strings.Split(k, "/")
+				labels[prefixAndCtr[0]] = v
+			}
+		}
+
 		specgenOpts := kube.CtrSpecGenOptions{
 			Container:      container,
 			Image:          pulledImages[0],
@@ -305,6 +325,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			NetNSIsHost:    p.NetNS.IsHost(),
 			SecretsManager: secretsManager,
 			LogDriver:      options.LogDriver,
+			Labels:         labels,
 		}
 		specGen, err := kube.ToSpecGen(ctx, &specgenOpts)
 		if err != nil {

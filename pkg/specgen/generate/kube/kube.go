@@ -100,6 +100,8 @@ type CtrSpecGenOptions struct {
 	SecretsManager *secrets.SecretsManager
 	// LogDriver which should be used for the container
 	LogDriver string
+	// Labels define key-value pairs of metadata
+	Labels map[string]string
 }
 
 func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGenerator, error) {
@@ -276,6 +278,19 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 
 	if opts.NetNSIsHost {
 		s.NetNS.NSMode = specgen.Host
+	}
+
+	// Add labels that come from kube
+	if len(s.Labels) == 0 {
+		// If there are no labels, let's use the map that comes
+		// from kube
+		s.Labels = opts.Labels
+	} else {
+		// If there are already labels in the map, append the ones
+		// obtained from kube
+		for k, v := range opts.Labels {
+			s.Labels[k] = v
+		}
 	}
 
 	return s, nil
