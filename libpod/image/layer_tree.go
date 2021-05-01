@@ -5,6 +5,7 @@ import (
 
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // layerTree is an internal representation of local layers.
@@ -32,9 +33,11 @@ func (t *layerTree) toOCI(ctx context.Context, i *Image) (*ociv1.Image, error) {
 	oci, exists := t.ociCache[i.ID()]
 	if !exists {
 		oci, err = i.ociv1Image(ctx)
-		if err == nil {
-			t.ociCache[i.ID()] = oci
+		if err != nil {
+			logrus.Errorf("%v, ignoring the error", err)
+			return nil, nil
 		}
+		t.ociCache[i.ID()] = oci
 	}
 	return oci, err
 }
