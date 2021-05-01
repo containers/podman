@@ -293,3 +293,12 @@ func getCreatedTimestamp(config *config.Config, netconf *libcni.NetworkConfigLis
 	created := time.Unix(int64(stat.Ctim.Sec), int64(stat.Ctim.Nsec)) // nolint: unconvert
 	return &created, nil
 }
+
+func NewPodmanMachinePlugin() PodmanMachineConfig {
+	caps := make(map[string]bool, 1)
+	caps["portMappings"] = true
+	return PodmanMachineConfig{
+		PluginType:   "podman-machine",
+		Capabilities: caps,
+	}
+}
