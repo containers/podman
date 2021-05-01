@@ -934,8 +934,7 @@ Note: Labeling can be disabled for all containers by setting label=false in the 
 - **proc-opts**=_OPTIONS_ : Comma-separated list of options to use for the /proc mount. More details
   for the possible mount options are specified in the **proc(5)** man page.
 
-- **unmask**=_ALL_ or _/path/1:/path/2_: Paths to unmask separated by a colon. If set to **ALL**, it will
-  unmask all the paths that are masked or made read only by default.
+- **unmask**=_ALL_ or _/path/1:/path/2_, or shell expanded paths (/proc/*): Paths to unmask separated by a colon. If set to **ALL**, it will unmask all the paths that are masked or made read only by default.
   The default masked paths are **/proc/acpi, /proc/kcore, /proc/keys, /proc/latency_stats, /proc/sched_debug, /proc/scsi, /proc/timer_list, /proc/timer_stats, /sys/firmware, and /sys/fs/selinux.**.  The default paths that are read only are **/proc/asound**, **/proc/bus**, **/proc/fs**, **/proc/irq**, **/proc/sys**, **/proc/sysrq-trigger**, **/sys/fs/cgroup**.
 
 Note: Labeling can be disabled for all containers by setting **label=false** in the **containers.conf**(5) file.
@@ -1642,6 +1641,13 @@ the **mask** option.
 
 ```
 $ podman run --security-opt unmask=ALL fedora bash
+```
+
+To unmask all the paths that start with /proc, set the **unmask** option to
+**/proc/***.
+
+```
+$ podman run --security-opt unmask=/proc/* fedora bash
 ```
 
 ```
