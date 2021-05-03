@@ -180,13 +180,28 @@ func generateRunlabelCommand(runlabel string, img *libimage.Image, inputName str
 }
 
 func replaceName(arg, name string) string {
+	if arg == "NAME" {
+		return name
+	}
+
 	newarg := strings.ReplaceAll(arg, "$NAME", name)
-	return strings.ReplaceAll(newarg, "${NAME}", name)
+	newarg = strings.ReplaceAll(newarg, "${NAME}", name)
+	if strings.HasSuffix(newarg, "=NAME") {
+		newarg = strings.ReplaceAll(newarg, "=NAME", fmt.Sprintf("=%s", name))
+	}
+	return newarg
 }
 
 func replaceImage(arg, image string) string {
+	if arg == "IMAGE" {
+		return image
+	}
 	newarg := strings.ReplaceAll(arg, "$IMAGE", image)
-	return strings.ReplaceAll(newarg, "${IMAGE}", image)
+	newarg = strings.ReplaceAll(newarg, "${IMAGE}", image)
+	if strings.HasSuffix(newarg, "=IMAGE") {
+		newarg = strings.ReplaceAll(newarg, "=IMAGE", fmt.Sprintf("=%s", image))
+	}
+	return newarg
 }
 
 // generateCommand takes a label (string) and converts it to an executable command
