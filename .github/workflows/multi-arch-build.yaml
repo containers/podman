@@ -24,6 +24,8 @@ jobs:
 
     # build several images (upstream, testing, stable) in parallel
     strategy:
+      # By default, failure of one matrix item cancels all others
+      fail-fast: false
       matrix:
         # Builds are located under contrib/podmanimage/<source> directory
         source:
@@ -178,7 +180,7 @@ jobs:
           file: ./contrib/podmanimage/${{ matrix.source }}/Dockerfile
           platforms: ${{ env.PLATFORMS }}
           push: true
-          tags: ${{ steps.podman_push.outputs.fqin }}
+          tags: ${{ steps.podman_reg.outputs.fqin }}
           labels: |
             ${{ env.LABELS }}
 
