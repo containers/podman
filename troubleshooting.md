@@ -495,10 +495,10 @@ $ podman unshare cat /proc/self/uid_map
 
 Reference [subuid](http://man7.org/linux/man-pages/man5/subuid.5.html) and [subgid](http://man7.org/linux/man-pages/man5/subgid.5.html) man pages for more detail.
 
-### 20) Passed-in device can't be accessed in rootless container
+### 20) Passed-in devices or files can't be accessed in rootless container
 
-As a non-root user you have group access rights to a device that you want to
-pass into a rootless container with `--device=...`.
+As a non-root user you have group access rights to a device or files that you
+want to pass into a rootless container with `--device=...` or `--volume=...`
 
 #### Symptom
 
@@ -507,9 +507,9 @@ Any access inside the container is rejected with "Permission denied".
 #### Solution
 
 The runtime uses `setgroups(2)` hence the process looses all additional groups
-the non-root user has. If you use the `crun` runtime, 0.10.4 or newer,
-then you can enable a workaround by adding `--annotation io.crun.keep_original_groups=1`
-to the `podman` command line.
+the non-root user has. Use the `--group-add keep-groups` flag to pass the
+user's supplementary group access into the container. Currently only available
+with the `crun` OCI runtime.
 
 ### 21) A rootless container running in detached mode is closed at logout
 
