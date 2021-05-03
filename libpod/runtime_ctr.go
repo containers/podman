@@ -296,7 +296,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 						return nil, errors.Wrapf(define.ErrInternal, "pod %s cgroup is not set", pod.ID())
 					}
 					ctr.config.CgroupParent = podCgroup
-				} else {
+				} else if !rootless.IsRootless() {
 					ctr.config.CgroupParent = CgroupfsDefaultCgroupParent
 				}
 			} else if strings.HasSuffix(path.Base(ctr.config.CgroupParent), ".slice") {
