@@ -51,18 +51,13 @@ function check_label() {
 }
 
 @test "podman selinux: pid=host" {
-    # FIXME FIXME FIXME: Remove these lines once all VMs have >= 2.146.0
-    # (this is ugly, but better than an unconditional skip)
-    skip_if_no_selinux
+    # FIXME this test fails when run rootless with runc:
+    #   Error: container_linux.go:367: starting container process caused: process_linux.go:495: container init caused: readonly path /proc/asound: operation not permitted: OCI permission denied
     if is_rootless; then
-        if [ -x /usr/bin/rpm ]; then
-            cs_version=$(rpm -q --qf '%{version}' container-selinux)
-        else
-            # SELinux not enabled on Ubuntu, so we should never get here
-            die "WHOA! SELinux enabled, but no /usr/bin/rpm!"
-        fi
+        runtime=$(podman_runtime)
+        test "$runtime" == "crun" \
+            || skip "runtime is $runtime; this test requires crun"
     fi
-    # FIXME FIXME FIXME: delete up to here, leaving just check_label
 
     check_label "--pid=host" "spc_t"
 }
@@ -185,10 +180,18 @@ function check_label() {
 @test "podman with nonexistent labels" {
     skip_if_no_selinux
 
+    # runc and crun emit different diagnostics
+    runtime=$(podman_runtime)
+    case "$runtime" in
+        crun) expect="\`/proc/thread-self/attr/exec\`: OCI runtime error: unable to assign security attribute" ;;
+        runc) expect="OCI runtime error: .*: failed to set /proc/self/attr/keycreate on procfs" ;;
+        *)    skip "Unknown runtime '$runtime'";;
+    esac
+
     # The '.*' in the error below is for dealing with podman-remote, which
     # includes "error preparing container <sha> for attach" in output.
     run_podman 126 run --security-opt label=type:foo.bar $IMAGE true
-    is "$output" "Error.*: \`/proc/thread-self/attr/exec\`: OCI runtime error: unable to assign security attribute" "useful diagnostic"
+    is "$output" "Error.*: $expect" "podman emits useful diagnostic on failure"
 }
 
 @test "podman selinux: check relabel" {

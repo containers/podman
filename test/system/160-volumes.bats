@@ -123,8 +123,7 @@ EOF
     # ARGH. Unfortunately, runc (used for cgroups v1) produces a different error
     local expect_rc=126
     local expect_msg='.* OCI permission denied.*'
-    run_podman info --format '{{ .Host.OCIRuntime.Path }}'
-    if expr "$output" : ".*/runc"; then
+    if [[ $(podman_runtime) = "runc" ]]; then
         expect_rc=1
         expect_msg='.* exec user process caused.*permission denied'
     fi

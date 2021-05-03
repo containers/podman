@@ -35,6 +35,23 @@ fi
 # That way individual tests can override with their own setup/teardown,
 # while retaining the ability to include these if they so desire.
 
+# Some CI systems set this to runc, overriding the default crun.
+# Although it would be more elegant to override options in run_podman(),
+# we instead override $PODMAN itself because some tests (170-run-userns)
+# have to invoke $PODMAN directly.
+if [[ -n $OCI_RUNTIME ]]; then
+    if [[ -z $CONTAINERS_CONF ]]; then
+        # FIXME: BATS provides no mechanism for end-of-run cleanup[1]; how
+        # can we avoid leaving this file behind when we finish?
+        #   [1] https://github.com/bats-core/bats-core/issues/39
+        export CONTAINERS_CONF=$(mktemp --tmpdir=${BATS_TMPDIR:-/tmp} podman-bats-XXXXXXX.containers.conf)
+        cat >$CONTAINERS_CONF <<EOF
+[engine]
+runtime="$OCI_RUNTIME"
+EOF
+    fi
+fi
+
 # Setup helper: establish a test environment with exactly the images needed
 function basic_setup() {
     # Clean up all containers
@@ -282,6 +299,16 @@ function is_cgroupsv1() {
 function is_cgroupsv2() {
     cgroup_type=$(stat -f -c %T /sys/fs/cgroup)
     test "$cgroup_type" = "cgroup2fs"
+}
+
+# Returns the OCI runtime *basename* (typically crun or runc). Much as we'd
+# love to cache this result, we probably shouldn't.
+function podman_runtime() {
+    # This function is intended to be used as '$(podman_runtime)', i.e.
+    # our caller wants our output. run_podman() messes with output because
+    # it emits the command invocation to stdout, hence the redirection.
+    run_podman info --format '{{ .Host.OCIRuntime.Name }}' >/dev/null
+    basename "${output:-[null]}"
 }
 
 # rhbz#1895105: rootless journald is unavailable except to users in
