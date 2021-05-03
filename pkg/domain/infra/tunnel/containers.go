@@ -602,9 +602,9 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 				reports = append(reports, &report)
 				continue
 			}
+			report.ExitCode = 0
+			reports = append(reports, &report)
 		}
-		report.ExitCode = 0
-		reports = append(reports, &report)
 	}
 	return reports, nil
 }
