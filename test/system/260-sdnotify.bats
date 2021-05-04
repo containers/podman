@@ -17,9 +17,9 @@ function setup() {
 
     # sdnotify fails with runc 1.0.0-3-dev2 on Ubuntu. Let's just
     # assume that we work only with crun, nothing else.
-    run_podman info --format '{{ .Host.OCIRuntime.Name }}'
-    if [[ "$output" != "crun" ]]; then
-        skip "this test only works with crun, not '$output'"
+    runtime=$(podman_runtime)
+    if [[ "$runtime" != "crun" ]]; then
+        skip "this test only works with crun, not $runtime"
     fi
 
     basic_setup

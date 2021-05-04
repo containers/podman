@@ -67,8 +67,7 @@ store.imageStore.number   | 1
 
         # RHEL or CentOS 8.
         # FIXME: what does 'CentOS 8' even mean? What is $VERSION_ID in CentOS?
-        run_podman info --format '{{.Host.OCIRuntime.Name}}'
-        is "$output" "runc" "$osname only supports OCI Runtime = runc"
+        is "$(podman_runtime)" "runc" "$osname only supports OCI Runtime = runc"
     else
         skip "only applicable on RHEL, this is $osname"
     fi
