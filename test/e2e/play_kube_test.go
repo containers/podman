@@ -1717,7 +1717,7 @@ spec:
 		}
 	})
 
-	It("podman play kube --ip", func() {
+	It("podman play kube --ip and --mac-address", func() {
 		var i, numReplicas int32
 		numReplicas = 3
 		deployment := getDeployment(withReplicas(numReplicas))
@@ -1735,6 +1735,10 @@ spec:
 		for _, ip := range ips {
 			playArgs = append(playArgs, "--ip", ip)
 		}
+		macs := []string{"e8:d8:82:c9:80:40", "e8:d8:82:c9:80:50", "e8:d8:82:c9:80:60"}
+		for _, mac := range macs {
+			playArgs = append(playArgs, "--mac-address", mac)
+		}
 
 		kube := podmanTest.Podman(append(playArgs, kubeYaml))
 		kube.WaitWithDefaultTimeout()
@@ -1746,6 +1750,13 @@ spec:
 			inspect.WaitWithDefaultTimeout()
 			Expect(inspect.ExitCode()).To(Equal(0))
 			Expect(inspect.OutputToString()).To(Equal(ips[i]))
+		}
+
+		for i = 0; i < numReplicas; i++ {
+			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&podNames[i]), "--format", "{{ .NetworkSettings.Networks." + net + ".MacAddress }}"})
+			inspect.WaitWithDefaultTimeout()
+			Expect(inspect.ExitCode()).To(Equal(0))
+			Expect(inspect.OutputToString()).To(Equal(macs[i]))
 		}
 	})
 

@@ -40,6 +40,12 @@ func (s *APIServer) registerPlayHandlers(r *mux.Router) error {
 	//    description: Static IPs used for the pods.
 	//    items:
 	//      type: string
+	//  - in: query
+	//    name: staticMACs
+	//    type: array
+	//    description: Static MACs used for the pods.
+	//    items:
+	//      type: string
 	//  - in: body
 	//    name: request
 	//    description: Kubernetes YAML file.

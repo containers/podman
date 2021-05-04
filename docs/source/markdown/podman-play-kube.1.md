@@ -70,6 +70,10 @@ Assign a static ip address to the pod. This option can be specified several time
 
 Set logging driver for all created containers.
 
+#### **\-\-mac-address**=*MAC address*
+
+Assign a static mac address to the pod. This option can be specified several times when play kube creates more than one pod.
+
 #### **\-\-network**=*networks*, **\-\-net**
 
 A comma-separated list of the names of CNI networks the pod should join.

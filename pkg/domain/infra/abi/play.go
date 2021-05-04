@@ -199,11 +199,17 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	}
 	if len(options.StaticIPs) > *ipIndex {
 		p.StaticIP = &options.StaticIPs[*ipIndex]
-		*ipIndex++
 	} else if len(options.StaticIPs) > 0 {
-		// only warn if the user has set at least one ip ip
+		// only warn if the user has set at least one ip
 		logrus.Warn("No more static ips left using a random one")
 	}
+	if len(options.StaticMACs) > *ipIndex {
+		p.StaticMAC = &options.StaticMACs[*ipIndex]
+	} else if len(options.StaticIPs) > 0 {
+		// only warn if the user has set at least one mac
+		logrus.Warn("No more static macs left using a random one")
+	}
+	*ipIndex++
 
 	// Create the Pod
 	pod, err := generate.MakePod(p, ic.Libpod)
