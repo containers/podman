@@ -22,6 +22,7 @@ import (
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
 	"github.com/gorilla/schema"
@@ -525,6 +526,10 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 	networkSettings := types.NetworkSettings{}
 	if err := json.Unmarshal(n, &networkSettings); err != nil {
 		return nil, err
+	}
+	// do not report null instead use an empty map
+	if networkSettings.Networks == nil {
+		networkSettings.Networks = map[string]*network.EndpointSettings{}
 	}
 
 	c := types.ContainerJSON{
