@@ -57,6 +57,8 @@ func startFlags(cmd *cobra.Command) {
 	flags.BoolVarP(&startOptions.Interactive, "interactive", "i", false, "Keep STDIN open even if not attached")
 	flags.BoolVar(&startOptions.SigProxy, "sig-proxy", false, "Proxy received signals to the process (default true if attaching, false otherwise)")
 
+	flags.BoolVar(&startOptions.All, "all", false, "Start all containers regardless of their state or configuration")
+
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("sig-proxy")
 	}
@@ -79,7 +81,7 @@ func init() {
 }
 
 func validateStart(cmd *cobra.Command, args []string) error {
-	if len(args) == 0 && !startOptions.Latest {
+	if len(args) == 0 && !startOptions.Latest && !startOptions.All {
 		return errors.New("start requires at least one argument")
 	}
 	if len(args) > 0 && startOptions.Latest {
@@ -87,6 +89,12 @@ func validateStart(cmd *cobra.Command, args []string) error {
 	}
 	if len(args) > 1 && startOptions.Attach {
 		return errors.Errorf("you cannot start and attach multiple containers at once")
+	}
+	if (len(args) > 0 || startOptions.Latest) && startOptions.All {
+		return errors.Errorf("either start all containers or the container(s) provided in the arguments")
+	}
+	if startOptions.Attach && startOptions.All {
+		return errors.Errorf("you cannot start and attach all containers at once")
 	}
 	return nil
 }
