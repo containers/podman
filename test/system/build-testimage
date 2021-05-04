@@ -78,7 +78,7 @@ podman rmi -f testimage &> /dev/null || true
 # and because Dan says arch emulation is not currently working on podman
 # (no further details).
 # Arch emulation on Fedora requires the qemu-user-static package.
-for arch in amd64 ppc64le s390x;do
+for arch in amd64 arm64v8 ppc64le s390x;do
     ${BUILDAH} bud \
                --arch=$arch \
                --build-arg ARCH=$arch \
@@ -106,9 +106,9 @@ ${BUILDAH} manifest push --all  ${remote_tag} docker://${remote_tag}
 # As of 2021-02-24 it is simply busybox, because it is super small,
 # but it's complicated because of multiarch:
 #
-#    img=quay.io/libpod/testimage:00000001
+#    img=quay.io/libpod/testimage:0000000<current+1>
 #    buildah manifest create $img
-#    for arch in amd64 ppc64le s390x;do
+#    for arch in amd64 arm64v8 ppc64le s390x;do
 #        buildah pull --arch $arch docker.io/$arch/busybox:1.32.0
 #        buildah manifest add $img docker.io/$arch/busybox:1.32.0
 #    done
