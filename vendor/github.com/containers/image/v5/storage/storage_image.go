@@ -76,11 +76,12 @@ type storageImageDestination struct {
 	indexToStorageID map[int]*string
 	// All accesses to below data are protected by `lock` which is made
 	// *explicit* in the code.
-	blobDiffIDs       map[digest.Digest]digest.Digest // Mapping from layer blobsums to their corresponding DiffIDs
-	fileSizes         map[digest.Digest]int64         // Mapping from layer blobsums to their sizes
-	filenames         map[digest.Digest]string        // Mapping from layer blobsums to names of files we used to hold them
-	currentIndex      int                             // The index of the layer to be committed (i.e., lower indices have already been committed)
-	indexToPulledBlob map[int]*types.BlobInfo         // Mapping from layer (by index) to pulled down blob
+	blobDiffIDs         map[digest.Digest]digest.Digest           // Mapping from layer blobsums to their corresponding DiffIDs
+	fileSizes           map[digest.Digest]int64                   // Mapping from layer blobsums to their sizes
+	filenames           map[digest.Digest]string                  // Mapping from layer blobsums to names of files we used to hold them
+	currentIndex        int                                       // The index of the layer to be committed (i.e., lower indices have already been committed)
+	indexToPulledBlob   map[int]*types.BlobInfo                   // Mapping from layer (by index) to pulled down blob
+	blobAdditionalLayer map[digest.Digest]storage.AdditionalLayer // Mapping from layer blobsums to their corresponding additional layer
 }
 
 type storageImageCloser struct {
@@ -391,16 +392,17 @@ func newImageDestination(sys *types.SystemContext, imageRef storageReference) (*
 		return nil, errors.Wrapf(err, "error creating a temporary directory")
 	}
 	image := &storageImageDestination{
-		imageRef:          imageRef,
-		directory:         directory,
-		signatureses:      make(map[digest.Digest][]byte),
-		blobDiffIDs:       make(map[digest.Digest]digest.Digest),
-		fileSizes:         make(map[digest.Digest]int64),
-		filenames:         make(map[digest.Digest]string),
-		SignatureSizes:    []int{},
-		SignaturesSizes:   make(map[digest.Digest][]int),
-		indexToStorageID:  make(map[int]*string),
-		indexToPulledBlob: make(map[int]*types.BlobInfo),
+		imageRef:            imageRef,
+		directory:           directory,
+		signatureses:        make(map[digest.Digest][]byte),
+		blobDiffIDs:         make(map[digest.Digest]digest.Digest),
+		blobAdditionalLayer: make(map[digest.Digest]storage.AdditionalLayer),
+		fileSizes:           make(map[digest.Digest]int64),
+		filenames:           make(map[digest.Digest]string),
+		SignatureSizes:      []int{},
+		SignaturesSizes:     make(map[digest.Digest][]int),
+		indexToStorageID:    make(map[int]*string),
+		indexToPulledBlob:   make(map[int]*types.BlobInfo),
 	}
 	return image, nil
 }
@@ -411,8 +413,11 @@ func (s *storageImageDestination) Reference() types.ImageReference {
 	return s.imageRef
 }
 
-// Close cleans up the temporary directory.
+// Close cleans up the temporary directory and additional layer store handlers.
 func (s *storageImageDestination) Close() error {
+	for _, al := range s.blobAdditionalLayer {
+		al.Release()
+	}
 	return os.RemoveAll(s.directory)
 }
 
@@ -532,12 +537,39 @@ func (s *storageImageDestination) PutBlob(ctx context.Context, stream io.Reader,
 // used the together.  Mixing the two with the non "WithOptions" functions
 // is not supported.
 func (s *storageImageDestination) TryReusingBlobWithOptions(ctx context.Context, blobinfo types.BlobInfo, options internalTypes.TryReusingBlobOptions) (bool, types.BlobInfo, error) {
-	reused, info, err := s.TryReusingBlob(ctx, blobinfo, options.Cache, options.CanSubstitute)
+	reused, info, err := s.tryReusingBlobWithSrcRef(ctx, blobinfo, options.Cache, options.CanSubstitute, options.SrcRef)
 	if err != nil || !reused || options.LayerIndex == nil {
 		return reused, info, err
 	}
 
 	return reused, info, s.queueOrCommit(ctx, info, *options.LayerIndex)
+}
+
+// tryReusingBlobWithSrcRef is a wrapper around TryReusingBlob.
+// If ref is provided, this function first tries to get layer from Additional Layer Store.
+func (s *storageImageDestination) tryReusingBlobWithSrcRef(ctx context.Context, blobinfo types.BlobInfo, cache types.BlobInfoCache, canSubstitute bool, ref reference.Named) (bool, types.BlobInfo, error) {
+	// lock the entire method as it executes fairly quickly
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	if ref != nil {
+		// Check if we have the layer in the underlying additional layer store.
+		aLayer, err := s.imageRef.transport.store.LookupAdditionalLayer(blobinfo.Digest, ref.String())
+		if err != nil && errors.Cause(err) != storage.ErrLayerUnknown {
+			return false, types.BlobInfo{}, errors.Wrapf(err, `Error looking for compressed layers with digest %q and labels`, blobinfo.Digest)
+		} else if err == nil {
+			// Record the uncompressed value so that we can use it to calculate layer IDs.
+			s.blobDiffIDs[blobinfo.Digest] = aLayer.UncompressedDigest()
+			s.blobAdditionalLayer[blobinfo.Digest] = aLayer
+			return true, types.BlobInfo{
+				Digest:    blobinfo.Digest,
+				Size:      aLayer.CompressedSize(),
+				MediaType: blobinfo.MediaType,
+			}, nil
+		}
+	}
+
+	return s.tryReusingBlobLocked(ctx, blobinfo, cache, canSubstitute)
 }
 
 // TryReusingBlob checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination
@@ -553,6 +585,13 @@ func (s *storageImageDestination) TryReusingBlob(ctx context.Context, blobinfo t
 	// lock the entire method as it executes fairly quickly
 	s.lock.Lock()
 	defer s.lock.Unlock()
+
+	return s.tryReusingBlobLocked(ctx, blobinfo, cache, canSubstitute)
+}
+
+// tryReusingBlobLocked implements a core functionality of TryReusingBlob.
+// This must be called with a lock being held on storageImageDestination.
+func (s *storageImageDestination) tryReusingBlobLocked(ctx context.Context, blobinfo types.BlobInfo, cache types.BlobInfoCache, canSubstitute bool) (bool, types.BlobInfo, error) {
 	if blobinfo.Digest == "" {
 		return false, types.BlobInfo{}, errors.Errorf(`Can not check for a blob with unknown digest`)
 	}
@@ -804,6 +843,20 @@ func (s *storageImageDestination) commitLayer(ctx context.Context, blob manifest
 		s.indexToStorageID[index] = &lastLayer
 		return nil
 	}
+
+	s.lock.Lock()
+	al, ok := s.blobAdditionalLayer[blob.Digest]
+	s.lock.Unlock()
+	if ok {
+		layer, err := al.PutAs(id, lastLayer, nil)
+		if err != nil {
+			return errors.Wrapf(err, "failed to put layer from digest and labels")
+		}
+		lastLayer = layer.ID
+		s.indexToStorageID[index] = &lastLayer
+		return nil
+	}
+
 	// Check if we previously cached a file with that blob's contents.  If we didn't,
 	// then we need to read the desired contents from a layer.
 	s.lock.Lock()
