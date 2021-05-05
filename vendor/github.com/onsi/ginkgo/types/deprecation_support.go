@@ -1,12 +1,19 @@
 package types
 
 import (
+	"os"
+	"strconv"
+	"strings"
+	"unicode"
+
+	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/formatter"
 )
 
 type Deprecation struct {
 	Message string
 	DocLink string
+	Version string
 }
 
 type deprecations struct{}
@@ -17,6 +24,7 @@ func (d deprecations) CustomReporter() Deprecation {
 	return Deprecation{
 		Message: "You are using a custom reporter.  Support for custom reporters will likely be removed in V2.  Most users were using them to generate junit or teamcity reports and this functionality will be merged into the core reporter.  In addition, Ginkgo 2.0 will support emitting a JSON-formatted report that users can then manipulate to generate custom reports.\n\n{{red}}{{bold}}If this change will be impactful to you please leave a comment on {{cyan}}{{underline}}https://github.com/onsi/ginkgo/issues/711{{/}}",
 		DocLink: "removed-custom-reporters",
+		Version: "1.16.0",
 	}
 }
 
@@ -24,6 +32,7 @@ func (d deprecations) V1Reporter() Deprecation {
 	return Deprecation{
 		Message: "You are using a V1 Ginkgo Reporter.  Please update your custom reporter to the new V2 Reporter interface.",
 		DocLink: "changed-reporter-interface",
+		Version: "1.16.0",
 	}
 }
 
@@ -31,6 +40,7 @@ func (d deprecations) Async() Deprecation {
 	return Deprecation{
 		Message: "You are passing a Done channel to a test node to test asynchronous behavior.  This is deprecated in Ginkgo V2.  Your test will run synchronously and the timeout will be ignored.",
 		DocLink: "removed-async-testing",
+		Version: "1.16.0",
 	}
 }
 
@@ -38,6 +48,7 @@ func (d deprecations) Measure() Deprecation {
 	return Deprecation{
 		Message: "Measure is deprecated in Ginkgo V2",
 		DocLink: "removed-measure",
+		Version: "1.16.0",
 	}
 }
 
@@ -45,12 +56,14 @@ func (d deprecations) Convert() Deprecation {
 	return Deprecation{
 		Message: "The convert command is deprecated in Ginkgo V2",
 		DocLink: "removed-ginkgo-convert",
+		Version: "1.16.0",
 	}
 }
 
 func (d deprecations) Blur() Deprecation {
 	return Deprecation{
 		Message: "The blur command is deprecated in Ginkgo V2.  Use 'ginkgo unfocus' instead.",
+		Version: "1.16.0",
 	}
 }
 
@@ -65,6 +78,15 @@ func NewDeprecationTracker() *DeprecationTracker {
 }
 
 func (d *DeprecationTracker) TrackDeprecation(deprecation Deprecation, cl ...CodeLocation) {
+	ackVersion := os.Getenv("ACK_GINKGO_DEPRECATIONS")
+	if deprecation.Version != "" && ackVersion != "" {
+		ack := ParseSemVer(ackVersion)
+		version := ParseSemVer(deprecation.Version)
+		if ack.GreaterThanOrEqualTo(version) {
+			return
+		}
+	}
+
 	if len(cl) == 1 {
 		d.deprecations[deprecation] = append(d.deprecations[deprecation], cl[0])
 	} else {
@@ -91,6 +113,38 @@ func (d *DeprecationTracker) DeprecationsReport() string {
 		for _, location := range locations {
 			out += formatter.Fi(2, "{{gray}}%s{{/}}\n", location)
 		}
+	}
+	out += formatter.F("\n{{gray}}To silence deprecations that can be silenced set the following environment variable:{{/}}\n")
+	out += formatter.Fi(1, "{{gray}}ACK_GINKGO_DEPRECATIONS=%s{{/}}\n", config.VERSION)
+	return out
+}
+
+type SemVer struct {
+	Major int
+	Minor int
+	Patch int
+}
+
+func (s SemVer) GreaterThanOrEqualTo(o SemVer) bool {
+	return (s.Major > o.Major) ||
+		(s.Major == o.Major && s.Minor > o.Minor) ||
+		(s.Major == o.Major && s.Minor == o.Minor && s.Patch >= o.Patch)
+}
+
+func ParseSemVer(semver string) SemVer {
+	out := SemVer{}
+	semver = strings.TrimFunc(semver, func(r rune) bool {
+		return !(unicode.IsNumber(r) || r == '.')
+	})
+	components := strings.Split(semver, ".")
+	if len(components) > 0 {
+		out.Major, _ = strconv.Atoi(components[0])
+	}
+	if len(components) > 1 {
+		out.Minor, _ = strconv.Atoi(components[1])
+	}
+	if len(components) > 2 {
+		out.Patch, _ = strconv.Atoi(components[2])
 	}
 	return out
 }

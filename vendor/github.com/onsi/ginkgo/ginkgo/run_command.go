@@ -61,6 +61,7 @@ func (r *SpecRunner) RunSpecs(args []string, additionalArgs []string) {
 		deprecationTracker.TrackDeprecation(types.Deprecation{
 			Message: "--stream is deprecated and will be removed in Ginkgo 2.0",
 			DocLink: "removed--stream",
+			Version: "1.16.0",
 		})
 	}
 
@@ -68,6 +69,7 @@ func (r *SpecRunner) RunSpecs(args []string, additionalArgs []string) {
 		deprecationTracker.TrackDeprecation(types.Deprecation{
 			Message: "--notify is deprecated and will be removed in Ginkgo 2.0",
 			DocLink: "removed--notify",
+			Version: "1.16.0",
 		})
 	}
 
