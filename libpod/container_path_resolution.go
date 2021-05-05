@@ -128,7 +128,7 @@ func isPathOnVolume(c *Container, containerPath string) bool {
 		if cleanedContainerPath == filepath.Clean(vol.Dest) {
 			return true
 		}
-		for dest := vol.Dest; dest != "/"; dest = filepath.Dir(dest) {
+		for dest := vol.Dest; dest != "/" && dest != "."; dest = filepath.Dir(dest) {
 			if cleanedContainerPath == dest {
 				return true
 			}
