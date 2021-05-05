@@ -89,17 +89,22 @@ func filterCommonContainerFlags(command []string, argCount int) []string {
 // see: https://www.freedesktop.org/software/systemd/man/systemd.service.html#Command%20lines
 func escapeSystemdArguments(command []string) []string {
 	for i := range command {
-		command[i] = strings.ReplaceAll(command[i], "$", "$$")
-		command[i] = strings.ReplaceAll(command[i], "%", "%%")
-		if strings.ContainsAny(command[i], " \t") {
-			command[i] = strconv.Quote(command[i])
-		} else if strings.Contains(command[i], `\`) {
-			// strconv.Quote also escapes backslashes so
-			// we should replace only if strconv.Quote was not used
-			command[i] = strings.ReplaceAll(command[i], `\`, `\\`)
-		}
+		command[i] = escapeSystemdArg(command[i])
 	}
 	return command
+}
+
+func escapeSystemdArg(arg string) string {
+	arg = strings.ReplaceAll(arg, "$", "$$")
+	arg = strings.ReplaceAll(arg, "%", "%%")
+	if strings.ContainsAny(arg, " \t") {
+		arg = strconv.Quote(arg)
+	} else if strings.Contains(arg, `\`) {
+		// strconv.Quote also escapes backslashes so
+		// we should replace only if strconv.Quote was not used
+		arg = strings.ReplaceAll(arg, `\`, `\\`)
+	}
+	return arg
 }
 
 func removeDetachArg(args []string, argCount int) []string {
