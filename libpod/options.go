@@ -2318,3 +2318,16 @@ func WithPodSlirp4netns(networkOptions map[string][]string) PodCreateOption {
 		return nil
 	}
 }
+
+// WithVolatile sets the volatile flag for the container storage.
+// The option can potentially cause data loss when used on a container that must survive a machine reboot.
+func WithVolatile() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.Volatile = true
+		return nil
+	}
+}

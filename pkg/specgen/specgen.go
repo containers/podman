@@ -256,6 +256,9 @@ type ContainerStorageConfig struct {
 	// Secrets are the secrets that will be added to the container
 	// Optional.
 	Secrets []string `json:"secrets,omitempty"`
+	// Volatile specifies whether the container storage can be optimized
+	// at the cost of not syncing all the dirty files in memory.
+	Volatile bool `json:"volatile,omitempty"`
 }
 
 // ContainerSecurityConfig is a container's security features, including

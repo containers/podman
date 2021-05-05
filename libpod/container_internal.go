@@ -451,6 +451,8 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		options.MountOpts = newOptions
 	}
 
+	options.Volatile = c.config.Volatile
+
 	c.setupStorageMapping(&options.IDMappingOptions, &c.config.IDMappings)
 
 	containerInfo, err := c.runtime.storageService.CreateContainerStorage(ctx, c.runtime.imageContext, c.config.RootfsImageName, c.config.RootfsImageID, c.config.Name, c.config.ID, options)
