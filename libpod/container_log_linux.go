@@ -8,12 +8,12 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/logs"
 	journal "github.com/coreos/go-systemd/v22/sdjournal"
-	"github.com/hpcloud/tail/watch"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -89,21 +89,19 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 				}
 			}()
 			go func() {
-				for {
-					state, err := c.State()
-					if err != nil {
-						until <- time.Time{}
-						logrus.Error(err)
-						break
-					}
-					time.Sleep(watch.POLL_DURATION)
-					if state != define.ContainerStateRunning && state != define.ContainerStatePaused {
-						until <- time.Time{}
-						break
-					}
-				}
+				// FIXME (#10323): we are facing a terrible
+				// race condition here. At the time the
+				// container dies and `c.Wait()` has returned,
+				// we may not have received all journald logs.
+				// So far there is no other way than waiting
+				// for a second.  Ultimately, `r.Follow` is
+				// racy and we may have to implement our custom
+				// logic here.
+				c.Wait(ctx)
+				time.Sleep(time.Second)
+				until <- time.Time{}
 			}()
-			follower := FollowBuffer{logChannel}
+			follower := journaldFollowBuffer{logChannel, options.Multi}
 			err := r.Follow(until, follower)
 			if err != nil {
 				logrus.Debugf(err.Error())
@@ -124,7 +122,7 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 			// because we are reusing bytes, we need to make
 			// sure the old data doesn't get into the new line
 			bytestr := string(bytes[:ec])
-			logLine, err2 := logs.NewLogLine(bytestr)
+			logLine, err2 := logs.NewJournaldLogLine(bytestr, options.Multi)
 			if err2 != nil {
 				logrus.Error(err2)
 				continue
@@ -210,16 +208,18 @@ func formatterMessage(entry *journal.JournalEntry) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("no MESSAGE field present in journal entry")
 	}
+	msg = strings.TrimSuffix(msg, "\n")
 	return msg, nil
 }
 
-type FollowBuffer struct {
+type journaldFollowBuffer struct {
 	logChannel chan *logs.LogLine
+	withID     bool
 }
 
-func (f FollowBuffer) Write(p []byte) (int, error) {
+func (f journaldFollowBuffer) Write(p []byte) (int, error) {
 	bytestr := string(p)
-	logLine, err := logs.NewLogLine(bytestr)
+	logLine, err := logs.NewJournaldLogLine(bytestr, f.withID)
 	if err != nil {
 		return -1, err
 	}

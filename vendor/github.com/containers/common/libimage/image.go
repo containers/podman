@@ -277,6 +277,10 @@ func (i *Image) remove(ctx context.Context, rmMap map[string]*RemoveImageReport,
 		return errors.Errorf("cannot remove read-only image %q", i.ID())
 	}
 
+	if i.runtime.eventChannel != nil {
+		i.runtime.writeEvent(&Event{ID: i.ID(), Name: referencedBy, Time: time.Now(), Type: EventTypeImageRemove})
+	}
+
 	// Check if already visisted this image.
 	report, exists := rmMap[i.ID()]
 	if exists {
@@ -423,6 +427,9 @@ func (i *Image) Tag(name string) error {
 	}
 
 	logrus.Debugf("Tagging image %s with %q", i.ID(), ref.String())
+	if i.runtime.eventChannel != nil {
+		i.runtime.writeEvent(&Event{ID: i.ID(), Name: name, Time: time.Now(), Type: EventTypeImageTag})
+	}
 
 	newNames := append(i.Names(), ref.String())
 	if err := i.runtime.store.SetNames(i.ID(), newNames); err != nil {
@@ -454,6 +461,9 @@ func (i *Image) Untag(name string) error {
 	name = ref.String()
 
 	logrus.Debugf("Untagging %q from image %s", ref.String(), i.ID())
+	if i.runtime.eventChannel != nil {
+		i.runtime.writeEvent(&Event{ID: i.ID(), Name: name, Time: time.Now(), Type: EventTypeImageUntag})
+	}
 
 	removedName := false
 	newNames := []string{}
@@ -593,6 +603,10 @@ func (i *Image) RepoDigests() ([]string, error) {
 // are directly passed down to the containers storage.  Returns the fully
 // evaluated path to the mount point.
 func (i *Image) Mount(ctx context.Context, mountOptions []string, mountLabel string) (string, error) {
+	if i.runtime.eventChannel != nil {
+		i.runtime.writeEvent(&Event{ID: i.ID(), Name: "", Time: time.Now(), Type: EventTypeImageMount})
+	}
+
 	mountPoint, err := i.runtime.store.MountImage(i.ID(), mountOptions, mountLabel)
 	if err != nil {
 		return "", err
@@ -634,6 +648,9 @@ func (i *Image) Mountpoint() (string, error) {
 // Unmount the image.  Use force to ignore the reference counter and forcefully
 // unmount.
 func (i *Image) Unmount(force bool) error {
+	if i.runtime.eventChannel != nil {
+		i.runtime.writeEvent(&Event{ID: i.ID(), Name: "", Time: time.Now(), Type: EventTypeImageUnmount})
+	}
 	logrus.Debugf("Unmounted image %s", i.ID())
 	_, err := i.runtime.store.UnmountImage(i.ID(), force)
 	return err

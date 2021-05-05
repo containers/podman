@@ -76,7 +76,7 @@ func (s *SecretsManager) getNameAndID(nameOrID string) (name, id string, err err
 	}
 
 	// ID prefix may have been given, iterate through all IDs.
-	// ID and partial ID has a max lenth of 25, so we return if its greater than that.
+	// ID and partial ID has a max length of 25, so we return if its greater than that.
 	if len(nameOrID) > secretIDLength {
 		return "", "", errors.Wrapf(errNoSuchSecret, "no secret with name or id %q", nameOrID)
 	}

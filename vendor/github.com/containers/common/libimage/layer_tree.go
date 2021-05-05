@@ -59,7 +59,7 @@ func (l *layerNode) repoTags() ([]string, error) {
 			return nil, err
 		}
 		for _, tag := range repoTags {
-			if _, visted := visitedTags[tag]; visted {
+			if _, visited := visitedTags[tag]; visited {
 				continue
 			}
 			visitedTags[tag] = true

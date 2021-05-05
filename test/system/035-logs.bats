@@ -27,13 +27,22 @@ load helpers
     run_podman rm $cid
 }
 
-@test "podman logs - multi" {
+function _log_test_multi() {
+    local driver=$1
+
     skip_if_remote "logs does not support multiple containers when run remotely"
+
+    # Under k8s file, 'podman logs' returns just the facts, Ma'am.
+    # Under journald, there may be other cruft (e.g. container removals)
+    local etc=
+    if [[ $driver =~ journal ]]; then
+        etc='.*'
+    fi
 
     # Simple helper to make the container starts, below, easier to read
     local -a cid
     doit() {
-        run_podman run --rm -d --name "$1" $IMAGE sh -c "$2";
+        run_podman run --log-driver=$driver --rm -d --name "$1" $IMAGE sh -c "$2";
         cid+=($(echo "${output:0:12}"))
     }
 
@@ -47,24 +56,21 @@ load helpers
 
     run_podman logs -f c1 c2
     is "$output" \
-       "${cid[0]} a
-${cid[1]} b
-${cid[1]} c
+       "${cid[0]} a$etc
+${cid[1]} b$etc
+${cid[1]} c$etc
 ${cid[0]} d"   "Sequential output from logs"
 }
 
-@test "podman logs over journald" {
+@test "podman logs - multi k8s-file" {
+    _log_test_multi k8s-file
+}
+
+@test "podman logs - multi journald" {
     # We can't use journald on RHEL as rootless: rhbz#1895105
     skip_if_journald_unavailable
 
-    msg=$(random_string 20)
-
-    run_podman run --name myctr --log-driver journald $IMAGE echo $msg
-
-    run_podman logs myctr
-    is "$output" "$msg" "check that log output equals the container output"
-
-    run_podman rm myctr
+    _log_test_multi journald
 }
 
 # vim: filetype=sh

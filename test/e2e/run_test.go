@@ -712,7 +712,7 @@ USER bin`, BB)
 
 	It("podman run log-opt", func() {
 		log := filepath.Join(podmanTest.TempDir, "/container.log")
-		session := podmanTest.Podman([]string{"run", "--rm", "--log-opt", fmt.Sprintf("path=%s", log), ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"run", "--rm", "--log-driver", "k8s-file", "--log-opt", fmt.Sprintf("path=%s", log), ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		_, err := os.Stat(log)

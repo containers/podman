@@ -3,6 +3,7 @@ package libimage
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/containers/common/libimage/manifests"
 	imageCopy "github.com/containers/image/v5/copy"
@@ -362,6 +363,10 @@ func (m *ManifestList) Push(ctx context.Context, destination string, options *Ma
 		if err != nil {
 			return "", oldErr
 		}
+	}
+
+	if m.image.runtime.eventChannel != nil {
+		m.image.runtime.writeEvent(&Event{ID: m.ID(), Name: destination, Time: time.Now(), Type: EventTypeImagePush})
 	}
 
 	// NOTE: we're using the logic in copier to create a proper

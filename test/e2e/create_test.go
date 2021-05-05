@@ -160,9 +160,12 @@ var _ = Describe("Podman create", func() {
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("skip failing test on ppc64le")
 		}
+		// NOTE: we force the k8s-file log driver to make sure the
+		// tests are passing inside a container.
+
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
 		os.Mkdir(mountPath, 0755)
-		session := podmanTest.Podman([]string{"create", "--name", "test", "--mount", fmt.Sprintf("type=bind,src=%s,target=/create/test", mountPath), ALPINE, "grep", "/create/test", "/proc/self/mountinfo"})
+		session := podmanTest.Podman([]string{"create", "--log-driver", "k8s-file", "--name", "test", "--mount", fmt.Sprintf("type=bind,src=%s,target=/create/test", mountPath), ALPINE, "grep", "/create/test", "/proc/self/mountinfo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		session = podmanTest.Podman([]string{"start", "test"})
@@ -173,7 +176,7 @@ var _ = Describe("Podman create", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("/create/test rw"))
 
-		session = podmanTest.Podman([]string{"create", "--name", "test_ro", "--mount", fmt.Sprintf("type=bind,src=%s,target=/create/test,ro", mountPath), ALPINE, "grep", "/create/test", "/proc/self/mountinfo"})
+		session = podmanTest.Podman([]string{"create", "--log-driver", "k8s-file", "--name", "test_ro", "--mount", fmt.Sprintf("type=bind,src=%s,target=/create/test,ro", mountPath), ALPINE, "grep", "/create/test", "/proc/self/mountinfo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		session = podmanTest.Podman([]string{"start", "test_ro"})
@@ -184,7 +187,7 @@ var _ = Describe("Podman create", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("/create/test ro"))
 
-		session = podmanTest.Podman([]string{"create", "--name", "test_shared", "--mount", fmt.Sprintf("type=bind,src=%s,target=/create/test,shared", mountPath), ALPINE, "grep", "/create/test", "/proc/self/mountinfo"})
+		session = podmanTest.Podman([]string{"create", "--log-driver", "k8s-file", "--name", "test_shared", "--mount", fmt.Sprintf("type=bind,src=%s,target=/create/test,shared", mountPath), ALPINE, "grep", "/create/test", "/proc/self/mountinfo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		session = podmanTest.Podman([]string{"start", "test_shared"})
@@ -200,7 +203,7 @@ var _ = Describe("Podman create", func() {
 
 		mountPath = filepath.Join(podmanTest.TempDir, "scratchpad")
 		os.Mkdir(mountPath, 0755)
-		session = podmanTest.Podman([]string{"create", "--name", "test_tmpfs", "--mount", "type=tmpfs,target=/create/test", ALPINE, "grep", "/create/test", "/proc/self/mountinfo"})
+		session = podmanTest.Podman([]string{"create", "--log-driver", "k8s-file", "--name", "test_tmpfs", "--mount", "type=tmpfs,target=/create/test", ALPINE, "grep", "/create/test", "/proc/self/mountinfo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		session = podmanTest.Podman([]string{"start", "test_tmpfs"})

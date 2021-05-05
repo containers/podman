@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	dockerTransport "github.com/containers/image/v5/docker"
+	registryTransport "github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
@@ -193,7 +193,7 @@ func (r *Runtime) searchImageInRegistry(ctx context.Context, term, registry stri
 		return results, nil
 	}
 
-	results, err := dockerTransport.SearchRegistry(ctx, sys, registry, term, limit)
+	results, err := registryTransport.SearchRegistry(ctx, sys, registry, term, limit)
 	if err != nil {
 		return []SearchResult{}, err
 	}
@@ -255,7 +255,7 @@ func (r *Runtime) searchImageInRegistry(ctx context.Context, term, registry stri
 func searchRepositoryTags(ctx context.Context, sys *types.SystemContext, registry, term string, options *SearchOptions) ([]SearchResult, error) {
 	dockerPrefix := "docker://"
 	imageRef, err := alltransports.ParseImageName(fmt.Sprintf("%s/%s", registry, term))
-	if err == nil && imageRef.Transport().Name() != dockerTransport.Transport.Name() {
+	if err == nil && imageRef.Transport().Name() != registryTransport.Transport.Name() {
 		return nil, errors.Errorf("reference %q must be a docker reference", term)
 	} else if err != nil {
 		imageRef, err = alltransports.ParseImageName(fmt.Sprintf("%s%s", dockerPrefix, fmt.Sprintf("%s/%s", registry, term)))
@@ -263,7 +263,7 @@ func searchRepositoryTags(ctx context.Context, sys *types.SystemContext, registr
 			return nil, errors.Errorf("reference %q must be a docker reference", term)
 		}
 	}
-	tags, err := dockerTransport.GetRepositoryTags(ctx, sys, imageRef)
+	tags, err := registryTransport.GetRepositoryTags(ctx, sys, imageRef)
 	if err != nil {
 		return nil, errors.Errorf("error getting repository tags: %v", err)
 	}
@@ -288,18 +288,18 @@ func searchRepositoryTags(ctx context.Context, sys *types.SystemContext, registr
 	return paramsArr, nil
 }
 
-func (f *SearchFilter) matchesStarFilter(result dockerTransport.SearchResult) bool {
+func (f *SearchFilter) matchesStarFilter(result registryTransport.SearchResult) bool {
 	return result.StarCount >= f.Stars
 }
 
-func (f *SearchFilter) matchesAutomatedFilter(result dockerTransport.SearchResult) bool {
+func (f *SearchFilter) matchesAutomatedFilter(result registryTransport.SearchResult) bool {
 	if f.IsAutomated != types.OptionalBoolUndefined {
 		return result.IsAutomated == (f.IsAutomated == types.OptionalBoolTrue)
 	}
 	return true
 }
 
-func (f *SearchFilter) matchesOfficialFilter(result dockerTransport.SearchResult) bool {
+func (f *SearchFilter) matchesOfficialFilter(result registryTransport.SearchResult) bool {
 	if f.IsOfficial != types.OptionalBoolUndefined {
 		return result.IsOfficial == (f.IsOfficial == types.OptionalBoolTrue)
 	}

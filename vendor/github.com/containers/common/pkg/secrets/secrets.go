@@ -99,7 +99,7 @@ func NewManager(rootPath string) (*SecretsManager, error) {
 	if !filepath.IsAbs(rootPath) {
 		return nil, errors.Wrapf(errInvalidPath, "path must be absolute: %s", rootPath)
 	}
-	// the lockfile functions requre that the rootPath dir is executable
+	// the lockfile functions require that the rootPath dir is executable
 	if err := os.MkdirAll(rootPath, 0700); err != nil {
 		return nil, err
 	}
