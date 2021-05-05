@@ -6,8 +6,8 @@ import (
 	"context"
 	"io/ioutil"
 
+	"github.com/containers/common/libimage"
 	goSeccomp "github.com/containers/common/pkg/seccomp"
-	"github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/pkg/seccomp"
 	"github.com/containers/podman/v3/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -15,7 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func getSeccompConfig(s *specgen.SpecGenerator, configSpec *spec.Spec, img *image.Image) (*spec.LinuxSeccomp, error) {
+func getSeccompConfig(s *specgen.SpecGenerator, configSpec *spec.Spec, img *libimage.Image) (*spec.LinuxSeccomp, error) {
 	var seccompConfig *spec.LinuxSeccomp
 	var err error
 	scp, err := seccomp.LookupPolicy(s.SeccompPolicy)

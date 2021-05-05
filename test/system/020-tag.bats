@@ -29,7 +29,7 @@ function _tag_and_check() {
 
 	# Test error case.
 	run_podman 125 untag $IMAGE registry.com/foo:bar
-	is "$output" "Error: \"registry.com/foo:bar\": no such tag"
+	is "$output" "Error: registry.com/foo:bar: tag not known"
 }
 
 @test "podman untag all" {

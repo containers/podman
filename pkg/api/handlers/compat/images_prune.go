@@ -8,6 +8,8 @@ import (
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/api/handlers"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
+	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/domain/infra/abi"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/docker/docker/api/types"
 	"github.com/pkg/errors"
@@ -30,7 +32,11 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 			filters = append(filters, fmt.Sprintf("%s=%s", k, val))
 		}
 	}
-	imagePruneReports, err := runtime.ImageRuntime().PruneImages(r.Context(), false, filters)
+
+	imageEngine := abi.ImageEngine{Libpod: runtime}
+
+	pruneOptions := entities.ImagePruneOptions{Filter: filters}
+	imagePruneReports, err := imageEngine.Prune(r.Context(), pruneOptions)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return

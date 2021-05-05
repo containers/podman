@@ -12,15 +12,6 @@ var (
 	// ErrNoSuchPod indicates the requested pod does not exist
 	ErrNoSuchPod = errors.New("no such pod")
 
-	// ErrNoSuchImage indicates the requested image does not exist
-	ErrNoSuchImage = errors.New("no such image")
-
-	// ErrMultipleImages found multiple name and tag matches
-	ErrMultipleImages = errors.New("found multiple name and tag matches")
-
-	// ErrNoSuchTag indicates the requested image tag does not exist
-	ErrNoSuchTag = errors.New("no such tag")
-
 	// ErrNoSuchVolume indicates the requested volume does not exist
 	ErrNoSuchVolume = errors.New("no such volume")
 
@@ -173,9 +164,6 @@ var (
 	// ErrConmonDead indicates that the container's conmon process has been
 	// killed, preventing normal operation.
 	ErrConmonDead = errors.New("conmon process killed")
-
-	// ErrImageInUse indicates the requested operation failed because the image was in use
-	ErrImageInUse = errors.New("image is being used")
 
 	// ErrNetworkOnPodContainer indicates the user wishes to alter network attributes on a container
 	// in a pod.  This cannot be done as the infra container has all the network information

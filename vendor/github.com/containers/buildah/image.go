@@ -295,7 +295,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		if src == nil {
 			err2 := os.RemoveAll(path)
 			if err2 != nil {
-				logrus.Errorf("error removing layer blob directory %q: %v", path, err)
+				logrus.Errorf("error removing layer blob directory: %v", err)
 			}
 		}
 	}()

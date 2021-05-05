@@ -286,7 +286,7 @@ var _ = Describe("Podman load", func() {
 	})
 
 	It("podman load multi-image archive", func() {
-		result := podmanTest.Podman([]string{"load", "-i", "./testdata/image/docker-two-images.tar.xz"})
+		result := podmanTest.Podman([]string{"load", "-i", "./testdata/docker-two-images.tar.xz"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(result.LineInOutputContains("example.com/empty:latest")).To(BeTrue())

@@ -1,7 +1,7 @@
 package common
 
 import (
-	"github.com/containers/podman/v3/pkg/util"
+	"github.com/containers/common/pkg/config"
 	"github.com/pkg/errors"
 )
 
@@ -13,7 +13,7 @@ func (c *ContainerCLIOpts) validate() error {
 		return errors.Errorf(`the --rm option conflicts with --restart, when the restartPolicy is not "" and "no"`)
 	}
 
-	if _, err := util.ValidatePullType(c.Pull); err != nil {
+	if _, err := config.ParsePullPolicy(c.Pull); err != nil {
 		return err
 	}
 

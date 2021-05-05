@@ -224,7 +224,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 		}
 		localSourceStats, err = copier.Stat(contextDir, contextDir, statOptions, localSources)
 		if err != nil {
-			return errors.Wrapf(err, "error checking on sources %v under %q", localSources, contextDir)
+			return errors.Wrapf(err, "checking on sources under %q", contextDir)
 		}
 	}
 	numLocalSourceItems := 0
@@ -238,10 +238,10 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 			if strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
 				errorText = fmt.Sprintf("possible escaping context directory error: %s", errorText)
 			}
-			return errors.Errorf("error checking on source %v under %q: %v", localSourceStat.Glob, contextDir, errorText)
+			return errors.Errorf("checking on sources under %q: %v", contextDir, errorText)
 		}
 		if len(localSourceStat.Globbed) == 0 {
-			return errors.Wrapf(syscall.ENOENT, "error checking on source %v under %q: no glob matches", localSourceStat.Glob, contextDir)
+			return errors.Wrapf(syscall.ENOENT, "checking source under %q: no glob matches", contextDir)
 		}
 		numLocalSourceItems += len(localSourceStat.Globbed)
 	}
@@ -433,7 +433,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 			}
 		}
 		if localSourceStat == nil {
-			return errors.Errorf("internal error: should have statted %s, but we didn't?", src)
+			continue
 		}
 
 		// Iterate through every item that matched the glob.

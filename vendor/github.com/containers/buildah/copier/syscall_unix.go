@@ -4,6 +4,7 @@ package copier
 
 import (
 	"os"
+	"syscall"
 	"time"
 
 	"github.com/pkg/errors"
@@ -71,6 +72,21 @@ func lutimes(isSymlink bool, path string, atime, mtime time.Time) error {
 		}
 	}
 	return unix.Lutimes(path, []unix.Timeval{unix.NsecToTimeval(atime.UnixNano()), unix.NsecToTimeval(mtime.UnixNano())})
+}
+
+// sameDevice returns true unless we're sure that they're not on the same device
+func sameDevice(a, b os.FileInfo) bool {
+	aSys := a.Sys()
+	bSys := b.Sys()
+	if aSys == nil || bSys == nil {
+		return true
+	}
+	au, aok := aSys.(*syscall.Stat_t)
+	bu, bok := bSys.(*syscall.Stat_t)
+	if !aok || !bok {
+		return true
+	}
+	return au.Dev == bu.Dev
 }
 
 const (

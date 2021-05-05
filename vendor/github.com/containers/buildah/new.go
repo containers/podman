@@ -4,18 +4,15 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"runtime"
 	"strings"
 
 	"github.com/containers/buildah/define"
-	"github.com/containers/buildah/util"
-	"github.com/containers/image/v5/docker"
+	"github.com/containers/buildah/pkg/blobcache"
+	"github.com/containers/common/libimage"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/manifest"
-	"github.com/containers/image/v5/pkg/shortnames"
-	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports"
-	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	digest "github.com/opencontainers/go-digest"
@@ -29,29 +26,6 @@ const (
 	// as "no image".
 	BaseImageFakeName = imagebuilder.NoBaseImageSpecifier
 )
-
-func pullAndFindImage(ctx context.Context, store storage.Store, srcRef types.ImageReference, options BuilderOptions, sc *types.SystemContext) (*storage.Image, types.ImageReference, error) {
-	pullOptions := PullOptions{
-		ReportWriter:     options.ReportWriter,
-		Store:            store,
-		SystemContext:    options.SystemContext,
-		BlobDirectory:    options.BlobDirectory,
-		MaxRetries:       options.MaxPullRetries,
-		RetryDelay:       options.PullRetryDelay,
-		OciDecryptConfig: options.OciDecryptConfig,
-	}
-	ref, err := pullImage(ctx, store, srcRef, pullOptions, sc)
-	if err != nil {
-		logrus.Debugf("error pulling image %q: %v", transports.ImageName(srcRef), err)
-		return nil, nil, err
-	}
-	img, err := is.Transport.GetStoreImage(store, ref)
-	if err != nil {
-		logrus.Debugf("error reading pulled image %q: %v", transports.ImageName(srcRef), err)
-		return nil, nil, errors.Wrapf(err, "error locating image %q in local storage", transports.ImageName(ref))
-	}
-	return img, ref, nil
-}
 
 func getImageName(name string, img *storage.Image) string {
 	imageName := name
@@ -105,187 +79,6 @@ func newContainerIDMappingOptions(idmapOptions *define.IDMappingOptions) storage
 	return options
 }
 
-func resolveLocalImage(systemContext *types.SystemContext, store storage.Store, options BuilderOptions) (types.ImageReference, string, string, *storage.Image, error) {
-	candidates, _, _, err := util.ResolveName(options.FromImage, options.Registry, systemContext, store)
-	if err != nil {
-		return nil, "", "", nil, errors.Wrapf(err, "error resolving local image %q", options.FromImage)
-	}
-	for _, imageName := range candidates {
-		img, err := store.Image(imageName)
-		if err != nil {
-			if errors.Cause(err) == storage.ErrImageUnknown {
-				continue
-			}
-			return nil, "", "", nil, err
-		}
-		ref, err := is.Transport.ParseStoreReference(store, img.ID)
-		if err != nil {
-			return nil, "", "", nil, errors.Wrapf(err, "error parsing reference to image %q", img.ID)
-		}
-		return ref, ref.Transport().Name(), imageName, img, nil
-	}
-
-	return nil, "", "", nil, nil
-}
-
-func imageMatch(ctx context.Context, ref types.ImageReference, systemContext *types.SystemContext) bool {
-	img, err := ref.NewImage(ctx, systemContext)
-	if err != nil {
-		logrus.Warnf("Failed to create newImage in imageMatch: %v", err)
-		return false
-	}
-	defer img.Close()
-	data, err := img.Inspect(ctx)
-	if err != nil {
-		logrus.Warnf("Failed to inspect img %s: %v", ref, err)
-		return false
-	}
-	os := systemContext.OSChoice
-	if os == "" {
-		os = runtime.GOOS
-	}
-	arch := systemContext.ArchitectureChoice
-	if arch == "" {
-		arch = runtime.GOARCH
-	}
-	if os == data.Os && arch == data.Architecture {
-		if systemContext.VariantChoice == "" || systemContext.VariantChoice == data.Variant {
-			return true
-		}
-	}
-	return false
-}
-
-func resolveImage(ctx context.Context, systemContext *types.SystemContext, store storage.Store, options BuilderOptions) (types.ImageReference, string, *storage.Image, error) {
-	if systemContext == nil {
-		systemContext = &types.SystemContext{}
-	}
-
-	fromImage := options.FromImage
-	// If the image name includes a transport we can use it as it.  Special
-	// treatment for docker references which are subject to pull policies
-	// that we're handling below.
-	srcRef, err := alltransports.ParseImageName(options.FromImage)
-	if err == nil {
-		if srcRef.Transport().Name() == docker.Transport.Name() {
-			fromImage = srcRef.DockerReference().String()
-		} else {
-			pulledImg, pulledReference, err := pullAndFindImage(ctx, store, srcRef, options, systemContext)
-			return pulledReference, srcRef.Transport().Name(), pulledImg, err
-		}
-	}
-
-	localImageRef, _, localImageName, localImage, err := resolveLocalImage(systemContext, store, options)
-	if err != nil {
-		return nil, "", nil, err
-	}
-
-	// If we could resolve the image locally, check if it was clearly
-	// referring to a local image, either by ID or digest.  In that case,
-	// we don't need to perform a remote lookup.
-	if localImage != nil && (strings.HasPrefix(localImage.ID, options.FromImage) || strings.HasPrefix(options.FromImage, "sha256:")) {
-		return localImageRef, localImageRef.Transport().Name(), localImage, nil
-	}
-
-	if options.PullPolicy == define.PullNever || options.PullPolicy == define.PullIfMissing {
-		if localImage != nil && imageMatch(ctx, localImageRef, systemContext) {
-			return localImageRef, localImageRef.Transport().Name(), localImage, nil
-		}
-		if options.PullPolicy == define.PullNever {
-			return nil, "", nil, errors.Errorf("pull policy is %q but %q could not be found locally", "never", options.FromImage)
-		}
-	}
-
-	// If we found a local image, we must use it's name.
-	// See #2904.
-	if localImageRef != nil {
-		fromImage = localImageName
-	}
-
-	resolved, err := shortnames.Resolve(systemContext, fromImage)
-	if err != nil {
-		return nil, "", nil, err
-	}
-
-	// Print the image-resolution description unless we're looking for a
-	// new image and already found a local image.  In many cases, the
-	// description will be more confusing than helpful (e.g., `buildah from
-	// localImage`).
-	if desc := resolved.Description(); len(desc) > 0 {
-		logrus.Debug(desc)
-		if !(options.PullPolicy == define.PullIfNewer && localImage != nil) {
-			if options.ReportWriter != nil {
-				if _, err := options.ReportWriter.Write([]byte(desc + "\n")); err != nil {
-					return nil, "", nil, err
-				}
-			}
-		}
-	}
-
-	var pullErrors []error
-	for _, pullCandidate := range resolved.PullCandidates {
-		ref, err := docker.NewReference(pullCandidate.Value)
-		if err != nil {
-			return nil, "", nil, err
-		}
-
-		// We're tasked to pull a "newer" image.  If there's no local
-		// image, we have no base for comparison, so we'll pull the
-		// first available image.
-		//
-		// If there's a local image, the `pullCandidate` is considered
-		// to be newer if its time stamp differs from the local one.
-		// Otherwise, we don't pull and skip it.
-		if options.PullPolicy == define.PullIfNewer && localImage != nil {
-			remoteImage, err := ref.NewImage(ctx, systemContext)
-			if err != nil {
-				logrus.Debugf("unable to remote-inspect image %q: %v", pullCandidate.Value.String(), err)
-				pullErrors = append(pullErrors, err)
-				continue
-			}
-			defer remoteImage.Close()
-
-			remoteData, err := remoteImage.Inspect(ctx)
-			if err != nil {
-				logrus.Debugf("unable to remote-inspect image %q: %v", pullCandidate.Value.String(), err)
-				pullErrors = append(pullErrors, err)
-				continue
-			}
-
-			// FIXME: we should compare image digests not time stamps.
-			// Comparing time stamps is flawed.  Be aware that fixing
-			// it may entail non-trivial changes to the tests.  Please
-			// refer to https://github.com/containers/buildah/issues/2779
-			// for more.
-			if localImage.Created.Equal(*remoteData.Created) {
-				continue
-			}
-		}
-
-		pulledImg, pulledReference, err := pullAndFindImage(ctx, store, ref, options, systemContext)
-		if err != nil {
-			logrus.Debugf("unable to pull and read image %q: %v", pullCandidate.Value.String(), err)
-			pullErrors = append(pullErrors, err)
-			continue
-		}
-
-		// Make sure to record the short-name alias if necessary.
-		if err = pullCandidate.Record(); err != nil {
-			return nil, "", nil, err
-		}
-
-		return pulledReference, "", pulledImg, nil
-	}
-
-	// If we were looking for a newer image but could not find one, return
-	// the local image if present.
-	if options.PullPolicy == define.PullIfNewer && localImage != nil {
-		return localImageRef, localImageRef.Transport().Name(), localImage, nil
-	}
-
-	return nil, "", nil, resolved.FormatPullErrors(pullErrors)
-}
-
 func containerNameExist(name string, containers []storage.Container) bool {
 	for _, container := range containers {
 		for _, cname := range container.Names {
@@ -313,6 +106,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		img *storage.Image
 		err error
 	)
+
 	if options.FromImage == BaseImageFakeName {
 		options.FromImage = ""
 	}
@@ -320,11 +114,45 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 	systemContext := getSystemContext(store, options.SystemContext, options.SignaturePolicyPath)
 
 	if options.FromImage != "" && options.FromImage != "scratch" {
-		ref, _, img, err = resolveImage(ctx, systemContext, store, options)
+		imageRuntime, err := libimage.RuntimeFromStore(store, &libimage.RuntimeOptions{SystemContext: systemContext})
 		if err != nil {
 			return nil, err
 		}
+
+		pullPolicy, err := config.ParsePullPolicy(options.PullPolicy.String())
+		if err != nil {
+			return nil, err
+		}
+
+		// Note: options.Format does *not* relate to the image we're
+		// about to pull (see tests/digests.bats).  So we're not
+		// forcing a MIMEType in the pullOptions below.
+		pullOptions := libimage.PullOptions{}
+		pullOptions.RetryDelay = &options.PullRetryDelay
+		pullOptions.OciDecryptConfig = options.OciDecryptConfig
+		pullOptions.SignaturePolicyPath = options.SignaturePolicyPath
+		pullOptions.Writer = options.ReportWriter
+
+		maxRetries := uint(options.MaxPullRetries)
+		pullOptions.MaxRetries = &maxRetries
+
+		if options.BlobDirectory != "" {
+			pullOptions.DestinationLookupReferenceFunc = blobcache.CacheLookupReferenceFunc(options.BlobDirectory, types.PreserveOriginal)
+		}
+
+		pulledImages, err := imageRuntime.Pull(ctx, options.FromImage, pullPolicy, &pullOptions)
+		if err != nil {
+			return nil, err
+		}
+		if len(pulledImages) > 0 {
+			img = pulledImages[0].StorageImage()
+			ref, err = pulledImages[0].StorageReference()
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
+
 	imageSpec := options.FromImage
 	imageID := ""
 	imageDigest := ""

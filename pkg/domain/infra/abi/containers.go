@@ -15,7 +15,6 @@ import (
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
-	"github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/libpod/logs"
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/checkpoint"
@@ -23,6 +22,7 @@ import (
 	"github.com/containers/podman/v3/pkg/domain/entities/reports"
 	dfilters "github.com/containers/podman/v3/pkg/domain/filters"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi/terminal"
+	"github.com/containers/podman/v3/pkg/errorhandling"
 	parallelctr "github.com/containers/podman/v3/pkg/parallel/ctr"
 	"github.com/containers/podman/v3/pkg/ps"
 	"github.com/containers/podman/v3/pkg/rootless"
@@ -438,7 +438,8 @@ func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrID string,
 	default:
 		return nil, errors.Errorf("unrecognized image format %q", options.Format)
 	}
-	sc := image.GetSystemContext(rtc.Engine.SignaturePolicyPath, "", false)
+
+	sc := ic.Libpod.SystemContext()
 	coptions := buildah.CommitOptions{
 		SignaturePolicyPath:   rtc.Engine.SignaturePolicyPath,
 		ReportWriter:          options.Writer,
@@ -999,14 +1000,9 @@ func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []st
 
 		if options.RemoveImage {
 			_, imageName := ctr.Image()
-			ctrImage, err := ic.Libpod.ImageRuntime().NewFromLocal(imageName)
-			if err != nil {
-				report.RmiErr = err
-				reports = append(reports, &report)
-				continue
-			}
-			_, err = ic.Libpod.RemoveImage(ctx, ctrImage, false)
-			report.RmiErr = err
+			imageEngine := ImageEngine{Libpod: ic.Libpod}
+			_, rmErrors := imageEngine.Remove(ctx, []string{imageName}, entities.ImageRemoveOptions{})
+			report.RmiErr = errorhandling.JoinErrors(rmErrors)
 		}
 
 		reports = append(reports, &report)

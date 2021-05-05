@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -24,7 +24,7 @@ var (
 )
 
 // Produce final mounts and named volumes for a container
-func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, rtc *config.Config, img *image.Image) ([]spec.Mount, []*specgen.NamedVolume, []*specgen.OverlayVolume, error) {
+func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, rtc *config.Config, img *libimage.Image) ([]spec.Mount, []*specgen.NamedVolume, []*specgen.OverlayVolume, error) {
 	// Get image volumes
 	baseMounts, baseVolumes, err := getImageVolumes(ctx, img, s)
 	if err != nil {
@@ -173,7 +173,7 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 }
 
 // Get image volumes from the given image
-func getImageVolumes(ctx context.Context, img *image.Image, s *specgen.SpecGenerator) (map[string]spec.Mount, map[string]*specgen.NamedVolume, error) {
+func getImageVolumes(ctx context.Context, img *libimage.Image, s *specgen.SpecGenerator) (map[string]spec.Mount, map[string]*specgen.NamedVolume, error) {
 	mounts := make(map[string]spec.Mount)
 	volumes := make(map[string]*specgen.NamedVolume)
 
@@ -184,7 +184,7 @@ func getImageVolumes(ctx context.Context, img *image.Image, s *specgen.SpecGener
 		return mounts, volumes, nil
 	}
 
-	inspect, err := img.InspectNoSize(ctx)
+	inspect, err := img.Inspect(ctx, false)
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "error inspecting image to get image volumes")
 	}

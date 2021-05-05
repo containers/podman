@@ -2,7 +2,6 @@ package swagger
 
 import (
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/pkg/api/handlers"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/inspect"
@@ -66,7 +65,10 @@ type swagLibpodPlayKubeResponse struct {
 // swagger:response DocsImageDeleteResponse
 type swagImageDeleteResponse struct {
 	// in:body
-	Body []image.ImageDeleteResponse
+	Body []struct {
+		Untagged []string `json:"untagged"`
+		Deleted  string   `json:"deleted"`
+	}
 }
 
 // Search results
@@ -74,7 +76,20 @@ type swagImageDeleteResponse struct {
 type swagSearchResponse struct {
 	// in:body
 	Body struct {
-		image.SearchResult
+		// Index is the image index (e.g., "docker.io" or "quay.io")
+		Index string
+		// Name is the canonical name of the image (e.g., "docker.io/library/alpine").
+		Name string
+		// Description of the image.
+		Description string
+		// Stars is the number of stars of the image.
+		Stars int
+		// Official indicates if it's an official image.
+		Official string
+		// Automated indicates if the image was created by an automated build.
+		Automated string
+		// Tag is the image tag
+		Tag string
 	}
 }
 

@@ -4,10 +4,10 @@ import (
 	"net/http"
 
 	"github.com/containers/podman/v3/libpod"
-	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
+	"github.com/containers/storage"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -41,7 +41,7 @@ func RemoveImage(w http.ResponseWriter, r *http.Request) {
 	report, rmerrors := imageEngine.Remove(r.Context(), []string{name}, options)
 	if len(rmerrors) > 0 && rmerrors[0] != nil {
 		err := rmerrors[0]
-		if errors.Cause(err) == define.ErrNoSuchImage {
+		if errors.Cause(err) == storage.ErrImageUnknown {
 			utils.ImageNotFound(w, name, errors.Wrapf(err, "failed to find image %s", name))
 			return
 		}

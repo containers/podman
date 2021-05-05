@@ -465,11 +465,11 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	// Add image volumes as overlay mounts
 	for _, volume := range c.config.ImageVolumes {
 		// Mount the specified image.
-		img, err := c.runtime.ImageRuntime().NewFromLocal(volume.Source)
+		img, _, err := c.runtime.LibimageRuntime().LookupImage(volume.Source, nil)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error creating image volume %q:%q", volume.Source, volume.Dest)
 		}
-		mountPoint, err := img.Mount(nil, "")
+		mountPoint, err := img.Mount(ctx, nil, "")
 		if err != nil {
 			return nil, errors.Wrapf(err, "error mounting image volume %q:%q", volume.Source, volume.Dest)
 		}

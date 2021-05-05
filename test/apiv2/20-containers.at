@@ -263,7 +263,7 @@ cid=$(jq -r '.Id' <<<"$output")
 t GET containers/$cid/json 200 \
   .Image=${MultiTagName}
 t DELETE containers/$cid 204
-t DELETE images/${MultiTagName}?force=true 200
+t DELETE images/${MultiTagName} 200
 # vim: filetype=sh
 
 # Test Volumes field adds an anonymous volume

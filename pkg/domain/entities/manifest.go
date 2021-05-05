@@ -8,6 +8,7 @@ type ManifestCreateOptions struct {
 	All bool `schema:"all"`
 }
 
+// swagger:model ManifestAddOpts
 type ManifestAddOptions struct {
 	All           bool               `json:"all" schema:"all"`
 	Annotation    []string           `json:"annotation" schema:"annotation"`

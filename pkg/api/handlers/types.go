@@ -2,12 +2,9 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"time"
 
-	"github.com/containers/image/v5/manifest"
-	libpodImage "github.com/containers/podman/v3/libpod/image"
+	"github.com/containers/common/libimage"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	docker "github.com/docker/docker/api/types"
 	dockerContainer "github.com/docker/docker/api/types/container"
@@ -173,8 +170,8 @@ type ExecStartConfig struct {
 	Tty    bool `json:"Tty"`
 }
 
-func ImageToImageSummary(l *libpodImage.Image) (*entities.ImageSummary, error) {
-	imageData, err := l.Inspect(context.TODO())
+func ImageToImageSummary(l *libimage.Image) (*entities.ImageSummary, error) {
+	imageData, err := l.Inspect(context.TODO(), true)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to obtain summary for image %s", l.ID())
 	}
@@ -197,17 +194,17 @@ func ImageToImageSummary(l *libpodImage.Image) (*entities.ImageSummary, error) {
 		Labels:       imageData.Labels,
 		Containers:   containerCount,
 		ReadOnly:     l.IsReadOnly(),
-		Dangling:     l.Dangling(),
+		Dangling:     l.IsDangling(),
 		Names:        l.Names(),
 		Digest:       string(imageData.Digest),
-		ConfigDigest: string(l.ConfigDigest),
+		ConfigDigest: "", // TODO: libpod/image didn't set it but libimage should
 		History:      imageData.NamesHistory,
 	}
 	return &is, nil
 }
 
-func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageInspect, error) {
-	info, err := l.Inspect(context.Background())
+func ImageDataToImageInspect(ctx context.Context, l *libimage.Image) (*ImageInspect, error) {
+	info, err := l.Inspect(context.Background(), true)
 	if err != nil {
 		return nil, err
 	}
@@ -216,37 +213,17 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 		return nil, err
 	}
 
-	// TODO the rest of these still need wiring!
+	// TODO: many fields in Config still need wiring
 	config := dockerContainer.Config{
-		//	Hostname:        "",
-		//	Domainname:      "",
-		User: info.User,
-		//	AttachStdin:     false,
-		//	AttachStdout:    false,
-		//	AttachStderr:    false,
+		User:         info.User,
 		ExposedPorts: ports,
-		//	Tty:             false,
-		//	OpenStdin:       false,
-		//	StdinOnce:       false,
-		Env: info.Config.Env,
-		Cmd: info.Config.Cmd,
-		// Healthcheck: l.ImageData.HealthCheck,
-		//	ArgsEscaped:     false,
-		//	Image:           "",
-		Volumes:    info.Config.Volumes,
-		WorkingDir: info.Config.WorkingDir,
-		Entrypoint: info.Config.Entrypoint,
-		//	NetworkDisabled: false,
-		//	MacAddress:      "",
-		// OnBuild:    info.Config.OnBuild,
-		Labels:     info.Labels,
-		StopSignal: info.Config.StopSignal,
-		//	StopTimeout:     nil,
-		//	Shell:           nil,
-	}
-	ic, err := l.ToImageRef(ctx)
-	if err != nil {
-		return nil, err
+		Env:          info.Config.Env,
+		Cmd:          info.Config.Cmd,
+		Volumes:      info.Config.Volumes,
+		WorkingDir:   info.Config.WorkingDir,
+		Entrypoint:   info.Config.Entrypoint,
+		Labels:       info.Labels,
+		StopSignal:   info.Config.StopSignal,
 	}
 
 	rootfs := docker.RootFS{}
@@ -257,6 +234,11 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 			rootfs.Layers = append(rootfs.Layers, string(layer))
 		}
 	}
+
+	graphDriver := docker.GraphDriverData{
+		Name: info.GraphDriver.Name,
+		Data: info.GraphDriver.Data,
+	}
 	dockerImageInspect := docker.ImageInspect{
 		Architecture:  info.Architecture,
 		Author:        info.Author,
@@ -264,8 +246,8 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 		Config:        &config,
 		Created:       l.Created().Format(time.RFC3339Nano),
 		DockerVersion: info.Version,
-		GraphDriver:   docker.GraphDriverData{},
-		ID:            fmt.Sprintf("sha256:%s", l.ID()),
+		GraphDriver:   graphDriver,
+		ID:            "sha256:" + l.ID(),
 		Metadata:      docker.ImageMetadata{},
 		Os:            info.Os,
 		OsVersion:     info.Version,
@@ -277,33 +259,7 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 		Variant:       "",
 		VirtualSize:   info.VirtualSize,
 	}
-	bi := ic.ConfigInfo()
-	// For docker images, we need to get the Container id and config
-	// and populate the image with it.
-	if bi.MediaType == manifest.DockerV2Schema2ConfigMediaType {
-		d := manifest.Schema2Image{}
-		b, err := ic.ConfigBlob(ctx)
-		if err != nil {
-			return nil, err
-		}
-		if err := json.Unmarshal(b, &d); err != nil {
-			return nil, err
-		}
-		// populate the Container id into the image
-		dockerImageInspect.Container = d.Container
-		containerConfig := dockerContainer.Config{}
-		configBytes, err := json.Marshal(d.ContainerConfig)
-		if err != nil {
-			return nil, err
-		}
-		if err := json.Unmarshal(configBytes, &containerConfig); err != nil {
-			return nil, err
-		}
-		// populate the Container config in the image
-		dockerImageInspect.ContainerConfig = &containerConfig
-		// populate parent
-		dockerImageInspect.Parent = d.Parent.String()
-	}
+	// TODO: consider filling the container config.
 	return &ImageInspect{dockerImageInspect}, nil
 }
 

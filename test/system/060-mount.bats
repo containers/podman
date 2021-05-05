@@ -70,7 +70,7 @@ load helpers
     is "$output" "" "podman image umount: does not re-umount"
 
     run_podman 125 image umount no-such-container
-    is "$output" "Error: unable to find a name and tag match for no-such-container in repotags: no such image" \
+    is "$output" "Error: no-such-container: image not known" \
        "error message from image umount no-such-container"
 
     run_podman image mount

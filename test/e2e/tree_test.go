@@ -34,8 +34,7 @@ var _ = Describe("Podman image tree", func() {
 	})
 
 	It("podman image tree", func() {
-		SkipIfRemote("Does not work on remote client")
-		Skip("don't understand why this fails")
+		SkipIfRemote("podman-image-tree is not supported for remote clients")
 		podmanTest.AddImageToRWStore(cirros)
 		dockerfile := `FROM quay.io/libpod/cirros:latest
 RUN mkdir hello

@@ -14,13 +14,13 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
-	"github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/libpod/lock"
 	"github.com/containers/podman/v3/libpod/plugin"
 	"github.com/containers/podman/v3/libpod/shutdown"
@@ -76,7 +76,7 @@ type Runtime struct {
 	runtimeFlags      []string
 	netPlugin         ocicni.CNIPlugin
 	conmonPath        string
-	imageRuntime      *image.Runtime
+	libimageRuntime   *libimage.Runtime
 	lockManager       lock.Manager
 
 	// doRenumber indicates that the runtime should perform a lock renumber
@@ -371,9 +371,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		return err
 	}
 	runtime.eventer = eventer
-	if runtime.imageRuntime != nil {
-		runtime.imageRuntime.Eventer = eventer
-	}
+	// TODO: events for libimage
 
 	// Set up containers/image
 	if runtime.imageContext == nil {
@@ -836,21 +834,21 @@ func (r *Runtime) configureStore() error {
 	// images
 	r.storageService = getStorageService(r.store)
 
-	ir := image.NewImageRuntimeFromStore(r.store)
-	ir.SignaturePolicyPath = r.config.Engine.SignaturePolicyPath
-	ir.EventsLogFilePath = r.config.Engine.EventsLogFilePath
-	ir.EventsLogger = r.config.Engine.EventsLogger
-
-	r.imageRuntime = ir
+	runtimeOptions := &libimage.RuntimeOptions{
+		SystemContext: r.imageContext,
+	}
+	libimageRuntime, err := libimage.RuntimeFromStore(store, runtimeOptions)
+	if err != nil {
+		return err
+	}
+	r.libimageRuntime = libimageRuntime
 
 	return nil
 }
 
-// ImageRuntime returns the imageruntime for image operations.
-// If WithNoStore() was used, no image runtime will be available, and this
-// function will return nil.
-func (r *Runtime) ImageRuntime() *image.Runtime {
-	return r.imageRuntime
+// LibimageRuntime ... to allow for a step-by-step migration to libimage.
+func (r *Runtime) LibimageRuntime() *libimage.Runtime {
+	return r.libimageRuntime
 }
 
 // SystemContext returns the imagecontext

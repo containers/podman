@@ -381,12 +381,6 @@ BUILDAH\_LAYERS environment variable. `export BUILDAH_LAYERS=true`
 Log output which would be sent to standard output and standard error to the
 specified file instead of to standard output and standard error.
 
-#### **\-\-loglevel**=*number*
-
-Adjust the logging level up or down.  Valid option values range from -2 to 3,
-with 3 being roughly equivalent to using the global *--debug* option, and
-values below 0 omitting even error messages which accompany fatal errors.
-
 #### **\-\-manifest** "manifest"
 
 Name of the manifest list to which the image will be added. Creates the manifest list
@@ -489,6 +483,18 @@ commands specified by the **RUN** instruction.
 
 Note: You can also override the default runtime by setting the BUILDAH\_RUNTIME
 environment variable.  `export BUILDAH_RUNTIME=/usr/local/bin/runc`
+
+
+#### **\-\-secret**=**id=id,src=path**
+
+Pass secret information to be used in the Containerfile for building images
+in a safe way that will not end up stored in the final image, or be seen in other stages.
+The secret will be mounted in the container at the default location of `/run/secrets/id`.
+
+To later use the secret, use the --mount flag in a `RUN` instruction within a `Containerfile`:
+
+`RUN --mount=type=secret,id=mysecret cat /run/secrets/mysecret`
+
 
 #### **\-\-security-opt**=*option*
 

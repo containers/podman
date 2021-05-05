@@ -3,15 +3,14 @@ package abi
 import (
 	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
 	"strconv"
-	"strings"
 
+	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
@@ -19,14 +18,11 @@ import (
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
-	"github.com/containers/image/v5/types"
-	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/entities/reports"
 	domainUtils "github.com/containers/podman/v3/pkg/domain/utils"
+	"github.com/containers/podman/v3/pkg/errorhandling"
 	"github.com/containers/podman/v3/pkg/rootless"
-	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage"
 	dockerRef "github.com/docker/distribution/reference"
 	"github.com/opencontainers/go-digest"
@@ -36,31 +32,84 @@ import (
 )
 
 func (ir *ImageEngine) Exists(_ context.Context, nameOrID string) (*entities.BoolReport, error) {
-	_, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrID)
+	exists, err := ir.Libpod.LibimageRuntime().Exists(nameOrID)
 	if err != nil {
-		if errors.Cause(err) == define.ErrMultipleImages {
-			return &entities.BoolReport{Value: true}, nil
-		}
-		if errors.Cause(err) != define.ErrNoSuchImage {
-			return nil, err
-		}
+		return nil, err
 	}
-	return &entities.BoolReport{Value: err == nil}, nil
+	return &entities.BoolReport{Value: exists}, nil
 }
 
 func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOptions) ([]*reports.PruneReport, error) {
-	reports, err := ir.Libpod.ImageRuntime().PruneImages(ctx, opts.All, opts.Filter)
-	if err != nil {
-		return nil, err
+	// NOTE: the terms "dangling" and "intermediate" are not used
+	// consistently across our code base.  In libimage, "dangling" means
+	// that an image has no tags.  "intermediate" means that an image is
+	// dangling and that no other image depends on it (i.e., has no
+	// children).
+	//
+	// While pruning usually refers to "dangling" images, it has always
+	// removed "intermediate" ones.
+	defaultOptions := &libimage.RemoveImagesOptions{
+		Filters:  append(opts.Filter, "intermediate=true", "containers=false", "readonly=false"),
+		WithSize: true,
 	}
-	return reports, err
+
+	// `image prune --all` means to *also* remove images which are not in
+	// use by any container.  Since image filters are chained, we need to
+	// do two look ups since the default ones are a subset of all.
+	unusedOptions := &libimage.RemoveImagesOptions{
+		Filters:  append(opts.Filter, "containers=false", "readonly=false"),
+		WithSize: true,
+	}
+
+	var pruneReports []*reports.PruneReport
+
+	// Now prune all images until we converge.
+	numPreviouslyRemovedImages := 1
+	for {
+		removedDefault, rmErrors := ir.Libpod.LibimageRuntime().RemoveImages(ctx, nil, defaultOptions)
+		if rmErrors != nil {
+			return nil, errorhandling.JoinErrors(rmErrors)
+		}
+		removedUnused, rmErrors := ir.Libpod.LibimageRuntime().RemoveImages(ctx, nil, unusedOptions)
+		if rmErrors != nil {
+			return nil, errorhandling.JoinErrors(rmErrors)
+		}
+
+		for _, rmReport := range append(removedDefault, removedUnused...) {
+			r := *rmReport
+			pruneReports = append(pruneReports, &reports.PruneReport{
+				Id:   r.ID,
+				Size: uint64(r.Size),
+			})
+		}
+
+		numRemovedImages := len(removedDefault) + len(removedUnused)
+		if numRemovedImages+numPreviouslyRemovedImages == 0 {
+			break
+		}
+		numPreviouslyRemovedImages = numRemovedImages
+	}
+
+	return pruneReports, nil
+}
+
+func toDomainHistoryLayer(layer *libimage.ImageHistory) entities.ImageHistoryLayer {
+	l := entities.ImageHistoryLayer{}
+	l.ID = layer.ID
+	l.Created = *layer.Created
+	l.CreatedBy = layer.CreatedBy
+	copy(l.Tags, layer.Tags)
+	l.Size = layer.Size
+	l.Comment = layer.Comment
+	return l
 }
 
 func (ir *ImageEngine) History(ctx context.Context, nameOrID string, opts entities.ImageHistoryOptions) (*entities.ImageHistoryReport, error) {
-	image, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrID)
+	image, _, err := ir.Libpod.LibimageRuntime().LookupImage(nameOrID, &libimage.LookupImageOptions{IgnorePlatform: true})
 	if err != nil {
 		return nil, err
 	}
+
 	results, err := image.History(ctx)
 	if err != nil {
 		return nil, err
@@ -70,17 +119,17 @@ func (ir *ImageEngine) History(ctx context.Context, nameOrID string, opts entiti
 		Layers: make([]entities.ImageHistoryLayer, len(results)),
 	}
 
-	for i, layer := range results {
-		history.Layers[i] = ToDomainHistoryLayer(layer)
+	for i := range results {
+		history.Layers[i] = toDomainHistoryLayer(&results[i])
 	}
 	return &history, nil
 }
 
 func (ir *ImageEngine) Mount(ctx context.Context, nameOrIDs []string, opts entities.ImageMountOptions) ([]*entities.ImageMountReport, error) {
-	var (
-		images []*image.Image
-		err    error
-	)
+	if opts.All && len(nameOrIDs) > 0 {
+		return nil, errors.Errorf("cannot mix --all with images")
+	}
+
 	if os.Geteuid() != 0 {
 		if driver := ir.Libpod.StorageConfig().GraphDriverName; driver != "vfs" {
 			// Do not allow to mount a graphdriver that is not vfs if we are creating the userns as part
@@ -96,219 +145,129 @@ func (ir *ImageEngine) Mount(ctx context.Context, nameOrIDs []string, opts entit
 			os.Exit(ret)
 		}
 	}
-	if opts.All {
-		allImages, err := ir.Libpod.ImageRuntime().GetImages()
-		if err != nil {
-			return nil, err
-		}
-		for _, img := range allImages {
-			if !img.IsReadOnly() {
-				images = append(images, img)
-			}
-		}
-	} else {
-		for _, i := range nameOrIDs {
-			img, err := ir.Libpod.ImageRuntime().NewFromLocal(i)
-			if err != nil {
-				return nil, err
-			}
-			images = append(images, img)
-		}
-	}
-	reports := make([]*entities.ImageMountReport, 0, len(images))
-	for _, img := range images {
-		report := entities.ImageMountReport{Id: img.ID()}
-		if img.IsReadOnly() {
-			report.Err = errors.Errorf("mounting readonly %s image not supported", img.ID())
-		} else {
-			report.Path, report.Err = img.Mount([]string{}, "")
-		}
-		reports = append(reports, &report)
-	}
-	if len(reports) > 0 {
-		return reports, nil
-	}
 
-	images, err = ir.Libpod.ImageRuntime().GetImages()
+	listImagesOptions := &libimage.ListImagesOptions{}
+	if opts.All {
+		listImagesOptions.Filters = []string{"readonly=false"}
+	}
+	images, err := ir.Libpod.LibimageRuntime().ListImages(ctx, nameOrIDs, listImagesOptions)
 	if err != nil {
 		return nil, err
 	}
+
+	mountReports := []*entities.ImageMountReport{}
+	listMountsOnly := !opts.All && len(nameOrIDs) == 0
 	for _, i := range images {
-		mounted, path, err := i.Mounted()
-		if err != nil {
-			if errors.Cause(err) == storage.ErrLayerUnknown {
-				continue
-			}
-			return nil, err
-		}
-		if mounted {
-			tags, err := i.RepoTags()
+		// TODO: the .Err fields are not used. This pre-dates the
+		// libimage migration but should be addressed at some point.
+		// A quick glimpse at cmd/podman/image/mount.go suggests that
+		// the errors needed to be handled there as well.
+		var mountPoint string
+		var err error
+		if listMountsOnly {
+			// We're only looking for mounted images.
+			mountPoint, err = i.Mountpoint()
 			if err != nil {
 				return nil, err
 			}
-			reports = append(reports, &entities.ImageMountReport{
-				Id:           i.ID(),
-				Name:         string(i.Digest()),
-				Repositories: tags,
-				Path:         path,
-			})
+			// Not mounted, so skip.
+			if mountPoint == "" {
+				continue
+			}
+		} else {
+			mountPoint, err = i.Mount(ctx, nil, "")
+			if err != nil {
+				return nil, err
+			}
 		}
+
+		tags, err := i.RepoTags()
+		if err != nil {
+			return nil, err
+		}
+		mountReports = append(mountReports, &entities.ImageMountReport{
+			Id:           i.ID(),
+			Name:         string(i.Digest()),
+			Repositories: tags,
+			Path:         mountPoint,
+		})
 	}
-	return reports, nil
+	return mountReports, nil
 }
 
 func (ir *ImageEngine) Unmount(ctx context.Context, nameOrIDs []string, options entities.ImageUnmountOptions) ([]*entities.ImageUnmountReport, error) {
-	var images []*image.Image
+	if options.All && len(nameOrIDs) > 0 {
+		return nil, errors.Errorf("cannot mix --all with images")
+	}
 
+	listImagesOptions := &libimage.ListImagesOptions{}
 	if options.All {
-		allImages, err := ir.Libpod.ImageRuntime().GetImages()
-		if err != nil {
-			return nil, err
-		}
-		for _, img := range allImages {
-			if !img.IsReadOnly() {
-				images = append(images, img)
-			}
-		}
-	} else {
-		for _, i := range nameOrIDs {
-			img, err := ir.Libpod.ImageRuntime().NewFromLocal(i)
-			if err != nil {
-				return nil, err
-			}
-			images = append(images, img)
-		}
+		listImagesOptions.Filters = []string{"readonly=false"}
 	}
-
-	reports := []*entities.ImageUnmountReport{}
-	for _, img := range images {
-		report := entities.ImageUnmountReport{Id: img.ID()}
-		mounted, _, err := img.Mounted()
-		if err != nil {
-			// Errors will be caught in Unmount call below
-			// Default assumption to mounted
-			mounted = true
-		}
-		if !mounted {
-			continue
-		}
-		if err := img.Unmount(options.Force); err != nil {
-			if options.All && errors.Cause(err) == storage.ErrLayerNotMounted {
-				logrus.Debugf("Error umounting image %s, storage.ErrLayerNotMounted", img.ID())
-				continue
-			}
-			report.Err = errors.Wrapf(err, "error unmounting image %s", img.ID())
-		}
-		reports = append(reports, &report)
-	}
-	return reports, nil
-}
-
-func ToDomainHistoryLayer(layer *image.History) entities.ImageHistoryLayer {
-	l := entities.ImageHistoryLayer{}
-	l.ID = layer.ID
-	l.Created = *layer.Created
-	l.CreatedBy = layer.CreatedBy
-	copy(l.Tags, layer.Tags)
-	l.Size = layer.Size
-	l.Comment = layer.Comment
-	return l
-}
-
-func pull(ctx context.Context, runtime *image.Runtime, rawImage string, options entities.ImagePullOptions, label *string) (*entities.ImagePullReport, error) {
-	var writer io.Writer
-	if !options.Quiet {
-		writer = os.Stderr
-	}
-
-	dockerPrefix := fmt.Sprintf("%s://", docker.Transport.Name())
-	imageRef, err := alltransports.ParseImageName(rawImage)
+	images, err := ir.Libpod.LibimageRuntime().ListImages(ctx, nameOrIDs, listImagesOptions)
 	if err != nil {
-		imageRef, err = alltransports.ParseImageName(fmt.Sprintf("%s%s", dockerPrefix, rawImage))
-		if err != nil {
-			return nil, errors.Wrapf(err, "invalid image reference %q", rawImage)
-		}
-	}
-
-	var registryCreds *types.DockerAuthConfig
-	if len(options.Username) > 0 && len(options.Password) > 0 {
-		registryCreds = &types.DockerAuthConfig{
-			Username: options.Username,
-			Password: options.Password,
-		}
-	}
-	dockerRegistryOptions := image.DockerRegistryOptions{
-		DockerRegistryCreds:         registryCreds,
-		DockerCertPath:              options.CertDir,
-		OSChoice:                    options.OS,
-		ArchitectureChoice:          options.Arch,
-		VariantChoice:               options.Variant,
-		DockerInsecureSkipTLSVerify: options.SkipTLSVerify,
-	}
-
-	if !options.AllTags {
-		newImage, err := runtime.New(ctx, rawImage, options.SignaturePolicy, options.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, label, options.PullPolicy, nil)
-		if err != nil {
-			return nil, err
-		}
-		return &entities.ImagePullReport{Images: []string{newImage.ID()}}, nil
-	}
-
-	// --all-tags requires the docker transport
-	if imageRef.Transport().Name() != docker.Transport.Name() {
-		return nil, errors.New("--all-tags requires docker transport")
-	}
-
-	// Trim the docker-transport prefix.
-	rawImage = strings.TrimPrefix(rawImage, docker.Transport.Name())
-
-	// all-tags doesn't work with a tagged reference, so let's check early
-	namedRef, err := reference.Parse(rawImage)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error parsing %q", rawImage)
-	}
-	if _, isTagged := namedRef.(reference.Tagged); isTagged {
-		return nil, errors.New("--all-tags requires a reference without a tag")
-	}
-
-	systemContext := image.GetSystemContext("", options.Authfile, false)
-	tags, err := docker.GetRepositoryTags(ctx, systemContext, imageRef)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting repository tags")
-	}
-
-	foundIDs := []string{}
-	for _, tag := range tags {
-		name := rawImage + ":" + tag
-		newImage, err := runtime.New(ctx, name, options.SignaturePolicy, options.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, nil, util.PullImageAlways, nil)
-		if err != nil {
-			logrus.Errorf("error pulling image %q", name)
-			continue
-		}
-		foundIDs = append(foundIDs, newImage.ID())
-	}
-
-	if len(tags) != len(foundIDs) {
 		return nil, err
 	}
-	return &entities.ImagePullReport{Images: foundIDs}, nil
+
+	unmountReports := []*entities.ImageUnmountReport{}
+	for _, image := range images {
+		r := &entities.ImageUnmountReport{Id: image.ID()}
+		mountPoint, err := image.Mountpoint()
+		if err != nil {
+			r.Err = err
+			unmountReports = append(unmountReports, r)
+			continue
+		}
+		if mountPoint == "" {
+			// Skip if the image wasn't mounted.
+			continue
+		}
+		r.Err = image.Unmount(options.Force)
+		unmountReports = append(unmountReports, r)
+	}
+	return unmountReports, nil
 }
 
 func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entities.ImagePullOptions) (*entities.ImagePullReport, error) {
-	return pull(ctx, ir.Libpod.ImageRuntime(), rawImage, options, nil)
+	pullOptions := &libimage.PullOptions{AllTags: options.AllTags}
+	pullOptions.AuthFilePath = options.Authfile
+	pullOptions.CertDirPath = options.CertDir
+	pullOptions.Username = options.Username
+	pullOptions.Password = options.Password
+	pullOptions.Architecture = options.Arch
+	pullOptions.OS = options.OS
+	pullOptions.Variant = options.Variant
+	pullOptions.SignaturePolicyPath = options.SignaturePolicy
+	pullOptions.InsecureSkipTLSVerify = options.SkipTLSVerify
+
+	if !options.Quiet {
+		pullOptions.Writer = os.Stderr
+	}
+
+	pulledImages, err := ir.Libpod.LibimageRuntime().Pull(ctx, rawImage, options.PullPolicy, pullOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	pulledIDs := make([]string, len(pulledImages))
+	for i := range pulledImages {
+		pulledIDs[i] = pulledImages[i].ID()
+	}
+
+	return &entities.ImagePullReport{Images: pulledIDs}, nil
 }
 
 func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts entities.InspectOptions) ([]*entities.ImageInspectReport, []error, error) {
 	reports := []*entities.ImageInspectReport{}
 	errs := []error{}
 	for _, i := range namesOrIDs {
-		img, err := ir.Libpod.ImageRuntime().NewFromLocal(i)
+		img, _, err := ir.Libpod.LibimageRuntime().LookupImage(i, &libimage.LookupImageOptions{IgnorePlatform: true})
 		if err != nil {
 			// This is probably a no such image, treat as nonfatal.
 			errs = append(errs, err)
 			continue
 		}
-		result, err := img.Inspect(ctx)
+		result, err := img.Inspect(ctx, true)
 		if err != nil {
 			// This is more likely to be fatal.
 			return nil, nil, err
@@ -323,11 +282,6 @@ func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts en
 }
 
 func (ir *ImageEngine) Push(ctx context.Context, source string, destination string, options entities.ImagePushOptions) error {
-	var writer io.Writer
-	if !options.Quiet {
-		writer = os.Stderr
-	}
-
 	var manifestType string
 	switch options.Format {
 	case "":
@@ -342,58 +296,56 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 		return errors.Errorf("unknown format %q. Choose on of the supported formats: 'oci', 'v2s1', or 'v2s2'", options.Format)
 	}
 
-	var registryCreds *types.DockerAuthConfig
-	if len(options.Username) > 0 && len(options.Password) > 0 {
-		registryCreds = &types.DockerAuthConfig{
-			Username: options.Username,
-			Password: options.Password,
+	pushOptions := &libimage.PushOptions{}
+	pushOptions.AuthFilePath = options.Authfile
+	pushOptions.CertDirPath = options.CertDir
+	pushOptions.DirForceCompress = options.Compress
+	pushOptions.Username = options.Username
+	pushOptions.Password = options.Password
+	pushOptions.ManifestMIMEType = manifestType
+	pushOptions.RemoveSignatures = options.RemoveSignatures
+	pushOptions.SignBy = options.SignBy
+	pushOptions.InsecureSkipTLSVerify = options.SkipTLSVerify
+
+	if !options.Quiet {
+		pushOptions.Writer = os.Stderr
+	}
+
+	pushedManifestBytes, pushError := ir.Libpod.LibimageRuntime().Push(ctx, source, destination, pushOptions)
+	if pushError == nil {
+		if options.DigestFile != "" {
+			manifestDigest, err := manifest.Digest(pushedManifestBytes)
+			if err != nil {
+				return err
+			}
+
+			if err := ioutil.WriteFile(options.DigestFile, []byte(manifestDigest.String()), 0644); err != nil {
+				return err
+			}
 		}
+		return nil
 	}
-	dockerRegistryOptions := image.DockerRegistryOptions{
-		DockerRegistryCreds:         registryCreds,
-		DockerCertPath:              options.CertDir,
-		DockerInsecureSkipTLSVerify: options.SkipTLSVerify,
-	}
-
-	signOptions := image.SigningOptions{
-		RemoveSignatures: options.RemoveSignatures,
-		SignBy:           options.SignBy,
-	}
-
-	newImage, err := ir.Libpod.ImageRuntime().NewFromLocal(source)
-	if err != nil {
-		return err
-	}
-
-	err = newImage.PushImageToHeuristicDestination(
-		ctx,
-		destination,
-		manifestType,
-		options.Authfile,
-		options.DigestFile,
-		options.SignaturePolicy,
-		writer,
-		options.Compress,
-		signOptions,
-		&dockerRegistryOptions,
-		nil,
-		options.Progress)
-	if err != nil && errors.Cause(err) != storage.ErrImageUnknown {
+	// If the image could not be found, we may be referring to a manifest
+	// list but could not find a matching image instance in the local
+	// containers storage. In that case, fall back and attempt to push the
+	// (entire) manifest.
+	if errors.Cause(pushError) == storage.ErrImageUnknown {
 		// Image might be a manifest list so attempt a manifest push
-		if _, manifestErr := ir.ManifestPush(ctx, source, destination, options); manifestErr == nil {
+		_, manifestErr := ir.ManifestPush(ctx, source, destination, options)
+		if manifestErr == nil {
 			return nil
 		}
 	}
-	return err
+	return pushError
 }
 
 func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, options entities.ImageTagOptions) error {
-	newImage, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrID)
+	image, _, err := ir.Libpod.LibimageRuntime().LookupImage(nameOrID, &libimage.LookupImageOptions{IgnorePlatform: true})
 	if err != nil {
 		return err
 	}
 	for _, tag := range tags {
-		if err := newImage.TagImage(tag); err != nil {
+		if err := image.Tag(tag); err != nil {
 			return err
 		}
 	}
@@ -401,54 +353,71 @@ func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, 
 }
 
 func (ir *ImageEngine) Untag(ctx context.Context, nameOrID string, tags []string, options entities.ImageUntagOptions) error {
-	newImage, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrID)
+	image, _, err := ir.Libpod.LibimageRuntime().LookupImage(nameOrID, &libimage.LookupImageOptions{IgnorePlatform: true})
 	if err != nil {
 		return err
 	}
 	// If only one arg is provided, all names are to be untagged
 	if len(tags) == 0 {
-		tags = newImage.Names()
+		tags = image.Names()
 	}
 	for _, tag := range tags {
-		if err := newImage.UntagImage(tag); err != nil {
+		if err := image.Untag(tag); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (ir *ImageEngine) Load(ctx context.Context, opts entities.ImageLoadOptions) (*entities.ImageLoadReport, error) {
-	var (
-		writer io.Writer
-	)
-	if !opts.Quiet {
-		writer = os.Stderr
+func (ir *ImageEngine) Load(ctx context.Context, options entities.ImageLoadOptions) (*entities.ImageLoadReport, error) {
+	loadOptions := &libimage.LoadOptions{}
+	loadOptions.SignaturePolicyPath = options.SignaturePolicy
+	if !options.Quiet {
+		loadOptions.Writer = os.Stderr
 	}
-	name, err := ir.Libpod.LoadImage(ctx, opts.Input, writer, opts.SignaturePolicy)
-	if err != nil {
-		return nil, err
-	}
-	return &entities.ImageLoadReport{Names: strings.Split(name, ",")}, nil
-}
 
-func (ir *ImageEngine) Import(ctx context.Context, opts entities.ImageImportOptions) (*entities.ImageImportReport, error) {
-	id, err := ir.Libpod.Import(ctx, opts.Source, opts.Reference, opts.SignaturePolicy, opts.Changes, opts.Message, opts.Quiet)
+	loadedImages, err := ir.Libpod.LibimageRuntime().Load(ctx, options.Input, loadOptions)
 	if err != nil {
 		return nil, err
 	}
-	return &entities.ImageImportReport{Id: id}, nil
+	return &entities.ImageLoadReport{Names: loadedImages}, nil
 }
 
 func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string, options entities.ImageSaveOptions) error {
+	saveOptions := &libimage.SaveOptions{}
+	saveOptions.DirForceCompress = options.Compress
+	saveOptions.RemoveSignatures = options.RemoveSignatures
+
+	if !options.Quiet {
+		saveOptions.Writer = os.Stderr
+	}
+
+	names := []string{nameOrID}
 	if options.MultiImageArchive {
-		nameOrIDs := append([]string{nameOrID}, tags...)
-		return ir.Libpod.ImageRuntime().SaveImages(ctx, nameOrIDs, options.Format, options.Output, options.Quiet, true)
+		names = append(names, tags...)
+	} else {
+		saveOptions.AdditionalTags = tags
 	}
-	newImage, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrID)
+	return ir.Libpod.LibimageRuntime().Save(ctx, names, options.Format, options.Output, saveOptions)
+}
+
+func (ir *ImageEngine) Import(ctx context.Context, options entities.ImageImportOptions) (*entities.ImageImportReport, error) {
+	importOptions := &libimage.ImportOptions{}
+	importOptions.Changes = options.Changes
+	importOptions.CommitMessage = options.Message
+	importOptions.Tag = options.Reference
+	importOptions.SignaturePolicyPath = options.SignaturePolicy
+
+	if !options.Quiet {
+		importOptions.Writer = os.Stderr
+	}
+
+	imageID, err := ir.Libpod.LibimageRuntime().Import(ctx, options.Source, importOptions)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return newImage.Save(ctx, nameOrID, options.Format, options.Output, tags, options.Quiet, options.Compress, true)
+
+	return &entities.ImageImportReport{Id: imageID}, nil
 }
 
 func (ir *ImageEngine) Diff(_ context.Context, nameOrID string, _ entities.DiffOptions) (*entities.DiffReport, error) {
@@ -460,12 +429,12 @@ func (ir *ImageEngine) Diff(_ context.Context, nameOrID string, _ entities.DiffO
 }
 
 func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.ImageSearchOptions) ([]entities.ImageSearchReport, error) {
-	filter, err := image.ParseSearchFilter(opts.Filters)
+	filter, err := libimage.ParseSearchFilter(opts.Filters)
 	if err != nil {
 		return nil, err
 	}
 
-	searchOpts := image.SearchOptions{
+	searchOptions := &libimage.SearchOptions{
 		Authfile:              opts.Authfile,
 		Filter:                *filter,
 		Limit:                 opts.Limit,
@@ -474,7 +443,7 @@ func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.Im
 		ListTags:              opts.ListTags,
 	}
 
-	searchResults, err := image.SearchImages(term, searchOpts)
+	searchResults, err := ir.Libpod.LibimageRuntime().Search(ctx, term, searchOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -510,15 +479,15 @@ func (ir *ImageEngine) Build(ctx context.Context, containerFiles []string, opts 
 }
 
 func (ir *ImageEngine) Tree(ctx context.Context, nameOrID string, opts entities.ImageTreeOptions) (*entities.ImageTreeReport, error) {
-	img, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrID)
+	image, _, err := ir.Libpod.LibimageRuntime().LookupImage(nameOrID, &libimage.LookupImageOptions{IgnorePlatform: true})
 	if err != nil {
 		return nil, err
 	}
-	results, err := img.GenerateTree(opts.WhatRequires)
+	tree, err := image.Tree(opts.WhatRequires)
 	if err != nil {
 		return nil, err
 	}
-	return &entities.ImageTreeReport{Tree: results}, nil
+	return &entities.ImageTreeReport{Tree: tree}, nil
 }
 
 // removeErrorsToExitCode returns an exit code for the specified slice of
@@ -542,9 +511,9 @@ func removeErrorsToExitCode(rmErrors []error) int {
 
 	for _, e := range rmErrors {
 		switch errors.Cause(e) {
-		case define.ErrNoSuchImage:
+		case storage.ErrImageUnknown, storage.ErrLayerUnknown:
 			noSuchImageErrors = true
-		case define.ErrImageInUse, storage.ErrImageUsedByContainer:
+		case storage.ErrImageUsedByContainer:
 			inUseErrors = true
 		default:
 			otherErrors = true
@@ -574,84 +543,25 @@ func (ir *ImageEngine) Remove(ctx context.Context, images []string, opts entitie
 		report.ExitCode = removeErrorsToExitCode(rmErrors)
 	}()
 
-	// deleteImage is an anonymous function to conveniently delete an image
-	// without having to pass all local data around.
-	deleteImage := func(img *image.Image) error {
-		results, err := ir.Libpod.RemoveImage(ctx, img, opts.Force)
-		switch errors.Cause(err) {
-		case nil:
-			// Removal worked, so let's report it.
-			report.Deleted = append(report.Deleted, results.Deleted)
-			report.Untagged = append(report.Untagged, results.Untagged...)
-			return nil
-		case storage.ErrImageUnknown, storage.ErrLayerUnknown:
-			// The image must have been removed already (see #6510)
-			// or the storage is corrupted (see #9617).
-			report.Deleted = append(report.Deleted, img.ID())
-			report.Untagged = append(report.Untagged, img.ID())
-			return nil
-		default:
-			// Fatal error.
-			return err
+	libimageOptions := &libimage.RemoveImagesOptions{}
+	libimageOptions.Filters = []string{"readonly=false"}
+	libimageOptions.Force = opts.Force
+	if !opts.All {
+		libimageOptions.Filters = append(libimageOptions.Filters, "intermediate=false")
+	}
+	libimageOptions.RemoveContainerFunc = ir.Libpod.RemoveContainersForImageCallback(ctx)
+
+	libimageReport, libimageErrors := ir.Libpod.LibimageRuntime().RemoveImages(ctx, images, libimageOptions)
+
+	for _, r := range libimageReport {
+		if r.Removed {
+			report.Deleted = append(report.Deleted, r.ID)
 		}
+		report.Untagged = append(report.Untagged, r.Untagged...)
 	}
 
-	// Delete all images from the local storage.
-	if opts.All {
-		previousImages := 0
-		// Remove all images one-by-one.
-		for {
-			storageImages, err := ir.Libpod.ImageRuntime().GetRWImages()
-			if err != nil {
-				rmErrors = append(rmErrors, err)
-				return
-			}
-			// No images (left) to remove, so we're done.
-			if len(storageImages) == 0 {
-				return
-			}
-			// Prevent infinity loops by making a delete-progress check.
-			if previousImages == len(storageImages) {
-				rmErrors = append(rmErrors, errors.New("unable to delete all images, check errors and re-run image removal if needed"))
-				break
-			}
-			previousImages = len(storageImages)
-			// Delete all "leaves" (i.e., images without child images).
-			for _, img := range storageImages {
-				isParent, err := img.IsParent(ctx)
-				if err != nil {
-					logrus.Warnf("%v, ignoring the error", err)
-					isParent = false
-				}
-				// Skip parent images.
-				if isParent {
-					continue
-				}
-				if err := deleteImage(img); err != nil {
-					rmErrors = append(rmErrors, err)
-				}
-			}
-		}
+	rmErrors = libimageErrors
 
-		return
-	}
-
-	// Delete only the specified images.
-	for _, id := range images {
-		img, err := ir.Libpod.ImageRuntime().NewFromLocal(id)
-		if err != nil {
-			// attempt to remove image from storage
-			if forceErr := ir.Libpod.RemoveImageFromStorage(id); forceErr == nil {
-				continue
-			}
-			rmErrors = append(rmErrors, err)
-			continue
-		}
-		err = deleteImage(img)
-		if err != nil {
-			rmErrors = append(rmErrors, err)
-		}
-	}
 	return //nolint
 }
 

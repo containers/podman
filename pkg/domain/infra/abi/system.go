@@ -164,7 +164,10 @@ func movePauseProcessToScope(r *libpod.Runtime) error {
 // SystemPrune removes unused data from the system. Pruning pods, containers, volumes and images.
 func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.SystemPruneOptions) (*entities.SystemPruneReport, error) {
 	var systemPruneReport = new(entities.SystemPruneReport)
-	var filters []string
+	filters := []string{}
+	for k, v := range options.Filters {
+		filters = append(filters, fmt.Sprintf("%s=%s", k, v[0]))
+	}
 	reclaimedSpace := (uint64)(0)
 	found := true
 	for found {
@@ -188,10 +191,12 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 		}
 		reclaimedSpace = reclaimedSpace + reports.PruneReportsSize(containerPruneReports)
 		systemPruneReport.ContainerPruneReports = append(systemPruneReport.ContainerPruneReports, containerPruneReports...)
-		for k, v := range options.Filters {
-			filters = append(filters, fmt.Sprintf("%s=%s", k, v[0]))
+		imagePruneOptions := entities.ImagePruneOptions{
+			All:    options.All,
+			Filter: filters,
 		}
-		imagePruneReports, err := ic.Libpod.ImageRuntime().PruneImages(ctx, options.All, filters)
+		imageEngine := ImageEngine{Libpod: ic.Libpod}
+		imagePruneReports, err := imageEngine.Prune(ctx, imagePruneOptions)
 		reclaimedSpace = reclaimedSpace + reports.PruneReportsSize(imagePruneReports)
 
 		if err != nil {
@@ -225,13 +230,7 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 		dfImages = []*entities.SystemDfImageReport{}
 	)
 
-	// Compute disk-usage stats for all local images.
-	imgs, err := ic.Libpod.ImageRuntime().GetImages()
-	if err != nil {
-		return nil, err
-	}
-
-	imageStats, err := ic.Libpod.ImageRuntime().DiskUsage(ctx, imgs)
+	imageStats, err := ic.Libpod.LibimageRuntime().DiskUsage(ctx)
 	if err != nil {
 		return nil, err
 	}

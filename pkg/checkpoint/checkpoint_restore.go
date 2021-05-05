@@ -6,11 +6,11 @@ import (
 	"os"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
+	"github.com/containers/common/libimage"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod"
-	"github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/errorhandling"
-	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage/pkg/archive"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -62,19 +62,19 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 	}
 
 	// Load config.dump from temporary directory
-	config := new(libpod.ContainerConfig)
-	if _, err = metadata.ReadJSONFile(config, dir, metadata.ConfigDumpFile); err != nil {
+	ctrConfig := new(libpod.ContainerConfig)
+	if _, err = metadata.ReadJSONFile(ctrConfig, dir, metadata.ConfigDumpFile); err != nil {
 		return nil, err
 	}
 
 	// This should not happen as checkpoints with these options are not exported.
-	if len(config.Dependencies) > 0 {
+	if len(ctrConfig.Dependencies) > 0 {
 		return nil, errors.Errorf("Cannot import checkpoints of containers with dependencies")
 	}
 
 	// Volumes included in the checkpoint should not exist
 	if !restoreOptions.IgnoreVolumes {
-		for _, vol := range config.NamedVolumes {
+		for _, vol := range ctrConfig.NamedVolumes {
 			exists, err := runtime.HasVolume(vol.Name)
 			if err != nil {
 				return nil, err
@@ -85,33 +85,24 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 		}
 	}
 
-	ctrID := config.ID
+	ctrID := ctrConfig.ID
 	newName := false
 
 	// Check if the restored container gets a new name
 	if restoreOptions.Name != "" {
-		config.ID = ""
-		config.Name = restoreOptions.Name
+		ctrConfig.ID = ""
+		ctrConfig.Name = restoreOptions.Name
 		newName = true
 	}
 
-	ctrName := config.Name
-
-	// The code to load the images is copied from create.go
-	// In create.go this only set if '--quiet' does not exist.
-	writer := os.Stderr
-	rtc, err := runtime.GetConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = runtime.ImageRuntime().New(ctx, config.RootfsImageName, rtc.Engine.SignaturePolicyPath, "", writer, nil, image.SigningOptions{}, nil, util.PullImageMissing, nil)
-	if err != nil {
+	pullOptions := &libimage.PullOptions{}
+	pullOptions.Writer = os.Stderr
+	if _, err := runtime.LibimageRuntime().Pull(ctx, ctrConfig.RootfsImageName, config.PullPolicyMissing, pullOptions); err != nil {
 		return nil, err
 	}
 
 	// Now create a new container from the just loaded information
-	container, err := runtime.RestoreContainer(ctx, dumpSpec, config)
+	container, err := runtime.RestoreContainer(ctx, dumpSpec, ctrConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -122,6 +113,7 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 	}
 
 	containerConfig := container.Config()
+	ctrName := ctrConfig.Name
 	if containerConfig.Name != ctrName {
 		return nil, errors.Errorf("Name of restored container (%s) does not match requested name (%s)", containerConfig.Name, ctrName)
 	}

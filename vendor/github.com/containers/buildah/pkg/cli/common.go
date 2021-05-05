@@ -64,7 +64,6 @@ type BudResults struct {
 	Iidfile             string
 	Label               []string
 	Logfile             string
-	Loglevel            int
 	Manifest            string
 	NoCache             bool
 	Timestamp           int64
@@ -75,6 +74,7 @@ type BudResults struct {
 	Rm                  bool
 	Runtime             string
 	RuntimeFlags        []string
+	Secrets             []string
 	SignaturePolicy     string
 	SignBy              string
 	Squash              bool
@@ -191,7 +191,10 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.IntVar(&flags.Jobs, "jobs", 1, "how many stages to run in parallel")
 	fs.StringArrayVar(&flags.Label, "label", []string{}, "Set metadata for an image (default [])")
 	fs.StringVar(&flags.Logfile, "logfile", "", "log to `file` instead of stdout/stderr")
-	fs.IntVar(&flags.Loglevel, "loglevel", 0, "adjust logging level (range from -2 to 3)")
+	fs.Int("loglevel", 0, "NO LONGER USED, flag ignored, and hidden")
+	if err := fs.MarkHidden("loglevel"); err != nil {
+		panic(fmt.Sprintf("error marking the loglevel flag as hidden: %v", err))
+	}
 	fs.BoolVar(&flags.LogRusage, "log-rusage", false, "log resource usage at each build step")
 	if err := fs.MarkHidden("log-rusage"); err != nil {
 		panic(fmt.Sprintf("error marking the log-rusage flag as hidden: %v", err))
@@ -207,6 +210,7 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.BoolVar(&flags.Rm, "rm", true, "Remove intermediate containers after a successful build")
 	// "runtime" definition moved to avoid name collision in podman build.  Defined in cmd/buildah/bud.go.
 	fs.StringSliceVar(&flags.RuntimeFlags, "runtime-flag", []string{}, "add global flags for the container runtime")
+	fs.StringArrayVar(&flags.Secrets, "secret", []string{}, "secret file to expose to the build")
 	fs.StringVar(&flags.SignBy, "sign-by", "", "sign the image using a GPG key with the specified `FINGERPRINT`")
 	fs.StringVar(&flags.SignaturePolicy, "signature-policy", "", "`pathname` of signature policy file (not usually used)")
 	if err := fs.MarkHidden("signature-policy"); err != nil {
@@ -240,11 +244,11 @@ func GetBudFlagsCompletions() commonComp.FlagCompletions {
 	flagCompletion["jobs"] = commonComp.AutocompleteNone
 	flagCompletion["label"] = commonComp.AutocompleteNone
 	flagCompletion["logfile"] = commonComp.AutocompleteDefault
-	flagCompletion["loglevel"] = commonComp.AutocompleteDefault
 	flagCompletion["manifest"] = commonComp.AutocompleteDefault
 	flagCompletion["os"] = commonComp.AutocompleteNone
 	flagCompletion["platform"] = commonComp.AutocompleteNone
 	flagCompletion["runtime-flag"] = commonComp.AutocompleteNone
+	flagCompletion["secret"] = commonComp.AutocompleteNone
 	flagCompletion["sign-by"] = commonComp.AutocompleteNone
 	flagCompletion["signature-policy"] = commonComp.AutocompleteNone
 	flagCompletion["tag"] = commonComp.AutocompleteNone
@@ -403,6 +407,8 @@ func AliasFlags(f *pflag.FlagSet, name string) pflag.NormalizedName {
 		name = "os"
 	case "purge":
 		name = "rm"
+	case "tty":
+		name = "terminal"
 	}
 	return pflag.NormalizedName(name)
 }

@@ -64,7 +64,7 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
     run_podman commit my-container my-test-image
 
     run_podman images my-test-image --format '{{ .History }}'
-    is "$output" "" "Image has empty history to begin with"
+    is "$output" "localhost/my-test-image:latest" "image history with initial name"
 
     # Generate two randomish tags; 'tr' because they must be all lower-case
     rand_name1="test-image-history-$(random_string 10 | tr A-Z a-z)"
@@ -74,13 +74,13 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
     run_podman tag my-test-image $rand_name1
     run_podman rmi $rand_name1
     run_podman images my-test-image --format '{{ .History }}'
-    is "$output" "localhost/${rand_name1}:latest" "image history after one tag"
+    is "$output" "localhost/my-test-image:latest, localhost/${rand_name1}:latest" "image history after one tag"
 
     # Repeat with second tag. Now both tags should be in history
     run_podman tag my-test-image $rand_name2
     run_podman rmi $rand_name2
     run_podman images my-test-image --format '{{ .History }}'
-    is "$output" "localhost/${rand_name2}:latest, localhost/${rand_name1}:latest" \
+    is "$output" "localhost/my-test-image:latest, localhost/${rand_name2}:latest, localhost/${rand_name1}:latest" \
        "image history after two tags"
 
     run_podman rmi my-test-image

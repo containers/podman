@@ -6,11 +6,11 @@ import (
 
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod"
-	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/containers/podman/v3/pkg/auth"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
+	"github.com/containers/storage"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -64,7 +64,7 @@ func SearchImages(w http.ResponseWriter, r *http.Request) {
 	}
 	if !utils.IsLibpodRequest(r) {
 		if len(reports) == 0 {
-			utils.ImageNotFound(w, query.Term, define.ErrNoSuchImage)
+			utils.ImageNotFound(w, query.Term, storage.ErrImageUnknown)
 			return
 		}
 	}

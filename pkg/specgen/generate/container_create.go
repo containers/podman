@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg"
+	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod"
-	"github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage/types"
@@ -86,11 +86,18 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		options = append(options, libpod.WithCreateCommand(s.ContainerCreateCommand))
 	}
 
-	var newImage *image.Image
+	var newImage *libimage.Image
+	var imageData *libimage.ImageData
 	if s.Rootfs != "" {
 		options = append(options, libpod.WithRootFS(s.Rootfs))
 	} else {
-		newImage, err = rt.ImageRuntime().NewFromLocal(s.Image)
+		var resolvedImageName string
+		newImage, resolvedImageName, err = rt.LibimageRuntime().LookupImage(s.Image, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		imageData, err = newImage.Inspect(ctx, false)
 		if err != nil {
 			return nil, err
 		}
@@ -98,15 +105,14 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		// image. Otherwise, it must have been an ID where we're
 		// defaulting to the first name or an empty one if no names are
 		// present.
-		imgName := newImage.InputName
-		if s.Image == newImage.InputName && strings.HasPrefix(newImage.ID(), s.Image) {
+		if strings.HasPrefix(newImage.ID(), resolvedImageName) {
 			names := newImage.Names()
 			if len(names) > 0 {
-				imgName = names[0]
+				resolvedImageName = names[0]
 			}
 		}
 
-		options = append(options, libpod.WithRootFSFromImage(newImage.ID(), imgName, s.RawImageName))
+		options = append(options, libpod.WithRootFSFromImage(newImage.ID(), resolvedImageName, s.RawImageName))
 	}
 	if err := s.Validate(); err != nil {
 		return nil, errors.Wrap(err, "invalid config provided")
@@ -117,12 +123,12 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		return nil, err
 	}
 
-	command, err := makeCommand(ctx, s, newImage, rtc)
+	command, err := makeCommand(ctx, s, imageData, rtc)
 	if err != nil {
 		return nil, err
 	}
 
-	opts, err := createContainerOptions(ctx, rt, s, pod, finalVolumes, finalOverlays, newImage, command)
+	opts, err := createContainerOptions(ctx, rt, s, pod, finalVolumes, finalOverlays, imageData, command)
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +182,7 @@ func extractCDIDevices(s *specgen.SpecGenerator) []libpod.CtrCreateOption {
 	return options
 }
 
-func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGenerator, pod *libpod.Pod, volumes []*specgen.NamedVolume, overlays []*specgen.OverlayVolume, img *image.Image, command []string) ([]libpod.CtrCreateOption, error) {
+func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGenerator, pod *libpod.Pod, volumes []*specgen.NamedVolume, overlays []*specgen.OverlayVolume, imageData *libimage.ImageData, command []string) ([]libpod.CtrCreateOption, error) {
 	var options []libpod.CtrCreateOption
 	var err error
 
@@ -202,11 +208,8 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	case "false":
 		break
 	case "", "true":
-		if len(command) == 0 {
-			command, err = img.Cmd(ctx)
-			if err != nil {
-				return nil, err
-			}
+		if len(command) == 0 && imageData != nil {
+			command = imageData.Config.Cmd
 		}
 
 		if len(command) > 0 {
@@ -308,13 +311,9 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	}
 	// If the user did not specify a workdir on the CLI, let's extract it
 	// from the image.
-	if s.WorkDir == "" && img != nil {
+	if s.WorkDir == "" && imageData != nil {
 		options = append(options, libpod.WithCreateWorkingDir())
-		wd, err := img.WorkingDir(ctx)
-		if err != nil {
-			return nil, err
-		}
-		s.WorkDir = wd
+		s.WorkDir = imageData.Config.WorkingDir
 	}
 	if s.WorkDir == "" {
 		s.WorkDir = "/"
@@ -367,7 +366,7 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	options = append(options, libpod.WithPrivileged(s.Privileged))
 
 	// Get namespace related options
-	namespaceOptions, err := namespaceOptions(ctx, s, rt, pod, img)
+	namespaceOptions, err := namespaceOptions(ctx, s, rt, pod, imageData)
 	if err != nil {
 		return nil, err
 	}

@@ -3,16 +3,15 @@ package buildah
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/containers/buildah/manifests"
 	"github.com/containers/buildah/pkg/blobcache"
 	"github.com/containers/buildah/util"
+	"github.com/containers/common/libimage/manifests"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
@@ -92,59 +91,6 @@ type CommitOptions struct {
 	MaxRetries int
 	// RetryDelay is how long to wait before retrying a commit attempt to a
 	// registry.
-	RetryDelay time.Duration
-	// OciEncryptConfig when non-nil indicates that an image should be encrypted.
-	// The encryption options is derived from the construction of EncryptConfig object.
-	OciEncryptConfig *encconfig.EncryptConfig
-	// OciEncryptLayers represents the list of layers to encrypt.
-	// If nil, don't encrypt any layers.
-	// If non-nil and len==0, denotes encrypt all layers.
-	// integers in the slice represent 0-indexed layer indices, with support for negative
-	// indexing. i.e. 0 is the first layer, -1 is the last (top-most) layer.
-	OciEncryptLayers *[]int
-}
-
-// PushOptions can be used to alter how an image is copied somewhere.
-type PushOptions struct {
-	// Compression specifies the type of compression which is applied to
-	// layer blobs.  The default is to not use compression, but
-	// archive.Gzip is recommended.
-	Compression archive.Compression
-	// SignaturePolicyPath specifies an override location for the signature
-	// policy which should be used for verifying the new image as it is
-	// being written.  Except in specific circumstances, no value should be
-	// specified, indicating that the shared, system-wide default policy
-	// should be used.
-	SignaturePolicyPath string
-	// ReportWriter is an io.Writer which will be used to log the writing
-	// of the new image.
-	ReportWriter io.Writer
-	// Store is the local storage store which holds the source image.
-	Store storage.Store
-	// github.com/containers/image/types SystemContext to hold credentials
-	// and other authentication/authorization information.
-	SystemContext *types.SystemContext
-	// ManifestType is the format to use when saving the image using the 'dir' transport
-	// possible options are oci, v2s1, and v2s2
-	ManifestType string
-	// BlobDirectory is the name of a directory in which we'll look for
-	// prebuilt copies of layer blobs that we might otherwise need to
-	// regenerate from on-disk layers, substituting them in the list of
-	// blobs to copy whenever possible.
-	BlobDirectory string
-	// Quiet is a boolean value that determines if minimal output to
-	// the user will be displayed, this is best used for logging.
-	// The default is false.
-	Quiet bool
-	// SignBy is the fingerprint of a GPG key to use for signing the image.
-	SignBy string
-	// RemoveSignatures causes any existing signatures for the image to be
-	// discarded for the pushed copy.
-	RemoveSignatures bool
-	// MaxRetries is the maximum number of attempts we'll make to push any
-	// one image to the external registry if the first attempt fails.
-	MaxRetries int
-	// RetryDelay is how long to wait before retrying a push attempt.
 	RetryDelay time.Duration
 	// OciEncryptConfig when non-nil indicates that an image should be encrypted.
 	// The encryption options is derived from the construction of EncryptConfig object.
@@ -239,7 +185,7 @@ func (b *Builder) addManifest(ctx context.Context, manifestName string, imageSpe
 		}
 	}
 
-	names, err := util.ExpandNames([]string{manifestName}, "", systemContext, b.store)
+	names, err := util.ExpandNames([]string{manifestName}, systemContext, b.store)
 	if err != nil {
 		return "", errors.Wrapf(err, "error encountered while expanding image name %q", manifestName)
 	}
@@ -340,30 +286,6 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 		systemContext.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 		systemContext.OCIInsecureSkipTLSVerify = true
 		systemContext.DockerDaemonInsecureSkipTLSVerify = true
-	}
-	if len(options.AdditionalTags) > 0 {
-		names, err := util.ExpandNames(options.AdditionalTags, "", systemContext, b.store)
-		if err != nil {
-			return imgID, nil, "", err
-		}
-		for _, name := range names {
-			additionalDest, err := docker.Transport.ParseReference(name)
-			if err != nil {
-				return imgID, nil, "", errors.Wrapf(err, "error parsing image name %q as an image reference", name)
-			}
-			insecure, err := checkRegistrySourcesAllows("commit to", additionalDest)
-			if err != nil {
-				return imgID, nil, "", err
-			}
-			if insecure {
-				if systemContext.DockerInsecureSkipTLSVerify == types.OptionalBoolFalse {
-					return imgID, nil, "", errors.Errorf("can't require tls verification on an insecured registry")
-				}
-				systemContext.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
-				systemContext.OCIInsecureSkipTLSVerify = true
-				systemContext.DockerDaemonInsecureSkipTLSVerify = true
-			}
-		}
 	}
 	logrus.Debugf("committing image with reference %q is allowed by policy", transports.ImageName(dest))
 
@@ -494,98 +416,4 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 
 	}
 	return imgID, ref, manifestDigest, nil
-}
-
-// Push copies the contents of the image to a new location.
-func Push(ctx context.Context, image string, dest types.ImageReference, options PushOptions) (reference.Canonical, digest.Digest, error) {
-	systemContext := getSystemContext(options.Store, options.SystemContext, options.SignaturePolicyPath)
-
-	if options.Quiet {
-		options.ReportWriter = nil // Turns off logging output
-	}
-	blocked, err := isReferenceBlocked(dest, systemContext)
-	if err != nil {
-		return nil, "", errors.Wrapf(err, "error checking if pushing to registry for %q is blocked", transports.ImageName(dest))
-	}
-	if blocked {
-		return nil, "", errors.Errorf("push access to registry for %q is blocked by configuration", transports.ImageName(dest))
-	}
-
-	// Load the system signing policy.
-	pushPolicy, err := signature.DefaultPolicy(systemContext)
-	if err != nil {
-		return nil, "", errors.Wrapf(err, "error obtaining default signature policy")
-	}
-	// Override the settings for local storage to make sure that we can always read the source "image".
-	pushPolicy.Transports[is.Transport.Name()] = storageAllowedPolicyScopes
-
-	policyContext, err := signature.NewPolicyContext(pushPolicy)
-	if err != nil {
-		return nil, "", errors.Wrapf(err, "error creating new signature policy context")
-	}
-	defer func() {
-		if err2 := policyContext.Destroy(); err2 != nil {
-			logrus.Debugf("error destroying signature policy context: %v", err2)
-		}
-	}()
-
-	// Look up the image.
-	src, _, err := util.FindImage(options.Store, "", systemContext, image)
-	if err != nil {
-		return nil, "", err
-	}
-	maybeCachedSrc := src
-	if options.BlobDirectory != "" {
-		compress := types.PreserveOriginal
-		if options.Compression != archive.Uncompressed {
-			compress = types.Compress
-		}
-		cache, err := blobcache.NewBlobCache(src, options.BlobDirectory, compress)
-		if err != nil {
-			return nil, "", errors.Wrapf(err, "error wrapping image reference %q in blob cache at %q", transports.ImageName(src), options.BlobDirectory)
-		}
-		maybeCachedSrc = cache
-	}
-
-	// Check if the push is blocked by $BUILDER_REGISTRY_SOURCES.
-	insecure, err := checkRegistrySourcesAllows("push to", dest)
-	if err != nil {
-		return nil, "", err
-	}
-	if insecure {
-		if systemContext.DockerInsecureSkipTLSVerify == types.OptionalBoolFalse {
-			return nil, "", errors.Errorf("can't require tls verification on an insecured registry")
-		}
-		systemContext.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
-		systemContext.OCIInsecureSkipTLSVerify = true
-		systemContext.DockerDaemonInsecureSkipTLSVerify = true
-	}
-	logrus.Debugf("pushing image to reference %q is allowed by policy", transports.ImageName(dest))
-
-	// Copy everything.
-	switch options.Compression {
-	case archive.Uncompressed:
-		systemContext.OCIAcceptUncompressedLayers = true
-	case archive.Gzip:
-		systemContext.DirForceCompress = true
-	}
-	var manifestBytes []byte
-	if manifestBytes, err = retryCopyImage(ctx, policyContext, dest, maybeCachedSrc, dest, getCopyOptions(options.Store, options.ReportWriter, nil, systemContext, options.ManifestType, options.RemoveSignatures, options.SignBy, options.OciEncryptLayers, options.OciEncryptConfig, nil), options.MaxRetries, options.RetryDelay); err != nil {
-		return nil, "", errors.Wrapf(err, "error copying layers and metadata from %q to %q", transports.ImageName(maybeCachedSrc), transports.ImageName(dest))
-	}
-	if options.ReportWriter != nil {
-		fmt.Fprintf(options.ReportWriter, "")
-	}
-	manifestDigest, err := manifest.Digest(manifestBytes)
-	if err != nil {
-		return nil, "", errors.Wrapf(err, "error computing digest of manifest of new image %q", transports.ImageName(dest))
-	}
-	var ref reference.Canonical
-	if name := dest.DockerReference(); name != nil {
-		ref, err = reference.WithDigest(name, manifestDigest)
-		if err != nil {
-			logrus.Warnf("error generating canonical reference with name %q and digest %s: %v", name, manifestDigest.String(), err)
-		}
-	}
-	return ref, manifestDigest, nil
 }

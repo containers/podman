@@ -3,6 +3,7 @@ package compat
 import (
 	"net/http"
 
+	"github.com/containers/common/libimage"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/api/handlers"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
@@ -13,7 +14,8 @@ func HistoryImage(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := utils.GetName(r)
 
-	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
+	lookupOptions := &libimage.LookupImageOptions{IgnorePlatform: true}
+	newImage, _, err := runtime.LibimageRuntime().LookupImage(name, lookupOptions)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "failed to find image %s", name))
 		return

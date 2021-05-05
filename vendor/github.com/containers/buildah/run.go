@@ -134,4 +134,9 @@ type RunOptions struct {
 	DropCapabilities []string
 	// Devices are the additional devices to add to the containers
 	Devices define.ContainerDevices
+	// Secrets are the available secrets to use in a RUN
+	Secrets map[string]string
+	// RunMounts are mounts for this run. RunMounts for this run
+	// will not show up in subsequent runs.
+	RunMounts []string
 }

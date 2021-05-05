@@ -1842,7 +1842,7 @@ func (c *Container) cleanup(ctx context.Context) error {
 
 	// Unmount image volumes
 	for _, v := range c.config.ImageVolumes {
-		img, err := c.runtime.ImageRuntime().NewFromLocal(v.Source)
+		img, _, err := c.runtime.LibimageRuntime().LookupImage(v.Source, nil)
 		if err != nil {
 			if lastError == nil {
 				lastError = err

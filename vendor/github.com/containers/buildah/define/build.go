@@ -69,6 +69,8 @@ type CommonBuildOptions struct {
 	Ulimit []string
 	// Volumes to bind mount into the container
 	Volumes []string
+	// Secrets are the available secrets to use in a build
+	Secrets []string
 }
 
 // BuildOptions can be used to alter how an image is built.

@@ -9,7 +9,6 @@ import (
 	"github.com/containers/podman/v3/pkg/bindings"
 	"github.com/containers/podman/v3/pkg/bindings/containers"
 	"github.com/containers/podman/v3/pkg/bindings/images"
-	dreports "github.com/containers/podman/v3/pkg/domain/entities/reports"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -116,7 +115,7 @@ var _ = Describe("Podman images", func() {
 		// Removing the image "alpine" where force = true
 		options := new(images.RemoveOptions).WithForce(true)
 		response, errs = images.Remove(bt.conn, []string{alpine.shortName}, options)
-		Expect(len(errs)).To(BeZero())
+		Expect(errs).To(BeNil())
 		// To be extra sure, check if the previously created container
 		// is gone as well.
 		_, err = containers.Inspect(bt.conn, "top", nil)
@@ -346,7 +345,6 @@ var _ = Describe("Podman images", func() {
 		results, err := images.Prune(bt.conn, options)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(results)).To(BeNumerically(">", 0))
-		Expect(dreports.PruneReportsIds(results)).To(ContainElement("docker.io/library/alpine:latest"))
 	})
 
 	// TODO: we really need to extent to pull tests once we have a more sophisticated CI.

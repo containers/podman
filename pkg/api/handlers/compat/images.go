@@ -4,23 +4,24 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
 
 	"github.com/containers/buildah"
+	"github.com/containers/common/libimage"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod"
-	image2 "github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/pkg/api/handlers"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/containers/podman/v3/pkg/auth"
 	"github.com/containers/podman/v3/pkg/channel"
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/containers/podman/v3/pkg/util"
+	"github.com/containers/podman/v3/pkg/domain/infra/abi"
+	"github.com/containers/storage"
 	"github.com/gorilla/schema"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
@@ -47,26 +48,35 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 	// 500 server
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
-	name := utils.GetName(r)
-	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
-	if err != nil {
-		utils.ImageNotFound(w, name, errors.Wrapf(err, "failed to find image %s", name))
-		return
-	}
 	tmpfile, err := ioutil.TempFile("", "api.tar")
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
 		return
 	}
 	defer os.Remove(tmpfile.Name())
+
+	name := utils.GetName(r)
+	imageEngine := abi.ImageEngine{Libpod: runtime}
+
+	saveOptions := entities.ImageSaveOptions{
+		Format: "docker-archive",
+		Output: tmpfile.Name(),
+	}
+
+	if err := imageEngine.Save(r.Context(), name, nil, saveOptions); err != nil {
+		if errors.Cause(err) == storage.ErrImageUnknown {
+			utils.ImageNotFound(w, name, errors.Wrapf(err, "failed to find image %s", name))
+			return
+		}
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
+		return
+	}
+
 	if err := tmpfile.Close(); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to close tempfile"))
 		return
 	}
-	if err := newImage.Save(r.Context(), name, "docker-archive", tmpfile.Name(), []string{}, false, false, true); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to save image"))
-		return
-	}
+
 	rdr, err := os.Open(tmpfile.Name())
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to read the exported tarfile"))
@@ -105,7 +115,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
-	sc := image2.GetSystemContext(rtc.Engine.SignaturePolicyPath, "", false)
+	sc := runtime.SystemContext()
 	tag := "latest"
 	options := libpod.ContainerCommitOptions{
 		Pause: true,
@@ -180,18 +190,11 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to write temporary file"))
 		}
 	}
-	iid, err := runtime.Import(r.Context(), source, "", "", query.Changes, "", false)
+
+	imageEngine := abi.ImageEngine{Libpod: runtime}
+	report, err := imageEngine.Import(r.Context(), entities.ImageImportOptions{Source: source, Changes: query.Changes})
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to import tarball"))
-		return
-	}
-	tmpfile, err := ioutil.TempFile("", "fromsrc.tar")
-	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
-		return
-	}
-	if err := tmpfile.Close(); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to close tempfile"))
 		return
 	}
 	// Success
@@ -201,9 +204,9 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 		ProgressDetail map[string]string `json:"progressDetail"`
 		Id             string            `json:"id"` // nolint
 	}{
-		Status:         iid,
+		Status:         report.Id,
 		ProgressDetail: map[string]string{},
-		Id:             iid,
+		Id:             report.Id,
 	})
 }
 
@@ -235,36 +238,34 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer auth.RemoveAuthfile(authfile)
 
-	registryOpts := image2.DockerRegistryOptions{DockerRegistryCreds: authConf}
-	if sys := runtime.SystemContext(); sys != nil {
-		registryOpts.DockerCertPath = sys.DockerCertPath
+	pullOptions := &libimage.PullOptions{}
+	pullOptions.AuthFilePath = authfile
+	if authConf != nil {
+		pullOptions.Username = authConf.Username
+		pullOptions.Password = authConf.Password
+		pullOptions.IdentityToken = authConf.IdentityToken
 	}
+	pullOptions.Writer = os.Stderr // allows for debugging on the server
 
 	stderr := channel.NewWriter(make(chan []byte))
 	defer stderr.Close()
 
 	progress := make(chan types.ProgressProperties)
+	pullOptions.Progress = progress
 
 	var img string
 	runCtx, cancel := context.WithCancel(context.Background())
 	go func() {
 		defer cancel()
-
-		newImage, err := runtime.ImageRuntime().New(
-			runCtx,
-			fromImage,
-			"", // signature policy
-			authfile,
-			nil, // writer
-			&registryOpts,
-			image2.SigningOptions{},
-			nil, // label
-			util.PullImageAlways,
-			progress)
+		pulledImages, err := runtime.LibimageRuntime().Pull(runCtx, fromImage, config.PullPolicyAlways, pullOptions)
 		if err != nil {
 			stderr.Write([]byte(err.Error() + "\n"))
 		} else {
-			img = newImage.ID()
+			if len(pulledImages) == 0 {
+				utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.New("internal error: no images pulled"))
+				return
+			}
+			img = pulledImages[0].ID()
 		}
 	}()
 
@@ -347,7 +348,7 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// Here we need to fiddle with the error message because docker-py is looking for "No
 		// such image" to determine on how to raise the correct exception.
-		errMsg := strings.ReplaceAll(err.Error(), "no such image", "No such image")
+		errMsg := strings.ReplaceAll(err.Error(), "image not known", "No such image")
 		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Errorf("failed to find image %s: %s", name, errMsg))
 		return
 	}
@@ -379,13 +380,14 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 
 func LoadImages(w http.ResponseWriter, r *http.Request) {
 	// TODO this is basically wrong
+	// TODO ... improve these ^ messages to something useful
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
 	query := struct {
-		Changes map[string]string `json:"changes"`
-		Message string            `json:"message"`
-		Quiet   bool              `json:"quiet"`
+		Changes map[string]string `json:"changes"` // Ignored
+		Message string            `json:"message"` // Ignored
+		Quiet   bool              `json:"quiet"`   // Ignored
 	}{
 		// This is where you can override the golang default value for one of fields
 	}
@@ -395,10 +397,8 @@ func LoadImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var (
-		err    error
-		writer io.Writer
-	)
+	// First write the body to a temporary file that we can later attempt
+	// to load.
 	f, err := ioutil.TempFile("", "api_load.tar")
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to create tempfile"))
@@ -414,15 +414,25 @@ func LoadImages(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to write temporary file"))
 		return
 	}
-	id, err := runtime.LoadImage(r.Context(), f.Name(), writer, "")
+
+	imageEngine := abi.ImageEngine{Libpod: runtime}
+
+	loadOptions := entities.ImageLoadOptions{Input: f.Name()}
+	loadReport, err := imageEngine.Load(r.Context(), loadOptions)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to load image"))
 		return
 	}
+
+	if len(loadReport.Names) != 1 {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Errorf("%d instead of 1 were loaded", len(loadReport.Names)))
+		return
+	}
+
 	utils.WriteResponse(w, http.StatusOK, struct {
 		Stream string `json:"stream"`
 	}{
-		Stream: fmt.Sprintf("Loaded image: %s\n", id),
+		Stream: fmt.Sprintf("Loaded image: %s\n", loadReport.Names[0]),
 	})
 }
 
@@ -453,10 +463,15 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to close tempfile"))
 		return
 	}
-	if err := runtime.ImageRuntime().SaveImages(r.Context(), images, "docker-archive", tmpfile.Name(), false, true); err != nil {
+
+	imageEngine := abi.ImageEngine{Libpod: runtime}
+
+	saveOptions := entities.ImageSaveOptions{Output: tmpfile.Name()}
+	if err := imageEngine.Save(r.Context(), images[0], images[1:], saveOptions); err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
+
 	rdr, err := os.Open(tmpfile.Name())
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to read the exported tarfile"))

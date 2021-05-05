@@ -142,7 +142,7 @@ echo $rand        |   0 | $rand
     NONLOCAL_IMAGE="$PODMAN_NONLOCAL_IMAGE_FQN"
 
     run_podman 125 run --pull=never $NONLOCAL_IMAGE true
-    is "$output" "Error: unable to find a name and tag match for $NONLOCAL_IMAGE in repotags: no such image" "--pull=never [with image not present]: error"
+    is "$output" "Error: $NONLOCAL_IMAGE: image not known" "--pull=never [with image not present]: error"
 
     run_podman run --pull=missing $NONLOCAL_IMAGE true
     is "$output" "Trying to pull .*" "--pull=missing [with image NOT PRESENT]: fetches"
@@ -153,13 +153,11 @@ echo $rand        |   0 | $rand
     run_podman run --pull=always $NONLOCAL_IMAGE true
     is "$output" "Trying to pull .*" "--pull=always [with image PRESENT]: re-fetches"
 
-    # Very weird corner case fixed by #7770: 'podman run foo' will run 'myfoo'
-    # if it exists, because the string 'foo' appears in 'myfoo'. This test
-    # covers that, as well as making sure that our testimage (which is always
-    # tagged :YYYYMMDD, never :latest) doesn't match either.
-    run_podman tag $IMAGE my${PODMAN_TEST_IMAGE_NAME}:latest
-    run_podman 125 run --pull=never $PODMAN_TEST_IMAGE_NAME true
-    is "$output" "Error: unable to find a name and tag match for $PODMAN_TEST_IMAGE_NAME in repotags: no such image" \
+    # NOTE: older version of podman would match "foo" against "myfoo". That
+    # behaviour was changed with introduction of `containers/common/libimage`
+    # which will only match at repository boundaries (/).
+    run_podman 125 run --pull=never my$PODMAN_TEST_IMAGE_NAME true
+    is "$output" "Error: my$PODMAN_TEST_IMAGE_NAME: image not known" \
        "podman run --pull=never with shortname (and implicit :latest)"
 
     # ...but if we add a :latest tag (without 'my'), it should now work
@@ -169,7 +167,7 @@ echo $rand        |   0 | $rand
        "podman run --pull=never, with shortname, succeeds if img is present"
 
     run_podman rm -a
-    run_podman rmi $NONLOCAL_IMAGE {my,}${PODMAN_TEST_IMAGE_NAME}:latest
+    run_podman rmi $NONLOCAL_IMAGE ${PODMAN_TEST_IMAGE_NAME}:latest
 }
 
 # 'run --rmi' deletes the image in the end unless it's used by another container
@@ -243,7 +241,7 @@ echo $rand        |   0 | $rand
     # Save it as a tar archive
     run_podman commit myc myi
     archive=$PODMAN_TMPDIR/archive.tar
-    run_podman save myi -o $archive
+    run_podman save --quiet myi -o $archive
     is "$output" "" "podman save"
 
     # Clean up image and container from container storage...

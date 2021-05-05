@@ -94,6 +94,8 @@ func add(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// FIXME: (@vrothberg) this interface confuses me a lot.  Why are they
+	// not two arguments?
 	manifestAddOpts.Images = []string{args[1], args[0]}
 
 	if manifestAddOpts.CredentialsCLI != "" {

@@ -10,17 +10,17 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/common/libimage"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/libpod/image"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/specgen/generate"
 	"github.com/containers/podman/v3/pkg/specgen/generate/kube"
 	"github.com/containers/podman/v3/pkg/util"
-	"github.com/docker/distribution/reference"
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -154,10 +154,9 @@ func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAM
 
 func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec, options entities.PlayKubeOptions, ipIndex *int) (*entities.PlayKubeReport, error) {
 	var (
-		registryCreds *types.DockerAuthConfig
-		writer        io.Writer
-		playKubePod   entities.PlayKubePod
-		report        entities.PlayKubeReport
+		writer      io.Writer
+		playKubePod entities.PlayKubePod
+		report      entities.PlayKubeReport
 	)
 
 	// Create the secret manager before hand
@@ -220,19 +219,6 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		writer = os.Stderr
 	}
 
-	if len(options.Username) > 0 && len(options.Password) > 0 {
-		registryCreds = &types.DockerAuthConfig{
-			Username: options.Username,
-			Password: options.Password,
-		}
-	}
-
-	dockerRegistryOptions := image.DockerRegistryOptions{
-		DockerRegistryCreds:         registryCreds,
-		DockerCertPath:              options.CertDir,
-		DockerInsecureSkipTLSVerify: options.SkipTLSVerify,
-	}
-
 	volumes, err := kube.InitializeVolumes(podYAML.Spec.Volumes)
 	if err != nil {
 		return nil, err
@@ -273,35 +259,36 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 
 	containers := make([]*libpod.Container, 0, len(podYAML.Spec.Containers))
 	for _, container := range podYAML.Spec.Containers {
-		pullPolicy := util.PullImageMissing
+		// NOTE: set the pull policy to "newer".  This will cover cases
+		// where the "latest" tag requires a pull and will also
+		// transparently handle "localhost/" prefixed files which *may*
+		// refer to a locally built image OR an image running a
+		// registry on localhost.
+		pullPolicy := config.PullPolicyNewer
 		if len(container.ImagePullPolicy) > 0 {
-			pullPolicy, err = util.ValidatePullType(string(container.ImagePullPolicy))
+			pullPolicy, err = config.ParsePullPolicy(string(container.ImagePullPolicy))
 			if err != nil {
 				return nil, err
 			}
 		}
-		named, err := reference.ParseNormalizedNamed(container.Image)
-		if err != nil {
-			return nil, errors.Wrapf(err, "Failed to parse image %q", container.Image)
-		}
-		// In kube, if the image is tagged with latest, it should always pull
-		// but if the domain is localhost, that means the image was built locally
-		// so do not attempt a pull.
-		if tagged, isTagged := named.(reference.NamedTagged); isTagged {
-			if tagged.Tag() == image.LatestTag && reference.Domain(named) != image.DefaultLocalRegistry {
-				pullPolicy = util.PullImageAlways
-			}
-		}
-
 		// This ensures the image is the image store
-		newImage, err := ic.Libpod.ImageRuntime().New(ctx, container.Image, options.SignaturePolicy, options.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, nil, pullPolicy, nil)
+		pullOptions := &libimage.PullOptions{}
+		pullOptions.AuthFilePath = options.Authfile
+		pullOptions.CertDirPath = options.CertDir
+		pullOptions.SignaturePolicyPath = options.SignaturePolicy
+		pullOptions.Writer = writer
+		pullOptions.Username = options.Username
+		pullOptions.Password = options.Password
+		pullOptions.InsecureSkipTLSVerify = options.SkipTLSVerify
+
+		pulledImages, err := ic.Libpod.LibimageRuntime().Pull(ctx, container.Image, pullPolicy, pullOptions)
 		if err != nil {
 			return nil, err
 		}
 
 		specgenOpts := kube.CtrSpecGenOptions{
 			Container:      container,
-			Image:          newImage,
+			Image:          pulledImages[0],
 			Volumes:        volumes,
 			PodID:          pod.ID(),
 			PodName:        podName,
