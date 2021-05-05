@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 
+	"github.com/containers/image/v5/docker/reference"
 	publicTypes "github.com/containers/image/v5/types"
 )
 
@@ -50,4 +51,6 @@ type TryReusingBlobOptions struct {
 	CanSubstitute bool
 	// The corresponding index in the layer slice.
 	LayerIndex *int
+	// The reference of the image that contains the target blob.
+	SrcRef reference.Named
 }
