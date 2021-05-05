@@ -270,7 +270,7 @@ var _ = Describe("Podman ps", func() {
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(result.OutputToString()).To(Equal(cid))
 
-		// Query by trunctated image name should not match ( should return empty output )
+		// Query by truncated image name should not match ( should return empty output )
 		result = podmanTest.Podman([]string{"ps", "-q", "--no-trunc", "-a", "--filter", "ancestor=quay.io/libpod/alpi"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))

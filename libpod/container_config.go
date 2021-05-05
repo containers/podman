@@ -301,7 +301,7 @@ type ContainerMiscConfig struct {
 	StopSignal uint `json:"stopSignal,omitempty"`
 	// StopTimeout is the signal that will be used to stop the container
 	StopTimeout uint `json:"stopTimeout,omitempty"`
-	// Timeout is maximimum time a container will run before getting the kill signal
+	// Timeout is maximum time a container will run before getting the kill signal
 	Timeout uint `json:"timeout,omitempty"`
 	// Time container was created
 	CreatedTime time.Time `json:"createdTime"`

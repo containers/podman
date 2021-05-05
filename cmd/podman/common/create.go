@@ -277,7 +277,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 	createFlags.StringSliceVar(
 		&cf.GroupAdd,
 		groupAddFlagName, []string{},
-		"Add additional groups to the primary container process. 'keep-groups' allows container processes to use suplementary groups.",
+		"Add additional groups to the primary container process. 'keep-groups' allows container processes to use supplementary groups.",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(groupAddFlagName, completion.AutocompleteNone)
 
