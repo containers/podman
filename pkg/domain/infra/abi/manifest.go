@@ -320,6 +320,11 @@ func (ir *ImageEngine) ManifestRemove(ctx context.Context, names []string) (stri
 	return manifestList.ID(), nil
 }
 
+// ManifestRm removes the specified manifest list from storage
+func (ir *ImageEngine) ManifestRm(ctx context.Context, names []string) (report *entities.ImageRemoveReport, rmErrors []error) {
+	return ir.Remove(ctx, names, entities.ImageRemoveOptions{})
+}
+
 // ManifestPush pushes a manifest list or image index to the destination
 func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination string, opts entities.ImagePushOptions) (string, error) {
 	manifestList, err := ir.Libpod.LibimageRuntime().LookupManifestList(name)

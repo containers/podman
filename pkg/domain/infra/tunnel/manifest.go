@@ -83,6 +83,11 @@ func (ir *ImageEngine) ManifestRemove(ctx context.Context, names []string) (stri
 	return fmt.Sprintf("%s :%s\n", updatedListID, names[1]), nil
 }
 
+// ManifestRm removes the specified manifest list from storage
+func (ir *ImageEngine) ManifestRm(ctx context.Context, names []string) (*entities.ImageRemoveReport, []error) {
+	return ir.Remove(ctx, names, entities.ImageRemoveOptions{})
+}
+
 // ManifestPush pushes a manifest list or image index to the destination
 func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination string, opts entities.ImagePushOptions) (string, error) {
 	options := new(images.PushOptions)

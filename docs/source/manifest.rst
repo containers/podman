@@ -14,3 +14,5 @@ Create and manipulate manifest lists and image indexes
 :doc:`push <markdown/podman-manifest-push.1>` Push a manifest list or image index to a registry
 
 :doc:`remove <markdown/podman-manifest-remove.1>` Remove an image from a manifest list or image index
+
+:doc:`rm <markdown/podman-manifest-rm.1>` Remove manifest list or image index from local storage
