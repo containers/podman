@@ -1703,6 +1703,28 @@ func WithSecrets(secretNames []string) CtrCreateOption {
 	}
 }
 
+// WithSecrets adds environment variable secrets to the container
+func WithEnvSecrets(envSecrets map[string]string) CtrCreateOption {
+	return func(ctr *Container) error {
+		ctr.config.EnvSecrets = make(map[string]*secrets.Secret)
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		manager, err := secrets.NewManager(ctr.runtime.GetSecretsStorageDir())
+		if err != nil {
+			return err
+		}
+		for target, src := range envSecrets {
+			secr, err := manager.Lookup(src)
+			if err != nil {
+				return err
+			}
+			ctr.config.EnvSecrets[target] = secr
+		}
+		return nil
+	}
+}
+
 // WithPidFile adds pidFile to the container
 func WithPidFile(pidFile string) CtrCreateOption {
 	return func(ctr *Container) error {
