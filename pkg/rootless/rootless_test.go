@@ -98,4 +98,61 @@ func TestMaybeSplitMappings(t *testing.T) {
 	if !reflect.DeepEqual(newMappings, desiredMappings) {
 		t.Fatal("wrong mappings generated")
 	}
+
+	mappings = []spec.LinuxIDMapping{
+		{
+			ContainerID: 0,
+			HostID:      0,
+			Size:        4,
+		},
+	}
+	desiredMappings = []spec.LinuxIDMapping{
+		{
+			ContainerID: 0,
+			HostID:      0,
+			Size:        1,
+		},
+		{
+			ContainerID: 1,
+			HostID:      1,
+			Size:        1,
+		},
+		{
+			ContainerID: 2,
+			HostID:      2,
+			Size:        1,
+		},
+		{
+			ContainerID: 3,
+			HostID:      3,
+			Size:        1,
+		},
+	}
+	availableMappings = []user.IDMap{
+		{
+			ID:       0,
+			ParentID: 0,
+			Count:    1,
+		},
+		{
+			ID:       1,
+			ParentID: 1,
+			Count:    1,
+		},
+		{
+			ID:       2,
+			ParentID: 2,
+			Count:    1,
+		},
+		{
+			ID:       3,
+			ParentID: 3,
+			Count:    1,
+		},
+	}
+
+	newMappings = MaybeSplitMappings(mappings, availableMappings)
+	if !reflect.DeepEqual(newMappings, desiredMappings) {
+		t.Fatal("wrong mappings generated")
+	}
 }

@@ -137,7 +137,7 @@ func GetAvailableGids() (int64, error) {
 // It assumes availableMappings is sorted by ID.
 func findIDInMappings(id int64, availableMappings []user.IDMap) *user.IDMap {
 	i := sort.Search(len(availableMappings), func(i int) bool {
-		return availableMappings[i].ID >= id
+		return availableMappings[i].ID <= id
 	})
 	if i < 0 || i >= len(availableMappings) {
 		return nil
@@ -157,7 +157,7 @@ func MaybeSplitMappings(mappings []spec.LinuxIDMapping, availableMappings []user
 	overflow.Size = 0
 	consumed := 0
 	sort.Slice(availableMappings, func(i, j int) bool {
-		return availableMappings[i].ID < availableMappings[j].ID
+		return availableMappings[i].ID > availableMappings[j].ID
 	})
 	for {
 		cur := overflow
