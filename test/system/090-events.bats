@@ -25,3 +25,39 @@ load helpers
     run_podman events --filter type=container --filter container=$cname --filter event=start --stream=false
     is "$output" "$expect" "filtering just by label"
 }
+
+@test "image events" {
+    skip_if_remote "FIXME: remove events on podman-remote seem to be broken"
+    pushedDir=$PODMAN_TMPDIR/dir
+    mkdir -p $pushedDir
+
+    tarball=$PODMAN_TMPDIR/ball.tar
+
+    run_podman image inspect --format "{{.ID}}" $IMAGE
+    imageID="$output"
+
+    t0=$(date --iso-8601=seconds)
+    tag=registry.com/$(random_string 10 | tr A-Z a-z)
+
+    # Force using the file backend since the journal backend is eating events
+    # (see containers/podman/pull/10219#issuecomment-842325032).
+    run_podman --events-backend=file push $IMAGE dir:$pushedDir
+    run_podman --events-backend=file save $IMAGE -o $tarball
+    run_podman --events-backend=file load -i $tarball
+    run_podman --events-backend=file pull docker-archive:$tarball
+    run_podman --events-backend=file tag $IMAGE $tag
+    run_podman --events-backend=file untag $IMAGE $tag
+    run_podman --events-backend=file tag $IMAGE $tag
+    run_podman --events-backend=file rmi $tag
+
+    run_podman --events-backend=file events --stream=false --filter type=image --since $t0
+    is "$output" ".*image push $imageID dir:$pushedDir
+.*image save $imageID $tarball
+.*image loadfromarchive *$tarball
+.*image pull *docker-archive:$tarball
+.*image tag $imageID $tag
+.*image untag $imageID $tag:latest
+.*image tag $imageID $tag
+.*image remove $imageID $tag.*" \
+       "podman events"
+}
