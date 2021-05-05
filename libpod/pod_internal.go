@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -74,9 +75,11 @@ func (p *Pod) refresh() error {
 			}
 			p.state.CgroupPath = cgroupPath
 		case config.CgroupfsCgroupsManager:
-			p.state.CgroupPath = filepath.Join(p.config.CgroupParent, p.ID())
+			if rootless.IsRootless() && isRootlessCgroupSet(p.config.CgroupParent) {
+				p.state.CgroupPath = filepath.Join(p.config.CgroupParent, p.ID())
 
-			logrus.Debugf("setting pod cgroup to %s", p.state.CgroupPath)
+				logrus.Debugf("setting pod cgroup to %s", p.state.CgroupPath)
+			}
 		default:
 			return errors.Wrapf(define.ErrInvalidArg, "unknown cgroups manager %s specified", p.runtime.config.Engine.CgroupManager)
 		}

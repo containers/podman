@@ -75,17 +75,20 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (_ *Po
 	// Check CGroup parent sanity, and set it if it was not set
 	switch r.config.Engine.CgroupManager {
 	case config.CgroupfsCgroupsManager:
-		if pod.config.CgroupParent == "" {
-			pod.config.CgroupParent = CgroupfsDefaultCgroupParent
-		} else if strings.HasSuffix(path.Base(pod.config.CgroupParent), ".slice") {
-			return nil, errors.Wrapf(define.ErrInvalidArg, "systemd slice received as cgroup parent when using cgroupfs")
-		}
-		// If we are set to use pod cgroups, set the cgroup parent that
-		// all containers in the pod will share
-		// No need to create it with cgroupfs - the first container to
-		// launch should do it for us
-		if pod.config.UsePodCgroup {
-			pod.state.CgroupPath = filepath.Join(pod.config.CgroupParent, pod.ID())
+		canUseCgroup := !rootless.IsRootless() || isRootlessCgroupSet(pod.config.CgroupParent)
+		if canUseCgroup {
+			if pod.config.CgroupParent == "" {
+				pod.config.CgroupParent = CgroupfsDefaultCgroupParent
+			} else if strings.HasSuffix(path.Base(pod.config.CgroupParent), ".slice") {
+				return nil, errors.Wrapf(define.ErrInvalidArg, "systemd slice received as cgroup parent when using cgroupfs")
+			}
+			// If we are set to use pod cgroups, set the cgroup parent that
+			// all containers in the pod will share
+			// No need to create it with cgroupfs - the first container to
+			// launch should do it for us
+			if pod.config.UsePodCgroup {
+				pod.state.CgroupPath = filepath.Join(pod.config.CgroupParent, pod.ID())
+			}
 		}
 	case config.SystemdCgroupsManager:
 		if pod.config.CgroupParent == "" {

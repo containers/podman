@@ -295,7 +295,10 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 					if podCgroup == "" {
 						return nil, errors.Wrapf(define.ErrInternal, "pod %s cgroup is not set", pod.ID())
 					}
-					ctr.config.CgroupParent = podCgroup
+					canUseCgroup := !rootless.IsRootless() || isRootlessCgroupSet(podCgroup)
+					if canUseCgroup {
+						ctr.config.CgroupParent = podCgroup
+					}
 				} else if !rootless.IsRootless() {
 					ctr.config.CgroupParent = CgroupfsDefaultCgroupParent
 				}

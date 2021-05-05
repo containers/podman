@@ -2216,6 +2216,17 @@ func (c *Container) generatePasswdAndGroup() (string, string, error) {
 	return passwdPath, groupPath, nil
 }
 
+func isRootlessCgroupSet(cgroup string) bool {
+	// old versions of podman were setting the CgroupParent to CgroupfsDefaultCgroupParent
+	// by default.  Avoid breaking these versions and check whether the cgroup parent is
+	// set to the default and in this case enable the old behavior.  It should not be a real
+	// problem because the default CgroupParent is usually owned by root so rootless users
+	// cannot access it.
+	// This check might be lifted in a future version of Podman.
+	// Check both that the cgroup or its parent is set to the default value (used by pods).
+	return cgroup != CgroupfsDefaultCgroupParent && filepath.Dir(cgroup) != CgroupfsDefaultCgroupParent
+}
+
 // Get cgroup path in a format suitable for the OCI spec
 func (c *Container) getOCICgroupPath() (string, error) {
 	unified, err := cgroups.IsCgroup2UnifiedMode()
@@ -2227,13 +2238,7 @@ func (c *Container) getOCICgroupPath() (string, error) {
 	case c.config.NoCgroups:
 		return "", nil
 	case (rootless.IsRootless() && (cgroupManager == config.CgroupfsCgroupsManager || !unified)):
-		if c.config.CgroupParent == CgroupfsDefaultCgroupParent {
-			// old versions of podman were setting the CgroupParent to CgroupfsDefaultCgroupParent
-			// by default.  Avoid breaking these versions and check whether the cgroup parent is
-			// set to the default and in this case enable the old behavior.  It should not be a real
-			// problem because the default CgroupParent is usually owned by root so rootless users
-			// cannot access it.
-			// This check might be lifted in a future version of Podman.
+		if !isRootlessCgroupSet(c.config.CgroupParent) {
 			return "", nil
 		}
 		return c.config.CgroupParent, nil
