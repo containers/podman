@@ -2,6 +2,7 @@ package pods
 
 import (
 	"fmt"
+	"net"
 	"os"
 
 	"github.com/containers/common/pkg/auth"
@@ -27,6 +28,7 @@ type playKubeOptionsWrapper struct {
 }
 
 var (
+	macs []string
 	// https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/
 	defaultSeccompRoot = "/var/lib/kubelet/seccomp"
 	kubeOptions        = playKubeOptionsWrapper{}
@@ -60,6 +62,10 @@ func init() {
 	credsFlagName := "creds"
 	flags.StringVar(&kubeOptions.CredentialsCLI, credsFlagName, "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
 	_ = kubeCmd.RegisterFlagCompletionFunc(credsFlagName, completion.AutocompleteNone)
+
+	staticMACFlagName := "mac-address"
+	flags.StringSliceVar(&macs, staticMACFlagName, nil, "Static MAC addresses to assign to the pods")
+	_ = kubeCmd.RegisterFlagCompletionFunc(staticMACFlagName, completion.AutocompleteNone)
 
 	networkFlagName := "network"
 	flags.StringVar(&kubeOptions.Network, networkFlagName, "", "Connect pod to CNI network(s)")
@@ -128,6 +134,15 @@ func kube(cmd *cobra.Command, args []string) error {
 	if yamlfile == "-" {
 		yamlfile = "/dev/stdin"
 	}
+
+	for _, mac := range macs {
+		m, err := net.ParseMAC(mac)
+		if err != nil {
+			return err
+		}
+		kubeOptions.StaticMACs = append(kubeOptions.StaticMACs, m)
+	}
+
 	report, err := registry.ContainerEngine().PlayKube(registry.GetContext(), yamlfile, kubeOptions.PlayKubeOptions)
 	if err != nil {
 		return err

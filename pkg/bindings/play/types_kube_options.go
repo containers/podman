@@ -181,6 +181,22 @@ func (o *KubeOptions) GetStaticIPs() []net.IP {
 	return *o.StaticIPs
 }
 
+// WithStaticMACs
+func (o *KubeOptions) WithStaticMACs(value []net.HardwareAddr) *KubeOptions {
+	v := &value
+	o.StaticMACs = v
+	return o
+}
+
+// GetStaticMACs
+func (o *KubeOptions) GetStaticMACs() []net.HardwareAddr {
+	var staticMACs []net.HardwareAddr
+	if o.StaticMACs == nil {
+		return staticMACs
+	}
+	return *o.StaticMACs
+}
+
 // WithConfigMaps
 func (o *KubeOptions) WithConfigMaps(value []string) *KubeOptions {
 	v := &value

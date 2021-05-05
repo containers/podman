@@ -30,6 +30,8 @@ type PlayKubeOptions struct {
 	SeccompProfileRoot string
 	// StaticIPs - Static IP address used by the pod(s).
 	StaticIPs []net.IP
+	// StaticMACs - Static MAC address used by the pod(s).
+	StaticMACs []net.HardwareAddr
 	// ConfigMaps - slice of pathnames to kubernetes configmap YAMLs.
 	ConfigMaps []string
 	// LogDriver for the container. For example: journald
