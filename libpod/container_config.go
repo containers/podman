@@ -151,6 +151,9 @@ type ContainerRootFSConfig struct {
 	Secrets []*secrets.Secret `json:"secrets,omitempty"`
 	// SecretPath is the secrets location in storage
 	SecretsPath string `json:"secretsPath"`
+	// Volatile specifies whether the container storage can be optimized
+	// at the cost of not syncing all the dirty files in memory.
+	Volatile bool `json:"volatile,omitempty"`
 }
 
 // ContainerSecurityConfig is an embedded sub-config providing security configuration

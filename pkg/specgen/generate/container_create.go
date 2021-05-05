@@ -200,6 +200,9 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	if s.Umask != "" {
 		options = append(options, libpod.WithUmask(s.Umask))
 	}
+	if s.Volatile {
+		options = append(options, libpod.WithVolatile())
+	}
 
 	useSystemd := false
 	switch s.Systemd {
