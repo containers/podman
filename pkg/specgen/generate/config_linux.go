@@ -10,7 +10,6 @@ import (
 
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/rootless"
-	"github.com/containers/podman/v3/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
@@ -151,30 +150,23 @@ func BlockAccessToKernelFilesystems(privileged, pidModeIsHost bool, mask, unmask
 		"/sys/dev/block",
 	}
 
-	unmaskAll := false
-	if unmask != nil && unmask[0] == "ALL" {
-		unmaskAll = true
-	}
-
 	if !privileged {
-		if !unmaskAll {
-			for _, mp := range defaultMaskPaths {
-				// check that the path to mask is not in the list of paths to unmask
-				if !util.StringInSlice(mp, unmask) {
-					g.AddLinuxMaskedPaths(mp)
-				}
+		for _, mp := range defaultMaskPaths {
+			// check that the path to mask is not in the list of paths to unmask
+			if shouldMask(mp, unmask) {
+				g.AddLinuxMaskedPaths(mp)
 			}
-			for _, rp := range []string{
-				"/proc/asound",
-				"/proc/bus",
-				"/proc/fs",
-				"/proc/irq",
-				"/proc/sys",
-				"/proc/sysrq-trigger",
-			} {
-				if !util.StringInSlice(rp, unmask) {
-					g.AddLinuxReadonlyPaths(rp)
-				}
+		}
+		for _, rp := range []string{
+			"/proc/asound",
+			"/proc/bus",
+			"/proc/fs",
+			"/proc/irq",
+			"/proc/sys",
+			"/proc/sysrq-trigger",
+		} {
+			if shouldMask(rp, unmask) {
+				g.AddLinuxReadonlyPaths(rp)
 			}
 		}
 
@@ -375,4 +367,22 @@ func deviceFromPath(path string) (*spec.LinuxDevice, error) {
 func supportAmbientCapabilities() bool {
 	err := unix.Prctl(unix.PR_CAP_AMBIENT, unix.PR_CAP_AMBIENT_IS_SET, 0, 0, 0)
 	return err == nil
+}
+
+func shouldMask(mask string, unmask []string) bool {
+	for _, m := range unmask {
+		if strings.ToLower(m) == "all" {
+			return false
+		}
+		for _, m1 := range strings.Split(m, ":") {
+			match, err := filepath.Match(m1, mask)
+			if err != nil {
+				logrus.Errorf(err.Error())
+			}
+			if match {
+				return false
+			}
+		}
+	}
+	return true
 }

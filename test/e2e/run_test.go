@@ -299,9 +299,17 @@ var _ = Describe("Podman run", func() {
 		session = podmanTest.Podman([]string{"run", "-d", "--name=maskCtr5", "--security-opt", "systempaths=unconfined", ALPINE, "grep", "/proc", "/proc/self/mounts"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		stdoutLines := session.OutputToStringArray()
-		Expect(stdoutLines).Should(HaveLen(1))
+		Expect(session.OutputToStringArray()).Should(HaveLen(1))
 
+		session = podmanTest.Podman([]string{"run", "-d", "--security-opt", "unmask=/proc/*", ALPINE, "grep", "/proc", "/proc/self/mounts"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToStringArray()).Should(HaveLen(1))
+
+		session = podmanTest.Podman([]string{"run", "--security-opt", "unmask=/proc/a*", ALPINE, "ls", "/proc/acpi"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Not(BeEmpty()))
 	})
 
 	It("podman run security-opt unmask on /sys/fs/cgroup", func() {

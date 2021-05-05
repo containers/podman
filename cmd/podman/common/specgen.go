@@ -540,7 +540,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 					return fmt.Errorf("invalid systempaths option %q, only `unconfined` is supported", con[1])
 				}
 			case "unmask":
-				s.ContainerSecurityConfig.Unmask = append(s.ContainerSecurityConfig.Unmask, strings.Split(con[1], ":")...)
+				s.ContainerSecurityConfig.Unmask = append(s.ContainerSecurityConfig.Unmask, con[1:]...)
 			default:
 				return fmt.Errorf("invalid --security-opt 2: %q", opt)
 			}
