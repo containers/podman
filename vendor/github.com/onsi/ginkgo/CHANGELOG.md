@@ -1,3 +1,8 @@
+## 1.16.2
+
+### Fixes
+- Deprecations can be suppressed by setting an `ACK_GINKGO_DEPRECATIONS=<semver>` environment variable.
+
 ## 1.16.1
 
 ### Fixes
