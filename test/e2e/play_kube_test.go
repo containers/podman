@@ -1999,8 +1999,7 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 
 	It("podman play kube allows setting resource limits", func() {
 		SkipIfContainerized("Resource limits require a running systemd")
-		SkipIfRootlessCgroupsV1("Limits require root or cgroups v2")
-		SkipIfUnprivilegedCPULimits()
+		SkipIfRootless("CPU limits require root")
 		podmanTest.CgroupManager = "systemd"
 
 		var (

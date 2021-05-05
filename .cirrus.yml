@@ -539,7 +539,7 @@ rootless_integration_test_task:
     skip: *branches_and_tags
     depends_on:
         - unit_test
-    matrix: *fedora_vm_axis
+    matrix: *platform_axis
     gce_instance: *standardvm
     timeout_in: 90m
     env:
@@ -614,7 +614,7 @@ rootless_system_test_task:
     only_if: *not_docs
     depends_on:
       - rootless_integration_test
-    matrix: *fedora_vm_axis
+    matrix: *platform_axis
     gce_instance: *standardvm
     env:
         TEST_FLAVOR: sys

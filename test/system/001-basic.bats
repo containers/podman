@@ -10,15 +10,17 @@ function setup() {
     :
 }
 
-@test "podman --context emits reasonable output" {
-    run_podman 125 --context=swarm version
-    is "$output" "Error: Podman does not support swarm, the only --context value allowed is \"default\"" "--context=default or fail"
-
-    run_podman --context=default version
-}
+#### DO NOT ADD ANY TESTS HERE! ADD NEW TESTS AT BOTTOM!
 
 @test "podman version emits reasonable output" {
     run_podman version
+
+    # FIXME FIXME FIXME: #10248: nasty message on Ubuntu cgroups v1, rootless
+    if [[ "$output" =~ "overlay test mount with multiple lowers failed" ]]; then
+        if is_rootless; then
+            lines=("${lines[@]:1}")
+        fi
+    fi
 
     # First line of podman-remote is "Client:<blank>".
     # Just delete it (i.e. remove the first entry from the 'lines' array)
@@ -40,6 +42,17 @@ function setup() {
     fi
 }
 
+
+@test "podman --context emits reasonable output" {
+    # All we care about here is that the command passes
+    run_podman --context=default version
+
+    # This one must fail
+    run_podman 125 --context=swarm version
+    is "$output" \
+       "Error: Podman does not support swarm, the only --context value allowed is \"default\"" \
+       "--context=default or fail"
+}
 
 @test "podman can pull an image" {
     run_podman pull $IMAGE
