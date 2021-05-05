@@ -466,7 +466,7 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 
-	saveOptions := entities.ImageSaveOptions{Output: tmpfile.Name()}
+	saveOptions := entities.ImageSaveOptions{Format: "docker-archive", Output: tmpfile.Name()}
 	if err := imageEngine.Save(r.Context(), images[0], images[1:], saveOptions); err != nil {
 		utils.InternalServerError(w, err)
 		return

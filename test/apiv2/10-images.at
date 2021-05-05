@@ -151,5 +151,6 @@ t DELETE libpod/images/test1:latest 200
 #      actual: {"cause":"no such image","message":"unable to find a name and tag match for busybox in repotags: no such image","response":500}
 #
 #t GET images/get?names=alpine,busybox 200 '[POSIX tar archive]'
+t GET "images/get?names=alpine" 200 '[POSIX tar archive]'
 
 # vim: filetype=sh
