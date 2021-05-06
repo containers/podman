@@ -151,7 +151,7 @@ host. This interface can configure multiple subinterfaces.  And each subinterfac
 is capable of having its own MAC and IP address.  In the case of Podman containers,
 the container will present itself as if it is on the same network as the host.
 
-![macvlan_network](podman_bridge.png)
+![macvlan_network](podman_macvlan.png)
 
 In the illustration, outside clients will be able to access the web container by
 its IP address directly.  Usually the network information, including IP address,
