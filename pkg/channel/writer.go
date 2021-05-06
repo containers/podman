@@ -1,7 +1,6 @@
 package channel
 
 import (
-	"fmt"
 	"io"
 	"sync"
 
@@ -34,20 +33,17 @@ func (w *writeCloser) Chan() <-chan []byte {
 
 // Write method for WriteCloser
 func (w *writeCloser) Write(b []byte) (bLen int, err error) {
-	// https://github.com/containers/podman/issues/7896
-	// when podman-remote pull image, if it was killed, the server will panic: send on closed channel
-	// so handle it
-	defer func() {
-		if rErr := recover(); rErr != nil {
-			err = fmt.Errorf("%s", rErr)
-		}
-	}()
-	if w == nil || w.ch == nil {
+	if w == nil {
 		return 0, errors.New("use channel.NewWriter() to initialize a WriteCloser")
 	}
 
 	w.mux.Lock()
 	defer w.mux.Unlock()
+
+	if w.ch == nil {
+		return 0, errors.New("the channel is closed for Write")
+	}
+
 	buf := make([]byte, len(b))
 	copy(buf, b)
 	w.ch <- buf
@@ -57,6 +53,10 @@ func (w *writeCloser) Write(b []byte) (bLen int, err error) {
 
 // Close method for WriteCloser
 func (w *writeCloser) Close() error {
+	w.mux.Lock()
+	defer w.mux.Unlock()
+
 	close(w.ch)
+	w.ch = nil
 	return nil
 }
