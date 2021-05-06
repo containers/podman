@@ -109,6 +109,22 @@ func (b *Buffer) Read(d []byte) (int, error) {
 }
 
 /*
+Clear clears out the buffer's contents
+*/
+func (b *Buffer) Clear() error {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+
+	if b.closed {
+		return errors.New("attempt to clear closed buffer")
+	}
+
+	b.contents = []byte{}
+	b.readCursor = 0
+	return nil
+}
+
+/*
 Close signifies that the buffer will no longer be written to
 */
 func (b *Buffer) Close() error {

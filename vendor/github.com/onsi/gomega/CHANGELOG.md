@@ -1,3 +1,17 @@
+## 1.12.0
+
+### Features
+- Add Satisfy() matcher (#437) [c548f31]
+- tweak truncation message [3360b8c]
+- Add format.GomegaStringer (#427) [cc80b6f]
+- Add Clear() method to gbytes.Buffer [c3c0920]
+
+### Fixes
+- Fix error message in BeNumericallyMatcher (#432) [09c074a]
+- Bump github.com/onsi/ginkgo from 1.12.1 to 1.16.2 (#442) [e5f6ea0]
+- Bump github.com/golang/protobuf from 1.4.3 to 1.5.2 (#431) [adae3bf]
+- Bump golang.org/x/net (#441) [3275b35]
+
 ## 1.11.0
 
 ### Features

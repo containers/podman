@@ -474,3 +474,11 @@ func Not(matcher types.GomegaMatcher) types.GomegaMatcher {
 func WithTransform(transform interface{}, matcher types.GomegaMatcher) types.GomegaMatcher {
 	return matchers.NewWithTransformMatcher(transform, matcher)
 }
+
+//Satisfy matches the actual value against the `predicate` function.
+//The given predicate must be a function of one paramter that returns bool.
+//  var isEven = func(i int) bool { return i%2 == 0 }
+//  Expect(2).To(Satisfy(isEven))
+func Satisfy(predicate interface{}) types.GomegaMatcher {
+	return matchers.NewSatisfyMatcher(predicate)
+}
