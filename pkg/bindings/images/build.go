@@ -28,6 +28,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var (
+	iidRegex = regexp.MustCompile(`^[0-9a-f]{12}`)
+)
+
 // Build creates an image using a containerfile reference
 func Build(ctx context.Context, containerFiles []string, options entities.BuildOptions) (*entities.BuildReport, error) {
 	params := url.Values{}
@@ -337,7 +341,6 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	}
 
 	dec := json.NewDecoder(body)
-	re := regexp.MustCompile(`[0-9a-f]{12}`)
 
 	var id string
 	var mErr error
@@ -366,7 +369,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		switch {
 		case s.Stream != "":
 			stdout.Write([]byte(s.Stream))
-			if re.Match([]byte(s.Stream)) {
+			if iidRegex.Match([]byte(s.Stream)) {
 				id = strings.TrimSuffix(s.Stream, "\n")
 			}
 		case s.Error != "":
