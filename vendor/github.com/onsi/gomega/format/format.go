@@ -18,6 +18,10 @@ import (
 // Use MaxDepth to set the maximum recursion depth when printing deeply nested objects
 var MaxDepth = uint(10)
 
+// MaxLength of the string representation of an object.
+// If MaxLength is set to 0, the Object will not be truncated.
+var MaxLength = 4000
+
 /*
 By default, all objects (even those that implement fmt.Stringer and fmt.GoStringer) are recursively inspected to generate output.
 
@@ -52,6 +56,14 @@ var timeType = reflect.TypeOf(time.Time{})
 var Indent = "    "
 
 var longFormThreshold = 20
+
+// GomegaStringer allows for custom formating of objects for gomega.
+type GomegaStringer interface {
+	// GomegaString will be used to custom format an object.
+	// It does not follow UseStringerRepresentation value and will always be called regardless.
+	// It also ignores the MaxLength value.
+	GomegaString() string
+}
 
 /*
 Generates a formatted matcher success/failure message of the form:
@@ -159,6 +171,33 @@ func findFirstMismatch(a, b string) int {
 	return 0
 }
 
+const truncateHelpText = `
+Gomega truncated this representation as it exceeds 'format.MaxLength'.
+Consider having the object provide a custom 'GomegaStringer' representation
+or adjust the parameters in Gomega's 'format' package.
+
+Learn more here: https://onsi.github.io/gomega/#adjusting-output
+`
+
+func truncateLongStrings(s string) string {
+	if MaxLength > 0 && len(s) > MaxLength {
+		var sb strings.Builder
+		for i, r := range s {
+			if i < MaxLength {
+				sb.WriteRune(r)
+				continue
+			}
+			break
+		}
+
+		sb.WriteString("...\n")
+		sb.WriteString(truncateHelpText)
+
+		return sb.String()
+	}
+	return s
+}
+
 /*
 Pretty prints the passed in object at the passed in indentation level.
 
@@ -219,14 +258,21 @@ func formatValue(value reflect.Value, indentation uint) string {
 		return "nil"
 	}
 
-	if UseStringerRepresentation {
-		if value.CanInterface() {
-			obj := value.Interface()
+	if value.CanInterface() {
+		obj := value.Interface()
+
+		// GomegaStringer will take precedence to other representations and disregards UseStringerRepresentation
+		if x, ok := obj.(GomegaStringer); ok {
+			// do not truncate a user-defined GoMegaString() value
+			return x.GomegaString()
+		}
+
+		if UseStringerRepresentation {
 			switch x := obj.(type) {
 			case fmt.GoStringer:
-				return x.GoString()
+				return truncateLongStrings(x.GoString())
 			case fmt.Stringer:
-				return x.String()
+				return truncateLongStrings(x.String())
 			}
 		}
 	}
@@ -257,26 +303,26 @@ func formatValue(value reflect.Value, indentation uint) string {
 	case reflect.Ptr:
 		return formatValue(value.Elem(), indentation)
 	case reflect.Slice:
-		return formatSlice(value, indentation)
+		return truncateLongStrings(formatSlice(value, indentation))
 	case reflect.String:
-		return formatString(value.String(), indentation)
+		return truncateLongStrings(formatString(value.String(), indentation))
 	case reflect.Array:
-		return formatSlice(value, indentation)
+		return truncateLongStrings(formatSlice(value, indentation))
 	case reflect.Map:
-		return formatMap(value, indentation)
+		return truncateLongStrings(formatMap(value, indentation))
 	case reflect.Struct:
 		if value.Type() == timeType && value.CanInterface() {
 			t, _ := value.Interface().(time.Time)
 			return t.Format(time.RFC3339Nano)
 		}
-		return formatStruct(value, indentation)
+		return truncateLongStrings(formatStruct(value, indentation))
 	case reflect.Interface:
 		return formatInterface(value, indentation)
 	default:
 		if value.CanInterface() {
-			return fmt.Sprintf("%#v", value.Interface())
+			return truncateLongStrings(fmt.Sprintf("%#v", value.Interface()))
 		}
-		return fmt.Sprintf("%#v", value)
+		return truncateLongStrings(fmt.Sprintf("%#v", value))
 	}
 }
 
