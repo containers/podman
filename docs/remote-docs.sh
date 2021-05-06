@@ -80,7 +80,7 @@ function html_fn() {
         local link=$(sed -e 's?.so man1/\(.*\)?\1?' <$dir/links/${file%.md})
         markdown=$dir/$link.md
     fi
-    pandoc --ascii --standalone \
+    pandoc --ascii --standalone --from markdown-smart \
         --lua-filter=docs/links-to-html.lua \
         --lua-filter=docs/use-pagetitle.lua \
         -o $TARGET/${file%%.*}.html $markdown
