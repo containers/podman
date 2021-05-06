@@ -55,8 +55,8 @@ function branch_dance() {
         echo
         echo "Commit author is '$author' (expected 'dependabot')"
         echo -n "Continue? [y/N] "
-        read ans
-        case "$ans" in
+        read answer
+        case "$answer" in
             [yY]*) ;;
             *) exit 1;;
         esac

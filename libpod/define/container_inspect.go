@@ -66,7 +66,7 @@ type InspectContainerConfig struct {
 	Secrets []*InspectSecret `json:"Secrets,omitempty"`
 	// Timeout is time before container is killed by conmon
 	Timeout uint `json:"Timeout"`
-	// StopTimeout is time before container is stoped when calling stop
+	// StopTimeout is time before container is stopped when calling stop
 	StopTimeout uint `json:"StopTimeout"`
 }
 

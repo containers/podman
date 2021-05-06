@@ -84,4 +84,4 @@ Where To Go From Here
 
 * Figuring out how/if to run variations with different config files
   (e.g. running OLD-PODMAN that creates a user libpod.conf, tweaking
-  that in the test, then running NEW-PODMAN upgrate tests)
+  that in the test, then running NEW-PODMAN upgrade tests)

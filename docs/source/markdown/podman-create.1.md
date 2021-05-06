@@ -952,7 +952,7 @@ The `container_manage_cgroup` boolean must be enabled for this to be allowed on 
 
 #### **\-\-timeout**=*seconds*
 
-Maximimum time a container is allowed to run before conmon sends it the kill
+Maximum time a container is allowed to run before conmon sends it the kill
 signal.  By default containers will run until they exit or are stopped by
 `podman stop`.
 
