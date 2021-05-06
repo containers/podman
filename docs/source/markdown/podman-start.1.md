@@ -42,6 +42,31 @@ Proxy received signals to the process (non-TTY mode only). SIGCHLD, SIGSTOP, and
 
 Start all the containers created by Podman, default is only running containers.
 
+#### **\-\-filter**, **-f**
+
+Filter what containers are going to be started from the given arguments.
+Multiple filters can be given with multiple uses of the --filter flag.
+Filters with the same key work inclusive with the only exception being
+`label` which is exclusive. Filters with different keys always work exclusive.
+
+Valid filters are listed below:
+
+| **Filter**      | **Description**                                                                  |
+| --------------- | -------------------------------------------------------------------------------- |
+| id              | [ID] Container's ID (accepts regex)                                              |
+| name            | [Name] Container's name (accepts regex)                                          |
+| label           | [Key] or [Key=Value] Label assigned to a container                               |
+| exited          | [Int] Container's exit code                                                      |
+| status          | [Status] Container's status: 'created', 'exited', 'paused', 'running', 'unknown' |
+| ancestor        | [ImageName] Image or descendant used to create container                         |
+| before          | [ID] or [Name] Containers created before this container                          |
+| since           | [ID] or [Name] Containers created since this container                           |
+| volume          | [VolumeName] or [MountpointDestination] Volume mounted in container              |
+| health          | [Status] healthy or unhealthy                                                    |
+| pod             | [Pod] name or full or partial ID of pod                                          |
+| network         | [Network] name or full ID of network                                             |
+
+
 ## EXAMPLE
 
 podman start mywebserver

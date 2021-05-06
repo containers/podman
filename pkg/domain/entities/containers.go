@@ -265,6 +265,7 @@ type ContainerExistsOptions struct {
 // ContainerStartOptions describes the val from the
 // CLI needed to start a container
 type ContainerStartOptions struct {
+	Filters     map[string][]string
 	All         bool
 	Attach      bool
 	DetachKeys  string

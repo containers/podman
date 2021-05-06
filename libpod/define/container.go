@@ -17,3 +17,12 @@ const (
 	// handling of system restart, which Podman does not yet support.
 	RestartPolicyUnlessStopped = "unless-stopped"
 )
+
+// RestartPolicyMap maps between restart-policy valid values to restart policy types
+var RestartPolicyMap = map[string]string{
+	"none":                     RestartPolicyNone,
+	RestartPolicyNo:            RestartPolicyNo,
+	RestartPolicyAlways:        RestartPolicyAlways,
+	RestartPolicyOnFailure:     RestartPolicyOnFailure,
+	RestartPolicyUnlessStopped: RestartPolicyUnlessStopped,
+}
