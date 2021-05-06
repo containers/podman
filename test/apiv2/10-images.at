@@ -148,6 +148,7 @@ podman pull busybox
 #is "$img_cnt" 2 "number of images in tar archive"
 # TODO getting multiple images is not supported yet
 # once it is supported replace the test below by the tests above
-t GET "images/get?names=alpine&names=busybox" 501
+t GET "images/get?names=alpine&names=busybox" 501 \
+  .cause="getting multiple image is not supported yet"
 
 # vim: filetype=sh
