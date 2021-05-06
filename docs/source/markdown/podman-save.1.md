@@ -45,6 +45,7 @@ Save image to **oci-archive, oci-dir** (directory with oci manifest type), or **
 #### **\-\-multi-image-archive**, **-m**
 
 Allow for creating archives with more than one image.  Additional names will be interpreted as images instead of tags.  Only supported for **docker-archive**.
+The default for this option can be modified via the `multi_image_archive="true"|"false"` flag in containers.conf.
 
 #### **\-\-quiet**, **-q**
 
@@ -99,7 +100,7 @@ Storing signatures
 ```
 
 ## SEE ALSO
-podman(1), podman-load(1)
+podman(1), podman-load(1), containers.conf(5)
 
 ## HISTORY
 July 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>
