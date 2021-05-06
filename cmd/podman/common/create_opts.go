@@ -302,6 +302,11 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, cgroup
 					staticIP := net.ParseIP(ep.IPAddress)
 					netInfo.StaticIP = &staticIP
 				}
+				// if IPAMConfig.IPv4Address is provided
+				if ep.IPAMConfig != nil && ep.IPAMConfig.IPv4Address != "" {
+					staticIP := net.ParseIP(ep.IPAMConfig.IPv4Address)
+					netInfo.StaticIP = &staticIP
+				}
 				// If MAC address is provided
 				if len(ep.MacAddress) > 0 {
 					staticMac, err := net.ParseMAC(ep.MacAddress)
