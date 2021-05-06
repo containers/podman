@@ -82,7 +82,7 @@ Assign a name to the pod.
 #### **\-\-network**=*mode*, **\-\-net**
 
 Set network mode for the pod. Supported values are
-- **bridge**: Create a network stack on the default bridge. This is the default for rootful containers.
+- **bridge**: Create a network stack on the default bridge. This is the default for rootfull containers.
 - **host**: Do not create a network namespace, all containers in the pod will use the host's network. Note: the host mode gives the container full access to local system services such as D-bus and is therefore considered insecure.
 - Comma-separated list of the names of CNI networks the pod should join.
 - **slirp4netns[:OPTIONS,...]**: use slirp4netns to create a user network stack.  This is the default for rootless containers.  It is possible to specify these additional options:

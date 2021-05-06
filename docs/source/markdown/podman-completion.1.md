@@ -41,7 +41,7 @@ If shell completion is not already enabled in the environment you will need to e
 To make it available for all zsh sessions run:
 `podman completion zsh -f "${fpath[1]}/_podman"`
 
-Once you reload the shell the autocompletion should be working.
+Once you reload the shell the auto-completion should be working.
 
 
 ### FISH

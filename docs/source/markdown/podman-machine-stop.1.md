@@ -10,7 +10,7 @@ podman\-machine\-stop - Stop a virtual machine
 
 Stops a virtual machine.
 
-Podman on MacOS requires a virtual machine. This is because containers are Linux -
+Podman on macOS requires a virtual machine. This is because containers are Linux -
 containers do not run on any other OS because containers' core functionality are
 tied to the Linux kernel.
 

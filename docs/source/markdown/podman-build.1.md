@@ -657,8 +657,8 @@ specified, `podman` will assume that the specified group name is also a
 suitable user name to use as the default setting for this option.
 
 **NOTE:** When this option is specified by a rootless user, the specified
-mappings are relative to the rootless usernamespace in the container, rather
-than being relative to the host as it would be when run rootful.
+mappings are relative to the rootless user namespace in the container, rather
+than being relative to the host as it would be when run rootfull.
 
 #### **\-\-userns-gid-map-group**=*group*
 
@@ -672,8 +672,8 @@ specified, `podman` will assume that the specified user name is also a
 suitable group name to use as the default setting for this option.
 
 **NOTE:** When this option is specified by a rootless user, the specified
-mappings are relative to the rootless usernamespace in the container, rather
-than being relative to the host as it would be when run rootful.
+mappings are relative to the rootless user namespace in the container, rather
+than being relative to the host as it would be when run rootfull.
 
 #### **\-\-uts**=*how*
 

@@ -87,7 +87,7 @@ Attach to STDIN, STDOUT or STDERR.
 In foreground mode (the default when **-d**
 is not specified), **podman run** can start the process in the container
 and attach the console to the process's standard input, output, and standard
-error. It can even pretend to be a TTY (this is what most commandline
+error. It can even pretend to be a TTY (this is what most command line
 executables expect) and pass along signals. The **-a** option can be set for
 each of stdin, stdout, and stderr.
 
@@ -997,8 +997,8 @@ option conflicts with the **\-\-userns** and **\-\-subuidname** options. This
 option provides a way to map host UIDs to container UIDs. It can be passed
 several times to map different ranges.
 
-The _from_uid_ value is based upon the user running the command, either rootful or rootless users.
-* rootful user:  *container_uid*:*host_uid*:*amount*
+The _from_uid_ value is based upon the user running the command, either rootfull or rootless users.
+* rootfull user:  *container_uid*:*host_uid*:*amount*
 * rootless user: *container_uid*:*intermediate_uid*:*amount*
 
 When **podman create** is called by a privileged user, the option **\-\-uidmap**
@@ -1108,7 +1108,7 @@ Create a bind mount. If you specify, ` -v /HOST-DIR:/CONTAINER-DIR`, Podman
 bind mounts `/HOST-DIR` in the host to `/CONTAINER-DIR` in the Podman
 container. Similarly, `-v SOURCE-VOLUME:/CONTAINER-DIR` will mount the volume
 in the host to the container. If no such named volume exists, Podman will
-create one. The `OPTIONS` are a comma-separated list and can be: <sup>[[1]](#Footnote1)</sup>  (Note when using the remote client, the volumes will be mounted from the remote server, not necessarly the client machine.)
+create one. The `OPTIONS` are a comma-separated list and can be: <sup>[[1]](#Footnote1)</sup>  (Note when using the remote client, the volumes will be mounted from the remote server, not necessarily the client machine.)
 
 The _options_ is a comma-separated list and can be:
 
