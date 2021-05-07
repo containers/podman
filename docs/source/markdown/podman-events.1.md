@@ -70,16 +70,16 @@ The *volume* type will report the following statuses:
 
 ## OPTIONS
 
-#### **\-\-help**
+#### **--help**
 
 Print usage statement.
 
-#### **\-\-format**
+#### **--format**
 
 Format the output to JSON Lines or using the given Go template.
 
 
-#### **\-\-filter**=*filter*
+#### **--filter**=*filter*
 
 Filter events that are displayed.  They must be in the format of "filter=value".  The following
 filters are supported:
@@ -93,12 +93,12 @@ filters are supported:
 
 In the case where an ID is used, the ID may be in its full or shortened form.
 
-#### **\-\-since**=*timestamp*
+#### **--since**=*timestamp*
 
 Show all events created since the given timestamp
 
 
-#### **\-\-until**=*timestamp*
+#### **--until**=*timestamp*
 
 Show all events created until the given timestamp
 

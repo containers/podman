@@ -11,23 +11,23 @@ Display a live stream of containers in one or more pods resource usage statistic
 
 ## OPTIONS
 
-#### **\-\-all**, **-a**
+#### **--all**, **-a**
 
 Show all containers.  Only running containers are shown by default
 
-#### **\-\-latest**, **-l**
+#### **--latest**, **-l**
 
 Instead of providing the pod name or ID, use the last created pod. (This option is not available with the remote Podman client)
 
-#### **\-\-no-reset**
+#### **--no-reset**
 
 Do not clear the terminal/screen in between reporting intervals
 
-#### **\-\-no-stream**
+#### **--no-stream**
 
 Disable streaming pod stats and only pull the first result, default setting is false
 
-#### **\-\-format**=*template*
+#### **--format**=*template*
 
 Pretty-print container statistics to JSON or using a Go template
 

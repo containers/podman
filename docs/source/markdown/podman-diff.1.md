@@ -13,11 +13,11 @@ Displays changes on a container or image's filesystem.  The container or image w
 
 ## OPTIONS
 
-#### **\-\-format**
+#### **--format**
 
 Alter the output into a different format.  The only valid format for diff is `json`.
 
-#### **\-\-latest**, **-l**
+#### **--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods. (This option is not available with the remote Podman client)

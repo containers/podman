@@ -24,24 +24,24 @@ For more inspection options, see:
 
 ## OPTIONS
 
-#### **\-\-type**, **-t**=*type*
+#### **--type**, **-t**=*type*
 
 Return JSON for the specified type.  Type can be 'container', 'image', 'volume', 'network', 'pod', or 'all' (default: all)
 (Only meaningful when invoked as *podman inspect*)
 
-#### **\-\-format**, **-f**=*format*
+#### **--format**, **-f**=*format*
 
 Format the output using the given Go template.
 The keys of the returned JSON can be used as the values for the --format flag (see examples below).
 
-#### **\-\-latest**, **-l**
+#### **--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
 
 This option can be used to inspect the latest pod created when used with --type pod. (This option is not available with the remote Podman client or when invoked as *podman image inspect*.)
 
-#### **\-\-size**, **-s**
+#### **--size**, **-s**
 
 In addition to normal output, display the total file size if the type is a container.
 

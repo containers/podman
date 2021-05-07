@@ -25,34 +25,34 @@ man pages.
 
 ## GLOBAL OPTIONS
 
-#### **\-\-cgroup-manager**=*manager*
+#### **--cgroup-manager**=*manager*
 
 The CGroup manager to use for container cgroups. Supported values are cgroupfs or systemd. Default is systemd unless overridden in the containers.conf file.
 
 Note: Setting this flag can cause certain commands to break when called on containers previously created by the other CGroup manager type.
 Note: CGroup manager is not supported in rootless mode when using CGroups Version V1.
 
-#### **\-\-cni-config-dir**
+#### **--cni-config-dir**
 Path of the configuration directory for CNI networks.  (Default: `/etc/cni/net.d`)
 
-#### **\-\-connection**, **-c**
+#### **--connection**, **-c**
 Connection to use for remote podman (Default connection is configured in `containers.conf`)
 Remote connections use local containers.conf for default.
 
-#### **\-\-conmon**
+#### **--conmon**
 Path of the conmon binary (Default path is configured in `containers.conf`)
 
-#### **\-\-events-backend**=*type*
+#### **--events-backend**=*type*
 
 Backend to use for storing events. Allowed values are **file**, **journald**, and
 **none**. When *file* is specified, the events are stored under a subdirectory
-of the *tmpdir* location (see **\-\-tmpdir** below).
+of the *tmpdir* location (see **--tmpdir** below).
 
-#### **\-\-help**, **-h**
+#### **--help**, **-h**
 
 Print usage statement
 
-#### **\-\-hooks-dir**=*path*
+#### **--hooks-dir**=*path*
 
 Each `*.json` file in the path configures a hook for Podman containers.  For more details on the syntax of the JSON files and the semantics of hook injection, see `oci-hooks(5)`.  Podman and libpod currently support both the 1.0.0 and 0.1.0 hook schemas, although the 0.1.0 schema is deprecated.
 
@@ -68,7 +68,7 @@ Podman and libpod currently support an additional `precreate` state which is cal
 
 **WARNING**: the `precreate` hook lets you do powerful things, such as adding additional mounts to the runtime configuration.  That power also makes it easy to break things.  Before reporting libpod errors, try running your container with `precreate` hooks disabled to see if the problem is due to one of your hooks.
 
-#### **\-\-identity**=*path*
+#### **--identity**=*path*
 
 Path to ssh identity file. If the identity file has been encrypted, podman prompts the user for the passphrase.
 If no identity file is provided and no user is given, podman defaults to the user running the podman command.
@@ -80,23 +80,23 @@ Identity value resolution precedence:
  - `containers.conf`
 Remote connections use local containers.conf for default.
 
-#### **\-\-log-level**=*level*
+#### **--log-level**=*level*
 
 Log messages above specified level: debug, info, warn, error (default), fatal or panic (default: "error")
 
-#### **\-\-namespace**=*namespace*
+#### **--namespace**=*namespace*
 
 Set libpod namespace. Namespaces are used to separate groups of containers and pods in libpod's state.
 When namespace is set, created containers and pods will join the given namespace, and only containers and pods in the given namespace will be visible to Podman.
 
-#### **\-\-network-cmd-path**=*path*
+#### **--network-cmd-path**=*path*
 Path to the command binary to use for setting up a network.  It is currently only used for setting up a slirp4netns network.  If "" is used then the binary is looked up using the $PATH environment variable.
 
-#### **\-\-remote**, **-r**
+#### **--remote**, **-r**
 Access Podman service will be remote
 Remote connections use local containers.conf for default.
 
-#### **\-\-url**=*value*
+#### **--url**=*value*
 URL to access Podman service (default from `containers.conf`, rootless `unix://run/user/$UID/podman/podman.sock` or as root `unix://run/podman/podman.sock`).
 
  - `CONTAINER_HOST` is of the format `<schema>://[<user[:<password>]@]<host>[:<port>][<path>]`
@@ -115,21 +115,21 @@ URL value resolution precedence:
  - `unix://run/podman/podman.sock`
 Remote connections use local containers.conf for default.
 
-#### **\-\-root**=*value*
+#### **--root**=*value*
 
 Storage root dir in which data, including images, is stored (default: "/var/lib/containers/storage" for UID 0, "$HOME/.local/share/containers/storage" for other users).
 Default root dir configured in `/etc/containers/storage.conf`.
 
-#### **\-\-runroot**=*value*
+#### **--runroot**=*value*
 
 Storage state directory where all state information is stored (default: "/run/containers/storage" for UID 0, "/run/user/$UID/run" for other users).
 Default state dir configured in `/etc/containers/storage.conf`.
 
-#### **\-\-runtime**=*value*
+#### **--runtime**=*value*
 
 Name of the OCI runtime as specified in containers.conf or absolute path to the OCI compatible binary used to run containers.
 
-#### **\-\-runtime-flag**=*flag*
+#### **--runtime-flag**=*flag*
 
 Adds global flags for the container runtime. To list the supported flags, please
 consult the manpages of the selected container runtime (`runc` is the default
@@ -139,30 +139,30 @@ for cgroup V2, the default runtime is `crun`, the manpage to consult is `crun(8)
 Note: Do not pass the leading `--` to the flag. To pass the runc flag `--log-format json`
 to podman build, the option given would be `--runtime-flag log-format=json`.
 
-#### **\-\-storage-driver**=*value*
+#### **--storage-driver**=*value*
 
 Storage driver.  The default storage driver for UID 0 is configured in /etc/containers/storage.conf (`$HOME/.config/containers/storage.conf` in rootless mode), and is *vfs* for non-root users when *fuse-overlayfs* is not available.  The `STORAGE_DRIVER` environment variable overrides the default.  The --storage-driver specified driver overrides all.
 
 Overriding this option will cause the *storage-opt* settings in /etc/containers/storage.conf to be ignored.  The user must
 specify additional options via the `--storage-opt` flag.
 
-#### **\-\-storage-opt**=*value*
+#### **--storage-opt**=*value*
 
 Storage driver option, Default storage driver options are configured in /etc/containers/storage.conf (`$HOME/.config/containers/storage.conf` in rootless mode). The `STORAGE_OPTS` environment variable overrides the default. The --storage-opt specified options overrides all. If you specify --storage-opt="", no storage options will be used.
 
-#### **\-\-syslog**=*true|false*
+#### **--syslog**=*true|false*
 
 Output logging information to syslog as well as the console (default *false*).
 
 On remote clients, logging is directed to the file $HOME/.config/containers/podman.log.
 
-#### **\-\-tmpdir**
+#### **--tmpdir**
 
 Path to the tmp directory, for libpod runtime content.
 
 NOTE --tmpdir is not used for the temporary storage of downloaded images.  Use the environment variable `TMPDIR` to change the temporary storage location of downloaded container images. Podman defaults to use `/var/tmp`.
 
-#### **\-\-version**, **-v**
+#### **--version**, **-v**
 
 Print the version
 

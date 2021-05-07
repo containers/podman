@@ -20,15 +20,15 @@ Secrets will not be committed to an image with `podman commit`, and will not be 
 
 ## OPTIONS
 
-#### **\-\-env**=*false*
+#### **--env**=*false*
 
 Read secret data from environment variable
 
-#### **\-\-driver**=*driver*
+#### **--driver**=*driver*
 
 Specify the secret driver (default **file**, which is unencrypted).
 
-#### **\-\-help**
+#### **--help**
 
 Print usage statement.
 

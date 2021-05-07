@@ -15,7 +15,7 @@ any logs at the time you execute podman logs).
 
 ## OPTIONS
 
-#### **\-\-follow**, **-f**
+#### **--follow**, **-f**
 
 Follow log output.  Default is false.
 
@@ -23,28 +23,28 @@ Note: If you are following a container which is removed `podman container rm`
 or removed on exit `podman run --rm ...`, then there is a chance the the log
 file will be removed before `podman logs` reads the final content.
 
-#### **\-\-latest**, **-l**
+#### **--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods. (This option is not available with the remote Podman client)
 
-#### **\-\-names**, **-n**
+#### **--names**, **-n**
 
 Output the container name in the log
 
-#### **\-\-since**=*TIMESTAMP*
+#### **--since**=*TIMESTAMP*
 
 Show logs since TIMESTAMP. The --since option can be Unix timestamps, date formatted timestamps, or Go duration
 strings (e.g. 10m, 1h30m) computed relative to the client machine's time. Supported formats for date formatted
 time stamps include RFC3339Nano, RFC3339, 2006-01-02T15:04:05, 2006-01-02T15:04:05.999999999, 2006-01-02Z07:00,
 and 2006-01-02.
 
-#### **\-\-tail**=*LINES*
+#### **--tail**=*LINES*
 
 Output the specified number of LINES at the end of the logs.  LINES must be an integer.  Defaults to -1,
 which prints all lines
 
-#### **\-\-timestamps**, **-t**
+#### **--timestamps**, **-t**
 
 Show timestamps in the log outputs.  The default is false
 

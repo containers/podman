@@ -22,11 +22,11 @@ returned.
 
 ## OPTIONS
 
-#### **\-\-all**, **-a**
+#### **--all**, **-a**
 
 Mount all images.
 
-#### **\-\-format**=*format*
+#### **--format**=*format*
 
 Print the mounted images in specified format (json).
 

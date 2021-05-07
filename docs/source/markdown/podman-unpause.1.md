@@ -13,7 +13,7 @@ Unpauses the processes in one or more containers.  You may use container IDs or 
 
 ## OPTIONS
 
-#### **\-\-all**, **-a**
+#### **--all**, **-a**
 
 Unpause all paused containers.
 

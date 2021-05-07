@@ -12,20 +12,20 @@ podman\-kill - Kill the main process in one or more containers
 The main process inside each container specified will be sent SIGKILL, or any signal specified with option --signal.
 
 ## OPTIONS
-#### **\-\-all**, **-a**
+#### **--all**, **-a**
 
 Signal all running containers.  This does not include paused containers.
 
-#### **\-\-cidfile**
+#### **--cidfile**
 
 Read container ID from the specified file and remove the container.  Can be specified multiple times.
 
-#### **\-\-latest**, **-l**
+#### **--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods. (This option is not available with the remote Podman client)
 
-#### **\-\-signal**, **-s**
+#### **--signal**, **-s**
 
 Signal to send to the container. For more information on Linux signals, refer to *man signal(7)*.
 

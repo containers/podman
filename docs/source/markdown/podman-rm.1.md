@@ -14,15 +14,15 @@ Running or unusable containers will not be removed without the **-f** option.
 
 ## OPTIONS
 
-#### **\-\-all**, **-a**
+#### **--all**, **-a**
 
 Remove all containers.  Can be used in conjunction with **-f** as well.
 
-#### **\-\-cidfile**
+#### **--cidfile**
 
 Read container ID from the specified file and remove the container.  Can be specified multiple times.
 
-#### **\-\-force**, **-f**
+#### **--force**, **-f**
 
 Force the removal of running and paused containers. Forcing a container removal also
 removes containers from container storage even if the container is not known to podman.
@@ -30,21 +30,21 @@ Containers could have been created by a different container engine.
 In addition, forcing can be used to remove unusable containers, e.g. containers
 whose OCI runtime has become unavailable.
 
-#### **\-\-ignore**, **-i**
+#### **--ignore**, **-i**
 
 Ignore errors when specified containers are not in the container store.  A user
 might have decided to manually remove a container which would lead to a failure
 during the ExecStop directive of a systemd service referencing that container.
 
-#### **\-\-latest**, **-l**
+#### **--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods. (This option is not available with the remote Podman client)
 
-#### **\-\-volumes**, **-v**
+#### **--volumes**, **-v**
 
 Remove anonymous volumes associated with the container. This does not include named volumes
-created with **podman volume create**, or the **\-\-volume** option of **podman run** and **podman create**.
+created with **podman volume create**, or the **--volume** option of **podman run** and **podman create**.
 
 ## EXAMPLE
 Remove a container by its name *mywebserver*

@@ -12,7 +12,7 @@ Disconnects a container from a network.
 This command is not available for rootless users.
 
 ## OPTIONS
-#### **\-\-force**, **-f**
+#### **--force**, **-f**
 
 Force the container to disconnect from a network
 

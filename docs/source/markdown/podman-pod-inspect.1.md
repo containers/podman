@@ -11,12 +11,12 @@ Displays configuration and state information about a given pod.  It also display
 that belong to the pod.
 
 ## OPTIONS
-#### **\-\-latest**, **-l**
+#### **--latest**, **-l**
 
 Instead of providing the pod name or ID, use the last created pod. If you use methods other than Podman
 to run pods such as CRI-O, the last started pod could be from either of those methods. (This option is not available with the remote Podman client)
 
-#### **\-\-format**=*format*, **-f**
+#### **--format**=*format*, **-f**
 
 Change the default output format.  This can be of a supported type like 'json'
 or a Go template.

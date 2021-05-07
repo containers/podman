@@ -20,24 +20,24 @@ about their networking usage.
 
 ## OPTIONS
 
-#### **\-\-all**, **-a**
+#### **--all**, **-a**
 
 Show all containers.  Only running containers are shown by default
 
-#### **\-\-latest**, **-l**
+#### **--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods. (This option is not available with the remote Podman client)
 
-#### **\-\-no-reset**
+#### **--no-reset**
 
 Do not clear the terminal/screen in between reporting intervals
 
-#### **\-\-no-stream**
+#### **--no-stream**
 
 Disable streaming stats and only pull the first result, default setting is false
 
-#### **\-\-format**=*template*
+#### **--format**=*template*
 
 Pretty-print container statistics to JSON or using a Go template
 

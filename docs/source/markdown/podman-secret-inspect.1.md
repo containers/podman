@@ -15,11 +15,11 @@ Secrets can be queried individually by providing their full name or a unique par
 
 ## OPTIONS
 
-#### **\-\-format**=*format*
+#### **--format**=*format*
 
 Format secret output using Go template.
 
-#### **\-\-help**
+#### **--help**
 
 Print usage statement.
 

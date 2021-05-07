@@ -16,11 +16,11 @@ the network connectivity.
 This command is not available for rootless users since rootless containers are not affected by such connectivity problems.
 
 ## OPTIONS
-#### **\-\-all**, **-a**
+#### **--all**, **-a**
 
 Reload network configuration of all containers.
 
-#### **\-\-latest**, **-l**
+#### **--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods. (This option is not available with the remote Podman client)

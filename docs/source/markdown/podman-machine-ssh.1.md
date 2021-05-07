@@ -17,7 +17,7 @@ with the virtual machine is established.
 
 ## OPTIONS
 
-#### **\-\-help**
+#### **--help**
 
 Print usage statement.
 

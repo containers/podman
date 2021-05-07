@@ -13,37 +13,37 @@ podman\-exec - Execute a command in a running container
 
 ## OPTIONS
 
-#### **\-\-detach**, **-d**
+#### **--detach**, **-d**
 
 Start the exec session, but do not attach to it. The command will run in the background and the exec session will be automatically removed when it completes. The **podman exec** command will print the ID of the exec session and exit immediately after it starts.
 
-#### **\-\-detach-keys**=*sequence*
+#### **--detach-keys**=*sequence*
 
 Specify the key sequence for detaching a container. Format is a single character `[a-Z]` or one or more `ctrl-<value>` characters where `<value>` is one of: `a-z`, `@`, `^`, `[`, `,` or `_`. Specifying "" will disable this feature. The default is *ctrl-p,ctrl-q*.
 
-#### **\-\-env**, **-e**
+#### **--env**, **-e**
 
 You may specify arbitrary environment variables that are available for the
 command to be executed.
 
-#### **\-\-env-file**=*file*
+#### **--env-file**=*file*
 
 Read in a line delimited file of environment variables.
 
-#### **\-\-interactive**, **-i**=*true|false*
+#### **--interactive**, **-i**=*true|false*
 
 When set to true, keep stdin open even if not attached. The default is *false*.
 
-#### **\-\-latest**, **-l**
+#### **--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods. (This option is not available with the remote Podman client)
 
-#### **\-\-preserve-fds**=*N*
+#### **--preserve-fds**=*N*
 
 Pass down to the process N additional file descriptors (in addition to 0, 1, 2).  The total FDs will be 3+N.
 
-#### **\-\-privileged**
+#### **--privileged**
 
 Give extended privileges to this container. The default is *false*.
 
@@ -59,17 +59,17 @@ points, Apparmor/SELinux separation, and Seccomp filters are all disabled.
 Rootless containers cannot have more privileges than the account that launched them.
 
 
-#### **\-\-tty**, **-t**
+#### **--tty**, **-t**
 
 Allocate a pseudo-TTY.
 
-#### **\-\-user**, **-u**
+#### **--user**, **-u**
 
 Sets the username or UID used and optionally the groupname or GID for the specified command.
 The following examples are all valid:
 --user [user | user:group | uid | uid:gid | user:gid | uid:group ]
 
-#### **\-\-workdir**, **-w**=*path*
+#### **--workdir**, **-w**=*path*
 
 Working directory inside the container
 

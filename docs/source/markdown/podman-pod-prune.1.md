@@ -11,7 +11,7 @@ podman-pod-prune - Remove all stopped pods and their containers
 
 ## OPTIONS
 
-#### **\-\-force**, **-f**
+#### **--force**, **-f**
 Force removal of all running pods and their containers. The default is false.
 
 ## EXAMPLES

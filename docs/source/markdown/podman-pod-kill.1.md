@@ -10,16 +10,16 @@ podman\-pod\-kill - Kill the main process of each container in one or more pods
 The main process of each container inside the pods specified will be sent SIGKILL, or any signal specified with option --signal.
 
 ## OPTIONS
-#### **\-\-all**, **-a**
+#### **--all**, **-a**
 
 Sends signal to all containers associated with a pod.
 
-#### **\-\-latest**, **-l**
+#### **--latest**, **-l**
 
 Instead of providing the pod name or ID, use the last created pod. If you use methods other than Podman
 to run pods such as CRI-O, the last started pod could be from either of those methods. (This option is not available with the remote Podman client)
 
-#### **\-\-signal**, **-s**
+#### **--signal**, **-s**
 
 Signal to send to the containers in the pod. For more information on Linux signals, refer to *man signal(7)*.
 

@@ -27,11 +27,11 @@ External containers are containers created in container/storage by other tools l
 Buildah and CRI-O.
 
 ## OPTIONS
-#### **\-\-all**, **-a**
+#### **--all**, **-a**
 
 All of the currently mounted containers will be unmounted.
 
-#### **\-\-force**, **-f**
+#### **--force**, **-f**
 
 Force the unmounting of specified containers' root file system, even if other
 processes have mounted it.
@@ -39,7 +39,7 @@ processes have mounted it.
 Note: This could cause other processes that are using the file system to fail,
 as the mount point could be removed without their knowledge.
 
-#### **\-\-latest**, **-l**
+#### **--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container.
 If you use methods other than Podman to run containers such as CRI-O, the last
