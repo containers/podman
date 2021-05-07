@@ -5,7 +5,7 @@ var (
 )
 
 func (v *MachineVM) addArchOptions() []string {
-	opts := []string{"-cpu", "host"}
+	opts := []string{"-machine", "q35,accel=hvf:tcg"}
 	return opts
 }
 

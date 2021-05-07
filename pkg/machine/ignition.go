@@ -118,6 +118,7 @@ func getDirs(usrName string) []Directory {
 	// in one swoop, then the leading dirs are creates as root.
 	newDirs := []string{
 		"/home/" + usrName + "/.config",
+		"/home/" + usrName + "/.config/containers",
 		"/home/" + usrName + "/.config/systemd",
 		"/home/" + usrName + "/.config/systemd/user",
 		"/home/" + usrName + "/.config/systemd/user/default.target.wants",
@@ -159,6 +160,22 @@ func getFiles(usrName string) []File {
 		},
 	})
 
+	// Set containers.conf up for core user to use cni networks
+	// by default
+	files = append(files, File{
+		Node: Node{
+			Group: getNodeGrp(usrName),
+			Path:  "/home/" + usrName + "/.config/containers/containers.conf",
+			User:  getNodeUsr(usrName),
+		},
+		FileEmbedded1: FileEmbedded1{
+			Append: nil,
+			Contents: Resource{
+				Source: strToPtr("data:,%5Bcontainers%5D%0D%0Anetns%3D%22bridge%22%0D%0Arootless_networking%3D%22cni%22"),
+			},
+			Mode: intToPtr(484),
+		},
+	})
 	// Add a file into linger
 	files = append(files, File{
 		Node: Node{

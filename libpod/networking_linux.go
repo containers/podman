@@ -273,7 +273,6 @@ func (r *Runtime) GetRootlessCNINetNs(new bool) (*RootlessCNI, error) {
 				if err != nil {
 					return nil, errors.Wrap(err, "error creating rootless cni network namespace")
 				}
-
 				// setup slirp4netns here
 				path := r.config.Engine.NetworkCmdPath
 				if path == "" {
@@ -437,9 +436,32 @@ func (r *Runtime) GetRootlessCNINetNs(new bool) (*RootlessCNI, error) {
 	return rootlessCNINS, nil
 }
 
+// setPrimaryMachineIP is used for podman-machine and it sets
+// and environment variable with the IP address of the podman-machine
+// host.
+func setPrimaryMachineIP() error {
+	// no connection is actually made here
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
+	addr := conn.LocalAddr().(*net.UDPAddr)
+	return os.Setenv("PODMAN_MACHINE_HOST", addr.IP.String())
+}
+
 // setUpOCICNIPod will set up the cni networks, on error it will also tear down the cni
 // networks. If rootless it will join/create the rootless cni namespace.
 func (r *Runtime) setUpOCICNIPod(podNetwork ocicni.PodNetwork) ([]ocicni.NetResult, error) {
+	if r.config.MachineEnabled() {
+		if err := setPrimaryMachineIP(); err != nil {
+			return nil, err
+		}
+	}
 	rootlessCNINS, err := r.GetRootlessCNINetNs(true)
 	if err != nil {
 		return nil, err

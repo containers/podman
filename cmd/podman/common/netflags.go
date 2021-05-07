@@ -85,7 +85,10 @@ func DefineNetFlags(cmd *cobra.Command) {
 	)
 }
 
-func NetFlagsToNetOptions(cmd *cobra.Command) (*entities.NetOptions, error) {
+// NetFlagsToNetOptions parses the network flags for the given cmd.
+// The netnsFromConfig bool is used to indicate if the --network flag
+// should always be parsed regardless if it was set on the cli.
+func NetFlagsToNetOptions(cmd *cobra.Command, netnsFromConfig bool) (*entities.NetOptions, error) {
 	var (
 		err error
 	)
@@ -193,7 +196,9 @@ func NetFlagsToNetOptions(cmd *cobra.Command) (*entities.NetOptions, error) {
 		return nil, err
 	}
 
-	if cmd.Flags().Changed("network") {
+	// parse the --network value only when the flag is set or we need to use
+	// the netns config value, e.g. when --pod is not used
+	if netnsFromConfig || cmd.Flag("network").Changed {
 		network, err := cmd.Flags().GetString("network")
 		if err != nil {
 			return nil, err

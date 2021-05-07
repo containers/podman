@@ -87,7 +87,7 @@ func create(cmd *cobra.Command, args []string) error {
 	var (
 		err error
 	)
-	cliVals.Net, err = common.NetFlagsToNetOptions(cmd)
+	cliVals.Net, err = common.NetFlagsToNetOptions(cmd, cliVals.Pod == "")
 	if err != nil {
 		return err
 	}
