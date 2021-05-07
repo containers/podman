@@ -1531,6 +1531,16 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 		}()
 	}
 
+	// If /etc/mtab does not exist in container image, then we need to
+	// create it, so that mount command within the container will work.
+	mtab := filepath.Join(mountPoint, "/etc/mtab")
+	if err := os.MkdirAll(filepath.Dir(mtab), 0755); err != nil {
+		return "", errors.Wrap(err, "error creating mtab directory")
+	}
+	if err = os.Symlink("/proc/mounts", mtab); err != nil && !os.IsExist(err) {
+		return "", err
+	}
+
 	// Request a mount of all named volumes
 	for _, v := range c.config.NamedVolumes {
 		vol, err := c.mountNamedVolume(v, mountPoint)
