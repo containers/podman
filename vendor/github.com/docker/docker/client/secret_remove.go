@@ -2,7 +2,7 @@ package client // import "github.com/docker/docker/client"
 
 import "context"
 
-// SecretRemove removes a secret.
+// SecretRemove removes a Secret.
 func (cli *Client) SecretRemove(ctx context.Context, id string) error {
 	if err := cli.NewVersionError("1.25", "secret remove"); err != nil {
 		return err
