@@ -443,7 +443,7 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
 	query := struct {
-		Names string `schema:"names"`
+		Names []string `schema:"names"`
 	}{
 		// This is where you can override the golang default value for one of fields
 	}
@@ -451,8 +451,16 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-	images := make([]string, 0)
-	images = append(images, strings.Split(query.Names, ",")...)
+	if len(query.Names) <= 0 {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, fmt.Errorf("no images to download"))
+		return
+	}
+	if len(query.Names) > 1 {
+		utils.Error(w, "Something went wrong.", http.StatusNotImplemented, fmt.Errorf("getting multiple image is not supported yet"))
+		return
+	}
+
+	images := query.Names
 	tmpfile, err := ioutil.TempFile("", "api.tar")
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
@@ -466,7 +474,7 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 
-	saveOptions := entities.ImageSaveOptions{Output: tmpfile.Name()}
+	saveOptions := entities.ImageSaveOptions{Format: "docker-archive", Output: tmpfile.Name()}
 	if err := imageEngine.Save(r.Context(), images[0], images[1:], saveOptions); err != nil {
 		utils.InternalServerError(w, err)
 		return
