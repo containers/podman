@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-var containerMounts = map[string]bool{
+var initInodes = map[string]bool{
 	"/dev":               true,
 	"/etc/hostname":      true,
 	"/etc/hosts":         true,
@@ -17,6 +17,7 @@ var containerMounts = map[string]bool{
 	"/run/.containerenv": true,
 	"/run/secrets":       true,
 	"/sys":               true,
+	"/etc/mtab":          true,
 }
 
 // GetDiff returns the differences between the two images, layers, or containers
@@ -36,7 +37,7 @@ func (r *Runtime) GetDiff(from, to string) ([]archive.Change, error) {
 	changes, err := r.store.Changes(fromLayer, toLayer)
 	if err == nil {
 		for _, c := range changes {
-			if containerMounts[c.Path] {
+			if initInodes[c.Path] {
 				continue
 			}
 			rchanges = append(rchanges, c)
