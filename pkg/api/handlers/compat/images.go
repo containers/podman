@@ -324,7 +324,11 @@ loop: // break out of for/select infinite loop
 			flush()
 		case <-runCtx.Done():
 			if !failed {
-				report.Status = "Pull complete"
+				if utils.IsLibpodRequest(r) {
+					report.Status = "Pull complete"
+				} else {
+					report.Status = "Download complete"
+				}
 				report.Id = img[0:12]
 				if err := enc.Encode(report); err != nil {
 					logrus.Warnf("Failed to json encode error %q", err.Error())
