@@ -402,6 +402,11 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	if len(s.Secrets) != 0 {
 		options = append(options, libpod.WithSecrets(s.Secrets))
 	}
+
+	if len(s.EnvSecrets) != 0 {
+		options = append(options, libpod.WithEnvSecrets(s.EnvSecrets))
+	}
+
 	if len(s.DependencyContainers) > 0 {
 		deps := make([]*libpod.Container, 0, len(s.DependencyContainers))
 		for _, ctr := range s.DependencyContainers {

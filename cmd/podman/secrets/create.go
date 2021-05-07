@@ -2,15 +2,16 @@ package secrets
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -29,6 +30,7 @@ var (
 
 var (
 	createOpts = entities.SecretCreateOptions{}
+	env        = false
 )
 
 func init() {
@@ -43,6 +45,9 @@ func init() {
 	driverFlagName := "driver"
 	flags.StringVar(&createOpts.Driver, driverFlagName, "file", "Specify secret driver")
 	_ = createCmd.RegisterFlagCompletionFunc(driverFlagName, completion.AutocompleteNone)
+
+	envFlagName := "env"
+	flags.BoolVar(&env, envFlagName, false, "Read secret data from environment variable")
 }
 
 func create(cmd *cobra.Command, args []string) error {
@@ -52,7 +57,13 @@ func create(cmd *cobra.Command, args []string) error {
 	path := args[1]
 
 	var reader io.Reader
-	if path == "-" || path == "/dev/stdin" {
+	if env {
+		envValue := os.Getenv(path)
+		if envValue == "" {
+			return errors.Errorf("cannot create store secret data: environment variable %s is not set", path)
+		}
+		reader = strings.NewReader(envValue)
+	} else if path == "-" || path == "/dev/stdin" {
 		stat, err := os.Stdin.Stat()
 		if err != nil {
 			return err

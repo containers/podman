@@ -180,6 +180,9 @@ type ContainerBasicConfig struct {
 	// set tags as `json:"-"` for not supported remote
 	// Optional.
 	PidFile string `json:"-"`
+	// EnvSecrets are secrets that will be set as environment variables
+	// Optional.
+	EnvSecrets map[string]string `json:"secret_env,omitempty"`
 }
 
 // ContainerStorageConfig contains information on the storage configuration of a

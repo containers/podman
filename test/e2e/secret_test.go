@@ -199,4 +199,27 @@ var _ = Describe("Podman secret", func() {
 		Expect(len(session.OutputToStringArray())).To(Equal(1))
 	})
 
+	It("podman secret creates from environment variable", func() {
+		// no env variable set, should fail
+		session := podmanTest.Podman([]string{"secret", "create", "--env", "a", "MYENVVAR"})
+		session.WaitWithDefaultTimeout()
+		secrID := session.OutputToString()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+
+		os.Setenv("MYENVVAR", "somedata")
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		session = podmanTest.Podman([]string{"secret", "create", "--env", "a", "MYENVVAR"})
+		session.WaitWithDefaultTimeout()
+		secrID = session.OutputToString()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"secret", "inspect", "--format", "{{.ID}}", secrID})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(Equal(secrID))
+	})
+
 })

@@ -29,6 +29,7 @@ import (
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/chown"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/common/pkg/subscriptions"
 	"github.com/containers/common/pkg/umask"
 	"github.com/containers/podman/v3/libpod/define"
@@ -756,6 +757,19 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	// Warning: precreate hooks may alter g.Config in place.
 	if c.state.ExtensionStageHooks, err = c.setupOCIHooks(ctx, g.Config); err != nil {
 		return nil, errors.Wrapf(err, "error setting up OCI Hooks")
+	}
+	if len(c.config.EnvSecrets) > 0 {
+		manager, err := secrets.NewManager(c.runtime.GetSecretsStorageDir())
+		if err != nil {
+			return nil, err
+		}
+		for name, secr := range c.config.EnvSecrets {
+			_, data, err := manager.LookupSecretData(secr.Name)
+			if err != nil {
+				return nil, err
+			}
+			g.AddProcessEnv(name, string(data))
+		}
 	}
 
 	return g.Config, nil
