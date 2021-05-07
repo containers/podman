@@ -13,7 +13,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ServiceCreate creates a new service.
+// ServiceCreate creates a new Service.
 func (cli *Client) ServiceCreate(ctx context.Context, service swarm.ServiceSpec, options types.ServiceCreateOptions) (types.ServiceCreateResponse, error) {
 	var response types.ServiceCreateResponse
 	headers := map[string][]string{
