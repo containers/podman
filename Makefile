@@ -349,7 +349,7 @@ podman-remote-windows: ## Build podman-remote for Windows
 		bin/windows/podman.exe
 
 .PHONY: podman-remote-darwin
-podman-remote-darwin: ## Build podman-remote for MacOS
+podman-remote-darwin: ## Build podman-remote for macOS
 	$(MAKE) \
 		CGO_ENABLED=0 \
 		GOOS=darwin \

@@ -536,7 +536,7 @@ containers and pods in a way which fits very nicely in many production environme
 
 
 ## References
-- Podman is available for most major distributions along with MacOS and Windows.
+- Podman is available for most major distributions along with macOS and Windows.
 Installation details are available on the [Podman official website](https://podman.io/getting-started/).
 
 - Documentation can be found at the [Podman Docs page](https://docs.podman.io).

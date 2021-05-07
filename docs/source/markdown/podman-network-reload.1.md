@@ -9,7 +9,7 @@ podman\-network\-reload - Reload network configuration for containers
 ## DESCRIPTION
 Reload one or more container network configurations.
 
-Rootful Podman relies on iptables rules in order to provide network connectivity. If the iptables rules are deleted,
+Rootfull Podman relies on iptables rules in order to provide network connectivity. If the iptables rules are deleted,
 this happens for example with `firewall-cmd --reload`, the container loses network connectivity. This command restores
 the network connectivity.
 

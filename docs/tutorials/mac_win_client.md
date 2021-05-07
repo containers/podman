@@ -1,4 +1,4 @@
-# Podman Remote clients for MacOS and Windows
+# Podman Remote clients for macOS and Windows
 
 ## Introduction
 
@@ -18,7 +18,7 @@ Once you have downloaded the installer, simply double click the installer and Po
 
 Podman must be run at a command prompt using the Windows ‘cmd” or powershell applications.
 
-### MacOS
+### macOS
 
 The Mac Client is available through [Homebrew](https://brew.sh/). You can download homebrew via the instructions on their site. Install podman using:
 ```

@@ -7,7 +7,7 @@ podman\-machine - Manage Podman's virtual machine
 **podman machine** *subcommand*
 
 ## DESCRIPTION
-`podman machine` is a set of subcommands that manage Podman's virtual machine on MacOS.
+`podman machine` is a set of subcommands that manage Podman's virtual machine on macOS.
 
 ## SUBCOMMANDS
 

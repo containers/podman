@@ -150,7 +150,7 @@ Default is **enabled**.
 The **enabled** option will create a new cgroup under the cgroup-parent.
 The **disabled** option will force the container to not create CGroups, and thus conflicts with CGroup options (**\-\-cgroupns** and **\-\-cgroup-parent**).
 The **no-conmon** option disables a new CGroup only for the **conmon** process.
-The **split** option splits the current cgroup in two sub-cgroups: one for conmon and one for the container payload. It is not possible to set **\-\-cgroup-parent** with **split**.
+The **split** option splits the current CGroup in two sub-cgroups: one for conmon and one for the container payload. It is not possible to set **\-\-cgroup-parent** with **split**.
 
 #### **\-\-cgroup-parent**=*path*
 
@@ -1080,8 +1080,8 @@ option conflicts with the **\-\-userns** and **\-\-subuidname** options. This
 option provides a way to map host UIDs to container UIDs. It can be passed
 several times to map different ranges.
 
-The _from_uid_ value is based upon the user running the command, either rootful or rootless users.
-* rootful user:  *container_uid*:*host_uid*:*amount*
+The _from_uid_ value is based upon the user running the command, either rootfull or rootless users.
+* rootfull user:  *container_uid*:*host_uid*:*amount*
 * rootless user: *container_uid*:*intermediate_uid*:*amount*
 
 When **podman run** is called by a privileged user, the option **\-\-uidmap**
@@ -1188,7 +1188,7 @@ Create a bind mount. If you specify _/HOST-DIR_:_/CONTAINER-DIR_, Podman
 bind mounts _host-dir_ in the host to _CONTAINER-DIR_ in the Podman
 container. Similarly, _SOURCE-VOLUME_:_/CONTAINER-DIR_ will mount the volume
 in the host to the container. If no such named volume exists, Podman will
-create one. (Note when using the remote client, the volumes will be mounted from the remote server, not necessarly the client machine.)
+create one. (Note when using the remote client, the volumes will be mounted from the remote server, not necessarily the client machine.)
 
 The _options_ is a comma-separated list and can be: <sup>[[1]](#Footnote1)</sup>
 

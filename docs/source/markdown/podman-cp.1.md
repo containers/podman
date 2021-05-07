@@ -31,7 +31,7 @@ Assuming a path separator of /, a first argument of **src_path** and second argu
   - **dest_path** exists and is a file
     - the destination is overwritten with the source file's contents
   - **dest_path** exists and is a directory
-    - the file is copied into this directory using the basename from **src_path**
+    - the file is copied into this directory using the base name from **src_path**
 
 **src_path** specifies a directory
   - **dest_path** does not exist
