@@ -44,6 +44,10 @@ exclude_patterns = []
 
 master_doc = "index"
 
+# Configure smartquotes to only transform quotes and ellipses, not dashes
+smartquotes_action = "qe"
+
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
