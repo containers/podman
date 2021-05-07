@@ -26,11 +26,11 @@ The unshare session defines two environment variables:
 
 ## OPTIONS
 
-#### **\-\-help**, **-h**
+#### **--help**, **-h**
 
 Print usage statement
 
-#### **\-\-rootless-cni**
+#### **--rootless-cni**
 
 Join the rootless network namespace used for CNI networking. It can be used to
 connect to a rootless container via IP address (CNI networking). This is otherwise

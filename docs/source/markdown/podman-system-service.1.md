@@ -25,12 +25,12 @@ Note: The default systemd unit files (system and user) change the log-level opti
 
 ## OPTIONS
 
-#### **\-\-time**, **-t**
+#### **--time**, **-t**
 
 The time until the session expires in _seconds_. The default is 5
 seconds. A value of `0` means no timeout, therefore the session will not expire.
 
-#### **\-\-help**, **-h**
+#### **--help**, **-h**
 
 Print usage statement.
 

@@ -37,7 +37,7 @@ A Kubernetes PersistentVolumeClaim represents a Podman named volume. Only the Pe
 
 ## OPTIONS
 
-#### **\-\-authfile**=*path*
+#### **--authfile**=*path*
 
 Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
 If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.
@@ -45,58 +45,58 @@ If the authorization state is not found there, $HOME/.docker/config.json is chec
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
 environment variable. `export REGISTRY_AUTH_FILE=path`
 
-#### **\-\-cert-dir**=*path*
+#### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
 Default certificates directory is _/etc/containers/certs.d_. (This option is not available with the remote Podman client)
 
-#### **\-\-configmap**=*path*
+#### **--configmap**=*path*
 
 Use Kubernetes configmap YAML at path to provide a source for environment variable values within the containers of the pod.
 
 Note: The *--configmap* option can be used multiple times or a comma-separated list of paths can be used to pass multiple Kubernetes configmap YAMLs.
 
-#### **\-\-creds**
+#### **--creds**
 
 The [username[:password]] to use to authenticate with the registry if required.
 If one or both values are not supplied, a command line prompt will appear and the
 value can be entered.  The password is entered without echo.
 
-#### **\-\-ip**=*IP address*
+#### **--ip**=*IP address*
 
 Assign a static ip address to the pod. This option can be specified several times when play kube creates more than one pod.
 
-#### **\-\-log-driver**=driver
+#### **--log-driver**=driver
 
 Set logging driver for all created containers.
 
-#### **\-\-mac-address**=*MAC address*
+#### **--mac-address**=*MAC address*
 
 Assign a static mac address to the pod. This option can be specified several times when play kube creates more than one pod.
 
-#### **\-\-network**=*networks*, **\-\-net**
+#### **--network**=*networks*, **--net**
 
 A comma-separated list of the names of CNI networks the pod should join.
 
-#### **\-\-quiet**, **-q**
+#### **--quiet**, **-q**
 
 Suppress output information when pulling images
 
-#### **\-\-seccomp-profile-root**=*path*
+#### **--seccomp-profile-root**=*path*
 
 Directory path for seccomp profiles (default: "/var/lib/kubelet/seccomp"). (This option is not available with the remote Podman client)
 
-#### **\-\-start**=*true|false*
+#### **--start**=*true|false*
 
 Start the pod after creating it, set to false to only create it.
 
-#### **\-\-tls-verify**=*true|false*
+#### **--tls-verify**=*true|false*
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
 then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,
 TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf.
 
-#### **\-\-help**, **-h**
+#### **--help**, **-h**
 
 Print usage statement
 

@@ -11,11 +11,11 @@ Display the running processes of containers in a pod. The *format-descriptors* a
 
 ## OPTIONS
 
-#### **\-\-help**, **-h**
+#### **--help**, **-h**
 
   Print usage statement
 
-#### **\-\-latest**, **-l**
+#### **--latest**, **-l**
 
 Instead of providing the pod name or ID, use the last created pod. (This option is not available with the remote Podman client)
 

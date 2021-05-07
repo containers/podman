@@ -11,25 +11,25 @@ Stop containers in one or more pods.  You may use pod IDs or names as input.
 
 ## OPTIONS
 
-#### **\-\-all**, **-a**
+#### **--all**, **-a**
 
 Stops all pods
 
-#### **\-\-ignore**, **-i**
+#### **--ignore**, **-i**
 
 Ignore errors when specified pods are not in the container store.  A user might
 have decided to manually remove a pod which would lead to a failure during the
 ExecStop directive of a systemd service referencing that pod.
 
-#### **\-\-latest**, **-l**
+#### **--latest**, **-l**
 
 Instead of providing the pod name or ID, stop the last created pod. (This option is not available with the remote Podman client)
 
-#### **\-\-time**, **-t**=*time*
+#### **--time**, **-t**=*time*
 
 Timeout to wait before forcibly stopping the containers in the pod.
 
-#### **\-\-pod-id-file**
+#### **--pod-id-file**
 
 Read pod ID from the specified file and stop the pod.  Can be specified multiple times.
 

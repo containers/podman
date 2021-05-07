@@ -15,7 +15,7 @@ of `0` when the network is found.  A `1` will be returned otherwise. An exit cod
 
 ## OPTIONS
 
-#### **\-\-help**, **-h**
+#### **--help**, **-h**
 
 Print usage statement
 

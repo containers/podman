@@ -14,7 +14,7 @@ of `0` when the volume is found. A `1` will be returned otherwise. An exit code 
 
 ## OPTIONS
 
-#### **\-\-help**, **-h**
+#### **--help**, **-h**
 
 Print usage statement
 

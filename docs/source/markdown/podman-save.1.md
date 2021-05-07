@@ -24,16 +24,16 @@ Note: `:` is a restricted character and cannot be part of the file name.
 
 ## OPTIONS
 
-#### **\-\-compress**
+#### **--compress**
 
 Compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type, compressed or uncompressed, as source)
 Note: This flag can only be set when using the **dir** transport i.e --format=oci-dir or --format=docker-dir
 
-#### **\-\-output**, **-o**=*file*
+#### **--output**, **-o**=*file*
 
 Write to a file, default is STDOUT
 
-#### **\-\-format**=*format*
+#### **--format**=*format*
 
 Save image to **oci-archive, oci-dir** (directory with oci manifest type), or **docker-dir** (directory with v2s2 manifest type)
 ```
@@ -42,16 +42,16 @@ Save image to **oci-archive, oci-dir** (directory with oci manifest type), or **
 --format docker-dir
 ```
 
-#### **\-\-multi-image-archive**, **-m**
+#### **--multi-image-archive**, **-m**
 
 Allow for creating archives with more than one image.  Additional names will be interpreted as images instead of tags.  Only supported for **docker-archive**.
 The default for this option can be modified via the `multi_image_archive="true"|"false"` flag in containers.conf.
 
-#### **\-\-quiet**, **-q**
+#### **--quiet**, **-q**
 
 Suppress the output
 
-#### **\-\-help**, **-h**
+#### **--help**, **-h**
 
 Print usage statement
 

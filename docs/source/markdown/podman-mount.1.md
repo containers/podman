@@ -26,21 +26,21 @@ returned.
 
 ## OPTIONS
 
-#### **\-\-all**, **-a**
+#### **--all**, **-a**
 
 Mount all podman containers. (External containers will not be mounted)
 
-#### **\-\-format**=*format*
+#### **--format**=*format*
 
 Print the mounted containers in specified format (json).
 
-#### **\-\-latest**, **-l**
+#### **--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container.
 If you use methods other than Podman to run containers such as CRI-O, the last
 started container could be from either of those methods. (This option is not available with the remote Podman client)
 
-#### **\-\-notruncate**
+#### **--notruncate**
 
 Do not truncate IDs in output.
 

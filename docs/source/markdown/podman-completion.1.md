@@ -14,11 +14,11 @@ These script are used by the shell to provide suggestions and complete commands 
 Usually these scripts are automatically installed via the package manager.
 
 ## OPTIONS
-#### **\-\-file**, **-f**
+#### **--file**, **-f**
 
 Write the generated output to file.
 
-#### **\-\-no-desc**
+#### **--no-desc**
 
 Do not provide description in the completions.
 

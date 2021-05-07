@@ -14,46 +14,46 @@ _Note: If you use this command with the remote client, you would still have to p
 
 ## OPTIONS
 
-#### **\-\-files**, **-f**
+#### **--files**, **-f**
 
 Generate files instead of printing to stdout.  The generated files are named {container,pod}-{ID,name}.service and will be placed in the current working directory.
 
 Note: On a system with SELinux enabled, the generated files will inherit contexts from the current working directory. Depending on the SELinux setup, changes to the generated files using `restorecon`, `chcon`, or `semanage` may be required to allow systemd to access these files. Alternatively, use the `-Z` option when running `mv` or `cp`.
 
-#### **\-\-format**=*format*
+#### **--format**=*format*
 
 Print the created units in specified format (json). If `--files` is specified the paths to the created files will be printed instead of the unit content.
 
-#### **\-\-name**, **-n**
+#### **--name**, **-n**
 
 Use the name of the container for the start, stop, and description in the unit file
 
-#### **\-\-new**
+#### **--new**
 
 Using this flag will yield unit files that do not expect containers and pods to exist.  Instead, new containers and pods are created based on their configuration files.  The unit files are created best effort and may need to be further edited; please review the generated files carefully before using them in production.
 
-#### **\-\-no-header**
+#### **--no-header**
 
 Do not generate the header including meta data such as the Podman version and the timestamp.
 
-#### **\-\-time**, **-t**=*value*
+#### **--time**, **-t**=*value*
 
 Override the default stop timeout for the container with the given value.
 
-#### **\-\-restart-policy**=*policy*
+#### **--restart-policy**=*policy*
 
 Set the systemd restart policy.  The restart-policy must be one of: "no", "on-success", "on-failure", "on-abnormal",
 "on-watchdog", "on-abort", or "always".  The default policy is *on-failure*.
 
-#### **\-\-container-prefix**=*prefix*
+#### **--container-prefix**=*prefix*
 
 Set the systemd unit name prefix for containers. The default is *container*.
 
-#### **\-\-pod-prefix**=*prefix*
+#### **--pod-prefix**=*prefix*
 
 Set the systemd unit name prefix for pods. The default is *pod*.
 
-#### **\-\-separator**=*separator*
+#### **--separator**=*separator*
 
 Set the systemd unit name separator between the name/id of a container/pod and the prefix. The default is *-*.
 

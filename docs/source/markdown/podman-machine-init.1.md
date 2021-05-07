@@ -20,15 +20,15 @@ and a user account inside the VM are added.
 
 ## OPTIONS
 
-#### **\-\-cpus**=*number*
+#### **--cpus**=*number*
 
 Number of CPUs.
 
-#### **\-\-disk-size**=*number*
+#### **--disk-size**=*number*
 
 Size of the disk for the guest VM in GB.
 
-#### **\-\-ignition-path**
+#### **--ignition-path**
 
 Fully qualified path of the ignition file.
 
@@ -37,15 +37,15 @@ will be copied into the user's CONF_DIR and renamed.  Additionally, no SSH keys 
 be generated nor will a system connection be made.  It is assumed that the user will
 do these things manually or handle otherwise.
 
-#### **\-\-image-path**
+#### **--image-path**
 
 Fully qualified path of the uncompressed image file
 
-#### **\-\-memory**, **-m**=*number*
+#### **--memory**, **-m**=*number*
 
 Memory (in MB).
 
-#### **\-\-help**
+#### **--help**
 
 Print usage statement.
 

@@ -12,7 +12,7 @@ has no containers connected or configured to connect to it. It will not remove
 the so-called default network which goes by the name of *podman*.
 
 ## OPTIONS
-#### **\-\-force**, **-f**
+#### **--force**, **-f**
 
 Do not prompt for confirmation
 

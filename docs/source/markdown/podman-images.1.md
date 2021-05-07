@@ -15,15 +15,15 @@ Displays locally stored images, their names, and their IDs.
 
 ## OPTIONS
 
-#### **\-\-all**, **-a**
+#### **--all**, **-a**
 
 Show all images (by default filter out the intermediate image layers). The default is false.
 
-#### **\-\-digests**
+#### **--digests**
 
 Show image digests
 
-#### **\-\-filter**=*filter*, **-f**
+#### **--filter**=*filter*, **-f**
 
 Filter output based on conditions provided
 
@@ -47,7 +47,7 @@ Filter output based on conditions provided
   **reference=**
      Filter by image name, specified as regular expressions.
 
-#### **\-\-format**=*format*
+#### **--format**=*format*
 
 Change the default output format.  This can be of a supported type like 'json'
 or a Go template.
@@ -64,23 +64,23 @@ Valid placeholders for the Go template are listed below:
 | .Size           | Size of layer on disk                                                         |
 | .History        | History of the image layer                                                    |
 
-#### **\-\-history**
+#### **--history**
 
 Display the history of image names.  If an image gets re-tagged or untagged, then the image name history gets prepended (latest image first).  This is especially useful when undoing a tag operation or an image does not contain any name because it has been untagged.
 
-#### **\-\-noheading**, **-n**
+#### **--noheading**, **-n**
 
 Omit the table headings from the listing of images.
 
-#### **\-\-no-trunc**
+#### **--no-trunc**
 
 Do not truncate output.
 
-#### **\-\-quiet**, **-q**
+#### **--quiet**, **-q**
 
 Lists only the image IDs.
 
-#### **\-\-sort**=*sort*
+#### **--sort**=*sort*
 
 Sort by created, id, repository, size or tag (default: created)
 

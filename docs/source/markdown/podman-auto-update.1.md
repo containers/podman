@@ -38,7 +38,7 @@ Podman ships with a `podman-auto-update.service` systemd unit.  This unit is tri
 
 ## OPTIONS
 
-#### **\-\-authfile**=*path*
+#### **--authfile**=*path*
 
 Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
 If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.

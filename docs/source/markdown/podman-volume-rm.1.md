@@ -9,22 +9,22 @@ podman\-volume\-rm - Remove one or more volumes
 ## DESCRIPTION
 
 Removes one or more volumes. Only volumes that are not being used will be removed.
-If a volume is being used by a container, an error will be returned unless the **\-\-force**
-flag is being used. To remove all volumes, use the **\-\-all** flag.
+If a volume is being used by a container, an error will be returned unless the **--force**
+flag is being used. To remove all volumes, use the **--all** flag.
 Volumes can be removed individually by providing their full name or a unique partial name.
 
 ## OPTIONS
 
-#### **\-\-all**, **-a**
+#### **--all**, **-a**
 
 Remove all volumes.
 
-#### **\-\-force**, **-f**
+#### **--force**, **-f**
 
 Remove a volume by force.
 If it is being used by containers, the containers will be removed first.
 
-#### **\-\-help**
+#### **--help**
 
 Print usage statement
 

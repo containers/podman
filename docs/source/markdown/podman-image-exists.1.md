@@ -14,7 +14,7 @@ was an issue accessing the local storage.
 
 ## OPTIONS
 
-#### **\-\-help**, **-h**
+#### **--help**, **-h**
 
 Print usage statement
 

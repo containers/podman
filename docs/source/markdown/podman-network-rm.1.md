@@ -10,7 +10,7 @@ podman\-network\-rm - Remove one or more CNI networks
 Delete one or more Podman networks.
 
 ## OPTIONS
-#### **\-\-force**, **-f**
+#### **--force**, **-f**
 
 The `force` option will remove all containers that use the named network. If the container is
 running, the container will be stopped and removed.

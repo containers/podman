@@ -19,11 +19,11 @@ counter reaches zero indicating no other processes are using the mount.
 An unmount can be forced with the --force flag.
 
 ## OPTIONS
-#### **\-\-all**, **-a**
+#### **--all**, **-a**
 
 All of the currently mounted images will be unmounted.
 
-#### **\-\-force**, **-f**
+#### **--force**, **-f**
 
 Force the unmounting of specified images' root file system, even if other
 processes have mounted it.

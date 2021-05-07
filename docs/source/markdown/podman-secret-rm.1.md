@@ -18,11 +18,11 @@ the old secret value will still remain.
 
 ## OPTIONS
 
-#### **\-\-all**, **-a**
+#### **--all**, **-a**
 
 Remove all existing secrets.
 
-#### **\-\-help**
+#### **--help**
 
 Print usage statement.
 

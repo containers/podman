@@ -12,15 +12,15 @@ to be started.
 
 ## OPTIONS
 
-#### **\-\-all**, **-a**
+#### **--all**, **-a**
 
 Starts all pods
 
-#### **\-\-latest**, **-l**
+#### **--latest**, **-l**
 
 Instead of providing the pod name or ID, start the last created pod. (This option is not available with the remote Podman client)
 
-#### **\-\-pod-id-file**
+#### **--pod-id-file**
 
 Read pod ID from the specified file and start the pod.  Can be specified multiple times.
 

@@ -18,7 +18,7 @@ tied to the Linux kernel.
 
 ## OPTIONS
 
-#### **\-\-format**=*format*
+#### **--format**=*format*
 
 Format list output using a Go template.
 
@@ -31,11 +31,11 @@ Valid placeholders for the Go template are listed below:
 | .LastUp         | Time since the VM was last run  |
 | .VMType         | VM type                      	|
 
-#### **\-\-help**
+#### **--help**
 
 Print usage statement.
 
-#### **\-\-noheading**
+#### **--noheading**
 
 Omit the table headings from the listing of pods.
 

@@ -10,7 +10,7 @@ podman\-network\-inspect - Displays the raw CNI network configuration for one or
 Display the raw (JSON format) network configuration.
 
 ## OPTIONS
-#### **\-\-format**, **-f**
+#### **--format**, **-f**
 
 Pretty-print networks to JSON or using a Go template.
 
