@@ -455,10 +455,6 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusBadRequest, fmt.Errorf("no images to download"))
 		return
 	}
-	if len(query.Names) > 1 {
-		utils.Error(w, "Something went wrong.", http.StatusNotImplemented, fmt.Errorf("getting multiple image is not supported yet"))
-		return
-	}
 
 	images := query.Names
 	tmpfile, err := ioutil.TempFile("", "api.tar")
@@ -474,7 +470,7 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 
-	saveOptions := entities.ImageSaveOptions{Format: "docker-archive", Output: tmpfile.Name()}
+	saveOptions := entities.ImageSaveOptions{Format: "docker-archive", Output: tmpfile.Name(), MultiImageArchive: true}
 	if err := imageEngine.Save(r.Context(), images[0], images[1:], saveOptions); err != nil {
 		utils.InternalServerError(w, err)
 		return
