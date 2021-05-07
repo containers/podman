@@ -218,9 +218,15 @@ func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPor
 	deDupPodVolumes := make(map[string]*v1.Volume)
 	first := true
 	podContainers := make([]v1.Container, 0, len(containers))
+	podAnnotations := make(map[string]string)
 	dnsInfo := v1.PodDNSConfig{}
 	for _, ctr := range containers {
 		if !ctr.IsInfra() {
+			// Convert auto-update labels into kube annotations
+			for k, v := range getAutoUpdateAnnotations(removeUnderscores(ctr.Name()), ctr.Labels()) {
+				podAnnotations[k] = v
+			}
+
 			ctr, volumes, _, err := containerToV1Container(ctr)
 			if err != nil {
 				return nil, err
@@ -267,10 +273,16 @@ func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPor
 		podVolumes = append(podVolumes, *vol)
 	}
 
-	return addContainersAndVolumesToPodObject(podContainers, podVolumes, p.Name(), &dnsInfo, hostNetwork), nil
+	return newPodObject(
+		p.Name(),
+		podAnnotations,
+		podContainers,
+		podVolumes,
+		&dnsInfo,
+		hostNetwork), nil
 }
 
-func addContainersAndVolumesToPodObject(containers []v1.Container, volumes []v1.Volume, podName string, dnsOptions *v1.PodDNSConfig, hostNetwork bool) *v1.Pod {
+func newPodObject(podName string, annotations map[string]string, containers []v1.Container, volumes []v1.Volume, dnsOptions *v1.PodDNSConfig, hostNetwork bool) *v1.Pod {
 	tm := v12.TypeMeta{
 		Kind:       "Pod",
 		APIVersion: "v1",
@@ -287,6 +299,7 @@ func addContainersAndVolumesToPodObject(containers []v1.Container, volumes []v1.
 		// will reflect time this is run (not container create time) because the conversion
 		// of the container create time to v1 Time is probably not warranted nor worthwhile.
 		CreationTimestamp: v12.Now(),
+		Annotations:       annotations,
 	}
 	ps := v1.PodSpec{
 		Containers:  containers,
@@ -311,7 +324,13 @@ func simplePodWithV1Containers(ctrs []*Container) (*v1.Pod, error) {
 	kubeVolumes := make([]v1.Volume, 0)
 	hostNetwork := true
 	podDNS := v1.PodDNSConfig{}
+	kubeAnnotations := make(map[string]string)
 	for _, ctr := range ctrs {
+		// Convert auto-update labels into kube annotations
+		for k, v := range getAutoUpdateAnnotations(removeUnderscores(ctr.Name()), ctr.Labels()) {
+			kubeAnnotations[k] = v
+		}
+
 		if !ctr.HostNetwork() {
 			hostNetwork = false
 		}
@@ -355,7 +374,13 @@ func simplePodWithV1Containers(ctrs []*Container) (*v1.Pod, error) {
 			}
 		} // end if ctrDNS
 	}
-	return addContainersAndVolumesToPodObject(kubeCtrs, kubeVolumes, strings.ReplaceAll(ctrs[0].Name(), "_", ""), &podDNS, hostNetwork), nil
+	return newPodObject(
+		strings.ReplaceAll(ctrs[0].Name(), "_", ""),
+		kubeAnnotations,
+		kubeCtrs,
+		kubeVolumes,
+		&podDNS,
+		hostNetwork), nil
 }
 
 // containerToV1Container converts information we know about a libpod container
@@ -791,4 +816,22 @@ func generateKubeVolumeDeviceFromLinuxDevice(devices []specs.LinuxDevice) []v1.V
 
 func removeUnderscores(s string) string {
 	return strings.Replace(s, "_", "", -1)
+}
+
+// getAutoUpdateAnnotations searches for auto-update container labels
+// and returns them as kube annotations
+func getAutoUpdateAnnotations(ctrName string, ctrLabels map[string]string) map[string]string {
+	autoUpdateLabel := "io.containers.autoupdate"
+	annotations := make(map[string]string)
+
+	for k, v := range ctrLabels {
+		if strings.Contains(k, autoUpdateLabel) {
+			// since labels can variate between containers within a pod, they will be
+			// identified with the container name when converted into kube annotations
+			kc := fmt.Sprintf("%s/%s", k, ctrName)
+			annotations[kc] = v
+		}
+	}
+
+	return annotations
 }

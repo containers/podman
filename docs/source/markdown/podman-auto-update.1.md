@@ -14,7 +14,7 @@ The label "image" is an alternative to "registry" maintained for backwards compa
 An image is considered updated if the digest in the local storage is different than the one of the remote image.
 If an image must be updated, Podman pulls it down and restarts the systemd unit executing the container.
 
-The registry policy requires a requires a fully-qualified image reference (e.g., quay.io/podman/stable:latest) to be used to create the container.
+The registry policy requires a fully-qualified image reference (e.g., quay.io/podman/stable:latest) to be used to create the container.
 This enforcement is necessary to know which image to actually check and pull.
 If an image ID was used, Podman would not know which image to check/pull anymore.
 
