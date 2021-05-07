@@ -28,6 +28,44 @@ metadata:
 spec:
   hostname: unknown
 `
+var sharedNamespacePodYaml = `
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2021-05-07T17:25:01Z"
+  labels:
+    app: testpod1
+  name: testpod1
+spec:
+  containers:
+  - command:
+    - top
+    - -d
+    - "1.5"
+    env:
+    - name: PATH
+      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    - name: TERM
+      value: xterm
+    - name: container
+      value: podman
+    - name: HOSTNAME
+      value: label-pod
+    image: quay.io/libpod/alpine:latest
+    name: alpine
+    resources: {}
+    securityContext:
+      allowPrivilegeEscalation: true
+      capabilities: {}
+      privileged: false
+      readOnlyRootFilesystem: false
+      seLinuxOptions: {}
+    workingDir: /
+  dnsConfig: {}
+  restartPolicy: Never
+  shareProcessNamespace: true
+status: {}
+`
 
 var selinuxLabelPodYaml = `
 apiVersion: v1
@@ -1002,6 +1040,24 @@ var _ = Describe("Podman play kube", func() {
 		label := inspect.OutputToString()
 
 		Expect(label).To(ContainSubstring("unconfined_u:system_r:spc_t:s0"))
+	})
+
+	It("podman play kube should share ipc,net,uts when shareProcessNamespace is set", func() {
+		SkipIfRootless("Requires root priviledges for sharing few namespaces")
+		err := writeYaml(sharedNamespacePodYaml, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "testpod1", "--format", "'{{ .SharedNamespaces }}'"})
+		inspect.WaitWithDefaultTimeout()
+		sharednamespaces := inspect.OutputToString()
+		Expect(sharednamespaces).To(ContainSubstring("ipc"))
+		Expect(sharednamespaces).To(ContainSubstring("net"))
+		Expect(sharednamespaces).To(ContainSubstring("uts"))
+		Expect(sharednamespaces).To(ContainSubstring("pid"))
 	})
 
 	It("podman play kube fail with nonexistent authfile", func() {
