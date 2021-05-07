@@ -15,7 +15,7 @@ CTR="WaitTestingCtr"
 
 t POST "containers/nonExistent/wait?condition=next-exit" 404
 
-podman create --name "${CTR}" --entrypoint '["sleep", "0.5"]' "${IMAGE}"
+podman create --name "${CTR}" --entrypoint '["true"]' "${IMAGE}"
 
 t POST "containers/${CTR}/wait?condition=non-existent-cond" 400
 

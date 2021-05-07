@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
 
@@ -175,7 +176,7 @@ func waitDockerCondition(ctx context.Context, containerName string, interval tim
 	var code int32
 	switch dockerCondition {
 	case "next-exit":
-		code, err = waitNextExit(containerWait)
+		code, err = waitNextExit(ctx, containerName)
 	case "removed":
 		code, err = waitRemoved(containerWait)
 	case "not-running", "":
@@ -202,12 +203,32 @@ func waitRemoved(ctrWait containerWaitFn) (int32, error) {
 	return code, err
 }
 
-func waitNextExit(ctrWait containerWaitFn) (int32, error) {
-	_, err := ctrWait(define.ContainerStateRunning)
-	if err != nil {
-		return -1, err
+func waitNextExit(ctx context.Context, containerName string) (int32, error) {
+	runtime := ctx.Value("runtime").(*libpod.Runtime)
+	containerEngine := &abi.ContainerEngine{Libpod: runtime}
+	eventChannel := make(chan *events.Event)
+	errChannel := make(chan error)
+	opts := entities.EventsOptions{
+		EventChan: eventChannel,
+		Filter:    []string{"event=died", fmt.Sprintf("container=%s", containerName)},
+		Stream:    true,
 	}
-	return ctrWait(notRunningStates...)
+
+	// ctx is used to cancel event watching goroutine
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	go func() {
+		errChannel <- containerEngine.Events(ctx, opts)
+	}()
+
+	evt, ok := <-eventChannel
+	if ok {
+		return int32(evt.ContainerExitCode), nil
+	}
+	// if ok == false then containerEngine.Events() has exited
+	// it may happen if request was canceled (e.g. client closed connection prematurely) or
+	// the server is in process of shutting down
+	return -1, <-errChannel
 }
 
 func waitNotRunning(ctrWait containerWaitFn) (int32, error) {
