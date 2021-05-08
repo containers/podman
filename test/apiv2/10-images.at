@@ -143,12 +143,8 @@ t DELETE libpod/images/test1:latest 200
 t GET "images/get?names=alpine" 200 '[POSIX tar archive]'
 
 podman pull busybox
-#t GET "images/get?names=alpine&names=busybox" 200 '[POSIX tar archive]'
-#img_cnt=$(tar xf "$WORKDIR/curl.result.out" manifest.json -O | jq "length")
-#is "$img_cnt" 2 "number of images in tar archive"
-# TODO getting multiple images is not supported yet
-# once it is supported replace the test below by the tests above
-t GET "images/get?names=alpine&names=busybox" 501 \
-  .cause="getting multiple image is not supported yet"
+t GET "images/get?names=alpine&names=busybox" 200 '[POSIX tar archive]'
+img_cnt=$(tar xf "$WORKDIR/curl.result.out" manifest.json -O | jq "length")
+is "$img_cnt" 2 "number of images in tar archive"
 
 # vim: filetype=sh
