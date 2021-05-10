@@ -15,13 +15,6 @@ function setup() {
 @test "podman version emits reasonable output" {
     run_podman version
 
-    # FIXME FIXME FIXME: #10248: nasty message on Ubuntu cgroups v1, rootless
-    if [[ "$output" =~ "overlay test mount with multiple lowers failed" ]]; then
-        if is_rootless; then
-            lines=("${lines[@]:1}")
-        fi
-    fi
-
     # First line of podman-remote is "Client:<blank>".
     # Just delete it (i.e. remove the first entry from the 'lines' array)
     if is_remote; then

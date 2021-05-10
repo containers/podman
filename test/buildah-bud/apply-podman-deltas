@@ -157,8 +157,7 @@ skip "FIXME FIXME FIXME podman save/load has been fixed (but not yet used in Bui
 
 ###############################################################################
 # BEGIN tests which are skipped due to actual podman bugs.
-skip "FIXME: podman #9915" \
-     "bud with --arch flag"
+
 
 ###############################################################################
 # Done.

@@ -219,7 +219,6 @@ WORKDIR /test
 	})
 
 	It("podman pull by digest and list --all", func() {
-		Skip("FIXME-8165: 'rmi -af' fails with 'layer not known' (#6510)")
 		// Prevent regressing on issue #7651.
 		digestPullAndList := func(noneTag bool) {
 			session := podmanTest.Podman([]string{"pull", ALPINEAMD64DIGEST})
