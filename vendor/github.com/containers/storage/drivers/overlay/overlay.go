@@ -620,7 +620,7 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 		if len(flags) < unix.Getpagesize() {
 			err := unix.Mount("overlay", mergedDir, "overlay", 0, flags)
 			if err == nil {
-				logrus.Errorf("overlay test mount with multiple lowers failed, but succeeded with a single lower")
+				logrus.StandardLogger().Logf(logLevel, "overlay test mount with multiple lowers failed, but succeeded with a single lower")
 				return supportsDType, errors.Wrap(graphdriver.ErrNotSupported, "kernel too old to provide multiple lowers feature for overlay")
 			}
 			logrus.Debugf("overlay test mount with a single lower failed %v", err)

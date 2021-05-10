@@ -4,7 +4,6 @@ package chrootarchive
 
 import (
 	"bytes"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"

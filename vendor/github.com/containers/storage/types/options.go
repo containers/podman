@@ -172,7 +172,10 @@ func getRootlessStorageOpts(rootlessUID int, systemOpts StoreOptions) (StoreOpti
 	}
 	opts.RunRoot = rootlessRuntime
 	if systemOpts.RootlessStoragePath != "" {
-		opts.GraphRoot = systemOpts.RootlessStoragePath
+		opts.GraphRoot, err = expandEnvPath(systemOpts.RootlessStoragePath, rootlessUID)
+		if err != nil {
+			return opts, err
+		}
 	} else {
 		opts.GraphRoot = filepath.Join(dataDir, "containers", "storage")
 	}

@@ -2,7 +2,6 @@ package storage
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"

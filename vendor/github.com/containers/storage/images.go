@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"os"
 	"path/filepath"

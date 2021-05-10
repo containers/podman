@@ -156,8 +156,7 @@ func getRootlessUID() int {
 
 func expandEnvPath(path string, rootlessUID int) (string, error) {
 	path = strings.Replace(path, "$UID", strconv.Itoa(rootlessUID), -1)
-	path = os.ExpandEnv(path)
-	return path, nil
+	return filepath.Clean(os.ExpandEnv(path)), nil
 }
 
 func DefaultConfigFile(rootless bool) (string, error) {
