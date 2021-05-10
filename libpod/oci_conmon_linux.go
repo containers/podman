@@ -1016,7 +1016,12 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		}
 	}
 
-	args := r.sharedConmonArgs(ctr, ctr.ID(), ctr.bundlePath(), ctr.config.PidFile, ctr.LogPath(), r.exitsDir, ociLog, ctr.LogDriver(), logTag)
+	pidfile := ctr.config.PidFile
+	if pidfile == "" {
+		pidfile = filepath.Join(ctr.state.RunDir, "pidfile")
+	}
+
+	args := r.sharedConmonArgs(ctr, ctr.ID(), ctr.bundlePath(), pidfile, ctr.LogPath(), r.exitsDir, ociLog, ctr.LogDriver(), logTag)
 
 	if ctr.config.Spec.Process.Terminal {
 		args = append(args, "-t")
