@@ -289,7 +289,9 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		},
 	}
 	// Needs to be called after populating c.OCIRuntimes
-	c.OCIRuntime = c.findRuntime()
+	// Do not emit warnings on OCI runtime: wait for
+	// merged user configuration files
+	c.OCIRuntime = c.findRuntime(false)
 
 	c.ConmonEnvVars = []string{
 		"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",

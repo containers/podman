@@ -590,7 +590,7 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-func (c *EngineConfig) findRuntime() string {
+func (c *EngineConfig) findRuntime(showWarnings bool) string {
 	// Search for crun first followed by runc and kata
 	for _, name := range []string{"crun", "runc", "kata"} {
 		for _, v := range c.OCIRuntimes[name] {
@@ -599,7 +599,9 @@ func (c *EngineConfig) findRuntime() string {
 			}
 		}
 		if path, err := exec.LookPath(name); err == nil {
-			logrus.Debugf("Found default OCI runtime %s path via PATH environment variable", path)
+			if showWarnings {
+				logrus.Warningf("Found default OCI runtime %s path via PATH environment variable", path)
+			}
 			return name
 		}
 	}
@@ -620,6 +622,10 @@ func (c *EngineConfig) Validate() error {
 	if _, err := ValidatePullPolicy(pullPolicy); err != nil {
 		return errors.Wrapf(err, "invalid pull type from containers.conf %q", c.PullPolicy)
 	}
+
+	// Re-populate OCI runtime and emit warnings if necessary
+	c.OCIRuntime = c.findRuntime(true)
+
 	return nil
 }
 
