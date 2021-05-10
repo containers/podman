@@ -29,10 +29,7 @@ author = "team"
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = [
-    "sphinx_markdown_tables",
-    "recommonmark"
-]
+extensions = ["sphinx_markdown_tables", "recommonmark"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -66,26 +63,27 @@ html_css_files = [
 
 # -- Extension configuration -------------------------------------------------
 
+
 def convert_markdown_title(app, docname, source):
     # Process markdown files only
     docpath = app.env.doc2path(docname)
     if docpath.endswith(".md"):
         # Convert pandoc title line into eval_rst block for recommonmark
-        source[0] = re.sub(
-            r"^% (.*)",
-            r"```eval_rst\n.. title:: \g<1>\n```",
-            source[0])
+        source[0] = re.sub(r"^% (.*)", r"```eval_rst\n.. title:: \g<1>\n```", source[0])
 
 
 def setup(app):
     app.connect("source-read", convert_markdown_title)
 
     app.add_config_value(
-        "recommonmark_config", {
+        "recommonmark_config",
+        {
             "enable_eval_rst": True,
             "enable_auto_doc_ref": False,
             "enable_auto_toc_tree": False,
             "enable_math": False,
             "enable_inline_math": False,
-        }, True)
+        },
+        True,
+    )
     app.add_transform(AutoStructify)
