@@ -379,6 +379,11 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 	if err != nil {
 		return nil, err
 	}
+	// Docker uses UTC
+	if inspect != nil && inspect.State != nil {
+		inspect.State.StartedAt = inspect.State.StartedAt.UTC()
+		inspect.State.FinishedAt = inspect.State.FinishedAt.UTC()
+	}
 	i, err := json.Marshal(inspect.State)
 	if err != nil {
 		return nil, err
@@ -425,7 +430,7 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 
 	cb := types.ContainerJSONBase{
 		ID:              l.ID(),
-		Created:         l.CreatedTime().Format(time.RFC3339Nano),
+		Created:         l.CreatedTime().UTC().Format(time.RFC3339Nano), // Docker uses UTC
 		Path:            inspect.Path,
 		Args:            inspect.Args,
 		State:           &state,

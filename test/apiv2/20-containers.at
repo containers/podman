@@ -161,6 +161,12 @@ t GET libpod/containers/myctr/json 200 \
   .OCIConfigPath~.*config\.json \
   .GraphDriver.Data.MergedDir~.*merged
 
+# Test TS are in UTC
+t GET containers/myctr/json 200 \
+  .Created~.*Z \
+  .State.StartedAt~.*Z \
+  .State.FinishedAt~.*Z
+
 t DELETE images/localhost/newrepo:latest?force=true 200
 t DELETE images/localhost/newrepo:v1?force=true 200
 t DELETE images/localhost/newrepo:v2?force=true 200
