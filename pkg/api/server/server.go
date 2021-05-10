@@ -136,7 +136,7 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 		}
 	}
 
-	if logrus.IsLevelEnabled(logrus.DebugLevel) {
+	if logrus.IsLevelEnabled(logrus.TraceLevel) {
 		router.Walk(func(route *mux.Route, r *mux.Router, ancestors []*mux.Route) error { // nolint
 			path, err := route.GetPathTemplate()
 			if err != nil {
@@ -146,7 +146,7 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 			if err != nil {
 				methods = []string{"<N/A>"}
 			}
-			logrus.Debugf("Methods: %6s Path: %s", strings.Join(methods, ", "), path)
+			logrus.Tracef("Methods: %6s Path: %s", strings.Join(methods, ", "), path)
 			return nil
 		})
 	}
@@ -162,13 +162,12 @@ func setupSystemd() {
 	if len(os.Getenv("NOTIFY_SOCKET")) == 0 {
 		return
 	}
-	payload := fmt.Sprintf("MAINPID=%d", os.Getpid())
-	payload += "\n"
+	payload := fmt.Sprintf("MAINPID=%d\n", os.Getpid())
 	payload += daemon.SdNotifyReady
 	if sent, err := daemon.SdNotify(true, payload); err != nil {
 		logrus.Errorf("Error notifying systemd of Conmon PID: %s", err.Error())
-	} else if sent {
-		logrus.Debugf("Notify sent successfully")
+	} else if !sent {
+		logrus.Warn("SDNotify not sent successfully")
 	}
 
 	if err := os.Unsetenv("INVOCATION_ID"); err != nil {
