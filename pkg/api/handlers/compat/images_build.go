@@ -24,7 +24,7 @@ import (
 	"github.com/containers/podman/v3/pkg/channel"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/gorilla/schema"
-	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -553,6 +553,10 @@ loop:
 				}
 			}
 			break loop
+		case <-r.Context().Done():
+			cancel()
+			logrus.Infof("Client disconnect reported for build %q / %q.", registry, query.Dockerfile)
+			return
 		}
 	}
 }
