@@ -23,6 +23,10 @@ func ToPodGen(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec) 
 	p := specgen.NewPodSpecGenerator()
 	p.Name = podName
 	p.Labels = podYAML.ObjectMeta.Labels
+	// Kube pods must share {ipc, net, uts} by default
+	p.SharedNamespaces = append(p.SharedNamespaces, "ipc")
+	p.SharedNamespaces = append(p.SharedNamespaces, "net")
+	p.SharedNamespaces = append(p.SharedNamespaces, "uts")
 	// TODO we only configure Process namespace. We also need to account for Host{IPC,Network,PID}
 	// which is not currently possible with pod create
 	if podYAML.Spec.ShareProcessNamespace != nil && *podYAML.Spec.ShareProcessNamespace {
