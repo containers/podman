@@ -127,6 +127,8 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	}
 	if options.RemoveIntermediateCtrs {
 		params.Set("rm", "1")
+	} else {
+		params.Set("rm", "0")
 	}
 	if len(options.From) > 0 {
 		params.Set("from", options.From)
