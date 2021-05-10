@@ -4,7 +4,6 @@ package devmapper
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"

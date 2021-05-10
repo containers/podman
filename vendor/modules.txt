@@ -191,7 +191,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.30.1
+# github.com/containers/storage v1.30.2
 github.com/containers/storage
 github.com/containers/storage/drivers
 github.com/containers/storage/drivers/aufs
@@ -529,11 +529,6 @@ github.com/ostreedev/ostree-go/pkg/otbuiltin
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
-# github.com/pquerna/ffjson v0.0.0-20190813045741-dac163c6c0a9
-github.com/pquerna/ffjson/fflib/v1
-github.com/pquerna/ffjson/fflib/v1/internal
-github.com/pquerna/ffjson/inception
-github.com/pquerna/ffjson/shared
 # github.com/prometheus/client_golang v1.7.1
 github.com/prometheus/client_golang/prometheus
 github.com/prometheus/client_golang/prometheus/internal

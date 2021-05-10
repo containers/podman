@@ -9,6 +9,7 @@ require (
 	github.com/docker/go-units v0.4.0
 	github.com/google/go-intervals v0.0.2
 	github.com/hashicorp/go-multierror v1.1.1
+	github.com/json-iterator/go v1.1.11
 	github.com/klauspost/compress v1.12.2
 	github.com/klauspost/pgzip v1.2.5
 	github.com/mattn/go-shellwords v1.0.11
@@ -19,7 +20,6 @@ require (
 	github.com/opencontainers/runtime-spec v1.0.3-0.20200929063507-e6143ca7d51d
 	github.com/opencontainers/selinux v1.8.0
 	github.com/pkg/errors v0.9.1
-	github.com/pquerna/ffjson v0.0.0-20181028064349-e517b90714f7
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635

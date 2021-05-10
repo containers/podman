@@ -41,33 +41,15 @@ ifeq ($(shell $(GO) help mod >/dev/null 2>&1 && echo true), true)
 endif
 
 RUNINVM := vagrant/runinvm.sh
-FFJSON := tests/tools/build/ffjson
 
 default all: local-binary docs local-validate local-cross local-gccgo test-unit test-integration ## validate all checks, build and cross-build\nbinaries and docs, run tests in a VM
 
 clean: ## remove all built files
 	$(RM) -f containers-storage containers-storage.* docs/*.1 docs/*.5
 
-sources := $(wildcard *.go cmd/containers-storage/*.go drivers/*.go drivers/*/*.go pkg/*/*.go pkg/*/*/*.go) layers_ffjson.go images_ffjson.go containers_ffjson.go pkg/archive/archive_ffjson.go
-
+sources := $(wildcard *.go cmd/containers-storage/*.go drivers/*.go drivers/*/*.go pkg/*/*.go pkg/*/*/*.go)
 containers-storage: $(sources) ## build using gc on the host
 	$(GO) build $(MOD_VENDOR) -compiler gc $(BUILDFLAGS) ./cmd/containers-storage
-
-layers_ffjson.go: $(FFJSON) layers.go
-	$(RM) $@
-	$(FFJSON) layers.go
-
-images_ffjson.go: $(FFJSON) images.go
-	$(RM) $@
-	$(FFJSON) images.go
-
-containers_ffjson.go: $(FFJSON) containers.go
-	$(RM) $@
-	$(FFJSON) containers.go
-
-pkg/archive/archive_ffjson.go: $(FFJSON) pkg/archive/archive.go
-	$(RM) $@
-	$(FFJSON) pkg/archive/archive.go
 
 binary local-binary: containers-storage
 
@@ -118,7 +100,7 @@ install.tools:
 	make -C tests/tools
 
 $(FFJSON):
-	make -C tests/tools build/ffjson
+	make -C tests/tools
 
 install.docs: docs
 	make -C docs install
