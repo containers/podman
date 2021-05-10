@@ -125,4 +125,27 @@ function service_cleanup() {
     service_cleanup
 }
 
+# These tests can fail in dev. environment because of SELinux.
+# quick fix: chcon -t container_runtime_exec_t ./bin/podman
+@test "podman generate systemd - envar" {
+    xdg_rootless
+
+    cname=$(random_string)
+    FOO=value BAR=%s run_podman create --name $cname --env FOO -e BAR --env MYVAR=myval \
+        $IMAGE sh -c 'printenv && sleep 100'
+
+    # Start systemd service to run this container
+    service_setup
+
+    # Give container time to start; make sure output looks top-like
+    sleep 2
+    run_podman logs $cname
+    is "$output" ".*FOO=value.*" "FOO environment variable set"
+    is "$output" ".*BAR=%s.*" "BAR environment variable set"
+    is "$output" ".*MYVAR=myval.*" "MYVAL environment variable set"
+
+    # All good. Stop service, clean up.
+    service_cleanup
+}
+
 # vim: filetype=sh

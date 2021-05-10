@@ -54,6 +54,12 @@ type containerInfo struct {
 	// CreateCommand is the full command plus arguments of the process the
 	// container has been created with.
 	CreateCommand []string
+	// containerEnv stores the container environment variables
+	containerEnv []string
+	// ExtraEnvs contains the container environment variables referenced
+	// by only the key in the container create command, e.g. --env FOO.
+	// This is only used with --new
+	ExtraEnvs []string
 	// EnvVariable is generate.EnvVariable and must not be set.
 	EnvVariable string
 	// ExecStartPre of the unit.
@@ -87,6 +93,9 @@ After={{{{- range $index, $value := .BoundToServices -}}}}{{{{if $index}}}} {{{{
 
 [Service]
 Environment={{{{.EnvVariable}}}}=%n
+{{{{- if .ExtraEnvs}}}}
+Environment={{{{- range $index, $value := .ExtraEnvs -}}}}{{{{if $index}}}} {{{{end}}}}{{{{ $value }}}}{{{{end}}}}
+{{{{- end}}}}
 Restart={{{{.RestartPolicy}}}}
 TimeoutStopSec={{{{.TimeoutStopSec}}}}
 {{{{- if .ExecStartPre}}}}
@@ -153,6 +162,8 @@ func generateContainerInfo(ctr *libpod.Container, options entities.GenerateSyste
 		return nil, errors.Errorf("could not lookup container's runroot: got empty string")
 	}
 
+	envs := config.Spec.Process.Env
+
 	info := containerInfo{
 		ServiceName:       serviceName,
 		ContainerNameOrID: nameOrID,
@@ -163,6 +174,7 @@ func generateContainerInfo(ctr *libpod.Container, options entities.GenerateSyste
 		CreateCommand:     createCommand,
 		GraphRoot:         graphRoot,
 		RunRoot:           runRoot,
+		containerEnv:      envs,
 	}
 
 	return &info, nil
@@ -248,6 +260,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		fs.BoolP("detach", "d", false, "")
 		fs.String("name", "", "")
 		fs.Bool("replace", false, "")
+		fs.StringArrayP("env", "e", nil, "")
 		fs.Parse(remainingCmd)
 
 		remainingCmd = filterCommonContainerFlags(remainingCmd, fs.NArg())
@@ -304,6 +317,24 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 				remainingCmd = removeReplaceArg(remainingCmd, fs.NArg())
 			}
 		}
+
+		envs, err := fs.GetStringArray("env")
+		if err != nil {
+			return "", err
+		}
+		for _, env := range envs {
+			// if env arg does not contain a equal sign we have to add the envar to the unit
+			// because it does try to red the value from the environment
+			if !strings.Contains(env, "=") {
+				for _, containerEnv := range info.containerEnv {
+					split := strings.SplitN(containerEnv, "=", 2)
+					if split[0] == env {
+						info.ExtraEnvs = append(info.ExtraEnvs, escapeSystemdArg(containerEnv))
+					}
+				}
+			}
+		}
+
 		startCommand = append(startCommand, remainingCmd...)
 		startCommand = escapeSystemdArguments(startCommand)
 
