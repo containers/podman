@@ -283,6 +283,14 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 		return false, err
 	}
 
+	// setup slirp4netns again because slirp4netns will die when conmon exits
+	if c.config.NetMode.IsSlirp4netns() {
+		err := c.runtime.setupSlirp4netns(c)
+		if err != nil {
+			return false, err
+		}
+	}
+
 	if c.state.State == define.ContainerStateStopped {
 		// Reinitialize the container if we need to
 		if err := c.reinit(ctx, true); err != nil {
