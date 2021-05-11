@@ -1,0 +1,109 @@
+#!/bin/bash
+#
+# bats wrapper - invokes bats, root & rootless, on podman system tests
+#
+
+###############################################################################
+# BEGIN usage message
+
+usage="Usage: $0 [--root] [--rootless] [--filter=filename[:testname]]
+
+$0 is a wrapper for invoking podman system tests.
+
+   --root         Run only as root
+   --rootless     Run only as user (i.e. you)
+
+   --filter=name  Run only test files that match 'test/system/*name*',
+                  e.g. '500' or 'net' will match 500-networking.bats.
+                  If ':pattern' is appended, and you have a modern-enough
+                  version of bats installed, runs with '--filter pattern'
+                  which runs only subtests that match 'pattern'
+
+   --help         display usage message
+
+By default, tests ./bin/podman. To test a different podman, do:
+
+    \$ PODMAN=/abs/path/to/podman $0 ....
+
+To test podman-remote, start your own servers (root and rootless) via:
+
+    /path/to/podman system service --timeout=0
+
+...then invoke this script with PODMAN=\$(pwd)/bin/podman-remote
+
+   (You'd think Ed could be bothered to do all that in this script; but then
+   the flow would be 'sudo start-service; sudo run-bats; sudo stop-service'
+   and by the time we get to stop-service, the sudo timeout will have lapsed,
+   and the script will be hanging at the password prompt, and you, who left
+   your desk for coffee or a walk and expected to come back to completed
+   root and rootless tests, will be irked because only root tests ran and
+   now you have to wait for rootless).
+
+$0 also passes through \$OCI_RUNTIME, should you need to test that.
+"
+
+# END   usage message
+###############################################################################
+# BEGIN initialization and command-line arg checking
+
+# By default, test the podman in our working directory.
+# Some tests cd out of our workdir, so abs path is important
+export PODMAN=${PODMAN:-$(pwd)/bin/podman}
+
+# Because 'make' doesn't do this by default
+chcon -t container_runtime_exec_t $PODMAN
+
+# Directory in which
+TESTS=test/system
+
+REMOTE=
+ROOT_ONLY=
+ROOTLESS_ONLY=
+
+declare -a bats_filter=()
+
+for i;do
+    value=`expr "$i" : '[^=]*=\(.*\)'`
+    case "$i" in
+        -h|--help)  echo "$usage"; exit 0;;
+        --root)     ROOT_ONLY=1 ;;
+        --rootless) ROOTLESS_ONLY=1 ;;
+        --remote)   REMOTE=remote; echo "--remote is TBI"; exit 1;;
+        */*.bats)   TESTS=$i ;;
+        *)
+            if [[ $i =~ : ]]; then
+                tname=${i%:*}          # network:localhost -> network
+                filt=${i#*:}           # network:localhost ->   localhost
+                TESTS=$(echo $TESTS/*$tname*.bats)
+                bats_filter=("--filter" "$filt")
+            else
+                TESTS=$(echo $TESTS/*$i*.bats)
+            fi
+            ;;
+    esac
+done
+
+# END   initialization and command-line arg checking
+###############################################################################
+
+rc=0
+
+# Root
+if [ -z "$ROOTLESS_ONLY" ]; then
+    echo "# bats ${bats_filter[@]} $TESTS"
+    sudo    --preserve-env=PODMAN \
+            --preserve-env=PODMAN_TEST_DEBUG \
+            --preserve-env=OCI_RUNTIME \
+            bats "${bats_filter[@]}" $TESTS
+    rc=$?
+fi
+
+# Rootless
+echo "--------------------------------------------------"
+if [ -z "$ROOT_ONLY" ]; then
+    echo "\$ bats ${bats_filter[@]} $TESTS"
+    bats "${bats_filter[@]}" $TESTS
+    rc=$((rc | $?))
+fi
+
+exit $rc
