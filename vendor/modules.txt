@@ -494,7 +494,7 @@ github.com/opencontainers/go-digest
 # github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runc v1.0.0-rc93
+# github.com/opencontainers/runc v1.0.0-rc94
 github.com/opencontainers/runc/libcontainer/apparmor
 github.com/opencontainers/runc/libcontainer/cgroups
 github.com/opencontainers/runc/libcontainer/cgroups/fscommon
@@ -502,8 +502,9 @@ github.com/opencontainers/runc/libcontainer/configs
 github.com/opencontainers/runc/libcontainer/devices
 github.com/opencontainers/runc/libcontainer/system
 github.com/opencontainers/runc/libcontainer/user
+github.com/opencontainers/runc/libcontainer/userns
 github.com/opencontainers/runc/libcontainer/utils
-# github.com/opencontainers/runtime-spec v1.0.3-0.20200929063507-e6143ca7d51d
+# github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 github.com/opencontainers/runtime-spec/specs-go
 # github.com/opencontainers/runtime-tools v0.9.0
 github.com/opencontainers/runtime-tools/error
@@ -658,7 +659,7 @@ golang.org/x/net/proxy
 golang.org/x/net/trace
 # golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20210423082822-04245dca01da
+# golang.org/x/sys v0.0.0-20210426230700-d19ff857e887
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
 golang.org/x/sys/internal/unsafeheader
