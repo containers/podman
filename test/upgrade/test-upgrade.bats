@@ -109,6 +109,8 @@ podman \$opts run -d --name myrunningcontainer --label mylabel=$LABEL_RUNNING \
                                                -w /var/www \
                                                $IMAGE /bin/busybox-extras httpd -f -p 80
 
+podman \$opts pod create --name mypod
+
 echo READY
 while :;do
     if [ -e /stop ]; then
@@ -136,12 +138,18 @@ EOF
     # pollute it for use by old-podman. We must keep that pristine
     # so old-podman is the first to write to it.
     #
+    # mount /etc/containers/storage.conf to use the same storage settings as on the host
+    # mount /dev/shm because the container locks are stored there
+    #
     $PODMAN run -d --name podman_parent --pid=host \
             --privileged \
             --net=host \
             --cgroupns=host \
+            --pid=host \
+            -v /etc/containers/storage.conf:/etc/containers/storage.conf \
             -v /dev/fuse:/dev/fuse \
             -v /run/crun:/run/crun \
+            -v /dev/shm:/dev/shm \
             -v $pmroot:$pmroot \
             $OLD_PODMAN $pmroot/setup
 
@@ -175,10 +183,11 @@ EOF
     run_podman ps -a \
                --format '{{.Names}}--{{.Status}}--{{.Ports}}--{{.Labels.mylabel}}' \
                --sort=names
-    is "${lines[0]}" "mycreatedcontainer--Created----$LABEL_CREATED" "created"
-    is "${lines[1]}" "mydonecontainer--Exited (0).*----<no value>" "done"
-    is "${lines[2]}" "myfailedcontainer--Exited (17) .*----$LABEL_FAILED" "fail"
-    is "${lines[3]}" "myrunningcontainer--Up .*----$LABEL_RUNNING" "running"
+    is "${lines[0]}" ".*-infra--Created----<no value>" "infra container"
+    is "${lines[1]}" "mycreatedcontainer--Created----$LABEL_CREATED" "created"
+    is "${lines[2]}" "mydonecontainer--Exited (0).*----<no value>" "done"
+    is "${lines[3]}" "myfailedcontainer--Exited (17) .*----$LABEL_FAILED" "fail"
+    is "${lines[4]}" "myrunningcontainer--Up .*----$LABEL_RUNNING" "running"
 
     # For debugging: dump containers and IDs
     if [[ -n "$PODMAN_UPGRADE_TEST_DEBUG" ]]; then
@@ -206,9 +215,6 @@ failed    | exited     | 17
 @test "logs" {
     run_podman logs mydonecontainer
     is "$output" "++$RANDOM_STRING_1++" "podman logs on stopped container"
-
-#    run_podman logs myrunningcontainer
-#    is "$output" "READY" "podman logs on running container"
 }
 
 @test "exec" {
@@ -226,45 +232,36 @@ failed    | exited     | 17
 }
 
 @test "pods" {
-    skip "TBI"
+    run_podman pod inspect mypod
+    is "$output" ".*mypod.*"
+
+    run_podman --cgroup-manager=cgroupfs pod start mypod
+    is "$output" "[0-9a-f]\\{64\\}" "podman pod start"
+
+    run_podman pod ps
+    is "$output" ".*mypod.*" "podman pod ps shows name"
+    is "$output" ".*Running.*" "podman pod ps shows running state"
+
+    run_podman pod stop mypod
+    is "$output" "[0-9a-f]\\{64\\}" "podman pod stop"
+
+    run_podman --cgroup-manager=cgroupfs pod rm mypod
+    # FIXME: CI runs show this (non fatal) error:
+    # Error updating pod <ID> conmon cgroup PID limit: open /sys/fs/cgroup/libpod_parent/<ID>/conmon/pids.max: no such file or directory
+    # Investigate how to fix this (likely a race condition)
+    # Let's ignore the logrus messages for now
+    is "$output" ".*[0-9a-f]\\{64\\}" "podman pod rm"
 }
 
 # FIXME: commit? kill? network? pause? restart? top? volumes? What else?
 
 
 @test "start" {
-    skip "FIXME: this leaves a mount behind: root/overlay/sha/merged"
     run_podman --cgroup-manager=cgroupfs start -a mydonecontainer
     is "$output" "++$RANDOM_STRING_1++" "start on already-run container"
 }
 
 @test "rm a stopped container" {
-    # FIXME FIXME FIXME!
-    #
-    # I have no idea what's going on here. For most of my testing in this
-    # section, the code here was simply 'podman rm myfailedcontainer', and
-    # it would succeed, but then way down, in 'cleanup' below, the 'rm -f'
-    # step would fail:
-    #
-    #    # podman rm -f podman_parent
-    #    error freeing lock for container <sha>: no such file or directory
-    #    ...where <sha> is the ID of the podman_parent container.
-    #
-    # I started playing with this section, by adding 'rm mydonecontainer',
-    # and now it always fails, the same way, but with the container we're
-    # removing right here:
-    #
-    #    error freeing lock for container <sha>: no such file or directory
-    #    ...where <sha> is the ID of mydonecontainer.
-    #
-    # I don't know. I give up for now, and am skip'ing the whole thing.
-    # If you want to play with it, try commenting out the 'myfailed' lines,
-    # or just the 'mydone' ones, or, I don't know.
-    skip "FIXME: error freeing lock for container <sha>: no such file or dir"
-
-    # For debugging, so we can see what 'error freeing lock' refers to
-    run_podman ps -a
-
     run_podman rm myfailedcontainer
     is "$output" "[0-9a-f]\\{64\\}" "podman rm myfailedcontainer"
 
@@ -274,12 +271,6 @@ failed    | exited     | 17
 
 
 @test "stop and rm" {
-    # About a ten-second pause, then:
-    #    Error: timed out waiting for file /tmp/pu.nf747w/tmp/exits/<sha>: internal libpod error
-    # It doesn't seem to be a socket-length issue: the paths are ~80-88 chars.
-    # Leaving podman_parent running, and exec'ing into it, it doesn't look
-    # like the file is being written to the wrong place.
-    skip "FIXME: this doesn't work: timed out waiting for file tmpdir/exits/sha"
     run_podman stop myrunningcontainer
     run_podman rm   myrunningcontainer
 }
@@ -304,7 +295,6 @@ failed    | exited     | 17
     run_podman logs podman_parent
     run_podman rm -f podman_parent
 
-    # FIXME: why does this remain mounted?
     umount $PODMAN_UPGRADE_WORKDIR/root/overlay || true
 
     rm -rf $PODMAN_UPGRADE_WORKDIR
