@@ -649,11 +649,13 @@ var _ = Describe("Podman run networking", func() {
 		defer podmanTest.removeCNINetwork(netName)
 
 		name := "nc-server"
-		run := podmanTest.Podman([]string{"run", "-d", "--name", name, "--net", netName, ALPINE, "nc", "-l", "-p", "8080"})
+		run := podmanTest.Podman([]string{"run", "--log-driver", "k8s-file", "-d", "--name", name, "--net", netName, ALPINE, "nc", "-l", "-p", "8080"})
 		run.WaitWithDefaultTimeout()
 		Expect(run.ExitCode()).To(Equal(0))
 
-		run = podmanTest.Podman([]string{"run", "--rm", "--net", netName, "--uidmap", "0:1:4096", ALPINE, "sh", "-c", fmt.Sprintf("echo podman | nc -w 1 %s.dns.podman 8080", name)})
+		// NOTE: we force the k8s-file log driver to make sure the
+		// tests are passing inside a container.
+		run = podmanTest.Podman([]string{"run", "--log-driver", "k8s-file", "--rm", "--net", netName, "--uidmap", "0:1:4096", ALPINE, "sh", "-c", fmt.Sprintf("echo podman | nc -w 1 %s.dns.podman 8080", name)})
 		run.WaitWithDefaultTimeout()
 		Expect(run.ExitCode()).To(Equal(0))
 

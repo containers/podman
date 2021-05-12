@@ -393,9 +393,9 @@ Labels.$label_name | $label_value
        "image tree: third line"
     is "${lines[3]}" "Image Layers" \
        "image tree: fourth line"
-    is "${lines[4]}"  ".* ID: [0-9a-f]\{12\} Size: .* Top Layer of: \[localhost/build_test:latest]" \
+    is "${lines[4]}" ".* ID: [0-9a-f]\{12\} Size: .* Top Layer of: \[$IMAGE]" \
        "image tree: first layer line"
-    is "${lines[-1]}" ".* ID: [0-9a-f]\{12\} Size: .* Top Layer of: \[$IMAGE]" \
+    is "${lines[-1]}"  ".* ID: [0-9a-f]\{12\} Size: .* Top Layer of: \[localhost/build_test:latest]" \
        "image tree: last layer line"
 
     # FIXME: 'image tree --whatrequires' does not work via remote

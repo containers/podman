@@ -33,7 +33,7 @@ type Driver struct {
 func NewDriver(rootPath string) (*Driver, error) {
 	fileDriver := new(Driver)
 	fileDriver.secretsDataFilePath = filepath.Join(rootPath, secretsDataFile)
-	// the lockfile functions requre that the rootPath dir is executable
+	// the lockfile functions require that the rootPath dir is executable
 	if err := os.MkdirAll(rootPath, 0700); err != nil {
 		return nil, err
 	}

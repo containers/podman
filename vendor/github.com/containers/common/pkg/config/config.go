@@ -232,7 +232,7 @@ type EngineConfig struct {
 	// will fall back to containers/image defaults.
 	ImageParallelCopies uint `toml:"image_parallel_copies,omitempty"`
 
-	// ImageDefaultFormat sepecified the manifest Type (oci, v2s2, or v2s1)
+	// ImageDefaultFormat specified the manifest Type (oci, v2s2, or v2s1)
 	// to use when pulling, pushing, building container images. By default
 	// image pulled and pushed match the format of the source image.
 	// Building/committing defaults to OCI.
@@ -424,6 +424,12 @@ type NetworkConfig struct {
 	// DefaultNetwork is the network name of the default CNI network
 	// to attach pods to.
 	DefaultNetwork string `toml:"default_network,omitempty"`
+
+	// DefaultSubnet is the subnet to be used for the default CNI network.
+	// If a network with the name given in DefaultNetwork is not present
+	// then a new network using this subnet will be created.
+	// Must be a valid IPv4 CIDR block.
+	DefaultSubnet string `toml:"default_subnet,omitempty"`
 
 	// NetworkConfigDir is where CNI network configuration files are stored.
 	NetworkConfigDir string `toml:"network_config_dir,omitempty"`

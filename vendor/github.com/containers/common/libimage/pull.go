@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/containers/common/pkg/config"
-	dirTransport "github.com/containers/image/v5/directory"
-	dockerTransport "github.com/containers/image/v5/docker"
+	registryTransport "github.com/containers/image/v5/docker"
 	dockerArchiveTransport "github.com/containers/image/v5/docker/archive"
 	"github.com/containers/image/v5/docker/reference"
 	ociArchiveTransport "github.com/containers/image/v5/oci/archive"
@@ -42,7 +42,7 @@ type PullOptions struct {
 // policies (e.g., buildah-bud versus podman-build).  Making the pull-policy
 // choice explicit is an attempt to prevent silent regressions.
 //
-// The errror is storage.ErrImageUnknown iff the pull policy is set to "never"
+// The error is storage.ErrImageUnknown iff the pull policy is set to "never"
 // and no local image has been found.  This allows for an easier integration
 // into some users of this package (e.g., Buildah).
 func (r *Runtime) Pull(ctx context.Context, name string, pullPolicy config.PullPolicy, options *PullOptions) ([]*Image, error) {
@@ -56,7 +56,7 @@ func (r *Runtime) Pull(ctx context.Context, name string, pullPolicy config.PullP
 	if err != nil {
 		// If the image clearly refers to a local one, we can look it up directly.
 		// In fact, we need to since they are not parseable.
-		if strings.HasPrefix(name, "sha256:") || (len(name) == 64 && !strings.Contains(name, "/.:@")) {
+		if strings.HasPrefix(name, "sha256:") || (len(name) == 64 && !strings.ContainsAny(name, "/.:@")) {
 			if pullPolicy == config.PullPolicyAlways {
 				return nil, errors.Errorf("pull policy is always but image has been referred to by ID (%s)", name)
 			}
@@ -76,8 +76,12 @@ func (r *Runtime) Pull(ctx context.Context, name string, pullPolicy config.PullP
 		ref = dockerRef
 	}
 
-	if options.AllTags && ref.Transport().Name() != dockerTransport.Transport.Name() {
+	if options.AllTags && ref.Transport().Name() != registryTransport.Transport.Name() {
 		return nil, errors.Errorf("pulling all tags is not supported for %s transport", ref.Transport().Name())
+	}
+
+	if r.eventChannel != nil {
+		r.writeEvent(&Event{ID: "", Name: name, Time: time.Now(), Type: EventTypeImagePull})
 	}
 
 	var (
@@ -88,29 +92,17 @@ func (r *Runtime) Pull(ctx context.Context, name string, pullPolicy config.PullP
 	// Dispatch the copy operation.
 	switch ref.Transport().Name() {
 
-	// DOCKER/REGISTRY
-	case dockerTransport.Transport.Name():
+	// DOCKER REGISTRY
+	case registryTransport.Transport.Name():
 		pulledImages, pullError = r.copyFromRegistry(ctx, ref, strings.TrimPrefix(name, "docker://"), pullPolicy, options)
 
 	// DOCKER ARCHIVE
 	case dockerArchiveTransport.Transport.Name():
 		pulledImages, pullError = r.copyFromDockerArchive(ctx, ref, &options.CopyOptions)
 
-	// OCI
-	case ociTransport.Transport.Name():
-		pulledImages, pullError = r.copyFromDefault(ctx, ref, &options.CopyOptions)
-
-	// OCI ARCHIVE
-	case ociArchiveTransport.Transport.Name():
-		pulledImages, pullError = r.copyFromDefault(ctx, ref, &options.CopyOptions)
-
-	// DIR
-	case dirTransport.Transport.Name():
-		pulledImages, pullError = r.copyFromDefault(ctx, ref, &options.CopyOptions)
-
-	// UNSUPPORTED
+	// ALL OTHER TRANSPORTS
 	default:
-		return nil, errors.Errorf("unsupported transport %q for pulling", ref.Transport().Name())
+		pulledImages, pullError = r.copyFromDefault(ctx, ref, &options.CopyOptions)
 	}
 
 	if pullError != nil {
@@ -162,7 +154,12 @@ func (r *Runtime) copyFromDefault(ctx context.Context, ref types.ImageReference,
 			imageName = "sha256:" + storageName[1:]
 		} else {
 			storageName = manifest.Annotations["org.opencontainers.image.ref.name"]
-			imageName = storageName
+			named, err := NormalizeName(storageName)
+			if err != nil {
+				return nil, err
+			}
+			imageName = named.String()
+			storageName = imageName
 		}
 
 	default:
@@ -275,7 +272,7 @@ func (r *Runtime) copyFromRegistry(ctx context.Context, ref types.ImageReference
 	}
 
 	named := reference.TrimNamed(ref.DockerReference())
-	tags, err := dockerTransport.GetRepositoryTags(ctx, &r.systemContext, ref)
+	tags, err := registryTransport.GetRepositoryTags(ctx, &r.systemContext, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -399,7 +396,7 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 	for _, candidate := range resolved.PullCandidates {
 		candidateString := candidate.Value.String()
 		logrus.Debugf("Attempting to pull candidate %s for %s", candidateString, imageName)
-		srcRef, err := dockerTransport.NewReference(candidate.Value)
+		srcRef, err := registryTransport.NewReference(candidate.Value)
 		if err != nil {
 			return nil, err
 		}

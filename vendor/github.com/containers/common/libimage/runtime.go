@@ -20,6 +20,9 @@ import (
 
 // RuntimeOptions allow for creating a customized Runtime.
 type RuntimeOptions struct {
+	// The base system context of the runtime which will be used throughout
+	// the entire lifespan of the Runtime.  Certain options in some
+	// functions may override specific fields.
 	SystemContext *types.SystemContext
 }
 
@@ -41,6 +44,8 @@ func setRegistriesConfPath(systemContext *types.SystemContext) {
 // Runtime is responsible for image management and storing them in a containers
 // storage.
 type Runtime struct {
+	// Use to send events out to users.
+	eventChannel chan *Event
 	// Underlying storage store.
 	store storage.Store
 	// Global system context.  No pointer to simplify copying and modifying
@@ -53,6 +58,18 @@ func (r *Runtime) systemContextCopy() *types.SystemContext {
 	var sys types.SystemContext
 	deepcopy.Copy(&sys, &r.systemContext)
 	return &sys
+}
+
+// EventChannel creates a buffered channel for events that the Runtime will use
+// to write events to.  Callers are expected to read from the channel in a
+// timely manner.
+// Can be called once for a given Runtime.
+func (r *Runtime) EventChannel() chan *Event {
+	if r.eventChannel != nil {
+		return r.eventChannel
+	}
+	r.eventChannel = make(chan *Event, 100)
+	return r.eventChannel
 }
 
 // RuntimeFromStore returns a Runtime for the specified store.
@@ -99,6 +116,9 @@ func RuntimeFromStoreOptions(runtimeOptions *RuntimeOptions, storeOptions *stora
 // is considered to be an error condition.
 func (r *Runtime) Shutdown(force bool) error {
 	_, err := r.store.Shutdown(force)
+	if r.eventChannel != nil {
+		close(r.eventChannel)
+	}
 	return err
 }
 
