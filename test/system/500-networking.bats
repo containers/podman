@@ -88,8 +88,9 @@ load helpers
     # Wait for container to restart
     retries=20
     while :;do
-        run_podman '?' container inspect --format "{{.State.Pid}}" myweb
-        if [[ $status -eq 0 ]]; then
+        run_podman container inspect --format "{{.State.Pid}}" myweb
+        # pid is 0 as long as the container is not running
+        if [[ $output -ne 0 ]]; then
             if [[ $output == $pid ]]; then
                 die "This should never happen! Restarted container has same PID ($output) as killed one!"
             fi
