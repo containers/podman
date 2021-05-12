@@ -1,0 +1,2 @@
+specfile_path: .distro/podman.spec
+upstream_project_url: https://github.com/containers/podman
