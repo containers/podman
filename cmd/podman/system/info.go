@@ -78,6 +78,8 @@ func info(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	info.Host.ServiceIsRemote = registry.IsRemote()
+
 	switch {
 	case report.IsJSON(inFormat):
 		b, err := json.MarshalIndent(info, "", "  ")

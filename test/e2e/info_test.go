@@ -124,4 +124,15 @@ var _ = Describe("Podman Info", func() {
 		}
 	})
 
+	It("verify ServiceIsRemote", func() {
+		session := podmanTest.Podman([]string{"info", "--format", "{{.Host.ServiceIsRemote}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(Exit(0))
+
+		if podmanTest.RemoteTest {
+			Expect(session.OutputToString()).To(ContainSubstring("true"))
+		} else {
+			Expect(session.OutputToString()).To(ContainSubstring("false"))
+		}
+	})
 })

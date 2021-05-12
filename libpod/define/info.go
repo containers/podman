@@ -21,31 +21,34 @@ type SecurityInfo struct {
 	SELinuxEnabled      bool   `json:"selinuxEnabled"`
 }
 
-//HostInfo describes the libpod host
+// HostInfo describes the libpod host
 type HostInfo struct {
-	Arch           string                 `json:"arch"`
-	BuildahVersion string                 `json:"buildahVersion"`
-	CgroupManager  string                 `json:"cgroupManager"`
-	CGroupsVersion string                 `json:"cgroupVersion"`
-	Conmon         *ConmonInfo            `json:"conmon"`
-	CPUs           int                    `json:"cpus"`
-	Distribution   DistributionInfo       `json:"distribution"`
-	EventLogger    string                 `json:"eventLogger"`
-	Hostname       string                 `json:"hostname"`
-	IDMappings     IDMappings             `json:"idMappings,omitempty"`
-	Kernel         string                 `json:"kernel"`
-	MemFree        int64                  `json:"memFree"`
-	MemTotal       int64                  `json:"memTotal"`
-	OCIRuntime     *OCIRuntimeInfo        `json:"ociRuntime"`
-	OS             string                 `json:"os"`
-	RemoteSocket   *RemoteSocket          `json:"remoteSocket,omitempty"`
-	RuntimeInfo    map[string]interface{} `json:"runtimeInfo,omitempty"`
-	Security       SecurityInfo           `json:"security"`
-	Slirp4NetNS    SlirpInfo              `json:"slirp4netns,omitempty"`
-	SwapFree       int64                  `json:"swapFree"`
-	SwapTotal      int64                  `json:"swapTotal"`
-	Uptime         string                 `json:"uptime"`
-	Linkmode       string                 `json:"linkmode"`
+	Arch           string           `json:"arch"`
+	BuildahVersion string           `json:"buildahVersion"`
+	CgroupManager  string           `json:"cgroupManager"`
+	CGroupsVersion string           `json:"cgroupVersion"`
+	Conmon         *ConmonInfo      `json:"conmon"`
+	CPUs           int              `json:"cpus"`
+	Distribution   DistributionInfo `json:"distribution"`
+	EventLogger    string           `json:"eventLogger"`
+	Hostname       string           `json:"hostname"`
+	IDMappings     IDMappings       `json:"idMappings,omitempty"`
+	Kernel         string           `json:"kernel"`
+	MemFree        int64            `json:"memFree"`
+	MemTotal       int64            `json:"memTotal"`
+	OCIRuntime     *OCIRuntimeInfo  `json:"ociRuntime"`
+	OS             string           `json:"os"`
+	// RemoteSocket returns the UNIX domain socket the Podman service is listening on
+	RemoteSocket *RemoteSocket          `json:"remoteSocket,omitempty"`
+	RuntimeInfo  map[string]interface{} `json:"runtimeInfo,omitempty"`
+	// ServiceIsRemote is true when the podman/libpod service is remote to the client
+	ServiceIsRemote bool         `json:"serviceIsRemote"`
+	Security        SecurityInfo `json:"security"`
+	Slirp4NetNS     SlirpInfo    `json:"slirp4netns,omitempty"`
+	SwapFree        int64        `json:"swapFree"`
+	SwapTotal       int64        `json:"swapTotal"`
+	Uptime          string       `json:"uptime"`
+	Linkmode        string       `json:"linkmode"`
 }
 
 // RemoteSocket describes information about the API socket
