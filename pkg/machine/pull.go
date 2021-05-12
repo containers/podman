@@ -162,7 +162,11 @@ func Decompress(localPath, uncompressedPath string) error {
 		return err
 	}
 
-	if compressionType := archive.DetectCompression(sourceFile); compressionType.Extension() == "tar.xz" {
+	compressionType := archive.DetectCompression(sourceFile)
+	if compressionType != archive.Uncompressed {
+		fmt.Println("Extracting compressed file")
+	}
+	if compressionType == archive.Xz {
 		return decompressXZ(localPath, uncompressedFileWriter)
 	}
 	return decompressEverythingElse(localPath, uncompressedFileWriter)
@@ -172,7 +176,6 @@ func Decompress(localPath, uncompressedPath string) error {
 // Maybe extracting then renameing is a good idea here..
 // depends on xz: not pre-installed on mac, so it becomes a brew dependency
 func decompressXZ(src string, output io.Writer) error {
-	fmt.Println("Extracting compressed file")
 	cmd := exec.Command("xzcat", "-k", src)
 	//cmd := exec.Command("xz", "-d", "-k", "-v", src)
 	stdOut, err := cmd.StdoutPipe()
@@ -190,7 +193,6 @@ func decompressXZ(src string, output io.Writer) error {
 }
 
 func decompressEverythingElse(src string, output io.Writer) error {
-	fmt.Println("Extracting compressed file")
 	f, err := os.Open(src)
 	if err != nil {
 		return err
