@@ -2,7 +2,7 @@
 
 Introduction
 ==================================
-Containers_ simplify the consumption of applications with all of their dependencies and default configuration files. Users test drive or deploy a new application with one or two commands instead of following pages of installation instructions. Here's how to find your first `Container Image`_::
+Containers_ simplify the production, distribution, discoverability, and usage of applications with all of their dependencies and default configuration files. Users test drive or deploy a new application with one or two commands instead of following pages of installation instructions. Here's how to find your first `Container Image`_::
 
     podman search busybox
 
