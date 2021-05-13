@@ -1,0 +1,31 @@
+From 439a5150262074453da6fdb5953b310a201c4a42 Mon Sep 17 00:00:00 2001
+From: Paul Holzinger <paul.holzinger@web.de>
+Date: Wed, 12 May 2021 09:34:59 +0200
+Subject: [PATCH 1/2] fix incorrect log driver in podman container image
+
+Commit 7f2c27d43fc5 added an invalid value for the log_driver in the
+containers.conf file inside the podman image.
+
+Fixes #10312
+
+Signed-off-by: Paul Holzinger <paul.holzinger@web.de>
+---
+ contrib/podmanimage/stable/containers.conf | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/contrib/podmanimage/stable/containers.conf b/contrib/podmanimage/stable/containers.conf
+index 7f0e36224..220c1f850 100644
+--- a/contrib/podmanimage/stable/containers.conf
++++ b/contrib/podmanimage/stable/containers.conf
+@@ -5,7 +5,7 @@ ipcns="host"
+ utsns="host"
+ cgroupns="host"
+ cgroups="disabled"
+-log_driver = "k8s_file"
++log_driver = "k8s-file"
+ [engine]
+ cgroup_manager = "cgroupfs"
+ events_logger="file"
+-- 
+2.31.1
+

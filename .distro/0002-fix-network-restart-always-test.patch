@@ -1,0 +1,32 @@
+From 26411a4d83b635db8e40cd541f3a846de4ebe3a9 Mon Sep 17 00:00:00 2001
+From: Paul Holzinger <paul.holzinger@web.de>
+Date: Wed, 12 May 2021 11:27:39 +0200
+Subject: [PATCH 2/2] fix network restart always test
+
+The added test in 30544f225e73 is flaking. Podman inspect is always
+working so we have to check the pid instead.
+
+Signed-off-by: Paul Holzinger <paul.holzinger@web.de>
+---
+ test/system/500-networking.bats | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/test/system/500-networking.bats b/test/system/500-networking.bats
+index 94980346e..34220829a 100644
+--- a/test/system/500-networking.bats
++++ b/test/system/500-networking.bats
+@@ -88,8 +88,9 @@ load helpers
+     # Wait for container to restart
+     retries=20
+     while :;do
+-        run_podman '?' container inspect --format "{{.State.Pid}}" myweb
+-        if [[ $status -eq 0 ]]; then
++        run_podman container inspect --format "{{.State.Pid}}" myweb
++        # pid is 0 as long as the container is not running
++        if [[ $output -ne 0 ]]; then
+             if [[ $output == $pid ]]; then
+                 die "This should never happen! Restarted container has same PID ($output) as killed one!"
+             fi
+-- 
+2.31.1
+
