@@ -17,15 +17,15 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ###
-    FEDORA_NAME: "fedora-33"
-    PRIOR_FEDORA_NAME: "fedora-32"
-    UBUNTU_NAME: "ubuntu-2010"
-    PRIOR_UBUNTU_NAME: "ubuntu-2004"
+    FEDORA_NAME: "fedora-34"
+    PRIOR_FEDORA_NAME: "fedora-33"
+    UBUNTU_NAME: "ubuntu-2104"
+    PRIOR_UBUNTU_NAME: "ubuntu-2010"
 
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
     # VM Image built in containers/automation_images
-    _BUILT_IMAGE_SUFFIX: "c5744859501821952"
+    _BUILT_IMAGE_SUFFIX: "c6032583541653504"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${_BUILT_IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${_BUILT_IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${_BUILT_IMAGE_SUFFIX}"
@@ -111,8 +111,6 @@ ubuntu_testing_task: &ubuntu_testing
     matrix:
         - env:
             TEST_DRIVER: "vfs"
-        - env:
-            TEST_DRIVER: "aufs"
         - env:
             TEST_DRIVER: "overlay"
 
