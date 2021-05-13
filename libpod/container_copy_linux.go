@@ -237,21 +237,32 @@ func (c *Container) joinMountAndExec(ctx context.Context, f func() error) error 
 		}
 		defer mountFD.Close()
 
-		pidFD, err := getFD(PIDNS)
+		inHostPidNS, err := c.inHostPidNS()
 		if err != nil {
-			errChan <- err
+			errChan <- errors.Wrap(err, "checking inHostPidNS")
 			return
 		}
-		defer pidFD.Close()
+		var pidFD *os.File
+		if !inHostPidNS {
+			pidFD, err = getFD(PIDNS)
+			if err != nil {
+				errChan <- err
+				return
+			}
+			defer pidFD.Close()
+		}
+
 		if err := unix.Unshare(unix.CLONE_NEWNS); err != nil {
 			errChan <- err
 			return
 		}
-		if err := unix.Setns(int(pidFD.Fd()), unix.CLONE_NEWPID); err != nil {
-			errChan <- err
-			return
-		}
 
+		if pidFD != nil {
+			if err := unix.Setns(int(pidFD.Fd()), unix.CLONE_NEWPID); err != nil {
+				errChan <- err
+				return
+			}
+		}
 		if err := unix.Setns(int(mountFD.Fd()), unix.CLONE_NEWNS); err != nil {
 			errChan <- err
 			return

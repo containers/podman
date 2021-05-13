@@ -130,6 +130,22 @@ load helpers
 }
 
 
+@test "podman cp file from/to host while --pid=host" {
+    if is_rootless && ! is_cgroupsv2; then
+        skip "'podman cp --pid=host' (rootless) only works with cgroups v2"
+    fi
+
+    srcdir=$PODMAN_TMPDIR/cp-pid-equals-host
+    mkdir -p $srcdir
+    touch $srcdir/hostfile
+
+    run_podman run --pid=host -d --name cpcontainer $IMAGE sleep infinity
+    run_podman cp $srcdir/hostfile cpcontainer:/tmp/hostfile
+    run_podman cp cpcontainer:/tmp/hostfile $srcdir/hostfile1
+    run_podman kill cpcontainer
+    run_podman rm -f cpcontainer
+}
+
 @test "podman cp file from container to host" {
     srcdir=$PODMAN_TMPDIR/cp-test-file-ctr-to-host
     mkdir -p $srcdir
