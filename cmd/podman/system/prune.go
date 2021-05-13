@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/completion"
+	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/utils"
@@ -50,7 +51,7 @@ func init() {
 	flags.BoolVar(&pruneOptions.Volume, "volumes", false, "Prune volumes")
 	filterFlagName := "filter"
 	flags.StringArrayVar(&filters, filterFlagName, []string{}, "Provide filter values (e.g. 'label=<key>=<value>')")
-	_ = pruneCommand.RegisterFlagCompletionFunc(filterFlagName, completion.AutocompleteNone)
+	_ = pruneCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompletePruneFilters)
 }
 
 func prune(cmd *cobra.Command, args []string) error {
