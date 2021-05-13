@@ -11,6 +11,7 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/network"
 	"github.com/containers/podman/v3/pkg/registries"
 	"github.com/containers/podman/v3/pkg/rootless"
 	systemdDefine "github.com/containers/podman/v3/pkg/systemd/define"
@@ -243,7 +244,7 @@ func getRegistries() ([]string, cobra.ShellCompDirective) {
 	return regs, cobra.ShellCompDirectiveNoFileComp
 }
 
-func getNetworks(cmd *cobra.Command, toComplete string) ([]string, cobra.ShellCompDirective) {
+func getNetworks(cmd *cobra.Command, toComplete string, cType completeType) ([]string, cobra.ShellCompDirective) {
 	suggestions := []string{}
 	networkListOptions := entities.NetworkListOptions{}
 
@@ -259,7 +260,15 @@ func getNetworks(cmd *cobra.Command, toComplete string) ([]string, cobra.ShellCo
 	}
 
 	for _, n := range networks {
-		if strings.HasPrefix(n.Name, toComplete) {
+		id := network.GetNetworkID(n.Name)
+		// include ids in suggestions if cType == completeIDs or
+		// more then 2 chars are typed and cType == completeDefault
+		if ((len(toComplete) > 1 && cType == completeDefault) ||
+			cType == completeIDs) && strings.HasPrefix(id, toComplete) {
+			suggestions = append(suggestions, id[0:12])
+		}
+		// include name in suggestions
+		if cType != completeIDs && strings.HasPrefix(n.Name, toComplete) {
 			suggestions = append(suggestions, n.Name)
 		}
 	}
@@ -502,7 +511,7 @@ func AutocompleteNetworks(cmd *cobra.Command, args []string, toComplete string) 
 	if !validCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	return getNetworks(cmd, toComplete)
+	return getNetworks(cmd, toComplete, completeDefault)
 }
 
 // AutocompleteDefaultOneArg - Autocomplete path only for the first argument.
@@ -588,7 +597,7 @@ func AutocompleteContainerOneArg(cmd *cobra.Command, args []string, toComplete s
 // AutocompleteNetworkConnectCmd - Autocomplete podman network connect/disconnect command args.
 func AutocompleteNetworkConnectCmd(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if len(args) == 0 {
-		return getNetworks(cmd, toComplete)
+		return getNetworks(cmd, toComplete, completeDefault)
 	}
 	if len(args) == 1 {
 		return getContainers(cmd, toComplete, completeDefault)
@@ -624,7 +633,7 @@ func AutocompleteInspect(cmd *cobra.Command, args []string, toComplete string) (
 	containers, _ := getContainers(cmd, toComplete, completeDefault)
 	images, _ := getImages(cmd, toComplete)
 	pods, _ := getPods(cmd, toComplete, completeDefault)
-	networks, _ := getNetworks(cmd, toComplete)
+	networks, _ := getNetworks(cmd, toComplete, completeDefault)
 	volumes, _ := getVolumes(cmd, toComplete)
 	suggestions := append(containers, images...)
 	suggestions = append(suggestions, pods...)
@@ -885,7 +894,7 @@ func AutocompleteNetworkFlag(cmd *cobra.Command, args []string, toComplete strin
 		},
 	}
 
-	networks, _ := getNetworks(cmd, toComplete)
+	networks, _ := getNetworks(cmd, toComplete, completeDefault)
 	suggestions, dir := completeKeyValues(toComplete, kv)
 	// add slirp4netns here it does not work correct if we add it to the kv map
 	suggestions = append(suggestions, "slirp4netns")
@@ -1039,7 +1048,10 @@ func AutocompleteNetworkDriver(cmd *cobra.Command, args []string, toComplete str
 // -> "ipc", "net", "pid", "user", "uts", "cgroup", "none"
 func AutocompletePodShareNamespace(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	namespaces := []string{"ipc", "net", "pid", "user", "uts", "cgroup", "none"}
-	return namespaces, cobra.ShellCompDirectiveNoFileComp
+	split := strings.Split(toComplete, ",")
+	split[len(split)-1] = ""
+	toComplete = strings.Join(split, ",")
+	return prefixSlice(toComplete, namespaces), cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompletePodPsSort - Autocomplete images sort options.
@@ -1115,7 +1127,7 @@ func AutocompletePsFilters(cmd *cobra.Command, args []string, toComplete string)
 			return []string{define.HealthCheckHealthy,
 				define.HealthCheckUnhealthy}, cobra.ShellCompDirectiveNoFileComp
 		},
-		"network=": func(s string) ([]string, cobra.ShellCompDirective) { return getNetworks(cmd, s) },
+		"network=": func(s string) ([]string, cobra.ShellCompDirective) { return getNetworks(cmd, s, completeDefault) },
 		"label=":   nil,
 		"exited=":  nil,
 		"until=":   nil,
@@ -1138,7 +1150,7 @@ func AutocompletePodPsFilters(cmd *cobra.Command, args []string, toComplete stri
 		"ctr-status=": func(_ string) ([]string, cobra.ShellCompDirective) {
 			return containerStatuses, cobra.ShellCompDirectiveNoFileComp
 		},
-		"network=": func(s string) ([]string, cobra.ShellCompDirective) { return getNetworks(cmd, s) },
+		"network=": func(s string) ([]string, cobra.ShellCompDirective) { return getNetworks(cmd, s, completeDefault) },
 		"label=":   nil,
 	}
 	return completeKeyValues(toComplete, kv)
@@ -1158,11 +1170,28 @@ func AutocompleteImageFilters(cmd *cobra.Command, args []string, toComplete stri
 	return completeKeyValues(toComplete, kv)
 }
 
+// AutocompletePruneFilters - Autocomplete container/image prune --filter options.
+func AutocompletePruneFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	kv := keyValueCompletion{
+		"until=": nil,
+		"label=": nil,
+	}
+	return completeKeyValues(toComplete, kv)
+}
+
 // AutocompleteNetworkFilters - Autocomplete network ls --filter options.
 func AutocompleteNetworkFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	kv := keyValueCompletion{
-		"name=":   func(s string) ([]string, cobra.ShellCompDirective) { return getNetworks(cmd, s) },
-		"plugin=": nil,
+		"name=": func(s string) ([]string, cobra.ShellCompDirective) { return getNetworks(cmd, s, completeNames) },
+		"id=":   func(s string) ([]string, cobra.ShellCompDirective) { return getNetworks(cmd, s, completeIDs) },
+		"plugin=": func(_ string) ([]string, cobra.ShellCompDirective) {
+			return []string{"bridge", "portmap",
+				"firewall", "tuning", "dnsname", "macvlan"}, cobra.ShellCompDirectiveNoFileComp
+		},
+		"label=": nil,
+		"driver=": func(_ string) ([]string, cobra.ShellCompDirective) {
+			return []string{"bridge"}, cobra.ShellCompDirectiveNoFileComp
+		},
 	}
 	return completeKeyValues(toComplete, kv)
 }
