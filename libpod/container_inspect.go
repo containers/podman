@@ -890,3 +890,26 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 
 	return hostConfig, nil
 }
+
+// Return true if the container is running in the host's PID NS.
+func (c *Container) inHostPidNS() (bool, error) {
+	if c.config.PIDNsCtr != "" {
+		return false, nil
+	}
+	ctrSpec, err := c.specFromState()
+	if err != nil {
+		return false, err
+	}
+	if ctrSpec.Linux != nil {
+		// Locate the spec's PID namespace.
+		// If there is none, it's pid=host.
+		// If there is one and it has a path, it's "ns:".
+		// If there is no path, it's default - the empty string.
+		for _, ns := range ctrSpec.Linux.Namespaces {
+			if ns.Type == spec.PIDNamespace {
+				return false, nil
+			}
+		}
+	}
+	return true, nil
+}
