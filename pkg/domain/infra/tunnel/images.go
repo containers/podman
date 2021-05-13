@@ -2,6 +2,7 @@ package tunnel
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strconv"
@@ -245,6 +246,11 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 		}
 	}
 	return images.Push(ir.ClientCtx, source, destination, options)
+}
+
+func (ir *ImageEngine) PushDelete(ctx context.Context, options entities.ImagePushOptions) error {
+	// TODO implement tunnel
+	return fmt.Errorf("PushDelete Tunnel Coming Soon!")
 }
 
 func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string, opts entities.ImageSaveOptions) error {

@@ -1,6 +1,7 @@
 package images
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/containers/common/pkg/auth"
@@ -33,7 +34,7 @@ var (
 		Short:             "Push an image to a specified destination",
 		Long:              pushDescription,
 		RunE:              imagePush,
-		Args:              cobra.RangeArgs(1, 2),
+		Args:              cobra.RangeArgs(0, 2),
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman push imageID docker://registry.example.com/repository:tag
 		podman push imageID oci-archive:/path/to/layout:image:tag`,
@@ -109,6 +110,10 @@ func pushFlags(cmd *cobra.Command) {
 	flags.StringVar(&pushOptions.SignBy, signByFlagName, "", "Add a signature at the destination using the specified key")
 	_ = cmd.RegisterFlagCompletionFunc(signByFlagName, completion.AutocompleteNone)
 
+	deleteFlagName := "delete"
+	flags.StringVarP(&pushOptions.Delete, deleteFlagName, "d", "", "Delete the image at the specified registry")
+	_ = cmd.RegisterFlagCompletionFunc(deleteFlagName, completion.AutocompleteNone)
+
 	flags.BoolVar(&pushOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 
 	if registry.IsRemote() {
@@ -118,39 +123,72 @@ func pushFlags(cmd *cobra.Command) {
 		_ = flags.MarkHidden("quiet")
 		_ = flags.MarkHidden("remove-signatures")
 		_ = flags.MarkHidden("sign-by")
+	} else {
+		_ = flags.MarkHidden("delete")
 	}
 	_ = flags.MarkHidden("signature-policy")
 }
 
 // imagePush is implement the command for pushing images.
 func imagePush(cmd *cobra.Command, args []string) error {
-	source := args[0]
-	destination := args[len(args)-1]
 
-	// TLS verification in c/image is controlled via a `types.OptionalBool`
-	// which allows for distinguishing among set-true, set-false, unspecified
-	// which is important to implement a sane way of dealing with defaults of
-	// boolean CLI flags.
-	if cmd.Flags().Changed("tls-verify") {
-		pushOptions.SkipTLSVerify = types.NewOptionalBool(!pushOptions.TLSVerifyCLI)
-	}
+	if cmd.Flags().Changed("delete") {
+		return registry.ImageEngine().PushDelete(registry.GetContext(), pushOptions.ImagePushOptions)
+		/*
 
-	if pushOptions.Authfile != "" {
-		if _, err := os.Stat(pushOptions.Authfile); err != nil {
-			return err
+			imageName := pushOptions.Delete
+			//if err := reexecIfNecessaryForImages(imageName); err != nil {
+			//	return err
+			//}
+
+			ref, err := alltransports.ParseImageName(imageName)
+			if err != nil {
+				return fmt.Errorf("Invalid source name %s: %v", imageName, err)
+			}
+
+			sys, err := opts.image.newSystemContext()
+			if err != nil {
+				return err
+			}
+
+			ctx, cancel := opts.global.commandTimeoutContext()
+			defer cancel()
+
+			return retry.RetryIfNecessary(ctx, func() error {
+				return ref.DeleteImage(ctx, sys)
+			}, opts.retryOpts)
+		*/
+	} else if len(args) > 0 {
+		source := args[0]
+		destination := args[len(args)-1]
+
+		// TLS verification in c/image is controlled via a `types.OptionalBool`
+		// which allows for distinguishing among set-true, set-false, unspecified
+		// which is important to implement a sane way of dealing with defaults of
+		// boolean CLI flags.
+		if cmd.Flags().Changed("tls-verify") {
+			pushOptions.SkipTLSVerify = types.NewOptionalBool(!pushOptions.TLSVerifyCLI)
 		}
-	}
 
-	if pushOptions.CredentialsCLI != "" {
-		creds, err := util.ParseRegistryCreds(pushOptions.CredentialsCLI)
-		if err != nil {
-			return err
+		if pushOptions.Authfile != "" {
+			if _, err := os.Stat(pushOptions.Authfile); err != nil {
+				return err
+			}
 		}
-		pushOptions.Username = creds.Username
-		pushOptions.Password = creds.Password
-	}
 
-	// Let's do all the remaining Yoga in the API to prevent us from scattering
-	// logic across (too) many parts of the code.
-	return registry.ImageEngine().Push(registry.GetContext(), source, destination, pushOptions.ImagePushOptions)
+		if pushOptions.CredentialsCLI != "" {
+			creds, err := util.ParseRegistryCreds(pushOptions.CredentialsCLI)
+			if err != nil {
+				return err
+			}
+			pushOptions.Username = creds.Username
+			pushOptions.Password = creds.Password
+		}
+
+		// Let's do all the remaining Yoga in the API to prevent us from scattering
+		// logic across (too) many parts of the code.
+		return registry.ImageEngine().Push(registry.GetContext(), source, destination, pushOptions.ImagePushOptions)
+	} else {
+		return fmt.Errorf("no image provided")
+	}
 }

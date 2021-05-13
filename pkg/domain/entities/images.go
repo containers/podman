@@ -200,6 +200,9 @@ type ImagePushOptions struct {
 	// SignBy adds a signature at the destination using the specified key.
 	// Ignored for remote calls.
 	SignBy string
+	// Mark remote image for deletion. See also skopeo-delete(1).
+	// Ignored for local calls.
+	Delete string
 	// SkipTLSVerify to skip HTTPS and certificate verification.
 	SkipTLSVerify types.OptionalBool
 	// Progress to get progress notifications

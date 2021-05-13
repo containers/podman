@@ -12,6 +12,7 @@ import (
 
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/retry"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
@@ -337,6 +338,36 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 		}
 	}
 	return pushError
+}
+
+func (ir *ImageEngine) PushDelete(ctx context.Context, options entities.ImagePushOptions) error {
+	imageName := options.Delete
+
+	// Commented out code from skopeo cmd/skopeo/delete.go for WIP reference
+
+	//if err := reexecIfNecessaryForImages(imageName); err != nil {
+	//	return err
+	//}
+
+	ref, err := alltransports.ParseImageName(imageName)
+	if err != nil {
+		return fmt.Errorf("invalid source name %s: %v", imageName, err)
+	}
+
+	//sys, err := options.image.newSystemContext()
+	//if err != nil {
+	//	return err
+	//}
+
+	//ctx, cancel := opts.global.commandTimeoutContext()
+	//defer cancel()
+
+	// Hard coded for initial test
+	defaultRetryOptions := &retry.RetryOptions{MaxRetry: 3, Delay: 1}
+
+	return retry.RetryIfNecessary(ctx, func() error {
+		return ref.DeleteImage(ctx, nil) //sys)
+	}, defaultRetryOptions)
 }
 
 func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, options entities.ImageTagOptions) error {
