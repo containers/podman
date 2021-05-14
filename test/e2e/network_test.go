@@ -584,6 +584,52 @@ var _ = Describe("Podman network", func() {
 		Expect(nc.ExitCode()).To(Equal(0))
 	})
 
+	It("podman network prune --filter", func() {
+		net1 := "macvlan" + stringid.GenerateNonCryptoID() + "net1"
+
+		nc := podmanTest.Podman([]string{"network", "create", net1})
+		nc.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net1)
+		Expect(nc.ExitCode()).To(Equal(0))
+
+		list := podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}}"})
+		list.WaitWithDefaultTimeout()
+		Expect(list.ExitCode()).To(BeZero())
+
+		Expect(StringInSlice(net1, list.OutputToStringArray())).To(BeTrue())
+		if !isRootless() {
+			Expect(StringInSlice("podman", list.OutputToStringArray())).To(BeTrue())
+		}
+
+		// -f needed only to skip y/n question
+		prune := podmanTest.Podman([]string{"network", "prune", "-f", "--filter", "until=50"})
+		prune.WaitWithDefaultTimeout()
+		Expect(prune.ExitCode()).To(BeZero())
+
+		listAgain := podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}}"})
+		listAgain.WaitWithDefaultTimeout()
+		Expect(listAgain.ExitCode()).To(BeZero())
+
+		Expect(StringInSlice(net1, listAgain.OutputToStringArray())).To(BeTrue())
+		if !isRootless() {
+			Expect(StringInSlice("podman", list.OutputToStringArray())).To(BeTrue())
+		}
+
+		// -f needed only to skip y/n question
+		prune = podmanTest.Podman([]string{"network", "prune", "-f", "--filter", "until=5000000000000"})
+		prune.WaitWithDefaultTimeout()
+		Expect(prune.ExitCode()).To(BeZero())
+
+		listAgain = podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}}"})
+		listAgain.WaitWithDefaultTimeout()
+		Expect(listAgain.ExitCode()).To(BeZero())
+
+		Expect(StringInSlice(net1, listAgain.OutputToStringArray())).To(BeFalse())
+		if !isRootless() {
+			Expect(StringInSlice("podman", list.OutputToStringArray())).To(BeTrue())
+		}
+	})
+
 	It("podman network prune", func() {
 		// Create two networks
 		// Check they are there

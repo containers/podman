@@ -16,6 +16,20 @@ the so-called default network which goes by the name of *podman*.
 
 Do not prompt for confirmation
 
+#### **--filter**
+
+Filter output based on conditions given.
+Multiple filters can be given with multiple uses of the --filter option.
+Filters with the same key work inclusive with the only exception being
+`label` which is exclusive. Filters with different keys always work exclusive.
+
+Valid filters are listed below:
+
+| **Filter** | **Description**                                                                       |
+| ---------- | ------------------------------------------------------------------------------------- |
+| label      | [Key] or [Key=Value] Label assigned to a network                                      |
+| until      | only remove networks created before given timestamp                                   |
+
 ## EXAMPLE
 Prune networks
 

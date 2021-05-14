@@ -35,6 +35,21 @@ func ReadPodIDFiles(files []string) ([]string, error) {
 	return ids, nil
 }
 
+// ParseFilters transforms one filter format to another and validates input
+func ParseFilters(filter []string) (map[string][]string, error) {
+	// TODO Remove once filter refactor is finished and url.Values done.
+	filters := map[string][]string{}
+	for _, f := range filter {
+		t := strings.SplitN(f, "=", 2)
+		filters = make(map[string][]string)
+		if len(t) < 2 {
+			return map[string][]string{}, errors.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
+		}
+		filters[t[0]] = append(filters[t[0]], t[1])
+	}
+	return filters, nil
+}
+
 // createExpose parses user-provided exposed port definitions and converts them
 // into SpecGen format.
 // TODO: The SpecGen format should really handle ranges more sanely - we could

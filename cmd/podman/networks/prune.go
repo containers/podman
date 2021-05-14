@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/utils"
@@ -31,12 +32,14 @@ var (
 var (
 	networkPruneOptions entities.NetworkPruneOptions
 	force               bool
+	filter              = []string{}
 )
 
-func networkPruneFlags(flags *pflag.FlagSet) {
-	//TODO: Not implemented but for future reference
-	//flags.StringSliceVar(&networkPruneOptions.Filters,"filters", []string{}, "provide filter values (e.g. 'until=<timestamp>')")
+func networkPruneFlags(cmd *cobra.Command, flags *pflag.FlagSet) {
 	flags.BoolVarP(&force, "force", "f", false, "do not prompt for confirmation")
+	filterFlagName := "filter"
+	flags.StringArrayVar(&filter, filterFlagName, []string{}, "Provide filter values (e.g. 'label=<key>=<value>')")
+	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, completion.AutocompleteNone)
 }
 
 func init() {
@@ -46,12 +49,13 @@ func init() {
 		Parent:  networkCmd,
 	})
 	flags := networkPruneCommand.Flags()
-	networkPruneFlags(flags)
+	networkPruneFlags(networkPruneCommand, flags)
 }
 
 func networkPrune(cmd *cobra.Command, _ []string) error {
 	var (
 		errs utils.OutputErrors
+		err  error
 	)
 	if !force {
 		reader := bufio.NewReader(os.Stdin)
@@ -64,6 +68,10 @@ func networkPrune(cmd *cobra.Command, _ []string) error {
 		if strings.ToLower(answer)[0] != 'y' {
 			return nil
 		}
+	}
+	networkPruneOptions.Filters, err = common.ParseFilters(filter)
+	if err != nil {
+		return err
 	}
 	responses, err := registry.ContainerEngine().NetworkPrune(registry.Context(), networkPruneOptions)
 	if err != nil {

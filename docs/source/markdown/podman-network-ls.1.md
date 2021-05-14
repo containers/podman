@@ -13,7 +13,7 @@ Displays a list of existing podman networks.
 #### **--filter**, **-f**
 
 Filter output based on conditions given.
-Multiple filters can be given with multiple uses of the --filter flag.
+Multiple filters can be given with multiple uses of the --filter option.
 Filters with the same key work inclusive with the only exception being
 `label` which is exclusive. Filters with different keys always work exclusive.
 
