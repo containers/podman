@@ -778,20 +778,30 @@ func parseThrottleIOPsDevices(iopsDevices []string) (map[string]specs.LinuxThrot
 	return td, nil
 }
 
-func parseSecrets(secrets []string) ([]string, map[string]string, error) {
+func parseSecrets(secrets []string) ([]specgen.Secret, map[string]string, error) {
 	secretParseError := errors.New("error parsing secret")
-	var mount []string
+	var mount []specgen.Secret
 	envs := make(map[string]string)
 	for _, val := range secrets {
+		// mount only tells if user has set an option that can only be used with mount secret type
+		mountOnly := false
 		source := ""
 		secretType := ""
 		target := ""
+		var uid, gid uint32
+		// default mode 444 octal = 292 decimal
+		var mode uint32 = 292
 		split := strings.Split(val, ",")
 
 		// --secret mysecret
 		if len(split) == 1 {
-			source = val
-			mount = append(mount, source)
+			mountSecret := specgen.Secret{
+				Source: val,
+				UID:    uid,
+				GID:    gid,
+				Mode:   mode,
+			}
+			mount = append(mount, mountSecret)
 			continue
 		}
 		// --secret mysecret,opt=opt
@@ -799,7 +809,7 @@ func parseSecrets(secrets []string) ([]string, map[string]string, error) {
 			source = split[0]
 			split = split[1:]
 		}
-		// TODO: implement other secret options
+
 		for _, val := range split {
 			kv := strings.SplitN(val, "=", 2)
 			if len(kv) < 2 {
@@ -818,6 +828,28 @@ func parseSecrets(secrets []string) ([]string, map[string]string, error) {
 				secretType = kv[1]
 			case "target":
 				target = kv[1]
+			case "mode":
+				mountOnly = true
+				mode64, err := strconv.ParseUint(kv[1], 8, 32)
+				if err != nil {
+					return nil, nil, errors.Wrapf(secretParseError, "mode %s invalid", kv[1])
+				}
+				mode = uint32(mode64)
+			case "uid", "UID":
+				mountOnly = true
+				uid64, err := strconv.ParseUint(kv[1], 10, 32)
+				if err != nil {
+					return nil, nil, errors.Wrapf(secretParseError, "UID %s invalid", kv[1])
+				}
+				uid = uint32(uid64)
+			case "gid", "GID":
+				mountOnly = true
+				gid64, err := strconv.ParseUint(kv[1], 10, 32)
+				if err != nil {
+					return nil, nil, errors.Wrapf(secretParseError, "GID %s invalid", kv[1])
+				}
+				gid = uint32(gid64)
+
 			default:
 				return nil, nil, errors.Wrapf(secretParseError, "option %s invalid", val)
 			}
@@ -833,9 +865,18 @@ func parseSecrets(secrets []string) ([]string, map[string]string, error) {
 			if target != "" {
 				return nil, nil, errors.Wrapf(secretParseError, "target option is invalid for mounted secrets")
 			}
-			mount = append(mount, source)
+			mountSecret := specgen.Secret{
+				Source: source,
+				UID:    uid,
+				GID:    gid,
+				Mode:   mode,
+			}
+			mount = append(mount, mountSecret)
 		}
 		if secretType == "env" {
+			if mountOnly {
+				return nil, nil, errors.Wrap(secretParseError, "UID, GID, Mode options cannot be set with secret type env")
+			}
 			if target == "" {
 				target = source
 			}

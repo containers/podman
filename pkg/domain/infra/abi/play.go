@@ -12,7 +12,6 @@ import (
 
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
@@ -161,7 +160,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	)
 
 	// Create the secret manager before hand
-	secretsManager, err := secrets.NewManager(ic.Libpod.GetSecretsStorageDir())
+	secretsManager, err := ic.Libpod.SecretsManager()
 	if err != nil {
 		return nil, err
 	}

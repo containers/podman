@@ -343,11 +343,13 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 	ctrConfig.CreateCommand = c.config.CreateCommand
 
 	ctrConfig.Timezone = c.config.Timezone
-
 	for _, secret := range c.config.Secrets {
 		newSec := define.InspectSecret{}
 		newSec.Name = secret.Name
 		newSec.ID = secret.ID
+		newSec.UID = secret.UID
+		newSec.GID = secret.GID
+		newSec.Mode = secret.Mode
 		ctrConfig.Secrets = append(ctrConfig.Secrets, &newSec)
 	}
 
