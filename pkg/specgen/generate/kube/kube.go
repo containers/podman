@@ -250,27 +250,26 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		if !exists {
 			return nil, errors.Errorf("Volume mount %s specified for container but not configured in volumes", volume.Name)
 		}
+
+		dest, options, err := parseMountPath(volume.MountPath, volume.ReadOnly)
+		if err != nil {
+			return nil, err
+		}
+
 		switch volumeSource.Type {
 		case KubeVolumeTypeBindMount:
-			if err := parse.ValidateVolumeCtrDir(volume.MountPath); err != nil {
-				return nil, errors.Wrapf(err, "error in parsing MountPath")
-			}
 			mount := spec.Mount{
-				Destination: volume.MountPath,
+				Destination: dest,
 				Source:      volumeSource.Source,
 				Type:        "bind",
-			}
-			if volume.ReadOnly {
-				mount.Options = []string{"ro"}
+				Options:     options,
 			}
 			s.Mounts = append(s.Mounts, mount)
 		case KubeVolumeTypeNamed:
 			namedVolume := specgen.NamedVolume{
-				Dest: volume.MountPath,
-				Name: volumeSource.Source,
-			}
-			if volume.ReadOnly {
-				namedVolume.Options = []string{"ro"}
+				Dest:    dest,
+				Name:    volumeSource.Source,
+				Options: options,
 			}
 			s.Volumes = append(s.Volumes, &namedVolume)
 		default:
@@ -298,6 +297,25 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	}
 
 	return s, nil
+}
+
+func parseMountPath(mountPath string, readOnly bool) (string, []string, error) {
+	options := []string{}
+	splitVol := strings.Split(mountPath, ":")
+	if len(splitVol) > 2 {
+		return "", options, errors.Errorf("%q incorrect volume format, should be ctr-dir[:option]", mountPath)
+	}
+	dest := splitVol[0]
+	if len(splitVol) > 1 {
+		options = strings.Split(splitVol[1], ",")
+	}
+	if err := parse.ValidateVolumeCtrDir(dest); err != nil {
+		return "", options, errors.Wrapf(err, "error in parsing MountPath")
+	}
+	if readOnly {
+		options = append(options, "ro")
+	}
+	return dest, options, nil
 }
 
 func setupSecurityContext(s *specgen.SpecGenerator, containerYAML v1.Container) {

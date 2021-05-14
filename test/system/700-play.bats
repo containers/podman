@@ -51,18 +51,40 @@ spec:
       seLinuxOptions:
          level: "s0:c1,c2"
       readOnlyRootFilesystem: false
+    volumeMounts:
+    - mountPath: /testdir:z
+      name: home-podman-testdir
     workingDir: /
+  volumes:
+  - hostPath:
+      path: TESTDIR
+      type: Directory
+    name: home-podman-testdir
 status: {}
 "
 
+RELABEL="system_u:object_r:container_file_t:s0"
+
 @test "podman play with stdin" {
-    echo "$testYaml" > $PODMAN_TMPDIR/test.yaml
+    TESTDIR=$PODMAN_TMPDIR/testdir
+    mkdir -p $TESTDIR
+    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
     run_podman play kube - < $PODMAN_TMPDIR/test.yaml
+    if [ -e /usr/sbin/selinuxenabled -a /usr/sbin/selinuxenabled ]; then
+       run ls -Zd $TESTDIR
+       is "$output" ${RELABEL} "selinux relabel should have happened"
+    fi
     run_podman pod rm -f test_pod
 }
 
 @test "podman play" {
-    echo "$testYaml" > $PODMAN_TMPDIR/test.yaml
+    TESTDIR=$PODMAN_TMPDIR/testdir
+    mkdir -p $TESTDIR
+    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
     run_podman play kube $PODMAN_TMPDIR/test.yaml
+    if [ -e /usr/sbin/selinuxenabled -a /usr/sbin/selinuxenabled ]; then
+       run ls -Zd $TESTDIR
+       is "$output" ${RELABEL} "selinux relabel should have happened"
+    fi
     run_podman pod rm -f test_pod
 }
