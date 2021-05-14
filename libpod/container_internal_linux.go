@@ -29,7 +29,6 @@ import (
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/chown"
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/common/pkg/subscriptions"
 	"github.com/containers/common/pkg/umask"
 	"github.com/containers/podman/v3/libpod/define"
@@ -759,7 +758,10 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		return nil, errors.Wrapf(err, "error setting up OCI Hooks")
 	}
 	if len(c.config.EnvSecrets) > 0 {
-		manager, err := secrets.NewManager(c.runtime.GetSecretsStorageDir())
+		manager, err := c.runtime.SecretsManager()
+		if err != nil {
+			return nil, err
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -2413,7 +2415,7 @@ func (c *Container) createSecretMountDir() error {
 		oldUmask := umask.Set(0)
 		defer umask.Set(oldUmask)
 
-		if err := os.MkdirAll(src, 0644); err != nil {
+		if err := os.MkdirAll(src, 0755); err != nil {
 			return err
 		}
 		if err := label.Relabel(src, c.config.MountLabel, false); err != nil {

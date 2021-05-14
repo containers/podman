@@ -713,13 +713,16 @@ type DriverData struct {
 	Data map[string]string `json:"Data"`
 }
 
-// InspectHostPort provides information on a port on the host that a container's
-// port is bound to.
+// InspectSecret contains information on secrets mounted inside the container
 type InspectSecret struct {
-	// IP on the host we are bound to. "" if not specified (binding to all
-	// IPs).
+	// Name is the name of the secret
 	Name string `json:"Name"`
-	// Port on the host we are bound to. No special formatting - just an
-	// integer stuffed into a string.
+	// ID is the ID of the secret
 	ID string `json:"ID"`
+	// ID is the UID of the mounted secret file
+	UID uint32 `json:"UID"`
+	// ID is the GID of the mounted secret file
+	GID uint32 `json:"GID"`
+	// ID is the ID of the mode of the mounted secret file
+	Mode uint32 `json:"Mode"`
 }

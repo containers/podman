@@ -401,7 +401,24 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	}
 
 	if len(s.Secrets) != 0 {
-		options = append(options, libpod.WithSecrets(s.Secrets))
+		manager, err := rt.SecretsManager()
+		if err != nil {
+			return nil, err
+		}
+		var secrs []*libpod.ContainerSecret
+		for _, s := range s.Secrets {
+			secr, err := manager.Lookup(s.Source)
+			if err != nil {
+				return nil, err
+			}
+			secrs = append(secrs, &libpod.ContainerSecret{
+				Secret: secr,
+				UID:    s.UID,
+				GID:    s.GID,
+				Mode:   s.Mode,
+			})
+		}
+		options = append(options, libpod.WithSecrets(secrs))
 	}
 
 	if len(s.EnvSecrets) != 0 {

@@ -148,7 +148,7 @@ type ContainerRootFSConfig struct {
 	// default, but others do not.
 	CreateWorkingDir bool `json:"createWorkingDir,omitempty"`
 	// Secrets lists secrets to mount into the container
-	Secrets []*secrets.Secret `json:"secrets,omitempty"`
+	Secrets []*ContainerSecret `json:"secrets,omitempty"`
 	// SecretPath is the secrets location in storage
 	SecretsPath string `json:"secretsPath"`
 	// Volatile specifies whether the container storage can be optimized

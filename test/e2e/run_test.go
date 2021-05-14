@@ -1681,6 +1681,49 @@ WORKDIR /madethis`, BB)
 		Expect(session.OutputToString()).To(Equal(secretsString))
 	})
 
+	It("podman run --secret mount with uid, gid, mode options", func() {
+		secretsString := "somesecretdata"
+		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
+		err := ioutil.WriteFile(secretFilePath, []byte(secretsString), 0755)
+		Expect(err).To(BeNil())
+
+		session := podmanTest.Podman([]string{"secret", "create", "mysecret", secretFilePath})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// check default permissions
+		session = podmanTest.Podman([]string{"run", "--secret", "mysecret", "--name", "secr", ALPINE, "ls", "-l", "/run/secrets/mysecret"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		output := session.OutputToString()
+		Expect(output).To(ContainSubstring("-r--r--r--"))
+		Expect(output).To(ContainSubstring("root"))
+
+		session = podmanTest.Podman([]string{"run", "--secret", "source=mysecret,type=mount,uid=1000,gid=1001,mode=777", "--name", "secr2", ALPINE, "ls", "-ln", "/run/secrets/mysecret"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		output = session.OutputToString()
+		Expect(output).To(ContainSubstring("-rwxrwxrwx"))
+		Expect(output).To(ContainSubstring("1000"))
+		Expect(output).To(ContainSubstring("1001"))
+	})
+
+	It("podman run --secret with --user", func() {
+		secretsString := "somesecretdata"
+		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
+		err := ioutil.WriteFile(secretFilePath, []byte(secretsString), 0755)
+		Expect(err).To(BeNil())
+
+		session := podmanTest.Podman([]string{"secret", "create", "mysecret", secretFilePath})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"run", "--secret", "mysecret", "--name", "nonroot", "--user", "200:200", ALPINE, "cat", "/run/secrets/mysecret"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal(secretsString))
+	})
+
 	It("podman run invalid secret option", func() {
 		secretsString := "somesecretdata"
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
@@ -1703,6 +1746,11 @@ WORKDIR /madethis`, BB)
 
 		// Option syntax not valid
 		session = podmanTest.Podman([]string{"run", "--secret", "source=mysecret,type", "--name", "secr", ALPINE, "printenv", "mysecret"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+
+		// mount option with env type
+		session = podmanTest.Podman([]string{"run", "--secret", "source=mysecret,type=env,uid=1000", "--name", "secr", ALPINE, "printenv", "mysecret"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Not(Equal(0)))
 
