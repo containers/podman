@@ -2339,13 +2339,33 @@ func (c *Container) createSecretMountDir() error {
 		oldUmask := umask.Set(0)
 		defer umask.Set(oldUmask)
 
-		if err := os.MkdirAll(src, 0644); err != nil {
+		if err := os.MkdirAll(src, 0755); err != nil {
 			return err
 		}
 		if err := label.Relabel(src, c.config.MountLabel, false); err != nil {
 			return err
 		}
-		if err := os.Chown(src, c.RootUID(), c.RootGID()); err != nil {
+		userForSecretMount := c.RootUID()
+		groupForSecretMount := c.RootGID()
+		if c.User() != "" {
+			splitUser := strings.SplitN(c.config.User, ":", 2)
+			user := splitUser[0]
+			group := splitUser[0]
+			if len(splitUser) > 1 {
+				group = splitUser[1]
+			}
+			uid, errUID := strconv.Atoi(user)
+			gid, errGID := strconv.Atoi(group)
+			// Make sure user:group were parsed
+			// If not then go with RootUid, RootGid
+			if errUID == nil {
+				userForSecretMount = uid
+			}
+			if errGID == nil {
+				groupForSecretMount = gid
+			}
+		}
+		if err := os.Chown(src, userForSecretMount, groupForSecretMount); err != nil {
 			return err
 		}
 		c.state.BindMounts["/run/secrets"] = src

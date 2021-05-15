@@ -1589,6 +1589,26 @@ WORKDIR /madethis`, BB)
 		Expect(session.OutputToString()).To(ContainSubstring(hostnameEnv))
 	})
 
+	It("podman run --secret for non-root user", func() {
+		secretsString := "somesecretdata"
+		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
+		err := ioutil.WriteFile(secretFilePath, []byte(secretsString), 0755)
+		Expect(err).To(BeNil())
+
+		session := podmanTest.Podman([]string{"secret", "create", "mysecret", secretFilePath})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		if isRootless() {
+			// Run test for non-root (0) user
+			session = podmanTest.Podman([]string{"run", "--secret", "mysecret", "--name", "nonroot", "--user", "200:200", ALPINE, "cat", "/run/secrets/mysecret"})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(0))
+			Expect(session.OutputToString()).To(Equal(secretsString))
+		}
+
+	})
+
 	It("podman run --secret", func() {
 		secretsString := "somesecretdata"
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
