@@ -66,7 +66,7 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		con := podmanTest.Podman([]string{"network", "disconnect", netName, "test"})
 		con.WaitWithDefaultTimeout()
 		Expect(con.ExitCode()).ToNot(BeZero())
-		Expect(con.ErrorToString()).To(ContainSubstring(`network mode "slirp4netns" is not supported`))
+		Expect(con.ErrorToString()).To(ContainSubstring(`"slirp4netns" is not supported: invalid network mode`))
 	})
 
 	It("podman network disconnect", func() {
@@ -132,7 +132,7 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		con := podmanTest.Podman([]string{"network", "connect", netName, "test"})
 		con.WaitWithDefaultTimeout()
 		Expect(con.ExitCode()).ToNot(BeZero())
-		Expect(con.ErrorToString()).To(ContainSubstring(`network mode "slirp4netns" is not supported`))
+		Expect(con.ErrorToString()).To(ContainSubstring(`"slirp4netns" is not supported: invalid network mode`))
 	})
 
 	It("podman connect on a container that already is connected to the network should error", func() {

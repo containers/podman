@@ -23,6 +23,7 @@ import (
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/libpod/network"
 	"github.com/containers/podman/v3/pkg/errorhandling"
+	"github.com/containers/podman/v3/pkg/namespaces"
 	"github.com/containers/podman/v3/pkg/netns"
 	"github.com/containers/podman/v3/pkg/resolvconf"
 	"github.com/containers/podman/v3/pkg/rootless"
@@ -757,6 +758,15 @@ func getContainerNetNS(ctr *Container) (string, error) {
 	return "", nil
 }
 
+// isBridgeNetMode checks if the given network mode is bridge.
+// It returns nil when it is set to bridge and an error otherwise.
+func isBridgeNetMode(n namespaces.NetworkMode) error {
+	if !n.IsBridge() {
+		return errors.Wrapf(define.ErrNetworkModeInvalid, "%q is not supported", n)
+	}
+	return nil
+}
+
 // Reload only works with containers with a configured network.
 // It will tear down, and then reconfigure, the network of the container.
 // This is mainly used when a reload of firewall rules wipes out existing
@@ -770,8 +780,8 @@ func (r *Runtime) reloadContainerNetwork(ctr *Container) ([]*cnitypes.Result, er
 	if ctr.state.NetNS == nil {
 		return nil, errors.Wrapf(define.ErrCtrStateInvalid, "container %s network is not configured, refusing to reload", ctr.ID())
 	}
-	if rootless.IsRootless() || ctr.config.NetMode.IsSlirp4netns() {
-		return nil, errors.Wrapf(define.ErrRootless, "network reload only supported for root containers")
+	if err := isBridgeNetMode(ctr.config.NetMode); err != nil {
+		return nil, err
 	}
 
 	logrus.Infof("Going to reload container %s network", ctr.ID())
@@ -1025,8 +1035,8 @@ func (w *logrusDebugWriter) Write(p []byte) (int, error) {
 // NetworkDisconnect removes a container from the network
 func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) error {
 	// only the bridge mode supports cni networks
-	if !c.config.NetMode.IsBridge() {
-		return errors.Errorf("network mode %q is not supported", c.config.NetMode)
+	if err := isBridgeNetMode(c.config.NetMode); err != nil {
+		return err
 	}
 
 	networks, err := c.networksByNameIndex()
@@ -1086,8 +1096,8 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 // ConnectNetwork connects a container to a given network
 func (c *Container) NetworkConnect(nameOrID, netName string, aliases []string) error {
 	// only the bridge mode supports cni networks
-	if !c.config.NetMode.IsBridge() {
-		return errors.Errorf("network mode %q is not supported", c.config.NetMode)
+	if err := isBridgeNetMode(c.config.NetMode); err != nil {
+		return err
 	}
 
 	networks, err := c.networksByNameIndex()

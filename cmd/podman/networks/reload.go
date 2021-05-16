@@ -26,9 +26,6 @@ var (
 		Example: `podman network reload --latest
   podman network reload 3c13ef6dd843
   podman network reload test1 test2`,
-		Annotations: map[string]string{
-			registry.ParentNSRequired: "",
-		},
 	}
 )
 

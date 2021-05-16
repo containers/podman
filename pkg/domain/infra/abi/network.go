@@ -71,7 +71,9 @@ func (ic *ContainerEngine) NetworkReload(ctx context.Context, names []string, op
 		report := new(entities.NetworkReloadReport)
 		report.Id = ctr.ID()
 		report.Err = ctr.ReloadNetwork()
-		if options.All && errors.Cause(report.Err) == define.ErrCtrStateInvalid {
+		// ignore errors for invalid ctr state and network mode when --all is used
+		if options.All && (errors.Cause(report.Err) == define.ErrCtrStateInvalid ||
+			errors.Cause(report.Err) == define.ErrNetworkModeInvalid) {
 			continue
 		}
 		reports = append(reports, report)

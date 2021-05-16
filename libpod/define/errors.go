@@ -179,6 +179,9 @@ var (
 	// ErrNoNetwork indicates that a container has no net namespace, like network=none
 	ErrNoNetwork = errors.New("container has no network namespace")
 
+	// ErrNetworkModeInvalid indicates that a container has the wrong network mode for an operation
+	ErrNetworkModeInvalid = errors.New("invalid network mode")
+
 	// ErrSetSecurityAttribute indicates that a request to set a container's security attribute
 	// was not possible.
 	ErrSetSecurityAttribute = fmt.Errorf("%w: unable to assign security attribute", ErrOCIRuntime)
