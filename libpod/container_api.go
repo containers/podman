@@ -123,9 +123,26 @@ func (c *Container) StartAndAttach(ctx context.Context, streams *define.AttachSt
 
 	// Attach to the container before starting it
 	go func() {
-		if err := c.attach(streams, keys, resize, true, startedChan, nil); err != nil {
-			attachChan <- err
+		// if shimv2 OCI runtime is being used, the attach operation
+		// will be handled in a different way
+		if isShimv2(c.ociRuntime.Name(), []string{c.ociRuntime.Path()}) {
+			logrus.Debugf("Attaching to container %s", c.ID())
+
+			if err := c.start(); err != nil {
+				attachChan <- err
+			}
+			startedChan <- true
+
+			if err := c.ociRuntime.AttachContainer(c, streams.InputStream, streams.OutputStream, streams.ErrorStream, false); err != nil {
+				logrus.Errorf("error attaching to container: %s", err)
+				attachChan <- err
+			}
+		} else {
+			if err := c.attach(streams, keys, resize, true, startedChan, nil); err != nil {
+				attachChan <- err
+			}
 		}
+
 		close(attachChan)
 	}()
 

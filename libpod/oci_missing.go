@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"path/filepath"
 	"sync"
@@ -175,6 +176,11 @@ func (r *MissingRuntime) SupportsJSONErrors() bool {
 // SupportsNoCgroups returns false as there is no runtime to create containers
 func (r *MissingRuntime) SupportsNoCgroups() bool {
 	return false
+}
+
+// AttachContainer is not available as the runtime is missing
+func (r *MissingRuntime) AttachContainer(ctr *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool) error {
+	return r.printError()
 }
 
 // SupportsKVM checks if the OCI runtime supports running containers

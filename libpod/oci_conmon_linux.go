@@ -497,6 +497,12 @@ func (r *ConmonOCIRuntime) UnpauseContainer(ctr *Container) error {
 	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, append(r.runtimeFlags, "resume", ctr.ID())...)
 }
 
+// AttachContainer attaches stdio to container stdio.
+// This is only used by shimv2 OCI runtime
+func (r *ConmonOCIRuntime) AttachContainer(ctr *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool) error {
+	return fmt.Errorf("not supported")
+}
+
 // HTTPAttach performs an attach for the HTTP API.
 // The caller must handle closing the HTTP connection after this returns.
 // The cancel channel is not closed; it is up to the caller to do so after

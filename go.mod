@@ -9,6 +9,10 @@ require (
 	github.com/checkpoint-restore/checkpointctl v0.0.0-20210922093614-c31748bec9f2
 	github.com/checkpoint-restore/go-criu/v5 v5.1.0
 	github.com/container-orchestrated-devices/container-device-interface v0.0.0-20210325223243-f99e8b6c10b9
+	github.com/containerd/containerd v1.5.5
+	github.com/containerd/fifo v1.0.0
+	github.com/containerd/ttrpc v1.0.2
+	github.com/containerd/typeurl v1.0.2
 	github.com/containernetworking/cni v1.0.1
 	github.com/containernetworking/plugins v1.0.1
 	github.com/containers/buildah v1.23.1
@@ -32,6 +36,7 @@ require (
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/ghodss/yaml v1.0.0
 	github.com/godbus/dbus/v5 v5.0.5
+	github.com/gogo/protobuf v1.3.2
 	github.com/google/shlex v0.0.0-20181106134648-c34317bd91bf
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/handlers v0.0.0-20150720190736-60c7bfde3e33
@@ -67,7 +72,10 @@ require (
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20210910150752-751e447fb3d0
+	google.golang.org/grpc v1.41.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/api v0.22.2
 	k8s.io/apimachinery v0.22.2
 )
+
+replace google.golang.org/genproto => google.golang.org/genproto v0.0.0-20200117163144-32f20d992d24

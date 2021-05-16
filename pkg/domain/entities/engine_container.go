@@ -90,6 +90,7 @@ type ContainerEngine interface {
 	SecretList(ctx context.Context, opts SecretListRequest) ([]*SecretInfoReport, error)
 	SecretRm(ctx context.Context, nameOrID []string, opts SecretRmOptions) ([]*SecretRmReport, error)
 	Shutdown(ctx context.Context)
+	Shimv2ContainerCleanup(ctx context.Context, nameOrID string, exitCode int) error
 	SystemDf(ctx context.Context, options SystemDfOptions) (*SystemDfReport, error)
 	Unshare(ctx context.Context, args []string, options SystemUnshareOptions) error
 	Version(ctx context.Context) (*SystemVersionReport, error)

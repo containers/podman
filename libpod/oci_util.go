@@ -14,9 +14,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Timeout before declaring that runtime has failed to kill a given
-// container
-const killContainerTimeout = 5 * time.Second
+const (
+	// Timeout before declaring that runtime has failed to kill a given
+	// container
+	killContainerTimeout = 5 * time.Second
+	shimv2BinaryRegex    = "containerd-shim-[a-zA-Z]+-v2"
+	shimv2NameRegex      = "containerd\\.shim\\.[a-zA-Z]+\\.v2"
+)
 
 // ociError is used to parse the OCI runtime JSON log.  It is not part of the
 // OCI runtime specifications, it follows what runc does
@@ -151,4 +155,26 @@ func getOCIRuntimeError(runtimeMsg string) error {
 		return errors.Wrapf(define.ErrSecurityAttribute, "%s", strings.Trim(errStr, "\n"))
 	}
 	return errors.Wrapf(define.ErrOCIRuntime, "%s", strings.Trim(runtimeMsg, "\n"))
+}
+
+// isShimv2 verifies if the oci runtime needs to use shimv2 daemon
+// to create containers i.e kata containers v2
+func isShimv2(name string, paths []string) bool {
+	// Check if oci runtime name is shimv2
+	// i.e containerd.shim.kata.v2
+	r, _ := regexp.Compile(shimv2NameRegex)
+	if r.MatchString(name) {
+		return true
+	}
+
+	// Check if any of the oci runtime paths is shimv2
+	// i.e /path/to/containerd-shim-kata-v2
+	r, _ = regexp.Compile(shimv2BinaryRegex)
+	for _, p := range paths {
+		if r.MatchString(p) {
+			return true
+		}
+	}
+
+	return false
 }

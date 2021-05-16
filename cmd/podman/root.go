@@ -390,6 +390,10 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 
 		pFlags.BoolVar(&opts.Trace, "trace", false, "Enable opentracing output (default false)")
 
+		// shimv2 flags
+		addressFlagName := "address"
+		pFlags.String(addressFlagName, "", "Address used by podman publish command and shimv2")
+
 		// Hide these flags for both ABI and Tunneling
 		for _, f := range []string{
 			"cpu-profile",
@@ -398,6 +402,7 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 			"memory-profile",
 			"registries-conf",
 			"trace",
+			"address",
 		} {
 			if err := pFlags.MarkHidden(f); err != nil {
 				logrus.Warnf("Unable to mark %s flag as hidden: %s", f, err.Error())

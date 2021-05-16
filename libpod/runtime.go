@@ -430,7 +430,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 
 	// Initialize remaining OCI runtimes
 	for name, paths := range runtime.config.Engine.OCIRuntimes {
-		ociRuntime, err := newConmonOCIRuntime(name, paths, runtime.conmonPath, runtime.runtimeFlags, runtime.config)
+		ociRuntime, err := newOCIRuntime(name, paths, runtime.conmonPath, runtime.runtimeFlags, runtime.config)
 		if err != nil {
 			// Don't fatally error.
 			// This will allow us to ship configs including optional
@@ -448,7 +448,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		// If the string starts with / it's a path to a runtime
 		// executable.
 		if strings.HasPrefix(runtime.config.Engine.OCIRuntime, "/") {
-			ociRuntime, err := newConmonOCIRuntime(runtime.config.Engine.OCIRuntime, []string{runtime.config.Engine.OCIRuntime}, runtime.conmonPath, runtime.runtimeFlags, runtime.config)
+			ociRuntime, err := newOCIRuntime(runtime.config.Engine.OCIRuntime, []string{runtime.config.Engine.OCIRuntime}, runtime.conmonPath, runtime.runtimeFlags, runtime.config)
 			if err != nil {
 				return err
 			}
@@ -463,7 +463,8 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 			runtime.defaultOCIRuntime = ociRuntime
 		}
 	}
-	logrus.Debugf("Using OCI runtime %q", runtime.defaultOCIRuntime.Path())
+	logrus.Debugf("Using OCI runtime name: %q", runtime.defaultOCIRuntime.Name())
+	logrus.Debugf("Using OCI runtime path: %q", runtime.defaultOCIRuntime.Path())
 
 	// Do we have at least one valid OCI runtime?
 	if len(runtime.ociRuntimes) == 0 {

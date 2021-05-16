@@ -1438,3 +1438,26 @@ func (ic *ContainerEngine) ContainerRename(ctx context.Context, nameOrID string,
 
 	return nil
 }
+
+func (ic *ContainerEngine) Shimv2ContainerCleanup(ctx context.Context, nameOrID string, exitCode int) error {
+	ctr, err := ic.Libpod.LookupContainer(nameOrID)
+	if err != nil {
+		return err
+	}
+
+	// shimv2 runtime does not create the exit file, so we will create it here
+	// since this is only called by an exit event
+	if exitFile, err := ctr.Runtime().DefaultOCIRuntime().ExitFilePath(ctr); err != nil {
+		return err
+	} else {
+		if err := ioutil.WriteFile(exitFile, []byte(strconv.Itoa(exitCode)), 0777); err != nil {
+			return err
+		}
+	}
+
+	if err := ctr.Cleanup(ctx); err != nil {
+		return errors.Wrapf(err, "failed to cleanup container %s", ctr.ID())
+	}
+
+	return nil
+}

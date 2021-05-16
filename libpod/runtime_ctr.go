@@ -303,6 +303,8 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 	if ctr.config.OCIRuntime == "" {
 		ctr.ociRuntime = r.defaultOCIRuntime
 	} else {
+		logrus.Debugf("container OCI runtime: %q", ctr.config.OCIRuntime)
+
 		ociRuntime, ok := r.ociRuntimes[ctr.config.OCIRuntime]
 		if !ok {
 			return nil, errors.Wrapf(define.ErrInvalidArg, "requested OCI runtime %s is not available", ctr.config.OCIRuntime)

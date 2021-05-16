@@ -345,3 +345,13 @@ func writeStringToPath(path, contents, mountLabel string, uid, gid int) error {
 
 	return nil
 }
+
+// stringInSlice checks if a string is present in a Slice
+func stringInSlice(str string, s []string) bool {
+	for _, v := range s {
+		if str == v {
+			return true
+		}
+	}
+	return false
+}

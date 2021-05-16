@@ -900,3 +900,7 @@ func (ic *ContainerEngine) ShouldRestart(_ context.Context, id string) (bool, er
 func (ic *ContainerEngine) ContainerRename(ctx context.Context, nameOrID string, opts entities.ContainerRenameOptions) error {
 	return containers.Rename(ic.ClientCtx, nameOrID, new(containers.RenameOptions).WithName(opts.NewName))
 }
+
+func (ic *ContainerEngine) Shimv2ContainerCleanup(ctx context.Context, nameOrID string, exitCode int) error {
+	return errors.New("not supported by the remote client")
+}

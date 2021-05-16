@@ -1,8 +1,10 @@
 package libpod
 
 import (
+	"io"
 	"net/http"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod/define"
 )
 
@@ -64,6 +66,9 @@ type OCIRuntime interface {
 	HTTPAttach(ctr *Container, r *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool, hijackDone chan<- bool, streamAttach, streamLogs bool) error
 	// AttachResize resizes the terminal in use by the given container.
 	AttachResize(ctr *Container, newSize define.TerminalSize) error
+
+	// AttachContainer attaches stdio to a container stdio. Used by shimv2 OCI runtime.
+	AttachContainer(ctr *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool) error
 
 	// ExecContainer executes a command in a running container.
 	// Returns an int (PID of exec session), error channel (errors from
@@ -188,4 +193,14 @@ type HTTPAttachStreams struct {
 	Stdin  bool
 	Stdout bool
 	Stderr bool
+}
+
+func newOCIRuntime(name string, paths []string, conmonPath string, runtimeFlags []string, runtimeCfg *config.Config) (OCIRuntime, error) {
+	// Check if runtime supports the Shimv2 implementation
+	if stringInSlice(name, runtimeCfg.Engine.RuntimeSupportsShimv2) {
+		return NewShimv2Runtime(name, paths, runtimeFlags, runtimeCfg)
+	}
+
+	// This is the default OCI runtime
+	return newConmonOCIRuntime(name, paths, conmonPath, runtimeFlags, runtimeCfg)
 }

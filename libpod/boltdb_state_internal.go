@@ -413,7 +413,7 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 			// OCI runtime for it using the full path.
 			if strings.HasPrefix(runtimeName, "/") {
 				if stat, err := os.Stat(runtimeName); err == nil && !stat.IsDir() {
-					newOCIRuntime, err := newConmonOCIRuntime(runtimeName, []string{runtimeName}, s.runtime.conmonPath, s.runtime.runtimeFlags, s.runtime.config)
+					newOCIRuntime, err := newOCIRuntime(runtimeName, []string{runtimeName}, s.runtime.conmonPath, s.runtime.runtimeFlags, s.runtime.config)
 					if err == nil {
 						// The runtime lock should
 						// protect against concurrent
