@@ -342,7 +342,7 @@ or `docker logout` to remove the credentials from the authentication file.
 
 ### 13) Running Podman inside a container causes container crashes and inconsistent states
 
-Running Podman in a container and forwarding some, but not all, of the required host directories can cause inconsistent container behavior.
+- Running Podman in a container and forwarding some, but not all, of the required host directories can cause inconsistent container behavior.
 
 #### Symptom
 
@@ -356,7 +356,44 @@ If you do mount in the host's `/var/lib/containers/storage`, however, you must a
 Not doing this will cause Podman in the container to detect that temporary files have been cleared, leading it to assume a system restart has taken place.
 This can cause Podman to reset container states and lose track of running containers.
 
-For running containers on the host from inside a container, we also recommend the [Podman remote client](remote_client.md), which only requires a single socket to be mounted into the container.
+For running containers on the host from inside a container, we also recommend the [Podman remote client](remote_client.md), which only requires a single socket to be mounted into the container.  
+
+
+- Running Podman containers inside a Docker container
+
+	- `podman run -i -t ... <image>` gives the following error:
+	```
+	ERRO[0000] Error preparing container <hash>  error creating network namespace for container <hash> mount --make-rshared /var/run/netns failed: "operation not permitted" 
+	```
+	This is because of the missing capabilities in the Docker Container. To get this to work, you can add the `--privileged` flag while running the Docker container or you can manually add [capabilities](https://man7.org/linux/man-pages/man7/capabilities.7.html) using the `--cap-add` flag.
+	
+	- `podman run -i -t <image>`  gives the following error:
+	```
+	Error: systemd cgroup flag passed, but systemd support for managing cgroups is not available: OCI runtime error
+	```
+	systemd is not PID1 in Docker Containers, but the shell is. 
+	```
+	root@ab235268d2dd:/test# systemctl status
+	System has not been booted with systemd as init system (PID 1). Can't operate.
+	Failed to connect to bus: Host is down
+	```
+	```
+	root@ab235268d2dd:/test# ps
+	  PID TTY          TIME CMD
+	    1 pts/0    00:00:00 bash
+	 1143 pts/0    00:00:00 ps
+	```
+	Refer to this article on running systemd in a container by Daniel Walsh for more info:	
+	[How to run systemd in a container](https://developers.redhat.com/blog/2019/04/24/how-to-run-systemd-in-a-container#)
+	
+	To get around this problem, pass in the `--cgroup-manager="cgroupfs"` flag or change the `cgroup_manager` option in the `containers.conf` file.
+	
+	- Running privileged Podman containers inside a Docker container `podman run <flags> --privileged <image>` gives the following error:
+	```
+	Error: container_linux.go:367: starting container process caused: apply caps: operation not permitted: OCI runtime permission denied error
+	```
+	Docker does not support  `CAP_PERFMON, CAP_BPF, and CAP_CHECKPOINT_RESTORE` capabilities. There is no way to get around this 
+	[issue](https://github.com/containers/podman/issues/10282) currently.
 
 ### 14) Rootless 'podman build' fails EPERM on NFS:
 
@@ -692,7 +729,7 @@ file `/etc/systemd/system/user@.service.d/delegate.conf` with the contents:
 After logging out and loggin back in, you should have permission to set CPU
 limits.
 
-### 26) `exec container process '/bin/sh': Exec format error` (or another binary than `bin/sh`)
+### 27) `exec container process '/bin/sh': Exec format error` (or another binary than `bin/sh`)
 
 This can happen when running a container from an image for another architecture than the one you are running on.
 
