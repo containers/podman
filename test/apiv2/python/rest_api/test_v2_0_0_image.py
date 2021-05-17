@@ -160,6 +160,12 @@ class ImageTestCase(APITestCase):
             for k in required_keys:
                 self.assertIn(k, change)
 
+    def test_tree(self):
+        r = requests.get(self.uri("/images/alpine/tree"))
+        self.assertEqual(r.status_code, 200, r.text)
+        tree = r.json()
+        self.assertTrue(tree["Tree"].startswith("Image ID:"), r.text)
+
 
 if __name__ == "__main__":
     unittest.main()
