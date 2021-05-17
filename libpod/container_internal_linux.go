@@ -1358,6 +1358,34 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	return c.save()
 }
 
+// Retrieves a container's "root" net namespace container dependency.
+func (c *Container) getRootNetNsDepCtr() (depCtr *Container, err error) {
+	containersVisited := map[string]int{c.config.ID: 1}
+	nextCtr := c.config.NetNsCtr
+	for nextCtr != "" {
+		// Make sure we aren't in a loop
+		if _, visited := containersVisited[nextCtr]; visited {
+			return nil, errors.New("loop encountered while determining net namespace container")
+		}
+		containersVisited[nextCtr] = 1
+
+		depCtr, err = c.runtime.state.Container(nextCtr)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error fetching dependency %s of container %s", c.config.NetNsCtr, c.ID())
+		}
+		// This should never happen without an error
+		if depCtr == nil {
+			break
+		}
+		nextCtr = depCtr.config.NetNsCtr
+	}
+
+	if depCtr == nil {
+		return nil, errors.New("unexpected error depCtr is nil without reported error from runtime state")
+	}
+	return depCtr, nil
+}
+
 // Make standard bind mounts to include in the container
 func (c *Container) makeBindMounts() error {
 	if err := os.Chown(c.state.RunDir, c.RootUID(), c.RootGID()); err != nil {
@@ -1396,24 +1424,9 @@ func (c *Container) makeBindMounts() error {
 			// We want /etc/resolv.conf and /etc/hosts from the
 			// other container. Unless we're not creating both of
 			// them.
-			var (
-				depCtr  *Container
-				nextCtr string
-			)
-
-			// I don't like infinite loops, but I don't think there's
-			// a serious risk of looping dependencies - too many
-			// protections against that elsewhere.
-			nextCtr = c.config.NetNsCtr
-			for {
-				depCtr, err = c.runtime.state.Container(nextCtr)
-				if err != nil {
-					return errors.Wrapf(err, "error fetching dependency %s of container %s", c.config.NetNsCtr, c.ID())
-				}
-				nextCtr = depCtr.config.NetNsCtr
-				if nextCtr == "" {
-					break
-				}
+			depCtr, err := c.getRootNetNsDepCtr()
+			if err != nil {
+				return errors.Wrapf(err, "error fetching network namespace dependency container for container %s", c.ID())
 			}
 
 			// We need that container's bind mounts
@@ -1698,7 +1711,12 @@ func (c *Container) generateResolvConf() (string, error) {
 		nameservers = resolvconf.GetNameservers(resolv.Content)
 		// slirp4netns has a built in DNS server.
 		if c.config.NetMode.IsSlirp4netns() {
-			nameservers = append([]string{slirp4netnsDNS}, nameservers...)
+			slirp4netnsDNS, err := GetSlirp4netnsDNS(c.slirp4netnsSubnet)
+			if err != nil {
+				logrus.Warn("failed to determine Slirp4netns DNS: ", err.Error())
+			} else {
+				nameservers = append([]string{slirp4netnsDNS.String()}, nameservers...)
+			}
 		}
 	}
 
@@ -1779,7 +1797,12 @@ func (c *Container) getHosts() string {
 	if c.Hostname() != "" {
 		if c.config.NetMode.IsSlirp4netns() {
 			// When using slirp4netns, the interface gets a static IP
-			hosts += fmt.Sprintf("# used by slirp4netns\n%s\t%s %s\n", slirp4netnsIP, c.Hostname(), c.config.Name)
+			slirp4netnsIP, err := GetSlirp4netnsGateway(c.slirp4netnsSubnet)
+			if err != nil {
+				logrus.Warn("failed to determine slirp4netnsIP: ", err.Error())
+			} else {
+				hosts += fmt.Sprintf("# used by slirp4netns\n%s\t%s %s\n", slirp4netnsIP.String(), c.Hostname(), c.config.Name)
+			}
 		} else {
 			hasNetNS := false
 			netNone := false
@@ -1802,6 +1825,36 @@ func (c *Container) getHosts() string {
 			}
 		}
 	}
+
+	// Add gateway entry
+	var depCtr *Container
+	if c.config.NetNsCtr != "" {
+		// ignoring the error because there isn't anything to do
+		depCtr, _ = c.getRootNetNsDepCtr()
+	} else if len(c.state.NetworkStatus) != 0 {
+		depCtr = c
+	} else {
+		depCtr = nil
+	}
+
+	if depCtr != nil {
+		for _, pluginResultsRaw := range depCtr.state.NetworkStatus {
+			pluginResult, _ := cnitypes.GetResult(pluginResultsRaw)
+			for _, ip := range pluginResult.IPs {
+				hosts += fmt.Sprintf("%s host.containers.internal\n", ip.Gateway)
+			}
+		}
+	} else if c.config.NetMode.IsSlirp4netns() {
+		gatewayIP, err := GetSlirp4netnsGateway(c.slirp4netnsSubnet)
+		if err != nil {
+			logrus.Warn("failed to determine gatewayIP: ", err.Error())
+		} else {
+			hosts += fmt.Sprintf("%s host.containers.internal\n", gatewayIP.String())
+		}
+	} else {
+		logrus.Debug("network configuration does not support host.containers.internal address")
+	}
+
 	return hosts
 }
 

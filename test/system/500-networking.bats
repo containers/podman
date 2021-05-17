@@ -162,6 +162,27 @@ load helpers
     done
 }
 
+@test "podman run with slirp4ns assigns correct gateway address to host.containers.internal" {
+    CIDR="$(random_rfc1918_subnet)"
+    run_podman run --network slirp4netns:cidr="${CIDR}.0/24" \
+                $IMAGE grep 'host.containers.internal' /etc/hosts
+    is "$output"   "${CIDR}.2 host.containers.internal"   "host.containers.internal should be the cidr+2 address"
+}
+
+@test "podman run with slirp4ns adds correct dns address to resolv.conf" {
+    CIDR="$(random_rfc1918_subnet)"
+    run_podman run --network slirp4netns:cidr="${CIDR}.0/24" \
+                $IMAGE grep "${CIDR}" /etc/resolv.conf
+    is "$output"   "nameserver ${CIDR}.3"   "resolv.conf should have slirp4netns cidr+3 as a nameserver"
+}
+
+@test "podman run with slirp4ns assigns correct ip address container" {
+    CIDR="$(random_rfc1918_subnet)"
+    run_podman run --network slirp4netns:cidr="${CIDR}.0/24" \
+                $IMAGE sh -c "ip address | grep ${CIDR}"
+    is "$output"   ".*inet ${CIDR}.100/24 \+"   "container should have slirp4netns cidr+100 assigned to interface"
+}
+
 # "network create" now works rootless, with the help of a special container
 @test "podman network create" {
     myport=54322

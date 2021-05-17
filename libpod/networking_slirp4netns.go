@@ -308,13 +308,87 @@ func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 		return err
 	}
 
+	// Set a default slirp subnet. Parsing a string with the net helper is easier than building the struct myself
+	_, ctr.slirp4netnsSubnet, _ = net.ParseCIDR(defaultSlirp4netnsSubnet)
+
+	// Set slirp4netnsSubnet addresses now that we are pretty sure the command executed
+	if netOptions.cidr != "" {
+		ipv4, ipv4network, err := net.ParseCIDR(netOptions.cidr)
+		if err != nil || ipv4.To4() == nil {
+			return errors.Errorf("invalid cidr %q", netOptions.cidr)
+		}
+		ctr.slirp4netnsSubnet = ipv4network
+	}
+
 	if havePortMapping {
 		if netOptions.isSlirpHostForward {
 			return r.setupRootlessPortMappingViaSlirp(ctr, cmd, apiSocket)
 		}
-		return r.setupRootlessPortMappingViaRLK(ctr, netnsPath, netOptions.cidr)
+		return r.setupRootlessPortMappingViaRLK(ctr, netnsPath)
 	}
+
 	return nil
+}
+
+// Get expected slirp ipv4 address based on subnet. If subnet is null use default subnet
+// Reference: https://github.com/rootless-containers/slirp4netns/blob/master/slirp4netns.1.md#description
+func GetSlirp4netnsIP(subnet *net.IPNet) (*net.IP, error) {
+	_, slirpSubnet, _ := net.ParseCIDR(defaultSlirp4netnsSubnet)
+	if subnet != nil {
+		slirpSubnet = subnet
+	}
+	expectedIP, err := addToIP(slirpSubnet, uint32(100))
+	if err != nil {
+		return nil, errors.Wrapf(err, "error calculating expected ip for slirp4netns")
+	}
+	return expectedIP, nil
+}
+
+// Get expected slirp Gateway ipv4 address based on subnet
+// Reference: https://github.com/rootless-containers/slirp4netns/blob/master/slirp4netns.1.md#description
+func GetSlirp4netnsGateway(subnet *net.IPNet) (*net.IP, error) {
+	_, slirpSubnet, _ := net.ParseCIDR(defaultSlirp4netnsSubnet)
+	if subnet != nil {
+		slirpSubnet = subnet
+	}
+	expectedGatewayIP, err := addToIP(slirpSubnet, uint32(2))
+	if err != nil {
+		return nil, errors.Wrapf(err, "error calculating expected gateway ip for slirp4netns")
+	}
+	return expectedGatewayIP, nil
+}
+
+// Get expected slirp DNS ipv4 address based on subnet
+// Reference: https://github.com/rootless-containers/slirp4netns/blob/master/slirp4netns.1.md#description
+func GetSlirp4netnsDNS(subnet *net.IPNet) (*net.IP, error) {
+	_, slirpSubnet, _ := net.ParseCIDR(defaultSlirp4netnsSubnet)
+	if subnet != nil {
+		slirpSubnet = subnet
+	}
+	expectedDNSIP, err := addToIP(slirpSubnet, uint32(3))
+	if err != nil {
+		return nil, errors.Wrapf(err, "error calculating expected dns ip for slirp4netns")
+	}
+	return expectedDNSIP, nil
+}
+
+// Helper function to calculate slirp ip address offsets
+// Adapted from: https://github.com/signalsciences/ipv4/blob/master/int.go#L12-L24
+func addToIP(subnet *net.IPNet, offset uint32) (*net.IP, error) {
+	// I have no idea why I have to do this, but if I don't ip is 0
+	ipFixed := subnet.IP.To4()
+
+	ipInteger := uint32(ipFixed[3]) | uint32(ipFixed[2])<<8 | uint32(ipFixed[1])<<16 | uint32(ipFixed[0])<<24
+	ipNewRaw := ipInteger + offset
+	// Avoid overflows
+	if ipNewRaw < ipInteger {
+		return nil, errors.Errorf("integer overflow while calculating ip address offset, %s + %d", ipFixed, offset)
+	}
+	ipNew := net.IPv4(byte(ipNewRaw>>24), byte(ipNewRaw>>16&0xFF), byte(ipNewRaw>>8)&0xFF, byte(ipNewRaw&0xFF))
+	if !subnet.Contains(ipNew) {
+		return nil, errors.Errorf("calculated ip address %s is not within given subnet %s", ipNew.String(), subnet.String())
+	}
+	return &ipNew, nil
 }
 
 func waitForSync(syncR *os.File, cmd *exec.Cmd, logFile io.ReadSeeker, timeout time.Duration) error {
@@ -363,7 +437,7 @@ func waitForSync(syncR *os.File, cmd *exec.Cmd, logFile io.ReadSeeker, timeout t
 	return nil
 }
 
-func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath, slirp4CIDR string) error {
+func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath string) error {
 	syncR, syncW, err := os.Pipe()
 	if err != nil {
 		return errors.Wrapf(err, "failed to open pipe")
@@ -390,17 +464,11 @@ func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath, slir
 		}
 	}
 
-	childIP := slirp4netnsIP
-	// set the correct childIP when a custom cidr is set
-	if slirp4CIDR != "" {
-		_, cidr, err := net.ParseCIDR(slirp4CIDR)
-		if err != nil {
-			return errors.Wrap(err, "failed to parse slirp4netns cidr")
-		}
-		// the slirp container ip is always the hundredth ip in the subnet
-		cidr.IP[len(cidr.IP)-1] = cidr.IP[len(cidr.IP)-1] + 100
-		childIP = cidr.IP.String()
+	slirp4netnsIP, err := GetSlirp4netnsIP(ctr.slirp4netnsSubnet)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get slirp4ns ip")
 	}
+	childIP := slirp4netnsIP.String()
 outer:
 	for _, r := range ctr.state.NetworkStatus {
 		for _, i := range r.IPs {

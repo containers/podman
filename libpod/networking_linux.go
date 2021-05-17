@@ -38,15 +38,11 @@ import (
 )
 
 const (
-	// slirp4netnsIP is the IP used by slirp4netns to configure the tap device
-	// inside the network namespace.
-	slirp4netnsIP = "10.0.2.100"
-
-	// slirp4netnsDNS is the IP for the built-in DNS server in the slirp network
-	slirp4netnsDNS = "10.0.2.3"
-
 	// slirp4netnsMTU the default MTU override
 	slirp4netnsMTU = 65520
+
+	// default slirp4ns subnet
+	defaultSlirp4netnsSubnet = "10.0.2.0/24"
 
 	// rootlessCNINSName is the file name for the rootless network namespace bind mount
 	rootlessCNINSName = "rootless-cni-ns"
@@ -361,15 +357,20 @@ func (r *Runtime) GetRootlessCNINetNs(new bool) (*RootlessCNI, error) {
 				}
 
 				// build a new resolv.conf file which uses the slirp4netns dns server address
-				resolveIP := slirp4netnsDNS
+				resolveIP, err := GetSlirp4netnsDNS(nil)
+				if err != nil {
+					return nil, errors.Wrap(err, "failed to determine default slirp4netns DNS address")
+				}
+
 				if netOptions.cidr != "" {
 					_, cidr, err := net.ParseCIDR(netOptions.cidr)
 					if err != nil {
 						return nil, errors.Wrap(err, "failed to parse slirp4netns cidr")
 					}
-					// the slirp dns ip is always the third ip in the subnet
-					cidr.IP[len(cidr.IP)-1] = cidr.IP[len(cidr.IP)-1] + 3
-					resolveIP = cidr.IP.String()
+					resolveIP, err = GetSlirp4netnsDNS(cidr)
+					if err != nil {
+						return nil, errors.Wrapf(err, "failed to determine slirp4netns DNS address from cidr: %s", cidr.String())
+					}
 				}
 				conf, err := resolvconf.Get()
 				if err != nil {
@@ -378,7 +379,7 @@ func (r *Runtime) GetRootlessCNINetNs(new bool) (*RootlessCNI, error) {
 				searchDomains := resolvconf.GetSearchDomains(conf.Content)
 				dnsOptions := resolvconf.GetOptions(conf.Content)
 
-				_, err = resolvconf.Build(filepath.Join(cniDir, "resolv.conf"), []string{resolveIP}, searchDomains, dnsOptions)
+				_, err = resolvconf.Build(filepath.Join(cniDir, "resolv.conf"), []string{resolveIP.String()}, searchDomains, dnsOptions)
 				if err != nil {
 					return nil, errors.Wrap(err, "failed to create rootless cni resolv.conf")
 				}
@@ -578,7 +579,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
 		// set up port forwarder for CNI-in-slirp4netns
 		netnsPath := ctr.state.NetNS.Path()
 		// TODO: support slirp4netns port forwarder as well
-		return r.setupRootlessPortMappingViaRLK(ctr, netnsPath, "")
+		return r.setupRootlessPortMappingViaRLK(ctr, netnsPath)
 	}
 	return nil
 }
