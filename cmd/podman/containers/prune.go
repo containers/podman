@@ -43,7 +43,7 @@ func init() {
 	flags.BoolVarP(&force, "force", "f", false, "Do not prompt for confirmation.  The default is false")
 	filterFlagName := "filter"
 	flags.StringArrayVar(&filter, filterFlagName, []string{}, "Provide filter values (e.g. 'label=<key>=<value>')")
-	_ = pruneCommand.RegisterFlagCompletionFunc(filterFlagName, completion.AutocompleteNone)
+	_ = pruneCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompletePruneFilters)
 }
 
 func prune(cmd *cobra.Command, args []string) error {

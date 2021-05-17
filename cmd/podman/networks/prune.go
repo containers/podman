@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/utils"
@@ -39,7 +38,7 @@ func networkPruneFlags(cmd *cobra.Command, flags *pflag.FlagSet) {
 	flags.BoolVarP(&force, "force", "f", false, "do not prompt for confirmation")
 	filterFlagName := "filter"
 	flags.StringArrayVar(&filter, filterFlagName, []string{}, "Provide filter values (e.g. 'label=<key>=<value>')")
-	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, completion.AutocompleteNone)
+	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompletePruneFilters)
 }
 
 func init() {
