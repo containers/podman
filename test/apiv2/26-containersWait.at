@@ -21,7 +21,9 @@ t POST "containers/${CTR}/wait?condition=non-existent-cond" 400
 
 t POST "containers/${CTR}/wait?condition=not-running" 200
 
-t POST "containers/${CTR}/wait?condition=next-exit" 200 &
+t POST "containers/${CTR}/wait?condition=next-exit" 200 \
+  .StatusCode=0 \
+  .Error=null &
 child_pid=$!
 podman start "${CTR}"
 wait "${child_pid}"
