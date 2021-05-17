@@ -215,7 +215,6 @@ load helpers
 
 @test "podman network reload" {
     skip_if_remote "podman network reload does not have remote support"
-    skip_if_rootless "podman network reload does not work rootless"
 
     random_1=$(random_string 30)
     HOST_PORT=12345
@@ -225,29 +224,42 @@ load helpers
     INDEX1=$PODMAN_TMPDIR/hello.txt
     echo $random_1 > $INDEX1
 
+    # use default network for root
+    local netname=podman
+    # for rootless we have to create a custom network since there is no default network
+    if is_rootless; then
+        netname=testnet-$(random_string 10)
+        run_podman network create $netname
+        is "$output" ".*/cni/net.d/$netname.conflist" "output of 'network create'"
+    fi
+
     # Bind-mount this file with a different name to a container running httpd
     run_podman run -d --name myweb -p "$HOST_PORT:80" \
-	       -v $INDEX1:/var/www/index.txt \
-	       -w /var/www \
-	       $IMAGE /bin/busybox-extras httpd -f -p 80
+            --network $netname \
+            -v $INDEX1:/var/www/index.txt \
+            -w /var/www \
+            $IMAGE /bin/busybox-extras httpd -f -p 80
     cid=$output
 
-    run_podman inspect $cid --format "{{.NetworkSettings.IPAddress}}"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
     ip="$output"
-    run_podman inspect $cid --format "{{.NetworkSettings.MacAddress}}"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
     mac="$output"
 
     # Verify http contents: curl from localhost
     run curl -s $SERVER/index.txt
     is "$output" "$random_1" "curl 127.0.0.1:/index.txt"
 
-    # flush the CNI iptables here
-    run iptables -t nat -F CNI-HOSTPORT-DNAT
+    # rootless cannot modify iptables
+    if ! is_rootless; then
+        # flush the CNI iptables here
+        run iptables -t nat -F CNI-HOSTPORT-DNAT
 
-    # check that we cannot curl (timeout after 5 sec)
-    run timeout 5 curl -s $SERVER/index.txt
-    if [ "$status" -ne 124 ]; then
-	die "curl did not timeout, status code: $status"
+        # check that we cannot curl (timeout after 5 sec)
+        run timeout 5 curl -s $SERVER/index.txt
+        if [ "$status" -ne 124 ]; then
+	        die "curl did not timeout, status code: $status"
+        fi
     fi
 
     # reload the network to recreate the iptables rules
@@ -255,9 +267,9 @@ load helpers
     is "$output" "$cid" "Output does not match container ID"
 
     # check that we still have the same mac and ip
-    run_podman inspect $cid --format "{{.NetworkSettings.IPAddress}}"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
     is "$output" "$ip" "IP address changed after podman network reload"
-    run_podman inspect $cid --format "{{.NetworkSettings.MacAddress}}"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
     is "$output" "$mac" "MAC address changed after podman network reload"
 
     # check that we can still curl
@@ -275,6 +287,10 @@ load helpers
 
     # cleanup the container
     run_podman rm -f $cid
+
+    if is_rootless; then
+        run_podman network rm -f $netname
+    fi
 }
 
 @test "podman rootless cni adds /usr/sbin to PATH" {
