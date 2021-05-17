@@ -911,6 +911,9 @@ Secret Options
 
 - `type=mount|env`    : How the secret will be exposed to the container. Default mount.
 - `target=target`     : Target of secret. Defauts to secret name.
+- `uid=0`             : UID of secret. Defaults to 0. Mount secret type only.
+- `gid=0`             : GID of secret. Defaults to 0. Mount secret type only.
+- `mode=0`            : Mode of secret. Defaults to 0444. Mount secret type only.
 
 #### **--security-opt**=*option*
 

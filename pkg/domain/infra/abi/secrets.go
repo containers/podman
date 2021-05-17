@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/pkg/errors"
 )
@@ -14,7 +13,7 @@ import (
 func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader io.Reader, options entities.SecretCreateOptions) (*entities.SecretCreateReport, error) {
 	data, _ := ioutil.ReadAll(reader)
 	secretsPath := ic.Libpod.GetSecretsStorageDir()
-	manager, err := secrets.NewManager(secretsPath)
+	manager, err := ic.Libpod.SecretsManager()
 	if err != nil {
 		return nil, err
 	}
@@ -36,8 +35,7 @@ func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader
 }
 
 func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string) ([]*entities.SecretInfoReport, []error, error) {
-	secretsPath := ic.Libpod.GetSecretsStorageDir()
-	manager, err := secrets.NewManager(secretsPath)
+	manager, err := ic.Libpod.SecretsManager()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -71,8 +69,7 @@ func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string
 }
 
 func (ic *ContainerEngine) SecretList(ctx context.Context) ([]*entities.SecretInfoReport, error) {
-	secretsPath := ic.Libpod.GetSecretsStorageDir()
-	manager, err := secrets.NewManager(secretsPath)
+	manager, err := ic.Libpod.SecretsManager()
 	if err != nil {
 		return nil, err
 	}
@@ -105,8 +102,7 @@ func (ic *ContainerEngine) SecretRm(ctx context.Context, nameOrIDs []string, opt
 		toRemove []string
 		reports  = []*entities.SecretRmReport{}
 	)
-	secretsPath := ic.Libpod.GetSecretsStorageDir()
-	manager, err := secrets.NewManager(secretsPath)
+	manager, err := ic.Libpod.SecretsManager()
 	if err != nil {
 		return nil, err
 	}
