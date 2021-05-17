@@ -84,7 +84,9 @@ func (i *Image) ID() string {
 }
 
 // Digest is a digest value that we can use to locate the image, if one was
-// specified at creation-time.
+// specified at creation-time.  Typically it is the digest of one among
+// possibly many digests that we have stored for the image, so many
+// applications are better off using the entire list returned by Digests().
 func (i *Image) Digest() digest.Digest {
 	return i.storageImage.Digest
 }
@@ -708,17 +710,43 @@ func (i *Image) HasDifferentDigest(ctx context.Context, remoteRef types.ImageRef
 		return false, err
 	}
 
-	rawManifest, _, err := remoteImg.Manifest(ctx)
+	rawManifest, rawManifestMIMEType, err := remoteImg.Manifest(ctx)
 	if err != nil {
 		return false, err
 	}
 
-	remoteDigest, err := manifest.Digest(rawManifest)
-	if err != nil {
-		return false, err
+	// If the remote ref's manifest is a list, try to zero in on the image
+	// in the list that we would eventually try to pull.
+	var remoteDigest digest.Digest
+	if manifest.MIMETypeIsMultiImage(rawManifestMIMEType) {
+		list, err := manifest.ListFromBlob(rawManifest, rawManifestMIMEType)
+		if err != nil {
+			return false, err
+		}
+		remoteDigest, err = list.ChooseInstance(sys)
+		if err != nil {
+			return false, err
+		}
+	} else {
+		remoteDigest, err = manifest.Digest(rawManifest)
+		if err != nil {
+			return false, err
+		}
 	}
 
-	return i.Digest().String() != remoteDigest.String(), nil
+	// Check if we already have that image's manifest in this image.  A
+	// single image can have multiple manifests that describe the same
+	// config blob and layers, so treat any match as a successful match.
+	for _, digest := range append(i.Digests(), i.Digest()) {
+		if digest.Validate() != nil {
+			continue
+		}
+		if digest.String() == remoteDigest.String() {
+			return false, nil
+		}
+	}
+	// No matching digest found in the local image.
+	return true, nil
 }
 
 // driverData gets the driver data from the store on a layer

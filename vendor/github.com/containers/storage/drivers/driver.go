@@ -60,6 +60,9 @@ type MountOpts struct {
 	// Volatile specifies whether the container storage can be optimized
 	// at the cost of not syncing all the dirty files in memory.
 	Volatile bool
+
+	// DisableShifting forces the driver to not do any ID shifting at runtime.
+	DisableShifting bool
 }
 
 // ApplyDiffOpts contains optional arguments for ApplyDiff methods.
@@ -165,6 +168,40 @@ type Driver interface {
 	ProtoDriver
 	DiffDriver
 	LayerIDMapUpdater
+}
+
+// DriverWithDifferOutput is the result of ApplyDiffWithDiffer
+// This API is experimental and can be changed without bumping the major version number.
+type DriverWithDifferOutput struct {
+	Differ             Differ
+	Target             string
+	Size               int64
+	UIDs               []uint32
+	GIDs               []uint32
+	UncompressedDigest digest.Digest
+	Metadata           string
+	BigData            map[string][]byte
+}
+
+// Differ defines the interface for using a custom differ.
+// This API is experimental and can be changed without bumping the major version number.
+type Differ interface {
+	ApplyDiff(dest string, options *archive.TarOptions) (DriverWithDifferOutput, error)
+}
+
+// DriverWithDiffer is the interface for direct diff access.
+// This API is experimental and can be changed without bumping the major version number.
+type DriverWithDiffer interface {
+	Driver
+	// ApplyDiffWithDiffer applies the changes using the callback function.
+	// If id is empty, then a staging directory is created.  The staging directory is guaranteed to be usable with ApplyDiffFromStagingDirectory.
+	ApplyDiffWithDiffer(id, parent string, options *ApplyDiffOpts, differ Differ) (output DriverWithDifferOutput, err error)
+	// ApplyDiffFromStagingDirectory applies the changes using the specified staging directory.
+	ApplyDiffFromStagingDirectory(id, parent, stagingDirectory string, diffOutput *DriverWithDifferOutput, options *ApplyDiffOpts) error
+	// CleanupStagingDirectory cleanups the staging directory.  It can be used to cleanup the staging directory on errors
+	CleanupStagingDirectory(stagingDirectory string) error
+	// DifferTarget gets the location where files are stored for the layer.
+	DifferTarget(id string) (string, error)
 }
 
 // Capabilities defines a list of capabilities a driver may implement.

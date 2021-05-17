@@ -244,10 +244,7 @@ func (r *Runtime) lookupImageInLocalStorage(name, candidate string, options *Loo
 	}
 
 	image := r.storageToImage(img, ref)
-	if options.IgnorePlatform {
-		logrus.Debugf("Found image %q as %q in local containers storage", name, candidate)
-		return image, nil
-	}
+	logrus.Debugf("Found image %q as %q in local containers storage", name, candidate)
 
 	// If we referenced a manifest list, we need to check whether we can
 	// find a matching instance in the local containers storage.
@@ -256,6 +253,7 @@ func (r *Runtime) lookupImageInLocalStorage(name, candidate string, options *Loo
 		return nil, err
 	}
 	if isManifestList {
+		logrus.Debugf("Candidate %q is a manifest list, looking up matching instance", candidate)
 		manifestList, err := image.ToManifestList()
 		if err != nil {
 			return nil, err
@@ -268,6 +266,10 @@ func (r *Runtime) lookupImageInLocalStorage(name, candidate string, options *Loo
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	if options.IgnorePlatform {
+		return image, nil
 	}
 
 	matches, err := imageReferenceMatchesContext(context.Background(), ref, &r.systemContext)
@@ -550,7 +552,7 @@ func (r *Runtime) RemoveImages(ctx context.Context, names []string, options *Rem
 			return nil, rmErrors
 		}
 
-	case len(options.Filters) > 0:
+	default:
 		filteredImages, err := r.ListImages(ctx, nil, &ListImagesOptions{Filters: options.Filters})
 		if err != nil {
 			appendError(err)
