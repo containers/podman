@@ -15,10 +15,8 @@ import (
 )
 
 var (
-	pruneDescription = `Removes all unnamed images from local storage.
-
-  If an image is not being used by a container, it will be removed from the system.`
-	pruneCmd = &cobra.Command{
+	pruneDescription = `Removes dangling or unused images from local storage.`
+	pruneCmd         = &cobra.Command{
 		Use:               "prune [options]",
 		Args:              validate.NoArgs,
 		Short:             "Remove unused images",
@@ -41,7 +39,7 @@ func init() {
 	})
 
 	flags := pruneCmd.Flags()
-	flags.BoolVarP(&pruneOpts.All, "all", "a", false, "Remove all unused images, not just dangling ones")
+	flags.BoolVarP(&pruneOpts.All, "all", "a", false, "Remove all images not in use by containers, not just dangling ones")
 	flags.BoolVarP(&force, "force", "f", false, "Do not prompt for confirmation")
 
 	filterFlagName := "filter"

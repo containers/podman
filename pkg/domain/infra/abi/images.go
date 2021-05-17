@@ -40,25 +40,13 @@ func (ir *ImageEngine) Exists(_ context.Context, nameOrID string) (*entities.Boo
 }
 
 func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOptions) ([]*reports.PruneReport, error) {
-	// NOTE: the terms "dangling" and "intermediate" are not used
-	// consistently across our code base.  In libimage, "dangling" means
-	// that an image has no tags.  "intermediate" means that an image is
-	// dangling and that no other image depends on it (i.e., has no
-	// children).
-	//
-	// While pruning usually refers to "dangling" images, it has always
-	// removed "intermediate" ones.
-	defaultOptions := &libimage.RemoveImagesOptions{
-		Filters:  append(opts.Filter, "intermediate=true", "containers=false", "readonly=false"),
+	pruneOptions := &libimage.RemoveImagesOptions{
+		Filters:  append(opts.Filter, "containers=false", "readonly=false"),
 		WithSize: true,
 	}
 
-	// `image prune --all` means to *also* remove images which are not in
-	// use by any container.  Since image filters are chained, we need to
-	// do two look ups since the default ones are a subset of all.
-	unusedOptions := &libimage.RemoveImagesOptions{
-		Filters:  append(opts.Filter, "containers=false", "readonly=false"),
-		WithSize: true,
+	if !opts.All {
+		pruneOptions.Filters = append(pruneOptions.Filters, "dangling=true")
 	}
 
 	var pruneReports []*reports.PruneReport
@@ -66,16 +54,12 @@ func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOption
 	// Now prune all images until we converge.
 	numPreviouslyRemovedImages := 1
 	for {
-		removedDefault, rmErrors := ir.Libpod.LibimageRuntime().RemoveImages(ctx, nil, defaultOptions)
-		if rmErrors != nil {
-			return nil, errorhandling.JoinErrors(rmErrors)
-		}
-		removedUnused, rmErrors := ir.Libpod.LibimageRuntime().RemoveImages(ctx, nil, unusedOptions)
+		removedImages, rmErrors := ir.Libpod.LibimageRuntime().RemoveImages(ctx, nil, pruneOptions)
 		if rmErrors != nil {
 			return nil, errorhandling.JoinErrors(rmErrors)
 		}
 
-		for _, rmReport := range append(removedDefault, removedUnused...) {
+		for _, rmReport := range removedImages {
 			r := *rmReport
 			pruneReports = append(pruneReports, &reports.PruneReport{
 				Id:   r.ID,
@@ -83,7 +67,7 @@ func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOption
 			})
 		}
 
-		numRemovedImages := len(removedDefault) + len(removedUnused)
+		numRemovedImages := len(removedImages)
 		if numRemovedImages+numPreviouslyRemovedImages == 0 {
 			break
 		}
