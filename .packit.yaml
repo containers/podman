@@ -1,2 +1,8 @@
 specfile_path: .distro/podman.spec
 upstream_project_url: https://github.com/containers/podman
+jobs:
+- job: copr_build
+  trigger: pull_request
+  metadata:
+    targets:
+      - fedora-all
