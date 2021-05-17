@@ -358,6 +358,25 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		return nil, err
 	}
 
+	// Add named volumes
+	for _, namedVol := range c.config.NamedVolumes {
+		volume, err := c.runtime.GetVolume(namedVol.Name)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error retrieving volume %s to add to container %s", namedVol.Name, c.ID())
+		}
+		mountPoint, err := volume.MountPoint()
+		if err != nil {
+			return nil, err
+		}
+		volMount := spec.Mount{
+			Type:        "bind",
+			Source:      mountPoint,
+			Destination: namedVol.Dest,
+			Options:     namedVol.Options,
+		}
+		g.AddMount(volMount)
+	}
+
 	// Check if the spec file mounts contain the options z, Z or U.
 	// If they have z or Z, relabel the source directory and then remove the option.
 	// If they have U, chown the source directory and them remove the option.
@@ -390,25 +409,6 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	g.SetProcessSelinuxLabel(c.ProcessLabel())
 	g.SetLinuxMountLabel(c.MountLabel())
-
-	// Add named volumes
-	for _, namedVol := range c.config.NamedVolumes {
-		volume, err := c.runtime.GetVolume(namedVol.Name)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error retrieving volume %s to add to container %s", namedVol.Name, c.ID())
-		}
-		mountPoint, err := volume.MountPoint()
-		if err != nil {
-			return nil, err
-		}
-		volMount := spec.Mount{
-			Type:        "bind",
-			Source:      mountPoint,
-			Destination: namedVol.Dest,
-			Options:     namedVol.Options,
-		}
-		g.AddMount(volMount)
-	}
 
 	// Add bind mounts to container
 	for dstPath, srcPath := range c.state.BindMounts {

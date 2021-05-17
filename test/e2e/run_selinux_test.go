@@ -343,4 +343,12 @@ var _ = Describe("Podman run", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.OutputToString()).To(ContainSubstring("container_init_t"))
 	})
+
+	It("podman relabels named volume with :Z", func() {
+		session := podmanTest.Podman([]string{"run", "-v", "testvol:/test1/test:Z", fedoraMinimal, "ls", "-alZ", "/test1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		match, _ := session.GrepString(":s0:")
+		Expect(match).Should(BeTrue())
+	})
 })
