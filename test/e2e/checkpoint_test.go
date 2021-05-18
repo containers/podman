@@ -822,4 +822,58 @@ var _ = Describe("Podman checkpoint", func() {
 		os.Remove(checkpointFileName)
 		os.Remove(preCheckpointFileName)
 	})
+
+	It("podman checkpoint and restore container with different port mappings", func() {
+		localRunString := getRunString([]string{"-p", "1234:6379", "--rm", redis})
+		session := podmanTest.Podman(localRunString)
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid := session.OutputToString()
+		fileName := "/tmp/checkpoint-" + cid + ".tar.gz"
+
+		// Open a network connection to the redis server via initial port mapping
+		conn, err := net.Dial("tcp", "localhost:1234")
+		if err != nil {
+			os.Exit(1)
+		}
+		conn.Close()
+
+		// Checkpoint the container
+		result := podmanTest.Podman([]string{"container", "checkpoint", "-l", "-e", fileName})
+		result.WaitWithDefaultTimeout()
+
+		// As the container has been started with '--rm' it will be completely
+		// cleaned up after checkpointing.
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
+
+		// Restore container with different port mapping
+		result = podmanTest.Podman([]string{"container", "restore", "-p", "1235:6379", "-i", fileName})
+		result.WaitWithDefaultTimeout()
+
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
+
+		// Open a network connection to the redis server via initial port mapping
+		// This should fail
+		conn, err = net.Dial("tcp", "localhost:1234")
+		Expect(err.Error()).To(ContainSubstring("connection refused"))
+		// Open a network connection to the redis server via new port mapping
+		conn, err = net.Dial("tcp", "localhost:1235")
+		if err != nil {
+			os.Exit(1)
+		}
+		conn.Close()
+
+		result = podmanTest.Podman([]string{"rm", "-fa"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
+
+		// Remove exported checkpoint
+		os.Remove(fileName)
+	})
 })
