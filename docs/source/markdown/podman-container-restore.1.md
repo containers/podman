@@ -95,6 +95,19 @@ This option must be used in combination with the **--import, -i** option.
 When restoring containers from a checkpoint tar.gz file with this option,
 the content of associated volumes will not be restored.
 
+#### **--publish**, **-p**
+
+Replaces the ports that the container publishes, as configured during the
+initial container start, with a new set of port forwarding rules.
+
+```
+# podman run --rm -p 2345:80 -d webserver
+# podman container checkpoint -l --export=dump.tar
+# podman container restore -p 5432:8080 --import=dump.tar
+```
+
+For more details please see **podman run --publish**.
+
 ## EXAMPLE
 
 podman container restore mywebserver
@@ -104,7 +117,7 @@ podman container restore 860a4b23
 podman container restore --import-previous pre-checkpoint.tar.gz --import checkpoint.tar.gz
 
 ## SEE ALSO
-podman(1), podman-container-checkpoint(1)
+podman(1), podman-container-checkpoint(1), podman-run(1)
 
 ## HISTORY
 September 2018, Originally compiled by Adrian Reber <areber@redhat.com>
