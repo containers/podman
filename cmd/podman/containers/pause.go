@@ -48,14 +48,12 @@ func pauseFlags(flags *pflag.FlagSet) {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: pauseCommand,
 	})
 	flags := pauseCommand.Flags()
 	pauseFlags(flags)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerPauseCommand,
 		Parent:  containerCmd,
 	})

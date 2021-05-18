@@ -20,6 +20,7 @@ var (
   An unmount can be forced with the --force flag.
 `
 	unmountCommand = &cobra.Command{
+		Annotations:       map[string]string{registry.EngineMode: registry.ABIMode},
 		Use:               "unmount [options] IMAGE [IMAGE...]",
 		Aliases:           []string{"umount"},
 		Short:             "Unmount an image's root filesystem",
@@ -43,7 +44,6 @@ func unmountFlags(flags *pflag.FlagSet) {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
 		Parent:  imageCmd,
 		Command: unmountCommand,
 	})

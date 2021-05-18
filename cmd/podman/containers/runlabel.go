@@ -25,6 +25,7 @@ var (
 	runlabelOptions     = runlabelOptionsWrapper{}
 	runlabelDescription = "Executes a command as described by a container image label."
 	runlabelCommand     = &cobra.Command{
+		Annotations:       map[string]string{registry.EngineMode: registry.ABIMode},
 		Use:               "runlabel [options] LABEL IMAGE [ARG...]",
 		Short:             "Execute the command described by an image label",
 		Long:              runlabelDescription,
@@ -39,7 +40,6 @@ var (
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: runlabelCommand,
 		Parent:  containerCmd,
 	})

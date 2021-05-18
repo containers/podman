@@ -14,6 +14,7 @@ import (
 var (
 	signDescription = "Create a signature file that can be used later to verify the image."
 	signCommand     = &cobra.Command{
+		Annotations:       map[string]string{registry.EngineMode: registry.ABIMode},
 		Use:               "sign [options] IMAGE [IMAGE...]",
 		Short:             "Sign an image",
 		Long:              signDescription,
@@ -31,7 +32,6 @@ var (
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: signCommand,
 		Parent:  imageCmd,
 	})

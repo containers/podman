@@ -34,8 +34,7 @@ type listFlagType struct {
 }
 
 var (
-	// Command: podman image _list_
-	listCmd = &cobra.Command{
+	imageListCmd = &cobra.Command{
 		Use:               "list [options] [IMAGE]",
 		Aliases:           []string{"ls"},
 		Args:              cobra.MaximumNArgs(1),
@@ -46,7 +45,18 @@ var (
 		Example: `podman image list --format json
   podman image list --sort repository --format "table {{.ID}} {{.Repository}} {{.Tag}}"
   podman image list --filter dangling=true`,
-		DisableFlagsInUseLine: true,
+	}
+
+	imagesCmd = &cobra.Command{
+		Use:               "images [options] [IMAGE]",
+		Args:              imageListCmd.Args,
+		Short:             imageListCmd.Short,
+		Long:              imageListCmd.Long,
+		RunE:              imageListCmd.RunE,
+		ValidArgsFunction: imageListCmd.ValidArgsFunction,
+		Example: `podman images --format json
+  podman images --sort repository --format "table {{.ID}} {{.Repository}} {{.Tag}}"
+  podman images --filter dangling=true`,
 	}
 
 	// Options to pull data
@@ -65,11 +75,15 @@ var (
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
-		Command: listCmd,
+		Command: imageListCmd,
 		Parent:  imageCmd,
 	})
-	imageListFlagSet(listCmd)
+	imageListFlagSet(imageListCmd)
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Command: imagesCmd,
+	})
+	imageListFlagSet(imagesCmd)
 }
 
 func imageListFlagSet(cmd *cobra.Command) {

@@ -48,6 +48,7 @@ var (
   podman save --format docker-dir -o ubuntu-dir ubuntu
   podman save > alpine-all.tar alpine:latest`,
 	}
+
 	imageSaveCommand = &cobra.Command{
 		Args:              saveCommand.Args,
 		Use:               saveCommand.Use,
@@ -67,13 +68,11 @@ var (
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: saveCommand,
 	})
 	saveFlags(saveCommand)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: imageSaveCommand,
 		Parent:  imageCmd,
 	})

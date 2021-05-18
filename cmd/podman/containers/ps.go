@@ -60,14 +60,12 @@ var (
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: psCommand,
 	})
 	listFlagSet(psCommand)
 	validate.AddLatestFlag(psCommand, &listOpts.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: psContainerCommand,
 		Parent:  containerCmd,
 	})

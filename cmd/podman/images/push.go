@@ -57,14 +57,12 @@ var (
 func init() {
 	// push
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: pushCmd,
 	})
 	pushFlags(pushCmd)
 
 	// images push
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: imagePushCmd,
 		Parent:  imageCmd,
 	})

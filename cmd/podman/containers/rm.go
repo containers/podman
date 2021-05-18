@@ -38,13 +38,11 @@ var (
 	}
 
 	containerRmCommand = &cobra.Command{
-		Use:   rmCommand.Use,
-		Short: rmCommand.Short,
-		Long:  rmCommand.Long,
-		RunE:  rmCommand.RunE,
-		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, false, true)
-		},
+		Use:               rmCommand.Use,
+		Short:             rmCommand.Short,
+		Long:              rmCommand.Long,
+		RunE:              rmCommand.RunE,
+		Args:              rmCommand.Args,
 		ValidArgsFunction: rmCommand.ValidArgsFunction,
 		Example: `podman container rm imageID
   podman container rm mywebserver myflaskserver 860a4b23
@@ -79,14 +77,12 @@ func rmFlags(cmd *cobra.Command) {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: rmCommand,
 	})
 	rmFlags(rmCommand)
 	validate.AddLatestFlag(rmCommand, &rmOptions.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerRmCommand,
 		Parent:  containerCmd,
 	})

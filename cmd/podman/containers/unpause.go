@@ -45,14 +45,12 @@ func unpauseFlags(flags *pflag.FlagSet) {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: unpauseCommand,
 	})
 	flags := unpauseCommand.Flags()
 	unpauseFlags(flags)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerUnpauseCommand,
 		Parent:  containerCmd,
 	})

@@ -3,7 +3,6 @@ package images
 import (
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
-	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
 
@@ -17,13 +16,11 @@ var (
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman image exists ID
   podman image exists IMAGE && podman pull IMAGE`,
-		DisableFlagsInUseLine: true,
 	}
 )
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: existsCmd,
 		Parent:  imageCmd,
 	})

@@ -21,10 +21,11 @@ var (
    Cleans up mount points and network stacks on one or more containers from the host. The container name or ID can be used. This command is used internally when running containers, but can also be used if container cleanup has failed when a container exits.
 `
 	cleanupCommand = &cobra.Command{
-		Use:   "cleanup [options] CONTAINER [CONTAINER...]",
-		Short: "Cleanup network and mountpoints of one or more containers",
-		Long:  cleanupDescription,
-		RunE:  cleanup,
+		Annotations: map[string]string{registry.EngineMode: registry.ABIMode},
+		Use:         "cleanup [options] CONTAINER [CONTAINER...]",
+		Short:       "Cleanup network and mountpoints of one or more containers",
+		Long:        cleanupDescription,
+		RunE:        cleanup,
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
@@ -41,7 +42,6 @@ var (
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
 		Parent:  containerCmd,
 		Command: cleanupCommand,
 	})

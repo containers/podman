@@ -55,14 +55,12 @@ func attachFlags(cmd *cobra.Command) {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: attachCommand,
 	})
 	attachFlags(attachCommand)
 	validate.AddLatestFlag(attachCommand, &attachOpts.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerAttachCommand,
 		Parent:  containerCmd,
 	})

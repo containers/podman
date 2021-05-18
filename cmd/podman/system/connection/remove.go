@@ -5,21 +5,19 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/system"
-	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
 
 var (
 	// Skip creating engines since this command will obtain connection information to said engines
 	rmCmd = &cobra.Command{
-		Use:                   "remove NAME",
-		Args:                  cobra.ExactArgs(1),
-		Aliases:               []string{"rm"},
-		Long:                  `Delete named destination from podman configuration`,
-		Short:                 "Delete named destination",
-		DisableFlagsInUseLine: true,
-		ValidArgsFunction:     common.AutocompleteSystemConnections,
-		RunE:                  rm,
+		Use:               "remove NAME",
+		Args:              cobra.ExactArgs(1),
+		Aliases:           []string{"rm"},
+		Long:              `Delete named destination from podman configuration`,
+		Short:             "Delete named destination",
+		ValidArgsFunction: common.AutocompleteSystemConnections,
+		RunE:              rm,
 		Example: `podman system connection remove devl
   podman system connection rm devl`,
 	}
@@ -27,7 +25,6 @@ var (
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: rmCmd,
 		Parent:  system.ConnectionCmd,
 	})

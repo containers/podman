@@ -52,7 +52,6 @@ func initFlags(flags *pflag.FlagSet) {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: initCommand,
 	})
 	flags := initCommand.Flags()
@@ -60,7 +59,6 @@ func init() {
 	validate.AddLatestFlag(initCommand, &initOptions.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Parent:  containerCmd,
 		Command: containerInitCommand,
 	})

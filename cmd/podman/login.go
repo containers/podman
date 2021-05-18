@@ -9,7 +9,6 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
-	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/registries"
 	"github.com/spf13/cobra"
 )
@@ -39,7 +38,6 @@ func init() {
 	// store credentials locally while the remote client will pass them
 	// over the wire to the endpoint.
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: loginCommand,
 	})
 	flags := loginCommand.Flags()

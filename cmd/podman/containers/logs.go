@@ -77,7 +77,6 @@ func init() {
 
 	// logs
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: logsCommand,
 	})
 	logsFlags(logsCommand)
@@ -85,7 +84,6 @@ func init() {
 
 	// container logs
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerLogsCommand,
 		Parent:  containerCmd,
 	})

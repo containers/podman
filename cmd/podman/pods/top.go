@@ -39,7 +39,6 @@ podman pod top podID -eo user,pid,comm`,
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: topCommand,
 		Parent:  podCmd,
 	})

@@ -23,19 +23,18 @@ var (
 `
 
 	renumberCommand = &cobra.Command{
-		Use:                   "renumber",
-		Args:                  validate.NoArgs,
-		DisableFlagsInUseLine: true,
-		Short:                 "Migrate lock numbers",
-		Long:                  renumberDescription,
-		Run:                   renumber,
-		ValidArgsFunction:     completion.AutocompleteNone,
+		Annotations:       map[string]string{registry.EngineMode: registry.ABIMode},
+		Use:               "renumber",
+		Args:              validate.NoArgs,
+		Short:             "Migrate lock numbers",
+		Long:              renumberDescription,
+		Run:               renumber,
+		ValidArgsFunction: completion.AutocompleteNone,
 	}
 )
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: renumberCommand,
 		Parent:  systemCmd,
 	})

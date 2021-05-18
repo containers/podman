@@ -25,6 +25,11 @@ var (
 `
 
 	mountCommand = &cobra.Command{
+		Annotations: map[string]string{
+			registry.UnshareNSRequired: "",
+			registry.ParentNSRequired:  "",
+			registry.EngineMode:        registry.ABIMode,
+		},
 		Use:   "mount [options] [CONTAINER...]",
 		Short: "Mount a working container's root filesystem",
 		Long:  mountDescription,
@@ -32,20 +37,16 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, true, false)
 		},
-		Annotations: map[string]string{
-			registry.UnshareNSRequired: "",
-			registry.ParentNSRequired:  "",
-		},
 		ValidArgsFunction: common.AutocompleteContainers,
 	}
 
 	containerMountCommand = &cobra.Command{
+		Annotations:       mountCommand.Annotations,
 		Use:               mountCommand.Use,
 		Short:             mountCommand.Short,
 		Long:              mountCommand.Long,
 		RunE:              mountCommand.RunE,
 		Args:              mountCommand.Args,
-		Annotations:       mountCommand.Annotations,
 		ValidArgsFunction: mountCommand.ValidArgsFunction,
 	}
 )
@@ -68,14 +69,12 @@ func mountFlags(cmd *cobra.Command) {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: mountCommand,
 	})
 	mountFlags(mountCommand)
 	validate.AddLatestFlag(mountCommand, &mountOpts.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: containerMountCommand,
 		Parent:  containerCmd,
 	})

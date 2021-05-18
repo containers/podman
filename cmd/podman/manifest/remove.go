@@ -6,27 +6,24 @@ import (
 
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
-	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
 var (
 	removeCmd = &cobra.Command{
-		Use:                   "remove LIST IMAGE",
-		Short:                 "Remove an entry from a manifest list or image index",
-		Long:                  "Removes an image from a manifest list or image index.",
-		RunE:                  remove,
-		ValidArgsFunction:     common.AutocompleteImages,
-		Example:               `podman manifest remove mylist:v1.11 sha256:15352d97781ffdf357bf3459c037be3efac4133dc9070c2dce7eca7c05c3e736`,
-		Args:                  cobra.ExactArgs(2),
-		DisableFlagsInUseLine: true,
+		Use:               "remove LIST IMAGE",
+		Short:             "Remove an entry from a manifest list or image index",
+		Long:              "Removes an image from a manifest list or image index.",
+		RunE:              remove,
+		ValidArgsFunction: common.AutocompleteImages,
+		Example:           `podman manifest remove mylist:v1.11 sha256:15352d97781ffdf357bf3459c037be3efac4133dc9070c2dce7eca7c05c3e736`,
+		Args:              cobra.ExactArgs(2),
 	}
 )
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: removeCmd,
 		Parent:  manifestCmd,
 	})

@@ -38,7 +38,6 @@ var (
 
 	Users can limit the number of results, and filter the output based on certain conditions.`
 
-	// Command: podman search
 	searchCmd = &cobra.Command{
 		Use:               "search [options] TERM",
 		Short:             "Search registry for image",
@@ -51,14 +50,12 @@ var (
   podman search --format "table {{.Index}} {{.Name}}" registry.fedoraproject.org/fedora`,
 	}
 
-	// Command: podman image search
 	imageSearchCmd = &cobra.Command{
 		Use:               searchCmd.Use,
 		Short:             searchCmd.Short,
 		Long:              searchCmd.Long,
 		RunE:              searchCmd.RunE,
 		Args:              searchCmd.Args,
-		Annotations:       searchCmd.Annotations,
 		ValidArgsFunction: searchCmd.ValidArgsFunction,
 		Example: `podman image search --filter=is-official --limit 3 alpine
   podman image search registry.fedoraproject.org/  # only works with v2 registries
@@ -67,16 +64,12 @@ var (
 )
 
 func init() {
-	// search
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: searchCmd,
 	})
 	searchFlags(searchCmd)
 
-	// images search
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: imageSearchCmd,
 		Parent:  imageCmd,
 	})

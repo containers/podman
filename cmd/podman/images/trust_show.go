@@ -15,6 +15,7 @@ import (
 var (
 	showTrustDescription = "Display trust policy for the system"
 	showTrustCommand     = &cobra.Command{
+		Annotations:       map[string]string{registry.EngineMode: registry.ABIMode},
 		Use:               "show [options] [REGISTRY]",
 		Short:             "Display trust policy for the system",
 		Long:              showTrustDescription,
@@ -31,7 +32,6 @@ var (
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: showTrustCommand,
 		Parent:  trustCmd,
 	})

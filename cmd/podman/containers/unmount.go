@@ -20,11 +20,12 @@ var (
   An unmount can be forced with the --force flag.
 `
 	unmountCommand = &cobra.Command{
-		Use:     "unmount [options] CONTAINER [CONTAINER...]",
-		Aliases: []string{"umount"},
-		Short:   "Unmounts working container's root filesystem",
-		Long:    description,
-		RunE:    unmount,
+		Annotations: map[string]string{registry.EngineMode: registry.ABIMode},
+		Use:         "unmount [options] CONTAINER [CONTAINER...]",
+		Aliases:     []string{"umount"},
+		Short:       "Unmounts working container's root filesystem",
+		Long:        description,
+		RunE:        unmount,
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
@@ -35,11 +36,12 @@ var (
 	}
 
 	containerUnmountCommand = &cobra.Command{
-		Use:     unmountCommand.Use,
-		Short:   unmountCommand.Short,
-		Aliases: unmountCommand.Aliases,
-		Long:    unmountCommand.Long,
-		RunE:    unmountCommand.RunE,
+		Annotations: unmountCommand.Annotations,
+		Use:         unmountCommand.Use,
+		Short:       unmountCommand.Short,
+		Aliases:     unmountCommand.Aliases,
+		Long:        unmountCommand.Long,
+		RunE:        unmountCommand.RunE,
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
@@ -61,14 +63,12 @@ func unmountFlags(flags *pflag.FlagSet) {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: unmountCommand,
 	})
 	unmountFlags(unmountCommand.Flags())
 	validate.AddLatestFlag(unmountCommand, &unmountOpts.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: containerUnmountCommand,
 		Parent:  containerCmd,
 	})

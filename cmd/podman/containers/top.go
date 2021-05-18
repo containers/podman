@@ -58,7 +58,6 @@ func topFlags(flags *pflag.FlagSet) {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: topCommand,
 	})
 	topFlags(topCommand.Flags())
@@ -71,7 +70,6 @@ func init() {
 	}
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerTopCommand,
 		Parent:  containerCmd,
 	})

@@ -60,14 +60,12 @@ var (
 func init() {
 	// pull
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: pullCmd,
 	})
 	pullFlags(pullCmd)
 
 	// images pull
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: imagesPullCmd,
 		Parent:  imageCmd,
 	})

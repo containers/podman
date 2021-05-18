@@ -28,6 +28,7 @@ Enable a listening service for API access to Podman commands.
 `
 
 	srvCmd = &cobra.Command{
+		Annotations:       map[string]string{registry.EngineMode: registry.ABIMode},
 		Use:               "service [options] [URI]",
 		Args:              cobra.MaximumNArgs(1),
 		Short:             "Run API service",
@@ -44,7 +45,6 @@ Enable a listening service for API access to Podman commands.
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: srvCmd,
 		Parent:  systemCmd,
 	})

@@ -39,6 +39,7 @@ var (
 		Short:             restartCommand.Short,
 		Long:              restartCommand.Long,
 		RunE:              restartCommand.RunE,
+		Args:              restartCommand.Args,
 		ValidArgsFunction: restartCommand.ValidArgsFunction,
 		Example: `podman container restart ctrID
   podman container restart --latest
@@ -66,14 +67,12 @@ func restartFlags(cmd *cobra.Command) {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: restartCommand,
 	})
 	restartFlags(restartCommand)
 	validate.AddLatestFlag(restartCommand, &restartOptions.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerRestartCommand,
 		Parent:  containerCmd,
 	})
