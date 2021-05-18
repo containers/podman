@@ -3,6 +3,7 @@ package buildah
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -85,6 +86,7 @@ func (b *Builder) initConfig(ctx context.Context, img types.Image) error {
 		}
 	}
 
+	b.setupLogger()
 	b.fixupConfig()
 	return nil
 }
@@ -111,6 +113,14 @@ func (b *Builder) fixupConfig() {
 	}
 	if b.Format == define.Dockerv2ImageManifest && b.Hostname() == "" {
 		b.SetHostname(stringid.TruncateID(stringid.GenerateRandomID()))
+	}
+}
+
+func (b *Builder) setupLogger() {
+	if b.Logger == nil {
+		b.Logger = logrus.New()
+		b.Logger.SetOutput(os.Stderr)
+		b.Logger.SetLevel(logrus.GetLevel())
 	}
 }
 

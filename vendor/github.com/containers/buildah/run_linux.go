@@ -76,7 +76,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	logrus.Debugf("using %q to hold bundle data", path)
 	defer func() {
 		if err2 := os.RemoveAll(path); err2 != nil {
-			logrus.Error(err2)
+			options.Logger.Error(err2)
 		}
 	}()
 
@@ -120,7 +120,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	}
 	defer func() {
 		if err := b.Unmount(); err != nil {
-			logrus.Errorf("error unmounting container: %v", err)
+			options.Logger.Errorf("error unmounting container: %v", err)
 		}
 	}()
 	g.SetRootPath(mountPoint)
@@ -253,7 +253,7 @@ rootless=%d
 
 	defer func() {
 		if err := cleanupRunMounts(runMountTargets, mountPoint); err != nil {
-			logrus.Errorf("unabe to cleanup run mounts %v", err)
+			options.Logger.Errorf("unabe to cleanup run mounts %v", err)
 		}
 	}()
 
@@ -709,7 +709,7 @@ func runUsingRuntime(isolation define.Isolation, options RunOptions, configureNe
 	if unmountAll != nil {
 		defer func() {
 			if err := unmountAll(); err != nil {
-				logrus.Error(err)
+				options.Logger.Error(err)
 			}
 		}()
 	}
@@ -829,7 +829,7 @@ func runUsingRuntime(isolation define.Isolation, options RunOptions, configureNe
 	logrus.Debugf("Running %q", create.Args)
 	err = create.Run()
 	if err != nil {
-		return 1, errors.Wrapf(err, "error from %s creating container for %v: %s", runtime, pargs, runCollectOutput(errorFds, closeBeforeReadingErrorFds))
+		return 1, errors.Wrapf(err, "error from %s creating container for %v: %s", runtime, pargs, runCollectOutput(options.Logger, errorFds, closeBeforeReadingErrorFds))
 	}
 	defer func() {
 		err2 := del.Run()
@@ -837,7 +837,7 @@ func runUsingRuntime(isolation define.Isolation, options RunOptions, configureNe
 			if err == nil {
 				err = errors.Wrapf(err2, "error deleting container")
 			} else {
-				logrus.Infof("error from %s deleting container: %v", runtime, err2)
+				options.Logger.Infof("error from %s deleting container: %v", runtime, err2)
 			}
 		}
 	}()
@@ -851,6 +851,7 @@ func runUsingRuntime(isolation define.Isolation, options RunOptions, configureNe
 	if err != nil {
 		return 1, errors.Wrapf(err, "error parsing pid %s as a number", string(pidValue))
 	}
+	stopped := false
 	var reaping sync.WaitGroup
 	reaping.Add(1)
 	go func() {
@@ -859,8 +860,9 @@ func runUsingRuntime(isolation define.Isolation, options RunOptions, configureNe
 		_, err = unix.Wait4(pid, &wstatus, 0, nil)
 		if err != nil {
 			wstatus = 0
-			logrus.Errorf("error waiting for container child process %d: %v\n", pid, err)
+			options.Logger.Errorf("error waiting for container child process %d: %v\n", pid, err)
 		}
+		stopped = true
 	}()
 
 	if configureNetwork {
@@ -884,7 +886,7 @@ func runUsingRuntime(isolation define.Isolation, options RunOptions, configureNe
 
 	// Handle stdio for the container in the background.
 	stdio.Add(1)
-	go runCopyStdio(&stdio, copyPipes, stdioPipe, copyConsole, consoleListener, finishCopy, finishedCopy, spec)
+	go runCopyStdio(options.Logger, &stdio, copyPipes, stdioPipe, copyConsole, consoleListener, finishCopy, finishedCopy, spec)
 
 	// Start the container.
 	logrus.Debugf("Running %q", start.Args)
@@ -892,11 +894,10 @@ func runUsingRuntime(isolation define.Isolation, options RunOptions, configureNe
 	if err != nil {
 		return 1, errors.Wrapf(err, "error from %s starting container", runtime)
 	}
-	stopped := false
 	defer func() {
 		if !stopped {
 			if err2 := kill.Run(); err2 != nil {
-				logrus.Infof("error from %s stopping container: %v", runtime, err2)
+				options.Logger.Infof("error from %s stopping container: %v", runtime, err2)
 			}
 		}
 	}()
@@ -911,6 +912,10 @@ func runUsingRuntime(isolation define.Isolation, options RunOptions, configureNe
 		stat.Stderr = os.Stderr
 		stateOutput, err := stat.Output()
 		if err != nil {
+			if stopped {
+				// container exited
+				break
+			}
 			return 1, errors.Wrapf(err, "error reading container state from %s (got output: %q)", runtime, string(stateOutput))
 		}
 		if err = json.Unmarshal(stateOutput, &state); err != nil {
@@ -947,7 +952,7 @@ func runUsingRuntime(isolation define.Isolation, options RunOptions, configureNe
 	return wstatus, nil
 }
 
-func runCollectOutput(fds, closeBeforeReadingFds []int) string {
+func runCollectOutput(logger *logrus.Logger, fds, closeBeforeReadingFds []int) string { //nolint:interfacer
 	for _, fd := range closeBeforeReadingFds {
 		unix.Close(fd)
 	}
@@ -959,11 +964,11 @@ func runCollectOutput(fds, closeBeforeReadingFds []int) string {
 			if errno, isErrno := err.(syscall.Errno); isErrno {
 				switch errno {
 				default:
-					logrus.Errorf("error reading from pipe %d: %v", fd, err)
+					logger.Errorf("error reading from pipe %d: %v", fd, err)
 				case syscall.EINTR, syscall.EAGAIN:
 				}
 			} else {
-				logrus.Errorf("unable to wait for data from pipe %d: %v", fd, err)
+				logger.Errorf("unable to wait for data from pipe %d: %v", fd, err)
 			}
 			continue
 		}
@@ -971,7 +976,7 @@ func runCollectOutput(fds, closeBeforeReadingFds []int) string {
 			r := buf[:nread]
 			if nwritten, err := b.Write(r); err != nil || nwritten != len(r) {
 				if nwritten != len(r) {
-					logrus.Errorf("error buffering data from pipe %d: %v", fd, err)
+					logger.Errorf("error buffering data from pipe %d: %v", fd, err)
 					break
 				}
 			}
@@ -980,11 +985,11 @@ func runCollectOutput(fds, closeBeforeReadingFds []int) string {
 				if errno, isErrno := err.(syscall.Errno); isErrno {
 					switch errno {
 					default:
-						logrus.Errorf("error reading from pipe %d: %v", fd, err)
+						logger.Errorf("error reading from pipe %d: %v", fd, err)
 					case syscall.EINTR, syscall.EAGAIN:
 					}
 				} else {
-					logrus.Errorf("unable to wait for data from pipe %d: %v", fd, err)
+					logger.Errorf("unable to wait for data from pipe %d: %v", fd, err)
 				}
 				break
 			}
@@ -1140,7 +1145,7 @@ func runConfigureNetwork(isolation define.Isolation, options RunOptions, configu
 	teardown = func() {
 		for _, nc := range undo {
 			if err = cni.DelNetworkList(context.Background(), nc, rtconf[nc]); err != nil {
-				logrus.Errorf("error cleaning up network %v for %v: %v", rtconf[nc].IfName, command, err)
+				options.Logger.Errorf("error cleaning up network %v for %v: %v", rtconf[nc].IfName, command, err)
 			}
 		}
 		unix.Close(netFD)
@@ -1165,19 +1170,19 @@ func runConfigureNetwork(isolation define.Isolation, options RunOptions, configu
 	return teardown, nil
 }
 
-func setNonblock(fd int, description string, nonblocking bool) error {
+func setNonblock(logger *logrus.Logger, fd int, description string, nonblocking bool) error { //nolint:interfacer
 	err := unix.SetNonblock(fd, nonblocking)
 	if err != nil {
 		if nonblocking {
-			logrus.Errorf("error setting %s to nonblocking: %v", description, err)
+			logger.Errorf("error setting %s to nonblocking: %v", description, err)
 		} else {
-			logrus.Errorf("error setting descriptor %s blocking: %v", description, err)
+			logger.Errorf("error setting descriptor %s blocking: %v", description, err)
 		}
 	}
 	return err
 }
 
-func runCopyStdio(stdio *sync.WaitGroup, copyPipes bool, stdioPipe [][]int, copyConsole bool, consoleListener *net.UnixListener, finishCopy []int, finishedCopy chan struct{}, spec *specs.Spec) {
+func runCopyStdio(logger *logrus.Logger, stdio *sync.WaitGroup, copyPipes bool, stdioPipe [][]int, copyConsole bool, consoleListener *net.UnixListener, finishCopy []int, finishedCopy chan struct{}, spec *specs.Spec) {
 	defer func() {
 		unix.Close(finishCopy[0])
 		if copyPipes {
@@ -1198,9 +1203,9 @@ func runCopyStdio(stdio *sync.WaitGroup, copyPipes bool, stdioPipe [][]int, copy
 	// Set up the terminal descriptor or pipes for polling.
 	if copyConsole {
 		// Accept a connection over our listening socket.
-		fd, err := runAcceptTerminal(consoleListener, spec.Process.ConsoleSize)
+		fd, err := runAcceptTerminal(logger, consoleListener, spec.Process.ConsoleSize)
 		if err != nil {
-			logrus.Errorf("%v", err)
+			logger.Errorf("%v", err)
 			return
 		}
 		terminalFD := fd
@@ -1217,11 +1222,11 @@ func runCopyStdio(stdio *sync.WaitGroup, copyPipes bool, stdioPipe [][]int, copy
 		// terminal input to the terminal in the container.
 		if terminal.IsTerminal(unix.Stdin) {
 			if state, err := terminal.MakeRaw(unix.Stdin); err != nil {
-				logrus.Warnf("error setting terminal state: %v", err)
+				logger.Warnf("error setting terminal state: %v", err)
 			} else {
 				defer func() {
 					if err = terminal.Restore(unix.Stdin, state); err != nil {
-						logrus.Errorf("unable to restore terminal state: %v", err)
+						logger.Errorf("unable to restore terminal state: %v", err)
 					}
 				}()
 			}
@@ -1244,14 +1249,14 @@ func runCopyStdio(stdio *sync.WaitGroup, copyPipes bool, stdioPipe [][]int, copy
 	}
 	// Set our reading descriptors to non-blocking.
 	for rfd, wfd := range relayMap {
-		if err := setNonblock(rfd, readDesc[rfd], true); err != nil {
+		if err := setNonblock(logger, rfd, readDesc[rfd], true); err != nil {
 			return
 		}
-		setNonblock(wfd, writeDesc[wfd], false) // nolint:errcheck
+		setNonblock(logger, wfd, writeDesc[wfd], false) // nolint:errcheck
 	}
 
 	if copyPipes {
-		setNonblock(stdioPipe[unix.Stdin][1], writeDesc[stdioPipe[unix.Stdin][1]], true) // nolint:errcheck
+		setNonblock(logger, stdioPipe[unix.Stdin][1], writeDesc[stdioPipe[unix.Stdin][1]], true) // nolint:errcheck
 	}
 
 	runCopyStdioPassData(copyPipes, stdioPipe, finishCopy, relayMap, relayBuffer, readDesc, writeDesc)
@@ -1389,7 +1394,7 @@ func runCopyStdioPassData(copyPipes bool, stdioPipe [][]int, finishCopy []int, r
 	}
 }
 
-func runAcceptTerminal(consoleListener *net.UnixListener, terminalSize *specs.Box) (int, error) {
+func runAcceptTerminal(logger *logrus.Logger, consoleListener *net.UnixListener, terminalSize *specs.Box) (int, error) {
 	defer consoleListener.Close()
 	c, err := consoleListener.AcceptUnix()
 	if err != nil {
@@ -1442,7 +1447,7 @@ func runAcceptTerminal(consoleListener *net.UnixListener, terminalSize *specs.Bo
 		if terminal.IsTerminal(unix.Stdin) {
 			// Use the size of our terminal.
 			if winsize, err = unix.IoctlGetWinsize(unix.Stdin, unix.TIOCGWINSZ); err != nil {
-				logrus.Warnf("error reading size of controlling terminal: %v", err)
+				logger.Warnf("error reading size of controlling terminal: %v", err)
 				winsize.Row = 0
 				winsize.Col = 0
 			}
@@ -1450,7 +1455,7 @@ func runAcceptTerminal(consoleListener *net.UnixListener, terminalSize *specs.Bo
 	}
 	if winsize.Row != 0 && winsize.Col != 0 {
 		if err = unix.IoctlSetWinsize(terminalFD, unix.TIOCSWINSZ, winsize); err != nil {
-			logrus.Warnf("error setting size of container pseudoterminal: %v", err)
+			logger.Warnf("error setting size of container pseudoterminal: %v", err)
 		}
 		// FIXME - if we're connected to a terminal, we should
 		// be passing the updated terminal size down when we
@@ -1526,7 +1531,7 @@ func runUsingRuntimeMain() {
 	os.Exit(1)
 }
 
-func setupNamespaces(g *generate.Generator, namespaceOptions define.NamespaceOptions, idmapOptions define.IDMappingOptions, policy define.NetworkConfigurationPolicy) (configureNetwork bool, configureNetworks []string, configureUTS bool, err error) {
+func setupNamespaces(logger *logrus.Logger, g *generate.Generator, namespaceOptions define.NamespaceOptions, idmapOptions define.IDMappingOptions, policy define.NetworkConfigurationPolicy) (configureNetwork bool, configureNetworks []string, configureUTS bool, err error) {
 	// Set namespace options in the container configuration.
 	configureUserns := false
 	specifiedNetwork := false
@@ -1618,7 +1623,7 @@ func setupNamespaces(g *generate.Generator, namespaceOptions define.NamespaceOpt
 			if err == nil {
 				g.AddLinuxSysctl(name, val)
 			} else {
-				logrus.Warnf("ignoring sysctl %s since %s doesn't exist", name, p)
+				logger.Warnf("ignoring sysctl %s since %s doesn't exist", name, p)
 			}
 		}
 	}
@@ -1640,7 +1645,7 @@ func (b *Builder) configureNamespaces(g *generate.Generator, options RunOptions)
 		networkPolicy = b.ConfigureNetwork
 	}
 
-	configureNetwork, configureNetworks, configureUTS, err := setupNamespaces(g, namespaceOptions, b.IDMappingOptions, networkPolicy)
+	configureNetwork, configureNetworks, configureUTS, err := setupNamespaces(options.Logger, g, namespaceOptions, b.IDMappingOptions, networkPolicy)
 	if err != nil {
 		return false, nil, err
 	}
@@ -1709,7 +1714,7 @@ func (b *Builder) cleanupTempVolumes() {
 	for tempVolume, val := range b.TempVolumes {
 		if val {
 			if err := overlay.RemoveTemp(tempVolume); err != nil {
-				logrus.Errorf(err.Error())
+				b.Logger.Errorf(err.Error())
 			}
 			b.TempVolumes[tempVolume] = false
 		}
