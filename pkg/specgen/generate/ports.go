@@ -24,7 +24,7 @@ const (
 // Parse port maps to OCICNI port mappings.
 // Returns a set of OCICNI port mappings, and maps of utilized container and
 // host ports.
-func parsePortMapping(portMappings []specgen.PortMapping) ([]ocicni.PortMapping, map[string]map[string]map[uint16]uint16, map[string]map[string]map[uint16]uint16, error) {
+func ParsePortMapping(portMappings []specgen.PortMapping) ([]ocicni.PortMapping, map[string]map[string]map[uint16]uint16, map[string]map[string]map[uint16]uint16, error) {
 	// First, we need to validate the ports passed in the specgen, and then
 	// convert them into CNI port mappings.
 	type tempMapping struct {
@@ -254,7 +254,7 @@ func parsePortMapping(portMappings []specgen.PortMapping) ([]ocicni.PortMapping,
 
 // Make final port mappings for the container
 func createPortMappings(ctx context.Context, s *specgen.SpecGenerator, imageData *libimage.ImageData) ([]ocicni.PortMapping, error) {
-	finalMappings, containerPortValidate, hostPortValidate, err := parsePortMapping(s.PortMappings)
+	finalMappings, containerPortValidate, hostPortValidate, err := ParsePortMapping(s.PortMappings)
 	if err != nil {
 		return nil, err
 	}

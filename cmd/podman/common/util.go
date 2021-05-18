@@ -89,8 +89,8 @@ func createExpose(expose []string) (map[uint16]string, error) {
 	return toReturn, nil
 }
 
-// createPortBindings iterates ports mappings into SpecGen format.
-func createPortBindings(ports []string) ([]specgen.PortMapping, error) {
+// CreatePortBindings iterates ports mappings into SpecGen format.
+func CreatePortBindings(ports []string) ([]specgen.PortMapping, error) {
 	// --publish is formatted as follows:
 	// [[hostip:]hostport[-endPort]:]containerport[-endPort][/protocol]
 	toReturn := make([]specgen.PortMapping, 0, len(ports))

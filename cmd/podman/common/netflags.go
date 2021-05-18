@@ -170,7 +170,7 @@ func NetFlagsToNetOptions(cmd *cobra.Command, netnsFromConfig bool) (*entities.N
 		return nil, err
 	}
 	if len(inputPorts) > 0 {
-		opts.PublishPorts, err = createPortBindings(inputPorts)
+		opts.PublishPorts, err = CreatePortBindings(inputPorts)
 		if err != nil {
 			return nil, err
 		}
