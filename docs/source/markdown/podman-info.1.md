@@ -32,6 +32,12 @@ $ podman info
 host:
   arch: amd64
   buildahVersion: 1.19.0-dev
+  cgroupControllers:
+  - cpuset
+  - cpu
+  - io
+  - memory
+  - pids
   cgroupManager: systemd
   cgroupVersion: v2
   conmon:
@@ -145,6 +151,13 @@ Run podman info with JSON formatted response:
     "buildahVersion": "1.19.0-dev",
     "cgroupManager": "systemd",
     "cgroupVersion": "v2",
+    "cgroupControllers": [
+      "cpuset",
+      "cpu",
+      "io",
+      "memory",
+      "pids"
+    ],
     "conmon": {
       "package": "conmon-2.0.22-2.fc33.x86_64",
       "path": "/usr/bin/conmon",
