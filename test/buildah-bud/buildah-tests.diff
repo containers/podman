@@ -1,22 +1,23 @@
-From a51192239fafdb59f26c9ddaab1ca9fcac2bb664 Mon Sep 17 00:00:00 2001
+From 90c93048c9f3bdedf39c3c5ce3216ee2518220b4 Mon Sep 17 00:00:00 2001
 From: Ed Santiago <santiago@redhat.com>
 Date: Tue, 9 Feb 2021 17:28:05 -0700
 Subject: [PATCH] tweaks for running buildah tests under podman
 
 Signed-off-by: Ed Santiago <santiago@redhat.com>
 ---
- tests/helpers.bash | 26 +++++++++++++++++++++++---
- 1 file changed, 23 insertions(+), 3 deletions(-)
+ tests/helpers.bash | 28 +++++++++++++++++++++++++---
+ 1 file changed, 25 insertions(+), 3 deletions(-)
 
 diff --git a/tests/helpers.bash b/tests/helpers.bash
-index 4dc3a7dbda13..003575f48cec 100644
+index b85f99d3..1a827cd7 100644
 --- a/tests/helpers.bash
 +++ b/tests/helpers.bash
-@@ -140,15 +140,35 @@ function run_buildah() {
+@@ -147,15 +147,37 @@ function run_buildah() {
          --retry)         retry=3;        shift;;  # retry network flakes
      esac
 
 +    local podman_or_buildah=${BUILDAH_BINARY}
++    local registry_opts=${BUILDAH_REGISTRY_OPTS}
 +    if [[ $1 == "bud" || $1 == "build-using-dockerfile" ]]; then
 +        shift
 +        # podman defaults to --layers=true; buildah to --false.
@@ -28,6 +29,7 @@ index 4dc3a7dbda13..003575f48cec 100644
 +            set "build" "--force-rm=false" "--layers=false" "$@"
 +        fi
 +        podman_or_buildah=${PODMAN_BINARY}
++        registry_opts=${PODMAN_REGISTRY_OPTS}
 +
 +        # podman always exits 125 where buildah exits 1 or 2
 +        case $expected_rc in
@@ -45,9 +47,9 @@ index 4dc3a7dbda13..003575f48cec 100644
 
          # stdout is only emitted upon error; this echo is to help a debugger
 -        echo "\$ $BUILDAH_BINARY $*"
--        run timeout --foreground --kill=10 $BUILDAH_TIMEOUT ${BUILDAH_BINARY} ${REGISTRY_OPTS} ${ROOTDIR_OPTS} "$@"
+-        run timeout --foreground --kill=10 $BUILDAH_TIMEOUT ${BUILDAH_BINARY} ${BUILDAH_REGISTRY_OPTS} ${ROOTDIR_OPTS} "$@"
 +        echo "\$ $cmd_basename $*"
-+        run timeout --foreground --kill=10 $BUILDAH_TIMEOUT ${podman_or_buildah} --registries-conf ${TESTSDIR}/registries.conf --root ${TESTDIR}/root --runroot ${TESTDIR}/runroot --storage-driver ${STORAGE_DRIVER} "$@"
++        run timeout --foreground --kill=10 $BUILDAH_TIMEOUT ${podman_or_buildah} ${registry_opts} ${ROOTDIR_OPTS} "$@"
          # without "quotes", multiple lines are glommed together into one
          if [ -n "$output" ]; then
              echo "$output"

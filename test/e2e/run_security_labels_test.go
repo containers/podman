@@ -45,7 +45,7 @@ var _ = Describe("Podman generate kube", func() {
 
 		ctr := inspect.InspectContainerToJSON()
 		caps := strings.Join(ctr[0].EffectiveCaps, ",")
-		Expect(caps).To(Equal("CAP_SETUID,CAP_SETGID"))
+		Expect(caps).To(Equal("CAP_SETGID,CAP_SETUID"))
 	})
 
 	It("podman bad security labels", func() {
@@ -109,7 +109,7 @@ var _ = Describe("Podman generate kube", func() {
 
 		ctr := inspect.InspectContainerToJSON()
 		caps := strings.Join(ctr[0].EffectiveCaps, ",")
-		Expect(caps).To(Equal("CAP_SYS_CHROOT,CAP_SETUID"))
+		Expect(caps).To(Equal("CAP_SETUID,CAP_SYS_CHROOT"))
 
 	})
 
