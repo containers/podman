@@ -135,4 +135,14 @@ var _ = Describe("Podman Info", func() {
 			Expect(session.OutputToString()).To(ContainSubstring("false"))
 		}
 	})
+
+	It("Podman info must contain cgroupControllers with ReleventControllers", func() {
+		SkipIfRootless("Hard to tell which controllers are going to be enabled for rootless")
+		SkipIfRootlessCgroupsV1("Disable cgroups not supported on cgroupv1 for rootless users")
+		session := podmanTest.Podman([]string{"info", "--format", "{{.Host.CgroupControllers}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("memory"))
+		Expect(session.OutputToString()).To(ContainSubstring("pids"))
+	})
 })
