@@ -12,6 +12,7 @@ import (
 	"github.com/containers/common/pkg/secrets"
 	ann "github.com/containers/podman/v3/pkg/annotations"
 	"github.com/containers/podman/v3/pkg/specgen"
+	"github.com/containers/podman/v3/pkg/specgen/generate"
 	"github.com/containers/podman/v3/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -182,6 +183,19 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		if imageData.Config.WorkingDir != "" {
 			s.WorkDir = imageData.Config.WorkingDir
 		}
+		if s.User == "" {
+			s.User = imageData.Config.User
+		}
+
+		exposed, err := generate.GenExposedPorts(imageData.Config.ExposedPorts)
+		if err != nil {
+			return nil, err
+		}
+
+		for k, v := range s.Expose {
+			exposed[k] = v
+		}
+		s.Expose = exposed
 		// Pull entrypoint and cmd from image
 		s.Entrypoint = imageData.Config.Entrypoint
 		s.Command = imageData.Config.Cmd

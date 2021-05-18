@@ -88,3 +88,44 @@ RELABEL="system_u:object_r:container_file_t:s0"
     fi
     run_podman pod rm -f test_pod
 }
+
+@test "podman play with user from image" {
+    TESTDIR=$PODMAN_TMPDIR/testdir
+    mkdir -p $TESTDIR
+
+testUserYaml="
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: test
+  name: test_pod
+spec:
+  containers:
+  - command:
+    - id
+    env:
+    - name: PATH
+      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    - name: TERM
+      value: xterm
+    - name: container
+      value: podman
+    image: userimage
+    name: test
+    resources: {}
+status: {}
+"
+
+cat > $PODMAN_TMPDIR/Containerfile << _EOF
+from $IMAGE
+USER bin
+_EOF
+
+    echo "$testUserYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
+    run_podman build -t userimage $PODMAN_TMPDIR
+    run_podman play kube --start=false $PODMAN_TMPDIR/test.yaml
+    run_podman inspect --format "{{ .Config.User }}" test_pod-test
+    is "$output" bin "expect container within pod to run as the bin user"
+    run_podman pod rm -f test_pod
+}
