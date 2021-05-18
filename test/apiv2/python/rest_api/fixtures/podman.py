@@ -7,7 +7,7 @@ import sys
 import tempfile
 
 
-class Podman(object):
+class Podman:
     """
     Instances hold the configuration and setup for running podman commands
     """
@@ -34,7 +34,7 @@ class Podman(object):
         p = configparser.ConfigParser()
         p.read_dict(
             {
-                "registries.search": {"registries": "['docker.io']"},
+                "registries.search": {"registries": "['quay.io']"},
                 "registries.insecure": {"registries": "[]"},
                 "registries.block": {"registries": "[]"},
             }
@@ -102,7 +102,7 @@ class Podman(object):
         )
 
     def run(self, command, *args, **kwargs):
-        """Podman initialized instance to run a given command
+        """Run given podman command
 
         :param self: Podman instance
         :param command: podman sub-command to run

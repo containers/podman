@@ -45,7 +45,7 @@ class TestApi(unittest.TestCase):
         if TestApi.podman.poll() is not None:
             sys.stderr.write("podman service returned {}", TestApi.podman.returncode)
             sys.exit(2)
-        requests.get(_url("/images/create?fromSrc=docker.io%2Falpine%3Alatest"))
+        requests.get(_url("/images/create?fromSrc=quay.io%2Flibpod%2Falpine%3Alatest"))
         # calling out to podman is easier than the API for running a container
         subprocess.run(
             [podman(), "run", "alpine", "/bin/ls"],

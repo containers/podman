@@ -573,7 +573,7 @@ remotesystem:
 .PHONY: localapiv2
 localapiv2:
 	env PODMAN=./bin/podman ./test/apiv2/test-apiv2
-	env PODMAN=./bin/podman ${PYTHON} -m unittest discover -v ./test/apiv2/rest_api/
+	env PODMAN=./bin/podman ${PYTHON} -m unittest discover -v ./test/apiv2/python
 	env PODMAN=./bin/podman ${PYTHON} -m unittest discover -v ./test/python/docker
 
 .PHONY: remoteapiv2
