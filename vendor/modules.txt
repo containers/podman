@@ -30,7 +30,7 @@ github.com/Microsoft/hcsshim/internal/vmcompute
 github.com/Microsoft/hcsshim/internal/wclayer
 github.com/Microsoft/hcsshim/internal/winapi
 github.com/Microsoft/hcsshim/osversion
-# github.com/VividCortex/ewma v1.1.1
+# github.com/VividCortex/ewma v1.2.0
 github.com/VividCortex/ewma
 # github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
 github.com/acarl005/stripansi
@@ -411,7 +411,7 @@ github.com/manifoldco/promptui/screenbuf
 github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.12
 github.com/mattn/go-isatty
-# github.com/mattn/go-runewidth v0.0.10
+# github.com/mattn/go-runewidth v0.0.12
 github.com/mattn/go-runewidth
 # github.com/mattn/go-shellwords v1.0.11
 github.com/mattn/go-shellwords
@@ -595,7 +595,7 @@ github.com/ulikunitz/xz/lzma
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
 github.com/vbatts/tar-split/tar/storage
-# github.com/vbauerster/mpb/v6 v6.0.3
+# github.com/vbauerster/mpb/v6 v6.0.4
 github.com/vbauerster/mpb/v6
 github.com/vbauerster/mpb/v6/cwriter
 github.com/vbauerster/mpb/v6/decor
@@ -659,7 +659,7 @@ golang.org/x/net/proxy
 golang.org/x/net/trace
 # golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20210426230700-d19ff857e887
+# golang.org/x/sys v0.0.0-20210514084401-e8d321eab015
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
 golang.org/x/sys/internal/unsafeheader
