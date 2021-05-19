@@ -62,7 +62,7 @@ function setup() {
     # Pull registry image, but into a separate container storage
     mkdir -p ${PODMAN_LOGIN_WORKDIR}/root
     mkdir -p ${PODMAN_LOGIN_WORKDIR}/runroot
-    PODMAN_LOGIN_ARGS="--root ${PODMAN_LOGIN_WORKDIR}/root --runroot ${PODMAN_LOGIN_WORKDIR}/runroot"
+    PODMAN_LOGIN_ARGS="--storage-driver=vfs --root ${PODMAN_LOGIN_WORKDIR}/root --runroot ${PODMAN_LOGIN_WORKDIR}/runroot"
     # Give it three tries, to compensate for flakes
     run_podman ${PODMAN_LOGIN_ARGS} pull $REGISTRY_IMAGE ||
         run_podman ${PODMAN_LOGIN_ARGS} pull $REGISTRY_IMAGE ||
@@ -306,10 +306,10 @@ function _test_skopeo_credential_sharing() {
         skip "[leaving registry running by request]"
     fi
 
-    run_podman --root    ${PODMAN_LOGIN_WORKDIR}/root   \
+    run_podman --storage-driver=vfs --root    ${PODMAN_LOGIN_WORKDIR}/root   \
                --runroot ${PODMAN_LOGIN_WORKDIR}/runroot \
                rm -f registry
-    run_podman --root    ${PODMAN_LOGIN_WORKDIR}/root   \
+    run_podman --storage-driver=vfs --root    ${PODMAN_LOGIN_WORKDIR}/root   \
                --runroot ${PODMAN_LOGIN_WORKDIR}/runroot \
                rmi -a
 

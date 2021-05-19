@@ -120,6 +120,8 @@ Remote connections use local containers.conf for default.
 Storage root dir in which data, including images, is stored (default: "/var/lib/containers/storage" for UID 0, "$HOME/.local/share/containers/storage" for other users).
 Default root dir configured in `/etc/containers/storage.conf`.
 
+Overriding this option will cause the *storage-opt* settings in /etc/containers/storage.conf to be ignored.  The user must specify additional options via the `--storage-opt` flag.
+
 #### **--runroot**=*value*
 
 Storage state directory where all state information is stored (default: "/run/containers/storage" for UID 0, "/run/user/$UID/run" for other users).
