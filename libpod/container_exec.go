@@ -761,6 +761,9 @@ func (c *Container) Exec(config *ExecConfig, streams *define.AttachStreams, resi
 	}
 	exitCode := session.ExitCode
 	if err := c.ExecRemove(sessionID, false); err != nil {
+		if errors.Cause(err) == define.ErrNoSuchExecSession {
+			return exitCode, nil
+		}
 		return -1, err
 	}
 
