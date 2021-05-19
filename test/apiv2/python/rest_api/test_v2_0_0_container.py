@@ -99,7 +99,7 @@ class ContainerTestCase(APITestCase):
         r = requests.post(self.podman_url + f"/v1.40/containers/{create['Id']}/wait")
         self.assertEqual(r.status_code, 200, r.text)
         wait = r.json()
-        self.assertEqual(wait["StatusCode"], 0, wait["Error"]["Message"])
+        self.assertEqual(wait["StatusCode"], 0, wait["Error"])
 
         prune = requests.post(self.podman_url + "/v1.40/containers/prune")
         self.assertEqual(prune.status_code, 200, prune.status_code)

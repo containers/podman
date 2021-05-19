@@ -75,18 +75,19 @@ func WaitContainerDocker(w http.ResponseWriter, r *http.Request) {
 	}
 
 	exitCode, err := waitDockerCondition(ctx, name, interval, condition)
-	msg := ""
+	var errStruct *struct{ Message string }
 	if err != nil {
 		logrus.Errorf("error while waiting on condition: %q", err)
-		msg = err.Error()
-	}
-	responseData := handlers.ContainerWaitOKBody{
-		StatusCode: int(exitCode),
-		Error: struct {
+		errStruct = &struct {
 			Message string
 		}{
-			Message: msg,
-		},
+			Message: err.Error(),
+		}
+	}
+
+	responseData := handlers.ContainerWaitOKBody{
+		StatusCode: int(exitCode),
+		Error:      errStruct,
 	}
 	enc := json.NewEncoder(w)
 	enc.SetEscapeHTML(true)
