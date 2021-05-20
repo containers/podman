@@ -122,11 +122,11 @@ jobs:
                       docker://$CONTAINERS_QUAY_REGISTRY/podman | \
                       jq -r '.Tags[]')
 
-            # New image? Push quay.io/containers/podman:vX.X.X and :latest
+            # New image? Push quay.io/containers/podman:vX.X.X
             if ! fgrep -qx "$VERSION" <<<"$ALLTAGS"; then
-              FQIN="$CONTAINERS_QUAY_REGISTRY/podman:$VERSION,$CONTAINERS_QUAY_REGISTRY/podman:latest"
-            else # Not a new version-tagged image, but contents may be updated
-              FQIN="$CONTAINERS_QUAY_REGISTRY/podman:latest"
+              FQIN="$CONTAINERS_QUAY_REGISTRY/podman:$VERSION"
+            else # Not a new version-tagged image, do nothing.
+              FQIN=""
             fi
           elif [[ "${{ matrix.source }}" == 'upstream' ]]; then
             FQIN="$CONTAINERS_QUAY_REGISTRY/podman:latest"
@@ -134,9 +134,13 @@ jobs:
             echo "::error::Unknown matrix item '${{ matrix.source }}'"
             exit 1
           fi
-          echo "::warning::Pushing $FQIN"
-          echo "::set-output name=fqin::${FQIN}"
-          echo '::set-output name=push::true'
+          if [[ -n "$FQIN" ]]; then
+            echo "::warning::Pushing $FQIN"
+            echo "::set-output name=fqin::${FQIN}"
+            echo '::set-output name=push::true'
+          else
+            echo '::set-output name=push::false'
+          fi
 
       - name: Define LABELS multi-line env. var. value
         run: |
