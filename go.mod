@@ -11,7 +11,7 @@ require (
 	github.com/container-orchestrated-devices/container-device-interface v0.0.0-20210325223243-f99e8b6c10b9
 	github.com/containernetworking/cni v0.8.1
 	github.com/containernetworking/plugins v0.9.1
-	github.com/containers/buildah v1.20.2-0.20210519094241-c3a3fe847ee1
+	github.com/containers/buildah v1.21.0
 	github.com/containers/common v0.38.4
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.12.0

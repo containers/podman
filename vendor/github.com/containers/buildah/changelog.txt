@@ -1,3 +1,85 @@
+- Changelog for v1.21.0 (2021-05-19)
+  * Don't blow up if cpp detects errors
+  * Vendor in containers/common v0.38.4
+  * Remove 'buildah run --security-opt' from completion
+  * update c/common
+  * Fix handling of --default-mounts-file
+  * update vendor of containers/storage v1.31.1
+  * Bump github.com/containers/storage from 1.30.3 to 1.31.0
+  * Send logrus messages back to caller when building
+  * github: Fix bad repo. ref in workflow config
+  * Check earlier for bad image tags name
+  * buildah bud: fix containers/podman/issues/10307
+  * Bump github.com/containers/storage from 1.30.1 to 1.30.3
+  * Cirrus: Support [CI:DOCS] test skipping
+  * Notification email for cirrus-cron build failures
+  * Bump github.com/opencontainers/runc from 1.0.0-rc93 to 1.0.0-rc94
+  * Fix race condition
+  * Fix copy race while walking paths
+  * Preserve ownership of lower directory when doing an overlay mount
+  * Bump github.com/onsi/gomega from 1.11.0 to 1.12.0
+  * Update nix pin with `make nixpkgs`
+  * codespell cleanup
+  * Multi-arch github-action workflow unification
+  * Bump github.com/containers/image/v5 from 5.11.1 to 5.12.0
+  * Bump github.com/onsi/ginkgo from 1.16.1 to 1.16.2
+  * imagebuildah: ignore signatures when tagging images
+  * update to latest libimage
+  * Bump github.com/containers/common from 0.37.0 to 0.37.1
+  * Bump github.com/containers/storage from 1.30.0 to 1.30.1
+  * Upgrade to GitHub-native Dependabot
+  * Document location of auth.json file if XDG_RUNTIME_DIR is not set
+  * run.bats: fix flake in run-user test
+  * Cirrus: Update F34beta -> F34
+  * pr-should-include-tests: try to make work in buildah
+  * runUsingRuntime: when relaying error from the runtime, mention that
+  * Run(): avoid Mkdir() into the rootfs
+  * imagebuildah: replace archive with chrootarchive
+  * imagebuildah.StageExecutor.volumeCacheSaveVFS(): set up bind mounts
+  * conformance: use :Z with transient mounts when SELinux is enabled
+  * bud.bats: fix a bats warning
+  * imagebuildah: create volume directories when using overlays
+  * imagebuildah: drop resolveSymlink()
+  * namespaces test - refactoring and cleanup
+  * Refactor 'idmapping' system test
+  * Cirrus: Update Ubuntu images to 21.04
+  * Tiny fixes in bud system tests
+  * Add compabitility wrappers for removed packages
+  * Fix expected message at pulling image
+  * Fix system tests of 'bud' subcommand
+  * [CI:DOCS] Update steps for CentOS runc users
+  * Add support for secret mounts
+  * Add buildah manifest rm command
+  * restore push/pull and util API
+  * [CI:DOCS] Remove older distro docs
+  * Rename rhel secrets to subscriptions
+  * vendor in openshift/imagebuilder
+  * Remove buildah bud --loglevel ...
+  * use new containers/common/libimage package
+  * Fix copier when using globs
+  * Test namespace flags of 'bud' subcommand
+  * Add system test of 'bud' subcommand
+  * Output names of multiple tags in buildah bud
+  * push to docker test: don't get fooled by podman
+  * copier: add Remove()
+  * build(deps): bump github.com/containers/image/v5 from 5.10.5 to 5.11.1
+  * Restore log timestamps
+  * Add system test of 'buildah help' with a tiny fix
+  * tests: copy.bats: fix infinite hang
+  * Do not force hard code to crun in rootless mode
+  * build(deps): bump github.com/openshift/imagebuilder from 1.2.0 to 1.2.1
+  * build(deps): bump github.com/containers/ocicrypt from 1.1.0 to 1.1.1
+  * build(deps): bump github.com/containers/common from 0.35.4 to 0.36.0
+  * Fix arg missing warning in bud
+  * Check without flag in 'from --cgroup-parent' test
+  * Minor fixes to Buildah as a library tutorial documentation
+  * Add system test of 'buildah version' for packaged buildah
+  * Add a few system tests of 'buildah from'
+  * Log the final error with %+v at logging level "trace"
+  * copier: add GetOptions.NoCrossDevice
+  * Update nix pin with `make nixpkgs`
+  * Bump to v1.20.2-dev
+
 - Changelog for v1.20.1 (2021-04-13)
   * Run container with isolation type set at 'from'
   * bats helpers.bash - minor refactoring
