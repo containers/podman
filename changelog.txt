@@ -1,3 +1,74 @@
+- Changelog for v3.2.0-RC2 (2021-05-20):
+  * update c/common
+  * Update Cirrus DEST_BRANCH to v3.2
+  * Updated vendors of c/image, c/storage, Buildah
+  * Initial release notes for v3.2.0-RC2
+  * Add script for identifying commits in release branches
+  * Add host.containers.internal entry into container's etc/hosts
+  * image prune: remove unused images only with `--all`
+  * podman network reload add rootless support
+  * Use more recent `stale` release...
+  * network tutorial: update with rootless cni changes
+  * [CI:DOCS] Update first line in intro page
+  * Use updated VM images + updated automation tooling
+  * auto-update service: prune images
+  * make vendor
+  * fix system upgrade tests
+  * Print "extracting" only on compressed file
+  * podman image tree: restore previous behavior
+  * fix network restart always test
+  * fix incorrect log driver in podman container image
+  * Add support for cli network prune --filter flag
+  * Move filter parsing to common utils
+  * Bump github.com/containers/storage from 1.30.2 to 1.30.3
+  * Update nix pin with `make nixpkgs`
+  * [CI:DOCS] hack/bats - new helper for running system tests
+  * fix restart always with slirp4netns
+  * Bump github.com/opencontainers/runc from 1.0.0-rc93 to 1.0.0-rc94
+  * Bump github.com/coreos/go-systemd/v22 from 22.3.1 to 22.3.2
+  * Add host.serviceIsRemote to podman info results
+  * Add client disconnect to build handler loop
+  * Remove obsolete skips
+  * Fix podman-remote build --rm=false ...
+  * fix: improved "containers/{name}/wait" endpoint
+  * Bump github.com/containers/storage from 1.30.1 to 1.30.2
+  * Add envars to the generated systemd unit
+  * fix: use UTC Time Stamps in response JSON
+  * fix container startup for empty pidfile
+  * Kube like pods should share ipc,net,uts by default
+  * fix: compat API "images/get" for multiple images
+  * Revert escaped double dash man page flag syntax
+  * Report Download complete in Compatibility mode
+  * Add documentation on short-names
+  * Bump github.com/docker/docker
+  * Adds support to preserve auto update labels in generate and play kube
+  * [CI:DOCS] Stop conversion of `--` into en dash
+  * Revert Patch to relabel if selinux not enabled
+  * fix per review request
+  * Add support for environment variable secrets
+  * fix pre review request
+  * Fix infinite loop in isPathOnVolume
+  * Add containers.conf information for changing defaults
+  * CI: run rootless tests under ubuntu
+  * Fix wrong macvlan PNG in networking doc.
+  * Add restart-policy to container filters & --filter to podman start
+  * Fixes docker-compose cannot set static ip when use ipam
+  * channel: simplify implementation
+  * build: improve regex for iidfile
+  * Bump github.com/onsi/gomega from 1.11.0 to 1.12.0
+  * cgroup: fix rootless --cgroup-parent with pods
+  * fix: docker APIv2 `images/get`
+  * codespell cleanup
+  * Minor podmanimage docs updates.
+  * Fix handling of runlabel IMAGE and NAME
+  * Bump to v3.2.0-dev
+  * Bump to v3.2.0-rc1
+  * podman: set volatile storage flag for --rm containers
+  * Bump github.com/onsi/ginkgo from 1.16.1 to 1.16.2
+  * Bump github.com/containers/image/v5 from 5.11.1 to 5.12.0
+  * Add filepath glob support to --security-opt unmask
+  * Force log_driver to k8s-file for containers in containers
+
 - Changelog for v3.2.0-rc1 (2021-05-05)
   * migrate Podman to containers/common/libimage
   * add --mac-address to podman play kube
