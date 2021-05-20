@@ -313,12 +313,9 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 	// list but could not find a matching image instance in the local
 	// containers storage. In that case, fall back and attempt to push the
 	// (entire) manifest.
-	if errors.Cause(pushError) == storage.ErrImageUnknown {
-		// Image might be a manifest list so attempt a manifest push
-		_, manifestErr := ir.ManifestPush(ctx, source, destination, options)
-		if manifestErr == nil {
-			return nil
-		}
+	if _, err := ir.Libpod.LibimageRuntime().LookupManifestList(source); err == nil {
+		_, err := ir.ManifestPush(ctx, source, destination, options)
+		return err
 	}
 	return pushError
 }

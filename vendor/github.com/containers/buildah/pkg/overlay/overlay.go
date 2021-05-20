@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/system"
@@ -84,6 +85,12 @@ func mountHelper(contentDir, source, dest string, _, _ int, graphOptions []strin
 		if err := os.Chmod(upperDir, st.Mode()); err != nil {
 			return mount, err
 		}
+		if stat, ok := st.Sys().(*syscall.Stat_t); ok {
+			if err := os.Chown(upperDir, int(stat.Uid), int(stat.Gid)); err != nil {
+				return mount, err
+			}
+		}
+
 		overlayOptions = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s,private", source, upperDir, workDir)
 	}
 

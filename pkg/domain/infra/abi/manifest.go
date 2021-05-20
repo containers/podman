@@ -68,29 +68,17 @@ func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string) ([]byte
 	// inspect foo` wants to do a remote-inspect of foo iff "foo" in the
 	// containers storage is an ordinary image but not a manifest list.
 
-	lookupOptions := &libimage.LookupImageOptions{IgnorePlatform: true}
-	image, _, err := ir.Libpod.LibimageRuntime().LookupImage(name, lookupOptions)
+	manifestList, err := ir.Libpod.LibimageRuntime().LookupManifestList(name)
 	if err != nil {
-		// If the image doesn't exist, do a remote inspect.
-		if errors.Cause(err) == storage.ErrImageUnknown {
+		switch errors.Cause(err) {
+		// Do a remote inspect if there's no local image or if the
+		// local image is not a manifest list.
+		case storage.ErrImageUnknown, libimage.ErrNotAManifestList:
 			return ir.remoteManifestInspect(ctx, name)
+
+		default:
+			return nil, err
 		}
-		return nil, err
-	}
-
-	isManifestList, err := image.IsManifestList(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// If the image isn't a manifest list, do a remote inspect.
-	if !isManifestList {
-		return ir.remoteManifestInspect(ctx, name)
-	}
-
-	manifestList, err := image.ToManifestList()
-	if err != nil {
-		return nil, err
 	}
 
 	schema2List, err := manifestList.Inspect()

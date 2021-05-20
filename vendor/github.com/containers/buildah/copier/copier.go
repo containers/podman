@@ -1186,11 +1186,14 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 								return filepath.SkipDir
 							}
 							return nil
+						} else if os.IsNotExist(errors.Cause(err)) {
+							logrus.Warningf("copier: file disappeared while reading: %q", path)
+							return nil
 						}
 						return errors.Wrapf(err, "copier: get: error reading %q", path)
 					}
 					if info.Mode()&os.ModeType == os.ModeSocket {
-						logrus.Warningf("buildah/copier: skipping socket %q", info.Name())
+						logrus.Warningf("copier: skipping socket %q", info.Name())
 						return nil
 					}
 					// compute the path of this item
@@ -1241,6 +1244,9 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 					if err := copierHandlerGetOne(info, symlinkTarget, rel, path, options, tw, hardlinkChecker, idMappings); err != nil {
 						if req.GetOptions.IgnoreUnreadable && errorIsPermission(err) {
 							return ok
+						} else if os.IsNotExist(errors.Cause(err)) {
+							logrus.Warningf("copier: file disappeared while reading: %q", path)
+							return nil
 						}
 						return err
 					}
