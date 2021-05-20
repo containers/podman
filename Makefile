@@ -382,6 +382,9 @@ bin/podman.cross.%: .gopathok
 .PHONY: local-cross
 local-cross: $(CROSS_BUILD_TARGETS) ## Cross compile podman binary for multiple architectures
 
+.PHONY: cross
+cross: local-cross
+
 # Update nix/nixpkgs.json its latest stable commit
 .PHONY: nixpkgs
 nixpkgs:
