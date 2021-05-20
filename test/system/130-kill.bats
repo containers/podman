@@ -8,8 +8,7 @@ load helpers
 @test "podman kill - test signal handling in containers" {
     # Start a container that will handle all signals by emitting 'got: N'
     local -a signals=(1 2 3 4 5 6 8 10 12 13 14 15 16 20 21 22 23 24 25 26 64)
-    # Force the k8s-file driver until #10323 is fixed.
-    run_podman run --log-driver=k8s-file -d $IMAGE sh -c \
+    run_podman run -d $IMAGE sh -c \
         "for i in ${signals[*]}; do trap \"echo got: \$i\" \$i; done;
         echo READY;
         while ! test -e /stop; do sleep 0.05; done;
