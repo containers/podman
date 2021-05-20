@@ -89,6 +89,9 @@ const (
 type Builder struct {
 	store storage.Store
 
+	// Logger is the logrus logger to write log messages with
+	Logger *logrus.Logger `json:"-"`
+
 	// Args define variables that users can pass at build-time to the builder
 	Args map[string]string
 	// Type is used to help identify a build container's metadata.  It
@@ -395,6 +398,7 @@ func OpenBuilder(store storage.Store, container string) (*Builder, error) {
 	}
 	b.store = store
 	b.fixupConfig()
+	b.setupLogger()
 	return b, nil
 }
 
@@ -430,6 +434,7 @@ func OpenBuilderByPath(store storage.Store, path string) (*Builder, error) {
 		if err == nil && b.Type == containerType && builderMatchesPath(b, abs) {
 			b.store = store
 			b.fixupConfig()
+			b.setupLogger()
 			return b, nil
 		}
 		if err != nil {
@@ -465,6 +470,7 @@ func OpenAllBuilders(store storage.Store) (builders []*Builder, err error) {
 		err = json.Unmarshal(buildstate, &b)
 		if err == nil && b.Type == containerType {
 			b.store = store
+			b.setupLogger()
 			b.fixupConfig()
 			builders = append(builders, b)
 			continue

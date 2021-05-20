@@ -526,11 +526,11 @@ func systemConfigs() ([]string, error) {
 	if _, err := os.Stat(OverrideContainersConfig); err == nil {
 		configs = append(configs, OverrideContainersConfig)
 	}
-	if unshare.IsRootless() {
-		path, err := rootlessConfigPath()
-		if err != nil {
-			return nil, err
-		}
+	path, err := ifRootlessConfigPath()
+	if err != nil {
+		return nil, err
+	}
+	if path != "" {
 		if _, err := os.Stat(path); err == nil {
 			configs = append(configs, path)
 		}

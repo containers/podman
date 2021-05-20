@@ -6,6 +6,7 @@ package capabilities
 //       changed significantly to fit the needs of libpod.
 
 import (
+	"sort"
 	"strings"
 	"sync"
 
@@ -48,6 +49,7 @@ func init() {
 		}
 		capsList = append(capsList, cap)
 		capabilityList = append(capabilityList, getCapName(cap))
+		sort.Strings(capabilityList)
 	}
 }
 
@@ -88,6 +90,7 @@ func BoundingSet() ([]string, error) {
 			r = append(r, getCapName(c))
 		}
 		boundingSetRet = r
+		sort.Strings(boundingSetRet)
 		boundingSetErr = err
 	})
 	return boundingSetRet, boundingSetErr
@@ -116,6 +119,7 @@ func NormalizeCapabilities(caps []string) ([]string, error) {
 		}
 		normalized[i] = c
 	}
+	sort.Strings(normalized)
 	return normalized, nil
 }
 
@@ -157,18 +161,25 @@ func MergeCapabilities(base, adds, drops []string) ([]string, error) {
 	}
 
 	if stringInSlice(All, capDrop) {
+		if stringInSlice(All, capAdd) {
+			return nil, errors.New("adding all caps and removing all caps not allowed")
+		}
 		// "Drop" all capabilities; return what's in capAdd instead
+		sort.Strings(capAdd)
 		return capAdd, nil
 	}
 
 	if stringInSlice(All, capAdd) {
-		// "Add" all capabilities;
-		return BoundingSet()
-	}
-
-	for _, add := range capAdd {
-		if stringInSlice(add, capDrop) {
-			return nil, errors.Errorf("capability %q cannot be dropped and added", add)
+		base, err = BoundingSet()
+		if err != nil {
+			return nil, err
+		}
+		capAdd = []string{}
+	} else {
+		for _, add := range capAdd {
+			if stringInSlice(add, capDrop) {
+				return nil, errors.Errorf("capability %q cannot be dropped and added", add)
+			}
 		}
 	}
 
@@ -193,5 +204,6 @@ func MergeCapabilities(base, adds, drops []string) ([]string, error) {
 		}
 		caps = append(caps, cap)
 	}
+	sort.Strings(caps)
 	return caps, nil
 }

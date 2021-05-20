@@ -56,6 +56,7 @@ var builtinAllowedBuildArgs = map[string]bool{
 // interface.  It coordinates the entire build by using one or more
 // StageExecutors to handle each stage of the build.
 type Executor struct {
+	logger                         *logrus.Logger
 	stages                         map[string]*StageExecutor
 	store                          storage.Store
 	contextDir                     string
@@ -130,7 +131,7 @@ type imageTypeAndHistoryAndDiffIDs struct {
 }
 
 // NewExecutor creates a new instance of the imagebuilder.Executor interface.
-func NewExecutor(store storage.Store, options define.BuildOptions, mainNode *parser.Node) (*Executor, error) {
+func NewExecutor(logger *logrus.Logger, store storage.Store, options define.BuildOptions, mainNode *parser.Node) (*Executor, error) {
 	defaultContainerConfig, err := config.Default()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get container config")
@@ -183,6 +184,7 @@ func NewExecutor(store storage.Store, options define.BuildOptions, mainNode *par
 	}
 
 	exec := Executor{
+		logger:                         logger,
 		stages:                         make(map[string]*StageExecutor),
 		store:                          store,
 		contextDir:                     options.ContextDirectory,
@@ -696,7 +698,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 
 		default:
 			if len(b.additionalTags) > 0 {
-				logrus.Warnf("don't know how to add tags to images stored in %q transport", dest.Transport().Name())
+				b.logger.Warnf("don't know how to add tags to images stored in %q transport", dest.Transport().Name())
 			}
 		}
 	}
@@ -725,7 +727,7 @@ func (b *Executor) deleteSuccessfulIntermediateCtrs() error {
 	for _, s := range b.stages {
 		for _, ctr := range s.containerIDs {
 			if err := b.store.DeleteContainer(ctr); err != nil {
-				logrus.Errorf("error deleting build container %q: %v\n", ctr, err)
+				b.logger.Errorf("error deleting build container %q: %v\n", ctr, err)
 				lastErr = err
 			}
 		}
