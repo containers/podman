@@ -117,7 +117,7 @@ type Driver struct {
 	options          overlayOptions
 	naiveDiff        graphdriver.DiffDriver
 	supportsDType    bool
-	supportsVolatile bool
+	supportsVolatile *bool
 	usingMetacopy    bool
 	locker           *locker.Locker
 }
@@ -236,6 +236,18 @@ func checkAndRecordOverlaySupport(fsMagic graphdriver.FsMagic, home, runhome str
 	return supportsDType, nil
 }
 
+func (d *Driver) getSupportsVolatile() (bool, error) {
+	if d.supportsVolatile != nil {
+		return *d.supportsVolatile, nil
+	}
+	supportsVolatile, err := checkSupportVolatile(d.home, d.runhome)
+	if err != nil {
+		return false, err
+	}
+	d.supportsVolatile = &supportsVolatile
+	return supportsVolatile, nil
+}
+
 // Init returns the a native diff driver for overlay filesystem.
 // If overlay filesystem is not supported on the host, a wrapped graphdriver.ErrNotSupported is returned as error.
 // If an overlay filesystem is not supported over an existing filesystem then a wrapped graphdriver.ErrIncompatibleFS is returned.
@@ -285,10 +297,11 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 
 	var usingMetacopy bool
 	var supportsDType bool
-	var supportsVolatile bool
+	var supportsVolatile *bool
 	if opts.mountProgram != "" {
 		supportsDType = true
-		supportsVolatile = true
+		t := true
+		supportsVolatile = &t
 	} else {
 		supportsDType, err = checkAndRecordOverlaySupport(fsMagic, home, runhome)
 		if err != nil {
@@ -318,10 +331,6 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 				logrus.Infof("overlay test mount did not indicate whether or not metacopy is being used: %v", err)
 				return nil, err
 			}
-		}
-		supportsVolatile, err = checkSupportVolatile(home, runhome)
-		if err != nil {
-			return nil, err
 		}
 	}
 
@@ -705,6 +714,7 @@ func (d *Driver) Metadata(id string) (map[string]string, error) {
 // is being shutdown. For now, we just have to unmount the bind mounted
 // we had created.
 func (d *Driver) Cleanup() error {
+	_ = os.RemoveAll(d.getStagingDir())
 	return mount.Unmount(d.home)
 }
 
@@ -1318,8 +1328,14 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	}
 
 	// If "volatile" is not supported by the file system, just ignore the request
-	if d.supportsVolatile && options.Volatile && !hasVolatileOption(strings.Split(opts, ",")) {
-		opts = fmt.Sprintf("%s,volatile", opts)
+	if options.Volatile && !hasVolatileOption(strings.Split(opts, ",")) {
+		supported, err := d.getSupportsVolatile()
+		if err != nil {
+			return "", err
+		}
+		if supported {
+			opts = fmt.Sprintf("%s,volatile", opts)
+		}
 	}
 
 	mountData := label.FormatMountLabel(opts, options.MountLabel)
@@ -1490,6 +1506,10 @@ func (f fileGetNilCloser) Close() error {
 	return nil
 }
 
+func (d *Driver) getStagingDir() string {
+	return filepath.Join(d.home, "staging")
+}
+
 // DiffGetter returns a FileGetCloser that can read files from the directory that
 // contains files for the layer differences. Used for direct access for tar-split.
 func (d *Driver) DiffGetter(id string) (graphdriver.FileGetCloser, error) {
@@ -1498,6 +1518,75 @@ func (d *Driver) DiffGetter(id string) (graphdriver.FileGetCloser, error) {
 		return nil, err
 	}
 	return fileGetNilCloser{storage.NewPathFileGetter(p)}, nil
+}
+
+// CleanupStagingDirectory cleanups the staging directory.
+func (d *Driver) CleanupStagingDirectory(stagingDirectory string) error {
+	return os.RemoveAll(stagingDirectory)
+}
+
+// ApplyDiff applies the changes in the new layer using the specified function
+func (d *Driver) ApplyDiffWithDiffer(id, parent string, options *graphdriver.ApplyDiffOpts, differ graphdriver.Differ) (output graphdriver.DriverWithDifferOutput, err error) {
+	var idMappings *idtools.IDMappings
+	if options != nil {
+		idMappings = options.Mappings
+	}
+	if idMappings == nil {
+		idMappings = &idtools.IDMappings{}
+	}
+
+	applyDir := ""
+
+	if id == "" {
+		err := os.MkdirAll(d.getStagingDir(), 0700)
+		if err != nil && !os.IsExist(err) {
+			return graphdriver.DriverWithDifferOutput{}, err
+		}
+		applyDir, err = ioutil.TempDir(d.getStagingDir(), "")
+		if err != nil {
+			return graphdriver.DriverWithDifferOutput{}, err
+		}
+
+	} else {
+		var err error
+		applyDir, err = d.getDiffPath(id)
+		if err != nil {
+			return graphdriver.DriverWithDifferOutput{}, err
+		}
+	}
+
+	logrus.Debugf("Applying differ in %s", applyDir)
+
+	out, err := differ.ApplyDiff(applyDir, &archive.TarOptions{
+		UIDMaps:           idMappings.UIDs(),
+		GIDMaps:           idMappings.GIDs(),
+		IgnoreChownErrors: d.options.ignoreChownErrors,
+		WhiteoutFormat:    d.getWhiteoutFormat(),
+		InUserNS:          rsystem.RunningInUserNS(),
+	})
+	out.Target = applyDir
+	return out, err
+}
+
+// ApplyDiffFromStagingDirectory applies the changes using the specified staging directory.
+func (d *Driver) ApplyDiffFromStagingDirectory(id, parent, stagingDirectory string, diffOutput *graphdriver.DriverWithDifferOutput, options *graphdriver.ApplyDiffOpts) error {
+	if filepath.Dir(stagingDirectory) != d.getStagingDir() {
+		return fmt.Errorf("%q is not a staging directory", stagingDirectory)
+	}
+
+	diff, err := d.getDiffPath(id)
+	if err != nil {
+		return err
+	}
+	if err := os.RemoveAll(diff); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return os.Rename(stagingDirectory, diff)
+}
+
+// DifferTarget gets the location where files are stored for the layer.
+func (d *Driver) DifferTarget(id string) (string, error) {
+	return d.getDiffPath(id)
 }
 
 // ApplyDiff applies the new layer into a root
