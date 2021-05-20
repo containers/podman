@@ -533,7 +533,11 @@ var _ = Describe("Podman network", func() {
 
 		out, err := inspect.jq(".[0].plugins[0].master")
 		Expect(err).To(BeNil())
-		Expect(out).To(Equal("\"lo\""))
+		Expect(out).To(Equal(`"lo"`))
+
+		ipamType, err := inspect.jq(".[0].plugins[0].ipam.type")
+		Expect(err).To(BeNil())
+		Expect(ipamType).To(Equal(`"dhcp"`))
 
 		nc = podmanTest.Podman([]string{"network", "rm", net})
 		nc.WaitWithDefaultTimeout()
@@ -571,13 +575,29 @@ var _ = Describe("Podman network", func() {
 		Expect(err).To(BeNil())
 		Expect(mtu).To(Equal("1500"))
 
+		name, err := inspect.jq(".[0].plugins[0].type")
+		Expect(err).To(BeNil())
+		Expect(name).To(Equal(`"macvlan"`))
+
+		netInt, err := inspect.jq(".[0].plugins[0].master")
+		Expect(err).To(BeNil())
+		Expect(netInt).To(Equal(`"lo"`))
+
+		ipamType, err := inspect.jq(".[0].plugins[0].ipam.type")
+		Expect(err).To(BeNil())
+		Expect(ipamType).To(Equal(`"host-local"`))
+
 		gw, err := inspect.jq(".[0].plugins[0].ipam.ranges[0][0].gateway")
 		Expect(err).To(BeNil())
-		Expect(gw).To(Equal("\"192.168.1.254\""))
+		Expect(gw).To(Equal(`"192.168.1.254"`))
 
 		subnet, err := inspect.jq(".[0].plugins[0].ipam.ranges[0][0].subnet")
 		Expect(err).To(BeNil())
-		Expect(subnet).To(Equal("\"192.168.1.0/24\""))
+		Expect(subnet).To(Equal(`"192.168.1.0/24"`))
+
+		routes, err := inspect.jq(".[0].plugins[0].ipam.routes[0].dst")
+		Expect(err).To(BeNil())
+		Expect(routes).To(Equal(`"0.0.0.0/0"`))
 
 		nc = podmanTest.Podman([]string{"network", "rm", net})
 		nc.WaitWithDefaultTimeout()
