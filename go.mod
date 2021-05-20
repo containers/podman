@@ -66,6 +66,6 @@ require (
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 	golang.org/x/sys v0.0.0-20210514084401-e8d321eab015
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
-	k8s.io/api v0.21.0
+	k8s.io/api v0.21.1
 	k8s.io/apimachinery v0.21.1
 )
