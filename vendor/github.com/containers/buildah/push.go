@@ -68,7 +68,7 @@ type PushOptions struct {
 	// OciEncryptLayers represents the list of layers to encrypt.
 	// If nil, don't encrypt any layers.
 	// If non-nil and len==0, denotes encrypt all layers.
-	// integers in the slice represent 0-indexed layer indices, with support for negativ
+	// integers in the slice represent 0-indexed layer indices, with support for negative
 	// indexing. i.e. 0 is the first layer, -1 is the last (top-most) layer.
 	OciEncryptLayers *[]int
 }

@@ -4,6 +4,7 @@
 ### Features
 - Docker Compose is now supported with rootless Podman ([#9169](https://github.com/containers/podman/issues/9169)).
 - The `podman network connect`, `podman network disconnect`, and `podman network reload` commands have been enabled for rootless Podman.
+- An experimental new set of commands, `podman machine`, was added to assist in managing virtual machines containing a Podman server. These are intended for easing the use of Podman on OS X by handling the creation of a Linux VM for running Podman.
 - The `podman generate kube` command can now be run on Podman named volumes (generating `PersistentVolumeClaim` YAML), in addition to pods and containers.
 - The `podman play kube` command now supports two new options, `--ip` and `--mac`, to set static IPs and MAC addresses for created pods ([#8442](https://github.com/containers/podman/issues/8442) and [#9731](https://github.com/containers/podman/issues/9731)).
 - The `podman play kube` command's support for `PersistentVolumeClaim` YAML has been greatly improved.
@@ -64,6 +65,11 @@
 - Fixed a bug where the Compat Create endpoint for Volumes required that the user provide a name for the new volume ([#9803](https://github.com/containers/podman/issues/9803)).
 - Fixed a bug where the Libpod Info handler would sometimes not return the correct path to the Podman API socket.
 - Fixed a bug where the Compat Events handler used the wrong name for container exited events (`died` instead of `die`) ([#10168](https://github.com/containers/podman/issues/10168)).
+
+### Misc
+- Updated Buildah to v1.21.0
+- Updated the containers/common library to v0.38.4
+- Updated the containers/storage library to v1.31.1
 
 ## 3.1.2
 ### Bugfixes

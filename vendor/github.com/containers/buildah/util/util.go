@@ -482,3 +482,13 @@ func SortMounts(m []specs.Mount) []specs.Mount {
 	sort.Sort(byDestination(m))
 	return m
 }
+
+func VerifyTagName(imageSpec string) (types.ImageReference, error) {
+	ref, err := alltransports.ParseImageName(imageSpec)
+	if err != nil {
+		if ref, err = alltransports.ParseImageName(DefaultTransport + imageSpec); err != nil {
+			return nil, err
+		}
+	}
+	return ref, nil
+}

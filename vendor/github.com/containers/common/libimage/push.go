@@ -29,8 +29,10 @@ func (r *Runtime) Push(ctx context.Context, source, destination string, options 
 		options = &PushOptions{}
 	}
 
-	// Look up the local image.
-	image, resolvedSource, err := r.LookupImage(source, nil)
+	// Look up the local image.  Note that we need to ignore the platform
+	// and push what the user specified (containers/podman/issues/10344).
+	lookupOptions := &LookupImageOptions{IgnorePlatform: true}
+	image, resolvedSource, err := r.LookupImage(source, lookupOptions)
 	if err != nil {
 		return nil, err
 	}

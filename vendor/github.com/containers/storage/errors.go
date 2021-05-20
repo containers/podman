@@ -53,4 +53,6 @@ var (
 	ErrSizeUnknown = types.ErrSizeUnknown
 	// ErrStoreIsReadOnly is returned when the caller makes a call to a read-only store that would require modifying its contents.
 	ErrStoreIsReadOnly = types.ErrStoreIsReadOnly
+	// ErrNotSupported is returned when the requested functionality is not supported.
+	ErrNotSupported = types.ErrNotSupported
 )

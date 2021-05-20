@@ -135,7 +135,7 @@ vendor_task:
 unit_task:
     name: 'Unit tests w/ $STORAGE_DRIVER'
     alias: unit
-
+    only_if: &not_docs $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
     depends_on:
       - smoke
       - vendor
@@ -159,7 +159,7 @@ unit_task:
 conformance_task:
     name: 'Build Conformance w/ $STORAGE_DRIVER'
     alias: conformance
-
+    only_if: *not_docs
     depends_on:
       - unit
 
@@ -182,7 +182,7 @@ conformance_task:
 cross_build_task:
     name: "Cross Compile"
     alias: cross_build
-
+    only_if: *not_docs
     depends_on:
       - unit
 
@@ -202,7 +202,7 @@ cross_build_task:
 static_build_task:
     name: "Static Build"
     alias: static_build
-
+    only_if: *not_docs
     depends_on:
       - unit
 
@@ -252,7 +252,7 @@ static_build_task:
 integration_task:
     name: "Integration $DISTRO_NV w/ $STORAGE_DRIVER"
     alias: integration
-
+    only_if: *not_docs
     depends_on:
       - unit
 
@@ -317,7 +317,7 @@ integration_task:
 in_podman_task:
     name: "Containerized Integration"
     alias: in_podman
-
+    only_if: *not_docs
     depends_on:
         - unit
 

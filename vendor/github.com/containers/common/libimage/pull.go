@@ -162,6 +162,14 @@ func (r *Runtime) copyFromDefault(ctx context.Context, ref types.ImageReference,
 			storageName = imageName
 		}
 
+	case storageTransport.Transport.Name():
+		storageName = ref.StringWithinTransport()
+		named := ref.DockerReference()
+		if named == nil {
+			return nil, errors.Errorf("could not get an image name for storage reference %q", ref)
+		}
+		imageName = named.String()
+
 	default:
 		storageName = toLocalImageName(ref.StringWithinTransport())
 		imageName = storageName
@@ -170,7 +178,7 @@ func (r *Runtime) copyFromDefault(ctx context.Context, ref types.ImageReference,
 	// Create a storage reference.
 	destRef, err := storageTransport.Transport.ParseStoreReference(r.store, storageName)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "parsing %q", storageName)
 	}
 
 	_, err = c.copy(ctx, ref, destRef)

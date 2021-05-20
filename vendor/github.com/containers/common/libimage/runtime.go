@@ -147,6 +147,10 @@ type LookupImageOptions struct {
 	// the current platform will be performed.  This can be helpful when
 	// the platform does not matter, for instance, for image removal.
 	IgnorePlatform bool
+
+	// If set, do not look for items/instances in the manifest list that
+	// match the current platform but return the manifest list as is.
+	lookupManifest bool
 }
 
 // Lookup Image looks up `name` in the local container storage matching the
@@ -244,30 +248,52 @@ func (r *Runtime) lookupImageInLocalStorage(name, candidate string, options *Loo
 	}
 
 	image := r.storageToImage(img, ref)
-	if options.IgnorePlatform {
-		logrus.Debugf("Found image %q as %q in local containers storage", name, candidate)
-		return image, nil
-	}
+	logrus.Debugf("Found image %q as %q in local containers storage", name, candidate)
 
 	// If we referenced a manifest list, we need to check whether we can
 	// find a matching instance in the local containers storage.
 	isManifestList, err := image.IsManifestList(context.Background())
 	if err != nil {
+		if errors.Cause(err) == os.ErrNotExist {
+			// We must be tolerant toward corrupted images.
+			// See containers/podman commit fd9dd7065d44.
+			logrus.Warnf("error determining if an image is a manifest list: %v, ignoring the error", err)
+			return image, nil
+		}
 		return nil, err
 	}
+	if options.lookupManifest {
+		if isManifestList {
+			return image, nil
+		}
+		return nil, errors.Wrapf(ErrNotAManifestList, candidate)
+	}
+
 	if isManifestList {
+		logrus.Debugf("Candidate %q is a manifest list, looking up matching instance", candidate)
 		manifestList, err := image.ToManifestList()
 		if err != nil {
 			return nil, err
 		}
-		image, err = manifestList.LookupInstance(context.Background(), "", "", "")
+		instance, err := manifestList.LookupInstance(context.Background(), "", "", "")
+		if err != nil {
+			// NOTE: If we are not looking for a specific platform
+			// and already found the manifest list, then return it
+			// instead of the error.
+			if options.IgnorePlatform {
+				return image, nil
+			}
+			return nil, errors.Wrap(storage.ErrImageUnknown, err.Error())
+		}
+		ref, err = storageTransport.Transport.ParseStoreReference(r.store, "@"+instance.ID())
 		if err != nil {
 			return nil, err
 		}
-		ref, err = storageTransport.Transport.ParseStoreReference(r.store, "@"+image.ID())
-		if err != nil {
-			return nil, err
-		}
+		image = instance
+	}
+
+	if options.IgnorePlatform {
+		return image, nil
 	}
 
 	matches, err := imageReferenceMatchesContext(context.Background(), ref, &r.systemContext)
@@ -550,7 +576,7 @@ func (r *Runtime) RemoveImages(ctx context.Context, names []string, options *Rem
 			return nil, rmErrors
 		}
 
-	case len(options.Filters) > 0:
+	default:
 		filteredImages, err := r.ListImages(ctx, nil, &ListImagesOptions{Filters: options.Filters})
 		if err != nil {
 			appendError(err)

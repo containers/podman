@@ -19,6 +19,10 @@ import (
 // NOTE: the abstractions and APIs here are a first step to further merge
 // `libimage/manifests` into `libimage`.
 
+// ErrNotAManifestList indicates that an image was found in the local
+// containers storage but it is not a manifest list as requested.
+var ErrNotAManifestList = errors.New("image is not a manifest list")
+
 // ManifestList represents a manifest list (Docker) or an image index (OCI) in
 // the local containers storage.
 type ManifestList struct {
@@ -73,7 +77,11 @@ func (r *Runtime) LookupManifestList(name string) (*ManifestList, error) {
 }
 
 func (r *Runtime) lookupManifestList(name string) (*Image, manifests.List, error) {
-	image, _, err := r.LookupImage(name, &LookupImageOptions{IgnorePlatform: true})
+	lookupOptions := &LookupImageOptions{
+		IgnorePlatform: true,
+		lookupManifest: true,
+	}
+	image, _, err := r.LookupImage(name, lookupOptions)
 	if err != nil {
 		return nil, nil, err
 	}

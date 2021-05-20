@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/containers/storage/pkg/idtools"
@@ -113,6 +114,7 @@ type containerStore struct {
 	byid       map[string]*Container
 	bylayer    map[string]*Container
 	byname     map[string]*Container
+	loadMut    sync.Mutex
 }
 
 func copyContainer(c *Container) *Container {
@@ -614,4 +616,15 @@ func (r *containerStore) TouchedSince(when time.Time) bool {
 
 func (r *containerStore) Locked() bool {
 	return r.lockfile.Locked()
+}
+
+func (r *containerStore) ReloadIfChanged() error {
+	r.loadMut.Lock()
+	defer r.loadMut.Unlock()
+
+	modified, err := r.Modified()
+	if err == nil && modified {
+		return r.Load()
+	}
+	return nil
 }

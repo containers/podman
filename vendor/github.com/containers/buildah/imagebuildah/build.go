@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/containers/buildah/define"
+	"github.com/containers/buildah/util"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/storage"
@@ -49,6 +50,14 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 	if len(paths) == 0 {
 		return "", nil, errors.Errorf("error building: no dockerfiles specified")
 	}
+	logger := logrus.New()
+	if options.Err != nil {
+		logger.SetOutput(options.Err)
+	} else {
+		logger.SetOutput(os.Stderr)
+	}
+	logger.SetLevel(logrus.GetLevel())
+
 	var dockerfiles []io.ReadCloser
 	defer func(dockerfiles ...io.ReadCloser) {
 		for _, d := range dockerfiles {
@@ -56,6 +65,14 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 		}
 	}(dockerfiles...)
 
+	for _, tag := range append([]string{options.Output}, options.AdditionalTags...) {
+		if tag == "" {
+			continue
+		}
+		if _, err := util.VerifyTagName(tag); err != nil {
+			return "", nil, errors.Wrapf(err, "tag %s", tag)
+		}
+	}
 	for _, dfile := range paths {
 		var data io.ReadCloser
 
@@ -116,7 +133,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 
 		// pre-process Dockerfiles with ".in" suffix
 		if strings.HasSuffix(dfile, ".in") {
-			pData, err := preprocessDockerfileContents(data, options.ContextDirectory)
+			pData, err := preprocessContainerfileContents(dfile, data, options.ContextDirectory)
 			if err != nil {
 				return "", nil, err
 			}
@@ -131,7 +148,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 		return "", nil, errors.Wrapf(err, "error parsing main Dockerfile: %s", dockerfiles[0])
 	}
 
-	warnOnUnsetBuildArgs(mainNode, options.Args)
+	warnOnUnsetBuildArgs(logger, mainNode, options.Args)
 
 	for _, d := range dockerfiles[1:] {
 		additionalNode, err := imagebuilder.ParseDockerfile(d)
@@ -140,7 +157,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 		}
 		mainNode.Children = append(mainNode.Children, additionalNode.Children...)
 	}
-	exec, err := NewExecutor(store, options, mainNode)
+	exec, err := NewExecutor(logger, store, options, mainNode)
 	if err != nil {
 		return "", nil, errors.Wrapf(err, "error creating build executor")
 	}
@@ -164,7 +181,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 	return exec.Build(ctx, stages)
 }
 
-func warnOnUnsetBuildArgs(node *parser.Node, args map[string]string) {
+func warnOnUnsetBuildArgs(logger *logrus.Logger, node *parser.Node, args map[string]string) {
 	argFound := make(map[string]bool)
 	for _, child := range node.Children {
 		switch strings.ToUpper(child.Value) {
@@ -181,7 +198,7 @@ func warnOnUnsetBuildArgs(node *parser.Node, args map[string]string) {
 				argHasValue = argFound[argName]
 			}
 			if _, ok := args[argName]; !argHasValue && !ok {
-				logrus.Warnf("missing %q build argument. Try adding %q to the command line", argName, fmt.Sprintf("--build-arg %s=<VALUE>", argName))
+				logger.Warnf("missing %q build argument. Try adding %q to the command line", argName, fmt.Sprintf("--build-arg %s=<VALUE>", argName))
 			}
 		default:
 			continue
@@ -189,15 +206,15 @@ func warnOnUnsetBuildArgs(node *parser.Node, args map[string]string) {
 	}
 }
 
-// preprocessDockerfileContents runs CPP(1) in preprocess-only mode on the input
+// preprocessContainerfileContents runs CPP(1) in preprocess-only mode on the input
 // dockerfile content and will use ctxDir as the base include path.
 //
 // Note: we cannot use cmd.StdoutPipe() as cmd.Wait() closes it.
-func preprocessDockerfileContents(r io.Reader, ctxDir string) (rdrCloser *io.ReadCloser, err error) {
+func preprocessContainerfileContents(containerfile string, r io.Reader, ctxDir string) (rdrCloser *io.ReadCloser, err error) {
 	cppPath := "/usr/bin/cpp"
 	if _, err = os.Stat(cppPath); err != nil {
 		if os.IsNotExist(err) {
-			err = errors.Errorf("error: Dockerfile.in support requires %s to be installed", cppPath)
+			err = errors.Errorf("error: %s support requires %s to be installed", containerfile, cppPath)
 		}
 		return nil, err
 	}
@@ -214,11 +231,7 @@ func preprocessDockerfileContents(r io.Reader, ctxDir string) (rdrCloser *io.Rea
 		return nil, err
 	}
 
-	defer func() {
-		if err != nil {
-			pipe.Close()
-		}
-	}()
+	defer pipe.Close()
 
 	if err = cmd.Start(); err != nil {
 		return nil, err
@@ -230,10 +243,10 @@ func preprocessDockerfileContents(r io.Reader, ctxDir string) (rdrCloser *io.Rea
 
 	pipe.Close()
 	if err = cmd.Wait(); err != nil {
-		if stderr.Len() > 0 {
-			err = errors.Wrapf(err, "%v", strings.TrimSpace(stderr.String()))
+		if stdout.Len() == 0 {
+			return nil, errors.Wrapf(err, "error pre-processing Dockerfile")
 		}
-		return nil, errors.Wrapf(err, "error pre-processing Dockerfile")
+		logrus.Warnf("Ignoring %s\n", stderr.String())
 	}
 
 	rc := ioutil.NopCloser(bytes.NewReader(stdout.Bytes()))
