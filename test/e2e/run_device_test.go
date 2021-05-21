@@ -113,4 +113,10 @@ var _ = Describe("Podman run device", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(Equal("/dev/kmsg1"))
 	})
+
+	It("podman run --gpus noop", func() {
+		session := podmanTest.Podman([]string{"run", "--gpus", "all", ALPINE, "ls", "/"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
 })
