@@ -152,7 +152,7 @@ var (
 
 	// ErrOCIRuntimeNotFound indicates the OCI runtime attempted to invoke a command
 	// that was not found
-	ErrOCIRuntimeNotFound = errors.New("OCI not found")
+	ErrOCIRuntimeNotFound = errors.New("OCI runtime attempted to invoke a command that was not found")
 
 	// ErrOCIRuntimeUnavailable indicates that the OCI runtime associated to a container
 	// could not be found in the configuration
