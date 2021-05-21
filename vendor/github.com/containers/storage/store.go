@@ -939,6 +939,19 @@ func (s *store) ContainerStore() (ContainerStore, error) {
 	return nil, ErrLoadError
 }
 
+func (s *store) canUseShifting(uidmap, gidmap []idtools.IDMap) bool {
+	if !s.graphDriver.SupportsShifting() {
+		return false
+	}
+	if uidmap != nil && !idtools.IsContiguous(uidmap) {
+		return false
+	}
+	if gidmap != nil && !idtools.IsContiguous(gidmap) {
+		return false
+	}
+	return true
+}
+
 func (s *store) PutLayer(id, parent string, names []string, mountLabel string, writeable bool, options *LayerOptions, diff io.Reader) (*Layer, int64, error) {
 	var parentLayer *Layer
 	rlstore, err := s.LayerStore()
@@ -1022,7 +1035,7 @@ func (s *store) PutLayer(id, parent string, names []string, mountLabel string, w
 		}
 	}
 	var layerOptions *LayerOptions
-	if s.graphDriver.SupportsShifting() {
+	if s.canUseShifting(uidMap, gidMap) {
 		layerOptions = &LayerOptions{IDMappingOptions: types.IDMappingOptions{HostUIDMapping: true, HostGIDMapping: true, UIDMap: nil, GIDMap: nil}}
 	} else {
 		layerOptions = &LayerOptions{
@@ -1101,7 +1114,7 @@ func (s *store) CreateImage(id string, names []string, layer, metadata string, o
 func (s *store) imageTopLayerForMapping(image *Image, ristore ROImageStore, createMappedLayer bool, rlstore LayerStore, lstores []ROLayerStore, options types.IDMappingOptions) (*Layer, error) {
 	layerMatchesMappingOptions := func(layer *Layer, options types.IDMappingOptions) bool {
 		// If the driver supports shifting and the layer has no mappings, we can use it.
-		if s.graphDriver.SupportsShifting() && len(layer.UIDMap) == 0 && len(layer.GIDMap) == 0 {
+		if s.canUseShifting(options.UIDMap, options.GIDMap) && len(layer.UIDMap) == 0 && len(layer.GIDMap) == 0 {
 			return true
 		}
 		// If we want host mapping, and the layer uses mappings, it's not the best match.
@@ -1175,7 +1188,7 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore ROImageStore, crea
 		// ... so create a duplicate of the layer with the desired mappings, and
 		// register it as an alternate top layer in the image.
 		var layerOptions LayerOptions
-		if s.graphDriver.SupportsShifting() {
+		if s.canUseShifting(options.UIDMap, options.GIDMap) {
 			layerOptions = LayerOptions{
 				IDMappingOptions: types.IDMappingOptions{
 					HostUIDMapping: true,
@@ -1329,7 +1342,7 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		}
 	}
 	var layerOptions *LayerOptions
-	if s.graphDriver.SupportsShifting() {
+	if s.canUseShifting(uidMap, gidMap) {
 		layerOptions = &LayerOptions{
 			IDMappingOptions: types.IDMappingOptions{
 				HostUIDMapping: true,
@@ -2693,6 +2706,7 @@ func (s *store) Mount(id, mountLabel string) (string, error) {
 				options.Volatile = v.(bool)
 			}
 		}
+		options.DisableShifting = !s.canUseShifting(container.UIDMap, container.GIDMap)
 	}
 	return s.mount(id, options)
 }
