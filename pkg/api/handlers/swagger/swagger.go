@@ -8,6 +8,15 @@ import (
 	"github.com/docker/docker/api/types"
 )
 
+// Tree response
+// swagger:response TreeResponse
+type swagTree struct {
+	// in:body
+	Body struct {
+		entities.ImageTreeReport
+	}
+}
+
 // History response
 // swagger:response DocsHistory
 type swagHistory struct {
@@ -181,14 +190,5 @@ type swagInspectVolumeResponse struct {
 	// in:body
 	Body struct {
 		define.InspectVolumeData
-	}
-}
-
-// Image tree response
-// swagger:response LibpodImageTreeResponse
-type swagImageTreeResponse struct {
-	// in:body
-	Body struct {
-		handlers.ImageTreeResponse
 	}
 }

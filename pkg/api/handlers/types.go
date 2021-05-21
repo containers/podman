@@ -148,15 +148,6 @@ type HistoryResponse struct {
 	Comment   string
 }
 
-type ImageLayer struct{}
-
-type ImageTreeResponse struct {
-	ID     string       `json:"id"`
-	Tags   []string     `json:"tags"`
-	Size   string       `json:"size"`
-	Layers []ImageLayer `json:"layers"`
-}
-
 type ExecCreateConfig struct {
 	docker.ExecConfig
 }
