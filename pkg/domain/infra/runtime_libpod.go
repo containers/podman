@@ -129,6 +129,7 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 	if fs.Changed("root") {
 		storageSet = true
 		storageOpts.GraphRoot = cfg.Engine.StaticDir
+		storageOpts.GraphDriverOptions = []string{}
 	}
 	if fs.Changed("runroot") {
 		storageSet = true

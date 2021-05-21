@@ -19,7 +19,7 @@ PODMAN_CORRUPT_TEST_IMAGE_ID=961769676411f082461f9ef46626dd7a2d1e2b2a38e6a44364b
 # All tests in this file (and ONLY in this file) run with a custom rootdir
 function setup() {
     skip_if_remote "none of these tests run under podman-remote"
-    _PODMAN_TEST_OPTS="--root ${PODMAN_CORRUPT_TEST_WORKDIR}/root"
+    _PODMAN_TEST_OPTS="--storage-driver=vfs --root ${PODMAN_CORRUPT_TEST_WORKDIR}/root"
 }
 
 function teardown() {

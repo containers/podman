@@ -12,7 +12,7 @@ load helpers
     # 'podman images' should emit headings even if there are no images
     # (but --root only works locally)
     if ! is_remote; then
-        run_podman --root ${PODMAN_TMPDIR}/nothing-here-move-along images
+        run_podman --storage-driver=vfs --root ${PODMAN_TMPDIR}/nothing-here-move-along images
         is "$output" "$headings" "'podman images' emits headings even w/o images"
     fi
 }

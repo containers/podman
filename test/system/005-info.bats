@@ -82,4 +82,12 @@ store.imageStore.number   | 1
     # mounts.
     is "$output" ".*graphOptions: {}" "output includes graphOptions: {}"
 }
+
+@test "podman --root PATH info - basic output" {
+    if ! is_remote; then
+        run_podman --storage-driver=vfs --root ${PODMAN_TMPDIR}/nothing-here-move-along info --format '{{ .Store.GraphOptions }}'
+        is "$output" "map\[\]" "'podman --root should reset Graphoptions to []"
+    fi
+}
+
 # vim: filetype=sh
