@@ -21,6 +21,7 @@ import (
 	"github.com/containers/podman/v3/pkg/errorhandling"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
+	"github.com/containers/storage/types"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -580,7 +581,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 						if err := containers.Remove(ic.ClientCtx, ctr.ID, removeOptions); err != nil {
 							if errorhandling.Contains(err, define.ErrNoSuchCtr) ||
 								errorhandling.Contains(err, define.ErrCtrRemoved) {
-								logrus.Warnf("Container %s does not exist: %v", ctr.ID, err)
+								logrus.Debugf("Container %s does not exist: %v", ctr.ID, err)
 							} else {
 								logrus.Errorf("Error removing container %s: %v", ctr.ID, err)
 							}
@@ -613,8 +614,9 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 					rmOptions := new(containers.RemoveOptions).WithForce(false).WithVolumes(true)
 					if err := containers.Remove(ic.ClientCtx, ctr.ID, rmOptions); err != nil {
 						if errorhandling.Contains(err, define.ErrNoSuchCtr) ||
-							errorhandling.Contains(err, define.ErrCtrRemoved) {
-							logrus.Warnf("Container %s does not exist: %v", ctr.ID, err)
+							errorhandling.Contains(err, define.ErrCtrRemoved) ||
+							errorhandling.Contains(err, types.ErrLayerUnknown) {
+							logrus.Debugf("Container %s does not exist: %v", ctr.ID, err)
 						} else {
 							logrus.Errorf("Error removing container %s: %v", ctr.ID, err)
 						}
@@ -691,8 +693,9 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 			if !shouldRestart {
 				if err := containers.Remove(ic.ClientCtx, con.ID, new(containers.RemoveOptions).WithForce(false).WithVolumes(true)); err != nil {
 					if errorhandling.Contains(err, define.ErrNoSuchCtr) ||
-						errorhandling.Contains(err, define.ErrCtrRemoved) {
-						logrus.Warnf("Container %s does not exist: %v", con.ID, err)
+						errorhandling.Contains(err, define.ErrCtrRemoved) ||
+						errorhandling.Contains(err, types.ErrLayerUnknown) {
+						logrus.Debugf("Container %s does not exist: %v", con.ID, err)
 					} else {
 						logrus.Errorf("Error removing container %s: %v", con.ID, err)
 					}
