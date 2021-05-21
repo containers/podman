@@ -275,7 +275,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 		case nil:
 			// remove container names that we successfully deleted
 			reports = append(reports, &report)
-		case define.ErrNoSuchCtr:
+		case define.ErrNoSuchCtr, define.ErrCtrExists:
 			// There is still a potential this is a libpod container
 			tmpNames = append(tmpNames, ctr)
 		default:
