@@ -2,6 +2,11 @@
 
 # Please see contrib/podmanimage/README.md for details on the intentions
 # of this workflow.
+#
+# BIG FAT WARNING:  This workflow is duplicated across containers/skopeo,
+#                   containers/buildah, and containers/podman.  ANY AND
+#                   ALL CHANGES MADE HERE MUST BE MANUALLY DUPLICATED
+#                   TO THE OTHER REPOS.
 
 name: build multi-arch images
 
@@ -86,7 +91,7 @@ jobs:
                       docker://$PODMAN_QUAY_REGISTRY/stable | \
                       jq -r '.Tags[]')
 
-            # New image? Push quay.io/podman/stable:vX.X.X and :latest
+            # New version? Push quay.io/podman/stable:vX.X.X and :latest
             if ! fgrep -qx "$VERSION" <<<"$ALLTAGS"; then
               # Assume version-tag is also the most up to date (i.e. "latest")
               FQIN="$PODMAN_QUAY_REGISTRY/stable:$VERSION,$PODMAN_QUAY_REGISTRY/stable:latest"
@@ -108,31 +113,24 @@ jobs:
           echo "::set-output name=fqin::${FQIN}"
           echo '::set-output name=push::true'
 
-      # This is substantially the same as the above step, except the
-      # $CONTAINERS_QUAY_REGISTRY is used and the "testing"
-      # flavor is never pushed.
+      # This is substantially similar to the above logic,
+      # but only handles $CONTAINERS_QUAY_REGISTRY for
+      # the stable "latest" and named-version tagged images.
       - name: Generate containers reg. image FQIN(s)
-        if: matrix.source != 'testing'
+        if: matrix.source == 'stable'
         id: containers_reg
         run: |
-          if [[ "${{ matrix.source }}" == 'stable' ]]; then
-            VERSION='v${{ steps.sniff_test.outputs.version }}'
-            # workaround vim syntax-highlight bug: '
-            ALLTAGS=$(skopeo list-tags \
-                      docker://$CONTAINERS_QUAY_REGISTRY/podman | \
-                      jq -r '.Tags[]')
+          VERSION='v${{ steps.sniff_test.outputs.version }}'
+          # workaround vim syntax-highlight bug: '
+          ALLTAGS=$(skopeo list-tags \
+                    docker://$CONTAINERS_QUAY_REGISTRY/podman | \
+                    jq -r '.Tags[]')
 
-            # New image? Push quay.io/containers/podman:vX.X.X and :latest
-            if ! fgrep -qx "$VERSION" <<<"$ALLTAGS"; then
-              FQIN="$CONTAINERS_QUAY_REGISTRY/podman:$VERSION,$CONTAINERS_QUAY_REGISTRY/podman:latest"
-            else # Not a new version-tagged image, but contents may be updated
-              FQIN="$CONTAINERS_QUAY_REGISTRY/podman:latest"
-            fi
-          elif [[ "${{ matrix.source }}" == 'upstream' ]]; then
+          # New version? Push quay.io/containers/podman:vX.X.X and latest
+          if ! fgrep -qx "$VERSION" <<<"$ALLTAGS"; then
+            FQIN="$CONTAINERS_QUAY_REGISTRY/podman:$VERSION,$CONTAINERS_QUAY_REGISTRY/podman:latest"
+          else # Not a new version-tagged image, only update latest.
             FQIN="$CONTAINERS_QUAY_REGISTRY/podman:latest"
-          else
-            echo "::error::Unknown matrix item '${{ matrix.source }}'"
-            exit 1
           fi
           echo "::warning::Pushing $FQIN"
           echo "::set-output name=fqin::${FQIN}"
