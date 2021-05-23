@@ -4,7 +4,7 @@ module github.com/containers/storage
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/Microsoft/go-winio v0.4.17
+	github.com/Microsoft/go-winio v0.5.0
 	github.com/Microsoft/hcsshim v0.8.17
 	github.com/docker/go-units v0.4.0
 	github.com/google/go-intervals v0.0.2
@@ -16,7 +16,7 @@ require (
 	github.com/mistifyio/go-zfs v2.1.2-0.20190413222219-f784269be439+incompatible
 	github.com/moby/sys/mountinfo v0.4.1
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/opencontainers/runc v1.0.0-rc94
+	github.com/opencontainers/runc v1.0.0-rc95
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/opencontainers/selinux v1.8.1
 	github.com/pkg/errors v0.9.1
