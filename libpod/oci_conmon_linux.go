@@ -1055,6 +1055,16 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		}
 	}
 
+	if l, ok := os.LookupEnv("LISTEN_FDS"); ok {
+		listenFds, err := strconv.ParseUint(l, 10, 64)
+		if err != nil {
+			logrus.Warnf("Error LISTEN_FDS environment variable for %s not an int %v", ctr.ID(), err)
+		}
+
+		if uint(listenFds) > ctr.config.PreserveFDs {
+			ctr.config.PreserveFDs = uint(listenFds)
+		}
+	}
 	if ctr.config.PreserveFDs > 0 {
 		args = append(args, formatRuntimeOpts("--preserve-fds", fmt.Sprintf("%d", ctr.config.PreserveFDs))...)
 	}

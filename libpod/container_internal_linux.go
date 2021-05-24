@@ -648,6 +648,18 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		g.AddProcessEnv("HOSTNAME", hostname)
 	}
 
+	for _, lEnv := range []string{"LISTEN_PID", "LISTEN_FDS", "LISTEN_FDNAMES"} {
+		if val, ok := os.LookupEnv(lEnv); ok {
+			// The primary process within the container will be PID=1, so this
+			// value needs to be reset
+			if lEnv == "LISTEN_PID" {
+				g.AddProcessEnv(lEnv, "1")
+				continue
+			}
+			g.AddProcessEnv(lEnv, val)
+		}
+	}
+
 	if c.config.UTSNsCtr != "" {
 		if err := c.addNamespaceContainer(&g, UTSNS, c.config.UTSNsCtr, spec.UTSNamespace); err != nil {
 			return nil, err

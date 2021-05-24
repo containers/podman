@@ -148,4 +148,43 @@ function service_cleanup() {
     service_cleanup
 }
 
+@test "podman pass run LISTEN environment " {
+    tmpdir=$PODMAN_TMPDIR/build-test
+    subdir=$tmpdir/subdir
+    run_podman run --hostname=host1 --rm $IMAGE printenv
+    std_output=$output
+
+    export LISTEN_PID="100" LISTEN_FDS="1" LISTEN_FDNAMES="listen_fdnames"
+    run_podman run --hostname=host1 --rm $IMAGE printenv
+    if is_remote; then
+	is "$output" "$std_output" "LISTEN Environment did not pass"
+    else
+	is "$output" "$std_output
+LISTEN_PID=1
+LISTEN_FDS=1
+LISTEN_FDNAMES=listen_fdnames" "LISTEN Environment passed"
+    fi
+    unset LISTEN_PID LISTEN_FDS LISTEN_FDNAMES
+}
+
+@test "podman pass start LISTEN environment " {
+    tmpdir=$PODMAN_TMPDIR/build-test
+    subdir=$tmpdir/subdir
+    run_podman run --hostname=host1 --rm $IMAGE printenv
+    std_output=$output
+
+    run_podman create --name=test --hostname=host1 --rm $IMAGE printenv
+    export LISTEN_PID="100" LISTEN_FDS="1" LISTEN_FDNAMES="listen_fdnames"
+    run_podman start --attach test
+    if is_remote; then
+	is "$output" "$std_output" "LISTEN Environment did not pass"
+    else
+	is "$output" "$std_output
+LISTEN_PID=1
+LISTEN_FDS=1
+LISTEN_FDNAMES=listen_fdnames" "LISTEN Environment passed"
+    fi
+    unset LISTEN_PID LISTEN_FDS LISTEN_FDNAMES
+}
+
 # vim: filetype=sh
