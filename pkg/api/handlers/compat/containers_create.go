@@ -62,7 +62,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Take body structure and convert to cliopts
-	cliOpts, args, err := common.ContainerCreateToContainerCLIOpts(body, rtc.Engine.CgroupManager)
+	cliOpts, args, err := common.ContainerCreateToContainerCLIOpts(body, rtc)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "make cli opts()"))
 		return

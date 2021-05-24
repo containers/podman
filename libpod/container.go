@@ -14,7 +14,6 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/lock"
-	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -1168,7 +1167,7 @@ func (c *Container) Networks() ([]string, bool, error) {
 func (c *Container) networks() ([]string, bool, error) {
 	networks, err := c.runtime.state.GetNetworks(c)
 	if err != nil && errors.Cause(err) == define.ErrNoSuchNetwork {
-		if len(c.config.Networks) == 0 && !rootless.IsRootless() {
+		if len(c.config.Networks) == 0 && c.config.NetMode.IsBridge() {
 			return []string{c.runtime.netPlugin.GetDefaultNetworkName()}, true, nil
 		}
 		return c.config.Networks, false, nil

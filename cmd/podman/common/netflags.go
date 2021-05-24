@@ -201,7 +201,7 @@ func NetFlagsToNetOptions(cmd *cobra.Command) (*entities.NetOptions, error) {
 
 		parts := strings.SplitN(network, ":", 2)
 
-		ns, cniNets, err := specgen.ParseNetworkNamespace(network)
+		ns, cniNets, err := specgen.ParseNetworkNamespace(network, containerConfig.Containers.RootlessNetworking == "cni")
 		if err != nil {
 			return nil, err
 		}

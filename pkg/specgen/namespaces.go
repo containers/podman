@@ -253,7 +253,7 @@ func ParseUserNamespace(ns string) (Namespace, error) {
 // ParseNetworkNamespace parses a network namespace specification in string
 // form.
 // Returns a namespace and (optionally) a list of CNI networks to join.
-func ParseNetworkNamespace(ns string) (Namespace, []string, error) {
+func ParseNetworkNamespace(ns string, rootlessDefaultCNI bool) (Namespace, []string, error) {
 	toReturn := Namespace{}
 	var cniNetworks []string
 	// Net defaults to Slirp on rootless
@@ -264,7 +264,11 @@ func ParseNetworkNamespace(ns string) (Namespace, []string, error) {
 		toReturn.NSMode = FromPod
 	case ns == "" || ns == string(Default) || ns == string(Private):
 		if rootless.IsRootless() {
-			toReturn.NSMode = Slirp
+			if rootlessDefaultCNI {
+				toReturn.NSMode = Bridge
+			} else {
+				toReturn.NSMode = Slirp
+			}
 		} else {
 			toReturn.NSMode = Bridge
 		}

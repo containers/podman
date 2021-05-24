@@ -102,6 +102,7 @@ github.com/containers/common/pkg/cgroupv2
 github.com/containers/common/pkg/chown
 github.com/containers/common/pkg/completion
 github.com/containers/common/pkg/config
+github.com/containers/common/pkg/defaultnet
 github.com/containers/common/pkg/filters
 github.com/containers/common/pkg/manifests
 github.com/containers/common/pkg/parse
