@@ -23,21 +23,22 @@ type SecurityInfo struct {
 
 // HostInfo describes the libpod host
 type HostInfo struct {
-	Arch           string           `json:"arch"`
-	BuildahVersion string           `json:"buildahVersion"`
-	CgroupManager  string           `json:"cgroupManager"`
-	CGroupsVersion string           `json:"cgroupVersion"`
-	Conmon         *ConmonInfo      `json:"conmon"`
-	CPUs           int              `json:"cpus"`
-	Distribution   DistributionInfo `json:"distribution"`
-	EventLogger    string           `json:"eventLogger"`
-	Hostname       string           `json:"hostname"`
-	IDMappings     IDMappings       `json:"idMappings,omitempty"`
-	Kernel         string           `json:"kernel"`
-	MemFree        int64            `json:"memFree"`
-	MemTotal       int64            `json:"memTotal"`
-	OCIRuntime     *OCIRuntimeInfo  `json:"ociRuntime"`
-	OS             string           `json:"os"`
+	Arch              string           `json:"arch"`
+	BuildahVersion    string           `json:"buildahVersion"`
+	CgroupManager     string           `json:"cgroupManager"`
+	CGroupsVersion    string           `json:"cgroupVersion"`
+	CgroupControllers []string         `json:"cgroupControllers"`
+	Conmon            *ConmonInfo      `json:"conmon"`
+	CPUs              int              `json:"cpus"`
+	Distribution      DistributionInfo `json:"distribution"`
+	EventLogger       string           `json:"eventLogger"`
+	Hostname          string           `json:"hostname"`
+	IDMappings        IDMappings       `json:"idMappings,omitempty"`
+	Kernel            string           `json:"kernel"`
+	MemFree           int64            `json:"memFree"`
+	MemTotal          int64            `json:"memTotal"`
+	OCIRuntime        *OCIRuntimeInfo  `json:"ociRuntime"`
+	OS                string           `json:"os"`
 	// RemoteSocket returns the UNIX domain socket the Podman service is listening on
 	RemoteSocket *RemoteSocket          `json:"remoteSocket,omitempty"`
 	RuntimeInfo  map[string]interface{} `json:"runtimeInfo,omitempty"`

@@ -93,20 +93,33 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 		return nil, errors.Wrapf(err, "error getting Seccomp profile path")
 	}
 
+	// CGroups version
+	unified, err := cgroups.IsCgroup2UnifiedMode()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading cgroups mode")
+	}
+
+	// Get Map of all available controllers
+	availableControllers, err := cgroups.GetAvailableControllers(nil, unified)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting available cgroup controllers")
+	}
+
 	info := define.HostInfo{
-		Arch:           runtime.GOARCH,
-		BuildahVersion: buildah.Version,
-		CgroupManager:  r.config.Engine.CgroupManager,
-		Linkmode:       linkmode.Linkmode(),
-		CPUs:           runtime.NumCPU(),
-		Distribution:   hostDistributionInfo,
-		EventLogger:    r.eventer.String(),
-		Hostname:       host,
-		IDMappings:     define.IDMappings{},
-		Kernel:         kv,
-		MemFree:        mi.MemFree,
-		MemTotal:       mi.MemTotal,
-		OS:             runtime.GOOS,
+		Arch:              runtime.GOARCH,
+		BuildahVersion:    buildah.Version,
+		CgroupManager:     r.config.Engine.CgroupManager,
+		CgroupControllers: availableControllers,
+		Linkmode:          linkmode.Linkmode(),
+		CPUs:              runtime.NumCPU(),
+		Distribution:      hostDistributionInfo,
+		EventLogger:       r.eventer.String(),
+		Hostname:          host,
+		IDMappings:        define.IDMappings{},
+		Kernel:            kv,
+		MemFree:           mi.MemFree,
+		MemTotal:          mi.MemTotal,
+		OS:                runtime.GOOS,
 		Security: define.SecurityInfo{
 			AppArmorEnabled:     apparmor.IsEnabled(),
 			DefaultCapabilities: strings.Join(r.config.Containers.DefaultCapabilities, ","),
@@ -120,11 +133,6 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 		SwapTotal:   mi.SwapTotal,
 	}
 
-	// CGroups version
-	unified, err := cgroups.IsCgroup2UnifiedMode()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error reading cgroups mode")
-	}
 	cgroupVersion := "v1"
 	if unified {
 		cgroupVersion = "v2"
