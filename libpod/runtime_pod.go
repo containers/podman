@@ -178,7 +178,7 @@ func (r *Runtime) GetRunningPods() ([]*Pod, error) {
 // PrunePods removes unused pods and their containers from local storage.
 func (r *Runtime) PrunePods(ctx context.Context) (map[string]error, error) {
 	response := make(map[string]error)
-	states := []string{define.PodStateStopped, define.PodStateExited}
+	states := []string{define.PodStateExited}
 	filterFunc := func(p *Pod) bool {
 		state, _ := p.GetPodStatus()
 		for _, status := range states {
