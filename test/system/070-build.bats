@@ -766,6 +766,26 @@ EOF
     is "$output" ".*/tmp/bogus: no such file or directory"
 }
 
+@test "podman build COPY hardlinks " {
+    tmpdir=$PODMAN_TMPDIR/build-test
+    mkdir -p $tmpdir
+
+    dockerfile=$tmpdir/Dockerfile
+    cat >$dockerfile <<EOF
+FROM $IMAGE
+COPY . /test
+EOF
+    ln $dockerfile $tmpdir/hardlink
+
+    run_podman build -t build_test $tmpdir
+    run_podman run --rm build_test stat -c '%i' /test/Dockerfile
+    dinode=$output
+    run_podman run --rm build_test stat -c '%i' /test/hardlink
+    is "$output"   "$dinode"   "COPY hardlinks work"
+
+    run_podman rmi -f build_test
+}
+
 function teardown() {
     # A timeout or other error in 'build' can leave behind stale images
     # that podman can't even see and which will cascade into subsequent
