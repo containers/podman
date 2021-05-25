@@ -25,6 +25,8 @@ load helpers
         die "podman start --all restarted a running container"
     fi
 
+    run_podman wait $cid_none_implicit $cid_none_explicit $cid_on_failure
+
     run_podman rm $cid_none_implicit $cid_none_explicit $cid_on_failure
     run_podman stop -t 1 $cid_always
     run_podman rm $cid_always
