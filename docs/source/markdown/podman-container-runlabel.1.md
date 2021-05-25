@@ -57,7 +57,7 @@ The runlabel command will not execute if --display is specified.
 #### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
-Default certificates directory is _/etc/containers/certs.d_. (This option is not available with the remote Podman client)
+Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client)
 
 #### **--creds**=*[username[:password]]*
 
@@ -105,7 +105,7 @@ $ sudo podman container runlabel --display run foobar
 ```
 
 ## SEE ALSO
-podman(1)
+podman(1), containers-certs.d(5)
 
 ## HISTORY
 September 2018, Originally compiled by Brent Baude (bbaude at redhat dot com)

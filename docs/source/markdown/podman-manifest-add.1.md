@@ -44,7 +44,7 @@ environment variable. `export REGISTRY_AUTH_FILE=path`
 #### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
-Default certificates directory is _/etc/containers/certs.d_. (This option is not available with the remote Podman client)
+Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client)
 
 #### **--creds**=*creds*
 
@@ -110,4 +110,4 @@ podman manifest add --arch arm64 --variant v8 mylist:v1.11 docker://71c201d10fff
 ```
 
 ## SEE ALSO
-podman(1), podman-manifest(1), podman-manifest-create(1), podman-manifest-inspect(1), podman-manifest-push(1), podman-manifest-remove(1), podman-rmi(1)
+podman(1), podman-manifest(1), podman-manifest-create(1), podman-manifest-inspect(1), podman-manifest-push(1), podman-manifest-remove(1), podman-rmi(1), containers-certs.d(5)
