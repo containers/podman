@@ -26,7 +26,7 @@ Sign all the manifests of the multi-architecture image (default false).
 #### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
-Default certificates directory is _/etc/containers/certs.d_. (This option is not available with the remote Podman client)
+Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client)
 
 #### **--directory**, **-d**=*dir*
 
@@ -61,7 +61,7 @@ the signature will be written into sub-directories of
 the signature will be 'read' from that same location on a pull-related function.
 
 ## SEE ALSO
-containers-registries.d(5)
+containers-certs.d(5), containers-registries.d(5)
 
 ## HISTORY
 November 2018, Originally compiled by Qi Wang (qiwan at redhat dot com)

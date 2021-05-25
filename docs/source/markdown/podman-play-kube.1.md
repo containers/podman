@@ -48,7 +48,7 @@ environment variable. `export REGISTRY_AUTH_FILE=path`
 #### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
-Default certificates directory is _/etc/containers/certs.d_. (This option is not available with the remote Podman client)
+Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client)
 
 #### **--configmap**=*path*
 
@@ -132,7 +132,7 @@ $ podman play kube demo.yml --network cni1,cni2
 Please take into account that CNI networks must be created first using podman-network-create(1).
 
 ## SEE ALSO
-podman(1), podman-container(1), podman-pod(1), podman-generate-kube(1), podman-play(1), podman-network-create(1)
+podman(1), podman-container(1), podman-pod(1), podman-generate-kube(1), podman-play(1), podman-network-create(1), containers-certs.d(5)
 
 ## HISTORY
 December 2018, Originally compiled by Brent Baude (bbaude at redhat dot com)

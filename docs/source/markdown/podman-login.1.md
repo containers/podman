@@ -54,7 +54,7 @@ Return the logged-in user for the registry.  Return error if no login is found.
 #### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
-Default certificates directory is _/etc/containers/certs.d_. (This option is not available with the remote Podman client)
+Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client)
 
 #### **--tls-verify**=*true|false*
 
@@ -108,7 +108,7 @@ Login Succeeded!
 ```
 
 ## SEE ALSO
-podman(1), podman-logout(1), containers-auth.json(5), containers-registries.conf(5)
+podman(1), podman-logout(1), containers-auth.json(5), containers-certs.d(5), containers-registries.conf(5)
 
 ## HISTORY
 August 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

@@ -80,7 +80,7 @@ environment variable. `export REGISTRY_AUTH_FILE=path`
 #### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
-Default certificates directory is _/etc/containers/certs.d_. (This option is not available with the remote Podman client)
+Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client)
 
 #### **--creds**=*[username[:password]]*
 
@@ -217,7 +217,7 @@ registries.conf is the configuration file which specifies which container regist
 NOTE: Use the environment variable `TMPDIR` to change the temporary storage location of downloaded container images. Podman defaults to use `/var/tmp`.
 
 ## SEE ALSO
-podman(1), podman-push(1), podman-login(1), containers-registries.conf(5)
+podman(1), podman-push(1), podman-login(1), containers-certs.d(5), containers-registries.conf(5)
 
 ## HISTORY
 July 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>
