@@ -408,7 +408,14 @@ func (p *PodmanTestIntegration) RunLsContainer(name string) (*PodmanSessionInteg
 	podmanArgs = append(podmanArgs, "-d", ALPINE, "ls")
 	session := p.Podman(podmanArgs)
 	session.WaitWithDefaultTimeout()
-	return session, session.ExitCode(), session.OutputToString()
+	if session.ExitCode() != 0 {
+		return session, session.ExitCode(), session.OutputToString()
+	}
+	cid := session.OutputToString()
+
+	wsession := p.Podman([]string{"wait", cid})
+	wsession.WaitWithDefaultTimeout()
+	return session, wsession.ExitCode(), cid
 }
 
 // RunNginxWithHealthCheck runs the alpine nginx container with an optional name and adds a healthcheck into it
@@ -431,7 +438,14 @@ func (p *PodmanTestIntegration) RunLsContainerInPod(name, pod string) (*PodmanSe
 	podmanArgs = append(podmanArgs, "-d", ALPINE, "ls")
 	session := p.Podman(podmanArgs)
 	session.WaitWithDefaultTimeout()
-	return session, session.ExitCode(), session.OutputToString()
+	if session.ExitCode() != 0 {
+		return session, session.ExitCode(), session.OutputToString()
+	}
+	cid := session.OutputToString()
+
+	wsession := p.Podman([]string{"wait", cid})
+	wsession.WaitWithDefaultTimeout()
+	return session, wsession.ExitCode(), cid
 }
 
 // BuildImage uses podman build and buildah to build an image
