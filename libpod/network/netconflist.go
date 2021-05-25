@@ -45,7 +45,7 @@ func NewNcList(name, version string, labels NcLabels) NcList {
 }
 
 // NewHostLocalBridge creates a new LocalBridge for host-local
-func NewHostLocalBridge(name string, isGateWay, isDefaultGW, ipMasq bool, mtu int, vlan int, ipamConf IPAMHostLocalConf) *HostLocalBridge {
+func NewHostLocalBridge(name string, isGateWay, isDefaultGW, ipMasq bool, mtu int, vlan int, ipamConf IPAMConfig) *HostLocalBridge {
 	hostLocalBridge := HostLocalBridge{
 		PluginType:  "bridge",
 		BrName:      name,
@@ -65,8 +65,8 @@ func NewHostLocalBridge(name string, isGateWay, isDefaultGW, ipMasq bool, mtu in
 }
 
 // NewIPAMHostLocalConf creates a new IPAMHostLocal configuration
-func NewIPAMHostLocalConf(routes []IPAMRoute, ipamRanges [][]IPAMLocalHostRangeConf) (IPAMHostLocalConf, error) {
-	ipamConf := IPAMHostLocalConf{
+func NewIPAMHostLocalConf(routes []IPAMRoute, ipamRanges [][]IPAMLocalHostRangeConf) (IPAMConfig, error) {
+	ipamConf := IPAMConfig{
 		PluginType: "host-local",
 		Routes:     routes,
 		// Possible future support ? Leaving for clues
@@ -177,8 +177,10 @@ func HasDNSNamePlugin(paths []string) bool {
 
 // NewMacVLANPlugin creates a macvlanconfig with a given device name
 func NewMacVLANPlugin(device string, gateway net.IP, ipRange *net.IPNet, subnet *net.IPNet, mtu int) (MacVLANConfig, error) {
-	i := IPAMDHCP{DHCP: "dhcp"}
-	if gateway != nil || ipRange != nil || subnet != nil {
+	i := IPAMConfig{PluginType: "dhcp"}
+	if gateway != nil ||
+		(ipRange != nil && ipRange.IP != nil && ipRange.Mask != nil) ||
+		(subnet != nil && subnet.IP != nil && subnet.Mask != nil) {
 		ipam, err := NewIPAMLocalHostRange(subnet, ipRange, gateway)
 		if err != nil {
 			return MacVLANConfig{}, err
@@ -186,6 +188,12 @@ func NewMacVLANPlugin(device string, gateway net.IP, ipRange *net.IPNet, subnet 
 		ranges := make([][]IPAMLocalHostRangeConf, 0)
 		ranges = append(ranges, ipam)
 		i.Ranges = ranges
+		route, err := NewIPAMDefaultRoute(IsIPv6(subnet.IP))
+		if err != nil {
+			return MacVLANConfig{}, err
+		}
+		i.Routes = []IPAMRoute{route}
+		i.PluginType = "host-local"
 	}
 
 	m := MacVLANConfig{
