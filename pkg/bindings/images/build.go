@@ -450,7 +450,7 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 						hdr.Typeflag = tar.TypeLink
 						hdr.Linkname = orig
 						hdr.Size = 0
-
+						hdr.Name = name
 						return tw.WriteHeader(hdr)
 					}
 					f, err := os.Open(path)
