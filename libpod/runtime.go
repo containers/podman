@@ -17,6 +17,7 @@ import (
 
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/defaultnet"
 	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	is "github.com/containers/image/v5/storage"
@@ -456,6 +457,11 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		if !os.IsExist(err) {
 			return errors.Wrapf(err, "error creating runtime temporary files directory")
 		}
+	}
+
+	// If we need to make a default network - do so now.
+	if err := defaultnet.Create(runtime.config.Network.DefaultNetwork, runtime.config.Network.DefaultSubnet, runtime.config.Network.NetworkConfigDir, runtime.config.Engine.StaticDir, runtime.config.Engine.MachineEnabled); err != nil {
+		logrus.Errorf("Failed to created default CNI network: %v", err)
 	}
 
 	// Set up the CNI net plugin

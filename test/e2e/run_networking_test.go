@@ -786,4 +786,18 @@ var _ = Describe("Podman run networking", func() {
 		Expect(session.ExitCode()).To(BeZero())
 		Expect(session.OutputToString()).To(ContainSubstring("search dns.podman"))
 	})
+
+	It("Rootless podman run with --net=bridge works and connects to default network", func() {
+		// This is harmless when run as root, so we'll just let it run.
+		ctrName := "testctr"
+		ctr := podmanTest.Podman([]string{"run", "-d", "--net=bridge", "--name", ctrName, ALPINE, "top"})
+		ctr.WaitWithDefaultTimeout()
+		Expect(ctr.ExitCode()).To(BeZero())
+
+		inspectOut := podmanTest.InspectContainer(ctrName)
+		Expect(len(inspectOut)).To(Equal(1))
+		Expect(len(inspectOut[0].NetworkSettings.Networks)).To(Equal(1))
+		_, ok := inspectOut[0].NetworkSettings.Networks["podman"]
+		Expect(ok).To(BeTrue())
+	})
 })
