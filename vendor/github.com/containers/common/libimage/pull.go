@@ -279,6 +279,7 @@ func (r *Runtime) copyFromRegistry(ctx context.Context, ref types.ImageReference
 		return r.copySingleImageFromRegistry(ctx, inputName, pullPolicy, options)
 	}
 
+	// Copy all tags
 	named := reference.TrimNamed(ref.DockerReference())
 	tags, err := registryTransport.GetRepositoryTags(ctx, &r.systemContext, ref)
 	if err != nil {

@@ -2446,7 +2446,9 @@ func (devices *DeviceSet) UnmountDevice(hash, mountPath string) error {
 
 	logrus.Debugf("devmapper: Unmount(%s)", mountPath)
 	if err := mount.Unmount(mountPath); err != nil {
-		return err
+		if ok, _ := Mounted(mountPath); ok {
+			return err
+		}
 	}
 	logrus.Debug("devmapper: Unmount done")
 

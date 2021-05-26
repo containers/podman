@@ -230,6 +230,9 @@ type AdditionalLayer interface {
 	// Info returns arbitrary information stored along with this layer (i.e. `info` file)
 	Info() (io.ReadCloser, error)
 
+	// Blob returns a reader of the raw contents of this layer.
+	Blob() (io.ReadCloser, error)
+
 	// Release tells the additional layer store that we don't use this handler.
 	Release()
 }
@@ -243,6 +246,10 @@ type AdditionalLayerStoreDriver interface {
 	// LookupAdditionalLayer looks up additional layer store by the specified
 	// digest and ref and returns an object representing that layer.
 	LookupAdditionalLayer(d digest.Digest, ref string) (AdditionalLayer, error)
+
+	// LookupAdditionalLayer looks up additional layer store by the specified
+	// ID and returns an object representing that layer.
+	LookupAdditionalLayerByID(id string) (AdditionalLayer, error)
 }
 
 // DiffGetterDriver is the interface for layered file system drivers that

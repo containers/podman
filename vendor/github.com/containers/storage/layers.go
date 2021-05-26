@@ -1401,6 +1401,52 @@ func (r *layerStore) Diff(from, to string, options *DiffOptions) (io.ReadCloser,
 		return maybeCompressReadCloser(diff)
 	}
 
+	if ad, ok := r.driver.(drivers.AdditionalLayerStoreDriver); ok {
+		if aLayer, err := ad.LookupAdditionalLayerByID(to); err == nil {
+			// This is an additional layer. We leverage blob API for aquiring the reproduced raw blob.
+			info, err := aLayer.Info()
+			if err != nil {
+				aLayer.Release()
+				return nil, err
+			}
+			defer info.Close()
+			layer := &Layer{}
+			if err := json.NewDecoder(info).Decode(layer); err != nil {
+				aLayer.Release()
+				return nil, err
+			}
+			blob, err := aLayer.Blob()
+			if err != nil {
+				aLayer.Release()
+				return nil, err
+			}
+			// If layer compression type is different from the expected one, decompress and convert it.
+			if compression != layer.CompressionType {
+				diff, err := archive.DecompressStream(blob)
+				if err != nil {
+					if err2 := blob.Close(); err2 != nil {
+						err = errors.Wrapf(err, "failed to close blob file: %v", err2)
+					}
+					aLayer.Release()
+					return nil, err
+				}
+				rc, err := maybeCompressReadCloser(diff)
+				if err != nil {
+					if err2 := closeAll(blob.Close, diff.Close); err2 != nil {
+						err = errors.Wrapf(err, "failed to cleanup: %v", err2)
+					}
+					aLayer.Release()
+					return nil, err
+				}
+				return ioutils.NewReadCloserWrapper(rc, func() error {
+					defer aLayer.Release()
+					return closeAll(blob.Close, rc.Close)
+				}), nil
+			}
+			return ioutils.NewReadCloserWrapper(blob, func() error { defer aLayer.Release(); return blob.Close() }), nil
+		}
+	}
+
 	tsfile, err := os.Open(r.tspath(to))
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -1732,4 +1778,17 @@ func (r *layerStore) ReloadIfChanged() error {
 		return r.Load()
 	}
 	return nil
+}
+
+func closeAll(closes ...func() error) (rErr error) {
+	for _, f := range closes {
+		if err := f(); err != nil {
+			if rErr == nil {
+				rErr = errors.Wrapf(err, "close error")
+				continue
+			}
+			rErr = errors.Wrapf(rErr, "%v", err)
+		}
+	}
+	return
 }

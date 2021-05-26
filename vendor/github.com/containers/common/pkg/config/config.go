@@ -150,6 +150,11 @@ type ContainersConfig struct {
 	// PidNS indicates how to create a pid namespace for the container
 	PidNS string `toml:"pidns,omitempty"`
 
+	// RootlessNetworking depicts the "kind" of networking for rootless
+	// containers.  Valid options are `slirp4netns` and `cni`. Default is
+	// `slirp4netns`
+	RootlessNetworking string `toml:"rootless_networking,omitempty"`
+
 	// SeccompProfile is the seccomp.json profile path which is used as the
 	// default for the runtime.
 	SeccompProfile string `toml:"seccomp_profile,omitempty"`
