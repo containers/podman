@@ -408,7 +408,7 @@ func (v *MachineVM) SSH(name string, opts machine.SSHOptions) error {
 	sshDestination := v.RemoteUsername + "@localhost"
 	port := strconv.Itoa(v.Port)
 
-	args := []string{"-i", v.IdentityPath, "-p", port, sshDestination}
+	args := []string{"-i", v.IdentityPath, "-p", port, sshDestination, "-o", "UserKnownHostsFile /dev/null", "-o", "StrictHostKeyChecking no"}
 	if len(opts.Args) > 0 {
 		args = append(args, opts.Args...)
 	} else {
