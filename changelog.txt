@@ -1,3 +1,18 @@
+- Changelog for v3.2.0-RC3 (2021-05-26):
+  * Update release notes for v3.2.0-RC3
+  * Fix race on podman start --all
+  * Fix race condition in running ls container in a pod
+  * docs: --cert-dir: point to containers-certs.d(5)
+  * Handle hard links in different directories
+  * Improve OCI Runtime error
+  * Handle hard links in remote builds
+  * Podman info add support for status of cgroup controllers
+  * Drop container does not exist on removal to debugf
+  * Downgrade API service routing table logging
+  * add libimage events
+  * docs: generate systemd: XDG_RUNTIME_DIR
+  * Fix problem copying files when container is in host pid namespace
+
 - Changelog for v3.2.0-RC2 (2021-05-20):
   * update c/common
   * Update Cirrus DEST_BRANCH to v3.2
