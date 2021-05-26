@@ -217,8 +217,6 @@ func newRuntimeFromConfig(ctx context.Context, conf *config.Config, options ...R
 		return nil, err
 	}
 
-	runtime.libimageEventsShutdown = make(chan bool)
-
 	return runtime, nil
 }
 
@@ -701,6 +699,8 @@ var libimageEventsMap = map[libimage.EventType]events.Status{
 // events on the libimage.Runtime.  The gourtine will be cleaned up implicitly
 // when the main() exists.
 func (r *Runtime) libimageEvents() {
+	r.libimageEventsShutdown = make(chan bool)
+
 	toLibpodEventStatus := func(e *libimage.Event) events.Status {
 		status, found := libimageEventsMap[e.Type]
 		if !found {
@@ -780,7 +780,9 @@ func (r *Runtime) Shutdown(force bool) error {
 	// attempt to shut it down
 	if r.store != nil {
 		// Wait for the events to be written.
-		r.libimageEventsShutdown <- true
+		if r.libimageEventsShutdown != nil {
+			r.libimageEventsShutdown <- true
+		}
 
 		// Note that the libimage runtime shuts down the store.
 		if err := r.libimageRuntime.Shutdown(force); err != nil {
