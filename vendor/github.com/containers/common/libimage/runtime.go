@@ -516,8 +516,9 @@ type RemoveImagesOptions struct {
 	WithSize bool
 }
 
-// RemoveImages removes images specified by names.  All images are expected to
-// exist in the local containers storage.
+// RemoveImages removes images specified by names.  If no names are specified,
+// remove images as specified via the options' filters.  All images are
+// expected to exist in the local containers storage.
 //
 // If an image has more names than one name, the image will be untagged with
 // the specified name.  RemoveImages returns a slice of untagged and removed
@@ -557,6 +558,9 @@ func (r *Runtime) RemoveImages(ctx context.Context, names []string, options *Rem
 	// orderedIDs and the deleteMap.
 	switch {
 	case len(names) > 0:
+		// Look up the images one-by-one.  That allows for removing
+		// images that have been looked up successfully while reporting
+		// lookup errors at the end.
 		lookupOptions := LookupImageOptions{IgnorePlatform: true}
 		for _, name := range names {
 			img, resolvedName, err := r.LookupImage(name, &lookupOptions)

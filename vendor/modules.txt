@@ -91,7 +91,7 @@ github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/util
-# github.com/containers/common v0.38.4
+# github.com/containers/common v0.39.0
 github.com/containers/common/libimage
 github.com/containers/common/libimage/manifests
 github.com/containers/common/pkg/apparmor
@@ -192,7 +192,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.31.2
+# github.com/containers/storage v1.32.0
 github.com/containers/storage
 github.com/containers/storage/drivers
 github.com/containers/storage/drivers/aufs

@@ -721,8 +721,28 @@ func (d *Driver) Cleanup() error {
 // LookupAdditionalLayer looks up additional layer store by the specified
 // digest and ref and returns an object representing that layer.
 // This API is experimental and can be changed without bumping the major version number.
+// TODO: to remove the comment once it's no longer experimental.
 func (d *Driver) LookupAdditionalLayer(dgst digest.Digest, ref string) (graphdriver.AdditionalLayer, error) {
 	l, err := d.getAdditionalLayerPath(dgst, ref)
+	if err != nil {
+		return nil, err
+	}
+	// Tell the additional layer store that we use this layer.
+	// This will increase reference counter on the store's side.
+	// This will be decreased on Release() method.
+	notifyUseAdditionalLayer(l)
+	return &additionalLayer{
+		path: l,
+		d:    d,
+	}, nil
+}
+
+// LookupAdditionalLayerByID looks up additional layer store by the specified
+// ID and returns an object representing that layer.
+// This API is experimental and can be changed without bumping the major version number.
+// TODO: to remove the comment once it's no longer experimental.
+func (d *Driver) LookupAdditionalLayerByID(id string) (graphdriver.AdditionalLayer, error) {
+	l, err := d.getAdditionalLayerPathByID(id)
 	if err != nil {
 		return nil, err
 	}
@@ -1655,7 +1675,7 @@ func (d *Driver) getLowerDiffPaths(id string) ([]string, error) {
 // and its parent and returns the size in bytes of the changes
 // relative to its base filesystem directory.
 func (d *Driver) DiffSize(id string, idMappings *idtools.IDMappings, parent string, parentMappings *idtools.IDMappings, mountLabel string) (size int64, err error) {
-	if d.useNaiveDiff() || !d.isParent(id, parent) {
+	if d.options.mountProgram == "" && (d.useNaiveDiff() || !d.isParent(id, parent)) {
 		return d.naiveDiff.DiffSize(id, idMappings, parent, parentMappings, mountLabel)
 	}
 
@@ -1833,9 +1853,7 @@ func (d *Driver) getAdditionalLayerPath(dgst digest.Digest, ref string) (string,
 		for _, p := range []string{
 			filepath.Join(target, "diff"),
 			filepath.Join(target, "info"),
-			// TODO(ktock): We should have an API to expose the stream data of this layer
-			//              to enable the client to retrieve the entire contents of this
-			//              layer when it exports this layer.
+			filepath.Join(target, "blob"),
 		} {
 			if _, err := os.Stat(p); err != nil {
 				return "", errors.Wrapf(graphdriver.ErrLayerUnknown,
@@ -1850,8 +1868,8 @@ func (d *Driver) getAdditionalLayerPath(dgst digest.Digest, ref string) (string,
 }
 
 func (d *Driver) releaseAdditionalLayerByID(id string) {
-	if al, err := ioutil.ReadFile(path.Join(d.dir(id), "additionallayer")); err == nil {
-		notifyReleaseAdditionalLayer(string(al))
+	if al, err := d.getAdditionalLayerPathByID(id); err == nil {
+		notifyReleaseAdditionalLayer(al)
 	} else if !os.IsNotExist(err) {
 		logrus.Warnf("unexpected error on reading Additional Layer Store pointer %v", err)
 	}
@@ -1866,12 +1884,19 @@ type additionalLayer struct {
 
 // Info returns arbitrary information stored along with this layer (i.e. `info` file).
 // This API is experimental and can be changed without bumping the major version number.
+// TODO: to remove the comment once it's no longer experimental.
 func (al *additionalLayer) Info() (io.ReadCloser, error) {
 	return os.Open(filepath.Join(al.path, "info"))
 }
 
+// Blob returns a reader of the raw contents of this leyer.
+func (al *additionalLayer) Blob() (io.ReadCloser, error) {
+	return os.Open(filepath.Join(al.path, "blob"))
+}
+
 // CreateAs creates a new layer from this additional layer.
 // This API is experimental and can be changed without bumping the major version number.
+// TODO: to remove the comment once it's no longer experimental.
 func (al *additionalLayer) CreateAs(id, parent string) error {
 	// TODO: support opts
 	if err := al.d.Create(id, parent, nil); err != nil {
@@ -1891,8 +1916,17 @@ func (al *additionalLayer) CreateAs(id, parent string) error {
 	return os.Symlink(filepath.Join(al.path, "diff"), diffDir)
 }
 
+func (d *Driver) getAdditionalLayerPathByID(id string) (string, error) {
+	al, err := ioutil.ReadFile(path.Join(d.dir(id), "additionallayer"))
+	if err != nil {
+		return "", err
+	}
+	return string(al), nil
+}
+
 // Release tells the additional layer store that we don't use this handler.
 // This API is experimental and can be changed without bumping the major version number.
+// TODO: to remove the comment once it's no longer experimental.
 func (al *additionalLayer) Release() {
 	// Tell the additional layer store that we don't use this layer handler.
 	// This will decrease the reference counter on the store's side, which was

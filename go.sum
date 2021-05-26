@@ -218,8 +218,9 @@ github.com/containernetworking/plugins v0.9.1 h1:FD1tADPls2EEi3flPc2OegIY1M9pUa9
 github.com/containernetworking/plugins v0.9.1/go.mod h1:xP/idU2ldlzN6m4p5LmGiwRDjeJr6FLK6vuiUwoH7P8=
 github.com/containers/buildah v1.21.0 h1:LuwuqRPjan3X3AIdGwfkEkqMgmrDMNpQznFqNdHgCz8=
 github.com/containers/buildah v1.21.0/go.mod h1:yPdlpVd93T+i91yGxrJbW1YOWrqN64j5ZhHOZmHUejs=
-github.com/containers/common v0.38.4 h1:WYv4R6Sw1qiOPZtBNbKglrmisXdPcq3fZ3bGy4prrjo=
 github.com/containers/common v0.38.4/go.mod h1:egfpX/Y3+19Dz4Wa1eRZDdgzoEOeneieF9CQppKzLBg=
+github.com/containers/common v0.39.0 h1:MrvpFa/bM4UmUILACv2IhOif4oLmWAiD4C+CpOc/MUo=
+github.com/containers/common v0.39.0/go.mod h1:vPUHCg/dHoiyqIyLN+EdbjUaGrVEhs/hAvsqsxuYepk=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.12.0 h1:1hNS2QkzFQ4lH3GYQLyAXB0acRMhS1Ubm6oV++8vw4w=
@@ -235,8 +236,8 @@ github.com/containers/psgo v1.5.2/go.mod h1:2ubh0SsreMZjSXW1Hif58JrEcFudQyIy9EzP
 github.com/containers/storage v1.23.5/go.mod h1:ha26Q6ngehFNhf3AWoXldvAvwI4jFe3ETQAf/CeZPyM=
 github.com/containers/storage v1.30.1/go.mod h1:NDJkiwxnSHD1Is+4DGcyR3SIEYSDOa0xnAW+uGQFx9E=
 github.com/containers/storage v1.31.1/go.mod h1:IFEf+yRTS0pvCGQt2tBv1Kzz2XUSPvED6uFBmWG7V/E=
-github.com/containers/storage v1.31.2 h1:wWi7OsNtHUydGdK0EpQiK94MfQNj5qK2GtxNLoj4tU4=
-github.com/containers/storage v1.31.2/go.mod h1:J3q772EVbN9vgqoN/dkvInKnp4xK9ZXm7wHNfuiIDgE=
+github.com/containers/storage v1.32.0 h1:l2O+EybfGVkisqDkRysKG1VAO6jPPIYOV5Q4/sau86c=
+github.com/containers/storage v1.32.0/go.mod h1:J3q772EVbN9vgqoN/dkvInKnp4xK9ZXm7wHNfuiIDgE=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/etcd v3.3.13+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=

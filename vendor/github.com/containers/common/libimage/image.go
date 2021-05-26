@@ -658,25 +658,6 @@ func (i *Image) Unmount(force bool) error {
 	return err
 }
 
-// MountPoint returns the fully-evaluated mount point of the image.  If the
-// image isn't mounted, an empty string is returned.
-func (i *Image) MountPoint() (string, error) {
-	counter, err := i.runtime.store.Mounted(i.TopLayer())
-	if err != nil {
-		return "", err
-	}
-
-	if counter == 0 {
-		return "", nil
-	}
-
-	layer, err := i.runtime.store.Layer(i.TopLayer())
-	if err != nil {
-		return "", err
-	}
-	return filepath.EvalSymlinks(layer.MountPoint)
-}
-
 // Size computes the size of the image layers and associated data.
 func (i *Image) Size() (int64, error) {
 	return i.runtime.store.ImageSize(i.ID())
