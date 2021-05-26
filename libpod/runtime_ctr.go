@@ -581,6 +581,15 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 		if err := c.stop(c.StopTimeout()); err != nil && errors.Cause(err) != define.ErrConmonDead {
 			return errors.Wrapf(err, "cannot remove container %s as it could not be stopped", c.ID())
 		}
+
+		// We unlocked as part of stop() above - there's a chance someone
+		// else got in and removed the container before we reacquired the
+		// lock.
+		// Do a quick ping of the database to check if the container
+		// still exists.
+		if ok, _ := r.state.HasContainer(c.ID()); !ok {
+			return nil
+		}
 	}
 
 	// Remove all active exec sessions
