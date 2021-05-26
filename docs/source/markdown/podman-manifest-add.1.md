@@ -93,6 +93,28 @@ architecture value, but which expect different versions of its instruction set.
 
     $ podman manifest add mylist:v1.11 containers-storage:quay.io/username/myimage
 
+  **dir:**_path_
+  An existing local directory _path_ storing the manifest, layer tarballs, and signatures as individual files. This
+  is a non-standardized format, primarily useful for debugging or noninvasive container inspection.
+
+    $ podman manifest add dir:/tmp/myimage
+
+  **docker-archive:**_path_[**:**_docker-reference_]
+  An image is stored in the `docker save` formatted file.  _docker-reference_ is only used when creating such a
+  file, and it must not contain a digest.
+
+    $ podman manifest add docker-archive:/tmp/myimage
+
+  **docker-daemon:**_docker-reference_
+  An image in _docker-reference_ format stored in the docker daemon internal storage. The _docker-reference_ can also be an image ID (docker-daemon:algo:digest).
+
+    $ sudo podman manifest add docker-daemon:docker.io/library/myimage:33
+
+  **oci-archive:**_path_**:**_tag_
+  An image _tag_ in a directory compliant with "Open Container Image Layout Specification" at _path_.
+
+    $ podman manifest add oci-archive:/tmp/myimage
+
 ## EXAMPLE
 
 ```
