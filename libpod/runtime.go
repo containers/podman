@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
@@ -67,17 +68,18 @@ type Runtime struct {
 	storageConfig storage.StoreOptions
 	storageSet    storageSet
 
-	state             State
-	store             storage.Store
-	storageService    *storageService
-	imageContext      *types.SystemContext
-	defaultOCIRuntime OCIRuntime
-	ociRuntimes       map[string]OCIRuntime
-	runtimeFlags      []string
-	netPlugin         ocicni.CNIPlugin
-	conmonPath        string
-	libimageRuntime   *libimage.Runtime
-	lockManager       lock.Manager
+	state                  State
+	store                  storage.Store
+	storageService         *storageService
+	imageContext           *types.SystemContext
+	defaultOCIRuntime      OCIRuntime
+	ociRuntimes            map[string]OCIRuntime
+	runtimeFlags           []string
+	netPlugin              ocicni.CNIPlugin
+	conmonPath             string
+	libimageRuntime        *libimage.Runtime
+	libimageEventsShutdown chan bool
+	lockManager            lock.Manager
 
 	// doRenumber indicates that the runtime should perform a lock renumber
 	// during initialization.
@@ -211,6 +213,8 @@ func newRuntimeFromConfig(ctx context.Context, conf *config.Config, options ...R
 	if err := makeRuntime(ctx, runtime); err != nil {
 		return nil, err
 	}
+
+	runtime.libimageEventsShutdown = make(chan bool)
 
 	return runtime, nil
 }
@@ -677,6 +681,62 @@ func (r *Runtime) GetConfig() (*config.Config, error) {
 	return config, nil
 }
 
+// libimageEventsMap translates a libimage event type to a libpod event status.
+var libimageEventsMap = map[libimage.EventType]events.Status{
+	libimage.EventTypeImagePull:    events.Pull,
+	libimage.EventTypeImagePush:    events.Push,
+	libimage.EventTypeImageRemove:  events.Remove,
+	libimage.EventTypeImageLoad:    events.LoadFromArchive,
+	libimage.EventTypeImageSave:    events.Save,
+	libimage.EventTypeImageTag:     events.Tag,
+	libimage.EventTypeImageUntag:   events.Untag,
+	libimage.EventTypeImageMount:   events.Mount,
+	libimage.EventTypeImageUnmount: events.Unmount,
+}
+
+// libimageEvents spawns a goroutine in the background which is listenting for
+// events on the libimage.Runtime.  The gourtine will be cleaned up implicitly
+// when the main() exists.
+func (r *Runtime) libimageEvents() {
+	toLibpodEventStatus := func(e *libimage.Event) events.Status {
+		status, found := libimageEventsMap[e.Type]
+		if !found {
+			return "Unknown"
+		}
+		return status
+	}
+
+	go func() {
+		eventChannel := r.libimageRuntime.EventChannel()
+
+		for {
+			// Make sure to read and write all events before
+			// checking if we're about to shutdown.
+			for len(eventChannel) > 0 {
+				libimageEvent := <-eventChannel
+				e := events.Event{
+					ID:     libimageEvent.ID,
+					Name:   libimageEvent.Name,
+					Status: toLibpodEventStatus(libimageEvent),
+					Time:   libimageEvent.Time,
+					Type:   events.Image,
+				}
+				if err := r.eventer.Write(e); err != nil {
+					logrus.Errorf("unable to write image event: %q", err)
+				}
+			}
+
+			select {
+			case <-r.libimageEventsShutdown:
+				return
+
+			default:
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}()
+}
+
 // DeferredShutdown shuts down the runtime without exposing any
 // errors. This is only meant to be used when the runtime is being
 // shutdown within a defer statement; else use Shutdown
@@ -716,7 +776,11 @@ func (r *Runtime) Shutdown(force bool) error {
 	// If no store was requested, it can be nil and there is no need to
 	// attempt to shut it down
 	if r.store != nil {
-		if _, err := r.store.Shutdown(force); err != nil {
+		// Wait for the events to be written.
+		r.libimageEventsShutdown <- true
+
+		// Note that the libimage runtime shuts down the store.
+		if err := r.libimageRuntime.Shutdown(force); err != nil {
 			lastError = errors.Wrapf(err, "error shutting down container storage")
 		}
 	}
@@ -842,6 +906,8 @@ func (r *Runtime) configureStore() error {
 		return err
 	}
 	r.libimageRuntime = libimageRuntime
+	// Run the libimage events routine.
+	r.libimageEvents()
 
 	return nil
 }

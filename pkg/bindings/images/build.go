@@ -28,6 +28,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type devino struct {
+	Dev uint64
+	Ino uint64
+}
+
 var (
 	iidRegex = regexp.MustCompile(`^[0-9a-f]{12}`)
 )
@@ -402,7 +407,7 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 		defer pw.Close()
 		defer gw.Close()
 		defer tw.Close()
-
+		seen := make(map[devino]string)
 		for _, src := range sources {
 			s, err := filepath.Abs(src)
 			if err != nil {
@@ -431,25 +436,40 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 				}
 
 				if info.Mode().IsRegular() { // add file item
-					f, lerr := os.Open(path)
-					if lerr != nil {
-						return lerr
+					di, isHardLink := checkHardLink(info)
+					if err != nil {
+						return err
 					}
 
-					hdr, lerr := tar.FileInfoHeader(info, name)
-					if lerr != nil {
-						f.Close()
-						return lerr
+					hdr, err := tar.FileInfoHeader(info, "")
+					if err != nil {
+						return err
 					}
+					orig, ok := seen[di]
+					if ok {
+						hdr.Typeflag = tar.TypeLink
+						hdr.Linkname = orig
+						hdr.Size = 0
+						hdr.Name = name
+						return tw.WriteHeader(hdr)
+					}
+					f, err := os.Open(path)
+					if err != nil {
+						return err
+					}
+
 					hdr.Name = name
-					if lerr := tw.WriteHeader(hdr); lerr != nil {
+					if err := tw.WriteHeader(hdr); err != nil {
 						f.Close()
-						return lerr
+						return err
 					}
 
-					_, cerr := io.Copy(tw, f)
+					_, err = io.Copy(tw, f)
 					f.Close()
-					return cerr
+					if err == nil && isHardLink {
+						seen[di] = name
+					}
+					return err
 				} else if info.Mode().IsDir() { // add folders
 					hdr, lerr := tar.FileInfoHeader(info, name)
 					if lerr != nil {

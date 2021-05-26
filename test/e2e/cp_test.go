@@ -91,6 +91,50 @@ var _ = Describe("Podman cp", func() {
 		Expect(roundtripContent).To(Equal(originalContent))
 	})
 
+	// Copy a file to the container, then back to the host in --pid=host
+	It("podman cp --pid=host file", func() {
+		SkipIfRootlessCgroupsV1("Not supported for rootless + CGroupsV1")
+		srcFile, err := ioutil.TempFile("", "")
+		Expect(err).To(BeNil())
+		defer srcFile.Close()
+		defer os.Remove(srcFile.Name())
+
+		originalContent := []byte("podman cp file test")
+		err = ioutil.WriteFile(srcFile.Name(), originalContent, 0644)
+		Expect(err).To(BeNil())
+
+		// Create a container. NOTE that container mustn't be running for copying.
+		session := podmanTest.Podman([]string{"create", "--pid=host", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		name := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"start", name})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// The file will now be created (and written to).
+		session = podmanTest.Podman([]string{"cp", srcFile.Name(), name + ":foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// Copy FROM the container.
+
+		destFile, err := ioutil.TempFile("", "")
+		Expect(err).To(BeNil())
+		defer destFile.Close()
+		defer os.Remove(destFile.Name())
+
+		session = podmanTest.Podman([]string{"cp", name + ":foo", destFile.Name()})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// Now make sure the content matches.
+		roundtripContent, err := ioutil.ReadFile(destFile.Name())
+		Expect(err).To(BeNil())
+		Expect(roundtripContent).To(Equal(originalContent))
+	})
+
 	// Create a symlink in the container, use it as a copy destination and
 	// make sure that the link and the resolved path are accessible and
 	// give the right content.

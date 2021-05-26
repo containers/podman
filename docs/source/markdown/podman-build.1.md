@@ -111,7 +111,7 @@ given.
 #### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
-Default certificates directory is _/etc/containers/certs.d_. (This option is not available with the remote Podman client)
+Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client)
 
 #### **--cgroup-parent**=*path*
 
@@ -972,7 +972,7 @@ If you are using `useradd` within your build script, you should pass the
 useradd to stop creating the lastlog file.
 
 ## SEE ALSO
-podman(1), buildah(1), containers-registries.conf(5), crun(8), runc(8), useradd(8), podman-ps(1), podman-rm(1)
+podman(1), buildah(1), containers-certs.d(5), containers-registries.conf(5), crun(8), runc(8), useradd(8), podman-ps(1), podman-rm(1)
 
 ## HISTORY
 Aug 2020, Additional options and .dockerignore added by Dan Walsh `<dwalsh@redhat.com>`

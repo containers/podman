@@ -71,7 +71,7 @@ value can be entered.  The password is entered without echo.
 #### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
-Default certificates directory is _/etc/containers/certs.d_. (This option is not available with the remote Podman client)
+Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client)
 
 #### **--compress**
 
@@ -161,4 +161,4 @@ Storing signatures
 ```
 
 ## SEE ALSO
-podman(1), podman-pull(1), podman-login(1)
+podman(1), podman-pull(1), podman-login(1), containers-certs.d(5)

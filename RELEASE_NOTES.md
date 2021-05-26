@@ -33,7 +33,7 @@
 - The `podman play kube` now treats environment variables configured as references to a `ConfigMap` as mandatory unless the `optional` parameter was set; this better matches the behavior of Kubernetes.
 - Podman now supports the `--context=default` flag from Docker as a no-op for compatibility purposes.
 - When Podman is run as root, but without `CAP_SYS_ADMIN` being available, it will run in a user namespace using the same code as rootless Podman (instead of failing outright).
-- The `podman info` command now includes the path of the Seccomp profile Podman is using, and whether Podman is connected to a remote service or running containers locally.
+- The `podman info` command now includes the path of the Seccomp profile Podman is using, available cgroup controllers, and whether Podman is connected to a remote service or running containers locally.
 - Containers created with the `--rm` option now automatically use the `volatile` storage flag when available for their root filesystems, causing them not to write changes to disk as often as they will be removed at completion anyways. This should result in improved performance.
 - The `podman generate systemd --new` command will now include environment variables referenced by the container in generated unit files if the value would be looked up from the system environment.
 - Podman now requires that Conmon v2.0.24 be available.
@@ -41,6 +41,8 @@
 ### Bugfixes
 - Fixed a bug where the remote Podman client's `podman build` command did not support the `--arch`, `--platform`, and `--os`, options.
 - Fixed a bug where the remote Podman client's `podman build` command ignored the `--rm=false` option ([#9869](https://github.com/containers/podman/issues/9869)).
+- Fixed a bug where the remote Podman client's `podman build --iidfile` command could include extra output (in addition to just the image ID) in the image ID file written ([#10233](https://github.com/containers/podman/issues/10233)).
+- Fixed a bug where the remote Podman client's `podman build` command did not preserve hardlinks when moving files into the container via `COPY` instructions ([#9893](https://github.com/containers/podman/issues/9893)).
 - Fixed a bug where the `podman generate systemd --new` command could generate extra `--iidfile` arguments if the container was already created with one.
 - Fixed a bug where the `podman generate kube` command produced incorrect YAML for containers which bind-mounted both `/` and `/root` from the host system into the container ([#9764](https://github.com/containers/podman/issues/9764)).
 - Fixed a bug where pods created by `podman play kube` from YAML that specified `ShareProcessNamespace` would only share the PID namespace (and not also the UTS, Network, and IPC namespaces) ([#9128](https://github.com/containers/podman/issues/9128)).
@@ -53,9 +55,9 @@
 - Fixed a bug where setting a custom Seccomp profile via the `seccomp_profile` option in `containers.conf` had no effect, and the default profile was used instead.
 - Fixed a bug where the `--cgroup-parent` option to `podman create` and `podman run` was ignored in rootless Podman on cgroups v2 systems with the `cgroupfs` cgroup manager ([#10173](https://github.com/containers/podman/issues/10173)).
 - Fixed a bug where the `IMAGE` and `NAME` variables in `podman container runlabel` were not being correctly substituted ([#10192](https://github.com/containers/podman/issues/10192)).
-- Fixed a bug where the remote Podman client's `podman build --iidfile` command could include extra output (in addition to just the image ID) in the image ID file written ([#10233](https://github.com/containers/podman/issues/10233)).
 - Fixed a bug where Podman could freeze when creating containers with a specific combination of volumes and working directory ([#10216](https://github.com/containers/podman/issues/10216)).
 - Fixed a bug where rootless Podman containers restarted by restart policy (e.g. containers created with `--restart=always`) would lose networking after being restarted ([#8047](https://github.com/containers/podman/issues/8047)).
+- Fixed a bug where the `podman cp` command could not copy files into containers created with the `--pid=host` flag ([#9985](https://github.com/containers/podman/issues/9985)).
 
 ### API
 - Fixed a bug where the Compat Create endpoint for Containers did not allow advanced network options to be set ([#10110](https://github.com/containers/podman/issues/10110)).
