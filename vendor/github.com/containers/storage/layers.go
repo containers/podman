@@ -1156,48 +1156,51 @@ func (r *layerStore) deleteInternal(id string) error {
 	}
 	id = layer.ID
 	err := r.driver.Remove(id)
-	if err == nil {
-		os.Remove(r.tspath(id))
-		os.RemoveAll(r.datadir(id))
-		delete(r.byid, id)
-		for _, name := range layer.Names {
-			delete(r.byname, name)
+	if err != nil {
+		return err
+	}
+
+	os.Remove(r.tspath(id))
+	os.RemoveAll(r.datadir(id))
+	delete(r.byid, id)
+	for _, name := range layer.Names {
+		delete(r.byname, name)
+	}
+	r.idindex.Delete(id)
+	mountLabel := layer.MountLabel
+	if layer.MountPoint != "" {
+		delete(r.bymount, layer.MountPoint)
+	}
+	r.deleteInDigestMap(id)
+	toDeleteIndex := -1
+	for i, candidate := range r.layers {
+		if candidate.ID == id {
+			toDeleteIndex = i
+			break
 		}
-		r.idindex.Delete(id)
-		mountLabel := layer.MountLabel
-		if layer.MountPoint != "" {
-			delete(r.bymount, layer.MountPoint)
+	}
+	if toDeleteIndex != -1 {
+		// delete the layer at toDeleteIndex
+		if toDeleteIndex == len(r.layers)-1 {
+			r.layers = r.layers[:len(r.layers)-1]
+		} else {
+			r.layers = append(r.layers[:toDeleteIndex], r.layers[toDeleteIndex+1:]...)
 		}
-		r.deleteInDigestMap(id)
-		toDeleteIndex := -1
-		for i, candidate := range r.layers {
-			if candidate.ID == id {
-				toDeleteIndex = i
+	}
+	if mountLabel != "" {
+		var found bool
+		for _, candidate := range r.layers {
+			if candidate.MountLabel == mountLabel {
+				found = true
 				break
 			}
 		}
-		if toDeleteIndex != -1 {
-			// delete the layer at toDeleteIndex
-			if toDeleteIndex == len(r.layers)-1 {
-				r.layers = r.layers[:len(r.layers)-1]
-			} else {
-				r.layers = append(r.layers[:toDeleteIndex], r.layers[toDeleteIndex+1:]...)
-			}
-		}
-		if mountLabel != "" {
-			var found bool
-			for _, candidate := range r.layers {
-				if candidate.MountLabel == mountLabel {
-					found = true
-					break
-				}
-			}
-			if !found {
-				label.ReleaseLabel(mountLabel)
-			}
+		if !found {
+			label.ReleaseLabel(mountLabel)
 		}
 	}
-	return err
+
+	return nil
 }
 
 func (r *layerStore) deleteInDigestMap(id string) {
@@ -1777,7 +1780,7 @@ func (r *layerStore) ReloadIfChanged() error {
 	if err == nil && modified {
 		return r.Load()
 	}
-	return nil
+	return err
 }
 
 func closeAll(closes ...func() error) (rErr error) {
