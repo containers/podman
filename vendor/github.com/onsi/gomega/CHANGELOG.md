@@ -1,3 +1,9 @@
+## 1.13.0
+
+### Features
+- gmeasure provides BETA support for benchmarking (#447) [8f2dfbf]
+- Set consistently and eventually defaults on init (#443) [12eb778]
+
 ## 1.12.0
 
 ### Features
