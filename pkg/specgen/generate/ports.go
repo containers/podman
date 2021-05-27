@@ -268,31 +268,18 @@ func createPortMappings(ctx context.Context, s *specgen.SpecGenerator, imageData
 
 	logrus.Debugf("Adding exposed ports")
 
-	// We need to merge s.Expose into image exposed ports
 	expose := make(map[uint16]string)
-	for k, v := range s.Expose {
-		expose[k] = v
-	}
 	if imageData != nil {
-		for imgExpose := range imageData.Config.ExposedPorts {
-			// Expose format is portNumber[/protocol]
-			splitExpose := strings.SplitN(imgExpose, "/", 2)
-			num, err := strconv.Atoi(splitExpose[0])
-			if err != nil {
-				return nil, errors.Wrapf(err, "unable to convert image EXPOSE statement %q to port number", imgExpose)
-			}
-			if num > 65535 || num < 1 {
-				return nil, errors.Errorf("%d from image EXPOSE statement %q is not a valid port number", num, imgExpose)
-			}
-			// No need to validate protocol, we'll do it below.
-			if len(splitExpose) == 1 {
-				expose[uint16(num)] = "tcp"
-			} else {
-				expose[uint16(num)] = splitExpose[1]
-			}
+		expose, err = GenExposedPorts(imageData.Config.ExposedPorts)
+		if err != nil {
+			return nil, err
 		}
 	}
 
+	// We need to merge s.Expose into image exposed ports
+	for k, v := range s.Expose {
+		expose[k] = v
+	}
 	// There's been a request to expose some ports. Let's do that.
 	// Start by figuring out what needs to be exposed.
 	// This is a map of container port number to protocols to expose.
@@ -416,4 +403,26 @@ func checkProtocol(protocol string, allowSCTP bool) ([]string, error) {
 	}
 
 	return finalProto, nil
+}
+
+func GenExposedPorts(exposedPorts map[string]struct{}) (map[uint16]string, error) {
+	expose := make(map[uint16]string)
+	for imgExpose := range exposedPorts {
+		// Expose format is portNumber[/protocol]
+		splitExpose := strings.SplitN(imgExpose, "/", 2)
+		num, err := strconv.Atoi(splitExpose[0])
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to convert image EXPOSE statement %q to port number", imgExpose)
+		}
+		if num > 65535 || num < 1 {
+			return nil, errors.Errorf("%d from image EXPOSE statement %q is not a valid port number", num, imgExpose)
+		}
+		// No need to validate protocol, we'll do it below.
+		if len(splitExpose) == 1 {
+			expose[uint16(num)] = "tcp"
+		} else {
+			expose[uint16(num)] = splitExpose[1]
+		}
+	}
+	return expose, nil
 }
