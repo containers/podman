@@ -715,9 +715,8 @@ func (r *Runtime) libimageEvents() {
 		return status
 	}
 
+	eventChannel := r.libimageRuntime.EventChannel()
 	go func() {
-		eventChannel := r.libimageRuntime.EventChannel()
-
 		for {
 			// Make sure to read and write all events before
 			// checking if we're about to shutdown.
