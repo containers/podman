@@ -180,6 +180,15 @@ func (r *Runtime) LookupImage(name string, options *LookupImageOptions) (*Image,
 		}
 		logrus.Debugf("Found image %q in local containers storage (%s)", name, storageRef.StringWithinTransport())
 		return r.storageToImage(img, storageRef), "", nil
+	} else {
+		// Docker compat: strip off the tag iff name is tagged and digested
+		// (e.g., fedora:latest@sha256...).  In that case, the tag is stripped
+		// off and entirely ignored.  The digest is the sole source of truth.
+		normalizedName, err := normalizeTaggedDigestedString(name)
+		if err != nil {
+			return nil, "", err
+		}
+		name = normalizedName
 	}
 
 	originalName := name

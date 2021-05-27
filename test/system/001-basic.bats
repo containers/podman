@@ -49,6 +49,14 @@ function setup() {
 
 @test "podman can pull an image" {
     run_podman pull $IMAGE
+
+    # Also make sure that the tag@digest syntax is supported.
+    run_podman inspect --format "{{ .Digest }}" $IMAGE
+    digest=$output
+    run_podman pull $IMAGE@$digest
+
+    # Now untag the digest reference again.
+    run_podman untag $IMAGE $IMAGE@$digest
 }
 
 # PR #7212: allow --remote anywhere before subcommand, not just as 1st flag

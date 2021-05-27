@@ -5,6 +5,7 @@ import (
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // NormalizeName normalizes the provided name according to the conventions by
@@ -40,6 +41,11 @@ func NormalizeName(name string) (reference.Named, error) {
 	}
 
 	if _, hasTag := named.(reference.NamedTagged); hasTag {
+		// Strip off the tag of a tagged and digested reference.
+		named, err = normalizeTaggedDigestedNamed(named)
+		if err != nil {
+			return nil, err
+		}
 		return named, nil
 	}
 	if _, hasDigest := named.(reference.Digested); hasDigest {
@@ -89,4 +95,49 @@ func ToNameTagPairs(repoTags []reference.Named) ([]NameTagPair, error) {
 		pairs = append(pairs, NameTagPair{Name: none, Tag: none})
 	}
 	return pairs, nil
+}
+
+// normalizeTaggedDigestedString strips the tag off the specified string iff it
+// is tagged and digested. Note that the tag is entirely ignored to match
+// Docker behavior.
+func normalizeTaggedDigestedString(s string) (string, error) {
+	// Note that the input string is not expected to be parseable, so we
+	// return it verbatim in error cases.
+	ref, err := reference.Parse(s)
+	if err != nil {
+		return "", err
+	}
+	named, ok := ref.(reference.Named)
+	if !ok {
+		return s, nil
+	}
+	named, err = normalizeTaggedDigestedNamed(named)
+	if err != nil {
+		return "", err
+	}
+	return named.String(), nil
+}
+
+// normalizeTaggedDigestedNamed strips the tag off the specified named
+// reference iff it is tagged and digested. Note that the tag is entirely
+// ignored to match Docker behavior.
+func normalizeTaggedDigestedNamed(named reference.Named) (reference.Named, error) {
+	_, isTagged := named.(reference.NamedTagged)
+	if !isTagged {
+		return named, nil
+	}
+	digested, isDigested := named.(reference.Digested)
+	if !isDigested {
+		return named, nil
+	}
+
+	// Now strip off the tag.
+	newNamed := reference.TrimNamed(named)
+	// And re-add the digest.
+	newNamed, err := reference.WithDigest(newNamed, digested.Digest())
+	if err != nil {
+		return named, err
+	}
+	logrus.Debugf("Stripped off tag from tagged and digested reference %q", named.String())
+	return newNamed, nil
 }

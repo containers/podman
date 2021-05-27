@@ -2119,7 +2119,7 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(125))
-		Expect(kube.ErrorToString()).To(ContainSubstring(invalidImageName))
+		Expect(kube.ErrorToString()).To(ContainSubstring("invalid reference format"))
 	})
 
 	It("podman play kube applies log driver to containers", func() {
