@@ -5,7 +5,6 @@ import (
 
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
-	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
 
@@ -21,13 +20,11 @@ var (
 		ValidArgsFunction: common.AutocompletePods,
 		Example: `podman pod exists podID
   podman pod exists mypod || podman pod create --name mypod`,
-		DisableFlagsInUseLine: true,
 	}
 )
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: existsCommand,
 		Parent:  podCmd,
 	})

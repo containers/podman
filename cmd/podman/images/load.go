@@ -45,12 +45,10 @@ var (
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: loadCommand,
 	})
 	loadFlags(loadCommand)
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: imageLoadCommand,
 		Parent:  imageCmd,
 	})

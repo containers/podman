@@ -10,18 +10,16 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/system"
 	"github.com/containers/podman/v3/cmd/podman/validate"
-	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
 
 var (
 	listCmd = &cobra.Command{
-		Use:                   "list",
-		Aliases:               []string{"ls"},
-		Args:                  validate.NoArgs,
-		Short:                 "List destination for the Podman service(s)",
-		Long:                  `List destination information for the Podman service(s) in podman configuration`,
-		DisableFlagsInUseLine: true,
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Args:    validate.NoArgs,
+		Short:   "List destination for the Podman service(s)",
+		Long:    `List destination information for the Podman service(s) in podman configuration`,
 		Example: `podman system connection list
   podman system connection ls`,
 		ValidArgsFunction: completion.AutocompleteNone,
@@ -32,7 +30,6 @@ var (
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: listCmd,
 		Parent:  system.ConnectionCmd,
 	})

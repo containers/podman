@@ -7,27 +7,24 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/system"
-	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
 
 var (
 	// Skip creating engines since this command will obtain connection information to said engines
 	dfltCmd = &cobra.Command{
-		Use:                   "default NAME",
-		Args:                  cobra.ExactArgs(1),
-		Short:                 "Set named destination as default",
-		Long:                  `Set named destination as default for the Podman service`,
-		DisableFlagsInUseLine: true,
-		ValidArgsFunction:     common.AutocompleteSystemConnections,
-		RunE:                  defaultRunE,
-		Example:               `podman system connection default testing`,
+		Use:               "default NAME",
+		Args:              cobra.ExactArgs(1),
+		Short:             "Set named destination as default",
+		Long:              `Set named destination as default for the Podman service`,
+		ValidArgsFunction: common.AutocompleteSystemConnections,
+		RunE:              defaultRunE,
+		Example:           `podman system connection default testing`,
 	}
 )
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: dfltCmd,
 		Parent:  system.ConnectionCmd,
 	})

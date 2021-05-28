@@ -39,7 +39,7 @@ var (
 	}
 
 	containerCreateCommand = &cobra.Command{
-		Args:              cobra.MinimumNArgs(1),
+		Args:              createCommand.Args,
 		Use:               createCommand.Use,
 		Short:             createCommand.Short,
 		Long:              createCommand.Long,
@@ -72,13 +72,11 @@ func createFlags(cmd *cobra.Command) {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: createCommand,
 	})
 	createFlags(createCommand)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerCreateCommand,
 		Parent:  containerCmd,
 	})

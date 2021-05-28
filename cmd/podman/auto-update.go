@@ -21,6 +21,7 @@ var (
   or similar units that create new containers in order to run the updated images.
   Please refer to the podman-auto-update(1) man page for details.`
 	autoUpdateCommand = &cobra.Command{
+		Annotations:       map[string]string{registry.EngineMode: registry.ABIMode},
 		Use:               "auto-update [options]",
 		Short:             "Auto update containers according to their auto-update policy",
 		Long:              autoUpdateDescription,
@@ -33,7 +34,6 @@ var (
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: autoUpdateCommand,
 	})
 

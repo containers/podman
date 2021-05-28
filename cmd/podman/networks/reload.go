@@ -15,10 +15,11 @@ import (
 var (
 	networkReloadDescription = `reload container networks, recreating firewall rules`
 	networkReloadCommand     = &cobra.Command{
-		Use:   "reload [options] [CONTAINER...]",
-		Short: "Reload firewall rules for one or more containers",
-		Long:  networkReloadDescription,
-		RunE:  networkReload,
+		Annotations: map[string]string{registry.EngineMode: registry.ABIMode},
+		Use:         "reload [options] [CONTAINER...]",
+		Short:       "Reload firewall rules for one or more containers",
+		Long:        networkReloadDescription,
+		RunE:        networkReload,
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
@@ -39,7 +40,6 @@ func reloadFlags(flags *pflag.FlagSet) {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: networkReloadCommand,
 		Parent:  networkCmd,
 	})

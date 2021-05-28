@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	_ "github.com/containers/podman/v3/cmd/podman/completion"
 	_ "github.com/containers/podman/v3/cmd/podman/containers"
@@ -42,38 +43,41 @@ func main() {
 func parseCommands() *cobra.Command {
 	cfg := registry.PodmanConfig()
 	for _, c := range registry.Commands {
-		for _, m := range c.Mode {
-			if cfg.EngineMode == m {
-				// Command cannot be run rootless
-				_, found := c.Command.Annotations[registry.UnshareNSRequired]
-				if found {
-					if rootless.IsRootless() && found && os.Getuid() != 0 {
-						c.Command.RunE = func(cmd *cobra.Command, args []string) error {
-							return fmt.Errorf("cannot run command %q in rootless mode, must execute `podman unshare` first", cmd.CommandPath())
-						}
-					}
-				} else {
-					_, found = c.Command.Annotations[registry.ParentNSRequired]
-					if rootless.IsRootless() && found {
-						c.Command.RunE = func(cmd *cobra.Command, args []string) error {
-							return fmt.Errorf("cannot run command %q in rootless mode", cmd.CommandPath())
-						}
-					}
-				}
-				parent := rootCmd
-				if c.Parent != nil {
-					parent = c.Parent
-				}
-				parent.AddCommand(c.Command)
-
-				// - templates need to be set here, as PersistentPreRunE() is
-				// not called when --help is used.
-				// - rootCmd uses cobra default template not ours
-				c.Command.SetHelpTemplate(helpTemplate)
-				c.Command.SetUsageTemplate(usageTemplate)
-				c.Command.DisableFlagsInUseLine = true
+		if supported, found := c.Command.Annotations[registry.EngineMode]; found {
+			if !strings.Contains(cfg.EngineMode.String(), supported) {
+				continue
 			}
 		}
+
+		// Command cannot be run rootless
+		_, found := c.Command.Annotations[registry.UnshareNSRequired]
+		if found {
+			if rootless.IsRootless() && os.Getuid() != 0 {
+				c.Command.RunE = func(cmd *cobra.Command, args []string) error {
+					return fmt.Errorf("cannot run command %q in rootless mode, must execute `podman unshare` first", cmd.CommandPath())
+				}
+			}
+		} else {
+			_, found = c.Command.Annotations[registry.ParentNSRequired]
+			if rootless.IsRootless() && found {
+				c.Command.RunE = func(cmd *cobra.Command, args []string) error {
+					return fmt.Errorf("cannot run command %q in rootless mode", cmd.CommandPath())
+				}
+			}
+		}
+
+		parent := rootCmd
+		if c.Parent != nil {
+			parent = c.Parent
+		}
+		parent.AddCommand(c.Command)
+
+		// - templates need to be set here, as PersistentPreRunE() is
+		// not called when --help is used.
+		// - rootCmd uses cobra default template not ours
+		c.Command.SetHelpTemplate(helpTemplate)
+		c.Command.SetUsageTemplate(usageTemplate)
+		c.Command.DisableFlagsInUseLine = true
 	}
 	if err := terminal.SetConsole(); err != nil {
 		logrus.Error(err)

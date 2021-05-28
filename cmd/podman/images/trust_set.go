@@ -16,6 +16,7 @@ import (
 var (
 	setTrustDescription = "Set default trust policy or add a new trust policy for a registry"
 	setTrustCommand     = &cobra.Command{
+		Annotations:       map[string]string{registry.EngineMode: registry.ABIMode},
 		Use:               "set [options] REGISTRY",
 		Short:             "Set default trust policy or a new trust policy for a registry",
 		Long:              setTrustDescription,
@@ -32,7 +33,6 @@ var (
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: setTrustCommand,
 		Parent:  trustCmd,
 	})

@@ -18,16 +18,14 @@ var (
 		Long:  containerExistsDescription,
 		Example: `podman container exists --external containerID
   podman container exists myctr || podman run --name myctr [etc...]`,
-		RunE:                  exists,
-		Args:                  cobra.ExactArgs(1),
-		DisableFlagsInUseLine: true,
-		ValidArgsFunction:     common.AutocompleteContainers,
+		RunE:              exists,
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: common.AutocompleteContainers,
 	}
 )
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: existsCommand,
 		Parent:  containerCmd,
 	})

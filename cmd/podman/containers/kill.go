@@ -67,14 +67,12 @@ func killFlags(cmd *cobra.Command) {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: killCommand,
 	})
 	killFlags(killCommand)
 	validate.AddLatestFlag(killCommand, &killOptions.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerKillCommand,
 		Parent:  containerCmd,
 	})

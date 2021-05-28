@@ -21,24 +21,22 @@ var (
 	execDescription = `Execute the specified command inside a running container.
 `
 	execCommand = &cobra.Command{
-		Use:                   "exec [options] CONTAINER [COMMAND [ARG...]]",
-		Short:                 "Run a process in a running container",
-		Long:                  execDescription,
-		RunE:                  exec,
-		DisableFlagsInUseLine: true,
-		ValidArgsFunction:     common.AutocompleteExecCommand,
+		Use:               "exec [options] CONTAINER [COMMAND [ARG...]]",
+		Short:             "Run a process in a running container",
+		Long:              execDescription,
+		RunE:              exec,
+		ValidArgsFunction: common.AutocompleteExecCommand,
 		Example: `podman exec -it ctrID ls
   podman exec -it -w /tmp myCtr pwd
   podman exec --user root ctrID ls`,
 	}
 
 	containerExecCommand = &cobra.Command{
-		Use:                   execCommand.Use,
-		Short:                 execCommand.Short,
-		Long:                  execCommand.Long,
-		RunE:                  execCommand.RunE,
-		DisableFlagsInUseLine: true,
-		ValidArgsFunction:     execCommand.ValidArgsFunction,
+		Use:               execCommand.Use,
+		Short:             execCommand.Short,
+		Long:              execCommand.Long,
+		RunE:              execCommand.RunE,
+		ValidArgsFunction: execCommand.ValidArgsFunction,
 		Example: `podman container exec -it ctrID ls
   podman container exec -it -w /tmp myCtr pwd
   podman container exec --user root ctrID ls`,
@@ -92,14 +90,12 @@ func execFlags(cmd *cobra.Command) {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: execCommand,
 	})
 	execFlags(execCommand)
 	validate.AddLatestFlag(execCommand, &execOpts.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerExecCommand,
 		Parent:  containerCmd,
 	})

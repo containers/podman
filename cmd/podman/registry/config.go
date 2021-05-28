@@ -15,14 +15,25 @@ import (
 )
 
 const (
-	ParentNSRequired  = "ParentNSRequired"
+	// ParentNSRequired used as cobra.Annotation when command requires root access
+	ParentNSRequired = "ParentNSRequired"
+
+	// UnshareNSRequired used as cobra.Annotation when command requires modified user namespace
 	UnshareNSRequired = "UnshareNSRequired"
+
+	// EngineMode used as cobra.Annotation when command supports a limited number of Engines
+	EngineMode = "EngineMode"
 )
 
 var (
 	podmanOptions entities.PodmanConfig
 	podmanSync    sync.Once
 	abiSupport    = false
+
+	// ABIMode used in cobra.Annotations registry.EngineMode when command only supports ABIMode
+	ABIMode = entities.ABIMode.String()
+	// TunnelMode used in in cobra.Annotations registry.EngineMode when command only supports TunnelMode
+	TunnelMode = entities.TunnelMode.String()
 )
 
 // PodmanConfig returns an entities.PodmanConfig built up from

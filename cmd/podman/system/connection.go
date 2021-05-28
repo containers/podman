@@ -3,7 +3,6 @@ package system
 import (
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
-	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
 
@@ -14,20 +13,18 @@ var (
 	}
 
 	ConnectionCmd = &cobra.Command{
-		Use:                   "connection",
-		Short:                 "Manage remote ssh destinations",
-		Long:                  `Manage ssh destination information in podman configuration`,
-		DisableFlagsInUseLine: true,
-		PersistentPreRunE:     noOp,
-		RunE:                  validate.SubCommandExists,
-		PersistentPostRunE:    noOp,
-		TraverseChildren:      false,
+		Use:                "connection",
+		Short:              "Manage remote ssh destinations",
+		Long:               `Manage ssh destination information in podman configuration`,
+		PersistentPreRunE:  noOp,
+		RunE:               validate.SubCommandExists,
+		PersistentPostRunE: noOp,
+		TraverseChildren:   false,
 	}
 )
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: ConnectionCmd,
 		Parent:  systemCmd,
 	})

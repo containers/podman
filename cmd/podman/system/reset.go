@@ -23,6 +23,7 @@ var (
   All containers will be stopped and removed, and all images, volumes and container content will be removed.
 `
 	systemResetCommand = &cobra.Command{
+		Annotations:       map[string]string{registry.EngineMode: registry.ABIMode},
 		Use:               "reset [options]",
 		Args:              validate.NoArgs,
 		Short:             "Reset podman storage",
@@ -36,7 +37,6 @@ var (
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: systemResetCommand,
 		Parent:  systemCmd,
 	})

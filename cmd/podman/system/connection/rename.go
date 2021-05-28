@@ -7,21 +7,19 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/system"
-	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
 
 var (
 	// Skip creating engines since this command will obtain connection information to said engines
 	renameCmd = &cobra.Command{
-		Use:                   "rename OLD NEW",
-		Aliases:               []string{"mv"},
-		Args:                  cobra.ExactArgs(2),
-		Short:                 "Rename \"old\" to \"new\"",
-		Long:                  `Rename destination for the Podman service from "old" to "new"`,
-		DisableFlagsInUseLine: true,
-		ValidArgsFunction:     common.AutocompleteSystemConnections,
-		RunE:                  rename,
+		Use:               "rename OLD NEW",
+		Aliases:           []string{"mv"},
+		Args:              cobra.ExactArgs(2),
+		Short:             "Rename \"old\" to \"new\"",
+		Long:              `Rename destination for the Podman service from "old" to "new"`,
+		ValidArgsFunction: common.AutocompleteSystemConnections,
+		RunE:              rename,
 		Example: `podman system connection rename laptop devl,
   podman system connection mv laptop devl`,
 	}
@@ -29,7 +27,6 @@ var (
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: renameCmd,
 		Parent:  system.ConnectionCmd,
 	})

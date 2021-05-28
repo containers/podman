@@ -78,14 +78,12 @@ func stopFlags(cmd *cobra.Command) {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: stopCommand,
 	})
 	stopFlags(stopCommand)
 	validate.AddLatestFlag(stopCommand, &stopOptions.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerStopCommand,
 		Parent:  containerCmd,
 	})

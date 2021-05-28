@@ -39,7 +39,6 @@ type listFlagType struct {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: lsCmd,
 		Parent:  secretCmd,
 	})

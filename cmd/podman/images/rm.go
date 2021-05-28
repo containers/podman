@@ -25,17 +25,33 @@ var (
   podman image rm c4dfb1609ee2 93fd78260bd1 c0ed59d05ff7`,
 	}
 
+	rmiCmd = &cobra.Command{
+		Use:               "rmi [options] IMAGE [IMAGE...]",
+		Args:              rmCmd.Args,
+		Short:             rmCmd.Short,
+		Long:              rmCmd.Long,
+		RunE:              rmCmd.RunE,
+		ValidArgsFunction: rmCmd.ValidArgsFunction,
+		Example: `podman rmi imageID
+  podman rmi --force alpine
+  podman rmi c4dfb1609ee2 93fd78260bd1 c0ed59d05ff7`,
+	}
+
 	imageOpts = entities.ImageRemoveOptions{}
 )
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: rmCmd,
 		Parent:  imageCmd,
 	})
 
 	imageRemoveFlagSet(rmCmd.Flags())
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Command: rmiCmd,
+	})
+	imageRemoveFlagSet(rmiCmd.Flags())
 }
 
 func imageRemoveFlagSet(flags *pflag.FlagSet) {

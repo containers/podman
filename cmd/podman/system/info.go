@@ -11,7 +11,6 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/ghodss/yaml"
 	"github.com/spf13/cobra"
 )
@@ -49,13 +48,11 @@ var (
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: infoCommand,
 	})
 	infoFlags(infoCommand)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: systemInfoCommand,
 		Parent:  systemCmd,
 	})

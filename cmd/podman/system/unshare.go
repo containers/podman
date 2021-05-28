@@ -15,12 +15,12 @@ var (
 	unshareOptions     = entities.SystemUnshareOptions{}
 	unshareDescription = "Runs a command in a modified user namespace."
 	unshareCommand     = &cobra.Command{
-		Use:                   "unshare [options] [COMMAND [ARG...]]",
-		DisableFlagsInUseLine: true,
-		Short:                 "Run a command in a modified user namespace",
-		Long:                  unshareDescription,
-		RunE:                  unshare,
-		ValidArgsFunction:     completion.AutocompleteDefault,
+		Annotations:       map[string]string{registry.EngineMode: registry.ABIMode},
+		Use:               "unshare [options] [COMMAND [ARG...]]",
+		Short:             "Run a command in a modified user namespace",
+		Long:              unshareDescription,
+		RunE:              unshare,
+		ValidArgsFunction: completion.AutocompleteDefault,
 		Example: `podman unshare id
   podman unshare cat /proc/self/uid_map,
   podman unshare podman-script.sh`,
@@ -29,7 +29,6 @@ var (
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: unshareCommand,
 	})
 	flags := unshareCommand.Flags()

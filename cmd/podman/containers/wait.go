@@ -60,14 +60,12 @@ func waitFlags(cmd *cobra.Command) {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: waitCommand,
 	})
 	waitFlags(waitCommand)
 	validate.AddLatestFlag(waitCommand, &waitOptions.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: containerWaitCommand,
 		Parent:  containerCmd,
 	})

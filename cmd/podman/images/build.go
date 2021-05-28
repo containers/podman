@@ -82,14 +82,11 @@ func useLayers() string {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode: []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
-
 		Command: buildCmd,
 	})
 	buildFlags(buildCmd)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: imageBuildCmd,
 		Parent:  imageCmd,
 	})

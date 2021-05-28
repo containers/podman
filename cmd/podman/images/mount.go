@@ -24,6 +24,11 @@ var (
 `
 
 	mountCommand = &cobra.Command{
+		Annotations: map[string]string{
+			registry.UnshareNSRequired: "",
+			registry.ParentNSRequired:  "",
+			registry.EngineMode:        registry.ABIMode,
+		},
 		Use:               "mount [options] [IMAGE...]",
 		Short:             "Mount an image's root filesystem",
 		Long:              mountDescription,
@@ -33,10 +38,6 @@ var (
   podman image mount imgID1 imgID2 imgID3
   podman image mount
   podman image mount --all`,
-		Annotations: map[string]string{
-			registry.UnshareNSRequired: "",
-			registry.ParentNSRequired:  "",
-		},
 	}
 )
 
@@ -56,7 +57,6 @@ func mountFlags(cmd *cobra.Command) {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode},
 		Command: mountCommand,
 		Parent:  imageCmd,
 	})

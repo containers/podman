@@ -15,7 +15,6 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
-	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/machine"
 	"github.com/containers/podman/v3/pkg/machine/qemu"
 	"github.com/docker/go-units"
@@ -25,15 +24,15 @@ import (
 
 var (
 	lsCmd = &cobra.Command{
-		Use:     "list [options]",
-		Aliases: []string{"ls"},
-		Short:   "List machines",
-		Long:    "List managed virtual machines.",
-		RunE:    list,
-		Args:    validate.NoArgs,
+		Use:               "list [options]",
+		Aliases:           []string{"ls"},
+		Short:             "List machines",
+		Long:              "List managed virtual machines.",
+		RunE:              list,
+		Args:              validate.NoArgs,
+		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman machine list,
   podman machine ls`,
-		ValidArgsFunction: completion.AutocompleteNone,
 	}
 	listFlag = listFlagType{}
 )
@@ -52,7 +51,6 @@ type machineReporter struct {
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
 		Command: lsCmd,
 		Parent:  machineCmd,
 	})

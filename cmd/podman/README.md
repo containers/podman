@@ -40,9 +40,6 @@ var (
 func init() {
     // Subscribe command to podman
     registry.Commands = append(registry.Commands, registry.CliCommand{
-        // _podman manifest_ will support both ABIMode and TunnelMode
-        Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
-        // The definition for this command
         Command: manifestCmd,
     })
 }
@@ -83,9 +80,6 @@ var (
 func init() {
     // Subscribe inspect sub command to manifest command
     registry.Commands = append(registry.Commands, registry.CliCommand{
-        // _podman manifest inspect_ will support both ABIMode and TunnelMode
-        Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
-        // The definition for this command
         Command: inspectCmd,
         // The parent command to proceed this command on the CLI
         Parent:  manifestCmd,
