@@ -28,6 +28,10 @@ link on that page.
 | docs/links-to-html.lua | pandoc filter to do aliases for html files |
 | docs/use-pagetitle.lua | pandoc filter to set html document title |
 
+## Manpage Syntax
+
+The syntax for the formatting of all man pages can be found [here](MANPAGE_SYNTAX.md).
+
 ## API Reference
 
 The [latest online documentation](http://docs.podman.io/en/latest/_static/api.html) is
