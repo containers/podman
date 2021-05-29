@@ -42,7 +42,7 @@ If you think you've identified a security issue in the project, please *DO NOT* 
 Instead, send an email with as many details as possible to `security@lists.podman.io`. This is a private mailing list for the core maintainers.
 
 For general questions and discussion, please use the
-IRC `#podman` channel on `irc.freenode.net`.
+IRC `#podman` channel on `irc.libera.chat`.
 
 For discussions around issues/bugs and features, you can use the GitHub
 [issues](https://github.com/containers/podman/issues)
