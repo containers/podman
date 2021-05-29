@@ -397,7 +397,7 @@ if possible.](#communications)
 ## Communications
 
 For general questions and discussion, please use the
-IRC `#podman` channel on `irc.freenode.net`.
+IRC `#podman` channel on `irc.libera.chat`.
 
 For discussions around issues/bugs and features, you can use the GitHub
 [issues](https://github.com/containers/podman/issues)
