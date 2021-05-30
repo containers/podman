@@ -375,6 +375,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    type: boolean
 	//    default: true
 	//    description: Stream the output
+	//  - in: query
+	//    name: one-shot
+	//    type: boolean
+	//    default: false
+	//    description: Provide a one-shot response in which preCPU stats are blank, resulting in a single cycle return.
 	// produces:
 	// - application/json
 	// responses:
