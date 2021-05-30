@@ -311,10 +311,10 @@ static void __attribute__((constructor)) init()
         do_socket_activation = true;
         saved_systemd_listen_pid = strdup(listen_pid);
         saved_systemd_listen_fds = strdup(listen_fds);
-        saved_systemd_listen_fdnames = strdup(listen_fdnames);
+        if (listen_fdnames != NULL)
+          saved_systemd_listen_fdnames = strdup(listen_fdnames);
         if (saved_systemd_listen_pid == NULL
-                || saved_systemd_listen_fds == NULL
-                || saved_systemd_listen_fdnames == NULL)
+                || saved_systemd_listen_fds == NULL)
           {
             fprintf (stderr, "save socket listen environments error: %s\n", strerror (errno));
             _exit (EXIT_FAILURE);
@@ -700,7 +700,9 @@ reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
       sprintf (s, "%d", getpid());
       setenv ("LISTEN_PID", s, true);
       setenv ("LISTEN_FDS", saved_systemd_listen_fds, true);
-      setenv ("LISTEN_FDNAMES", saved_systemd_listen_fdnames, true);
+      // Setting fdnames is optional for systemd_socket_activation
+      if (saved_systemd_listen_fdnames != NULL)
+        setenv ("LISTEN_FDNAMES", saved_systemd_listen_fdnames, true);
     }
 
   setenv ("_CONTAINERS_USERNS_CONFIGURED", "init", 1);
@@ -896,7 +898,9 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
       sprintf (s, "%d", getpid());
       setenv ("LISTEN_PID", s, true);
       setenv ("LISTEN_FDS", saved_systemd_listen_fds, true);
-      setenv ("LISTEN_FDNAMES", saved_systemd_listen_fdnames, true);
+      // Setting fdnames is optional for systemd_socket_activation
+      if (saved_systemd_listen_fdnames != NULL)
+        setenv ("LISTEN_FDNAMES", saved_systemd_listen_fdnames, true);
     }
 
   setenv ("_CONTAINERS_USERNS_CONFIGURED", "init", 1);
