@@ -13,6 +13,7 @@ import (
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/pkg/shortnames"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/api/handlers"
@@ -230,6 +231,14 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fromImage := mergeNameAndTagOrDigest(query.FromImage, query.Tag)
+
+	// without this early check this function would return 200 but reported error via body stream soon after
+	// it's better to let caller know early via HTTP status code that request cannot be processed
+	_, err := shortnames.Resolve(runtime.SystemContext(), fromImage)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrap(err, "failed to resolve image name"))
+		return
+	}
 
 	authConf, authfile, key, err := auth.GetCredentials(r)
 	if err != nil {
