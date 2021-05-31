@@ -121,6 +121,9 @@ func isENOTDIR(err error) bool {
 	if err == nil {
 		return false
 	}
+	if err == syscall.ENOTDIR {
+		return true
+	}
 	if perror, ok := err.(*os.PathError); ok {
 		if errno, ok := perror.Err.(syscall.Errno); ok {
 			return errno == syscall.ENOTDIR

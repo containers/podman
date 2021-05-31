@@ -1731,5 +1731,5 @@ func (r *layerStore) ReloadIfChanged() error {
 	if err == nil && modified {
 		return r.Load()
 	}
-	return nil
+	return err
 }

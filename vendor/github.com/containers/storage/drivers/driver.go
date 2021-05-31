@@ -60,6 +60,9 @@ type MountOpts struct {
 	// Volatile specifies whether the container storage can be optimized
 	// at the cost of not syncing all the dirty files in memory.
 	Volatile bool
+
+	// DisableShifting forces the driver to not do any ID shifting at runtime.
+	DisableShifting bool
 }
 
 // ApplyDiffOpts contains optional arguments for ApplyDiff methods.
