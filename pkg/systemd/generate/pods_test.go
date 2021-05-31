@@ -47,7 +47,7 @@ Description=Podman pod-123abc.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
+RequiresMountsFor=/var/run/containers/storage
 Requires=container-1.service container-2.service
 Before=container-1.service container-2.service
 
@@ -75,7 +75,7 @@ Description=Podman pod-123abc.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
+RequiresMountsFor=/var/run/containers/storage
 Requires=container-1.service container-2.service
 Before=container-1.service container-2.service
 
@@ -103,7 +103,7 @@ Description=Podman pod-123abc.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
+RequiresMountsFor=/var/run/containers/storage
 Requires=container-1.service container-2.service
 Before=container-1.service container-2.service
 
@@ -131,7 +131,7 @@ Description=Podman pod-123abc.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
+RequiresMountsFor=/var/run/containers/storage
 Requires=container-1.service container-2.service
 Before=container-1.service container-2.service
 
@@ -159,7 +159,7 @@ Description=Podman pod-123abc.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
+RequiresMountsFor=/var/run/containers/storage
 Requires=container-1.service container-2.service
 Before=container-1.service container-2.service
 
