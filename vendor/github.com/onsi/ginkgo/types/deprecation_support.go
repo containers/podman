@@ -46,9 +46,9 @@ func (d deprecations) Async() Deprecation {
 
 func (d deprecations) Measure() Deprecation {
 	return Deprecation{
-		Message: "Measure is deprecated in Ginkgo V2",
+		Message: "Measure is deprecated and will be removed in Ginkgo V2.  Please migrate to gomega/gmeasure.",
 		DocLink: "removed-measure",
-		Version: "1.16.0",
+		Version: "1.16.3",
 	}
 }
 
