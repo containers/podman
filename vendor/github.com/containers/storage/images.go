@@ -810,5 +810,5 @@ func (r *imageStore) ReloadIfChanged() error {
 	if err == nil && modified {
 		return r.Load()
 	}
-	return nil
+	return err
 }
