@@ -152,14 +152,14 @@ func generateContainerInfo(ctr *libpod.Container, options entities.GenerateSyste
 		return nil, errors.Errorf("could not determine storage store for container")
 	}
 
-	graphRoot := store.GraphRoot()
-	if graphRoot == "" {
-		return nil, errors.Errorf("could not lookup container's graphroot: got empty string")
-	}
-
-	runRoot := store.RunRoot()
-	if runRoot == "" {
-		return nil, errors.Errorf("could not lookup container's runroot: got empty string")
+	var runRoot string
+	if options.New {
+		runRoot = "%t/containers"
+	} else {
+		runRoot = store.RunRoot()
+		if runRoot == "" {
+			return nil, errors.Errorf("could not lookup container's runroot: got empty string")
+		}
 	}
 
 	envs := config.Spec.Process.Env
@@ -172,7 +172,6 @@ func generateContainerInfo(ctr *libpod.Container, options entities.GenerateSyste
 		StopTimeout:       timeout,
 		GenerateTimestamp: true,
 		CreateCommand:     createCommand,
-		GraphRoot:         graphRoot,
 		RunRoot:           runRoot,
 		containerEnv:      envs,
 	}

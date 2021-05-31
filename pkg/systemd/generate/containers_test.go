@@ -48,7 +48,7 @@ Description=Podman container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
+RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -74,7 +74,7 @@ Description=Podman container-foobar.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
+RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -98,7 +98,7 @@ Description=Podman container-foobar.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
+RequiresMountsFor=/var/run/containers/storage
 BindsTo=a.service b.service c.service pod.service
 After=a.service b.service c.service pod.service
 
@@ -124,7 +124,7 @@ Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
+RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -149,7 +149,7 @@ Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
+RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -174,7 +174,7 @@ Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
+RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -199,7 +199,7 @@ Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
+RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -224,7 +224,7 @@ Description=Podman container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
+RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -250,7 +250,7 @@ Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
+RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -279,7 +279,7 @@ Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
+RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -304,7 +304,7 @@ Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
+RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -329,7 +329,7 @@ Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
+RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -354,7 +354,7 @@ Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
+RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -379,7 +379,7 @@ Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
+RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -404,7 +404,7 @@ Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
+RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -429,7 +429,7 @@ Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
+RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -454,7 +454,7 @@ Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/containers/storage
+RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
