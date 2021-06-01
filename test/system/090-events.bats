@@ -61,3 +61,32 @@ load helpers
 .*image remove $imageID $tag.*" \
        "podman events"
 }
+
+function _events_disjunctive_filters() {
+    local backend=$1
+
+    # Regression test for #10507: make sure that filters with the same key are
+    # applied in disjunction.
+    t0=$(date --iso-8601=seconds)
+    run_podman $backend run --name foo --rm $IMAGE ls
+    run_podman $backend run --name bar --rm $IMAGE ls
+    run_podman $backend events --stream=false --since=$t0 --filter container=foo --filter container=bar --filter event=start
+    is "$output" ".* container start .* name=foo.*
+.* container start .* name=bar.*"
+}
+
+@test "events with disjunctive filters - file" {
+    skip_if_remote "remote does not support --events-backend"
+    _events_disjunctive_filters --events-backend=file
+}
+
+@test "events with disjunctive filters - journald" {
+    skip_if_remote "remote does not support --events-backend"
+    _events_disjunctive_filters --events-backend=journald
+}
+
+@test "events with disjunctive filters - default" {
+    # NOTE: the last event for bar doesn't show up reliably.
+    skip_if_remote "FIXME #10529: remote events lose data"
+    _events_disjunctive_filters ""
+}
