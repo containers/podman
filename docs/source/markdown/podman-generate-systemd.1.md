@@ -75,7 +75,7 @@ Description=Podman container-de1e3223b1b888bc02d0962dd6cb5855eb00734061013ffdd34
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/container/storage
+RequiresMountsFor=/var/run/container/storage
 
 [Service]
 Restart=always
@@ -104,7 +104,7 @@ Description=Podman container-busy_moser.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/container/storage
+RequiresMountsFor=/var/run/container/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
@@ -146,7 +146,7 @@ Requires=container-amazing_chandrasekhar.service container-jolly_shtern.service
 Before=container-amazing_chandrasekhar.service container-jolly_shtern.service
 Wants=network.target
 After=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/run/container/storage
+RequiresMountsFor=/var/run/container/storage
 
 [Service]
 Restart=on-failure
