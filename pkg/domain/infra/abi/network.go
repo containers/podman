@@ -11,7 +11,7 @@ import (
 )
 
 func (ic *ContainerEngine) NetworkList(ctx context.Context, options entities.NetworkListOptions) ([]*entities.NetworkListReport, error) {
-	var reports []*entities.NetworkListReport
+	reports := make([]*entities.NetworkListReport, 0)
 
 	config, err := ic.Libpod.GetConfig()
 	if err != nil {
