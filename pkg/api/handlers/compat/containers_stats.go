@@ -22,12 +22,17 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 
 	query := struct {
-		Stream bool `schema:"stream"`
+		Stream  bool `schema:"stream"`
+		OneShot bool `schema:"one-shot"` //added schema for one shot
 	}{
 		Stream: true,
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+	if query.Stream && query.OneShot { // mismatch. one-shot can only be passed with stream=false
+		utils.Error(w, "invalid combination of stream and one-shot", http.StatusBadRequest, define.ErrInvalidArg)
 		return
 	}
 
@@ -56,6 +61,16 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	coder := json.NewEncoder(w)
+	// Write header and content type.
+	w.WriteHeader(http.StatusOK)
+	w.Header().Add("Content-Type", "application/json")
+	if flusher, ok := w.(http.Flusher); ok {
+		flusher.Flush()
+	}
+
+	// Setup JSON encoder for streaming.
+	coder.SetEscapeHTML(true)
 	var preRead time.Time
 	var preCPUStats CPUStats
 	if query.Stream {
@@ -74,17 +89,6 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 			ThrottlingData: docker.ThrottlingData{},
 		}
 	}
-
-	// Write header and content type.
-	w.WriteHeader(http.StatusOK)
-	w.Header().Add("Content-Type", "application/json")
-	if flusher, ok := w.(http.Flusher); ok {
-		flusher.Flush()
-	}
-
-	// Setup JSON encoder for streaming.
-	coder := json.NewEncoder(w)
-	coder.SetEscapeHTML(true)
 
 streamLabel: // A label to flatten the scope
 	select {
@@ -199,7 +203,7 @@ streamLabel: // A label to flatten the scope
 			flusher.Flush()
 		}
 
-		if !query.Stream {
+		if !query.Stream || query.OneShot {
 			return
 		}
 

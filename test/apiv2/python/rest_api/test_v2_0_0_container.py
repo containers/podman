@@ -30,6 +30,10 @@ class ContainerTestCase(APITestCase):
         self.assertIn(r.status_code, (200, 409), r.text)
         if r.status_code == 200:
             self.assertId(r.content)
+        r = requests.get(self.uri(self.resolve_container("/containers/{}/stats?stream=false&one-shot=true")))
+        self.assertIn(r.status_code, (200, 409), r.text)
+        if r.status_code == 200:
+            self.assertId(r.content)
 
     def test_delete(self):
         r = requests.delete(self.uri(self.resolve_container("/containers/{}")))
