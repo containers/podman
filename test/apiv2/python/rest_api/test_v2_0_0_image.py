@@ -86,6 +86,11 @@ class ImageTestCase(APITestCase):
         self.assertTrue(keys["id"], "Expected to find id stanza")
         self.assertTrue(keys["images"], "Expected to find images stanza")
         self.assertTrue(keys["stream"], "Expected to find stream progress stanza's")
+    def test_create(self):
+        r = requests.post(self.podman_url + "/v1.40/images/create?fromImage=alpine&platform=linux/amd64/v8", timeout=15)
+        self.assertEqual(r.status_code, 200, r.text)
+        r = requests.post(self.podman_url + "/v1.40/images/create?fromSrc=-&repo=fedora&message=testing123", timeout=15)
+        self.assertEqual(r.status_code, 200, r.text)
 
     def test_search_compat(self):
         url = self.podman_url + "/v1.40/images/search"
