@@ -166,10 +166,11 @@ func create(cmd *cobra.Command, args []string) error {
 		defer errorhandling.SyncQuiet(podIDFD)
 	}
 
-	createOptions.Net, err = common.NetFlagsToNetOptions(cmd)
+	createOptions.Net, err = common.NetFlagsToNetOptions(cmd, createOptions.Infra)
 	if err != nil {
 		return err
 	}
+
 	if len(createOptions.Net.PublishPorts) > 0 {
 		if !createOptions.Infra {
 			return errors.Errorf("you must have an infra container to publish port bindings to the host")
