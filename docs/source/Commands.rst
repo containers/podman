@@ -55,7 +55,7 @@ Commands
 
 :doc:`logs <markdown/podman-logs.1>` Fetch the logs of a container
 
-:doc:`machine <markdown/podman-machine.1>` Manage podman's virtual machine
+:doc:`machine <machine>` Manage podman's virtual machine
 
 :doc:`manifest <manifest>` Create and manipulate manifest lists and image indexes
 
@@ -91,7 +91,7 @@ Commands
 
 :doc:`search <markdown/podman-search.1>` Search registry for image
 
-:doc:`secret <markdown/podman-secret.1>` Manage podman secrets
+:doc:`secret <secret>` Manage podman secrets
 
 :doc:`start <markdown/podman-start.1>` Start one or more containers
 
