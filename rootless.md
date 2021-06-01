@@ -29,7 +29,7 @@ can easily fail
   * Ubuntu supports non root overlay, but no other Linux distros do.
 * Only other supported driver is VFS.
 * Cannot use ping out of the box.
-  * [(Can be fixed by setting sysctl on host)](https://github.com/containers/podman/blob/master/troubleshooting.md#6-rootless-containers-cannot-ping-hosts)
+  * [(Can be fixed by setting sysctl on host)](https://github.com/containers/podman/blob/master/troubleshooting.md#5-rootless-containers-cannot-ping-hosts)
 * Requires new shadow-utils (not found in older (RHEL7/Centos7 distros) Should be fixed in RHEL7.7 release)
 * A few commands do not work.
   * mount/unmount (on fuse-overlay)
