@@ -97,18 +97,41 @@ func parseFilter(filter string) (string, string, error) {
 	return filterSplit[0], filterSplit[1], nil
 }
 
-func generateEventOptions(filters []string, since, until string) ([]EventFilter, error) {
-	options := make([]EventFilter, 0, len(filters))
+// applyFilters applies the EventFilter slices in sequence.  Filters under the
+// same key are disjunctive while each key must match (conjuctive).
+func applyFilters(event *Event, filterMap map[string][]EventFilter) bool {
+	for _, filters := range filterMap {
+		success := false
+		for _, filter := range filters {
+			if filter(event) {
+				success = true
+				break
+			}
+		}
+		if !success {
+			return false
+		}
+	}
+	return true
+}
+
+// generateEventFilter parses the specified filters into a filter map that can
+// later on be used to filter events.  Keys are conjunctive, values are
+// disjunctive.
+func generateEventFilters(filters []string, since, until string) (map[string][]EventFilter, error) {
+	filterMap := make(map[string][]EventFilter)
 	for _, filter := range filters {
 		key, val, err := parseFilter(filter)
 		if err != nil {
 			return nil, err
 		}
-		funcFilter, err := generateEventFilter(key, val)
+		filterFunc, err := generateEventFilter(key, val)
 		if err != nil {
 			return nil, err
 		}
-		options = append(options, funcFilter)
+		filterSlice := filterMap[key]
+		filterSlice = append(filterSlice, filterFunc)
+		filterMap[key] = filterSlice
 	}
 
 	if len(since) > 0 {
@@ -116,7 +139,8 @@ func generateEventOptions(filters []string, since, until string) ([]EventFilter,
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to convert since time of %s", since)
 		}
-		options = append(options, generateEventSinceOption(timeSince))
+		filterFunc := generateEventSinceOption(timeSince)
+		filterMap["since"] = []EventFilter{filterFunc}
 	}
 
 	if len(until) > 0 {
@@ -124,7 +148,8 @@ func generateEventOptions(filters []string, since, until string) ([]EventFilter,
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to convert until time of %s", until)
 		}
-		options = append(options, generateEventUntilOption(timeUntil))
+		filterFunc := generateEventUntilOption(timeUntil)
+		filterMap["until"] = []EventFilter{filterFunc}
 	}
-	return options, nil
+	return filterMap, nil
 }
