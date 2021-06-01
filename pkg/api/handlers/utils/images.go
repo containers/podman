@@ -15,22 +15,19 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ParseDockerReference parses the specified image name to a
-// `types.ImageReference` and enforces it to refer to a docker-transport
-// reference.
-func ParseDockerReference(name string) (types.ImageReference, error) {
-	dockerPrefix := fmt.Sprintf("%s://", docker.Transport.Name())
+// IsRegistryReference checks if the specified name points to the "docker://"
+// transport.  If it points to no supported transport, we'll assume a
+// non-transport reference pointing to an image (e.g., "fedora:latest").
+func IsRegistryReference(name string) error {
 	imageRef, err := alltransports.ParseImageName(name)
-	if err == nil && imageRef.Transport().Name() != docker.Transport.Name() {
-		return nil, errors.Errorf("reference %q must be a docker reference", name)
-	} else if err != nil {
-		origErr := err
-		imageRef, err = alltransports.ParseImageName(fmt.Sprintf("%s%s", dockerPrefix, name))
-		if err != nil {
-			return nil, errors.Wrapf(origErr, "reference %q must be a docker reference", name)
-		}
+	if err != nil {
+		// No supported transport -> assume a docker-stype reference.
+		return nil
 	}
-	return imageRef, nil
+	if imageRef.Transport().Name() == docker.Transport.Name() {
+		return nil
+	}
+	return errors.Errorf("unsupport transport %s in %q: only docker transport is supported", imageRef.Transport().Name(), name)
 }
 
 // ParseStorageReference parses the specified image name to a

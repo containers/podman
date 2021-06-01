@@ -71,13 +71,12 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	imgNameOrID := newImage.ID()
 	// if the img had multi names with the same sha256 ID, should use the InputName, not the ID
 	if len(newImage.Names()) > 1 {
-		imageRef, err := utils.ParseDockerReference(resolvedName)
-		if err != nil {
+		if err := utils.IsRegistryReference(resolvedName); err != nil {
 			utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
 			return
 		}
 		// maybe the InputName has no tag, so use full name to display
-		imgNameOrID = imageRef.DockerReference().String()
+		imgNameOrID = resolvedName
 	}
 
 	sg := specgen.NewSpecGenerator(imgNameOrID, cliOpts.RootFS)

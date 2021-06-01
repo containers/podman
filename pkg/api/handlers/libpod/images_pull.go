@@ -48,7 +48,7 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Make sure that the reference has no transport or the docker one.
-	if _, err := utils.ParseDockerReference(query.Reference); err != nil {
+	if err := utils.IsRegistryReference(query.Reference); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
 		return
 	}
