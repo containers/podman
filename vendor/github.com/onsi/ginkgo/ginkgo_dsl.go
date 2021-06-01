@@ -473,24 +473,28 @@ func By(text string, callbacks ...func()) {
 //The body function must have the signature:
 //	func(b Benchmarker)
 func Measure(text string, body interface{}, samples int) bool {
+	deprecationTracker.TrackDeprecation(types.Deprecations.Measure(), codelocation.New(1))
 	global.Suite.PushMeasureNode(text, body, types.FlagTypeNone, codelocation.New(1), samples)
 	return true
 }
 
 //You can focus individual Measures using FMeasure
 func FMeasure(text string, body interface{}, samples int) bool {
+	deprecationTracker.TrackDeprecation(types.Deprecations.Measure(), codelocation.New(1))
 	global.Suite.PushMeasureNode(text, body, types.FlagTypeFocused, codelocation.New(1), samples)
 	return true
 }
 
 //You can mark Measurements as pending using PMeasure
 func PMeasure(text string, _ ...interface{}) bool {
+	deprecationTracker.TrackDeprecation(types.Deprecations.Measure(), codelocation.New(1))
 	global.Suite.PushMeasureNode(text, func(b Benchmarker) {}, types.FlagTypePending, codelocation.New(1), 0)
 	return true
 }
 
 //You can mark Measurements as pending using XMeasure
 func XMeasure(text string, _ ...interface{}) bool {
+	deprecationTracker.TrackDeprecation(types.Deprecations.Measure(), codelocation.New(1))
 	global.Suite.PushMeasureNode(text, func(b Benchmarker) {}, types.FlagTypePending, codelocation.New(1), 0)
 	return true
 }
