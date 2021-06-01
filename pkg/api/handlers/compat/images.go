@@ -1,7 +1,6 @@
 package compat
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -18,7 +17,6 @@ import (
 	"github.com/containers/podman/v3/pkg/api/handlers"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/containers/podman/v3/pkg/auth"
-	"github.com/containers/podman/v3/pkg/channel"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
 	"github.com/containers/storage"
@@ -210,6 +208,11 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+type pullResult struct {
+	images []*libimage.Image
+	err    error
+}
+
 func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 	// 200 no error
 	// 404 repo does not exist or no read access
@@ -247,26 +250,14 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 	}
 	pullOptions.Writer = os.Stderr // allows for debugging on the server
 
-	stderr := channel.NewWriter(make(chan []byte))
-	defer stderr.Close()
-
 	progress := make(chan types.ProgressProperties)
+
 	pullOptions.Progress = progress
 
-	var img string
-	runCtx, cancel := context.WithCancel(context.Background())
+	pullResChan := make(chan pullResult)
 	go func() {
-		defer cancel()
-		pulledImages, err := runtime.LibimageRuntime().Pull(runCtx, fromImage, config.PullPolicyAlways, pullOptions)
-		if err != nil {
-			stderr.Write([]byte(err.Error() + "\n"))
-		} else {
-			if len(pulledImages) == 0 {
-				utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.New("internal error: no images pulled"))
-				return
-			}
-			img = pulledImages[0].ID()
-		}
+		pulledImages, err := runtime.LibimageRuntime().Pull(r.Context(), fromImage, config.PullPolicyAlways, pullOptions)
+		pullResChan <- pullResult{images: pulledImages, err: err}
 	}()
 
 	flush := func() {
@@ -281,7 +272,6 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 
 	enc := json.NewEncoder(w)
 	enc.SetEscapeHTML(true)
-	var failed bool
 
 loop: // break out of for/select infinite loop
 	for {
@@ -312,32 +302,31 @@ loop: // break out of for/select infinite loop
 			}
 			report.Id = e.Artifact.Digest.Encoded()[0:12]
 			if err := enc.Encode(report); err != nil {
-				stderr.Write([]byte(err.Error()))
+				logrus.Warnf("Failed to json encode error %q", err.Error())
 			}
 			flush()
-		case e := <-stderr.Chan():
-			failed = true
-			report.Error = string(e)
+		case pullRes := <-pullResChan:
+			err := pullRes.err
+			pulledImages := pullRes.images
+			if err != nil {
+				report.Error = err.Error()
+			} else {
+				if len(pulledImages) > 0 {
+					img := pulledImages[0].ID()
+					if utils.IsLibpodRequest(r) {
+						report.Status = "Pull complete"
+					} else {
+						report.Status = "Download complete"
+					}
+					report.Id = img[0:12]
+				} else {
+					report.Error = "internal error: no images pulled"
+				}
+			}
 			if err := enc.Encode(report); err != nil {
 				logrus.Warnf("Failed to json encode error %q", err.Error())
 			}
 			flush()
-		case <-runCtx.Done():
-			if !failed {
-				if utils.IsLibpodRequest(r) {
-					report.Status = "Pull complete"
-				} else {
-					report.Status = "Download complete"
-				}
-				report.Id = img[0:12]
-				if err := enc.Encode(report); err != nil {
-					logrus.Warnf("Failed to json encode error %q", err.Error())
-				}
-				flush()
-			}
-			break loop // break out of for/select infinite loop
-		case <-r.Context().Done():
-			// Client has closed connection
 			break loop // break out of for/select infinite loop
 		}
 	}
