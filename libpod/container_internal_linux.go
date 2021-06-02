@@ -1666,17 +1666,16 @@ func (c *Container) generateResolvConf() (string, error) {
 		return "", err
 	}
 
-	// Ensure that the container's /etc/resolv.conf is compatible with its
-	// network configuration.
-	// TODO: set ipv6 enable bool more sanely
-	resolv, err := resolvconf.FilterResolvDNS(contents, true, c.config.CreateNetNS)
-	if err != nil {
-		return "", errors.Wrapf(err, "error parsing host resolv.conf")
-	}
-
+	ipv6 := false
 	// Check if CNI gave back and DNS servers for us to add in
 	cniResponse := c.state.NetworkStatus
 	for _, i := range cniResponse {
+		for _, ip := range i.IPs {
+			// Note: only using To16() does not work since it also returns a vaild ip for ipv4
+			if ip.Address.IP.To4() == nil && ip.Address.IP.To16() != nil {
+				ipv6 = true
+			}
+		}
 		if i.DNS.Nameservers != nil {
 			cniNameServers = append(cniNameServers, i.DNS.Nameservers...)
 			logrus.Debugf("adding nameserver(s) from cni response of '%q'", i.DNS.Nameservers)
@@ -1685,6 +1684,25 @@ func (c *Container) generateResolvConf() (string, error) {
 			cniSearchDomains = append(cniSearchDomains, i.DNS.Search...)
 			logrus.Debugf("adding search domain(s) from cni response of '%q'", i.DNS.Search)
 		}
+	}
+
+	if c.config.NetMode.IsSlirp4netns() {
+		ctrNetworkSlipOpts := []string{}
+		if c.config.NetworkOptions != nil {
+			ctrNetworkSlipOpts = append(ctrNetworkSlipOpts, c.config.NetworkOptions["slirp4netns"]...)
+		}
+		slirpOpts, err := parseSlirp4netnsNetworkOptions(c.runtime, ctrNetworkSlipOpts)
+		if err != nil {
+			return "", err
+		}
+		ipv6 = slirpOpts.enableIPv6
+	}
+
+	// Ensure that the container's /etc/resolv.conf is compatible with its
+	// network configuration.
+	resolv, err := resolvconf.FilterResolvDNS(contents, ipv6, c.config.CreateNetNS)
+	if err != nil {
+		return "", errors.Wrapf(err, "error parsing host resolv.conf")
 	}
 
 	dns := make([]net.IP, 0, len(c.runtime.config.Containers.DNSServers))

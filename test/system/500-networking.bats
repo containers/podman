@@ -329,4 +329,62 @@ load helpers
     run_podman network rm -f $mynetname
 }
 
+@test "podman ipv6 in /etc/resolv.conf" {
+    ipv6_regex='([0-9A-Fa-f]{0,4}:){2,7}([0-9A-Fa-f]{0,4})(%\w+)?'
+
+    # Make sure to read the correct /etc/resolv.conf file in case of systemd-resolved.
+    resolve_file=$(readlink -f /etc/resolv.conf)
+    if [[ "$resolve_file" == "/run/systemd/resolve/stub-resolv.conf" ]]; then
+        resolve_file="/run/systemd/resolve/resolv.conf"
+    fi
+
+    # If the host doesn't have an ipv6 in resolv.conf skip this test.
+    # We should never modify resolv.conf on the host.
+    if ! grep -E "$ipv6_regex" "$resolve_file"; then
+        skip "This test needs an ipv6 nameserver in $resolve_file"
+    fi
+
+    # ipv4 slirp
+    run_podman run --rm --network slirp4netns:enable_ipv6=false $IMAGE cat /etc/resolv.conf
+    if grep -E "$ipv6_regex" <<< $output; then
+        die "resolv.conf contains a ipv6 nameserver"
+    fi
+
+    # ipv6 slirp
+    run_podman run --rm --network slirp4netns:enable_ipv6=true $IMAGE cat /etc/resolv.conf
+    # "is" does not like the ipv6 regex
+    if ! grep -E "$ipv6_regex" <<< $output; then
+        die "resolv.conf does not contain a ipv6 nameserver"
+    fi
+
+    # ipv4 cni
+    local mysubnet=$(random_rfc1918_subnet)
+    local netname=testnet-$(random_string 10)
+
+    run_podman network create --subnet $mysubnet.0/24 $netname
+    is "$output" ".*/cni/net.d/$netname.conflist" "output of 'network create'"
+
+    run_podman run --rm --network $netname $IMAGE cat /etc/resolv.conf
+    if grep -E "$ipv6_regex" <<< $output; then
+        die "resolv.conf contains a ipv6 nameserver"
+    fi
+
+    run_podman network rm -f $netname
+
+    # ipv6 cni
+    mysubnet=fd00:4:4:4:4::/64
+    netname=testnet-$(random_string 10)
+
+    run_podman network create --subnet $mysubnet $netname
+    is "$output" ".*/cni/net.d/$netname.conflist" "output of 'network create'"
+
+    run_podman run --rm --network $netname $IMAGE cat /etc/resolv.conf
+    # "is" does not like the ipv6 regex
+    if ! grep -E "$ipv6_regex" <<< $output; then
+        die "resolv.conf does not contain a ipv6 nameserver"
+    fi
+
+    run_podman network rm -f $netname
+}
+
 # vim: filetype=sh
