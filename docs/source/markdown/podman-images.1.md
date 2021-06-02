@@ -1,9 +1,11 @@
 % podman-images(1)
 
 ## NAME
+
 podman\-images - List images in local storage
 
 ## SYNOPSIS
+
 **podman images** [*options*]
 
 **podman image list** [*options*]
@@ -11,47 +13,40 @@ podman\-images - List images in local storage
 **podman image ls** [*options*]
 
 ## DESCRIPTION
-Displays locally stored images, their names, and their IDs.
+
+**podman images** displays locally stored images, their names, and their IDs.
 
 ## OPTIONS
 
 #### **--all**, **-a**
 
-Show all images (by default filter out the intermediate image layers). The default is false.
+Show all images. If set, itermediate layers are not filtered out.
+
+**Note:**
+
+- Intermediate layers are filtered out by default i.e. when this option is not set.
 
 #### **--digests**
 
-Show image digests
+Show image digests.
 
-#### **--filter**=*filter*, **-f**
+#### **--filter**=, **-f**=*filter*
 
-Filter output based on conditions provided
+| Filter      | Description |
+| ----------- | ----------- |
+| since=IMAGE | Filter on images created after a given IMAGE (name or tag).|
+| before=IMAGE   | Filter on images created before the given IMAGE (name or tag).|
+| dangling=true\|false | Show dangling images. Dangling images refer to file system layers that were used in a previous build of an image and are no longer referenced by any active images. They are denoted with the `<none>` tag, consume disk space and serve no active purpose. |
+| label | Filter by images labels key and/or value. |
+| readonly=true\|false | Show only read only images or read/write images. The default is to show both.  Read only images can be configured by modifying the  `"additionalimagestores"` in the `/etc/containers/storage.conf` file. |
+| reference |  Filter by image name, specified as regular expressions. |
 
-  Filters:
-
-  **since=IMAGE**
-    Filter on images created after the given IMAGE (name or tag).
-
-  **before=IMAGE**
-    Filter on images created before the given IMAGE (name or tag).
-
-  **dangling=true|false**
-    Show dangling images. Dangling images are a file system layer that was used in a previous build of an image and is no longer referenced by any active images. They are denoted with the `<none>` tag, consume disk space and serve no active purpose.
-
-  **label**
-    Filter by images labels key and/or value.
-
-  **readonly=true|false**
-     Show only read only images or Read/Write images. The default is to show both.  Read/Only images can be configured by modifying the  "additionalimagestores" in the /etc/containers/storage.conf file.
-
-  **reference=**
-     Filter by image name, specified as regular expressions.
+Filter output based on conditions provided.
 
 #### **--format**=*format*
 
-Change the default output format.  This can be of a supported type like 'json'
-or a Go template.
-Valid placeholders for the Go template are listed below:
+Change the default output format.  This can be of a supported type like `json` or a `Go` template.
+Valid placeholders for the `Go` template are listed below:
 
 | **Placeholder** | **Description**                                                               |
 | --------------- | ----------------------------------------------------------------------------- |
@@ -59,14 +54,14 @@ Valid placeholders for the Go template are listed below:
 | .Repository     | Image repository                                                              |
 | .Tag            | Image tag                                                                     |
 | .Digest         | Image digest                                                                  |
-| .CreatedSince   | Elapsed time since the image was created			     					  |
+| .CreatedSince   | Elapsed time since the image was created               |
 | .CreatedAt      | Time when the image was created                                               |
 | .Size           | Size of layer on disk                                                         |
 | .History        | History of the image layer                                                    |
 
 #### **--history**
 
-Display the history of image names.  If an image gets re-tagged or untagged, then the image name history gets prepended (latest image first).  This is especially useful when undoing a tag operation or an image does not contain any name because it has been untagged.
+Display the history of image names.  If an image gets re-tagged or untagged, then the image name history gets prepended (latest image first).  This is especially useful when undoing a tag operation or when an image does not contain any name because it has been untagged.
 
 #### **--noheading**, **-n**
 
@@ -80,9 +75,17 @@ Do not truncate output.
 
 Lists only the image IDs.
 
-#### **--sort**=*sort*
+#### **--sort**=**_created_**
 
-Sort by created, id, repository, size or tag (default: created)
+| Criteria     | Description |
+| ----------- | ----------- |
+| **created** | When an image was created. |
+| id   | Alpha-numeric order of id of the created images.|
+| repository | Repository from which the image was pulled.|
+| size | Size of the image. |
+| tag | Alpha-numeric order of tags given to the images.|
+
+Sort by created, id, repository, size or tag. The default is **created**.
 
 ## EXAMPLE
 
@@ -188,7 +191,9 @@ docker.io/library/alpine   latest   3fd9065eaf02   5 months ago    4.41 MB
 ```
 
 ## SEE ALSO
-podman(1), containers-storage.conf(5)
+
+**[podman(1)](podman.1.md)**, **[containers-storage.conf(5)](https://github.com/containers/common/blob/master/docs/containers-mounts.conf.5.md)**
 
 ## HISTORY
-March 2017, Originally compiled by Dan Walsh `<dwalsh@redhat.com>`
+
+March 2017, Originally compiled by Dan Walsh <dwalsh@redhat.com>

@@ -1,24 +1,28 @@
 % podman-image-mount(1)
 
 ## NAME
+
 podman\-image\-mount - Mount an image's root filesystem
 
 ## SYNOPSIS
-**podman image mount** [*options*] [*image* ...]
+
+**podman image mount** [*options*] name
 
 ## DESCRIPTION
-Mounts the specified images' root file system in a location which can be
+
+**podman image mount** mounts the specified images' root file system in a location which can be
 accessed from the host, and returns its location.
 
-If you execute the command without any arguments, Podman will list all of the
-currently mounted images.
+If a command is executed without any arguments, Podman will list all of the currently mounted images.
 
-Rootless mode only supports mounting VFS driver, unless you enter the user namespace
+Rootless mode only supports mounting `VFS driver`, unless you enter the user namespace
 via the `podman unshare` command. All other storage drivers will fail to mount.
 
-## RETURN VALUE
-The location of the mounted file system.  On error an empty string and errno is
-returned.
+**Return Value:**
+The location of the mounted file system.  
+
+- **Note:**
+On error an empty string and an errno is returned.
 
 ## OPTIONS
 
@@ -28,26 +32,31 @@ Mount all images.
 
 #### **--format**=*format*
 
-Print the mounted images in specified format (json).
+Print the mounted images in specified format (`JSON`).
 
 ## EXAMPLE
 
-```
-podman image mount fedora ubi8-init
+- Location of the mounted images' root file system on the host is returned.
 
+```
+# podman image mount fedora ubi8-init
 /var/lib/containers/storage/overlay/f3ac502d97b5681989dff84dfedc8354239bcecbdc2692f9a639f4e080a02364/merged
 /var/lib/containers/storage/overlay/0ff7d7ca68bed1ace424f9df154d2dd7b5a125c19d887f17653cbcd5b6e30ba1/merged
 ```
 
+- Currently mounted images.
+
 ```
-podman mount
+# podman mount
 
 registry.fedoraproject.org/fedora:latest /var/lib/containers/storage/overlay/f3ac502d97b5681989dff84dfedc8354239bcecbdc2692f9a639f4e080a02364/merged
 registry.access.redhat.com/ubi8-init:latest /var/lib/containers/storage/overlay/0ff7d7ca68bed1ace424f9df154d2dd7b5a125c19d887f17653cbcd5b6e30ba1/merged
 ```
 
+- Mounted images displayed in `JSON` format.
+
 ```
-podman image mount --format json
+# podman image mount --format json
 [
  {
   "id": "00ff39a8bf19f810a7e641f7eb3ddc47635913a19c4996debd91fafb6b379069",
@@ -73,4 +82,9 @@ podman image mount --format json
 ```
 
 ## SEE ALSO
-podman(1), podman-image-umount(1), mount(8), podman-unshare(1)
+
+**[podman(1)](podman.1.md)**, **[podman-image-unmount(1)](podman-image-unmount.1.md)**, **[podman-unshare(1)](podman-unshare.1.md)**, **mount(8)**
+
+## HISTORY
+
+July 2020, Originally compiled by Daniel Walsh <dwalsh@redhat.com>
