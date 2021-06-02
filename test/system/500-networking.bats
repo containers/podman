@@ -34,7 +34,7 @@ load helpers
     # Bind-mount this file with a different name to a container running httpd
     run_podman run -d --name myweb -p "$HOST_PORT:80" \
             --restart always \
-            -v $INDEX1:/var/www/index.txt \
+            -v $INDEX1:/var/www/index.txt:Z \
             -w /var/www \
             $IMAGE /bin/busybox-extras httpd -f -p 80
     cid=$output
@@ -257,7 +257,7 @@ load helpers
     # Bind-mount this file with a different name to a container running httpd
     run_podman run -d --name myweb -p "$HOST_PORT:80" \
             --network $netname \
-            -v $INDEX1:/var/www/index.txt \
+            -v $INDEX1:/var/www/index.txt:Z \
             -w /var/www \
             $IMAGE /bin/busybox-extras httpd -f -p 80
     cid=$output

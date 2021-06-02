@@ -600,12 +600,12 @@ json-file | f
     echo "$randomcontent" > $testdir/content
 
     # Workdir does not exist on the image but is volume mounted.
-    run_podman run --rm --workdir /IamNotOnTheImage -v $testdir:/IamNotOnTheImage $IMAGE cat content
+    run_podman run --rm --workdir /IamNotOnTheImage -v $testdir:/IamNotOnTheImage:Z $IMAGE cat content
     is "$output" "$randomcontent" "cat random content"
 
     # Workdir does not exist on the image but is created by the runtime as it's
     # a subdir of a volume.
-    run_podman run --rm --workdir /IamNotOntheImage -v $testdir/content:/IamNotOntheImage/foo $IMAGE cat foo
+    run_podman run --rm --workdir /IamNotOntheImage -v $testdir/content:/IamNotOntheImage/foo:Z $IMAGE cat foo
     is "$output" "$randomcontent" "cat random content"
 
     # Make sure that running on a read-only rootfs works (#9230).
@@ -702,6 +702,8 @@ EOF
     run_podman build -t nomtab $tmpdir
     run_podman run --rm nomtab stat -c %N /etc/mtab
     is "$output" "$expected" "/etc/mtab should be created"
+
+    run_podman rmi nomtab
 }
 
 # vim: filetype=sh
