@@ -1062,7 +1062,7 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	}
 
 	for _, v := range c.config.NamedVolumes {
-		if err := c.chownVolume(v.Name); err != nil {
+		if err := c.fixVolumePermissions(v); err != nil {
 			return err
 		}
 	}
@@ -1679,64 +1679,6 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 		}
 	}
 	return vol, nil
-}
-
-// Chown the specified volume if necessary.
-func (c *Container) chownVolume(volumeName string) error {
-	vol, err := c.runtime.state.Volume(volumeName)
-	if err != nil {
-		return errors.Wrapf(err, "error retrieving named volume %s for container %s", volumeName, c.ID())
-	}
-
-	vol.lock.Lock()
-	defer vol.lock.Unlock()
-
-	// The volume may need a copy-up. Check the state.
-	if err := vol.update(); err != nil {
-		return err
-	}
-
-	// TODO: For now, I've disabled chowning volumes owned by non-Podman
-	// drivers. This may be safe, but it's really going to be a case-by-case
-	// thing, I think - safest to leave disabled now and re-enable later if
-	// there is a demand.
-	if vol.state.NeedsChown && !vol.UsesVolumeDriver() {
-		vol.state.NeedsChown = false
-
-		uid := int(c.config.Spec.Process.User.UID)
-		gid := int(c.config.Spec.Process.User.GID)
-
-		if c.config.IDMappings.UIDMap != nil {
-			p := idtools.IDPair{
-				UID: uid,
-				GID: gid,
-			}
-			mappings := idtools.NewIDMappingsFromMaps(c.config.IDMappings.UIDMap, c.config.IDMappings.GIDMap)
-			newPair, err := mappings.ToHost(p)
-			if err != nil {
-				return errors.Wrapf(err, "error mapping user %d:%d", uid, gid)
-			}
-			uid = newPair.UID
-			gid = newPair.GID
-		}
-
-		vol.state.UIDChowned = uid
-		vol.state.GIDChowned = gid
-
-		if err := vol.save(); err != nil {
-			return err
-		}
-
-		mountPoint, err := vol.MountPoint()
-		if err != nil {
-			return err
-		}
-
-		if err := os.Lchown(mountPoint, uid, gid); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // cleanupStorage unmounts and cleans up the container's root filesystem
