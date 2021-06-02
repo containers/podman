@@ -69,9 +69,9 @@ func (e EventJournalD) Write(ee Event) error {
 // Read reads events from the journal and sends qualified events to the event channel
 func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 	defer close(options.EventChannel)
-	eventOptions, err := generateEventOptions(options.Filters, options.Since, options.Until)
+	filterMap, err := generateEventFilters(options.Filters, options.Since, options.Until)
 	if err != nil {
-		return errors.Wrapf(err, "failed to generate event options")
+		return errors.Wrapf(err, "failed to parse event filters")
 	}
 	var untilTime time.Time
 	if len(options.Until) > 0 {
@@ -159,11 +159,7 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 			}
 			continue
 		}
-		include := true
-		for _, filter := range eventOptions {
-			include = include && filter(newEvent)
-		}
-		if include {
+		if applyFilters(newEvent, filterMap) {
 			options.EventChannel <- newEvent
 		}
 	}
