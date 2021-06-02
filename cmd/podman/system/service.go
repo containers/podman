@@ -39,7 +39,8 @@ Enable a listening service for API access to Podman commands.
 	}
 
 	srvArgs = struct {
-		Timeout int64
+		Timeout     int64
+		CorsHeaders string
 	}{}
 )
 
@@ -54,6 +55,8 @@ func init() {
 	timeFlagName := "time"
 	flags.Int64VarP(&srvArgs.Timeout, timeFlagName, "t", 5, "Time until the service session expires in seconds.  Use 0 to disable the timeout")
 	_ = srvCmd.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
+	flags.StringVarP(&srvArgs.CorsHeaders, "cors", "", "", "Set CORS Headers")
+	_ = srvCmd.RegisterFlagCompletionFunc("cors", completion.AutocompleteNone)
 
 	flags.SetNormalizeFunc(aliasTimeoutFlag)
 }
@@ -71,7 +74,6 @@ func service(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	logrus.Infof("using API endpoint: '%s'", apiURI)
-
 	// Clean up any old existing unix domain socket
 	if len(apiURI) > 0 {
 		uri, err := url.Parse(apiURI)
@@ -90,8 +92,9 @@ func service(cmd *cobra.Command, args []string) error {
 	}
 
 	opts := entities.ServiceOptions{
-		URI:     apiURI,
-		Command: cmd,
+		URI:         apiURI,
+		Command:     cmd,
+		CorsHeaders: srvArgs.CorsHeaders,
 	}
 
 	opts.Timeout = time.Duration(srvArgs.Timeout) * time.Second
