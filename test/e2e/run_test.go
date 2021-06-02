@@ -904,6 +904,18 @@ USER bin`, BB)
 		Expect(session.ExitCode()).To(Equal(100))
 	})
 
+	It("podman run with named volume", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "stat", "-c", "%a %Y", "/var/tmp"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		perms := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"run", "--rm", "-v", "test:/var/tmp", ALPINE, "stat", "-c", "%a %Y", "/var/tmp"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal(perms))
+	})
+
 	It("podman run with built-in volume image", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", redis, "ls"})
 		session.WaitWithDefaultTimeout()

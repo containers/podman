@@ -2428,3 +2428,77 @@ func (c *Container) createSecretMountDir() error {
 
 	return err
 }
+
+// Fix ownership and permissions of the specified volume if necessary.
+func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
+	vol, err := c.runtime.state.Volume(v.Name)
+	if err != nil {
+		return errors.Wrapf(err, "error retrieving named volume %s for container %s", v.Name, c.ID())
+	}
+
+	vol.lock.Lock()
+	defer vol.lock.Unlock()
+
+	// The volume may need a copy-up. Check the state.
+	if err := vol.update(); err != nil {
+		return err
+	}
+
+	// TODO: For now, I've disabled chowning volumes owned by non-Podman
+	// drivers. This may be safe, but it's really going to be a case-by-case
+	// thing, I think - safest to leave disabled now and re-enable later if
+	// there is a demand.
+	if vol.state.NeedsChown && !vol.UsesVolumeDriver() {
+		vol.state.NeedsChown = false
+
+		uid := int(c.config.Spec.Process.User.UID)
+		gid := int(c.config.Spec.Process.User.GID)
+
+		if c.config.IDMappings.UIDMap != nil {
+			p := idtools.IDPair{
+				UID: uid,
+				GID: gid,
+			}
+			mappings := idtools.NewIDMappingsFromMaps(c.config.IDMappings.UIDMap, c.config.IDMappings.GIDMap)
+			newPair, err := mappings.ToHost(p)
+			if err != nil {
+				return errors.Wrapf(err, "error mapping user %d:%d", uid, gid)
+			}
+			uid = newPair.UID
+			gid = newPair.GID
+		}
+
+		vol.state.UIDChowned = uid
+		vol.state.GIDChowned = gid
+
+		if err := vol.save(); err != nil {
+			return err
+		}
+
+		mountPoint, err := vol.MountPoint()
+		if err != nil {
+			return err
+		}
+
+		if err := os.Lchown(mountPoint, uid, gid); err != nil {
+			return err
+		}
+
+		// Make sure the new volume matches the permissions of the target directory.
+		// https://github.com/containers/podman/issues/10188
+		st, err := os.Lstat(filepath.Join(c.state.Mountpoint, v.Dest))
+		if err == nil {
+			if err := os.Chmod(mountPoint, st.Mode()|0111); err != nil {
+				return err
+			}
+			stat := st.Sys().(*syscall.Stat_t)
+			atime := time.Unix(int64(stat.Atim.Sec), int64(stat.Atim.Nsec))
+			if err := os.Chtimes(mountPoint, atime, st.ModTime()); err != nil {
+				return err
+			}
+		} else if !os.IsNotExist(err) {
+			return err
+		}
+	}
+	return nil
+}
