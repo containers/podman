@@ -1,3 +1,13 @@
+- Changelog for v3.2.0 (2021-06-03):
+  * Final release notes updates for v3.2.0
+  * add ipv6 nameservers only when the container has ipv6 enabled
+  * Use request context instead of background
+  * [v.3.2] events: support disjunctive filters
+  * System tests: add :Z to volume mounts
+  * generate systemd: make mounts portable
+  * vendor containers/storage@v1.31.3
+  * vendor containers/common@v0.38.5
+
 - Changelog for v3.2.0-RC3 (2021-05-26):
   * Update release notes for v3.2.0-RC3
   * Fix race on podman start --all

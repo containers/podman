@@ -44,17 +44,17 @@ type CNIPlugins interface {
 // HostLocalBridge describes a configuration for a bridge plugin
 // https://github.com/containernetworking/plugins/tree/master/plugins/main/bridge#network-configuration-reference
 type HostLocalBridge struct {
-	PluginType   string            `json:"type"`
-	BrName       string            `json:"bridge,omitempty"`
-	IsGW         bool              `json:"isGateway"`
-	IsDefaultGW  bool              `json:"isDefaultGateway,omitempty"`
-	ForceAddress bool              `json:"forceAddress,omitempty"`
-	IPMasq       bool              `json:"ipMasq,omitempty"`
-	MTU          int               `json:"mtu,omitempty"`
-	HairpinMode  bool              `json:"hairpinMode,omitempty"`
-	PromiscMode  bool              `json:"promiscMode,omitempty"`
-	Vlan         int               `json:"vlan,omitempty"`
-	IPAM         IPAMHostLocalConf `json:"ipam"`
+	PluginType   string     `json:"type"`
+	BrName       string     `json:"bridge,omitempty"`
+	IsGW         bool       `json:"isGateway"`
+	IsDefaultGW  bool       `json:"isDefaultGateway,omitempty"`
+	ForceAddress bool       `json:"forceAddress,omitempty"`
+	IPMasq       bool       `json:"ipMasq,omitempty"`
+	MTU          int        `json:"mtu,omitempty"`
+	HairpinMode  bool       `json:"hairpinMode,omitempty"`
+	PromiscMode  bool       `json:"promiscMode,omitempty"`
+	Vlan         int        `json:"vlan,omitempty"`
+	IPAM         IPAMConfig `json:"ipam"`
 }
 
 // Bytes outputs []byte
@@ -62,9 +62,9 @@ func (h *HostLocalBridge) Bytes() ([]byte, error) {
 	return json.MarshalIndent(h, "", "\t")
 }
 
-// IPAMHostLocalConf describes an IPAM configuration
+// IPAMConfig describes an IPAM configuration
 // https://github.com/containernetworking/plugins/tree/master/plugins/ipam/host-local#network-configuration-reference
-type IPAMHostLocalConf struct {
+type IPAMConfig struct {
 	PluginType  string                     `json:"type"`
 	Routes      []IPAMRoute                `json:"routes,omitempty"`
 	ResolveConf string                     `json:"resolveConf,omitempty"`
@@ -81,7 +81,7 @@ type IPAMLocalHostRangeConf struct {
 }
 
 // Bytes outputs the configuration as []byte
-func (i IPAMHostLocalConf) Bytes() ([]byte, error) {
+func (i IPAMConfig) Bytes() ([]byte, error) {
 	return json.MarshalIndent(i, "", "\t")
 }
 
@@ -101,19 +101,12 @@ func (p PortMapConfig) Bytes() ([]byte, error) {
 	return json.MarshalIndent(p, "", "\t")
 }
 
-// IPAMDHCP describes the ipamdhcp config
-type IPAMDHCP struct {
-	DHCP   string                     `json:"type"`
-	Routes []IPAMRoute                `json:"routes,omitempty"`
-	Ranges [][]IPAMLocalHostRangeConf `json:"ranges,omitempty"`
-}
-
 // MacVLANConfig describes the macvlan config
 type MacVLANConfig struct {
-	PluginType string   `json:"type"`
-	Master     string   `json:"master"`
-	IPAM       IPAMDHCP `json:"ipam"`
-	MTU        int      `json:"mtu,omitempty"`
+	PluginType string     `json:"type"`
+	Master     string     `json:"master"`
+	IPAM       IPAMConfig `json:"ipam"`
+	MTU        int        `json:"mtu,omitempty"`
 }
 
 // Bytes outputs the configuration as []byte
