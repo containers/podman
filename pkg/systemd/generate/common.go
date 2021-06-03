@@ -60,7 +60,7 @@ func filterPodFlags(command []string, argCount int) []string {
 	return processed
 }
 
-// filterCommonContainerFlags removes --conmon-pidfile, --cidfile and --cgroups from the specified command.
+// filterCommonContainerFlags removes --sdnotify, --rm and --cgroups from the specified command.
 // argCount is the number of last arguments which should not be filtered, e.g. the container entrypoint.
 func filterCommonContainerFlags(command []string, argCount int) []string {
 	processed := []string{}
@@ -68,11 +68,14 @@ func filterCommonContainerFlags(command []string, argCount int) []string {
 		s := command[i]
 
 		switch {
-		case s == "--conmon-pidfile", s == "--cidfile", s == "--cgroups":
+		case s == "--rm":
+			// Boolean flags support --flag and --flag={true,false}.
+			continue
+		case s == "--sdnotify", s == "--cgroups":
 			i++
 			continue
-		case strings.HasPrefix(s, "--conmon-pidfile="),
-			strings.HasPrefix(s, "--cidfile="),
+		case strings.HasPrefix(s, "--sdnotify="),
+			strings.HasPrefix(s, "--rm="),
 			strings.HasPrefix(s, "--cgroups="):
 			continue
 		}

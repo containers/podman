@@ -130,12 +130,9 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=70
-ExecStartPre=/bin/rm -f %t/jadda-jadda.pid %t/jadda-jadda.ctr-id
-ExecStart=/usr/bin/podman container run --conmon-pidfile %t/jadda-jadda.pid --cidfile %t/jadda-jadda.ctr-id --cgroups=no-conmon -d --replace --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN "foo=arg \"with \" space"
-ExecStop=/usr/bin/podman container stop --ignore --cidfile %t/jadda-jadda.ctr-id -t 10
-ExecStopPost=/usr/bin/podman container rm --ignore -f --cidfile %t/jadda-jadda.ctr-id
-PIDFile=%t/jadda-jadda.pid
-Type=forking
+ExecStart=/usr/bin/podman container run --sdnotify=conmon --cgroups=no-conmon --rm -d --replace --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN "foo=arg \"with \" space"
+Type=notify
+NotifyAccess=all
 
 [Install]
 WantedBy=multi-user.target default.target
@@ -155,12 +152,9 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=70
-ExecStartPre=/bin/rm -f %t/jadda-jadda.pid %t/jadda-jadda.ctr-id
-ExecStart=/usr/bin/podman run --conmon-pidfile %t/jadda-jadda.pid --cidfile %t/jadda-jadda.ctr-id --cgroups=no-conmon --replace -d --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
-ExecStop=/usr/bin/podman stop --ignore --cidfile %t/jadda-jadda.ctr-id -t 10
-ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/jadda-jadda.ctr-id
-PIDFile=%t/jadda-jadda.pid
-Type=forking
+ExecStart=/usr/bin/podman run --sdnotify=conmon --cgroups=no-conmon --rm --replace -d --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
+Type=notify
+NotifyAccess=all
 
 [Install]
 WantedBy=multi-user.target default.target
@@ -180,12 +174,9 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=70
-ExecStartPre=/bin/rm -f %t/jadda-jadda.pid %t/jadda-jadda.ctr-id
-ExecStart=/usr/bin/podman run --conmon-pidfile %t/jadda-jadda.pid --cidfile %t/jadda-jadda.ctr-id --cgroups=no-conmon --pod-id-file %t/pod-foobar.pod-id-file --replace -d --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
-ExecStop=/usr/bin/podman stop --ignore --cidfile %t/jadda-jadda.ctr-id -t 10
-ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/jadda-jadda.ctr-id
-PIDFile=%t/jadda-jadda.pid
-Type=forking
+ExecStart=/usr/bin/podman run --sdnotify=conmon --cgroups=no-conmon --rm --pod-id-file %t/pod-foobar.pod-id-file --replace -d --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
+Type=notify
+NotifyAccess=all
 
 [Install]
 WantedBy=multi-user.target default.target
@@ -205,12 +196,9 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=70
-ExecStartPre=/bin/rm -f %t/jadda-jadda.pid %t/jadda-jadda.ctr-id
-ExecStart=/usr/bin/podman run --conmon-pidfile %t/jadda-jadda.pid --cidfile %t/jadda-jadda.ctr-id --cgroups=no-conmon --replace --detach --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
-ExecStop=/usr/bin/podman stop --ignore --cidfile %t/jadda-jadda.ctr-id -t 10
-ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/jadda-jadda.ctr-id
-PIDFile=%t/jadda-jadda.pid
-Type=forking
+ExecStart=/usr/bin/podman run --sdnotify=conmon --cgroups=no-conmon --rm --replace --detach --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
+Type=notify
+NotifyAccess=all
 
 [Install]
 WantedBy=multi-user.target default.target
@@ -230,12 +218,9 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=70
-ExecStartPre=/bin/rm -f %t/container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401.pid %t/container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401.ctr-id
-ExecStart=/usr/bin/podman run --conmon-pidfile %t/container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401.pid --cidfile %t/container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401.ctr-id --cgroups=no-conmon -d awesome-image:latest
-ExecStop=/usr/bin/podman stop --ignore --cidfile %t/container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401.ctr-id -t 10
-ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401.ctr-id
-PIDFile=%t/container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401.pid
-Type=forking
+ExecStart=/usr/bin/podman run --sdnotify=conmon --cgroups=no-conmon --rm -d awesome-image:latest
+Type=notify
+NotifyAccess=all
 
 [Install]
 WantedBy=multi-user.target default.target
@@ -256,14 +241,11 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=102
-ExecStartPre=/bin/rm -f %t/jadda-jadda.pid %t/jadda-jadda.ctr-id
-ExecStart=/usr/bin/podman run --conmon-pidfile %t/jadda-jadda.pid --cidfile %t/jadda-jadda.ctr-id --cgroups=no-conmon ` +
+ExecStart=/usr/bin/podman run --sdnotify=conmon --cgroups=no-conmon --rm ` +
 			detachparam +
 			` awesome-image:latest
-ExecStop=/usr/bin/podman stop --ignore --cidfile %t/jadda-jadda.ctr-id -t 42
-ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/jadda-jadda.ctr-id
-PIDFile=%t/jadda-jadda.pid
-Type=forking
+Type=notify
+NotifyAccess=all
 
 [Install]
 WantedBy=multi-user.target default.target
@@ -285,12 +267,9 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=102
-ExecStartPre=/bin/rm -f %t/jadda-jadda.pid %t/jadda-jadda.ctr-id
-ExecStart=/usr/bin/podman run --conmon-pidfile %t/jadda-jadda.pid --cidfile %t/jadda-jadda.ctr-id --cgroups=no-conmon -d --replace --name test -p 80:80 awesome-image:latest somecmd --detach=false
-ExecStop=/usr/bin/podman stop --ignore --cidfile %t/jadda-jadda.ctr-id -t 42
-ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/jadda-jadda.ctr-id
-PIDFile=%t/jadda-jadda.pid
-Type=forking
+ExecStart=/usr/bin/podman run --sdnotify=conmon --cgroups=no-conmon --rm -d --replace --name test -p 80:80 awesome-image:latest somecmd --detach=false
+Type=notify
+NotifyAccess=all
 
 [Install]
 WantedBy=multi-user.target default.target
@@ -310,12 +289,9 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=102
-ExecStartPre=/bin/rm -f %t/jadda-jadda.pid %t/jadda-jadda.ctr-id
-ExecStart=/usr/bin/podman --events-backend none --runroot /root run --conmon-pidfile %t/jadda-jadda.pid --cidfile %t/jadda-jadda.ctr-id --cgroups=no-conmon -d awesome-image:latest
-ExecStop=/usr/bin/podman --events-backend none --runroot /root stop --ignore --cidfile %t/jadda-jadda.ctr-id -t 42
-ExecStopPost=/usr/bin/podman --events-backend none --runroot /root rm --ignore -f --cidfile %t/jadda-jadda.ctr-id
-PIDFile=%t/jadda-jadda.pid
-Type=forking
+ExecStart=/usr/bin/podman --events-backend none --runroot /root run --sdnotify=conmon --cgroups=no-conmon --rm -d awesome-image:latest
+Type=notify
+NotifyAccess=all
 
 [Install]
 WantedBy=multi-user.target default.target
@@ -335,12 +311,9 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=70
-ExecStartPre=/bin/rm -f %t/jadda-jadda.pid %t/jadda-jadda.ctr-id
-ExecStart=/usr/bin/podman container run --conmon-pidfile %t/jadda-jadda.pid --cidfile %t/jadda-jadda.ctr-id --cgroups=no-conmon -d awesome-image:latest
-ExecStop=/usr/bin/podman container stop --ignore --cidfile %t/jadda-jadda.ctr-id -t 10
-ExecStopPost=/usr/bin/podman container rm --ignore -f --cidfile %t/jadda-jadda.ctr-id
-PIDFile=%t/jadda-jadda.pid
-Type=forking
+ExecStart=/usr/bin/podman container run --sdnotify=conmon --cgroups=no-conmon --rm -d awesome-image:latest
+Type=notify
+NotifyAccess=all
 
 [Install]
 WantedBy=multi-user.target default.target
@@ -360,12 +333,9 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=70
-ExecStartPre=/bin/rm -f %t/jadda-jadda.pid %t/jadda-jadda.ctr-id
-ExecStart=/usr/bin/podman run --conmon-pidfile %t/jadda-jadda.pid --cidfile %t/jadda-jadda.ctr-id --cgroups=no-conmon -d --replace --name test --log-driver=journald --log-opt=tag={{.Name}} awesome-image:latest
-ExecStop=/usr/bin/podman stop --ignore --cidfile %t/jadda-jadda.ctr-id -t 10
-ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/jadda-jadda.ctr-id
-PIDFile=%t/jadda-jadda.pid
-Type=forking
+ExecStart=/usr/bin/podman run --sdnotify=conmon --cgroups=no-conmon --rm -d --replace --name test --log-driver=journald --log-opt=tag={{.Name}} awesome-image:latest
+Type=notify
+NotifyAccess=all
 
 [Install]
 WantedBy=multi-user.target default.target
@@ -385,12 +355,9 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=70
-ExecStartPre=/bin/rm -f %t/jadda-jadda.pid %t/jadda-jadda.ctr-id
-ExecStart=/usr/bin/podman run --conmon-pidfile %t/jadda-jadda.pid --cidfile %t/jadda-jadda.ctr-id --cgroups=no-conmon -d --replace --name test awesome-image:latest sh -c "kill $$$$ && echo %%\\"
-ExecStop=/usr/bin/podman stop --ignore --cidfile %t/jadda-jadda.ctr-id -t 10
-ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/jadda-jadda.ctr-id
-PIDFile=%t/jadda-jadda.pid
-Type=forking
+ExecStart=/usr/bin/podman run --sdnotify=conmon --cgroups=no-conmon --rm -d --replace --name test awesome-image:latest sh -c "kill $$$$ && echo %%\\"
+Type=notify
+NotifyAccess=all
 
 [Install]
 WantedBy=multi-user.target default.target
@@ -410,12 +377,9 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=70
-ExecStartPre=/bin/rm -f %t/jadda-jadda.pid %t/jadda-jadda.ctr-id
-ExecStart=/usr/bin/podman run --conmon-pidfile %t/jadda-jadda.pid --cidfile %t/jadda-jadda.ctr-id --cgroups=no-conmon -d awesome-image:latest podman run --cgroups=foo --conmon-pidfile=foo --cidfile=foo alpine
-ExecStop=/usr/bin/podman stop --ignore --cidfile %t/jadda-jadda.ctr-id -t 10
-ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/jadda-jadda.ctr-id
-PIDFile=%t/jadda-jadda.pid
-Type=forking
+ExecStart=/usr/bin/podman run --sdnotify=conmon --cgroups=no-conmon --rm -d --conmon-pidfile=foo --cidfile=foo awesome-image:latest podman run --cgroups=foo --conmon-pidfile=foo --cidfile=foo alpine
+Type=notify
+NotifyAccess=all
 
 [Install]
 WantedBy=multi-user.target default.target
@@ -435,12 +399,9 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=70
-ExecStartPre=/bin/rm -f %t/jadda-jadda.pid %t/jadda-jadda.ctr-id
-ExecStart=/usr/bin/podman run --conmon-pidfile %t/jadda-jadda.pid --cidfile %t/jadda-jadda.ctr-id --cgroups=no-conmon --pod-id-file %t/pod-foobar.pod-id-file -d awesome-image:latest podman run --cgroups=foo --conmon-pidfile=foo --cidfile=foo --pod-id-file /tmp/pod-foobar.pod-id-file alpine
-ExecStop=/usr/bin/podman stop --ignore --cidfile %t/jadda-jadda.ctr-id -t 10
-ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/jadda-jadda.ctr-id
-PIDFile=%t/jadda-jadda.pid
-Type=forking
+ExecStart=/usr/bin/podman run --sdnotify=conmon --cgroups=no-conmon --rm --pod-id-file %t/pod-foobar.pod-id-file -d --conmon-pidfile=foo --cidfile=foo awesome-image:latest podman run --cgroups=foo --conmon-pidfile=foo --cidfile=foo --pod-id-file /tmp/pod-foobar.pod-id-file alpine
+Type=notify
+NotifyAccess=all
 
 [Install]
 WantedBy=multi-user.target default.target
@@ -461,12 +422,9 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Environment=FOO=abc "BAR=my test" USER=%%a
 Restart=always
 TimeoutStopSec=70
-ExecStartPre=/bin/rm -f %t/jadda-jadda.pid %t/jadda-jadda.ctr-id
-ExecStart=/usr/bin/podman run --conmon-pidfile %t/jadda-jadda.pid --cidfile %t/jadda-jadda.ctr-id --cgroups=no-conmon -d --env FOO --env=BAR --env=MYENV=2 -e USER awesome-image:latest
-ExecStop=/usr/bin/podman stop --ignore --cidfile %t/jadda-jadda.ctr-id -t 10
-ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/jadda-jadda.ctr-id
-PIDFile=%t/jadda-jadda.pid
-Type=forking
+ExecStart=/usr/bin/podman run --sdnotify=conmon --cgroups=no-conmon --rm -d --env FOO --env=BAR --env=MYENV=2 -e USER awesome-image:latest
+Type=notify
+NotifyAccess=all
 
 [Install]
 WantedBy=multi-user.target default.target
@@ -929,10 +887,10 @@ WantedBy=multi-user.target default.target
 			}
 			got, err := executeContainerTemplate(&test.info, opts)
 			if (err != nil) != test.wantErr {
-				t.Errorf("CreateContainerSystemdUnit() error = \n%v, wantErr \n%v", err, test.wantErr)
+				t.Errorf("CreateContainerSystemdUnit() %s error = \n%v, wantErr \n%v", test.name, err, test.wantErr)
 				return
 			}
-			assert.Equal(t, test.want, got)
+			assert.Equal(t, test.want, got, test.name)
 		})
 	}
 }

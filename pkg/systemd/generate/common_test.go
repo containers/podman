@@ -93,22 +93,22 @@ func TestFilterCommonContainerFlags(t *testing.T) {
 		},
 		{
 			[]string{"podman", "run", "--conmon-pidfile", "foo", "alpine"},
-			[]string{"podman", "run", "alpine"},
+			[]string{"podman", "run", "--conmon-pidfile", "foo", "alpine"},
 			1,
 		},
 		{
 			[]string{"podman", "run", "--conmon-pidfile=foo", "alpine"},
-			[]string{"podman", "run", "alpine"},
+			[]string{"podman", "run", "--conmon-pidfile=foo", "alpine"},
 			1,
 		},
 		{
 			[]string{"podman", "run", "--cidfile", "foo", "alpine"},
-			[]string{"podman", "run", "alpine"},
+			[]string{"podman", "run", "--cidfile", "foo", "alpine"},
 			1,
 		},
 		{
 			[]string{"podman", "run", "--cidfile=foo", "alpine"},
-			[]string{"podman", "run", "alpine"},
+			[]string{"podman", "run", "--cidfile=foo", "alpine"},
 			1,
 		},
 		{
@@ -122,24 +122,14 @@ func TestFilterCommonContainerFlags(t *testing.T) {
 			1,
 		},
 		{
-			[]string{"podman", "run", "--cgroups", "foo", "--conmon-pidfile", "foo", "--cidfile", "foo", "alpine"},
+			[]string{"podman", "run", "--cgroups=foo", "--rm", "alpine"},
 			[]string{"podman", "run", "alpine"},
 			1,
 		},
 		{
-			[]string{"podman", "run", "--cgroups=foo", "--conmon-pidfile=foo", "--cidfile=foo", "alpine"},
-			[]string{"podman", "run", "alpine"},
-			1,
-		},
-		{
-			[]string{"podman", "run", "--cgroups", "foo", "--conmon-pidfile", "foo", "--cidfile", "foo", "alpine", "--cgroups", "foo", "--conmon-pidfile", "foo", "--cidfile", "foo"},
-			[]string{"podman", "run", "alpine", "--cgroups", "foo", "--conmon-pidfile", "foo", "--cidfile", "foo"},
+			[]string{"podman", "run", "--cgroups", "--rm=bogus", "alpine", "--cgroups", "foo", "--conmon-pidfile", "foo", "--cidfile", "foo", "--rm"},
+			[]string{"podman", "run", "alpine", "--cgroups", "foo", "--conmon-pidfile", "foo", "--cidfile", "foo", "--rm"},
 			7,
-		},
-		{
-			[]string{"podman", "run", "--cgroups=foo", "--conmon-pidfile=foo", "--cidfile=foo", "alpine", "--cgroups=foo", "--conmon-pidfile=foo", "--cidfile=foo"},
-			[]string{"podman", "run", "alpine", "--cgroups=foo", "--conmon-pidfile=foo", "--cidfile=foo"},
-			4,
 		},
 	}
 

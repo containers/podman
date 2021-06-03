@@ -215,7 +215,6 @@ var _ = Describe("Podman generate systemd", func() {
 		// Grepping the output (in addition to unit tests)
 		Expect(session.OutputToString()).To(ContainSubstring("# container-foo.service"))
 		Expect(session.OutputToString()).To(ContainSubstring(" --replace "))
-		Expect(session.OutputToString()).To(ContainSubstring(" stop --ignore --cidfile %t/container-foo.ctr-id -t 42"))
 		if !IsRemote() {
 			// The podman commands in the unit should contain the root flags if generate systemd --new is used
 			Expect(session.OutputToString()).To(ContainSubstring(" --runroot"))
@@ -234,7 +233,6 @@ var _ = Describe("Podman generate systemd", func() {
 		// Grepping the output (in addition to unit tests)
 		Expect(session.OutputToString()).To(ContainSubstring("# container-foo.service"))
 		Expect(session.OutputToString()).To(ContainSubstring(" --replace "))
-		Expect(session.OutputToString()).To(ContainSubstring(" stop --ignore --cidfile %t/container-foo.ctr-id -t 42"))
 	})
 
 	It("podman generate systemd --new without explicit detaching param", func() {
@@ -247,7 +245,7 @@ var _ = Describe("Podman generate systemd", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 
 		// Grepping the output (in addition to unit tests)
-		Expect(session.OutputToString()).To(ContainSubstring("--cgroups=no-conmon -d"))
+		Expect(session.OutputToString()).To(ContainSubstring(" -d "))
 	})
 
 	It("podman generate systemd --new with explicit detaching param in middle", func() {
