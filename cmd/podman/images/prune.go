@@ -59,7 +59,15 @@ func prune(cmd *cobra.Command, args []string) error {
 			return nil
 		}
 	}
-
+	filterMap, err := common.ParseFilters(filter)
+	if err != nil {
+		return err
+	}
+	for k, v := range filterMap {
+		for _, val := range v {
+			pruneOpts.Filter = append(pruneOpts.Filter, fmt.Sprintf("%s=%s", k, val))
+		}
+	}
 	results, err := registry.ImageEngine().Prune(registry.GetContext(), pruneOpts)
 	if err != nil {
 		return err

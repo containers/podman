@@ -425,4 +425,25 @@ LABEL "com.example.vendor"="Example Vendor"
 		Expect(result.OutputToStringArray()).To(Not(Equal(result1.OutputToStringArray())))
 	})
 
+	It("podman image prune --filter", func() {
+		dockerfile := `FROM quay.io/libpod/alpine:latest
+RUN > file
+`
+		dockerfile2 := `FROM quay.io/libpod/alpine:latest
+RUN > file2
+`
+		podmanTest.BuildImageWithLabel(dockerfile, "foobar.com/workdir:latest", "false", "abc")
+		podmanTest.BuildImageWithLabel(dockerfile2, "foobar.com/workdir:latest", "false", "xyz")
+		// --force used to to avoid y/n question
+		result := podmanTest.Podman([]string{"image", "prune", "--filter", "label=abc", "--force"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(len(result.OutputToStringArray())).To(Equal(1))
+
+		//check if really abc is removed
+		result = podmanTest.Podman([]string{"image", "list", "--filter", "label=abc"})
+		Expect(len(result.OutputToStringArray())).To(Equal(0))
+
+	})
+
 })
