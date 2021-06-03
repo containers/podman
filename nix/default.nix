@@ -23,6 +23,21 @@ let
               -i "$dev"/include/glib-2.0/gobject/gobjectnotifyqueue.c
           '';
         });
+        pcsclite = (static pkg.pcsclite).overrideAttrs (x: {
+          configureFlags = [
+            "--enable-confdir=/etc"
+            "--enable-usbdropdir=/var/lib/pcsc/drivers"
+            "--with-systemdsystemunitdir=${placeholder "bin"}/lib/systemd/system"
+          ];
+          buildInputs = [ pkgs.python3 pkgs.udev pkgs.dbus pkgs.systemd ];
+        });
+        systemd = (static pkg.systemd).overrideAttrs (x: {
+          outputs = [ "out" "dev" ];
+          mesonFlags = x.mesonFlags ++ [
+            "-Dglib=false"
+            "-Dstatic-libsystemd=true"
+          ];
+        });
       };
     };
   });
@@ -45,8 +60,8 @@ let
     doCheck = false;
     enableParallelBuilding = true;
     outputs = [ "out" ];
-    nativeBuildInputs = [ bash gitMinimal go-md2man installShellFiles makeWrapper pkg-config which ];
-    buildInputs = [ glibc glibc.static gpgme libassuan libgpgerror libseccomp libapparmor libselinux ];
+    nativeBuildInputs = [ bash gitMinimal go-md2man pkg-config which ];
+    buildInputs = [ glibc glibc.static glib gpgme libassuan libgpgerror libseccomp libapparmor libselinux ];
     prePatch = ''
       export CFLAGS='-static -pthread'
       export LDFLAGS='-s -w -static-libgcc -static'

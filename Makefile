@@ -389,10 +389,10 @@ cross: local-cross
 .PHONY: nixpkgs
 nixpkgs:
 	@nix run \
-		-f channel:nixos-20.09 nix-prefetch-git \
+		-f channel:nixos-21.05 nix-prefetch-git \
 		-c nix-prefetch-git \
 		--no-deepClone \
-		https://github.com/nixos/nixpkgs refs/heads/nixos-20.09 > nix/nixpkgs.json
+		https://github.com/nixos/nixpkgs refs/heads/nixos-21.05 > nix/nixpkgs.json
 
 # Build statically linked binary
 .PHONY: static
