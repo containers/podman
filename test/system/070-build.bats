@@ -794,6 +794,32 @@ EOF
     run_podman rmi -f build_test
 }
 
+@test "podman build -f test " {
+    tmpdir=$PODMAN_TMPDIR/build-test
+    subdir=$tmpdir/subdir
+    mkdir -p $subdir
+
+    containerfile1=$tmpdir/Containerfile1
+    cat >$containerfile1 <<EOF
+FROM scratch
+copy . /tmp
+EOF
+    containerfile2=$PODMAN_TMPDIR/Containerfile2
+    cat >$containerfile2 <<EOF
+FROM $IMAGE
+EOF
+    run_podman build -t build_test -f Containerfile1 $tmpdir
+    run_podman 125 build -t build_test -f Containerfile2 $tmpdir
+    is "$output" ".*Containerfile2: no such file or directory" "Containerfile2 should not exist"
+    run_podman build -t build_test -f $containerfile1 $tmpdir
+    run_podman build -t build_test -f $containerfile2 $tmpdir
+    run_podman build -t build_test -f $containerfile1
+    run_podman build -t build_test -f $containerfile2
+    run_podman build -t build_test -f $containerfile1 -f $containerfile2 $tmpdir
+    is "$output" ".*$IMAGE" "Containerfile2 is also passed to server"
+    run_podman rmi -f build_test
+}
+
 function teardown() {
     # A timeout or other error in 'build' can leave behind stale images
     # that podman can't even see and which will cascade into subsequent
