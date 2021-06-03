@@ -44,6 +44,7 @@
 - Fixed a bug where the remote Podman client's `podman build --iidfile` command could include extra output (in addition to just the image ID) in the image ID file written ([#10233](https://github.com/containers/podman/issues/10233)).
 - Fixed a bug where the remote Podman client's `podman build` command did not preserve hardlinks when moving files into the container via `COPY` instructions ([#9893](https://github.com/containers/podman/issues/9893)).
 - Fixed a bug where the `podman generate systemd --new` command could generate extra `--iidfile` arguments if the container was already created with one.
+- Fixed a bug where the `podman generate systemd --new` command would generate unit files that did not include `RequiresMountsFor` lines ([#10493](https://github.com/containers/podman/issues/10493)).
 - Fixed a bug where the `podman generate kube` command produced incorrect YAML for containers which bind-mounted both `/` and `/root` from the host system into the container ([#9764](https://github.com/containers/podman/issues/9764)).
 - Fixed a bug where pods created by `podman play kube` from YAML that specified `ShareProcessNamespace` would only share the PID namespace (and not also the UTS, Network, and IPC namespaces) ([#9128](https://github.com/containers/podman/issues/9128)).
 - Fixed a bug where the `podman network reload` command could generate spurious error messages when `iptables-nft` was in use.
@@ -58,6 +59,9 @@
 - Fixed a bug where Podman could freeze when creating containers with a specific combination of volumes and working directory ([#10216](https://github.com/containers/podman/issues/10216)).
 - Fixed a bug where rootless Podman containers restarted by restart policy (e.g. containers created with `--restart=always`) would lose networking after being restarted ([#8047](https://github.com/containers/podman/issues/8047)).
 - Fixed a bug where the `podman cp` command could not copy files into containers created with the `--pid=host` flag ([#9985](https://github.com/containers/podman/issues/9985)).
+- Fixed a bug where filters to the `podman events` command could not be specified twice (if a filter is specified more than once, it will match if any of the given values match - logical or) ([#10507](https://github.com/containers/podman/issues/10507)).
+- Fixed a bug where Podman would include IPv6 nameservers in `resolv.conf` in containers without IPv6 connectivity ([#10158](https://github.com/containers/podman/issues/10158)).
+- Fixed a bug where containers could not be created with static IP addresses when connecting to a network using the `macvlan` driver ([#10283](https://github.com/containers/podman/issues/10283)).
 
 ### API
 - Fixed a bug where the Compat Create endpoint for Containers did not allow advanced network options to be set ([#10110](https://github.com/containers/podman/issues/10110)).
@@ -67,11 +71,12 @@
 - Fixed a bug where the Compat Create endpoint for Volumes required that the user provide a name for the new volume ([#9803](https://github.com/containers/podman/issues/9803)).
 - Fixed a bug where the Libpod Info handler would sometimes not return the correct path to the Podman API socket.
 - Fixed a bug where the Compat Events handler used the wrong name for container exited events (`died` instead of `die`) ([#10168](https://github.com/containers/podman/issues/10168)).
+- Fixed a bug where the Compat Push endpoint for Images could leak goroutines if the remote end closed the connection prematurely.
 
 ### Misc
 - Updated Buildah to v1.21.0
-- Updated the containers/common library to v0.38.4
-- Updated the containers/storage library to v1.31.1
+- Updated the containers/common library to v0.38.5
+- Updated the containers/storage library to v1.31.3
 
 ## 3.1.2
 ### Bugfixes
