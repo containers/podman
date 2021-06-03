@@ -12,7 +12,7 @@ class ContainerTestCase(APITestCase):
         r = requests.get(self.uri("/containers/json"), timeout=5)
         self.assertEqual(r.status_code, 200, r.text)
         obj = r.json()
-        self.assertEqual(len(obj), 0)
+        self.assertEqual(len(obj), 1)
 
     def test_list_all(self):
         r = requests.get(self.uri("/containers/json?all=true"))
@@ -36,7 +36,7 @@ class ContainerTestCase(APITestCase):
             self.assertId(r.content)
 
     def test_delete(self):
-        r = requests.delete(self.uri(self.resolve_container("/containers/{}")))
+        r = requests.delete(self.uri(self.resolve_container("/containers/{}?force=true")))
         self.assertEqual(r.status_code, 204, r.text)
 
     def test_stop(self):
