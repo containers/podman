@@ -16,9 +16,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/bits-and-blooms/bitset"
 	"github.com/opencontainers/selinux/pkg/pwalk"
 	"github.com/pkg/errors"
-	"github.com/willf/bitset"
 	"golang.org/x/sys/unix"
 )
 
