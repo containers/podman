@@ -56,8 +56,7 @@ function teardown() {
     stty rows $rows cols $cols <$PODMAN_TEST_PTY
 
     # ...and make sure stty under podman reads that.
-    # FIXME: 'sleep 1' is needed for podman-remote; without it, there's
-    run_podman run -it --name mystty $IMAGE sh -c 'sleep 1;stty size' <$PODMAN_TEST_PTY
+    run_podman run -it --name mystty $IMAGE stty size <$PODMAN_TEST_PTY
     is "$output" "$rows $cols" "stty under podman reads the correct dimensions"
 }
 

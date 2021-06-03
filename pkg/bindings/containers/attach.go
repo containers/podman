@@ -138,7 +138,7 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 		winCtx, winCancel := context.WithCancel(ctx)
 		defer winCancel()
 
-		go attachHandleResize(ctx, winCtx, winChange, false, nameOrID, file)
+		attachHandleResize(ctx, winCtx, winChange, false, nameOrID, file)
 	}
 
 	// If we are attaching around a start, we need to "signal"
@@ -327,32 +327,38 @@ func (f *rawFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	return append(buffer, '\r'), nil
 }
 
-// This is intended to be run as a goroutine, handling resizing for a container
-// or exec session.
+// This is intended to not be run as a goroutine, handling resizing for a container
+// or exec session. It will call resize once and then starts a goroutine which calls resize on winChange
 func attachHandleResize(ctx, winCtx context.Context, winChange chan os.Signal, isExec bool, id string, file *os.File) {
-	// Prime the pump, we need one reset to ensure everything is ready
-	winChange <- sig.SIGWINCH
-	for {
-		select {
-		case <-winCtx.Done():
-			return
-		case <-winChange:
-			w, h, err := terminal.GetSize(int(file.Fd()))
-			if err != nil {
-				logrus.Warnf("failed to obtain TTY size: %v", err)
-			}
+	resize := func() {
+		w, h, err := terminal.GetSize(int(file.Fd()))
+		if err != nil {
+			logrus.Warnf("failed to obtain TTY size: %v", err)
+		}
 
-			var resizeErr error
-			if isExec {
-				resizeErr = ResizeExecTTY(ctx, id, new(ResizeExecTTYOptions).WithHeight(h).WithWidth(w))
-			} else {
-				resizeErr = ResizeContainerTTY(ctx, id, new(ResizeTTYOptions).WithHeight(h).WithWidth(w))
-			}
-			if resizeErr != nil {
-				logrus.Warnf("failed to resize TTY: %v", resizeErr)
-			}
+		var resizeErr error
+		if isExec {
+			resizeErr = ResizeExecTTY(ctx, id, new(ResizeExecTTYOptions).WithHeight(h).WithWidth(w))
+		} else {
+			resizeErr = ResizeContainerTTY(ctx, id, new(ResizeTTYOptions).WithHeight(h).WithWidth(w))
+		}
+		if resizeErr != nil {
+			logrus.Warnf("failed to resize TTY: %v", resizeErr)
 		}
 	}
+
+	resize()
+
+	go func() {
+		for {
+			select {
+			case <-winCtx.Done():
+				return
+			case <-winChange:
+				resize()
+			}
+		}
+	}()
 }
 
 // Configure the given terminal for raw mode
@@ -457,7 +463,7 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 		winCtx, winCancel := context.WithCancel(ctx)
 		defer winCancel()
 
-		go attachHandleResize(ctx, winCtx, winChange, true, sessionID, terminalFile)
+		attachHandleResize(ctx, winCtx, winChange, true, sessionID, terminalFile)
 	}
 
 	if options.GetAttachInput() {
