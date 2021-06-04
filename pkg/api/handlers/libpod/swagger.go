@@ -95,7 +95,7 @@ type swagInfoResponse struct {
 // swagger:response NetworkRmReport
 type swagNetworkRmReport struct {
 	// in:body
-	Body entities.NetworkRmReport
+	Body []entities.NetworkRmReport
 }
 
 // Network inspect
