@@ -72,7 +72,7 @@ func restService(opts entities.ServiceOptions, flags *pflag.FlagSet, cfg *entiti
 	}
 
 	infra.StartWatcher(rt)
-	server, err := api.NewServerWithSettings(rt, opts.Timeout, listener)
+	server, err := api.NewServerWithSettings(rt, listener, api.Options{Timeout: opts.Timeout, CorsHeaders: opts.CorsHeaders})
 	if err != nil {
 		return err
 	}

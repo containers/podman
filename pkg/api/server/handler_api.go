@@ -63,6 +63,12 @@ func (s *APIServer) APIHandler(h http.HandlerFunc) http.HandlerFunc {
 			w.Header().Set("Libpod-API-Version", lv)
 			w.Header().Set("Server", "Libpod/"+lv+" ("+runtime.GOOS+")")
 
+			if s.CorsHeaders != "" {
+				w.Header().Set("Access-Control-Allow-Origin", s.CorsHeaders)
+				w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, X-Registry-Auth, Connection, Upgrade, X-Registry-Config")
+				w.Header().Set("Access-Control-Allow-Methods", "HEAD, GET, POST, DELETE, PUT, OPTIONS")
+			}
+
 			h(w, r)
 			logrus.Debugf("APIHandler(%s) -- %s %s END", rid, r.Method, r.URL.String())
 		}

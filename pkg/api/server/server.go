@@ -34,10 +34,12 @@ type APIServer struct {
 	context.CancelFunc               // Stop APIServer
 	idleTracker        *idle.Tracker // Track connections to support idle shutdown
 	pprof              *http.Server  // Sidecar http server for providing performance data
+	CorsHeaders        string        // Inject CORS headers to each request
 }
 
 // Number of seconds to wait for next request, if exceeded shutdown server
 const (
+	DefaultCorsHeaders       = ""
 	DefaultServiceDuration   = 300 * time.Second
 	UnlimitedServiceDuration = 0 * time.Second
 )
@@ -45,17 +47,22 @@ const (
 // shutdownOnce ensures Shutdown() may safely be called from several go routines
 var shutdownOnce sync.Once
 
+type Options struct {
+	Timeout     time.Duration
+	CorsHeaders string
+}
+
 // NewServer will create and configure a new API server with all defaults
 func NewServer(runtime *libpod.Runtime) (*APIServer, error) {
-	return newServer(runtime, DefaultServiceDuration, nil)
+	return newServer(runtime, DefaultServiceDuration, nil, DefaultCorsHeaders)
 }
 
 // NewServerWithSettings will create and configure a new API server using provided settings
-func NewServerWithSettings(runtime *libpod.Runtime, duration time.Duration, listener *net.Listener) (*APIServer, error) {
-	return newServer(runtime, duration, listener)
+func NewServerWithSettings(runtime *libpod.Runtime, listener *net.Listener, opts Options) (*APIServer, error) {
+	return newServer(runtime, opts.Timeout, listener, opts.CorsHeaders)
 }
 
-func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Listener) (*APIServer, error) {
+func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Listener, corsHeaders string) (*APIServer, error) {
 	// If listener not provided try socket activation protocol
 	if listener == nil {
 		if _, found := os.LookupEnv("LISTEN_PID"); !found {
@@ -70,6 +77,11 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 			return nil, errors.Errorf("Wrong number of file descriptors for socket activation protocol (%d != 1)", len(listeners))
 		}
 		listener = &listeners[0]
+	}
+	if corsHeaders == "" {
+		logrus.Debug("CORS Headers were not set")
+	} else {
+		logrus.Debugf("CORS Headers were set to %s", corsHeaders)
 	}
 
 	logrus.Infof("API server listening on %q", (*listener).Addr())
@@ -88,6 +100,7 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 		idleTracker: idle,
 		Listener:    *listener,
 		Runtime:     runtime,
+		CorsHeaders: corsHeaders,
 	}
 
 	router.NotFoundHandler = http.HandlerFunc(

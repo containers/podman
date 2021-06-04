@@ -30,6 +30,10 @@ Note: The default systemd unit files (system and user) change the log-level opti
 The time until the session expires in _seconds_. The default is 5
 seconds. A value of `0` means no timeout, therefore the session will not expire.
 
+#### **--cors**
+
+CORS headers to inject to the HTTP response. The default value is empty string which disables CORS headers.
+
 #### **--help**, **-h**
 
 Print usage statement.
