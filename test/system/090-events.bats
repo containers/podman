@@ -27,7 +27,7 @@ load helpers
 }
 
 @test "image events" {
-    skip_if_remote "FIXME: remove events on podman-remote seem to be broken"
+    skip_if_remote "remote does not support --events-backend"
     pushedDir=$PODMAN_TMPDIR/dir
     mkdir -p $pushedDir
 
@@ -86,7 +86,5 @@ function _events_disjunctive_filters() {
 }
 
 @test "events with disjunctive filters - default" {
-    # NOTE: the last event for bar doesn't show up reliably.
-    skip_if_remote "FIXME #10529: remote events lose data"
     _events_disjunctive_filters ""
 }
