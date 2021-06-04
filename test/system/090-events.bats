@@ -6,7 +6,6 @@
 load helpers
 
 @test "events with a filter by label" {
-    skip_if_remote "FIXME: -remote does not include labels in event output"
     cname=test-$(random_string 30 | tr A-Z a-z)
     labelname=$(random_string 10)
     labelvalue=$(random_string 15)
