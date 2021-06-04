@@ -14,6 +14,22 @@ Checkpoints all the processes in one or more containers. You may use container I
 
 Checkpoint all running containers.
 
+#### **--compress**, **-c**
+
+Specify the compression algorithm used for the checkpoint archive created
+with the **--export, -e** option. Possible algorithms are *gzip*, *none*
+and *zstd*. If no compression algorithm is specified Podman will use
+*zstd*.
+
+One possible reason to use *none* is to enable faster creation of checkpoint
+archives. Not compressing the checkpoint archive can result in faster checkpoint
+archive creation.
+
+```
+# podman container checkpoint -l --compress=none --export=dump.tar
+# podman container checkpoint -l --compress=gzip --export=dump.tar.gz
+```
+
 #### **--export**, **-e**
 
 Export the checkpoint to a tar.gz file. The exported checkpoint can be used
