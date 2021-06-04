@@ -9,6 +9,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/specgen"
+	"github.com/containers/storage/pkg/archive"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 )
 
@@ -178,6 +179,7 @@ type CheckpointOptions struct {
 	TCPEstablished bool
 	PreCheckPoint  bool
 	WithPrevious   bool
+	Compression    archive.Compression
 }
 
 type CheckpointReport struct {

@@ -985,7 +985,7 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 	}
 
 	input, err := archive.TarWithOptions(c.bundlePath(), &archive.TarOptions{
-		Compression:      archive.Gzip,
+		Compression:      options.Compression,
 		IncludeSourceDir: true,
 		IncludeFiles:     includeFiles,
 	})

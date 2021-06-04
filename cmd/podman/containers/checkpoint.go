@@ -3,6 +3,7 @@ package containers
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v3/cmd/podman/common"
@@ -11,6 +12,7 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/rootless"
+	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -36,9 +38,7 @@ var (
 	}
 )
 
-var (
-	checkpointOptions entities.CheckpointOptions
-)
+var checkpointOptions entities.CheckpointOptions
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -60,11 +60,32 @@ func init() {
 	flags.BoolVarP(&checkpointOptions.PreCheckPoint, "pre-checkpoint", "P", false, "Dump container's memory information only, leave the container running")
 	flags.BoolVar(&checkpointOptions.WithPrevious, "with-previous", false, "Checkpoint container with pre-checkpoint images")
 
+	flags.StringP("compress", "c", "zstd", "Select compression algorithm (gzip, none, zstd) for checkpoint archive.")
+	_ = checkpointCommand.RegisterFlagCompletionFunc("compress", common.AutocompleteCheckpointCompressType)
+
 	validate.AddLatestFlag(checkpointCommand, &checkpointOptions.Latest)
 }
 
 func checkpoint(cmd *cobra.Command, args []string) error {
 	var errs utils.OutputErrors
+	if cmd.Flags().Changed("compress") {
+		if checkpointOptions.Export == "" {
+			return errors.Errorf("--compress can only be used with --export")
+		}
+		compress, _ := cmd.Flags().GetString("compress")
+		switch strings.ToLower(compress) {
+		case "none":
+			checkpointOptions.Compression = archive.Uncompressed
+		case "gzip":
+			checkpointOptions.Compression = archive.Gzip
+		case "zstd":
+			checkpointOptions.Compression = archive.Zstd
+		default:
+			return errors.Errorf("Selected compression algorithm (%q) not supported. Please select one from: gzip, none, zstd", compress)
+		}
+	} else {
+		checkpointOptions.Compression = archive.Zstd
+	}
 	if rootless.IsRootless() {
 		return errors.New("checkpointing a container requires root")
 	}

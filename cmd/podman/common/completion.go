@@ -1211,3 +1211,10 @@ func AutocompleteVolumeFilters(cmd *cobra.Command, args []string, toComplete str
 	}
 	return completeKeyValues(toComplete, kv)
 }
+
+// AutocompleteCheckpointCompressType - Autocomplete checkpoint compress type options.
+// -> "gzip", "none", "zstd"
+func AutocompleteCheckpointCompressType(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	types := []string{"gzip", "none", "zstd"}
+	return types, cobra.ShellCompDirectiveNoFileComp
+}
