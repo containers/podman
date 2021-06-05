@@ -287,7 +287,7 @@ containers.Wait() takes three arguments:
         // Container create
         s := specgen.NewSpecGenerator(rawImage, false)
         s.Terminal = true
-        r, err := containers.CreateWithSpec(connText, s)
+        r, err := containers.CreateWithSpec(connText, s, nil)
         if err != nil {
                 fmt.Println(err)
                 os.Exit(1)
@@ -302,7 +302,7 @@ containers.Wait() takes three arguments:
         }
 
         running := define.ContainerStateRunning
-        _, err = containers.Wait(connText, r.ID, &running)
+        _, err = containers.Wait(connText, r.ID, &containers.WaitOptions{Condition: []define.ContainerStatus{running}})
         if err != nil {
                 fmt.Println(err)
                 os.Exit(1)
