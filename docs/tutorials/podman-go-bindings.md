@@ -229,7 +229,7 @@ This binding takes three arguments:
 
 ```Go
         // List images
-        imageSummary, err := images.List(connText, nil, nil)
+        imageSummary, err := images.List(connText, &images.ListOptions{})
         if err != nil {
             fmt.Println(err)
             os.Exit(1)
