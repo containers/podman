@@ -174,7 +174,7 @@ This binding takes three arguments:
 ```Go
         // Pull Busybox image (Sample 1)
         fmt.Println("Pulling Busybox image...")
-        _, err = images.Pull(connText, "docker.io/busybox", entities.ImagePullOptions{})
+        _, err = images.Pull(connText, "docker.io/busybox", &images.PullOptions{})
         if err != nil {
                 fmt.Println(err)
                 os.Exit(1)
@@ -183,7 +183,7 @@ This binding takes three arguments:
         // Pull Fedora image (Sample 2)
         rawImage := "registry.fedoraproject.org/fedora:latest"
         fmt.Println("Pulling Fedora image...")
-        _, err = images.Pull(connText, rawImage, entities.ImagePullOptions{})
+        _, err = images.Pull(connText, rawImage, &images.PullOptions{})
         if err != nil {
                 fmt.Println(err)
                 os.Exit(1)
