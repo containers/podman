@@ -49,7 +49,7 @@ class APITestCase(unittest.TestCase):
 
     def setUp(self):
         super().setUp()
-        APITestCase.podman.run("run", "alpine", "/bin/ls", check=True)
+        APITestCase.podman.run("run", "-d", "alpine", "top", check=True)
 
     def tearDown(self) -> None:
         APITestCase.podman.run("pod", "rm", "--all", "--force", check=True)

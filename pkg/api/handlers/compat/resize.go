@@ -46,20 +46,13 @@ func ResizeTTY(w http.ResponseWriter, r *http.Request) {
 			utils.ContainerNotFound(w, name, err)
 			return
 		}
-		if state, err := ctnr.State(); err != nil {
-			utils.InternalServerError(w, errors.Wrapf(err, "cannot obtain container state"))
-			return
-		} else if state != define.ContainerStateRunning && !query.IgnoreNotRunning {
-			utils.Error(w, "Container not running", http.StatusConflict,
-				fmt.Errorf("container %q in wrong state %q", name, state.String()))
-			return
-		}
-		// If container is not running, ignore since this can be a race condition, and is expected
 		if err := ctnr.AttachResize(sz); err != nil {
-			if errors.Cause(err) != define.ErrCtrStateInvalid || !query.IgnoreNotRunning {
+			if errors.Cause(err) != define.ErrCtrStateInvalid {
 				utils.InternalServerError(w, errors.Wrapf(err, "cannot resize container"))
-				return
+			} else {
+				utils.Error(w, "Container not running", http.StatusConflict, err)
 			}
+			return
 		}
 		// This is not a 204, even though we write nothing, for compatibility
 		// reasons.
