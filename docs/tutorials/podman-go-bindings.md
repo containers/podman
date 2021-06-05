@@ -346,7 +346,7 @@ containers.List() takes seven arguments:
 ```Go
         // Container list
         var latestContainers = 1
-        containerLatestList, err := containers.List(connText, nil, nil, &latestContainers, nil, nil, nil)
+        containerLatestList, err := containers.List(connText, &containers.ListOptions{Last: &latestContainers})
         if err != nil {
             fmt.Println(err)
             os.Exit(1)
