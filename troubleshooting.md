@@ -697,3 +697,32 @@ limits.
 This can happen when running a container from an image for another architecture than the one you are running on.
 
 For example, if a remote repository only has, and thus send you, a `linux/arm64` _OS/ARCH_ but you run on `linux/amd64` (as happened in https://github.com/openMF/community-app/issues/3323 due to https://github.com/timbru31/docker-ruby-node/issues/564).
+
+### 27) `Error: failed to create sshClient: Connection to bastion host (ssh://user@host:22/run/user/.../podman/podman.sock) failed.: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain`
+
+In some situations where the client is not on the same machine as where the podman daemon is running the client key could be using a cipher not supported by the host. This indicates an issue with one's SSH config. Until remedied using podman over ssh
+with a pre-shared key will be impossible.
+
+#### Symptom
+
+The accepted ciphers per `/etc/crypto-policies/back-ends/openssh.config` are not one that was used to create the public/private key pair that was transferred over to the host for ssh authentication.
+
+You can confirm this is the case by attempting to connect to the host via `podman-remote info` from the client and simultaneously on the host running `journalctl -f` and watching for the error `userauth_pubkey: key type ssh-rsa not in PubkeyAcceptedAlgorithms [preauth]`.
+
+#### Solution
+
+Create a new key using a supported algorithm e.g. ecdsa:
+
+`ssh-keygen -t ecdsa -f ~/.ssh/podman`
+
+Then copy the new id over:
+
+`ssh-copy-id -i ~/.ssh/podman.pub user@host`
+
+And then re-add the connection (removing the old one if necessary):
+
+`podman-remote system connection add myuser --identity ~/.ssh/podman ssh://user@host/run/user/1000/podman/podman.sock`
+
+And now this should work:
+
+`podman-remote info`

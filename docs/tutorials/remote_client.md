@@ -108,5 +108,9 @@ podman-remote system connection --help
 
 You can use the Podman remote clients to manage your containers running on a Linux server.  The communication between client and server relies heavily on SSH connections and the use of SSH keys are encouraged.  Once you have Podman installed on your remote client, you should set up a connection using `podman-remote system connection add` which will then be used by subsequent Podman commands.
 
+# Troubleshooting
+
+See the [Troubleshooting](../../troubleshooting.md) document if you run into issues.
+
 ## History
 Adapted from the [Mac and Windows tutorial](https://github.com/containers/podman/blob/master/docs/tutorials/mac_win_client.md)
