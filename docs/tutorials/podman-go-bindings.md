@@ -174,7 +174,7 @@ This binding takes three arguments:
 ```Go
         // Pull Busybox image (Sample 1)
         fmt.Println("Pulling Busybox image...")
-        _, err = images.Pull(connText, "docker.io/busybox", entities.ImagePullOptions{})
+        _, err = images.Pull(connText, "docker.io/busybox", &images.PullOptions{})
         if err != nil {
                 fmt.Println(err)
                 os.Exit(1)
@@ -183,7 +183,7 @@ This binding takes three arguments:
         // Pull Fedora image (Sample 2)
         rawImage := "registry.fedoraproject.org/fedora:latest"
         fmt.Println("Pulling Fedora image...")
-        _, err = images.Pull(connText, rawImage, entities.ImagePullOptions{})
+        _, err = images.Pull(connText, rawImage, &images.PullOptions{})
         if err != nil {
                 fmt.Println(err)
                 os.Exit(1)
@@ -229,7 +229,7 @@ This binding takes three arguments:
 
 ```Go
         // List images
-        imageSummary, err := images.List(connText, nil, nil)
+        imageSummary, err := images.List(connText, &images.ListOptions{})
         if err != nil {
             fmt.Println(err)
             os.Exit(1)
@@ -287,7 +287,7 @@ containers.Wait() takes three arguments:
         // Container create
         s := specgen.NewSpecGenerator(rawImage, false)
         s.Terminal = true
-        r, err := containers.CreateWithSpec(connText, s)
+        r, err := containers.CreateWithSpec(connText, s, nil)
         if err != nil {
                 fmt.Println(err)
                 os.Exit(1)
@@ -302,7 +302,7 @@ containers.Wait() takes three arguments:
         }
 
         running := define.ContainerStateRunning
-        _, err = containers.Wait(connText, r.ID, &running)
+        _, err = containers.Wait(connText, r.ID, &containers.WaitOptions{Condition: []define.ContainerStatus{running}})
         if err != nil {
                 fmt.Println(err)
                 os.Exit(1)
@@ -346,7 +346,7 @@ containers.List() takes seven arguments:
 ```Go
         // Container list
         var latestContainers = 1
-        containerLatestList, err := containers.List(connText, nil, nil, &latestContainers, nil, nil, nil)
+        containerLatestList, err := containers.List(connText, &containers.ListOptions{Last: &latestContainers})
         if err != nil {
             fmt.Println(err)
             os.Exit(1)
