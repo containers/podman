@@ -241,7 +241,9 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	// tags:
 	//  - networks
 	// summary: List networks
-	// description: Display summary of network configurations
+	// description: |
+	//   Display summary of network configurations.
+	//     - In a 200 response, all of the fields named Bytes are returned as a Base64 encoded string.
 	// parameters:
 	//  - in: query
 	//    name: filters
