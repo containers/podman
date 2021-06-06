@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/containers/podman/v3/libpod/events"
 	. "github.com/containers/podman/v3/test/utils"
 	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo"
@@ -134,11 +135,9 @@ var _ = Describe("Podman events", func() {
 		jsonArr := test.OutputToStringArray()
 		Expect(test.OutputToStringArray()).ShouldNot(BeEmpty())
 
-		eventsMap := make(map[string]string)
-		err := json.Unmarshal([]byte(jsonArr[0]), &eventsMap)
+		event := events.Event{}
+		err := json.Unmarshal([]byte(jsonArr[0]), &event)
 		Expect(err).ToNot(HaveOccurred())
-
-		Expect(eventsMap).To(HaveKey("Status"))
 
 		test = podmanTest.Podman([]string{"events", "--stream=false", "--format", "{{json.}}"})
 		test.WaitWithDefaultTimeout()
@@ -147,11 +146,9 @@ var _ = Describe("Podman events", func() {
 		jsonArr = test.OutputToStringArray()
 		Expect(test.OutputToStringArray()).ShouldNot(BeEmpty())
 
-		eventsMap = make(map[string]string)
-		err = json.Unmarshal([]byte(jsonArr[0]), &eventsMap)
+		event = events.Event{}
+		err = json.Unmarshal([]byte(jsonArr[0]), &event)
 		Expect(err).ToNot(HaveOccurred())
-
-		Expect(eventsMap).To(HaveKey("Status"))
 	})
 
 	It("podman events --until future", func() {
