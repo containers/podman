@@ -948,10 +948,6 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     description: "Mandatory reference to the image (e.g., quay.io/image/name:tag)"
 	//     type: string
 	//   - in: query
-	//     name: credentials
-	//     description: "username:password for the registry"
-	//     type: string
-	//   - in: query
 	//     name: Arch
 	//     description: Pull image for the specified architecture.
 	//     type: string
@@ -972,6 +968,10 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     name: allTags
 	//     description: Pull all tagged images in the repository.
 	//     type: boolean
+	//   - in: header
+	//     name: X-Registry-Auth
+	//     description: "base-64 encoded auth config. Must include the following four values: username, password, email and server address OR simply just an identity token."
+	//     type: string
 	// produces:
 	// - application/json
 	// responses:
