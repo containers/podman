@@ -696,7 +696,9 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 	reports := []*entities.ContainerStartReport{}
 	var exitCode = define.ExecErrorCodeGeneric
 	containersNamesOrIds := namesOrIds
+	all := options.All
 	if len(options.Filters) > 0 {
+		all = false
 		filterFuncs := make([]libpod.ContainerFilter, 0, len(options.Filters))
 		if len(options.Filters) > 0 {
 			for k, v := range options.Filters {
@@ -713,6 +715,10 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 		}
 		containersNamesOrIds = []string{}
 		for _, candidate := range candidates {
+			if options.All {
+				containersNamesOrIds = append(containersNamesOrIds, candidate.ID())
+				continue
+			}
 			for _, nameOrID := range namesOrIds {
 				if nameOrID == candidate.ID() || nameOrID == candidate.Name() {
 					containersNamesOrIds = append(containersNamesOrIds, nameOrID)
@@ -720,8 +726,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 			}
 		}
 	}
-
-	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, containersNamesOrIds, ic.Libpod)
+	ctrs, rawInputs, err := getContainersAndInputByContext(all, options.Latest, containersNamesOrIds, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}

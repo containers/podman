@@ -59,4 +59,15 @@ load helpers
     is "$output" "Error: fakepolicy invalid restart policy"
 }
 
+@test "podman start --all --filter" {
+    run_podman run -d $IMAGE /bin/true
+    cid_exited_0="$output"
+    run_podman run -d $IMAGE /bin/false
+    cid_exited_1="$output"
+
+    run_podman wait $cid_exited_0 $cid_exited_1
+    run_podman start --all --filter exited=0
+    is "$output" "$cid_exited_0"
+}
+
 # vim: filetype=sh
