@@ -25,6 +25,10 @@ type containerInfo struct {
 	ServiceName string
 	// Name or ID of the container.
 	ContainerNameOrID string
+	// Type of the unit.
+	Type string
+	// NotifyAccess of the unit.
+	NotifyAccess string
 	// StopTimeout sets the timeout Podman waits before killing the container
 	// during service stop.
 	StopTimeout uint
@@ -102,10 +106,19 @@ TimeoutStopSec={{{{.TimeoutStopSec}}}}
 ExecStartPre={{{{.ExecStartPre}}}}
 {{{{- end}}}}
 ExecStart={{{{.ExecStart}}}}
+{{{{- if .ExecStop}}}}
 ExecStop={{{{.ExecStop}}}}
+{{{{- end}}}}
+{{{{- if .ExecStopPost}}}}
 ExecStopPost={{{{.ExecStopPost}}}}
+{{{{- end}}}}
+{{{{- if .PIDFile}}}}
 PIDFile={{{{.PIDFile}}}}
-Type=forking
+{{{{- end}}}}
+Type={{{{.Type}}}}
+{{{{- if .NotifyAccess}}}}
+NotifyAccess={{{{.NotifyAccess}}}}
+{{{{- end}}}}
 
 [Install]
 WantedBy=multi-user.target default.target
@@ -208,6 +221,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		info.Executable = executable
 	}
 
+	info.Type = "forking"
 	info.EnvVariable = define.EnvVariable
 	info.ExecStart = "{{{{.Executable}}}} start {{{{.ContainerNameOrID}}}}"
 	info.ExecStop = "{{{{.Executable}}}} stop {{{{if (ge .StopTimeout 0)}}}}-t {{{{.StopTimeout}}}}{{{{end}}}} {{{{.ContainerNameOrID}}}}"
@@ -221,8 +235,12 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 	// invalid `info.CreateCommand`.  Hence, we're doing a best effort unit
 	// generation and don't try aiming at completeness.
 	if options.New {
-		info.PIDFile = "%t/" + info.ServiceName + ".pid"
-		info.ContainerIDFile = "%t/" + info.ServiceName + ".ctr-id"
+		info.Type = "notify"
+		info.NotifyAccess = "all"
+		info.PIDFile = ""
+		info.ContainerIDFile = ""
+		info.ExecStop = ""
+		info.ExecStopPost = ""
 		// The create command must at least have three arguments:
 		// 	/usr/bin/podman run $IMAGE
 		index := 0
@@ -245,9 +263,9 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		}
 		startCommand = append(startCommand,
 			"run",
-			"--conmon-pidfile", "{{{{.PIDFile}}}}",
-			"--cidfile", "{{{{.ContainerIDFile}}}}",
+			"--sdnotify=conmon",
 			"--cgroups=no-conmon",
+			"--rm",
 		)
 		remainingCmd := info.CreateCommand[index:]
 
@@ -336,11 +354,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 
 		startCommand = append(startCommand, remainingCmd...)
 		startCommand = escapeSystemdArguments(startCommand)
-
-		info.ExecStartPre = "/bin/rm -f {{{{.PIDFile}}}} {{{{.ContainerIDFile}}}}"
 		info.ExecStart = strings.Join(startCommand, " ")
-		info.ExecStop = "{{{{.Executable}}}} {{{{if .RootFlags}}}}{{{{ .RootFlags}}}} {{{{end}}}}stop --ignore --cidfile {{{{.ContainerIDFile}}}} {{{{if (ge .StopTimeout 0)}}}}-t {{{{.StopTimeout}}}}{{{{end}}}}"
-		info.ExecStopPost = "{{{{.Executable}}}} {{{{if .RootFlags}}}}{{{{ .RootFlags}}}} {{{{end}}}}rm --ignore -f --cidfile {{{{.ContainerIDFile}}}}"
 	}
 
 	info.TimeoutStopSec = minTimeoutStopSec + info.StopTimeout
