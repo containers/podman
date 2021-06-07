@@ -9,48 +9,48 @@ podman\-attach - Attach to a running container
 **podman container attach** [*options*] *container*
 
 ## DESCRIPTION
-The attach command allows you to attach to a running container using the container's ID
-or name, either to view its ongoing output or to control it interactively.
-
-You can detach from the container (and leave it running) using a configurable key sequence. The default
-sequence is `ctrl-p,ctrl-q`.
-Configure the keys sequence using the **--detach-keys** option, or specifying
-it in the **containers.conf** file: see **containers.conf(5)** for more information.
+**podman attach** attaches to a running *container* using the *container's name* or *ID*, to either view its ongoing output or to control it interactively.\
+The *container* can detached from (and leave it running) using a configurable key sequence. The default sequence is `ctrl-p,ctrl-q`. Configure the keys sequence using the **--detach-keys** option, or specifying it in the `containers.conf` file: see **[containers.conf(5)](https://github.com/containers/common/blob/master/docs/containers.conf.5.md)** for more information.
 
 ## OPTIONS
-#### **--detach-keys**=*sequence*
+#### **--detach-keys**=**sequence**
 
-Specify the key sequence for detaching a container. Format is a single character `[a-Z]` or one or more `ctrl-<value>` characters where `<value>` is one of: `a-z`, `@`, `^`, `[`, `,` or `_`. Specifying "" will disable this feature. The default is *ctrl-p,ctrl-q*.
+Specify the key **sequence** for detaching a *container*. Format is a single character `[a-Z]` or one or more `ctrl-<value>` characters where `<value>` is one of: `a-z`, `@`, `^`, `[`, `,` or `_`. Specifying "" will disable this feature. The default is `ctrl-p,ctrl-q`.
 
 #### **--latest**, **-l**
 
-Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
-to run containers such as CRI-O, the last started container could be from either of those methods. (This option is not available with the remote Podman client)
+Instead of providing the *container name* or *ID*, use the last created *container*. If you use methods other than Podman to run containers such as CRI-O, the last started *container* could be from either of those methods. The default is **false**.\
+*IMPORTANT: This option is not available with the remote Podman client*
 
 #### **--no-stdin**
 
-Do not attach STDIN. The default is false.
+Do not attach STDIN. The default is **false**.
 
-#### **--sig-proxy**=*true*|*false*
+#### **--sig-proxy**
 
-Proxy received signals to the process (non-TTY mode only). SIGCHLD, SIGSTOP, and SIGKILL are not proxied. The default is *true*.
+Proxy received signals to the process (non-TTY mode only). SIGCHLD, SIGSTOP, and SIGKILL are not proxied. The default is **true**.
 
 ## EXAMPLES
 
+Attach to a container called "foobar".
 ```
 $ podman attach foobar
-[root@localhost /]#
 ```
+
+Attach to the latest created container.
 ```
 $ podman attach --latest
-[root@localhost /]#
 ```
+
+Attach to a container that start with the ID "1234".
 ```
 $ podman attach 1234
-[root@localhost /]#
 ```
+
+Attach to a container without attaching STDIN.
 ```
 $ podman attach --no-stdin foobar
 ```
+
 ## SEE ALSO
-podman(1), podman-exec(1), podman-run(1), containers.conf(5)
+**[podman(1)](podman.1.md)**, **[podman-exec(1)](podman-exec.1.md)**, **[podman-run(1)](podman-run.1.md)**, **[containers.conf(5)](https://github.com/containers/common/blob/master/docs/containers.conf.5.md)**
