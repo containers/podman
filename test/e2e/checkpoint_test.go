@@ -425,6 +425,106 @@ var _ = Describe("Podman checkpoint", func() {
 		// Remove exported checkpoint
 		os.Remove(fileName)
 	})
+	// This test does the same steps which are necessary for migrating
+	// a container from one host to another
+	It("podman checkpoint container with export and different compression algorithms", func() {
+		localRunString := getRunString([]string{"--rm", ALPINE, "top"})
+		session := podmanTest.Podman(localRunString)
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		cid := session.OutputToString()
+		fileName := "/tmp/checkpoint-" + cid + ".tar"
+
+		// Checkpoint with the default algorithm
+		result := podmanTest.Podman([]string{"container", "checkpoint", "-l", "-e", fileName})
+		result.WaitWithDefaultTimeout()
+
+		// As the container has been started with '--rm' it will be completely
+		// cleaned up after checkpointing.
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
+
+		// Restore container
+		result = podmanTest.Podman([]string{"container", "restore", "-i", fileName})
+		result.WaitWithDefaultTimeout()
+
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
+
+		// Checkpoint with the zstd algorithm
+		result = podmanTest.Podman([]string{"container", "checkpoint", "-l", "-e", fileName, "--compress", "zstd"})
+		result.WaitWithDefaultTimeout()
+
+		// As the container has been started with '--rm' it will be completely
+		// cleaned up after checkpointing.
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
+
+		// Restore container
+		result = podmanTest.Podman([]string{"container", "restore", "-i", fileName})
+		result.WaitWithDefaultTimeout()
+
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
+
+		// Checkpoint with the none algorithm
+		result = podmanTest.Podman([]string{"container", "checkpoint", "-l", "-e", fileName, "-c", "none"})
+		result.WaitWithDefaultTimeout()
+
+		// As the container has been started with '--rm' it will be completely
+		// cleaned up after checkpointing.
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
+
+		// Restore container
+		result = podmanTest.Podman([]string{"container", "restore", "-i", fileName})
+		result.WaitWithDefaultTimeout()
+
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
+
+		// Checkpoint with the gzip algorithm
+		result = podmanTest.Podman([]string{"container", "checkpoint", "-l", "-e", fileName, "-c", "gzip"})
+		result.WaitWithDefaultTimeout()
+
+		// As the container has been started with '--rm' it will be completely
+		// cleaned up after checkpointing.
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
+
+		// Restore container
+		result = podmanTest.Podman([]string{"container", "restore", "-i", fileName})
+		result.WaitWithDefaultTimeout()
+
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
+
+		// Checkpoint with the non-existing algorithm
+		result = podmanTest.Podman([]string{"container", "checkpoint", "-l", "-e", fileName, "-c", "non-existing"})
+		result.WaitWithDefaultTimeout()
+
+		Expect(result.ExitCode()).To(Equal(125))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+		result = podmanTest.Podman([]string{"rm", "-fa"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
+
+		// Remove exported checkpoint
+		os.Remove(fileName)
+	})
 
 	It("podman checkpoint and restore container with root file-system changes", func() {
 		// Start the container

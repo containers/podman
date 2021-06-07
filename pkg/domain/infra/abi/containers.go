@@ -483,6 +483,7 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 		KeepRunning:    options.LeaveRunning,
 		PreCheckPoint:  options.PreCheckPoint,
 		WithPrevious:   options.WithPrevious,
+		Compression:    options.Compression,
 	}
 
 	if options.All {

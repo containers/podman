@@ -12,6 +12,7 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/pkg/signal"
+	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -776,6 +777,9 @@ type ContainerCheckpointOptions struct {
 	// ImportPrevious tells the API to restore container with two
 	// images. One is TargetFile, the other is ImportPrevious.
 	ImportPrevious string
+	// Compression tells the API which compression to use for
+	// the exported checkpoint archive.
+	Compression archive.Compression
 }
 
 // Checkpoint checkpoints a container
