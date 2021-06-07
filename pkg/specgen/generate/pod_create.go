@@ -125,7 +125,7 @@ func createPodOptions(p *specgen.PodSpecGenerator, rt *libpod.Runtime) ([]libpod
 		options = append(options, libpod.WithPodUseImageHosts())
 	}
 	if len(p.PortMappings) > 0 {
-		ports, _, _, err := parsePortMapping(p.PortMappings)
+		ports, _, _, err := ParsePortMapping(p.PortMappings)
 		if err != nil {
 			return nil, err
 		}

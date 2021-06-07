@@ -11,6 +11,7 @@ import (
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/errorhandling"
+	"github.com/containers/podman/v3/pkg/specgen/generate"
 	"github.com/containers/storage/pkg/archive"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -93,6 +94,14 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 		ctrConfig.ID = ""
 		ctrConfig.Name = restoreOptions.Name
 		newName = true
+	}
+
+	if len(restoreOptions.PublishPorts) > 0 {
+		ports, _, _, err := generate.ParsePortMapping(restoreOptions.PublishPorts)
+		if err != nil {
+			return nil, err
+		}
+		ctrConfig.PortMappings = ports
 	}
 
 	pullOptions := &libimage.PullOptions{}
