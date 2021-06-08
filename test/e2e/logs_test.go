@@ -173,9 +173,9 @@ var _ = Describe("Podman logs", func() {
 		})
 
 		It("streaming output: "+log, func() {
-			containerName := "logs-f-rm"
+			containerName := "logs-f"
 
-			logc := podmanTest.Podman([]string{"run", "--log-driver", log, "--rm", "--name", containerName, "-dt", ALPINE, "sh", "-c", "echo podman; sleep 1; echo podman"})
+			logc := podmanTest.Podman([]string{"run", "--log-driver", log, "--name", containerName, "-dt", ALPINE, "sh", "-c", "echo podman-1; sleep 1; echo podman-2"})
 			logc.WaitWithDefaultTimeout()
 			Expect(logc).To(Exit(0))
 
@@ -183,10 +183,8 @@ var _ = Describe("Podman logs", func() {
 			results.WaitWithDefaultTimeout()
 			Expect(results).To(Exit(0))
 
-			// TODO: we should actually check for two podman lines,
-			// but as of 2020-06-17 there's a race condition in which
-			// 'logs -f' may not catch all output from a container
-			Expect(results.OutputToString()).To(ContainSubstring("podman"))
+			Expect(results.OutputToString()).To(ContainSubstring("podman-1"))
+			Expect(results.OutputToString()).To(ContainSubstring("podman-2"))
 
 			// Container should now be terminatING or terminatED, but we
 			// have no guarantee of which: 'logs -f' does not necessarily
@@ -199,6 +197,10 @@ var _ = Describe("Podman logs", func() {
 			} else {
 				Expect(inspect.ErrorToString()).To(ContainSubstring("no such container"))
 			}
+
+			results = podmanTest.Podman([]string{"rm", "-f", containerName})
+			results.WaitWithDefaultTimeout()
+			Expect(results).To(Exit(0))
 		})
 
 		It("follow output stopped container: "+log, func() {
