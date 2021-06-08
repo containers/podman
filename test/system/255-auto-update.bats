@@ -43,12 +43,12 @@ function teardown() {
 #   5. Remove the origin container
 #   6. Start the container from service
 function generate_service() {
-    target_img_basename=$1
-    autoupdate=$2
+    local target_img_basename=$1
+    local autoupdate=$2
 
-    # Please keep variable name for cname and ori_image. The
-    # scripts will use them directly in following tests.
-    cname=c_$(random_string)
+    # Container name. Include the autoupdate type, to make debugging easier.
+    # IMPORTANT: variable 'cname' is passed (out of scope) up to caller!
+    cname=c_${autoupdate//\'/}_$(random_string)
     target_img="quay.io/libpod/$target_img_basename:latest"
     run_podman tag $IMAGE $target_img
     if [[ -n "$autoupdate" ]]; then
@@ -67,6 +67,8 @@ function generate_service() {
     systemctl start container-$cname
     systemctl status container-$cname
 
+    # Original image ID.
+    # IMPORTANT: variable 'ori_image' is passed (out of scope) up to caller!
     run_podman inspect --format "{{.Image}}" $cname
     ori_image=$output
 }
@@ -76,8 +78,7 @@ function _wait_service_ready() {
 
     local timeout=6
     while [[ $timeout -gt 1 ]]; do
-        run systemctl is-active $sname
-        if [[ $output == "active" ]]; then
+        if systemctl -q is-active $sname; then
             return
         fi
         sleep 1
@@ -89,65 +90,63 @@ function _wait_service_ready() {
     die "Timed out waiting for $sname to start"
 }
 
+# Wait for container to update, as confirmed by its image ID changing
 function _confirm_update() {
-    local sname=$1
+    local cname=$1
+    local old_iid=$2
 
-    local timeout=6
-    last_log=""
-    while [[ $timeout -gt 1 ]]; do
-        run journalctl -u $sname -n 10
-        if [[ "$output" == "$last_log" ]]; then
+    # Image has already been pulled, so this shouldn't take too long
+    local timeout=5
+    while [[ $timeout -gt 0 ]]; do
+        run_podman '?' inspect --format "{{.Image}}" $cname
+        if [[ $status != 0 ]]; then
+            if [[ $output =~ (no such object|does not exist in database): ]]; then
+                # this is ok, it just means the container is being restarted
+                :
+            else
+                die "podman inspect $cname failed unexpectedly"
+            fi
+        elif [[ $output != $old_iid ]]; then
             return
         fi
-        last_log=$output
         sleep 1
-        let timeout=$timeout-1
     done
 
-    die "Timed out waiting for $sname to update"
+    die "Timed out waiting for $cname to update; old IID=$old_iid"
 }
 
 # This test can fail in dev. environment because of SELinux.
 # quick fix: chcon -t container_runtime_exec_t ./bin/podman
 @test "podman auto-update - label io.containers.autoupdate=image" {
-    run_podman images
     generate_service alpine image
 
     _wait_service_ready container-$cname.service
-    run_podman ps -a
     run_podman auto-update
     is "$output" "Trying to pull.*" "Image is updated."
-    run_podman ps -a
-    _confirm_update container-$cname.service
-    run_podman inspect --format "{{.Image}}" $cname
-    [[ "$output" != "$ori_image" ]]
+    _confirm_update $cname $ori_image
 }
 
 @test "podman auto-update - label io.containers.autoupdate=disabled" {
     generate_service alpine disabled
 
     _wait_service_ready container-$cname.service
-    run_podman ps -a
     run_podman auto-update
-    is "$output" "" "Image is not updated with disabled."
-    run_podman ps -a
-    _confirm_update container-$cname.service
+    is "$output" "" "Image is not updated when autoupdate=disabled."
+
     run_podman inspect --format "{{.Image}}" $cname
-    is "$output" "$ori_image" "Image hash should not changed."
+    is "$output" "$ori_image" "Image ID should not change"
 }
 
 @test "podman auto-update - label io.containers.autoupdate=fakevalue" {
-    fakevalue=$(random_string)
+    fakevalue=fake_$(random_string)
     generate_service alpine $fakevalue
 
     _wait_service_ready container-$cname.service
-    run_podman ps -a
-    run_podman ? auto-update
+    run_podman 125 auto-update
     is "$output" ".*invalid auto-update policy.*" "invalid policy setup"
-    run_podman ps -a
-    _confirm_update container-$cname.service
+
     run_podman inspect --format "{{.Image}}" $cname
-    is "$output" "$ori_image" "Image hash should not changed."
+    is "$output" "$ori_image" "Image ID should not change"
 }
 
 @test "podman auto-update - label io.containers.autoupdate=local" {
@@ -155,25 +154,23 @@ function _confirm_update() {
     podman commit --change CMD=/bin/bash $cname quay.io/libpod/localtest:latest
 
     _wait_service_ready container-$cname.service
-    run_podman ps -a
     run_podman auto-update
-    run_podman ps -a
-    _confirm_update container-$cname.service
-    run_podman inspect --format "{{.Image}}" $cname
-    [[ "$output" != "$ori_image" ]]
+    _confirm_update $cname $ori_image
 }
 
 @test "podman auto-update with multiple services" {
-    fakevalue=$(random_string)
+    # Preserve original image ID, to confirm that it changes (or not)
     run_podman inspect --format "{{.Id}}" $IMAGE
-    img_id="$output"
-    cnames=()
+    local img_id="$output"
+
+    local cnames=()
     local -A expect_update
     local -A will_update=([image]=1 [registry]=1 [local]=1)
 
+    local fakevalue=fake_$(random_string)
     for auto_update in image registry "" disabled "''" $fakevalue local
     do
-        img_base="alpine"
+        local img_base="alpine"
         if [[ $auto_update == "registry" ]]; then
             img_base="alpine_nginx"
         elif [[ $auto_update == "local" ]]; then
@@ -184,6 +181,7 @@ function _confirm_update() {
         if [[ $auto_update == "local" ]]; then
             local_cname=$cname
         fi
+
         if [[ -n "$auto_update" && -n "${will_update[$auto_update]}" ]]; then
             expect_update[$cname]=1
         fi
@@ -192,30 +190,28 @@ function _confirm_update() {
     # Only check the last service is started. Previous services should already actived.
     _wait_service_ready container-$cname.service
     run_podman commit --change CMD=/bin/bash $local_cname quay.io/libpod/localtest:latest
-    run_podman ? auto-update
+    # Exit code is expected, due to invalid 'fakevalue'
+    run_podman 125 auto-update
     update_log=$output
-    for cname in "${cnames[@]}"; do
-        _confirm_update container-$cname.service
-    done
-    count=0
-    while read line; do
-       if [[ "$line" =~ "Trying to pull" ]]; then
-           ((count+=1))
-       fi
-    done <<< "$update_log"
     is "$update_log" ".*invalid auto-update policy.*" "invalid policy setup"
     is "$update_log" ".*1 error occurred.*" "invalid policy setup"
-    is "$count" "2" "There are two images being updated from registry."
+
+    local n_updated=$(grep -c 'Trying to pull' <<<"$update_log")
+    is "$n_updated" "2" "Number of images updated from registry."
 
     for cname in "${!expect_update[@]}"; do
-
         is "$update_log" ".*$cname.*" "container with auto-update policy image updated"
+        # Just because podman says it fetched, doesn't mean it actually updated
+        _confirm_update $cname $img_id
     done
 
+    # Final confirmation that all image IDs have/haven't changed
     for cname in "${cnames[@]}"; do
         run_podman inspect --format "{{.Image}}" $cname
         if [[ -n "${expect_update[$cname]}" ]]; then
-            [[ "$output" != "$img_id" ]]
+            if [[ "$output" == "$img_id" ]]; then
+                die "$cname: image ID ($output) did not change"
+            fi
         else
             is "$output" "$img_id" "Image should not be changed."
         fi
@@ -255,25 +251,24 @@ EOF
     systemctl enable --now podman-auto-update-$cname.timer
     systemctl list-timers --all
 
-    count=0
-    failed_start=1
+    local expect='Finished Podman auto-update testing service'
+    local failed_start=failed
+    local count=0
     while [ $count -lt 120 ]; do
         run journalctl -n 15 -u podman-auto-update-$cname.service
-        if [[ "$output" =~ "Finished Podman auto-update testing service" ]]; then
-            failed_start=0
+        if [[ "$output" =~ $expect ]]; then
+            failed_start=
             break
         fi
         ((count+=1))
         sleep 1
     done
-    echo $output
 
-    _confirm_update container-$cname.service
-    run_podman inspect --format "{{.Image}}" $cname
-    if [[ $failed_start == 1 ]]; then
-       die "Failed to get podman auto-update service finished"
+    if [[ -n "$failed_start" ]]; then
+       die "Did not find expected string '$expect' in journalctl output for $cname"
     fi
-    [[ "$output" != "$ori_image" ]]
+
+    _confirm_update $cname $ori_image
 }
 
 # vim: filetype=sh
