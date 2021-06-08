@@ -44,6 +44,16 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//    type: string
 	//    required: true
 	//    description: the name of the network
+	//  - in: query
+	//    name: verbose
+	//    type: boolean
+	//    required: false
+	//    description: Detailed inspect output for troubleshooting
+	//  - in: query
+	//    name: scope
+	//    type: string
+	//    required: false
+	//    description: Filter the network by scope (swarm, global, or local)
 	// produces:
 	// - application/json
 	// responses:

@@ -102,6 +102,33 @@ class NetworkTestCase(APITestCase):
             "TestNetwork",
             payload["NetworkSettings"]["Networks"]["TestNetwork"]["NetworkID"],
         )
+    def test_inspect(self):
+        name = f"Network_{random.getrandbits(160):x}"
+        create = requests.post(self.podman_url + "/v1.40/networks/create", json={"Name": name})
+        self.assertEqual(create.status_code, 201, create.text)
+        self.assertId(create.content)
+
+        net = create.json()
+        self.assertIsInstance(net, dict)
+        self.assertNotEqual(net["Id"], name)
+        ident = net["Id"]
+
+        ls = requests.get(self.podman_url + "/v1.40/networks")
+        self.assertEqual(ls.status_code, 200, ls.text)
+
+        networks = ls.json()
+        self.assertIsInstance(networks, list)
+
+        found = False
+        for net in networks:
+            if net["Name"] == name:
+                found = True
+                break
+        self.assertTrue(found, f"Network '{name}' not found")
+
+        inspect = requests.get(self.podman_url + f"/v1.40/networks/{ident}?verbose=false&scope=local")
+        self.assertEqual(inspect.status_code, 200, inspect.text)
+
 
     def test_crud(self):
         name = f"Network_{random.getrandbits(160):x}"
