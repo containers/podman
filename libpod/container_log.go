@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/libpod/logs"
-	"github.com/hpcloud/tail/watch"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -94,27 +93,40 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 	}()
 	// Check if container is still running or paused
 	if options.Follow {
+		state, err := c.State()
+		if err != nil || state != define.ContainerStateRunning {
+			// If the container isn't running or if we encountered
+			// an error getting its state, instruct the logger to
+			// read the file until EOF.
+			tailError := t.StopAtEOF()
+			if tailError != nil && fmt.Sprintf("%v", tailError) != "tail: stop at eof" {
+				logrus.Error(tailError)
+			}
+			if errors.Cause(err) != define.ErrNoSuchCtr {
+				logrus.Error(err)
+			}
+			return nil
+		}
+
+		// The container is running, so we need to wait until the container exited
 		go func() {
-			for {
-				state, err := c.State()
-				time.Sleep(watch.POLL_DURATION)
-				if err != nil {
-					tailError := t.StopAtEOF()
-					if tailError != nil && fmt.Sprintf("%v", tailError) != "tail: stop at eof" {
-						logrus.Error(tailError)
-					}
-					if errors.Cause(err) != define.ErrNoSuchCtr {
-						logrus.Error(err)
-					}
-					break
+			eventChannel := make(chan *events.Event)
+			eventOptions := events.ReadOptions{
+				EventChannel: eventChannel,
+				Filters:      []string{"event=died", "container=" + c.ID()},
+				Stream:       true,
+			}
+			go func() {
+				if err := c.runtime.Events(ctx, eventOptions); err != nil {
+					logrus.Errorf("Error waiting for container to exit: %v", err)
 				}
-				if state != define.ContainerStateRunning && state != define.ContainerStatePaused {
-					tailError := t.StopAtEOF()
-					if tailError != nil && fmt.Sprintf("%v", tailError) != "tail: stop at eof" {
-						logrus.Error(tailError)
-					}
-					break
-				}
+			}()
+			// Now wait for the died event and signal to finish
+			// reading the log until EOF.
+			<-eventChannel
+			tailError := t.StopAtEOF()
+			if tailError != nil && fmt.Sprintf("%v", tailError) != "tail: stop at eof" {
+				logrus.Error(tailError)
 			}
 		}()
 	}
