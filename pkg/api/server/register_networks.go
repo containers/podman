@@ -180,9 +180,12 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//   200:
 	//     description: OK
 	//     schema:
-	//       type: array
-	//       items:
-	//         type: string
+	//       type: object
+	//       properties:
+	//         NetworksDeleted:
+	//           type: array
+	//           items:
+	//             type: string
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/networks/prune"), s.APIHandler(compat.Prune)).Methods(http.MethodPost)
