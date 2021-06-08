@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/containernetworking/cni/libcni"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
@@ -102,7 +103,7 @@ type swagNetworkRmReport struct {
 // swagger:response NetworkInspectReport
 type swagNetworkInspectReport struct {
 	// in:body
-	Body entities.NetworkInspectReport
+	Body libcni.NetworkConfigList
 }
 
 // Network list
