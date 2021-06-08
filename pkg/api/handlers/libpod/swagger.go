@@ -119,6 +119,13 @@ type swagNetworkCreateReport struct {
 	Body entities.NetworkCreateReport
 }
 
+// Network prune
+// swagger:response NetworkPruneResponse
+type swagNetworkPruneResponse struct {
+	// in:body
+	Body []entities.NetworkPruneReport
+}
+
 func ServeSwagger(w http.ResponseWriter, r *http.Request) {
 	path := DefaultPodmanSwaggerSpec
 	if p, found := os.LookupEnv("PODMAN_SWAGGER_SPEC"); found {

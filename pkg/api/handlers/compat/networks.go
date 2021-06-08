@@ -414,7 +414,7 @@ func Prune(w http.ResponseWriter, r *http.Request) {
 	type response struct {
 		NetworksDeleted []string
 	}
-	var prunedNetworks []string //nolint
+	prunedNetworks := []string{}
 	for _, pr := range pruneReports {
 		if pr.Error != nil {
 			logrus.Error(pr.Error)
