@@ -341,3 +341,12 @@ t GET containers/$cid/json 200 \
   .HostConfig.NanoCpus=500000
 
 t DELETE containers/$cid?v=true 204
+
+# Test Compat Create with default network mode (#10569)
+t POST containers/create Image=$IMAGE HostConfig='{"NetworkMode":"default"}' 201 \
+  .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+t GET containers/$cid/json 200 \
+  .HostConfig.NetworkMode="bridge"
+
+t DELETE containers/$cid?v=true 204

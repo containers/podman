@@ -249,7 +249,7 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *c
 	}
 
 	// netMode
-	nsmode, _, err := specgen.ParseNetworkNamespace(string(cc.HostConfig.NetworkMode), true)
+	nsmode, networks, err := specgen.ParseNetworkNamespace(string(cc.HostConfig.NetworkMode), true)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -322,7 +322,7 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *c
 		netInfo.Aliases = aliases
 		netInfo.CNINetworks = cniNetworks
 	case len(cc.HostConfig.NetworkMode) > 0:
-		netInfo.CNINetworks = []string{string(cc.HostConfig.NetworkMode)}
+		netInfo.CNINetworks = networks
 	}
 
 	parsedTmp := make([]string, 0, len(cc.HostConfig.Tmpfs))
