@@ -28,15 +28,28 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: fromImage
 	//    type: string
-	//    description: needs description
+	//    description: Name of the image to pull. The name may include a tag or digest. This parameter may only be used when pulling an image. The pull is cancelled if the HTTP connection is closed.
 	//  - in: query
 	//    name: fromSrc
 	//    type: string
-	//    description: needs description
+	//    description: Source to import. The value may be a URL from which the image can be retrieved or - to read the image from the request body. This parameter may only be used when importing an image
+	//  - in: query
+	//    name: repo
+	//    type: string
+	//    description: Repository name given to an image when it is imported. The repo may include a tag. This parameter may only be used when importing an image.
 	//  - in: query
 	//    name: tag
 	//    type: string
-	//    description: needs description
+	//    description: Tag or digest. If empty when pulling an image, this causes all tags for the given image to be pulled.
+	//  - in: query
+	//    name: message
+	//    type: string
+	//    description: Set commit message for imported image.
+	//  - in: query
+	//    name: platform
+	//    type: string
+	//    description: Platform in the format os[/arch[/variant]]
+	//    default: ""
 	//  - in: header
 	//    name: X-Registry-Auth
 	//    type: string
@@ -45,6 +58,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: request
 	//    schema:
 	//      type: string
+	//      format: binary
 	//    description: Image content if fromSrc parameter was used
 	// responses:
 	//   200:

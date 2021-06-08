@@ -168,6 +168,8 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 	query := struct {
 		FromSrc string   `schema:"fromSrc"`
 		Changes []string `schema:"changes"`
+		Message string   `schema:"message"`
+		Repo    string   `shchema:"repo"`
 	}{
 		// This is where you can override the golang default value for one of fields
 	}
@@ -184,14 +186,15 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to create tempfile"))
 			return
 		}
+
 		source = f.Name()
 		if err := SaveFromBody(f, r); err != nil {
 			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to write temporary file"))
 		}
 	}
-
 	imageEngine := abi.ImageEngine{Libpod: runtime}
-	report, err := imageEngine.Import(r.Context(), entities.ImageImportOptions{Source: source, Changes: query.Changes})
+	// TODO: add support for ImageImportOptions to take a platform parameter. Also import https://github.com/opencontainers/image-spec/tree/master/specs-go/v1 either here or within imageEngine.Import to get default platform
+	report, err := imageEngine.Import(r.Context(), entities.ImageImportOptions{Source: source, Changes: query.Changes, Message: query.Message, Reference: query.Repo})
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to import tarball"))
 		return
@@ -224,10 +227,10 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 	query := struct {
 		FromImage string `schema:"fromImage"`
 		Tag       string `schema:"tag"`
+		Platform  string `schema:"platform"`
 	}{
 		// This is where you can override the golang default value for one of fields
 	}
-
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
@@ -250,12 +253,36 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer auth.RemoveAuthfile(authfile)
 
+	platformSpecs := strings.Split(query.Platform, "/") // split query into its parts
+
+	addOS := true // default assume true due to structure of if/else below
+	addArch := false
+	addVariant := false
+
+	if len(platformSpecs) > 1 { // if we have two arguments then we have os and arch
+		addArch = true
+		if len(platformSpecs) > 2 { // if we have 3 arguments then we have os arch and variant
+			addVariant = true
+		}
+	} else if len(platformSpecs) == 0 {
+		addOS = false
+	}
+
 	pullOptions := &libimage.PullOptions{}
 	pullOptions.AuthFilePath = authfile
 	if authConf != nil {
 		pullOptions.Username = authConf.Username
 		pullOptions.Password = authConf.Password
 		pullOptions.IdentityToken = authConf.IdentityToken
+		if addOS { // if the len is not 0
+			pullOptions.OS = platformSpecs[0]
+			if addArch {
+				pullOptions.Architecture = platformSpecs[1]
+			}
+			if addVariant {
+				pullOptions.Variant = platformSpecs[2]
+			}
+		}
 	}
 	pullOptions.Writer = os.Stderr // allows for debugging on the server
 
@@ -294,7 +321,6 @@ loop: // break out of for/select infinite loop
 			Error string `json:"error,omitempty"`
 			Id    string `json:"id,omitempty"` // nolint
 		}
-
 		select {
 		case e := <-progress:
 			switch e.Event {
