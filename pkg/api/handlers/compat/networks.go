@@ -28,19 +28,24 @@ import (
 func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
-	// FYI scope and version are currently unused but are described by the API
-	// Leaving this for if/when we have to enable these
-	// query := struct {
-	//	scope   string
-	//	verbose bool
-	// }{
-	//	// override any golang type defaults
-	// }
-	// decoder := r.Context().Value("decoder").(*schema.Decoder)
-	// if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-	//	utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
-	//	return
-	// }
+	// scope is only used to see if the user passes any illegal value, verbose is not used but implemented
+	// for compatibility purposes only.
+	query := struct {
+		scope   string `schema:"scope"`
+		verbose bool   `schema:"verbose"`
+	}{
+		scope: "local",
+	}
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+
+	if query.scope != "local" {
+		utils.Error(w, "Invalid scope value. Can only be local.", http.StatusBadRequest, define.ErrInvalidArg)
+		return
+	}
 	config, err := runtime.GetConfig()
 	if err != nil {
 		utils.InternalServerError(w, err)
