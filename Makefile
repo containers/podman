@@ -437,7 +437,7 @@ $(MANPAGES): %: %.md .install.md2man docdir
          -e 's/\[\(podman[^]]*\)\]/\1/g' \
 		 -e 's/\[\([^]]*\)](http[^)]\+)/\1/g' \
          -e 's;<\(/\)\?\(a\|a\s\+[^>]*\|sup\)>;;g' \
-         -e 's/\\$//  /g' $<  | \
+         -e 's/\\$$/  /g' $<  | \
 	$(GOMD2MAN) -in /dev/stdin -out $(subst source/markdown,build/man,$@)
 
 .PHONY: docdir
