@@ -85,7 +85,7 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 
 	var pulledImages []*libimage.Image
 	var pullError error
-	runCtx, cancel := context.WithCancel(context.Background())
+	runCtx, cancel := context.WithCancel(r.Context())
 	go func() {
 		defer cancel()
 		pulledImages, pullError = runtime.LibimageRuntime().Pull(runCtx, query.Reference, config.PullPolicyAlways, pullOptions)
