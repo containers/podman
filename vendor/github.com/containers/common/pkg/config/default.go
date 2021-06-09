@@ -197,7 +197,6 @@ func DefaultConfig() (*Config, error) {
 			NoHosts:        false,
 			PidsLimit:      DefaultPidsLimit,
 			PidNS:          "private",
-			SeccompProfile: SeccompDefaultPath,
 			ShmSize:        DefaultShmSize,
 			TZ:             "",
 			Umask:          "0022",
