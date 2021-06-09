@@ -278,6 +278,8 @@ type ImageImportOptions struct {
 	SignaturePolicy string
 	Source          string
 	SourceIsURL     bool
+	OS              string
+	Architecture    string
 }
 
 type ImageImportReport struct {
