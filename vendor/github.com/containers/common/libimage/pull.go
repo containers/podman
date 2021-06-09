@@ -341,7 +341,7 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 	// attempt pulling that instead of doing the full short-name dance.
 	localImage, resolvedImageName, err = r.LookupImage(imageName, nil)
 	if err != nil && errors.Cause(err) != storage.ErrImageUnknown {
-		return nil, errors.Wrap(err, "error looking up local image")
+		logrus.Errorf("Looking up %s in local storage: %v", imageName, err)
 	}
 
 	if pullPolicy == config.PullPolicyNever {
