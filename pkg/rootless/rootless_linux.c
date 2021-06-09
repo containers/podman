@@ -333,7 +333,7 @@ static void __attribute__((constructor)) init()
       uid_t uid;
       gid_t gid;
       char path[PATH_MAX];
-      const char *const suffix = "/libpod/pause.pid";
+      const char *const suffix = "/libpod/tmp/pause.pid";
       char *cwd = getcwd (NULL, 0);
       char uid_fmt[16];
       char gid_fmt[16];
