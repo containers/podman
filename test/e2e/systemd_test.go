@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/podman/v3/pkg/rootless"
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -115,6 +116,12 @@ WantedBy=multi-user.target
 		conData := result.InspectContainerToJSON()
 		Expect(len(conData)).To(Equal(1))
 		Expect(conData[0].Config.SystemdMode).To(BeTrue())
+
+		if CGROUPSV2 || !rootless.IsRootless() {
+			stats := podmanTest.Podman([]string{"stats", "--no-stream", ctrName})
+			stats.WaitWithDefaultTimeout()
+			Expect(stats.ExitCode()).To(Equal(0))
+		}
 	})
 
 	It("podman create container with systemd entrypoint triggers systemd mode", func() {

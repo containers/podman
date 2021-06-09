@@ -946,6 +946,12 @@ func (c *Container) cGroupPath() (string, error) {
 	// is the libpod-specific one we're looking for.
 	//
 	// See #8397 on the need for the longest-path look up.
+	//
+	// And another workaround for containers running systemd as the payload.
+	// containers running systemd moves themselves into a child subgroup of
+	// the named systemd cgroup hierarchy.  Ignore any named cgroups during
+	// the lookup.
+	// See #10602 for more details.
 	procPath := fmt.Sprintf("/proc/%d/cgroup", c.state.PID)
 	lines, err := ioutil.ReadFile(procPath)
 	if err != nil {
@@ -959,6 +965,10 @@ func (c *Container) cGroupPath() (string, error) {
 		fields := bytes.Split(line, []byte(":"))
 		if len(fields) != 3 {
 			logrus.Debugf("Error parsing cgroup: expected 3 fields but got %d: %s", len(fields), procPath)
+			continue
+		}
+		// Ignore named cgroups like name=systemd.
+		if bytes.Contains(fields[1], []byte("=")) {
 			continue
 		}
 		path := string(fields[2])
