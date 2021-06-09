@@ -14,6 +14,13 @@ class ContainerTestCase(APITestCase):
         obj = r.json()
         self.assertEqual(len(obj), 1)
 
+    def test_list_filters(self):
+        r = requests.get(self.podman_url + "/v1.40/containers/json?filters%3D%7B%22status%22%3A%5B%22running%22%5D%7D")
+        self.assertEqual(r.status_code, 200, r.text)
+        payload = r.json()
+        containerAmnt = len(payload)
+        self.assertGreater(containerAmnt, 0)
+
     def test_list_all(self):
         r = requests.get(self.uri("/containers/json?all=true"))
         self.assertEqual(r.status_code, 200, r.text)
@@ -24,6 +31,22 @@ class ContainerTestCase(APITestCase):
         self.assertEqual(r.status_code, 200, r.text)
         self.assertId(r.content)
         _ = parse(r.json()["Created"])
+
+        r = requests.post(
+            self.podman_url + "/v1.40/containers/create?name=topcontainer",
+            json={"Cmd": ["top"], "Image": "alpine:latest"},
+        )
+        self.assertEqual(r.status_code, 201, r.text)
+        payload = r.json()
+        container_id = payload["Id"]
+        self.assertIsNotNone(container_id)
+
+        r = requests.get(self.podman_url + f"/v1.40/containers/{payload['Id']}/json")
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertId(r.content)
+        out = r.json()
+        state = out["State"]["Health"]
+        self.assertIsInstance(state, dict)
 
     def test_stats(self):
         r = requests.get(self.uri(self.resolve_container("/containers/{}/stats?stream=false")))

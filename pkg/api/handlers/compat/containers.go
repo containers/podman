@@ -403,6 +403,24 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 		state.Status = define.ContainerStateCreated.String()
 	}
 
+	state.Health = &types.Health{
+		Status:        inspect.State.Healthcheck.Status,
+		FailingStreak: inspect.State.Healthcheck.FailingStreak,
+	}
+
+	log := inspect.State.Healthcheck.Log
+
+	for _, item := range log {
+		res := &types.HealthcheckResult{}
+		s, _ := time.Parse(time.RFC3339Nano, item.Start)
+		e, _ := time.Parse(time.RFC3339Nano, item.End)
+		res.Start = s
+		res.End = e
+		res.ExitCode = item.ExitCode
+		res.Output = item.Output
+		state.Health.Log = append(state.Health.Log, res)
+	}
+
 	formatCapabilities(inspect.HostConfig.CapDrop)
 	formatCapabilities(inspect.HostConfig.CapAdd)
 
