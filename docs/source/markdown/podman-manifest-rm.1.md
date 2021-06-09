@@ -11,7 +11,7 @@ Removes one or more locally stored manifest lists.
 
 ## EXAMPLE
 
-podman manifest rm <list>
+podman manifest rm `<list>`
 
 podman manifest rm listid1 listid2
 

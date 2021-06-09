@@ -183,7 +183,10 @@ function check_label() {
     # runc and crun emit different diagnostics
     runtime=$(podman_runtime)
     case "$runtime" in
-        crun) expect="\`/proc/thread-self/attr/exec\`: OCI runtime error: unable to assign security attribute" ;;
+        # crun 0.20.1 changes the error message
+        #   from /proc/thread-self/attr/exec`: .* unable to assign
+        #   to   /proc/self/attr/keycreate`: .* unable to process
+        crun) expect="\`/proc/.*\`: OCI runtime error: unable to \(assign\|process\) security attribute" ;;
         runc) expect="OCI runtime error: .*: failed to set /proc/self/attr/keycreate on procfs" ;;
         *)    skip "Unknown runtime '$runtime'";;
     esac
