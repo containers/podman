@@ -668,4 +668,36 @@ USER testuser`, fedoraMinimal)
 		Expect(strings.Contains(test2.OutputToString(), testString)).To(BeTrue())
 
 	})
+
+	It("podman volume with uid and gid works", func() {
+		volName := "testVol"
+		volCreate := podmanTest.Podman([]string{"volume", "create", "--opt", "o=uid=1000", volName})
+		volCreate.WaitWithDefaultTimeout()
+		Expect(volCreate.ExitCode()).To(Equal(0))
+
+		volMount := podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/test", volName), ALPINE, "stat", "-c", "%u", "/test"})
+		volMount.WaitWithDefaultTimeout()
+		Expect(volMount.ExitCode()).To(Equal(0))
+		Expect(volMount.OutputToString()).To(Equal("1000"))
+
+		volName = "testVol2"
+		volCreate = podmanTest.Podman([]string{"volume", "create", "--opt", "o=gid=1000", volName})
+		volCreate.WaitWithDefaultTimeout()
+		Expect(volCreate.ExitCode()).To(Equal(0))
+
+		volMount = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/test", volName), ALPINE, "stat", "-c", "%g", "/test"})
+		volMount.WaitWithDefaultTimeout()
+		Expect(volMount.ExitCode()).To(Equal(0))
+		Expect(volMount.OutputToString()).To(Equal("1000"))
+
+		volName = "testVol3"
+		volCreate = podmanTest.Podman([]string{"volume", "create", "--opt", "o=uid=1000,gid=1000", volName})
+		volCreate.WaitWithDefaultTimeout()
+		Expect(volCreate.ExitCode()).To(Equal(0))
+
+		volMount = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/test", volName), ALPINE, "stat", "-c", "%u:%g", "/test"})
+		volMount.WaitWithDefaultTimeout()
+		Expect(volMount.ExitCode()).To(Equal(0))
+		Expect(volMount.OutputToString()).To(Equal("1000:1000"))
+	})
 })
