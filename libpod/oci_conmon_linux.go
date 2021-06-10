@@ -787,7 +787,11 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 		args = append(args, "--pre-dump")
 	}
 	if !options.PreCheckPoint && options.WithPrevious {
-		args = append(args, "--parent-path", ctr.PreCheckPointPath())
+		args = append(
+			args,
+			"--parent-path",
+			filepath.Join("..", preCheckpointDir),
+		)
 	}
 	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
