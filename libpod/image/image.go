@@ -152,8 +152,18 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 	if pullType != util.PullImageAlways {
 		newImage, err := ir.NewFromLocal(name)
 		if err == nil {
-			return newImage, nil
-		} else if pullType == util.PullImageNever {
+			// The image may be listed in the local storage but
+			// if it's corrupted, log an error and continue
+			// pulling.
+			// https://bugzilla.redhat.com/show_bug.cgi?id=1966872
+			if err := newImage.CheckCorrupted(ctx, name); err != nil {
+				logrus.Error(err.Error())
+			} else {
+				return newImage, nil
+			}
+		}
+
+		if pullType == util.PullImageNever {
 			return nil, err
 		}
 	}
@@ -712,6 +722,24 @@ func (ir *Runtime) getImages(rwOnly bool) ([]*Image, error) {
 		newImages = append(newImages, img)
 	}
 	return newImages, nil
+}
+
+// CheckCorrupted checks if the image may be corrupted in the local storage.
+func (i *Image) CheckCorrupted(ctx context.Context, name string) error {
+	// If it's a manifest list, we're good for now.
+	if _, err := i.getManifestList(); err == nil {
+		return nil
+	}
+
+	ref, err := is.Transport.ParseStoreReference(i.imageruntime.store, "@"+i.ID())
+	if err != nil {
+		return err
+	}
+
+	if _, err := ref.NewImage(ctx, nil); err != nil {
+		return errors.Errorf("Image %s exists in local storage but may be corrupted: %v", name, err)
+	}
+	return nil
 }
 
 // getImageDigest creates an image object and uses the hex value of the digest as the image ID
