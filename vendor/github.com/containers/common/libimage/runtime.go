@@ -132,13 +132,21 @@ func (r *Runtime) storageToImage(storageImage *storage.Image, ref types.ImageRef
 }
 
 // Exists returns true if the specicifed image exists in the local containers
-// storage.
+// storage.  Note that it may return false if an image corrupted.
 func (r *Runtime) Exists(name string) (bool, error) {
 	image, _, err := r.LookupImage(name, &LookupImageOptions{IgnorePlatform: true})
 	if err != nil && errors.Cause(err) != storage.ErrImageUnknown {
 		return false, err
 	}
-	return image != nil, nil
+	if image == nil {
+		return false, nil
+	}
+	// Inspect the image to make sure if it's corrupted or not.
+	if _, err := image.Inspect(context.Background(), false); err != nil {
+		logrus.Errorf("Image %s exists in local storage but may be corrupted: %v", name, err)
+		return false, nil
+	}
+	return true, nil
 }
 
 // LookupImageOptions allow for customizing local image lookups.
