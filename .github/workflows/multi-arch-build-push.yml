@@ -1,0 +1,70 @@
+---
+
+name: Build and push multi-arch images
+
+on:
+  # Upstream repo tends to be very active, with many merges per day.
+  # Only run this daily via cron schedule, or manually, not by branch push.
+  schedule:
+    - cron:  '0 8 * * *'
+  # allows to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+env:
+    # Debug-mode can reveal secrets, only enable by a secret value.
+    # Ref: https://docs.github.com/en/actions/managing-workflow-runs/enabling-debug-logging
+    ACTIONS_STEP_DEBUG: '${{ secrets.ACTIONS_STEP_DEBUG }}'
+    ACTIONS_RUNNER_DEBUG: '${{ secrets.ACTIONS_RUNNER_DEBUG }}'
+
+jobs:
+  multi:
+    name: Build ${{ matrix.source_name }} & push to ${{ matrix.secret_prefix }} registry
+    strategy:
+      fail-fast: false # By default, failure any, cancels all.
+      matrix:
+        include:
+          - source_name: upstream
+            secret_prefix: REPONAME
+          - source_name: testing
+            secret_prefix: REPONAME
+          - source_name: stable
+            secret_prefix: REPONAME
+          - source_name: stable
+            secret_prefix: CONTAINERS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+
+      # Hack: It's impossible to reference non-static values for items
+      # in the 'matrix' block (above).
+      - name: Validate and lookup registry namespace and login details
+        id: lookup
+         uses: containers/automation/github/actions/registry_details@master
+        with:
+          source_name: ${{ matrix.source_name }}
+          secret_prefix: ${{ matrix.secret_prefix }}
+          reponame_quay_username: ${{ secrets.REPONAME_QUAY_USERNAME }}
+          reponame_quay_password: ${{ secrets.REPONAME_QUAY_PASSWORD }}
+          containers_quay_username: ${{ secrets.CONTAINERS_QUAY_USERNAME }}
+          containers_quay_password: ${{ secrets.CONTAINERS_QUAY_PASSWORD }}
+
+      - name: Build/Push ${{ steps.lookup.outputs.namespace }}/${{ steps.lookup.outputs.image_name }}
+        uses: containers/automation/github/actions/multi-arch-build@master
+        with:
+          registry_namespace: ${{ steps.lookup.outputs.namespace }}
+          image_name: ${{ steps.lookup.outputs.image_name }}
+          source_name: ${{ matrix.source_name }}
+          registry_username: ${{ steps.lookup.outputs.username }}
+          registry_password: ${{ steps.lookup.outputs.password }}
+          build_arches: amd64 s390x ppc64le arm64
+
+      - name: Collect build job logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+            name: BuildLogs
+            path: /tmp/build_*.log
+            retention-days: 5
