@@ -37,7 +37,7 @@ func VolumeOptions(opts map[string]string) ([]libpod.VolumeCreateOption, error) 
 						return nil, errors.Wrapf(err, "cannot convert UID %s to integer", splitO[1])
 					}
 					logrus.Debugf("Removing uid= from options and adding WithVolumeUID for UID %d", intUID)
-					libpodOptions = append(libpodOptions, libpod.WithVolumeUID(intUID))
+					libpodOptions = append(libpodOptions, libpod.WithVolumeUID(intUID), libpod.WithVolumeNoChown())
 					finalVal = append(finalVal, o)
 					// set option "UID": "$uid"
 					volumeOptions["UID"] = splitO[1]
@@ -50,7 +50,7 @@ func VolumeOptions(opts map[string]string) ([]libpod.VolumeCreateOption, error) 
 						return nil, errors.Wrapf(err, "cannot convert GID %s to integer", splitO[1])
 					}
 					logrus.Debugf("Removing gid= from options and adding WithVolumeGID for GID %d", intGID)
-					libpodOptions = append(libpodOptions, libpod.WithVolumeGID(intGID))
+					libpodOptions = append(libpodOptions, libpod.WithVolumeGID(intGID), libpod.WithVolumeNoChown())
 					finalVal = append(finalVal, o)
 					// set option "GID": "$gid"
 					volumeOptions["GID"] = splitO[1]
