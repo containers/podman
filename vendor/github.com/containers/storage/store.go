@@ -937,7 +937,7 @@ func (s *store) ContainerStore() (ContainerStore, error) {
 }
 
 func (s *store) canUseShifting(uidmap, gidmap []idtools.IDMap) bool {
-	if !s.graphDriver.SupportsShifting() {
+	if s.graphDriver == nil || !s.graphDriver.SupportsShifting() {
 		return false
 	}
 	if uidmap != nil && !idtools.IsContiguous(uidmap) {
@@ -2668,6 +2668,10 @@ func (s *store) mount(id string, options drivers.MountOpts) (string, error) {
 		s.lastLoaded = time.Now()
 	}
 
+	if options.UidMaps != nil || options.GidMaps != nil {
+		options.DisableShifting = !s.canUseShifting(options.UidMaps, options.GidMaps)
+	}
+
 	if rlstore.Exists(id) {
 		return rlstore.Mount(id, options)
 	}
@@ -2708,7 +2712,6 @@ func (s *store) Mount(id, mountLabel string) (string, error) {
 				options.Volatile = v.(bool)
 			}
 		}
-		options.DisableShifting = !s.canUseShifting(container.UIDMap, container.GIDMap)
 	}
 	return s.mount(id, options)
 }

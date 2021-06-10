@@ -1189,7 +1189,11 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			if d.usingMetacopy {
 				optsList = append(optsList, "metacopy=on")
 			} else {
-				logrus.Warnf("ignoring metacopy option from storage.conf, not supported with booted kernel")
+				logLevel := logrus.WarnLevel
+				if unshare.IsRootless() {
+					logLevel = logrus.DebugLevel
+				}
+				logrus.StandardLogger().Logf(logLevel, "ignoring metacopy option from storage.conf, not supported with booted kernel")
 			}
 		}
 	}
