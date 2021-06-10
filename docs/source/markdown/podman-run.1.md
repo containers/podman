@@ -281,11 +281,9 @@ it in the **containers.conf** file: see **containers.conf(5)** for more informat
 
 #### **--detach-keys**=*sequence*
 
-Specify the key sequence for detaching a container. Format is a single character `[a-Z]` or one or more `ctrl-<value>` characters where `<value>` is one of: `a-z`, `@`, `^`, `[`, `,` or `_`. Specifying "" will disable this feature. The default is *ctrl-p,ctrl-q*.
+Specify the key sequence for detaching a container. Format is a single character `[a-Z]` or one or more `ctrl-<value>` characters where `<value>` is one of: `a-z`, `@`, `^`, `[`, `,` or `_`. Specifying "" will set the sequence to the default value of *ctrl-p,ctrl-q*.
 
 This option can also be set in **containers.conf**(5) file.
-
-Specifying "" will disable this feature. The default is **ctrl-p,ctrl-q**.
 
 #### **--device**=_host-device_[**:**_container-device_][**:**_permissions_]
 
