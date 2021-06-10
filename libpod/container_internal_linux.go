@@ -907,14 +907,15 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 	includeFiles := []string{
 		"artifacts",
 		"ctr.log",
-		metadata.CheckpointDirectory,
 		metadata.ConfigDumpFile,
 		metadata.SpecDumpFile,
 		metadata.NetworkStatusFile,
 	}
 
 	if options.PreCheckPoint {
-		includeFiles[0] = "pre-checkpoint"
+		includeFiles = append(includeFiles, preCheckpointDir)
+	} else {
+		includeFiles = append(includeFiles, metadata.CheckpointDirectory)
 	}
 	// Get root file-system changes included in the checkpoint archive
 	var addToTarFiles []string

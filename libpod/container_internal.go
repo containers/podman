@@ -41,6 +41,7 @@ const (
 	// name of the directory holding the artifacts
 	artifactsDir      = "artifacts"
 	execDirPermission = 0755
+	preCheckpointDir  = "pre-checkpoint"
 )
 
 // rootFsSize gets the size of the container's root filesystem
@@ -140,7 +141,7 @@ func (c *Container) CheckpointPath() string {
 
 // PreCheckpointPath returns the path to the directory containing the pre-checkpoint-images
 func (c *Container) PreCheckPointPath() string {
-	return filepath.Join(c.bundlePath(), "pre-checkpoint")
+	return filepath.Join(c.bundlePath(), preCheckpointDir)
 }
 
 // AttachSocketPath retrieves the path of the container's attach socket
