@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"context"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -539,18 +540,7 @@ func (c *Container) ExecStop(sessionID string, timeout *uint) error {
 	var cleanupErr error
 
 	// Retrieve exit code and update status
-	exitCode, err := c.readExecExitCode(session.ID())
-	if err != nil {
-		cleanupErr = err
-	}
-	session.ExitCode = exitCode
-	session.PID = 0
-	session.State = define.ExecStateStopped
-
-	if err := c.save(); err != nil {
-		if cleanupErr != nil {
-			logrus.Errorf("Error stopping container %s exec session %s: %v", c.ID(), session.ID(), cleanupErr)
-		}
+	if err := retrieveAndWriteExecExitCode(c, session.ID()); err != nil {
 		cleanupErr = err
 	}
 
@@ -592,15 +582,7 @@ func (c *Container) ExecCleanup(sessionID string) error {
 			return errors.Wrapf(define.ErrExecSessionStateInvalid, "cannot clean up container %s exec session %s as it is running", c.ID(), session.ID())
 		}
 
-		exitCode, err := c.readExecExitCode(session.ID())
-		if err != nil {
-			return err
-		}
-		session.ExitCode = exitCode
-		session.PID = 0
-		session.State = define.ExecStateStopped
-
-		if err := c.save(); err != nil {
+		if err := retrieveAndWriteExecExitCode(c, session.ID()); err != nil {
 			return err
 		}
 	}
@@ -637,9 +619,9 @@ func (c *Container) ExecRemove(sessionID string, force bool) error {
 			return err
 		}
 		if !running {
-			session.State = define.ExecStateStopped
-			// TODO: should we retrieve exit code here?
-			// TODO: Might be worth saving state here.
+			if err := retrieveAndWriteExecExitCode(c, session.ID()); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -650,6 +632,10 @@ func (c *Container) ExecRemove(sessionID string, force bool) error {
 
 		// Stop the session
 		if err := c.ociRuntime.ExecStopContainer(c, session.ID(), c.StopTimeout()); err != nil {
+			return err
+		}
+
+		if err := retrieveAndWriteExecExitCode(c, session.ID()); err != nil {
 			return err
 		}
 
@@ -757,6 +743,18 @@ func (c *Container) Exec(config *ExecConfig, streams *define.AttachStreams, resi
 
 	session, err := c.ExecSession(sessionID)
 	if err != nil {
+		if errors.Cause(err) == define.ErrNoSuchExecSession {
+			// TODO: If a proper Context is ever plumbed in here, we
+			// should use it.
+			// As things stand, though, it's not worth it - this
+			// should always terminate quickly since it's not
+			// streaming.
+			diedEvent, err := c.runtime.GetExecDiedEvent(context.Background(), c.ID(), sessionID)
+			if err != nil {
+				return -1, errors.Wrapf(err, "error retrieving exec session %s exit code", sessionID)
+			}
+			return diedEvent.ContainerExitCode, nil
+		}
 		return -1, err
 	}
 	exitCode := session.ExitCode
@@ -930,6 +928,8 @@ func (c *Container) getActiveExecSessions() ([]string, error) {
 				session.PID = 0
 				session.State = define.ExecStateStopped
 
+				c.newExecDiedEvent(session.ID(), exitCode)
+
 				needSave = true
 			}
 			if err := c.cleanupExecBundle(id); err != nil {
@@ -1038,6 +1038,22 @@ func writeExecExitCode(c *Container, sessionID string, exitCode int) error {
 		}
 		return errors.Wrapf(err, "error syncing container %s state to remove exec session %s", c.ID(), sessionID)
 	}
+
+	return justWriteExecExitCode(c, sessionID, exitCode)
+}
+
+func retrieveAndWriteExecExitCode(c *Container, sessionID string) error {
+	exitCode, err := c.readExecExitCode(sessionID)
+	if err != nil {
+		return err
+	}
+
+	return justWriteExecExitCode(c, sessionID, exitCode)
+}
+
+func justWriteExecExitCode(c *Container, sessionID string, exitCode int) error {
+	// Write an event first
+	c.newExecDiedEvent(sessionID, exitCode)
 
 	session, ok := c.state.ExecSessions[sessionID]
 	if !ok {

@@ -46,7 +46,22 @@ func (c *Container) newContainerExitedEvent(exitCode int32) {
 	e.Type = events.Container
 	e.ContainerExitCode = int(exitCode)
 	if err := c.runtime.eventer.Write(e); err != nil {
-		logrus.Errorf("unable to write pod event: %q", err)
+		logrus.Errorf("unable to write container exited event: %q", err)
+	}
+}
+
+// newExecDiedEvent creates a new event for an exec session's death
+func (c *Container) newExecDiedEvent(sessionID string, exitCode int) {
+	e := events.NewEvent(events.ExecDied)
+	e.ID = c.ID()
+	e.Name = c.Name()
+	e.Image = c.config.RootfsImageName
+	e.Type = events.Container
+	e.ContainerExitCode = exitCode
+	e.Attributes = make(map[string]string)
+	e.Attributes["execID"] = sessionID
+	if err := c.runtime.eventer.Write(e); err != nil {
+		logrus.Errorf("unable to write exec died event: %q", err)
 	}
 }
 
@@ -152,5 +167,27 @@ func (r *Runtime) GetLastContainerEvent(ctx context.Context, nameOrID string, co
 		return nil, errors.Wrapf(events.ErrEventNotFound, "%s not found", containerEvent.String())
 	}
 	// return the last element in the slice
+	return containerEvents[len(containerEvents)-1], nil
+}
+
+// GetExecDiedEvent takes a container name or ID, exec session ID, and returns
+// that exec session's Died event (if it has already occurred).
+func (r *Runtime) GetExecDiedEvent(ctx context.Context, nameOrID, execSessionID string) (*events.Event, error) {
+	filters := []string{
+		fmt.Sprintf("container=%s", nameOrID),
+		"event=exec_died",
+		"type=container",
+		fmt.Sprintf("label=execID=%s", execSessionID),
+	}
+
+	containerEvents, err := r.GetEvents(ctx, filters)
+	if err != nil {
+		return nil, err
+	}
+	// There *should* only be one event maximum.
+	// But... just in case... let's not blow up if there's more than one.
+	if len(containerEvents) < 1 {
+		return nil, errors.Wrapf(events.ErrEventNotFound, "exec died event for session %s (container %s) not found", execSessionID, nameOrID)
+	}
 	return containerEvents[len(containerEvents)-1], nil
 }
