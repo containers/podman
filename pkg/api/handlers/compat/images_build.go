@@ -144,8 +144,8 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	if _, found := r.URL.Query()["dockerfile"]; found {
 		var m = []string{}
 		if err := json.Unmarshal([]byte(query.Dockerfile), &m); err != nil {
-			utils.BadRequest(w, "dockerfile", query.Dockerfile, err)
-			return
+			// it's not json, assume just a string
+			m = append(m, query.Dockerfile)
 		}
 		containerFiles = m
 	} else {
