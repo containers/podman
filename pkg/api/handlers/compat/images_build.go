@@ -189,8 +189,8 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	var devices = []string{}
 	if _, found := r.URL.Query()["devices"]; found {
 		var m = []string{}
-		if err := json.Unmarshal([]byte(query.DropCapabilities), &m); err != nil {
-			utils.BadRequest(w, "devices", query.DropCapabilities, err)
+		if err := json.Unmarshal([]byte(query.Devices), &m); err != nil {
+			utils.BadRequest(w, "devices", query.Devices, err)
 			return
 		}
 		devices = m
