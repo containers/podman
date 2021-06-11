@@ -1,3 +1,25 @@
+- Changelog for v3.2.1 (2021-06-11):
+  * Updated release notes for v3.2.1
+  * remote events: fix --stream=false
+  * [CI:DOCS] fix incorrect network remove api doc
+  * remote: always send resize before the container starts
+  * remote events: support labels
+  * remote pull: cancel pull when connection is closed
+  * Fix network prune api docs
+  * Improve systemd-resolved detection
+  * logs: k8s-file: fix race
+  * Fix image prune --filter cmd behavior
+  * podman-remote build should handle -f option properly
+  * System tests: deal with crun 0.20.1
+  * Fix build tags for pkg/machine...
+  * Fix pre-checkpointing
+  * container: ignore named hierarchies
+  * [v3.2] vendor containers/common@v0.38.9
+  * rootless: fix fast join userns path
+  * [v3.2] vendor containers/common@v0.38.7
+  * [v3.2] vendor containers/common@v0.38.6
+  * Correct qemu options for Intel macs
+
 - Changelog for v3.2.0 (2021-06-03):
   * Final release notes updates for v3.2.0
   * add ipv6 nameservers only when the container has ipv6 enabled
