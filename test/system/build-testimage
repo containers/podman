@@ -61,8 +61,8 @@ chmod 755 pause
 #    - check for updates @ https://hub.docker.com/_/alpine
 # busybox-extras provides httpd needed in 500-networking.bats
 cat >Containerfile <<EOF
-ARG ARCH=please-override-arch
-FROM docker.io/\${ARCH}/alpine:3.12.0
+ARG REPO=please-override-repo
+FROM docker.io/\${REPO}/alpine:3.13.5
 RUN apk add busybox-extras
 ADD testimage-id pause /home/podman/
 LABEL created_by=$create_script
@@ -74,17 +74,46 @@ EOF
 # --squash-all    : needed by 'tree' test in 070-build.bats
 podman rmi -f testimage &> /dev/null || true
 
+# There should always be a testimage tagged ':0000000<X>' (eight digits,
+# zero-padded sequence ID) in the same location; this is used by tests
+# which need to pull a non-locally-cached image. This image will rarely
+# if ever need to change, nor in fact does it even have to be a copy of
+# this testimage since all we use it for is 'true'.
+# However, it does need to be multiarch :-(
+zerotag_latest=$(skopeo list-tags docker://quay.io/libpod/testimage |\
+                     jq -r '.Tags[]' |\
+                     sort --version-sort |\
+                     grep '^000' |\
+                     tail -n 1)
+zerotag_next=$(printf "%08d" $((zerotag_latest + 1)))
+
+# We don't always need to push the :00xx image, but build it anyway.
+zeroimg=quay.io/libpod/testimage:${zerotag_next}
+buildah manifest create $zeroimg
+
 # We need to use buildah because (as of 2021-02-23) only buildah has --manifest
 # and because Dan says arch emulation is not currently working on podman
 # (no further details).
 # Arch emulation on Fedora requires the qemu-user-static package.
-for arch in amd64 arm64v8 ppc64le s390x;do
+for arch in amd64 arm64 ppc64le s390x;do
+    # docker.io repo is usually the same name as the desired arch; except
+    # for arm64, where podman needs to have the arch be 'arm64' but the
+    # image lives in 'arm64v8'.
+    repo=$arch
+    if [[ $repo = "arm64" ]]; then
+        repo="${repo}v8"
+    fi
+
     ${BUILDAH} bud \
                --arch=$arch \
-               --build-arg ARCH=$arch \
+               --build-arg REPO=$repo \
                --manifest=testimage \
                --squash \
                .
+
+    # The zero-tag image
+    ${BUILDAH} pull --arch $arch     docker.io/$repo/busybox:1.33.1
+    ${BUILDAH} manifest add $zeroimg docker.io/$repo/busybox:1.33.1
 done
 
 # Clean up
@@ -94,23 +123,13 @@ rm -rf $tmpdir
 # Tag image and push (all arches) to quay.
 remote_tag=quay.io/libpod/testimage:$YMD
 podman tag testimage ${remote_tag}
-${BUILDAH} manifest push --all  ${remote_tag} docker://${remote_tag}
+cat <<EOF
 
-# Side note: there should always be a testimage tagged ':0000000<X>'
-# (eight digits, zero-padded sequence ID) in the same location; this is
-# used by tests which need to pull a non-locally-cached image. This
-# image will rarely if ever need to change, nor in fact does it even
-# have to be a copy of this testimage since all we use it for is 'true'.
-# However, it does need to be multiarch :-(
-#
-# As of 2021-02-24 it is simply busybox, because it is super small,
-# but it's complicated because of multiarch:
-#
-#    img=quay.io/libpod/testimage:0000000<current+1>
-#    buildah manifest create $img
-#    for arch in amd64 arm64v8 ppc64le s390x;do
-#        buildah pull --arch $arch docker.io/$arch/busybox:1.32.0
-#        buildah manifest add $img docker.io/$arch/busybox:1.32.0
-#    done
-#    buildah manifest push --all $img docker://$img
-#
+If you're happy with these images, run:
+
+   ${BUILDAH} manifest push --all  ${remote_tag} docker://${remote_tag}
+   ${BUILDAH} manifest push --all  ${zeroimg} docker://${zeroimg}
+
+(You do not always need to push the :0000 image)
+
+EOF
