@@ -595,7 +595,7 @@ func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrID string,
 	return nil
 }
 
-func makeExecConfig(options entities.ExecOptions) *libpod.ExecConfig {
+func makeExecConfig(options entities.ExecOptions, rt *libpod.Runtime) (*libpod.ExecConfig, error) {
 	execConfig := new(libpod.ExecConfig)
 	execConfig.Command = options.Cmd
 	execConfig.Terminal = options.Tty
@@ -607,7 +607,20 @@ func makeExecConfig(options entities.ExecOptions) *libpod.ExecConfig {
 	execConfig.PreserveFDs = options.PreserveFDs
 	execConfig.AttachStdin = options.Interactive
 
-	return execConfig
+	// Make an exit command
+	storageConfig := rt.StorageConfig()
+	runtimeConfig, err := rt.GetConfig()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error retrieving Libpod configuration to build exec exit command")
+	}
+	// TODO: Add some ability to toggle syslog
+	exitCommandArgs, err := generate.CreateExitCommandArgs(storageConfig, runtimeConfig, false, true, true)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error constructing exit command for exec session")
+	}
+	execConfig.ExitCommand = exitCommandArgs
+
+	return execConfig, nil
 }
 
 func checkExecPreserveFDs(options entities.ExecOptions) error {
@@ -647,7 +660,10 @@ func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrID string, o
 	}
 	ctr := ctrs[0]
 
-	execConfig := makeExecConfig(options)
+	execConfig, err := makeExecConfig(options, ic.Libpod)
+	if err != nil {
+		return ec, err
+	}
 
 	ec, err = terminal.ExecAttachCtr(ctx, ctr, execConfig, &streams)
 	return define.TranslateExecErrorToExitCode(ec, err), err
@@ -664,20 +680,10 @@ func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrID s
 	}
 	ctr := ctrs[0]
 
-	execConfig := makeExecConfig(options)
-
-	// Make an exit command
-	storageConfig := ic.Libpod.StorageConfig()
-	runtimeConfig, err := ic.Libpod.GetConfig()
+	execConfig, err := makeExecConfig(options, ic.Libpod)
 	if err != nil {
-		return "", errors.Wrapf(err, "error retrieving Libpod configuration to build exec exit command")
+		return "", err
 	}
-	// TODO: Add some ability to toggle syslog
-	exitCommandArgs, err := generate.CreateExitCommandArgs(storageConfig, runtimeConfig, false, true, true)
-	if err != nil {
-		return "", errors.Wrapf(err, "error constructing exit command for exec session")
-	}
-	execConfig.ExitCommand = exitCommandArgs
 
 	// Create and start the exec session
 	id, err := ctr.ExecCreate(execConfig)

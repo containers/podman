@@ -149,6 +149,8 @@ func StringToStatus(name string) (Status, error) {
 		return Create, nil
 	case Exec.String():
 		return Exec, nil
+	case ExecDied.String():
+		return ExecDied, nil
 	case Exited.String():
 		return Exited, nil
 	case Export.String():
