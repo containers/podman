@@ -39,8 +39,23 @@ func (v *Volume) needsMount() bool {
 		return true
 	}
 
-	// Local driver with options needs mount
-	return len(v.config.Options) > 0
+	// Commit 28138dafcc added the UID and GID options to this map
+	// However we should only mount when options other than uid and gid are set.
+	// see https://github.com/containers/podman/issues/10620
+	index := 0
+	if _, ok := v.config.Options["UID"]; ok {
+		index++
+	}
+	if _, ok := v.config.Options["GID"]; ok {
+		index++
+	}
+	// when uid or gid is set there is also the "o" option
+	// set so we have to ignore this one as well
+	if index > 0 {
+		index++
+	}
+	// Local driver with options other than uid,gid needs mount
+	return len(v.config.Options) > index
 }
 
 // update() updates the volume state from the DB.
