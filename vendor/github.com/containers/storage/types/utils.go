@@ -160,7 +160,14 @@ func expandEnvPath(path string, rootlessUID int) (string, error) {
 }
 
 func DefaultConfigFile(rootless bool) (string, error) {
-	if defaultConfigFileSet || !rootless {
+	if defaultConfigFileSet {
+		return defaultConfigFile, nil
+	}
+
+	if path, ok := os.LookupEnv("CONTAINERS_STORAGE_CONF"); ok {
+		return path, nil
+	}
+	if !rootless {
 		return defaultConfigFile, nil
 	}
 

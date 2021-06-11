@@ -232,7 +232,7 @@ loop:
 		case '\'':
 			if !doubleQuoted && !dollarQuote {
 				if singleQuoted {
-					got = argSingle
+					got = argQuoted
 				}
 				singleQuoted = !singleQuoted
 				continue

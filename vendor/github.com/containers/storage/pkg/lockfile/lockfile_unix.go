@@ -194,11 +194,7 @@ func (l *lockfile) Touch() error {
 	defer l.stateMutex.Unlock()
 	l.lw = stringid.GenerateRandomID()
 	id := []byte(l.lw)
-	_, err := unix.Seek(int(l.fd), 0, os.SEEK_SET)
-	if err != nil {
-		return err
-	}
-	n, err := unix.Write(int(l.fd), id)
+	n, err := unix.Pwrite(int(l.fd), id, 0)
 	if err != nil {
 		return err
 	}
@@ -217,11 +213,7 @@ func (l *lockfile) Modified() (bool, error) {
 		panic("attempted to check last-writer in lockfile without locking it first")
 	}
 	defer l.stateMutex.Unlock()
-	_, err := unix.Seek(int(l.fd), 0, os.SEEK_SET)
-	if err != nil {
-		return true, err
-	}
-	n, err := unix.Read(int(l.fd), id)
+	n, err := unix.Pread(int(l.fd), id, 0)
 	if err != nil {
 		return true, err
 	}
