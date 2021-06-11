@@ -1,5 +1,31 @@
 # Release Notes
 
+## 3.2.1
+### Changes
+- Podman now allows corrupt images (e.g. from restarting the system during an image pull) to be replaced by a `podman pull` of the same image (instead of requiring they be removed first, then re-pulled).
+
+### Bugfixes
+- Fixed a bug where Podman would fail to start containers if a Seccomp profile was not available at `/usr/share/containers/seccomp.json` ([#10556](https://github.com/containers/podman/issues/10556)).
+- Fixed a bug where the `podman machine start` command failed on OS X machines with the AMD64 architecture and certain QEMU versions ([#10555](https://github.com/containers/podman/issues/10555)).
+- Fixed a bug where Podman would always use the slow path for joining the rootless user namespace.
+- Fixed a bug where the `podman stats` command would fail on Cgroups v1 systems when run on a container running systemd ([#10602](https://github.com/containers/podman/issues/10602)).
+- Fixed a bug where pre-checkpoint support for `podman container checkpoint` did not function correctly.
+- Fixed a bug where the remote Podman client's `podman build` command did not properly handle the `-f` option ([#9871](https://github.com/containers/podman/issues/9871)).
+- Fixed a bug where the remote Podman client's `podman run` command would sometimes not resize the container's terminal before execution began ([#9859](https://github.com/containers/podman/issues/9859)).
+- Fixed a bug where the `--filter` option to the `podman image prune` command was nonfunctional.
+- Fixed a bug where the `podman logs -f` command would exit before all output for a container was printed when the `k8s-file` log driver was in use ([#10596](https://github.com/containers/podman/issues/10596)).
+- Fixed a bug where Podman would not correctly detect that systemd-resolved was in use on the host and adjust DNS servers in the container appropriately under some circumstances ([#10570](https://github.com/containers/podman/issues/10570)).
+- Fixed a bug where the `podman network connect` and `podman network disconnect` commands acted improperly when containers were in the Created state, marking the changes as done but not actually performing them.
+
+### API
+- Fixed a bug where the Compat and Libpod Prune endpoints for Networks returned null, instead of an empty array, when nothing was pruned.
+- Fixed a bug where the Create API for Images would continue to pull images even if a client closed the connection mid-pull ([#7558](https://github.com/containers/podman/issues/7558)).
+- Fixed a bug where the Events API did not include some information (including labels) when sending events.
+- Fixed a bug where the Events API would, when streaming was not requested, send at most one event ([#10529](https://github.com/containers/podman/issues/10529)).
+
+### Misc
+- Updated the containers/common library to v0.38.9
+
 ## 3.2.0
 ### Features
 - Docker Compose is now supported with rootless Podman ([#9169](https://github.com/containers/podman/issues/9169)).
