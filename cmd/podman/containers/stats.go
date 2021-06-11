@@ -146,7 +146,9 @@ func stats(cmd *cobra.Command, args []string) error {
 func outputStats(reports []define.ContainerStats) error {
 	headers := report.Headers(define.ContainerStats{}, map[string]string{
 		"ID":            "ID",
+		"UpTime":        "CPU TIME",
 		"CPUPerc":       "CPU %",
+		"AVGCPU":        "Avg CPU %",
 		"MemUsage":      "MEM USAGE / LIMIT",
 		"MemUsageBytes": "MEM USAGE / LIMIT",
 		"MemPerc":       "MEM %",
@@ -166,7 +168,7 @@ func outputStats(reports []define.ContainerStats) error {
 	if report.IsJSON(statsOptions.Format) {
 		return outputJSON(stats)
 	}
-	format := "{{.ID}}\t{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.NetIO}}\t{{.BlockIO}}\t{{.PIDS}}\n"
+	format := "{{.ID}}\t{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.NetIO}}\t{{.BlockIO}}\t{{.PIDS}}\t{{.UpTime}}\t{{.AVGCPU}}\n"
 	if len(statsOptions.Format) > 0 {
 		format = report.NormalizeFormat(statsOptions.Format)
 	}
@@ -200,6 +202,14 @@ func (s *containerStats) ID() string {
 
 func (s *containerStats) CPUPerc() string {
 	return floatToPercentString(s.CPU)
+}
+
+func (s *containerStats) AVGCPU() string {
+	return floatToPercentString(s.AvgCPU)
+}
+
+func (s *containerStats) Up() string {
+	return (s.UpTime.String())
 }
 
 func (s *containerStats) MemPerc() string {
@@ -257,7 +267,9 @@ func outputJSON(stats []containerStats) error {
 	type jstat struct {
 		Id         string `json:"id"` // nolint
 		Name       string `json:"name"`
+		CPUTime    string `json:"cpu_time"`
 		CpuPercent string `json:"cpu_percent"` // nolint
+		AverageCPU string `json:"avg_cpu"`
 		MemUsage   string `json:"mem_usage"`
 		MemPerc    string `json:"mem_percent"`
 		NetIO      string `json:"net_io"`
@@ -269,7 +281,9 @@ func outputJSON(stats []containerStats) error {
 		jstats = append(jstats, jstat{
 			Id:         j.ID(),
 			Name:       j.Name,
+			CPUTime:    j.Up(),
 			CpuPercent: j.CPUPerc(),
+			AverageCPU: j.AVGCPU(),
 			MemUsage:   j.MemUsage(),
 			MemPerc:    j.MemPerc(),
 			NetIO:      j.NetIO(),

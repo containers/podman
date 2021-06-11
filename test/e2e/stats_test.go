@@ -83,6 +83,17 @@ var _ = Describe("Podman stats", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
+	It("podman stats only output CPU data", func() {
+		session := podmanTest.RunTopContainer("")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"stats", "--all", "--no-stream", "--format", "\"{{.ID}} {{.UpTime}} {{.AVGCPU}}\""})
+		session.WaitWithDefaultTimeout()
+		Expect(session.LineInOutputContains("UpTime")).To(BeTrue())
+		Expect(session.LineInOutputContains("AVGCPU")).To(BeTrue())
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	It("podman stats with json output", func() {
 		var found bool
 		session := podmanTest.RunTopContainer("")
