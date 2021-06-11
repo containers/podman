@@ -299,6 +299,22 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	tarContent := []string{options.ContextDirectory}
 	newContainerFiles := []string{}
 	for _, c := range containerFiles {
+		if c == "/dev/stdin" {
+			content, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				return nil, err
+			}
+			tmpFile, err := ioutil.TempFile("", "build")
+			if err != nil {
+				return nil, err
+			}
+			defer os.Remove(tmpFile.Name()) // clean up
+			defer tmpFile.Close()
+			if _, err := tmpFile.Write(content); err != nil {
+				return nil, err
+			}
+			c = tmpFile.Name()
+		}
 		containerfile, err := filepath.Abs(c)
 		if err != nil {
 			logrus.Errorf("cannot find absolute path of %v: %v", c, err)
