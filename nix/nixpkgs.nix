@@ -5,4 +5,5 @@ let
     url = "${json.url}/archive/${json.rev}.tar.gz";
     inherit (json) sha256;
   });
-in nixpkgs
+in
+nixpkgs
