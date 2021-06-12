@@ -183,6 +183,8 @@ function test_port() {
         fi
         echo "# cat $WORKDIR/server.log:"
         cat $WORKDIR/server.log
+        echo "# cat $logfile:"
+        cat $logfile
         return
     fi
 
