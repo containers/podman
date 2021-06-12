@@ -10,7 +10,7 @@ podman\-attach - Attach to a running container
 
 ## DESCRIPTION
 **podman attach** attaches to a running *container* using the *container's name* or *ID*, to either view its ongoing output or to control it interactively.\
-The *container* can detached from (and leave it running) using a configurable key sequence. The default sequence is `ctrl-p,ctrl-q`. Configure the keys sequence using the **--detach-keys** option, or specifying it in the `containers.conf` file: see **[containers.conf(5)](https://github.com/containers/common/blob/master/docs/containers.conf.5.md)** for more information.
+The *container* can detached from (and leave it running) using a configurable key sequence. The default sequence is `ctrl-p,ctrl-q`. Configure the keys sequence using the **--detach-keys** OPTION, or specifying it in the `containers.conf` file: see **[containers.conf(5)](https://github.com/containers/common/blob/master/docs/containers.conf.5.md)** for more information.
 
 ## OPTIONS
 #### **--detach-keys**=**sequence**
@@ -18,9 +18,8 @@ The *container* can detached from (and leave it running) using a configurable ke
 Specify the key **sequence** for detaching a *container*. Format is a single character `[a-Z]` or one or more `ctrl-<value>` characters where `<value>` is one of: `a-z`, `@`, `^`, `[`, `,` or `_`. Specifying "" will disable this feature. The default is `ctrl-p,ctrl-q`.
 
 #### **--latest**, **-l**
-
-Instead of providing the *container name* or *ID*, use the last created *container*. If you use methods other than Podman to run containers such as CRI-O, the last started *container* could be from either of those methods. The default is **false**.\
-*IMPORTANT: This option is not available with the remote Podman client*
+Instead of providing the *container name* or *ID*, use the last created *container*. If other methods are used than Podman to run containers such as `CRI-O`, the last started *container* could be from either of those methods. The default is **false**.\
+*IMPORTANT: This OPTION is not available with the remote Podman client.*
 
 #### **--no-stdin**
 

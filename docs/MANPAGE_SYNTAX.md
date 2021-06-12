@@ -4,7 +4,7 @@
 podman\-command - short description
 
 ## SYNOPSIS
-(Shows the command structure.)
+(Shows the command structure. If the command can be written in two different ways, both of them have to be shown.)
 
 **podman command** [*optional*] *mandatory value*
 
@@ -16,7 +16,7 @@ podman\-command - short description
 
 **podman subcommand command** [*optional*] *value1* | *value2*
 
-(If an optinal value follows a mandatory one.)
+(If an optional value follows a mandatory one.)
 
 **podman command** [*optional*] *value1* | *value2* [*optional*]
 
@@ -33,23 +33,23 @@ podman\-command - short description
 Example sentence: The command **podman command** is an example command.
 
 Commands or files that are quoted from other podman manpages or podman repositories have to be linked to those. Non-podman commands are not to be linked.\
-Example sentence: You can use **[podman-run](podman-run.1.md)** or **[containers.conf(5)](https://github.com/containers/common/blob/master/docs/containers.conf.5.md)** for the problem.
+Example sentence: Use **[podman-run](podman-run.1.md)** or **[containers.conf(5)](https://github.com/containers/common/blob/master/docs/containers.conf.5.md)** for the problem.
 
-It should also be specified if the command can only be run as root. In addition, it should be described when a command, OPTION, or other content cannot be executed with the remote client or in combination with other commands, OPTIONS, or content. In this case, the following sentence is put at the end of a command, OPTION, or content: *IMPORTANT: This option/command/other is not available with the command/OPTION/content/remote Podman client*. For a command, this should be done in the DESCRIPTION section. For the OPTIONS, it should be done in the DESCRIPTION of the specified OPTION. Do not use pronouns in the man pages, especially the word `you`.
+It should also be specified if the command can only be run as root. In addition, it should be described when a command, OPTION, or other content cannot be executed with the remote client or in combination with other commands, OPTIONS, or content. In this case, the following sentence is put at the end of a command, OPTION, or content: *IMPORTANT: This OPTION/command/other is not available with the command/OPTION/content/remote Podman client*. For a command, this should be done in the DESCRIPTION section. For the OPTIONS, it should be done in the DESCRIPTION of the specified OPTION. Do not use pronouns in the man pages, especially the word `you`.
 
 ## OPTIONS
 All flags are referred to as OPTIONS. The term flags should not be used. All OPTIONS are listed in this section. OPTIONS that appear in descriptions of other OPTIONS and sections retain their appearance, for example: **--exit**.
 
 OPTIONS that are quoted from other podman manpages or podman repositories have to be linked to those.\
-Example sentence: You can use **[podman-generate-systemd --new](podman-generate-systemd.1.md#--new)** for the problem.
+Example sentence: Use **[podman-generate-systemd --new](podman-generate-systemd.1.md#--new)** for the problem.
 
  Each OPTION should be explained to the fullest extent below the OPTION itself. Each OPTION is behind an H4-header (`####`). If the OPTION has a default argument, it has to be explained in the description of the OPTION. If the OPTION is also not available with the remote client, the sentence about the default argument should the second to last sentence.
 
 
 #### **--version**, **-v**
 
-OPTIONS can be put after the command in two different ways. Eather the long version with **--option** or as the short version **-o**. If there are two ways to write an OPTION they are separated by a comma. If there are two versions of one command the long version is always shown in front.\
-Example: The default is **false**. *IMPORTANT: This option is not available with the remote Podman client*.
+OPTIONS can be put after the command in two different ways. Either the long version with **--option** or as the short version **-o**. If there are two ways to write an OPTION they are separated by a comma. If there are two versions of one command the long version is always shown in front.\
+Example: The default is **false**. *IMPORTANT: This OPTION is not available with the remote Podman client*.
 
 #### **--exit**
 
@@ -57,7 +57,7 @@ An example of an OPTION that has only one possible structure. Thus, it cannot be
 
 #### **--answer**=, **-a**=**active** | *disable*
 
-The "answer" option above is an example of an OPTION that accepts two possible arguments as inputs. If there is a default argument that is selected when the OPTION is not used in the command, it is shown in **bold**. If the OPTION is used it must include an argument afterwards. It must always be ensured that the standard argument is in the first position after the OPTION. In this example, there are two different ways to execute the command. Both possible OPTIONS have to be shown with the arguments following them. The default value is shown as **active**.
+The "answer" OPTION above is an example of an OPTION that accepts two possible arguments as inputs. If there is a default argument that is selected when the OPTION is not used in the command, it is shown in **bold**. If the OPTION is used it must include an argument afterwards. It must always be ensured that the standard argument is in the first position after the OPTION. In this example, there are two different ways to execute the command. Both possible OPTIONS have to be shown with the arguments following them. The default value is shown as **active**.
 
 #### **--status**=**good** | *better* | *best*
 
@@ -65,7 +65,7 @@ This is an example of three arguments following an OPTION. If the number of argu
 
 #### **--test**=**test**
 
-OPTIONS that are followed by an equal sign include an argument after the equal sign in **bold**. If there is a default argument, that is used if the OPTION is not specified in the command, the argument after the eqaul sign is displayed in **bold**. All arguments must be listed and explained in the text below the OPTION.
+OPTIONS that are followed by an equal sign include an argument after the equal sign in **bold**. If there is a default argument, that is used if the OPTION is not specified in the command, the argument after the equal sign is displayed in **bold**. All arguments must be listed and explained in the text below the OPTION.
 
 | Argument           | Description                                                                 |
 | ------------------ | --------------------------------------------------------------------------- |
@@ -102,6 +102,7 @@ All EXAMPLES are listed in this section. This section should be at the end of ea
 
 Description of the EXAMPLE
 ```
+### Example comment
 $ podman command
 
 $ podman command -o
@@ -111,9 +112,16 @@ $ cat $HOME/Dockerfile | podman command --option
 
 Description of the EXAMPLE two
 ```
-$ podman command --redhat
-
-$ podman command --redhat better
-
-$ podman command --redhat=better
+# podman command --status=better
 ```
+## SEE ALSO
+All commands, including commands with OPTIONS, and config-files mentioned in the manpage have to be listed here. Podman commands, including commands with OPTIONS, and config-files have to be linked. If a command is mentioned several times with different OPTIONS it just have to be linked once. All other commands, including commands with OPTIONS, and config-files just have to be mentioned. If a command is mentioned several times with different OPTIONS it just has to be linked once.
+
+Example:
+**[podman(1)](podman.1.md)**, **[podman-run(1)](podman-run.1.md)**, **[podman-create(1)](podman-create.1.md)**
+
+## HISTORY
+Normally, the dates of changes, the content of the changes and the person who provided them is listed here. Most manpages don't keep this record.
+
+Example:\
+December 2021, Originally compiled by Alexander Richter <example@redhat.com>
