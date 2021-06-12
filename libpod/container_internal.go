@@ -428,7 +428,7 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		},
 		LabelOpts: c.config.LabelOpts,
 	}
-	if c.restoreFromCheckpoint {
+	if c.restoreFromCheckpoint && !c.config.Privileged {
 		// If restoring from a checkpoint, the root file-system
 		// needs to be mounted with the same SELinux labels as
 		// it was mounted previously.
