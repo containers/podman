@@ -147,4 +147,39 @@ t GET "images/get?names=alpine&names=busybox" 200 '[POSIX tar archive]'
 img_cnt=$(tar xf "$WORKDIR/curl.result.out" manifest.json -O | jq "length")
 is "$img_cnt" 2 "number of images in tar archive"
 
+# check build works when uploading container file as a tar, see issue #10660
+TMPD=$(mktemp -d podman-apiv2-test.build.XXXXXXXX)
+function cleanBuildTest() {
+    podman rmi -a -f
+    rm -rf "${TMPD}" &> /dev/null
+}
+CONTAINERFILE_TAR="${TMPD}/containerfile.tar"
+cat > $TMPD/containerfile << EOF
+FROM quay.io/libpod/alpine_labels:latest
+EOF
+tar --format=posix -C $TMPD -cvf ${CONTAINERFILE_TAR} containerfile &> /dev/null
+
+curl -XPOST --data-binary @<(cat $CONTAINERFILE_TAR) \
+    -H "content-type: application/x-tar" \
+    --dump-header "${TMPD}/headers.txt" \
+    -o "${TMPD}/response.txt" \
+    "http://$HOST:$PORT/v1.40/libpod/build?dockerfile=containerfile" &> /dev/null
+
+BUILD_TEST_ERROR=""
+
+if ! grep -q '200 OK' "${TMPD}/headers.txt"; then
+    echo -e "${red}NOK: Image build from tar failed response was not 200 OK"
+    BUILD_TEST_ERROR="1"
+fi
+
+if ! grep -q 'quay.io/libpod/alpine_labels' "${TMPD}/response.txt"; then
+    echo -e "${red}NOK: Image build from tar failed image name not in response"
+    BUILD_TEST_ERROR="1"
+fi
+
+cleanBuildTest
+if [[ "${BUILD_TEST_ERROR}" ]]; then
+    exit 1
+fi
+
 # vim: filetype=sh
