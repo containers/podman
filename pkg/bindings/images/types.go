@@ -16,6 +16,7 @@ type RemoveOptions struct {
 //go:generate go run ../generator/generator.go DiffOptions
 // DiffOptions are optional options image diffs
 type DiffOptions struct {
+	OtherImg string
 }
 
 //go:generate go run ../generator/generator.go ListOptions

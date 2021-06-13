@@ -14,7 +14,7 @@ var (
 	// podman container _inspect_
 	diffCmd = &cobra.Command{
 		Use:               "diff [options] IMAGE",
-		Args:              cobra.ExactArgs(1),
+		Args:              cobra.RangeArgs(1, 2),
 		Short:             "Inspect changes to the image's file systems",
 		Long:              `Displays changes to the image's filesystem.  The image will be compared to its parent layer.`,
 		RunE:              diff,
@@ -46,6 +46,12 @@ func diffFlags(flags *pflag.FlagSet) {
 func diff(cmd *cobra.Command, args []string) error {
 	if diffOpts.Latest {
 		return errors.New("image diff does not support --latest")
+	}
+
+	if len(args) == 2 {
+		diffOpts.OtherImg = args[1]
+	} else {
+		diffOpts.OtherImg = ""
 	}
 
 	results, err := registry.ImageEngine().Diff(registry.GetContext(), args[0], *diffOpts)

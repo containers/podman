@@ -400,12 +400,22 @@ func (ir *ImageEngine) Import(ctx context.Context, options entities.ImageImportO
 
 	return &entities.ImageImportReport{Id: imageID}, nil
 }
+func (ir *ImageEngine) Diff(_ context.Context, nameOrID string, options entities.DiffOptions) (*entities.DiffReport, error) {
+	var (
+		parent string
+		child string
+	)
+	if options.OtherImg == "" {
+		parent, child = "", nameOrID
+	} else {
+		parent, child = nameOrID, options.OtherImg
+	}
 
-func (ir *ImageEngine) Diff(_ context.Context, nameOrID string, _ entities.DiffOptions) (*entities.DiffReport, error) {
-	changes, err := ir.Libpod.GetDiff("", nameOrID)
+	changes, err := ir.Libpod.GetDiff(parent, child)
 	if err != nil {
 		return nil, err
 	}
+
 	return &entities.DiffReport{Changes: changes}, nil
 }
 

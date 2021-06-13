@@ -29,10 +29,13 @@ func ChangesToJSON(diffs *entities.DiffReport) error {
 			return errors.Errorf("output kind %q not recognized", row.Kind)
 		}
 	}
-
 	// Pull in configured json library
-	enc := json.NewEncoder(os.Stdout)
-	return enc.Encode(body)
+	output, err := json.MarshalIndent(body, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Fprintln(os.Stdout, string(output))
+	return nil
 }
 
 func ChangesToTable(diffs *entities.DiffReport) error {

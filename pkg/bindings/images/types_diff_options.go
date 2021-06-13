@@ -19,3 +19,19 @@ func (o *DiffOptions) Changed(fieldName string) bool {
 func (o *DiffOptions) ToParams() (url.Values, error) {
 	return util.ToParams(o)
 }
+
+// WithOtherImg
+func (o *DiffOptions) WithOtherImg(value string) *DiffOptions {
+	v := &value
+	o.OtherImg = v
+	return o
+}
+
+// GetOtherImg
+func (o *DiffOptions) GetOtherImg() string {
+	var otherImg string
+	if o.OtherImg == nil {
+		return otherImg
+	}
+	return *o.OtherImg
+}

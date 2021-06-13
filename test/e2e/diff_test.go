@@ -92,4 +92,32 @@ var _ = Describe("Podman diff", func() {
 		Expect(session.LineInOutputContains("A /tmp/diff-test")).To(BeTrue())
 		Expect(session.ExitCode()).To(Equal(0))
 	})
+
+	It("podman image diff of image", func() {
+		session := podmanTest.Podman([]string{"image", "diff", ALPINE, BB})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 0))
+	})
+
+	It("podman image diff of single image", func() {
+		session := podmanTest.Podman([]string{"image", "diff", BB})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 0))
+	})
+
+	It("podman diff bogus image", func() {
+		session := podmanTest.Podman([]string{"image", "diff", "1234", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+	})
+
+	It("podman image diff of the same image", func() {
+		session := podmanTest.Podman([]string{"image", "diff", ALPINE, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(BeNumerically("==", 0))
+	})
+
 })

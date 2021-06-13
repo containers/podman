@@ -300,8 +300,9 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string,
 }
 
 // Diff reports the changes to the given image
-func (ir *ImageEngine) Diff(ctx context.Context, nameOrID string, _ entities.DiffOptions) (*entities.DiffReport, error) {
+func (ir *ImageEngine) Diff(ctx context.Context, nameOrID string, opts entities.DiffOptions) (*entities.DiffReport, error) {
 	options := new(images.DiffOptions)
+	options.OtherImg = opts.OtherImg
 	changes, err := images.Diff(ir.ClientCtx, nameOrID, options)
 	if err != nil {
 		return nil, err

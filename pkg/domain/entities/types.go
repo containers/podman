@@ -65,6 +65,7 @@ type DiffOptions struct {
 	Format  string `json:",omitempty"` // CLI only
 	Latest  bool   `json:",omitempty"` // API and CLI, only supported by containers
 	Archive bool   `json:",omitempty"` // CLI only
+	OtherImg string
 }
 
 // DiffReport provides changes for object
