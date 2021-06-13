@@ -165,14 +165,13 @@ func getAvailableControllers(exclude map[string]controllerHandler, cgroup2 bool)
 		if _, found := exclude[name]; found {
 			continue
 		}
-		isSymLink := false
 		fileInfo, err := os.Stat(cgroupRoot + "/" + name)
 		if err != nil {
-			isSymLink = !fileInfo.IsDir()
+			continue
 		}
 		c := controller{
 			name:    name,
-			symlink: isSymLink,
+			symlink: !fileInfo.IsDir(),
 		}
 		controllers = append(controllers, c)
 	}
