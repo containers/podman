@@ -12,17 +12,19 @@ podman\-container\-checkpoint - Checkpoints one or more running containers
 ## OPTIONS
 #### **--all**, **-a**
 
-Checkpoint all running *containers*. The default is **false**.
+Checkpoint all running *containers*.\
+The default is **false**.\
+*IMPORTANT: This OPTION does not need a container name or ID as input argument.*
 
 #### **--compress**, **-c**=**zstd** | *none* | *gzip*
 
 Specify the compression algorithm used for the checkpoint archive created
 with the **--export, -e** OPTION. Possible algorithms are **zstd**, *none*
-and *gzip*. The default is **zstd**.
-
+and *gzip*.\
 One possible reason to use *none* is to enable faster creation of checkpoint
 archives. Not compressing the checkpoint archive can result in faster checkpoint
-archive creation.
+archive creation.\
+The default is **zstd**.
 
 #### **--export**, **-e**=*archive*
 
@@ -33,50 +35,55 @@ root file-system, if not explicitly disabled using **--ignore-rootfs**.
 
 #### **--ignore-rootfs**
 
-This only works in combination with **--export, -e**. If a checkpoint is
-exported to a tar.gz file it is possible with the help of **--ignore-rootfs**
-to explicitly disable including changes to the root file-system into
-the checkpoint archive file. The default is **false**.
+If a checkpoint is exported to a tar.gz file it is possible with the help of **--ignore-rootfs** to explicitly disable including changes to the root file-system into the checkpoint archive file.\
+The default is **false**.\
+*IMPORTANT: This OPTION only works in combination with **--export, -e**.*
 
 #### **--ignore-volumes**
 
 This OPTION must be used in combination with the **--export, -e** OPTION.
 When this OPTION is specified, the content of volumes associated with
-the *container* will not be included into the checkpoint tar.gz file. The default is **false**.
+the *container* will not be included into the checkpoint tar.gz file.\
+The default is **false**.
 
 #### **--keep**, **-k**
 
-Keep all temporary log and statistics files created by CRIU during checkpointing. These files are not deleted if checkpointing fails for further debugging. If checkpointing succeeds these files are theoretically not needed, but if these files are needed Podman can keep the files for further analysis. The default is **false**.
+Keep all temporary log and statistics files created by CRIU during checkpointing. These files are not deleted if checkpointing fails for further debugging. If checkpointing succeeds these files are theoretically not needed, but if these files are needed Podman can keep the files for further analysis.\
+The default is **false**.
 
 #### **--latest**, **-l**
 
-Instead of providing the *container ID* or *name*, use the last created *container*. If you use methods other than Podman to run *containers* such as `CRI-O`, the last started *container* could be from either of those methods. The default is **false**.\
-*IMPORTANT: This OPTION is not available with the remote Podman client.*
+Instead of providing the *container ID* or *name*, use the last created *container*. If other methods than Podman are used to run *containers* such as `CRI-O`, the last started *container* could be from either of those methods.\
+The default is **false**.\
+*IMPORTANT: This OPTION is not available with the remote Podman client. This OPTION does not need a container name or ID as input argument.*
 
 #### **--leave-running**, **-R**
 
-Leave the *container* running after checkpointing instead of stopping it. The default is **false**.
+Leave the *container* running after checkpointing instead of stopping it.\
+The default is **false**.
 
 #### **--pre-checkpoint**, **-P**
 
 Dump the *container's* memory information only, leaving the *container* running. Later
-operations will supersede prior dumps. It only works on `runc 1.0-rc3` or `higher`. The default is **false**.
+operations will supersede prior dumps. It only works on `runc 1.0-rc3` or `higher`.\
+The default is **false**.
 
 #### **--tcp-established**
 
 Checkpoint a *container* with established TCP connections. If the checkpoint
 image contains established TCP connections, this OPTION is required during
 restore. Defaults to not checkpointing *containers* with established TCP
-connections. The default is **false**.
+connections.\
+The default is **false**.
 
 #### **--with-previous**
 
-Check out the *container* with previous criu image files in pre-dump. It only works on `runc 1.0-rc3` or `higher`. The default is **false**.\
+Check out the *container* with previous criu image files in pre-dump. It only works on `runc 1.0-rc3` or `higher`.\
+The default is **false**.\
 *IMPORTANT: This OPTION is not available with **--pre-checkpoint***.
 
 
 ## EXAMPLES
-
 Make a checkpoint for the container "mywebserver".
 ```
 # podman container checkpoint mywebserver

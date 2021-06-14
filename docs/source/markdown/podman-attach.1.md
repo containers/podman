@@ -15,11 +15,14 @@ The *container* can detached from (and leave it running) using a configurable ke
 ## OPTIONS
 #### **--detach-keys**=**sequence**
 
-Specify the key **sequence** for detaching a *container*. Format is a single character `[a-Z]` or one or more `ctrl-<value>` characters where `<value>` is one of: `a-z`, `@`, `^`, `[`, `,` or `_`. Specifying "" will disable this feature. The default is `ctrl-p,ctrl-q`.
+Specify the key **sequence** for detaching a *container*. Format is a single character `[a-Z]` or one or more `ctrl-<value>` characters where `<value>` is one of: `a-z`, `@`, `^`, `[`, `,` or `_`. Specifying "" will disable this feature.\
+The default is `ctrl-p,ctrl-q`.
 
 #### **--latest**, **-l**
-Instead of providing the *container name* or *ID*, use the last created *container*. If other methods are used than Podman to run containers such as `CRI-O`, the last started *container* could be from either of those methods. The default is **false**.\
-*IMPORTANT: This OPTION is not available with the remote Podman client.*
+
+Instead of providing the *container ID* or *name*, use the last created *container*. If other methods than Podman are used to run *containers* such as `CRI-O`, the last started *container* could be from either of those methods.\
+The default is **false**.\
+*IMPORTANT: This OPTION is not available with the remote Podman client. This OPTION does not need a container name or ID as input argument.*
 
 #### **--no-stdin**
 
@@ -27,10 +30,10 @@ Do not attach STDIN. The default is **false**.
 
 #### **--sig-proxy**
 
-Proxy received signals to the process (non-TTY mode only). SIGCHLD, SIGSTOP, and SIGKILL are not proxied. The default is **true**.
+Proxy received signals to the process (non-TTY mode only). SIGCHLD, SIGSTOP, and SIGKILL are not proxied.\
+The default is **true**.
 
 ## EXAMPLES
-
 Attach to a container called "foobar".
 ```
 $ podman attach foobar

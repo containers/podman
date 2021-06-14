@@ -15,7 +15,6 @@ If `image` does not begin with a registry name component, `localhost` will be ad
 If `image` is not provided, the values for the `REPOSITORY` and `TAG` values of the created image will each be set to `<none>`.
 
 ## OPTIONS
-
 #### **--author**, **-a**=*author*
 
 Set the author for the committed image.
@@ -39,7 +38,8 @@ Can be set multiple times.
 
 #### **--format**, **-f** =**oci** | *docker*
 
-Set the format of the image manifest and metadata.  The currently supported formats are **oci** and *docker*. The default is **oci**.
+Set the format of the image manifest and metadata.  The currently supported formats are **oci** and *docker*.\
+The default is **oci**.
 
 #### **--iidfile**=*ImageIDfile*
 
@@ -47,7 +47,8 @@ Write the image ID to the file.
 
 #### **--include-volumes**
 
-Include in the committed image any volumes added to the container by the **--volume** or **--mount** OPTIONS to the **[podman create](podman-create.1.md)** and **[podman run](podman-run.1.md)** commands. The default is **false**.
+Include in the committed image any volumes added to the container by the **--volume** or **--mount** OPTIONS to the **[podman create](podman-create.1.md)** and **[podman run](podman-run.1.md)** commands.\
+The default is **false**.
 
 #### **--message**, **-m**=*message*
 
@@ -56,14 +57,15 @@ Set commit message for committed image.\
 
 #### **--pause**, **-p**
 
-Pause the container when creating an image. The default is **false**.
+Pause the container when creating an image.\
+The default is **false**.
 
 #### **--quiet**, **-q**
 
-Suppresses output. The default is **false**.
+Suppresses output.\
+The default is **false**.
 
 ## EXAMPLES
-
 Create image from container with entrypoint and label
 ```
 $ podman commit --change CMD=/bin/bash --change ENTRYPOINT=/bin/sh --change "LABEL blue=image" reverent_golick image-committed
