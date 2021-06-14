@@ -190,5 +190,8 @@ func Prune(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
+	if pruneReports == nil {
+		pruneReports = []*entities.NetworkPruneReport{}
+	}
 	utils.WriteResponse(w, http.StatusOK, pruneReports)
 }

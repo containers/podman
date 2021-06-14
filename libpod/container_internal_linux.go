@@ -907,14 +907,15 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 	includeFiles := []string{
 		"artifacts",
 		"ctr.log",
-		metadata.CheckpointDirectory,
 		metadata.ConfigDumpFile,
 		metadata.SpecDumpFile,
 		metadata.NetworkStatusFile,
 	}
 
 	if options.PreCheckPoint {
-		includeFiles[0] = "pre-checkpoint"
+		includeFiles = append(includeFiles, preCheckpointDir)
+	} else {
+		includeFiles = append(includeFiles, metadata.CheckpointDirectory)
 	}
 	// Get root file-system changes included in the checkpoint archive
 	var addToTarFiles []string
@@ -1648,22 +1649,20 @@ func (c *Container) generateResolvConf() (string, error) {
 		}
 	}
 
-	// Determine the endpoint for resolv.conf in case it is a symlink
-	resolvPath, err := filepath.EvalSymlinks(resolvConf)
+	contents, err := ioutil.ReadFile(resolvConf)
 	// resolv.conf doesn't have to exists
 	if err != nil && !os.IsNotExist(err) {
 		return "", err
 	}
 
-	// Determine if symlink points to any of the systemd-resolved files
-	if strings.HasPrefix(resolvPath, "/run/systemd/resolve/") {
-		resolvPath = "/run/systemd/resolve/resolv.conf"
-	}
-
-	contents, err := ioutil.ReadFile(resolvPath)
-	// resolv.conf doesn't have to exists
-	if err != nil && !os.IsNotExist(err) {
-		return "", err
+	ns := resolvconf.GetNameservers(contents)
+	// check if systemd-resolved is used, assume it is used when 127.0.0.53 is the only nameserver
+	if len(ns) == 1 && ns[0] == "127.0.0.53" {
+		// read the actual resolv.conf file for systemd-resolved
+		contents, err = ioutil.ReadFile("/run/systemd/resolve/resolv.conf")
+		if err != nil {
+			return "", errors.Wrapf(err, "detected that systemd-resolved is in use, but could not locate real resolv.conf")
+		}
 	}
 
 	ipv6 := false

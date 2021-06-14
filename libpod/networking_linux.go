@@ -1068,7 +1068,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 	}
 
 	c.newNetworkEvent(events.NetworkDisconnect, netName)
-	if c.state.State != define.ContainerStateRunning {
+	if !c.ensureState(define.ContainerStateRunning, define.ContainerStateCreated) {
 		return nil
 	}
 
@@ -1123,7 +1123,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, aliases []string) e
 		return err
 	}
 	c.newNetworkEvent(events.NetworkConnect, netName)
-	if c.state.State != define.ContainerStateRunning {
+	if !c.ensureState(define.ContainerStateRunning, define.ContainerStateCreated) {
 		return nil
 	}
 	if c.state.NetNS == nil {

@@ -77,10 +77,3 @@ type swagCompatNetworkDisconnectRequest struct {
 	// in:body
 	Body struct{ types.NetworkDisconnect }
 }
-
-// Network prune
-// swagger:response NetworkPruneResponse
-type swagCompatNetworkPruneResponse struct {
-	// in:body
-	Body []string
-}

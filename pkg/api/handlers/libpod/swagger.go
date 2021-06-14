@@ -95,7 +95,7 @@ type swagInfoResponse struct {
 // swagger:response NetworkRmReport
 type swagNetworkRmReport struct {
 	// in:body
-	Body entities.NetworkRmReport
+	Body []entities.NetworkRmReport
 }
 
 // Network inspect
@@ -117,6 +117,13 @@ type swagNetworkListReport struct {
 type swagNetworkCreateReport struct {
 	// in:body
 	Body entities.NetworkCreateReport
+}
+
+// Network prune
+// swagger:response NetworkPruneResponse
+type swagNetworkPruneResponse struct {
+	// in:body
+	Body []entities.NetworkPruneReport
 }
 
 func ServeSwagger(w http.ResponseWriter, r *http.Request) {

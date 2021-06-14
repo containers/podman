@@ -6,7 +6,6 @@
 load helpers
 
 @test "events with a filter by label" {
-    skip_if_remote "FIXME: -remote does not include labels in event output"
     cname=test-$(random_string 30 | tr A-Z a-z)
     labelname=$(random_string 10)
     labelvalue=$(random_string 15)
@@ -27,7 +26,7 @@ load helpers
 }
 
 @test "image events" {
-    skip_if_remote "FIXME: remove events on podman-remote seem to be broken"
+    skip_if_remote "remote does not support --events-backend"
     pushedDir=$PODMAN_TMPDIR/dir
     mkdir -p $pushedDir
 
@@ -86,7 +85,5 @@ function _events_disjunctive_filters() {
 }
 
 @test "events with disjunctive filters - default" {
-    # NOTE: the last event for bar doesn't show up reliably.
-    skip_if_remote "FIXME #10529: remote events lose data"
     _events_disjunctive_filters ""
 }

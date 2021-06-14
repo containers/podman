@@ -139,6 +139,31 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		addCaps = m
 	}
 
+	// convert addcaps formats
+	containerFiles := []string{}
+	if _, found := r.URL.Query()["dockerfile"]; found {
+		var m = []string{}
+		if err := json.Unmarshal([]byte(query.Dockerfile), &m); err != nil {
+			// it's not json, assume just a string
+			m = append(m, query.Dockerfile)
+		}
+		containerFiles = m
+	} else {
+		containerFiles = []string{"Dockerfile"}
+		if utils.IsLibpodRequest(r) {
+			containerFiles = []string{"Containerfile"}
+			if _, err = os.Stat(filepath.Join(contextDirectory, "Containerfile")); err != nil {
+				if _, err1 := os.Stat(filepath.Join(contextDirectory, "Dockerfile")); err1 == nil {
+					containerFiles = []string{"Dockerfile"}
+				} else {
+					utils.BadRequest(w, "dockerfile", query.Dockerfile, err)
+				}
+			}
+		} else {
+			containerFiles = []string{"Dockerfile"}
+		}
+	}
+
 	addhosts := []string{}
 	if _, found := r.URL.Query()["extrahosts"]; found {
 		if err := json.Unmarshal([]byte(query.AddHosts), &addhosts); err != nil {
@@ -470,7 +495,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	runCtx, cancel := context.WithCancel(context.Background())
 	go func() {
 		defer cancel()
-		imageID, _, err = runtime.Build(r.Context(), buildOptions, query.Dockerfile)
+		imageID, _, err = runtime.Build(r.Context(), buildOptions, containerFiles...)
 		if err == nil {
 			success = true
 		} else {
