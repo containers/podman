@@ -21,6 +21,7 @@ echo podman:10000:5000 > /etc/subgid;
 
 VOLUME /var/lib/containers
 VOLUME /home/podman/.local/share/containers
+RUN mkdir -p /home/podman/.local/share/containers
 
 ADD https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/containers.conf /etc/containers/containers.conf
 ADD https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/podman-containers.conf /home/podman/.config/containers/containers.conf
