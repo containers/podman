@@ -93,11 +93,14 @@ LIBPOD := ${PROJECT}/v3/libpod
 GCFLAGS ?= all=-trimpath=$(CURDIR)
 ASMFLAGS ?= all=-trimpath=$(CURDIR)
 LDFLAGS_PODMAN ?= \
-	  -X $(LIBPOD)/define.gitCommit=$(GIT_COMMIT) \
-	  -X $(LIBPOD)/define.buildInfo=$(BUILD_INFO) \
-	  -X $(LIBPOD)/config._installPrefix=$(PREFIX) \
-	  -X $(LIBPOD)/config._etcDir=$(ETCDIR) \
-	  $(EXTRA_LDFLAGS)
+	-X $(LIBPOD)/define.gitCommit=$(GIT_COMMIT) \
+	-X $(LIBPOD)/define.buildInfo=$(BUILD_INFO) \
+	-X $(LIBPOD)/config._installPrefix=$(PREFIX) \
+	-X $(LIBPOD)/config._etcDir=$(ETCDIR) \
+	$(EXTRA_LDFLAGS)
+LDFLAGS_PODMAN_STATIC ?= \
+	$(LDFLAGS_PODMAN) \
+	-extldflags=-static
 #Update to LIBSECCOMP_COMMIT should reflect in Dockerfile too.
 LIBSECCOMP_COMMIT := v2.3.3
 # Rarely if ever should integration tests take more than 50min,
@@ -314,7 +317,7 @@ $(SRCBINDIR)/podman$(BINSFX): $(SRCBINDIR) .gopathok $(SOURCES) go.mod go.sum
 		-o $@ ./cmd/podman
 
 $(SRCBINDIR)/podman-remote-static: $(SRCBINDIR) .gopathok $(SOURCES) go.mod go.sum
-	CGO_ENABLED=$(CGO_ENABLED) \
+	CGO_ENABLED=0 \
 		GOOS=$(GOOS) \
 		$(GO) build \
 		$(BUILDFLAGS) \
