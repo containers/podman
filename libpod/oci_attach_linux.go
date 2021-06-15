@@ -94,17 +94,18 @@ func (c *Container) attach(streams *define.AttachStreams, keys string, resize <-
 //    this ensures attachToExec gets all of the output of the called process
 //  conmon will then send the exit code of the exec process, or an error in the exec session
 // startFd must be the input side of the fd.
+// newSize resizes the tty to this size before the process is started, must be nil if the exec session has no tty
 //   conmon will wait to start the exec session until the parent process has setup the console socket.
 //   Once attachToExec successfully attaches to the console socket, the child conmon process responsible for calling runtime exec
 //     will read from the output side of start fd, thus learning to start the child process.
 // Thus, the order goes as follow:
 // 1. conmon parent process sets up its console socket. sends on attachFd
-// 2. attachToExec attaches to the console socket after reading on attachFd
+// 2. attachToExec attaches to the console socket after reading on attachFd and resizes the tty
 // 3. child waits on startFd for attachToExec to attach to said console socket
 // 4. attachToExec sends on startFd, signalling it has attached to the socket and child is ready to go
 // 5. child receives on startFd, runs the runtime exec command
 // attachToExec is responsible for closing startFd and attachFd
-func (c *Container) attachToExec(streams *define.AttachStreams, keys *string, sessionID string, startFd, attachFd *os.File) error {
+func (c *Container) attachToExec(streams *define.AttachStreams, keys *string, sessionID string, startFd, attachFd *os.File, newSize *define.TerminalSize) error {
 	if !streams.AttachOutput && !streams.AttachError && !streams.AttachInput {
 		return errors.Wrapf(define.ErrInvalidArg, "must provide at least one stream to attach to")
 	}
@@ -135,6 +136,14 @@ func (c *Container) attachToExec(streams *define.AttachStreams, keys *string, se
 	// 2: read from attachFd that the parent process has set up the console socket
 	if _, err := readConmonPipeData(attachFd, ""); err != nil {
 		return err
+	}
+
+	// resize before we start the container process
+	if newSize != nil {
+		err = c.ociRuntime.ExecAttachResize(c, sessionID, *newSize)
+		if err != nil {
+			logrus.Warn("resize failed", err)
+		}
 	}
 
 	// 2: then attach
