@@ -166,10 +166,11 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
 	query := struct {
-		FromSrc string   `schema:"fromSrc"`
-		Changes []string `schema:"changes"`
-		Message string   `schema:"message"`
-		Repo    string   `shchema:"repo"`
+		Changes  []string `schema:"changes"`
+		FromSrc  string   `schema:"fromSrc"`
+		Message  string   `schema:"message"`
+		Platform string   `schema:"platform"`
+		Repo     string   `shchema:"repo"`
 	}{
 		// This is where you can override the golang default value for one of fields
 	}
@@ -192,9 +193,21 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to write temporary file"))
 		}
 	}
+
+	platformSpecs := strings.Split(query.Platform, "/")
+	opts := entities.ImageImportOptions{
+		Source:    source,
+		Changes:   query.Changes,
+		Message:   query.Message,
+		Reference: query.Repo,
+		OS:        platformSpecs[0],
+	}
+	if len(platformSpecs) > 1 {
+		opts.Architecture = platformSpecs[1]
+	}
+
 	imageEngine := abi.ImageEngine{Libpod: runtime}
-	// TODO: add support for ImageImportOptions to take a platform parameter. Also import https://github.com/opencontainers/image-spec/tree/master/specs-go/v1 either here or within imageEngine.Import to get default platform
-	report, err := imageEngine.Import(r.Context(), entities.ImageImportOptions{Source: source, Changes: query.Changes, Message: query.Message, Reference: query.Repo})
+	report, err := imageEngine.Import(r.Context(), opts)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to import tarball"))
 		return
