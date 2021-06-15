@@ -178,8 +178,16 @@ func ExecStartHandler(w http.ResponseWriter, r *http.Request) {
 		logrus.Error(errors.Wrapf(e, "error attaching to container %s exec session %s", sessionCtr.ID(), sessionID))
 	}
 
+	var size *define.TerminalSize
+	if bodyParams.Tty && (bodyParams.Height > 0 || bodyParams.Width > 0) {
+		size = &define.TerminalSize{
+			Height: bodyParams.Height,
+			Width:  bodyParams.Width,
+		}
+	}
+
 	hijackChan := make(chan bool, 1)
-	err = sessionCtr.ExecHTTPStartAndAttach(sessionID, r, w, nil, nil, nil, hijackChan)
+	err = sessionCtr.ExecHTTPStartAndAttach(sessionID, r, w, nil, nil, nil, hijackChan, size)
 
 	if <-hijackChan {
 		// If connection was Hijacked, we have to signal it's being closed

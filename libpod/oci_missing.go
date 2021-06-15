@@ -119,12 +119,13 @@ func (r *MissingRuntime) AttachResize(ctr *Container, newSize define.TerminalSiz
 }
 
 // ExecContainer is not available as the runtime is missing
-func (r *MissingRuntime) ExecContainer(ctr *Container, sessionID string, options *ExecOptions, streams *define.AttachStreams) (int, chan error, error) {
+func (r *MissingRuntime) ExecContainer(ctr *Container, sessionID string, options *ExecOptions, streams *define.AttachStreams, newSize *define.TerminalSize) (int, chan error, error) {
 	return -1, nil, r.printError()
 }
 
 // ExecContainerHTTP is not available as the runtime is missing
-func (r *MissingRuntime) ExecContainerHTTP(ctr *Container, sessionID string, options *ExecOptions, req *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool) (int, chan error, error) {
+func (r *MissingRuntime) ExecContainerHTTP(ctr *Container, sessionID string, options *ExecOptions, req *http.Request, w http.ResponseWriter,
+	streams *HTTPAttachStreams, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool, newSize *define.TerminalSize) (int, chan error, error) {
 	return -1, nil, r.printError()
 }
 
