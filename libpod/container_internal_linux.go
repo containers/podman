@@ -1818,7 +1818,7 @@ func (c *Container) getHosts() string {
 	if c.Hostname() != "" {
 		if c.config.NetMode.IsSlirp4netns() {
 			// When using slirp4netns, the interface gets a static IP
-			slirp4netnsIP, err := GetSlirp4netnsGateway(c.slirp4netnsSubnet)
+			slirp4netnsIP, err := GetSlirp4netnsIP(c.slirp4netnsSubnet)
 			if err != nil {
 				logrus.Warn("failed to determine slirp4netnsIP: ", err.Error())
 			} else {
