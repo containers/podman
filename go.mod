@@ -63,9 +63,12 @@ require (
 	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
-	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20210514084401-e8d321eab015
+	golang.org/x/tools v0.1.3 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
 	k8s.io/api v0.21.1
 	k8s.io/apimachinery v0.21.1
 )
+
+replace github.com/containers/common v0.39.1-0.20210527140106-e5800a20386a => github.com/ashley-cui/common v0.14.1-0.20210615194250-c0f753d62b2a

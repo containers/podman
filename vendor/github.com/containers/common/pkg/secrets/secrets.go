@@ -7,7 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/common/pkg/filters"
 	"github.com/containers/common/pkg/secrets/filedriver"
+	"github.com/containers/common/pkg/secrets/passdriver"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/pkg/errors"
@@ -50,6 +52,16 @@ var secretsFile = "secrets.json"
 // Allowed: 64 [a-zA-Z0-9-_.] characters, and the start and end character must be [a-zA-Z0-9]
 var secretNameRegexp = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]*$`)
 
+// SecretFilter is a function to determine whether a secret is included in command
+// output. Secrets to be outputted are tested using the function. a true return will
+// include the secret, a false return will exclude it.
+type SecretFilter func(Secret) bool
+
+type SecretStoreOptions struct {
+	Labels     map[string]string
+	DriverOpts map[string]string
+}
+
 // SecretsManager holds information on handling secrets
 type SecretsManager struct {
 	// secretsPath is the path to the db file where secrets are stored
@@ -66,8 +78,8 @@ type Secret struct {
 	Name string `json:"name"`
 	// ID is the unique secret ID
 	ID string `json:"id"`
-	// Metadata stores other metadata on the secret
-	Metadata map[string]string `json:"metadata,omitempty"`
+	// Labels stores other metadata on the secret
+	Labels map[string]string `json:"metadata,omitempty"`
 	// CreatedAt is when the secret was created
 	CreatedAt time.Time `json:"createdAt"`
 	// Driver is the driver used to store secret data
@@ -120,7 +132,7 @@ func NewManager(rootPath string) (*SecretsManager, error) {
 // Store takes a name, creates a secret and stores the secret metadata and the secret payload.
 // It returns a generated ID that is associated with the secret.
 // The max size for secret data is 512kB.
-func (s *SecretsManager) Store(name string, data []byte, driverType string, driverOpts map[string]string) (string, error) {
+func (s *SecretsManager) Store(name string, data []byte, driverType string, opts SecretStoreOptions) (string, error) {
 	err := validateSecretName(name)
 	if err != nil {
 		return "", err
@@ -159,12 +171,19 @@ func (s *SecretsManager) Store(name string, data []byte, driverType string, driv
 		}
 	}
 
-	secr.Driver = driverType
-	secr.Metadata = make(map[string]string)
-	secr.CreatedAt = time.Now()
-	secr.DriverOptions = driverOpts
+	if opts.Labels == nil {
+		opts.Labels = make(map[string]string)
+	}
+	if opts.DriverOpts == nil {
+		opts.DriverOpts = make(map[string]string)
+	}
 
-	driver, err := getDriver(driverType, driverOpts)
+	secr.Driver = driverType
+	secr.Labels = opts.Labels
+	secr.CreatedAt = time.Now()
+	secr.DriverOptions = opts.DriverOpts
+
+	driver, err := getDriver(driverType, secr.DriverOptions)
 	if err != nil {
 		return "", err
 	}
@@ -224,11 +243,11 @@ func (s *SecretsManager) Lookup(nameOrID string) (*Secret, error) {
 }
 
 // List lists all secrets.
-func (s *SecretsManager) List() ([]Secret, error) {
+func (s *SecretsManager) List(filters ...SecretFilter) ([]Secret, error) {
 	s.lockfile.Lock()
 	defer s.lockfile.Unlock()
 
-	secrets, err := s.lookupAll()
+	secrets, err := s.lookupAll(filters...)
 	if err != nil {
 		return nil, err
 	}
@@ -271,12 +290,47 @@ func validateSecretName(name string) error {
 
 // getDriver creates a new driver.
 func getDriver(name string, opts map[string]string) (SecretsDriver, error) {
-	if name == "file" {
+	switch name {
+	case "file":
 		if path, ok := opts["path"]; ok {
 			return filedriver.NewDriver(path)
 		} else {
 			return nil, errors.Wrap(errInvalidDriverOpt, "need path for filedriver")
 		}
+	case "pass":
+		return passdriver.NewDriver(opts)
 	}
 	return nil, errInvalidDriver
+}
+func GenerateSecretFilters(sfilters map[string][]string) ([]SecretFilter, error) {
+	var sf []SecretFilter
+	for filter, v := range sfilters {
+		for _, val := range v {
+			switch filter {
+			case "name":
+				nameVal := val
+				sf = append(sf, func(s Secret) bool {
+					return nameVal == s.Name
+				})
+			case "id":
+				idVal := val
+				sf = append(sf, func(s Secret) bool {
+					return idVal == s.ID
+				})
+			case "driver":
+				driverVal := val
+				sf = append(sf, func(s Secret) bool {
+					return driverVal == s.Driver
+				})
+			case "label":
+				filter := val
+				sf = append(sf, func(s Secret) bool {
+					return filters.MatchLabelFilters([]string{filter}, s.Labels)
+				})
+			default:
+				return nil, errors.Errorf("%q is an invalid secret filter", filter)
+			}
+		}
+	}
+	return sf, nil
 }

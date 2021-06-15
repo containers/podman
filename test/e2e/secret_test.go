@@ -222,4 +222,79 @@ var _ = Describe("Podman secret", func() {
 		Expect(inspect.OutputToString()).To(Equal(secrID))
 	})
 
+	It("podman secret create with labels", func() {
+		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
+		err := ioutil.WriteFile(secretFilePath, []byte("mysecret"), 0755)
+		Expect(err).To(BeNil())
+
+		session1 := podmanTest.Podman([]string{"secret", "create", "--label", "foo=bar", "labelled", secretFilePath})
+		session1.WaitWithDefaultTimeout()
+		secrID := session1.OutputToString()
+		Expect(session1.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"secret", "inspect", "--format", "{{.Spec.Labels.foo}}", secrID})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(Equal("bar"))
+	})
+
+	It("podman secret ls with filters", func() {
+		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
+		err := ioutil.WriteFile(secretFilePath, []byte("mysecret"), 0755)
+		Expect(err).To(BeNil())
+
+		session := podmanTest.Podman([]string{"secret", "create", "nolabel", secretFilePath})
+		session.WaitWithDefaultTimeout()
+		id := session.OutputToString()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session1 := podmanTest.Podman([]string{"secret", "create", "--label", "foo=bar", "labelled", secretFilePath})
+		session1.WaitWithDefaultTimeout()
+		id1 := session1.OutputToString()
+		Expect(session1.ExitCode()).To(Equal(0))
+
+		session2 := podmanTest.Podman([]string{"secret", "create", "--label", "foo=bar2", "labelled2", secretFilePath})
+		session2.WaitWithDefaultTimeout()
+		_ = session2.OutputToString()
+		Expect(session1.ExitCode()).To(Equal(0))
+
+		// filter label foo=bar
+		inspect := podmanTest.Podman([]string{"secret", "ls", "--filter", "label=foo=bar", "--format", "{{.ID}}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(Equal(id1))
+
+		// filter label foo
+		inspect = podmanTest.Podman([]string{"secret", "ls", "--filter", "label=foo", "--format", "{{.ID}}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(len(inspect.OutputToStringArray())).To(Equal(2))
+
+		// filter name
+		inspect = podmanTest.Podman([]string{"secret", "ls", "--filter", "name=nolabel", "--format", "{{.ID}}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(Equal(id))
+
+		// filter id
+		idfilter := "id=" + id
+		inspect = podmanTest.Podman([]string{"secret", "ls", "--filter", idfilter, "--format", "{{.Name}}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(Equal("nolabel"))
+
+		// filter driver
+		inspect = podmanTest.Podman([]string{"secret", "ls", "--filter", "driver=file", "--format", "{{.ID}}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(len(inspect.OutputToStringArray())).To(Equal(3))
+
+		// filter should be inclusive
+		inspect = podmanTest.Podman([]string{"secret", "ls", "--filter", "name=nolabel", "--filter", "name=labelled", "--format", "{{.ID}}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(len(inspect.OutputToStringArray())).To(Equal(2))
+
+	})
+
 })

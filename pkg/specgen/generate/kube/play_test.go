@@ -24,8 +24,10 @@ func createSecrets(t *testing.T, d string) *secrets.SecretsManager {
 	for _, s := range k8sSecrets {
 		data, err := json.Marshal(s.Data)
 		assert.NoError(t, err)
-
-		_, err = secretsManager.Store(s.ObjectMeta.Name, data, driver, driverOpts)
+		opts := secrets.SecretStoreOptions{
+			DriverOpts: driverOpts,
+		}
+		_, err = secretsManager.Store(s.ObjectMeta.Name, data, driver, opts)
 		assert.NoError(t, err)
 	}
 

@@ -221,7 +221,8 @@ func getSecrets(cmd *cobra.Command, toComplete string) ([]string, cobra.ShellCom
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	secrets, err := engine.SecretList(registry.GetContext())
+	opts := entities.SecretListOptions{}
+	secrets, err := engine.SecretList(registry.GetContext(), opts)
 	if err != nil {
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveNoFileComp
@@ -1217,4 +1218,18 @@ func AutocompleteVolumeFilters(cmd *cobra.Command, args []string, toComplete str
 func AutocompleteCheckpointCompressType(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	types := []string{"gzip", "none", "zstd"}
 	return types, cobra.ShellCompDirectiveNoFileComp
+}
+
+// AutocompleteSecretFilters - Autocomplete volume ls --filter options.
+func AutocompleteSecretFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	local := func(_ string) ([]string, cobra.ShellCompDirective) {
+		return []string{"local"}, cobra.ShellCompDirectiveNoFileComp
+	}
+	kv := keyValueCompletion{
+		"name=":   func(s string) ([]string, cobra.ShellCompDirective) { return getSecrets(cmd, s) },
+		"driver=": local,
+		"label=":  nil,
+		"ID=":     nil,
+	}
+	return completeKeyValues(toComplete, kv)
 }

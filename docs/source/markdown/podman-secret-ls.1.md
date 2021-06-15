@@ -16,6 +16,15 @@ Lists all the secrets that exist. The output can be formatted to a Go template u
 
 Format secret output using Go template.
 
+#### **--filter**=*filter*, **-f**
+
+Secrets can be filtered by the following attributes:
+
+- driver
+- id
+- label (label=*key* or label=*key*=*value*)
+- name
+
 #### **--noheading**
 
 Omit the table headings from the listing of secrets.	.

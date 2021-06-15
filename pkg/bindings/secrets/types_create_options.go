@@ -51,3 +51,19 @@ func (o *CreateOptions) GetName() string {
 	}
 	return *o.Name
 }
+
+// WithLabels
+func (o *CreateOptions) WithLabels(value map[string]string) *CreateOptions {
+	v := value
+	o.Labels = v
+	return o
+}
+
+// GetLabels
+func (o *CreateOptions) GetLabels() map[string]string {
+	var labels map[string]string
+	if o.Labels == nil {
+		return labels
+	}
+	return o.Labels
+}

@@ -29,13 +29,11 @@ func ListSecrets(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-	if len(query.Filters) > 0 {
-		utils.Error(w, "filters not supported", http.StatusBadRequest,
-			errors.Wrapf(errors.New("bad parameter"), "filters not supported"))
-		return
-	}
 	ic := abi.ContainerEngine{Libpod: runtime}
-	reports, err := ic.SecretList(r.Context())
+	opts := entities.SecretListOptions{
+		Filters: query.Filters,
+	}
+	reports, err := ic.SecretList(r.Context(), opts)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return

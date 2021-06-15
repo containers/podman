@@ -9,6 +9,7 @@ import (
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v3/cmd/podman/common"
+	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -31,6 +32,7 @@ var (
 var (
 	createOpts = entities.SecretCreateOptions{}
 	env        = false
+	labels     = []string{}
 )
 
 func init() {
@@ -47,6 +49,10 @@ func init() {
 
 	envFlagName := "env"
 	flags.BoolVar(&env, envFlagName, false, "Read secret data from environment variable")
+
+	labelFlagName := "label"
+	flags.StringArrayVarP(&labels, labelFlagName, "l", []string{}, "Set label on secret")
+	_ = createCmd.RegisterFlagCompletionFunc(labelFlagName, completion.AutocompleteNone)
 }
 
 func create(cmd *cobra.Command, args []string) error {
@@ -80,6 +86,10 @@ func create(cmd *cobra.Command, args []string) error {
 		reader = file
 	}
 
+	createOpts.Labels, err = parse.GetAllLabels([]string{}, labels)
+	if err != nil {
+		return err
+	}
 	report, err := registry.ContainerEngine().SecretCreate(context.Background(), name, reader, createOpts)
 	if err != nil {
 		return err

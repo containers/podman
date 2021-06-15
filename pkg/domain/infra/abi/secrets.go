@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/pkg/errors"
 )
@@ -25,7 +26,11 @@ func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader
 	if options.Driver == "file" {
 		driverOptions["path"] = filepath.Join(secretsPath, "filedriver")
 	}
-	secretID, err := manager.Store(name, data, options.Driver, driverOptions)
+	opts := secrets.SecretStoreOptions{
+		DriverOpts: driverOptions,
+		Labels:     options.Labels,
+	}
+	secretID, err := manager.Store(name, data, options.Driver, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +61,8 @@ func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string
 			CreatedAt: secret.CreatedAt,
 			UpdatedAt: secret.CreatedAt,
 			Spec: entities.SecretSpec{
-				Name: secret.Name,
+				Name:   secret.Name,
+				Labels: secret.Labels,
 				Driver: entities.SecretDriverSpec{
 					Name: secret.Driver,
 				},
@@ -68,12 +74,16 @@ func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string
 	return reports, errs, nil
 }
 
-func (ic *ContainerEngine) SecretList(ctx context.Context) ([]*entities.SecretInfoReport, error) {
+func (ic *ContainerEngine) SecretList(ctx context.Context, opts entities.SecretListOptions) ([]*entities.SecretInfoReport, error) {
 	manager, err := ic.Libpod.SecretsManager()
 	if err != nil {
 		return nil, err
 	}
-	secretList, err := manager.List()
+	filters, err := secrets.GenerateSecretFilters(opts.Filters)
+	if err != nil {
+		return nil, err
+	}
+	secretList, err := manager.List(filters...)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +94,8 @@ func (ic *ContainerEngine) SecretList(ctx context.Context) ([]*entities.SecretIn
 			CreatedAt: secret.CreatedAt,
 			UpdatedAt: secret.CreatedAt,
 			Spec: entities.SecretSpec{
-				Name: secret.Name,
+				Name:   secret.Name,
+				Labels: secret.Labels,
 				Driver: entities.SecretDriverSpec{
 					Name:    secret.Driver,
 					Options: secret.DriverOptions,

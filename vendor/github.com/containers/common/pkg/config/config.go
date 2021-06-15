@@ -55,6 +55,8 @@ type Config struct {
 	Engine EngineConfig `toml:"engine"`
 	// Network section defines the configuration of CNI Plugins
 	Network NetworkConfig `toml:"network"`
+	// Secret section defines configurations for the secret management
+	Secrets SecretConfig `toml:"secrets"`
 }
 
 // ContainersConfig represents the "containers" TOML config table
@@ -136,6 +138,11 @@ type ContainersConfig struct {
 	// that is parsed to bytes.
 	// Negative values indicate that the log file won't be truncated.
 	LogSizeMax int64 `toml:"log_size_max,omitempty"`
+
+	// Specifies default format tag for container log messages.
+	// This is useful for creating a specific tag for container log messages.
+	// Containers logs default to truncated container ID as a tag.
+	LogTag string `toml:"log_tag,omitempty"`
 
 	// NetNS indicates how to create a network namespace for the container
 	NetNS string `toml:"netns,omitempty"`
@@ -438,6 +445,17 @@ type NetworkConfig struct {
 
 	// NetworkConfigDir is where CNI network configuration files are stored.
 	NetworkConfigDir string `toml:"network_config_dir,omitempty"`
+}
+
+// SecretConfig represents the "secret" TOML config table
+type SecretConfig struct {
+	// Driver specifies the secret driver to use.
+	// Current valid value:
+	//  * file
+	//  * pass
+	Driver string `toml:"driver,omitempty"`
+	// Opts contains driver specific options
+	Opts map[string]string `toml:"opts,omitempty"`
 }
 
 // Destination represents destination for remote service

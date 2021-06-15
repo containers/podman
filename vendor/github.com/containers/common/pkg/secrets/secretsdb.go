@@ -132,12 +132,27 @@ func (s *SecretsManager) exactSecretExists(nameOrID string) (bool, error) {
 }
 
 // lookupAll gets all secrets stored.
-func (s *SecretsManager) lookupAll() (map[string]Secret, error) {
+func (s *SecretsManager) lookupAll(filters ...SecretFilter) (map[string]Secret, error) {
 	err := s.loadDB()
 	if err != nil {
 		return nil, err
 	}
-	return s.db.Secrets, nil
+	if len(filters) == 0 {
+		return s.db.Secrets, nil
+	}
+	secretsFiltered := make(map[string]Secret)
+	for id, secret := range s.db.Secrets {
+		include := false
+		for _, filter := range filters {
+			include = include || filter(secret)
+		}
+
+		if include {
+			secretsFiltered[id] = secret
+		}
+	}
+
+	return secretsFiltered, nil
 }
 
 // lookupSecret returns a secret with the given name, ID, or partial ID.

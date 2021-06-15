@@ -12,6 +12,10 @@ type SecretCreateReport struct {
 
 type SecretCreateOptions struct {
 	Driver string
+	Labels map[string]string
+}
+type SecretListOptions struct {
+	Filters map[string][]string
 }
 
 type SecretListRequest struct {
@@ -54,6 +58,7 @@ type SecretVersion struct {
 type SecretSpec struct {
 	Name   string
 	Driver SecretDriverSpec
+	Labels map[string]string
 }
 
 type SecretDriverSpec struct {
