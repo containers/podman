@@ -2,15 +2,12 @@ package secrets
 
 import (
 	"context"
-	"html/template"
 	"os"
-	"text/tabwriter"
 	"time"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v3/cmd/podman/common"
-	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/pkg/domain/entities"
@@ -76,16 +73,20 @@ func outputTemplate(cmd *cobra.Command, responses []*entities.SecretListReport) 
 	})
 
 	row := report.NormalizeFormat(listFlag.format)
-	format := parse.EnforceRange(row)
+	format := report.EnforceRange(row)
 
-	tmpl, err := template.New("list secret").Parse(format)
+	tmpl, err := report.NewTemplate("list").Parse(format)
 	if err != nil {
 		return err
 	}
-	w := tabwriter.NewWriter(os.Stdout, 12, 2, 2, ' ', 0)
+
+	w, err := report.NewWriterDefault(os.Stdout)
+	if err != nil {
+		return err
+	}
 	defer w.Flush()
 
-	if cmd.Flags().Changed("format") && !parse.HasTable(listFlag.format) {
+	if cmd.Flags().Changed("format") && !report.HasTable(listFlag.format) {
 		listFlag.noHeading = true
 	}
 

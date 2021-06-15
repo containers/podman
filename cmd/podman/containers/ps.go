@@ -6,15 +6,12 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"text/tabwriter"
-	"text/template"
 	"time"
 
 	tm "github.com/buger/goterm"
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v3/cmd/podman/common"
-	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/utils"
 	"github.com/containers/podman/v3/cmd/podman/validate"
@@ -228,18 +225,20 @@ func ps(cmd *cobra.Command, _ []string) error {
 	hdrs, format := createPsOut()
 	if cmd.Flags().Changed("format") {
 		format = report.NormalizeFormat(listOpts.Format)
-		format = parse.EnforceRange(format)
+		format = report.EnforceRange(format)
 	}
 	ns := strings.NewReplacer(".Namespaces.", ".")
 	format = ns.Replace(format)
 
-	tmpl, err := template.New("listContainers").
-		Funcs(template.FuncMap(report.DefaultFuncs)).
-		Parse(format)
+	tmpl, err := report.NewTemplate("list").Parse(format)
 	if err != nil {
 		return err
 	}
-	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
+
+	w, err := report.NewWriterDefault(os.Stdout)
+	if err != nil {
+		return err
+	}
 	defer w.Flush()
 
 	headers := func() error { return nil }
@@ -322,7 +321,7 @@ func createPsOut() ([]map[string]string, string) {
 			row += "\t{{.Size}}"
 		}
 	}
-	return hdrs, "{{range .}}" + row + "\n{{end}}"
+	return hdrs, "{{range .}}" + row + "\n{{end -}}"
 }
 
 type psReporter struct {

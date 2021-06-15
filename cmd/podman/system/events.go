@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"text/template"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
@@ -76,7 +75,7 @@ func eventsCmd(cmd *cobra.Command, _ []string) error {
 	errChannel := make(chan error)
 
 	var (
-		tmpl   *template.Template
+		tmpl   *report.Template
 		doJSON bool
 	)
 
@@ -84,7 +83,7 @@ func eventsCmd(cmd *cobra.Command, _ []string) error {
 		doJSON = report.IsJSON(eventFormat)
 		if !doJSON {
 			var err error
-			tmpl, err = template.New("events").Parse(eventFormat)
+			tmpl, err = report.NewTemplate("events").Parse(eventFormat)
 			if err != nil {
 				return err
 			}

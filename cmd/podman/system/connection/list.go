@@ -2,11 +2,10 @@ package connection
 
 import (
 	"os"
-	"text/tabwriter"
-	"text/template"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/system"
 	"github.com/containers/podman/v3/cmd/podman/validate"
@@ -76,13 +75,16 @@ func list(_ *cobra.Command, _ []string) error {
 	}
 
 	// TODO: Allow user to override format
-	format := "{{range . }}{{.Name}}\t{{.Identity}}\t{{.URI}}\n{{end}}"
-	tmpl, err := template.New("connection").Parse(format)
+	format := "{{range . }}{{.Name}}\t{{.Identity}}\t{{.URI}}\n{{end -}}"
+	tmpl, err := report.NewTemplate("list").Parse(format)
 	if err != nil {
 		return err
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
+	w, err := report.NewWriterDefault(os.Stdout)
+	if err != nil {
+		return err
+	}
 	defer w.Flush()
 
 	_ = tmpl.Execute(w, hdrs)

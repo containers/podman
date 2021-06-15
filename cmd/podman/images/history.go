@@ -5,14 +5,11 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"text/tabwriter"
-	"text/template"
 	"time"
 	"unicode"
 
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v3/cmd/podman/common"
-	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/docker/go-units"
@@ -127,13 +124,17 @@ func history(cmd *cobra.Command, args []string) error {
 	case opts.quiet:
 		row = "{{.ID}}\n"
 	}
-	format := parse.EnforceRange(row)
+	format := report.EnforceRange(row)
 
-	tmpl, err := template.New("report").Parse(format)
+	tmpl, err := report.NewTemplate("history").Parse(format)
 	if err != nil {
 		return err
 	}
-	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
+
+	w, err := report.NewWriterDefault(os.Stdout)
+	if err != nil {
+		return err
+	}
 	defer w.Flush()
 
 	if !opts.quiet && !cmd.Flags().Changed("format") {

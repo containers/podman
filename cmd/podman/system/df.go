@@ -4,13 +4,10 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"text/tabwriter"
-	"text/template"
 	"time"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
-	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/pkg/domain/entities"
@@ -58,7 +55,10 @@ func df(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
+	w, err := report.NewWriterDefault(os.Stdout)
+	if err != nil {
+		return err
+	}
 
 	if dfOptions.Verbose {
 		return printVerbose(w, cmd, reports)
@@ -66,7 +66,7 @@ func df(cmd *cobra.Command, args []string) error {
 	return printSummary(w, cmd, reports)
 }
 
-func printSummary(w *tabwriter.Writer, cmd *cobra.Command, reports *entities.SystemDfReport) error {
+func printSummary(w *report.Writer, cmd *cobra.Command, reports *entities.SystemDfReport) error {
 	var (
 		dfSummaries       []*dfSummary
 		active            int
@@ -144,7 +144,7 @@ func printSummary(w *tabwriter.Writer, cmd *cobra.Command, reports *entities.Sys
 	return writeTemplate(w, cmd, hdrs, row, dfSummaries)
 }
 
-func printVerbose(w *tabwriter.Writer, cmd *cobra.Command, reports *entities.SystemDfReport) error {
+func printVerbose(w *report.Writer, cmd *cobra.Command, reports *entities.SystemDfReport) error {
 	defer w.Flush()
 
 	fmt.Fprint(w, "Images space usage:\n\n")
@@ -192,11 +192,11 @@ func printVerbose(w *tabwriter.Writer, cmd *cobra.Command, reports *entities.Sys
 	return writeTemplate(w, cmd, hdrs, volumeRow, dfVolumes)
 }
 
-func writeTemplate(w *tabwriter.Writer, cmd *cobra.Command, hdrs []map[string]string, format string, output interface{}) error {
+func writeTemplate(w *report.Writer, cmd *cobra.Command, hdrs []map[string]string, format string, output interface{}) error {
 	defer w.Flush()
 
-	format = parse.EnforceRange(format)
-	tmpl, err := template.New("df").Parse(format)
+	format = report.EnforceRange(format)
+	tmpl, err := report.NewTemplate("df").Parse(format)
 	if err != nil {
 		return err
 	}

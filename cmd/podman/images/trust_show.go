@@ -3,9 +3,8 @@ package images
 import (
 	"fmt"
 	"os"
-	"text/tabwriter"
-	"text/template"
 
+	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/pkg/domain/entities"
@@ -45,16 +44,16 @@ func init() {
 }
 
 func showTrust(cmd *cobra.Command, args []string) error {
-	report, err := registry.ImageEngine().ShowTrust(registry.Context(), args, showTrustOptions)
+	trust, err := registry.ImageEngine().ShowTrust(registry.Context(), args, showTrustOptions)
 	if err != nil {
 		return err
 	}
 	if showTrustOptions.Raw {
-		fmt.Println(string(report.Raw))
+		fmt.Println(string(trust.Raw))
 		return nil
 	}
 	if showTrustOptions.JSON {
-		b, err := json.MarshalIndent(report.Policies, "", "  ")
+		b, err := json.MarshalIndent(trust.Policies, "", "  ")
 		if err != nil {
 			return err
 		}
@@ -62,14 +61,18 @@ func showTrust(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	row := "{{.RepoName}}\t{{.Type}}\t{{.GPGId}}\t{{.SignatureStore}}\n"
-	format := "{{range . }}" + row + "{{end}}"
-	tmpl, err := template.New("listContainers").Parse(format)
+	format := "{{range . }}{{.RepoName}}\t{{.Type}}\t{{.GPGId}}\t{{.SignatureStore}}\n{{end -}}"
+	tmpl, err := report.NewTemplate("list").Parse(format)
 	if err != nil {
 		return err
 	}
-	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
-	if err := tmpl.Execute(w, report.Policies); err != nil {
+
+	w, err := report.NewWriterDefault(os.Stdout)
+	if err != nil {
+		return err
+	}
+
+	if err := tmpl.Execute(w, trust.Policies); err != nil {
 		return err
 	}
 	if err := w.Flush(); err != nil {

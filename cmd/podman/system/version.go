@@ -5,8 +5,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"text/tabwriter"
-	"text/template"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
@@ -56,19 +54,22 @@ func version(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	w, err := report.NewWriterDefault(os.Stdout)
+	if err != nil {
+		return err
+	}
 	defer w.Flush()
 
 	if cmd.Flag("format").Changed {
 		row := report.NormalizeFormat(versionFormat)
-		tmpl, err := template.New("version 2.0.0").Parse(row)
+		tmpl, err := report.NewTemplate("version 2.0.0").Parse(row)
 		if err != nil {
 			return err
 		}
 		if err := tmpl.Execute(w, versions); err != nil {
 			// On Failure, assume user is using older version of podman version --format and check client
 			row = strings.Replace(row, ".Server.", ".", 1)
-			tmpl, err := template.New("version 1.0.0").Parse(row)
+			tmpl, err := report.NewTemplate("version 1.0.0").Parse(row)
 			if err != nil {
 				return err
 			}

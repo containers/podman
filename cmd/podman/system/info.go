@@ -3,7 +3,6 @@ package system
 import (
 	"fmt"
 	"os"
-	"text/template"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
@@ -88,7 +87,7 @@ func info(cmd *cobra.Command, args []string) error {
 		}
 		fmt.Println(string(b))
 	case cmd.Flags().Changed("format"):
-		tmpl, err := template.New("info").Parse(inFormat)
+		tmpl, err := report.NewTemplate("info").Parse(inFormat)
 		if err != nil {
 			return err
 		}

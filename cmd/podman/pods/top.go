@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"text/tabwriter"
 
+	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
@@ -83,7 +83,11 @@ func top(_ *cobra.Command, args []string) error {
 		return err
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 5, 1, 3, ' ', 0)
+	w, err := report.NewWriterDefault(os.Stdout)
+	if err != nil {
+		return err
+	}
+
 	for _, proc := range topResponse.Value {
 		if _, err := fmt.Fprintln(w, proc); err != nil {
 			return err
