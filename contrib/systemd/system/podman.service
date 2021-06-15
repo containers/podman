@@ -10,3 +10,6 @@ Type=exec
 KillMode=process
 Environment=LOGGING="--log-level=info"
 ExecStart=/usr/bin/podman $LOGGING system service
+
+[Install]
+WantedBy=multi-user.target

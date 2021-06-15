@@ -531,10 +531,12 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %{_unitdir}/podman-auto-update.timer
 %{_unitdir}/podman.service
 %{_unitdir}/podman.socket
+%{_unitdir}/podman-restart.service
 %{_usr}/lib/systemd/user/podman.service
 %{_usr}/lib/systemd/user/podman.socket
 %{_usr}/lib/systemd/user/podman-auto-update.service
 %{_usr}/lib/systemd/user/podman-auto-update.timer
+%{_usr}/lib/systemd/user/podman-restart.service
 %{_usr}/lib/tmpfiles.d/podman.conf
 
 %if 0%{?with_devel}

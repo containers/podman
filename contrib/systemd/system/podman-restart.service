@@ -1,0 +1,12 @@
+[Unit]
+Description=Podman Start All Containers With Restart Policy Set To Always
+Documentation=man:podman-start(1)
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+Environment=LOGGING="--log-level=info"
+ExecStart=/usr/bin/podman $LOGGING start --all --filter restart-policy=always
+
+[Install]
+WantedBy=multi-user.target

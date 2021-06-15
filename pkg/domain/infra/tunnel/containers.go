@@ -508,7 +508,9 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 	reports := []*entities.ContainerStartReport{}
 	var exitCode = define.ExecErrorCodeGeneric
 	containersNamesOrIds := namesOrIds
+	all := options.All
 	if len(options.Filters) > 0 {
+		all = false
 		containersNamesOrIds = []string{}
 		opts := new(containers.ListOptions).WithFilters(options.Filters).WithAll(true)
 		candidates, listErr := containers.List(ic.ClientCtx, opts)
@@ -516,6 +518,10 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 			return nil, listErr
 		}
 		for _, candidate := range candidates {
+			if options.All {
+				containersNamesOrIds = append(containersNamesOrIds, candidate.ID)
+				continue
+			}
 			for _, nameOrID := range namesOrIds {
 				if nameOrID == candidate.ID {
 					containersNamesOrIds = append(containersNamesOrIds, nameOrID)
@@ -530,7 +536,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 			}
 		}
 	}
-	ctrs, err := getContainersByContext(ic.ClientCtx, options.All, false, containersNamesOrIds)
+	ctrs, err := getContainersByContext(ic.ClientCtx, all, false, containersNamesOrIds)
 	if err != nil {
 		return nil, err
 	}
