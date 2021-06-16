@@ -72,7 +72,10 @@ jobs:
         if: matrix.source == 'stable'
         id: sniff_test
         run: |
-          VERSION_OUTPUT="$(docker run localhost:5000/podman/${{ matrix.source }} \
+          podman pull --tls-verify=false \
+                            localhost:5000/podman/${{ matrix.source }}
+          VERSION_OUTPUT="$(podman run \
+                            localhost:5000/podman/${{ matrix.source }} \
                             podman --storage-driver=vfs version)"
           echo "$VERSION_OUTPUT"
           VERSION=$(grep -Em1 '^Version: ' <<<"$VERSION_OUTPUT" | awk '{print $2}')
