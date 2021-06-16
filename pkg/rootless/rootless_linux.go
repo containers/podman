@@ -204,6 +204,10 @@ func GetConfiguredMappings() ([]idtools.IDMap, []idtools.IDMap, error) {
 		uids = mappings.UIDs()
 		gids = mappings.GIDs()
 	}
+	if username == "root" && len(uids) == 0 && len(gids) == 0 {
+		uids = append(uids, idtools.IDMap{ContainerID: 0, HostID: 0, Size: 1})
+		gids = append(gids, idtools.IDMap{ContainerID: 0, HostID: 0, Size: 1})
+	}
 	return uids, gids, nil
 }
 

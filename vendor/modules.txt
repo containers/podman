@@ -123,7 +123,7 @@ github.com/containers/common/pkg/umask
 github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.12.0
+# github.com/containers/image/v5 v5.13.0
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
 github.com/containers/image/v5/directory/explicitfilepath
@@ -311,7 +311,7 @@ github.com/docker/docker/pkg/parsers
 github.com/docker/docker/pkg/pools
 github.com/docker/docker/pkg/stdcopy
 github.com/docker/docker/pkg/system
-# github.com/docker/docker-credential-helpers v0.6.3
+# github.com/docker/docker-credential-helpers v0.6.4
 github.com/docker/docker-credential-helpers/client
 github.com/docker/docker-credential-helpers/credentials
 # github.com/docker/go-connections v0.4.0
@@ -384,7 +384,7 @@ github.com/hpcloud/tail/ratelimiter
 github.com/hpcloud/tail/util
 github.com/hpcloud/tail/watch
 github.com/hpcloud/tail/winfile
-# github.com/imdario/mergo v0.3.11
+# github.com/imdario/mergo v0.3.12
 github.com/imdario/mergo
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
@@ -397,7 +397,7 @@ github.com/json-iterator/go
 # github.com/juju/ansiterm v0.0.0-20180109212912-720a0952cc2a
 github.com/juju/ansiterm
 github.com/juju/ansiterm/tabwriter
-# github.com/klauspost/compress v1.13.0
+# github.com/klauspost/compress v1.13.1
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
@@ -415,7 +415,7 @@ github.com/manifoldco/promptui/screenbuf
 github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.12
 github.com/mattn/go-isatty
-# github.com/mattn/go-runewidth v0.0.12
+# github.com/mattn/go-runewidth v0.0.13
 github.com/mattn/go-runewidth
 # github.com/mattn/go-shellwords v1.0.12
 github.com/mattn/go-shellwords
@@ -605,6 +605,11 @@ github.com/vbauerster/mpb/v6
 github.com/vbauerster/mpb/v6/cwriter
 github.com/vbauerster/mpb/v6/decor
 github.com/vbauerster/mpb/v6/internal
+# github.com/vbauerster/mpb/v7 v7.0.2
+github.com/vbauerster/mpb/v7
+github.com/vbauerster/mpb/v7/cwriter
+github.com/vbauerster/mpb/v7/decor
+github.com/vbauerster/mpb/v7/internal
 # github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
 github.com/vishvananda/netlink
 github.com/vishvananda/netlink/nl
@@ -662,7 +667,7 @@ golang.org/x/net/proxy
 golang.org/x/net/trace
 # golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20210514084401-e8d321eab015
+# golang.org/x/sys v0.0.0-20210603125802-9665404d3644
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
 golang.org/x/sys/internal/unsafeheader
