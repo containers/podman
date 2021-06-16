@@ -673,11 +673,18 @@ meta_task:
         image: quay.io/libpod/imgts:$IMAGE_SUFFIX
     env:
         # Space-separated list of images used by this repository state
+        # TODO: Protect commonly tagged ubuntu images from puning in case
+        # workaround for BZ1965743 remains in use beyond the 30-days.
+        # Ref sha 404d5edb155
         IMGNAMES: >-
             ${FEDORA_CACHE_IMAGE_NAME}
             ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
             ${UBUNTU_CACHE_IMAGE_NAME}
             ${PRIOR_UBUNTU_CACHE_IMAGE_NAME}
+            fedora-${IMAGE_SUFFIX_UBUNTU}
+            prior-fedora-${IMAGE_SUFFIX_UBUNTU}
+            ubuntu-${IMAGE_SUFFIX}
+            prior-ubuntu-${IMAGE_SUFFIX}
         BUILDID: "${CIRRUS_BUILD_ID}"
         REPOREF: "${CIRRUS_REPO_NAME}"
         GCPJSON: ENCRYPTED[3a198350077849c8df14b723c0f4c9fece9ebe6408d35982e7adf2105a33f8e0e166ed3ed614875a0887e1af2b8775f4]
