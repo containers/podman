@@ -35,8 +35,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (ir *ImageEngine) Exists(_ context.Context, nameOrID string) (*entities.BoolReport, error) {
-	_, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrID)
+func (ir *ImageEngine) Exists(ctx context.Context, nameOrID string) (*entities.BoolReport, error) {
+	img, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrID)
 	if err != nil {
 		if errors.Cause(err) == define.ErrMultipleImages {
 			return &entities.BoolReport{Value: true}, nil
@@ -44,8 +44,16 @@ func (ir *ImageEngine) Exists(_ context.Context, nameOrID string) (*entities.Boo
 		if errors.Cause(err) != define.ErrNoSuchImage {
 			return nil, err
 		}
+		return &entities.BoolReport{Value: false}, nil
 	}
-	return &entities.BoolReport{Value: err == nil}, nil
+	// https://bugzilla.redhat.com/show_bug.cgi?id=1966872 - only report an
+	// image to exist if it's not corrupted.
+	if err := img.CheckCorrupted(ctx, nameOrID); err != nil {
+		// Use Debug only since the pull backend already uses Error.
+		logrus.Debug(err.Error())
+		return &entities.BoolReport{Value: false}, nil
+	}
+	return &entities.BoolReport{Value: true}, nil
 }
 
 func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOptions) ([]*reports.PruneReport, error) {
