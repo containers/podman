@@ -15,12 +15,13 @@ import (
 
 // ExecAttachCtr execs and attaches to a container
 func ExecAttachCtr(ctx context.Context, ctr *libpod.Container, execConfig *libpod.ExecConfig, streams *define.AttachStreams) (int, error) {
-	resize := make(chan define.TerminalSize)
+	var resize chan define.TerminalSize
 	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))
 
 	// Check if we are attached to a terminal. If we are, generate resize
 	// events, and set the terminal to raw mode
 	if haveTerminal && execConfig.Terminal {
+		resize = make(chan define.TerminalSize)
 		cancel, oldTermState, err := handleTerminalAttach(ctx, resize)
 		if err != nil {
 			return -1, err
@@ -32,7 +33,6 @@ func ExecAttachCtr(ctx context.Context, ctr *libpod.Container, execConfig *libpo
 			}
 		}()
 	}
-
 	return ctr.Exec(execConfig, streams, resize)
 }
 

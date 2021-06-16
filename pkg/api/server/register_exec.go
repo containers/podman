@@ -269,10 +269,16 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//      properties:
 	//        Detach:
 	//          type: boolean
-	//          description: Detach from the command. Not presently supported.
+	//          description: Detach from the command.
 	//        Tty:
 	//          type: boolean
-	//          description: Allocate a pseudo-TTY. Presently ignored.
+	//          description: Allocate a pseudo-TTY.
+	//        h:
+	//          type: integer
+	//          description: Height of the TTY session in characters. Tty must be set to true to use it.
+	//        w:
+	//          type: integer
+	//          description: Width of the TTY session in characters. Tty must be set to true to use it.
 	// produces:
 	// - application/json
 	// responses:
