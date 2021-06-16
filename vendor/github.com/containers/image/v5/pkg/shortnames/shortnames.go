@@ -11,7 +11,7 @@ import (
 	"github.com/manifoldco/promptui"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 // IsShortName returns true if the specified input is a "short name".  A "short
@@ -343,7 +343,7 @@ func Resolve(ctx *types.SystemContext, name string) (*Resolved, error) {
 	}
 
 	// If we don't have a TTY, act according to the mode.
-	if !terminal.IsTerminal(int(os.Stdout.Fd())) || !terminal.IsTerminal(int(os.Stdin.Fd())) {
+	if !term.IsTerminal(int(os.Stdout.Fd())) || !term.IsTerminal(int(os.Stdin.Fd())) {
 		switch mode {
 		case types.ShortNameModePermissive:
 			// Permissive falls back to using all candidates.

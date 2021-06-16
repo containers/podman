@@ -27,9 +27,10 @@ import (
 )
 
 type User struct {
-	Name string
-	Role string
-	Age  int32
+	Name        string
+	Role        string
+	Age         int32
+	EmployeCode int64 `copier:"EmployeNum"` // specify field name
 
 	// Explicitly ignored in the destination struct.
 	Salary   int
@@ -52,7 +53,7 @@ type Employee struct {
 	Salary    int    `copier:"-"`
 
 	DoubleAge int32
-	EmployeId int64
+	EmployeId int64 `copier:"EmployeNum"` // specify field name
 	SuperRole string
 }
 
