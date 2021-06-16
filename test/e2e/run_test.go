@@ -921,17 +921,6 @@ USER mail`, BB)
 		Expect(session.OutputToString()).To(ContainSubstring("mail root"))
 	})
 
-	It("podman run with incorect VOLUME", func() {
-		dockerfile := fmt.Sprintf(`FROM %s
-VOLUME ['/etc/foo']
-WORKDIR /etc/foo`, BB)
-		podmanTest.BuildImage(dockerfile, "test", "false")
-		session := podmanTest.Podman([]string{"run", "--rm", "test", "echo", "test"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.OutputToString()).To(ContainSubstring("test"))
-	})
-
 	It("podman run --volumes-from flag", func() {
 		vol := filepath.Join(podmanTest.TempDir, "vol-test")
 		err := os.MkdirAll(vol, 0755)
