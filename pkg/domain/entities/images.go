@@ -184,7 +184,7 @@ type ImagePushOptions struct {
 	// image to the file.  Ignored for remote calls.
 	DigestFile string
 	// Format is the Manifest type (oci, v2s1, or v2s2) to use when pushing an
-	// image using the 'dir' transport. Default is manifest type of source.
+	// image. Default is manifest type of source, with fallbacks.
 	// Ignored for remote calls.
 	Format string
 	// Quiet can be specified to suppress pull progress when pulling.  Ignored
