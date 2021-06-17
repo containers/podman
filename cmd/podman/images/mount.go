@@ -3,8 +3,6 @@ package images
 import (
 	"fmt"
 	"os"
-	"text/tabwriter"
-	"text/template"
 
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v3/cmd/podman/common"
@@ -99,13 +97,18 @@ func mount(cmd *cobra.Command, args []string) error {
 		mrs = append(mrs, mountReporter{r})
 	}
 
-	row := "{{range . }}{{.ID}}\t{{.Path}}\n{{end}}"
-	tmpl, err := template.New("mounts").Parse(row)
+	row := "{{range . }}{{.ID}}\t{{.Path}}\n{{end -}}"
+	tmpl, err := report.NewTemplate("mounts").Parse(row)
 	if err != nil {
 		return err
 	}
-	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
+
+	w, err := report.NewWriterDefault(os.Stdout)
+	if err != nil {
+		return err
+	}
 	defer w.Flush()
+
 	return tmpl.Execute(w, mrs)
 }
 

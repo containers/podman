@@ -7,7 +7,6 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"text/tabwriter"
 	"text/template"
 
 	"github.com/containers/common/pkg/completion"
@@ -217,7 +216,7 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 		err = printJSON(data)
 	default:
 		row := inspectNormalize(i.options.Format)
-		row = "{{range . }}" + report.NormalizeFormat(row) + "{{end}}"
+		row = "{{range . }}" + report.NormalizeFormat(row) + "{{end -}}"
 		err = printTmpl(tmpType, row, data)
 	}
 	if err != nil {
@@ -250,7 +249,11 @@ func printTmpl(typ, row string, data []interface{}) error {
 	if err != nil {
 		return err
 	}
-	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
+
+	w, err := report.NewWriterDefault(os.Stdout)
+	if err != nil {
+		return err
+	}
 	return t.Execute(w, data)
 }
 
