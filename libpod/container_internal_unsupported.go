@@ -62,3 +62,8 @@ func (c *Container) getUserOverrides() *lookup.Overrides {
 func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 	return define.ErrNotImplemented
 }
+
+// Run network setup hook in network namespace
+func (c *Container) runNetworkSetupHook(ctx context.Context, nspath string, hook *spec.Hook, state []byte, stdout io.Writer, stderr io.Writer, postKillTimeout time.Duration) (hookErr, err error) {
+	return define.ErrNotImplemented
+}

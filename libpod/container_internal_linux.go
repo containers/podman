@@ -37,6 +37,7 @@ import (
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/checkpoint/crutils"
 	"github.com/containers/podman/v3/pkg/criu"
+	"github.com/containers/podman/v3/pkg/hooks/exec"
 	"github.com/containers/podman/v3/pkg/lookup"
 	"github.com/containers/podman/v3/pkg/resolvconf"
 	"github.com/containers/podman/v3/pkg/rootless"
@@ -2499,4 +2500,13 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 		}
 	}
 	return nil
+}
+
+// Run network setup hook in network namespace
+func (c *Container) runNetworkSetupHook(ctx context.Context, nspath string, hook *spec.Hook, state []byte, stdout io.Writer, stderr io.Writer, postKillTimeout time.Duration) (hookErr, err error) {
+	ns.WithNetNSPath(nspath, func(_ ns.NetNS) error {
+		hookErr, err = exec.Run(ctx, hook, state, stdout, stderr, postKillTimeout)
+		return err
+	})
+	return err, hookErr
 }

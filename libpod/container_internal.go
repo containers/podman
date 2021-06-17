@@ -1090,10 +1090,23 @@ func (c *Container) runNetworkSetupHooks(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	netnsPath := ""
+	if !c.config.PostConfigureNetNS && c.state.NetNS != nil {
+		netnsPath = c.state.NetNS.Path()
+	}
+	if netnsPath == "" && c.state.PID > 0 {
+		netnsPath = fmt.Sprintf("/proc/%d/ns/net", c.state.PID)
+	}
+	if netnsPath == "" {
+		return fmt.Errorf("container %s: both netns path is empty and container PID is zero", c.ID())
+	}
+
 	for i, hook := range allHooks["networksetup"] {
+		hook := hook
 		logrus.Debugf("container %s: invoke networksetup hook %d, path %s", c.ID(), i, hook.Path)
 		var stderr, stdout bytes.Buffer
-		hookErr, err := exec.Run(ctx, &hook, state, &stdout, &stderr, exec.DefaultPostKillTimeout)
+		hookErr, err := c.runNetworkSetupHook(ctx, netnsPath, &hook, state, &stdout, &stderr, exec.DefaultPostKillTimeout)
 		if err != nil {
 			logrus.Warnf("container %s: networksetup hook %d: %v", c.ID(), i, err)
 			if hookErr != err {
