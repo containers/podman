@@ -3,18 +3,18 @@
 
 package config
 
-func getAuthFromKernelKeyring(registry string) (string, string, error) {
+func getAuthFromKernelKeyring(registry string) (string, string, error) { //nolint:deadcode,unused
 	return "", "", ErrNotSupported
 }
 
-func deleteAuthFromKernelKeyring(registry string) error {
+func deleteAuthFromKernelKeyring(registry string) error { //nolint:deadcode,unused
 	return ErrNotSupported
 }
 
-func setAuthToKernelKeyring(registry, username, password string) error {
+func setAuthToKernelKeyring(registry, username, password string) error { //nolint:deadcode,unused
 	return ErrNotSupported
 }
 
-func removeAllAuthFromKernelKeyring() error {
+func removeAllAuthFromKernelKeyring() error { //nolint:deadcode,unused
 	return ErrNotSupported
 }
