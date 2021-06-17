@@ -98,7 +98,7 @@ func pushFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(digestfileFlagName, completion.AutocompleteDefault)
 
 	formatFlagName := "format"
-	flags.StringVarP(&pushOptions.Format, formatFlagName, "f", "", "Manifest type (oci, v2s2, or v2s1) to use when pushing an image using the 'dir' transport (default is manifest type of source)")
+	flags.StringVarP(&pushOptions.Format, formatFlagName, "f", "", "Manifest type (oci, v2s2, or v2s1) to use in the destination (default is manifest type of source, with fallbacks)")
 	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteManifestFormat)
 
 	flags.BoolVarP(&pushOptions.Quiet, "quiet", "q", false, "Suppress output information when pushing images")
