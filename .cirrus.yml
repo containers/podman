@@ -30,20 +30,17 @@ env:
     PRIOR_UBUNTU_NAME: "ubuntu-2010"
 
     # Google-cloud VM Images
-    # TODO: At the time of this comment, an selinux-policy regression is blocking use of updated
-    # Fedora VM images: https://bugzilla.redhat.com/show_bug.cgi?id=1965743
-    IMAGE_SUFFIX_UBUNTU: "c5521575421149184"
-    IMAGE_SUFFIX: "c5348179051806720"
+    IMAGE_SUFFIX: "c6737534580424704"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX_UBUNTU}"
-    PRIOR_UBUNTU_CACHE_IMAGE_NAME: "prior-ubuntu-${IMAGE_SUFFIX_UBUNTU}"
+    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
+    PRIOR_UBUNTU_CACHE_IMAGE_NAME: "prior-ubuntu-${IMAGE_SUFFIX}"
 
     # Container FQIN's
     FEDORA_CONTAINER_FQIN: "quay.io/libpod/fedora_podman:${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CONTAINER_FQIN: "quay.io/libpod/prior-fedora_podman:${IMAGE_SUFFIX}"
-    UBUNTU_CONTAINER_FQIN: "quay.io/libpod/ubuntu_podman:${IMAGE_SUFFIX_UBUNTU}"
-    PRIOR_UBUNTU_CONTAINER_FQIN: "quay.io/libpod/prior-ubuntu_podman:${IMAGE_SUFFIX_UBUNTU}"
+    UBUNTU_CONTAINER_FQIN: "quay.io/libpod/ubuntu_podman:${IMAGE_SUFFIX}"
+    PRIOR_UBUNTU_CONTAINER_FQIN: "quay.io/libpod/prior-ubuntu_podman:${IMAGE_SUFFIX}"
 
     ####
     #### Control variables that determine what to run and how to run it.
@@ -633,11 +630,7 @@ rootless_system_test_task:
     main_script: *main
     always: *logs_artifacts
 
-# FIXME: we may want to consider running this from nightly cron instead of CI.
-# The tests are actually pretty quick (less than a minute) but they do rely
-# on pulling images from quay.io, which means we're subject to network flakes.
-#
-# FIXME: how does this env matrix work, anyway? Does it spin up multiple VMs?
+# TODO: Runs on multiple VMs
 # We might just want to encode the version matrix in runner.sh instead
 upgrade_test_task:
     name: "Upgrade test: from $PODMAN_UPGRADE_FROM"
@@ -678,18 +671,11 @@ meta_task:
         image: quay.io/libpod/imgts:$IMAGE_SUFFIX
     env:
         # Space-separated list of images used by this repository state
-        # TODO: Protect commonly tagged ubuntu images from puning in case
-        # workaround for BZ1965743 remains in use beyond the 30-days.
-        # Ref sha 404d5edb155
         IMGNAMES: >-
             ${FEDORA_CACHE_IMAGE_NAME}
             ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
             ${UBUNTU_CACHE_IMAGE_NAME}
             ${PRIOR_UBUNTU_CACHE_IMAGE_NAME}
-            fedora-${IMAGE_SUFFIX_UBUNTU}
-            prior-fedora-${IMAGE_SUFFIX_UBUNTU}
-            ubuntu-${IMAGE_SUFFIX}
-            prior-ubuntu-${IMAGE_SUFFIX}
         BUILDID: "${CIRRUS_BUILD_ID}"
         REPOREF: "${CIRRUS_REPO_NAME}"
         GCPJSON: ENCRYPTED[3a198350077849c8df14b723c0f4c9fece9ebe6408d35982e7adf2105a33f8e0e166ed3ed614875a0887e1af2b8775f4]
