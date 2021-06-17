@@ -64,9 +64,14 @@ For the bind-mount conditions, only mounts explicitly requested by the caller vi
 
 If `--hooks-dir` is unset for root callers, Podman and libpod will currently default to `/usr/share/containers/oci/hooks.d` and `/etc/containers/oci/hooks.d` in order of increasing precedence.  Using these defaults is deprecated, and callers should migrate to explicitly setting `--hooks-dir`.
 
-Podman and libpod currently support an additional `precreate` state which is called before the runtime's `create` operation.  Unlike the other stages, which receive the container state on their standard input, `precreate` hooks receive the proposed runtime configuration on their standard input.  They may alter that configuration as they see fit, and write the altered form to their standard output.
+Podman and libpod currently support the following additional states:
+* `precreate`
+These hooks are called before the runtime's `create` operation. Unlike the other stages, which receive the container state on their standard input, `precreate` hooks receive the proposed runtime configuration on their standard input.  They may alter that configuration as they see fit and write the altered form to their standard output.
 
 **WARNING**: the `precreate` hook lets you do powerful things, such as adding additional mounts to the runtime configuration.  That power also makes it easy to break things.  Before reporting libpod errors, try running your container with `precreate` hooks disabled to see if the problem is due to one of your hooks.
+
+* `networksetup`
+These hooks are called after Podman finishes setting the network up. The hook path resolves in the runtime namespace, but the hook executes in the container namespace. These hooks are useful to set network restrictions via `iptables(8)` or `nftables(8)` or perform other tasks inside a container with the network ready but before the root is pivoted.
 
 #### **--identity**=*path*
 
