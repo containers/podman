@@ -130,7 +130,7 @@ func NewTemplate(name string) *Template {
 func (t *Template) Parse(text string) (*Template, error) {
 	if strings.HasPrefix(text, "table ") {
 		t.isTable = true
-		text = "{{range .}}" + NormalizeFormat(text) + "{{end}}"
+		text = "{{range .}}" + NormalizeFormat(text) + "{{end -}}"
 	} else {
 		text = NormalizeFormat(text)
 	}
@@ -157,12 +157,12 @@ func (t *Template) IsTable() bool {
 	return t.isTable
 }
 
-var rangeRegex = regexp.MustCompile(`{{\s*range\s*\.\s*}}.*{{\s*end\s*}}`)
+var rangeRegex = regexp.MustCompile(`{{\s*range\s*\.\s*}}.*{{\s*end\s*-?\s*}}`)
 
 // EnforceRange ensures that the format string contains a range
 func EnforceRange(format string) string {
 	if !rangeRegex.MatchString(format) {
-		return "{{range .}}" + format + "{{end}}"
+		return "{{range .}}" + format + "{{end -}}"
 	}
 	return format
 }

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 
@@ -23,7 +24,7 @@ const (
 	_configPath = "containers/containers.conf"
 	// DefaultContainersConfig holds the default containers config path
 	DefaultContainersConfig = "/usr/share/" + _configPath
-	// OverrideContainersConfig holds the default config paths overridden by the root user
+	// OverrideContainersConfig holds the default config path overridden by the root user
 	OverrideContainersConfig = "/etc/" + _configPath
 	// UserOverrideContainersConfig holds the containers config path overridden by the rootless user
 	UserOverrideContainersConfig = ".config/" + _configPath
@@ -55,6 +56,8 @@ type Config struct {
 	Engine EngineConfig `toml:"engine"`
 	// Network section defines the configuration of CNI Plugins
 	Network NetworkConfig `toml:"network"`
+	// Secret section defines configurations for the secret management
+	Secrets SecretConfig `toml:"secrets"`
 }
 
 // ContainersConfig represents the "containers" TOML config table
@@ -136,6 +139,11 @@ type ContainersConfig struct {
 	// that is parsed to bytes.
 	// Negative values indicate that the log file won't be truncated.
 	LogSizeMax int64 `toml:"log_size_max,omitempty"`
+
+	// Specifies default format tag for container log messages.
+	// This is useful for creating a specific tag for container log messages.
+	// Containers logs default to truncated container ID as a tag.
+	LogTag string `toml:"log_tag,omitempty"`
 
 	// NetNS indicates how to create a network namespace for the container
 	NetNS string `toml:"netns,omitempty"`
@@ -440,6 +448,17 @@ type NetworkConfig struct {
 	NetworkConfigDir string `toml:"network_config_dir,omitempty"`
 }
 
+// SecretConfig represents the "secret" TOML config table
+type SecretConfig struct {
+	// Driver specifies the secret driver to use.
+	// Current valid value:
+	//  * file
+	//  * pass
+	Driver string `toml:"driver,omitempty"`
+	// Opts contains driver specific options
+	Opts map[string]string `toml:"opts,omitempty"`
+}
+
 // Destination represents destination for remote service
 type Destination struct {
 	// URI, required. Example: ssh://root@example.com:22/run/podman/podman.sock
@@ -513,10 +532,49 @@ func readConfigFromFile(path string, config *Config) error {
 	return nil
 }
 
+// addConfigs will search one level in the config dirPath for config files
+// If the dirPath does not exist, addConfigs will return nil
+func addConfigs(dirPath string, configs []string) ([]string, error) {
+	newConfigs := []string{}
+
+	err := filepath.Walk(dirPath,
+		// WalkFunc to read additional configs
+		func(path string, info os.FileInfo, err error) error {
+			switch {
+			case err != nil:
+				// return error (could be a permission problem)
+				return err
+			case info == nil:
+				// this should only happen when err != nil but let's be sure
+				return nil
+			case info.IsDir():
+				if path != dirPath {
+					// make sure to not recurse into sub-directories
+					return filepath.SkipDir
+				}
+				// ignore directories
+				return nil
+			default:
+				// only add *.conf files
+				if strings.HasSuffix(path, ".conf") {
+					newConfigs = append(newConfigs, path)
+				}
+				return nil
+			}
+		},
+	)
+	if os.IsNotExist(err) {
+		err = nil
+	}
+	sort.Strings(newConfigs)
+	return append(configs, newConfigs...), err
+}
+
 // Returns the list of configuration files, if they exist in order of hierarchy.
 // The files are read in order and each new file can/will override previous
 // file settings.
 func systemConfigs() ([]string, error) {
+	var err error
 	configs := []string{}
 	path := os.Getenv("CONTAINERS_CONF")
 	if path != "" {
@@ -531,13 +589,22 @@ func systemConfigs() ([]string, error) {
 	if _, err := os.Stat(OverrideContainersConfig); err == nil {
 		configs = append(configs, OverrideContainersConfig)
 	}
-	path, err := ifRootlessConfigPath()
+	configs, err = addConfigs(OverrideContainersConfig+".d", configs)
+	if err != nil {
+		return nil, err
+	}
+
+	path, err = ifRootlessConfigPath()
 	if err != nil {
 		return nil, err
 	}
 	if path != "" {
 		if _, err := os.Stat(path); err == nil {
 			configs = append(configs, path)
+		}
+		configs, err = addConfigs(path+".d", configs)
+		if err != nil {
+			return nil, err
 		}
 	}
 	return configs, nil

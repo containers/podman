@@ -44,8 +44,54 @@ func arches() []Architecture {
 // DefaultProfile defines the allowlist for the default seccomp profile.
 func DefaultProfile() *Seccomp {
 	einval := uint(unix.EINVAL)
+	enosys := uint(unix.ENOSYS)
+	eperm := uint(unix.EPERM)
 
 	syscalls := []*Syscall{
+		{
+			Names: []string{
+				"bdflush",
+				"clone3",
+				"io_pgetevents",
+				"io_uring_enter",
+				"io_uring_register",
+				"io_uring_setup",
+				"kexec_file_load",
+				"kexec_load",
+				"membarrier",
+				"migrate_pages",
+				"move_pages",
+				"nfsservctl",
+				"nice",
+				"oldfstat",
+				"oldlstat",
+				"oldolduname",
+				"oldstat",
+				"olduname",
+				"pciconfig_iobase",
+				"pciconfig_read",
+				"pciconfig_write",
+				"pkey_alloc",
+				"pkey_free",
+				"pkey_mprotect",
+				"rseq",
+				"sgetmask",
+				"ssetmask",
+				"swapcontext",
+				"swapoff",
+				"swapon",
+				"sysfs",
+				"uselib",
+				"userfaultfd",
+				"ustat",
+				"vm86",
+				"vm86old",
+				"vmsplice",
+			},
+			Action:   ActErrno,
+			ErrnoRet: &eperm,
+			Args:     []*Arg{},
+		},
 		{
 			Names: []string{
 				"_llseek",
@@ -128,6 +174,7 @@ func DefaultProfile() *Seccomp {
 				"ftruncate",
 				"ftruncate64",
 				"futex",
+				"futex_time64",
 				"futimesat",
 				"get_robust_list",
 				"get_thread_area",
@@ -212,7 +259,9 @@ func DefaultProfile() *Seccomp {
 				"mq_notify",
 				"mq_open",
 				"mq_timedreceive",
+				"mq_timedreceive_time64",
 				"mq_timedsend",
+				"mq_timedsend_time64",
 				"mq_unlink",
 				"mremap",
 				"msgctl",
@@ -252,6 +301,7 @@ func DefaultProfile() *Seccomp {
 				"pwritev2",
 				"read",
 				"readahead",
+				"readdir",
 				"readlink",
 				"readlinkat",
 				"readv",
@@ -259,6 +309,7 @@ func DefaultProfile() *Seccomp {
 				"recv",
 				"recvfrom",
 				"recvmmsg",
+				"recvmmsg_time64",
 				"recvmsg",
 				"remap_file_pages",
 				"removexattr",
@@ -274,6 +325,7 @@ func DefaultProfile() *Seccomp {
 				"rt_sigreturn",
 				"rt_sigsuspend",
 				"rt_sigtimedwait",
+				"rt_sigtimedwait_time64",
 				"rt_tgsigqueueinfo",
 				"sched_get_priority_max",
 				"sched_get_priority_min",
@@ -282,6 +334,7 @@ func DefaultProfile() *Seccomp {
 				"sched_getparam",
 				"sched_getscheduler",
 				"sched_rr_get_interval",
+				"sched_rr_get_interval_time64",
 				"sched_setaffinity",
 				"sched_setattr",
 				"sched_setparam",
@@ -293,6 +346,7 @@ func DefaultProfile() *Seccomp {
 				"semget",
 				"semop",
 				"semtimedop",
+				"semtimedop_time64",
 				"send",
 				"sendfile",
 				"sendfile64",
@@ -361,6 +415,7 @@ func DefaultProfile() *Seccomp {
 				"timer_gettime",
 				"timer_gettime64",
 				"timer_settime",
+				"timer_settime64",
 				"timerfd_create",
 				"timerfd_gettime",
 				"timerfd_gettime64",
@@ -516,6 +571,17 @@ func DefaultProfile() *Seccomp {
 		},
 		{
 			Names: []string{
+				"open_by_handle_at",
+			},
+			Action:   ActErrno,
+			ErrnoRet: &eperm,
+			Args:     []*Arg{},
+			Excludes: Filter{
+				Caps: []string{"CAP_DAC_READ_SEARCH"},
+			},
+		},
+		{
+			Names: []string{
 				"bpf",
 				"fanotify_init",
 				"lookup_dcookie",
@@ -533,11 +599,40 @@ func DefaultProfile() *Seccomp {
 		},
 		{
 			Names: []string{
+				"bpf",
+				"fanotify_init",
+				"lookup_dcookie",
+				"perf_event_open",
+				"quotactl",
+				"setdomainname",
+				"sethostname",
+				"setns",
+			},
+			Action:   ActErrno,
+			ErrnoRet: &eperm,
+			Args:     []*Arg{},
+			Excludes: Filter{
+				Caps: []string{"CAP_SYS_ADMIN"},
+			},
+		},
+		{
+			Names: []string{
 				"chroot",
 			},
 			Action: ActAllow,
 			Args:   []*Arg{},
 			Includes: Filter{
+				Caps: []string{"CAP_SYS_CHROOT"},
+			},
+		},
+		{
+			Names: []string{
+				"chroot",
+			},
+			Action:   ActErrno,
+			ErrnoRet: &eperm,
+			Args:     []*Arg{},
+			Excludes: Filter{
 				Caps: []string{"CAP_SYS_CHROOT"},
 			},
 		},
@@ -556,6 +651,20 @@ func DefaultProfile() *Seccomp {
 		},
 		{
 			Names: []string{
+				"delete_module",
+				"init_module",
+				"finit_module",
+				"query_module",
+			},
+			Action:   ActErrno,
+			ErrnoRet: &eperm,
+			Args:     []*Arg{},
+			Excludes: Filter{
+				Caps: []string{"CAP_SYS_MODULE"},
+			},
+		},
+		{
+			Names: []string{
 				"get_mempolicy",
 				"mbind",
 				"set_mempolicy",
@@ -568,11 +677,35 @@ func DefaultProfile() *Seccomp {
 		},
 		{
 			Names: []string{
+				"get_mempolicy",
+				"mbind",
+				"set_mempolicy",
+			},
+			Action:   ActErrno,
+			ErrnoRet: &eperm,
+			Args:     []*Arg{},
+			Excludes: Filter{
+				Caps: []string{"CAP_SYS_NICE"},
+			},
+		},
+		{
+			Names: []string{
 				"acct",
 			},
 			Action: ActAllow,
 			Args:   []*Arg{},
 			Includes: Filter{
+				Caps: []string{"CAP_SYS_PACCT"},
+			},
+		},
+		{
+			Names: []string{
+				"acct",
+			},
+			Action:   ActErrno,
+			ErrnoRet: &eperm,
+			Args:     []*Arg{},
+			Excludes: Filter{
 				Caps: []string{"CAP_SYS_PACCT"},
 			},
 		},
@@ -592,12 +725,39 @@ func DefaultProfile() *Seccomp {
 		},
 		{
 			Names: []string{
+				"kcmp",
+				"process_madvise",
+				"process_vm_readv",
+				"process_vm_writev",
+				"ptrace",
+			},
+			Action:   ActErrno,
+			ErrnoRet: &eperm,
+			Args:     []*Arg{},
+			Excludes: Filter{
+				Caps: []string{"CAP_SYS_PTRACE"},
+			},
+		},
+		{
+			Names: []string{
 				"iopl",
 				"ioperm",
 			},
 			Action: ActAllow,
 			Args:   []*Arg{},
 			Includes: Filter{
+				Caps: []string{"CAP_SYS_RAWIO"},
+			},
+		},
+		{
+			Names: []string{
+				"iopl",
+				"ioperm",
+			},
+			Action:   ActErrno,
+			ErrnoRet: &eperm,
+			Args:     []*Arg{},
+			Excludes: Filter{
 				Caps: []string{"CAP_SYS_RAWIO"},
 			},
 		},
@@ -616,11 +776,36 @@ func DefaultProfile() *Seccomp {
 		},
 		{
 			Names: []string{
+				"settimeofday",
+				"stime",
+				"clock_settime",
+				"clock_settime64",
+			},
+			Action:   ActErrno,
+			ErrnoRet: &eperm,
+			Args:     []*Arg{},
+			Excludes: Filter{
+				Caps: []string{"CAP_SYS_TIME"},
+			},
+		},
+		{
+			Names: []string{
 				"vhangup",
 			},
 			Action: ActAllow,
 			Args:   []*Arg{},
 			Includes: Filter{
+				Caps: []string{"CAP_SYS_TTY_CONFIG"},
+			},
+		},
+		{
+			Names: []string{
+				"vhangup",
+			},
+			Action:   ActErrno,
+			ErrnoRet: &eperm,
+			Args:     []*Arg{},
+			Excludes: Filter{
 				Caps: []string{"CAP_SYS_TTY_CONFIG"},
 			},
 		},
@@ -706,8 +891,9 @@ func DefaultProfile() *Seccomp {
 	}
 
 	return &Seccomp{
-		DefaultAction: ActErrno,
-		ArchMap:       arches(),
-		Syscalls:      syscalls,
+		DefaultAction:   ActErrno,
+		DefaultErrnoRet: &enosys,
+		ArchMap:         arches(),
+		Syscalls:        syscalls,
 	}
 }

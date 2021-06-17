@@ -62,6 +62,10 @@ Require HTTPS and verify certificates when contacting registries (default: true)
 then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,
 TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf.
 
+#### **--verbose**, **-v**
+
+Write more detailed information to stdout (e.g., the used credential helper or auth.json file).
+
 #### **--help**, **-h**
 
 Print usage statement
