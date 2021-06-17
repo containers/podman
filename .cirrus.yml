@@ -32,8 +32,8 @@ env:
     # Google-cloud VM Images
     # TODO: At the time of this comment, an selinux-policy regression is blocking use of updated
     # Fedora VM images: https://bugzilla.redhat.com/show_bug.cgi?id=1965743
-    IMAGE_SUFFIX_UBUNTU: "c5521575421149184"
-    IMAGE_SUFFIX: "c5348179051806720"
+    IMAGE_SUFFIX_UBUNTU: "c6534244118822912"   # new
+    IMAGE_SUFFIX: "c6534244118822912"          # old
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX_UBUNTU}"
