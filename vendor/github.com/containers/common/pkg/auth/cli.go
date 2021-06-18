@@ -20,6 +20,7 @@ type LoginOptions struct {
 	Username      string
 	StdinPassword bool
 	GetLoginSet   bool
+	Verbose       bool // set to true for verbose output
 	// Options caller can set
 	Stdin                     io.Reader // set to os.Stdin
 	Stdout                    io.Writer // set to os.Stdout
@@ -47,6 +48,7 @@ func GetLoginFlags(flags *LoginOptions) *pflag.FlagSet {
 	fs.StringVarP(&flags.Username, "username", "u", "", "Username for registry")
 	fs.BoolVar(&flags.StdinPassword, "password-stdin", false, "Take the password from stdin")
 	fs.BoolVar(&flags.GetLoginSet, "get-login", false, "Return the current login user for the registry")
+	fs.BoolVarP(&flags.Verbose, "verbose", "v", false, "Write more detailed information to stdout")
 	return &fs
 }
 
