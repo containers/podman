@@ -7,12 +7,14 @@ import (
 
 	"github.com/containers/common/libimage"
 	"github.com/containers/podman/v3/libpod"
+	"github.com/containers/podman/v3/libpod/define"
 	ann "github.com/containers/podman/v3/pkg/annotations"
 	envLib "github.com/containers/podman/v3/pkg/env"
 	"github.com/containers/podman/v3/pkg/signal"
 	"github.com/containers/podman/v3/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
@@ -202,6 +204,17 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	// set log-driver from common if not already set
 	if len(s.LogConfiguration.Driver) < 1 {
 		s.LogConfiguration.Driver = rtc.Containers.LogDriver
+	}
+	if len(rtc.Containers.LogTag) > 0 {
+		if s.LogConfiguration.Driver != define.JSONLogging {
+			if s.LogConfiguration.Options == nil {
+				s.LogConfiguration.Options = make(map[string]string)
+			}
+
+			s.LogConfiguration.Options["tag"] = rtc.Containers.LogTag
+		} else {
+			logrus.Warnf("log_tag %q is not allowed with %q log_driver", rtc.Containers.LogTag, define.JSONLogging)
+		}
 	}
 
 	warnings, err := verifyContainerResources(s)
