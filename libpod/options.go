@@ -7,6 +7,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/image/v5/manifest"
@@ -268,8 +269,11 @@ func WithRegistriesConf(path string) RuntimeOption {
 			return errors.Wrap(err, "error locating specified registries.conf")
 		}
 		if rt.imageContext == nil {
-			rt.imageContext = &types.SystemContext{}
+			rt.imageContext = &types.SystemContext{
+				BigFilesTemporaryDir: parse.GetTempDir(),
+			}
 		}
+
 		rt.imageContext.SystemRegistriesConfPath = path
 		return nil
 	}
