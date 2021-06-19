@@ -18,18 +18,6 @@ func ParseSourceAndDestination(source, destination string) (string, string, stri
 	sourceContainer, sourcePath := parseUserInput(source)
 	destContainer, destPath := parseUserInput(destination)
 
-	numContainers := 0
-	if len(sourceContainer) > 0 {
-		numContainers++
-	}
-	if len(destContainer) > 0 {
-		numContainers++
-	}
-
-	if numContainers != 1 {
-		return "", "", "", "", errors.Errorf("invalid arguments %q, %q: exactly 1 container expected but %d specified", source, destination, numContainers)
-	}
-
 	if len(sourcePath) == 0 || len(destPath) == 0 {
 		return "", "", "", "", errors.Errorf("invalid arguments %q, %q: you must specify paths", source, destination)
 	}

@@ -82,7 +82,9 @@ func cp(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if len(sourceContainerStr) > 0 {
+	if len(sourceContainerStr) > 0 && len(destContainerStr) > 0 {
+		return copyContainerToContainer(sourceContainerStr, sourcePath, destContainerStr, destPath)
+	} else if len(sourceContainerStr) > 0 {
 		return copyFromContainer(sourceContainerStr, sourcePath, destPath)
 	}
 
@@ -113,6 +115,110 @@ func doCopy(funcA func() error, funcB func() error) error {
 	copyErrors = append(copyErrors, funcB())
 	copyErrors = append(copyErrors, <-errChan)
 	return errorhandling.JoinErrors(copyErrors)
+}
+
+func copyContainerToContainer(sourceContainer string, sourcePath string, destContainer string, destPath string) error {
+	if err := containerMustExist(sourceContainer); err != nil {
+		return err
+	}
+
+	if err := containerMustExist(destContainer); err != nil {
+		return err
+	}
+
+	sourceContainerInfo, err := registry.ContainerEngine().ContainerStat(registry.GetContext(), sourceContainer, sourcePath)
+	if err != nil {
+		return errors.Wrapf(err, "%q could not be found on container %s", sourcePath, sourceContainer)
+	}
+
+	var destContainerBaseName string
+	destContainerInfo, destContainerInfoErr := registry.ContainerEngine().ContainerStat(registry.GetContext(), destContainer, destPath)
+	if destContainerInfoErr != nil {
+		if strings.HasSuffix(destPath, "/") {
+			return errors.Wrapf(destContainerInfoErr, "%q could not be found on container %s", destPath, destContainer)
+		}
+		// NOTE: containerInfo may actually be set.  That happens when
+		// the container path is a symlink into nirvana.  In that case,
+		// we must use the symlinked path instead.
+		path := destPath
+		if destContainerInfo != nil {
+			destContainerBaseName = filepath.Base(destContainerInfo.LinkTarget)
+			path = destContainerInfo.LinkTarget
+		} else {
+			destContainerBaseName = filepath.Base(destPath)
+		}
+
+		parentDir, err := containerParentDir(destContainer, path)
+		if err != nil {
+			return errors.Wrapf(err, "could not determine parent dir of %q on container %s", path, destContainer)
+		}
+		destContainerInfo, err = registry.ContainerEngine().ContainerStat(registry.GetContext(), destContainer, parentDir)
+		if err != nil {
+			return errors.Wrapf(err, "%q could not be found on container %s", destPath, destContainer)
+		}
+	} else {
+		// If the specified path exists on the container, we must use
+		// its base path as it may have changed due to symlink
+		// evaluations.
+		destContainerBaseName = filepath.Base(destContainerInfo.LinkTarget)
+	}
+
+	if sourceContainerInfo.IsDir && !destContainerInfo.IsDir {
+		return errors.New("destination must be a directory when copying a directory")
+	}
+
+	sourceContainerTarget, destContainerTarget := sourceContainerInfo.LinkTarget, destContainerInfo.LinkTarget
+	if !destContainerInfo.IsDir {
+		destContainerTarget = filepath.Dir(destPath)
+	}
+
+	// If we copy a directory via the "." notation and the container path
+	// does not exist, we need to make sure that the destination on the
+	// container gets created; otherwise the contents of the source
+	// directory will be written to the destination's parent directory.
+	//
+	// Hence, whenever "." is the source and the destination does not
+	// exist, we copy the source's parent and let the copier package create
+	// the destination via the Rename option.
+	if destContainerInfoErr != nil && sourceContainerInfo.IsDir && strings.HasSuffix(sourcePath, ".") {
+		sourceContainerTarget = filepath.Dir(sourceContainerTarget)
+	}
+
+	reader, writer := io.Pipe()
+
+	sourceContainerCopy := func() error {
+		defer writer.Close()
+		copyFunc, err := registry.ContainerEngine().ContainerCopyToArchive(registry.GetContext(), sourceContainer, sourceContainerTarget, writer)
+		if err != nil {
+			return err
+		}
+		if err := copyFunc(); err != nil {
+			return errors.Wrap(err, "error copying from container")
+		}
+		return nil
+	}
+
+	destContainerCopy := func() error {
+		defer reader.Close()
+
+		copyOptions := entities.CopyOptions{Chown: chown}
+		if (!sourceContainerInfo.IsDir && !destContainerInfo.IsDir) || destContainerInfoErr != nil {
+			// If we're having a file-to-file copy, make sure to
+			// rename accordingly.
+			copyOptions.Rename = map[string]string{filepath.Base(sourceContainerTarget): destContainerBaseName}
+		}
+
+		copyFunc, err := registry.ContainerEngine().ContainerCopyFromArchive(registry.GetContext(), destContainer, destContainerTarget, reader, copyOptions)
+		if err != nil {
+			return err
+		}
+		if err := copyFunc(); err != nil {
+			return errors.Wrap(err, "error copying to container")
+		}
+		return nil
+	}
+
+	return doCopy(sourceContainerCopy, destContainerCopy)
 }
 
 // copyFromContainer copies from the containerPath on the container to hostPath.

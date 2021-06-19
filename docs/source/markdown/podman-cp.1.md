@@ -9,10 +9,10 @@ podman\-cp - Copy files/folders between a container and the local filesystem
 **podman container cp** [*options*] [*container*:]*src_path* [*container*:]*dest_path*
 
 ## DESCRIPTION
-Copy the contents of **src_path** to the **dest_path**. You can copy from the container's filesystem to the local machine or the reverse, from the local filesystem to the container.
+Copy the contents of **src_path** to the **dest_path**. You can copy from the container's filesystem to the local machine or the reverse, from the local filesystem to the container or between two containers.
 If `-` is specified for either the SRC_PATH or DEST_PATH, you can also stream a tar archive from STDIN or to STDOUT.
 
-The CONTAINER can be a running or stopped container. The **src_path** or **dest_path** can be a file or directory.
+The containers can be a running or stopped. The **src_path** or **dest_path** can be a file or directory.
 
 The **podman cp** command assumes container paths are relative to the container's root directory (i.e., `/`).
 
@@ -70,10 +70,9 @@ The default is *true*.
 
 ## ALTERNATIVES
 
-Podman has much stronger capabilities than just `podman cp` to achieve copy files between host and container.
+Podman has much stronger capabilities than just `podman cp` to achieve copying files between the host and containers.
 
-Using standard podman-mount and podman-umount takes advantage of the entire linux tool chain, rather
-then just cp.
+Using standard podman-mount and podman-umount takes advantage of the entire linux tool chain, rather than just cp.
 
 If a user wants to copy contents out of a container or into a container, they can execute a few simple commands.
 
@@ -112,6 +111,8 @@ podman cp /home/myuser/myfiles.tar containerID:/tmp
 podman cp containerID:/myapp/ /myapp/
 
 podman cp containerID:/home/myuser/. /home/myuser/
+
+podman cp containerA:/myapp containerB:/yourapp
 
 podman cp - containerID:/myfiles.tar.gz < myfiles.tar.gz
 

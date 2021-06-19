@@ -35,3 +35,19 @@ func (o *CopyOptions) GetChown() bool {
 	}
 	return *o.Chown
 }
+
+// WithRename
+func (o *CopyOptions) WithRename(value map[string]string) *CopyOptions {
+	v := value
+	o.Rename = v
+	return o
+}
+
+// GetRename
+func (o *CopyOptions) GetRename() map[string]string {
+	var rename map[string]string
+	if o.Rename == nil {
+		return rename
+	}
+	return o.Rename
+}

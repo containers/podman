@@ -165,6 +165,8 @@ type CopyOptions struct {
 	// it will change ownership of files from the source tar archive
 	// to the primary uid/gid of the destination container.
 	Chown bool
+	// Map to translate path names.
+	Rename map[string]string
 }
 
 type CommitReport struct {
