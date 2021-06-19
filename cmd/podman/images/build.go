@@ -460,6 +460,8 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to obtain decrypt config")
 	}
+	// Check for possible override of signature policy setting
+	common.OverrideSignaturePolicyIfEmpty(&flags.SignaturePolicy)
 
 	opts := buildahDefine.BuildOptions{
 		AddCapabilities:         flags.CapAdd,

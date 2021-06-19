@@ -142,6 +142,9 @@ func kube(cmd *cobra.Command, args []string) error {
 		kubeOptions.StaticMACs = append(kubeOptions.StaticMACs, m)
 	}
 
+	// Check for possible override of signature policy setting
+	common.OverrideSignaturePolicyIfEmpty(&kubeOptions.SignaturePolicy)
+
 	report, err := registry.ContainerEngine().PlayKube(registry.GetContext(), yamlfile, kubeOptions.PlayKubeOptions)
 	if err != nil {
 		return err

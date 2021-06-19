@@ -282,6 +282,8 @@ func pullImage(imageName string) (string, error) {
 		if pullPolicy == config.PullPolicyNever {
 			return "", errors.Wrap(storage.ErrImageUnknown, imageName)
 		}
+		// Check for possible override of signature policy setting
+		common.OverrideSignaturePolicyIfEmpty(&cliVals.SignaturePolicy)
 		pullReport, pullErr := registry.ImageEngine().Pull(registry.GetContext(), imageName, entities.ImagePullOptions{
 			Authfile:        cliVals.Authfile,
 			Quiet:           cliVals.Quiet,

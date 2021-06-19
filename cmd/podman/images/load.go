@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/completion"
+	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/pkg/domain/entities"
@@ -89,6 +90,8 @@ func load(cmd *cobra.Command, args []string) error {
 		}
 		loadOpts.Input = outFile.Name()
 	}
+	// Check for possible override of signature policy setting
+	common.OverrideSignaturePolicyIfEmpty(&loadOpts.SignaturePolicy)
 	response, err := registry.ImageEngine().Load(context.Background(), loadOpts)
 	if err != nil {
 		return err

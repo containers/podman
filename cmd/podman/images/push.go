@@ -148,6 +148,9 @@ func imagePush(cmd *cobra.Command, args []string) error {
 		pushOptions.Password = creds.Password
 	}
 
+	// Check for possible override of signature policy setting
+	common.OverrideSignaturePolicyIfEmpty(&pushOptions.SignaturePolicy)
+
 	// Let's do all the remaining Yoga in the API to prevent us from scattering
 	// logic across (too) many parts of the code.
 	return registry.ImageEngine().Push(registry.GetContext(), source, destination, pushOptions.ImagePushOptions)

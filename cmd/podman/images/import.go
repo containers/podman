@@ -109,6 +109,9 @@ func importCon(cmd *cobra.Command, args []string) error {
 	importOpts.Source = source
 	importOpts.Reference = reference
 
+	// Check for possible override of signature policy setting
+	common.OverrideSignaturePolicyIfEmpty(&importOpts.SignaturePolicy)
+
 	response, err := registry.ImageEngine().Import(context.Background(), importOpts)
 	if err != nil {
 		return err

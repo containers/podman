@@ -152,6 +152,10 @@ func imagePull(cmd *cobra.Command, args []string) error {
 		pullOptions.Username = creds.Username
 		pullOptions.Password = creds.Password
 	}
+
+	// Check for possible override of signature policy setting
+	common.OverrideSignaturePolicyIfEmpty(&pullOptions.SignaturePolicy)
+
 	// Let's do all the remaining Yoga in the API to prevent us from
 	// scattering logic across (too) many parts of the code.
 	pullReport, err := registry.ImageEngine().Pull(registry.GetContext(), args[0], pullOptions.ImagePullOptions)

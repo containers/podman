@@ -94,5 +94,7 @@ func runlabel(cmd *cobra.Command, args []string) error {
 			return err
 		}
 	}
+	// Check for possible override of signature policy setting
+	common.OverrideSignaturePolicyIfEmpty(&runlabelOptions.SignaturePolicy)
 	return registry.ContainerEngine().ContainerRunlabel(context.Background(), args[0], args[1], args[2:], runlabelOptions.ContainerRunlabelOptions)
 }
