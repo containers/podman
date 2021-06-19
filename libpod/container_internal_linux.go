@@ -1659,9 +1659,13 @@ func (c *Container) generateResolvConf() (string, error) {
 	// check if systemd-resolved is used, assume it is used when 127.0.0.53 is the only nameserver
 	if len(ns) == 1 && ns[0] == "127.0.0.53" {
 		// read the actual resolv.conf file for systemd-resolved
-		contents, err = ioutil.ReadFile("/run/systemd/resolve/resolv.conf")
+		resolvedContents, err := ioutil.ReadFile("/run/systemd/resolve/resolv.conf")
 		if err != nil {
-			return "", errors.Wrapf(err, "detected that systemd-resolved is in use, but could not locate real resolv.conf")
+			if !os.IsNotExist(err) {
+				return "", errors.Wrapf(err, "detected that systemd-resolved is in use, but could not locate real resolv.conf")
+			}
+		} else {
+			contents = resolvedContents
 		}
 	}
 
