@@ -1044,40 +1044,9 @@ func (c *Container) cniHosts() string {
 
 // Run networksetup hooks
 func (c *Container) runNetworkSetupHooks(ctx context.Context) error {
-	allHooks := make(map[string][]spec.Hook)
-	if c.runtime.config.Engine.HooksDir == nil {
-		if rootless.IsRootless() {
-			return nil
-		}
-		for _, hDir := range []string{hooks.DefaultDir, hooks.OverrideDir} {
-			manager, err := hooks.New(ctx, []string{hDir}, []string{"networksetup"})
-			if err != nil {
-				if os.IsNotExist(err) {
-					continue
-				}
-				return err
-			}
-			ociHooks, err := manager.Hooks(c.Spec(), c.Spec().Annotations, len(c.config.UserVolumes) > 0)
-			if err != nil {
-				return err
-			}
-			if len(ociHooks) > 0 || c.Spec().Hooks != nil {
-				logrus.Warnf("implicit hook directories are deprecated; set --ociHooks-dir=%q explicitly to continue to load ociHooks from this directory", hDir)
-			}
-			for i, hook := range ociHooks {
-				allHooks[i] = hook
-			}
-		}
-	} else {
-		manager, err := hooks.New(ctx, c.runtime.config.Engine.HooksDir, []string{"networksetup"})
-		if err != nil {
-			return err
-		}
-
-		allHooks, err = manager.Hooks(c.Spec(), c.Spec().Annotations, len(c.config.UserVolumes) > 0)
-		if err != nil {
-			return err
-		}
+	allHooks, err := c.findHooks(ctx, c.Spec(), []string{"networksetup"})
+	if allHooks == nil || err != nil {
+		return err
 	}
 
 	state, err := json.Marshal(spec.State{
@@ -1092,7 +1061,7 @@ func (c *Container) runNetworkSetupHooks(ctx context.Context) error {
 	}
 
 	netnsPath := ""
-	if !c.config.PostConfigureNetNS && c.state.NetNS != nil {
+	if c.state.NetNS != nil {
 		netnsPath = c.state.NetNS.Path()
 	}
 	if netnsPath == "" && c.state.PID > 0 {
@@ -2068,15 +2037,15 @@ func (c *Container) saveSpec(spec *spec.Spec) error {
 	return nil
 }
 
-// Warning: precreate hooks may alter 'config' in place.
-func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (map[string][]spec.Hook, error) {
+// Find hooks
+func (c *Container) findHooks(ctx context.Context, config *spec.Spec, stages []string) (map[string][]spec.Hook, error) {
 	allHooks := make(map[string][]spec.Hook)
 	if c.runtime.config.Engine.HooksDir == nil {
 		if rootless.IsRootless() {
 			return nil, nil
 		}
 		for _, hDir := range []string{hooks.DefaultDir, hooks.OverrideDir} {
-			manager, err := hooks.New(ctx, []string{hDir}, []string{"precreate", "networksetup", "poststop"})
+			manager, err := hooks.New(ctx, []string{hDir}, stages)
 			if err != nil {
 				if os.IsNotExist(err) {
 					continue
@@ -2095,7 +2064,7 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (map[s
 			}
 		}
 	} else {
-		manager, err := hooks.New(ctx, c.runtime.config.Engine.HooksDir, []string{"precreate", "networksetup", "poststop"})
+		manager, err := hooks.New(ctx, c.runtime.config.Engine.HooksDir, stages)
 		if err != nil {
 			return nil, err
 		}
@@ -2104,6 +2073,16 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (map[s
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	return allHooks, nil
+}
+
+// Warning: precreate hooks may alter 'config' in place.
+func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (map[string][]spec.Hook, error) {
+	allHooks, err := c.findHooks(ctx, config, []string{"precreate", "networksetup", "poststop"})
+	if allHooks == nil || err != nil {
+		return nil, err
 	}
 
 	hookErr, err := exec.RuntimeConfigFilter(ctx, allHooks["precreate"], config, exec.DefaultPostKillTimeout)
