@@ -80,11 +80,14 @@ func cp(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if len(sourceContainerStr) > 0 {
+	if len(sourceContainerStr) > 0 && len(destContainerStr) > 0 {
+		return copyContainerToContainer(sourceContainerStr, sourcePath, destContainerStr, destPath)
+	} else if len(sourceContainerStr) > 0 {
 		return copyFromContainer(sourceContainerStr, sourcePath, destPath)
 	}
 
 	return copyToContainer(destContainerStr, destPath, sourcePath)
+
 }
 
 // containerMustExist returns an error if the specified container does not
@@ -111,6 +114,55 @@ func doCopy(funcA func() error, funcB func() error) error {
 	copyErrors = append(copyErrors, funcB())
 	copyErrors = append(copyErrors, <-errChan)
 	return errorhandling.JoinErrors(copyErrors)
+}
+
+func copyContainerToContainer(fromContainer string, sourcePath string, toContainer string, destPath string) error {
+	if err := containerMustExist(fromContainer); err != nil {
+		return err
+	}
+
+	if err := containerMustExist(toContainer); err != nil {
+		return err
+	}
+
+	fromContainerInfo, err := registry.ContainerEngine().ContainerStat(registry.GetContext(), fromContainer, sourcePath)
+	if err != nil {
+		return errors.Wrapf(err, "%q could not be found on container %s", sourcePath, fromContainer)
+	}
+
+	toContainerInfo, err := registry.ContainerEngine().ContainerStat(registry.GetContext(), toContainer, destPath)
+	if err != nil {
+		return errors.Wrapf(err, "%q could not be found on container %s", destPath, toContainer)
+	}
+
+	fromContainerTarget, toContainerTarget := fromContainerInfo.LinkTarget, toContainerInfo.LinkTarget
+	reader, writer := io.Pipe()
+
+	fromContainerCopy := func() error {
+		defer writer.Close()
+		copyFunc, err := registry.ContainerEngine().ContainerCopyToArchive(registry.GetContext(), fromContainer, fromContainerTarget, writer)
+		if err != nil {
+			return err
+		}
+		if err := copyFunc(); err != nil {
+			return errors.Wrap(err, "error copying from container")
+		}
+		return nil
+	}
+
+	toContainerCopy := func() error {
+		defer reader.Close()
+		copyFunc, err := registry.ContainerEngine().ContainerCopyFromArchive(registry.GetContext(), toContainer, toContainerTarget, reader)
+		if err != nil {
+			return err
+		}
+		if err := copyFunc(); err != nil {
+			return errors.Wrap(err, "error copying to container")
+		}
+		return nil
+	}
+
+	return doCopy(fromContainerCopy, toContainerCopy)
 }
 
 // copyFromContainer copies from the containerPath on the container to hostPath.
