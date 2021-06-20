@@ -28,6 +28,10 @@ Read secret data from environment variable
 
 Specify the secret driver (default **file**, which is unencrypted).
 
+#### **--driver-opts**=*key1=val1,key2=val2*
+
+Specify driver specific options
+
 #### **--help**
 
 Print usage statement.
