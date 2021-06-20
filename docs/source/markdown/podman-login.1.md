@@ -111,6 +111,14 @@ $ echo $testpassword | podman login -u testuser --password-stdin docker.io
 Login Succeeded!
 ```
 
+```
+$ podman login quay.io --verbose
+Username: myusername
+Password:
+Used: /run/user/1000/containers/auth.json
+Login Succeeded!
+```
+
 ## SEE ALSO
 podman(1), podman-logout(1), containers-auth.json(5), containers-certs.d(5), containers-registries.conf(5)
 
