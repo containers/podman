@@ -240,8 +240,9 @@ github.com/containers/psgo v1.5.2/go.mod h1:2ubh0SsreMZjSXW1Hif58JrEcFudQyIy9EzP
 github.com/containers/storage v1.23.5/go.mod h1:ha26Q6ngehFNhf3AWoXldvAvwI4jFe3ETQAf/CeZPyM=
 github.com/containers/storage v1.30.1/go.mod h1:NDJkiwxnSHD1Is+4DGcyR3SIEYSDOa0xnAW+uGQFx9E=
 github.com/containers/storage v1.31.1/go.mod h1:IFEf+yRTS0pvCGQt2tBv1Kzz2XUSPvED6uFBmWG7V/E=
-github.com/containers/storage v1.32.2 h1:V1oKAKmH5e6OTgP7Uf8+T+ntVVYk2MNFnDDkPBI9kxU=
 github.com/containers/storage v1.32.2/go.mod h1:YIBxxjfXZTi04Ah49sh1uSGfmT1V89+I5i3deRobzQo=
+github.com/containers/storage v1.32.3 h1:e/e8kUKrYCFpc6FFcItNCwWrZfj2YuyVI6K09ENG9So=
+github.com/containers/storage v1.32.3/go.mod h1:s1xFaWvj8qwm1+OnlbPE8RBzdTTpIWuHzVivOqzRKiQ=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/etcd v3.3.13+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=

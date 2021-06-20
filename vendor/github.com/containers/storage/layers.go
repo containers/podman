@@ -271,21 +271,22 @@ type LayerStore interface {
 }
 
 type layerStore struct {
-	lockfile          Locker
-	mountsLockfile    Locker
-	rundir            string
-	driver            drivers.Driver
-	layerdir          string
-	layers            []*Layer
-	idindex           *truncindex.TruncIndex
-	byid              map[string]*Layer
-	byname            map[string]*Layer
-	bymount           map[string]*Layer
-	bycompressedsum   map[digest.Digest][]string
-	byuncompressedsum map[digest.Digest][]string
-	uidMap            []idtools.IDMap
-	gidMap            []idtools.IDMap
-	loadMut           sync.Mutex
+	lockfile           Locker
+	mountsLockfile     Locker
+	rundir             string
+	driver             drivers.Driver
+	layerdir           string
+	layers             []*Layer
+	idindex            *truncindex.TruncIndex
+	byid               map[string]*Layer
+	byname             map[string]*Layer
+	bymount            map[string]*Layer
+	bycompressedsum    map[digest.Digest][]string
+	byuncompressedsum  map[digest.Digest][]string
+	uidMap             []idtools.IDMap
+	gidMap             []idtools.IDMap
+	loadMut            sync.Mutex
+	layerspathModified time.Time
 }
 
 func copyLayer(l *Layer) *Layer {
@@ -1744,7 +1745,7 @@ func (r *layerStore) Touch() error {
 }
 
 func (r *layerStore) Modified() (bool, error) {
-	var mmodified bool
+	var mmodified, tmodified bool
 	lmodified, err := r.lockfile.Modified()
 	if err != nil {
 		return lmodified, err
@@ -1757,7 +1758,23 @@ func (r *layerStore) Modified() (bool, error) {
 			return lmodified, err
 		}
 	}
-	return lmodified || mmodified, nil
+
+	if lmodified || mmodified {
+		return true, nil
+	}
+
+	// If the layers.json file has been modified manually, then we have to
+	// reload the storage in any case.
+	info, err := os.Stat(r.layerspath())
+	if err != nil && !os.IsNotExist(err) {
+		return false, errors.Wrap(err, "stat layers file")
+	}
+	if info != nil {
+		tmodified = info.ModTime() != r.layerspathModified
+		r.layerspathModified = info.ModTime()
+	}
+
+	return tmodified, nil
 }
 
 func (r *layerStore) IsReadWrite() bool {
