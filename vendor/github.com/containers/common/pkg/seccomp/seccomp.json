@@ -54,14 +54,9 @@
 		{
 			"names": [
 				"bdflush",
-				"clone3",
 				"io_pgetevents",
-				"io_uring_enter",
-				"io_uring_register",
-				"io_uring_setup",
 				"kexec_file_load",
 				"kexec_load",
-				"membarrier",
 				"migrate_pages",
 				"move_pages",
 				"nfsservctl",
@@ -74,10 +69,6 @@
 				"pciconfig_iobase",
 				"pciconfig_read",
 				"pciconfig_write",
-				"pkey_alloc",
-				"pkey_free",
-				"pkey_mprotect",
-				"rseq",
 				"sgetmask",
 				"ssetmask",
 				"swapcontext",
@@ -124,6 +115,7 @@
 				"clock_nanosleep",
 				"clock_nanosleep_time64",
 				"clone",
+				"clone3",
 				"close",
 				"close_range",
 				"connect",
@@ -197,6 +189,7 @@
 				"getgroups",
 				"getgroups32",
 				"getitimer",
+				"get_mempolicy",
 				"getpeername",
 				"getpgid",
 				"getpgrp",
@@ -247,6 +240,7 @@
 				"lstat",
 				"lstat64",
 				"madvise",
+				"mbind",
 				"memfd_create",
 				"mincore",
 				"mkdir",
@@ -292,6 +286,9 @@
 				"pipe",
 				"pipe2",
 				"pivot_root",
+				"pkey_alloc",
+				"pkey_free",
+				"pkey_mprotect",
 				"poll",
 				"ppoll",
 				"ppoll_time64",
@@ -324,6 +321,7 @@
 				"renameat2",
 				"restart_syscall",
 				"rmdir",
+				"rseq",
 				"rt_sigaction",
 				"rt_sigpending",
 				"rt_sigprocmask",
@@ -360,6 +358,7 @@
 				"sendmsg",
 				"sendto",
 				"setns",
+				"set_mempolicy",
 				"set_robust_list",
 				"set_thread_area",
 				"set_tid_address",
@@ -755,39 +754,6 @@
 			"excludes": {
 				"caps": [
 					"CAP_SYS_MODULE"
-				]
-			},
-			"errnoRet": 1
-		},
-		{
-			"names": [
-				"get_mempolicy",
-				"mbind",
-				"set_mempolicy"
-			],
-			"action": "SCMP_ACT_ALLOW",
-			"args": [],
-			"comment": "",
-			"includes": {
-				"caps": [
-					"CAP_SYS_NICE"
-				]
-			},
-			"excludes": {}
-		},
-		{
-			"names": [
-				"get_mempolicy",
-				"mbind",
-				"set_mempolicy"
-			],
-			"action": "SCMP_ACT_ERRNO",
-			"args": [],
-			"comment": "",
-			"includes": {},
-			"excludes": {
-				"caps": [
-					"CAP_SYS_NICE"
 				]
 			},
 			"errnoRet": 1

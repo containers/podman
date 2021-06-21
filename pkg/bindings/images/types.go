@@ -147,6 +147,9 @@ type PullOptions struct {
 	// OS will overwrite the local operating system (OS) for image
 	// pulls.
 	OS *string
+	// Policy is the pull policy. Supported values are "missing", "never",
+	// "newer", "always". An empty string defaults to "always".
+	Policy *string
 	// Password for authenticating against the registry.
 	Password *string
 	// Quiet can be specified to suppress pull progress when pulling.  Ignored

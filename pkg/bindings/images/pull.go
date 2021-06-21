@@ -13,7 +13,7 @@ import (
 	"github.com/containers/podman/v3/pkg/auth"
 	"github.com/containers/podman/v3/pkg/bindings"
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/hashicorp/go-multierror"
+	"github.com/containers/podman/v3/pkg/errorhandling"
 	"github.com/pkg/errors"
 )
 
@@ -65,7 +65,7 @@ func Pull(ctx context.Context, rawImage string, options *PullOptions) ([]string,
 
 	dec := json.NewDecoder(response.Body)
 	var images []string
-	var mErr error
+	var pullErrors []error
 	for {
 		var report entities.ImagePullReport
 		if err := dec.Decode(&report); err != nil {
@@ -77,7 +77,7 @@ func Pull(ctx context.Context, rawImage string, options *PullOptions) ([]string,
 
 		select {
 		case <-response.Request.Context().Done():
-			return images, mErr
+			break
 		default:
 			// non-blocking select
 		}
@@ -86,7 +86,7 @@ func Pull(ctx context.Context, rawImage string, options *PullOptions) ([]string,
 		case report.Stream != "":
 			fmt.Fprint(stderr, report.Stream)
 		case report.Error != "":
-			mErr = multierror.Append(mErr, errors.New(report.Error))
+			pullErrors = append(pullErrors, errors.New(report.Error))
 		case len(report.Images) > 0:
 			images = report.Images
 		case report.ID != "":
@@ -94,5 +94,5 @@ func Pull(ctx context.Context, rawImage string, options *PullOptions) ([]string,
 			return images, errors.Errorf("failed to parse pull results stream, unexpected input: %v", report)
 		}
 	}
-	return images, mErr
+	return images, errorhandling.JoinErrors(pullErrors)
 }
