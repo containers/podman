@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/libpod/logs"
+	"github.com/hpcloud/tail/watch"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -93,11 +95,14 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 	}()
 	// Check if container is still running or paused
 	if options.Follow {
+		// If the container isn't running or if we encountered an error
+		// getting its state, instruct the logger to read the file
+		// until EOF.
 		state, err := c.State()
 		if err != nil || state != define.ContainerStateRunning {
-			// If the container isn't running or if we encountered
-			// an error getting its state, instruct the logger to
-			// read the file until EOF.
+			// Make sure to wait at least for the poll duration
+			// before stopping the file logger (see #10675).
+			time.Sleep(watch.POLL_DURATION)
 			tailError := t.StopAtEOF()
 			if tailError != nil && fmt.Sprintf("%v", tailError) != "tail: stop at eof" {
 				logrus.Errorf("Error stopping logger: %v", tailError)
@@ -124,6 +129,9 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 			// Now wait for the died event and signal to finish
 			// reading the log until EOF.
 			<-eventChannel
+			// Make sure to wait at least for the poll duration
+			// before stopping the file logger (see #10675).
+			time.Sleep(watch.POLL_DURATION)
 			tailError := t.StopAtEOF()
 			if tailError != nil && fmt.Sprintf("%v", tailError) != "tail: stop at eof" {
 				logrus.Errorf("Error stopping logger: %v", tailError)
