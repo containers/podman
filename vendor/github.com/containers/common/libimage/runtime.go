@@ -84,6 +84,9 @@ func RuntimeFromStore(store storage.Store, options *RuntimeOptions) (*Runtime, e
 	} else {
 		systemContext = types.SystemContext{}
 	}
+	if systemContext.BigFilesTemporaryDir == "" {
+		systemContext.BigFilesTemporaryDir = tmpdir()
+	}
 
 	setRegistriesConfPath(&systemContext)
 
