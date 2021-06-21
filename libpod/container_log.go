@@ -74,7 +74,7 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 			}
 			nll, err := logs.NewLogLine(line.Text)
 			if err != nil {
-				logrus.Error(err)
+				logrus.Errorf("Error getting new log line: %v", err)
 				continue
 			}
 			if nll.Partial() {
@@ -100,10 +100,10 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 			// read the file until EOF.
 			tailError := t.StopAtEOF()
 			if tailError != nil && fmt.Sprintf("%v", tailError) != "tail: stop at eof" {
-				logrus.Error(tailError)
+				logrus.Errorf("Error stopping logger: %v", tailError)
 			}
-			if errors.Cause(err) != define.ErrNoSuchCtr {
-				logrus.Error(err)
+			if err != nil && errors.Cause(err) != define.ErrNoSuchCtr {
+				logrus.Errorf("Error getting container state: %v", err)
 			}
 			return nil
 		}
@@ -126,7 +126,7 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 			<-eventChannel
 			tailError := t.StopAtEOF()
 			if tailError != nil && fmt.Sprintf("%v", tailError) != "tail: stop at eof" {
-				logrus.Error(tailError)
+				logrus.Errorf("Error stopping logger: %v", tailError)
 			}
 		}()
 	}
