@@ -84,6 +84,22 @@ func (o *PullOptions) GetOS() string {
 	return *o.OS
 }
 
+// WithPolicy
+func (o *PullOptions) WithPolicy(value string) *PullOptions {
+	v := &value
+	o.Policy = v
+	return o
+}
+
+// GetPolicy
+func (o *PullOptions) GetPolicy() string {
+	var policy string
+	if o.Policy == nil {
+		return policy
+	}
+	return *o.Policy
+}
+
 // WithPassword
 func (o *PullOptions) WithPassword(value string) *PullOptions {
 	v := &value

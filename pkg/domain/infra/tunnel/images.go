@@ -107,7 +107,7 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, opts entities.
 	options := new(images.PullOptions)
 	options.WithAllTags(opts.AllTags).WithAuthfile(opts.Authfile).WithArch(opts.Arch).WithOS(opts.OS)
 	options.WithVariant(opts.Variant).WithPassword(opts.Password)
-	options.WithQuiet(opts.Quiet).WithUsername(opts.Username)
+	options.WithQuiet(opts.Quiet).WithUsername(opts.Username).WithPolicy(opts.PullPolicy.String())
 	if s := opts.SkipTLSVerify; s != types.OptionalBoolUndefined {
 		if s == types.OptionalBoolTrue {
 			options.WithSkipTLSVerify(true)

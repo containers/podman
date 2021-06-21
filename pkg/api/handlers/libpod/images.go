@@ -482,7 +482,7 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 		destination = source
 	}
 
-	if _, err := utils.ParseDockerReference(destination); err != nil {
+	if err := utils.IsRegistryReference(destination); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
 		return
 	}
