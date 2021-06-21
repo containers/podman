@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/libpod/logs"
+	"github.com/hpcloud/tail/watch"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -74,7 +76,7 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 			}
 			nll, err := logs.NewLogLine(line.Text)
 			if err != nil {
-				logrus.Error(err)
+				logrus.Errorf("Error getting new log line: %v", err)
 				continue
 			}
 			if nll.Partial() {
@@ -93,17 +95,20 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 	}()
 	// Check if container is still running or paused
 	if options.Follow {
+		// If the container isn't running or if we encountered an error
+		// getting its state, instruct the logger to read the file
+		// until EOF.
 		state, err := c.State()
 		if err != nil || state != define.ContainerStateRunning {
-			// If the container isn't running or if we encountered
-			// an error getting its state, instruct the logger to
-			// read the file until EOF.
+			// Make sure to wait at least for the poll duration
+			// before stopping the file logger (see #10675).
+			time.Sleep(watch.POLL_DURATION)
 			tailError := t.StopAtEOF()
 			if tailError != nil && fmt.Sprintf("%v", tailError) != "tail: stop at eof" {
-				logrus.Error(tailError)
+				logrus.Errorf("Error stopping logger: %v", tailError)
 			}
-			if errors.Cause(err) != define.ErrNoSuchCtr {
-				logrus.Error(err)
+			if err != nil && errors.Cause(err) != define.ErrNoSuchCtr {
+				logrus.Errorf("Error getting container state: %v", err)
 			}
 			return nil
 		}
@@ -124,9 +129,12 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 			// Now wait for the died event and signal to finish
 			// reading the log until EOF.
 			<-eventChannel
+			// Make sure to wait at least for the poll duration
+			// before stopping the file logger (see #10675).
+			time.Sleep(watch.POLL_DURATION)
 			tailError := t.StopAtEOF()
 			if tailError != nil && fmt.Sprintf("%v", tailError) != "tail: stop at eof" {
-				logrus.Error(tailError)
+				logrus.Errorf("Error stopping logger: %v", tailError)
 			}
 		}()
 	}
