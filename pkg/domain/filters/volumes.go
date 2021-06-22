@@ -86,11 +86,22 @@ func GeneratePruneVolumeFilters(filters url.Values) ([]libpod.VolumeFilter, erro
 	var vf []libpod.VolumeFilter
 	for filter, v := range filters {
 		for _, val := range v {
+			filterVal := val
 			switch filter {
 			case "label":
-				filter := val
 				vf = append(vf, func(v *libpod.Volume) bool {
-					return util.MatchLabelFilters([]string{filter}, v.Labels())
+					return util.MatchLabelFilters([]string{filterVal}, v.Labels())
+				})
+			case "until":
+				until, err := util.ComputeUntilTimestamp([]string{filterVal})
+				if err != nil {
+					return nil, err
+				}
+				vf = append(vf, func(v *libpod.Volume) bool {
+					if !until.IsZero() && v.CreatedTime().Before(until) {
+						return true
+					}
+					return false
 				})
 			default:
 				return nil, errors.Errorf("%q is an invalid volume filter", filter)
