@@ -20,37 +20,30 @@ Images are pushed from those stored in local image storage.
 
 ## DESTINATION
 
- The DESTINATION is a location to store container images
- The Image "DESTINATION" uses a "transport":"details" format.
- If a transport is not given, podman push will attempt to push
- to a registry.
+ DESTINATION is the location the container image is pushed to. It supports all transports from `containers-transports(5)`. If no transport is specified, the `docker` (i.e., container registry) transport is used.  For remote clients, `docker` is the only supported transport.
 
- Multiple transports are supported:
+```
+# Push to a container registry
+$ podman push quay.io/podman/stable
 
-  **dir:**_path_
-  An existing local directory _path_ storing the manifest, layer tarballs and signatures as individual files. This is a non-standardized format, primarily useful for debugging or noninvasive container inspection.
+# Push to a container registry via the docker transport
+$ podman push docker://quay.io/podman/stable
 
-    $ podman push myimage dir:/tmp/myimage
+# Push to a container registry with another tag
+$ podman push myimage quay.io/username/myimage
 
-  **docker://**_docker-reference_
-  An image in a registry implementing the "Docker Registry HTTP API V2". By default, uses the authorization state in `$XDG_RUNTIME_DIR/containers/auth.json`, which is set using `(podman login)`. If the authorization state is not found there, `$HOME/.docker/config.json` is checked, which is set using `(docker login)`.
+# Push to a local directory
+$ podman push myimage dir:/tmp/myimage
 
-    $ podman push myimage quay.io/username/myimage
+# Push to a tarball in the docker-archive format
+$ podman push myimage docker-archive:/tmp/myimage
 
-  **docker-archive:**_path_[**:**_docker-reference_]
-  An image is stored in the `docker save` formatted file.  _docker-reference_ is only used when creating such a file, and it must not contain a digest.
+# Push to a local docker daemon
+$ sudo podman push myimage docker-daemon:docker.io/library/myimage:33
 
-    $ podman push myimage docker-archive:/tmp/myimage
-
-  **docker-daemon:**_docker-reference_
-  An image in _docker-reference_ format stored in the docker daemon internal storage. _docker-reference_ must contain a tag.
-
-    $ sudo podman push myimage docker-daemon:docker.io/library/myimage:33
-
-  **oci-archive:**_path_**:**_tag_
-  An image _tag_ in a directory compliant with "Open Container Image Layout Specification" at _path_.
-
-    $ podman push myimage oci-archive:/tmp/myimage
+# Push to a tarball in the OCI format
+$ podman push myimage oci-archive:/tmp/myimage
+```
 
 ## OPTIONS
 
@@ -161,4 +154,4 @@ Storing signatures
 ```
 
 ## SEE ALSO
-podman(1), podman-pull(1), podman-login(1), containers-certs.d(5)
+podman(1), podman-pull(1), podman-login(1), containers-certs.d(5), containers-transports(5)
