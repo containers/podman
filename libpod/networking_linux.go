@@ -866,6 +866,10 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 		if err != nil {
 			return nil, err
 		}
+		// see https://github.com/containers/podman/issues/10090
+		// the container has to be locked for syncContainer()
+		netNsCtr.lock.Lock()
+		defer netNsCtr.lock.Unlock()
 		// Have to sync to ensure that state is populated
 		if err := netNsCtr.syncContainer(); err != nil {
 			return nil, err
