@@ -337,9 +337,9 @@ func getBindMount(args []string) (spec.Mount, error) {
 			}
 			switch kv[1] {
 			case "private":
-				newMount.Options = append(newMount.Options, "z")
-			case "shared":
 				newMount.Options = append(newMount.Options, "Z")
+			case "shared":
+				newMount.Options = append(newMount.Options, "z")
 			default:
 				return newMount, errors.Wrapf(util.ErrBadMntOption, "%s mount option must be 'private' or 'shared'", kv[0])
 			}
