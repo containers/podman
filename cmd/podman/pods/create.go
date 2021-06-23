@@ -5,9 +5,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"runtime"
+	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/containers/common/pkg/completion"
+	"github.com/containers/common/pkg/sysinfo"
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/cmd/podman/registry"
@@ -16,6 +20,7 @@ import (
 	"github.com/containers/podman/v3/pkg/errorhandling"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
+	"github.com/docker/docker/pkg/parsers"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -54,6 +59,14 @@ func init() {
 	flags.SetInterspersed(false)
 
 	common.DefineNetFlags(createCommand)
+
+	cpusetflagName := "cpuset-cpus"
+	flags.StringVar(&createOptions.CpusetCpus, cpusetflagName, "", "CPUs in which to allow execution")
+	_ = createCommand.RegisterFlagCompletionFunc(cpusetflagName, completion.AutocompleteDefault)
+
+	cpusflagName := "cpus"
+	flags.Float64Var(&createOptions.Cpus, cpusflagName, 0.000, "set amount of CPUs for the pod")
+	_ = createCommand.RegisterFlagCompletionFunc(cpusflagName, completion.AutocompleteDefault)
 
 	cgroupParentflagName := "cgroup-parent"
 	flags.StringVar(&createOptions.CGroupParent, cgroupParentflagName, "", "Set parent cgroup for the pod")
@@ -185,6 +198,46 @@ func create(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	numCPU := sysinfo.NumCPU()
+	if numCPU == 0 {
+		numCPU = runtime.NumCPU()
+	}
+	if createOptions.Cpus > float64(numCPU) {
+		createOptions.Cpus = float64(numCPU)
+	}
+	copy := createOptions.CpusetCpus
+	cpuSet := createOptions.Cpus
+	if cpuSet == 0 {
+		cpuSet = float64(sysinfo.NumCPU())
+	}
+	ret, err := parsers.ParseUintList(copy)
+	copy = ""
+	if err != nil {
+		errors.Wrapf(err, "could not parse list")
+	}
+	var vals []int
+	for ind, val := range ret {
+		if val {
+			vals = append(vals, ind)
+		}
+	}
+	sort.Ints(vals)
+	for ind, core := range vals {
+		if core > int(cpuSet) {
+			if copy == "" {
+				copy = "0-" + strconv.Itoa(int(cpuSet))
+				createOptions.CpusetCpus = copy
+				break
+			} else {
+				createOptions.CpusetCpus = copy
+				break
+			}
+		} else if ind != 0 {
+			copy += "," + strconv.Itoa(core)
+		} else {
+			copy = "" + strconv.Itoa(core)
+		}
+	}
 	response, err := registry.ContainerEngine().PodCreate(context.Background(), createOptions)
 	if err != nil {
 		return err
