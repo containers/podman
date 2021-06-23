@@ -61,12 +61,14 @@ function teardown() {
 
     run_podman rm -f mystty
 
-    # check that the same works for podman exec
-    run_podman run -d --name mystty $IMAGE top
-    run_podman exec -it mystty stty size <$PODMAN_TEST_PTY
-    is "$output" "$rows $cols" "stty under podman exec reads the correct dimensions"
+    # FIXME: the checks below are flaking a lot (see #10710).
 
-    run_podman rm -f mystty
+    # check that the same works for podman exec
+#    run_podman run -d --name mystty $IMAGE top
+#    run_podman exec -it mystty stty size <$PODMAN_TEST_PTY
+#    is "$output" "$rows $cols" "stty under podman exec reads the correct dimensions"
+#
+#    run_podman rm -f mystty
 }
 
 
