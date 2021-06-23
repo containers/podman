@@ -56,7 +56,11 @@ func (c *Container) GetContainerStats(previousStats *define.ContainerStats) (*de
 
 	previousCPU := previousStats.CPUNano
 	now := uint64(time.Now().UnixNano())
+	stats.Duration = cgroupStats.CPU.Usage.Total
+	stats.UpTime = time.Duration(stats.Duration)
 	stats.CPU = calculateCPUPercent(cgroupStats, previousCPU, now, previousStats.SystemNano)
+	stats.AvgCPU = calculateAvgCPU(stats.CPU, previousStats.AvgCPU, previousStats.DataPoints)
+	stats.DataPoints = previousStats.DataPoints + 1
 	stats.MemUsage = cgroupStats.Memory.Usage.Usage
 	stats.MemLimit = getMemLimit(cgroupStats.Memory.Usage.Limit)
 	stats.MemPerc = (float64(stats.MemUsage) / float64(stats.MemLimit)) * 100
@@ -126,4 +130,10 @@ func calculateBlockIO(stats *cgroups.Metrics) (read uint64, write uint64) {
 		}
 	}
 	return
+}
+
+// calculateAvgCPU calculates the avg CPU percentage given the previous average and the number of data points.
+func calculateAvgCPU(statsCPU float64, prevAvg float64, prevData int64) float64 {
+	avgPer := ((prevAvg * float64(prevData)) + statsCPU) / (float64(prevData) + 1)
+	return avgPer
 }
