@@ -20,7 +20,8 @@ Write the generated output to a file.
 
 #### **--no-desc**
 
-Do not provide description in the completions. The default is **false**.
+Do not provide description in the completions.\
+The default is **false**.
 
 ## Installation
 

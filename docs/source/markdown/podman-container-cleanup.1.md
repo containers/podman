@@ -8,13 +8,14 @@ podman\-container\-cleanup - Cleanup the container's network and mountpoints
 
 ## DESCRIPTION
 **podman container cleanup** cleans up exited *containers* by removing all mountpoints and network configuration from the host. The *container name* or *ID* can be used. The cleanup command does not remove the *containers*. Running *containers* will not be cleaned up.\
-Sometimes container mount points and network stacks can remain if the podman command was killed or the *container* ran in daemon mode. This command is automatically executed when you run *containers* in daemon mode by the `conmon process` when the *container* exits.
+Sometimes container mount points and network stacks can remain if the podman command was killed or the *container* ran in daemon mode. This command is automatically executed when *containers* are run in daemon mode by the `conmon process` when the *container* exits.
 
 ## OPTIONS
-
 #### **--all**, **-a**
 
-Cleanup all *containers*. The default is **false**.
+Cleanup all *containers*.\
+The default is **false**.\
+*IMPORTANT: This OPTION does not need a container name or ID as input argument.*
 
 #### **--exec**=*session*
 
@@ -24,19 +25,21 @@ Can only be specified if a single *container* is being cleaned up (conflicts wit
 
 #### **--latest**, **-l**
 
-Instead of providing the *container ID* or *name*, use the last created *container*. If you use methods other than Podman to run *containers* such as `CRI-O`, the last started *container* could be from either of those methods. The default is **false**.\
-*IMPORTANT: This OPTION is not available with the remote Podman client.*
+Instead of providing the *container ID* or *name*, use the last created *container*. If other methods than Podman are used to run *containers* such as `CRI-O`, the last started *container* could be from either of those methods.\
+The default is **false**.\
+*IMPORTANT: This OPTION is not available with the remote Podman client. This OPTION does not need a container name or ID as input argument.*
 
 #### **--rm**
 
-After cleanup, remove the *container* entirely. The default is **false**.
+After cleanup, remove the *container* entirely.\
+The default is **false**.
 
 #### **--rmi**
 
-After cleanup, remove the image entirely. The default is **false**.
+After cleanup, remove the image entirely.\
+The default is **false**.
 
 ## EXAMPLES
-
 Cleanup the container "mywebserver".
 ```
 $ podman container cleanup mywebserver
