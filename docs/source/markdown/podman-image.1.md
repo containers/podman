@@ -18,7 +18,7 @@ The image command allows you to manage images
 | exists   | [podman-image-exists(1)](podman-image-exists.1.md) | Check if an image exists in local storage.                               |
 | history  | [podman-history(1)](podman-history.1.md)        | Show the history of an image.                                               |
 | import   | [podman-import(1)](podman-import.1.md)              | Import a tarball and save it as a filesystem image.                         |
-| inspect  | [podman-inspect(1)](podman-inspect.1.md)            | Display a image or image's configuration.                                   |
+| inspect  | [podman-inspect(1)](podman-inspect.1.md)            | Display an image or image's configuration.                                   |
 | list     | [podman-images(1)](podman-images.1.md)              | List the container images on the system.(alias ls)                          |
 | load     | [podman-load(1)](podman-load.1.md)                  | Load an image from the docker archive.                                      |
 | mount    | [podman-image-mount(1)](podman-image-mount.1.md)    | Mount an image's root filesystem.                                           |
