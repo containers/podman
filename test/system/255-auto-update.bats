@@ -123,6 +123,8 @@ function _confirm_update() {
     _wait_service_ready container-$cname.service
     run_podman auto-update
     is "$output" "Trying to pull.*" "Image is updated."
+    is "$output" ".*Restarted the following systemd units:
+container-$cname.service" "Systemd unit has been restarted"
     _confirm_update $cname $ori_image
 }
 

@@ -50,7 +50,9 @@ func autoUpdate(cmd *cobra.Command, args []string) error {
 		return errors.Errorf("`%s` takes no arguments", cmd.CommandPath())
 	}
 	report, failures := registry.ContainerEngine().AutoUpdate(registry.GetContext(), autoUpdateOptions)
-	if report != nil {
+	if report != nil && len(report.Units) > 0 {
+		// Make it more obvious to users what the output means.
+		fmt.Println("\nRestarted the following systemd units:")
 		for _, unit := range report.Units {
 			fmt.Println(unit)
 		}
