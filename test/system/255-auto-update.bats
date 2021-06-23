@@ -194,7 +194,7 @@ function _confirm_update() {
     run_podman 125 auto-update
     update_log=$output
     is "$update_log" ".*invalid auto-update policy.*" "invalid policy setup"
-    is "$update_log" ".*1 error occurred.*" "invalid policy setup"
+    is "$update_log" ".*Error: invalid auto-update policy.*" "invalid policy setup"
 
     local n_updated=$(grep -c 'Trying to pull' <<<"$update_log")
     is "$n_updated" "2" "Number of images updated from registry."

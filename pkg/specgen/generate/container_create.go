@@ -92,7 +92,8 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		options = append(options, libpod.WithRootFS(s.Rootfs))
 	} else {
 		var resolvedImageName string
-		newImage, resolvedImageName, err = rt.LibimageRuntime().LookupImage(s.Image, nil)
+		lookupOptions := &libimage.LookupImageOptions{IgnorePlatform: true}
+		newImage, resolvedImageName, err = rt.LibimageRuntime().LookupImage(s.Image, lookupOptions)
 		if err != nil {
 			return nil, err
 		}

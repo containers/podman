@@ -61,6 +61,24 @@ func (i *Image) reload() error {
 	return nil
 }
 
+// isCorrupted returns an error if the image may be corrupted.
+func (i *Image) isCorrupted(name string) error {
+	// If it's a manifest list, we're good for now.
+	if _, err := i.getManifestList(); err == nil {
+		return nil
+	}
+
+	ref, err := i.StorageReference()
+	if err != nil {
+		return err
+	}
+
+	if _, err := ref.NewImage(context.Background(), nil); err != nil {
+		return errors.Errorf("Image %s exists in local storage but may be corrupted: %v", name, err)
+	}
+	return nil
+}
+
 // Names returns associated names with the image which may be a mix of tags and
 // digests.
 func (i *Image) Names() []string {

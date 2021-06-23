@@ -144,9 +144,8 @@ func (r *Runtime) Exists(name string) (bool, error) {
 	if image == nil {
 		return false, nil
 	}
-	// Inspect the image to make sure if it's corrupted or not.
-	if _, err := image.Inspect(context.Background(), false); err != nil {
-		logrus.Errorf("Image %s exists in local storage but may be corrupted: %v", name, err)
+	if err := image.isCorrupted(name); err != nil {
+		logrus.Error(err)
 		return false, nil
 	}
 	return true, nil
@@ -158,6 +157,13 @@ type LookupImageOptions struct {
 	// the current platform will be performed.  This can be helpful when
 	// the platform does not matter, for instance, for image removal.
 	IgnorePlatform bool
+
+	// Lookup an image matching the specified architecture.
+	Architecture string
+	// Lookup an image matching the specified OS.
+	OS string
+	// Lookup an image matching the specified variant.
+	Variant string
 
 	// If set, do not look for items/instances in the manifest list that
 	// match the current platform but return the manifest list as is.
@@ -208,6 +214,25 @@ func (r *Runtime) LookupImage(name string, options *LookupImageOptions) (*Image,
 		// Strip off the sha256 prefix so it can be parsed later on.
 		idByDigest = true
 		name = strings.TrimPrefix(name, "sha256:")
+	}
+
+	// Set the platform for matching local images.
+	if !options.IgnorePlatform {
+		if options.Architecture == "" {
+			options.Architecture = r.systemContext.ArchitectureChoice
+		}
+		if options.Architecture == "" {
+			options.Architecture = runtime.GOARCH
+		}
+		if options.OS == "" {
+			options.OS = r.systemContext.OSChoice
+		}
+		if options.OS == "" {
+			options.OS = runtime.GOOS
+		}
+		if options.Variant == "" {
+			options.Variant = r.systemContext.VariantChoice
+		}
 	}
 
 	// First, check if we have an exact match in the storage. Maybe an ID
@@ -295,7 +320,7 @@ func (r *Runtime) lookupImageInLocalStorage(name, candidate string, options *Loo
 		if err != nil {
 			return nil, err
 		}
-		instance, err := manifestList.LookupInstance(context.Background(), "", "", "")
+		instance, err := manifestList.LookupInstance(context.Background(), options.Architecture, options.OS, options.Variant)
 		if err != nil {
 			// NOTE: If we are not looking for a specific platform
 			// and already found the manifest list, then return it
@@ -316,7 +341,7 @@ func (r *Runtime) lookupImageInLocalStorage(name, candidate string, options *Loo
 		return image, nil
 	}
 
-	matches, err := imageReferenceMatchesContext(context.Background(), ref, &r.systemContext)
+	matches, err := r.imageReferenceMatchesContext(ref, options)
 	if err != nil {
 		return nil, err
 	}
@@ -428,12 +453,13 @@ func (r *Runtime) ResolveName(name string) (string, error) {
 }
 
 // imageReferenceMatchesContext return true if the specified reference matches
-// the platform (os, arch, variant) as specified by the system context.
-func imageReferenceMatchesContext(ctx context.Context, ref types.ImageReference, sys *types.SystemContext) (bool, error) {
-	if sys == nil {
+// the platform (os, arch, variant) as specified by the lookup options.
+func (r *Runtime) imageReferenceMatchesContext(ref types.ImageReference, options *LookupImageOptions) (bool, error) {
+	if options.IgnorePlatform {
 		return true, nil
 	}
-	img, err := ref.NewImage(ctx, sys)
+	ctx := context.Background()
+	img, err := ref.NewImage(ctx, &r.systemContext)
 	if err != nil {
 		return false, err
 	}
@@ -442,16 +468,8 @@ func imageReferenceMatchesContext(ctx context.Context, ref types.ImageReference,
 	if err != nil {
 		return false, err
 	}
-	osChoice := sys.OSChoice
-	if osChoice == "" {
-		osChoice = runtime.GOOS
-	}
-	arch := sys.ArchitectureChoice
-	if arch == "" {
-		arch = runtime.GOARCH
-	}
-	if osChoice == data.Os && arch == data.Architecture {
-		if sys.VariantChoice == "" || sys.VariantChoice == data.Variant {
+	if options.OS == data.Os && options.Architecture == data.Architecture {
+		if options.Variant == "" || options.Variant == data.Variant {
 			return true, nil
 		}
 	}
