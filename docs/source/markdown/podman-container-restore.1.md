@@ -31,7 +31,7 @@ The default is **false**.
 
 #### **--latest**, **-l**
 
-Instead of providing the *container ID* or *name*, use the last created *container*. If other methods than Podman are used to run *containers* such as `CRI-O`, the last started *container* could be from either of those methods.\
+Instead of providing the *container ID* or *name*, use the last created *container*. If other tools than Podman are used to run *containers* such as `CRI-O`, the last started *container* could be from either tool.\
 The default is **false**.\
 *IMPORTANT: This OPTION is not available with the remote Podman client. This OPTION does not need a container name or ID as input argument.*
 
