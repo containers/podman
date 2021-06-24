@@ -179,6 +179,10 @@ func copyFromContainer(container string, containerPath string, hostPath string) 
 		containerTarget = filepath.Dir(containerTarget)
 	}
 
+	if !isStdout && containerInfo.IsDir && !hostInfo.IsDir {
+		return errors.New("destination must be a directory when copying a directory")
+	}
+
 	reader, writer := io.Pipe()
 	hostCopy := func() error {
 		defer reader.Close()
@@ -334,6 +338,10 @@ func copyToContainer(container string, containerPath string, hostPath string) er
 			return errors.New("source must be a (compressed) tar archive when copying from stdin")
 		}
 		stdinFile = tmpFile.Name()
+	}
+
+	if hostInfo.IsDir && !containerInfo.IsDir {
+		return errors.New("destination must be a directory when copying a directory")
 	}
 
 	reader, writer := io.Pipe()

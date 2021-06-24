@@ -272,6 +272,11 @@ load helpers
         run_podman rm -f cpcontainer
     done < <(parse_table "$tests")
 
+    run_podman create --name cpcontainer --workdir=/srv $cpimage sleep infinity
+    run_podman 125 cp $srcdir cpcontainer:/etc/os-release
+    is "$output" "Error: destination must be a directory when copying a directory" "cannot copy directory to file"
+    run_podman rm -f cpcontainer
+
     run_podman rmi -f $cpimage
 }
 
@@ -343,6 +348,10 @@ load helpers
         is "$(< $destdir$dest_fullname/containerfile1)" "${randomcontent[1]}" "$description"
         rm -rf $destdir/*
     done < <(parse_table "$tests")
+
+    touch $destdir/testfile
+    run_podman 125 cp cpcontainer:/etc/ $destdir/testfile
+    is "$output" "Error: destination must be a directory when copying a directory" "cannot copy directory to file"
     run_podman rm -f cpcontainer
 
     run_podman rmi -f $cpimage
