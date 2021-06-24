@@ -9,9 +9,9 @@ import (
 
 	DockerClient "github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/containers/podman/v3/pkg/registries"
 	docker "github.com/docker/docker/api/types"
 	"github.com/pkg/errors"
 )
@@ -37,15 +37,13 @@ func Auth(w http.ResponseWriter, r *http.Request) {
 		skipTLS = types.NewOptionalBool(true)
 	}
 
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	sysCtx := runtime.SystemContext()
+	sysCtx.DockerInsecureSkipTLSVerify = skipTLS
+
 	fmt.Println("Authenticating with existing credentials...")
-	sysCtx := types.SystemContext{
-		AuthFilePath:                "",
-		DockerCertPath:              "",
-		DockerInsecureSkipTLSVerify: skipTLS,
-		SystemRegistriesConfPath:    registries.SystemRegistriesConfPath(),
-	}
 	registry := stripAddressOfScheme(authConfig.ServerAddress)
-	if err := DockerClient.CheckAuth(context.Background(), &sysCtx, authConfig.Username, authConfig.Password, registry); err == nil {
+	if err := DockerClient.CheckAuth(context.Background(), sysCtx, authConfig.Username, authConfig.Password, registry); err == nil {
 		utils.WriteResponse(w, http.StatusOK, entities.AuthReport{
 			IdentityToken: "",
 			Status:        "Login Succeeded",

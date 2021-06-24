@@ -15,10 +15,10 @@ import (
 	"github.com/containers/buildah"
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/seccomp"
+	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/linkmode"
 	"github.com/containers/podman/v3/pkg/cgroups"
-	registries2 "github.com/containers/podman/v3/pkg/registries"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/system"
@@ -49,14 +49,16 @@ func (r *Runtime) info() (*define.Info, error) {
 	}
 	info.Store = storeInfo
 	registries := make(map[string]interface{})
-	data, err := registries2.GetRegistriesData()
+
+	sys := r.SystemContext()
+	data, err := sysregistriesv2.GetRegistries(sys)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting registries")
 	}
 	for _, reg := range data {
 		registries[reg.Prefix] = reg
 	}
-	regs, err := registries2.GetRegistries()
+	regs, err := sysregistriesv2.UnqualifiedSearchRegistries(sys)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting registries")
 	}

@@ -8,11 +8,11 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/network"
-	"github.com/containers/podman/v3/pkg/registries"
 	"github.com/containers/podman/v3/pkg/rootless"
 	systemdDefine "github.com/containers/podman/v3/pkg/systemd/define"
 	"github.com/containers/podman/v3/pkg/util"
@@ -236,7 +236,7 @@ func getSecrets(cmd *cobra.Command, toComplete string) ([]string, cobra.ShellCom
 }
 
 func getRegistries() ([]string, cobra.ShellCompDirective) {
-	regs, err := registries.GetRegistries()
+	regs, err := sysregistriesv2.UnqualifiedSearchRegistries(nil)
 	if err != nil {
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveNoFileComp
