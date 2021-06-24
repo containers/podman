@@ -21,7 +21,7 @@ Supported filters:
 | Filter             | Description                                                                 |
 | :----------------: | --------------------------------------------------------------------------- |
 | *until*            | Only remove containers and images created before given timestamp.           |
-| *label*            | Only remove containers and images, with (or without, in case label!=[...] is used) the specified labels.                  |
+| *label*            | Only remove containers and images, with (or without, in the case of label!=[...] is used) the specified labels.                  |
 
 The `until` *filter* can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. 10m, 1h30m) computed relative to the machine’s time.
 
@@ -60,7 +60,6 @@ ed0c6468b8e1cb641b4621d1fe30cb477e1fefc5c0bceb66feaf2f7cb50e5962
 6ac6c8f0067b7a4682e6b8e18902665b57d1a0e07e885d9abcd382232a543ccd
 fff1c5b6c3631746055ec40598ce8ecaa4b82aef122f9e3a85b03b55c0d06c23
 602d343cd47e7cb3dfc808282a9900a3e4555747787ec6723bb68cedab8384d5
-
 ```
 
 Remove all stopped containers from local storage created within last 10 minutes
