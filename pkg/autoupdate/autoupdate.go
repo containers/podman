@@ -165,8 +165,8 @@ func AutoUpdate(runtime *libpod.Runtime, options Options) ([]string, []error) {
 			if rawImageName == "" {
 				errs = append(errs, errors.Errorf("error registry auto-updating container %q: raw-image name is empty", cid))
 			}
-			readAuthenticationPath(registryCtr, options)
-			needsUpdate, err := newerRemoteImageAvailable(runtime, image, rawImageName, options)
+			authfile := getAuthfilePath(registryCtr, options)
+			needsUpdate, err := newerRemoteImageAvailable(runtime, image, rawImageName, authfile)
 			if err != nil {
 				errs = append(errs, errors.Wrapf(err, "error registry auto-updating container %q: image check for %q failed", cid, rawImageName))
 				continue
@@ -280,18 +280,20 @@ func imageContainersMap(runtime *libpod.Runtime) (map[string]policyMapper, []err
 	return containerMap, errors
 }
 
-// readAuthenticationPath reads a container's labels and reads authentication path into options
-func readAuthenticationPath(ctr *libpod.Container, options Options) {
+// getAuthfilePath returns an authfile path, if set. The authfile label in the
+// container, if set, as precedence over the one set in the options.
+func getAuthfilePath(ctr *libpod.Container, options Options) string {
 	labels := ctr.Labels()
 	authFilePath, exists := labels[AuthfileLabel]
 	if exists {
-		options.Authfile = authFilePath
+		return authFilePath
 	}
+	return options.Authfile
 }
 
 // newerRemoteImageAvailable returns true if there corresponding image on the remote
 // registry is newer.
-func newerRemoteImageAvailable(runtime *libpod.Runtime, img *libimage.Image, origName string, options Options) (bool, error) {
+func newerRemoteImageAvailable(runtime *libpod.Runtime, img *libimage.Image, origName string, authfile string) (bool, error) {
 	remoteRef, err := docker.ParseReference("//" + origName)
 	if err != nil {
 		return false, err
@@ -303,7 +305,9 @@ func newerRemoteImageAvailable(runtime *libpod.Runtime, img *libimage.Image, ori
 	}
 
 	sys := runtime.SystemContext()
-	sys.AuthFilePath = options.Authfile
+	if authfile != "" {
+		sys.AuthFilePath = authfile
+	}
 
 	// We need to account for the arch that the image uses.  It seems
 	// common on ARM to tweak this option to pull the correct image.  See
