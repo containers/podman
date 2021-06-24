@@ -964,6 +964,10 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     description: Pull image for the specified variant.
 	//     type: string
 	//   - in: query
+	//     name: policy
+	//     description: Pull policy, "always" (default), "missing", "newer", "never".
+	//     type: string
+	//   - in: query
 	//     name: tlsVerify
 	//     description: Require TLS verification.
 	//     type: boolean

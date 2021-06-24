@@ -91,7 +91,7 @@ github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/util
-# github.com/containers/common v0.38.9
+# github.com/containers/common v0.38.10
 github.com/containers/common/libimage
 github.com/containers/common/libimage/manifests
 github.com/containers/common/pkg/apparmor

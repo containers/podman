@@ -26,14 +26,16 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
-		Reference string `schema:"reference"`
-		OS        string `schema:"OS"`
-		Arch      string `schema:"Arch"`
-		Variant   string `schema:"Variant"`
-		TLSVerify bool   `schema:"tlsVerify"`
-		AllTags   bool   `schema:"allTags"`
+		Reference  string `schema:"reference"`
+		OS         string `schema:"OS"`
+		Arch       string `schema:"Arch"`
+		Variant    string `schema:"Variant"`
+		TLSVerify  bool   `schema:"tlsVerify"`
+		AllTags    bool   `schema:"allTags"`
+		PullPolicy string `schema:"policy"`
 	}{
-		TLSVerify: true,
+		TLSVerify:  true,
+		PullPolicy: "always",
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
@@ -48,7 +50,7 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Make sure that the reference has no transport or the docker one.
-	if _, err := utils.ParseDockerReference(query.Reference); err != nil {
+	if err := utils.IsRegistryReference(query.Reference); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
 		return
 	}
@@ -83,12 +85,18 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 
 	pullOptions.Writer = writer
 
+	pullPolicy, err := config.ParsePullPolicy(query.PullPolicy)
+	if err != nil {
+		utils.Error(w, "failed to parse pull policy", http.StatusBadRequest, err)
+		return
+	}
+
 	var pulledImages []*libimage.Image
 	var pullError error
 	runCtx, cancel := context.WithCancel(r.Context())
 	go func() {
 		defer cancel()
-		pulledImages, pullError = runtime.LibimageRuntime().Pull(runCtx, query.Reference, config.PullPolicyAlways, pullOptions)
+		pulledImages, pullError = runtime.LibimageRuntime().Pull(runCtx, query.Reference, pullPolicy, pullOptions)
 	}()
 
 	flush := func() {

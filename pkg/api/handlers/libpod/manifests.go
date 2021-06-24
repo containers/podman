@@ -169,7 +169,7 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-	if _, err := utils.ParseDockerReference(query.Destination); err != nil {
+	if err := utils.IsRegistryReference(query.Destination); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
 		return
 	}
