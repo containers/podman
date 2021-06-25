@@ -8,6 +8,17 @@ type AutoUpdateOptions struct {
 
 // AutoUpdateReport contains the results from running auto-update.
 type AutoUpdateReport struct {
-	// Units - the restarted systemd units during auto-update.
-	Units []string
+	// ID of the container *before* an update.
+	ContainerID string
+	// Name of the container *before* an update.
+	ContainerName string
+	// Name of the image.
+	ImageName string
+	// The configured auto-update policy.
+	Policy string
+	// SystemdUnit running a container configured for auto updates.
+	SystemdUnit string
+	// Indicates whether the image was updated and the container (and
+	// systemd unit) restarted.
+	Updated string
 }

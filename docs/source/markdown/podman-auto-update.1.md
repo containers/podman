@@ -41,6 +41,22 @@ If the authorization state is not found there, `$HOME/.docker/config.json` is ch
 
 Note: There is also the option to override the default path of the authentication file by setting the `REGISTRY_AUTH_FILE` environment variable. This can be done with **export REGISTRY_AUTH_FILE=_path_**.
 
+#### **--format**=*format*
+
+Change the default output format.  This can be of a supported type like 'json' or a Go template.
+Valid placeholders for the Go template are listed below:
+
+| **Placeholder** | **Description**                        |
+| --------------- | -------------------------------------- |
+| .Unit           | Name of the systemd unit               |
+| .ContainerName  | Name of the container                  |
+| .ContainerID    | ID of the container                    |
+| .Container      | ID and name of the container           |
+| .Image          | Name of the image                      |
+| .Policy         | Auto-update policy of the container    |
+| .Updated        | Update status: true,false,failed       |
+
+
 ## EXAMPLES
 Autoupdate with registry policy
 
@@ -53,7 +69,7 @@ bc219740a210455fa27deacc96d50a9e20516492f1417507c13ce1533dbdcd9d
 
 ### Generate a systemd unit for this container
 $ podman generate systemd --new --files bc219740a210455fa27deacc96d50a9e20516492f1417507c13ce1533dbdcd9d
-/home/user/containers/libpod/container-bc219740a210455fa27deacc96d50a9e20516492f1417507c13ce1533dbdcd9d.service
+/home/user/container-bc219740a210455fa27deacc96d50a9e20516492f1417507c13ce1533dbdcd9d.service
 
 ### Load the new systemd unit and start it
 $ mv ./container-bc219740a210455fa27deacc96d50a9e20516492f1417507c13ce1533dbdcd9d.service ~/.config/systemd/user
@@ -67,7 +83,7 @@ $ systemctl --user start container-bc219740a210455fa27deacc96d50a9e20516492f1417
 
 ### Auto-update the container
 $ podman auto-update
-container-bc219740a210455fa27deacc96d50a9e20516492f1417507c13ce1533dbdcd9d.service
+[...]
 ```
 
 Autoupdate with local policy
@@ -80,7 +96,7 @@ be0889fd06f252a2e5141b37072c6bada68563026cb2b2649f53394d87ccc338
 
 ### Generate a systemd unit for this container
 $ podman generate systemd --new --files be0889fd06f252a2e5141b37072c6bada68563026cb2b2649f53394d87ccc338
-/home/user/containers/libpod/container-be0889fd06f252a2e5141b37072c6bada68563026cb2b2649f53394d87ccc338.service
+/home/user/container-be0889fd06f252a2e5141b37072c6bada68563026cb2b2649f53394d87ccc338.service
 
 ### Load the new systemd unit and start it
 $ mv ./container-be0889fd06f252a2e5141b37072c6bada68563026cb2b2649f53394d87ccc338.service ~/.config/systemd/user
@@ -102,7 +118,7 @@ $ podman commit --change CMD=/bin/bash inspiring_galileo busybox:latest
 
 ### Auto-update the container
 $ podman auto-update
-container-be0889fd06f252a2e5141b37072c6bada68563026cb2b2649f53394d87ccc338.service
+[...]
 ```
 
 ## SEE ALSO

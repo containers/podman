@@ -1,10 +1,15 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
+	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/errorhandling"
@@ -12,8 +17,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type cliAutoUpdateOptions struct {
+	entities.AutoUpdateOptions
+	format string
+}
+
 var (
-	autoUpdateOptions     = entities.AutoUpdateOptions{}
+	autoUpdateOptions     = cliAutoUpdateOptions{}
 	autoUpdateDescription = `Auto update containers according to their auto-update policy.
 
   Auto-update policies are specified with the "io.containers.autoupdate" label.
@@ -42,6 +52,9 @@ func init() {
 	authfileFlagName := "authfile"
 	flags.StringVar(&autoUpdateOptions.Authfile, authfileFlagName, auth.GetDefaultAuthFile(), "Path to the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 	_ = autoUpdateCommand.RegisterFlagCompletionFunc(authfileFlagName, completion.AutocompleteDefault)
+
+	flags.StringVar(&autoUpdateOptions.format, "format", "", "Change the output format to JSON or a Go template")
+	_ = autoUpdateCommand.RegisterFlagCompletionFunc("format", common.AutocompleteFormat(autoUpdateOutput{}))
 }
 
 func autoUpdate(cmd *cobra.Command, args []string) error {
@@ -49,13 +62,83 @@ func autoUpdate(cmd *cobra.Command, args []string) error {
 		// Backwards compat. System tests expect this error string.
 		return errors.Errorf("`%s` takes no arguments", cmd.CommandPath())
 	}
-	report, failures := registry.ContainerEngine().AutoUpdate(registry.GetContext(), autoUpdateOptions)
-	if report != nil && len(report.Units) > 0 {
-		// Make it more obvious to users what the output means.
-		fmt.Println("\nRestarted the following systemd units:")
-		for _, unit := range report.Units {
-			fmt.Println(unit)
+
+	allReports, failures := registry.ContainerEngine().AutoUpdate(registry.GetContext(), autoUpdateOptions.AutoUpdateOptions)
+	if allReports == nil {
+		return errorhandling.JoinErrors(failures)
+	}
+
+	if err := writeTemplate(allReports, autoUpdateOptions.format); err != nil {
+		failures = append(failures, err)
+	}
+
+	return errorhandling.JoinErrors(failures)
+}
+
+type autoUpdateOutput struct {
+	Unit          string
+	Container     string
+	ContainerName string
+	ContainerID   string
+	Image         string
+	Policy        string
+	Updated       string
+}
+
+func reportsToOutput(allReports []*entities.AutoUpdateReport) []autoUpdateOutput {
+	output := make([]autoUpdateOutput, len(allReports))
+	for i, r := range allReports {
+		output[i] = autoUpdateOutput{
+			Unit:          r.SystemdUnit,
+			Container:     fmt.Sprintf("%s (%s)", r.ContainerID[:12], r.ContainerName),
+			ContainerName: r.ContainerName,
+			ContainerID:   r.ContainerID,
+			Image:         r.ImageName,
+			Policy:        r.Policy,
+			Updated:       r.Updated,
 		}
 	}
-	return errorhandling.JoinErrors(failures)
+	return output
+}
+
+func writeTemplate(allReports []*entities.AutoUpdateReport, inputFormat string) error {
+	var format string
+	var printHeader bool
+
+	output := reportsToOutput(allReports)
+	switch inputFormat {
+	case "":
+		rows := []string{"{{.Unit}}", "{{.Container}}", "{{.Image}}", "{{.Policy}}", "{{.Updated}}"}
+		format = "{{range . }}" + strings.Join(rows, "\t") + "\n{{end -}}"
+		printHeader = true
+	case "json":
+		prettyJSON, err := json.MarshalIndent(output, "", "    ")
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(prettyJSON))
+		return nil
+	default:
+		format = "{{range . }}" + inputFormat + "\n{{end -}}"
+	}
+
+	tmpl, err := report.NewTemplate("auto-update").Parse(format)
+	if err != nil {
+		return err
+	}
+
+	w, err := report.NewWriterDefault(os.Stdout)
+	if err != nil {
+		return err
+	}
+	defer w.Flush()
+
+	if printHeader {
+		headers := report.Headers(autoUpdateOutput{}, nil)
+		if err := tmpl.Execute(w, headers); err != nil {
+			return err
+		}
+	}
+
+	return tmpl.Execute(w, output)
 }
