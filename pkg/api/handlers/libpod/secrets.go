@@ -40,7 +40,7 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 	}
 
 	opts.Driver = query.Driver
-	opts.Opts = query.DriverOpts
+	opts.DriverOpts = query.DriverOpts
 
 	ic := abi.ContainerEngine{Libpod: runtime}
 	report, err := ic.SecretCreate(r.Context(), query.Name, r.Body, opts)

@@ -47,7 +47,7 @@ func init() {
 	cfg := registry.PodmanConfig()
 
 	flags.StringVar(&createOpts.Driver, driverFlagName, cfg.Secrets.Driver, "Specify secret driver")
-	flags.StringToStringVar(&createOpts.Opts, optsFlagName, cfg.Secrets.Opts, "Specify driver specific options")
+	flags.StringToStringVar(&createOpts.DriverOpts, optsFlagName, cfg.Secrets.Opts, "Specify driver specific options")
 	_ = createCmd.RegisterFlagCompletionFunc(driverFlagName, completion.AutocompleteNone)
 	_ = createCmd.RegisterFlagCompletionFunc(optsFlagName, completion.AutocompleteNone)
 

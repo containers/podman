@@ -27,20 +27,20 @@ func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader
 	if options.Driver == "" {
 		options.Driver = cfg.Secrets.Driver
 	}
-	if len(options.Opts) == 0 {
-		options.Opts = cfg.Secrets.Opts
+	if len(options.DriverOpts) == 0 {
+		options.DriverOpts = cfg.Secrets.Opts
 	}
-	if options.Opts == nil {
-		options.Opts = make(map[string]string)
+	if options.DriverOpts == nil {
+		options.DriverOpts = make(map[string]string)
 	}
 
 	if options.Driver == "file" {
-		if _, ok := options.Opts["path"]; !ok {
-			options.Opts["path"] = filepath.Join(secretsPath, "filedriver")
+		if _, ok := options.DriverOpts["path"]; !ok {
+			options.DriverOpts["path"] = filepath.Join(secretsPath, "filedriver")
 		}
 	}
 
-	secretID, err := manager.Store(name, data, options.Driver, options.Opts)
+	secretID, err := manager.Store(name, data, options.Driver, options.DriverOpts)
 	if err != nil {
 		return nil, err
 	}
