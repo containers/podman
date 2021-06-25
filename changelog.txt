@@ -1,3 +1,32 @@
+- Changelog for v3.2.2 (2021-06-25):
+  * fix systemcontext to use correct TMPDIR
+  * Scrub podman commands to use report package
+  * Fix volumes with uid and gid options
+  * Vendor in c/common v0.38.11
+  * Initial release notes for v3.2.2
+  * Fix restoring of privileged containers
+  * Fix handling of podman-remote build --device
+  * Add support for podman remote build -f - .
+  * Fix panic condition in cgroups.getAvailableControllers
+  * Fix permissions on initially created named volumes
+  * Fix building static podman-remote
+  * add correct slirp ip to /etc/hosts
+  * disable tty-size exec checks in system tests
+  * Fix resize race with podman exec -it
+  * Fix documentation of the --format option of podman push
+  * Fix systemd-resolved detection.
+  * Health Check is not handled in the compat LibpodToContainerJSON
+  * Do not use inotify for OCICNI
+  * getContainerNetworkInfo: lock netNsCtr before sync
+  * [NO TESTS NEEDED] Create /etc/mtab with the correct ownership
+  * Create the /etc/mtab file if does not exists
+  * [v3.2] cp: do not allow dir->file copying
+  * create: support images with invalid platform
+  * vendor containers/common@v0.38.10
+  * logs: k8s-file: restore poll sleep
+  * logs: k8s-file: fix spurious error logs
+  * utils: move message from warning to debug
+
 - Changelog for v3.2.1 (2021-06-11):
   * Updated release notes for v3.2.1
   * remote events: fix --stream=false
