@@ -130,12 +130,39 @@ func copyContainerToContainer(fromContainer string, sourcePath string, toContain
 		return errors.Wrapf(err, "%q could not be found on container %s", sourcePath, fromContainer)
 	}
 
+	var toContainerBaseName string
+	_ = toContainerBaseName
 	toContainerInfo, err := registry.ContainerEngine().ContainerStat(registry.GetContext(), toContainer, destPath)
 	if err != nil {
-		return errors.Wrapf(err, "%q could not be found on container %s", destPath, toContainer)
+		if strings.HasSuffix(destPath, "/") {
+			return errors.Wrapf(err, "%q could not be found on container %s", destPath, toContainer)
+		}
+		if toContainerInfo != nil {
+			toContainerBaseName = filepath.Base(toContainerInfo.LinkTarget)
+		} else {
+			toContainerBaseName = filepath.Base(destPath)
+		}
+
+		parentDir, err := containerParentDir(toContainer, destPath)
+		if err != nil {
+			return errors.Wrapf(err, "could not determine parent dir of %q on container %s", destPath, toContainer)
+		}
+		toContainerInfo, err = registry.ContainerEngine().ContainerStat(registry.GetContext(), toContainer, parentDir)
+		if err != nil {
+			return errors.Wrapf(err, "%q could not be found on container %s", destPath, toContainer)
+		}
+	} else {
+		toContainerBaseName = filepath.Base(toContainerInfo.LinkTarget)
+	}
+
+	if fromContainerInfo.IsDir && !toContainerInfo.IsDir {
+		return errors.New("destination must be a directory when copying a directory")
 	}
 
 	fromContainerTarget, toContainerTarget := fromContainerInfo.LinkTarget, toContainerInfo.LinkTarget
+	if !toContainerInfo.IsDir {
+		toContainerTarget = filepath.Dir(destPath)
+	}
 	reader, writer := io.Pipe()
 
 	fromContainerCopy := func() error {
