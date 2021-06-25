@@ -46,6 +46,9 @@ const (
 
 	// rootlessCNINSName is the file name for the rootless network namespace bind mount
 	rootlessCNINSName = "rootless-cni-ns"
+
+	// persistentCNIDir is the directory where the CNI files are stored
+	persistentCNIDir = "/var/lib/cni"
 )
 
 // Get an OCICNI network config
@@ -150,14 +153,31 @@ func (r *RootlessCNI) Do(toRun func() error) error {
 			}
 		}
 
-		// cni plugins need access to /var and /run
-		runDir := filepath.Join(r.dir, "run")
-		varDir := filepath.Join(r.dir, "var")
-		// make sure to mount var first
-		err = unix.Mount(varDir, "/var", "none", unix.MS_BIND, "")
-		if err != nil {
-			return errors.Wrap(err, "failed to mount /var for rootless cni")
+		// cni plugins need access to /var/lib/cni and /run
+		varDir := ""
+		varTarget := persistentCNIDir
+		// we can only mount to a target dir which exists, check /var/lib/cni recursively
+		// while we could always use /var there are cases where a user might store the cni
+		// configs under /var/custom and this would break
+		for {
+			if _, err := os.Stat(varTarget); err == nil {
+				varDir = filepath.Join(r.dir, strings.TrimPrefix(varTarget, "/"))
+				break
+			}
+			varTarget = filepath.Base(varTarget)
+			if varTarget == "/" {
+				break
+			}
 		}
+		if varDir == "" {
+			return errors.New("failed to stat /var directory")
+		}
+		// make sure to mount var first
+		err = unix.Mount(varDir, varTarget, "none", unix.MS_BIND, "")
+		if err != nil {
+			return errors.Wrapf(err, "failed to mount %s for rootless cni", varTarget)
+		}
+		runDir := filepath.Join(r.dir, "run")
 		// recursive mount to keep the netns mount
 		err = unix.Mount(runDir, "/run", "none", unix.MS_BIND|unix.MS_REC, "")
 		if err != nil {
@@ -386,7 +406,7 @@ func (r *Runtime) GetRootlessCNINetNs(new bool) (*RootlessCNI, error) {
 
 				// create cni directories to store files
 				// they will be bind mounted to the correct location in a extra mount ns
-				err = os.MkdirAll(filepath.Join(cniDir, "var"), 0700)
+				err = os.MkdirAll(filepath.Join(cniDir, strings.TrimPrefix(persistentCNIDir, "/")), 0700)
 				if err != nil {
 					return nil, errors.Wrap(err, "could not create rootless-cni var directory")
 				}
@@ -866,6 +886,10 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 		if err != nil {
 			return nil, err
 		}
+		// see https://github.com/containers/podman/issues/10090
+		// the container has to be locked for syncContainer()
+		netNsCtr.lock.Lock()
+		defer netNsCtr.lock.Unlock()
 		// Have to sync to ensure that state is populated
 		if err := netNsCtr.syncContainer(); err != nil {
 			return nil, err
@@ -1021,7 +1045,7 @@ func resultToBasicNetworkConfig(result *cnitypes.Result) (define.InspectBasicNet
 // after itself on an unclean reboot. Return what we're pretty sure is the path
 // to CNI's internal files (it's not really exposed to us).
 func getCNINetworksDir() (string, error) {
-	return "/var/lib/cni/networks", nil
+	return filepath.Join(persistentCNIDir, "networks"), nil
 }
 
 type logrusDebugWriter struct {

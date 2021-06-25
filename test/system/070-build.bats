@@ -29,6 +29,29 @@ EOF
     run_podman rmi -f build_test
 }
 
+@test "podman build test -f -" {
+    rand_filename=$(random_string 20)
+    rand_content=$(random_string 50)
+
+    tmpdir=$PODMAN_TMPDIR/build-test
+    mkdir -p $tmpdir
+    containerfile=$PODMAN_TMPDIR/Containerfile
+    cat >$containerfile <<EOF
+FROM $IMAGE
+RUN apk add nginx
+RUN echo $rand_content > /$rand_filename
+EOF
+
+    # The 'apk' command can take a long time to fetch files; bump timeout
+    PODMAN_TIMEOUT=240 run_podman build -t build_test -f - --format=docker $tmpdir < $containerfile
+    is "$output" ".*STEP 4: COMMIT" "COMMIT seen in log"
+
+    run_podman run --rm build_test cat /$rand_filename
+    is "$output"   "$rand_content"   "reading generated file in image"
+
+    run_podman rmi -f build_test
+}
+
 @test "podman build - global runtime flags test" {
     skip_if_remote "--runtime-flag flag not supported for remote"
 

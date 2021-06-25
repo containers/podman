@@ -6,14 +6,11 @@ import (
 	"os"
 	"sort"
 	"strings"
-	"text/tabwriter"
-	"text/template"
 	"time"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v3/cmd/podman/common"
-	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/pkg/domain/entities"
@@ -132,20 +129,24 @@ func pods(cmd *cobra.Command, _ []string) error {
 	renderHeaders := true
 	row := podPsFormat()
 	if cmd.Flags().Changed("format") {
-		renderHeaders = parse.HasTable(psInput.Format)
+		renderHeaders = report.HasTable(psInput.Format)
 		row = report.NormalizeFormat(psInput.Format)
 	}
 	noHeading, _ := cmd.Flags().GetBool("noheading")
 	if noHeading {
 		renderHeaders = false
 	}
-	format := parse.EnforceRange(row)
+	format := report.EnforceRange(row)
 
-	tmpl, err := template.New("listPods").Parse(format)
+	tmpl, err := report.NewTemplate("list").Parse(format)
 	if err != nil {
 		return err
 	}
-	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
+
+	w, err := report.NewWriterDefault(os.Stdout)
+	if err != nil {
+		return err
+	}
 	defer w.Flush()
 
 	if renderHeaders {

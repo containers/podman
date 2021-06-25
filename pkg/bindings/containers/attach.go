@@ -343,7 +343,7 @@ func attachHandleResize(ctx, winCtx context.Context, winChange chan os.Signal, i
 			resizeErr = ResizeContainerTTY(ctx, id, new(ResizeTTYOptions).WithHeight(h).WithWidth(w))
 		}
 		if resizeErr != nil {
-			logrus.Warnf("failed to resize TTY: %v", resizeErr)
+			logrus.Infof("failed to resize TTY: %v", resizeErr)
 		}
 	}
 
@@ -408,6 +408,17 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 	// If we are in TTY mode, we need to set raw mode for the terminal.
 	// TODO: Share all of this with Attach() for containers.
 	needTTY := terminalFile != nil && terminal.IsTerminal(int(terminalFile.Fd())) && isTerm
+
+	body := struct {
+		Detach bool   `json:"Detach"`
+		TTY    bool   `json:"Tty"`
+		Height uint16 `json:"h"`
+		Width  uint16 `json:"w"`
+	}{
+		Detach: false,
+		TTY:    needTTY,
+	}
+
 	if needTTY {
 		state, err := setRawTerminal(terminalFile)
 		if err != nil {
@@ -419,13 +430,14 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 			}
 			logrus.SetFormatter(&logrus.TextFormatter{})
 		}()
+		w, h, err := terminal.GetSize(int(terminalFile.Fd()))
+		if err != nil {
+			logrus.Warnf("failed to obtain TTY size: %v", err)
+		}
+		body.Width = uint16(w)
+		body.Height = uint16(h)
 	}
 
-	body := struct {
-		Detach bool `json:"Detach"`
-	}{
-		Detach: false,
-	}
 	bodyJSON, err := json.Marshal(body)
 	if err != nil {
 		return err

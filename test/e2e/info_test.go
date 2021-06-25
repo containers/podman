@@ -101,11 +101,11 @@ var _ = Describe("Podman Info", func() {
 		u, err := user.Current()
 		Expect(err).To(BeNil())
 
+		// Cannot use podmanTest.Podman() and test for storage path
 		expect := filepath.Join("/tmp", os.Getenv("HOME"), u.Username, u.Uid, "storage")
 		podmanPath := podmanTest.PodmanTest.PodmanBinary
-		cmd := exec.Command(podmanPath, "info", "--format", "{{.Store.GraphRoot}}")
+		cmd := exec.Command(podmanPath, "info", "--format", "{{.Store.GraphRoot -}}")
 		out, err := cmd.CombinedOutput()
-		fmt.Println(string(out))
 		Expect(err).To(BeNil())
 		Expect(string(out)).To(Equal(expect))
 	})

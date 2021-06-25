@@ -5,8 +5,6 @@ import (
 	"os"
 	"sort"
 	"strings"
-	"text/tabwriter"
-	"text/template"
 	"time"
 	"unicode"
 
@@ -14,7 +12,6 @@ import (
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/podman/v3/cmd/podman/common"
-	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/docker/go-units"
@@ -126,7 +123,7 @@ func images(cmd *cobra.Command, args []string) error {
 	case listFlag.quiet:
 		return writeID(imgs)
 	default:
-		if cmd.Flags().Changed("format") && !parse.HasTable(listFlag.format) {
+		if cmd.Flags().Changed("format") && !report.HasTable(listFlag.format) {
 			listFlag.noHeading = true
 		}
 		return writeTemplate(imgs)
@@ -181,20 +178,23 @@ func writeTemplate(imgs []imageReporter) error {
 		"ReadOnly": "R/O",
 	})
 
-	var row string
+	var format string
 	if listFlag.format == "" {
-		row = lsFormatFromFlags(listFlag)
+		format = lsFormatFromFlags(listFlag)
 	} else {
-		row = report.NormalizeFormat(listFlag.format)
+		format = report.NormalizeFormat(listFlag.format)
+		format = report.EnforceRange(format)
 	}
-	format := parse.EnforceRange(row)
 
-	tmpl, err := template.New("list").Parse(format)
+	tmpl, err := report.NewTemplate("list").Parse(format)
 	if err != nil {
 		return err
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
+	w, err := report.NewWriterDefault(os.Stdout)
+	if err != nil {
+		return err
+	}
 	defer w.Flush()
 
 	if !listFlag.noHeading {
@@ -323,7 +323,7 @@ func lsFormatFromFlags(flags listFlagType) string {
 		row = append(row, "{{.ReadOnly}}")
 	}
 
-	return strings.Join(row, "\t") + "\n"
+	return "{{range . }}" + strings.Join(row, "\t") + "\n{{end -}}"
 }
 
 type imageReporter struct {

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/image/v5/manifest"
@@ -268,8 +269,11 @@ func WithRegistriesConf(path string) RuntimeOption {
 			return errors.Wrap(err, "error locating specified registries.conf")
 		}
 		if rt.imageContext == nil {
-			rt.imageContext = &types.SystemContext{}
+			rt.imageContext = &types.SystemContext{
+				BigFilesTemporaryDir: parse.GetTempDir(),
+			}
 		}
+
 		rt.imageContext.SystemRegistriesConfPath = path
 		return nil
 	}
@@ -1636,6 +1640,19 @@ func WithVolumeGID(gid int) VolumeCreateOption {
 		}
 
 		volume.config.GID = gid
+
+		return nil
+	}
+}
+
+// WithVolumeNoChown prevents the volume from being chowned to the process uid at first use.
+func WithVolumeNoChown() VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return define.ErrVolumeFinalized
+		}
+
+		volume.state.NeedsChown = false
 
 		return nil
 	}

@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
@@ -379,7 +380,9 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 
 	// Set up containers/image
 	if runtime.imageContext == nil {
-		runtime.imageContext = &types.SystemContext{}
+		runtime.imageContext = &types.SystemContext{
+			BigFilesTemporaryDir: parse.GetTempDir(),
+		}
 	}
 	runtime.imageContext.SignaturePolicyPath = runtime.config.Engine.SignaturePolicyPath
 
@@ -458,7 +461,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	}
 
 	// Set up the CNI net plugin
-	netPlugin, err := ocicni.InitCNI(runtime.config.Network.DefaultNetwork, runtime.config.Network.NetworkConfigDir, runtime.config.Network.CNIPluginDirs...)
+	netPlugin, err := ocicni.InitCNINoInotify(runtime.config.Network.DefaultNetwork, runtime.config.Network.NetworkConfigDir, "", runtime.config.Network.CNIPluginDirs...)
 	if err != nil {
 		return errors.Wrapf(err, "error configuring CNI network plugin")
 	}

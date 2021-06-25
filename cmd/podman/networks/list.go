@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"text/tabwriter"
-	"text/template"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
@@ -134,11 +132,15 @@ func templateOut(responses []*entities.NetworkListReport, cmd *cobra.Command) er
 	}
 	format = report.EnforceRange(row)
 
-	tmpl, err := template.New("listNetworks").Parse(format)
+	tmpl, err := report.NewTemplate("list").Parse(format)
 	if err != nil {
 		return err
 	}
-	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
+
+	w, err := report.NewWriterDefault(os.Stdout)
+	if err != nil {
+		return err
+	}
 	defer w.Flush()
 
 	noHeading, _ := cmd.Flags().GetBool("noheading")

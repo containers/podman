@@ -5,13 +5,10 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"text/tabwriter"
-	"text/template"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v3/cmd/podman/common"
-	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/libpod/define"
@@ -105,13 +102,17 @@ func outputTemplate(cmd *cobra.Command, responses []*entities.VolumeListReport) 
 	if cliOpts.Quiet {
 		row = "{{.Name}}\n"
 	}
-	format := parse.EnforceRange(row)
+	format := report.EnforceRange(row)
 
-	tmpl, err := template.New("list volume").Parse(format)
+	tmpl, err := report.NewTemplate("list").Parse(format)
 	if err != nil {
 		return err
 	}
-	w := tabwriter.NewWriter(os.Stdout, 12, 2, 2, ' ', 0)
+
+	w, err := report.NewWriterDefault(os.Stdout)
+	if err != nil {
+		return err
+	}
 	defer w.Flush()
 
 	if !(noHeading || cliOpts.Quiet || cmd.Flag("format").Changed) {

@@ -3,14 +3,11 @@ package images
 import (
 	"fmt"
 	"os"
-	"text/tabwriter"
-	"text/template"
 
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/image/v5/types"
-	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -163,18 +160,22 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 	case report.IsJSON(searchOptions.Format):
 		return printArbitraryJSON(searchReport)
 	case cmd.Flags().Changed("format"):
-		renderHeaders = parse.HasTable(searchOptions.Format)
+		renderHeaders = report.HasTable(searchOptions.Format)
 		row = report.NormalizeFormat(searchOptions.Format)
 	default:
 		row = "{{.Index}}\t{{.Name}}\t{{.Description}}\t{{.Stars}}\t{{.Official}}\t{{.Automated}}\n"
 	}
-	format := parse.EnforceRange(row)
+	format := report.EnforceRange(row)
 
-	tmpl, err := template.New("search").Parse(format)
+	tmpl, err := report.NewTemplate("search").Parse(format)
 	if err != nil {
 		return err
 	}
-	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
+
+	w, err := report.NewWriterDefault(os.Stdout)
+	if err != nil {
+		return err
+	}
 	defer w.Flush()
 
 	if renderHeaders {

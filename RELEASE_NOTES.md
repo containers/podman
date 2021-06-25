@@ -1,5 +1,32 @@
 # Release Notes
 
+## 3.2.2
+### Changes
+- Podman's handling of the Architecture field of images has been relaxed. Since 3.2.0, Podman required that the architecture of the image match the architecture of the system to run containers based on an image, but images often incorrectly report architecture, causing Podman to reject valid images ([#10648](https://github.com/containers/podman/issues/10648) and [#10682](https://github.com/containers/podman/issues/10682)).
+- Podman no longer uses inotify to monitor for changes to CNI configurations. This removes potential issues where Podman cannot be run because a user has exhausted their available inotify sessions ([#10686](https://github.com/containers/podman/issues/10686)).
+
+### Bugfixes
+- Fixed a bug where the `podman cp` would, when given a directory as its source and a target that existed and was a file, copy the contents of the directory into the parent directory of the file; this now results in an error.
+- Fixed a bug where the `podman logs` command would, when following a running container's logs, not include the last line of output from the container when it exited when the `k8s-file` driver was in use ([#10675](https://github.com/containers/podman/issues/10675)).
+- Fixed a bug where Podman would fail to run containers if `systemd-resolved` was incorrectly detected as the system's DNS server ([#10733](https://github.com/containers/podman/issues/10733)).
+- Fixed a bug where the `podman exec -t` command would only resize the exec session's TTY after the session started, leading to a race condition where the terminal would initially not have a size set ([#10560](https://github.com/containers/podman/issues/10560)).
+- Fixed a bug where Podman containers using the `slirp4netns` network mode would add an incorrect entry to `/etc/hosts` pointing the container's hostname to the wrong IP address.
+- Fixed a bug where Podman would create volumes specified by images with incorrect permissions ([#10188](https://github.com/containers/podman/issues/10188) and [#10606](https://github.com/containers/podman/issues/10606)).
+- Fixed a bug where Podman would not respect the `uid` and `gid` options to `podman volume create -o` ([#10620](https://github.com/containers/podman/issues/10620)).
+- Fixed a bug where the `podman run` command could panic when parsing the system's cgroup configuration ([#10666](https://github.com/containers/podman/issues/10666)).
+- Fixed a bug where the remote Podman client's `podman build -f - ...` command did not read a Containerfile from STDIN ([#10621](https://github.com/containers/podman/issues/10621)).
+- Fixed a bug where the `podman container restore --import` command would fail to restore checkpoints created from privileged containers ([#10615](https://github.com/containers/podman/issues/10615)).
+- Fixed a bug where Podman was not respecting the `TMPDIR` environment variable when pulling images ([#10698](https://github.com/containers/podman/issues/10698)).
+- Fixed a bug where a number of Podman commands did not properly support using Go templates as an argument to the `--format` option.
+
+### API
+- Fixed a bug where the Compat Inspect endpoint for Containers did not include information on container healthchecks ([#10457](https://github.com/containers/podman/issues/10457)).
+- Fixed a bug where the Libpod and Compat Build endpoints for Images did not properly handle the `devices` query parameter ([#10614](https://github.com/containers/podman/issues/10614)).
+
+### Misc
+- Fixed a bug where the Makefile's `make podman-remote-static` target to build a statically-linked `podman-remote` binary was instead producing dynamic binaries ([#10656](https://github.com/containers/podman/issues/10656)).
+- Updated the containers/common library to v0.38.11
+
 ## 3.2.1
 ### Changes
 - Podman now allows corrupt images (e.g. from restarting the system during an image pull) to be replaced by a `podman pull` of the same image (instead of requiring they be removed first, then re-pulled).

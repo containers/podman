@@ -73,7 +73,7 @@ func ResizeTTY(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err := ctnr.ExecResize(name, sz); err != nil {
-			if errors.Cause(err) != define.ErrCtrStateInvalid || !query.IgnoreNotRunning {
+			if errors.Cause(err) != define.ErrExecSessionStateInvalid || !query.IgnoreNotRunning {
 				utils.InternalServerError(w, errors.Wrapf(err, "cannot resize session"))
 				return
 			}

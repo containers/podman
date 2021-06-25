@@ -3,13 +3,10 @@ package containers
 import (
 	"fmt"
 	"os"
-	"text/tabwriter"
-	"text/template"
 
 	tm "github.com/buger/goterm"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v3/cmd/podman/common"
-	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/libpod/define"
@@ -172,13 +169,17 @@ func outputStats(reports []define.ContainerStats) error {
 	if len(statsOptions.Format) > 0 {
 		format = report.NormalizeFormat(statsOptions.Format)
 	}
-	format = parse.EnforceRange(format)
+	format = report.EnforceRange(format)
 
-	tmpl, err := template.New("stats").Parse(format)
+	tmpl, err := report.NewTemplate("stats").Parse(format)
 	if err != nil {
 		return err
 	}
-	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
+
+	w, err := report.NewWriterDefault(os.Stdout)
+	if err != nil {
+		return err
+	}
 	defer w.Flush()
 
 	if len(statsOptions.Format) < 1 {

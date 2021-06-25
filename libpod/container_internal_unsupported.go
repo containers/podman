@@ -57,3 +57,8 @@ func (c *Container) reloadNetwork() error {
 func (c *Container) getUserOverrides() *lookup.Overrides {
 	return nil
 }
+
+// Fix ownership and permissions of the specified volume if necessary.
+func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
+	return define.ErrNotImplemented
+}

@@ -4,13 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"os"
-	"text/tabwriter"
 
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v3/cmd/podman/common"
-	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -53,13 +50,17 @@ func inspect(cmd *cobra.Command, args []string) error {
 
 	if cmd.Flags().Changed("format") {
 		row := report.NormalizeFormat(format)
-		formatted := parse.EnforceRange(row)
+		formatted := report.EnforceRange(row)
 
-		tmpl, err := template.New("inspect secret").Parse(formatted)
+		tmpl, err := report.NewTemplate("inspect").Parse(formatted)
 		if err != nil {
 			return err
 		}
-		w := tabwriter.NewWriter(os.Stdout, 12, 2, 2, ' ', 0)
+
+		w, err := report.NewWriterDefault(os.Stdout)
+		if err != nil {
+			return err
+		}
 		defer w.Flush()
 		tmpl.Execute(w, inspected)
 	} else {

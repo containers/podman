@@ -690,4 +690,18 @@ json-file | f
     run_podman rm $cid
 }
 
+@test "podman run no /etc/mtab " {
+    tmpdir=$PODMAN_TMPDIR/build-test
+    mkdir -p $tmpdir
+
+    cat >$tmpdir/Dockerfile <<EOF
+FROM $IMAGE
+RUN rm /etc/mtab
+EOF
+    expected="'/etc/mtab' -> '/proc/mounts'"
+    run_podman build -t nomtab $tmpdir
+    run_podman run --rm nomtab stat -c %N /etc/mtab
+    is "$output" "$expected" "/etc/mtab should be created"
+}
+
 # vim: filetype=sh

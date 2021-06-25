@@ -4,14 +4,11 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"text/tabwriter"
-	"text/template"
 	"time"
 
 	"github.com/buger/goterm"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v3/cmd/podman/common"
-	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/pkg/domain/entities"
@@ -124,8 +121,12 @@ func printJSONPodStats(stats []*entities.PodStatsReport) error {
 	return nil
 }
 
-func printPodStatsLines(stats []*entities.PodStatsReport) {
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+func printPodStatsLines(stats []*entities.PodStatsReport) error {
+	w, err := report.NewWriterDefault(os.Stdout)
+	if err != nil {
+		return err
+	}
+
 	outFormat := "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n"
 	fmt.Fprintf(w, outFormat, "POD", "CID", "NAME", "CPU %", "MEM USAGE/ LIMIT", "MEM %", "NET IO", "BLOCK IO", "PIDS")
 	if len(stats) == 0 {
@@ -135,7 +136,7 @@ func printPodStatsLines(stats []*entities.PodStatsReport) {
 			fmt.Fprintf(w, outFormat, i.Pod, i.CID, i.Name, i.CPU, i.MemUsage, i.Mem, i.NetIO, i.BlockIO, i.PIDS)
 		}
 	}
-	w.Flush()
+	return w.Flush()
 }
 
 func printFormattedPodStatsLines(headerNames []map[string]string, row string, stats []*entities.PodStatsReport) error {
@@ -143,13 +144,17 @@ func printFormattedPodStatsLines(headerNames []map[string]string, row string, st
 		return nil
 	}
 
-	row = parse.EnforceRange(row)
+	row = report.EnforceRange(row)
 
-	tmpl, err := template.New("pod stats").Parse(row)
+	tmpl, err := report.NewTemplate("stats").Parse(row)
 	if err != nil {
 		return err
 	}
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+
+	w, err := report.NewWriterDefault(os.Stdout)
+	if err != nil {
+		return err
+	}
 	defer w.Flush()
 
 	if err := tmpl.Execute(w, headerNames); err != nil {

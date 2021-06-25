@@ -166,8 +166,10 @@ type ExecCreateResponse struct {
 }
 
 type ExecStartConfig struct {
-	Detach bool `json:"Detach"`
-	Tty    bool `json:"Tty"`
+	Detach bool   `json:"Detach"`
+	Tty    bool   `json:"Tty"`
+	Height uint16 `json:"h"`
+	Width  uint16 `json:"w"`
 }
 
 func ImageToImageSummary(l *libimage.Image) (*entities.ImageSummary, error) {

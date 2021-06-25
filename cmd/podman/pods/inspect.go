@@ -3,8 +3,6 @@ package pods
 import (
 	"context"
 	"os"
-	"text/tabwriter"
-	"text/template"
 
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v3/cmd/podman/common"
@@ -74,11 +72,14 @@ func inspect(cmd *cobra.Command, args []string) error {
 
 	row := report.NormalizeFormat(inspectOptions.Format)
 
-	t, err := template.New("pod inspect").Parse(row)
+	t, err := report.NewTemplate("inspect").Parse(row)
 	if err != nil {
 		return err
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
+	w, err := report.NewWriterDefault(os.Stdout)
+	if err != nil {
+		return err
+	}
 	return t.Execute(w, *responses)
 }

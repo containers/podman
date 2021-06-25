@@ -276,9 +276,10 @@ func (c *Container) ExecStart(sessionID string) error {
 }
 
 // ExecStartAndAttach starts and attaches to an exec session in a container.
+// newSize resizes the tty to this size before the process is started, must be nil if the exec session has no tty
 // TODO: Should we include detach keys in the signature to allow override?
 // TODO: How do we handle AttachStdin/AttachStdout/AttachStderr?
-func (c *Container) ExecStartAndAttach(sessionID string, streams *define.AttachStreams) error {
+func (c *Container) ExecStartAndAttach(sessionID string, streams *define.AttachStreams, newSize *define.TerminalSize) error {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -309,7 +310,7 @@ func (c *Container) ExecStartAndAttach(sessionID string, streams *define.AttachS
 		return err
 	}
 
-	pid, attachChan, err := c.ociRuntime.ExecContainer(c, session.ID(), opts, streams)
+	pid, attachChan, err := c.ociRuntime.ExecContainer(c, session.ID(), opts, streams, newSize)
 	if err != nil {
 		return err
 	}
@@ -372,7 +373,9 @@ func (c *Container) ExecStartAndAttach(sessionID string, streams *define.AttachS
 }
 
 // ExecHTTPStartAndAttach starts and performs an HTTP attach to an exec session.
-func (c *Container) ExecHTTPStartAndAttach(sessionID string, r *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool, hijackDone chan<- bool) error {
+// newSize resizes the tty to this size before the process is started, must be nil if the exec session has no tty
+func (c *Container) ExecHTTPStartAndAttach(sessionID string, r *http.Request, w http.ResponseWriter,
+	streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool, hijackDone chan<- bool, newSize *define.TerminalSize) error {
 	// TODO: How do we combine streams with the default streams set in the exec session?
 
 	// Ensure that we don't leak a goroutine here
@@ -430,7 +433,7 @@ func (c *Container) ExecHTTPStartAndAttach(sessionID string, r *http.Request, w 
 		close(holdConnOpen)
 	}()
 
-	pid, attachChan, err := c.ociRuntime.ExecContainerHTTP(c, session.ID(), execOpts, r, w, streams, cancel, hijackDone, holdConnOpen)
+	pid, attachChan, err := c.ociRuntime.ExecContainerHTTP(c, session.ID(), execOpts, r, w, streams, cancel, hijackDone, holdConnOpen, newSize)
 	if err != nil {
 		session.State = define.ExecStateStopped
 		session.ExitCode = define.TranslateExecErrorToExitCode(define.ExecErrorCodeGeneric, err)
@@ -733,7 +736,10 @@ func (c *Container) Exec(config *ExecConfig, streams *define.AttachStreams, resi
 	// API there.
 	// TODO: Refactor so this is closed here, before we remove the exec
 	// session.
+	var size *define.TerminalSize
 	if resize != nil {
+		s := <-resize
+		size = &s
 		go func() {
 			logrus.Debugf("Sending resize events to exec session %s", sessionID)
 			for resizeRequest := range resize {
@@ -751,7 +757,7 @@ func (c *Container) Exec(config *ExecConfig, streams *define.AttachStreams, resi
 		}()
 	}
 
-	if err := c.ExecStartAndAttach(sessionID, streams); err != nil {
+	if err := c.ExecStartAndAttach(sessionID, streams, size); err != nil {
 		return -1, err
 	}
 
