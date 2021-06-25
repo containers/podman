@@ -9,7 +9,6 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
@@ -299,37 +298,7 @@ func newerRemoteImageAvailable(runtime *libpod.Runtime, img *libimage.Image, ori
 		return false, err
 	}
 
-	data, err := img.Inspect(context.Background(), false)
-	if err != nil {
-		return false, err
-	}
-
-	sys := runtime.SystemContext()
-	if authfile != "" {
-		sys.AuthFilePath = authfile
-	}
-
-	// We need to account for the arch that the image uses.  It seems
-	// common on ARM to tweak this option to pull the correct image.  See
-	// github.com/containers/podman/issues/6613.
-	sys.ArchitectureChoice = data.Architecture
-
-	remoteImg, err := remoteRef.NewImage(context.Background(), sys)
-	if err != nil {
-		return false, err
-	}
-
-	rawManifest, _, err := remoteImg.Manifest(context.Background())
-	if err != nil {
-		return false, err
-	}
-
-	remoteDigest, err := manifest.Digest(rawManifest)
-	if err != nil {
-		return false, err
-	}
-
-	return img.Digest().String() != remoteDigest.String(), nil
+	return img.HasDifferentDigest(context.Background(), remoteRef)
 }
 
 // newerLocalImageAvailable returns true if the container and local image have different digests
