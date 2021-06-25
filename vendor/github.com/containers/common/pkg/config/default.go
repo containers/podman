@@ -144,8 +144,6 @@ func DefaultConfig() (*Config, error) {
 		return nil, err
 	}
 
-	netns := "bridge"
-
 	cniConfig := _cniConfigDir
 
 	defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
@@ -161,7 +159,6 @@ func DefaultConfig() (*Config, error) {
 				defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
 			}
 		}
-		netns = "slirp4netns"
 		cniConfig = filepath.Join(configHome, _cniConfigDirRootless)
 	}
 
@@ -197,12 +194,10 @@ func DefaultConfig() (*Config, error) {
 			IPCNS:              "private",
 			LogDriver:          defaultLogDriver(),
 			LogSizeMax:         DefaultLogSizeMax,
-			NetNS:              netns,
 			NoHosts:            false,
 			PidsLimit:          DefaultPidsLimit,
 			PidNS:              "private",
 			RootlessNetworking: DefaultRootlessNetwork,
-			SeccompProfile:     SeccompDefaultPath,
 			ShmSize:            DefaultShmSize,
 			TZ:                 "",
 			Umask:              "0022",
@@ -216,8 +211,17 @@ func DefaultConfig() (*Config, error) {
 			NetworkConfigDir: cniConfig,
 			CNIPluginDirs:    cniBinDir,
 		},
-		Engine: *defaultEngineConfig,
+		Engine:  *defaultEngineConfig,
+		Secrets: defaultSecretConfig(),
 	}, nil
+}
+
+// defaultSecretConfig returns the default secret configuration.
+// Please note that the default is choosing the "file" driver.
+func defaultSecretConfig() SecretConfig {
+	return SecretConfig{
+		Driver: "file",
+	}
 }
 
 // defaultConfigFromMemory returns a default engine configuration. Note that the

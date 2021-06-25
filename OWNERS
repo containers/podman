@@ -5,6 +5,7 @@ approvers:
   - jwhonce
   - Luap99
   - mheon
+  - mtrmac
   - rhatdan
   - saschagrunert
   - TomSweeneyRedHat
@@ -19,6 +20,7 @@ reviewers:
   - jwhonce
   - Luap99
   - mheon
+  - mtrmac
   - QiWang19
   - rhatdan
   - saschagrunert

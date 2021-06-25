@@ -28,6 +28,26 @@ For more details about format and configurations of the auth.json file, please r
 
 ## OPTIONS
 
+#### **--authfile**=*path*
+
+Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json.
+
+Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
+environment variable. `export REGISTRY_AUTH_FILE=path`
+
+#### **--cert-dir**=*path*
+
+Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
+Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client)
+
+#### **--get-login**
+
+Return the logged-in user for the registry.  Return error if no login is found.
+
+#### **--help**, **-h**
+
+Print usage statement
+
 #### **--password**, **-p**=*password*
 
 Password for registry
@@ -36,35 +56,19 @@ Password for registry
 
 Take the password from stdin
 
-#### **--username**, **-u**=*username*
-
-Username for registry
-
-#### **--authfile**=*path*
-
-Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json.
-
-Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
-environment variable. `export REGISTRY_AUTH_FILE=path`
-
-#### **--get-login**
-
-Return the logged-in user for the registry.  Return error if no login is found.
-
-#### **--cert-dir**=*path*
-
-Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
-Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client)
-
 #### **--tls-verify**=*true|false*
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
 then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,
 TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf.
 
-#### **--help**, **-h**
+#### **--username**, **-u**=*username*
 
-Print usage statement
+Username for registry
+
+#### **--verbose**, **-v**
+
+print detailed information about credential store
 
 ## EXAMPLES
 
@@ -104,6 +108,14 @@ Login Succeeded!
 
 ```
 $ echo $testpassword | podman login -u testuser --password-stdin docker.io
+Login Succeeded!
+```
+
+```
+$ podman login quay.io --verbose
+Username: myusername
+Password:
+Used: /run/user/1000/containers/auth.json
 Login Succeeded!
 ```
 

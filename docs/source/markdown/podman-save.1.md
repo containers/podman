@@ -35,8 +35,9 @@ Write to a file, default is STDOUT
 
 #### **--format**=*format*
 
-Save image to **oci-archive, oci-dir** (directory with oci manifest type), or **docker-dir** (directory with v2s2 manifest type)
+Save image to **docker-archive**, **oci-archive** (see `containers-transports(5)`), **oci-dir** (`oci` transport), or **docker-dir** (`dir` transport with v2s2 manifest type).
 ```
+--format docker-archive
 --format oci-archive
 --format oci-dir
 --format docker-dir
@@ -100,7 +101,7 @@ Storing signatures
 ```
 
 ## SEE ALSO
-podman(1), podman-load(1), containers.conf(5)
+podman(1), podman-load(1), containers.conf(5), containers-transports(5)
 
 ## HISTORY
 July 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

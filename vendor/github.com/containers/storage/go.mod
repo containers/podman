@@ -10,7 +10,7 @@ require (
 	github.com/google/go-intervals v0.0.2
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/json-iterator/go v1.1.11
-	github.com/klauspost/compress v1.13.0
+	github.com/klauspost/compress v1.13.1
 	github.com/klauspost/pgzip v1.2.5
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/mistifyio/go-zfs v2.1.2-0.20190413222219-f784269be439+incompatible

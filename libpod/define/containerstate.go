@@ -1,6 +1,10 @@
 package define
 
-import "github.com/pkg/errors"
+import (
+	"time"
+
+	"github.com/pkg/errors"
+)
 
 // ContainerStatus represents the current state of a container
 type ContainerStatus int
@@ -120,12 +124,14 @@ func (s ContainerExecStatus) String() string {
 
 // ContainerStats contains the statistics information for a running container
 type ContainerStats struct {
+	AvgCPU        float64
 	ContainerID   string
 	Name          string
 	PerCPU        []uint64
 	CPU           float64
 	CPUNano       uint64
 	CPUSystemNano uint64
+	DataPoints    int64
 	SystemNano    uint64
 	MemUsage      uint64
 	MemLimit      uint64
@@ -135,4 +141,6 @@ type ContainerStats struct {
 	BlockInput    uint64
 	BlockOutput   uint64
 	PIDs          uint64
+	UpTime        time.Duration
+	Duration      uint64
 }

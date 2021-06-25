@@ -21,42 +21,30 @@ Images are stored in local image storage.
 
 ## SOURCE
 
- The SOURCE is the location from which the container images are pulled.
- The Image "SOURCE" uses a "transport":"details" format.  Only the `docker` (container registry)
- transport is allowed for remote access.
+ SOURCE is the location from the container image is pulled from. It supports all transports from `containers-transports(5)`. If no transport is specified, the input is subject to short-name resolution and the `docker` (i.e., container registry) transport is used.  For remote clients, `docker` is the only supported transport.
 
- Multiple transports are supported:
+```
+# Pull from a container registry
+$ podman pull quay.io/username/myimage
 
-  **dir:**_path_
-  An existing local directory _path_ storing the manifest, layer tarballs and signatures as individual files. This
-  is a non-standardized format, primarily useful for debugging or noninvasive container inspection.
+# Pull from a container registry with short-name resolution
+$ podman pull fedora
 
-    $ podman pull dir:/tmp/myimage
+# Pull from a container registry via the docker transport
+$ podman pull docker://quay.io/username/myimage
 
-  **docker://**_docker-reference_ (Default)
-  An image reference stored in a remote container image registry. The reference can include a path to a
-  specific registry; if it does not, the registries listed in registries.conf will be queried to find a matching
-  image. By default, credentials from podman login (stored at $XDG_RUNTIME_DIR/containers/auth.json by default)
-  will  be used to authenticate; if these cannot be found, we will fall back to using credentials in
-  $HOME/.docker/config.json.
+# Pull from a local directory
+$ podman pull dir:/tmp/myimage
 
-    $ podman pull quay.io/username/myimage
+# Pull from a tarball in the docker-archive format
+$ podman pull docker-archive:/tmp/myimage
 
-  **docker-archive:**_path_[**:**_docker-reference_]
-  An image is stored in the `docker save` formatted file.  _docker-reference_ is only used when creating such a
-  file, and it must not contain a digest.
+# Pull from a local docker daemon
+$ sudo podman pull docker-daemon:docker.io/library/myimage:33
 
-    $ podman pull docker-archive:/tmp/myimage
-
-  **docker-daemon:**_docker-reference_
-  An image in _docker-reference_ format stored in the docker daemon internal storage. The _docker-reference_ can also be an image ID (docker-daemon:algo:digest).
-
-    $ sudo podman pull docker-daemon:docker.io/library/myimage:33
-
-  **oci-archive:**_path_**:**_tag_
-  An image _tag_ in a directory compliant with "Open Container Image Layout Specification" at _path_.
-
-    $ podman pull oci-archive:/tmp/myimage
+# Pull from a tarball in the OCI-archive format
+$ podman pull oci-archive:/tmp/myimage
+```
 
 ## OPTIONS
 
@@ -217,7 +205,7 @@ registries.conf is the configuration file which specifies which container regist
 NOTE: Use the environment variable `TMPDIR` to change the temporary storage location of downloaded container images. Podman defaults to use `/var/tmp`.
 
 ## SEE ALSO
-podman(1), podman-push(1), podman-login(1), containers-certs.d(5), containers-registries.conf(5)
+podman(1), podman-push(1), podman-login(1), containers-certs.d(5), containers-registries.conf(5), containers-transports(5)
 
 ## HISTORY
 July 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

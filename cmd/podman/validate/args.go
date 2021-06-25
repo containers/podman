@@ -3,6 +3,7 @@ package validate
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/pkg/errors"
@@ -20,7 +21,11 @@ func NoArgs(cmd *cobra.Command, args []string) error {
 // SubCommandExists returns an error if no sub command is provided
 func SubCommandExists(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 {
-		return errors.Errorf("unrecognized command `%[1]s %[2]s`\nTry '%[1]s --help' for more information.", cmd.CommandPath(), args[0])
+		suggestions := cmd.SuggestionsFor(args[0])
+		if len(suggestions) == 0 {
+			return errors.Errorf("unrecognized command `%[1]s %[2]s`\nTry '%[1]s --help' for more information.", cmd.CommandPath(), args[0])
+		}
+		return errors.Errorf("unrecognized command `%[1]s %[2]s`\n\nDid you mean this?\n\t%[3]s\n\nTry '%[1]s --help' for more information.", cmd.CommandPath(), args[0], strings.Join(suggestions, "\n\t"))
 	}
 	return errors.Errorf("missing command '%[1]s COMMAND'\nTry '%[1]s --help' for more information.", cmd.CommandPath())
 }

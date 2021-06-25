@@ -167,16 +167,34 @@ var _ = Describe("Podman run", func() {
 		verifyNSHandling("/proc/self/ns/cgroup", "--cgroupns")
 	})
 
+	It("using journald for container with container log_tag", func() {
+		SkipIfInContainer("journalctl inside a container doesn't work correctly")
+		os.Setenv("CONTAINERS_CONF", "config/containers-journald.conf")
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+		logc := podmanTest.Podman([]string{"run", "-d", ALPINE, "sh", "-c", "echo podman; sleep 0.1; echo podman; sleep 0.1; echo podman"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc.ExitCode()).To(Equal(0))
+		cid := logc.OutputToString()
+
+		wait := podmanTest.Podman([]string{"wait", cid})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait.ExitCode()).To(Equal(0))
+
+		cmd := exec.Command("journalctl", "--no-pager", "-o", "json", "--output-fields=CONTAINER_TAG", fmt.Sprintf("CONTAINER_ID_FULL=%s", cid))
+		out, err := cmd.CombinedOutput()
+		Expect(err).To(BeNil())
+		Expect(string(out)).To(ContainSubstring("alpine"))
+	})
+
 	It("podman containers.conf additionalvolumes", func() {
 		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
 		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
+		Expect(err).To(BeNil())
+
 		err := ioutil.WriteFile(conffile, []byte(fmt.Sprintf("[containers]\nvolumes=[\"%s:%s:Z\",]\n", tempdir, tempdir)), 0755)
-		if err != nil {
-			os.Exit(1)
-		}
+		Expect(err).To(BeNil())
 
 		os.Setenv("CONTAINERS_CONF", conffile)
 		if IsRemote() {

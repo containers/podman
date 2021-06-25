@@ -11,7 +11,7 @@ import (
 )
 
 // tmpdir returns a path to a temporary directory.
-func (r *Runtime) tmpdir() string {
+func tmpdir() string {
 	tmpdir := os.Getenv("TMPDIR")
 	if tmpdir == "" {
 		tmpdir = "/var/tmp"
@@ -25,7 +25,7 @@ func (r *Runtime) tmpdir() string {
 func (r *Runtime) downloadFromURL(source string) (string, error) {
 	fmt.Printf("Downloading from %q\n", source)
 
-	outFile, err := ioutil.TempFile(r.tmpdir(), "import")
+	outFile, err := ioutil.TempFile(r.systemContext.BigFilesTemporaryDir, "import")
 	if err != nil {
 		return "", errors.Wrap(err, "error creating file")
 	}

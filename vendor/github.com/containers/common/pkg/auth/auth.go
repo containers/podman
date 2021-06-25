@@ -134,8 +134,12 @@ func Login(ctx context.Context, systemContext *types.SystemContext, opts *LoginO
 
 	if err = docker.CheckAuth(ctx, systemContext, username, password, server); err == nil {
 		// Write the new credentials to the authfile
-		if err := config.SetAuthentication(systemContext, server, username, password); err != nil {
+		desc, err := config.SetCredentials(systemContext, server, username, password)
+		if err != nil {
 			return err
+		}
+		if opts.Verbose {
+			fmt.Fprintln(opts.Stdout, "Used: ", desc)
 		}
 	}
 	if err == nil {

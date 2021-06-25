@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/config"
-	storageTransport "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
@@ -16,9 +15,7 @@ import (
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
-	"github.com/containers/storage"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -225,7 +222,6 @@ func createInit(c *cobra.Command) error {
 		}
 		cliVals.Env = env
 	}
-
 	if c.Flag("cgroups").Changed && cliVals.CGroupsMode == "split" && registry.IsRemote() {
 		return errors.Errorf("the option --cgroups=%q is not supported in remote mode", cliVals.CGroupsMode)
 	}
@@ -236,28 +232,10 @@ func createInit(c *cobra.Command) error {
 	return nil
 }
 
-// TODO: we should let the backend take care of the pull policy (which it
-// does!). The code below is at risk of causing regression and code divergence.
 func pullImage(imageName string) (string, error) {
 	pullPolicy, err := config.ValidatePullPolicy(cliVals.Pull)
 	if err != nil {
 		return "", err
-	}
-
-	// Check if the image is missing and hence if we need to pull it.
-	imageMissing := true
-	imageRef, err := alltransports.ParseImageName(imageName)
-	switch {
-	case err != nil:
-		// Assume we specified a local image without the explicit storage transport.
-		fallthrough
-
-	case imageRef.Transport().Name() == storageTransport.Transport.Name():
-		br, err := registry.ImageEngine().Exists(registry.GetContext(), imageName)
-		if err != nil {
-			return "", err
-		}
-		imageMissing = !br.Value
 	}
 
 	if cliVals.Platform != "" || cliVals.Arch != "" || cliVals.OS != "" {
@@ -271,31 +249,28 @@ func pullImage(imageName string) (string, error) {
 				cliVals.Arch = split[1]
 			}
 		}
-
-		if pullPolicy != config.PullPolicyAlways {
-			logrus.Info("--platform --arch and --os causes the pull policy to be \"always\"")
-			pullPolicy = config.PullPolicyAlways
-		}
 	}
 
-	if imageMissing || pullPolicy == config.PullPolicyAlways {
-		if pullPolicy == config.PullPolicyNever {
-			return "", errors.Wrap(storage.ErrImageUnknown, imageName)
-		}
-		pullReport, pullErr := registry.ImageEngine().Pull(registry.GetContext(), imageName, entities.ImagePullOptions{
-			Authfile:        cliVals.Authfile,
-			Quiet:           cliVals.Quiet,
-			Arch:            cliVals.Arch,
-			OS:              cliVals.OS,
-			Variant:         cliVals.Variant,
-			SignaturePolicy: cliVals.SignaturePolicy,
-			PullPolicy:      pullPolicy,
-		})
-		if pullErr != nil {
-			return "", pullErr
-		}
+	pullReport, pullErr := registry.ImageEngine().Pull(registry.GetContext(), imageName, entities.ImagePullOptions{
+		Authfile:        cliVals.Authfile,
+		Quiet:           cliVals.Quiet,
+		Arch:            cliVals.Arch,
+		OS:              cliVals.OS,
+		Variant:         cliVals.Variant,
+		SignaturePolicy: cliVals.SignaturePolicy,
+		PullPolicy:      pullPolicy,
+	})
+	if pullErr != nil {
+		return "", pullErr
+	}
+
+	// Return the input name such that the image resolves to correct
+	// repo/tag in the backend (see #8082).  Unless we're referring to
+	// the image via a transport.
+	if _, err := alltransports.ParseImageName(imageName); err == nil {
 		imageName = pullReport.Images[0]
 	}
+
 	return imageName, nil
 }
 
@@ -316,6 +291,8 @@ func createPodIfNecessary(s *specgen.SpecGenerator, netOpts *entities.NetOptions
 		Net:           netOpts,
 		CreateCommand: os.Args,
 		Hostname:      s.ContainerBasicConfig.Hostname,
+		Cpus:          cliVals.CPUS,
+		CpusetCpus:    cliVals.CPUSetCPUs,
 	}
 	// Unset config values we passed to the pod to prevent them being used twice for the container and pod.
 	s.ContainerBasicConfig.Hostname = ""

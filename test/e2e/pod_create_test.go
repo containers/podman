@@ -5,9 +5,12 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
+	"github.com/containers/common/pkg/sysinfo"
 	"github.com/containers/podman/v3/pkg/rootless"
+	"github.com/containers/podman/v3/pkg/util"
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -515,4 +518,45 @@ ENTRYPOINT ["sleep","99999"]
 		Expect(create.ExitCode()).To(BeZero())
 	})
 
+	It("podman pod create --cpus", func() {
+		podName := "testPod"
+		numCPU := float64(sysinfo.NumCPU())
+		period, quota := util.CoresToPeriodAndQuota(numCPU)
+		numCPUStr := strconv.Itoa(int(numCPU))
+		podCreate := podmanTest.Podman([]string{"pod", "create", "--cpus", numCPUStr, "--name", podName})
+		podCreate.WaitWithDefaultTimeout()
+		Expect(podCreate.ExitCode()).To(Equal(0))
+
+		contCreate := podmanTest.Podman([]string{"container", "create", "--pod", podName, "alpine"})
+		contCreate.WaitWithDefaultTimeout()
+		Expect(podCreate.ExitCode()).To(Equal(0))
+
+		podInspect := podmanTest.Podman([]string{"pod", "inspect", podName})
+		podInspect.WaitWithDefaultTimeout()
+		Expect(podInspect.ExitCode()).To(Equal(0))
+		podJSON := podInspect.InspectPodToJSON()
+		Expect(podJSON.CPUPeriod).To(Equal(period))
+		Expect(podJSON.CPUQuota).To(Equal(quota))
+	})
+
+	It("podman pod create --cpuset-cpus", func() {
+		podName := "testPod"
+		ctrName := "testCtr"
+		numCPU := float64(sysinfo.NumCPU())
+		numCPUStr := strconv.Itoa(int(numCPU))
+		in := "0-" + numCPUStr
+		podCreate := podmanTest.Podman([]string{"pod", "create", "--cpuset-cpus", in, "--name", podName})
+		podCreate.WaitWithDefaultTimeout()
+		Expect(podCreate.ExitCode()).To(Equal(0))
+
+		contCreate := podmanTest.Podman([]string{"container", "create", "--name", ctrName, "--pod", podName, "alpine"})
+		contCreate.WaitWithDefaultTimeout()
+		Expect(podCreate.ExitCode()).To(Equal(0))
+
+		podInspect := podmanTest.Podman([]string{"pod", "inspect", podName})
+		podInspect.WaitWithDefaultTimeout()
+		Expect(podInspect.ExitCode()).To(Equal(0))
+		podJSON := podInspect.InspectPodToJSON()
+		Expect(podJSON.CPUSetCPUs).To(Equal(in))
+	})
 })

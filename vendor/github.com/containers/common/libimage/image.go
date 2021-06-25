@@ -61,6 +61,24 @@ func (i *Image) reload() error {
 	return nil
 }
 
+// isCorrupted returns an error if the image may be corrupted.
+func (i *Image) isCorrupted(name string) error {
+	// If it's a manifest list, we're good for now.
+	if _, err := i.getManifestList(); err == nil {
+		return nil
+	}
+
+	ref, err := i.StorageReference()
+	if err != nil {
+		return err
+	}
+
+	if _, err := ref.NewImage(context.Background(), nil); err != nil {
+		return errors.Errorf("Image %s exists in local storage but may be corrupted: %v", name, err)
+	}
+	return nil
+}
+
 // Names returns associated names with the image which may be a mix of tags and
 // digests.
 func (i *Image) Names() []string {
@@ -329,17 +347,19 @@ func (i *Image) remove(ctx context.Context, rmMap map[string]*RemoveImageReport,
 	// an `rmi foo` will not untag "foo" but instead attempt to remove the
 	// entire image.  If there's a container using "foo", we should get an
 	// error.
-	if options.Force || referencedBy == "" || numNames == 1 {
+	if referencedBy == "" || numNames == 1 {
 		// DO NOTHING, the image will be removed
 	} else {
 		byID := strings.HasPrefix(i.ID(), referencedBy)
 		byDigest := strings.HasPrefix(referencedBy, "sha256:")
-		if byID && numNames > 1 {
-			return errors.Errorf("unable to delete image %q by ID with more than one tag (%s): please force removal", i.ID(), i.Names())
-		} else if byDigest && numNames > 1 {
-			// FIXME - Docker will remove the digest but containers storage
-			// does not support that yet, so our hands are tied.
-			return errors.Errorf("unable to delete image %q by digest with more than one tag (%s): please force removal", i.ID(), i.Names())
+		if !options.Force {
+			if byID && numNames > 1 {
+				return errors.Errorf("unable to delete image %q by ID with more than one tag (%s): please force removal", i.ID(), i.Names())
+			} else if byDigest && numNames > 1 {
+				// FIXME - Docker will remove the digest but containers storage
+				// does not support that yet, so our hands are tied.
+				return errors.Errorf("unable to delete image %q by digest with more than one tag (%s): please force removal", i.ID(), i.Names())
+			}
 		}
 
 		// Only try to untag if we know it's not an ID or digest.

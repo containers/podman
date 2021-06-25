@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/secrets/filedriver"
+	"github.com/containers/common/pkg/secrets/passdriver"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/pkg/errors"
@@ -271,12 +272,15 @@ func validateSecretName(name string) error {
 
 // getDriver creates a new driver.
 func getDriver(name string, opts map[string]string) (SecretsDriver, error) {
-	if name == "file" {
+	switch name {
+	case "file":
 		if path, ok := opts["path"]; ok {
 			return filedriver.NewDriver(path)
 		} else {
 			return nil, errors.Wrap(errInvalidDriverOpt, "need path for filedriver")
 		}
+	case "pass":
+		return passdriver.NewDriver(opts)
 	}
 	return nil, errInvalidDriver
 }

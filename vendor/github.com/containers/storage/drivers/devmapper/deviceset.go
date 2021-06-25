@@ -2229,7 +2229,7 @@ func (devices *DeviceSet) cancelDeferredRemovalIfNeeded(info *devInfo) error {
 	// Cancel deferred remove
 	if err := devices.cancelDeferredRemoval(info); err != nil {
 		// If Error is ErrEnxio. Device is probably already gone. Continue.
-		if errors.Cause(err) != devicemapper.ErrBusy {
+		if errors.Cause(err) != devicemapper.ErrEnxio {
 			return err
 		}
 	}

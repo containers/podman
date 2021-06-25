@@ -9,8 +9,7 @@ podman\-auto-update - Auto update containers according to their auto-update poli
 ## DESCRIPTION
 **podman auto-update** looks up containers with a specified `io.containers.autoupdate` label (i.e., the auto-update policy).
 
-If the label is present and set to `registry`, Podman reaches out to the corresponding registry to check if the image has been updated.
-The label `image` is an alternative to `registry` maintained for backwards compatibility.
+If the label is present and set to `registry`, Podman reaches out to the corresponding registry to check if the image has been updated. The label `image` is an alternative to `registry` maintained for backwards compatibility.
 An image is considered updated if the digest in the local storage is different than the one of the remote image.
 If an image must be updated, Podman pulls it down and restarts the systemd unit executing the container.
 
@@ -35,7 +34,6 @@ Systemd units that start and stop a container cannot run a new image.
 Podman ships with a `podman-auto-update.service` systemd unit. This unit is triggered daily at midnight by the `podman-auto-update.timer` systemd timer.  The timer can be altered for custom time-based updates if desired.  The unit can further be invoked by other systemd units (e.g., via the dependency tree) or manually via **systemctl start podman-auto-update.service**.
 
 ## OPTIONS
-
 #### **--authfile**=*path*
 
 Path of the authentication file. Default is `${XDG_RUNTIME_DIR}/containers/auth.json`, which is set using **[podman login](podman-login.1.md)**.
@@ -44,7 +42,6 @@ If the authorization state is not found there, `$HOME/.docker/config.json` is ch
 Note: There is also the option to override the default path of the authentication file by setting the `REGISTRY_AUTH_FILE` environment variable. This can be done with **export REGISTRY_AUTH_FILE=_path_**.
 
 ## EXAMPLES
-
 Autoupdate with registry policy
 
 ```

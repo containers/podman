@@ -25,11 +25,5 @@ func SocketActivated() bool {
 	if err != nil || nfds == 0 {
 		return false
 	}
-
-	// "github.com/coreos/go-systemd/v22/activation" will use and validate this variable's
-	// value. We're just providing a fast fail
-	if _, found = os.LookupEnv("LISTEN_FDNAMES"); !found {
-		return false
-	}
 	return true
 }

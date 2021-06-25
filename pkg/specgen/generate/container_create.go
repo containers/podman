@@ -92,7 +92,8 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		options = append(options, libpod.WithRootFS(s.Rootfs))
 	} else {
 		var resolvedImageName string
-		newImage, resolvedImageName, err = rt.LibimageRuntime().LookupImage(s.Image, nil)
+		lookupOptions := &libimage.LookupImageOptions{IgnorePlatform: true}
+		newImage, resolvedImageName, err = rt.LibimageRuntime().LookupImage(s.Image, lookupOptions)
 		if err != nil {
 			return nil, err
 		}
@@ -346,7 +347,6 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 			options = append(options, libpod.WithLogDriver(s.LogConfiguration.Driver))
 		}
 	}
-
 	// Security options
 	if len(s.SelinuxOpts) > 0 {
 		options = append(options, libpod.WithSecLabels(s.SelinuxOpts))
