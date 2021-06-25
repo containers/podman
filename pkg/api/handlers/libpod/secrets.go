@@ -1,7 +1,9 @@
 package libpod
 
 import (
+	"encoding/json"
 	"net/http"
+	"reflect"
 
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
@@ -16,9 +18,17 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
 		decoder = r.Context().Value("decoder").(*schema.Decoder)
 	)
+
+	decoder.RegisterConverter(map[string]string{}, func(str string) reflect.Value {
+		res := make(map[string]string)
+		json.Unmarshal([]byte(str), &res)
+		return reflect.ValueOf(res)
+	})
+
 	query := struct {
-		Name   string `schema:"name"`
-		Driver string `schema:"driver"`
+		Name       string            `schema:"name"`
+		Driver     string            `schema:"driver"`
+		DriverOpts map[string]string `schema:"driveropts"`
 	}{
 		// override any golang type defaults
 	}
@@ -28,7 +38,9 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
+
 	opts.Driver = query.Driver
+	opts.DriverOpts = query.DriverOpts
 
 	ic := abi.ContainerEngine{Libpod: runtime}
 	report, err := ic.SecretCreate(r.Context(), query.Name, r.Body, opts)

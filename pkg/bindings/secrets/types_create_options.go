@@ -20,6 +20,22 @@ func (o *CreateOptions) ToParams() (url.Values, error) {
 	return util.ToParams(o)
 }
 
+// WithName
+func (o *CreateOptions) WithName(value string) *CreateOptions {
+	v := &value
+	o.Name = v
+	return o
+}
+
+// GetName
+func (o *CreateOptions) GetName() string {
+	var name string
+	if o.Name == nil {
+		return name
+	}
+	return *o.Name
+}
+
 // WithDriver
 func (o *CreateOptions) WithDriver(value string) *CreateOptions {
 	v := &value
@@ -36,18 +52,18 @@ func (o *CreateOptions) GetDriver() string {
 	return *o.Driver
 }
 
-// WithName
-func (o *CreateOptions) WithName(value string) *CreateOptions {
-	v := &value
-	o.Name = v
+// WithDriverOpts
+func (o *CreateOptions) WithDriverOpts(value map[string]string) *CreateOptions {
+	v := value
+	o.DriverOpts = v
 	return o
 }
 
-// GetName
-func (o *CreateOptions) GetName() string {
-	var name string
-	if o.Name == nil {
-		return name
+// GetDriverOpts
+func (o *CreateOptions) GetDriverOpts() map[string]string {
+	var driverOpts map[string]string
+	if o.DriverOpts == nil {
+		return driverOpts
 	}
-	return *o.Name
+	return o.DriverOpts
 }

@@ -39,7 +39,7 @@ var _ = Describe("Podman secret", func() {
 		err := ioutil.WriteFile(secretFilePath, []byte("mysecret"), 0755)
 		Expect(err).To(BeNil())
 
-		session := podmanTest.Podman([]string{"secret", "create", "a", secretFilePath})
+		session := podmanTest.Podman([]string{"secret", "create", "--driver-opts", "opt1=val", "a", secretFilePath})
 		session.WaitWithDefaultTimeout()
 		secrID := session.OutputToString()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -48,6 +48,10 @@ var _ = Describe("Podman secret", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
 		Expect(inspect.OutputToString()).To(Equal(secrID))
+		inspect = podmanTest.Podman([]string{"secret", "inspect", "--format", "{{.Spec.Driver.Options}}", secrID})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring("opt1:val"))
 	})
 
 	It("podman secret create bad name should fail", func() {

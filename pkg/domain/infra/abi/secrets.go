@@ -17,15 +17,30 @@ func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader
 	if err != nil {
 		return nil, err
 	}
-	driverOptions := make(map[string]string)
 
+	// set defaults from config for the case they are not set by an upper layer
+	// (-> i.e. tests that talk directly to the api)
+	cfg, err := ic.Libpod.GetConfig()
+	if err != nil {
+		return nil, err
+	}
 	if options.Driver == "" {
-		options.Driver = "file"
+		options.Driver = cfg.Secrets.Driver
 	}
+	if len(options.DriverOpts) == 0 {
+		options.DriverOpts = cfg.Secrets.Opts
+	}
+	if options.DriverOpts == nil {
+		options.DriverOpts = make(map[string]string)
+	}
+
 	if options.Driver == "file" {
-		driverOptions["path"] = filepath.Join(secretsPath, "filedriver")
+		if _, ok := options.DriverOpts["path"]; !ok {
+			options.DriverOpts["path"] = filepath.Join(secretsPath, "filedriver")
+		}
 	}
-	secretID, err := manager.Store(name, data, options.Driver, driverOptions)
+
+	secretID, err := manager.Store(name, data, options.Driver, options.DriverOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +73,8 @@ func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string
 			Spec: entities.SecretSpec{
 				Name: secret.Name,
 				Driver: entities.SecretDriverSpec{
-					Name: secret.Driver,
+					Name:    secret.Driver,
+					Options: secret.DriverOptions,
 				},
 			},
 		}

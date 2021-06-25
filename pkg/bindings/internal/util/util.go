@@ -85,10 +85,10 @@ func ToParams(o interface{}) (url.Values, error) {
 				}
 			}
 		case f.Kind() == reflect.Map:
-			lowerCaseKeys := make(map[string][]string)
+			lowerCaseKeys := make(map[string]interface{})
 			iter := f.MapRange()
 			for iter.Next() {
-				lowerCaseKeys[iter.Key().Interface().(string)] = iter.Value().Interface().([]string)
+				lowerCaseKeys[iter.Key().Interface().(string)] = iter.Value().Interface()
 			}
 			s, err := json.MarshalToString(lowerCaseKeys)
 			if err != nil {

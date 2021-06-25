@@ -18,6 +18,7 @@ type RemoveOptions struct {
 //go:generate go run ../generator/generator.go CreateOptions
 // CreateOptions are optional options for Creating secrets
 type CreateOptions struct {
-	Driver *string
-	Name   *string
+	Name       *string
+	Driver     *string
+	DriverOpts map[string]string
 }

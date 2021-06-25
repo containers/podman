@@ -42,8 +42,14 @@ func init() {
 	flags := createCmd.Flags()
 
 	driverFlagName := "driver"
-	flags.StringVar(&createOpts.Driver, driverFlagName, "file", "Specify secret driver")
+	optsFlagName := "driver-opts"
+
+	cfg := registry.PodmanConfig()
+
+	flags.StringVar(&createOpts.Driver, driverFlagName, cfg.Secrets.Driver, "Specify secret driver")
+	flags.StringToStringVar(&createOpts.DriverOpts, optsFlagName, cfg.Secrets.Opts, "Specify driver specific options")
 	_ = createCmd.RegisterFlagCompletionFunc(driverFlagName, completion.AutocompleteNone)
+	_ = createCmd.RegisterFlagCompletionFunc(optsFlagName, completion.AutocompleteNone)
 
 	envFlagName := "env"
 	flags.BoolVar(&env, envFlagName, false, "Read secret data from environment variable")

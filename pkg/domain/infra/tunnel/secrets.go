@@ -11,8 +11,14 @@ import (
 )
 
 func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader io.Reader, options entities.SecretCreateOptions) (*entities.SecretCreateReport, error) {
-	opts := new(secrets.CreateOptions).WithDriver(options.Driver).WithName(name)
-	created, _ := secrets.Create(ic.ClientCtx, reader, opts)
+	opts := new(secrets.CreateOptions).
+		WithDriver(options.Driver).
+		WithDriverOpts(options.DriverOpts).
+		WithName(name)
+	created, err := secrets.Create(ic.ClientCtx, reader, opts)
+	if err != nil {
+		return nil, err
+	}
 	return created, nil
 }
 
