@@ -118,7 +118,7 @@ func ValidateImageReference(imageName string) error {
 //
 // It returns a slice of successfully restarted systemd units and a slice of
 // errors encountered during auto update.
-func AutoUpdate(runtime *libpod.Runtime, options Options) ([]string, []error) {
+func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options Options) ([]string, []error) {
 	// Create a map from `image ID -> []*Container`.
 	containerMap, errs := imageContainersMap(runtime)
 	if len(containerMap) == 0 {
@@ -129,7 +129,7 @@ func AutoUpdate(runtime *libpod.Runtime, options Options) ([]string, []error) {
 	listOptions := &libimage.ListImagesOptions{
 		Filters: []string{"readonly=false"},
 	}
-	imagesSlice, err := runtime.LibimageRuntime().ListImages(context.Background(), nil, listOptions)
+	imagesSlice, err := runtime.LibimageRuntime().ListImages(ctx, nil, listOptions)
 	if err != nil {
 		return nil, []error{err}
 	}
@@ -165,7 +165,7 @@ func AutoUpdate(runtime *libpod.Runtime, options Options) ([]string, []error) {
 				errs = append(errs, errors.Errorf("error registry auto-updating container %q: raw-image name is empty", cid))
 			}
 			authfile := getAuthfilePath(registryCtr, options)
-			needsUpdate, err := newerRemoteImageAvailable(runtime, image, rawImageName, authfile)
+			needsUpdate, err := newerRemoteImageAvailable(ctx, runtime, image, rawImageName, authfile)
 			if err != nil {
 				errs = append(errs, errors.Wrapf(err, "error registry auto-updating container %q: image check for %q failed", cid, rawImageName))
 				continue
@@ -174,7 +174,7 @@ func AutoUpdate(runtime *libpod.Runtime, options Options) ([]string, []error) {
 			if needsUpdate {
 				logrus.Infof("Auto-updating container %q using registry image %q", cid, rawImageName)
 				if _, updated := updatedRawImages[rawImageName]; !updated {
-					_, err = updateImage(runtime, rawImageName, options)
+					_, err = updateImage(ctx, runtime, rawImageName, options)
 					if err != nil {
 						errs = append(errs, errors.Wrapf(err, "error registry auto-updating container %q: image update for %q failed", cid, rawImageName))
 						continue
@@ -292,13 +292,13 @@ func getAuthfilePath(ctr *libpod.Container, options Options) string {
 
 // newerRemoteImageAvailable returns true if there corresponding image on the remote
 // registry is newer.
-func newerRemoteImageAvailable(runtime *libpod.Runtime, img *libimage.Image, origName string, authfile string) (bool, error) {
+func newerRemoteImageAvailable(ctx context.Context, runtime *libpod.Runtime, img *libimage.Image, origName string, authfile string) (bool, error) {
 	remoteRef, err := docker.ParseReference("//" + origName)
 	if err != nil {
 		return false, err
 	}
 
-	return img.HasDifferentDigest(context.Background(), remoteRef)
+	return img.HasDifferentDigest(ctx, remoteRef)
 }
 
 // newerLocalImageAvailable returns true if the container and local image have different digests
@@ -316,12 +316,12 @@ func newerLocalImageAvailable(runtime *libpod.Runtime, img *libimage.Image, rawI
 }
 
 // updateImage pulls the specified image.
-func updateImage(runtime *libpod.Runtime, name string, options Options) (*libimage.Image, error) {
+func updateImage(ctx context.Context, runtime *libpod.Runtime, name string, options Options) (*libimage.Image, error) {
 	pullOptions := &libimage.PullOptions{}
 	pullOptions.AuthFilePath = options.Authfile
 	pullOptions.Writer = os.Stderr
 
-	pulledImages, err := runtime.LibimageRuntime().Pull(context.Background(), name, config.PullPolicyAlways, pullOptions)
+	pulledImages, err := runtime.LibimageRuntime().Pull(ctx, name, config.PullPolicyAlways, pullOptions)
 	if err != nil {
 		return nil, err
 	}
