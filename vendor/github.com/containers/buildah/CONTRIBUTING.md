@@ -1,4 +1,4 @@
-![buildah logo](https://cdn.rawgit.com/containers/buildah/master/logos/buildah-logo_large.png)
+![buildah logo](https://cdn.rawgit.com/containers/buildah/main/logos/buildah-logo_large.png)
 
 # Contributing to Buildah
 

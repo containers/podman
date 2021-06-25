@@ -8,7 +8,7 @@ import (
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
-	rsystem "github.com/opencontainers/runc/libcontainer/system"
+	"github.com/opencontainers/runc/libcontainer/userns"
 	"github.com/sirupsen/logrus"
 )
 
@@ -170,7 +170,7 @@ func (gdw *NaiveDiffDriver) ApplyDiff(id, parent string, options ApplyDiffOpts) 
 	defer driver.Put(id)
 
 	tarOptions := &archive.TarOptions{
-		InUserNS:          rsystem.RunningInUserNS(),
+		InUserNS:          userns.RunningInUserNS(),
 		IgnoreChownErrors: options.IgnoreChownErrors,
 	}
 	if options.Mappings != nil {

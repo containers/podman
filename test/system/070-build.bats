@@ -21,7 +21,7 @@ EOF
 
     # The 'apk' command can take a long time to fetch files; bump timeout
     PODMAN_TIMEOUT=240 run_podman build -t build_test --format=docker $tmpdir
-    is "$output" ".*STEP 4: COMMIT" "COMMIT seen in log"
+    is "$output" ".*COMMIT" "COMMIT seen in log"
 
     run_podman run --rm build_test cat /$rand_filename
     is "$output"   "$rand_content"   "reading generated file in image"
@@ -44,7 +44,7 @@ EOF
 
     # The 'apk' command can take a long time to fetch files; bump timeout
     PODMAN_TIMEOUT=240 run_podman build -t build_test -f - --format=docker $tmpdir < $containerfile
-    is "$output" ".*STEP 4: COMMIT" "COMMIT seen in log"
+    is "$output" ".*COMMIT" "COMMIT seen in log"
 
     run_podman run --rm build_test cat /$rand_filename
     is "$output"   "$rand_content"   "reading generated file in image"
@@ -110,7 +110,7 @@ EOF
 
     # One of: ADD myfile /myfile or COPY . .
     run_podman build  -t build_test -f $tmpdir/Dockerfile $tmpdir
-    is "$output" ".*STEP 3: COMMIT" "COMMIT seen in log"
+    is "$output" ".*COMMIT" "COMMIT seen in log"
     if [[ "$output" =~ "Using cache" ]]; then
         is "$output" "[no instance of 'Using cache']" "no cache used"
     fi
@@ -124,7 +124,7 @@ EOF
     run tar -C $tmpdir -cJf $tmpdir/myfile.tar.xz subtest
 
     run_podman build -t build_test -f $tmpdir/Dockerfile $tmpdir
-    is "$output" ".*STEP 3: COMMIT" "COMMIT seen in log"
+    is "$output" ".*COMMIT" "COMMIT seen in log"
 
     # Since the tarfile is modified, podman SHOULD NOT use a cached layer.
     if [[ "$output" =~ "Using cache" ]]; then
@@ -519,8 +519,8 @@ RUN mkdir $workdir
 WORKDIR $workdir
 RUN /bin/echo $random_echo
 EOF
-    is "$output" ".*STEP 5: COMMIT" "COMMIT seen in log"
-    is "$output" ".*STEP .: RUN /bin/echo $random_echo"
+    is "$output" ".*COMMIT" "COMMIT seen in log"
+    is "$output" ".*STEP .*: RUN /bin/echo $random_echo"
 
     run_podman run --rm build_test pwd
     is "$output" "$workdir" "pwd command in container"
@@ -571,10 +571,10 @@ EOF
     if is_remote; then remote_extra=".*";fi
     expect="${random1}
 .*
-STEP 1: FROM $IMAGE
-STEP 2: RUN echo x${random2}y
+STEP 1/2: FROM $IMAGE
+STEP 2/2: RUN echo x${random2}y
 x${random2}y${remote_extra}
-STEP 3: COMMIT build_test${remote_extra}
+COMMIT build_test${remote_extra}
 --> [0-9a-f]\{11\}
 Successfully tagged localhost/build_test:latest
 [0-9a-f]\{64\}
@@ -739,7 +739,7 @@ EOF
 
     run_podman build -t build_test --format=docker --logfile=$tmpdir/logfile $tmpbuilddir
     run cat $tmpdir/logfile
-    is "$output" ".*STEP 2: COMMIT" "COMMIT seen in log"
+    is "$output" ".*COMMIT" "COMMIT seen in log"
 
     run_podman rmi -f build_test
 }
@@ -757,7 +757,7 @@ RUN cat /proc/self/attr/current
 EOF
 
     run_podman build -t build_test --security-opt label=level:s0:c3,c4 --format=docker $tmpbuilddir
-    is "$output" ".*s0:c3,c4STEP 3: COMMIT" "label setting level"
+    is "$output" ".*s0:c3,c4COMMIT" "label setting level"
 
     run_podman rmi -f build_test
 }

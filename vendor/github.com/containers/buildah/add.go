@@ -22,7 +22,7 @@ import (
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/hashicorp/go-multierror"
-	rsystem "github.com/opencontainers/runc/libcontainer/system"
+	"github.com/opencontainers/runc/libcontainer/userns"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -287,7 +287,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 			destination = tmpDestination
 		}
 	}
-	destMustBeDirectory := (len(sources) > 1) || strings.HasSuffix(destination, string(os.PathSeparator))
+	destMustBeDirectory := (len(sources) > 1) || strings.HasSuffix(destination, string(os.PathSeparator)) || destination == b.WorkDir()
 	destCanBeFile := false
 	if len(sources) == 1 {
 		if len(remoteSources) == 1 {
@@ -399,7 +399,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 						ChmodDirs:     nil,
 						ChownFiles:    nil,
 						ChmodFiles:    nil,
-						IgnoreDevices: rsystem.RunningInUserNS(),
+						IgnoreDevices: userns.RunningInUserNS(),
 					}
 					putErr = copier.Put(extractDirectory, extractDirectory, putOptions, io.TeeReader(pipeReader, hasher))
 				}
@@ -534,7 +534,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 						ChmodDirs:       nil,
 						ChownFiles:      nil,
 						ChmodFiles:      nil,
-						IgnoreDevices:   rsystem.RunningInUserNS(),
+						IgnoreDevices:   userns.RunningInUserNS(),
 					}
 					putErr = copier.Put(extractDirectory, extractDirectory, putOptions, io.TeeReader(pipeReader, hasher))
 				}

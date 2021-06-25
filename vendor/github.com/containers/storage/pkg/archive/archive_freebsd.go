@@ -11,7 +11,7 @@ import (
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/system"
-	rsystem "github.com/opencontainers/runc/libcontainer/system"
+	"github.com/opencontainers/runc/libcontainer/userns"
 	"golang.org/x/sys/unix"
 )
 
@@ -87,7 +87,7 @@ func minor(device uint64) uint64 {
 // handleTarTypeBlockCharFifo is an OS-specific helper function used by
 // createTarFile to handle the following types of header: Block; Char; Fifo
 func handleTarTypeBlockCharFifo(hdr *tar.Header, path string) error {
-	if rsystem.RunningInUserNS() {
+	if userns.RunningInUserNS() {
 		// cannot create a device if running in user namespace
 		return nil
 	}

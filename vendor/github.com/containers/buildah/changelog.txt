@@ -1,6 +1,3 @@
-- Changelog for v1.21.1 (2021-06-03)
-  * Fix handling of auth.json file while in a user namespace
-
 - Changelog for v1.21.0 (2021-05-19)
   * Don't blow up if cpp detects errors
   * Vendor in containers/common v0.38.4

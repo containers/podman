@@ -11,13 +11,13 @@ require (
 	github.com/container-orchestrated-devices/container-device-interface v0.0.0-20210325223243-f99e8b6c10b9
 	github.com/containernetworking/cni v0.8.1
 	github.com/containernetworking/plugins v0.9.1
-	github.com/containers/buildah v1.21.1
+	github.com/containers/buildah v1.21.1-0.20210628174543-eadb10a12336
 	github.com/containers/common v0.40.2-0.20210624120009-b1d3c4dc2515
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.13.2
 	github.com/containers/ocicrypt v1.1.2
 	github.com/containers/psgo v1.5.2
-	github.com/containers/storage v1.32.3
+	github.com/containers/storage v1.32.5
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
 	github.com/cri-o/ocicni v0.2.1-0.20210621164014-d0acc7862283
@@ -46,7 +46,7 @@ require (
 	github.com/onsi/gomega v1.13.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
-	github.com/opencontainers/runc v1.0.0-rc95
+	github.com/opencontainers/runc v1.0.0
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/opencontainers/runtime-tools v0.9.0
 	github.com/opencontainers/selinux v1.8.2

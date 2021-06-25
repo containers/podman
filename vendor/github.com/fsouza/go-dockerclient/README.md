@@ -118,34 +118,11 @@ See the documentation for more details.
 
 All development commands can be seen in the [Makefile](Makefile).
 
-Commited code must pass:
+Committed code must pass:
 
 * [golangci-lint](https://github.com/golangci/golangci-lint)
 * [go test](https://golang.org/cmd/go/#hdr-Test_packages)
+* [staticcheck](https://staticcheck.io/)
 
 Running ``make test`` will run all checks, as well as install any required
 dependencies.
-
-## Modules
-
-go-dockerclient supports Go modules.
-
-If you're using dep, you can check the [releases
-page](https://github.com/fsouza/go-dockerclient/releases) for the latest
-release fully compatible with dep.
-
-With other vendoring tools, users need to specify go-dockerclient's
-dependencies manually.
-
-## Using with Docker 1.9 and Go 1.4
-
-There's a tag for using go-dockerclient with Docker 1.9 (which requires
-compiling go-dockerclient with Go 1.4), the tag name is ``docker-1.9/go-1.4``.
-
-The instructions below can be used to get a version of go-dockerclient that compiles with Go 1.4:
-
-```
-% git clone -b docker-1.9/go-1.4 https://github.com/fsouza/go-dockerclient.git $GOPATH/src/github.com/fsouza/go-dockerclient
-% git clone -b v1.9.1 https://github.com/docker/docker.git $GOPATH/src/github.com/docker/docker
-% go get github.com/fsouza/go-dockerclient
-```

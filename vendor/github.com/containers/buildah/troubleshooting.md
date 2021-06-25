@@ -1,4 +1,4 @@
-![buildah logo](https://cdn.rawgit.com/containers/buildah/master/logos/buildah-logo_large.png)
+![buildah logo](https://cdn.rawgit.com/containers/buildah/main/logos/buildah-logo_large.png)
 
 # Troubleshooting
 
@@ -10,7 +10,7 @@
 When doing a `buildah pull` or `buildah bud` command and a "common" image can not be pulled,
 it is likely that the `/etc/containers/registries.conf` file is either not installed or possibly
 misconfigured.  This issue might also indicate that other required files as listed in the
-[Configuration Files](https://github.com/containers/buildah/blob/master/install.md#configuration-files)
+[Configuration Files](https://github.com/containers/buildah/blob/main/install.md#configuration-files)
 section of the Installation Instructions are also not installed.
 
 #### Symptom
@@ -30,7 +30,7 @@ error building: error creating build container: no such image "alpine" in regist
   * Verify that the entries in the `[registries.search]` section of the /etc/containers/registries file are valid and reachable.
   * Verify that the image you requested is either fully qualified, or that it exists on one of your search registries.
   * Verify that the image is public or that you have logged in to at least one search registry which contains the private image.
-  * Verify that the other required [Configuration Files](https://github.com/containers/buildah/blob/master/install.md#configuration-files) are installed.
+  * Verify that the other required [Configuration Files](https://github.com/containers/buildah/blob/main/install.md#configuration-files) are installed.
 
 ---
 ### 2) http: server gave HTTP response to HTTPS client
@@ -76,7 +76,7 @@ the `buildah run` command will not complete and an error will be raised.
 
 #### Solution
 There are two solutions to this problem.  The
-[`podman run`](https://github.com/containers/podman/blob/master/docs/podman-run.1.md)
+[`podman run`](https://github.com/containers/podman/blob/main/docs/podman-run.1.md)
 command can be used in place of `buildah run`.  To still use `buildah run`, surround
 the command with single quotes and use `bash -c`.  The previous examples would be
 changed to:

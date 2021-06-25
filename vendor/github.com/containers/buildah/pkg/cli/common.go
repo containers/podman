@@ -84,6 +84,7 @@ type BudResults struct {
 	TLSVerify           bool
 	Jobs                int
 	LogRusage           bool
+	RusageLogFile       string
 }
 
 // FromAndBugResults represents the results for common flags
@@ -198,6 +199,10 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.BoolVar(&flags.LogRusage, "log-rusage", false, "log resource usage at each build step")
 	if err := fs.MarkHidden("log-rusage"); err != nil {
 		panic(fmt.Sprintf("error marking the log-rusage flag as hidden: %v", err))
+	}
+	fs.StringVar(&flags.RusageLogFile, "rusage-logfile", "", "destination file to which rusage should be logged to instead of stdout (= the default).")
+	if err := fs.MarkHidden("rusage-logfile"); err != nil {
+		panic(fmt.Sprintf("error marking the rusage-logfile flag as hidden: %v", err))
 	}
 	fs.StringVar(&flags.Manifest, "manifest", "", "add the image to the specified manifest list. Creates manifest if it does not exist")
 	fs.BoolVar(&flags.NoCache, "no-cache", false, "Do not use existing cached images for the container build. Build from the start with a new set of cached layers.")

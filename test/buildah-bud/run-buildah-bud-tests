@@ -145,9 +145,11 @@ if [[ -n $do_checkout ]]; then
     # the set of patches
     (set -x;git tag $BASE_TAG)
 
-    # Build buildah
+    # Build buildah and the copy helper
     failhint="error building buildah. This should never happen."
     (set -x;make bin/buildah)
+    failhint="error building buildah's copy helper. This should never happen."
+    (set -x;make bin/copy)
 
     # The upcoming patch may fail. Before we try it, create a helper script
     # for a developer to push a new set of diffs to podman-land.
@@ -213,5 +215,6 @@ review the test failure and double-check your changes.
     (set -x;sudo env TMPDIR=/var/tmp \
                  PODMAN_BINARY=$PODMAN_BINARY \
                  BUILDAH_BINARY=$(pwd)/bin/buildah \
+                 COPY_BINARY=$(pwd)/bin/copy \
                  bats "${bats_filter[@]}" tests/bud.bats)
 fi

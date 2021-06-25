@@ -1745,14 +1745,6 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 			if err != nil {
 				return errors.Wrapf(err, "copier: put: error creating %q", path)
 			}
-			// restore xattrs
-			if !req.PutOptions.StripXattrs {
-				if err = Lsetxattrs(path, hdr.Xattrs); err != nil { // nolint:staticcheck
-					if !req.PutOptions.IgnoreXattrErrors {
-						return errors.Wrapf(err, "copier: put: error setting extended attributes on %q", path)
-					}
-				}
-			}
 			// set ownership
 			if err = lchown(path, hdr.Uid, hdr.Gid); err != nil {
 				return errors.Wrapf(err, "copier: put: error setting ownership of %q to %d:%d", path, hdr.Uid, hdr.Gid)
@@ -1776,6 +1768,14 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 				}
 				if err = syscall.Chmod(path, uint32(mode)); err != nil {
 					return errors.Wrapf(err, "error setting additional permissions on %q to 0%o", path, mode)
+				}
+			}
+			// set xattrs, including some that might have been reset by chown()
+			if !req.PutOptions.StripXattrs {
+				if err = Lsetxattrs(path, hdr.Xattrs); err != nil { // nolint:staticcheck
+					if !req.PutOptions.IgnoreXattrErrors {
+						return errors.Wrapf(err, "copier: put: error setting extended attributes on %q", path)
+					}
 				}
 			}
 			// set time
