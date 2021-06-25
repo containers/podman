@@ -12,6 +12,7 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/systemd"
 	systemdDefine "github.com/containers/podman/v3/pkg/systemd/define"
 	"github.com/pkg/errors"
@@ -118,7 +119,7 @@ func ValidateImageReference(imageName string) error {
 //
 // It returns a slice of successfully restarted systemd units and a slice of
 // errors encountered during auto update.
-func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options Options) ([]string, []error) {
+func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options Options) (*entities.AutoUpdateReport, []error) {
 	// Create a map from `image ID -> []*Container`.
 	containerMap, errs := imageContainersMap(runtime)
 	if len(containerMap) == 0 {
@@ -224,7 +225,7 @@ func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options Options) (
 		updatedUnits = append(updatedUnits, unit)
 	}
 
-	return updatedUnits, errs
+	return &entities.AutoUpdateReport{Units: updatedUnits}, errs
 }
 
 // imageContainersMap generates a map[image ID] -> [containers using the image]
@@ -297,7 +298,6 @@ func newerRemoteImageAvailable(ctx context.Context, runtime *libpod.Runtime, img
 	if err != nil {
 		return false, err
 	}
-
 	return img.HasDifferentDigest(ctx, remoteRef)
 }
 
@@ -307,12 +307,7 @@ func newerLocalImageAvailable(runtime *libpod.Runtime, img *libimage.Image, rawI
 	if err != nil {
 		return false, err
 	}
-
-	localDigest := localImg.Digest().String()
-
-	ctrDigest := img.Digest().String()
-
-	return localDigest != ctrDigest, nil
+	return localImg.Digest().String() != img.Digest().String(), nil
 }
 
 // updateImage pulls the specified image.
