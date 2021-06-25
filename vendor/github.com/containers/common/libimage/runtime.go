@@ -54,6 +54,11 @@ type Runtime struct {
 }
 
 // Returns a copy of the runtime's system context.
+func (r *Runtime) SystemContext() *types.SystemContext {
+	return r.systemContextCopy()
+}
+
+// Returns a copy of the runtime's system context.
 func (r *Runtime) systemContextCopy() *types.SystemContext {
 	var sys types.SystemContext
 	deepcopy.Copy(&sys, &r.systemContext)

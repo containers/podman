@@ -29,7 +29,6 @@ import (
 	"github.com/containers/podman/v3/libpod/plugin"
 	"github.com/containers/podman/v3/libpod/shutdown"
 	"github.com/containers/podman/v3/pkg/cgroups"
-	"github.com/containers/podman/v3/pkg/registries"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage"
@@ -932,7 +931,9 @@ func (r *Runtime) LibimageRuntime() *libimage.Runtime {
 
 // SystemContext returns the imagecontext
 func (r *Runtime) SystemContext() *types.SystemContext {
-	return r.imageContext
+	// Return the context from the libimage runtime.  libimage is sensitive
+	// to a number of env vars.
+	return r.libimageRuntime.SystemContext()
 }
 
 // GetOCIRuntimePath retrieves the path of the default OCI runtime.
@@ -1042,9 +1043,9 @@ func (r *Runtime) Reload() error {
 	if err := r.reloadStorageConf(); err != nil {
 		return err
 	}
-	if err := reloadRegistriesConf(); err != nil {
-		return err
-	}
+	// Invalidate the registries.conf cache. The next invocation will
+	// reload all data.
+	sysregistriesv2.InvalidateCache()
 	return nil
 }
 
@@ -1056,17 +1057,6 @@ func (r *Runtime) reloadContainersConf() error {
 	}
 	r.config = config
 	logrus.Infof("applied new containers configuration: %v", config)
-	return nil
-}
-
-// reloadRegistries reloads the registries.conf
-func reloadRegistriesConf() error {
-	sysregistriesv2.InvalidateCache()
-	registries, err := sysregistriesv2.GetRegistries(&types.SystemContext{SystemRegistriesConfPath: registries.SystemRegistriesConfPath()})
-	if err != nil {
-		return err
-	}
-	logrus.Infof("applied new registry configuration: %+v", registries)
 	return nil
 }
 
