@@ -5,7 +5,7 @@
 Podman (the POD MANager) is a tool for managing containers and images, volumes mounted into those containers, and pods made from groups of containers.
 Podman is based on libpod, a library for container lifecycle management that is also contained in this repository. The libpod library provides APIs for managing containers, pods, container images, and volumes.
 
-* [Latest Version: 3.1.0](https://github.com/containers/podman/releases/latest)
+* [Latest Version: 3.2.2](https://github.com/containers/podman/releases/latest)
   * Latest Remote client for Windows
   * Latest Remote client for MacOs
   * Latest Static Remote client for Linux
@@ -130,7 +130,7 @@ Buildah and Podman are two complementary open-source projects that are
 available on most Linux platforms and both projects reside at
 [GitHub.com](https://github.com) with Buildah
 [here](https://github.com/containers/buildah) and Podman
-[here](https://github.com/containers/podman).  Both, Buildah and Podman are
+[here](https://github.com/containers/podman).  Both Buildah and Podman are
 command line tools that work on Open Container Initiative (OCI) images and
 containers.  The two projects differentiate in their specialization.
 
