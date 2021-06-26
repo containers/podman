@@ -35,6 +35,23 @@ var _ = Describe("Podman pull", func() {
 
 	})
 
+	It("podman pull multiple images with/without tag/digest", func() {
+		session := podmanTest.Podman([]string{"pull", "busybox:musl", "alpine", "alpine:latest", "quay.io/libpod/cirros", "quay.io/libpod/testdigest_v2s2@sha256:755f4d90b3716e2bf57060d249e2cd61c9ac089b1233465c5c2cb2d7ee550fdb"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"pull", "busybox:latest", "docker.io/library/ibetthisdoesnotexistfr:random", "alpine"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+		expectedError := "Error initializing source docker://ibetthisdoesnotexistfr:random"
+		found, _ := session.ErrorGrepString(expectedError)
+		Expect(found).To(Equal(true))
+
+		session = podmanTest.Podman([]string{"rmi", "busybox", "alpine", "testdigest_v2s2", "quay.io/libpod/cirros"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	It("podman pull from docker a not existing image", func() {
 		session := podmanTest.Podman([]string{"pull", "ibetthisdoesntexistthere:foo"})
 		session.WaitWithDefaultTimeout()
@@ -385,7 +402,6 @@ var _ = Describe("Podman pull", func() {
 		session := podmanTest.Podman([]string{"pull", "--all-tags", "k8s.gcr.io/pause"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.LineInOutputStartsWith("Pulled Images:")).To(BeTrue())
 
 		session = podmanTest.Podman([]string{"images"})
 		session.WaitWithDefaultTimeout()
