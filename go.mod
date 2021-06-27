@@ -69,3 +69,5 @@ require (
 	k8s.io/api v0.21.0
 	k8s.io/apimachinery v0.21.0
 )
+
+replace github.com/containers/common => github.com/vrothberg/common v0.0.3-0.20210627115020-fdd82b5b2d21

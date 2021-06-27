@@ -91,7 +91,7 @@ github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/util
-# github.com/containers/common v0.38.11
+# github.com/containers/common v0.38.11 => github.com/vrothberg/common v0.0.3-0.20210627115020-fdd82b5b2d21
 github.com/containers/common/libimage
 github.com/containers/common/libimage/manifests
 github.com/containers/common/pkg/apparmor
