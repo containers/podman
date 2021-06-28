@@ -613,7 +613,7 @@ podman-release.tar.gz: binaries docs  ## Build all binaries, docs., and installa
 	$(eval TMPDIR := $(shell mktemp -d podman_tmp_XXXX))
 	$(eval SUBDIR := podman-v$(RELEASE_NUMBER))
 	mkdir -p "$(TMPDIR)/$(SUBDIR)"
-	$(MAKE) install.bin install.man install.cni \
+	$(MAKE) install.bin install.man \
 		install.systemd "DESTDIR=$(TMPDIR)/$(SUBDIR)" "PREFIX=/usr"
 	tar -czvf $@ --xattrs -C "$(TMPDIR)" "./$(SUBDIR)"
 	-rm -rf "$(TMPDIR)"
@@ -666,7 +666,7 @@ package-install: package  ## Install rpm packages
 	/usr/bin/podman info  # will catch a broken conmon
 
 .PHONY: install
-install: .gopathok install.bin install.remote install.man install.cni install.systemd  ## Install binaries to system locations
+install: .gopathok install.bin install.remote install.man install.systemd  ## Install binaries to system locations
 
 .PHONY: install.catatonit
 install.catatonit:
@@ -718,11 +718,6 @@ install.completions:
 	install ${SELINUXOPT} -m 644 completions/fish/podman.fish ${DESTDIR}${FISHINSTALLDIR}
 	install ${SELINUXOPT} -m 644 completions/fish/podman-remote.fish ${DESTDIR}${FISHINSTALLDIR}
 	# There is no common location for powershell files so do not install them. Users have to source the file from their powershell profile.
-
-.PHONY: install.cni
-install.cni:
-	install ${SELINUXOPT} -d -m 755 ${DESTDIR}${ETCDIR}/cni/net.d/
-	install ${SELINUXOPT} -m 644 cni/87-podman-bridge.conflist ${DESTDIR}${ETCDIR}/cni/net.d/87-podman-bridge.conflist
 
 .PHONY: install.docker
 install.docker:
