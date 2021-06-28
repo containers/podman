@@ -9,6 +9,7 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/containers/podman/v3/pkg/copy"
+	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
@@ -92,11 +93,13 @@ func handleHeadAndGet(w http.ResponseWriter, r *http.Request, decoder *schema.De
 
 func handlePut(w http.ResponseWriter, r *http.Request, decoder *schema.Decoder, runtime *libpod.Runtime) {
 	query := struct {
-		Path string `schema:"path"`
+		Path  string `schema:"path"`
+		Chown bool   `schema:"copyUIDGID"`
 		// TODO handle params below
 		NoOverwriteDirNonDir bool `schema:"noOverwriteDirNonDir"`
-		CopyUIDGID           bool `schema:"copyUIDGID"`
-	}{}
+	}{
+		Chown: utils.IsLibpodRequest(r), // backward compatibility
+	}
 
 	err := decoder.Decode(&query, r.URL.Query())
 	if err != nil {
@@ -107,7 +110,7 @@ func handlePut(w http.ResponseWriter, r *http.Request, decoder *schema.Decoder, 
 	containerName := utils.GetName(r)
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
 
-	copyFunc, err := containerEngine.ContainerCopyFromArchive(r.Context(), containerName, query.Path, r.Body)
+	copyFunc, err := containerEngine.ContainerCopyFromArchive(r.Context(), containerName, query.Path, r.Body, entities.CopyOptions{Chown: query.Chown})
 	if errors.Cause(err) == define.ErrNoSuchCtr || os.IsNotExist(err) {
 		// 404 is returned for an absent container and path.  The
 		// clients must deal with it accordingly.

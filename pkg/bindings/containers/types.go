@@ -251,3 +251,11 @@ type ExistsOptions struct {
 	// External checks for containers created outside of Podman
 	External *bool
 }
+
+//go:generate go run ../generator/generator.go CopyOptions
+// CopyOptions are options for copying to containers.
+type CopyOptions struct {
+	// If used with CopyFromArchive and set to true it will change ownership of files from the source tar archive
+	// to the primary uid/gid of the target container.
+	Chown *bool `schema:"copyUIDGID"`
+}

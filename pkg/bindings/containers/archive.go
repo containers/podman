@@ -50,11 +50,21 @@ func Stat(ctx context.Context, nameOrID string, path string) (*entities.Containe
 }
 
 func CopyFromArchive(ctx context.Context, nameOrID string, path string, reader io.Reader) (entities.ContainerCopyFunc, error) {
+	return CopyFromArchiveWithOptions(ctx, nameOrID, path, reader, nil)
+}
+
+// CopyFromArchiveWithOptions FIXME: remove this function and make CopyFromArchive accept the option as the last parameter in podman 4.0
+func CopyFromArchiveWithOptions(ctx context.Context, nameOrID string, path string, reader io.Reader, options *CopyOptions) (entities.ContainerCopyFunc, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	params := url.Values{}
+
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
+	}
+
 	params.Set("path", path)
 
 	return func() error {

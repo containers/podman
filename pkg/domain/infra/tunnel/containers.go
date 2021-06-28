@@ -833,8 +833,8 @@ func (ic *ContainerEngine) ContainerPort(ctx context.Context, nameOrID string, o
 	return reports, nil
 }
 
-func (ic *ContainerEngine) ContainerCopyFromArchive(ctx context.Context, nameOrID string, path string, reader io.Reader) (entities.ContainerCopyFunc, error) {
-	return containers.CopyFromArchive(ic.ClientCtx, nameOrID, path, reader)
+func (ic *ContainerEngine) ContainerCopyFromArchive(ctx context.Context, nameOrID, path string, reader io.Reader, options entities.CopyOptions) (entities.ContainerCopyFunc, error) {
+	return containers.CopyFromArchiveWithOptions(ic.ClientCtx, nameOrID, path, reader, new(containers.CopyOptions).WithChown(options.Chown))
 }
 
 func (ic *ContainerEngine) ContainerCopyToArchive(ctx context.Context, nameOrID string, path string, writer io.Writer) (entities.ContainerCopyFunc, error) {

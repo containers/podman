@@ -840,7 +840,7 @@ func (c *Container) ShouldRestart(ctx context.Context) bool {
 
 // CopyFromArchive copies the contents from the specified tarStream to path
 // *inside* the container.
-func (c *Container) CopyFromArchive(ctx context.Context, containerPath string, tarStream io.Reader) (func() error, error) {
+func (c *Container) CopyFromArchive(ctx context.Context, containerPath string, chown bool, tarStream io.Reader) (func() error, error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -850,7 +850,7 @@ func (c *Container) CopyFromArchive(ctx context.Context, containerPath string, t
 		}
 	}
 
-	return c.copyFromArchive(ctx, containerPath, tarStream)
+	return c.copyFromArchive(ctx, containerPath, chown, tarStream)
 }
 
 // CopyToArchive copies the contents from the specified path *inside* the

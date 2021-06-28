@@ -23,7 +23,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func (c *Container) copyFromArchive(ctx context.Context, path string, reader io.Reader) (func() error, error) {
+func (c *Container) copyFromArchive(ctx context.Context, path string, chown bool, reader io.Reader) (func() error, error) {
 	var (
 		mountPoint   string
 		resolvedRoot string
@@ -62,13 +62,16 @@ func (c *Container) copyFromArchive(ctx context.Context, path string, reader io.
 		}
 	}
 
-	// Make sure we chown the files to the container's main user and group ID.
-	user, err := getContainerUser(c, mountPoint)
-	if err != nil {
-		unmount()
-		return nil, err
+	var idPair *idtools.IDPair
+	if chown {
+		// Make sure we chown the files to the container's main user and group ID.
+		user, err := getContainerUser(c, mountPoint)
+		if err != nil {
+			unmount()
+			return nil, err
+		}
+		idPair = &idtools.IDPair{UID: int(user.UID), GID: int(user.GID)}
 	}
-	idPair := idtools.IDPair{UID: int(user.UID), GID: int(user.GID)}
 
 	decompressed, err := archive.DecompressStream(reader)
 	if err != nil {
@@ -84,8 +87,8 @@ func (c *Container) copyFromArchive(ctx context.Context, path string, reader io.
 		putOptions := buildahCopiah.PutOptions{
 			UIDMap:     c.config.IDMappings.UIDMap,
 			GIDMap:     c.config.IDMappings.GIDMap,
-			ChownDirs:  &idPair,
-			ChownFiles: &idPair,
+			ChownDirs:  idPair,
+			ChownFiles: idPair,
 		}
 
 		return c.joinMountAndExec(ctx,

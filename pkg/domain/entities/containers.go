@@ -160,6 +160,13 @@ type CommitOptions struct {
 	Writer         io.Writer
 }
 
+type CopyOptions struct {
+	// If used with ContainerCopyFromArchive and set to true
+	// it will change ownership of files from the source tar archive
+	// to the primary uid/gid of the destination container.
+	Chown bool
+}
+
 type CommitReport struct {
 	Id string //nolint
 }
