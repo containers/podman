@@ -374,18 +374,22 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 		}
 	}
 
-	// Unless the pull policy is "always", we must pessimistically assume
-	// that the local image has an invalid architecture (see
-	// containers/podman/issues/10682).  Hence, whenever the user requests
-	// a custom platform, set the pull policy to "always" to make sure
-	// we're pulling down the image.
-	//
-	// NOTE that this is will even override --pull={false,never}.  This is
-	// very likely a bug but a consistent one in Podman/Buildah and should
-	// be addressed at a later point.
-	if pullPolicy != config.PullPolicyAlways && len(options.Architecture)+len(options.OS)+len(options.Variant) > 0 {
-		logrus.Debugf("Enforcing pull policy to %q to support custom platform (arch: %q, os: %q, variant: %q)", "always", options.Architecture, options.OS, options.Variant)
-		pullPolicy = config.PullPolicyAlways
+	customPlatform := false
+	if len(options.Architecture)+len(options.OS)+len(options.Variant) > 0 {
+		customPlatform = true
+		// Unless the pull policy is "always", we must pessimistically assume
+		// that the local image has an invalid architecture (see
+		// containers/podman/issues/10682).  Hence, whenever the user requests
+		// a custom platform, set the pull policy to "always" to make sure
+		// we're pulling down the image.
+		//
+		// NOTE that this is will even override --pull={false,never}.  This is
+		// very likely a bug but a consistent one in Podman/Buildah and should
+		// be addressed at a later point.
+		if pullPolicy != config.PullPolicyAlways {
+			logrus.Debugf("Enforcing pull policy to %q to support custom platform (arch: %q, os: %q, variant: %q)", "always", options.Architecture, options.OS, options.Variant)
+			pullPolicy = config.PullPolicyAlways
+		}
 	}
 
 	if pullPolicy == config.PullPolicyNever {
@@ -412,8 +416,15 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 	}
 
 	// If we found a local image, we should use it's locally resolved name
-	// (see containers/buildah #2904).
-	if localImage != nil {
+	// (see containers/buildah/issues/2904).  An exception is if a custom
+	// platform is specified (e.g., `--arch=arm64`).  In that case, we need
+	// to pessimistically pull the image since some images declare wrong
+	// platforms making platform checks absolutely unreliable (see
+	// containers/podman/issues/10682).
+	//
+	// In other words: multi-arch support can only be as good as the images
+	// in the wild.
+	if localImage != nil && !customPlatform {
 		if imageName != resolvedImageName {
 			logrus.Debugf("Image %s resolved to local image %s which will be used for pulling", imageName, resolvedImageName)
 		}
