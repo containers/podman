@@ -34,6 +34,12 @@ The implementation for both symmetric and asymmetric encryption used in this lib
 
 We note that adding interfaces here is risky outside the OCI spec is not recommended, unless for very specialized and confined usecases. Please open an issue or PR if there is a general usecase that could be added to the OCI spec.
 
+
+#### Keyprovider interface
+
+As part of the keywrap interface, there is a [keyprovider](https://github.com/containers/ocicrypt/blob/main/docs/keyprovider.md) implementation that allows one to call out to a binary or service.
+
+
 ## Security Issues
 
 We consider security issues related to this library critical. Please report and security related issues by emailing maintainers in the [MAINTAINERS](MAINTAINERS) file.
