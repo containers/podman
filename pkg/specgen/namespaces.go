@@ -68,6 +68,11 @@ func (n *Namespace) IsHost() bool {
 	return n.NSMode == Host
 }
 
+// IsBridge returns a bool if the namespace is a Bridge
+func (n *Namespace) IsBridge() bool {
+	return n.NSMode == Bridge
+}
+
 // IsPath indicates via bool if the namespace is based on a path
 func (n *Namespace) IsPath() bool {
 	return n.NSMode == Path
@@ -300,4 +305,21 @@ func ParseNetworkNamespace(ns string, rootlessDefaultCNI bool) (Namespace, []str
 	}
 
 	return toReturn, cniNetworks, nil
+}
+
+func ParseNetworkString(network string) (Namespace, []string, map[string][]string, error) {
+	var networkOptions map[string][]string
+	parts := strings.SplitN(network, ":", 2)
+
+	ns, cniNets, err := ParseNetworkNamespace(network, containerConfig.Containers.RootlessNetworking == "cni")
+	if err != nil {
+		return Namespace{}, nil, nil, err
+	}
+
+	if len(parts) > 1 {
+		networkOptions = make(map[string][]string)
+		networkOptions[parts[0]] = strings.Split(parts[1], ",")
+		cniNets = nil
+	}
+	return ns, cniNets, networkOptions, nil
 }
