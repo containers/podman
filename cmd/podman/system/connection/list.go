@@ -3,6 +3,7 @@ package connection
 import (
 	"fmt"
 	"os"
+	"sort"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
@@ -76,6 +77,10 @@ func list(cmd *cobra.Command, _ []string) error {
 		}
 		rows = append(rows, r)
 	}
+
+	sort.Slice(rows, func(i, j int) bool {
+		return rows[i].Name < rows[j].Name
+	})
 
 	format := "{{.Name}}\t{{.Identity}}\t{{.URI}}\n"
 	switch {
