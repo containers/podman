@@ -10,6 +10,8 @@ podman\-system\-connection\-add - Record destination for the Podman service
 Record ssh destination for remote podman service(s). The ssh destination is given as one of:
  - [user@]hostname[:port]
  - ssh://[user@]hostname[:port]
+ - unix://path
+ - tcp://hostname:port
 
 The user will be prompted for the remote ssh login password or key file pass phrase as required. The `ssh-agent` is supported if it is running.
 
@@ -38,6 +40,10 @@ Path to the Podman service unix domain socket on the ssh destination host
 $ podman system connection add QA podman.example.com
 
 $ podman system connection add --identity ~/.ssh/dev_rsa production ssh://root@server.example.com:2222
+
+$ podman system connection add unix:///run/podman/podman.sock
+
+$ podman system connection add tcp://localhost:8080
 ```
 ## SEE ALSO
 podman-system(1) , podman-system-connection(1) , containers.conf(5)

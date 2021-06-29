@@ -53,7 +53,7 @@ var _ = Describe("podman system connection", func() {
 		GinkgoWriter.Write([]byte(timedResult))
 	})
 
-	It("add", func() {
+	It("add ssh://", func() {
 		cmd := []string{"system", "connection", "add",
 			"--default",
 			"--identity", "~/.ssh/id_rsa",
@@ -90,6 +90,68 @@ var _ = Describe("podman system connection", func() {
 			config.Destination{
 				URI:      "ssh://root@server.fubar.com:2222/run/podman/podman.sock",
 				Identity: "~/.ssh/id_rsa",
+			},
+		))
+	})
+
+	It("add UDS", func() {
+		cmd := []string{"system", "connection", "add",
+			"QA-UDS",
+			"unix:///run/podman/podman.sock",
+		}
+		session := podmanTest.Podman(cmd)
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.Out).Should(Say(""))
+
+		cfg, err := config.ReadCustomConfig()
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(cfg.Engine.ActiveService).To(Equal("QA-UDS"))
+		Expect(cfg.Engine.ServiceDestinations["QA-UDS"]).To(Equal(
+			config.Destination{
+				URI:      "unix:///run/podman/podman.sock",
+				Identity: "",
+			},
+		))
+
+		cmd = []string{"system", "connection", "add",
+			"QA-UDS1",
+			"--socket-path", "/run/user/podman/podman.sock",
+			"unix:///run/podman/podman.sock",
+		}
+		session = podmanTest.Podman(cmd)
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.Out).Should(Say(""))
+
+		cfg, err = config.ReadCustomConfig()
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(cfg.Engine.ActiveService).To(Equal("QA-UDS"))
+		Expect(cfg.Engine.ServiceDestinations["QA-UDS1"]).To(Equal(
+			config.Destination{
+				URI:      "unix:///run/user/podman/podman.sock",
+				Identity: "",
+			},
+		))
+	})
+
+	It("add tcp", func() {
+		cmd := []string{"system", "connection", "add",
+			"QA-TCP",
+			"tcp://localhost:8080",
+		}
+		session := podmanTest.Podman(cmd)
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.Out).Should(Say(""))
+
+		cfg, err := config.ReadCustomConfig()
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(cfg.Engine.ActiveService).To(Equal("QA-TCP"))
+		Expect(cfg.Engine.ServiceDestinations["QA-TCP"]).To(Equal(
+			config.Destination{
+				URI:      "tcp://localhost:8080",
+				Identity: "",
 			},
 		))
 	})

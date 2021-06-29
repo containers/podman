@@ -23,22 +23,24 @@ import (
 	"golang.org/x/crypto/ssh/agent"
 )
 
-const schemaPattern = "^[A-Za-z][A-Za-z0-9+.-]*:"
-
 var (
 	addCmd = &cobra.Command{
 		Use:   "add [options] NAME DESTINATION",
 		Args:  cobra.ExactArgs(2),
 		Short: "Record destination for the Podman service",
 		Long: `Add destination to podman configuration.
-  "destination" is of the form [user@]hostname or
-  an URI of the form ssh://[user@]hostname[:port]
+  "destination" is one of the form:
+    [user@]hostname (will default to ssh)
+    ssh://[user@]hostname[:port][/path] (will obtain socket path from service, if not given.)
+    tcp://hostname:port (not secured)
+    unix://path (absolute path required)
 `,
 		RunE:              add,
 		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman system connection add laptop server.fubar.com
   podman system connection add --identity ~/.ssh/dev_rsa testing ssh://root@server.fubar.com:2222
   podman system connection add --identity ~/.ssh/dev_rsa --port 22 production root@server.fubar.com
+  podman system connection add debug tcp://localhost:8080
   `,
 	}
 
@@ -74,9 +76,9 @@ func init() {
 }
 
 func add(cmd *cobra.Command, args []string) error {
-	// Default to ssh: schema if none given
+	// Default to ssh schema if none given
 	dest := args[1]
-	if match, err := regexp.Match(schemaPattern, []byte(dest)); err != nil {
+	if match, err := regexp.Match("^[A-Za-z][A-Za-z0-9+.-]*://", []byte(dest)); err != nil {
 		return errors.Wrapf(err, "invalid destination")
 	} else if !match {
 		dest = "ssh://" + dest
@@ -87,28 +89,63 @@ func add(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if uri.User.Username() == "" {
-		if uri.User, err = getUserInfo(uri); err != nil {
-			return err
-		}
-	}
-
 	if cmd.Flags().Changed("socket-path") {
 		uri.Path = cmd.Flag("socket-path").Value.String()
 	}
 
-	if cmd.Flags().Changed("port") {
-		uri.Host = net.JoinHostPort(uri.Hostname(), cmd.Flag("port").Value.String())
-	}
-
-	if uri.Port() == "" {
-		uri.Host = net.JoinHostPort(uri.Hostname(), cmd.Flag("port").DefValue)
-	}
-
-	if uri.Path == "" || uri.Path == "/" {
-		if uri.Path, err = getUDS(cmd, uri); err != nil {
-			return err
+	switch uri.Scheme {
+	case "ssh":
+		if uri.User.Username() == "" {
+			if uri.User, err = getUserInfo(uri); err != nil {
+				return err
+			}
 		}
+
+		if cmd.Flags().Changed("port") {
+			uri.Host = net.JoinHostPort(uri.Hostname(), cmd.Flag("port").Value.String())
+		}
+
+		if uri.Port() == "" {
+			uri.Host = net.JoinHostPort(uri.Hostname(), cmd.Flag("port").DefValue)
+		}
+
+		if uri.Path == "" || uri.Path == "/" {
+			if uri.Path, err = getUDS(cmd, uri); err != nil {
+				return err
+			}
+		}
+	case "unix":
+		if cmd.Flags().Changed("identity") {
+			return errors.New("--identity option not supported for unix scheme")
+		}
+
+		if cmd.Flags().Changed("socket-path") {
+			uri.Path = cmd.Flag("socket-path").Value.String()
+		}
+
+		info, err := os.Stat(uri.Path)
+		switch {
+		case errors.Is(err, os.ErrNotExist):
+			logrus.Warnf("%q does not exists", uri.Path)
+		case errors.Is(err, os.ErrPermission):
+			logrus.Warnf("You do not have permission to read %q", uri.Path)
+		case err != nil:
+			return err
+		case info.Mode()&os.ModeSocket == 0:
+			return fmt.Errorf("%q exists and is not a unix domain socket", uri.Path)
+		}
+	case "tcp":
+		if cmd.Flags().Changed("socket-path") {
+			return errors.New("--socket-path option not supported for tcp scheme")
+		}
+		if cmd.Flags().Changed("identity") {
+			return errors.New("--identity option not supported for tcp scheme")
+		}
+		if uri.Port() == "" {
+			return errors.New("tcp scheme requires a port either via --port or in destination URL")
+		}
+	default:
+		logrus.Warnf("%q unknown scheme, no validation provided", uri.Scheme)
 	}
 
 	cfg, err := config.ReadCustomConfig()
