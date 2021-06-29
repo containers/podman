@@ -89,7 +89,11 @@ func processRecipientKeys(recipients []string) ([][]byte, [][]byte, [][]byte, []
 func processx509Certs(keys []string) ([][]byte, error) {
 	var x509s [][]byte
 	for _, key := range keys {
-		tmp, err := ioutil.ReadFile(strings.Split(key, ":")[0])
+		fileName := strings.Split(key, ":")[0]
+		if _, err := os.Stat(fileName); os.IsNotExist(err) {
+			continue
+		}
+		tmp, err := ioutil.ReadFile(fileName)
 		if err != nil {
 			return nil, errors.Wrap(err, "Unable to read file")
 		}
@@ -157,7 +161,7 @@ func processPrivateKeyFiles(keyFilesAndPwds []string) ([][]byte, [][]byte, [][]b
 		var password []byte
 
 		// treat "provider" protocol separately
-		if strings.HasPrefix(keyfileAndPwd, "provider:"){
+		if strings.HasPrefix(keyfileAndPwd, "provider:") {
 			keyProviders = append(keyProviders, []byte(keyfileAndPwd[len("provider:"):]))
 			continue
 		}
@@ -207,14 +211,13 @@ func CreateDecryptCryptoConfig(keys []string, decRecipients []string) (encconfig
 		return encconfig.CryptoConfig{}, err
 	}
 
-	if len(x509s) > 0 {
-		// x509 certs can also be passed in via keys
-		x509FromKeys, err := processx509Certs(keys)
-		if err != nil {
-			return encconfig.CryptoConfig{}, err
-		}
-		x509s = append(x509s, x509FromKeys...)
+	// x509 certs can also be passed in via keys
+	x509FromKeys, err := processx509Certs(keys)
+	if err != nil {
+		return encconfig.CryptoConfig{}, err
 	}
+	x509s = append(x509s, x509FromKeys...)
+
 	gpgSecretKeyRingFiles, gpgSecretKeyPasswords, privKeys, privKeysPasswords, pkcs11Yamls, keyProviders, err := processPrivateKeyFiles(keys)
 	if err != nil {
 		return encconfig.CryptoConfig{}, err
