@@ -133,6 +133,7 @@ type PodCreateConfig struct {
 	Infra        bool     `json:"infra"`
 	InfraCommand string   `json:"infra-command"`
 	InfraImage   string   `json:"infra-image"`
+	InfraName    string   `json:"infra-name"`
 	Labels       []string `json:"labels"`
 	Publish      []string `json:"publish"`
 	Share        string   `json:"share"`

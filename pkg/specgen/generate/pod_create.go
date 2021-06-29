@@ -98,6 +98,10 @@ func createPodOptions(p *specgen.PodSpecGenerator, rt *libpod.Runtime) ([]libpod
 		options = append(options, libpod.WithInfraImage(p.InfraImage))
 	}
 
+	if len(p.InfraName) > 0 {
+		options = append(options, libpod.WithInfraName(p.InfraName))
+	}
+
 	if len(p.InfraCommand) > 0 {
 		options = append(options, libpod.WithInfraCommand(p.InfraCommand))
 	}
