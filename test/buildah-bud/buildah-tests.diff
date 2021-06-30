@@ -1,4 +1,4 @@
-From 90c93048c9f3bdedf39c3c5ce3216ee2518220b4 Mon Sep 17 00:00:00 2001
+From a00508656599b24776982996fdb44d4874338fd4 Mon Sep 17 00:00:00 2001
 From: Ed Santiago <santiago@redhat.com>
 Date: Tue, 9 Feb 2021 17:28:05 -0700
 Subject: [PATCH] tweaks for running buildah tests under podman
@@ -9,10 +9,10 @@ Signed-off-by: Ed Santiago <santiago@redhat.com>
  1 file changed, 25 insertions(+), 3 deletions(-)
 
 diff --git a/tests/helpers.bash b/tests/helpers.bash
-index b85f99d3..1a827cd7 100644
+index 11deb367..08e73954 100644
 --- a/tests/helpers.bash
 +++ b/tests/helpers.bash
-@@ -147,15 +147,37 @@ function run_buildah() {
+@@ -164,15 +164,37 @@ function run_buildah() {
          --retry)         retry=3;        shift;;  # retry network flakes
      esac
 
@@ -47,9 +47,9 @@ index b85f99d3..1a827cd7 100644
 
          # stdout is only emitted upon error; this echo is to help a debugger
 -        echo "\$ $BUILDAH_BINARY $*"
--        run timeout --foreground --kill=10 $BUILDAH_TIMEOUT ${BUILDAH_BINARY} ${BUILDAH_REGISTRY_OPTS} ${ROOTDIR_OPTS} "$@"
+-        run env CONTAINERS_CONF=${CONTAINERS_CONF:-$(dirname ${BASH_SOURCE})/containers.conf} timeout --foreground --kill=10 $BUILDAH_TIMEOUT ${BUILDAH_BINARY} ${BUILDAH_REGISTRY_OPTS} ${ROOTDIR_OPTS} "$@"
 +        echo "\$ $cmd_basename $*"
-+        run timeout --foreground --kill=10 $BUILDAH_TIMEOUT ${podman_or_buildah} ${registry_opts} ${ROOTDIR_OPTS} "$@"
++        run env CONTAINERS_CONF=${CONTAINERS_CONF:-$(dirname ${BASH_SOURCE})/containers.conf} timeout --foreground --kill=10 $BUILDAH_TIMEOUT ${podman_or_buildah} ${registry_opts} ${ROOTDIR_OPTS} "$@"
          # without "quotes", multiple lines are glommed together into one
          if [ -n "$output" ]; then
              echo "$output"

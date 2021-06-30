@@ -178,6 +178,9 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	if options.LogRusage {
 		params.Set("rusage", "1")
 	}
+	if len(options.RusageLogFile) > 0 {
+		params.Set("rusagelogfile", options.RusageLogFile)
+	}
 	if len(options.Manifest) > 0 {
 		params.Set("manifest", options.Manifest)
 	}

@@ -622,6 +622,10 @@ func SystemContextFromOptions(c *cobra.Command) (*types.SystemContext, error) {
 	if err == nil && c.Flag("registries-conf-dir").Changed {
 		ctx.RegistriesDirPath = regConfDir
 	}
+	shortNameAliasConf, err := c.Flags().GetString("short-name-alias-conf")
+	if err == nil && c.Flag("short-name-alias-conf").Changed {
+		ctx.UserShortNameAliasConfPath = shortNameAliasConf
+	}
 	ctx.DockerRegistryUserAgent = fmt.Sprintf("Buildah/%s", define.Version)
 	if c.Flag("os") != nil && c.Flag("os").Changed {
 		if os, err := c.Flags().GetString("os"); err == nil {

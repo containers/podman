@@ -291,21 +291,8 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 	}
 	logrus.Debugf("committing image with reference %q is allowed by policy", transports.ImageName(dest))
 
-	// Check if the base image is already in the destination and it's some kind of local
-	// storage.  If so, we can skip recompressing any layers that come from the base image.
-	exportBaseLayers := true
-	if transport, destIsStorage := dest.Transport().(is.StoreTransport); destIsStorage && options.OciEncryptConfig != nil {
-		return imgID, nil, "", errors.New("unable to use local storage with image encryption")
-	} else if destIsStorage && b.FromImageID != "" {
-		if baseref, err := transport.ParseReference(b.FromImageID); baseref != nil && err == nil {
-			if img, err := transport.GetImage(baseref); img != nil && err == nil {
-				logrus.Debugf("base image %q is already present in local storage, no need to copy its layers", b.FromImageID)
-				exportBaseLayers = false
-			}
-		}
-	}
 	// Build an image reference from which we can copy the finished image.
-	src, err := b.makeImageRef(options, exportBaseLayers)
+	src, err := b.makeImageRef(options)
 	if err != nil {
 		return imgID, nil, "", errors.Wrapf(err, "error computing layer digests and building metadata for container %q", b.ContainerID)
 	}

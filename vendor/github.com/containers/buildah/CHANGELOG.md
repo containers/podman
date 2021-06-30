@@ -1,9 +1,6 @@
-![buildah logo](https://cdn.rawgit.com/containers/buildah/master/logos/buildah-logo_large.png)
+![buildah logo](https://cdn.rawgit.com/containers/buildah/main/logos/buildah-logo_large.png)
 
 # Changelog
-## v1.21.1 (2021-06-02)
-    Fix handling of auth.json file while in a user namespace
-
 ## v1.21.0 (2021-05-19)
     Don't blow up if cpp detects errors
     Vendor in containers/common v0.38.4

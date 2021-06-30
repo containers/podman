@@ -49,6 +49,7 @@ import (
 type StageExecutor struct {
 	ctx             context.Context
 	executor        *Executor
+	log             func(format string, args ...interface{})
 	index           int
 	stages          imagebuilder.Stages
 	name            string
@@ -527,7 +528,7 @@ func (s *StageExecutor) prepare(ctx context.Context, from string, initializeIBCo
 	if initializeIBConfig && rebase {
 		logrus.Debugf("FROM %#v", displayFrom)
 		if !s.executor.quiet {
-			s.executor.log("FROM %s", displayFrom)
+			s.log("FROM %s", displayFrom)
 		}
 	}
 
@@ -703,8 +704,8 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				fmt.Fprintf(s.executor.out, "error gathering resource usage information: %v\n", err)
 				return
 			}
-			if !s.executor.quiet && s.executor.logRusage {
-				fmt.Fprintf(s.executor.out, "%s\n", rusage.FormatDiff(usage.Subtract(resourceUsage)))
+			if s.executor.rusageLogFile != nil {
+				fmt.Fprintf(s.executor.rusageLogFile, "%s\n", rusage.FormatDiff(usage.Subtract(resourceUsage)))
 			}
 			resourceUsage = usage
 		}
@@ -740,7 +741,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 		}
 		logrus.Debugf(commitMessage)
 		if !s.executor.quiet {
-			s.executor.log(commitMessage)
+			s.log(commitMessage)
 		}
 	}
 	logCacheHit := func(cacheID string) {
@@ -798,7 +799,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 		}
 		logrus.Debugf("Parsed Step: %+v", *step)
 		if !s.executor.quiet {
-			s.executor.log("%s", step.Original)
+			s.log("%s", step.Original)
 		}
 
 		// Check if there's a --from if the step command is COPY.

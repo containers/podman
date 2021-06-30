@@ -40,7 +40,7 @@ type PushOptions struct {
 	// github.com/containers/image/types SystemContext to hold credentials
 	// and other authentication/authorization information.
 	SystemContext *types.SystemContext
-	// ManifestType is the format to use when saving the image using the 'dir' transport
+	// ManifestType is the format to use
 	// possible options are oci, v2s1, and v2s2
 	ManifestType string
 	// BlobDirectory is the name of a directory in which we'll look for

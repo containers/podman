@@ -60,7 +60,12 @@ func doesSupportNativeDiff(d, mountOpts string) error {
 		return errors.Wrap(err, "failed to set opaque flag on middle layer")
 	}
 
-	opts := fmt.Sprintf("lowerdir=%s:%s,upperdir=%s,workdir=%s", path.Join(td, "l2"), path.Join(td, "l1"), path.Join(td, "l3"), path.Join(td, "work"))
+	mountFlags := "lowerdir=%s:%s,upperdir=%s,workdir=%s"
+	if unshare.IsRootless() {
+		mountFlags = mountFlags + ",userxattr"
+	}
+
+	opts := fmt.Sprintf(mountFlags, path.Join(td, "l2"), path.Join(td, "l1"), path.Join(td, "l3"), path.Join(td, "work"))
 	flags, data := mount.ParseOptions(mountOpts)
 	if data != "" {
 		opts = fmt.Sprintf("%s,%s", opts, data)

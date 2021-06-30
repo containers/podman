@@ -6,7 +6,7 @@ env:
     #### Global variables used for all tasks
     ####
     # Name of the ultimate destination branch for this CI run, PR or post-merge.
-    DEST_BRANCH: "master"
+    DEST_BRANCH: "main"
     GOPATH: "/var/tmp/go"
     GOSRC: "${GOPATH}/src/github.com/containers/buildah"
     # Overrides default location (/tmp/cirrus) for repo clone
@@ -25,7 +25,6 @@ env:
     ####
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
-    # See https://github.com/containers/podman/blob/master/contrib/cirrus/README.md#test_build_cache_images_task-task
     FEDORA_NAME: "fedora-34"
     PRIOR_FEDORA_NAME: "fedora-33"
     UBUNTU_NAME: "ubuntu-2104"
@@ -190,6 +189,7 @@ cross_build_task:
         image: 'catalina-base'
 
     script:
+        - brew update
         - brew install go
         - brew install go-md2man
         - brew install gpgme

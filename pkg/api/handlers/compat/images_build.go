@@ -106,6 +106,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Quiet                  bool     `schema:"q"`
 		Registry               string   `schema:"registry"`
 		Rm                     bool     `schema:"rm"`
+		RusageLogFile          string   `schema:"rusagelogfile"`
 		Seccomp                string   `schema:"seccomp"`
 		SecurityOpt            string   `schema:"securityopt"`
 		ShmSize                int      `schema:"shmsize"`
@@ -463,6 +464,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Registry:                       registry,
 		RemoveIntermediateCtrs:         query.Rm,
 		ReportWriter:                   reporter,
+		RusageLogFile:                  query.RusageLogFile,
 		Squash:                         query.Squash,
 		Target:                         query.Target,
 		SystemContext: &types.SystemContext{

@@ -133,11 +133,11 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 
 		// pre-process Dockerfiles with ".in" suffix
 		if strings.HasSuffix(dfile, ".in") {
-			pData, err := preprocessContainerfileContents(dfile, data, options.ContextDirectory)
+			pData, err := preprocessContainerfileContents(logger, dfile, data, options.ContextDirectory)
 			if err != nil {
 				return "", nil, err
 			}
-			data = *pData
+			data = ioutil.NopCloser(pData)
 		}
 
 		dockerfiles = append(dockerfiles, data)
@@ -208,47 +208,34 @@ func warnOnUnsetBuildArgs(logger *logrus.Logger, node *parser.Node, args map[str
 
 // preprocessContainerfileContents runs CPP(1) in preprocess-only mode on the input
 // dockerfile content and will use ctxDir as the base include path.
-//
-// Note: we cannot use cmd.StdoutPipe() as cmd.Wait() closes it.
-func preprocessContainerfileContents(containerfile string, r io.Reader, ctxDir string) (rdrCloser *io.ReadCloser, err error) {
-	cppPath := "/usr/bin/cpp"
-	if _, err = os.Stat(cppPath); err != nil {
+func preprocessContainerfileContents(logger *logrus.Logger, containerfile string, r io.Reader, ctxDir string) (stdout io.Reader, err error) {
+	cppCommand := "cpp"
+	cppPath, err := exec.LookPath(cppCommand)
+	if err != nil {
 		if os.IsNotExist(err) {
 			err = errors.Errorf("error: %s support requires %s to be installed", containerfile, cppPath)
 		}
 		return nil, err
 	}
 
-	stdout := bytes.Buffer{}
-	stderr := bytes.Buffer{}
+	stdoutBuffer := bytes.Buffer{}
+	stderrBuffer := bytes.Buffer{}
 
 	cmd := exec.Command(cppPath, "-E", "-iquote", ctxDir, "-traditional", "-undef", "-")
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	pipe, err := cmd.StdinPipe()
-	if err != nil {
-		return nil, err
-	}
-
-	defer pipe.Close()
+	cmd.Stdin = r
+	cmd.Stdout = &stdoutBuffer
+	cmd.Stderr = &stderrBuffer
 
 	if err = cmd.Start(); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "preprocessing %s", containerfile)
 	}
-
-	if _, err = io.Copy(pipe, r); err != nil {
-		return nil, err
-	}
-
-	pipe.Close()
 	if err = cmd.Wait(); err != nil {
-		if stdout.Len() == 0 {
-			return nil, errors.Wrapf(err, "error pre-processing Dockerfile")
+		if stderrBuffer.Len() != 0 {
+			logger.Warnf("Ignoring %s\n", stderrBuffer.String())
 		}
-		logrus.Warnf("Ignoring %s\n", stderr.String())
+		if stdoutBuffer.Len() == 0 {
+			return nil, errors.Wrapf(err, "error preprocessing %s: preprocessor produced no output", containerfile)
+		}
 	}
-
-	rc := ioutil.NopCloser(bytes.NewReader(stdout.Bytes()))
-	return &rc, nil
+	return &stdoutBuffer, nil
 }
