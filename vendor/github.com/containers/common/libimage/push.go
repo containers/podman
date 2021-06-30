@@ -65,7 +65,7 @@ func (r *Runtime) Push(ctx context.Context, source, destination string, options 
 	}
 
 	if r.eventChannel != nil {
-		r.writeEvent(&Event{ID: image.ID(), Name: destination, Time: time.Now(), Type: EventTypeImagePush})
+		defer r.writeEvent(&Event{ID: image.ID(), Name: destination, Time: time.Now(), Type: EventTypeImagePush})
 	}
 
 	// Buildah compat: Make sure to tag the destination image if it's a
