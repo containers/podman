@@ -23,7 +23,6 @@ func numCPU() int {
 	if err != 0 {
 		return 0
 	}
-
 	// For every available thread a bit is set in the mask.
 	ncpu := 0
 	for _, e := range mask {
