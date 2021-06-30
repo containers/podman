@@ -16,7 +16,7 @@ valid_args() {
 
 # `git describe` will never produce a useful version number under all
 # branches.  This is because the podman release process (see `RELEASE_PROCESS.md`)
-# tags release versions only on release-branches (i.e. never on master).
+# tags release versions only on release-branches (i.e. never on main).
 # Scraping the version number directly from the source, is the only way
 # to reliably obtain the number from all the various contexts supported by
 # the `Makefile`.
