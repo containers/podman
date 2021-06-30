@@ -88,10 +88,7 @@ var _ = Describe("Podman run device", func() {
 	})
 
 	It("podman run device host device with --privileged", func() {
-		if _, err := os.Stat("/dev/kvm"); err != nil {
-			Skip("/dev/kvm not available")
-		}
-		session := podmanTest.Podman([]string{"run", "--privileged", ALPINE, "ls", "/dev/kvm"})
+		session := podmanTest.Podman([]string{"run", "--privileged", ALPINE, "ls", "/dev/kmsg"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
