@@ -61,7 +61,7 @@ dev_version_commit()
 }
 
 git fetch origin &&
-git checkout -b "bump-${VERSION}" origin/master &&
+git checkout -b "bump-${VERSION}" origin/main &&
 release_commit &&
 git tag -s -m "version ${VERSION}" "v${VERSION}" &&
 dev_version_commit

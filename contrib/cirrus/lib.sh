@@ -74,7 +74,7 @@ PODMAN_SERVER_LOG=$CIRRUS_WORKING_DIR/server.log
 # Defaults when not running under CI
 export CI="${CI:-false}"
 CIRRUS_CI="${CIRRUS_CI:-false}"
-DEST_BRANCH="${DEST_BRANCH:-master}"
+DEST_BRANCH="${DEST_BRANCH:-main}"
 CONTINUOUS_INTEGRATION="${CONTINUOUS_INTEGRATION:-false}"
 CIRRUS_REPO_NAME=${CIRRUS_REPO_NAME:-podman}
 # Cirrus only sets $CIRRUS_BASE_SHA properly for PRs, but $EPOCH_TEST_COMMIT
