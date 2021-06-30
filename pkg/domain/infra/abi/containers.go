@@ -854,6 +854,10 @@ func (ic *ContainerEngine) ContainerList(ctx context.Context, options entities.C
 	return ps.GetContainerLists(ic.Libpod, options)
 }
 
+func (ic *ContainerEngine) ContainerListExternal(ctx context.Context) ([]entities.ListContainer, error) {
+	return ps.GetExternalContainerLists(ic.Libpod)
+}
+
 // ContainerDiff provides changes to given container
 func (ic *ContainerEngine) ContainerDiff(ctx context.Context, nameOrID string, opts entities.DiffOptions) (*entities.DiffReport, error) {
 	if opts.Latest {

@@ -71,18 +71,11 @@ func GetContainerLists(runtime *libpod.Runtime, options entities.ContainerListOp
 	}
 
 	if options.All && options.External {
-		externCons, err := runtime.StorageContainers()
+		listCon, err := GetExternalContainerLists(runtime)
 		if err != nil {
 			return nil, err
 		}
-
-		for _, con := range externCons {
-			listCon, err := ListStorageContainer(runtime, con, options)
-			if err != nil {
-				return nil, err
-			}
-			pss = append(pss, listCon)
-		}
+		pss = append(pss, listCon...)
 	}
 
 	// Sort the containers we got
@@ -93,6 +86,27 @@ func GetContainerLists(runtime *libpod.Runtime, options entities.ContainerListOp
 		if options.Last < len(pss) {
 			pss = pss[:options.Last]
 		}
+	}
+	return pss, nil
+}
+
+// GetExternalContainerLists returns list of external containers for e.g created by buildah
+func GetExternalContainerLists(runtime *libpod.Runtime) ([]entities.ListContainer, error) {
+	var (
+		pss = []entities.ListContainer{}
+	)
+
+	externCons, err := runtime.StorageContainers()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, con := range externCons {
+		listCon, err := ListStorageContainer(runtime, con)
+		if err != nil {
+			return nil, err
+		}
+		pss = append(pss, listCon)
 	}
 	return pss, nil
 }
@@ -231,7 +245,7 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 	return ps, nil
 }
 
-func ListStorageContainer(rt *libpod.Runtime, ctr storage.Container, opts entities.ContainerListOptions) (entities.ListContainer, error) {
+func ListStorageContainer(rt *libpod.Runtime, ctr storage.Container) (entities.ListContainer, error) {
 	name := "unknown"
 	if len(ctr.Names) > 0 {
 		name = ctr.Names[0]

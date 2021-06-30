@@ -646,6 +646,12 @@ func (ic *ContainerEngine) ContainerList(ctx context.Context, opts entities.Cont
 	return containers.List(ic.ClientCtx, options)
 }
 
+func (ic *ContainerEngine) ContainerListExternal(ctx context.Context) ([]entities.ListContainer, error) {
+	options := new(containers.ListOptions).WithAll(true)
+	options.WithNamespace(true).WithSize(true).WithSync(true).WithExternal(true)
+	return containers.List(ic.ClientCtx, options)
+}
+
 func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.ContainerRunOptions) (*entities.ContainerRunReport, error) {
 	con, err := containers.CreateWithSpec(ic.ClientCtx, opts.Spec, nil)
 	if err != nil {

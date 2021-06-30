@@ -32,6 +32,7 @@ type ContainerEngine interface {
 	ContainerInspect(ctx context.Context, namesOrIds []string, options InspectOptions) ([]*ContainerInspectReport, []error, error)
 	ContainerKill(ctx context.Context, namesOrIds []string, options KillOptions) ([]*KillReport, error)
 	ContainerList(ctx context.Context, options ContainerListOptions) ([]ListContainer, error)
+	ContainerListExternal(ctx context.Context) ([]ListContainer, error)
 	ContainerLogs(ctx context.Context, containers []string, options ContainerLogsOptions) error
 	ContainerMount(ctx context.Context, nameOrIDs []string, options ContainerMountOptions) ([]*ContainerMountReport, error)
 	ContainerPause(ctx context.Context, namesOrIds []string, options PauseUnPauseOptions) ([]*PauseUnpauseReport, error)
