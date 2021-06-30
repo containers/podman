@@ -89,6 +89,18 @@ RELABEL="system_u:object_r:container_file_t:s0"
     run_podman pod rm -f test_pod
 }
 
+@test "podman play --network" {
+    TESTDIR=$PODMAN_TMPDIR/testdir
+    mkdir -p $TESTDIR
+    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
+    run_podman 125 play kube --network bridge $PODMAN_TMPDIR/test.yaml
+    is "$output" ".*invalid value passed to --network: bridge or host networking must be configured in YAML" "podman plan-network should fail wth --network host"
+    run_podman 125 play kube --network host $PODMAN_TMPDIR/test.yaml
+    is "$output" ".*invalid value passed to --network: bridge or host networking must be configured in YAML" "podman plan-network should fail wth --network host"
+    run_podman play kube --network slirp4netns:port_handler=slirp4netns $PODMAN_TMPDIR/test.yaml
+    run_podman pod rm -f test_pod
+}
+
 @test "podman play with user from image" {
     TESTDIR=$PODMAN_TMPDIR/testdir
     mkdir -p $TESTDIR
