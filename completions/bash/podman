@@ -1,38 +1,29 @@
-# bash completion for podman                               -*- shell-script -*-
+# bash completion V2 for podman                               -*- shell-script -*-
 
 __podman_debug()
 {
-    if [[ -n ${BASH_COMP_DEBUG_FILE} ]]; then
+    if [[ -n ${BASH_COMP_DEBUG_FILE:-} ]]; then
         echo "$*" >> "${BASH_COMP_DEBUG_FILE}"
     fi
 }
 
-__podman_perform_completion()
+# Macs have bash3 for which the bash-completion package doesn't include
+# _init_completion. This is a minimal version of that function.
+__podman_init_completion()
 {
-    __podman_debug
-    __podman_debug "========= starting completion logic =========="
-    __podman_debug "cur is ${cur}, words[*] is ${words[*]}, #words[@] is ${#words[@]}, cword is $cword"
+    COMPREPLY=()
+    _get_comp_words_by_ref "$@" cur prev words cword
+}
 
-    # The user could have moved the cursor backwards on the command-line.
-    # We need to trigger completion from the $cword location, so we need
-    # to truncate the command-line ($words) up to the $cword location.
-    words=("${words[@]:0:$cword+1}")
-    __podman_debug "Truncated words[*]: ${words[*]},"
-
-    local shellCompDirectiveError=1
-    local shellCompDirectiveNoSpace=2
-    local shellCompDirectiveNoFileComp=4
-    local shellCompDirectiveFilterFileExt=8
-    local shellCompDirectiveFilterDirs=16
-    local shellCompDirectiveLegacyCustomComp=32
-    local shellCompDirectiveLegacyCustomArgsComp=64
-
-    local out requestComp lastParam lastChar comp directive args flagPrefix
+# This function calls the podman program to obtain the completion
+# results and the directive.  It fills the 'out' and 'directive' vars.
+__podman_get_completion_results() {
+    local requestComp lastParam lastChar args
 
     # Prepare the command to request completions for the program.
     # Calling ${words[0]} instead of directly podman allows to handle aliases
     args=("${words[@]:1}")
-    requestComp="${words[0]} __completeNoDesc ${args[*]}"
+    requestComp="${words[0]} __complete ${args[*]}"
 
     lastParam=${words[$((${#words[@]}-1))]}
     lastChar=${lastParam:$((${#lastParam}-1)):1}
@@ -42,14 +33,13 @@ __podman_perform_completion()
         # If the last parameter is complete (there is a space following it)
         # We add an extra empty parameter so we can indicate this to the go method.
         __podman_debug "Adding extra empty parameter"
-        requestComp="${requestComp} \"\""
+        requestComp="${requestComp} ''"
     fi
 
     # When completing a flag with an = (e.g., podman -n=<TAB>)
     # bash focuses on the part after the =, so we need to remove
     # the flag part from $cur
     if [[ "${cur}" == -*=* ]]; then
-        flagPrefix="${cur%%=*}="
         cur="${cur#*=}"
     fi
 
@@ -67,6 +57,14 @@ __podman_perform_completion()
     fi
     __podman_debug "The completion directive is: ${directive}"
     __podman_debug "The completions are: ${out[*]}"
+}
+
+__podman_process_completion_results() {
+    local shellCompDirectiveError=1
+    local shellCompDirectiveNoSpace=2
+    local shellCompDirectiveNoFileComp=4
+    local shellCompDirectiveFilterFileExt=8
+    local shellCompDirectiveFilterDirs=16
 
     if [ $((directive & shellCompDirectiveError)) -ne 0 ]; then
         # Error code.  No completion.
@@ -77,12 +75,16 @@ __podman_perform_completion()
             if [[ $(type -t compopt) = "builtin" ]]; then
                 __podman_debug "Activating no space"
                 compopt -o nospace
+            else
+                __podman_debug "No space directive not supported in this version of bash"
             fi
         fi
         if [ $((directive & shellCompDirectiveNoFileComp)) -ne 0 ]; then
             if [[ $(type -t compopt) = "builtin" ]]; then
                 __podman_debug "Activating no file completion"
                 compopt +o default
+            else
+                __podman_debug "No file completion directive not supported in this version of bash"
             fi
         fi
     fi
@@ -113,85 +115,54 @@ __podman_perform_completion()
             __podman_debug "Listing directories in ."
             _filedir -d
         fi
-    elif [ $((directive & shellCompDirectiveLegacyCustomComp)) -ne 0 ]; then
-        local cmd
-        __podman_debug "Legacy custom completion. Directive: $directive, cmds: ${out[*]}"
-
-        # The following variables should get their value through the commands
-        # we have received as completions and are parsing below.
-        local last_command
-        local nouns
-
-        # Execute every command received
-        while IFS='' read -r cmd; do
-            __podman_debug "About to execute: $cmd"
-            eval "$cmd"
-        done < <(printf "%s\n" "${out[@]}")
-
-        __podman_debug "last_command: $last_command"
-        __podman_debug "nouns[0]: ${nouns[0]}, nouns[1]: ${nouns[1]}"
-
-        if [ $((directive & shellCompDirectiveLegacyCustomArgsComp)) -ne 0 ]; then
-            # We should call the global legacy custom completion function, if it is defined
-            if declare -F __podman_custom_func >/dev/null; then
-                # Use command name qualified legacy custom func
-                __podman_debug "About to call: __podman_custom_func"
-                __podman_custom_func
-            elif declare -F __custom_func >/dev/null; then
-                # Otherwise fall back to unqualified legacy custom func for compatibility
-                __podman_debug "About to call: __custom_func"
-                 __custom_func
-            fi
-        fi
     else
-        local tab
-        tab=$(printf '\t')
-        local longest=0
-        # Look for the longest completion so that we can format things nicely
-        while IFS='' read -r comp; do
-            comp=${comp%%$tab*}
-            if ((${#comp}>longest)); then
-                longest=${#comp}
-            fi
-        done < <(printf "%s\n" "${out[@]}")
-
-        local completions=()
-        while IFS='' read -r comp; do
-            if [ -z "$comp" ]; then
-                continue
-            fi
-
-            __podman_debug "Original comp: $comp"
-            comp="$(__podman_format_comp_descriptions "$comp" "$longest")"
-            __podman_debug "Final comp: $comp"
-            completions+=("$comp")
-        done < <(printf "%s\n" "${out[@]}")
-
-        while IFS='' read -r comp; do
-            # Although this script should only be used for bash
-            # there may be programs that still convert the bash
-            # script into a zsh one.  To continue supporting those
-            # programs, we do this single adaptation for zsh
-            if [ -n "${ZSH_VERSION}" ]; then
-                # zsh completion needs --flag= prefix
-                COMPREPLY+=("$flagPrefix$comp")
-            else
-                COMPREPLY+=("$comp")
-            fi
-        done < <(compgen -W "${completions[*]}" -- "$cur")
-
-        # If there is a single completion left, remove the description text
-        if [ ${#COMPREPLY[*]} -eq 1 ]; then
-            __podman_debug "COMPREPLY[0]: ${COMPREPLY[0]}"
-            comp="${COMPREPLY[0]%% *}"
-            __podman_debug "Removed description from single completion, which is now: ${comp}"
-            COMPREPLY=()
-            COMPREPLY+=("$comp")
-        fi
+        __podman_handle_standard_completion_case
     fi
 
     __podman_handle_special_char "$cur" :
     __podman_handle_special_char "$cur" =
+}
+
+__podman_handle_standard_completion_case() {
+    local tab comp
+    tab=$(printf '\t')
+
+    local longest=0
+    # Look for the longest completion so that we can format things nicely
+    while IFS='' read -r comp; do
+        # Strip any description before checking the length
+        comp=${comp%%$tab*}
+        # Only consider the completions that match
+        comp=$(compgen -W "$comp" -- "$cur")
+        if ((${#comp}>longest)); then
+            longest=${#comp}
+        fi
+    done < <(printf "%s\n" "${out[@]}")
+
+    local completions=()
+    while IFS='' read -r comp; do
+        if [ -z "$comp" ]; then
+            continue
+        fi
+
+        __podman_debug "Original comp: $comp"
+        comp="$(__podman_format_comp_descriptions "$comp" "$longest")"
+        __podman_debug "Final comp: $comp"
+        completions+=("$comp")
+    done < <(printf "%s\n" "${out[@]}")
+
+    while IFS='' read -r comp; do
+        COMPREPLY+=("$comp")
+    done < <(compgen -W "${completions[*]}" -- "$cur")
+
+    # If there is a single completion left, remove the description text
+    if [ ${#COMPREPLY[*]} -eq 1 ]; then
+        __podman_debug "COMPREPLY[0]: ${COMPREPLY[0]}"
+        comp="${COMPREPLY[0]%% *}"
+        __podman_debug "Removed description from single completion, which is now: ${comp}"
+        COMPREPLY=()
+        COMPREPLY+=("$comp")
+    fi
 }
 
 __podman_handle_special_char()
@@ -252,12 +223,31 @@ __podman_format_comp_descriptions()
 
 __start_podman()
 {
-    local cur prev words cword
+    local cur prev words cword split
 
     COMPREPLY=()
-    _get_comp_words_by_ref -n "=:" cur prev words cword
 
-    __podman_perform_completion
+    # Call _init_completion from the bash-completion package
+    # to prepare the arguments properly
+    if declare -F _init_completion >/dev/null 2>&1; then
+        _init_completion -n "=:" || return
+    else
+        __podman_init_completion -n "=:" || return
+    fi
+
+    __podman_debug
+    __podman_debug "========= starting completion logic =========="
+    __podman_debug "cur is ${cur}, words[*] is ${words[*]}, #words[@] is ${#words[@]}, cword is $cword"
+
+    # The user could have moved the cursor backwards on the command-line.
+    # We need to trigger completion from the $cword location, so we need
+    # to truncate the command-line ($words) up to the $cword location.
+    words=("${words[@]:0:$cword+1}")
+    __podman_debug "Truncated words[*]: ${words[*]},"
+
+    local out directive
+    __podman_get_completion_results
+    __podman_process_completion_results
 }
 
 if [[ $(type -t compopt) = "builtin" ]]; then

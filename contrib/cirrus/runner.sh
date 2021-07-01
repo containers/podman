@@ -196,6 +196,8 @@ function _run_consistency() {
     SUGGESTION="run 'make vendor' and commit all changes" ./hack/tree_status.sh
     make generate-bindings
     SUGGESTION="run 'make generate-bindings' and commit all changes" ./hack/tree_status.sh
+    make completions
+    SUGGESTION="run 'make completions' and commit all changes" ./hack/tree_status.sh
 }
 
 function _run_build() {
