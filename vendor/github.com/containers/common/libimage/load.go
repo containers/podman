@@ -25,7 +25,7 @@ func (r *Runtime) Load(ctx context.Context, path string, options *LoadOptions) (
 	logrus.Debugf("Loading image from %q", path)
 
 	if r.eventChannel != nil {
-		r.writeEvent(&Event{ID: "", Name: path, Time: time.Now(), Type: EventTypeImageLoad})
+		defer r.writeEvent(&Event{ID: "", Name: path, Time: time.Now(), Type: EventTypeImageLoad})
 	}
 
 	var (
