@@ -268,7 +268,9 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		}
 		if retErr != nil && pid > 0 {
 			if err := unix.Kill(pid, unix.SIGKILL); err != nil {
-				logrus.Errorf("failed to kill %d", pid)
+				if err != unix.ESRCH {
+					logrus.Errorf("failed to cleanup process %d: %v", pid, err)
+				}
 			}
 			C.reexec_in_user_namespace_wait(C.int(pid), 0)
 		}
@@ -394,7 +396,9 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 			}
 
 			if err := unix.Kill(int(pidC), s.(unix.Signal)); err != nil {
-				logrus.Errorf("failed to kill %d", int(pidC))
+				if err != unix.ESRCH {
+					logrus.Errorf("failed to propagate signal to child process %d: %v", int(pidC), err)
+				}
 			}
 		}
 	}()
