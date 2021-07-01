@@ -220,9 +220,6 @@ github.com/containernetworking/plugins v0.9.1 h1:FD1tADPls2EEi3flPc2OegIY1M9pUa9
 github.com/containernetworking/plugins v0.9.1/go.mod h1:xP/idU2ldlzN6m4p5LmGiwRDjeJr6FLK6vuiUwoH7P8=
 github.com/containers/buildah v1.21.1-0.20210628174543-eadb10a12336 h1:LAjAsDE6sxZnDoSzE384o/cRuTGGn1OMjkd9YIPT2bg=
 github.com/containers/buildah v1.21.1-0.20210628174543-eadb10a12336/go.mod h1:HZ2k0W/EREpNxr+AnRZQzjjBdhXLItp9yuzwAaVa6zM=
-github.com/containers/common v0.40.1/go.mod h1:X4F+6vmeAWKMMTNHlOBwOnkf5TQAkQACcuNsKjfcodw=
-github.com/containers/common v0.40.2-0.20210630092122-7482cf851dcc h1:7fqEcoNUaEHmg7gIFui2BDGU8sFpEU6xDxABxhYPOPw=
-github.com/containers/common v0.40.2-0.20210630092122-7482cf851dcc/go.mod h1:H3H/223r/e2uAVUdwZxuiRkWPvxynORzh5iChjFJ43o=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.13.2 h1:AgYunV/9d2fRkrmo23wH2MkqeHolFd6oQCkK+1PpuFA=
@@ -601,6 +598,7 @@ github.com/mitchellh/go-testing-interface v1.0.0/go.mod h1:kRemZodwjscx+RGhAo8eI
 github.com/mitchellh/gox v0.4.0/go.mod h1:Sd9lOJ0+aimLBi73mGofS1ycjY8lL3uZM3JPS42BGNg=
 github.com/mitchellh/iochan v1.0.0/go.mod h1:JwYml1nuB7xOzsp52dPpHFffvOCDupsG0QubkSMEySY=
 github.com/mitchellh/mapstructure v0.0.0-20160808181253-ca63d7c062ee/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
+github.com/mitchellh/mapstructure v1.1.2 h1:fmNYVwqnSfB9mZU6OS2O6GsXM+wcskZDuKQzvN1EDeE=
 github.com/mitchellh/mapstructure v1.1.2/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
 github.com/mitchellh/osext v0.0.0-20151018003038-5e2d6d41470f/go.mod h1:OkQIRizQZAeMln+1tSwduZz7+Af5oFlKirV/MSYes2A=
 github.com/moby/locker v1.0.1/go.mod h1:S7SDdo5zpBK84bzzVlKr2V0hz+7x9hWbYC/kq7oQppc=
@@ -853,6 +851,8 @@ github.com/vishvananda/netns v0.0.0-20180720170159-13995c7128cc/go.mod h1:ZjcWmF
 github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df/go.mod h1:JP3t17pCcGlemwknint6hfoeCVQrEMVwxRLRjXpq+BU=
 github.com/vishvananda/netns v0.0.0-20200728191858-db3c7e526aae h1:4hwBBUfQCFe3Cym0ZtKyq7L16eZUtYKs+BaHDN6mAns=
 github.com/vishvananda/netns v0.0.0-20200728191858-db3c7e526aae/go.mod h1:DD4vA1DwXk04H54A1oHXtwZmA0grkVMdPxx/VGLCah0=
+github.com/vrothberg/common v0.0.3-0.20210701124055-ec93641802d0 h1:aCdY+DMWsmBS3ZyXVfrtnK7jpAwKtgybsFnh8xpN8t4=
+github.com/vrothberg/common v0.0.3-0.20210701124055-ec93641802d0/go.mod h1:iqeDhZmKF3IkK/CuUUZQL2XOWd1j7MCbeQ3DekINFJc=
 github.com/willf/bitset v1.1.11-0.20200630133818-d5bec3311243/go.mod h1:RjeCKbqT1RxIR/KWY6phxZiaY1IyutSBfGjNPySAYV4=
 github.com/willf/bitset v1.1.11/go.mod h1:83CECat5yLh5zVOf4P1ErAgKA5UDvKtgyUABdr3+MjI=
 github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f/go.mod h1:N2zxlSyiKSe5eX1tZViRH5QA0qijqEDrYZiPEAiq3wU=

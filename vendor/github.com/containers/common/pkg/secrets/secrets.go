@@ -9,6 +9,7 @@ import (
 
 	"github.com/containers/common/pkg/secrets/filedriver"
 	"github.com/containers/common/pkg/secrets/passdriver"
+	"github.com/containers/common/pkg/secrets/shelldriver"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/pkg/errors"
@@ -281,6 +282,8 @@ func getDriver(name string, opts map[string]string) (SecretsDriver, error) {
 		}
 	case "pass":
 		return passdriver.NewDriver(opts)
+	case "shell":
+		return shelldriver.NewDriver(opts)
 	}
 	return nil, errInvalidDriver
 }

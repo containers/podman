@@ -63,14 +63,14 @@ func (r *Runtime) compileImageFilters(ctx context.Context, filters []string) ([]
 		switch key {
 
 		case "after", "since":
-			img, _, err := r.LookupImage(value, nil)
+			img, _, err := r.LookupImage(value, &LookupImageOptions{IgnorePlatform: true})
 			if err != nil {
 				return nil, errors.Wrapf(err, "could not find local image for filter %q", filter)
 			}
 			filterFuncs = append(filterFuncs, filterAfter(img.Created()))
 
 		case "before":
-			img, _, err := r.LookupImage(value, nil)
+			img, _, err := r.LookupImage(value, &LookupImageOptions{IgnorePlatform: true})
 			if err != nil {
 				return nil, errors.Wrapf(err, "could not find local image for filter %q", filter)
 			}

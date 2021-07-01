@@ -526,9 +526,15 @@ func NewConfig(userConfigPath string) (*Config, error) {
 // the defaults from the config parameter will be used for all other fields.
 func readConfigFromFile(path string, config *Config) error {
 	logrus.Tracef("Reading configuration file %q", path)
-	if _, err := toml.DecodeFile(path, config); err != nil {
+	meta, err := toml.DecodeFile(path, config)
+	if err != nil {
 		return errors.Wrapf(err, "decode configuration %v", path)
 	}
+	keys := meta.Undecoded()
+	if len(keys) > 0 {
+		logrus.Warningf("Failed to decode the keys %q from %q.", keys, path)
+	}
+
 	return nil
 }
 

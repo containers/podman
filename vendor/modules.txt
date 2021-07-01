@@ -93,7 +93,7 @@ github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/util
-# github.com/containers/common v0.40.2-0.20210630092122-7482cf851dcc
+# github.com/containers/common v0.40.2-0.20210630092122-7482cf851dcc => github.com/vrothberg/common v0.0.3-0.20210701124055-ec93641802d0
 github.com/containers/common/libimage
 github.com/containers/common/libimage/manifests
 github.com/containers/common/pkg/apparmor
@@ -115,6 +115,7 @@ github.com/containers/common/pkg/seccomp
 github.com/containers/common/pkg/secrets
 github.com/containers/common/pkg/secrets/filedriver
 github.com/containers/common/pkg/secrets/passdriver
+github.com/containers/common/pkg/secrets/shelldriver
 github.com/containers/common/pkg/signal
 github.com/containers/common/pkg/subscriptions
 github.com/containers/common/pkg/supplemented
@@ -426,6 +427,8 @@ github.com/matttproud/golang_protobuf_extensions/pbutil
 github.com/miekg/pkcs11
 # github.com/mistifyio/go-zfs v2.1.2-0.20190413222219-f784269be439+incompatible
 github.com/mistifyio/go-zfs
+# github.com/mitchellh/mapstructure v1.1.2
+github.com/mitchellh/mapstructure
 # github.com/moby/sys/mount v0.2.0
 github.com/moby/sys/mount
 # github.com/moby/sys/mountinfo v0.4.1

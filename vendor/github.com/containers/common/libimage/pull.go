@@ -61,7 +61,7 @@ func (r *Runtime) Pull(ctx context.Context, name string, pullPolicy config.PullP
 			if pullPolicy == config.PullPolicyAlways {
 				return nil, errors.Errorf("pull policy is always but image has been referred to by ID (%s)", name)
 			}
-			local, _, err := r.LookupImage(name, nil)
+			local, _, err := r.LookupImage(name, &LookupImageOptions{IgnorePlatform: true})
 			if err != nil {
 				return nil, err
 			}
@@ -145,9 +145,8 @@ func (r *Runtime) Pull(ctx context.Context, name string, pullPolicy config.PullP
 	}
 
 	localImages := []*Image{}
-	lookupOptions := &LookupImageOptions{IgnorePlatform: true}
 	for _, name := range pulledImages {
-		local, _, err := r.LookupImage(name, lookupOptions)
+		local, _, err := r.LookupImage(name, &LookupImageOptions{IgnorePlatform: true})
 		if err != nil {
 			return nil, errors.Wrapf(err, "error locating pulled image %q name in containers storage", name)
 		}
