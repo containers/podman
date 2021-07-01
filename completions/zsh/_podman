@@ -17,8 +17,6 @@ _podman()
     local shellCompDirectiveNoFileComp=4
     local shellCompDirectiveFilterFileExt=8
     local shellCompDirectiveFilterDirs=16
-    local shellCompDirectiveLegacyCustomComp=32
-    local shellCompDirectiveLegacyCustomArgsComp=64
 
     local lastParam lastChar flagPrefix requestComp out directive comp lastComp noSpace
     local -a completions
