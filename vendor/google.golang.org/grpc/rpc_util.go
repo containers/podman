@@ -27,7 +27,6 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -430,9 +429,10 @@ func (o ContentSubtypeCallOption) before(c *callInfo) error {
 }
 func (o ContentSubtypeCallOption) after(c *callInfo, attempt *csAttempt) {}
 
-// ForceCodec returns a CallOption that will set the given Codec to be
-// used for all request and response messages for a call. The result of calling
-// String() will be used as the content-subtype in a case-insensitive manner.
+// ForceCodec returns a CallOption that will set codec to be used for all
+// request and response messages for a call. The result of calling Name() will
+// be used as the content-subtype after converting to lowercase, unless
+// CallContentSubtype is also used.
 //
 // See Content-Type on
 // https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md#requests for
@@ -854,7 +854,17 @@ func toRPCErr(err error) error {
 // setCallInfoCodec should only be called after CallOptions have been applied.
 func setCallInfoCodec(c *callInfo) error {
 	if c.codec != nil {
-		// codec was already set by a CallOption; use it.
+		// codec was already set by a CallOption; use it, but set the content
+		// subtype if it is not set.
+		if c.contentSubtype == "" {
+			// c.codec is a baseCodec to hide the difference between grpc.Codec and
+			// encoding.Codec (Name vs. String method name).  We only support
+			// setting content subtype from encoding.Codec to avoid a behavior
+			// change with the deprecated version.
+			if ec, ok := c.codec.(encoding.Codec); ok {
+				c.contentSubtype = strings.ToLower(ec.Name())
+			}
+		}
 		return nil
 	}
 
@@ -870,40 +880,6 @@ func setCallInfoCodec(c *callInfo) error {
 		return status.Errorf(codes.Internal, "no codec registered for content-subtype %s", c.contentSubtype)
 	}
 	return nil
-}
-
-// parseDialTarget returns the network and address to pass to dialer
-func parseDialTarget(target string) (net string, addr string) {
-	net = "tcp"
-
-	m1 := strings.Index(target, ":")
-	m2 := strings.Index(target, ":/")
-
-	// handle unix:addr which will fail with url.Parse
-	if m1 >= 0 && m2 < 0 {
-		if n := target[0:m1]; n == "unix" {
-			net = n
-			addr = target[m1+1:]
-			return net, addr
-		}
-	}
-	if m2 >= 0 {
-		t, err := url.Parse(target)
-		if err != nil {
-			return net, target
-		}
-		scheme := t.Scheme
-		addr = t.Path
-		if scheme == "unix" {
-			net = scheme
-			if addr == "" {
-				addr = t.Host
-			}
-			return net, addr
-		}
-	}
-
-	return net, target
 }
 
 // channelzData is used to store channelz related data for ClientConn, addrConn and Server.
@@ -923,8 +899,7 @@ type channelzData struct {
 // buffer files to ensure compatibility with the gRPC version used.  The latest
 // support package version is 7.
 //
-// Older versions are kept for compatibility. They may be removed if
-// compatibility cannot be maintained.
+// Older versions are kept for compatibility.
 //
 // These constants should not be referenced from any other code.
 const (
