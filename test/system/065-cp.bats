@@ -114,7 +114,7 @@ load helpers
 }
 
 
-@test "podman cp file from host to container and check ownership" {
+@test "podman cp (-a=true) file from host to container and check ownership" {
     srcdir=$PODMAN_TMPDIR/cp-test-file-host-to-ctr
     mkdir -p $srcdir
     content=cp-user-test-$(random_string 10)
@@ -125,6 +125,25 @@ load helpers
     run_podman cp $srcdir/hostfile cpcontainer:/tmp/hostfile
     run_podman exec cpcontainer stat -c "%u" /tmp/hostfile
     is "$output" "$userid" "copied file is chowned to the container user"
+    run_podman kill cpcontainer
+    run_podman rm -f cpcontainer
+}
+
+@test "podman cp (-a=false) file from host to container and check ownership" {
+    local tmpdir="${PODMAN_TMPDIR}/cp-test-file-host-to-ctr"
+    mkdir -p "${tmpdir}"
+
+    pushd "${tmpdir}"
+    touch a.txt
+    tar --owner=1042 --group=1043 -cf a.tar a.txt
+    popd
+
+    userid=$(id -u)
+
+    run_podman run --user="$userid" --userns=keep-id -d --name cpcontainer $IMAGE sleep infinity
+    run_podman cp -a=false - cpcontainer:/tmp/ < "${tmpdir}/a.tar"
+    run_podman exec cpcontainer stat -c "%u:%g" /tmp/a.txt
+    is "$output" "1042:1043" "copied file retains uid/gid from the tar"
     run_podman kill cpcontainer
     run_podman rm -f cpcontainer
 }

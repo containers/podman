@@ -4,9 +4,9 @@
 podman\-cp - Copy files/folders between a container and the local filesystem
 
 ## SYNOPSIS
-**podman cp** [*container*:]*src_path* [*container*:]*dest_path*
+**podman cp** [*options*] [*container*:]*src_path* [*container*:]*dest_path*
 
-**podman container cp** [*container*:]*src_path* [*container*:]*dest_path*
+**podman container cp** [*options*] [*container*:]*src_path* [*container*:]*dest_path*
 
 ## DESCRIPTION
 Copy the contents of **src_path** to the **dest_path**. You can copy from the container's filesystem to the local machine or the reverse, from the local filesystem to the container.
@@ -60,6 +60,13 @@ Using `-` as the *src_path* streams the contents of STDIN as a tar archive. The 
 Note that `podman cp` ignores permission errors when copying from a running rootless container.  The TTY devices inside a rootless container are owned by the host's root user and hence cannot be read inside the container's user namespace.
 
 ## OPTIONS
+
+#### **--archive**, **-a**
+
+Archive mode (copy all uid/gid information).
+When set to true, files copied to a container will have changed ownership to the primary uid/gid of the container.
+When set to false, maintain uid/gid from archive sources instead of changing them to the primary uid/gid of the destination container.
+The default is *true*.
 
 ## ALTERNATIVES
 

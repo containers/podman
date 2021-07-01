@@ -16,7 +16,7 @@ CTR="ArchiveTestingCtr"
 TMPD=$(mktemp -d podman-apiv2-test.archive.XXXXXXXX)
 HELLO_TAR="${TMPD}/hello.tar"
 echo "Hello" > $TMPD/hello.txt
-tar --format=posix -C $TMPD -cvf ${HELLO_TAR} hello.txt &> /dev/null
+tar --owner=1042 --group=1043 --format=posix -C $TMPD -cvf ${HELLO_TAR} hello.txt &> /dev/null
 
 podman run -d --name "${CTR}" "${IMAGE}" top
 
@@ -71,6 +71,20 @@ if [ "$(tar -xf "${TMPD}/body.tar" hello.txt  --to-stdout)" != "Hello" ]; then
   echo -e "${red}NOK: Content of file doesn't match.${nc}" 1>&2;
   ARCHIVE_TEST_ERROR="1"
 fi
+
+# test if uid/gid was set correctly in the server
+uidngid=$($PODMAN_BIN --root $WORKDIR/server_root exec "${CTR}" stat -c "%u:%g" "/tmp/hello.txt")
+if [[ "${uidngid}" != "1042:1043" ]]; then
+  echo -e "${red}NOK: UID/GID of the file doesn't match.${nc}" 1>&2;
+  ARCHIVE_TEST_ERROR="1"
+fi
+
+# TODO: uid/gid should be also preserved on way back (GET request)
+# right now it ends up as root:root instead of 1042:1043
+#if [[ "$(tar -tvf "${TMPD}/body.tar")" != *"1042/1043"* ]]; then
+#  echo -e "${red}NOK: UID/GID of the file doesn't match.${nc}" 1>&2;
+#  ARCHIVE_TEST_ERROR="1"
+#fi
 
 cleanUpArchiveTest
 if [[ "${ARCHIVE_TEST_ERROR}" ]] ; then

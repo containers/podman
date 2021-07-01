@@ -20,7 +20,7 @@ type ContainerEngine interface {
 	ContainerCheckpoint(ctx context.Context, namesOrIds []string, options CheckpointOptions) ([]*CheckpointReport, error)
 	ContainerCleanup(ctx context.Context, namesOrIds []string, options ContainerCleanupOptions) ([]*ContainerCleanupReport, error)
 	ContainerCommit(ctx context.Context, nameOrID string, options CommitOptions) (*CommitReport, error)
-	ContainerCopyFromArchive(ctx context.Context, nameOrID string, path string, reader io.Reader) (ContainerCopyFunc, error)
+	ContainerCopyFromArchive(ctx context.Context, nameOrID, path string, reader io.Reader, options CopyOptions) (ContainerCopyFunc, error)
 	ContainerCopyToArchive(ctx context.Context, nameOrID string, path string, writer io.Writer) (ContainerCopyFunc, error)
 	ContainerCreate(ctx context.Context, s *specgen.SpecGenerator) (*ContainerCreateReport, error)
 	ContainerDiff(ctx context.Context, nameOrID string, options DiffOptions) (*DiffReport, error)
