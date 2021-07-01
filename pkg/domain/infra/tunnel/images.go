@@ -299,16 +299,6 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string,
 	return utils2.UntarToFileSystem(opts.Output, f, nil)
 }
 
-// Diff reports the changes to the given image
-func (ir *ImageEngine) Diff(ctx context.Context, nameOrID string, _ entities.DiffOptions) (*entities.DiffReport, error) {
-	options := new(images.DiffOptions)
-	changes, err := images.Diff(ir.ClientCtx, nameOrID, options)
-	if err != nil {
-		return nil, err
-	}
-	return &entities.DiffReport{Changes: changes}, nil
-}
-
 func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.ImageSearchOptions) ([]entities.ImageSearchReport, error) {
 	mappedFilters := make(map[string][]string)
 	filters, err := libimage.ParseSearchFilter(opts.Filters)

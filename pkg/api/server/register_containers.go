@@ -1505,6 +1505,15 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    type: string
 	//    required: true
 	//    description: the name or id of the container
+	//  - in: query
+	//    name: parent
+	//    type: string
+	//    description: specify a second layer which is used to compare against it instead of the parent layer
+	//  - in: query
+	//    name: diffType
+	//    type: string
+	//    enum: [all, container, image]
+	//    description: select what you want to match, default is all
 	// responses:
 	//   200:
 	//     description: Array of Changes

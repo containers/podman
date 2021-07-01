@@ -10,7 +10,6 @@ import (
 type ImageEngine interface {
 	Build(ctx context.Context, containerFiles []string, opts BuildOptions) (*BuildReport, error)
 	Config(ctx context.Context) (*config.Config, error)
-	Diff(ctx context.Context, nameOrID string, options DiffOptions) (*DiffReport, error)
 	Exists(ctx context.Context, nameOrID string) (*BoolReport, error)
 	History(ctx context.Context, nameOrID string, opts ImageHistoryOptions) (*ImageHistoryReport, error)
 	Import(ctx context.Context, opts ImageImportOptions) (*ImageImportReport, error)

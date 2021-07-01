@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"github.com/containers/common/libimage"
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/layers"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
@@ -21,14 +22,14 @@ var initInodes = map[string]bool{
 }
 
 // GetDiff returns the differences between the two images, layers, or containers
-func (r *Runtime) GetDiff(from, to string) ([]archive.Change, error) {
-	toLayer, err := r.getLayerID(to)
+func (r *Runtime) GetDiff(from, to string, diffType define.DiffType) ([]archive.Change, error) {
+	toLayer, err := r.getLayerID(to, diffType)
 	if err != nil {
 		return nil, err
 	}
 	fromLayer := ""
 	if from != "" {
-		fromLayer, err = r.getLayerID(from)
+		fromLayer, err = r.getLayerID(from, diffType)
 		if err != nil {
 			return nil, err
 		}
@@ -49,25 +50,30 @@ func (r *Runtime) GetDiff(from, to string) ([]archive.Change, error) {
 // GetLayerID gets a full layer id given a full or partial id
 // If the id matches a container or image, the id of the top layer is returned
 // If the id matches a layer, the top layer id is returned
-func (r *Runtime) getLayerID(id string) (string, error) {
-	var toLayer string
-	toImage, _, err := r.libimageRuntime.LookupImage(id, &libimage.LookupImageOptions{IgnorePlatform: true})
-	if err == nil {
-		return toImage.TopLayer(), nil
+func (r *Runtime) getLayerID(id string, diffType define.DiffType) (string, error) {
+	var lastErr error
+	if diffType&define.DiffImage == define.DiffImage {
+		toImage, _, err := r.libimageRuntime.LookupImage(id, &libimage.LookupImageOptions{IgnorePlatform: true})
+		if err == nil {
+			return toImage.TopLayer(), nil
+		}
+		lastErr = err
 	}
 
-	targetID, err := r.store.Lookup(id)
-	if err != nil {
-		targetID = id
-	}
-	toCtr, err := r.store.Container(targetID)
-	if err != nil {
-		toLayer, err = layers.FullID(r.store, targetID)
-		if err != nil {
-			return "", errors.Errorf("layer, image, or container %s does not exist", id)
+	if diffType&define.DiffContainer == define.DiffContainer {
+		toCtr, err := r.store.Container(id)
+		if err == nil {
+			return toCtr.LayerID, nil
 		}
-	} else {
-		toLayer = toCtr.LayerID
+		lastErr = err
 	}
-	return toLayer, nil
+
+	if diffType == define.DiffAll {
+		toLayer, err := layers.FullID(r.store, id)
+		if err == nil {
+			return toLayer, nil
+		}
+		lastErr = err
+	}
+	return "", errors.Wrapf(lastErr, "%s not found", id)
 }

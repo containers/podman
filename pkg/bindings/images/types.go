@@ -16,6 +16,10 @@ type RemoveOptions struct {
 //go:generate go run ../generator/generator.go DiffOptions
 // DiffOptions are optional options image diffs
 type DiffOptions struct {
+	// By the default diff will compare against the parent layer. Change the Parent if you want to compare against something else.
+	Parent *string
+	// Change the type the backend should match. This can be set to "all", "container" or "image".
+	DiffType *string
 }
 
 //go:generate go run ../generator/generator.go ListOptions

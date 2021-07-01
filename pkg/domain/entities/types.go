@@ -4,6 +4,7 @@ import (
 	"net"
 
 	buildahDefine "github.com/containers/buildah/define"
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/storage/pkg/archive"
@@ -62,9 +63,10 @@ type InspectOptions struct {
 
 // All API and CLI diff commands and diff sub-commands use the same options
 type DiffOptions struct {
-	Format  string `json:",omitempty"` // CLI only
-	Latest  bool   `json:",omitempty"` // API and CLI, only supported by containers
-	Archive bool   `json:",omitempty"` // CLI only
+	Format  string          `json:",omitempty"` // CLI only
+	Latest  bool            `json:",omitempty"` // API and CLI, only supported by containers
+	Archive bool            `json:",omitempty"` // CLI only
+	Type    define.DiffType // Type which should be compared
 }
 
 // DiffReport provides changes for object
