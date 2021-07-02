@@ -18,6 +18,7 @@ import (
 
 	"github.com/containers/podman/v3/pkg/errorhandling"
 	"github.com/containers/podman/v3/pkg/rootlessport"
+	"github.com/containers/podman/v3/pkg/servicereaper"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -299,6 +300,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 		return errors.Wrapf(err, "failed to start slirp4netns process")
 	}
 	defer func() {
+		servicereaper.AddPID(cmd.Process.Pid)
 		if err := cmd.Process.Release(); err != nil {
 			logrus.Errorf("unable to release command process: %q", err)
 		}
@@ -514,6 +516,7 @@ outer:
 		return errors.Wrapf(err, "failed to start rootlessport process")
 	}
 	defer func() {
+		servicereaper.AddPID(cmd.Process.Pid)
 		if err := cmd.Process.Release(); err != nil {
 			logrus.Errorf("unable to release rootlessport process: %q", err)
 		}
