@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/common/libimage"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/domain/entities"
@@ -272,8 +271,7 @@ func ListStorageContainer(rt *libpod.Runtime, ctr storage.Container) (entities.L
 
 	imageName := ""
 	if ctr.ImageID != "" {
-		lookupOptions := &libimage.LookupImageOptions{IgnorePlatform: true}
-		image, _, err := rt.LibimageRuntime().LookupImage(ctr.ImageID, lookupOptions)
+		image, _, err := rt.LibimageRuntime().LookupImage(ctr.ImageID, nil)
 		if err != nil {
 			return ps, err
 		}

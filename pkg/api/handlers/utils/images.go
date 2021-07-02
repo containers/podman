@@ -88,8 +88,7 @@ func GetImages(w http.ResponseWriter, r *http.Request) ([]*libimage.Image, error
 
 func GetImage(r *http.Request, name string) (*libimage.Image, error) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	lookupOptions := &libimage.LookupImageOptions{IgnorePlatform: true}
-	image, _, err := runtime.LibimageRuntime().LookupImage(name, lookupOptions)
+	image, _, err := runtime.LibimageRuntime().LookupImage(name, nil)
 	if err != nil {
 		return nil, err
 	}

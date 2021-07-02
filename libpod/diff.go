@@ -1,7 +1,6 @@
 package libpod
 
 import (
-	"github.com/containers/common/libimage"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/layers"
 	"github.com/containers/storage/pkg/archive"
@@ -53,7 +52,7 @@ func (r *Runtime) GetDiff(from, to string, diffType define.DiffType) ([]archive.
 func (r *Runtime) getLayerID(id string, diffType define.DiffType) (string, error) {
 	var lastErr error
 	if diffType&define.DiffImage == define.DiffImage {
-		toImage, _, err := r.libimageRuntime.LookupImage(id, &libimage.LookupImageOptions{IgnorePlatform: true})
+		toImage, _, err := r.libimageRuntime.LookupImage(id, nil)
 		if err == nil {
 			return toImage.TopLayer(), nil
 		}
