@@ -1,0 +1,159 @@
+package shelldriver
+
+import (
+	"bytes"
+	"context"
+	"os"
+	"os/exec"
+	"sort"
+	"strings"
+
+	"github.com/mitchellh/mapstructure"
+	"github.com/pkg/errors"
+)
+
+var (
+
+	// errMissingConfig indicates that one or more of the external actions are not configured
+	errMissingConfig = errors.New("missing config value")
+
+	// errNoSecretData indicates that there is not data associated with an id
+	errNoSecretData = errors.New("no secret data with ID")
+
+	// errInvalidKey indicates that something about your key is wrong
+	errInvalidKey = errors.New("invalid key")
+)
+
+type driverConfig struct {
+	// DeleteCommand contains a shell command that deletes a secret.
+	// The secret id is provided as environment variable SECRET_ID
+	DeleteCommand string `mapstructure:"delete"`
+	// ListCommand contains a shell command that lists all secrets.
+	// The output is expected to be one id per line
+	ListCommand string `mapstructure:"list"`
+	// LookupCommand contains a shell command that retrieves a secret.
+	// The secret id is provided as environment variable SECRET_ID
+	LookupCommand string `mapstructure:"lookup"`
+	// StoreCommand contains a shell command that stores a secret.
+	// The secret id is provided as environment variable SECRET_ID
+	// The secret value itself is provied over stdin
+	StoreCommand string `mapstructure:"store"`
+}
+
+func (cfg *driverConfig) ParseOpts(opts map[string]string) error {
+	if err := mapstructure.Decode(opts, cfg); err != nil {
+		return err
+	}
+	if cfg.DeleteCommand == "" ||
+		cfg.ListCommand == "" ||
+		cfg.LookupCommand == "" ||
+		cfg.StoreCommand == "" {
+
+		return errMissingConfig
+	}
+	return nil
+}
+
+// Driver is the passdriver object
+type Driver struct {
+	driverConfig
+}
+
+// NewDriver creates a new secret driver.
+func NewDriver(opts map[string]string) (*Driver, error) {
+	cfg := &driverConfig{}
+	if err := cfg.ParseOpts(opts); err != nil {
+		return nil, err
+	}
+
+	driver := &Driver{
+		driverConfig: *cfg,
+	}
+
+	return driver, nil
+}
+
+// List returns all secret IDs
+func (d *Driver) List() (secrets []string, err error) {
+	cmd := exec.CommandContext(context.TODO(), "/bin/sh", "-c", d.ListCommand)
+	cmd.Env = os.Environ()
+	cmd.Stderr = os.Stderr
+
+	buf := &bytes.Buffer{}
+	cmd.Stdout = buf
+
+	err = cmd.Run()
+	if err != nil {
+		return nil, err
+	}
+
+	parts := bytes.Split(buf.Bytes(), []byte("\n"))
+	for _, part := range parts {
+		id := strings.Trim(string(part), " \r\n")
+		if len(id) > 0 {
+			secrets = append(secrets, id)
+		}
+	}
+	sort.Strings(secrets)
+
+	return secrets, nil
+}
+
+// Lookup returns the bytes associated with a secret ID
+func (d *Driver) Lookup(id string) ([]byte, error) {
+	if strings.Contains(id, "..") {
+		return nil, errInvalidKey
+	}
+
+	cmd := exec.CommandContext(context.TODO(), "/bin/sh", "-c", d.LookupCommand)
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "SECRET_ID="+id)
+	cmd.Stderr = os.Stderr
+
+	buf := &bytes.Buffer{}
+	cmd.Stdout = buf
+
+	err := cmd.Run()
+	if err != nil {
+		return nil, errors.Wrap(errNoSecretData, id)
+	}
+	return buf.Bytes(), nil
+}
+
+// Store saves the bytes associated with an ID. An error is returned if the ID already exists
+func (d *Driver) Store(id string, data []byte) error {
+	if strings.Contains(id, "..") {
+		return errInvalidKey
+	}
+
+	cmd := exec.CommandContext(context.TODO(), "/bin/sh", "-c", d.StoreCommand)
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "SECRET_ID="+id)
+
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = bytes.NewReader(data)
+
+	return cmd.Run()
+}
+
+// Delete removes the secret associated with the specified ID.  An error is returned if no matching secret is found.
+func (d *Driver) Delete(id string) error {
+	if strings.Contains(id, "..") {
+		return errInvalidKey
+	}
+
+	cmd := exec.CommandContext(context.TODO(), "/bin/sh", "-c", d.DeleteCommand)
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "SECRET_ID="+id)
+
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+
+	err := cmd.Run()
+	if err != nil {
+		return errors.Wrap(errNoSecretData, id)
+	}
+
+	return nil
+}
