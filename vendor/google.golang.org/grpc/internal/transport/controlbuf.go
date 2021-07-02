@@ -20,17 +20,13 @@ package transport
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"runtime"
-	"strconv"
 	"sync"
 	"sync/atomic"
 
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
-	"google.golang.org/grpc/internal/grpcutil"
-	"google.golang.org/grpc/status"
 )
 
 var updateHeaderTblSize = func(e *hpack.Encoder, v uint32) {
@@ -131,14 +127,6 @@ type cleanupStream struct {
 }
 
 func (c *cleanupStream) isTransportResponseFrame() bool { return c.rst } // Results in a RST_STREAM
-
-type earlyAbortStream struct {
-	streamID       uint32
-	contentSubtype string
-	status         *status.Status
-}
-
-func (*earlyAbortStream) isTransportResponseFrame() bool { return false }
 
 type dataFrame struct {
 	streamID  uint32
@@ -761,24 +749,6 @@ func (l *loopyWriter) cleanupStreamHandler(c *cleanupStream) error {
 	return nil
 }
 
-func (l *loopyWriter) earlyAbortStreamHandler(eas *earlyAbortStream) error {
-	if l.side == clientSide {
-		return errors.New("earlyAbortStream not handled on client")
-	}
-
-	headerFields := []hpack.HeaderField{
-		{Name: ":status", Value: "200"},
-		{Name: "content-type", Value: grpcutil.ContentType(eas.contentSubtype)},
-		{Name: "grpc-status", Value: strconv.Itoa(int(eas.status.Code()))},
-		{Name: "grpc-message", Value: encodeGrpcMessage(eas.status.Message())},
-	}
-
-	if err := l.writeHeader(eas.streamID, true, headerFields, nil); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (l *loopyWriter) incomingGoAwayHandler(*incomingGoAway) error {
 	if l.side == clientSide {
 		l.draining = true
@@ -817,8 +787,6 @@ func (l *loopyWriter) handle(i interface{}) error {
 		return l.registerStreamHandler(i)
 	case *cleanupStream:
 		return l.cleanupStreamHandler(i)
-	case *earlyAbortStream:
-		return l.earlyAbortStreamHandler(i)
 	case *incomingGoAway:
 		return l.incomingGoAwayHandler(i)
 	case *dataFrame:

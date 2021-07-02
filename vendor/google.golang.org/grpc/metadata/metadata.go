@@ -75,9 +75,13 @@ func Pairs(kv ...string) MD {
 		panic(fmt.Sprintf("metadata: Pairs got the odd number of input pairs for metadata: %d", len(kv)))
 	}
 	md := MD{}
-	for i := 0; i < len(kv); i += 2 {
-		key := strings.ToLower(kv[i])
-		md[key] = append(md[key], kv[i+1])
+	var key string
+	for i, s := range kv {
+		if i%2 == 0 {
+			key = strings.ToLower(s)
+			continue
+		}
+		md[key] = append(md[key], s)
 	}
 	return md
 }
@@ -191,18 +195,12 @@ func FromOutgoingContext(ctx context.Context) (MD, bool) {
 		return nil, false
 	}
 
-	out := raw.md.Copy()
-	for _, added := range raw.added {
-		if len(added)%2 == 1 {
-			panic(fmt.Sprintf("metadata: FromOutgoingContext got an odd number of input pairs for metadata: %d", len(added)))
-		}
-
-		for i := 0; i < len(added); i += 2 {
-			key := strings.ToLower(added[i])
-			out[key] = append(out[key], added[i+1])
-		}
+	mds := make([]MD, 0, len(raw.added)+1)
+	mds = append(mds, raw.md)
+	for _, vv := range raw.added {
+		mds = append(mds, Pairs(vv...))
 	}
-	return out, ok
+	return Join(mds...), ok
 }
 
 type rawMD struct {

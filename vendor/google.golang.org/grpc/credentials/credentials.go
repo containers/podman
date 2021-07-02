@@ -30,7 +30,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc/attributes"
-	icredentials "google.golang.org/grpc/internal/credentials"
+	"google.golang.org/grpc/internal"
 )
 
 // PerRPCCredentials defines the common interface for the credentials which need to
@@ -58,9 +58,9 @@ type PerRPCCredentials interface {
 type SecurityLevel int
 
 const (
-	// InvalidSecurityLevel indicates an invalid security level.
+	// Invalid indicates an invalid security level.
 	// The zero SecurityLevel value is invalid for backward compatibility.
-	InvalidSecurityLevel SecurityLevel = iota
+	Invalid SecurityLevel = iota
 	// NoSecurity indicates a connection is insecure.
 	NoSecurity
 	// IntegrityOnly indicates a connection only provides integrity protection.
@@ -92,7 +92,7 @@ type CommonAuthInfo struct {
 }
 
 // GetCommonAuthInfo returns the pointer to CommonAuthInfo struct.
-func (c CommonAuthInfo) GetCommonAuthInfo() CommonAuthInfo {
+func (c *CommonAuthInfo) GetCommonAuthInfo() *CommonAuthInfo {
 	return c
 }
 
@@ -188,12 +188,15 @@ type RequestInfo struct {
 	AuthInfo AuthInfo
 }
 
+// requestInfoKey is a struct to be used as the key when attaching a RequestInfo to a context object.
+type requestInfoKey struct{}
+
 // RequestInfoFromContext extracts the RequestInfo from the context if it exists.
 //
 // This API is experimental.
 func RequestInfoFromContext(ctx context.Context) (ri RequestInfo, ok bool) {
-	ri, ok = icredentials.RequestInfoFromContext(ctx).(RequestInfo)
-	return ri, ok
+	ri, ok = ctx.Value(requestInfoKey{}).(RequestInfo)
+	return
 }
 
 // ClientHandshakeInfo holds data to be passed to ClientHandshake. This makes
@@ -208,12 +211,16 @@ type ClientHandshakeInfo struct {
 	Attributes *attributes.Attributes
 }
 
+// clientHandshakeInfoKey is a struct used as the key to store
+// ClientHandshakeInfo in a context.
+type clientHandshakeInfoKey struct{}
+
 // ClientHandshakeInfoFromContext returns the ClientHandshakeInfo struct stored
 // in ctx.
 //
 // This API is experimental.
 func ClientHandshakeInfoFromContext(ctx context.Context) ClientHandshakeInfo {
-	chi, _ := icredentials.ClientHandshakeInfoFromContext(ctx).(ClientHandshakeInfo)
+	chi, _ := ctx.Value(clientHandshakeInfoKey{}).(ClientHandshakeInfo)
 	return chi
 }
 
@@ -222,16 +229,17 @@ func ClientHandshakeInfoFromContext(ctx context.Context) ClientHandshakeInfo {
 // or 3) CommonAuthInfo.SecurityLevel has an invalid zero value. For 2) and 3), it is for the purpose of backward-compatibility.
 //
 // This API is experimental.
-func CheckSecurityLevel(ai AuthInfo, level SecurityLevel) error {
+func CheckSecurityLevel(ctx context.Context, level SecurityLevel) error {
 	type internalInfo interface {
-		GetCommonAuthInfo() CommonAuthInfo
+		GetCommonAuthInfo() *CommonAuthInfo
 	}
-	if ai == nil {
-		return errors.New("AuthInfo is nil")
+	ri, _ := RequestInfoFromContext(ctx)
+	if ri.AuthInfo == nil {
+		return errors.New("unable to obtain SecurityLevel from context")
 	}
-	if ci, ok := ai.(internalInfo); ok {
+	if ci, ok := ri.AuthInfo.(internalInfo); ok {
 		// CommonAuthInfo.SecurityLevel has an invalid value.
-		if ci.GetCommonAuthInfo().SecurityLevel == InvalidSecurityLevel {
+		if ci.GetCommonAuthInfo().SecurityLevel == Invalid {
 			return nil
 		}
 		if ci.GetCommonAuthInfo().SecurityLevel < level {
@@ -240,6 +248,15 @@ func CheckSecurityLevel(ai AuthInfo, level SecurityLevel) error {
 	}
 	// The condition is satisfied or AuthInfo struct does not implement GetCommonAuthInfo() method.
 	return nil
+}
+
+func init() {
+	internal.NewRequestInfoContext = func(ctx context.Context, ri RequestInfo) context.Context {
+		return context.WithValue(ctx, requestInfoKey{}, ri)
+	}
+	internal.NewClientHandshakeInfoContext = func(ctx context.Context, chi ClientHandshakeInfo) context.Context {
+		return context.WithValue(ctx, clientHandshakeInfoKey{}, chi)
+	}
 }
 
 // ChannelzSecurityInfo defines the interface that security protocols should implement

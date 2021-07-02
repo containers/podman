@@ -69,3 +69,5 @@ require (
 	k8s.io/api v0.21.2
 	k8s.io/apimachinery v0.21.2
 )
+
+replace github.com/spf13/cobra => github.com/spf13/cobra v1.1.3
