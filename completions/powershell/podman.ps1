@@ -123,19 +123,6 @@ Register-ArgumentCompleter -CommandName 'podman' -ScriptBlock {
         $Space = ""
     }
 
-    if (($Directive -band $ShellCompDirectiveNoFileComp) -ne 0 ) {
-        __podman_debug "ShellCompDirectiveNoFileComp is called"
-
-        if ($Values.Length -eq 0) {
-            # Just print an empty string here so the
-            # shell does not start to complete paths.
-            # We cannot use CompletionResult here because
-            # it does not accept an empty string as argument.
-            ""
-            return
-        }
-    }
-
     if ((($Directive -band $ShellCompDirectiveFilterFileExt) -ne 0 ) -or
        (($Directive -band $ShellCompDirectiveFilterDirs) -ne 0 ))  {
         __podman_debug "ShellCompDirectiveFilterFileExt ShellCompDirectiveFilterDirs are not supported"
@@ -148,10 +135,23 @@ Register-ArgumentCompleter -CommandName 'podman' -ScriptBlock {
         # filter the result
         $_.Name -like "$WordToComplete*"
 
-        # Join the flag back if we have a equal sign flag
+        # Join the flag back if we have an equal sign flag
         if ( $IsEqualFlag ) {
             __podman_debug "Join the equal sign flag back to the completion value"
             $_.Name = $Flag + "=" + $_.Name
+        }
+    }
+
+    if (($Directive -band $ShellCompDirectiveNoFileComp) -ne 0 ) {
+        __podman_debug "ShellCompDirectiveNoFileComp is called"
+
+        if ($Values.Length -eq 0) {
+            # Just print an empty string here so the
+            # shell does not start to complete paths.
+            # We cannot use CompletionResult here because
+            # it does not accept an empty string as argument.
+            ""
+            return
         }
     }
 
@@ -216,7 +216,7 @@ Register-ArgumentCompleter -CommandName 'podman' -ScriptBlock {
             Default {
                 # Like MenuComplete but we don't want to add a space here because
                 # the user need to press space anyway to get the completion.
-                # Description will not be shown because that's not possible with TabCompleteNext
+                # Description will not be shown because thats not possible with TabCompleteNext
                 [System.Management.Automation.CompletionResult]::new($($comp.Name | __podman_escapeStringWithSpecialChars), "$($comp.Name)", 'ParameterValue', "$($comp.Description)")
             }
         }
