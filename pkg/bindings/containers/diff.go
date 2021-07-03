@@ -13,13 +13,16 @@ func Diff(ctx context.Context, nameOrID string, options *DiffOptions) ([]archive
 	if options == nil {
 		options = new(DiffOptions)
 	}
-	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/changes", nil, nil, nameOrID)
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
+	}
+	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/changes", params, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}

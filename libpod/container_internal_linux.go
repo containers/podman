@@ -923,7 +923,7 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 	var addToTarFiles []string
 	if !options.IgnoreRootfs {
 		// To correctly track deleted files, let's go through the output of 'podman diff'
-		rootFsChanges, err := c.runtime.GetDiff("", c.ID())
+		rootFsChanges, err := c.runtime.GetDiff("", c.ID(), define.DiffContainer)
 		if err != nil {
 			return errors.Wrapf(err, "error exporting root file-system diff for %q", c.ID())
 		}

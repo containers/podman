@@ -858,16 +858,26 @@ func (ic *ContainerEngine) ContainerListExternal(ctx context.Context) ([]entitie
 	return ps.GetExternalContainerLists(ic.Libpod)
 }
 
-// ContainerDiff provides changes to given container
-func (ic *ContainerEngine) ContainerDiff(ctx context.Context, nameOrID string, opts entities.DiffOptions) (*entities.DiffReport, error) {
+// Diff provides changes to given container
+func (ic *ContainerEngine) Diff(ctx context.Context, namesOrIDs []string, opts entities.DiffOptions) (*entities.DiffReport, error) {
+	var (
+		base   string
+		parent string
+	)
 	if opts.Latest {
 		ctnr, err := ic.Libpod.GetLatestContainer()
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to get latest container")
 		}
-		nameOrID = ctnr.ID()
+		base = ctnr.ID()
 	}
-	changes, err := ic.Libpod.GetDiff("", nameOrID)
+	if len(namesOrIDs) > 0 {
+		base = namesOrIDs[0]
+		if len(namesOrIDs) > 1 {
+			parent = namesOrIDs[1]
+		}
+	}
+	changes, err := ic.Libpod.GetDiff(parent, base, opts.Type)
 	return &entities.DiffReport{Changes: changes}, err
 }
 

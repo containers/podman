@@ -1,11 +1,11 @@
 package images
 
 import (
-	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v3/cmd/podman/common"
+	"github.com/containers/podman/v3/cmd/podman/diff"
 	"github.com/containers/podman/v3/cmd/podman/registry"
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -13,11 +13,11 @@ import (
 var (
 	// podman container _inspect_
 	diffCmd = &cobra.Command{
-		Use:               "diff [options] IMAGE",
-		Args:              cobra.ExactArgs(1),
+		Use:               "diff [options] IMAGE [IMAGE]",
+		Args:              cobra.RangeArgs(1, 2),
 		Short:             "Inspect changes to the image's file systems",
-		Long:              `Displays changes to the image's filesystem.  The image will be compared to its parent layer.`,
-		RunE:              diff,
+		Long:              `Displays changes to the image's filesystem.  The image will be compared to its parent layer or the second argument when given.`,
+		RunE:              diffRun,
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman image diff myImage
   podman image diff --format json redis:alpine`,
@@ -39,31 +39,11 @@ func diffFlags(flags *pflag.FlagSet) {
 	_ = flags.MarkDeprecated("archive", "Provided for backwards compatibility, has no impact on output.")
 
 	formatFlagName := "format"
-	flags.StringVar(&diffOpts.Format, formatFlagName, "", "Change the output format")
+	flags.StringVar(&diffOpts.Format, formatFlagName, "", "Change the output format (json)")
 	_ = diffCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(nil))
 }
 
-func diff(cmd *cobra.Command, args []string) error {
-	if diffOpts.Latest {
-		return errors.New("image diff does not support --latest")
-	}
-
-	results, err := registry.ImageEngine().Diff(registry.GetContext(), args[0], *diffOpts)
-	if err != nil {
-		return err
-	}
-
-	switch {
-	case report.IsJSON(diffOpts.Format):
-		return common.ChangesToJSON(results)
-	case diffOpts.Format == "":
-		return common.ChangesToTable(results)
-	default:
-		return errors.New("only supported value for '--format' is 'json'")
-	}
-}
-
-func Diff(cmd *cobra.Command, args []string, options entities.DiffOptions) error {
-	diffOpts = &options
-	return diff(cmd, args)
+func diffRun(cmd *cobra.Command, args []string) error {
+	diffOpts.Type = define.DiffImage
+	return diff.Diff(cmd, args, *diffOpts)
 }

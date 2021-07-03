@@ -403,14 +403,6 @@ func (ir *ImageEngine) Import(ctx context.Context, options entities.ImageImportO
 	return &entities.ImageImportReport{Id: imageID}, nil
 }
 
-func (ir *ImageEngine) Diff(_ context.Context, nameOrID string, _ entities.DiffOptions) (*entities.DiffReport, error) {
-	changes, err := ir.Libpod.GetDiff("", nameOrID)
-	if err != nil {
-		return nil, err
-	}
-	return &entities.DiffReport{Changes: changes}, nil
-}
-
 func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.ImageSearchOptions) ([]entities.ImageSearchReport, error) {
 	filter, err := libimage.ParseSearchFilter(opts.Filters)
 	if err != nil {

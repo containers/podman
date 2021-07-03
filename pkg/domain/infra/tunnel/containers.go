@@ -765,8 +765,18 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	return &report, err
 }
 
-func (ic *ContainerEngine) ContainerDiff(ctx context.Context, nameOrID string, _ entities.DiffOptions) (*entities.DiffReport, error) {
-	changes, err := containers.Diff(ic.ClientCtx, nameOrID, nil)
+func (ic *ContainerEngine) Diff(ctx context.Context, namesOrIDs []string, opts entities.DiffOptions) (*entities.DiffReport, error) {
+	var base string
+	options := new(containers.DiffOptions).WithDiffType(opts.Type.String())
+	if len(namesOrIDs) > 0 {
+		base = namesOrIDs[0]
+		if len(namesOrIDs) > 1 {
+			options.WithParent(namesOrIDs[1])
+		}
+	} else {
+		return nil, errors.New("no arguments for diff")
+	}
+	changes, err := containers.Diff(ic.ClientCtx, base, options)
 	return &entities.DiffReport{Changes: changes}, err
 }
 
