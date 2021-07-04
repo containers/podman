@@ -89,7 +89,7 @@ func toDomainHistoryLayer(layer *libimage.ImageHistory) entities.ImageHistoryLay
 }
 
 func (ir *ImageEngine) History(ctx context.Context, nameOrID string, opts entities.ImageHistoryOptions) (*entities.ImageHistoryReport, error) {
-	image, _, err := ir.Libpod.LibimageRuntime().LookupImage(nameOrID, &libimage.LookupImageOptions{IgnorePlatform: true})
+	image, _, err := ir.Libpod.LibimageRuntime().LookupImage(nameOrID, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +245,7 @@ func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts en
 	reports := []*entities.ImageInspectReport{}
 	errs := []error{}
 	for _, i := range namesOrIDs {
-		img, _, err := ir.Libpod.LibimageRuntime().LookupImage(i, &libimage.LookupImageOptions{IgnorePlatform: true})
+		img, _, err := ir.Libpod.LibimageRuntime().LookupImage(i, nil)
 		if err != nil {
 			// This is probably a no such image, treat as nonfatal.
 			errs = append(errs, err)
@@ -321,7 +321,7 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 }
 
 func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, options entities.ImageTagOptions) error {
-	image, _, err := ir.Libpod.LibimageRuntime().LookupImage(nameOrID, &libimage.LookupImageOptions{IgnorePlatform: true})
+	image, _, err := ir.Libpod.LibimageRuntime().LookupImage(nameOrID, nil)
 	if err != nil {
 		return err
 	}
@@ -334,7 +334,7 @@ func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, 
 }
 
 func (ir *ImageEngine) Untag(ctx context.Context, nameOrID string, tags []string, options entities.ImageUntagOptions) error {
-	image, _, err := ir.Libpod.LibimageRuntime().LookupImage(nameOrID, &libimage.LookupImageOptions{IgnorePlatform: true})
+	image, _, err := ir.Libpod.LibimageRuntime().LookupImage(nameOrID, nil)
 	if err != nil {
 		return err
 	}
@@ -454,7 +454,7 @@ func (ir *ImageEngine) Build(ctx context.Context, containerFiles []string, opts 
 }
 
 func (ir *ImageEngine) Tree(ctx context.Context, nameOrID string, opts entities.ImageTreeOptions) (*entities.ImageTreeReport, error) {
-	image, _, err := ir.Libpod.LibimageRuntime().LookupImage(nameOrID, &libimage.LookupImageOptions{IgnorePlatform: true})
+	image, _, err := ir.Libpod.LibimageRuntime().LookupImage(nameOrID, nil)
 	if err != nil {
 		return nil, err
 	}

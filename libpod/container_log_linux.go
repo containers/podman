@@ -58,28 +58,28 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 	}
 	// API requires Next() immediately after SeekHead().
 	if _, err := journal.Next(); err != nil {
-		return errors.Wrap(err, "initial journal cursor")
+		return errors.Wrap(err, "next journal")
 	}
 
 	// API requires a next|prev before getting a cursor.
 	if _, err := journal.Previous(); err != nil {
-		return errors.Wrap(err, "initial journal cursor")
+		return errors.Wrap(err, "previous journal")
 	}
 
 	// Note that the initial cursor may not yet be ready, so we'll do an
 	// exponential backoff.
 	var cursor string
 	var cursorError error
-	for i := 1; i <= 3; i++ {
+	for i := 1; i <= 10; i++ {
 		cursor, cursorError = journal.GetCursor()
-		if err != nil {
+		if cursorError != nil {
+			time.Sleep(time.Duration(i*100) * time.Millisecond)
 			continue
 		}
-		time.Sleep(time.Duration(i*100) * time.Millisecond)
 		break
 	}
 	if cursorError != nil {
-		return errors.Wrap(cursorError, "inital journal cursor")
+		return errors.Wrap(cursorError, "initial journal cursor")
 	}
 
 	// We need the container's events in the same journal to guarantee

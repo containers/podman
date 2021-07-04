@@ -26,8 +26,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	var inspectData *libimage.ImageData
 	var err error
 	if s.Image != "" {
-		lookupOptions := &libimage.LookupImageOptions{IgnorePlatform: true}
-		newImage, _, err = r.LibimageRuntime().LookupImage(s.Image, lookupOptions)
+		newImage, _, err = r.LibimageRuntime().LookupImage(s.Image, nil)
 		if err != nil {
 			return nil, err
 		}
