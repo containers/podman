@@ -470,9 +470,7 @@ func (v *MachineVM) SSH(name string, opts machine.SSHOptions) error {
 	}
 
 	cmd := exec.Command("ssh", args...)
-	if logrus.GetLevel() == logrus.DebugLevel {
-		fmt.Printf("The arguments passed to ssh are: %v\n", args)
-	}
+		logrus.Debugf("The arguments passed to ssh are: %v\n", args)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
