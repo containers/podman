@@ -7,7 +7,7 @@ Podman is based on libpod, a library for container lifecycle management that is 
 
 * [Latest Version: 3.2.0](https://github.com/containers/podman/releases/latest)
   * Latest Remote client for Windows
-  * Latest Remote client for MacOs
+  * Latest Remote client for macOS
   * Latest Static Remote client for Linux
 
 * Continuous Integration: [![Build Status](https://api.cirrus-ci.com/github/containers/podman.svg)](https://cirrus-ci.com/github/containers/podman/master)
@@ -28,7 +28,7 @@ At a high level, the scope of Podman and libpod is the following:
 * Support for a REST API providing both a Docker-compatible interface and an improved interface exposing advanced Podman functionality.
 * In the future, integration with [CRI-O](https://github.com/cri-o/cri-o) to share containers and backend code.
 
-Podman presently only supports running containers on Linux. However, we are building a remote client which can run on Windows and OS X and manage Podman containers on a Linux system via the REST API using SSH tunneling.
+Podman presently only supports running containers on Linux. However, we are building a remote client which can run on Windows and macOS and manage Podman containers on a Linux system via the REST API using SSH tunneling.
 
 ## Roadmap
 
