@@ -998,6 +998,7 @@ func (ic *ContainerEngine) ContainerLogs(ctx context.Context, containers []strin
 		Details:    options.Details,
 		Follow:     options.Follow,
 		Since:      options.Since,
+		Until:      options.Until,
 		Tail:       options.Tail,
 		Timestamps: options.Timestamps,
 		UseName:    options.Names,

@@ -242,6 +242,8 @@ type ContainerLogsOptions struct {
 	Names bool
 	// Show logs since this timestamp.
 	Since time.Time
+	// Show logs until this timestamp.
+	Until time.Time
 	// Number of lines to display at the end of the output.
 	Tail int64
 	// Show timestamps in the logs.
