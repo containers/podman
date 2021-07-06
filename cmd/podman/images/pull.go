@@ -10,6 +10,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
+	"github.com/containers/podman/v3/cmd/podman/utils"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/pkg/errors"
@@ -32,8 +33,8 @@ var (
 
 	// Command: podman pull
 	pullCmd = &cobra.Command{
-		Use:               "pull [options] IMAGE",
-		Args:              cobra.ExactArgs(1),
+		Use:               "pull [options] IMAGE [IMAGE...]",
+		Args:              cobra.MinimumNArgs(1),
 		Short:             "Pull an image from a registry",
 		Long:              pullDescription,
 		RunE:              imagePull,
@@ -154,17 +155,16 @@ func imagePull(cmd *cobra.Command, args []string) error {
 	}
 	// Let's do all the remaining Yoga in the API to prevent us from
 	// scattering logic across (too) many parts of the code.
-	pullReport, err := registry.ImageEngine().Pull(registry.GetContext(), args[0], pullOptions.ImagePullOptions)
-	if err != nil {
-		return err
+	var errs utils.OutputErrors
+	for _, arg := range args {
+		pullReport, err := registry.ImageEngine().Pull(registry.GetContext(), arg, pullOptions.ImagePullOptions)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		for _, img := range pullReport.Images {
+			fmt.Println(img)
+		}
 	}
-
-	if len(pullReport.Images) > 1 {
-		fmt.Println("Pulled Images:")
-	}
-	for _, img := range pullReport.Images {
-		fmt.Println(img)
-	}
-
-	return nil
+	return errs.PrintErrors()
 }

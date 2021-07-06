@@ -4,24 +4,20 @@
 podman\-pull - Pull an image from a registry
 
 ## SYNOPSIS
-**podman pull** [*options*] *source*
+**podman pull** [*options*] *source* [*source*...]
 
-**podman image pull** [*options*] *source*
+**podman image pull** [*options*] *source* [*source*...]
 
 **podman pull** [*options*] [*transport*]*name*[:*tag*|@*digest*]
 
 **podman image pull** [*options*] [*transport*]*name*[:*tag*|@*digest*]
 
 ## DESCRIPTION
-Copies an image from a registry onto the local machine. The **podman pull** command pulls an
-image.  If the image reference in the command line argument does not contain a registry, it is referred to as a`short-name` reference. If the image is a 'short-name' reference, Podman will prompt the user for the specific container registry to pull the image from, if an alias for the short-name has not been specified in the short-name-aliases.conf.  If an image tag is not specified, **podman pull** defaults to the image with the **latest** tag (if it exists) and pulls it. After the image is pulled, podman will print the full image ID.  **podman pull** can also pull an image using its digest **podman pull** *image*@*digest*. **podman pull** can be used to pull images from archives and local storage using different transports.
-
-## Image storage
-Images are stored in local image storage.
+podman pull copies an image from a registry onto the local machine. The command can pull one or more images.  If the image reference in the command line argument does not contain a registry, it is referred to as a`short-name` reference. If the image is a 'short-name' reference, Podman will prompt the user for the specific container registry to pull the image from, if an alias for the short-name has not been specified in the `short-name-aliases.conf`.  If an image tag is not specified, **podman pull** defaults to the image with the **latest** tag (if it exists) and pulls it. After the image is pulled, podman will print the full image ID.  **podman pull** can also pull images using a digest **podman pull** *image*@*digest* and can also be used to pull images from archives and local storage using different transports.
+*IMPORTANT: Images are stored in local image storage.*
 
 ## SOURCE
-
- SOURCE is the location from the container image is pulled from. It supports all transports from `containers-transports(5)`. If no transport is specified, the input is subject to short-name resolution and the `docker` (i.e., container registry) transport is used.  For remote clients, `docker` is the only supported transport.
+SOURCE is the location from the container image is pulled from. It supports all transports from **[containers-transports(5)](https://github.com/containers/image/blob/main/docs/containers-transports.5.md)**. If no transport is specified, the input is subject to short-name resolution and the `docker` (i.e., container registry) transport is used.  For remote clients, `docker` is the only supported transport.
 
 ```
 # Pull from a container registry
@@ -47,28 +43,27 @@ $ podman pull oci-archive:/tmp/myimage
 ```
 
 ## OPTIONS
-
 #### **--all-tags**, **a**
 
 All tagged images in the repository will be pulled.
 
-Note: When using the all-tags flag, Podman will not iterate over the search registries in the containers-registries.conf(5) but will always use docker.io for unqualified image names.
+*IMPORTANT: When using the all-tags flag, Podman will not iterate over the search registries in the **[containers-registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md)** but will always use docker.io for unqualified image names.*
 
 #### **--arch**=*ARCH*
 Override the architecture, defaults to hosts, of the image to be pulled. For example, `arm`.
 
 #### **--authfile**=*path*
 
-Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
-If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.
+Path of the authentication file. If the authorization state is not found there, `$HOME/.docker/config.json` is checked, which is set using `docker login`.
 
-Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
-environment variable. `export REGISTRY_AUTH_FILE=path`
+Default is `${XDG\_RUNTIME\_DIR}/containers/auth.json`, which is set using `podman login`.
+
+*IMPORTANT: The default path of the authentication file can be overwritten by setting the `REGISTRY\_AUTH\_FILE` environment variable. `export REGISTRY_AUTH_FILE=path`*
 
 #### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
-Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client)
+Please refer to **[containers-certs.d(5)](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)** for details. (This option is not available with the remote Podman client)
 
 #### **--creds**=*[username[:password]]*
 
@@ -84,15 +79,17 @@ solely for scripting compatibility.
 
 #### **--help**, **-h**
 
-Print usage statement
+Print the usage statement.
 
 #### **--os**=*OS*
+
 Override the OS, defaults to hosts, of the image to be pulled. For example, `windows`.
 
 #### **--platform**=*OS/ARCH*
 
-Specify the platform for selecting the image.  (Conflicts with --arch and --os)
-The `--platform` option can be used to override the current architecture and operating system.
+Specify the platform for selecting the image. The `--platform` option can be used to override the current architecture and operating system.
+
+*IMPORTANT: Conflicts with --arch and --os*
 
 #### **--quiet**, **-q**
 
@@ -107,80 +104,6 @@ TLS verification will be used unless the target registry is listed as an insecur
 #### **--variant**=*VARIANT*
 
 Use _VARIANT_ instead of the default architecture variant of the container image.  Some images can use multiple variants of the arm architectures, such as arm/v5 and arm/v7.
-
-## EXAMPLES
-
-```
-$ podman pull alpine:latest
-Trying to pull registry.access.redhat.com/alpine:latest... Failed
-Trying to pull registry.fedoraproject.org/alpine:latest... Failed
-Trying to pull docker.io/library/alpine:latest...Getting image source signatures
-Copying blob sha256:88286f41530e93dffd4b964e1db22ce4939fffa4a4c665dab8591fbab03d4926
- 1.90 MB / 1.90 MB [========================================================] 0s
-Copying config sha256:76da55c8019d7a47c347c0dceb7a6591144d232a7dd616242a367b8bed18ecbc
- 1.48 KB / 1.48 KB [========================================================] 0s
-Writing manifest to image destination
-Storing signatures
-04660052281190168dbb2362eb15bf7067a8dc642d2498055e0e72efa961a4b6
-```
-
-```
-$ podman pull alpine@sha256:d7342993700f8cd7aba8496c2d0e57be0666e80b4c441925fc6f9361fa81d10e
-Trying to pull docker.io/library/alpine@sha256:d7342993700f8cd7aba8496c2d0e57be0666e80b4c441925fc6f9361fa81d10e...
-Getting image source signatures
-Copying blob 188c0c94c7c5 done
-Copying config d6e46aa247 done
-Writing manifest to image destination
-Storing signatures
-d6e46aa2470df1d32034c6707c8041158b652f38d2a9ae3d7ad7e7532d22ebe0
-```
-
-```
-$ podman pull --authfile temp-auths/myauths.json docker://docker.io/umohnani/finaltest
-Trying to pull docker.io/umohnani/finaltest:latest...Getting image source signatures
-Copying blob sha256:6d987f6f42797d81a318c40d442369ba3dc124883a0964d40b0c8f4f7561d913
- 1.90 MB / 1.90 MB [========================================================] 0s
-Copying config sha256:ad4686094d8f0186ec8249fc4917b71faa2c1030d7b5a025c29f26e19d95c156
- 1.41 KB / 1.41 KB [========================================================] 0s
-Writing manifest to image destination
-Storing signatures
-03290064078cb797f3e0a530e78c20c13dd22a3dd3adf84a5da2127b48df0438
-```
-
-```
-$ podman pull --creds testuser:testpassword docker.io/umohnani/finaltest
-Trying to pull docker.io/umohnani/finaltest:latest...Getting image source signatures
-Copying blob sha256:6d987f6f42797d81a318c40d442369ba3dc124883a0964d40b0c8f4f7561d913
- 1.90 MB / 1.90 MB [========================================================] 0s
-Copying config sha256:ad4686094d8f0186ec8249fc4917b71faa2c1030d7b5a025c29f26e19d95c156
- 1.41 KB / 1.41 KB [========================================================] 0s
-Writing manifest to image destination
-Storing signatures
-03290064078cb797f3e0a530e78c20c13dd22a3dd3adf84a5da2127b48df0438
-```
-
-```
-$ podman pull --tls-verify=false --cert-dir image/certs docker.io/umohnani/finaltest
-Trying to pull docker.io/umohnani/finaltest:latest...Getting image source signatures
-Copying blob sha256:6d987f6f42797d81a318c40d442369ba3dc124883a0964d40b0c8f4f7561d913
- 1.90 MB / 1.90 MB [========================================================] 0s
-Copying config sha256:ad4686094d8f0186ec8249fc4917b71faa2c1030d7b5a025c29f26e19d95c156
- 1.41 KB / 1.41 KB [========================================================] 0s
-Writing manifest to image destination
-Storing signatures
-03290064078cb797f3e0a530e78c20c13dd22a3dd3adf84a5da2127b48df0438
-```
-
-```
-$ podman pull --arch=arm arm32v7/debian:stretch
-Trying to pull docker.io/arm32v7/debian:stretch...
-Getting image source signatures
-Copying blob b531ae4a3925 done
-Copying config 3cba58dad5 done
-Writing manifest to image destination
-Storing signatures
-3cba58dad5d9b35e755b48b634acb3fdd185ab1c996ac11510cc72c17780e13c
-```
 
 ## FILES
 
@@ -204,8 +127,114 @@ registries.conf is the configuration file which specifies which container regist
 
 NOTE: Use the environment variable `TMPDIR` to change the temporary storage location of downloaded container images. Podman defaults to use `/var/tmp`.
 
+
+## EXAMPLES
+Pull a single image with short name resolution.
+```
+$ podman pull alpine:latest
+Resolved "alpine" as an alias (/etc/containers/registries.conf.d/000-shortnames.conf)
+Trying to pull docker.io/library/alpine:latest...
+Getting image source signatures
+Copying blob 5843afab3874 done
+Copying config d4ff818577 done
+Writing manifest to image destination
+Storing signatures
+d4ff818577bc193b309b355b02ebc9220427090057b54a59e73b79bdfe139b83
+```
+
+Pull multiple images with/without short name resolution.
+```
+podman pull busybox:musl alpine quay.io/libpod/cirros
+Trying to pull docker.io/library/busybox:musl...
+Getting image source signatures
+Copying blob 0c52b060233b [--------------------------------------] 0.0b / 0.0b
+Copying config 9ad2c435a8 done
+Writing manifest to image destination
+Storing signatures
+9ad2c435a887e3f723654e09b48563de44aa3c7950246b2e9305ec85dd3422db
+Trying to pull docker.io/library/alpine:latest...
+Getting image source signatures
+Copying blob 5843afab3874 [--------------------------------------] 0.0b / 0.0b
+Copying config d4ff818577 done
+Writing manifest to image destination
+Storing signatures
+d4ff818577bc193b309b355b02ebc9220427090057b54a59e73b79bdfe139b83
+Trying to pull quay.io/libpod/cirros:latest...
+Getting image source signatures
+Copying blob 8da581cc9286 done
+Copying blob 856628d95d17 done
+Copying blob f513001ba4ab done
+Copying config 3c82e4d066 done
+Writing manifest to image destination
+Storing signatures
+3c82e4d066cf6f9e50efaead6e3ff7fddddf5527826afd68e5a969579fc4db4a
+```
+
+Pull an image using its digest.
+```
+$ podman pull alpine@sha256:d7342993700f8cd7aba8496c2d0e57be0666e80b4c441925fc6f9361fa81d10e
+Trying to pull docker.io/library/alpine@sha256:d7342993700f8cd7aba8496c2d0e57be0666e80b4c441925fc6f9361fa81d10e...
+Getting image source signatures
+Copying blob 188c0c94c7c5 done
+Copying config d6e46aa247 done
+Writing manifest to image destination
+Storing signatures
+d6e46aa2470df1d32034c6707c8041158b652f38d2a9ae3d7ad7e7532d22ebe0
+```
+
+Pull an image by specifiying an authentication file.
+```
+$ podman pull --authfile temp-auths/myauths.json docker://docker.io/umohnani/finaltest
+Trying to pull docker.io/umohnani/finaltest:latest...Getting image source signatures
+Copying blob sha256:6d987f6f42797d81a318c40d442369ba3dc124883a0964d40b0c8f4f7561d913
+ 1.90 MB / 1.90 MB [========================================================] 0s
+Copying config sha256:ad4686094d8f0186ec8249fc4917b71faa2c1030d7b5a025c29f26e19d95c156
+ 1.41 KB / 1.41 KB [========================================================] 0s
+Writing manifest to image destination
+Storing signatures
+03290064078cb797f3e0a530e78c20c13dd22a3dd3adf84a5da2127b48df0438
+```
+
+Pull an image by authenticating to a registry.
+```
+$ podman pull --creds testuser:testpassword docker.io/umohnani/finaltest
+Trying to pull docker.io/umohnani/finaltest:latest...Getting image source signatures
+Copying blob sha256:6d987f6f42797d81a318c40d442369ba3dc124883a0964d40b0c8f4f7561d913
+ 1.90 MB / 1.90 MB [========================================================] 0s
+Copying config sha256:ad4686094d8f0186ec8249fc4917b71faa2c1030d7b5a025c29f26e19d95c156
+ 1.41 KB / 1.41 KB [========================================================] 0s
+Writing manifest to image destination
+Storing signatures
+03290064078cb797f3e0a530e78c20c13dd22a3dd3adf84a5da2127b48df0438
+```
+
+Pull an image using tls verification.
+```
+$ podman pull --tls-verify=false --cert-dir image/certs docker.io/umohnani/finaltest
+Trying to pull docker.io/umohnani/finaltest:latest...Getting image source signatures
+Copying blob sha256:6d987f6f42797d81a318c40d442369ba3dc124883a0964d40b0c8f4f7561d913
+ 1.90 MB / 1.90 MB [========================================================] 0s
+Copying config sha256:ad4686094d8f0186ec8249fc4917b71faa2c1030d7b5a025c29f26e19d95c156
+ 1.41 KB / 1.41 KB [========================================================] 0s
+Writing manifest to image destination
+Storing signatures
+03290064078cb797f3e0a530e78c20c13dd22a3dd3adf84a5da2127b48df0438
+```
+
+Pull an image by overriding the host architecture.
+```
+$ podman pull --arch=arm arm32v7/debian:stretch
+Trying to pull docker.io/arm32v7/debian:stretch...
+Getting image source signatures
+Copying blob b531ae4a3925 done
+Copying config 3cba58dad5 done
+Writing manifest to image destination
+Storing signatures
+3cba58dad5d9b35e755b48b634acb3fdd185ab1c996ac11510cc72c17780e13c
+```
+
 ## SEE ALSO
-podman(1), podman-push(1), podman-login(1), containers-certs.d(5), containers-registries.conf(5), containers-transports(5)
+**[podman(1)](podman.1.md)**, **[podman-push(1)](podman-push.1.md)**, **[podman-login(1)](podman-login.1.md)**, **[containers-certs.d(5](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)**, **[containers-registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.d.5.md)**, **[containers-transports(5)](https://github.com/containers/image/blob/main/docs/containers-transports.5.md)**
 
 ## HISTORY
 July 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>
