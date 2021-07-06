@@ -21,7 +21,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
 	github.com/cri-o/ocicni v0.2.1-0.20210621164014-d0acc7862283
-	github.com/cyphar/filepath-securejoin v0.2.2
+	github.com/cyphar/filepath-securejoin v0.2.3
 	github.com/davecgh/go-spew v1.1.1
 	github.com/digitalocean/go-qemu v0.0.0-20210209191958-152a1535e49f
 	github.com/docker/distribution v2.7.1+incompatible

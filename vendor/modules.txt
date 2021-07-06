@@ -257,7 +257,7 @@ github.com/coreos/stream-metadata-go/stream
 github.com/coreos/stream-metadata-go/stream/rhcos
 # github.com/cri-o/ocicni v0.2.1-0.20210621164014-d0acc7862283
 github.com/cri-o/ocicni/pkg/ocicni
-# github.com/cyphar/filepath-securejoin v0.2.2
+# github.com/cyphar/filepath-securejoin v0.2.3
 github.com/cyphar/filepath-securejoin
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
