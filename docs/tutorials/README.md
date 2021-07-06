@@ -28,10 +28,6 @@ How the libpod API can be used within your own project.
 
 Learn how to setup and use image signing with Podman.
 
-**[Go Bindings](podman-go-bindings.md)**
-
-A brief how-to on using Podman's Go bindings in external applications.
-
-**[Go Bindings](basic_networking.md)**
+**[Basic Networking](basic_networking.md)**
 
 A basic guide to common network setups with Podman
