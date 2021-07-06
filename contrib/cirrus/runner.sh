@@ -173,7 +173,7 @@ function _run_swagger() {
     trap "rm -f $envvarsfile" EXIT  # contains secrets
     # Warning: These values must _not_ be quoted, podman will not remove them.
     #shellcheck disable=SC2154
-    cat <<eof>>$envvarsfile
+    cat <<eof >>$envvarsfile
 GCPJSON=$GCPJSON
 GCPNAME=$GCPNAME
 GCPPROJECT=$GCPPROJECT
@@ -334,6 +334,11 @@ msg "************************************************************"
 
 # shellcheck disable=SC2154
 if [[ "$PRIV_NAME" == "rootless" ]] && [[ "$UID" -eq 0 ]]; then
+    # Remove /var/lib/cni, it is not required for rootless cni.
+    # We have to test that it works without this directory.
+    # https://github.com/containers/podman/issues/10857
+    rm -rf /var/lib/cni
+
     req_env_vars ROOTLESS_USER
     msg "Re-executing runner through ssh as user '$ROOTLESS_USER'"
     msg "************************************************************"
