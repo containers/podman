@@ -97,6 +97,7 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 			}
 		}()
 
+		beforeTimeStamp := true
 		afterTimeStamp := false        // needed for options.Since
 		tailQueue := []*logs.LogLine{} // needed for options.Tail
 		doTail := options.Tail > 0
@@ -155,6 +156,13 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 					continue
 				}
 				afterTimeStamp = true
+			}
+			if beforeTimeStamp {
+				entryTime := time.Unix(0, int64(entry.RealtimeTimestamp)*int64(time.Microsecond))
+				if entryTime.Before(options.Until) || !options.Until.IsZero() {
+					continue
+				}
+				beforeTimeStamp = false
 			}
 
 			// If we're reading an event and the container exited/died,

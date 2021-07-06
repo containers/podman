@@ -56,7 +56,7 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 		for _, nll := range tailLog {
 			nll.CID = c.ID()
 			nll.CName = c.Name()
-			if nll.Since(options.Since) {
+			if nll.Since(options.Since) && nll.Until(options.Until) {
 				logChannel <- nll
 			}
 		}
@@ -88,7 +88,7 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 			}
 			nll.CID = c.ID()
 			nll.CName = c.Name()
-			if nll.Since(options.Since) {
+			if nll.Since(options.Since) && nll.Until(options.Until) {
 				logChannel <- nll
 			}
 		}
