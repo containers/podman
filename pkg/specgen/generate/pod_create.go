@@ -102,6 +102,10 @@ func createPodOptions(p *specgen.PodSpecGenerator, rt *libpod.Runtime) ([]libpod
 		options = append(options, libpod.WithInfraCommand(p.InfraCommand))
 	}
 
+	if !p.Pid.IsDefault() {
+		options = append(options, libpod.WithPodPidNS(p.Pid))
+	}
+
 	switch p.NetNS.NSMode {
 	case specgen.Default, "":
 		if p.NoInfra {

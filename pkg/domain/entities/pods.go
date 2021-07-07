@@ -118,6 +118,7 @@ type PodCreateOptions struct {
 	Name               string
 	Net                *NetOptions
 	Share              []string
+	Pid                string
 	Cpus               float64
 	CpusetCpus         string
 }
@@ -144,6 +145,18 @@ func (p *PodCreateOptions) CPULimits() *specs.LinuxCPU {
 		return cpu
 	}
 	return cpu
+}
+
+func setNamespaces(p *PodCreateOptions) ([4]specgen.Namespace, error) {
+	allNS := [4]specgen.Namespace{}
+	if p.Pid != "" {
+		pid, err := specgen.ParseNamespace(p.Pid)
+		if err != nil {
+			return [4]specgen.Namespace{}, err
+		}
+		allNS[0] = pid
+	}
+	return allNS, nil
 }
 
 func (p *PodCreateOptions) ToPodSpecGen(s *specgen.PodSpecGenerator) error {
@@ -177,6 +190,14 @@ func (p *PodCreateOptions) ToPodSpecGen(s *specgen.PodSpecGenerator) error {
 	s.DNSOption = p.Net.DNSOptions
 	s.NoManageHosts = p.Net.NoHosts
 	s.HostAdd = p.Net.AddHosts
+
+	namespaces, err := setNamespaces(p)
+	if err != nil {
+		return err
+	}
+	if !namespaces[0].IsDefault() {
+		s.Pid = namespaces[0]
+	}
 
 	// Cgroup
 	s.CgroupParent = p.CGroupParent

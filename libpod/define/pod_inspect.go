@@ -103,6 +103,8 @@ type InspectPodInfraConfig struct {
 	CPUQuota int64 `json:"cpu_quota,omitempty"`
 	// CPUSetCPUs contains linux specific CPU data for the container
 	CPUSetCPUs string `json:"cpuset_cpus,omitempty"`
+	// Pid is the PID namespace mode of the pod's infra container
+	PidNS string `json:"pid_ns,omitempty"`
 }
 
 // InspectPodContainerInfo contains information on a container in a pod.

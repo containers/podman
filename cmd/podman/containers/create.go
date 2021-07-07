@@ -293,6 +293,7 @@ func createPodIfNecessary(s *specgen.SpecGenerator, netOpts *entities.NetOptions
 		Hostname:      s.ContainerBasicConfig.Hostname,
 		Cpus:          cliVals.CPUS,
 		CpusetCpus:    cliVals.CPUSetCPUs,
+		Pid:           cliVals.PID,
 	}
 	// Unset config values we passed to the pod to prevent them being used twice for the container and pod.
 	s.ContainerBasicConfig.Hostname = ""

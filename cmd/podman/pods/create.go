@@ -102,6 +102,10 @@ func init() {
 	flags.StringVarP(&createOptions.Hostname, hostnameFlagName, "", "", "Set a hostname to the pod")
 	_ = createCommand.RegisterFlagCompletionFunc(hostnameFlagName, completion.AutocompleteNone)
 
+	pidFlagName := "pid"
+	flags.StringVar(&createOptions.Pid, pidFlagName, "", "PID namespace to use")
+	_ = createCommand.RegisterFlagCompletionFunc(pidFlagName, common.AutocompleteNamespace)
+
 	podIDFileFlagName := "pod-id-file"
 	flags.StringVar(&podIDFile, podIDFileFlagName, "", "Write the pod ID to the file")
 	_ = createCommand.RegisterFlagCompletionFunc(podIDFileFlagName, completion.AutocompleteDefault)
@@ -178,6 +182,8 @@ func create(cmd *cobra.Command, args []string) error {
 		defer errorhandling.CloseQuiet(podIDFD)
 		defer errorhandling.SyncQuiet(podIDFD)
 	}
+
+	createOptions.Pid = cmd.Flag("pid").Value.String()
 
 	createOptions.Net, err = common.NetFlagsToNetOptions(cmd, createOptions.Infra)
 	if err != nil {
