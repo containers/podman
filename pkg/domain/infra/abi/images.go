@@ -638,7 +638,10 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 	return nil, nil
 }
 
-func getSigFilename(sigStoreDirPath string) (string, error) {
+func getSigFilename(sigStoreDirPath string, options entities.SignOptions) (string, error) {
+	if options.AuthFile != "" {
+		return options.AuthFile, nil
+	}
 	sigFileSuffix := 1
 	sigFiles, err := ioutil.ReadDir(sigStoreDirPath)
 	if err != nil {
@@ -677,7 +680,7 @@ func putSignature(manifestBlob []byte, mech signature.SigningMechanism, sigStore
 			return err
 		}
 	}
-	sigFilename, err := getSigFilename(signatureDir)
+	sigFilename, err := getSigFilename(signatureDir, options)
 	if err != nil {
 		return err
 	}

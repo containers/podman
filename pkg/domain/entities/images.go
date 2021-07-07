@@ -369,6 +369,7 @@ type SignOptions struct {
 	Directory string
 	SignBy    string
 	CertDir   string
+	AuthFile  string
 	All       bool
 }
 

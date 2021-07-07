@@ -36,6 +36,14 @@ Store the signatures in the specified directory.  Default: /var/lib/containers/s
 
 Override the default identity of the signature.
 
+#### **--authfile**=*path*
+
+Path of the authentication file. If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using docker login.
+
+Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using podman login.
+
+IMPORTANT: The default path of the authentication file can be overwritten by setting the REGISTRY\_AUTH\_FILE environment variable. export REGISTRY_AUTH_FILE=path
+
 ## EXAMPLES
 Sign the busybox image with the identity of foo@bar.com with a user's keyring and save the signature in /tmp/signatures/.
 
