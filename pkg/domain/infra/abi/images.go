@@ -641,6 +641,7 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 	}
 	sc := ir.Libpod.SystemContext()
 	sc.DockerCertPath = options.CertDir
+	sc.AuthFilePath = options.Authfile
 
 	for _, signimage := range names {
 		err = func() error {

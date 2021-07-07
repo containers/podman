@@ -373,6 +373,7 @@ type SignOptions struct {
 	Directory string
 	SignBy    string
 	CertDir   string
+	Authfile  string
 	All       bool
 }
 
