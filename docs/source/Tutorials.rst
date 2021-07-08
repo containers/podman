@@ -10,5 +10,5 @@ Here are a number of useful tutorials to get you up and running with Podman. If 
 * `How to sign and distribute container images using Podman <https://github.com/containers/podman/blob/master/docs/tutorials/image_signing.md>`_: Learn how to setup and use image signing with Podman.
 * `Podman remote-client tutorial <https://github.com/containers/podman/blob/master/docs/tutorials/remote_client.md>`_: A brief how-to on using the Podman remote-client.
 * `How to use libpod for custom/derivative projects <https://github.com/containers/podman/blob/master/docs/tutorials/podman-derivative-api.md>`_: How the libpod API can be used within your own project.
-* `How to use Podman's Go bindings <https://github.com/containers/podman/blob/master/docs/tutorials/podman-go-bindings.md>`_: A brief how-to on using Podman's Go bindings in external applications.
+* `How to use Podman's Go RESTful bindings <https://github.com/containers/podman/tree/main/pkg/bindings>`_: An introduction to using our RESTful Golang bindings in an external application.
 * `Common network setups <https://github.com/containers/podman/blob/master/docs/tutorials/basic_networking.md>`_: A basic guide to common network setups for Podman.
