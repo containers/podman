@@ -1021,9 +1021,9 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 	return nil
 }
 
-func (c *Container) checkpointRestoreSupported() error {
-	if !criu.CheckForCriu() {
-		return errors.Errorf("checkpoint/restore requires at least CRIU %d", criu.MinCriuVersion)
+func (c *Container) checkpointRestoreSupported(version int) error {
+	if !criu.CheckForCriu(version) {
+		return errors.Errorf("checkpoint/restore requires at least CRIU %d", version)
 	}
 	if !c.ociRuntime.SupportsCheckpoint() {
 		return errors.Errorf("configured runtime does not support checkpoint/restore")
@@ -1032,7 +1032,7 @@ func (c *Container) checkpointRestoreSupported() error {
 }
 
 func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointOptions) error {
-	if err := c.checkpointRestoreSupported(); err != nil {
+	if err := c.checkpointRestoreSupported(criu.MinCriuVersion); err != nil {
 		return err
 	}
 
@@ -1136,7 +1136,7 @@ func (c *Container) importPreCheckpoint(input string) error {
 }
 
 func (c *Container) restore(ctx context.Context, options ContainerCheckpointOptions) (retErr error) {
-	if err := c.checkpointRestoreSupported(); err != nil {
+	if err := c.checkpointRestoreSupported(criu.MinCriuVersion); err != nil {
 		return err
 	}
 

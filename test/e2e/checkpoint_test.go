@@ -46,7 +46,7 @@ var _ = Describe("Podman checkpoint", func() {
 			Skip("OCI runtime does not support checkpoint/restore")
 		}
 
-		if !criu.CheckForCriu() {
+		if !criu.CheckForCriu(criu.MinCriuVersion) {
 			Skip("CRIU is missing or too old.")
 		}
 		// Only Fedora 29 and newer has a new enough selinux-policy and
