@@ -1,7 +1,7 @@
 package criu
 
 import (
-	"github.com/checkpoint-restore/go-criu"
+	"github.com/checkpoint-restore/go-criu/v5"
 )
 
 // MinCriuVersion for Podman at least CRIU 3.11 is required

@@ -46,9 +46,9 @@ github.com/buger/goterm
 github.com/cespare/xxhash/v2
 # github.com/checkpoint-restore/checkpointctl v0.0.0-20210301084134-a2024f5584e7
 github.com/checkpoint-restore/checkpointctl/lib
-# github.com/checkpoint-restore/go-criu v0.0.0-20190109184317-bdb7599cd87b
-github.com/checkpoint-restore/go-criu
-github.com/checkpoint-restore/go-criu/rpc
+# github.com/checkpoint-restore/go-criu/v5 v5.1.0
+github.com/checkpoint-restore/go-criu/v5
+github.com/checkpoint-restore/go-criu/v5/rpc
 # github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 github.com/chzyer/readline
 # github.com/container-orchestrated-devices/container-device-interface v0.0.0-20210325223243-f99e8b6c10b9
