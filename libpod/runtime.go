@@ -946,9 +946,12 @@ func (r *Runtime) StorageConfig() storage.StoreOptions {
 	return r.storageConfig
 }
 
-// GetStore returns the runtime stores
-func (r *Runtime) GetStore() storage.Store {
-	return r.store
+// RunRoot retrieves the current c/storage temporary directory in use by Libpod.
+func (r *Runtime) RunRoot() string {
+	if r.store == nil {
+		return ""
+	}
+	return r.store.RunRoot()
 }
 
 // GetName retrieves the name associated with a given full ID.
