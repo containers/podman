@@ -3,8 +3,6 @@
 package gexec
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"go/build"
@@ -197,9 +195,7 @@ func newExecutablePath(gopath, packagePath string, suffixes ...string) (string, 
 		return "", errors.New("$GOPATH not provided when building " + packagePath)
 	}
 
-	hash := md5.Sum([]byte(packagePath))
-	filename := fmt.Sprintf("%s-%x%s", path.Base(packagePath), hex.EncodeToString(hash[:]), strings.Join(suffixes, ""))
-	executable := filepath.Join(tmpDir, filename)
+	executable := filepath.Join(tmpDir, path.Base(packagePath))
 
 	if runtime.GOOS == "windows" {
 		executable += ".exe"

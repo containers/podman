@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"runtime"
 	"time"
 
 	"github.com/onsi/gomega/internal/oraclematcher"
@@ -31,8 +32,8 @@ type AsyncAssertion struct {
 func New(asyncType AsyncAssertionType, actualInput interface{}, failWrapper *types.GomegaFailWrapper, timeoutInterval time.Duration, pollingInterval time.Duration, offset int) *AsyncAssertion {
 	actualType := reflect.TypeOf(actualInput)
 	if actualType.Kind() == reflect.Func {
-		if actualType.NumIn() != 0 || actualType.NumOut() == 0 {
-			panic("Expected a function with no arguments and one or more return values.")
+		if actualType.NumIn() != 0 {
+			panic("Expected a function with no arguments and zero or more return values.")
 		}
 	}
 
@@ -70,13 +71,49 @@ func (assertion *AsyncAssertion) buildDescription(optionalDescription ...interfa
 
 func (assertion *AsyncAssertion) actualInputIsAFunction() bool {
 	actualType := reflect.TypeOf(assertion.actualInput)
-	return actualType.Kind() == reflect.Func && actualType.NumIn() == 0 && actualType.NumOut() > 0
+	return actualType.Kind() == reflect.Func && actualType.NumIn() == 0
 }
 
 func (assertion *AsyncAssertion) pollActual() (interface{}, error) {
-	if assertion.actualInputIsAFunction() {
-		values := reflect.ValueOf(assertion.actualInput).Call([]reflect.Value{})
+	if !assertion.actualInputIsAFunction() {
+		return assertion.actualInput, nil
+	}
+	var capturedAssertionFailure string
+	var values []reflect.Value
 
+	numOut := reflect.TypeOf(assertion.actualInput).NumOut()
+
+	func() {
+		originalHandler := assertion.failWrapper.Fail
+		assertion.failWrapper.Fail = func(message string, callerSkip ...int) {
+			skip := 0
+			if len(callerSkip) > 0 {
+				skip = callerSkip[0]
+			}
+			_, file, line, _ := runtime.Caller(skip + 1)
+			capturedAssertionFailure = fmt.Sprintf("Assertion in callback at %s:%d failed:\n%s", file, line, message)
+			panic("stop execution")
+		}
+
+		defer func() {
+			assertion.failWrapper.Fail = originalHandler
+			if e := recover(); e != nil && capturedAssertionFailure == "" {
+				panic(e)
+			}
+		}()
+
+		values = reflect.ValueOf(assertion.actualInput).Call([]reflect.Value{})
+	}()
+
+	if capturedAssertionFailure != "" {
+		if numOut == 0 {
+			return errors.New(capturedAssertionFailure), nil
+		} else {
+			return nil, errors.New(capturedAssertionFailure)
+		}
+	}
+
+	if numOut > 0 {
 		extras := []interface{}{}
 		for _, value := range values[1:] {
 			extras = append(extras, value.Interface())
@@ -91,7 +128,7 @@ func (assertion *AsyncAssertion) pollActual() (interface{}, error) {
 		return values[0].Interface(), nil
 	}
 
-	return assertion.actualInput, nil
+	return nil, nil
 }
 
 func (assertion *AsyncAssertion) matcherMayChange(matcher types.GomegaMatcher, value interface{}) bool {
