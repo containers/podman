@@ -1,3 +1,20 @@
+## 1.14.0
+
+### Features
+- gmeasure.SamplingConfig now suppers a MinSamplingInterval [e94dbca]
+- Eventually and Consistently support functions that make assertions [2f04e6e]
+    - Eventually and Consistently now allow their passed-in functions to make assertions.
+    These assertions must pass or the function is considered to have failed and is retried.
+    - Eventually and Consistently can now take functions with no return values.  These implicitly return nil
+    if they contain no failed assertion.  Otherwise they return an error wrapping the first assertion failure.  This allows
+    these functions to be used with the Succeed() matcher.
+    - Introduce InterceptGomegaFailure - an analogue to InterceptGomegaFailures - that captures the first assertion failure
+    and halts execution in its passed-in callback.
+
+### Fixes
+- Call Verify GHTTPWithGomega receiver funcs (#454) [496e6fd]
+- Build a binary with an expected name (#446) [7356360]
+
 ## 1.13.0
 
 ### Features
