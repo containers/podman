@@ -191,7 +191,7 @@ func DefaultConfig() (*Config, error) {
 			Init:       false,
 			InitPath:   "",
 			IPCNS:      "private",
-			LogDriver:  DefaultLogDriver,
+			LogDriver:  defaultLogDriver(),
 			LogSizeMax: DefaultLogSizeMax,
 			NetNS:      netns,
 			NoHosts:    false,
