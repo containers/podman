@@ -160,16 +160,11 @@ func generateContainerInfo(ctr *libpod.Container, options entities.GenerateSyste
 
 	nameOrID, serviceName := containerServiceName(ctr, options)
 
-	store := ctr.Runtime().GetStore()
-	if store == nil {
-		return nil, errors.Errorf("could not determine storage store for container")
-	}
-
 	var runRoot string
 	if options.New {
 		runRoot = "%t/containers"
 	} else {
-		runRoot = store.RunRoot()
+		runRoot = ctr.Runtime().RunRoot()
 		if runRoot == "" {
 			return nil, errors.Errorf("could not lookup container's runroot: got empty string")
 		}
