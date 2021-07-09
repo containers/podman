@@ -301,6 +301,8 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 
 	tarContent := []string{options.ContextDirectory}
 	newContainerFiles := []string{}
+
+	dontexcludes := []string{"!Dockerfile", "!Containerfile"}
 	for _, c := range containerFiles {
 		if c == "/dev/stdin" {
 			content, err := ioutil.ReadAll(os.Stdin)
@@ -328,6 +330,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		// Do NOT add to tarfile
 		if strings.HasPrefix(containerfile, contextDir+string(filepath.Separator)) {
 			containerfile = strings.TrimPrefix(containerfile, contextDir+string(filepath.Separator))
+			dontexcludes = append(dontexcludes, "!"+containerfile)
 		} else {
 			// If Containerfile does not exists assume it is in context directory, do Not add to tarfile
 			if _, err := os.Lstat(containerfile); err != nil {
@@ -349,8 +352,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		}
 		params.Set("dockerfile", string(cFileJSON))
 	}
-
-	tarfile, err := nTar(excludes, tarContent...)
+	tarfile, err := nTar(append(excludes, dontexcludes...), tarContent...)
 	if err != nil {
 		logrus.Errorf("cannot tar container entries %v error: %v", tarContent, err)
 		return nil, err
