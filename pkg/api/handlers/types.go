@@ -232,27 +232,32 @@ func ImageDataToImageInspect(ctx context.Context, l *libimage.Image) (*ImageInsp
 		Name: info.GraphDriver.Name,
 		Data: info.GraphDriver.Data,
 	}
+	// Add in basic ContainerConfig to satisfy docker-compose
+	cc := new(dockerContainer.Config)
+	cc.Hostname = info.ID[0:11] // short ID is the hostname
+	cc.Volumes = info.Config.Volumes
+
 	dockerImageInspect := docker.ImageInspect{
-		Architecture:  info.Architecture,
-		Author:        info.Author,
-		Comment:       info.Comment,
-		Config:        &config,
-		Created:       l.Created().Format(time.RFC3339Nano),
-		DockerVersion: info.Version,
-		GraphDriver:   graphDriver,
-		ID:            "sha256:" + l.ID(),
-		Metadata:      docker.ImageMetadata{},
-		Os:            info.Os,
-		OsVersion:     info.Version,
-		Parent:        info.Parent,
-		RepoDigests:   info.RepoDigests,
-		RepoTags:      info.RepoTags,
-		RootFS:        rootfs,
-		Size:          info.Size,
-		Variant:       "",
-		VirtualSize:   info.VirtualSize,
+		Architecture:    info.Architecture,
+		Author:          info.Author,
+		Comment:         info.Comment,
+		Config:          &config,
+		ContainerConfig: cc,
+		Created:         l.Created().Format(time.RFC3339Nano),
+		DockerVersion:   info.Version,
+		GraphDriver:     graphDriver,
+		ID:              "sha256:" + l.ID(),
+		Metadata:        docker.ImageMetadata{},
+		Os:              info.Os,
+		OsVersion:       info.Version,
+		Parent:          info.Parent,
+		RepoDigests:     info.RepoDigests,
+		RepoTags:        info.RepoTags,
+		RootFS:          rootfs,
+		Size:            info.Size,
+		Variant:         "",
+		VirtualSize:     info.VirtualSize,
 	}
-	// TODO: consider filling the container config.
 	return &ImageInspect{dockerImageInspect}, nil
 }
 
