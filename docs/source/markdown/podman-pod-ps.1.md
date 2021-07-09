@@ -12,7 +12,9 @@ By default it lists:
 
  * pod id
  * pod name
+ * the time the pod was created
  * number of containers attached to pod
+ * container id of the pod infra container
  * status of pod as defined by the following table
 
 |  **Status**  | **Description**                                 |
@@ -28,15 +30,15 @@ By default it lists:
 
 #### **--ctr-names**
 
-Includes the container names in the container info field
+Display the container names
 
 #### **--ctr-ids**
 
-Includes the container IDs in the container info field
+Display the container IDs
 
 #### **--ctr-status**
 
-Includes the container statuses in the container info field
+Display the container statuses
 
 #### **--latest**, **-l**
 
@@ -111,62 +113,55 @@ Print usage statement
 
 ```
 $ podman pod ps
-POD ID         NAME              STATUS    NUMBER OF CONTAINERS
-00dfd6fa02c0   jolly_goldstine   Running   1
-f4df8692e116   nifty_torvalds    Created   2
+POD ID         NAME              STATUS    CREATED          INFRA ID       # OF CONTAINERS
+00dfd6fa02c0   jolly_goldstine   Running   31 hours ago     ba465ab0a3a4   1
+f4df8692e116   nifty_torvalds    Created   10 minutes ago   331693bff40a   2
 ```
 
 ```
 $ podman pod ps --ctr-names
-POD ID         NAME              STATUS    CONTAINER INFO
-00dfd6fa02c0   jolly_goldstine   Running   [ loving_archimedes ]
-f4df8692e116   nifty_torvalds    Created   [ thirsty_hawking ] [ wizardly_golick ]
+POD ID         NAME              STATUS    CREATED          INFRA ID       NAMES
+00dfd6fa02c0   jolly_goldstine   Running   31 hours ago     ba465ab0a3a4   loving_archimedes
+f4df8692e116   nifty_torvalds    Created   10 minutes ago   331693bff40a   thirsty_hawking,wizardly_golick
 ```
 
 ```
 $ podman pod ps --ctr-status --ctr-names --ctr-ids
-POD ID         NAME              STATUS    CONTAINER INFO
-00dfd6fa02c0   jolly_goldstine   Running   [ ba465ab0a3a4 loving_archimedes Running ]
-f4df8692e116   nifty_torvalds    Created   [ 331693bff40a thirsty_hawking Created ] [ 8e428daeb89e wizardly_golick Created ]
+POD ID         NAME              STATUS    CREATED          INFRA ID       IDS                         NAMES                             STATUS
+00dfd6fa02c0   jolly_goldstine   Running   31 hours ago     ba465ab0a3a4   ba465ab0a3a4                loving_archimedes                 running
+f4df8692e116   nifty_torvalds    Created   10 minutes ago   331693bff40a   331693bff40a,8e428daeb89e   thirsty_hawking,wizardly_golick   configured,configured
 ```
 
 ```
-$ podman pod ps --format "{{.ID}}  {{.ContainerInfo}}  {{.Cgroup}}" --ctr-names
-00dfd6fa02c0      [ loving_archimedes ]                         /libpod_parent
-f4df8692e116      [ thirsty_hawking ] [ wizardly_golick ]       /libpod_parent
-```
-
-```
-$ podman pod ps --cgroup
-POD ID         NAME              STATUS    NUMBER OF CONTAINERS   CGROUP           USE POD CGROUP
-00dfd6fa02c0   jolly_goldstine   Running   1                      /libpod_parent   true
-f4df8692e116   nifty_torvalds    Created   2                      /libpod_parent   true
+$ podman pod ps --format "{{.ID}}  {{.ContainerNames}}  {{.Cgroup}}"
+00dfd6fa02c0   loving_archimedes   /libpod_parent
+f4df8692e116   thirsty_hawking,wizardly_golick   /libpod_parent
 ```
 
 ```
 $ podman pod ps --sort id --filter ctr-number=2
-POD ID         NAME             STATUS    NUMBER OF CONTAINERS
-f4df8692e116   nifty_torvalds   Created   2
+POD ID         NAME             STATUS    CREATED          INFRA ID       # OF CONTAINERS
+f4df8692e116   nifty_torvalds   Created   10 minutes ago   331693bff40a   2
 ```
 
 ```
 $ podman pod ps  --ctr-ids
-POD ID         NAME              STATUS    CONTAINER INFO
-00dfd6fa02c0   jolly_goldstine   Running   [ ba465ab0a3a4 ]
-f4df8692e116   nifty_torvalds    Created   [ 331693bff40a ] [ 8e428daeb89e ]
+POD ID         NAME              STATUS    CREATED          INFRA ID       IDS
+00dfd6fa02c0   jolly_goldstine   Running   31 hours ago     ba465ab0a3a4   ba465ab0a3a4
+f4df8692e116   nifty_torvalds    Created   10 minutes ago   331693bff40a   331693bff40a,8e428daeb89e
 ```
 
 ```
 $ podman pod ps --no-trunc --ctr-ids
-POD ID                                                             NAME              STATUS    CONTAINER INFO
-00dfd6fa02c0a2daaedfdf8fcecd06f22ad114d46d167d71777224735f701866   jolly_goldstine   Running   [ ba465ab0a3a4e15e3539a1e79c32d1213a02b0989371e274f98e0f1ae9de7050 ]
-f4df8692e116a3e6d1d62572644ed36ca475d933808cc3c93435c45aa139314b   nifty_torvalds    Created   [ 331693bff40a0ef2f05a3aba73ce49e3243108911927fff04d1f7fc44dda8022 ] [ 8e428daeb89e69b71e7916a13accfb87d122889442b5c05c2d99cf94a3230e9d ]
+POD ID                                                             NAME              STATUS    CREATED          INFRA ID                                                           IDS
+00dfd6fa02c0a2daaedfdf8fcecd06f22ad114d46d167d71777224735f701866   jolly_goldstine   Running   31 hours ago     ba465ab0a3a4e15e3539a1e79c32d1213a02b0989371e274f98e0f1ae9de7050   ba465ab0a3a4e15e3539a1e79c32d1213a02b0989371e274f98e0f1ae9de7050
+f4df8692e116a3e6d1d62572644ed36ca475d933808cc3c93435c45aa139314b   nifty_torvalds    Created   10 minutes ago   331693bff40a926b6d52b184e116afd15497610c378d5d4c42945dd6e33b75b0   331693bff40a926b6d52b184e116afd15497610c378d5d4c42945dd6e33b75b0,8e428daeb89e69b71e7916a13accfb87d122889442b5c05c2d99cf94a3230e9d
 ```
 
 ```
 $ podman pod ps --ctr-names
-POD ID         NAME   STATUS    CONTAINER INFO
-314f4da82d74   hi     Created   [ jovial_jackson ] [ hopeful_archimedes ] [ vibrant_ptolemy ] [ heuristic_jennings ] [ keen_raman ] [ hopeful_newton ] [ mystifying_bose ] [ silly_lalande ] [ serene_lichterman ] ...
+POD ID         NAME   STATUS    CREATED        INFRA ID       NAMES
+314f4da82d74   hi     Created   17 hours ago   a9f2d2165675   jovial_jackson,hopeful_archimedes,vibrant_ptolemy,heuristic_jennings,keen_raman,hopeful_newton,mystifying_bose,silly_lalande,serene_lichterman ...
 ```
 
 ## pod ps
