@@ -566,6 +566,14 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 		s.Devices = append(s.Devices, specs.LinuxDevice{Path: dev})
 	}
 
+	for _, rule := range c.DeviceCGroupRule {
+		dev, err := parseLinuxResourcesDeviceAccess(rule)
+		if err != nil {
+			return err
+		}
+		s.DeviceCGroupRule = append(s.DeviceCGroupRule, dev)
+	}
+
 	s.Init = c.Init
 	s.InitPath = c.InitPath
 	s.Stdin = c.Interactive
@@ -884,4 +892,59 @@ func parseSecrets(secrets []string) ([]specgen.Secret, map[string]string, error)
 		}
 	}
 	return mount, envs, nil
+}
+
+var cgroupDeviceType = map[string]bool{
+	"a": true, // all
+	"b": true, // block device
+	"c": true, // character device
+}
+
+var cgroupDeviceAccess = map[string]bool{
+	"r": true, //read
+	"w": true, //write
+	"m": true, //mknod
+}
+
+// parseLinuxResourcesDeviceAccess parses the raw string passed with the --device-access-add flag
+func parseLinuxResourcesDeviceAccess(device string) (specs.LinuxDeviceCgroup, error) {
+	var devType, access string
+	var major, minor *int64
+
+	value := strings.Split(device, " ")
+	if len(value) != 3 {
+		return specs.LinuxDeviceCgroup{}, fmt.Errorf("invalid device cgroup rule requires type, major:Minor, and access rules: %q", device)
+	}
+
+	devType = value[0]
+	if !cgroupDeviceType[devType] {
+		return specs.LinuxDeviceCgroup{}, fmt.Errorf("invalid device type in device-access-add: %s", devType)
+	}
+
+	number := strings.SplitN(value[1], ":", 2)
+	i, err := strconv.ParseInt(number[0], 10, 64)
+	if err != nil {
+		return specs.LinuxDeviceCgroup{}, err
+	}
+	major = &i
+	if len(number) == 2 && number[1] != "*" {
+		i, err := strconv.ParseInt(number[1], 10, 64)
+		if err != nil {
+			return specs.LinuxDeviceCgroup{}, err
+		}
+		minor = &i
+	}
+	access = value[2]
+	for _, c := range strings.Split(access, "") {
+		if !cgroupDeviceAccess[c] {
+			return specs.LinuxDeviceCgroup{}, fmt.Errorf("invalid device access in device-access-add: %s", c)
+		}
+	}
+	return specs.LinuxDeviceCgroup{
+		Allow:  true,
+		Type:   devType,
+		Major:  major,
+		Minor:  minor,
+		Access: access,
+	}, nil
 }

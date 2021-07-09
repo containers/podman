@@ -321,6 +321,10 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		}
 	}
 
+	for _, dev := range s.DeviceCGroupRule {
+		g.AddLinuxResourcesDevice(true, dev.Type, dev.Major, dev.Minor, dev.Access)
+	}
+
 	BlockAccessToKernelFilesystems(s.Privileged, s.PidNS.IsHost(), s.Mask, s.Unmask, &g)
 
 	for name, val := range s.Env {
