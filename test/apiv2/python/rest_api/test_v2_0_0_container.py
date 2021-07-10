@@ -1,5 +1,6 @@
 import random
 import unittest
+import json
 
 import requests
 from dateutil.parser import parse
@@ -96,6 +97,18 @@ class ContainerTestCase(APITestCase):
 
     def test_logs(self):
         r = requests.get(self.uri(self.resolve_container("/containers/{}/logs?stdout=true")))
+        self.assertEqual(r.status_code, 200, r.text)
+        r = requests.post(
+            self.podman_url + "/v1.40/containers/create?name=topcontainer",
+            json={"Cmd": ["top", "ls"], "Image": "alpine:latest"},
+        )
+        self.assertEqual(r.status_code, 201, r.text)
+        payload = r.json()
+        container_id = payload["Id"]
+        self.assertIsNotNone(container_id)
+        r = requests.get(self.podman_url + f"/v1.40/containers/{payload['Id']}/logs?follow=false&stdout=true&until=0")
+        self.assertEqual(r.status_code, 200, r.text)
+        r = requests.get(self.podman_url + f"/v1.40/containers/{payload['Id']}/logs?follow=false&stdout=true&until=1")
         self.assertEqual(r.status_code, 200, r.text)
 
     def test_commit(self):

@@ -34,6 +34,7 @@ type LogOptions struct {
 	Details    bool
 	Follow     bool
 	Since      time.Time
+	Until      time.Time
 	Tail       int64
 	Timestamps bool
 	Multi      bool
@@ -184,7 +185,12 @@ func (l *LogLine) String(options *LogOptions) string {
 
 // Since returns a bool as to whether a log line occurred after a given time
 func (l *LogLine) Since(since time.Time) bool {
-	return l.Time.After(since)
+	return l.Time.After(since) || since.IsZero()
+}
+
+// Until returns a bool as to whether a log line occurred before a given time
+func (l *LogLine) Until(until time.Time) bool {
+	return l.Time.Before(until) || until.IsZero()
 }
 
 // NewLogLine creates a logLine struct from a container log string

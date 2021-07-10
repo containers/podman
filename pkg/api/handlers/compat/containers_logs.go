@@ -72,11 +72,12 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 
 	var until time.Time
 	if _, found := r.URL.Query()["until"]; found {
-		// FIXME: until != since but the logs backend does not yet support until.
-		since, err = util.ParseInputTime(query.Until)
-		if err != nil {
-			utils.BadRequest(w, "until", query.Until, err)
-			return
+		if query.Until != "0" {
+			until, err = util.ParseInputTime(query.Until)
+			if err != nil {
+				utils.BadRequest(w, "until", query.Until, err)
+				return
+			}
 		}
 	}
 
@@ -84,6 +85,7 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 		Details:    true,
 		Follow:     query.Follow,
 		Since:      since,
+		Until:      until,
 		Tail:       tail,
 		Timestamps: query.Timestamps,
 	}
@@ -119,7 +121,7 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 
 	for line := range logChannel {
 		if _, found := r.URL.Query()["until"]; found {
-			if line.Time.After(until) {
+			if line.Time.After(until) && !until.IsZero() {
 				break
 			}
 		}
