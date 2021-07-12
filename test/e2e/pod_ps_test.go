@@ -370,4 +370,12 @@ var _ = Describe("Podman ps", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("value1"))
 	})
+
+	It("podman pod ps headers", func() {
+		session := podmanTest.Podman([]string{"pod", "ps", "--ctr-ids", "--ctr-names", "--ctr-status", "--ns"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(MatchRegexp(`^POD ID\s+NAME\s+STATUS\s+CREATED\s+INFRA ID\s+IDS\s+NAMES\s+STATUS\s+CGROUP\s+NAMESPACES$`))
+	})
+
 })
