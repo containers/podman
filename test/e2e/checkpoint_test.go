@@ -1,11 +1,13 @@
 package integration
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"os/exec"
 	"strings"
 
+	"github.com/containers/podman/v3/pkg/checkpoint/crutils"
 	"github.com/containers/podman/v3/pkg/criu"
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -977,4 +979,164 @@ var _ = Describe("Podman checkpoint", func() {
 		// Remove exported checkpoint
 		os.Remove(fileName)
 	})
+
+	namespaceCombination := []string{
+		"cgroup,ipc,net,uts,pid",
+		"cgroup,ipc,net,uts",
+		"cgroup,ipc,net",
+		"cgroup,ipc",
+		"ipc,net,uts,pid",
+		"ipc,net,uts",
+		"ipc,net",
+		"net,uts,pid",
+		"net,uts",
+		"uts,pid",
+	}
+	for _, share := range namespaceCombination {
+		testName := fmt.Sprintf(
+			"podman checkpoint and restore container out of and into pod (%s)",
+			share,
+		)
+		It(testName, func() {
+			if !criu.CheckForCriu(criu.PodCriuVersion) {
+				Skip("CRIU is missing or too old.")
+			}
+			if !crutils.CRRuntimeSupportsPodCheckpointRestore(podmanTest.OCIRuntime) {
+				Skip("runtime does not support pod restore")
+			}
+			// Create a pod
+			session := podmanTest.Podman([]string{
+				"pod",
+				"create",
+				"--share",
+				share,
+			})
+			session.WaitWithDefaultTimeout()
+			Expect(session).To(Exit(0))
+			podID := session.OutputToString()
+
+			session = podmanTest.Podman([]string{
+				"run",
+				"-d",
+				"--rm",
+				"--pod",
+				podID,
+				ALPINE,
+				"top",
+			})
+			session.WaitWithDefaultTimeout()
+			Expect(session).To(Exit(0))
+			cid := session.OutputToString()
+
+			fileName := "/tmp/checkpoint-" + cid + ".tar.gz"
+
+			// Checkpoint the container
+			result := podmanTest.Podman([]string{
+				"container",
+				"checkpoint",
+				"-e",
+				fileName,
+				cid,
+			})
+			result.WaitWithDefaultTimeout()
+
+			// As the container has been started with '--rm' it will be completely
+			// cleaned up after checkpointing.
+			Expect(result).To(Exit(0))
+			Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+			Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+			// Remove the pod and create a new pod
+			result = podmanTest.Podman([]string{
+				"pod",
+				"rm",
+				podID,
+			})
+			result.WaitWithDefaultTimeout()
+			Expect(result).To(Exit(0))
+
+			// First create a pod with different shared namespaces.
+			// Restore should fail
+
+			wrongShare := share[:strings.LastIndex(share, ",")]
+
+			session = podmanTest.Podman([]string{
+				"pod",
+				"create",
+				"--share",
+				wrongShare,
+			})
+			session.WaitWithDefaultTimeout()
+			Expect(session).To(Exit(0))
+			podID = session.OutputToString()
+
+			// Restore container with different port mapping
+			result = podmanTest.Podman([]string{
+				"container",
+				"restore",
+				"--pod",
+				podID,
+				"-i",
+				fileName,
+			})
+			result.WaitWithDefaultTimeout()
+			Expect(result).To(Exit(125))
+			Expect(result.ErrorToString()).To(ContainSubstring("does not share the"))
+
+			// Remove the pod and create a new pod
+			result = podmanTest.Podman([]string{
+				"pod",
+				"rm",
+				podID,
+			})
+			result.WaitWithDefaultTimeout()
+			Expect(result).To(Exit(0))
+
+			session = podmanTest.Podman([]string{
+				"pod",
+				"create",
+				"--share",
+				share,
+			})
+			session.WaitWithDefaultTimeout()
+			Expect(session).To(Exit(0))
+			podID = session.OutputToString()
+
+			// Restore container with different port mapping
+			result = podmanTest.Podman([]string{
+				"container",
+				"restore",
+				"--pod",
+				podID,
+				"-i",
+				fileName,
+			})
+			result.WaitWithDefaultTimeout()
+
+			Expect(result).To(Exit(0))
+			Expect(podmanTest.NumberOfContainersRunning()).To(Equal(2))
+			Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
+
+			result = podmanTest.Podman([]string{
+				"rm",
+				"-f",
+				result.OutputToString(),
+			})
+			result.WaitWithDefaultTimeout()
+			Expect(result).To(Exit(0))
+			Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+			Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+			result = podmanTest.Podman([]string{
+				"pod",
+				"rm",
+				"-fa",
+			})
+			result.WaitWithDefaultTimeout()
+			Expect(result).To(Exit(0))
+
+			// Remove exported checkpoint
+			os.Remove(fileName)
+		})
+	}
 })
