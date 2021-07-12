@@ -5,7 +5,7 @@ module github.com/containers/storage
 require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/Microsoft/go-winio v0.5.0
-	github.com/Microsoft/hcsshim v0.8.17
+	github.com/Microsoft/hcsshim v0.8.20
 	github.com/docker/go-units v0.4.0
 	github.com/google/go-intervals v0.0.2
 	github.com/hashicorp/go-multierror v1.1.1
