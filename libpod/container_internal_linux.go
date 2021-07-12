@@ -2490,6 +2490,11 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 		// https://github.com/containers/podman/issues/10188
 		st, err := os.Lstat(filepath.Join(c.state.Mountpoint, v.Dest))
 		if err == nil {
+			if stat, ok := st.Sys().(*syscall.Stat_t); ok {
+				if err := os.Lchown(mountPoint, int(stat.Uid), int(stat.Gid)); err != nil {
+					return err
+				}
+			}
 			if err := os.Chmod(mountPoint, st.Mode()|0111); err != nil {
 				return err
 			}
