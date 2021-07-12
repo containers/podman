@@ -50,6 +50,12 @@ var _ = Describe("Podman manifest", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
+	It("podman manifest create", func() {
+		session := podmanTest.Podman([]string{"manifest", "create", "foo", imageList})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	It("podman manifest inspect", func() {
 		session := podmanTest.Podman([]string{"manifest", "inspect", BB})
 		session.WaitWithDefaultTimeout()
