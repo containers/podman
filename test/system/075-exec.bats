@@ -59,8 +59,6 @@ load helpers
 # Issue #4785 - piping to exec statement - fixed in #4818
 # Issue #5046 - piping to exec truncates results (actually a conmon issue)
 @test "podman exec - cat from stdin" {
-    skip_if_remote "FIXME: pending #7360"
-
     run_podman run -d $IMAGE sh -c 'while [ ! -e /stop ]; do sleep 0.1;done'
     cid="$output"
 
