@@ -2,7 +2,6 @@ package types
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -272,19 +271,19 @@ func ReloadConfigurationFileIfNeeded(configFile string, storeOptions *StoreOptio
 // ReloadConfigurationFile parses the specified configuration file and overrides
 // the configuration in storeOptions.
 func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
-	data, err := ioutil.ReadFile(configFile)
-	if err != nil {
+	config := new(tomlConfig)
+
+	meta, err := toml.DecodeFile(configFile, &config)
+	if err == nil {
+		keys := meta.Undecoded()
+		if len(keys) > 0 {
+			logrus.Warningf("Failed to decode the keys %q from %q.", keys, configFile)
+		}
+	} else {
 		if !os.IsNotExist(err) {
 			fmt.Printf("Failed to read %s %v\n", configFile, err.Error())
 			return
 		}
-	}
-
-	config := new(tomlConfig)
-
-	if _, err := toml.Decode(string(data), config); err != nil {
-		fmt.Printf("Failed to parse %s %v\n", configFile, err.Error())
-		return
 	}
 
 	// Clear storeOptions of previos settings
