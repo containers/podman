@@ -7,6 +7,7 @@ from typing import IO, Optional
 
 from docker import DockerClient, errors
 from docker.models.containers import Container
+from docker.models.images import Image
 
 from test.python.docker import Podman
 from test.python.docker.compat import common, constant
@@ -237,3 +238,16 @@ class TestContainers(unittest.TestCase):
             if ctr is not None:
                 ctr.stop()
                 ctr.remove()
+
+    def test_mount_preexisting_dir(self):
+        dockerfile = (B'FROM quay.io/libpod/alpine:latest\n'
+                      B'USER root\n'
+                      B'RUN mkdir -p /workspace\n'
+                      B'RUN chown 1042:1043 /workspace')
+        img: Image
+        img, out = self.client.images.build(fileobj=io.BytesIO(dockerfile))
+        ctr: Container = self.client.containers.create(image=img.id, detach=True, command="top",
+                                                       volumes=["test_mount_preexisting_dir_vol:/workspace"])
+        ctr.start()
+        ret, out = ctr.exec_run(["stat", "-c", "%u:%g", "/workspace"])
+        self.assertTrue(out.startswith(b'1042:1043'), "assert correct uid/gid")
