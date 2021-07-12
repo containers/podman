@@ -1064,6 +1064,30 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		if restoreOptions.TCPEstablished {
 			args = append(args, "--runtime-opt", "--tcp-established")
 		}
+		if restoreOptions.Pod != "" {
+			mountLabel := ctr.config.MountLabel
+			processLabel := ctr.config.ProcessLabel
+			if mountLabel != "" {
+				args = append(
+					args,
+					"--runtime-opt",
+					fmt.Sprintf(
+						"--lsm-mount-context=%s",
+						mountLabel,
+					),
+				)
+			}
+			if processLabel != "" {
+				args = append(
+					args,
+					"--runtime-opt",
+					fmt.Sprintf(
+						"--lsm-profile=selinux:%s",
+						processLabel,
+					),
+				)
+			}
+		}
 	}
 
 	logrus.WithFields(logrus.Fields{

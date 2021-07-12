@@ -780,6 +780,16 @@ type ContainerCheckpointOptions struct {
 	// Compression tells the API which compression to use for
 	// the exported checkpoint archive.
 	Compression archive.Compression
+	// If Pod is set the container should be restored into the
+	// given Pod. If Pod is empty it is a restore without a Pod.
+	// Restoring a non Pod container into a Pod or a Pod container
+	// without a Pod is theoretically possible, but will
+	// probably not work if a PID namespace is shared.
+	// A shared PID namespace means that a Pod container has PID 1
+	// in the infrastructure container, but without the infrastructure
+	// container no PID 1 will be in the namespace and that is not
+	// possible.
+	Pod string
 }
 
 // Checkpoint checkpoints a container
@@ -811,7 +821,11 @@ func (c *Container) Checkpoint(ctx context.Context, options ContainerCheckpointO
 
 // Restore restores a container
 func (c *Container) Restore(ctx context.Context, options ContainerCheckpointOptions) error {
-	logrus.Debugf("Trying to restore container %s", c.ID())
+	if options.Pod == "" {
+		logrus.Debugf("Trying to restore container %s", c.ID())
+	} else {
+		logrus.Debugf("Trying to restore container %s into pod %s", c.ID(), options.Pod)
+	}
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()

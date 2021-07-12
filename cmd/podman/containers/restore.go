@@ -71,6 +71,9 @@ func init() {
 	)
 	_ = restoreCommand.RegisterFlagCompletionFunc("publish", completion.AutocompleteNone)
 
+	flags.StringVar(&restoreOptions.Pod, "pod", "", "Restore container into existing Pod (only works with --import)")
+	_ = restoreCommand.RegisterFlagCompletionFunc("pod", common.AutocompletePodsRunning)
+
 	validate.AddLatestFlag(restoreCommand, &restoreOptions.Latest)
 }
 
@@ -90,6 +93,9 @@ func restore(cmd *cobra.Command, args []string) error {
 	}
 	if restoreOptions.Import == "" && restoreOptions.Name != "" {
 		return errors.Errorf("--name can only be used with --import")
+	}
+	if restoreOptions.Import == "" && restoreOptions.Pod != "" {
+		return errors.Errorf("--pod can only be used with --import")
 	}
 	if restoreOptions.Name != "" && restoreOptions.TCPEstablished {
 		return errors.Errorf("--tcp-established cannot be used with --name")

@@ -1,6 +1,7 @@
 package crutils
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"os/exec"
@@ -188,4 +189,14 @@ func CRRuntimeSupportsCheckpointRestore(runtimePath string) bool {
 		return true
 	}
 	return false
+}
+
+// CRRuntimeSupportsCheckpointRestore tests if the runtime at 'runtimePath'
+// supports restoring into existing Pods. The runtime needs to support
+// the CRIU option --lsm-mount-context and the existence of this is checked
+// by this function. In addition it is necessary to at least have CRIU 3.16.
+func CRRuntimeSupportsPodCheckpointRestore(runtimePath string) bool {
+	cmd := exec.Command(runtimePath, "restore", "--lsm-mount-context")
+	out, _ := cmd.CombinedOutput()
+	return bytes.Contains(out, []byte("flag needs an argument"))
 }
