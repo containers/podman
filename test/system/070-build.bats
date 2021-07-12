@@ -509,6 +509,40 @@ EOF
     done
 }
 
+# Regression test for #9867
+# Make sure that if you exclude everything in context dir, that
+# the Containerfile/Dockerfile in the context dir are used
+@test "podman build with ignore '*'" {
+    local tmpdir=$PODMAN_TMPDIR/build-test-$(random_string 10)
+    mkdir -p $tmpdir
+
+    cat >$tmpdir/Containerfile <<EOF
+FROM scratch
+EOF
+
+cat >$tmpdir/.dockerignore <<EOF
+*
+EOF
+
+    run_podman build -t build_test $tmpdir
+
+    # Rename Containerfile to Dockerfile
+    mv $tmpdir/Containerfile $tmpdir/Dockerfile
+
+    run_podman build -t build_test $tmpdir
+
+    # Rename Dockerfile to foofile
+    mv $tmpdir/Dockerfile $tmpdir/foofile
+
+    run_podman 125 build -t build_test $tmpdir
+    is "$output" ".*Dockerfile: no such file or directory"
+
+    run_podman build -t build_test -f $tmpdir/foofile $tmpdir
+
+    # Clean up
+    run_podman rmi -f build_test
+}
+
 @test "podman build - stdin test" {
     # Random workdir, and random string to verify build output
     workdir=/$(random_string 10)
