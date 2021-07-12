@@ -6,10 +6,12 @@
 name: check_cirrus_cron
 
 on:
-    # Note: This only applies to the master branch.
+    # Note: This only applies to the main branch.
     schedule:
-        # Assume cirrus cron jobs runs at least once per day
-        - cron:  '59 23 * * *'
+        # N/B: This should correspond to a period slightly after
+        # the last job finishes running.  See job defs. at:
+        # https://cirrus-ci.com/settings/repository/6707778565701632
+        - cron:  '59 23 * * 1-5'
     # Debug: Allow triggering job manually in github-actions WebUI
     workflow_dispatch: {}
 
@@ -30,7 +32,6 @@ jobs:
         steps:
             - uses: actions/checkout@v2
               with:
-                  ref: master
                   persist-credentials: false
 
             - name: Get failed cron names and Build IDs
