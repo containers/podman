@@ -142,4 +142,18 @@ t GET networks?filters='{"label":["zaq"]}' 200 length=1
 t POST networks/prune?filters='{"until":["5000000000"]}' 200
 t GET networks?filters='{"label":["zaq"]}' 200 length=0
 
+# test macvlan network response
+podman network create --driver macvlan macvlan1
+
+# libpod api inspect the macvlan network
+t GET libpod/networks/macvlan1/json 200 .name="macvlan1"
+
+# compat api inspect the macvlan network
+t GET networks/macvlan1 200 .Name="macvlan1"
+
+# clean the macvlan network
+t DELETE libpod/networks/macvlan1 200 \
+  .[0].Name~macvlan1 \
+  .[0].Err=null
+
 # vim: filetype=sh

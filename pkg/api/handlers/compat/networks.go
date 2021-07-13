@@ -25,6 +25,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type pluginInterface struct {
+	PluginType string             `json:"type"`
+	IPAM       network.IPAMConfig `json:"ipam"`
+	IsGW       bool               `json:"isGateway"`
+}
+
 func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
@@ -103,12 +109,12 @@ func getNetworkResourceByNameOrID(nameOrID string, runtime *libpod.Runtime, filt
 		}
 	}
 
-	// No Bridge plugin means we bail
-	bridge, err := genericPluginsToBridge(conf.Plugins, network.DefaultNetworkDriver)
+	plugin, err := getPlugin(conf.Plugins)
 	if err != nil {
 		return nil, err
 	}
-	for _, outer := range bridge.IPAM.Ranges {
+
+	for _, outer := range plugin.IPAM.Ranges {
 		for _, n := range outer {
 			ipamConfig := dockerNetwork.IPAMConfig{
 				Subnet:  n.Subnet,
@@ -140,19 +146,26 @@ func getNetworkResourceByNameOrID(nameOrID string, runtime *libpod.Runtime, filt
 		labels = map[string]string{}
 	}
 
+	isInternal := false
+	dockerDriver := plugin.PluginType
+	if plugin.PluginType == network.DefaultNetworkDriver {
+		isInternal = !plugin.IsGW
+		dockerDriver = "default"
+	}
+
 	report := types.NetworkResource{
 		Name:       conf.Name,
 		ID:         networkid.GetNetworkID(conf.Name),
 		Created:    time.Unix(int64(stat.Ctim.Sec), int64(stat.Ctim.Nsec)), // nolint: unconvert
 		Scope:      "local",
-		Driver:     network.DefaultNetworkDriver,
+		Driver:     plugin.PluginType,
 		EnableIPv6: false,
 		IPAM: dockerNetwork.IPAM{
-			Driver:  "default",
+			Driver:  dockerDriver,
 			Options: map[string]string{},
 			Config:  ipamConfigs,
 		},
-		Internal:   !bridge.IsGW,
+		Internal:   isInternal,
 		Attachable: false,
 		Ingress:    false,
 		ConfigFrom: dockerNetwork.ConfigReference{},
@@ -166,23 +179,19 @@ func getNetworkResourceByNameOrID(nameOrID string, runtime *libpod.Runtime, filt
 	return &report, nil
 }
 
-func genericPluginsToBridge(plugins []*libcni.NetworkConfig, pluginType string) (network.HostLocalBridge, error) {
-	var bridge network.HostLocalBridge
-	generic, err := findPluginByName(plugins, pluginType)
-	if err != nil {
-		return bridge, err
-	}
-	err = json.Unmarshal(generic, &bridge)
-	return bridge, err
-}
+func getPlugin(plugins []*libcni.NetworkConfig) (pluginInterface, error) {
+	var plugin pluginInterface
 
-func findPluginByName(plugins []*libcni.NetworkConfig, pluginType string) ([]byte, error) {
 	for _, p := range plugins {
-		if pluginType == p.Network.Type {
-			return p.Bytes, nil
+		for _, pluginType := range network.SupportedNetworkDrivers {
+			if pluginType == p.Network.Type {
+				err := json.Unmarshal(p.Bytes, &plugin)
+				return plugin, err
+			}
 		}
 	}
-	return nil, errors.New("unable to find bridge plugin")
+
+	return plugin, errors.New("unable to find supported plugin")
 }
 
 func ListNetworks(w http.ResponseWriter, r *http.Request) {
