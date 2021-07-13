@@ -237,6 +237,18 @@ type ContainerImageVolume struct {
 	ReadWrite bool `json:"rw"`
 }
 
+// ContainerSecret is a secret that is mounted in a container
+type ContainerSecret struct {
+	// Secret is the secret
+	*secrets.Secret
+	// UID is tbe UID of the secret file
+	UID uint32
+	// GID is the GID of the secret file
+	GID uint32
+	// Mode is the mode of the secret file
+	Mode uint32
+}
+
 // ContainerNetworkDescriptions describes the relationship between the CNI
 // network and the ethN where N is an integer
 type ContainerNetworkDescriptions map[string]int
@@ -1136,7 +1148,7 @@ func (c *Container) Umask() string {
 }
 
 //Secrets return the secrets in the container
-func (c *Container) Secrets() []*secrets.Secret {
+func (c *Container) Secrets() []*ContainerSecret {
 	return c.config.Secrets
 }
 

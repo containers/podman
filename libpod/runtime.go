@@ -18,6 +18,7 @@ import (
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/types"
@@ -106,6 +107,8 @@ type Runtime struct {
 
 	// noStore indicates whether we need to interact with a store or not
 	noStore bool
+	// secretsManager manages secrets
+	secretsManager *secrets.SecretsManager
 }
 
 // SetXdgDirs ensures the XDG_RUNTIME_DIR env and XDG_CONFIG_HOME variables are set.
@@ -1089,6 +1092,18 @@ func (r *Runtime) getVolumePlugin(name string) (*plugin.VolumePlugin, error) {
 // GetSecretsStoreageDir returns the directory that the secrets manager should take
 func (r *Runtime) GetSecretsStorageDir() string {
 	return filepath.Join(r.store.GraphRoot(), "secrets")
+}
+
+// SecretsManager returns the directory that the secrets manager should take
+func (r *Runtime) SecretsManager() (*secrets.SecretsManager, error) {
+	if r.secretsManager == nil {
+		manager, err := secrets.NewManager(r.GetSecretsStorageDir())
+		if err != nil {
+			return nil, err
+		}
+		r.secretsManager = manager
+	}
+	return r.secretsManager, nil
 }
 
 func graphRootMounted() bool {

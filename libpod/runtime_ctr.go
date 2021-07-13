@@ -366,7 +366,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		return nil, err
 	}
 	for _, secr := range ctr.config.Secrets {
-		err = ctr.extractSecretToCtrStorage(secr.Name)
+		err = ctr.extractSecretToCtrStorage(secr)
 		if err != nil {
 			return nil, err
 		}

@@ -1712,23 +1712,12 @@ func WithUmask(umask string) CtrCreateOption {
 }
 
 // WithSecrets adds secrets to the container
-func WithSecrets(secretNames []string) CtrCreateOption {
+func WithSecrets(containerSecrets []*ContainerSecret) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
 		}
-		manager, err := secrets.NewManager(ctr.runtime.GetSecretsStorageDir())
-		if err != nil {
-			return err
-		}
-		for _, name := range secretNames {
-			secr, err := manager.Lookup(name)
-			if err != nil {
-				return err
-			}
-			ctr.config.Secrets = append(ctr.config.Secrets, secr)
-		}
-
+		ctr.config.Secrets = containerSecrets
 		return nil
 	}
 }
@@ -1740,7 +1729,7 @@ func WithEnvSecrets(envSecrets map[string]string) CtrCreateOption {
 		if ctr.valid {
 			return define.ErrCtrFinalized
 		}
-		manager, err := secrets.NewManager(ctr.runtime.GetSecretsStorageDir())
+		manager, err := ctr.runtime.SecretsManager()
 		if err != nil {
 			return err
 		}

@@ -15,7 +15,7 @@ import (
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/containers/buildah/copier"
-	"github.com/containers/common/pkg/secrets"
+	butil "github.com/containers/buildah/util"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/pkg/cgroups"
@@ -24,6 +24,7 @@ import (
 	"github.com/containers/podman/v3/pkg/hooks/exec"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/selinux"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
@@ -2188,20 +2189,30 @@ func (c *Container) hasNamespace(namespace spec.LinuxNamespaceType) bool {
 }
 
 // extractSecretToStorage copies a secret's data from the secrets manager to the container's static dir
-func (c *Container) extractSecretToCtrStorage(name string) error {
-	manager, err := secrets.NewManager(c.runtime.GetSecretsStorageDir())
+func (c *Container) extractSecretToCtrStorage(secr *ContainerSecret) error {
+	manager, err := c.runtime.SecretsManager()
 	if err != nil {
 		return err
 	}
-	secr, data, err := manager.LookupSecretData(name)
+	_, data, err := manager.LookupSecretData(secr.Name)
 	if err != nil {
 		return err
 	}
 	secretFile := filepath.Join(c.config.SecretsPath, secr.Name)
 
+	hostUID, hostGID, err := butil.GetHostIDs(util.IDtoolsToRuntimeSpec(c.config.IDMappings.UIDMap), util.IDtoolsToRuntimeSpec(c.config.IDMappings.GIDMap), secr.UID, secr.GID)
+	if err != nil {
+		return errors.Wrap(err, "unable to extract secret")
+	}
 	err = ioutil.WriteFile(secretFile, data, 0644)
 	if err != nil {
 		return errors.Wrapf(err, "unable to create %s", secretFile)
+	}
+	if err := os.Lchown(secretFile, int(hostUID), int(hostGID)); err != nil {
+		return err
+	}
+	if err := os.Chmod(secretFile, os.FileMode(secr.Mode)); err != nil {
+		return err
 	}
 	if err := label.Relabel(secretFile, c.config.MountLabel, false); err != nil {
 		return err
