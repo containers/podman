@@ -121,8 +121,10 @@ function _confirm_update() {
     generate_service alpine image
 
     _wait_service_ready container-$cname.service
-    run_podman auto-update
+    run_podman auto-update --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
     is "$output" "Trying to pull.*" "Image is updated."
+    is "$output" ".*container-$cname.service,quay.io/libpod/alpine:latest,true,registry.*" "Image is updated."
+
     _confirm_update $cname $ori_image
 }
 
@@ -151,10 +153,15 @@ function _confirm_update() {
 
 @test "podman auto-update - label io.containers.autoupdate=local" {
     generate_service localtest local
-    podman commit --change CMD=/bin/bash $cname quay.io/libpod/localtest:latest
+    image=quay.io/libpod/localtest:latest
+    podman commit --change CMD=/bin/bash $cname $image
+    podman image inspect --format "{{.ID}}" $image
+    imageID="$output"
 
     _wait_service_ready container-$cname.service
-    run_podman auto-update
+    run_podman auto-update --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
+    is "$output" ".*container-$cname.service,quay.io/libpod/localtest:latest,true,local.*" "Image is updated."
+
     _confirm_update $cname $ori_image
 }
 

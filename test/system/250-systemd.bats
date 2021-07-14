@@ -119,7 +119,7 @@ function service_cleanup() {
     # Run auto-update and check that it restarted the container
     run_podman commit --change "CMD=/bin/bash" $cname $IMAGE
     run_podman auto-update
-    is $output $SERVICE_NAME "autoupdate local restarted container"
+    is "$output" ".*$SERVICE_NAME.*" "autoupdate local restarted container"
 
     # All good. Stop service, clean up.
     service_cleanup
