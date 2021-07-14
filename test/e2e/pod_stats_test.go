@@ -40,13 +40,13 @@ var _ = Describe("Podman pod stats", func() {
 	It("podman stats should run with no pods", func() {
 		session := podmanTest.Podman([]string{"pod", "stats", "--no-stream"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 	})
 
 	It("podman stats with a bogus pod", func() {
 		session := podmanTest.Podman([]string{"pod", "stats", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session).Should(Exit(125))
 	})
 
 	It("podman stats on a specific running pod", func() {
@@ -55,15 +55,15 @@ var _ = Describe("Podman pod stats", func() {
 
 		session := podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		stats := podmanTest.Podman([]string{"pod", "stats", "--no-stream", podid})
 		stats.WaitWithDefaultTimeout()
-		Expect(stats.ExitCode()).To(Equal(0))
+		Expect(stats).Should(Exit(0))
 	})
 
 	It("podman stats on a specific running pod with shortID", func() {
@@ -72,15 +72,15 @@ var _ = Describe("Podman pod stats", func() {
 
 		session := podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		stats := podmanTest.Podman([]string{"pod", "stats", "--no-stream", podid[:5]})
 		stats.WaitWithDefaultTimeout()
-		Expect(stats.ExitCode()).To(Equal(0))
+		Expect(stats).Should(Exit(0))
 	})
 
 	It("podman stats on a specific running pod with name", func() {
@@ -89,15 +89,15 @@ var _ = Describe("Podman pod stats", func() {
 
 		session := podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		stats := podmanTest.Podman([]string{"pod", "stats", "--no-stream", "test"})
 		stats.WaitWithDefaultTimeout()
-		Expect(stats.ExitCode()).To(Equal(0))
+		Expect(stats).Should(Exit(0))
 	})
 
 	It("podman stats on running pods", func() {
@@ -106,15 +106,15 @@ var _ = Describe("Podman pod stats", func() {
 
 		session := podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		stats := podmanTest.Podman([]string{"pod", "stats", "--no-stream"})
 		stats.WaitWithDefaultTimeout()
-		Expect(stats.ExitCode()).To(Equal(0))
+		Expect(stats).Should(Exit(0))
 	})
 
 	It("podman stats on all pods", func() {
@@ -123,15 +123,15 @@ var _ = Describe("Podman pod stats", func() {
 
 		session := podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		stats := podmanTest.Podman([]string{"pod", "stats", "--no-stream", "-a"})
 		stats.WaitWithDefaultTimeout()
-		Expect(stats.ExitCode()).To(Equal(0))
+		Expect(stats).Should(Exit(0))
 	})
 
 	It("podman stats with json output", func() {
@@ -140,15 +140,15 @@ var _ = Describe("Podman pod stats", func() {
 
 		session := podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		stats := podmanTest.Podman([]string{"pod", "stats", "--format", "json", "--no-stream", "-a"})
 		stats.WaitWithDefaultTimeout()
-		Expect(stats.ExitCode()).To(Equal(0))
+		Expect(stats).Should(Exit(0))
 		Expect(stats.IsJSONOutputValid()).To(BeTrue())
 	})
 	It("podman stats with GO template", func() {
@@ -157,7 +157,7 @@ var _ = Describe("Podman pod stats", func() {
 
 		session := podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		stats := podmanTest.Podman([]string{"pod", "stats", "-a", "--no-reset", "--no-stream", "--format", "table {{.CID}} {{.Pod}} {{.Mem}} {{.MemUsage}} {{.CPU}} {{.NetIO}} {{.BlockIO}} {{.PIDS}} {{.Pod}}"})
 		stats.WaitWithDefaultTimeout()
 		Expect(stats).To(Exit(0))
@@ -169,7 +169,7 @@ var _ = Describe("Podman pod stats", func() {
 
 		session := podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		stats := podmanTest.Podman([]string{"pod", "stats", "-a", "--no-reset", "--no-stream", "--format", "\"table {{.ID}} \""})
 		stats.WaitWithDefaultTimeout()
 		Expect(stats).To(ExitWithError())
@@ -180,15 +180,15 @@ var _ = Describe("Podman pod stats", func() {
 		podName := "testPod"
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--net=host", "--name", podName})
 		podCreate.WaitWithDefaultTimeout()
-		Expect(podCreate.ExitCode()).To(Equal(0))
+		Expect(podCreate).Should(Exit(0))
 
 		ctrRun := podmanTest.Podman([]string{"run", "-d", "--pod", podName, ALPINE, "top"})
 		ctrRun.WaitWithDefaultTimeout()
-		Expect(ctrRun.ExitCode()).To(Equal(0))
+		Expect(ctrRun).Should(Exit(0))
 
 		stats := podmanTest.Podman([]string{"pod", "stats", "--format", "json", "--no-stream", podName})
 		stats.WaitWithDefaultTimeout()
-		Expect(stats.ExitCode()).To(Equal(0))
+		Expect(stats).Should(Exit(0))
 		Expect(stats.IsJSONOutputValid()).To(BeTrue())
 	})
 })

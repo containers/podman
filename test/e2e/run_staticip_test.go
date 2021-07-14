@@ -9,6 +9,7 @@ import (
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman run with --ip flag", func() {
@@ -60,7 +61,7 @@ var _ = Describe("Podman run with --ip flag", func() {
 		ip := GetRandomIPAddress()
 		result := podmanTest.Podman([]string{"run", "-ti", "--ip", ip, ALPINE, "ip", "addr"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 		Expect(result.OutputToString()).To(ContainSubstring(ip + "/16"))
 	})
 
@@ -68,7 +69,7 @@ var _ = Describe("Podman run with --ip flag", func() {
 		ip := GetRandomIPAddress()
 		result := podmanTest.Podman([]string{"run", "-dt", "--ip", ip, nginx})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 		for i := 0; i < 10; i++ {
 			fmt.Println("Waiting for nginx", err)
 			time.Sleep(1 * time.Second)

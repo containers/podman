@@ -6,6 +6,7 @@ import (
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman untag", func() {
@@ -39,25 +40,25 @@ var _ = Describe("Podman untag", func() {
 		cmd = append(cmd, tags...)
 		session := podmanTest.Podman(cmd)
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		// Make sure that all tags exists.
 		for _, t := range tags {
 			session = podmanTest.Podman([]string{"image", "exists", t})
 			session.WaitWithDefaultTimeout()
-			Expect(session.ExitCode()).To(Equal(0))
+			Expect(session).Should(Exit(0))
 		}
 
 		// No arguments -> remove all tags.
 		session = podmanTest.Podman([]string{"untag", cirros})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		// Make sure that none of tags exists anymore.
 		for _, t := range tags {
 			session = podmanTest.Podman([]string{"image", "exists", t})
 			session.WaitWithDefaultTimeout()
-			Expect(session.ExitCode()).To(Equal(1))
+			Expect(session).Should(Exit(1))
 		}
 	})
 
@@ -78,19 +79,19 @@ var _ = Describe("Podman untag", func() {
 		for _, tt := range tests {
 			session := podmanTest.Podman([]string{"tag", cirros, tt.tag})
 			session.WaitWithDefaultTimeout()
-			Expect(session.ExitCode()).To(Equal(0))
+			Expect(session).Should(Exit(0))
 
 			session = podmanTest.Podman([]string{"image", "exists", tt.normalized})
 			session.WaitWithDefaultTimeout()
-			Expect(session.ExitCode()).To(Equal(0))
+			Expect(session).Should(Exit(0))
 
 			session = podmanTest.Podman([]string{"untag", cirros, tt.tag})
 			session.WaitWithDefaultTimeout()
-			Expect(session.ExitCode()).To(Equal(0))
+			Expect(session).Should(Exit(0))
 
 			session = podmanTest.Podman([]string{"image", "exists", tt.normalized})
 			session.WaitWithDefaultTimeout()
-			Expect(session.ExitCode()).To(Equal(1))
+			Expect(session).Should(Exit(1))
 		}
 	})
 

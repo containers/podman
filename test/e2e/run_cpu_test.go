@@ -7,6 +7,7 @@ import (
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman run cpu", func() {
@@ -50,7 +51,7 @@ var _ = Describe("Podman run cpu", func() {
 			result = podmanTest.Podman([]string{"run", "--rm", "--cpu-period=5000", ALPINE, "cat", "/sys/fs/cgroup/cpu/cpu.cfs_period_us"})
 		}
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 		Expect(result.LineInOutputContains("5000")).To(BeTrue())
 	})
 
@@ -63,7 +64,7 @@ var _ = Describe("Podman run cpu", func() {
 			result = podmanTest.Podman([]string{"run", "--rm", "--cpu-quota=5000", ALPINE, "cat", "/sys/fs/cgroup/cpu/cpu.cfs_quota_us"})
 		}
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 		Expect(result.LineInOutputContains("5000")).To(BeTrue())
 	})
 
@@ -71,17 +72,17 @@ var _ = Describe("Podman run cpu", func() {
 		if CGROUPSV2 {
 			result := podmanTest.Podman([]string{"run", "--rm", "--cpu-quota=5000", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/cpu.max"})
 			result.WaitWithDefaultTimeout()
-			Expect(result.ExitCode()).To(Equal(0))
+			Expect(result).Should(Exit(0))
 			Expect(result.OutputToString()).To(Equal("5000 100000"))
 		} else {
 			result := podmanTest.Podman([]string{"run", "--rm", "--cpus=0.5", ALPINE, "cat", "/sys/fs/cgroup/cpu/cpu.cfs_period_us"})
 			result.WaitWithDefaultTimeout()
-			Expect(result.ExitCode()).To(Equal(0))
+			Expect(result).Should(Exit(0))
 			Expect(result.OutputToString()).To(Equal("100000"))
 
 			result = podmanTest.Podman([]string{"run", "--rm", "--cpus=0.5", ALPINE, "cat", "/sys/fs/cgroup/cpu/cpu.cfs_quota_us"})
 			result.WaitWithDefaultTimeout()
-			Expect(result.ExitCode()).To(Equal(0))
+			Expect(result).Should(Exit(0))
 			Expect(result.OutputToString()).To(Equal("50000"))
 		}
 	})
@@ -91,12 +92,12 @@ var _ = Describe("Podman run cpu", func() {
 			// [2-262144] is mapped to [1-10000]
 			result := podmanTest.Podman([]string{"run", "--rm", "--cpu-shares=262144", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/cpu.weight"})
 			result.WaitWithDefaultTimeout()
-			Expect(result.ExitCode()).To(Equal(0))
+			Expect(result).Should(Exit(0))
 			Expect(result.OutputToString()).To(Equal("10000"))
 		} else {
 			result := podmanTest.Podman([]string{"run", "--rm", "--cpu-shares=2", ALPINE, "cat", "/sys/fs/cgroup/cpu/cpu.shares"})
 			result.WaitWithDefaultTimeout()
-			Expect(result.ExitCode()).To(Equal(0))
+			Expect(result).Should(Exit(0))
 			Expect(result.OutputToString()).To(Equal("2"))
 		}
 	})
@@ -110,7 +111,7 @@ var _ = Describe("Podman run cpu", func() {
 			result = podmanTest.Podman([]string{"run", "--rm", "--cpuset-cpus=0", ALPINE, "cat", "/sys/fs/cgroup/cpuset/cpuset.cpus"})
 		}
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 		Expect(result.OutputToString()).To(Equal("0"))
 	})
 
@@ -123,7 +124,7 @@ var _ = Describe("Podman run cpu", func() {
 			result = podmanTest.Podman([]string{"run", "--rm", "--cpuset-mems=0", ALPINE, "cat", "/sys/fs/cgroup/cpuset/cpuset.mems"})
 		}
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 		Expect(result.OutputToString()).To(Equal("0"))
 	})
 

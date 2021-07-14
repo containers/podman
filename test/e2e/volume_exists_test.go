@@ -7,6 +7,7 @@ import (
 	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman volume exists", func() {
@@ -37,14 +38,14 @@ var _ = Describe("Podman volume exists", func() {
 		vol := "vol" + stringid.GenerateNonCryptoID()
 		session := podmanTest.Podman([]string{"volume", "create", vol})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(BeZero())
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"volume", "exists", vol})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"volume", "exists", stringid.GenerateNonCryptoID()})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(1))
+		Expect(session).Should(Exit(1))
 	})
 })

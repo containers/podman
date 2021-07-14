@@ -50,7 +50,7 @@ var _ = Describe("Podman image|container exists", func() {
 	It("podman container exists in local storage by name", func() {
 		setup := podmanTest.RunTopContainer("foobar")
 		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
+		Expect(setup).Should(Exit(0))
 
 		session := podmanTest.Podman([]string{"container", "exists", "foobar"})
 		session.WaitWithDefaultTimeout()
@@ -69,7 +69,7 @@ var _ = Describe("Podman image|container exists", func() {
 	It("podman container exists in local storage by short container ID", func() {
 		setup := podmanTest.RunTopContainer("")
 		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
+		Expect(setup).Should(Exit(0))
 		cid := setup.OutputToString()[0:12]
 
 		session := podmanTest.Podman([]string{"container", "exists", cid})

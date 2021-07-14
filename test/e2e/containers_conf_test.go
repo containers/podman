@@ -11,6 +11,7 @@ import (
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman run", func() {
@@ -47,12 +48,12 @@ var _ = Describe("Podman run", func() {
 		//containers.conf is set to "nofile=500:500"
 		session := podmanTest.Podman([]string{"run", "--rm", fedoraMinimal, "ulimit", "-n"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("500"))
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--ulimit", "nofile=2048:2048", fedoraMinimal, "ulimit", "-n"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("2048"))
 	})
 
@@ -60,7 +61,7 @@ var _ = Describe("Podman run", func() {
 		//containers.conf default env includes foo
 		session := podmanTest.Podman([]string{"run", ALPINE, "printenv"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("foo=bar"))
 	})
 
@@ -68,7 +69,7 @@ var _ = Describe("Podman run", func() {
 		//containers.conf devices includes notone
 		session := podmanTest.Podman([]string{"run", "--device", "/dev/null:/dev/bar", ALPINE, "ls", "/dev"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("bar"))
 		Expect(session.OutputToString()).To(ContainSubstring("notone"))
 	})
@@ -77,7 +78,7 @@ var _ = Describe("Podman run", func() {
 		//containers.conf default sets shm-size=201k, which ends up as 200k
 		session := podmanTest.Podman([]string{"run", ALPINE, "grep", "shm", "/proc/self/mounts"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("size=200k"))
 	})
 
@@ -85,7 +86,7 @@ var _ = Describe("Podman run", func() {
 		SkipIfRootlessCgroupsV1("Not supported for rootless + CGroupsV1")
 		cap := podmanTest.Podman([]string{"run", ALPINE, "grep", "CapEff", "/proc/self/status"})
 		cap.WaitWithDefaultTimeout()
-		Expect(cap.ExitCode()).To(Equal(0))
+		Expect(cap).Should(Exit(0))
 
 		os.Setenv("CONTAINERS_CONF", "config/containers-ns.conf")
 		if IsRemote() {
@@ -93,7 +94,7 @@ var _ = Describe("Podman run", func() {
 		}
 		session := podmanTest.Podman([]string{"run", BB, "grep", "CapEff", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).ToNot(Equal(cap.OutputToString()))
 	})
 
@@ -102,7 +103,7 @@ var _ = Describe("Podman run", func() {
 		setup.WaitWithDefaultTimeout()
 		result := podmanTest.Podman([]string{"top", "test1", "capeff"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 		Expect(result.OutputToString()).To(ContainSubstring("SYS_CHROOT"))
 		Expect(result.OutputToString()).To(ContainSubstring("NET_RAW"))
 	})
@@ -116,7 +117,7 @@ var _ = Describe("Podman run", func() {
 		setup.WaitWithDefaultTimeout()
 		result := podmanTest.Podman([]string{"container", "top", "test1", "capeff"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 		Expect(result.OutputToString()).ToNot(ContainSubstring("SYS_CHROOT"))
 		Expect(result.OutputToString()).ToNot(ContainSubstring("NET_RAW"))
 	})
@@ -130,7 +131,7 @@ var _ = Describe("Podman run", func() {
 		//containers.conf default ipcns to default to host
 		session := podmanTest.Podman([]string{"run", ALPINE, "ls", "-l", nspath})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		fields := strings.Split(session.OutputToString(), " ")
 		ctrNS := strings.TrimSuffix(fields[len(fields)-1], "\n")
 
@@ -175,12 +176,12 @@ var _ = Describe("Podman run", func() {
 		}
 		logc := podmanTest.Podman([]string{"run", "-d", ALPINE, "sh", "-c", "echo podman; sleep 0.1; echo podman; sleep 0.1; echo podman"})
 		logc.WaitWithDefaultTimeout()
-		Expect(logc.ExitCode()).To(Equal(0))
+		Expect(logc).Should(Exit(0))
 		cid := logc.OutputToString()
 
 		wait := podmanTest.Podman([]string{"wait", cid})
 		wait.WaitWithDefaultTimeout()
-		Expect(wait.ExitCode()).To(Equal(0))
+		Expect(wait).Should(Exit(0))
 
 		cmd := exec.Command("journalctl", "--no-pager", "-o", "json", "--output-fields=CONTAINER_TAG", fmt.Sprintf("CONTAINER_ID_FULL=%s", cid))
 		out, err := cmd.CombinedOutput()
@@ -202,55 +203,55 @@ var _ = Describe("Podman run", func() {
 		}
 		result := podmanTest.Podman([]string{"run", ALPINE, "ls", tempdir})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 	})
 
 	It("podman run containers.conf sysctl test", func() {
 		//containers.conf is set to   "net.ipv4.ping_group_range=0 1000"
 		session := podmanTest.Podman([]string{"run", "--rm", fedoraMinimal, "cat", "/proc/sys/net/ipv4/ping_group_range"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("1000"))
 
 		// Ignore containers.conf setting if --net=host
 		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", fedoraMinimal, "cat", "/proc/sys/net/ipv4/ping_group_range"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).ToNot((ContainSubstring("1000")))
 	})
 
 	It("podman run containers.conf search domain", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		session.LineInOutputStartsWith("search foobar.com")
 	})
 
 	It("podman run add dns server", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		session.LineInOutputStartsWith("server 1.2.3.4")
 	})
 
 	It("podman run add dns option", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		session.LineInOutputStartsWith("options debug")
 	})
 
 	It("podman run containers.conf remove all search domain", func() {
 		session := podmanTest.Podman([]string{"run", "--dns-search=.", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.LineInOutputStartsWith("search")).To(BeFalse())
 	})
 
 	It("podman run use containers.conf search domain", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.LineInOutputStartsWith("search")).To(BeTrue())
 		Expect(session.OutputToString()).To(ContainSubstring("foobar.com"))
 
@@ -262,7 +263,7 @@ var _ = Describe("Podman run", func() {
 		//containers.conf timezone set to Pacific/Honolulu
 		session := podmanTest.Podman([]string{"run", ALPINE, "date", "+'%H %Z'"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("HST"))
 	})
 
@@ -274,14 +275,14 @@ var _ = Describe("Podman run", func() {
 
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "sh", "-c", "umask"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal("0002"))
 	})
 
 	It("podman set network cmd options slirp options to allow host loopback", func() {
 		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns", ALPINE, "ping", "-c1", "10.0.2.2"})
 		session.Wait(30)
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 	})
 
 	It("podman-remote test localcontainers.conf versus remote containers.conf", func() {
@@ -294,13 +295,13 @@ var _ = Describe("Podman run", func() {
 		// env
 		session := podmanTest.Podman([]string{"run", ALPINE, "printenv", "foo"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal("bar"))
 
 		// dns-search, server, options
 		session = podmanTest.Podman([]string{"run", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.LineInOutputStartsWith("search")).To(BeTrue())
 		Expect(session.OutputToString()).To(ContainSubstring("foobar.com"))
 		Expect(session.OutputToString()).To(ContainSubstring("1.2.3.4"))
@@ -309,32 +310,32 @@ var _ = Describe("Podman run", func() {
 		// sysctls
 		session = podmanTest.Podman([]string{"run", "--rm", ALPINE, "cat", "/proc/sys/net/ipv4/ping_group_range"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("1000"))
 
 		// shm-size
 		session = podmanTest.Podman([]string{"run", ALPINE, "grep", "shm", "/proc/self/mounts"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("size=200k"))
 
 		// ulimits
 		session = podmanTest.Podman([]string{"run", "--rm", fedoraMinimal, "ulimit", "-n"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("500"))
 
 		// Configuration that comes from remote client
 		// Timezone
 		session = podmanTest.Podman([]string{"run", ALPINE, "date", "+'%H %Z'"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Or(ContainSubstring("EST"), ContainSubstring("EDT")))
 
 		// Umask
 		session = podmanTest.Podman([]string{"run", "--rm", ALPINE, "sh", "-c", "umask"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal("0022"))
 	})
 
@@ -342,7 +343,7 @@ var _ = Describe("Podman run", func() {
 		//containers.conf is set to   "run.oci.keep_original_groups=1"
 		session := podmanTest.Podman([]string{"create", "--rm", "--name", "test", fedoraMinimal})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		inspect := podmanTest.Podman([]string{"inspect", "--format", "{{ .Config.Annotations }}", "test"})
 		inspect.WaitWithDefaultTimeout()
@@ -357,18 +358,18 @@ var _ = Describe("Podman run", func() {
 
 		session = podmanTest.Podman([]string{"run", "-dt", "--add-host", "test1:127.0.0.1", "--no-hosts=false", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 	})
 
 	It("podman run with no-hosts=true /etc/hosts does not include hostname", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "--name", "test", ALPINE, "cat", "/etc/hosts"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Not(ContainSubstring("test")))
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--name", "test", "--no-hosts=false", ALPINE, "cat", "/etc/hosts"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("test"))
 	})
 
@@ -387,7 +388,7 @@ var _ = Describe("Podman run", func() {
 
 		session := podmanTest.Podman([]string{"info", "--format", "{{.Host.Security.SECCOMPProfilePath}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal(profile))
 	})
 })

@@ -7,6 +7,7 @@ import (
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman volume create", func() {
@@ -37,7 +38,7 @@ var _ = Describe("Podman volume create", func() {
 		session := podmanTest.Podman([]string{"volume", "create"})
 		session.WaitWithDefaultTimeout()
 		volName := session.OutputToString()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		check := podmanTest.Podman([]string{"volume", "ls", "-q"})
 		check.WaitWithDefaultTimeout()
@@ -50,7 +51,7 @@ var _ = Describe("Podman volume create", func() {
 		session := podmanTest.Podman([]string{"volume", "create", "myvol"})
 		session.WaitWithDefaultTimeout()
 		volName := session.OutputToString()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		check := podmanTest.Podman([]string{"volume", "ls", "-q"})
 		check.WaitWithDefaultTimeout()
@@ -71,16 +72,16 @@ var _ = Describe("Podman volume create", func() {
 		gid := "4000"
 		session := podmanTest.Podman([]string{"volume", "create", "--opt", fmt.Sprintf("o=uid=%s,gid=%s", uid, gid), volName})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		inspectUID := podmanTest.Podman([]string{"volume", "inspect", "--format", "{{ .UID }}", volName})
 		inspectUID.WaitWithDefaultTimeout()
-		Expect(inspectUID.ExitCode()).To(Equal(0))
+		Expect(inspectUID).Should(Exit(0))
 		Expect(inspectUID.OutputToString()).To(Equal(uid))
 
 		inspectGID := podmanTest.Podman([]string{"volume", "inspect", "--format", "{{ .GID }}", volName})
 		inspectGID.WaitWithDefaultTimeout()
-		Expect(inspectGID.ExitCode()).To(Equal(0))
+		Expect(inspectGID).Should(Exit(0))
 		Expect(inspectGID.OutputToString()).To(Equal(gid))
 
 		// options should containt `uid=3000,gid=4000:3000:4000`
@@ -88,7 +89,7 @@ var _ = Describe("Podman volume create", func() {
 		optionStrFormatExpect := fmt.Sprintf(`uid=%s,gid=%s:%s:%s`, uid, gid, uid, gid)
 		inspectOpts := podmanTest.Podman([]string{"volume", "inspect", "--format", optionFormat, volName})
 		inspectOpts.WaitWithDefaultTimeout()
-		Expect(inspectOpts.ExitCode()).To(Equal(0))
+		Expect(inspectOpts).Should(Exit(0))
 		Expect(inspectOpts.OutputToString()).To(Equal(optionStrFormatExpect))
 	})
 })

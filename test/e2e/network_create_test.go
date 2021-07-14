@@ -13,6 +13,7 @@ import (
 	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 	"github.com/pkg/errors"
 )
 
@@ -89,7 +90,7 @@ var _ = Describe("Podman network create", func() {
 
 		nc := podmanTest.Podman([]string{"network", "create"})
 		nc.WaitWithDefaultTimeout()
-		Expect(nc.ExitCode()).To(BeZero())
+		Expect(nc).Should(Exit(0))
 
 		fileContent, err := ioutil.ReadFile(nc.OutputToString())
 		Expect(err).To(BeNil())
@@ -121,7 +122,7 @@ var _ = Describe("Podman network create", func() {
 		nc := podmanTest.Podman([]string{"network", "create", netName})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(netName)
-		Expect(nc.ExitCode()).To(BeZero())
+		Expect(nc).Should(Exit(0))
 
 		inspect := podmanTest.Podman([]string{"network", "inspect", netName})
 		inspect.WaitWithDefaultTimeout()
@@ -141,7 +142,7 @@ var _ = Describe("Podman network create", func() {
 		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.12.0/24", netName})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(netName)
-		Expect(nc.ExitCode()).To(BeZero())
+		Expect(nc).Should(Exit(0))
 
 		// Inspect the network configuration
 		inspect := podmanTest.Podman([]string{"network", "inspect", netName})
@@ -184,7 +185,7 @@ var _ = Describe("Podman network create", func() {
 		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "fd00:1:2:3:4::/64", netName})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(netName)
-		Expect(nc.ExitCode()).To(BeZero())
+		Expect(nc).Should(Exit(0))
 
 		// Inspect the network configuration
 		inspect := podmanTest.Podman([]string{"network", "inspect", netName})
@@ -225,7 +226,7 @@ var _ = Describe("Podman network create", func() {
 		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "fd00:4:3:2:1::/64", "--ipv6", netName})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(netName)
-		Expect(nc.ExitCode()).To(BeZero())
+		Expect(nc).Should(Exit(0))
 
 		// Inspect the network configuration
 		inspect := podmanTest.Podman([]string{"network", "inspect", netName})
@@ -299,7 +300,7 @@ var _ = Describe("Podman network create", func() {
 		nc := podmanTest.Podman([]string{"network", "create", netName})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(netName)
-		Expect(nc.ExitCode()).To(BeZero())
+		Expect(nc).Should(Exit(0))
 
 		ncFail := podmanTest.Podman([]string{"network", "create", netName})
 		ncFail.WaitWithDefaultTimeout()
@@ -311,7 +312,7 @@ var _ = Describe("Podman network create", func() {
 		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.13.0/24", netName1})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(netName1)
-		Expect(nc.ExitCode()).To(BeZero())
+		Expect(nc).Should(Exit(0))
 
 		netName2 := "sub2-" + stringid.GenerateNonCryptoID()
 		ncFail := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.13.0/24", netName2})
@@ -326,7 +327,7 @@ var _ = Describe("Podman network create", func() {
 		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "fd00:4:4:4:4::/64", "--ipv6", netName1})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(netName1)
-		Expect(nc.ExitCode()).To(BeZero())
+		Expect(nc).Should(Exit(0))
 
 		netName2 := "subipv62-" + stringid.GenerateNonCryptoID()
 		ncFail := podmanTest.Podman([]string{"network", "create", "--subnet", "fd00:4:4:4:4::/64", "--ipv6", netName2})
@@ -346,11 +347,11 @@ var _ = Describe("Podman network create", func() {
 		nc := podmanTest.Podman([]string{"network", "create", "--opt", "mtu=9000", net})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(net)
-		Expect(nc.ExitCode()).To(BeZero())
+		Expect(nc).Should(Exit(0))
 
 		nc = podmanTest.Podman([]string{"network", "inspect", net})
 		nc.WaitWithDefaultTimeout()
-		Expect(nc.ExitCode()).To(BeZero())
+		Expect(nc).Should(Exit(0))
 		Expect(nc.OutputToString()).To(ContainSubstring(`"mtu": 9000,`))
 	})
 
@@ -359,11 +360,11 @@ var _ = Describe("Podman network create", func() {
 		nc := podmanTest.Podman([]string{"network", "create", "--opt", "vlan=9", net})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(net)
-		Expect(nc.ExitCode()).To(BeZero())
+		Expect(nc).Should(Exit(0))
 
 		nc = podmanTest.Podman([]string{"network", "inspect", net})
 		nc.WaitWithDefaultTimeout()
-		Expect(nc.ExitCode()).To(BeZero())
+		Expect(nc).Should(Exit(0))
 		Expect(nc.OutputToString()).To(ContainSubstring(`"vlan": 9`))
 	})
 
@@ -380,7 +381,7 @@ var _ = Describe("Podman network create", func() {
 		nc := podmanTest.Podman([]string{"network", "create", "--internal", net})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(net)
-		Expect(nc.ExitCode()).To(BeZero())
+		Expect(nc).Should(Exit(0))
 		// Not performing this check on remote tests because it is a logrus error which does
 		// not come back via stderr on the remote client.
 		if !IsRemote() {
@@ -388,7 +389,7 @@ var _ = Describe("Podman network create", func() {
 		}
 		nc = podmanTest.Podman([]string{"network", "inspect", net})
 		nc.WaitWithDefaultTimeout()
-		Expect(nc.ExitCode()).To(BeZero())
+		Expect(nc).Should(Exit(0))
 		Expect(nc.OutputToString()).ToNot(ContainSubstring("dnsname"))
 	})
 

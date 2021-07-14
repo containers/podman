@@ -52,7 +52,7 @@ var _ = Describe("Podman events", func() {
 		Expect(ec).To(Equal(0))
 		result := podmanTest.Podman([]string{"events", "--stream=false"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(BeZero())
+		Expect(result).Should(Exit(0))
 	})
 
 	It("podman events with an event filter", func() {
@@ -61,7 +61,7 @@ var _ = Describe("Podman events", func() {
 		Expect(ec).To(Equal(0))
 		result := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "event=start"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 		Expect(len(result.OutputToStringArray()) >= 1)
 	})
 
@@ -75,7 +75,7 @@ var _ = Describe("Podman events", func() {
 		time.Sleep(5 * time.Second)
 		result := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "event=start", "--filter", fmt.Sprintf("container=%s", cid)})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 		Expect(len(result.OutputToStringArray())).To(Equal(1))
 		Expect(!strings.Contains(result.OutputToString(), cid2))
 	})
@@ -86,7 +86,7 @@ var _ = Describe("Podman events", func() {
 		Expect(ec).To(Equal(0))
 		result := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "type=pod", "--filter", fmt.Sprintf("container=%s", cid)})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 		Expect(len(result.OutputToStringArray())).To(Equal(0))
 	})
 
@@ -96,11 +96,11 @@ var _ = Describe("Podman events", func() {
 		setup.WaitWithDefaultTimeout()
 		stop := podmanTest.Podman([]string{"pod", "stop", "foobarpod"})
 		stop.WaitWithDefaultTimeout()
-		Expect(stop.ExitCode()).To(Equal(0))
-		Expect(setup.ExitCode()).To(Equal(0))
+		Expect(stop).Should(Exit(0))
+		Expect(setup).Should(Exit(0))
 		result := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "type=pod", "--filter", "pod=foobarpod"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 		fmt.Println(result.OutputToStringArray())
 		Expect(len(result.OutputToStringArray()) >= 2)
 	})
@@ -111,7 +111,7 @@ var _ = Describe("Podman events", func() {
 		Expect(ec).To(Equal(0))
 		result := podmanTest.Podman([]string{"events", "--stream=false", "--since", "1m"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(BeZero())
+		Expect(result).Should(Exit(0))
 	})
 
 	It("podman events --until", func() {
@@ -120,7 +120,7 @@ var _ = Describe("Podman events", func() {
 		Expect(ec).To(Equal(0))
 		result := podmanTest.Podman([]string{"events", "--stream=false", "--until", "1h"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(BeZero())
+		Expect(result).Should(Exit(0))
 	})
 
 	It("podman events format", func() {
@@ -157,7 +157,7 @@ var _ = Describe("Podman events", func() {
 		name3 := stringid.GenerateNonCryptoID()
 		session := podmanTest.Podman([]string{"create", "--name", name1, ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		var wg sync.WaitGroup
 		wg.Add(1)
@@ -169,17 +169,17 @@ var _ = Describe("Podman events", func() {
 			time.Sleep(time.Second * 2)
 			session = podmanTest.Podman([]string{"create", "--name", name2, ALPINE})
 			session.WaitWithDefaultTimeout()
-			Expect(session.ExitCode()).To(Equal(0))
+			Expect(session).Should(Exit(0))
 			session = podmanTest.Podman([]string{"create", "--name", name3, ALPINE})
 			session.WaitWithDefaultTimeout()
-			Expect(session.ExitCode()).To(Equal(0))
+			Expect(session).Should(Exit(0))
 		}()
 
 		// unix timestamp in 10 seconds
 		until := time.Now().Add(time.Second * 10).Unix()
 		result := podmanTest.Podman([]string{"events", "--since", "30s", "--until", fmt.Sprint(until)})
 		result.Wait(11)
-		Expect(result.ExitCode()).To(BeZero())
+		Expect(result).Should(Exit(0))
 		Expect(result.OutputToString()).To(ContainSubstring(name1))
 		Expect(result.OutputToString()).To(ContainSubstring(name2))
 		Expect(result.OutputToString()).To(ContainSubstring(name3))

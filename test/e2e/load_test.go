@@ -8,6 +8,7 @@ import (
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman load", func() {
@@ -43,15 +44,15 @@ var _ = Describe("Podman load", func() {
 
 		save := podmanTest.Podman([]string{"save", "-o", outfile, ALPINE})
 		save.WaitWithDefaultTimeout()
-		Expect(save.ExitCode()).To(Equal(0))
+		Expect(save).Should(Exit(0))
 
 		rmi := podmanTest.Podman([]string{"rmi", ALPINE})
 		rmi.WaitWithDefaultTimeout()
-		Expect(rmi.ExitCode()).To(Equal(0))
+		Expect(rmi).Should(Exit(0))
 
 		result := podmanTest.Podman([]string{"load", "-i", outfile})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 	})
 
 	It("podman load compressed tar file", func() {
@@ -59,19 +60,19 @@ var _ = Describe("Podman load", func() {
 
 		save := podmanTest.Podman([]string{"save", "-o", outfile, ALPINE})
 		save.WaitWithDefaultTimeout()
-		Expect(save.ExitCode()).To(Equal(0))
+		Expect(save).Should(Exit(0))
 
 		compress := SystemExec("gzip", []string{outfile})
-		Expect(compress.ExitCode()).To(Equal(0))
+		Expect(compress).Should(Exit(0))
 		outfile = outfile + ".gz"
 
 		rmi := podmanTest.Podman([]string{"rmi", ALPINE})
 		rmi.WaitWithDefaultTimeout()
-		Expect(rmi.ExitCode()).To(Equal(0))
+		Expect(rmi).Should(Exit(0))
 
 		result := podmanTest.Podman([]string{"load", "-i", outfile})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 	})
 
 	It("podman load oci-archive image", func() {
@@ -79,15 +80,15 @@ var _ = Describe("Podman load", func() {
 
 		save := podmanTest.Podman([]string{"save", "-o", outfile, "--format", "oci-archive", ALPINE})
 		save.WaitWithDefaultTimeout()
-		Expect(save.ExitCode()).To(Equal(0))
+		Expect(save).Should(Exit(0))
 
 		rmi := podmanTest.Podman([]string{"rmi", ALPINE})
 		rmi.WaitWithDefaultTimeout()
-		Expect(rmi.ExitCode()).To(Equal(0))
+		Expect(rmi).Should(Exit(0))
 
 		result := podmanTest.Podman([]string{"load", "-i", outfile})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 	})
 
 	It("podman load oci-archive with signature", func() {
@@ -95,15 +96,15 @@ var _ = Describe("Podman load", func() {
 
 		save := podmanTest.Podman([]string{"save", "-o", outfile, "--format", "oci-archive", ALPINE})
 		save.WaitWithDefaultTimeout()
-		Expect(save.ExitCode()).To(Equal(0))
+		Expect(save).Should(Exit(0))
 
 		rmi := podmanTest.Podman([]string{"rmi", ALPINE})
 		rmi.WaitWithDefaultTimeout()
-		Expect(rmi.ExitCode()).To(Equal(0))
+		Expect(rmi).Should(Exit(0))
 
 		result := podmanTest.Podman([]string{"load", "--signature-policy", "/etc/containers/policy.json", "-i", outfile})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 	})
 
 	It("podman load with quiet flag", func() {
@@ -111,15 +112,15 @@ var _ = Describe("Podman load", func() {
 
 		save := podmanTest.Podman([]string{"save", "-o", outfile, ALPINE})
 		save.WaitWithDefaultTimeout()
-		Expect(save.ExitCode()).To(Equal(0))
+		Expect(save).Should(Exit(0))
 
 		rmi := podmanTest.Podman([]string{"rmi", ALPINE})
 		rmi.WaitWithDefaultTimeout()
-		Expect(rmi.ExitCode()).To(Equal(0))
+		Expect(rmi).Should(Exit(0))
 
 		result := podmanTest.Podman([]string{"load", "-q", "-i", outfile})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 	})
 
 	It("podman load directory", func() {
@@ -128,15 +129,15 @@ var _ = Describe("Podman load", func() {
 
 		save := podmanTest.Podman([]string{"save", "--format", "oci-dir", "-o", outdir, ALPINE})
 		save.WaitWithDefaultTimeout()
-		Expect(save.ExitCode()).To(Equal(0))
+		Expect(save).Should(Exit(0))
 
 		rmi := podmanTest.Podman([]string{"rmi", ALPINE})
 		rmi.WaitWithDefaultTimeout()
-		Expect(rmi.ExitCode()).To(Equal(0))
+		Expect(rmi).Should(Exit(0))
 
 		result := podmanTest.Podman([]string{"load", "-i", outdir})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 	})
 
 	It("podman-remote load directory", func() {
@@ -148,7 +149,7 @@ var _ = Describe("Podman load", func() {
 
 		result := podmanTest.Podman([]string{"load", "-i", podmanTest.TempDir})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(125))
+		Expect(result).Should(Exit(125))
 
 		errMsg := fmt.Sprintf("remote client supports archives only but %q is a directory", podmanTest.TempDir)
 		found, _ := result.ErrorGrepString(errMsg)
@@ -170,45 +171,45 @@ var _ = Describe("Podman load", func() {
 
 		pull := podmanTest.Podman([]string{"pull", alpVersion})
 		pull.WaitWithDefaultTimeout()
-		Expect(pull.ExitCode()).To(Equal(0))
+		Expect(pull).Should(Exit(0))
 
 		save := podmanTest.Podman([]string{"save", "-o", outfile, ALPINE, alpVersion})
 		save.WaitWithDefaultTimeout()
-		Expect(save.ExitCode()).To(Equal(0))
+		Expect(save).Should(Exit(0))
 
 		rmi := podmanTest.Podman([]string{"rmi", ALPINE, alpVersion})
 		rmi.WaitWithDefaultTimeout()
-		Expect(rmi.ExitCode()).To(Equal(0))
+		Expect(rmi).Should(Exit(0))
 
 		result := podmanTest.Podman([]string{"load", "-i", outfile})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 
 		inspect := podmanTest.Podman([]string{"inspect", ALPINE})
 		inspect.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 		inspect = podmanTest.Podman([]string{"inspect", alpVersion})
 		inspect.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 	})
 
 	It("podman load localhost registry from scratch", func() {
 		outfile := filepath.Join(podmanTest.TempDir, "load_test.tar.gz")
 		setup := podmanTest.Podman([]string{"tag", ALPINE, "hello:world"})
 		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
+		Expect(setup).Should(Exit(0))
 
 		setup = podmanTest.Podman([]string{"save", "-o", outfile, "--format", "oci-archive", "hello:world"})
 		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
+		Expect(setup).Should(Exit(0))
 
 		setup = podmanTest.Podman([]string{"rmi", "hello:world"})
 		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
+		Expect(setup).Should(Exit(0))
 
 		load := podmanTest.Podman([]string{"load", "-i", outfile})
 		load.WaitWithDefaultTimeout()
-		Expect(load.ExitCode()).To(Equal(0))
+		Expect(load).Should(Exit(0))
 
 		result := podmanTest.Podman([]string{"images", "hello:world"})
 		result.WaitWithDefaultTimeout()
@@ -221,19 +222,19 @@ var _ = Describe("Podman load", func() {
 
 		setup := podmanTest.Podman([]string{"tag", ALPINE, "hello"})
 		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
+		Expect(setup).Should(Exit(0))
 
 		setup = podmanTest.Podman([]string{"save", "-o", outfile, "--format", "oci-archive", "hello"})
 		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
+		Expect(setup).Should(Exit(0))
 
 		setup = podmanTest.Podman([]string{"rmi", "hello"})
 		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
+		Expect(setup).Should(Exit(0))
 
 		load := podmanTest.Podman([]string{"load", "-i", outfile})
 		load.WaitWithDefaultTimeout()
-		Expect(load.ExitCode()).To(Equal(0))
+		Expect(load).Should(Exit(0))
 
 		result := podmanTest.Podman([]string{"images", "hello:latest"})
 		result.WaitWithDefaultTimeout()
@@ -247,19 +248,19 @@ var _ = Describe("Podman load", func() {
 
 		setup := podmanTest.Podman([]string{"tag", ALPINE, "hello:world"})
 		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
+		Expect(setup).Should(Exit(0))
 
 		setup = podmanTest.Podman([]string{"save", "-o", outfile, "--format", "oci-dir", "hello:world"})
 		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
+		Expect(setup).Should(Exit(0))
 
 		setup = podmanTest.Podman([]string{"rmi", "hello:world"})
 		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
+		Expect(setup).Should(Exit(0))
 
 		load := podmanTest.Podman([]string{"load", "-i", outfile})
 		load.WaitWithDefaultTimeout()
-		Expect(load.ExitCode()).To(Equal(0))
+		Expect(load).Should(Exit(0))
 
 		result := podmanTest.Podman([]string{"images", "load:latest"})
 		result.WaitWithDefaultTimeout()
@@ -272,23 +273,23 @@ var _ = Describe("Podman load", func() {
 
 		save := podmanTest.Podman([]string{"save", "-o", outfile, ALPINE})
 		save.WaitWithDefaultTimeout()
-		Expect(save.ExitCode()).To(Equal(0))
+		Expect(save).Should(Exit(0))
 		session := SystemExec("xz", []string{outfile})
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		rmi := podmanTest.Podman([]string{"rmi", ALPINE})
 		rmi.WaitWithDefaultTimeout()
-		Expect(rmi.ExitCode()).To(Equal(0))
+		Expect(rmi).Should(Exit(0))
 
 		result := podmanTest.Podman([]string{"load", "-i", outfile + ".xz"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 	})
 
 	It("podman load multi-image archive", func() {
 		result := podmanTest.Podman([]string{"load", "-i", "./testdata/docker-two-images.tar.xz"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 		Expect(result.LineInOutputContains("example.com/empty:latest")).To(BeTrue())
 		Expect(result.LineInOutputContains("example.com/empty/but:different")).To(BeTrue())
 	})

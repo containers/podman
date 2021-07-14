@@ -7,6 +7,7 @@ import (
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman run memory", func() {
@@ -44,7 +45,7 @@ var _ = Describe("Podman run memory", func() {
 			session = podmanTest.Podman([]string{"run", "--memory=40m", ALPINE, "cat", "/sys/fs/cgroup/memory/memory.limit_in_bytes"})
 		}
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal("41943040"))
 	})
 
@@ -62,7 +63,7 @@ var _ = Describe("Podman run memory", func() {
 		}
 
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal("41943040"))
 	})
 
@@ -70,7 +71,7 @@ var _ = Describe("Podman run memory", func() {
 		SkipIfCgroupV2("memory-swappiness not supported on cgroupV2")
 		session := podmanTest.Podman([]string{"run", "--memory-swappiness=15", ALPINE, "cat", "/sys/fs/cgroup/memory/memory.swappiness"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal("15"))
 	})
 
@@ -88,7 +89,7 @@ var _ = Describe("Podman run memory", func() {
 		}
 
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal("41943040"))
 	})
 
@@ -103,7 +104,7 @@ var _ = Describe("Podman run memory", func() {
 			session = podmanTest.Podman([]string{"run", "--cgroupns=private", ALPINE, "cat", "/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes"})
 		}
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(BeZero())
+		Expect(session).Should(Exit(0))
 		output := session.OutputToString()
 		Expect(err).To(BeNil())
 		if CGROUPSV2 {

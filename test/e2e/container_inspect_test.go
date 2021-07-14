@@ -7,6 +7,7 @@ import (
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman container inspect", func() {
@@ -36,7 +37,7 @@ var _ = Describe("Podman container inspect", func() {
 		const testContainer = "container-inspect-test-1"
 		setup := podmanTest.RunTopContainer(testContainer)
 		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
+		Expect(setup).Should(Exit(0))
 
 		data := podmanTest.InspectContainer(testContainer)
 		Expect(data[0].Config.Annotations[annotations.ContainerManager]).

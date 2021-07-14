@@ -145,12 +145,12 @@ var _ = Describe("Podman logs", func() {
 			SkipIfRemote("FIXME: podman-remote logs does not support showing two containers at the same time")
 			log1 := podmanTest.Podman([]string{"run", "--log-driver", log, "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
 			log1.WaitWithDefaultTimeout()
-			Expect(log1.ExitCode()).To(Equal(0))
+			Expect(log1).Should(Exit(0))
 			cid1 := log1.OutputToString()
 
 			log2 := podmanTest.Podman([]string{"run", "--log-driver", log, "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
 			log2.WaitWithDefaultTimeout()
-			Expect(log2.ExitCode()).To(Equal(0))
+			Expect(log2).Should(Exit(0))
 			cid2 := log2.OutputToString()
 
 			results := podmanTest.Podman([]string{"logs", cid1, cid2})

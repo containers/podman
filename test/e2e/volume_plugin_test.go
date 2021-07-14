@@ -8,6 +8,7 @@ import (
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman volume plugins", func() {
@@ -41,13 +42,13 @@ var _ = Describe("Podman volume plugins", func() {
 	It("volume create with nonexistent plugin errors", func() {
 		session := podmanTest.Podman([]string{"volume", "create", "--driver", "notexist", "test_volume_name"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 
 	It("volume create with not-running plugin does not error", func() {
 		session := podmanTest.Podman([]string{"volume", "create", "--driver", "testvol0", "test_volume_name"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 
 	It("volume create and remove with running plugin succeeds", func() {
@@ -60,27 +61,27 @@ var _ = Describe("Podman volume plugins", func() {
 		pluginName := "testvol1"
 		plugin := podmanTest.Podman([]string{"run", "--security-opt", "label=disable", "-v", "/run/docker/plugins:/run/docker/plugins", "-v", fmt.Sprintf("%v:%v", pluginStatePath, pluginStatePath), "-d", volumeTest, "--sock-name", pluginName, "--path", pluginStatePath})
 		plugin.WaitWithDefaultTimeout()
-		Expect(plugin.ExitCode()).To(Equal(0))
+		Expect(plugin).Should(Exit(0))
 
 		volName := "testVolume1"
 		create := podmanTest.Podman([]string{"volume", "create", "--driver", pluginName, volName})
 		create.WaitWithDefaultTimeout()
-		Expect(create.ExitCode()).To(Equal(0))
+		Expect(create).Should(Exit(0))
 
 		ls1 := podmanTest.Podman([]string{"volume", "ls", "-q"})
 		ls1.WaitWithDefaultTimeout()
-		Expect(ls1.ExitCode()).To(Equal(0))
+		Expect(ls1).Should(Exit(0))
 		arrOutput := ls1.OutputToStringArray()
 		Expect(len(arrOutput)).To(Equal(1))
 		Expect(arrOutput[0]).To(ContainSubstring(volName))
 
 		remove := podmanTest.Podman([]string{"volume", "rm", volName})
 		remove.WaitWithDefaultTimeout()
-		Expect(remove.ExitCode()).To(Equal(0))
+		Expect(remove).Should(Exit(0))
 
 		ls2 := podmanTest.Podman([]string{"volume", "ls", "-q"})
 		ls2.WaitWithDefaultTimeout()
-		Expect(ls2.ExitCode()).To(Equal(0))
+		Expect(ls2).Should(Exit(0))
 		Expect(len(ls2.OutputToStringArray())).To(Equal(0))
 	})
 
@@ -94,16 +95,16 @@ var _ = Describe("Podman volume plugins", func() {
 		pluginName := "testvol2"
 		plugin := podmanTest.Podman([]string{"run", "--security-opt", "label=disable", "-v", "/run/docker/plugins:/run/docker/plugins", "-v", fmt.Sprintf("%v:%v", pluginStatePath, pluginStatePath), "-d", volumeTest, "--sock-name", pluginName, "--path", pluginStatePath})
 		plugin.WaitWithDefaultTimeout()
-		Expect(plugin.ExitCode()).To(Equal(0))
+		Expect(plugin).Should(Exit(0))
 
 		volName := "testVolume1"
 		create := podmanTest.Podman([]string{"volume", "create", "--driver", pluginName, volName})
 		create.WaitWithDefaultTimeout()
-		Expect(create.ExitCode()).To(Equal(0))
+		Expect(create).Should(Exit(0))
 
 		volInspect := podmanTest.Podman([]string{"volume", "inspect", "--format", "{{ .Driver }}", volName})
 		volInspect.WaitWithDefaultTimeout()
-		Expect(volInspect.ExitCode()).To(Equal(0))
+		Expect(volInspect).Should(Exit(0))
 		Expect(volInspect.OutputToString()).To(ContainSubstring(pluginName))
 	})
 
@@ -118,33 +119,33 @@ var _ = Describe("Podman volume plugins", func() {
 		ctrName := "pluginCtr"
 		plugin := podmanTest.Podman([]string{"run", "--name", ctrName, "--security-opt", "label=disable", "-v", "/run/docker/plugins:/run/docker/plugins", "-v", fmt.Sprintf("%v:%v", pluginStatePath, pluginStatePath), "-d", volumeTest, "--sock-name", pluginName, "--path", pluginStatePath})
 		plugin.WaitWithDefaultTimeout()
-		Expect(plugin.ExitCode()).To(Equal(0))
+		Expect(plugin).Should(Exit(0))
 
 		volName := "testVolume1"
 		create := podmanTest.Podman([]string{"volume", "create", "--driver", pluginName, volName})
 		create.WaitWithDefaultTimeout()
-		Expect(create.ExitCode()).To(Equal(0))
+		Expect(create).Should(Exit(0))
 
 		ls1 := podmanTest.Podman([]string{"volume", "ls", "-q"})
 		ls1.WaitWithDefaultTimeout()
-		Expect(ls1.ExitCode()).To(Equal(0))
+		Expect(ls1).Should(Exit(0))
 		arrOutput := ls1.OutputToStringArray()
 		Expect(len(arrOutput)).To(Equal(1))
 		Expect(arrOutput[0]).To(ContainSubstring(volName))
 
 		stop := podmanTest.Podman([]string{"stop", "--timeout", "0", ctrName})
 		stop.WaitWithDefaultTimeout()
-		Expect(stop.ExitCode()).To(Equal(0))
+		Expect(stop).Should(Exit(0))
 
 		// Remove should exit non-zero because missing plugin
 		remove := podmanTest.Podman([]string{"volume", "rm", volName})
 		remove.WaitWithDefaultTimeout()
-		Expect(remove.ExitCode()).To(Not(Equal(0)))
+		Expect(remove).To(ExitWithError())
 
 		// But the volume should still be gone
 		ls2 := podmanTest.Podman([]string{"volume", "ls", "-q"})
 		ls2.WaitWithDefaultTimeout()
-		Expect(ls2.ExitCode()).To(Equal(0))
+		Expect(ls2).Should(Exit(0))
 		Expect(len(ls2.OutputToStringArray())).To(Equal(0))
 	})
 
@@ -158,20 +159,20 @@ var _ = Describe("Podman volume plugins", func() {
 		pluginName := "testvol4"
 		plugin := podmanTest.Podman([]string{"run", "--security-opt", "label=disable", "-v", "/run/docker/plugins:/run/docker/plugins", "-v", fmt.Sprintf("%v:%v", pluginStatePath, pluginStatePath), "-d", volumeTest, "--sock-name", pluginName, "--path", pluginStatePath})
 		plugin.WaitWithDefaultTimeout()
-		Expect(plugin.ExitCode()).To(Equal(0))
+		Expect(plugin).Should(Exit(0))
 
 		volName := "testVolume1"
 		create := podmanTest.Podman([]string{"volume", "create", "--driver", pluginName, volName})
 		create.WaitWithDefaultTimeout()
-		Expect(create.ExitCode()).To(Equal(0))
+		Expect(create).Should(Exit(0))
 
 		ctr1 := podmanTest.Podman([]string{"run", "--security-opt", "label=disable", "-v", fmt.Sprintf("%v:/test", volName), ALPINE, "sh", "-c", "touch /test/testfile && echo helloworld > /test/testfile"})
 		ctr1.WaitWithDefaultTimeout()
-		Expect(ctr1.ExitCode()).To(Equal(0))
+		Expect(ctr1).Should(Exit(0))
 
 		ctr2 := podmanTest.Podman([]string{"run", "--security-opt", "label=disable", "-v", fmt.Sprintf("%v:/test", volName), ALPINE, "cat", "/test/testfile"})
 		ctr2.WaitWithDefaultTimeout()
-		Expect(ctr2.ExitCode()).To(Equal(0))
+		Expect(ctr2).Should(Exit(0))
 		Expect(ctr2.OutputToString()).To(ContainSubstring("helloworld"))
 
 		// HACK: `volume rm -f` is timing out trying to remove containers using the volume.
@@ -179,6 +180,6 @@ var _ = Describe("Podman volume plugins", func() {
 		// TODO: fix this when I get back
 		rmAll := podmanTest.Podman([]string{"rm", "-af"})
 		rmAll.WaitWithDefaultTimeout()
-		Expect(rmAll.ExitCode()).To(Equal(0))
+		Expect(rmAll).Should(Exit(0))
 	})
 })

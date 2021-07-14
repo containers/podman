@@ -8,6 +8,7 @@ import (
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman secret", func() {
@@ -42,15 +43,15 @@ var _ = Describe("Podman secret", func() {
 		session := podmanTest.Podman([]string{"secret", "create", "--driver-opts", "opt1=val", "a", secretFilePath})
 		session.WaitWithDefaultTimeout()
 		secrID := session.OutputToString()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		inspect := podmanTest.Podman([]string{"secret", "inspect", "--format", "{{.ID}}", secrID})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).To(Equal(secrID))
 		inspect = podmanTest.Podman([]string{"secret", "inspect", "--format", "{{.Spec.Driver.Options}}", secrID})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).To(ContainSubstring("opt1:val"))
 	})
 
@@ -61,7 +62,7 @@ var _ = Describe("Podman secret", func() {
 
 		session := podmanTest.Podman([]string{"secret", "create", "?!", secretFilePath})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 
 	It("podman secret inspect", func() {
@@ -72,11 +73,11 @@ var _ = Describe("Podman secret", func() {
 		session := podmanTest.Podman([]string{"secret", "create", "a", secretFilePath})
 		session.WaitWithDefaultTimeout()
 		secrID := session.OutputToString()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		inspect := podmanTest.Podman([]string{"secret", "inspect", secrID})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect).Should(Exit(0))
 		Expect(inspect.IsJSONOutputValid()).To(BeTrue())
 	})
 
@@ -88,11 +89,11 @@ var _ = Describe("Podman secret", func() {
 		session := podmanTest.Podman([]string{"secret", "create", "a", secretFilePath})
 		session.WaitWithDefaultTimeout()
 		secrID := session.OutputToString()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		inspect := podmanTest.Podman([]string{"secret", "inspect", "--format", "{{.ID}}", secrID})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).To(Equal(secrID))
 	})
 
@@ -104,16 +105,16 @@ var _ = Describe("Podman secret", func() {
 		session := podmanTest.Podman([]string{"secret", "create", "a", secretFilePath})
 		session.WaitWithDefaultTimeout()
 		secrID := session.OutputToString()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session2 := podmanTest.Podman([]string{"secret", "create", "b", secretFilePath})
 		session2.WaitWithDefaultTimeout()
 		secrID2 := session2.OutputToString()
-		Expect(session2.ExitCode()).To(Equal(0))
+		Expect(session2).Should(Exit(0))
 
 		inspect := podmanTest.Podman([]string{"secret", "inspect", secrID, secrID2})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect).Should(Exit(0))
 		Expect(inspect.IsJSONOutputValid()).To(BeTrue())
 	})
 
@@ -124,7 +125,7 @@ var _ = Describe("Podman secret", func() {
 
 		inspect := podmanTest.Podman([]string{"secret", "inspect", "bogus"})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect.ExitCode()).To(Not(Equal(0)))
+		Expect(inspect).To(ExitWithError())
 
 	})
 
@@ -135,11 +136,11 @@ var _ = Describe("Podman secret", func() {
 
 		session := podmanTest.Podman([]string{"secret", "create", "a", secretFilePath})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		list := podmanTest.Podman([]string{"secret", "ls"})
 		list.WaitWithDefaultTimeout()
-		Expect(list.ExitCode()).To(Equal(0))
+		Expect(list).Should(Exit(0))
 		Expect(len(list.OutputToStringArray())).To(Equal(2))
 
 	})
@@ -151,12 +152,12 @@ var _ = Describe("Podman secret", func() {
 
 		session := podmanTest.Podman([]string{"secret", "create", "a", secretFilePath})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		list := podmanTest.Podman([]string{"secret", "ls", "--format", "table {{.Name}}"})
 		list.WaitWithDefaultTimeout()
 
-		Expect(list.ExitCode()).To(Equal(0))
+		Expect(list).Should(Exit(0))
 		Expect(len(list.OutputToStringArray())).To(Equal(2), list.OutputToString())
 	})
 
@@ -168,16 +169,16 @@ var _ = Describe("Podman secret", func() {
 		session := podmanTest.Podman([]string{"secret", "create", "a", secretFilePath})
 		session.WaitWithDefaultTimeout()
 		secrID := session.OutputToString()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		removed := podmanTest.Podman([]string{"secret", "rm", "a"})
 		removed.WaitWithDefaultTimeout()
-		Expect(removed.ExitCode()).To(Equal(0))
+		Expect(removed).Should(Exit(0))
 		Expect(removed.OutputToString()).To(Equal(secrID))
 
 		session = podmanTest.Podman([]string{"secret", "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(1))
 	})
 
@@ -188,18 +189,18 @@ var _ = Describe("Podman secret", func() {
 
 		session := podmanTest.Podman([]string{"secret", "create", "a", secretFilePath})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		session = podmanTest.Podman([]string{"secret", "create", "b", secretFilePath})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		removed := podmanTest.Podman([]string{"secret", "rm", "-a"})
 		removed.WaitWithDefaultTimeout()
-		Expect(removed.ExitCode()).To(Equal(0))
+		Expect(removed).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"secret", "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(1))
 	})
 
@@ -208,7 +209,7 @@ var _ = Describe("Podman secret", func() {
 		session := podmanTest.Podman([]string{"secret", "create", "--env", "a", "MYENVVAR"})
 		session.WaitWithDefaultTimeout()
 		secrID := session.OutputToString()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 
 		os.Setenv("MYENVVAR", "somedata")
 		if IsRemote() {
@@ -218,11 +219,11 @@ var _ = Describe("Podman secret", func() {
 		session = podmanTest.Podman([]string{"secret", "create", "--env", "a", "MYENVVAR"})
 		session.WaitWithDefaultTimeout()
 		secrID = session.OutputToString()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		inspect := podmanTest.Podman([]string{"secret", "inspect", "--format", "{{.ID}}", secrID})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).To(Equal(secrID))
 	})
 

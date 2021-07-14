@@ -39,7 +39,7 @@ var _ = Describe("Podman ps", func() {
 	It("podman pod ps no pods", func() {
 		session := podmanTest.Podman([]string{"pod", "ps"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 	})
 
 	It("podman pod ps default", func() {
@@ -48,11 +48,11 @@ var _ = Describe("Podman ps", func() {
 
 		session := podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		result := podmanTest.Podman([]string{"pod", "ps"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
 	})
 
@@ -79,7 +79,7 @@ var _ = Describe("Podman ps", func() {
 
 		result := podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
 		Expect(podid).To(Equal(result.OutputToStringArray()[0]))
 	})
@@ -94,7 +94,7 @@ var _ = Describe("Podman ps", func() {
 
 		result := podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc", "--latest"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 		Expect(result.OutputToString()).To(ContainSubstring(podid2))
 		Expect(result.OutputToString()).To(Not(ContainSubstring(podid1)))
 	})
@@ -105,7 +105,7 @@ var _ = Describe("Podman ps", func() {
 
 		result := podmanTest.Podman([]string{"pod", "ps", "--filter", fmt.Sprintf("id=%s", podid)})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 	})
 
 	It("podman pod ps filter name regexp", func() {
@@ -116,14 +116,14 @@ var _ = Describe("Podman ps", func() {
 
 		result := podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc", "--filter", "name=mypod"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 
 		output := result.OutputToStringArray()
 		Expect(len(output)).To(Equal(2))
 
 		result = podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc", "--filter", "name=mypod$"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 
 		output = result.OutputToStringArray()
 		Expect(len(output)).To(Equal(1))
@@ -150,7 +150,7 @@ var _ = Describe("Podman ps", func() {
 		session := podmanTest.Podman([]string{"pod", "ps", "--sort=name", "--format", "{{.Name}}"})
 
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		sortedArr := session.OutputToStringArray()
 
@@ -164,14 +164,14 @@ var _ = Describe("Podman ps", func() {
 
 		session := podmanTest.RunTopContainerInPod("test1", podid)
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		_, ec, _ = podmanTest.RunLsContainerInPod("test2", podid)
 		Expect(ec).To(Equal(0))
 
 		session = podmanTest.Podman([]string{"pod", "ps", "--format={{.ContainerNames}}", "--ctr-names"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("test1"))
 		Expect(session.OutputToString()).To(ContainSubstring("test2"))
 	})
@@ -182,7 +182,7 @@ var _ = Describe("Podman ps", func() {
 
 		session := podmanTest.RunTopContainerInPod("test1", podid1)
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		_, ec2, podid2 := podmanTest.CreatePod(nil)
 		Expect(ec2).To(Equal(0))
@@ -192,25 +192,25 @@ var _ = Describe("Podman ps", func() {
 
 		session = podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc", "--filter", "ctr-names=test1"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring(podid1))
 		Expect(session.OutputToString()).To(Not(ContainSubstring(podid2)))
 
 		session = podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc", "--filter", "ctr-names=test", "--filter", "ctr-status=running"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring(podid1))
 		Expect(session.OutputToString()).To(Not(ContainSubstring(podid2)))
 
 		session = podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc", "--filter", fmt.Sprintf("ctr-ids=%s", cid)})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring(podid2))
 		Expect(session.OutputToString()).To(Not(ContainSubstring(podid1)))
 
 		session = podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc", "--filter", "ctr-ids=" + cid[:40], "--filter", "ctr-ids=" + cid + "$"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring(podid2))
 		Expect(session.OutputToString()).To(Not(ContainSubstring(podid1)))
 
@@ -219,42 +219,42 @@ var _ = Describe("Podman ps", func() {
 
 		session = podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc", "--filter", "ctr-number=1"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring(podid1))
 		Expect(session.OutputToString()).To(ContainSubstring(podid2))
 		Expect(session.OutputToString()).To(Not(ContainSubstring(podid3)))
 
 		session = podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc", "--filter", "ctr-number=1", "--filter", "ctr-number=0"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring(podid1))
 		Expect(session.OutputToString()).To(ContainSubstring(podid2))
 		Expect(session.OutputToString()).To(ContainSubstring(podid3))
 
 		session = podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc", "--filter", "ctr-status=running"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring(podid1))
 		Expect(session.OutputToString()).To(Not(ContainSubstring(podid2)))
 		Expect(session.OutputToString()).To(Not(ContainSubstring(podid3)))
 
 		session = podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc", "--filter", "ctr-status=exited"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring(podid2))
 		Expect(session.OutputToString()).To(Not(ContainSubstring(podid1)))
 		Expect(session.OutputToString()).To(Not(ContainSubstring(podid3)))
 
 		session = podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc", "--filter", "ctr-status=exited", "--filter", "ctr-status=running"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring(podid1))
 		Expect(session.OutputToString()).To(ContainSubstring(podid2))
 		Expect(session.OutputToString()).To(Not(ContainSubstring(podid3)))
 
 		session = podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc", "--filter", "ctr-status=created"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(BeEmpty())
 	})
 
@@ -282,22 +282,22 @@ var _ = Describe("Podman ps", func() {
 		net := stringid.GenerateNonCryptoID()
 		session := podmanTest.Podman([]string{"network", "create", net})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(BeZero())
+		Expect(session).Should(Exit(0))
 		defer podmanTest.removeCNINetwork(net)
 
 		session = podmanTest.Podman([]string{"pod", "create", "--network", net})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(BeZero())
+		Expect(session).Should(Exit(0))
 		podWithNet := session.OutputToString()
 
 		session = podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(BeZero())
+		Expect(session).Should(Exit(0))
 		podWithoutNet := session.OutputToString()
 
 		session = podmanTest.Podman([]string{"pod", "ps", "--no-trunc", "--filter", "network=" + net})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(BeZero())
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring(podWithNet))
 		Expect(session.OutputToString()).To(Not(ContainSubstring(podWithoutNet)))
 	})
@@ -305,11 +305,11 @@ var _ = Describe("Podman ps", func() {
 	It("podman pod ps --format networks", func() {
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(BeZero())
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"pod", "ps", "--format", "{{ .Networks }}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(BeZero())
+		Expect(session).Should(Exit(0))
 		if isRootless() {
 			// rootless container don't have a network by default
 			Expect(session.OutputToString()).To(Equal(""))
@@ -321,22 +321,22 @@ var _ = Describe("Podman ps", func() {
 		net1 := stringid.GenerateNonCryptoID()
 		session = podmanTest.Podman([]string{"network", "create", net1})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(BeZero())
+		Expect(session).Should(Exit(0))
 		defer podmanTest.removeCNINetwork(net1)
 		net2 := stringid.GenerateNonCryptoID()
 		session = podmanTest.Podman([]string{"network", "create", net2})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(BeZero())
+		Expect(session).Should(Exit(0))
 		defer podmanTest.removeCNINetwork(net2)
 
 		session = podmanTest.Podman([]string{"pod", "create", "--network", net1 + "," + net2})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(BeZero())
+		Expect(session).Should(Exit(0))
 		pid := session.OutputToString()
 
 		session = podmanTest.Podman([]string{"pod", "ps", "--format", "{{ .Networks }}", "--filter", "id=" + pid})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(BeZero())
+		Expect(session).Should(Exit(0))
 		// the output is not deterministic so check both possible orders
 		Expect(session.OutputToString()).To(Or(Equal(net1+","+net2), Equal(net2+","+net1)))
 	})
@@ -344,11 +344,11 @@ var _ = Describe("Podman ps", func() {
 	It("pod no infra should ps", func() {
 		session := podmanTest.Podman([]string{"pod", "create", "--infra=false"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		ps := podmanTest.Podman([]string{"pod", "ps"})
 		ps.WaitWithDefaultTimeout()
-		Expect(ps.ExitCode()).To(Equal(0))
+		Expect(ps).Should(Exit(0))
 
 		infra := podmanTest.Podman([]string{"pod", "ps", "--format", "{{.InfraId}}"})
 		infra.WaitWithDefaultTimeout()
@@ -367,14 +367,14 @@ var _ = Describe("Podman ps", func() {
 
 		session := podmanTest.Podman([]string{"pod", "ps", "--format", "{{.Labels}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("value1"))
 	})
 
 	It("podman pod ps headers", func() {
 		session := podmanTest.Podman([]string{"pod", "ps", "--ctr-ids", "--ctr-names", "--ctr-status", "--ns"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(MatchRegexp(`^POD ID\s+NAME\s+STATUS\s+CREATED\s+INFRA ID\s+IDS\s+NAMES\s+STATUS\s+CGROUP\s+NAMESPACES$`))
 	})
 

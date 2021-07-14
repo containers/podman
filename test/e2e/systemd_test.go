@@ -10,6 +10,7 @@ import (
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman systemd", func() {
@@ -57,21 +58,21 @@ WantedBy=multi-user.target
 			stop := SystemExec("bash", []string{"-c", "systemctl stop redis"})
 			os.Remove("/etc/systemd/system/redis.service")
 			SystemExec("bash", []string{"-c", "systemctl daemon-reload"})
-			Expect(stop.ExitCode()).To(Equal(0))
+			Expect(stop).Should(Exit(0))
 		}()
 
 		create := podmanTest.Podman([]string{"create", "--name", "redis", redis})
 		create.WaitWithDefaultTimeout()
-		Expect(create.ExitCode()).To(Equal(0))
+		Expect(create).Should(Exit(0))
 
 		enable := SystemExec("bash", []string{"-c", "systemctl daemon-reload"})
-		Expect(enable.ExitCode()).To(Equal(0))
+		Expect(enable).Should(Exit(0))
 
 		start := SystemExec("bash", []string{"-c", "systemctl start redis"})
-		Expect(start.ExitCode()).To(Equal(0))
+		Expect(start).Should(Exit(0))
 
 		logs := SystemExec("bash", []string{"-c", "journalctl -n 20 -u redis"})
-		Expect(logs.ExitCode()).To(Equal(0))
+		Expect(logs).Should(Exit(0))
 
 		status := SystemExec("bash", []string{"-c", "systemctl status redis"})
 		Expect(status.OutputToString()).To(ContainSubstring("active (running)"))
@@ -81,19 +82,19 @@ WantedBy=multi-user.target
 		ctrName := "testSystemd"
 		run := podmanTest.Podman([]string{"run", "--name", ctrName, "-t", "-i", "-d", ubi_init, "/sbin/init"})
 		run.WaitWithDefaultTimeout()
-		Expect(run.ExitCode()).To(Equal(0))
+		Expect(run).Should(Exit(0))
 		ctrID := run.OutputToString()
 
 		logs := podmanTest.Podman([]string{"logs", ctrName})
 		logs.WaitWithDefaultTimeout()
-		Expect(logs.ExitCode()).To(Equal(0))
+		Expect(logs).Should(Exit(0))
 
 		// Give container 10 seconds to start
 		started := false
 		for i := 0; i < 10; i++ {
 			runningCtrs := podmanTest.Podman([]string{"ps", "-q", "--no-trunc"})
 			runningCtrs.WaitWithDefaultTimeout()
-			Expect(runningCtrs.ExitCode()).To(Equal(0))
+			Expect(runningCtrs).Should(Exit(0))
 
 			if strings.Contains(runningCtrs.OutputToString(), ctrID) {
 				started = true
@@ -107,12 +108,12 @@ WantedBy=multi-user.target
 
 		systemctl := podmanTest.Podman([]string{"exec", "-t", "-i", ctrName, "systemctl", "status", "--no-pager"})
 		systemctl.WaitWithDefaultTimeout()
-		Expect(systemctl.ExitCode()).To(Equal(0))
+		Expect(systemctl).Should(Exit(0))
 		Expect(strings.Contains(systemctl.OutputToString(), "State:")).To(BeTrue())
 
 		result := podmanTest.Podman([]string{"inspect", ctrName})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 		conData := result.InspectContainerToJSON()
 		Expect(len(conData)).To(Equal(1))
 		Expect(conData[0].Config.SystemdMode).To(BeTrue())
@@ -120,7 +121,7 @@ WantedBy=multi-user.target
 		if CGROUPSV2 || !rootless.IsRootless() {
 			stats := podmanTest.Podman([]string{"stats", "--no-stream", ctrName})
 			stats.WaitWithDefaultTimeout()
-			Expect(stats.ExitCode()).To(Equal(0))
+			Expect(stats).Should(Exit(0))
 		}
 	})
 
@@ -128,11 +129,11 @@ WantedBy=multi-user.target
 		ctrName := "testCtr"
 		run := podmanTest.Podman([]string{"create", "--name", ctrName, "--entrypoint", "/sbin/init", ubi_init})
 		run.WaitWithDefaultTimeout()
-		Expect(run.ExitCode()).To(Equal(0))
+		Expect(run).Should(Exit(0))
 
 		result := podmanTest.Podman([]string{"inspect", ctrName})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 		conData := result.InspectContainerToJSON()
 		Expect(len(conData)).To(Equal(1))
 		Expect(conData[0].Config.SystemdMode).To(BeTrue())
@@ -142,11 +143,11 @@ WantedBy=multi-user.target
 		ctrName := "testCtrUidMap"
 		run := podmanTest.Podman([]string{"run", "-d", "--uidmap=0:1:1000", "--name", ctrName, ALPINE, "top"})
 		run.WaitWithDefaultTimeout()
-		Expect(run.ExitCode()).To(Equal(0))
+		Expect(run).Should(Exit(0))
 
 		session := podmanTest.Podman([]string{"inspect", "--format", "{{.ConmonPidFile}}", ctrName})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		pidFile := strings.TrimSuffix(session.OutputToString(), "\n")
 		_, err := ioutil.ReadFile(pidFile)
@@ -157,11 +158,11 @@ WantedBy=multi-user.target
 		ctrName := "testCtr"
 		run := podmanTest.Podman([]string{"create", "--name", ctrName, "--systemd", "always", ALPINE})
 		run.WaitWithDefaultTimeout()
-		Expect(run.ExitCode()).To(Equal(0))
+		Expect(run).Should(Exit(0))
 
 		result := podmanTest.Podman([]string{"inspect", ctrName})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 		conData := result.InspectContainerToJSON()
 		Expect(len(conData)).To(Equal(1))
 		Expect(conData[0].Config.SystemdMode).To(BeTrue())
@@ -170,7 +171,7 @@ WantedBy=multi-user.target
 	It("podman run --systemd container should NOT mount /run noexec", func() {
 		session := podmanTest.Podman([]string{"run", "--systemd", "always", ALPINE, "sh", "-c", "mount  | grep \"/run \""})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		Expect(session.OutputToString()).To(Not(ContainSubstring("noexec")))
 	})
