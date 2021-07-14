@@ -182,7 +182,7 @@ Storing signatures
 d6e46aa2470df1d32034c6707c8041158b652f38d2a9ae3d7ad7e7532d22ebe0
 ```
 
-Pull an image by specifiying an authentication file.
+Pull an image by specifying an authentication file.
 ```
 $ podman pull --authfile temp-auths/myauths.json docker://docker.io/umohnani/finaltest
 Trying to pull docker.io/umohnani/finaltest:latest...Getting image source signatures

@@ -858,7 +858,7 @@ Secrets and its storage are managed using the `podman secret` command.
 Secret Options
 
 - `type=mount|env`    : How the secret will be exposed to the container. Default mount.
-- `target=target`     : Target of secret. Defauts to secret name.
+- `target=target`     : Target of secret. Defaults to secret name.
 - `uid=0`             : UID of secret. Defaults to 0. Mount secret type only.
 - `gid=0`             : GID of secret. Defaults to 0. Mount secret type only.
 - `mode=0`            : Mode of secret. Defaults to 0444. Mount secret type only.
@@ -1086,14 +1086,28 @@ Set the user namespace mode for the container. It defaults to the **PODMAN_USERN
 
 Valid _mode_ values are:
 
-- **auto[:**_OPTIONS,..._**]**: automatically create a namespace. It is possible to specify these options to `auto`:
-  - **gidmapping=**_HOST_GID:CONTAINER_GID:SIZE_: to force a GID mapping to be present in the user namespace.
-  - **size=**_SIZE_: to specify an explicit size for the automatic user namespace. e.g. `--userns=auto:size=8192`. If `size` is not specified, `auto` will estimate a size for the user namespace.
-  - **uidmapping=**_HOST_UID:CONTAINER_UID:SIZE_: to force a UID mapping to be present in the user namespace.
-- **container:**_id_: join the user namespace of the specified container.
-- **host**: run in the user namespace of the caller. The processes running in the container will have the same privileges on the host as any other process launched by the calling user (default).
+**auto**[:_OPTIONS,..._]: automatically create a unique user namespace.
+
+The `--userns=auto` flag, requires that the user name `containers` and a range of subordinate user ids that the Podman container is allowed to use be specified in the /etc/subuid and /etc/subgid files.
+
+Example: `containers:2147483647:2147483648`.
+
+Podman allocates unique ranges of UIDs and GIDs from the `containers` subpordinate user ids. The size of the ranges is based on the number of UIDs required in the image. The number of UIDs and GIDs can be overridden with the `size` option. The `auto` options currently does not work in rootless mode
+
+  Valid `auto`options:
+
+  - *gidmapping*=_HOST_GID:CONTAINER_GID:SIZE_: to force a GID mapping to be present in the user namespace.
+  - *size*=_SIZE_: to specify an explicit size for the automatic user namespace. e.g. `--userns=auto:size=8192`. If `size` is not specified, `auto` will estimate a size for the user namespace.
+  - *uidmapping*=_HOST_UID:CONTAINER_UID:SIZE_: to force a UID mapping to be present in the user namespace.
+
+**container:**_id_: join the user namespace of the specified container.
+
+**host**: run in the user namespace of the caller. The processes running in the container will have the same privileges on the host as any other process launched by the calling user (default).
+
 - **keep-id**: creates a user namespace where the current rootless user's UID:GID are mapped to the same values in the container. This option is ignored for containers created by the root user.
+
 - **ns:**_namespace_: run the container in the given existing user namespace.
+
 - **private**: create a new namespace for the container.
 
 This option is incompatible with **--gidmap**, **--uidmap**, **--subuidname** and **--subgidname**.
@@ -1351,6 +1365,12 @@ the uids and gids from the host.
 
 ```
 $ podman create --uidmap 0:30000:7000 --gidmap 0:30000:7000 fedora echo hello
+```
+
+### Setting automatic user namespace separated containers
+
+```
+# podman create --userns=auto:size=65536 ubi8-init
 ```
 
 ### Configure timezone in a container
