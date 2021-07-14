@@ -610,6 +610,9 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 			_, err := utils.CopyDetachable(conn, httpBuf, detachKeys)
 			logrus.Debugf("STDIN copy completed")
 			stdinChan <- err
+			if connErr := conn.CloseWrite(); connErr != nil {
+				logrus.Errorf("Unable to close conn: %v", connErr)
+			}
 		}()
 	}
 

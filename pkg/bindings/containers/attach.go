@@ -25,6 +25,12 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
+// The CloseWriter interface is used to determine whether we can do a  one-sided
+// close of a hijacked connection.
+type CloseWriter interface {
+	CloseWrite() error
+}
+
 // Attach attaches to a running container
 func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Writer, stderr io.Writer, attachReady chan bool, options *AttachOptions) error {
 	if options == nil {
@@ -161,6 +167,12 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 				logrus.Error("failed to write input to service: " + err.Error())
 			}
 			stdinChan <- err
+
+			if closeWrite, ok := socket.(CloseWriter); ok {
+				if err := closeWrite.CloseWrite(); err != nil {
+					logrus.Warnf("Failed to close STDIN for writing: %v", err)
+				}
+			}
 		}()
 	}
 
@@ -484,6 +496,13 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 			_, err := utils.CopyDetachable(socket, options.InputStream, []byte{})
 			if err != nil {
 				logrus.Error("failed to write input to service: " + err.Error())
+			}
+
+			if closeWrite, ok := socket.(CloseWriter); ok {
+				logrus.Debugf("Closing STDIN")
+				if err := closeWrite.CloseWrite(); err != nil {
+					logrus.Warnf("Failed to close STDIN for writing: %v", err)
+				}
 			}
 		}()
 	}
