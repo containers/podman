@@ -27,9 +27,11 @@ let
           configureFlags = [
             "--enable-confdir=/etc"
             "--enable-usbdropdir=/var/lib/pcsc/drivers"
-            "--with-systemdsystemunitdir=${placeholder "bin"}/lib/systemd/system"
+            "--disable-libsystemd"
+            "--disable-libudev"
+            "--disable-libusb"
           ];
-          buildInputs = [ pkgs.python3 pkgs.udev pkgs.dbus pkgs.systemd ];
+          buildInputs = [ pkgs.python3 pkgs.dbus ];
         });
         systemd = (static pkg.systemd).overrideAttrs (x: {
           outputs = [ "out" "dev" ];
@@ -67,6 +69,7 @@ let
       export LDFLAGS='-s -w -static-libgcc -static'
       export EXTRA_LDFLAGS='-s -w -linkmode external -extldflags "-static -lm"'
       export BUILDTAGS='static netgo osusergo exclude_graphdriver_btrfs exclude_graphdriver_devicemapper seccomp apparmor selinux'
+      export CGO_ENABLED=1
     '';
     buildPhase = ''
       patchShebangs .
