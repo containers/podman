@@ -211,15 +211,11 @@ t GET containers/$cid/json 200 \
 t POST containers/create Image=$IMAGE Entrypoint='["top"]' 201 \
   .Id~[0-9a-f]\\{64\\}
 cid_top=$(jq -r '.Id' <<<"$output")
-network_expect="{}"
-if root; then
-    network_expect='.podman.NetworkID=podman'
-fi
 t GET containers/${cid_top}/json 200 \
   .Config.Entrypoint[0]="top" \
   .Config.Cmd='[]' \
-  .Path="top"
-  .NetworkSettings.Networks="$network_expect"
+  .Path="top" \
+  .NetworkSettings.Networks.podman.NetworkID=podman
 t POST  containers/${cid_top}/start 204
 # make sure the container is running
 t GET containers/${cid_top}/json 200 \
