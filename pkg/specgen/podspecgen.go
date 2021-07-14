@@ -67,7 +67,7 @@ type PodBasicConfig struct {
 	// Pid sets the process id namespace of the pod
 	// Optional (defaults to private if unset). This sets the PID namespace of the infra container
 	// This configuration will then be shared with the entire pod if PID namespace sharing is enabled via --share
-	Pid Namespace `json:"pid,omitempty:"`
+	Pid Namespace `json:"pidns,omitempty"`
 	// Userns is used to indicate which kind of Usernamespace to enter.
 	// Any containers created within the pod will inherit the pod's userns settings.
 	// Optional
@@ -173,6 +173,7 @@ type PodSpecGenerator struct {
 	PodNetworkConfig
 	PodCgroupConfig
 	PodResourceConfig
+	InfraContainerSpec *SpecGenerator `json:"-"`
 }
 
 type PodResourceConfig struct {

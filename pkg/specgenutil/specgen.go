@@ -1,6 +1,7 @@
-package common
+package specgenutil
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -11,8 +12,9 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/libpod/define"
 	ann "github.com/containers/podman/v3/pkg/annotations"
+	"github.com/containers/podman/v3/pkg/domain/entities"
 	envLib "github.com/containers/podman/v3/pkg/env"
-	ns "github.com/containers/podman/v3/pkg/namespaces"
+	"github.com/containers/podman/v3/pkg/namespaces"
 	"github.com/containers/podman/v3/pkg/specgen"
 	systemdDefine "github.com/containers/podman/v3/pkg/systemd/define"
 	"github.com/containers/podman/v3/pkg/util"
@@ -21,7 +23,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func getCPULimits(c *ContainerCLIOpts) *specs.LinuxCPU {
+func getCPULimits(c *entities.ContainerCreateOptions) *specs.LinuxCPU {
 	cpu := &specs.LinuxCPU{}
 	hasLimits := false
 
@@ -67,7 +69,7 @@ func getCPULimits(c *ContainerCLIOpts) *specs.LinuxCPU {
 	return cpu
 }
 
-func getIOLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts) (*specs.LinuxBlockIO, error) {
+func getIOLimits(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) (*specs.LinuxBlockIO, error) {
 	var err error
 	io := &specs.LinuxBlockIO{}
 	hasLimits := false
@@ -122,7 +124,7 @@ func getIOLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts) (*specs.LinuxBlo
 	return io, nil
 }
 
-func getMemoryLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts) (*specs.LinuxMemory, error) {
+func getMemoryLimits(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) (*specs.LinuxMemory, error) {
 	var err error
 	memory := &specs.LinuxMemory{}
 	hasLimits := false
@@ -167,7 +169,7 @@ func getMemoryLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts) (*specs.Linu
 		memory.Kernel = &mk
 		hasLimits = true
 	}
-	if c.MemorySwappiness >= 0 {
+	if c.MemorySwappiness > 0 {
 		swappiness := uint64(c.MemorySwappiness)
 		memory.Swappiness = &swappiness
 		hasLimits = true
@@ -182,7 +184,7 @@ func getMemoryLimits(s *specgen.SpecGenerator, c *ContainerCLIOpts) (*specs.Linu
 	return memory, nil
 }
 
-func setNamespaces(s *specgen.SpecGenerator, c *ContainerCLIOpts) error {
+func setNamespaces(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) error {
 	var err error
 
 	if c.PID != "" {
@@ -222,18 +224,22 @@ func setNamespaces(s *specgen.SpecGenerator, c *ContainerCLIOpts) error {
 	return nil
 }
 
-func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string) error {
+func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions, args []string) error {
 	var (
 		err error
 	)
-
 	// validate flags as needed
-	if err := c.validate(); err != nil {
+	if err := validate(c); err != nil {
 		return err
 	}
-
 	s.User = c.User
-	inputCommand := args[1:]
+	var inputCommand []string
+	if !c.IsInfra {
+		if len(args) > 1 {
+			inputCommand = args[1:]
+		}
+	}
+
 	if len(c.HealthCmd) > 0 {
 		if c.NoHealthCheck {
 			return errors.New("Cannot specify both --no-healthcheck and --health-cmd")
@@ -247,11 +253,32 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 			Test: []string{"NONE"},
 		}
 	}
-
-	userNS := ns.UsernsMode(c.UserNS)
+	if err := setNamespaces(s, c); err != nil {
+		return err
+	}
+	userNS := namespaces.UsernsMode(s.UserNS.NSMode)
+	tempIDMap, err := util.ParseIDMapping(namespaces.UsernsMode(c.UserNS), []string{}, []string{}, "", "")
+	if err != nil {
+		return err
+	}
 	s.IDMappings, err = util.ParseIDMapping(userNS, c.UIDMap, c.GIDMap, c.SubUIDName, c.SubGIDName)
 	if err != nil {
 		return err
+	}
+	if len(s.IDMappings.GIDMap) == 0 {
+		s.IDMappings.AutoUserNsOpts.AdditionalGIDMappings = tempIDMap.AutoUserNsOpts.AdditionalGIDMappings
+		if s.UserNS.NSMode == specgen.NamespaceMode("auto") {
+			s.IDMappings.AutoUserNs = true
+		}
+	}
+	if len(s.IDMappings.UIDMap) == 0 {
+		s.IDMappings.AutoUserNsOpts.AdditionalUIDMappings = tempIDMap.AutoUserNsOpts.AdditionalUIDMappings
+		if s.UserNS.NSMode == specgen.NamespaceMode("auto") {
+			s.IDMappings.AutoUserNs = true
+		}
+	}
+	if tempIDMap.AutoUserNsOpts.Size != 0 {
+		s.IDMappings.AutoUserNsOpts.Size = tempIDMap.AutoUserNsOpts.Size
 	}
 	// If some mappings are specified, assume a private user namespace
 	if userNS.IsDefaultValue() && (!s.IDMappings.HostUIDMapping || !s.IDMappings.HostGIDMapping) {
@@ -267,7 +294,9 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	}
 	// We are not handling the Expose flag yet.
 	// s.PortsExpose = c.Expose
-	s.PortMappings = c.Net.PublishPorts
+	if c.Net != nil {
+		s.PortMappings = c.Net.PublishPorts
+	}
 	s.PublishExposedPorts = c.PublishAll
 	s.Pod = c.Pod
 
@@ -287,10 +316,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 		return err
 	}
 	s.Expose = expose
-
-	if err := setNamespaces(s, c); err != nil {
-		return err
-	}
 
 	if sig := c.StopSignal; len(sig) > 0 {
 		stopSignal, err := util.ParseSignal(sig)
@@ -380,6 +405,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	}
 
 	// Include the command used to create the container.
+
 	s.ContainerCreateCommand = os.Args
 
 	if len(inputCommand) > 0 {
@@ -394,28 +420,34 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 		}
 		s.ShmSize = &shmSize
 	}
-	s.CNINetworks = c.Net.CNINetworks
 
-	// Network aliases
-	if len(c.Net.Aliases) > 0 {
-		// build a map of aliases where key=cniName
-		aliases := make(map[string][]string, len(s.CNINetworks))
-		for _, cniNetwork := range s.CNINetworks {
-			aliases[cniNetwork] = c.Net.Aliases
-		}
-		s.Aliases = aliases
+	if c.Net != nil {
+		s.CNINetworks = c.Net.CNINetworks
 	}
 
-	s.HostAdd = c.Net.AddHosts
-	s.UseImageResolvConf = c.Net.UseImageResolvConf
-	s.DNSServers = c.Net.DNSServers
-	s.DNSSearch = c.Net.DNSSearch
-	s.DNSOptions = c.Net.DNSOptions
-	s.StaticIP = c.Net.StaticIP
-	s.StaticMAC = c.Net.StaticMAC
-	s.NetworkOptions = c.Net.NetworkOptions
-	s.UseImageHosts = c.Net.NoHosts
+	// Network aliases
+	if c.Net != nil {
+		if len(c.Net.Aliases) > 0 {
+			// build a map of aliases where key=cniName
+			aliases := make(map[string][]string, len(s.CNINetworks))
+			for _, cniNetwork := range s.CNINetworks {
+				aliases[cniNetwork] = c.Net.Aliases
+			}
+			s.Aliases = aliases
+		}
+	}
 
+	if c.Net != nil {
+		s.HostAdd = c.Net.AddHosts
+		s.UseImageResolvConf = c.Net.UseImageResolvConf
+		s.DNSServers = c.Net.DNSServers
+		s.DNSSearch = c.Net.DNSSearch
+		s.DNSOptions = c.Net.DNSOptions
+		s.StaticIP = c.Net.StaticIP
+		s.StaticMAC = c.Net.StaticMAC
+		s.NetworkOptions = c.Net.NetworkOptions
+		s.UseImageHosts = c.Net.NoHosts
+	}
 	s.ImageVolumeMode = c.ImageVolume
 	if s.ImageVolumeMode == "bind" {
 		s.ImageVolumeMode = "anonymous"

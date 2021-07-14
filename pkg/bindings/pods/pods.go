@@ -9,27 +9,25 @@ import (
 	"github.com/containers/podman/v3/pkg/api/handlers"
 	"github.com/containers/podman/v3/pkg/bindings"
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/containers/podman/v3/pkg/specgen"
 	jsoniter "github.com/json-iterator/go"
 )
 
-func CreatePodFromSpec(ctx context.Context, s *specgen.PodSpecGenerator, options *CreateOptions) (*entities.PodCreateReport, error) {
+func CreatePodFromSpec(ctx context.Context, spec *entities.PodSpec) (*entities.PodCreateReport, error) {
 	var (
 		pcr entities.PodCreateReport
 	)
-	if options == nil {
-		options = new(CreateOptions)
+	if spec == nil {
+		spec = new(entities.PodSpec)
 	}
-	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	specgenString, err := jsoniter.MarshalToString(s)
+	specString, err := jsoniter.MarshalToString(spec.PodSpecGen)
 	if err != nil {
 		return nil, err
 	}
-	stringReader := strings.NewReader(specgenString)
+	stringReader := strings.NewReader(specString)
 	response, err := conn.DoRequest(stringReader, http.MethodPost, "/pods/create", nil, nil)
 	if err != nil {
 		return nil, err

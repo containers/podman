@@ -10,6 +10,8 @@ import (
 
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/lookup"
+	"github.com/containers/podman/v3/pkg/namespaces"
+	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -72,7 +74,7 @@ func (p *Pod) GenerateForKube() (*v1.Pod, []v1.ServicePort, error) {
 			return nil, servicePorts, err
 		}
 		servicePorts = containerPortsToServicePorts(ports)
-		hostNetwork = p.config.InfraContainer.HostNetwork
+		hostNetwork = infraContainer.NetworkMode() == string(namespaces.NetworkMode(specgen.Host))
 	}
 	pod, err := p.podWithContainers(allContainers, ports, hostNetwork)
 	if err != nil {

@@ -20,7 +20,7 @@ func newPod(runtime *Runtime) *Pod {
 	pod.config.ID = stringid.GenerateNonCryptoID()
 	pod.config.Labels = make(map[string]string)
 	pod.config.CreatedTime = time.Now()
-	pod.config.InfraContainer = new(InfraContainerConfig)
+	//	pod.config.InfraContainer = new(ContainerConfig)
 	pod.state = new(podState)
 	pod.runtime = runtime
 

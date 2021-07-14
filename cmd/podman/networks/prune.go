@@ -11,6 +11,7 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/utils"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/specgenutil"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -67,7 +68,7 @@ func networkPrune(cmd *cobra.Command, _ []string) error {
 			return nil
 		}
 	}
-	networkPruneOptions.Filters, err = common.ParseFilters(filter)
+	networkPruneOptions.Filters, err = specgenutil.ParseFilters(filter)
 	if err != nil {
 		return err
 	}

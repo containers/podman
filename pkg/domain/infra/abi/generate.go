@@ -60,9 +60,7 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 				return nil, err
 			}
 		} else {
-			if len(ctr.Dependencies()) > 0 {
-				return nil, errors.Wrapf(define.ErrNotImplemented, "containers with dependencies")
-			}
+			//  now that infra holds NS data, we need to support dependencies.
 			// we cannot deal with ctrs already in a pod.
 			if len(ctr.PodID()) > 0 {
 				return nil, errors.Errorf("container %s is associated with pod %s: use generate on the pod itself", ctr.ID(), ctr.PodID())

@@ -583,7 +583,11 @@ func (ic *ContainerEngine) ContainerCreate(ctx context.Context, s *specgen.SpecG
 	for _, w := range warn {
 		fmt.Fprintf(os.Stderr, "%s\n", w)
 	}
-	ctr, err := generate.MakeContainer(ctx, ic.Libpod, s)
+	rtSpec, spec, opts, err := generate.MakeContainer(context.Background(), ic.Libpod, s)
+	if err != nil {
+		return nil, err
+	}
+	ctr, err := generate.ExecuteCreate(ctx, ic.Libpod, rtSpec, spec, false, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -915,7 +919,11 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	for _, w := range warn {
 		fmt.Fprintf(os.Stderr, "%s\n", w)
 	}
-	ctr, err := generate.MakeContainer(ctx, ic.Libpod, opts.Spec)
+	rtSpec, spec, optsN, err := generate.MakeContainer(ctx, ic.Libpod, opts.Spec)
+	if err != nil {
+		return nil, err
+	}
+	ctr, err := generate.ExecuteCreate(ctx, ic.Libpod, rtSpec, spec, false, optsN...)
 	if err != nil {
 		return nil, err
 	}

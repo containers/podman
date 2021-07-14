@@ -250,7 +250,7 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 		if s.NetNS.Value != "" {
 			val = fmt.Sprintf("slirp4netns:%s", s.NetNS.Value)
 		}
-		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, val, nil))
+		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, val, s.CNINetworks))
 	case specgen.Private:
 		fallthrough
 	case specgen.Bridge:

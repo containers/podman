@@ -559,7 +559,7 @@ ENTRYPOINT ["sleep","99999"]
 	It("podman pod create --cpuset-cpus", func() {
 		podName := "testPod"
 		ctrName := "testCtr"
-		numCPU := float64(sysinfo.NumCPU())
+		numCPU := float64(sysinfo.NumCPU()) - 1
 		numCPUStr := strconv.Itoa(int(numCPU))
 		in := "0-" + numCPUStr
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--cpuset-cpus", in, "--name", podName})
@@ -588,20 +588,14 @@ ENTRYPOINT ["sleep","99999"]
 		podInspect.WaitWithDefaultTimeout()
 		Expect(podInspect).Should(Exit(0))
 		podJSON := podInspect.InspectPodToJSON()
-		Expect(podJSON.InfraConfig.PidNS).To(Equal("path"))
+		Expect(podJSON.InfraConfig.PidNS).To(Equal(ns))
 
 		podName = "pidPod2"
 		ns = "pod"
 
 		podCreate = podmanTest.Podman([]string{"pod", "create", "--pid", ns, "--name", podName, "--share", "pid"})
 		podCreate.WaitWithDefaultTimeout()
-		Expect(podCreate).Should(Exit(0))
-
-		podInspect = podmanTest.Podman([]string{"pod", "inspect", podName})
-		podInspect.WaitWithDefaultTimeout()
-		Expect(podInspect).Should(Exit(0))
-		podJSON = podInspect.InspectPodToJSON()
-		Expect(podJSON.InfraConfig.PidNS).To(Equal("pod"))
+		Expect(podCreate).Should(ExitWithError())
 
 		podName = "pidPod3"
 		ns = "host"

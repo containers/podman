@@ -13,6 +13,7 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/utils"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/specgenutil"
 	"github.com/spf13/cobra"
 )
 
@@ -63,7 +64,7 @@ func prune(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	pruneOptions.Filters, err = common.ParseFilters(filter)
+	pruneOptions.Filters, err = specgenutil.ParseFilters(filter)
 	if err != nil {
 		return err
 	}

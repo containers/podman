@@ -14,6 +14,7 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v3/libpod/network/types"
 	ann "github.com/containers/podman/v3/pkg/annotations"
+	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/specgen/generate"
 	"github.com/containers/podman/v3/pkg/util"
@@ -23,25 +24,26 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
-func ToPodGen(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec) (*specgen.PodSpecGenerator, error) {
-	p := specgen.NewPodSpecGenerator()
+func ToPodOpt(ctx context.Context, podName string, p entities.PodCreateOptions, podYAML *v1.PodTemplateSpec) (entities.PodCreateOptions, error) {
+	//	p := specgen.NewPodSpecGenerator()
+	p.Net = &entities.NetOptions{}
 	p.Name = podName
 	p.Labels = podYAML.ObjectMeta.Labels
 	// Kube pods must share {ipc, net, uts} by default
-	p.SharedNamespaces = append(p.SharedNamespaces, "ipc")
-	p.SharedNamespaces = append(p.SharedNamespaces, "net")
-	p.SharedNamespaces = append(p.SharedNamespaces, "uts")
+	p.Share = append(p.Share, "ipc")
+	p.Share = append(p.Share, "net")
+	p.Share = append(p.Share, "uts")
 	// TODO we only configure Process namespace. We also need to account for Host{IPC,Network,PID}
 	// which is not currently possible with pod create
 	if podYAML.Spec.ShareProcessNamespace != nil && *podYAML.Spec.ShareProcessNamespace {
-		p.SharedNamespaces = append(p.SharedNamespaces, "pid")
+		p.Share = append(p.Share, "pid")
 	}
 	p.Hostname = podYAML.Spec.Hostname
 	if p.Hostname == "" {
 		p.Hostname = podName
 	}
 	if podYAML.Spec.HostNetwork {
-		p.NetNS.NSMode = specgen.Host
+		p.Net.Network = specgen.Namespace{NSMode: "host"}
 	}
 	if podYAML.Spec.HostAliases != nil {
 		hosts := make([]string, 0, len(podYAML.Spec.HostAliases))
@@ -50,10 +52,10 @@ func ToPodGen(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec) 
 				hosts = append(hosts, host+":"+hostAlias.IP)
 			}
 		}
-		p.HostAdd = hosts
+		p.Net.AddHosts = hosts
 	}
 	podPorts := getPodPorts(podYAML.Spec.Containers)
-	p.PortMappings = podPorts
+	p.Net.PublishPorts = podPorts
 
 	if dnsConfig := podYAML.Spec.DNSConfig; dnsConfig != nil {
 		// name servers
@@ -62,11 +64,11 @@ func ToPodGen(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec) 
 			for _, server := range dnsServers {
 				servers = append(servers, net.ParseIP(server))
 			}
-			p.DNSServer = servers
+			p.Net.DNSServers = servers
 		}
 		// search domains
 		if domains := dnsConfig.Searches; len(domains) > 0 {
-			p.DNSSearch = domains
+			p.Net.DNSSearch = domains
 		}
 		// dns options
 		if options := dnsConfig.Options; len(options) > 0 {
@@ -110,6 +112,8 @@ type CtrSpecGenOptions struct {
 	LogDriver string
 	// Labels define key-value pairs of metadata
 	Labels map[string]string
+	//
+	IsInfra bool
 }
 
 func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGenerator, error) {
@@ -216,19 +220,19 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		}
 	}
 	// If only the yaml.Command is specified, set it as the entrypoint and drop the image Cmd
-	if len(opts.Container.Command) != 0 {
+	if !opts.IsInfra && len(opts.Container.Command) != 0 {
 		s.Entrypoint = opts.Container.Command
 		s.Command = []string{}
 	}
 	// Only override the cmd field if yaml.Args is specified
 	// Keep the image entrypoint, or the yaml.command if specified
-	if len(opts.Container.Args) != 0 {
+	if !opts.IsInfra && len(opts.Container.Args) != 0 {
 		s.Command = opts.Container.Args
 	}
 
 	// FIXME,
 	// we are currently ignoring imageData.Config.ExposedPorts
-	if opts.Container.WorkingDir != "" {
+	if !opts.IsInfra && opts.Container.WorkingDir != "" {
 		s.WorkDir = opts.Container.WorkingDir
 	}
 

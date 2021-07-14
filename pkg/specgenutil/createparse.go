@@ -1,13 +1,14 @@
-package common
+package specgenutil
 
 import (
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/pkg/errors"
 )
 
 // validate determines if the flags and values given by the user are valid. things checked
 // by validate must not need any state information on the flag (i.e. changed)
-func (c *ContainerCLIOpts) validate() error {
+func validate(c *entities.ContainerCreateOptions) error {
 	var ()
 	if c.Rm && (c.Restart != "" && c.Restart != "no" && c.Restart != "on-failure") {
 		return errors.Errorf(`the --rm option conflicts with --restart, when the restartPolicy is not "" and "no"`)
@@ -23,7 +24,11 @@ func (c *ContainerCLIOpts) validate() error {
 		"ignore": "",
 	}
 	if _, ok := imageVolType[c.ImageVolume]; !ok {
-		return errors.Errorf("invalid image-volume type %q. Pick one of bind, tmpfs, or ignore", c.ImageVolume)
+		if c.IsInfra {
+			c.ImageVolume = "bind"
+		} else {
+			return errors.Errorf("invalid image-volume type %q. Pick one of bind, tmpfs, or ignore", c.ImageVolume)
+		}
 	}
 	return nil
 }

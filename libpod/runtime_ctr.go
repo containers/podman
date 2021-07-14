@@ -17,6 +17,7 @@ import (
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/domain/entities/reports"
 	"github.com/containers/podman/v3/pkg/rootless"
+	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/go-units"
@@ -38,11 +39,14 @@ type CtrCreateOption func(*Container) error
 type ContainerFilter func(*Container) bool
 
 // NewContainer creates a new container from a given OCI config.
-func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, options ...CtrCreateOption) (*Container, error) {
+func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, spec *specgen.SpecGenerator, infra bool, options ...CtrCreateOption) (*Container, error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
+	}
+	if infra {
+		options = append(options, withIsInfra())
 	}
 	return r.newContainer(ctx, rSpec, options...)
 }
@@ -172,6 +176,7 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 		}
 		ctr.config.ShmSize = size
 		ctr.config.StopSignal = 15
+
 		ctr.config.StopTimeout = r.config.Engine.StopTimeout
 	} else {
 		// This is a restore from an imported checkpoint
@@ -211,7 +216,11 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 }
 
 func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ...CtrCreateOption) (*Container, error) {
-	ctr, err := r.initContainerVariables(rSpec, nil)
+	var ctr *Container
+	var err error
+
+	ctr, err = r.initContainerVariables(rSpec, nil)
+
 	if err != nil {
 		return nil, errors.Wrapf(err, "error initializing container variables")
 	}
@@ -230,7 +239,9 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 	if err := ctr.validate(); err != nil {
 		return nil, err
 	}
-
+	if ctr.config.IsInfra {
+		ctr.config.StopTimeout = 10
+	}
 	// normalize the networks to names
 	// ocicni only knows about cni names so we have to make
 	// sure we do not use ids internally
@@ -327,7 +338,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		switch r.config.Engine.CgroupManager {
 		case config.CgroupfsCgroupsManager:
 			if ctr.config.CgroupParent == "" {
-				if pod != nil && pod.config.UsePodCgroup {
+				if pod != nil && pod.config.UsePodCgroup && !ctr.IsInfra() {
 					podCgroup, err := pod.CgroupPath()
 					if err != nil {
 						return nil, errors.Wrapf(err, "error retrieving pod %s cgroup", pod.ID())
@@ -348,7 +359,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		case config.SystemdCgroupsManager:
 			if ctr.config.CgroupParent == "" {
 				switch {
-				case pod != nil && pod.config.UsePodCgroup:
+				case pod != nil && pod.config.UsePodCgroup && !ctr.IsInfra():
 					podCgroup, err := pod.CgroupPath()
 					if err != nil {
 						return nil, errors.Wrapf(err, "error retrieving pod %s cgroup", pod.ID())
@@ -833,7 +844,10 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 			return id, err
 		}
 
-		infraID := pod.state.InfraContainerID
+		infraID, err := pod.infraContainerID()
+		if err != nil {
+			return "", err
+		}
 		if c.ID() == infraID {
 			return id, errors.Errorf("container %s is the infra container of pod %s and cannot be removed without removing the pod", c.ID(), pod.ID())
 		}
