@@ -375,4 +375,7 @@ type ContainerMiscConfig struct {
 	CDIDevices []string `json:"cdiDevices,omitempty"`
 	// EnvSecrets are secrets that are set as environment variables
 	EnvSecrets map[string]*secrets.Secret `json:"secret_env,omitempty"`
+	// InitContainerType specifies if the container is an initcontainer
+	// and if so, what type: always or oneshot are possible non-nil entries
+	InitContainerType string `json:"init_container_type,omitempty"`
 }

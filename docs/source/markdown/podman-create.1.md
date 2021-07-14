@@ -447,6 +447,21 @@ content that disappears when the container is stopped.
 
 Run an init inside the container that forwards signals and reaps processes.
 
+#### **--init-ctr**=*type* (pods only)
+
+When using pods, create an init style container, which is run after the infra container is started
+but before regular pod containers are started.  Init containers are useful for running
+setup operations for the pod's applications.
+
+Valid values for `init-ctr` type are *always* or *oneshot*.  The *always* value
+means the container will run with each and every `pod start`, whereas the *oneshot*
+value means is will ony run once when the pod is started and then the container is
+removed.
+
+Init containers are only run on pod `start`.  Restarting a pod will not execute any init
+containers should they be present.  Furthermore, init containers can only be created in a
+pod when that pod is not running.
+
 #### **--init-path**=*path*
 
 Path to the container-init binary.

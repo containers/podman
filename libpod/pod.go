@@ -3,6 +3,7 @@ package libpod
 import (
 	"context"
 	"net"
+	"sort"
 	"time"
 
 	"github.com/containers/podman/v3/libpod/define"
@@ -332,17 +333,20 @@ func (p *Pod) SharesNamespaces() bool {
 	return p.SharesPID() || p.SharesIPC() || p.SharesNet() || p.SharesMount() || p.SharesUser() || p.SharesUTS()
 }
 
+// infraContainerID returns the infra ID without a lock
+func (p *Pod) infraContainerID() (string, error) {
+	if err := p.updatePod(); err != nil {
+		return "", err
+	}
+	return p.state.InfraContainerID, nil
+}
+
 // InfraContainerID returns the infra container ID for a pod.
 // If the container returned is "", the pod has no infra container.
 func (p *Pod) InfraContainerID() (string, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-
-	if err := p.updatePod(); err != nil {
-		return "", err
-	}
-
-	return p.state.InfraContainerID, nil
+	return p.infraContainerID()
 }
 
 // InfraContainer returns the infra container.
@@ -350,7 +354,6 @@ func (p *Pod) InfraContainer() (*Container, error) {
 	if !p.HasInfraContainer() {
 		return nil, errors.Wrap(define.ErrNoSuchCtr, "pod has no infra container")
 	}
-
 	id, err := p.InfraContainerID()
 	if err != nil {
 		return nil, err
@@ -419,4 +422,24 @@ func (p *Pod) ProcessLabel() (string, error) {
 		return "", err
 	}
 	return ctr.ProcessLabel(), nil
+}
+
+// initContainers returns the list of initcontainers
+// in a pod sorted by create time
+func (p *Pod) initContainers() ([]*Container, error) {
+	initCons := make([]*Container, 0)
+	// the pod is already locked when this is called
+	cons, err := p.allContainers()
+	if err != nil {
+		return nil, err
+	}
+	// Sort the pod containers by created time
+	sort.Slice(cons, func(i, j int) bool { return cons[i].CreatedTime().Before(cons[j].CreatedTime()) })
+	// Iterate sorted containers and add ids for any init containers
+	for _, c := range cons {
+		if len(c.config.InitContainerType) > 0 {
+			initCons = append(initCons, c)
+		}
+	}
+	return initCons, nil
 }
