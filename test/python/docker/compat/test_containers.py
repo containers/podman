@@ -140,7 +140,7 @@ class TestContainers(unittest.TestCase):
 
     def test_remove_container_without_force(self):
         # Validate current container count
-        self.assertTrue(len(self.client.containers.list()), 1)
+        self.assertEqual(len(self.client.containers.list()), 1)
 
         # Remove running container should throw error
         top = self.client.containers.get(TestContainers.topContainerId)
@@ -206,7 +206,6 @@ class TestContainers(unittest.TestCase):
         self.assertEqual(len(ctnrs), 1)
 
     def test_copy_to_container(self):
-        self.skipTest("FIXME: #10948 - test is broken")
         ctr: Optional[Container] = None
         try:
             test_file_content = b"Hello World!"
@@ -230,11 +229,11 @@ class TestContainers(unittest.TestCase):
             ret, out = ctr.exec_run(["stat", "-c", "%u:%g", "/tmp/a.txt"])
 
             self.assertEqual(ret, 0)
-            self.assertTrue(out.startswith(b'1042:1043'), "assert correct uid/gid")
+            self.assertEqual(out.rstrip(), b'1042:1043', "UID/GID of copied file")
 
             ret, out = ctr.exec_run(["cat", "/tmp/a.txt"])
             self.assertEqual(ret, 0)
-            self.assertTrue(out.startswith(test_file_content), "assert file content")
+            self.assertEqual(out.rstrip(), test_file_content, "Content of copied file")
         finally:
             if ctr is not None:
                 ctr.stop()
@@ -251,4 +250,4 @@ class TestContainers(unittest.TestCase):
                                                        volumes=["test_mount_preexisting_dir_vol:/workspace"])
         ctr.start()
         ret, out = ctr.exec_run(["stat", "-c", "%u:%g", "/workspace"])
-        self.assertTrue(out.startswith(b'1042:1043'), "assert correct uid/gid")
+        self.assertEqual(out.rstrip(), b'1042:1043', "UID/GID set in dockerfile")

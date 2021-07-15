@@ -27,7 +27,7 @@ class Podman(object):
         # No support for tmpfs (/tmp) or extfs (/var/tmp)
         # self.cmd.append("--storage-driver=overlay")
 
-        if os.getenv("DEBUG"):
+        if os.getenv("PODMAN_PYTHON_TEST_DEBUG"):
             self.cmd.append("--log-level=debug")
             self.cmd.append("--syslog=true")
 
