@@ -16,6 +16,7 @@ import (
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/pkg/namespaces"
 	"github.com/containers/podman/v3/pkg/rootless"
+	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
@@ -2394,6 +2395,25 @@ func WithPodCPUSetCPUs(inp string) PodCreateOption {
 			pod.config.InfraContainer.ResourceLimits.CPU = &specs.LinuxCPU{}
 			pod.config.InfraContainer.ResourceLimits.CPU.Cpus = inp
 		}
+		return nil
+	}
+}
+
+func WithPodPidNS(inp specgen.Namespace) PodCreateOption {
+	return func(p *Pod) error {
+		if p.valid {
+			return define.ErrPodFinalized
+		}
+		if p.config.UsePodPID {
+			switch inp.NSMode {
+			case "container":
+				return errors.Wrap(define.ErrInvalidArg, "Cannot take container in a different NS as an argument")
+			case "host":
+				p.config.UsePodPID = false
+			}
+			p.config.InfraContainer.PidNS = inp
+		}
+
 		return nil
 	}
 }

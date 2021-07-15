@@ -145,6 +145,18 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawIm
 		if len(p.config.InfraContainer.ExitCommand) > 0 {
 			options = append(options, WithExitCommand(p.config.InfraContainer.ExitCommand))
 		}
+
+		if p.config.UsePodPID && p.config.InfraContainer.PidNS.NSMode != "host" {
+			g.AddOrReplaceLinuxNamespace(string(spec.LinuxNamespaceType("pid")), p.config.InfraContainer.PidNS.Value)
+		} else if p.config.InfraContainer.PidNS.NSMode == "host" {
+			newNS := []spec.LinuxNamespace{}
+			for _, entry := range g.Config.Linux.Namespaces {
+				if entry.Type != spec.LinuxNamespaceType("pid") {
+					newNS = append(newNS, entry)
+				}
+			}
+			g.Config.Linux.Namespaces = newNS
+		}
 	}
 	g.SetRootReadonly(true)
 	g.SetProcessArgs(infraCtrCommand)

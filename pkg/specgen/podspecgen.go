@@ -57,6 +57,10 @@ type PodBasicConfig struct {
 	// (e.g. `podman generate systemd --new`).
 	// Optional.
 	PodCreateCommand []string `json:"pod_create_command,omitempty"`
+	// Pid sets the process id namespace of the pod
+	// Optional (defaults to private if unset). This sets the PID namespace of the infra container
+	// This configuration will then be shared with the entire pod if PID namespace sharing is enabled via --share
+	Pid Namespace `json:"pid,omitempty:"`
 }
 
 // PodNetworkConfig contains networking configuration for a pod.

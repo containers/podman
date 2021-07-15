@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/lock"
+	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -97,6 +98,7 @@ type InfraContainerConfig struct {
 	HasInfraContainer  bool                  `json:"makeInfraContainer"`
 	NoNetwork          bool                  `json:"noNetwork,omitempty"`
 	HostNetwork        bool                  `json:"infraHostNetwork,omitempty"`
+	PidNS              specgen.Namespace     `json:"infraPid,omitempty"`
 	PortBindings       []ocicni.PortMapping  `json:"infraPortBindings"`
 	StaticIP           net.IP                `json:"staticIP,omitempty"`
 	StaticMAC          net.HardwareAddr      `json:"staticMAC,omitempty"`
@@ -168,6 +170,11 @@ func (p *Pod) CPUQuota() int64 {
 		return *resCopy.CPU.Quota
 	}
 	return 0
+}
+
+// PidMode returns the PID mode given by the user ex: pod, private...
+func (p *Pod) PidMode() string {
+	return string(p.config.InfraContainer.PidNS.NSMode)
 }
 
 // Labels returns the pod's labels
