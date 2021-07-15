@@ -541,6 +541,17 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 		return nil, err
 	}
 	removeOptions := new(containers.RemoveOptions).WithVolumes(true).WithForce(false)
+	removeContainer := func(id string) {
+		if err := containers.Remove(ic.ClientCtx, id, removeOptions); err != nil {
+			if errorhandling.Contains(err, define.ErrNoSuchCtr) ||
+				errorhandling.Contains(err, define.ErrCtrRemoved) {
+				logrus.Debugf("Container %s does not exist: %v", id, err)
+			} else {
+				logrus.Errorf("Error removing container %s: %v", id, err)
+			}
+		}
+	}
+
 	// There can only be one container if attach was used
 	for i, ctr := range ctrs {
 		name := ctr.ID
@@ -568,6 +579,9 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 			}
 
 			if err != nil {
+				if ctr.AutoRemove {
+					removeContainer(ctr.ID)
+				}
 				report.ExitCode = define.ExitCode(report.Err)
 				report.Err = err
 				reports = append(reports, &report)
@@ -582,16 +596,10 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 						logrus.Errorf("Failed to check if %s should restart: %v", ctr.ID, err)
 						return
 					}
+					logrus.Errorf("Should restart: %v", shouldRestart)
 
-					if !shouldRestart {
-						if err := containers.Remove(ic.ClientCtx, ctr.ID, removeOptions); err != nil {
-							if errorhandling.Contains(err, define.ErrNoSuchCtr) ||
-								errorhandling.Contains(err, define.ErrCtrRemoved) {
-								logrus.Debugf("Container %s does not exist: %v", ctr.ID, err)
-							} else {
-								logrus.Errorf("Error removing container %s: %v", ctr.ID, err)
-							}
-						}
+					if !shouldRestart && ctr.AutoRemove {
+						removeContainer(ctr.ID)
 					}
 				}()
 			}
