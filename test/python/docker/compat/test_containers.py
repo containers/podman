@@ -226,14 +226,16 @@ class TestContainers(unittest.TestCase):
 
             buff.seek(0)
             ctr.put_archive("/tmp/", buff)
-            ret, out = ctr.exec_run(["stat", "-c", "%u:%g", "/tmp/a.txt"])
+            out: bytes
+            err: bytes
+            ret, (out, err) = ctr.exec_run(["stat", "-c", "%u:%g", "/tmp/a.txt"], demux=True)
 
             self.assertEqual(ret, 0)
-            self.assertTrue(out.startswith(b'1042:1043'), "assert correct uid/gid")
+            self.assertEqual(out, b"1042:1043\n", "assert copied file has correct uid/gid")
 
-            ret, out = ctr.exec_run(["cat", "/tmp/a.txt"])
+            ret, (out, err) = ctr.exec_run(["cat", "/tmp/a.txt"], demux=True)
             self.assertEqual(ret, 0)
-            self.assertTrue(out.startswith(test_file_content), "assert file content")
+            self.assertEqual(out, test_file_content, "assert file content")
         finally:
             if ctr is not None:
                 ctr.stop()
@@ -249,5 +251,7 @@ class TestContainers(unittest.TestCase):
         ctr: Container = self.client.containers.create(image=img.id, detach=True, command="top",
                                                        volumes=["test_mount_preexisting_dir_vol:/workspace"])
         ctr.start()
-        ret, out = ctr.exec_run(["stat", "-c", "%u:%g", "/workspace"])
-        self.assertTrue(out.startswith(b'1042:1043'), "assert correct uid/gid")
+        out: bytes
+        err: bytes
+        ret, (out, err) = ctr.exec_run(["stat", "-c", "%u:%g", "/workspace"], demux=True)
+        self.assertEqual(out, b'1042:1043\n', "assert correct uid/gid")
