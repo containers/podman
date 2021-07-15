@@ -177,6 +177,21 @@ func (r *RootlessCNI) Do(toRun func() error) error {
 		if err != nil {
 			return err
 		}
+		logrus.Debugf("The actual path of /etc/resolv.conf on the host is %q", resolvePath)
+		// When /etc/resolv.conf on the host is a symlink to /run/systemd/resolve/stub-resolv.conf,
+		// we have to mount an empty filesystem on /run/systemd/resolve in the child namespace,
+		// so as to isolate the directory from the host mount namespace.
+		//
+		// Otherwise our bind-mount for /run/systemd/resolve/stub-resolv.conf is unmounted
+		// when systemd-resolved unlinks and recreates /run/systemd/resolve/stub-resolv.conf on the host.
+		// see: https://github.com/containers/podman/issues/10929
+		if strings.HasPrefix(resolvePath, "/run/systemd/resolve/") {
+			rsr := r.getPath("/run/systemd/resolve")
+			err = unix.Mount("", rsr, "tmpfs", unix.MS_NOEXEC|unix.MS_NOSUID|unix.MS_NODEV, "")
+			if err != nil {
+				return errors.Wrapf(err, "failed to mount tmpfs on %q for rootless cni", rsr)
+			}
+		}
 		if strings.HasPrefix(resolvePath, "/run/") {
 			resolvePath = r.getPath(resolvePath)
 			err = os.MkdirAll(filepath.Dir(resolvePath), 0700)
