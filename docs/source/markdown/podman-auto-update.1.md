@@ -41,6 +41,11 @@ If the authorization state is not found there, `$HOME/.docker/config.json` is ch
 
 Note: There is also the option to override the default path of the authentication file by setting the `REGISTRY_AUTH_FILE` environment variable. This can be done with **export REGISTRY_AUTH_FILE=_path_**.
 
+#### **--dry-run**=*true|false*
+
+Check for the availability of new images but do not perform any pull operation or restart any service or container.
+The `UPDATED` field indicates the availability of a new image with "pending".
+
 #### **--format**=*format*
 
 Change the default output format.  This can be of a supported type like 'json' or a Go template.
@@ -64,7 +69,7 @@ Autoupdate with registry policy
 ### Start a container
 $ podman run --label "io.containers.autoupdate=registry" \
     --label "io.containers.autoupdate.authfile=/some/authfile.json" \
-    -d busybox:latest top
+    -d --name=test registry.fedoraproject.org/fedora:latest sleep infinity
 bc219740a210455fa27deacc96d50a9e20516492f1417507c13ce1533dbdcd9d
 
 ### Generate a systemd unit for this container
@@ -72,18 +77,23 @@ $ podman generate systemd --new --files bc219740a210455fa27deacc96d50a9e20516492
 /home/user/container-bc219740a210455fa27deacc96d50a9e20516492f1417507c13ce1533dbdcd9d.service
 
 ### Load the new systemd unit and start it
-$ mv ./container-bc219740a210455fa27deacc96d50a9e20516492f1417507c13ce1533dbdcd9d.service ~/.config/systemd/user
+$ mv ./container-bc219740a210455fa27deacc96d50a9e20516492f1417507c13ce1533dbdcd9d.service ~/.config/systemd/user/container-test.service
 $ systemctl --user daemon-reload
 
 ### If the previously created containers or pods are using shared resources, such as ports, make sure to remove them before starting the generated systemd units.
 $ podman stop bc219740a210455fa27deacc96d50a9e20516492f1417507c13ce1533dbdcd9d
 $ podman rm bc219740a210455fa27deacc96d50a9e20516492f1417507c13ce1533dbdcd9d
 
-$ systemctl --user start container-bc219740a210455fa27deacc96d50a9e20516492f1417507c13ce1533dbdcd9d.service
+$ systemctl --user start container-test.service
 
-### Auto-update the container
+### Check if a newer image is available
+$ podman auto-update --dry-run --format "{{.Image}} {{.Updated}}"
+registry.fedoraproject.org/fedora:latest   pending
+
+### Autoupdate the services
 $ podman auto-update
-[...]
+UNIT                    CONTAINER            IMAGE                                     POLICY      UPDATED
+container-test.service  08fd34e533fd (test)  registry.fedoraproject.org/fedora:latest  registry    false
 ```
 
 Autoupdate with local policy
