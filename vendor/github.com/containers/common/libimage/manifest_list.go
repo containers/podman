@@ -78,7 +78,6 @@ func (r *Runtime) LookupManifestList(name string) (*ManifestList, error) {
 
 func (r *Runtime) lookupManifestList(name string) (*Image, manifests.List, error) {
 	lookupOptions := &LookupImageOptions{
-		IgnorePlatform: true,
 		lookupManifest: true,
 	}
 	image, _, err := r.LookupImage(name, lookupOptions)
