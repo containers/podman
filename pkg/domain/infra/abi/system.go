@@ -403,6 +403,8 @@ func (ic *ContainerEngine) Unshare(ctx context.Context, args []string, options e
 		if err != nil {
 			return err
 		}
+		// make sure to unlock, unshare can run for a long time
+		rootlesscni.Lock.Unlock()
 		defer rootlesscni.Cleanup(ic.Libpod)
 		return rootlesscni.Do(unshare)
 	}
