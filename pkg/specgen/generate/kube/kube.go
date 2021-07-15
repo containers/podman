@@ -12,6 +12,7 @@ import (
 	"github.com/containers/common/pkg/parse"
 	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/podman/v3/libpod/network/types"
 	ann "github.com/containers/podman/v3/pkg/annotations"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/specgen/generate"
@@ -588,8 +589,8 @@ func envVarValue(env v1.EnvVar, opts *CtrSpecGenOptions) (string, error) {
 
 // getPodPorts converts a slice of kube container descriptions to an
 // array of portmapping
-func getPodPorts(containers []v1.Container) []specgen.PortMapping {
-	var infraPorts []specgen.PortMapping
+func getPodPorts(containers []v1.Container) []types.PortMapping {
+	var infraPorts []types.PortMapping
 	for _, container := range containers {
 		for _, p := range container.Ports {
 			if p.HostPort != 0 && p.ContainerPort == 0 {
@@ -598,7 +599,7 @@ func getPodPorts(containers []v1.Container) []specgen.PortMapping {
 			if p.Protocol == "" {
 				p.Protocol = "tcp"
 			}
-			portBinding := specgen.PortMapping{
+			portBinding := types.PortMapping{
 				HostPort:      uint16(p.HostPort),
 				ContainerPort: uint16(p.ContainerPort),
 				Protocol:      strings.ToLower(string(p.Protocol)),

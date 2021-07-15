@@ -6,6 +6,7 @@ import (
 	buildahDefine "github.com/containers/buildah/define"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/storage/pkg/archive"
 )
@@ -40,7 +41,7 @@ type NetOptions struct {
 	DNSServers         []net.IP
 	Network            specgen.Namespace
 	NoHosts            bool
-	PublishPorts       []specgen.PortMapping
+	PublishPorts       []types.PortMapping
 	StaticIP           *net.IP
 	StaticMAC          *net.HardwareAddr
 	// NetworkOptions are additional options for each network
