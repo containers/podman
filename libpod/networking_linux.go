@@ -108,7 +108,7 @@ func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, port
 type RootlessCNI struct {
 	ns   ns.NetNS
 	dir  string
-	lock lockfile.Locker
+	Lock lockfile.Locker
 }
 
 // getPath will join the given path to the rootless cni dir
@@ -249,16 +249,17 @@ func (r *RootlessCNI) Do(toRun func() error) error {
 	return err
 }
 
-// Cleanup the rootless cni namespace if needed
-// check if we have running containers with the bridge network mode
+// Cleanup the rootless cni namespace if needed.
+// It checks if we have running containers with the bridge network mode.
+// Cleanup() will try to lock RootlessCNI, therefore you have to call it with an unlocked
 func (r *RootlessCNI) Cleanup(runtime *Runtime) error {
 	_, err := os.Stat(r.dir)
 	if os.IsNotExist(err) {
 		// the directory does not exists no need for cleanup
 		return nil
 	}
-	r.lock.Lock()
-	defer r.lock.Unlock()
+	r.Lock.Lock()
+	defer r.Lock.Unlock()
 	running := func(c *Container) bool {
 		// we cannot use c.state() because it will try to lock the container
 		// using c.state.State directly should be good enough for this use case
@@ -316,205 +317,216 @@ func (r *RootlessCNI) Cleanup(runtime *Runtime) error {
 
 // GetRootlessCNINetNs returns the rootless cni object. If create is set to true
 // the rootless cni namespace will be created if it does not exists already.
+// If called as root it returns always nil.
+// On success the returned RootlessCNI lock is locked and must be unlocked by the caller.
 func (r *Runtime) GetRootlessCNINetNs(new bool) (*RootlessCNI, error) {
+	if !rootless.IsRootless() {
+		return nil, nil
+	}
 	var rootlessCNINS *RootlessCNI
-	if rootless.IsRootless() {
-		runDir, err := util.GetRuntimeDir()
-		if err != nil {
-			return nil, err
+	runDir, err := util.GetRuntimeDir()
+	if err != nil {
+		return nil, err
+	}
+
+	lfile := filepath.Join(runDir, "rootless-cni.lock")
+	lock, err := lockfile.GetLockfile(lfile)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get rootless-cni lockfile")
+	}
+	lock.Lock()
+	defer func() {
+		// In case of an error (early exit) rootlessCNINS will be nil.
+		// Make sure to unlock otherwise we could deadlock.
+		if rootlessCNINS == nil {
+			lock.Unlock()
 		}
-		cniDir := filepath.Join(runDir, "rootless-cni")
-		err = os.MkdirAll(cniDir, 0700)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not create rootless-cni directory")
+	}()
+
+	cniDir := filepath.Join(runDir, "rootless-cni")
+	err = os.MkdirAll(cniDir, 0700)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not create rootless-cni directory")
+	}
+
+	nsDir, err := netns.GetNSRunDir()
+	if err != nil {
+		return nil, err
+	}
+	path := filepath.Join(nsDir, rootlessCNINSName)
+	ns, err := ns.GetNS(path)
+	if err != nil {
+		if !new {
+			// return a error if we could not get the namespace and should no create one
+			return nil, errors.Wrap(err, "error getting rootless cni network namespace")
 		}
-
-		lfile := filepath.Join(cniDir, "rootless-cni.lck")
-		lock, err := lockfile.GetLockfile(lfile)
+		// create a new namespace
+		logrus.Debug("creating rootless cni network namespace")
+		ns, err = netns.NewNSWithName(rootlessCNINSName)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get rootless-cni lockfile")
+			return nil, errors.Wrap(err, "error creating rootless cni network namespace")
 		}
-		lock.Lock()
-		defer lock.Unlock()
-
-		nsDir, err := netns.GetNSRunDir()
-		if err != nil {
-			return nil, err
-		}
-		path := filepath.Join(nsDir, rootlessCNINSName)
-		ns, err := ns.GetNS(path)
-		if err != nil {
-			if new {
-				// create a new namespace
-				logrus.Debug("creating rootless cni network namespace")
-				ns, err = netns.NewNSWithName(rootlessCNINSName)
-				if err != nil {
-					return nil, errors.Wrap(err, "error creating rootless cni network namespace")
-				}
-				// setup slirp4netns here
-				path := r.config.Engine.NetworkCmdPath
-				if path == "" {
-					var err error
-					path, err = exec.LookPath("slirp4netns")
-					if err != nil {
-						return nil, err
-					}
-				}
-
-				syncR, syncW, err := os.Pipe()
-				if err != nil {
-					return nil, errors.Wrapf(err, "failed to open pipe")
-				}
-				defer errorhandling.CloseQuiet(syncR)
-				defer errorhandling.CloseQuiet(syncW)
-
-				netOptions, err := parseSlirp4netnsNetworkOptions(r, nil)
-				if err != nil {
-					return nil, err
-				}
-				slirpFeatures, err := checkSlirpFlags(path)
-				if err != nil {
-					return nil, errors.Wrapf(err, "error checking slirp4netns binary %s: %q", path, err)
-				}
-				cmdArgs, err := createBasicSlirp4netnsCmdArgs(netOptions, slirpFeatures)
-				if err != nil {
-					return nil, err
-				}
-				// Note we do not use --exit-fd, we kill this process by pid
-				cmdArgs = append(cmdArgs, "-c", "-r", "3")
-				cmdArgs = append(cmdArgs, "--netns-type=path", ns.Path(), "tap0")
-
-				cmd := exec.Command(path, cmdArgs...)
-				logrus.Debugf("slirp4netns command: %s", strings.Join(cmd.Args, " "))
-				cmd.SysProcAttr = &syscall.SysProcAttr{
-					Setpgid: true,
-				}
-
-				// workaround for https://github.com/rootless-containers/slirp4netns/pull/153
-				if !netOptions.noPivotRoot && slirpFeatures.HasEnableSandbox {
-					cmd.SysProcAttr.Cloneflags = syscall.CLONE_NEWNS
-					cmd.SysProcAttr.Unshareflags = syscall.CLONE_NEWNS
-				}
-
-				// Leak one end of the pipe in slirp4netns
-				cmd.ExtraFiles = append(cmd.ExtraFiles, syncW)
-
-				logPath := filepath.Join(r.config.Engine.TmpDir, "slirp4netns-rootless-cni.log")
-				logFile, err := os.Create(logPath)
-				if err != nil {
-					return nil, errors.Wrapf(err, "failed to open slirp4netns log file %s", logPath)
-				}
-				defer logFile.Close()
-				// Unlink immediately the file so we won't need to worry about cleaning it up later.
-				// It is still accessible through the open fd logFile.
-				if err := os.Remove(logPath); err != nil {
-					return nil, errors.Wrapf(err, "delete file %s", logPath)
-				}
-				cmd.Stdout = logFile
-				cmd.Stderr = logFile
-				if err := cmd.Start(); err != nil {
-					return nil, errors.Wrapf(err, "failed to start slirp4netns process")
-				}
-				// create pid file for the slirp4netns process
-				// this is need to kill the process in the cleanup
-				pid := strconv.Itoa(cmd.Process.Pid)
-				err = ioutil.WriteFile(filepath.Join(cniDir, "rootless-cni-slirp4netns.pid"), []byte(pid), 0700)
-				if err != nil {
-					errors.Wrap(err, "unable to write rootless-cni slirp4netns pid file")
-				}
-
-				defer func() {
-					if err := cmd.Process.Release(); err != nil {
-						logrus.Errorf("unable to release command process: %q", err)
-					}
-				}()
-
-				if err := waitForSync(syncR, cmd, logFile, 1*time.Second); err != nil {
-					return nil, err
-				}
-
-				// build a new resolv.conf file which uses the slirp4netns dns server address
-				resolveIP, err := GetSlirp4netnsDNS(nil)
-				if err != nil {
-					return nil, errors.Wrap(err, "failed to determine default slirp4netns DNS address")
-				}
-
-				if netOptions.cidr != "" {
-					_, cidr, err := net.ParseCIDR(netOptions.cidr)
-					if err != nil {
-						return nil, errors.Wrap(err, "failed to parse slirp4netns cidr")
-					}
-					resolveIP, err = GetSlirp4netnsDNS(cidr)
-					if err != nil {
-						return nil, errors.Wrapf(err, "failed to determine slirp4netns DNS address from cidr: %s", cidr.String())
-					}
-				}
-				conf, err := resolvconf.Get()
-				if err != nil {
-					return nil, err
-				}
-				conf, err = resolvconf.FilterResolvDNS(conf.Content, netOptions.enableIPv6, true)
-				if err != nil {
-					return nil, err
-				}
-				searchDomains := resolvconf.GetSearchDomains(conf.Content)
-				dnsOptions := resolvconf.GetOptions(conf.Content)
-				nameServers := resolvconf.GetNameservers(conf.Content)
-
-				_, err = resolvconf.Build(filepath.Join(cniDir, "resolv.conf"), append([]string{resolveIP.String()}, nameServers...), searchDomains, dnsOptions)
-				if err != nil {
-					return nil, errors.Wrap(err, "failed to create rootless cni resolv.conf")
-				}
-
-				// create cni directories to store files
-				// they will be bind mounted to the correct location in a extra mount ns
-				err = os.MkdirAll(filepath.Join(cniDir, strings.TrimPrefix(persistentCNIDir, "/")), 0700)
-				if err != nil {
-					return nil, errors.Wrap(err, "could not create rootless-cni var directory")
-				}
-				runDir := filepath.Join(cniDir, "run")
-				err = os.MkdirAll(runDir, 0700)
-				if err != nil {
-					return nil, errors.Wrap(err, "could not create rootless-cni run directory")
-				}
-				// relabel the new run directory to the iptables /run label
-				// this is important, otherwise the iptables command will fail
-				err = label.Relabel(runDir, "system_u:object_r:iptables_var_run_t:s0", false)
-				if err != nil {
-					return nil, errors.Wrap(err, "could not create relabel rootless-cni run directory")
-				}
-				// create systemd run directory
-				err = os.MkdirAll(filepath.Join(runDir, "systemd"), 0700)
-				if err != nil {
-					return nil, errors.Wrap(err, "could not create rootless-cni systemd directory")
-				}
-				// create the directory for the netns files at the same location
-				// relative to the rootless-cni location
-				err = os.MkdirAll(filepath.Join(cniDir, nsDir), 0700)
-				if err != nil {
-					return nil, errors.Wrap(err, "could not create rootless-cni netns directory")
-				}
-			} else {
-				// return a error if we could not get the namespace and should no create one
-				return nil, errors.Wrap(err, "error getting rootless cni network namespace")
+		// setup slirp4netns here
+		path := r.config.Engine.NetworkCmdPath
+		if path == "" {
+			var err error
+			path, err = exec.LookPath("slirp4netns")
+			if err != nil {
+				return nil, err
 			}
 		}
 
-		// The CNI plugins need access to iptables in $PATH. As it turns out debian doesn't put
-		// /usr/sbin in $PATH for rootless users. This will break rootless cni completely.
-		// We might break existing users and we cannot expect everyone to change their $PATH so
-		// lets add /usr/sbin to $PATH ourselves.
-		path = os.Getenv("PATH")
-		if !strings.Contains(path, "/usr/sbin") {
-			path = path + ":/usr/sbin"
-			os.Setenv("PATH", path)
+		syncR, syncW, err := os.Pipe()
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to open pipe")
+		}
+		defer errorhandling.CloseQuiet(syncR)
+		defer errorhandling.CloseQuiet(syncW)
+
+		netOptions, err := parseSlirp4netnsNetworkOptions(r, nil)
+		if err != nil {
+			return nil, err
+		}
+		slirpFeatures, err := checkSlirpFlags(path)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error checking slirp4netns binary %s: %q", path, err)
+		}
+		cmdArgs, err := createBasicSlirp4netnsCmdArgs(netOptions, slirpFeatures)
+		if err != nil {
+			return nil, err
+		}
+		// Note we do not use --exit-fd, we kill this process by pid
+		cmdArgs = append(cmdArgs, "-c", "-r", "3")
+		cmdArgs = append(cmdArgs, "--netns-type=path", ns.Path(), "tap0")
+
+		cmd := exec.Command(path, cmdArgs...)
+		logrus.Debugf("slirp4netns command: %s", strings.Join(cmd.Args, " "))
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			Setpgid: true,
 		}
 
-		rootlessCNINS = &RootlessCNI{
-			ns:   ns,
-			dir:  cniDir,
-			lock: lock,
+		// workaround for https://github.com/rootless-containers/slirp4netns/pull/153
+		if !netOptions.noPivotRoot && slirpFeatures.HasEnableSandbox {
+			cmd.SysProcAttr.Cloneflags = syscall.CLONE_NEWNS
+			cmd.SysProcAttr.Unshareflags = syscall.CLONE_NEWNS
 		}
+
+		// Leak one end of the pipe in slirp4netns
+		cmd.ExtraFiles = append(cmd.ExtraFiles, syncW)
+
+		logPath := filepath.Join(r.config.Engine.TmpDir, "slirp4netns-rootless-cni.log")
+		logFile, err := os.Create(logPath)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to open slirp4netns log file %s", logPath)
+		}
+		defer logFile.Close()
+		// Unlink immediately the file so we won't need to worry about cleaning it up later.
+		// It is still accessible through the open fd logFile.
+		if err := os.Remove(logPath); err != nil {
+			return nil, errors.Wrapf(err, "delete file %s", logPath)
+		}
+		cmd.Stdout = logFile
+		cmd.Stderr = logFile
+		if err := cmd.Start(); err != nil {
+			return nil, errors.Wrapf(err, "failed to start slirp4netns process")
+		}
+		// create pid file for the slirp4netns process
+		// this is need to kill the process in the cleanup
+		pid := strconv.Itoa(cmd.Process.Pid)
+		err = ioutil.WriteFile(filepath.Join(cniDir, "rootless-cni-slirp4netns.pid"), []byte(pid), 0700)
+		if err != nil {
+			errors.Wrap(err, "unable to write rootless-cni slirp4netns pid file")
+		}
+
+		defer func() {
+			if err := cmd.Process.Release(); err != nil {
+				logrus.Errorf("unable to release command process: %q", err)
+			}
+		}()
+
+		if err := waitForSync(syncR, cmd, logFile, 1*time.Second); err != nil {
+			return nil, err
+		}
+
+		// build a new resolv.conf file which uses the slirp4netns dns server address
+		resolveIP, err := GetSlirp4netnsDNS(nil)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to determine default slirp4netns DNS address")
+		}
+
+		if netOptions.cidr != "" {
+			_, cidr, err := net.ParseCIDR(netOptions.cidr)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to parse slirp4netns cidr")
+			}
+			resolveIP, err = GetSlirp4netnsDNS(cidr)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to determine slirp4netns DNS address from cidr: %s", cidr.String())
+			}
+		}
+		conf, err := resolvconf.Get()
+		if err != nil {
+			return nil, err
+		}
+		conf, err = resolvconf.FilterResolvDNS(conf.Content, netOptions.enableIPv6, true)
+		if err != nil {
+			return nil, err
+		}
+		searchDomains := resolvconf.GetSearchDomains(conf.Content)
+		dnsOptions := resolvconf.GetOptions(conf.Content)
+		nameServers := resolvconf.GetNameservers(conf.Content)
+
+		_, err = resolvconf.Build(filepath.Join(cniDir, "resolv.conf"), append([]string{resolveIP.String()}, nameServers...), searchDomains, dnsOptions)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to create rootless cni resolv.conf")
+		}
+
+		// create cni directories to store files
+		// they will be bind mounted to the correct location in a extra mount ns
+		err = os.MkdirAll(filepath.Join(cniDir, strings.TrimPrefix(persistentCNIDir, "/")), 0700)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not create rootless-cni var directory")
+		}
+		runDir := filepath.Join(cniDir, "run")
+		err = os.MkdirAll(runDir, 0700)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not create rootless-cni run directory")
+		}
+		// relabel the new run directory to the iptables /run label
+		// this is important, otherwise the iptables command will fail
+		err = label.Relabel(runDir, "system_u:object_r:iptables_var_run_t:s0", false)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not create relabel rootless-cni run directory")
+		}
+		// create systemd run directory
+		err = os.MkdirAll(filepath.Join(runDir, "systemd"), 0700)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not create rootless-cni systemd directory")
+		}
+		// create the directory for the netns files at the same location
+		// relative to the rootless-cni location
+		err = os.MkdirAll(filepath.Join(cniDir, nsDir), 0700)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not create rootless-cni netns directory")
+		}
+	}
+
+	// The CNI plugins need access to iptables in $PATH. As it turns out debian doesn't put
+	// /usr/sbin in $PATH for rootless users. This will break rootless cni completely.
+	// We might break existing users and we cannot expect everyone to change their $PATH so
+	// lets add /usr/sbin to $PATH ourselves.
+	path = os.Getenv("PATH")
+	if !strings.Contains(path, "/usr/sbin") {
+		path = path + ":/usr/sbin"
+		os.Setenv("PATH", path)
+	}
+
+	// Important set rootlessCNINS as last step.
+	// Do not return any errors after this.
+	rootlessCNINS = &RootlessCNI{
+		ns:   ns,
+		dir:  cniDir,
+		Lock: lock,
 	}
 	return rootlessCNINS, nil
 }
@@ -563,9 +575,8 @@ func (r *Runtime) setUpOCICNIPod(podNetwork ocicni.PodNetwork) ([]ocicni.NetResu
 	// rootlessCNINS is nil if we are root
 	if rootlessCNINS != nil {
 		// execute the cni setup in the rootless net ns
-		rootlessCNINS.lock.Lock()
 		err = rootlessCNINS.Do(setUpPod)
-		rootlessCNINS.lock.Unlock()
+		rootlessCNINS.Lock.Unlock()
 	} else {
 		err = setUpPod()
 	}
@@ -777,9 +788,8 @@ func (r *Runtime) teardownOCICNIPod(podNetwork ocicni.PodNetwork) error {
 	// rootlessCNINS is nil if we are root
 	if rootlessCNINS != nil {
 		// execute the cni setup in the rootless net ns
-		rootlessCNINS.lock.Lock()
 		err = rootlessCNINS.Do(tearDownPod)
-		rootlessCNINS.lock.Unlock()
+		rootlessCNINS.Lock.Unlock()
 		if err == nil {
 			err = rootlessCNINS.Cleanup(r)
 		}
