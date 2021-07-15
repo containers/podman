@@ -237,7 +237,7 @@ port like 8080.
 $ podman run -dt --name webserver -p 8080:80 quay.io/libpod/banner
 17ea33ccd7f55ff45766b3ec596b990a5f2ba66eb9159cb89748a85dc3cebfe0
 ```
-Because rootfull containers cannot communicate with each other directly with TCP/IP
+Because rootless containers cannot communicate with each other directly with TCP/IP
 via IP addresses, the host and the port mapping are used.  To do so, the IP address
 of the host (interface) must be known.
 ```
