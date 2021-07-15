@@ -851,7 +851,7 @@ EOF
     run_podman rmi -f build_test
 }
 
-@test "podman build -f test " {
+@test "podman build -f test" {
     tmpdir=$PODMAN_TMPDIR/build-test
     subdir=$tmpdir/subdir
     mkdir -p $subdir
@@ -875,6 +875,44 @@ EOF
     run_podman build -t build_test -f $containerfile1 -f $containerfile2 $tmpdir
     is "$output" ".*$IMAGE" "Containerfile2 is also passed to server"
     run_podman rmi -f build_test
+}
+
+@test "podman build .dockerignore failure test" {
+    tmpdir=$PODMAN_TMPDIR/build-test
+    subdir=$tmpdir/subdir
+    mkdir -p $subdir
+
+    cat >$tmpdir/.dockerignore <<EOF
+*
+subdir
+!*/sub1*
+EOF
+    cat >$tmpdir/Containerfile <<EOF
+FROM $IMAGE
+COPY ./ ./
+COPY subdir ./
+EOF
+    run_podman 125 build -t build_test $tmpdir
+    is "$output" ".*Error: error building at STEP \"COPY subdir ./\"" ".dockerignore was ignored"
+}
+
+@test "podman build .containerignore and .dockerignore test" {
+    tmpdir=$PODMAN_TMPDIR/build-test
+    mkdir -p $tmpdir
+    touch $tmpdir/test1 $tmpdir/test2
+    cat >$tmpdir/.containerignore <<EOF
+test2*
+EOF
+    cat >$tmpdir/.dockerignore <<EOF
+test1*
+EOF
+    cat >$tmpdir/Containerfile <<EOF
+FROM $IMAGE
+COPY ./ /tmp/test/
+RUN ls /tmp/test/
+EOF
+    run_podman build -t build_test $tmpdir
+    is "$output" ".*test1" "test1 should exists in the final image"
 }
 
 function teardown() {

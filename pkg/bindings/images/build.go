@@ -302,7 +302,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	tarContent := []string{options.ContextDirectory}
 	newContainerFiles := []string{}
 
-	dontexcludes := []string{"!Dockerfile", "!Containerfile"}
+	dontexcludes := []string{"!Dockerfile", "!Containerfile", "!.dockerignore", "!.containerignore"}
 	for _, c := range containerFiles {
 		if c == "/dev/stdin" {
 			content, err := ioutil.ReadAll(os.Stdin)
@@ -550,9 +550,13 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 }
 
 func parseDockerignore(root string) ([]string, error) {
-	ignore, err := ioutil.ReadFile(filepath.Join(root, ".dockerignore"))
-	if err != nil && !os.IsNotExist(err) {
-		return nil, errors.Wrapf(err, "error reading .dockerignore: '%s'", root)
+	ignore, err := ioutil.ReadFile(filepath.Join(root, ".containerignore"))
+	if err != nil {
+		var dockerIgnoreErr error
+		ignore, dockerIgnoreErr = ioutil.ReadFile(filepath.Join(root, ".dockerignore"))
+		if dockerIgnoreErr != nil && !os.IsNotExist(dockerIgnoreErr) {
+			return nil, errors.Wrapf(err, "error reading .containerignore: '%s'", root)
+		}
 	}
 	rawexcludes := strings.Split(string(ignore), "\n")
 	excludes := make([]string, 0, len(rawexcludes))
