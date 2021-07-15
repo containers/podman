@@ -7,6 +7,7 @@ import (
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var pruneImage = fmt.Sprintf(`
@@ -42,20 +43,20 @@ var _ = Describe("Podman prune", func() {
 	It("podman container prune containers", func() {
 		top := podmanTest.RunTopContainer("")
 		top.WaitWithDefaultTimeout()
-		Expect(top.ExitCode()).To(Equal(0))
+		Expect(top).Should(Exit(0))
 
 		top = podmanTest.RunTopContainer("")
 		top.WaitWithDefaultTimeout()
-		Expect(top.ExitCode()).To(Equal(0))
+		Expect(top).Should(Exit(0))
 		cid := top.OutputToString()
 
 		stop := podmanTest.Podman([]string{"stop", cid})
 		stop.WaitWithDefaultTimeout()
-		Expect(stop.ExitCode()).To(Equal(0))
+		Expect(stop).Should(Exit(0))
 
 		prune := podmanTest.Podman([]string{"container", "prune", "-f"})
 		prune.WaitWithDefaultTimeout()
-		Expect(prune.ExitCode()).To(Equal(0))
+		Expect(prune).Should(Exit(0))
 
 		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
 	})
@@ -63,11 +64,11 @@ var _ = Describe("Podman prune", func() {
 	It("podman container prune after create containers", func() {
 		create := podmanTest.Podman([]string{"create", "--name", "test", BB})
 		create.WaitWithDefaultTimeout()
-		Expect(create.ExitCode()).To(Equal(0))
+		Expect(create).Should(Exit(0))
 
 		prune := podmanTest.Podman([]string{"container", "prune", "-f"})
 		prune.WaitWithDefaultTimeout()
-		Expect(prune.ExitCode()).To(Equal(0))
+		Expect(prune).Should(Exit(0))
 
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
 	})
@@ -75,15 +76,15 @@ var _ = Describe("Podman prune", func() {
 	It("podman container prune after create & init containers", func() {
 		create := podmanTest.Podman([]string{"create", "--name", "test", BB})
 		create.WaitWithDefaultTimeout()
-		Expect(create.ExitCode()).To(Equal(0))
+		Expect(create).Should(Exit(0))
 
 		init := podmanTest.Podman([]string{"init", "test"})
 		init.WaitWithDefaultTimeout()
-		Expect(init.ExitCode()).To(Equal(0))
+		Expect(init).Should(Exit(0))
 
 		prune := podmanTest.Podman([]string{"container", "prune", "-f"})
 		prune.WaitWithDefaultTimeout()
-		Expect(prune.ExitCode()).To(Equal(0))
+		Expect(prune).Should(Exit(0))
 
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
 	})
@@ -91,7 +92,7 @@ var _ = Describe("Podman prune", func() {
 	It("podman image prune - remove only dangling images", func() {
 		session := podmanTest.Podman([]string{"images", "-a"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		hasNone, _ := session.GrepString("<none>")
 		Expect(hasNone).To(BeFalse())
 		numImages := len(session.OutputToStringArray())
@@ -99,14 +100,14 @@ var _ = Describe("Podman prune", func() {
 		// Since there's no dangling image, none should be removed.
 		session = podmanTest.Podman([]string{"image", "prune", "-f"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(0))
 
 		// Let's be extra sure that the same number of images is
 		// reported.
 		session = podmanTest.Podman([]string{"images", "-a"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(numImages))
 
 		// Now build a new image with dangling intermediate images.
@@ -114,7 +115,7 @@ var _ = Describe("Podman prune", func() {
 
 		session = podmanTest.Podman([]string{"images", "-a"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		hasNone, _ = session.GrepString("<none>")
 		Expect(hasNone).To(BeTrue()) // ! we have dangling ones
 		numImages = len(session.OutputToStringArray())
@@ -123,7 +124,7 @@ var _ = Describe("Podman prune", func() {
 		// remove them.
 		session = podmanTest.Podman([]string{"image", "prune", "-f"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		numPrunedImages := len(session.OutputToStringArray())
 		Expect(numPrunedImages >= 1).To(BeTrue())
 
@@ -131,7 +132,7 @@ var _ = Describe("Podman prune", func() {
 		// been removed.
 		session = podmanTest.Podman([]string{"images", "-a"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(numImages - numPrunedImages))
 	})
 
@@ -140,17 +141,17 @@ var _ = Describe("Podman prune", func() {
 
 		none := podmanTest.Podman([]string{"images", "-a"})
 		none.WaitWithDefaultTimeout()
-		Expect(none.ExitCode()).To(Equal(0))
+		Expect(none).Should(Exit(0))
 		hasNone, _ := none.GrepString("<none>")
 		Expect(hasNone).To(BeTrue())
 
 		prune := podmanTest.Podman([]string{"image", "prune", "-f"})
 		prune.WaitWithDefaultTimeout()
-		Expect(prune.ExitCode()).To(Equal(0))
+		Expect(prune).Should(Exit(0))
 
 		after := podmanTest.Podman([]string{"images", "-a"})
 		after.WaitWithDefaultTimeout()
-		Expect(none.ExitCode()).To(Equal(0))
+		Expect(none).Should(Exit(0))
 		// Check if all "dangling" images were pruned.
 		hasNoneAfter, _ := after.GrepString("<none>")
 		Expect(hasNoneAfter).To(BeFalse())
@@ -162,18 +163,18 @@ var _ = Describe("Podman prune", func() {
 		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
 		none := podmanTest.Podman([]string{"images", "-a"})
 		none.WaitWithDefaultTimeout()
-		Expect(none.ExitCode()).To(Equal(0))
+		Expect(none).Should(Exit(0))
 		hasNone, result := none.GrepString("<none>")
 		Expect(len(result)).To(Equal(2))
 		Expect(hasNone).To(BeTrue())
 
 		prune := podmanTest.Podman([]string{"image", "prune", "-f"})
 		prune.WaitWithDefaultTimeout()
-		Expect(prune.ExitCode()).To(Equal(0))
+		Expect(prune).Should(Exit(0))
 
 		after := podmanTest.Podman([]string{"images", "-a"})
 		after.WaitWithDefaultTimeout()
-		Expect(none.ExitCode()).To(Equal(0))
+		Expect(none).Should(Exit(0))
 		hasNoneAfter, result := none.GrepString("<none>")
 		Expect(hasNoneAfter).To(BeTrue())
 		Expect(len(after.OutputToStringArray()) > 1).To(BeTrue())
@@ -186,15 +187,15 @@ var _ = Describe("Podman prune", func() {
 
 		images := podmanTest.Podman([]string{"images", "-a"})
 		images.WaitWithDefaultTimeout()
-		Expect(images.ExitCode()).To(Equal(0))
+		Expect(images).Should(Exit(0))
 
 		prune := podmanTest.Podman([]string{"image", "prune", "-af"})
 		prune.WaitWithDefaultTimeout()
-		Expect(prune.ExitCode()).To(Equal(0))
+		Expect(prune).Should(Exit(0))
 
 		images = podmanTest.Podman([]string{"images", "-aq"})
 		images.WaitWithDefaultTimeout()
-		Expect(images.ExitCode()).To(Equal(0))
+		Expect(images).Should(Exit(0))
 		// all images are unused, so they all should be deleted!
 		Expect(len(images.OutputToStringArray())).To(Equal(len(CACHE_IMAGES)))
 	})
@@ -204,7 +205,7 @@ var _ = Describe("Podman prune", func() {
 		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
 		prune := podmanTest.Podman([]string{"system", "prune", "-a", "--force"})
 		prune.WaitWithDefaultTimeout()
-		Expect(prune.ExitCode()).To(Equal(0))
+		Expect(prune).Should(Exit(0))
 
 		images := podmanTest.Podman([]string{"images", "-aq"})
 		images.WaitWithDefaultTimeout()
@@ -215,63 +216,63 @@ var _ = Describe("Podman prune", func() {
 	It("podman system prune pods", func() {
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		podid1 := session.OutputToString()
 
 		session = podmanTest.Podman([]string{"pod", "start", podid1})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"pod", "stop", podid1})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		pods := podmanTest.Podman([]string{"pod", "ps"})
 		pods.WaitWithDefaultTimeout()
-		Expect(pods.ExitCode()).To(Equal(0))
+		Expect(pods).Should(Exit(0))
 		Expect(len(pods.OutputToStringArray())).To(Equal(3))
 
 		prune := podmanTest.Podman([]string{"system", "prune", "-f"})
 		prune.WaitWithDefaultTimeout()
-		Expect(prune.ExitCode()).To(Equal(0))
+		Expect(prune).Should(Exit(0))
 
 		pods = podmanTest.Podman([]string{"pod", "ps"})
 		pods.WaitWithDefaultTimeout()
-		Expect(pods.ExitCode()).To(Equal(0))
+		Expect(pods).Should(Exit(0))
 		Expect(len(pods.OutputToStringArray())).To(Equal(2))
 	})
 
 	It("podman system prune - pod,container stopped", func() {
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		podid1 := session.OutputToString()
 
 		// Start and stop a pod to get it in exited state.
 		session = podmanTest.Podman([]string{"pod", "start", podid1})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"pod", "stop", podid1})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		// Create a container. This container should be pruned.
 		create := podmanTest.Podman([]string{"create", "--name", "test", BB})
 		create.WaitWithDefaultTimeout()
-		Expect(create.ExitCode()).To(Equal(0))
+		Expect(create).Should(Exit(0))
 
 		prune := podmanTest.Podman([]string{"system", "prune", "-f"})
 		prune.WaitWithDefaultTimeout()
-		Expect(prune.ExitCode()).To(Equal(0))
+		Expect(prune).Should(Exit(0))
 
 		pods := podmanTest.Podman([]string{"pod", "ps"})
 		pods.WaitWithDefaultTimeout()
-		Expect(pods.ExitCode()).To(Equal(0))
+		Expect(pods).Should(Exit(0))
 		Expect(podmanTest.NumberOfPods()).To(Equal(0))
 
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
@@ -281,26 +282,26 @@ var _ = Describe("Podman prune", func() {
 		// Start and stop a pod to get it in exited state.
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		podid1 := session.OutputToString()
 
 		session = podmanTest.Podman([]string{"pod", "start", podid1})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"pod", "stop", podid1})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		// Start a pod and leave it running
 		session = podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		podid2 := session.OutputToString()
 
 		session = podmanTest.Podman([]string{"pod", "start", podid2})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		// Number of pod should be 2. One exited one running.
 		Expect(podmanTest.NumberOfPods()).To(Equal(2))
@@ -321,25 +322,25 @@ var _ = Describe("Podman prune", func() {
 		// Adding unused volume should be pruned
 		session = podmanTest.Podman([]string{"volume", "create"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"create", "-v", "myvol:/myvol", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"volume", "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(3))
 
 		session = podmanTest.Podman([]string{"system", "prune", "--force", "--volumes"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		// Volumes should be pruned.
 		session = podmanTest.Podman([]string{"volume", "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(0))
 
 		// One Pod should not be pruned as it was running
@@ -357,35 +358,35 @@ var _ = Describe("Podman prune", func() {
 	It("podman system prune - with dangling images true", func() {
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		podid1 := session.OutputToString()
 
 		// Start and stop a pod to get it in exited state.
 		session = podmanTest.Podman([]string{"pod", "start", podid1})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"pod", "stop", podid1})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		// Create a container. This container should be pruned.
 		create := podmanTest.Podman([]string{"create", "--name", "test", BB})
 		create.WaitWithDefaultTimeout()
-		Expect(create.ExitCode()).To(Equal(0))
+		Expect(create).Should(Exit(0))
 
 		// Adding unused volume should not be pruned as volumes not set
 		session = podmanTest.Podman([]string{"volume", "create"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		prune := podmanTest.Podman([]string{"system", "prune", "-f", "-a"})
 		prune.WaitWithDefaultTimeout()
-		Expect(prune.ExitCode()).To(Equal(0))
+		Expect(prune).Should(Exit(0))
 
 		pods := podmanTest.Podman([]string{"pod", "ps"})
 		pods.WaitWithDefaultTimeout()
-		Expect(pods.ExitCode()).To(Equal(0))
+		Expect(pods).Should(Exit(0))
 		Expect(podmanTest.NumberOfPods()).To(Equal(0))
 
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
@@ -393,7 +394,7 @@ var _ = Describe("Podman prune", func() {
 		// Volumes should not be pruned
 		session = podmanTest.Podman([]string{"volume", "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(2))
 
 		images := podmanTest.Podman([]string{"images", "-aq"})
@@ -405,58 +406,58 @@ var _ = Describe("Podman prune", func() {
 	It("podman system prune --volumes --filter", func() {
 		session := podmanTest.Podman([]string{"volume", "create", "--label", "label1=value1", "myvol1"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"volume", "create", "--label", "sharedlabel1=slv1", "myvol2"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"volume", "create", "--label", "sharedlabel1=slv2", "myvol3"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"volume", "create", "--label", "sharedlabel1", "myvol4"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"create", "-v", "myvol5:/myvol5", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"create", "-v", "myvol6:/myvol6", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"volume", "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(7))
 
 		session = podmanTest.Podman([]string{"system", "prune", "--force", "--volumes", "--filter", "label=label1=value1"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"volume", "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(6))
 
 		session = podmanTest.Podman([]string{"system", "prune", "--force", "--volumes", "--filter", "label=sharedlabel1=slv1"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"volume", "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(5))
 
 		session = podmanTest.Podman([]string{"system", "prune", "--force", "--volumes", "--filter", "label=sharedlabel1"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"volume", "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(3))
 
 		podmanTest.Cleanup()

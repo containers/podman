@@ -7,6 +7,7 @@ import (
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman run exit", func() {
@@ -36,13 +37,13 @@ var _ = Describe("Podman run exit", func() {
 	It("podman run exit define.ExecErrorCodeGeneric", func() {
 		result := podmanTest.Podman([]string{"run", "--foobar", ALPINE, "ls", "$tmp"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(define.ExecErrorCodeGeneric))
+		Expect(result).Should(Exit(define.ExecErrorCodeGeneric))
 	})
 
 	It("podman run exit ExecErrorCodeCannotInvoke", func() {
 		result := podmanTest.Podman([]string{"run", ALPINE, "/etc"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(define.ExecErrorCodeCannotInvoke))
+		Expect(result).Should(Exit(define.ExecErrorCodeCannotInvoke))
 	})
 
 	It("podman run exit ExecErrorCodeNotFound", func() {
@@ -52,18 +53,18 @@ var _ = Describe("Podman run exit", func() {
 		// TODO This is failing we believe because of a race condition
 		// Between conmon and podman closing the socket early.
 		// Test with the following, once the race condition is solved
-		// Expect(result.ExitCode()).To(Equal(define.ExecErrorCodeNotFound))
+		// Expect(result).Should(Exit(define.ExecErrorCodeNotFound))
 	})
 
 	It("podman run exit 0", func() {
 		result := podmanTest.Podman([]string{"run", ALPINE, "ls"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 	})
 
 	It("podman run exit 50", func() {
 		result := podmanTest.Podman([]string{"run", ALPINE, "sh", "-c", "exit 50"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(50))
+		Expect(result).Should(Exit(50))
 	})
 })

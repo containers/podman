@@ -6,6 +6,7 @@ import (
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman history", func() {
@@ -35,40 +36,40 @@ var _ = Describe("Podman history", func() {
 	It("podman history output flag", func() {
 		session := podmanTest.Podman([]string{"history", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 0))
 	})
 
 	It("podman history with GO template", func() {
 		session := podmanTest.Podman([]string{"history", "--format", "{{.ID}} {{.Created}}", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 0))
 	})
 
 	It("podman history with human flag", func() {
 		session := podmanTest.Podman([]string{"history", "--human=false", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 0))
 	})
 
 	It("podman history with quiet flag", func() {
 		session := podmanTest.Podman([]string{"history", "-qH", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 0))
 	})
 
 	It("podman history with no-trunc flag", func() {
 		session := podmanTest.Podman([]string{"history", "--no-trunc", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 0))
 
 		session = podmanTest.Podman([]string{"history", "--no-trunc", "--format", "{{.ID}}", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		lines := session.OutputToStringArray()
 		Expect(len(lines)).To(BeNumerically(">", 0))
 		// the image id must be 64 chars long
@@ -76,7 +77,7 @@ var _ = Describe("Podman history", func() {
 
 		session = podmanTest.Podman([]string{"history", "--no-trunc", "--format", "{{.CreatedBy}}", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		lines = session.OutputToStringArray()
 		Expect(len(lines)).To(BeNumerically(">", 0))
 		Expect(session.OutputToString()).ToNot(ContainSubstring("..."))
@@ -87,7 +88,7 @@ var _ = Describe("Podman history", func() {
 	It("podman history with json flag", func() {
 		session := podmanTest.Podman([]string{"history", "--format=json", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.IsJSONOutputValid()).To(BeTrue())
 	})
 })

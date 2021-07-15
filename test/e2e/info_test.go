@@ -67,13 +67,13 @@ var _ = Describe("Podman Info", func() {
 	It("podman info --format GO template", func() {
 		session := podmanTest.Podman([]string{"info", "--format", "{{.Store.GraphRoot}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 	})
 
 	It("podman info --format GO template", func() {
 		session := podmanTest.Podman([]string{"info", "--format", "{{.Registries}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("registry"))
 	})
 
@@ -113,13 +113,13 @@ var _ = Describe("Podman Info", func() {
 	It("podman info check RemoteSocket", func() {
 		session := podmanTest.Podman([]string{"info", "--format", "{{.Host.RemoteSocket.Path}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(MatchRegexp("/run/.*podman.*sock"))
 
 		if IsRemote() {
 			session = podmanTest.Podman([]string{"info", "--format", "{{.Host.RemoteSocket.Exists}}"})
 			session.WaitWithDefaultTimeout()
-			Expect(session.ExitCode()).To(Equal(0))
+			Expect(session).Should(Exit(0))
 			Expect(session.OutputToString()).To(ContainSubstring("true"))
 		}
 	})

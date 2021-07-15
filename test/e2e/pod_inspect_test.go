@@ -8,6 +8,7 @@ import (
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman pod inspect", func() {
@@ -46,15 +47,15 @@ var _ = Describe("Podman pod inspect", func() {
 
 		session := podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		inspect := podmanTest.Podman([]string{"pod", "inspect", podid})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect).Should(Exit(0))
 		Expect(inspect.IsJSONOutputValid()).To(BeTrue())
 		podData := inspect.InspectPodToJSON()
 		Expect(podData.ID).To(Equal(podid))
@@ -67,13 +68,13 @@ var _ = Describe("Podman pod inspect", func() {
 		// Create the pod.
 		session := podmanTest.Podman(createCommand)
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		// Inspect the pod and make sure that the create command is
 		// exactly how we created the pod.
 		inspect := podmanTest.Podman([]string{"pod", "inspect", podName})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect).Should(Exit(0))
 		Expect(inspect.IsJSONOutputValid()).To(BeTrue())
 		podData := inspect.InspectPodToJSON()
 		// Let's get the last len(createCommand) items in the command.
@@ -86,11 +87,11 @@ var _ = Describe("Podman pod inspect", func() {
 		podName := "testPod"
 		create := podmanTest.Podman([]string{"pod", "create", "--name", podName, "-p", "8080:80"})
 		create.WaitWithDefaultTimeout()
-		Expect(create.ExitCode()).To(Equal(0))
+		Expect(create).Should(Exit(0))
 
 		inspectOut := podmanTest.Podman([]string{"pod", "inspect", podName})
 		inspectOut.WaitWithDefaultTimeout()
-		Expect(inspectOut.ExitCode()).To(Equal(0))
+		Expect(inspectOut).Should(Exit(0))
 
 		inspectJSON := new(define.InspectPodData)
 		err := json.Unmarshal(inspectOut.Out.Contents(), inspectJSON)
@@ -106,15 +107,15 @@ var _ = Describe("Podman pod inspect", func() {
 		macAddr := "42:43:44:00:00:01"
 		create := podmanTest.Podman([]string{"pod", "create", "--name", podName, "--mac-address", macAddr})
 		create.WaitWithDefaultTimeout()
-		Expect(create.ExitCode()).To(Equal(0))
+		Expect(create).Should(Exit(0))
 
 		create = podmanTest.Podman([]string{"run", "-d", "--pod", podName, ALPINE, "top"})
 		create.WaitWithDefaultTimeout()
-		Expect(create.ExitCode()).To(Equal(0))
+		Expect(create).Should(Exit(0))
 
 		inspectOut := podmanTest.Podman([]string{"pod", "inspect", podName})
 		inspectOut.WaitWithDefaultTimeout()
-		Expect(inspectOut.ExitCode()).To(Equal(0))
+		Expect(inspectOut).Should(Exit(0))
 
 		Expect(inspectOut.OutputToString()).To(ContainSubstring(macAddr))
 	})

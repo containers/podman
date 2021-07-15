@@ -7,6 +7,7 @@ import (
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman import", func() {
@@ -41,15 +42,15 @@ var _ = Describe("Podman import", func() {
 
 		export := podmanTest.Podman([]string{"export", "-o", outfile, cid})
 		export.WaitWithDefaultTimeout()
-		Expect(export.ExitCode()).To(Equal(0))
+		Expect(export).Should(Exit(0))
 
 		importImage := podmanTest.Podman([]string{"import", outfile, "foobar.com/imported-image:latest"})
 		importImage.WaitWithDefaultTimeout()
-		Expect(importImage.ExitCode()).To(Equal(0))
+		Expect(importImage).Should(Exit(0))
 
 		results := podmanTest.Podman([]string{"inspect", "--type", "image", "foobar.com/imported-image:latest"})
 		results.WaitWithDefaultTimeout()
-		Expect(results.ExitCode()).To(Equal(0))
+		Expect(results).Should(Exit(0))
 	})
 
 	It("podman import without reference", func() {
@@ -59,16 +60,16 @@ var _ = Describe("Podman import", func() {
 
 		export := podmanTest.Podman([]string{"export", "-o", outfile, cid})
 		export.WaitWithDefaultTimeout()
-		Expect(export.ExitCode()).To(Equal(0))
+		Expect(export).Should(Exit(0))
 
 		importImage := podmanTest.Podman([]string{"import", outfile})
 		importImage.WaitWithDefaultTimeout()
-		Expect(importImage.ExitCode()).To(Equal(0))
+		Expect(importImage).Should(Exit(0))
 
 		// tag the image which proves it is in R/W storage
 		tag := podmanTest.Podman([]string{"tag", importImage.OutputToString(), "foo"})
 		tag.WaitWithDefaultTimeout()
-		Expect(tag.ExitCode()).To(BeZero())
+		Expect(tag).Should(Exit(0))
 	})
 
 	It("podman import with message flag", func() {
@@ -78,15 +79,15 @@ var _ = Describe("Podman import", func() {
 
 		export := podmanTest.Podman([]string{"export", "-o", outfile, cid})
 		export.WaitWithDefaultTimeout()
-		Expect(export.ExitCode()).To(Equal(0))
+		Expect(export).Should(Exit(0))
 
 		importImage := podmanTest.Podman([]string{"import", "--message", "importing container test message", outfile, "imported-image"})
 		importImage.WaitWithDefaultTimeout()
-		Expect(importImage.ExitCode()).To(Equal(0))
+		Expect(importImage).Should(Exit(0))
 
 		results := podmanTest.Podman([]string{"history", "imported-image", "--format", "{{.Comment}}"})
 		results.WaitWithDefaultTimeout()
-		Expect(results.ExitCode()).To(Equal(0))
+		Expect(results).Should(Exit(0))
 		Expect(results.LineInOutputStartsWith("importing container test message")).To(BeTrue())
 	})
 
@@ -97,15 +98,15 @@ var _ = Describe("Podman import", func() {
 
 		export := podmanTest.Podman([]string{"export", "-o", outfile, cid})
 		export.WaitWithDefaultTimeout()
-		Expect(export.ExitCode()).To(Equal(0))
+		Expect(export).Should(Exit(0))
 
 		importImage := podmanTest.Podman([]string{"import", "--change", "CMD=/bin/bash", outfile, "imported-image"})
 		importImage.WaitWithDefaultTimeout()
-		Expect(importImage.ExitCode()).To(Equal(0))
+		Expect(importImage).Should(Exit(0))
 
 		results := podmanTest.Podman([]string{"inspect", "imported-image"})
 		results.WaitWithDefaultTimeout()
-		Expect(results.ExitCode()).To(Equal(0))
+		Expect(results).Should(Exit(0))
 		imageData := results.InspectImageJSON()
 		Expect(imageData[0].Config.Cmd[0]).To(Equal("/bin/sh"))
 		Expect(imageData[0].Config.Cmd[1]).To(Equal("-c"))
@@ -119,15 +120,15 @@ var _ = Describe("Podman import", func() {
 
 		export := podmanTest.Podman([]string{"export", "-o", outfile, cid})
 		export.WaitWithDefaultTimeout()
-		Expect(export.ExitCode()).To(Equal(0))
+		Expect(export).Should(Exit(0))
 
 		importImage := podmanTest.Podman([]string{"import", "--change", "CMD /bin/sh", outfile, "imported-image"})
 		importImage.WaitWithDefaultTimeout()
-		Expect(importImage.ExitCode()).To(Equal(0))
+		Expect(importImage).Should(Exit(0))
 
 		results := podmanTest.Podman([]string{"inspect", "imported-image"})
 		results.WaitWithDefaultTimeout()
-		Expect(results.ExitCode()).To(Equal(0))
+		Expect(results).Should(Exit(0))
 		imageData := results.InspectImageJSON()
 		Expect(imageData[0].Config.Cmd[0]).To(Equal("/bin/sh"))
 		Expect(imageData[0].Config.Cmd[1]).To(Equal("-c"))
@@ -141,15 +142,15 @@ var _ = Describe("Podman import", func() {
 
 		export := podmanTest.Podman([]string{"export", "-o", outfile, cid})
 		export.WaitWithDefaultTimeout()
-		Expect(export.ExitCode()).To(Equal(0))
+		Expect(export).Should(Exit(0))
 
 		importImage := podmanTest.Podman([]string{"import", "--change", "CMD [\"/bin/bash\"]", outfile, "imported-image"})
 		importImage.WaitWithDefaultTimeout()
-		Expect(importImage.ExitCode()).To(Equal(0))
+		Expect(importImage).Should(Exit(0))
 
 		results := podmanTest.Podman([]string{"inspect", "imported-image"})
 		results.WaitWithDefaultTimeout()
-		Expect(results.ExitCode()).To(Equal(0))
+		Expect(results).Should(Exit(0))
 		imageData := results.InspectImageJSON()
 		Expect(imageData[0].Config.Cmd[0]).To(Equal("/bin/bash"))
 	})
@@ -161,14 +162,14 @@ var _ = Describe("Podman import", func() {
 
 		export := podmanTest.Podman([]string{"export", "-o", outfile, cid})
 		export.WaitWithDefaultTimeout()
-		Expect(export.ExitCode()).To(Equal(0))
+		Expect(export).Should(Exit(0))
 
 		importImage := podmanTest.Podman([]string{"import", "--signature-policy", "/no/such/file", outfile})
 		importImage.WaitWithDefaultTimeout()
-		Expect(importImage.ExitCode()).To(Not(Equal(0)))
+		Expect(importImage).To(ExitWithError())
 
 		result := podmanTest.Podman([]string{"import", "--signature-policy", "/etc/containers/policy.json", outfile})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 	})
 })

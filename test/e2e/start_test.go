@@ -39,79 +39,82 @@ var _ = Describe("Podman start", func() {
 	It("podman start bogus container", func() {
 		session := podmanTest.Podman([]string{"start", "123"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session).Should(Exit(125))
 	})
 
 	It("podman start single container by id", func() {
 		session := podmanTest.Podman([]string{"create", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		cid := session.OutputToString()
 		session = podmanTest.Podman([]string{"start", cid})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 	})
 
 	It("podman start --rm removed on failure", func() {
 		session := podmanTest.Podman([]string{"create", "--name=test", "--rm", ALPINE, "foo"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		session = podmanTest.Podman([]string{"start", "test"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session).Should(Exit(125))
 		session = podmanTest.Podman([]string{"container", "exists", "test"})
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
 	})
 
 	It("podman start --rm --attach removed on failure", func() {
+		Skip("FIXME: #10935, race condition removing container")
 		session := podmanTest.Podman([]string{"create", "--rm", ALPINE, "foo"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		cid := session.OutputToString()
 		session = podmanTest.Podman([]string{"start", "--attach", cid})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session).Should(Exit(125))
 		session = podmanTest.Podman([]string{"container", "exists", cid})
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
 	})
 
 	It("podman container start single container by id", func() {
 		session := podmanTest.Podman([]string{"container", "create", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		cid := session.OutputToString()
 		session = podmanTest.Podman([]string{"container", "start", cid})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal(cid))
 	})
 
 	It("podman container start single container by short id", func() {
 		session := podmanTest.Podman([]string{"container", "create", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		cid := session.OutputToString()
 		shortID := cid[0:10]
 		session = podmanTest.Podman([]string{"container", "start", shortID})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal(shortID))
 	})
 
 	It("podman container start single container by short id", func() {
 		session := podmanTest.Podman([]string{"container", "create", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		cid := session.OutputToString()
 		shortID := cid[0:10]
 		session = podmanTest.Podman([]string{"container", "start", shortID})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal(shortID))
 
 		session = podmanTest.Podman([]string{"stop", shortID})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal(shortID))
 	})
 
@@ -119,10 +122,10 @@ var _ = Describe("Podman start", func() {
 		name := "foobar99"
 		session := podmanTest.Podman([]string{"create", "--name", name, ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		session = podmanTest.Podman([]string{"start", name})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		if podmanTest.RemoteTest {
 			Skip("Container-start name check doesn't work on remote client. It always returns the full ID.")
 		}
@@ -132,12 +135,12 @@ var _ = Describe("Podman start", func() {
 	It("podman start single container with attach and test the signal", func() {
 		session := podmanTest.Podman([]string{"create", "--entrypoint", "sh", ALPINE, "-c", "exit 1"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		cid := session.OutputToString()
 		session = podmanTest.Podman([]string{"start", "--attach", cid})
 		session.WaitWithDefaultTimeout()
 		// It should forward the signal
-		Expect(session.ExitCode()).To(Equal(1))
+		Expect(session).Should(Exit(1))
 	})
 
 	It("podman start multiple containers", func() {
@@ -149,7 +152,7 @@ var _ = Describe("Podman start", func() {
 		cid2 := session2.OutputToString()
 		session = podmanTest.Podman([]string{"start", cid1, cid2})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 	})
 
 	It("podman start multiple containers with bogus", func() {
@@ -158,25 +161,25 @@ var _ = Describe("Podman start", func() {
 		cid1 := session.OutputToString()
 		session = podmanTest.Podman([]string{"start", cid1, "doesnotexist"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session).Should(Exit(125))
 	})
 
 	It("podman multiple containers -- attach should fail", func() {
 		session := podmanTest.Podman([]string{"create", "--name", "foobar1", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		session = podmanTest.Podman([]string{"create", "--name", "foobar2", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		session = podmanTest.Podman([]string{"start", "-a", "foobar1", "foobar2"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session).Should(Exit(125))
 	})
 
 	It("podman failed to start with --rm should delete the container", func() {
 		session := podmanTest.Podman([]string{"create", "--name", "test1", "-it", "--rm", ALPINE, "foo"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		start := podmanTest.Podman([]string{"start", "test1"})
 		start.WaitWithDefaultTimeout()
@@ -215,12 +218,12 @@ var _ = Describe("Podman start", func() {
 		pidfile := tempdir + "pidfile"
 		session := podmanTest.Podman([]string{"create", "--pidfile", pidfile, ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		cid := session.OutputToString()
 
 		session = podmanTest.Podman([]string{"start", cid})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		readFirstLine := func(path string) string {
 			content, err := ioutil.ReadFile(path)
 			Expect(err).To(BeNil())

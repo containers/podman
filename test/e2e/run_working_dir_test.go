@@ -7,6 +7,7 @@ import (
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman run", func() {
@@ -36,14 +37,14 @@ var _ = Describe("Podman run", func() {
 	It("podman run a container without workdir", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "pwd"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal("/"))
 	})
 
 	It("podman run a container using non existing --workdir", func() {
 		session := podmanTest.Podman([]string{"run", "--workdir", "/home/foobar", ALPINE, "pwd"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(126))
+		Expect(session).Should(Exit(126))
 	})
 
 	It("podman run a container on an image with a workdir", func() {
@@ -54,7 +55,7 @@ WORKDIR  /etc/foobar`, ALPINE)
 
 		session := podmanTest.Podman([]string{"run", "test", "pwd"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal("/etc/foobar"))
 
 		session = podmanTest.Podman([]string{"run", "test", "ls", "-ld", "."})
@@ -63,7 +64,7 @@ WORKDIR  /etc/foobar`, ALPINE)
 
 		session = podmanTest.Podman([]string{"run", "--workdir", "/home/foobar", "test", "pwd"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal("/home/foobar"))
 	})
 })

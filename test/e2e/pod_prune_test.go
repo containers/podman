@@ -6,6 +6,7 @@ import (
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman pod prune", func() {
@@ -38,7 +39,7 @@ var _ = Describe("Podman pod prune", func() {
 
 		result := podmanTest.Podman([]string{"pod", "prune", "--force"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 	})
 
 	It("podman pod prune doesn't remove a pod with a running container", func() {
@@ -47,11 +48,11 @@ var _ = Describe("Podman pod prune", func() {
 
 		ec2 := podmanTest.RunTopContainerInPod("", podid)
 		ec2.WaitWithDefaultTimeout()
-		Expect(ec2.ExitCode()).To(Equal(0))
+		Expect(ec2).Should(Exit(0))
 
 		result := podmanTest.Podman([]string{"pod", "prune", "-f"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To((Equal(0)))
+		Expect(result).Should(Exit(0))
 
 		result = podmanTest.Podman([]string{"ps", "-qa"})
 		result.WaitWithDefaultTimeout()
@@ -67,7 +68,7 @@ var _ = Describe("Podman pod prune", func() {
 
 		result := podmanTest.Podman([]string{"pod", "prune", "-f"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 
 		result = podmanTest.Podman([]string{"ps", "-qa"})
 		result.WaitWithDefaultTimeout()

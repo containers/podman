@@ -9,6 +9,7 @@ import (
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman trust", func() {
@@ -43,7 +44,7 @@ var _ = Describe("Podman trust", func() {
 		}
 		session := podmanTest.Podman([]string{"image", "trust", "show", "--registrypath", filepath.Dir(path), "--policypath", filepath.Join(filepath.Dir(path), "policy.json")})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		outArray := session.OutputToStringArray()
 		Expect(len(outArray)).To(Equal(3))
 
@@ -61,7 +62,7 @@ var _ = Describe("Podman trust", func() {
 		}
 		session := podmanTest.Podman([]string{"image", "trust", "set", "--policypath", filepath.Join(filepath.Dir(path), "trust_set_test.json"), "-t", "accept", "default"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		var teststruct map[string][]map[string]string
 		policyContent, err := ioutil.ReadFile(filepath.Join(filepath.Dir(path), "trust_set_test.json"))
 		if err != nil {
@@ -77,7 +78,7 @@ var _ = Describe("Podman trust", func() {
 	It("podman image trust show --json", func() {
 		session := podmanTest.Podman([]string{"image", "trust", "show", "--json"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.IsJSONOutputValid()).To(BeTrue())
 		var teststruct []map[string]string
 		json.Unmarshal(session.Out.Contents(), &teststruct)
@@ -90,7 +91,7 @@ var _ = Describe("Podman trust", func() {
 	It("podman image trust show --raw", func() {
 		session := podmanTest.Podman([]string{"image", "trust", "show", "--raw"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.IsJSONOutputValid()).To(BeTrue())
 		Expect(session.OutputToString()).To(ContainSubstring("default"))
 		Expect(session.OutputToString()).To(ContainSubstring("insecureAcceptAnything"))

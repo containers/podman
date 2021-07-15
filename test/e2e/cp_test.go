@@ -10,6 +10,7 @@ import (
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 // NOTE: Only smoke tests.  The system tests (i.e., "./test/system/*") take
@@ -55,7 +56,7 @@ var _ = Describe("Podman cp", func() {
 		// Create a container. NOTE that container mustn't be running for copying.
 		session := podmanTest.Podman([]string{"create", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		name := session.OutputToString()
 
 		// Copy TO the container.
@@ -68,7 +69,7 @@ var _ = Describe("Podman cp", func() {
 		// The file will now be created (and written to).
 		session = podmanTest.Podman([]string{"cp", srcFile.Name(), name + ":foo"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		// Copy FROM the container.
 
@@ -79,11 +80,11 @@ var _ = Describe("Podman cp", func() {
 
 		session = podmanTest.Podman([]string{"cp", name + ":foo", destFile.Name()})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"start", name})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		// Now make sure the content matches.
 		roundtripContent, err := ioutil.ReadFile(destFile.Name())
@@ -106,17 +107,17 @@ var _ = Describe("Podman cp", func() {
 		// Create a container. NOTE that container mustn't be running for copying.
 		session := podmanTest.Podman([]string{"create", "--pid=host", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		name := session.OutputToString()
 
 		session = podmanTest.Podman([]string{"start", name})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		// The file will now be created (and written to).
 		session = podmanTest.Podman([]string{"cp", srcFile.Name(), name + ":foo"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		// Copy FROM the container.
 
@@ -127,7 +128,7 @@ var _ = Describe("Podman cp", func() {
 
 		session = podmanTest.Podman([]string{"cp", name + ":foo", destFile.Name()})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		// Now make sure the content matches.
 		roundtripContent, err := ioutil.ReadFile(destFile.Name())
@@ -150,25 +151,25 @@ var _ = Describe("Podman cp", func() {
 
 		session := podmanTest.Podman([]string{"run", "-d", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		name := session.OutputToString()
 
 		session = podmanTest.Podman([]string{"exec", name, "ln", "-s", "/tmp", "/test"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"cp", "--pause=false", srcFile.Name(), name + ":/test"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"exec", name, "cat", "/tmp/" + filepath.Base(srcFile.Name())})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring(string(originalContent)))
 
 		session = podmanTest.Podman([]string{"exec", name, "cat", "/test/" + filepath.Base(srcFile.Name())})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring(string(originalContent)))
 	})
 
@@ -188,21 +189,21 @@ var _ = Describe("Podman cp", func() {
 		Expect(err).To(BeNil())
 		session := podmanTest.Podman([]string{"volume", "create", "data"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"create", "-v", "data:/data", "--name", "container1", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"cp", srcFile.Name(), "container1" + ":/data/file.txt"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		// Now get the volume's mount point, read the file and make
 		// sure the contents match.
 		session = podmanTest.Podman([]string{"volume", "inspect", "data", "--format", "{{.Mountpoint}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		volumeMountPoint := session.OutputToString()
 		copiedContent, err := ioutil.ReadFile(filepath.Join(volumeMountPoint, "file.txt"))
@@ -221,19 +222,19 @@ var _ = Describe("Podman cp", func() {
 
 		setup := podmanTest.RunTopContainer("testctr")
 		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
+		Expect(setup).Should(Exit(0))
 
 		session := podmanTest.Podman([]string{"exec", "testctr", "adduser", "-S", "testuser"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"exec", "-u", "testuser", "testctr", "touch", "/tmp/testfile"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"cp", "--pause=false", "testctr:/tmp/testfile", srcFile.Name()})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		// owner of the file copied to local machine is not testuser
 		u, err := user.Current()
@@ -245,12 +246,12 @@ var _ = Describe("Podman cp", func() {
 
 		session = podmanTest.Podman([]string{"cp", "--pause=false", srcFile.Name(), "testctr:testfile2"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		// owner of the file copied to a container is the root user
 		session = podmanTest.Podman([]string{"exec", "-it", "testctr", "ls", "-l", "testfile2"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("root"))
 	})
 
@@ -259,18 +260,18 @@ var _ = Describe("Podman cp", func() {
 		container := "copyroottohost"
 		session := podmanTest.RunTopContainer(container)
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"exec", container, "touch", "/dummy.txt"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		tmpDir, err := ioutil.TempDir("", "")
 		Expect(err).To(BeNil())
 
 		session = podmanTest.Podman([]string{"cp", container + ":/", tmpDir})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		cmd := exec.Command("ls", "-la", tmpDir)
 		output, err := cmd.Output()

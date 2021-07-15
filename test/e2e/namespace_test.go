@@ -6,6 +6,7 @@ import (
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman namespaces", func() {
@@ -37,15 +38,15 @@ var _ = Describe("Podman namespaces", func() {
 		podman1.WaitWithDefaultTimeout()
 		if IsRemote() {
 			// --namespace flag not supported in podman remote
-			Expect(podman1.ExitCode()).To(Equal(125))
+			Expect(podman1).Should(Exit(125))
 			Expect(podman1.ErrorToString()).To(ContainSubstring("unknown flag: --namespace"))
 			return
 		}
-		Expect(podman1.ExitCode()).To(Equal(0))
+		Expect(podman1).Should(Exit(0))
 
 		podman2 := podmanTest.Podman([]string{"--namespace", "test2", "ps", "-aq"})
 		podman2.WaitWithDefaultTimeout()
-		Expect(podman2.ExitCode()).To(Equal(0))
+		Expect(podman2).Should(Exit(0))
 		output := podman2.OutputToStringArray()
 		numCtrs := 0
 		for _, outputLine := range output {

@@ -321,11 +321,11 @@ func (p *PodmanTestIntegration) createArtifact(image string) {
 	if _, err := os.Stat(destName); os.IsNotExist(err) {
 		pull := p.PodmanNoCache([]string{"pull", image})
 		pull.Wait(440)
-		Expect(pull.ExitCode()).To(Equal(0))
+		Expect(pull).Should(Exit(0))
 
 		save := p.PodmanNoCache([]string{"save", "-o", destName, image})
 		save.Wait(90)
-		Expect(save.ExitCode()).To(Equal(0))
+		Expect(save).Should(Exit(0))
 		fmt.Printf("\n")
 	} else {
 		fmt.Printf(" already exists.\n")

@@ -7,6 +7,7 @@ import (
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var PodmanDockerfile = fmt.Sprintf(`
@@ -52,11 +53,11 @@ var _ = Describe("podman container runlabel", func() {
 
 		result := podmanTest.Podman([]string{"container", "runlabel", "RUN", image})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 
 		result = podmanTest.Podman([]string{"rmi", image})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 	})
 
 	It("podman container runlabel (ls -la)", func() {
@@ -65,11 +66,11 @@ var _ = Describe("podman container runlabel", func() {
 
 		result := podmanTest.Podman([]string{"container", "runlabel", "RUN", image})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 
 		result = podmanTest.Podman([]string{"rmi", image})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 	})
 	It("podman container runlabel --display", func() {
 		image := "podman-runlabel-test:ls"
@@ -77,12 +78,12 @@ var _ = Describe("podman container runlabel", func() {
 
 		result := podmanTest.Podman([]string{"container", "runlabel", "--display", "RUN", image})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 		Expect(result.OutputToString()).To(ContainSubstring(podmanTest.PodmanBinary + " -la"))
 
 		result = podmanTest.Podman([]string{"rmi", image})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 	})
 	It("podman container runlabel bogus label should result in non-zero exit code", func() {
 		result := podmanTest.Podman([]string{"container", "runlabel", "RUN", ALPINE})
@@ -105,13 +106,13 @@ var _ = Describe("podman container runlabel", func() {
 		podmanTest.BuildImage(GlobalDockerfile, image, "false")
 		result := podmanTest.Podman([]string{"--syslog", "--log-level", "debug", "container", "runlabel", "RUN", image})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 
 		Expect(result.OutputToString()).To(ContainSubstring("--syslog true"))
 		Expect(result.OutputToString()).To(ContainSubstring("--log-level debug"))
 		result = podmanTest.Podman([]string{"rmi", image})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 	})
 
 	It("runlabel should fail with nonexistent authfile", func() {
@@ -121,10 +122,10 @@ var _ = Describe("podman container runlabel", func() {
 		// runlabel should fail with nonexistent authfile
 		result := podmanTest.Podman([]string{"container", "runlabel", "--authfile", "/tmp/nonexistent", "RUN", image})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Not(Equal(0)))
+		Expect(result).To(ExitWithError())
 
 		result = podmanTest.Podman([]string{"rmi", image})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result).Should(Exit(0))
 	})
 })
