@@ -922,6 +922,9 @@ function teardown() {
     run_podman '?' rm -a -f
     run_podman '?' rmi -f build_test
 
+    # Many of the tests above leave interim layers behind. Clean them up.
+    run_podman '?' image prune -f
+
     basic_teardown
 }
 

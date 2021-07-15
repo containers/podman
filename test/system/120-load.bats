@@ -134,8 +134,16 @@ verify_iid_and_name() {
 }
 
 @test "podman load - multi-image archive" {
-    img1="quay.io/libpod/testimage:00000000"
-    img2="quay.io/libpod/testimage:20200902"
+    # img1 & 2 should be images that are not locally present; they must also
+    # be usable on the host arch. The nonlocal image (:000000xx) is kept
+    # up-to-date for all RHEL/Fedora arches; the other image we use is
+    # the one tagged ':multiimage', which as of 2021-07-15 is :20210610
+    # but that tag will grow stale over time. If/when this test fails,
+    # your first approach should be to manually update :multiimage to
+    # point to a more recent testimage. (Use the quay.io GUI, it's waaay
+    # easier than pulling/pushing the correct manifest.)
+    img1=${PODMAN_NONLOCAL_IMAGE_FQN}
+    img2="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME:multiimage"
     archive=$PODMAN_TMPDIR/myimage-$(random_string 8).tar
 
     run_podman pull $img1
@@ -151,8 +159,9 @@ verify_iid_and_name() {
 }
 
 @test "podman load - multi-image archive with redirect" {
-    img1="quay.io/libpod/testimage:00000000"
-    img2="quay.io/libpod/testimage:20200902"
+    # (see comments in test above re: img1 & 2)
+    img1=${PODMAN_NONLOCAL_IMAGE_FQN}
+    img2="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME:multiimage"
     archive=$PODMAN_TMPDIR/myimage-$(random_string 8).tar
 
     run_podman pull $img1
