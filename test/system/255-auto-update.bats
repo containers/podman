@@ -121,6 +121,9 @@ function _confirm_update() {
     generate_service alpine image
 
     _wait_service_ready container-$cname.service
+    run_podman auto-update --dry-run --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
+    is "$output" ".*container-$cname.service,quay.io/libpod/alpine:latest,pending,registry.*" "Image update is pending."
+
     run_podman auto-update --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
     is "$output" "Trying to pull.*" "Image is updated."
     is "$output" ".*container-$cname.service,quay.io/libpod/alpine:latest,true,registry.*" "Image is updated."
@@ -159,6 +162,9 @@ function _confirm_update() {
     imageID="$output"
 
     _wait_service_ready container-$cname.service
+    run_podman auto-update --dry-run --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
+    is "$output" ".*container-$cname.service,quay.io/libpod/localtest:latest,pending,local.*" "Image update is pending."
+
     run_podman auto-update --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
     is "$output" ".*container-$cname.service,quay.io/libpod/localtest:latest,true,local.*" "Image is updated."
 

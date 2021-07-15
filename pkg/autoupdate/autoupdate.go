@@ -75,12 +75,6 @@ func LookupPolicy(s string) (Policy, error) {
 	return "", errors.Errorf("invalid auto-update policy %q: valid policies are %+q", s, keys)
 }
 
-// Options include parameters for auto updates.
-type Options struct {
-	// Authfile to use when contacting registries.
-	Authfile string
-}
-
 // ValidateImageReference checks if the specified imageName is a fully-qualified
 // image reference to the docker transport (without digest).  Such a reference
 // includes a domain, name and tag (e.g., quay.io/podman/stable:latest).  The
@@ -120,7 +114,7 @@ func ValidateImageReference(imageName string) error {
 //
 // It returns a slice of successfully restarted systemd units and a slice of
 // errors encountered during auto update.
-func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options Options) ([]*entities.AutoUpdateReport, []error) {
+func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options entities.AutoUpdateOptions) ([]*entities.AutoUpdateReport, []error) {
 	// Create a map from `image ID -> []*Container`.
 	containerMap, errs := imageContainersMap(runtime)
 	if len(containerMap) == 0 {
@@ -183,7 +177,7 @@ func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options Options) (
 }
 
 // autoUpdateRegistry updates the image/container according to the "registry" policy.
-func autoUpdateRegistry(ctx context.Context, image *libimage.Image, ctr *libpod.Container, updatedRawImages map[string]bool, options *Options, conn *dbus.Conn, runtime *libpod.Runtime) (*entities.AutoUpdateReport, error) {
+func autoUpdateRegistry(ctx context.Context, image *libimage.Image, ctr *libpod.Container, updatedRawImages map[string]bool, options *entities.AutoUpdateOptions, conn *dbus.Conn, runtime *libpod.Runtime) (*entities.AutoUpdateReport, error) {
 	cid := ctr.ID()
 	rawImageName := ctr.RawImageName()
 	if rawImageName == "" {
@@ -225,6 +219,11 @@ func autoUpdateRegistry(ctx context.Context, image *libimage.Image, ctr *libpod.
 		return report, nil
 	}
 
+	if options.DryRun {
+		report.Updated = "pending"
+		return report, nil
+	}
+
 	if _, err := updateImage(ctx, runtime, rawImageName, options); err != nil {
 		return report, errors.Wrapf(err, "error registry auto-updating container %q: image update for %q failed", cid, rawImageName)
 	}
@@ -240,7 +239,7 @@ func autoUpdateRegistry(ctx context.Context, image *libimage.Image, ctr *libpod.
 }
 
 // autoUpdateRegistry updates the image/container according to the "local" policy.
-func autoUpdateLocally(ctx context.Context, image *libimage.Image, ctr *libpod.Container, options *Options, conn *dbus.Conn, runtime *libpod.Runtime) (*entities.AutoUpdateReport, error) {
+func autoUpdateLocally(ctx context.Context, image *libimage.Image, ctr *libpod.Container, options *entities.AutoUpdateOptions, conn *dbus.Conn, runtime *libpod.Runtime) (*entities.AutoUpdateReport, error) {
 	cid := ctr.ID()
 	rawImageName := ctr.RawImageName()
 	if rawImageName == "" {
@@ -269,6 +268,11 @@ func autoUpdateLocally(ctx context.Context, image *libimage.Image, ctr *libpod.C
 
 	if !needsUpdate {
 		report.Updated = "false"
+		return report, nil
+	}
+
+	if options.DryRun {
+		report.Updated = "pending"
 		return report, nil
 	}
 
@@ -346,7 +350,7 @@ func imageContainersMap(runtime *libpod.Runtime) (map[string]policyMapper, []err
 
 // getAuthfilePath returns an authfile path, if set. The authfile label in the
 // container, if set, as precedence over the one set in the options.
-func getAuthfilePath(ctr *libpod.Container, options *Options) string {
+func getAuthfilePath(ctr *libpod.Container, options *entities.AutoUpdateOptions) string {
 	labels := ctr.Labels()
 	authFilePath, exists := labels[AuthfileLabel]
 	if exists {
@@ -375,7 +379,7 @@ func newerLocalImageAvailable(runtime *libpod.Runtime, img *libimage.Image, rawI
 }
 
 // updateImage pulls the specified image.
-func updateImage(ctx context.Context, runtime *libpod.Runtime, name string, options *Options) (*libimage.Image, error) {
+func updateImage(ctx context.Context, runtime *libpod.Runtime, name string, options *entities.AutoUpdateOptions) (*libimage.Image, error) {
 	pullOptions := &libimage.PullOptions{}
 	pullOptions.AuthFilePath = options.Authfile
 	pullOptions.Writer = os.Stderr

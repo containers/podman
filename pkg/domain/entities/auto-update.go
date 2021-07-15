@@ -4,6 +4,10 @@ package entities
 type AutoUpdateOptions struct {
 	// Authfile to use when contacting registries.
 	Authfile string
+	// Only check for but do not perform any update.  If an update is
+	// pending, it will be indicated in the Updated field of
+	// AutoUpdateReport.
+	DryRun bool
 }
 
 // AutoUpdateReport contains the results from running auto-update.
@@ -18,7 +22,7 @@ type AutoUpdateReport struct {
 	Policy string
 	// SystemdUnit running a container configured for auto updates.
 	SystemdUnit string
-	// Indicates whether the image was updated and the container (and
-	// systemd unit) restarted.
+	// Indicates the update status: true, false, failed, pending (see
+	// DryRun).
 	Updated string
 }

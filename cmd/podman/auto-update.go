@@ -53,6 +53,8 @@ func init() {
 	flags.StringVar(&autoUpdateOptions.Authfile, authfileFlagName, auth.GetDefaultAuthFile(), "Path to the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 	_ = autoUpdateCommand.RegisterFlagCompletionFunc(authfileFlagName, completion.AutocompleteDefault)
 
+	flags.BoolVar(&autoUpdateOptions.DryRun, "dry-run", false, "Check for pending updates")
+
 	flags.StringVar(&autoUpdateOptions.format, "format", "", "Change the output format to JSON or a Go template")
 	_ = autoUpdateCommand.RegisterFlagCompletionFunc("format", common.AutocompleteFormat(autoUpdateOutput{}))
 }
