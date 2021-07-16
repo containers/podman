@@ -386,8 +386,23 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 		// very likely a bug but a consistent one in Podman/Buildah and should
 		// be addressed at a later point.
 		if pullPolicy != config.PullPolicyAlways {
-			logrus.Debugf("Enforcing pull policy to %q to support custom platform (arch: %q, os: %q, variant: %q)", "always", options.Architecture, options.OS, options.Variant)
-			pullPolicy = config.PullPolicyAlways
+			switch {
+			// User input clearly refer to a local image.
+			case strings.HasPrefix(imageName, "localhost/"):
+				logrus.Debugf("Enforcing pull policy to %q to support custom platform (arch: %q, os: %q, variant: %q)", "never", options.Architecture, options.OS, options.Variant)
+				pullPolicy = config.PullPolicyNever
+
+			// Image resolved to a local one, so let's still have a
+			// look at the registries or aliases but use it
+			// otherwise.
+			case strings.HasPrefix(resolvedImageName, "localhost/"):
+				logrus.Debugf("Enforcing pull policy to %q to support custom platform (arch: %q, os: %q, variant: %q)", "newer", options.Architecture, options.OS, options.Variant)
+				pullPolicy = config.PullPolicyNewer
+
+			default:
+				logrus.Debugf("Enforcing pull policy to %q to support custom platform (arch: %q, os: %q, variant: %q)", "always", options.Architecture, options.OS, options.Variant)
+				pullPolicy = config.PullPolicyAlways
+			}
 		}
 	}
 
