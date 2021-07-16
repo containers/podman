@@ -77,7 +77,7 @@ github.com/containernetworking/plugins/pkg/utils/hwaddr
 github.com/containernetworking/plugins/pkg/utils/sysctl
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator
-# github.com/containers/buildah v1.21.1-0.20210628174543-eadb10a12336
+# github.com/containers/buildah v1.21.1-0.20210707133512-2eb97b499d74
 github.com/containers/buildah
 github.com/containers/buildah/bind
 github.com/containers/buildah/chroot
@@ -93,7 +93,7 @@ github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/util
-# github.com/containers/common v0.40.2-0.20210702074932-9d34b37ba77e
+# github.com/containers/common v0.40.2-0.20210707094508-0a4a1906d4b2
 github.com/containers/common/libimage
 github.com/containers/common/libimage/manifests
 github.com/containers/common/pkg/apparmor

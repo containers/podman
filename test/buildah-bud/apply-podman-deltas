@@ -155,6 +155,10 @@ skip "FIXME FIXME FIXME we'll figure these out later" \
 skip "FIXME FIXME FIXME podman save/load has been fixed (but not yet used in Buildah CI)" \
      "bud with --layers and --no-cache flags"
 
+# see https://github.com/containers/podman/pull/10829
+skip "FIXME FIXME FIXME - requires updated CI images (#10829)" \
+     "bud with --runtime and --runtime-flag"
+
 ###############################################################################
 # BEGIN tests which are skipped due to actual podman bugs.
 

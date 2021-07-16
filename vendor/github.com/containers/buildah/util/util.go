@@ -163,7 +163,7 @@ func FindImage(store storage.Store, firstRegistry string, systemContext *types.S
 		return nil, nil, err
 	}
 
-	localImage, _, err := runtime.LookupImage(image, &libimage.LookupImageOptions{IgnorePlatform: true})
+	localImage, _, err := runtime.LookupImage(image, nil)
 	if err != nil {
 		return nil, nil, err
 	}

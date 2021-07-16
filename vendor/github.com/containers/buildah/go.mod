@@ -4,9 +4,9 @@ go 1.12
 
 require (
 	github.com/containernetworking/cni v0.8.1
-	github.com/containers/common v0.40.1
+	github.com/containers/common v0.40.2-0.20210707094508-0a4a1906d4b2
 	github.com/containers/image/v5 v5.13.2
-	github.com/containers/ocicrypt v1.1.1
+	github.com/containers/ocicrypt v1.1.2
 	github.com/containers/storage v1.32.5
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/go-units v0.4.0
@@ -29,13 +29,13 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/seccomp/libseccomp-golang v0.9.2-0.20200616122406-847368b35ebf
 	github.com/sirupsen/logrus v1.8.1
-	github.com/spf13/cobra v1.1.3
+	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
-	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20210603125802-9665404d3644
 	k8s.io/klog v1.0.0 // indirect
 )

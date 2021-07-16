@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/containers/buildah"
-	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/filters"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
@@ -215,8 +214,7 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 	}
 	name := utils.GetName(r)
 
-	lookupOptions := &libimage.LookupImageOptions{IgnorePlatform: true}
-	if _, _, err := runtime.LibimageRuntime().LookupImage(name, lookupOptions); err != nil {
+	if _, _, err := runtime.LibimageRuntime().LookupImage(name, nil); err != nil {
 		utils.ImageNotFound(w, name, err)
 		return
 	}

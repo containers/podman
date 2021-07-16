@@ -30,7 +30,7 @@ env:
     UBUNTU_NAME: "ubuntu-2104"
     PRIOR_UBUNTU_NAME: "ubuntu-2010"
 
-    IMAGE_SUFFIX: "c6032583541653504"
+    IMAGE_SUFFIX: "c6534244118822912"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
@@ -173,7 +173,7 @@ conformance_task:
         - env:
             STORAGE_DRIVER: 'overlay'
 
-    setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
+    setup_script: '${SCRIPT_BASE}/setup.sh conformance |& ${_TIMESTAMP}'
     conformance_test_script: '${SCRIPT_BASE}/test.sh conformance |& ${_TIMESTAMP}'
 
 
@@ -358,9 +358,12 @@ success_task:
       - static_build
 
     container:
-        image: "quay.io/libpod/fedora-minimal:latest"
+        image: "quay.io/libpod/alpine:latest"
         cpu: 1
         memory: 1
+
+    env:
+        CIRRUS_SHELL: direct  # execute command directly
 
     clone_script: mkdir -p $CIRRUS_WORKING_DIR
     script: /bin/true
