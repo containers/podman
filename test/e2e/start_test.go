@@ -65,7 +65,6 @@ var _ = Describe("Podman start", func() {
 	})
 
 	It("podman start --rm --attach removed on failure", func() {
-		Skip("FIXME: #10935, race condition removing container")
 		session := podmanTest.Podman([]string{"create", "--rm", ALPINE, "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))

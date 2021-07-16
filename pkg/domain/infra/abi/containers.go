@@ -261,6 +261,24 @@ func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []st
 	return reports, nil
 }
 
+func (ic *ContainerEngine) removeContainer(ctx context.Context, ctr *libpod.Container, options entities.RmOptions) error {
+	err := ic.Libpod.RemoveContainer(ctx, ctr, options.Force, options.Volumes)
+	if err == nil {
+		return nil
+	}
+	logrus.Debugf("Failed to remove container %s: %s", ctr.ID(), err.Error())
+	switch errors.Cause(err) {
+	case define.ErrNoSuchCtr:
+		if options.Ignore {
+			logrus.Debugf("Ignoring error (--allow-missing): %v", err)
+			return nil
+		}
+	case define.ErrCtrRemoved:
+		return nil
+	}
+	return err
+}
+
 func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string, options entities.RmOptions) ([]*entities.RmReport, error) {
 	reports := []*entities.RmReport{}
 
@@ -318,21 +336,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	}
 
 	errMap, err := parallelctr.ContainerOp(ctx, ctrs, func(c *libpod.Container) error {
-		err := ic.Libpod.RemoveContainer(ctx, c, options.Force, options.Volumes)
-		if err == nil {
-			return nil
-		}
-		logrus.Debugf("Failed to remove container %s: %s", c.ID(), err.Error())
-		switch errors.Cause(err) {
-		case define.ErrNoSuchCtr:
-			if options.Ignore {
-				logrus.Debugf("Ignoring error (--allow-missing): %v", err)
-				return nil
-			}
-		case define.ErrCtrRemoved:
-			return nil
-		}
-		return err
+		return ic.removeContainer(ctx, c, options)
 	})
 	if err != nil {
 		return nil, err
@@ -791,6 +795,11 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 					Err:      err,
 					ExitCode: exitCode,
 				})
+				if ctr.AutoRemove() {
+					if err := ic.removeContainer(ctx, ctr, entities.RmOptions{}); err != nil {
+						logrus.Errorf("Error removing container %s: %v", ctr.ID(), err)
+					}
+				}
 				return reports, errors.Wrapf(err, "unable to start container %s", ctr.ID())
 			}
 
@@ -827,9 +836,6 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 				ExitCode: 125,
 			}
 			if err := ctr.Start(ctx, true); err != nil {
-				// if lastError != nil {
-				//	fmt.Fprintln(os.Stderr, lastError)
-				// }
 				report.Err = err
 				if errors.Cause(err) == define.ErrWillDeadlock {
 					report.Err = errors.Wrapf(err, "please run 'podman system renumber' to resolve deadlocks")
@@ -838,6 +844,11 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 				}
 				report.Err = errors.Wrapf(err, "unable to start container %q", ctr.ID())
 				reports = append(reports, report)
+				if ctr.AutoRemove() {
+					if err := ic.removeContainer(ctx, ctr, entities.RmOptions{}); err != nil {
+						logrus.Errorf("Error removing container %s: %v", ctr.ID(), err)
+					}
+				}
 				continue
 			}
 			report.ExitCode = 0
