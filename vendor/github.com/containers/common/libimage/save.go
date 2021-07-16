@@ -74,7 +74,7 @@ func (r *Runtime) Save(ctx context.Context, names []string, format, path string,
 // saveSingleImage saves the specified image name to the specified path.
 // Supported formats are "oci-archive", "oci-dir" and "docker-dir".
 func (r *Runtime) saveSingleImage(ctx context.Context, name, format, path string, options *SaveOptions) error {
-	image, imageName, err := r.LookupImage(name, &LookupImageOptions{IgnorePlatform: true})
+	image, imageName, err := r.LookupImage(name, nil)
 	if err != nil {
 		return err
 	}
@@ -155,7 +155,7 @@ func (r *Runtime) saveDockerArchive(ctx context.Context, names []string, path st
 	visitedNames := make(map[string]bool)       // filters duplicate names
 	for _, name := range names {
 		// Look up local images.
-		image, imageName, err := r.LookupImage(name, &LookupImageOptions{IgnorePlatform: true})
+		image, imageName, err := r.LookupImage(name, nil)
 		if err != nil {
 			return err
 		}

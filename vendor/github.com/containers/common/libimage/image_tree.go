@@ -80,6 +80,10 @@ func (i *Image) Tree(traverseChildren bool) (string, error) {
 }
 
 func imageTreeTraverseChildren(node *layerNode, parent gotree.Tree) error {
+	if node.layer == nil {
+		return nil
+	}
+
 	var tags string
 	repoTags, err := node.repoTags()
 	if err != nil {

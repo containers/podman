@@ -241,8 +241,8 @@ github.com/containernetworking/plugins v0.9.1/go.mod h1:xP/idU2ldlzN6m4p5LmGiwRD
 github.com/containers/buildah v1.21.1-0.20210628174543-eadb10a12336 h1:LAjAsDE6sxZnDoSzE384o/cRuTGGn1OMjkd9YIPT2bg=
 github.com/containers/buildah v1.21.1-0.20210628174543-eadb10a12336/go.mod h1:HZ2k0W/EREpNxr+AnRZQzjjBdhXLItp9yuzwAaVa6zM=
 github.com/containers/common v0.40.1/go.mod h1:X4F+6vmeAWKMMTNHlOBwOnkf5TQAkQACcuNsKjfcodw=
-github.com/containers/common v0.40.2-0.20210702074932-9d34b37ba77e h1:ubkW5+D74+JrEL6qFmdAQpZ2L1jdGrRYPpkgKdV2YEw=
-github.com/containers/common v0.40.2-0.20210702074932-9d34b37ba77e/go.mod h1:dbz5oauwVA4I/9HMe7YQUt6LWUmrYQlwQH9LQ35bm/U=
+github.com/containers/common v0.41.1-0.20210715132209-383a7e384446 h1:MyIEkyfFF4SOCkw8nnC26d9SpQFt2soxjql9XH6Dpv0=
+github.com/containers/common v0.41.1-0.20210715132209-383a7e384446/go.mod h1:w0CLPB8nH75msgISbE/z8TMIxK9disFsmvFNd2SDid8=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.13.2 h1:AgYunV/9d2fRkrmo23wH2MkqeHolFd6oQCkK+1PpuFA=
@@ -844,7 +844,6 @@ github.com/spf13/cobra v0.0.3/go.mod h1:1l0Ry5zgKvJasoi3XT1TypsSe7PqH0Sj9dhYf7v3
 github.com/spf13/cobra v1.0.0/go.mod h1:/6GTrnGXV9HjY+aR4k0oJ5tcvakLuG6EuKReYlHNrgE=
 github.com/spf13/cobra v1.1.1/go.mod h1:WnodtKOvamDL/PwE2M4iKs8aMDBZ5Q5klgD3qfVJQMI=
 github.com/spf13/cobra v1.1.3/go.mod h1:pGADOWyqRD/YMrPZigI/zbliZ2wVD/23d+is3pSWzOo=
-github.com/spf13/cobra v1.2.0/go.mod h1:ExllRjgxM/piMAM+3tAZvg8fsklGAf3tPfi+i8t68Nk=
 github.com/spf13/cobra v1.2.1 h1:+KmjbUw1hriSNMF55oPrkZcb27aECyrj8V2ytv7kWDw=
 github.com/spf13/cobra v1.2.1/go.mod h1:ExllRjgxM/piMAM+3tAZvg8fsklGAf3tPfi+i8t68Nk=
 github.com/spf13/jwalterweatherman v1.0.0/go.mod h1:cQK4TGJAtQXfYWX+Ddv3mKDzgVb68N+wFjFa4jdeBTo=
