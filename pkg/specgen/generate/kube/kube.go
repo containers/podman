@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/parse"
 	"github.com/containers/common/pkg/secrets"
+	"github.com/containers/image/v5/manifest"
 	ann "github.com/containers/podman/v3/pkg/annotations"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/specgen/generate"
@@ -129,6 +131,10 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	}
 
 	setupSecurityContext(s, opts.Container)
+	err := setupLivenessProbe(s, opts.Container, opts.RestartPolicy)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to configure livenessProbe")
+	}
 
 	// Since we prefix the container name with pod name to work-around the uniqueness requirement,
 	// the seccomp profile should reference the actual container name from the YAML
@@ -330,6 +336,95 @@ func parseMountPath(mountPath string, readOnly bool) (string, []string, error) {
 		options = append(options, "ro")
 	}
 	return dest, options, nil
+}
+
+func setupLivenessProbe(s *specgen.SpecGenerator, containerYAML v1.Container, restartPolicy string) error {
+	var err error
+	if containerYAML.LivenessProbe == nil {
+		return nil
+	}
+	emptyHandler := v1.Handler{}
+	if containerYAML.LivenessProbe.Handler != emptyHandler {
+		var commandString string
+		failureCmd := "exit 1"
+		probe := containerYAML.LivenessProbe
+		probeHandler := probe.Handler
+
+		// append `exit 1` to `cmd` so healthcheck can be marked as `unhealthy`.
+		// append `kill 1` to `cmd` if appropriate restart policy is configured.
+		if restartPolicy == "always" || restartPolicy == "onfailure" {
+			// container will be restarted so we can kill init.
+			failureCmd = "kill 1"
+		}
+
+		// configure healthcheck on the basis of Handler Actions.
+		if probeHandler.Exec != nil {
+			execString := strings.Join(probeHandler.Exec.Command, " ")
+			commandString = fmt.Sprintf("%s || %s", execString, failureCmd)
+		} else if probeHandler.HTTPGet != nil {
+			commandString = fmt.Sprintf("curl %s://%s:%d/%s  || %s", probeHandler.HTTPGet.Scheme, probeHandler.HTTPGet.Host, probeHandler.HTTPGet.Port.IntValue(), probeHandler.HTTPGet.Path, failureCmd)
+		} else if probeHandler.TCPSocket != nil {
+			commandString = fmt.Sprintf("nc -z -v %s %d || %s", probeHandler.TCPSocket.Host, probeHandler.TCPSocket.Port.IntValue(), failureCmd)
+		}
+		s.HealthConfig, err = makeHealthCheck(commandString, probe.PeriodSeconds, probe.FailureThreshold, probe.TimeoutSeconds, probe.InitialDelaySeconds)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	return nil
+}
+
+func makeHealthCheck(inCmd string, interval int32, retries int32, timeout int32, startPeriod int32) (*manifest.Schema2HealthConfig, error) {
+	// Every healthcheck requires a command
+	if len(inCmd) == 0 {
+		return nil, errors.New("Must define a healthcheck command for all healthchecks")
+	}
+
+	// first try to parse option value as JSON array of strings...
+	cmd := []string{}
+
+	if inCmd == "none" {
+		cmd = []string{"NONE"}
+	} else {
+		err := json.Unmarshal([]byte(inCmd), &cmd)
+		if err != nil {
+			// ...otherwise pass it to "/bin/sh -c" inside the container
+			cmd = []string{"CMD-SHELL"}
+			cmd = append(cmd, strings.Split(inCmd, " ")...)
+		}
+	}
+	hc := manifest.Schema2HealthConfig{
+		Test: cmd,
+	}
+
+	if interval < 1 {
+		//kubernetes interval defaults to 10 sec and cannot be less than 1
+		interval = 10
+	}
+	hc.Interval = (time.Duration(interval) * time.Second)
+	if retries < 1 {
+		//kubernetes retries defaults to 3
+		retries = 3
+	}
+	hc.Retries = int(retries)
+	if timeout < 1 {
+		//kubernetes timeout defaults to 1
+		timeout = 1
+	}
+	timeoutDuration := (time.Duration(timeout) * time.Second)
+	if timeoutDuration < time.Duration(1) {
+		return nil, errors.New("healthcheck-timeout must be at least 1 second")
+	}
+	hc.Timeout = timeoutDuration
+
+	startPeriodDuration := (time.Duration(startPeriod) * time.Second)
+	if startPeriodDuration < time.Duration(0) {
+		return nil, errors.New("healthcheck-start-period must be 0 seconds or greater")
+	}
+	hc.StartPeriod = startPeriodDuration
+
+	return &hc, nil
 }
 
 func setupSecurityContext(s *specgen.SpecGenerator, containerYAML v1.Container) {
