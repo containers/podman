@@ -201,7 +201,11 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawIm
 		g.AddLinuxSysctl(sysctlKey, sysctlVal)
 	}
 
-	containerName := p.ID()[:IDTruncLength] + "-infra"
+	containerName := p.config.InfraContainer.InfraName
+	if containerName == "" {
+		containerName = p.ID()[:IDTruncLength] + "-infra"
+	}
+	logrus.Infof("Infra container name %s", containerName)
 	options = append(options, r.WithPod(p))
 	options = append(options, WithRootFSFromImage(imgID, imgName, rawImageName))
 	options = append(options, WithName(containerName))

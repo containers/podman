@@ -43,6 +43,12 @@ type PodBasicConfig struct {
 	// Conflicts with NoInfra=true.
 	// Optional.
 	InfraImage string `json:"infra_image,omitempty"`
+	// InfraName is the name that will be used for the infra container.
+	// If not set, the default set in the Libpod configuration file will be
+	// used.
+	// Conflicts with NoInfra=true.
+	// Optional.
+	InfraName string `json:"infra_name,omitempty"`
 	// SharedNamespaces instructs the pod to share a set of namespaces.
 	// Shared namespaces will be joined (by default) by every container
 	// which joins the pod.

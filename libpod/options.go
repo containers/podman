@@ -459,6 +459,19 @@ func WithDefaultInfraCommand(cmd string) RuntimeOption {
 	}
 }
 
+// WithDefaultInfraName sets the infra container name for a single pod.
+func WithDefaultInfraName(name string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return define.ErrRuntimeFinalized
+		}
+
+		rt.config.Engine.InfraImage = name
+
+		return nil
+	}
+}
+
 // WithRenumber instructs libpod to perform a lock renumbering while
 // initializing. This will handle migrations from early versions of libpod with
 // file locks to newer versions with SHM locking, as well as changes in the
@@ -1783,6 +1796,19 @@ func WithInfraCommand(cmd []string) PodCreateOption {
 		}
 
 		pod.config.InfraContainer.InfraCommand = cmd
+		return nil
+	}
+}
+
+// WithInfraName sets the infra container name for a single pod.
+func WithInfraName(name string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		pod.config.InfraContainer.InfraName = name
+
 		return nil
 	}
 }

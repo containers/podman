@@ -112,6 +112,7 @@ type PodCreateOptions struct {
 	Hostname           string
 	Infra              bool
 	InfraImage         string
+	InfraName          string
 	InfraCommand       string
 	InfraConmonPidFile string
 	Labels             map[string]string
@@ -172,6 +173,7 @@ func (p *PodCreateOptions) ToPodSpecGen(s *specgen.PodSpecGenerator) error {
 		s.InfraConmonPidFile = p.InfraConmonPidFile
 	}
 	s.InfraImage = p.InfraImage
+	s.InfraName = p.InfraName
 	s.SharedNamespaces = p.Share
 	s.PodCreateCommand = p.CreateCommand
 

@@ -75,6 +75,10 @@ The command that will be run to start the infra container. Default: "/pause".
 
 The image that will be created for the infra container. Default: "k8s.gcr.io/pause:3.1".
 
+#### **--infra-name**=*name*
+
+The name that will be used for the pod's infra container.
+
 #### **--ip**=*ipaddr*
 
 Set a static IP for the pod's shared network.

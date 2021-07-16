@@ -205,6 +205,7 @@ function random_ip() {
     # entrypoint to confirm that --infra-command will override.
     local infra_image="infra_$(random_string 10 | tr A-Z a-z)"
     local infra_command="/pause_$(random_string 10)"
+    local infra_name="infra_container_$(random_string 10 | tr A-Z a-z)"
     run_podman build -t $infra_image - << EOF
 FROM $IMAGE
 RUN ln /home/podman/pause $infra_command
@@ -225,7 +226,8 @@ EOF
                --publish    "$port_out:$port_in"         \
                --label      "${labelname}=${labelvalue}" \
                --infra-image   "$infra_image"            \
-               --infra-command "$infra_command"
+               --infra-command "$infra_command"          \
+               --infra-name "$infra_name"
     pod_id="$output"
 
     # Check --pod-id-file
@@ -237,6 +239,9 @@ EOF
     # confirm that entrypoint is what we set
     run_podman container inspect --format '{{.Config.Entrypoint}}' $infra_cid
     is "$output" "$infra_command" "infra-command took effect"
+    # confirm that infra container name is set
+    run_podman container inspect --format '{{.Name}}' $infra_cid
+    is "$output" "$infra_name" "infra-name took effect"
 
     # Check each of the options
     if [ -n "$mac_option" ]; then
@@ -310,6 +315,16 @@ EOF
     run_podman rm $cid
     run_podman pod rm -f mypod
     run_podman rmi $infra_image
+
+}
+
+@test "podman pod create should fail when infra-name is already in use" {
+    local infra_name="infra_container_$(random_string 10 | tr A-Z a-z)"
+    run_podman pod create --infra-name "$infra_name"
+    run_podman '?' pod create --infra-name "$infra_name"
+    if [ $status -eq 0 ]; then
+        die "Podman should fail when user try to create two pods with the same infra-name value"
+    fi
 }
 
 # vim: filetype=sh

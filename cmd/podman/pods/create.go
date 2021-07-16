@@ -86,6 +86,10 @@ func init() {
 	flags.String(infraCommandFlagName, containerConfig.Engine.InfraCommand, "The command to run on the infra container when the pod is started")
 	_ = createCommand.RegisterFlagCompletionFunc(infraCommandFlagName, completion.AutocompleteNone)
 
+	infraNameFlagName := "infra-name"
+	flags.StringVarP(&createOptions.InfraName, infraNameFlagName, "", "", "The name used as infra container name")
+	_ = createCommand.RegisterFlagCompletionFunc(infraNameFlagName, completion.AutocompleteNone)
+
 	labelFileFlagName := "label-file"
 	flags.StringSliceVar(&labelFile, labelFileFlagName, []string{}, "Read in a line delimited file of labels")
 	_ = createCommand.RegisterFlagCompletionFunc(labelFileFlagName, completion.AutocompleteDefault)
@@ -148,6 +152,9 @@ func create(cmd *cobra.Command, args []string) error {
 			return errors.New("cannot set infra-image without an infra container")
 		}
 		createOptions.InfraImage = ""
+		if createOptions.InfraName != "" {
+			return errors.New("cannot set infra-name without an infra container")
+		}
 
 		if cmd.Flag("share").Changed && share != "none" && share != "" {
 			return fmt.Errorf("cannot set share(%s) namespaces without an infra container", cmd.Flag("share").Value)

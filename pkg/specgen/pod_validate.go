@@ -36,6 +36,9 @@ func (p *PodSpecGenerator) Validate() error {
 		if len(p.InfraImage) > 0 {
 			return exclusivePodOptions("NoInfra", "InfraImage")
 		}
+		if len(p.InfraName) > 0 {
+			return exclusivePodOptions("NoInfra", "InfraName")
+		}
 		if len(p.SharedNamespaces) > 0 {
 			return exclusivePodOptions("NoInfra", "SharedNamespaces")
 		}
