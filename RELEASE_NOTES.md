@@ -1,5 +1,21 @@
 # Release Notes
 
+## 3.2.3
+### Security
+- This release addresses CVE-2021-3602, an issue with the `podman build` command with the `--isolation chroot` flag that results in environment variables from the host leaking into build containers.
+
+### Bugfixes
+- Fixed a bug where events related to images could occur before the relevant operation had completed (e.g. an image pull event could be written before the pull was finished) ([#10812](https://github.com/containers/podman/issues/10812)).
+- Fixed a bug where `podman save` would refuse to save images with an architecture different from that of the host ([#10835](https://github.com/containers/podman/issues/10835)).
+- Fixed a bug where the `podman import` command did not correctly handle images without tags ([#10854](https://github.com/containers/podman/issues/10854)).
+- Fixed a bug where Podman's journald events backend would fail and prevent Podman from running when run on a host with systemd as PID1 but in an environment (e.g. a container) without systemd ([#10863](https://github.com/containers/podman/issues/10863)).
+- Fixed a bug where containers using rootless CNI networking would fail to start when the `dnsname` CNI plugin was in use and the host system's `/etc/resolv.conf` was a symlink ([#10855](https://github.com/containers/podman/issues/10855) and [#10929](https://github.com/containers/podman/issues/10929)).
+- Fixed a bug where containers using rootless CNI networking could fail to start due to a race in rootless CNI initialization ([#10930](https://github.com/containers/podman/issues/10930)).
+
+### Misc
+- Updated Buildah to v1.21.3
+- Updated the containers/common library to v0.38.16
+
 ## 3.2.2
 ### Changes
 - Podman's handling of the Architecture field of images has been relaxed. Since 3.2.0, Podman required that the architecture of the image match the architecture of the system to run containers based on an image, but images often incorrectly report architecture, causing Podman to reject valid images ([#10648](https://github.com/containers/podman/issues/10648) and [#10682](https://github.com/containers/podman/issues/10682)).
