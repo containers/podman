@@ -158,6 +158,13 @@ type ContainersConfig struct {
 	// PidNS indicates how to create a pid namespace for the container
 	PidNS string `toml:"pidns,omitempty"`
 
+	// Copy the content from the underlying image into the newly created
+	// volume when the container is created instead of when it is started.
+	// If false, the container engine will not copy the content until
+	// the container is started. Setting it to true may have negative
+	// performance implications.
+	PrepareVolumeOnCreate bool `toml:"prepare_volume_on_create,omitempty"`
+
 	// RootlessNetworking depicts the "kind" of networking for rootless
 	// containers.  Valid options are `slirp4netns` and `cni`. Default is
 	// `slirp4netns`
@@ -384,6 +391,10 @@ type EngineConfig struct {
 	// will refer to the plugin as) mapped to a path, which must point to a
 	// Unix socket that conforms to the Volume Plugin specification.
 	VolumePlugins map[string]string `toml:"volume_plugins,omitempty"`
+
+	// ChownCopiedFiles tells the container engine whether to chown files copied
+	// into a container to the container's primary uid/gid.
+	ChownCopiedFiles bool `toml:"chown_copied_files"`
 }
 
 // SetOptions contains a subset of options in a Config. It's used to indicate if
