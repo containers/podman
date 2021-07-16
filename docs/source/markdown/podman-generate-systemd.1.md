@@ -73,7 +73,7 @@ $ podman generate systemd --restart-policy=always -t 1 nginx
 [Unit]
 Description=Podman container-de1e3223b1b888bc02d0962dd6cb5855eb00734061013ffdd3479d225abacdc6.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/container/storage
 
@@ -102,7 +102,7 @@ $ sudo podman generate systemd --new --files --name bb310a0780ae
 [Unit]
 Description=Podman container-busy_moser.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/container/storage
 
@@ -144,7 +144,7 @@ Description=Podman pod-systemd-pod.service
 Documentation=man:podman-generate-systemd(1)
 Requires=container-amazing_chandrasekhar.service container-jolly_shtern.service
 Before=container-amazing_chandrasekhar.service container-jolly_shtern.service
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/container/storage
 

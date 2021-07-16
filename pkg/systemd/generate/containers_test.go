@@ -46,7 +46,7 @@ func TestCreateContainerSystemdUnit(t *testing.T) {
 [Unit]
 Description=Podman container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
 
@@ -72,7 +72,7 @@ WantedBy=multi-user.target default.target
 [Unit]
 Description=Podman container-foobar.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
 
@@ -96,7 +96,7 @@ WantedBy=multi-user.target default.target
 [Unit]
 Description=Podman container-foobar.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
 BindsTo=a.service b.service c.service pod.service
@@ -122,7 +122,7 @@ WantedBy=multi-user.target default.target
 [Unit]
 Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
 
@@ -144,7 +144,7 @@ WantedBy=multi-user.target default.target
 [Unit]
 Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
 
@@ -166,7 +166,7 @@ WantedBy=multi-user.target default.target
 [Unit]
 Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
 
@@ -188,7 +188,7 @@ WantedBy=multi-user.target default.target
 [Unit]
 Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
 
@@ -210,7 +210,7 @@ WantedBy=multi-user.target default.target
 [Unit]
 Description=Podman container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
 
@@ -233,7 +233,7 @@ WantedBy=multi-user.target default.target
 [Unit]
 Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
 
@@ -259,7 +259,7 @@ WantedBy=multi-user.target default.target
 [Unit]
 Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
 
@@ -281,7 +281,7 @@ WantedBy=multi-user.target default.target
 [Unit]
 Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
 
@@ -303,7 +303,7 @@ WantedBy=multi-user.target default.target
 [Unit]
 Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
 
@@ -325,7 +325,7 @@ WantedBy=multi-user.target default.target
 [Unit]
 Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
 
@@ -347,7 +347,7 @@ WantedBy=multi-user.target default.target
 [Unit]
 Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
 
@@ -369,7 +369,7 @@ WantedBy=multi-user.target default.target
 [Unit]
 Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
 
@@ -391,7 +391,7 @@ WantedBy=multi-user.target default.target
 [Unit]
 Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
 
@@ -413,7 +413,7 @@ WantedBy=multi-user.target default.target
 [Unit]
 Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
 

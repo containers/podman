@@ -249,7 +249,7 @@ EOF
 [Unit]
 Description=Podman auto-update testing service
 Documentation=man:podman-auto-update(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 
 [Service]

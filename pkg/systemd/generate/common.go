@@ -34,7 +34,7 @@ const headerTemplate = `# {{{{.ServiceName}}}}.service
 [Unit]
 Description=Podman {{{{.ServiceName}}}}.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor={{{{.RunRoot}}}}
 `

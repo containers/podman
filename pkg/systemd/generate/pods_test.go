@@ -45,7 +45,7 @@ func TestCreatePodSystemdUnit(t *testing.T) {
 [Unit]
 Description=Podman pod-123abc.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
 Requires=container-1.service container-2.service
@@ -73,7 +73,7 @@ WantedBy=multi-user.target default.target
 [Unit]
 Description=Podman pod-123abc.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
 Requires=container-1.service container-2.service
@@ -101,7 +101,7 @@ WantedBy=multi-user.target default.target
 [Unit]
 Description=Podman pod-123abc.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
 Requires=container-1.service container-2.service
@@ -129,7 +129,7 @@ WantedBy=multi-user.target default.target
 [Unit]
 Description=Podman pod-123abc.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
 Requires=container-1.service container-2.service
@@ -157,7 +157,7 @@ WantedBy=multi-user.target default.target
 [Unit]
 Description=Podman pod-123abc.service
 Documentation=man:podman-generate-systemd(1)
-Wants=network.target
+Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
 Requires=container-1.service container-2.service
