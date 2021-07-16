@@ -1,3 +1,17 @@
+- Changelog for v3.2.3 (2021-07-16):
+  * Update release notes for v3.2.3
+  * vendor containers/common@v0.38.16
+  * vendor containers/buildah@v1.21.3
+  * Fix race conditions in rootless cni setup
+  * CNI-in-slirp4netns: fix bind-mount for /run/systemd/resolve/stub-resolv.conf
+  * Make rootless-cni setup more robust
+  * Support uid,gid,mode options for secrets
+  * vendor containers/common@v0.38.15
+  * [CI:DOCS] podman search: clarify that results depend on implementation
+  * vendor containers/common@v0.38.14
+  * vendor containers/common@v0.38.13
+  * [3.2] vendor containers/common@v0.38.12
+
 - Changelog for v3.2.2 (2021-06-25):
   * fix systemcontext to use correct TMPDIR
   * Scrub podman commands to use report package
