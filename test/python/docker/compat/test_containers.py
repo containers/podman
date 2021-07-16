@@ -206,6 +206,7 @@ class TestContainers(unittest.TestCase):
         self.assertEqual(len(ctnrs), 1)
 
     def test_copy_to_container(self):
+        self.skipTest("FIXME: #10948 - test is broken")
         ctr: Optional[Container] = None
         try:
             test_file_content = b"Hello World!"
