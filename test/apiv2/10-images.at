@@ -45,6 +45,11 @@ t POST "images/create?fromImage=alpine" 200 .error~null .status~".*Download comp
 
 t POST "images/create?fromImage=alpine&tag=latest" 200
 
+# 10977 - handle platform parameter correctly
+t POST "images/create?fromImage=alpine&platform=linux/arm64" 200
+t GET  "images/alpine/json" 200 \
+  .Architecture=arm64
+
 # Make sure that new images are pulled
 old_iid=$(podman image inspect --format "{{.ID}}" docker.io/library/alpine:latest)
 podman rmi -f docker.io/library/alpine:latest
