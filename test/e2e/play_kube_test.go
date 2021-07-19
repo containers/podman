@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/containers/podman/v3/pkg/util"
 	. "github.com/containers/podman/v3/test/utils"
@@ -66,6 +67,75 @@ spec:
   restartPolicy: Never
   shareProcessNamespace: true
 status: {}
+`
+var livenessProbePodYaml = `
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: liveness-probe
+  labels:
+    app: alpine
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alpine
+  template:
+    metadata:
+      labels:
+        app: alpine
+    spec:
+      containers:
+      - command:
+        - top
+        - -d
+        - "1.5"
+        name: alpine
+        image: quay.io/libpod/alpine:latest
+        ports:
+        - containerPort: 80
+        livenessProbe:
+          exec:
+            command:
+            - echo
+            - hello
+          initialDelaySeconds: 5
+          periodSeconds: 5
+`
+var livenessProbeUnhealthyPodYaml = `
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: liveness-unhealthy-probe
+  labels:
+    app: alpine
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alpine
+  template:
+    metadata:
+      labels:
+        app: alpine
+    spec:
+      restartPolicy: Never
+      containers:
+      - command:
+        - top
+        - -d
+        - "1.5"
+        name: alpine
+        image: quay.io/libpod/alpine:latest
+        ports:
+        - containerPort: 80
+        livenessProbe:
+          exec:
+            command:
+            - cat
+            - /randomfile
+          initialDelaySeconds: 0
+          periodSeconds: 1
 `
 
 var selinuxLabelPodYaml = `
@@ -1059,6 +1129,36 @@ var _ = Describe("Podman play kube", func() {
 		Expect(sharednamespaces).To(ContainSubstring("net"))
 		Expect(sharednamespaces).To(ContainSubstring("uts"))
 		Expect(sharednamespaces).To(ContainSubstring("pid"))
+	})
+
+	It("podman play kube support container liveness probe", func() {
+		err := writeYaml(livenessProbePodYaml, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "liveness-probe-pod-0-alpine", "--format", "'{{ .Config.Healthcheck }}'"})
+		inspect.WaitWithDefaultTimeout()
+		healthcheckcmd := inspect.OutputToString()
+		// check if CMD-SHELL based equivalent health check is added to container
+		Expect(healthcheckcmd).To(ContainSubstring("CMD-SHELL"))
+	})
+
+	It("podman play kube liveness probe should fail", func() {
+		err := writeYaml(livenessProbeUnhealthyPodYaml, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		time.Sleep(2 * time.Second)
+		hc := podmanTest.Podman([]string{"healthcheck", "run", "liveness-unhealthy-probe-pod-0-alpine"})
+		hc.WaitWithDefaultTimeout()
+		hcoutput := hc.OutputToString()
+		Expect(hcoutput).To(ContainSubstring("unhealthy"))
 	})
 
 	It("podman play kube fail with nonexistent authfile", func() {
