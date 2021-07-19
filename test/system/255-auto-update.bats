@@ -36,7 +36,7 @@ function teardown() {
 
     rm -f $SNAME_FILE
     run_podman ? rmi quay.io/libpod/alpine:latest
-    run_podman ? rmi quay.io/libpod/alpine_nginx:latest
+    run_podman ? rmi quay.io/libpod/busybox:latest
     run_podman ? rmi quay.io/libpod/localtest:latest
     basic_teardown
 }
@@ -191,7 +191,7 @@ function _confirm_update() {
     do
         local img_base="alpine"
         if [[ $auto_update == "registry" ]]; then
-            img_base="alpine_nginx"
+            img_base="busybox"
         elif [[ $auto_update == "local" ]]; then
             img_base="localtest"
         fi
