@@ -278,6 +278,24 @@ function wait_for_ready {
     wait_for_output 'READY' "$@"
 }
 
+###################
+#  wait_for_port  #  Returns once port is available on host
+###################
+function wait_for_port() {
+    local host=$1                      # Probably "localhost"
+    local port=$2                      # Numeric port
+    local _timeout=${3:-5}              # Optional; default to 5 seconds
+
+    # Wait
+    while [ $_timeout -gt 0 ]; do
+        { exec 3<> /dev/tcp/$host/$port; } &>/dev/null && return
+        sleep 1
+        _timeout=$(( $_timeout - 1 ))
+    done
+
+    die "Timed out waiting for $host:$port"
+}
+
 # END   podman helpers
 ###############################################################################
 # BEGIN miscellaneous tools
