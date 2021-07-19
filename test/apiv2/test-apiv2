@@ -442,10 +442,10 @@ function random_string() {
 function wait_for_port() {
     local host=$1                      # Probably "localhost"
     local port=$2                      # Numeric port
-    local timeout=${3:-5}              # Optional; default to 5 seconds
+    local _timeout=${3:-5}             # Optional; default to 5 seconds
 
     # Wait
-    while [ $timeout -gt 0 ]; do
+    while [ $_timeout -gt 0 ]; do
         { exec 3<> /dev/tcp/$host/$port; } &>/dev/null && return
         sleep 1
         _timeout=$(( $_timeout - 1 ))
