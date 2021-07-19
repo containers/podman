@@ -88,7 +88,7 @@ func (r *Runtime) compileImageFilters(ctx context.Context, filters []string) ([]
 			if err != nil {
 				return nil, errors.Wrapf(err, "non-boolean value %q for dangling filter", value)
 			}
-			filterFuncs = append(filterFuncs, filterDangling(dangling))
+			filterFuncs = append(filterFuncs, filterDangling(ctx, dangling))
 
 		case "id":
 			filterFuncs = append(filterFuncs, filterID(value))
@@ -201,9 +201,13 @@ func filterContainers(value bool) filterFunc {
 }
 
 // filterDangling creates a dangling filter for matching the specified value.
-func filterDangling(value bool) filterFunc {
+func filterDangling(ctx context.Context, value bool) filterFunc {
 	return func(img *Image) (bool, error) {
-		return img.IsDangling() == value, nil
+		isDangling, err := img.IsDangling(ctx)
+		if err != nil {
+			return false, err
+		}
+		return isDangling == value, nil
 	}
 }
 

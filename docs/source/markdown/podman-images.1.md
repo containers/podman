@@ -36,7 +36,7 @@ Filter output based on conditions provided
     Filter on images created before the given IMAGE (name or tag).
 
   **dangling=true|false**
-    Show dangling images. Dangling images are a file system layer that was used in a previous build of an image and is no longer referenced by any active images. They are denoted with the `<none>` tag, consume disk space and serve no active purpose.
+    Show dangling images. Dangling images are a file system layer that was used in a previous build of an image and is no longer referenced by any image. They are denoted with the `<none>` tag, consume disk space and serve no active purpose.
 
   **label**
     Filter by images labels key and/or value.

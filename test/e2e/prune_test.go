@@ -16,6 +16,11 @@ LABEL RUN podman --version
 RUN apk update
 RUN apk add bash`, ALPINE)
 
+var emptyPruneImage = `
+FROM scratch
+ENV test1=test1
+ENV test2=test2`
+
 var _ = Describe("Podman prune", func() {
 	var (
 		tempdir    string
@@ -110,8 +115,12 @@ var _ = Describe("Podman prune", func() {
 		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(numImages))
 
-		// Now build a new image with dangling intermediate images.
+		// Now build an image and untag it.  The (intermediate) images
+		// should be removed recursively during pruning.
 		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
+		session = podmanTest.Podman([]string{"untag", "alpine_bash:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"images", "-a"})
 		session.WaitWithDefaultTimeout()
@@ -136,26 +145,33 @@ var _ = Describe("Podman prune", func() {
 		Expect(len(session.OutputToStringArray())).To(Equal(numImages - numPrunedImages))
 	})
 
-	It("podman image prune skip cache images", func() {
-		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
+	It("podman image prune - handle empty images", func() {
+		// As shown in #10832, empty images were not treated correctly
+		// in Podman.
+		podmanTest.BuildImage(emptyPruneImage, "empty:scratch", "true")
 
-		none := podmanTest.Podman([]string{"images", "-a"})
-		none.WaitWithDefaultTimeout()
-		Expect(none).Should(Exit(0))
-		hasNone, _ := none.GrepString("<none>")
+		session := podmanTest.Podman([]string{"images", "-a"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		hasNone, _ := session.GrepString("<none>")
 		Expect(hasNone).To(BeTrue())
 
-		prune := podmanTest.Podman([]string{"image", "prune", "-f"})
-		prune.WaitWithDefaultTimeout()
-		Expect(prune).Should(Exit(0))
+		// Nothing will be pruned.
+		session = podmanTest.Podman([]string{"image", "prune", "-f"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(0))
 
-		after := podmanTest.Podman([]string{"images", "-a"})
-		after.WaitWithDefaultTimeout()
-		Expect(none).Should(Exit(0))
-		// Check if all "dangling" images were pruned.
-		hasNoneAfter, _ := after.GrepString("<none>")
-		Expect(hasNoneAfter).To(BeFalse())
-		Expect(len(after.OutputToStringArray()) > 1).To(BeTrue())
+		// Now the image will be untagged, and its parent images will
+		// be removed recursively.
+		session = podmanTest.Podman([]string{"untag", "empty:scratch"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"image", "prune", "-f"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(2))
 	})
 
 	It("podman image prune dangling images", func() {

@@ -30,12 +30,16 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 		for j, d := range img.Digests() {
 			digests[j] = string(d)
 		}
+		isDangling, err := img.IsDangling(ctx)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error checking if image %q is dangling", img.ID())
+		}
 
 		e := entities.ImageSummary{
 			ID: img.ID(),
 			//			ConfigDigest: string(img.ConfigDigest),
 			Created:     img.Created().Unix(),
-			Dangling:    img.IsDangling(),
+			Dangling:    isDangling,
 			Digest:      string(img.Digest()),
 			RepoDigests: digests,
 			History:     img.NamesHistory(),

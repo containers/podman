@@ -434,7 +434,7 @@ func (s *StageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 		Runtime:          s.executor.runtime,
 		Args:             s.executor.runtimeArgs,
 		NoPivot:          os.Getenv("BUILDAH_NOPIVOT") != "",
-		Mounts:           convertMounts(s.executor.transientMounts),
+		Mounts:           append([]Mount{}, s.executor.transientMounts...),
 		Env:              config.Env,
 		User:             config.User,
 		WorkingDir:       config.WorkingDir,
@@ -557,13 +557,6 @@ func (s *StageExecutor) prepare(ctx context.Context, from string, initializeIBCo
 		OciDecryptConfig:      s.executor.ociDecryptConfig,
 	}
 
-	// Check and see if the image is a pseudonym for the end result of a
-	// previous stage, named by an AS clause in the Dockerfile.
-	s.executor.stagesLock.Lock()
-	if asImageFound, ok := s.executor.imageMap[from]; ok {
-		builderOptions.FromImage = asImageFound
-	}
-	s.executor.stagesLock.Unlock()
 	builder, err = buildah.NewBuilder(ctx, s.executor.store, builderOptions)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating build container")
@@ -684,15 +677,20 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 
 	// If the base image's name corresponds to the result of an earlier
 	// stage, make sure that stage has finished building an image, and
-	// substitute that image's ID for the base image's name here.  If not,
-	// then go on assuming that it's just a regular image that's either in
-	// local storage, or one that we have to pull from a registry.
+	// substitute that image's ID for the base image's name here and force
+	// the pull policy to "never" to avoid triggering an error when it's
+	// set to "always", which doesn't make sense for image IDs.
+	// If not, then go on assuming that it's just a regular image that's
+	// either in local storage, or one that we have to pull from a
+	// registry, subject to the passed-in pull policy.
 	if isStage, err := s.executor.waitForStage(ctx, base, s.stages[:s.index]); isStage && err != nil {
 		return "", nil, err
 	}
+	pullPolicy := s.executor.pullPolicy
 	s.executor.stagesLock.Lock()
 	if stageImage, isPreviousStage := s.executor.imageMap[base]; isPreviousStage {
 		base = stageImage
+		pullPolicy = define.PullNever
 	}
 	s.executor.stagesLock.Unlock()
 
@@ -723,7 +721,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 	// Create the (first) working container for this stage.  Reinitializing
 	// the imagebuilder configuration may alter the list of steps we have,
 	// so take a snapshot of them *after* that.
-	if _, err := s.prepare(ctx, base, true, true, s.executor.pullPolicy); err != nil {
+	if _, err := s.prepare(ctx, base, true, true, pullPolicy); err != nil {
 		return "", nil, err
 	}
 	children := stage.Node.Children
