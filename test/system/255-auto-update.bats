@@ -5,13 +5,20 @@
 
 load helpers
 
-UNIT_DIR="/usr/lib/systemd/system"
+DASHUSER=""
+UNIT_DIR="/run/systemd/system"
 SNAME_FILE=$BATS_TMPDIR/services
 
 function setup() {
     skip_if_remote "systemd tests are meaningless over remote"
-    skip_if_rootless
 
+    if is_rootless; then
+        test -n "${XDG_RUNTIME_DIR}" || skip "\$XDG_RUNTIME_DIR is unset"
+        UNIT_DIR="${XDG_RUNTIME_DIR}/systemd/user"
+        mkdir -p $UNIT_DIR
+        # Why isn't systemd smart enough to figure this out on its own?
+        DASHUSER="--user"
+    fi
     basic_setup
 }
 
@@ -19,10 +26,10 @@ function teardown() {
     while read line; do
         if [[ "$line" =~ "podman-auto-update" ]]; then
             echo "Stop timer: $line.timer"
-            systemctl stop $line.timer
-            systemctl disable $line.timer
+            systemctl $DASHUSER stop $line.timer
+            systemctl $DASHUSER disable $line.timer
         else
-            systemctl stop $line
+            systemctl $DASHUSER stop $line
         fi
         rm -f $UNIT_DIR/$line.{service,timer}
     done < $SNAME_FILE
@@ -58,14 +65,13 @@ function generate_service() {
     fi
     run_podman run -d --name $cname $label $target_img top -d 120
 
-    run_podman generate systemd --new $cname
-    echo "$output" > "$UNIT_DIR/container-$cname.service"
+    (cd $UNIT_DIR; run_podman generate systemd --new --files --name $cname)
     echo "container-$cname" >> $SNAME_FILE
     run_podman rm -f $cname
 
-    systemctl daemon-reload
-    systemctl start container-$cname
-    systemctl status container-$cname
+    systemctl $DASHUSER daemon-reload
+    systemctl $DASHUSER start container-$cname
+    systemctl $DASHUSER status container-$cname
 
     # Original image ID.
     # IMPORTANT: variable 'ori_image' is passed (out of scope) up to caller!
@@ -78,7 +84,7 @@ function _wait_service_ready() {
 
     local timeout=6
     while [[ $timeout -gt 1 ]]; do
-        if systemctl -q is-active $sname; then
+        if systemctl $DASHUSER -q is-active $sname; then
             return
         fi
         sleep 1
@@ -86,7 +92,7 @@ function _wait_service_ready() {
     done
 
     # Print serivce status as debug information before failed the case
-    systemctl status $sname
+    systemctl $DASHUSER status $sname
     die "Timed out waiting for $sname to start"
 }
 
@@ -261,14 +267,14 @@ WantedBy=multi-user.target default.target
 EOF
 
     echo "podman-auto-update-$cname" >> $SNAME_FILE
-    systemctl enable --now podman-auto-update-$cname.timer
-    systemctl list-timers --all
+    systemctl $DASHUSER enable --now podman-auto-update-$cname.timer
+    systemctl $DASHUSER list-timers --all
 
     local expect='Finished Podman auto-update testing service'
     local failed_start=failed
     local count=0
     while [ $count -lt 120 ]; do
-        run journalctl -n 15 -u podman-auto-update-$cname.service
+        run journalctl $DASHUSER -n 15 -u podman-auto-update-$cname.service
         if [[ "$output" =~ $expect ]]; then
             failed_start=
             break
