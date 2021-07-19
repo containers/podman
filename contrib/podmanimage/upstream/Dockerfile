@@ -17,7 +17,7 @@ ENV GOPATH=/root/podman
 # to the container.
 # Finally remove the podman directory and a few other packages
 # that are needed for building but not running Podman
-RUN yum -y update; yum -y reinstall shadow-utils; yum -y install --exclude container-selinux \
+RUN yum -y update; rpm --restore --quiet shadow-utils; yum -y install --exclude container-selinux \
      --enablerepo=updates-testing \
      btrfs-progs-devel \
      containernetworking-cni \
