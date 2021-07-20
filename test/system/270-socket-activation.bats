@@ -4,21 +4,12 @@
 #
 
 load helpers
+load helpers.systemd
 
 SERVICE_NAME="podman_test_$(random_string)"
 
-SYSTEMCTL="systemctl"
-UNIT_DIR="/usr/lib/systemd/system"
 SERVICE_SOCK_ADDR="/run/podman/podman.sock"
-
 if is_rootless; then
-    UNIT_DIR="$HOME/.config/systemd/user"
-    mkdir -p $UNIT_DIR
-
-    SYSTEMCTL="$SYSTEMCTL --user"
-    if [ -z "$XDG_RUNTIME_DIR" ]; then
-        export XDG_RUNTIME_DIR=/run/user/$(id -u)
-    fi
     SERVICE_SOCK_ADDR="$XDG_RUNTIME_DIR/podman/podman.sock"
 fi
 
@@ -66,13 +57,13 @@ EOF
             rm -f $pause_pid
         fi
     fi
-    $SYSTEMCTL start "$SERVICE_NAME.socket"
+    systemctl start "$SERVICE_NAME.socket"
 }
 
 function teardown() {
-    $SYSTEMCTL stop "$SERVICE_NAME.socket"
+    systemctl stop "$SERVICE_NAME.socket"
     rm -f "$SERVICE_FILE" "$SOCKET_FILE"
-    $SYSTEMCTL daemon-reload
+    systemctl daemon-reload
     basic_teardown
 }
 
