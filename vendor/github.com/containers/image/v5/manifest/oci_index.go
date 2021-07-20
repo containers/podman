@@ -75,7 +75,7 @@ func (index *OCI1Index) UpdateInstances(updates []ListUpdate) error {
 func (index *OCI1Index) ChooseInstance(ctx *types.SystemContext) (digest.Digest, error) {
 	wantedPlatforms, err := platform.WantedPlatforms(ctx)
 	if err != nil {
-		return "", errors.Wrapf(err, "error getting platform information %#v", ctx)
+		return "", errors.Wrapf(err, "getting platform information %#v", ctx)
 	}
 	for _, wantedPlatform := range wantedPlatforms {
 		for _, d := range index.Manifests {
@@ -108,7 +108,7 @@ func (index *OCI1Index) ChooseInstance(ctx *types.SystemContext) (digest.Digest,
 func (index *OCI1Index) Serialize() ([]byte, error) {
 	buf, err := json.Marshal(index)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error marshaling OCI1Index %#v", index)
+		return nil, errors.Wrapf(err, "marshaling OCI1Index %#v", index)
 	}
 	return buf, nil
 }
@@ -200,7 +200,7 @@ func OCI1IndexFromManifest(manifest []byte) (*OCI1Index, error) {
 		},
 	}
 	if err := json.Unmarshal(manifest, &index); err != nil {
-		return nil, errors.Wrapf(err, "error unmarshaling OCI1Index %q", string(manifest))
+		return nil, errors.Wrapf(err, "unmarshaling OCI1Index %q", string(manifest))
 	}
 	return &index, nil
 }

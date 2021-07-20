@@ -73,7 +73,7 @@ func GetRepositoryTags(ctx context.Context, sys *types.SystemContext, ref types.
 			return nil, err
 		}
 		defer res.Body.Close()
-		if err := httpResponseToError(res, "Error fetching tags list"); err != nil {
+		if err := httpResponseToError(res, "fetching tags list"); err != nil {
 			return nil, err
 		}
 
@@ -141,7 +141,7 @@ func GetDigest(ctx context.Context, sys *types.SystemContext, ref types.ImageRef
 
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return "", errors.Wrapf(registryHTTPResponseToError(res), "Error reading digest %s in %s", tagOrDigest, dr.ref.Name())
+		return "", errors.Wrapf(registryHTTPResponseToError(res), "reading digest %s in %s", tagOrDigest, dr.ref.Name())
 	}
 
 	dig, err := digest.Parse(res.Header.Get("Docker-Content-Digest"))

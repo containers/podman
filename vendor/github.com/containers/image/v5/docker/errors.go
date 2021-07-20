@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	internalTypes "github.com/containers/image/v5/internal/types"
 	"github.com/docker/distribution/registry/client"
 	perrors "github.com/pkg/errors"
 )
@@ -12,7 +13,7 @@ import (
 var (
 	// ErrV1NotSupported is returned when we're trying to talk to a
 	// docker V1 registry.
-	ErrV1NotSupported = errors.New("can't talk to a V1 docker registry")
+	ErrV1NotSupported = errors.New("can't talk to a V1 container registry")
 	// ErrTooManyRequests is returned when the status code returned is 429
 	ErrTooManyRequests = errors.New("too many requests to registry")
 )
@@ -32,11 +33,15 @@ func httpResponseToError(res *http.Response, context string) error {
 	switch res.StatusCode {
 	case http.StatusOK:
 		return nil
+	case http.StatusPartialContent:
+		return nil
 	case http.StatusTooManyRequests:
 		return ErrTooManyRequests
 	case http.StatusUnauthorized:
 		err := client.HandleErrorResponse(res)
 		return ErrUnauthorizedForCredentials{Err: err}
+	case http.StatusBadRequest:
+		return internalTypes.BadPartialRequestError{Status: res.Status}
 	default:
 		if context != "" {
 			context = context + ": "

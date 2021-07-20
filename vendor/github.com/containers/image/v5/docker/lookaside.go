@@ -154,7 +154,7 @@ func loadAndMergeConfig(dirPath string) (*registryConfiguration, error) {
 		var config registryConfiguration
 		err = yaml.Unmarshal(configBytes, &config)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Error parsing %s", configPath)
+			return nil, errors.Wrapf(err, "parsing %s", configPath)
 		}
 
 		if config.DefaultDocker != nil {

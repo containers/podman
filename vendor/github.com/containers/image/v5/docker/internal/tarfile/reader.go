@@ -30,7 +30,7 @@ type Reader struct {
 func NewReaderFromFile(sys *types.SystemContext, path string) (*Reader, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error opening file %q", path)
+		return nil, errors.Wrapf(err, "opening file %q", path)
 	}
 	defer file.Close()
 
@@ -38,7 +38,7 @@ func NewReaderFromFile(sys *types.SystemContext, path string) (*Reader, error) {
 	// as a source. Otherwise we pass the stream to NewReaderFromStream.
 	stream, isCompressed, err := compression.AutoDecompress(file)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error detecting compression for file %q", path)
+		return nil, errors.Wrapf(err, "detecting compression for file %q", path)
 	}
 	defer stream.Close()
 	if !isCompressed {
@@ -55,7 +55,7 @@ func NewReaderFromStream(sys *types.SystemContext, inputStream io.Reader) (*Read
 	// Save inputStream to a temporary file
 	tarCopyFile, err := ioutil.TempFile(tmpdir.TemporaryDirectoryForBigFiles(sys), "docker-tar")
 	if err != nil {
-		return nil, errors.Wrap(err, "error creating temporary file")
+		return nil, errors.Wrap(err, "creating temporary file")
 	}
 	defer tarCopyFile.Close()
 
@@ -71,7 +71,7 @@ func NewReaderFromStream(sys *types.SystemContext, inputStream io.Reader) (*Read
 	// giving users really confusing "invalid tar header" errors).
 	uncompressedStream, _, err := compression.AutoDecompress(inputStream)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error auto-decompressing input")
+		return nil, errors.Wrap(err, "auto-decompressing input")
 	}
 	defer uncompressedStream.Close()
 
@@ -80,7 +80,7 @@ func NewReaderFromStream(sys *types.SystemContext, inputStream io.Reader) (*Read
 	// TODO: This can take quite some time, and should ideally be cancellable
 	//       using a context.Context.
 	if _, err := io.Copy(tarCopyFile, uncompressedStream); err != nil {
-		return nil, errors.Wrapf(err, "error copying contents to temporary file %q", tarCopyFile.Name())
+		return nil, errors.Wrapf(err, "copying contents to temporary file %q", tarCopyFile.Name())
 	}
 	succeeded = true
 
@@ -113,7 +113,7 @@ func newReader(path string, removeOnClose bool) (*Reader, error) {
 		return nil, err
 	}
 	if err := json.Unmarshal(bytes, &r.Manifest); err != nil {
-		return nil, errors.Wrap(err, "Error decoding tar manifest.json")
+		return nil, errors.Wrap(err, "decoding tar manifest.json")
 	}
 
 	succeeded = true
@@ -258,7 +258,7 @@ func findTarComponent(inputFile io.Reader, componentPath string) (*tar.Reader, *
 func (r *Reader) readTarComponent(path string, limit int) ([]byte, error) {
 	file, err := r.openTarComponent(path)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error loading tar component %s", path)
+		return nil, errors.Wrapf(err, "loading tar component %s", path)
 	}
 	defer file.Close()
 	bytes, err := iolimits.ReadAtMost(file, limit)

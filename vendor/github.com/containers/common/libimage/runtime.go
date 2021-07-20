@@ -3,7 +3,6 @@ package libimage
 import (
 	"context"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/containers/image/v5/docker/reference"
@@ -93,10 +92,6 @@ func RuntimeFromStore(store storage.Store, options *RuntimeOptions) (*Runtime, e
 	}
 
 	setRegistriesConfPath(&systemContext)
-
-	if systemContext.BlobInfoCacheDir == "" {
-		systemContext.BlobInfoCacheDir = filepath.Join(store.GraphRoot(), "cache")
-	}
 
 	return &Runtime{
 		store:         store,

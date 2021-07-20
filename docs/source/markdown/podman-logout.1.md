@@ -21,6 +21,10 @@ All the cached credentials can be removed by setting the **all** flag.
 
 ## OPTIONS
 
+#### **--accept-repositories**
+
+Allow namespaces or repositories rather than just registries
+
 #### **--authfile**=*path*
 
 Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json.

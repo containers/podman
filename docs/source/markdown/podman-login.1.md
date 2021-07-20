@@ -28,6 +28,10 @@ For more details about format and configurations of the auth.json file, please r
 
 ## OPTIONS
 
+#### **--accept-repositories**
+
+Allow namespaces or repositories rather than just registries
+
 #### **--authfile**=*path*
 
 Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json.

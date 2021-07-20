@@ -211,7 +211,7 @@ func (c *PullCandidate) Record() error {
 	value := reference.TrimNamed(c.Value)
 
 	if err := Add(c.resolved.systemContext, name.String(), value); err != nil {
-		return errors.Wrapf(err, "error recording short-name alias (%q=%q)", c.resolved.userInput, c.Value)
+		return errors.Wrapf(err, "recording short-name alias (%q=%q)", c.resolved.userInput, c.Value)
 	}
 	return nil
 }
@@ -323,7 +323,7 @@ func Resolve(ctx *types.SystemContext, name string) (*Resolved, error) {
 	for _, reg := range unqualifiedSearchRegistries {
 		named, err := reference.ParseNormalizedNamed(fmt.Sprintf("%s/%s", reg, name))
 		if err != nil {
-			return nil, errors.Wrapf(err, "error creating reference with unqualified-search registry %q", reg)
+			return nil, errors.Wrapf(err, "creating reference with unqualified-search registry %q", reg)
 		}
 		// Make sure to add ":latest" if needed
 		named = reference.TagNameOnly(named)
@@ -450,7 +450,7 @@ func ResolveLocally(ctx *types.SystemContext, name string) ([]reference.Named, e
 	for _, reg := range append([]string{"localhost"}, unqualifiedSearchRegistries...) {
 		named, err := reference.ParseNormalizedNamed(fmt.Sprintf("%s/%s", reg, name))
 		if err != nil {
-			return nil, errors.Wrapf(err, "error creating reference with unqualified-search registry %q", reg)
+			return nil, errors.Wrapf(err, "creating reference with unqualified-search registry %q", reg)
 		}
 		// Make sure to add ":latest" if needed
 		named = reference.TagNameOnly(named)

@@ -127,7 +127,7 @@ func (m *OCI1) UpdateLayerInfos(layerInfos []types.BlobInfo) error {
 		}
 		mimeType, err := updatedMIMEType(oci1CompressionMIMETypeSets, mimeType, info)
 		if err != nil {
-			return errors.Wrapf(err, "Error preparing updated manifest, layer %q", info.Digest)
+			return errors.Wrapf(err, "preparing updated manifest, layer %q", info.Digest)
 		}
 		if info.CryptoOperation == types.Encrypt {
 			encMediaType, err := getEncryptedMediaType(mimeType)
