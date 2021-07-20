@@ -146,6 +146,8 @@ func replaceContainer(name string) error {
 }
 
 func createInit(c *cobra.Command) error {
+	cliVals.StorageOpt = registry.PodmanConfig().StorageOpts
+
 	if c.Flag("shm-size").Changed {
 		cliVals.ShmSize = c.Flag("shm-size").Value.String()
 	}

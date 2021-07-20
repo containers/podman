@@ -420,7 +420,6 @@ func (c *Container) setupStorage(ctx context.Context) error {
 	if c.config.Rootfs == "" && (c.config.RootfsImageID == "" || c.config.RootfsImageName == "") {
 		return errors.Wrapf(define.ErrInvalidArg, "must provide image ID and image name to use an image")
 	}
-
 	options := storage.ContainerOptions{
 		IDMappingOptions: storage.IDMappingOptions{
 			HostUIDMapping: true,
