@@ -811,7 +811,7 @@ func generateNetworkConfig(p *PodmanTestIntegration) (string, string) {
 func (p *PodmanTestIntegration) removeCNINetwork(name string) {
 	session := p.Podman([]string{"network", "rm", "-f", name})
 	session.WaitWithDefaultTimeout()
-	Expect(session.ExitCode()).To(BeNumerically("<=", 1))
+	Expect(session.ExitCode()).To(BeNumerically("<=", 1), "Exit code must be 0 or 1")
 }
 
 func (p *PodmanSessionIntegration) jq(jqCommand string) (string, error) {
