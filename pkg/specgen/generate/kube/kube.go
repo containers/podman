@@ -276,10 +276,11 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 			return nil, err
 		}
 
+		volume.MountPath = dest
 		switch volumeSource.Type {
 		case KubeVolumeTypeBindMount:
 			mount := spec.Mount{
-				Destination: dest,
+				Destination: volume.MountPath,
 				Source:      volumeSource.Source,
 				Type:        "bind",
 				Options:     options,
@@ -287,7 +288,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 			s.Mounts = append(s.Mounts, mount)
 		case KubeVolumeTypeNamed:
 			namedVolume := specgen.NamedVolume{
-				Dest:    dest,
+				Dest:    volume.MountPath,
 				Name:    volumeSource.Source,
 				Options: options,
 			}
@@ -330,12 +331,16 @@ func parseMountPath(mountPath string, readOnly bool) (string, []string, error) {
 		options = strings.Split(splitVol[1], ",")
 	}
 	if err := parse.ValidateVolumeCtrDir(dest); err != nil {
-		return "", options, errors.Wrapf(err, "error in parsing MountPath")
+		return "", options, errors.Wrapf(err, "parsing MountPath")
 	}
 	if readOnly {
 		options = append(options, "ro")
 	}
-	return dest, options, nil
+	opts, err := parse.ValidateVolumeOpts(options)
+	if err != nil {
+		return "", opts, errors.Wrapf(err, "parsing MountOptions")
+	}
+	return dest, opts, nil
 }
 
 func setupLivenessProbe(s *specgen.SpecGenerator, containerYAML v1.Container, restartPolicy string) error {
