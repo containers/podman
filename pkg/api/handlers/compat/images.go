@@ -266,41 +266,26 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer auth.RemoveAuthfile(authfile)
 
-	platformSpecs := strings.Split(query.Platform, "/") // split query into its parts
-
-	addOS := true // default assume true due to structure of if/else below
-	addArch := false
-	addVariant := false
-
-	if len(platformSpecs) > 1 { // if we have two arguments then we have os and arch
-		addArch = true
-		if len(platformSpecs) > 2 { // if we have 3 arguments then we have os arch and variant
-			addVariant = true
-		}
-	} else if len(platformSpecs) == 0 {
-		addOS = false
-	}
-
 	pullOptions := &libimage.PullOptions{}
 	pullOptions.AuthFilePath = authfile
 	if authConf != nil {
 		pullOptions.Username = authConf.Username
 		pullOptions.Password = authConf.Password
 		pullOptions.IdentityToken = authConf.IdentityToken
-		if addOS { // if the len is not 0
-			pullOptions.OS = platformSpecs[0]
-			if addArch {
-				pullOptions.Architecture = platformSpecs[1]
-			}
-			if addVariant {
-				pullOptions.Variant = platformSpecs[2]
-			}
-		}
 	}
 	pullOptions.Writer = os.Stderr // allows for debugging on the server
 
-	progress := make(chan types.ProgressProperties)
+	// Handle the platform.
+	platformSpecs := strings.Split(query.Platform, "/")
+	pullOptions.OS = platformSpecs[0] // may be empty
+	if len(platformSpecs) > 1 {
+		pullOptions.Architecture = platformSpecs[1]
+		if len(platformSpecs) > 2 {
+			pullOptions.Variant = platformSpecs[2]
+		}
+	}
 
+	progress := make(chan types.ProgressProperties)
 	pullOptions.Progress = progress
 
 	pullResChan := make(chan pullResult)
