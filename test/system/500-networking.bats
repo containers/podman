@@ -139,6 +139,8 @@ load helpers
                    $IMAGE nc -l -n -v -p $myport
         cid="$output"
 
+        wait_for_port 127.0.0.1 $myport
+
         # emit random string, and check it
         teststring=$(random_string 30)
         echo "$teststring" | nc 127.0.0.1 $myport
