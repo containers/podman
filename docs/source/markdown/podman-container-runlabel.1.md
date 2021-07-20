@@ -1,76 +1,58 @@
 % podman-container-runlabel(1)
 
 ## NAME
-podman-container-runlabel - Executes a command as described by a container image label
+podman-container-runlabel - Executes a command as described by a container-image label
 
 ## SYNOPSIS
 **podman container runlabel** [*options*] *label* *image* [*arg...*]
 
 ## DESCRIPTION
-**podman container runlabel** reads the provided `LABEL` field in the container
-IMAGE and executes the provided value for the label as a command. If this field does not
-exist, `podman container runlabel` will just exit.
+**podman container runlabel** reads the specified `label` of the `image` and executes it as command on the host.  If the label does not exist, Podman will exit with an error.  Additional arguments will be appended to the command.
 
-If the container image has a LABEL INSTALL instruction like the following:
+Historically, container images describe the contents (e.g., layers) and how a container runtime (e.g., crun(1) or runc(1)) should execute the container.  For instance, an image may set the environment and the command in its configuration.  However, a container image cannot directly specify how a container engine such as Podman should execute it.  For instance, an image configuration does not include information about log drivers, namespaces or which capabilities it needs to run correctly.
 
-`LABEL INSTALL /usr/bin/podman run -t -i --rm \${OPT1} --privileged -v /:/host --net=host --ipc=host --pid=host -e HOST=/host -e NAME=\${NAME} -e IMAGE=\${IMAGE} -e CONFDIR=/etc/\${NAME} -e LOGDIR=/var/log/\${NAME} -e DATADIR=/var/lib/\${NAME} \${IMAGE} \${OPT2} /bin/install.sh \${OPT3}`
+`podman container runlabel` addresses the limitation of container images in a simple yet efficient way.  Podman will read the contents of the label and interpret it as a command that will be executed on the host.  This way an image can describe exactly how it should be executed by Podman.  For instance, a label with the content `/usr/bin/podman run -d --pid=host --privileged \${IMAGE}` instructs the image to be executed in a detached, privileged container that is using the PID namespace of the host.  This lifts the self-description of a container image from "what" to "how".
 
-`podman container runlabel` will set the following environment variables for use in the command:
+Please note that the `runlabel` command is intended to be run in trusted environments exclusively.  Using the command on untrusted images is not recommended.
 
-If the container image does not have the desired label, an error message will be displayed along with a non-zero
-return code.  If the image is not found in local storage, Podman will attempt to pull it first.
+## VARIABLES
 
-**LABEL**
-The label name specified via the command.
+The contents of a label may refer to the following variables which will be substituted while processing the label.
 
 **IMAGE**
-Image name specified via the command.
+The name of the image.  When executing `podman container runlabel label fedora` the `IMAGE` variable will be replaced with `fedora`.  Valid formats are `IMAGE`, `$IMAGE`, `${IMAGE}` and `=IMAGE`.
 
-**SUDO_UID**
-The `SUDO_UID` environment variable.  This is useful with the podman
-`-u` option for user space tools.  If the environment variable is
-not available, the value of `/proc/self/loginuid` is used.
+**NAME**
+As specified by the `--name` option.  The format is identical to the one of the IMAGE attribute.
 
-**SUDO_GID**
-The `SUDO_GID` environment variable.  This is useful with the podman
-`-u` option for user space tools.  If the environment variable is
-not available, the default GID of the value for `SUDO_UID` is used.
-If this value is not available, the value of `/proc/self/loginuid`
-is used.
-
-Any additional arguments will be appended to the command.
+**PWD**
+Will be replaced with the current working directory.
 
 ## OPTIONS
 #### **--authfile**=*path*
 
-Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
-If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.
+Path of the containers-auth.json(5) file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.  If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.
 
-Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
-environment variable. `export REGISTRY_AUTH_FILE=path`
+Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE environment variable. `export REGISTRY_AUTH_FILE=path`
 
 #### **--display**
 
-Display the label's value of the image having populated its environment variables.
-The runlabel command will not execute if --display is specified.
+Display the label's value of the image having populated its environment variables.  The runlabel command will not execute if --display is specified.
 
 #### **--cert-dir**=*path*
 
-Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
-Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client)
+Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.  Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client)
 
 #### **--creds**=*[username[:password]]*
 
-The [username[:password]] to use to authenticate with the registry if required.
-If one or both values are not supplied, a command line prompt will appear and the
-value can be entered.  The password is entered without echo.
+The [username[:password]] to use to authenticate with the registry if required.  If one or both values are not supplied, a command line prompt will appear and the value can be entered.  The password is entered without echo.
 
 #### **--help**, **-h**
 Print usage statement
 
 #### **--name**, **-n**=*name*
 
-Use this name for creating content for the container. NAME will default to the IMAGENAME if it is not specified.
+Use this name for creating content for the container.  If not specified, name defaults to the name of the image.
 
 #### **--quiet**, **-q**
 
@@ -78,34 +60,33 @@ Suppress output information when pulling images
 
 #### **--replace**
 
-If a container exists of the default or given name, as needed it will be stopped, deleted and a new container will be
-created from this image.
+If a container exists of the default or given name, as needed it will be stopped, deleted and a new container will be created from this image.
 
 #### **--tls-verify**
 
-Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
-then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,
-TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf.
+Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true, then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified, TLS verification will be used unless the target registry is listed as an insecure registry in containers-registries.conf(5).
 
 ## EXAMPLES
 
-Execute the run label of an image called foobar.
+Execute the `run` label of an image called foobar.
 ```
-$ sudo podman container runlabel run foobar
-```
-
-Execute the install label of an image called foobar with additional arguments.
-```
-$ sudo podman container runlabel install foobar apples oranges
+$ podman container runlabel run foobar
 ```
 
-Display the command that would be executed by runlabel.
+Execute the `install` label of an image called foobar with additional arguments.
 ```
-$ sudo podman container runlabel --display run foobar
+$ podman container runlabel install foobar apples oranges
+```
+
+Display the contents of the `run` label of image foobar.
+```
+$ podman container runlabel --display run foobar
 ```
 
 ## SEE ALSO
-podman(1), containers-certs.d(5)
+podman(1), crun(1), runc(1), containers-auth.json(5), containers-certs.d(5), containers-registries.conf(5)
 
 ## HISTORY
+August 2021, Refinements by Valentin Rothberg (rothberg at redhat dot com)
+
 September 2018, Originally compiled by Brent Baude (bbaude at redhat dot com)

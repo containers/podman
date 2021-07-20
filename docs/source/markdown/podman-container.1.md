@@ -38,7 +38,7 @@ The container command allows you to manage containers
 | restore    | [podman-container-restore(1)](podman-container-restore.1.md)  | Restores one or more containers from a checkpoint.                 |
 | rm         | [podman-rm(1)](podman-rm.1.md)                      | Remove one or more containers.                                               |
 | run        | [podman-run(1)](podman-run.1.md)                    | Run a command in a container.                                                |
-| runlabel   | [podman-container-runlabel(1)](podman-container-runlabel.1.md)  | Executes a command as described by a container image label.      |
+| runlabel   | [podman-container-runlabel(1)](podman-container-runlabel.1.md)  | Executes a command as described by a container-image label.      |
 | start      | [podman-start(1)](podman-start.1.md)                | Starts one or more containers.                                               |
 | stats      | [podman-stats(1)](podman-stats.1.md)                | Display a live stream of one or more container's resource usage statistics.  |
 | stop       | [podman-stop(1)](podman-stop.1.md)                  | Stop one or more running containers.                                         |
