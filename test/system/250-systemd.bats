@@ -4,17 +4,10 @@
 #
 
 load helpers
+load helpers.systemd
 
 SERVICE_NAME="podman_test_$(random_string)"
 
-SYSTEMCTL="systemctl"
-UNIT_DIR="/usr/lib/systemd/system"
-if is_rootless; then
-    UNIT_DIR="$HOME/.config/systemd/user"
-    mkdir -p $UNIT_DIR
-
-    SYSTEMCTL="$SYSTEMCTL --user"
-fi
 UNIT_FILE="$UNIT_DIR/$SERVICE_NAME.service"
 
 function setup() {
@@ -24,22 +17,12 @@ function setup() {
 }
 
 function teardown() {
-    run '?' $SYSTEMCTL stop "$SERVICE_NAME"
+    run '?' systemctl stop "$SERVICE_NAME"
     rm -f "$UNIT_FILE"
-    $SYSTEMCTL daemon-reload
+    systemctl daemon-reload
     run_podman rmi -a
 
     basic_teardown
-}
-
-# Helper to setup xdg runtime for rootless
-function xdg_rootless() {
-    # podman initializes this if unset, but systemctl doesn't
-    if is_rootless; then
-        if [ -z "$XDG_RUNTIME_DIR" ]; then
-            export XDG_RUNTIME_DIR=/run/user/$(id -u)
-        fi
-    fi
 }
 
 # Helper to start a systemd service running a container
@@ -48,14 +31,14 @@ function service_setup() {
     echo "$output" > "$UNIT_FILE"
     run_podman rm $cname
 
-    $SYSTEMCTL daemon-reload
+    systemctl daemon-reload
 
-    run $SYSTEMCTL start "$SERVICE_NAME"
+    run systemctl start "$SERVICE_NAME"
     if [ $status -ne 0 ]; then
         die "Error starting systemd unit $SERVICE_NAME, output: $output"
     fi
 
-    run $SYSTEMCTL status "$SERVICE_NAME"
+    run systemctl status "$SERVICE_NAME"
     if [ $status -ne 0 ]; then
         die "Non-zero status of systemd unit $SERVICE_NAME, output: $output"
     fi
@@ -63,20 +46,18 @@ function service_setup() {
 
 # Helper to stop a systemd service running a container
 function service_cleanup() {
-    run $SYSTEMCTL stop "$SERVICE_NAME"
+    run systemctl stop "$SERVICE_NAME"
     if [ $status -ne 0 ]; then
         die "Error stopping systemd unit $SERVICE_NAME, output: $output"
     fi
 
     rm -f "$UNIT_FILE"
-    $SYSTEMCTL daemon-reload
+    systemctl daemon-reload
 }
 
 # These tests can fail in dev. environment because of SELinux.
 # quick fix: chcon -t container_runtime_exec_t ./bin/podman
 @test "podman generate - systemd - basic" {
-    xdg_rootless
-
     cname=$(random_string)
     # See #7407 for --pull=always.
     run_podman create --pull=always --name $cname --label "io.containers.autoupdate=registry" $IMAGE top
@@ -100,8 +81,6 @@ function service_cleanup() {
 }
 
 @test "podman autoupdate local" {
-    xdg_rootless
-
     cname=$(random_string)
     run_podman create --name $cname --label "io.containers.autoupdate=local" $IMAGE top
 
@@ -128,8 +107,6 @@ function service_cleanup() {
 # These tests can fail in dev. environment because of SELinux.
 # quick fix: chcon -t container_runtime_exec_t ./bin/podman
 @test "podman generate systemd - envar" {
-    xdg_rootless
-
     cname=$(random_string)
     FOO=value BAR=%s run_podman create --name $cname --env FOO -e BAR --env MYVAR=myval \
         $IMAGE sh -c 'printenv && sleep 100'
