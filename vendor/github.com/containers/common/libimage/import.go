@@ -86,7 +86,7 @@ func (r *Runtime) Import(ctx context.Context, path string, options *ImportOption
 		return "", err
 	}
 
-	id, err := getImageDigest(ctx, srcRef, r.systemContextCopy())
+	id, err := getImageID(ctx, srcRef, r.systemContextCopy())
 	if err != nil {
 		return "", err
 	}

@@ -342,7 +342,7 @@ func (c *copier) copy(ctx context.Context, source, destination types.ImageRefere
 		}
 	}
 
-	var copiedManifest []byte
+	var returnManifest []byte
 	f := func() error {
 		opts := c.imageCopyOptions
 		if sourceInsecure != nil {
@@ -354,11 +354,13 @@ func (c *copier) copy(ctx context.Context, source, destination types.ImageRefere
 			opts.DestinationCtx.DockerInsecureSkipTLSVerify = value
 		}
 
-		var err error
-		copiedManifest, err = copy.Image(ctx, c.policyContext, destination, source, &opts)
+		copiedManifest, err := copy.Image(ctx, c.policyContext, destination, source, &opts)
+		if err == nil {
+			returnManifest = copiedManifest
+		}
 		return err
 	}
-	return copiedManifest, retry.RetryIfNecessary(ctx, f, &c.retryOptions)
+	return returnManifest, retry.RetryIfNecessary(ctx, f, &c.retryOptions)
 }
 
 // checkRegistrySourcesAllows checks the $BUILD_REGISTRY_SOURCES environment
@@ -369,7 +371,7 @@ func (c *copier) copy(ctx context.Context, source, destination types.ImageRefere
 // If set, the insecure return value indicates whether the registry is set to
 // be insecure.
 //
-// NOTE: this functionality is required by Buildah.
+// NOTE: this functionality is required by Buildah for OpenShift.
 func checkRegistrySourcesAllows(dest types.ImageReference) (insecure *bool, err error) {
 	registrySources, ok := os.LookupEnv("BUILD_REGISTRY_SOURCES")
 	if !ok || registrySources == "" {

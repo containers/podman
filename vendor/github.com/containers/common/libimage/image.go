@@ -836,9 +836,9 @@ func (i *Image) Manifest(ctx context.Context) (rawManifest []byte, mimeType stri
 	return src.GetManifest(ctx, nil)
 }
 
-// getImageDigest creates an image object and uses the hex value of the digest as the image ID
-// for parsing the store reference
-func getImageDigest(ctx context.Context, src types.ImageReference, sys *types.SystemContext) (string, error) {
+// getImageID creates an image object and uses the hex value of the config
+// blob's digest (if it has one) as the image ID for parsing the store reference
+func getImageID(ctx context.Context, src types.ImageReference, sys *types.SystemContext) (string, error) {
 	newImg, err := src.NewImage(ctx, sys)
 	if err != nil {
 		return "", err
@@ -852,5 +852,5 @@ func getImageDigest(ctx context.Context, src types.ImageReference, sys *types.Sy
 	if err = imageDigest.Validate(); err != nil {
 		return "", errors.Wrapf(err, "error getting config info")
 	}
-	return "@" + imageDigest.Hex(), nil
+	return "@" + imageDigest.Encoded(), nil
 }
