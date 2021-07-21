@@ -47,6 +47,32 @@ func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	return r.newContainer(ctx, rSpec, options...)
 }
 
+func (r *Runtime) PrepareVolumeOnCreateContainer(ctx context.Context, ctr *Container) error {
+	// Copy the content from the underlying image into the newly created
+	// volume if configured to do so.
+	if !r.config.Containers.PrepareVolumeOnCreate {
+		return nil
+	}
+
+	defer func() {
+		if err := ctr.cleanupStorage(); err != nil {
+			logrus.Errorf("error cleaning up container storage %s: %v", ctr.ID(), err)
+		}
+	}()
+
+	mountPoint, err := ctr.mountStorage()
+	if err == nil {
+		// Finish up mountStorage
+		ctr.state.Mounted = true
+		ctr.state.Mountpoint = mountPoint
+		if err = ctr.save(); err != nil {
+			logrus.Errorf("Error saving container %s state: %v", ctr.ID(), err)
+		}
+	}
+
+	return err
+}
+
 // RestoreContainer re-creates a container from an imported checkpoint
 func (r *Runtime) RestoreContainer(ctx context.Context, rSpec *spec.Spec, config *ContainerConfig) (*Container, error) {
 	r.lock.Lock()
