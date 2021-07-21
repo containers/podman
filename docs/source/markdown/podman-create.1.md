@@ -181,6 +181,8 @@ Limit the CPU real-time period in microseconds
 
 Limit the container's Real Time CPU usage. This flag tell the kernel to restrict the container's Real Time CPU usage to the period you specify.
 
+This flag is not supported on cgroups V2 systems.
+
 #### **--cpu-rt-runtime**=*microseconds*
 
 Limit the CPU real-time runtime in microseconds
@@ -189,6 +191,8 @@ Limit the containers Real Time CPU usage. This flag tells the kernel to limit th
 Period of 1,000,000us and Runtime of 950,000us means that this container could consume 95% of available CPU and leave the remaining 5% to normal priority tasks.
 
 The sum of all runtimes across containers cannot exceed the amount allotted to the parent cgroup.
+
+This flag is not supported on cgroups V2 systems.
 
 #### **--cpu-shares**=*shares*
 
@@ -479,6 +483,8 @@ is not limited. If you specify a limit, it may be rounded up to a multiple
 of the operating system's page size and the value can be very large,
 millions of trillions.
 
+This flag is not supported on cgroups V2 systems.
+
 #### **--label**, **-l**=*label*
 
 Add metadata to a container (e.g., --label com.example.key=value)
@@ -560,6 +566,8 @@ unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
 #### **--memory-swappiness**=*number*
 
 Tune a container's memory swappiness behavior. Accepts an integer between 0 and 100.
+
+This flag is not supported on cgroups V2 systems.
 
 #### **--mount**=*type=TYPE,TYPE-SPECIFIC-OPTION[,...]*
 
