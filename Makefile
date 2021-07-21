@@ -261,7 +261,7 @@ codespell:
 	codespell -S bin,vendor,.git,go.sum,changelog.txt,.cirrus.yml,"RELEASE_NOTES.md,*.xz,*.gz,*.tar,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked,splitted,marge,ERRO,hist,ether -w
 
 .PHONY: validate
-validate: gofmt lint .gitvalidation validate.completions man-page-check swagger-check tests-included
+validate: gofmt lint .gitvalidation validate.completions man-page-check swagger-check tests-included tests-expect-exit
 
 .PHONY: build-all-new-commits
 build-all-new-commits:
@@ -604,6 +604,16 @@ test-binaries: test/checkseccomp/checkseccomp test/goecho/goecho install.cataton
 .PHONY: tests-included
 tests-included:
 	contrib/cirrus/pr-should-include-tests
+
+.PHONY: tests-expect-exit
+tests-expect-exit:
+	@if egrep 'Expect.*ExitCode' test/e2e/*.go | egrep -v ', ".*"\)'; then \
+		echo "^^^ Unhelpful use of Expect(ExitCode())"; \
+		echo "   Please use '.Should(Exit(...))' pattern instead."; \
+		echo "   If that's not possible, please add an annotation (description) to your assertion:"; \
+		echo "        Expect(...).To(..., \"Friendly explanation of this check\")"; \
+		exit 1; \
+	fi
 
 ###
 ### Release/Packaging targets

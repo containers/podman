@@ -49,11 +49,7 @@ var _ = Describe("Podman run exit", func() {
 	It("podman run exit ExecErrorCodeNotFound", func() {
 		result := podmanTest.Podman([]string{"run", ALPINE, "foobar"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Not(Equal(define.ExecErrorCodeGeneric)))
-		// TODO This is failing we believe because of a race condition
-		// Between conmon and podman closing the socket early.
-		// Test with the following, once the race condition is solved
-		// Expect(result).Should(Exit(define.ExecErrorCodeNotFound))
+		Expect(result).Should(Exit(define.ExecErrorCodeNotFound))
 	})
 
 	It("podman run exit 0", func() {

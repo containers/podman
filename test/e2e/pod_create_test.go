@@ -566,11 +566,11 @@ ENTRYPOINT ["sleep","99999"]
 		ns := "ns:/proc/self/ns/"
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--pid", ns, "--name", podName, "--share", "pid"})
 		podCreate.WaitWithDefaultTimeout()
-		Expect(podCreate.ExitCode()).To(Equal(0))
+		Expect(podCreate).Should(Exit(0))
 
 		podInspect := podmanTest.Podman([]string{"pod", "inspect", podName})
 		podInspect.WaitWithDefaultTimeout()
-		Expect(podInspect.ExitCode()).To(Equal(0))
+		Expect(podInspect).Should(Exit(0))
 		podJSON := podInspect.InspectPodToJSON()
 		Expect(podJSON.InfraConfig.PidNS).To(Equal("path"))
 
@@ -579,11 +579,11 @@ ENTRYPOINT ["sleep","99999"]
 
 		podCreate = podmanTest.Podman([]string{"pod", "create", "--pid", ns, "--name", podName, "--share", "pid"})
 		podCreate.WaitWithDefaultTimeout()
-		Expect(podCreate.ExitCode()).To(Equal(0))
+		Expect(podCreate).Should(Exit(0))
 
 		podInspect = podmanTest.Podman([]string{"pod", "inspect", podName})
 		podInspect.WaitWithDefaultTimeout()
-		Expect(podInspect.ExitCode()).To(Equal(0))
+		Expect(podInspect).Should(Exit(0))
 		podJSON = podInspect.InspectPodToJSON()
 		Expect(podJSON.InfraConfig.PidNS).To(Equal("pod"))
 
@@ -592,11 +592,11 @@ ENTRYPOINT ["sleep","99999"]
 
 		podCreate = podmanTest.Podman([]string{"pod", "create", "--pid", ns, "--name", podName, "--share", "pid"})
 		podCreate.WaitWithDefaultTimeout()
-		Expect(podCreate.ExitCode()).To(Equal(0))
+		Expect(podCreate).Should(Exit(0))
 
 		podInspect = podmanTest.Podman([]string{"pod", "inspect", podName})
 		podInspect.WaitWithDefaultTimeout()
-		Expect(podInspect.ExitCode()).To(Equal(0))
+		Expect(podInspect).Should(Exit(0))
 		podJSON = podInspect.InspectPodToJSON()
 		Expect(podJSON.InfraConfig.PidNS).To(Equal("host"))
 
@@ -605,11 +605,11 @@ ENTRYPOINT ["sleep","99999"]
 
 		podCreate = podmanTest.Podman([]string{"pod", "create", "--pid", ns, "--name", podName, "--share", "pid"})
 		podCreate.WaitWithDefaultTimeout()
-		Expect(podCreate.ExitCode()).To(Equal(0))
+		Expect(podCreate).Should(Exit(0))
 
 		podInspect = podmanTest.Podman([]string{"pod", "inspect", podName})
 		podInspect.WaitWithDefaultTimeout()
-		Expect(podInspect.ExitCode()).To(Equal(0))
+		Expect(podInspect).Should(Exit(0))
 		podJSON = podInspect.InspectPodToJSON()
 		Expect(podJSON.InfraConfig.PidNS).To(Equal("private"))
 
