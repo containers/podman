@@ -81,6 +81,7 @@ function _events_disjunctive_filters() {
 
 @test "events with disjunctive filters - journald" {
     skip_if_remote "remote does not support --events-backend"
+    skip_if_journald_unavailable "system does not support journald events"
     _events_disjunctive_filters --events-backend=journald
 }
 
