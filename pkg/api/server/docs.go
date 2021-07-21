@@ -42,7 +42,7 @@
 //
 //     InfoExtensions:
 //     x-logo:
-//       - url: https://raw.githubusercontent.com/containers/libpod/master/logo/podman-logo.png
+//       - url: https://raw.githubusercontent.com/containers/libpod/main/logo/podman-logo.png
 //       - altText: "Podman logo"
 //
 //     Produces:
