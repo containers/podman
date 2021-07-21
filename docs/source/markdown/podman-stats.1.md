@@ -37,6 +37,10 @@ Do not clear the terminal/screen in between reporting intervals
 
 Disable streaming stats and only pull the first result, default setting is false
 
+#### **--interval**=*seconds*, **-i**=*seconds*
+
+Time in seconds between stats reports, defaults to 5 seconds.
+
 #### **--format**=*template*
 
 Pretty-print container statistics to JSON or using a Go template

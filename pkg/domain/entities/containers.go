@@ -435,6 +435,8 @@ type ContainerStatsOptions struct {
 	Latest bool
 	// Stream stats.
 	Stream bool
+	// Interval in seconds
+	Interval int
 }
 
 // ContainerStatsReport is used for streaming container stats.

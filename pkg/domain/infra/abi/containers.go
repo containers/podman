@@ -1281,6 +1281,9 @@ func (ic *ContainerEngine) Shutdown(_ context.Context) {
 }
 
 func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []string, options entities.ContainerStatsOptions) (statsChan chan entities.ContainerStatsReport, err error) {
+	if options.Interval < 1 {
+		return nil, errors.New("Invalid interval, must be a positive number greater zero")
+	}
 	statsChan = make(chan entities.ContainerStatsReport, 1)
 
 	containerFunc := ic.Libpod.GetRunningContainers
@@ -1361,7 +1364,7 @@ func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []stri
 			return
 		}
 
-		time.Sleep(time.Second)
+		time.Sleep(time.Second * time.Duration(options.Interval))
 		goto stream
 	}()
 
