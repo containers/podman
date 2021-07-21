@@ -342,10 +342,6 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 		pFlags.StringVar(&opts.StorageDriver, storageDriverFlagName, "", "Select which storage driver is used to manage storage of images and containers (default is overlay)")
 		_ = cmd.RegisterFlagCompletionFunc(storageDriverFlagName, completion.AutocompleteNone) //TODO: what can we recommend here?
 
-		storageOptFlagName := "storage-opt"
-		pFlags.StringArrayVar(&opts.StorageOpts, storageOptFlagName, []string{}, "Used to pass an option to the storage driver")
-		_ = cmd.RegisterFlagCompletionFunc(storageOptFlagName, completion.AutocompleteNone)
-
 		tmpdirFlagName := "tmpdir"
 		pFlags.StringVar(&opts.Engine.TmpDir, tmpdirFlagName, "", "Path to the tmp directory for libpod state content.\n\nNote: use the environment variable 'TMPDIR' to change the temporary storage location for container images, '/var/tmp'.\n")
 		_ = cmd.RegisterFlagCompletionFunc(tmpdirFlagName, completion.AutocompleteDefault)
@@ -365,6 +361,10 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 			}
 		}
 	}
+	storageOptFlagName := "storage-opt"
+	pFlags.StringArrayVar(&opts.StorageOpts, storageOptFlagName, []string{}, "Used to pass an option to the storage driver")
+	_ = cmd.RegisterFlagCompletionFunc(storageOptFlagName, completion.AutocompleteNone)
+
 	// Override default --help information of `--help` global flag
 	var dummyHelp bool
 	pFlags.BoolVar(&dummyHelp, "help", false, "Help for podman")

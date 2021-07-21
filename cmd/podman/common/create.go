@@ -655,15 +655,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 	)
 	_ = cmd.RegisterFlagCompletionFunc(stopTimeoutFlagName, completion.AutocompleteNone)
 
-	storageOptFlagName := "storage-opt"
-	createFlags.StringSliceVar(
-		&cf.StorageOpt,
-		storageOptFlagName, []string{},
-		"Storage driver options per container",
-	)
-	//FIXME: What should we suggest here? The flag is not in the man page.
-	_ = cmd.RegisterFlagCompletionFunc(storageOptFlagName, completion.AutocompleteNone)
-
 	subgidnameFlagName := "subgidname"
 	createFlags.StringVar(
 		&cf.SubUIDName,

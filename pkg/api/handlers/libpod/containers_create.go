@@ -22,6 +22,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
+
 	warn, err := generate.CompleteSpec(r.Context(), runtime, &sg)
 	if err != nil {
 		utils.InternalServerError(w, err)
