@@ -16,4 +16,4 @@
 .. _podman run: http://docs.podman.io/en/latest/markdown/podman-run.1.html
 .. _podman build: http://docs.podman.io/en/latest/markdown/podman-build.1.html
 .. _podman push: http://docs.podman.io/en/latest/markdown/podman-push.1.html
-.. image:: https://github.com/containers/podman/blob/main/logo/podman-logo.png?raw=true
+.. image:: https://raw.githubusercontent.com/containers/podman/main/logo/podman-logo.png
