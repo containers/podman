@@ -139,7 +139,7 @@ load helpers
                    $IMAGE nc -l -n -v -p $myport
         cid="$output"
 
-        wait_for_port 127.0.0.1 $myport
+        wait_for_output "listening on .*:$myport .*" $cid
 
         # emit random string, and check it
         teststring=$(random_string 30)

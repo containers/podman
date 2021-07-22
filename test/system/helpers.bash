@@ -288,7 +288,7 @@ function wait_for_port() {
 
     # Wait
     while [ $_timeout -gt 0 ]; do
-        { exec 3<> /dev/tcp/$host/$port; } &>/dev/null && return
+        { exec 5<> /dev/tcp/$host/$port; } &>/dev/null && return
         sleep 1
         _timeout=$(( $_timeout - 1 ))
     done
