@@ -356,7 +356,7 @@ If you do mount in the host's `/var/lib/containers/storage`, however, you must a
 Not doing this will cause Podman in the container to detect that temporary files have been cleared, leading it to assume a system restart has taken place.
 This can cause Podman to reset container states and lose track of running containers.
 
-For running containers on the host from inside a container, we also recommend the [Podman remote client](remote_client.md), which only requires a single socket to be mounted into the container.
+For running containers on the host from inside a container, we also recommend the [Podman remote client](docs/tutorials/remote_client.md), which only requires a single socket to be mounted into the container.
 
 ### 14) Rootless 'podman build' fails EPERM on NFS:
 
