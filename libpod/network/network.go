@@ -24,10 +24,12 @@ var (
 	DefaultNetworkDriver = BridgeNetworkDriver
 	// MacVLANNetworkDriver defines the macvlan cni driver
 	MacVLANNetworkDriver = "macvlan"
+	// IPVLANNetworkDriver defines the ipvlan cni driver
+	IPVLANNetworkDriver = "ipvlan"
 )
 
 // SupportedNetworkDrivers describes the list of supported drivers
-var SupportedNetworkDrivers = []string{BridgeNetworkDriver, MacVLANNetworkDriver}
+var SupportedNetworkDrivers = []string{BridgeNetworkDriver, MacVLANNetworkDriver, IPVLANNetworkDriver}
 
 // isSupportedDriver checks if the user provided driver is supported
 func isSupportedDriver(driver string) error {

@@ -28,9 +28,18 @@ func Create(name string, options entities.NetworkCreateOptions, runtimeConfig *c
 		return nil, err
 	}
 	defer l.releaseCNILock()
-	if len(options.MacVLAN) > 0 || options.Driver == MacVLANNetworkDriver {
+
+	if len(options.MacVLAN) > 0 {
+		options.Driver = MacVLANNetworkDriver
+	}
+
+	switch options.Driver {
+	case MacVLANNetworkDriver:
 		fileName, err = createMacVLAN(name, options, runtimeConfig)
-	} else {
+	case IPVLANNetworkDriver:
+		fileName, err = createIPVLAN(name, options, runtimeConfig)
+	case DefaultNetworkDriver:
+	default:
 		fileName, err = createBridge(name, options, runtimeConfig)
 	}
 	if err != nil {
@@ -299,6 +308,61 @@ func createMacVLAN(name string, options entities.NetworkCreateOptions, runtimeCo
 		return "", err
 	}
 	plugins = append(plugins, macvlan)
+	ncList["plugins"] = plugins
+	b, err := json.MarshalIndent(ncList, "", "   ")
+	if err != nil {
+		return "", err
+	}
+	cniPathName := filepath.Join(GetCNIConfDir(runtimeConfig), fmt.Sprintf("%s.conflist", name))
+	err = ioutil.WriteFile(cniPathName, b, 0644)
+	return cniPathName, err
+}
+
+func createIPVLAN(name string, options entities.NetworkCreateOptions, runtimeConfig *config.Config) (string, error) {
+	var (
+		mtu     int
+		plugins []CNIPlugins
+	)
+	liveNetNames, err := GetLiveNetworkNames()
+	if err != nil {
+		return "", err
+	}
+
+	parentNetworkDevice := options.Options["parent"]
+
+	// Make sure the host-device exists if provided
+	if len(parentNetworkDevice) > 0 && !util.StringInSlice(parentNetworkDevice, liveNetNames) {
+		return "", errors.Errorf("failed to find network interface %q", parentNetworkDevice)
+	}
+	if len(name) > 0 {
+		netNames, err := GetNetworkNamesFromFileSystem(runtimeConfig)
+		if err != nil {
+			return "", err
+		}
+		if util.StringInSlice(name, netNames) {
+			return "", errors.Errorf("the network name %s is already used", name)
+		}
+	} else {
+		name, err = GetFreeDeviceName(runtimeConfig)
+		if err != nil {
+			return "", err
+		}
+	}
+	ncList := NewNcList(name, version.Current(), options.Labels)
+	if val, ok := options.Options["mtu"]; ok {
+		intVal, err := strconv.Atoi(val)
+		if err != nil {
+			return "", err
+		}
+		if intVal > 0 {
+			mtu = intVal
+		}
+	}
+	ipvlan, err := NewIPVLANPlugin(parentNetworkDevice, options.Gateway, &options.Range, &options.Subnet, mtu)
+	if err != nil {
+		return "", err
+	}
+	plugins = append(plugins, ipvlan)
 	ncList["plugins"] = plugins
 	b, err := json.MarshalIndent(ncList, "", "   ")
 	if err != nil {

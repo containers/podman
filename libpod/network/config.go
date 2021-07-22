@@ -114,6 +114,19 @@ func (p MacVLANConfig) Bytes() ([]byte, error) {
 	return json.MarshalIndent(p, "", "\t")
 }
 
+// IPVLANConfig describes the ipvlan config
+type IPVLANConfig struct {
+	PluginType string     `json:"type"`
+	Master     string     `json:"master"`
+	IPAM       IPAMConfig `json:"ipam"`
+	MTU        int        `json:"mtu,omitempty"`
+}
+
+// Bytes outputs the configuration as []byte
+func (i IPVLANConfig) Bytes() ([]byte, error) {
+	return json.MarshalIndent(i, "", "\t")
+}
+
 // FirewallConfig describes the firewall plugin
 type FirewallConfig struct {
 	PluginType string `json:"type"`

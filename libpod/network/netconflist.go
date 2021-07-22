@@ -211,6 +211,42 @@ func NewMacVLANPlugin(device string, gateway net.IP, ipRange *net.IPNet, subnet 
 	return m, nil
 }
 
+// NewIPVLANPlugin creates an ipvlanconfig with a given device name
+func NewIPVLANPlugin(device string, gateway net.IP, ipRange *net.IPNet, subnet *net.IPNet, mtu int) (IPVLANConfig, error) {
+	i := IPAMConfig{PluginType: "dhcp"}
+	if gateway != nil ||
+		(ipRange != nil && ipRange.IP != nil && ipRange.Mask != nil) ||
+		(subnet != nil && subnet.IP != nil && subnet.Mask != nil) {
+		ipam, err := NewIPAMLocalHostRange(subnet, ipRange, gateway)
+		if err != nil {
+			return IPVLANConfig{}, err
+		}
+		ranges := make([][]IPAMLocalHostRangeConf, 0)
+		ranges = append(ranges, ipam)
+		i.Ranges = ranges
+		route, err := NewIPAMDefaultRoute(IsIPv6(subnet.IP))
+		if err != nil {
+			return IPVLANConfig{}, err
+		}
+		i.Routes = []IPAMRoute{route}
+		i.PluginType = "host-local"
+	}
+
+	cfg := IPVLANConfig{
+		PluginType: "macvlan",
+		IPAM:       i,
+	}
+	if mtu > 0 {
+		cfg.MTU = mtu
+	}
+	// CNI is supposed to use the default route if a
+	// parent device is not provided
+	if len(device) > 0 {
+		cfg.Master = device
+	}
+	return cfg, nil
+}
+
 // IfPassesFilter filters NetworkListReport and returns true if the filter match the given config
 func IfPassesFilter(netconf *libcni.NetworkConfigList, filters map[string][]string) (bool, error) {
 	result := true
