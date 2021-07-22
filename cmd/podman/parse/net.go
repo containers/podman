@@ -180,9 +180,12 @@ func ValidateFileName(filename string) error {
 
 // ValidURL checks a string urlStr is a url or not
 func ValidURL(urlStr string) error {
-	_, err := url.ParseRequestURI(urlStr)
+	url, err := url.ParseRequestURI(urlStr)
 	if err != nil {
-		return errors.Wrapf(err, "invalid url path: %q", urlStr)
+		return errors.Wrapf(err, "invalid url %q", urlStr)
+	}
+	if url.Scheme == "" {
+		return errors.Errorf("invalid url %q: missing scheme", urlStr)
 	}
 	return nil
 }
