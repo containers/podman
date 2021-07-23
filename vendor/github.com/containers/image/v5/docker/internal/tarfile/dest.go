@@ -140,11 +140,11 @@ func (d *Destination) PutBlob(ctx context.Context, stream io.Reader, inputInfo t
 	if isConfig {
 		buf, err := iolimits.ReadAtMost(stream, iolimits.MaxConfigBodySize)
 		if err != nil {
-			return types.BlobInfo{}, errors.Wrap(err, "Error reading Config file stream")
+			return types.BlobInfo{}, errors.Wrap(err, "reading Config file stream")
 		}
 		d.config = buf
 		if err := d.archive.sendFileLocked(d.archive.configPath(inputInfo.Digest), inputInfo.Size, bytes.NewReader(buf)); err != nil {
-			return types.BlobInfo{}, errors.Wrap(err, "Error writing Config file")
+			return types.BlobInfo{}, errors.Wrap(err, "writing Config file")
 		}
 	} else {
 		if err := d.archive.sendFileLocked(d.archive.physicalLayerPath(inputInfo.Digest), inputInfo.Size, stream); err != nil {
@@ -187,7 +187,7 @@ func (d *Destination) PutManifest(ctx context.Context, m []byte, instanceDigest 
 	// so the caller trying a different manifest kind would be pointless.
 	var man manifest.Schema2
 	if err := json.Unmarshal(m, &man); err != nil {
-		return errors.Wrap(err, "Error parsing manifest")
+		return errors.Wrap(err, "parsing manifest")
 	}
 	if man.SchemaVersion != 2 || man.MediaType != manifest.DockerV2Schema2MediaType {
 		return errors.Errorf("Unsupported manifest type, need a Docker schema 2 manifest")

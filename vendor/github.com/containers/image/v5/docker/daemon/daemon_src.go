@@ -25,13 +25,13 @@ type daemonImageSource struct {
 func newImageSource(ctx context.Context, sys *types.SystemContext, ref daemonReference) (types.ImageSource, error) {
 	c, err := newDockerClient(sys)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error initializing docker engine client")
+		return nil, errors.Wrap(err, "initializing docker engine client")
 	}
 	// Per NewReference(), ref.StringWithinTransport() is either an image ID (config digest), or a !reference.NameOnly() reference.
 	// Either way ImageSave should create a tarball with exactly one image.
 	inputStream, err := c.ImageSave(ctx, []string{ref.StringWithinTransport()})
 	if err != nil {
-		return nil, errors.Wrap(err, "Error loading image from docker engine")
+		return nil, errors.Wrap(err, "loading image from docker engine")
 	}
 	defer inputStream.Close()
 

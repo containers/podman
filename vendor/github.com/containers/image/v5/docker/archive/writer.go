@@ -60,7 +60,7 @@ func openArchiveForWriting(path string) (*os.File, error) {
 	// only in a different way. Either way, it’s up to the user to not have two writers to the same path.)
 	fh, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error opening file %q", path)
+		return nil, errors.Wrapf(err, "opening file %q", path)
 	}
 	succeeded := false
 	defer func() {
@@ -70,7 +70,7 @@ func openArchiveForWriting(path string) (*os.File, error) {
 	}()
 	fhStat, err := fh.Stat()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error statting file %q", path)
+		return nil, errors.Wrapf(err, "statting file %q", path)
 	}
 
 	if fhStat.Mode().IsRegular() && fhStat.Size() != 0 {

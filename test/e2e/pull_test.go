@@ -44,7 +44,7 @@ var _ = Describe("Podman pull", func() {
 		session = podmanTest.Podman([]string{"pull", "busybox:latest", "docker.io/library/ibetthisdoesnotexistfr:random", "alpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(125))
-		expectedError := "Error initializing source docker://ibetthisdoesnotexistfr:random"
+		expectedError := "initializing source docker://ibetthisdoesnotexistfr:random"
 		found, _ := session.ErrorGrepString(expectedError)
 		Expect(found).To(Equal(true))
 

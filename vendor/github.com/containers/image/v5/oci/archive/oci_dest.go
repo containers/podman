@@ -22,12 +22,12 @@ type ociArchiveImageDestination struct {
 func newImageDestination(ctx context.Context, sys *types.SystemContext, ref ociArchiveReference) (types.ImageDestination, error) {
 	tempDirRef, err := createOCIRef(sys, ref.image)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error creating oci reference")
+		return nil, errors.Wrapf(err, "creating oci reference")
 	}
 	unpackedDest, err := tempDirRef.ociRefExtracted.NewImageDestination(ctx, sys)
 	if err != nil {
 		if err := tempDirRef.deleteTempDir(); err != nil {
-			return nil, errors.Wrapf(err, "error deleting temp directory %q", tempDirRef.tempDirectory)
+			return nil, errors.Wrapf(err, "deleting temp directory %q", tempDirRef.tempDirectory)
 		}
 		return nil, err
 	}
@@ -129,10 +129,13 @@ func (d *ociArchiveImageDestination) PutSignatures(ctx context.Context, signatur
 }
 
 // Commit marks the process of storing the image as successful and asks for the image to be persisted
+// unparsedToplevel contains data about the top-level manifest of the source (which may be a single-arch image or a manifest list
+// if PutManifest was only called for the single-arch image with instanceDigest == nil), primarily to allow lookups by the
+// original manifest list digest, if desired.
 // after the directory is made, it is tarred up into a file and the directory is deleted
 func (d *ociArchiveImageDestination) Commit(ctx context.Context, unparsedToplevel types.UnparsedImage) error {
 	if err := d.unpackedDest.Commit(ctx, unparsedToplevel); err != nil {
-		return errors.Wrapf(err, "error storing image %q", d.ref.image)
+		return errors.Wrapf(err, "storing image %q", d.ref.image)
 	}
 
 	// path of directory to tar up
@@ -147,13 +150,13 @@ func tarDirectory(src, dst string) error {
 	// input is a stream of bytes from the archive of the directory at path
 	input, err := archive.Tar(src, archive.Uncompressed)
 	if err != nil {
-		return errors.Wrapf(err, "error retrieving stream of bytes from %q", src)
+		return errors.Wrapf(err, "retrieving stream of bytes from %q", src)
 	}
 
 	// creates the tar file
 	outFile, err := os.Create(dst)
 	if err != nil {
-		return errors.Wrapf(err, "error creating tar file %q", dst)
+		return errors.Wrapf(err, "creating tar file %q", dst)
 	}
 	defer outFile.Close()
 

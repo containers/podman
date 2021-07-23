@@ -80,7 +80,7 @@ func (s *Source) ensureCachedDataIsPresentPrivate() error {
 	}
 	var parsedConfig manifest.Schema2Image // There's a lot of info there, but we only really care about layer DiffIDs.
 	if err := json.Unmarshal(configBytes, &parsedConfig); err != nil {
-		return errors.Wrapf(err, "Error decoding tar config %s", tarManifest.Config)
+		return errors.Wrapf(err, "decoding tar config %s", tarManifest.Config)
 	}
 	if parsedConfig.RootFS == nil {
 		return errors.Errorf("Invalid image config (rootFS is not set): %s", tarManifest.Config)
@@ -164,7 +164,7 @@ func (s *Source) prepareLayerData(tarManifest *ManifestItem, parsedConfig *manif
 			// the slower method of checking if it's compressed.
 			uncompressedStream, isCompressed, err := compression.AutoDecompress(t)
 			if err != nil {
-				return nil, errors.Wrapf(err, "Error auto-decompressing %s to determine its size", layerPath)
+				return nil, errors.Wrapf(err, "auto-decompressing %s to determine its size", layerPath)
 			}
 			defer uncompressedStream.Close()
 
@@ -172,7 +172,7 @@ func (s *Source) prepareLayerData(tarManifest *ManifestItem, parsedConfig *manif
 			if isCompressed {
 				uncompressedSize, err = io.Copy(ioutil.Discard, uncompressedStream)
 				if err != nil {
-					return nil, errors.Wrapf(err, "Error reading %s to find its size", layerPath)
+					return nil, errors.Wrapf(err, "reading %s to find its size", layerPath)
 				}
 			}
 			li.size = uncompressedSize
@@ -292,7 +292,7 @@ func (s *Source) GetBlob(ctx context.Context, info types.BlobInfo, cache types.B
 
 		uncompressedStream, _, err := compression.AutoDecompress(underlyingStream)
 		if err != nil {
-			return nil, 0, errors.Wrapf(err, "Error auto-decompressing blob %s", info.Digest)
+			return nil, 0, errors.Wrapf(err, "auto-decompressing blob %s", info.Digest)
 		}
 
 		newStream := uncompressedReadCloser{

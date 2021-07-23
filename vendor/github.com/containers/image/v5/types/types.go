@@ -334,6 +334,9 @@ type ImageDestination interface {
 	// MUST be called after PutManifest (signatures may reference manifest contents).
 	PutSignatures(ctx context.Context, signatures [][]byte, instanceDigest *digest.Digest) error
 	// Commit marks the process of storing the image as successful and asks for the image to be persisted.
+	// unparsedToplevel contains data about the top-level manifest of the source (which may be a single-arch image or a manifest list
+	// if PutManifest was only called for the single-arch image with instanceDigest == nil), primarily to allow lookups by the
+	// original manifest list digest, if desired.
 	// WARNING: This does not have any transactional semantics:
 	// - Uploaded data MAY be visible to others before Commit() is called
 	// - Uploaded data MAY be removed or MAY remain around if Close() is called without Commit() (i.e. rollback is allowed but not guaranteed)
@@ -595,12 +598,12 @@ type SystemContext struct {
 	// === docker.Transport overrides ===
 	// If not "", a directory containing a CA certificate (ending with ".crt"),
 	// a client certificate (ending with ".cert") and a client certificate key
-	// (ending with ".key") used when talking to a Docker Registry.
+	// (ending with ".key") used when talking to a container registry.
 	DockerCertPath string
 	// If not "", overrides the system’s default path for a directory containing host[:port] subdirectories with the same structure as DockerCertPath above.
 	// Ignored if DockerCertPath is non-empty.
 	DockerPerHostCertDirPath string
-	// Allow contacting docker registries over HTTP, or HTTPS with failed TLS verification. Note that this does not affect other TLS connections.
+	// Allow contacting container registries over HTTP, or HTTPS with failed TLS verification. Note that this does not affect other TLS connections.
 	DockerInsecureSkipTLSVerify OptionalBool
 	// if nil, the library tries to parse ~/.docker/config.json to retrieve credentials
 	// Ignored if DockerBearerRegistryToken is non-empty.

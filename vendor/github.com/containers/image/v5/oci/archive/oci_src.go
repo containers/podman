@@ -23,13 +23,13 @@ type ociArchiveImageSource struct {
 func newImageSource(ctx context.Context, sys *types.SystemContext, ref ociArchiveReference) (types.ImageSource, error) {
 	tempDirRef, err := createUntarTempDir(sys, ref)
 	if err != nil {
-		return nil, errors.Wrap(err, "error creating temp directory")
+		return nil, errors.Wrap(err, "creating temp directory")
 	}
 
 	unpackedSrc, err := tempDirRef.ociRefExtracted.NewImageSource(ctx, sys)
 	if err != nil {
 		if err := tempDirRef.deleteTempDir(); err != nil {
-			return nil, errors.Wrapf(err, "error deleting temp directory %q", tempDirRef.tempDirectory)
+			return nil, errors.Wrapf(err, "deleting temp directory %q", tempDirRef.tempDirectory)
 		}
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func LoadManifestDescriptorWithContext(sys *types.SystemContext, imgRef types.Im
 	}
 	tempDirRef, err := createUntarTempDir(sys, ociArchRef)
 	if err != nil {
-		return imgspecv1.Descriptor{}, errors.Wrap(err, "error creating temp directory")
+		return imgspecv1.Descriptor{}, errors.Wrap(err, "creating temp directory")
 	}
 	defer func() {
 		err := tempDirRef.deleteTempDir()
@@ -61,7 +61,7 @@ func LoadManifestDescriptorWithContext(sys *types.SystemContext, imgRef types.Im
 
 	descriptor, err := ocilayout.LoadManifestDescriptor(tempDirRef.ociRefExtracted)
 	if err != nil {
-		return imgspecv1.Descriptor{}, errors.Wrap(err, "error loading index")
+		return imgspecv1.Descriptor{}, errors.Wrap(err, "loading index")
 	}
 	return descriptor, nil
 }
