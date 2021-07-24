@@ -706,4 +706,21 @@ EOF
     run_podman rmi nomtab
 }
 
+@test "podman run --device-cgroup-rule tests" {
+    skip_if_rootless "cannot add devices in rootless mode"
+
+    run_podman run --device-cgroup-rule="b 7:* rmw" --rm $IMAGE
+    run_podman run --device-cgroup-rule="c 7:* rmw" --rm $IMAGE
+    run_podman run --device-cgroup-rule="a 7:1 rmw" --rm $IMAGE
+    run_podman run --device-cgroup-rule="a 7 rmw" --rm $IMAGE
+    run_podman 125 run --device-cgroup-rule="b 7:* rmX" --rm $IMAGE
+    is "$output" "Error: invalid device access in device-access-add: X"
+    run_podman 125 run --device-cgroup-rule="b 7:2" --rm $IMAGE
+    is "$output" 'Error: invalid device cgroup rule requires type, major:Minor, and access rules: "b 7:2"'
+    run_podman 125 run --device-cgroup-rule="x 7:* rmw" --rm $IMAGE
+    is "$output" "Error: invalid device type in device-access-add:"
+    run_podman 125 run --device-cgroup-rule="a a:* rmw" --rm $IMAGE
+    is "$output" "Error: strconv.ParseInt: parsing \"a\": invalid syntax"
+}
+
 # vim: filetype=sh
