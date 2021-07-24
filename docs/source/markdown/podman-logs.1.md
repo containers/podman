@@ -39,6 +39,14 @@ strings (e.g. 10m, 1h30m) computed relative to the client machine's time. Suppor
 time stamps include RFC3339Nano, RFC3339, 2006-01-02T15:04:05, 2006-01-02T15:04:05.999999999, 2006-01-02Z07:00,
 and 2006-01-02.
 
+#### **--until**=*TIMESTAMP*
+
+Show logs until TIMESTAMP. The --until option can be Unix timestamps, date formatted timestamps, or Go duration
+strings (e.g. 10m, 1h30m) computed relative to the client machine's time. Supported formats for date formatted
+time stamps include RFC3339Nano, RFC3339, 2006-01-02T15:04:05, 2006-01-02T15:04:05.999999999, 2006-01-02Z07:00,
+and 2006-01-02.
+
+
 #### **--tail**=*LINES*
 
 Output the specified number of LINES at the end of the logs.  LINES must be an integer.  Defaults to -1,
@@ -74,6 +82,17 @@ podman logs --tail 2 b3f2436bdb97
 # Server initialized
 ```
 
+To view all containers logs:
+```
+podman logs -t --since 0 myserver
+
+1:M 07 Aug 14:10:09.055 # Server can't set maximum open files to 10032 because of OS error: Operation not permitted.
+1:M 07 Aug 14:10:09.055 # Current maximum open files is 4096. maxclients has been reduced to 4064 to compensate for low ulimit. If you need higher maxclients increase 'ulimit -n'.
+1:M 07 Aug 14:10:09.056 * Running mode=standalone, port=6379.
+1:M 07 Aug 14:10:09.056 # WARNING: The TCP backlog setting of 511 cannot be enforced because /proc/sys/net/core/somaxconn is set to the lower value of 128.
+1:M 07 Aug 14:10:09.056 # Server initialized
+```
+
 To view a containers logs since a certain time:
 ```
 podman logs -t --since 2017-08-07T10:10:09.055837383-04:00 myserver
@@ -91,6 +110,16 @@ podman logs --since 10m myserver
 
 # Server can't set maximum open files to 10032 because of OS error: Operation not permitted.
 # Current maximum open files is 4096. maxclients has been reduced to 4064 to compensate for low ulimit. If you need higher maxclients increase 'ulimit -n'.
+```
+
+To view a container's logs until 30 minutes ago:
+```
+podman logs --until 30m myserver
+
+AH00558: httpd: Could not reliably determine the server's fully qualified domain name, using 10.0.2.100. Set the 'ServerName' directive globally to suppress this message
+AH00558: httpd: Could not reliably determine the server's fully qualified domain name, using 10.0.2.100. Set the 'ServerName' directive globally to suppress this message
+[Tue Jul 20 13:18:14.223727 2021] [mpm_event:notice] [pid 1:tid 140021067187328] AH00489: Apache/2.4.48 (Unix) configured -- resuming normal operations
+[Tue Jul 20 13:18:14.223819 2021] [core:notice] [pid 1:tid 140021067187328] AH00094: Command line: 'httpd -D FOREGROUND'
 ```
 
 ## SEE ALSO

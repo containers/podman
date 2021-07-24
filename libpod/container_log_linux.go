@@ -97,8 +97,6 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 			}
 		}()
 
-		beforeTimeStamp := true
-		afterTimeStamp := false        // needed for options.Since
 		tailQueue := []*logs.LogLine{} // needed for options.Tail
 		doTail := options.Tail > 0
 		for {
@@ -150,21 +148,10 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 				return
 			}
 
-			if !afterTimeStamp {
-				entryTime := time.Unix(0, int64(entry.RealtimeTimestamp)*int64(time.Microsecond))
-				if entryTime.Before(options.Since) {
-					continue
-				}
-				afterTimeStamp = true
+			entryTime := time.Unix(0, int64(entry.RealtimeTimestamp)*int64(time.Microsecond))
+			if (entryTime.Before(options.Since) && !options.Since.IsZero()) || (entryTime.After(options.Until) && !options.Until.IsZero()) {
+				continue
 			}
-			if beforeTimeStamp {
-				entryTime := time.Unix(0, int64(entry.RealtimeTimestamp)*int64(time.Microsecond))
-				if entryTime.Before(options.Until) || !options.Until.IsZero() {
-					continue
-				}
-				beforeTimeStamp = false
-			}
-
 			// If we're reading an event and the container exited/died,
 			// then we're done and can return.
 			event, ok := entry.Fields["PODMAN_EVENT"]

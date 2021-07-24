@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -130,6 +131,34 @@ var _ = Describe("Podman logs", func() {
 			cid := logc.OutputToString()
 
 			results := podmanTest.Podman([]string{"logs", "--since", "10m", cid})
+			results.WaitWithDefaultTimeout()
+			Expect(results).To(Exit(0))
+			Expect(len(results.OutputToStringArray())).To(Equal(3))
+		})
+
+		It("until duration 10m: "+log, func() {
+			logc := podmanTest.Podman([]string{"run", "--log-driver", log, "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
+			logc.WaitWithDefaultTimeout()
+			Expect(logc).To(Exit(0))
+			cid := logc.OutputToString()
+
+			results := podmanTest.Podman([]string{"logs", "--until", "10m", cid})
+			results.WaitWithDefaultTimeout()
+			Expect(results).To(Exit(0))
+			Expect(len(results.OutputToStringArray())).To(Equal(0))
+		})
+
+		It("until time NOW: "+log, func() {
+
+			logc := podmanTest.Podman([]string{"run", "--log-driver", log, "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
+			logc.WaitWithDefaultTimeout()
+			Expect(logc).To(Exit(0))
+			cid := logc.OutputToString()
+
+			now := time.Now()
+			now = now.Add(time.Minute * 1)
+			nowS := now.Format(time.RFC3339)
+			results := podmanTest.Podman([]string{"logs", "--until", nowS, cid})
 			results.WaitWithDefaultTimeout()
 			Expect(results).To(Exit(0))
 			Expect(len(results.OutputToStringArray())).To(Equal(3))

@@ -24,6 +24,9 @@ load helpers
     # test --since with Unix timestamps
     run_podman logs --since 1000 $cid
 
+    # test --until with Unix timestamps
+    run_podman logs --until 1000 $cid
+
     run_podman rm $cid
 }
 
@@ -123,6 +126,52 @@ $s_after"
     skip_if_journald_unavailable
 
     _log_test_since journald
+}
+
+function _log_test_until() {
+    local driver=$1
+
+    s_before="before_$(random_string)_${driver}"
+    s_after="after_$(random_string)_${driver}"
+
+    before=$(date --iso-8601=seconds)
+    sleep 5
+    run_podman run --log-driver=$driver -d --name test $IMAGE sh -c \
+        "echo $s_before; trap 'echo $s_after; exit' SIGTERM; while :; do sleep 1; done"
+
+    # sleep a second to make sure the date is after the first echo
+    sleep 1
+    run_podman stop test
+    # sleep for 20 seconds to get the proper after time
+    sleep 20
+
+    run_podman logs test
+    is "$output" \
+        "$s_before
+$s_after"
+
+    run_podman logs --until $before test
+    is "$output" \
+        ""
+
+    after=$(date --iso-8601=seconds)
+
+    run_podman logs --until $after test
+    is "$output" \
+        "$s_before
+$s_after"
+    run_podman rm -f test
+}
+
+@test "podman logs - until k8s-file" {
+    _log_test_until k8s-file
+}
+
+@test "podman logs - until journald" {
+    # We can't use journald on RHEL as rootless: rhbz#1895105
+    skip_if_journald_unavailable
+
+    _log_test_until journald
 }
 
 # vim: filetype=sh

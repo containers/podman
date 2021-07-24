@@ -369,10 +369,11 @@ func (ic *ContainerEngine) ContainerCreate(ctx context.Context, s *specgen.SpecG
 
 func (ic *ContainerEngine) ContainerLogs(_ context.Context, nameOrIDs []string, opts entities.ContainerLogsOptions) error {
 	since := opts.Since.Format(time.RFC3339)
+	until := opts.Until.Format(time.RFC3339)
 	tail := strconv.FormatInt(opts.Tail, 10)
 	stdout := opts.StdoutWriter != nil
 	stderr := opts.StderrWriter != nil
-	options := new(containers.LogOptions).WithFollow(opts.Follow).WithSince(since).WithStderr(stderr)
+	options := new(containers.LogOptions).WithFollow(opts.Follow).WithSince(since).WithUntil(until).WithStderr(stderr)
 	options.WithStdout(stdout).WithTail(tail)
 
 	var err error
