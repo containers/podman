@@ -111,8 +111,10 @@ func allocatorToIPNets(networks []*allocator.Net) []*net.IPNet {
 		if len(network.IPAM.Ranges) > 0 {
 			// this is the new IPAM range style
 			// append each subnet from ipam the rangeset
-			for _, r := range network.IPAM.Ranges[0] {
-				nets = append(nets, newIPNetFromSubnet(r.Subnet))
+			for _, allocatorRange := range network.IPAM.Ranges {
+				for _, r := range allocatorRange {
+					nets = append(nets, newIPNetFromSubnet(r.Subnet))
+				}
 			}
 		} else {
 			//	 looks like the old, deprecated style
