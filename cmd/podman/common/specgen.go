@@ -655,26 +655,29 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	return nil
 }
 
-func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, startPeriod string) (*manifest.Schema2HealthConfig, error) {
+func makeHealthCheckFromCli(inCmd string, interval string, retries uint, timeout, startPeriod string) (*manifest.Schema2HealthConfig, error) {
+	var cmdArr []string
+	cmdSplitPrelim := strings.SplitN(inCmd, " ", 2)
+	if cmdSplitPrelim[0] == "CMD-SHELL" {
+		cmdArr = cmdSplitPrelim
+	} else if cmdSplitPrelim[0] != "CMD" && cmdSplitPrelim[0] != "none" { // if it isnt a cmd-shell or a cmd, it is a command
+		cmdArr = []string{"CMD-SHELL"}
+		cmdArr = append(cmdArr, inCmd)
+	} else {
+		cmdArr = strings.Fields(inCmd)
+	}
 	// Every healthcheck requires a command
-	if len(inCmd) == 0 {
+	if len(cmdArr) == 0 {
 		return nil, errors.New("Must define a healthcheck command for all healthchecks")
 	}
 
-	// first try to parse option value as JSON array of strings...
-	cmd := []string{}
-
-	if inCmd == "none" {
-		cmd = []string{"NONE"}
-	} else {
-		err := json.Unmarshal([]byte(inCmd), &cmd)
-		if err != nil {
-			// ...otherwise pass it to "/bin/sh -c" inside the container
-			cmd = []string{"CMD-SHELL", inCmd}
-		}
+	if cmdArr[0] == "none" { // if specified to remove healtcheck
+		cmdArr = []string{"NONE"}
 	}
+
+	// healthcheck is by default an array, so we simply pass the user input
 	hc := manifest.Schema2HealthConfig{
-		Test: cmd,
+		Test: cmdArr,
 	}
 
 	if interval == "disable" {
