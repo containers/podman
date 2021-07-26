@@ -275,7 +275,10 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		// registry on localhost.
 		pullPolicy := config.PullPolicyNewer
 		if len(container.ImagePullPolicy) > 0 {
-			pullPolicy, err = config.ParsePullPolicy(string(container.ImagePullPolicy))
+			// Make sure to lower the strings since K8s pull policy
+			// may be capitalized (see bugzilla.redhat.com/show_bug.cgi?id=1985905).
+			rawPolicy := string(container.ImagePullPolicy)
+			pullPolicy, err = config.ParsePullPolicy(strings.ToLower(rawPolicy))
 			if err != nil {
 				return nil, err
 			}

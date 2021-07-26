@@ -1628,7 +1628,7 @@ var _ = Describe("Podman play kube", func() {
 	})
 
 	It("podman play kube with pull policy of missing", func() {
-		ctr := getCtr(withPullPolicy("missing"), withImage(BB))
+		ctr := getCtr(withPullPolicy("Missing"), withImage(BB))
 		err := generateKubeYaml("pod", getPod(withCtr(ctr)), kubeYaml)
 		Expect(err).To(BeNil())
 
