@@ -327,7 +327,7 @@ func (c *Connection) DoRequest(httpBody io.Reader, httpMethod, endpoint string, 
 	uri := fmt.Sprintf("http://d/v%d.%d.%d/libpod"+endpoint, params...)
 	logrus.Debugf("DoRequest Method: %s URI: %v", httpMethod, uri)
 
-	req, err := http.NewRequest(httpMethod, uri, httpBody)
+	req, err := http.NewRequestWithContext(context.WithValue(context.Background(), clientKey, c), httpMethod, uri, httpBody)
 	if err != nil {
 		return nil, err
 	}
@@ -337,7 +337,6 @@ func (c *Connection) DoRequest(httpBody io.Reader, httpMethod, endpoint string, 
 	for key, val := range header {
 		req.Header.Set(key, val)
 	}
-	req = req.WithContext(context.WithValue(context.Background(), clientKey, c))
 	// Give the Do three chances in the case of a comm/service hiccup
 	for i := 0; i < 3; i++ {
 		response, err = c.Client.Do(req) // nolint
