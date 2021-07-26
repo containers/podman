@@ -63,6 +63,37 @@ var _ = Describe("Podman volume prune", func() {
 		podmanTest.Cleanup()
 	})
 
+	It("podman prune volume --filter until", func() {
+		session := podmanTest.Podman([]string{"volume", "create", "--label", "label1=value1", "myvol1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"volume", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(2))
+
+		session = podmanTest.Podman([]string{"volume", "prune", "--force", "--filter", "until=50"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"volume", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(2))
+
+		session = podmanTest.Podman([]string{"volume", "prune", "--force", "--filter", "until=5000000000"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"volume", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(0))
+
+		podmanTest.Cleanup()
+	})
+
 	It("podman prune volume --filter", func() {
 		session := podmanTest.Podman([]string{"volume", "create", "--label", "label1=value1", "myvol1"})
 		session.WaitWithDefaultTimeout()

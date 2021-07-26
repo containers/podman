@@ -23,12 +23,8 @@ Do not prompt for confirmation.
 
 Filter volumes to be pruned. Volumes can be filtered by the following attributes:
 
-- dangling
-- driver
 - label
-- name
-- opt
-- scope
+- until
 
 #### **--help**
 
