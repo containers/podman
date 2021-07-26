@@ -337,6 +337,7 @@ func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination strin
 	pushOptions.ManifestMIMEType = manifestType
 	pushOptions.RemoveSignatures = opts.RemoveSignatures
 	pushOptions.SignBy = opts.SignBy
+	pushOptions.InsecureSkipTLSVerify = opts.SkipTLSVerify
 
 	if opts.All {
 		pushOptions.ImageListSelection = cp.CopyAllImages
