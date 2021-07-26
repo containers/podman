@@ -749,16 +749,9 @@ RUN echo $random_string
 EOF
 
     run_podman 125 build -t build_test --pull-never $tmpdir
-    # FIXME: this is just ridiculous. Even after #10030 and #10034, Ubuntu
-    # remote *STILL* flakes this test! It fails with the correct exit status,
-    # but the error output is 'Error: stream dropped, unexpected failure'
-    # Let's just stop checking on podman-remote. As long as it exits 125,
-    # we're happy.
-    if ! is_remote; then
-        is "$output" \
-           ".*Error: error creating build container: quay.io/libpod/nosuchimage:nosuchtag: image not known" \
-           "--pull-never fails with expected error message"
-    fi
+    is "$output" \
+       ".*Error: error creating build container: quay.io/libpod/nosuchimage:nosuchtag: image not known" \
+       "--pull-never fails with expected error message"
 }
 
 @test "podman build --logfile test" {
