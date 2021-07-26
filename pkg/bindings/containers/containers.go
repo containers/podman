@@ -223,6 +223,9 @@ func Stats(ctx context.Context, containers []string, options *StatsOptions) (cha
 	if err != nil {
 		return nil, err
 	}
+	if !response.IsSuccess() {
+		return nil, response.Process(nil)
+	}
 
 	statsChan := make(chan entities.ContainerStatsReport)
 

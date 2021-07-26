@@ -37,19 +37,19 @@ var _ = Describe("Podman pod stats", func() {
 		processTestResult(f)
 
 	})
-	It("podman stats should run with no pods", func() {
+	It("podman pod stats should run with no pods", func() {
 		session := podmanTest.Podman([]string{"pod", "stats", "--no-stream"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})
 
-	It("podman stats with a bogus pod", func() {
+	It("podman pod stats with a bogus pod", func() {
 		session := podmanTest.Podman([]string{"pod", "stats", "foobar"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(125))
 	})
 
-	It("podman stats on a specific running pod", func() {
+	It("podman pod stats on a specific running pod", func() {
 		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
@@ -66,7 +66,7 @@ var _ = Describe("Podman pod stats", func() {
 		Expect(stats).Should(Exit(0))
 	})
 
-	It("podman stats on a specific running pod with shortID", func() {
+	It("podman pod stats on a specific running pod with shortID", func() {
 		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
@@ -83,7 +83,7 @@ var _ = Describe("Podman pod stats", func() {
 		Expect(stats).Should(Exit(0))
 	})
 
-	It("podman stats on a specific running pod with name", func() {
+	It("podman pod stats on a specific running pod with name", func() {
 		_, ec, podid := podmanTest.CreatePod(map[string][]string{"--name": {"test"}})
 		Expect(ec).To(Equal(0))
 
@@ -100,7 +100,7 @@ var _ = Describe("Podman pod stats", func() {
 		Expect(stats).Should(Exit(0))
 	})
 
-	It("podman stats on running pods", func() {
+	It("podman pod stats on running pods", func() {
 		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
@@ -117,7 +117,7 @@ var _ = Describe("Podman pod stats", func() {
 		Expect(stats).Should(Exit(0))
 	})
 
-	It("podman stats on all pods", func() {
+	It("podman pod stats on all pods", func() {
 		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
@@ -134,7 +134,7 @@ var _ = Describe("Podman pod stats", func() {
 		Expect(stats).Should(Exit(0))
 	})
 
-	It("podman stats with json output", func() {
+	It("podman pod stats with json output", func() {
 		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
@@ -151,7 +151,7 @@ var _ = Describe("Podman pod stats", func() {
 		Expect(stats).Should(Exit(0))
 		Expect(stats.IsJSONOutputValid()).To(BeTrue())
 	})
-	It("podman stats with GO template", func() {
+	It("podman pod stats with GO template", func() {
 		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
@@ -163,7 +163,7 @@ var _ = Describe("Podman pod stats", func() {
 		Expect(stats).To(Exit(0))
 	})
 
-	It("podman stats with invalid GO template", func() {
+	It("podman pod stats with invalid GO template", func() {
 		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 
@@ -175,7 +175,7 @@ var _ = Describe("Podman pod stats", func() {
 		Expect(stats).To(ExitWithError())
 	})
 
-	It("podman stats on net=host post", func() {
+	It("podman pod stats on net=host post", func() {
 		SkipIfRootless("--net=host not supported for rootless pods at present")
 		podName := "testPod"
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--net=host", "--name", podName})

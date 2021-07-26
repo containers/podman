@@ -1,5 +1,3 @@
-// +build
-
 package integration
 
 import (
@@ -84,15 +82,49 @@ var _ = Describe("Podman stats", func() {
 		Expect(session).Should(Exit(0))
 	})
 
-	It("podman stats only output CPU data", func() {
+	It("podman stats with GO template", func() {
 		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		session = podmanTest.Podman([]string{"stats", "--all", "--no-stream", "--format", "\"{{.ID}} {{.UpTime}} {{.AVGCPU}}\""})
+		stats := podmanTest.Podman([]string{"stats", "-a", "--no-reset", "--no-stream", "--format", "table {{.ID}} {{.AVGCPU}} {{.MemUsage}} {{.CPU}} {{.NetIO}} {{.BlockIO}} {{.PIDS}}"})
+		stats.WaitWithDefaultTimeout()
+		Expect(stats).To(Exit(0))
+	})
+
+	It("podman stats with invalid GO template", func() {
+		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
-		Expect(session.LineInOutputContains("UpTime")).To(BeTrue())
-		Expect(session.LineInOutputContains("AVGCPU")).To(BeTrue())
 		Expect(session).Should(Exit(0))
+		stats := podmanTest.Podman([]string{"stats", "-a", "--no-reset", "--no-stream", "--format", "\"table {{.ID}} {{.NoSuchField}} \""})
+		stats.WaitWithDefaultTimeout()
+		Expect(stats).To(ExitWithError())
+	})
+
+	It("podman stats with negative interval", func() {
+		session := podmanTest.RunTopContainer("")
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		stats := podmanTest.Podman([]string{"stats", "-a", "--no-reset", "--no-stream", "--interval=-1"})
+		stats.WaitWithDefaultTimeout()
+		Expect(stats).To(ExitWithError())
+	})
+
+	It("podman stats with zero interval", func() {
+		session := podmanTest.RunTopContainer("")
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		stats := podmanTest.Podman([]string{"stats", "-a", "--no-reset", "--no-stream", "--interval=0"})
+		stats.WaitWithDefaultTimeout()
+		Expect(stats).To(ExitWithError())
+	})
+
+	It("podman stats with interval", func() {
+		session := podmanTest.RunTopContainer("")
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		stats := podmanTest.Podman([]string{"stats", "-a", "--no-reset", "--no-stream", "--interval=5"})
+		stats.WaitWithDefaultTimeout()
+		Expect(stats).Should(Exit(0))
 	})
 
 	It("podman stats with json output", func() {

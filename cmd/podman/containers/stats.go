@@ -17,7 +17,6 @@ import (
 	"github.com/containers/podman/v3/utils"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -140,7 +139,7 @@ func stats(cmd *cobra.Command, args []string) error {
 			return report.Error
 		}
 		if err := outputStats(report.Stats); err != nil {
-			logrus.Error(err)
+			return err
 		}
 	}
 	return nil
