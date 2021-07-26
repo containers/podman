@@ -244,9 +244,58 @@ var _ = Describe("Podman network create", func() {
 		Expect(bridgePlugin.IPAM.Routes[0].Dest).To(Equal("::/0"))
 		Expect(bridgePlugin.IPAM.Routes[1].Dest).To(Equal("0.0.0.0/0"))
 
+		Expect(bridgePlugin.IPAM.Ranges).To(HaveLen(2))
+		Expect(bridgePlugin.IPAM.Ranges[0]).To(HaveLen(1))
+		Expect(bridgePlugin.IPAM.Ranges[0][0].Subnet).ToNot(BeEmpty())
+		Expect(bridgePlugin.IPAM.Ranges[1]).To(HaveLen(1))
+		Expect(bridgePlugin.IPAM.Ranges[1][0].Subnet).ToNot(BeEmpty())
+
+		_, subnet11, err := net.ParseCIDR(bridgePlugin.IPAM.Ranges[0][0].Subnet)
+		Expect(err).To(BeNil())
+		_, subnet12, err := net.ParseCIDR(bridgePlugin.IPAM.Ranges[1][0].Subnet)
+		Expect(err).To(BeNil())
+
 		// Once a container executes a new network, the nic will be created. We should clean those up
 		// best we can
 		defer removeNetworkDevice(bridgePlugin.BrName)
+
+		// create a second network to check the auto assigned ipv4 subnet does not overlap
+		// https://github.com/containers/podman/issues/11032
+		netName2 := "dual-" + stringid.GenerateNonCryptoID()
+		nc = podmanTest.Podman([]string{"network", "create", "--subnet", "fd00:6:3:2:1::/64", "--ipv6", netName2})
+		nc.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(netName2)
+		Expect(nc).Should(Exit(0))
+
+		// Inspect the network configuration
+		inspect = podmanTest.Podman([]string{"network", "inspect", netName2})
+		inspect.WaitWithDefaultTimeout()
+
+		// JSON the network configuration into something usable
+		err = json.Unmarshal([]byte(inspect.OutputToString()), &results)
+		Expect(err).To(BeNil())
+		result = results[0]
+		Expect(result["name"]).To(Equal(netName2))
+
+		// JSON the bridge info
+		bridgePlugin, err = genericPluginsToBridge(result["plugins"], "bridge")
+		Expect(err).To(BeNil())
+		Expect(bridgePlugin.IPAM.Routes[0].Dest).To(Equal("::/0"))
+		Expect(bridgePlugin.IPAM.Routes[1].Dest).To(Equal("0.0.0.0/0"))
+		Expect(bridgePlugin.IPAM.Ranges).To(HaveLen(2))
+		Expect(bridgePlugin.IPAM.Ranges[0]).To(HaveLen(1))
+		Expect(bridgePlugin.IPAM.Ranges[0][0].Subnet).ToNot(BeEmpty())
+		Expect(bridgePlugin.IPAM.Ranges[1]).To(HaveLen(1))
+		Expect(bridgePlugin.IPAM.Ranges[1][0].Subnet).ToNot(BeEmpty())
+
+		_, subnet21, err := net.ParseCIDR(bridgePlugin.IPAM.Ranges[0][0].Subnet)
+		Expect(err).To(BeNil())
+		_, subnet22, err := net.ParseCIDR(bridgePlugin.IPAM.Ranges[1][0].Subnet)
+		Expect(err).To(BeNil())
+
+		// check that the subnets do not overlap
+		Expect(subnet11.Contains(subnet21.IP)).To(BeFalse())
+		Expect(subnet12.Contains(subnet22.IP)).To(BeFalse())
 
 		try := podmanTest.Podman([]string{"run", "-it", "--rm", "--network", netName, ALPINE, "sh", "-c", "ip addr show eth0 |  grep global | awk ' /inet6 / {print $2}'"})
 		try.WaitWithDefaultTimeout()
