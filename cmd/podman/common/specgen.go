@@ -516,7 +516,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 			if len(con) != 2 {
 				return fmt.Errorf("invalid --security-opt 1: %q", opt)
 			}
-
 			switch con[0] {
 			case "apparmor":
 				s.ContainerSecurityConfig.ApparmorProfile = con[1]
@@ -655,20 +654,32 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	return nil
 }
 
-func makeHealthCheckFromCli(inCmd string, interval string, retries uint, timeout, startPeriod string) (*manifest.Schema2HealthConfig, error) {
-	var cmdArr []string
-	cmdSplitPrelim := strings.SplitN(inCmd, " ", 2)
-	if cmdSplitPrelim[0] == "CMD-SHELL" {
-		cmdArr = cmdSplitPrelim
-	} else if cmdSplitPrelim[0] != "CMD" && cmdSplitPrelim[0] != "none" { // if it isnt a cmd-shell or a cmd, it is a command
-		cmdArr = []string{"CMD-SHELL"}
-		cmdArr = append(cmdArr, inCmd)
-	} else {
-		cmdArr = strings.Fields(inCmd)
+func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, startPeriod string) (*manifest.Schema2HealthConfig, error) {
+	cmdArr := []string{}
+	isArr := true
+	err := json.Unmarshal([]byte(inCmd), &cmdArr) // array unmarshalling
+	if err != nil {
+		cmdArr = strings.SplitN(inCmd, " ", 2) // default for compat
+		isArr = false
 	}
 	// Every healthcheck requires a command
 	if len(cmdArr) == 0 {
 		return nil, errors.New("Must define a healthcheck command for all healthchecks")
+	}
+	concat := ""
+	if cmdArr[0] == "CMD" || cmdArr[0] == "none" { // this is for compat, we are already split properly for most compat cases
+		cmdArr = strings.Fields(inCmd)
+	} else if cmdArr[0] != "CMD-SHELL" { // this is for podman side of things, wont contain the keywords
+		if isArr && len(cmdArr) > 1 { // an array of consecutive commands
+			cmdArr = append([]string{"CMD"}, cmdArr...)
+		} else { // one singular command
+			if len(cmdArr) == 1 {
+				concat = cmdArr[0]
+			} else {
+				concat = strings.Join(cmdArr[0:], " ")
+			}
+			cmdArr = append([]string{"CMD-SHELL"}, concat)
+		}
 	}
 
 	if cmdArr[0] == "none" { // if specified to remove healtcheck

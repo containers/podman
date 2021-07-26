@@ -173,6 +173,16 @@ var _ = Describe("Podman healthcheck run", func() {
 		Expect(inspect[0].State.Healthcheck.Status).To(Equal("healthy"))
 	})
 
+	It("podman healthcheck unhealthy but valid arguments check", func() {
+		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", "--health-retries", "2", "--health-cmd", "[\"ls\", \"/foo\"]", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		hc := podmanTest.Podman([]string{"healthcheck", "run", "hc"})
+		hc.WaitWithDefaultTimeout()
+		Expect(hc.ExitCode()).To(Equal(1))
+	})
+
 	It("podman healthcheck single healthy result changes failed to healthy", func() {
 		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", "--health-retries", "2", "--health-cmd", "ls /foo || exit 1", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()

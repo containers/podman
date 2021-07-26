@@ -521,7 +521,9 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *c
 		for _, str := range cc.Config.Healthcheck.Test {
 			finCmd = finCmd + str + " "
 		}
-		finCmd = finCmd[:len(finCmd)-1]
+		if len(finCmd) > 1 {
+			finCmd = finCmd[:len(finCmd)-1]
+		}
 		cliOpts.HealthCmd = finCmd
 		cliOpts.HealthInterval = cc.Config.Healthcheck.Interval.String()
 		cliOpts.HealthRetries = uint(cc.Config.Healthcheck.Retries)

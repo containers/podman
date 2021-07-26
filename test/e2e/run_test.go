@@ -1205,7 +1205,7 @@ USER mail`, BB)
 	})
 
 	It("podman run with bad healthcheck retries", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "--health-cmd", "foo", "--health-retries", "0", ALPINE, "top"})
+		session := podmanTest.Podman([]string{"run", "-dt", "--health-cmd", "[\"foo\"]", "--health-retries", "0", ALPINE, "top"})
 		session.Wait()
 		Expect(session).To(ExitWithError())
 		Expect(session.ErrorToString()).To(ContainSubstring("healthcheck-retries must be greater than 0"))
