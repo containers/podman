@@ -41,7 +41,7 @@ func BuildFilter(spec *specs.LinuxSeccomp) (*libseccomp.ScmpFilter, error) {
 		return nil, errors.Wrap(err, "convert spec to seccomp profile")
 	}
 
-	defaultAction, err := toAction(profile.DefaultAction, nil)
+	defaultAction, err := toAction(profile.DefaultAction, profile.DefaultErrnoRet)
 	if err != nil {
 		return nil, errors.Wrapf(err, "convert default action %s", profile.DefaultAction)
 	}

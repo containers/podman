@@ -111,6 +111,7 @@ func setupSeccomp(config *Seccomp, rs *specs.Spec) (*specs.LinuxSeccomp, error) 
 	}
 
 	newConfig.DefaultAction = specs.LinuxSeccompAction(config.DefaultAction)
+	newConfig.DefaultErrnoRet = config.DefaultErrnoRet
 
 Loop:
 	// Loop through all syscall blocks and convert them to libcontainer format after filtering them
