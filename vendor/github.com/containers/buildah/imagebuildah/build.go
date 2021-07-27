@@ -39,7 +39,7 @@ const (
 )
 
 // Mount is a mountpoint for the build container.
-type Mount specs.Mount
+type Mount = specs.Mount
 
 type BuildOptions = define.BuildOptions
 

@@ -15,6 +15,7 @@ import (
 	"unicode"
 
 	"github.com/containers/buildah/define"
+	"github.com/containers/common/pkg/parse"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/unshare"
@@ -205,13 +206,13 @@ func Volume(volume string) (specs.Mount, error) {
 	if err := validateVolumeMountHostDir(arr[0]); err != nil {
 		return mount, err
 	}
-	if err := ValidateVolumeCtrDir(arr[1]); err != nil {
+	if err := parse.ValidateVolumeCtrDir(arr[1]); err != nil {
 		return mount, err
 	}
 	mountOptions := ""
 	if len(arr) > 2 {
 		mountOptions = arr[2]
-		if _, err := ValidateVolumeOpts(strings.Split(arr[2], ",")); err != nil {
+		if _, err := parse.ValidateVolumeOpts(strings.Split(arr[2], ",")); err != nil {
 			return mount, err
 		}
 	}
@@ -360,7 +361,7 @@ func GetBindMount(args []string) (specs.Mount, error) {
 			if len(kv) == 1 {
 				return newMount, errors.Wrapf(optionArgError, kv[0])
 			}
-			if err := ValidateVolumeHostDir(kv[1]); err != nil {
+			if err := parse.ValidateVolumeHostDir(kv[1]); err != nil {
 				return newMount, err
 			}
 			newMount.Source = kv[1]
@@ -369,7 +370,7 @@ func GetBindMount(args []string) (specs.Mount, error) {
 			if len(kv) == 1 {
 				return newMount, errors.Wrapf(optionArgError, kv[0])
 			}
-			if err := ValidateVolumeCtrDir(kv[1]); err != nil {
+			if err := parse.ValidateVolumeCtrDir(kv[1]); err != nil {
 				return newMount, err
 			}
 			newMount.Destination = kv[1]
@@ -391,7 +392,7 @@ func GetBindMount(args []string) (specs.Mount, error) {
 		newMount.Source = newMount.Destination
 	}
 
-	opts, err := ValidateVolumeOpts(newMount.Options)
+	opts, err := parse.ValidateVolumeOpts(newMount.Options)
 	if err != nil {
 		return newMount, err
 	}
@@ -433,7 +434,7 @@ func GetTmpfsMount(args []string) (specs.Mount, error) {
 			if len(kv) == 1 {
 				return newMount, errors.Wrapf(optionArgError, kv[0])
 			}
-			if err := ValidateVolumeCtrDir(kv[1]); err != nil {
+			if err := parse.ValidateVolumeCtrDir(kv[1]); err != nil {
 				return newMount, err
 			}
 			newMount.Destination = kv[1]
@@ -452,17 +453,7 @@ func GetTmpfsMount(args []string) (specs.Mount, error) {
 
 // ValidateVolumeHostDir validates a volume mount's source directory
 func ValidateVolumeHostDir(hostDir string) error {
-	if len(hostDir) == 0 {
-		return errors.Errorf("host directory cannot be empty")
-	}
-	if filepath.IsAbs(hostDir) {
-		if _, err := os.Stat(hostDir); err != nil {
-			return errors.WithStack(err)
-		}
-	}
-	// If hostDir is not an absolute path, that means the user wants to create a
-	// named volume. This will be done later on in the code.
-	return nil
+	return parse.ValidateVolumeHostDir(hostDir)
 }
 
 // validates the host path of buildah --volume
@@ -478,75 +469,12 @@ func validateVolumeMountHostDir(hostDir string) error {
 
 // ValidateVolumeCtrDir validates a volume mount's destination directory.
 func ValidateVolumeCtrDir(ctrDir string) error {
-	if len(ctrDir) == 0 {
-		return errors.Errorf("container directory cannot be empty")
-	}
-	if !filepath.IsAbs(ctrDir) {
-		return errors.Errorf("invalid container path %q, must be an absolute path", ctrDir)
-	}
-	return nil
+	return parse.ValidateVolumeCtrDir(ctrDir)
 }
 
 // ValidateVolumeOpts validates a volume's options
 func ValidateVolumeOpts(options []string) ([]string, error) {
-	var foundRootPropagation, foundRWRO, foundLabelChange, bindType, foundExec, foundDev, foundSuid, foundChown int
-	finalOpts := make([]string, 0, len(options))
-	for _, opt := range options {
-		switch opt {
-		case "noexec", "exec":
-			foundExec++
-			if foundExec > 1 {
-				return nil, errors.Errorf("invalid options %q, can only specify 1 'noexec' or 'exec' option", strings.Join(options, ", "))
-			}
-		case "nodev", "dev":
-			foundDev++
-			if foundDev > 1 {
-				return nil, errors.Errorf("invalid options %q, can only specify 1 'nodev' or 'dev' option", strings.Join(options, ", "))
-			}
-		case "nosuid", "suid":
-			foundSuid++
-			if foundSuid > 1 {
-				return nil, errors.Errorf("invalid options %q, can only specify 1 'nosuid' or 'suid' option", strings.Join(options, ", "))
-			}
-		case "rw", "ro":
-			foundRWRO++
-			if foundRWRO > 1 {
-				return nil, errors.Errorf("invalid options %q, can only specify 1 'rw' or 'ro' option", strings.Join(options, ", "))
-			}
-		case "z", "Z", "O":
-			foundLabelChange++
-			if foundLabelChange > 1 {
-				return nil, errors.Errorf("invalid options %q, can only specify 1 'z', 'Z', or 'O' option", strings.Join(options, ", "))
-			}
-		case "U":
-			foundChown++
-			if foundChown > 1 {
-				return nil, errors.Errorf("invalid options %q, can only specify 1 'U' option", strings.Join(options, ", "))
-			}
-		case "private", "rprivate", "shared", "rshared", "slave", "rslave", "unbindable", "runbindable":
-			foundRootPropagation++
-			if foundRootPropagation > 1 {
-				return nil, errors.Errorf("invalid options %q, can only specify 1 '[r]shared', '[r]private', '[r]slave' or '[r]unbindable' option", strings.Join(options, ", "))
-			}
-		case "bind", "rbind":
-			bindType++
-			if bindType > 1 {
-				return nil, errors.Errorf("invalid options %q, can only specify 1 '[r]bind' option", strings.Join(options, ", "))
-			}
-		case "cached", "delegated":
-			// The discarded ops are OS X specific volume options
-			// introduced in a recent Docker version.
-			// They have no meaning on Linux, so here we silently
-			// drop them. This matches Docker's behavior (the options
-			// are intended to be always safe to use, even not on OS
-			// X).
-			continue
-		default:
-			return nil, errors.Errorf("invalid option type %q", opt)
-		}
-		finalOpts = append(finalOpts, opt)
-	}
-	return finalOpts, nil
+	return parse.ValidateVolumeOpts(options)
 }
 
 // validateExtraHost validates that the specified string is a valid extrahost and returns it.
@@ -601,7 +529,7 @@ func SystemContextFromOptions(c *cobra.Command) (*types.SystemContext, error) {
 	creds, err := c.Flags().GetString("creds")
 	if err == nil && c.Flag("creds").Changed {
 		var err error
-		ctx.DockerAuthConfig, err = getDockerAuth(creds)
+		ctx.DockerAuthConfig, err = AuthConfig(creds)
 		if err != nil {
 			return nil, err
 		}
@@ -734,7 +662,9 @@ func parseCreds(creds string) (string, string) {
 	return up[0], up[1]
 }
 
-func getDockerAuth(creds string) (*types.DockerAuthConfig, error) {
+// AuthConfig parses the creds in format [username[:password] into an auth
+// config.
+func AuthConfig(creds string) (*types.DockerAuthConfig, error) {
 	username, password := parseCreds(creds)
 	if username == "" {
 		fmt.Print("Username: ")

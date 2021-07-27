@@ -176,6 +176,11 @@ func ImageToImageSummary(l *libimage.Image) (*entities.ImageSummary, error) {
 	}
 	containerCount := len(containers)
 
+	isDangling, err := l.IsDangling(context.TODO())
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to check if image %s is dangling", l.ID())
+	}
+
 	is := entities.ImageSummary{
 		ID:           l.ID(),
 		ParentId:     imageData.Parent,
@@ -188,7 +193,7 @@ func ImageToImageSummary(l *libimage.Image) (*entities.ImageSummary, error) {
 		Labels:       imageData.Labels,
 		Containers:   containerCount,
 		ReadOnly:     l.IsReadOnly(),
-		Dangling:     l.IsDangling(),
+		Dangling:     isDangling,
 		Names:        l.Names(),
 		Digest:       string(imageData.Digest),
 		ConfigDigest: "", // TODO: libpod/image didn't set it but libimage should

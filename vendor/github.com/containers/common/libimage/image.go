@@ -121,24 +121,29 @@ func (i *Image) IsReadOnly() bool {
 	return i.storageImage.ReadOnly
 }
 
-// IsDangling returns true if the image is dangling.  An image is considered
-// dangling if no names are associated with it in the containers storage.
-func (i *Image) IsDangling() bool {
-	return len(i.Names()) == 0
-}
-
-// IsIntermediate returns true if the image is an intermediate image, that is
-// a dangling image without children.
-func (i *Image) IsIntermediate(ctx context.Context) (bool, error) {
-	// If the image has tags, it's not an intermediate one.
-	if !i.IsDangling() {
+// IsDangling returns true if the image is dangling, that is an untagged image
+// without children.
+func (i *Image) IsDangling(ctx context.Context) (bool, error) {
+	if len(i.Names()) > 0 {
 		return false, nil
 	}
 	children, err := i.getChildren(ctx, false)
 	if err != nil {
 		return false, err
 	}
-	// No tags, no children -> intermediate!
+	return len(children) == 0, nil
+}
+
+// IsIntermediate returns true if the image is an intermediate image, that is
+// an untagged image with children.
+func (i *Image) IsIntermediate(ctx context.Context) (bool, error) {
+	if len(i.Names()) > 0 {
+		return false, nil
+	}
+	children, err := i.getChildren(ctx, false)
+	if err != nil {
+		return false, err
+	}
 	return len(children) != 0, nil
 }
 
@@ -271,7 +276,7 @@ type RemoveImageReport struct {
 
 // remove removes the image along with all dangling parent images that no other
 // image depends on.  The image must not be set read-only and not be used by
-// containers.
+// containers.  Returns IDs of removed/untagged images in order.
 //
 // If the image is used by containers return storage.ErrImageUsedByContainer.
 // Use force to remove these containers.
@@ -282,7 +287,12 @@ type RemoveImageReport struct {
 //
 // This function is internal.  Users of libimage should always use
 // `(*Runtime).RemoveImages()`.
-func (i *Image) remove(ctx context.Context, rmMap map[string]*RemoveImageReport, referencedBy string, options *RemoveImagesOptions) error {
+func (i *Image) remove(ctx context.Context, rmMap map[string]*RemoveImageReport, referencedBy string, options *RemoveImagesOptions) ([]string, error) {
+	processedIDs := []string{}
+	return i.removeRecursive(ctx, rmMap, processedIDs, referencedBy, options)
+}
+
+func (i *Image) removeRecursive(ctx context.Context, rmMap map[string]*RemoveImageReport, processedIDs []string, referencedBy string, options *RemoveImagesOptions) ([]string, error) {
 	// If referencedBy is empty, the image is considered to be removed via
 	// `image remove --all` which alters the logic below.
 
@@ -294,7 +304,7 @@ func (i *Image) remove(ctx context.Context, rmMap map[string]*RemoveImageReport,
 	logrus.Debugf("Removing image %s", i.ID())
 
 	if i.IsReadOnly() {
-		return errors.Errorf("cannot remove read-only image %q", i.ID())
+		return processedIDs, errors.Errorf("cannot remove read-only image %q", i.ID())
 	}
 
 	if i.runtime.eventChannel != nil {
@@ -306,7 +316,7 @@ func (i *Image) remove(ctx context.Context, rmMap map[string]*RemoveImageReport,
 	if exists {
 		// If the image has already been removed, we're done.
 		if report.Removed {
-			return nil
+			return processedIDs, nil
 		}
 	} else {
 		report = &RemoveImageReport{ID: i.ID()}
@@ -333,7 +343,7 @@ func (i *Image) remove(ctx context.Context, rmMap map[string]*RemoveImageReport,
 	if options.WithSize {
 		size, err := i.Size()
 		if handleError(err) != nil {
-			return err
+			return processedIDs, err
 		}
 		report.Size = size
 	}
@@ -354,18 +364,18 @@ func (i *Image) remove(ctx context.Context, rmMap map[string]*RemoveImageReport,
 		byDigest := strings.HasPrefix(referencedBy, "sha256:")
 		if !options.Force {
 			if byID && numNames > 1 {
-				return errors.Errorf("unable to delete image %q by ID with more than one tag (%s): please force removal", i.ID(), i.Names())
+				return processedIDs, errors.Errorf("unable to delete image %q by ID with more than one tag (%s): please force removal", i.ID(), i.Names())
 			} else if byDigest && numNames > 1 {
 				// FIXME - Docker will remove the digest but containers storage
 				// does not support that yet, so our hands are tied.
-				return errors.Errorf("unable to delete image %q by digest with more than one tag (%s): please force removal", i.ID(), i.Names())
+				return processedIDs, errors.Errorf("unable to delete image %q by digest with more than one tag (%s): please force removal", i.ID(), i.Names())
 			}
 		}
 
 		// Only try to untag if we know it's not an ID or digest.
 		if !byID && !byDigest {
 			if err := i.Untag(referencedBy); handleError(err) != nil {
-				return err
+				return processedIDs, err
 			}
 			report.Untagged = append(report.Untagged, referencedBy)
 
@@ -374,14 +384,15 @@ func (i *Image) remove(ctx context.Context, rmMap map[string]*RemoveImageReport,
 		}
 	}
 
+	processedIDs = append(processedIDs, i.ID())
 	if skipRemove {
-		return nil
+		return processedIDs, nil
 	}
 
 	// Perform the actual removal. First, remove containers if needed.
 	if options.Force {
 		if err := i.removeContainers(options.RemoveContainerFunc); err != nil {
-			return err
+			return processedIDs, err
 		}
 	}
 
@@ -407,7 +418,7 @@ func (i *Image) remove(ctx context.Context, rmMap map[string]*RemoveImageReport,
 	}
 
 	if _, err := i.runtime.store.DeleteImage(i.ID(), true); handleError(err) != nil {
-		return err
+		return processedIDs, err
 	}
 	report.Untagged = append(report.Untagged, i.Names()...)
 
@@ -417,27 +428,24 @@ func (i *Image) remove(ctx context.Context, rmMap map[string]*RemoveImageReport,
 
 	// Check if can remove the parent image.
 	if parent == nil {
-		return nil
+		return processedIDs, nil
 	}
 
-	if !parent.IsDangling() {
-		return nil
-	}
-
-	// If the image has siblings, we don't remove the parent.
-	hasSiblings, err := parent.HasChildren(ctx)
+	// Only remove the parent if it's dangling, that is being untagged and
+	// without children.
+	danglingParent, err := parent.IsDangling(ctx)
 	if err != nil {
 		// See Podman commit fd9dd7065d44: we need to
 		// be tolerant toward corrupted images.
 		logrus.Warnf("error determining if an image is a parent: %v, ignoring the error", err)
-		hasSiblings = false
+		danglingParent = false
 	}
-	if hasSiblings {
-		return nil
+	if !danglingParent {
+		return processedIDs, nil
 	}
 
 	// Recurse into removing the parent.
-	return parent.remove(ctx, rmMap, "", options)
+	return parent.removeRecursive(ctx, rmMap, processedIDs, "", options)
 }
 
 // Tag the image with the specified name and store it in the local containers

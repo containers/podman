@@ -602,12 +602,43 @@ func (b *Builder) userForRun(mountPoint string, userspec string) (specs.User, st
 // userForRun() does, except for the case where we're passed a single numeric
 // value, where we need to use that value for both the UID and the GID.
 func (b *Builder) userForCopy(mountPoint string, userspec string) (uint32, uint32, error) {
-	if id, err := strconv.ParseUint(userspec, 10, 32); err == nil {
-		return uint32(id), uint32(id), nil
+	var (
+		user, group string
+		uid, gid    uint64
+		err         error
+	)
+
+	split := strings.SplitN(userspec, ":", 2)
+	user = split[0]
+	if len(split) > 1 {
+		group = split[1]
 	}
-	user, _, err := b.userForRun(mountPoint, userspec)
+
+	// If userspec did not specify any values for user or group, then fail
+	if user == "" && group == "" {
+		return 0, 0, errors.Errorf("can't find uid for user %s", userspec)
+	}
+
+	// If userspec specifies values for user or group, check for numeric values
+	// and return early.  If not, then translate username/groupname
+	if user != "" {
+		uid, err = strconv.ParseUint(user, 10, 32)
+	}
+	if err == nil {
+		// default gid to uid
+		gid = uid
+		if group != "" {
+			gid, err = strconv.ParseUint(group, 10, 32)
+		}
+	}
+	// If err != nil, then user or group not numeric, check filesystem
+	if err == nil {
+		return uint32(uid), uint32(gid), nil
+	}
+
+	owner, _, err := b.userForRun(mountPoint, userspec)
 	if err != nil {
 		return 0xffffffff, 0xffffffff, err
 	}
-	return user.UID, user.GID, nil
+	return owner.UID, owner.GID, nil
 }

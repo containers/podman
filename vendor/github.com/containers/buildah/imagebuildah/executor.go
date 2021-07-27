@@ -165,8 +165,7 @@ func NewExecutor(logger *logrus.Logger, store storage.Store, options define.Buil
 		if err != nil {
 			return nil, err
 		}
-
-		transientMounts = append([]Mount{Mount(mount)}, transientMounts...)
+		transientMounts = append([]Mount{mount}, transientMounts...)
 	}
 
 	secrets, err := parse.Secrets(options.CommonBuildOpts.Secrets)
@@ -569,7 +568,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 	// Build maps of every named base image and every referenced stage root
 	// filesystem.  Individual stages can use them to determine whether or
 	// not they can skip certain steps near the end of their stages.
-	for _, stage := range stages {
+	for stageIndex, stage := range stages {
 		node := stage.Node // first line
 		for node != nil {  // each line
 			for _, child := range node.Children { // tokens on this line, though we only care about the first
@@ -589,7 +588,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 							// FROM instruction uses argument values,
 							// we might not record the right value here.
 							b.baseMap[base] = true
-							logrus.Debugf("base: %q", base)
+							logrus.Debugf("base for stage %d: %q", stageIndex, base)
 						}
 					}
 				case "ADD", "COPY":
@@ -601,7 +600,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 							// not record the right value here.
 							rootfs := strings.TrimPrefix(flag, "--from=")
 							b.rootfsMap[rootfs] = true
-							logrus.Debugf("rootfs: %q", rootfs)
+							logrus.Debugf("rootfs needed for COPY in stage %d: %q", stageIndex, rootfs)
 						}
 					}
 				}

@@ -15,6 +15,9 @@ type layerTree struct {
 	// ociCache is a cache for Image.ID -> OCI Image. Translations are done
 	// on-demand.
 	ociCache map[string]*ociv1.Image
+	// emptyImages do not have any top-layer so we cannot create a
+	// *layerNode for them.
+	emptyImages []*Image
 }
 
 // node returns a layerNode for the specified layerID.
@@ -105,6 +108,7 @@ func (r *Runtime) layerTree() (*layerTree, error) {
 		img := images[i] // do not leak loop variable outside the scope
 		topLayer := img.TopLayer()
 		if topLayer == "" {
+			tree.emptyImages = append(tree.emptyImages, img)
 			continue
 		}
 		node, exists := tree.nodes[topLayer]
@@ -126,22 +130,13 @@ func (r *Runtime) layerTree() (*layerTree, error) {
 // either the same top layer as parent or parent being the true parent layer.
 // Furthermore, the history of the parent and child images must match with the
 // parent having one history item less.  If all is true, all images are
-// returned.  Otherwise, the first image is returned.
+// returned.  Otherwise, the first image is returned.  Note that manifest lists
+// do not have children.
 func (t *layerTree) children(ctx context.Context, parent *Image, all bool) ([]*Image, error) {
 	if parent.TopLayer() == "" {
-		return nil, nil
-	}
-
-	var children []*Image
-
-	parentNode, exists := t.nodes[parent.TopLayer()]
-	if !exists {
-		// Note: erroring out in this case has turned out having been a
-		// mistake. Users may not be able to recover, so we're now
-		// throwing a warning to guide them to resolve the issue and
-		// turn the errors non-fatal.
-		logrus.Warnf("Layer %s not found in layer tree. The storage may be corrupted, consider running `podman system reset`.", parent.TopLayer())
-		return children, nil
+		if isManifestList, _ := parent.IsManifestList(ctx); isManifestList {
+			return nil, nil
+		}
 	}
 
 	parentID := parent.ID()
@@ -161,6 +156,38 @@ func (t *layerTree) children(ctx context.Context, parent *Image, all bool) ([]*I
 		}
 		// History check.
 		return areParentAndChild(parentOCI, childOCI), nil
+	}
+
+	var children []*Image
+
+	// Empty images are special in that they do not have any physical layer
+	// but yet can have a parent-child relation.  Hence, compare the
+	// "parent" image to all other known empty images.
+	if parent.TopLayer() == "" {
+		for i := range t.emptyImages {
+			empty := t.emptyImages[i]
+			isParent, err := checkParent(empty)
+			if err != nil {
+				return nil, err
+			}
+			if isParent {
+				children = append(children, empty)
+				if !all {
+					break
+				}
+			}
+		}
+		return children, nil
+	}
+
+	parentNode, exists := t.nodes[parent.TopLayer()]
+	if !exists {
+		// Note: erroring out in this case has turned out having been a
+		// mistake. Users may not be able to recover, so we're now
+		// throwing a warning to guide them to resolve the issue and
+		// turn the errors non-fatal.
+		logrus.Warnf("Layer %s not found in layer tree. The storage may be corrupted, consider running `podman system reset`.", parent.TopLayer())
+		return children, nil
 	}
 
 	// addChildrenFrom adds child images of parent to children.  Returns
@@ -204,8 +231,37 @@ func (t *layerTree) children(ctx context.Context, parent *Image, all bool) ([]*I
 }
 
 // parent returns the parent image or nil if no parent image could be found.
+// Note that manifest lists do not have parents.
 func (t *layerTree) parent(ctx context.Context, child *Image) (*Image, error) {
 	if child.TopLayer() == "" {
+		if isManifestList, _ := child.IsManifestList(ctx); isManifestList {
+			return nil, nil
+		}
+	}
+
+	childID := child.ID()
+	childOCI, err := t.toOCI(ctx, child)
+	if err != nil {
+		return nil, err
+	}
+
+	// Empty images are special in that they do not have any physical layer
+	// but yet can have a parent-child relation.  Hence, compare the
+	// "child" image to all other known empty images.
+	if child.TopLayer() == "" {
+		for _, empty := range t.emptyImages {
+			if childID == empty.ID() {
+				continue
+			}
+			emptyOCI, err := t.toOCI(ctx, empty)
+			if err != nil {
+				return nil, err
+			}
+			// History check.
+			if areParentAndChild(emptyOCI, childOCI) {
+				return empty, nil
+			}
+		}
 		return nil, nil
 	}
 
@@ -219,14 +275,8 @@ func (t *layerTree) parent(ctx context.Context, child *Image) (*Image, error) {
 		return nil, nil
 	}
 
-	childOCI, err := t.toOCI(ctx, child)
-	if err != nil {
-		return nil, err
-	}
-
 	// Check images from the parent node (i.e., parent layer) and images
 	// with the same layer (i.e., same top layer).
-	childID := child.ID()
 	images := node.images
 	if node.parent != nil {
 		images = append(images, node.parent.images...)

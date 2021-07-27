@@ -10,6 +10,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	registryTransport "github.com/containers/image/v5/docker"
 	dockerArchiveTransport "github.com/containers/image/v5/docker/archive"
+	dockerDaemonTransport "github.com/containers/image/v5/docker/daemon"
 	"github.com/containers/image/v5/docker/reference"
 	ociArchiveTransport "github.com/containers/image/v5/oci/archive"
 	ociTransport "github.com/containers/image/v5/oci/layout"
@@ -55,6 +56,13 @@ func (r *Runtime) Pull(ctx context.Context, name string, pullPolicy config.PullP
 	var possiblyUnqualifiedName string // used for short-name resolution
 	ref, err := alltransports.ParseImageName(name)
 	if err != nil {
+		// Check whether `name` points to a transport.  If so, we
+		// return the error.  Otherwise we assume that `name` refers to
+		// an image on a registry (e.g., "fedora").
+		if alltransports.TransportFromImageName(name) != nil {
+			return nil, err
+		}
+
 		// If the image clearly refers to a local one, we can look it up directly.
 		// In fact, we need to since they are not parseable.
 		if strings.HasPrefix(name, "sha256:") || (len(name) == 64 && !strings.ContainsAny(name, "/.:@")) {
@@ -168,6 +176,15 @@ func (r *Runtime) copyFromDefault(ctx context.Context, ref types.ImageReference,
 	// Figure out a name for the storage destination.
 	var storageName, imageName string
 	switch ref.Transport().Name() {
+
+	case dockerDaemonTransport.Transport.Name():
+		// Normalize to docker.io if needed (see containers/podman/issues/10998).
+		named, err := reference.ParseNormalizedNamed(ref.StringWithinTransport())
+		if err != nil {
+			return nil, err
+		}
+		imageName = named.String()
+		storageName = imageName
 
 	case ociTransport.Transport.Name():
 		split := strings.SplitN(ref.StringWithinTransport(), ":", 2)

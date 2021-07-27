@@ -3,7 +3,6 @@ package libimage
 import (
 	"context"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/containers/image/v5/docker/reference"
@@ -93,10 +92,6 @@ func RuntimeFromStore(store storage.Store, options *RuntimeOptions) (*Runtime, e
 	}
 
 	setRegistriesConfPath(&systemContext)
-
-	if systemContext.BlobInfoCacheDir == "" {
-		systemContext.BlobInfoCacheDir = filepath.Join(store.GraphRoot(), "cache")
-	}
 
 	return &Runtime{
 		store:         store,
@@ -592,11 +587,10 @@ func (r *Runtime) RemoveImages(ctx context.Context, names []string, options *Rem
 		rmErrors = append(rmErrors, err)
 	}
 
-	orderedIDs := []string{}                // determinism and relative order
 	deleteMap := make(map[string]*deleteMe) // ID -> deleteMe
-
+	toDelete := []string{}
 	// Look up images in the local containers storage and fill out
-	// orderedIDs and the deleteMap.
+	// toDelete and the deleteMap.
 	switch {
 	case len(names) > 0:
 		// Look up the images one-by-one.  That allows for removing
@@ -610,14 +604,11 @@ func (r *Runtime) RemoveImages(ctx context.Context, names []string, options *Rem
 			}
 			dm, exists := deleteMap[img.ID()]
 			if !exists {
-				orderedIDs = append(orderedIDs, img.ID())
+				toDelete = append(toDelete, img.ID())
 				dm = &deleteMe{image: img}
 				deleteMap[img.ID()] = dm
 			}
 			dm.referencedBy = append(dm.referencedBy, resolvedName)
-		}
-		if len(orderedIDs) == 0 {
-			return nil, rmErrors
 		}
 
 	default:
@@ -627,14 +618,21 @@ func (r *Runtime) RemoveImages(ctx context.Context, names []string, options *Rem
 			return nil, rmErrors
 		}
 		for _, img := range filteredImages {
-			orderedIDs = append(orderedIDs, img.ID())
+			toDelete = append(toDelete, img.ID())
 			deleteMap[img.ID()] = &deleteMe{image: img}
 		}
 	}
 
+	// Return early if there's no image to delete.
+	if len(deleteMap) == 0 {
+		return nil, rmErrors
+	}
+
 	// Now remove the images in the given order.
 	rmMap := make(map[string]*RemoveImageReport)
-	for _, id := range orderedIDs {
+	orderedIDs := []string{}
+	visitedIDs := make(map[string]bool)
+	for _, id := range toDelete {
 		del, exists := deleteMap[id]
 		if !exists {
 			appendError(errors.Errorf("internal error: ID %s not in found in image-deletion map", id))
@@ -644,9 +642,17 @@ func (r *Runtime) RemoveImages(ctx context.Context, names []string, options *Rem
 			del.referencedBy = []string{""}
 		}
 		for _, ref := range del.referencedBy {
-			if err := del.image.remove(ctx, rmMap, ref, options); err != nil {
+			processedIDs, err := del.image.remove(ctx, rmMap, ref, options)
+			if err != nil {
 				appendError(err)
-				continue
+			}
+			// NOTE: make sure to add given ID only once to orderedIDs.
+			for _, id := range processedIDs {
+				if visited := visitedIDs[id]; visited {
+					continue
+				}
+				orderedIDs = append(orderedIDs, id)
+				visitedIDs[id] = true
 			}
 		}
 	}

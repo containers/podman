@@ -10,7 +10,7 @@ podman\-rmi - Removes one or more locally stored images
 
 ## DESCRIPTION
 Removes one or more locally stored images.
-Passing an argument _image_ deletes it, along with any of its dangling (untagged) parent images.
+Passing an argument _image_ deletes it, along with any of its dangling parent images.  A dangling image is an image without a tag and without being referenced by another image.
 
 ## OPTIONS
 
