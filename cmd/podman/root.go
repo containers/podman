@@ -208,7 +208,8 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	// 3) command doesn't require Parent Namespace
 	_, found := cmd.Annotations[registry.ParentNSRequired]
 	if !registry.IsRemote() && rootless.IsRootless() && !found {
-		err := registry.ContainerEngine().SetupRootless(registry.Context(), cmd)
+		_, noMoveProcess := cmd.Annotations[registry.NoMoveProcess]
+		err := registry.ContainerEngine().SetupRootless(registry.Context(), noMoveProcess)
 		if err != nil {
 			return err
 		}

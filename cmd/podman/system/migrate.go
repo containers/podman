@@ -22,7 +22,10 @@ var (
 `
 
 	migrateCommand = &cobra.Command{
-		Annotations:       map[string]string{registry.EngineMode: registry.ABIMode},
+		Annotations: map[string]string{
+			registry.EngineMode:    registry.ABIMode,
+			registry.NoMoveProcess: registry.NoMoveProcess,
+		},
 		Use:               "migrate [options]",
 		Args:              validate.NoArgs,
 		Short:             "Migrate containers",

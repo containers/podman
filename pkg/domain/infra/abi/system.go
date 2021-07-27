@@ -24,7 +24,6 @@ import (
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
 
@@ -57,7 +56,7 @@ func (ic *ContainerEngine) Info(ctx context.Context) (*define.Info, error) {
 	return info, err
 }
 
-func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) error {
+func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool) error {
 	// do it only after podman has already re-execed and running with uid==0.
 	hasCapSysAdmin, err := unshare.HasCapSysAdmin()
 	if err != nil {
@@ -104,6 +103,9 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) 
 	if became {
 		os.Exit(ret)
 	}
+	if noMoveProcess {
+		return nil
+	}
 
 	// if there is no pid file, try to join existing containers, and create a pause process.
 	ctrs, err := ic.Libpod.GetRunningContainers()
@@ -118,9 +120,10 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) 
 	}
 
 	became, ret, err = rootless.TryJoinFromFilePaths(pausePidPath, true, paths)
+
 	if err := movePauseProcessToScope(ic.Libpod); err != nil {
-		conf, err := ic.Config(context.Background())
-		if err != nil {
+		conf, err2 := ic.Config(context.Background())
+		if err2 != nil {
 			return err
 		}
 		if conf.Engine.CgroupManager == config.SystemdCgroupsManager {
@@ -148,7 +151,6 @@ func movePauseProcessToScope(r *libpod.Runtime) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get pause process pid file path")
 	}
-
 	data, err := ioutil.ReadFile(pausePidPath)
 	if err != nil {
 		return errors.Wrapf(err, "cannot read pause pid file")
