@@ -38,8 +38,8 @@ struct fsxattr {
 #ifndef PRJQUOTA
 #define PRJQUOTA	2
 #endif
-#ifndef XFS_PROJ_QUOTA
-#define XFS_PROJ_QUOTA	2
+#ifndef FS_PROJ_QUOTA
+#define FS_PROJ_QUOTA	2
 #endif
 #ifndef Q_XSETPQLIM
 #define Q_XSETPQLIM QCMD(Q_XSETQLIM, PRJQUOTA)
@@ -61,9 +61,10 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// Quota limit params - currently we only control blocks hard limit
+// Quota limit params - currently we only control blocks hard limit and inodes
 type Quota struct {
-	Size uint64
+	Size   uint64
+	Inodes uint64
 }
 
 // Control - Context to be used by storage driver (e.g. overlay)
@@ -119,7 +120,8 @@ func NewControl(basePath string) (*Control, error) {
 	// a quota on the first available project id
 	//
 	quota := Quota{
-		Size: 0,
+		Size:   0,
+		Inodes: 0,
 	}
 	if err := setProjectQuota(backingFsBlockDev, minProjectID, quota); err != nil {
 		return nil, err
@@ -166,7 +168,7 @@ func (q *Control) SetQuota(targetPath string, quota Quota) error {
 	//
 	// set the quota limit for the container's project id
 	//
-	logrus.Debugf("SetQuota(%s, %d): projectID=%d", targetPath, quota.Size, projectID)
+	logrus.Debugf("SetQuota path=%s, size=%d, inodes=%d, projectID=%d", targetPath, quota.Size, quota.Inodes, projectID)
 	return setProjectQuota(q.backingFsBlockDev, projectID, quota)
 }
 
@@ -175,11 +177,18 @@ func setProjectQuota(backingFsBlockDev string, projectID uint32, quota Quota) er
 	var d C.fs_disk_quota_t
 	d.d_version = C.FS_DQUOT_VERSION
 	d.d_id = C.__u32(projectID)
-	d.d_flags = C.XFS_PROJ_QUOTA
+	d.d_flags = C.FS_PROJ_QUOTA
 
-	d.d_fieldmask = C.FS_DQ_BHARD | C.FS_DQ_BSOFT
-	d.d_blk_hardlimit = C.__u64(quota.Size / 512)
-	d.d_blk_softlimit = d.d_blk_hardlimit
+	if quota.Size > 0 {
+		d.d_fieldmask = C.FS_DQ_BHARD | C.FS_DQ_BSOFT
+		d.d_blk_hardlimit = C.__u64(quota.Size / 512)
+		d.d_blk_softlimit = d.d_blk_hardlimit
+	}
+	if quota.Inodes > 0 {
+		d.d_fieldmask = C.FS_DQ_IHARD | C.FS_DQ_ISOFT
+		d.d_ino_hardlimit = C.__u64(quota.Inodes)
+		d.d_ino_softlimit = d.d_ino_hardlimit
+	}
 
 	var cs = C.CString(backingFsBlockDev)
 	defer C.free(unsafe.Pointer(cs))
@@ -202,6 +211,7 @@ func (q *Control) GetQuota(targetPath string, quota *Quota) error {
 		return err
 	}
 	quota.Size = uint64(d.d_blk_hardlimit) * 512
+	quota.Inodes = uint64(d.d_ino_hardlimit)
 	return nil
 }
 
