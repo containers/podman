@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"sort"
 	"strings"
@@ -87,7 +88,7 @@ func (e *Endpoint) rewriteReference(ref reference.Named, prefix string) (referen
 	newNamedRef = e.Location + refString[prefixLen:]
 	newParsedRef, err := reference.ParseNamed(newNamedRef)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error rewriting reference")
+		return nil, errors.Wrapf(err, "rewriting reference")
 	}
 
 	return newParsedRef, nil
@@ -172,9 +173,17 @@ type V1RegistriesConf struct {
 
 // Nonempty returns true if config contains at least one configuration entry.
 func (config *V1RegistriesConf) Nonempty() bool {
-	return (len(config.V1TOMLConfig.Search.Registries) != 0 ||
-		len(config.V1TOMLConfig.Insecure.Registries) != 0 ||
-		len(config.V1TOMLConfig.Block.Registries) != 0)
+	copy := *config // A shallow copy
+	if copy.V1TOMLConfig.Search.Registries != nil && len(copy.V1TOMLConfig.Search.Registries) == 0 {
+		copy.V1TOMLConfig.Search.Registries = nil
+	}
+	if copy.V1TOMLConfig.Insecure.Registries != nil && len(copy.V1TOMLConfig.Insecure.Registries) == 0 {
+		copy.V1TOMLConfig.Insecure.Registries = nil
+	}
+	if copy.V1TOMLConfig.Block.Registries != nil && len(copy.V1TOMLConfig.Block.Registries) == 0 {
+		copy.V1TOMLConfig.Block.Registries = nil
+	}
+	return !reflect.DeepEqual(copy, V1RegistriesConf{})
 }
 
 // V2RegistriesConf is the sysregistries v2 configuration format.
@@ -203,12 +212,26 @@ type V2RegistriesConf struct {
 	ShortNameMode string `toml:"short-name-mode"`
 
 	shortNameAliasConf
+
+	// If you add any field, make sure to update Nonempty() below.
 }
 
 // Nonempty returns true if config contains at least one configuration entry.
 func (config *V2RegistriesConf) Nonempty() bool {
-	return (len(config.Registries) != 0 ||
-		len(config.UnqualifiedSearchRegistries) != 0)
+	copy := *config // A shallow copy
+	if copy.Registries != nil && len(copy.Registries) == 0 {
+		copy.Registries = nil
+	}
+	if copy.UnqualifiedSearchRegistries != nil && len(copy.UnqualifiedSearchRegistries) == 0 {
+		copy.UnqualifiedSearchRegistries = nil
+	}
+	if copy.CredentialHelpers != nil && len(copy.CredentialHelpers) == 0 {
+		copy.CredentialHelpers = nil
+	}
+	if !copy.shortNameAliasConf.nonempty() {
+		copy.shortNameAliasConf = shortNameAliasConf{}
+	}
+	return !reflect.DeepEqual(copy, V2RegistriesConf{})
 }
 
 // parsedConfig is the result of parsing, and possibly merging, configuration files;
@@ -604,7 +627,7 @@ func dropInConfigs(wrapper configWrapper) ([]string, error) {
 		if err != nil && !os.IsNotExist(err) {
 			// Ignore IsNotExist errors: most systems won't have a registries.conf.d
 			// directory.
-			return nil, errors.Wrapf(err, "error reading registries.conf.d")
+			return nil, errors.Wrapf(err, "reading registries.conf.d")
 		}
 	}
 
@@ -646,7 +669,7 @@ func tryUpdatingCache(ctx *types.SystemContext, wrapper configWrapper) (*parsedC
 				return nil, err // Should never happen
 			}
 		} else {
-			return nil, errors.Wrapf(err, "error loading registries configuration %q", wrapper.configPath)
+			return nil, errors.Wrapf(err, "loading registries configuration %q", wrapper.configPath)
 		}
 	}
 
@@ -659,7 +682,7 @@ func tryUpdatingCache(ctx *types.SystemContext, wrapper configWrapper) (*parsedC
 		// Enforce v2 format for drop-in-configs.
 		dropIn, err := loadConfigFile(path, true)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error loading drop-in registries configuration %q", path)
+			return nil, errors.Wrapf(err, "loading drop-in registries configuration %q", path)
 		}
 		config.updateWithConfigurationFrom(dropIn)
 	}
@@ -910,7 +933,7 @@ func loadConfigFile(path string, forceV2 bool) (*parsedConfig, error) {
 	// Parse and validate short-name aliases.
 	cache, err := newShortNameAliasCache(path, &res.partialV2.shortNameAliasConf)
 	if err != nil {
-		return nil, errors.Wrap(err, "error validating short-name aliases")
+		return nil, errors.Wrap(err, "validating short-name aliases")
 	}
 	res.aliasCache = cache
 	// Clear conf.partialV2.shortNameAliasConf to make it available for garbage collection and

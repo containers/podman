@@ -42,7 +42,7 @@ func newImageDestination(ctx context.Context, sys *types.SystemContext, ref daem
 
 	c, err := newDockerClient(sys)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error initializing docker engine client")
+		return nil, errors.Wrap(err, "initializing docker engine client")
 	}
 
 	reader, writer := io.Pipe()
@@ -84,7 +84,7 @@ func imageLoadGoroutine(ctx context.Context, c *client.Client, reader *io.PipeRe
 
 	resp, err := c.ImageLoad(ctx, reader, true)
 	if err != nil {
-		err = errors.Wrap(err, "Error saving image to docker engine")
+		err = errors.Wrap(err, "saving image to docker engine")
 		return
 	}
 	defer resp.Body.Close()
@@ -128,6 +128,9 @@ func (d *daemonImageDestination) Reference() types.ImageReference {
 }
 
 // Commit marks the process of storing the image as successful and asks for the image to be persisted.
+// unparsedToplevel contains data about the top-level manifest of the source (which may be a single-arch image or a manifest list
+// if PutManifest was only called for the single-arch image with instanceDigest == nil), primarily to allow lookups by the
+// original manifest list digest, if desired.
 // WARNING: This does not have any transactional semantics:
 // - Uploaded data MAY be visible to others before Commit() is called
 // - Uploaded data MAY be removed or MAY remain around if Close() is called without Commit() (i.e. rollback is allowed but not guaranteed)

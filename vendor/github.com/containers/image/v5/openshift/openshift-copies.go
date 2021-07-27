@@ -579,7 +579,7 @@ func (rules *clientConfigLoadingRules) Load() (*clientcmdConfig, error) {
 			continue
 		}
 		if err != nil {
-			errlist = append(errlist, errors.Wrapf(err, "Error loading config file \"%s\"", filename))
+			errlist = append(errlist, errors.Wrapf(err, "loading config file \"%s\"", filename))
 			continue
 		}
 

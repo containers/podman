@@ -154,11 +154,11 @@ func (d *dockerImageDestination) PutBlob(ctx context.Context, stream io.Reader, 
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusAccepted {
 		logrus.Debugf("Error initiating layer upload, response %#v", *res)
-		return types.BlobInfo{}, errors.Wrapf(registryHTTPResponseToError(res), "Error initiating layer upload to %s in %s", uploadPath, d.c.registry)
+		return types.BlobInfo{}, errors.Wrapf(registryHTTPResponseToError(res), "initiating layer upload to %s in %s", uploadPath, d.c.registry)
 	}
 	uploadLocation, err := res.Location()
 	if err != nil {
-		return types.BlobInfo{}, errors.Wrap(err, "Error determining upload URL")
+		return types.BlobInfo{}, errors.Wrap(err, "determining upload URL")
 	}
 
 	digester := digest.Canonical.Digester()
@@ -175,11 +175,11 @@ func (d *dockerImageDestination) PutBlob(ctx context.Context, stream io.Reader, 
 		}
 		defer res.Body.Close()
 		if !successStatus(res.StatusCode) {
-			return nil, errors.Wrapf(registryHTTPResponseToError(res), "Error uploading layer chunked")
+			return nil, errors.Wrapf(registryHTTPResponseToError(res), "uploading layer chunked")
 		}
 		uploadLocation, err := res.Location()
 		if err != nil {
-			return nil, errors.Wrap(err, "Error determining upload URL")
+			return nil, errors.Wrap(err, "determining upload URL")
 		}
 		return uploadLocation, nil
 	}()
@@ -201,7 +201,7 @@ func (d *dockerImageDestination) PutBlob(ctx context.Context, stream io.Reader, 
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusCreated {
 		logrus.Debugf("Error uploading layer, response %#v", *res)
-		return types.BlobInfo{}, errors.Wrapf(registryHTTPResponseToError(res), "Error uploading layer to %s", uploadLocation)
+		return types.BlobInfo{}, errors.Wrapf(registryHTTPResponseToError(res), "uploading layer to %s", uploadLocation)
 	}
 
 	logrus.Debugf("Upload of layer %s complete", computedDigest)
@@ -226,7 +226,7 @@ func (d *dockerImageDestination) blobExists(ctx context.Context, repo reference.
 		return true, getBlobSize(res), nil
 	case http.StatusUnauthorized:
 		logrus.Debugf("... not authorized")
-		return false, -1, errors.Wrapf(registryHTTPResponseToError(res), "Error checking whether a blob %s exists in %s", digest, repo.Name())
+		return false, -1, errors.Wrapf(registryHTTPResponseToError(res), "checking whether a blob %s exists in %s", digest, repo.Name())
 	case http.StatusNotFound:
 		logrus.Debugf("... not present")
 		return false, -1, nil
@@ -261,7 +261,7 @@ func (d *dockerImageDestination) mountBlob(ctx context.Context, srcRepo referenc
 		// NOTE: This does not really work in docker/distribution servers, which incorrectly require the "delete" action in the token's scope, and is thus entirely untested.
 		uploadLocation, err := res.Location()
 		if err != nil {
-			return errors.Wrap(err, "Error determining upload URL after a mount attempt")
+			return errors.Wrap(err, "determining upload URL after a mount attempt")
 		}
 		logrus.Debugf("... started an upload instead of mounting, trying to cancel at %s", uploadLocation.String())
 		res2, err := d.c.makeRequestToResolvedURL(ctx, "DELETE", uploadLocation.String(), nil, nil, -1, v2Auth, extraScope)
@@ -277,7 +277,7 @@ func (d *dockerImageDestination) mountBlob(ctx context.Context, srcRepo referenc
 		return fmt.Errorf("Mounting %s from %s to %s started an upload instead", srcDigest, srcRepo.Name(), d.ref.ref.Name())
 	default:
 		logrus.Debugf("Error mounting, response %#v", *res)
-		return errors.Wrapf(registryHTTPResponseToError(res), "Error mounting %s from %s to %s", srcDigest, srcRepo.Name(), d.ref.ref.Name())
+		return errors.Wrapf(registryHTTPResponseToError(res), "mounting %s from %s to %s", srcDigest, srcRepo.Name(), d.ref.ref.Name())
 	}
 }
 
@@ -392,7 +392,7 @@ func (d *dockerImageDestination) PutManifest(ctx context.Context, m []byte, inst
 		// Double-check that the manifest we've been given matches the digest we've been given.
 		matches, err := manifest.MatchesDigest(m, *instanceDigest)
 		if err != nil {
-			return errors.Wrapf(err, "error digesting manifest in PutManifest")
+			return errors.Wrapf(err, "digesting manifest in PutManifest")
 		}
 		if !matches {
 			manifestDigest, merr := manifest.Digest(m)
@@ -430,7 +430,7 @@ func (d *dockerImageDestination) PutManifest(ctx context.Context, m []byte, inst
 	}
 	defer res.Body.Close()
 	if !successStatus(res.StatusCode) {
-		err = errors.Wrapf(registryHTTPResponseToError(res), "Error uploading manifest %s to %s", refTail, d.ref.ref.Name())
+		err = errors.Wrapf(registryHTTPResponseToError(res), "uploading manifest %s to %s", refTail, d.ref.ref.Name())
 		if isManifestInvalidError(errors.Cause(err)) {
 			err = types.ManifestTypeRejectedError{Err: err}
 		}
@@ -621,7 +621,7 @@ sigExists:
 			randBytes := make([]byte, 16)
 			n, err := rand.Read(randBytes)
 			if err != nil || n != 16 {
-				return errors.Wrapf(err, "Error generating random signature len %d", n)
+				return errors.Wrapf(err, "generating random signature len %d", n)
 			}
 			signatureName = fmt.Sprintf("%s@%032x", manifestDigest.String(), randBytes)
 			if _, ok := existingSigNames[signatureName]; !ok {
@@ -651,7 +651,7 @@ sigExists:
 				logrus.Debugf("Error body %s", string(body))
 			}
 			logrus.Debugf("Error uploading signature, status %d, %#v", res.StatusCode, res)
-			return errors.Wrapf(registryHTTPResponseToError(res), "Error uploading signature to %s in %s", path, d.c.registry)
+			return errors.Wrapf(registryHTTPResponseToError(res), "uploading signature to %s in %s", path, d.c.registry)
 		}
 	}
 
@@ -659,6 +659,9 @@ sigExists:
 }
 
 // Commit marks the process of storing the image as successful and asks for the image to be persisted.
+// unparsedToplevel contains data about the top-level manifest of the source (which may be a single-arch image or a manifest list
+// if PutManifest was only called for the single-arch image with instanceDigest == nil), primarily to allow lookups by the
+// original manifest list digest, if desired.
 // WARNING: This does not have any transactional semantics:
 // - Uploaded data MAY be visible to others before Commit() is called
 // - Uploaded data MAY be removed or MAY remain around if Close() is called without Commit() (i.e. rollback is allowed but not guaranteed)

@@ -73,7 +73,7 @@ func removeAllAuthFromKernelKeyring() error { //nolint:deadcode,unused
 		if strings.HasPrefix(keyDescribe, keyDescribePrefix) {
 			err := keyctl.Unlink(userkeyring, k)
 			if err != nil {
-				return errors.Wrapf(err, "error unlinking key %d", k.ID())
+				return errors.Wrapf(err, "unlinking key %d", k.ID())
 			}
 			logrus.Debugf("unlinked key %d:%s", k.ID(), keyAttr)
 		}
@@ -100,16 +100,16 @@ func setAuthToKernelKeyring(registry, username, password string) error { //nolin
 	// link the key to userKeyring
 	userKeyring, err := keyctl.UserKeyring()
 	if err != nil {
-		return errors.Wrapf(err, "error getting user keyring")
+		return errors.Wrapf(err, "getting user keyring")
 	}
 	err = keyctl.Link(userKeyring, id)
 	if err != nil {
-		return errors.Wrapf(err, "error linking the key to user keyring")
+		return errors.Wrapf(err, "linking the key to user keyring")
 	}
 	// unlink the key from session keyring
 	err = keyctl.Unlink(keyring, id)
 	if err != nil {
-		return errors.Wrapf(err, "error unlinking the key from session keyring")
+		return errors.Wrapf(err, "unlinking the key from session keyring")
 	}
 	return nil
 }

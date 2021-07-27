@@ -164,7 +164,7 @@ type openshiftImageSource struct {
 	// Values specific to this image
 	sys *types.SystemContext
 	// State
-	docker               types.ImageSource // The Docker Registry endpoint, or nil if not resolved yet
+	docker               types.ImageSource // The docker/distribution API endpoint, or nil if not resolved yet
 	imageStreamImageName string            // Resolved image identifier, or "" if not known yet
 }
 
@@ -316,7 +316,7 @@ func (s *openshiftImageSource) ensureImageIsResolved(ctx context.Context) error 
 
 type openshiftImageDestination struct {
 	client *openshiftClient
-	docker types.ImageDestination // The Docker Registry endpoint
+	docker types.ImageDestination // The docker/distribution API endpoint
 	// State
 	imageStreamImageName string // "" if not yet known
 }
@@ -435,14 +435,14 @@ func (d *openshiftImageDestination) PutManifest(ctx context.Context, m []byte, i
 }
 
 func (d *openshiftImageDestination) PutSignatures(ctx context.Context, signatures [][]byte, instanceDigest *digest.Digest) error {
-	var imageStreamName string
+	var imageStreamImageName string
 	if instanceDigest == nil {
 		if d.imageStreamImageName == "" {
 			return errors.Errorf("Internal error: Unknown manifest digest, can't add signatures")
 		}
-		imageStreamName = d.imageStreamImageName
+		imageStreamImageName = d.imageStreamImageName
 	} else {
-		imageStreamName = instanceDigest.String()
+		imageStreamImageName = instanceDigest.String()
 	}
 
 	// Because image signatures are a shared resource in Atomic Registry, the default upload
@@ -452,7 +452,7 @@ func (d *openshiftImageDestination) PutSignatures(ctx context.Context, signature
 		return nil // No need to even read the old state.
 	}
 
-	image, err := d.client.getImage(ctx, imageStreamName)
+	image, err := d.client.getImage(ctx, imageStreamImageName)
 	if err != nil {
 		return err
 	}
@@ -475,9 +475,9 @@ sigExists:
 			randBytes := make([]byte, 16)
 			n, err := rand.Read(randBytes)
 			if err != nil || n != 16 {
-				return errors.Wrapf(err, "Error generating random signature len %d", n)
+				return errors.Wrapf(err, "generating random signature len %d", n)
 			}
-			signatureName = fmt.Sprintf("%s@%032x", imageStreamName, randBytes)
+			signatureName = fmt.Sprintf("%s@%032x", imageStreamImageName, randBytes)
 			if _, ok := existingSigNames[signatureName]; !ok {
 				break
 			}
@@ -506,6 +506,9 @@ sigExists:
 }
 
 // Commit marks the process of storing the image as successful and asks for the image to be persisted.
+// unparsedToplevel contains data about the top-level manifest of the source (which may be a single-arch image or a manifest list
+// if PutManifest was only called for the single-arch image with instanceDigest == nil), primarily to allow lookups by the
+// original manifest list digest, if desired.
 // WARNING: This does not have any transactional semantics:
 // - Uploaded data MAY be visible to others before Commit() is called
 // - Uploaded data MAY be removed or MAY remain around if Close() is called without Commit() (i.e. rollback is allowed but not guaranteed)

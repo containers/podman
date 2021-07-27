@@ -16,7 +16,7 @@ func init() {
 	transports.Register(Transport)
 }
 
-// Transport is an ImageTransport for Docker registry-hosted images.
+// Transport is an ImageTransport for container registry-hosted images.
 var Transport = dockerTransport{}
 
 type dockerTransport struct{}
