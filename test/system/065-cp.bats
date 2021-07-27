@@ -22,8 +22,7 @@ load helpers
     mkdir -p $srcdir/subdir
     echo "${randomcontent[2]}" > $srcdir/subdir/dotfile.
 
-    run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sleep infinity
-    run_podman exec cpcontainer mkdir /srv/subdir
+    run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sh -c "mkdir /srv/subdir; sleep infinity"
 
     # Commit the image for testing non-running containers
     run_podman commit -q cpcontainer
@@ -41,7 +40,6 @@ load helpers
 0 | /tmp                 | /tmp/hostfile0        | copy to /tmp
 1 | /tmp/                | /tmp/hostfile1        | copy to /tmp/
 2 | /tmp/.               | /tmp/hostfile2        | copy to /tmp/.
-0 | /tmp/hostfile2       | /tmp/hostfile2        | overwrite previous copy
 0 | /tmp/anotherbase.txt | /tmp/anotherbase.txt  | copy to /tmp, new name
 0 | .                    | /srv/hostfile0        | copy to workdir (rel path), new name
 1 | ./                   | /srv/hostfile1        | copy to workdir (rel path), new name
@@ -175,11 +173,12 @@ load helpers
         random-1-$(random_string 15)
         random-2-$(random_string 20)
     )
-    run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sleep infinity
-    run_podman exec cpcontainer sh -c "echo ${randomcontent[0]} > /tmp/containerfile"
-    run_podman exec cpcontainer sh -c "echo ${randomcontent[0]} > /tmp/dotfile."
-    run_podman exec cpcontainer sh -c "echo ${randomcontent[1]} > /srv/containerfile1"
-    run_podman exec cpcontainer sh -c "mkdir /srv/subdir; echo ${randomcontent[2]} > /srv/subdir/containerfile2"
+    run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sh -c "mkdir /srv/subdir;
+         echo ${randomcontent[0]} > /tmp/containerfile;
+         echo ${randomcontent[0]} > /tmp/dotfile.;
+         echo ${randomcontent[1]} > /srv/containerfile1;
+         echo ${randomcontent[2]} > /srv/subdir/containerfile2;
+         sleep infinity"
 
     # Commit the image for testing non-running containers
     run_podman commit -q cpcontainer
@@ -233,11 +232,13 @@ load helpers
         random-1-$(random_string 15)
         random-2-$(random_string 20)
     )
-    run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sleep infinity
-    run_podman exec cpcontainer sh -c "echo ${randomcontent[0]} > /tmp/containerfile"
-    run_podman exec cpcontainer sh -c "echo ${randomcontent[0]} > /tmp/dotfile."
-    run_podman exec cpcontainer sh -c "echo ${randomcontent[1]} > /srv/containerfile1"
-    run_podman exec cpcontainer sh -c "mkdir /srv/subdir; echo ${randomcontent[2]} > /srv/subdir/containerfile2"
+
+    run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sh -c "mkdir /srv/subdir;
+         echo ${randomcontent[0]} > /tmp/containerfile;
+         echo ${randomcontent[0]} > /tmp/dotfile.;
+         echo ${randomcontent[1]} > /srv/containerfile1;
+         echo ${randomcontent[2]} > /srv/subdir/containerfile2;
+         sleep infinity"
 
     # Commit the image for testing non-running containers
     run_podman commit -q cpcontainer
@@ -331,8 +332,7 @@ load helpers
     mkdir -p $srcdir/dir.
     cp -r $srcdir/dir/* $srcdir/dir.
 
-    run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sleep infinity
-    run_podman exec cpcontainer mkdir /srv/subdir
+    run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sh -c "mkdir /srv/subdir; sleep infinity"
 
     # Commit the image for testing non-running containers
     run_podman commit -q cpcontainer
@@ -399,12 +399,12 @@ load helpers
         random-0-$(random_string 10)
         random-1-$(random_string 15)
     )
-    run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sleep infinity
-    run_podman exec cpcontainer sh -c "mkdir /srv/subdir; echo ${randomcontent[0]} > /srv/subdir/containerfile0"
-    run_podman exec cpcontainer sh -c "echo ${randomcontent[1]} > /srv/subdir/containerfile1"
-    # "." and "dir/." will copy the contents, so make sure that a dir ending
-    # with dot is treated correctly.
-    run_podman exec cpcontainer sh -c 'mkdir /tmp/subdir.; cp /srv/subdir/* /tmp/subdir./'
+
+    run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sh -c "mkdir /srv/subdir;
+         echo ${randomcontent[0]} > /srv/subdir/containerfile0; \
+         echo ${randomcontent[1]} > /srv/subdir/containerfile1; \
+         mkdir /tmp/subdir.; cp /srv/subdir/* /tmp/subdir./; \
+         sleep infinity"
 
     # Commit the image for testing non-running containers
     run_podman commit -q cpcontainer
@@ -473,12 +473,12 @@ load helpers
         random-0-$(random_string 10)
         random-1-$(random_string 15)
     )
-    run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sleep infinity
-    run_podman exec cpcontainer sh -c "mkdir /srv/subdir; echo ${randomcontent[0]} > /srv/subdir/containerfile0"
-    run_podman exec cpcontainer sh -c "echo ${randomcontent[1]} > /srv/subdir/containerfile1"
-    # "." and "dir/." will copy the contents, so make sure that a dir ending
-    # with dot is treated correctly.
-    run_podman exec cpcontainer sh -c 'mkdir /tmp/subdir.; cp /srv/subdir/* /tmp/subdir./'
+
+    run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sh -c "mkdir /srv/subdir;
+         echo ${randomcontent[0]} > /srv/subdir/containerfile0; \
+         echo ${randomcontent[1]} > /srv/subdir/containerfile1; \
+         mkdir /tmp/subdir.; cp /srv/subdir/* /tmp/subdir./; \
+         sleep infinity"
 
     # Commit the image for testing non-running containers
     run_podman commit -q cpcontainer
@@ -581,10 +581,10 @@ ${randomcontent[1]}" "$description"
         random-1-$(random_string 15)
     )
 
-    run_podman run -d --name cpcontainer $IMAGE sleep infinity
-    run_podman exec cpcontainer sh -c "echo ${randomcontent[0]} > /tmp/containerfile0"
-    run_podman exec cpcontainer sh -c "echo ${randomcontent[1]} > /tmp/containerfile1"
-    run_podman exec cpcontainer sh -c "mkdir /tmp/sub && cd /tmp/sub && ln -s .. weirdlink"
+    run_podman run -d --name cpcontainer $IMAGE sh -c "echo ${randomcontent[0]} > /tmp/containerfile0; \
+         echo ${randomcontent[1]} > /tmp/containerfile1; \
+         mkdir /tmp/sub && cd /tmp/sub && ln -s .. weirdlink; \
+         sleep infinity"
 
     # Commit the image for testing non-running containers
     run_podman commit -q cpcontainer
