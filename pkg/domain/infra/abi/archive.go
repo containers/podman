@@ -12,7 +12,7 @@ func (ic *ContainerEngine) ContainerCopyFromArchive(ctx context.Context, nameOrI
 	if err != nil {
 		return nil, err
 	}
-	return container.CopyFromArchive(ctx, containerPath, options.Chown, reader)
+	return container.CopyFromArchive(ctx, containerPath, options.Chown, options.Rename, reader)
 }
 
 func (ic *ContainerEngine) ContainerCopyToArchive(ctx context.Context, nameOrID string, containerPath string, writer io.Writer) (entities.ContainerCopyFunc, error) {

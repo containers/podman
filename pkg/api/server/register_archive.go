@@ -151,6 +151,10 @@ func (s *APIServer) registerArchiveHandlers(r *mux.Router) error {
 	//     type: string
 	//     description: Path to a directory in the container to extract
 	//     required: true
+	//   - in: query
+	//     name: rename
+	//     type: string
+	//     description: JSON encoded map[string]string to translate paths
 	//  responses:
 	//    200:
 	//      description: no error

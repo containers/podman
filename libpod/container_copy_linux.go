@@ -23,7 +23,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func (c *Container) copyFromArchive(ctx context.Context, path string, chown bool, reader io.Reader) (func() error, error) {
+func (c *Container) copyFromArchive(ctx context.Context, path string, chown bool, rename map[string]string, reader io.Reader) (func() error, error) {
 	var (
 		mountPoint   string
 		resolvedRoot string
@@ -89,6 +89,7 @@ func (c *Container) copyFromArchive(ctx context.Context, path string, chown bool
 			GIDMap:     c.config.IDMappings.GIDMap,
 			ChownDirs:  idPair,
 			ChownFiles: idPair,
+			Rename:     rename,
 		}
 
 		return c.joinMountAndExec(ctx,

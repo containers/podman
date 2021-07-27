@@ -263,4 +263,6 @@ type CopyOptions struct {
 	// If used with CopyFromArchive and set to true it will change ownership of files from the source tar archive
 	// to the primary uid/gid of the target container.
 	Chown *bool `schema:"copyUIDGID"`
+	// Map to translate path names.
+	Rename map[string]string
 }
