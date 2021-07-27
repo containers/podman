@@ -8,7 +8,6 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/domain/entities/reports"
 	"github.com/containers/podman/v3/pkg/specgen"
-	"github.com/spf13/cobra"
 )
 
 type ContainerCopyFunc func() error
@@ -82,7 +81,7 @@ type ContainerEngine interface {
 	PodStop(ctx context.Context, namesOrIds []string, options PodStopOptions) ([]*PodStopReport, error)
 	PodTop(ctx context.Context, options PodTopOptions) (*StringSliceReport, error)
 	PodUnpause(ctx context.Context, namesOrIds []string, options PodunpauseOptions) ([]*PodUnpauseReport, error)
-	SetupRootless(ctx context.Context, cmd *cobra.Command) error
+	SetupRootless(ctx context.Context, noMoveProcess bool) error
 	SecretCreate(ctx context.Context, name string, reader io.Reader, options SecretCreateOptions) (*SecretCreateReport, error)
 	SecretInspect(ctx context.Context, nameOrIDs []string) ([]*SecretInfoReport, []error, error)
 	SecretList(ctx context.Context) ([]*SecretInfoReport, error)

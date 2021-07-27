@@ -15,6 +15,9 @@ import (
 )
 
 const (
+	// NoMoveProcess used as cobra.Annotation when command doesn't need Podman to be moved to a separate cgroup
+	NoMoveProcess = "NoMoveProcess"
+
 	// ParentNSRequired used as cobra.Annotation when command requires root access
 	ParentNSRequired = "ParentNSRequired"
 

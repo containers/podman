@@ -7,14 +7,13 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/bindings/system"
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/spf13/cobra"
 )
 
 func (ic *ContainerEngine) Info(ctx context.Context) (*define.Info, error) {
 	return system.Info(ic.ClientCtx, nil)
 }
 
-func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) error {
+func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool) error {
 	panic(errors.New("rootless engine mode is not supported when tunneling"))
 }
 

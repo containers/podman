@@ -46,7 +46,9 @@ func setupContainerEngine(cmd *cobra.Command) (entities.ContainerEngine, error) 
 		return nil, err
 	}
 	if !registry.IsRemote() && rootless.IsRootless() {
-		err := containerEngine.SetupRootless(registry.Context(), cmd)
+		_, noMoveProcess := cmd.Annotations[registry.NoMoveProcess]
+
+		err := containerEngine.SetupRootless(registry.Context(), noMoveProcess)
 		if err != nil {
 			return nil, err
 		}
