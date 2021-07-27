@@ -618,7 +618,7 @@ func makeExecConfig(options entities.ExecOptions, rt *libpod.Runtime) (*libpod.E
 		return nil, errors.Wrapf(err, "error retrieving Libpod configuration to build exec exit command")
 	}
 	// TODO: Add some ability to toggle syslog
-	exitCommandArgs, err := generate.CreateExitCommandArgs(storageConfig, runtimeConfig, false, true, true)
+	exitCommandArgs, err := generate.CreateExitCommandArgs(storageConfig, runtimeConfig, false, false, true)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error constructing exit command for exec session")
 	}
