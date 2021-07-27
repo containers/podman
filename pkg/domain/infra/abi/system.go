@@ -119,8 +119,8 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, cmd *cobra.Command) 
 
 	became, ret, err = rootless.TryJoinFromFilePaths(pausePidPath, true, paths)
 	if err := movePauseProcessToScope(ic.Libpod); err != nil {
-		conf, err := ic.Config(context.Background())
-		if err != nil {
+		conf, err2 := ic.Config(context.Background())
+		if err2 != nil {
 			return err
 		}
 		if conf.Engine.CgroupManager == config.SystemdCgroupsManager {
