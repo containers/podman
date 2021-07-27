@@ -8,7 +8,8 @@ import (
 
 // Quota limit params - currently we only control blocks hard limit
 type Quota struct {
-	Size uint64
+	Size   uint64
+	Inodes uint64
 }
 
 // Control - Context to be used by storage driver (e.g. overlay)

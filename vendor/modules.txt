@@ -197,7 +197,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.32.6
+# github.com/containers/storage v1.33.0
 github.com/containers/storage
 github.com/containers/storage/drivers
 github.com/containers/storage/drivers/aufs
@@ -214,6 +214,8 @@ github.com/containers/storage/drivers/zfs
 github.com/containers/storage/pkg/archive
 github.com/containers/storage/pkg/chrootarchive
 github.com/containers/storage/pkg/chunked
+github.com/containers/storage/pkg/chunked/compressor
+github.com/containers/storage/pkg/chunked/internal
 github.com/containers/storage/pkg/config
 github.com/containers/storage/pkg/devicemapper
 github.com/containers/storage/pkg/directory
