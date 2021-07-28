@@ -258,7 +258,6 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		}
 		startCommand = append(startCommand,
 			"run",
-			"--sdnotify=conmon",
 			"--cgroups=no-conmon",
 			"--rm",
 		)
@@ -273,6 +272,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		fs.String("name", "", "")
 		fs.Bool("replace", false, "")
 		fs.StringArrayP("env", "e", nil, "")
+		fs.String("sdnotify", "", "")
 		fs.Parse(remainingCmd)
 
 		remainingCmd = filterCommonContainerFlags(remainingCmd, fs.NArg())
@@ -292,6 +292,13 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		hasReplaceParam, err := fs.GetBool("replace")
 		if err != nil {
 			return "", err
+		}
+
+		// Default to --sdnotify=conmon unless already set by the
+		// container.
+		hasSdnotifyParam := fs.Lookup("sdnotify").Changed
+		if !hasSdnotifyParam {
+			startCommand = append(startCommand, "--sdnotify=conmon")
 		}
 
 		if !hasDetachParam {

@@ -54,6 +54,7 @@ func init() {
 	_ = autoUpdateCommand.RegisterFlagCompletionFunc(authfileFlagName, completion.AutocompleteDefault)
 
 	flags.BoolVar(&autoUpdateOptions.DryRun, "dry-run", false, "Check for pending updates")
+	flags.BoolVar(&autoUpdateOptions.Rollback, "rollback", true, "Rollback to previous image if update fails")
 
 	flags.StringVar(&autoUpdateOptions.format, "format", "", "Change the output format to JSON or a Go template")
 	_ = autoUpdateCommand.RegisterFlagCompletionFunc("format", common.AutocompleteFormat(autoUpdateOutput{}))

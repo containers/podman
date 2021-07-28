@@ -8,6 +8,9 @@ type AutoUpdateOptions struct {
 	// pending, it will be indicated in the Updated field of
 	// AutoUpdateReport.
 	DryRun bool
+	// If restarting the service with the new image failed, restart it
+	// another time with the previous image.
+	Rollback bool
 }
 
 // AutoUpdateReport contains the results from running auto-update.
