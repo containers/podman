@@ -393,16 +393,16 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	defer auth.RemoveAuthfile(authfile)
 
 	// Channels all mux'ed in select{} below to follow API build protocol
-	stdout := channel.NewWriter(make(chan []byte, 1))
+	stdout := channel.NewWriter(make(chan []byte))
 	defer stdout.Close()
 
-	auxout := channel.NewWriter(make(chan []byte, 1))
+	auxout := channel.NewWriter(make(chan []byte))
 	defer auxout.Close()
 
-	stderr := channel.NewWriter(make(chan []byte, 1))
+	stderr := channel.NewWriter(make(chan []byte))
 	defer stderr.Close()
 
-	reporter := channel.NewWriter(make(chan []byte, 1))
+	reporter := channel.NewWriter(make(chan []byte))
 	defer reporter.Close()
 
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
@@ -529,7 +529,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 
 	enc := json.NewEncoder(body)
 	enc.SetEscapeHTML(true)
-loop:
+
 	for {
 		m := struct {
 			Stream string `json:"stream,omitempty"`
@@ -543,13 +543,13 @@ loop:
 				stderr.Write([]byte(err.Error()))
 			}
 			flush()
-		case e := <-auxout.Chan():
+		case e := <-reporter.Chan():
 			m.Stream = string(e)
 			if err := enc.Encode(m); err != nil {
 				stderr.Write([]byte(err.Error()))
 			}
 			flush()
-		case e := <-reporter.Chan():
+		case e := <-auxout.Chan():
 			m.Stream = string(e)
 			if err := enc.Encode(m); err != nil {
 				stderr.Write([]byte(err.Error()))
@@ -561,8 +561,8 @@ loop:
 				logrus.Warnf("Failed to json encode error %v", err)
 			}
 			flush()
+			return
 		case <-runCtx.Done():
-			flush()
 			if success {
 				if !utils.IsLibpodRequest(r) {
 					m.Stream = fmt.Sprintf("Successfully built %12.12s\n", imageID)
@@ -579,7 +579,8 @@ loop:
 					}
 				}
 			}
-			break loop
+			flush()
+			return
 		case <-r.Context().Done():
 			cancel()
 			logrus.Infof("Client disconnect reported for build %q / %q.", registry, query.Dockerfile)

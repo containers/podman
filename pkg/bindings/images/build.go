@@ -391,42 +391,50 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	dec := json.NewDecoder(body)
 
 	var id string
-	var mErr error
 	for {
 		var s struct {
 			Stream string `json:"stream,omitempty"`
 			Error  string `json:"error,omitempty"`
 		}
-		if err := dec.Decode(&s); err != nil {
-			if errors.Is(err, io.EOF) {
-				if mErr == nil && id == "" {
-					mErr = errors.New("stream dropped, unexpected failure")
-				}
-				break
-			}
-			s.Error = err.Error() + "\n"
-		}
 
 		select {
+		// FIXME(vrothberg): it seems we always hit the EOF case below,
+		// even when the server quit but it seems desirable to
+		// distinguish a proper build from a transient EOF.
 		case <-response.Request.Context().Done():
-			return &entities.BuildReport{ID: id}, mErr
+			return &entities.BuildReport{ID: id}, nil
 		default:
 			// non-blocking select
 		}
 
+		if err := dec.Decode(&s); err != nil {
+			if errors.Is(err, io.ErrUnexpectedEOF) {
+				return nil, errors.Wrap(err, "server probably quit")
+			}
+			// EOF means the stream is over in which case we need
+			// to have read the id.
+			if errors.Is(err, io.EOF) && id != "" {
+				break
+			}
+			return &entities.BuildReport{ID: id}, errors.Wrap(err, "decoding stream")
+		}
+
 		switch {
 		case s.Stream != "":
-			stdout.Write([]byte(s.Stream))
-			if iidRegex.Match([]byte(s.Stream)) {
+			raw := []byte(s.Stream)
+			stdout.Write(raw)
+			if iidRegex.Match(raw) {
 				id = strings.TrimSuffix(s.Stream, "\n")
 			}
 		case s.Error != "":
-			mErr = errors.New(s.Error)
+			// If there's an error, return directly.  The stream
+			// will be closed on return.
+			return &entities.BuildReport{ID: id}, errors.New(s.Error)
 		default:
 			return &entities.BuildReport{ID: id}, errors.New("failed to parse build results stream, unexpected input")
 		}
 	}
-	return &entities.BuildReport{ID: id}, mErr
+	return &entities.BuildReport{ID: id}, nil
 }
 
 func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
