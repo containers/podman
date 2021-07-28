@@ -2,6 +2,7 @@ package integration
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -80,7 +81,21 @@ var _ = Describe("Podman run with --cgroup-parent", func() {
 		exec.WaitWithDefaultTimeout()
 		Expect(exec).Should(Exit(0))
 
-		cgroup := filepath.Dir(strings.TrimRight(strings.Replace(exec.OutputToString(), "0::", "", -1), "\n"))
+		containerCgroup := strings.TrimRight(strings.Replace(exec.OutputToString(), "0::", "", -1), "\n")
+
+		content, err := ioutil.ReadFile(filepath.Join("/sys/fs/cgroup", containerCgroup, "cgroup.procs"))
+		Expect(err).To(BeNil())
+
+		// Move the container process to a sub cgroup
+		subCgroupPath := filepath.Join(filepath.Join("/sys/fs/cgroup", containerCgroup, "old-container"))
+
+		err = os.MkdirAll(subCgroupPath, 0755)
+		Expect(err).To(BeNil())
+
+		err = ioutil.WriteFile(filepath.Join(subCgroupPath, "cgroup.procs"), content, 0644)
+		Expect(err).To(BeNil())
+
+		cgroup := filepath.Dir(containerCgroup)
 
 		run = podmanTest.Podman([]string{"--cgroup-manager=cgroupfs", "run", "-d", fmt.Sprintf("--cgroup-parent=%s", cgroup), fedoraMinimal, "sleep", "100"})
 		run.WaitWithDefaultTimeout()
