@@ -1,8 +1,10 @@
-[![master](https://travis-ci.org/checkpoint-restore/go-criu.svg?branch=master)](https://travis-ci.org/checkpoint-restore/go-criu)
+[![test](https://github.com/checkpoint-restore/go-criu/workflows/ci/badge.svg?branch=master)](https://github.com/checkpoint-restore/go-criu/actions?query=workflow%3Aci)
+[![verify](https://github.com/checkpoint-restore/go-criu/workflows/verify/badge.svg?branch=master)](https://github.com/checkpoint-restore/go-criu/actions?query=workflow%3Averify)
+[![Go Reference](https://pkg.go.dev/badge/github.com/checkpoint-restore/go-criu.svg)](https://pkg.go.dev/github.com/checkpoint-restore/go-criu)
 
-## go-criu -- Go bindings for [CRIU](https://criu.org/)
+## go-criu -- Go bindings for CRIU
 
-This repository provides Go bindings for CRIU. The code is based on the Go based PHaul
+This repository provides Go bindings for [CRIU](https://criu.org/). The code is based on the Go-based PHaul
 implementation from the CRIU repository. For easier inclusion into other Go projects the
 CRIU Go bindings have been moved to this repository.
 
@@ -10,24 +12,46 @@ The Go bindings provide an easy way to use the CRIU RPC calls from Go without th
 to set up all the infrastructure to make the actual RPC connection to CRIU.
 
 The following example would print the version of CRIU:
-```
+```go
+import (
+	"log"
+
+	"github.com/checkpoint/restore/go-criu/v5"
+)
+
+func main() {
 	c := criu.MakeCriu()
 	version, err := c.GetCriuVersion()
-	fmt.Println(version)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	log.Println(version)
+}
 ```
+
 or to just check if at least a certain CRIU version is installed:
-```
+
+```go
 	c := criu.MakeCriu()
 	result, err := c.IsCriuAtLeast(31100)
 ```
 
 ## Releases
 
-go-criu will carry the same version number as CRIU. This implies that each
-go-criu release will pull in the necessary changes from CRIU before making a
-release.
+The first go-criu release was 3.11 based on CRIU 3.11. The initial plan
+was to follow CRIU so that go-criu would carry the same version number as
+CRIU.
 
-The first go-criu release was 3.11 based on CRIU 3.11.
+As go-criu is imported in other projects and as Go modules are expected
+to follow Semantic Versioning go-criu will also follow Semantic Versioning
+starting with the 4.0.0 release.
+
+The following table shows the relation between go-criu and criu versions:
+
+| Major version  | Latest release | CRIU version |
+| -------------- | -------------- | ------------ |
+| v5             | 5.0.0          | 3.15         |
+| v4             | 4.1.0          | 3.14         |
 
 ## How to contribute
 
@@ -61,6 +85,11 @@ by adding a "Signed-off-by" line containing the contributor's name and e-mail
 to every commit message. Your signature certifies that you wrote the patch or
 otherwise have the right to pass it on as an open-source patch.
 
-### License
+### License and copyright
 
-The license of go-criu is the Apache 2.0 license.
+Unless mentioned otherwise in a specific file's header, all code in
+this project is released under the Apache 2.0 license.
+
+The author of a change remains the copyright holder of their code
+(no copyright assignment). The list of authors and contributors can be
+retrieved from the git commit history and in some cases, the file headers.

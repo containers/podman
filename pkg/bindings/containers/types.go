@@ -62,6 +62,7 @@ type RestoreOptions struct {
 	Keep            *bool
 	Name            *string
 	TCPEstablished  *bool
+	Pod             *string
 }
 
 //go:generate go run ../generator/generator.go CreateOptions

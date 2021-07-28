@@ -901,8 +901,27 @@ func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr
 }
 
 func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
-	if len(c.Dependencies()) > 0 {
-		return errors.Errorf("Cannot export checkpoints of containers with dependencies")
+	if len(c.Dependencies()) == 1 {
+		// Check if the dependency is an infra container. If it is we can checkpoint
+		// the container out of the Pod.
+		if c.config.Pod == "" {
+			return errors.Errorf("cannot export checkpoints of containers with dependencies")
+		}
+
+		pod, err := c.runtime.state.Pod(c.config.Pod)
+		if err != nil {
+			return errors.Wrapf(err, "container %s is in pod %s, but pod cannot be retrieved", c.ID(), c.config.Pod)
+		}
+		infraID, err := pod.InfraContainerID()
+		if err != nil {
+			return errors.Wrapf(err, "cannot retrieve infra container ID for pod %s", c.config.Pod)
+		}
+		if c.Dependencies()[0] != infraID {
+			return errors.Errorf("cannot export checkpoints of containers with dependencies")
+		}
+	}
+	if len(c.Dependencies()) > 1 {
+		return errors.Errorf("cannot export checkpoints of containers with dependencies")
 	}
 	logrus.Debugf("Exporting checkpoint image of container %q to %q", c.ID(), options.TargetFile)
 
@@ -1021,9 +1040,9 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 	return nil
 }
 
-func (c *Container) checkpointRestoreSupported() error {
-	if !criu.CheckForCriu() {
-		return errors.Errorf("checkpoint/restore requires at least CRIU %d", criu.MinCriuVersion)
+func (c *Container) checkpointRestoreSupported(version int) error {
+	if !criu.CheckForCriu(version) {
+		return errors.Errorf("checkpoint/restore requires at least CRIU %d", version)
 	}
 	if !c.ociRuntime.SupportsCheckpoint() {
 		return errors.Errorf("configured runtime does not support checkpoint/restore")
@@ -1032,7 +1051,7 @@ func (c *Container) checkpointRestoreSupported() error {
 }
 
 func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointOptions) error {
-	if err := c.checkpointRestoreSupported(); err != nil {
+	if err := c.checkpointRestoreSupported(criu.MinCriuVersion); err != nil {
 		return err
 	}
 
@@ -1136,8 +1155,18 @@ func (c *Container) importPreCheckpoint(input string) error {
 }
 
 func (c *Container) restore(ctx context.Context, options ContainerCheckpointOptions) (retErr error) {
-	if err := c.checkpointRestoreSupported(); err != nil {
+	minCriuVersion := func() int {
+		if options.Pod == "" {
+			return criu.MinCriuVersion
+		}
+		return criu.PodCriuVersion
+	}()
+	if err := c.checkpointRestoreSupported(minCriuVersion); err != nil {
 		return err
+	}
+
+	if options.Pod != "" && !crutils.CRRuntimeSupportsPodCheckpointRestore(c.ociRuntime.Path()) {
+		return errors.Errorf("runtime %s does not support pod restore", c.ociRuntime.Path())
 	}
 
 	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateExited) {
@@ -1244,6 +1273,83 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 
 		if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), netNSPath); err != nil {
 			return err
+		}
+	}
+
+	if options.Pod != "" {
+		// Running in a Pod means that we have to change all namespace settings to
+		// the ones from the infrastructure container.
+		pod, err := c.runtime.LookupPod(options.Pod)
+		if err != nil {
+			return errors.Wrapf(err, "pod %q cannot be retrieved", options.Pod)
+		}
+
+		infraContainer, err := pod.InfraContainer()
+		if err != nil {
+			return errors.Wrapf(err, "cannot retrieved infra container from pod %q", options.Pod)
+		}
+
+		infraContainer.lock.Lock()
+		if err := infraContainer.syncContainer(); err != nil {
+			infraContainer.lock.Unlock()
+			return errors.Wrapf(err, "Error syncing infrastructure container %s status", infraContainer.ID())
+		}
+		if infraContainer.state.State != define.ContainerStateRunning {
+			if err := infraContainer.initAndStart(ctx); err != nil {
+				infraContainer.lock.Unlock()
+				return errors.Wrapf(err, "Error starting infrastructure container %s status", infraContainer.ID())
+			}
+		}
+		infraContainer.lock.Unlock()
+
+		if c.config.IPCNsCtr != "" {
+			nsPath, err := infraContainer.namespacePath(IPCNS)
+			if err != nil {
+				return errors.Wrapf(err, "cannot retrieve IPC namespace path for Pod %q", options.Pod)
+			}
+			if err := g.AddOrReplaceLinuxNamespace(string(spec.IPCNamespace), nsPath); err != nil {
+				return err
+			}
+		}
+
+		if c.config.NetNsCtr != "" {
+			nsPath, err := infraContainer.namespacePath(NetNS)
+			if err != nil {
+				return errors.Wrapf(err, "cannot retrieve network namespace path for Pod %q", options.Pod)
+			}
+			if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), nsPath); err != nil {
+				return err
+			}
+		}
+
+		if c.config.PIDNsCtr != "" {
+			nsPath, err := infraContainer.namespacePath(PIDNS)
+			if err != nil {
+				return errors.Wrapf(err, "cannot retrieve PID namespace path for Pod %q", options.Pod)
+			}
+			if err := g.AddOrReplaceLinuxNamespace(string(spec.PIDNamespace), nsPath); err != nil {
+				return err
+			}
+		}
+
+		if c.config.UTSNsCtr != "" {
+			nsPath, err := infraContainer.namespacePath(UTSNS)
+			if err != nil {
+				return errors.Wrapf(err, "cannot retrieve UTS namespace path for Pod %q", options.Pod)
+			}
+			if err := g.AddOrReplaceLinuxNamespace(string(spec.UTSNamespace), nsPath); err != nil {
+				return err
+			}
+		}
+
+		if c.config.CgroupNsCtr != "" {
+			nsPath, err := infraContainer.namespacePath(CgroupNS)
+			if err != nil {
+				return errors.Wrapf(err, "cannot retrieve Cgroup namespace path for Pod %q", options.Pod)
+			}
+			if err := g.AddOrReplaceLinuxNamespace(string(spec.CgroupNamespace), nsPath); err != nil {
+				return err
+			}
 		}
 	}
 

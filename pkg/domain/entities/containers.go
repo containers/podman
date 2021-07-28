@@ -209,6 +209,7 @@ type RestoreOptions struct {
 	TCPEstablished  bool
 	ImportPrevious  string
 	PublishPorts    []specgen.PortMapping
+	Pod             string
 }
 
 type RestoreReport struct {

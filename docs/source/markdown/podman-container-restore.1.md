@@ -93,6 +93,15 @@ be used once and the restored *container* will have another IP address. This als
 that **--name, -n** cannot be used in combination with **--tcp-established**.\
 *IMPORTANT: This OPTION is only available in combination with **--import, -i**.*
 
+#### **--pod**=*name*
+
+Restore a container into the pod *name*. The destination pod for this restore
+has to have the same namespaces shared as the pod this container was checkpointed
+from (see **[podman pod create --share](podman-pod-create.1.md#--share)**).
+*IMPORTANT: This OPTION is only available in combination with **--import, -i**.*
+
+This option requires at least CRIU 3.16.
+
 #### **--publish**, **-p**=*port*
 
 Replaces the ports that the *container* publishes, as configured during the
@@ -128,7 +137,7 @@ $ podman run --rm -p 2345:80 -d webserver
 ```
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-container-checkpoint(1)](podman-container-checkpoint.1.md)**, **[podman-run(1)](podman-run.1.md)**
+**[podman(1)](podman.1.md)**, **[podman-container-checkpoint(1)](podman-container-checkpoint.1.md)**, **[podman-run(1)](podman-run.1.md)**, **[podman-pod-create(1)](podman-pod-create.1.md)**
 
 ## HISTORY
 September 2018, Originally compiled by Adrian Reber <areber@redhat.com>

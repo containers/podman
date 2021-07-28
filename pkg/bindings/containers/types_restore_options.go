@@ -131,3 +131,19 @@ func (o *RestoreOptions) GetTCPEstablished() bool {
 	}
 	return *o.TCPEstablished
 }
+
+// WithPod
+func (o *RestoreOptions) WithPod(value string) *RestoreOptions {
+	v := &value
+	o.Pod = v
+	return o
+}
+
+// GetPod
+func (o *RestoreOptions) GetPod() string {
+	var pod string
+	if o.Pod == nil {
+		return pod
+	}
+	return *o.Pod
+}
