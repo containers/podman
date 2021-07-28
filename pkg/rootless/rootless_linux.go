@@ -14,11 +14,13 @@ import (
 	"os/user"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"unsafe"
 
 	"github.com/containers/podman/v3/pkg/errorhandling"
 	"github.com/containers/storage/pkg/idtools"
+	pmount "github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -233,6 +235,24 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 			return false, 0, runInUser()
 		}
 		return false, 0, nil
+	}
+
+	if mounts, err := pmount.GetMounts(); err == nil {
+		for _, m := range mounts {
+			if m.Mountpoint == "/" {
+				isShared := false
+				for _, o := range strings.Split(m.Optional, ",") {
+					if strings.HasPrefix(o, "shared:") {
+						isShared = true
+						break
+					}
+				}
+				if !isShared {
+					logrus.Warningf("%q is not a shared mount, this could cause issues or missing mounts with rootless containers", m.Mountpoint)
+				}
+				break
+			}
+		}
 	}
 
 	cPausePid := C.CString(pausePid)
