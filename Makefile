@@ -214,7 +214,7 @@ endif
 .PHONY: .gitvalidation
 .gitvalidation: .gopathok
 	@echo "Validating vs commit '$(call err_if_empty,EPOCH_TEST_COMMIT)'"
-	GIT_CHECK_EXCLUDE="./vendor:docs/make.bat" $(GOBIN)/git-validation -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
+	GIT_CHECK_EXCLUDE="./vendor:docs/make.bat:test/buildah-bud/buildah-tests.diff" $(GOBIN)/git-validation -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
 
 .PHONY: lint
 lint: golangci-lint

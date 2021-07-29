@@ -601,7 +601,11 @@ buildah_bud_test_task:
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
         # ID for re-use of build output
         _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
-        PODBIN_NAME: podman
+    matrix:
+        - env:
+            PODBIN_NAME: podman
+        - env:
+            PODBIN_NAME: remote
     gce_instance: *standardvm
     timeout_in: 45m
     clone_script: *noop

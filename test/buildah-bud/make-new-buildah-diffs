@@ -56,8 +56,6 @@ if [[ -n "$patch2" ]]; then
     die "Internal error: I thought I checked for squashed commits, but still see $patch2"
 fi
 
-# All looks good. Now write that patch into its proper place in the
-# podman repo. The sed and tac mess strips trailing whitespace and
-# empty lines; we need to do this to pass github CI checks.
-sed -e 's/ \+$//' <0001-*.patch |\
-    tac | sed -e '/./,$!d' | tac >| ../test/buildah-bud/buildah-tests.diff
+# All looks good. We can now copy that patch into its proper place in the
+# podman repo.
+cp 0001-*.patch ../test/buildah-bud/buildah-tests.diff
