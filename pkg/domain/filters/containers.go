@@ -211,6 +211,36 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 		}, nil
 	case "network":
 		return func(c *libpod.Container) bool {
+			networkMode := c.NetworkMode()
+			// support docker like `--filter network=container:<IDorName>`
+			// check if networkMode is configured as `container:<ctr>`
+			// peform a match against filter `container:<IDorName>`
+			// networks is already going to be empty if `container:<ctr>` is configured as Mode
+			if strings.HasPrefix(networkMode, "container:") {
+				networkModeContainerPart := strings.SplitN(networkMode, ":", 2)
+				if len(networkModeContainerPart) < 2 {
+					return false
+				}
+				networkModeContainerID := networkModeContainerPart[1]
+				for _, val := range filterValues {
+					if strings.HasPrefix(val, "container:") {
+						filterNetworkModePart := strings.SplitN(val, ":", 2)
+						if len(filterNetworkModePart) < 2 {
+							return false
+						}
+						filterNetworkModeIDorName := filterNetworkModePart[1]
+						filterID, err := r.LookupContainerID(filterNetworkModeIDorName)
+						if err != nil {
+							return false
+						}
+						if filterID == networkModeContainerID {
+							return true
+						}
+					}
+				}
+				return false
+			}
+
 			networks, _, err := c.Networks()
 			// if err or no networks, quick out
 			if err != nil || len(networks) == 0 {

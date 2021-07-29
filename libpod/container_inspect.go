@@ -618,38 +618,7 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	hostConfig.Tmpfs = tmpfs
 
 	// Network mode parsing.
-	networkMode := ""
-	switch {
-	case c.config.CreateNetNS:
-		// We actually store the network
-		// mode for Slirp and Bridge, so
-		// we can just use that
-		networkMode = string(c.config.NetMode)
-	case c.config.NetNsCtr != "":
-		networkMode = fmt.Sprintf("container:%s", c.config.NetNsCtr)
-	default:
-		// Find the spec's network namespace.
-		// If there is none, it's host networking.
-		// If there is one and it has a path, it's "ns:".
-		foundNetNS := false
-		for _, ns := range ctrSpec.Linux.Namespaces {
-			if ns.Type == spec.NetworkNamespace {
-				foundNetNS = true
-				if ns.Path != "" {
-					networkMode = fmt.Sprintf("ns:%s", ns.Path)
-				} else {
-					// We're making a network ns,  but not
-					// configuring with Slirp or CNI. That
-					// means it's --net=none
-					networkMode = "none"
-				}
-				break
-			}
-		}
-		if !foundNetNS {
-			networkMode = "host"
-		}
-	}
+	networkMode := c.NetworkMode()
 	hostConfig.NetworkMode = networkMode
 
 	// Port bindings.
