@@ -517,7 +517,14 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *c
 		cliOpts.OOMKillDisable = *cc.HostConfig.OomKillDisable
 	}
 	if cc.Config.Healthcheck != nil {
-		cliOpts.HealthCmd = strings.Join(cc.Config.Healthcheck.Test, " ")
+		finCmd := ""
+		for _, str := range cc.Config.Healthcheck.Test {
+			finCmd = finCmd + str + " "
+		}
+		if len(finCmd) > 1 {
+			finCmd = finCmd[:len(finCmd)-1]
+		}
+		cliOpts.HealthCmd = finCmd
 		cliOpts.HealthInterval = cc.Config.Healthcheck.Interval.String()
 		cliOpts.HealthRetries = uint(cc.Config.Healthcheck.Retries)
 		cliOpts.HealthStartPeriod = cc.Config.Healthcheck.StartPeriod.String()

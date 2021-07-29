@@ -33,9 +33,10 @@ class ContainerTestCase(APITestCase):
         self.assertId(r.content)
         _ = parse(r.json()["Created"])
 
+
         r = requests.post(
             self.podman_url + "/v1.40/containers/create?name=topcontainer",
-            json={"Cmd": ["top"], "Image": "alpine:latest"},
+            json={"Healthcheck": {"Test": ["CMD-SHELL", "exit 0"], "Interval":1000, "Timeout":1000, "Retries": 5}, "Cmd": ["top"], "Image": "alpine:latest"},
         )
         self.assertEqual(r.status_code, 201, r.text)
         payload = r.json()
@@ -48,6 +49,13 @@ class ContainerTestCase(APITestCase):
         out = r.json()
         state = out["State"]["Health"]
         self.assertIsInstance(state, dict)
+
+        r = requests.get(self.uri(f"/containers/{payload['Id']}/json"))
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertId(r.content)
+        out = r.json()
+        hc  = out["Config"]["Healthcheck"]["Test"]
+        self.assertListEqual(["CMD-SHELL", "exit 0"], hc)
 
     def test_stats(self):
         r = requests.get(self.uri(self.resolve_container("/containers/{}/stats?stream=false")))

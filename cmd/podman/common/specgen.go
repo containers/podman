@@ -516,7 +516,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 			if len(con) != 2 {
 				return fmt.Errorf("invalid --security-opt 1: %q", opt)
 			}
-
 			switch con[0] {
 			case "apparmor":
 				s.ContainerSecurityConfig.ApparmorProfile = con[1]
@@ -664,25 +663,40 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 }
 
 func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, startPeriod string) (*manifest.Schema2HealthConfig, error) {
+	cmdArr := []string{}
+	isArr := true
+	err := json.Unmarshal([]byte(inCmd), &cmdArr) // array unmarshalling
+	if err != nil {
+		cmdArr = strings.SplitN(inCmd, " ", 2) // default for compat
+		isArr = false
+	}
 	// Every healthcheck requires a command
-	if len(inCmd) == 0 {
+	if len(cmdArr) == 0 {
 		return nil, errors.New("Must define a healthcheck command for all healthchecks")
 	}
-
-	// first try to parse option value as JSON array of strings...
-	cmd := []string{}
-
-	if inCmd == "none" {
-		cmd = []string{"NONE"}
-	} else {
-		err := json.Unmarshal([]byte(inCmd), &cmd)
-		if err != nil {
-			// ...otherwise pass it to "/bin/sh -c" inside the container
-			cmd = []string{"CMD-SHELL", inCmd}
+	concat := ""
+	if cmdArr[0] == "CMD" || cmdArr[0] == "none" { // this is for compat, we are already split properly for most compat cases
+		cmdArr = strings.Fields(inCmd)
+	} else if cmdArr[0] != "CMD-SHELL" { // this is for podman side of things, wont contain the keywords
+		if isArr && len(cmdArr) > 1 { // an array of consecutive commands
+			cmdArr = append([]string{"CMD"}, cmdArr...)
+		} else { // one singular command
+			if len(cmdArr) == 1 {
+				concat = cmdArr[0]
+			} else {
+				concat = strings.Join(cmdArr[0:], " ")
+			}
+			cmdArr = append([]string{"CMD-SHELL"}, concat)
 		}
 	}
+
+	if cmdArr[0] == "none" { // if specified to remove healtcheck
+		cmdArr = []string{"NONE"}
+	}
+
+	// healthcheck is by default an array, so we simply pass the user input
 	hc := manifest.Schema2HealthConfig{
-		Test: cmd,
+		Test: cmdArr,
 	}
 
 	if interval == "disable" {
