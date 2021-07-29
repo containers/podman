@@ -59,6 +59,12 @@ Set the systemd unit name prefix for pods. The default is *pod*.
 
 Set the systemd unit name separator between the name/id of a container/pod and the prefix. The default is *-*.
 
+#### **--template**
+
+Add template specifiers to run multiple services from the systemd unit file.
+
+Note that if `--new` was not set to true, it is set to true by default. However, if `--new` is set to `false` explicitly the command will fail.
+
 ## EXAMPLES
 
 ### Generate and print a systemd unit file for a container

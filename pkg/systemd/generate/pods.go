@@ -79,6 +79,8 @@ type podInfo struct {
 	// Location of the RunRoot for the pod.  Required for ensuring the tmpfs
 	// or volume exists and is mounted when coming online at boot.
 	RunRoot string
+	// Add %i and %I to description and execute parts - this should not be used
+	IdentifySpecifier bool
 }
 
 const podTemplate = headerTemplate + `Requires={{{{- range $index, $value := .RequiredServices -}}}}{{{{if $index}}}} {{{{end}}}}{{{{ $value }}}}.service{{{{end}}}}
@@ -108,6 +110,9 @@ WantedBy=multi-user.target default.target
 // Based on the options, the return value might be the content of all units or
 // the files they been written to.
 func PodUnits(pod *libpod.Pod, options entities.GenerateSystemdOptions) (map[string]string, error) {
+	if options.TemplateUnitFile {
+		return nil, errors.New("--template is not supported for pods")
+	}
 	// Error out if the pod has no infra container, which we require to be the
 	// main service.
 	if !pod.HasInfraContainer() {

@@ -90,6 +90,8 @@ type containerInfo struct {
 	// Location of the RunRoot for the container.  Required for ensuring the tmpfs
 	// or volume exists and is mounted when coming online at boot.
 	RunRoot string
+	// Add %i and %I to description and execute parts
+	IdentifySpecifier bool
 }
 
 const containerTemplate = headerTemplate + `
@@ -99,7 +101,7 @@ After={{{{- range $index, $value := .BoundToServices -}}}}{{{{if $index}}}} {{{{
 {{{{- end}}}}
 
 [Service]
-Environment={{{{.EnvVariable}}}}=%n
+Environment={{{{.EnvVariable}}}}=%n{{{{- if (eq .IdentifySpecifier true) }}}}-%i{{{{- end}}}}
 {{{{- if .ExtraEnvs}}}}
 Environment={{{{- range $index, $value := .ExtraEnvs -}}}}{{{{if $index}}}} {{{{end}}}}{{{{ $value }}}}{{{{end}}}}
 {{{{- end}}}}
@@ -273,7 +275,6 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 			"--rm",
 		)
 		remainingCmd := info.CreateCommand[index:]
-
 		// Presence check for certain flags/options.
 		fs := pflag.NewFlagSet("args", pflag.ContinueOnError)
 		fs.ParseErrorsWhitelist.UnknownFlags = true
@@ -389,6 +390,32 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 
 		startCommand = append(startCommand, remainingCmd...)
 		startCommand = escapeSystemdArguments(startCommand)
+		if options.TemplateUnitFile {
+			info.IdentifySpecifier = true
+			runIx := -1
+			nameIx := -1
+			for argIx, arg := range startCommand {
+				if arg == "run" {
+					runIx = argIx
+					continue
+				}
+				if arg == "--name" {
+					nameIx = argIx + 1
+					break
+				}
+				if strings.HasPrefix(arg, "--name=") {
+					nameIx = argIx
+					break
+				}
+			}
+			if nameIx == -1 {
+				startCommand = append(startCommand[:runIx+1], startCommand[runIx:]...)
+				startCommand[runIx+1] = fmt.Sprintf("--name=%s-%%i", info.ServiceName)
+				fmt.Println(startCommand)
+			} else {
+				startCommand[nameIx] = fmt.Sprintf("%s-%%i", startCommand[nameIx])
+			}
+		}
 		info.ExecStart = strings.Join(startCommand, " ")
 	}
 

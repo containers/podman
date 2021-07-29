@@ -20,6 +20,8 @@ type GenerateSystemdOptions struct {
 	Separator string
 	// NoHeader - skip header generation
 	NoHeader bool
+	// TemplateUnitFile - make use of %i and %I to differentiate between the different instances of the unit
+	TemplateUnitFile bool
 }
 
 // GenerateSystemdReport

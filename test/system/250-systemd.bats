@@ -201,4 +201,33 @@ LISTEN_FDNAMES=listen_fdnames" "LISTEN Environment passed: $context"
     check_listen_env "$stdenv" "podman start"
 }
 
+@test "podman generate - systemd template" {
+    cname=$(random_string)
+    run_podman run -dt --name $cname $IMAGE top
+
+    run_podman generate systemd --template -n $cname
+    is "$output" ".*%I.*" "%I indentifiers in template"
+    is "$output" ".*%i.*" "%i indentifiers in template"
+}
+
+@test "podman generate - systemd template no support for pod" {
+    cname=$(random_string)
+    podname=$(random_string)
+    run_podman pod create --name $podname
+    run_podman run --pod $podname -dt --name $cname $IMAGE top
+
+    run_podman 125 generate systemd --new --template -n $podname
+    is "$output" ".*--template is not supported for pods.*" "Error message contains 'not supported'"
+
+    run_podman rm -f $cname
+    run_podman pod rm -f $podname
+}
+
+@test "podman generate - systemd template only used on --new" {
+    cname=$(random_string)
+    run_podman create --name $cname $IMAGE top
+    run_podman 125 generate systemd --new=false --template -n $cname
+    is "$output" ".*--template cannot be set" "Error message should be '--template requires --new'"
+}
+
 # vim: filetype=sh

@@ -62,6 +62,21 @@ func (o *SystemdOptions) GetNoHeader() bool {
 	return *o.NoHeader
 }
 
+// WithTemplateUnitFile set field TemplateUnitFile to given value
+func (o *SystemdOptions) WithTemplateUnitFile(value bool) *SystemdOptions {
+	o.TemplateUnitFile = &value
+	return o
+}
+
+// GetTemplateUnitFile returns value of field TemplateUnitFile
+func (o *SystemdOptions) GetTemplateUnitFile() bool {
+	if o.TemplateUnitFile == nil {
+		var z bool
+		return z
+	}
+	return *o.TemplateUnitFile
+}
+
 // WithRestartPolicy set field RestartPolicy to given value
 func (o *SystemdOptions) WithRestartPolicy(value string) *SystemdOptions {
 	o.RestartPolicy = &value
