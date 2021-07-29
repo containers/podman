@@ -620,9 +620,9 @@ func getTmpfsMounts(tmpfsFlag []string) (map[string]spec.Mount, error) {
 
 		mount := spec.Mount{
 			Destination: filepath.Clean(destPath),
-			Type:        string(define.TypeTmpfs),
+			Type:        define.TypeTmpfs,
 			Options:     options,
-			Source:      string(define.TypeTmpfs),
+			Source:      define.TypeTmpfs,
 		}
 		m[destPath] = mount
 	}
