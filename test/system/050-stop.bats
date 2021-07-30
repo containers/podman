@@ -119,10 +119,30 @@ load helpers
     # the container's status.
 
     run_podman run --name stopme -d $IMAGE sh -c \
-        "trap 'echo Received SIGTERM, ignoring' SIGTERM; echo READY; while :; do sleep 1; done"
+        "trap 'echo Received SIGTERM, ignoring' SIGTERM; echo READY; while :; do sleep 0.2; done"
 
-    # Stop the container in the background
+    wait_for_ready stopme
+
+    local t0=$SECONDS
+    # Stop the container, but do so in the background so we can inspect
+    # the container status while it's stopping. Use $PODMAN because we
+    # don't want the overhead and error checks of run_podman.
     $PODMAN stop -t 20 stopme &
+
+    # Wait for container to acknowledge the signal. We can't use wait_for_output
+    # because that aborts if .State.Running != true
+    local timeout=5
+    while [[ $timeout -gt 0 ]]; do
+        run_podman logs stopme
+        if [[ "$output" =~ "Received SIGTERM, ignoring" ]]; then
+            break
+        fi
+        timeout=$((timeout - 1))
+        if [[ $timeout -eq 0 ]]; then
+            die "Timed out waiting for container to receive SIGERM"
+        fi
+        sleep 0.5
+    done
 
     # Other commands can acquire the lock
     run_podman ps -a
@@ -130,6 +150,13 @@ load helpers
     # The container state transitioned to "stopping"
     run_podman inspect --format '{{.State.Status}}' stopme
     is "$output" "stopping" "Status of container should be 'stopping'"
+
+    # Time check: make sure we were able to run 'ps' before the container
+    # exited. If this takes too long, it means ps had to wait for lock.
+    local delta_t=$(( $SECONDS - t0 ))
+    if [[ $delta_t -gt 5 ]]; then
+        die "Operations took too long ($delta_t seconds)"
+    fi
 
     run_podman kill stopme
     run_podman wait stopme
