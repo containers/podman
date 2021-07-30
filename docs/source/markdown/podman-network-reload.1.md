@@ -13,8 +13,6 @@ Rootfull Podman relies on iptables rules in order to provide network connectivit
 this happens for example with `firewall-cmd --reload`, the container loses network connectivity. This command restores
 the network connectivity.
 
-This command is not available for rootless users since rootless containers are not affected by such connectivity problems.
-
 ## OPTIONS
 #### **--all**, **-a**
 

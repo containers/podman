@@ -10,8 +10,6 @@ podman\-network\-connect - Connect a container to a network
 Connects a container to a network. A container can be connected to a network by name or by ID.
 Once connected, the container can communicate with other containers in the same network.
 
-This command is not available for rootless users.
-
 ## OPTIONS
 #### **--alias**
 Add network-scoped alias for the container.  If the network is using the `dnsname` CNI plugin, these aliases
