@@ -390,4 +390,89 @@ load helpers
     run_podman network rm -f $netname
 }
 
+# Test for https://github.com/containers/podman/issues/10052
+@test "podman network connect/disconnect with port forwarding" {
+    random_1=$(random_string 30)
+    HOST_PORT=12345
+    SERVER=http://127.0.0.1:$HOST_PORT
+
+    # Create a test file with random content
+    INDEX1=$PODMAN_TMPDIR/hello.txt
+    echo $random_1 > $INDEX1
+
+    local netname=testnet-$(random_string 10)
+    run_podman network create $netname
+    is "$output" ".*/cni/net.d/$netname.conflist" "output of 'network create'"
+
+    local netname2=testnet2-$(random_string 10)
+    run_podman network create $netname2
+    is "$output" ".*/cni/net.d/$netname2.conflist" "output of 'network create'"
+
+    # First, run a container in background to ensure that the rootless cni ns
+    # is not destroyed after network disconnect.
+    run_podman run -d --network $netname $IMAGE top
+    background_cid=$output
+
+    # Run a httpd container on first network with exposed port
+    run_podman run -d -p "$HOST_PORT:80" \
+            --network $netname \
+            -v $INDEX1:/var/www/index.txt:Z \
+            -w /var/www \
+            $IMAGE /bin/busybox-extras httpd -f -p 80
+    cid=$output
+
+    # Verify http contents: curl from localhost
+    run curl --max-time 3 -s $SERVER/index.txt
+    is "$output" "$random_1" "curl 127.0.0.1:/index.txt"
+
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
+    ip="$output"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
+    mac="$output"
+
+    run_podman network disconnect $netname $cid
+
+    # check that we cannot curl (timeout after 3 sec)
+    run curl --max-time 3 -s $SERVER/index.txt
+    if [ "$status" -eq 0 ]; then
+	    die "curl did not fail, it should have timed out or failed with non zero exit code"
+    fi
+
+    run_podman network connect $netname $cid
+
+    # curl should work again
+    run curl --max-time 3 -s $SERVER/index.txt
+    is "$output" "$random_1" "curl 127.0.0.1:/index.txt should work again"
+
+    # check that we have a new ip and mac
+    # if the ip is still the same this whole test turns into a nop
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
+    if [[ "$output" == "$ip" ]]; then
+        die "IP address did not change after podman network disconnect/connect"
+    fi
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
+    if [[ "$output" == "$mac" ]]; then
+        die "MAC address did not change after podman network disconnect/connect"
+    fi
+
+    # connect a second network
+    run_podman network connect $netname2 $cid
+
+    # curl should work
+    run curl --max-time 3 -s $SERVER/index.txt
+    is "$output" "$random_1" "curl 127.0.0.1:/index.txt should work"
+
+    # disconnect the first network
+    run_podman network disconnect $netname $cid
+
+    # curl should still work
+    run curl --max-time 3 -s $SERVER/index.txt
+    is "$output" "$random_1" "curl 127.0.0.1:/index.txt should still work"
+
+    # cleanup
+    run_podman stop -t 0 $cid $background_cid
+    run_podman rm -f $cid $background_cid
+    run_podman network rm -f $netname $netname2
+}
+
 # vim: filetype=sh

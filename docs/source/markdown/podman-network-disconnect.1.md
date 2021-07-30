@@ -7,9 +7,10 @@ podman\-network\-disconnect - Disconnect a container from a network
 **podman network disconnect** [*options*] network container
 
 ## DESCRIPTION
-Disconnects a container from a network.
+Disconnects a container from a network. A container can be disconnected from a network by name or by ID.
+If all networks are disconnected from the container, it will behave like a container created with `--network=none`
+and it will longer have network connectivity until a network is connected again.
 
-This command is not available for rootless users.
 
 ## OPTIONS
 #### **--force**, **-f**
