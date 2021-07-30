@@ -894,6 +894,18 @@ func (r *Runtime) LookupContainer(idOrName string) (*Container, error) {
 	return r.state.LookupContainer(idOrName)
 }
 
+// LookupContainerId looks up a container id by its name or a partial ID
+// If a partial ID is not unique, an error will be returned
+func (r *Runtime) LookupContainerID(idOrName string) (string, error) {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
+	if !r.valid {
+		return "", define.ErrRuntimeStopped
+	}
+	return r.state.LookupContainerID(idOrName)
+}
+
 // GetContainers retrieves all containers from the state
 // Filters can be provided which will determine what containers are included in
 // the output. Multiple filters are handled by ANDing their output, so only

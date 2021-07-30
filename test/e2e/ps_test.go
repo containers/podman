@@ -172,6 +172,43 @@ var _ = Describe("Podman ps", func() {
 		Expect(fullCid).To(Equal(result.OutputToStringArray()[0]))
 	})
 
+	It("podman ps --filter network=container:<name>", func() {
+		ctrAlpha := "alpha"
+		container := podmanTest.Podman([]string{"run", "-dt", "--name", ctrAlpha, ALPINE, "top"})
+		container.WaitWithDefaultTimeout()
+		Expect(container).Should(Exit(0))
+
+		ctrBravo := "bravo"
+		containerBravo := podmanTest.Podman([]string{"run", "-dt", "--network", "container:alpha", "--name", ctrBravo, ALPINE, "top"})
+		containerBravo.WaitWithDefaultTimeout()
+		Expect(containerBravo).Should(Exit(0))
+
+		result := podmanTest.Podman([]string{"ps", "-a", "--format", "table {{.Names}}", "--filter", "network=container:alpha"})
+		result.WaitWithDefaultTimeout()
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(ContainSubstring("bravo"))
+	})
+
+	It("podman ps --filter network=container:<id>", func() {
+		ctrAlpha := "first"
+		container := podmanTest.Podman([]string{"run", "-dt", "--name", ctrAlpha, ALPINE, "top"})
+		container.WaitWithDefaultTimeout()
+		cid := container.OutputToString()
+		Expect(container).Should(Exit(0))
+
+		ctrBravo := "second"
+		containerBravo := podmanTest.Podman([]string{"run", "-dt", "--network", "container:" + cid, "--name", ctrBravo, ALPINE, "top"})
+		containerBravo.WaitWithDefaultTimeout()
+		Expect(containerBravo).Should(Exit(0))
+
+		result := podmanTest.Podman([]string{"ps", "-a", "--format", "table {{.Names}}", "--filter", "network=container:" + cid})
+		result.WaitWithDefaultTimeout()
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(ContainSubstring("second"))
+	})
+
 	It("podman ps namespace flag", func() {
 		_, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
