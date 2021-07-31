@@ -261,7 +261,8 @@ EOF
     systemctl enable --now podman-auto-update-$cname.timer
     systemctl list-timers --all
 
-    local expect='Finished Podman auto-update testing service'
+    # While systemd v245 and later uses 'Finished', older versions uses 'Started' for oneshot services
+    local expect='(Finished|Started) Podman auto-update testing service'
     local failed_start=failed
     local count=0
     while [ $count -lt 120 ]; do
