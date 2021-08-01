@@ -9,7 +9,7 @@ import (
 
 	"github.com/containers/image/v5/pkg/compression/internal"
 	"github.com/containers/image/v5/pkg/compression/types"
-	"github.com/containers/storage/pkg/chunked"
+	"github.com/containers/storage/pkg/chunked/compressor"
 	"github.com/klauspost/pgzip"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -21,15 +21,20 @@ type Algorithm = types.Algorithm
 
 var (
 	// Gzip compression.
-	Gzip = internal.NewAlgorithm("gzip", "gzip", []byte{0x1F, 0x8B, 0x08}, GzipDecompressor, gzipCompressor)
+	Gzip = internal.NewAlgorithm(types.GzipAlgorithmName, types.GzipAlgorithmName,
+		[]byte{0x1F, 0x8B, 0x08}, GzipDecompressor, gzipCompressor)
 	// Bzip2 compression.
-	Bzip2 = internal.NewAlgorithm("bzip2", "bzip2", []byte{0x42, 0x5A, 0x68}, Bzip2Decompressor, bzip2Compressor)
+	Bzip2 = internal.NewAlgorithm(types.Bzip2AlgorithmName, types.Bzip2AlgorithmName,
+		[]byte{0x42, 0x5A, 0x68}, Bzip2Decompressor, bzip2Compressor)
 	// Xz compression.
-	Xz = internal.NewAlgorithm("Xz", "xz", []byte{0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00}, XzDecompressor, xzCompressor)
+	Xz = internal.NewAlgorithm(types.XzAlgorithmName, types.XzAlgorithmName,
+		[]byte{0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00}, XzDecompressor, xzCompressor)
 	// Zstd compression.
-	Zstd = internal.NewAlgorithm("zstd", "zstd", []byte{0x28, 0xb5, 0x2f, 0xfd}, ZstdDecompressor, zstdCompressor)
+	Zstd = internal.NewAlgorithm(types.ZstdAlgorithmName, types.ZstdAlgorithmName,
+		[]byte{0x28, 0xb5, 0x2f, 0xfd}, ZstdDecompressor, zstdCompressor)
 	// Zstd:chunked compression.
-	ZstdChunked = internal.NewAlgorithm("zstd:chunked", "zstd", []byte{0x28, 0xb5, 0x2f, 0xfd}, ZstdDecompressor, chunked.ZstdCompressor)
+	ZstdChunked = internal.NewAlgorithm(types.ZstdChunkedAlgorithmName, types.ZstdAlgorithmName, /* Note: InternalUnstableUndocumentedMIMEQuestionMark is not ZstdChunkedAlgorithmName */
+		nil, ZstdDecompressor, compressor.ZstdCompressor)
 
 	compressionAlgorithms = map[string]Algorithm{
 		Gzip.Name():        Gzip,
@@ -118,7 +123,8 @@ func DetectCompressionFormat(input io.Reader) (Algorithm, DecompressorFunc, io.R
 	var retAlgo Algorithm
 	var decompressor DecompressorFunc
 	for _, algo := range compressionAlgorithms {
-		if bytes.HasPrefix(buffer[:n], internal.AlgorithmPrefix(algo)) {
+		prefix := internal.AlgorithmPrefix(algo)
+		if len(prefix) > 0 && bytes.HasPrefix(buffer[:n], prefix) {
 			logrus.Debugf("Detected compression format %s", algo.Name())
 			retAlgo = algo
 			decompressor = internal.AlgorithmDecompressor(algo)

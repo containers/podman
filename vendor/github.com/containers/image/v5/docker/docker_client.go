@@ -304,7 +304,7 @@ func CheckAuth(ctx context.Context, sys *types.SystemContext, username, password
 		Password: password,
 	}
 
-	resp, err := client.makeRequest(ctx, "GET", "/v2/", nil, nil, v2Auth, nil)
+	resp, err := client.makeRequest(ctx, http.MethodGet, "/v2/", nil, nil, v2Auth, nil)
 	if err != nil {
 		return err
 	}
@@ -343,8 +343,8 @@ func SearchRegistry(ctx context.Context, sys *types.SystemContext, registry, ima
 	v1Res := &V1Results{}
 
 	// Get credentials from authfile for the underlying hostname
-	// lint:ignore SA1019 We can't use GetCredentialsForRef because we want to search the whole registry.
-	auth, err := config.GetCredentials(sys, registry) // nolint:staticcheck // https://github.com/golangci/golangci-lint/issues/741
+	// We can't use GetCredentialsForRef here because we want to search the whole registry.
+	auth, err := config.GetCredentials(sys, registry)
 	if err != nil {
 		return nil, errors.Wrapf(err, "getting username and password")
 	}
@@ -380,7 +380,7 @@ func SearchRegistry(ctx context.Context, sys *types.SystemContext, registry, ima
 		u.RawQuery = q.Encode()
 
 		logrus.Debugf("trying to talk to v1 search endpoint")
-		resp, err := client.makeRequest(ctx, "GET", u.String(), nil, nil, noAuth, nil)
+		resp, err := client.makeRequest(ctx, http.MethodGet, u.String(), nil, nil, noAuth, nil)
 		if err != nil {
 			logrus.Debugf("error getting search results from v1 endpoint %q: %v", registry, err)
 		} else {
@@ -400,14 +400,15 @@ func SearchRegistry(ctx context.Context, sys *types.SystemContext, registry, ima
 	searchRes := []SearchResult{}
 	path := "/v2/_catalog"
 	for len(searchRes) < limit {
-		resp, err := client.makeRequest(ctx, "GET", path, nil, nil, v2Auth, nil)
+		resp, err := client.makeRequest(ctx, http.MethodGet, path, nil, nil, v2Auth, nil)
 		if err != nil {
 			logrus.Debugf("error getting search results from v2 endpoint %q: %v", registry, err)
 			return nil, errors.Wrapf(err, "couldn't search registry %q", registry)
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
-			logrus.Errorf("error getting search results from v2 endpoint %q: %v", registry, httpResponseToError(resp, ""))
+			err := httpResponseToError(resp, "")
+			logrus.Errorf("error getting search results from v2 endpoint %q: %v", registry, err)
 			return nil, errors.Wrapf(err, "couldn't search registry %q", registry)
 		}
 		v2Res := &V2Results{}
@@ -533,11 +534,10 @@ func (c *dockerClient) makeRequestToResolvedURL(ctx context.Context, method, url
 // makeRequest should generally be preferred.
 // Note that no exponential back off is performed when receiving an http 429 status code.
 func (c *dockerClient) makeRequestToResolvedURLOnce(ctx context.Context, method, url string, headers map[string][]string, stream io.Reader, streamLen int64, auth sendAuth, extraScope *authScope) (*http.Response, error) {
-	req, err := http.NewRequest(method, url, stream)
+	req, err := http.NewRequestWithContext(ctx, method, url, stream)
 	if err != nil {
 		return nil, err
 	}
-	req = req.WithContext(ctx)
 	if streamLen != -1 { // Do not blindly overwrite if streamLen == -1, http.NewRequest above can figure out the length of bytes.Reader and similar objects without us having to compute it.
 		req.ContentLength = streamLen
 	}
@@ -630,12 +630,10 @@ func (c *dockerClient) getBearerTokenOAuth2(ctx context.Context, challenge chall
 		return nil, errors.Errorf("missing realm in bearer auth challenge")
 	}
 
-	authReq, err := http.NewRequest(http.MethodPost, realm, nil)
+	authReq, err := http.NewRequestWithContext(ctx, http.MethodPost, realm, nil)
 	if err != nil {
 		return nil, err
 	}
-
-	authReq = authReq.WithContext(ctx)
 
 	// Make the form data required against the oauth2 authentication
 	// More details here: https://docs.docker.com/registry/spec/auth/oauth/
@@ -680,12 +678,11 @@ func (c *dockerClient) getBearerToken(ctx context.Context, challenge challenge,
 		return nil, errors.Errorf("missing realm in bearer auth challenge")
 	}
 
-	authReq, err := http.NewRequest(http.MethodGet, realm, nil)
+	authReq, err := http.NewRequestWithContext(ctx, http.MethodGet, realm, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	authReq = authReq.WithContext(ctx)
 	params := authReq.URL.Query()
 	if c.auth.Username != "" {
 		params.Add("account", c.auth.Username)
@@ -739,7 +736,7 @@ func (c *dockerClient) detectPropertiesHelper(ctx context.Context) error {
 
 	ping := func(scheme string) error {
 		url := fmt.Sprintf(resolvedPingV2URL, scheme, c.registry)
-		resp, err := c.makeRequestToResolvedURL(ctx, "GET", url, nil, nil, -1, noAuth, nil)
+		resp, err := c.makeRequestToResolvedURL(ctx, http.MethodGet, url, nil, nil, -1, noAuth, nil)
 		if err != nil {
 			logrus.Debugf("Ping %s err %s (%#v)", url, err.Error(), err)
 			return err
@@ -766,7 +763,7 @@ func (c *dockerClient) detectPropertiesHelper(ctx context.Context) error {
 		// best effort to understand if we're talking to a V1 registry
 		pingV1 := func(scheme string) bool {
 			url := fmt.Sprintf(resolvedPingV1URL, scheme, c.registry)
-			resp, err := c.makeRequestToResolvedURL(ctx, "GET", url, nil, nil, -1, noAuth, nil)
+			resp, err := c.makeRequestToResolvedURL(ctx, http.MethodGet, url, nil, nil, -1, noAuth, nil)
 			if err != nil {
 				logrus.Debugf("Ping %s err %s (%#v)", url, err.Error(), err)
 				return false
@@ -800,7 +797,7 @@ func (c *dockerClient) detectProperties(ctx context.Context) error {
 // using the original data structures.
 func (c *dockerClient) getExtensionsSignatures(ctx context.Context, ref dockerReference, manifestDigest digest.Digest) (*extensionSignatureList, error) {
 	path := fmt.Sprintf(extensionsSignaturePath, reference.Path(ref.ref), manifestDigest)
-	res, err := c.makeRequest(ctx, "GET", path, nil, nil, v2Auth, nil)
+	res, err := c.makeRequest(ctx, http.MethodGet, path, nil, nil, v2Auth, nil)
 	if err != nil {
 		return nil, err
 	}
