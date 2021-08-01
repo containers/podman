@@ -43,6 +43,7 @@ func init() {
 
 	logoutOptions.Stdout = os.Stdout
 	logoutOptions.AcceptUnspecifiedRegistry = true
+	logoutOptions.AcceptRepositories = true
 }
 
 // Implementation of podman-logout.

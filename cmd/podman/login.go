@@ -52,6 +52,7 @@ func init() {
 	loginOptions.Stdin = os.Stdin
 	loginOptions.Stdout = os.Stdout
 	loginOptions.AcceptUnspecifiedRegistry = true
+	loginOptions.AcceptRepositories = true
 }
 
 // Implementation of podman-login.

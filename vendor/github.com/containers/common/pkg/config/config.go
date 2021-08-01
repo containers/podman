@@ -637,9 +637,14 @@ func (c *Config) CheckCgroupsAndAdjustConfig() {
 
 	session := os.Getenv("DBUS_SESSION_BUS_ADDRESS")
 	hasSession := session != ""
-	if hasSession && strings.HasPrefix(session, "unix:path=") {
-		_, err := os.Stat(strings.TrimPrefix(session, "unix:path="))
-		hasSession = err == nil
+	if hasSession {
+		for _, part := range strings.Split(session, ",") {
+			if strings.HasPrefix(part, "unix:path=") {
+				_, err := os.Stat(strings.TrimPrefix(part, "unix:path="))
+				hasSession = err == nil
+				break
+			}
+		}
 	}
 
 	if !hasSession && unshare.GetRootlessUID() != 0 {

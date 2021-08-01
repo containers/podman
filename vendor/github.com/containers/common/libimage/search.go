@@ -185,6 +185,10 @@ func (r *Runtime) searchImageInRegistry(ctx context.Context, term, registry stri
 		sys.DockerInsecureSkipTLSVerify = options.InsecureSkipTLSVerify
 	}
 
+	if options.Authfile != "" {
+		sys.AuthFilePath = options.Authfile
+	}
+
 	if options.ListTags {
 		results, err := searchRepositoryTags(ctx, sys, registry, term, options)
 		if err != nil {

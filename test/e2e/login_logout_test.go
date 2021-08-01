@@ -97,6 +97,24 @@ var _ = Describe("Podman login and logout", func() {
 		os.RemoveAll(certDirPath)
 	})
 
+	readAuthInfo := func(filePath string) map[string]interface{} {
+		authBytes, err := ioutil.ReadFile(filePath)
+		Expect(err).To(BeNil())
+
+		var authInfo map[string]interface{}
+		err = json.Unmarshal(authBytes, &authInfo)
+		Expect(err).To(BeNil())
+		fmt.Println(authInfo)
+
+		const authsKey = "auths"
+		Expect(authInfo).To(HaveKey(authsKey))
+
+		auths, ok := authInfo[authsKey].(map[string]interface{})
+		Expect(ok).To(BeTrue())
+
+		return auths
+	}
+
 	It("podman login and logout", func() {
 		session := podmanTest.Podman([]string{"login", "-u", "podmantest", "-p", "test", server})
 		session.WaitWithDefaultTimeout()
@@ -151,10 +169,7 @@ var _ = Describe("Podman login and logout", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		authInfo, _ := ioutil.ReadFile(authFile)
-		var info map[string]interface{}
-		json.Unmarshal(authInfo, &info)
-		fmt.Println(info)
+		readAuthInfo(authFile)
 
 		// push should fail with nonexistent authfile
 		session = podmanTest.Podman([]string{"push", "--authfile", "/tmp/nonexistent", ALPINE, testImg})
@@ -281,6 +296,206 @@ var _ = Describe("Podman login and logout", func() {
 		Expect(session).To(ExitWithError())
 
 		session = podmanTest.Podman([]string{"push", ALPINE, "localhost:9001/test-alpine"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+	})
+
+	It("podman login and logout with repository", func() {
+		authFile := filepath.Join(podmanTest.TempDir, "auth.json")
+
+		testRepository := server + "/podmantest"
+		session := podmanTest.Podman([]string{
+			"login",
+			"-u", "podmantest",
+			"-p", "test",
+			"--authfile", authFile,
+			testRepository,
+		})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		authInfo := readAuthInfo(authFile)
+		Expect(authInfo).To(HaveKey(testRepository))
+
+		session = podmanTest.Podman([]string{
+			"logout",
+			"--authfile", authFile,
+			testRepository,
+		})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		authInfo = readAuthInfo(authFile)
+		Expect(authInfo).NotTo(HaveKey(testRepository))
+	})
+
+	It("podman login and logout with repository and specified image", func() {
+		authFile := filepath.Join(podmanTest.TempDir, "auth.json")
+
+		testTarget := server + "/podmantest/test-alpine"
+		session := podmanTest.Podman([]string{
+			"login",
+			"-u", "podmantest",
+			"-p", "test",
+			"--authfile", authFile,
+			testTarget,
+		})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		authInfo := readAuthInfo(authFile)
+		Expect(authInfo).To(HaveKey(testTarget))
+
+		session = podmanTest.Podman([]string{
+			"push",
+			"--authfile", authFile,
+			ALPINE, testTarget,
+		})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+	})
+
+	It("podman login and logout with repository with fallback", func() {
+		authFile := filepath.Join(podmanTest.TempDir, "auth.json")
+
+		testRepos := []string{
+			server + "/podmantest",
+			server,
+		}
+		for _, testRepo := range testRepos {
+			session := podmanTest.Podman([]string{
+				"login",
+				"-u", "podmantest",
+				"-p", "test",
+				"--authfile", authFile,
+				testRepo,
+			})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+		}
+
+		authInfo := readAuthInfo(authFile)
+		Expect(authInfo).To(HaveKey(testRepos[0]))
+		Expect(authInfo).To(HaveKey(testRepos[1]))
+
+		session := podmanTest.Podman([]string{
+			"push",
+			"--authfile", authFile,
+			ALPINE, testRepos[0] + "/test-image-alpine",
+		})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{
+			"logout",
+			"--authfile", authFile,
+			testRepos[0],
+		})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{
+			"push",
+			"--authfile", authFile,
+			ALPINE, testRepos[0] + "/test-image-alpine",
+		})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{
+			"logout",
+			"--authfile", authFile,
+			testRepos[1],
+		})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		authInfo = readAuthInfo(authFile)
+		Expect(authInfo).NotTo(HaveKey(testRepos[0]))
+		Expect(authInfo).NotTo(HaveKey(testRepos[1]))
+	})
+
+	It("podman login with repository invalid arguments", func() {
+		authFile := filepath.Join(podmanTest.TempDir, "auth.json")
+
+		for _, invalidArg := range []string{
+			"https://" + server + "/podmantest",
+			server + "/podmantest/image:latest",
+		} {
+			session := podmanTest.Podman([]string{
+				"login",
+				"-u", "podmantest",
+				"-p", "test",
+				"--authfile", authFile,
+				invalidArg,
+			})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(ExitWithError())
+		}
+	})
+
+	It("podman login and logout with repository push with invalid auth.json credentials", func() {
+		authFile := filepath.Join(podmanTest.TempDir, "auth.json")
+		// only `server` contains the correct login data
+		err := ioutil.WriteFile(authFile, []byte(fmt.Sprintf(`{"auths": {
+			"%s/podmantest": { "auth": "cG9kbWFudGVzdDp3cm9uZw==" },
+			"%s": { "auth": "cG9kbWFudGVzdDp0ZXN0" }
+		}}`, server, server)), 0644)
+		Expect(err).To(BeNil())
+
+		session := podmanTest.Podman([]string{
+			"push",
+			"--authfile", authFile,
+			ALPINE, server + "/podmantest/test-image",
+		})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+
+		session = podmanTest.Podman([]string{
+			"push",
+			"--authfile", authFile,
+			ALPINE, server + "/test-image",
+		})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(Exit(0))
+	})
+
+	It("podman login and logout with repository pull with wrong auth.json credentials", func() {
+		authFile := filepath.Join(podmanTest.TempDir, "auth.json")
+
+		testTarget := server + "/podmantest/test-alpine"
+		session := podmanTest.Podman([]string{
+			"login",
+			"-u", "podmantest",
+			"-p", "test",
+			"--authfile", authFile,
+			testTarget,
+		})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{
+			"push",
+			"--authfile", authFile,
+			ALPINE, testTarget,
+		})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// only `server + /podmantest` and `server` have the correct login data
+		err := ioutil.WriteFile(authFile, []byte(fmt.Sprintf(`{"auths": {
+			"%s/podmantest/test-alpine": { "auth": "cG9kbWFudGVzdDp3cm9uZw==" },
+			"%s/podmantest": { "auth": "cG9kbWFudGVzdDp0ZXN0" },
+			"%s": { "auth": "cG9kbWFudGVzdDp0ZXN0" }
+		}}`, server, server, server)), 0644)
+		Expect(err).To(BeNil())
+
+		session = podmanTest.Podman([]string{
+			"pull",
+			"--authfile", authFile,
+			server + "/podmantest/test-alpine",
+		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 	})

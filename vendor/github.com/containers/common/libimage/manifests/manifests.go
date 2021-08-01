@@ -18,6 +18,7 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/lockfile"
 	digest "github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -394,4 +395,21 @@ func (l *list) Remove(instanceDigest digest.Digest) error {
 		}
 	}
 	return err
+}
+
+// LockerForImage returns a Locker for a given image record.  It's recommended
+// that processes which use LoadFromImage() to load a list from an image and
+// then use that list's SaveToImage() method to save a modified version of the
+// list to that image record use this lock to avoid accidentally wiping out
+// changes that another process is also attempting to make.
+func LockerForImage(store storage.Store, image string) (lockfile.Locker, error) {
+	img, err := store.Image(image)
+	if err != nil {
+		return nil, errors.Wrapf(err, "locating image %q for locating lock", image)
+	}
+	d := digest.NewDigestFromEncoded(digest.Canonical, img.ID)
+	if err := d.Validate(); err != nil {
+		return nil, errors.Wrapf(err, "coercing image ID for %q into a digest", image)
+	}
+	return store.GetDigestLock(d)
 }

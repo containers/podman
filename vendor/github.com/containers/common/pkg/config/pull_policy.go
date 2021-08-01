@@ -76,13 +76,13 @@ func (p PullPolicy) Validate() error {
 // * "never"   <-> PullPolicyNever
 func ParsePullPolicy(s string) (PullPolicy, error) {
 	switch s {
-	case "always":
+	case "always", "Always":
 		return PullPolicyAlways, nil
-	case "missing", "ifnotpresent", "":
+	case "missing", "Missing", "ifnotpresent", "IfNotPresent", "":
 		return PullPolicyMissing, nil
-	case "newer", "ifnewer":
+	case "newer", "Newer", "ifnewer", "IfNewer":
 		return PullPolicyNewer, nil
-	case "never":
+	case "never", "Never":
 		return PullPolicyNever, nil
 	default:
 		return PullPolicyUnsupported, errors.Errorf("unsupported pull policy %q", s)
