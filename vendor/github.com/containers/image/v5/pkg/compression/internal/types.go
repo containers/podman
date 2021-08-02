@@ -14,7 +14,7 @@ type DecompressorFunc func(io.Reader) (io.ReadCloser, error)
 type Algorithm struct {
 	name         string
 	mime         string
-	prefix       []byte
+	prefix       []byte // Initial bytes of a stream compressed using this algorithm, or empty to disable detection.
 	decompressor DecompressorFunc
 	compressor   CompressorFunc
 }

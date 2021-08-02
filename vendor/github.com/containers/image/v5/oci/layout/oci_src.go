@@ -148,13 +148,13 @@ func (s *ociImageSource) getExternalBlob(ctx context.Context, urls []string) (io
 	errWrap := errors.New("failed fetching external blob from all urls")
 	for _, url := range urls {
 
-		req, err := http.NewRequest("GET", url, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
 			errWrap = errors.Wrapf(errWrap, "fetching %s failed %s", url, err.Error())
 			continue
 		}
 
-		resp, err := s.client.Do(req.WithContext(ctx))
+		resp, err := s.client.Do(req)
 		if err != nil {
 			errWrap = errors.Wrapf(errWrap, "fetching %s failed %s", url, err.Error())
 			continue

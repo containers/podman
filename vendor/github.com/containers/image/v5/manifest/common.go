@@ -3,7 +3,7 @@ package manifest
 import (
 	"fmt"
 
-	"github.com/containers/image/v5/pkg/compression"
+	compressiontypes "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 )
@@ -44,7 +44,7 @@ func layerInfosToStrings(infos []LayerInfo) []string {
 
 // compressionMIMETypeSet describes a set of MIME type “variants” that represent differently-compressed
 // versions of “the same kind of content”.
-// The map key is the return value of compression.Algorithm.Name(), or mtsUncompressed;
+// The map key is the return value of compressiontypes.Algorithm.Name(), or mtsUncompressed;
 // the map value is a MIME type, or mtsUnsupportedMIMEType to mean "recognized but unsupported".
 type compressionMIMETypeSet map[string]string
 
@@ -59,7 +59,7 @@ const mtsUnsupportedMIMEType = "" // A value in compressionMIMETypeSet that mean
 // If the compression algorithm is unrecognized, or mimeType is not known to have variants that
 // differ from it only in what type of compression has been applied, the returned error will not be
 // a ManifestLayerCompressionIncompatibilityError.
-func compressionVariantMIMEType(variantTable []compressionMIMETypeSet, mimeType string, algorithm *compression.Algorithm) (string, error) {
+func compressionVariantMIMEType(variantTable []compressionMIMETypeSet, mimeType string, algorithm *compressiontypes.Algorithm) (string, error) {
 	if mimeType == mtsUnsupportedMIMEType { // Prevent matching against the {algo:mtsUnsupportedMIMEType} entries
 		return "", fmt.Errorf("cannot update unknown MIME type")
 	}

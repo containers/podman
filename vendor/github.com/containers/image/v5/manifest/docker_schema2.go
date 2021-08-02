@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/containers/image/v5/pkg/compression"
+	compressiontypes "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/pkg/strslice"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
@@ -214,14 +214,14 @@ func (m *Schema2) LayerInfos() []LayerInfo {
 
 var schema2CompressionMIMETypeSets = []compressionMIMETypeSet{
 	{
-		mtsUncompressed:         DockerV2Schema2ForeignLayerMediaType,
-		compression.Gzip.Name(): DockerV2Schema2ForeignLayerMediaTypeGzip,
-		compression.Zstd.Name(): mtsUnsupportedMIMEType,
+		mtsUncompressed:                    DockerV2Schema2ForeignLayerMediaType,
+		compressiontypes.GzipAlgorithmName: DockerV2Schema2ForeignLayerMediaTypeGzip,
+		compressiontypes.ZstdAlgorithmName: mtsUnsupportedMIMEType,
 	},
 	{
-		mtsUncompressed:         DockerV2SchemaLayerMediaTypeUncompressed,
-		compression.Gzip.Name(): DockerV2Schema2LayerMediaType,
-		compression.Zstd.Name(): mtsUnsupportedMIMEType,
+		mtsUncompressed:                    DockerV2SchemaLayerMediaTypeUncompressed,
+		compressiontypes.GzipAlgorithmName: DockerV2Schema2LayerMediaType,
+		compressiontypes.ZstdAlgorithmName: mtsUnsupportedMIMEType,
 	},
 }
 

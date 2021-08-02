@@ -236,9 +236,8 @@ func getAuthFilePaths(sys *types.SystemContext, homeDir string) []authPath {
 // file or .docker/config.json, including support for OAuth2 and IdentityToken.
 // If an entry is not found, an empty struct is returned.
 //
-// Deprecated: GetCredentialsForRef should be used in favor of this API
-// because it allows different credentials for different repositories on the
-// same registry.
+// GetCredentialsForRef should almost always be used in favor of this API to
+// allow different credentials for different repositories on the same registry.
 func GetCredentials(sys *types.SystemContext, registry string) (types.DockerAuthConfig, error) {
 	return getCredentialsWithHomeDir(sys, nil, registry, homedir.Get())
 }
@@ -665,14 +664,11 @@ func findAuthentication(ref reference.Named, registry, path string, legacyFormat
 	// those entries even in non-legacyFormat ~/.docker/config.json.
 	// The docker.io registry still uses the /v1/ key with a special host name,
 	// so account for that as well.
-	registry = normalizeAuthFileKey(registry, legacyFormat)
-	normalizedAuths := map[string]dockerAuthConfig{}
+	registry = normalizeRegistry(registry)
 	for k, v := range auths.AuthConfigs {
-		normalizedAuths[normalizeAuthFileKey(k, legacyFormat)] = v
-	}
-
-	if val, exists := normalizedAuths[registry]; exists {
-		return decodeDockerAuth(val)
+		if normalizeAuthFileKey(k, legacyFormat) == registry {
+			return decodeDockerAuth(v)
+		}
 	}
 
 	return types.DockerAuthConfig{}, nil

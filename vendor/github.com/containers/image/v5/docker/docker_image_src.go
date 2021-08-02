@@ -192,7 +192,7 @@ func (s *dockerImageSource) fetchManifest(ctx context.Context, tagOrDigest strin
 	headers := map[string][]string{
 		"Accept": manifest.DefaultRequestedManifestMIMETypes,
 	}
-	res, err := s.c.makeRequest(ctx, "GET", path, headers, nil, v2Auth, nil)
+	res, err := s.c.makeRequest(ctx, http.MethodGet, path, headers, nil, v2Auth, nil)
 	if err != nil {
 		return nil, "", err
 	}
@@ -248,7 +248,7 @@ func (s *dockerImageSource) getExternalBlob(ctx context.Context, urls []string) 
 		// NOTE: we must not authenticate on additional URLs as those
 		//       can be abused to leak credentials or tokens.  Please
 		//       refer to CVE-2020-15157 for more information.
-		resp, err = s.c.makeRequestToResolvedURL(ctx, "GET", url, nil, nil, -1, noAuth, nil)
+		resp, err = s.c.makeRequestToResolvedURL(ctx, http.MethodGet, url, nil, nil, -1, noAuth, nil)
 		if err == nil {
 			if resp.StatusCode != http.StatusOK {
 				err = errors.Errorf("error fetching external blob from %q: %d (%s)", url, resp.StatusCode, http.StatusText(resp.StatusCode))
@@ -295,7 +295,7 @@ func (s *dockerImageSource) GetBlobAt(ctx context.Context, info types.BlobInfo, 
 
 	path := fmt.Sprintf(blobsPath, reference.Path(s.physicalRef.ref), info.Digest.String())
 	logrus.Debugf("Downloading %s", path)
-	res, err := s.c.makeRequest(ctx, "GET", path, headers, nil, v2Auth, nil)
+	res, err := s.c.makeRequest(ctx, http.MethodGet, path, headers, nil, v2Auth, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -364,7 +364,7 @@ func (s *dockerImageSource) GetBlob(ctx context.Context, info types.BlobInfo, ca
 
 	path := fmt.Sprintf(blobsPath, reference.Path(s.physicalRef.ref), info.Digest.String())
 	logrus.Debugf("Downloading %s", path)
-	res, err := s.c.makeRequest(ctx, "GET", path, nil, nil, v2Auth, nil)
+	res, err := s.c.makeRequest(ctx, http.MethodGet, path, nil, nil, v2Auth, nil)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -454,11 +454,10 @@ func (s *dockerImageSource) getOneSignature(ctx context.Context, url *url.URL) (
 
 	case "http", "https":
 		logrus.Debugf("GET %s", url)
-		req, err := http.NewRequest("GET", url.String(), nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url.String(), nil)
 		if err != nil {
 			return nil, false, err
 		}
-		req = req.WithContext(ctx)
 		res, err := s.c.client.Do(req)
 		if err != nil {
 			return nil, false, err
@@ -523,7 +522,7 @@ func deleteImage(ctx context.Context, sys *types.SystemContext, ref dockerRefere
 		return err
 	}
 	getPath := fmt.Sprintf(manifestPath, reference.Path(ref.ref), refTail)
-	get, err := c.makeRequest(ctx, "GET", getPath, headers, nil, v2Auth, nil)
+	get, err := c.makeRequest(ctx, http.MethodGet, getPath, headers, nil, v2Auth, nil)
 	if err != nil {
 		return err
 	}
@@ -545,7 +544,7 @@ func deleteImage(ctx context.Context, sys *types.SystemContext, ref dockerRefere
 
 	// When retrieving the digest from a registry >= 2.3 use the following header:
 	//   "Accept": "application/vnd.docker.distribution.manifest.v2+json"
-	delete, err := c.makeRequest(ctx, "DELETE", deletePath, headers, nil, v2Auth, nil)
+	delete, err := c.makeRequest(ctx, http.MethodDelete, deletePath, headers, nil, v2Auth, nil)
 	if err != nil {
 		return err
 	}
