@@ -472,20 +472,10 @@ func (c *Container) setupStorage(ctx context.Context) error {
 	c.config.IDMappings.UIDMap = containerInfo.UIDMap
 	c.config.IDMappings.GIDMap = containerInfo.GIDMap
 
-	processLabel := containerInfo.ProcessLabel
-	switch {
-	case c.ociRuntime.SupportsKVM():
-		processLabel, err = selinux.KVMLabel(processLabel)
-		if err != nil {
-			return err
-		}
-	case c.config.Systemd:
-		processLabel, err = selinux.InitLabel(processLabel)
-		if err != nil {
-			return err
-		}
+	processLabel, err := c.processLabel(containerInfo.ProcessLabel)
+	if err != nil {
+		return err
 	}
-
 	c.config.ProcessLabel = processLabel
 	c.config.MountLabel = containerInfo.MountLabel
 	c.config.StaticDir = containerInfo.Dir
@@ -518,6 +508,26 @@ func (c *Container) setupStorage(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (c *Container) processLabel(processLabel string) (string, error) {
+	if !c.config.Systemd && !c.ociRuntime.SupportsKVM() {
+		return processLabel, nil
+	}
+	ctrSpec, err := c.specFromState()
+	if err != nil {
+		return "", err
+	}
+	label, ok := ctrSpec.Annotations[define.InspectAnnotationLabel]
+	if !ok || !strings.Contains(label, "type:") {
+		switch {
+		case c.ociRuntime.SupportsKVM():
+			return selinux.KVMLabel(processLabel)
+		case c.config.Systemd:
+			return selinux.InitLabel(processLabel)
+		}
+	}
+	return processLabel, nil
 }
 
 // Tear down a container's storage prior to removal
