@@ -7,7 +7,7 @@ ME=$(basename $0)
 ###############################################################################
 # BEGIN defaults
 
-PODMAN_REGISTRY_IMAGE=docker.io/library/registry:2.6
+PODMAN_REGISTRY_IMAGE=quay.io/libpod/registry:2.6
 
 PODMAN_REGISTRY_USER=
 PODMAN_REGISTRY_PASS=
@@ -117,7 +117,7 @@ function must_pass() {
 
         # If we ever get here, it's a given that the registry is not running.
         # Clean up after ourselves.
-        rm -rf ${PODMAN_REGISTRY_WORKDIR}
+        ${PODMAN} unshare rm -rf ${PODMAN_REGISTRY_WORKDIR}
         exit 1
     fi
 }
@@ -214,7 +214,8 @@ function do_stop() {
     podman stop registry
     podman rm -f registry
 
-    rm -rf ${PODMAN_REGISTRY_WORKDIR}
+    # Use straight podman, not our alias function, to avoid 'overlay: EBUSY'
+    ${PODMAN} unshare rm -rf ${PODMAN_REGISTRY_WORKDIR}
 }
 
 
