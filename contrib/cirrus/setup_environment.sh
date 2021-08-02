@@ -196,7 +196,7 @@ case "$TEST_FLAVOR" in
     unit) ;;
     apiv2) ;&  # use next item
     compose)
-        dnf install -y $PACKAGE_DOWNLOAD_DIR/podman-docker*
+        rpm -ivh $PACKAGE_DOWNLOAD_DIR/podman-docker*
         ;&  # continue with next item
     int) ;&
     sys) ;&
