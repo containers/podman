@@ -87,25 +87,14 @@ jobs:
           echo "::set-output name=version::$VERSION"
 
       - name: Generate image FQIN(s) to push
-        id: gen_fqin
+        id: reponame_reg
         run: |
           if [[ "${{ matrix.source }}" == 'stable' ]]; then
             # The command version in image just built
             VERSION='v${{ steps.sniff_test.outputs.version }}'
             # workaround vim syntax-highlight bug: '
-            # Image tags previously pushed to quay
-            ALLTAGS=$(skopeo list-tags \
-                      docker://$REPONAME_QUAY_REGISTRY/stable | \
-                      jq -r '.Tags[]')
-
-            # New version? Push quay.io/$REPONAME/stable:vX.X.X and :latest
-            if ! fgrep -qx "$VERSION" <<<"$ALLTAGS"; then
-              # Assume version-tag is also the most up to date (i.e. "latest")
-              FQIN="$REPONAME_QUAY_REGISTRY/stable:$VERSION,$REPONAME_QUAY_REGISTRY/stable:latest"
-            else # Not a new version-tagged image
-              # Assume other contents changed, so this is the "new" latest.
-              FQIN="$REPONAME_QUAY_REGISTRY/stable:latest"
-            fi
+            # Push both new|updated version-tag and latest-tag FQINs
+            FQIN="$REPONAME_QUAY_REGISTRY/stable:$VERSION,$REPONAME_QUAY_REGISTRY/stable:latest"
           elif [[ "${{ matrix.source }}" == 'testing' ]]; then
             # Assume some contents changed, always push latest testing.
             FQIN="$REPONAME_QUAY_REGISTRY/testing:latest"
@@ -129,16 +118,8 @@ jobs:
         run: |
           VERSION='v${{ steps.sniff_test.outputs.version }}'
           # workaround vim syntax-highlight bug: '
-          ALLTAGS=$(skopeo list-tags \
-                    docker://$CONTAINERS_QUAY_REGISTRY/$REPONAME | \
-                    jq -r '.Tags[]')
-
-          # New version? Push quay.io/containers/$REPONAME:vX.X.X and latest
-          if ! fgrep -qx "$VERSION" <<<"$ALLTAGS"; then
-            FQIN="$CONTAINERS_QUAY_REGISTRY/$REPONAME:$VERSION,$CONTAINERS_QUAY_REGISTRY/$REPONAME:latest"
-          else # Not a new version-tagged image, only update latest.
-            FQIN="$CONTAINERS_QUAY_REGISTRY/$REPONAME:latest"
-          fi
+          # Push both new|updated version-tag and latest-tag FQINs
+          FQIN="$CONTAINERS_QUAY_REGISTRY/$REPONAME:$VERSION,$CONTAINERS_QUAY_REGISTRY/$REPONAME:latest"
           echo "::warning::Pushing $FQIN"
           echo "::set-output name=fqin::${FQIN}"
           echo '::set-output name=push::true'
@@ -147,15 +128,31 @@ jobs:
         run: |
           # This is a really hacky/strange workflow idiom, required
           # for setting multi-line $LABELS value for consumption in
-          # a future step.
+          # a future step.  There is literally no cleaner way to do this :<
           # https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#multiline-strings
-          cat << EOF | tee -a $GITHUB_ENV
-          LABELS<<DELIMITER
-          org.opencontainers.image.source=https://github.com/${{ github.repository }}.git
-          org.opencontainers.image.revision=${{ github.sha }}
-          org.opencontainers.image.created=$(date -u --iso-8601=seconds)
-          DELIMITER
-          EOF
+          function set_labels() {
+            echo 'LABELS<<DELIMITER' >> "$GITHUB_ENV"
+            for line; do
+                echo "$line" | tee -a "$GITHUB_ENV"
+            done
+            echo "DELIMITER" >> "$GITHUB_ENV"
+          }
+
+          declare -a lines
+          lines=(\
+            "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}.git"
+            "org.opencontainers.image.revision=${GITHUB_SHA}"
+            "org.opencontainers.image.created=$(date -u --iso-8601=seconds)"
+          )
+
+          # Only the 'stable' matrix source obtains $VERSION
+          if [[ "${{ matrix.source }}" == "stable" ]]; then
+            lines+=(\
+              "org.opencontainers.image.version=${{ steps.sniff_test.outputs.version }}"
+            )
+          fi
+
+          set_labels "${lines[@]}"
 
       # Separate steps to login and push for $REPONAME_QUAY_REGISTRY and
       # $CONTAINERS_QUAY_REGISTRY are required, because 2 sets of credentials
@@ -166,7 +163,7 @@ jobs:
       # Push to $REPONAME_QUAY_REGISTRY for stable, testing. and upstream
       - name: Login to ${{ env.REPONAME_QUAY_REGISTRY }}
         uses: docker/login-action@v1
-        if: steps.gen_fqin.outputs.push == 'true'
+        if: steps.reponame_reg.outputs.push == 'true'
         with:
           registry: ${{ env.REPONAME_QUAY_REGISTRY }}
           # N/B: Secrets are not passed to workflows that are triggered
@@ -174,9 +171,9 @@ jobs:
           username: ${{ secrets.REPONAME_QUAY_USERNAME }}
           password: ${{ secrets.REPONAME_QUAY_PASSWORD }}
 
-      - name: Push images to ${{ steps.gen_fqin.outputs.fqin }}
+      - name: Push images to ${{ steps.reponame_reg.outputs.fqin }}
         uses: docker/build-push-action@v2
-        if: steps.gen_fqin.outputs.push == 'true'
+        if: steps.reponame_reg.outputs.push == 'true'
         with:
           cache-from: type=registry,ref=localhost:5000/${{ env.REPONAME }}/${{ matrix.source }}
           cache-to: type=inline
@@ -184,7 +181,7 @@ jobs:
           file: ./contrib/${{ env.REPONAME }}image/${{ matrix.source }}/Dockerfile
           platforms: ${{ env.PLATFORMS }}
           push: true
-          tags: ${{ steps.gen_fqin.outputs.fqin }}
+          tags: ${{ steps.reponame_reg.outputs.fqin }}
           labels: |
             ${{ env.LABELS }}
 
