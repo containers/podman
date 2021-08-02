@@ -30,6 +30,8 @@ Image
 
 :doc:`save <markdown/podman-save.1>` Save image to an archive
 
+:doc:`scp <markdown/podman-image-scp.1>` Securely copy an image from one host to another
+
 :doc:`search <markdown/podman-search.1>` Search a registry for an image
 
 :doc:`sign <markdown/podman-image-sign.1>` Sign an image

@@ -27,6 +27,7 @@ The image command allows you to manage images
 | push     | [podman-push(1)](podman-push.1.md)                  | Push an image from local storage to elsewhere.                              |
 | rm       | [podman-rmi(1)](podman-rmi.1.md)                    | Removes one or more locally stored images.                                  |
 | save     | [podman-save(1)](podman-save.1.md)                  | Save an image to docker-archive or oci.                                     |
+| scp      | [podman-image-scp(1)](podman-image-scp.1.md)         | Securely copy an image from one host to another.                            |
 | search   | [podman-search(1)](podman-search.1.md)              | Search a registry for an image.                                             |
 | sign     | [podman-image-sign(1)](podman-image-sign.1.md)      | Create a signature for an image.                                            |
 | tag      | [podman-tag(1)](podman-tag.1.md)                    | Add an additional name to a local image.                                    |
