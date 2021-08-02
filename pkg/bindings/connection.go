@@ -56,7 +56,7 @@ func NewConnection(ctx context.Context, uri string) (context.Context, error) {
 	return NewConnectionWithIdentity(ctx, uri, "")
 }
 
-// NewConnection takes a URI as a string and returns a context with the
+// NewConnectionWithIdentity takes a URI as a string and returns a context with the
 // Connection embedded as a value.  This context needs to be passed to each
 // endpoint to work correctly.
 //
@@ -149,6 +149,7 @@ func pingNewConnection(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	defer response.Body.Close()
 
 	if response.StatusCode == http.StatusOK {
 		versionHdr := response.Header.Get("Libpod-API-Version")
@@ -338,7 +339,7 @@ func (c *Connection) DoRequest(httpBody io.Reader, httpMethod, endpoint string, 
 		req.Header.Set(key, val)
 	}
 	// Give the Do three chances in the case of a comm/service hiccup
-	for i := 0; i < 3; i++ {
+	for i := 1; i <= 3; i++ {
 		response, err = c.Client.Do(req) // nolint
 		if err == nil {
 			break
@@ -358,7 +359,7 @@ func FiltersToString(filters map[string][]string) (string, error) {
 	return jsoniter.MarshalToString(lowerCaseKeys)
 }
 
-// IsInformation returns true if the response code is 1xx
+// IsInformational returns true if the response code is 1xx
 func (h *APIResponse) IsInformational() bool {
 	return h.Response.StatusCode/100 == 1
 }

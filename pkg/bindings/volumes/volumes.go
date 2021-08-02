@@ -33,6 +33,8 @@ func Create(ctx context.Context, config entities.VolumeCreateOptions, options *C
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	return &v, response.Process(&v)
 }
 
@@ -53,6 +55,8 @@ func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) (*en
 	if err != nil {
 		return &inspect, err
 	}
+	defer response.Body.Close()
+
 	return &inspect, response.Process(&inspect)
 }
 
@@ -74,6 +78,8 @@ func List(ctx context.Context, options *ListOptions) ([]*entities.VolumeListRepo
 	if err != nil {
 		return vols, err
 	}
+	defer response.Body.Close()
+
 	return vols, response.Process(&vols)
 }
 
@@ -94,6 +100,8 @@ func Prune(ctx context.Context, options *PruneOptions) ([]*reports.PruneReport, 
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	return pruned, response.Process(&pruned)
 }
 
@@ -112,6 +120,8 @@ func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) error 
 	if err != nil {
 		return err
 	}
+	defer response.Body.Close()
+
 	return response.Process(nil)
 }
 
@@ -125,5 +135,7 @@ func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool,
 	if err != nil {
 		return false, err
 	}
+	defer response.Body.Close()
+
 	return response.IsSuccess(), nil
 }

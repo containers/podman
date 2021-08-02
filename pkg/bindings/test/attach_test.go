@@ -81,10 +81,9 @@ var _ = Describe("Podman containers attach", func() {
 		tickTock := time.NewTimer(2 * time.Second)
 		go func() {
 			<-tickTock.C
-			timeout := uint(5)
-			err := containers.Stop(bt.conn, ctnr.ID, new(containers.StopOptions).WithTimeout(timeout))
+			err := containers.Stop(bt.conn, ctnr.ID, new(containers.StopOptions).WithTimeout(uint(5)))
 			if err != nil {
-				GinkgoWriter.Write([]byte(err.Error()))
+				fmt.Fprint(GinkgoWriter, err.Error())
 			}
 		}()
 

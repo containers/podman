@@ -20,6 +20,8 @@ func handleError(data []byte) error {
 	return e
 }
 
+// Process drains the response body, and processes the HTTP status code
+// Note: Closing the response.Body is left to the caller
 func (h APIResponse) Process(unmarshalInto interface{}) error {
 	data, err := ioutil.ReadAll(h.Response.Body)
 	if err != nil {

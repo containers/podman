@@ -28,5 +28,7 @@ func Commit(ctx context.Context, nameOrID string, options *CommitOptions) (handl
 	if err != nil {
 		return id, err
 	}
+	defer response.Body.Close()
+
 	return id, response.Process(&id)
 }

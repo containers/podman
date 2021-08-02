@@ -34,6 +34,8 @@ func CreatePodFromSpec(ctx context.Context, s *specgen.PodSpecGenerator, options
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	return &pcr, response.Process(&pcr)
 }
 
@@ -47,6 +49,8 @@ func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool,
 	if err != nil {
 		return false, err
 	}
+	defer response.Body.Close()
+
 	return response.IsSuccess(), nil
 }
 
@@ -67,6 +71,8 @@ func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) (*en
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	return &report, response.Process(&report)
 }
 
@@ -91,6 +97,8 @@ func Kill(ctx context.Context, nameOrID string, options *KillOptions) (*entities
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	return &report, response.Process(&report)
 }
 
@@ -109,6 +117,8 @@ func Pause(ctx context.Context, nameOrID string, options *PauseOptions) (*entiti
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	return &report, response.Process(&report)
 }
 
@@ -128,6 +138,8 @@ func Prune(ctx context.Context, options *PruneOptions) ([]*entities.PodPruneRepo
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	return reports, response.Process(&reports)
 }
 
@@ -152,6 +164,8 @@ func List(ctx context.Context, options *ListOptions) ([]*entities.ListPodsReport
 	if err != nil {
 		return podsReports, err
 	}
+	defer response.Body.Close()
+
 	return podsReports, response.Process(&podsReports)
 }
 
@@ -170,6 +184,8 @@ func Restart(ctx context.Context, nameOrID string, options *RestartOptions) (*en
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	return &report, response.Process(&report)
 }
 
@@ -192,6 +208,8 @@ func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) (*enti
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	return &report, response.Process(&report)
 }
 
@@ -210,6 +228,8 @@ func Start(ctx context.Context, nameOrID string, options *StartOptions) (*entiti
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	if response.StatusCode == http.StatusNotModified {
 		report.Id = nameOrID
 		return &report, nil
@@ -236,6 +256,8 @@ func Stop(ctx context.Context, nameOrID string, options *StopOptions) (*entities
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	if response.StatusCode == http.StatusNotModified {
 		report.Id = nameOrID
 		return &report, nil
@@ -261,6 +283,7 @@ func Top(ctx context.Context, nameOrID string, options *TopOptions) ([]string, e
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
 
 	body := handlers.PodTopOKBody{}
 	if err = response.Process(&body); err != nil {
@@ -293,6 +316,8 @@ func Unpause(ctx context.Context, nameOrID string, options *UnpauseOptions) (*en
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	return &report, response.Process(&report)
 }
 
@@ -318,5 +343,7 @@ func Stats(ctx context.Context, namesOrIDs []string, options *StatsOptions) ([]*
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	return reports, response.Process(&reports)
 }
