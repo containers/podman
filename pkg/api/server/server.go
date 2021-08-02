@@ -90,11 +90,10 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 
 	server := APIServer{
 		Server: http.Server{
-			Handler:           router,
-			ReadHeaderTimeout: 20 * time.Second,
-			IdleTimeout:       duration * 2,
-			ConnState:         idle.ConnState,
-			ErrorLog:          log.New(logrus.StandardLogger().Out, "", 0),
+			Handler:     router,
+			IdleTimeout: duration * 2,
+			ConnState:   idle.ConnState,
+			ErrorLog:    log.New(logrus.StandardLogger().Out, "", 0),
 		},
 		Decoder:     handlers.NewAPIDecoder(),
 		idleTracker: idle,
