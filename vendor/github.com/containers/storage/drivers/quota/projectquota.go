@@ -52,14 +52,19 @@ import "C"
 import (
 	"fmt"
 	"io/ioutil"
+	"math"
+	"os"
 	"path"
 	"path/filepath"
+	"syscall"
 	"unsafe"
 
 	"github.com/containers/storage/pkg/directory"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
+
+const projectIDsAllocatedPerQuotaHome = 10000
 
 // Quota limit params - currently we only control blocks hard limit and inodes
 type Quota struct {
@@ -75,23 +80,48 @@ type Control struct {
 	quotas            map[string]uint32
 }
 
+// Attempt to generate a unigue projectid.  Multiple directories
+// per file system can have quota and they need a group of unique
+// ids. This function attempts to allocate at least projectIDsAllocatedPerQuotaHome(10000)
+// unique projectids, based on the inode of the basepath.
+func generateUniqueProjectID(path string) (uint32, error) {
+	fileinfo, err := os.Stat(path)
+	if err != nil {
+		return 0, err
+	}
+	stat, ok := fileinfo.Sys().(*syscall.Stat_t)
+	if !ok {
+		return 0, fmt.Errorf("Not a syscall.Stat_t %s", path)
+
+	}
+	projectID := projectIDsAllocatedPerQuotaHome + (stat.Ino*projectIDsAllocatedPerQuotaHome)%(math.MaxUint32-projectIDsAllocatedPerQuotaHome)
+	return uint32(projectID), nil
+}
+
 // NewControl - initialize project quota support.
 // Test to make sure that quota can be set on a test dir and find
 // the first project id to be used for the next container create.
 //
 // Returns nil (and error) if project quota is not supported.
 //
-// First get the project id of the home directory.
+// First get the project id of the basePath directory.
 // This test will fail if the backing fs is not xfs.
 //
 // xfs_quota tool can be used to assign a project id to the driver home directory, e.g.:
-//    echo 999:/var/lib/containers/storage/overlay >> /etc/projects
-//    echo storage:999 >> /etc/projid
-//    xfs_quota -x -c 'project -s storage' /<xfs mount point>
+//    echo 100000:/var/lib/containers/storage/overlay >> /etc/projects
+//    echo 200000:/var/lib/containers/storage/volumes >> /etc/projects
+//    echo storage:100000 >> /etc/projid
+//    echo volumes:200000 >> /etc/projid
+//    xfs_quota -x -c 'project -s storage volumes' /<xfs mount point>
 //
-// In that case, the home directory project id will be used as a "start offset"
-// and all containers will be assigned larger project ids (e.g. >= 1000).
-// This is a way to prevent xfs_quota management from conflicting with containers/storage.
+// In the example above, the storage directory project id will be used as a
+// "start offset" and all containers will be assigned larger project ids
+// (e.g. >= 100000). Then the volumes directory project id will be used as a
+// "start offset" and all volumes will be assigned larger project ids
+// (e.g. >= 200000).
+// This is a way to prevent xfs_quota management from conflicting with
+// containers/storage.
+
 //
 // Then try to create a test directory with the next project id and set a quota
 // on it. If that works, continue to scan existing containers to map allocated
@@ -105,8 +135,15 @@ func NewControl(basePath string) (*Control, error) {
 	if err != nil {
 		return nil, err
 	}
-	minProjectID++
+	if minProjectID == 0 {
+		// Indicates the storage was never initialized
+		// Generate a unique range of Projectids for this basepath
+		minProjectID, err = generateUniqueProjectID(basePath)
+		if err != nil {
+			return nil, err
+		}
 
+	}
 	//
 	// create backing filesystem device node
 	//
@@ -180,12 +217,12 @@ func setProjectQuota(backingFsBlockDev string, projectID uint32, quota Quota) er
 	d.d_flags = C.FS_PROJ_QUOTA
 
 	if quota.Size > 0 {
-		d.d_fieldmask = C.FS_DQ_BHARD | C.FS_DQ_BSOFT
+		d.d_fieldmask = d.d_fieldmask | C.FS_DQ_BHARD | C.FS_DQ_BSOFT
 		d.d_blk_hardlimit = C.__u64(quota.Size / 512)
 		d.d_blk_softlimit = d.d_blk_hardlimit
 	}
 	if quota.Inodes > 0 {
-		d.d_fieldmask = C.FS_DQ_IHARD | C.FS_DQ_ISOFT
+		d.d_fieldmask = d.d_fieldmask | C.FS_DQ_IHARD | C.FS_DQ_ISOFT
 		d.d_ino_hardlimit = C.__u64(quota.Inodes)
 		d.d_ino_softlimit = d.d_ino_hardlimit
 	}
