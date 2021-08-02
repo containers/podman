@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/containers/podman/v3/libpod/define"
 	. "github.com/containers/podman/v3/pkg/bindings"
@@ -150,11 +151,21 @@ func createTempDirInTempDir() (string, error) {
 }
 
 func (b *bindingTest) startAPIService() *gexec.Session {
-	var (
-		cmd []string
-	)
-	cmd = append(cmd, "--log-level=debug", "--events-backend=file", "system", "service", "--timeout=0", b.sock)
-	return b.runPodman(cmd)
+	cmd := []string{"--log-level=debug", "--events-backend=file", "system", "service", "--timeout=0", b.sock}
+	session := b.runPodman(cmd)
+
+	sock := strings.TrimPrefix(b.sock, "unix://")
+	for i := 0; i < 10; i++ {
+		if _, err := os.Stat(sock); err != nil {
+			if !os.IsNotExist(err) {
+				break
+			}
+			time.Sleep(time.Second)
+			continue
+		}
+		break
+	}
+	return session
 }
 
 func (b *bindingTest) cleanup() {

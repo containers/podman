@@ -34,6 +34,8 @@ func Create(ctx context.Context, options *CreateOptions) (*entities.NetworkCreat
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	return &report, response.Process(&report)
 }
 
@@ -53,6 +55,8 @@ func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) ([]e
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	return reports, response.Process(&reports[0])
 }
 
@@ -76,6 +80,8 @@ func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) ([]*en
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	return reports, response.Process(&reports)
 }
 
@@ -99,6 +105,8 @@ func List(ctx context.Context, options *ListOptions) ([]*entities.NetworkListRep
 	if err != nil {
 		return netList, err
 	}
+	defer response.Body.Close()
+
 	return netList, response.Process(&netList)
 }
 
@@ -133,6 +141,8 @@ func Disconnect(ctx context.Context, networkName string, ContainerNameOrID strin
 	if err != nil {
 		return err
 	}
+	defer response.Body.Close()
+
 	return response.Process(nil)
 }
 
@@ -166,6 +176,8 @@ func Connect(ctx context.Context, networkName string, ContainerNameOrID string, 
 	if err != nil {
 		return err
 	}
+	defer response.Body.Close()
+
 	return response.Process(nil)
 }
 
@@ -179,6 +191,8 @@ func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool,
 	if err != nil {
 		return false, err
 	}
+	defer response.Body.Close()
+
 	return response.IsSuccess(), nil
 }
 
@@ -203,5 +217,7 @@ func Prune(ctx context.Context, options *PruneOptions) ([]*entities.NetworkPrune
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	return prunedNetworks, response.Process(&prunedNetworks)
 }

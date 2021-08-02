@@ -30,5 +30,7 @@ func CreateWithSpec(ctx context.Context, s *specgen.SpecGenerator, options *Crea
 	if err != nil {
 		return ccr, err
 	}
+	defer response.Body.Close()
+
 	return ccr, response.Process(&ccr)
 }
