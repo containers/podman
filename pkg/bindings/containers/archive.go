@@ -27,6 +27,7 @@ func Stat(ctx context.Context, nameOrID string, path string) (*entities.Containe
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
 
 	var finalErr error
 	if response.StatusCode == http.StatusNotFound {
@@ -53,7 +54,9 @@ func CopyFromArchive(ctx context.Context, nameOrID string, path string, reader i
 	return CopyFromArchiveWithOptions(ctx, nameOrID, path, reader, nil)
 }
 
-// CopyFromArchiveWithOptions FIXME: remove this function and make CopyFromArchive accept the option as the last parameter in podman 4.0
+// CopyFromArchiveWithOptions copy files into container
+//
+// FIXME: remove this function and make CopyFromArchive accept the option as the last parameter in podman 4.0
 func CopyFromArchiveWithOptions(ctx context.Context, nameOrID string, path string, reader io.Reader, options *CopyOptions) (entities.ContainerCopyFunc, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
@@ -72,6 +75,7 @@ func CopyFromArchiveWithOptions(ctx context.Context, nameOrID string, path strin
 		if err != nil {
 			return err
 		}
+
 		if response.StatusCode != http.StatusOK {
 			return errors.New(response.Status)
 		}
@@ -79,6 +83,7 @@ func CopyFromArchiveWithOptions(ctx context.Context, nameOrID string, path strin
 	}, nil
 }
 
+// CopyToArchive copy files from container
 func CopyToArchive(ctx context.Context, nameOrID string, path string, writer io.Writer) (entities.ContainerCopyFunc, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
@@ -91,11 +96,14 @@ func CopyToArchive(ctx context.Context, nameOrID string, path string, writer io.
 	if err != nil {
 		return nil, err
 	}
+
 	if response.StatusCode != http.StatusOK {
+		defer response.Body.Close()
 		return nil, response.Process(nil)
 	}
 
 	return func() error {
+		defer response.Body.Close()
 		_, err := io.Copy(writer, response.Body)
 		return err
 	}, nil

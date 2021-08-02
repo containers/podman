@@ -48,6 +48,8 @@ func Kube(ctx context.Context, path string, options *KubeOptions) (*entities.Pla
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	if err := response.Process(&report); err != nil {
 		return nil, err
 	}

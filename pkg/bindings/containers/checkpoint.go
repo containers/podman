@@ -27,6 +27,8 @@ func Checkpoint(ctx context.Context, nameOrID string, options *CheckpointOptions
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	return &report, response.Process(&report)
 }
 
@@ -54,5 +56,7 @@ func Restore(ctx context.Context, nameOrID string, options *RestoreOptions) (*en
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	return &report, response.Process(&report)
 }

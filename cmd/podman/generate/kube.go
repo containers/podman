@@ -2,6 +2,7 @@ package pods
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 
@@ -61,6 +62,10 @@ func kube(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	if r, ok := report.Reader.(io.ReadCloser); ok {
+		defer r.Close()
+	}
+
 	if cmd.Flags().Changed("filename") {
 		if _, err := os.Stat(kubeFile); err == nil {
 			return errors.Errorf("cannot write to %q; file exists", kubeFile)

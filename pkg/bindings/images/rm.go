@@ -36,6 +36,8 @@ func Remove(ctx context.Context, images []string, options *RemoveOptions) (*enti
 	if err != nil {
 		return nil, []error{err}
 	}
+	defer response.Body.Close()
+
 	if err := response.Process(&report); err != nil {
 		return nil, []error{err}
 	}

@@ -24,5 +24,7 @@ func Rename(ctx context.Context, nameOrID string, options *RenameOptions) error 
 	if err != nil {
 		return err
 	}
+	defer response.Body.Close()
+
 	return response.Process(nil)
 }
