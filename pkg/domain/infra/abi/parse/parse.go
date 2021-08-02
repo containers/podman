@@ -6,12 +6,13 @@ import (
 
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
+	units "github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 // Handle volume options from CLI.
-// Parse "o" option to find UID, GID.
+// Parse "o" option to find UID, GID, Size.
 func VolumeOptions(opts map[string]string) ([]libpod.VolumeCreateOption, error) {
 	libpodOptions := []libpod.VolumeCreateOption{}
 	volumeOptions := make(map[string]string)
@@ -28,6 +29,24 @@ func VolumeOptions(opts map[string]string) ([]libpod.VolumeCreateOption, error) 
 				// "opt=value"
 				splitO := strings.SplitN(o, "=", 2)
 				switch strings.ToLower(splitO[0]) {
+				case "size":
+					size, err := units.FromHumanSize(splitO[1])
+					if err != nil {
+						return nil, errors.Wrapf(err, "cannot convert size %s to integer", splitO[1])
+					}
+					libpodOptions = append(libpodOptions, libpod.WithVolumeSize(uint64(size)))
+					finalVal = append(finalVal, o)
+					// set option "SIZE": "$size"
+					volumeOptions["SIZE"] = splitO[1]
+				case "inodes":
+					inodes, err := strconv.ParseUint(splitO[1], 10, 64)
+					if err != nil {
+						return nil, errors.Wrapf(err, "cannot convert inodes %s to integer", splitO[1])
+					}
+					libpodOptions = append(libpodOptions, libpod.WithVolumeInodes(uint64(inodes)))
+					finalVal = append(finalVal, o)
+					// set option "INODES": "$size"
+					volumeOptions["INODES"] = splitO[1]
 				case "uid":
 					if len(splitO) != 2 {
 						return nil, errors.Wrapf(define.ErrInvalidArg, "uid option must provide a UID")

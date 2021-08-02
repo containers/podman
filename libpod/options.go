@@ -1645,6 +1645,32 @@ func WithVolumeUID(uid int) VolumeCreateOption {
 	}
 }
 
+// WithVolumeSize sets the maximum size of the volume
+func WithVolumeSize(size uint64) VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return define.ErrVolumeFinalized
+		}
+
+		volume.config.Size = size
+
+		return nil
+	}
+}
+
+// WithVolumeInodes sets the maximum inodes of the volume
+func WithVolumeInodes(inodes uint64) VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return define.ErrVolumeFinalized
+		}
+
+		volume.config.Inodes = inodes
+
+		return nil
+	}
+}
+
 // WithVolumeGID sets the GID that the volume will be created as.
 func WithVolumeGID(gid int) VolumeCreateOption {
 	return func(volume *Volume) error {
