@@ -175,8 +175,13 @@ func HasDNSNamePlugin(paths []string) bool {
 	return false
 }
 
-// NewMacVLANPlugin creates a macvlanconfig with a given device name
+// NewMacVLANPlugin creates a MacVLANConfig with specified plugin type and device.
+// Plugin type can be one of macvlan or ipvlan.
 func NewMacVLANPlugin(pluginType string, device string, gateway net.IP, ipRange *net.IPNet, subnet *net.IPNet, mtu int) (MacVLANConfig, error) {
+	if pluginType != PluginTypeMacVLAN && pluginType != PluginTypeIPVLAN {
+		return MacVLANConfig{}, errors.Errorf("invalid plugin type: %s", pluginType)
+	}
+
 	i := IPAMConfig{PluginType: "dhcp"}
 	if gateway != nil ||
 		(ipRange != nil && ipRange.IP != nil && ipRange.Mask != nil) ||

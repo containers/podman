@@ -257,7 +257,15 @@ func createBridge(name string, options entities.NetworkCreateOptions, runtimeCon
 	return cniPathName, err
 }
 
+func validateMacVLANOptions(options entities.NetworkCreateOptions) error {
+	return nil
+}
+
 func createMacVLAN(name string, options entities.NetworkCreateOptions, runtimeConfig *config.Config) (string, error) {
+	if err := validateMacVLANOptions(options); err != nil {
+		return "", err
+	}
+
 	var (
 		mtu     int
 		plugins []CNIPlugins
@@ -318,7 +326,15 @@ func createMacVLAN(name string, options entities.NetworkCreateOptions, runtimeCo
 	return cniPathName, err
 }
 
+func validateIPVLANOptions(options entities.NetworkCreateOptions) error {
+	return nil
+}
+
 func createIPVLAN(name string, options entities.NetworkCreateOptions, runtimeConfig *config.Config) (string, error) {
+	if err := validateIPVLANOptions(options); err != nil {
+		return "", err
+	}
+
 	var (
 		mtu     int
 		plugins []CNIPlugins

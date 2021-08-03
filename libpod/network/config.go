@@ -22,9 +22,9 @@ const (
 	// LockFileName is used for obtaining a lock and is appended
 	// to libpod's tmpdir in practice
 	LockFileName = "cni.lock"
-	// PluginTypeMacVLAN
+	// PluginTypeMacVLAN is to create macvlan networks.
 	PluginTypeMacVLAN = "macvlan"
-	// PluginTypeIPVLAN
+	// PluginTypeIPVLAN is used to create ipvlan networks
 	PluginTypeIPVLAN = "ipvlan"
 )
 
@@ -105,7 +105,8 @@ func (p PortMapConfig) Bytes() ([]byte, error) {
 	return json.MarshalIndent(p, "", "\t")
 }
 
-// MacVLANConfig describes the macvlan config
+// MacVLANConfig describes either a macvlan or an ipvlan network config.
+// PluginType specifies which network type it is.
 type MacVLANConfig struct {
 	PluginType string     `json:"type"`
 	Master     string     `json:"master"`
