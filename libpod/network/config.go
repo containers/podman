@@ -22,6 +22,10 @@ const (
 	// LockFileName is used for obtaining a lock and is appended
 	// to libpod's tmpdir in practice
 	LockFileName = "cni.lock"
+	// PluginTypeMacVLAN
+	PluginTypeMacVLAN = "macvlan"
+	// PluginTypeIPVLAN
+	PluginTypeIPVLAN = "ipvlan"
 )
 
 // CNILock is for preventing name collision and
@@ -112,19 +116,6 @@ type MacVLANConfig struct {
 // Bytes outputs the configuration as []byte
 func (p MacVLANConfig) Bytes() ([]byte, error) {
 	return json.MarshalIndent(p, "", "\t")
-}
-
-// IPVLANConfig describes the ipvlan config
-type IPVLANConfig struct {
-	PluginType string     `json:"type"`
-	Master     string     `json:"master"`
-	IPAM       IPAMConfig `json:"ipam"`
-	MTU        int        `json:"mtu,omitempty"`
-}
-
-// Bytes outputs the configuration as []byte
-func (i IPVLANConfig) Bytes() ([]byte, error) {
-	return json.MarshalIndent(i, "", "\t")
 }
 
 // FirewallConfig describes the firewall plugin

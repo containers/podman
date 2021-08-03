@@ -303,7 +303,7 @@ func createMacVLAN(name string, options entities.NetworkCreateOptions, runtimeCo
 			mtu = intVal
 		}
 	}
-	macvlan, err := NewMacVLANPlugin(parentNetworkDevice, options.Gateway, &options.Range, &options.Subnet, mtu)
+	macvlan, err := NewMacVLANPlugin(PluginTypeMacVLAN, parentNetworkDevice, options.Gateway, &options.Range, &options.Subnet, mtu)
 	if err != nil {
 		return "", err
 	}
@@ -358,7 +358,7 @@ func createIPVLAN(name string, options entities.NetworkCreateOptions, runtimeCon
 			mtu = intVal
 		}
 	}
-	ipvlan, err := NewIPVLANPlugin(parentNetworkDevice, options.Gateway, &options.Range, &options.Subnet, mtu)
+	ipvlan, err := NewMacVLANPlugin(PluginTypeIPVLAN, parentNetworkDevice, options.Gateway, &options.Range, &options.Subnet, mtu)
 	if err != nil {
 		return "", err
 	}
