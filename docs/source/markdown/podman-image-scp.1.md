@@ -59,7 +59,7 @@ Copying blob 9450ef9feb15 [--------------------------------------] 0.0b / 0.0b
 Copying config 1f97f0559c done
 Writing manifest to image destination
 Storing signatures
-Loaded images(s): docker.io/library/alpine:latest
+Loaded image(s): docker.io/library/alpine:latest
 ```
 
 ## SEE ALSO

@@ -111,7 +111,7 @@ func scp(cmd *cobra.Command, args []string) (finalErr error) {
 		if err != nil {
 			return err
 		}
-		fmt.Println("Loaded images(s): " + strings.Join(report.Names, ","))
+		fmt.Println("Loaded image(s): " + strings.Join(report.Names, ","))
 	case scpOpts.ToRemote: // remote host load
 		scpOpts.Save.Format = "oci-archive"
 		abiErr := abiEng.Save(context.Background(), scpOpts.SourceImageName, []string{}, scpOpts.Save) // save the image locally before loading it on remote, local, or ssh
@@ -137,7 +137,7 @@ func scp(cmd *cobra.Command, args []string) (finalErr error) {
 		if err != nil {
 			return err
 		}
-		fmt.Println("Loaded images(s): " + strings.Join(rep.Names, ","))
+		fmt.Println("Loaded image(s): " + strings.Join(rep.Names, ","))
 	}
 	return nil
 }
