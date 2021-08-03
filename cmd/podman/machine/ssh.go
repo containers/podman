@@ -19,6 +19,7 @@ var (
 		Example: `podman machine ssh myvm
   podman machine ssh myvm echo hello`,
 		ValidArgsFunction: autocompleteMachineSSH,
+		PreRunE:           noAarch64,
 	}
 )
 
