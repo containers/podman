@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v3/pkg/errorhandling"
+	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/rootlessport"
 	"github.com/containers/podman/v3/pkg/servicereaper"
 	"github.com/pkg/errors"
@@ -466,29 +467,16 @@ func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath strin
 		}
 	}
 
-	slirp4netnsIP, err := GetSlirp4netnsIP(ctr.slirp4netnsSubnet)
-	if err != nil {
-		return errors.Wrapf(err, "failed to get slirp4ns ip")
-	}
-	childIP := slirp4netnsIP.String()
-outer:
-	for _, r := range ctr.state.NetworkStatus {
-		for _, i := range r.IPs {
-			ipv4 := i.Address.IP.To4()
-			if ipv4 != nil {
-				childIP = ipv4.String()
-				break outer
-			}
-		}
-	}
-
+	childIP := getRootlessPortChildIP(ctr)
 	cfg := rootlessport.Config{
-		Mappings:  ctr.config.PortMappings,
-		NetNSPath: netnsPath,
-		ExitFD:    3,
-		ReadyFD:   4,
-		TmpDir:    ctr.runtime.config.Engine.TmpDir,
-		ChildIP:   childIP,
+		Mappings:    ctr.config.PortMappings,
+		NetNSPath:   netnsPath,
+		ExitFD:      3,
+		ReadyFD:     4,
+		TmpDir:      ctr.runtime.config.Engine.TmpDir,
+		ChildIP:     childIP,
+		ContainerID: ctr.config.ID,
+		RootlessCNI: ctr.config.NetMode.IsBridge() && rootless.IsRootless(),
 	}
 	cfgJSON, err := json.Marshal(cfg)
 	if err != nil {
@@ -615,5 +603,64 @@ func (r *Runtime) setupRootlessPortMappingViaSlirp(ctr *Container, cmd *exec.Cmd
 		}
 	}
 	logrus.Debug("slirp4netns port-forwarding setup via add_hostfwd is ready")
+	return nil
+}
+
+func getRootlessPortChildIP(c *Container) string {
+	if c.config.NetMode.IsSlirp4netns() {
+		slirp4netnsIP, err := GetSlirp4netnsIP(c.slirp4netnsSubnet)
+		if err != nil {
+			return ""
+		}
+		return slirp4netnsIP.String()
+	}
+
+	for _, r := range c.state.NetworkStatus {
+		for _, i := range r.IPs {
+			ipv4 := i.Address.IP.To4()
+			if ipv4 != nil {
+				return ipv4.String()
+			}
+		}
+	}
+	return ""
+}
+
+// reloadRootlessRLKPortMapping will trigger a reload for the port mappings in the rootlessport process.
+// This should only be called by network connect/disconnect and only as rootless.
+func (c *Container) reloadRootlessRLKPortMapping() error {
+	childIP := getRootlessPortChildIP(c)
+	logrus.Debugf("reloading rootless ports for container %s, childIP is %s", c.config.ID, childIP)
+
+	var conn net.Conn
+	var err error
+	// try three times to connect to the socket, maybe it is not ready yet
+	for i := 0; i < 3; i++ {
+		conn, err = net.Dial("unix", filepath.Join(c.runtime.config.Engine.TmpDir, "rp", c.config.ID))
+		if err == nil {
+			break
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+	if err != nil {
+		// This is not a hard error for backwards compatibility. A container started
+		// with an old version did not created the rootlessport socket.
+		logrus.Warnf("Could not reload rootless port mappings, port forwarding may no longer work correctly: %v", err)
+		return nil
+	}
+	defer conn.Close()
+	enc := json.NewEncoder(conn)
+	err = enc.Encode(childIP)
+	if err != nil {
+		return errors.Wrap(err, "port reloading failed")
+	}
+	b, err := ioutil.ReadAll(conn)
+	if err != nil {
+		return errors.Wrap(err, "port reloading failed")
+	}
+	data := string(b)
+	if data != "OK" {
+		return errors.Errorf("port reloading failed: %s", data)
+	}
 	return nil
 }

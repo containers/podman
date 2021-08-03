@@ -17,9 +17,11 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/storage/pkg/reexec"
@@ -43,12 +45,14 @@ const (
 // Config needs to be provided to the process via stdin as a JSON string.
 // stdin needs to be closed after the message has been written.
 type Config struct {
-	Mappings  []ocicni.PortMapping
-	NetNSPath string
-	ExitFD    int
-	ReadyFD   int
-	TmpDir    string
-	ChildIP   string
+	Mappings    []ocicni.PortMapping
+	NetNSPath   string
+	ExitFD      int
+	ReadyFD     int
+	TmpDir      string
+	ChildIP     string
+	ContainerID string
+	RootlessCNI bool
 }
 
 func init() {
@@ -125,6 +129,12 @@ func parent() error {
 		case <-exitC:
 		}
 	}()
+
+	socketDir := filepath.Join(cfg.TmpDir, "rp")
+	err = os.MkdirAll(socketDir, 0700)
+	if err != nil {
+		return err
+	}
 
 	// create the parent driver
 	stateDir, err := ioutil.TempDir(cfg.TmpDir, "rootlessport")
@@ -231,6 +241,16 @@ outer:
 		return err
 	}
 
+	// we only need to have a socket to reload ports when we run under rootless cni
+	if cfg.RootlessCNI {
+		socket, err := net.Listen("unix", filepath.Join(socketDir, cfg.ContainerID))
+		if err != nil {
+			return err
+		}
+		defer socket.Close()
+		go serve(socket, driver)
+	}
+
 	// write and close ReadyFD (convention is same as slirp4netns --ready-fd)
 	logrus.Info("ready")
 	if _, err := readyW.Write([]byte("1")); err != nil {
@@ -244,6 +264,53 @@ outer:
 	logrus.Info("waiting for exitfd to be closed")
 	if _, err := ioutil.ReadAll(exitR); err != nil {
 		return err
+	}
+	return nil
+}
+
+func serve(listener net.Listener, pm rkport.Manager) {
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			// we cannot log this error, stderr is already closed
+			continue
+		}
+		ctx := context.TODO()
+		err = handler(ctx, conn, pm)
+		if err != nil {
+			conn.Write([]byte(err.Error()))
+		} else {
+			conn.Write([]byte("OK"))
+		}
+		conn.Close()
+	}
+}
+
+func handler(ctx context.Context, conn io.Reader, pm rkport.Manager) error {
+	var childIP string
+	dec := json.NewDecoder(conn)
+	err := dec.Decode(&childIP)
+	if err != nil {
+		return errors.Wrap(err, "rootless port failed to decode ports")
+	}
+	portStatus, err := pm.ListPorts(ctx)
+	if err != nil {
+		return errors.Wrap(err, "rootless port failed to list ports")
+	}
+	for _, status := range portStatus {
+		err = pm.RemovePort(ctx, status.ID)
+		if err != nil {
+			return errors.Wrap(err, "rootless port failed to remove port")
+		}
+	}
+	// add the ports with the new child IP
+	for _, status := range portStatus {
+		// set the new child IP
+		status.Spec.ChildIP = childIP
+		_, err = pm.AddPort(ctx, status.Spec)
+		if err != nil {
+			return errors.Wrap(err, "rootless port failed to add port")
+		}
 	}
 	return nil
 }
