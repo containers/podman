@@ -35,9 +35,9 @@ func Create(name string, options entities.NetworkCreateOptions, runtimeConfig *c
 
 	switch options.Driver {
 	case MacVLANNetworkDriver:
-		fileName, err = createMacVLAN(name, options, runtimeConfig)
+		fileName, err = createMacVLAN(PluginTypeMacVLAN, name, options, runtimeConfig)
 	case IPVLANNetworkDriver:
-		fileName, err = createIPVLAN(name, options, runtimeConfig)
+		fileName, err = createMacVLAN(PluginTypeIPVLAN, name, options, runtimeConfig)
 	case DefaultNetworkDriver:
 	default:
 		fileName, err = createBridge(name, options, runtimeConfig)
@@ -261,7 +261,7 @@ func validateMacVLANOptions(options entities.NetworkCreateOptions) error {
 	return nil
 }
 
-func createMacVLAN(name string, options entities.NetworkCreateOptions, runtimeConfig *config.Config) (string, error) {
+func createMacVLAN(pluginType string, name string, options entities.NetworkCreateOptions, runtimeConfig *config.Config) (string, error) {
 	if err := validateMacVLANOptions(options); err != nil {
 		return "", err
 	}
@@ -275,8 +275,12 @@ func createMacVLAN(name string, options entities.NetworkCreateOptions, runtimeCo
 		return "", err
 	}
 
-	// The parent can be defined with --macvlan or as an option (-o parent:device)
-	parentNetworkDevice := options.MacVLAN
+	parentNetworkDevice := ""
+	if pluginType == PluginTypeMacVLAN {
+		// For macvlan networks the parent can be defined with --macvlan
+		parentNetworkDevice = options.MacVLAN
+	}
+	// MacVLAN and IPVLAN networks can have parent device set via an option (-o parent:device)
 	if len(parentNetworkDevice) < 1 {
 		if parent, ok := options.Options["parent"]; ok {
 			parentNetworkDevice = parent
@@ -311,74 +315,11 @@ func createMacVLAN(name string, options entities.NetworkCreateOptions, runtimeCo
 			mtu = intVal
 		}
 	}
-	macvlan, err := NewMacVLANPlugin(PluginTypeMacVLAN, parentNetworkDevice, options.Gateway, &options.Range, &options.Subnet, mtu)
+	macvlan, err := NewMacVLANPlugin(pluginType, parentNetworkDevice, options.Gateway, &options.Range, &options.Subnet, mtu)
 	if err != nil {
 		return "", err
 	}
 	plugins = append(plugins, macvlan)
-	ncList["plugins"] = plugins
-	b, err := json.MarshalIndent(ncList, "", "   ")
-	if err != nil {
-		return "", err
-	}
-	cniPathName := filepath.Join(GetCNIConfDir(runtimeConfig), fmt.Sprintf("%s.conflist", name))
-	err = ioutil.WriteFile(cniPathName, b, 0644)
-	return cniPathName, err
-}
-
-func validateIPVLANOptions(options entities.NetworkCreateOptions) error {
-	return nil
-}
-
-func createIPVLAN(name string, options entities.NetworkCreateOptions, runtimeConfig *config.Config) (string, error) {
-	if err := validateIPVLANOptions(options); err != nil {
-		return "", err
-	}
-
-	var (
-		mtu     int
-		plugins []CNIPlugins
-	)
-	liveNetNames, err := GetLiveNetworkNames()
-	if err != nil {
-		return "", err
-	}
-
-	parentNetworkDevice := options.Options["parent"]
-
-	// Make sure the host-device exists if provided
-	if len(parentNetworkDevice) > 0 && !util.StringInSlice(parentNetworkDevice, liveNetNames) {
-		return "", errors.Errorf("failed to find network interface %q", parentNetworkDevice)
-	}
-	if len(name) > 0 {
-		netNames, err := GetNetworkNamesFromFileSystem(runtimeConfig)
-		if err != nil {
-			return "", err
-		}
-		if util.StringInSlice(name, netNames) {
-			return "", errors.Errorf("the network name %s is already used", name)
-		}
-	} else {
-		name, err = GetFreeDeviceName(runtimeConfig)
-		if err != nil {
-			return "", err
-		}
-	}
-	ncList := NewNcList(name, version.Current(), options.Labels)
-	if val, ok := options.Options["mtu"]; ok {
-		intVal, err := strconv.Atoi(val)
-		if err != nil {
-			return "", err
-		}
-		if intVal > 0 {
-			mtu = intVal
-		}
-	}
-	ipvlan, err := NewMacVLANPlugin(PluginTypeIPVLAN, parentNetworkDevice, options.Gateway, &options.Range, &options.Subnet, mtu)
-	if err != nil {
-		return "", err
-	}
-	plugins = append(plugins, ipvlan)
 	ncList["plugins"] = plugins
 	b, err := json.MarshalIndent(ncList, "", "   ")
 	if err != nil {
