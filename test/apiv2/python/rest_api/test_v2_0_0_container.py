@@ -36,26 +36,48 @@ class ContainerTestCase(APITestCase):
 
         r = requests.post(
             self.podman_url + "/v1.40/containers/create?name=topcontainer",
-            json={"Healthcheck": {"Test": ["CMD-SHELL", "exit 0"], "Interval":1000, "Timeout":1000, "Retries": 5}, "Cmd": ["top"], "Image": "alpine:latest"},
+            json={"Cmd": ["top"],
+                  "Image": "alpine:latest",
+                  "Healthcheck": {
+                      "Test": ["CMD", "pidof", "top"],
+                      "Interval": 5000000000,
+                      "Timeout": 2000000000,
+                      "Retries": 3,
+                      "StartPeriod": 5000000000
+                  }
+            },
         )
         self.assertEqual(r.status_code, 201, r.text)
         payload = r.json()
         container_id = payload["Id"]
         self.assertIsNotNone(container_id)
 
-        r = requests.get(self.podman_url + f"/v1.40/containers/{payload['Id']}/json")
+        r = requests.get(self.podman_url + f"/v1.40/containers/{container_id}/json")
         self.assertEqual(r.status_code, 200, r.text)
         self.assertId(r.content)
         out = r.json()
-        state = out["State"]["Health"]
-        self.assertIsInstance(state, dict)
+        self.assertIsNone(out["State"].get("Health"))
+        self.assertListEqual(["CMD", "pidof", "top"], out["Config"]["Healthcheck"]["Test"])
+        self.assertEqual(5000000000, out["Config"]["Healthcheck"]["Interval"])
+        self.assertEqual(2000000000, out["Config"]["Healthcheck"]["Timeout"])
+        self.assertEqual(3, out["Config"]["Healthcheck"]["Retries"])
+        self.assertEqual(5000000000, out["Config"]["Healthcheck"]["StartPeriod"])
 
-        r = requests.get(self.uri(f"/containers/{payload['Id']}/json"))
+        r = requests.get(self.uri(f"/containers/{container_id}/json"))
         self.assertEqual(r.status_code, 200, r.text)
         self.assertId(r.content)
         out = r.json()
         hc  = out["Config"]["Healthcheck"]["Test"]
-        self.assertListEqual(["CMD-SHELL", "exit 0"], hc)
+        self.assertListEqual(["CMD", "pidof", "top"], hc)
+
+        r = requests.post(self.podman_url + f"/v1.40/containers/{container_id}/start")
+        self.assertEqual(r.status_code, 204, r.text)
+
+        r = requests.get(self.podman_url + f"/v1.40/containers/{container_id}/json")
+        self.assertEqual(r.status_code, 200, r.text)
+        out = r.json()
+        state = out["State"]["Health"]
+        self.assertIsInstance(state, dict)
 
     def test_stats(self):
         r = requests.get(self.uri(self.resolve_container("/containers/{}/stats?stream=false")))
