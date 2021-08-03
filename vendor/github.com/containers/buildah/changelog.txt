@@ -1,3 +1,93 @@
+- Changelog for v1.22.0 (2021-08-02)
+  * c/image, c/storage, c/common vendor before Podman 3.3 release
+  * WIP: tests: new assert()
+  * Proposed patch for 3399 (shadowutils)
+  * Fix handling of --restore shadow-utils
+  * build(deps): bump github.com/containers/image/v5 from 5.13.2 to 5.14.0
+  * runtime-flag (debug) test: handle old & new runc
+  * build(deps): bump github.com/containers/storage from 1.32.6 to 1.33.0
+  * Allow dst and destination for target in secret mounts
+  * Multi-arch: Always push updated version-tagged img
+  * Add a few tests on cgroups V2
+  * imagebuildah.stageExecutor.prepare(): remove pseudonym check
+  * refine dangling filter
+  * Chown with environment variables not set should fail
+  * Just restore protections of shadow-utils
+  * build(deps): bump github.com/opencontainers/runc from 1.0.0 to 1.0.1
+  * Remove specific kernel version number requirement from install.md
+  * Multi-arch image workflow: Make steps generic
+  * chroot: fix environment value leakage to intermediate processes
+  * Update nix pin with `make nixpkgs`
+  * buildah source - create and manage source images
+  * Update cirrus-cron notification GH workflow
+  * Reuse code from containers/common/pkg/parse
+  * Cirrus: Freshen VM images
+  * build(deps): bump github.com/containers/storage from 1.32.5 to 1.32.6
+  * Fix excludes exception begining with / or ./
+  * Fix syntax for --manifest example
+  * build(deps): bump github.com/onsi/gomega from 1.13.0 to 1.14.0
+  * vendor containers/common@main
+  * Cirrus: Drop dependence on fedora-minimal
+  * Adjust conformance-test error-message regex
+  * Workaround appearance of differing debug messages
+  * Cirrus: Install docker from package cache
+  * build(deps): bump github.com/containers/ocicrypt from 1.1.1 to 1.1.2
+  * Switch rusagelogfile to use options.Out
+  * build(deps): bump github.com/containers/storage from 1.32.4 to 1.32.5
+  * Turn stdio back to blocking when command finishes
+  * Add support for default network creation
+  * Cirrus: Updates for master->main rename
+  * Change references from master to main
+  * Add `--env` and `--workingdir` flags to run command
+  * build(deps): bump github.com/opencontainers/runc
+  * [CI:DOCS] buildah bud: spelling --ignore-file requires parameter
+  * [CI:DOCS] push/pull: clarify supported transports
+  * Remove unused function arguments
+  * Create mountOptions for mount command flags
+  * Extract version command implementation to function
+  * Add --json flags to `mount` and `version` commands
+  * build(deps): bump github.com/containers/storage from 1.32.2 to 1.32.3
+  * build(deps): bump github.com/containers/common from 0.40.0 to 0.40.1
+  * copier.Put(): set xattrs after ownership
+  * buildah add/copy: spelling
+  * build(deps): bump github.com/containers/common from 0.39.0 to 0.40.0
+  * buildah copy and buildah add should support .containerignore
+  * Remove unused util.StartsWithValidTransport
+  * Fix documentation of the --format option of buildah push
+  * Don't use alltransports.ParseImageName with known transports
+  * build(deps): bump github.com/containers/image/v5 from 5.13.0 to 5.13.1
+  * man pages: clarify `rmi` removes dangling parents
+  * tests: make it easer to override the location of the copy helper
+  * build(deps): bump github.com/containers/image/v5 from 5.12.0 to 5.13.0
+  * [CI:DOCS] Fix links to c/image master branch
+  * imagebuildah: use the specified logger for logging preprocessing warnings
+  * Fix copy into workdir for a single file
+  * Fix docs links due to branch rename
+  * Update nix pin with `make nixpkgs`
+  * build(deps): bump github.com/fsouza/go-dockerclient from 1.7.2 to 1.7.3
+  * build(deps): bump github.com/opencontainers/selinux from 1.8.1 to 1.8.2
+  * build(deps): bump go.etcd.io/bbolt from 1.3.5 to 1.3.6
+  * build(deps): bump github.com/containers/storage from 1.32.1 to 1.32.2
+  * build(deps): bump github.com/mattn/go-shellwords from 1.0.11 to 1.0.12
+  * build(deps): bump github.com/onsi/ginkgo from 1.16.3 to 1.16.4
+  * fix(docs): typo
+  * Move to v1.22.0-dev
+  * Fix handling of auth.json file while in a user namespace
+  * Add rusage-logfile flag to optionally send rusage to a file
+  * imagebuildah: redo step logging
+  * build(deps): bump github.com/onsi/ginkgo from 1.16.2 to 1.16.3
+  * build(deps): bump github.com/containers/storage from 1.32.0 to 1.32.1
+  * Add volumes to make running buildah within a container easier
+  * build(deps): bump github.com/onsi/gomega from 1.12.0 to 1.13.0
+  * Add and use a "copy" helper instead of podman load/save
+  * Bump github.com/containers/common from 0.38.4 to 0.39.0
+  * containerImageRef/containerImageSource: don't buffer uncompressed layers
+  * containerImageRef(): squashed images have no parent images
+  * Sync. workflow across skopeo, buildah, and podman
+  * Bump github.com/containers/storage from 1.31.1 to 1.31.2
+  * Bump github.com/opencontainers/runc from 1.0.0-rc94 to 1.0.0-rc95
+  * Bump to v1.21.1-dev [NO TESTS NEEDED]
+
 - Changelog for v1.21.0 (2021-05-19)
   * Don't blow up if cpp detects errors
   * Vendor in containers/common v0.38.4
