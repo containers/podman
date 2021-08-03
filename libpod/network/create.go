@@ -257,12 +257,12 @@ func createBridge(name string, options entities.NetworkCreateOptions, runtimeCon
 	return cniPathName, err
 }
 
-func validateMacVLANOptions(options entities.NetworkCreateOptions) error {
+func validateMacVLANOptions(pluginType string, options entities.NetworkCreateOptions) error {
 	return nil
 }
 
 func createMacVLAN(pluginType string, name string, options entities.NetworkCreateOptions, runtimeConfig *config.Config) (string, error) {
-	if err := validateMacVLANOptions(options); err != nil {
+	if err := validateMacVLANOptions(pluginType, options); err != nil {
 		return "", err
 	}
 
