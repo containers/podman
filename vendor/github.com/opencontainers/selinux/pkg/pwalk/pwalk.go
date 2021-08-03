@@ -1,12 +1,11 @@
 package pwalk
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"sync"
-
-	"github.com/pkg/errors"
 )
 
 type WalkFunc = filepath.WalkFunc
@@ -42,7 +41,7 @@ func Walk(root string, walkFn WalkFunc) error {
 func WalkN(root string, walkFn WalkFunc, num int) error {
 	// make sure limit is sensible
 	if num < 1 {
-		return errors.Errorf("walk(%q): num must be > 0", root)
+		return fmt.Errorf("walk(%q): num must be > 0", root)
 	}
 
 	files := make(chan *walkArgs, 2*num)
