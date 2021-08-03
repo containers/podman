@@ -2334,7 +2334,7 @@ func getSecretMount(tokens []string, secrets map[string]string, mountlabel strin
 		switch kv[0] {
 		case "id":
 			id = kv[1]
-		case "target":
+		case "target", "dst", "destination":
 			target = kv[1]
 		case "required":
 			required, err = strconv.ParseBool(kv[1])
