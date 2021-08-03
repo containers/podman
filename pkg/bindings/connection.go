@@ -311,20 +311,26 @@ func (c *Connection) DoRequest(httpBody io.Reader, httpMethod, endpoint string, 
 		response *http.Response
 	)
 
-	params := make([]interface{}, len(pathValues)+3)
-
+	params := make([]interface{}, len(pathValues)+4)
 	// Including the semver suffices breaks older services... so do not include them
 	v := version.APIVersion[version.Libpod][version.CurrentAPI]
-	params[0] = v.Major
-	params[1] = v.Minor
-	params[2] = v.Patch
+	host := c.URI.Host
+	// if c.URI.Host is not defined (ex: unix), add the meaningless host for compatibility.
+	if host == "" {
+		host = "d"
+	}
+	params[0] = host
+	params[1] = v.Major
+	params[2] = v.Minor
+	params[3] = v.Patch
 	for i, pv := range pathValues {
 		// url.URL lacks the semantics for escaping embedded path parameters... so we manually
 		//   escape each one and assume the caller included the correct formatting in "endpoint"
 		params[i+3] = url.PathEscape(pv)
 	}
 
-	uri := fmt.Sprintf("http://d/v%d.%d.%d/libpod"+endpoint, params...)
+	uri := fmt.Sprintf("http://%s/v%d.%d.%d/libpod"+endpoint, params...)
+
 	logrus.Debugf("DoRequest Method: %s URI: %v", httpMethod, uri)
 
 	req, err := http.NewRequestWithContext(context.WithValue(context.Background(), clientKey, c), httpMethod, uri, httpBody)
