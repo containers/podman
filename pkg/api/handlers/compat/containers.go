@@ -403,22 +403,24 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 		state.Status = define.ContainerStateCreated.String()
 	}
 
-	state.Health = &types.Health{
-		Status:        inspect.State.Healthcheck.Status,
-		FailingStreak: inspect.State.Healthcheck.FailingStreak,
-	}
+	if l.HasHealthCheck() && state.Status != "created" {
+		state.Health = &types.Health{
+			Status:        inspect.State.Healthcheck.Status,
+			FailingStreak: inspect.State.Healthcheck.FailingStreak,
+		}
 
-	log := inspect.State.Healthcheck.Log
+		log := inspect.State.Healthcheck.Log
 
-	for _, item := range log {
-		res := &types.HealthcheckResult{}
-		s, _ := time.Parse(time.RFC3339Nano, item.Start)
-		e, _ := time.Parse(time.RFC3339Nano, item.End)
-		res.Start = s
-		res.End = e
-		res.ExitCode = item.ExitCode
-		res.Output = item.Output
-		state.Health.Log = append(state.Health.Log, res)
+		for _, item := range log {
+			res := &types.HealthcheckResult{}
+			s, _ := time.Parse(time.RFC3339Nano, item.Start)
+			e, _ := time.Parse(time.RFC3339Nano, item.End)
+			res.Start = s
+			res.End = e
+			res.ExitCode = item.ExitCode
+			res.Output = item.Output
+			state.Health.Log = append(state.Health.Log, res)
+		}
 	}
 
 	formatCapabilities(inspect.HostConfig.CapDrop)
@@ -495,6 +497,17 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 		exposedPorts[exposedPort] = struct{}{}
 	}
 
+	var healthcheck *container.HealthConfig
+	if inspect.Config.Healthcheck != nil {
+		healthcheck = &container.HealthConfig{
+			Test:        inspect.Config.Healthcheck.Test,
+			Interval:    inspect.Config.Healthcheck.Interval,
+			Timeout:     inspect.Config.Healthcheck.Timeout,
+			StartPeriod: inspect.Config.Healthcheck.StartPeriod,
+			Retries:     inspect.Config.Healthcheck.Retries,
+		}
+	}
+
 	config := container.Config{
 		Hostname:        l.Hostname(),
 		Domainname:      inspect.Config.DomainName,
@@ -508,7 +521,7 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 		StdinOnce:       inspect.Config.StdinOnce,
 		Env:             inspect.Config.Env,
 		Cmd:             l.Command(),
-		Healthcheck:     nil,
+		Healthcheck:     healthcheck,
 		ArgsEscaped:     false,
 		Image:           imageName,
 		Volumes:         nil,
