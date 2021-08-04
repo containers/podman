@@ -23,6 +23,7 @@ var (
 		Args:              cobra.MaximumNArgs(1),
 		Example:           `podman machine rm myvm`,
 		ValidArgsFunction: autocompleteMachine,
+		PreRunE:           noAarch64,
 	}
 )
 
