@@ -448,8 +448,15 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		ctrNamedVolumes = append(ctrNamedVolumes, newVol)
 	}
 
-	if ctr.config.LogPath == "" && ctr.config.LogDriver != define.JournaldLogging && ctr.config.LogDriver != define.NoLogging {
-		ctr.config.LogPath = filepath.Join(ctr.config.StaticDir, "ctr.log")
+	switch ctr.config.LogDriver {
+	case define.NoLogging:
+		break
+	case define.JournaldLogging:
+		ctr.initializeJournal(ctx)
+	default:
+		if ctr.config.LogPath == "" {
+			ctr.config.LogPath = filepath.Join(ctr.config.StaticDir, "ctr.log")
+		}
 	}
 
 	if !MountExists(ctr.config.Spec.Mounts, "/dev/shm") && ctr.config.ShmDir == "" {
