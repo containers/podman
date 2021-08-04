@@ -241,7 +241,12 @@ bindings_task:
     clone_script: *noop  # Comes from cache
     setup_script: *setup
     main_script: *main
-    always: *runner_stats
+    always: &html_artifacts
+        <<: *runner_stats
+        # Required for `contrib/cirrus/logformatter` to work properly
+        html_artifacts:
+            path: ./*.html
+            type: text/html
 
 
 # Build the "libpod" API documentation `swagger.yaml` and
@@ -429,11 +434,7 @@ apiv2_test_task:
     setup_script: *setup
     main_script: *main
     always: &logs_artifacts
-        <<: *runner_stats
-        # Required for `contrib/cirrus/logformatter` to work properly
-        html_artifacts:
-            path: ./*.html
-            type: text/html
+        <<: *html_artifacts
         package_versions_script: '$SCRIPT_BASE/logcollector.sh packages'
         df_script: '$SCRIPT_BASE/logcollector.sh df'
         audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
