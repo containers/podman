@@ -353,6 +353,10 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		}
 	}
 
+	if ctr.config.Timezone == "" {
+		ctr.config.Timezone = r.config.Containers.TZ
+	}
+
 	if ctr.restoreFromCheckpoint {
 		// Remove information about bind mount
 		// for new container from imported checkpoint
