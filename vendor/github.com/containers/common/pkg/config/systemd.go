@@ -1,4 +1,4 @@
-// +build systemd
+// +build systemd,cgo
 
 package config
 
@@ -9,11 +9,19 @@ import (
 
 	"github.com/containers/common/pkg/cgroupv2"
 	"github.com/containers/storage/pkg/unshare"
+	"github.com/coreos/go-systemd/v22/sdjournal"
 )
 
 var (
-	systemdOnce sync.Once
-	usesSystemd bool
+	systemdOnce  sync.Once
+	usesSystemd  bool
+	journaldOnce sync.Once
+	usesJournald bool
+)
+
+const (
+	// DefaultLogDriver is the default type of log files
+	DefaultLogDriver = "journald"
 )
 
 func defaultCgroupManager() string {
@@ -29,20 +37,17 @@ func defaultCgroupManager() string {
 }
 
 func defaultEventsLogger() string {
-	if useSystemd() {
+	if useJournald() {
 		return "journald"
 	}
 	return "file"
 }
 
 func defaultLogDriver() string {
-	// If we decide to change the default for logdriver, it should be done here.
-	if useSystemd() {
-		return DefaultLogDriver
+	if useJournald() {
+		return "journald"
 	}
-
-	return DefaultLogDriver
-
+	return "k8s-file"
 }
 
 func useSystemd() bool {
@@ -55,4 +60,20 @@ func useSystemd() bool {
 		return
 	})
 	return usesSystemd
+}
+
+func useJournald() bool {
+	journaldOnce.Do(func() {
+		if !useSystemd() {
+			return
+		}
+		journal, err := sdjournal.NewJournal()
+		if err != nil {
+			return
+		}
+		journal.Close()
+		usesJournald = true
+		return
+	})
+	return usesJournald
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/libpod/logs"
+	"github.com/coreos/go-systemd/v22/journal"
 	"github.com/coreos/go-systemd/v22/sdjournal"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -27,6 +28,17 @@ const (
 
 func init() {
 	logDrivers = append(logDrivers, define.JournaldLogging)
+}
+
+// initializeJournal will write an empty string to the journal
+// when a journal is created. This solves a problem when people
+// attempt to read logs from a container that has never had stdout/stderr
+func (c *Container) initializeJournal(ctx context.Context) error {
+	m := make(map[string]string)
+	m["SYSLOG_IDENTIFIER"] = "podman"
+	m["PODMAN_ID"] = c.ID()
+	m["CONTAINER_ID_FULL"] = c.ID()
+	return journal.Send("", journal.PriInfo, m)
 }
 
 func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOptions, logChannel chan *logs.LogLine) error {
@@ -63,12 +75,12 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 	}
 	// API requires Next() immediately after SeekHead().
 	if _, err := journal.Next(); err != nil {
-		return errors.Wrap(err, "initial journal cursor")
+		return errors.Wrap(err, "next journal")
 	}
 
 	// API requires a next|prev before getting a cursor.
 	if _, err := journal.Previous(); err != nil {
-		return errors.Wrap(err, "initial journal cursor")
+		return errors.Wrap(err, "previous journal")
 	}
 
 	// Note that the initial cursor may not yet be ready, so we'll do an
