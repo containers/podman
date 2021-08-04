@@ -49,6 +49,10 @@ type VolumeConfig struct {
 	UID int `json:"uid"`
 	// GID the volume will be created as.
 	GID int `json:"gid"`
+	// Size maximum of the volume.
+	Size uint64 `json:"size"`
+	// Inodes maximum of the volume.
+	Inodes uint64 `json:"inodes"`
 }
 
 // VolumeState holds the volume's mutable state.

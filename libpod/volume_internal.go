@@ -49,6 +49,9 @@ func (v *Volume) needsMount() bool {
 	if _, ok := v.config.Options["GID"]; ok {
 		index++
 	}
+	if _, ok := v.config.Options["SIZE"]; ok {
+		index++
+	}
 	// when uid or gid is set there is also the "o" option
 	// set so we have to ignore this one as well
 	if index > 0 {
