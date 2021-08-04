@@ -98,7 +98,7 @@ smoke_task:
     # the git-validate tool which are difficult to debug and fix.
     skip: $CIRRUS_PR == ''
 
-    timeout_in: 10m
+    timeout_in: 30m
 
     setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
     build_script: '${SCRIPT_BASE}/build.sh |& ${_TIMESTAMP}'

@@ -61,7 +61,10 @@ func (r *Runtime) Pull(ctx context.Context, name string, pullPolicy config.PullP
 		// Check whether `name` points to a transport.  If so, we
 		// return the error.  Otherwise we assume that `name` refers to
 		// an image on a registry (e.g., "fedora").
-		if alltransports.TransportFromImageName(name) != nil {
+		//
+		// NOTE: the `docker` transport is an exception to support a
+		// `pull docker:latest` which would otherwise return an error.
+		if t := alltransports.TransportFromImageName(name); t != nil && t.Name() != registryTransport.Transport.Name() {
 			return nil, err
 		}
 
