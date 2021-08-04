@@ -2,6 +2,7 @@ package util
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -276,4 +277,18 @@ func TestPeriodAndQuotaToCores(t *testing.T) {
 	)
 
 	assert.Equal(t, PeriodAndQuotaToCores(period, quota), expectedCores)
+}
+
+func TestParseInputTime(t *testing.T) {
+	tm, err := ParseInputTime("1.5")
+	if err != nil {
+		t.Errorf("expected error to be nil but was: %v", err)
+	}
+
+	expected, err := time.ParseInLocation(time.RFC3339Nano, "1970-01-01T00:00:01.500000000Z", time.UTC)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, expected, tm)
 }
