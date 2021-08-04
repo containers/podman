@@ -64,6 +64,7 @@ func createFlags(cmd *cobra.Command) {
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("conmon-pidfile")
 		_ = flags.MarkHidden("pidfile")
+		_ = flags.MarkHidden("tls-verify")
 	}
 }
 

@@ -86,6 +86,7 @@ func runFlags(cmd *cobra.Command) {
 		_ = flags.MarkHidden("preserve-fds")
 		_ = flags.MarkHidden("conmon-pidfile")
 		_ = flags.MarkHidden("pidfile")
+		_ = flags.MarkHidden("tls-verify")
 	}
 }
 
