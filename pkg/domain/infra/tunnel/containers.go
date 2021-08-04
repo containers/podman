@@ -63,19 +63,27 @@ func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []stri
 	reports := make([]*entities.PauseUnpauseReport, 0, len(ctrs))
 	for _, c := range ctrs {
 		err := containers.Pause(ic.ClientCtx, c.ID, nil)
+		if err != nil && options.All && errors.Cause(err).Error() == define.ErrCtrStateInvalid.Error() {
+			logrus.Debugf("Container %s is not running", c.ID)
+			continue
+		}
 		reports = append(reports, &entities.PauseUnpauseReport{Id: c.ID, Err: err})
 	}
 	return reports, nil
 }
 
 func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []string, options entities.PauseUnPauseOptions) ([]*entities.PauseUnpauseReport, error) {
+	reports := []*entities.PauseUnpauseReport{}
 	ctrs, err := getContainersByContext(ic.ClientCtx, options.All, false, namesOrIds)
 	if err != nil {
 		return nil, err
 	}
-	reports := make([]*entities.PauseUnpauseReport, 0, len(ctrs))
 	for _, c := range ctrs {
 		err := containers.Unpause(ic.ClientCtx, c.ID, nil)
+		if err != nil && options.All && errors.Cause(err).Error() == define.ErrCtrStateInvalid.Error() {
+			logrus.Debugf("Container %s is not paused", c.ID)
+			continue
+		}
 		reports = append(reports, &entities.PauseUnpauseReport{Id: c.ID, Err: err})
 	}
 	return reports, nil
@@ -136,9 +144,14 @@ func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []strin
 	options := new(containers.KillOptions).WithSignal(opts.Signal)
 	reports := make([]*entities.KillReport, 0, len(ctrs))
 	for _, c := range ctrs {
+		err := containers.Kill(ic.ClientCtx, c.ID, options)
+		if err != nil && opts.All && errors.Cause(err).Error() == define.ErrCtrStateInvalid.Error() {
+			logrus.Debugf("Container %s is not running", c.ID)
+			continue
+		}
 		reports = append(reports, &entities.KillReport{
 			Id:       c.ID,
-			Err:      containers.Kill(ic.ClientCtx, c.ID, options),
+			Err:      err,
 			RawInput: ctrMap[c.ID],
 		})
 	}

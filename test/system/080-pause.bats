@@ -57,4 +57,23 @@ load helpers
     run_podman 125 unpause $cname
 }
 
+@test "podman unpause --all" {
+    if is_rootless && ! is_cgroupsv2; then
+        skip "'podman pause' (rootless) only works with cgroups v2"
+    fi
+
+    cname=$(random_string 10)
+    run_podman create --name notrunning $IMAGE
+    run_podman run -d --name $cname $IMAGE sleep 100
+    cid="$output"
+    run_podman pause $cid
+    run_podman inspect --format '{{.State.Status}}' $cid
+    is "$output" "paused" "podman inspect .State.Status"
+    run_podman unpause --all
+    is "$output" "$cid" "podman unpause output"
+    run_podman ps --format '{{.ID}} {{.Names}} {{.Status}}'
+    is "$output" "${cid:0:12} $cname Up.*" "podman ps on resumed container"
+    run_podman rm -f $cname
+    run_podman rm -f notrunning
+}
 # vim: filetype=sh
