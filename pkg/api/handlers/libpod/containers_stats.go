@@ -7,8 +7,10 @@ import (
 
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
+	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
+	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -19,6 +21,16 @@ const DefaultStatsPeriod = 5 * time.Second
 func StatsContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
+
+	// Check if service is running rootless (cheap check)
+	if rootless.IsRootless() {
+		// if so, then verify cgroup v2 available (more expensive check)
+		if isV2, _ := cgroups.IsCgroup2UnifiedMode(); !isV2 {
+			msg := "Container stats resource only available for cgroup v2"
+			utils.Error(w, msg, http.StatusConflict, errors.New(msg))
+			return
+		}
+	}
 
 	query := struct {
 		Containers []string `schema:"containers"`
