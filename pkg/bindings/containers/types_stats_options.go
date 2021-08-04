@@ -35,3 +35,19 @@ func (o *StatsOptions) GetStream() bool {
 	}
 	return *o.Stream
 }
+
+// WithInterval
+func (o *StatsOptions) WithInterval(value int) *StatsOptions {
+	v := &value
+	o.Interval = v
+	return o
+}
+
+// GetInterval
+func (o *StatsOptions) GetInterval() int {
+	var interval int
+	if o.Interval == nil {
+		return interval
+	}
+	return *o.Interval
+}

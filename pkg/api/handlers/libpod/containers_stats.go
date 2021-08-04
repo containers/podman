@@ -3,7 +3,6 @@ package libpod
 import (
 	"encoding/json"
 	"net/http"
-	"time"
 
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
@@ -15,8 +14,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
-
-const DefaultStatsPeriod = 5 * time.Second
 
 func StatsContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
@@ -35,8 +32,10 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 	query := struct {
 		Containers []string `schema:"containers"`
 		Stream     bool     `schema:"stream"`
+		Interval   int      `schema:"interval"`
 	}{
-		Stream: true,
+		Stream:   true,
+		Interval: 5,
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
@@ -48,7 +47,8 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
 
 	statsOptions := entities.ContainerStatsOptions{
-		Stream: query.Stream,
+		Stream:   query.Stream,
+		Interval: query.Interval,
 	}
 
 	// Stats will stop if the connection is closed.

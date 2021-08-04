@@ -1108,6 +1108,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    type: boolean
 	//    default: true
 	//    description: Stream the output
+	//  - in: query
+	//    name: interval
+	//    type: integer
+	//    default: 5
+	//    description: Time in seconds between stats reports
 	// produces:
 	// - application/json
 	// responses:

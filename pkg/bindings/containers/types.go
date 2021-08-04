@@ -166,7 +166,8 @@ type StartOptions struct {
 //go:generate go run ../generator/generator.go StatsOptions
 // StatsOptions are optional options for getting stats on containers
 type StatsOptions struct {
-	Stream *bool
+	Stream   *bool
+	Interval *int
 }
 
 //go:generate go run ../generator/generator.go TopOptions

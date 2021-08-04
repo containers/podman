@@ -5,6 +5,7 @@ import (
 	"os"
 
 	tm "github.com/buger/goterm"
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
@@ -16,7 +17,6 @@ import (
 	"github.com/containers/podman/v3/utils"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -55,6 +55,7 @@ type statsOptionsCLI struct {
 	Latest   bool
 	NoReset  bool
 	NoStream bool
+	Interval int
 }
 
 var (
@@ -72,6 +73,9 @@ func statFlags(cmd *cobra.Command) {
 
 	flags.BoolVar(&statsOptions.NoReset, "no-reset", false, "Disable resetting the screen between intervals")
 	flags.BoolVar(&statsOptions.NoStream, "no-stream", false, "Disable streaming stats and only pull the first result, default setting is false")
+	intervalFlagName := "interval"
+	flags.IntVarP(&statsOptions.Interval, intervalFlagName, "i", 5, "Time in seconds between stats reports")
+	_ = cmd.RegisterFlagCompletionFunc(intervalFlagName, completion.AutocompleteNone)
 }
 
 func init() {
@@ -122,8 +126,9 @@ func stats(cmd *cobra.Command, args []string) error {
 	// Convert to the entities options.  We should not leak CLI-only
 	// options into the backend and separate concerns.
 	opts := entities.ContainerStatsOptions{
-		Latest: statsOptions.Latest,
-		Stream: !statsOptions.NoStream,
+		Latest:   statsOptions.Latest,
+		Stream:   !statsOptions.NoStream,
+		Interval: statsOptions.Interval,
 	}
 	statsChan, err := registry.ContainerEngine().ContainerStats(registry.Context(), args, opts)
 	if err != nil {
@@ -134,7 +139,7 @@ func stats(cmd *cobra.Command, args []string) error {
 			return report.Error
 		}
 		if err := outputStats(report.Stats); err != nil {
-			logrus.Error(err)
+			return err
 		}
 	}
 	return nil
