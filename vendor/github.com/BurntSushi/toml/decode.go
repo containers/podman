@@ -1,18 +1,16 @@
 package toml
 
 import (
+	"encoding"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"math"
+	"os"
 	"reflect"
 	"strings"
 	"time"
 )
-
-func e(format string, args ...interface{}) error {
-	return fmt.Errorf("toml: "+format, args...)
-}
 
 // Unmarshaler is the interface implemented by objects that can unmarshal a
 // TOML description of themselves.
@@ -27,28 +25,19 @@ func Unmarshal(p []byte, v interface{}) error {
 }
 
 // Primitive is a TOML value that hasn't been decoded into a Go value.
-// When using the various `Decode*` functions, the type `Primitive` may
-// be given to any value, and its decoding will be delayed.
 //
-// A `Primitive` value can be decoded using the `PrimitiveDecode` function.
+// This type can be used for any value, which will cause decoding to be delayed.
+// You can use the PrimitiveDecode() function to "manually" decode these values.
 //
-// The underlying representation of a `Primitive` value is subject to change.
-// Do not rely on it.
+// NOTE: The underlying representation of a `Primitive` value is subject to
+// change. Do not rely on it.
 //
-// N.B. Primitive values are still parsed, so using them will only avoid
-// the overhead of reflection. They can be useful when you don't know the
-// exact type of TOML data until run time.
+// NOTE: Primitive values are still parsed, so using them will only avoid the
+// overhead of reflection. They can be useful when you don't know the exact type
+// of TOML data until runtime.
 type Primitive struct {
 	undecoded interface{}
 	context   Key
-}
-
-// DEPRECATED!
-//
-// Use MetaData.PrimitiveDecode instead.
-func PrimitiveDecode(primValue Primitive, v interface{}) error {
-	md := MetaData{decoded: make(map[string]bool)}
-	return md.unify(primValue.undecoded, rvalue(v))
 }
 
 // PrimitiveDecode is just like the other `Decode*` functions, except it
@@ -68,43 +57,51 @@ func (md *MetaData) PrimitiveDecode(primValue Primitive, v interface{}) error {
 	return md.unify(primValue.undecoded, rvalue(v))
 }
 
-// Decode will decode the contents of `data` in TOML format into a pointer
-// `v`.
+// Decoder decodes TOML data.
 //
-// TOML hashes correspond to Go structs or maps. (Dealer's choice. They can be
-// used interchangeably.)
+// TOML tables correspond to Go structs or maps (dealer's choice – they can be
+// used interchangeably).
 //
-// TOML arrays of tables correspond to either a slice of structs or a slice
-// of maps.
+// TOML table arrays correspond to either a slice of structs or a slice of maps.
 //
-// TOML datetimes correspond to Go `time.Time` values.
+// TOML datetimes correspond to Go time.Time values. Local datetimes are parsed
+// in the local timezone.
 //
-// All other TOML types (float, string, int, bool and array) correspond
-// to the obvious Go types.
+// All other TOML types (float, string, int, bool and array) correspond to the
+// obvious Go types.
 //
-// An exception to the above rules is if a type implements the
-// encoding.TextUnmarshaler interface. In this case, any primitive TOML value
-// (floats, strings, integers, booleans and datetimes) will be converted to
-// a byte string and given to the value's UnmarshalText method. See the
-// Unmarshaler example for a demonstration with time duration strings.
+// An exception to the above rules is if a type implements the TextUnmarshaler
+// interface, in which case any primitive TOML value (floats, strings, integers,
+// booleans, datetimes) will be converted to a []byte and given to the value's
+// UnmarshalText method. See the Unmarshaler example for a demonstration with
+// time duration strings.
 //
 // Key mapping
 //
-// TOML keys can map to either keys in a Go map or field names in a Go
-// struct. The special `toml` struct tag may be used to map TOML keys to
-// struct fields that don't match the key name exactly. (See the example.)
-// A case insensitive match to struct names will be tried if an exact match
-// can't be found.
+// TOML keys can map to either keys in a Go map or field names in a Go struct.
+// The special `toml` struct tag can be used to map TOML keys to struct fields
+// that don't match the key name exactly (see the example). A case insensitive
+// match to struct names will be tried if an exact match can't be found.
 //
-// The mapping between TOML values and Go values is loose. That is, there
-// may exist TOML values that cannot be placed into your representation, and
-// there may be parts of your representation that do not correspond to
-// TOML values. This loose mapping can be made stricter by using the IsDefined
-// and/or Undecoded methods on the MetaData returned.
+// The mapping between TOML values and Go values is loose. That is, there may
+// exist TOML values that cannot be placed into your representation, and there
+// may be parts of your representation that do not correspond to TOML values.
+// This loose mapping can be made stricter by using the IsDefined and/or
+// Undecoded methods on the MetaData returned.
 //
-// This decoder will not handle cyclic types. If a cyclic type is passed,
-// `Decode` will not terminate.
-func Decode(data string, v interface{}) (MetaData, error) {
+// This decoder does not handle cyclic types. Decode will not terminate if a
+// cyclic type is passed.
+type Decoder struct {
+	r io.Reader
+}
+
+// NewDecoder creates a new Decoder.
+func NewDecoder(r io.Reader) *Decoder {
+	return &Decoder{r: r}
+}
+
+// Decode TOML data in to the pointer `v`.
+func (dec *Decoder) Decode(v interface{}) (MetaData, error) {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr {
 		return MetaData{}, e("Decode of non-pointer %s", reflect.TypeOf(v))
@@ -112,7 +109,15 @@ func Decode(data string, v interface{}) (MetaData, error) {
 	if rv.IsNil() {
 		return MetaData{}, e("Decode of nil %s", reflect.TypeOf(v))
 	}
-	p, err := parse(data)
+
+	// TODO: have parser should read from io.Reader? Or at the very least, make
+	// it read from []byte rather than string
+	data, err := ioutil.ReadAll(dec.r)
+	if err != nil {
+		return MetaData{}, err
+	}
+
+	p, err := parse(string(data))
 	if err != nil {
 		return MetaData{}, err
 	}
@@ -123,24 +128,22 @@ func Decode(data string, v interface{}) (MetaData, error) {
 	return md, md.unify(p.mapping, indirect(rv))
 }
 
-// DecodeFile is just like Decode, except it will automatically read the
-// contents of the file at `fpath` and decode it for you.
-func DecodeFile(fpath string, v interface{}) (MetaData, error) {
-	bs, err := ioutil.ReadFile(fpath)
-	if err != nil {
-		return MetaData{}, err
-	}
-	return Decode(string(bs), v)
+// Decode the TOML data in to the pointer v.
+//
+// See the documentation on Decoder for a description of the decoding process.
+func Decode(data string, v interface{}) (MetaData, error) {
+	return NewDecoder(strings.NewReader(data)).Decode(v)
 }
 
-// DecodeReader is just like Decode, except it will consume all bytes
-// from the reader and decode it for you.
-func DecodeReader(r io.Reader, v interface{}) (MetaData, error) {
-	bs, err := ioutil.ReadAll(r)
+// DecodeFile is just like Decode, except it will automatically read the
+// contents of the file at path and decode it for you.
+func DecodeFile(path string, v interface{}) (MetaData, error) {
+	fp, err := os.Open(path)
 	if err != nil {
 		return MetaData{}, err
 	}
-	return Decode(string(bs), v)
+	defer fp.Close()
+	return NewDecoder(fp).Decode(v)
 }
 
 // unify performs a sort of type unification based on the structure of `rv`,
@@ -149,8 +152,8 @@ func DecodeReader(r io.Reader, v interface{}) (MetaData, error) {
 // Any type mismatch produces an error. Finding a type that we don't know
 // how to handle produces an unsupported type error.
 func (md *MetaData) unify(data interface{}, rv reflect.Value) error {
-
 	// Special case. Look for a `Primitive` value.
+	// TODO: #76 would make this superfluous after implemented.
 	if rv.Type() == reflect.TypeOf((*Primitive)(nil)).Elem() {
 		// Save the undecoded data and the key context into the primitive
 		// value.
@@ -170,25 +173,17 @@ func (md *MetaData) unify(data interface{}, rv reflect.Value) error {
 		}
 	}
 
-	// Special case. Handle time.Time values specifically.
-	// TODO: Remove this code when we decide to drop support for Go 1.1.
-	// This isn't necessary in Go 1.2 because time.Time satisfies the encoding
-	// interfaces.
-	if rv.Type().AssignableTo(rvalue(time.Time{}).Type()) {
-		return md.unifyDatetime(data, rv)
-	}
-
 	// Special case. Look for a value satisfying the TextUnmarshaler interface.
-	if v, ok := rv.Interface().(TextUnmarshaler); ok {
+	if v, ok := rv.Interface().(encoding.TextUnmarshaler); ok {
 		return md.unifyText(data, v)
 	}
-	// BUG(burntsushi)
+	// TODO:
 	// The behavior here is incorrect whenever a Go type satisfies the
-	// encoding.TextUnmarshaler interface but also corresponds to a TOML
-	// hash or array. In particular, the unmarshaler should only be applied
-	// to primitive TOML values. But at this point, it will be applied to
-	// all kinds of values and produce an incorrect error whenever those values
-	// are hashes or arrays (including arrays of tables).
+	// encoding.TextUnmarshaler interface but also corresponds to a TOML hash or
+	// array. In particular, the unmarshaler should only be applied to primitive
+	// TOML values. But at this point, it will be applied to all kinds of values
+	// and produce an incorrect error whenever those values are hashes or arrays
+	// (including arrays of tables).
 
 	k := rv.Kind()
 
@@ -277,6 +272,12 @@ func (md *MetaData) unifyStruct(mapping interface{}, rv reflect.Value) error {
 }
 
 func (md *MetaData) unifyMap(mapping interface{}, rv reflect.Value) error {
+	if k := rv.Type().Key().Kind(); k != reflect.String {
+		return fmt.Errorf(
+			"toml: cannot decode to a map with non-string key type (%s in %q)",
+			k, rv.Type())
+	}
+
 	tmap, ok := mapping.(map[string]interface{})
 	if !ok {
 		if tmap == nil {
@@ -312,10 +313,8 @@ func (md *MetaData) unifyArray(data interface{}, rv reflect.Value) error {
 		}
 		return badtype("slice", data)
 	}
-	sliceLen := datav.Len()
-	if sliceLen != rv.Len() {
-		return e("expected array length %d; got TOML array of length %d",
-			rv.Len(), sliceLen)
+	if l := datav.Len(); l != rv.Len() {
+		return e("expected array length %d; got TOML array of length %d", rv.Len(), l)
 	}
 	return md.unifySliceArray(datav, rv)
 }
@@ -337,11 +336,10 @@ func (md *MetaData) unifySlice(data interface{}, rv reflect.Value) error {
 }
 
 func (md *MetaData) unifySliceArray(data, rv reflect.Value) error {
-	sliceLen := data.Len()
-	for i := 0; i < sliceLen; i++ {
-		v := data.Index(i).Interface()
-		sliceval := indirect(rv.Index(i))
-		if err := md.unify(v, sliceval); err != nil {
+	l := data.Len()
+	for i := 0; i < l; i++ {
+		err := md.unify(data.Index(i).Interface(), indirect(rv.Index(i)))
+		if err != nil {
 			return err
 		}
 	}
@@ -439,7 +437,7 @@ func (md *MetaData) unifyAnything(data interface{}, rv reflect.Value) error {
 	return nil
 }
 
-func (md *MetaData) unifyText(data interface{}, v TextUnmarshaler) error {
+func (md *MetaData) unifyText(data interface{}, v encoding.TextUnmarshaler) error {
 	var s string
 	switch sdata := data.(type) {
 	case TextMarshaler:
@@ -482,7 +480,7 @@ func indirect(v reflect.Value) reflect.Value {
 	if v.Kind() != reflect.Ptr {
 		if v.CanSet() {
 			pv := v.Addr()
-			if _, ok := pv.Interface().(TextUnmarshaler); ok {
+			if _, ok := pv.Interface().(encoding.TextUnmarshaler); ok {
 				return pv
 			}
 		}
@@ -498,10 +496,14 @@ func isUnifiable(rv reflect.Value) bool {
 	if rv.CanSet() {
 		return true
 	}
-	if _, ok := rv.Interface().(TextUnmarshaler); ok {
+	if _, ok := rv.Interface().(encoding.TextUnmarshaler); ok {
 		return true
 	}
 	return false
+}
+
+func e(format string, args ...interface{}) error {
+	return fmt.Errorf("toml: "+format, args...)
 }
 
 func badtype(expected string, data interface{}) error {
