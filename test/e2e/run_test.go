@@ -1790,4 +1790,15 @@ WORKDIR /madethis`, BB)
 		_, err = strconv.Atoi(containerPID) // Make sure it's a proper integer
 		Expect(err).To(BeNil())
 	})
+
+	It("podman run check personality support", func() {
+		// TODO: Remove this as soon as this is merged and made available in our CI https://github.com/opencontainers/runc/pull/3126.
+		if !strings.Contains(podmanTest.OCIRuntime, "crun") {
+			Skip("Test only works on crun")
+		}
+		session := podmanTest.Podman([]string{"run", "--personality=LINUX32", "--name=testpersonality", ALPINE, "uname", "-a"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("i686"))
+	})
 })

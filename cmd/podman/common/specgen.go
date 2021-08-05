@@ -651,6 +651,12 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	if err != nil {
 		return err
 	}
+
+	if c.Personality != "" {
+		s.Personality = &specs.LinuxPersonality{}
+		s.Personality.Domain = specs.LinuxPersonalityDomain(c.Personality)
+	}
+
 	s.Remove = c.Rm
 	s.StopTimeout = &c.StopTimeout
 	s.Timeout = c.Timeout
