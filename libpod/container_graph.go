@@ -259,7 +259,7 @@ func startNode(ctx context.Context, node *containerNode, setError bool, ctrError
 	}
 
 	// Start the container (only if it is not running)
-	if !ctrErrored {
+	if !ctrErrored && len(node.container.config.InitContainerType) < 1 {
 		if !restart && node.container.state.State != define.ContainerStateRunning {
 			if err := node.container.initAndStart(ctx); err != nil {
 				ctrErrored = true

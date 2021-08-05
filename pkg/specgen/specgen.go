@@ -183,6 +183,9 @@ type ContainerBasicConfig struct {
 	// EnvSecrets are secrets that will be set as environment variables
 	// Optional.
 	EnvSecrets map[string]string `json:"secret_env,omitempty"`
+	// InitContainerType describes if this container is an init container
+	// and if so, what type: always or oneshot
+	InitContainerType string `json:"init_container_type"`
 }
 
 // ContainerStorageConfig contains information on the storage configuration of a

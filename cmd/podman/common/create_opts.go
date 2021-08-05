@@ -61,6 +61,7 @@ type ContainerCLIOpts struct {
 	HTTPProxy         bool
 	ImageVolume       string
 	Init              bool
+	InitContainerType string
 	InitPath          string
 	Interactive       bool
 	IPC               string

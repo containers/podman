@@ -12,6 +12,45 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// startInitContainers starts a pod's init containers.
+func (p *Pod) startInitContainers(ctx context.Context) error {
+	initCtrs, err := p.initContainers()
+	if err != nil {
+		return err
+	}
+	// Now iterate init containers
+	for _, initCon := range initCtrs {
+		if err := initCon.Start(ctx, true); err != nil {
+			return err
+		}
+		// Check that the init container waited correctly and the exit
+		// code is good
+		rc, err := initCon.Wait(ctx)
+		if err != nil {
+			return err
+		}
+		if rc != 0 {
+			return errors.Errorf("init container %s exited with code %d", initCon.ID(), rc)
+		}
+		// If the container is an oneshot init container, we need to remove it
+		// after it runs
+		if initCon.Config().InitContainerType == define.OneShotInitContainer {
+			icLock := initCon.lock
+			icLock.Lock()
+			if err := p.runtime.removeContainer(ctx, initCon, false, false, true); err != nil {
+				icLock.Unlock()
+				return errors.Wrapf(err, "failed to remove oneshot init container %s", initCon.ID())
+			}
+			// Removing a container this way requires an explicit call to clean up the db
+			if err := p.runtime.state.RemoveContainerFromPod(p, initCon); err != nil {
+				logrus.Errorf("Error removing container %s from database: %v", initCon.ID(), err)
+			}
+			icLock.Unlock()
+		}
+	}
+	return nil
+}
+
 // Start starts all containers within a pod.
 // It combines the effects of Init() and Start() on a container.
 // If a container has already been initialized it will be started,
@@ -34,25 +73,28 @@ func (p *Pod) Start(ctx context.Context) (map[string]error, error) {
 		return nil, define.ErrPodRemoved
 	}
 
+	// Before "regular" containers start in the pod, all init containers
+	// must have run and exited successfully.
+	if err := p.startInitContainers(ctx); err != nil {
+		return nil, err
+	}
 	allCtrs, err := p.runtime.state.PodContainers(p)
 	if err != nil {
 		return nil, err
 	}
-
 	// Build a dependency graph of containers in the pod
 	graph, err := BuildContainerGraph(allCtrs)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error generating dependency graph for pod %s", p.ID())
 	}
-
-	ctrErrors := make(map[string]error)
-	ctrsVisited := make(map[string]bool)
-
 	// If there are no containers without dependencies, we can't start
 	// Error out
 	if len(graph.noDepNodes) == 0 {
 		return nil, errors.Wrapf(define.ErrNoSuchCtr, "no containers in pod %s have no dependencies, cannot start pod", p.ID())
 	}
+
+	ctrErrors := make(map[string]error)
+	ctrsVisited := make(map[string]bool)
 
 	// Traverse the graph beginning at nodes with no dependencies
 	for _, node := range graph.noDepNodes {
@@ -449,12 +491,18 @@ func (p *Pod) Status() (map[string]define.ContainerStatus, error) {
 	if !p.valid {
 		return nil, define.ErrPodRemoved
 	}
-
 	allCtrs, err := p.runtime.state.PodContainers(p)
 	if err != nil {
 		return nil, err
 	}
-	return containerStatusFromContainers(allCtrs)
+	noInitCtrs := make([]*Container, 0)
+	// Do not add init containers into status
+	for _, ctr := range allCtrs {
+		if ctrType := ctr.config.InitContainerType; len(ctrType) < 1 {
+			noInitCtrs = append(noInitCtrs, ctr)
+		}
+	}
+	return containerStatusFromContainers(noInitCtrs)
 }
 
 func containerStatusFromContainers(allCtrs []*Container) (map[string]define.ContainerStatus, error) {
@@ -504,7 +552,10 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 			Name:  c.Name(),
 			State: containerStatus,
 		})
-		ctrStatuses[c.ID()] = c.state.State
+		// Do not add init containers fdr status
+		if len(c.config.InitContainerType) < 1 {
+			ctrStatuses[c.ID()] = c.state.State
+		}
 	}
 	podState, err := createPodStatusResults(ctrStatuses)
 	if err != nil {

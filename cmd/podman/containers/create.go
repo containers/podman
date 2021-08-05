@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/podman/v3/cmd/podman/common"
@@ -49,11 +50,19 @@ var (
 )
 
 var (
-	cliVals common.ContainerCLIOpts
+	cliVals           common.ContainerCLIOpts
+	InitContainerType string
 )
 
 func createFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
+
+	initContainerFlagName := "init-ctr"
+	flags.StringVar(
+		&InitContainerType,
+		initContainerFlagName, "",
+		"Make this a pod init container.",
+	)
 
 	flags.SetInterspersed(false)
 	common.DefineCreateFlags(cmd, &cliVals)
@@ -65,6 +74,8 @@ func createFlags(cmd *cobra.Command) {
 		_ = flags.MarkHidden("conmon-pidfile")
 		_ = flags.MarkHidden("pidfile")
 	}
+
+	_ = cmd.RegisterFlagCompletionFunc(initContainerFlagName, completion.AutocompleteDefault)
 }
 
 func init() {
@@ -87,6 +98,17 @@ func create(cmd *cobra.Command, args []string) error {
 	cliVals.Net, err = common.NetFlagsToNetOptions(cmd, cliVals.Pod == "")
 	if err != nil {
 		return err
+	}
+
+	// Check if initctr is used with --pod and the value is correct
+	if initctr := InitContainerType; cmd.Flags().Changed("init-ctr") {
+		if !cmd.Flags().Changed("pod") {
+			return errors.New("must specify pod value with init-ctr")
+		}
+		if !util.StringInSlice(initctr, []string{"always", "oneshot"}) {
+			return errors.New("init-ctr value must be 'always' or 'oneshot'")
+		}
+		cliVals.InitContainerType = initctr
 	}
 
 	if err := createInit(cmd); err != nil {

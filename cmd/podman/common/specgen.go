@@ -659,6 +659,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *ContainerCLIOpts, args []string
 	s.PidFile = c.PidFile
 	s.Volatile = c.Rm
 
+	// Initcontainers
+	s.InitContainerType = c.InitContainerType
 	return nil
 }
 

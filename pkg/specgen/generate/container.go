@@ -140,10 +140,29 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	//   VM, which is the default behavior
 	// - "container" denotes the container should join the VM of the SandboxID
 	//   (the infra container)
-
 	if len(s.Pod) > 0 {
 		annotations[ann.SandboxID] = s.Pod
 		annotations[ann.ContainerType] = ann.ContainerTypeContainer
+		// Check if this is an init-ctr and if so, check if
+		// the pod is running.  we do not want to add init-ctrs to
+		// a running pod because it creates confusion for us.
+		if len(s.InitContainerType) > 0 {
+			p, err := r.LookupPod(s.Pod)
+			if err != nil {
+				return nil, err
+			}
+			containerStatuses, err := p.Status()
+			if err != nil {
+				return nil, err
+			}
+			// If any one of the containers is running, the pod is considered to be
+			// running
+			for _, con := range containerStatuses {
+				if con == define.ContainerStateRunning {
+					return nil, errors.New("cannot add init-ctr to a running pod")
+				}
+			}
+		}
 	}
 
 	for _, v := range rtc.Containers.Annotations {

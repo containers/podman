@@ -1794,6 +1794,21 @@ func WithPidFile(pidFile string) CtrCreateOption {
 	}
 }
 
+// WithInitCtrType indicates the container is a initcontainer
+func WithInitCtrType(containerType string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		// Make sure the type is valid
+		if containerType == define.OneShotInitContainer || containerType == define.AlwaysInitContainer {
+			ctr.config.InitContainerType = containerType
+			return nil
+		}
+		return errors.Errorf("%s is invalid init container type", containerType)
+	}
+}
+
 // Pod Creation Options
 
 // WithInfraImage sets the infra image for libpod.

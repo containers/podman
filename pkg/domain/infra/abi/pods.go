@@ -250,7 +250,9 @@ func (ic *ContainerEngine) prunePodHelper(ctx context.Context) ([]*entities.PodP
 
 func (ic *ContainerEngine) PodCreate(ctx context.Context, opts entities.PodCreateOptions) (*entities.PodCreateReport, error) {
 	podSpec := specgen.NewPodSpecGenerator()
-	opts.ToPodSpecGen(podSpec)
+	if err := opts.ToPodSpecGen(podSpec); err != nil {
+		return nil, err
+	}
 	pod, err := generate.MakePod(podSpec, ic.Libpod)
 	if err != nil {
 		return nil, err
