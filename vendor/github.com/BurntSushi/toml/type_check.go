@@ -68,24 +68,3 @@ func (p *parser) typeOfPrimitive(lexItem item) tomlType {
 	p.bug("Cannot infer primitive type of lex item '%s'.", lexItem)
 	panic("unreachable")
 }
-
-// typeOfArray returns a tomlType for an array given a list of types of its
-// values.
-//
-// In the current spec, if an array is homogeneous, then its type is always
-// "Array". If the array is not homogeneous, an error is generated.
-func (p *parser) typeOfArray(types []tomlType) tomlType {
-	// Empty arrays are cool.
-	if len(types) == 0 {
-		return tomlArray
-	}
-
-	theType := types[0]
-	for _, t := range types[1:] {
-		if !typeEqual(theType, t) {
-			p.panicf("Array contains values of type '%s' and '%s', but "+
-				"arrays must be homogeneous.", theType, t)
-		}
-	}
-	return tomlArray
-}
