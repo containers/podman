@@ -84,7 +84,7 @@ function _run_bindings() {
 
     # Subshell needed so logformatter will write output in cwd; if it runs in
     # the subdir, .cirrus.yml will not find the html'ized log
-    (cd pkg/bindings/test && ginkgo -trace -noColor -debug  -r) |& logformatter
+    (cd pkg/bindings/test && ginkgo --tags no_libsubid -trace -noColor -debug  -r) |& logformatter
 }
 
 function _run_docker-py() {

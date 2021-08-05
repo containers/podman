@@ -68,7 +68,7 @@ let
       export CFLAGS='-static -pthread'
       export LDFLAGS='-s -w -static-libgcc -static'
       export EXTRA_LDFLAGS='-s -w -linkmode external -extldflags "-static -lm"'
-      export BUILDTAGS='static netgo osusergo exclude_graphdriver_btrfs exclude_graphdriver_devicemapper seccomp apparmor selinux'
+      export BUILDTAGS='static netgo osusergo exclude_graphdriver_btrfs exclude_graphdriver_devicemapper seccomp apparmor selinux no_libsubid'
       export CGO_ENABLED=1
     '';
     buildPhase = ''

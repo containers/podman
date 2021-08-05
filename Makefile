@@ -43,13 +43,15 @@ ETCDIR ?= ${PREFIX}/etc
 TMPFILESDIR ?= ${PREFIX}/lib/tmpfiles.d
 SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
 USERSYSTEMDDIR ?= ${PREFIX}/lib/systemd/user
-REMOTETAGS ?= remote exclude_graphdriver_btrfs btrfs_noversion exclude_graphdriver_devicemapper containers_image_openpgp
+SUBIDTAG ?=$(shell hack/libsubid_tag.sh)
+REMOTETAGS ?= remote exclude_graphdriver_btrfs btrfs_noversion exclude_graphdriver_devicemapper containers_image_openpgp no_libsubid
 BUILDTAGS ?= \
 	$(shell hack/apparmor_tag.sh) \
 	$(shell hack/btrfs_installed_tag.sh) \
 	$(shell hack/btrfs_tag.sh) \
 	$(shell hack/selinux_tag.sh) \
 	$(shell hack/systemd_tag.sh) \
+	${SUBIDTAG} \
 	exclude_graphdriver_devicemapper \
 	seccomp
 PYTHON ?= $(shell command -v python3 python|head -n1)
@@ -65,7 +67,7 @@ SOURCES = $(shell find . -path './.*' -prune -o \( -name '*.go' -a ! -name '*_te
 
 BUILDFLAGS := -mod=vendor $(BUILDFLAGS)
 
-BUILDTAGS_CROSS ?= containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_overlay
+BUILDTAGS_CROSS ?= containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_overlay no_libsubid
 CONTAINER_RUNTIME := $(shell command -v podman 2> /dev/null || echo docker)
 OCI_RUNTIME ?= ""
 

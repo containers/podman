@@ -424,7 +424,7 @@ popd
 ln -s vendor src
 export GO111MODULE=on
 export GOPATH=$(pwd)/_build:$(pwd):$(pwd):%{gopath}
-export BUILDTAGS="selinux seccomp systemd $(%{hackdir}/hack/btrfs_installed_tag.sh) $(%{hackdir}/hack/btrfs_tag.sh) $(%{hackdir}/hack/libdm_tag.sh) exclude_graphdriver_devicemapper"
+export BUILDTAGS="selinux seccomp systemd $(%{hackdir}/hack/btrfs_installed_tag.sh) $(%{hackdir}/hack/btrfs_tag.sh) $(%{hackdir}/hack/libdm_tag.sh)  $(%{hackdir}/hack/libsubid_tag.sh) exclude_graphdriver_devicemapper"
 
 %if %{with doc}
 BUILDTAGS=$BUILDTAGS make binaries docs
