@@ -81,6 +81,7 @@ type ContainerCLIOpts struct {
 	Arch              string
 	OS                string
 	Variant           string
+	Personality       string
 	PID               string
 	PIDsLimit         *int64
 	Platform          string

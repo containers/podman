@@ -186,6 +186,11 @@ type ContainerBasicConfig struct {
 	// InitContainerType describes if this container is an init container
 	// and if so, what type: always or oneshot
 	InitContainerType string `json:"init_container_type"`
+	// Personality allows users to configure different execution domains.
+	// Execution domains tell Linux how to map signal numbers into signal actions.
+	// The execution domain system allows Linux to provide limited support
+	// for binaries compiled under other UNIX-like operating systems.
+	Personality *spec.LinuxPersonality `json:"personality,omitempty"`
 }
 
 // ContainerStorageConfig contains information on the storage configuration of a

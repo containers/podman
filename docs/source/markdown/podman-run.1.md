@@ -726,6 +726,10 @@ Tune the host's OOM preferences for containers (accepts values from **-1000** to
 #### **--os**=*OS*
 Override the OS, defaults to hosts, of the image to be pulled. For example, `windows`.
 
+#### **--personality**=*persona*
+
+Personality sets the execution domain via Linux personality(2).
+
 #### **--pid**=*mode*
 
 Set the PID namespace mode for the container.
@@ -1776,6 +1780,12 @@ $ podman run --name container3 --requires container1,container2 -t -i fedora bas
 $ podman run -v /var/lib/design:/var/lib/design --group-add keep-groups ubi8
 ```
 
+### Configure execution domain for containers using personality flag
+
+```
+$ podman run --name container1 --personaity=LINUX32 fedora bash
+```
+
 ### Rootless Containers
 
 Podman runs as a non root user on most systems. This feature requires that a new enough version of **shadow-utils**
@@ -1836,7 +1846,7 @@ NOTE: Use the environment variable `TMPDIR` to change the temporary storage loca
 
 ## SEE ALSO
 **podman**(1), **podman-save**(1), **podman-ps**(1), **podman-attach**(1), **podman-pod-create**(1), **podman-port**(1), **podman-start**(1), **podman-kill**(1), **podman-stop**(1),
-**podman-generate-systemd**(1) **podman-rm**(1), **subgid**(5), **subuid**(5), **containers.conf**(5), **systemd.unit**(5), **setsebool**(8), **slirp4netns**(1), **fuse-overlayfs**(1), **proc**(5), **conmon**(8).
+**podman-generate-systemd**(1) **podman-rm**(1), **subgid**(5), **subuid**(5), **containers.conf**(5), **systemd.unit**(5), **setsebool**(8), **slirp4netns**(1), **fuse-overlayfs**(1), **proc**(5), **conmon**(8), **personality**(2).
 
 ## HISTORY
 September 2018, updated by Kunal Kushwaha `<kushwaha_kunal_v7@lab.ntt.co.jp>`

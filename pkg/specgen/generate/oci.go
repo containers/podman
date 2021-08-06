@@ -285,6 +285,9 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		}
 		g.AddMount(cgroupMnt)
 	}
+
+	g.Config.Linux.Personality = s.Personality
+
 	g.SetProcessCwd(s.WorkDir)
 
 	g.SetProcessArgs(finalCmd)

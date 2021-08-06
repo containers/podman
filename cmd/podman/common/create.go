@@ -498,6 +498,14 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 	)
 	_ = cmd.RegisterFlagCompletionFunc(variantFlagName, completion.AutocompleteNone)
 
+	personalityFlagName := "personality"
+	createFlags.StringVar(
+		&cf.Personality,
+		personalityFlagName, "",
+		"Configure execution domain using personality (e.g., LINUX/LINUX32)",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(personalityFlagName, AutocompleteNamespace)
+
 	pidFlagName := "pid"
 	createFlags.String(
 		pidFlagName, "",
