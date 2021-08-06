@@ -74,8 +74,7 @@ func filterCommonContainerFlags(command []string, argCount int) []string {
 		case s == "--sdnotify", s == "--cgroups":
 			i++
 			continue
-		case strings.HasPrefix(s, "--sdnotify="),
-			strings.HasPrefix(s, "--rm="),
+		case strings.HasPrefix(s, "--rm="),
 			strings.HasPrefix(s, "--cgroups="):
 			continue
 		}

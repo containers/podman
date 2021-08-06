@@ -88,7 +88,7 @@ func ValidateImageReference(imageName string) error {
 	} else if err != nil {
 		repo, err := reference.Parse(imageName)
 		if err != nil {
-			return errors.Wrap(err, "error enforcing fully-qualified docker transport reference for auto updates")
+			return errors.Wrap(err, "enforcing fully-qualified docker transport reference for auto updates")
 		}
 		if _, ok := repo.(reference.NamedTagged); !ok {
 			return errors.Errorf("auto updates require fully-qualified image references (no tag): %q", imageName)
@@ -181,13 +181,13 @@ func autoUpdateRegistry(ctx context.Context, image *libimage.Image, ctr *libpod.
 	cid := ctr.ID()
 	rawImageName := ctr.RawImageName()
 	if rawImageName == "" {
-		return nil, errors.Errorf("error registry auto-updating container %q: raw-image name is empty", cid)
+		return nil, errors.Errorf("registry auto-updating container %q: raw-image name is empty", cid)
 	}
 
 	labels := ctr.Labels()
 	unit, exists := labels[systemdDefine.EnvVariable]
 	if !exists {
-		return nil, errors.Errorf("error auto-updating container %q: no %s label found", ctr.ID(), systemdDefine.EnvVariable)
+		return nil, errors.Errorf("auto-updating container %q: no %s label found", ctr.ID(), systemdDefine.EnvVariable)
 	}
 
 	report := &entities.AutoUpdateReport{
@@ -201,7 +201,7 @@ func autoUpdateRegistry(ctx context.Context, image *libimage.Image, ctr *libpod.
 
 	if _, updated := updatedRawImages[rawImageName]; updated {
 		logrus.Infof("Auto-updating container %q using registry image %q", cid, rawImageName)
-		if err := restartSystemdUnit(ctr, unit, conn); err != nil {
+		if err := restartSystemdUnit(ctx, ctr, unit, conn); err != nil {
 			return report, err
 		}
 		report.Updated = "true"
@@ -211,7 +211,7 @@ func autoUpdateRegistry(ctx context.Context, image *libimage.Image, ctr *libpod.
 	authfile := getAuthfilePath(ctr, options)
 	needsUpdate, err := newerRemoteImageAvailable(ctx, runtime, image, rawImageName, authfile)
 	if err != nil {
-		return report, errors.Wrapf(err, "error registry auto-updating container %q: image check for %q failed", cid, rawImageName)
+		return report, errors.Wrapf(err, "registry auto-updating container %q: image check for %q failed", cid, rawImageName)
 	}
 
 	if !needsUpdate {
@@ -225,16 +225,30 @@ func autoUpdateRegistry(ctx context.Context, image *libimage.Image, ctr *libpod.
 	}
 
 	if _, err := updateImage(ctx, runtime, rawImageName, options); err != nil {
-		return report, errors.Wrapf(err, "error registry auto-updating container %q: image update for %q failed", cid, rawImageName)
+		return report, errors.Wrapf(err, "registry auto-updating container %q: image update for %q failed", cid, rawImageName)
 	}
 	updatedRawImages[rawImageName] = true
 
 	logrus.Infof("Auto-updating container %q using registry image %q", cid, rawImageName)
-	if err := restartSystemdUnit(ctr, unit, conn); err != nil {
-		return report, err
+	updateErr := restartSystemdUnit(ctx, ctr, unit, conn)
+	if updateErr == nil {
+		report.Updated = "true"
+		return report, nil
 	}
 
-	report.Updated = "true"
+	if !options.Rollback {
+		return report, updateErr
+	}
+
+	// To fallback, simply retag the old image and restart the service.
+	if err := image.Tag(rawImageName); err != nil {
+		return report, errors.Wrap(err, "falling back to previous image")
+	}
+	if err := restartSystemdUnit(ctx, ctr, unit, conn); err != nil {
+		return report, errors.Wrap(err, "restarting unit with old image during fallback")
+	}
+
+	report.Updated = "rolled back"
 	return report, nil
 }
 
@@ -243,13 +257,13 @@ func autoUpdateLocally(ctx context.Context, image *libimage.Image, ctr *libpod.C
 	cid := ctr.ID()
 	rawImageName := ctr.RawImageName()
 	if rawImageName == "" {
-		return nil, errors.Errorf("error locally auto-updating container %q: raw-image name is empty", cid)
+		return nil, errors.Errorf("locally auto-updating container %q: raw-image name is empty", cid)
 	}
 
 	labels := ctr.Labels()
 	unit, exists := labels[systemdDefine.EnvVariable]
 	if !exists {
-		return nil, errors.Errorf("error auto-updating container %q: no %s label found", ctr.ID(), systemdDefine.EnvVariable)
+		return nil, errors.Errorf("auto-updating container %q: no %s label found", ctr.ID(), systemdDefine.EnvVariable)
 	}
 
 	report := &entities.AutoUpdateReport{
@@ -263,7 +277,7 @@ func autoUpdateLocally(ctx context.Context, image *libimage.Image, ctr *libpod.C
 
 	needsUpdate, err := newerLocalImageAvailable(runtime, image, rawImageName)
 	if err != nil {
-		return report, errors.Wrapf(err, "error locally auto-updating container %q: image check for %q failed", cid, rawImageName)
+		return report, errors.Wrapf(err, "locally auto-updating container %q: image check for %q failed", cid, rawImageName)
 	}
 
 	if !needsUpdate {
@@ -277,23 +291,47 @@ func autoUpdateLocally(ctx context.Context, image *libimage.Image, ctr *libpod.C
 	}
 
 	logrus.Infof("Auto-updating container %q using local image %q", cid, rawImageName)
-	if err := restartSystemdUnit(ctr, unit, conn); err != nil {
-		return report, err
+	updateErr := restartSystemdUnit(ctx, ctr, unit, conn)
+	if updateErr == nil {
+		report.Updated = "true"
+		return report, nil
 	}
 
-	report.Updated = "true"
+	if !options.Rollback {
+		return report, updateErr
+	}
+
+	// To fallback, simply retag the old image and restart the service.
+	if err := image.Tag(rawImageName); err != nil {
+		return report, errors.Wrap(err, "falling back to previous image")
+	}
+	if err := restartSystemdUnit(ctx, ctr, unit, conn); err != nil {
+		return report, errors.Wrap(err, "restarting unit with old image during fallback")
+	}
+
+	report.Updated = "rolled back"
 	return report, nil
 }
 
 // restartSystemdUnit restarts the systemd unit the container is running in.
-func restartSystemdUnit(ctr *libpod.Container, unit string, conn *dbus.Conn) error {
-	_, err := conn.RestartUnit(unit, "replace", nil)
-	if err != nil {
-		return errors.Wrapf(err, "error auto-updating container %q: restarting systemd unit %q failed", ctr.ID(), unit)
+func restartSystemdUnit(ctx context.Context, ctr *libpod.Container, unit string, conn *dbus.Conn) error {
+	restartChan := make(chan string)
+	if _, err := conn.RestartUnitContext(ctx, unit, "replace", restartChan); err != nil {
+		return errors.Wrapf(err, "auto-updating container %q: restarting systemd unit %q failed", ctr.ID(), unit)
 	}
 
-	logrus.Infof("Successfully restarted systemd unit %q of container %q", unit, ctr.ID())
-	return nil
+	// Wait for the restart to finish and actually check if it was
+	// successful or not.
+	result := <-restartChan
+
+	switch result {
+	case "done":
+		logrus.Infof("Successfully restarted systemd unit %q of container %q", unit, ctr.ID())
+		return nil
+
+	default:
+		return errors.Errorf("auto-updating container %q: restarting systemd unit %q failed: expected %q but received %q", ctr.ID(), unit, "done", result)
+	}
 }
 
 // imageContainersMap generates a map[image ID] -> [containers using the image]
