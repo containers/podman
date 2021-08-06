@@ -1,3 +1,12 @@
+## 1.15.0
+
+### Fixes
+The previous version (1.14.0) introduced a change to allow `Eventually` and `Consistently` to support functions that make assertions.  This was accomplished by overriding the global fail handler when running the callbacks passed to `Eventually/Consistently` in order to capture any resulting errors.  Issue #457 uncovered a flaw with this approach: when multiple `Eventually`s are running concurrently they race when overriding the singleton global fail handler.
+
+1.15.0 resolves this by requiring users who want to make assertions in `Eventually/Consistently` call backs to explicitly pass in a function that takes a `Gomega` as an argument.  The passed-in `Gomega` instance can be used to make assertions.  Any failures will cause `Eventually` to retry the callback.  This cleaner interface avoids the issue of swapping out globals but comes at the cost of changing the contract introduced in v1.14.0.  As such 1.15.0 introduces a breaking change with respect to 1.14.0 - however we expect that adoption of this feature in 1.14.0 remains limited.
+
+In addition, 1.15.0 cleans up some of Gomega's internals.  Most users shouldn't notice any differences stemming from the refactoring that was made.
+
 ## 1.14.0
 
 ### Features
