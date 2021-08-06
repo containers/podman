@@ -1214,7 +1214,29 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 		}
 	}
 	c.state.NetworkStatus = tmpNetworkStatus
-	return c.save()
+	err = c.save()
+	if err != nil {
+		return err
+	}
+
+	// OCICNI will set the loopback adpter down on teardown so we should set it up again
+	err = c.state.NetNS.Do(func(_ ns.NetNS) error {
+		link, err := netlink.LinkByName("lo")
+		if err != nil {
+			return err
+		}
+		err = netlink.LinkSetUp(link)
+		return err
+	})
+	if err != nil {
+		logrus.Warnf("failed to set loopback adpter up in the container: %v", err)
+	}
+	// Reload ports when there are still connected networks, maybe we removed the network interface with the child ip.
+	// Reloading without connected networks does not make sense, so we can skip this step.
+	if rootless.IsRootless() && len(tmpNetworkStatus) > 0 {
+		return c.reloadRootlessRLKPortMapping()
+	}
+	return nil
 }
 
 // ConnectNetwork connects a container to a given network
@@ -1306,7 +1328,16 @@ func (c *Container) NetworkConnect(nameOrID, netName string, aliases []string) e
 		networkStatus[index] = networkResults[0]
 		c.state.NetworkStatus = networkStatus
 	}
-	return c.save()
+	err = c.save()
+	if err != nil {
+		return err
+	}
+	// The first network needs a port reload to set the correct child ip for the rootlessport process.
+	// Adding a second network does not require a port reload because the child ip is still valid.
+	if rootless.IsRootless() && len(networks) == 0 {
+		return c.reloadRootlessRLKPortMapping()
+	}
+	return nil
 }
 
 // DisconnectContainerFromNetwork removes a container from its CNI network
