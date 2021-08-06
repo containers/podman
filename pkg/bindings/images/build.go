@@ -74,18 +74,25 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		}
 		params.Set("excludes", bArgs)
 	}
-	if cpuShares := options.CommonBuildOpts.CPUShares; cpuShares > 0 {
-		params.Set("cpushares", strconv.Itoa(int(cpuShares)))
-	}
-	if cpuSetCpus := options.CommonBuildOpts.CPUSetCPUs; len(cpuSetCpus) > 0 {
-		params.Set("cpusetcpus", cpuSetCpus)
-	}
 	if cpuPeriod := options.CommonBuildOpts.CPUPeriod; cpuPeriod > 0 {
 		params.Set("cpuperiod", strconv.Itoa(int(cpuPeriod)))
 	}
 	if cpuQuota := options.CommonBuildOpts.CPUQuota; cpuQuota > 0 {
 		params.Set("cpuquota", strconv.Itoa(int(cpuQuota)))
 	}
+	if cpuSetCpus := options.CommonBuildOpts.CPUSetCPUs; len(cpuSetCpus) > 0 {
+		params.Set("cpusetcpus", cpuSetCpus)
+	}
+	if cpuSetMems := options.CommonBuildOpts.CPUSetMems; len(cpuSetMems) > 0 {
+		params.Set("cpusetmems", cpuSetMems)
+	}
+	if cpuShares := options.CommonBuildOpts.CPUShares; cpuShares > 0 {
+		params.Set("cpushares", strconv.Itoa(int(cpuShares)))
+	}
+	if len(options.CommonBuildOpts.CgroupParent) > 0 {
+		params.Set("cgroupparent", options.CommonBuildOpts.CgroupParent)
+	}
+
 	params.Set("networkmode", strconv.Itoa(int(options.ConfigureNetwork)))
 	params.Set("outputformat", options.OutputFormat)
 

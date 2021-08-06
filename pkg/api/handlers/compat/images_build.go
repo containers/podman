@@ -73,10 +73,12 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		CacheFrom              string   `schema:"cachefrom"`
 		Compression            uint64   `schema:"compression"`
 		ConfigureNetwork       string   `schema:"networkmode"`
-		CpuPeriod              uint64   `schema:"cpuperiod"`  // nolint
-		CpuQuota               int64    `schema:"cpuquota"`   // nolint
-		CpuSetCpus             string   `schema:"cpusetcpus"` // nolint
-		CpuShares              uint64   `schema:"cpushares"`  // nolint
+		CpuPeriod              uint64   `schema:"cpuperiod"`    // nolint
+		CpuQuota               int64    `schema:"cpuquota"`     // nolint
+		CpuSetCpus             string   `schema:"cpusetcpus"`   // nolint
+		CpuSetMems             string   `schema:"cpusetmems"`   // nolint
+		CpuShares              uint64   `schema:"cpushares"`    // nolint
+		CgroupParent           string   `schema:"cgroupparent"` // nolint
 		DNSOptions             string   `schema:"dnsoptions"`
 		DNSSearch              string   `schema:"dnssearch"`
 		DNSServers             string   `schema:"dnsservers"`
@@ -422,7 +424,9 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			CPUPeriod:          query.CpuPeriod,
 			CPUQuota:           query.CpuQuota,
 			CPUSetCPUs:         query.CpuSetCpus,
+			CPUSetMems:         query.CpuSetMems,
 			CPUShares:          query.CpuShares,
+			CgroupParent:       query.CgroupParent,
 			DNSOptions:         dnsoptions,
 			DNSSearch:          dnssearch,
 			DNSServers:         dnsservers,
