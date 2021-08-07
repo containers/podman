@@ -103,6 +103,9 @@ func pushFlags(cmd *cobra.Command) {
 	flags.BoolVar(&pushOptions.RemoveSignatures, "remove-signatures", false, "Discard any pre-existing signatures in the image")
 	flags.StringVar(&pushOptions.SignaturePolicy, "signature-policy", "", "Path to a signature-policy file")
 
+	signFlagName := "sign"
+	flags.BoolVar(&pushOptions.Sign, signFlagName, false, "Add a signature at the triangulated destination using ephemeral keys")
+
 	signByFlagName := "sign-by"
 	flags.StringVar(&pushOptions.SignBy, signByFlagName, "", "Add a signature at the destination using the specified key")
 	_ = cmd.RegisterFlagCompletionFunc(signByFlagName, completion.AutocompleteNone)
@@ -115,6 +118,7 @@ func pushFlags(cmd *cobra.Command) {
 		_ = flags.MarkHidden("digestfile")
 		_ = flags.MarkHidden("quiet")
 		_ = flags.MarkHidden("remove-signatures")
+		_ = flags.MarkHidden("sign")
 		_ = flags.MarkHidden("sign-by")
 	}
 	_ = flags.MarkHidden("signature-policy")

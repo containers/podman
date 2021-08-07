@@ -198,6 +198,9 @@ type ImagePushOptions struct {
 	RemoveSignatures bool
 	// SignaturePolicy to use when pulling.  Ignored for remote calls.
 	SignaturePolicy string
+	// Sign adds a signature at the triangulated destination using ephemeral keys.
+	// Ignored for remote calls.
+	Sign bool
 	// SignBy adds a signature at the destination using the specified key.
 	// Ignored for remote calls.
 	SignBy string
