@@ -90,8 +90,7 @@ else
 	ISODATE ?= $(shell date --iso-8601)
 endif
 LIBPOD := ${PROJECT}/v3/libpod
-GCFLAGS ?= all=-trimpath=$(CURDIR)
-ASMFLAGS ?= all=-trimpath=$(CURDIR)
+GOFLAGS ?= -trimpath
 LDFLAGS_PODMAN ?= \
 	-X $(LIBPOD)/define.gitCommit=$(GIT_COMMIT) \
 	-X $(LIBPOD)/define.buildInfo=$(BUILD_INFO) \
@@ -295,8 +294,6 @@ endif
 	CGO_ENABLED=$(CGO_ENABLED) \
 		$(GO) build \
 		$(BUILDFLAGS) \
-		-gcflags '$(GCFLAGS)' \
-		-asmflags '$(ASMFLAGS)' \
 		-ldflags '$(LDFLAGS_PODMAN)' \
 		-tags "$(BUILDTAGS)" \
 		-o $@ ./cmd/podman
@@ -310,8 +307,6 @@ $(SRCBINDIR)/podman$(BINSFX): $(SRCBINDIR) .gopathok $(SOURCES) go.mod go.sum
 		GOOS=$(GOOS) \
 		$(GO) build \
 		$(BUILDFLAGS) \
-		-gcflags '$(GCFLAGS)' \
-		-asmflags '$(ASMFLAGS)' \
 		-ldflags '$(LDFLAGS_PODMAN)' \
 		-tags "${REMOTETAGS}" \
 		-o $@ ./cmd/podman
@@ -321,8 +316,6 @@ $(SRCBINDIR)/podman-remote-static: $(SRCBINDIR) .gopathok $(SOURCES) go.mod go.s
 		GOOS=$(GOOS) \
 		$(GO) build \
 		$(BUILDFLAGS) \
-		-gcflags '$(GCFLAGS)' \
-		-asmflags '$(ASMFLAGS)' \
 		-ldflags '$(LDFLAGS_PODMAN_STATIC)' \
 		-tags "${REMOTETAGS}" \
 		-o $@ ./cmd/podman
@@ -376,8 +369,6 @@ bin/podman.cross.%: .gopathok
 	CGO_ENABLED=0 \
 		$(GO) build \
 		$(BUILDFLAGS) \
-		-gcflags '$(GCFLAGS)' \
-		-asmflags '$(ASMFLAGS)' \
 		-ldflags '$(LDFLAGS_PODMAN)' \
 		-tags '$(BUILDTAGS_CROSS)' \
 		-o "$@" ./cmd/podman
