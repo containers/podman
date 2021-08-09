@@ -89,9 +89,13 @@ var _ = Describe("Podman run device", func() {
 	})
 
 	It("podman run device host device with --privileged", func() {
-		session := podmanTest.Podman([]string{"run", "--privileged", ALPINE, "ls", "/dev/kmsg"})
+		session := podmanTest.Podman([]string{"run", "--privileged", ALPINE, "test", "-c", "/dev/kmsg"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+		// verify --privileged is required
+		session2 := podmanTest.Podman([]string{"run", ALPINE, "test", "-c", "/dev/kmsg"})
+		session2.WaitWithDefaultTimeout()
+		Expect(session2).Should((Exit(1)))
 	})
 
 	It("podman run CDI device test", func() {
