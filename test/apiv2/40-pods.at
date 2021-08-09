@@ -19,6 +19,9 @@ t GET  libpod/pods/json            200 \
   .[0].Id=$pod_id \
   .[0].Containers\|length=1
 
+t GET libpod/pods/json?filters='{"until":["500000"]}' 200 length=0
+t GET libpod/pods/json?filters='{"until":["5000000000"]}' 200 length=1
+
 # Cannot create a dup pod with the same name
 t POST "libpod/pods/create (dup pod)" name=foo 409 \
   .cause="pod already exists"
