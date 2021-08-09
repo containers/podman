@@ -141,19 +141,24 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 	}
 	info.CGroupsVersion = cgroupVersion
 
-	if rootless.IsRootless() {
-		if path, err := exec.LookPath("slirp4netns"); err == nil {
-			version, err := programVersion(path)
-			if err != nil {
-				logrus.Warnf("Failed to retrieve program version for %s: %v", path, err)
-			}
-			program := define.SlirpInfo{
-				Executable: path,
-				Package:    packageVersion(path),
-				Version:    version,
-			}
-			info.Slirp4NetNS = program
+	slirp4netnsPath := r.config.Engine.NetworkCmdPath
+	if slirp4netnsPath == "" {
+		slirp4netnsPath, _ = exec.LookPath("slirp4netns")
+	}
+	if slirp4netnsPath != "" {
+		version, err := programVersion(slirp4netnsPath)
+		if err != nil {
+			logrus.Warnf("Failed to retrieve program version for %s: %v", slirp4netnsPath, err)
 		}
+		program := define.SlirpInfo{
+			Executable: slirp4netnsPath,
+			Package:    packageVersion(slirp4netnsPath),
+			Version:    version,
+		}
+		info.Slirp4NetNS = program
+	}
+
+	if rootless.IsRootless() {
 		uidmappings, err := rootless.ReadMappingsProc("/proc/self/uid_map")
 		if err != nil {
 			return nil, errors.Wrapf(err, "error reading uid mappings")
