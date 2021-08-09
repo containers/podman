@@ -378,8 +378,7 @@ osx_alt_build_task:
     always: *binary_artifacts
 
 
-# This task is a stub: In the future it will be used to verify
-# podman is compatible with the docker python-module.
+# Verify podman is compatible with the docker python-module.
 docker-py_test_task:
     name: Docker-py Compat.
     alias: docker-py_test
