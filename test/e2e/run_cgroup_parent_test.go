@@ -64,6 +64,7 @@ var _ = Describe("Podman run with --cgroup-parent", func() {
 	})
 
 	Specify("always honor --cgroup-parent", func() {
+		Skip("https://github.com/containers/podman/issues/11165")
 		SkipIfCgroupV1("test not supported in cgroups v1")
 		if Containerized() || podmanTest.CgroupManager == "cgroupfs" {
 			Skip("Requires Systemd cgroup manager support")
