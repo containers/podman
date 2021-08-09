@@ -47,6 +47,7 @@ store.configFile          | $expr_path
 store.graphDriverName     | [a-z0-9]\\\+\\\$
 store.graphRoot           | $expr_path
 store.imageStore.number   | 1
+host.slirp4netns.executable | $expr_path
 "
 
     parse_table "$tests" | while read field expect; do
