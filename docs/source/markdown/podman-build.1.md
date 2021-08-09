@@ -43,6 +43,8 @@ containers can be left in container storage. Use the `podman ps --all --storage`
 command to see these containers. External containers can be removed with the
 `podman rm --storage` command.
 
+`podman buildx build` command is an alias of `podman build`.  Not all `buildx build` features are available in Podman. The `buildx build` option is provided for scripting compatibility.
+
 ## OPTIONS
 
 #### **--add-host**=*host*

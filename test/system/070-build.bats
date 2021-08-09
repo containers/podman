@@ -29,6 +29,27 @@ EOF
     run_podman rmi -f build_test
 }
 
+@test "podman buildx - basic test" {
+    rand_filename=$(random_string 20)
+    rand_content=$(random_string 50)
+
+    tmpdir=$PODMAN_TMPDIR/build-test
+    mkdir -p $tmpdir
+    dockerfile=$tmpdir/Dockerfile
+    cat >$dockerfile <<EOF
+FROM $IMAGE
+RUN echo $rand_content > /$rand_filename
+EOF
+
+    run_podman buildx build --load -t build_test --format=docker $tmpdir
+    is "$output" ".*COMMIT" "COMMIT seen in log"
+
+    run_podman run --rm build_test cat /$rand_filename
+    is "$output"   "$rand_content"   "reading generated file in image"
+
+    run_podman rmi -f build_test
+}
+
 @test "podman build test -f -" {
     rand_filename=$(random_string 20)
     rand_content=$(random_string 50)

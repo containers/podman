@@ -33,7 +33,9 @@ func TestShellCompletionFunctions(t *testing.T) {
 func checkCommand(t *testing.T, cmd *cobra.Command) {
 	if cmd.HasSubCommands() {
 		for _, childCmd := range cmd.Commands() {
-			checkCommand(t, childCmd)
+			if !childCmd.Hidden {
+				checkCommand(t, childCmd)
+			}
 		}
 
 		// if not check if completion for that command is provided

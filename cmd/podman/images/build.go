@@ -67,6 +67,18 @@ var (
   podman image build --layers --force-rm --tag imageName .`,
 	}
 
+	buildxBuildCmd = &cobra.Command{
+		Args:              buildCmd.Args,
+		Use:               buildCmd.Use,
+		Short:             buildCmd.Short,
+		Long:              buildCmd.Long,
+		RunE:              buildCmd.RunE,
+		ValidArgsFunction: buildCmd.ValidArgsFunction,
+		Example: `podman buildx build .
+  podman buildx build --creds=username:password -t imageName -f Containerfile.simple .
+  podman buildx build --layers --force-rm --tag imageName .`,
+	}
+
 	buildOpts = buildFlagsWrapper{}
 )
 
@@ -91,10 +103,23 @@ func init() {
 		Parent:  imageCmd,
 	})
 	buildFlags(imageBuildCmd)
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Command: buildxBuildCmd,
+		Parent:  buildxCmd,
+	})
+	buildFlags(buildxBuildCmd)
 }
 
 func buildFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
+
+	// buildx build --load ignored, but added for compliance
+	flags.Bool("load", false, "buildx --load")
+	_ = flags.MarkHidden("load")
+
+	// buildx build --progress ignored, but added for compliance
+	flags.String("progress", "auto", "buildx --progress")
+	_ = flags.MarkHidden("progress")
 
 	// Podman flags
 	flags.BoolVarP(&buildOpts.SquashAll, "squash-all", "", false, "Squash all layers into a single layer")
