@@ -63,7 +63,7 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 
 	var since time.Time
 	if _, found := r.URL.Query()["since"]; found {
-		since, err = util.ParseInputTime(query.Since)
+		since, err = util.ParseInputTime(query.Since, true)
 		if err != nil {
 			utils.BadRequest(w, "since", query.Since, err)
 			return
@@ -73,7 +73,7 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 	var until time.Time
 	if _, found := r.URL.Query()["until"]; found {
 		if query.Until != "0" {
-			until, err = util.ParseInputTime(query.Until)
+			until, err = util.ParseInputTime(query.Until, false)
 			if err != nil {
 				utils.BadRequest(w, "until", query.Until, err)
 				return
