@@ -135,7 +135,7 @@ func generateEventFilters(filters []string, since, until string) (map[string][]E
 	}
 
 	if len(since) > 0 {
-		timeSince, err := util.ParseInputTime(since)
+		timeSince, err := util.ParseInputTime(since, true)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to convert since time of %s", since)
 		}
@@ -144,7 +144,7 @@ func generateEventFilters(filters []string, since, until string) (map[string][]E
 	}
 
 	if len(until) > 0 {
-		timeUntil, err := util.ParseInputTime(until)
+		timeUntil, err := util.ParseInputTime(until, false)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to convert until time of %s", until)
 		}
