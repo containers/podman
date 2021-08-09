@@ -120,7 +120,7 @@ func logsFlags(cmd *cobra.Command) {
 func logs(_ *cobra.Command, args []string) error {
 	if logsOptions.SinceRaw != "" {
 		// parse time, error out if something is wrong
-		since, err := util.ParseInputTime(logsOptions.SinceRaw)
+		since, err := util.ParseInputTime(logsOptions.SinceRaw, true)
 		if err != nil {
 			return errors.Wrapf(err, "error parsing --since %q", logsOptions.SinceRaw)
 		}
@@ -128,7 +128,7 @@ func logs(_ *cobra.Command, args []string) error {
 	}
 	if logsOptions.UntilRaw != "" {
 		// parse time, error out if something is wrong
-		until, err := util.ParseInputTime(logsOptions.UntilRaw)
+		until, err := util.ParseInputTime(logsOptions.UntilRaw, false)
 		if err != nil {
 			return errors.Wrapf(err, "error parsing --until %q", logsOptions.UntilRaw)
 		}

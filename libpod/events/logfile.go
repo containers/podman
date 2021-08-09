@@ -53,7 +53,7 @@ func (e EventLogFile) Read(ctx context.Context, options ReadOptions) error {
 		return err
 	}
 	if len(options.Until) > 0 {
-		untilTime, err := util.ParseInputTime(options.Until)
+		untilTime, err := util.ParseInputTime(options.Until, false)
 		if err != nil {
 			return err
 		}
