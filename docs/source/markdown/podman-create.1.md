@@ -646,13 +646,13 @@ Set the network mode for the container. Invalid if using **--dns**, **--dns-opt*
 
 Valid _mode_ values are:
 
-- **bridge**: create a network stack on the default bridge;
-- **none**: no networking;
-- **container:**_id_: reuse another container's network stack;
-- **host**: use the Podman host network stack. Note: the host mode gives the container full access to local system services such as D-bus and is therefore considered insecure;
-- _network-id_: connect to a user-defined network, multiple networks should be comma-separated;
-- **ns:**_path_: path to a network namespace to join;
-- **private**: create a new namespace for the container (default)
+- **bridge**: Create a network stack on the default bridge. This is the default for rootfull containers.
+- **none**: Create a network namespace for the container but do not configure network interfaces for it, thus the container has no network connectivity.
+- **container:**_id_: Reuse another container's network stack.
+- **host**: Do not create a network namespace, the container will use the host's network. Note: The host mode gives the container full access to local system services such as D-bus and is therefore considered insecure.
+- **network**: Connect to a user-defined network, multiple networks should be comma-separated.
+- **ns:**_path_: Path to a network namespace to join.
+- **private**: Create a new namespace for the container. This will use the **bridge** mode for rootfull containers and **slirp4netns** for rootless ones.
 - **slirp4netns[:OPTIONS,...]**: use **slirp4netns**(1) to create a user network stack. This is the default for rootless containers. It is possible to specify these additional options:
   - **allow_host_loopback=true|false**: Allow the slirp4netns to reach the host loopback IP (`10.0.2.2`, which is added to `/etc/hosts` as `host.containers.internal` for your convenience). Default is false.
   - **mtu=MTU**: Specify the MTU to use for this network. (Default is `65520`).
@@ -663,7 +663,8 @@ Valid _mode_ values are:
   - **outbound_addr6=INTERFACE**: Specify the outbound interface slirp should bind to (ipv6 traffic only).
   - **outbound_addr6=IPv6**: Specify the outbound ipv6 address slirp should bind to.
   - **port_handler=rootlesskit**: Use rootlesskit for port forwarding. Default.
-  - **port_handler=slirp4netns**: Use the slirp4netns port forwarding.
+  Note: Rootlesskit changes the source IP address of incoming packets to a IP address in the container network namespace, usually `10.0.2.100`. If your application requires the real source IP address, e.g. web server logs, use the slirp4netns port handler. The rootlesskit port handler is also used for rootless containers when connected to user-defined networks.
+  - **port_handler=slirp4netns**: Use the slirp4netns port forwarding, it is slower than rootlesskit but preserves the correct source IP address. This port handler cannot be used for user-defined networks.
 
 #### **--network-alias**=*alias*
 
