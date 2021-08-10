@@ -105,6 +105,8 @@ type InspectPodInfraConfig struct {
 	CPUSetCPUs string `json:"cpuset_cpus,omitempty"`
 	// Pid is the PID namespace mode of the pod's infra container
 	PidNS string `json:"pid_ns,omitempty"`
+	// UserNS is the usernamespace that all the containers in the pod will join.
+	UserNS string `json:"userns,omitempty"`
 }
 
 // InspectPodContainerInfo contains information on a container in a pod.

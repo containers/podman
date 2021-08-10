@@ -1,10 +1,16 @@
 package specgen
 
 import (
+	"fmt"
+	"os"
 	"strings"
 
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/rootless"
+	"github.com/containers/podman/v3/pkg/util"
+	"github.com/containers/storage"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 )
 
@@ -101,6 +107,13 @@ func (n *Namespace) IsAuto() bool {
 // IsKeepID indicates the namespace is KeepID
 func (n *Namespace) IsKeepID() bool {
 	return n.NSMode == KeepID
+}
+
+func (n *Namespace) String() string {
+	if n.Value != "" {
+		return fmt.Sprintf("%s:%s", n.NSMode, n.Value)
+	}
+	return string(n.NSMode)
 }
 
 func validateUserNS(n *Namespace) error {
@@ -322,4 +335,49 @@ func ParseNetworkString(network string) (Namespace, []string, map[string][]strin
 		cniNets = nil
 	}
 	return ns, cniNets, networkOptions, nil
+}
+
+func SetupUserNS(idmappings *storage.IDMappingOptions, userns Namespace, g *generate.Generator) (string, error) {
+	// User
+	var user string
+	switch userns.NSMode {
+	case Path:
+		if _, err := os.Stat(userns.Value); err != nil {
+			return user, errors.Wrap(err, "cannot find specified user namespace path")
+		}
+		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), userns.Value); err != nil {
+			return user, err
+		}
+		// runc complains if no mapping is specified, even if we join another ns.  So provide a dummy mapping
+		g.AddLinuxUIDMapping(uint32(0), uint32(0), uint32(1))
+		g.AddLinuxGIDMapping(uint32(0), uint32(0), uint32(1))
+	case Host:
+		if err := g.RemoveLinuxNamespace(string(spec.UserNamespace)); err != nil {
+			return user, err
+		}
+	case KeepID:
+		mappings, uid, gid, err := util.GetKeepIDMapping()
+		if err != nil {
+			return user, err
+		}
+		idmappings = mappings
+		g.SetProcessUID(uint32(uid))
+		g.SetProcessGID(uint32(gid))
+		user = fmt.Sprintf("%d:%d", uid, gid)
+		fallthrough
+	case Private:
+		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), ""); err != nil {
+			return user, err
+		}
+		if idmappings == nil || (len(idmappings.UIDMap) == 0 && len(idmappings.GIDMap) == 0) {
+			return user, errors.Errorf("must provide at least one UID or GID mapping to configure a user namespace")
+		}
+		for _, uidmap := range idmappings.UIDMap {
+			g.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
+		}
+		for _, gidmap := range idmappings.GIDMap {
+			g.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
+		}
+	}
+	return user, nil
 }

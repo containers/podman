@@ -593,6 +593,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		infraConfig.CPUQuota = p.CPUQuota()
 		infraConfig.CPUSetCPUs = p.ResourceLim().CPU.Cpus
 		infraConfig.PidNS = p.PidMode()
+		infraConfig.UserNS = p.config.InfraContainer.Userns.String()
 
 		if len(p.config.InfraContainer.DNSServer) > 0 {
 			infraConfig.DNSServer = make([]string, 0, len(p.config.InfraContainer.DNSServer))

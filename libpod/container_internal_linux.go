@@ -659,7 +659,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
-	if c.config.IDMappings.AutoUserNs {
+	if c.config.UserNsCtr == "" && c.config.IDMappings.AutoUserNs {
 		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), ""); err != nil {
 			return nil, err
 		}
@@ -1884,7 +1884,7 @@ func (c *Container) generateResolvConf() (string, error) {
 		return "", err
 	}
 
-	return filepath.Join(c.state.RunDir, "resolv.conf"), nil
+	return destPath, nil
 }
 
 // generateHosts creates a containers hosts file

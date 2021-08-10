@@ -367,6 +367,12 @@ func (c *Container) setupStorageMapping(dest, from *storage.IDMappingOptions) {
 		return
 	}
 	*dest = *from
+	// If we are creating a container inside a pod, we always want to inherit the
+	// userns settings from the infra container. So clear the auto userns settings
+	// so that we don't request storage for a new uid/gid map.
+	if c.PodID() != "" && !c.IsInfra() {
+		dest.AutoUserNs = false
+	}
 	if dest.AutoUserNs {
 		overrides := c.getUserOverrides()
 		dest.AutoUserNsOpts.PasswdFile = overrides.ContainerEtcPasswdPath

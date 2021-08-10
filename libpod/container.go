@@ -1020,8 +1020,8 @@ func (c *Container) RWSize() (int64, error) {
 }
 
 // IDMappings returns the UID/GID mapping used for the container
-func (c *Container) IDMappings() (storage.IDMappingOptions, error) {
-	return c.config.IDMappings, nil
+func (c *Container) IDMappings() storage.IDMappingOptions {
+	return c.config.IDMappings
 }
 
 // RootUID returns the root user mapping from container
