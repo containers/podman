@@ -117,7 +117,7 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, identity string)
 
 	ctx = context.WithValue(ctx, clientKey, &connection)
 	if err := pingNewConnection(ctx); err != nil {
-		return nil, errors.Wrap(err, "cannot connect to the Podman socket, please verify that Podman REST API service is running")
+		return nil, errors.Wrap(err, "cannot connect to the Podman socket, please verify the connection to the Linux system, or use `podman machine` to create/start a Linux VM.")
 	}
 	return ctx, nil
 }
