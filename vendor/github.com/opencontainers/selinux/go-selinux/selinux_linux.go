@@ -18,7 +18,6 @@ import (
 	"sync"
 
 	"github.com/bits-and-blooms/bitset"
-	"github.com/opencontainers/selinux/pkg/pwalk"
 	"golang.org/x/sys/unix"
 )
 
@@ -1048,17 +1047,10 @@ func chcon(fpath string, label string, recurse bool) error {
 	}
 
 	if !recurse {
-		return SetFileLabel(fpath, label)
+		return setFileLabel(fpath, label)
 	}
 
-	return pwalk.Walk(fpath, func(p string, info os.FileInfo, err error) error {
-		e := SetFileLabel(p, label)
-		// Walk a file tree can race with removal, so ignore ENOENT
-		if errors.Is(e, os.ErrNotExist) {
-			return nil
-		}
-		return e
-	})
+	return rchcon(fpath, label)
 }
 
 // dupSecOpt takes an SELinux process label and returns security options that
