@@ -266,9 +266,8 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 	}
 
 	if opts.mountProgram != "" {
-		f, err := os.Create(getMountProgramFlagFile(home))
-		if err == nil {
-			f.Close()
+		if err := ioutil.WriteFile(getMountProgramFlagFile(home), []byte("true"), 0600); err != nil {
+			return nil, err
 		}
 	} else {
 		// check if they are running over btrfs, aufs, zfs, overlay, or ecryptfs
@@ -542,9 +541,29 @@ func SupportsNativeOverlay(graphroot, rundir string) (bool, error) {
 	home := filepath.Join(graphroot, "overlay")
 	runhome := filepath.Join(rundir, "overlay")
 
-	if _, err := os.Stat(getMountProgramFlagFile(home)); err == nil {
+	var contents string
+	flagContent, err := ioutil.ReadFile(getMountProgramFlagFile(home))
+	if err == nil {
+		contents = strings.TrimSpace(string(flagContent))
+	}
+	switch contents {
+	case "true":
 		logrus.Debugf("overlay storage already configured with a mount-program")
 		return false, nil
+	default:
+		needsMountProgram, err := scanForMountProgramIndicators(home)
+		if err != nil && !os.IsNotExist(err) {
+			return false, err
+		}
+		if err := ioutil.WriteFile(getMountProgramFlagFile(home), []byte(fmt.Sprintf("%t", needsMountProgram)), 0600); err != nil && !os.IsNotExist(err) {
+			return false, err
+		}
+		if needsMountProgram {
+			return false, nil
+		}
+		// fall through to check if we find ourselves needing to use a
+		// mount program now
+	case "false":
 	}
 
 	for _, dir := range []string{home, runhome} {
