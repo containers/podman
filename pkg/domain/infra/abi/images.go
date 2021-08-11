@@ -6,9 +6,12 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
+	"os/exec"
+	"os/user"
 	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
@@ -18,6 +21,7 @@ import (
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/entities/reports"
 	domainUtils "github.com/containers/podman/v3/pkg/domain/utils"
@@ -328,6 +332,67 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 		return err
 	}
 	return pushError
+}
+
+// Transfer moves images from root to rootless storage so the user specified in the scp call can access and use the image modified by root
+func (ir *ImageEngine) Transfer(ctx context.Context, scpOpts entities.ImageScpOptions) error {
+	if scpOpts.User == "" {
+		return errors.Wrapf(define.ErrInvalidArg, "you must define a user when transferring from root to rootless storage")
+	}
+	var u *user.User
+	scpOpts.User = strings.Split(scpOpts.User, ":")[0] // split in case provided with uid:gid
+	_, err := strconv.Atoi(scpOpts.User)
+	if err != nil {
+		u, err = user.Lookup(scpOpts.User)
+		if err != nil {
+			return err
+		}
+	} else {
+		u, err = user.LookupId(scpOpts.User)
+		if err != nil {
+			return err
+		}
+	}
+	uid, err := strconv.Atoi(u.Uid)
+	if err != nil {
+		return err
+	}
+	gid, err := strconv.Atoi(u.Gid)
+	if err != nil {
+		return err
+	}
+	err = os.Chown(scpOpts.Save.Output, uid, gid) // chown the output because was created by root so we need to give th euser read access
+	if err != nil {
+		return err
+	}
+
+	podman, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	machinectl, err := exec.LookPath("machinectl")
+	if err != nil {
+		logrus.Warn("defaulting to su since machinectl is not available, su will fail if no user session is available")
+		cmd := exec.Command("su", "-l", u.Username, "--command", podman+" --log-level="+logrus.GetLevel().String()+" --cgroup-manager=cgroupfs load --input="+scpOpts.Save.Output) // load the new image to the rootless storage
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		logrus.Debug("Executing load command su")
+		err = cmd.Run()
+		if err != nil {
+			return err
+		}
+	} else {
+		cmd := exec.Command(machinectl, "shell", "-q", u.Username+"@.host", podman, "--log-level="+logrus.GetLevel().String(), "--cgroup-manager=cgroupfs", "load", "--input", scpOpts.Save.Output) // load the new image to the rootless storage
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		logrus.Debug("Executing load command machinectl")
+		err = cmd.Run()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, options entities.ImageTagOptions) error {

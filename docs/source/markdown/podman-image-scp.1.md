@@ -8,7 +8,7 @@ podman-image-scp - Securely copy an image from one host to another
 
 ## DESCRIPTION
 **podman image scp** copies container images between hosts on a network. You can load to the remote host or from the remote host as well as in between two remote hosts.
-Note: `::` is used to specify the image name depending on if you are saving or loading.
+Note: `::` is used to specify the image name depending on if you are saving or loading. Images can also be transferred from rootful to rootless storage on the same machine without using sshd. This feature is not supported on the remote client.
 
 **podman image scp [GLOBAL OPTIONS]**
 
@@ -57,6 +57,22 @@ WARN[0000] Unknown connection name given. Please use system connection add to sp
 Getting image source signatures
 Copying blob 9450ef9feb15 [--------------------------------------] 0.0b / 0.0b
 Copying config 1f97f0559c done
+Writing manifest to image destination
+Storing signatures
+Loaded image(s): docker.io/library/alpine:latest
+```
+
+```
+$ sudo podman image scp root@localhost::alpine username@localhost::
+Copying blob e2eb06d8af82 done
+Copying config 696d33ca15 done
+Writing manifest to image destination
+Storing signatures
+Run Directory Obtained: /run/user/1000/
+[Run Root: /var/tmp/containers-user-1000/containers Graph Root: /root/.local/share/containers/storage DB Path: /root/.local/share/containers/storage/libpod/bolt_state.db]
+Getting image source signatures
+Copying blob 5eb901baf107 skipped: already exists
+Copying config 696d33ca15 done
 Writing manifest to image destination
 Storing signatures
 Loaded image(s): docker.io/library/alpine:latest

@@ -328,6 +328,10 @@ type ImageScpOptions struct {
 	Save ImageSaveOptions
 	// Load options used for the second half of the scp operation
 	Load ImageLoadOptions
+	// Rootless determines whether we are loading locally from root storage to rootless storage
+	Rootless bool
+	// User is used in conjunction with Rootless to determine which user to use to obtain the uid
+	User string
 }
 
 // ImageTreeOptions provides options for ImageEngine.Tree()
