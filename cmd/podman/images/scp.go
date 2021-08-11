@@ -33,7 +33,7 @@ var (
 		Short:             "securely copy images",
 		RunE:              scp,
 		Args:              cobra.RangeArgs(1, 2),
-		ValidArgsFunction: common.AutocompleteImages,
+		ValidArgsFunction: common.AutocompleteScp,
 		Example:           `podman image scp myimage:latest otherhost::`,
 	}
 )

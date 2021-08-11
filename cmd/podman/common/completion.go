@@ -323,6 +323,18 @@ func prefixSlice(pre string, slice []string) []string {
 	return slice
 }
 
+func suffixCompSlice(suf string, slice []string) []string {
+	for i := range slice {
+		split := strings.SplitN(slice[i], "\t", 2)
+		if len(split) > 1 {
+			slice[i] = split[0] + suf + "\t" + split[1]
+		} else {
+			slice[i] = slice[i] + suf
+		}
+	}
+	return slice
+}
+
 func completeKeyValues(toComplete string, k keyValueCompletion) ([]string, cobra.ShellCompDirective) {
 	suggestions := make([]string, 0, len(k))
 	directive := cobra.ShellCompDirectiveNoFileComp
@@ -662,6 +674,42 @@ func AutocompleteSystemConnections(cmd *cobra.Command, args []string, toComplete
 	}
 
 	return suggestions, cobra.ShellCompDirectiveNoFileComp
+}
+
+// AutocompleteScp returns a list of connections, images, or both, depending on the amount of arguments
+func AutocompleteScp(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if !validCurrentCmdLine(cmd, args, toComplete) {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	switch len(args) {
+	case 0:
+		split := strings.SplitN(toComplete, "::", 2)
+		if len(split) > 1 {
+			imageSuggestions, _ := getImages(cmd, split[1])
+			return prefixSlice(split[0]+"::", imageSuggestions), cobra.ShellCompDirectiveNoFileComp
+		}
+		connectionSuggestions, _ := AutocompleteSystemConnections(cmd, args, toComplete)
+		imageSuggestions, _ := getImages(cmd, toComplete)
+		totalSuggestions := append(suffixCompSlice("::", connectionSuggestions), imageSuggestions...)
+		directive := cobra.ShellCompDirectiveNoFileComp
+		// if we have connections do not add a space after the completion
+		if len(connectionSuggestions) > 0 {
+			directive = cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
+		}
+		return totalSuggestions, directive
+	case 1:
+		split := strings.SplitN(args[0], "::", 2)
+		if len(split) > 1 {
+			if len(split[1]) > 0 {
+				return nil, cobra.ShellCompDirectiveNoFileComp
+			}
+			imageSuggestions, _ := getImages(cmd, toComplete)
+			return imageSuggestions, cobra.ShellCompDirectiveNoFileComp
+		}
+		connectionSuggestions, _ := AutocompleteSystemConnections(cmd, args, toComplete)
+		return suffixCompSlice("::", connectionSuggestions), cobra.ShellCompDirectiveNoFileComp
+	}
+	return nil, cobra.ShellCompDirectiveNoFileComp
 }
 
 /* -------------- Flags ----------------- */
