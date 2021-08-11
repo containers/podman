@@ -108,6 +108,22 @@ var _ = Describe("Podman ps", func() {
 		Expect(result).Should(Exit(0))
 	})
 
+	It("podman pod ps --filter until", func() {
+		name := "mypod"
+		_, ec, _ := podmanTest.CreatePod(map[string][]string{"--name": {name}})
+		Expect(ec).To(Equal(0))
+
+		result := podmanTest.Podman([]string{"pod", "ps", "--filter", "until=50"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(Not(ContainSubstring(name)))
+
+		result = podmanTest.Podman([]string{"pod", "ps", "--filter", "until=5000000000"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(ContainSubstring(name))
+	})
+
 	It("podman pod ps filter name regexp", func() {
 		_, ec, podid := podmanTest.CreatePod(map[string][]string{"--name": {"mypod"}})
 		Expect(ec).To(Equal(0))

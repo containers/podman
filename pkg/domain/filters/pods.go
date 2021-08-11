@@ -116,6 +116,17 @@ func GeneratePodFilterFunc(filter string, filterValues []string) (
 			labels := p.Labels()
 			return util.MatchLabelFilters(filterValues, labels)
 		}, nil
+	case "until":
+		return func(p *libpod.Pod) bool {
+			until, err := util.ComputeUntilTimestamp(filterValues)
+			if err != nil {
+				return false
+			}
+			if p.CreatedTime().Before(until) {
+				return true
+			}
+			return false
+		}, nil
 	case "network":
 		return func(p *libpod.Pod) bool {
 			infra, err := p.InfraContainer()

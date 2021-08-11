@@ -98,6 +98,7 @@ Valid filters are listed below:
 | id         | [ID] Pod's ID (accepts regex)                                                         |
 | name       | [Name] Pod's name (accepts regex)                                                     |
 | label      | [Key] or [Key=Value] Label assigned to a container                                    |
+| until      | Only list pods created before given timestamp                                         |
 | status     | Pod's status: `stopped`, `running`, `paused`, `exited`, `dead`, `created`, `degraded` |
 | network    | [Network] name or full ID of network                                                  |
 | ctr-names  | Container name within the pod (accepts regex)                                         |
