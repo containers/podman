@@ -544,6 +544,15 @@ func DefineCreateFlags(cmd *cobra.Command, cf *ContainerCLIOpts) {
 	)
 	_ = cmd.RegisterFlagCompletionFunc(podIDFileFlagName, completion.AutocompleteDefault)
 
+	// Flag for TLS verification, so that `run` and `create` commands can make use of it.
+	// Make sure to use `=` while using this flag i.e `--tls-verify=false/true`
+	tlsVerifyFlagName := "tls-verify"
+	createFlags.BoolVar(
+		&cf.TLSVerify,
+		tlsVerifyFlagName, true,
+		"Require HTTPS and verify certificates when contacting registries for pulling images",
+	)
+
 	createFlags.BoolVar(
 		&cf.Privileged,
 		"privileged", false,

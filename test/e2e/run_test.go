@@ -166,9 +166,25 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run a container based on remote image", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", BB_GLIBC, "ls"})
+		// Changing session to rsession
+		rsession := podmanTest.Podman([]string{"run", "-dt", ALPINE, "ls"})
+		rsession.WaitWithDefaultTimeout()
+		Expect(rsession).Should(Exit(0))
+
+		lock := GetPortLock("5000")
+		defer lock.Unlock()
+		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+
+		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
+			Skip("Cannot start docker registry.")
+		}
+
+		run := podmanTest.Podman([]string{"run", "--tls-verify=false", ALPINE})
+		run.WaitWithDefaultTimeout()
+		Expect(run).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(3))
 	})
 
 	It("podman run a container with a --rootfs", func() {
