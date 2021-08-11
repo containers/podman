@@ -455,8 +455,7 @@ setup operations for the pod's applications.
 
 Valid values for `init-ctr` type are *always* or *oneshot*.  The *always* value
 means the container will run with each and every `pod start`, whereas the *oneshot*
-value means is will ony run once when the pod is started and then the container is
-removed.
+value means the container will only run once when the pod is started and then the container is removed.
 
 Init containers are only run on pod `start`.  Restarting a pod will not execute any init
 containers should they be present.  Furthermore, init containers can only be created in a

@@ -79,7 +79,7 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 		break
 	}
 	if cursorError != nil {
-		return errors.Wrap(cursorError, "inital journal cursor")
+		return errors.Wrap(cursorError, "initial journal cursor")
 	}
 
 	// We need the container's events in the same journal to guarantee
