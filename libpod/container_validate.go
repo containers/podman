@@ -131,5 +131,6 @@ func (c *Container) validate() error {
 	if c.config.User == "" && (c.config.Spec.Process.User.UID != 0 || c.config.Spec.Process.User.GID != 0) {
 		return errors.Wrapf(define.ErrInvalidArg, "please set User explicitly via WithUser() instead of in OCI spec directly")
 	}
+
 	return nil
 }

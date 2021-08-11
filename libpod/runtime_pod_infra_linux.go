@@ -158,6 +158,7 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawIm
 			g.Config.Linux.Namespaces = newNS
 		}
 	}
+
 	g.SetRootReadonly(true)
 	g.SetProcessArgs(infraCtrCommand)
 
@@ -184,6 +185,7 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawIm
 		// Ignore mqueue sysctls if not sharing IPC
 		if !p.config.UsePodIPC && strings.HasPrefix(sysctlKey, "fs.mqueue.") {
 			logrus.Infof("Sysctl %s=%s ignored in containers.conf, since IPC Namespace for pod is unused", sysctlKey, sysctlVal)
+
 			continue
 		}
 
@@ -198,6 +200,7 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawIm
 			logrus.Infof("Sysctl %s=%s ignored in containers.conf, since UTS Namespace for pod is unused", sysctlKey, sysctlVal)
 			continue
 		}
+
 		g.AddLinuxSysctl(sysctlKey, sysctlVal)
 	}
 
@@ -213,11 +216,7 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawIm
 	if len(p.config.InfraContainer.ConmonPidFile) > 0 {
 		options = append(options, WithConmonPidFile(p.config.InfraContainer.ConmonPidFile))
 	}
-	newRes := new(spec.LinuxResources)
-	newRes.CPU = new(spec.LinuxCPU)
-	newRes.CPU = p.ResourceLim().CPU
 
-	g.Config.Linux.Resources.CPU = newRes.CPU
 	return r.newContainer(ctx, g.Config, options...)
 }
 
@@ -228,6 +227,7 @@ func (r *Runtime) createInfraContainer(ctx context.Context, p *Pod) (*Container,
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
 	}
+
 	imageName := p.config.InfraContainer.InfraImage
 	if imageName == "" {
 		imageName = r.config.Engine.InfraImage

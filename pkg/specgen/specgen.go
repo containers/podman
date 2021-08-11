@@ -473,10 +473,6 @@ type ContainerResourceConfig struct {
 	// that are used to configure cgroup v2.
 	// Optional.
 	CgroupConf map[string]string `json:"unified,omitempty"`
-	// CPU period of the cpuset, determined by --cpus
-	CPUPeriod uint64 `json:"cpu_period,omitempty"`
-	// CPU quota of the cpuset, determined by --cpus
-	CPUQuota int64 `json:"cpu_quota,omitempty"`
 }
 
 // ContainerHealthCheckConfig describes a container healthcheck with attributes

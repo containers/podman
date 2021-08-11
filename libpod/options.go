@@ -21,7 +21,6 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/ocicni/pkg/ocicni"
-	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -574,6 +573,7 @@ func WithMaxLogSize(limit int64) CtrCreateOption {
 		if ctr.valid {
 			return define.ErrRuntimeFinalized
 		}
+
 		ctr.config.LogSize = limit
 
 		return nil
@@ -881,6 +881,7 @@ func WithMountNSFrom(nsCtr *Container) CtrCreateOption {
 		if err := checkDependencyContainer(nsCtr, ctr); err != nil {
 			return err
 		}
+
 		ctr.config.MountNsCtr = nsCtr.ID()
 
 		return nil
@@ -2382,45 +2383,6 @@ func WithVolatile() CtrCreateOption {
 		}
 
 		ctr.config.Volatile = true
-		return nil
-	}
-}
-
-// WithPodCPUPAQ takes the given cpu period and quota and inserts them in the proper place.
-func WithPodCPUPAQ(period uint64, quota int64) PodCreateOption {
-	return func(pod *Pod) error {
-		if pod.valid {
-			return define.ErrPodFinalized
-		}
-		if pod.CPUPeriod() != 0 && pod.CPUQuota() != 0 {
-			pod.config.InfraContainer.ResourceLimits.CPU = &specs.LinuxCPU{
-				Period: &period,
-				Quota:  &quota,
-			}
-		} else {
-			pod.config.InfraContainer.ResourceLimits = &specs.LinuxResources{}
-			pod.config.InfraContainer.ResourceLimits.CPU = &specs.LinuxCPU{
-				Period: &period,
-				Quota:  &quota,
-			}
-		}
-		return nil
-	}
-}
-
-// WithPodCPUSetCPUS computes and sets the Cpus linux resource string which determines the amount of cores, from those available,  we are allowed to execute on
-func WithPodCPUSetCPUs(inp string) PodCreateOption {
-	return func(pod *Pod) error {
-		if pod.valid {
-			return define.ErrPodFinalized
-		}
-		if pod.ResourceLim().CPU.Period != nil {
-			pod.config.InfraContainer.ResourceLimits.CPU.Cpus = inp
-		} else {
-			pod.config.InfraContainer.ResourceLimits = &specs.LinuxResources{}
-			pod.config.InfraContainer.ResourceLimits.CPU = &specs.LinuxCPU{}
-			pod.config.InfraContainer.ResourceLimits.CPU.Cpus = inp
-		}
 		return nil
 	}
 }

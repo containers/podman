@@ -354,6 +354,7 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 			options = append(options, libpod.WithLogDriver(s.LogConfiguration.Driver))
 		}
 	}
+
 	// Security options
 	if len(s.SelinuxOpts) > 0 {
 		options = append(options, libpod.WithSecLabels(s.SelinuxOpts))

@@ -23,22 +23,6 @@ Add a host to the /etc/hosts file shared between all containers in the pod.
 
 Path to cgroups under which the cgroup for the pod will be created. If the path is not absolute, the path is considered to be relative to the cgroups path of the init process. Cgroups will be created if they do not already exist.
 
-#### **--cpus**=*amount*
-
-Set the total number of CPUs delegated to the pod. Default is 0.000 which indicates that there is no limit on computation power.
-
-#### **--cpuset-cpus**=*amount*
-
-Limit the CPUs to support execution. First CPU is numbered 0. Unlike --cpus this is of type string and parsed as a list of numbers
-
-Format is 0-3,0,1
-
-Examples of the List Format:
-
-0-4,9           # bits 0, 1, 2, 3, 4, and 9 set
-0-2,7,12-14     # bits 0, 1, 2, 7, 12, 13, and 14 set
-
-
 #### **--dns**=*ipaddr*
 
 Set custom DNS servers in the /etc/resolv.conf file that will be shared between all containers in the pod. A special option, "none" is allowed which disables creation of /etc/resolv.conf for the pod.

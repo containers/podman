@@ -2,8 +2,6 @@ package specgen
 
 import (
 	"net"
-
-	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
 // PodBasicConfig contains basic configuration options for pods.
@@ -167,16 +165,6 @@ type PodSpecGenerator struct {
 	PodBasicConfig
 	PodNetworkConfig
 	PodCgroupConfig
-	PodResourceConfig
-}
-
-type PodResourceConfig struct {
-	// ResourceLimits contains linux specific CPU data for the pod
-	ResourceLimits *spec.LinuxResources `json:"resource_limits,omitempty"`
-	// CPU period of the cpuset, determined by --cpus
-	CPUPeriod uint64 `json:"cpu_period,omitempty"`
-	// CPU quota of the cpuset, determined by --cpus
-	CPUQuota int64 `json:"cpu_quota,omitempty"`
 }
 
 // NewPodSpecGenerator creates a new pod spec

@@ -538,9 +538,6 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		infraConfig.StaticMAC = p.config.InfraContainer.StaticMAC.String()
 		infraConfig.NoManageResolvConf = p.config.InfraContainer.UseImageResolvConf
 		infraConfig.NoManageHosts = p.config.InfraContainer.UseImageHosts
-		infraConfig.CPUPeriod = p.CPUPeriod()
-		infraConfig.CPUQuota = p.CPUQuota()
-		infraConfig.CPUSetCPUs = p.ResourceLim().CPU.Cpus
 		infraConfig.PidNS = p.PidMode()
 
 		if len(p.config.InfraContainer.DNSServer) > 0 {
@@ -585,9 +582,6 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		SharedNamespaces: sharesNS,
 		NumContainers:    uint(len(containers)),
 		Containers:       ctrs,
-		CPUSetCPUs:       p.ResourceLim().CPU.Cpus,
-		CPUPeriod:        p.CPUPeriod(),
-		CPUQuota:         p.CPUQuota(),
 	}
 
 	return &inspectData, nil
