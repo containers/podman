@@ -3,6 +3,7 @@ package util
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -530,9 +531,10 @@ func ParseInputTime(inputTime string) (time.Time, error) {
 		}
 	}
 
-	unixTimestamp, err := strconv.ParseInt(inputTime, 10, 64)
+	unixTimestamp, err := strconv.ParseFloat(inputTime, 64)
 	if err == nil {
-		return time.Unix(unixTimestamp, 0), nil
+		iPart, fPart := math.Modf(unixTimestamp)
+		return time.Unix(int64(iPart), int64(fPart*1_000_000_000)).UTC(), nil
 	}
 
 	// input might be a duration

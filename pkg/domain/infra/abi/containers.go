@@ -119,6 +119,10 @@ func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []stri
 	report := make([]*entities.PauseUnpauseReport, 0, len(ctrs))
 	for _, c := range ctrs {
 		err := c.Pause()
+		if err != nil && options.All && errors.Cause(err) == define.ErrCtrStateInvalid {
+			logrus.Debugf("Container %s is not running", c.ID())
+			continue
+		}
 		report = append(report, &entities.PauseUnpauseReport{Id: c.ID(), Err: err})
 	}
 	return report, nil
@@ -132,6 +136,10 @@ func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []st
 	report := make([]*entities.PauseUnpauseReport, 0, len(ctrs))
 	for _, c := range ctrs {
 		err := c.Unpause()
+		if err != nil && options.All && errors.Cause(err) == define.ErrCtrStateInvalid {
+			logrus.Debugf("Container %s is not paused", c.ID())
+			continue
+		}
 		report = append(report, &entities.PauseUnpauseReport{Id: c.ID(), Err: err})
 	}
 	return report, nil
@@ -220,9 +228,14 @@ func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []strin
 	}
 	reports := make([]*entities.KillReport, 0, len(ctrs))
 	for _, con := range ctrs {
+		err := con.Kill(uint(sig))
+		if options.All && errors.Cause(err) == define.ErrCtrStateInvalid {
+			logrus.Debugf("Container %s is not running", con.ID())
+			continue
+		}
 		reports = append(reports, &entities.KillReport{
 			Id:       con.ID(),
-			Err:      con.Kill(uint(sig)),
+			Err:      err,
 			RawInput: ctrMap[con.ID()],
 		})
 	}

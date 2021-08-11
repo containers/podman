@@ -153,33 +153,22 @@ func queryPackageVersion(cmdArg ...string) string {
 	return strings.Trim(output, "\n")
 }
 
-func equeryVersion(path string) string {
-	return queryPackageVersion("/usr/bin/equery", "b", path)
-}
-
-func pacmanVersion(path string) string {
-	return queryPackageVersion("/usr/bin/pacman", "-Qo", path)
-}
-
-func dpkgVersion(path string) string {
-	return queryPackageVersion("/usr/bin/dpkg", "-S", path)
-}
-
-func rpmVersion(path string) string {
-	return queryPackageVersion("/usr/bin/rpm", "-q", "-f", path)
-}
-
-func packageVersion(program string) string {
-	if out := rpmVersion(program); out != unknownPackage {
-		return out
+func packageVersion(program string) string { // program is full path
+	packagers := [][]string{
+		{"/usr/bin/rpm", "-q", "-f"},
+		{"/usr/bin/dpkg", "-S"},    // Debian, Ubuntu
+		{"/usr/bin/pacman", "-Qo"}, // Arch
+		{"/usr/bin/qfile", "-qv"},  // Gentoo (quick)
+		{"/usr/bin/equery", "b"},   // Gentoo (slow)
 	}
-	if out := dpkgVersion(program); out != unknownPackage {
-		return out
+
+	for _, cmd := range packagers {
+		cmd = append(cmd, program)
+		if out := queryPackageVersion(cmd...); out != unknownPackage {
+			return out
+		}
 	}
-	if out := pacmanVersion(program); out != unknownPackage {
-		return out
-	}
-	return equeryVersion(program)
+	return unknownPackage
 }
 
 func programVersion(mountProgram string) (string, error) {

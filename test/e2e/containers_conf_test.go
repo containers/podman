@@ -261,10 +261,16 @@ var _ = Describe("Podman run", func() {
 
 	It("podman run containers.conf timezone", func() {
 		//containers.conf timezone set to Pacific/Honolulu
-		session := podmanTest.Podman([]string{"run", ALPINE, "date", "+'%H %Z'"})
+		session := podmanTest.Podman([]string{"run", "--tz", "", ALPINE, "date", "+'%H %Z'"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("HST"))
+
+		// verify flag still overrides
+		session = podmanTest.Podman([]string{"run", "--tz", "EST", ALPINE, "date", "+'%H %Z'"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("EST"))
 	})
 
 	It("podman run containers.conf umask", func() {

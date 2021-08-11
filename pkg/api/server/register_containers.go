@@ -1085,6 +1085,8 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//     description: no error
 	//   404:
 	//     $ref: "#/responses/NoSuchContainer"
+	//   409:
+	//     $ref: "#/responses/ConflictError"
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/stats"), s.APIHandler(compat.StatsContainer)).Methods(http.MethodGet)
@@ -1113,6 +1115,8 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//     description: no error
 	//   404:
 	//     $ref: "#/responses/NoSuchContainer"
+	//   409:
+	//     $ref: "#/responses/ConflictError"
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/stats"), s.APIHandler(libpod.StatsContainer)).Methods(http.MethodGet)

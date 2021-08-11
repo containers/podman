@@ -7,8 +7,6 @@ import (
 
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/specgen"
-	"github.com/containers/podman/v3/pkg/util"
-	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
 type PodKillOptions struct {
@@ -120,32 +118,10 @@ type PodCreateOptions struct {
 	Net                *NetOptions
 	Share              []string
 	Pid                string
-	Cpus               float64
-	CpusetCpus         string
 }
 
 type PodCreateReport struct {
 	Id string //nolint
-}
-
-func (p *PodCreateOptions) CPULimits() *specs.LinuxCPU {
-	cpu := &specs.LinuxCPU{}
-	hasLimits := false
-
-	if p.Cpus != 0 {
-		period, quota := util.CoresToPeriodAndQuota(p.Cpus)
-		cpu.Period = &period
-		cpu.Quota = &quota
-		hasLimits = true
-	}
-	if p.CpusetCpus != "" {
-		cpu.Cpus = p.CpusetCpus
-		hasLimits = true
-	}
-	if !hasLimits {
-		return cpu
-	}
-	return cpu
 }
 
 func setNamespaces(p *PodCreateOptions) ([4]specgen.Namespace, error) {
@@ -204,19 +180,6 @@ func (p *PodCreateOptions) ToPodSpecGen(s *specgen.PodSpecGenerator) error {
 	// Cgroup
 	s.CgroupParent = p.CGroupParent
 
-	// Resource config
-	cpuDat := p.CPULimits()
-	if s.ResourceLimits == nil {
-		s.ResourceLimits = &specs.LinuxResources{}
-		s.ResourceLimits.CPU = &specs.LinuxCPU{}
-	}
-	if cpuDat != nil {
-		s.ResourceLimits.CPU = cpuDat
-		if p.Cpus != 0 {
-			s.CPUPeriod = *cpuDat.Period
-			s.CPUQuota = *cpuDat.Quota
-		}
-	}
 	return nil
 }
 

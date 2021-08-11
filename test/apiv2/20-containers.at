@@ -65,6 +65,16 @@ t GET libpod/containers/json?last=1 200 \
 
 cid=$(jq -r '.[0].Id' <<<"$output")
 
+if root; then
+    t GET libpod/containers/stats?containers='[$cid]' 200
+else
+    if have_cgroupsv2; then
+        t GET libpod/containers/stats?containers='[$cid]' 200
+    else
+        t GET libpod/containers/stats?containers='[$cid]' 409
+    fi
+fi
+
 t DELETE libpod/containers/$cid 204
 
 # Issue #6799: it should be possible to start a container, even w/o args.

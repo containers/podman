@@ -224,6 +224,7 @@ func createInit(c *cobra.Command) error {
 		}
 		cliVals.Env = env
 	}
+
 	if c.Flag("cgroups").Changed && cliVals.CGroupsMode == "split" && registry.IsRemote() {
 		return errors.Errorf("the option --cgroups=%q is not supported in remote mode", cliVals.CGroupsMode)
 	}
@@ -293,8 +294,6 @@ func createPodIfNecessary(s *specgen.SpecGenerator, netOpts *entities.NetOptions
 		Net:           netOpts,
 		CreateCommand: os.Args,
 		Hostname:      s.ContainerBasicConfig.Hostname,
-		Cpus:          cliVals.CPUS,
-		CpusetCpus:    cliVals.CPUSetCPUs,
 		Pid:           cliVals.PID,
 	}
 	// Unset config values we passed to the pod to prevent them being used twice for the container and pod.

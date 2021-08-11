@@ -51,12 +51,6 @@ type InspectPodData struct {
 	// Containers gives a brief summary of all containers in the pod and
 	// their current status.
 	Containers []InspectPodContainerInfo `json:"Containers,omitempty"`
-	// CPUPeriod contains the CPU period of the pod
-	CPUPeriod uint64 `json:"cpu_period,omitempty"`
-	// CPUQuota contains the CPU quota of the pod
-	CPUQuota int64 `json:"cpu_quota,omitempty"`
-	// CPUSetCPUs contains linux specific CPU data for the pod
-	CPUSetCPUs string `json:"cpuset_cpus,omitempty"`
 }
 
 // InspectPodInfraConfig contains the configuration of the pod's infra
@@ -97,12 +91,6 @@ type InspectPodInfraConfig struct {
 	Networks []string
 	// NetworkOptions are additional options for each network
 	NetworkOptions map[string][]string
-	// CPUPeriod contains the CPU period of the pod
-	CPUPeriod uint64 `json:"cpu_period,omitempty"`
-	// CPUQuota contains the CPU quota of the pod
-	CPUQuota int64 `json:"cpu_quota,omitempty"`
-	// CPUSetCPUs contains linux specific CPU data for the container
-	CPUSetCPUs string `json:"cpuset_cpus,omitempty"`
 	// Pid is the PID namespace mode of the pod's infra container
 	PidNS string `json:"pid_ns,omitempty"`
 }

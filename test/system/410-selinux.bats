@@ -50,6 +50,18 @@ function check_label() {
     check_label "--systemd=always" "container_init_t"
 }
 
+@test "podman selinux: init container with --security-opt type" {
+    check_label "--systemd=always --security-opt=label=type:spc_t" "spc_t"
+}
+
+@test "podman selinux: init container with --security-opt level&type" {
+    check_label "--systemd=always --security-opt=label=level:s0:c1,c2 --security-opt=label=type:spc_t" "spc_t" "s0:c1,c2"
+}
+
+@test "podman selinux: init container with --security-opt level" {
+    check_label "--systemd=always --security-opt=label=level:s0:c1,c2" "container_init_t"  "s0:c1,c2"
+}
+
 @test "podman selinux: pid=host" {
     # FIXME this test fails when run rootless with runc:
     #   Error: container_linux.go:367: starting container process caused: process_linux.go:495: container init caused: readonly path /proc/asound: operation not permitted: OCI permission denied

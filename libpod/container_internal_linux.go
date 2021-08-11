@@ -1912,6 +1912,7 @@ func (c *Container) appendHosts(path string, netCtr *Container) (string, error) 
 // and returns a string in a format that can be written to the host file
 func (c *Container) getHosts() string {
 	var hosts string
+
 	if len(c.config.HostAdd) > 0 {
 		for _, host := range c.config.HostAdd {
 			// the host format has already been verified at this point
@@ -1922,36 +1923,33 @@ func (c *Container) getHosts() string {
 
 	hosts += c.cniHosts()
 
-	// If not making a network namespace, add our own hostname.
+	// Add hostname for slirp4netns
 	if c.Hostname() != "" {
 		if c.config.NetMode.IsSlirp4netns() {
 			// When using slirp4netns, the interface gets a static IP
 			slirp4netnsIP, err := GetSlirp4netnsIP(c.slirp4netnsSubnet)
 			if err != nil {
-				logrus.Warn("failed to determine slirp4netnsIP: ", err.Error())
+				logrus.Warnf("failed to determine slirp4netnsIP: %v", err.Error())
 			} else {
 				hosts += fmt.Sprintf("# used by slirp4netns\n%s\t%s %s\n", slirp4netnsIP.String(), c.Hostname(), c.config.Name)
 			}
-		} else {
-			hasNetNS := false
-			netNone := false
-			for _, ns := range c.config.Spec.Linux.Namespaces {
-				if ns.Type == spec.NetworkNamespace {
-					hasNetNS = true
-					if ns.Path == "" && !c.config.CreateNetNS {
-						netNone = true
-					}
-					break
+		}
+
+		// Do we have a network namespace?
+		netNone := false
+		for _, ns := range c.config.Spec.Linux.Namespaces {
+			if ns.Type == spec.NetworkNamespace {
+				if ns.Path == "" && !c.config.CreateNetNS {
+					netNone = true
 				}
+				break
 			}
-			if !hasNetNS {
-				// 127.0.1.1 and host's hostname to match Docker
-				osHostname, _ := os.Hostname()
-				hosts += fmt.Sprintf("127.0.1.1 %s %s %s\n", osHostname, c.Hostname(), c.config.Name)
-			}
-			if netNone {
-				hosts += fmt.Sprintf("127.0.1.1 %s %s\n", c.Hostname(), c.config.Name)
-			}
+		}
+
+		// If we are net=none (have a network namespace, but not connected to
+		// anything) add the container's name and hostname to localhost.
+		if netNone {
+			hosts += fmt.Sprintf("127.0.0.1 %s %s\n", c.Hostname(), c.config.Name)
 		}
 	}
 
