@@ -750,8 +750,13 @@ func (p *PodmanTestIntegration) makeOptions(args []string, noEvents, noCache boo
 		podmanOptions = append(podmanOptions, os.Getenv("HOOK_OPTION"))
 	}
 
-	podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
-	if !noCache {
+	if !strings.Contains(p.StorageOptions, "--storage-driver") {
+		podmanOptions = append(podmanOptions, []string{"--storage-driver", p.StorageOptions}...)
+	} else {
+		podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
+	}
+
+	if !noCache && !strings.Contains(p.StorageOptions, "overlay") {
 		cacheOptions := []string{"--storage-opt",
 			fmt.Sprintf("%s.imagestore=%s", p.PodmanTest.ImageCacheFS, p.PodmanTest.ImageCacheDir)}
 		podmanOptions = append(cacheOptions, podmanOptions...)
