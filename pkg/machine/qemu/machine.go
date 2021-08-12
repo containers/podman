@@ -605,10 +605,12 @@ func CheckActiveVM() (bool, string, error) {
 // startHostNetworking runs a binary on the host system that allows users
 // to setup port forwarding to the podman virtual machine
 func (v *MachineVM) startHostNetworking() error {
-	binary := filepath.Join("/usr/lib/podman/", machine.ForwarderBinaryName)
-	if _, err := os.Stat(binary); os.IsNotExist(err) {
-		return errors.Errorf("unable to find %s", binary)
+	// TODO we may wish to configure the directory in containers common
+	binary := filepath.Join("/usr/libexec/podman/", machine.ForwarderBinaryName)
+	if _, err := os.Stat(binary); err != nil {
+		return err
 	}
+
 	// Listen on all at port 7777 for setting up and tearing
 	// down forwarding
 	listenSocket := "tcp://0.0.0.0:7777"
