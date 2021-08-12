@@ -30,6 +30,7 @@ import (
 	"github.com/containers/podman/v3/libpod/shutdown"
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/rootless"
+	"github.com/containers/podman/v3/pkg/systemd"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/unshare"
@@ -500,6 +501,15 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		// no containers running.  Create immediately a namespace, as
 		// we will need to access the storage.
 		if needsUserns {
+			// warn users if mode is rootless and cgroup manager is systemd
+			// and no valid systemd session is present
+			// warn only whenever new namespace is created
+			if runtime.config.Engine.CgroupManager == config.SystemdCgroupsManager {
+				unified, _ := cgroups.IsCgroup2UnifiedMode()
+				if unified && rootless.IsRootless() && !systemd.IsSystemdSessionValid(rootless.GetRootlessUID()) {
+					logrus.Debug("Invalid systemd user session for current user")
+				}
+			}
 			aliveLock.Unlock() // Unlock to avoid deadlock as BecomeRootInUserNS will reexec.
 			pausePid, err := util.GetRootlessPauseProcessPidPathGivenDir(runtime.config.Engine.TmpDir)
 			if err != nil {
