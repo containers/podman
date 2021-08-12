@@ -24,8 +24,8 @@ type FcosDownload struct {
 	Download
 }
 
-func NewFcosDownloader(vmType, vmName string) (DistributionDownload, error) {
-	info, err := getFCOSDownload()
+func NewFcosDownloader(vmType, vmName, imageStream string) (DistributionDownload, error) {
+	info, err := getFCOSDownload(imageStream)
 	if err != nil {
 		return nil, err
 	}

@@ -138,9 +138,20 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 	jsonFile := filepath.Join(vmConfigDir, v.Name) + ".json"
 	v.IdentityPath = filepath.Join(sshDir, v.Name)
 
-	// The user has provided an alternate image which can be a file path
-	// or URL.
-	if len(opts.ImagePath) > 0 {
+	switch opts.ImagePath {
+	case "testing", "stable", "":
+		// Get image as usual
+		dd, err := machine.NewFcosDownloader(vmtype, v.Name, opts.ImagePath)
+		if err != nil {
+			return err
+		}
+		v.ImagePath = dd.Get().LocalUncompressedFile
+		if err := dd.DownloadImage(); err != nil {
+			return err
+		}
+	default:
+		// The user has provided an alternate image which can be a file path
+		// or URL.
 		g, err := machine.NewGenericDownloader(vmtype, v.Name, opts.ImagePath)
 		if err != nil {
 			return err
@@ -149,18 +160,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 		if err := g.DownloadImage(); err != nil {
 			return err
 		}
-	} else {
-		// Get the image as usual
-		dd, err := machine.NewFcosDownloader(vmtype, v.Name)
-		if err != nil {
-			return err
-		}
-		v.ImagePath = dd.Get().LocalUncompressedFile
-		if err := dd.DownloadImage(); err != nil {
-			return err
-		}
 	}
-
 	// Add arch specific options including image location
 	v.CmdLine = append(v.CmdLine, v.addArchOptions()...)
 

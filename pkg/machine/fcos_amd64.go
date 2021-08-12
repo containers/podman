@@ -8,16 +8,26 @@ import (
 
 	"github.com/coreos/stream-metadata-go/fedoracoreos"
 	"github.com/coreos/stream-metadata-go/stream"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 // This should get Exported and stay put as it will apply to all fcos downloads
 // getFCOS parses fedoraCoreOS's stream and returns the image download URL and the release version
-func getFCOSDownload() (*fcosDownloadInfo, error) {
+func getFCOSDownload(imageStream string) (*fcosDownloadInfo, error) {
 	var (
 		fcosstable stream.Stream
+		streamType string
 	)
-	streamurl := fedoracoreos.GetStreamURL(fedoracoreos.StreamNext)
+	switch imageStream {
+	case "testing", "":
+		streamType = fedoracoreos.StreamNext
+	case "stable":
+		streamType = fedoracoreos.StreamStable
+	default:
+		return nil, errors.Errorf("invalid stream %s: valid streams are `testing` and `stable`", imageStream)
+	}
+	streamurl := fedoracoreos.GetStreamURL(streamType)
 	resp, err := http.Get(streamurl.String())
 	if err != nil {
 		return nil, err

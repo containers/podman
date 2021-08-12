@@ -13,7 +13,7 @@ const aarchBaseURL = "https://fedorapeople.org/groups/fcos-images/builds/latest/
 
 // Total hack until automation is possible.
 // We need a proper json file at least to automate
-func getFCOSDownload() (*fcosDownloadInfo, error) {
+func getFCOSDownload(imageStream string) (*fcosDownloadInfo, error) {
 	meta := Build{}
 	resp, err := http.Get(aarchBaseURL + "meta.json")
 	if err != nil {
