@@ -1219,7 +1219,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 		return err
 	}
 
-	// OCICNI will set the loopback adpter down on teardown so we should set it up again
+	// OCICNI will set the loopback adapter down on teardown so we should set it up again
 	err = c.state.NetNS.Do(func(_ ns.NetNS) error {
 		link, err := netlink.LinkByName("lo")
 		if err != nil {
@@ -1229,7 +1229,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 		return err
 	})
 	if err != nil {
-		logrus.Warnf("failed to set loopback adpter up in the container: %v", err)
+		logrus.Warnf("failed to set loopback adapter up in the container: %v", err)
 	}
 	// Reload ports when there are still connected networks, maybe we removed the network interface with the child ip.
 	// Reloading without connected networks does not make sense, so we can skip this step.

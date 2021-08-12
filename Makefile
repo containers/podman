@@ -257,7 +257,7 @@ test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
 
 .PHONY: codespell
 codespell:
-	codespell -S bin,vendor,.git,go.sum,changelog.txt,.cirrus.yml,"RELEASE_NOTES.md,*.xz,*.gz,*.tar,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked,splitted,marge,ERRO,hist,ether -w
+	codespell -S bin,vendor,.git,go.sum,changelog.txt,.cirrus.yml,"RELEASE_NOTES.md,*.xz,*.gz,*.ps1,*.tar,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked,splitted,marge,ERRO,hist,ether -w
 
 .PHONY: validate
 validate: gofmt lint .gitvalidation validate.completions man-page-check swagger-check tests-included tests-expect-exit

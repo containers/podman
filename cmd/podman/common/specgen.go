@@ -685,7 +685,7 @@ func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, start
 	concat := ""
 	if cmdArr[0] == "CMD" || cmdArr[0] == "none" { // this is for compat, we are already split properly for most compat cases
 		cmdArr = strings.Fields(inCmd)
-	} else if cmdArr[0] != "CMD-SHELL" { // this is for podman side of things, wont contain the keywords
+	} else if cmdArr[0] != "CMD-SHELL" { // this is for podman side of things, won't contain the keywords
 		if isArr && len(cmdArr) > 1 { // an array of consecutive commands
 			cmdArr = append([]string{"CMD"}, cmdArr...)
 		} else { // one singular command

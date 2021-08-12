@@ -102,7 +102,7 @@ function _wait_service_ready() {
         let timeout=$timeout-1
     done
 
-    # Print serivce status as debug information before failed the case
+    # Print service status as debug information before failed the case
     systemctl status $sname
     die "Timed out waiting for $sname to start"
 }
@@ -305,7 +305,7 @@ EOF
         fi
     done
 
-    # Only check the last service is started. Previous services should already actived.
+    # Only check that the last service is started. Previous services should already be activated.
     _wait_service_ready container-$cname.service
     run_podman commit --change CMD=/bin/bash $local_cname quay.io/libpod/localtest:latest
     # Exit code is expected, due to invalid 'fakevalue'

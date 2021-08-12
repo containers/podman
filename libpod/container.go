@@ -240,7 +240,7 @@ type ContainerImageVolume struct {
 type ContainerSecret struct {
 	// Secret is the secret
 	*secrets.Secret
-	// UID is tbe UID of the secret file
+	// UID is the UID of the secret file
 	UID uint32
 	// GID is the GID of the secret file
 	GID uint32

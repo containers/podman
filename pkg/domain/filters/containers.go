@@ -214,7 +214,7 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 			networkMode := c.NetworkMode()
 			// support docker like `--filter network=container:<IDorName>`
 			// check if networkMode is configured as `container:<ctr>`
-			// peform a match against filter `container:<IDorName>`
+			// perform a match against filter `container:<IDorName>`
 			// networks is already going to be empty if `container:<ctr>` is configured as Mode
 			if strings.HasPrefix(networkMode, "container:") {
 				networkModeContainerPart := strings.SplitN(networkMode, ":", 2)
