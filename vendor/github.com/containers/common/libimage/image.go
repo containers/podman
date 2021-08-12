@@ -448,12 +448,22 @@ func (i *Image) removeRecursive(ctx context.Context, rmMap map[string]*RemoveIma
 	return parent.removeRecursive(ctx, rmMap, processedIDs, "", options)
 }
 
+var errTagDigest = errors.New("tag by digest not supported")
+
 // Tag the image with the specified name and store it in the local containers
 // storage.  The name is normalized according to the rules of NormalizeName.
 func (i *Image) Tag(name string) error {
+	if strings.HasPrefix(name, "sha256:") { // ambiguous input
+		return errors.Wrap(errTagDigest, name)
+	}
+
 	ref, err := NormalizeName(name)
 	if err != nil {
 		return errors.Wrapf(err, "error normalizing name %q", name)
+	}
+
+	if _, isDigested := ref.(reference.Digested); isDigested {
+		return errors.Wrap(errTagDigest, name)
 	}
 
 	logrus.Debugf("Tagging image %s with %q", i.ID(), ref.String())
@@ -480,7 +490,7 @@ var errUntagDigest = errors.New("untag by digest not supported")
 // the local containers storage.  The name is normalized according to the rules
 // of NormalizeName.
 func (i *Image) Untag(name string) error {
-	if strings.HasPrefix(name, "sha256:") {
+	if strings.HasPrefix(name, "sha256:") { // ambiguous input
 		return errors.Wrap(errUntagDigest, name)
 	}
 
@@ -488,6 +498,11 @@ func (i *Image) Untag(name string) error {
 	if err != nil {
 		return errors.Wrapf(err, "error normalizing name %q", name)
 	}
+
+	if _, isDigested := ref.(reference.Digested); isDigested {
+		return errors.Wrap(errUntagDigest, name)
+	}
+
 	name = ref.String()
 
 	logrus.Debugf("Untagging %q from image %s", ref.String(), i.ID())
