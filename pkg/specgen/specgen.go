@@ -184,7 +184,7 @@ type ContainerBasicConfig struct {
 	// Optional.
 	EnvSecrets map[string]string `json:"secret_env,omitempty"`
 	// InitContainerType describes if this container is an init container
-	// and if so, what type: always or oneshot
+	// and if so, what type: always or once
 	InitContainerType string `json:"init_container_type"`
 	// Personality allows users to configure different execution domains.
 	// Execution domains tell Linux how to map signal numbers into signal actions.
