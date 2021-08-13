@@ -618,6 +618,12 @@ func ValidateSysctls(strSlice []string) (map[string]string, error) {
 		if len(arr) < 2 {
 			return nil, errors.Errorf("%s is invalid, sysctl values must be in the form of KEY=VALUE", val)
 		}
+
+		trimmed := fmt.Sprintf("%s=%s", strings.TrimSpace(arr[0]), strings.TrimSpace(arr[1]))
+		if trimmed != val {
+			return nil, errors.Errorf("'%s' is invalid, extra spaces found", val)
+		}
+
 		if validSysctlMap[arr[0]] {
 			sysctl[arr[0]] = arr[1]
 			continue
