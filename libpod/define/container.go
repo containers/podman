@@ -34,5 +34,5 @@ const (
 	AlwaysInitContainer = "always"
 	// OneShotInitContainer is a container that only runs as init once
 	// and is then deleted.
-	OneShotInitContainer = "oneshot"
+	OneShotInitContainer = "once"
 )
