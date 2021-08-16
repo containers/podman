@@ -586,3 +586,73 @@ func getBuildFile(imageName string, cwd string) (string, error) {
 	}
 	return "", err
 }
+
+func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, path string, _ entities.PlayKubeDownOptions) (*entities.PlayKubeReport, error) {
+	var (
+		podNames []string
+	)
+	reports := new(entities.PlayKubeReport)
+
+	// read yaml document
+	content, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	// split yaml document
+	documentList, err := splitMultiDocYAML(content)
+	if err != nil {
+		return nil, err
+	}
+
+	// sort kube kinds
+	documentList, err = sortKubeKinds(documentList)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to sort kube kinds in %q", path)
+	}
+
+	for _, document := range documentList {
+		kind, err := getKubeKind(document)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to read %q as kube YAML", path)
+		}
+
+		switch kind {
+		case "Pod":
+			var podYAML v1.Pod
+			if err := yaml.Unmarshal(document, &podYAML); err != nil {
+				return nil, errors.Wrapf(err, "unable to read YAML %q as Kube Pod", path)
+			}
+			podNames = append(podNames, podYAML.ObjectMeta.Name)
+		case "Deployment":
+			var deploymentYAML v1apps.Deployment
+
+			if err := yaml.Unmarshal(document, &deploymentYAML); err != nil {
+				return nil, errors.Wrapf(err, "unable to read YAML %q as Kube Deployment", path)
+			}
+			var numReplicas int32 = 1
+			deploymentName := deploymentYAML.ObjectMeta.Name
+			if deploymentYAML.Spec.Replicas != nil {
+				numReplicas = *deploymentYAML.Spec.Replicas
+			}
+			for i := 0; i < int(numReplicas); i++ {
+				podName := fmt.Sprintf("%s-pod-%d", deploymentName, i)
+				podNames = append(podNames, podName)
+			}
+		default:
+			continue
+		}
+	}
+
+	// Add the reports
+	reports.StopReport, err = ic.PodStop(ctx, podNames, entities.PodStopOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	reports.RmReport, err = ic.PodRm(ctx, podNames, entities.PodRmOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return reports, nil
+}

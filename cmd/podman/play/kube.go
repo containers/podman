@@ -86,6 +86,9 @@ func init() {
 	flags.StringVar(&kubeOptions.Authfile, authfileFlagName, auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 	_ = kubeCmd.RegisterFlagCompletionFunc(authfileFlagName, completion.AutocompleteDefault)
 
+	downFlagName := "down"
+	flags.BoolVar(&kubeOptions.Down, downFlagName, false, "Stop pods defined in the YAML file")
+
 	if !registry.IsRemote() {
 		certDirFlagName := "cert-dir"
 		flags.StringVar(&kubeOptions.CertDir, certDirFlagName, "", "`Pathname` of a directory containing TLS certificates and keys")
@@ -144,12 +147,55 @@ func kube(cmd *cobra.Command, args []string) error {
 		}
 		kubeOptions.StaticMACs = append(kubeOptions.StaticMACs, m)
 	}
+	if kubeOptions.Down {
+		return teardown(yamlfile)
+	}
+	return playkube(yamlfile)
+}
 
-	report, err := registry.ContainerEngine().PlayKube(registry.GetContext(), yamlfile, kubeOptions.PlayKubeOptions)
+func teardown(yamlfile string) error {
+	var (
+		podStopErrors utils.OutputErrors
+		podRmErrors   utils.OutputErrors
+	)
+	options := new(entities.PlayKubeDownOptions)
+	reports, err := registry.ContainerEngine().PlayKubeDown(registry.GetContext(), yamlfile, *options)
 	if err != nil {
 		return err
 	}
 
+	// Output stopped pods
+	fmt.Println("Pods stopped:")
+	for _, stopped := range reports.StopReport {
+		if len(stopped.Errs) == 0 {
+			fmt.Println(stopped.Id)
+		} else {
+			podStopErrors = append(podStopErrors, stopped.Errs...)
+		}
+	}
+	// Dump any stop errors
+	lastStopError := podStopErrors.PrintErrors()
+	if lastStopError != nil {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", lastStopError)
+	}
+
+	// Output rm'd pods
+	fmt.Println("Pods removed:")
+	for _, removed := range reports.RmReport {
+		if removed.Err == nil {
+			fmt.Println(removed.Id)
+		} else {
+			podRmErrors = append(podRmErrors, removed.Err)
+		}
+	}
+	return podRmErrors.PrintErrors()
+}
+
+func playkube(yamlfile string) error {
+	report, err := registry.ContainerEngine().PlayKube(registry.GetContext(), yamlfile, kubeOptions.PlayKubeOptions)
+	if err != nil {
+		return err
+	}
 	// Print volumes report
 	for i, volume := range report.Volumes {
 		if i == 0 {

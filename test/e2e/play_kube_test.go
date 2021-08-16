@@ -2527,4 +2527,68 @@ invalid kube kind
 		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).To(ContainSubstring(`map[]`))
 	})
+
+	It("podman play kube teardown", func() {
+		pod := getPod()
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		ls := podmanTest.Podman([]string{"pod", "ps", "--format", "'{{.ID}}'"})
+		ls.WaitWithDefaultTimeout()
+		Expect(ls).Should(Exit(0))
+		Expect(len(ls.OutputToStringArray())).To(Equal(1))
+
+		//	 teardown
+		teardown := podmanTest.Podman([]string{"play", "kube", "--down", kubeYaml})
+		teardown.WaitWithDefaultTimeout()
+		Expect(teardown).Should(Exit(0))
+
+		checkls := podmanTest.Podman([]string{"pod", "ps", "--format", "'{{.ID}}'"})
+		checkls.WaitWithDefaultTimeout()
+		Expect(checkls).Should(Exit(0))
+		Expect(len(checkls.OutputToStringArray())).To(Equal(0))
+	})
+
+	It("podman play kube teardown pod does not exist", func() {
+		//	 teardown
+		teardown := podmanTest.Podman([]string{"play", "kube", "--down", kubeYaml})
+		teardown.WaitWithDefaultTimeout()
+		Expect(teardown).Should(Exit(125))
+	})
+
+	It("podman play kube teardown with volume", func() {
+
+		volName := RandomString(12)
+		volDevice := "tmpfs"
+		volType := "tmpfs"
+		volOpts := "nodev,noexec"
+
+		pvc := getPVC(withPVCName(volName),
+			withPVCAnnotations(util.VolumeDeviceAnnotation, volDevice),
+			withPVCAnnotations(util.VolumeTypeAnnotation, volType),
+			withPVCAnnotations(util.VolumeMountOptsAnnotation, volOpts))
+		err = generateKubeYaml("persistentVolumeClaim", pvc, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		exists := podmanTest.Podman([]string{"volume", "exists", volName})
+		exists.WaitWithDefaultTimeout()
+		Expect(exists).To(Exit(0))
+
+		teardown := podmanTest.Podman([]string{"play", "kube", "--down", kubeYaml})
+		teardown.WaitWithDefaultTimeout()
+		Expect(teardown).To(Exit(0))
+
+		// volume should not be deleted on teardown
+		exists = podmanTest.Podman([]string{"volume", "exists", volName})
+		exists.WaitWithDefaultTimeout()
+		Expect(exists).To(Exit(0))
+	})
 })

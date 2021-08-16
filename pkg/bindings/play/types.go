@@ -1,6 +1,8 @@
 package play
 
-import "net"
+import (
+	"net"
+)
 
 //go:generate go run ../generator/generator.go KubeOptions
 // KubeOptions are optional options for replaying kube YAML files

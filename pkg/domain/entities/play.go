@@ -14,6 +14,9 @@ type PlayKubeOptions struct {
 	Build bool
 	// CertDir - to a directory containing TLS certifications and keys.
 	CertDir string
+	// Down indicates whether to bring contents of a yaml file "down"
+	// as in stop
+	Down bool
 	// Username for authenticating against the registry.
 	Username string
 	// Password for authenticating against the registry.
@@ -67,4 +70,14 @@ type PlayKubeReport struct {
 	Pods []PlayKubePod
 	// Volumes - volumes created by play kube.
 	Volumes []PlayKubeVolume
+	PlayKubeTeardown
+}
+
+// PlayKubeDownOptions are options for tearing down pods
+type PlayKubeDownOptions struct{}
+
+// PlayKubeDownReport contains the results of tearing down play kube
+type PlayKubeTeardown struct {
+	StopReport []*PodStopReport
+	RmReport   []*PodRmReport
 }

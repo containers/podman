@@ -59,5 +59,20 @@ func (s *APIServer) registerPlayHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/play/kube"), s.APIHandler(libpod.PlayKube)).Methods(http.MethodPost)
+	// swagger:operation DELETE /libpod/play/kube libpod PlayKubeDownLibpod
+	// ---
+	// tags:
+	//  - containers
+	//  - pods
+	// summary: Remove pods from play kube
+	// description: Tears down pods defined in a YAML file
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     $ref: "#/responses/DocsLibpodPlayKubeResponse"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/play/kube"), s.APIHandler(libpod.PlayKubeDown)).Methods(http.MethodDelete)
 	return nil
 }
