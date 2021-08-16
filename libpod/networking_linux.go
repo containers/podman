@@ -173,11 +173,27 @@ func (r *RootlessCNI) Do(toRun func() error) error {
 		// the link target will be available in the mount ns.
 		// see: https://github.com/containers/podman/issues/10855
 		resolvePath := "/etc/resolv.conf"
-		resolvePath, err = filepath.EvalSymlinks(resolvePath)
-		if err != nil {
-			return err
+		for i := 0; i < 255; i++ {
+			// Do not use filepath.EvalSymlinks, we only want the first symlink under /run.
+			// If /etc/resolv.conf has more than one symlink under /run, e.g.
+			// -> /run/systemd/resolve/stub-resolv.conf -> /run/systemd/resolve/resolv.conf
+			// we would put the netns resolv.conf file to the last path. However this will
+			// break dns because the second link does not exists in the mount ns.
+			// see https://github.com/containers/podman/issues/11222
+			link, err := os.Readlink(resolvePath)
+			if err != nil {
+				// if there is no symlink exit
+				break
+			}
+			resolvePath = filepath.Join(filepath.Dir(resolvePath), link)
+			if strings.HasPrefix(resolvePath, "/run/") {
+				break
+			}
+			if i == 254 {
+				return errors.New("too many symlinks while resolving /etc/resolv.conf")
+			}
 		}
-		logrus.Debugf("The actual path of /etc/resolv.conf on the host is %q", resolvePath)
+		logrus.Debugf("The path of /etc/resolv.conf in the mount ns is %q", resolvePath)
 		// When /etc/resolv.conf on the host is a symlink to /run/systemd/resolve/stub-resolv.conf,
 		// we have to mount an empty filesystem on /run/systemd/resolve in the child namespace,
 		// so as to isolate the directory from the host mount namespace.
