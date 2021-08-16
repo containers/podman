@@ -268,7 +268,7 @@ func WithRegistriesConf(path string) RuntimeOption {
 	logrus.Debugf("Setting custom registries.conf: %q", path)
 	return func(rt *Runtime) error {
 		if _, err := os.Stat(path); err != nil {
-			return errors.Wrap(err, "error locating specified registries.conf")
+			return errors.Wrap(err, "locating specified registries.conf")
 		}
 		if rt.imageContext == nil {
 			rt.imageContext = &types.SystemContext{
@@ -1453,11 +1453,7 @@ func WithNamedVolumes(volumes []*ContainerNamedVolume) CtrCreateOption {
 		for _, vol := range volumes {
 			mountOpts, err := util.ProcessOptions(vol.Options, false, "")
 			if err != nil {
-				return errors.Wrapf(err, "error processing options for named volume %q mounted at %q", vol.Name, vol.Dest)
-			}
-
-			if err = parse.ValidateVolumeCtrDir(vol.Dest); err != nil {
-				return errors.Wrapf(err, "error validating destination path for named volume %q mounted at %q", vol.Name, vol.Dest)
+				return errors.Wrapf(err, "processing options for named volume %q mounted at %q", vol.Name, vol.Dest)
 			}
 
 			ctr.config.NamedVolumes = append(ctr.config.NamedVolumes, &ContainerNamedVolume{

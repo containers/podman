@@ -33,6 +33,7 @@ release.txt
 /test/goecho/goecho
 /test/testvol/testvol
 .vscode*
+tags
 result
 # Necessary to prevent hack/tree-status.sh false-positive
 /*runner_stats.log
