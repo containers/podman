@@ -210,6 +210,9 @@ load helpers
 	       $IMAGE nc -l -n -v -p $myport
     cid="$output"
 
+    # check that dns is working inside the container
+    run_podman exec $cid nslookup google.com
+
     # emit random string, and check it
     teststring=$(random_string 30)
     echo "$teststring" | nc 127.0.0.1 $myport
