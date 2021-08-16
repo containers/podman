@@ -18,7 +18,7 @@ import (
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/linkmode"
-	"github.com/containers/podman/v3/libpod/network"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/storage"
@@ -74,7 +74,7 @@ func (r *Runtime) info() (*define.Info, error) {
 	}
 	info.Plugins.Volume = volumePlugins
 	// TODO move this into the new network interface
-	info.Plugins.Network = []string{network.BridgeNetworkDriver, network.MacVLANNetworkDriver}
+	info.Plugins.Network = []string{types.BridgeNetworkDriver, types.MacVLANNetworkDriver}
 	info.Plugins.Log = logDrivers
 
 	info.Registries = registries

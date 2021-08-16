@@ -4,60 +4,38 @@ import (
 	"context"
 
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/libpod/network"
+	"github.com/containers/podman/v3/libpod/network/types"
+	netutil "github.com/containers/podman/v3/libpod/network/util"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/pkg/errors"
 )
 
-func (ic *ContainerEngine) NetworkList(ctx context.Context, options entities.NetworkListOptions) ([]*entities.NetworkListReport, error) {
-	reports := make([]*entities.NetworkListReport, 0)
-
-	config, err := ic.Libpod.GetConfig()
+func (ic *ContainerEngine) NetworkList(ctx context.Context, options entities.NetworkListOptions) ([]types.Network, error) {
+	filters, err := netutil.GenerateNetworkFilters(options.Filters)
 	if err != nil {
 		return nil, err
 	}
-
-	networks, err := network.LoadCNIConfsFromDir(network.GetCNIConfDir(config))
-	if err != nil {
-		return nil, err
-	}
-
-	for _, n := range networks {
-		ok, err := network.IfPassesFilter(n, options.Filters)
-		if err != nil {
-			return nil, err
-		}
-		if ok {
-			reports = append(reports, &entities.NetworkListReport{
-				NetworkConfigList: n,
-				Labels:            network.GetNetworkLabels(n),
-			})
-		}
-	}
-	return reports, nil
+	nets, err := ic.Libpod.Network().NetworkList(filters...)
+	return nets, err
 }
 
-func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []string, options entities.InspectOptions) ([]entities.NetworkInspectReport, []error, error) {
-	config, err := ic.Libpod.GetConfig()
-	if err != nil {
-		return nil, nil, err
-	}
+func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []string, options entities.InspectOptions) ([]types.Network, []error, error) {
 	var errs []error
-	rawCNINetworks := make([]entities.NetworkInspectReport, 0, len(namesOrIds))
+	networks := make([]types.Network, 0, len(namesOrIds))
 	for _, name := range namesOrIds {
-		rawList, err := network.InspectNetwork(config, name)
+		net, err := ic.Libpod.Network().NetworkInspect(name)
 		if err != nil {
 			if errors.Cause(err) == define.ErrNoSuchNetwork {
-				errs = append(errs, errors.Errorf("no such network %s", name))
+				errs = append(errs, errors.Wrapf(err, "network %s", name))
 				continue
 			} else {
 				return nil, nil, errors.Wrapf(err, "error inspecting network %s", name)
 			}
 		}
-		rawCNINetworks = append(rawCNINetworks, rawList)
+		networks = append(networks, net)
 	}
-	return rawCNINetworks, errs, nil
+	return networks, errs, nil
 }
 
 func (ic *ContainerEngine) NetworkReload(ctx context.Context, names []string, options entities.NetworkReloadOptions) ([]*entities.NetworkReloadReport, error) {
@@ -83,12 +61,7 @@ func (ic *ContainerEngine) NetworkReload(ctx context.Context, names []string, op
 }
 
 func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, options entities.NetworkRmOptions) ([]*entities.NetworkRmReport, error) {
-	reports := []*entities.NetworkRmReport{}
-
-	config, err := ic.Libpod.GetConfig()
-	if err != nil {
-		return nil, err
-	}
+	reports := make([]*entities.NetworkRmReport, 0, len(namesOrIds))
 
 	for _, name := range namesOrIds {
 		report := entities.NetworkRmReport{Name: name}
@@ -126,7 +99,7 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 				}
 			}
 		}
-		if err := network.RemoveNetwork(config, name); err != nil {
+		if err := ic.Libpod.Network().NetworkRemove(name); err != nil {
 			report.Err = err
 		}
 		reports = append(reports, &report)
@@ -134,12 +107,12 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 	return reports, nil
 }
 
-func (ic *ContainerEngine) NetworkCreate(ctx context.Context, name string, options entities.NetworkCreateOptions) (*entities.NetworkCreateReport, error) {
-	runtimeConfig, err := ic.Libpod.GetConfig()
+func (ic *ContainerEngine) NetworkCreate(ctx context.Context, network types.Network) (*entities.NetworkCreateReport, error) {
+	network, err := ic.Libpod.Network().NetworkCreate(network)
 	if err != nil {
 		return nil, err
 	}
-	return network.Create(name, options, runtimeConfig)
+	return &entities.NetworkCreateReport{Name: network.Name}, nil
 }
 
 // NetworkDisconnect removes a container from a given network
@@ -153,12 +126,12 @@ func (ic *ContainerEngine) NetworkConnect(ctx context.Context, networkname strin
 
 // NetworkExists checks if the given network exists
 func (ic *ContainerEngine) NetworkExists(ctx context.Context, networkname string) (*entities.BoolReport, error) {
-	config, err := ic.Libpod.GetConfig()
-	if err != nil {
-		return nil, err
-	}
-	exists, err := network.Exists(config, networkname)
-	if err != nil {
+	_, err := ic.Libpod.Network().NetworkInspect(networkname)
+	exists := true
+	// if err is ErrNoSuchNetwork do not return it
+	if errors.Is(err, define.ErrNoSuchNetwork) {
+		exists = false
+	} else if err != nil {
 		return nil, err
 	}
 	return &entities.BoolReport{
@@ -168,19 +141,10 @@ func (ic *ContainerEngine) NetworkExists(ctx context.Context, networkname string
 
 // Network prune removes unused cni networks
 func (ic *ContainerEngine) NetworkPrune(ctx context.Context, options entities.NetworkPruneOptions) ([]*entities.NetworkPruneReport, error) {
-	runtimeConfig, err := ic.Libpod.GetConfig()
-	if err != nil {
-		return nil, err
-	}
 	cons, err := ic.Libpod.GetAllContainers()
 	if err != nil {
 		return nil, err
 	}
-	networks, err := network.LoadCNIConfsFromDir(network.GetCNIConfDir(runtimeConfig))
-	if err != nil {
-		return nil, err
-	}
-
 	// Gather up all the non-default networks that the
 	// containers want
 	networksToKeep := make(map[string]bool)
@@ -193,20 +157,34 @@ func (ic *ContainerEngine) NetworkPrune(ctx context.Context, options entities.Ne
 			networksToKeep[n] = true
 		}
 	}
-	if len(options.Filters) != 0 {
-		for _, n := range networks {
-			// This network will be kept anyway
-			if _, found := networksToKeep[n.Name]; found {
-				continue
-			}
-			ok, err := network.IfPassesPruneFilter(runtimeConfig, n, options.Filters)
-			if err != nil {
-				return nil, err
-			}
-			if !ok {
-				networksToKeep[n.Name] = true
+	// ignore the default network, this one cannot be deleted
+	networksToKeep[ic.Libpod.GetDefaultNetworkName()] = true
+
+	// get all filters
+	filters, err := netutil.GenerateNetworkPruneFilters(options.Filters)
+	if err != nil {
+		return nil, err
+	}
+	danglingFilterFunc := func(net types.Network) bool {
+		for network := range networksToKeep {
+			if network == net.Name {
+				return false
 			}
 		}
+		return true
 	}
-	return network.PruneNetworks(runtimeConfig, networksToKeep)
+	filters = append(filters, danglingFilterFunc)
+	nets, err := ic.Libpod.Network().NetworkList(filters...)
+	if err != nil {
+		return nil, err
+	}
+
+	pruneReport := make([]*entities.NetworkPruneReport, 0, len(nets))
+	for _, net := range nets {
+		pruneReport = append(pruneReport, &entities.NetworkPruneReport{
+			Name:  net.Name,
+			Error: ic.Libpod.Network().NetworkRemove(net.Name),
+		})
+	}
+	return pruneReport, nil
 }

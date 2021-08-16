@@ -6,42 +6,52 @@
 t GET networks/non-existing-network 404 \
   .cause='network not found'
 
-t POST libpod/networks/create?name=network1 200 \
-  .Filename~.*/network1\\.conflist
+t POST libpod/networks/create name='"network1"' 200 \
+  .name=network1
+  .created~[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}.* \
 
-# --data '{"Subnet":{"IP":"10.10.254.0","Mask":[255,255,255,0]},"Labels":{"abc":"val"}}'
-t POST libpod/networks/create?name=network2 \
-  Subnet='{"IP":"10.10.254.0","Mask":[255,255,255,0]}' \
-  Labels='{"abc":"val"}' \
+# --data '{"name":"network2","subnets":[{"subnet":"10.10.254.0/24"}],"Labels":{"abc":"val"}}'
+t POST libpod/networks/create name='"network2"' \
+  subnets='[{"subnet":"10.10.254.0/24"}]' \
+  labels='{"abc":"val"}' \
   200 \
-  .Filename~.*/network2\\.conflist
+  .name=network2 \
+  .subnets[0].subnet=10.10.254.0/24 \
+  .subnets[0].gateway=10.10.254.1 \
+  .labels.abc=val
 
-# --data '{"Subnet":{"IP":"10.10.133.0","Mask":[255,255,255,0]},"Labels":{"xyz":"val"}}'
-t POST libpod/networks/create?name=network3 \
-  Subnet='{"IP":"10.10.133.0","Mask":[255,255,255,0]}' \
-  Labels='{"xyz":"val"}' \
+# --data '{"name":"network3","subnets":[{"subnet":"10.10.133.0/24"}],"Labels":{"xyz":"val"}}'
+t POST libpod/networks/create name="network3" \
+  subnets='[{"subnet":"10.10.133.0/24"}]' \
+  labels='{"xyz":"val"}' \
   200 \
-  .Filename~.*/network3\\.conflist
+  .name=network3 \
+  .subnets[0].subnet=10.10.133.0/24 \
+  .subnets[0].gateway=10.10.133.1 \
+  .labels.xyz=val
 
-# --data '{"Subnet":{"IP":"10.10.134.0","Mask":[255,255,255,0]},"Labels":{"zaq":"val"}}'
-t POST libpod/networks/create?name=network4 \
-  Subnet='{"IP":"10.10.134.0","Mask":[255,255,255,0]}' \
-  Labels='{"zaq":"val"}' \
+# --data '{"name":"network4","subnets":[{"subnet":"10.10.134.0/24"}],"Labels":{"zaq":"val"}}'
+t POST libpod/networks/create name="network4" \
+  subnets='[{"subnet":"10.10.134.0/24"}]' \
+  labels='{"zaq":"val"}' \
   200 \
-  .Filename~.*/network4\\.conflist
+  .name=network4 \
+  .subnets[0].subnet=10.10.134.0/24 \
+  .subnets[0].gateway=10.10.134.1 \
+  .labels.zaq=val
 
 # test for empty mask
-t POST libpod/networks/create Subnet='{"IP":"10.10.1.0","Mask":[]}' 500 \
-  .cause~'.*cannot be empty'
+t POST libpod/networks/create subnets='[{"subnet":"10.10.134.0"}]' 500 \
+  .cause~'.*invalid CIDR address: 10.10.134.0'
 # test for invalid mask
-t POST libpod/networks/create Subnet='{"IP":"10.10.1.0","Mask":[0,255,255,0]}' 500 \
-  .cause~'.*mask is invalid'
+t POST libpod/networks/create subnets='[{"subnet":"10.10.134.0/65"}]' 500 \
+  .cause~'.*invalid CIDR address: 10.10.134.0/65'
 
 # network list
 t GET libpod/networks/json 200
 t GET libpod/networks/json?filters='{"name":["network1"]}' 200 \
   length=1 \
-  .[0].Name=network1
+  .[0].name=network1
 t GET networks 200
 
 #inspect network
@@ -121,7 +131,8 @@ t DELETE libpod/networks/network2 200 \
   .[0].Err=null
 
 # test until filter - libpod api
-podman network create network5 --label xyz
+t POST libpod/networks/create name='"network5"' labels='{"xyz":""}' 200 \
+  .name=network5
 
 # with date way back in the past, network should not be deleted
 t POST libpod/networks/prune?filters='{"until":["500000"]}' 200
@@ -132,7 +143,8 @@ t POST libpod/networks/prune?filters='{"until":["5000000000"]}' 200
 t GET libpod/networks/json?filters='{"label":["xyz"]}' 200 length=0
 
 # test until filter - compat api
-podman network create network6 --label zaq
+t POST networks/create Name='"network6"' Labels='{"zaq":""}' 201 \
+  .Id~[0-9a-f]\\{64\\}
 
 # with date way back in the past, network should not be deleted
 t POST networks/prune?filters='{"until":["500000"]}' 200
@@ -143,7 +155,9 @@ t POST networks/prune?filters='{"until":["5000000000"]}' 200
 t GET networks?filters='{"label":["zaq"]}' 200 length=0
 
 # test macvlan network response
-podman network create --driver macvlan macvlan1
+t POST libpod/networks/create name='"macvlan1"' driver="macvlan" 200 \
+  .name=macvlan1 \
+  .driver=macvlan
 
 # libpod api inspect the macvlan network
 t GET libpod/networks/macvlan1/json 200 .name="macvlan1"

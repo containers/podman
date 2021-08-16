@@ -374,10 +374,10 @@ var _ = Describe("Podman inspect", func() {
 		name, path := generateNetworkConfig(podmanTest)
 		defer removeConf(path)
 
-		session := podmanTest.Podman([]string{"inspect", name, "--format", "{{.cniVersion}}"})
+		session := podmanTest.Podman([]string{"inspect", name, "--format", "{{.Driver}}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContains("0.3.0")).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("bridge"))
 	})
 
 	It("podman inspect a volume", func() {

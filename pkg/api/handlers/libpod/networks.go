@@ -6,7 +6,7 @@ import (
 
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/libpod/network"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v3/pkg/api/types"
 	"github.com/containers/podman/v3/pkg/domain/entities"
@@ -18,27 +18,14 @@ import (
 
 func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
-	options := entities.NetworkCreateOptions{}
-	if err := json.NewDecoder(r.Body).Decode(&options); err != nil {
-		utils.Error(w, "unable to marshall input", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+	network := types.Network{}
+	if err := json.NewDecoder(r.Body).Decode(&network); err != nil {
+		utils.Error(w, "unable to marshall input", http.StatusInternalServerError, errors.Wrap(err, "decode body"))
 		return
 	}
-	query := struct {
-		Name string `schema:"name"`
-	}{
-		// override any golang type defaults
-	}
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
-		return
-	}
-	if len(options.Driver) < 1 {
-		options.Driver = network.DefaultNetworkDriver
-	}
+
 	ic := abi.ContainerEngine{Libpod: runtime}
-	report, err := ic.NetworkCreate(r.Context(), query.Name, options)
+	report, err := ic.Libpod.Network().NetworkCreate(network)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return

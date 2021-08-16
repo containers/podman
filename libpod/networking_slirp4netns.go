@@ -615,13 +615,20 @@ func getRootlessPortChildIP(c *Container) string {
 		return slirp4netnsIP.String()
 	}
 
-	for _, r := range c.state.NetworkStatus {
-		for _, i := range r.IPs {
-			ipv4 := i.Address.IP.To4()
-			if ipv4 != nil {
-				return ipv4.String()
+	var ipv6 net.IP
+	for _, status := range c.getNetworkStatus() {
+		for _, netInt := range status.Interfaces {
+			for _, netAddress := range netInt.Networks {
+				ipv4 := netAddress.Subnet.IP.To4()
+				if ipv4 != nil {
+					return ipv4.String()
+				}
+				ipv6 = netAddress.Subnet.IP
 			}
 		}
+	}
+	if ipv6 != nil {
+		return ipv6.String()
 	}
 	return ""
 }
