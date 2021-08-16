@@ -93,9 +93,6 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 				return nil, nil, nil, errors.New("host directory cannot be empty")
 			}
 		}
-		if err := parse.ValidateVolumeCtrDir(dest); err != nil {
-			return nil, nil, nil, err
-		}
 
 		cleanDest := filepath.Clean(dest)
 

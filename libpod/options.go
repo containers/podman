@@ -1456,6 +1456,10 @@ func WithNamedVolumes(volumes []*ContainerNamedVolume) CtrCreateOption {
 				return errors.Wrapf(err, "error processing options for named volume %q mounted at %q", vol.Name, vol.Dest)
 			}
 
+			if err = parse.ValidateVolumeCtrDir(vol.Dest); err != nil {
+				return errors.Wrapf(err, "error validating destination path for named volume %q mounted at %q", vol.Name, vol.Dest)
+			}
+
 			ctr.config.NamedVolumes = append(ctr.config.NamedVolumes, &ContainerNamedVolume{
 				Name:    vol.Name,
 				Dest:    vol.Dest,
