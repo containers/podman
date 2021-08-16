@@ -33,6 +33,7 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 		TLSVerify  bool   `schema:"tlsVerify"`
 		AllTags    bool   `schema:"allTags"`
 		PullPolicy string `schema:"policy"`
+		Quiet      bool   `schema:"quiet"`
 	}{
 		TLSVerify:  true,
 		PullPolicy: "always",
@@ -116,8 +117,10 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 		select {
 		case s := <-writer.Chan():
 			report.Stream = string(s)
-			if err := enc.Encode(report); err != nil {
-				logrus.Warnf("Failed to encode json: %v", err)
+			if !query.Quiet {
+				if err := enc.Encode(report); err != nil {
+					logrus.Warnf("Failed to encode json: %v", err)
+				}
 			}
 			flush()
 		case <-runCtx.Done():

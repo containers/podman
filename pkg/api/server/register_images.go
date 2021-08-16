@@ -962,6 +962,15 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     description: "Mandatory reference to the image (e.g., quay.io/image/name:tag)"
 	//     type: string
 	//   - in: query
+	//     name: quiet
+	//     description: "silences extra stream data on pull"
+	//     type: boolean
+	//     default: false
+	//   - in: query
+	//     name: credentials
+	//     description: "username:password for the registry"
+	//     type: string
+	//   - in: query
 	//     name: Arch
 	//     description: Pull image for the specified architecture.
 	//     type: string
