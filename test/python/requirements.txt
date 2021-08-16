@@ -1,5 +1,5 @@
 docker~=4.4.3
-
+requests-mock~=1.9.3
 requests~=2.20.0
 setuptools~=50.3.2
 python-dateutil~=2.8.1

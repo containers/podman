@@ -493,10 +493,12 @@ validate.completions:
 	if [ -x /bin/zsh ]; then /bin/zsh completions/zsh/_podman; fi
 	if [ -x /bin/fish ]; then /bin/fish completions/fish/podman.fish; fi
 
+# Note: Assumes test/python/requirements.txt is installed & available
 .PHONY: run-docker-py-tests
 run-docker-py-tests:
-	$(eval testLogs=$(shell mktemp podman_tmp_XXXX))
-	./bin/podman run --rm --security-opt label=disable --privileged -v $(testLogs):/testLogs --net=host -e DOCKER_HOST=tcp://localhost:8080 $(DOCKERPY_IMAGE) sh -c "pytest $(DOCKERPY_TEST) "
+	touch test/__init__.py
+	pytest test/python/docker/
+	-rm test/__init__.py
 
 .PHONY: localunit
 localunit: test/goecho/goecho
@@ -841,11 +843,13 @@ clean: ## Clean all make artifacts
 		build \
 		test/checkseccomp/checkseccomp \
 		test/goecho/goecho \
+		test/__init__.py \
 		test/testdata/redis-image \
 		libpod/container_ffjson.go \
 		libpod/pod_ffjson.go \
 		libpod/container_easyjson.go \
 		libpod/pod_easyjson.go \
 		.install.goimports \
-		docs/build
+		docs/build \
+		venv
 	make -C docs clean

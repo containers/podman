@@ -191,7 +191,19 @@ case "$TEST_FLAVOR" in
             bigto dnf install -y glibc-minimal-langpack rpm-build
         fi
         ;&
-    docker-py) ;&
+    docker-py)
+        remove_packaged_podman_files
+        make install PREFIX=/usr ETCDIR=/etc
+
+        # TODO: Don't install stuff at test runtime!  Do this from
+        # cache_images/fedora_packaging.sh in containers/automation_images
+        # and STRONGLY prefer installing RPMs vs pip packages in venv
+        dnf install -y python3-virtualenv python3-pytest4
+        virtualenv venv
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install --requirement $GOSRC/test/python/requirements.txt
+        ;;
     build) make clean ;;
     unit) ;;
     apiv2) ;&  # use next item
