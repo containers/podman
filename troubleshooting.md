@@ -748,7 +748,7 @@ v2.2.1 [here](https://github.com/containers/podman/tree/v2.2.1-rhel/contrib/root
 and for v3.0.1 [here](https://github.com/containers/podman/tree/v3.0.1-rhel/contrib/rootless-cni-infra).
 
 ### 29) Container related firewall rules are lost after reloading firewalld
-Container network can't be reached after `firewall-cmd --reload` and `systemctl restart firewalld` Running  `podman network reload` will fix it but it has to be done manually.
+Container network can't be reached after `firewall-cmd --reload` and `systemctl restart firewalld` Running `podman network reload` will fix it but it has to be done manually.
 
 #### Symptom
 The firewall rules created by podman are lost when the firewall is reloaded.
@@ -826,7 +826,7 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 ```
-The code reloads podman network twice when you use `systemctl restart firewalld`
+The code reloads podman network twice when you use `systemctl restart firewalld`.
 ```
 import dbus
 from gi.repository import GLib
@@ -881,4 +881,3 @@ def signal_listener():
 
 if __name__ == "__main__":
     signal_listener()
-```
