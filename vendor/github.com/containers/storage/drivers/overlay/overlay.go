@@ -1941,7 +1941,7 @@ func (al *additionalLayer) Info() (io.ReadCloser, error) {
 	return os.Open(filepath.Join(al.path, "info"))
 }
 
-// Blob returns a reader of the raw contents of this leyer.
+// Blob returns a reader of the raw contents of this layer.
 func (al *additionalLayer) Blob() (io.ReadCloser, error) {
 	return os.Open(filepath.Join(al.path, "blob"))
 }
