@@ -746,3 +746,138 @@ an Infra container image for CNI-in-slirp4netns must be created.  The
 instructions for building the Infra container image can be found for
 v2.2.1 [here](https://github.com/containers/podman/tree/v2.2.1-rhel/contrib/rootless-cni-infra),
 and for v3.0.1 [here](https://github.com/containers/podman/tree/v3.0.1-rhel/contrib/rootless-cni-infra).
+### 29) Container related firewall rules are lost after reloading firewalld
+Container network can't be reached after `firewall-cmd --reload` and `systemctl restart firewalld` Running `podman network reload` will fix it but it has to be done manually.
+
+#### Symptom
+The firewall rules created by podman are lost when the firewall is reloaded.
+
+#### Solution
+[@ranjithrajaram](https://github.com/containers/podman/issues/5431#issuecomment-847758377) has created a systemd-hook to fix this issue
+
+1) For "firewall-cmd --reload", create a systemd unit file with the following
+```
+[Unit]
+Description=firewalld reload hook - run a hook script on firewalld reload
+Wants=dbus.service
+After=dbus.service
+
+[Service]
+Type=simple
+ExecStart=/bin/bash -c '/bin/busctl monitor --system --match "interface=org.fedoraproject.FirewallD1,member=Reloaded" --match "interface=org.fedoraproject.FirewallD1,member=PropertiesChanged" | while read -r line ; do podman network reload --all ; done'
+
+[Install]
+WantedBy=multi-user.target
+```
+2) For "systemctl restart firewalld", create a systemd unit file with the following
+```
+[Unit]
+Description=podman network reload
+Wants=firewalld.service
+After=firewalld.service
+PartOf=firewalld.service
+
+[Service]
+Type=simple
+RemainAfterExit=yes
+ExecStart=/usr/bin/podman network reload --all
+
+[Install]
+WantedBy=multi-user.target
+```
+However, If you use busctl monitor then you can't get machine-readable output on `RHEL 8`.
+Since it doesn't have `busctl -j` as mentioned here by [@yrro](https://github.com/containers/podman/issues/5431#issuecomment-896943018).
+
+For RHEL 8, you can use the following one-liner bash script.
+```
+[Unit]
+Description=Redo podman NAT rules after firewalld starts or reloads
+Wants=dbus.service
+After=dbus.service
+Requires=firewalld.service
+
+[Service]
+Type=simple
+ExecStart=/bin/bash -c "dbus-monitor --profile --system 'type=signal,sender=org.freedesktop.DBus,path=/org/freedesktop/DBus,interface=org.freedesktop.DBus,member=NameAcquired,arg0=org.fedoraproject.FirewallD1' 'type=signal,path=/org/fedoraproject/FirewallD1,interface=org.fedoraproject.FirewallD1,member=Reloaded' | sed -u '/^#/d' | while read -r type timestamp serial sender destination path interface member _junk; do if [[ $type = '#'* ]]; then continue; elif [[ $interface = org.freedesktop.DBus && $member = NameAcquired ]]; then echo 'firewalld started'; podman network reload --all; elif [[ $interface = org.fedoraproject.FirewallD1 && $member = Reloaded ]]; then echo 'firewalld reloaded'; podman network reload --all; fi; done"
+Restart=Always
+
+[Install]
+WantedBy=multi-user.target
+```
+`busctl-monitor` is almost usable in `RHEL 8`, except that it always outputs two bogus events when it starts up,
+one of which is (in its only machine-readable format) indistinguishable from the `NameOwnerChanged` that you get when firewalld starts up.
+This means you would get an extra `podman network reload --all` when this unit starts.
+
+Apart from this, you can use the following systemd service with the python3 code.
+
+```
+[Unit]
+Description=Redo podman NAT rules after firewalld starts or reloads
+Wants=dbus.service
+Requires=firewalld.service
+After=dbus.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python  /path/to/python/code/podman-redo-nat.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+The code reloads podman network twice when you use `systemctl restart firewalld`.
+```
+import dbus
+from gi.repository import GLib
+from dbus.mainloop.glib import DBusGMainLoop
+import subprocess
+import sys
+
+# I'm a bit confused on the return values in the code
+# Not sure if they are needed.
+
+def reload_podman_network():
+    try:
+        subprocess.run(["podman","network","reload","--all"],timeout=90)
+        # I'm not sure about this part
+        sys.stdout.write("podman network reload done\n")
+        sys.stdout.flush()
+    except subprocess.TimeoutExpired as t:
+        sys.stderr.write(f"Podman reload failed due to Timeout {t}")
+    except subprocess.CalledProcessError as e:
+        sys.stderr.write(f"Podman reload failed due to {e}")
+    except Exception as e:
+        sys.stderr.write(f"Podman reload failed with an Unhandled Exception {e}")
+
+    return False
+
+def signal_handler(*args, **kwargs):
+    if kwargs.get('member') == "Reloaded":
+        reload_podman_network()
+    elif kwargs.get('member') == "NameOwnerChanged":
+        reload_podman_network()
+    else:
+        return None
+    return None
+
+def signal_listener():
+    try:
+        DBusGMainLoop(set_as_default=True)# Define the loop.
+        loop = GLib.MainLoop()
+        system_bus = dbus.SystemBus()
+        # Listens to systemctl restart firewalld with a filter added, will cause podman network to be reloaded twice
+        system_bus.add_signal_receiver(signal_handler,dbus_interface='org.freedesktop.DBus',arg0='org.fedoraproject.FirewallD1',member_keyword='member')
+        # Listens to firewall-cmd --reload
+        system_bus.add_signal_receiver(signal_handler,dbus_interface='org.fedoraproject.FirewallD1',signal_name='Reloaded',member_keyword='member')
+        loop.run()
+    except KeyboardInterrupt:
+        loop.quit()
+        sys.exit(0)
+    except Exception as e:
+        loop.quit()
+        sys.stderr.write(f"Error occured {e}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    signal_listener()
+```
