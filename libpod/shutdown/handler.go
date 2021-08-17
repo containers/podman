@@ -35,7 +35,7 @@ func Start() error {
 		return nil
 	}
 
-	sigChan = make(chan os.Signal, 1)
+	sigChan = make(chan os.Signal, 2)
 	cancelChan = make(chan bool, 1)
 	stopped = false
 
