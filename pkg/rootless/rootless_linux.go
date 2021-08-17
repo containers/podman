@@ -397,8 +397,6 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		return false, -1, errors.Wrapf(err, "error setting up the process")
 	}
 
-	c := make(chan os.Signal, 1)
-
 	signals := []os.Signal{}
 	for sig := 0; sig < numSig; sig++ {
 		if sig == int(unix.SIGTSTP) {
@@ -407,6 +405,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		signals = append(signals, unix.Signal(sig))
 	}
 
+	c := make(chan os.Signal, len(signals))
 	gosignal.Notify(c, signals...)
 	defer gosignal.Reset()
 	go func() {
