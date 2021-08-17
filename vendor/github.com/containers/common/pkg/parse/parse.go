@@ -5,6 +5,7 @@ package parse
 
 import (
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -155,7 +156,7 @@ func ValidateVolumeCtrDir(ctrDir string) error {
 	if ctrDir == "" {
 		return errors.New("container directory cannot be empty")
 	}
-	if !filepath.IsAbs(ctrDir) {
+	if !path.IsAbs(ctrDir) {
 		return errors.Errorf("invalid container path %q, must be an absolute path", ctrDir)
 	}
 	return nil

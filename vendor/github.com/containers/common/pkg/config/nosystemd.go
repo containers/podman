@@ -1,6 +1,11 @@
-// +build !systemd
+// +build !systemd !cgo
 
 package config
+
+const (
+	// DefaultLogDriver is the default type of log files
+	DefaultLogDriver = "k8s-file"
+)
 
 func defaultCgroupManager() string {
 	return CgroupfsCgroupsManager

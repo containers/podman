@@ -104,7 +104,6 @@ func Login(ctx context.Context, systemContext *types.SystemContext, opts *LoginO
 			return errors.Wrap(err, "get credentials for repository")
 		}
 	} else {
-		// nolint: staticcheck
 		authConfig, err = config.GetCredentials(systemContext, registry)
 		if err != nil {
 			return errors.Wrap(err, "get credentials")
@@ -321,7 +320,6 @@ func Logout(systemContext *types.SystemContext, opts *LogoutOptions, args []stri
 				return errors.Wrap(err, "get credentials for repository")
 			}
 		} else {
-			// nolint: staticcheck
 			authConfig, err = config.GetCredentials(systemContext, registry)
 			if err != nil {
 				return errors.Wrap(err, "get credentials")
