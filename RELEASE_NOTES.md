@@ -96,8 +96,8 @@
 
 ### Misc
 - Updated Buildah to v1.22.0
-- Updated the containers/storage library to v1.33.1
-- Updated the containers/image library to v5.15.0
+- Updated the containers/storage library to v1.34.1
+- Updated the containers/image library to v5.15.1
 - Updated the containers/common library to v0.42.1
 
 ## 3.2.3
