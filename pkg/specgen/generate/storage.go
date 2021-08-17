@@ -10,6 +10,7 @@ import (
 
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/parse"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/specgen"
@@ -59,6 +60,9 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 	for _, m := range s.Mounts {
 		// Ensure that mount dest is clean, so that it can be
 		// compared against named volumes and avoid duplicate mounts.
+		if err = parse.ValidateVolumeCtrDir(m.Destination); err != nil {
+			return nil, nil, nil, err
+		}
 		cleanDestination := filepath.Clean(m.Destination)
 		if _, ok := unifiedMounts[cleanDestination]; ok {
 			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict in specified mounts - multiple mounts at %q", cleanDestination)
@@ -67,34 +71,54 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 	}
 
 	for _, m := range commonMounts {
-		if _, ok := unifiedMounts[m.Destination]; !ok {
-			unifiedMounts[m.Destination] = m
+		if err = parse.ValidateVolumeCtrDir(m.Destination); err != nil {
+			return nil, nil, nil, err
+		}
+		cleanDestination := filepath.Clean(m.Destination)
+		if _, ok := unifiedMounts[cleanDestination]; !ok {
+			unifiedMounts[cleanDestination] = m
 		}
 	}
 
 	for _, v := range s.Volumes {
-		if _, ok := unifiedVolumes[v.Dest]; ok {
-			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict in specified volumes - multiple volumes at %q", v.Dest)
+		if err = parse.ValidateVolumeCtrDir(v.Dest); err != nil {
+			return nil, nil, nil, err
 		}
-		unifiedVolumes[v.Dest] = v
+		cleanDestination := filepath.Clean(v.Dest)
+		if _, ok := unifiedVolumes[cleanDestination]; ok {
+			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict in specified volumes - multiple volumes at %q", cleanDestination)
+		}
+		unifiedVolumes[cleanDestination] = v
 	}
 
 	for _, v := range commonVolumes {
-		if _, ok := unifiedVolumes[v.Dest]; !ok {
-			unifiedVolumes[v.Dest] = v
+		if err = parse.ValidateVolumeCtrDir(v.Dest); err != nil {
+			return nil, nil, nil, err
+		}
+		cleanDestination := filepath.Clean(v.Dest)
+		if _, ok := unifiedVolumes[cleanDestination]; !ok {
+			unifiedVolumes[cleanDestination] = v
 		}
 	}
 
 	for _, v := range s.OverlayVolumes {
-		if _, ok := unifiedOverlays[v.Destination]; ok {
-			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict in specified volumes - multiple volumes at %q", v.Destination)
+		if err = parse.ValidateVolumeCtrDir(v.Destination); err != nil {
+			return nil, nil, nil, err
 		}
-		unifiedOverlays[v.Destination] = v
+		cleanDestination := filepath.Clean(v.Destination)
+		if _, ok := unifiedOverlays[cleanDestination]; ok {
+			return nil, nil, nil, errors.Wrapf(errDuplicateDest, "conflict in specified volumes - multiple volumes at %q", cleanDestination)
+		}
+		unifiedOverlays[cleanDestination] = v
 	}
 
 	for _, v := range commonOverlayVolumes {
-		if _, ok := unifiedOverlays[v.Destination]; ok {
-			unifiedOverlays[v.Destination] = v
+		if err = parse.ValidateVolumeCtrDir(v.Destination); err != nil {
+			return nil, nil, nil, err
+		}
+		cleanDestination := filepath.Clean(v.Destination)
+		if _, ok := unifiedOverlays[cleanDestination]; !ok {
+			unifiedOverlays[cleanDestination] = v
 		}
 	}
 
@@ -190,6 +214,9 @@ func getImageVolumes(ctx context.Context, img *libimage.Image, s *specgen.SpecGe
 	}
 	for volume := range inspect.Config.Volumes {
 		logrus.Debugf("Image has volume at %q", volume)
+		if err = parse.ValidateVolumeCtrDir(volume); err != nil {
+			return nil, nil, err
+		}
 		cleanDest := filepath.Clean(volume)
 		switch mode {
 		case "", "anonymous":
@@ -304,9 +331,13 @@ func getVolumesFrom(volumesFrom []string, runtime *libpod.Runtime) (map[string]s
 			if _, ok := finalMounts[namedVol.Dest]; ok {
 				logrus.Debugf("Overriding named volume mount to %s with new named volume from container %s", namedVol.Dest, ctr.ID())
 			}
+			if err = parse.ValidateVolumeCtrDir(namedVol.Dest); err != nil {
+				return nil, nil, err
+			}
 
+			cleanDest := filepath.Clean(namedVol.Dest)
 			newVol := new(specgen.NamedVolume)
-			newVol.Dest = namedVol.Dest
+			newVol.Dest = cleanDest
 			newVol.Options = namedVol.Options
 			newVol.Name = namedVol.Name
 

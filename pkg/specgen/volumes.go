@@ -1,7 +1,6 @@
 package specgen
 
 import (
-	"path/filepath"
 	"strings"
 
 	"github.com/containers/common/pkg/parse"
@@ -93,11 +92,6 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 				return nil, nil, nil, errors.New("host directory cannot be empty")
 			}
 		}
-		if err := parse.ValidateVolumeCtrDir(dest); err != nil {
-			return nil, nil, nil, err
-		}
-
-		cleanDest := filepath.Clean(dest)
 
 		if strings.HasPrefix(src, "/") || strings.HasPrefix(src, ".") {
 			// This is not a named volume
@@ -120,7 +114,7 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 			if overlayFlag {
 				// This is a overlay volume
 				newOverlayVol := new(OverlayVolume)
-				newOverlayVol.Destination = cleanDest
+				newOverlayVol.Destination = dest
 				newOverlayVol.Source = src
 				newOverlayVol.Options = options
 
@@ -130,7 +124,7 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 				overlayVolumes[newOverlayVol.Destination] = newOverlayVol
 			} else {
 				newMount := spec.Mount{
-					Destination: cleanDest,
+					Destination: dest,
 					Type:        "bind",
 					Source:      src,
 					Options:     options,
@@ -144,7 +138,7 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 			// This is a named volume
 			newNamedVol := new(NamedVolume)
 			newNamedVol.Name = src
-			newNamedVol.Dest = cleanDest
+			newNamedVol.Dest = dest
 			newNamedVol.Options = options
 
 			if _, ok := volumes[newNamedVol.Dest]; ok {
