@@ -635,26 +635,19 @@ rootless_system_test_task:
 # FIXME: we may want to consider running this from nightly cron instead of CI.
 # The tests are actually pretty quick (less than a minute) but they do rely
 # on pulling images from quay.io, which means we're subject to network flakes.
-#
-# FIXME: how does this env matrix work, anyway? Does it spin up multiple VMs?
-# We might just want to encode the version matrix in runner.sh instead
 upgrade_test_task:
-    name: "Upgrade test: from $PODMAN_UPGRADE_FROM"
+    name: "Upgrade test"
     alias: upgrade_test
     skip: *tags
     only_if: *not_docs
     depends_on:
       - local_system_test
-    matrix:
-        - env:
-              PODMAN_UPGRADE_FROM: v1.9.0
-        - env:
-              PODMAN_UPGRADE_FROM: v2.0.6
-        - env:
-              PODMAN_UPGRADE_FROM: v2.1.1
     gce_instance: *standardvm
     env:
         TEST_FLAVOR: upgrade_test
+        # Space-separated values to test as $PODMAN_UPGRADE_FROM
+        # see test/upgrade/README.md
+        TEST_UPGRADE_FROM: v1.9.0 v2.0.6 v2.1.1
         DISTRO_NV: ${FEDORA_NAME}
         VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
         # ID for re-use of build output

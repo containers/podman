@@ -71,7 +71,11 @@ function _run_sys() {
 }
 
 function _run_upgrade_test() {
-    bats test/upgrade |& logformatter
+    local PODMAN_UPGRADE_FROM
+    req_env_var TEST_UPGRADE_FROM
+    for PODMAN_UPGRADE_FROM in $TEST_UPGRADE_FROM; do
+        bats test/upgrade |& logformatter
+    done
 }
 
 function _run_bud() {
