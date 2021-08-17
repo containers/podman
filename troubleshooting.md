@@ -786,7 +786,7 @@ ExecStart=/usr/bin/podman network reload --all
 
 [Install]
 WantedBy=multi-user.target
-``` 
+```
 However, If you use busctl monitor then you can't get machine-readable output on `RHEL 8`.
 Since it doesn't have `busctl -j` as mentioned here by [@yrro](https://github.com/containers/podman/issues/5431#issuecomment-896943018).
 
