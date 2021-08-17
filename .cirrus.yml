@@ -632,17 +632,11 @@ rootless_system_test_task:
     main_script: *main
     always: *logs_artifacts
 
-# FIXME: we may want to consider running this from nightly cron instead of CI.
-# The tests are actually pretty quick (less than a minute) but they do rely
-# on pulling images from quay.io, which means we're subject to network flakes.
-#
-# FIXME: how does this env matrix work, anyway? Does it spin up multiple VMs?
-# We might just want to encode the version matrix in runner.sh instead
 upgrade_test_task:
     name: "Upgrade test: from $PODMAN_UPGRADE_FROM"
     alias: upgrade_test
     skip: *tags
-    only_if: *not_docs
+    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' || $CIRRUS_CRON != ''
     depends_on:
       - local_system_test
     matrix:
