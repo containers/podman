@@ -1,3 +1,31 @@
+- Changelog for HEAD (2021-08-17):
+  * Release notes for v3.3.0-RC3
+  * [v3.3] Bump c/storage to v1.34.1 and c/image to v5.15.1
+  * fix gvproxy path search for macos
+  * Bump to v3.3.0-dev
+  * Bump to v3.3.0-rc2
+  * Set gvproxy path to /usr/libexec/podman/gvproxy
+  * Revert "Podman Pod Create --cpus and --cpuset-cpus flags"
+  * Address review comments
+  * Final release notes for v3.3.0-RC2
+  * Document source ip for the rootlesskit port handler
+  * podman info show correct slirp4netns path
+  * show podman machine ssh command line
+  * Fix TS parsing for fractional values
+  * Handle timezone on server containers.conf
+  * Fix podman unpause,pause,kill --all to work like podman stop --all
+  * Do not add an entry to /etc/hosts with `--net=host`
+  * Only support containers stats using cgroups v2
+  * Compat API: Fix healthcheck status and healthcheck config
+  * podman info: try qfile before equery
+  * test: move container process to a sub-cgroup
+  * Fix handling of user specified container labels
+  * Release notes for v3.3.0-RC2: Initial
+  * Bump github.com/rootless-containers/rootlesskit from 0.14.3 to 0.14.4
+  * fix rootless port forwarding with network dis-/connect
+  * [v3.3] Bump to Buildah v1.22.0 [NO TESTS NEEDED]
+  * Disable aarch64 support
+
 - Changelog for v3.2.0-rc1 (2021-05-05)
   * migrate Podman to containers/common/libimage
   * add --mac-address to podman play kube
