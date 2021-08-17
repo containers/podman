@@ -1,12 +1,11 @@
 package pwalk
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"sync"
-
-	"github.com/pkg/errors"
 )
 
 type WalkFunc = filepath.WalkFunc
@@ -20,7 +19,7 @@ type WalkFunc = filepath.WalkFunc
 //
 // Note that this implementation only supports primitive error handling:
 //
-// - no errors are ever passed to WalkFn;
+// - no errors are ever passed to walkFn;
 //
 // - once a walkFn returns any error, all further processing stops
 // and the error is returned to the caller of Walk;
@@ -42,7 +41,7 @@ func Walk(root string, walkFn WalkFunc) error {
 func WalkN(root string, walkFn WalkFunc, num int) error {
 	// make sure limit is sensible
 	if num < 1 {
-		return errors.Errorf("walk(%q): num must be > 0", root)
+		return fmt.Errorf("walk(%q): num must be > 0", root)
 	}
 
 	files := make(chan *walkArgs, 2*num)
@@ -96,7 +95,7 @@ func WalkN(root string, walkFn WalkFunc, num int) error {
 	return err
 }
 
-// walkArgs holds the arguments that were passed to the Walk or WalkLimit
+// walkArgs holds the arguments that were passed to the Walk or WalkN
 // functions.
 type walkArgs struct {
 	path string
