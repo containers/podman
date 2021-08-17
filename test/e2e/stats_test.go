@@ -22,6 +22,9 @@ var _ = Describe("Podman stats", func() {
 
 	BeforeEach(func() {
 		SkipIfRootlessCgroupsV1("stats not supported on cgroupv1 for rootless users")
+		if isContainerized() {
+			SkipIfCgroupV1("stats not supported inside cgroupv1 container environment")
+		}
 		var err error
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
