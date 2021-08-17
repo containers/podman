@@ -32,14 +32,14 @@ func (p *Pod) startInitContainers(ctx context.Context) error {
 		if rc != 0 {
 			return errors.Errorf("init container %s exited with code %d", initCon.ID(), rc)
 		}
-		// If the container is an oneshot init container, we need to remove it
+		// If the container is a once init container, we need to remove it
 		// after it runs
 		if initCon.Config().InitContainerType == define.OneShotInitContainer {
 			icLock := initCon.lock
 			icLock.Lock()
 			if err := p.runtime.removeContainer(ctx, initCon, false, false, true); err != nil {
 				icLock.Unlock()
-				return errors.Wrapf(err, "failed to remove oneshot init container %s", initCon.ID())
+				return errors.Wrapf(err, "failed to remove once init container %s", initCon.ID())
 			}
 			// Removing a container this way requires an explicit call to clean up the db
 			if err := p.runtime.state.RemoveContainerFromPod(p, initCon); err != nil {

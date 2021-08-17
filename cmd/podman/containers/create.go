@@ -13,6 +13,7 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/utils"
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
@@ -105,8 +106,8 @@ func create(cmd *cobra.Command, args []string) error {
 		if !cmd.Flags().Changed("pod") {
 			return errors.New("must specify pod value with init-ctr")
 		}
-		if !util.StringInSlice(initctr, []string{"always", "oneshot"}) {
-			return errors.New("init-ctr value must be 'always' or 'oneshot'")
+		if !util.StringInSlice(initctr, []string{define.AlwaysInitContainer, define.OneShotInitContainer}) {
+			return errors.Errorf("init-ctr value must be '%s' or '%s'", define.AlwaysInitContainer, define.OneShotInitContainer)
 		}
 		cliVals.InitContainerType = initctr
 	}

@@ -98,10 +98,10 @@ var _ = Describe("Podman init containers", func() {
 		Expect(checkLog.OutputToString()).To(Equal(content))
 	})
 
-	It("podman make sure oneshot container is removed", func() {
+	It("podman make sure once container is removed", func() {
 		filename := filepath.Join("/dev/shm", RandomString(12))
 		content := RandomString(16)
-		session := podmanTest.Podman([]string{"create", "--init-ctr", "oneshot", "--pod", "new:foobar", ALPINE, "bin/sh", "-c", fmt.Sprintf("echo %s > %s", content, filename)})
+		session := podmanTest.Podman([]string{"create", "--init-ctr", "once", "--pod", "new:foobar", ALPINE, "bin/sh", "-c", fmt.Sprintf("echo %s > %s", content, filename)})
 		session.WaitWithDefaultTimeout()
 		initContainerID := session.OutputToString()
 		Expect(session).Should(Exit(0))

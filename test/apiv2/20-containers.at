@@ -356,3 +356,14 @@ t GET containers/$cid/json 200 \
   .HostConfig.NetworkMode="bridge"
 
 t DELETE containers/$cid?v=true 204
+
+# Test Compat Create with healthcheck, check default values
+t POST containers/create Image=$IMAGE Cmd='["top"]' Healthcheck='{"Test":["true"]}' 201 \
+  .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+t GET containers/$cid/json 200 \
+  .Config.Healthcheck.Interval=30000000000 \
+  .Config.Healthcheck.Timeout=30000000000 \
+  .Config.Healthcheck.Retries=3
+
+t DELETE containers/$cid?v=true 204

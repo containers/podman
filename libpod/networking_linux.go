@@ -173,11 +173,27 @@ func (r *RootlessCNI) Do(toRun func() error) error {
 		// the link target will be available in the mount ns.
 		// see: https://github.com/containers/podman/issues/10855
 		resolvePath := "/etc/resolv.conf"
-		resolvePath, err = filepath.EvalSymlinks(resolvePath)
-		if err != nil {
-			return err
+		for i := 0; i < 255; i++ {
+			// Do not use filepath.EvalSymlinks, we only want the first symlink under /run.
+			// If /etc/resolv.conf has more than one symlink under /run, e.g.
+			// -> /run/systemd/resolve/stub-resolv.conf -> /run/systemd/resolve/resolv.conf
+			// we would put the netns resolv.conf file to the last path. However this will
+			// break dns because the second link does not exists in the mount ns.
+			// see https://github.com/containers/podman/issues/11222
+			link, err := os.Readlink(resolvePath)
+			if err != nil {
+				// if there is no symlink exit
+				break
+			}
+			resolvePath = filepath.Join(filepath.Dir(resolvePath), link)
+			if strings.HasPrefix(resolvePath, "/run/") {
+				break
+			}
+			if i == 254 {
+				return errors.New("too many symlinks while resolving /etc/resolv.conf")
+			}
 		}
-		logrus.Debugf("The actual path of /etc/resolv.conf on the host is %q", resolvePath)
+		logrus.Debugf("The path of /etc/resolv.conf in the mount ns is %q", resolvePath)
 		// When /etc/resolv.conf on the host is a symlink to /run/systemd/resolve/stub-resolv.conf,
 		// we have to mount an empty filesystem on /run/systemd/resolve in the child namespace,
 		// so as to isolate the directory from the host mount namespace.
@@ -1219,7 +1235,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 		return err
 	}
 
-	// OCICNI will set the loopback adpter down on teardown so we should set it up again
+	// OCICNI will set the loopback adapter down on teardown so we should set it up again
 	err = c.state.NetNS.Do(func(_ ns.NetNS) error {
 		link, err := netlink.LinkByName("lo")
 		if err != nil {
@@ -1229,7 +1245,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 		return err
 	})
 	if err != nil {
-		logrus.Warnf("failed to set loopback adpter up in the container: %v", err)
+		logrus.Warnf("failed to set loopback adapter up in the container: %v", err)
 	}
 	// Reload ports when there are still connected networks, maybe we removed the network interface with the child ip.
 	// Reloading without connected networks does not make sense, so we can skip this step.

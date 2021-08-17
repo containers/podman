@@ -1782,7 +1782,7 @@ func (c *Container) generateResolvConf() (string, error) {
 	cniResponse := c.state.NetworkStatus
 	for _, i := range cniResponse {
 		for _, ip := range i.IPs {
-			// Note: only using To16() does not work since it also returns a vaild ip for ipv4
+			// Note: only using To16() does not work since it also returns a valid ip for ipv4
 			if ip.Address.IP.To4() == nil && ip.Address.IP.To16() != nil {
 				ipv6 = true
 			}

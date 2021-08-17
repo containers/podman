@@ -1,6 +1,7 @@
 package util
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -257,6 +258,28 @@ func TestValidateSysctlBadSysctl(t *testing.T) {
 	strSlice := []string{"BLAU=BLUE", "GELB^YELLOW"}
 	_, err := ValidateSysctls(strSlice)
 	assert.Error(t, err)
+}
+
+func TestValidateSysctlBadSysctlWithExtraSpaces(t *testing.T) {
+	expectedError := "'%s' is invalid, extra spaces found"
+
+	// should fail fast on first sysctl
+	strSlice1 := []string{
+		"net.ipv4.ping_group_range = 0 0",
+		"net.ipv4.ping_group_range=0 0 ",
+	}
+	_, err := ValidateSysctls(strSlice1)
+	assert.Error(t, err)
+	assert.Equal(t, err.Error(), fmt.Sprintf(expectedError, strSlice1[0]))
+
+	// should fail on second sysctl
+	strSlice2 := []string{
+		"net.ipv4.ping_group_range=0 0",
+		"net.ipv4.ping_group_range=0 0 ",
+	}
+	_, err = ValidateSysctls(strSlice2)
+	assert.Error(t, err)
+	assert.Equal(t, err.Error(), fmt.Sprintf(expectedError, strSlice2[1]))
 }
 
 func TestCoresToPeriodAndQuota(t *testing.T) {

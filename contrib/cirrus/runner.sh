@@ -88,7 +88,8 @@ function _run_bindings() {
 }
 
 function _run_docker-py() {
-    msg "This is docker-py stub, it is only a stub"
+    source venv/bin/activate
+    make run-docker-py-tests
 }
 
 function _run_endpoint() {

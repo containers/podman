@@ -453,10 +453,9 @@ When using pods, create an init style container, which is run after the infra co
 but before regular pod containers are started.  Init containers are useful for running
 setup operations for the pod's applications.
 
-Valid values for `init-ctr` type are *always* or *oneshot*.  The *always* value
-means the container will run with each and every `pod start`, whereas the *oneshot*
-value means is will ony run once when the pod is started and then the container is
-removed.
+Valid values for `init-ctr` type are *always* or *once*.  The *always* value
+means the container will run with each and every `pod start`, whereas the *once*
+value means the container will only run once when the pod is started and then the container is removed.
 
 Init containers are only run on pod `start`.  Restarting a pod will not execute any init
 containers should they be present.  Furthermore, init containers can only be created in a

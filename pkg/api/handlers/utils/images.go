@@ -27,7 +27,7 @@ func IsRegistryReference(name string) error {
 	if imageRef.Transport().Name() == docker.Transport.Name() {
 		return nil
 	}
-	return errors.Errorf("unsupport transport %s in %q: only docker transport is supported", imageRef.Transport().Name(), name)
+	return errors.Errorf("unsupported transport %s in %q: only docker transport is supported", imageRef.Transport().Name(), name)
 }
 
 // ParseStorageReference parses the specified image name to a
