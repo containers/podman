@@ -117,7 +117,7 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 			return nil, nil, nil, err
 		}
 		cleanDestination := filepath.Clean(v.Destination)
-		if _, ok := unifiedOverlays[cleanDestination]; ok {
+		if _, ok := unifiedOverlays[cleanDestination]; !ok {
 			unifiedOverlays[cleanDestination] = v
 		}
 	}
