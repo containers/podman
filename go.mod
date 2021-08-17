@@ -3,7 +3,7 @@ module github.com/containers/podman/v3
 go 1.13
 
 require (
-	github.com/BurntSushi/toml v0.3.1
+	github.com/BurntSushi/toml v0.4.1
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/buger/goterm v0.0.0-20181115115552-c206103e1f37
 	github.com/checkpoint-restore/checkpointctl v0.0.0-20210301084134-a2024f5584e7
@@ -14,10 +14,10 @@ require (
 	github.com/containers/buildah v1.22.0
 	github.com/containers/common v0.42.1
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.15.0
+	github.com/containers/image/v5 v5.15.1
 	github.com/containers/ocicrypt v1.1.2
 	github.com/containers/psgo v1.5.2
-	github.com/containers/storage v1.33.1
+	github.com/containers/storage v1.34.1
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
 	github.com/cri-o/ocicni v0.2.1-0.20210621164014-d0acc7862283
@@ -49,7 +49,7 @@ require (
 	github.com/opencontainers/runc v1.0.1
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/opencontainers/runtime-tools v0.9.0
-	github.com/opencontainers/selinux v1.8.2
+	github.com/opencontainers/selinux v1.8.4
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/rootless-containers/rootlesskit v0.14.4
