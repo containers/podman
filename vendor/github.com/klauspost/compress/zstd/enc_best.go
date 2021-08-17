@@ -5,6 +5,7 @@
 package zstd
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/klauspost/compress"
@@ -208,6 +209,11 @@ encodeLoop:
 			if s-offset >= e.maxMatchOff || load3232(src, offset) != first {
 				return match{s: s, est: highScore}
 			}
+			if debugAsserts {
+				if !bytes.Equal(src[s:s+4], src[offset:offset+4]) {
+					panic(fmt.Sprintf("first match mismatch: %v != %v, first: %08x", src[s:s+4], src[offset:offset+4], first))
+				}
+			}
 			m := match{offset: offset, s: s, length: 4 + e.matchlen(s+4, offset+4, src), rep: rep}
 			m.estBits(bitsPerByte)
 			return m
@@ -218,17 +224,17 @@ encodeLoop:
 		best = bestOf(best, matchAt(candidateS.prev-e.cur, s, uint32(cv), -1))
 
 		if canRepeat && best.length < goodEnough {
-			cv := uint32(cv >> 8)
+			cv32 := uint32(cv >> 8)
 			spp := s + 1
-			best = bestOf(best, matchAt(spp-offset1, spp, cv, 1))
-			best = bestOf(best, matchAt(spp-offset2, spp, cv, 2))
-			best = bestOf(best, matchAt(spp-offset3, spp, cv, 3))
+			best = bestOf(best, matchAt(spp-offset1, spp, cv32, 1))
+			best = bestOf(best, matchAt(spp-offset2, spp, cv32, 2))
+			best = bestOf(best, matchAt(spp-offset3, spp, cv32, 3))
 			if best.length > 0 {
-				cv >>= 16
+				cv32 = uint32(cv >> 24)
 				spp += 2
-				best = bestOf(best, matchAt(spp-offset1, spp, cv, 1))
-				best = bestOf(best, matchAt(spp-offset2, spp, cv, 2))
-				best = bestOf(best, matchAt(spp-offset3, spp, cv, 3))
+				best = bestOf(best, matchAt(spp-offset1, spp, cv32, 1))
+				best = bestOf(best, matchAt(spp-offset2, spp, cv32, 2))
+				best = bestOf(best, matchAt(spp-offset3, spp, cv32, 3))
 			}
 		}
 		// Load next and check...
@@ -278,6 +284,12 @@ encodeLoop:
 					}
 					best = bestEnd
 				}
+			}
+		}
+
+		if debugAsserts {
+			if !bytes.Equal(src[best.s:best.s+best.length], src[best.offset:best.offset+best.length]) {
+				panic(fmt.Sprintf("match mismatch: %v != %v", src[best.s:best.s+best.length], src[best.offset:best.offset+best.length]))
 			}
 		}
 
@@ -356,7 +368,7 @@ encodeLoop:
 			panic(fmt.Sprintf("s (%d) <= t (%d)", s, t))
 		}
 
-		if debugAsserts && canRepeat && int(offset1) > len(src) {
+		if debugAsserts && int(offset1) > len(src) {
 			panic("invalid offset")
 		}
 

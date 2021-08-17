@@ -160,9 +160,6 @@ func expandEnvPath(path string, rootlessUID int) (string, error) {
 	path = os.ExpandEnv(path)
 	newpath, err := filepath.EvalSymlinks(path)
 	if err != nil {
-		if !os.IsNotExist(err) {
-			return "", err
-		}
 		newpath = filepath.Clean(path)
 	}
 	return newpath, nil
