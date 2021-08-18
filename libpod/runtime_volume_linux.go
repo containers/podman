@@ -234,11 +234,6 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 	// Set volume as invalid so it can no longer be used
 	v.valid = false
 
-	// Remove the volume from the state
-	if err := r.state.RemoveVolume(v); err != nil {
-		return errors.Wrapf(err, "error removing volume %s", v.Name())
-	}
-
 	var removalErr error
 
 	// If we use a volume plugin, we need to remove from the plugin.
@@ -266,9 +261,17 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 			req := new(pluginapi.RemoveRequest)
 			req.Name = v.Name()
 			if err := v.plugin.RemoveVolume(req); err != nil {
-				removalErr = errors.Wrapf(err, "volume %s could not be removed from plugin %s, but it has been removed from Podman", v.Name(), v.Driver())
+				return errors.Wrapf(err, "volume %s could not be removed from plugin %s", v.Name(), v.Driver())
 			}
 		}
+	}
+
+	// Remove the volume from the state
+	if err := r.state.RemoveVolume(v); err != nil {
+		if removalErr != nil {
+			logrus.Errorf("Error removing volume %s from plugin %s: %v", v.Name(), v.Driver(), removalErr)
+		}
+		return errors.Wrapf(err, "error removing volume %s", v.Name())
 	}
 
 	// Free the volume's lock
