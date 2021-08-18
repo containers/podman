@@ -77,6 +77,13 @@ case "$CG_FS_TYPE" in
             else
                 echo "OCI_RUNTIME=runc" >> /etc/ci_environment
             fi
+
+            # As a general policy CGv1 + runc should coincide with the "older"
+            # VM Images in CI.  Verify this is the case.
+            if [[ -n "$VM_IMAGE_NAME" ]] && [[ ! "$VM_IMAGE_NAME" =~ prior ]]
+            then
+                die "Most recent distro. version should never run with CGv1"
+            fi
         fi
         ;;
     cgroup2fs)
@@ -85,6 +92,13 @@ case "$CG_FS_TYPE" in
             # which uses runc as the default.
             warn "Forcing testing with crun instead of runc"
             echo "OCI_RUNTIME=crun" >> /etc/ci_environment
+
+            # As a general policy CGv2 + crun should coincide with the "newer"
+            # VM Images in CI.  Verify this is the case.
+            if [[ -n "$VM_IMAGE_NAME" ]] && [[ "$VM_IMAGE_NAME" =~ prior ]]
+            then
+                die "Least recent distro. version should never run with CGv2"
+            fi
         fi
         ;;
     *) die_unknown CG_FS_TYPE
@@ -208,7 +222,7 @@ case "$TEST_FLAVOR" in
     unit) ;;
     apiv2) ;&  # use next item
     compose)
-        dnf install -y $PACKAGE_DOWNLOAD_DIR/podman-docker*
+        rpm -ivh $PACKAGE_DOWNLOAD_DIR/podman-docker*
         ;&  # continue with next item
     int) ;&
     sys) ;&
