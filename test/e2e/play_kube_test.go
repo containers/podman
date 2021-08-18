@@ -512,21 +512,6 @@ var (
 	defaultSecret = []byte(`{"FOO":"Zm9v","BAR":"YmFy"}`)
 )
 
-func writeYaml(content string, fileName string) error {
-	f, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	_, err = f.WriteString(content)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // getKubeYaml returns a kubernetes YAML document.
 func getKubeYaml(kind string, object interface{}) (string, error) {
 	var yamlTemplate string

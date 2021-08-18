@@ -100,6 +100,9 @@ func init() {
 		configmapFlagName := "configmap"
 		flags.StringSliceVar(&kubeOptions.ConfigMaps, configmapFlagName, []string{}, "`Pathname` of a YAML file containing a kubernetes configmap")
 		_ = kubeCmd.RegisterFlagCompletionFunc(configmapFlagName, completion.AutocompleteDefault)
+
+		buildFlagName := "build"
+		flags.BoolVar(&kubeOptions.Build, buildFlagName, false, "Build all images in a YAML (given Containerfiles exist)")
 	}
 	_ = flags.MarkHidden("signature-policy")
 }

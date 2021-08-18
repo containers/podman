@@ -35,6 +35,36 @@ A Kubernetes PersistentVolumeClaim represents a Podman named volume. Only the Pe
 - volume.podman.io/gid
 - volume.podman.io/mount-options
 
+Play kube is capable of building images on the fly given the correct directory layout and Containerfiles. This
+option is not available for remote clients yet. Consider the following excerpt from a YAML file:
+```
+apiVersion: v1
+kind: Pod
+metadata:
+...
+spec:
+  containers:
+  - command:
+    - top
+    - name: container
+      value: podman
+    image: foobar
+...
+```
+
+If there is a directory named `foobar` in the current working directory with a file named `Containerfile` or `Dockerfile`,
+Podman play kube will build that image and name it `foobar`.  An example directory structure for this example would look
+like:
+```
+|- mykubefiles
+    |- myplayfile.yaml
+    |- foobar
+         |- Containerfile
+```
+
+The build will consider `foobar` to be the context directory for the build. If there is an image in local storage
+called `foobar`, the image will not be built unless the `--build` flag is used.
+
 ## OPTIONS
 
 #### **--authfile**=*path*
@@ -44,6 +74,10 @@ If the authorization state is not found there, $HOME/.docker/config.json is chec
 
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
 environment variable. `export REGISTRY_AUTH_FILE=path`
+
+#### **--build**
+
+Build images even if they are found in the local storage.
 
 #### **--cert-dir**=*path*
 

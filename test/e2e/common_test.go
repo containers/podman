@@ -845,3 +845,18 @@ func (p *PodmanTestIntegration) buildImage(dockerfile, imageName string, layers 
 	output := session.OutputToStringArray()
 	return output[len(output)-1]
 }
+
+func writeYaml(content string, fileName string) error {
+	f, err := os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.WriteString(content)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
