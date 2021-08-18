@@ -2,7 +2,6 @@ package compat
 
 import (
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/containers/storage/pkg/archive"
 	"github.com/docker/docker/api/types"
 )
 
@@ -25,15 +24,6 @@ type swagCtrWaitResponse struct {
 		Error      struct {
 			Message string
 		}
-	}
-}
-
-// Object Changes
-// swagger:response Changes
-type swagChangesResponse struct {
-	// in:body
-	Body struct {
-		Changes []archive.Change
 	}
 }
 
