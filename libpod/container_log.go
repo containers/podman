@@ -14,6 +14,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// logDrivers stores the currently available log drivers, do not modify
+var logDrivers []string
+
+func init() {
+	logDrivers = append(logDrivers, define.KubernetesLogging, define.NoLogging)
+}
+
 // Log is a runtime function that can read one or more container logs.
 func (r *Runtime) Log(ctx context.Context, containers []*Container, options *logs.LogOptions, logChannel chan *logs.LogLine) error {
 	for _, ctr := range containers {
