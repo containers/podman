@@ -25,6 +25,10 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// produces:
 	// - application/json
 	// parameters:
+	//  - in: header
+	//    name: X-Registry-Auth
+	//    type: string
+	//    description: A base64-encoded auth configuration.
 	//  - in: query
 	//    name: fromImage
 	//    type: string
@@ -49,13 +53,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: platform
 	//    type: string
 	//    description: Platform in the format os[/arch[/variant]]
-	//    default: ""
-	//  - in: header
-	//    name: X-Registry-Auth
-	//    type: string
-	//    description: A base64-encoded auth configuration.
 	//  - in: body
-	//    name: request
+	//    name: inputImage
 	//    schema:
 	//      type: string
 	//      format: binary
@@ -472,6 +471,14 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// summary: Create image
 	// description: Build an image from the given Dockerfile(s)
 	// parameters:
+	//  - in: header
+	//    name: Content-Type
+	//    type: string
+	//    default: application/x-tar
+	//    enum: ["application/x-tar"]
+	//  - in: header
+	//    name: X-Registry-Config
+	//    type: string
 	//  - in: query
 	//    name: dockerfile
 	//    type: string
@@ -653,6 +660,14 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    description: |
 	//      output configuration TBD
 	//      (As of version 1.xx)
+	//  - in: body
+	//    name: inputStream
+	//    description: |
+	//      A tar archive compressed with one of the following algorithms:
+	//      identity (no compression), gzip, bzip2, xz.
+	//    schema:
+	//      type: string
+	//      format: binary
 	// produces:
 	// - application/json
 	// responses:
@@ -852,6 +867,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// summary: Import image
 	// description: Import a previously exported tarball as an image.
 	// parameters:
+	//   - in: header
+	//     name: Content-Type
+	//     type: string
+	//     default: application/x-tar
+	//     enum: ["application/x-tar"]
 	//   - in: query
 	//     name: changes
 	//     description: "Apply the following possible instructions to the created image: CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR.  JSON encoded string"
@@ -875,7 +895,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     required: true
 	//     description: tarball for imported image
 	//     schema:
-	//       type: "string"
+	//       type: string
+	//       format: binary
 	// produces:
 	// - application/json
 	// consumes:

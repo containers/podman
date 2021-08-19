@@ -21,6 +21,12 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//      name: name
 	//      type: string
 	//      description: container name
+	//    - in: body
+	//      name: body
+	//      description: Container to create
+	//      schema:
+	//        $ref: "#/definitions/CreateContainerConfig"
+	//      required: true
 	//   responses:
 	//     201:
 	//       $ref: "#/responses/ContainerCreateResponse"

@@ -104,6 +104,7 @@ type ContainerWaitOKBody struct {
 }
 
 // CreateContainerConfig used when compatible endpoint creates a container
+// swagger:model CreateContainerConfig
 type CreateContainerConfig struct {
 	Name                   string                         // container name
 	dockerContainer.Config                                // desired container configuration
