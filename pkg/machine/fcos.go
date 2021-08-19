@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"io/ioutil"
 	url2 "net/url"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -91,24 +92,16 @@ func UpdateAvailable(d *Download) (bool, error) {
 	//	 check the sha of the local image if it exists
 	//  get the sha of the remote image
 	// == dont bother to pull
-	files, err := ioutil.ReadDir(filepath.Dir(d.LocalPath))
+	if _, err := os.Stat(d.LocalPath); os.IsNotExist(err) {
+		return false, nil
+	}
+	b, err := ioutil.ReadFile(d.LocalPath)
 	if err != nil {
 		return false, err
 	}
-	for _, file := range files {
-		if filepath.Base(d.LocalPath) == file.Name() {
-			b, err := ioutil.ReadFile(d.LocalPath)
-			if err != nil {
-				return false, err
-			}
-			s := sha256.Sum256(b)
-			sum := digest.NewDigestFromBytes(digest.SHA256, s[:])
-			if sum.Encoded() == d.Sha256sum {
-				return true, nil
-			}
-		}
-	}
-	return false, nil
+	s := sha256.Sum256(b)
+	sum := digest.NewDigestFromBytes(digest.SHA256, s[:])
+	return sum.Encoded() == d.Sha256sum, nil
 }
 
 func getFcosArch() string {
