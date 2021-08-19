@@ -7,7 +7,7 @@ require (
 	github.com/containers/common v0.42.1
 	github.com/containers/image/v5 v5.15.0
 	github.com/containers/ocicrypt v1.1.2
-	github.com/containers/storage v1.33.1
+	github.com/containers/storage v1.34.1
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/go-units v0.4.0
 	github.com/docker/libnetwork v0.8.0-dev.2.0.20190625141545-5a177b73e316
@@ -24,7 +24,7 @@ require (
 	github.com/opencontainers/runc v1.0.1
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/opencontainers/runtime-tools v0.9.0
-	github.com/opencontainers/selinux v1.8.2
+	github.com/opencontainers/selinux v1.8.4
 	github.com/openshift/imagebuilder v1.2.2-0.20210415181909-87f3e48c2656
 	github.com/pkg/errors v0.9.1
 	github.com/seccomp/libseccomp-golang v0.9.2-0.20200616122406-847368b35ebf
