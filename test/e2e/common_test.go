@@ -264,6 +264,11 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 	if rootless.IsRootless() {
 		storageFs = ROOTLESS_STORAGE_FS
 	}
+	if os.Getenv("STORAGE_FS") != "" {
+		storageFs = os.Getenv("STORAGE_FS")
+		storageOptions = "--storage-driver " + storageFs
+	}
+
 	p := &PodmanTestIntegration{
 		PodmanTest: PodmanTest{
 			PodmanBinary:  podmanBinary,
