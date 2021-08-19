@@ -946,7 +946,7 @@ USER mail`, BB)
 		Expect(err).To(BeNil())
 		mountpoint := "/myvol/"
 
-		session := podmanTest.Podman([]string{"create", "--volume", vol + ":" + mountpoint, ALPINE, "cat", mountpoint + filename})
+		session := podmanTest.Podman([]string{"create", "--volume", vol + ":" + mountpoint + ":z", ALPINE, "cat", mountpoint + filename})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		ctrID := session.OutputToString()

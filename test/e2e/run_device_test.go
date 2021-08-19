@@ -41,36 +41,35 @@ var _ = Describe("Podman run device", func() {
 	})
 
 	It("podman run device test", func() {
-		session := podmanTest.Podman([]string{"run", "-q", "--security-opt", "label=disable", "--device", "/dev/kmsg", ALPINE, "ls", "--color=never", "/dev/kmsg"})
+		session := podmanTest.Podman([]string{"run", "-q", "--security-opt", "label=disable", "--device", "/dev/kmsg", ALPINE, "test", "-c", "/dev/kmsg"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(Equal("/dev/kmsg"))
 	})
 
 	It("podman run device rename test", func() {
-		session := podmanTest.Podman([]string{"run", "-q", "--security-opt", "label=disable", "--device", "/dev/kmsg:/dev/kmsg1", ALPINE, "ls", "--color=never", "/dev/kmsg1"})
+		// TODO: Confirm absence of /dev/kmsg in container
+		session := podmanTest.Podman([]string{"run", "-q", "--security-opt", "label=disable", "--device", "/dev/kmsg:/dev/kmsg1", ALPINE, "test", "-c", "/dev/kmsg1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(Equal("/dev/kmsg1"))
 	})
 
 	It("podman run device permission test", func() {
-		session := podmanTest.Podman([]string{"run", "-q", "--security-opt", "label=disable", "--device", "/dev/kmsg:r", ALPINE, "ls", "--color=never", "/dev/kmsg"})
+		// TODO: Confirm write-permission failure
+		session := podmanTest.Podman([]string{"run", "-q", "--security-opt", "label=disable", "--device", "/dev/kmsg:r", ALPINE, "test", "-r", "/dev/kmsg"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(Equal("/dev/kmsg"))
 	})
 
 	It("podman run device rename and permission test", func() {
-		session := podmanTest.Podman([]string{"run", "-q", "--security-opt", "label=disable", "--device", "/dev/kmsg:/dev/kmsg1:r", ALPINE, "ls", "--color=never", "/dev/kmsg1"})
+		// TODO: Confirm write-permission failure
+		session := podmanTest.Podman([]string{"run", "-q", "--security-opt", "label=disable", "--device", "/dev/kmsg:/dev/kmsg1:r", ALPINE, "test", "-r", "/dev/kmsg1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(Equal("/dev/kmsg1"))
 	})
 	It("podman run device rename and bad permission test", func() {
-		session := podmanTest.Podman([]string{"run", "-q", "--security-opt", "label=disable", "--device", "/dev/kmsg:/dev/kmsg1:rd", ALPINE, "ls", "--color=never", "/dev/kmsg1"})
+		session := podmanTest.Podman([]string{"run", "-q", "--security-opt", "label=disable", "--device", "/dev/kmsg:/dev/kmsg1:rd", ALPINE, "true"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).Should(Exit(125))
 	})
 
 	It("podman run device host device and container device parameter are directories", func() {
@@ -89,12 +88,13 @@ var _ = Describe("Podman run device", func() {
 	})
 
 	It("podman run device host device with --privileged", func() {
-		if _, err := os.Stat("/dev/kvm"); err != nil {
-			Skip("/dev/kvm not available")
-		}
-		session := podmanTest.Podman([]string{"run", "--privileged", ALPINE, "ls", "/dev/kvm"})
+		session := podmanTest.Podman([]string{"run", "--privileged", ALPINE, "test", "-c", "/dev/kmsg"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+		// verify --privileged is required
+		session2 := podmanTest.Podman([]string{"run", ALPINE, "test", "-c", "/dev/kmsg"})
+		session2.WaitWithDefaultTimeout()
+		Expect(session2).Should((Exit(1)))
 	})
 
 	It("podman run CDI device test", func() {
@@ -109,14 +109,13 @@ var _ = Describe("Podman run device", func() {
 		err = cmd.Run()
 		Expect(err).To(BeNil())
 
-		session := podmanTest.Podman([]string{"run", "-q", "--security-opt", "label=disable", "--device", "myKmsg", ALPINE, "ls", "--color=never", "/dev/kmsg1"})
+		session := podmanTest.Podman([]string{"run", "-q", "--security-opt", "label=disable", "--device", "myKmsg", ALPINE, "test", "-c", "/dev/kmsg1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(Equal("/dev/kmsg1"))
 	})
 
 	It("podman run --gpus noop", func() {
-		session := podmanTest.Podman([]string{"run", "--gpus", "all", ALPINE, "ls", "/"})
+		session := podmanTest.Podman([]string{"run", "--gpus", "all", ALPINE, "true"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})

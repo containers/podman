@@ -645,9 +645,13 @@ func isRootless() bool {
 	return os.Geteuid() != 0
 }
 
+func isCgroupsV1() bool {
+	return !CGROUPSV2
+}
+
 func SkipIfCgroupV1(reason string) {
 	checkReason(reason)
-	if !CGROUPSV2 {
+	if isCgroupsV1() {
 		Skip(reason)
 	}
 }

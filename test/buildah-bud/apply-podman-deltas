@@ -165,14 +165,6 @@ skip "FIXME FIXME FIXME: this passes on Ed's laptop, fails in CI??" \
 skip "buildah runs with --cgroup-manager=cgroupfs, podman with systemd" \
      "bud with --cgroup-parent"
 
-# see https://github.com/containers/podman/pull/10829
-skip "FIXME FIXME FIXME - requires updated CI images (#10829)" \
-     "bud with --runtime and --runtime-flag"
-
-###############################################################################
-# BEGIN tests which are skipped due to actual podman bugs.
-
-
 ###############################################################################
 # BEGIN tests which are skipped because they make no sense under podman-remote
 
