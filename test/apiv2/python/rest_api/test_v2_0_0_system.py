@@ -70,6 +70,15 @@ class SystemTestCase(APITestCase):
         r = requests.get(self.uri("/version"))
         self.assertEqual(r.status_code, 200, r.text)
 
+        body = r.json()
+        names = [d.get("Name", "") for d in body["Components"]]
+
+        self.assertIn("Conmon", names)
+        for n in names:
+            if n.startswith("OCI Runtime"):
+                oci_name = n
+        self.assertIsNotNone(oci_name, "OCI Runtime not found in version components.")
+
     def test_df(self):
         r = requests.get(self.podman_url + "/v1.40/system/df")
         self.assertEqual(r.status_code, 200, r.text)
