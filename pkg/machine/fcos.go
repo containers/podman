@@ -3,8 +3,6 @@
 package machine
 
 import (
-	"crypto/sha256"
-	"io/ioutil"
 	url2 "net/url"
 	"os"
 	"path/filepath"
@@ -12,6 +10,7 @@ import (
 	"strings"
 
 	digest "github.com/opencontainers/go-digest"
+	"github.com/sirupsen/logrus"
 )
 
 // These should eventually be moved into machine/qemu as
@@ -95,12 +94,19 @@ func UpdateAvailable(d *Download) (bool, error) {
 	if _, err := os.Stat(d.LocalPath); os.IsNotExist(err) {
 		return false, nil
 	}
-	b, err := ioutil.ReadFile(d.LocalPath)
+	fd, err := os.Open(d.LocalPath)
 	if err != nil {
 		return false, err
 	}
-	s := sha256.Sum256(b)
-	sum := digest.NewDigestFromBytes(digest.SHA256, s[:])
+	defer func() {
+		if err := fd.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
+	sum, err := digest.SHA256.FromReader(fd)
+	if err != nil {
+		return false, err
+	}
 	return sum.Encoded() == d.Sha256sum, nil
 }
 
