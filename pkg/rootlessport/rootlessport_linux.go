@@ -20,7 +20,6 @@ import (
 	"net"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
 
 	"github.com/containernetworking/plugins/pkg/ns"
@@ -105,30 +104,6 @@ func parent() error {
 	if err != nil {
 		return err
 	}
-
-	exitC := make(chan os.Signal, 1)
-	defer close(exitC)
-
-	go func() {
-		sigC := make(chan os.Signal, 1)
-		signal.Notify(sigC, unix.SIGPIPE)
-		defer func() {
-			signal.Stop(sigC)
-			close(sigC)
-		}()
-
-		select {
-		case s := <-sigC:
-			if s == unix.SIGPIPE {
-				if f, err := os.OpenFile("/dev/null", os.O_WRONLY, 0755); err == nil {
-					unix.Dup2(int(f.Fd()), 1) // nolint:errcheck
-					unix.Dup2(int(f.Fd()), 2) // nolint:errcheck
-					f.Close()
-				}
-			}
-		case <-exitC:
-		}
-	}()
 
 	socketDir := filepath.Join(cfg.TmpDir, "rp")
 	err = os.MkdirAll(socketDir, 0700)
@@ -251,8 +226,16 @@ outer:
 		go serve(socket, driver)
 	}
 
-	// write and close ReadyFD (convention is same as slirp4netns --ready-fd)
 	logrus.Info("ready")
+
+	// https://github.com/containers/podman/issues/11248
+	// Copy /dev/null to stdout and stderr to prevent SIGPIPE errors
+	if f, err := os.OpenFile("/dev/null", os.O_WRONLY, 0755); err == nil {
+		unix.Dup2(int(f.Fd()), 1) // nolint:errcheck
+		unix.Dup2(int(f.Fd()), 2) // nolint:errcheck
+		f.Close()
+	}
+	// write and close ReadyFD (convention is same as slirp4netns --ready-fd)
 	if _, err := readyW.Write([]byte("1")); err != nil {
 		return err
 	}
