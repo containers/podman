@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/libpod/logs"
 	"github.com/coreos/go-systemd/v22/sdjournal"
@@ -23,6 +24,10 @@ const (
 	// journaldLogErr is the journald priority signifying stderr
 	journaldLogErr = "3"
 )
+
+func init() {
+	logDrivers = append(logDrivers, define.JournaldLogging)
+}
 
 func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOptions, logChannel chan *logs.LogLine) error {
 	journal, err := sdjournal.NewJournal()

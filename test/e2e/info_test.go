@@ -77,6 +77,15 @@ var _ = Describe("Podman Info", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("registry"))
 	})
 
+	It("podman info --format GO template plugins", func() {
+		session := podmanTest.Podman([]string{"info", "--format", "{{.Plugins}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("local"))
+		Expect(session.OutputToString()).To(ContainSubstring("journald"))
+		Expect(session.OutputToString()).To(ContainSubstring("bridge"))
+	})
+
 	It("podman info rootless storage path", func() {
 		SkipIfNotRootless("test of rootless_storage_path is only meaningful as rootless")
 		SkipIfRemote("Only tests storage on local client")

@@ -8,6 +8,7 @@ type Info struct {
 	Host       *HostInfo              `json:"host"`
 	Store      *StoreInfo             `json:"store"`
 	Registries map[string]interface{} `json:"registries"`
+	Plugins    Plugins                `json:"plugins"`
 	Version    Version                `json:"version"`
 }
 
@@ -122,4 +123,12 @@ type ContainerStore struct {
 	Paused  int `json:"paused"`
 	Running int `json:"running"`
 	Stopped int `json:"stopped"`
+}
+
+type Plugins struct {
+	Volume  []string `json:"volume"`
+	Network []string `json:"network"`
+	Log     []string `json:"log"`
+	// FIXME what should we do with Authorization, docker seems to return nothing by default
+	// Authorization []string `json:"authorization"`
 }
