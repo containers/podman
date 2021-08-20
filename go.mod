@@ -72,3 +72,4 @@ require (
 )
 
 replace github.com/containers/common => ../common
+replace github.com/containers/image/v5 => ../image
