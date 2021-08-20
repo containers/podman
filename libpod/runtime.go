@@ -951,6 +951,11 @@ func (r *Runtime) GetOCIRuntimePath() string {
 	return r.defaultOCIRuntime.Path()
 }
 
+// DefaultOCIRuntime return copy of Default OCI Runtime
+func (r *Runtime) DefaultOCIRuntime() OCIRuntime {
+	return r.defaultOCIRuntime
+}
+
 // StorageConfig retrieves the storage options for the container runtime
 func (r *Runtime) StorageConfig() storage.StoreOptions {
 	return r.storageConfig
