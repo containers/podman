@@ -126,6 +126,10 @@ type Container struct {
 	// This is true if a container is restored from a checkpoint.
 	restoreFromCheckpoint bool
 
+	// Used to query the NOTIFY_SOCKET once along with setting up
+	// mounts etc.
+	notifySocket string
+
 	slirp4netnsSubnet *net.IPNet
 }
 
