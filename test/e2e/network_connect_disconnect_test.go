@@ -236,8 +236,6 @@ var _ = Describe("Podman network connect and disconnect", func() {
 	})
 
 	It("podman network connect and run with network ID", func() {
-		SkipIfRemote("remote flakes to much I will fix this in another PR")
-		SkipIfRootless("network connect and disconnect are only rootful")
 		netName := "ID" + stringid.GenerateNonCryptoID()
 		session := podmanTest.Podman([]string{"network", "create", netName})
 		session.WaitWithDefaultTimeout()
@@ -249,7 +247,7 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		Expect(session).Should(Exit(0))
 		netID := session.OutputToString()
 
-		ctr := podmanTest.Podman([]string{"run", "-dt", "--name", "test", "--network", netID, ALPINE, "top"})
+		ctr := podmanTest.Podman([]string{"run", "-dt", "--name", "test", "--network", netID, "--network-alias", "somealias", ALPINE, "top"})
 		ctr.WaitWithDefaultTimeout()
 		Expect(ctr).Should(Exit(0))
 
@@ -269,7 +267,7 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		Expect(session).Should(Exit(0))
 		newNetID := session.OutputToString()
 
-		connect := podmanTest.Podman([]string{"network", "connect", newNetID, "test"})
+		connect := podmanTest.Podman([]string{"network", "connect", "--alias", "secondalias", newNetID, "test"})
 		connect.WaitWithDefaultTimeout()
 		Expect(connect).Should(Exit(0))
 
@@ -324,8 +322,6 @@ var _ = Describe("Podman network connect and disconnect", func() {
 	})
 
 	It("podman network disconnect and run with network ID", func() {
-		SkipIfRemote("remote flakes to much I will fix this in another PR")
-		SkipIfRootless("network connect and disconnect are only rootful")
 		netName := "aliasTest" + stringid.GenerateNonCryptoID()
 		session := podmanTest.Podman([]string{"network", "create", netName})
 		session.WaitWithDefaultTimeout()

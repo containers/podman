@@ -764,7 +764,6 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run check dnsname adds dns search domain", func() {
-		Skip("needs dnsname#57")
 		net := "dnsname" + stringid.GenerateNonCryptoID()
 		session := podmanTest.Podman([]string{"network", "create", net})
 		session.WaitWithDefaultTimeout()
