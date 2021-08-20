@@ -14,6 +14,7 @@ var initInodes = map[string]bool{
 	"/etc/resolv.conf":   true,
 	"/proc":              true,
 	"/run":               true,
+	"/run/notify":        true,
 	"/run/.containerenv": true,
 	"/run/secrets":       true,
 	"/sys":               true,
