@@ -1,3 +1,25 @@
+- Changelog for HEAD (2021-08-20):
+  * Final release notes for v3.3.0
+  * Fix network aliases with network id
+  * machine: compute sha256 as we read the image file
+  * machine: check for file exists instead of listing directory
+  * pkg/bindings/images.nTar(): slashify hdr.Name values
+  * Volumes: Only remove from DB if plugin removal succeeds
+  * For compatibility, ignore Content-Type
+  * [v3.3] Bump c/image 5.15.2, buildah v1.22.3
+  * Implement SD-NOTIFY proxy in conmon
+  * Fix rootless cni dns without systemd stub resolver
+  * fix rootlessport flake
+  * Skip stats test in CGv1 container environments
+  * Fix AVC denials in tests of volume mounts
+  * Restore buildah-bud test requiring new images
+  * Revert ".cirrus.yml: use fresh images for all VMs"
+  * Fix device tests using ls test files
+  * Enhance priv. dev. check
+  * Workaround host availability of /dev/kvm
+  * Skip cgroup-parent test due to frequent flakes
+  * Cirrus: Fix not uploading logformatter html
+
 - Changelog for HEAD (2021-08-17):
   * Release notes for v3.3.0-RC3
   * [v3.3] Bump c/storage to v1.34.1 and c/image to v5.15.1
