@@ -481,9 +481,9 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 					return nil // skip root dir
 				}
 
-				name := strings.TrimPrefix(path, s+string(filepath.Separator))
+				name := filepath.ToSlash(strings.TrimPrefix(path, s+string(filepath.Separator)))
 
-				excluded, err := pm.Matches(filepath.ToSlash(name)) // nolint:staticcheck
+				excluded, err := pm.Matches(name) // nolint:staticcheck
 				if err != nil {
 					return errors.Wrapf(err, "error checking if %q is excluded", name)
 				}

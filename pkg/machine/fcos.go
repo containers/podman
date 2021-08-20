@@ -3,14 +3,14 @@
 package machine
 
 import (
-	"crypto/sha256"
-	"io/ioutil"
 	url2 "net/url"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 
 	digest "github.com/opencontainers/go-digest"
+	"github.com/sirupsen/logrus"
 )
 
 // These should eventually be moved into machine/qemu as
@@ -91,24 +91,23 @@ func UpdateAvailable(d *Download) (bool, error) {
 	//	 check the sha of the local image if it exists
 	//  get the sha of the remote image
 	// == dont bother to pull
-	files, err := ioutil.ReadDir(filepath.Dir(d.LocalPath))
+	if _, err := os.Stat(d.LocalPath); os.IsNotExist(err) {
+		return false, nil
+	}
+	fd, err := os.Open(d.LocalPath)
 	if err != nil {
 		return false, err
 	}
-	for _, file := range files {
-		if filepath.Base(d.LocalPath) == file.Name() {
-			b, err := ioutil.ReadFile(d.LocalPath)
-			if err != nil {
-				return false, err
-			}
-			s := sha256.Sum256(b)
-			sum := digest.NewDigestFromBytes(digest.SHA256, s[:])
-			if sum.Encoded() == d.Sha256sum {
-				return true, nil
-			}
+	defer func() {
+		if err := fd.Close(); err != nil {
+			logrus.Error(err)
 		}
+	}()
+	sum, err := digest.SHA256.FromReader(fd)
+	if err != nil {
+		return false, err
 	}
-	return false, nil
+	return sum.Encoded() == d.Sha256sum, nil
 }
 
 func getFcosArch() string {
