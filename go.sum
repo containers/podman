@@ -238,14 +238,13 @@ github.com/containernetworking/plugins v0.8.6/go.mod h1:qnw5mN19D8fIwkqW7oHHYDHV
 github.com/containernetworking/plugins v0.8.7/go.mod h1:R7lXeZaBzpfqapcAbHRW8/CYwm0dHzbz0XEjofx0uB0=
 github.com/containernetworking/plugins v0.9.1 h1:FD1tADPls2EEi3flPc2OegIY1M9pUa9r2Quag7HMLV8=
 github.com/containernetworking/plugins v0.9.1/go.mod h1:xP/idU2ldlzN6m4p5LmGiwRDjeJr6FLK6vuiUwoH7P8=
-github.com/containers/buildah v1.22.0 h1:VwDrweEEUkfIB0t+hVhwE6FdoV0PZjCTz9sVkaZyv2g=
-github.com/containers/buildah v1.22.0/go.mod h1:a6JsF0iNlJJ5GsiVy16e2fgiUV4S3gWZymrpyqzhar0=
+github.com/containers/buildah v1.22.2 h1:oshP4ZvfOE2ibzy3kGiS6/h9TfcG5fTdstQvQtI2HjI=
+github.com/containers/buildah v1.22.2/go.mod h1:JVXRyx5Rkp5w5jwvaXe45kuHtyoxpERMjXrR45+3Wfg=
 github.com/containers/common v0.42.1 h1:ADOZrVAS8ZY5hBAvr/GoRoPv5Z7TBkxWgxQEXQjlqac=
 github.com/containers/common v0.42.1/go.mod h1:AaF3ipZfgezsctDuhzLkq4Vl+LkEy7J74ikh2HSXDsg=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.14.0/go.mod h1:SxiBKOcKuT+4yTjD0AskjO+UwFvNcVOJ9qlAw1HNSPU=
-github.com/containers/image/v5 v5.15.0/go.mod h1:gzdBcooi6AFdiqfzirUqv90hUyHyI0MMdaqKzACKr2s=
 github.com/containers/image/v5 v5.15.2 h1:DKicmVr0h1HGkzs9muoErX+fVbV9sV9W5TyMy5perLE=
 github.com/containers/image/v5 v5.15.2/go.mod h1:8jejVSzTDfyPwr/HXp9rri34n/vbdavYk6IzTiB3TBw=
 github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b h1:Q8ePgVfHDplZ7U33NwHZkrVELsZP5fYj9pM5WBZB2GE=
@@ -259,7 +258,6 @@ github.com/containers/psgo v1.5.2 h1:3aoozst/GIwsrr/5jnFy3FrJay98uujPCu9lTuSZ/Cw
 github.com/containers/psgo v1.5.2/go.mod h1:2ubh0SsreMZjSXW1Hif58JrEcFudQyIy9EzPUWfawVU=
 github.com/containers/storage v1.23.5/go.mod h1:ha26Q6ngehFNhf3AWoXldvAvwI4jFe3ETQAf/CeZPyM=
 github.com/containers/storage v1.32.6/go.mod h1:mdB+b89p+jU8zpzLTVXA0gWMmIo0WrkfGMh1R8O2IQw=
-github.com/containers/storage v1.33.0/go.mod h1:FUZPF4nJijX8ixdhByZJXf02cvbyLi6dyDwXdIe8QVY=
 github.com/containers/storage v1.33.1/go.mod h1:FUZPF4nJijX8ixdhByZJXf02cvbyLi6dyDwXdIe8QVY=
 github.com/containers/storage v1.34.1 h1:PsBGMH7hwuQ3MOr7qTgPznFrE8ebfIbwQbg2gKvg0lE=
 github.com/containers/storage v1.34.1/go.mod h1:FY2TcbfgCLMU4lYoKnlZeZXeH353TOTbpDEA+sAcqAY=
