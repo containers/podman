@@ -224,14 +224,29 @@ func persistentPostRunE(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	if !registry.IsRemote() {
-		if cmd.Flag("cpu-profile").Changed {
-			pprof.StopCPUProfile()
+	registry.ImageEngine().Shutdown(registry.Context())
+	registry.ContainerEngine().Shutdown(registry.Context())
+
+	if registry.IsRemote() {
+		return nil
+	}
+
+	// CPU and memory profiling.
+	if cmd.Flag("cpu-profile").Changed {
+		pprof.StopCPUProfile()
+	}
+	if cmd.Flag("memory-profile").Changed {
+		f, err := os.Create(registry.PodmanConfig().MemoryProfile)
+		if err != nil {
+			return errors.Wrap(err, "creating memory profile")
+		}
+		defer f.Close()
+		runtime.GC() // get up-to-date GC statistics
+		if err := pprof.WriteHeapProfile(f); err != nil {
+			return errors.Wrap(err, "writing memory profile")
 		}
 	}
 
-	registry.ImageEngine().Shutdown(registry.Context())
-	registry.ContainerEngine().Shutdown(registry.Context())
 	return nil
 }
 
@@ -294,7 +309,8 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 		pFlags.StringVar(&cfg.Engine.CgroupManager, cgroupManagerFlagName, cfg.Engine.CgroupManager, "Cgroup manager to use (\"cgroupfs\"|\"systemd\")")
 		_ = cmd.RegisterFlagCompletionFunc(cgroupManagerFlagName, common.AutocompleteCgroupManager)
 
-		pFlags.StringVar(&opts.CPUProfile, "cpu-profile", "", "Path for the cpu profiling results")
+		pFlags.StringVar(&opts.CPUProfile, "cpu-profile", "", "Path for the cpu-profiling results")
+		pFlags.StringVar(&opts.MemoryProfile, "memory-profile", "", "Path for the memory-profiling results")
 
 		conmonFlagName := "conmon"
 		pFlags.StringVar(&opts.ConmonPath, conmonFlagName, "", "Path of the conmon binary")
@@ -354,6 +370,7 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 			"cpu-profile",
 			"default-mounts-file",
 			"max-workers",
+			"memory-profile",
 			"registries-conf",
 			"trace",
 		} {
