@@ -92,6 +92,7 @@ type ContainerEngine interface {
 	Version(ctx context.Context) (*SystemVersionReport, error)
 	VolumeCreate(ctx context.Context, opts VolumeCreateOptions) (*IDOrNameResponse, error)
 	VolumeExists(ctx context.Context, namesOrID string) (*BoolReport, error)
+	VolumeMounted(ctx context.Context, namesOrID string) (*BoolReport, error)
 	VolumeInspect(ctx context.Context, namesOrIds []string, opts InspectOptions) ([]*VolumeInspectReport, []error, error)
 	VolumeList(ctx context.Context, opts VolumeListOptions) ([]*VolumeListReport, error)
 	VolumePrune(ctx context.Context, options VolumePruneOptions) ([]*reports.PruneReport, error)

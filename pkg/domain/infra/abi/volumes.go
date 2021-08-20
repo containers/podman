@@ -162,3 +162,19 @@ func (ic *ContainerEngine) VolumeExists(ctx context.Context, nameOrID string) (*
 	}
 	return &entities.BoolReport{Value: exists}, nil
 }
+
+// Volumemounted check if a given volume using plugin or filesystem is mounted or not.
+func (ic *ContainerEngine) VolumeMounted(ctx context.Context, nameOrID string) (*entities.BoolReport, error) {
+	vol, err := ic.Libpod.LookupVolume(nameOrID)
+	if err != nil {
+		return nil, err
+	}
+	mountCount, err := vol.MountCount()
+	if err != nil {
+		return &entities.BoolReport{Value: false}, nil
+	}
+	if mountCount > 0 {
+		return &entities.BoolReport{Value: true}, nil
+	}
+	return &entities.BoolReport{Value: false}, nil
+}
