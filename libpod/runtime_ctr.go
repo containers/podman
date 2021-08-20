@@ -246,6 +246,20 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		ctr.config.Networks = netNames
 	}
 
+	// https://github.com/containers/podman/issues/11285
+	// normalize the networks aliases to use network names and never ids
+	if len(ctr.config.NetworkAliases) > 0 {
+		netAliases := make(map[string][]string, len(ctr.config.NetworkAliases))
+		for nameOrID, aliases := range ctr.config.NetworkAliases {
+			netName, err := network.NormalizeName(r.config, nameOrID)
+			if err != nil {
+				return nil, err
+			}
+			netAliases[netName] = aliases
+		}
+		ctr.config.NetworkAliases = netAliases
+	}
+
 	// Inhibit shutdown until creation succeeds
 	shutdown.Inhibit()
 	defer shutdown.Uninhibit()
