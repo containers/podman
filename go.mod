@@ -68,5 +68,5 @@ require (
 	golang.org/x/sys v0.0.0-20210616094352-59db8d763f22
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/api v0.22.0
-	k8s.io/apimachinery v0.22.0
+	k8s.io/apimachinery v0.22.1
 )
