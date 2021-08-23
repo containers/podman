@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"strconv"
 	"strings"
 
 	"github.com/containers/common/pkg/completion"
@@ -192,6 +193,17 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 			}
 			if err := pprof.StartCPUProfile(f); err != nil {
 				return err
+			}
+		}
+		if cmd.Flag("memory-profile").Changed {
+			// Same value as the default in github.com/pkg/profile.
+			runtime.MemProfileRate = 4096
+			if rate := os.Getenv("MemProfileRate"); rate != "" {
+				r, err := strconv.Atoi(rate)
+				if err != nil {
+					return err
+				}
+				runtime.MemProfileRate = r
 			}
 		}
 
