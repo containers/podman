@@ -18,13 +18,15 @@ flag. Use the **--quiet** flag to print only the volume names.
 
 Volumes can be filtered by the following attributes:
 
-- dangling
-- driver
-- label
-- name
-- opt
-- scope
-- until
+| **Filter** | **Description**                                                                       |
+| ---------- | ------------------------------------------------------------------------------------- |
+| dangling   | [Dangling] Matches all volumes not referenced by any containers                       |
+| driver     | [Driver] Matches volumes based on their driver                                        |
+| label      | [Key] or [Key=Value] Label assigned to a volume                                       |
+| name       | [Name] Volume name (accepts regex)                                                    |
+| opt        | Matches a storage driver options                                                      |
+| scope      | Filters volume by scope                                                               |
+| until      | Only remove volumes created before given timestamp                                   |
 
 #### **--format**=*format*
 
