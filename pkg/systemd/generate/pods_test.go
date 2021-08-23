@@ -54,7 +54,7 @@ Before=container-1.service container-2.service
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
-TimeoutStopSec=102
+TimeoutStopSec=42
 ExecStart=/usr/bin/podman start jadda-jadda-infra
 ExecStop=/usr/bin/podman stop -t 42 jadda-jadda-infra
 ExecStopPost=/usr/bin/podman stop -t 42 jadda-jadda-infra
@@ -82,7 +82,7 @@ Before=container-1.service container-2.service
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
-TimeoutStopSec=70
+TimeoutStopSec=10
 ExecStartPre=/bin/rm -f %t/pod-123abc.pid %t/pod-123abc.pod-id
 ExecStartPre=/usr/bin/podman pod create --infra-conmon-pidfile %t/pod-123abc.pid --pod-id-file %t/pod-123abc.pod-id --name foo "bar=arg with space" --replace
 ExecStart=/usr/bin/podman pod start --pod-id-file %t/pod-123abc.pod-id
@@ -110,7 +110,7 @@ Before=container-1.service container-2.service
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
-TimeoutStopSec=70
+TimeoutStopSec=10
 ExecStartPre=/bin/rm -f %t/pod-123abc.pid %t/pod-123abc.pod-id
 ExecStartPre=/usr/bin/podman --events-backend none --runroot /root pod create --infra-conmon-pidfile %t/pod-123abc.pid --pod-id-file %t/pod-123abc.pod-id --name foo "bar=arg with space" --replace
 ExecStart=/usr/bin/podman --events-backend none --runroot /root pod start --pod-id-file %t/pod-123abc.pod-id
@@ -138,7 +138,7 @@ Before=container-1.service container-2.service
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
-TimeoutStopSec=70
+TimeoutStopSec=10
 ExecStartPre=/bin/rm -f %t/pod-123abc.pid %t/pod-123abc.pod-id
 ExecStartPre=/usr/bin/podman pod create --infra-conmon-pidfile %t/pod-123abc.pid --pod-id-file %t/pod-123abc.pod-id --name foo --replace
 ExecStart=/usr/bin/podman pod start --pod-id-file %t/pod-123abc.pod-id
@@ -166,7 +166,7 @@ Before=container-1.service container-2.service
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
-TimeoutStopSec=70
+TimeoutStopSec=10
 ExecStartPre=/bin/rm -f %t/pod-123abc.pid %t/pod-123abc.pod-id
 ExecStartPre=/usr/bin/podman pod create --infra-conmon-pidfile %t/pod-123abc.pid --pod-id-file %t/pod-123abc.pod-id --name foo --label key={{someval}} --replace
 ExecStart=/usr/bin/podman pod start --pod-id-file %t/pod-123abc.pod-id

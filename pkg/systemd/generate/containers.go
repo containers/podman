@@ -16,6 +16,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
+	"golang.org/x/sys/unix"
 )
 
 // containerInfo contains data required for generating a container's systemd
@@ -32,6 +33,8 @@ type containerInfo struct {
 	// StopTimeout sets the timeout Podman waits before killing the container
 	// during service stop.
 	StopTimeout uint
+	// KillSignal of the container.
+	KillSignal string
 	// RestartPolicy of the systemd unit (e.g., no, on-failure, always).
 	RestartPolicy string
 	// PIDFile of the service. Required for forking services. Must point to the
@@ -102,6 +105,9 @@ Environment={{{{- range $index, $value := .ExtraEnvs -}}}}{{{{if $index}}}} {{{{
 {{{{- end}}}}
 Restart={{{{.RestartPolicy}}}}
 TimeoutStopSec={{{{.TimeoutStopSec}}}}
+{{{{- if .KillSignal}}}}
+KillSignal={{{{.KillSignal}}}}
+{{{{- end}}}}
 {{{{- if .ExecStartPre}}}}
 ExecStartPre={{{{.ExecStartPre}}}}
 {{{{- end}}}}
@@ -182,6 +188,13 @@ func generateContainerInfo(ctr *libpod.Container, options entities.GenerateSyste
 		CreateCommand:     createCommand,
 		RunRoot:           runRoot,
 		containerEnv:      envs,
+	}
+
+	// Set a custom kill signal for non SIGTERM (already default in
+	// systemd) signals.
+	stopSignal := ctr.StopSignal()
+	if stopSignal != uint(unix.SIGTERM) {
+		info.KillSignal = fmt.Sprintf("%d", stopSignal)
 	}
 
 	return &info, nil
@@ -359,7 +372,15 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		info.ExecStart = strings.Join(startCommand, " ")
 	}
 
-	info.TimeoutStopSec = minTimeoutStopSec + info.StopTimeout
+	info.TimeoutStopSec = info.StopTimeout
+
+	// For units without --new add an additional 60 seconds to the stop
+	// timeout to make sure that Podman stop has enough time to properly
+	// shutdown and cleanup the container before systemd starts to nuke
+	// everything in the cgroup.
+	if !options.New {
+		info.TimeoutStopSec += minTimeoutStopSec
+	}
 
 	if info.PodmanVersion == "" {
 		info.PodmanVersion = version.Version.String()
