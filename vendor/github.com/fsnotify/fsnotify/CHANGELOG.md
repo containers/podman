@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.5.0 / 2021-08-20
+
+* Go: Increase minimum required version to Go 1.12 [#381](https://github.com/fsnotify/fsnotify/pull/381)
+* Feature: Add AddRaw method which does not follow symlinks when adding a watch [#289](https://github.com/fsnotify/fsnotify/pull/298)
+* Windows: Follow symlinks by default like on all other systems [#289](https://github.com/fsnotify/fsnotify/pull/289)
+* CI: Use GitHub Actions for CI and cover go 1.12-1.17
+   [#378](https://github.com/fsnotify/fsnotify/pull/378)
+   [#381](https://github.com/fsnotify/fsnotify/pull/381)
+   [#385](https://github.com/fsnotify/fsnotify/pull/385)
+* Go 1.14+: Fix unsafe pointer conversion [#325](https://github.com/fsnotify/fsnotify/pull/325)
+
 ## v1.4.7 / 2018-01-09
 
 * BSD/macOS: Fix possible deadlock on closing the watcher on kqueue (thanks @nhooyr and @glycerine)

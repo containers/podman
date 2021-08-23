@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build solaris
 // +build solaris
 
 package fsnotify
@@ -26,8 +27,8 @@ func (w *Watcher) Close() error {
 	return nil
 }
 
-// Add starts watching the named file or directory (non-recursively).
-func (w *Watcher) Add(name string) error {
+// AddRaw starts watching the named file or directory (non-recursively). Symlinks are not implicitly resolved.
+func (w *Watcher) AddRaw(name string) error {
 	return nil
 }
 

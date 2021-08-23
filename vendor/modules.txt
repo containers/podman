@@ -337,7 +337,7 @@ github.com/docker/libnetwork/resolvconf/dns
 github.com/docker/libnetwork/types
 # github.com/dtylman/scp v0.0.0-20181017070807-f3000a34aef4
 github.com/dtylman/scp
-# github.com/fsnotify/fsnotify v1.4.9
+# github.com/fsnotify/fsnotify v1.5.0
 github.com/fsnotify/fsnotify
 # github.com/fsouza/go-dockerclient v1.7.3
 github.com/fsouza/go-dockerclient
@@ -674,7 +674,7 @@ golang.org/x/net/proxy
 golang.org/x/net/trace
 # golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20210616094352-59db8d763f22
+# golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
 golang.org/x/sys/internal/unsafeheader

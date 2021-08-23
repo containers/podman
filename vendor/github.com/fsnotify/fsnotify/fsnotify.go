@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build !plan9
 // +build !plan9
 
 // Package fsnotify provides a platform-independent interface for file system notifications.
@@ -11,6 +12,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"path/filepath"
 )
 
 // Event represents a single file system notification.
@@ -66,3 +68,19 @@ func (e Event) String() string {
 var (
 	ErrEventOverflow = errors.New("fsnotify queue overflow")
 )
+
+// Add starts watching the named file or directory (non-recursively). Symlinks are implicitly resolved.
+func (w *Watcher) Add(name string) error {
+	rawPath, err := filepath.EvalSymlinks(name)
+	if err != nil {
+		return fmt.Errorf("error resolving %#v: %s", name, err)
+	}
+	err = w.AddRaw(rawPath)
+	if err != nil {
+		if name != rawPath {
+			return fmt.Errorf("error adding %#v for %#v: %s", rawPath, name, err)
+		}
+		return err
+	}
+	return nil
+}

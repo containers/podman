@@ -12,9 +12,9 @@ Cross platform: Windows, Linux, BSD and macOS.
 
 | Adapter               | OS                               | Status                                                                                                                          |
 | --------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| inotify               | Linux 2.6.27 or later, Android\* | Supported [![Build Status](https://travis-ci.org/fsnotify/fsnotify.svg?branch=master)](https://travis-ci.org/fsnotify/fsnotify) |
-| kqueue                | BSD, macOS, iOS\*                | Supported [![Build Status](https://travis-ci.org/fsnotify/fsnotify.svg?branch=master)](https://travis-ci.org/fsnotify/fsnotify) |
-| ReadDirectoryChangesW | Windows                          | Supported [![Build Status](https://travis-ci.org/fsnotify/fsnotify.svg?branch=master)](https://travis-ci.org/fsnotify/fsnotify) |
+| inotify               | Linux 2.6.27 or later, Android\* | Supported |
+| kqueue                | BSD, macOS, iOS\*                | Supported |
+| ReadDirectoryChangesW | Windows                          | Supported |
 | FSEvents              | macOS                            | [Planned](https://github.com/fsnotify/fsnotify/issues/11)                                                                       |
 | FEN                   | Solaris 11                       | [In Progress](https://github.com/fsnotify/fsnotify/issues/12)                                                                   |
 | fanotify              | Linux 2.6.37+                    | [Planned](https://github.com/fsnotify/fsnotify/issues/114)                                                                      |
@@ -72,10 +72,18 @@ func main() {
 		}
 	}()
 
+	// if this is a link, it will follow all the links and watch the file pointed to
 	err = watcher.Add("/tmp/foo")
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// this will watch the link, rather than the file it points to
+	err = watcher.AddRaw("/tmp/link")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	<-done
 }
 ```
@@ -89,6 +97,10 @@ Please refer to [CONTRIBUTING][] before opening an issue or pull request.
 See [example_test.go](https://github.com/fsnotify/fsnotify/blob/master/example_test.go).
 
 ## FAQ
+
+**Are symlinks resolved?**
+Symlinks are implicitly resolved by [`filepath.EvalSymlinks(path)`](https://golang.org/pkg/path/filepath/#EvalSymlinks) when `watcher.Add(name)` is used. If that is not desired, you can use `watcher.AddRaw(name)` to not follow any symlinks before watching. See [example_test.go](https://github.com/fsnotify/fsnotify/blob/master/example_test.go).
+
 
 **When a file is moved to another directory is it still being watched?**
 
@@ -127,4 +139,3 @@ fsnotify requires support from underlying OS to work. The current NFS protocol d
 
 * [notify](https://github.com/rjeczalik/notify)
 * [fsevents](https://github.com/fsnotify/fsevents)
-
