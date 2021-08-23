@@ -106,7 +106,7 @@ func init() {
 
 func run(cmd *cobra.Command, args []string) error {
 	var err error
-	cliVals.Net, err = common.NetFlagsToNetOptions(cmd, cliVals.Pod == "")
+	cliVals.Net, err = common.NetFlagsToNetOptions(cmd, cliVals.Pod == "" && cliVals.PodIDFile == "")
 	if err != nil {
 		return err
 	}
