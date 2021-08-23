@@ -33,7 +33,7 @@ load helpers
     exec 5<$fifo
 
     # First container emits READY when ready; wait for it.
-    read -t 10 -u 5 ready
+    read -t 60 -u 5 ready
     is "$ready" "READY" "first log message from container"
 
     # Helper function: send the given signal, verify that it's received.
@@ -42,7 +42,7 @@ load helpers
         local signum=${2:-$1}       # e.g. if signal=HUP, we expect to see '1'
 
         run_podman kill -s $signal $cid
-        read -t 10 -u 5 actual || die "Timed out: no ACK for kill -s $signal"
+        read -t 60 -u 5 actual || die "Timed out: no ACK for kill -s $signal"
         is "$actual" "got: $signum" "Signal $signal handled by container"
     }
 
