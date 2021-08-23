@@ -423,8 +423,27 @@ func BeADirectory() types.GomegaMatcher {
 //Expected must be either an int or a string.
 //  Expect(resp).Should(HaveHTTPStatus(http.StatusOK))   // asserts that resp.StatusCode == 200
 //  Expect(resp).Should(HaveHTTPStatus("404 Not Found")) // asserts that resp.Status == "404 Not Found"
-func HaveHTTPStatus(expected interface{}) types.GomegaMatcher {
+//  Expect(resp).Should(HaveHTTPStatus(http.StatusOK, http.StatusNoContent))   // asserts that resp.StatusCode == 200 || resp.StatusCode == 204
+func HaveHTTPStatus(expected ...interface{}) types.GomegaMatcher {
 	return &matchers.HaveHTTPStatusMatcher{Expected: expected}
+}
+
+// HaveHTTPHeaderWithValue succeeds if the header is found and the value matches.
+// Actual must be either a *http.Response or *httptest.ResponseRecorder.
+// Expected must be a string header name, followed by a header value which
+// can be a string, or another matcher.
+func HaveHTTPHeaderWithValue(header string, value interface{}) types.GomegaMatcher {
+	return &matchers.HaveHTTPHeaderWithValueMatcher{
+		Header: header,
+		Value:  value,
+	}
+}
+
+// HaveHTTPBody matches if the body matches.
+// Actual must be either a *http.Response or *httptest.ResponseRecorder.
+// Expected must be either a string, []byte, or other matcher
+func HaveHTTPBody(expected interface{}) types.GomegaMatcher {
+	return &matchers.HaveHTTPBodyMatcher{Expected: expected}
 }
 
 //And succeeds only if all of the given matchers succeed.

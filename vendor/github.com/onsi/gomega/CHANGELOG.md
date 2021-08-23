@@ -1,3 +1,11 @@
+## 1.16.0
+
+### Features
+- feat: HaveHTTPStatus multiple expected values (#465) [aa69f1b]
+- feat: HaveHTTPHeaderWithValue() matcher (#463) [dd83a96]
+- feat: HaveHTTPBody matcher (#462) [504e1f2]
+- feat: formatter for HTTP responses (#461) [e5b3157]
+
 ## 1.15.0
 
 ### Fixes
