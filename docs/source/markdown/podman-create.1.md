@@ -991,6 +991,10 @@ Maximum time a container is allowed to run before conmon sends it the kill
 signal.  By default containers will run until they exit or are stopped by
 `podman stop`.
 
+#### **--tls-verify**=**true**|**false**
+
+Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true, then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified, TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf.
+
 #### **--tmpfs**=*fs*
 
 Create a tmpfs mount

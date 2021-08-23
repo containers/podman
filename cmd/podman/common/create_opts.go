@@ -112,6 +112,7 @@ type ContainerCLIOpts struct {
 	Sysctl            []string
 	Systemd           string
 	Timeout           uint
+	TLSVerify         bool
 	TmpFS             []string
 	TTY               bool
 	Timezone          string

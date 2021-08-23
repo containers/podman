@@ -60,10 +60,24 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("podman container create container based on a remote image", func() {
-		session := podmanTest.Podman([]string{"container", "create", BB_GLIBC, "ls"})
+		containerCreate := podmanTest.Podman([]string{"container", "create", BB_GLIBC, "ls"})
+		containerCreate.WaitWithDefaultTimeout()
+		Expect(containerCreate).Should(Exit(0))
+
+		lock := GetPortLock("5000")
+		defer lock.Unlock()
+		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
+			Skip("Cannot start docker registry.")
+		}
+
+		create := podmanTest.Podman([]string{"container", "create", "--tls-verify=false", ALPINE})
+		create.WaitWithDefaultTimeout()
+		Expect(create).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(3))
 	})
 
 	It("podman create using short options", func() {
@@ -609,7 +623,7 @@ var _ = Describe("Podman create", func() {
 		Expect(session).Should(ExitWithError())
 	})
 
-	It("create container in pod ppublish ports should fail", func() {
+	It("create container in pod publish ports should fail", func() {
 		name := "createwithpublishports"
 		pod := podmanTest.RunTopContainerInPod("", "new:"+name)
 		pod.WaitWithDefaultTimeout()
