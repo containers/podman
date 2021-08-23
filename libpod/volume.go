@@ -139,6 +139,17 @@ func (v *Volume) MountPoint() (string, error) {
 	return v.mountPoint(), nil
 }
 
+// MountCount returns the volume's mountcount on the host from state
+// Useful in determining if volume is using plugin or a filesystem mount and its mount
+func (v *Volume) MountCount() (uint, error) {
+	v.lock.Lock()
+	defer v.lock.Unlock()
+	if err := v.update(); err != nil {
+		return 0, err
+	}
+	return v.state.MountCount, nil
+}
+
 // Internal-only helper for volume mountpoint
 func (v *Volume) mountPoint() string {
 	if v.UsesVolumeDriver() {

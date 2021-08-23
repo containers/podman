@@ -107,6 +107,16 @@ func UntarToFileSystem(dest string, tarball *os.File, options *archive.TarOption
 	return archive.Untar(tarball, dest, options)
 }
 
+// Creates a new tar file and wrties bytes from io.ReadCloser
+func CreateTarFromSrc(source string, dest string) error {
+	file, err := os.Create(dest)
+	if err != nil {
+		return errors.Wrapf(err, "Could not create tarball file '%s'", dest)
+	}
+	defer file.Close()
+	return TarToFilesystem(source, file)
+}
+
 // TarToFilesystem creates a tarball from source and writes to an os.file
 // provided
 func TarToFilesystem(source string, tarball *os.File) error {
