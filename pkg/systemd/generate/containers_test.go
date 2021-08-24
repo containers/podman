@@ -129,7 +129,7 @@ RequiresMountsFor=/var/run/containers/storage
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
-TimeoutStopSec=10
+TimeoutStopSec=70
 ExecStart=/usr/bin/podman container run --cgroups=no-conmon --rm --sdnotify=conmon -d --replace --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN "foo=arg \"with \" space"
 Type=notify
 NotifyAccess=all
@@ -151,7 +151,7 @@ RequiresMountsFor=/var/run/containers/storage
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
-TimeoutStopSec=10
+TimeoutStopSec=70
 ExecStart=/usr/bin/podman container run --cgroups=no-conmon --rm -d --replace --sdnotify=container --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN "foo=arg \"with \" space"
 Type=notify
 NotifyAccess=all
@@ -173,7 +173,7 @@ RequiresMountsFor=/var/run/containers/storage
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
-TimeoutStopSec=10
+TimeoutStopSec=70
 ExecStart=/usr/bin/podman run --cgroups=no-conmon --rm --sdnotify=conmon --replace -d --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
 Type=notify
 NotifyAccess=all
@@ -195,7 +195,7 @@ RequiresMountsFor=/var/run/containers/storage
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
-TimeoutStopSec=10
+TimeoutStopSec=70
 ExecStart=/usr/bin/podman run --cgroups=no-conmon --rm --pod-id-file %t/pod-foobar.pod-id-file --sdnotify=conmon --replace -d --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
 Type=notify
 NotifyAccess=all
@@ -217,7 +217,7 @@ RequiresMountsFor=/var/run/containers/storage
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
-TimeoutStopSec=10
+TimeoutStopSec=70
 ExecStart=/usr/bin/podman run --cgroups=no-conmon --rm --sdnotify=conmon --replace --detach --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
 Type=notify
 NotifyAccess=all
@@ -239,7 +239,7 @@ RequiresMountsFor=/var/run/containers/storage
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
-TimeoutStopSec=10
+TimeoutStopSec=70
 ExecStart=/usr/bin/podman run --cgroups=no-conmon --rm --sdnotify=conmon -d awesome-image:latest
 Type=notify
 NotifyAccess=all
@@ -262,7 +262,7 @@ RequiresMountsFor=/var/run/containers/storage
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
-TimeoutStopSec=42
+TimeoutStopSec=102
 ExecStart=/usr/bin/podman run --cgroups=no-conmon --rm --sdnotify=conmon ` +
 			detachparam +
 			` awesome-image:latest
@@ -288,7 +288,7 @@ RequiresMountsFor=/var/run/containers/storage
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
-TimeoutStopSec=42
+TimeoutStopSec=102
 ExecStart=/usr/bin/podman run --cgroups=no-conmon --rm --sdnotify=conmon -d --replace --name test -p 80:80 awesome-image:latest somecmd --detach=false
 Type=notify
 NotifyAccess=all
@@ -310,7 +310,7 @@ RequiresMountsFor=/var/run/containers/storage
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
-TimeoutStopSec=42
+TimeoutStopSec=102
 ExecStart=/usr/bin/podman --events-backend none --runroot /root run --cgroups=no-conmon --rm --sdnotify=conmon -d awesome-image:latest
 Type=notify
 NotifyAccess=all
@@ -332,7 +332,7 @@ RequiresMountsFor=/var/run/containers/storage
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
-TimeoutStopSec=10
+TimeoutStopSec=70
 ExecStart=/usr/bin/podman container run --cgroups=no-conmon --rm --sdnotify=conmon -d awesome-image:latest
 Type=notify
 NotifyAccess=all
@@ -354,7 +354,7 @@ RequiresMountsFor=/var/run/containers/storage
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
-TimeoutStopSec=10
+TimeoutStopSec=70
 ExecStart=/usr/bin/podman run --cgroups=no-conmon --rm --sdnotify=conmon -d --replace --name test --log-driver=journald --log-opt=tag={{.Name}} awesome-image:latest
 Type=notify
 NotifyAccess=all
@@ -376,7 +376,7 @@ RequiresMountsFor=/var/run/containers/storage
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
-TimeoutStopSec=10
+TimeoutStopSec=70
 ExecStart=/usr/bin/podman run --cgroups=no-conmon --rm --sdnotify=conmon -d --replace --name test awesome-image:latest sh -c "kill $$$$ && echo %%\\"
 Type=notify
 NotifyAccess=all
@@ -398,7 +398,7 @@ RequiresMountsFor=/var/run/containers/storage
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
-TimeoutStopSec=10
+TimeoutStopSec=70
 ExecStart=/usr/bin/podman run --cgroups=no-conmon --rm --sdnotify=conmon -d --conmon-pidfile=foo --cidfile=foo awesome-image:latest podman run --cgroups=foo --conmon-pidfile=foo --cidfile=foo alpine
 Type=notify
 NotifyAccess=all
@@ -420,7 +420,7 @@ RequiresMountsFor=/var/run/containers/storage
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
-TimeoutStopSec=10
+TimeoutStopSec=70
 ExecStart=/usr/bin/podman run --cgroups=no-conmon --rm --pod-id-file %t/pod-foobar.pod-id-file --sdnotify=conmon -d --conmon-pidfile=foo --cidfile=foo awesome-image:latest podman run --cgroups=foo --conmon-pidfile=foo --cidfile=foo --pod-id-file /tmp/pod-foobar.pod-id-file alpine
 Type=notify
 NotifyAccess=all
@@ -443,7 +443,7 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Environment=FOO=abc "BAR=my test" USER=%%a
 Restart=always
-TimeoutStopSec=10
+TimeoutStopSec=70
 ExecStart=/usr/bin/podman run --cgroups=no-conmon --rm --sdnotify=conmon -d --env FOO --env=BAR --env=MYENV=2 -e USER awesome-image:latest
 Type=notify
 NotifyAccess=all
