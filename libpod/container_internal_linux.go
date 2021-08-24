@@ -773,6 +773,18 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
+	// Pass down the LISTEN_* environment (see #10443).
+	for _, key := range []string{"LISTEN_PID", "LISTEN_FDS", "LISTEN_FDNAMES"} {
+		if val, ok := os.LookupEnv(key); ok {
+			// Force the PID to `1` since we cannot rely on (all
+			// versions of) all runtimes to do it for us.
+			if key == "LISTEN_PID" {
+				val = "1"
+			}
+			g.AddProcessEnv(key, val)
+		}
+	}
+
 	return g.Config, nil
 }
 
