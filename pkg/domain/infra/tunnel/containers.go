@@ -404,11 +404,11 @@ func (ic *ContainerEngine) ContainerLogs(_ context.Context, nameOrIDs []string, 
 			return err
 		case line := <-stdoutCh:
 			if opts.StdoutWriter != nil {
-				_, _ = io.WriteString(opts.StdoutWriter, line+"\n")
+				_, _ = io.WriteString(opts.StdoutWriter, line)
 			}
 		case line := <-stderrCh:
 			if opts.StderrWriter != nil {
-				_, _ = io.WriteString(opts.StderrWriter, line+"\n")
+				_, _ = io.WriteString(opts.StderrWriter, line)
 			}
 		}
 	}

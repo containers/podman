@@ -274,6 +274,9 @@ type EngineConfig struct {
 	// MachineEnabled indicates if Podman is running in a podman-machine VM
 	MachineEnabled bool `toml:"machine_enabled,omitempty"`
 
+	// MachineImage is the image used when creating a podman-machine VM
+	MachineImage string `toml:"machine_image,omitempty"`
+
 	// MultiImageArchive - if true, the container engine allows for storing
 	// archives (e.g., of the docker-archive transport) with multiple
 	// images.  By default, Podman creates single-image archives.
@@ -691,8 +694,8 @@ func (c *Config) Validate() error {
 }
 
 func (c *EngineConfig) findRuntime() string {
-	// Search for crun first followed by runc and kata
-	for _, name := range []string{"crun", "runc", "kata"} {
+	// Search for crun first followed by runc, kata, runsc
+	for _, name := range []string{"crun", "runc", "kata", "runsc"} {
 		for _, v := range c.OCIRuntimes[name] {
 			if _, err := os.Stat(v); err == nil {
 				return name

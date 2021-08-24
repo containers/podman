@@ -152,9 +152,7 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 		}
 
 		frame.WriteString(line.Msg)
-		// Log lines in the compat layer require adding EOL
-		// https://github.com/containers/podman/issues/8058
-		if !utils.IsLibpodRequest(r) {
+		if !line.Partial() {
 			frame.WriteString("\n")
 		}
 

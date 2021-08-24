@@ -13,7 +13,8 @@ if [ -z "${PODMAN_CORRUPT_TEST_WORKDIR}" ]; then
     export PODMAN_CORRUPT_TEST_WORKDIR=$(mktemp -d --tmpdir=${BATS_TMPDIR:-${TMPDIR:-/tmp}} podman_corrupt_test.XXXXXX)
 fi
 
-PODMAN_CORRUPT_TEST_IMAGE_FQIN=quay.io/libpod/alpine@sha256:634a8f35b5f16dcf4aaa0822adc0b1964bb786fca12f6831de8ddc45e5986a00
+PODMAN_CORRUPT_TEST_IMAGE_CANONICAL_FQIN=quay.io/libpod/alpine@sha256:634a8f35b5f16dcf4aaa0822adc0b1964bb786fca12f6831de8ddc45e5986a00
+PODMAN_CORRUPT_TEST_IMAGE_TAGGED_FQIN=${PODMAN_CORRUPT_TEST_IMAGE_CANONICAL_FQIN%%@sha256:*}:test
 PODMAN_CORRUPT_TEST_IMAGE_ID=961769676411f082461f9ef46626dd7a2d1e2b2a38e6a44364bcbecf51e66dd4
 
 # All tests in this file (and ONLY in this file) run with a custom rootdir
@@ -59,7 +60,7 @@ function _corrupt_image_test() {
         run_podman load -i ${PODMAN_CORRUPT_TEST_WORKDIR}/img.tar
         # "podman load" restores it without a tag, which (a) causes rmi-by-name
         # to fail, and (b) causes "podman images" to exit 0 instead of 125
-        run_podman tag ${PODMAN_CORRUPT_TEST_IMAGE_ID} ${PODMAN_CORRUPT_TEST_IMAGE_FQIN}
+        run_podman tag ${PODMAN_CORRUPT_TEST_IMAGE_ID} ${PODMAN_CORRUPT_TEST_IMAGE_TAGGED_FQIN}
 
         # shortcut variable name
         local id=${PODMAN_CORRUPT_TEST_IMAGE_ID}
@@ -91,9 +92,9 @@ function _corrupt_image_test() {
 
 @test "podman corrupt images - initialize" {
     # Pull once, save cached copy.
-    run_podman pull $PODMAN_CORRUPT_TEST_IMAGE_FQIN
+    run_podman pull $PODMAN_CORRUPT_TEST_IMAGE_CANONICAL_FQIN
     run_podman save -o ${PODMAN_CORRUPT_TEST_WORKDIR}/img.tar \
-               $PODMAN_CORRUPT_TEST_IMAGE_FQIN
+               $PODMAN_CORRUPT_TEST_IMAGE_CANONICAL_FQIN
 }
 
 # END   first "test" does a one-time pull of our desired image
@@ -104,8 +105,8 @@ function _corrupt_image_test() {
     _corrupt_image_test "rmi -f ${PODMAN_CORRUPT_TEST_IMAGE_ID}"
 }
 
-@test "podman corrupt images - rmi -f <image-name>" {
-    _corrupt_image_test "rmi -f ${PODMAN_CORRUPT_TEST_IMAGE_FQIN}"
+@test "podman corrupt images - rmi -f <image-tagged-name>" {
+    _corrupt_image_test "rmi -f ${PODMAN_CORRUPT_TEST_IMAGE_TAGGED_FQIN}"
 }
 
 @test "podman corrupt images - rmi -f -a" {
