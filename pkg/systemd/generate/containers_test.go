@@ -130,7 +130,10 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=70
-ExecStart=/usr/bin/podman container run --cgroups=no-conmon --rm --sdnotify=conmon -d --replace --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN "foo=arg \"with \" space"
+ExecStartPre=/bin/rm -f %t/%n.ctr-id
+ExecStart=/usr/bin/podman container run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon -d --replace --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN "foo=arg \"with \" space"
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
+ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
 
@@ -152,7 +155,10 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=70
-ExecStart=/usr/bin/podman container run --cgroups=no-conmon --rm -d --replace --sdnotify=container --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN "foo=arg \"with \" space"
+ExecStartPre=/bin/rm -f %t/%n.ctr-id
+ExecStart=/usr/bin/podman container run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm -d --replace --sdnotify=container --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN "foo=arg \"with \" space"
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
+ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
 
@@ -174,7 +180,10 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=70
-ExecStart=/usr/bin/podman run --cgroups=no-conmon --rm --sdnotify=conmon --replace -d --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
+ExecStartPre=/bin/rm -f %t/%n.ctr-id
+ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon --replace -d --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
+ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
 
@@ -196,7 +205,10 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=70
-ExecStart=/usr/bin/podman run --cgroups=no-conmon --rm --pod-id-file %t/pod-foobar.pod-id-file --sdnotify=conmon --replace -d --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
+ExecStartPre=/bin/rm -f %t/%n.ctr-id
+ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --pod-id-file %t/pod-foobar.pod-id-file --sdnotify=conmon --replace -d --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
+ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
 
@@ -218,7 +230,10 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=70
-ExecStart=/usr/bin/podman run --cgroups=no-conmon --rm --sdnotify=conmon --replace --detach --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
+ExecStartPre=/bin/rm -f %t/%n.ctr-id
+ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon --replace --detach --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
+ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
 
@@ -240,7 +255,10 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=70
-ExecStart=/usr/bin/podman run --cgroups=no-conmon --rm --sdnotify=conmon -d awesome-image:latest
+ExecStartPre=/bin/rm -f %t/%n.ctr-id
+ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon -d awesome-image:latest
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
+ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
 
@@ -263,9 +281,12 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=102
-ExecStart=/usr/bin/podman run --cgroups=no-conmon --rm --sdnotify=conmon ` +
+ExecStartPre=/bin/rm -f %t/%n.ctr-id
+ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon ` +
 			detachparam +
 			` awesome-image:latest
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
+ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
 
@@ -289,7 +310,10 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=102
-ExecStart=/usr/bin/podman run --cgroups=no-conmon --rm --sdnotify=conmon -d --replace --name test -p 80:80 awesome-image:latest somecmd --detach=false
+ExecStartPre=/bin/rm -f %t/%n.ctr-id
+ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon -d --replace --name test -p 80:80 awesome-image:latest somecmd --detach=false
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
+ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
 
@@ -311,7 +335,10 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=102
-ExecStart=/usr/bin/podman --events-backend none --runroot /root run --cgroups=no-conmon --rm --sdnotify=conmon -d awesome-image:latest
+ExecStartPre=/bin/rm -f %t/%n.ctr-id
+ExecStart=/usr/bin/podman --events-backend none --runroot /root run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon -d awesome-image:latest
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
+ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
 
@@ -333,7 +360,10 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=70
-ExecStart=/usr/bin/podman container run --cgroups=no-conmon --rm --sdnotify=conmon -d awesome-image:latest
+ExecStartPre=/bin/rm -f %t/%n.ctr-id
+ExecStart=/usr/bin/podman container run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon -d awesome-image:latest
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
+ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
 
@@ -355,7 +385,10 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=70
-ExecStart=/usr/bin/podman run --cgroups=no-conmon --rm --sdnotify=conmon -d --replace --name test --log-driver=journald --log-opt=tag={{.Name}} awesome-image:latest
+ExecStartPre=/bin/rm -f %t/%n.ctr-id
+ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon -d --replace --name test --log-driver=journald --log-opt=tag={{.Name}} awesome-image:latest
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
+ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
 
@@ -377,7 +410,10 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=70
-ExecStart=/usr/bin/podman run --cgroups=no-conmon --rm --sdnotify=conmon -d --replace --name test awesome-image:latest sh -c "kill $$$$ && echo %%\\"
+ExecStartPre=/bin/rm -f %t/%n.ctr-id
+ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon -d --replace --name test awesome-image:latest sh -c "kill $$$$ && echo %%\\"
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
+ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
 
@@ -399,7 +435,10 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=70
-ExecStart=/usr/bin/podman run --cgroups=no-conmon --rm --sdnotify=conmon -d --conmon-pidfile=foo --cidfile=foo awesome-image:latest podman run --cgroups=foo --conmon-pidfile=foo --cidfile=foo alpine
+ExecStartPre=/bin/rm -f %t/%n.ctr-id
+ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon -d --conmon-pidfile=foo awesome-image:latest podman run --cgroups=foo --conmon-pidfile=foo --cidfile=foo alpine
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
+ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
 
@@ -421,7 +460,10 @@ RequiresMountsFor=/var/run/containers/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 TimeoutStopSec=70
-ExecStart=/usr/bin/podman run --cgroups=no-conmon --rm --pod-id-file %t/pod-foobar.pod-id-file --sdnotify=conmon -d --conmon-pidfile=foo --cidfile=foo awesome-image:latest podman run --cgroups=foo --conmon-pidfile=foo --cidfile=foo --pod-id-file /tmp/pod-foobar.pod-id-file alpine
+ExecStartPre=/bin/rm -f %t/%n.ctr-id
+ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --pod-id-file %t/pod-foobar.pod-id-file --sdnotify=conmon -d --conmon-pidfile=foo awesome-image:latest podman run --cgroups=foo --conmon-pidfile=foo --cidfile=foo --pod-id-file /tmp/pod-foobar.pod-id-file alpine
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
+ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
 
@@ -444,7 +486,10 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Environment=FOO=abc "BAR=my test" USER=%%a
 Restart=always
 TimeoutStopSec=70
-ExecStart=/usr/bin/podman run --cgroups=no-conmon --rm --sdnotify=conmon -d --env FOO --env=BAR --env=MYENV=2 -e USER awesome-image:latest
+ExecStartPre=/bin/rm -f %t/%n.ctr-id
+ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon -d --env FOO --env=BAR --env=MYENV=2 -e USER awesome-image:latest
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
+ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
 
