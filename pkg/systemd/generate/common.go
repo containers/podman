@@ -8,9 +8,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// minTimeoutStopSec is the minimal stop timeout for generated systemd units.
-// Once exceeded, processes of the services are killed and the cgroup(s) are
-// cleaned up.
+// minTimeoutStopSec is the minimal stop timeout for generated systemd units
+// without --new.  Once exceeded, processes of the services are killed and the
+// cgroup(s) are cleaned up.
 const minTimeoutStopSec = 60
 
 // validateRestartPolicy checks that the user-provided policy is valid.

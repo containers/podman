@@ -125,4 +125,17 @@ function service_cleanup() {
     service_cleanup
 }
 
+@test "podman generate systemd - stop-signal" {
+    cname=$(random_string)
+    run_podman create --name $cname --stop-signal=42 $IMAGE
+    run_podman generate systemd --new $cname
+    is "$output" ".*KillSignal=42.*" "KillSignal is set"
+
+    # Regression test for #11304: systemd wants a custom stop-signal.
+    run_podman rm -f $cname
+    run_podman create --name $cname --systemd=true $IMAGE systemd
+    run_podman generate systemd --new $cname
+    is "$output" ".*KillSignal=37.*" "KillSignal is set"
+}
+
 # vim: filetype=sh

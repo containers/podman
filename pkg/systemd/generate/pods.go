@@ -323,7 +323,7 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 		info.ExecStop = "{{{{.Executable}}}} {{{{if .RootFlags}}}}{{{{ .RootFlags}}}} {{{{end}}}}pod stop --ignore --pod-id-file {{{{.PodIDFile}}}} {{{{if (ge .StopTimeout 0)}}}}-t {{{{.StopTimeout}}}}{{{{end}}}}"
 		info.ExecStopPost = "{{{{.Executable}}}} {{{{if .RootFlags}}}}{{{{ .RootFlags}}}} {{{{end}}}}pod rm --ignore -f --pod-id-file {{{{.PodIDFile}}}}"
 	}
-	info.TimeoutStopSec = minTimeoutStopSec + info.StopTimeout
+	info.TimeoutStopSec = info.StopTimeout
 
 	if info.PodmanVersion == "" {
 		info.PodmanVersion = version.Version.String()
