@@ -242,7 +242,7 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 		}
 		toReturn = append(toReturn, libpod.WithNetNSFrom(netCtr))
 	case specgen.Slirp:
-		portMappings, err := createPortMappings(ctx, s, imageData)
+		portMappings, expose, err := createPortMappings(ctx, s, imageData)
 		if err != nil {
 			return nil, err
 		}
@@ -250,15 +250,15 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 		if s.NetNS.Value != "" {
 			val = fmt.Sprintf("slirp4netns:%s", s.NetNS.Value)
 		}
-		toReturn = append(toReturn, libpod.WithNetNS(portMappings, postConfigureNetNS, val, nil))
+		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, val, nil))
 	case specgen.Private:
 		fallthrough
 	case specgen.Bridge:
-		portMappings, err := createPortMappings(ctx, s, imageData)
+		portMappings, expose, err := createPortMappings(ctx, s, imageData)
 		if err != nil {
 			return nil, err
 		}
-		toReturn = append(toReturn, libpod.WithNetNS(portMappings, postConfigureNetNS, "bridge", s.CNINetworks))
+		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, "bridge", s.CNINetworks))
 	}
 
 	if s.UseImageHosts {

@@ -253,17 +253,15 @@ func ParsePortMapping(portMappings []specgen.PortMapping) ([]ocicni.PortMapping,
 }
 
 // Make final port mappings for the container
-func createPortMappings(ctx context.Context, s *specgen.SpecGenerator, imageData *libimage.ImageData) ([]ocicni.PortMapping, error) {
+func createPortMappings(ctx context.Context, s *specgen.SpecGenerator, imageData *libimage.ImageData) ([]ocicni.PortMapping, map[uint16][]string, error) {
 	finalMappings, containerPortValidate, hostPortValidate, err := ParsePortMapping(s.PortMappings)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	// If not publishing exposed ports, or if we are publishing and there is
-	// nothing to publish - then just return the port mappings we've made so
-	// far.
-	if !s.PublishExposedPorts || (len(s.Expose) == 0 && imageData == nil) {
-		return finalMappings, nil
+	// No exposed ports so return the port mappings we've made so far.
+	if len(s.Expose) == 0 && imageData == nil {
+		return finalMappings, nil, nil
 	}
 
 	logrus.Debugf("Adding exposed ports")
@@ -272,7 +270,7 @@ func createPortMappings(ctx context.Context, s *specgen.SpecGenerator, imageData
 	if imageData != nil {
 		expose, err = GenExposedPorts(imageData.Config.ExposedPorts)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
@@ -288,11 +286,11 @@ func createPortMappings(ctx context.Context, s *specgen.SpecGenerator, imageData
 		// Validate protocol first
 		protocols, err := checkProtocol(proto, false)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error validating protocols for exposed port %d", port)
+			return nil, nil, errors.Wrapf(err, "error validating protocols for exposed port %d", port)
 		}
 
 		if port == 0 {
-			return nil, errors.Errorf("cannot expose 0 as it is not a valid port number")
+			return nil, nil, errors.Errorf("cannot expose 0 as it is not a valid port number")
 		}
 
 		// Check to see if the port is already present in existing
@@ -316,6 +314,11 @@ func createPortMappings(ctx context.Context, s *specgen.SpecGenerator, imageData
 		}
 	}
 
+	// If not publishing exposed ports return mappings and exposed ports.
+	if !s.PublishExposedPorts {
+		return finalMappings, toExpose, nil
+	}
+
 	// We now have a final list of ports that we want exposed.
 	// Let's find empty, unallocated host ports for them.
 	for port, protocols := range toExpose {
@@ -331,7 +334,7 @@ func createPortMappings(ctx context.Context, s *specgen.SpecGenerator, imageData
 				// unfortunate for the UDP case.
 				candidate, err := utils.GetRandomPort()
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 
 				// Check if the host port is already bound
@@ -362,12 +365,12 @@ func createPortMappings(ctx context.Context, s *specgen.SpecGenerator, imageData
 			}
 			if tries == 0 && hostPort == 0 {
 				// We failed to find an open port.
-				return nil, errors.Errorf("failed to find an open port to expose container port %d on the host", port)
+				return nil, nil, errors.Errorf("failed to find an open port to expose container port %d on the host", port)
 			}
 		}
 	}
 
-	return finalMappings, nil
+	return finalMappings, nil, nil
 }
 
 // Check a string to ensure it is a comma-separated set of valid protocols

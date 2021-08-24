@@ -112,7 +112,8 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawIm
 					options = append(options, WithNetworkOptions(p.config.InfraContainer.NetworkOptions))
 				}
 			}
-			options = append(options, WithNetNS(p.config.InfraContainer.PortBindings, !p.config.InfraContainer.Userns.IsHost(), netmode, p.config.InfraContainer.Networks))
+			// FIXME allow pods to have exposed ports
+			options = append(options, WithNetNS(p.config.InfraContainer.PortBindings, nil, !p.config.InfraContainer.Userns.IsHost(), netmode, p.config.InfraContainer.Networks))
 		}
 
 		// For each option in InfraContainerConfig - if set, pass into

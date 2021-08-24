@@ -99,6 +99,11 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 	for _, p := range c.config.PortMappings {
 		importBuilder.SetPort(fmt.Sprintf("%d/%s", p.ContainerPort, p.Protocol))
 	}
+	for port, protocols := range c.config.ExposedPorts {
+		for _, protocol := range protocols {
+			importBuilder.SetPort(fmt.Sprintf("%d/%s", port, protocol))
+		}
+	}
 	// Labels
 	for k, v := range c.Labels() {
 		importBuilder.SetLabel(k, v)
