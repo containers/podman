@@ -16,7 +16,6 @@ import (
 	"github.com/containers/podman/v3/libpod/network/cni"
 	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/storage"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -461,7 +460,7 @@ func (c *Container) NewNetNS() bool {
 // PortMappings returns the ports that will be mapped into a container if
 // a new network namespace is created
 // If NewNetNS() is false, this value is unused
-func (c *Container) PortMappings() ([]ocicni.PortMapping, error) {
+func (c *Container) PortMappings() ([]types.OCICNIPortMapping, error) {
 	// First check if the container belongs to a network namespace (like a pod)
 	if len(c.config.NetNsCtr) > 0 {
 		netNsCtr, err := c.runtime.GetContainer(c.config.NetNsCtr)

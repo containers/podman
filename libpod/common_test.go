@@ -10,7 +10,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/lock"
-	"github.com/cri-o/ocicni/pkg/ocicni"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,7 +41,7 @@ func getTestContainer(id, name string, manager lock.Manager) (*Container, error)
 			ContainerNetworkConfig: ContainerNetworkConfig{
 				DNSServer: []net.IP{net.ParseIP("192.168.1.1"), net.ParseIP("192.168.2.2")},
 				DNSSearch: []string{"example.com", "example.example.com"},
-				PortMappings: []ocicni.PortMapping{
+				PortMappings: []types.OCICNIPortMapping{
 					{
 						HostPort:      80,
 						ContainerPort: 90,

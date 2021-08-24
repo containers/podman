@@ -15,8 +15,8 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/utils"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/fsnotify/fsnotify"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -295,8 +295,8 @@ func writeHijackHeader(r *http.Request, conn io.Writer) {
 }
 
 // Convert OCICNI port bindings into Inspect-formatted port bindings.
-func makeInspectPortBindings(bindings []ocicni.PortMapping, expose map[uint16][]string) map[string][]define.InspectHostPort {
-	portBindings := make(map[string][]define.InspectHostPort, len(bindings))
+func makeInspectPortBindings(bindings []types.OCICNIPortMapping, expose map[uint16][]string) map[string][]define.InspectHostPort {
+	portBindings := make(map[string][]define.InspectHostPort)
 	for _, port := range bindings {
 		key := fmt.Sprintf("%d/%s", port.ContainerPort, port.Protocol)
 		hostPorts := portBindings[key]

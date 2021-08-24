@@ -199,6 +199,20 @@ type PortMapping struct {
 	Protocol string `json:"protocol,omitempty"`
 }
 
+// OCICNIPortMapping maps to the standard CNI portmapping Capability.
+// Deprecated, do not use this struct for new fields. This only exists
+// for backwards compatibility.
+type OCICNIPortMapping struct {
+	// HostPort is the port number on the host.
+	HostPort int32 `json:"hostPort"`
+	// ContainerPort is the port number inside the sandbox.
+	ContainerPort int32 `json:"containerPort"`
+	// Protocol is the protocol of the port mapping.
+	Protocol string `json:"protocol"`
+	// HostIP is the host ip to use.
+	HostIP string `json:"hostIP"`
+}
+
 type SetupOptions struct {
 	NetworkOptions
 }

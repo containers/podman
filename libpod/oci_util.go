@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/cri-o/ocicni/pkg/ocicni"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -32,7 +32,7 @@ func createUnitName(prefix string, name string) string {
 }
 
 // Bind ports to keep them closed on the host
-func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
+func bindPorts(ports []types.OCICNIPortMapping) ([]*os.File, error) {
 	var files []*os.File
 	notifySCTP := false
 	for _, i := range ports {

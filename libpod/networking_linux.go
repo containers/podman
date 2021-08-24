@@ -27,7 +27,6 @@ import (
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage/pkg/lockfile"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -927,7 +926,8 @@ func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
 		return nil, nil
 	}
 	err := ns.WithNetNSPath(netNSPath, func(_ ns.NetNS) error {
-		link, err := netlink.LinkByName(ocicni.DefaultInterfaceName)
+		// FIXME get the interface from the container netstatus
+		link, err := netlink.LinkByName("eth0")
 		if err != nil {
 			return err
 		}
@@ -1315,7 +1315,7 @@ func (r *Runtime) normalizeNetworkName(nameOrID string) (string, error) {
 	return net.Name, nil
 }
 
-func ocicniPortsToNetTypesPorts(ports []ocicni.PortMapping) []types.PortMapping {
+func ocicniPortsToNetTypesPorts(ports []types.OCICNIPortMapping) []types.PortMapping {
 	newPorts := make([]types.PortMapping, 0, len(ports))
 	for _, port := range ports {
 		newPorts = append(newPorts, types.PortMapping{
