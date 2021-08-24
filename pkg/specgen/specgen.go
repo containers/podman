@@ -5,6 +5,7 @@ import (
 	"syscall"
 
 	"github.com/containers/image/v5/manifest"
+	nettypes "github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/storage/types"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -393,7 +394,7 @@ type ContainerNetworkConfig struct {
 	// PortBindings is a set of ports to map into the container.
 	// Only available if NetNS is set to bridge or slirp.
 	// Optional.
-	PortMappings []PortMapping `json:"portmappings,omitempty"`
+	PortMappings []nettypes.PortMapping `json:"portmappings,omitempty"`
 	// PublishExposedPorts will publish ports specified in the image to
 	// random unused ports (guaranteed to be above 1024) on the host.
 	// This is based on ports set in Expose below, and any ports specified
@@ -504,36 +505,6 @@ type SpecGenerator struct {
 	ContainerNetworkConfig
 	ContainerResourceConfig
 	ContainerHealthCheckConfig
-}
-
-// PortMapping is one or more ports that will be mapped into the container.
-type PortMapping struct {
-	// HostIP is the IP that we will bind to on the host.
-	// If unset, assumed to be 0.0.0.0 (all interfaces).
-	HostIP string `json:"host_ip,omitempty"`
-	// ContainerPort is the port number that will be exposed from the
-	// container.
-	// Mandatory.
-	ContainerPort uint16 `json:"container_port"`
-	// HostPort is the port number that will be forwarded from the host into
-	// the container.
-	// If omitted, a random port on the host (guaranteed to be over 1024)
-	// will be assigned.
-	HostPort uint16 `json:"host_port,omitempty"`
-	// Range is the number of ports that will be forwarded, starting at
-	// HostPort and ContainerPort and counting up.
-	// This is 1-indexed, so 1 is assumed to be a single port (only the
-	// Hostport:Containerport mapping will be added), 2 is two ports (both
-	// Hostport:Containerport and Hostport+1:Containerport+1), etc.
-	// If unset, assumed to be 1 (a single port).
-	// Both hostport + range and containerport + range must be less than
-	// 65536.
-	Range uint16 `json:"range,omitempty"`
-	// Protocol is the protocol forward.
-	// Must be either "tcp", "udp", and "sctp", or some combination of these
-	// separated by commas.
-	// If unset, assumed to be TCP.
-	Protocol string `json:"protocol,omitempty"`
 }
 
 type Secret struct {

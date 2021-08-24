@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/containers/common/libimage"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/utils"
 
 	"github.com/containers/podman/v3/pkg/specgen"
@@ -24,7 +25,7 @@ const (
 // Parse port maps to OCICNI port mappings.
 // Returns a set of OCICNI port mappings, and maps of utilized container and
 // host ports.
-func ParsePortMapping(portMappings []specgen.PortMapping) ([]ocicni.PortMapping, map[string]map[string]map[uint16]uint16, map[string]map[string]map[uint16]uint16, error) {
+func ParsePortMapping(portMappings []types.PortMapping) ([]ocicni.PortMapping, map[string]map[string]map[uint16]uint16, map[string]map[string]map[uint16]uint16, error) {
 	// First, we need to validate the ports passed in the specgen, and then
 	// convert them into CNI port mappings.
 	type tempMapping struct {

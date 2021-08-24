@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/podman/v3/pkg/specgen"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -90,10 +90,10 @@ func createExpose(expose []string) (map[uint16]string, error) {
 }
 
 // CreatePortBindings iterates ports mappings into SpecGen format.
-func CreatePortBindings(ports []string) ([]specgen.PortMapping, error) {
+func CreatePortBindings(ports []string) ([]types.PortMapping, error) {
 	// --publish is formatted as follows:
 	// [[hostip:]hostport[-endPort]:]containerport[-endPort][/protocol]
-	toReturn := make([]specgen.PortMapping, 0, len(ports))
+	toReturn := make([]types.PortMapping, 0, len(ports))
 
 	for _, p := range ports {
 		var (
@@ -169,8 +169,8 @@ func CreatePortBindings(ports []string) ([]specgen.PortMapping, error) {
 
 // parseSplitPort parses individual components of the --publish flag to produce
 // a single port mapping in SpecGen format.
-func parseSplitPort(hostIP, hostPort *string, ctrPort string, protocol *string) (specgen.PortMapping, error) {
-	newPort := specgen.PortMapping{}
+func parseSplitPort(hostIP, hostPort *string, ctrPort string, protocol *string) (types.PortMapping, error) {
+	newPort := types.PortMapping{}
 	if ctrPort == "" {
 		return newPort, errors.Errorf("must provide a non-empty container port to publish")
 	}

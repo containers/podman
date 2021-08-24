@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod/define"
+	nettypes "github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -208,7 +209,7 @@ type RestoreOptions struct {
 	Name            string
 	TCPEstablished  bool
 	ImportPrevious  string
-	PublishPorts    []specgen.PortMapping
+	PublishPorts    []nettypes.PortMapping
 	Pod             string
 }
 
