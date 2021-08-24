@@ -233,9 +233,10 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		info.Type = "notify"
 		info.NotifyAccess = "all"
 		info.PIDFile = ""
-		info.ContainerIDFile = ""
-		info.ExecStop = ""
-		info.ExecStopPost = ""
+		info.ContainerIDFile = "%t/%n.ctr-id"
+		info.ExecStartPre = "/bin/rm -f {{{{.ContainerIDFile}}}}"
+		info.ExecStop = "{{{{.Executable}}}} stop --ignore --cidfile={{{{.ContainerIDFile}}}}"
+		info.ExecStopPost = "{{{{.Executable}}}} rm -f --ignore --cidfile={{{{.ContainerIDFile}}}}"
 		// The create command must at least have three arguments:
 		// 	/usr/bin/podman run $IMAGE
 		index := 0
@@ -258,6 +259,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		}
 		startCommand = append(startCommand,
 			"run",
+			"--cidfile={{{{.ContainerIDFile}}}}",
 			"--sdnotify=conmon",
 			"--cgroups=no-conmon",
 			"--rm",
