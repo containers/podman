@@ -16,7 +16,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
-	"golang.org/x/sys/unix"
 )
 
 // containerInfo contains data required for generating a container's systemd
@@ -33,8 +32,6 @@ type containerInfo struct {
 	// StopTimeout sets the timeout Podman waits before killing the container
 	// during service stop.
 	StopTimeout uint
-	// KillSignal of the container.
-	KillSignal string
 	// RestartPolicy of the systemd unit (e.g., no, on-failure, always).
 	RestartPolicy string
 	// PIDFile of the service. Required for forking services. Must point to the
@@ -105,9 +102,6 @@ Environment={{{{- range $index, $value := .ExtraEnvs -}}}}{{{{if $index}}}} {{{{
 {{{{- end}}}}
 Restart={{{{.RestartPolicy}}}}
 TimeoutStopSec={{{{.TimeoutStopSec}}}}
-{{{{- if .KillSignal}}}}
-KillSignal={{{{.KillSignal}}}}
-{{{{- end}}}}
 {{{{- if .ExecStartPre}}}}
 ExecStartPre={{{{.ExecStartPre}}}}
 {{{{- end}}}}
@@ -190,13 +184,6 @@ func generateContainerInfo(ctr *libpod.Container, options entities.GenerateSyste
 		containerEnv:      envs,
 	}
 
-	// Set a custom kill signal for non SIGTERM (already default in
-	// systemd) signals.
-	stopSignal := ctr.StopSignal()
-	if stopSignal != uint(unix.SIGTERM) {
-		info.KillSignal = fmt.Sprintf("%d", stopSignal)
-	}
-
 	return &info, nil
 }
 
@@ -246,9 +233,10 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		info.Type = "notify"
 		info.NotifyAccess = "all"
 		info.PIDFile = ""
-		info.ContainerIDFile = ""
-		info.ExecStop = ""
-		info.ExecStopPost = ""
+		info.ContainerIDFile = "%t/%n.ctr-id"
+		info.ExecStartPre = "/bin/rm -f {{{{.ContainerIDFile}}}}"
+		info.ExecStop = "{{{{.Executable}}}} stop --ignore --cidfile={{{{.ContainerIDFile}}}}"
+		info.ExecStopPost = "{{{{.Executable}}}} rm -f --ignore --cidfile={{{{.ContainerIDFile}}}}"
 		// The create command must at least have three arguments:
 		// 	/usr/bin/podman run $IMAGE
 		index := 0
@@ -271,6 +259,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		}
 		startCommand = append(startCommand,
 			"run",
+			"--cidfile={{{{.ContainerIDFile}}}}",
 			"--cgroups=no-conmon",
 			"--rm",
 		)
@@ -372,15 +361,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		info.ExecStart = strings.Join(startCommand, " ")
 	}
 
-	info.TimeoutStopSec = info.StopTimeout
-
-	// For units without --new add an additional 60 seconds to the stop
-	// timeout to make sure that Podman stop has enough time to properly
-	// shutdown and cleanup the container before systemd starts to nuke
-	// everything in the cgroup.
-	if !options.New {
-		info.TimeoutStopSec += minTimeoutStopSec
-	}
+	info.TimeoutStopSec = minTimeoutStopSec + info.StopTimeout
 
 	if info.PodmanVersion == "" {
 		info.PodmanVersion = version.Version.String()

@@ -8,9 +8,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// minTimeoutStopSec is the minimal stop timeout for generated systemd units
-// without --new.  Once exceeded, processes of the services are killed and the
-// cgroup(s) are cleaned up.
+// minTimeoutStopSec is the minimal stop timeout for generated systemd units.
+// Once exceeded, processes of the services are killed and the cgroup(s) are
+// cleaned up.
 const minTimeoutStopSec = 60
 
 // validateRestartPolicy checks that the user-provided policy is valid.
@@ -71,11 +71,12 @@ func filterCommonContainerFlags(command []string, argCount int) []string {
 		case s == "--rm":
 			// Boolean flags support --flag and --flag={true,false}.
 			continue
-		case s == "--sdnotify", s == "--cgroups":
+		case s == "--sdnotify", s == "--cgroups", s == "--cidfile":
 			i++
 			continue
 		case strings.HasPrefix(s, "--rm="),
-			strings.HasPrefix(s, "--cgroups="):
+			strings.HasPrefix(s, "--cgroups="),
+			strings.HasPrefix(s, "--cidfile="):
 			continue
 		}
 		processed = append(processed, s)
