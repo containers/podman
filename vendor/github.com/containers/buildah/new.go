@@ -12,10 +12,12 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/pkg/shortnames"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	digest "github.com/opencontainers/go-digest"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/openshift/imagebuilder"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -248,6 +250,15 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 	namespaceOptions := defaultNamespaceOptions
 	namespaceOptions.AddOrReplace(options.NamespaceOptions...)
 
+	// Set the base-image annotations as suggested by the OCI image spec.
+	imageAnnotations := map[string]string{}
+	imageAnnotations[v1.AnnotationBaseImageDigest] = imageDigest
+	if !shortnames.IsShortName(imageSpec) {
+		// If the base image could be resolved to a fully-qualified
+		// image name, let's set it.
+		imageAnnotations[v1.AnnotationBaseImageName] = imageSpec
+	}
+
 	builder := &Builder{
 		store:                 store,
 		Type:                  containerType,
@@ -256,7 +267,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		FromImageDigest:       imageDigest,
 		Container:             name,
 		ContainerID:           container.ID,
-		ImageAnnotations:      map[string]string{},
+		ImageAnnotations:      imageAnnotations,
 		ImageCreatedBy:        "",
 		ProcessLabel:          container.ProcessLabel(),
 		MountLabel:            container.MountLabel(),
@@ -288,7 +299,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		}
 	}
 
-	if err := builder.initConfig(ctx, src); err != nil {
+	if err := builder.initConfig(ctx, src, systemContext); err != nil {
 		return nil, errors.Wrapf(err, "error preparing image configuration")
 	}
 	err = builder.Save()

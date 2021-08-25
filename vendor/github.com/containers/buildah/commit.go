@@ -183,6 +183,12 @@ func (b *Builder) addManifest(ctx context.Context, manifestName string, imageSpe
 		create = true
 		list = manifests.Create()
 	} else {
+		locker, err := manifests.LockerForImage(b.store, manifestList.ID())
+		if err != nil {
+			return "", err
+		}
+		locker.Lock()
+		defer locker.Unlock()
 		_, list, err = manifests.LoadFromImage(b.store, manifestList.ID())
 		if err != nil {
 			return "", err
@@ -191,7 +197,7 @@ func (b *Builder) addManifest(ctx context.Context, manifestName string, imageSpe
 
 	names, err := util.ExpandNames([]string{manifestName}, systemContext, b.store)
 	if err != nil {
-		return "", errors.Wrapf(err, "error encountered while expanding image name %q", manifestName)
+		return "", errors.Wrapf(err, "error encountered while expanding manifest list name %q", manifestName)
 	}
 
 	ref, err := util.VerifyTagName(imageSpec)

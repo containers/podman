@@ -1,17 +1,6 @@
 ![buildah logo](https://cdn.rawgit.com/containers/buildah/main/logos/buildah-logo_large.png)
 
 # Changelog
-## v1.22.3 (2021-08-20)
-  * [release-1.22] bump to v1.22.3
-
-## v1.22.2 (2021-08-19)
-  * [release-1.22] bump c/image to v5.15.2
-
-## v1.22.1 (2021-08-17)
-  * [release-1.22] Bump c/storage to v1.34.1
-  * Post-branch commit
-  * [release-1.22] Accept repositories on login/logout
-  * [CI:DOCS][release-1.22] Fix CHANGELOG.md
 
 ## v1.22.0 (2021-08-02)
     c/image, c/storage, c/common vendor before Podman 3.3 release

@@ -15,6 +15,7 @@ import (
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/containers/buildah/copier"
+	"github.com/containers/buildah/pkg/overlay"
 	butil "github.com/containers/buildah/util"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
@@ -1541,6 +1542,32 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 	// We need to mount the container before volumes - to ensure the copyup
 	// works properly.
 	mountPoint := c.config.Rootfs
+	// Check if overlay has to be created on top of Rootfs
+	if c.config.RootfsOverlay {
+		overlayDest := c.runtime.store.GraphRoot()
+		contentDir, err := overlay.GenerateStructure(c.runtime.store.GraphRoot(), c.ID(), "rootfs", c.RootUID(), c.RootGID())
+		if err != nil {
+			return "", errors.Wrapf(err, "rootfs-overlay: failed to create TempDir in the %s directory", overlayDest)
+		}
+		overlayMount, err := overlay.Mount(contentDir, c.config.Rootfs, overlayDest, c.RootUID(), c.RootGID(), c.runtime.store.GraphOptions())
+		if err != nil {
+			return "", errors.Wrapf(err, "rootfs-overlay: creating overlay failed %q", c.config.Rootfs)
+		}
+
+		// Seems fuse-overlayfs is not present
+		// fallback to native overlay
+		if overlayMount.Type == "overlay" {
+			overlayMount.Options = append(overlayMount.Options, "nodev")
+			mountOpts := label.FormatMountLabel(strings.Join(overlayMount.Options, ","), c.MountLabel())
+			err = mount.Mount("overlay", overlayMount.Source, overlayMount.Type, mountOpts)
+			if err != nil {
+				return "", errors.Wrapf(err, "rootfs-overlay: creating overlay failed %q from native overlay", c.config.Rootfs)
+			}
+		}
+
+		mountPoint = overlayMount.Source
+	}
+
 	if mountPoint == "" {
 		mountPoint, err = c.mount()
 		if err != nil {
@@ -1713,6 +1740,17 @@ func (c *Container) cleanupStorage() error {
 	}
 
 	var cleanupErr error
+
+	// umount rootfs overlay if it was created
+	if c.config.RootfsOverlay {
+		overlayBasePath := c.runtime.store.GraphRoot()
+		overlayBasePath = filepath.Join(overlayBasePath, "rootfs")
+		if err := overlay.Unmount(overlayBasePath); err != nil {
+			// If the container can't remove content report the error
+			logrus.Errorf("Failed to cleanup overlay mounts for %s: %v", c.ID(), err)
+			cleanupErr = err
+		}
+	}
 
 	for _, containerMount := range c.config.Mounts {
 		if err := c.unmountSHM(containerMount); err != nil {
