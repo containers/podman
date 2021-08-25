@@ -46,9 +46,18 @@ function service_setup() {
 
 # Helper to stop a systemd service running a container
 function service_cleanup() {
+    local status=$1
     run systemctl stop "$SERVICE_NAME"
     if [ $status -ne 0 ]; then
         die "Error stopping systemd unit $SERVICE_NAME, output: $output"
+    fi
+
+    if [[ -z "$status" ]]; then
+        run systemctl is-active "$SERVICE_NAME"
+        if [ $status -ne 0 ]; then
+            die "Error checking stauts of systemd unit $SERVICE_NAME, output: $output"
+        fi
+        is "$output" "$status" "$SERVICE_NAME not in expected state"
     fi
 
     rm -f "$UNIT_FILE"
@@ -60,7 +69,8 @@ function service_cleanup() {
 @test "podman generate - systemd - basic" {
     cname=$(random_string)
     # See #7407 for --pull=always.
-    run_podman create --pull=always --name $cname --label "io.containers.autoupdate=registry" $IMAGE top
+    run_podman create --pull=always --name $cname --label "io.containers.autoupdate=registry" $IMAGE \
+        sh -c "trap 'echo Received SIGTERM, finishing; exit' SIGTERM; echo WAITING; while :; do sleep 0.1; done"
 
     # Start systemd service to run this container
     service_setup
@@ -68,7 +78,7 @@ function service_cleanup() {
     # Give container time to start; make sure output looks top-like
     sleep 2
     run_podman logs $cname
-    is "$output" ".*Load average:.*" "running container 'top'-like output"
+    is "$output" ".*WAITING.*" "running is waiting for signal"
 
     # Exercise `podman auto-update`.
     # TODO: this will at least run auto-update code but won't perform an update
@@ -77,7 +87,8 @@ function service_cleanup() {
     run_podman auto-update
 
     # All good. Stop service, clean up.
-    service_cleanup
+    # Also make sure the service is in the `inactive` state (see #11304).
+    service_cleanup inactive
 }
 
 @test "podman autoupdate local" {

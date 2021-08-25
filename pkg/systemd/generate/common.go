@@ -71,12 +71,13 @@ func filterCommonContainerFlags(command []string, argCount int) []string {
 		case s == "--rm":
 			// Boolean flags support --flag and --flag={true,false}.
 			continue
-		case s == "--sdnotify", s == "--cgroups":
+		case s == "--sdnotify", s == "--cgroups", s == "--cidfile":
 			i++
 			continue
 		case strings.HasPrefix(s, "--sdnotify="),
 			strings.HasPrefix(s, "--rm="),
-			strings.HasPrefix(s, "--cgroups="):
+			strings.HasPrefix(s, "--cgroups="),
+			strings.HasPrefix(s, "--cidfile="):
 			continue
 		}
 		processed = append(processed, s)
