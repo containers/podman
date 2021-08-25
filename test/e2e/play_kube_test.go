@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/util"
 	. "github.com/containers/podman/v3/test/utils"
 	"github.com/containers/storage/pkg/stringid"
@@ -262,6 +263,17 @@ spec:
     - {{ . }}
   {{ end }}
     ip: {{ .IP }}
+{{ end }}
+  initContainers:
+{{ with .InitCtrs }}
+  {{ range . }}
+  - command:
+    {{ range .Cmd }}
+    - {{.}}
+    {{ end }}
+    image: {{ .Image }}
+    name: {{ .Name }}
+  {{ end }}
 {{ end }}
   containers:
 {{ with .Ctrs }}
@@ -665,6 +677,7 @@ type Pod struct {
 	HostNetwork   bool
 	HostAliases   []HostAlias
 	Ctrs          []*Ctr
+	InitCtrs      []*Ctr
 	Volumes       []*Volume
 	Labels        map[string]string
 	Annotations   map[string]string
@@ -686,6 +699,7 @@ func getPod(options ...podOption) *Pod {
 		HostNetwork:   false,
 		HostAliases:   nil,
 		Ctrs:          make([]*Ctr, 0),
+		InitCtrs:      make([]*Ctr, 0),
 		Volumes:       make([]*Volume, 0),
 		Labels:        make(map[string]string),
 		Annotations:   make(map[string]string),
@@ -725,6 +739,12 @@ func withHostAliases(ip string, host []string) podOption {
 func withCtr(c *Ctr) podOption {
 	return func(pod *Pod) {
 		pod.Ctrs = append(pod.Ctrs, c)
+	}
+}
+
+func withPodInitCtr(ic *Ctr) podOption {
+	return func(pod *Pod) {
+		pod.InitCtrs = append(pod.InitCtrs, ic)
 	}
 }
 
@@ -847,6 +867,7 @@ type Ctr struct {
 	VolumeReadOnly  bool
 	Env             []Env
 	EnvFrom         []EnvFrom
+	InitCtrType     string
 }
 
 // getCtr takes a list of ctrOptions and returns a Ctr with sane defaults
@@ -870,6 +891,7 @@ func getCtr(options ...ctrOption) *Ctr {
 		VolumeReadOnly:  false,
 		Env:             []Env{},
 		EnvFrom:         []EnvFrom{},
+		InitCtrType:     "",
 	}
 	for _, option := range options {
 		option(&c)
@@ -882,6 +904,12 @@ type ctrOption func(*Ctr)
 func withName(name string) ctrOption {
 	return func(c *Ctr) {
 		c.Name = name
+	}
+}
+
+func withInitCtr() ctrOption {
+	return func(c *Ctr) {
+		c.InitCtrType = define.AlwaysInitContainer
 	}
 }
 
@@ -1292,6 +1320,33 @@ var _ = Describe("Podman play kube", func() {
 		Expect(inspect).Should(Exit(0))
 		// an empty command is reported as '[]'
 		Expect(inspect.OutputToString()).To(ContainSubstring(`[]`))
+	})
+
+	// If you have an init container in the pod yaml, podman should create and run the init container with play kube
+	It("podman play kube test with init containers", func() {
+		pod := getPod(withPodInitCtr(getCtr(withImage(ALPINE), withCmd([]string{"echo", "hello"}), withInitCtr(), withName("init-test"))), withCtr(getCtr(withImage(ALPINE), withCmd([]string{"top"}))))
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		// Expect the number of containers created to be 3, one init, infra, and regular container
+		numOfCtrs := podmanTest.NumberOfContainers()
+		Expect(numOfCtrs).To(Equal(3))
+
+		// Init container should have exited after running
+		inspect := podmanTest.Podman([]string{"inspect", "--format", "{{.State.Status}}", "testPod-init-test"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring("exited"))
+
+		// Regular container should be in running state
+		inspect = podmanTest.Podman([]string{"inspect", "--format", "{{.State.Status}}", "testPod-" + defaultCtrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring("running"))
 	})
 
 	// If you supply only args for a Container, the default Entrypoint defined in the Docker image is run with the args that you supplied.

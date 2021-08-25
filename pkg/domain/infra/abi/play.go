@@ -304,75 +304,58 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	}
 
 	containers := make([]*libpod.Container, 0, len(podYAML.Spec.Containers))
+	initContainers := make([]*libpod.Container, 0, len(podYAML.Spec.InitContainers))
 	cwd, err := os.Getwd()
 	if err != nil {
 		return nil, err
 	}
+
+	for _, initCtr := range podYAML.Spec.InitContainers {
+		// Init containers cannot have either of lifecycle, livenessProbe, readinessProbe, or startupProbe set
+		if initCtr.Lifecycle != nil || initCtr.LivenessProbe != nil || initCtr.ReadinessProbe != nil || initCtr.StartupProbe != nil {
+			return nil, errors.Errorf("cannot create an init container that has either of lifecycle, livenessProbe, readinessProbe, or startupProbe set")
+		}
+		pulledImage, labels, err := ic.getImageAndLabelInfo(ctx, cwd, annotations, writer, initCtr, options)
+		if err != nil {
+			return nil, err
+		}
+
+		specgenOpts := kube.CtrSpecGenOptions{
+			Container:         initCtr,
+			Image:             pulledImage,
+			Volumes:           volumes,
+			PodID:             pod.ID(),
+			PodName:           podName,
+			PodInfraID:        podInfraID,
+			ConfigMaps:        configMaps,
+			SeccompPaths:      seccompPaths,
+			RestartPolicy:     ctrRestartPolicy,
+			NetNSIsHost:       p.NetNS.IsHost(),
+			SecretsManager:    secretsManager,
+			LogDriver:         options.LogDriver,
+			Labels:            labels,
+			InitContainerType: define.AlwaysInitContainer,
+		}
+		specGen, err := kube.ToSpecGen(ctx, &specgenOpts)
+		if err != nil {
+			return nil, err
+		}
+		rtSpec, spec, opts, err := generate.MakeContainer(ctx, ic.Libpod, specGen)
+		if err != nil {
+			return nil, err
+		}
+		ctr, err := generate.ExecuteCreate(ctx, ic.Libpod, rtSpec, spec, false, opts...)
+		if err != nil {
+			return nil, err
+		}
+
+		initContainers = append(initContainers, ctr)
+	}
 	for _, container := range podYAML.Spec.Containers {
 		if !strings.Contains("infra", container.Name) {
-			// Contains all labels obtained from kube
-			labels := make(map[string]string)
-			var pulledImage *libimage.Image
-			buildFile, err := getBuildFile(container.Image, cwd)
+			pulledImage, labels, err := ic.getImageAndLabelInfo(ctx, cwd, annotations, writer, container, options)
 			if err != nil {
 				return nil, err
-			}
-			existsLocally, err := ic.Libpod.LibimageRuntime().Exists(container.Image)
-			if err != nil {
-				return nil, err
-			}
-			if (len(buildFile) > 0 && !existsLocally) || (len(buildFile) > 0 && options.Build) {
-				buildOpts := new(buildahDefine.BuildOptions)
-				commonOpts := new(buildahDefine.CommonBuildOptions)
-				buildOpts.ConfigureNetwork = buildahDefine.NetworkDefault
-				buildOpts.Isolation = buildahDefine.IsolationChroot
-				buildOpts.CommonBuildOpts = commonOpts
-				buildOpts.Output = container.Image
-				if _, _, err := ic.Libpod.Build(ctx, *buildOpts, []string{buildFile}...); err != nil {
-					return nil, err
-				}
-				i, _, err := ic.Libpod.LibimageRuntime().LookupImage(container.Image, new(libimage.LookupImageOptions))
-				if err != nil {
-					return nil, err
-				}
-				pulledImage = i
-			} else {
-				// NOTE: set the pull policy to "newer".  This will cover cases
-				// where the "latest" tag requires a pull and will also
-				// transparently handle "localhost/" prefixed files which *may*
-				// refer to a locally built image OR an image running a
-				// registry on localhost.
-				pullPolicy := config.PullPolicyNewer
-				if len(container.ImagePullPolicy) > 0 {
-					// Make sure to lower the strings since K8s pull policy
-					// may be capitalized (see bugzilla.redhat.com/show_bug.cgi?id=1985905).
-					rawPolicy := string(container.ImagePullPolicy)
-					pullPolicy, err = config.ParsePullPolicy(strings.ToLower(rawPolicy))
-					if err != nil {
-						return nil, err
-					}
-				}
-				pulledImages, err := pullImage(ic, writer, container.Image, options, pullPolicy)
-				if err != nil {
-					return nil, err
-				}
-				pulledImage = pulledImages[0]
-			}
-
-			// Handle kube annotations
-			for k, v := range annotations {
-				switch k {
-				// Auto update annotation without container name will apply to
-				// all containers within the pod
-				case autoupdate.Label, autoupdate.AuthfileLabel:
-					labels[k] = v
-				// Auto update annotation with container name will apply only
-				// to the specified container
-				case fmt.Sprintf("%s/%s", autoupdate.Label, container.Name),
-					fmt.Sprintf("%s/%s", autoupdate.AuthfileLabel, container.Name):
-					prefixAndCtr := strings.Split(k, "/")
-					labels[prefixAndCtr[0]] = v
-				}
 			}
 
 			specgenOpts := kube.CtrSpecGenOptions{
@@ -394,7 +377,6 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			if err != nil {
 				return nil, err
 			}
-
 			rtSpec, spec, opts, err := generate.MakeContainer(ctx, ic.Libpod, specGen)
 			if err != nil {
 				return nil, err
@@ -423,10 +405,94 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	for _, ctr := range containers {
 		playKubePod.Containers = append(playKubePod.Containers, ctr.ID())
 	}
+	for _, initCtr := range initContainers {
+		playKubePod.InitContainers = append(playKubePod.InitContainers, initCtr.ID())
+	}
 
 	report.Pods = append(report.Pods, playKubePod)
 
 	return &report, nil
+}
+
+// getImageAndLabelInfo returns the image information and how the image should be pulled plus as well as labels to be used for the container in the pod.
+// Moved this to a separate function so that it can be used for both init and regular containers when playing a kube yaml.
+func (ic *ContainerEngine) getImageAndLabelInfo(ctx context.Context, cwd string, annotations map[string]string, writer io.Writer, container v1.Container, options entities.PlayKubeOptions) (*libimage.Image, map[string]string, error) {
+	// Contains all labels obtained from kube
+	labels := make(map[string]string)
+	var pulledImage *libimage.Image
+	buildFile, err := getBuildFile(container.Image, cwd)
+	if err != nil {
+		return nil, nil, err
+	}
+	existsLocally, err := ic.Libpod.LibimageRuntime().Exists(container.Image)
+	if err != nil {
+		return nil, nil, err
+	}
+	if (len(buildFile) > 0 && !existsLocally) || (len(buildFile) > 0 && options.Build) {
+		buildOpts := new(buildahDefine.BuildOptions)
+		commonOpts := new(buildahDefine.CommonBuildOptions)
+		buildOpts.ConfigureNetwork = buildahDefine.NetworkDefault
+		buildOpts.Isolation = buildahDefine.IsolationChroot
+		buildOpts.CommonBuildOpts = commonOpts
+		buildOpts.Output = container.Image
+		if _, _, err := ic.Libpod.Build(ctx, *buildOpts, []string{buildFile}...); err != nil {
+			return nil, nil, err
+		}
+		i, _, err := ic.Libpod.LibimageRuntime().LookupImage(container.Image, new(libimage.LookupImageOptions))
+		if err != nil {
+			return nil, nil, err
+		}
+		pulledImage = i
+	} else {
+		// NOTE: set the pull policy to "newer".  This will cover cases
+		// where the "latest" tag requires a pull and will also
+		// transparently handle "localhost/" prefixed files which *may*
+		// refer to a locally built image OR an image running a
+		// registry on localhost.
+		pullPolicy := config.PullPolicyNewer
+		if len(container.ImagePullPolicy) > 0 {
+			// Make sure to lower the strings since K8s pull policy
+			// may be capitalized (see bugzilla.redhat.com/show_bug.cgi?id=1985905).
+			rawPolicy := string(container.ImagePullPolicy)
+			pullPolicy, err = config.ParsePullPolicy(strings.ToLower(rawPolicy))
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+		// This ensures the image is the image store
+		pullOptions := &libimage.PullOptions{}
+		pullOptions.AuthFilePath = options.Authfile
+		pullOptions.CertDirPath = options.CertDir
+		pullOptions.SignaturePolicyPath = options.SignaturePolicy
+		pullOptions.Writer = writer
+		pullOptions.Username = options.Username
+		pullOptions.Password = options.Password
+		pullOptions.InsecureSkipTLSVerify = options.SkipTLSVerify
+
+		pulledImages, err := ic.Libpod.LibimageRuntime().Pull(ctx, container.Image, pullPolicy, pullOptions)
+		if err != nil {
+			return nil, nil, err
+		}
+		pulledImage = pulledImages[0]
+	}
+
+	// Handle kube annotations
+	for k, v := range annotations {
+		switch k {
+		// Auto update annotation without container name will apply to
+		// all containers within the pod
+		case autoupdate.Label, autoupdate.AuthfileLabel:
+			labels[k] = v
+		// Auto update annotation with container name will apply only
+		// to the specified container
+		case fmt.Sprintf("%s/%s", autoupdate.Label, container.Name),
+			fmt.Sprintf("%s/%s", autoupdate.AuthfileLabel, container.Name):
+			prefixAndCtr := strings.Split(k, "/")
+			labels[prefixAndCtr[0]] = v
+		}
+	}
+
+	return pulledImage, labels, nil
 }
 
 // playKubePVC creates a podman volume from a kube persistent volume claim.
