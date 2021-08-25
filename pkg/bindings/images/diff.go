@@ -23,6 +23,8 @@ func Diff(ctx context.Context, nameOrID string, options *DiffOptions) ([]archive
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	var changes []archive.Change
 	return changes, response.Process(&changes)
 }

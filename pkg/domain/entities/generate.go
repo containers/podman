@@ -35,6 +35,8 @@ type GenerateKubeOptions struct {
 }
 
 // GenerateKubeReport
+//
+// FIXME: Podman4.0 should change io.Reader to io.ReaderCloser
 type GenerateKubeReport struct {
 	// Reader - the io.Reader to reader the generated YAML file.
 	Reader io.Reader
