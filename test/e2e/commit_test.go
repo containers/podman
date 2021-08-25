@@ -329,4 +329,40 @@ var _ = Describe("Podman commit", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.OutputToString()).To(Not(ContainSubstring(secretsString)))
 	})
+
+	It("podman commit adds exposed ports", func() {
+		name := "testcon"
+		s := podmanTest.Podman([]string{"run", "--name", name, "-p", "8080:80", ALPINE, "true"})
+		s.WaitWithDefaultTimeout()
+		Expect(s).Should(Exit(0))
+
+		newImageName := "newimage"
+		c := podmanTest.Podman([]string{"commit", name, newImageName})
+		c.WaitWithDefaultTimeout()
+		Expect(c).Should(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", newImageName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		images := inspect.InspectImageJSON()
+		Expect(images).To(HaveLen(1))
+		Expect(images[0].Config.ExposedPorts).To(HaveKey("80/tcp"))
+
+		name = "testcon2"
+		s = podmanTest.Podman([]string{"run", "--name", name, "-d", nginx})
+		s.WaitWithDefaultTimeout()
+		Expect(s).Should(Exit(0))
+
+		newImageName = "newimage2"
+		c = podmanTest.Podman([]string{"commit", name, newImageName})
+		c.WaitWithDefaultTimeout()
+		Expect(c).Should(Exit(0))
+
+		inspect = podmanTest.Podman([]string{"inspect", newImageName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		images = inspect.InspectImageJSON()
+		Expect(images).To(HaveLen(1))
+		Expect(images[0].Config.ExposedPorts).To(HaveKey("80/tcp"))
+	})
 })

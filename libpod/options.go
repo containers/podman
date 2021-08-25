@@ -1041,7 +1041,7 @@ func WithDependencyCtrs(ctrs []*Container) CtrCreateOption {
 // namespace with a minimal configuration.
 // An optional array of port mappings can be provided.
 // Conflicts with WithNetNSFrom().
-func WithNetNS(portMappings []ocicni.PortMapping, postConfigureNetNS bool, netmode string, networks []string) CtrCreateOption {
+func WithNetNS(portMappings []ocicni.PortMapping, exposedPorts map[uint16][]string, postConfigureNetNS bool, netmode string, networks []string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
@@ -1051,6 +1051,7 @@ func WithNetNS(portMappings []ocicni.PortMapping, postConfigureNetNS bool, netmo
 		ctr.config.NetMode = namespaces.NetworkMode(netmode)
 		ctr.config.CreateNetNS = true
 		ctr.config.PortMappings = portMappings
+		ctr.config.ExposedPorts = exposedPorts
 
 		ctr.config.Networks = networks
 

@@ -229,6 +229,12 @@ type ContainerNetworkConfig struct {
 	// namespace
 	// These are not used unless CreateNetNS is true
 	PortMappings []ocicni.PortMapping `json:"portMappings,omitempty"`
+	// ExposedPorts are the ports which are exposed but not forwarded
+	// into the container.
+	// The map key is the port and the string slice contains the protocols,
+	// e.g. tcp and udp
+	// These are only set when exposed ports are given but not published.
+	ExposedPorts map[uint16][]string `json:"exposedPorts,omitempty"`
 	// UseImageResolvConf indicates that resolv.conf should not be
 	// bind-mounted inside the container.
 	// Conflicts with DNSServer, DNSSearch, DNSOption.
