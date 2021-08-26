@@ -17,6 +17,10 @@ type Car struct {
 	Extras map[string]string
 }
 
+type Anonymous struct {
+	Hello string
+}
+
 func (c Car) Type() string {
 	return ""
 }
@@ -30,7 +34,10 @@ func TestAutocompleteFormat(t *testing.T) {
 		Name string
 		Age  int
 		Car  *Car
-	}{}
+		*Anonymous
+	}{
+		Anonymous: &Anonymous{},
+	}
 
 	testStruct.Car = &Car{}
 	testStruct.Car.Extras = map[string]string{"test": "1"}
@@ -73,12 +80,12 @@ func TestAutocompleteFormat(t *testing.T) {
 		{
 			"fist level struct field name",
 			"{{.",
-			[]string{"{{.Name}}", "{{.Age}}", "{{.Car."},
+			[]string{"{{.Name}}", "{{.Age}}", "{{.Car.", "{{.Anonymous.", "{{.Hello}}"},
 		},
 		{
 			"fist level struct field name",
 			"{{ .",
-			[]string{"{{ .Name}}", "{{ .Age}}", "{{ .Car."},
+			[]string{"{{ .Name}}", "{{ .Age}}", "{{ .Car.", "{{ .Anonymous.", "{{ .Hello}}"},
 		},
 		{
 			"fist level struct field name",

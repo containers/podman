@@ -985,40 +985,14 @@ func AutocompleteFormat(o interface{}) func(cmd *cobra.Command, args []string, t
 				f = f.Elem()
 			}
 
-			// // the only supported type is struct
+			// the only supported type is struct
 			if f.Kind() != reflect.Struct {
 				return nil, cobra.ShellCompDirectiveNoFileComp
 			}
 
 			// last field get all names to suggest
 			if i == len(fields)-1 {
-				suggestions := []string{}
-				for j := 0; j < f.NumField(); j++ {
-					fname := f.Type().Field(j).Name
-					suffix := "}}"
-					kind := f.Type().Field(j).Type.Kind()
-					if kind == reflect.Ptr {
-						// make sure to read the actual type when it is a pointer
-						kind = f.Type().Field(j).Type.Elem().Kind()
-					}
-					// when we have a nested struct do not append braces instead append a dot
-					if kind == reflect.Struct {
-						suffix = "."
-					}
-					if strings.HasPrefix(fname, fields[i]) {
-						// add field name with closing braces
-						suggestions = append(suggestions, fname+suffix)
-					}
-				}
-
-				for j := 0; j < f.NumMethod(); j++ {
-					fname := f.Type().Method(j).Name
-					if strings.HasPrefix(fname, fields[i]) {
-						// add method name with closing braces
-						suggestions = append(suggestions, fname+"}}")
-					}
-				}
-
+				suggestions := getStructFields(f, fields[i])
 				// add the current toComplete value in front so that the shell can complete this correctly
 				toCompArr := strings.Split(toComplete, ".")
 				toCompArr[len(toCompArr)-1] = ""
@@ -1030,6 +1004,52 @@ func AutocompleteFormat(o interface{}) func(cmd *cobra.Command, args []string, t
 		}
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
+}
+
+// getStructFields reads all struct field names and method names and returns them.
+func getStructFields(f reflect.Value, prefix string) []string {
+	suggestions := []string{}
+	// follow the pointer first
+	if f.Kind() == reflect.Ptr {
+		f = f.Elem()
+	}
+	// we only support structs
+	if f.Kind() != reflect.Struct {
+		return nil
+	}
+	// loop over all field names
+	for j := 0; j < f.NumField(); j++ {
+		field := f.Type().Field(j)
+		fname := field.Name
+		suffix := "}}"
+		kind := field.Type.Kind()
+		if kind == reflect.Ptr {
+			// make sure to read the actual type when it is a pointer
+			kind = field.Type.Elem().Kind()
+		}
+		// when we have a nested struct do not append braces instead append a dot
+		if kind == reflect.Struct {
+			suffix = "."
+		}
+		if strings.HasPrefix(fname, prefix) {
+			// add field name with suffix
+			suggestions = append(suggestions, fname+suffix)
+		}
+		// if field is anonymous add the child fields as well
+		if field.Anonymous {
+			suggestions = append(suggestions, getStructFields(f.FieldByIndex([]int{j}), prefix)...)
+		}
+	}
+
+	for j := 0; j < f.NumMethod(); j++ {
+		fname := f.Type().Method(j).Name
+		if strings.HasPrefix(fname, prefix) {
+			// add method name with closing braces
+			suggestions = append(suggestions, fname+"}}")
+		}
+	}
+
+	return suggestions
 }
 
 // AutocompleteEventFilter - Autocomplete event filter flag options.
