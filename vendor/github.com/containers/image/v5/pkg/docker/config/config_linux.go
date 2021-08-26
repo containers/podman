@@ -10,7 +10,7 @@ import (
 )
 
 // NOTE: none of the functions here are currently used.  If we ever want to
-// reenable keyring support, we should introduce a similar built-in credential
+// re-enable keyring support, we should introduce a similar built-in credential
 // helpers as for `sysregistriesv2.AuthenticationFileHelper`.
 
 const keyDescribePrefix = "container-registry-login:" //nolint:deadcode,unused

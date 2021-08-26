@@ -20,21 +20,18 @@ type Bar struct {
 	priority int // used by heap
 	index    int // used by heap
 
-	extendedLines     int
 	toShutdown        bool
 	toDrop            bool
 	noPop             bool
 	hasEwmaDecorators bool
 	operateState      chan func(*bState)
-	frameCh           chan io.Reader
-	syncTableCh       chan [][]chan int
-	completed         chan bool
+	frameCh           chan *frame
 
 	// cancel is called either by user or on complete event
 	cancel func()
 	// done is closed after cacheState is assigned
 	done chan struct{}
-	// cacheState is populated, right after close(shutdown)
+	// cacheState is populated, right after close(b.done)
 	cacheState *bState
 
 	container      *Progress
@@ -77,6 +74,11 @@ type bState struct {
 	debugOut io.Writer
 }
 
+type frame struct {
+	reader io.Reader
+	lines  int
+}
+
 func newBar(container *Progress, bs *bState) *Bar {
 	logPrefix := fmt.Sprintf("%sbar#%02d ", container.dlogger.Prefix(), bs.id)
 	ctx, cancel := context.WithCancel(container.ctx)
@@ -87,9 +89,7 @@ func newBar(container *Progress, bs *bState) *Bar {
 		toDrop:       bs.dropOnComplete,
 		noPop:        bs.noPop,
 		operateState: make(chan func(*bState)),
-		frameCh:      make(chan io.Reader, 1),
-		syncTableCh:  make(chan [][]chan int, 1),
-		completed:    make(chan bool, 1),
+		frameCh:      make(chan *frame, 1),
 		done:         make(chan struct{}),
 		cancel:       cancel,
 		dlogger:      log.New(bs.debugOut, logPrefix, log.Lshortfile),
@@ -145,6 +145,7 @@ func (b *Bar) SetRefill(amount int64) {
 
 // TraverseDecorators traverses all available decorators and calls cb func on each.
 func (b *Bar) TraverseDecorators(cb func(decor.Decorator)) {
+	done := make(chan struct{})
 	select {
 	case b.operateState <- func(s *bState) {
 		for _, decorators := range [...][]decor.Decorator{
@@ -155,7 +156,9 @@ func (b *Bar) TraverseDecorators(cb func(decor.Decorator)) {
 				cb(extractBaseDecorator(d))
 			}
 		}
+		close(done)
 	}:
+		<-done
 	case <-b.done:
 	}
 }
@@ -174,7 +177,7 @@ func (b *Bar) SetTotal(total int64, triggerComplete bool) {
 		if s.triggerComplete && !s.completed {
 			s.current = s.total
 			s.completed = true
-			go b.refreshTillShutdown()
+			go b.forceRefreshIfLastUncompleted()
 		}
 	}:
 	case <-b.done:
@@ -192,7 +195,7 @@ func (b *Bar) SetCurrent(current int64) {
 		if s.triggerComplete && s.current >= s.total {
 			s.current = s.total
 			s.completed = true
-			go b.refreshTillShutdown()
+			go b.forceRefreshIfLastUncompleted()
 		}
 	}:
 	case <-b.done:
@@ -219,7 +222,7 @@ func (b *Bar) IncrInt64(n int64) {
 		if s.triggerComplete && s.current >= s.total {
 			s.current = s.total
 			s.completed = true
-			go b.refreshTillShutdown()
+			go b.forceRefreshIfLastUncompleted()
 		}
 	}:
 	case <-b.done:
@@ -258,32 +261,49 @@ func (b *Bar) DecoratorAverageAdjust(start time.Time) {
 // priority, i.e. bar will be on top. If you don't need to set priority
 // dynamically, better use BarPriority option.
 func (b *Bar) SetPriority(priority int) {
-	select {
-	case <-b.done:
-	default:
-		b.container.setBarPriority(b, priority)
-	}
+	b.container.UpdateBarPriority(b, priority)
 }
 
-// Abort interrupts bar's running goroutine. Call this, if you'd like
-// to stop/remove bar before completion event. It has no effect after
-// completion event. If drop is true bar will be removed as well.
+// Abort interrupts bar's running goroutine. Abort won't be engaged
+// if bar is already in complete state. If drop is true bar will be
+// removed as well.
 func (b *Bar) Abort(drop bool) {
 	select {
-	case <-b.done:
-	default:
+	case b.operateState <- func(s *bState) {
+		if s.completed == true {
+			return
+		}
 		if drop {
 			b.container.dropBar(b)
+			b.cancel()
+			return
 		}
-		b.cancel()
+		go func() {
+			var uncompleted int
+			b.container.traverseBars(func(bar *Bar) bool {
+				if b != bar && !bar.Completed() {
+					uncompleted++
+					return false
+				}
+				return true
+			})
+			if uncompleted == 0 {
+				b.container.refreshCh <- time.Now()
+			}
+			b.cancel()
+		}()
+	}:
+		<-b.done
+	case <-b.done:
 	}
 }
 
 // Completed reports whether the bar is in completed state.
 func (b *Bar) Completed() bool {
+	result := make(chan bool)
 	select {
-	case b.operateState <- func(s *bState) { b.completed <- s.completed }:
-		return <-b.completed
+	case b.operateState <- func(s *bState) { result <- s.completed }:
+		return <-result
 	case <-b.done:
 		return true
 	}
@@ -296,12 +316,12 @@ func (b *Bar) serve(ctx context.Context, s *bState) {
 		case op := <-b.operateState:
 			op(s)
 		case <-ctx.Done():
-			b.cacheState = s
-			close(b.done)
 			// Notifying decorators about shutdown event
 			for _, sl := range s.shutdownListeners {
 				sl.Shutdown()
 			}
+			b.cacheState = s
+			close(b.done)
 			return
 		}
 	}
@@ -319,17 +339,15 @@ func (b *Bar) render(tw int) {
 					b.toShutdown = !b.toShutdown
 					b.recoveredPanic = p
 				}
-				frame, lines := s.extender(nil, s.reqWidth, stat)
-				b.extendedLines = lines
-				b.frameCh <- frame
+				reader, lines := s.extender(nil, s.reqWidth, stat)
+				b.frameCh <- &frame{reader, lines + 1}
 				b.dlogger.Println(p)
 			}
 			s.completeFlushed = s.completed
 		}()
-		frame, lines := s.extender(s.draw(stat), s.reqWidth, stat)
-		b.extendedLines = lines
+		reader, lines := s.extender(s.draw(stat), s.reqWidth, stat)
 		b.toShutdown = s.completed && !s.completeFlushed
-		b.frameCh <- frame
+		b.frameCh <- &frame{reader, lines + 1}
 	}:
 	case <-b.done:
 		s := b.cacheState
@@ -338,9 +356,8 @@ func (b *Bar) render(tw int) {
 		if b.recoveredPanic == nil {
 			r = s.draw(stat)
 		}
-		frame, lines := s.extender(r, s.reqWidth, stat)
-		b.extendedLines = lines
-		b.frameCh <- frame
+		reader, lines := s.extender(r, s.reqWidth, stat)
+		b.frameCh <- &frame{reader, lines + 1}
 	}
 }
 
@@ -359,31 +376,42 @@ func (b *Bar) subscribeDecorators() {
 			shutdownListeners = append(shutdownListeners, d)
 		}
 	})
+	b.hasEwmaDecorators = len(ewmaDecorators) != 0
 	select {
 	case b.operateState <- func(s *bState) {
 		s.averageDecorators = averageDecorators
 		s.ewmaDecorators = ewmaDecorators
 		s.shutdownListeners = shutdownListeners
 	}:
-		b.hasEwmaDecorators = len(ewmaDecorators) != 0
 	case <-b.done:
 	}
 }
 
-func (b *Bar) refreshTillShutdown() {
-	for {
-		select {
-		case b.container.refreshCh <- time.Now():
-		case <-b.done:
-			return
+func (b *Bar) forceRefreshIfLastUncompleted() {
+	var uncompleted int
+	b.container.traverseBars(func(bar *Bar) bool {
+		if b != bar && !bar.Completed() {
+			uncompleted++
+			return false
+		}
+		return true
+	})
+	if uncompleted == 0 {
+		for {
+			select {
+			case b.container.refreshCh <- time.Now():
+			case <-b.done:
+				return
+			}
 		}
 	}
 }
 
 func (b *Bar) wSyncTable() [][]chan int {
+	result := make(chan [][]chan int)
 	select {
-	case b.operateState <- func(s *bState) { b.syncTableCh <- s.wSyncTable() }:
-		return <-b.syncTableCh
+	case b.operateState <- func(s *bState) { result <- s.wSyncTable() }:
+		return <-result
 	case <-b.done:
 		return b.cacheState.wSyncTable()
 	}

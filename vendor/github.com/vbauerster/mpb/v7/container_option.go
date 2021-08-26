@@ -62,7 +62,11 @@ func WithRenderDelay(ch <-chan struct{}) ContainerOption {
 // have been rendered.
 func WithShutdownNotifier(ch chan struct{}) ContainerOption {
 	return func(s *pState) {
-		s.shutdownNotifier = ch
+		select {
+		case <-ch:
+		default:
+			s.shutdownNotifier = ch
+		}
 	}
 }
 

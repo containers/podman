@@ -17,8 +17,25 @@ func (r *readCloserWrapper) Close() error {
 	return r.closer()
 }
 
+type readWriteToCloserWrapper struct {
+	io.Reader
+	io.WriterTo
+	closer func() error
+}
+
+func (r *readWriteToCloserWrapper) Close() error {
+	return r.closer()
+}
+
 // NewReadCloserWrapper returns a new io.ReadCloser.
 func NewReadCloserWrapper(r io.Reader, closer func() error) io.ReadCloser {
+	if wt, ok := r.(io.WriterTo); ok {
+		return &readWriteToCloserWrapper{
+			Reader:   r,
+			WriterTo: wt,
+			closer:   closer,
+		}
+	}
 	return &readCloserWrapper{
 		Reader: r,
 		closer: closer,
