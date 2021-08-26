@@ -39,7 +39,9 @@ do these things manually or handle otherwise.
 
 #### **--image-path**
 
-Fully qualified path of the uncompressed image file
+Fully qualified path or URL to the VM image.
+Can also be set to `testing` or `stable` to pull down default image.
+Defaults to `testing`.
 
 #### **--memory**, **-m**=*number*
 

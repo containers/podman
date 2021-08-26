@@ -34,6 +34,7 @@ func init() {
 		Parent:  machineCmd,
 	})
 	flags := initCmd.Flags()
+	cfg := registry.PodmanConfig()
 
 	cpusFlagName := "cpus"
 	flags.Uint64Var(
@@ -61,7 +62,7 @@ func init() {
 	_ = initCmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
 
 	ImagePathFlagName := "image-path"
-	flags.StringVar(&initOpts.ImagePath, ImagePathFlagName, "", "Path to qcow image")
+	flags.StringVar(&initOpts.ImagePath, ImagePathFlagName, cfg.Engine.MachineImage, "Path to qcow image")
 	_ = initCmd.RegisterFlagCompletionFunc(ImagePathFlagName, completion.AutocompleteDefault)
 
 	IgnitionPathFlagName := "ignition-path"
