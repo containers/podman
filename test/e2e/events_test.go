@@ -184,6 +184,19 @@ var _ = Describe("Podman events", func() {
 		Expect(result.OutputToString()).To(ContainSubstring(name2))
 		Expect(result.OutputToString()).To(ContainSubstring(name3))
 
+		// string duration in 10 seconds
+		untilT := time.Now().Add(time.Second * 9)
+		result = podmanTest.Podman([]string{"events", "--since", "30s", "--until", "10s"})
+		result.Wait(11)
+		Expect(result).Should(Exit(0))
+		tEnd := time.Now()
+		outDur := tEnd.Sub(untilT)
+		diff := outDur.Seconds() > 0
+		Expect(diff).To(Equal(true))
+		Expect(result.OutputToString()).To(ContainSubstring(name1))
+		Expect(result.OutputToString()).To(ContainSubstring(name2))
+		Expect(result.OutputToString()).To(ContainSubstring(name3))
+
 		wg.Wait()
 	})
 })
