@@ -221,12 +221,7 @@ func getNetworkIDFromName(name string) string {
 }
 
 // getFreeIPv6NetworkSubnet returns a unused ipv4 subnet
-func (n *cniNetwork) getFreeIPv4NetworkSubnet() (*types.Subnet, error) {
-	networks, err := n.getUsedSubnets()
-	if err != nil {
-		return nil, err
-	}
-
+func (n *cniNetwork) getFreeIPv4NetworkSubnet(usedNetworks []*net.IPNet) (*types.Subnet, error) {
 	// the default podman network is 10.88.0.0/16
 	// start locking for free /24 networks
 	network := &net.IPNet{
@@ -236,12 +231,13 @@ func (n *cniNetwork) getFreeIPv4NetworkSubnet() (*types.Subnet, error) {
 
 	// TODO: make sure to not use public subnets
 	for {
-		if intersectsConfig := util.NetworkIntersectsWithNetworks(network, networks); !intersectsConfig {
+		if intersectsConfig := util.NetworkIntersectsWithNetworks(network, usedNetworks); !intersectsConfig {
 			logrus.Debugf("found free ipv4 network subnet %s", network.String())
 			return &types.Subnet{
 				Subnet: types.IPNet{IPNet: *network},
 			}, nil
 		}
+		var err error
 		network, err = util.NextSubnet(network)
 		if err != nil {
 			return nil, err
@@ -250,12 +246,7 @@ func (n *cniNetwork) getFreeIPv4NetworkSubnet() (*types.Subnet, error) {
 }
 
 // getFreeIPv6NetworkSubnet returns a unused ipv6 subnet
-func (n *cniNetwork) getFreeIPv6NetworkSubnet() (*types.Subnet, error) {
-	networks, err := n.getUsedSubnets()
-	if err != nil {
-		return nil, err
-	}
-
+func (n *cniNetwork) getFreeIPv6NetworkSubnet(usedNetworks []*net.IPNet) (*types.Subnet, error) {
 	// FIXME: Is 10000 fine as limit? We should prevent an endless loop.
 	for i := 0; i < 10000; i++ {
 		// RFC4193: Choose the ipv6 subnet random and NOT sequentially.
@@ -263,7 +254,7 @@ func (n *cniNetwork) getFreeIPv6NetworkSubnet() (*types.Subnet, error) {
 		if err != nil {
 			return nil, err
 		}
-		if intersectsConfig := util.NetworkIntersectsWithNetworks(&network, networks); !intersectsConfig {
+		if intersectsConfig := util.NetworkIntersectsWithNetworks(&network, usedNetworks); !intersectsConfig {
 			logrus.Debugf("found free ipv6 network subnet %s", network.String())
 			return &types.Subnet{
 				Subnet: types.IPNet{IPNet: network},
@@ -279,9 +270,8 @@ func (n *cniNetwork) getUsedSubnets() ([]*net.IPNet, error) {
 	// first, load all used subnets from network configs
 	subnets := make([]*net.IPNet, 0, len(n.networks))
 	for _, val := range n.networks {
-		for _, subnet := range val.libpodNet.Subnets {
-			// nolint:exportloopref
-			subnets = append(subnets, &subnet.Subnet.IPNet)
+		for i := range val.libpodNet.Subnets {
+			subnets = append(subnets, &val.libpodNet.Subnets[i].Subnet.IPNet)
 		}
 	}
 	// second, load networks from the current system

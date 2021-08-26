@@ -73,13 +73,18 @@ func (n *cniNetwork) networkCreate(net types.Network, writeToDisk bool) (*networ
 		net.Name = name
 	}
 
+	usedNetworks, err := n.getUsedSubnets()
+	if err != nil {
+		return nil, err
+	}
+
 	switch net.Driver {
 	case types.BridgeNetworkDriver:
 		// if the name was created with getFreeDeviceName set the interface to it as well
 		if name != "" && net.NetworkInterface == "" {
 			net.NetworkInterface = name
 		}
-		err = n.createBridge(&net)
+		err = n.createBridge(&net, usedNetworks)
 		if err != nil {
 			return nil, err
 		}
@@ -93,7 +98,7 @@ func (n *cniNetwork) networkCreate(net types.Network, writeToDisk bool) (*networ
 	}
 
 	for i := range net.Subnets {
-		err := validateSubnet(&net.Subnets[i], !net.Internal)
+		err := validateSubnet(&net.Subnets[i], !net.Internal, usedNetworks)
 		if err != nil {
 			return nil, err
 		}
@@ -218,7 +223,7 @@ func createMacVLAN(network *types.Network) error {
 	return nil
 }
 
-func (n *cniNetwork) createBridge(network *types.Network) error {
+func (n *cniNetwork) createBridge(network *types.Network, usedNetworks []*net.IPNet) error {
 	if network.NetworkInterface != "" {
 		bridges := n.getBridgeInterfaceNames()
 		if pkgutil.StringInSlice(network.NetworkInterface, bridges) {
@@ -236,7 +241,7 @@ func (n *cniNetwork) createBridge(network *types.Network) error {
 	}
 
 	if len(network.Subnets) == 0 {
-		freeSubnet, err := n.getFreeIPv4NetworkSubnet()
+		freeSubnet, err := n.getFreeIPv4NetworkSubnet(usedNetworks)
 		if err != nil {
 			return err
 		}
@@ -256,14 +261,14 @@ func (n *cniNetwork) createBridge(network *types.Network) error {
 			}
 		}
 		if !ipv4 {
-			freeSubnet, err := n.getFreeIPv4NetworkSubnet()
+			freeSubnet, err := n.getFreeIPv4NetworkSubnet(usedNetworks)
 			if err != nil {
 				return err
 			}
 			network.Subnets = append(network.Subnets, *freeSubnet)
 		}
 		if !ipv6 {
-			freeSubnet, err := n.getFreeIPv6NetworkSubnet()
+			freeSubnet, err := n.getFreeIPv6NetworkSubnet(usedNetworks)
 			if err != nil {
 				return err
 			}
@@ -278,10 +283,14 @@ func (n *cniNetwork) createBridge(network *types.Network) error {
 // given gateway and lease range are part of this subnet. If the
 // gateway is empty and addGateway is true it will get the first
 // available ip in the subnet assigned.
-func validateSubnet(s *types.Subnet, addGateway bool) error {
+func validateSubnet(s *types.Subnet, addGateway bool, usedNetworks []*net.IPNet) error {
 	if s == nil {
 		return errors.New("subnet is nil")
 	}
+	if s.Subnet.IP == nil {
+		return errors.New("subnet ip is nil")
+	}
+
 	// Reparse to ensure subnet is valid.
 	// Do not use types.ParseCIDR() because we want the ip to be
 	// the network address and not a random ip in the subnet.
@@ -289,6 +298,12 @@ func validateSubnet(s *types.Subnet, addGateway bool) error {
 	if err != nil {
 		return errors.Wrap(err, "subnet invalid")
 	}
+
+	// check that the new subnet does not conflict with existing ones
+	if util.NetworkIntersectsWithNetworks(net, usedNetworks) {
+		return errors.Errorf("subnet %s is already used on the host or by another config", net.String())
+	}
+
 	s.Subnet = types.IPNet{IPNet: *net}
 	if s.Gateway != nil {
 		if !s.Subnet.Contains(s.Gateway) {

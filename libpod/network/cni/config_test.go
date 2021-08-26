@@ -508,6 +508,9 @@ var _ = Describe("Config", func() {
 			Expect(network1.Subnets[0].Gateway.String()).To(Equal("10.0.0.1"))
 			Expect(network1.Subnets[0].LeaseRange.StartIP.String()).To(Equal(startIP))
 
+			err = libpodNet.NetworkRemove(network1.Name)
+			Expect(err).To(BeNil())
+
 			endIP := "10.0.0.10"
 			network = types.Network{
 				Driver: "bridge",
@@ -528,6 +531,9 @@ var _ = Describe("Config", func() {
 			Expect(network1.Subnets[0].Subnet.String()).To(Equal(subnet))
 			Expect(network1.Subnets[0].Gateway.String()).To(Equal("10.0.0.1"))
 			Expect(network1.Subnets[0].LeaseRange.EndIP.String()).To(Equal(endIP))
+
+			err = libpodNet.NetworkRemove(network1.Name)
+			Expect(err).To(BeNil())
 
 			network = types.Network{
 				Driver: "bridge",
@@ -590,7 +596,7 @@ var _ = Describe("Config", func() {
 			}
 			_, err := libpodNet.NetworkCreate(network)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("subnet invalid"))
+			Expect(err.Error()).To(ContainSubstring("subnet ip is nil"))
 		})
 
 		It("create network with name", func() {
@@ -884,6 +890,25 @@ var _ = Describe("Config", func() {
 			err = libpodNet.NetworkRemove(network.ID)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("default network podman cannot be removed"))
+		})
+
+		It("network create with same subnet", func() {
+			subnet := "10.0.0.0/24"
+			n, _ := types.ParseCIDR(subnet)
+			subnet2 := "10.10.0.0/24"
+			n2, _ := types.ParseCIDR(subnet2)
+			network := types.Network{Subnets: []types.Subnet{{Subnet: n}, {Subnet: n2}}}
+			network1, err := libpodNet.NetworkCreate(network)
+			Expect(err).To(BeNil())
+			Expect(network1.Subnets).To(HaveLen(2))
+			network = types.Network{Subnets: []types.Subnet{{Subnet: n}}}
+			_, err = libpodNet.NetworkCreate(network)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("subnet 10.0.0.0/24 is already used on the host or by another config"))
+			network = types.Network{Subnets: []types.Subnet{{Subnet: n2}}}
+			_, err = libpodNet.NetworkCreate(network)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("subnet 10.10.0.0/24 is already used on the host or by another config"))
 		})
 
 	})
