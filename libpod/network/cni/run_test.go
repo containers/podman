@@ -140,6 +140,10 @@ var _ = Describe("run CNI", func() {
 				Expect(res[defNet].DNSServerIPs).To(BeEmpty())
 				Expect(res[defNet].DNSSearchDomains).To(BeEmpty())
 
+				// reload the interface so the networks are reload from disk
+				libpodNet, err := getNetworkInterface(cniConfDir, false)
+				Expect(err).To(BeNil())
+
 				err = libpodNet.Teardown(netNSContainer.Path(), types.TeardownOptions(setupOpts))
 				Expect(err).To(BeNil())
 			})

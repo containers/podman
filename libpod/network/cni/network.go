@@ -179,7 +179,7 @@ func (n *cniNetwork) createDefaultNetwork() (*network, error) {
 			{Subnet: n.defaultSubnet},
 		},
 	}
-	return n.networkCreate(net, false)
+	return n.networkCreate(net, true)
 }
 
 // getNetwork will lookup a network by name or ID. It returns an
