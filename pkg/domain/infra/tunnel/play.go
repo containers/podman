@@ -22,3 +22,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, opts entit
 	}
 	return play.Kube(ic.ClientCtx, path, options)
 }
+
+func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, path string, _ entities.PlayKubeDownOptions) (*entities.PlayKubeReport, error) {
+	return play.KubeDown(ic.ClientCtx, path)
+}

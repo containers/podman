@@ -320,6 +320,9 @@ sub operation_name {
     if ($action eq 'df') {
         $action = 'dataUsage';
     }
+    elsif ($action eq "delete" && $endpoint eq "/libpod/play/kube") {
+        $action = "KubeDown"
+    }
     # Grrrrrr, this one is annoying: some operations get an extra 'All'
     elsif ($action =~ /^(delete|get|stats)$/ && $endpoint !~ /\{/) {
         $action .= "All";

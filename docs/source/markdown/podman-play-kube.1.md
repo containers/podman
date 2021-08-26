@@ -8,7 +8,7 @@ podman-play-kube - Create containers, pods or volumes based on Kubernetes YAML
 
 ## DESCRIPTION
 **podman play kube** will read in a structured file of Kubernetes YAML.  It will then recreate the containers, pods or volumes described in the YAML.  Containers within a pod are then started and the ID of the new Pod or the name of the new Volume is output. If the yaml file is specified as "-" then `podman play kube` will read the YAML file from stdin.
-
+Using the `--down` command line option, it is also capable of tearing down the pods created by a previous run of `podman play kube`.
 Ideally the input file would be one created by Podman (see podman-generate-kube(1)).  This would guarantee a smooth import and expected results.
 
 Currently, the supported Kubernetes kinds are:
@@ -96,6 +96,11 @@ The [username[:password]] to use to authenticate with the registry if required.
 If one or both values are not supplied, a command line prompt will appear and the
 value can be entered.  The password is entered without echo.
 
+#### **--down**
+
+Tears down the pods that were created by a previous run of `play kube`.  The pods are stopped and then
+removed.  Any volumes created are left intact.
+
 #### **--ip**=*IP address*
 
 Assign a static ip address to the pod. This option can be specified several times when play kube creates more than one pod.
@@ -145,6 +150,15 @@ $ podman play kube demo.yml
 Recreate the pod and containers as described in a file `demo.yml` sent to stdin
 ```
 $ cat demo.yml | podman play kube -
+52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
+
+```
+Teardown the pod and containers as described in a file `demo.yml`
+```
+$  podman play kube --down demo.yml
+Pods stopped:
+52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
+Pods removed:
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
 ```
 

@@ -15,6 +15,7 @@ import (
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 func PlayKube(w http.ResponseWriter, r *http.Request) {
@@ -66,9 +67,15 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
 		return
 	}
-	defer os.Remove(tmpfile.Name())
+	defer func() {
+		if err := os.Remove(tmpfile.Name()); err != nil {
+			logrus.Warn(err)
+		}
+	}()
 	if _, err := io.Copy(tmpfile, r.Body); err != nil && err != io.EOF {
-		tmpfile.Close()
+		if err := tmpfile.Close(); err != nil {
+			logrus.Warn(err)
+		}
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to write archive to temporary file"))
 		return
 	}
@@ -105,12 +112,43 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 	if _, found := r.URL.Query()["start"]; found {
 		options.Start = types.NewOptionalBool(query.Start)
 	}
-
 	report, err := containerEngine.PlayKube(r.Context(), tmpfile.Name(), options)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error playing YAML file"))
 		return
 	}
+	utils.WriteResponse(w, http.StatusOK, report)
+}
 
+func PlayKubeDown(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	tmpfile, err := ioutil.TempFile("", "libpod-play-kube.yml")
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
+		return
+	}
+	defer func() {
+		if err := os.Remove(tmpfile.Name()); err != nil {
+			logrus.Warn(err)
+		}
+	}()
+	if _, err := io.Copy(tmpfile, r.Body); err != nil && err != io.EOF {
+		if err := tmpfile.Close(); err != nil {
+			logrus.Warn(err)
+		}
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to write archive to temporary file"))
+		return
+	}
+	if err := tmpfile.Close(); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error closing temporary file"))
+		return
+	}
+	containerEngine := abi.ContainerEngine{Libpod: runtime}
+	options := new(entities.PlayKubeDownOptions)
+	report, err := containerEngine.PlayKubeDown(r.Context(), tmpfile.Name(), *options)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error tearing down YAML file"))
+		return
+	}
 	utils.WriteResponse(w, http.StatusOK, report)
 }
