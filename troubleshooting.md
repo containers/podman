@@ -881,3 +881,29 @@ def signal_listener():
 if __name__ == "__main__":
     signal_listener()
 ```
+### 30) Podman run fails with `ERRO[0000] XDG_RUNTIME_DIR directory "/run/user/0" is not owned by the current user` or `Error: error creating tmpdir: mkdir /run/user/1000: permission denied`.
+
+A failure is encountered when performing `podman run` with a warning `XDG_RUNTIME_DIR is pointing to a path which is not writable. Most likely podman will fail.`
+
+#### Symptom
+
+A rootless container is being invoked with cgroup configuration as `cgroupv2` for user with missing or invalid **systemd session**.
+
+Example cases
+```bash
+# su user1 -c 'podman images'
+ERRO[0000] XDG_RUNTIME_DIR directory "/run/user/0" is not owned by the current user
+```
+```bash
+# su - user1 -c 'podman images'
+Error: error creating tmpdir: mkdir /run/user/1000: permission denied
+```
+
+#### Solution
+
+Podman expects a valid login session for the `rootless+cgroupv2` use-case. Podman execution is expected to fail if the login session is not present. In most cases, podman will figure out a solution on its own but if `XDG_RUNTIME_DIR` is pointing to a path that is not writable execution will most fail. Typical scenarious of such cases are seen when users are trying to use Podman with `su - <user> -c '<podman-command>`, or `sudo -l` and badly configured systemd session.
+
+Resolution steps
+
+* Before invoking Podman command create a valid login session for your rootless user using `loginctl enable-linger <username>`
+* If `loginctl` is unavailable you can also try logging in via `ssh` i.e `ssh <username>@localhost`.

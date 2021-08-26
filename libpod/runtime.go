@@ -15,6 +15,8 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/sys/unix"
+
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
@@ -327,6 +329,16 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	}
 
 	runtime.mergeDBConfig(dbConfig)
+
+	unified, _ := cgroups.IsCgroup2UnifiedMode()
+	if unified && rootless.IsRootless() && !systemd.IsSystemdSessionValid(rootless.GetRootlessUID()) {
+		// If user is rootless and XDG_RUNTIME_DIR is found, podman will not proceed with /tmp directory
+		// it will try to use existing XDG_RUNTIME_DIR
+		// if current user has no write access to XDG_RUNTIME_DIR we will fail later
+		if unix.Access(runtime.storageConfig.RunRoot, unix.W_OK) != nil {
+			logrus.Warnf("XDG_RUNTIME_DIR is pointing to a path which is not writable. Most likely podman will fail.")
+		}
+	}
 
 	logrus.Debugf("Using graph driver %s", runtime.storageConfig.GraphDriverName)
 	logrus.Debugf("Using graph root %s", runtime.storageConfig.GraphRoot)
