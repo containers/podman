@@ -17,7 +17,7 @@ require (
 	github.com/containers/image/v5 v5.15.2
 	github.com/containers/ocicrypt v1.1.2
 	github.com/containers/psgo v1.5.2
-	github.com/containers/storage v1.34.1
+	github.com/containers/storage v1.35.0
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
 	github.com/cri-o/ocicni v0.2.1-0.20210621164014-d0acc7862283
@@ -65,7 +65,7 @@ require (
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
+	golang.org/x/sys v0.0.0-20210820121016-41cdb8703e55
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/api v0.22.1
 	k8s.io/apimachinery v0.22.1
