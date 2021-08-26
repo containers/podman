@@ -23,8 +23,10 @@ Do not prompt for confirmation.
 
 Filter volumes to be pruned. Volumes can be filtered by the following attributes:
 
-- label
-- until
+| **Filter** | **Description**                                                                       |
+| ---------- | ------------------------------------------------------------------------------------- |
+| label      | [Key] or [Key=Value] Label assigned to a volume                                       |
+| until      | Only remove volumes created before given timestamp                                    |
 
 #### **--help**
 
