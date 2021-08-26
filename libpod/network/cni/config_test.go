@@ -313,6 +313,14 @@ var _ = Describe("Config", func() {
 			Expect(network1.Subnets[0].Subnet.String()).To(Equal(subnet))
 			Expect(network1.Subnets[0].Gateway.String()).To(Equal("fdcc::1"))
 			Expect(network1.Subnets[0].LeaseRange).To(BeNil())
+
+			// reload configs from disk
+			libpodNet, err = getNetworkInterface(cniConfDir, false)
+			Expect(err).To(BeNil())
+			// check the the networks are identical
+			network2, err := libpodNet.NetworkInspect(network1.Name)
+			Expect(err).To(BeNil())
+			Expect(network1).To(Equal(network2))
 		})
 
 		It("create bridge with ipv6 enabled", func() {
