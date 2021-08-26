@@ -93,7 +93,7 @@ Information on how to install Podman in your environment.
 **[OCI Hooks Support](pkg/hooks/README.md)**
 Information on how Podman configures [OCI Hooks][spec-hooks] to run when launching a container.
 
-**[Podman API](http://docs.podman.io/en/latest/_static/api.html)**
+**[Podman API](https://docs.podman.io/en/latest/_static/api.html)**
 Documentation on the Podman REST API.
 
 **[Podman Commands](https://podman.readthedocs.io/en/latest/Commands.html)**

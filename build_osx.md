@@ -18,7 +18,7 @@ $ brew install go go-md2man
 You can obtain the latest source code for Podman from its github repository.
 
 ```
-$ git clone http://github.com/containers/podman go/src/github.com/containers/podman
+$ git clone https://github.com/containers/podman go/src/github.com/containers/podman
 ```
 
 ## Build client

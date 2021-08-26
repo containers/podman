@@ -493,7 +493,7 @@ $ podman unshare cat /proc/self/uid_map
 	 1     100000      65536
 ```
 
-Reference [subuid](http://man7.org/linux/man-pages/man5/subuid.5.html) and [subgid](http://man7.org/linux/man-pages/man5/subgid.5.html) man pages for more detail.
+Reference [subuid](https://man7.org/linux/man-pages/man5/subuid.5.html) and [subgid](https://man7.org/linux/man-pages/man5/subgid.5.html) man pages for more detail.
 
 ### 20) Passed-in devices or files can't be accessed in rootless container
 
