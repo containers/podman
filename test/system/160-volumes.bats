@@ -186,6 +186,22 @@ EOF
 }
 
 
+# Podman volume import test
+@test "podman volume import test" {
+    skip_if_remote "volumes import is not applicable on podman-remote"
+    run_podman volume create my_vol
+    run_podman run --rm -v my_vol:/data $IMAGE sh -c "echo hello >> /data/test"
+    run_podman volume create my_vol2
+    run_podman volume export my_vol --output=hello.tar
+    # we want to use `run_podman volume export my_vol` but run_podman is wrapping EOF
+    cat hello.tar | run_podman volume import my_vol2 -
+    run_podman run --rm -v my_vol2:/data $IMAGE sh -c "cat /data/test"
+    is "$output" "hello" "output from second container"
+    run_podman volume rm my_vol
+    run_podman volume rm my_vol2
+}
+
+
 # Confirm that container sees the correct id
 @test "podman volume with --userns=keep-id" {
     is_rootless || skip "only meaningful when run rootless"

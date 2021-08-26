@@ -79,6 +79,50 @@ var _ = Describe("Podman volume create", func() {
 		Expect(check.OutputToString()).To(ContainSubstring("hello"))
 	})
 
+	It("podman create and import volume", func() {
+		if podmanTest.RemoteTest {
+			Skip("Volume export check does not work with a remote client")
+		}
+
+		session := podmanTest.Podman([]string{"volume", "create", "my_vol"})
+		session.WaitWithDefaultTimeout()
+		volName := session.OutputToString()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "--volume", volName + ":/data", ALPINE, "sh", "-c", "echo hello >> " + "/data/test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"volume", "export", volName, "--output=hello.tar"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"volume", "create", "my_vol2"})
+		session.WaitWithDefaultTimeout()
+		volName = session.OutputToString()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"volume", "import", "my_vol2", "hello.tar"})
+		session.WaitWithDefaultTimeout()
+		volName = session.OutputToString()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "--volume", "my_vol2:/data", ALPINE, "cat", "/data/test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(ContainSubstring("hello"))
+	})
+
+	It("podman import volume should fail", func() {
+		// try import on volume or source which does not exists
+		if podmanTest.RemoteTest {
+			Skip("Volume export check does not work with a remote client")
+		}
+
+		session := podmanTest.Podman([]string{"volume", "import", "notfound", "notfound.tar"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+	})
+
 	It("podman create volume with bad volume option", func() {
 		session := podmanTest.Podman([]string{"volume", "create", "--opt", "badOpt=bad"})
 		session.WaitWithDefaultTimeout()
