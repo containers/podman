@@ -90,6 +90,20 @@ func ManifestInspect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(schema2List.Manifests) == 0 {
+		var schema2 manifest.Schema2
+		if err := json.Unmarshal(rawManifest, &schema2); err != nil {
+			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+			return
+		}
+		if len(schema2.LayersDescriptors) == 0 {
+			utils.WriteResponse(w, http.StatusNoContent, nil)
+			return
+		}
+		utils.WriteResponse(w, http.StatusOK, schema2)
+		return
+	}
+
 	utils.WriteResponse(w, http.StatusOK, schema2List)
 }
 
