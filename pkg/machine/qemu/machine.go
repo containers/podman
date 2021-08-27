@@ -244,6 +244,7 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		qemuSocketConn net.Conn
 		wait           time.Duration = time.Millisecond * 500
 	)
+
 	if err := v.startHostNetworking(); err != nil {
 		return errors.Errorf("unable to start host networking: %q", err)
 	}
@@ -264,7 +265,11 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 	if err != nil {
 		return err
 	}
-
+	// If the qemusocketpath exists and the vm is off/down, we should rm
+	// it before the dial as to avoid a segv
+	if err := os.Remove(qemuSocketPath); err != nil && !errors.Is(err, os.ErrNotExist) {
+		logrus.Warn(err)
+	}
 	for i := 0; i < 6; i++ {
 		qemuSocketConn, err = net.Dial("unix", qemuSocketPath)
 		if err == nil {
@@ -352,7 +357,7 @@ func (v *MachineVM) Stop(name string, _ machine.StopOptions) error {
 	if _, err = qmpMonitor.Run(input); err != nil {
 		return err
 	}
-	_, pidFile, err := v.getSocketandPid()
+	qemuSocketFile, pidFile, err := v.getSocketandPid()
 	if err != nil {
 		return err
 	}
@@ -373,7 +378,16 @@ func (v *MachineVM) Stop(name string, _ machine.StopOptions) error {
 	if p == nil && err != nil {
 		return err
 	}
-	return p.Kill()
+	// Kill the process
+	if err := p.Kill(); err != nil {
+		return err
+	}
+	// Remove the pidfile
+	if err := os.Remove(pidFile); err != nil && !errors.Is(err, os.ErrNotExist) {
+		logrus.Warn(err)
+	}
+	// Remove socket
+	return os.Remove(qemuSocketFile)
 }
 
 // NewQMPMonitor creates the monitor subsection of our vm
