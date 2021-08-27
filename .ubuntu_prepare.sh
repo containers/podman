@@ -33,7 +33,7 @@ done
 if [ $conmon -eq 1 ]; then
     # Build and install conmon from source
     echo "Building conmon ..."
-    git clone http://github.com/containers/conmon $conmon_source
+    git clone https://github.com/containers/conmon $conmon_source
     cd $conmon_source && make install PREFIX=/usr
 fi
 
@@ -41,7 +41,7 @@ fi
 if [ $cni -eq 1 ]; then
     # Build and install containernetworking plugins from source
     echo "Building containernetworking-plugins..."
-    git clone http://github.com/containernetworking/plugins $cni_source
+    git clone https://github.com/containernetworking/plugins $cni_source
     cd $cni_source
     ./build.sh
     mkdir -p /usr/libexec/cni
@@ -52,7 +52,7 @@ fi
 if [ $runc -eq 1 ]; then
     # Build and install runc
     echo "Building runc..."
-    git clone http://github.com/opencontainers/runc $runc_source
+    git clone https://github.com/opencontainers/runc $runc_source
     cd $runc_source
     make install PREFIX=/usr
 fi

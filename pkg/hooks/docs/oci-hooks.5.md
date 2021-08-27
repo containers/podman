@@ -179,4 +179,4 @@ $ cat /etc/containers/oci/hooks.d/osystemd-hook.json
 
 * [OCI Runtime Specification, 1.0.1, POSIX-platform hooks](https://github.com/opencontainers/runtime-spec/blob/v1.0.1/config.md#posix-platform-hooks)
 * [OCI Runtime Specification, 1.0.1, process](https://github.com/opencontainers/runtime-spec/blob/v1.0.1/config.md#process)
-* [POSIX extended regular expressions (EREs)](http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap09.html#tag_09_04)
+* [POSIX extended regular expressions (EREs)](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap09.html#tag_09_04)

@@ -9,7 +9,7 @@ import (
 
 // Split splits the camelcase word and returns a list of words. It also
 // supports digits. Both lower camel case and upper camel case are supported.
-// For more info please check: http://en.wikipedia.org/wiki/CamelCase
+// For more info please check: https://en.wikipedia.org/wiki/CamelCase
 //
 // Examples
 //
