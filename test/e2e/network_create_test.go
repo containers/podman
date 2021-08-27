@@ -81,7 +81,6 @@ var _ = Describe("Podman network create", func() {
 	})
 
 	It("podman network create with name and IPv6 subnet", func() {
-		SkipIfRootless("FIXME It needs the ip6tables modules loaded")
 		netName := "ipv6-" + stringid.GenerateNonCryptoID()
 		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "fd00:1:2:3:4::/64", netName})
 		nc.WaitWithDefaultTimeout()
@@ -121,7 +120,6 @@ var _ = Describe("Podman network create", func() {
 	})
 
 	It("podman network create with name and IPv6 flag (dual-stack)", func() {
-		SkipIfRootless("FIXME It needs the ip6tables modules loaded")
 		netName := "dual-" + stringid.GenerateNonCryptoID()
 		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "fd00:4:3:2::/64", "--ipv6", netName})
 		nc.WaitWithDefaultTimeout()
@@ -275,7 +273,6 @@ var _ = Describe("Podman network create", func() {
 	})
 
 	It("podman network create two IPv6 networks with same subnet should fail", func() {
-		SkipIfRootless("FIXME It needs the ip6tables modules loaded")
 		netName1 := "subipv61-" + stringid.GenerateNonCryptoID()
 		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "fd00:4:4:4:4::/64", "--ipv6", netName1})
 		nc.WaitWithDefaultTimeout()
