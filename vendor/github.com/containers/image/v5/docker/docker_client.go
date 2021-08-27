@@ -103,10 +103,11 @@ type dockerClient struct {
 	// by detectProperties(). Callers can edit tlsClientConfig.InsecureSkipVerify in the meantime.
 	tlsClientConfig *tls.Config
 	// The following members are not set by newDockerClient and must be set by callers if needed.
-	auth          types.DockerAuthConfig
-	registryToken string
-	signatureBase signatureStorageBase
-	scope         authScope
+	auth                types.DockerAuthConfig
+	registryToken       string
+	signatureBase       signatureStorageBase
+	cosignSignatureBase signatureStorageBase
+	scope               authScope
 
 	// The following members are detected registry properties:
 	// They are set after a successful detectProperties(), and never change afterwards.
@@ -223,6 +224,11 @@ func newDockerClientFromRef(sys *types.SystemContext, ref dockerReference, write
 		return nil, err
 	}
 
+	cosignSigBase, err := CosignStorageBaseURL(sys, ref, write)
+	if err != nil {
+		return nil, err
+	}
+
 	registry := reference.Domain(ref.ref)
 	client, err := newDockerClient(sys, registry, ref.ref.Name())
 	if err != nil {
@@ -233,6 +239,7 @@ func newDockerClientFromRef(sys *types.SystemContext, ref dockerReference, write
 		client.registryToken = sys.DockerBearerRegistryToken
 	}
 	client.signatureBase = sigBase
+	client.cosignSignatureBase = cosignSigBase
 	client.scope.actions = actions
 	client.scope.remoteName = reference.Path(ref.ref)
 	return client, nil

@@ -37,6 +37,12 @@ var defaultUserDockerDir = filepath.FromSlash(".local/share/containers/sigstore"
 // defaultDockerDir is the default sigstore directory for root
 var defaultDockerDir = "/var/lib/containers/sigstore"
 
+// defaultUserCosignDockerDir is the default cosign directory for unprivileged user
+var defaultUserCosignDockerDir = filepath.FromSlash(".local/share/containers/cosign")
+
+// defaultCosignDockerDir is the default cosign directory for root
+var defaultCosignDockerDir = "/var/lib/containers/cosign"
+
 // registryConfiguration is one of the files in registriesDirPath configuring lookaside locations, or the result of merging them all.
 // NOTE: Keep this in sync with docs/registries.d.md!
 type registryConfiguration struct {
@@ -49,6 +55,7 @@ type registryConfiguration struct {
 type registryNamespace struct {
 	SigStore        string `json:"sigstore"`         // For reading, and if SigStoreStaging is not present, for writing.
 	SigStoreStaging string `json:"sigstore-staging"` // For writing only.
+	CosignStore     string `json:"cosignstore"`      // For reading and writing. TODO: add staging?
 }
 
 // signatureStorageBase is an "opaque" type representing a lookaside Docker signature storage.
@@ -73,6 +80,45 @@ func SignatureStorageBaseURL(sys *types.SystemContext, ref types.ImageReference,
 	}
 
 	topLevel := config.signatureTopLevel(dr, write)
+	var url *url.URL
+	if topLevel != "" {
+		url, err = url.Parse(topLevel)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Invalid signature storage URL %s", topLevel)
+		}
+	} else {
+		// returns default directory if no sigstore specified in configuration file
+		url = builtinDefaultSignatureStorageDir(rootless.GetRootlessEUID())
+		logrus.Debugf(" No signature storage configuration found for %s, using built-in default %s", dr.PolicyConfigurationIdentity(), url.String())
+	}
+	// NOTE: Keep this in sync with docs/signature-protocols.md!
+	// FIXME? Restrict to explicitly supported schemes?
+	repo := reference.Path(dr.ref) // Note that this is without a tag or digest.
+	if path.Clean(repo) != repo {  // Coverage: This should not be reachable because /./ and /../ components are not valid in docker references
+		return nil, errors.Errorf("Unexpected path elements in Docker reference %s for signature storage", dr.ref.String())
+	}
+	url.Path = url.Path + "/" + repo
+	return url, nil
+}
+
+// CosignStorageBaseURL reads configuration to find an appropriate cosign storage URL for ref, for write access if “write”.
+// the usage of the BaseURL is defined under docker/distribution registries—separate storage of docs/signature-protocols.md
+// Warning: This function only exposes configuration in registries.d;
+// just because this function returns an URL does not mean that the URL will be used by c/image/docker (e.g. if the registry natively supports X-R-S-S).
+func CosignStorageBaseURL(sys *types.SystemContext, ref types.ImageReference, write bool) (*url.URL, error) {
+	dr, ok := ref.(dockerReference)
+	if !ok {
+		return nil, errors.Errorf("ref must be a dockerReference")
+	}
+	// FIXME? Loading and parsing the config could be cached across calls.
+	dirPath := registriesDirPath(sys)
+	logrus.Debugf(`Using registries.d directory %s for sigstore configuration`, dirPath)
+	config, err := loadAndMergeConfig(dirPath)
+	if err != nil {
+		return nil, err
+	}
+
+	topLevel := config.cosignTopLevel(dr, write)
 	var url *url.URL
 	if topLevel != "" {
 		url, err = url.Parse(topLevel)
@@ -212,6 +258,39 @@ func (config *registryConfiguration) signatureTopLevel(ref dockerReference, writ
 	return ""
 }
 
+// config.cosignTopLevel returns an URL string configured in config for ref, for write access if “write”.
+// (the top level of the storage, namespaced by repo.FullName etc.), or "" if nothing has been configured.
+func (config *registryConfiguration) cosignTopLevel(ref dockerReference, write bool) string {
+	if config.Docker != nil {
+		// Look for a full match.
+		identity := ref.PolicyConfigurationIdentity()
+		if ns, ok := config.Docker[identity]; ok {
+			logrus.Debugf(` Using "docker" namespace %s`, identity)
+			if url := ns.cosignTopLevel(write); url != "" {
+				return url
+			}
+		}
+
+		// Look for a match of the possible parent namespaces.
+		for _, name := range ref.PolicyConfigurationNamespaces() {
+			if ns, ok := config.Docker[name]; ok {
+				logrus.Debugf(` Using "docker" namespace %s`, name)
+				if url := ns.cosignTopLevel(write); url != "" {
+					return url
+				}
+			}
+		}
+	}
+	// Look for a default location
+	if config.DefaultDocker != nil {
+		logrus.Debugf(` Using "default-docker" configuration`)
+		if url := config.DefaultDocker.cosignTopLevel(write); url != "" {
+			return url
+		}
+	}
+	return ""
+}
+
 // ns.signatureTopLevel returns an URL string configured in ns for ref, for write access if “write”.
 // or "" if nothing has been configured.
 func (ns registryNamespace) signatureTopLevel(write bool) string {
@@ -226,10 +305,29 @@ func (ns registryNamespace) signatureTopLevel(write bool) string {
 	return ""
 }
 
+// ns.cosignTopLevel returns an URL string configured in ns for ref, for write access if “write”.
+// or "" if nothing has been configured.
+func (ns registryNamespace) cosignTopLevel(write bool) string {
+	if ns.CosignStore != "" {
+		logrus.Debugf(`  Using %s`, ns.CosignStore)
+		return ns.CosignStore
+	}
+	return ""
+}
+
 // signatureStorageURL returns an URL usable for accessing signature index in base with known manifestDigest.
 // base is not nil from the caller
 // NOTE: Keep this in sync with docs/signature-protocols.md!
 func signatureStorageURL(base signatureStorageBase, manifestDigest digest.Digest, index int) *url.URL {
+	url := *base
+	url.Path = fmt.Sprintf("%s@%s=%s/signature-%d", url.Path, manifestDigest.Algorithm(), manifestDigest.Hex(), index+1)
+	return &url
+}
+
+// cosignSignatureStorageURL returns an URL usable for accessing signature index in base with known manifestDigest.
+// base is not nil from the caller
+// NOTE: Keep this in sync with docs/signature-protocols.md!
+func cosignSignatureStorageURL(base signatureStorageBase, manifestDigest digest.Digest, index int) *url.URL {
 	url := *base
 	url.Path = fmt.Sprintf("%s@%s=%s/signature-%d", url.Path, manifestDigest.Algorithm(), manifestDigest.Hex(), index+1)
 	return &url

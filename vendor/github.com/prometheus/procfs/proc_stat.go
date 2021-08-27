@@ -100,6 +100,15 @@ type ProcStat struct {
 	VSize uint
 	// Resident set size in pages.
 	RSS int
+	// Soft limit in bytes on the rss of the process.
+	RSSLimit uint64
+	// Real-time scheduling priority, a number in the range 1 to 99 for processes
+	// scheduled under a real-time policy, or 0, for non-real-time processes.
+	RTPriority uint
+	// Scheduling policy.
+	Policy uint
+	// Aggregated block I/O delays, measured in clock ticks (centiseconds).
+	DelayAcctBlkIOTicks uint64
 
 	proc fs.FS
 }
@@ -155,6 +164,24 @@ func (p Proc) Stat() (ProcStat, error) {
 		&s.Starttime,
 		&s.VSize,
 		&s.RSS,
+		&s.RSSLimit,
+		&ignore,
+		&ignore,
+		&ignore,
+		&ignore,
+		&ignore,
+		&ignore,
+		&ignore,
+		&ignore,
+		&ignore,
+		&ignore,
+		&ignore,
+		&ignore,
+		&ignore,
+		&ignore,
+		&s.RTPriority,
+		&s.Policy,
+		&s.DelayAcctBlkIOTicks,
 	)
 	if err != nil {
 		return ProcStat{}, err

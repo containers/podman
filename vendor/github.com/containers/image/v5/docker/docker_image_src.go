@@ -370,12 +370,6 @@ func (s *dockerImageSource) GetBlobAt(ctx context.Context, info types.BlobInfo, 
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := httpResponseToError(res, "Error fetching partial blob"); err != nil {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, nil, err
-	}
 
 	switch res.StatusCode {
 	case http.StatusOK:
@@ -396,9 +390,16 @@ func (s *dockerImageSource) GetBlobAt(ctx context.Context, info types.BlobInfo, 
 
 		go handle206Response(streams, errs, res.Body, chunks, mediaType, params)
 		return streams, errs, nil
-	default:
+	case http.StatusBadRequest:
 		res.Body.Close()
-		return nil, nil, errors.Errorf("invalid status code returned when fetching blob %d (%s)", res.StatusCode, http.StatusText(res.StatusCode))
+		return nil, nil, internalTypes.BadPartialRequestError{Status: res.Status}
+	default:
+		err := httpResponseToError(res, "Error fetching partial blob")
+		if err == nil {
+			err = errors.Errorf("invalid status code returned when fetching blob %d (%s)", res.StatusCode, http.StatusText(res.StatusCode))
+		}
+		res.Body.Close()
+		return nil, nil, err
 	}
 }
 
@@ -433,6 +434,8 @@ func (s *dockerImageSource) GetSignatures(ctx context.Context, instanceDigest *d
 		return nil, err
 	}
 	switch {
+	case s.c.cosignSignatureBase != nil:
+		return s.getCosignSignaturesFromLookaside(ctx, instanceDigest)
 	case s.c.supportsSignatures:
 		return s.getSignaturesFromAPIExtension(ctx, instanceDigest)
 	case s.c.signatureBase != nil:
@@ -472,6 +475,30 @@ func (s *dockerImageSource) getSignaturesFromLookaside(ctx context.Context, inst
 	signatures := [][]byte{}
 	for i := 0; ; i++ {
 		url := signatureStorageURL(s.c.signatureBase, manifestDigest, i)
+		signature, missing, err := s.getOneSignature(ctx, url)
+		if err != nil {
+			return nil, err
+		}
+		if missing {
+			break
+		}
+		signatures = append(signatures, signature)
+	}
+	return signatures, nil
+}
+
+// getCosignSignaturesFromLookaside implements GetSignatures() from the lookaside location configured in s.c.signatureBase,
+// which is not nil.
+func (s *dockerImageSource) getCosignSignaturesFromLookaside(ctx context.Context, instanceDigest *digest.Digest) ([][]byte, error) {
+	manifestDigest, err := s.manifestDigest(ctx, instanceDigest)
+	if err != nil {
+		return nil, err
+	}
+
+	// NOTE: Keep this in sync with docs/signature-protocols.md!
+	signatures := [][]byte{}
+	for i := 0; ; i++ {
+		url := cosignSignatureStorageURL(s.c.cosignSignatureBase, manifestDigest, i)
 		signature, missing, err := s.getOneSignature(ctx, url)
 		if err != nil {
 			return nil, err

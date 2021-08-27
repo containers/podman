@@ -236,6 +236,7 @@ func DefaultProfile() *Seccomp {
 				"madvise",
 				"mbind",
 				"memfd_create",
+				"memfd_secret",
 				"mincore",
 				"mkdir",
 				"mkdirat",

@@ -89,6 +89,8 @@ type CopyOptions struct {
 	PolicyAllowStorage bool
 	// SignaturePolicyPath to overwrite the default one.
 	SignaturePolicyPath string
+	// Sign adds a signature at the triangulated destination using ephemeral keys.
+	Sign bool
 	// If non-empty, asks for a signature to be added during the copy, and
 	// specifies a key ID.
 	SignBy string
@@ -281,6 +283,7 @@ func (r *Runtime) newCopier(options *CopyOptions) (*copier, error) {
 	c.imageCopyOptions.OciEncryptLayers = options.OciEncryptLayers
 	c.imageCopyOptions.OciDecryptConfig = options.OciDecryptConfig
 	c.imageCopyOptions.RemoveSignatures = options.RemoveSignatures
+	c.imageCopyOptions.Sign = options.Sign
 	c.imageCopyOptions.SignBy = options.SignBy
 	c.imageCopyOptions.ReportWriter = options.Writer
 
