@@ -1,4 +1,4 @@
-package common
+package specgenutil
 
 import (
 	"github.com/docker/go-connections/nat"

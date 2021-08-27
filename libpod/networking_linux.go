@@ -632,7 +632,6 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 	}
 
 	podName := getCNIPodName(ctr)
-
 	networks, _, err := ctr.networks()
 	if err != nil {
 		return nil, err

@@ -51,7 +51,26 @@ Set custom DNS options in the /etc/resolv.conf file that will be shared between 
 
 Set custom DNS search domains in the /etc/resolv.conf file that will be shared between all containers in the pod.
 
-#### **--help**
+#### **--gidmap**=*container_gid:host_gid:amount*
+
+GID map for the user namespace. Using this flag will run the container with user namespace enabled. It conflicts with the `--userns` and `--subgidname` flags.
+
+#### **--uidmap**=*container_uid*:*from_uid*:*amount*
+
+Run the container in a new user namespace using the supplied mapping. This
+option conflicts with the **--userns** and **--subuidname** options. This
+option provides a way to map host UIDs to container UIDs. It can be passed
+several times to map different ranges.
+
+#### **--subgidname**=*name*
+
+Name for GID map from the `/etc/subgid` file. Using this flag will run the container with user namespace enabled. This flag conflicts with `--userns` and `--gidmap`.
+
+#### **--subuidname**=*name*
+
+Name for UID map from the `/etc/subuid` file. Using this flag will run the container with user namespace enabled. This flag conflicts with `--userns` and `--uidmap`.
+
+#### **--help**, **-h**
 
 Print usage statement.
 

@@ -6,7 +6,6 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/bindings/pods"
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/pkg/errors"
 )
@@ -179,10 +178,8 @@ func (ic *ContainerEngine) PodPrune(ctx context.Context, opts entities.PodPruneO
 	return pods.Prune(ic.ClientCtx, nil)
 }
 
-func (ic *ContainerEngine) PodCreate(ctx context.Context, opts entities.PodCreateOptions) (*entities.PodCreateReport, error) {
-	podSpec := specgen.NewPodSpecGenerator()
-	opts.ToPodSpecGen(podSpec)
-	return pods.CreatePodFromSpec(ic.ClientCtx, podSpec, nil)
+func (ic *ContainerEngine) PodCreate(ctx context.Context, specg entities.PodSpec) (*entities.PodCreateReport, error) {
+	return pods.CreatePodFromSpec(ic.ClientCtx, &specg)
 }
 
 func (ic *ContainerEngine) PodTop(ctx context.Context, opts entities.PodTopOptions) (*entities.StringSliceReport, error) {

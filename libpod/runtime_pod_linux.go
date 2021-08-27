@@ -14,13 +14,14 @@ import (
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/rootless"
+	"github.com/containers/podman/v3/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 // NewPod makes a new, empty pod
-func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (_ *Pod, deferredErr error) {
+func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, options ...PodCreateOption) (_ *Pod, deferredErr error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -50,8 +51,8 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (_ *Po
 		pod.config.Name = name
 	}
 
-	if pod.config.Hostname == "" {
-		pod.config.Hostname = pod.config.Name
+	if p.InfraContainerSpec != nil && p.InfraContainerSpec.Hostname == "" {
+		p.InfraContainerSpec.Hostname = pod.config.Name
 	}
 
 	// Allocate a lock for the pod
@@ -88,6 +89,9 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (_ *Po
 			// launch should do it for us
 			if pod.config.UsePodCgroup {
 				pod.state.CgroupPath = filepath.Join(pod.config.CgroupParent, pod.ID())
+				if p.InfraContainerSpec != nil {
+					p.InfraContainerSpec.CgroupParent = pod.state.CgroupPath
+				}
 			}
 		}
 	case config.SystemdCgroupsManager:
@@ -108,6 +112,9 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (_ *Po
 				return nil, errors.Wrapf(err, "unable to create pod cgroup for pod %s", pod.ID())
 			}
 			pod.state.CgroupPath = cgroupPath
+			if p.InfraContainerSpec != nil {
+				p.InfraContainerSpec.CgroupParent = pod.state.CgroupPath
+			}
 		}
 	default:
 		return nil, errors.Wrapf(define.ErrInvalidArg, "unsupported CGroup manager: %s - cannot validate cgroup parent", r.config.Engine.CgroupManager)
@@ -127,26 +134,38 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (_ *Po
 	if err := r.state.AddPod(pod); err != nil {
 		return nil, errors.Wrapf(err, "error adding pod to state")
 	}
-	defer func() {
-		if deferredErr != nil {
-			if err := r.removePod(ctx, pod, true, true); err != nil {
-				logrus.Errorf("Error removing pod after pause container creation failure: %v", err)
-			}
-		}
-	}()
+	return pod, nil
+}
 
-	if pod.HasInfraContainer() {
-		ctr, err := r.createInfraContainer(ctx, pod)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error adding Infra Container")
-		}
-		pod.state.InfraContainerID = ctr.ID()
-		if err := pod.save(); err != nil {
-			return nil, err
-		}
+// AddInfra adds the created infra container to the pod state
+func (r *Runtime) AddInfra(ctx context.Context, pod *Pod, infraCtr *Container) (*Pod, error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if !r.valid {
+		return nil, define.ErrRuntimeStopped
+	}
+	pod.state.InfraContainerID = infraCtr.ID()
+	if err := pod.save(); err != nil {
+		return nil, err
 	}
 	pod.newPodEvent(events.Create)
 	return pod, nil
+}
+
+// SavePod is a helper function to save the pod state from outside of libpod
+func (r *Runtime) SavePod(pod *Pod) error {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if !r.valid {
+		return define.ErrRuntimeStopped
+	}
+	if err := pod.save(); err != nil {
+		return err
+	}
+	pod.newPodEvent(events.Create)
+	return nil
 }
 
 func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool) error {

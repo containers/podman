@@ -2,53 +2,82 @@ package generate
 
 import (
 	"context"
+	"net"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod"
+	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
-func MakePod(p *specgen.PodSpecGenerator, rt *libpod.Runtime) (*libpod.Pod, error) {
-	if err := p.Validate(); err != nil {
+func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (*libpod.Pod, error) {
+	if err := p.PodSpecGen.Validate(); err != nil {
 		return nil, err
 	}
-	options, err := createPodOptions(p, rt)
+	if !p.PodSpecGen.NoInfra && p.PodSpecGen.InfraContainerSpec != nil {
+		var err error
+		p.PodSpecGen.InfraContainerSpec, err = MapSpec(&p.PodSpecGen)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	options, err := createPodOptions(&p.PodSpecGen, rt, p.PodSpecGen.InfraContainerSpec)
 	if err != nil {
 		return nil, err
 	}
-	return rt.NewPod(context.Background(), options...)
+	pod, err := rt.NewPod(context.Background(), p.PodSpecGen, options...)
+	if err != nil {
+		return nil, err
+	}
+	if !p.PodSpecGen.NoInfra && p.PodSpecGen.InfraContainerSpec != nil {
+		p.PodSpecGen.InfraContainerSpec.ContainerCreateCommand = []string{} // we do NOT want os.Args as the command, will display the pod create cmd
+		if p.PodSpecGen.InfraContainerSpec.Name == "" {
+			p.PodSpecGen.InfraContainerSpec.Name = pod.ID()[:12] + "-infra"
+		}
+		_, err = CompleteSpec(context.Background(), rt, p.PodSpecGen.InfraContainerSpec)
+		if err != nil {
+			return nil, err
+		}
+		p.PodSpecGen.InfraContainerSpec.User = "" // infraSpec user will get incorrectly assigned via the container creation process, overwrite here
+		rtSpec, spec, opts, err := MakeContainer(context.Background(), rt, p.PodSpecGen.InfraContainerSpec)
+		if err != nil {
+			return nil, err
+		}
+		spec.Pod = pod.ID()
+		opts = append(opts, rt.WithPod(pod))
+		spec.CgroupParent = pod.CgroupParent()
+		infraCtr, err := ExecuteCreate(context.Background(), rt, rtSpec, spec, true, opts...)
+		if err != nil {
+			return nil, err
+		}
+		pod, err = rt.AddInfra(context.Background(), pod, infraCtr)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return pod, nil
 }
 
-func createPodOptions(p *specgen.PodSpecGenerator, rt *libpod.Runtime) ([]libpod.PodCreateOption, error) {
+func createPodOptions(p *specgen.PodSpecGenerator, rt *libpod.Runtime, infraSpec *specgen.SpecGenerator) ([]libpod.PodCreateOption, error) {
 	var (
 		options []libpod.PodCreateOption
 	)
-	if !p.NoInfra {
+	if !p.NoInfra { //&& infraSpec != nil {
 		options = append(options, libpod.WithInfraContainer())
-		nsOptions, err := GetNamespaceOptions(p.SharedNamespaces, p.NetNS.IsHost())
+		nsOptions, err := GetNamespaceOptions(p.SharedNamespaces, p.InfraContainerSpec.NetNS.IsHost())
 		if err != nil {
 			return nil, err
 		}
 		options = append(options, nsOptions...)
 		// Use pod user and infra userns only when --userns is not set to host
-		if !p.Userns.IsHost() {
+		if !p.InfraContainerSpec.UserNS.IsHost() && !p.InfraContainerSpec.UserNS.IsDefault() {
 			options = append(options, libpod.WithPodUser())
-			options = append(options, libpod.WithPodUserns(p.Userns))
 		}
-
-		// Make our exit command
-		storageConfig := rt.StorageConfig()
-		runtimeConfig, err := rt.GetConfig()
-		if err != nil {
-			return nil, err
-		}
-		exitCommand, err := CreateExitCommandArgs(storageConfig, runtimeConfig, logrus.IsLevelEnabled(logrus.DebugLevel), false, false)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error creating infra container exit command")
-		}
-		options = append(options, libpod.WithPodInfraExitCommand(exitCommand))
 	}
 	if len(p.CgroupParent) > 0 {
 		options = append(options, libpod.WithPodCgroupParent(p.CgroupParent))
@@ -59,62 +88,27 @@ func createPodOptions(p *specgen.PodSpecGenerator, rt *libpod.Runtime) ([]libpod
 	if len(p.Name) > 0 {
 		options = append(options, libpod.WithPodName(p.Name))
 	}
-	if p.ResourceLimits != nil && p.ResourceLimits.CPU != nil && p.ResourceLimits.CPU.Period != nil && p.ResourceLimits.CPU.Quota != nil {
-		if *p.ResourceLimits.CPU.Period != 0 || *p.ResourceLimits.CPU.Quota != 0 {
-			options = append(options, libpod.WithPodCPUPAQ((*p.ResourceLimits.CPU.Period), (*p.ResourceLimits.CPU.Quota)))
-		}
+	if p.PodCreateCommand != nil {
+		options = append(options, libpod.WithPodCreateCommand(p.PodCreateCommand))
 	}
-	if p.ResourceLimits != nil && p.ResourceLimits.CPU != nil && p.ResourceLimits.CPU.Cpus != "" {
-		options = append(options, libpod.WithPodCPUSetCPUs(p.ResourceLimits.CPU.Cpus))
-	}
+
 	if len(p.Hostname) > 0 {
 		options = append(options, libpod.WithPodHostname(p.Hostname))
 	}
-	if len(p.HostAdd) > 0 {
-		options = append(options, libpod.WithPodHosts(p.HostAdd))
-	}
-	if len(p.DNSServer) > 0 {
-		var dnsServers []string
-		for _, d := range p.DNSServer {
-			dnsServers = append(dnsServers, d.String())
+
+	return options, nil
+}
+
+// MapSpec modifies the already filled Infra specgenerator,
+// replacing necessary values with those specified in pod creation
+func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
+	if len(p.PortMappings) > 0 {
+		ports, _, _, err := ParsePortMapping(p.PortMappings)
+		if err != nil {
+			return nil, err
 		}
-		options = append(options, libpod.WithPodDNS(dnsServers))
+		p.InfraContainerSpec.PortMappings = libpod.WithInfraContainerPorts(ports, p.InfraContainerSpec)
 	}
-	if len(p.DNSOption) > 0 {
-		options = append(options, libpod.WithPodDNSOption(p.DNSOption))
-	}
-	if len(p.DNSSearch) > 0 {
-		options = append(options, libpod.WithPodDNSSearch(p.DNSSearch))
-	}
-	if p.StaticIP != nil {
-		options = append(options, libpod.WithPodStaticIP(*p.StaticIP))
-	}
-	if p.StaticMAC != nil {
-		options = append(options, libpod.WithPodStaticMAC(*p.StaticMAC))
-	}
-	if p.NoManageResolvConf {
-		options = append(options, libpod.WithPodUseImageResolvConf())
-	}
-	if len(p.CNINetworks) > 0 {
-		options = append(options, libpod.WithPodNetworks(p.CNINetworks))
-	}
-
-	if len(p.InfraImage) > 0 {
-		options = append(options, libpod.WithInfraImage(p.InfraImage))
-	}
-
-	if len(p.InfraName) > 0 {
-		options = append(options, libpod.WithInfraName(p.InfraName))
-	}
-
-	if len(p.InfraCommand) > 0 {
-		options = append(options, libpod.WithInfraCommand(p.InfraCommand))
-	}
-
-	if !p.Pid.IsDefault() {
-		options = append(options, libpod.WithPodPidNS(p.Pid))
-	}
-
 	switch p.NetNS.NSMode {
 	case specgen.Default, "":
 		if p.NoInfra {
@@ -123,42 +117,88 @@ func createPodOptions(p *specgen.PodSpecGenerator, rt *libpod.Runtime) ([]libpod
 		}
 		if rootless.IsRootless() {
 			logrus.Debugf("Pod will use slirp4netns")
-			options = append(options, libpod.WithPodSlirp4netns(p.NetworkOptions))
+			if p.InfraContainerSpec.NetNS.NSMode != "host" {
+				p.InfraContainerSpec.NetworkOptions = p.NetworkOptions
+				p.InfraContainerSpec.NetNS.NSMode = specgen.NamespaceMode("slirp4netns")
+			}
 		} else {
 			logrus.Debugf("Pod using bridge network mode")
 		}
 	case specgen.Bridge:
+		p.InfraContainerSpec.NetNS.NSMode = specgen.Bridge
 		logrus.Debugf("Pod using bridge network mode")
 	case specgen.Host:
 		logrus.Debugf("Pod will use host networking")
-		options = append(options, libpod.WithPodHostNetwork())
+		if len(p.InfraContainerSpec.PortMappings) > 0 ||
+			p.InfraContainerSpec.StaticIP != nil ||
+			p.InfraContainerSpec.StaticMAC != nil ||
+			len(p.InfraContainerSpec.CNINetworks) > 0 ||
+			p.InfraContainerSpec.NetNS.NSMode == specgen.NoNetwork {
+			return nil, errors.Wrapf(define.ErrInvalidArg, "cannot set host network if network-related configuration is specified")
+		}
+		p.InfraContainerSpec.NetNS.NSMode = specgen.Host
 	case specgen.Slirp:
 		logrus.Debugf("Pod will use slirp4netns")
-		options = append(options, libpod.WithPodSlirp4netns(p.NetworkOptions))
+		if p.InfraContainerSpec.NetNS.NSMode != "host" {
+			p.InfraContainerSpec.NetworkOptions = p.NetworkOptions
+			p.InfraContainerSpec.NetNS.NSMode = specgen.NamespaceMode("slirp4netns")
+		}
 	case specgen.NoNetwork:
 		logrus.Debugf("Pod will not use networking")
-		options = append(options, libpod.WithPodNoNetwork())
+		if len(p.InfraContainerSpec.PortMappings) > 0 ||
+			p.InfraContainerSpec.StaticIP != nil ||
+			p.InfraContainerSpec.StaticMAC != nil ||
+			len(p.InfraContainerSpec.CNINetworks) > 0 ||
+			p.InfraContainerSpec.NetNS.NSMode == "host" {
+			return nil, errors.Wrapf(define.ErrInvalidArg, "cannot disable pod network if network-related configuration is specified")
+		}
+		p.InfraContainerSpec.NetNS.NSMode = specgen.NoNetwork
 	default:
 		return nil, errors.Errorf("pods presently do not support network mode %s", p.NetNS.NSMode)
 	}
 
-	if p.NoManageHosts {
-		options = append(options, libpod.WithPodUseImageHosts())
-	}
-	if len(p.PortMappings) > 0 {
-		ports, _, _, err := ParsePortMapping(p.PortMappings)
-		if err != nil {
-			return nil, err
-		}
-		options = append(options, libpod.WithInfraContainerPorts(ports))
-	}
-	options = append(options, libpod.WithPodCgroups())
-	if p.PodCreateCommand != nil {
-		options = append(options, libpod.WithPodCreateCommand(p.PodCreateCommand))
-	}
-	if len(p.InfraConmonPidFile) > 0 {
-		options = append(options, libpod.WithInfraConmonPidFile(p.InfraConmonPidFile))
+	libpod.WithPodCgroups()
+	if len(p.InfraCommand) > 0 {
+		p.InfraContainerSpec.Entrypoint = p.InfraCommand
 	}
 
-	return options, nil
+	if len(p.HostAdd) > 0 {
+		p.InfraContainerSpec.HostAdd = p.HostAdd
+	}
+	if len(p.DNSServer) > 0 {
+		var dnsServers []net.IP
+		dnsServers = append(dnsServers, p.DNSServer...)
+
+		p.InfraContainerSpec.DNSServers = dnsServers
+	}
+	if len(p.DNSOption) > 0 {
+		p.InfraContainerSpec.DNSOptions = p.DNSOption
+	}
+	if len(p.DNSSearch) > 0 {
+		p.InfraContainerSpec.DNSSearch = p.DNSSearch
+	}
+	if p.StaticIP != nil {
+		p.InfraContainerSpec.StaticIP = p.StaticIP
+	}
+	if p.StaticMAC != nil {
+		p.InfraContainerSpec.StaticMAC = p.StaticMAC
+	}
+	if p.NoManageResolvConf {
+		p.InfraContainerSpec.UseImageResolvConf = true
+	}
+	if len(p.CNINetworks) > 0 {
+		p.InfraContainerSpec.CNINetworks = p.CNINetworks
+	}
+	if p.NoManageHosts {
+		p.InfraContainerSpec.UseImageHosts = p.NoManageHosts
+	}
+
+	if len(p.InfraConmonPidFile) > 0 {
+		p.InfraContainerSpec.ConmonPidFile = p.InfraConmonPidFile
+	}
+
+	if p.InfraImage != config.DefaultInfraImage {
+		p.InfraContainerSpec.Image = p.InfraImage
+	}
+	return p.InfraContainerSpec, nil
 }

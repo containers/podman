@@ -10,6 +10,7 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/utils"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/specgenutil"
 	"github.com/spf13/cobra"
 )
 
@@ -78,7 +79,7 @@ func stop(cmd *cobra.Command, args []string) error {
 		stopOptions.Timeout = int(stopOptions.TimeoutCLI)
 	}
 
-	ids, err := common.ReadPodIDFiles(stopOptions.PodIDFiles)
+	ids, err := specgenutil.ReadPodIDFiles(stopOptions.PodIDFiles)
 	if err != nil {
 		return err
 	}

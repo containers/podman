@@ -14,6 +14,7 @@ import (
 	"github.com/containers/podman/v3/pkg/errorhandling"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/specgen"
+	"github.com/containers/podman/v3/pkg/specgenutil"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -60,7 +61,7 @@ func runFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 
 	flags.SetInterspersed(false)
-	common.DefineCreateFlags(cmd, &cliVals)
+	common.DefineCreateFlags(cmd, &cliVals, false)
 	common.DefineNetFlags(cmd)
 
 	flags.SetNormalizeFunc(utils.AliasFlags)
@@ -106,10 +107,6 @@ func init() {
 
 func run(cmd *cobra.Command, args []string) error {
 	var err error
-	cliVals.Net, err = common.NetFlagsToNetOptions(cmd, cliVals.Pod == "" && cliVals.PodIDFile == "")
-	if err != nil {
-		return err
-	}
 
 	// TODO: Breaking change should be made fatal in next major Release
 	if cliVals.TTY && cliVals.Interactive && !terminal.IsTerminal(int(os.Stdin.Fd())) {
@@ -122,11 +119,17 @@ func run(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	runOpts.CIDFile = cliVals.CIDFile
-	runOpts.Rm = cliVals.Rm
-	if err := createInit(cmd); err != nil {
+	flags := cmd.Flags()
+	cliVals.Net, err = common.NetFlagsToNetOptions(nil, *flags, cliVals.Pod == "" && cliVals.PodIDFile == "")
+	if err != nil {
 		return err
 	}
+	runOpts.CIDFile = cliVals.CIDFile
+	runOpts.Rm = cliVals.Rm
+	if cliVals, err = CreateInit(cmd, cliVals, false); err != nil {
+		return err
+	}
+
 	for fd := 3; fd < int(3+runOpts.PreserveFDs); fd++ {
 		if !rootless.IsFdInherited(fd) {
 			return errors.Errorf("file descriptor %d is not available - the preserve-fds option requires that file descriptors must be passed", fd)
@@ -137,7 +140,7 @@ func run(cmd *cobra.Command, args []string) error {
 	rawImageName := ""
 	if !cliVals.RootFS {
 		rawImageName = args[0]
-		name, err := pullImage(args[0])
+		name, err := PullImage(args[0], cliVals)
 		if err != nil {
 			return err
 		}
@@ -178,7 +181,7 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 	cliVals.PreserveFDs = runOpts.PreserveFDs
 	s := specgen.NewSpecGenerator(imageName, cliVals.RootFS)
-	if err := common.FillOutSpecGen(s, &cliVals, args); err != nil {
+	if err := specgenutil.FillOutSpecGen(s, &cliVals, args); err != nil {
 		return err
 	}
 	s.RawImageName = rawImageName

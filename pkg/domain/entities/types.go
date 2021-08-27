@@ -31,21 +31,33 @@ type VolumeDeleteReport struct{ Report }
 
 // NetOptions reflect the shared network options between
 // pods and containers
+type NetFlags struct {
+	AddHosts     []string `json:"add-host,omitempty"`
+	DNS          []string `json:"dns,omitempty"`
+	DNSOpt       []string `json:"dns-opt,omitempty"`
+	DNDSearch    []string `json:"dns-search,omitempty"`
+	MacAddr      string   `json:"mac-address,omitempty"`
+	Publish      []string `json:"publish,omitempty"`
+	IP           string   `json:"ip,omitempty"`
+	NoHosts      bool     `json:"no-hosts,omitempty"`
+	Network      string   `json:"network,omitempty"`
+	NetworkAlias []string `json:"network-alias,omitempty"`
+}
 type NetOptions struct {
-	AddHosts           []string
-	Aliases            []string
-	CNINetworks        []string
-	UseImageResolvConf bool
-	DNSOptions         []string
-	DNSSearch          []string
-	DNSServers         []net.IP
-	Network            specgen.Namespace
-	NoHosts            bool
-	PublishPorts       []types.PortMapping
-	StaticIP           *net.IP
-	StaticMAC          *net.HardwareAddr
+	AddHosts           []string            `json:"hostadd,omitempty"`
+	Aliases            []string            `json:"network_alias,omitempty"`
+	CNINetworks        []string            `json:"cni_networks,omitempty"`
+	UseImageResolvConf bool                `json:"no_manage_resolv_conf,omitempty"`
+	DNSOptions         []string            `json:"dns_option,omitempty"`
+	DNSSearch          []string            `json:"dns_search,omitempty"`
+	DNSServers         []net.IP            `json:"dns_server,omitempty"`
+	Network            specgen.Namespace   `json:"netns,omitempty"`
+	NoHosts            bool                `json:"no_manage_hosts,omitempty"`
+	PublishPorts       []types.PortMapping `json:"portmappings,omitempty"`
+	StaticIP           *net.IP             `json:"static_ip,omitempty"`
+	StaticMAC          *net.HardwareAddr   `json:"static_mac,omitempty"`
 	// NetworkOptions are additional options for each network
-	NetworkOptions map[string][]string
+	NetworkOptions map[string][]string `json:"network_options,omitempty"`
 }
 
 // All CLI inspect commands and inspect sub-commands use the same options

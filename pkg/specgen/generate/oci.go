@@ -201,7 +201,8 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 			Options:     []string{"rprivate", "nosuid", "noexec", "nodev", "rw"},
 		}
 		g.AddMount(sysMnt)
-	} else if !canMountSys {
+	}
+	if !canMountSys {
 		addCgroup = false
 		g.RemoveMount("/sys")
 		r := "ro"

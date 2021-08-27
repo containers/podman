@@ -972,11 +972,12 @@ func (c *Container) checkDependenciesRunning() ([]string, error) {
 		}
 
 		// Check the status
+		conf := depCtr.Config()
 		state, err := depCtr.State()
 		if err != nil {
 			return nil, errors.Wrapf(err, "error retrieving state of dependency %s of container %s", dep, c.ID())
 		}
-		if state != define.ContainerStateRunning {
+		if state != define.ContainerStateRunning && !conf.IsInfra {
 			notRunning = append(notRunning, dep)
 		}
 		depCtrs[dep] = depCtr

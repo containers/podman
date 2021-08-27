@@ -8,7 +8,6 @@ import (
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	dfilters "github.com/containers/podman/v3/pkg/domain/filters"
 	"github.com/containers/podman/v3/pkg/signal"
-	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/specgen/generate"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -248,12 +247,8 @@ func (ic *ContainerEngine) prunePodHelper(ctx context.Context) ([]*entities.PodP
 	return reports, nil
 }
 
-func (ic *ContainerEngine) PodCreate(ctx context.Context, opts entities.PodCreateOptions) (*entities.PodCreateReport, error) {
-	podSpec := specgen.NewPodSpecGenerator()
-	if err := opts.ToPodSpecGen(podSpec); err != nil {
-		return nil, err
-	}
-	pod, err := generate.MakePod(podSpec, ic.Libpod)
+func (ic *ContainerEngine) PodCreate(ctx context.Context, specg entities.PodSpec) (*entities.PodCreateReport, error) {
+	pod, err := generate.MakePod(&specg, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}

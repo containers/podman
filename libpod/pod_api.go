@@ -582,41 +582,46 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 	// Infra config contains detailed information on the pod's infra
 	// container.
 	var infraConfig *define.InspectPodInfraConfig
-	if p.config.InfraContainer != nil && p.config.InfraContainer.HasInfraContainer {
+	if p.state.InfraContainerID != "" {
+		infra, err := p.runtime.GetContainer(p.state.InfraContainerID)
+		if err != nil {
+			return nil, err
+		}
 		infraConfig = new(define.InspectPodInfraConfig)
-		infraConfig.HostNetwork = p.config.InfraContainer.HostNetwork
-		infraConfig.StaticIP = p.config.InfraContainer.StaticIP
-		infraConfig.StaticMAC = p.config.InfraContainer.StaticMAC.String()
-		infraConfig.NoManageResolvConf = p.config.InfraContainer.UseImageResolvConf
-		infraConfig.NoManageHosts = p.config.InfraContainer.UseImageHosts
+		infraConfig.HostNetwork = !infra.Config().ContainerNetworkConfig.UseImageHosts
+		infraConfig.StaticIP = infra.Config().ContainerNetworkConfig.StaticIP
+		infraConfig.NoManageResolvConf = infra.Config().UseImageResolvConf
+		infraConfig.NoManageHosts = infra.Config().UseImageHosts
 		infraConfig.CPUPeriod = p.CPUPeriod()
 		infraConfig.CPUQuota = p.CPUQuota()
 		infraConfig.CPUSetCPUs = p.ResourceLim().CPU.Cpus
 		infraConfig.PidNS = p.PidMode()
-		infraConfig.UserNS = p.config.InfraContainer.Userns.String()
+		infraConfig.UserNS = p.UserNSMode()
 
-		if len(p.config.InfraContainer.DNSServer) > 0 {
-			infraConfig.DNSServer = make([]string, 0, len(p.config.InfraContainer.DNSServer))
-			infraConfig.DNSServer = append(infraConfig.DNSServer, p.config.InfraContainer.DNSServer...)
+		if len(infra.Config().ContainerNetworkConfig.DNSServer) > 0 {
+			infraConfig.DNSServer = make([]string, 0, len(infra.Config().ContainerNetworkConfig.DNSServer))
+			for _, entry := range infra.Config().ContainerNetworkConfig.DNSServer {
+				infraConfig.DNSServer = append(infraConfig.DNSServer, entry.String())
+			}
 		}
-		if len(p.config.InfraContainer.DNSSearch) > 0 {
-			infraConfig.DNSSearch = make([]string, 0, len(p.config.InfraContainer.DNSSearch))
-			infraConfig.DNSSearch = append(infraConfig.DNSSearch, p.config.InfraContainer.DNSSearch...)
+		if len(infra.Config().ContainerNetworkConfig.DNSSearch) > 0 {
+			infraConfig.DNSSearch = make([]string, 0, len(infra.Config().ContainerNetworkConfig.DNSSearch))
+			infraConfig.DNSSearch = append(infraConfig.DNSSearch, infra.Config().ContainerNetworkConfig.DNSSearch...)
 		}
-		if len(p.config.InfraContainer.DNSOption) > 0 {
-			infraConfig.DNSOption = make([]string, 0, len(p.config.InfraContainer.DNSOption))
-			infraConfig.DNSOption = append(infraConfig.DNSOption, p.config.InfraContainer.DNSOption...)
+		if len(infra.Config().ContainerNetworkConfig.DNSOption) > 0 {
+			infraConfig.DNSOption = make([]string, 0, len(infra.Config().ContainerNetworkConfig.DNSOption))
+			infraConfig.DNSOption = append(infraConfig.DNSOption, infra.Config().ContainerNetworkConfig.DNSOption...)
 		}
-		if len(p.config.InfraContainer.HostAdd) > 0 {
-			infraConfig.HostAdd = make([]string, 0, len(p.config.InfraContainer.HostAdd))
-			infraConfig.HostAdd = append(infraConfig.HostAdd, p.config.InfraContainer.HostAdd...)
+		if len(infra.Config().HostAdd) > 0 {
+			infraConfig.HostAdd = make([]string, 0, len(infra.Config().HostAdd))
+			infraConfig.HostAdd = append(infraConfig.HostAdd, infra.Config().HostAdd...)
 		}
-		if len(p.config.InfraContainer.Networks) > 0 {
-			infraConfig.Networks = make([]string, 0, len(p.config.InfraContainer.Networks))
-			infraConfig.Networks = append(infraConfig.Networks, p.config.InfraContainer.Networks...)
+		if len(infra.Config().ContainerNetworkConfig.Networks) > 0 {
+			infraConfig.Networks = make([]string, 0, len(infra.Config().ContainerNetworkConfig.Networks))
+			infraConfig.Networks = append(infraConfig.Networks, infra.Config().ContainerNetworkConfig.Networks...)
 		}
-		infraConfig.NetworkOptions = p.config.InfraContainer.NetworkOptions
-		infraConfig.PortBindings = makeInspectPortBindings(p.config.InfraContainer.PortBindings, nil)
+		infraConfig.NetworkOptions = infra.Config().ContainerNetworkConfig.NetworkOptions
+		infraConfig.PortBindings = makeInspectPortBindings(infra.Config().ContainerNetworkConfig.PortMappings, nil)
 	}
 
 	inspectData := define.InspectPodData{

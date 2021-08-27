@@ -10,6 +10,7 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/utils"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/specgenutil"
 	"github.com/spf13/cobra"
 )
 
@@ -64,7 +65,7 @@ func start(cmd *cobra.Command, args []string) error {
 		errs utils.OutputErrors
 	)
 
-	ids, err := common.ReadPodIDFiles(startOptions.PodIDFiles)
+	ids, err := specgenutil.ReadPodIDFiles(startOptions.PodIDFiles)
 	if err != nil {
 		return err
 	}

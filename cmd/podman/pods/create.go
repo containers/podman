@@ -11,14 +11,17 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/completion"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/sysinfo"
 	"github.com/containers/podman/v3/cmd/podman/common"
+	"github.com/containers/podman/v3/cmd/podman/containers"
 	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/errorhandling"
 	"github.com/containers/podman/v3/pkg/specgen"
+	"github.com/containers/podman/v3/pkg/specgenutil"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/docker/docker/pkg/parsers"
 	"github.com/pkg/errors"
@@ -44,11 +47,11 @@ var (
 
 var (
 	createOptions     entities.PodCreateOptions
+	infraOptions      entities.ContainerCreateOptions
 	labels, labelFile []string
 	podIDFile         string
 	replace           bool
 	share             string
-	userns            string
 )
 
 func init() {
@@ -58,62 +61,19 @@ func init() {
 	})
 	flags := createCommand.Flags()
 	flags.SetInterspersed(false)
-
+	infraOptions.IsInfra = true
+	common.DefineCreateFlags(createCommand, &infraOptions, true)
 	common.DefineNetFlags(createCommand)
 
-	cpusetflagName := "cpuset-cpus"
-	flags.StringVar(&createOptions.CpusetCpus, cpusetflagName, "", "CPUs in which to allow execution")
-	_ = createCommand.RegisterFlagCompletionFunc(cpusetflagName, completion.AutocompleteDefault)
-
-	cpusflagName := "cpus"
-	flags.Float64Var(&createOptions.Cpus, cpusflagName, 0.000, "set amount of CPUs for the pod")
-	_ = createCommand.RegisterFlagCompletionFunc(cpusflagName, completion.AutocompleteDefault)
-
-	cgroupParentflagName := "cgroup-parent"
-	flags.StringVar(&createOptions.CGroupParent, cgroupParentflagName, "", "Set parent cgroup for the pod")
-	_ = createCommand.RegisterFlagCompletionFunc(cgroupParentflagName, completion.AutocompleteDefault)
-
-	usernsFlagName := "userns"
-	flags.StringVar(&userns, usernsFlagName, os.Getenv("PODMAN_USERNS"), "User namespace to use")
-	_ = createCommand.RegisterFlagCompletionFunc(usernsFlagName, common.AutocompleteUserNamespace)
-
 	flags.BoolVar(&createOptions.Infra, "infra", true, "Create an infra container associated with the pod to share namespaces with")
-
-	infraConmonPidfileFlagName := "infra-conmon-pidfile"
-	flags.StringVar(&createOptions.InfraConmonPidFile, infraConmonPidfileFlagName, "", "Path to the file that will receive the POD of the infra container's conmon")
-	_ = createCommand.RegisterFlagCompletionFunc(infraConmonPidfileFlagName, completion.AutocompleteDefault)
-
-	infraImageFlagName := "infra-image"
-	flags.String(infraImageFlagName, containerConfig.Engine.InfraImage, "The image of the infra container to associate with the pod")
-	_ = createCommand.RegisterFlagCompletionFunc(infraImageFlagName, common.AutocompleteImages)
-
-	infraCommandFlagName := "infra-command"
-	flags.String(infraCommandFlagName, containerConfig.Engine.InfraCommand, "The command to run on the infra container when the pod is started")
-	_ = createCommand.RegisterFlagCompletionFunc(infraCommandFlagName, completion.AutocompleteNone)
-
-	infraNameFlagName := "infra-name"
-	flags.StringVarP(&createOptions.InfraName, infraNameFlagName, "", "", "The name used as infra container name")
-	_ = createCommand.RegisterFlagCompletionFunc(infraNameFlagName, completion.AutocompleteNone)
-
-	labelFileFlagName := "label-file"
-	flags.StringSliceVar(&labelFile, labelFileFlagName, []string{}, "Read in a line delimited file of labels")
-	_ = createCommand.RegisterFlagCompletionFunc(labelFileFlagName, completion.AutocompleteDefault)
-
-	labelFlagName := "label"
-	flags.StringSliceVarP(&labels, labelFlagName, "l", []string{}, "Set metadata on pod (default [])")
-	_ = createCommand.RegisterFlagCompletionFunc(labelFlagName, completion.AutocompleteNone)
 
 	nameFlagName := "name"
 	flags.StringVarP(&createOptions.Name, nameFlagName, "n", "", "Assign a name to the pod")
 	_ = createCommand.RegisterFlagCompletionFunc(nameFlagName, completion.AutocompleteNone)
 
-	hostnameFlagName := "hostname"
-	flags.StringVarP(&createOptions.Hostname, hostnameFlagName, "", "", "Set a hostname to the pod")
-	_ = createCommand.RegisterFlagCompletionFunc(hostnameFlagName, completion.AutocompleteNone)
-
-	pidFlagName := "pid"
-	flags.StringVar(&createOptions.Pid, pidFlagName, "", "PID namespace to use")
-	_ = createCommand.RegisterFlagCompletionFunc(pidFlagName, common.AutocompleteNamespace)
+	infraImageFlagName := "infra-image"
+	flags.String(infraImageFlagName, containerConfig.Engine.InfraImage, "The image of the infra container to associate with the pod")
+	_ = createCommand.RegisterFlagCompletionFunc(infraImageFlagName, common.AutocompleteImages)
 
 	podIDFileFlagName := "pod-id-file"
 	flags.StringVar(&podIDFile, podIDFileFlagName, "", "Write the pod ID to the file")
@@ -137,25 +97,30 @@ func aliasNetworkFlag(_ *pflag.FlagSet, name string) pflag.NormalizedName {
 
 func create(cmd *cobra.Command, args []string) error {
 	var (
-		err     error
-		podIDFD *os.File
+		err          error
+		podIDFD      *os.File
+		imageName    string
+		rawImageName string
 	)
+	labelFile = infraOptions.LabelFile
+	labels = infraOptions.Label
 	createOptions.Labels, err = parse.GetAllLabels(labelFile, labels)
 	if err != nil {
 		return errors.Wrapf(err, "unable to process labels")
 	}
 
+	imageName = config.DefaultInfraImage
+	img := imageName
 	if !createOptions.Infra {
+		if cmd.Flag("no-hosts").Changed {
+			return fmt.Errorf("cannot specify no-hosts without an infra container")
+		}
+		flags := cmd.Flags()
+		createOptions.Net, err = common.NetFlagsToNetOptions(nil, *flags, false)
+		if err != nil {
+			return err
+		}
 		logrus.Debugf("Not creating an infra container")
-		if cmd.Flag("infra-conmon-pidfile").Changed {
-			return errors.New("cannot set infra-conmon-pid without an infra container")
-		}
-		if cmd.Flag("infra-command").Changed {
-			return errors.New("cannot set infra-command without an infra container")
-		}
-		if cmd.Flag("infra-image").Changed {
-			return errors.New("cannot set infra-image without an infra container")
-		}
 		createOptions.InfraImage = ""
 		if createOptions.InfraName != "" {
 			return errors.New("cannot set infra-name without an infra container")
@@ -166,26 +131,41 @@ func create(cmd *cobra.Command, args []string) error {
 		}
 		createOptions.Share = nil
 	} else {
+		// reassign certain optios for lbpod api, these need to be populated in spec
+		createOptions.InfraConmonPidFile = infraOptions.ConmonPIDFile
+		createOptions.InfraName = infraOptions.Name
+		createOptions.Hostname = infraOptions.Hostname
+		createOptions.Cpus = infraOptions.CPUS
+		createOptions.CpusetCpus = infraOptions.CPUSetCPUs
+		createOptions.Pid = infraOptions.PID
+		flags := cmd.Flags()
+		infraOptions.Net, err = common.NetFlagsToNetOptions(nil, *flags, false)
+		if err != nil {
+			return err
+		}
+		infraOptions, err = containers.CreateInit(cmd, infraOptions, true)
+		if err != nil {
+			return err
+		}
+		createOptions.Net = infraOptions.Net
 		createOptions.Share = strings.Split(share, ",")
 		if cmd.Flag("infra-command").Changed {
 			// Only send content to server side if user changed defaults
-			createOptions.InfraCommand, err = cmd.Flags().GetString("infra-command")
+			cmdIn, err := cmd.Flags().GetString("infra-command")
+			infraOptions.Entrypoint = &cmdIn
+			createOptions.InfraCommand = cmdIn
 			if err != nil {
 				return err
 			}
 		}
 		if cmd.Flag("infra-image").Changed {
 			// Only send content to server side if user changed defaults
-			createOptions.InfraImage, err = cmd.Flags().GetString("infra-image")
+			img, err = cmd.Flags().GetString("infra-image")
+			imageName = img
 			if err != nil {
 				return err
 			}
 		}
-	}
-
-	createOptions.Userns, err = specgen.ParseUserNamespace(userns)
-	if err != nil {
-		return err
 	}
 
 	if cmd.Flag("pod-id-file").Changed {
@@ -198,13 +178,6 @@ func create(cmd *cobra.Command, args []string) error {
 		}
 		defer errorhandling.CloseQuiet(podIDFD)
 		defer errorhandling.SyncQuiet(podIDFD)
-	}
-
-	createOptions.Pid = cmd.Flag("pid").Value.String()
-
-	createOptions.Net, err = common.NetFlagsToNetOptions(cmd, createOptions.Infra)
-	if err != nil {
-		return err
 	}
 
 	if len(createOptions.Net.PublishPorts) > 0 {
@@ -261,10 +234,44 @@ func create(cmd *cobra.Command, args []string) error {
 			copy = "" + strconv.Itoa(core)
 		}
 	}
-	response, err := registry.ContainerEngine().PodCreate(context.Background(), createOptions)
+	podSpec := specgen.NewPodSpecGenerator()
+	podSpec, err = entities.ToPodSpecGen(*podSpec, &createOptions)
 	if err != nil {
 		return err
 	}
+	if createOptions.Infra {
+		rawImageName = img
+		if !infraOptions.RootFS {
+			curr := infraOptions.Quiet
+			infraOptions.Quiet = true
+			name, err := containers.PullImage(imageName, infraOptions)
+			if err != nil {
+				fmt.Println(err)
+			}
+			imageName = name
+			infraOptions.Quiet = curr
+		}
+		podSpec.InfraImage = imageName
+		if infraOptions.Entrypoint != nil {
+			createOptions.InfraCommand = *infraOptions.Entrypoint
+		}
+		infraOptions.CPUS = createOptions.Cpus
+		infraOptions.CPUSetCPUs = createOptions.CpusetCpus
+		infraOptions.PID = createOptions.Pid
+		podSpec.InfraContainerSpec = specgen.NewSpecGenerator(imageName, false)
+		podSpec.InfraContainerSpec.RawImageName = rawImageName
+		podSpec.InfraContainerSpec.NetworkOptions = podSpec.NetworkOptions
+		err = specgenutil.FillOutSpecGen(podSpec.InfraContainerSpec, &infraOptions, []string{})
+		if err != nil {
+			return err
+		}
+	}
+	PodSpec := entities.PodSpec{PodSpecGen: *podSpec}
+	response, err := registry.ContainerEngine().PodCreate(context.Background(), PodSpec)
+	if err != nil {
+		return err
+	}
+
 	if len(podIDFile) > 0 {
 		if err = ioutil.WriteFile(podIDFile, []byte(response.Id), 0644); err != nil {
 			return errors.Wrapf(err, "failed to write pod ID to file")

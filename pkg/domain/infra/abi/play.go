@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -22,6 +23,7 @@ import (
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/specgen/generate"
 	"github.com/containers/podman/v3/pkg/specgen/generate/kube"
+	"github.com/containers/podman/v3/pkg/specgenutil"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
@@ -179,10 +181,12 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		}
 	}
 
-	p, err := kube.ToPodGen(ctx, podName, podYAML)
+	podOpt := entities.PodCreateOptions{Infra: true, Net: &entities.NetOptions{StaticIP: &net.IP{}, StaticMAC: &net.HardwareAddr{}}}
+	podOpt, err = kube.ToPodOpt(ctx, podName, podOpt, podYAML)
 	if err != nil {
 		return nil, err
 	}
+
 	if options.Network != "" {
 		ns, cniNets, netOpts, err := specgen.ParseNetworkString(options.Network)
 		if err != nil {
@@ -193,42 +197,37 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			return nil, errors.Errorf("invalid value passed to --network: bridge or host networking must be configured in YAML")
 		}
 		logrus.Debugf("Pod %q joining CNI networks: %v", podName, cniNets)
-		p.NetNS.NSMode = specgen.Bridge
-		p.CNINetworks = append(p.CNINetworks, cniNets...)
+		podOpt.Net.Network.NSMode = specgen.Bridge
+		podOpt.Net.CNINetworks = append(podOpt.Net.CNINetworks, cniNets...)
 		if len(netOpts) > 0 {
-			p.NetworkOptions = netOpts
+			podOpt.Net.NetworkOptions = netOpts
 		}
 	}
 
 	if len(options.StaticIPs) > *ipIndex {
-		p.StaticIP = &options.StaticIPs[*ipIndex]
+		podOpt.Net.StaticIP = &options.StaticIPs[*ipIndex]
 	} else if len(options.StaticIPs) > 0 {
 		// only warn if the user has set at least one ip
 		logrus.Warn("No more static ips left using a random one")
 	}
 	if len(options.StaticMACs) > *ipIndex {
-		p.StaticMAC = &options.StaticMACs[*ipIndex]
+		podOpt.Net.StaticMAC = &options.StaticMACs[*ipIndex]
 	} else if len(options.StaticIPs) > 0 {
 		// only warn if the user has set at least one mac
 		logrus.Warn("No more static macs left using a random one")
 	}
 	*ipIndex++
 
-	// Create the Pod
-	pod, err := generate.MakePod(p, ic.Libpod)
+	p := specgen.NewPodSpecGenerator()
 	if err != nil {
 		return nil, err
 	}
 
-	podInfraID, err := pod.InfraContainerID()
+	p, err = entities.ToPodSpecGen(*p, &podOpt)
 	if err != nil {
 		return nil, err
 	}
-
-	if !options.Quiet {
-		writer = os.Stderr
-	}
-
+	podSpec := entities.PodSpec{PodSpecGen: *p}
 	volumes, err := kube.InitializeVolumes(podYAML.Spec.Volumes)
 	if err != nil {
 		return nil, err
@@ -267,112 +266,146 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		configMaps = append(configMaps, cm)
 	}
 
+	if podOpt.Infra {
+		imagePull := config.DefaultInfraImage
+		if podOpt.InfraImage != config.DefaultInfraImage && podOpt.InfraImage != "" {
+			imagePull = podOpt.InfraImage
+		}
+
+		pulledImages, err := pullImage(ic, writer, imagePull, options, config.PullPolicyNewer)
+		if err != nil {
+			return nil, err
+		}
+		infraOptions := entities.ContainerCreateOptions{ImageVolume: "bind"}
+
+		podSpec.PodSpecGen.InfraImage = pulledImages[0].Names()[0]
+		podSpec.PodSpecGen.NoInfra = false
+		podSpec.PodSpecGen.InfraContainerSpec = specgen.NewSpecGenerator(pulledImages[0].Names()[0], false)
+		podSpec.PodSpecGen.InfraContainerSpec.NetworkOptions = p.NetworkOptions
+
+		err = specgenutil.FillOutSpecGen(podSpec.PodSpecGen.InfraContainerSpec, &infraOptions, []string{})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Create the Pod
+	pod, err := generate.MakePod(&podSpec, ic.Libpod)
+	if err != nil {
+		return nil, err
+	}
+
+	podInfraID, err := pod.InfraContainerID()
+	if err != nil {
+		return nil, err
+	}
+
+	if !options.Quiet {
+		writer = os.Stderr
+	}
+
 	containers := make([]*libpod.Container, 0, len(podYAML.Spec.Containers))
 	cwd, err := os.Getwd()
 	if err != nil {
 		return nil, err
 	}
 	for _, container := range podYAML.Spec.Containers {
-		// Contains all labels obtained from kube
-		labels := make(map[string]string)
-		var pulledImage *libimage.Image
-		buildFile, err := getBuildFile(container.Image, cwd)
-		if err != nil {
-			return nil, err
-		}
-		existsLocally, err := ic.Libpod.LibimageRuntime().Exists(container.Image)
-		if err != nil {
-			return nil, err
-		}
-		if (len(buildFile) > 0 && !existsLocally) || (len(buildFile) > 0 && options.Build) {
-			buildOpts := new(buildahDefine.BuildOptions)
-			commonOpts := new(buildahDefine.CommonBuildOptions)
-			buildOpts.ConfigureNetwork = buildahDefine.NetworkDefault
-			buildOpts.Isolation = buildahDefine.IsolationChroot
-			buildOpts.CommonBuildOpts = commonOpts
-			buildOpts.Output = container.Image
-			if _, _, err := ic.Libpod.Build(ctx, *buildOpts, []string{buildFile}...); err != nil {
-				return nil, err
-			}
-			i, _, err := ic.Libpod.LibimageRuntime().LookupImage(container.Image, new(libimage.LookupImageOptions))
+		if !strings.Contains("infra", container.Name) {
+			// Contains all labels obtained from kube
+			labels := make(map[string]string)
+			var pulledImage *libimage.Image
+			buildFile, err := getBuildFile(container.Image, cwd)
 			if err != nil {
 				return nil, err
 			}
-			pulledImage = i
-		} else {
-			// NOTE: set the pull policy to "newer".  This will cover cases
-			// where the "latest" tag requires a pull and will also
-			// transparently handle "localhost/" prefixed files which *may*
-			// refer to a locally built image OR an image running a
-			// registry on localhost.
-			pullPolicy := config.PullPolicyNewer
-			if len(container.ImagePullPolicy) > 0 {
-				// Make sure to lower the strings since K8s pull policy
-				// may be capitalized (see bugzilla.redhat.com/show_bug.cgi?id=1985905).
-				rawPolicy := string(container.ImagePullPolicy)
-				pullPolicy, err = config.ParsePullPolicy(strings.ToLower(rawPolicy))
+			existsLocally, err := ic.Libpod.LibimageRuntime().Exists(container.Image)
+			if err != nil {
+				return nil, err
+			}
+			if (len(buildFile) > 0 && !existsLocally) || (len(buildFile) > 0 && options.Build) {
+				buildOpts := new(buildahDefine.BuildOptions)
+				commonOpts := new(buildahDefine.CommonBuildOptions)
+				buildOpts.ConfigureNetwork = buildahDefine.NetworkDefault
+				buildOpts.Isolation = buildahDefine.IsolationChroot
+				buildOpts.CommonBuildOpts = commonOpts
+				buildOpts.Output = container.Image
+				if _, _, err := ic.Libpod.Build(ctx, *buildOpts, []string{buildFile}...); err != nil {
+					return nil, err
+				}
+				i, _, err := ic.Libpod.LibimageRuntime().LookupImage(container.Image, new(libimage.LookupImageOptions))
 				if err != nil {
 					return nil, err
 				}
+				pulledImage = i
+			} else {
+				// NOTE: set the pull policy to "newer".  This will cover cases
+				// where the "latest" tag requires a pull and will also
+				// transparently handle "localhost/" prefixed files which *may*
+				// refer to a locally built image OR an image running a
+				// registry on localhost.
+				pullPolicy := config.PullPolicyNewer
+				if len(container.ImagePullPolicy) > 0 {
+					// Make sure to lower the strings since K8s pull policy
+					// may be capitalized (see bugzilla.redhat.com/show_bug.cgi?id=1985905).
+					rawPolicy := string(container.ImagePullPolicy)
+					pullPolicy, err = config.ParsePullPolicy(strings.ToLower(rawPolicy))
+					if err != nil {
+						return nil, err
+					}
+				}
+				pulledImages, err := pullImage(ic, writer, container.Image, options, pullPolicy)
+				if err != nil {
+					return nil, err
+				}
+				pulledImage = pulledImages[0]
 			}
-			// This ensures the image is the image store
-			pullOptions := &libimage.PullOptions{}
-			pullOptions.AuthFilePath = options.Authfile
-			pullOptions.CertDirPath = options.CertDir
-			pullOptions.SignaturePolicyPath = options.SignaturePolicy
-			pullOptions.Writer = writer
-			pullOptions.Username = options.Username
-			pullOptions.Password = options.Password
-			pullOptions.InsecureSkipTLSVerify = options.SkipTLSVerify
 
-			pulledImages, err := ic.Libpod.LibimageRuntime().Pull(ctx, container.Image, pullPolicy, pullOptions)
+			// Handle kube annotations
+			for k, v := range annotations {
+				switch k {
+				// Auto update annotation without container name will apply to
+				// all containers within the pod
+				case autoupdate.Label, autoupdate.AuthfileLabel:
+					labels[k] = v
+				// Auto update annotation with container name will apply only
+				// to the specified container
+				case fmt.Sprintf("%s/%s", autoupdate.Label, container.Name),
+					fmt.Sprintf("%s/%s", autoupdate.AuthfileLabel, container.Name):
+					prefixAndCtr := strings.Split(k, "/")
+					labels[prefixAndCtr[0]] = v
+				}
+			}
+
+			specgenOpts := kube.CtrSpecGenOptions{
+				Container:      container,
+				Image:          pulledImage,
+				Volumes:        volumes,
+				PodID:          pod.ID(),
+				PodName:        podName,
+				PodInfraID:     podInfraID,
+				ConfigMaps:     configMaps,
+				SeccompPaths:   seccompPaths,
+				RestartPolicy:  ctrRestartPolicy,
+				NetNSIsHost:    p.NetNS.IsHost(),
+				SecretsManager: secretsManager,
+				LogDriver:      options.LogDriver,
+				Labels:         labels,
+			}
+			specGen, err := kube.ToSpecGen(ctx, &specgenOpts)
 			if err != nil {
 				return nil, err
 			}
-			pulledImage = pulledImages[0]
-		}
 
-		// Handle kube annotations
-		for k, v := range annotations {
-			switch k {
-			// Auto update annotation without container name will apply to
-			// all containers within the pod
-			case autoupdate.Label, autoupdate.AuthfileLabel:
-				labels[k] = v
-			// Auto update annotation with container name will apply only
-			// to the specified container
-			case fmt.Sprintf("%s/%s", autoupdate.Label, container.Name),
-				fmt.Sprintf("%s/%s", autoupdate.AuthfileLabel, container.Name):
-				prefixAndCtr := strings.Split(k, "/")
-				labels[prefixAndCtr[0]] = v
+			rtSpec, spec, opts, err := generate.MakeContainer(ctx, ic.Libpod, specGen)
+			if err != nil {
+				return nil, err
 			}
+			ctr, err := generate.ExecuteCreate(ctx, ic.Libpod, rtSpec, spec, false, opts...)
+			if err != nil {
+				return nil, err
+			}
+			containers = append(containers, ctr)
 		}
-
-		specgenOpts := kube.CtrSpecGenOptions{
-			Container:      container,
-			Image:          pulledImage,
-			Volumes:        volumes,
-			PodID:          pod.ID(),
-			PodName:        podName,
-			PodInfraID:     podInfraID,
-			ConfigMaps:     configMaps,
-			SeccompPaths:   seccompPaths,
-			RestartPolicy:  ctrRestartPolicy,
-			NetNSIsHost:    p.NetNS.IsHost(),
-			SecretsManager: secretsManager,
-			LogDriver:      options.LogDriver,
-			Labels:         labels,
-		}
-		specGen, err := kube.ToSpecGen(ctx, &specgenOpts)
-		if err != nil {
-			return nil, err
-		}
-
-		ctr, err := generate.MakeContainer(ctx, ic.Libpod, specGen)
-		if err != nil {
-			return nil, err
-		}
-		containers = append(containers, ctr)
 	}
 
 	if options.Start != types.OptionalBoolFalse {
@@ -383,6 +416,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		}
 		for id, err := range podStartErrors {
 			playKubePod.ContainerErrors = append(playKubePod.ContainerErrors, errors.Wrapf(err, "error starting container %s", id).Error())
+			fmt.Println(playKubePod.ContainerErrors)
 		}
 	}
 
@@ -655,4 +689,22 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, path string, _ enti
 		return nil, err
 	}
 	return reports, nil
+}
+
+// pullImage is a helper function to set up the proper pull options and pull the image for certain containers
+func pullImage(ic *ContainerEngine, writer io.Writer, imagePull string, options entities.PlayKubeOptions, pullPolicy config.PullPolicy) ([]*libimage.Image, error) {
+	// This ensures the image is the image store
+	pullOptions := &libimage.PullOptions{}
+	pullOptions.AuthFilePath = options.Authfile
+	pullOptions.CertDirPath = options.CertDir
+	pullOptions.SignaturePolicyPath = options.SignaturePolicy
+	pullOptions.Writer = writer
+	pullOptions.Username = options.Username
+	pullOptions.Password = options.Password
+	pullOptions.InsecureSkipTLSVerify = options.SkipTLSVerify
+	pulledImages, err := ic.Libpod.LibimageRuntime().Pull(context.Background(), imagePull, pullPolicy, pullOptions)
+	if err != nil {
+		return nil, err
+	}
+	return pulledImages, nil
 }

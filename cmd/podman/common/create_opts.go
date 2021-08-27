@@ -19,122 +19,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-type ContainerCLIOpts struct {
-	Annotation        []string
-	Attach            []string
-	Authfile          string
-	BlkIOWeight       string
-	BlkIOWeightDevice []string
-	CapAdd            []string
-	CapDrop           []string
-	CgroupNS          string
-	CGroupsMode       string
-	CGroupParent      string
-	CIDFile           string
-	ConmonPIDFile     string
-	CPUPeriod         uint64
-	CPUQuota          int64
-	CPURTPeriod       uint64
-	CPURTRuntime      int64
-	CPUShares         uint64
-	CPUS              float64
-	CPUSetCPUs        string
-	CPUSetMems        string
-	Devices           []string
-	DeviceCGroupRule  []string
-	DeviceReadBPs     []string
-	DeviceReadIOPs    []string
-	DeviceWriteBPs    []string
-	DeviceWriteIOPs   []string
-	Entrypoint        *string
-	Env               []string
-	EnvHost           bool
-	EnvFile           []string
-	Expose            []string
-	GIDMap            []string
-	GroupAdd          []string
-	HealthCmd         string
-	HealthInterval    string
-	HealthRetries     uint
-	HealthStartPeriod string
-	HealthTimeout     string
-	Hostname          string
-	HTTPProxy         bool
-	ImageVolume       string
-	Init              bool
-	InitContainerType string
-	InitPath          string
-	Interactive       bool
-	IPC               string
-	KernelMemory      string
-	Label             []string
-	LabelFile         []string
-	LogDriver         string
-	LogOptions        []string
-	Memory            string
-	MemoryReservation string
-	MemorySwap        string
-	MemorySwappiness  int64
-	Name              string
-	NoHealthCheck     bool
-	OOMKillDisable    bool
-	OOMScoreAdj       int
-	Arch              string
-	OS                string
-	Variant           string
-	Personality       string
-	PID               string
-	PIDsLimit         *int64
-	Platform          string
-	Pod               string
-	PodIDFile         string
-	PreserveFDs       uint
-	Privileged        bool
-	PublishAll        bool
-	Pull              string
-	Quiet             bool
-	ReadOnly          bool
-	ReadOnlyTmpFS     bool
-	Restart           string
-	Replace           bool
-	Requires          []string
-	Rm                bool
-	RootFS            bool
-	Secrets           []string
-	SecurityOpt       []string
-	SdNotifyMode      string
-	ShmSize           string
-	SignaturePolicy   string
-	StopSignal        string
-	StopTimeout       uint
-	StorageOpt        []string
-	SubUIDName        string
-	SubGIDName        string
-	Sysctl            []string
-	Systemd           string
-	Timeout           uint
-	TLSVerify         bool
-	TmpFS             []string
-	TTY               bool
-	Timezone          string
-	Umask             string
-	UIDMap            []string
-	Ulimit            []string
-	User              string
-	UserNS            string
-	UTS               string
-	Mount             []string
-	Volume            []string
-	VolumesFrom       []string
-	Workdir           string
-	SeccompPolicy     string
-	PidFile           string
-
-	Net *entities.NetOptions
-
-	CgroupConf []string
-}
-
 func stringMaptoArray(m map[string]string) []string {
 	a := make([]string, 0, len(m))
 	for k, v := range m {
@@ -145,7 +29,7 @@ func stringMaptoArray(m map[string]string) []string {
 
 // ContainerCreateToContainerCLIOpts converts a compat input struct to cliopts so it can be converted to
 // a specgen spec.
-func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*ContainerCLIOpts, []string, error) {
+func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.ContainerCreateOptions, []string, error) {
 	var (
 		capAdd     []string
 		cappDrop   []string
@@ -341,7 +225,7 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *c
 	// Note: several options here are marked as "don't need". this is based
 	// on speculation by Matt and I. We think that these come into play later
 	// like with start. We believe this is just a difference in podman/compat
-	cliOpts := ContainerCLIOpts{
+	cliOpts := entities.ContainerCreateOptions{
 		// Attach:            nil, // don't need?
 		Authfile:     "",
 		CapAdd:       append(capAdd, cc.HostConfig.CapAdd...),
