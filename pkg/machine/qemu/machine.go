@@ -608,7 +608,7 @@ func (v *MachineVM) startHostNetworking() error {
 	// MacOS does not have /usr/libexec so we look in the executable
 	// paths.
 	binary, err := exec.LookPath(machine.ForwarderBinaryName)
-	if errors.Cause(err) == exec.ErrNotFound {
+	if errors.Is(err, exec.ErrNotFound) {
 		// Nothing was found, so now check /usr/libexec, else error out
 		binary = filepath.Join("/usr/libexec/podman/", machine.ForwarderBinaryName)
 		if _, err := os.Stat(binary); err != nil {
