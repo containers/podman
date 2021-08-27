@@ -50,6 +50,7 @@ BUILDTAGS ?= \
 	$(shell hack/btrfs_tag.sh) \
 	$(shell hack/selinux_tag.sh) \
 	$(shell hack/systemd_tag.sh) \
+	$(shell hack/libsubid_tag.sh) \
 	exclude_graphdriver_devicemapper \
 	seccomp
 PYTHON ?= $(shell command -v python3 python|head -n1)
