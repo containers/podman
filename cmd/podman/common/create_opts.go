@@ -16,6 +16,7 @@ import (
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/specgen"
+	"github.com/docker/docker/api/types/mount"
 	"github.com/pkg/errors"
 )
 
@@ -94,18 +95,30 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *c
 		expose = append(expose, fmt.Sprintf("%s/%s", p.Port(), p.Proto()))
 	}
 
-	// mounts type=tmpfs/bind,source=,dest=,opt=val
-	// TODO options
+	// mounts type=tmpfs/bind,source=...,target=...=,opt=val
 	mounts := make([]string, 0, len(cc.HostConfig.Mounts))
+	var builder strings.Builder
 	for _, m := range cc.HostConfig.Mounts {
-		mount := fmt.Sprintf("type=%s", m.Type)
-		if len(m.Source) > 0 {
-			mount += fmt.Sprintf(",source=%s", m.Source)
+		addField(&builder, "type", string(m.Type))
+		addField(&builder, "source", m.Source)
+		addField(&builder, "target", m.Target)
+		addField(&builder, "ro", strconv.FormatBool(m.ReadOnly))
+		addField(&builder, "consistency", string(m.Consistency))
+
+		// Map any specialized mount options that intersect between *Options and cli options
+		switch m.Type {
+		case mount.TypeBind:
+			addField(&builder, "bind-propagation", string(m.BindOptions.Propagation))
+			addField(&builder, "bind-nonrecursive", strconv.FormatBool(m.BindOptions.NonRecursive))
+		case mount.TypeTmpfs:
+			addField(&builder, "tmpfs-size", strconv.FormatInt(m.TmpfsOptions.SizeBytes, 10))
+			addField(&builder, "tmpfs-mode", strconv.FormatUint(uint64(m.TmpfsOptions.Mode), 10))
+		case mount.TypeVolume:
+			// All current VolumeOpts are handled above
+			// See vendor/github.com/containers/common/pkg/parse/parse.go:ValidateVolumeOpts()
 		}
-		if len(m.Target) > 0 {
-			mount += fmt.Sprintf(",dst=%s", m.Target)
-		}
-		mounts = append(mounts, mount)
+		mounts = append(mounts, builder.String())
+		builder.Reset()
 	}
 
 	// dns
@@ -505,4 +518,18 @@ func logDriver() string {
 		return containerConfig.Containers.LogDriver
 	}
 	return ""
+}
+
+// addField is a helper function to populate mount options
+func addField(b *strings.Builder, name string, value string) {
+	if value == "" {
+		return
+	}
+
+	if b.Len() > 0 {
+		b.WriteRune(',')
+	}
+	b.WriteString(name)
+	b.WriteRune('=')
+	b.WriteString(value)
 }
