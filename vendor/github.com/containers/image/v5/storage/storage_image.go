@@ -1,3 +1,4 @@
+//go:build !containers_image_storage_stub
 // +build !containers_image_storage_stub
 
 package storage
@@ -17,13 +18,14 @@ import (
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/image"
+	"github.com/containers/image/v5/internal/putblobdigest"
 	"github.com/containers/image/v5/internal/tmpdir"
 	internalTypes "github.com/containers/image/v5/internal/types"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/blobinfocache/none"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
-	"github.com/containers/storage/drivers"
+	graphdriver "github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chunked"
 	"github.com/containers/storage/pkg/ioutils"
@@ -34,8 +36,10 @@ import (
 )
 
 var (
-	// ErrBlobDigestMismatch is returned when PutBlob() is given a blob
+	// ErrBlobDigestMismatch could potentially be returned when PutBlob() is given a blob
 	// with a digest-based name that doesn't match its contents.
+	// Deprecated: PutBlob() doesn't do this any more (it just accepts the caller’s value),
+	// and there is no known user of this error.
 	ErrBlobDigestMismatch = stderrors.New("blob digest mismatch")
 	// ErrBlobSizeMismatch is returned when PutBlob() is given a blob
 	// with an expected size that doesn't match the reader.
@@ -468,7 +472,7 @@ func (s *storageImageDestination) HasThreadSafePutBlob() bool {
 }
 
 // PutBlob writes contents of stream and returns data representing the result.
-// inputInfo.Digest can be optionally provided if known; it is not mandatory for the implementation to verify it.
+// inputInfo.Digest can be optionally provided if known; if provided, and stream is read to the end without error, the digest MUST match the stream contents.
 // inputInfo.Size is the expected length of stream, if known.
 // inputInfo.MediaType describes the blob format, if known.
 // May update cache.
@@ -482,26 +486,28 @@ func (s *storageImageDestination) PutBlob(ctx context.Context, stream io.Reader,
 		Digest: "",
 		Size:   -1,
 	}
-	// Set up to digest the blob and count its size while saving it to a file.
-	hasher := digest.Canonical.Digester()
-	if blobinfo.Digest.Validate() == nil {
-		if a := blobinfo.Digest.Algorithm(); a.Available() {
-			hasher = a.Digester()
+	if blobinfo.Digest != "" {
+		if err := blobinfo.Digest.Validate(); err != nil {
+			return errorBlobInfo, fmt.Errorf("invalid digest %#v: %w", blobinfo.Digest.String(), err)
 		}
 	}
-	diffID := digest.Canonical.Digester()
+
+	// Set up to digest the blob if necessary, and count its size while saving it to a file.
 	filename := s.computeNextBlobCacheFile()
 	file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY|os.O_EXCL, 0600)
 	if err != nil {
 		return errorBlobInfo, errors.Wrapf(err, "creating temporary file %q", filename)
 	}
 	defer file.Close()
-	counter := ioutils.NewWriteCounter(hasher.Hash())
-	reader := io.TeeReader(io.TeeReader(stream, counter), file)
-	decompressed, err := archive.DecompressStream(reader)
+	counter := ioutils.NewWriteCounter(file)
+	stream = io.TeeReader(stream, counter)
+	digester, stream := putblobdigest.DigestIfUnknown(stream, blobinfo)
+	decompressed, err := archive.DecompressStream(stream)
 	if err != nil {
 		return errorBlobInfo, errors.Wrap(err, "setting up to decompress blob")
 	}
+
+	diffID := digest.Canonical.Digester()
 	// Copy the data to the file.
 	// TODO: This can take quite some time, and should ideally be cancellable using ctx.Done().
 	_, err = io.Copy(diffID.Hash(), decompressed)
@@ -509,28 +515,25 @@ func (s *storageImageDestination) PutBlob(ctx context.Context, stream io.Reader,
 	if err != nil {
 		return errorBlobInfo, errors.Wrapf(err, "storing blob to file %q", filename)
 	}
-	// Ensure that any information that we were given about the blob is correct.
-	if blobinfo.Digest.Validate() == nil && blobinfo.Digest != hasher.Digest() {
-		return errorBlobInfo, errors.WithStack(ErrBlobDigestMismatch)
-	}
-	if blobinfo.Size >= 0 && blobinfo.Size != counter.Count {
-		return errorBlobInfo, errors.WithStack(ErrBlobSizeMismatch)
-	}
-	// Record information about the blob.
-	s.lock.Lock()
-	s.blobDiffIDs[hasher.Digest()] = diffID.Digest()
-	s.fileSizes[hasher.Digest()] = counter.Count
-	s.filenames[hasher.Digest()] = filename
-	s.lock.Unlock()
-	blobDigest := blobinfo.Digest
-	if blobDigest.Validate() != nil {
-		blobDigest = hasher.Digest()
-	}
+
+	// Determine blob properties, and fail if information that we were given about the blob
+	// is known to be incorrect.
+	blobDigest := digester.Digest()
 	blobSize := blobinfo.Size
 	if blobSize < 0 {
 		blobSize = counter.Count
+	} else if blobinfo.Size != counter.Count {
+		return errorBlobInfo, errors.WithStack(ErrBlobSizeMismatch)
 	}
-	// This is safe because we have just computed both values ourselves.
+
+	// Record information about the blob.
+	s.lock.Lock()
+	s.blobDiffIDs[blobDigest] = diffID.Digest()
+	s.fileSizes[blobDigest] = counter.Count
+	s.filenames[blobDigest] = filename
+	s.lock.Unlock()
+	// This is safe because we have just computed diffID, and blobDigest was either computed
+	// by us, or validated by the caller (usually copy.digestingReader).
 	cache.RecordDigestUncompressedPair(blobDigest, diffID.Digest())
 	return types.BlobInfo{
 		Digest:    blobDigest,
@@ -813,7 +816,7 @@ func (s *storageImageDestination) queueOrCommit(ctx context.Context, blob types.
 	//
 	// The conceptual benefit of this design is that caller can continue
 	// pulling layers after an early return.  At any given time, only one
-	// caller is the "worker" routine comitting layers.  All other routines
+	// caller is the "worker" routine committing layers.  All other routines
 	// can continue pulling and queuing in layers.
 	s.lock.Lock()
 	s.indexToPulledLayerInfo[index] = &manifest.LayerInfo{
@@ -852,7 +855,7 @@ func (s *storageImageDestination) queueOrCommit(ctx context.Context, blob types.
 // must guarantee that, at any given time, at most one goroutine may execute
 // `commitLayer()`.
 func (s *storageImageDestination) commitLayer(ctx context.Context, blob manifest.LayerInfo, index int) error {
-	// Already commited?  Return early.
+	// Already committed?  Return early.
 	if _, alreadyCommitted := s.indexToStorageID[index]; alreadyCommitted {
 		return nil
 	}
@@ -1004,7 +1007,10 @@ func (s *storageImageDestination) commitLayer(ctx context.Context, blob manifest
 	defer file.Close()
 	// Build the new layer using the diff, regardless of where it came from.
 	// TODO: This can take quite some time, and should ideally be cancellable using ctx.Done().
-	layer, _, err := s.imageRef.transport.store.PutLayer(id, lastLayer, nil, "", false, nil, file)
+	layer, _, err := s.imageRef.transport.store.PutLayer(id, lastLayer, nil, "", false, &storage.LayerOptions{
+		OriginalDigest:     blob.Digest,
+		UncompressedDigest: diffID,
+	}, file)
 	if err != nil && errors.Cause(err) != storage.ErrDuplicateID {
 		return errors.Wrapf(err, "adding layer with blob %q", blob.Digest)
 	}
@@ -1065,7 +1071,7 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 	if len(layerBlobs) > 0 { // Can happen when using caches
 		prev := s.indexToStorageID[len(layerBlobs)-1]
 		if prev == nil {
-			return errors.Errorf("Internal error: StorageImageDestination.Commit(): previous layer %d hasn't been commited (lastLayer == nil)", len(layerBlobs)-1)
+			return errors.Errorf("Internal error: StorageImageDestination.Commit(): previous layer %d hasn't been committed (lastLayer == nil)", len(layerBlobs)-1)
 		}
 		lastLayer = *prev
 	}

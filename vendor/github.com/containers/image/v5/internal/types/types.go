@@ -70,6 +70,7 @@ type ImageSourceChunk struct {
 // This API is experimental and can be changed without bumping the major version number.
 type ImageSourceSeekable interface {
 	// GetBlobAt returns a stream for the specified blob.
+	// The specified chunks must be not overlapping and sorted by their offset.
 	GetBlobAt(context.Context, publicTypes.BlobInfo, []ImageSourceChunk) (chan io.ReadCloser, chan error, error)
 }
 

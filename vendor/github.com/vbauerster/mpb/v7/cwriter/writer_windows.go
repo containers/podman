@@ -26,7 +26,7 @@ func (w *Writer) clearLines() error {
 		return err
 	}
 
-	info.CursorPosition.Y -= int16(w.lineCount)
+	info.CursorPosition.Y -= int16(w.lines)
 	if info.CursorPosition.Y < 0 {
 		info.CursorPosition.Y = 0
 	}
@@ -40,7 +40,7 @@ func (w *Writer) clearLines() error {
 		X: info.Window.Left,
 		Y: info.CursorPosition.Y,
 	}
-	count := uint32(info.Size.X) * uint32(w.lineCount)
+	count := uint32(info.Size.X) * uint32(w.lines)
 	_, _, _ = procFillConsoleOutputCharacter.Call(
 		uintptr(w.fd),
 		uintptr(' '),

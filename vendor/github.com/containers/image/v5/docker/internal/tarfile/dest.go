@@ -10,6 +10,7 @@ import (
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/internal/iolimits"
+	"github.com/containers/image/v5/internal/putblobdigest"
 	"github.com/containers/image/v5/internal/tmpdir"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
@@ -86,7 +87,7 @@ func (d *Destination) HasThreadSafePutBlob() bool {
 }
 
 // PutBlob writes contents of stream and returns data representing the result (with all data filled in).
-// inputInfo.Digest can be optionally provided if known; it is not mandatory for the implementation to verify it.
+// inputInfo.Digest can be optionally provided if known; if provided, and stream is read to the end without error, the digest MUST match the stream contents.
 // inputInfo.Size is the expected length of stream, if known.
 // May update cache.
 // WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
@@ -95,7 +96,7 @@ func (d *Destination) HasThreadSafePutBlob() bool {
 func (d *Destination) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, cache types.BlobInfoCache, isConfig bool) (types.BlobInfo, error) {
 	// Ouch, we need to stream the blob into a temporary file just to determine the size.
 	// When the layer is decompressed, we also have to generate the digest on uncompressed data.
-	if inputInfo.Size == -1 || inputInfo.Digest.String() == "" {
+	if inputInfo.Size == -1 || inputInfo.Digest == "" {
 		logrus.Debugf("docker tarfile: input with unknown size, streaming to disk first ...")
 		streamCopy, err := ioutil.TempFile(tmpdir.TemporaryDirectoryForBigFiles(d.sysCtx), "docker-tarfile-blob")
 		if err != nil {
@@ -104,10 +105,9 @@ func (d *Destination) PutBlob(ctx context.Context, stream io.Reader, inputInfo t
 		defer os.Remove(streamCopy.Name())
 		defer streamCopy.Close()
 
-		digester := digest.Canonical.Digester()
-		tee := io.TeeReader(stream, digester.Hash())
+		digester, stream2 := putblobdigest.DigestIfUnknown(stream, inputInfo)
 		// TODO: This can take quite some time, and should ideally be cancellable using ctx.Done().
-		size, err := io.Copy(streamCopy, tee)
+		size, err := io.Copy(streamCopy, stream2)
 		if err != nil {
 			return types.BlobInfo{}, err
 		}
@@ -116,9 +116,7 @@ func (d *Destination) PutBlob(ctx context.Context, stream io.Reader, inputInfo t
 			return types.BlobInfo{}, err
 		}
 		inputInfo.Size = size // inputInfo is a struct, so we are only modifying our copy.
-		if inputInfo.Digest == "" {
-			inputInfo.Digest = digester.Digest()
-		}
+		inputInfo.Digest = digester.Digest()
 		stream = streamCopy
 		logrus.Debugf("... streaming done")
 	}

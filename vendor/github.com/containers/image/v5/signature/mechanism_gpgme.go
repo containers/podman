@@ -1,3 +1,4 @@
+//go:build !containers_image_openpgp
 // +build !containers_image_openpgp
 
 package signature
