@@ -181,6 +181,13 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	if err != nil {
 		return nil, err
 	}
+	g.RemoveMount("/dev")
+	g.AddMount(spec.Mount{
+		Destination: "/dev",
+		Type:        "tmpfs",
+		Source:      "tmpfs",
+		Options:     []string{"nosuid", "noexec", "strictatime", "mode=755", "size=65536k"},
+	})
 	// Remove the default /dev/shm mount to ensure we overwrite it
 	g.RemoveMount("/dev/shm")
 	g.HostSpecific = true
