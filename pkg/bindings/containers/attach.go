@@ -134,7 +134,9 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 	if err != nil {
 		return err
 	}
+
 	if !(response.IsSuccess() || response.IsInformational()) {
+		defer response.Body.Close()
 		return response.Process(nil)
 	}
 
@@ -207,7 +209,7 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 			}
 		}
 	} else {
-		logrus.Debugf("Copying standard streams of container in non-terminal mode")
+		logrus.Debugf("Copying standard streams of container %q in non-terminal mode", ctnr.ID)
 		for {
 			// Read multiplexed channels and write to appropriate stream
 			fd, l, err := DemuxHeader(socket, buffer)
@@ -324,6 +326,8 @@ func resizeTTY(ctx context.Context, endpoint string, height *int, width *int) er
 	if err != nil {
 		return err
 	}
+	defer rsp.Body.Close()
+
 	return rsp.Process(nil)
 }
 
@@ -407,6 +411,7 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	respStruct := new(define.InspectExecSession)
 	if err := resp.Process(respStruct); err != nil {
@@ -477,6 +482,8 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 	if err != nil {
 		return err
 	}
+	defer response.Body.Close()
+
 	if !(response.IsSuccess() || response.IsInformational()) {
 		return response.Process(nil)
 	}

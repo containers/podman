@@ -16,6 +16,9 @@ func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string,
 	return generate.Systemd(ic.ClientCtx, nameOrID, options)
 }
 
+// GenerateKube Kubernetes YAML (v1 specification) for nameOrIDs
+//
+// Note: Caller is responsible for closing returned Reader
 func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string, opts entities.GenerateKubeOptions) (*entities.GenerateKubeReport, error) {
 	options := new(generate.KubeOptions).WithService(opts.Service)
 	return generate.Kube(ic.ClientCtx, nameOrIDs, options)

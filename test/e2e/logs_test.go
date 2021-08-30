@@ -145,7 +145,7 @@ var _ = Describe("Podman logs", func() {
 			results := podmanTest.Podman([]string{"logs", "--until", "10m", cid})
 			results.WaitWithDefaultTimeout()
 			Expect(results).To(Exit(0))
-			Expect(len(results.OutputToStringArray())).To(Equal(0))
+			Expect(len(results.OutputToStringArray())).To(Equal(3))
 		})
 
 		It("until time NOW: "+log, func() {

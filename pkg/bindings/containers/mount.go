@@ -25,6 +25,8 @@ func Mount(ctx context.Context, nameOrID string, options *MountOptions) (string,
 	if err != nil {
 		return path, err
 	}
+	defer response.Body.Close()
+
 	return path, response.Process(&path)
 }
 
@@ -43,6 +45,8 @@ func Unmount(ctx context.Context, nameOrID string, options *UnmountOptions) erro
 	if err != nil {
 		return err
 	}
+	defer response.Body.Close()
+
 	return response.Process(nil)
 }
 
@@ -61,5 +65,7 @@ func GetMountedContainerPaths(ctx context.Context, options *MountedContainerPath
 	if err != nil {
 		return mounts, err
 	}
+	defer response.Body.Close()
+
 	return mounts, response.Process(&mounts)
 }

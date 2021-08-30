@@ -280,7 +280,7 @@ func TestPeriodAndQuotaToCores(t *testing.T) {
 }
 
 func TestParseInputTime(t *testing.T) {
-	tm, err := ParseInputTime("1.5")
+	tm, err := ParseInputTime("1.5", true)
 	if err != nil {
 		t.Errorf("expected error to be nil but was: %v", err)
 	}

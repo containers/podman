@@ -73,13 +73,15 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse event filters")
 	}
+
 	var untilTime time.Time
 	if len(options.Until) > 0 {
-		untilTime, err = util.ParseInputTime(options.Until)
+		untilTime, err = util.ParseInputTime(options.Until, false)
 		if err != nil {
 			return err
 		}
 	}
+
 	j, err := sdjournal.NewJournal()
 	if err != nil {
 		return err

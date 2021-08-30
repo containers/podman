@@ -1,4 +1,16 @@
-- Changelog for HEAD (2021-08-20):
+- Changelog for v3.3.1 (2021-08-30):
+  * Update release notes for v3.3.1
+  * rootless cni: resolve absolute symlinks correctly
+  * Add filter params description to volume list/prune docs
+  * logFile until flag issue
+  * Fix file descriptor leaks and add test
+  * utils.RunUnderSystemdScope(): always close Conn
+  * Use pod netns with --pod-id-file
+  * e2e tests: fix overlay: Unknown option vfs.imagestore
+  * change error comparison for exec.ErrNotFound
+  * generate systemd: use --cidfile again
+
+- Changelog for v3.3.0 (2021-08-20):
   * Final release notes for v3.3.0
   * Fix network aliases with network id
   * machine: compute sha256 as we read the image file
@@ -20,7 +32,7 @@
   * Skip cgroup-parent test due to frequent flakes
   * Cirrus: Fix not uploading logformatter html
 
-- Changelog for HEAD (2021-08-17):
+- Changelog for v3.3.0-rc3 (2021-08-17):
   * Release notes for v3.3.0-RC3
   * [v3.3] Bump c/storage to v1.34.1 and c/image to v5.15.1
   * fix gvproxy path search for macos

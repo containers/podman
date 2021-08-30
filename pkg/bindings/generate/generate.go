@@ -26,10 +26,15 @@ func Systemd(ctx context.Context, nameOrID string, options *SystemdOptions) (*en
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	report := &entities.GenerateSystemdReport{}
 	return report, response.Process(&report.Units)
 }
 
+// Kube generate Kubernetes YAML (v1 specification)
+//
+// Note: Caller is responsible for closing returned reader
 func Kube(ctx context.Context, nameOrIDs []string, options *KubeOptions) (*entities.GenerateKubeReport, error) {
 	if options == nil {
 		options = new(KubeOptions)

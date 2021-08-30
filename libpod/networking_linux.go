@@ -185,7 +185,13 @@ func (r *RootlessCNI) Do(toRun func() error) error {
 				// if there is no symlink exit
 				break
 			}
-			resolvePath = filepath.Join(filepath.Dir(resolvePath), link)
+			if filepath.IsAbs(link) {
+				// link is as an absolute path
+				resolvePath = link
+			} else {
+				// link is as a relative, join it with the previous path
+				resolvePath = filepath.Join(filepath.Dir(resolvePath), link)
+			}
 			if strings.HasPrefix(resolvePath, "/run/") {
 				break
 			}

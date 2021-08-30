@@ -27,6 +27,8 @@ func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool,
 	if err != nil {
 		return false, err
 	}
+	defer response.Body.Close()
+
 	return response.IsSuccess(), nil
 }
 
@@ -49,6 +51,8 @@ func List(ctx context.Context, options *ListOptions) ([]*entities.ImageSummary, 
 	if err != nil {
 		return imageSummary, err
 	}
+	defer response.Body.Close()
+
 	return imageSummary, response.Process(&imageSummary)
 }
 
@@ -71,6 +75,8 @@ func GetImage(ctx context.Context, nameOrID string, options *GetOptions) (*entit
 	if err != nil {
 		return &inspectedData, err
 	}
+	defer response.Body.Close()
+
 	return &inspectedData, response.Process(&inspectedData)
 }
 
@@ -92,6 +98,8 @@ func Tree(ctx context.Context, nameOrID string, options *TreeOptions) (*entities
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	return &report, response.Process(&report)
 }
 
@@ -110,6 +118,8 @@ func History(ctx context.Context, nameOrID string, options *HistoryOptions) ([]*
 	if err != nil {
 		return history, err
 	}
+	defer response.Body.Close()
+
 	return history, response.Process(&history)
 }
 
@@ -123,6 +133,8 @@ func Load(ctx context.Context, r io.Reader) (*entities.ImageLoadReport, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	return &report, response.Process(&report)
 }
 
@@ -147,6 +159,7 @@ func Export(ctx context.Context, nameOrIDs []string, w io.Writer, options *Expor
 	if err != nil {
 		return err
 	}
+	defer response.Body.Close()
 
 	if response.StatusCode/100 == 2 || response.StatusCode/100 == 3 {
 		_, err = io.Copy(w, response.Body)
@@ -176,8 +189,9 @@ func Prune(ctx context.Context, options *PruneOptions) ([]*reports.PruneReport, 
 	if err != nil {
 		return deleted, err
 	}
-	err = response.Process(&deleted)
-	return deleted, err
+	defer response.Body.Close()
+
+	return deleted, response.Process(&deleted)
 }
 
 // Tag adds an additional name to locally-stored image. Both the tag and repo parameters are required.
@@ -197,6 +211,8 @@ func Tag(ctx context.Context, nameOrID, tag, repo string, options *TagOptions) e
 	if err != nil {
 		return err
 	}
+	defer response.Body.Close()
+
 	return response.Process(nil)
 }
 
@@ -217,10 +233,12 @@ func Untag(ctx context.Context, nameOrID, tag, repo string, options *UntagOption
 	if err != nil {
 		return err
 	}
+	defer response.Body.Close()
+
 	return response.Process(nil)
 }
 
-// Imports adds the given image to the local image store.  This can be done by file and the given reader
+// Import adds the given image to the local image store.  This can be done by file and the given reader
 // or via the url parameter.  Additional metadata can be associated with the image by using the changes and
 // message parameters.  The image can also be tagged given a reference. One of url OR r must be provided.
 func Import(ctx context.Context, r io.Reader, options *ImportOptions) (*entities.ImageImportReport, error) {
@@ -243,6 +261,8 @@ func Import(ctx context.Context, r io.Reader, options *ImportOptions) (*entities
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
+
 	return &report, response.Process(&report)
 }
 
@@ -269,8 +289,8 @@ func Push(ctx context.Context, source string, destination string, options *PushO
 	if err != nil {
 		return err
 	}
-	//SkipTLSVerify is special.  We need to delete the param added by
-	//toparams and change the key and flip the bool
+	// SkipTLSVerify is special.  We need to delete the param added by
+	// toparams and change the key and flip the bool
 	if options.SkipTLSVerify != nil {
 		params.Del("SkipTLSVerify")
 		params.Set("tlsVerify", strconv.FormatBool(!options.GetSkipTLSVerify()))
@@ -282,6 +302,7 @@ func Push(ctx context.Context, source string, destination string, options *PushO
 	if err != nil {
 		return err
 	}
+	defer response.Body.Close()
 
 	return response.Process(err)
 }
@@ -317,6 +338,7 @@ func Search(ctx context.Context, term string, options *SearchOptions) ([]entitie
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
 
 	results := []entities.ImageSearchReport{}
 	if err := response.Process(&results); err != nil {

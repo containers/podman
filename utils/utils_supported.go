@@ -36,6 +36,7 @@ func RunUnderSystemdScope(pid int, slice string, unitName string) error {
 			return err
 		}
 	}
+	defer conn.Close()
 	properties = append(properties, systemdDbus.PropSlice(slice))
 	properties = append(properties, newProp("PIDs", []uint32{uint32(pid)}))
 	properties = append(properties, newProp("Delegate", true))
@@ -54,7 +55,6 @@ func RunUnderSystemdScope(pid int, slice string, unitName string) error {
 		}
 		return err
 	}
-	defer conn.Close()
 
 	// Block until job is started
 	<-ch

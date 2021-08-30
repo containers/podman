@@ -1315,10 +1315,10 @@ USER mail`, BB)
 		}
 
 		curCgroupsBytes, err := ioutil.ReadFile("/proc/self/cgroup")
-		Expect(err).To(BeNil())
-		var curCgroups string = string(curCgroupsBytes)
+		Expect(err).ShouldNot(HaveOccurred())
+		var curCgroups = string(curCgroupsBytes)
 		fmt.Printf("Output:\n%s\n", curCgroups)
-		Expect(curCgroups).To(Not(Equal("")))
+		Expect(curCgroups).ToNot(Equal(""))
 
 		ctrName := "testctr"
 		container := podmanTest.Podman([]string{"run", "--name", ctrName, "-d", "--cgroups=disabled", ALPINE, "top"})
@@ -1329,14 +1329,14 @@ USER mail`, BB)
 		inspectOut := podmanTest.InspectContainer(ctrName)
 		Expect(len(inspectOut)).To(Equal(1))
 		pid := inspectOut[0].State.Pid
-		Expect(pid).To(Not(Equal(0)))
+		Expect(pid).ToNot(Equal(0))
 		Expect(inspectOut[0].HostConfig.CgroupParent).To(Equal(""))
 
 		ctrCgroupsBytes, err := ioutil.ReadFile(fmt.Sprintf("/proc/%d/cgroup", pid))
-		Expect(err).To(BeNil())
-		var ctrCgroups string = string(ctrCgroupsBytes)
+		Expect(err).ShouldNot(HaveOccurred())
+		var ctrCgroups = string(ctrCgroupsBytes)
 		fmt.Printf("Output\n:%s\n", ctrCgroups)
-		Expect(curCgroups).To(Equal(ctrCgroups))
+		Expect(ctrCgroups).To(Equal(curCgroups))
 	})
 
 	It("podman run with cgroups=enabled makes cgroups", func() {

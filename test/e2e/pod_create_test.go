@@ -117,6 +117,21 @@ var _ = Describe("Podman pod create", func() {
 		Expect(check).Should(Exit(0))
 	})
 
+	It("podman create pod with id file with network portbindings", func() {
+		file := filepath.Join(podmanTest.TempDir, "pod.id")
+		name := "test"
+		session := podmanTest.Podman([]string{"pod", "create", "--name", name, "--pod-id-file", file, "-p", "8080:80"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		webserver := podmanTest.Podman([]string{"run", "--pod-id-file", file, "-dt", nginx})
+		webserver.WaitWithDefaultTimeout()
+		Expect(webserver).Should(Exit(0))
+
+		check := SystemExec("nc", []string{"-z", "localhost", "8080"})
+		Expect(check).Should(Exit(0))
+	})
+
 	It("podman create pod with no infra but portbindings should fail", func() {
 		name := "test"
 		session := podmanTest.Podman([]string{"pod", "create", "--infra=false", "--name", name, "-p", "80:80"})
