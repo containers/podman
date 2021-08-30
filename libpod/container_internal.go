@@ -1072,6 +1072,11 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 		return err
 	}
 
+	// Make sure the workdir exists while initializing container
+	if err := c.resolveWorkDir(); err != nil {
+		return err
+	}
+
 	// Save the OCI newSpec to disk
 	if err := c.saveSpec(newSpec); err != nil {
 		return err

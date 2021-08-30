@@ -222,6 +222,26 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(matches[0]).To(Not(ContainSubstring("nosuid")))
 	})
 
+	// Container should start when workdir is overlayed volume
+	It("podman run with volume mounted as overlay and used as workdir", func() {
+		SkipIfRemote("Overlay volumes only work locally")
+		if os.Getenv("container") != "" {
+			Skip("Overlay mounts not supported when running in a container")
+		}
+		if rootless.IsRootless() {
+			if _, err := exec.LookPath("fuse-overlayfs"); err != nil {
+				Skip("Fuse-Overlayfs required for rootless overlay mount test")
+			}
+		}
+		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
+		os.Mkdir(mountPath, 0755)
+
+		//Container should be able to start with custom overlayed volume
+		session := podmanTest.Podman([]string{"run", "--rm", "-v", mountPath + ":/data:O", "--workdir=/data", ALPINE, "echo", "hello"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+	})
+
 	It("podman run with noexec can't exec", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "-v", "/bin:/hostbin:noexec", ALPINE, "/hostbin/ls", "/"})
 		session.WaitWithDefaultTimeout()
