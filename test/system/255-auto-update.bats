@@ -149,6 +149,9 @@ function _confirm_update() {
 }
 
 @test "podman auto-update - label io.containers.autoupdate=image with rollback" {
+    # FIXME: this test should exercise the authfile label to have a regression
+    # test for #11171.
+
     # Note: the autoupdatebroken image is empty on purpose so it cannot be
     # executed and force a rollback.  The rollback test for the local policy
     # is exercising the case where the container doesn't send a ready message.
