@@ -2,6 +2,21 @@
 
 # Changelog
 
+## v1.19.9 (2021-06-21)
+  * chroot: fix environment value leakage to intermediate processes
+  (CVE-2021-3602).
+
+## v1.19.8 (2021-03-08)
+  * copier: add GetOptions.IgnoreUnreadable
+
+## v1.19.7 (2021-03-04)
+  * copier: return child process stderr if we can't JSON decode the response
+  * copier: fix a renaming bug
+  * copier: add an Eval function
+  * copier.GetOptions: add NoDerefSymLinks
+  * ADD/COPY: create the destination directory first, chroot to it
+  * Set upperdir permissions based on source
+
 ## v1.19.6 (2021-02-18)
     Bump c/containers/storage v1.24.6
     Don't fail copy to emptydir
