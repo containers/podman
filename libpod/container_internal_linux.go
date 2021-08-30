@@ -176,11 +176,6 @@ func (c *Container) prepare() error {
 		return err
 	}
 
-	// Make sure the workdir exists
-	if err := c.resolveWorkDir(); err != nil {
-		return err
-	}
-
 	return nil
 }
 
