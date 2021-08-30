@@ -224,7 +224,7 @@ func autoUpdateRegistry(ctx context.Context, image *libimage.Image, ctr *libpod.
 		return report, nil
 	}
 
-	if _, err := updateImage(ctx, runtime, rawImageName, options); err != nil {
+	if _, err := updateImage(ctx, runtime, rawImageName, authfile); err != nil {
 		return report, errors.Wrapf(err, "error registry auto-updating container %q: image update for %q failed", cid, rawImageName)
 	}
 	updatedRawImages[rawImageName] = true
@@ -379,9 +379,9 @@ func newerLocalImageAvailable(runtime *libpod.Runtime, img *libimage.Image, rawI
 }
 
 // updateImage pulls the specified image.
-func updateImage(ctx context.Context, runtime *libpod.Runtime, name string, options *entities.AutoUpdateOptions) (*libimage.Image, error) {
+func updateImage(ctx context.Context, runtime *libpod.Runtime, name, authfile string) (*libimage.Image, error) {
 	pullOptions := &libimage.PullOptions{}
-	pullOptions.AuthFilePath = options.Authfile
+	pullOptions.AuthFilePath = authfile
 	pullOptions.Writer = os.Stderr
 
 	pulledImages, err := runtime.LibimageRuntime().Pull(ctx, name, config.PullPolicyAlways, pullOptions)
