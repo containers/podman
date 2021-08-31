@@ -70,3 +70,5 @@ require (
 	k8s.io/api v0.22.1
 	k8s.io/apimachinery v0.22.1
 )
+
+replace github.com/vbauerster/mpb/v7 => github.com/mtrmac/mpb/v7 v7.0.5-0.20210831125917-6bcc64f93d02
