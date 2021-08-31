@@ -423,6 +423,9 @@ apiv2_test_task:
     depends_on:
         - validate
     gce_instance: *standardvm
+    # Test is normally pretty quick, about 10-minutes.  If it hangs,
+    # don't make developers wait the full 1-hour timeout.
+    timeout_in: 20m
     env:
         <<: *stdenvars
         TEST_FLAVOR: apiv2
