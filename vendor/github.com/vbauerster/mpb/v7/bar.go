@@ -268,36 +268,27 @@ func (b *Bar) SetPriority(priority int) {
 // if bar is already in complete state. If drop is true bar will be
 // removed as well.
 func (b *Bar) Abort(drop bool) {
+	if b.Completed() {
+		return
+	}
+
 	if drop {
-		b.container.dropBar(b) // It is safe to call this multiple times with the same bar
-	}
-	select {
-	case b.operateState <- func(s *bState) {
-		if s.completed == true {
-			return
-		}
-		if drop {
-			b.cancel()
-			return
-		}
-		go func() {
-			var uncompleted int
-			b.container.traverseBars(func(bar *Bar) bool {
-				if b != bar && !bar.Completed() {
-					uncompleted++
-					return false
-				}
-				return true
-			})
-			if uncompleted == 0 {
-				b.container.refreshCh <- time.Now()
+		b.container.dropBar(b)
+	} else {
+		var uncompleted int
+		b.container.traverseBars(func(bar *Bar) bool {
+			if b != bar && !bar.Completed() {
+				uncompleted++
+				return false
 			}
-			b.cancel()
-		}()
-	}:
-		<-b.done
-	case <-b.done:
+			return true
+		})
+		if uncompleted == 0 {
+			b.container.refreshCh <- time.Now()
+		}
 	}
+	b.cancel()
+	<-b.done
 }
 
 // Completed reports whether the bar is in completed state.
