@@ -643,6 +643,8 @@ upgrade_test_task:
               PODMAN_UPGRADE_FROM: v2.0.6
         - env:
               PODMAN_UPGRADE_FROM: v2.1.1
+        - env:
+              PODMAN_UPGRADE_FROM: v3.1.2
     gce_instance: *standardvm
     env:
         TEST_FLAVOR: upgrade_test
