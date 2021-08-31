@@ -136,4 +136,46 @@ function service_cleanup() {
     service_cleanup
 }
 
+function set_listen_env() {
+    export LISTEN_PID="100" LISTEN_FDS="1" LISTEN_FDNAMES="listen_fdnames"
+}
+
+function unset_listen_env() {
+    unset LISTEN_PID LISTEN_FDS LISTEN_FDNAMES
+}
+
+function check_listen_env() {
+    local stdenv="$1"
+    local context="$2"
+    if is_remote; then
+	is "$output" "$stdenv" "LISTEN Environment did not pass: $context"
+    else
+	is "$output" "$stdenv
+LISTEN_PID=1
+LISTEN_FDS=1
+LISTEN_FDNAMES=listen_fdnames" "LISTEN Environment passed: $context"
+    fi
+}
+
+@test "podman pass LISTEN environment " {
+    # Note that `--hostname=host1` makes sure that all containers have the same
+    # environment.
+    run_podman run --hostname=host1 --rm $IMAGE printenv
+    stdenv=$output
+
+    # podman run
+    set_listen_env
+    run_podman run --hostname=host1 --rm $IMAGE printenv
+    unset_listen_env
+    check_listen_env "$stdenv" "podman run"
+
+    # podman start
+    run_podman create --hostname=host1 --rm $IMAGE printenv
+    cid="$output"
+    set_listen_env
+    run_podman start --attach $cid
+    unset_listen_env
+    check_listen_env "$stdenv" "podman start"
+}
+
 # vim: filetype=sh
