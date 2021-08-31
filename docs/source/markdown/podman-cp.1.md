@@ -52,6 +52,8 @@ Using `-` as the **src_path** streams the contents of `STDIN` as a tar archive. 
 
 Note that `podman cp` ignores permission errors when copying from a running rootless container.  The TTY devices inside a rootless container are owned by the host's root user and hence cannot be read inside the container's user namespace.
 
+Further note that `podman cp` does not support globbing (e.g., `cp dir/*.txt`).  If you want to copy multiple files from the host to the container you may use xargs(1) or find(1) (or similar tools for chaining commands) in conjunction with `podman cp`.  If you want to copy multiple files from the container to the host, you may use `podman mount CONTAINER` and operate on the returned mount point instead (see ALTERNATIVES below).
+
 ## OPTIONS
 
 #### **--archive**, **-a**=**true** | *false*
