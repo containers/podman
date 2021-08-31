@@ -1131,9 +1131,9 @@ Podman allocates unique ranges of UIDs and GIDs from the `containers` subpordina
   - *size*=_SIZE_: to specify an explicit size for the automatic user namespace. e.g. `--userns=auto:size=8192`. If `size` is not specified, `auto` will estimate a size for the user namespace.
   - *uidmapping*=_CONTAINER_UID:HOST_UID:SIZE_: to force a UID mapping to be present in the user namespace.
 
-**container:**_id_: join the user namespace of the specified container.
+- **container:**_id_: join the user namespace of the specified container.
 
-**host**: run in the user namespace of the caller. The processes running in the container will have the same privileges on the host as any other process launched by the calling user (default).
+- **host**: run in the user namespace of the caller. The processes running in the container will have the same privileges on the host as any other process launched by the calling user (default).
 
 - **keep-id**: creates a user namespace where the current rootless user's UID:GID are mapped to the same values in the container. This option is ignored for containers created by the root user.
 
