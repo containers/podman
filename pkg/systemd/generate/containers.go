@@ -155,7 +155,7 @@ func generateContainerInfo(ctr *libpod.Container, options entities.GenerateSyste
 	if config.CreateCommand != nil {
 		createCommand = config.CreateCommand
 	} else if options.New {
-		return nil, errors.Errorf("cannot use --new on container %q: no create command found", ctr.ID())
+		return nil, errors.Errorf("cannot use --new on container %q: no create command found: only works on containers created directly with podman but not via REST API", ctr.ID())
 	}
 
 	nameOrID, serviceName := containerServiceName(ctr, options)
