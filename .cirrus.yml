@@ -418,6 +418,7 @@ unit_test_task:
 apiv2_test_task:
     name: "APIv2 test on $DISTRO_NV"
     alias: apiv2_test
+    only_if: *not_docs
     skip: *tags
     depends_on:
         - validate
