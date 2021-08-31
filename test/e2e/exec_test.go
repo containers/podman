@@ -2,7 +2,9 @@ package integration
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	. "github.com/containers/podman/v3/test/utils"
@@ -539,5 +541,33 @@ RUN useradd -u 1000 auser`, fedoraMinimal)
 		stop := podmanTest.Podman([]string{"stop", ctrName})
 		stop.WaitWithDefaultTimeout()
 		Expect(stop).Should(Exit(0))
+	})
+
+	It("podman exec with env var secret", func() {
+		secretsString := "somesecretdata"
+		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
+		err := ioutil.WriteFile(secretFilePath, []byte(secretsString), 0755)
+		Expect(err).To(BeNil())
+
+		session := podmanTest.Podman([]string{"secret", "create", "mysecret", secretFilePath})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "-t", "-i", "-d", "--secret", "source=mysecret,type=env", "--name", "secr", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"exec", "secr", "printenv", "mysecret"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring(secretsString))
+
+		session = podmanTest.Podman([]string{"commit", "secr", "foobar.com/test1-image:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "foobar.com/test1-image:latest", "printenv", "mysecret"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(Not(ContainSubstring(secretsString)))
 	})
 })
