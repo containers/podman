@@ -173,13 +173,17 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 				return err
 			}
 		}
-		if c.AutoRemove() {
-			// Issue #7384: if the container is configured for
-			// auto-removal, it might already have been removed at
-			// this point.
-			return nil
+		err = c.Cleanup(ctx)
+		if err != nil {
+			// Issue #7384 and #11384: If the container is configured for
+			// auto-removal, it might already have been removed at this point.
+			// We still need to to cleanup since we do not know if the other cleanup process is successful
+			if c.AutoRemove() && (errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved)) {
+				return nil
+			}
+			return err
 		}
-		return c.Cleanup(ctx)
+		return nil
 	})
 	if err != nil {
 		return nil, err
