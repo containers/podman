@@ -218,9 +218,19 @@ outer:
 
 	// we only need to have a socket to reload ports when we run under rootless cni
 	if cfg.RootlessCNI {
-		socket, err := net.Listen("unix", filepath.Join(socketDir, cfg.ContainerID))
+		// workaround to bypass the 108 char socket path limit
+		// open the fd and use the path to the fd as bind argument
+		fd, err := unix.Open(socketDir, unix.O_PATH, 0)
 		if err != nil {
 			return err
+		}
+		socket, err := net.ListenUnix("unixpacket", &net.UnixAddr{Name: fmt.Sprintf("/proc/self/fd/%d/%s", fd, cfg.ContainerID), Net: "unixpacket"})
+		if err != nil {
+			return err
+		}
+		err = unix.Close(fd)
+		if err != nil {
+			logrus.Warnf("failed to close the socketDir fd: %v", err)
 		}
 		defer socket.Close()
 		go serve(socket, driver)
