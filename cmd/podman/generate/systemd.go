@@ -50,7 +50,7 @@ func init() {
 	timeFlagName := "time"
 	flags.UintVarP(&systemdTimeout, timeFlagName, "t", containerConfig.Engine.StopTimeout, "Stop timeout override")
 	_ = systemdCmd.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
-	flags.BoolVarP(&systemdOptions.New, "new", "", false, "Create a new container instead of starting an existing one")
+	flags.BoolVarP(&systemdOptions.New, "new", "", false, "Create a new container or pod instead of starting an existing one")
 	flags.BoolVarP(&systemdOptions.NoHeader, "no-header", "", false, "Skip header generation")
 
 	containerPrefixFlagName := "container-prefix"
