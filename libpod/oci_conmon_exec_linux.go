@@ -684,6 +684,19 @@ func prepareProcessExec(c *Container, options *ExecOptions, env []string, sessio
 		pspec.Env = append(pspec.Env, env...)
 	}
 
+	// Add secret envs if they exist
+	manager, err := c.runtime.SecretsManager()
+	if err != nil {
+		return nil, err
+	}
+	for name, secr := range c.config.EnvSecrets {
+		_, data, err := manager.LookupSecretData(secr.Name)
+		if err != nil {
+			return nil, err
+		}
+		pspec.Env = append(pspec.Env, fmt.Sprintf("%s=%s", name, string(data)))
+	}
+
 	if options.Cwd != "" {
 		pspec.Cwd = options.Cwd
 	}
