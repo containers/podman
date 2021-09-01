@@ -850,4 +850,38 @@ ENTRYPOINT ["sleep","99999"]
 		Expect(ok).To(BeTrue())
 	})
 
+	It("podman pod create --volume", func() {
+		volName := "testVol"
+		volCreate := podmanTest.Podman([]string{"volume", "create", volName})
+		volCreate.WaitWithDefaultTimeout()
+		Expect(volCreate).Should(Exit(0))
+		podName := "testPod"
+		podCreate := podmanTest.Podman([]string{"pod", "create", "--volume", volName + ":/tmp1", "--name", podName})
+		podCreate.WaitWithDefaultTimeout()
+		Expect(podCreate).Should(Exit(0))
+		podInspect := podmanTest.Podman([]string{"pod", "inspect", podName})
+		podInspect.WaitWithDefaultTimeout()
+		Expect(podInspect).Should(Exit(0))
+		data := podInspect.InspectPodToJSON()
+		Expect(data.Mounts[0].Name).To(Equal(volName))
+		ctrName := "testCtr"
+		ctrCreate := podmanTest.Podman([]string{"create", "--pod", podName, "--name", ctrName, ALPINE})
+		ctrCreate.WaitWithDefaultTimeout()
+		Expect(ctrCreate).Should(Exit(0))
+		ctrInspect := podmanTest.Podman([]string{"inspect", ctrName})
+		ctrInspect.WaitWithDefaultTimeout()
+		Expect(ctrInspect).Should(Exit(0))
+		ctrData := ctrInspect.InspectContainerToJSON()
+		Expect(ctrData[0].Mounts[0].Name).To(Equal(volName))
+
+		ctr2 := podmanTest.Podman([]string{"run", "--pod", podName, ALPINE, "sh", "-c", "echo hello >> " + "/tmp1/test"})
+		ctr2.WaitWithDefaultTimeout()
+		Expect(ctr2).Should(Exit(0))
+
+		ctr3 := podmanTest.Podman([]string{"run", "--pod", podName, ALPINE, "cat", "/tmp1/test"})
+		ctr3.WaitWithDefaultTimeout()
+		Expect(ctr3.OutputToString()).To(ContainSubstring("hello"))
+
+	})
+
 })
