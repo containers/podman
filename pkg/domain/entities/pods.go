@@ -135,6 +135,7 @@ type PodCreateOptions struct {
 	CpusetCpus         string            `json:"cpuset_cpus,omitempty"`
 	Userns             specgen.Namespace `json:"-"`
 	Volume             []string          `json:"volume,omitempty"`
+	VolumesFrom        []string          `json:"volumes_from,omitempty"`
 }
 
 // PodLogsOptions describes the options to extract pod logs.
@@ -251,7 +252,7 @@ type ContainerCreateOptions struct {
 	UTS               string
 	Mount             []string
 	Volume            []string `json:"volume,omitempty"`
-	VolumesFrom       []string
+	VolumesFrom       []string `json:"volumes_from,omitempty"`
 	Workdir           string
 	SeccompPolicy     string
 	PidFile           string
@@ -308,6 +309,7 @@ func ToPodSpecGen(s specgen.PodSpecGenerator, p *PodCreateOptions) (*specgen.Pod
 	s.InfraImage = p.InfraImage
 	s.SharedNamespaces = p.Share
 	s.PodCreateCommand = p.CreateCommand
+	s.VolumesFrom = p.VolumesFrom
 
 	// Networking config
 

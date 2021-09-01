@@ -656,14 +656,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(mountFlagName, AutocompleteMountFlag)
 
-		volumesFromFlagName := "volumes-from"
-		createFlags.StringArrayVar(
-			&cf.VolumesFrom,
-			volumesFromFlagName, []string{},
-			"Mount volumes from the specified container(s)",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(volumesFromFlagName, AutocompleteContainers)
-
 		workdirFlagName := "workdir"
 		createFlags.StringVarP(
 			&cf.Workdir,
@@ -877,4 +869,11 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		"Limit read rate (bytes per second) from a device (e.g. --device-read-bps=/dev/sda:1mb)",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(deviceReadBpsFlagName, completion.AutocompleteDefault)
+	volumesFromFlagName := "volumes-from"
+	createFlags.StringArrayVar(
+		&cf.VolumesFrom,
+		volumesFromFlagName, []string{},
+		"Mount volumes from the specified container(s)",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(volumesFromFlagName, AutocompleteContainers)
 }
