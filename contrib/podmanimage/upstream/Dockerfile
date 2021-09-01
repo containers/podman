@@ -40,7 +40,8 @@ RUN yum -y update; rpm --restore shadow-utils 2>/dev/null;  yum -y install --exc
      crun \
      fuse-overlayfs \
      fuse3 \
-     containers-common; \
+     containers-common \
+     podman-plugins; \
      mkdir /root/podman; \
      git clone https://github.com/containers/podman /root/podman/src/github.com/containers/podman; \
      cd /root/podman/src/github.com/containers/podman; \
