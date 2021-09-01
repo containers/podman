@@ -40,7 +40,9 @@ func openUnixSocket(path string) (*net.UnixConn, error) {
 // Does not check if state is appropriate
 // started is only required if startContainer is true
 func (c *Container) attach(streams *define.AttachStreams, keys string, resize <-chan define.TerminalSize, startContainer bool, started chan bool, attachRdy chan<- bool) error {
-	if !streams.AttachOutput && !streams.AttachError && !streams.AttachInput {
+	passthrough := c.LogDriver() == define.PassthroughLogging
+
+	if !streams.AttachOutput && !streams.AttachError && !streams.AttachInput && !passthrough {
 		return errors.Wrapf(define.ErrInvalidArg, "must provide at least one stream to attach to")
 	}
 	if startContainer && started == nil {
@@ -52,24 +54,27 @@ func (c *Container) attach(streams *define.AttachStreams, keys string, resize <-
 		return err
 	}
 
-	logrus.Debugf("Attaching to container %s", c.ID())
+	var conn *net.UnixConn
+	if !passthrough {
+		logrus.Debugf("Attaching to container %s", c.ID())
 
-	registerResizeFunc(resize, c.bundlePath())
+		registerResizeFunc(resize, c.bundlePath())
 
-	attachSock, err := c.AttachSocketPath()
-	if err != nil {
-		return err
-	}
-
-	conn, err := openUnixSocket(attachSock)
-	if err != nil {
-		return errors.Wrapf(err, "failed to connect to container's attach socket: %v", attachSock)
-	}
-	defer func() {
-		if err := conn.Close(); err != nil {
-			logrus.Errorf("Unable to close socket: %q", err)
+		attachSock, err := c.AttachSocketPath()
+		if err != nil {
+			return err
 		}
-	}()
+
+		conn, err = openUnixSocket(attachSock)
+		if err != nil {
+			return errors.Wrapf(err, "failed to connect to container's attach socket: %v", attachSock)
+		}
+		defer func() {
+			if err := conn.Close(); err != nil {
+				logrus.Errorf("unable to close socket: %q", err)
+			}
+		}()
+	}
 
 	// If starting was requested, start the container and notify when that's
 	// done.
@@ -78,6 +83,10 @@ func (c *Container) attach(streams *define.AttachStreams, keys string, resize <-
 			return err
 		}
 		started <- true
+	}
+
+	if passthrough {
+		return nil
 	}
 
 	receiveStdoutError, stdinDone := setupStdioChannels(streams, conn, detachKeys)

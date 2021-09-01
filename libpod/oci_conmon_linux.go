@@ -1288,6 +1288,8 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 		logDriverArg = define.JournaldLogging
 	case define.NoLogging:
 		logDriverArg = define.NoLogging
+	case define.PassthroughLogging:
+		logDriverArg = define.PassthroughLogging
 	case define.JSONLogging:
 		fallthrough
 	//lint:ignore ST1015 the default case has to be here

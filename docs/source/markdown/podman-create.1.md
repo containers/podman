@@ -513,7 +513,11 @@ Not implemented
 
 #### **--log-driver**="*k8s-file*"
 
-Logging driver for the container. Currently available options are *k8s-file*, *journald*, and *none*, with *json-file* aliased to *k8s-file* for scripting compatibility.
+Logging driver for the container. Currently available options are *k8s-file*, *journald*, *none* and *passthrough*, with *json-file* aliased to *k8s-file* for scripting compatibility.
+
+The *passthrough* driver passes down the standard streams (stdin, stdout, stderr) to the
+container.  It is not allowed with the remote Podman client and on a tty, since it is
+vulnerable to attacks via TIOCSTI.
 
 #### **--log-opt**=*name*=*value*
 

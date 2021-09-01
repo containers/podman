@@ -158,8 +158,13 @@ func run(cmd *cobra.Command, args []string) error {
 		runOpts.InputStream = nil
 	}
 
+	passthrough := cliVals.LogDriver == define.PassthroughLogging
+
 	// If attach is set, clear stdin/stdout/stderr and only attach requested
 	if cmd.Flag("attach").Changed {
+		if passthrough {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot specify --attach with --log-driver=passthrough")
+		}
 		runOpts.OutputStream = nil
 		runOpts.ErrorStream = nil
 		if !cliVals.Interactive {
@@ -179,6 +184,7 @@ func run(cmd *cobra.Command, args []string) error {
 			}
 		}
 	}
+
 	cliVals.PreserveFDs = runOpts.PreserveFDs
 	s := specgen.NewSpecGenerator(imageName, cliVals.RootFS)
 	if err := specgenutil.FillOutSpecGen(s, &cliVals, args); err != nil {
@@ -200,7 +206,7 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if runOpts.Detach {
+	if runOpts.Detach && !passthrough {
 		fmt.Println(report.Id)
 		return nil
 	}
