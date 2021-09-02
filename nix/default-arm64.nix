@@ -77,10 +77,12 @@ let
       patchShebangs .
       make bin/podman
       make bin/podman-remote
+      make bin/rootlessport
     '';
     installPhase = ''
       install -Dm755 bin/podman $out/bin/podman
       install -Dm755 bin/podman-remote $out/bin/podman-remote
+      install -Dm755 bin/rootlessport $out/libexec/podman/rootlessport
     '';
   };
 in

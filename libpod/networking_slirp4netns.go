@@ -484,10 +484,14 @@ func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath strin
 	}
 	cfgR := bytes.NewReader(cfgJSON)
 	var stdout bytes.Buffer
-	cmd := exec.Command(fmt.Sprintf("/proc/%d/exe", os.Getpid()))
-	cmd.Args = []string{rootlessport.ReexecKey}
-	// Leak one end of the pipe in rootlessport process, the other will be sent to conmon
+	path, err := r.config.FindHelperBinary(rootlessport.BinaryName, false)
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command(path)
+	cmd.Args = []string{rootlessport.BinaryName}
 
+	// Leak one end of the pipe in rootlessport process, the other will be sent to conmon
 	if ctr.rootlessPortSyncR != nil {
 		defer errorhandling.CloseQuiet(ctr.rootlessPortSyncR)
 	}

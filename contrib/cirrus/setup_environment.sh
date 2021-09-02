@@ -236,9 +236,19 @@ case "$TEST_FLAVOR" in
         # Use existing host bits when testing is to happen inside a container
         # since this script will run again in that environment.
         # shellcheck disable=SC2154
-        if ((CONTAINER==0)) && [[ "$TEST_ENVIRON" == "host" ]]; then
+        if [[ "$TEST_ENVIRON" == "host" ]]; then
+            if ((CONTAINER)); then
+                die "Refusing to config. host-test in container";
+            fi
             remove_packaged_podman_files
             make install PREFIX=/usr ETCDIR=/etc
+        elif [[ "$TEST_ENVIRON" == "container" ]]; then
+            if ((CONTAINER)); then
+                remove_packaged_podman_files
+                make install PREFIX=/usr ETCDIR=/etc
+            fi
+        else
+            die "Invalid value for $$TEST_ENVIRON=$TEST_ENVIRON"
         fi
 
         install_test_configs
