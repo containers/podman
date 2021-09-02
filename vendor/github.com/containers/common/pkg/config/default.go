@@ -76,10 +76,12 @@ var (
 		"CAP_SYS_CHROOT",
 	}
 
-	cniBinDir = []string{
+	// It may seem a bit unconventional, but it is necessary to do so
+	DefaultCNIPluginDirs = []string{
+		"/usr/local/libexec/cni",
 		"/usr/libexec/cni",
-		"/usr/lib/cni",
 		"/usr/local/lib/cni",
+		"/usr/lib/cni",
 		"/opt/cni/bin",
 	}
 
@@ -207,7 +209,7 @@ func DefaultConfig() (*Config, error) {
 			DefaultNetwork:   "podman",
 			DefaultSubnet:    DefaultSubnet,
 			NetworkConfigDir: cniConfig,
-			CNIPluginDirs:    cniBinDir,
+			CNIPluginDirs:    DefaultCNIPluginDirs,
 		},
 		Engine:  *defaultEngineConfig,
 		Secrets: defaultSecretConfig(),

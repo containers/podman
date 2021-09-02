@@ -306,7 +306,7 @@ func (ir *ImageEngine) ManifestRemove(ctx context.Context, names []string) (stri
 
 // ManifestRm removes the specified manifest list from storage
 func (ir *ImageEngine) ManifestRm(ctx context.Context, names []string) (report *entities.ImageRemoveReport, rmErrors []error) {
-	return ir.Remove(ctx, names, entities.ImageRemoveOptions{})
+	return ir.Remove(ctx, names, entities.ImageRemoveOptions{LookupManifest: true})
 }
 
 // ManifestPush pushes a manifest list or image index to the destination
