@@ -40,7 +40,7 @@ func init() {
 	flags.Uint64Var(
 		&initOpts.CPUS,
 		cpusFlagName, 1,
-		"Number of CPUs. The default is 1.",
+		"Number of CPUs",
 	)
 	_ = initCmd.RegisterFlagCompletionFunc(cpusFlagName, completion.AutocompleteNone)
 
@@ -57,7 +57,7 @@ func init() {
 	flags.Uint64VarP(
 		&initOpts.Memory,
 		memoryFlagName, "m", 2048,
-		"Memory (in MB)",
+		"Memory in MB",
 	)
 	_ = initCmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
 
