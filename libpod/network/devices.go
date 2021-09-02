@@ -2,12 +2,11 @@ package network
 
 import (
 	"fmt"
-	"os/exec"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/pkg/util"
-	"github.com/containers/podman/v3/utils"
 	"github.com/sirupsen/logrus"
+	"github.com/vishvananda/netlink"
 )
 
 // GetFreeDeviceName returns a device name that is unused; used when no network
@@ -52,12 +51,9 @@ func GetFreeDeviceName(config *config.Config) (string, error) {
 
 // RemoveInterface removes an interface by the given name
 func RemoveInterface(interfaceName string) error {
-	// Make sure we have the ip command on the system
-	ipPath, err := exec.LookPath("ip")
+	link, err := netlink.LinkByName(interfaceName)
 	if err != nil {
 		return err
 	}
-	// Delete the network interface
-	_, err = utils.ExecCmd(ipPath, []string{"link", "del", interfaceName}...)
-	return err
+	return netlink.LinkDel(link)
 }
