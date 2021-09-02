@@ -453,7 +453,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.ImageVolumeMode = "anonymous"
 	}
 
-	s.Systemd = c.Systemd
+	s.Systemd = strings.ToLower(c.Systemd)
 	s.SdNotifyMode = c.SdNotifyMode
 	if s.ResourceLimits == nil {
 		s.ResourceLimits = &specs.LinuxResources{}
