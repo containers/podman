@@ -339,6 +339,8 @@ EOF
 }
 
 @test "podman auto-update using systemd" {
+    skip_if_journald_unavailable
+
     generate_service alpine image
 
     cat >$UNIT_DIR/podman-auto-update-$cname.timer <<EOF
@@ -386,7 +388,9 @@ EOF
     done
 
     if [[ -n "$failed_start" ]]; then
-       die "Did not find expected string '$expect' in journalctl output for $cname"
+        echo "journalctl output:"
+        sed -e 's/^/  /' <<<"$output"
+        die "Did not find expected string '$expect' in journalctl output for $cname"
     fi
 
     _confirm_update $cname $ori_image
