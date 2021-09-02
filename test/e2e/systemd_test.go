@@ -176,4 +176,21 @@ WantedBy=multi-user.target
 
 		Expect(session.OutputToString()).To(Not(ContainSubstring("noexec")))
 	})
+
+	It("podman run --systemd arg is case insensitive", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", "--systemd", "Always", ALPINE, "echo", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).Should(Equal("test"))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--systemd", "True", ALPINE, "echo", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).Should(Equal("test"))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--systemd", "False", ALPINE, "echo", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).Should(Equal("test"))
+	})
 })
