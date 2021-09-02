@@ -11,6 +11,7 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -56,7 +57,8 @@ func networkCreateFlags(cmd *cobra.Command) {
 
 	macvlanFlagName := "macvlan"
 	flags.StringVar(&networkCreateOptions.MacVLAN, macvlanFlagName, "", "create a Macvlan connection based on this device")
-	_ = cmd.RegisterFlagCompletionFunc(macvlanFlagName, completion.AutocompleteNone)
+	// This option is deprecated
+	flags.MarkHidden(macvlanFlagName)
 
 	labelFlagName := "label"
 	flags.StringArrayVar(&labels, labelFlagName, nil, "set metadata on a network")
@@ -100,6 +102,11 @@ func networkCreate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return errors.Wrapf(err, "unable to process options")
 	}
+
+	if networkCreateOptions.MacVLAN != "" {
+		logrus.Warn("The --macvlan option is deprecated, use `--driver macvlan --opt parent=<device>` instead")
+	}
+
 	response, err := registry.ContainerEngine().NetworkCreate(registry.Context(), name, networkCreateOptions)
 	if err != nil {
 		return err
