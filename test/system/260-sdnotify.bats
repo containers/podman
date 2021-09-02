@@ -157,6 +157,10 @@ function _assert_mainpid_is_conmon() {
     # With container, READY=1 isn't necessarily the last message received;
     # just look for it anywhere in received messages
     run cat $_SOCAT_LOG
+    # The 'echo's help us debug failed runs
+    echo "socat log:"
+    echo "$output"
+
     is "$output" ".*READY=1" "received READY=1 through notify socket"
 
     _assert_mainpid_is_conmon "${lines[0]}"

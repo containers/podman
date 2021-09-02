@@ -140,4 +140,5 @@ _EOF
     run_podman inspect --format "{{ .Config.User }}" test_pod-test
     is "$output" bin "expect container within pod to run as the bin user"
     run_podman pod rm -f test_pod
+    run_podman rmi -f userimage:latest
 }
