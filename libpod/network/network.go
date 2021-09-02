@@ -194,8 +194,9 @@ func removeNetwork(config *config.Config, name string) error {
 				return errors.Wrapf(err, "failed to get live network names")
 			}
 			if util.StringInSlice(interfaceName, liveNetworkNames) {
-				if err := RemoveInterface(interfaceName); err != nil {
-					return errors.Wrapf(err, "failed to delete the network interface %q", interfaceName)
+				if err = RemoveInterface(interfaceName); err != nil {
+					// only log the error, it is not fatal
+					logrus.Infof("failed to remove network interface %s: %v", interfaceName, err)
 				}
 			}
 		}
