@@ -505,6 +505,37 @@ func (v *MachineVM) SSH(name string, opts machine.SSHOptions) error {
 	return cmd.Run()
 }
 
+// Mount uses sshfs to set up file sharing between host and VM.
+func (v *MachineVM) Mount(name string, sshfsOpts machine.SSHFSOptions) error {
+	if !v.isRunning() {
+		return errors.Errorf("vm %q is not running.", v.Name)
+	}
+
+	err := v.SSH(name, machine.SSHOptions{
+		Args: []string{"--", "ls " + sshfsOpts.Remote},
+	})
+	if err != nil {
+		return errors.Errorf("%q might not exist in %s: %s (try create it first)", sshfsOpts.Remote, name, err)
+	}
+
+	args := []string{"-o", "IdentityFile " + v.IdentityPath,
+		"-p", strconv.Itoa(v.Port),
+		"-o", "UserKnownHostsFile /dev/null",
+		"-o", "StrictHostKeyChecking no",
+		v.RemoteUsername + "@localhost:" + sshfsOpts.Remote,
+		sshfsOpts.Local,
+	}
+
+	cmd := exec.Command("sshfs", args...)
+	logrus.Debugf("Executing: sshfs %v\n", args)
+
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+
+	return cmd.Run()
+}
+
 // executes qemu-image info to get the virtual disk size
 // of the diskimage
 func getDiskSize(path string) (uint64, error) {

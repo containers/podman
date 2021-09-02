@@ -63,6 +63,12 @@ type ListResponse struct {
 type SSHOptions struct {
 	Args []string
 }
+
+type SSHFSOptions struct {
+	Local  string
+	Remote string
+}
+
 type StartOptions struct{}
 
 type StopOptions struct{}
@@ -78,6 +84,7 @@ type VM interface {
 	Init(opts InitOptions) error
 	Remove(name string, opts RemoveOptions) (string, func() error, error)
 	SSH(name string, opts SSHOptions) error
+	Mount(name string, opts SSHFSOptions) error
 	Start(name string, opts StartOptions) error
 	Stop(name string, opts StopOptions) error
 }
