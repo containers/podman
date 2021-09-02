@@ -89,6 +89,8 @@ type ImageRemoveOptions struct {
 	All bool
 	// Foce will force image removal including containers using the images.
 	Force bool
+	// Confirms if given name is a manifest list and removes it, otherwise returns error.
+	LookupManifest bool
 }
 
 // ImageRemoveResponse is the response for removing one or more image(s) from storage

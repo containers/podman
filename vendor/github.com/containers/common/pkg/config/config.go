@@ -778,7 +778,7 @@ func (c *NetworkConfig) Validate() error {
 		}
 	}
 
-	if stringsEq(c.CNIPluginDirs, cniBinDir) {
+	if stringsEq(c.CNIPluginDirs, DefaultCNIPluginDirs) {
 		return nil
 	}
 

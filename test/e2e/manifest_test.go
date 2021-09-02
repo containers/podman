@@ -280,4 +280,32 @@ var _ = Describe("Podman manifest", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(1))
 	})
+
+	It("podman manifest rm should not remove referenced images", func() {
+		manifestList := "manifestlist"
+		imageName := "quay.io/libpod/busybox"
+
+		session := podmanTest.Podman([]string{"pull", imageName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"manifest", "create", manifestList})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"manifest", "add", manifestList, imageName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"manifest", "rm", manifestList})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		//image should still show up
+		session = podmanTest.Podman([]string{"images"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(ContainSubstring(imageName))
+		Expect(session).Should(Exit(0))
+	})
+
 })
