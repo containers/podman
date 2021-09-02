@@ -18,7 +18,11 @@ func List(ctx context.Context, options *ListOptions) ([]*entities.SecretInfoRepo
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/secrets/json", nil, nil)
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
+	}
+	response, err := conn.DoRequest(nil, http.MethodGet, "/secrets/json", params, nil)
 	if err != nil {
 		return secrs, err
 	}

@@ -48,7 +48,7 @@ func init() {
 }
 
 func ls(cmd *cobra.Command, args []string) error {
-	responses, err := registry.ContainerEngine().SecretList(context.Background())
+	responses, err := registry.ContainerEngine().SecretList(context.Background(), entities.SecretListRequest{})
 	if err != nil {
 		return err
 	}

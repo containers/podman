@@ -16,7 +16,7 @@ type SecretCreateOptions struct {
 }
 
 type SecretListRequest struct {
-	Filters map[string]string
+	Filters map[string][]string
 }
 
 type SecretListReport struct {

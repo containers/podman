@@ -43,8 +43,9 @@ func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string
 	return allInspect, errs, nil
 }
 
-func (ic *ContainerEngine) SecretList(ctx context.Context) ([]*entities.SecretInfoReport, error) {
-	secrs, _ := secrets.List(ic.ClientCtx, nil)
+func (ic *ContainerEngine) SecretList(ctx context.Context, opts entities.SecretListRequest) ([]*entities.SecretInfoReport, error) {
+	options := new(secrets.ListOptions).WithFilters(opts.Filters)
+	secrs, _ := secrets.List(ic.ClientCtx, options)
 	return secrs, nil
 }
 
