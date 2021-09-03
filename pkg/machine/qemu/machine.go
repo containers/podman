@@ -278,6 +278,9 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		time.Sleep(wait)
 		wait++
 	}
+	if err != nil {
+		return err
+	}
 
 	fd, err := qemuSocketConn.(*net.UnixConn).File()
 	if err != nil {
