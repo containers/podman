@@ -488,7 +488,12 @@ func (v *MachineVM) SSH(name string, opts machine.SSHOptions) error {
 		return errors.Errorf("vm %q is not running.", v.Name)
 	}
 
-	sshDestination := v.RemoteUsername + "@localhost"
+	username := opts.Username
+	if username == "" {
+		username = v.RemoteUsername
+	}
+
+	sshDestination := username + "@localhost"
 	port := strconv.Itoa(v.Port)
 
 	args := []string{"-i", v.IdentityPath, "-p", port, sshDestination, "-o", "UserKnownHostsFile /dev/null", "-o", "StrictHostKeyChecking no"}
