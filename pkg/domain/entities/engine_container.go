@@ -72,6 +72,7 @@ type ContainerEngine interface {
 	PodExists(ctx context.Context, nameOrID string) (*BoolReport, error)
 	PodInspect(ctx context.Context, options PodInspectOptions) (*PodInspectReport, error)
 	PodKill(ctx context.Context, namesOrIds []string, options PodKillOptions) ([]*PodKillReport, error)
+	PodLogs(ctx context.Context, pod string, options PodLogsOptions) error
 	PodPause(ctx context.Context, namesOrIds []string, options PodPauseOptions) ([]*PodPauseReport, error)
 	PodPrune(ctx context.Context, options PodPruneOptions) ([]*PodPruneReport, error)
 	PodPs(ctx context.Context, options PodPSOptions) ([]*ListPodsReport, error)
