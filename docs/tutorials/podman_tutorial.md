@@ -50,11 +50,11 @@ Note: The -l is a convenience argument for **latest container**.  You can also u
 of -l.
 
 ### Testing the httpd server
-Now that we have the IP address of the container, we can test the network communication between the host
+As we do not have the IP address of the container, we can test the network communication between the host
 operating system and the container using curl. The following command should display the index page of our
 containerized httpd server.
 ```console
-curl http://<IP_address>:8080
+curl http://localhost:8080
 ```
 
 ### Viewing the container's logs
