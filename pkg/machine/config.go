@@ -61,7 +61,8 @@ type ListResponse struct {
 }
 
 type SSHOptions struct {
-	Args []string
+	Username string
+	Args     []string
 }
 type StartOptions struct{}
 
