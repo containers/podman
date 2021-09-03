@@ -1,5 +1,17 @@
 # Release Notes
 
+## 3.3.1
+### Bugfixes
+- Fixed a bug where unit files created by `podman generate systemd` could not cleanup shut down containers when stopped by `systemctl stop` ([#11304](https://github.com/containers/podman/issues/11304)).
+- Fixed a bug where `podman machine` commands would not properly locate the `gvproxy` binary in some circumstances.
+- Fixed a bug where containers created as part of a pod using the `--pod-id-file` option would not join the pod's network namespace ([#11303](https://github.com/containers/podman/issues/11303)).
+- Fixed a bug where Podman, when using the systemd cgroups driver, could sometimes leak dbus sessions.
+- Fixed a bug where the `until` filter to `podman logs` and `podman events` was improperly handled, requiring input to be negated ([#11158](https://github.com/containers/podman/issues/11158)).
+- Fixed a bug where rootless containers using CNI networking run on systems using `systemd-resolved` for DNS would fail to start if resolved symlinked `/etc/resolv.conf` to an absolute path ([#11358](https://github.com/containers/podman/issues/11358)).
+
+### API
+- A large number of potential file descriptor leaks from improperly closing client connections have been fixed.
+
 ## 3.3.0
 ### Features
 - Containers inside VMs created by `podman machine` will now automatically handle port forwarding - containers in `podman machine` VMs that publish ports via `--publish` or `--publish-all` will have these ports not just forwarded on the VM, but also on the host system.
