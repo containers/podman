@@ -267,12 +267,9 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	}
 
 	if podOpt.Infra {
-		imagePull := config.DefaultInfraImage
-		if podOpt.InfraImage != config.DefaultInfraImage && podOpt.InfraImage != "" {
-			imagePull = podOpt.InfraImage
-		}
+		containerConfig := util.DefaultContainerConfig()
 
-		pulledImages, err := pullImage(ic, writer, imagePull, options, config.PullPolicyNewer)
+		pulledImages, err := pullImage(ic, writer, containerConfig.Engine.InfraImage, options, config.PullPolicyNewer)
 		if err != nil {
 			return nil, err
 		}

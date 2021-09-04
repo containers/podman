@@ -11,6 +11,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/pkg/util"
 	. "github.com/containers/podman/v3/test/utils"
 	"github.com/containers/storage/pkg/stringid"
@@ -29,6 +30,22 @@ metadata:
   name: unknown
 spec:
   hostname: unknown
+`
+var checkInfraImagePodYaml = `
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: check-infra-image
+  name: check-infra-image
+spec:
+  containers:
+    - name: alpine
+      image: quay.io/libpod/alpine:latest
+      command:
+        - sleep
+        - 24h
+status: {}
 `
 var sharedNamespacePodYaml = `
 apiVersion: v1
@@ -1096,6 +1113,55 @@ var _ = Describe("Podman play kube", func() {
 		label := inspect.OutputToString()
 
 		Expect(label).To(ContainSubstring("unconfined_u:system_r:spc_t:s0"))
+	})
+
+	It("podman play kube should use default infra_image", func() {
+		err := writeYaml(checkInfraImagePodYaml, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		podInspect := podmanTest.Podman([]string{"inspect", "check-infra-image", "--format", "{{ .InfraContainerID }}"})
+		podInspect.WaitWithDefaultTimeout()
+		infraContainerID := podInspect.OutputToString()
+
+		conInspect := podmanTest.Podman([]string{"inspect", infraContainerID, "--format", "{{ .ImageName }}"})
+		conInspect.WaitWithDefaultTimeout()
+		infraContainerImage := conInspect.OutputToString()
+		Expect(infraContainerImage).To(Equal(config.DefaultInfraImage))
+	})
+
+	It("podman play kube should use customized infra_image", func() {
+		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
+
+		infraImage := "k8s.gcr.io/pause:3.2"
+		err := ioutil.WriteFile(conffile, []byte(fmt.Sprintf("[engine]\ninfra_image=\"%s\"\n", infraImage)), 0644)
+		Expect(err).To(BeNil())
+
+		os.Setenv("CONTAINERS_CONF", conffile)
+		defer os.Unsetenv("CONTAINERS_CONF")
+
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		err = writeYaml(checkInfraImagePodYaml, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		podInspect := podmanTest.Podman([]string{"inspect", "check-infra-image", "--format", "{{ .InfraContainerID }}"})
+		podInspect.WaitWithDefaultTimeout()
+		infraContainerID := podInspect.OutputToString()
+
+		conInspect := podmanTest.Podman([]string{"inspect", infraContainerID, "--format", "{{ .ImageName }}"})
+		conInspect.WaitWithDefaultTimeout()
+		infraContainerImage := conInspect.OutputToString()
+		Expect(infraContainerImage).To(Equal(infraImage))
 	})
 
 	It("podman play kube should share ipc,net,uts when shareProcessNamespace is set", func() {
