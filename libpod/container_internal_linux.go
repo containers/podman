@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package libpod
@@ -1942,7 +1943,22 @@ func (c *Container) generateHosts(path string) (string, error) {
 	}
 	hosts := string(orig)
 	hosts += c.getHosts()
+
+	hosts = c.appendLocalhost(hosts)
+
 	return c.writeStringToRundir("hosts", hosts)
+}
+
+// based on networking mode we may want to append the localhost
+// if there isn't any record for it and also this shoud happen
+// in slirp4netns and similar network modes.
+func (c *Container) appendLocalhost(hosts string) string {
+	if !strings.Contains(hosts, "localhost") &&
+		!c.config.NetMode.IsHost() {
+		hosts += "127.0.0.1\tlocalhost\n::1\tlocalhost\n"
+	}
+
+	return hosts
 }
 
 // appendHosts appends a container's config and state pertaining to hosts to a container's
