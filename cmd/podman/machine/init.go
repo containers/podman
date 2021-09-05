@@ -88,6 +88,10 @@ func init() {
 	flags.StringVar(&initOpts.ImagePath, ImagePathFlagName, cfg.Machine.Image, "Path to qcow image")
 	_ = initCmd.RegisterFlagCompletionFunc(ImagePathFlagName, completion.AutocompleteDefault)
 
+	VolumeFlagName := "volume"
+	flags.StringArrayVarP(&initOpts.Volumes, VolumeFlagName, "v", []string{}, "Volumes to mount, source:target")
+	_ = initCmd.RegisterFlagCompletionFunc(VolumeFlagName, completion.AutocompleteDefault)
+
 	IgnitionPathFlagName := "ignition-path"
 	flags.StringVar(&initOpts.IgnitionPath, IgnitionPathFlagName, "", "Path to ignition file")
 	_ = initCmd.RegisterFlagCompletionFunc(IgnitionPathFlagName, completion.AutocompleteDefault)
