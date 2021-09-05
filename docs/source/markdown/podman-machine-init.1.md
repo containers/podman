@@ -47,6 +47,10 @@ Defaults to `testing`.
 
 Memory (in MB).
 
+#### **--volume**, **-v**=*source:target*
+
+Mounts a volume from source to target.
+
 #### **--help**
 
 Print usage statement.

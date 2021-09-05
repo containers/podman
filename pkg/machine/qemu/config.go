@@ -9,6 +9,8 @@ type MachineVM struct {
 	CPUs uint64
 	// The command line representation of the qemu command
 	CmdLine []string
+	// Mounts is the list of remote filesystems to mount
+	Mounts []Mount
 	// IdentityPath is the fq path to the ssh priv key
 	IdentityPath string
 	// IgnitionFilePath is the fq path to the .ign file
@@ -25,6 +27,13 @@ type MachineVM struct {
 	QMPMonitor Monitor
 	// RemoteUsername of the vm user
 	RemoteUsername string
+}
+
+type Mount struct {
+	Type   string
+	Tag    string
+	Source string
+	Target string
 }
 
 type Monitor struct {

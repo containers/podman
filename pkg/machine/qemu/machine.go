@@ -164,6 +164,21 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 	// Add arch specific options including image location
 	v.CmdLine = append(v.CmdLine, v.addArchOptions()...)
 
+	mounts := []Mount{}
+	for i, volume := range opts.Volumes {
+		tag := fmt.Sprintf("vol%d", i)
+		paths := strings.SplitN(volume, ":", 2)
+		source := paths[0]
+		target := source
+		if len(paths) > 1 {
+			target = paths[1]
+		}
+		addVirtfsOptions := []string{"-virtfs", fmt.Sprintf("local,path=%s,mount_tag=%s,security_model=mapped-xattr", source, tag)}
+		v.CmdLine = append(v.CmdLine, addVirtfsOptions...)
+		mounts = append(mounts, Mount{Type: "9p", Tag: tag, Source: source, Target: target})
+	}
+	v.Mounts = mounts
+
 	// Add location of bootable image
 	v.CmdLine = append(v.CmdLine, "-drive", "if=virtio,file="+v.ImagePath)
 	// This kind of stinks but no other way around this r/n
@@ -324,7 +339,28 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		return err
 	}
 	_, err = bufio.NewReader(conn).ReadString('\n')
-	return err
+	if err != nil {
+		return err
+	}
+
+	if len(v.Mounts) > 0 {
+		for !v.isRunning() || !v.isListening() {
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+	for _, mount := range v.Mounts {
+		fmt.Printf("Mounting volume... %s:%s\n", mount.Source, mount.Target)
+		// create mountpoint directory if it doesn't exist
+		err = v.SSH(name, machine.SSHOptions{Args: []string{"-q", "--", "sudo", "mkdir", "-p", mount.Target}})
+		if err != nil {
+			return err
+		}
+		err = v.SSH(name, machine.SSHOptions{Args: []string{"-q", "--", "sudo", "mount", "-t", mount.Type, "-o", "trans=virtio", mount.Tag, mount.Target, "-o", "version=9p2000.L,msize=131072"}})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Stop uses the qmp monitor to call a system_powerdown
@@ -478,6 +514,16 @@ func (v *MachineVM) isRunning() bool {
 	if _, err := qmp.NewSocketMonitor(v.QMPMonitor.Network, v.QMPMonitor.Address, v.QMPMonitor.Timeout); err != nil {
 		return false
 	}
+	return true
+}
+
+func (v *MachineVM) isListening() bool {
+	// Check if we can dial it
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", "localhost", v.Port), 10*time.Millisecond)
+	if err != nil {
+		return false
+	}
+	conn.Close()
 	return true
 }
 
