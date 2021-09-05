@@ -14,6 +14,7 @@ func (v *MachineVM) addArchOptions() []string {
 	ovmfDir := getOvmfDir(v.ImagePath, v.Name)
 	opts := []string{
 		"-accel", "hvf",
+		"-accel", "tcg",
 		"-cpu", "cortex-a57",
 		"-M", "virt,highmem=off",
 		"-drive", "file=" + getEdk2CodeFd("edk2-aarch64-code.fd") + ",if=pflash,format=raw,readonly=on",
