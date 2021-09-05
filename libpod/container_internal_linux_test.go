@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package libpod
@@ -7,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/containers/podman/v3/pkg/namespaces"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/assert"
 )
@@ -67,4 +69,31 @@ func TestGenerateUserGroupEntry(t *testing.T) {
 		t.Fatal(err)
 	}
 	assert.Equal(t, group, "567:x:567:567\n")
+}
+
+func TestAppendLocalhost(t *testing.T) {
+	{
+		c := Container{
+			config: &ContainerConfig{
+				ContainerNetworkConfig: ContainerNetworkConfig{
+					NetMode: namespaces.NetworkMode("slirp4netns"),
+				},
+			},
+		}
+
+		assert.Equal(t, "127.0.0.1\tlocalhost\n::1\tlocalhost\n", c.appendLocalhost(""))
+		assert.Equal(t, "127.0.0.1\tlocalhost", c.appendLocalhost("127.0.0.1\tlocalhost"))
+	}
+	{
+		c := Container{
+			config: &ContainerConfig{
+				ContainerNetworkConfig: ContainerNetworkConfig{
+					NetMode: namespaces.NetworkMode("host"),
+				},
+			},
+		}
+
+		assert.Equal(t, "", c.appendLocalhost(""))
+		assert.Equal(t, "127.0.0.1\tlocalhost", c.appendLocalhost("127.0.0.1\tlocalhost"))
+	}
 }
