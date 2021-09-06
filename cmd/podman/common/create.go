@@ -164,14 +164,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(deviceCgroupRuleFlagName, completion.AutocompleteNone)
 
-		deviceReadBpsFlagName := "device-read-bps"
-		createFlags.StringSliceVar(
-			&cf.DeviceReadBPs,
-			deviceReadBpsFlagName, []string{},
-			"Limit read rate (bytes per second) from a device (e.g. --device-read-bps=/dev/sda:1mb)",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(deviceReadBpsFlagName, completion.AutocompleteDefault)
-
 		deviceReadIopsFlagName := "device-read-iops"
 		createFlags.StringSliceVar(
 			&cf.DeviceReadIOPs,
@@ -869,6 +861,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		volumeDesciption,
 	)
 	_ = cmd.RegisterFlagCompletionFunc(volumeFlagName, AutocompleteVolumeFlag)
+
 	deviceFlagName := "device"
 	createFlags.StringSliceVar(
 		&cf.Devices,
@@ -876,4 +869,12 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		"Add a host device to the container",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(deviceFlagName, completion.AutocompleteDefault)
+
+	deviceReadBpsFlagName := "device-read-bps"
+	createFlags.StringSliceVar(
+		&cf.DeviceReadBPs,
+		deviceReadBpsFlagName, []string{},
+		"Limit read rate (bytes per second) from a device (e.g. --device-read-bps=/dev/sda:1mb)",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(deviceReadBpsFlagName, completion.AutocompleteDefault)
 }

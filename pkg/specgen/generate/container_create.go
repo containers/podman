@@ -2,6 +2,7 @@ package generate
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -51,6 +52,24 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 
 	if infraConfig != nil && len(infraConfig.Spec.Linux.Devices) > 0 {
 		s.DevicesFrom = append(s.DevicesFrom, infraConfig.ID)
+	}
+	if infraConfig != nil && infraConfig.Spec.Linux.Resources != nil && infraConfig.Spec.Linux.Resources.BlockIO != nil && len(infraConfig.Spec.Linux.Resources.BlockIO.ThrottleReadBpsDevice) > 0 {
+		tempDev := make(map[string]spec.LinuxThrottleDevice)
+		for _, val := range infraConfig.Spec.Linux.Resources.BlockIO.ThrottleReadBpsDevice {
+			nodes, err := util.FindDeviceNodes()
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			key := fmt.Sprintf("%d:%d", val.Major, val.Minor)
+			tempDev[nodes[key]] = spec.LinuxThrottleDevice{Rate: uint64(val.Rate)}
+		}
+		for i, dev := range s.ThrottleReadBpsDevice {
+			tempDev[i] = dev
+		}
+		s.ThrottleReadBpsDevice = tempDev
+	}
+	if err := FinishThrottleDevices(s); err != nil {
+		return nil, nil, nil, err
 	}
 	// Set defaults for unset namespaces
 	if s.PidNS.IsDefault() {

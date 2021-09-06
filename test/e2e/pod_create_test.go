@@ -903,4 +903,25 @@ ENTRYPOINT ["sleep","99999"]
 
 	})
 
+	It("podman pod create --device-read-bps", func() {
+		SkipIfRootless("Cannot create devices in /dev in rootless mode")
+		SkipIfRootlessCgroupsV1("Setting device-read-bps not supported on cgroupv1 for rootless users")
+
+		podName := "testPod"
+		session := podmanTest.Podman([]string{"pod", "create", "--device-read-bps", "/dev/zero:1mb", "--name", podName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		if CGROUPSV2 {
+			session = podmanTest.Podman([]string{"run", "--rm", "--pod", podName, ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/io.max"})
+		} else {
+			session = podmanTest.Podman([]string{"run", "--rm", "--pod", podName, ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.throttle.read_bps_device"})
+		}
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		if !CGROUPSV2 {
+			Expect(session.OutputToString()).To(ContainSubstring("1048576"))
+		}
+	})
+
 })

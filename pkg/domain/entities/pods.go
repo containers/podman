@@ -119,6 +119,7 @@ type PodCreateOptions struct {
 	CGroupParent       string            `json:"cgroup_parent,omitempty"`
 	CreateCommand      []string          `json:"create_command,omitempty"`
 	Devices            []string          `json:"devices,omitempty"`
+	DeviceReadBPs      []string          `json:"device_read_bps,omitempty"`
 	Hostname           string            `json:"hostname,omitempty"`
 	Infra              bool              `json:"infra,omitempty"`
 	InfraImage         string            `json:"infra_image,omitempty"`
@@ -167,7 +168,7 @@ type ContainerCreateOptions struct {
 	CPUSetMems        string
 	Devices           []string `json:"devices,omitempty"`
 	DeviceCGroupRule  []string
-	DeviceReadBPs     []string
+	DeviceReadBPs     []string `json:"device_read_bps,omitempty"`
 	DeviceReadIOPs    []string
 	DeviceWriteBPs    []string
 	DeviceWriteIOPs   []string
@@ -200,7 +201,7 @@ type ContainerCreateOptions struct {
 	MemoryReservation string
 	MemorySwap        string
 	MemorySwappiness  int64
-	Name              string `json:"container_name,omitempty"`
+	Name              string `json:"container_name"`
 	NoHealthCheck     bool
 	OOMKillDisable    bool
 	OOMScoreAdj       int
