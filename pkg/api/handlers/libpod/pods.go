@@ -41,8 +41,8 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !psg.NoInfra {
-		infraOptions := &entities.ContainerCreateOptions{ImageVolume: "bind", IsInfra: true, Net: &entities.NetOptions{}} // options for pulling the image and FillOutSpec
-		err = specgenutil.FillOutSpecGen(psg.InfraContainerSpec, infraOptions, []string{})                                // necessary for default values in many cases (userns, idmappings)
+		infraOptions := &entities.ContainerCreateOptions{ImageVolume: "bind", IsInfra: true, Net: &entities.NetOptions{}, Devices: psg.Devices} // options for pulling the image and FillOutSpec
+		err = specgenutil.FillOutSpecGen(psg.InfraContainerSpec, infraOptions, []string{})                                                      // necessary for default values in many cases (userns, idmappings)
 		if err != nil {
 			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error filling out specgen"))
 			return

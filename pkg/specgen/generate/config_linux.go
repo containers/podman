@@ -132,7 +132,6 @@ func DevicesFromPath(g *generate.Generator, devicePath string) error {
 		}
 		return nil
 	}
-
 	return addDevice(g, strings.Join(append([]string{resolvedDevicePath}, devs[1:]...), ":"))
 }
 

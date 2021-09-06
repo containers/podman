@@ -30,24 +30,27 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 
 	// If joining a pod, retrieve the pod for use, and its infra container
 	var pod *libpod.Pod
-	var cont *libpod.Container
-	var config *libpod.ContainerConfig
+	var infraConfig *libpod.ContainerConfig
 	if s.Pod != "" {
 		pod, err = rt.LookupPod(s.Pod)
 		if err != nil {
 			return nil, nil, nil, errors.Wrapf(err, "error retrieving pod %s", s.Pod)
 		}
 		if pod.HasInfraContainer() {
-			cont, err = pod.InfraContainer()
+			infra, err := pod.InfraContainer()
 			if err != nil {
 				return nil, nil, nil, err
 			}
-			config = cont.Config()
+			infraConfig = infra.Config()
 		}
 	}
 
-	if config != nil && (len(config.NamedVolumes) > 0 || len(config.UserVolumes) > 0 || len(config.ImageVolumes) > 0 || len(config.OverlayVolumes) > 0) {
-		s.VolumesFrom = append(s.VolumesFrom, config.ID)
+	if infraConfig != nil && (len(infraConfig.NamedVolumes) > 0 || len(infraConfig.UserVolumes) > 0 || len(infraConfig.ImageVolumes) > 0 || len(infraConfig.OverlayVolumes) > 0) {
+		s.VolumesFrom = append(s.VolumesFrom, infraConfig.ID)
+	}
+
+	if infraConfig != nil && len(infraConfig.Spec.Linux.Devices) > 0 {
+		s.DevicesFrom = append(s.DevicesFrom, infraConfig.ID)
 	}
 	// Set defaults for unset namespaces
 	if s.PidNS.IsDefault() {
@@ -166,6 +169,16 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		logrus.Debugf("setting container name %s", s.Name)
 		options = append(options, libpod.WithName(s.Name))
 	}
+	if len(s.DevicesFrom) > 0 {
+		for _, dev := range s.DevicesFrom {
+			ctr, err := rt.GetContainer(dev)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			devices := ctr.DeviceHostSrc()
+			s.Devices = append(s.Devices, devices...)
+		}
+	}
 	if len(s.Devices) > 0 {
 		opts = extractCDIDevices(s)
 		options = append(options, opts...)
@@ -173,6 +186,9 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	runtimeSpec, err := SpecGenToOCI(ctx, s, rt, rtc, newImage, finalMounts, pod, command)
 	if err != nil {
 		return nil, nil, nil, err
+	}
+	if len(s.HostDeviceList) > 0 {
+		options = append(options, libpod.WithHostDevice(s.HostDeviceList))
 	}
 	return runtimeSpec, s, options, err
 }

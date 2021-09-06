@@ -254,6 +254,10 @@ type ContainerStorageConfig struct {
 	// DeviceCGroupRule are device cgroup rules that allow containers
 	// to use additional types of devices.
 	DeviceCGroupRule []spec.LinuxDeviceCgroup `json:"device_cgroup_rule,omitempty"`
+	// DevicesFrom is a way to ensure your container inherits device specific information from another container
+	DevicesFrom []string `json:"devices_from,omitempty"`
+	// HostDeviceList is used to recreate the mounted device on inherited containers
+	HostDeviceList []spec.LinuxDevice `json:"host_device_list,omitempty"`
 	// IpcNS is the container's IPC namespace.
 	// Default is private.
 	// Conflicts with ShmSize if not set to private.
