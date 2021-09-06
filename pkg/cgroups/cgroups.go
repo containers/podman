@@ -231,7 +231,10 @@ func getCgroupPathForCurrentProcess() (string, error) {
 	for s.Scan() {
 		text := s.Text()
 		procEntries := strings.SplitN(text, "::", 2)
-		cgroupPath = procEntries[1]
+		// set process cgroupPath only if entry is valid
+		if len(procEntries) > 1 {
+			cgroupPath = procEntries[1]
+		}
 	}
 	if err := s.Err(); err != nil {
 		return cgroupPath, err
