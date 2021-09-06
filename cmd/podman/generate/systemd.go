@@ -12,15 +12,22 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/utils"
 	"github.com/containers/podman/v3/pkg/domain/entities"
+	systemDefine "github.com/containers/podman/v3/pkg/systemd/define"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+)
+
+const (
+	restartPolicyFlagName = "restart-policy"
+	timeFlagName          = "time"
 )
 
 var (
 	files              bool
 	format             string
 	systemdTimeout     uint
+	systemdRestart     string
 	systemdOptions     = entities.GenerateSystemdOptions{}
 	systemdDescription = `Generate systemd units for a pod or container.
   The generated units can later be controlled via systemctl(1).`
@@ -47,7 +54,6 @@ func init() {
 	flags.BoolVarP(&systemdOptions.Name, "name", "n", false, "Use container/pod names instead of IDs")
 	flags.BoolVarP(&files, "files", "f", false, "Generate .service files instead of printing to stdout")
 
-	timeFlagName := "time"
 	flags.UintVarP(&systemdTimeout, timeFlagName, "t", containerConfig.Engine.StopTimeout, "Stop timeout override")
 	_ = systemdCmd.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
 	flags.BoolVarP(&systemdOptions.New, "new", "", false, "Create a new container or pod instead of starting an existing one")
@@ -65,8 +71,7 @@ func init() {
 	flags.StringVar(&systemdOptions.Separator, separatorFlagName, "-", "Systemd unit name separator between name/id and prefix")
 	_ = systemdCmd.RegisterFlagCompletionFunc(separatorFlagName, completion.AutocompleteNone)
 
-	restartPolicyFlagName := "restart-policy"
-	flags.StringVar(&systemdOptions.RestartPolicy, restartPolicyFlagName, "on-failure", "Systemd restart-policy")
+	flags.StringVar(&systemdRestart, restartPolicyFlagName, systemDefine.DefaultRestartPolicy, "Systemd restart-policy")
 	_ = systemdCmd.RegisterFlagCompletionFunc(restartPolicyFlagName, common.AutocompleteSystemdRestartOptions)
 
 	formatFlagName := "format"
@@ -77,8 +82,11 @@ func init() {
 }
 
 func systemd(cmd *cobra.Command, args []string) error {
-	if cmd.Flags().Changed("time") {
+	if cmd.Flags().Changed(timeFlagName) {
 		systemdOptions.StopTimeout = &systemdTimeout
+	}
+	if cmd.Flags().Changed(restartPolicyFlagName) {
+		systemdOptions.RestartPolicy = &systemdRestart
 	}
 
 	if registry.IsRemote() {

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v3/libpod"
+	libpodDefine "github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/systemd/define"
 	"github.com/containers/podman/v3/version"
@@ -34,6 +35,8 @@ type containerInfo struct {
 	StopTimeout uint
 	// RestartPolicy of the systemd unit (e.g., no, on-failure, always).
 	RestartPolicy string
+	// Custom number of restart attempts.
+	StartLimitBurst string
 	// PIDFile of the service. Required for forking services. Must point to the
 	// PID of the associated conmon process.
 	PIDFile string
@@ -101,6 +104,9 @@ Environment={{{{.EnvVariable}}}}=%n
 Environment={{{{- range $index, $value := .ExtraEnvs -}}}}{{{{if $index}}}} {{{{end}}}}{{{{ $value }}}}{{{{end}}}}
 {{{{- end}}}}
 Restart={{{{.RestartPolicy}}}}
+{{{{- if .StartLimitBurst}}}}
+StartLimitBurst={{{{.StartLimitBurst}}}}
+{{{{- end}}}}
 TimeoutStopSec={{{{.TimeoutStopSec}}}}
 {{{{- if .ExecStartPre}}}}
 ExecStartPre={{{{.ExecStartPre}}}}
@@ -175,7 +181,7 @@ func generateContainerInfo(ctr *libpod.Container, options entities.GenerateSyste
 	info := containerInfo{
 		ServiceName:       serviceName,
 		ContainerNameOrID: nameOrID,
-		RestartPolicy:     options.RestartPolicy,
+		RestartPolicy:     define.DefaultRestartPolicy,
 		PIDFile:           conmonPidFile,
 		StopTimeout:       timeout,
 		GenerateTimestamp: true,
@@ -202,8 +208,11 @@ func containerServiceName(ctr *libpod.Container, options entities.GenerateSystem
 // containerInfo.  Note that the containerInfo is also post processed and
 // completed, which allows for an easier unit testing.
 func executeContainerTemplate(info *containerInfo, options entities.GenerateSystemdOptions) (string, error) {
-	if err := validateRestartPolicy(info.RestartPolicy); err != nil {
-		return "", err
+	if options.RestartPolicy != nil {
+		if err := validateRestartPolicy(*options.RestartPolicy); err != nil {
+			return "", err
+		}
+		info.RestartPolicy = *options.RestartPolicy
 	}
 
 	// Make sure the executable is set.
@@ -275,6 +284,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		fs.Bool("replace", false, "")
 		fs.StringArrayP("env", "e", nil, "")
 		fs.String("sdnotify", "", "")
+		fs.String("restart", "", "")
 		fs.Parse(remainingCmd)
 
 		remainingCmd = filterCommonContainerFlags(remainingCmd, fs.NArg())
@@ -336,6 +346,27 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 				// in that case we need to remove it otherwise we
 				// would overwrite the previous replace arg to false
 				remainingCmd = removeReplaceArg(remainingCmd, fs.NArg())
+			}
+		}
+
+		// Unless the user explicitly set a restart policy, check
+		// whether the container was created with a custom one and use
+		// it instead of the default.
+		if options.RestartPolicy == nil {
+			restartPolicy, err := fs.GetString("restart")
+			if err != nil {
+				return "", err
+			}
+			if restartPolicy != "" {
+				if strings.HasPrefix(restartPolicy, "on-failure:") {
+					// Special case --restart=on-failure:5
+					spl := strings.Split(restartPolicy, ":")
+					restartPolicy = spl[0]
+					info.StartLimitBurst = spl[1]
+				} else if restartPolicy == libpodDefine.RestartPolicyUnlessStopped {
+					restartPolicy = libpodDefine.RestartPolicyAlways
+				}
+				info.RestartPolicy = restartPolicy
 			}
 		}
 

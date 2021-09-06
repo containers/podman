@@ -117,12 +117,12 @@ func TestFilterCommonContainerFlags(t *testing.T) {
 			1,
 		},
 		{
-			[]string{"podman", "run", "--cgroups=foo", "alpine"},
+			[]string{"podman", "run", "--cgroups=foo", "--restart=foo", "alpine"},
 			[]string{"podman", "run", "alpine"},
 			1,
 		},
 		{
-			[]string{"podman", "run", "--cgroups=foo", "--rm", "alpine"},
+			[]string{"podman", "run", "--cgroups=foo", "--rm", "--restart", "foo", "alpine"},
 			[]string{"podman", "run", "alpine"},
 			1,
 		},

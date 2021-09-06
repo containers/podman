@@ -136,6 +136,29 @@ function service_cleanup() {
     service_cleanup
 }
 
+# Regression test for #11438
+@test "podman generate systemd - restart policy" {
+    cname=$(random_string)
+    run_podman create --restart=always --name $cname $IMAGE
+    run_podman generate systemd --new $cname
+    is "$output" ".*Restart=always.*" "Use container's restart policy if set"
+    run_podman generate systemd --new --restart-policy=on-failure $cname
+    is "$output" ".*Restart=on-failure.*" "Override container's restart policy"
+
+    cname2=$(random_string)
+    run_podman create --restart=unless-stopped --name $cname2 $IMAGE
+    run_podman generate systemd --new $cname2
+    is "$output" ".*Restart=always.*" "unless-stopped translated to always"
+
+    cname3=$(random_string)
+    run_podman create --restart=on-failure:42 --name $cname3 $IMAGE
+    run_podman generate systemd --new $cname3
+    is "$output" ".*Restart=on-failure.*" "on-failure:xx is parsed correclty"
+    is "$output" ".*StartLimitBurst=42.*" "on-failure:xx is parsed correctly"
+
+    run_podman rm -f $cname $cname2 $cname3
+}
+
 function set_listen_env() {
     export LISTEN_PID="100" LISTEN_FDS="1" LISTEN_FDNAMES="listen_fdnames"
 }

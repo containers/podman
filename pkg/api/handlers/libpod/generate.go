@@ -16,16 +16,15 @@ func GenerateSystemd(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
-		Name            bool   `schema:"useName"`
-		New             bool   `schema:"new"`
-		NoHeader        bool   `schema:"noHeader"`
-		RestartPolicy   string `schema:"restartPolicy"`
-		StopTimeout     uint   `schema:"stopTimeout"`
-		ContainerPrefix string `schema:"containerPrefix"`
-		PodPrefix       string `schema:"podPrefix"`
-		Separator       string `schema:"separator"`
+		Name            bool    `schema:"useName"`
+		New             bool    `schema:"new"`
+		NoHeader        bool    `schema:"noHeader"`
+		RestartPolicy   *string `schema:"restartPolicy"`
+		StopTimeout     uint    `schema:"stopTimeout"`
+		ContainerPrefix string  `schema:"containerPrefix"`
+		PodPrefix       string  `schema:"podPrefix"`
+		Separator       string  `schema:"separator"`
 	}{
-		RestartPolicy:   "on-failure",
 		StopTimeout:     util.DefaultContainerConfig().Engine.StopTimeout,
 		ContainerPrefix: "container",
 		PodPrefix:       "pod",
@@ -49,6 +48,7 @@ func GenerateSystemd(w http.ResponseWriter, r *http.Request) {
 		PodPrefix:       query.PodPrefix,
 		Separator:       query.Separator,
 	}
+
 	report, err := containerEngine.GenerateSystemd(r.Context(), utils.GetName(r), options)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error generating systemd units"))

@@ -52,7 +52,7 @@ RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-Restart=always
+Restart=on-failure
 TimeoutStopSec=82
 ExecStart=/usr/bin/podman start 639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401
 ExecStop=/usr/bin/podman stop -t 22 639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401
@@ -78,7 +78,7 @@ RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-Restart=always
+Restart=on-failure
 TimeoutStopSec=70
 ExecStart=/usr/bin/podman start foobar
 ExecStop=/usr/bin/podman stop -t 10 foobar
@@ -104,7 +104,7 @@ After=a.service b.service c.service pod.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-Restart=always
+Restart=on-failure
 TimeoutStopSec=70
 ExecStart=/usr/bin/podman start foobar
 ExecStop=/usr/bin/podman stop -t 10 foobar
@@ -128,7 +128,7 @@ RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-Restart=always
+Restart=on-failure
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/%n.ctr-id
 ExecStart=/usr/bin/podman container run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon -d --replace --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN "foo=arg \"with \" space"
@@ -153,7 +153,7 @@ RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-Restart=always
+Restart=on-failure
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/%n.ctr-id
 ExecStart=/usr/bin/podman container run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm -d --replace --sdnotify=container --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN "foo=arg \"with \" space"
@@ -178,7 +178,7 @@ RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-Restart=always
+Restart=on-failure
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/%n.ctr-id
 ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon --replace -d --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
@@ -203,7 +203,7 @@ RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-Restart=always
+Restart=on-failure
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/%n.ctr-id
 ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --pod-id-file %t/pod-foobar.pod-id-file --sdnotify=conmon --replace -d --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
@@ -228,7 +228,7 @@ RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-Restart=always
+Restart=on-failure
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/%n.ctr-id
 ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon --replace --detach --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
@@ -253,7 +253,7 @@ RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-Restart=always
+Restart=on-failure
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/%n.ctr-id
 ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon -d awesome-image:latest
@@ -279,7 +279,7 @@ RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-Restart=always
+Restart=on-failure
 TimeoutStopSec=102
 ExecStartPre=/bin/rm -f %t/%n.ctr-id
 ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon ` +
@@ -308,7 +308,7 @@ RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-Restart=always
+Restart=on-failure
 TimeoutStopSec=102
 ExecStartPre=/bin/rm -f %t/%n.ctr-id
 ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon -d --replace --name test -p 80:80 awesome-image:latest somecmd --detach=false
@@ -333,7 +333,7 @@ RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-Restart=always
+Restart=on-failure
 TimeoutStopSec=102
 ExecStartPre=/bin/rm -f %t/%n.ctr-id
 ExecStart=/usr/bin/podman --events-backend none --runroot /root run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon -d awesome-image:latest
@@ -358,7 +358,7 @@ RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-Restart=always
+Restart=on-failure
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/%n.ctr-id
 ExecStart=/usr/bin/podman container run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon -d awesome-image:latest
@@ -383,7 +383,7 @@ RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-Restart=always
+Restart=on-failure
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/%n.ctr-id
 ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon -d --replace --name test --log-driver=journald --log-opt=tag={{.Name}} awesome-image:latest
@@ -408,7 +408,7 @@ RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-Restart=always
+Restart=on-failure
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/%n.ctr-id
 ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon -d --replace --name test awesome-image:latest sh -c "kill $$$$ && echo %%\\"
@@ -433,7 +433,7 @@ RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-Restart=always
+Restart=on-failure
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/%n.ctr-id
 ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon -d --conmon-pidfile=foo awesome-image:latest podman run --cgroups=foo --conmon-pidfile=foo --cidfile=foo alpine
@@ -458,7 +458,7 @@ RequiresMountsFor=/var/run/containers/storage
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-Restart=always
+Restart=on-failure
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/%n.ctr-id
 ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --pod-id-file %t/pod-foobar.pod-id-file --sdnotify=conmon -d --conmon-pidfile=foo awesome-image:latest podman run --cgroups=foo --conmon-pidfile=foo --cidfile=foo --pod-id-file /tmp/pod-foobar.pod-id-file alpine
@@ -484,10 +484,36 @@ RequiresMountsFor=/var/run/containers/storage
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Environment=FOO=abc "BAR=my test" USER=%%a
-Restart=always
+Restart=on-failure
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/%n.ctr-id
 ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon -d --env FOO --env=BAR --env=MYENV=2 -e USER awesome-image:latest
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
+ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
+Type=notify
+NotifyAccess=all
+
+[Install]
+WantedBy=multi-user.target default.target
+`
+
+	goodNewWithRestartPolicy := `# jadda-jadda.service
+# autogenerated by Podman CI
+
+[Unit]
+Description=Podman jadda-jadda.service
+Documentation=man:podman-generate-systemd(1)
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/var/run/containers/storage
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+Restart=on-failure
+StartLimitBurst=42
+TimeoutStopSec=70
+ExecStartPre=/bin/rm -f %t/%n.ctr-id
+ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --cgroups=no-conmon --rm --sdnotify=conmon -d awesome-image:latest
 ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
@@ -510,7 +536,6 @@ WantedBy=multi-user.target default.target
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
 				ContainerNameOrID: "639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
-				RestartPolicy:     "always",
 				PIDFile:           "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       22,
 				PodmanVersion:     "CI",
@@ -528,7 +553,6 @@ WantedBy=multi-user.target default.target
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
 				ContainerNameOrID: "639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
-				RestartPolicy:     "always",
 				PIDFile:           "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       22,
 				PodmanVersion:     "CI",
@@ -546,7 +570,6 @@ WantedBy=multi-user.target default.target
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "container-foobar",
 				ContainerNameOrID: "foobar",
-				RestartPolicy:     "always",
 				PIDFile:           "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       10,
 				PodmanVersion:     "CI",
@@ -564,7 +587,6 @@ WantedBy=multi-user.target default.target
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "container-foobar",
 				ContainerNameOrID: "foobar",
-				RestartPolicy:     "always",
 				PIDFile:           "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       10,
 				PodmanVersion:     "CI",
@@ -578,29 +600,11 @@ WantedBy=multi-user.target default.target
 			false,
 			false,
 		},
-		{"bad restart policy",
-			containerInfo{
-				Executable:    "/usr/bin/podman",
-				ServiceName:   "639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
-				RestartPolicy: "never",
-				PIDFile:       "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
-				StopTimeout:   10,
-				PodmanVersion: "CI",
-				EnvVariable:   define.EnvVariable,
-				GraphRoot:     "/var/lib/containers/storage",
-				RunRoot:       "/var/run/containers/storage",
-			},
-			"",
-			false,
-			false,
-			true,
-		},
 		{"good with name and generic",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
 				ContainerNameOrID: "jadda-jadda",
-				RestartPolicy:     "always",
 				PIDFile:           "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       10,
 				PodmanVersion:     "CI",
@@ -619,7 +623,6 @@ WantedBy=multi-user.target default.target
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
 				ContainerNameOrID: "jadda-jadda",
-				RestartPolicy:     "always",
 				PIDFile:           "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       10,
 				PodmanVersion:     "CI",
@@ -638,7 +641,6 @@ WantedBy=multi-user.target default.target
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
 				ContainerNameOrID: "jadda-jadda",
-				RestartPolicy:     "always",
 				PIDFile:           "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       10,
 				PodmanVersion:     "CI",
@@ -657,7 +659,6 @@ WantedBy=multi-user.target default.target
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
 				ContainerNameOrID: "jadda-jadda",
-				RestartPolicy:     "always",
 				PIDFile:           "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       10,
 				PodmanVersion:     "CI",
@@ -679,7 +680,6 @@ WantedBy=multi-user.target default.target
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
 				ContainerNameOrID: "jadda-jadda",
-				RestartPolicy:     "always",
 				PIDFile:           "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       10,
 				PodmanVersion:     "CI",
@@ -698,7 +698,6 @@ WantedBy=multi-user.target default.target
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
 				ContainerNameOrID: "639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
-				RestartPolicy:     "always",
 				PIDFile:           "/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       10,
 				PodmanVersion:     "CI",
@@ -717,7 +716,6 @@ WantedBy=multi-user.target default.target
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
 				ContainerNameOrID: "jadda-jadda",
-				RestartPolicy:     "always",
 				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       42,
 				PodmanVersion:     "CI",
@@ -736,7 +734,6 @@ WantedBy=multi-user.target default.target
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
 				ContainerNameOrID: "jadda-jadda",
-				RestartPolicy:     "always",
 				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       42,
 				PodmanVersion:     "CI",
@@ -755,7 +752,6 @@ WantedBy=multi-user.target default.target
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
 				ContainerNameOrID: "jadda-jadda",
-				RestartPolicy:     "always",
 				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       42,
 				PodmanVersion:     "CI",
@@ -774,7 +770,6 @@ WantedBy=multi-user.target default.target
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
 				ContainerNameOrID: "jadda-jadda",
-				RestartPolicy:     "always",
 				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       42,
 				PodmanVersion:     "CI",
@@ -793,7 +788,6 @@ WantedBy=multi-user.target default.target
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
 				ContainerNameOrID: "jadda-jadda",
-				RestartPolicy:     "always",
 				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       42,
 				PodmanVersion:     "CI",
@@ -812,26 +806,6 @@ WantedBy=multi-user.target default.target
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
 				ContainerNameOrID: "jadda-jadda",
-				RestartPolicy:     "always",
-				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
-				StopTimeout:       42,
-				PodmanVersion:     "CI",
-				CreateCommand:     []string{"I'll get stripped", "run", "-tid", "awesome-image:latest"},
-				EnvVariable:       define.EnvVariable,
-				GraphRoot:         "/var/lib/containers/storage",
-				RunRoot:           "/var/run/containers/storage",
-			},
-			genGoodNewDetach("-tid"),
-			true,
-			false,
-			false,
-		},
-		{"good with root flags",
-			containerInfo{
-				Executable:        "/usr/bin/podman",
-				ServiceName:       "jadda-jadda",
-				ContainerNameOrID: "jadda-jadda",
-				RestartPolicy:     "always",
 				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       42,
 				PodmanVersion:     "CI",
@@ -850,7 +824,6 @@ WantedBy=multi-user.target default.target
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
 				ContainerNameOrID: "jadda-jadda",
-				RestartPolicy:     "always",
 				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       10,
 				PodmanVersion:     "CI",
@@ -869,7 +842,6 @@ WantedBy=multi-user.target default.target
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
 				ContainerNameOrID: "jadda-jadda",
-				RestartPolicy:     "always",
 				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       10,
 				PodmanVersion:     "CI",
@@ -888,7 +860,6 @@ WantedBy=multi-user.target default.target
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
 				ContainerNameOrID: "jadda-jadda",
-				RestartPolicy:     "always",
 				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       10,
 				PodmanVersion:     "CI",
@@ -907,7 +878,6 @@ WantedBy=multi-user.target default.target
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
 				ContainerNameOrID: "jadda-jadda",
-				RestartPolicy:     "always",
 				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       10,
 				PodmanVersion:     "CI",
@@ -926,7 +896,6 @@ WantedBy=multi-user.target default.target
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
 				ContainerNameOrID: "jadda-jadda",
-				RestartPolicy:     "always",
 				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       10,
 				PodmanVersion:     "CI",
@@ -948,7 +917,6 @@ WantedBy=multi-user.target default.target
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
 				ContainerNameOrID: "jadda-jadda",
-				RestartPolicy:     "always",
 				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
 				StopTimeout:       10,
 				PodmanVersion:     "CI",
@@ -963,6 +931,24 @@ WantedBy=multi-user.target default.target
 			false,
 			false,
 		},
+		{"good with restart policy",
+			containerInfo{
+				Executable:        "/usr/bin/podman",
+				ServiceName:       "jadda-jadda",
+				ContainerNameOrID: "jadda-jadda",
+				PIDFile:           "/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid",
+				StopTimeout:       10,
+				PodmanVersion:     "CI",
+				GraphRoot:         "/var/lib/containers/storage",
+				RunRoot:           "/var/run/containers/storage",
+				CreateCommand:     []string{"I'll get stripped", "create", "--restart", "on-failure:42", "awesome-image:latest"},
+				EnvVariable:       define.EnvVariable,
+			},
+			goodNewWithRestartPolicy,
+			true,
+			false,
+			false,
+		},
 	}
 	for _, tt := range tests {
 		test := tt
@@ -971,6 +957,7 @@ WantedBy=multi-user.target default.target
 				New:      test.new,
 				NoHeader: test.noHeader,
 			}
+			test.info.RestartPolicy = define.DefaultRestartPolicy
 			got, err := executeContainerTemplate(&test.info, opts)
 			if (err != nil) != test.wantErr {
 				t.Errorf("CreateContainerSystemdUnit() %s error = \n%v, wantErr \n%v", test.name, err, test.wantErr)
