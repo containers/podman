@@ -1,6 +1,7 @@
 package qemu
 
 import (
+	"os"
 	"os/exec"
 	"path/filepath"
 )
@@ -15,7 +16,7 @@ func (v *MachineVM) addArchOptions() []string {
 		"-accel", "hvf",
 		"-cpu", "cortex-a57",
 		"-M", "virt,highmem=off",
-		"-drive", "file=/usr/local/share/qemu/edk2-aarch64-code.fd,if=pflash,format=raw,readonly=on",
+		"-drive", "file=" + getEdk2CodeFd("edk2-aarch64-code.fd") + ",if=pflash,format=raw,readonly=on",
 		"-drive", "file=" + ovmfDir + ",if=pflash,format=raw"}
 	return opts
 }
@@ -33,4 +34,24 @@ func (v *MachineVM) archRemovalFiles() []string {
 
 func getOvmfDir(imagePath, vmName string) string {
 	return filepath.Join(filepath.Dir(imagePath), vmName+"_ovmf_vars.fd")
+}
+
+/*
+ *  QEmu can be installed in multiple locations on MacOS, especially on
+ *  Apple Silicon systems.  A build from source will likely install it in
+ *  /usr/local/bin, whereas Homebrew package management standard is to
+ *  install in /opt/homebrew
+ */
+func getEdk2CodeFd(name string) string {
+	dirs := []string{
+		"/usr/local/share/qemu",
+		"/opt/homebrew/share/qemu",
+	}
+	for _, dir := range dirs {
+		fullpath := filepath.Join(dir, name)
+		if _, err := os.Stat(fullpath); err == nil {
+			return fullpath
+		}
+	}
+	return name
 }
