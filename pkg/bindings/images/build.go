@@ -501,6 +501,7 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 					if err != nil {
 						return err
 					}
+					hdr.Uid, hdr.Gid = 0, 0
 					orig, ok := seen[di]
 					if ok {
 						hdr.Typeflag = tar.TypeLink
@@ -532,6 +533,7 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 						return lerr
 					}
 					hdr.Name = name
+					hdr.Uid, hdr.Gid = 0, 0
 					if lerr := tw.WriteHeader(hdr); lerr != nil {
 						return lerr
 					}
@@ -545,6 +547,7 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 						return lerr
 					}
 					hdr.Name = name
+					hdr.Uid, hdr.Gid = 0, 0
 					if lerr := tw.WriteHeader(hdr); lerr != nil {
 						return lerr
 					}
