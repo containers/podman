@@ -9,7 +9,7 @@ type GenerateSystemdOptions struct {
 	// New - create a new container instead of starting a new one.
 	New bool
 	// RestartPolicy - systemd restart policy.
-	RestartPolicy string
+	RestartPolicy *string
 	// StopTimeout - time when stopping the container.
 	StopTimeout *uint
 	// ContainerPrefix - systemd unit name prefix for containers
