@@ -98,6 +98,16 @@ RELABEL="system_u:object_r:container_file_t:s0"
     run_podman 125 play kube --network host $PODMAN_TMPDIR/test.yaml
     is "$output" ".*invalid value passed to --network: bridge or host networking must be configured in YAML" "podman plan-network should fail with --network host"
     run_podman play kube --network slirp4netns:port_handler=slirp4netns $PODMAN_TMPDIR/test.yaml
+    run_podman pod inspect --format {{.InfraContainerID}} "${lines[1]}"
+    infraID="$output"
+    run_podman container inspect --format "{{.HostConfig.NetworkMode}}" $infraID
+    is "$output" "slirp4netns" "network mode slirp4netns is set for the container"
+    run_podman pod rm -f test_pod
+    run_podman play kube --network none $PODMAN_TMPDIR/test.yaml
+    run_podman pod inspect --format {{.InfraContainerID}} "${lines[1]}"
+    infraID="$output"
+    run_podman container inspect --format "{{.HostConfig.NetworkMode}}" $infraID
+    is "$output" "none" "network mode none is set for the container"
     run_podman pod rm -f test_pod
 }
 

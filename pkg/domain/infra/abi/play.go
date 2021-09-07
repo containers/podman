@@ -196,9 +196,11 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		if (ns.IsBridge() && len(cniNets) == 0) || ns.IsHost() {
 			return nil, errors.Errorf("invalid value passed to --network: bridge or host networking must be configured in YAML")
 		}
-		logrus.Debugf("Pod %q joining CNI networks: %v", podName, cniNets)
-		podOpt.Net.Network.NSMode = specgen.Bridge
-		podOpt.Net.CNINetworks = append(podOpt.Net.CNINetworks, cniNets...)
+
+		podOpt.Net.Network = ns
+		if len(cniNets) > 0 {
+			podOpt.Net.CNINetworks = append(podOpt.Net.CNINetworks, cniNets...)
+		}
 		if len(netOpts) > 0 {
 			podOpt.Net.NetworkOptions = netOpts
 		}
