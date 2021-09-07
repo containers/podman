@@ -174,4 +174,31 @@ $s_after"
     _log_test_until journald
 }
 
+function _log_test_follow() {
+    local driver=$1
+    cname=$(random_string)
+    contentA=$(random_string)
+    contentB=$(random_string)
+    contentC=$(random_string)
+
+    # Note: it seems we need at least three log lines to hit #11461.
+    run_podman run --log-driver=$driver --name $cname $IMAGE sh -c "echo $contentA; echo $contentB; echo $contentC"
+    run_podman logs -f $cname
+    is "$output" "$contentA
+$contentB
+$contentC" "logs -f on exitted container works"
+
+    run_podman rm -f $cname
+}
+
+@test "podman logs - --follow k8s-file" {
+    _log_test_follow k8s-file
+}
+
+@test "podman logs - --follow journald" {
+    # We can't use journald on RHEL as rootless: rhbz#1895105
+    skip_if_journald_unavailable
+
+    _log_test_follow journald
+}
 # vim: filetype=sh

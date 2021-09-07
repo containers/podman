@@ -107,16 +107,18 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 		// until EOF.
 		state, err := c.State()
 		if err != nil || state != define.ContainerStateRunning {
-			// Make sure to wait at least for the poll duration
-			// before stopping the file logger (see #10675).
-			time.Sleep(watch.POLL_DURATION)
-			tailError := t.StopAtEOF()
-			if tailError != nil && fmt.Sprintf("%v", tailError) != "tail: stop at eof" {
-				logrus.Errorf("Error stopping logger: %v", tailError)
-			}
 			if err != nil && errors.Cause(err) != define.ErrNoSuchCtr {
 				logrus.Errorf("Error getting container state: %v", err)
 			}
+			go func() {
+				// Make sure to wait at least for the poll duration
+				// before stopping the file logger (see #10675).
+				time.Sleep(watch.POLL_DURATION)
+				tailError := t.StopAtEOF()
+				if tailError != nil && tailError.Error() != "tail: stop at eof" {
+					logrus.Errorf("Error stopping logger: %v", tailError)
+				}
+			}()
 			return nil
 		}
 
