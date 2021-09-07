@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/domain/utils"
 	"github.com/pkg/errors"
 )
 
@@ -84,7 +85,7 @@ func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string
 	return reports, errs, nil
 }
 
-func (ic *ContainerEngine) SecretList(ctx context.Context) ([]*entities.SecretInfoReport, error) {
+func (ic *ContainerEngine) SecretList(ctx context.Context, opts entities.SecretListRequest) ([]*entities.SecretInfoReport, error) {
 	manager, err := ic.Libpod.SecretsManager()
 	if err != nil {
 		return nil, err
@@ -95,19 +96,25 @@ func (ic *ContainerEngine) SecretList(ctx context.Context) ([]*entities.SecretIn
 	}
 	report := make([]*entities.SecretInfoReport, 0, len(secretList))
 	for _, secret := range secretList {
-		reportItem := entities.SecretInfoReport{
-			ID:        secret.ID,
-			CreatedAt: secret.CreatedAt,
-			UpdatedAt: secret.CreatedAt,
-			Spec: entities.SecretSpec{
-				Name: secret.Name,
-				Driver: entities.SecretDriverSpec{
-					Name:    secret.Driver,
-					Options: secret.DriverOptions,
-				},
-			},
+		result, err := utils.IfPassesSecretsFilter(secret, opts.Filters)
+		if err != nil {
+			return nil, err
 		}
-		report = append(report, &reportItem)
+		if result {
+			reportItem := entities.SecretInfoReport{
+				ID:        secret.ID,
+				CreatedAt: secret.CreatedAt,
+				UpdatedAt: secret.CreatedAt,
+				Spec: entities.SecretSpec{
+					Name: secret.Name,
+					Driver: entities.SecretDriverSpec{
+						Name:    secret.Driver,
+						Options: secret.DriverOptions,
+					},
+				},
+			}
+			report = append(report, &reportItem)
+		}
 	}
 	return report, nil
 }

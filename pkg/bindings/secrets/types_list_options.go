@@ -19,3 +19,19 @@ func (o *ListOptions) Changed(fieldName string) bool {
 func (o *ListOptions) ToParams() (url.Values, error) {
 	return util.ToParams(o)
 }
+
+// WithFilters
+func (o *ListOptions) WithFilters(value map[string][]string) *ListOptions {
+	v := value
+	o.Filters = v
+	return o
+}
+
+// GetFilters
+func (o *ListOptions) GetFilters() map[string][]string {
+	var filters map[string][]string
+	if o.Filters == nil {
+		return filters
+	}
+	return o.Filters
+}

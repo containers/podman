@@ -86,7 +86,7 @@ type ContainerEngine interface {
 	SetupRootless(ctx context.Context, noMoveProcess bool) error
 	SecretCreate(ctx context.Context, name string, reader io.Reader, options SecretCreateOptions) (*SecretCreateReport, error)
 	SecretInspect(ctx context.Context, nameOrIDs []string) ([]*SecretInfoReport, []error, error)
-	SecretList(ctx context.Context) ([]*SecretInfoReport, error)
+	SecretList(ctx context.Context, opts SecretListRequest) ([]*SecretInfoReport, error)
 	SecretRm(ctx context.Context, nameOrID []string, opts SecretRmOptions) ([]*SecretRmReport, error)
 	Shutdown(ctx context.Context)
 	SystemDf(ctx context.Context, options SystemDfOptions) (*SystemDfReport, error)
