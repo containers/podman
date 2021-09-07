@@ -25,7 +25,8 @@ resolution.
 
 #### **--driver**, **-d**
 
-Driver to manage the network (default "bridge").  Currently only `bridge` is supported.
+Driver to manage the network. Currently `bridge` and `macvlan` is supported. Defaults to `bridge`.
+As rootless the `macvlan` driver has no access to the host network interfaces because rootless networking requires a separate network namespace.
 
 #### **--opt**=*option*, **-o**
 
@@ -53,13 +54,6 @@ must be used with a *subnet* option.
 #### **--label**
 
 Set metadata for a network (e.g., --label mykey=value).
-
-#### **--macvlan**
-
-*This option is being deprecated*
-
-Create a *Macvlan* based connection rather than a classic bridge.  You must pass an interface name from the host for the
-Macvlan connection.
 
 #### **--subnet**
 
