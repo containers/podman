@@ -584,6 +584,7 @@ func resetState(state *ContainerState) {
 	state.StoppedByUser = false
 	state.RestartPolicyMatch = false
 	state.RestartCount = 0
+	state.Checkpointed = false
 }
 
 // Refresh refreshes the container's state after a restart.
@@ -1110,6 +1111,7 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 		c.state.ExecSessions = make(map[string]*ExecSession)
 	}
 
+	c.state.Checkpointed = false
 	c.state.ExitCode = 0
 	c.state.Exited = false
 	c.state.State = define.ContainerStateCreated

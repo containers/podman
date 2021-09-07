@@ -159,6 +159,9 @@ type ContainerState struct {
 	// OOMKilled indicates that the container was killed as it ran out of
 	// memory
 	OOMKilled bool `json:"oomKilled,omitempty"`
+	// Checkpointed indicates that the container was stopped by a checkpoint
+	// operation.
+	Checkpointed bool `json:"checkpointed,omitempty"`
 	// PID is the PID of a running container
 	PID int `json:"pid,omitempty"`
 	// ConmonPID is the PID of the container's conmon

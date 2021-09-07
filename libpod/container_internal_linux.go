@@ -1146,6 +1146,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 
 	if !options.KeepRunning && !options.PreCheckPoint {
 		c.state.State = define.ContainerStateStopped
+		c.state.Checkpointed = true
 
 		// Cleanup Storage and Network
 		if err := c.cleanup(ctx); err != nil {

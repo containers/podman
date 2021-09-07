@@ -189,20 +189,21 @@ type InspectMount struct {
 // Docker, but here we see more fields that are unused (nonsensical in the
 // context of Libpod).
 type InspectContainerState struct {
-	OciVersion  string             `json:"OciVersion"`
-	Status      string             `json:"Status"`
-	Running     bool               `json:"Running"`
-	Paused      bool               `json:"Paused"`
-	Restarting  bool               `json:"Restarting"` // TODO
-	OOMKilled   bool               `json:"OOMKilled"`
-	Dead        bool               `json:"Dead"`
-	Pid         int                `json:"Pid"`
-	ConmonPid   int                `json:"ConmonPid,omitempty"`
-	ExitCode    int32              `json:"ExitCode"`
-	Error       string             `json:"Error"` // TODO
-	StartedAt   time.Time          `json:"StartedAt"`
-	FinishedAt  time.Time          `json:"FinishedAt"`
-	Healthcheck HealthCheckResults `json:"Healthcheck,omitempty"`
+	OciVersion   string             `json:"OciVersion"`
+	Status       string             `json:"Status"`
+	Running      bool               `json:"Running"`
+	Paused       bool               `json:"Paused"`
+	Restarting   bool               `json:"Restarting"` // TODO
+	OOMKilled    bool               `json:"OOMKilled"`
+	Dead         bool               `json:"Dead"`
+	Pid          int                `json:"Pid"`
+	ConmonPid    int                `json:"ConmonPid,omitempty"`
+	ExitCode     int32              `json:"ExitCode"`
+	Error        string             `json:"Error"` // TODO
+	StartedAt    time.Time          `json:"StartedAt"`
+	FinishedAt   time.Time          `json:"FinishedAt"`
+	Healthcheck  HealthCheckResults `json:"Healthcheck,omitempty"`
+	Checkpointed bool               `json:"Checkpointed,omitempty"`
 }
 
 // HealthCheckResults describes the results/logs from a healthcheck
