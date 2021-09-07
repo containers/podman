@@ -258,7 +258,7 @@ test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
 
 .PHONY: codespell
 codespell:
-	codespell -S bin,vendor,.git,go.sum,changelog.txt,.cirrus.yml,"RELEASE_NOTES.md,*.xz,*.gz,*.ps1,*.tar,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked,splitted,marge,ERRO,hist,ether -w
+	codespell -S bin,vendor,.git,go.sum,.cirrus.yml,"RELEASE_NOTES.md,*.xz,*.gz,*.ps1,*.tar,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked,splitted,marge,ERRO,hist,ether -w
 
 .PHONY: validate
 validate: gofmt lint .gitvalidation validate.completions man-page-check swagger-check tests-included tests-expect-exit
@@ -468,17 +468,6 @@ swagger: pkg/api/swagger.yaml
 .PHONY: docker-docs
 docker-docs: docs
 	(cd docs; ./dckrman.sh ./build/man/*.1)
-
-.PHONY: changelog
-changelog: ## Generate updated changelog.txt from git logs
-	@echo "Creating changelog from $(CHANGELOG_BASE) to $(CHANGELOG_TARGET)"
-	$(eval TMPFILE := $(shell mktemp podman_tmp_XXXX))
-	$(shell cat changelog.txt > $(TMPFILE))
-	$(shell echo "- Changelog for $(CHANGELOG_TARGET) ($(ISODATE)):" > changelog.txt)
-	$(shell git log --no-merges --format="  * %s" $(CHANGELOG_BASE)..$(CHANGELOG_TARGET) >> changelog.txt)
-	$(shell echo "" >> changelog.txt)
-	$(shell cat $(TMPFILE) >> changelog.txt)
-	$(shell rm $(TMPFILE))
 
 # Workaround vim syntax highlighting bug: "
 

@@ -164,10 +164,6 @@ spelled with complete minutiae.
       `git checkout -b bump_vX.Y.Z`.
    1. Lookup the *COMMIT ID* of the last release,
       `git log -1 $(git tag | sort -V | tail -1)`.
-   1. Run `make changelog CHANGELOG_BASE=`*COMMIT ID*. This will modify the
-      `changelog.txt` file.  Manually edit it to change the first line
-      (“Changelog for …”) to include the current (new) release version number.
-      For example, `- Changelog for v2.1.0 (2020-09-22):`.
    1. Edit `version/version.go` and bump the `Version` value to the new
       release version.  If there were API changes, also bump `APIVersion` value.
    1. Commit this and sign the commit (`git commit -a -s -S`). The commit message
