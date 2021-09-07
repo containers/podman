@@ -1028,7 +1028,8 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: t
 	//    type: integer
-	//    description: timeout before sending kill signal to container
+	//    default: 10
+	//    description: number of seconds to wait before killing container
 	// produces:
 	// - application/json
 	// responses:
