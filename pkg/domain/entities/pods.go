@@ -133,6 +133,14 @@ type PodCreateOptions struct {
 	Userns             specgen.Namespace
 }
 
+// PodLogsOptions describes the options to extract pod logs.
+type PodLogsOptions struct {
+	// Other fields are exactly same as ContainerLogOpts
+	ContainerLogsOptions
+	// If specified will only fetch the logs of specified container
+	ContainerName string
+}
+
 type ContainerCreateOptions struct {
 	Annotation        []string
 	Attach            []string
@@ -425,4 +433,23 @@ func ValidatePodStatsOptions(args []string, options *PodStatsOptions) error {
 	default:
 		return errors.New("--all, --latest and arguments cannot be used together")
 	}
+}
+
+// Converts PodLogOptions to ContainerLogOptions
+func PodLogsOptionsToContainerLogsOptions(options PodLogsOptions) ContainerLogsOptions {
+	// PodLogsOptions are similar but contains few extra fields like ctrName
+	// So cast other values as is so we can re-use the code
+	containerLogsOpts := ContainerLogsOptions{
+		Details:      options.Details,
+		Latest:       options.Latest,
+		Follow:       options.Follow,
+		Names:        options.Names,
+		Since:        options.Since,
+		Until:        options.Until,
+		Tail:         options.Tail,
+		Timestamps:   options.Timestamps,
+		StdoutWriter: options.StdoutWriter,
+		StderrWriter: options.StderrWriter,
+	}
+	return containerLogsOpts
 }

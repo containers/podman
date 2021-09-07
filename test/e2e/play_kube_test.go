@@ -1289,6 +1289,40 @@ var _ = Describe("Podman play kube", func() {
 		Expect(logs.OutputToString()).To(ContainSubstring("hello world"))
 	})
 
+	It("podman pod logs test", func() {
+		SkipIfRemote("podman-remote pod logs -c is mandatory for remote machine")
+		p := getPod(withCtr(getCtr(withCmd([]string{"echo", "hello"}), withArg([]string{"world"}))))
+
+		err := generateKubeYaml("pod", p, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		logs := podmanTest.Podman([]string{"pod", "logs", p.Name})
+		logs.WaitWithDefaultTimeout()
+		Expect(logs).Should(Exit(0))
+		Expect(logs.OutputToString()).To(ContainSubstring("hello world"))
+	})
+
+	It("podman-remote pod logs test", func() {
+		// -c or --container is required in podman-remote due to api limitation.
+		p := getPod(withCtr(getCtr(withCmd([]string{"echo", "hello"}), withArg([]string{"world"}))))
+
+		err := generateKubeYaml("pod", p, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		logs := podmanTest.Podman([]string{"pod", "logs", "-c", getCtrNameInPod(p), p.Name})
+		logs.WaitWithDefaultTimeout()
+		Expect(logs).Should(Exit(0))
+		Expect(logs.OutputToString()).To(ContainSubstring("hello world"))
+	})
+
 	It("podman play kube test restartPolicy", func() {
 		// podName,  set,  expect
 		testSli := [][]string{

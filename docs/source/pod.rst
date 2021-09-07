@@ -9,6 +9,8 @@ Pod
 
 :doc:`kill <markdown/podman-pod-kill.1>` Send the specified signal or SIGKILL to containers in pod
 
+:doc:`logs <markdown/podman-pod-logs.1>` Displays logs for pod with one or more containers
+
 :doc:`pause <markdown/podman-pause.1>` Pause one or more pods
 
 :doc:`prune <markdown/podman-pod-prune.1>` Remove all stopped pods and their containers

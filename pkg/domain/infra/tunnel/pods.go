@@ -42,6 +42,16 @@ func (ic *ContainerEngine) PodKill(ctx context.Context, namesOrIds []string, opt
 	return reports, nil
 }
 
+func (ic *ContainerEngine) PodLogs(_ context.Context, nameOrIDs string, options entities.PodLogsOptions) error {
+	// PodLogsOptions are similar but contains few extra fields like ctrName
+	// So cast other values as is so we can re-use the code
+	containerLogsOpts := entities.PodLogsOptionsToContainerLogsOptions(options)
+
+	// interface only accepts slice, keep everything consistent
+	name := []string{options.ContainerName}
+	return ic.ContainerLogs(nil, name, containerLogsOpts)
+}
+
 func (ic *ContainerEngine) PodPause(ctx context.Context, namesOrIds []string, options entities.PodPauseOptions) ([]*entities.PodPauseReport, error) {
 	foundPods, err := getPodsByContext(ic.ClientCtx, options.All, namesOrIds)
 	if err != nil {
