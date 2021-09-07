@@ -35,7 +35,6 @@ filtered_changes=$(git diff --name-status $base $head |
                        fgrep -vx .cirrus.yml          |
                        fgrep -vx .gitignore           |
                        fgrep -vx Makefile             |
-                       fgrep -vx changelog.txt        |
                        fgrep -vx go.mod               |
                        fgrep -vx go.sum               |
                        egrep -v  '^[^/]+\.md$'        |

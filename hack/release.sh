@@ -36,20 +36,10 @@ write_spec_version()
 	sed -i "s/^\(Version: *\).*/\1${LOCAL_VERSION}/" contrib/spec/podman.spec.in
 }
 
-write_changelog()
-{
-	echo "- Changelog for v${VERSION} (${DATE})" >.changelog.txt &&
-	git log --no-merges --format='  * %s' "${LAST_TAG}..HEAD" >>.changelog.txt &&
-	echo >>.changelog.txt &&
-	cat changelog.txt >>.changelog.txt &&
-	mv -f .changelog.txt changelog.txt
-}
-
 release_commit()
 {
 	write_go_version "${VERSION}" &&
 	write_spec_version "${VERSION}" &&
-	write_changelog &&
 	git commit -asm "Bump to v${VERSION}"
 }
 
