@@ -34,7 +34,7 @@ var (
 	ErrVMAlreadyExists                           = errors.New("VM already exists")
 	ErrVMAlreadyRunning                          = errors.New("VM already running")
 	ErrMultipleActiveVM                          = errors.New("only one VM can be active at a time")
-	ForwarderBinaryName                          = "gvproxy"
+	ForwarderBinaryPath  string // Populated by Makefile
 )
 
 type Download struct {

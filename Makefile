@@ -43,6 +43,7 @@ ETCDIR ?= ${PREFIX}/etc
 TMPFILESDIR ?= ${PREFIX}/lib/tmpfiles.d
 SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
 USERSYSTEMDDIR ?= ${PREFIX}/lib/systemd/user
+GVPROXY_PATH ?= /usr/libexec/gvproxy
 REMOTETAGS ?= remote exclude_graphdriver_btrfs btrfs_noversion exclude_graphdriver_devicemapper containers_image_openpgp
 BUILDTAGS ?= \
 	$(shell hack/apparmor_tag.sh) \
@@ -90,11 +91,13 @@ else
 	BUILD_INFO ?= $(shell date "+$(DATE_FMT)")
 	ISODATE ?= $(shell date --iso-8601)
 endif
-LIBPOD := ${PROJECT}/v3/libpod
+MODULE ?= $(shell grep -m1 ^module go.mod | cut -d\  -f2)
+LIBPOD := ${MODULE}/libpod
 GOFLAGS ?= -trimpath
 LDFLAGS_PODMAN ?= \
 	-X $(LIBPOD)/define.gitCommit=$(GIT_COMMIT) \
 	-X $(LIBPOD)/define.buildInfo=$(BUILD_INFO) \
+	-X $(MODULE)/pkg/machine.ForwarderBinaryPath=$(GVPROXY_PATH) \
 	-X $(LIBPOD)/config._installPrefix=$(PREFIX) \
 	-X $(LIBPOD)/config._etcDir=$(ETCDIR) \
 	$(EXTRA_LDFLAGS)
