@@ -371,7 +371,7 @@ func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []st
 	if options.Latest {
 		ctr, err := ic.Libpod.GetLatestContainer()
 		if err != nil {
-			if errors.Cause(err) == define.ErrNoSuchCtr {
+			if errors.Is(err, define.ErrNoSuchCtr) {
 				return nil, []error{errors.Wrapf(err, "no containers to inspect")}, nil
 			}
 			return nil, nil, err
@@ -397,7 +397,7 @@ func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []st
 		if err != nil {
 			// ErrNoSuchCtr is non-fatal, other errors will be
 			// treated as fatal.
-			if errors.Cause(err) == define.ErrNoSuchCtr {
+			if errors.Is(err, define.ErrNoSuchCtr) {
 				errs = append(errs, errors.Errorf("no such container %s", name))
 				continue
 			}
@@ -406,6 +406,12 @@ func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []st
 
 		inspect, err := ctr.Inspect(options.Size)
 		if err != nil {
+			// ErrNoSuchCtr is non-fatal, other errors will be
+			// treated as fatal.
+			if errors.Is(err, define.ErrNoSuchCtr) {
+				errs = append(errs, errors.Errorf("no such container %s", name))
+				continue
+			}
 			return nil, nil, err
 		}
 
