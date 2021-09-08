@@ -21,9 +21,7 @@ if [ -z "${RANDOM_STRING_1}" ]; then
     export LABEL_CREATED=$(random_string 16)
     export LABEL_FAILED=$(random_string 17)
     export LABEL_RUNNING=$(random_string 18)
-
-    # FIXME: randomize this
-    HOST_PORT=34567
+    export HOST_PORT=$(random_free_port)
 fi
 
 # Version string of the podman we're actually testing, e.g. '3.0.0-dev-d1a26013'
@@ -44,7 +42,8 @@ setup() {
         false
     fi
 
-    export _PODMAN_TEST_OPTS="--root=$PODMAN_UPGRADE_WORKDIR/root --runroot=$PODMAN_UPGRADE_WORKDIR/runroot --tmpdir=$PODMAN_UPGRADE_WORKDIR/tmp"
+    # cgroup-manager=systemd does not work inside a container
+    export _PODMAN_TEST_OPTS="--cgroup-manager=cgroupfs --root=$PODMAN_UPGRADE_WORKDIR/root --runroot=$PODMAN_UPGRADE_WORKDIR/runroot --tmpdir=$PODMAN_UPGRADE_WORKDIR/tmp"
 }
 
 ###############################################################################
@@ -76,8 +75,8 @@ setup() {
     cat >| $pmscript <<EOF
 #!/bin/bash
 
-# cgroup-manager=systemd does not work inside a container
-opts="--cgroup-manager=cgroupfs --events-backend=file $_PODMAN_TEST_OPTS"
+# events-backend=journald does not work inside a container
+opts="--events-backend=file $_PODMAN_TEST_OPTS"
 
 set -ex
 
@@ -95,21 +94,16 @@ podman \$opts run    --name mydonecontainer    $IMAGE echo ++$RANDOM_STRING_1++
 podman \$opts run    --name myfailedcontainer  --label mylabel=$LABEL_FAILED \
                                                $IMAGE sh -c 'exit 17' || true
 
-# FIXME: add "-p $HOST_PORT:80"
-#    ...I tried and tried, and could not get this to work. I could never
-#    connect to the port from the host, nor even from the podman_parent
-#    container; I could never see the port listed in 'ps' nor 'inspect'.
-#    And, finally, I ended up in a state where the container wouldn't
-#    even start, and via complicated 'podman logs' found out:
-#        httpd: bind: Address in use
-#    So I just give up for now.
-#
 podman \$opts run -d --name myrunningcontainer --label mylabel=$LABEL_RUNNING \
+                                               --network bridge \
+                                               -p $HOST_PORT:80 \
                                                -v $pmroot/var/www:/var/www \
                                                -w /var/www \
                                                $IMAGE /bin/busybox-extras httpd -f -p 80
 
 podman \$opts pod create --name mypod
+
+podman \$opts network create mynetwork
 
 echo READY
 while :;do
@@ -140,6 +134,7 @@ EOF
     #
     # mount /etc/containers/storage.conf to use the same storage settings as on the host
     # mount /dev/shm because the container locks are stored there
+    # mount /var/lib/cni and /etc/cni/net.d for cni networking
     #
     $PODMAN run -d --name podman_parent --pid=host \
             --privileged \
@@ -149,6 +144,9 @@ EOF
             -v /etc/containers/storage.conf:/etc/containers/storage.conf \
             -v /dev/fuse:/dev/fuse \
             -v /run/crun:/run/crun \
+            -v /run/netns:/run/netns:rshared \
+            -v /var/lib/cni:/var/lib/cni \
+            -v /etc/cni/net.d:/etc/cni/net.d \
             -v /dev/shm:/dev/shm \
             -v $pmroot:$pmroot \
             $OLD_PODMAN $pmroot/setup
@@ -187,7 +185,7 @@ EOF
     is "${lines[1]}" "mycreatedcontainer--Created----$LABEL_CREATED" "created"
     is "${lines[2]}" "mydonecontainer--Exited (0).*----<no value>" "done"
     is "${lines[3]}" "myfailedcontainer--Exited (17) .*----$LABEL_FAILED" "fail"
-    is "${lines[4]}" "myrunningcontainer--Up .*----$LABEL_RUNNING" "running"
+    is "${lines[4]}" "myrunningcontainer--Up .*--0.0.0.0:$HOST_PORT->80/tcp--$LABEL_RUNNING" "running"
 
     # For debugging: dump containers and IDs
     if [[ -n "$PODMAN_UPGRADE_TEST_DEBUG" ]]; then
@@ -212,6 +210,30 @@ failed    | exited     | 17
     done < <(parse_table "$tests")
 }
 
+@test "network - curl" {
+    run curl --max-time 3 -s 127.0.0.1:$HOST_PORT/index.txt
+    is "$output" "$RANDOM_STRING_1" "curl on running container"
+}
+
+# IMPORTANT: connect should happen before restart, we want to check
+# if we can connect on an existing running container
+@test "network - connect" {
+    skip_if_version_older 2.2.0
+    run_podman network connect mynetwork myrunningcontainer
+    run_podman network disconnect podman myrunningcontainer
+    run curl --max-time 3 -s 127.0.0.1:$HOST_PORT/index.txt
+    is "$output" "$RANDOM_STRING_1" "curl on container with second network connected"
+}
+
+@test "network - restart" {
+    # restart the container and check if we can still use the port
+    run_podman stop -t0 myrunningcontainer
+    run_podman start myrunningcontainer
+    run curl --max-time 3 -s 127.0.0.1:$HOST_PORT/index.txt
+    is "$output" "$RANDOM_STRING_1" "curl on restarted container"
+}
+
+
 @test "logs" {
     run_podman logs mydonecontainer
     is "$output" "++$RANDOM_STRING_1++" "podman logs on stopped container"
@@ -235,7 +257,7 @@ failed    | exited     | 17
     run_podman pod inspect mypod
     is "$output" ".*mypod.*"
 
-    run_podman --cgroup-manager=cgroupfs pod start mypod
+    run_podman pod start mypod
     is "$output" "[0-9a-f]\\{64\\}" "podman pod start"
 
     run_podman pod ps
@@ -245,7 +267,7 @@ failed    | exited     | 17
     run_podman pod stop mypod
     is "$output" "[0-9a-f]\\{64\\}" "podman pod stop"
 
-    run_podman --cgroup-manager=cgroupfs pod rm mypod
+    run_podman pod rm mypod
     # FIXME: CI runs show this (non fatal) error:
     # Error updating pod <ID> conmon cgroup PID limit: open /sys/fs/cgroup/libpod_parent/<ID>/conmon/pids.max: no such file or directory
     # Investigate how to fix this (likely a race condition)
@@ -257,7 +279,7 @@ failed    | exited     | 17
 
 
 @test "start" {
-    run_podman --cgroup-manager=cgroupfs start -a mydonecontainer
+    run_podman start -a mydonecontainer
     is "$output" "++$RANDOM_STRING_1++" "start on already-run container"
 }
 
@@ -294,6 +316,8 @@ failed    | exited     | 17
 
     run_podman logs podman_parent
     run_podman rm -f podman_parent
+
+    run_podman network rm -f mynetwork
 
     umount $PODMAN_UPGRADE_WORKDIR/root/overlay || true
 
