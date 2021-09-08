@@ -398,7 +398,6 @@ docker-py_test_task:
 # Does exactly what it says, execute the podman unit-tests on all primary
 # platforms and release versions.
 unit_test_task:
-    name: "Unit tests on $DISTRO_NV"
     alias: unit_test
     skip: *tags
     only_if: *not_docs
@@ -406,6 +405,13 @@ unit_test_task:
         - validate
     matrix: *platform_axis
     gce_instance: *standardvm
+    matrix:
+        - name: "Unit tests on $DISTRO_NV"
+          env:
+              PRIV_NAME: root
+        - name: "Rootless Unit tests on $DISTRO_NV"
+          env:
+              PRIV_NAME: rootless
     env:
         TEST_FLAVOR: unit
     clone_script: *noop  # Comes from cache
