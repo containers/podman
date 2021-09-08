@@ -22,12 +22,7 @@ fi
 
 # Randomly-assigned port in the 5xxx range
 if [ -z "${PODMAN_LOGIN_REGISTRY_PORT}" ]; then
-    for port in $(shuf -i 5000-5999);do
-        if ! { exec 3<> /dev/tcp/127.0.0.1/$port; } &>/dev/null; then
-            export PODMAN_LOGIN_REGISTRY_PORT=$port
-            break
-        fi
-    done
+    export PODMAN_LOGIN_REGISTRY_PORT=$(random_free_port)
 fi
 
 # Override any user-set path to an auth file

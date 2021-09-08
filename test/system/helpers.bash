@@ -278,6 +278,23 @@ function wait_for_ready {
     wait_for_output 'READY' "$@"
 }
 
+######################
+#  random_free_port  #  Pick an available port within a specified range
+######################
+function random_free_port() {
+    local range=${1:-5000-5999}
+
+    local port
+    for port in $(shuf -i ${range}); do
+        if ! { exec {unused_fd}<> /dev/tcp/127.0.0.1/$port; } &>/dev/null; then
+            echo $port
+            return
+        fi
+    done
+
+    die "Could not find open port in range $range"
+}
+
 ###################
 #  wait_for_port  #  Returns once port is available on host
 ###################
@@ -288,7 +305,7 @@ function wait_for_port() {
 
     # Wait
     while [ $_timeout -gt 0 ]; do
-        { exec 5<> /dev/tcp/$host/$port; } &>/dev/null && return
+        { exec {unused_fd}<> /dev/tcp/$host/$port; } &>/dev/null && return
         sleep 1
         _timeout=$(( $_timeout - 1 ))
     done

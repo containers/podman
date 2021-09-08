@@ -213,8 +213,16 @@ declare -a lines=(
 )
 check_same_dev "zero-line output"
 
-
 # END   remove_same_dev_warning
+###############################################################################
+# BEGIN random_free_port
+
+# Assumes that 16700 is open
+found=$(random_free_port 16700-16700)
+
+check_result "$found" "16700" "random_free_port"
+
+# END   random_free_port
 ###############################################################################
 
 exit $rc
