@@ -126,6 +126,7 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 		Linkmode:          linkmode.Linkmode(),
 		CPUs:              runtime.NumCPU(),
 		Distribution:      hostDistributionInfo,
+		LogDriver:         r.config.Containers.LogDriver,
 		EventLogger:       r.eventer.String(),
 		Hostname:          host,
 		IDMappings:        define.IDMappings{},

@@ -9,6 +9,7 @@ load helpers
 buildahVersion: *[0-9.]\\\+
 conmon:\\\s\\\+package:
 distribution:
+logDriver:
 ociRuntime:\\\s\\\+name:
 os:
 rootless:
