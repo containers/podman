@@ -76,11 +76,7 @@ function teardown() {
     fi
 
     # Randomly-assigned port in the 5xxx range
-    for port in $(shuf -i 5000-5999);do
-        if ! { exec 3<> /dev/tcp/127.0.0.1/$port; } &>/dev/null; then
-            break
-        fi
-    done
+    port=$(random_free_port)
 
     # Listener. This will exit as soon as it receives a message.
     run_podman run -d --pod $podname $IMAGE nc -l -p $port
@@ -183,16 +179,8 @@ function random_ip() {
     pod_id_file=${PODMAN_TMPDIR}/pod-id-file
 
     # Randomly-assigned ports in the 5xxx and 6xxx range
-    for port_in in $(shuf -i 5000-5999);do
-        if ! { exec 3<> /dev/tcp/127.0.0.1/$port_in; } &>/dev/null; then
-            break
-        fi
-    done
-    for port_out in $(shuf -i 6000-6999);do
-        if ! { exec 3<> /dev/tcp/127.0.0.1/$port_out; } &>/dev/null; then
-            break
-        fi
-    done
+    port_in=$(random_free_port 5000-5999)
+    port_out=$(random_free_port 6000-6999)
 
     # Create a pod with all the desired options
     # FIXME: --ip=$ip fails:

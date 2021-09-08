@@ -23,7 +23,7 @@ load helpers
     random_1=$(random_string 30)
     random_2=$(random_string 30)
 
-    HOST_PORT=8080
+    HOST_PORT=$(random_free_port)
     SERVER=http://127.0.0.1:$HOST_PORT
 
     # Create a test file with random content
@@ -114,11 +114,8 @@ load helpers
 
 # Issue #5466 - port-forwarding doesn't work with this option and -d
 @test "podman networking: port with --userns=keep-id" {
-    # FIXME: randomize port, and create second random host port
-    myport=54321
-
     for cidr in "" "$(random_rfc1918_subnet).0/24"; do
-        myport=$(( myport + 1 ))
+        myport=$(random_free_port 52000-52999)
         if [[ -z $cidr ]]; then
             # regex to match that we are in 10.X subnet
             match="10\..*"
@@ -188,6 +185,7 @@ load helpers
 
 # "network create" now works rootless, with the help of a special container
 @test "podman network create" {
+    # Deliberately use a fixed port, not random_open_port, because of #10806
     myport=54322
 
     local mynetname=testnet-$(random_string 10)
@@ -244,7 +242,7 @@ load helpers
     skip_if_remote "podman network reload does not have remote support"
 
     random_1=$(random_string 30)
-    HOST_PORT=12345
+    HOST_PORT=$(random_free_port)
     SERVER=http://127.0.0.1:$HOST_PORT
 
     # Create a test file with random content
@@ -396,7 +394,7 @@ load helpers
 # Test for https://github.com/containers/podman/issues/10052
 @test "podman network connect/disconnect with port forwarding" {
     random_1=$(random_string 30)
-    HOST_PORT=12345
+    HOST_PORT=$(random_free_port)
     SERVER=http://127.0.0.1:$HOST_PORT
 
     # Create a test file with random content
