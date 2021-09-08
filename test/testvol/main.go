@@ -224,13 +224,13 @@ func (d *DirDriver) Remove(req *volume.RemoveRequest) error {
 	vol, exists := d.volumes[req.Name]
 	if !exists {
 		logrus.Debugf("Did not find volume %s", req.Name)
-		return errors.Errorf("no volume with name %s found")
+		return errors.Errorf("no volume with name %s found", req.Name)
 	}
 	logrus.Debugf("Found volume %s", req.Name)
 
 	if len(vol.mounts) > 0 {
 		logrus.Debugf("Cannot remove %s, is mounted", req.Name)
-		return errors.Errorf("volume %s is mounted and cannot be removed")
+		return errors.Errorf("volume %s is mounted and cannot be removed", req.Name)
 	}
 
 	delete(d.volumes, req.Name)
