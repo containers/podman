@@ -424,8 +424,7 @@ unit_test_task:
 apiv2_test_task:
     name: "APIv2 test on $DISTRO_NV"
     alias: apiv2_test
-    only_if: *not_docs
-    skip: *tags
+    skip: $CI == $CI
     depends_on:
         - validate
     gce_instance: *standardvm
@@ -451,8 +450,7 @@ apiv2_test_task:
 compose_test_task:
     name: "compose test on $DISTRO_NV ($PRIV_NAME)"
     alias: compose_test
-    only_if: *not_docs
-    skip: *tags
+    skip: $CI == $CI
     depends_on:
         - validate
     gce_instance: *standardvm
@@ -478,8 +476,7 @@ local_integration_test_task: &local_integration_test_task
     # <int.|sys.> <podman|remote> <Distro NV> <root|rootless>
     name: &std_name_fmt "$TEST_FLAVOR $PODBIN_NAME $DISTRO_NV $PRIV_NAME $TEST_ENVIRON"
     alias: local_integration_test
-    only_if: *not_docs
-    skip: *branches_and_tags
+    skip: $CI == $CI
     depends_on:
         - unit_test
     matrix: *platform_axis
@@ -514,8 +511,7 @@ remote_integration_test_task:
 container_integration_test_task:
     name: *std_name_fmt
     alias: container_integration_test
-    only_if: *not_docs
-    skip: *branches_and_tags
+    skip: $CI == $CI
     depends_on:
         - unit_test
     matrix: &fedora_vm_axis
@@ -545,8 +541,7 @@ container_integration_test_task:
 rootless_integration_test_task:
     name: *std_name_fmt
     alias: rootless_integration_test
-    only_if: *not_docs
-    skip: *branches_and_tags
+    skip: $CI == $CI
     depends_on:
         - unit_test
     matrix: *platform_axis
@@ -569,8 +564,7 @@ rootless_integration_test_task:
 local_system_test_task: &local_system_test_task
     name: *std_name_fmt
     alias: local_system_test
-    skip: *tags
-    only_if: *not_docs
+    skip: $CI == $CI
     depends_on:
       - local_integration_test
     matrix: *platform_axis
@@ -596,8 +590,7 @@ remote_system_test_task:
 buildah_bud_test_task:
     name: *std_name_fmt
     alias: buildah_bud_test
-    skip: *tags
-    only_if: *not_docs
+    skip: $CI == $CI
     depends_on:
       - local_integration_test
     env:
@@ -624,8 +617,7 @@ buildah_bud_test_task:
 rootless_system_test_task:
     name: *std_name_fmt
     alias: rootless_system_test
-    skip: *tags
-    only_if: *not_docs
+    skip: $CI == $CI
     depends_on:
       - rootless_integration_test
     matrix: *platform_axis
@@ -642,8 +634,7 @@ rootless_system_test_task:
 upgrade_test_task:
     name: "Upgrade test: from $PODMAN_UPGRADE_FROM"
     alias: upgrade_test
-    skip: *tags
-    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' || $CIRRUS_CRON != ''
+    skip: $CI == $CI
     depends_on:
       - local_system_test
     matrix:
@@ -739,7 +730,7 @@ success_task:
 release_task:
     name: "Verify Release"
     alias: release
-    only_if: *tags
+    skip: $CI == $CI
     depends_on:
         - success
     gce_instance: *standardvm
@@ -762,7 +753,7 @@ release_task:
 release_test_task:
     name: "Optional Release Test"
     alias: release_test
-    only_if: $CIRRUS_PR != ''
+    skip: $CI == $CI
     trigger_type: manual
     depends_on:
         - success
