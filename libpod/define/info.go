@@ -36,6 +36,7 @@ type HostInfo struct {
 	Hostname          string           `json:"hostname"`
 	IDMappings        IDMappings       `json:"idMappings,omitempty"`
 	Kernel            string           `json:"kernel"`
+	LogDriver         string           `json:"logDriver"`
 	MemFree           int64            `json:"memFree"`
 	MemTotal          int64            `json:"memTotal"`
 	OCIRuntime        *OCIRuntimeInfo  `json:"ociRuntime"`
