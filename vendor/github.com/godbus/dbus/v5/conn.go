@@ -478,12 +478,22 @@ func (conn *Conn) sendMessageAndIfClosed(msg *Message, ifClosed func()) {
 		conn.outInt(msg)
 	}
 	err := conn.outHandler.sendAndIfClosed(msg, ifClosed)
-	conn.calls.handleSendError(msg, err)
 	if err != nil {
-		conn.serialGen.RetireSerial(msg.serial)
+		conn.handleSendError(msg, err)
 	} else if msg.Type != TypeMethodCall {
 		conn.serialGen.RetireSerial(msg.serial)
 	}
+}
+
+func (conn *Conn) handleSendError(msg *Message, err error) {
+	if msg.Type == TypeMethodCall {
+		conn.calls.handleSendError(msg, err)
+	} else if msg.Type == TypeMethodReply {
+		if _, ok := err.(FormatError); ok {
+			conn.sendError(err, msg.Headers[FieldDestination].value.(string), msg.Headers[FieldReplySerial].value.(uint32))
+		}
+	}
+	conn.serialGen.RetireSerial(msg.serial)
 }
 
 // Send sends the given message to the message bus. You usually don't need to
