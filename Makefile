@@ -164,6 +164,8 @@ else
 BINSFX := -remote
 SRCBINDIR := bin
 endif
+# Default to the native architecture type
+GOARCH ?= $(shell $(GO) env GOARCH)
 # Necessary for nested-$(MAKE) calls and docs/remote-docs.sh
 export GOOS CGO_ENABLED BINSFX SRCBINDIR
 
@@ -602,7 +604,7 @@ tests-expect-exit:
 ### Release/Packaging targets
 ###
 
-podman-release.tar.gz: binaries docs  ## Build all binaries, docs., and installation tree, into a tarball.
+podman-release_$(GOARCH).tar.gz: binaries docs  ## Build all binaries, docs., and installation tree, into a tarball.
 	$(eval TMPDIR := $(shell mktemp -d podman_tmp_XXXX))
 	$(eval SUBDIR := podman-v$(RELEASE_NUMBER))
 	mkdir -p "$(TMPDIR)/$(SUBDIR)"
@@ -611,12 +613,13 @@ podman-release.tar.gz: binaries docs  ## Build all binaries, docs., and installa
 	tar -czvf $@ --xattrs -C "$(TMPDIR)" "./$(SUBDIR)"
 	-rm -rf "$(TMPDIR)"
 
-podman-remote-release-%.zip: podman-remote-% install-podman-remote-%-docs  ## Build podman-remote for GOOS=%, docs., and installation zip.
+podman-remote-release-%_$(GOARCH).zip: podman-remote-% install-podman-remote-%-docs  ## Build podman-remote for GOOS=%, docs., and installation zip.
 	$(eval TMPDIR := $(shell mktemp -d podman_tmp_XXXX))
 	$(eval SUBDIR := podman-$(RELEASE_NUMBER))
 	mkdir -p "$(TMPDIR)/$(SUBDIR)"
 	$(MAKE) \
 		GOOS=$* \
+		GOARCH=$(GOARCH) \
 		DESTDIR=$(TMPDIR)/ \
 		BINDIR=$(SUBDIR) \
 		SELINUXOPT="" \

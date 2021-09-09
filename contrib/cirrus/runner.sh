@@ -205,7 +205,7 @@ function _run_build() {
     # Ensure always start from clean-slate with all vendor modules downloaded
     make clean
     make vendor
-    make podman-release.tar.gz  # includes podman, podman-remote, and docs
+    make podman-release_amd64.tar.gz  # includes podman, podman-remote, and docs
 }
 
 function _run_altbuild() {
@@ -221,7 +221,7 @@ function _run_altbuild() {
             make build-all-new-commits GIT_BASE_BRANCH=origin/$DEST_BRANCH
             ;;
         *Windows*)
-            make podman-remote-release-windows.zip
+            make podman-remote-release-windows_amd64.zip
             make podman.msi
             ;;
         *Without*)
