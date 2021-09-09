@@ -47,8 +47,7 @@ var _ = Describe("Podman unshare", func() {
 		session := podmanTest.Podman([]string{"unshare", "readlink", "/proc/self/ns/user"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		ok, _ := session.GrepString(userNS)
-		Expect(ok).To(BeFalse())
+		Expect(session.OutputToString()).ToNot(ContainSubstring(userNS))
 	})
 
 	It("podman unshare --rootles-cni", func() {
@@ -56,5 +55,37 @@ var _ = Describe("Podman unshare", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("tap0"))
+	})
+
+	It("podman unshare exit codes", func() {
+		session := podmanTest.Podman([]string{"unshare", "false"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(1))
+		Expect(session.OutputToString()).Should(Equal(""))
+		Expect(session.ErrorToString()).Should(Equal(""))
+
+		session = podmanTest.Podman([]string{"unshare", "/usr/bin/bogus"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(127))
+		Expect(session.OutputToString()).Should(Equal(""))
+		Expect(session.ErrorToString()).Should(ContainSubstring("no such file or directory"))
+
+		session = podmanTest.Podman([]string{"unshare", "bogus"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(127))
+		Expect(session.OutputToString()).Should(Equal(""))
+		Expect(session.ErrorToString()).Should(ContainSubstring("executable file not found in $PATH"))
+
+		session = podmanTest.Podman([]string{"unshare", "/usr"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(126))
+		Expect(session.OutputToString()).Should(Equal(""))
+		Expect(session.ErrorToString()).Should(ContainSubstring("permission denied"))
+
+		session = podmanTest.Podman([]string{"unshare", "--bogus"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(125))
+		Expect(session.OutputToString()).Should(Equal(""))
+		Expect(session.ErrorToString()).Should(ContainSubstring("unknown flag: --bogus"))
 	})
 })
