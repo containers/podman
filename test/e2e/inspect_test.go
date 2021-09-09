@@ -50,6 +50,24 @@ var _ = Describe("Podman inspect", func() {
 		Expect(session).To(ExitWithError())
 	})
 
+	It("podman inspect filter should work if result contains tab", func() {
+		session := podmanTest.Podman([]string{"build", "--tag", "envwithtab", "build/envwithtab"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// Verify that OS and Arch are being set
+		inspect := podmanTest.Podman([]string{"inspect", "-f", "{{ .Config.Env }}", "envwithtab"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		// output should not be empty
+		// test validates fix for https://github.com/containers/podman/issues/8785
+		Expect(strings.Contains(inspect.OutputToString(), "TEST"))
+
+		session = podmanTest.Podman([]string{"rmi", "envwithtab"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+	})
+
 	It("podman inspect with GO format", func() {
 		session := podmanTest.Podman([]string{"inspect", "--format", "{{.ID}}", ALPINE})
 		session.WaitWithDefaultTimeout()

@@ -254,7 +254,9 @@ func printTmpl(typ, row string, data []interface{}) error {
 	if err != nil {
 		return err
 	}
-	return t.Execute(w, data)
+	err = t.Execute(w, data)
+	w.Flush()
+	return err
 }
 
 func (i *inspector) inspectAll(ctx context.Context, namesOrIDs []string) ([]interface{}, []error, error) {

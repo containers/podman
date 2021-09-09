@@ -80,5 +80,7 @@ func inspect(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	return t.Execute(w, *responses)
+	err = t.Execute(w, *responses)
+	w.Flush()
+	return err
 }
