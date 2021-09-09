@@ -7,6 +7,7 @@ import (
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/api/handlers"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
+	api "github.com/containers/podman/v3/pkg/api/types"
 	"github.com/containers/podman/v3/pkg/domain/entities/reports"
 	"github.com/containers/podman/v3/pkg/domain/filters"
 	"github.com/containers/podman/v3/pkg/util"
@@ -14,7 +15,7 @@ import (
 )
 
 func PruneContainers(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	filtersMap, err := util.PrepareFilters(r)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
@@ -65,7 +66,7 @@ func PruneContainers(w http.ResponseWriter, r *http.Request) {
 }
 
 func PruneContainersHelper(r *http.Request, filterFuncs []libpod.ContainerFilter) ([]*reports.PruneReport, error) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	report, err := runtime.PruneContainers(filterFuncs)
 	if err != nil {

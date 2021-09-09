@@ -379,6 +379,8 @@ github.com/google/gofuzz
 github.com/google/shlex
 # github.com/google/uuid v1.3.0
 github.com/google/uuid
+# github.com/gorilla/handlers v0.0.0-20150720190736-60c7bfde3e33
+github.com/gorilla/handlers
 # github.com/gorilla/mux v1.8.0
 github.com/gorilla/mux
 # github.com/gorilla/schema v1.2.0

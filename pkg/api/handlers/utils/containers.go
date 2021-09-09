@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v3/libpod/events"
+	api "github.com/containers/podman/v3/pkg/api/types"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
 
@@ -36,7 +37,7 @@ func WaitContainerDocker(w http.ResponseWriter, r *http.Request) {
 
 	query := waitQueryDocker{}
 
-	decoder := ctx.Value("decoder").(*schema.Decoder)
+	decoder := ctx.Value(api.DecoderKey).(*schema.Decoder)
 	if err = decoder.Decode(&query, r.URL.Query()); err != nil {
 		Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
@@ -68,7 +69,7 @@ func WaitContainerDocker(w http.ResponseWriter, r *http.Request) {
 
 	// In docker compatibility mode we have to send headers in advance,
 	// otherwise docker client would freeze.
-	w.Header().Add("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 	if flusher, ok := w.(http.Flusher); ok {
 		flusher.Flush()
@@ -103,7 +104,7 @@ func WaitContainerLibpod(w http.ResponseWriter, r *http.Request) {
 		interval   = time.Millisecond * 250
 		conditions = []define.ContainerStatus{define.ContainerStateStopped, define.ContainerStateExited}
 	)
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := waitQueryLibpod{}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
@@ -143,7 +144,7 @@ func WaitContainerLibpod(w http.ResponseWriter, r *http.Request) {
 type containerWaitFn func(conditions ...define.ContainerStatus) (int32, error)
 
 func createContainerWaitFn(ctx context.Context, containerName string, interval time.Duration) containerWaitFn {
-	runtime := ctx.Value("runtime").(*libpod.Runtime)
+	runtime := ctx.Value(api.RuntimeKey).(*libpod.Runtime)
 	var containerEngine entities.ContainerEngine = &abi.ContainerEngine{Libpod: runtime}
 
 	return func(conditions ...define.ContainerStatus) (int32, error) {
@@ -205,7 +206,7 @@ func waitRemoved(ctrWait containerWaitFn) (int32, error) {
 }
 
 func waitNextExit(ctx context.Context, containerName string) (int32, error) {
-	runtime := ctx.Value("runtime").(*libpod.Runtime)
+	runtime := ctx.Value(api.RuntimeKey).(*libpod.Runtime)
 	containerEngine := &abi.ContainerEngine{Libpod: runtime}
 	eventChannel := make(chan *events.Event)
 	errChannel := make(chan error)
@@ -237,7 +238,7 @@ func waitNotRunning(ctrWait containerWaitFn) (int32, error) {
 }
 
 func containerExists(ctx context.Context, name string) (bool, error) {
-	runtime := ctx.Value("runtime").(*libpod.Runtime)
+	runtime := ctx.Value(api.RuntimeKey).(*libpod.Runtime)
 	var containerEngine entities.ContainerEngine = &abi.ContainerEngine{Libpod: runtime}
 
 	var ctrExistsOpts entities.ContainerExistsOptions

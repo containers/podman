@@ -5,6 +5,7 @@ import (
 
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
+	api "github.com/containers/podman/v3/pkg/api/types"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
 	"github.com/containers/podman/v3/pkg/util"
@@ -14,8 +15,8 @@ import (
 
 // SystemPrune removes unused data
 func SystemPrune(w http.ResponseWriter, r *http.Request) {
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	query := struct {
 		All     bool `schema:"all"`
@@ -53,7 +54,7 @@ func SystemPrune(w http.ResponseWriter, r *http.Request) {
 func DiskUsage(w http.ResponseWriter, r *http.Request) {
 	// Options are only used by the CLI
 	options := entities.SystemDfOptions{}
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	ic := abi.ContainerEngine{Libpod: runtime}
 	response, err := ic.SystemDf(r.Context(), options)
 	if err != nil {

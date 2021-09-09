@@ -7,14 +7,15 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/containers/podman/v3/pkg/api/server/idle"
+	api "github.com/containers/podman/v3/pkg/api/types"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 func AttachContainer(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 
 	query := struct {
 		DetachKeys string `schema:"detachKeys"`
@@ -104,7 +105,7 @@ func AttachContainer(w http.ResponseWriter, r *http.Request) {
 
 	if <-hijackChan {
 		// If connection was Hijacked, we have to signal it's being closed
-		t := r.Context().Value("idletracker").(*idle.Tracker)
+		t := r.Context().Value(api.IdleTrackerKey).(*idle.Tracker)
 		defer t.Close()
 
 		if err != nil {

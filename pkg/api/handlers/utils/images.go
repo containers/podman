@@ -11,6 +11,7 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod"
+	api "github.com/containers/podman/v3/pkg/api/types"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -51,8 +52,8 @@ func ParseStorageReference(name string) (types.ImageReference, error) {
 // GetImages is a common function used to get images for libpod and other compatibility
 // mechanisms
 func GetImages(w http.ResponseWriter, r *http.Request) ([]*libimage.Image, error) {
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	query := struct {
 		All     bool
 		Digests bool
@@ -87,7 +88,7 @@ func GetImages(w http.ResponseWriter, r *http.Request) ([]*libimage.Image, error
 }
 
 func GetImage(r *http.Request, name string) (*libimage.Image, error) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	image, _, err := runtime.LibimageRuntime().LookupImage(name, nil)
 	if err != nil {
 		return nil, err

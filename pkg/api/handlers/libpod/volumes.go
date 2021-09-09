@@ -8,6 +8,7 @@ import (
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
+	api "github.com/containers/podman/v3/pkg/api/types"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/entities/reports"
 	"github.com/containers/podman/v3/pkg/domain/filters"
@@ -21,8 +22,8 @@ import (
 func CreateVolume(w http.ResponseWriter, r *http.Request) {
 	var (
 		volumeOptions []libpod.VolumeCreateOption
-		runtime       = r.Context().Value("runtime").(*libpod.Runtime)
-		decoder       = r.Context().Value("decoder").(*schema.Decoder)
+		runtime       = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+		decoder       = r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	)
 	query := struct {
 	}{
@@ -75,7 +76,7 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 
 func InspectVolume(w http.ResponseWriter, r *http.Request) {
 	var (
-		runtime = r.Context().Value("runtime").(*libpod.Runtime)
+		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	)
 	name := utils.GetName(r)
 	vol, err := runtime.GetVolume(name)
@@ -96,7 +97,7 @@ func InspectVolume(w http.ResponseWriter, r *http.Request) {
 
 func ListVolumes(w http.ResponseWriter, r *http.Request) {
 	var (
-		runtime = r.Context().Value("runtime").(*libpod.Runtime)
+		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	)
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
@@ -142,7 +143,7 @@ func PruneVolumes(w http.ResponseWriter, r *http.Request) {
 
 func pruneVolumesHelper(r *http.Request) ([]*reports.PruneReport, error) {
 	var (
-		runtime = r.Context().Value("runtime").(*libpod.Runtime)
+		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	)
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
@@ -164,8 +165,8 @@ func pruneVolumesHelper(r *http.Request) ([]*reports.PruneReport, error) {
 
 func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 	var (
-		runtime = r.Context().Value("runtime").(*libpod.Runtime)
-		decoder = r.Context().Value("decoder").(*schema.Decoder)
+		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+		decoder = r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	)
 	query := struct {
 		Force bool `schema:"force"`
@@ -197,7 +198,7 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 
 // ExistsVolume check if a volume exists
 func ExistsVolume(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	name := utils.GetName(r)
 
 	ic := abi.ContainerEngine{Libpod: runtime}

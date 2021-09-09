@@ -17,6 +17,7 @@ import (
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/api/handlers"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
+	api "github.com/containers/podman/v3/pkg/api/types"
 	"github.com/containers/podman/v3/pkg/auth"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
@@ -45,7 +46,7 @@ func mergeNameAndTagOrDigest(name, tagOrDigest string) string {
 func ExportImage(w http.ResponseWriter, r *http.Request) {
 	// 200 ok
 	// 500 server
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	tmpfile, err := ioutil.TempFile("", "api.tar")
 	if err != nil {
@@ -89,8 +90,8 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 	var (
 		destImage string
 	)
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	query := struct {
 		Author    string `schema:"author"`
@@ -162,8 +163,8 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 	// 200 no error
 	// 404 repo does not exist or no read access
 	// 500 internal
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	query := struct {
 		Changes  []string `schema:"changes"`
@@ -234,8 +235,8 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 	// 200 no error
 	// 404 repo does not exist or no read access
 	// 500 internal
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	query := struct {
 		FromImage string `schema:"fromImage"`
@@ -301,7 +302,7 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Header().Add("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	flush()
 
 	enc := json.NewEncoder(w)
@@ -407,8 +408,8 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 func LoadImages(w http.ResponseWriter, r *http.Request) {
 	// TODO this is basically wrong
 	// TODO ... improve these ^ messages to something useful
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	query := struct {
 		Changes map[string]string `json:"changes"` // Ignored
@@ -465,8 +466,8 @@ func LoadImages(w http.ResponseWriter, r *http.Request) {
 func ExportImages(w http.ResponseWriter, r *http.Request) {
 	// 200 OK
 	// 500 Error
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	query := struct {
 		Names []string `schema:"names"`

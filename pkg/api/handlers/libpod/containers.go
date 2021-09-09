@@ -9,6 +9,7 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/api/handlers/compat"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
+	api "github.com/containers/podman/v3/pkg/api/types"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
 	"github.com/containers/podman/v3/pkg/util"
@@ -18,8 +19,8 @@ import (
 )
 
 func ContainerExists(w http.ResponseWriter, r *http.Request) {
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	// Now use the ABI implementation to prevent us from having duplicate
 	// code.
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
@@ -58,7 +59,7 @@ func ContainerExists(w http.ResponseWriter, r *http.Request) {
 }
 
 func ListContainers(w http.ResponseWriter, r *http.Request) {
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
 		All       bool `schema:"all"`
 		External  bool `schema:"external"`
@@ -89,7 +90,7 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 		limit = query.Last
 	}
 
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	// Now use the ABI implementation to prevent us from having duplicate
 	// code.
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
@@ -118,7 +119,7 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetContainer(w http.ResponseWriter, r *http.Request) {
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
 		Size bool `schema:"size"`
 	}{
@@ -130,7 +131,7 @@ func GetContainer(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	name := utils.GetName(r)
 	container, err := runtime.LookupContainer(name)
 	if err != nil {
@@ -150,7 +151,7 @@ func WaitContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func UnmountContainer(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	name := utils.GetName(r)
 	conn, err := runtime.LookupContainer(name)
 	if err != nil {
@@ -165,7 +166,7 @@ func UnmountContainer(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusNoContent, "")
 }
 func MountContainer(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	name := utils.GetName(r)
 	conn, err := runtime.LookupContainer(name)
 	if err != nil {
@@ -181,7 +182,7 @@ func MountContainer(w http.ResponseWriter, r *http.Request) {
 
 func ShowMountedContainers(w http.ResponseWriter, r *http.Request) {
 	response := make(map[string]string)
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	conns, err := runtime.GetAllContainers()
 	if err != nil {
 		utils.InternalServerError(w, err)
@@ -201,7 +202,7 @@ func ShowMountedContainers(w http.ResponseWriter, r *http.Request) {
 
 func Checkpoint(w http.ResponseWriter, r *http.Request) {
 	var targetFile string
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
 		Keep           bool `schema:"keep"`
 		LeaveRunning   bool `schema:"leaveRunning"`
@@ -218,7 +219,7 @@ func Checkpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := utils.GetName(r)
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	ctr, err := runtime.LookupContainer(name)
 	if err != nil {
 		utils.ContainerNotFound(w, name, err)
@@ -268,7 +269,7 @@ func Restore(w http.ResponseWriter, r *http.Request) {
 	var (
 		targetFile string
 	)
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
 		Keep            bool   `schema:"keep"`
 		TCPEstablished  bool   `schema:"tcpEstablished"`
@@ -287,7 +288,7 @@ func Restore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := utils.GetName(r)
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	ctr, err := runtime.LookupContainer(name)
 	if err != nil {
 		utils.ContainerNotFound(w, name, err)
@@ -328,7 +329,7 @@ func Restore(w http.ResponseWriter, r *http.Request) {
 
 func InitContainer(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	ctr, err := runtime.LookupContainer(name)
 	if err != nil {
 		utils.ContainerNotFound(w, name, err)
@@ -347,7 +348,7 @@ func InitContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func ShouldRestart(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	// Now use the ABI implementation to prevent us from having duplicate
 	// code.
 	containerEngine := abi.ContainerEngine{Libpod: runtime}

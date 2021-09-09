@@ -10,6 +10,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
+	api "github.com/containers/podman/v3/pkg/api/types"
 	"github.com/containers/podman/v3/pkg/auth"
 	"github.com/containers/podman/v3/pkg/channel"
 	"github.com/containers/podman/v3/pkg/domain/entities"
@@ -23,8 +24,8 @@ import (
 // transport or be normalized to one).  Other transports are rejected as they
 // do not make sense in a remote context.
 func ImagesPull(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
 		Reference  string `schema:"reference"`
 		OS         string `schema:"OS"`
@@ -107,7 +108,7 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Header().Add("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	flush()
 
 	enc := json.NewEncoder(w)

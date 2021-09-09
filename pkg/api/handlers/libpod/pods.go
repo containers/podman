@@ -14,6 +14,7 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/api/handlers"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
+	api "github.com/containers/podman/v3/pkg/api/types"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
 	"github.com/containers/podman/v3/pkg/specgen"
@@ -27,7 +28,7 @@ import (
 
 func PodCreate(w http.ResponseWriter, r *http.Request) {
 	var (
-		runtime = r.Context().Value("runtime").(*libpod.Runtime)
+		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 		err     error
 	)
 	psg := specgen.PodSpecGenerator{InfraContainerSpec: &specgen.SpecGenerator{}}
@@ -100,7 +101,7 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func Pods(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
@@ -122,7 +123,7 @@ func Pods(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodInspect(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
 	if err != nil {
@@ -144,8 +145,8 @@ func PodInspect(w http.ResponseWriter, r *http.Request) {
 func PodStop(w http.ResponseWriter, r *http.Request) {
 	var (
 		stopError error
-		runtime   = r.Context().Value("runtime").(*libpod.Runtime)
-		decoder   = r.Context().Value("decoder").(*schema.Decoder)
+		runtime   = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+		decoder   = r.Context().Value(api.DecoderKey).(*schema.Decoder)
 		responses map[string]error
 	)
 	query := struct {
@@ -206,7 +207,7 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodStart(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
 	if err != nil {
@@ -243,8 +244,8 @@ func PodStart(w http.ResponseWriter, r *http.Request) {
 
 func PodDelete(w http.ResponseWriter, r *http.Request) {
 	var (
-		runtime = r.Context().Value("runtime").(*libpod.Runtime)
-		decoder = r.Context().Value("decoder").(*schema.Decoder)
+		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+		decoder = r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	)
 	query := struct {
 		Force bool `schema:"force"`
@@ -272,7 +273,7 @@ func PodDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodRestart(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
 	if err != nil {
@@ -308,7 +309,7 @@ func PodPrune(w http.ResponseWriter, r *http.Request) {
 
 func PodPruneHelper(r *http.Request) ([]*entities.PodPruneReport, error) {
 	var (
-		runtime = r.Context().Value("runtime").(*libpod.Runtime)
+		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	)
 	responses, err := runtime.PrunePods(r.Context())
 	if err != nil {
@@ -325,7 +326,7 @@ func PodPruneHelper(r *http.Request) ([]*entities.PodPruneReport, error) {
 }
 
 func PodPause(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
 	if err != nil {
@@ -351,7 +352,7 @@ func PodPause(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodUnpause(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
 	if err != nil {
@@ -377,8 +378,8 @@ func PodUnpause(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodTop(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 
 	query := struct {
 		PsArgs string `schema:"ps_args"`
@@ -420,8 +421,8 @@ func PodTop(w http.ResponseWriter, r *http.Request) {
 
 func PodKill(w http.ResponseWriter, r *http.Request) {
 	var (
-		runtime = r.Context().Value("runtime").(*libpod.Runtime)
-		decoder = r.Context().Value("decoder").(*schema.Decoder)
+		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+		decoder = r.Context().Value(api.DecoderKey).(*schema.Decoder)
 		signal  = "SIGKILL"
 	)
 	query := struct {
@@ -489,7 +490,7 @@ func PodKill(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodExists(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	name := utils.GetName(r)
 	_, err := runtime.LookupPod(name)
 	if err != nil {
@@ -500,8 +501,8 @@ func PodExists(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodStats(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 
 	query := struct {
 		NamesOrIDs []string `schema:"namesOrIDs"`

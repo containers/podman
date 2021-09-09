@@ -14,11 +14,13 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/network"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
+	api "github.com/containers/podman/v3/pkg/api/types"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
 	networkid "github.com/containers/podman/v3/pkg/network"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/docker/docker/api/types"
+
 	dockerNetwork "github.com/docker/docker/api/types/network"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
@@ -32,7 +34,7 @@ type pluginInterface struct {
 }
 
 func InspectNetwork(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	// scope is only used to see if the user passes any illegal value, verbose is not used but implemented
 	// for compatibility purposes only.
@@ -42,7 +44,7 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 	}{
 		scope: "local",
 	}
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
@@ -195,7 +197,7 @@ func getPlugin(plugins []*libcni.NetworkConfig) (pluginInterface, error) {
 }
 
 func ListNetworks(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
@@ -234,7 +236,7 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 		name          string
 		networkCreate types.NetworkCreateRequest
 	)
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	if err := json.NewDecoder(r.Body).Decode(&networkCreate); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
@@ -304,7 +306,7 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 }
 
 func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	ic := abi.ContainerEngine{Libpod: runtime}
 
 	query := struct {
@@ -313,7 +315,7 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 		// This is where you can override the golang default value for one of fields
 	}
 
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
@@ -348,7 +350,7 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 
 // Connect adds a container to a network
 func Connect(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	var (
 		aliases    []string
@@ -382,7 +384,7 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 
 // Disconnect removes a container from a network
 func Disconnect(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	var netDisconnect types.NetworkDisconnect
 	if err := json.NewDecoder(r.Body).Decode(&netDisconnect); err != nil {
@@ -409,7 +411,7 @@ func Disconnect(w http.ResponseWriter, r *http.Request) {
 
 // Prune removes unused networks
 func Prune(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))

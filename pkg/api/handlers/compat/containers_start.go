@@ -3,6 +3,7 @@ package compat
 import (
 	"net/http"
 
+	api "github.com/containers/podman/v3/pkg/api/types"
 	"github.com/sirupsen/logrus"
 
 	"github.com/containers/podman/v3/libpod"
@@ -12,7 +13,7 @@ import (
 )
 
 func StartContainer(w http.ResponseWriter, r *http.Request) {
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
 		DetachKeys string `schema:"detachKeys"`
 	}{
@@ -26,7 +27,7 @@ func StartContainer(w http.ResponseWriter, r *http.Request) {
 		// TODO - start does not support adding detach keys
 		logrus.Info("the detach keys parameter is not supported on start container")
 	}
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	name := utils.GetName(r)
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
