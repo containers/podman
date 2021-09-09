@@ -101,4 +101,32 @@ load helpers
     run_podman rm $cid
 }
 
+# #11496: podman-remote loses output
+@test "podman exec/run - missing output" {
+    local bigfile=${PODMAN_TMPDIR}/bigfile
+    local newfile=${PODMAN_TMPDIR}/newfile
+    # create a big file, bigger than the 8K buffer size
+    base64 /dev/urandom | head -c 20K > $bigfile
+
+    run_podman run --rm -v $bigfile:/tmp/test:Z $IMAGE cat /tmp/test
+    printf "%s" "$output" > $newfile
+    # use cmp to compare the files, this is very helpful since it will
+    # tell us the first wrong byte in case this fails
+    run cmp $bigfile $newfile
+    is "$output" "" "run output is identical with the file"
+
+    run_podman run -d --stop-timeout 0 -v $bigfile:/tmp/test:Z $IMAGE sleep inf
+    cid="$output"
+
+    run_podman exec $cid cat /tmp/test
+    printf "%s" "$output" > $newfile
+    # use cmp to compare the files, this is very helpful since it will
+    # tell us the first wrong byte in case this fails
+    run cmp $bigfile $newfile
+    is "$output" "" "exec output is identical with the file"
+
+    # Clean up
+    run_podman rm -f $cid
+}
+
 # vim: filetype=sh

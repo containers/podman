@@ -46,7 +46,9 @@ import (
 const (
 	// This is Conmon's STDIO_BUF_SIZE. I don't believe we have access to it
 	// directly from the Go code, so const it here
-	bufferSize = conmonConfig.BufSize
+	// Important: The conmon attach socket uses an extra byte at the beginning of each
+	// message to specify the STREAM so we have to increase the buffer size by one
+	bufferSize = conmonConfig.BufSize + 1
 )
 
 // ConmonOCIRuntime is an OCI runtime managed by Conmon.
