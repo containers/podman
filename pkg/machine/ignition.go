@@ -139,6 +139,21 @@ func getDirs(usrName string) []Directory {
 		}
 		dirs[i] = newDir
 	}
+
+	// Issue #11489: make sure that we can inject a custom registries.conf
+	// file on the system level to force a single search registry.
+	// The remote client does not yet support prompting for short-name
+	// resolution, so we enforce a single search registry (i.e., docker.io)
+	// as a workaround.
+	dirs = append(dirs, Directory{
+		Node: Node{
+			Group: getNodeGrp("root"),
+			Path:  "/etc/containers/registries.conf.d",
+			User:  getNodeUsr("root"),
+		},
+		DirectoryEmbedded1: DirectoryEmbedded1{Mode: intToPtr(493)},
+	})
+
 	return dirs
 }
 
@@ -203,6 +218,27 @@ func getFiles(usrName string) []File {
 			Mode: intToPtr(420),
 		},
 	})
+
+	// Issue #11489: make sure that we can inject a custom registries.conf
+	// file on the system level to force a single search registry.
+	// The remote client does not yet support prompting for short-name
+	// resolution, so we enforce a single search registry (i.e., docker.io)
+	// as a workaround.
+	files = append(files, File{
+		Node: Node{
+			Group: getNodeGrp("root"),
+			Path:  "/etc/containers/registries.conf.d/999-podman-machine.conf",
+			User:  getNodeUsr("root"),
+		},
+		FileEmbedded1: FileEmbedded1{
+			Append: nil,
+			Contents: Resource{
+				Source: strToPtr("data:,unqualified-search-registries%3D%5B%22docker.io%22%5D"),
+			},
+			Mode: intToPtr(420),
+		},
+	})
+
 	return files
 }
 
