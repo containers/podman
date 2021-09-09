@@ -205,10 +205,12 @@ function _run_build() {
     # Ensure always start from clean-slate with all vendor modules downloaded
     make clean
     make vendor
-    make podman-release.tar.gz  # includes podman, podman-remote, and docs
+    make podman-release  # includes podman, podman-remote, and docs
 }
 
 function _run_altbuild() {
+    local -a arches
+    local arch
     req_env_vars ALT_NAME
     # Defined in .cirrus.yml
     # shellcheck disable=SC2154
@@ -221,7 +223,7 @@ function _run_altbuild() {
             make build-all-new-commits GIT_BASE_BRANCH=origin/$DEST_BRANCH
             ;;
         *Windows*)
-            make podman-remote-release-windows.zip
+            make podman-remote-release-windows_amd64.zip
             make podman.msi
             ;;
         *Without*)
@@ -232,7 +234,21 @@ function _run_altbuild() {
             rpmbuild --rebuild ./podman-*.src.rpm
             ;;
         Alt*Cross)
-            make local-cross
+            arches=(\
+                amd64
+                ppc64le
+                arm
+                arm64
+                386
+                s390x
+                mips
+                mipsle
+                mips64
+                mips64le)
+            for arch in "${arches[@]}"; do
+                msg "Building release archive for $arch"
+                make podman-release-${arch}.tar.gz GOARCH=$arch
+            done
             ;;
         *Static*)
             req_env_vars CTR_FQIN
