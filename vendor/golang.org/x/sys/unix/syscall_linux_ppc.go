@@ -23,7 +23,6 @@ import (
 //sysnb	Geteuid() (euid int)
 //sysnb	Getgid() (gid int)
 //sysnb	Getuid() (uid int)
-//sysnb	InotifyInit() (fd int, err error)
 //sys	Ioperm(from int, num int, on int) (err error)
 //sys	Iopl(level int) (err error)
 //sys	Lchown(path string, uid int, gid int) (err error)

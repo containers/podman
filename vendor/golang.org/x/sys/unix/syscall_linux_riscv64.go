@@ -192,10 +192,6 @@ func (rsa *RawSockaddrNFCLLCP) SetServiceNameLen(length int) {
 	rsa.Service_name_len = uint64(length)
 }
 
-func InotifyInit() (fd int, err error) {
-	return InotifyInit1(0)
-}
-
 func Pause() error {
 	_, err := ppoll(nil, 0, nil, nil)
 	return err
