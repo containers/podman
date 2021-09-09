@@ -19,8 +19,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-
-	"github.com/pkg/errors"
 )
 
 type IDMap struct {
@@ -51,7 +49,7 @@ func ParseUserNamespace(pid string) (string, error) {
 func ReadMappings(path string) ([]IDMap, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot open %s", path)
+		return nil, err
 	}
 	defer file.Close()
 
@@ -64,7 +62,7 @@ func ReadMappings(path string) ([]IDMap, error) {
 			if err == io.EOF {
 				return mappings, nil
 			}
-			return nil, errors.Wrapf(err, "cannot read line from %s", path)
+			return nil, fmt.Errorf("cannot read line from %s: %w", path, err)
 		}
 		if line == nil {
 			return mappings, nil
@@ -72,7 +70,7 @@ func ReadMappings(path string) ([]IDMap, error) {
 
 		containerID, hostID, size := 0, 0, 0
 		if _, err := fmt.Sscanf(string(line), "%d %d %d", &containerID, &hostID, &size); err != nil {
-			return nil, errors.Wrapf(err, "cannot parse %s", string(line))
+			return nil, fmt.Errorf("cannot parse %s: %w", string(line), err)
 		}
 		mappings = append(mappings, IDMap{ContainerID: containerID, HostID: hostID, Size: size})
 	}

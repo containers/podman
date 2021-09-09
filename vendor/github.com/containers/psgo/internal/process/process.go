@@ -15,6 +15,8 @@
 package process
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -22,7 +24,6 @@ import (
 	"github.com/containers/psgo/internal/host"
 	"github.com/containers/psgo/internal/proc"
 	"github.com/opencontainers/runc/libcontainer/user"
-	"github.com/pkg/errors"
 )
 
 // Process includes process-related from the /proc FS.
@@ -50,7 +51,7 @@ type Process struct {
 func LookupGID(gid string) (string, error) {
 	gidNum, err := strconv.Atoi(gid)
 	if err != nil {
-		return "", errors.Wrap(err, "error parsing group ID")
+		return "", fmt.Errorf("error parsing group ID: %w", err)
 	}
 	g, err := user.LookupGid(gidNum)
 	if err != nil {
@@ -64,7 +65,7 @@ func LookupGID(gid string) (string, error) {
 func LookupUID(uid string) (string, error) {
 	uidNum, err := strconv.Atoi(uid)
 	if err != nil {
-		return "", errors.Wrap(err, "error parsing user ID")
+		return "", fmt.Errorf("error parsing user ID: %w", err)
 	}
 	u, err := user.LookupUid(uidNum)
 	if err != nil {
@@ -107,7 +108,7 @@ func FromPIDs(pids []string, joinUserNS bool) ([]*Process, error) {
 	for _, pid := range pids {
 		p, err := New(pid, joinUserNS)
 		if err != nil {
-			if os.IsNotExist(errors.Cause(err)) {
+			if errors.Is(err, os.ErrNotExist) {
 				// proc parsing is racy
 				// Let's ignore "does not exist" errors
 				continue

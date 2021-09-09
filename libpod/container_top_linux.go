@@ -47,7 +47,7 @@ func (c *Container) Top(descriptors []string) ([]string, error) {
 	if psgoErr == nil {
 		return output, nil
 	}
-	if errors.Cause(psgoErr) != psgo.ErrUnknownDescriptor {
+	if !errors.Is(psgoErr, psgo.ErrUnknownDescriptor) {
 		return nil, psgoErr
 	}
 

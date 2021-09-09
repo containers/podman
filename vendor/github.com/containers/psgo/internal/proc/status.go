@@ -20,8 +20,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 // Status is a direct translation of a `/proc/[pid]/status`, which provides much
@@ -251,12 +249,12 @@ func parseStatus(pid string, lines []string) (*Status, error) {
 			s.TracerPid = fields[1]
 		case "Uid:":
 			if len(fields) != 5 {
-				return nil, errors.Wrap(errUnexpectedInput, line)
+				return nil, fmt.Errorf(line+": %w", errUnexpectedInput)
 			}
 			s.Uids = []string{fields[1], fields[2], fields[3], fields[4]}
 		case "Gid:":
 			if len(fields) != 5 {
-				return nil, errors.Wrap(errUnexpectedInput, line)
+				return nil, fmt.Errorf(line+": %w", errUnexpectedInput)
 			}
 			s.Gids = []string{fields[1], fields[2], fields[3], fields[4]}
 		case "FDSize:":

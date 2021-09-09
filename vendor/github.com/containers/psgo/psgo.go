@@ -27,6 +27,7 @@
 package psgo
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -40,7 +41,6 @@ import (
 	"github.com/containers/psgo/internal/dev"
 	"github.com/containers/psgo/internal/proc"
 	"github.com/containers/psgo/internal/process"
-	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
 
@@ -109,7 +109,7 @@ func findID(idStr string, mapping []IDMap, lookupFunc func(uid string) (string, 
 
 	id, err := strconv.ParseInt(idStr, 10, 0)
 	if err != nil {
-		return "", errors.Wrapf(err, "cannot parse %s", idStr)
+		return "", fmt.Errorf("cannot parse ID: %w", err)
 	}
 	for _, m := range mapping {
 		if int(id) >= m.ContainerID && int(id) < m.ContainerID+m.Size {
@@ -122,7 +122,7 @@ func findID(idStr string, mapping []IDMap, lookupFunc func(uid string) (string, 
 	// User not found, read the overflow
 	overflow, err := ioutil.ReadFile(overflowFile)
 	if err != nil {
-		return "", errors.Wrapf(err, "cannot read %s", overflowFile)
+		return "", err
 	}
 	return string(overflow), nil
 }
@@ -147,7 +147,7 @@ func translateDescriptors(descriptors []string) ([]aixFormatDescriptor, error) {
 			}
 		}
 		if !found {
-			return nil, errors.Wrapf(ErrUnknownDescriptor, "'%s'", d)
+			return nil, fmt.Errorf("'%s': %w", d, ErrUnknownDescriptor)
 		}
 	}
 
@@ -412,13 +412,13 @@ func JoinNamespaceAndProcessInfoWithOptions(pid string, descriptors []string, op
 		// extract user namespaces prior to joining the mount namespace
 		currentUserNs, err := proc.ParseUserNamespace("self")
 		if err != nil {
-			dataErr = errors.Wrapf(err, "error determining user namespace")
+			dataErr = fmt.Errorf("error determining user namespace: %w", err)
 			return
 		}
 
 		pidUserNs, err := proc.ParseUserNamespace(pid)
 		if err != nil {
-			dataErr = errors.Wrapf(err, "error determining user namespace of PID %s", pid)
+			dataErr = fmt.Errorf("error determining user namespace of PID %s: %w", pid, err)
 		}
 
 		// join the mount namespace of pid
@@ -478,11 +478,11 @@ func JoinNamespaceAndProcessInfoByPidsWithOptions(pids []string, descriptors []s
 	for _, pid := range pids {
 		ns, err := proc.ParsePIDNamespace(pid)
 		if err != nil {
-			if os.IsNotExist(errors.Cause(err)) {
+			if errors.Is(err, os.ErrNotExist) {
 				// catch race conditions
 				continue
 			}
-			return nil, errors.Wrapf(err, "error extracting PID namespace")
+			return nil, fmt.Errorf("error extracting PID namespace: %w", err)
 		}
 		if _, exists := nsMap[ns]; !exists {
 			nsMap[ns] = true
@@ -493,7 +493,7 @@ func JoinNamespaceAndProcessInfoByPidsWithOptions(pids []string, descriptors []s
 	data := [][]string{}
 	for i, pid := range pidList {
 		pidData, err := JoinNamespaceAndProcessInfoWithOptions(pid, descriptors, options)
-		if os.IsNotExist(errors.Cause(err)) {
+		if errors.Is(err, os.ErrNotExist) {
 			// catch race conditions
 			continue
 		}
