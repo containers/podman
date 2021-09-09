@@ -25,7 +25,6 @@ import (
 //sysnb	Getgid() (gid int)
 //sysnb	Getrlimit(resource int, rlim *Rlimit) (err error)
 //sysnb	Getuid() (uid int)
-//sysnb	InotifyInit() (fd int, err error)
 //sys	Lchown(path string, uid int, gid int) (err error)
 //sys	Lstat(path string, stat *Stat_t) (err error)
 //sys	Pause() (err error)
