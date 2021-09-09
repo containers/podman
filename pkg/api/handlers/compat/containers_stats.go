@@ -97,7 +97,7 @@ streamLabel: // A label to flatten the scope
 
 	default:
 		// Container stats
-		stats, err := ctnr.GetContainerStats(stats)
+		stats, err = ctnr.GetContainerStats(stats)
 		if err != nil {
 			logrus.Errorf("Unable to get container stats: %v", err)
 			return
