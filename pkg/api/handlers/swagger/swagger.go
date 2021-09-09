@@ -176,3 +176,12 @@ type swagInspectPodResponse struct {
 		define.InspectPodData
 	}
 }
+
+// Get stats for one or more containers
+// swagger:response ContainerStats
+type swagContainerStatsResponse struct {
+	// in:body
+	Body struct {
+		define.ContainerStats
+	}
+}
