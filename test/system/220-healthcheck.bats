@@ -74,7 +74,7 @@ EOF
     #
     # So, just force a healthcheck run, then confirm that it's running.
     run_podman healthcheck run healthcheck_c
-    is "$output" "healthy" "output from 'podman healthcheck run'"
+    is "$output" "" "output from 'podman healthcheck run'"
 
     _check_health "All healthy" "
 Status           | healthy

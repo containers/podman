@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	define "github.com/containers/podman/v3/libpod/define"
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -157,7 +158,7 @@ var _ = Describe("Podman healthcheck run", func() {
 		Expect(hc).Should(Exit(1))
 
 		inspect = podmanTest.InspectContainer("hc")
-		Expect(inspect[0].State.Healthcheck.Status).To(Equal("unhealthy"))
+		Expect(inspect[0].State.Healthcheck.Status).To(Equal(define.HealthCheckUnhealthy))
 
 	})
 
@@ -171,7 +172,7 @@ var _ = Describe("Podman healthcheck run", func() {
 		Expect(hc).Should(Exit(0))
 
 		inspect := podmanTest.InspectContainer("hc")
-		Expect(inspect[0].State.Healthcheck.Status).To(Equal("healthy"))
+		Expect(inspect[0].State.Healthcheck.Status).To(Equal(define.HealthCheckHealthy))
 	})
 
 	It("podman healthcheck unhealthy but valid arguments check", func() {
@@ -201,7 +202,7 @@ var _ = Describe("Podman healthcheck run", func() {
 		Expect(hc).Should(Exit(1))
 
 		inspect = podmanTest.InspectContainer("hc")
-		Expect(inspect[0].State.Healthcheck.Status).To(Equal("unhealthy"))
+		Expect(inspect[0].State.Healthcheck.Status).To(Equal(define.HealthCheckUnhealthy))
 
 		foo := podmanTest.Podman([]string{"exec", "hc", "touch", "/foo"})
 		foo.WaitWithDefaultTimeout()
@@ -212,6 +213,6 @@ var _ = Describe("Podman healthcheck run", func() {
 		Expect(hc).Should(Exit(0))
 
 		inspect = podmanTest.InspectContainer("hc")
-		Expect(inspect[0].State.Healthcheck.Status).To(Equal("healthy"))
+		Expect(inspect[0].State.Healthcheck.Status).To(Equal(define.HealthCheckHealthy))
 	})
 })

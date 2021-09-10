@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/util"
 	. "github.com/containers/podman/v3/test/utils"
 	"github.com/containers/storage/pkg/stringid"
@@ -1209,7 +1210,7 @@ var _ = Describe("Podman play kube", func() {
 		hc := podmanTest.Podman([]string{"healthcheck", "run", "liveness-unhealthy-probe-pod-0-alpine"})
 		hc.WaitWithDefaultTimeout()
 		hcoutput := hc.OutputToString()
-		Expect(hcoutput).To(ContainSubstring("unhealthy"))
+		Expect(hcoutput).To(ContainSubstring(define.HealthCheckUnhealthy))
 	})
 
 	It("podman play kube fail with nonexistent authfile", func() {

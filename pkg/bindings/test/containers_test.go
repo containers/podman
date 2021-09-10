@@ -326,11 +326,11 @@ var _ = Describe("Podman containers ", func() {
 		// TODO for the life of me, i cannot get this to work. maybe another set
 		// of eyes will
 		// successful healthcheck
-		//status := "healthy"
+		//status := define.HealthCheckHealthy
 		//for i:=0; i < 10; i++ {
 		//	result, err := containers.RunHealthCheck(connText, "hc")
 		//	Expect(err).To(BeNil())
-		//	if result.Status != "healthy" {
+		//	if result.Status != define.HealthCheckHealthy {
 		//		fmt.Println("Healthcheck container still starting, retrying in 1 second")
 		//		time.Sleep(1 * time.Second)
 		//		continue
@@ -338,7 +338,7 @@ var _ = Describe("Podman containers ", func() {
 		//	status = result.Status
 		//	break
 		//}
-		//Expect(status).To(Equal("healthy"))
+		//Expect(status).To(Equal(define.HealthCheckHealthy))
 
 		// TODO enable this when wait is working
 		// healthcheck on a stopped container should be a 409

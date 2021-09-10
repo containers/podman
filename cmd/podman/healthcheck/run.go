@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
@@ -34,9 +35,9 @@ func run(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	if response.Status == "unhealthy" {
+	if response.Status == define.HealthCheckUnhealthy {
 		registry.SetExitCode(1)
+		fmt.Println(response.Status)
 	}
-	fmt.Println(response.Status)
 	return err
 }
