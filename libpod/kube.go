@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -220,14 +221,22 @@ func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPor
 	deDupPodVolumes := make(map[string]*v1.Volume)
 	first := true
 	podContainers := make([]v1.Container, 0, len(containers))
+	podInitCtrs := []v1.Container{}
 	podAnnotations := make(map[string]string)
 	dnsInfo := v1.PodDNSConfig{}
+
+	// Let's sort the containers in order of created time
+	// This will ensure that the init containers are defined in the correct order in the kube yaml
+	sort.Slice(containers, func(i, j int) bool { return containers[i].CreatedTime().Before(containers[j].CreatedTime()) })
+
 	for _, ctr := range containers {
 		if !ctr.IsInfra() {
 			// Convert auto-update labels into kube annotations
 			for k, v := range getAutoUpdateAnnotations(removeUnderscores(ctr.Name()), ctr.Labels()) {
 				podAnnotations[k] = v
 			}
+
+			isInit := ctr.IsInitCtr()
 
 			ctr, volumes, _, err := containerToV1Container(ctr)
 			if err != nil {
@@ -244,6 +253,10 @@ func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPor
 			if first && len(ports) > 0 {
 				ctr.Ports = ports
 				first = false
+			}
+			if isInit {
+				podInitCtrs = append(podInitCtrs, ctr)
+				continue
 			}
 			podContainers = append(podContainers, ctr)
 			// Deduplicate volumes, so if containers in the pod share a volume, it's only
@@ -278,13 +291,14 @@ func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPor
 	return newPodObject(
 		p.Name(),
 		podAnnotations,
+		podInitCtrs,
 		podContainers,
 		podVolumes,
 		&dnsInfo,
 		hostNetwork), nil
 }
 
-func newPodObject(podName string, annotations map[string]string, containers []v1.Container, volumes []v1.Volume, dnsOptions *v1.PodDNSConfig, hostNetwork bool) *v1.Pod {
+func newPodObject(podName string, annotations map[string]string, initCtrs, containers []v1.Container, volumes []v1.Volume, dnsOptions *v1.PodDNSConfig, hostNetwork bool) *v1.Pod {
 	tm := v12.TypeMeta{
 		Kind:       "Pod",
 		APIVersion: "v1",
@@ -304,9 +318,10 @@ func newPodObject(podName string, annotations map[string]string, containers []v1
 		Annotations:       annotations,
 	}
 	ps := v1.PodSpec{
-		Containers:  containers,
-		Volumes:     volumes,
-		HostNetwork: hostNetwork,
+		Containers:     containers,
+		HostNetwork:    hostNetwork,
+		InitContainers: initCtrs,
+		Volumes:        volumes,
 	}
 	if dnsOptions != nil {
 		ps.DNSConfig = dnsOptions
@@ -323,6 +338,7 @@ func newPodObject(podName string, annotations map[string]string, containers []v1
 // for a single container.  we "insert" that container description in a pod.
 func simplePodWithV1Containers(ctrs []*Container) (*v1.Pod, error) {
 	kubeCtrs := make([]v1.Container, 0, len(ctrs))
+	kubeInitCtrs := []v1.Container{}
 	kubeVolumes := make([]v1.Volume, 0)
 	hostNetwork := true
 	podDNS := v1.PodDNSConfig{}
@@ -333,6 +349,8 @@ func simplePodWithV1Containers(ctrs []*Container) (*v1.Pod, error) {
 			kubeAnnotations[k] = v
 		}
 
+		isInit := ctr.IsInitCtr()
+
 		if !ctr.HostNetwork() {
 			hostNetwork = false
 		}
@@ -340,7 +358,11 @@ func simplePodWithV1Containers(ctrs []*Container) (*v1.Pod, error) {
 		if err != nil {
 			return nil, err
 		}
-		kubeCtrs = append(kubeCtrs, kubeCtr)
+		if isInit {
+			kubeInitCtrs = append(kubeInitCtrs, kubeCtr)
+		} else {
+			kubeCtrs = append(kubeCtrs, kubeCtr)
+		}
 		kubeVolumes = append(kubeVolumes, kubeVols...)
 
 		// Combine DNS information in sum'd structure
@@ -379,6 +401,7 @@ func simplePodWithV1Containers(ctrs []*Container) (*v1.Pod, error) {
 	return newPodObject(
 		strings.ReplaceAll(ctrs[0].Name(), "_", ""),
 		kubeAnnotations,
+		kubeInitCtrs,
 		kubeCtrs,
 		kubeVolumes,
 		&podDNS,

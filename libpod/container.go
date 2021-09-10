@@ -1062,6 +1062,11 @@ func (c *Container) IsInfra() bool {
 	return c.config.IsInfra
 }
 
+// IsInitCtr returns whether the container is an init container
+func (c *Container) IsInitCtr() bool {
+	return len(c.config.InitContainerType) > 0
+}
+
 // IsReadOnly returns whether the container is running in read only mode
 func (c *Container) IsReadOnly() bool {
 	return c.config.Spec.Root.Readonly

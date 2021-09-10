@@ -174,6 +174,78 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(string(kube.Out.Contents())).To(ContainSubstring(`name: pod2`))
 	})
 
+	It("podman generate kube on pod with init containers", func() {
+		session := podmanTest.Podman([]string{"create", "--pod", "new:toppod", "--init-ctr", "always", ALPINE, "echo", "hello"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"create", "--pod", "toppod", "--init-ctr", "always", ALPINE, "echo", "world"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"create", "--pod", "toppod", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "toppod"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+		Expect(pod.Spec.HostNetwork).To(Equal(false))
+
+		numContainers := len(pod.Spec.Containers) + len(pod.Spec.InitContainers)
+		Expect(numContainers).To(Equal(3))
+
+		// Init container should be in the generated kube yaml if created with "once" type and the pod has not been started
+		session = podmanTest.Podman([]string{"create", "--pod", "new:toppod-2", "--init-ctr", "once", ALPINE, "echo", "using once type"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"create", "--pod", "toppod-2", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube = podmanTest.Podman([]string{"generate", "kube", "toppod-2"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod = new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+		Expect(pod.Spec.HostNetwork).To(Equal(false))
+
+		numContainers = len(pod.Spec.Containers) + len(pod.Spec.InitContainers)
+		Expect(numContainers).To(Equal(2))
+
+		// Init container should not be in the generated kube yaml if created with "once" type and the pod has been started
+		session = podmanTest.Podman([]string{"create", "--pod", "new:toppod-3", "--init-ctr", "once", ALPINE, "echo", "using once type"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"create", "--pod", "toppod-3", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"pod", "start", "toppod-3"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube = podmanTest.Podman([]string{"generate", "kube", "toppod-3"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod = new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+		Expect(pod.Spec.HostNetwork).To(Equal(false))
+
+		numContainers = len(pod.Spec.Containers) + len(pod.Spec.InitContainers)
+		Expect(numContainers).To(Equal(1))
+	})
+
 	It("podman generate kube on pod with host network", func() {
 		podSession := podmanTest.Podman([]string{"pod", "create", "--name", "testHostNetwork", "--network", "host"})
 		podSession.WaitWithDefaultTimeout()

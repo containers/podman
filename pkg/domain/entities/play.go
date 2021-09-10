@@ -51,6 +51,8 @@ type PlayKubePod struct {
 	ID string
 	// Containers - the IDs of the containers running in the created pod.
 	Containers []string
+	// InitContainers - the IDs of the init containers to be run in the created pod.
+	InitContainers []string
 	// Logs - non-fatal errors and log messages while processing.
 	Logs []string
 	// ContainerErrors - any errors that occurred while starting containers

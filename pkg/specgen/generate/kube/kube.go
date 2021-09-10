@@ -114,6 +114,9 @@ type CtrSpecGenOptions struct {
 	Labels map[string]string
 	//
 	IsInfra bool
+	// InitContainerType sets what type the init container is
+	// Note: When playing a kube yaml, the inti container type will be set to "always" only
+	InitContainerType string
 }
 
 func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGenerator, error) {
@@ -134,6 +137,8 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	s.LogConfiguration = &specgen.LogConfig{
 		Driver: opts.LogDriver,
 	}
+
+	s.InitContainerType = opts.InitContainerType
 
 	setupSecurityContext(s, opts.Container)
 	err := setupLivenessProbe(s, opts.Container, opts.RestartPolicy)
