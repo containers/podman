@@ -30,7 +30,7 @@ func (c *Container) GetContainerStats(previousStats *define.ContainerStats) (*de
 		}
 	}
 
-	if c.state.State != define.ContainerStateRunning {
+	if c.state.State != define.ContainerStateRunning && c.state.State != define.ContainerStatePaused {
 		return stats, define.ErrCtrStateInvalid
 	}
 
@@ -54,6 +54,12 @@ func (c *Container) GetContainerStats(previousStats *define.ContainerStats) (*de
 		return nil, err
 	}
 
+	// If the current total usage in the cgroup is less than what was previously
+	// recorded then it means the container was restarted and runs in a new cgroup
+	if previousStats.Duration > cgroupStats.CPU.Usage.Total {
+		previousStats = &define.ContainerStats{}
+	}
+
 	previousCPU := previousStats.CPUNano
 	now := uint64(time.Now().UnixNano())
 	stats.Duration = cgroupStats.CPU.Usage.Total
@@ -65,7 +71,7 @@ func (c *Container) GetContainerStats(previousStats *define.ContainerStats) (*de
 	stats.MemLimit = getMemLimit(cgroupStats.Memory.Usage.Limit)
 	stats.MemPerc = (float64(stats.MemUsage) / float64(stats.MemLimit)) * 100
 	stats.PIDs = 0
-	if conState == define.ContainerStateRunning {
+	if conState == define.ContainerStateRunning || conState == define.ContainerStatePaused {
 		stats.PIDs = cgroupStats.Pids.Current
 	}
 	stats.BlockInput, stats.BlockOutput = calculateBlockIO(cgroupStats)
