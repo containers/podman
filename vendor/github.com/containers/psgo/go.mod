@@ -1,11 +1,10 @@
 module github.com/containers/psgo
 
-go 1.12
+go 1.13
 
 require (
-	github.com/opencontainers/runc v0.0.0-20190425234816-dae70e8efea4
-	github.com/pkg/errors v0.0.0-20190227000051-27936f6d90f9
-	github.com/sirupsen/logrus v0.0.0-20190403091019-9b3cdde74fbe
-	github.com/stretchr/testify v1.5.1
-	golang.org/x/sys v0.0.0-20190425145619-16072639606e
+	github.com/opencontainers/runc v1.0.2
+	github.com/sirupsen/logrus v1.8.1
+	github.com/stretchr/testify v1.7.0
+	golang.org/x/sys v0.0.0-20210817190340-bfb29a6856f2
 )
