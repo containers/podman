@@ -135,7 +135,7 @@ func getDirs(usrName string) []Directory {
 				Path:  d,
 				User:  getNodeUsr(usrName),
 			},
-			DirectoryEmbedded1: DirectoryEmbedded1{Mode: intToPtr(493)},
+			DirectoryEmbedded1: DirectoryEmbedded1{Mode: intToPtr(0755)},
 		}
 		dirs[i] = newDir
 	}
@@ -151,7 +151,7 @@ func getDirs(usrName string) []Directory {
 			Path:  "/etc/containers/registries.conf.d",
 			User:  getNodeUsr("root"),
 		},
-		DirectoryEmbedded1: DirectoryEmbedded1{Mode: intToPtr(493)},
+		DirectoryEmbedded1: DirectoryEmbedded1{Mode: intToPtr(0755)},
 	})
 
 	return dirs
@@ -173,7 +173,7 @@ func getFiles(usrName string) []File {
 			Contents: Resource{
 				Source: strToPtr("data:,%5BUnit%5D%0ADescription%3DA%20systemd%20user%20unit%20demo%0AAfter%3Dnetwork-online.target%0AWants%3Dnetwork-online.target%20podman.socket%0A%5BService%5D%0AExecStart%3D%2Fusr%2Fbin%2Fsleep%20infinity%0A"),
 			},
-			Mode: intToPtr(484),
+			Mode: intToPtr(0744),
 		},
 	})
 
@@ -190,7 +190,7 @@ func getFiles(usrName string) []File {
 			Contents: Resource{
 				Source: strToPtr("data:,%5Bcontainers%5D%0D%0Anetns%3D%22bridge%22%0D%0Arootless_networking%3D%22cni%22"),
 			},
-			Mode: intToPtr(484),
+			Mode: intToPtr(0744),
 		},
 	})
 	// Add a file into linger
@@ -200,7 +200,7 @@ func getFiles(usrName string) []File {
 			Path:  "/var/lib/systemd/linger/core",
 			User:  getNodeUsr(usrName),
 		},
-		FileEmbedded1: FileEmbedded1{Mode: intToPtr(420)},
+		FileEmbedded1: FileEmbedded1{Mode: intToPtr(0644)},
 	})
 
 	// Set machine_enabled to true to indicate we're in a VM
@@ -215,7 +215,7 @@ func getFiles(usrName string) []File {
 			Contents: Resource{
 				Source: strToPtr("data:,%5Bengine%5D%0Amachine_enabled%3Dtrue%0A"),
 			},
-			Mode: intToPtr(420),
+			Mode: intToPtr(0644),
 		},
 	})
 
@@ -235,7 +235,7 @@ func getFiles(usrName string) []File {
 			Contents: Resource{
 				Source: strToPtr("data:,unqualified-search-registries%3D%5B%22docker.io%22%5D"),
 			},
-			Mode: intToPtr(420),
+			Mode: intToPtr(0644),
 		},
 	})
 
