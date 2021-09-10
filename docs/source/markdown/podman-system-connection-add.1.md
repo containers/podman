@@ -41,9 +41,9 @@ $ podman system connection add QA podman.example.com
 
 $ podman system connection add --identity ~/.ssh/dev_rsa production ssh://root@server.example.com:2222
 
-$ podman system connection add unix:///run/podman/podman.sock
+$ podman system connection add testing unix:///run/podman/podman.sock
 
-$ podman system connection add tcp://localhost:8080
+$ podman system connection add debug tcp://localhost:8080
 ```
 ## SEE ALSO
 podman-system(1) , podman-system-connection(1) , containers.conf(5)
