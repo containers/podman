@@ -28,6 +28,14 @@ class SystemTestCase(APITestCase):
             obj = json.loads(line)
             # Actor.ID is uppercase for compatibility
             self.assertIn("ID", obj["Actor"])
+            # Verify 1.22+ deprecated variants are present if current originals are
+            if (obj["Actor"]["ID"]):
+               self.assertEqual(obj["Actor"]["ID"], obj["id"])
+            if (obj["Action"]):
+               self.assertEqual(obj["Action"], obj["status"])
+            if (obj["Actor"].get("Attributes") and obj["Actor"]["Attributes"].get("image")):
+               self.assertEqual(obj["Actor"]["Attributes"]["image"], obj["from"])
+
 
     def test_ping(self):
         required_headers = (

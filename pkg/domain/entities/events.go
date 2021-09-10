@@ -60,6 +60,10 @@ func ConvertToEntitiesEvent(e libpodEvents.Event) *Event {
 	attributes["name"] = e.Name
 	attributes["containerExitCode"] = strconv.Itoa(e.ContainerExitCode)
 	return &Event{dockerEvents.Message{
+		// Compatibility with clients that still look for deprecated API elements
+		Status: e.Status.String(),
+		ID:     e.ID,
+		From:   e.Image,
 		Type:   e.Type.String(),
 		Action: e.Status.String(),
 		Actor: dockerEvents.Actor{
