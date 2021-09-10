@@ -2489,11 +2489,6 @@ func (c *Container) getOCICgroupPath() (string, error) {
 	switch {
 	case c.config.NoCgroups:
 		return "", nil
-	case (rootless.IsRootless() && (cgroupManager == config.CgroupfsCgroupsManager || !unified)):
-		if !isRootlessCgroupSet(c.config.CgroupParent) {
-			return "", nil
-		}
-		return c.config.CgroupParent, nil
 	case c.config.CgroupsMode == cgroupSplit:
 		if c.config.CgroupParent != "" {
 			return c.config.CgroupParent, nil
@@ -2510,6 +2505,11 @@ func (c *Container) getOCICgroupPath() (string, error) {
 		systemdCgroups := fmt.Sprintf("%s:libpod:%s", path.Base(c.config.CgroupParent), c.ID())
 		logrus.Debugf("Setting CGroups for container %s to %s", c.ID(), systemdCgroups)
 		return systemdCgroups, nil
+	case (rootless.IsRootless() && (cgroupManager == config.CgroupfsCgroupsManager || !unified)):
+		if c.config.CgroupParent == "" || !isRootlessCgroupSet(c.config.CgroupParent) {
+			return "", nil
+		}
+		fallthrough
 	case cgroupManager == config.CgroupfsCgroupsManager:
 		cgroupPath := filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s", c.ID()))
 		logrus.Debugf("Setting CGroup path for container %s to %s", c.ID(), cgroupPath)
