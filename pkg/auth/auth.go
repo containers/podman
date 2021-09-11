@@ -258,24 +258,24 @@ func authConfigsToAuthFile(authConfigs map[string]types.DockerAuthConfig) (strin
 	// Now use the c/image packages to store the credentials. It's battle
 	// tested, and we make sure to use the same code as the image backend.
 	sys := types.SystemContext{AuthFilePath: authFilePath}
-	for server, config := range authConfigs {
-		server = normalize(server)
+	for authFileKey, config := range authConfigs {
+		key := normalizeAuthFileKey(authFileKey)
 
 		// Note that we do not validate the credentials here. We assume
 		// that all credentials are valid. They'll be used on demand
 		// later.
-		if err := imageAuth.SetAuthentication(&sys, server, config.Username, config.Password); err != nil {
-			return "", errors.Wrapf(err, "error storing credentials in temporary auth file (server: %q, user: %q)", server, config.Username)
+		if err := imageAuth.SetAuthentication(&sys, key, config.Username, config.Password); err != nil {
+			return "", errors.Wrapf(err, "error storing credentials in temporary auth file (key: %q / %q, user: %q)", authFileKey, key, config.Username)
 		}
 	}
 
 	return authFilePath, nil
 }
 
-// normalize takes a server and removes the leading "http[s]://" prefix as well
+// normalizeAuthFileKey takes an auth file key and removes the leading "http[s]://" prefix as well
 // as removes path suffixes from docker registries.
-func normalize(server string) string {
-	stripped := strings.TrimPrefix(server, "http://")
+func normalizeAuthFileKey(authFileKey string) string {
+	stripped := strings.TrimPrefix(authFileKey, "http://")
 	stripped = strings.TrimPrefix(stripped, "https://")
 
 	/// Normalize docker registries
