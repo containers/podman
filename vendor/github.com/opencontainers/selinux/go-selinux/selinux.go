@@ -38,6 +38,8 @@ var (
 
 	// CategoryRange allows the upper bound on the category range to be adjusted
 	CategoryRange = DefaultCategoryRange
+
+	privContainerMountLabel string
 )
 
 // Context is a representation of the SELinux label broken into 4 parts
@@ -280,5 +282,7 @@ func GetDefaultContextWithLevel(user, level, scon string) (string, error) {
 
 // PrivContainerMountLabel returns mount label for privileged containers
 func PrivContainerMountLabel() string {
+	// Make sure label is initialized.
+	_ = label("")
 	return privContainerMountLabel
 }
