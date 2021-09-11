@@ -21,7 +21,7 @@ type HeaderAuthName string
 func (h HeaderAuthName) String() string { return string(h) }
 
 // XRegistryAuthHeader is the key to the encoded registry authentication configuration in an http-request header.
-// This header supports one registry per header occurrence. To support N registries provided N headers, one per registry.
+// This header supports one registry per header occurrence. To support N registries provide N headers, one per registry.
 // As of Docker API 1.40 and Libpod API 1.0.0, this header is supported by all endpoints.
 const XRegistryAuthHeader HeaderAuthName = "X-Registry-Auth"
 
@@ -108,7 +108,7 @@ func getConfigCredentials(r *http.Request) (*types.DockerAuthConfig, string, err
 // should be removed after usage.
 func getAuthCredentials(r *http.Request) (*types.DockerAuthConfig, string, error) {
 	// First look for a multi-auth header (i.e., a map).
-	authConfigs, err := multiAuthHeader(r)
+	authConfigs, err := parseMultiAuthHeader(r)
 	if err == nil {
 		authfile, err := authConfigsToAuthFile(authConfigs)
 		return nil, authfile, err
@@ -327,9 +327,9 @@ func singleAuthHeader(r *http.Request) (map[string]types.DockerAuthConfig, error
 	return authConfigs, nil
 }
 
-// multiAuthHeader extracts a DockerAuthConfig from the request's header.
+// parseMultiAuthHeader extracts a DockerAuthConfig from the request's header.
 // The header content is a map[string]DockerAuthConfigs.
-func multiAuthHeader(r *http.Request) (map[string]types.DockerAuthConfig, error) {
+func parseMultiAuthHeader(r *http.Request) (map[string]types.DockerAuthConfig, error) {
 	authHeader := r.Header.Get(string(XRegistryAuthHeader))
 	// Accept "null" and handle it as empty value for compatibility reason with Docker.
 	// Some java docker clients pass this value, e.g. this one used in Eclipse.

@@ -1,11 +1,14 @@
 package auth
 
 import (
+	"encoding/base64"
 	"io/ioutil"
+	"net/http"
 	"testing"
 
 	"github.com/containers/image/v5/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAuthConfigsToAuthFile(t *testing.T) {
@@ -61,6 +64,42 @@ func TestAuthConfigsToAuthFile(t *testing.T) {
 			content, err := ioutil.ReadFile(filePath)
 			assert.Nil(t, err)
 			assert.Contains(t, string(content), tc.expectedContains)
+		}
+	}
+}
+
+func TestParseMultiAuthHeader(t *testing.T) {
+	for _, tc := range []struct {
+		input     string
+		shouldErr bool
+		expected  map[string]types.DockerAuthConfig
+	}{
+		// Empty header
+		{input: "", expected: nil},
+		// "null"
+		{input: "null", expected: nil},
+		// Invalid JSON
+		{input: "@", shouldErr: true},
+		// Success
+		{
+			input: base64.URLEncoding.EncodeToString([]byte(
+				`{"https://index.docker.io/v1/":{"username":"u1","password":"p1"},` +
+					`"quay.io/libpod":{"username":"u2","password":"p2"}}`)),
+			expected: map[string]types.DockerAuthConfig{
+				"https://index.docker.io/v1/": {Username: "u1", Password: "p1"},
+				"quay.io/libpod":              {Username: "u2", Password: "p2"},
+			},
+		},
+	} {
+		req, err := http.NewRequest(http.MethodPost, "/", nil)
+		require.NoError(t, err, tc.input)
+		req.Header.Set(XRegistryAuthHeader.String(), tc.input)
+		res, err := parseMultiAuthHeader(req)
+		if tc.shouldErr {
+			assert.Error(t, err, tc.input)
+		} else {
+			require.NoError(t, err, tc.input)
+			assert.Equal(t, tc.expected, res, tc.input)
 		}
 	}
 }
