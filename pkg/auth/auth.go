@@ -153,7 +153,7 @@ func Header(sys *types.SystemContext, headerName HeaderAuthName, authfile, usern
 	case XRegistryAuthHeader:
 		content, err = headerAuth(sys, authfile, username, password)
 	case XRegistryConfigHeader:
-		content, err = headerConfig(sys, authfile, username, password)
+		return MakeXRegistryConfigHeader(sys, authfile, username, password)
 	default:
 		err = fmt.Errorf("unsupported authentication header: %q", headerName)
 	}
@@ -167,9 +167,9 @@ func Header(sys *types.SystemContext, headerName HeaderAuthName, authfile, usern
 	return nil, nil
 }
 
-// headerConfig returns a map with the XRegistryConfigHeader set which can
+// MakeXRegistryConfigHeader returns a map with the XRegistryConfigHeader set which can
 // conveniently be used in the http stack.
-func headerConfig(sys *types.SystemContext, authfile, username, password string) (string, error) {
+func MakeXRegistryConfigHeader(sys *types.SystemContext, authfile, username, password string) (map[string]string, error) {
 	if sys == nil {
 		sys = &types.SystemContext{}
 	}
@@ -178,7 +178,7 @@ func headerConfig(sys *types.SystemContext, authfile, username, password string)
 	}
 	authConfigs, err := imageAuth.GetAllCredentials(sys)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if username != "" {
@@ -189,9 +189,13 @@ func headerConfig(sys *types.SystemContext, authfile, username, password string)
 	}
 
 	if len(authConfigs) == 0 {
-		return "", nil
+		return nil, nil
 	}
-	return encodeMultiAuthConfigs(authConfigs)
+	content, err := encodeMultiAuthConfigs(authConfigs)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]string{XRegistryConfigHeader.String(): content}, nil
 }
 
 // headerAuth returns a base64 encoded map with the XRegistryAuthHeader set which can
