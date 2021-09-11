@@ -2,6 +2,8 @@ package auth
 
 import (
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -11,6 +13,132 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+const largeAuthFile = `{"auths":{
+	"docker.io/vendor": {"auth": "ZG9ja2VyOnZlbmRvcg=="},
+	"https://index.docker.io/v1": {"auth": "ZG9ja2VyOnRvcA=="},
+	"quay.io/libpod": {"auth": "cXVheTpsaWJwb2Q="},
+	"quay.io": {"auth": "cXVheTp0b3A="}
+}}`
+
+func TestHeader(t *testing.T) {
+	for _, tc := range []struct {
+		headerName         HeaderAuthName
+		name               string
+		fileContents       string
+		username, password string
+		shouldErr          bool
+		expectedContents   string
+	}{
+		{
+			headerName:       XRegistryConfigHeader,
+			name:             "no data",
+			fileContents:     "",
+			username:         "",
+			password:         "",
+			expectedContents: "",
+		},
+		{
+			headerName:   XRegistryConfigHeader,
+			name:         "invalid JSON",
+			fileContents: "@invalid JSON",
+			username:     "",
+			password:     "",
+			shouldErr:    true,
+		},
+		{
+			headerName:   XRegistryConfigHeader,
+			name:         "file data",
+			fileContents: largeAuthFile,
+			username:     "",
+			password:     "",
+			expectedContents: `{
+			"docker.io/vendor": {"username": "docker", "password": "vendor"},
+			"docker.io": {"username": "docker", "password": "top"},
+			"quay.io/libpod": {"username": "quay", "password": "libpod"},
+			"quay.io": {"username": "quay", "password": "top"}
+			}`,
+		},
+		{
+			headerName:   XRegistryConfigHeader,
+			name:         "file data + override",
+			fileContents: largeAuthFile,
+			username:     "override-user",
+			password:     "override-pass",
+			expectedContents: `{
+				"docker.io/vendor": {"username": "docker", "password": "vendor"},
+				"docker.io": {"username": "docker", "password": "top"},
+				"quay.io/libpod": {"username": "quay", "password": "libpod"},
+				"quay.io": {"username": "quay", "password": "top"},
+				"": {"username": "override-user", "password": "override-pass"}
+				}`,
+		},
+		{
+			headerName:       XRegistryAuthHeader,
+			name:             "override",
+			fileContents:     "",
+			username:         "override-user",
+			password:         "override-pass",
+			expectedContents: `{"username": "override-user", "password": "override-pass"}`,
+		},
+		{
+			headerName:   XRegistryAuthHeader,
+			name:         "invalid JSON",
+			fileContents: "@invalid JSON",
+			username:     "",
+			password:     "",
+			shouldErr:    true,
+		},
+		{
+			headerName:   XRegistryAuthHeader,
+			name:         "file data",
+			fileContents: largeAuthFile,
+			username:     "",
+			password:     "",
+			expectedContents: `{
+			"docker.io/vendor": {"username": "docker", "password": "vendor"},
+			"docker.io": {"username": "docker", "password": "top"},
+			"quay.io/libpod": {"username": "quay", "password": "libpod"},
+			"quay.io": {"username": "quay", "password": "top"}
+			}`,
+		},
+	} {
+		name := fmt.Sprintf("%s: %s", tc.headerName, tc.name)
+		authFile := ""
+		if tc.fileContents != "" {
+			f, err := ioutil.TempFile("", "auth.json")
+			require.NoError(t, err, name)
+			defer os.Remove(f.Name())
+			authFile = f.Name()
+			err = ioutil.WriteFile(authFile, []byte(tc.fileContents), 0700)
+			require.NoError(t, err, name)
+		}
+
+		res, err := Header(nil, tc.headerName, authFile, tc.username, tc.password)
+		if tc.shouldErr {
+			assert.Error(t, err, name)
+		} else {
+			require.NoError(t, err, name)
+			if tc.expectedContents == "" {
+				assert.Empty(t, res, name)
+			} else {
+				require.Len(t, res, 1, name)
+				header, ok := res[tc.headerName.String()]
+				require.True(t, ok, name)
+				decodedHeader, err := base64.URLEncoding.DecodeString(header)
+				require.NoError(t, err, name)
+				// Don't test for a specific JSON representation, just for the expected contents.
+				expected := map[string]interface{}{}
+				actual := map[string]interface{}{}
+				err = json.Unmarshal([]byte(tc.expectedContents), &expected)
+				require.NoError(t, err, name)
+				err = json.Unmarshal(decodedHeader, &actual)
+				require.NoError(t, err, name)
+				assert.Equal(t, expected, actual, name)
+			}
+		}
+	}
+}
 
 func TestAuthConfigsToAuthFile(t *testing.T) {
 	for _, tc := range []struct {
