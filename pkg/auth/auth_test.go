@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/containers/image/v5/types"
@@ -57,13 +58,14 @@ func TestAuthConfigsToAuthFile(t *testing.T) {
 		filePath, err := authConfigsToAuthFile(configs)
 
 		if tc.shouldErr {
-			assert.NotNil(t, err)
+			assert.Error(t, err)
 			assert.Empty(t, filePath)
 		} else {
-			assert.Nil(t, err)
+			assert.NoError(t, err)
 			content, err := ioutil.ReadFile(filePath)
-			assert.Nil(t, err)
+			require.NoError(t, err)
 			assert.Contains(t, string(content), tc.expectedContains)
+			os.Remove(filePath)
 		}
 	}
 }
