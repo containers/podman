@@ -297,7 +297,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		headers, err = auth.MakeXRegistryConfigHeader(options.SystemContext, "", "", "")
 	} else {
 		if options.SystemContext.DockerAuthConfig != nil {
-			headers, err = auth.Header(options.SystemContext, auth.XRegistryAuthHeader, options.SystemContext.AuthFilePath, options.SystemContext.DockerAuthConfig.Username, options.SystemContext.DockerAuthConfig.Password)
+			headers, err = auth.MakeXRegistryAuthHeader(options.SystemContext, options.SystemContext.AuthFilePath, options.SystemContext.DockerAuthConfig.Username, options.SystemContext.DockerAuthConfig.Password)
 		} else {
 			headers, err = auth.MakeXRegistryConfigHeader(options.SystemContext, options.SystemContext.AuthFilePath, "", "")
 		}

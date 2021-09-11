@@ -280,7 +280,7 @@ func Push(ctx context.Context, source string, destination string, options *PushO
 		return err
 	}
 	// TODO: have a global system context we can pass around (1st argument)
-	header, err := auth.Header(nil, auth.XRegistryAuthHeader, options.GetAuthfile(), options.GetUsername(), options.GetPassword())
+	header, err := auth.MakeXRegistryAuthHeader(nil, options.GetAuthfile(), options.GetUsername(), options.GetPassword())
 	if err != nil {
 		return err
 	}
@@ -329,7 +329,7 @@ func Search(ctx context.Context, term string, options *SearchOptions) ([]entitie
 	}
 
 	// TODO: have a global system context we can pass around (1st argument)
-	header, err := auth.Header(nil, auth.XRegistryAuthHeader, options.GetAuthfile(), "", "")
+	header, err := auth.MakeXRegistryAuthHeader(nil, options.GetAuthfile(), "", "")
 	if err != nil {
 		return nil, err
 	}

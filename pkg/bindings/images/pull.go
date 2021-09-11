@@ -42,7 +42,7 @@ func Pull(ctx context.Context, rawImage string, options *PullOptions) ([]string,
 	}
 
 	// TODO: have a global system context we can pass around (1st argument)
-	header, err := auth.Header(nil, auth.XRegistryAuthHeader, options.GetAuthfile(), options.GetUsername(), options.GetPassword())
+	header, err := auth.MakeXRegistryAuthHeader(nil, options.GetAuthfile(), options.GetUsername(), options.GetPassword())
 	if err != nil {
 		return nil, err
 	}
