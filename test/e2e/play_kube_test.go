@@ -1237,7 +1237,7 @@ var _ = Describe("Podman play kube", func() {
 		hc := podmanTest.Podman([]string{"healthcheck", "run", "liveness-unhealthy-probe-pod-0-alpine"})
 		hc.WaitWithDefaultTimeout()
 		hcoutput := hc.OutputToString()
-		Expect(hcoutput).To(ContainSubstring("unhealthy"))
+		Expect(hcoutput).To(ContainSubstring(define.HealthCheckUnhealthy))
 	})
 
 	It("podman play kube fail with nonexistent authfile", func() {
