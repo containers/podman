@@ -302,24 +302,22 @@ func TestParseSingleAuthHeader(t *testing.T) {
 	for _, tc := range []struct {
 		input     string
 		shouldErr bool
-		expected  map[string]types.DockerAuthConfig
+		expected  types.DockerAuthConfig
 	}{
 		{
 			input:    "", // An empty (or missing) header
-			expected: map[string]types.DockerAuthConfig{"0": {}},
+			expected: types.DockerAuthConfig{},
 		},
 		{
 			input:    "null",
-			expected: map[string]types.DockerAuthConfig{"0": {}},
+			expected: types.DockerAuthConfig{},
 		},
 		// Invalid JSON
 		{input: "@", shouldErr: true},
 		// Success
 		{
-			input: base64.URLEncoding.EncodeToString([]byte(`{"username":"u1","password":"p1"}`)),
-			expected: map[string]types.DockerAuthConfig{
-				"0": {Username: "u1", Password: "p1"},
-			},
+			input:    base64.URLEncoding.EncodeToString([]byte(`{"username":"u1","password":"p1"}`)),
+			expected: types.DockerAuthConfig{Username: "u1", Password: "p1"},
 		},
 	} {
 		req, err := http.NewRequest(http.MethodPost, "/", nil)

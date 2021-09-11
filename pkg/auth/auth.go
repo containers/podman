@@ -121,17 +121,11 @@ func getAuthCredentials(r *http.Request) (*types.DockerAuthConfig, string, error
 	}
 
 	// Fallback to looking for a single-auth header (i.e., one config).
-	authConfigs, err = parseSingleAuthHeader(r)
+	authConfig, err := parseSingleAuthHeader(r)
 	if err != nil {
 		return nil, "", err
 	}
-	var conf *types.DockerAuthConfig
-	for k := range authConfigs {
-		c := authConfigs[k]
-		conf = &c
-		break
-	}
-	return conf, "", nil
+	return &authConfig, "", nil
 }
 
 // Header builds the requested Authentication Header
@@ -321,7 +315,7 @@ func imageAuthToDockerAuth(authConfig types.DockerAuthConfig) dockerAPITypes.Aut
 
 // parseSingleAuthHeader extracts a DockerAuthConfig from the request's header.
 // The header content is a single DockerAuthConfig.
-func parseSingleAuthHeader(r *http.Request) (map[string]types.DockerAuthConfig, error) {
+func parseSingleAuthHeader(r *http.Request) (types.DockerAuthConfig, error) {
 	authHeader := r.Header.Get(string(XRegistryAuthHeader))
 	authConfig := dockerAPITypes.AuthConfig{}
 	// Accept "null" and handle it as empty value for compatibility reason with Docker.
@@ -329,12 +323,10 @@ func parseSingleAuthHeader(r *http.Request) (map[string]types.DockerAuthConfig, 
 	if len(authHeader) > 0 && authHeader != "null" {
 		authJSON := base64.NewDecoder(base64.URLEncoding, strings.NewReader(authHeader))
 		if err := json.NewDecoder(authJSON).Decode(&authConfig); err != nil {
-			return nil, err
+			return types.DockerAuthConfig{}, err
 		}
 	}
-	authConfigs := make(map[string]types.DockerAuthConfig)
-	authConfigs["0"] = dockerAuthToImageAuth(authConfig)
-	return authConfigs, nil
+	return dockerAuthToImageAuth(authConfig), nil
 }
 
 // parseMultiAuthHeader extracts a DockerAuthConfig from the request's header.
