@@ -24,10 +24,10 @@ const largeAuthFile = `{"auths":{
 
 // Semantics of largeAuthFile
 var largeAuthFileValues = map[string]types.DockerAuthConfig{
-	// "docker.io/vendor": {Username: "docker", Password: "vendor"},
-	// "docker.io":        {Username: "docker", Password: "top"},
-	"quay.io/libpod": {Username: "quay", Password: "libpod"},
-	"quay.io":        {Username: "quay", Password: "top"},
+	"docker.io/vendor": {Username: "docker", Password: "vendor"},
+	"docker.io":        {Username: "docker", Password: "top"},
+	"quay.io/libpod":   {Username: "quay", Password: "libpod"},
+	"quay.io":          {Username: "quay", Password: "top"},
 }
 
 // Test that GetCredentials() correctly parses what Header() produces
@@ -260,28 +260,28 @@ func TestAuthConfigsToAuthFile(t *testing.T) {
 			expectedContains: "{}",
 		},
 		{
-			name:             "registry with prefix",
+			name:             "registry with a namespace prefix",
 			server:           "my-registry.local/username",
 			shouldErr:        false,
 			expectedContains: `"my-registry.local/username":`,
 		},
 		{
-			name:             "normalize https:// prefix",
+			name:             "URLs are interpreted as full registries",
 			server:           "http://my-registry.local/username",
 			shouldErr:        false,
-			expectedContains: `"my-registry.local/username":`,
+			expectedContains: `"my-registry.local":`,
 		},
 		{
-			name:             "normalize docker registry with https prefix",
+			name:             "the old-style docker registry URL is normalized",
 			server:           "http://index.docker.io/v1/",
 			shouldErr:        false,
-			expectedContains: `"index.docker.io":`,
+			expectedContains: `"docker.io":`,
 		},
 		{
-			name:             "normalize docker registry without https prefix",
-			server:           "docker.io/v2/",
+			name:             "docker.io vendor namespace",
+			server:           "docker.io/vendor",
 			shouldErr:        false,
-			expectedContains: `"docker.io":`,
+			expectedContains: `"docker.io/vendor":`,
 		},
 	} {
 		configs := map[string]types.DockerAuthConfig{}

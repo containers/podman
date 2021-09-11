@@ -272,20 +272,24 @@ func authConfigsToAuthFile(authConfigs map[string]types.DockerAuthConfig) (strin
 	return authFilePath, nil
 }
 
-// normalizeAuthFileKey takes an auth file key and removes the leading "http[s]://" prefix as well
-// as removes path suffixes from docker registries.
+// normalizeAuthFileKey takes an auth file key and converts it into a new-style credential key
+// in the canonical format, as interpreted by c/image/pkg/docker/config.
 func normalizeAuthFileKey(authFileKey string) string {
 	stripped := strings.TrimPrefix(authFileKey, "http://")
 	stripped = strings.TrimPrefix(stripped, "https://")
 
-	/// Normalize docker registries
-	if strings.HasPrefix(stripped, "index.docker.io/") ||
-		strings.HasPrefix(stripped, "registry-1.docker.io/") ||
-		strings.HasPrefix(stripped, "docker.io/") {
+	if stripped != authFileKey { // URLs are interpreted to mean complete registries
 		stripped = strings.SplitN(stripped, "/", 2)[0]
 	}
 
-	return stripped
+	// Only non-namespaced registry names (or URLs) need to be normalized; repo namespaces
+	// always use the simple format.
+	switch stripped {
+	case "registry-1.docker.io", "index.docker.io":
+		return "docker.io"
+	default:
+		return stripped
+	}
 }
 
 // dockerAuthToImageAuth converts a docker auth config to one we're using
