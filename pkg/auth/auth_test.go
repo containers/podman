@@ -104,7 +104,7 @@ func TestHeaderGetCredentialsRoundtrip(t *testing.T) {
 			req.Header.Set(k, v)
 		}
 
-		override, resPath, parsedHeader, err := GetCredentials(req)
+		override, resPath, err := GetCredentials(req)
 		require.NoError(t, err, name)
 		defer RemoveAuthfile(resPath)
 		if tc.expectedOverride == nil {
@@ -117,12 +117,6 @@ func TestHeaderGetCredentialsRoundtrip(t *testing.T) {
 			auth, err := config.GetCredentials(&types.SystemContext{AuthFilePath: resPath}, key)
 			require.NoError(t, err, name)
 			assert.Equal(t, expectedAuth, auth, "%s, key %s", name, key)
-		}
-		if len(headers) != 0 {
-			assert.Len(t, headers, 1)
-			assert.Equal(t, tc.headerName, parsedHeader)
-		} else {
-			assert.Equal(t, HeaderAuthName(""), parsedHeader)
 		}
 	}
 }

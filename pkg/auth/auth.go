@@ -32,17 +32,23 @@ const XRegistryConfigHeader HeaderAuthName = "X-Registry-Config"
 
 // GetCredentials queries the http.Request for X-Registry-.* headers and extracts
 // the necessary authentication information for libpod operations
-func GetCredentials(r *http.Request) (*types.DockerAuthConfig, string, HeaderAuthName, error) {
+func GetCredentials(r *http.Request) (*types.DockerAuthConfig, string, error) {
 	has := func(key HeaderAuthName) bool { hdr, found := r.Header[string(key)]; return found && len(hdr) > 0 }
 	switch {
 	case has(XRegistryConfigHeader):
 		c, f, err := getConfigCredentials(r)
-		return c, f, XRegistryConfigHeader, err
+		if err != nil {
+			return nil, "", errors.Wrapf(err, "failed to parse %q header for %s", XRegistryConfigHeader, r.URL.String())
+		}
+		return c, f, nil
 	case has(XRegistryAuthHeader):
 		c, f, err := getAuthCredentials(r)
-		return c, f, XRegistryAuthHeader, err
+		if err != nil {
+			return nil, "", errors.Wrapf(err, "failed to parse %q header for %s", XRegistryAuthHeader, r.URL.String())
+		}
+		return c, f, nil
 	}
-	return nil, "", "", nil
+	return nil, "", nil
 }
 
 // getConfigCredentials extracts one or more docker.AuthConfig from the request's

@@ -453,10 +453,10 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	creds, authfile, key, err := auth.GetCredentials(r)
+	creds, authfile, err := auth.GetCredentials(r)
 	if err != nil {
 		// Credential value(s) not returned as their value is not human readable
-		utils.BadRequest(w, key.String(), "n/a", err)
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
 		return
 	}
 	defer auth.RemoveAuthfile(authfile)
