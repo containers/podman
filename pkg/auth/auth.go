@@ -33,19 +33,18 @@ const XRegistryConfigHeader HeaderAuthName = "X-Registry-Config"
 // GetCredentials queries the http.Request for X-Registry-.* headers and extracts
 // the necessary authentication information for libpod operations
 func GetCredentials(r *http.Request) (*types.DockerAuthConfig, string, error) {
-	has := func(key HeaderAuthName) bool {
+	nonemptyHeaderValue := func(key HeaderAuthName) ([]string, bool) {
 		hdr := r.Header.Values(key.String())
-		return len(hdr) > 0
+		return hdr, len(hdr) > 0
 	}
-	switch {
-	case has(XRegistryConfigHeader):
-		c, f, err := getConfigCredentials(r)
+	if hdr, ok := nonemptyHeaderValue(XRegistryConfigHeader); ok {
+		c, f, err := getConfigCredentials(r, hdr)
 		if err != nil {
 			return nil, "", errors.Wrapf(err, "failed to parse %q header for %s", XRegistryConfigHeader, r.URL.String())
 		}
 		return c, f, nil
-	case has(XRegistryAuthHeader):
-		c, f, err := getAuthCredentials(r)
+	} else if hdr, ok := nonemptyHeaderValue(XRegistryAuthHeader); ok {
+		c, f, err := getAuthCredentials(hdr)
 		if err != nil {
 			return nil, "", errors.Wrapf(err, "failed to parse %q header for %s", XRegistryAuthHeader, r.URL.String())
 		}
@@ -54,14 +53,14 @@ func GetCredentials(r *http.Request) (*types.DockerAuthConfig, string, error) {
 	return nil, "", nil
 }
 
-// getConfigCredentials extracts one or more docker.AuthConfig from the request's
-// header.  An empty key will be used as default while a named registry will be
+// getConfigCredentials extracts one or more docker.AuthConfig from a request and its
+// XRegistryConfigHeader value.  An empty key will be used as default while a named registry will be
 // returned as types.DockerAuthConfig
-func getConfigCredentials(r *http.Request) (*types.DockerAuthConfig, string, error) {
+func getConfigCredentials(r *http.Request, headers []string) (*types.DockerAuthConfig, string, error) {
 	var auth *types.DockerAuthConfig
 	configs := make(map[string]types.DockerAuthConfig)
 
-	for _, h := range r.Header[string(XRegistryConfigHeader)] {
+	for _, h := range headers {
 		param, err := base64.URLEncoding.DecodeString(h)
 		if err != nil {
 			return nil, "", errors.Wrapf(err, "failed to decode %q", XRegistryConfigHeader)
@@ -110,13 +109,13 @@ func getConfigCredentials(r *http.Request) (*types.DockerAuthConfig, string, err
 	return auth, authfile, err
 }
 
-// getAuthCredentials extracts one or more DockerAuthConfigs from the request's
-// header.  The header could specify a single-auth config in which case the
+// getAuthCredentials extracts one or more DockerAuthConfigs from an XRegistryAuthHeader
+// value.  The header could specify a single-auth config in which case the
 // first return value is set.  In case of a multi-auth header, the contents are
 // stored in a temporary auth file (2nd return value).  Note that the auth file
 // should be removed after usage.
-func getAuthCredentials(r *http.Request) (*types.DockerAuthConfig, string, error) {
-	authHeader := r.Header.Get(XRegistryAuthHeader.String())
+func getAuthCredentials(headers []string) (*types.DockerAuthConfig, string, error) {
+	authHeader := headers[0]
 
 	// First look for a multi-auth header (i.e., a map).
 	authConfigs, err := parseMultiAuthHeader(authHeader)
