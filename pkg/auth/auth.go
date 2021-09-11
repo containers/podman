@@ -31,27 +31,38 @@ const XRegistryAuthHeader HeaderAuthName = "X-Registry-Auth"
 const XRegistryConfigHeader HeaderAuthName = "X-Registry-Config"
 
 // GetCredentials queries the http.Request for X-Registry-.* headers and extracts
-// the necessary authentication information for libpod operations
+// the necessary authentication information for libpod operations, possibly
+// creating a config file. If that is the case, the caller must call RemoveAuthFile.
 func GetCredentials(r *http.Request) (*types.DockerAuthConfig, string, error) {
 	nonemptyHeaderValue := func(key HeaderAuthName) ([]string, bool) {
 		hdr := r.Header.Values(key.String())
 		return hdr, len(hdr) > 0
 	}
 	var override *types.DockerAuthConfig
-	var authFile string
+	var fileContents map[string]types.DockerAuthConfig
 	var headerName HeaderAuthName
 	var err error
 	if hdr, ok := nonemptyHeaderValue(XRegistryConfigHeader); ok {
 		headerName = XRegistryConfigHeader
-		override, authFile, err = getConfigCredentials(r, hdr)
+		override, fileContents, err = getConfigCredentials(r, hdr)
 	} else if hdr, ok := nonemptyHeaderValue(XRegistryAuthHeader); ok {
 		headerName = XRegistryAuthHeader
-		override, authFile, err = getAuthCredentials(hdr)
+		override, fileContents, err = getAuthCredentials(hdr)
 	} else {
 		return nil, "", nil
 	}
 	if err != nil {
 		return nil, "", errors.Wrapf(err, "failed to parse %q header for %s", headerName, r.URL.String())
+	}
+
+	var authFile string
+	if fileContents == nil {
+		authFile = ""
+	} else {
+		authFile, err = authConfigsToAuthFile(fileContents)
+		if err != nil {
+			return nil, "", errors.Wrapf(err, "failed to parse %q header for %s", headerName, r.URL.String())
+		}
 	}
 	return override, authFile, nil
 }
@@ -59,20 +70,20 @@ func GetCredentials(r *http.Request) (*types.DockerAuthConfig, string, error) {
 // getConfigCredentials extracts one or more docker.AuthConfig from a request and its
 // XRegistryConfigHeader value.  An empty key will be used as default while a named registry will be
 // returned as types.DockerAuthConfig
-func getConfigCredentials(r *http.Request, headers []string) (*types.DockerAuthConfig, string, error) {
+func getConfigCredentials(r *http.Request, headers []string) (*types.DockerAuthConfig, map[string]types.DockerAuthConfig, error) {
 	var auth *types.DockerAuthConfig
 	configs := make(map[string]types.DockerAuthConfig)
 
 	for _, h := range headers {
 		param, err := base64.URLEncoding.DecodeString(h)
 		if err != nil {
-			return nil, "", errors.Wrapf(err, "failed to decode %q", XRegistryConfigHeader)
+			return nil, nil, errors.Wrapf(err, "failed to decode %q", XRegistryConfigHeader)
 		}
 
 		ac := make(map[string]dockerAPITypes.AuthConfig)
 		err = json.Unmarshal(param, &ac)
 		if err != nil {
-			return nil, "", errors.Wrapf(err, "failed to unmarshal %q", XRegistryConfigHeader)
+			return nil, nil, errors.Wrapf(err, "failed to unmarshal %q", XRegistryConfigHeader)
 		}
 
 		for k, v := range ac {
@@ -108,31 +119,28 @@ func getConfigCredentials(r *http.Request, headers []string) (*types.DockerAuthC
 		}
 	}
 
-	authfile, err := authConfigsToAuthFile(configs)
-	return auth, authfile, err
+	return auth, configs, nil
 }
 
 // getAuthCredentials extracts one or more DockerAuthConfigs from an XRegistryAuthHeader
 // value.  The header could specify a single-auth config in which case the
 // first return value is set.  In case of a multi-auth header, the contents are
-// stored in a temporary auth file (2nd return value).  Note that the auth file
-// should be removed after usage.
-func getAuthCredentials(headers []string) (*types.DockerAuthConfig, string, error) {
+// returned in the second return value.
+func getAuthCredentials(headers []string) (*types.DockerAuthConfig, map[string]types.DockerAuthConfig, error) {
 	authHeader := headers[0]
 
 	// First look for a multi-auth header (i.e., a map).
 	authConfigs, err := parseMultiAuthHeader(authHeader)
 	if err == nil {
-		authfile, err := authConfigsToAuthFile(authConfigs)
-		return nil, authfile, err
+		return nil, authConfigs, nil
 	}
 
 	// Fallback to looking for a single-auth header (i.e., one config).
 	authConfig, err := parseSingleAuthHeader(authHeader)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
-	return &authConfig, "", nil
+	return &authConfig, nil, nil
 }
 
 // Header builds the requested Authentication Header
