@@ -2,6 +2,7 @@ package system
 
 import (
 	"os"
+	"os/exec"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v3/cmd/podman/registry"
@@ -50,5 +51,23 @@ func unshare(cmd *cobra.Command, args []string) error {
 		args = []string{shell}
 	}
 
-	return registry.ContainerEngine().Unshare(registry.Context(), args, unshareOptions)
+	err := registry.ContainerEngine().Unshare(registry.Context(), args, unshareOptions)
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			// the user command inside the unshare env has failed
+			// we set the exit code, do not return the error to the user
+			// otherwise "exit status X" will be printed
+			registry.SetExitCode(exitError.ExitCode())
+			return nil
+		}
+		// cmd.Run() can return fs.ErrNotExist, fs.ErrPermission or exec.ErrNotFound
+		// follow podman run/exec standard with the exit codes
+		if errors.Is(err, os.ErrNotExist) || errors.Is(err, exec.ErrNotFound) {
+			registry.SetExitCode(127)
+		} else if errors.Is(err, os.ErrPermission) {
+			registry.SetExitCode(126)
+		}
+		return err
+	}
+	return nil
 }

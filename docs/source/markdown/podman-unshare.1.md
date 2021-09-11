@@ -37,6 +37,35 @@ connect to a rootless container via IP address (CNI networking). This is otherwi
 not possible from the host network namespace.
 _Note: Using this option with more than one unshare session can have unexpected results._
 
+## Exit Codes
+
+The exit code from `podman unshare` gives information about why the container
+failed to run or why it exited.  When `podman unshare` commands exit with a non-zero code,
+the exit codes follow the `chroot` standard, see below:
+
+  **125** The error is with podman **_itself_**
+
+    $ podman unshare --foo; echo $?
+    Error: unknown flag: --foo
+    125
+
+  **126** Executing a _contained command_ and the _command_ cannot be invoked
+
+    $ podman unshare /etc; echo $?
+    Error: fork/exec /etc: permission denied
+    126
+
+  **127** Executing a _contained command_ and the _command_ cannot be found
+
+    $ podman run busybox foo; echo $?
+    Error: fork/exec /usr/bin/bogus: no such file or directory
+    127
+
+  **Exit code** _contained command_ exit code
+
+    $ podman run busybox /bin/sh -c 'exit 3'; echo $?
+    3
+
 ## EXAMPLE
 
 ```
