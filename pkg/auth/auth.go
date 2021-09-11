@@ -145,26 +145,14 @@ func getAuthCredentials(headers []string) (*types.DockerAuthConfig, map[string]t
 
 // Header builds the requested Authentication Header
 func Header(sys *types.SystemContext, headerName HeaderAuthName, authfile, username, password string) (map[string]string, error) {
-	var (
-		content string
-		err     error
-	)
 	switch headerName {
 	case XRegistryAuthHeader:
-		content, err = headerAuth(sys, authfile, username, password)
+		return MakeXRegistryAuthHeader(sys, authfile, username, password)
 	case XRegistryConfigHeader:
 		return MakeXRegistryConfigHeader(sys, authfile, username, password)
 	default:
-		err = fmt.Errorf("unsupported authentication header: %q", headerName)
+		return nil, fmt.Errorf("unsupported authentication header: %q", headerName)
 	}
-	if err != nil {
-		return nil, err
-	}
-
-	if len(content) > 0 {
-		return map[string]string{string(headerName): content}, nil
-	}
-	return nil, nil
 }
 
 // MakeXRegistryConfigHeader returns a map with the XRegistryConfigHeader set which can
@@ -198,11 +186,15 @@ func MakeXRegistryConfigHeader(sys *types.SystemContext, authfile, username, pas
 	return map[string]string{XRegistryConfigHeader.String(): content}, nil
 }
 
-// headerAuth returns a base64 encoded map with the XRegistryAuthHeader set which can
+// MakeXRegistryAuthHeader returns a map with the XRegistryAuthHeader set which can
 // conveniently be used in the http stack.
-func headerAuth(sys *types.SystemContext, authfile, username, password string) (string, error) {
+func MakeXRegistryAuthHeader(sys *types.SystemContext, authfile, username, password string) (map[string]string, error) {
 	if username != "" {
-		return encodeSingleAuthConfig(types.DockerAuthConfig{Username: username, Password: password})
+		content, err := encodeSingleAuthConfig(types.DockerAuthConfig{Username: username, Password: password})
+		if err != nil {
+			return nil, err
+		}
+		return map[string]string{XRegistryAuthHeader.String(): content}, nil
 	}
 
 	if sys == nil {
@@ -213,9 +205,13 @@ func headerAuth(sys *types.SystemContext, authfile, username, password string) (
 	}
 	authConfigs, err := imageAuth.GetAllCredentials(sys)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return encodeMultiAuthConfigs(authConfigs)
+	content, err := encodeMultiAuthConfigs(authConfigs)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]string{XRegistryAuthHeader.String(): content}, nil
 }
 
 // RemoveAuthfile is a convenience function that is meant to be called in a
