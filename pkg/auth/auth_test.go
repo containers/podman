@@ -320,10 +320,7 @@ func TestParseSingleAuthHeader(t *testing.T) {
 			expected: types.DockerAuthConfig{Username: "u1", Password: "p1"},
 		},
 	} {
-		req, err := http.NewRequest(http.MethodPost, "/", nil)
-		require.NoError(t, err, tc.input)
-		req.Header.Set(XRegistryAuthHeader.String(), tc.input)
-		res, err := parseSingleAuthHeader(req)
+		res, err := parseSingleAuthHeader(tc.input)
 		if tc.shouldErr {
 			assert.Error(t, err, tc.input)
 		} else {
@@ -356,10 +353,7 @@ func TestParseMultiAuthHeader(t *testing.T) {
 			},
 		},
 	} {
-		req, err := http.NewRequest(http.MethodPost, "/", nil)
-		require.NoError(t, err, tc.input)
-		req.Header.Set(XRegistryAuthHeader.String(), tc.input)
-		res, err := parseMultiAuthHeader(req)
+		res, err := parseMultiAuthHeader(tc.input)
 		if tc.shouldErr {
 			assert.Error(t, err, tc.input)
 		} else {

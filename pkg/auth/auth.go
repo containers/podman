@@ -113,15 +113,17 @@ func getConfigCredentials(r *http.Request) (*types.DockerAuthConfig, string, err
 // stored in a temporary auth file (2nd return value).  Note that the auth file
 // should be removed after usage.
 func getAuthCredentials(r *http.Request) (*types.DockerAuthConfig, string, error) {
+	authHeader := r.Header.Get(XRegistryAuthHeader.String())
+
 	// First look for a multi-auth header (i.e., a map).
-	authConfigs, err := parseMultiAuthHeader(r)
+	authConfigs, err := parseMultiAuthHeader(authHeader)
 	if err == nil {
 		authfile, err := authConfigsToAuthFile(authConfigs)
 		return nil, authfile, err
 	}
 
 	// Fallback to looking for a single-auth header (i.e., one config).
-	authConfig, err := parseSingleAuthHeader(r)
+	authConfig, err := parseSingleAuthHeader(authHeader)
 	if err != nil {
 		return nil, "", err
 	}
@@ -313,10 +315,9 @@ func imageAuthToDockerAuth(authConfig types.DockerAuthConfig) dockerAPITypes.Aut
 	}
 }
 
-// parseSingleAuthHeader extracts a DockerAuthConfig from the request's header.
+// parseSingleAuthHeader extracts a DockerAuthConfig from an XRegistryAuthHeader value.
 // The header content is a single DockerAuthConfig.
-func parseSingleAuthHeader(r *http.Request) (types.DockerAuthConfig, error) {
-	authHeader := r.Header.Get(string(XRegistryAuthHeader))
+func parseSingleAuthHeader(authHeader string) (types.DockerAuthConfig, error) {
 	// Accept "null" and handle it as empty value for compatibility reason with Docker.
 	// Some java docker clients pass this value, e.g. this one used in Eclipse.
 	if len(authHeader) == 0 || authHeader == "null" {
@@ -331,10 +332,9 @@ func parseSingleAuthHeader(r *http.Request) (types.DockerAuthConfig, error) {
 	return dockerAuthToImageAuth(authConfig), nil
 }
 
-// parseMultiAuthHeader extracts a DockerAuthConfig from the request's header.
+// parseMultiAuthHeader extracts a DockerAuthConfig from an XRegistryAuthHeader value.
 // The header content is a map[string]DockerAuthConfigs.
-func parseMultiAuthHeader(r *http.Request) (map[string]types.DockerAuthConfig, error) {
-	authHeader := r.Header.Get(string(XRegistryAuthHeader))
+func parseMultiAuthHeader(authHeader string) (map[string]types.DockerAuthConfig, error) {
 	// Accept "null" and handle it as empty value for compatibility reason with Docker.
 	// Some java docker clients pass this value, e.g. this one used in Eclipse.
 	if len(authHeader) == 0 || authHeader == "null" {
