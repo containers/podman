@@ -37,20 +37,23 @@ func GetCredentials(r *http.Request) (*types.DockerAuthConfig, string, error) {
 		hdr := r.Header.Values(key.String())
 		return hdr, len(hdr) > 0
 	}
+	var override *types.DockerAuthConfig
+	var authFile string
+	var headerName HeaderAuthName
+	var err error
 	if hdr, ok := nonemptyHeaderValue(XRegistryConfigHeader); ok {
-		c, f, err := getConfigCredentials(r, hdr)
-		if err != nil {
-			return nil, "", errors.Wrapf(err, "failed to parse %q header for %s", XRegistryConfigHeader, r.URL.String())
-		}
-		return c, f, nil
+		headerName = XRegistryConfigHeader
+		override, authFile, err = getConfigCredentials(r, hdr)
 	} else if hdr, ok := nonemptyHeaderValue(XRegistryAuthHeader); ok {
-		c, f, err := getAuthCredentials(hdr)
-		if err != nil {
-			return nil, "", errors.Wrapf(err, "failed to parse %q header for %s", XRegistryAuthHeader, r.URL.String())
-		}
-		return c, f, nil
+		headerName = XRegistryAuthHeader
+		override, authFile, err = getAuthCredentials(hdr)
+	} else {
+		return nil, "", nil
 	}
-	return nil, "", nil
+	if err != nil {
+		return nil, "", errors.Wrapf(err, "failed to parse %q header for %s", headerName, r.URL.String())
+	}
+	return override, authFile, nil
 }
 
 // getConfigCredentials extracts one or more docker.AuthConfig from a request and its
