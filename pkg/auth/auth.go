@@ -115,7 +115,7 @@ func getAuthCredentials(r *http.Request) (*types.DockerAuthConfig, string, error
 	}
 
 	// Fallback to looking for a single-auth header (i.e., one config).
-	authConfigs, err = singleAuthHeader(r)
+	authConfigs, err = parseSingleAuthHeader(r)
 	if err != nil {
 		return nil, "", err
 	}
@@ -309,9 +309,9 @@ func imageAuthToDockerAuth(authConfig types.DockerAuthConfig) dockerAPITypes.Aut
 	}
 }
 
-// singleAuthHeader extracts a DockerAuthConfig from the request's header.
+// parseSingleAuthHeader extracts a DockerAuthConfig from the request's header.
 // The header content is a single DockerAuthConfig.
-func singleAuthHeader(r *http.Request) (map[string]types.DockerAuthConfig, error) {
+func parseSingleAuthHeader(r *http.Request) (map[string]types.DockerAuthConfig, error) {
 	authHeader := r.Header.Get(string(XRegistryAuthHeader))
 	authConfig := dockerAPITypes.AuthConfig{}
 	// Accept "null" and handle it as empty value for compatibility reason with Docker.

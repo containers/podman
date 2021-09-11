@@ -68,6 +68,43 @@ func TestAuthConfigsToAuthFile(t *testing.T) {
 	}
 }
 
+func TestParseSingleAuthHeader(t *testing.T) {
+	for _, tc := range []struct {
+		input     string
+		shouldErr bool
+		expected  map[string]types.DockerAuthConfig
+	}{
+		{
+			input:    "", // An empty (or missing) header
+			expected: map[string]types.DockerAuthConfig{"0": {}},
+		},
+		{
+			input:    "null",
+			expected: map[string]types.DockerAuthConfig{"0": {}},
+		},
+		// Invalid JSON
+		{input: "@", shouldErr: true},
+		// Success
+		{
+			input: base64.URLEncoding.EncodeToString([]byte(`{"username":"u1","password":"p1"}`)),
+			expected: map[string]types.DockerAuthConfig{
+				"0": {Username: "u1", Password: "p1"},
+			},
+		},
+	} {
+		req, err := http.NewRequest(http.MethodPost, "/", nil)
+		require.NoError(t, err, tc.input)
+		req.Header.Set(XRegistryAuthHeader.String(), tc.input)
+		res, err := parseSingleAuthHeader(req)
+		if tc.shouldErr {
+			assert.Error(t, err, tc.input)
+		} else {
+			require.NoError(t, err, tc.input)
+			assert.Equal(t, tc.expected, res, tc.input)
+		}
+	}
+}
+
 func TestParseMultiAuthHeader(t *testing.T) {
 	for _, tc := range []struct {
 		input     string
