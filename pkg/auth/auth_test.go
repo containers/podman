@@ -9,6 +9,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/containers/image/v5/pkg/docker/config"
 	"github.com/containers/image/v5/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,6 +21,111 @@ const largeAuthFile = `{"auths":{
 	"quay.io/libpod": {"auth": "cXVheTpsaWJwb2Q="},
 	"quay.io": {"auth": "cXVheTp0b3A="}
 }}`
+
+// Semantics of largeAuthFile
+var largeAuthFileValues = map[string]types.DockerAuthConfig{
+	// "docker.io/vendor": {Username: "docker", Password: "vendor"},
+	// "docker.io":        {Username: "docker", Password: "top"},
+	"quay.io/libpod": {Username: "quay", Password: "libpod"},
+	"quay.io":        {Username: "quay", Password: "top"},
+}
+
+// Test that GetCredentials() correctly parses what Header() produces
+func TestHeaderGetCredentialsRoundtrip(t *testing.T) {
+	for _, tc := range []struct {
+		headerName         HeaderAuthName
+		name               string
+		fileContents       string
+		username, password string
+		expectedOverride   *types.DockerAuthConfig
+		expectedFileValues map[string]types.DockerAuthConfig
+	}{
+		{
+			headerName:         XRegistryConfigHeader,
+			name:               "no data",
+			fileContents:       "",
+			username:           "",
+			password:           "",
+			expectedOverride:   nil,
+			expectedFileValues: nil,
+		},
+		{
+			headerName:         XRegistryConfigHeader,
+			name:               "file data",
+			fileContents:       largeAuthFile,
+			username:           "",
+			password:           "",
+			expectedOverride:   nil,
+			expectedFileValues: largeAuthFileValues,
+		},
+		{
+			headerName:         XRegistryConfigHeader,
+			name:               "file data + override",
+			fileContents:       largeAuthFile,
+			username:           "override-user",
+			password:           "override-pass",
+			expectedOverride:   &types.DockerAuthConfig{Username: "override-user", Password: "override-pass"},
+			expectedFileValues: largeAuthFileValues,
+		},
+		{
+			headerName:         XRegistryAuthHeader,
+			name:               "override",
+			fileContents:       "",
+			username:           "override-user",
+			password:           "override-pass",
+			expectedOverride:   &types.DockerAuthConfig{Username: "override-user", Password: "override-pass"},
+			expectedFileValues: nil,
+		},
+		{
+			headerName:         XRegistryAuthHeader,
+			name:               "file data",
+			fileContents:       largeAuthFile,
+			username:           "",
+			password:           "",
+			expectedFileValues: largeAuthFileValues,
+		},
+	} {
+		name := fmt.Sprintf("%s: %s", tc.headerName, tc.name)
+		inputAuthFile := ""
+		if tc.fileContents != "" {
+			f, err := ioutil.TempFile("", "auth.json")
+			require.NoError(t, err, name)
+			defer os.Remove(f.Name())
+			inputAuthFile = f.Name()
+			err = ioutil.WriteFile(inputAuthFile, []byte(tc.fileContents), 0700)
+			require.NoError(t, err, name)
+		}
+
+		headers, err := Header(nil, tc.headerName, inputAuthFile, tc.username, tc.password)
+		require.NoError(t, err)
+		req, err := http.NewRequest(http.MethodPost, "/", nil)
+		require.NoError(t, err, name)
+		for k, v := range headers {
+			req.Header.Set(k, v)
+		}
+
+		override, resPath, parsedHeader, err := GetCredentials(req)
+		require.NoError(t, err, name)
+		defer RemoveAuthfile(resPath)
+		if tc.expectedOverride == nil {
+			assert.Nil(t, override, name)
+		} else {
+			require.NotNil(t, override, name)
+			assert.Equal(t, *tc.expectedOverride, *override, name)
+		}
+		for key, expectedAuth := range tc.expectedFileValues {
+			auth, err := config.GetCredentials(&types.SystemContext{AuthFilePath: resPath}, key)
+			require.NoError(t, err, name)
+			assert.Equal(t, expectedAuth, auth, "%s, key %s", name, key)
+		}
+		if len(headers) != 0 {
+			assert.Len(t, headers, 1)
+			assert.Equal(t, tc.headerName, parsedHeader)
+		} else {
+			assert.Equal(t, HeaderAuthName(""), parsedHeader)
+		}
+	}
+}
 
 func TestHeader(t *testing.T) {
 	for _, tc := range []struct {
