@@ -34,8 +34,8 @@ const XRegistryConfigHeader HeaderAuthName = "X-Registry-Config"
 // the necessary authentication information for libpod operations
 func GetCredentials(r *http.Request) (*types.DockerAuthConfig, string, error) {
 	has := func(key HeaderAuthName) bool {
-		hdr, found := r.Header[key.String()]
-		return found && len(hdr) > 0
+		hdr := r.Header.Values(key.String())
+		return len(hdr) > 0
 	}
 	switch {
 	case has(XRegistryConfigHeader):
