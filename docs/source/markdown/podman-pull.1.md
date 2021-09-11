@@ -43,7 +43,7 @@ $ podman pull oci-archive:/tmp/myimage
 ```
 
 ## OPTIONS
-#### **--all-tags**, **a**
+#### **--all-tags**
 
 All tagged images in the repository will be pulled.
 
