@@ -1,5 +1,6 @@
 import json
 import unittest
+import uuid
 
 import requests
 from .fixtures import APITestCase
@@ -91,6 +92,18 @@ class SystemTestCase(APITestCase):
 
         r = requests.get(self.uri("/system/df"))
         self.assertEqual(r.status_code, 200, r.text)
+
+    def test_reference_id(self):
+        rid = str(uuid.uuid4())
+        r = requests.get(self.uri("/info"), headers={"X-Reference-Id": rid})
+        self.assertEqual(r.status_code, 200, r.text)
+
+        self.assertIn("X-Reference-Id", r.headers)
+        self.assertEqual(r.headers["X-Reference-Id"], rid)
+
+        r = requests.get(self.uri("/info"))
+        self.assertIn("X-Reference-Id", r.headers)
+        self.assertNotEqual(r.headers["X-Reference-Id"], rid)
 
 
 if __name__ == "__main__":

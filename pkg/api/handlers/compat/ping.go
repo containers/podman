@@ -13,7 +13,7 @@ import (
 // Clients will use the Header availability to test which backend engine is in use.
 // Note: Additionally handler supports GET and HEAD methods
 func Ping(w http.ResponseWriter, r *http.Request) {
-	// Note API-Version and Libpod-API-Version are set in handler_api.go
+	// Note: API-Version and Libpod-API-Version are set in handler_api.go
 	w.Header().Set("BuildKit-Version", "")
 	w.Header().Set("Builder-Version", "")
 	w.Header().Set("Docker-Experimental", "true")

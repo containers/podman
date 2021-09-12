@@ -15,6 +15,7 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/api/handlers"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
+	api "github.com/containers/podman/v3/pkg/api/types"
 	"github.com/containers/podman/v3/pkg/rootless"
 	docker "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/registry"
@@ -27,7 +28,7 @@ import (
 func GetInfo(w http.ResponseWriter, r *http.Request) {
 	// 200 ok
 	// 500 internal
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	infoData, err := runtime.Info()
 	if err != nil {

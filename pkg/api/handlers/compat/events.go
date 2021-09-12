@@ -6,6 +6,7 @@ import (
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
+	api "github.com/containers/podman/v3/pkg/api/types"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/gorilla/schema"
@@ -14,13 +15,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// NOTE: this endpoint serves both the docker-compatible one and the new libpod
-// one.
+// GetEvents endpoint serves both the docker-compatible one and the new libpod one
 func GetEvents(w http.ResponseWriter, r *http.Request) {
 	var (
 		fromStart bool
-		decoder   = r.Context().Value("decoder").(*schema.Decoder)
-		runtime   = r.Context().Value("runtime").(*libpod.Runtime)
+		decoder   = r.Context().Value(api.DecoderKey).(*schema.Decoder)
+		runtime   = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 		json      = jsoniter.ConfigCompatibleWithStandardLibrary // FIXME: this should happen on the package level
 	)
 

@@ -11,6 +11,7 @@ import (
 	"github.com/containers/podman/v3/pkg/api/handlers"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/containers/podman/v3/pkg/api/server/idle"
+	api "github.com/containers/podman/v3/pkg/api/types"
 	"github.com/containers/podman/v3/pkg/specgen/generate"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -19,7 +20,7 @@ import (
 
 // ExecCreateHandler creates an exec session for a given container.
 func ExecCreateHandler(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	input := new(handlers.ExecCreateConfig)
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -101,7 +102,7 @@ func ExecCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 // ExecInspectHandler inspects a given exec session.
 func ExecInspectHandler(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	sessionID := mux.Vars(r)["id"]
 	sessionCtr, err := runtime.GetExecSessionContainer(sessionID)
@@ -129,7 +130,7 @@ func ExecInspectHandler(w http.ResponseWriter, r *http.Request) {
 
 // ExecStartHandler runs a given exec session.
 func ExecStartHandler(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	sessionID := mux.Vars(r)["id"]
 
@@ -191,7 +192,7 @@ func ExecStartHandler(w http.ResponseWriter, r *http.Request) {
 
 	if <-hijackChan {
 		// If connection was Hijacked, we have to signal it's being closed
-		t := r.Context().Value("idletracker").(*idle.Tracker)
+		t := r.Context().Value(api.IdleTrackerKey).(*idle.Tracker)
 		defer t.Close()
 
 		if err != nil {

@@ -9,6 +9,7 @@ import (
 
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
+	api "github.com/containers/podman/v3/pkg/api/types"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
 	"github.com/containers/podman/v3/pkg/util"
@@ -17,7 +18,7 @@ import (
 
 func ListSecrets(w http.ResponseWriter, r *http.Request) {
 	var (
-		runtime = r.Context().Value("runtime").(*libpod.Runtime)
+		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	)
 	filtersMap, err := util.PrepareFilters(r)
 	if err != nil {
@@ -53,7 +54,7 @@ func ListSecrets(w http.ResponseWriter, r *http.Request) {
 
 func InspectSecret(w http.ResponseWriter, r *http.Request) {
 	var (
-		runtime = r.Context().Value("runtime").(*libpod.Runtime)
+		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	)
 	name := utils.GetName(r)
 	names := []string{name}
@@ -86,7 +87,7 @@ func InspectSecret(w http.ResponseWriter, r *http.Request) {
 
 func RemoveSecret(w http.ResponseWriter, r *http.Request) {
 	var (
-		runtime = r.Context().Value("runtime").(*libpod.Runtime)
+		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	)
 
 	opts := entities.SecretRmOptions{}
@@ -106,7 +107,7 @@ func RemoveSecret(w http.ResponseWriter, r *http.Request) {
 
 func CreateSecret(w http.ResponseWriter, r *http.Request) {
 	var (
-		runtime = r.Context().Value("runtime").(*libpod.Runtime)
+		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	)
 	opts := entities.SecretCreateOptions{}
 	createParams := struct {

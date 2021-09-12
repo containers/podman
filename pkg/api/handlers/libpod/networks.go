@@ -8,6 +8,7 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/network"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
+	api "github.com/containers/podman/v3/pkg/api/types"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
 	"github.com/containers/podman/v3/pkg/util"
@@ -16,8 +17,8 @@ import (
 )
 
 func CreateNetwork(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	options := entities.NetworkCreateOptions{}
 	if err := json.NewDecoder(r.Body).Decode(&options); err != nil {
 		utils.Error(w, "unable to marshall input", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
@@ -45,7 +46,7 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, report)
 }
 func ListNetworks(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
 		utils.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError,
@@ -66,8 +67,8 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 }
 
 func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
 		Force bool `schema:"force"`
 	}{
@@ -100,8 +101,8 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 }
 
 func InspectNetwork(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
 	}{
 		// override any golang type defaults
@@ -129,7 +130,7 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 
 // Connect adds a container to a network
 func Connect(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	var netConnect entities.NetworkConnectOptions
 	if err := json.NewDecoder(r.Body).Decode(&netConnect); err != nil {
@@ -155,7 +156,7 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 
 // ExistsNetwork check if a network exists
 func ExistsNetwork(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	name := utils.GetName(r)
 
 	ic := abi.ContainerEngine{Libpod: runtime}
@@ -173,7 +174,7 @@ func ExistsNetwork(w http.ResponseWriter, r *http.Request) {
 
 // Prune removes unused networks
 func Prune(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {

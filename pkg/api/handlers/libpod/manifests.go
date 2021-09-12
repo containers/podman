@@ -11,6 +11,7 @@ import (
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/api/handlers"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
+	api "github.com/containers/podman/v3/pkg/api/types"
 	"github.com/containers/podman/v3/pkg/auth"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi"
@@ -20,8 +21,8 @@ import (
 )
 
 func ManifestCreate(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
 		Name  []string `schema:"name"`
 		Image []string `schema:"image"`
@@ -57,7 +58,7 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 
 // ExistsManifest check if a manifest list exists
 func ExistsManifest(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	name := utils.GetName(r)
 
 	imageEngine := abi.ImageEngine{Libpod: runtime}
@@ -74,7 +75,7 @@ func ExistsManifest(w http.ResponseWriter, r *http.Request) {
 }
 
 func ManifestInspect(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	name := utils.GetName(r)
 
 	imageEngine := abi.ImageEngine{Libpod: runtime}
@@ -94,7 +95,7 @@ func ManifestInspect(w http.ResponseWriter, r *http.Request) {
 }
 
 func ManifestAdd(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	var addOptions entities.ManifestAddOptions
 	if err := json.NewDecoder(r.Body).Decode(&addOptions); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
@@ -124,8 +125,8 @@ func ManifestAdd(w http.ResponseWriter, r *http.Request) {
 }
 
 func ManifestRemove(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
 		Digest string `schema:"digest"`
 	}{
@@ -155,8 +156,8 @@ func ManifestRemove(w http.ResponseWriter, r *http.Request) {
 }
 
 func ManifestPush(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
 		All         bool   `schema:"all"`
 		Destination string `schema:"destination"`

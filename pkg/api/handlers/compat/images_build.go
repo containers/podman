@@ -20,6 +20,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
+	api "github.com/containers/podman/v3/pkg/api/types"
 	"github.com/containers/podman/v3/pkg/auth"
 	"github.com/containers/podman/v3/pkg/channel"
 	"github.com/containers/storage/pkg/archive"
@@ -128,7 +129,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Tag:        []string{},
 	}
 
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
 		return
@@ -410,7 +411,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	reporter := channel.NewWriter(make(chan []byte))
 	defer reporter.Close()
 
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	rtc, err := runtime.GetConfig()
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
@@ -520,7 +521,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 
 	// Send headers and prime client for stream to come
 	w.WriteHeader(http.StatusOK)
-	w.Header().Add("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	flush()
 
 	body := w.(io.Writer)

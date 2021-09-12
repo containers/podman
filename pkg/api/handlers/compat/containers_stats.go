@@ -8,6 +8,7 @@ import (
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
+	api "github.com/containers/podman/v3/pkg/api/types"
 	"github.com/containers/podman/v3/pkg/cgroups"
 	docker "github.com/docker/docker/api/types"
 	"github.com/gorilla/schema"
@@ -18,12 +19,12 @@ import (
 const DefaultStatsPeriod = 5 * time.Second
 
 func StatsContainer(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 
 	query := struct {
 		Stream  bool `schema:"stream"`
-		OneShot bool `schema:"one-shot"` //added schema for one shot
+		OneShot bool `schema:"one-shot"` // added schema for one shot
 	}{
 		Stream: true,
 	}
@@ -64,7 +65,7 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 	coder := json.NewEncoder(w)
 	// Write header and content type.
 	w.WriteHeader(http.StatusOK)
-	w.Header().Add("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	if flusher, ok := w.(http.Flusher); ok {
 		flusher.Flush()
 	}

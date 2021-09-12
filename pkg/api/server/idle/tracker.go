@@ -1,6 +1,7 @@
 package idle
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"sync"
@@ -39,7 +40,10 @@ func (t *Tracker) ConnState(conn net.Conn, state http.ConnState) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	logrus.Debugf("IdleTracker %p:%v %dm+%dh/%dt connection(s)", conn, state, len(t.managed), t.hijacked, t.TotalConnections())
+	logrus.WithFields(logrus.Fields{
+		"X-Reference-Id": fmt.Sprintf("%p", conn),
+	}).Debugf("IdleTracker:%v %dm+%dh/%dt connection(s)", state, len(t.managed), t.hijacked, t.TotalConnections())
+
 	switch state {
 	case http.StateNew:
 		t.total++
@@ -68,7 +72,9 @@ func (t *Tracker) ConnState(conn net.Conn, state http.ConnState) {
 			if _, found := t.managed[conn]; found {
 				delete(t.managed, conn)
 			} else {
-				logrus.Warnf("IdleTracker %p: StateClosed transition by un-managed connection", conn)
+				logrus.WithFields(logrus.Fields{
+					"X-Reference-Id": fmt.Sprintf("%p", conn),
+				}).Warnf("IdleTracker: StateClosed transition by connection marked un-managed")
 			}
 		}
 

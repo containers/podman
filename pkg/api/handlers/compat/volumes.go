@@ -11,6 +11,7 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/api/handlers"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
+	api "github.com/containers/podman/v3/pkg/api/types"
 	"github.com/containers/podman/v3/pkg/domain/filters"
 	"github.com/containers/podman/v3/pkg/domain/infra/abi/parse"
 	"github.com/containers/podman/v3/pkg/util"
@@ -21,9 +22,8 @@ import (
 )
 
 func ListVolumes(w http.ResponseWriter, r *http.Request) {
-	var (
-		runtime = r.Context().Value("runtime").(*libpod.Runtime)
-	)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+
 	filtersMap, err := util.PrepareFilters(r)
 	if err != nil {
 		utils.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError,
@@ -79,8 +79,8 @@ func ListVolumes(w http.ResponseWriter, r *http.Request) {
 func CreateVolume(w http.ResponseWriter, r *http.Request) {
 	var (
 		volumeOptions []libpod.VolumeCreateOption
-		runtime       = r.Context().Value("runtime").(*libpod.Runtime)
-		decoder       = r.Context().Value("decoder").(*schema.Decoder)
+		runtime       = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+		decoder       = r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	)
 	/* No query string data*/
 	query := struct{}{}
@@ -181,7 +181,7 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 
 func InspectVolume(w http.ResponseWriter, r *http.Request) {
 	var (
-		runtime = r.Context().Value("runtime").(*libpod.Runtime)
+		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	)
 	name := utils.GetName(r)
 	vol, err := runtime.GetVolume(name)
@@ -209,8 +209,8 @@ func InspectVolume(w http.ResponseWriter, r *http.Request) {
 
 func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 	var (
-		runtime = r.Context().Value("runtime").(*libpod.Runtime)
-		decoder = r.Context().Value("decoder").(*schema.Decoder)
+		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+		decoder = r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	)
 	query := struct {
 		Force bool `schema:"force"`
@@ -225,7 +225,7 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 	}
 
 	/* The implications for `force` differ between Docker and us, so we can't
-	 * simply pass the `force` parameter to `runeimt.RemoveVolume()`.
+	 * simply pass the `force` parameter to `runtime.RemoveVolume()`.
 	 * Specifically, Docker's behavior seems to be that `force` means "do not
 	 * error on missing volume"; ours means "remove any not-running containers
 	 * using the volume at the same time".
@@ -263,7 +263,7 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 
 func PruneVolumes(w http.ResponseWriter, r *http.Request) {
 	var (
-		runtime = r.Context().Value("runtime").(*libpod.Runtime)
+		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	)
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
