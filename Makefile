@@ -492,7 +492,6 @@ run-docker-py-tests:
 
 .PHONY: localunit
 localunit: test/goecho/goecho
-	hack/check_root.sh make localunit
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
 	$(GOBIN)/ginkgo \
 		-r \
