@@ -370,8 +370,14 @@ func (r *Runtime) GetHostDistributionInfo() define.DistributionInfo {
 		if strings.HasPrefix(l.Text(), "ID=") {
 			dist.Distribution = strings.TrimPrefix(l.Text(), "ID=")
 		}
+		if strings.HasPrefix(l.Text(), "VARIANT_ID=") {
+			dist.Variant = strings.Trim(strings.TrimPrefix(l.Text(), "VARIANT_ID="), "\"")
+		}
 		if strings.HasPrefix(l.Text(), "VERSION_ID=") {
 			dist.Version = strings.Trim(strings.TrimPrefix(l.Text(), "VERSION_ID="), "\"")
+		}
+		if strings.HasPrefix(l.Text(), "VERSION_CODENAME=") {
+			dist.Codename = strings.Trim(strings.TrimPrefix(l.Text(), "VERSION_CODENAME="), "\"")
 		}
 	}
 	return dist
