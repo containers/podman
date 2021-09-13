@@ -50,7 +50,7 @@ func writeZstdChunkedStream(destFile io.Writer, outMetadata map[string]string, r
 		return offset, nil
 	}
 
-	var metadata []internal.ZstdFileMetadata
+	var metadata []internal.FileMetadata
 	for {
 		hdr, err := tr.Next()
 		if err != nil {
@@ -112,7 +112,7 @@ func writeZstdChunkedStream(destFile io.Writer, outMetadata map[string]string, r
 		for k, v := range hdr.Xattrs {
 			xattrs[k] = base64.StdEncoding.EncodeToString([]byte(v))
 		}
-		m := internal.ZstdFileMetadata{
+		m := internal.FileMetadata{
 			Type:       typ,
 			Name:       hdr.Name,
 			Linkname:   hdr.Linkname,
