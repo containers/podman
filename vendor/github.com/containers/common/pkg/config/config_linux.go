@@ -35,3 +35,10 @@ func ifRootlessConfigPath() (string, error) {
 	}
 	return "", nil
 }
+
+var defaultHelperBinariesDir = []string{
+	"/usr/local/libexec/podman",
+	"/usr/local/lib/podman",
+	"/usr/libexec/podman",
+	"/usr/lib/podman",
+}
