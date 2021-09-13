@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -623,7 +624,14 @@ func CheckActiveVM() (bool, string, error) {
 // to setup port forwarding to the podman virtual machine
 func (v *MachineVM) startHostNetworking() error {
 	// TODO we may wish to configure the directory in containers common
-	binary := filepath.Join("/usr/libexec/podman/", machine.ForwarderBinaryName)
+	var binaryPath string
+	switch runtime.GOOS {
+	case "darwin":
+		binaryPath = "/usr/local/bin/"
+	default:
+		binaryPath = "/usr/libexec/podman/"
+	}
+	binary := filepath.Join(binaryPath, machine.ForwarderBinaryName)
 	if _, err := os.Stat(binary); err != nil {
 		return err
 	}
