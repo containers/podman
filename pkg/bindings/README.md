@@ -57,6 +57,10 @@ to interact with containers.
 ### Examples
 The following examples build upon the connection example from above.  They are all rootful connections as well.
 
+Note: Optional arguments to the bindings methods are set using With*() methods on *Option structures.
+Composite types are not duplicated rather the address is used. As such, you should not change an underlying
+field between initializing the *Option structure and calling the bindings method.
+
 #### Inspect a container
 The following example obtains the inspect information for a container named `foorbar` and then prints
 the container's ID. Note the use of optional inspect options for size.
