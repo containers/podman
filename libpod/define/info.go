@@ -78,7 +78,9 @@ type IDMappings struct {
 // for libpod
 type DistributionInfo struct {
 	Distribution string `json:"distribution"`
+	Variant      string `json:"variant,omitempty"`
 	Version      string `json:"version"`
+	Codename     string `json:"codename,omitempty"`
 }
 
 // ConmonInfo describes the conmon executable being used
