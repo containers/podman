@@ -106,6 +106,12 @@ func NewCNINetworkInterface(conf InitConfig) (types.ContainerNetwork, error) {
 	return n, nil
 }
 
+// Drivers will return the list of supported network drivers
+// for this interface.
+func (n *cniNetwork) Drivers() []string {
+	return []string{types.BridgeNetworkDriver, types.MacVLANNetworkDriver}
+}
+
 func (n *cniNetwork) loadNetworks() error {
 	// skip loading networks if they are already loaded
 	if n.networks != nil {

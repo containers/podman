@@ -23,6 +23,10 @@ type ContainerNetwork interface {
 	Setup(namespacePath string, options SetupOptions) (map[string]StatusBlock, error)
 	// Teardown will teardown the container network namespace.
 	Teardown(namespacePath string, options TeardownOptions) error
+
+	// Drivers will return the list of supported network drivers
+	// for this interface.
+	Drivers() []string
 }
 
 // Network describes the Network attributes.
