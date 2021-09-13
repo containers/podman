@@ -15,3 +15,16 @@ func customConfigFile() (string, error) {
 func ifRootlessConfigPath() (string, error) {
 	return rootlessConfigPath()
 }
+
+var defaultHelperBinariesDir = []string{
+	// Homebrew install paths
+	"/usr/local/opt/podman/libexec",
+	"/opt/homebrew/bin",
+	"/opt/homebrew/opt/podman/libexec",
+	"/usr/local/bin",
+	// default paths
+	"/usr/local/libexec/podman",
+	"/usr/local/lib/podman",
+	"/usr/libexec/podman",
+	"/usr/lib/podman",
+}

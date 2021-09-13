@@ -84,10 +84,6 @@ var (
 		"/usr/lib/cni",
 		"/opt/cni/bin",
 	}
-
-	// DefaultRootlessNetwork is the kind of of rootless networking
-	// for containers
-	DefaultRootlessNetwork = "slirp4netns"
 )
 
 const (
@@ -197,7 +193,7 @@ func DefaultConfig() (*Config, error) {
 			NoHosts:            false,
 			PidsLimit:          DefaultPidsLimit,
 			PidNS:              "private",
-			RootlessNetworking: DefaultRootlessNetwork,
+			RootlessNetworking: getDefaultRootlessNetwork(),
 			ShmSize:            DefaultShmSize,
 			TZ:                 "",
 			Umask:              "0022",
@@ -251,6 +247,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.StaticDir = filepath.Join(storeOpts.GraphRoot, "libpod")
 	c.VolumePath = filepath.Join(storeOpts.GraphRoot, "volumes")
 
+	c.HelperBinariesDir = defaultHelperBinariesDir
 	c.HooksDir = DefaultHooksDirs
 	c.ImageDefaultTransport = _defaultTransport
 	c.StateType = BoltDBStateStore
