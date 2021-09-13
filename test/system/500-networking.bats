@@ -32,7 +32,6 @@ load helpers
 
     # Bind-mount this file with a different name to a container running httpd
     run_podman run -d --name myweb -p "$HOST_PORT:80" \
-            --restart always \
             -v $INDEX1:/var/www/index.txt:Z \
             -w /var/www \
             $IMAGE /bin/busybox-extras httpd -f -p 80
@@ -66,46 +65,6 @@ load helpers
 
     run_podman 125 port myweb 99/tcp
     is "$output" 'Error: failed to find published port "99/tcp"'
-
-    # Tests #10310: podman will restart slirp4netns on container restart
-    run_podman container inspect --format "{{.State.Pid}}" $cid
-    pid=$output
-
-    # Kill the process; podman restart policy will bring up a new container.
-    # -9 is crucial: busybox httpd ignores all other signals.
-    kill -9 $pid
-    # Wait for process to exit
-    retries=30
-    while kill -0 $pid; do
-        sleep 0.5
-        retries=$((retries - 1))
-        if [[ $retries -eq 0 ]]; then
-            die "Process $pid (container $cid) refused to die"
-        fi
-    done
-
-    # Wait for container to restart
-    retries=20
-    while :;do
-        run_podman container inspect --format "{{.State.Pid}}" myweb
-        # pid is 0 as long as the container is not running
-        if [[ $output -ne 0 ]]; then
-            if [[ $output == $pid ]]; then
-                die "This should never happen! Restarted container has same PID ($output) as killed one!"
-            fi
-            break
-        fi
-        sleep 0.5
-        retries=$((retries - 1))
-        if [[ $retries -eq 0 ]]; then
-            die "Timed out waiting for container to restart"
-        fi
-    done
-
-    # Verify http contents again: curl from localhost
-    # Use retry since it can take a moment until the new container is ready
-    run curl --retry 2 -s $SERVER/index.txt
-    is "$output" "$random_1" "curl 127.0.0.1:/index.txt after restart"
 
     # Clean up
     run_podman stop -t 1 myweb
@@ -474,6 +433,84 @@ load helpers
     run_podman stop -t 0 $cid $background_cid
     run_podman rm -f $cid $background_cid
     run_podman network rm -f $netname $netname2
+}
+
+@test "podman network after restart" {
+    random_1=$(random_string 30)
+
+    HOST_PORT=$(random_free_port)
+    SERVER=http://127.0.0.1:$HOST_PORT
+
+    # Create a test file with random content
+    INDEX1=$PODMAN_TMPDIR/hello.txt
+    echo $random_1 > $INDEX1
+
+    local netname=testnet-$(random_string 10)
+    run_podman network create $netname
+    is "$output" ".*/cni/net.d/$netname.conflist" "output of 'network create'"
+
+    for network in "slirp4netns" "$netname"; do
+        # Start container with the restart always policy
+        run_podman run -d --name myweb -p "$HOST_PORT:80" \
+                --restart always \
+                --network $network \
+                -v $INDEX1:/var/www/index.txt:Z \
+                -w /var/www \
+                $IMAGE /bin/busybox-extras httpd -f -p 80
+        cid=$output
+
+        # Tests #10310: podman will restart slirp4netns on container restart
+        run_podman container inspect --format "{{.State.Pid}}" $cid
+        pid=$output
+
+        # Kill the process; podman restart policy will bring up a new container.
+        # -9 is crucial: busybox httpd ignores all other signals.
+        kill -9 $pid
+        # Wait for process to exit
+        retries=30
+        while kill -0 $pid; do
+            sleep 0.5
+            retries=$((retries - 1))
+            if [[ $retries -eq 0 ]]; then
+                die "Process $pid (container $cid) refused to die"
+            fi
+        done
+
+        # Wait for container to restart
+        retries=20
+        while :;do
+            run_podman container inspect --format "{{.State.Pid}}" $cid
+            # pid is 0 as long as the container is not running
+            if [[ $output -ne 0 ]]; then
+                if [[ $output == $pid ]]; then
+                    die "This should never happen! Restarted container has same PID ($output) as killed one!"
+                fi
+                break
+            fi
+            sleep 0.5
+            retries=$((retries - 1))
+            if [[ $retries -eq 0 ]]; then
+                die "Timed out waiting for container to restart"
+            fi
+        done
+
+        # Verify http contents again: curl from localhost
+        # Use retry since it can take a moment until the new container is ready
+        run curl --retry 2 -s $SERVER/index.txt
+        is "$output" "$random_1" "curl 127.0.0.1:/index.txt after auto restart"
+
+        run_podman restart $cid
+        # Verify http contents again: curl from localhost
+        # Use retry since it can take a moment until the new container is ready
+        run curl --retry 2 -s $SERVER/index.txt
+        is "$output" "$random_1" "curl 127.0.0.1:/index.txt after podman restart"
+
+        run_podman stop -t 0 $cid
+        run_podman rm -f $cid
+    done
+
+    # Cleanup network
+    run_podman network rm $netname
 }
 
 # vim: filetype=sh

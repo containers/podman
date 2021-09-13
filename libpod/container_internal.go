@@ -293,6 +293,15 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 		}
 	}
 
+	// setup rootlesskit port forwarder again since it dies when conmon exits
+	// we use rootlesskit port forwarder only as rootless and when bridge network is used
+	if rootless.IsRootless() && c.config.NetMode.IsBridge() && len(c.config.PortMappings) > 0 {
+		err := c.runtime.setupRootlessPortMappingViaRLK(c, c.state.NetNS.Path())
+		if err != nil {
+			return false, err
+		}
+	}
+
 	if c.state.State == define.ContainerStateStopped {
 		// Reinitialize the container if we need to
 		if err := c.reinit(ctx, true); err != nil {
