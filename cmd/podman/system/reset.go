@@ -11,6 +11,7 @@ import (
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra"
 	"github.com/sirupsen/logrus"
@@ -87,13 +88,13 @@ WARNING! This will remove:
 	engine, err := infra.NewSystemEngine(entities.ResetMode, registry.PodmanConfig())
 	if err != nil {
 		logrus.Error(err)
-		os.Exit(125)
+		os.Exit(define.ExecErrorCodeGeneric)
 	}
 	defer engine.Shutdown(registry.Context())
 
 	if err := engine.Reset(registry.Context()); err != nil {
 		logrus.Error(err)
-		os.Exit(125)
+		os.Exit(define.ExecErrorCodeGeneric)
 	}
 	os.Exit(0)
 }

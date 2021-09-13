@@ -9,6 +9,7 @@ import (
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/infra"
 	"github.com/spf13/cobra"
@@ -47,14 +48,14 @@ func renumber(cmd *cobra.Command, args []string) {
 	engine, err := infra.NewSystemEngine(entities.RenumberMode, registry.PodmanConfig())
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(125)
+		os.Exit(define.ExecErrorCodeGeneric)
 	}
 	defer engine.Shutdown(registry.Context())
 
 	err = engine.Renumber(registry.Context(), cmd.Flags(), registry.PodmanConfig())
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(125)
+		os.Exit(define.ExecErrorCodeGeneric)
 	}
 	os.Exit(0)
 }
