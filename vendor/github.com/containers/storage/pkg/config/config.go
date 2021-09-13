@@ -93,6 +93,8 @@ type OverlayOptionsConfig struct {
 	MountProgram string `toml:"mount_program"`
 	// Size
 	Size string `toml:"size"`
+	// Inodes is used to set a maximum inodes of the container image.
+	Inodes string `toml:"inodes"`
 	// Do not create a bind mount on the storage home
 	SkipMountHome string `toml:"skip_mount_home"`
 	// ForceMask indicates the permissions mask (e.g. "0755") to use for new
@@ -295,6 +297,9 @@ func GetGraphDriverOptions(driverName string, options OptionsConfig) []string {
 			doptions = append(doptions, fmt.Sprintf("%s.size=%s", driverName, options.Overlay.Size))
 		} else if options.Size != "" {
 			doptions = append(doptions, fmt.Sprintf("%s.size=%s", driverName, options.Size))
+		}
+		if options.Overlay.Inodes != "" {
+			doptions = append(doptions, fmt.Sprintf("%s.inodes=%s", driverName, options.Overlay.Inodes))
 		}
 		if options.Overlay.SkipMountHome != "" {
 			doptions = append(doptions, fmt.Sprintf("%s.skip_mount_home=%s", driverName, options.Overlay.SkipMountHome))

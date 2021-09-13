@@ -3054,10 +3054,15 @@ func (s *store) Layers() ([]Layer, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := lstore.LoadLocked(); err != nil {
-		return nil, err
-	}
-	layers, err := lstore.Layers()
+
+	layers, err := func() ([]Layer, error) {
+		lstore.Lock()
+		defer lstore.Unlock()
+		if err := lstore.Load(); err != nil {
+			return nil, err
+		}
+		return lstore.Layers()
+	}()
 	if err != nil {
 		return nil, err
 	}
