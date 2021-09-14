@@ -1330,28 +1330,23 @@ USER mail`, BB)
 			Skip("Test only works on crun")
 		}
 
+		trim := func(i string) string {
+			return strings.TrimSuffix(i, "\n")
+		}
+
 		curCgroupsBytes, err := ioutil.ReadFile("/proc/self/cgroup")
 		Expect(err).ShouldNot(HaveOccurred())
-		var curCgroups = string(curCgroupsBytes)
+		curCgroups := trim(string(curCgroupsBytes))
 		fmt.Printf("Output:\n%s\n", curCgroups)
 		Expect(curCgroups).ToNot(Equal(""))
 
-		ctrName := "testctr"
-		container := podmanTest.Podman([]string{"run", "--name", ctrName, "-d", "--cgroups=disabled", ALPINE, "top"})
+		container := podmanTest.Podman([]string{"run", "--cgroupns=host", "--cgroups=disabled", ALPINE, "cat", "/proc/self/cgroup"})
 		container.WaitWithDefaultTimeout()
 		Expect(container).Should(Exit(0))
 
-		// Get PID and get cgroups of that PID
-		inspectOut := podmanTest.InspectContainer(ctrName)
-		Expect(len(inspectOut)).To(Equal(1))
-		pid := inspectOut[0].State.Pid
-		Expect(pid).ToNot(Equal(0))
-		Expect(inspectOut[0].HostConfig.CgroupParent).To(Equal(""))
-
-		ctrCgroupsBytes, err := ioutil.ReadFile(fmt.Sprintf("/proc/%d/cgroup", pid))
-		Expect(err).ShouldNot(HaveOccurred())
-		var ctrCgroups = string(ctrCgroupsBytes)
+		ctrCgroups := trim(container.OutputToString())
 		fmt.Printf("Output\n:%s\n", ctrCgroups)
+
 		Expect(ctrCgroups).To(Equal(curCgroups))
 	})
 
