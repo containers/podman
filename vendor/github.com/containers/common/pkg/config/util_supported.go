@@ -48,7 +48,7 @@ func getRuntimeDir() (string, error) {
 			}
 		}
 		if runtimeDir == "" {
-			tmpDir := filepath.Join(os.TempDir(), fmt.Sprintf("run-%s", uid))
+			tmpDir := filepath.Join(os.TempDir(), fmt.Sprintf("podman-run-%s", uid))
 			if err := os.MkdirAll(tmpDir, 0700); err != nil {
 				logrus.Debugf("unable to make temp dir %v", err)
 			}
