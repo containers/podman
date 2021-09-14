@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/podman/v3/pkg/cgroups"
 	. "github.com/containers/podman/v3/test/utils"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/mrunalp/fileutils"
@@ -1323,11 +1324,17 @@ USER mail`, BB)
 	})
 
 	It("podman run with cgroups=disabled runs without cgroups", func() {
-		SkipIfRootless("FIXME:  I believe this should work but need to fix this test")
 		SkipIfRootlessCgroupsV1("Disable cgroups not supported on cgroupv1 for rootless users")
 		// Only works on crun
 		if !strings.Contains(podmanTest.OCIRuntime, "crun") {
 			Skip("Test only works on crun")
+		}
+
+		ownsCgroup, err := cgroups.UserOwnsCurrentSystemdCgroup()
+		Expect(err).ShouldNot(HaveOccurred())
+		if !ownsCgroup {
+			// Podman moves itself to a new cgroup if it doesn't own the current cgroup
+			Skip("Test only works when Podman owns the current cgroup")
 		}
 
 		trim := func(i string) string {
