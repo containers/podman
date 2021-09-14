@@ -624,11 +624,9 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 				if err != nil {
 					break
 				}
-				if !logLine.Partial() {
-					_, err = httpBuf.Write([]byte("\n"))
-					if err != nil {
-						break
-					}
+				_, err = httpBuf.Write([]byte("\n"))
+				if err != nil {
+					break
 				}
 				err = httpBuf.Flush()
 				if err != nil {

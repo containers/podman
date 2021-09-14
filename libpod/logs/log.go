@@ -251,19 +251,11 @@ func (l *LogLine) Write(stdout io.Writer, stderr io.Writer, logOpts *LogOptions)
 	switch l.Device {
 	case "stdout":
 		if stdout != nil {
-			if l.Partial() {
-				fmt.Fprint(stdout, l.String(logOpts))
-			} else {
-				fmt.Fprintln(stdout, l.String(logOpts))
-			}
+			fmt.Fprintln(stdout, l.String(logOpts))
 		}
 	case "stderr":
 		if stderr != nil {
-			if l.Partial() {
-				fmt.Fprint(stderr, l.String(logOpts))
-			} else {
-				fmt.Fprintln(stderr, l.String(logOpts))
-			}
+			fmt.Fprintln(stderr, l.String(logOpts))
 		}
 	default:
 		// Warn the user if the device type does not match. Most likely the file is corrupted.
