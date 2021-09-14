@@ -1296,31 +1296,42 @@ USER mail`, BB)
 		SkipIfRootlessCgroupsV1("Disable cgroups not supported on cgroupv1 for rootless users")
 		SkipIfRemote("--cgroups=split cannot be used in remote mode")
 
+		checkLines := func(lines []string) {
+			cgroup := ""
+			for _, line := range lines {
+				parts := strings.SplitN(line, ":", 3)
+				if len(parts) < 2 {
+					continue
+				}
+				if !CGROUPSV2 {
+					// ignore unified on cgroup v1.
+					// both runc and crun do not set it.
+					// crun does not set named hierarchies.
+					if parts[1] == "" || strings.Contains(parts[1], "name=") {
+						continue
+					}
+				}
+				if parts[2] == "/" {
+					continue
+				}
+				if cgroup == "" {
+					cgroup = parts[2]
+					continue
+				}
+				Expect(cgroup).To(Equal(parts[2]))
+			}
+		}
+
 		container := podmanTest.Podman([]string{"run", "--rm", "--cgroups=split", ALPINE, "cat", "/proc/self/cgroup"})
 		container.WaitWithDefaultTimeout()
 		Expect(container).Should(Exit(0))
-		lines := container.OutputToStringArray()
+		checkLines(container.OutputToStringArray())
 
-		cgroup := ""
-		for _, line := range lines {
-			parts := strings.SplitN(line, ":", 3)
-			if !CGROUPSV2 {
-				// ignore unified on cgroup v1.
-				// both runc and crun do not set it.
-				// crun does not set named hierarchies.
-				if parts[1] == "" || strings.Contains(parts[1], "name=") {
-					continue
-				}
-			}
-			if parts[2] == "/" {
-				continue
-			}
-			if cgroup == "" {
-				cgroup = parts[2]
-				continue
-			}
-			Expect(cgroup).To(Equal(parts[2]))
-		}
+		// check that --cgroups=split is honored also when a container runs in a pod
+		container = podmanTest.Podman([]string{"run", "--rm", "--pod", "new:split-test-pod", "--cgroups=split", ALPINE, "cat", "/proc/self/cgroup"})
+		container.WaitWithDefaultTimeout()
+		Expect(container).Should(Exit(0))
+		checkLines(container.OutputToStringArray())
 	})
 
 	It("podman run with cgroups=disabled runs without cgroups", func() {
