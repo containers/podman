@@ -22,6 +22,10 @@ podman run $IMAGE true
 
 t GET libpod/containers/json 200 length=0
 
+# bad all input
+t GET libpod/containers/json?all='garb1age' 500 \
+    .cause="schema: error converting value for \"all\""
+
 t GET libpod/containers/json?all=true 200 \
   length=1 \
   .[0].Id~[0-9a-f]\\{64\\} \
