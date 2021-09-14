@@ -483,7 +483,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		runtimeFlags = append(runtimeFlags, "--systemd-cgroup")
 	}
 
-	imageOS, arch, err := parse.PlatformFromOptions(c)
+	platforms, err := parse.PlatformsFromOptions(c)
 	if err != nil {
 		return nil, err
 	}
@@ -497,7 +497,6 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		AddCapabilities:         flags.CapAdd,
 		AdditionalTags:          tags,
 		Annotations:             flags.Annotation,
-		Architecture:            arch,
 		Args:                    args,
 		BlobDirectory:           flags.BlobCache,
 		CNIConfigDir:            flags.CNIConfigDir,
@@ -523,11 +522,11 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		MaxPullPushRetries:      3,
 		NamespaceOptions:        nsValues,
 		NoCache:                 flags.NoCache,
-		OS:                      imageOS,
 		OciDecryptConfig:        decConfig,
 		Out:                     stdout,
 		Output:                  output,
 		OutputFormat:            format,
+		Platforms:               platforms,
 		PullPolicy:              pullPolicy,
 		PullPushRetryDelay:      2 * time.Second,
 		Quiet:                   flags.Quiet,
