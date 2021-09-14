@@ -10,7 +10,7 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-// CommonBuildOptions are resources that can be defined by flags for both buildah from and build-using-dockerfile
+// CommonBuildOptions are resources that can be defined by flags for both buildah from and build
 type CommonBuildOptions struct {
 	// AddHost is the list of hostnames to add to the build container's /etc/hosts.
 	AddHost []string

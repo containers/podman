@@ -25,7 +25,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 const (
@@ -716,7 +716,7 @@ func AuthConfig(creds string) (*types.DockerAuthConfig, error) {
 	}
 	if password == "" {
 		fmt.Print("Password: ")
-		termPassword, err := terminal.ReadPassword(0)
+		termPassword, err := term.ReadPassword(0)
 		if err != nil {
 			return nil, errors.Wrapf(err, "could not read password from terminal")
 		}

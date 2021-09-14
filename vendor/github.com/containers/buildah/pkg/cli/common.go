@@ -46,7 +46,7 @@ type NameSpaceResults struct {
 	UTS           string
 }
 
-// BudResults represents the results for Bud flags
+// BudResults represents the results for Build flags
 type BudResults struct {
 	Annotation          []string
 	Authfile            string
@@ -89,7 +89,7 @@ type BudResults struct {
 }
 
 // FromAndBugResults represents the results for common flags
-// in bud and from
+// in build and from
 type FromAndBudResults struct {
 	AddHost        []string
 	BlobCache      string
@@ -172,7 +172,7 @@ func GetLayerFlags(flags *LayerResults) pflag.FlagSet {
 
 // Note: GetLayerFlagsCompletion is not needed since GetLayerFlags only contains bool flags
 
-// GetBudFlags returns common bud flags
+// GetBudFlags returns common build flags
 func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs := pflag.FlagSet{}
 	fs.String("arch", runtime.GOARCH, "set the ARCH of the image to the provided value instead of the architecture of the host")
@@ -213,7 +213,7 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.BoolVar(&flags.PullNever, "pull-never", false, "do not pull the image, use the image present in store if available")
 	fs.BoolVarP(&flags.Quiet, "quiet", "q", false, "refrain from announcing build instructions and image read/write progress")
 	fs.BoolVar(&flags.Rm, "rm", true, "Remove intermediate containers after a successful build")
-	// "runtime" definition moved to avoid name collision in podman build.  Defined in cmd/buildah/bud.go.
+	// "runtime" definition moved to avoid name collision in podman build.  Defined in cmd/buildah/build.go.
 	fs.StringSliceVar(&flags.RuntimeFlags, "runtime-flag", []string{}, "add global flags for the container runtime")
 	fs.StringArrayVar(&flags.Secrets, "secret", []string{}, "secret file to expose to the build")
 	fs.StringVar(&flags.SignBy, "sign-by", "", "sign the image using a GPG key with the specified `FINGERPRINT`")
@@ -232,7 +232,7 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	return fs
 }
 
-// GetBudFlagsCompletions returns the FlagCompletions for the common bud flags
+// GetBudFlagsCompletions returns the FlagCompletions for the common build flags
 func GetBudFlagsCompletions() commonComp.FlagCompletions {
 	flagCompletion := commonComp.FlagCompletions{}
 	flagCompletion["arch"] = commonComp.AutocompleteNone
@@ -264,7 +264,7 @@ func GetBudFlagsCompletions() commonComp.FlagCompletions {
 	return flagCompletion
 }
 
-// GetFromAndBudFlags returns from and bud flags
+// GetFromAndBudFlags returns from and build flags
 func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, namespaceResults *NameSpaceResults) (pflag.FlagSet, error) {
 	fs := pflag.FlagSet{}
 	defaultContainerConfig, err := config.Default()
@@ -312,7 +312,7 @@ func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, 
 	return fs, nil
 }
 
-// GetFromAndBudFlagsCompletions returns the FlagCompletions for the from and bud flags
+// GetFromAndBudFlagsCompletions returns the FlagCompletions for the from and build flags
 func GetFromAndBudFlagsCompletions() commonComp.FlagCompletions {
 	flagCompletion := commonComp.FlagCompletions{}
 	flagCompletion["arch"] = commonComp.AutocompleteNone
