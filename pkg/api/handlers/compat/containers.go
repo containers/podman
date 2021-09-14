@@ -104,8 +104,12 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	filterMap, err := util.PrepareFilters(r)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to decode filter parameters for %s", r.URL.String()))
+		return
+	}
 
-	if dErr := decoder.Decode(&query, r.URL.Query()); dErr != nil || err != nil {
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
