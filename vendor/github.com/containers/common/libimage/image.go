@@ -74,7 +74,10 @@ func (i *Image) isCorrupted(name string) error {
 	}
 
 	if _, err := ref.NewImage(context.Background(), nil); err != nil {
-		return errors.Errorf("Image %s exists in local storage but may be corrupted: %v", name, err)
+		if name == "" {
+			name = i.ID()[:12]
+		}
+		return errors.Errorf("Image %s exists in local storage but may be corrupted (remove the image to resolve the issue): %v", name, err)
 	}
 	return nil
 }
