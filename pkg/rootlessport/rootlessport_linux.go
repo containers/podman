@@ -218,6 +218,9 @@ outer:
 
 	// we only need to have a socket to reload ports when we run under rootless cni
 	if cfg.RootlessCNI {
+		socketfile := filepath.Join(socketDir, cfg.ContainerID)
+		// make sure to remove the file if it exists to prevent EADDRINUSE
+		_ = os.Remove(socketfile)
 		// workaround to bypass the 108 char socket path limit
 		// open the fd and use the path to the fd as bind argument
 		fd, err := unix.Open(socketDir, unix.O_PATH, 0)
@@ -229,6 +232,8 @@ outer:
 			return err
 		}
 		err = unix.Close(fd)
+		// remove the socket file on exit
+		defer os.Remove(socketfile)
 		if err != nil {
 			logrus.Warnf("failed to close the socketDir fd: %v", err)
 		}
