@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/podman/v3/pkg/cgroups"
 	. "github.com/containers/podman/v3/test/utils"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/mrunalp/fileutils"
@@ -1323,35 +1324,36 @@ USER mail`, BB)
 	})
 
 	It("podman run with cgroups=disabled runs without cgroups", func() {
-		SkipIfRootless("FIXME:  I believe this should work but need to fix this test")
 		SkipIfRootlessCgroupsV1("Disable cgroups not supported on cgroupv1 for rootless users")
 		// Only works on crun
 		if !strings.Contains(podmanTest.OCIRuntime, "crun") {
 			Skip("Test only works on crun")
 		}
 
+		ownsCgroup, err := cgroups.UserOwnsCurrentSystemdCgroup()
+		Expect(err).ShouldNot(HaveOccurred())
+		if !ownsCgroup {
+			// Podman moves itself to a new cgroup if it doesn't own the current cgroup
+			Skip("Test only works when Podman owns the current cgroup")
+		}
+
+		trim := func(i string) string {
+			return strings.TrimSuffix(i, "\n")
+		}
+
 		curCgroupsBytes, err := ioutil.ReadFile("/proc/self/cgroup")
 		Expect(err).ShouldNot(HaveOccurred())
-		var curCgroups = string(curCgroupsBytes)
+		curCgroups := trim(string(curCgroupsBytes))
 		fmt.Printf("Output:\n%s\n", curCgroups)
 		Expect(curCgroups).ToNot(Equal(""))
 
-		ctrName := "testctr"
-		container := podmanTest.Podman([]string{"run", "--name", ctrName, "-d", "--cgroups=disabled", ALPINE, "top"})
+		container := podmanTest.Podman([]string{"run", "--cgroupns=host", "--cgroups=disabled", ALPINE, "cat", "/proc/self/cgroup"})
 		container.WaitWithDefaultTimeout()
 		Expect(container).Should(Exit(0))
 
-		// Get PID and get cgroups of that PID
-		inspectOut := podmanTest.InspectContainer(ctrName)
-		Expect(len(inspectOut)).To(Equal(1))
-		pid := inspectOut[0].State.Pid
-		Expect(pid).ToNot(Equal(0))
-		Expect(inspectOut[0].HostConfig.CgroupParent).To(Equal(""))
-
-		ctrCgroupsBytes, err := ioutil.ReadFile(fmt.Sprintf("/proc/%d/cgroup", pid))
-		Expect(err).ShouldNot(HaveOccurred())
-		var ctrCgroups = string(ctrCgroupsBytes)
+		ctrCgroups := trim(container.OutputToString())
 		fmt.Printf("Output\n:%s\n", ctrCgroups)
+
 		Expect(ctrCgroups).To(Equal(curCgroups))
 	})
 
