@@ -397,7 +397,7 @@ func OpenBuilder(store storage.Store, container string) (*Builder, error) {
 		return nil, errors.Errorf("container %q is not a %s container (is a %q container)", container, define.Package, b.Type)
 	}
 	b.store = store
-	b.fixupConfig()
+	b.fixupConfig(nil)
 	b.setupLogger()
 	return b, nil
 }
@@ -433,7 +433,7 @@ func OpenBuilderByPath(store storage.Store, path string) (*Builder, error) {
 		err = json.Unmarshal(buildstate, &b)
 		if err == nil && b.Type == containerType && builderMatchesPath(b, abs) {
 			b.store = store
-			b.fixupConfig()
+			b.fixupConfig(nil)
 			b.setupLogger()
 			return b, nil
 		}
@@ -471,7 +471,7 @@ func OpenAllBuilders(store storage.Store) (builders []*Builder, err error) {
 		if err == nil && b.Type == containerType {
 			b.store = store
 			b.setupLogger()
-			b.fixupConfig()
+			b.fixupConfig(nil)
 			builders = append(builders, b)
 			continue
 		}

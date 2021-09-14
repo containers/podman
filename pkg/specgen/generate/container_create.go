@@ -90,7 +90,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	var newImage *libimage.Image
 	var imageData *libimage.ImageData
 	if s.Rootfs != "" {
-		options = append(options, libpod.WithRootFS(s.Rootfs))
+		options = append(options, libpod.WithRootFS(s.Rootfs, s.RootfsOverlay))
 	} else {
 		var resolvedImageName string
 		newImage, resolvedImageName, err = rt.LibimageRuntime().LookupImage(s.Image, nil)
@@ -394,7 +394,7 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 		options = append(options, libpod.WithShmSize(*s.ShmSize))
 	}
 	if s.Rootfs != "" {
-		options = append(options, libpod.WithRootFS(s.Rootfs))
+		options = append(options, libpod.WithRootFS(s.Rootfs, s.RootfsOverlay))
 	}
 	// Default used if not overridden on command line
 

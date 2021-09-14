@@ -2,6 +2,7 @@ package specgen
 
 import (
 	"net"
+	"strings"
 	"syscall"
 
 	"github.com/containers/image/v5/manifest"
@@ -209,6 +210,8 @@ type ContainerStorageConfig struct {
 	// Conflicts with Image.
 	// At least one of Image or Rootfs must be specified.
 	Rootfs string `json:"rootfs,omitempty"`
+	// RootfsOverlay tells if rootfs is actuall an overlay on top of base path
+	RootfsOverlay bool `json:"rootfs_overlay,omitempty"`
 	// ImageVolumeMode indicates how image volumes will be created.
 	// Supported modes are "ignore" (do not create), "tmpfs" (create as
 	// tmpfs), and "anonymous" (create as anonymous volumes).
@@ -528,6 +531,12 @@ func NewSpecGenerator(arg string, rootfs bool) *SpecGenerator {
 	csc := ContainerStorageConfig{}
 	if rootfs {
 		csc.Rootfs = arg
+		// check if rootfs is actually overlayed
+		parts := strings.SplitN(csc.Rootfs, ":", 2)
+		if len(parts) > 1 && parts[1] == "O" {
+			csc.RootfsOverlay = true
+			csc.Rootfs = parts[0]
+		}
 	} else {
 		csc.Image = arg
 	}
