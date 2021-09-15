@@ -327,6 +327,7 @@ function start_service() {
         die "Cannot start service on non-localhost ($HOST)"
     fi
 
+    echo $WORKDIR
     $PODMAN_BIN --root $WORKDIR/server_root --syslog=true \
                 system service \
                 --time 15 \
