@@ -17,7 +17,7 @@
 - The `podman inspect` command now has a new boolean value, `Checkpointed`, which indicates that a container was stopped as a result of a `podman container checkpoint` operation.
 - Volumes created by `podman volume create` now support setting quotas when run atop XFS. The `size` and `inode` options allow the maximum size and maximum number of inodes consumed by a volume to be limited.
 - The `podman info` command now outputs information on what log drivers, network drivers, and volume plugins are available for use ([#11265](https://github.com/containers/podman/issues/11265)).
-- The `podman info` command now outputs the current log driver in use.
+- The `podman info` command now outputs the current log driver in use, and the variant and codename of the distribution in use.
 
 ### Changes
 - The `podman build` command has a new alias, `podman buildx`, to improve compatibility with Docker. We have already added support for many `docker buildx` flags to `podman build` and aim to continue to do so.
@@ -58,14 +58,18 @@
 - Fixed a bug where the remote Podman client's `podman run` and `podman exec` commands could skip a byte of output every 8192 bytes ([#11496](https://github.com/containers/podman/issues/11496)).
 - Fixed a bug where the `podman stats` command would print nonsensical results if the container restarted while it was running ([#11469](https://github.com/containers/podman/issues/11469)).
 - Fixed a bug where the remote Podman client would error when STDOUT was redirected on a Windows client ([#11444](https://github.com/containers/podman/issues/11444)).
+- Fixed a bug where the `podman run` command could return 0 when the application in the container exited with 125 ([#11540](https://github.com/containers/podman/issues/11540)).
+- Fixed a bug where containers with `--restart=always` set using the rootlessport port-forwarding service could not be restarted automatically.
 
 ### API
 - The Libpod Pull endpoint for Images now has a new query parameter, `quiet`, which (when set to true) suppresses image pull progress reports ([#10612](https://github.com/containers/podman/issues/10612)).
+- The Compat Events endpoint now includes several deprecated fields from the Docker v1.21 API for improved compatibility with older clients.
 - The Compat Create endpoint for Containers now properly sets defaults for healthcheck-related fields ([#11225](https://github.com/containers/podman/issues/11225)).
 - The Compat Create endpoint for Containers now supports volume options provided by the `Mounts` field ([#10831](https://github.com/containers/podman/issues/10831)).
 - The Compat List endpoint for Secrets now supports a new query parameter, `filter`, which allows returned results to be filtered.
 - The Version endpoint now includes information about the OCI runtime and Conmon in use ([#11227](https://github.com/containers/podman/issues/11227)).
 - Fixed a bug where the X-Registry-Config header was not properly handled, leading to errors when pulling images ([#11235](https://github.com/containers/podman/issues/11235)).
+- Fixed a bug where invalid query parameters could cause a null pointer dereference when creating error messages.
 - Logging of API requests and responses at trace level has been greatly improved, including the addition of an X-Reference-Id header to correlate requests and responses ([#10053](https://github.com/containers/podman/issues/10053)).
 
 ## 3.3.1
