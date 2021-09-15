@@ -15,7 +15,7 @@ with the host network's DHCP server.
 
 If no options are provided, Podman will assign a free subnet and name for your network.
 
-Upon completion of creating the network, Podman will display the path to the newly added network file.
+Upon completion of creating the network, Podman will display the name of the newly added network.
 
 ## OPTIONS
 #### **--disable-dns**
@@ -61,49 +61,50 @@ The subnet in CIDR notation.
 
 #### **--ipv6**
 
-Enable IPv6 (Dual Stack) networking. You must pass a IPv6 subnet. The *subnet* option must be used with the *ipv6* option.
+Enable IPv6 (Dual Stack) networking.
 
 ## EXAMPLE
 
-Create a network with no options
+Create a network with no options.
 ```
-# podman network create
-/etc/cni/net.d/cni-podman-4.conflist
+$ podman network create
+cni-podman2
 ```
 
 Create a network named *newnet* that uses *192.5.0.0/16* for its subnet.
 ```
-# podman network create --subnet 192.5.0.0/16 newnet
-/etc/cni/net.d/newnet.conflist
+$ podman network create --subnet 192.5.0.0/16 newnet
+newnet
 ```
 
-Create an IPv6 network named *newnetv6*, you must specify the subnet for this network, otherwise the command will fail.
-For this example, we use *2001:db8::/64* for its subnet.
+Create an IPv6 network named *newnetv6* with a subnet of *2001:db8::/64*.
 ```
-# podman network create --subnet 2001:db8::/64 --ipv6 newnetv6
-/etc/cni/net.d/newnetv6.conflist
+$ podman network create --subnet 2001:db8::/64 --ipv6 newnetv6
+newnetv6
 ```
 
-Create a network named *newnet* that uses *192.168.33.0/24* and defines a gateway as *192.168.133.3*
+Create a network named *newnet* that uses *192.168.33.0/24* and defines a gateway as *192.168.133.3*.
 ```
-# podman network create --subnet 192.168.33.0/24 --gateway 192.168.33.3 newnet
-/etc/cni/net.d/newnet.conflist
+$ podman network create --subnet 192.168.33.0/24 --gateway 192.168.33.3 newnet
+newnet
 ```
 
 Create a network that uses a *192.168.55.0/24** subnet and has an IP address range of *192.168.55.129 - 192.168.55.254*.
 ```
-# podman network create --subnet 192.168.55.0/24 --ip-range 192.168.55.128/25
-/etc/cni/net.d/cni-podman-5.conflist
+$ podman network create --subnet 192.168.55.0/24 --ip-range 192.168.55.128/25
+cni-podman5
 ```
 
-Create a Macvlan based network using the host interface eth0
+Create a Macvlan based network using the host interface eth0. Macvlan networks can only be used as root.
 ```
 # podman network create -d macvlan -o parent=eth0 newnet
-/etc/cni/net.d/newnet.conflist
+newnet
 ```
 
 ## SEE ALSO
-podman(1), podman-network(1), podman-network-inspect(1)
+**[podman(1)](podman.1.md)**, **[podman-network(1)](podman-network.1.md)**, **[podman-network-inspect(1)](podman-network-inspect.1.md)**, **[podman-network-ls(1)](podman-network-ls.1.md)**
 
 ## HISTORY
+August 2021, Updated with the new network format by Paul Holzinger <pholzing@redhat.com>
+
 August 2019, Originally compiled by Brent Baude <bbaude@redhat.com>

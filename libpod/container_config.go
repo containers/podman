@@ -6,9 +6,9 @@ import (
 
 	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/namespaces"
 	"github.com/containers/storage"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -230,7 +230,7 @@ type ContainerNetworkConfig struct {
 	// PortMappings are the ports forwarded to the container's network
 	// namespace
 	// These are not used unless CreateNetNS is true
-	PortMappings []ocicni.PortMapping `json:"portMappings,omitempty"`
+	PortMappings []types.OCICNIPortMapping `json:"portMappings,omitempty"`
 	// ExposedPorts are the ports which are exposed but not forwarded
 	// into the container.
 	// The map key is the port and the string slice contains the protocols,

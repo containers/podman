@@ -23,8 +23,8 @@ import (
 	"path/filepath"
 
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 	rkport "github.com/rootless-containers/rootlesskit/pkg/port"
 	rkbuiltin "github.com/rootless-containers/rootlesskit/pkg/port/builtin"
@@ -44,7 +44,7 @@ const (
 // Config needs to be provided to the process via stdin as a JSON string.
 // stdin needs to be closed after the message has been written.
 type Config struct {
-	Mappings    []ocicni.PortMapping
+	Mappings    []types.OCICNIPortMapping
 	NetNSPath   string
 	ExitFD      int
 	ReadyFD     int
@@ -313,7 +313,7 @@ func handler(ctx context.Context, conn io.Reader, pm rkport.Manager) error {
 	return nil
 }
 
-func exposePorts(pm rkport.Manager, portMappings []ocicni.PortMapping, childIP string) error {
+func exposePorts(pm rkport.Manager, portMappings []types.OCICNIPortMapping, childIP string) error {
 	ctx := context.TODO()
 	for _, i := range portMappings {
 		hostIP := i.HostIP

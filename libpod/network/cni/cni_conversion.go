@@ -185,6 +185,9 @@ func convertIPAMConfToNetwork(network *types.Network, ipam ipamConfig, confPath 
 				s.LeaseRange.StartIP = rangeStart
 				s.LeaseRange.EndIP = rangeEnd
 			}
+			if util.IsIPv6(s.Subnet.IP) {
+				network.IPv6Enabled = true
+			}
 			network.Subnets = append(network.Subnets, s)
 		}
 	}

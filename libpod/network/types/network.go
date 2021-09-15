@@ -23,6 +23,10 @@ type ContainerNetwork interface {
 	Setup(namespacePath string, options SetupOptions) (map[string]StatusBlock, error)
 	// Teardown will teardown the container network namespace.
 	Teardown(namespacePath string, options TeardownOptions) error
+
+	// Drivers will return the list of supported network drivers
+	// for this interface.
+	Drivers() []string
 }
 
 // Network describes the Network attributes.
@@ -36,8 +40,7 @@ type Network struct {
 	// InterfaceName is the network interface name on the host.
 	NetworkInterface string `json:"network_interface,omitempty"`
 	// Created contains the timestamp when this network was created.
-	// This is not guaranteed to stay exactly the same.
-	Created time.Time
+	Created time.Time `json:"created,omitempty"`
 	// Subnets to use.
 	Subnets []Subnet `json:"subnets,omitempty"`
 	// IPv6Enabled if set to true an ipv6 subnet should be created for this net.
@@ -92,9 +95,11 @@ func (n *IPNet) UnmarshalText(text []byte) error {
 }
 
 type Subnet struct {
-	// Subnet for this Network.
+	// Subnet for this Network in CIDR form.
+	// swagger:strfmt string
 	Subnet IPNet `json:"subnet,omitempty"`
 	// Gateway IP for this Network.
+	// swagger:strfmt string
 	Gateway net.IP `json:"gateway,omitempty"`
 	// LeaseRange contains the range where IP are leased. Optional.
 	LeaseRange *LeaseRange `json:"lease_range,omitempty"`
@@ -103,8 +108,10 @@ type Subnet struct {
 // LeaseRange contains the range where IP are leased.
 type LeaseRange struct {
 	// StartIP first IP in the subnet which should be used to assign ips.
+	// swagger:strfmt string
 	StartIP net.IP `json:"start_ip,omitempty"`
 	// EndIP last IP in the subnet which should be used to assign ips.
+	// swagger:strfmt string
 	EndIP net.IP `json:"end_ip,omitempty"`
 }
 
@@ -194,6 +201,20 @@ type PortMapping struct {
 	// separated by commas.
 	// If unset, assumed to be TCP.
 	Protocol string `json:"protocol,omitempty"`
+}
+
+// OCICNIPortMapping maps to the standard CNI portmapping Capability.
+// Deprecated, do not use this struct for new fields. This only exists
+// for backwards compatibility.
+type OCICNIPortMapping struct {
+	// HostPort is the port number on the host.
+	HostPort int32 `json:"hostPort"`
+	// ContainerPort is the port number inside the sandbox.
+	ContainerPort int32 `json:"containerPort"`
+	// Protocol is the protocol of the port mapping.
+	Protocol string `json:"protocol"`
+	// HostIP is the host ip to use.
+	HostIP string `json:"hostIP"`
 }
 
 type SetupOptions struct {

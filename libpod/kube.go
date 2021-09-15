@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/lookup"
 	"github.com/containers/podman/v3/pkg/namespaces"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
@@ -544,7 +544,7 @@ func containerToV1Container(c *Container) (v1.Container, []v1.Volume, *v1.PodDNS
 
 // ocicniPortMappingToContainerPort takes an ocicni portmapping and converts
 // it to a v1.ContainerPort format for kube output
-func ocicniPortMappingToContainerPort(portMappings []ocicni.PortMapping) ([]v1.ContainerPort, error) {
+func ocicniPortMappingToContainerPort(portMappings []types.OCICNIPortMapping) ([]v1.ContainerPort, error) {
 	containerPorts := make([]v1.ContainerPort, 0, len(portMappings))
 	for _, p := range portMappings {
 		var protocol v1.Protocol

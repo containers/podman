@@ -24,7 +24,7 @@ func (n *cniNetwork) NetworkCreate(net types.Network) (types.Network, error) {
 	if err != nil {
 		return types.Network{}, err
 	}
-	network, err := n.networkCreate(net, true)
+	network, err := n.networkCreate(net, false)
 	if err != nil {
 		return types.Network{}, err
 	}
@@ -33,89 +33,106 @@ func (n *cniNetwork) NetworkCreate(net types.Network) (types.Network, error) {
 	return *network.libpodNet, nil
 }
 
-func (n *cniNetwork) networkCreate(net types.Network, writeToDisk bool) (*network, error) {
+// networkCreate will fill out the given network struct and return the new network entry.
+// If defaultNet is true it will not validate against used subnets and it will not write the cni config to disk.
+func (n *cniNetwork) networkCreate(newNetwork types.Network, defaultNet bool) (*network, error) {
 	// if no driver is set use the default one
-	if net.Driver == "" {
-		net.Driver = types.DefaultNetworkDriver
+	if newNetwork.Driver == "" {
+		newNetwork.Driver = types.DefaultNetworkDriver
 	}
 
 	// FIXME: Should we use a different type for network create without the ID field?
 	// the caller is not allowed to set a specific ID
-	if net.ID != "" {
+	if newNetwork.ID != "" {
 		return nil, errors.Wrap(define.ErrInvalidArg, "ID can not be set for network create")
 	}
 
-	if net.Labels == nil {
-		net.Labels = map[string]string{}
+	if newNetwork.Labels == nil {
+		newNetwork.Labels = map[string]string{}
 	}
-	if net.Options == nil {
-		net.Options = map[string]string{}
+	if newNetwork.Options == nil {
+		newNetwork.Options = map[string]string{}
 	}
-	if net.IPAMOptions == nil {
-		net.IPAMOptions = map[string]string{}
+	if newNetwork.IPAMOptions == nil {
+		newNetwork.IPAMOptions = map[string]string{}
 	}
 
 	var name string
 	var err error
 	// validate the name when given
-	if net.Name != "" {
-		if !define.NameRegex.MatchString(net.Name) {
-			return nil, errors.Wrapf(define.RegexError, "network name %s invalid", net.Name)
+	if newNetwork.Name != "" {
+		if !define.NameRegex.MatchString(newNetwork.Name) {
+			return nil, errors.Wrapf(define.RegexError, "network name %s invalid", newNetwork.Name)
 		}
-		if _, ok := n.networks[net.Name]; ok {
-			return nil, errors.Wrapf(define.ErrNetworkExists, "network name %s already used", net.Name)
+		if _, ok := n.networks[newNetwork.Name]; ok {
+			return nil, errors.Wrapf(define.ErrNetworkExists, "network name %s already used", newNetwork.Name)
 		}
 	} else {
 		name, err = n.getFreeDeviceName()
 		if err != nil {
 			return nil, err
 		}
-		net.Name = name
+		newNetwork.Name = name
 	}
 
-	switch net.Driver {
+	// Only get the used networks for validation if we do not create the default network.
+	// The default network should not be validated against used subnets, we have to ensure
+	// that this network can always be created even when a subnet is already used on the host.
+	// This could happen if you run a container on this net, then the cni interface will be
+	// created on the host and "block" this subnet from being used again.
+	// Therefore the next podman command tries to create the default net again and it would
+	// fail because it thinks the network is used on the host.
+	var usedNetworks []*net.IPNet
+	if !defaultNet {
+		usedNetworks, err = n.getUsedSubnets()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	switch newNetwork.Driver {
 	case types.BridgeNetworkDriver:
 		// if the name was created with getFreeDeviceName set the interface to it as well
-		if name != "" && net.NetworkInterface == "" {
-			net.NetworkInterface = name
+		if name != "" && newNetwork.NetworkInterface == "" {
+			newNetwork.NetworkInterface = name
 		}
-		err = n.createBridge(&net)
+		err = n.createBridge(&newNetwork, usedNetworks)
 		if err != nil {
 			return nil, err
 		}
 	case types.MacVLANNetworkDriver:
-		err = createMacVLAN(&net)
+		err = createMacVLAN(&newNetwork)
 		if err != nil {
 			return nil, err
 		}
 	default:
-		return nil, errors.Wrapf(define.ErrInvalidArg, "unsupported driver %s", net.Driver)
+		return nil, errors.Wrapf(define.ErrInvalidArg, "unsupported driver %s", newNetwork.Driver)
 	}
 
-	for i := range net.Subnets {
-		err := validateSubnet(&net.Subnets[i], !net.Internal)
+	for i := range newNetwork.Subnets {
+		err := validateSubnet(&newNetwork.Subnets[i], !newNetwork.Internal, usedNetworks)
 		if err != nil {
 			return nil, err
 		}
-		if util.IsIPv6(net.Subnets[i].Subnet.IP) {
-			net.IPv6Enabled = true
+		if util.IsIPv6(newNetwork.Subnets[i].Subnet.IP) {
+			newNetwork.IPv6Enabled = true
 		}
 	}
 
 	// generate the network ID
-	net.ID = getNetworkIDFromName(net.Name)
+	newNetwork.ID = getNetworkIDFromName(newNetwork.Name)
 
 	// FIXME: Should this be a hard error?
-	if net.DNSEnabled && net.Internal && hasDNSNamePlugin(n.cniPluginDirs) {
-		logrus.Warnf("dnsname and internal networks are incompatible. dnsname plugin not configured for network %s", net.Name)
-		net.DNSEnabled = false
+	if newNetwork.DNSEnabled && newNetwork.Internal && hasDNSNamePlugin(n.cniPluginDirs) {
+		logrus.Warnf("dnsname and internal networks are incompatible. dnsname plugin not configured for network %s", newNetwork.Name)
+		newNetwork.DNSEnabled = false
 	}
 
-	cniConf, path, err := n.createCNIConfigListFromNetwork(&net, writeToDisk)
+	cniConf, path, err := n.createCNIConfigListFromNetwork(&newNetwork, !defaultNet)
 	if err != nil {
 		return nil, err
 	}
-	return &network{cniNet: cniConf, libpodNet: &net, filename: path}, nil
+	return &network{cniNet: cniConf, libpodNet: &newNetwork, filename: path}, nil
 }
 
 // NetworkRemove will remove the Network with the given name or ID.
@@ -218,7 +235,7 @@ func createMacVLAN(network *types.Network) error {
 	return nil
 }
 
-func (n *cniNetwork) createBridge(network *types.Network) error {
+func (n *cniNetwork) createBridge(network *types.Network, usedNetworks []*net.IPNet) error {
 	if network.NetworkInterface != "" {
 		bridges := n.getBridgeInterfaceNames()
 		if pkgutil.StringInSlice(network.NetworkInterface, bridges) {
@@ -236,7 +253,7 @@ func (n *cniNetwork) createBridge(network *types.Network) error {
 	}
 
 	if len(network.Subnets) == 0 {
-		freeSubnet, err := n.getFreeIPv4NetworkSubnet()
+		freeSubnet, err := n.getFreeIPv4NetworkSubnet(usedNetworks)
 		if err != nil {
 			return err
 		}
@@ -256,14 +273,14 @@ func (n *cniNetwork) createBridge(network *types.Network) error {
 			}
 		}
 		if !ipv4 {
-			freeSubnet, err := n.getFreeIPv4NetworkSubnet()
+			freeSubnet, err := n.getFreeIPv4NetworkSubnet(usedNetworks)
 			if err != nil {
 				return err
 			}
 			network.Subnets = append(network.Subnets, *freeSubnet)
 		}
 		if !ipv6 {
-			freeSubnet, err := n.getFreeIPv6NetworkSubnet()
+			freeSubnet, err := n.getFreeIPv6NetworkSubnet(usedNetworks)
 			if err != nil {
 				return err
 			}
@@ -278,10 +295,14 @@ func (n *cniNetwork) createBridge(network *types.Network) error {
 // given gateway and lease range are part of this subnet. If the
 // gateway is empty and addGateway is true it will get the first
 // available ip in the subnet assigned.
-func validateSubnet(s *types.Subnet, addGateway bool) error {
+func validateSubnet(s *types.Subnet, addGateway bool, usedNetworks []*net.IPNet) error {
 	if s == nil {
 		return errors.New("subnet is nil")
 	}
+	if s.Subnet.IP == nil {
+		return errors.New("subnet ip is nil")
+	}
+
 	// Reparse to ensure subnet is valid.
 	// Do not use types.ParseCIDR() because we want the ip to be
 	// the network address and not a random ip in the subnet.
@@ -289,6 +310,12 @@ func validateSubnet(s *types.Subnet, addGateway bool) error {
 	if err != nil {
 		return errors.Wrap(err, "subnet invalid")
 	}
+
+	// check that the new subnet does not conflict with existing ones
+	if util.NetworkIntersectsWithNetworks(net, usedNetworks) {
+		return errors.Errorf("subnet %s is already used on the host or by another config", net.String())
+	}
+
 	s.Subnet = types.IPNet{IPNet: *net}
 	if s.Gateway != nil {
 		if !s.Subnet.Contains(s.Gateway) {

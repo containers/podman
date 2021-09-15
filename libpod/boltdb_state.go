@@ -1223,7 +1223,7 @@ func (s *BoltState) NetworkConnect(ctr *Container, network string, aliases []str
 			}
 			ctrNetworks := ctr.config.Networks
 			if len(ctrNetworks) == 0 {
-				ctrNetworks = []string{ctr.runtime.netPlugin.GetDefaultNetworkName()}
+				ctrNetworks = []string{ctr.runtime.config.Network.DefaultNetwork}
 			}
 			// Copy in all the container's CNI networks
 			for _, net := range ctrNetworks {

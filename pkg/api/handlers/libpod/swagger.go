@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/containernetworking/cni/libcni"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -103,21 +103,27 @@ type swagNetworkRmReport struct {
 // swagger:response NetworkInspectReport
 type swagNetworkInspectReport struct {
 	// in:body
-	Body libcni.NetworkConfigList
+	Body types.Network
 }
 
 // Network list
 // swagger:response NetworkListReport
 type swagNetworkListReport struct {
 	// in:body
-	Body []entities.NetworkListReport
+	Body []types.Network
+}
+
+// Network create
+// swagger:model NetworkCreateLibpod
+type swagNetworkCreateLibpod struct {
+	types.Network
 }
 
 // Network create
 // swagger:response NetworkCreateReport
 type swagNetworkCreateReport struct {
 	// in:body
-	Body entities.NetworkCreateReport
+	Body types.Network
 }
 
 // Network prune

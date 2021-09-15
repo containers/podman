@@ -22,7 +22,6 @@ import (
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg"
-	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/buildah/pkg/overlay"
@@ -34,6 +33,7 @@ import (
 	"github.com/containers/common/pkg/umask"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/annotations"
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/checkpoint/crutils"
@@ -81,7 +81,7 @@ func (c *Container) prepare() error {
 	var (
 		wg                              sync.WaitGroup
 		netNS                           ns.NetNS
-		networkStatus                   []*cnitypes.Result
+		networkStatus                   map[string]types.StatusBlock
 		createNetNSErr, mountStorageErr error
 		mountPoint                      string
 		tmpStateLock                    sync.Mutex
@@ -263,6 +263,7 @@ func (c *Container) cleanupNetwork() error {
 
 	c.state.NetNS = nil
 	c.state.NetworkStatus = nil
+	c.state.NetworkStatusOld = nil
 
 	if c.valid {
 		return c.save()
@@ -1121,7 +1122,8 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	// Save network.status. This is needed to restore the container with
 	// the same IP. Currently limited to one IP address in a container
 	// with one interface.
-	if _, err := metadata.WriteJSONFile(c.state.NetworkStatus, c.bundlePath(), metadata.NetworkStatusFile); err != nil {
+	// FIXME: will this break something?
+	if _, err := metadata.WriteJSONFile(c.getNetworkStatus(), c.bundlePath(), metadata.NetworkStatusFile); err != nil {
 		return err
 	}
 
@@ -1261,8 +1263,11 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	}
 
 	// Read network configuration from checkpoint
-	// Currently only one interface with one IP is supported.
-	networkStatus, _, err := metadata.ReadContainerCheckpointNetworkStatus(c.bundlePath())
+	var netStatus map[string]types.StatusBlock
+	_, err := metadata.ReadJSONFile(&netStatus, c.bundlePath(), metadata.NetworkStatusFile)
+	if err != nil {
+		logrus.Infof("failed to unmarshal network status, cannot restore the same ip/mac: %v", err)
+	}
 	// If the restored container should get a new name, the IP address of
 	// the container will not be restored. This assumes that if a new name is
 	// specified, the container is restored multiple times.
@@ -1271,19 +1276,41 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	//       best solution.
 	if err == nil && options.Name == "" && (!options.IgnoreStaticIP || !options.IgnoreStaticMAC) {
 		// The file with the network.status does exist. Let's restore the
-		// container with the same IP address / MAC address as during checkpointing.
-		if !options.IgnoreStaticIP {
-			if IP := metadata.GetIPFromNetworkStatus(networkStatus); IP != nil {
-				// Tell CNI which IP address we want.
-				c.requestedIP = IP
-			}
+		// container with the same networks settings as during checkpointing.
+		aliases, err := c.runtime.state.GetAllNetworkAliases(c)
+		if err != nil {
+			return err
 		}
-		if !options.IgnoreStaticMAC {
-			if MAC := metadata.GetMACFromNetworkStatus(networkStatus); MAC != nil {
-				// Tell CNI which MAC address we want.
-				c.requestedMAC = MAC
+		netOpts := make(map[string]types.PerNetworkOptions, len(netStatus))
+		for network, status := range netStatus {
+			perNetOpts := types.PerNetworkOptions{}
+			for name, netInt := range status.Interfaces {
+				perNetOpts = types.PerNetworkOptions{
+					InterfaceName: name,
+					Aliases:       aliases[network],
+				}
+				if !options.IgnoreStaticMAC {
+					perNetOpts.StaticMAC = netInt.MacAddress
+				}
+				if !options.IgnoreStaticIP {
+					for _, netAddress := range netInt.Networks {
+						perNetOpts.StaticIPs = append(perNetOpts.StaticIPs, netAddress.Subnet.IP)
+					}
+				}
+				// Normally interfaces have a length of 1, only for some special cni configs we could get more.
+				// For now just use the first interface to get the ips this should be good enough for most cases.
+				break
 			}
+			if perNetOpts.InterfaceName == "" {
+				eth, exists := c.state.NetInterfaceDescriptions.getInterfaceByName(network)
+				if !exists {
+					return errors.Errorf("no network interface name for container %s on network %s", c.config.ID, network)
+				}
+				perNetOpts.InterfaceName = eth
+			}
+			netOpts[network] = perNetOpts
 		}
+		c.perNetworkOpts = netOpts
 	}
 
 	defer func() {
@@ -1785,9 +1812,9 @@ rootless=%d
 // generateResolvConf generates a containers resolv.conf
 func (c *Container) generateResolvConf() (string, error) {
 	var (
-		nameservers      []string
-		cniNameServers   []string
-		cniSearchDomains []string
+		nameservers          []string
+		networkNameServers   []string
+		networkSearchDomains []string
 	)
 
 	resolvConf := "/etc/resolv.conf"
@@ -1827,22 +1854,27 @@ func (c *Container) generateResolvConf() (string, error) {
 	}
 
 	ipv6 := false
-	// Check if CNI gave back and DNS servers for us to add in
-	cniResponse := c.state.NetworkStatus
-	for _, i := range cniResponse {
-		for _, ip := range i.IPs {
-			// Note: only using To16() does not work since it also returns a valid ip for ipv4
-			if ip.Address.IP.To4() == nil && ip.Address.IP.To16() != nil {
-				ipv6 = true
+	// If network status is set check for ipv6 and dns namesevers
+	netStatus := c.getNetworkStatus()
+	for _, status := range netStatus {
+		for _, netInt := range status.Interfaces {
+			for _, netAddress := range netInt.Networks {
+				// Note: only using To16() does not work since it also returns a valid ip for ipv4
+				if netAddress.Subnet.IP.To4() == nil && netAddress.Subnet.IP.To16() != nil {
+					ipv6 = true
+				}
 			}
 		}
-		if i.DNS.Nameservers != nil {
-			cniNameServers = append(cniNameServers, i.DNS.Nameservers...)
-			logrus.Debugf("adding nameserver(s) from cni response of '%q'", i.DNS.Nameservers)
+
+		if status.DNSServerIPs != nil {
+			for _, nsIP := range status.DNSServerIPs {
+				networkNameServers = append(networkNameServers, nsIP.String())
+			}
+			logrus.Debugf("adding nameserver(s) from network status of '%q'", status.DNSServerIPs)
 		}
-		if i.DNS.Search != nil {
-			cniSearchDomains = append(cniSearchDomains, i.DNS.Search...)
-			logrus.Debugf("adding search domain(s) from cni response of '%q'", i.DNS.Search)
+		if status.DNSSearchDomains != nil {
+			networkSearchDomains = append(networkSearchDomains, status.DNSSearchDomains...)
+			logrus.Debugf("adding search domain(s) from network status of '%q'", status.DNSSearchDomains)
 		}
 	}
 
@@ -1882,8 +1914,8 @@ func (c *Container) generateResolvConf() (string, error) {
 		for _, server := range dnsServers {
 			nameservers = append(nameservers, server.String())
 		}
-	case len(cniNameServers) > 0:
-		nameservers = append(nameservers, cniNameServers...)
+	case len(networkNameServers) > 0:
+		nameservers = append(nameservers, networkNameServers...)
 	default:
 		// Make a new resolv.conf
 		nameservers = resolvconf.GetNameservers(resolv.Content)
@@ -1899,11 +1931,11 @@ func (c *Container) generateResolvConf() (string, error) {
 	}
 
 	var search []string
-	if len(c.config.DNSSearch) > 0 || len(c.runtime.config.Containers.DNSSearches) > 0 || len(cniSearchDomains) > 0 {
+	if len(c.config.DNSSearch) > 0 || len(c.runtime.config.Containers.DNSSearches) > 0 || len(networkSearchDomains) > 0 {
 		if !util.StringInSlice(".", c.config.DNSSearch) {
 			search = c.runtime.config.Containers.DNSSearches
 			search = append(search, c.config.DNSSearch...)
-			search = append(search, cniSearchDomains...)
+			search = append(search, networkSearchDomains...)
 		}
 	} else {
 		search = resolvconf.GetSearchDomains(resolv.Content)
@@ -2019,20 +2051,22 @@ func (c *Container) getHosts() string {
 
 	// Add gateway entry
 	var depCtr *Container
+	netStatus := c.getNetworkStatus()
 	if c.config.NetNsCtr != "" {
 		// ignoring the error because there isn't anything to do
 		depCtr, _ = c.getRootNetNsDepCtr()
-	} else if len(c.state.NetworkStatus) != 0 {
+	} else if len(netStatus) != 0 {
 		depCtr = c
-	} else {
-		depCtr = nil
 	}
 
 	if depCtr != nil {
-		for _, pluginResultsRaw := range depCtr.state.NetworkStatus {
-			pluginResult, _ := cnitypes.GetResult(pluginResultsRaw)
-			for _, ip := range pluginResult.IPs {
-				hosts += fmt.Sprintf("%s host.containers.internal\n", ip.Gateway)
+		for _, status := range depCtr.getNetworkStatus() {
+			for _, netInt := range status.Interfaces {
+				for _, netAddress := range netInt.Networks {
+					if netAddress.Gateway != nil {
+						hosts += fmt.Sprintf("%s host.containers.internal\n", netAddress.Gateway.String())
+					}
+				}
 			}
 		}
 	} else if c.config.NetMode.IsSlirp4netns() {

@@ -114,7 +114,7 @@ func (n *cniNetwork) Setup(namespacePath string, options types.SetupOptions) (ma
 		}
 		logrus.Debugf("cni result for container %s network %s: %v", options.ContainerID, name, cnires)
 		var status types.StatusBlock
-		status, retErr = cniResultToStatus(cnires)
+		status, retErr = CNIResultToStatus(cnires)
 		if retErr != nil {
 			return nil, retErr
 		}
@@ -123,8 +123,9 @@ func (n *cniNetwork) Setup(namespacePath string, options types.SetupOptions) (ma
 	return results, nil
 }
 
-// cniResultToStatus convert the cni result to status block
-func cniResultToStatus(cniResult *current.Result) (types.StatusBlock, error) {
+// CNIResultToStatus convert the cni result to status block
+// nolint:golint
+func CNIResultToStatus(cniResult *current.Result) (types.StatusBlock, error) {
 	result := types.StatusBlock{}
 	nameservers := make([]net.IP, 0, len(cniResult.DNS.Nameservers))
 	for _, nameserver := range cniResult.DNS.Nameservers {

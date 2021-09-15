@@ -11,6 +11,7 @@ import (
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/network"
 	"github.com/containers/podman/v3/pkg/rootless"
@@ -1108,9 +1109,9 @@ func AutocompleteManifestFormat(cmd *cobra.Command, args []string, toComplete st
 }
 
 // AutocompleteNetworkDriver - Autocomplete network driver option.
-// -> "bridge"
+// -> "bridge", "macvlan"
 func AutocompleteNetworkDriver(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	drivers := []string{"bridge"}
+	drivers := []string{types.BridgeNetworkDriver, types.MacVLANNetworkDriver}
 	return drivers, cobra.ShellCompDirectiveNoFileComp
 }
 
@@ -1252,16 +1253,13 @@ func AutocompletePruneFilters(cmd *cobra.Command, args []string, toComplete stri
 // AutocompleteNetworkFilters - Autocomplete network ls --filter options.
 func AutocompleteNetworkFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	kv := keyValueCompletion{
-		"name=": func(s string) ([]string, cobra.ShellCompDirective) { return getNetworks(cmd, s, completeNames) },
-		"id=":   func(s string) ([]string, cobra.ShellCompDirective) { return getNetworks(cmd, s, completeIDs) },
-		"plugin=": func(_ string) ([]string, cobra.ShellCompDirective) {
-			return []string{"bridge", "portmap",
-				"firewall", "tuning", "dnsname", "macvlan"}, cobra.ShellCompDirectiveNoFileComp
-		},
+		"name=":  func(s string) ([]string, cobra.ShellCompDirective) { return getNetworks(cmd, s, completeNames) },
+		"id=":    func(s string) ([]string, cobra.ShellCompDirective) { return getNetworks(cmd, s, completeIDs) },
 		"label=": nil,
 		"driver=": func(_ string) ([]string, cobra.ShellCompDirective) {
-			return []string{"bridge"}, cobra.ShellCompDirectiveNoFileComp
+			return []string{types.BridgeNetworkDriver, types.MacVLANNetworkDriver}, cobra.ShellCompDirectiveNoFileComp
 		},
+		"until=": nil,
 	}
 	return completeKeyValues(toComplete, kv)
 }
