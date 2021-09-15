@@ -464,7 +464,7 @@ Labels.$label_name | $label_value
     local -a files=(
         -test1 -test1.txt
          test2  test2.txt
-         subdir/sub1  subdir/sub1.txt
+         -subdir/sub1 -subdir/sub1.txt
          -subdir/sub2 -subdir/sub2.txt
          this-file-does-not-match-anything-in-ignore-file
          comment
