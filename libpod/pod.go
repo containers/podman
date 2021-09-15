@@ -1,7 +1,6 @@
 package libpod
 
 import (
-	"context"
 	"fmt"
 	"sort"
 	"time"
@@ -97,65 +96,6 @@ func (p *Pod) Name() string {
 // Namespaces are used to logically separate containers and pods in the state.
 func (p *Pod) Namespace() string {
 	return p.config.Namespace
-}
-
-// ResourceLim returns the cpuset resource limits for the pod
-func (p *Pod) ResourceLim() *specs.LinuxResources {
-	resCopy := &specs.LinuxResources{}
-	empty := &specs.LinuxResources{
-		CPU: &specs.LinuxCPU{},
-	}
-	infra, err := p.runtime.GetContainer(p.state.InfraContainerID)
-	if err != nil {
-		return empty
-	}
-	conf := infra.config.Spec
-	if err != nil {
-		return empty
-	}
-	if conf.Linux == nil || conf.Linux.Resources == nil {
-		return empty
-	}
-	if err = JSONDeepCopy(conf.Linux.Resources, resCopy); err != nil {
-		return nil
-	}
-	if resCopy.CPU != nil {
-		return resCopy
-	}
-
-	return empty
-}
-
-// CPUPeriod returns the pod CPU period
-func (p *Pod) CPUPeriod() uint64 {
-	if p.state.InfraContainerID == "" {
-		return 0
-	}
-	infra, err := p.runtime.GetContainer(p.state.InfraContainerID)
-	if err != nil {
-		return 0
-	}
-	conf := infra.config.Spec
-	if conf != nil && conf.Linux != nil && conf.Linux.Resources != nil && conf.Linux.Resources.CPU != nil && conf.Linux.Resources.CPU.Period != nil {
-		return *conf.Linux.Resources.CPU.Period
-	}
-	return 0
-}
-
-// CPUQuota returns the pod CPU quota
-func (p *Pod) CPUQuota() int64 {
-	if p.state.InfraContainerID == "" {
-		return 0
-	}
-	infra, err := p.runtime.GetContainer(p.state.InfraContainerID)
-	if err != nil {
-		return 0
-	}
-	conf := infra.config.Spec
-	if conf != nil && conf.Linux != nil && conf.Linux.Resources != nil && conf.Linux.Resources.CPU != nil && conf.Linux.Resources.CPU.Quota != nil {
-		return *conf.Linux.Resources.CPU.Quota
-	}
-	return 0
 }
 
 // PidMode returns the PID mode given by the user ex: pod, private...
@@ -281,35 +221,6 @@ func (p *Pod) CgroupPath() (string, error) {
 	defer p.lock.Unlock()
 	if err := p.updatePod(); err != nil {
 		return "", err
-	}
-	if p.state.CgroupPath != "" {
-		return p.state.CgroupPath, nil
-	}
-	if p.state.InfraContainerID == "" {
-		return "", errors.Wrap(define.ErrNoSuchCtr, "pod has no infra container")
-	}
-
-	id, err := p.infraContainerID()
-	if err != nil {
-		return "", err
-	}
-
-	if id != "" {
-		ctr, err := p.infraContainer()
-		if err != nil {
-			return "", errors.Wrapf(err, "could not get infra")
-		}
-		if ctr != nil {
-			ctr.Start(context.Background(), true)
-			cgroupPath, err := ctr.CGroupPath()
-			fmt.Println(cgroupPath)
-			if err != nil {
-				return "", errors.Wrapf(err, "could not get container cgroup")
-			}
-			p.state.CgroupPath = cgroupPath
-			p.save()
-			return cgroupPath, nil
-		}
 	}
 	return p.state.CgroupPath, nil
 }

@@ -90,6 +90,22 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(cgroupsFlagName, AutocompleteCgroupMode)
 
+		cpusFlagName := "cpus"
+		createFlags.Float64Var(
+			&cf.CPUS,
+			cpusFlagName, 0,
+			"Number of CPUs. The default is 0.000 which means no limit",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(cpusFlagName, completion.AutocompleteNone)
+
+		cpusetCpusFlagName := "cpuset-cpus"
+		createFlags.StringVar(
+			&cf.CPUSetCPUs,
+			cpusetCpusFlagName, "",
+			"CPUs in which to allow execution (0-3, 0,1)",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(cpusetCpusFlagName, completion.AutocompleteNone)
+
 		cpuPeriodFlagName := "cpu-period"
 		createFlags.Uint64Var(
 			&cf.CPUPeriod,
@@ -783,22 +799,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		"Path to the file that will receive the PID of conmon",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(conmonPidfileFlagName, completion.AutocompleteDefault)
-
-	cpusFlagName := "cpus"
-	createFlags.Float64Var(
-		&cf.CPUS,
-		cpusFlagName, 0,
-		"Number of CPUs. The default is 0.000 which means no limit",
-	)
-	_ = cmd.RegisterFlagCompletionFunc(cpusFlagName, completion.AutocompleteNone)
-
-	cpusetCpusFlagName := "cpuset-cpus"
-	createFlags.StringVar(
-		&cf.CPUSetCPUs,
-		cpusetCpusFlagName, "",
-		"CPUs in which to allow execution (0-3, 0,1)",
-	)
-	_ = cmd.RegisterFlagCompletionFunc(cpusetCpusFlagName, completion.AutocompleteNone)
 
 	entrypointFlagName := ""
 	if !isInfra {
