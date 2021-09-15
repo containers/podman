@@ -244,6 +244,8 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		logrus.Warnf("Storage configuration is unset - using hardcoded default graph root %q", _defaultGraphRoot)
 		storeOpts.GraphRoot = _defaultGraphRoot
 	}
+	c.graphRoot = storeOpts.GraphRoot
+	c.ImageCopyTmpDir = "/var/tmp"
 	c.StaticDir = filepath.Join(storeOpts.GraphRoot, "libpod")
 	c.VolumePath = filepath.Join(storeOpts.GraphRoot, "volumes")
 
@@ -297,6 +299,10 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 			"/sbin/runsc",
 			"/run/current-system/sw/bin/runsc",
 		},
+		"krun": {
+			"/usr/bin/krun",
+			"/usr/local/bin/krun",
+		},
 	}
 	// Needs to be called after populating c.OCIRuntimes
 	c.OCIRuntime = c.findRuntime()
@@ -320,9 +326,10 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		"runc",
 		"kata",
 		"runsc",
+		"krun",
 	}
-	c.RuntimeSupportsNoCgroups = []string{"crun"}
-	c.RuntimeSupportsKVM = []string{"kata", "kata-runtime", "kata-qemu", "kata-fc"}
+	c.RuntimeSupportsNoCgroups = []string{"crun", "krun"}
+	c.RuntimeSupportsKVM = []string{"kata", "kata-runtime", "kata-qemu", "kata-fc", "krun"}
 	c.InitPath = DefaultInitPath
 	c.NoPivotRoot = false
 

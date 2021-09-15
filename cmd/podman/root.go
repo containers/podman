@@ -174,7 +174,11 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	}
 	// Hard code TMPDIR functions to use /var/tmp, if user did not override
 	if _, ok := os.LookupEnv("TMPDIR"); !ok {
-		os.Setenv("TMPDIR", "/var/tmp")
+		if tmpdir, err := cfg.ImageCopyTmpDir(); err != nil {
+			logrus.Warnf("failed to retrieve default tmp dir: %s", err.Error())
+		} else {
+			os.Setenv("TMPDIR", tmpdir)
+		}
 	}
 
 	context := cmd.Root().LocalFlags().Lookup("context")
