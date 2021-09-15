@@ -15,6 +15,7 @@ import (
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/pkg/parse"
+	"github.com/containers/buildah/pkg/sshagent"
 	"github.com/containers/buildah/util"
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
@@ -111,7 +112,7 @@ type Executor struct {
 	retryPullPushDelay             time.Duration
 	ociDecryptConfig               *encconfig.DecryptConfig
 	lastError                      error
-	terminatedStage                map[string]struct{}
+	terminatedStage                map[string]error
 	stagesLock                     sync.Mutex
 	stagesSemaphore                *semaphore.Weighted
 	jobs                           int
@@ -122,6 +123,8 @@ type Executor struct {
 	fromOverride                   string
 	manifest                       string
 	secrets                        map[string]string
+	sshsources                     map[string]*sshagent.Source
+	logPrefix                      string
 }
 
 type imageTypeAndHistoryAndDiffIDs struct {
@@ -131,8 +134,8 @@ type imageTypeAndHistoryAndDiffIDs struct {
 	err          error
 }
 
-// NewExecutor creates a new instance of the imagebuilder.Executor interface.
-func NewExecutor(logger *logrus.Logger, store storage.Store, options define.BuildOptions, mainNode *parser.Node) (*Executor, error) {
+// newExecutor creates a new instance of the imagebuilder.Executor interface.
+func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, options define.BuildOptions, mainNode *parser.Node) (*Executor, error) {
 	defaultContainerConfig, err := config.Default()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get container config")
@@ -172,7 +175,10 @@ func NewExecutor(logger *logrus.Logger, store storage.Store, options define.Buil
 	if err != nil {
 		return nil, err
 	}
-
+	sshsources, err := parse.SSH(options.CommonBuildOpts.SSHSources)
+	if err != nil {
+		return nil, err
+	}
 	jobs := 1
 	if options.Jobs != nil {
 		jobs = *options.Jobs
@@ -251,7 +257,8 @@ func NewExecutor(logger *logrus.Logger, store storage.Store, options define.Buil
 		maxPullPushRetries:             options.MaxPullPushRetries,
 		retryPullPushDelay:             options.PullPushRetryDelay,
 		ociDecryptConfig:               options.OciDecryptConfig,
-		terminatedStage:                make(map[string]struct{}),
+		terminatedStage:                make(map[string]error),
+		stagesSemaphore:                options.JobSemaphore,
 		jobs:                           jobs,
 		logRusage:                      options.LogRusage,
 		rusageLogFile:                  rusageLogFile,
@@ -259,6 +266,8 @@ func NewExecutor(logger *logrus.Logger, store storage.Store, options define.Buil
 		fromOverride:                   options.From,
 		manifest:                       options.Manifest,
 		secrets:                        secrets,
+		sshsources:                     sshsources,
+		logPrefix:                      logPrefix,
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr
@@ -358,9 +367,12 @@ func (b *Executor) waitForStage(ctx context.Context, name string, stages imagebu
 		}
 
 		b.stagesLock.Lock()
-		_, terminated := b.terminatedStage[name]
+		terminationError, terminated := b.terminatedStage[name]
 		b.stagesLock.Unlock()
 
+		if terminationError != nil {
+			return false, terminationError
+		}
 		if terminated {
 			return true, nil
 		}
@@ -426,7 +438,7 @@ func (b *Executor) buildStage(ctx context.Context, cleanupStages map[int]*StageE
 	}
 
 	if err != nil {
-		logrus.Debugf("Build(node.Children=%#v)", node.Children)
+		logrus.Debugf("buildStage(node.Children=%#v)", node.Children)
 		return "", nil, err
 	}
 
@@ -435,7 +447,7 @@ func (b *Executor) buildStage(ctx context.Context, cleanupStages map[int]*StageE
 	if stageExecutor.log == nil {
 		stepCounter := 0
 		stageExecutor.log = func(format string, args ...interface{}) {
-			prefix := ""
+			prefix := b.logPrefix
 			if len(stages) > 1 {
 				prefix += fmt.Sprintf("[%d/%d] ", stageIndex+1, len(stages))
 			}
@@ -618,14 +630,16 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 
 	ch := make(chan Result)
 
-	jobs := int64(b.jobs)
-	if jobs < 0 {
-		return "", nil, errors.New("error building: invalid value for jobs.  It must be a positive integer")
-	} else if jobs == 0 {
-		jobs = int64(len(stages))
-	}
+	if b.stagesSemaphore == nil {
+		jobs := int64(b.jobs)
+		if jobs < 0 {
+			return "", nil, errors.New("error building: invalid value for jobs.  It must be a positive integer")
+		} else if jobs == 0 {
+			jobs = int64(len(stages))
+		}
 
-	b.stagesSemaphore = semaphore.NewWeighted(jobs)
+		b.stagesSemaphore = semaphore.NewWeighted(jobs)
+	}
 
 	var wg sync.WaitGroup
 	wg.Add(len(stages))
@@ -669,11 +683,11 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 		stage := stages[r.Index]
 
 		b.stagesLock.Lock()
-		b.terminatedStage[stage.Name] = struct{}{}
-		b.terminatedStage[fmt.Sprintf("%d", stage.Position)] = struct{}{}
-		b.stagesLock.Unlock()
+		b.terminatedStage[stage.Name] = r.Error
+		b.terminatedStage[fmt.Sprintf("%d", stage.Position)] = r.Error
 
 		if r.Error != nil {
+			b.stagesLock.Unlock()
 			b.lastError = r.Error
 			return "", nil, r.Error
 		}
@@ -681,9 +695,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 		// If this is an intermediate stage, make a note of the ID, so
 		// that we can look it up later.
 		if r.Index < len(stages)-1 && r.ImageID != "" {
-			b.stagesLock.Lock()
 			b.imageMap[stage.Name] = r.ImageID
-			b.stagesLock.Unlock()
 			// We're not populating the cache with intermediate
 			// images, so add this one to the list of images that
 			// we'll remove later.
@@ -695,6 +707,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 			imageID = r.ImageID
 			ref = r.Ref
 		}
+		b.stagesLock.Unlock()
 	}
 
 	if len(b.unusedArgs) > 0 {

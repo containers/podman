@@ -1211,13 +1211,42 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 						// skip the "." entry
 						return nil
 					}
-					_, skip, err := pathIsExcluded(req.Root, path, pm)
+					skippedPath, skip, err := pathIsExcluded(req.Root, path, pm)
 					if err != nil {
 						return err
 					}
 					if skip {
-						// don't use filepath.SkipDir
-						// here, since a more specific
+						if info.IsDir() {
+							// if there are no "include
+							// this anyway" patterns at
+							// all, we don't need to
+							// descend into this particular
+							// directory if it's a directory
+							if !pm.Exclusions() {
+								return filepath.SkipDir
+							}
+							// if there are exclusion
+							// patterns for which this
+							// path is a prefix, we
+							// need to keep descending
+							for _, pattern := range pm.Patterns() {
+								if !pattern.Exclusion() {
+									continue
+								}
+								spec := strings.Trim(pattern.String(), string(os.PathSeparator))
+								trimmedPath := strings.Trim(skippedPath, string(os.PathSeparator))
+								if strings.HasPrefix(spec+string(os.PathSeparator), trimmedPath) {
+									// we can't just skip over
+									// this directory
+									return nil
+								}
+							}
+							// there are exclusions, but
+							// none of them apply here
+							return filepath.SkipDir
+						}
+						// skip this item, but if we're
+						// a directory, a more specific
 						// but-include-this for
 						// something under it might
 						// also be in the excludes list

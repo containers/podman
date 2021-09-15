@@ -51,7 +51,7 @@ func unmarshalConvertedConfig(ctx context.Context, dest interface{}, img types.I
 	return nil
 }
 
-func (b *Builder) initConfig(ctx context.Context, img types.Image) error {
+func (b *Builder) initConfig(ctx context.Context, img types.Image, sys *types.SystemContext) error {
 	if img != nil { // A pre-existing image, as opposed to a "FROM scratch" new one.
 		rawManifest, manifestMIMEType, err := img.Manifest(ctx)
 		if err != nil {
@@ -82,16 +82,24 @@ func (b *Builder) initConfig(ctx context.Context, img types.Image) error {
 			if err := json.Unmarshal(b.Manifest, &v1Manifest); err != nil {
 				return errors.Wrapf(err, "error parsing OCI manifest %q", string(b.Manifest))
 			}
-			b.ImageAnnotations = v1Manifest.Annotations
+			for k, v := range v1Manifest.Annotations {
+				// NOTE: do not override annotations that are
+				// already set. Otherwise, we may erase
+				// annotations such as the digest of the base
+				// image.
+				if value := b.ImageAnnotations[k]; value == "" {
+					b.ImageAnnotations[k] = v
+				}
+			}
 		}
 	}
 
 	b.setupLogger()
-	b.fixupConfig()
+	b.fixupConfig(sys)
 	return nil
 }
 
-func (b *Builder) fixupConfig() {
+func (b *Builder) fixupConfig(sys *types.SystemContext) {
 	if b.Docker.Config != nil {
 		// Prefer image-level settings over those from the container it was built from.
 		b.Docker.ContainerConfig = *b.Docker.Config
@@ -106,10 +114,18 @@ func (b *Builder) fixupConfig() {
 		b.OCIv1.Created = &now
 	}
 	if b.OS() == "" {
-		b.SetOS(runtime.GOOS)
+		if sys != nil && sys.OSChoice != "" {
+			b.SetOS(sys.OSChoice)
+		} else {
+			b.SetOS(runtime.GOOS)
+		}
 	}
 	if b.Architecture() == "" {
-		b.SetArchitecture(runtime.GOARCH)
+		if sys != nil && sys.ArchitectureChoice != "" {
+			b.SetArchitecture(sys.ArchitectureChoice)
+		} else {
+			b.SetArchitecture(runtime.GOARCH)
+		}
 	}
 	if b.Format == define.Dockerv2ImageManifest && b.Hostname() == "" {
 		b.SetHostname(stringid.TruncateID(stringid.GenerateRandomID()))

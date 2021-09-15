@@ -7,7 +7,7 @@
 ---
 ### 1) No such image
 
-When doing a `buildah pull` or `buildah bud` command and a "common" image can not be pulled,
+When doing a `buildah pull` or `buildah build` command and a "common" image can not be pulled,
 it is likely that the `/etc/containers/registries.conf` file is either not installed or possibly
 misconfigured.  This issue might also indicate that other required files as listed in the
 [Configuration Files](https://github.com/containers/buildah/blob/main/install.md#configuration-files)
@@ -15,7 +15,7 @@ section of the Installation Instructions are also not installed.
 
 #### Symptom
 ```console
-$ sudo buildah bud -f Dockerfile .
+$ sudo buildah build -f Dockerfile .
 STEP 1: FROM alpine
 error creating build container: 2 errors occurred:
 
@@ -35,7 +35,7 @@ error building: error creating build container: no such image "alpine" in regist
 ---
 ### 2) http: server gave HTTP response to HTTPS client
 
-When doing a Buildah command such as `bud`, `commit`, `from`, or `push` to a registry,
+When doing a Buildah command such as `build`, `commit`, `from`, or `push` to a registry,
 tls verification is turned on by default.  If authentication is not used with
 those commands, this error can occur.
 
@@ -50,7 +50,7 @@ Get https://localhost:5000/v2/: http: server gave HTTP response to HTTPS client
 
 By default tls verification is turned on when communicating to registries from
 Buildah.  If the registry does not require authentication the Buildah commands
-such as `bud`, `commit`, `from` and `pull` will fail unless tls verification is turned
+such as `build`, `commit`, `from` and `pull` will fail unless tls verification is turned
 off using the `--tls-verify` option.  **NOTE:** It is not at all recommended to
 communicate with a registry and not use tls verification.
 
@@ -110,13 +110,13 @@ lstat /home/myusername/~: no such file or directory
 
 
 ---
-### 5) Rootless buildah bud fails EPERM on NFS:
+### 5) Rootless buildah build fails EPERM on NFS:
 
 NFS enforces file creation on different UIDs on the server side and does not understand user namespace, which rootless Podman requires.  When a container root process like YUM attempts to create a file owned by a different UID, NFS Server denies the creation.  NFS is also a problem for the file locks when the storage is on it.  Other distributed file systems (for example: Lustre, Spectrum Scale, the General Parallel File System (GPFS)) are also not supported when running in rootless mode as these file systems do not understand user namespace.
 
 #### Symptom
 ```console
-$ buildah bud .
+$ buildah build .
 ERRO[0014] Error while applying layer: ApplyLayer exit status 1 stdout:  stderr: open /root/.bash_logout: permission denied
 error creating build container: Error committing the finished image: error adding layer with blob "sha256:a02a4930cb5d36f3290eb84f4bfa30668ef2e9fe3a1fb73ec015fc58b9958b17": ApplyLayer exit status 1 stdout:  stderr: open /root/.bash_logout: permission denied
 ```
@@ -126,14 +126,14 @@ Choose one of the following:
   * Setup containers/storage in a different directory, not on an NFS share.
   * Otherwise just run buildah as root, via `sudo buildah`
 ---
-### 6) Rootless buildah bud fails when using OverlayFS:
+### 6) Rootless buildah build fails when using OverlayFS:
 
 The Overlay file system (OverlayFS) requires the ability to call the `mknod` command when creating whiteout files
 when extracting an image.  However, a rootless user does not have the privileges to use `mknod` in this capacity.
 
 #### Symptom
 ```console
-buildah bud --storage-driver overlay .
+buildah build --storage-driver overlay .
 STEP 1: FROM docker.io/ubuntu:xenial
 Getting image source signatures
 Copying blob edf72af6d627 done
@@ -144,7 +144,7 @@ Copying config 5e13f8dd4c done
 Writing manifest to image destination
 Storing signatures
 Error: error creating build container: Error committing the finished image: error adding layer with blob "sha256:8d3eac894db4dc4154377ad28643dfe6625ff0e54bcfa63e0d04921f1a8ef7f8": Error processing tar file(exit status 1): operation not permitted
-$ buildah bud .
+$ buildah build .
 ERRO[0014] Error while applying layer: ApplyLayer exit status 1 stdout:  stderr: open /root/.bash_logout: permission denied
 error creating build container: Error committing the finished image: error adding layer with blob "sha256:a02a4930cb5d36f3290eb84f4bfa30668ef2e9fe3a1fb73ec015fc58b9958b17": ApplyLayer exit status 1 stdout:  stderr: open /root/.bash_logout: permission denied
 ```

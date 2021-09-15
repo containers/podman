@@ -27,7 +27,6 @@ func DeviceFromPath(device string) (define.ContainerDevices, error) {
 	}
 
 	if !srcInfo.IsDir() {
-
 		dev, err := devices.DeviceFromPath(src, permissions)
 		if err != nil {
 			return nil, errors.Wrapf(err, "%s is not a valid device", src)
