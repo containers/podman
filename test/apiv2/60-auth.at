@@ -5,10 +5,15 @@
 
 start_registry
 
+# Test unreachable
+t POST /v1.40/auth username=$REGISTRY_USERNAME password=WrOnGPassWord serveraddress=does.not.exist.io:1234/ \
+  500 \
+  .message~'.*no such host.*'
+
 # Test with wrong password. Confirm bad status and appropriate error message
 t POST /v1.40/auth username=$REGISTRY_USERNAME password=WrOnGPassWord serveraddress=localhost:$REGISTRY_PORT/ \
-  400 \
-  .Status~'.* invalid username/password'
+  500 \
+  .message~'.* 401 Unauthorized'
 
 # Test with the right password. Confirm status message
 t POST /v1.40/auth username=$REGISTRY_USERNAME password=$REGISTRY_PASSWORD serveraddress=localhost:$REGISTRY_PORT/ \
