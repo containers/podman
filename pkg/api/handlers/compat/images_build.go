@@ -106,7 +106,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		NamespaceOptions       string   `schema:"nsoptions"`
 		NoCache                bool     `schema:"nocache"`
 		OutputFormat           string   `schema:"outputformat"`
-		Platform               string   `schema:"platform"`
+		Platform               []string `schema:"platform"`
 		Pull                   bool     `schema:"pull"`
 		PullPolicy             string   `schema:"pullpolicy"`
 		Quiet                  bool     `schema:"q"`
@@ -126,7 +126,6 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Registry:   "docker.io",
 		Rm:         true,
 		ShmSize:    64 * 1024 * 1024,
-		Tag:        []string{},
 	}
 
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
@@ -481,16 +480,17 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	if len(query.Platform) > 0 {
-		variant := ""
-		buildOptions.OS, buildOptions.Architecture, variant, err = parse.Platform(query.Platform)
+	for _, platformSpec := range query.Platform {
+		os, arch, variant, err := parse.Platform(platformSpec)
 		if err != nil {
-			utils.BadRequest(w, "platform", query.Platform, err)
+			utils.BadRequest(w, "platform", platformSpec, err)
 			return
 		}
-		buildOptions.SystemContext.OSChoice = buildOptions.OS
-		buildOptions.SystemContext.ArchitectureChoice = buildOptions.Architecture
-		buildOptions.SystemContext.VariantChoice = variant
+		buildOptions.Platforms = append(buildOptions.Platforms, struct{ OS, Arch, Variant string }{
+			OS:      os,
+			Arch:    arch,
+			Variant: variant,
+		})
 	}
 	if _, found := r.URL.Query()["timestamp"]; found {
 		ts := time.Unix(query.Timestamp, 0)
