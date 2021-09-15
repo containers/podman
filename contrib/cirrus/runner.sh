@@ -286,6 +286,23 @@ function _run_release() {
     msg "All OK"
 }
 
+
+function _run_gitlab() {
+    rootless_uid=$(id -u)
+    systemctl enable --now --user podman.socket
+    export DOCKER_HOST=unix:///run/user/${rootless_uid}/podman/podman.sock
+    export CONTAINER_HOST=$DOCKER_HOST
+    cd $GOPATH/src/gitlab.com/gitlab-org/gitlab-runner
+    set +e
+    go test -v ./executors/docker |& tee $GOSRC/gitlab-runner-podman.log
+    ret=$?
+    set -e
+    # This file is collected and parsed by Cirrus-CI so must be in $GOSRC
+    cat $GOSRC/gitlab-runner-podman.log | \
+        go-junit-report > $GOSRC/gitlab-runner-podman.xml
+    return $ret
+}
+
 logformatter() {
     if [[ "$CI" == "true" ]]; then
         # Use similar format as human-friendly task name from .cirrus.yml
