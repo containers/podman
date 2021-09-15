@@ -48,8 +48,8 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/sys/unix"
+	"golang.org/x/term"
 )
 
 // ContainerDevices is an alias for a slice of github.com/opencontainers/runc/libcontainer/configs.Device structures.
@@ -719,7 +719,7 @@ func (b *Builder) generateHosts(rdir, hostname string, addHosts []string, chownO
 func setupTerminal(g *generate.Generator, terminalPolicy TerminalPolicy, terminalSize *specs.Box) {
 	switch terminalPolicy {
 	case DefaultTerminal:
-		onTerminal := terminal.IsTerminal(unix.Stdin) && terminal.IsTerminal(unix.Stdout) && terminal.IsTerminal(unix.Stderr)
+		onTerminal := term.IsTerminal(unix.Stdin) && term.IsTerminal(unix.Stdout) && term.IsTerminal(unix.Stderr)
 		if onTerminal {
 			logrus.Debugf("stdio is a terminal, defaulting to using a terminal")
 		} else {
@@ -1276,12 +1276,12 @@ func runCopyStdio(logger *logrus.Logger, stdio *sync.WaitGroup, copyPipes bool, 
 		writeDesc[unix.Stdout] = "output"
 		// Set our terminal's mode to raw, to pass handling of special
 		// terminal input to the terminal in the container.
-		if terminal.IsTerminal(unix.Stdin) {
-			if state, err := terminal.MakeRaw(unix.Stdin); err != nil {
+		if term.IsTerminal(unix.Stdin) {
+			if state, err := term.MakeRaw(unix.Stdin); err != nil {
 				logger.Warnf("error setting terminal state: %v", err)
 			} else {
 				defer func() {
-					if err = terminal.Restore(unix.Stdin, state); err != nil {
+					if err = term.Restore(unix.Stdin, state); err != nil {
 						logger.Errorf("unable to restore terminal state: %v", err)
 					}
 				}()
@@ -1504,7 +1504,7 @@ func runAcceptTerminal(logger *logrus.Logger, consoleListener *net.UnixListener,
 		winsize.Row = uint16(terminalSize.Height)
 		winsize.Col = uint16(terminalSize.Width)
 	} else {
-		if terminal.IsTerminal(unix.Stdin) {
+		if term.IsTerminal(unix.Stdin) {
 			// Use the size of our terminal.
 			if winsize, err = unix.IoctlGetWinsize(unix.Stdin, unix.TIOCGWINSZ); err != nil {
 				logger.Warnf("error reading size of controlling terminal: %v", err)

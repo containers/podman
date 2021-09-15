@@ -139,7 +139,7 @@ unit_task:
       - smoke
       - vendor
 
-    timeout_in: 50m
+    timeout_in: 1h
 
     matrix:
         - env:
@@ -177,7 +177,7 @@ conformance_task:
     conformance_test_script: '${SCRIPT_BASE}/test.sh conformance |& ${_TIMESTAMP}'
 
 
-# Confirm cross-compile ALL archetectures on a Mac OS-X VM.
+# Confirm cross-compile ALL architectures on a Mac OS-X VM.
 cross_build_task:
     name: "Cross Compile"
     alias: cross_build
@@ -186,13 +186,14 @@ cross_build_task:
       - unit
 
     osx_instance:
-        image: 'catalina-base'
+        image: 'big-sur-base'
 
     script:
         - brew update
         - brew install go
         - brew install go-md2man
         - brew install gpgme
+        - go version
         - make cross CGO_ENABLED=0
 
     binary_artifacts:

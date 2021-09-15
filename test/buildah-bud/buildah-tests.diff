@@ -70,7 +70,7 @@ index 166316d5..775d7c9b 100644
  
 +    local podman_or_buildah=${BUILDAH_BINARY}
 +    local _opts="${ROOTDIR_OPTS} ${BUILDAH_REGISTRY_OPTS}"
-+    if [[ $1 == "bud" || $1 == "build-using-dockerfile" ]]; then
++    if [[ $1 == "build" || $1 == "build-using-dockerfile" ]]; then
 +        shift
 +        # podman defaults to --layers=true; buildah to --false.
 +        # If command line includes explicit --layers, leave it untouched,

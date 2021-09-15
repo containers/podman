@@ -11,6 +11,7 @@ import (
 	buildahDefine "github.com/containers/buildah/define"
 	buildahCLI "github.com/containers/buildah/pkg/cli"
 	"github.com/containers/buildah/pkg/parse"
+	buildahUtil "github.com/containers/buildah/pkg/util"
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
@@ -357,6 +358,12 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		if err := auth.CheckAuthFile(flags.Authfile); err != nil {
 			return nil, err
 		}
+	}
+
+	cleanTmpFile := false
+	flags.Authfile, cleanTmpFile = buildahUtil.MirrorToTempFileIfPathIsDescriptor(flags.Authfile)
+	if cleanTmpFile {
+		defer os.Remove(flags.Authfile)
 	}
 
 	args := make(map[string]string)
