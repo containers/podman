@@ -483,14 +483,18 @@ func (p *PodmanTestIntegration) Cleanup() {
 	// Remove all containers
 	stopall := p.Podman([]string{"stop", "-a", "--time", "0"})
 	stopall.WaitWithDefaultTimeout()
+	Expect(stopall).Should(Exit(0))
 
 	podstop := p.Podman([]string{"pod", "stop", "-a", "-t", "0"})
 	podstop.WaitWithDefaultTimeout()
+	Expect(podstop).Should(Exit(0))
 	podrm := p.Podman([]string{"pod", "rm", "-fa"})
 	podrm.WaitWithDefaultTimeout()
+	Expect(podrm).Should(Exit(0))
 
 	session := p.Podman([]string{"rm", "-fa"})
 	session.WaitWithDefaultTimeout()
+	Expect(session).Should(Exit(0))
 
 	p.StopRemoteService()
 	// Nuke tempdir
@@ -507,6 +511,7 @@ func (p *PodmanTestIntegration) CleanupVolume() {
 	// Remove all containers
 	session := p.Podman([]string{"volume", "rm", "-fa"})
 	session.Wait(90)
+	Expect(session).Should(Exit(0))
 
 	p.Cleanup()
 }
@@ -516,6 +521,7 @@ func (p *PodmanTestIntegration) CleanupSecrets() {
 	// Remove all containers
 	session := p.Podman([]string{"secret", "rm", "-a"})
 	session.Wait(90)
+	Expect(session).Should(Exit(0))
 
 	// Stop remove service on secret cleanup
 	p.StopRemoteService()
