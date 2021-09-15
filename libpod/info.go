@@ -288,6 +288,7 @@ func (r *Runtime) storeInfo() (*define.StoreInfo, error) {
 
 	info := define.StoreInfo{
 		ImageStore:      imageInfo,
+		ImageCopyTmpDir: os.Getenv("TMPDIR"),
 		ContainerStore:  conInfo,
 		GraphRoot:       r.store.GraphRoot(),
 		RunRoot:         r.store.RunRoot(),
