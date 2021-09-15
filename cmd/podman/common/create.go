@@ -660,18 +660,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(mountFlagName, AutocompleteMountFlag)
 
-		volumeDesciption := "Bind mount a volume into the container"
-		if registry.IsRemote() {
-			volumeDesciption = "Bind mount a volume into the container. Volume src will be on the server machine, not the client"
-		}
-		volumeFlagName := "volume"
-		createFlags.StringArrayVarP(
-			&cf.Volume,
-			volumeFlagName, "v", volumes(),
-			volumeDesciption,
-		)
-		_ = cmd.RegisterFlagCompletionFunc(volumeFlagName, AutocompleteVolumeFlag)
-
 		volumesFromFlagName := "volumes-from"
 		createFlags.StringArrayVar(
 			&cf.VolumesFrom,
@@ -865,4 +853,16 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		"PID namespace to use",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(pidFlagName, AutocompleteNamespace)
+
+	volumeDesciption := "Bind mount a volume into the container"
+	if registry.IsRemote() {
+		volumeDesciption = "Bind mount a volume into the container. Volume source will be on the server machine, not the client"
+	}
+	volumeFlagName := "volume"
+	createFlags.StringArrayVarP(
+		&cf.Volume,
+		volumeFlagName, "v", volumes(),
+		volumeDesciption,
+	)
+	_ = cmd.RegisterFlagCompletionFunc(volumeFlagName, AutocompleteVolumeFlag)
 }

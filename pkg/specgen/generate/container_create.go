@@ -28,15 +28,27 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		return nil, nil, nil, err
 	}
 
-	// If joining a pod, retrieve the pod for use.
+	// If joining a pod, retrieve the pod for use, and its infra container
 	var pod *libpod.Pod
+	var cont *libpod.Container
+	var config *libpod.ContainerConfig
 	if s.Pod != "" {
 		pod, err = rt.LookupPod(s.Pod)
 		if err != nil {
 			return nil, nil, nil, errors.Wrapf(err, "error retrieving pod %s", s.Pod)
 		}
+		if pod.HasInfraContainer() {
+			cont, err = pod.InfraContainer()
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			config = cont.Config()
+		}
 	}
 
+	if config != nil && (len(config.NamedVolumes) > 0 || len(config.UserVolumes) > 0 || len(config.ImageVolumes) > 0 || len(config.OverlayVolumes) > 0) {
+		s.VolumesFrom = append(s.VolumesFrom, config.ID)
+	}
 	// Set defaults for unset namespaces
 	if s.PidNS.IsDefault() {
 		defaultNS, err := GetDefaultNamespaceMode("pid", rtc, pod)

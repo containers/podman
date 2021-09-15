@@ -72,6 +72,22 @@ type PodBasicConfig struct {
 	// Any containers created within the pod will inherit the pod's userns settings.
 	// Optional
 	Userns Namespace `json:"userns,omitempty"`
+	// Mounts are mounts that will be added to the pod.
+	// These will supersede Image Volumes and VolumesFrom (WIP) volumes where
+	// there are conflicts.
+	// Optional.
+	Mounts []spec.Mount `json:"mounts,omitempty"`
+	// Volumes are named volumes that will be added to the pod.
+	// These will supersede Image Volumes and VolumesFrom  (WIP) volumes where
+	// there are conflicts.
+	// Optional.
+	Volumes []*NamedVolume `json:"volumes,omitempty"`
+	// Overlay volumes are named volumes that will be added to the pod.
+	// Optional.
+	OverlayVolumes []*OverlayVolume `json:"overlay_volumes,omitempty"`
+	// Image volumes bind-mount a container-image mount into the pod's infra container.
+	// Optional.
+	ImageVolumes []*ImageVolume `json:"image_volumes,omitempty"`
 }
 
 // PodNetworkConfig contains networking configuration for a pod.

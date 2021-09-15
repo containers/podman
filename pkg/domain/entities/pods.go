@@ -131,6 +131,7 @@ type PodCreateOptions struct {
 	Cpus               float64
 	CpusetCpus         string
 	Userns             specgen.Namespace
+	Volume             []string
 }
 
 // PodLogsOptions describes the options to extract pod logs.
