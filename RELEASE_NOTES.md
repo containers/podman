@@ -60,6 +60,7 @@
 - Fixed a bug where the remote Podman client would error when STDOUT was redirected on a Windows client ([#11444](https://github.com/containers/podman/issues/11444)).
 - Fixed a bug where the `podman run` command could return 0 when the application in the container exited with 125 ([#11540](https://github.com/containers/podman/issues/11540)).
 - Fixed a bug where containers with `--restart=always` set using the rootlessport port-forwarding service could not be restarted automatically.
+- Fixed a bug where the `--cgroups=split` option to `podman create` and `podman run` was silently discarded if the container was part of a pod.
 
 ### API
 - The Libpod Pull endpoint for Images now has a new query parameter, `quiet`, which (when set to true) suppresses image pull progress reports ([#10612](https://github.com/containers/podman/issues/10612)).
@@ -71,6 +72,12 @@
 - Fixed a bug where the X-Registry-Config header was not properly handled, leading to errors when pulling images ([#11235](https://github.com/containers/podman/issues/11235)).
 - Fixed a bug where invalid query parameters could cause a null pointer dereference when creating error messages.
 - Logging of API requests and responses at trace level has been greatly improved, including the addition of an X-Reference-Id header to correlate requests and responses ([#10053](https://github.com/containers/podman/issues/10053)).
+
+### Misc
+- Updated Buildah to v1.23.0
+- Updated the containers/storage library to v1.36.0
+- Updated the containers/image library to v5.16.0
+- Updated the containers/common library to v0.44.0
 
 ## 3.3.1
 ### Bugfixes
