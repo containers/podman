@@ -132,7 +132,6 @@ func create(cmd *cobra.Command, args []string) error {
 		createOptions.Share = nil
 	} else {
 		// reassign certain optios for lbpod api, these need to be populated in spec
-		MapOptions()
 		flags := cmd.Flags()
 		infraOptions.Net, err = common.NetFlagsToNetOptions(nil, *flags, false)
 		if err != nil {
@@ -142,13 +141,11 @@ func create(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		createOptions.Net = infraOptions.Net
 		createOptions.Share = strings.Split(share, ",")
 		if cmd.Flag("infra-command").Changed {
 			// Only send content to server side if user changed defaults
 			cmdIn, err := cmd.Flags().GetString("infra-command")
 			infraOptions.Entrypoint = &cmdIn
-			createOptions.InfraCommand = cmdIn
 			if err != nil {
 				return err
 			}
@@ -160,6 +157,10 @@ func create(cmd *cobra.Command, args []string) error {
 			if err != nil {
 				return err
 			}
+		}
+		err = common.ContainerToPodOptions(&infraOptions, &createOptions)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -196,8 +197,8 @@ func create(cmd *cobra.Command, args []string) error {
 	if createOptions.Cpus > float64(numCPU) {
 		createOptions.Cpus = float64(numCPU)
 	}
-	copy := createOptions.CpusetCpus
-	cpuSet := createOptions.Cpus
+	copy := infraOptions.CPUSetCPUs
+	cpuSet := infraOptions.CPUS
 	if cpuSet == 0 {
 		cpuSet = float64(sysinfo.NumCPU())
 	}
@@ -217,10 +218,10 @@ func create(cmd *cobra.Command, args []string) error {
 		if core > int(cpuSet) {
 			if copy == "" {
 				copy = "0-" + strconv.Itoa(int(cpuSet))
-				createOptions.CpusetCpus = copy
+				infraOptions.CPUSetCPUs = copy
 				break
 			} else {
-				createOptions.CpusetCpus = copy
+				infraOptions.CPUSetCPUs = copy
 				break
 			}
 		} else if ind != 0 {
@@ -229,6 +230,8 @@ func create(cmd *cobra.Command, args []string) error {
 			copy = "" + strconv.Itoa(core)
 		}
 	}
+	createOptions.Cpus = infraOptions.CPUS
+	createOptions.CpusetCpus = infraOptions.CPUSetCPUs
 	podSpec := specgen.NewPodSpecGenerator()
 	podSpec, err = entities.ToPodSpecGen(*podSpec, &createOptions)
 	if err != nil {
@@ -248,11 +251,8 @@ func create(cmd *cobra.Command, args []string) error {
 		}
 		podSpec.InfraImage = imageName
 		if infraOptions.Entrypoint != nil {
-			createOptions.InfraCommand = *infraOptions.Entrypoint
+			createOptions.InfraCommand = infraOptions.Entrypoint
 		}
-		infraOptions.CPUS = createOptions.Cpus
-		infraOptions.CPUSetCPUs = createOptions.CpusetCpus
-		infraOptions.PID = createOptions.Pid
 		podSpec.InfraContainerSpec = specgen.NewSpecGenerator(imageName, false)
 		podSpec.InfraContainerSpec.RawImageName = rawImageName
 		podSpec.InfraContainerSpec.NetworkOptions = podSpec.NetworkOptions
@@ -289,14 +289,4 @@ func replacePod(name string) error {
 		Ignore: true, // ignore if pod doesn't exist
 	}
 	return removePods([]string{name}, rmOptions, false)
-}
-
-func MapOptions() {
-	createOptions.Cpus = infraOptions.CPUS
-	createOptions.CpusetCpus = infraOptions.CPUSetCPUs
-	createOptions.Hostname = infraOptions.Hostname
-	createOptions.InfraConmonPidFile = infraOptions.ConmonPIDFile
-	createOptions.InfraName = infraOptions.Name
-	createOptions.Pid = infraOptions.PID
-	createOptions.Volume = infraOptions.Volume
 }
