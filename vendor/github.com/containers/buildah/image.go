@@ -393,9 +393,18 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 			rc.Close()
 			return nil, errors.Wrapf(err, "error opening file for %s", what)
 		}
-		destHasher := digest.Canonical.Digester()
+
 		counter := ioutils.NewWriteCounter(layerFile)
-		multiWriter := io.MultiWriter(counter, destHasher.Hash())
+		var destHasher digest.Digester
+		var multiWriter io.Writer
+		// Avoid rehashing when we do not compress.
+		if i.compression != archive.Uncompressed {
+			destHasher = digest.Canonical.Digester()
+			multiWriter = io.MultiWriter(counter, destHasher.Hash())
+		} else {
+			destHasher = srcHasher
+			multiWriter = counter
+		}
 		// Compress the layer, if we're recompressing it.
 		writeCloser, err := archive.CompressStream(multiWriter, i.compression)
 		if err != nil {

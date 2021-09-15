@@ -245,7 +245,7 @@ func GetBuildInfo(b *Builder) BuilderInfo {
 	}
 }
 
-// CommonBuildOptions are resources that can be defined by flags for both buildah from and build-using-dockerfile
+// CommonBuildOptions are resources that can be defined by flags for both buildah from and build
 type CommonBuildOptions = define.CommonBuildOptions
 
 // BuilderOptions are used to initialize a new Builder.

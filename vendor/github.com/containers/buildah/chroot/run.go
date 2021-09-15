@@ -31,8 +31,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/syndtr/gocapability/capability"
-	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/sys/unix"
+	"golang.org/x/term"
 )
 
 const (
@@ -138,13 +138,13 @@ func RunUsingChroot(spec *specs.Spec, bundlePath, homeDir string, stdin io.Reade
 
 	// Set our terminal's mode to raw, to pass handling of special
 	// terminal input to the terminal in the container.
-	if spec.Process.Terminal && terminal.IsTerminal(unix.Stdin) {
-		state, err := terminal.MakeRaw(unix.Stdin)
+	if spec.Process.Terminal && term.IsTerminal(unix.Stdin) {
+		state, err := term.MakeRaw(unix.Stdin)
 		if err != nil {
 			logrus.Warnf("error setting terminal state: %v", err)
 		} else {
 			defer func() {
-				if err = terminal.Restore(unix.Stdin, state); err != nil {
+				if err = term.Restore(unix.Stdin, state); err != nil {
 					logrus.Errorf("unable to restore terminal state: %v", err)
 				}
 			}()
@@ -275,7 +275,7 @@ func runUsingChrootMain() {
 			winsize.Row = uint16(options.Spec.Process.ConsoleSize.Height)
 			winsize.Col = uint16(options.Spec.Process.ConsoleSize.Width)
 		} else {
-			if terminal.IsTerminal(unix.Stdin) {
+			if term.IsTerminal(unix.Stdin) {
 				// Use the size of our terminal.
 				winsize, err = unix.IoctlGetWinsize(unix.Stdin, unix.TIOCGWINSZ)
 				if err != nil {

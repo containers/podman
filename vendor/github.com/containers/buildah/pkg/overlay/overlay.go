@@ -144,6 +144,7 @@ func mountHelper(contentDir, source, dest string, _, _ int, graphOptions []strin
 			return mount, nil
 		}
 		/* If a mount_program is not specified, fallback to try mount native overlay.  */
+		overlayOptions = fmt.Sprintf("%s,userxattr", overlayOptions)
 	}
 
 	mount.Source = mergeDir
