@@ -343,4 +343,13 @@ var _ = Describe("Podman network create", func() {
 		Expect(nc.OutputToString()).ToNot(ContainSubstring("dnsname"))
 	})
 
+	It("podman network create with invalid name", func() {
+		for _, name := range []string{"none", "host", "bridge", "private", "slirp4netns", "container", "ns"} {
+			nc := podmanTest.Podman([]string{"network", "create", name})
+			nc.WaitWithDefaultTimeout()
+			Expect(nc).To(Exit(125))
+			Expect(nc.ErrorToString()).To(ContainSubstring("cannot create network with name %q because it conflicts with a valid network mode", name))
+		}
+	})
+
 })

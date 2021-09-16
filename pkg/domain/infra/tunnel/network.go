@@ -62,12 +62,12 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 	return reports, nil
 }
 
-func (ic *ContainerEngine) NetworkCreate(ctx context.Context, net types.Network) (*entities.NetworkCreateReport, error) {
+func (ic *ContainerEngine) NetworkCreate(ctx context.Context, net types.Network) (*types.Network, error) {
 	net, err := network.Create(ic.ClientCtx, &net)
 	if err != nil {
 		return nil, err
 	}
-	return &entities.NetworkCreateReport{Name: net.Name}, nil
+	return &net, nil
 }
 
 // NetworkDisconnect removes a container from a given network

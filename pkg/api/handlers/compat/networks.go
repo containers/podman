@@ -224,7 +224,8 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 		// FIXME can we use the IPAM driver and options?
 	}
 
-	network, err := runtime.Network().NetworkCreate(network)
+	ic := abi.ContainerEngine{Libpod: runtime}
+	newNetwork, err := ic.NetworkCreate(r.Context(), network)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
@@ -234,7 +235,7 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 		ID      string `json:"Id"`
 		Warning []string
 	}{
-		ID: network.ID,
+		ID: newNetwork.ID,
 	}
 	utils.WriteResponse(w, http.StatusCreated, body)
 }
