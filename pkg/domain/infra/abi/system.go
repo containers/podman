@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/domain/entities"
@@ -121,7 +120,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool) 
 
 	became, ret, err = rootless.TryJoinFromFilePaths(pausePidPath, true, paths)
 
-	if err := movePauseProcessToScope(ic.Libpod); err != nil {
+	if err := movePauseProcessToScope(pausePidPath); err != nil {
 		conf, err2 := ic.Config(context.Background())
 		if err2 != nil {
 			return err
@@ -142,15 +141,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool) 
 	return nil
 }
 
-func movePauseProcessToScope(r *libpod.Runtime) error {
-	tmpDir, err := r.TmpDir()
-	if err != nil {
-		return err
-	}
-	pausePidPath, err := util.GetRootlessPauseProcessPidPathGivenDir(tmpDir)
-	if err != nil {
-		return errors.Wrapf(err, "could not get pause process pid file path")
-	}
+func movePauseProcessToScope(pausePidPath string) error {
 	data, err := ioutil.ReadFile(pausePidPath)
 	if err != nil {
 		return errors.Wrapf(err, "cannot read pause pid file")
