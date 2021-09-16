@@ -107,12 +107,9 @@ LIBSECCOMP_COMMIT := v2.3.3
 # caller may override in special circumstances if needed.
 GINKGOTIMEOUT ?= -timeout=90m
 
-RELEASE_VERSION ?= $(shell hack/get_release_info.sh VERSION)
-RELEASE_NUMBER ?= $(shell hack/get_release_info.sh NUMBER|sed -e 's/^v\(.*\)/\1/')
-RELEASE_DIST ?= $(shell hack/get_release_info.sh DIST)
-RELEASE_DIST_VER ?= $(shell hack/get_release_info.sh DIST_VER)
-RELEASE_ARCH ?= $(shell hack/get_release_info.sh ARCH)
-RELEASE_BASENAME := $(shell hack/get_release_info.sh BASENAME)
+# Conditional required to produce empty-output if binary not built yet.
+RELEASE_VERSION = $(shell if test -x test/version/version; then test/version/version; fi)
+RELEASE_NUMBER = $(shell echo "$(RELEASE_VERSION)" | sed -e 's/^v\(.*\)/\1/')
 
 # If non-empty, logs all output from server during remote system testing
 PODMAN_SERVER_LOG ?=
@@ -255,6 +252,9 @@ volume-plugin-test-img:
 .PHONY: test/goecho/goecho
 test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
 	$(GO) build $(BUILDFLAGS) -ldflags '$(LDFLAGS_PODMAN)' -o $@ ./test/goecho
+
+test/version/version: .gopathok version/version.go
+	$(GO) build -o $@ ./test/version/
 
 .PHONY: codespell
 codespell:
@@ -491,7 +491,7 @@ run-docker-py-tests:
 	-rm test/__init__.py
 
 .PHONY: localunit
-localunit: test/goecho/goecho
+localunit: test/goecho/goecho test/version/version
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
 	$(GOBIN)/ginkgo \
 		-r \
@@ -581,7 +581,8 @@ system.test-binary: .install.ginkgo
 	$(GO) test -c ./test/system
 
 .PHONY: test-binaries
-test-binaries: test/checkseccomp/checkseccomp test/goecho/goecho install.catatonit
+test-binaries: test/checkseccomp/checkseccomp test/goecho/goecho install.catatonit test/version/version
+	@echo "Canonical source version: $(call err_if_empty,RELEASE_VERSION)"
 
 .PHONY: tests-included
 tests-included:
@@ -601,18 +602,18 @@ tests-expect-exit:
 ### Release/Packaging targets
 ###
 
-podman-release.tar.gz: binaries docs  ## Build all binaries, docs., and installation tree, into a tarball.
+podman-release.tar.gz: test/version/version binaries docs  ## Build all binaries, docs., and installation tree, into a tarball.
 	$(eval TMPDIR := $(shell mktemp -d podman_tmp_XXXX))
-	$(eval SUBDIR := podman-v$(RELEASE_NUMBER))
+	$(eval SUBDIR := podman-v$(call err_if_empty,RELEASE_NUMBER))
 	mkdir -p "$(TMPDIR)/$(SUBDIR)"
-	$(MAKE) install.bin install.man \
+	$(MAKE) install.bin install.remote install.man \
 		install.systemd "DESTDIR=$(TMPDIR)/$(SUBDIR)" "PREFIX=/usr"
 	tar -czvf $@ --xattrs -C "$(TMPDIR)" "./$(SUBDIR)"
 	-rm -rf "$(TMPDIR)"
 
-podman-remote-release-%.zip: podman-remote-% install-podman-remote-%-docs  ## Build podman-remote for GOOS=%, docs., and installation zip.
+podman-remote-release-%.zip: test/version/version podman-remote-% install-podman-remote-%-docs  ## Build podman-remote for GOOS=%, docs., and installation zip.
 	$(eval TMPDIR := $(shell mktemp -d podman_tmp_XXXX))
-	$(eval SUBDIR := podman-$(RELEASE_NUMBER))
+	$(eval SUBDIR := podman-$(call err_if_empty,RELEASE_NUMBER))
 	mkdir -p "$(TMPDIR)/$(SUBDIR)"
 	$(MAKE) \
 		GOOS=$* \
@@ -627,14 +628,15 @@ podman-remote-release-%.zip: podman-remote-% install-podman-remote-%-docs  ## Bu
 	-rm -rf "$(TMPDIR)"
 
 .PHONY: podman.msi
-podman.msi: podman-v$(RELEASE_NUMBER).msi  ## Build podman-remote, package for installation on Windows
+podman.msi: test/version/version  ## Build podman-remote, package for installation on Windows
+	$(MAKE) podman-v$(RELEASE_NUMBER).msi
 podman-v$(RELEASE_NUMBER).msi: podman-remote-windows install-podman-remote-windows-docs
 	$(eval DOCFILE := docs/build/remote/windows)
 	find $(DOCFILE) -print | \
 		wixl-heat --var var.ManSourceDir --component-group ManFiles \
 		--directory-ref INSTALLDIR --prefix $(DOCFILE)/ > \
 			$(DOCFILE)/pages.wsx
-	wixl -D VERSION=$(RELEASE_VERSION) -D ManSourceDir=$(DOCFILE) \
+	wixl -D VERSION=$(call err_if_empty,RELEASE_VERSION) -D ManSourceDir=$(DOCFILE) \
 		-o $@ contrib/msi/podman.wxs $(DOCFILE)/pages.wsx
 
 .PHONY: package
@@ -832,6 +834,7 @@ clean: ## Clean all make artifacts
 		build \
 		test/checkseccomp/checkseccomp \
 		test/goecho/goecho \
+		test/version/version \
 		test/__init__.py \
 		test/testdata/redis-image \
 		libpod/container_ffjson.go \
