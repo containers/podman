@@ -107,12 +107,15 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 	return reports, nil
 }
 
-func (ic *ContainerEngine) NetworkCreate(ctx context.Context, network types.Network) (*entities.NetworkCreateReport, error) {
+func (ic *ContainerEngine) NetworkCreate(ctx context.Context, network types.Network) (*types.Network, error) {
+	if util.StringInSlice(network.Name, []string{"none", "host", "bridge", "private", "slirp4netns", "container", "ns"}) {
+		return nil, errors.Errorf("cannot create network with name %q because it conflicts with a valid network mode", network.Name)
+	}
 	network, err := ic.Libpod.Network().NetworkCreate(network)
 	if err != nil {
 		return nil, err
 	}
-	return &entities.NetworkCreateReport{Name: network.Name}, nil
+	return &network, nil
 }
 
 // NetworkDisconnect removes a container from a given network
