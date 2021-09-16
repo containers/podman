@@ -234,7 +234,7 @@ Storing signatures
 ```
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-push(1)](podman-push.1.md)**, **[podman-login(1)](podman-login.1.md)**, **[containers-certs.d(5](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)**, **[containers-registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.d.5.md)**, **[containers-transports(5)](https://github.com/containers/image/blob/main/docs/containers-transports.5.md)**
+**[podman(1)](podman.1.md)**, **[podman-push(1)](podman-push.1.md)**, **[podman-login(1)](podman-login.1.md)**, **[containers-certs.d(5)](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)**, **[containers-registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.d.5.md)**, **[containers-transports(5)](https://github.com/containers/image/blob/main/docs/containers-transports.5.md)**
 
 ## HISTORY
 July 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

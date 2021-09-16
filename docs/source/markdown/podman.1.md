@@ -276,7 +276,7 @@ the exit codes follow the `chroot` standard, see below:
 
 **containers.conf** (`/usr/share/containers/containers.conf`, `/etc/containers/containers.conf`, `$HOME/.config/containers/containers.conf`)
 
-    Podman has builtin defaults for command line options. These defaults can be overridden using the containers.conf configuration files.
+Podman has builtin defaults for command line options. These defaults can be overridden using the containers.conf configuration files.
 
 Distributions ship the `/usr/share/containers/containers.conf` file with their default settings. Administrators can override fields in this file by creating the `/etc/containers/containers.conf` file.  Users can further modify defaults by creating the `$HOME/.config/containers/containers.conf` file. Podman merges its builtin defaults with the specified fields from these files, if they exist. Fields specified in the users file override the administrator's file, which overrides the distribution's file, which override the built-in defaults.
 
@@ -286,31 +286,31 @@ If the **CONTAINERS_CONF** environment variable is set, then its value is used f
 
 **mounts.conf** (`/usr/share/containers/mounts.conf`)
 
-    The mounts.conf file specifies volume mount directories that are automatically mounted inside containers when executing the `podman run` or `podman start` commands. Administrators can override the defaults file by creating `/etc/containers/mounts.conf`.
+The mounts.conf file specifies volume mount directories that are automatically mounted inside containers when executing the `podman run` or `podman start` commands. Administrators can override the defaults file by creating `/etc/containers/mounts.conf`.
 
 When Podman runs in rootless mode, the file `$HOME/.config/containers/mounts.conf` will override the default if it exists. Please refer to containers-mounts.conf(5) for further details.
 
 **policy.json** (`/etc/containers/policy.json`)
 
-    Signature verification policy files are used to specify policy, e.g. trusted keys, applicable when deciding whether to accept an image, or individual signatures of that image, as valid.
+Signature verification policy files are used to specify policy, e.g. trusted keys, applicable when deciding whether to accept an image, or individual signatures of that image, as valid.
 
 **registries.conf** (`/etc/containers/registries.conf`, `$HOME/.config/containers/registries.conf`)
 
-    registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
+registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
 
-    Non root users of Podman can create the `$HOME/.config/containers/registries.conf` file to be used instead of the system defaults.
+Non root users of Podman can create the `$HOME/.config/containers/registries.conf` file to be used instead of the system defaults.
 
-    If the **CONTAINERS_REGISTRIES_CONF** environment variable is set, then its value is used for the registries.conf file rather than the default.
+If the **CONTAINERS_REGISTRIES_CONF** environment variable is set, then its value is used for the registries.conf file rather than the default.
 
 **storage.conf** (`/etc/containers/storage.conf`, `$HOME/.config/containers/storage.conf`)
 
-    storage.conf is the storage configuration file for all tools using containers/storage
+storage.conf is the storage configuration file for all tools using containers/storage
 
-    The storage configuration file specifies all of the available container storage options for tools using shared container storage.
+The storage configuration file specifies all of the available container storage options for tools using shared container storage.
 
-    When Podman runs in rootless mode, the file `$HOME/.config/containers/storage.conf` is used instead of the system defaults.
+When Podman runs in rootless mode, the file `$HOME/.config/containers/storage.conf` is used instead of the system defaults.
 
-    If the **CONTAINERS_STORAGE_CONF** environment variable is set, the its value is used for the storage.conf file rather than the default.
+If the **CONTAINERS_STORAGE_CONF** environment variable is set, the its value is used for the storage.conf file rather than the default.
 
 ## Rootless mode
 Podman can also be used as non-root user. When podman runs in rootless mode, a user namespace is automatically created for the user, defined in /etc/subuid and /etc/subgid.
