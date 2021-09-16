@@ -21,3 +21,4 @@ clean:
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
 %: Makefile
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	find $(BUILDDIR) -name 'podman*.html' | xargs sed -ie 's/\(href="podman[^"]\+\)\.md"/\1.html"/'
