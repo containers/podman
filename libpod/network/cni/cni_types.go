@@ -50,7 +50,7 @@ type hostLocalBridge struct {
 	PromiscMode  bool            `json:"promiscMode,omitempty"`
 	Vlan         int             `json:"vlan,omitempty"`
 	IPAM         ipamConfig      `json:"ipam"`
-	Capabilities map[string]bool `json:"capabilities"`
+	Capabilities map[string]bool `json:"capabilities,omitempty"`
 }
 
 // ipamConfig describes an IPAM configuration
@@ -88,7 +88,8 @@ type macVLANConfig struct {
 	Master       string          `json:"master"`
 	IPAM         ipamConfig      `json:"ipam"`
 	MTU          int             `json:"mtu,omitempty"`
-	Capabilities map[string]bool `json:"capabilities"`
+	Mode         string          `json:"mode,omitempty"`
+	Capabilities map[string]bool `json:"capabilities,omitempty"`
 }
 
 // firewallConfig describes the firewall plugin
@@ -260,13 +261,16 @@ func hasDNSNamePlugin(paths []string) bool {
 }
 
 // newMacVLANPlugin creates a macvlanconfig with a given device name
-func newMacVLANPlugin(device string, mtu int, ipam ipamConfig) macVLANConfig {
+func newMacVLANPlugin(device, mode string, mtu int, ipam ipamConfig) macVLANConfig {
 	m := macVLANConfig{
 		PluginType: "macvlan",
 		IPAM:       ipam,
 	}
 	if mtu > 0 {
 		m.MTU = mtu
+	}
+	if len(mode) > 0 {
+		m.Mode = mode
 	}
 	// CNI is supposed to use the default route if a
 	// parent device is not provided

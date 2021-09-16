@@ -32,9 +32,14 @@ As rootless the `macvlan` driver has no access to the host network interfaces be
 
 Set driver specific options.
 
-For the `bridge` driver the following options are supported: `mtu` and `vlan`.
-The `mtu` option sets the Maximum Transmission Unit (MTU) and takes an integer value.
-The `vlan` option assign VLAN tag and enables vlan\_filtering. Defaults to none.
+All drivers accept the `mtu` option. The `mtu` option sets the Maximum Transmission Unit (MTU) and takes an integer value.
+
+Additionally the `bridge` driver supports the following option:
+- `vlan`: This option assign VLAN tag and enables vlan\_filtering. Defaults to none.
+
+The `macvlan` driver supports the following options:
+- `parent`: The host device which should be used for the macvlan interface. Defaults to the default route interface.
+- `mode`: This options sets the specified macvlan mode on the interface. Supported values are `bridge`, `private`, `vepa`, `passthru`. Defaults to `bridge`.
 
 #### **--gateway**
 

@@ -94,6 +94,10 @@ func createNetworkFromCNIConfigList(conf *libcni.NetworkConfigList, confPath str
 			network.Options["mtu"] = strconv.Itoa(macvlan.MTU)
 		}
 
+		if macvlan.Mode != "" {
+			network.Options["mode"] = macvlan.Mode
+		}
+
 		err = convertIPAMConfToNetwork(&network, macvlan.IPAM, confPath)
 		if err != nil {
 			return nil, err
@@ -237,6 +241,7 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 
 	vlan := 0
 	mtu := 0
+	macvlanMode := ""
 	for k, v := range network.Options {
 		switch k {
 		case "mtu":
@@ -250,6 +255,12 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 			if err != nil {
 				return nil, "", err
 			}
+
+		case "mode":
+			if !pkgutil.StringInSlice(v, []string{"", "bridge", "private", "vepa", "passthru"}) {
+				return nil, "", errors.Errorf("unknown macvlan mode %q", v)
+			}
+			macvlanMode = v
 
 		default:
 			return nil, "", errors.Errorf("unsupported network option %s", k)
@@ -281,7 +292,7 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 		}
 
 	case types.MacVLANNetworkDriver:
-		plugins = append(plugins, newMacVLANPlugin(network.NetworkInterface, mtu, ipamConf))
+		plugins = append(plugins, newMacVLANPlugin(network.NetworkInterface, macvlanMode, mtu, ipamConf))
 
 	default:
 		return nil, "", errors.Errorf("driver %q is not supported by cni", network.Driver)
