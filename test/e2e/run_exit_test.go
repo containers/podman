@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/containers/podman/v3/libpod/define"
@@ -62,5 +63,11 @@ var _ = Describe("Podman run exit", func() {
 		result := podmanTest.Podman([]string{"run", ALPINE, "sh", "-c", "exit 50"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(50))
+	})
+
+	It("podman run exit 125", func() {
+		result := podmanTest.Podman([]string{"run", ALPINE, "sh", "-c", fmt.Sprintf("exit %d", define.ExecErrorCodeGeneric)})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(define.ExecErrorCodeGeneric))
 	})
 })

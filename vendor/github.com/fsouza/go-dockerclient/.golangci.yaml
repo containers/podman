@@ -4,5 +4,5 @@ run:
 linters:
   disable-all: true
   enable:
-    - gofmt
-    - goimports
+    - gofumpt
+    - gci

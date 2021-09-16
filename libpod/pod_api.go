@@ -592,9 +592,6 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		infraConfig.StaticIP = infra.Config().ContainerNetworkConfig.StaticIP
 		infraConfig.NoManageResolvConf = infra.Config().UseImageResolvConf
 		infraConfig.NoManageHosts = infra.Config().UseImageHosts
-		infraConfig.CPUPeriod = p.CPUPeriod()
-		infraConfig.CPUQuota = p.CPUQuota()
-		infraConfig.CPUSetCPUs = p.ResourceLim().CPU.Cpus
 		infraConfig.PidNS = p.PidMode()
 		infraConfig.UserNS = p.UserNSMode()
 
@@ -642,9 +639,6 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		SharedNamespaces: sharesNS,
 		NumContainers:    uint(len(containers)),
 		Containers:       ctrs,
-		CPUSetCPUs:       p.ResourceLim().CPU.Cpus,
-		CPUPeriod:        p.CPUPeriod(),
-		CPUQuota:         p.CPUQuota(),
 	}
 
 	return &inspectData, nil

@@ -56,6 +56,13 @@ write_changelog()
 	echo >>.changelog.txt &&
 	cat changelog.txt >>.changelog.txt &&
 	mv -f .changelog.txt changelog.txt
+
+	echo "
+## v${VERSION} (${DATE})
+" >.CHANGELOG.md &&
+	git log --no-merges --format='    %s' "${LAST_TAG}..HEAD" >>.CHANGELOG.md &&
+	sed -i -e '/# Changelog/r .CHANGELOG.md'  CHANGELOG.md &&
+	rm -f .CHANGELOG.md
 }
 
 release_commit()
@@ -64,7 +71,10 @@ release_commit()
 	write_spec_version "${VERSION}" &&
 	write_spec_changelog "${VERSION}" &&
 	write_changelog &&
-	git commit -asm "Bump to v${VERSION}"
+	git commit -asm "Bump to v${VERSION}
+
+[NO TESTS NEEDED]
+"
 }
 
 dev_version_commit()
@@ -72,18 +82,24 @@ dev_version_commit()
 	write_go_version "${NEXT_VERSION}-dev" &&
 	write_spec_version "${NEXT_VERSION}-dev" &&
 	write_spec_changelog "${NEXT_VERSION}-dev" &&
-	git commit -asm "Bump to v${NEXT_VERSION}-dev"
+	git commit -asm "Bump to v${NEXT_VERSION}-dev
+
+[NO TESTS NEEDED]
+"
 }
 
 epoch_commit()
 {
 	LOCAL_EPOCH="$1"
 	write_makefile_epoch "${LOCAL_EPOCH}" &&
-	git commit -asm 'Bump gitvalidation epoch'
+	git commit -asm 'Bump gitvalidation epoch
+
+	[NO TESTS NEEDED]
+'
 }
 
 git fetch origin &&
-git checkout -b "bump-${VERSION}" origin/master &&
+git checkout -b "bump-${VERSION}" origin/main &&
 EPOCH=$(git rev-parse HEAD) &&
 release_commit &&
 git tag -s -m "version ${VERSION}" "v${VERSION}" &&

@@ -3,6 +3,9 @@
 package machine
 
 import (
+	"net/url"
+
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/pkg/machine"
 	"github.com/containers/podman/v3/pkg/machine/qemu"
@@ -44,6 +47,14 @@ func ssh(cmd *cobra.Command, args []string) error {
 
 	// Set the VM to default
 	vmName := defaultMachineName
+
+	// If we're not given a VM name, use the remote username from the connection config
+	if len(args) == 0 {
+		sshOpts.Username, err = remoteConnectionUsername()
+		if err != nil {
+			return err
+		}
+	}
 	// If len is greater than 0, it means we may have been
 	// provided the VM name.  If so, we check.  The VM name,
 	// if provided, must be in args[0].
@@ -57,16 +68,25 @@ func ssh(cmd *cobra.Command, args []string) error {
 			if validVM {
 				vmName = args[0]
 			} else {
+				sshOpts.Username, err = remoteConnectionUsername()
+				if err != nil {
+					return err
+				}
 				sshOpts.Args = append(sshOpts.Args, args[0])
 			}
 		}
 	}
+
 	// If len is greater than 1, it means we might have been
 	// given a vmname and args or just args
 	if len(args) > 1 {
 		if validVM {
 			sshOpts.Args = args[1:]
 		} else {
+			sshOpts.Username, err = remoteConnectionUsername()
+			if err != nil {
+				return err
+			}
 			sshOpts.Args = args
 		}
 	}
@@ -79,4 +99,21 @@ func ssh(cmd *cobra.Command, args []string) error {
 		return errors.Wrapf(err, "vm %s not found", vmName)
 	}
 	return vm.SSH(vmName, sshOpts)
+}
+
+func remoteConnectionUsername() (string, error) {
+	cfg, err := config.ReadCustomConfig()
+	if err != nil {
+		return "", err
+	}
+	dest, _, err := cfg.ActiveDestination()
+	if err != nil {
+		return "", err
+	}
+	uri, err := url.Parse(dest)
+	if err != nil {
+		return "", err
+	}
+	username := uri.User.String()
+	return username, nil
 }

@@ -23,12 +23,10 @@ type CliCommand struct {
 	Parent  *cobra.Command
 }
 
-const ExecErrorCodeGeneric = 125
-
 var (
 	cliCtx          context.Context
 	containerEngine entities.ContainerEngine
-	exitCode        = ExecErrorCodeGeneric
+	exitCode        = 0
 	imageEngine     entities.ImageEngine
 
 	// Commands holds the cobra.Commands to present to the user, including

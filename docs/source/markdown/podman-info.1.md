@@ -42,6 +42,7 @@ host:
   cpus: 8
   distribution:
     distribution: fedora
+    variant: workstation
     version: "34"
   eventLogger: journald
   hostname: localhost.localdomain

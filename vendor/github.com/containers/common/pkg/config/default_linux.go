@@ -13,6 +13,12 @@ const (
 	oldMaxSize = uint64(1048576)
 )
 
+// getDefaultRootlessNetwork returns the default rootless network configuration.
+// It is "slirp4netns" for Linux.
+func getDefaultRootlessNetwork() string {
+	return "slirp4netns"
+}
+
 // getDefaultProcessLimits returns the nproc for the current process in ulimits format
 // Note that nfile sometimes cannot be set to unlimited, and the limit is hardcoded
 // to (oldMaxSize) 1048576 (2^20), see: http://stackoverflow.com/a/1213069/1811501

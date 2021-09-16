@@ -1038,6 +1038,12 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// description: Remove images that are not being used by a container
 	// parameters:
 	//  - in: query
+	//    name: all
+	//    default: false
+	//    type: boolean
+	//    description: |
+	//      Remove all images not in use by containers, not just dangling ones
+	//  - in: query
 	//    name: filters
 	//    type: string
 	//    description: |

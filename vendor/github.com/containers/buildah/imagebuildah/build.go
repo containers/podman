@@ -11,18 +11,26 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/util"
+	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/manifest"
+	istorage "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/hashicorp/go-multierror"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/openshift/imagebuilder"
 	"github.com/openshift/imagebuilder/dockerfile/parser"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/semaphore"
 )
 
 const (
@@ -44,12 +52,19 @@ type Mount = specs.Mount
 type BuildOptions = define.BuildOptions
 
 // BuildDockerfiles parses a set of one or more Dockerfiles (which may be
-// URLs), creates a new Executor, and then runs Prepare/Execute/Commit/Delete
-// over the entire set of instructions.
-func BuildDockerfiles(ctx context.Context, store storage.Store, options define.BuildOptions, paths ...string) (string, reference.Canonical, error) {
+// URLs), creates one or more new Executors, and then runs
+// Prepare/Execute/Commit/Delete over the entire set of instructions.
+// If the Manifest option is set, returns the ID of the manifest list, else it
+// returns the ID of the built image, and if a name was assigned to it, a
+// canonical reference for that image.
+func BuildDockerfiles(ctx context.Context, store storage.Store, options define.BuildOptions, paths ...string) (id string, ref reference.Canonical, err error) {
 	if len(paths) == 0 {
 		return "", nil, errors.Errorf("error building: no dockerfiles specified")
 	}
+	if len(options.Platforms) > 1 && options.IIDFile != "" {
+		return "", nil, errors.Errorf("building multiple images, but iidfile %q can only be used to store one image ID", options.IIDFile)
+	}
+
 	logger := logrus.New()
 	if options.Err != nil {
 		logger.SetOutput(options.Err)
@@ -73,11 +88,12 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 			return "", nil, errors.Wrapf(err, "tag %s", tag)
 		}
 	}
+
 	for _, dfile := range paths {
 		var data io.ReadCloser
 
 		if strings.HasPrefix(dfile, "http://") || strings.HasPrefix(dfile, "https://") {
-			logrus.Debugf("reading remote Dockerfile %q", dfile)
+			logger.Debugf("reading remote Dockerfile %q", dfile)
 			resp, err := http.Get(dfile)
 			if err != nil {
 				return "", nil, err
@@ -106,7 +122,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 			if dinfo.Mode().IsDir() {
 				for _, file := range []string{"Containerfile", "Dockerfile"} {
 					f := filepath.Join(dfile, file)
-					logrus.Debugf("reading local %q", f)
+					logger.Debugf("reading local %q", f)
 					contents, err = os.Open(f)
 					if err == nil {
 						break
@@ -143,21 +159,166 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 		dockerfiles = append(dockerfiles, data)
 	}
 
-	mainNode, err := imagebuilder.ParseDockerfile(dockerfiles[0])
+	var files [][]byte
+	for _, dockerfile := range dockerfiles {
+		var b bytes.Buffer
+		if _, err := b.ReadFrom(dockerfile); err != nil {
+			return "", nil, err
+		}
+		files = append(files, b.Bytes())
+	}
+
+	if options.Jobs != nil && *options.Jobs != 0 {
+		options.JobSemaphore = semaphore.NewWeighted(int64(*options.Jobs))
+	}
+
+	manifestList := options.Manifest
+	options.Manifest = ""
+	type instance struct {
+		v1.Platform
+		ID string
+	}
+	var instances []instance
+	var instancesLock sync.Mutex
+
+	var builds multierror.Group
+	if options.SystemContext == nil {
+		options.SystemContext = &types.SystemContext{}
+	}
+
+	if len(options.Platforms) == 0 {
+		options.Platforms = append(options.Platforms, struct{ OS, Arch, Variant string }{
+			OS:   options.SystemContext.OSChoice,
+			Arch: options.SystemContext.ArchitectureChoice,
+		})
+	}
+
+	systemContext := options.SystemContext
+	for _, platform := range options.Platforms {
+		platformContext := *systemContext
+		platformContext.OSChoice = platform.OS
+		platformContext.ArchitectureChoice = platform.Arch
+		platformContext.VariantChoice = platform.Variant
+		platformOptions := options
+		platformOptions.SystemContext = &platformContext
+		logPrefix := ""
+		if len(options.Platforms) > 1 {
+			logPrefix = "[" + platform.OS + "/" + platform.Arch
+			if platform.Variant != "" {
+				logPrefix += "/" + platform.Variant
+			}
+			logPrefix += "] "
+		}
+		builds.Go(func() error {
+			thisID, thisRef, err := buildDockerfilesOnce(ctx, store, logger, logPrefix, platformOptions, paths, files)
+			if err != nil {
+				return err
+			}
+			id, ref = thisID, thisRef
+			instancesLock.Lock()
+			instances = append(instances, instance{
+				ID: thisID,
+				Platform: v1.Platform{
+					OS:           platformContext.OSChoice,
+					Architecture: platformContext.ArchitectureChoice,
+					Variant:      platformContext.VariantChoice,
+				},
+			})
+			instancesLock.Unlock()
+			return nil
+		})
+	}
+
+	if merr := builds.Wait(); merr != nil {
+		if merr.Len() == 1 {
+			return "", nil, merr.Errors[0]
+		}
+		return "", nil, merr.ErrorOrNil()
+	}
+
+	if manifestList != "" {
+		rt, err := libimage.RuntimeFromStore(store, nil)
+		if err != nil {
+			return "", nil, err
+		}
+		// Create the manifest list ourselves, so that it's not in a
+		// partially-populated state at any point if we're creating it
+		// fresh.
+		list, err := rt.LookupManifestList(manifestList)
+		if err != nil && errors.Cause(err) == storage.ErrImageUnknown {
+			list, err = rt.CreateManifestList(manifestList)
+		}
+		if err != nil {
+			return "", nil, err
+		}
+		// Add each instance to the list in turn.
+		storeTransportName := istorage.Transport.Name()
+		for _, instance := range instances {
+			instanceDigest, err := list.Add(ctx, storeTransportName+":"+instance.ID, nil)
+			if err != nil {
+				return "", nil, err
+			}
+			err = list.AnnotateInstance(instanceDigest, &libimage.ManifestListAnnotateOptions{
+				Architecture: instance.Architecture,
+				OS:           instance.OS,
+				Variant:      instance.Variant,
+			})
+			if err != nil {
+				return "", nil, err
+			}
+		}
+		id, ref = list.ID(), nil
+		// Put together a canonical reference
+		storeRef, err := istorage.Transport.NewStoreReference(store, nil, list.ID())
+		if err != nil {
+			return "", nil, err
+		}
+		imgSource, err := storeRef.NewImageSource(ctx, nil)
+		if err != nil {
+			return "", nil, err
+		}
+		defer imgSource.Close()
+		manifestBytes, _, err := imgSource.GetManifest(ctx, nil)
+		if err != nil {
+			return "", nil, err
+		}
+		manifestDigest, err := manifest.Digest(manifestBytes)
+		if err != nil {
+			return "", nil, err
+		}
+		img, err := store.Image(id)
+		if err != nil {
+			return "", nil, err
+		}
+		for _, name := range img.Names {
+			if named, err := reference.ParseNamed(name); err == nil {
+				if r, err := reference.WithDigest(reference.TrimNamed(named), manifestDigest); err == nil {
+					ref = r
+					break
+				}
+			}
+		}
+	}
+
+	return id, ref, nil
+}
+
+func buildDockerfilesOnce(ctx context.Context, store storage.Store, logger *logrus.Logger, logPrefix string, options define.BuildOptions, dockerfiles []string, dockerfilecontents [][]byte) (string, reference.Canonical, error) {
+	mainNode, err := imagebuilder.ParseDockerfile(bytes.NewReader(dockerfilecontents[0]))
 	if err != nil {
 		return "", nil, errors.Wrapf(err, "error parsing main Dockerfile: %s", dockerfiles[0])
 	}
 
 	warnOnUnsetBuildArgs(logger, mainNode, options.Args)
 
-	for _, d := range dockerfiles[1:] {
-		additionalNode, err := imagebuilder.ParseDockerfile(d)
+	for i, d := range dockerfilecontents[1:] {
+		additionalNode, err := imagebuilder.ParseDockerfile(bytes.NewReader(d))
 		if err != nil {
-			return "", nil, errors.Wrapf(err, "error parsing additional Dockerfile %s", d)
+			return "", nil, errors.Wrapf(err, "error parsing additional Dockerfile %s", dockerfiles[i])
 		}
 		mainNode.Children = append(mainNode.Children, additionalNode.Children...)
 	}
-	exec, err := NewExecutor(logger, store, options, mainNode)
+	exec, err := newExecutor(logger, logPrefix, store, options, mainNode)
 	if err != nil {
 		return "", nil, errors.Wrapf(err, "error creating build executor")
 	}

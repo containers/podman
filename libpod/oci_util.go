@@ -68,6 +68,12 @@ func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
 				return nil, errors.Wrapf(err, "cannot get file for UDP socket")
 			}
 			files = append(files, f)
+			// close the listener
+			// note that this does not affect the fd, see the godoc for server.File()
+			err = server.Close()
+			if err != nil {
+				logrus.Warnf("failed to close connection: %v", err)
+			}
 
 		case "tcp":
 			var (
@@ -96,6 +102,13 @@ func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
 				return nil, errors.Wrapf(err, "cannot get file for TCP socket")
 			}
 			files = append(files, f)
+			// close the listener
+			// note that this does not affect the fd, see the godoc for server.File()
+			err = server.Close()
+			if err != nil {
+				logrus.Warnf("failed to close connection: %v", err)
+			}
+
 		case "sctp":
 			if !notifySCTP {
 				notifySCTP = true
