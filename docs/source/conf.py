@@ -15,7 +15,6 @@
 # sys.path.insert(0, os.path.abspath('.'))
 
 import re
-from recommonmark.transform import AutoStructify
 
 # -- Project information -----------------------------------------------------
 
@@ -29,7 +28,7 @@ author = "team"
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ["sphinx_markdown_tables", "recommonmark"]
+extensions = ["myst_parser"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -63,27 +62,18 @@ html_css_files = [
 
 # -- Extension configuration -------------------------------------------------
 
+# IMPORTANT: explicitly unset the extensions, by default dollarmath is enabled.
+# We use the dollar sign as text and do not want it to be interpreted as math expression.
+myst_enable_extensions = []
+
 
 def convert_markdown_title(app, docname, source):
     # Process markdown files only
     docpath = app.env.doc2path(docname)
     if docpath.endswith(".md"):
-        # Convert pandoc title line into eval_rst block for recommonmark
-        source[0] = re.sub(r"^% (.*)", r"```eval_rst\n.. title:: \g<1>\n```", source[0])
+        # Convert pandoc title line into eval_rst block for myst_parser
+        source[0] = re.sub(r"^% (.*)", r"```{title} \g<1>\n```", source[0])
 
 
 def setup(app):
     app.connect("source-read", convert_markdown_title)
-
-    app.add_config_value(
-        "recommonmark_config",
-        {
-            "enable_eval_rst": True,
-            "enable_auto_doc_ref": False,
-            "enable_auto_toc_tree": False,
-            "enable_math": False,
-            "enable_inline_math": False,
-        },
-        True,
-    )
-    app.add_transform(AutoStructify)
