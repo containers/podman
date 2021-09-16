@@ -172,3 +172,28 @@ func RunsOnSystemd() bool {
 	})
 	return runsOnSystemd
 }
+
+func moveProcessToScope(pidPath, slice, scope string) error {
+	data, err := ioutil.ReadFile(pidPath)
+	if err != nil {
+		return errors.Wrapf(err, "cannot read pid file %s", pidPath)
+	}
+	pid, err := strconv.ParseUint(string(data), 10, 0)
+	if err != nil {
+		return errors.Wrapf(err, "cannot parse pid file %s", pidPath)
+	}
+	return RunUnderSystemdScope(int(pid), slice, scope)
+}
+
+// MovePauseProcessToScope moves the pause process used for rootless mode to keep the namespaces alive to
+// a separate scope.
+func MovePauseProcessToScope(pausePidPath string) {
+	err := moveProcessToScope(pausePidPath, "user.slice", "podman-pause.scope")
+	if err != nil {
+		if RunsOnSystemd() {
+			logrus.Warnf("Failed to add pause process to systemd sandbox cgroup: %v", err)
+		} else {
+			logrus.Debugf("Failed to add pause process to systemd sandbox cgroup: %v", err)
+		}
+	}
+}

@@ -3,12 +3,10 @@ package abi
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod/define"
@@ -114,14 +112,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool) 
 	}
 
 	became, ret, err = rootless.TryJoinFromFilePaths(pausePidPath, true, paths)
-
-	if err := movePauseProcessToScope(pausePidPath); err != nil {
-		if utils.RunsOnSystemd() {
-			logrus.Warnf("Failed to add pause process to systemd sandbox cgroup: %v", err)
-		} else {
-			logrus.Debugf("Failed to add pause process to systemd sandbox cgroup: %v", err)
-		}
-	}
+	utils.MovePauseProcessToScope(pausePidPath)
 	if err != nil {
 		logrus.Error(errors.Wrapf(err, "invalid internal status, try resetting the pause process with %q", os.Args[0]+" system migrate"))
 		os.Exit(1)
@@ -130,19 +121,6 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool) 
 		os.Exit(ret)
 	}
 	return nil
-}
-
-func movePauseProcessToScope(pausePidPath string) error {
-	data, err := ioutil.ReadFile(pausePidPath)
-	if err != nil {
-		return errors.Wrapf(err, "cannot read pause pid file")
-	}
-	pid, err := strconv.ParseUint(string(data), 10, 0)
-	if err != nil {
-		return errors.Wrapf(err, "cannot parse pid file %s", pausePidPath)
-	}
-
-	return utils.RunUnderSystemdScope(int(pid), "user.slice", "podman-pause.scope")
 }
 
 // SystemPrune removes unused data from the system. Pruning pods, containers, volumes and images.
