@@ -25,8 +25,8 @@ resolution.
 
 #### **--driver**, **-d**
 
-Driver to manage the network. Currently `bridge` and `macvlan` is supported. Defaults to `bridge`.
-As rootless the `macvlan` driver has no access to the host network interfaces because rootless networking requires a separate network namespace.
+Driver to manage the network. Currently `bridge`, `macvlan` and `ipvlan` are supported. Defaults to `bridge`.
+As rootless the `macvlan` and `ipvlan` driver have no access to the host network interfaces because rootless networking requires a separate network namespace.
 
 #### **--opt**=*option*, **-o**
 
@@ -37,9 +37,11 @@ All drivers accept the `mtu` option. The `mtu` option sets the Maximum Transmiss
 Additionally the `bridge` driver supports the following option:
 - `vlan`: This option assign VLAN tag and enables vlan\_filtering. Defaults to none.
 
-The `macvlan` driver supports the following options:
+The `macvlan` and `ipvlan` driver support the following options:
 - `parent`: The host device which should be used for the macvlan interface. Defaults to the default route interface.
-- `mode`: This options sets the specified macvlan mode on the interface. Supported values are `bridge`, `private`, `vepa`, `passthru`. Defaults to `bridge`.
+- `mode`: This options sets the specified ip/macvlan mode on the interface.
+  - Supported values for `macvlan` are `bridge`, `private`, `vepa`, `passthru`. Defaults to `bridge`.
+  - Supported values for `ipvlan` are `l2`, `l3`, `l3s`. Defaults to `l2`.
 
 #### **--gateway**
 

@@ -82,8 +82,8 @@ type portMapConfig struct {
 	Capabilities map[string]bool `json:"capabilities"`
 }
 
-// macVLANConfig describes the macvlan config
-type macVLANConfig struct {
+// VLANConfig describes the macvlan config
+type VLANConfig struct {
 	PluginType   string          `json:"type"`
 	Master       string          `json:"master"`
 	IPAM         ipamConfig      `json:"ipam"`
@@ -260,10 +260,10 @@ func hasDNSNamePlugin(paths []string) bool {
 	return false
 }
 
-// newMacVLANPlugin creates a macvlanconfig with a given device name
-func newMacVLANPlugin(device, mode string, mtu int, ipam ipamConfig) macVLANConfig {
-	m := macVLANConfig{
-		PluginType: "macvlan",
+// newVLANPlugin creates a macvlanconfig with a given device name
+func newVLANPlugin(pluginType, device, mode string, mtu int, ipam ipamConfig) VLANConfig {
+	m := VLANConfig{
+		PluginType: pluginType,
 		IPAM:       ipam,
 	}
 	if mtu > 0 {
