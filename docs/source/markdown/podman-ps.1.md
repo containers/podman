@@ -106,7 +106,7 @@ Omit the table headings from the listing of containers.
 
 #### **--no-trunc**
 
-Display the extended information
+Do not truncate the output (default *false*).
 
 #### **--pod**, **-p**
 
@@ -116,11 +116,10 @@ Display the pods the containers are associated with
 
 Print the numeric IDs of the containers only
 
-#### **--sort**
+#### **--sort**=*created*
 
 Sort by command, created, id, image, names, runningfor, size, or status",
 Note: Choosing size will sort by size of rootFs, not alphabetically like the rest of the options
-Default: created
 
 #### **--size**, **-s**
 

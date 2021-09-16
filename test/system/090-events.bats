@@ -25,6 +25,23 @@ load helpers
     is "$output" "$expect" "filtering just by label"
 }
 
+@test "truncate events" {
+    cname=test-$(random_string 30 | tr A-Z a-z)
+    labelname=$(random_string 10)
+    labelvalue=$(random_string 15)
+
+    run_podman run -d --name=$cname --rm $IMAGE echo hi
+    id="$output"
+
+    expect="$id"
+    run_podman events --filter container=$cname --filter event=start --stream=false
+    is "$output" ".* $id " "filtering by container name full id"
+
+    truncID=$(expr substr "$id" 1 12)
+    run_podman events --filter container=$cname --filter event=start --stream=false --no-trunc=false
+    is "$output" ".* $truncID " "filtering by container name trunc id"
+}
+
 @test "image events" {
     skip_if_remote "remote does not support --events-backend"
     pushedDir=$PODMAN_TMPDIR/dir
