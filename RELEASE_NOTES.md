@@ -7,7 +7,7 @@
 - The `podman play kube` command now supports building images. If the `--build` option is given and a directory with the name of the specified image exists in the current working directory and contains a valid Containerfile or Dockerfile, the image will be built and used for the container.
 - The `podman play kube` command now supports a new option, `--teardown`, which removes any pods and containers created by the given Kubernetes YAML.
 - A new command has been added, `podman pod logs`, to return logs for all containers in a pod at the same time.
-- Two new commands have been added, `podman volume export` (to export a volume to a tar file) and `podman volume import) (to populate a volume from a given tar file).
+- Two new commands have been added, `podman volume export` (to export a volume to a tar file) and `podman volume import`) (to populate a volume from a given tar file).
 - The `podman auto-update` command now supports simple rollbacks. If a container fails to start after an automatic update, it will be rolled back to the previous image and restarted again.
 - Pods now share their user namespace by default, and the `podman pod create` command now supports the `--userns` option. This allows rootless pods to be created with the `--userns=keep-id` option.
 - The `podman pod ps` command now supports a new filter with its `--filter` option, `until`, which returns pods created before a given timestamp.
