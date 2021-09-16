@@ -540,6 +540,15 @@ layers are not squashed.
 Squash all of the new image's layers (including those inherited from a base
 image) into a single new layer.
 
+#### **--ssh**=*default|id[=socket>|[,]*
+
+SSH agent socket or keys to expose to the build.
+The socket path can be left empty to use the value of `default=$SSH_AUTH_SOCK`
+
+To later use the ssh agent, use the --mount flag in a `RUN` instruction within a `Containerfile`:
+
+`RUN --mount=type=ssh,id=id mycmd`
+
 #### **--stdin**
 
 Pass stdin into the RUN containers. Sometime commands being RUN within a Containerfile
