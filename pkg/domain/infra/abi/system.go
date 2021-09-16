@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
-	"strings"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod/define"
@@ -71,11 +70,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool) 
 			if err != nil {
 				return err
 			}
-
-			initCommand, err := ioutil.ReadFile("/proc/1/comm")
-			// On errors, default to systemd
-			runsUnderSystemd := err != nil || strings.TrimRight(string(initCommand), "\n") == "systemd"
-
+			runsUnderSystemd := utils.RunsOnSystemd()
 			unitName := fmt.Sprintf("podman-%d.scope", os.Getpid())
 			if runsUnderSystemd || conf.Engine.CgroupManager == config.SystemdCgroupsManager {
 				if err := utils.RunUnderSystemdScope(os.Getpid(), "user.slice", unitName); err != nil {
@@ -121,11 +116,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool) 
 	became, ret, err = rootless.TryJoinFromFilePaths(pausePidPath, true, paths)
 
 	if err := movePauseProcessToScope(pausePidPath); err != nil {
-		conf, err2 := ic.Config(context.Background())
-		if err2 != nil {
-			return err
-		}
-		if conf.Engine.CgroupManager == config.SystemdCgroupsManager {
+		if utils.RunsOnSystemd() {
 			logrus.Warnf("Failed to add pause process to systemd sandbox cgroup: %v", err)
 		} else {
 			logrus.Debugf("Failed to add pause process to systemd sandbox cgroup: %v", err)
