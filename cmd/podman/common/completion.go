@@ -1111,7 +1111,7 @@ func AutocompleteManifestFormat(cmd *cobra.Command, args []string, toComplete st
 // AutocompleteNetworkDriver - Autocomplete network driver option.
 // -> "bridge", "macvlan"
 func AutocompleteNetworkDriver(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	drivers := []string{types.BridgeNetworkDriver, types.MacVLANNetworkDriver}
+	drivers := []string{types.BridgeNetworkDriver, types.MacVLANNetworkDriver, types.IPVLANNetworkDriver}
 	return drivers, cobra.ShellCompDirectiveNoFileComp
 }
 
@@ -1257,7 +1257,7 @@ func AutocompleteNetworkFilters(cmd *cobra.Command, args []string, toComplete st
 		"id=":    func(s string) ([]string, cobra.ShellCompDirective) { return getNetworks(cmd, s, completeIDs) },
 		"label=": nil,
 		"driver=": func(_ string) ([]string, cobra.ShellCompDirective) {
-			return []string{types.BridgeNetworkDriver, types.MacVLANNetworkDriver}, cobra.ShellCompDirectiveNoFileComp
+			return []string{types.BridgeNetworkDriver, types.MacVLANNetworkDriver, types.IPVLANNetworkDriver}, cobra.ShellCompDirectiveNoFileComp
 		},
 		"until=": nil,
 	}

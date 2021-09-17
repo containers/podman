@@ -250,6 +250,67 @@ var _ = Describe("Config", func() {
 			grepInFile(path, `"type": "host-local"`)
 		})
 
+		It("create ipvlan config with subnet", func() {
+			subnet := "10.1.0.0/24"
+			n, _ := types.ParseCIDR(subnet)
+			network := types.Network{
+				Driver: "ipvlan",
+				Subnets: []types.Subnet{
+					{Subnet: n},
+				},
+			}
+			network1, err := libpodNet.NetworkCreate(network)
+			Expect(err).To(BeNil())
+			Expect(network1.Name).ToNot(BeEmpty())
+			path := filepath.Join(cniConfDir, network1.Name+".conflist")
+			Expect(path).To(BeARegularFile())
+			Expect(network1.ID).ToNot(BeEmpty())
+			Expect(network1.Driver).To(Equal("ipvlan"))
+			Expect(network1.Labels).To(BeEmpty())
+			Expect(network1.Options).To(BeEmpty())
+			Expect(network1.Subnets).To(HaveLen(1))
+			Expect(network1.Subnets[0].Subnet.String()).To(Equal(subnet))
+			Expect(network1.Subnets[0].Gateway.String()).To(Equal("10.1.0.1"))
+			Expect(network1.Subnets[0].LeaseRange).To(BeNil())
+			Expect(network1.DNSEnabled).To(BeFalse())
+			Expect(network1.Internal).To(BeFalse())
+			Expect(network1.IPAMOptions).To(HaveKeyWithValue("driver", "host-local"))
+			grepInFile(path, `"type": "host-local"`)
+		})
+
+		It("create macvlan config with mode", func() {
+			for _, mode := range []string{"bridge", "private", "vepa", "passthru"} {
+				network := types.Network{
+					Driver: "macvlan",
+					Options: map[string]string{
+						"mode": mode,
+					},
+				}
+				network1, err := libpodNet.NetworkCreate(network)
+				Expect(err).To(BeNil())
+				Expect(network1.Name).ToNot(BeEmpty())
+				path := filepath.Join(cniConfDir, network1.Name+".conflist")
+				Expect(path).To(BeARegularFile())
+				Expect(network1.Driver).To(Equal("macvlan"))
+				Expect(network1.Options).To(HaveKeyWithValue("mode", mode))
+				Expect(network1.IPAMOptions).ToNot(BeEmpty())
+				Expect(network1.IPAMOptions).To(HaveKeyWithValue("driver", "dhcp"))
+				grepInFile(path, `"mode": "`+mode+`"`)
+			}
+		})
+
+		It("create macvlan config with invalid mode", func() {
+			network := types.Network{
+				Driver: "macvlan",
+				Options: map[string]string{
+					"mode": "test",
+				},
+			}
+			_, err := libpodNet.NetworkCreate(network)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring(`unknown macvlan mode "test"`))
+		})
+
 		It("create macvlan config with invalid device", func() {
 			network := types.Network{
 				Driver:           "macvlan",
@@ -268,6 +329,47 @@ var _ = Describe("Config", func() {
 			_, err := libpodNet.NetworkCreate(network)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("internal is not supported with macvlan"))
+		})
+
+		It("create ipvlan config with mode", func() {
+			for _, mode := range []string{"l2", "l3", "l3s"} {
+				network := types.Network{
+					Driver: "ipvlan",
+					Options: map[string]string{
+						"mode": mode,
+					},
+				}
+				network1, err := libpodNet.NetworkCreate(network)
+				Expect(err).To(BeNil())
+				Expect(network1.Name).ToNot(BeEmpty())
+				path := filepath.Join(cniConfDir, network1.Name+".conflist")
+				Expect(path).To(BeARegularFile())
+				Expect(network1.Driver).To(Equal("ipvlan"))
+				Expect(network1.Options).To(HaveKeyWithValue("mode", mode))
+				Expect(network1.IPAMOptions).ToNot(BeEmpty())
+				Expect(network1.IPAMOptions).To(HaveKeyWithValue("driver", "dhcp"))
+				grepInFile(path, `"mode": "`+mode+`"`)
+
+				// reload configs from disk
+				libpodNet, err = getNetworkInterface(cniConfDir, false)
+				Expect(err).To(BeNil())
+
+				network2, err := libpodNet.NetworkInspect(network1.Name)
+				Expect(err).To(BeNil())
+				Expect(network2).To(Equal(network1))
+			}
+		})
+
+		It("create ipvlan config with invalid mode", func() {
+			network := types.Network{
+				Driver: "ipvlan",
+				Options: map[string]string{
+					"mode": "test",
+				},
+			}
+			_, err := libpodNet.NetworkCreate(network)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring(`unknown ipvlan mode "test"`))
 		})
 
 		It("create bridge with subnet", func() {

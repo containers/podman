@@ -100,8 +100,8 @@ func (n *cniNetwork) networkCreate(newNetwork types.Network, defaultNet bool) (*
 		if err != nil {
 			return nil, err
 		}
-	case types.MacVLANNetworkDriver:
-		err = createMacVLAN(&newNetwork)
+	case types.MacVLANNetworkDriver, types.IPVLANNetworkDriver:
+		err = createIPMACVLAN(&newNetwork)
 		if err != nil {
 			return nil, err
 		}
@@ -214,7 +214,7 @@ func (n *cniNetwork) NetworkInspect(nameOrID string) (types.Network, error) {
 	return *network.libpodNet, nil
 }
 
-func createMacVLAN(network *types.Network) error {
+func createIPMACVLAN(network *types.Network) error {
 	if network.Internal {
 		return errors.New("internal is not supported with macvlan")
 	}

@@ -81,20 +81,24 @@ func createNetworkFromCNIConfigList(conf *libcni.NetworkConfigList, confPath str
 			return nil, err
 		}
 
-	case types.MacVLANNetworkDriver:
-		var macvlan macVLANConfig
-		err := json.Unmarshal(firstPlugin.Bytes, &macvlan)
+	case types.MacVLANNetworkDriver, types.IPVLANNetworkDriver:
+		var vlan VLANConfig
+		err := json.Unmarshal(firstPlugin.Bytes, &vlan)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to unmarshal the macvlan plugin config in %s", confPath)
 		}
-		network.NetworkInterface = macvlan.Master
+		network.NetworkInterface = vlan.Master
 
 		// set network options
-		if macvlan.MTU != 0 {
-			network.Options["mtu"] = strconv.Itoa(macvlan.MTU)
+		if vlan.MTU != 0 {
+			network.Options["mtu"] = strconv.Itoa(vlan.MTU)
 		}
 
-		err = convertIPAMConfToNetwork(&network, macvlan.IPAM, confPath)
+		if vlan.Mode != "" {
+			network.Options["mode"] = vlan.Mode
+		}
+
+		err = convertIPAMConfToNetwork(&network, vlan.IPAM, confPath)
 		if err != nil {
 			return nil, err
 		}
@@ -207,7 +211,7 @@ func getNetworkArgsFromConfList(args map[string]interface{}, argType string) map
 			return result
 		}
 	}
-	return nil
+	return map[string]string{}
 }
 
 // createCNIConfigListFromNetwork will create a cni config file from the given network.
@@ -237,6 +241,7 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 
 	vlan := 0
 	mtu := 0
+	vlanPluginMode := ""
 	for k, v := range network.Options {
 		switch k {
 		case "mtu":
@@ -250,6 +255,21 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 			if err != nil {
 				return nil, "", err
 			}
+
+		case "mode":
+			switch network.Driver {
+			case types.MacVLANNetworkDriver:
+				if !pkgutil.StringInSlice(v, []string{"", "bridge", "private", "vepa", "passthru"}) {
+					return nil, "", errors.Errorf("unknown macvlan mode %q", v)
+				}
+			case types.IPVLANNetworkDriver:
+				if !pkgutil.StringInSlice(v, []string{"", "l2", "l3", "l3s"}) {
+					return nil, "", errors.Errorf("unknown ipvlan mode %q", v)
+				}
+			default:
+				return nil, "", errors.Errorf("cannot set option \"mode\" with driver %q", network.Driver)
+			}
+			vlanPluginMode = v
 
 		default:
 			return nil, "", errors.Errorf("unsupported network option %s", k)
@@ -281,7 +301,10 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 		}
 
 	case types.MacVLANNetworkDriver:
-		plugins = append(plugins, newMacVLANPlugin(network.NetworkInterface, mtu, ipamConf))
+		plugins = append(plugins, newVLANPlugin(types.MacVLANNetworkDriver, network.NetworkInterface, vlanPluginMode, mtu, ipamConf))
+
+	case types.IPVLANNetworkDriver:
+		plugins = append(plugins, newVLANPlugin(types.IPVLANNetworkDriver, network.NetworkInterface, vlanPluginMode, mtu, ipamConf))
 
 	default:
 		return nil, "", errors.Errorf("driver %q is not supported by cni", network.Driver)
