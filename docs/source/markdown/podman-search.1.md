@@ -81,9 +81,9 @@ The result contains the Image name and its tag, one line for every tag associate
 
 #### **--no-trunc**
 
-Do not truncate the output
+Do not truncate the output (default *false*).
 
-#### **--tls-verify**=*true|false*
+#### **--tls-verify**
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
 then TLS verification will be used. If set to false, then TLS verification will not be used if needed. If not specified,

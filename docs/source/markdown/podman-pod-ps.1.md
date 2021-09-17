@@ -50,7 +50,7 @@ Omit the table headings from the listing of pods.
 
 #### **--no-trunc**
 
-Display the extended information
+Do not truncate the output (default *false*).
 
 #### **--ns**
 

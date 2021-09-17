@@ -292,7 +292,7 @@ context.
 
 If you specify `-f -`, the Containerfile contents will be read from stdin.
 
-#### **--force-rm**=*true|false*
+#### **--force-rm**
 
 Always remove intermediate containers after a build, even if the build fails
 (default true).
@@ -474,7 +474,7 @@ Suppress output messages which indicate which instruction is being processed,
 and of progress when pulling images from a registry, and when writing the
 output image.
 
-#### **--rm**=*true|false*
+#### **--rm**
 
 Remove intermediate containers after a successful build (default true).
 
@@ -579,7 +579,7 @@ specified and therefore not changed, allowing the image's sha256 hash to remain 
 same. All files committed to the layers of the image will be created with the
 timestamp.
 
-#### **--tls-verify**=*true|false*
+#### **--tls-verify**
 
 Require HTTPS and verify certificates when talking to container registries
 (defaults to true). (This option is not available with the remote Podman client)

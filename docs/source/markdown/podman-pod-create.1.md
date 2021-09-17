@@ -78,7 +78,7 @@ Print usage statement.
 
 Set a hostname to the pod
 
-#### **--infra**=**true**|**false**
+#### **--infra**
 
 Create an infra container and associate it with the pod. An infra container is a lightweight container used to coordinate the shared kernel namespace of a pod. Default: true.
 
@@ -143,7 +143,7 @@ Set network mode for the pod. Supported values are:
 
 Add a DNS alias for the container. When the container is joined to a CNI network with support for the dnsname plugin, the container will be accessible through this name from other containers in the network.
 
-#### **--no-hosts**=**true**|**false**
+#### **--no-hosts**
 
 Disable creation of /etc/hosts for the pod.
 
@@ -170,7 +170,7 @@ Use `podman port` to see the actual mapping: `podman port CONTAINER $CONTAINERPO
 
 NOTE: This cannot be modified once the pod is created.
 
-#### **--replace**=**true**|**false**
+#### **--replace**
 
 If another pod with the same name already exists, replace and remove it.  The default is **false**.
 

@@ -36,6 +36,7 @@ var (
 var (
 	eventOptions entities.EventsOptions
 	eventFormat  string
+	noTrunc      bool
 )
 
 func init() {
@@ -57,6 +58,8 @@ func init() {
 	sinceFlagName := "since"
 	flags.StringVar(&eventOptions.Since, sinceFlagName, "", "show all events created since timestamp")
 	_ = eventsCommand.RegisterFlagCompletionFunc(sinceFlagName, completion.AutocompleteNone)
+
+	flags.BoolVar(&noTrunc, "no-trunc", true, "do not truncate the output")
 
 	untilFlagName := "until"
 	flags.StringVar(&eventOptions.Until, untilFlagName, "", "show all events until timestamp")
@@ -110,7 +113,7 @@ func eventsCmd(cmd *cobra.Command, _ []string) error {
 			}
 			fmt.Println("")
 		default:
-			fmt.Println(event.ToHumanReadable())
+			fmt.Println(event.ToHumanReadable(!noTrunc))
 		}
 	}
 

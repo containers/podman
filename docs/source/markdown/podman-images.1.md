@@ -35,13 +35,13 @@ Filter output based on conditions provided
   **before=IMAGE**
     Filter on images created before the given IMAGE (name or tag).
 
-  **dangling=true|false**
+  **dangling
     Show dangling images. Dangling images are a file system layer that was used in a previous build of an image and is no longer referenced by any image. They are denoted with the `<none>` tag, consume disk space and serve no active purpose.
 
   **label**
     Filter by images labels key and/or value.
 
-  **readonly=true|false**
+  **readonly
      Show only read only images or Read/Write images. The default is to show both.  Read/Only images can be configured by modifying the  "additionalimagestores" in the /etc/containers/storage.conf file.
 
   **reference=**
@@ -74,13 +74,13 @@ Omit the table headings from the listing of images.
 
 #### **--no-trunc**
 
-Do not truncate output.
+Do not truncate the output (default *false*).
 
 #### **--quiet**, **-q**
 
 Lists only the image IDs.
 
-#### **--sort**=*sort*
+#### **--sort**=*sort*=*created*
 
 Sort by created, id, repository, size or tag (default: created)
 
