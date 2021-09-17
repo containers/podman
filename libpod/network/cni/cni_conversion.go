@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/containernetworking/cni/libcni"
-	"github.com/containernetworking/cni/pkg/version"
 	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/libpod/network/util"
 	pkgutil "github.com/containers/podman/v3/pkg/util"
@@ -283,7 +282,10 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 		ipMasq = false
 	}
 	// create CNI plugin configuration
-	ncList := newNcList(network.Name, version.Current(), network.Labels, network.Options)
+	// explicitly use CNI version 0.4.0 here, to use v1.0.0 at least containernetwork-plugins-1.0.1 has to be installed
+	// the dnsname plugin also needs to be updated for 1.0.0
+	// TODO change to 1.0.0 when most distros support it
+	ncList := newNcList(network.Name, "0.4.0", network.Labels, network.Options)
 	var plugins []interface{}
 
 	switch network.Driver {

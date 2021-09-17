@@ -1,8 +1,11 @@
 package netlink
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -20,6 +23,23 @@ const (
 	SCOPE_HOST     Scope = unix.RT_SCOPE_HOST
 	SCOPE_NOWHERE  Scope = unix.RT_SCOPE_NOWHERE
 )
+
+func (s Scope) String() string {
+	switch s {
+	case SCOPE_UNIVERSE:
+		return "universe"
+	case SCOPE_SITE:
+		return "site"
+	case SCOPE_LINK:
+		return "link"
+	case SCOPE_HOST:
+		return "host"
+	case SCOPE_NOWHERE:
+		return "nowhere"
+	default:
+		return "unknown"
+	}
+}
 
 const (
 	RT_FILTER_PROTOCOL uint64 = 1 << (1 + iota)
@@ -446,6 +466,62 @@ func (e *SEG6LocalEncap) Equal(x Encap) bool {
 	return true
 }
 
+type Via struct {
+	AddrFamily int
+	Addr       net.IP
+}
+
+func (v *Via) Equal(x Destination) bool {
+	o, ok := x.(*Via)
+	if !ok {
+		return false
+	}
+	if v.AddrFamily == x.Family() && v.Addr.Equal(o.Addr) {
+		return true
+	}
+	return false
+}
+
+func (v *Via) String() string {
+	return fmt.Sprintf("Family: %d, Address: %s", v.AddrFamily, v.Addr.String())
+}
+
+func (v *Via) Family() int {
+	return v.AddrFamily
+}
+
+func (v *Via) Encode() ([]byte, error) {
+	buf := &bytes.Buffer{}
+	err := binary.Write(buf, native, uint16(v.AddrFamily))
+	if err != nil {
+		return nil, err
+	}
+	err = binary.Write(buf, native, v.Addr)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func (v *Via) Decode(b []byte) error {
+	native := nl.NativeEndian()
+	if len(b) < 6 {
+		return fmt.Errorf("decoding failed: buffer too small (%d bytes)", len(b))
+	}
+	v.AddrFamily = int(native.Uint16(b[0:2]))
+	if v.AddrFamily == nl.FAMILY_V4 {
+		v.Addr = net.IP(b[2:6])
+		return nil
+	} else if v.AddrFamily == nl.FAMILY_V6 {
+		if len(b) < 18 {
+			return fmt.Errorf("decoding failed: buffer too small (%d bytes)", len(b))
+		}
+		v.Addr = net.IP(b[2:])
+		return nil
+	}
+	return fmt.Errorf("decoding failed: address family %d unknown", v.AddrFamily)
+}
+
 // RouteAdd will add a route to the system.
 // Equivalent to: `ip route add $route`
 func RouteAdd(route *Route) error {
@@ -458,6 +534,32 @@ func (h *Handle) RouteAdd(route *Route) error {
 	flags := unix.NLM_F_CREATE | unix.NLM_F_EXCL | unix.NLM_F_ACK
 	req := h.newNetlinkRequest(unix.RTM_NEWROUTE, flags)
 	return h.routeHandle(route, req, nl.NewRtMsg())
+}
+
+// RouteAppend will append a route to the system.
+// Equivalent to: `ip route append $route`
+func RouteAppend(route *Route) error {
+	return pkgHandle.RouteAppend(route)
+}
+
+// RouteAppend will append a route to the system.
+// Equivalent to: `ip route append $route`
+func (h *Handle) RouteAppend(route *Route) error {
+	flags := unix.NLM_F_CREATE | unix.NLM_F_APPEND | unix.NLM_F_ACK
+	req := h.newNetlinkRequest(unix.RTM_NEWROUTE, flags)
+	return h.routeHandle(route, req, nl.NewRtMsg())
+}
+
+// RouteAddEcmp will add a route to the system.
+func RouteAddEcmp(route *Route) error {
+        return pkgHandle.RouteAddEcmp(route)
+}
+
+// RouteAddEcmp will add a route to the system.
+func (h *Handle) RouteAddEcmp(route *Route) error {
+        flags := unix.NLM_F_CREATE | unix.NLM_F_ACK
+        req := h.newNetlinkRequest(unix.RTM_NEWROUTE, flags)
+        return h.routeHandle(route, req, nl.NewRtMsg())
 }
 
 // RouteReplace will add a route to the system.
@@ -567,6 +669,14 @@ func (h *Handle) routeHandle(route *Route, req *nl.NetlinkRequest, msg *nl.RtMsg
 		rtAttrs = append(rtAttrs, nl.NewRtAttr(unix.RTA_GATEWAY, gwData))
 	}
 
+	if route.Via != nil {
+		buf, err := route.Via.Encode()
+		if err != nil {
+			return fmt.Errorf("failed to encode RTA_VIA: %v", err)
+		}
+		rtAttrs = append(rtAttrs, nl.NewRtAttr(unix.RTA_VIA, buf))
+	}
+
 	if len(route.MultiPath) > 0 {
 		buf := []byte{}
 		for _, nh := range route.MultiPath {
@@ -608,6 +718,13 @@ func (h *Handle) routeHandle(route *Route, req *nl.NetlinkRequest, msg *nl.RtMsg
 					return err
 				}
 				children = append(children, nl.NewRtAttr(unix.RTA_ENCAP, buf))
+			}
+			if nh.Via != nil {
+				buf, err := nh.Via.Encode()
+				if err != nil {
+					return err
+				}
+				children = append(children, nl.NewRtAttr(unix.RTA_VIA, buf))
 			}
 			rtnh.Children = children
 			buf = append(buf, rtnh.Serialize()...)
@@ -834,7 +951,7 @@ func deserializeRoute(m []byte) (Route, error) {
 	}
 	route := Route{
 		Scope:    Scope(msg.Scope),
-		Protocol: int(msg.Protocol),
+		Protocol: RouteProtocol(int(msg.Protocol)),
 		Table:    int(msg.Table),
 		Type:     int(msg.Type),
 		Tos:      int(msg.Tos),
@@ -907,6 +1024,12 @@ func deserializeRoute(m []byte) (Route, error) {
 						encapType = attr
 					case unix.RTA_ENCAP:
 						encap = attr
+					case unix.RTA_VIA:
+						d := &Via{}
+						if err := d.Decode(attr.Value); err != nil {
+							return nil, nil, err
+						}
+						info.Via = d
 					}
 				}
 
@@ -944,6 +1067,12 @@ func deserializeRoute(m []byte) (Route, error) {
 				return route, err
 			}
 			route.NewDst = d
+		case unix.RTA_VIA:
+			v := &Via{}
+			if err := v.Decode(attr.Value); err != nil {
+				return route, err
+			}
+			route.Via = v
 		case unix.RTA_ENCAP_TYPE:
 			encapType = attr
 		case unix.RTA_ENCAP:
@@ -1022,6 +1151,7 @@ func deserializeRoute(m []byte) (Route, error) {
 // RouteGetWithOptions
 type RouteGetOptions struct {
 	VrfName string
+	SrcAddr net.IP
 }
 
 // RouteGetWithOptions gets a route to a specific destination from the host system.
@@ -1053,23 +1183,40 @@ func (h *Handle) RouteGetWithOptions(destination net.IP, options *RouteGetOption
 	msg := &nl.RtMsg{}
 	msg.Family = uint8(family)
 	msg.Dst_len = bitlen
+	if options != nil && options.SrcAddr != nil {
+		msg.Src_len = bitlen
+	}
+	msg.Flags = unix.RTM_F_LOOKUP_TABLE
 	req.AddData(msg)
 
 	rtaDst := nl.NewRtAttr(unix.RTA_DST, destinationData)
 	req.AddData(rtaDst)
 
 	if options != nil {
-		link, err := LinkByName(options.VrfName)
-		if err != nil {
-			return nil, err
-		}
-		var (
-			b      = make([]byte, 4)
-			native = nl.NativeEndian()
-		)
-		native.PutUint32(b, uint32(link.Attrs().Index))
+		if options.VrfName != "" {
+			link, err := LinkByName(options.VrfName)
+			if err != nil {
+				return nil, err
+			}
+			var (
+				b      = make([]byte, 4)
+				native = nl.NativeEndian()
+			)
+			native.PutUint32(b, uint32(link.Attrs().Index))
 
-		req.AddData(nl.NewRtAttr(unix.RTA_OIF, b))
+			req.AddData(nl.NewRtAttr(unix.RTA_OIF, b))
+		}
+
+		if options.SrcAddr != nil {
+			var srcAddr []byte
+			if family == FAMILY_V4 {
+				srcAddr = options.SrcAddr.To4()
+			} else {
+				srcAddr = options.SrcAddr.To16()
+			}
+
+			req.AddData(nl.NewRtAttr(unix.RTA_SRC, srcAddr))
+		}
 	}
 
 	msgs, err := req.Execute(unix.NETLINK_ROUTE, unix.RTM_NEWROUTE)
@@ -1189,4 +1336,55 @@ func routeSubscribeAt(newNs, curNs netns.NsHandle, ch chan<- RouteUpdate, done <
 	}()
 
 	return nil
+}
+
+func (p RouteProtocol) String() string {
+	switch int(p) {
+	case unix.RTPROT_BABEL:
+		return "babel"
+	case unix.RTPROT_BGP:
+		return "bgp"
+	case unix.RTPROT_BIRD:
+		return "bird"
+	case unix.RTPROT_BOOT:
+		return "boot"
+	case unix.RTPROT_DHCP:
+		return "dhcp"
+	case unix.RTPROT_DNROUTED:
+		return "dnrouted"
+	case unix.RTPROT_EIGRP:
+		return "eigrp"
+	case unix.RTPROT_GATED:
+		return "gated"
+	case unix.RTPROT_ISIS:
+		return "isis"
+	//case unix.RTPROT_KEEPALIVED:
+	//	return "keepalived"
+	case unix.RTPROT_KERNEL:
+		return "kernel"
+	case unix.RTPROT_MROUTED:
+		return "mrouted"
+	case unix.RTPROT_MRT:
+		return "mrt"
+	case unix.RTPROT_NTK:
+		return "ntk"
+	case unix.RTPROT_OSPF:
+		return "ospf"
+	case unix.RTPROT_RA:
+		return "ra"
+	case unix.RTPROT_REDIRECT:
+		return "redirect"
+	case unix.RTPROT_RIP:
+		return "rip"
+	case unix.RTPROT_STATIC:
+		return "static"
+	case unix.RTPROT_UNSPEC:
+		return "unspec"
+	case unix.RTPROT_XORP:
+		return "xorp"
+	case unix.RTPROT_ZEBRA:
+		return "zebra"
+	default:
+		return strconv.Itoa(int(p))
+	}
 }
