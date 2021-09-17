@@ -13,7 +13,7 @@ Commands
 
 :doc:`commit <markdown/podman-commit.1>` Create new image based on the changed container
 
-:doc:`container <managecontainers>` Manage Containers
+:doc:`container <markdown/podman-container.1>` Manage Containers
 
 :doc:`cp <markdown/podman-cp.1>` Copy files/folders between a container and the local filesystem
 
@@ -27,13 +27,13 @@ Commands
 
 :doc:`export <markdown/podman-export.1>` Export container's filesystem contents as a tar archive
 
-:doc:`generate <generate>` Generated structured data
+:doc:`generate <markdown/podman-generate.1>` Generated structured data
 
-:doc:`healthcheck <healthcheck>` Manage Healthcheck
+:doc:`healthcheck <markdown/podman-healthcheck.1>` Manage Healthcheck
 
 :doc:`history <markdown/podman-history.1>` Show history of a specified image
 
-:doc:`image <image>` Manage images
+:doc:`image <markdown/podman-image.1>` Manage images
 
 :doc:`images <markdown/podman-images.1>` List images in local storage
 
@@ -55,19 +55,19 @@ Commands
 
 :doc:`logs <markdown/podman-logs.1>` Fetch the logs of a container
 
-:doc:`machine <machine>` Manage podman's virtual machine
+:doc:`machine <markdown/podman-machine.1>` Manage podman's virtual machine
 
-:doc:`manifest <manifest>` Create and manipulate manifest lists and image indexes
+:doc:`manifest <markdown/podman-manifest.1>` Create and manipulate manifest lists and image indexes
 
 :doc:`mount <markdown/podman-mount.1>` Mount a working container's root filesystem
 
-:doc:`network <network>` Manage Networks
+:doc:`network <markdown/podman-network.1>` Manage Networks
 
 :doc:`pause <markdown/podman-pause.1>` Pause all the processes in one or more containers
 
-:doc:`play <play>` Play a pod
+:doc:`play <markdown/podman-play.1>` Play a pod
 
-:doc:`pod <pod>` Manage pods
+:doc:`pod <markdown/podman-pod.1>` Manage pods
 
 :doc:`port <markdown/podman-port.1>` List port mappings or a specific mapping for the container
 
@@ -91,7 +91,7 @@ Commands
 
 :doc:`search <markdown/podman-search.1>` Search registry for image
 
-:doc:`secret <secret>` Manage podman secrets
+:doc:`secret <markdown/podman-secret.1>` Manage podman secrets
 
 :doc:`start <markdown/podman-start.1>` Start one or more containers
 
@@ -99,7 +99,7 @@ Commands
 
 :doc:`stop <markdown/podman-stop.1>` Stop one or more containers
 
-:doc:`system <system>` Manage podman
+:doc:`system <markdown/podman-system.1>` Manage podman
 
 :doc:`tag <markdown/podman-tag.1>` Add an additional name to a local image
 
@@ -115,6 +115,6 @@ Commands
 
 :doc:`version <markdown/podman-version.1>` Display the Podman Version Information
 
-:doc:`volume <volume>` Manage volumes
+:doc:`volume <markdown/podman-volume.1>` Manage volumes
 
 :doc:`wait <markdown/podman-wait.1>` Block on one or more containers

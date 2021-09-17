@@ -201,13 +201,6 @@ sub xref_rst {
         if (ref $help->{$k}) {
             xref_rst($help->{$k}, $rst->{$k}, @subcommand, $k);
         }
-
-        # Check that command is mentioned in at least one .rst file
-        if (! exists $rst->{$k}{_desc}) {
-            my @podman = ("podman", @subcommand, $k);
-            warn "$ME: no link in *.rst for @podman\n";
-            ++$Errs;
-        }
     }
 }
 
