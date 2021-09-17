@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/storage/pkg/archive"
@@ -154,4 +156,44 @@ func RemoveScientificNotationFromFloat(x float64) (float64, error) {
 		return x, errors.Wrapf(err, "unable to remove scientific number from calculations")
 	}
 	return result, nil
+}
+
+var (
+	runsOnSystemdOnce sync.Once
+	runsOnSystemd     bool
+)
+
+// RunsOnSystemd returns whether the system is using systemd
+func RunsOnSystemd() bool {
+	runsOnSystemdOnce.Do(func() {
+		initCommand, err := ioutil.ReadFile("/proc/1/comm")
+		// On errors, default to systemd
+		runsOnSystemd = err != nil || strings.TrimRight(string(initCommand), "\n") == "systemd"
+	})
+	return runsOnSystemd
+}
+
+func moveProcessToScope(pidPath, slice, scope string) error {
+	data, err := ioutil.ReadFile(pidPath)
+	if err != nil {
+		return errors.Wrapf(err, "cannot read pid file %s", pidPath)
+	}
+	pid, err := strconv.ParseUint(string(data), 10, 0)
+	if err != nil {
+		return errors.Wrapf(err, "cannot parse pid file %s", pidPath)
+	}
+	return RunUnderSystemdScope(int(pid), slice, scope)
+}
+
+// MovePauseProcessToScope moves the pause process used for rootless mode to keep the namespaces alive to
+// a separate scope.
+func MovePauseProcessToScope(pausePidPath string) {
+	err := moveProcessToScope(pausePidPath, "user.slice", "podman-pause.scope")
+	if err != nil {
+		if RunsOnSystemd() {
+			logrus.Warnf("Failed to add pause process to systemd sandbox cgroup: %v", err)
+		} else {
+			logrus.Debugf("Failed to add pause process to systemd sandbox cgroup: %v", err)
+		}
+	}
 }
