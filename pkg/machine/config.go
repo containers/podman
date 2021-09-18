@@ -1,3 +1,4 @@
+//go:build (amd64 && !windows) || (arm64 && !windows)
 // +build amd64,!windows arm64,!windows
 
 package machine
@@ -21,6 +22,7 @@ type InitOptions struct {
 	IsDefault    bool
 	Memory       uint64
 	Name         string
+	NoLink       bool
 	URI          url.URL
 	Username     string
 }
@@ -64,7 +66,10 @@ type SSHOptions struct {
 	Username string
 	Args     []string
 }
-type StartOptions struct{}
+type StartOptions struct {
+	NoCompat bool
+	NoLink   bool
+}
 
 type StopOptions struct{}
 

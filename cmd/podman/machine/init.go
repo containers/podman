@@ -29,6 +29,7 @@ var (
 	initOpts           = machine.InitOptions{}
 	defaultMachineName = "podman-machine-default"
 	now                bool
+	nocompat           bool
 )
 
 func init() {
@@ -70,6 +71,18 @@ func init() {
 		"Start machine now",
 	)
 
+	flags.BoolVar(
+		&nocompat,
+		"nocompat", false,
+		"Disable compatibility socket proxies when starting",
+	)
+
+	flags.BoolVar(
+		&initOpts.NoLink,
+		"nolink", false,
+		"Do not link /var/run/docker.sock",
+	)
+
 	ImagePathFlagName := "image-path"
 	flags.StringVar(&initOpts.ImagePath, ImagePathFlagName, cfg.Engine.MachineImage, "Path to qcow image")
 	_ = initCmd.RegisterFlagCompletionFunc(ImagePathFlagName, completion.AutocompleteDefault)
@@ -105,7 +118,7 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if now {
-		err = vm.Start(initOpts.Name, machine.StartOptions{})
+		err = vm.Start(initOpts.Name, machine.StartOptions{NoCompat: nocompat, NoLink: initOpts.NoLink})
 		if err == nil {
 			fmt.Printf("Machine %q started successfully\n", initOpts.Name)
 		}

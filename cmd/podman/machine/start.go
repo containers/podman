@@ -3,8 +3,6 @@
 package machine
 
 import (
-	"fmt"
-
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/pkg/machine"
 	"github.com/containers/podman/v3/pkg/machine/qemu"
@@ -14,7 +12,7 @@ import (
 
 var (
 	startCmd = &cobra.Command{
-		Use:               "start [MACHINE]",
+		Use:               "start [options] [MACHINE]",
 		Short:             "Start an existing machine",
 		Long:              "Start a managed virtual machine ",
 		RunE:              start,
@@ -22,6 +20,8 @@ var (
 		Example:           `podman machine start myvm`,
 		ValidArgsFunction: autocompleteMachine,
 	}
+
+	startOptions machine.StartOptions
 )
 
 func init() {
@@ -29,6 +29,9 @@ func init() {
 		Command: startCmd,
 		Parent:  machineCmd,
 	})
+	flags := startCmd.Flags()
+	flags.BoolVar(&startOptions.NoCompat, "nocompat", false, "Disable Docker API compatibility socket proxies")
+	flags.BoolVar(&startOptions.NoLink, "nolink", false, "Do not link /var/run/docker.sock",)
 }
 
 func start(cmd *cobra.Command, args []string) error {
@@ -60,9 +63,8 @@ func start(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := vm.Start(vmName, machine.StartOptions{}); err != nil {
+	if err := vm.Start(vmName, startOptions); err != nil {
 		return err
 	}
-	fmt.Printf("Machine %q started successfully\n", vmName)
 	return nil
 }

@@ -1,11 +1,14 @@
+//go:build (amd64 && !windows) || (arm64 && !windows)
 // +build amd64,!windows arm64,!windows
 
 package qemu
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"net"
 	"os"
@@ -16,11 +19,13 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/podman/v3/pkg/bindings"
 	"github.com/containers/podman/v3/pkg/machine"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/utils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/digitalocean/go-qemu/qmp"
+	"github.com/moby/term"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -129,6 +134,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 	var (
 		key string
 	)
+
 	sshDir := filepath.Join(homedir.Get(), ".ssh")
 	// GetConfDir creates the directory so no need to check for
 	// its existence
@@ -218,6 +224,14 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 			return errors.Errorf("error resizing image: %q", err)
 		}
 	}
+
+	if !opts.NoLink {
+		err = createDockerSock(v)
+		if err != nil {
+			return err
+		}
+	}
+
 	// If the user provides an ignition file, we need to
 	// copy it into the conf dir
 	if len(opts.IgnitionPath) > 0 {
@@ -227,6 +241,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 		}
 		return ioutil.WriteFile(v.IgnitionFilePath, inputIgnition, 0644)
 	}
+
 	// Write the ignition file
 	ign := machine.DynamicIgnition{
 		Name:      opts.Username,
@@ -238,12 +253,11 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 }
 
 // Start executes the qemu command line and forks it
-func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
+func (v *MachineVM) Start(name string, startOptions machine.StartOptions) error {
 	var (
 		conn           net.Conn
 		err            error
 		qemuSocketConn net.Conn
-		wait           time.Duration = time.Millisecond * 500
 	)
 
 	if err := v.startHostNetworking(); err != nil {
@@ -271,14 +285,8 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 	if err := os.Remove(qemuSocketPath); err != nil && !errors.Is(err, os.ErrNotExist) {
 		logrus.Warn(err)
 	}
-	for i := 0; i < 6; i++ {
-		qemuSocketConn, err = net.Dial("unix", qemuSocketPath)
-		if err == nil {
-			break
-		}
-		time.Sleep(wait)
-		wait++
-	}
+
+	qemuSocketConn, err = socketWait(qemuSocketPath, false)
 	if err != nil {
 		return err
 	}
@@ -313,19 +321,165 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 	// The socket is not made until the qemu process is running so here
 	// we do a backoff waiting for it.  Once we have a conn, we break and
 	// then wait to read it.
-	for i := 0; i < 6; i++ {
-		conn, err = net.Dial("unix", filepath.Join(socketPath, "podman", v.Name+"_ready.sock"))
-		if err == nil {
-			break
-		}
-		time.Sleep(wait)
-		wait++
-	}
+	conn, err = socketWait(filepath.Join(socketPath, "podman", v.Name+"_ready.sock"), false)
 	if err != nil {
 		return err
 	}
 	_, err = bufio.NewReader(conn).ReadString('\n')
+	if err != nil {
+		return err
+	}
+
+	var (
+		rootfullSocket string
+		rootlessSocket string
+	)
+	if !startOptions.NoCompat {
+		err = createDockerSock(v)
+		if err != nil {
+			return err
+		}
+		if !startOptions.NoLink {
+			rootfullSocket, rootlessSocket, err = createCompatibilityProxies(v)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	fmt.Printf("Machine %q started successfully!\n\n", v.Name)
+	fmt.Printf("Podman Clients\n")
+	fmt.Printf("--------------\n")
+	fmt.Printf("Podman clients can now access this machine using standard podman commands.\n")
+	fmt.Printf("For example, to run a date command on a *rootless* container:\n")
+	fmt.Printf("\n    podman run ubi8/ubi-micro date\n")
+	fmt.Printf("\nTo bind port 80 using a *root* container:\n")
+	fmt.Printf("\n    podman -c podman-machine-default-root run -dt -p 80:80/tcp docker.io/library/httpd\n\n")
+
+	if !startOptions.NoCompat {
+		fmt.Printf("Docker API Clients\n")
+		fmt.Printf("------------------\n")
+		if active, _, _ := verifyDockerSock(rootfullSocket); active {
+			fmt.Printf("Compatibility socket link is present. Docker API clients require no special environment for *root* containers.\n\n")
+		} else {
+			fmt.Printf("Compatibility socket link is not present, rerun 'podman machine init' to create.\n")
+			fmt.Printf("*Root* containers can still be accessed using:\n\n")
+			fmt.Printf("    export DOCKER_HOST=unix://%s\n\n", rootfullSocket)
+		}
+		fmt.Printf("Docker API clients can also access *rootless* podman with the following environment:\n\n")
+		fmt.Printf("    export DOCKER_HOST=unix://%s\n\n", rootlessSocket)
+	}
+
+	return nil
+}
+
+func verifyDockerSock(rootfullSocket string) (bool, bool, string) {
+	target, err := os.Readlink("/var/run/docker.sock")
+	return target == rootfullSocket, errors.Is(err, fs.ErrNotExist), target
+}
+
+func createDockerSock(v *MachineVM) error {
+	var err error
+
+	rootfullSocket, _, err := v.getUnixSocketAndPID(true)
+	if err != nil {
+		err = errors.Errorf("Unable to determine runtime env for socket: %q", err)
+	}
+
+	skip, safe, current := verifyDockerSock(rootfullSocket)
+	if skip {
+		return nil
+	}
+
+	if !term.IsTerminal(os.Stdin.Fd()) {
+		fmt.Println("No terminal present, can't prompt to create link")
+		return nil
+	}
+
+	if !safe {
+		fmt.Printf("WARNING: Docker socket (/var/run/docker.sock) already exists (points to %q\n)", current)
+		fmt.Print("Overwrite to point to podman? [y/N] ")
+		reader := bufio.NewReader(os.Stdin)
+		answer, err := reader.ReadString('\n')
+		if err != nil {
+			return err
+		}
+		if strings.ToLower(answer)[0] != 'y' {
+			return nil
+		}
+	}
+
+	fmt.Println("Creating /var/run/docker.sock compatibility link (you might be prompted for your password)")
+	cmd := exec.Command("/usr/bin/sudo", "/bin/ln", "-fs", rootfullSocket, "/var/run/docker.sock")
+	if cmd.Run() != nil {
+		err = errors.Errorf("Sudo failed creating link. %q", err)
+	}
+
 	return err
+}
+
+func socketWait(socket string, close bool) (net.Conn, error) {
+	return socketWaitS("unix", socket, close, false)
+}
+
+func socketWaitS(schema string, socket string, close bool, read bool) (net.Conn, error) {
+	wait := time.Millisecond * 50
+
+	var (
+		err  error
+		conn net.Conn
+	)
+	for i := 0; i < 8; i++ {
+		conn, err = net.Dial(schema, socket)
+		if err == nil {
+			if read {
+				buffer := make([]byte, 10)
+				_, err = conn.Read(buffer)
+			}
+			if close {
+				conn.Close()
+			}
+			if err == nil {
+				break
+			}
+		}
+		time.Sleep(wait)
+		wait *= 2
+	}
+
+	return conn, err
+}
+
+func createCompatibilityProxies(v *MachineVM) (string, string, error) {
+	fmt.Println("Waiting on SSH to come up..")
+
+	// FIXME gvproxy generates some noise, try to wait in advance to mute the proxy failures
+	time.Sleep(1000 * time.Millisecond)
+
+	_, err := socketWaitS("tcp", fmt.Sprintf("localhost:%d", v.Port), true, true)
+	if err != nil {
+		return "", "", err
+	}
+
+	fmt.Println("Waiting on initial proxy connections..")
+
+	for i := 0; i < 2; i++ {
+		if err := v.startUnixProxy(i == 1); err != nil {
+			return "", "", errors.Errorf("Unable to start unix socket proxy: %q", err)
+		}
+	}
+
+	rootlessSocket, _, _ := v.getUnixSocketAndPID(false)
+	rootfullSocket, _, _ := v.getUnixSocketAndPID(true)
+
+	for _, s := range []string{rootfullSocket, rootlessSocket} {
+		err := v.verifyProxyConnection(s)
+		if err != nil {
+			return "", "", err
+		}
+	}
+
+	return rootfullSocket, rootlessSocket, nil
 }
 
 // Stop uses the qmp monitor to call a system_powerdown
@@ -362,9 +516,23 @@ func (v *MachineVM) Stop(name string, _ machine.StopOptions) error {
 		return err
 	}
 	qemuSocketFile, pidFile, err := v.getSocketandPid()
+	cleanupProcess(pidFile, qemuSocketFile)
 	if err != nil {
 		return err
 	}
+
+	for i := 0; i < 2; i++ {
+		unixSocketFile, pidFile, err := v.getUnixSocketAndPID(i == 1)
+		cleanupProcess(pidFile, unixSocketFile)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func cleanupProcess(pidFile string, socketFile string) error {
 	if _, err := os.Stat(pidFile); os.IsNotExist(err) {
 		logrus.Infof("pid file %s does not exist", pidFile)
 		return nil
@@ -390,8 +558,14 @@ func (v *MachineVM) Stop(name string, _ machine.StopOptions) error {
 	if err := os.Remove(pidFile); err != nil && !errors.Is(err, os.ErrNotExist) {
 		logrus.Warn(err)
 	}
+
 	// Remove socket
-	return os.Remove(qemuSocketFile)
+	os.Remove(socketFile)
+	if err != nil {
+		return nil
+	}
+
+	return nil
 }
 
 // NewQMPMonitor creates the monitor subsection of our vm
@@ -658,6 +832,64 @@ func (v *MachineVM) startHostNetworking() error {
 	}
 	_, err = os.StartProcess(cmd[0], cmd, attr)
 	return err
+}
+
+func (v *MachineVM) startUnixProxy(root bool) error {
+	binary, err := os.Executable()
+	if err != nil {
+		return err
+	}
+
+	unixSocket, pidFile, err := v.getUnixSocketAndPID(root)
+	if err != nil {
+		return err
+	}
+	attr := new(os.ProcAttr)
+	// Pass on stdin, stdout, stderr
+	files := []*os.File{os.Stdin, os.Stdout, os.Stderr}
+	attr.Files = files
+	cmd := []string{binary}
+	if logrus.GetLevel() == logrus.DebugLevel {
+		cmd = append(cmd, "--debug")
+		fmt.Println(cmd)
+	}
+	suffix := ""
+	if root {
+		suffix = "-root"
+	}
+	name := fmt.Sprintf("%s%s", v.Name, suffix)
+	cmd = append(cmd, []string{"-c", name, "system", "unix-proxy", "-q", "--pid-file", pidFile, "unix://" + unixSocket}...)
+	_, err = os.StartProcess(cmd[0], cmd, attr)
+
+	return err
+}
+
+func (v *MachineVM) verifyProxyConnection(unixSocket string) error {
+	_, err := socketWait(unixSocket, true)
+	if err != nil {
+		return err
+	}
+
+	_, err = bindings.NewConnection(context.Background(), "unix://"+unixSocket)
+	return err
+}
+
+func (v *MachineVM) getUnixSocketAndPID(root bool) (string, string, error) {
+	rtPath, err := getRuntimeDir()
+	if err != nil {
+		return "", "", err
+	}
+	if !rootless.IsRootless() {
+		rtPath = "/run"
+	}
+	suffix := ""
+	if root {
+		suffix = "-root"
+	}
+	socketDir := filepath.Join(rtPath, "podman")
+	pidFile := filepath.Join(socketDir, fmt.Sprintf("%s%s-unix.pid", v.Name, suffix))
+	unixSocket := filepath.Join(socketDir, fmt.Sprintf("%s%s-api.sock", v.Name, suffix))
+	return unixSocket, pidFile, nil
 }
 
 func (v *MachineVM) getSocketandPid() (string, string, error) {
