@@ -615,6 +615,8 @@ Current supported mount TYPEs are **bind**, **volume**, **image**, **tmpfs** and
 
        type=bind,src=/path/on/host,dst=/path/in/container,relabel=shared
 
+       type=bind,src=/path/on/host,dst=/path/in/container,relabel=shared,U=true
+
        type=volume,source=vol1,destination=/path/in/container,ro=true
 
        type=tmpfs,tmpfs-size=512M,destination=/path/in/container
@@ -633,6 +635,8 @@ Current supported mount TYPEs are **bind**, **volume**, **image**, **tmpfs** and
 
 	      · ro, readonly: true or false (default).
 
+        . U, chown: true or false (default). Change recursively the owner and group of the source volume based on the UID and GID of the container.
+
        Options specific to image:
 
 	      · rw, readwrite: true or false (default).
@@ -647,6 +651,8 @@ Current supported mount TYPEs are **bind**, **volume**, **image**, **tmpfs** and
 
 	      . relabel: shared, private.
 
+        . U, chown: true or false (default). Change recursively the owner and group of the source volume based on the UID and GID of the container.
+
        Options specific to tmpfs:
 
 	      · ro, readonly: true or false (default).
@@ -658,6 +664,8 @@ Current supported mount TYPEs are **bind**, **volume**, **image**, **tmpfs** and
 	      · tmpcopyup: Enable copyup from the image directory at the same location to the tmpfs. Used by default.
 
 	      · notmpcopyup: Disable copying files from the image to the tmpfs.
+
+        . U, chown: true or false (default). Change recursively the owner and group of the source volume based on the UID and GID of the container.
 
 #### **--name**=*name*
 

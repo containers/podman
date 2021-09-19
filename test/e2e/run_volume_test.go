@@ -614,7 +614,7 @@ VOLUME /test/`, ALPINE)
 		Expect(len(session.OutputToStringArray())).To(Equal(2))
 	})
 
-	It("podman run with U volume flag", func() {
+	It("podman run with --volume and U flag", func() {
 		SkipIfRemote("Overlay volumes only work locally")
 
 		u, err := user.Current()
@@ -663,6 +663,65 @@ VOLUME /test/`, ALPINE)
 		Expect(session).Should(Exit(0))
 		found, _ = session.GrepString("888:888")
 		Expect(found).Should(BeTrue())
+	})
+
+	It("podman run with --mount and U flag", func() {
+		u, err := user.Current()
+		Expect(err).To(BeNil())
+		name := u.Username
+		if name == "root" {
+			name = "containers"
+		}
+
+		content, err := ioutil.ReadFile("/etc/subuid")
+		if err != nil {
+			Skip("cannot read /etc/subuid")
+		}
+
+		if !strings.Contains(string(content), name) {
+			Skip("cannot find mappings for the current user")
+		}
+
+		mountPath := filepath.Join(podmanTest.TempDir, "foo")
+		os.Mkdir(mountPath, 0755)
+
+		// false bind mount
+		vol := "type=bind,src=" + mountPath + ",dst=" + dest + ",U=false"
+		session := podmanTest.Podman([]string{"run", "--rm", "--user", "888:888", "--mount", vol, ALPINE, "stat", "-c", "%u:%g", dest})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).ShouldNot(Equal("888:888"))
+
+		// invalid bind mount
+		vol = "type=bind,src=" + mountPath + ",dst=" + dest + ",U=invalid"
+		session = podmanTest.Podman([]string{"run", "--rm", "--user", "888:888", "--mount", vol, ALPINE, "stat", "-c", "%u:%g", dest})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+
+		// true bind mount
+		vol = "type=bind,src=" + mountPath + ",dst=" + dest + ",U=true"
+		session = podmanTest.Podman([]string{"run", "--rm", "--user", "888:888", "--mount", vol, ALPINE, "stat", "-c", "%u:%g", dest})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).Should(Equal("888:888"))
+
+		// tmpfs mount
+		vol = "type=tmpfs," + "dst=" + dest + ",chown"
+		session = podmanTest.Podman([]string{"run", "--rm", "--user", "888:888", "--mount", vol, ALPINE, "stat", "-c", "%u:%g", dest})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).Should(Equal("888:888"))
+
+		// named volume mount
+		namedVolume := podmanTest.Podman([]string{"volume", "create", "foo"})
+		namedVolume.WaitWithDefaultTimeout()
+		Expect(namedVolume).Should(Exit(0))
+
+		vol = "type=volume,src=foo,dst=" + dest + ",chown=true"
+		session = podmanTest.Podman([]string{"run", "--rm", "--user", "888:888", "--mount", vol, ALPINE, "stat", "-c", "%u:%g", dest})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).Should(Equal("888:888"))
 	})
 
 	It("volume permissions after run", func() {
