@@ -2050,35 +2050,39 @@ func (c *Container) getHosts() string {
 		}
 	}
 
-	// Add gateway entry
-	var depCtr *Container
-	netStatus := c.getNetworkStatus()
-	if c.config.NetNsCtr != "" {
-		// ignoring the error because there isn't anything to do
-		depCtr, _ = c.getRootNetNsDepCtr()
-	} else if len(netStatus) != 0 {
-		depCtr = c
-	}
+	// Add gateway entry if we are not in a machine. If we use podman machine
+	// the gvproxy dns server will take care of host.containers.internal.
+	// https://github.com/containers/gvisor-tap-vsock/commit/1108ea45162281046d239047a6db9bc187e64b08
+	if !c.runtime.config.Engine.MachineEnabled {
+		var depCtr *Container
+		netStatus := c.getNetworkStatus()
+		if c.config.NetNsCtr != "" {
+			// ignoring the error because there isn't anything to do
+			depCtr, _ = c.getRootNetNsDepCtr()
+		} else if len(netStatus) != 0 {
+			depCtr = c
+		}
 
-	if depCtr != nil {
-		for _, status := range depCtr.getNetworkStatus() {
-			for _, netInt := range status.Interfaces {
-				for _, netAddress := range netInt.Networks {
-					if netAddress.Gateway != nil {
-						hosts += fmt.Sprintf("%s host.containers.internal\n", netAddress.Gateway.String())
+		if depCtr != nil {
+			for _, status := range depCtr.getNetworkStatus() {
+				for _, netInt := range status.Interfaces {
+					for _, netAddress := range netInt.Networks {
+						if netAddress.Gateway != nil {
+							hosts += fmt.Sprintf("%s host.containers.internal\n", netAddress.Gateway.String())
+						}
 					}
 				}
 			}
-		}
-	} else if c.config.NetMode.IsSlirp4netns() {
-		gatewayIP, err := GetSlirp4netnsGateway(c.slirp4netnsSubnet)
-		if err != nil {
-			logrus.Warn("failed to determine gatewayIP: ", err.Error())
+		} else if c.config.NetMode.IsSlirp4netns() {
+			gatewayIP, err := GetSlirp4netnsGateway(c.slirp4netnsSubnet)
+			if err != nil {
+				logrus.Warn("failed to determine gatewayIP: ", err.Error())
+			} else {
+				hosts += fmt.Sprintf("%s host.containers.internal\n", gatewayIP.String())
+			}
 		} else {
-			hosts += fmt.Sprintf("%s host.containers.internal\n", gatewayIP.String())
+			logrus.Debug("network configuration does not support host.containers.internal address")
 		}
-	} else {
-		logrus.Debug("network configuration does not support host.containers.internal address")
 	}
 
 	return hosts
