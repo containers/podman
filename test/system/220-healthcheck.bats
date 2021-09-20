@@ -12,13 +12,13 @@ function _check_health {
     local testname="$1"
     local tests="$2"
 
-    run_podman inspect --format json healthcheck_c
+    run_podman inspect --format "{{json .State.Healthcheck}}" healthcheck_c
 
     parse_table "$tests" | while read field expect;do
         # (kludge to deal with parse_table and empty strings)
         if [ "$expect" = "''" ]; then expect=""; fi
 
-        actual=$(jq -r ".[0].State.Healthcheck.$field" <<<"$output")
+        actual=$(jq -r ".$field" <<<"$output")
         is "$actual" "$expect" "$testname - .State.Healthcheck.$field"
     done
 }

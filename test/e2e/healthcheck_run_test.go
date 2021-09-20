@@ -117,7 +117,7 @@ var _ = Describe("Podman healthcheck run", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		inspect := podmanTest.InspectContainer("hc")
-		Expect(inspect[0].State.Healthcheck.Status).To(Equal("starting"))
+		Expect(inspect[0].State.Health.Status).To(Equal("starting"))
 	})
 
 	It("podman healthcheck failed checks in start-period should not change status", func() {
@@ -138,7 +138,9 @@ var _ = Describe("Podman healthcheck run", func() {
 		Expect(hc).Should(Exit(1))
 
 		inspect := podmanTest.InspectContainer("hc")
-		Expect(inspect[0].State.Healthcheck.Status).To(Equal("starting"))
+		Expect(inspect[0].State.Health.Status).To(Equal("starting"))
+		// test old podman compat (see #11645)
+		Expect(inspect[0].State.Healthcheck().Status).To(Equal("starting"))
 	})
 
 	It("podman healthcheck failed checks must reach retries before unhealthy ", func() {
@@ -151,15 +153,16 @@ var _ = Describe("Podman healthcheck run", func() {
 		Expect(hc).Should(Exit(1))
 
 		inspect := podmanTest.InspectContainer("hc")
-		Expect(inspect[0].State.Healthcheck.Status).To(Equal("starting"))
+		Expect(inspect[0].State.Health.Status).To(Equal("starting"))
 
 		hc = podmanTest.Podman([]string{"healthcheck", "run", "hc"})
 		hc.WaitWithDefaultTimeout()
 		Expect(hc).Should(Exit(1))
 
 		inspect = podmanTest.InspectContainer("hc")
-		Expect(inspect[0].State.Healthcheck.Status).To(Equal(define.HealthCheckUnhealthy))
-
+		Expect(inspect[0].State.Health.Status).To(Equal(define.HealthCheckUnhealthy))
+		// test old podman compat (see #11645)
+		Expect(inspect[0].State.Healthcheck().Status).To(Equal(define.HealthCheckUnhealthy))
 	})
 
 	It("podman healthcheck good check results in healthy even in start-period", func() {
@@ -172,7 +175,7 @@ var _ = Describe("Podman healthcheck run", func() {
 		Expect(hc).Should(Exit(0))
 
 		inspect := podmanTest.InspectContainer("hc")
-		Expect(inspect[0].State.Healthcheck.Status).To(Equal(define.HealthCheckHealthy))
+		Expect(inspect[0].State.Health.Status).To(Equal(define.HealthCheckHealthy))
 	})
 
 	It("podman healthcheck unhealthy but valid arguments check", func() {
@@ -195,14 +198,14 @@ var _ = Describe("Podman healthcheck run", func() {
 		Expect(hc).Should(Exit(1))
 
 		inspect := podmanTest.InspectContainer("hc")
-		Expect(inspect[0].State.Healthcheck.Status).To(Equal("starting"))
+		Expect(inspect[0].State.Health.Status).To(Equal("starting"))
 
 		hc = podmanTest.Podman([]string{"healthcheck", "run", "hc"})
 		hc.WaitWithDefaultTimeout()
 		Expect(hc).Should(Exit(1))
 
 		inspect = podmanTest.InspectContainer("hc")
-		Expect(inspect[0].State.Healthcheck.Status).To(Equal(define.HealthCheckUnhealthy))
+		Expect(inspect[0].State.Health.Status).To(Equal(define.HealthCheckUnhealthy))
 
 		foo := podmanTest.Podman([]string{"exec", "hc", "touch", "/foo"})
 		foo.WaitWithDefaultTimeout()
@@ -213,7 +216,7 @@ var _ = Describe("Podman healthcheck run", func() {
 		Expect(hc).Should(Exit(0))
 
 		inspect = podmanTest.InspectContainer("hc")
-		Expect(inspect[0].State.Healthcheck.Status).To(Equal(define.HealthCheckHealthy))
+		Expect(inspect[0].State.Health.Status).To(Equal(define.HealthCheckHealthy))
 
 		// Test podman ps --filter heath is working (#11687)
 		ps := podmanTest.Podman([]string{"ps", "--filter", "health=healthy"})
