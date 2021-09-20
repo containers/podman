@@ -34,6 +34,7 @@ import (
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/systemd"
 	"github.com/containers/podman/v3/pkg/util"
+	"github.com/containers/podman/v3/utils"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -540,6 +541,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 				return err
 			}
 			if became {
+				utils.MovePauseProcessToScope(pausePid)
 				os.Exit(ret)
 			}
 		}
