@@ -182,7 +182,7 @@ func readStatusUserNS(pid string) ([]string, error) {
 	c := exec.Command(args[0], args[1:]...)
 	output, err := c.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("error executing %q: %v", strings.Join(args, " "), err)
+		return nil, fmt.Errorf("error executing %q: %w", strings.Join(args, " "), err)
 	}
 
 	return strings.Split(string(output), "\n"), nil
