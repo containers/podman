@@ -70,7 +70,7 @@ Valid placeholders for the Go template are listed below:
 ```
 
 ## SEE ALSO
-podman-pod(1), podman-pod-ps(1)
+**[podman(1)](podman.1.md)**,**[podman-pod(1)](podman-pod.1.md)**, **[podman-inspect(1)](podman-inspect.1.md)**
 
 ## HISTORY
 August 2018, Originally compiled by Brent Baude <bbaude@redhat.com>
