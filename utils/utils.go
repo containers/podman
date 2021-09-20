@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -190,7 +191,11 @@ func moveProcessToScope(pidPath, slice, scope string) error {
 func MovePauseProcessToScope(pausePidPath string) {
 	err := moveProcessToScope(pausePidPath, "user.slice", "podman-pause.scope")
 	if err != nil {
-		if RunsOnSystemd() {
+		unified, err := cgroups.IsCgroup2UnifiedMode()
+		if err != nil {
+			logrus.Warnf("Failed to detect if running with cgroup unified: %v", err)
+		}
+		if RunsOnSystemd() && unified {
 			logrus.Warnf("Failed to add pause process to systemd sandbox cgroup: %v", err)
 		} else {
 			logrus.Debugf("Failed to add pause process to systemd sandbox cgroup: %v", err)
