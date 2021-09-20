@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	defaultWaitTimeout   = 90
+	DefaultWaitTimeout   = 90
 	OSReleasePath        = "/etc/os-release"
 	ProcessOneCgroupPath = "/proc/1/cgroup"
 )
@@ -317,15 +317,20 @@ func (s *PodmanSession) IsJSONOutputValid() bool {
 	return true
 }
 
-// WaitWithDefaultTimeout waits for process finished with defaultWaitTimeout
+// WaitWithDefaultTimeout waits for process finished with DefaultWaitTimeout
 func (s *PodmanSession) WaitWithDefaultTimeout() {
-	Eventually(s, defaultWaitTimeout).Should(Exit())
+	s.WaitWithTimeout(DefaultWaitTimeout)
+}
+
+// WaitWithTimeout waits for process finished with DefaultWaitTimeout
+func (s *PodmanSession) WaitWithTimeout(timeout int) {
+	Eventually(s, timeout).Should(Exit())
 	os.Stdout.Sync()
 	os.Stderr.Sync()
 	fmt.Println("output:", s.OutputToString())
 }
 
-// CreateTempDirinTempDir create a temp dir with prefix podman_test
+// CreateTempDirInTempDir create a temp dir with prefix podman_test
 func CreateTempDirInTempDir() (string, error) {
 	return ioutil.TempDir("", "podman_test")
 }
@@ -337,7 +342,7 @@ func SystemExec(command string, args []string) *PodmanSession {
 	if err != nil {
 		Fail(fmt.Sprintf("unable to run command: %s %s", command, strings.Join(args, " ")))
 	}
-	session.Wait(defaultWaitTimeout)
+	session.Wait(DefaultWaitTimeout)
 	return &PodmanSession{session}
 }
 
