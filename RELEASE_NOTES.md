@@ -1,5 +1,24 @@
 # Release Notes
 
+## 3.3.2
+### Changes
+- The `podman machine start` command now outputs a message when a VM is successfully started.
+
+### Bugfixes
+- Fixed a bug where the remote Podman client's `podman untag` command did not properly handle tags which included digests ([#11557](https://github.com/containers/podman/issues/11557)).
+- Fixed a bug where the remote Podman client on Windows would fail with an error when STDOUT was redirected ([#11444](https://github.com/containers/podman/issues/11444)).
+- Fixed a bug where machines created by `podman machine init` were created with a registry configuration that did not allow shortnames to be used ([#11489](https://github.com/containers/podman/issues/11489)).
+- Fixed a bug where `podman remote run`, `podman remote attach`, and `podman remote exec` could miss a byte of output every 8192 bytes ([#11496](https://github.com/containers/podman/issues/11496)).
+- Fixed a bug where the remote Podman client's `podman build` command did not function properly when the user on the client machine had a UID and GID higher than 65536.
+- Fixed a bug where the remote Podman client did not function properly in some circumstances when the `TMPDIR` environment variable was not defined ([#11418](https://github.com/containers/podman/issues/11418)).
+- Fixed a bug where the `podman machine start` command could print errors about unsupported CPU features under some circumstances ([#11421](https://github.com/containers/podman/issues/11421)).
+
+### APIv2
+- Fixed a bug where the X-Registry-Config header was not properly handled, leading to errors when pulling images ([#11235](https://github.com/containers/podman/issues/11235)).
+
+### Misc
+- Updated the containers/common library to v0.42.3
+
 ## 3.3.1
 ### Bugfixes
 - Fixed a bug where unit files created by `podman generate systemd` could not cleanup shut down containers when stopped by `systemctl stop` ([#11304](https://github.com/containers/podman/issues/11304)).
