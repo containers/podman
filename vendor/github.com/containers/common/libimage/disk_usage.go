@@ -52,6 +52,10 @@ func (r *Runtime) DiskUsage(ctx context.Context) ([]ImageDiskUsage, error) {
 
 // diskUsageForImage returns the disk-usage baseistics for the specified image.
 func diskUsageForImage(ctx context.Context, image *Image, tree *layerTree) ([]ImageDiskUsage, error) {
+	if err := image.isCorrupted(""); err != nil {
+		return nil, err
+	}
+
 	base := ImageDiskUsage{
 		ID:         image.ID(),
 		Created:    image.Created(),
