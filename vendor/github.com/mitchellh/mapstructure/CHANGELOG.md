@@ -1,6 +1,12 @@
-## unreleased
+## 1.4.2
 
-* Fix regression where `*time.Time` value would be set to empty and not be sent 
+* Custom name matchers to support any sort of casing, formatting, etc. for
+  field names. [GH-250]
+* Fix possible panic in ComposeDecodeHookFunc [GH-251]
+
+## 1.4.1
+
+* Fix regression where `*time.Time` value would be set to empty and not be sent
   to decode hooks properly [GH-232]
 
 ## 1.4.0
