@@ -14,6 +14,8 @@ all results in a JSON array. If the inspect type is all, the order of inspection
  If a format is specified, the given template will be executed for each result.
 
 For more inspection options, see also
+[podman-container-inspect(1)](podman-container-inspect.1.md),
+[podman-image-inspect(1)](podman-image-inspect.1.md),
 [podman-network-inspect(1)](podman-network-inspect.1.md),
 [podman-pod-inspect(1)](podman-pod-inspect.1.md), and
 [podman-volume-inspect(1)](podman-volume-inspect.1.md).
@@ -160,7 +162,7 @@ myNetwork
 ```
 
 ## SEE ALSO
-podman(1)
+**[podman(1)](podman.1.md)**,**[podman-container-inspect(1)](podman-container-inspect.1.md)**,**[podman-image-inspect(1)](podman-image-inspect.1.md)**,**[podman-network-inspect(1)](podman-network-inspect.1.md)**,**[podman-pod-inspect(1)](podman-pod-inspect.1.md)**,**[podman-volume-inspect(1)](podman-volume-inspect.1.md)**.
 
 ## HISTORY
 July 2017, Originally compiled by Dan Walsh <dwalsh@redhat.com>
