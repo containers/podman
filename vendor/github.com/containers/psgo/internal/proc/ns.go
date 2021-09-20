@@ -59,7 +59,7 @@ func ReadMappings(path string) ([]IDMap, error) {
 	for {
 		line, _, err := buf.ReadLine()
 		if err != nil {
-			if err == io.EOF {
+			if err == io.EOF { //nolint:errorlint // False positive, see https://github.com/polyfloyd/go-errorlint/pull/12
 				return mappings, nil
 			}
 			return nil, fmt.Errorf("cannot read line from %s: %w", path, err)
