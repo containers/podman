@@ -3,6 +3,8 @@
 package machine
 
 import (
+	"fmt"
+
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/pkg/machine"
@@ -26,6 +28,7 @@ var (
 var (
 	initOpts           = machine.InitOptions{}
 	defaultMachineName = "podman-machine-default"
+	now                bool
 )
 
 func init() {
@@ -61,6 +64,12 @@ func init() {
 	)
 	_ = initCmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
 
+	flags.BoolVar(
+		&now,
+		"now", false,
+		"Start machine now",
+	)
+
 	ImagePathFlagName := "image-path"
 	flags.StringVar(&initOpts.ImagePath, ImagePathFlagName, cfg.Engine.MachineImage, "Path to qcow image")
 	_ = initCmd.RegisterFlagCompletionFunc(ImagePathFlagName, completion.AutocompleteDefault)
@@ -91,5 +100,15 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	return vm.Init(initOpts)
+	err = vm.Init(initOpts)
+	if err != nil {
+		return err
+	}
+	if now {
+		err = vm.Start(initOpts.Name, machine.StartOptions{})
+		if err == nil {
+			fmt.Printf("Machine %q started successfully\n", initOpts.Name)
+		}
+	}
+	return err
 }

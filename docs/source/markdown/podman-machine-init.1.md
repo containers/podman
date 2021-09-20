@@ -47,6 +47,10 @@ Defaults to `testing`.
 
 Memory (in MB).
 
+#### **--now**
+
+Start the virtual machine immediately after it has been initialized.
+
 #### **--help**
 
 Print usage statement.
