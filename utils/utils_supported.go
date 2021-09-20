@@ -47,10 +47,10 @@ func RunUnderSystemdScope(pid int, slice string, unitName string) error {
 		// On errors check if the cgroup already exists, if it does move the process there
 		if props, err := conn.GetUnitTypeProperties(unitName, "Scope"); err == nil {
 			if cgroup, ok := props["ControlGroup"].(string); ok && cgroup != "" {
-				if err := moveUnderCgroup(cgroup, "", []uint32{uint32(pid)}); err != nil {
-					return err
+				if err := moveUnderCgroup(cgroup, "", []uint32{uint32(pid)}); err == nil {
+					return nil
 				}
-				return nil
+				// On errors return the original error message we got from StartTransientUnit.
 			}
 		}
 		return err
