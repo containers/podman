@@ -175,6 +175,11 @@ var (
 			procFn: processGROUP,
 		},
 		{
+			normal: "groups",
+			header: "GROUPS",
+			procFn: processGROUPS,
+		},
+		{
 			code:   "%P",
 			normal: "ppid",
 			header: "PPID",
@@ -304,6 +309,12 @@ var (
 			header: "HGROUP",
 			onHost: true,
 			procFn: processHGROUP,
+		},
+		{
+			normal: "hgroups",
+			header: "HGROUPS",
+			onHost: true,
+			procFn: processHGROUPS,
 		},
 		{
 			normal: "rss",
@@ -620,14 +631,29 @@ func findHostProcess(p *process.Process, ctx *psContext) *process.Process {
 }
 
 // processGROUP returns the effective group ID of the process.  This will be
-// the textual group ID, if it can be optained, or a decimal representation
+// the textual group ID, if it can be obtained, or a decimal representation
 // otherwise.
 func processGROUP(p *process.Process, ctx *psContext) (string, error) {
 	return process.LookupGID(p.Status.Gids[1])
 }
 
+// processGROUPS returns the supplementary groups of the process separated by
+// comma. This will be the textual group ID, if it can be obtained, or a
+// decimal representation otherwise.
+func processGROUPS(p *process.Process, ctx *psContext) (string, error) {
+	var err error
+	groups := make([]string, len(p.Status.Groups))
+	for i, g := range p.Status.Groups {
+		groups[i], err = process.LookupGID(g)
+		if err != nil {
+			return "", err
+		}
+	}
+	return strings.Join(groups, ","), nil
+}
+
 // processRGROUP returns the real group ID of the process.  This will be
-// the textual group ID, if it can be optained, or a decimal representation
+// the textual group ID, if it can be obtained, or a decimal representation
 // otherwise.
 func processRGROUP(p *process.Process, ctx *psContext) (string, error) {
 	return process.LookupGID(p.Status.Gids[0])
@@ -639,14 +665,14 @@ func processPPID(p *process.Process, ctx *psContext) (string, error) {
 }
 
 // processUSER returns the effective user name of the process.  This will be
-// the textual user ID, if it can be optained, or a decimal representation
+// the textual user ID, if it can be obtained, or a decimal representation
 // otherwise.
 func processUSER(p *process.Process, ctx *psContext) (string, error) {
 	return process.LookupUID(p.Status.Uids[1])
 }
 
 // processRUSER returns the effective user name of the process.  This will be
-// the textual user ID, if it can be optained, or a decimal representation
+// the textual user ID, if it can be obtained, or a decimal representation
 // otherwise.
 func processRUSER(p *process.Process, ctx *psContext) (string, error) {
 	return process.LookupUID(p.Status.Uids[0])
@@ -863,6 +889,26 @@ func processHGROUP(p *process.Process, ctx *psContext) (string, error) {
 			return findID(hp.Status.Gids[1], ctx.opts.GIDMap, process.LookupGID, "/proc/sys/fs/overflowgid")
 		}
 		return hp.Hgroup, nil
+	}
+	return "?", nil
+}
+
+// processHGROUPS returns the supplementary groups of the corresponding host
+// process of the (container) or "?" if no corresponding process could be
+// found.
+func processHGROUPS(p *process.Process, ctx *psContext) (string, error) {
+	if hp := findHostProcess(p, ctx); hp != nil {
+		groups := hp.Status.Groups
+		if ctx.opts != nil && len(ctx.opts.GIDMap) > 0 {
+			var err error
+			for i, g := range groups {
+				groups[i], err = findID(g, ctx.opts.GIDMap, process.LookupGID, "/proc/sys/fs/overflowgid")
+				if err != nil {
+					return "", err
+				}
+			}
+		}
+		return strings.Join(groups, ","), nil
 	}
 	return "?", nil
 }
