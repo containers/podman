@@ -404,7 +404,8 @@ func newerRemoteImageAvailable(ctx context.Context, runtime *libpod.Runtime, img
 	if err != nil {
 		return false, err
 	}
-	return img.HasDifferentDigest(ctx, remoteRef)
+	options := &libimage.HasDifferentDigestOptions{AuthFilePath: authfile}
+	return img.HasDifferentDigest(ctx, remoteRef, options)
 }
 
 // newerLocalImageAvailable returns true if the container and local image have different digests
