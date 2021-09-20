@@ -183,7 +183,8 @@ func ImageToImageSummary(l *libimage.Image) (*entities.ImageSummary, error) {
 	}
 
 	is := entities.ImageSummary{
-		ID:           l.ID(),
+		// docker adds sha256: in front of the ID
+		ID:           "sha256:" + l.ID(),
 		ParentId:     imageData.Parent,
 		RepoTags:     imageData.RepoTags,
 		RepoDigests:  imageData.RepoDigests,
