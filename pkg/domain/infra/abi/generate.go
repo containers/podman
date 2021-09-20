@@ -210,9 +210,7 @@ func generateKubeYAML(kubeKind interface{}) ([]byte, error) {
 func generateKubeOutput(content [][]byte) ([]byte, error) {
 	output := make([]byte, 0)
 
-	header := `# Generation of Kubernetes YAML is still under development!
-#
-# Save the output of this file and use kubectl create -f to import
+	header := `# Save the output of this file and use kubectl create -f to import
 # it into Kubernetes.
 #
 # Created with podman-%s
