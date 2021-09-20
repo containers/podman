@@ -335,7 +335,7 @@ type EngineConfig struct {
 	// ActiveService index to Destinations added v2.0.3
 	ActiveService string `toml:"active_service,omitempty"`
 
-	// Destinations mapped by service Names
+	// ServiceDestinations mapped by service Names
 	ServiceDestinations map[string]Destination `toml:"service_destinations,omitempty"`
 
 	// RuntimePath is the path to OCI runtime binary for launching containers.
@@ -378,6 +378,10 @@ type EngineConfig struct {
 	// separate set of containers, which may cause conflicts in
 	// containers/storage. As such this is not exposed via the config file.
 	StateType RuntimeStateStore `toml:"-"`
+
+	// ServiceTimeout is the number of seconds to wait without a connection
+	// before the `podman system service` times out and exits
+	ServiceTimeout uint `toml:"service_timeout,omitempty"`
 
 	// StaticDir is the path to a persistent directory to store container
 	// files.
