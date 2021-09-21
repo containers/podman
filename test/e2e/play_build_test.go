@@ -80,12 +80,17 @@ status: {}
 FROM quay.io/libpod/alpine_nginx:latest
 RUN apk update && apk add strace
 LABEL homer=dad
+COPY copyfile /copyfile
 `
 	var prebuiltImage = `
 FROM quay.io/libpod/alpine_nginx:latest
 RUN apk update && apk add strace
 LABEL marge=mom
 `
+
+	var copyFile = `just a text file
+`
+
 	It("Check that image is built using Dockerfile", func() {
 		// Setup
 		yamlDir := filepath.Join(tempdir, RandomString(12))
@@ -97,7 +102,9 @@ LABEL marge=mom
 		Expect(err).To(BeNil())
 		err = writeYaml(playBuildFile, filepath.Join(app1Dir, "Dockerfile"))
 		Expect(err).To(BeNil())
-
+		// Write a file to be copied
+		err = writeYaml(copyFile, filepath.Join(app1Dir, "copyfile"))
+		Expect(err).To(BeNil())
 		// Switch to temp dir and restore it afterwards
 		cwd, err := os.Getwd()
 		Expect(err).To(BeNil())
@@ -131,7 +138,9 @@ LABEL marge=mom
 		Expect(err).To(BeNil())
 		err = writeYaml(playBuildFile, filepath.Join(app1Dir, "Containerfile"))
 		Expect(err).To(BeNil())
-
+		// Write a file to be copied
+		err = writeYaml(copyFile, filepath.Join(app1Dir, "copyfile"))
+		Expect(err).To(BeNil())
 		// Switch to temp dir and restore it afterwards
 		cwd, err := os.Getwd()
 		Expect(err).To(BeNil())
@@ -171,6 +180,9 @@ LABEL marge=mom
 		err = os.Mkdir(app1Dir, 0755)
 		Expect(err).To(BeNil())
 		err = writeYaml(playBuildFile, filepath.Join(app1Dir, "Containerfile"))
+		Expect(err).To(BeNil())
+		// Write a file to be copied
+		err = writeYaml(copyFile, filepath.Join(app1Dir, "copyfile"))
 		Expect(err).To(BeNil())
 
 		// Switch to temp dir and restore it afterwards
@@ -214,6 +226,9 @@ LABEL marge=mom
 		err = os.Mkdir(app1Dir, 0755)
 		Expect(err).To(BeNil())
 		err = writeYaml(playBuildFile, filepath.Join(app1Dir, "Containerfile"))
+		Expect(err).To(BeNil())
+		// Write a file to be copied
+		err = writeYaml(copyFile, filepath.Join(app1Dir, "copyfile"))
 		Expect(err).To(BeNil())
 
 		// Switch to temp dir and restore it afterwards
