@@ -301,6 +301,8 @@ type ImageSaveOptions struct {
 	// than one image.  Additional tags will be interpreted as references
 	// to images which are added to the archive.
 	MultiImageArchive bool
+	// Accept uncompressed layers when copying OCI images.
+	OciAcceptUncompressedLayers bool
 	// Output - write image to the specified path.
 	Output string
 	// Do not save the signature from the source image

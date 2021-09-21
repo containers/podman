@@ -46,3 +46,18 @@ func (o *ExportOptions) GetFormat() string {
 	}
 	return *o.Format
 }
+
+// WithOciAcceptUncompressedLayers set field OciAcceptUncompressedLayers to given value
+func (o *ExportOptions) WithOciAcceptUncompressedLayers(value bool) *ExportOptions {
+	o.OciAcceptUncompressedLayers = &value
+	return o
+}
+
+// GetOciAcceptUncompressedLayers returns value of field OciAcceptUncompressedLayers
+func (o *ExportOptions) GetOciAcceptUncompressedLayers() bool {
+	if o.OciAcceptUncompressedLayers == nil {
+		var z bool
+		return z
+	}
+	return *o.OciAcceptUncompressedLayers
+}
