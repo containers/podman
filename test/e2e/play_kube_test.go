@@ -2798,4 +2798,58 @@ invalid kube kind
 		exists.WaitWithDefaultTimeout()
 		Expect(exists).To(Exit(0))
 	})
+
+	It("podman play kube replace", func() {
+		pod := getPod()
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		ls := podmanTest.Podman([]string{"pod", "ps", "--format", "'{{.ID}}'"})
+		ls.WaitWithDefaultTimeout()
+		Expect(ls).Should(Exit(0))
+		Expect(len(ls.OutputToStringArray())).To(Equal(1))
+
+		containerLen := podmanTest.Podman([]string{"pod", "inspect", pod.Name, "--format", "'{{len .Containers}}'"})
+
+		ctr01Name := "ctr01"
+		ctr02Name := "ctr02"
+
+		ctr01 := getCtr(withName(ctr01Name))
+		ctr02 := getCtr(withName(ctr02Name))
+
+		newPod := getPod(
+			withCtr(ctr01),
+			withCtr(ctr02),
+		)
+		err = generateKubeYaml("pod", newPod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		replace := podmanTest.Podman([]string{"play", "kube", "--replace", kubeYaml})
+		replace.WaitWithDefaultTimeout()
+		Expect(replace).Should(Exit(0))
+
+		newContainerLen := podmanTest.Podman([]string{"pod", "inspect", newPod.Name, "--format", "'{{len .Containers}}'"})
+		newContainerLen.WaitWithDefaultTimeout()
+		Expect(newContainerLen).Should(Exit(0))
+		Expect(newContainerLen.OutputToString()).NotTo(Equal(containerLen.OutputToString()))
+	})
+
+	It("podman play kube replace non-existing pod", func() {
+		pod := getPod()
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		replace := podmanTest.Podman([]string{"play", "kube", "--replace", kubeYaml})
+		replace.WaitWithDefaultTimeout()
+		Expect(replace).Should(Exit(0))
+
+		ls := podmanTest.Podman([]string{"pod", "ps", "--format", "'{{.ID}}'"})
+		ls.WaitWithDefaultTimeout()
+		Expect(ls).Should(Exit(0))
+		Expect(len(ls.OutputToStringArray())).To(Equal(1))
+	})
 })
