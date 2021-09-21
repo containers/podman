@@ -71,3 +71,5 @@ require (
 	k8s.io/api v0.22.1
 	k8s.io/apimachinery v0.22.1
 )
+
+replace github.com/containers/psgo => github.com/giuseppe/psgo v1.2.2-0.20210921144544-efcb7f04ee34
