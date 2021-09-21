@@ -369,13 +369,46 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		if err != nil {
 			return nil, err
 		}
-		volMount := spec.Mount{
-			Type:        "bind",
-			Source:      mountPoint,
-			Destination: namedVol.Dest,
-			Options:     namedVol.Options,
+
+		overlayFlag := false
+		for _, o := range namedVol.Options {
+			if o == "O" {
+				overlayFlag = true
+			}
 		}
-		g.AddMount(volMount)
+
+		if overlayFlag {
+			contentDir, err := overlay.TempDir(c.config.StaticDir, c.RootUID(), c.RootGID())
+			if err != nil {
+				return nil, err
+			}
+			overlayMount, err := overlay.Mount(contentDir, mountPoint, namedVol.Dest, c.RootUID(), c.RootGID(), c.runtime.store.GraphOptions())
+			if err != nil {
+				return nil, errors.Wrapf(err, "mounting overlay failed %q", mountPoint)
+			}
+
+			for _, o := range namedVol.Options {
+				switch o {
+				case "U":
+					if err := chown.ChangeHostPathOwnership(mountPoint, true, int(hostUID), int(hostGID)); err != nil {
+						return nil, err
+					}
+
+					if err := chown.ChangeHostPathOwnership(contentDir, true, int(hostUID), int(hostGID)); err != nil {
+						return nil, err
+					}
+				}
+			}
+			g.AddMount(overlayMount)
+		} else {
+			volMount := spec.Mount{
+				Type:        "bind",
+				Source:      mountPoint,
+				Destination: namedVol.Dest,
+				Options:     namedVol.Options,
+			}
+			g.AddMount(volMount)
+		}
 	}
 
 	// Check if the spec file mounts contain the options z, Z or U.
