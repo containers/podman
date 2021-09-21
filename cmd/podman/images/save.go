@@ -70,6 +70,10 @@ func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: saveCommand,
 	})
+
+	// Saving signatures is not supported
+	saveOpts.RemoveSignatures = true
+
 	saveFlags(saveCommand)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
