@@ -359,11 +359,15 @@ osx_alt_build_task:
         TEST_FLAVOR: "altbuild"
         ALT_NAME: 'OSX Cross'
     osx_instance:
-        image: 'catalina-base'
-    script:
+        image: 'big-sur-base'
+    setup_script:
         - brew install go
         - brew install go-md2man
-        - make podman-remote-release-darwin.zip
+        - go version
+    build_amd64_script:
+        - make podman-remote-release-darwin_amd64.zip
+    build_arm64_script:
+        - make podman-remote-release-darwin_arm64.zip GOARCH=arm64
     always: *binary_artifacts
 
 
