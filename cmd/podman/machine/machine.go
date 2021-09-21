@@ -3,8 +3,6 @@
 package machine
 
 import (
-	"errors"
-	"runtime"
 	"strings"
 
 	"github.com/containers/podman/v3/cmd/podman/registry"
@@ -18,18 +16,6 @@ var (
 	noOp = func(cmd *cobra.Command, args []string) error {
 		return nil
 	}
-	// noAarch64 temporarily disables arm64 support on
-	// Apple Silicon
-	noAarch64 = func(cmd *cobra.Command, args []string) error {
-		if runtime.GOARCH == "arm64" {
-			if runtime.GOOS == "darwin" {
-				return errors.New("due to missing upstream patches, Apple Silicon is not capable of running Podman machine yet")
-			}
-			return errors.New("no aarch64 images are available at this time")
-		}
-		return nil
-	}
-
 	// Command: podman _machine_
 	machineCmd = &cobra.Command{
 		Use:                "machine",

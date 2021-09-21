@@ -30,7 +30,6 @@ var (
 		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman machine list,
   podman machine ls`,
-		PreRunE: noAarch64,
 	}
 	listFlag = listFlagType{}
 )
