@@ -118,6 +118,7 @@ type PodSpec struct {
 type PodCreateOptions struct {
 	CGroupParent       string            `json:"cgroup_parent,omitempty"`
 	CreateCommand      []string          `json:"create_command,omitempty"`
+	Devices            []string          `json:"devices,omitempty"`
 	Hostname           string            `json:"hostname,omitempty"`
 	Infra              bool              `json:"infra,omitempty"`
 	InfraImage         string            `json:"infra_image,omitempty"`
@@ -164,7 +165,7 @@ type ContainerCreateOptions struct {
 	CPUS              float64 `json:"cpus,omitempty"`
 	CPUSetCPUs        string  `json:"cpuset_cpus,omitempty"`
 	CPUSetMems        string
-	Devices           []string
+	Devices           []string `json:"devices,omitempty"`
 	DeviceCGroupRule  []string
 	DeviceReadBPs     []string
 	DeviceReadIOPs    []string
@@ -295,6 +296,7 @@ func ToPodSpecGen(s specgen.PodSpecGenerator, p *PodCreateOptions) (*specgen.Pod
 	s.Pid = out
 	s.Hostname = p.Hostname
 	s.Labels = p.Labels
+	s.Devices = p.Devices
 	s.NoInfra = !p.Infra
 	if p.InfraCommand != nil && len(*p.InfraCommand) > 0 {
 		s.InfraCommand = strings.Split(*p.InfraCommand, " ")

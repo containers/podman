@@ -819,27 +819,10 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	// Devices
 	// Do not include if privileged - assumed that all devices will be
 	// included.
-	hostConfig.Devices = []define.InspectDevice{}
-	if ctrSpec.Linux != nil && !hostConfig.Privileged {
-		for _, dev := range ctrSpec.Linux.Devices {
-			key := fmt.Sprintf("%d:%d", dev.Major, dev.Minor)
-			if deviceNodes == nil {
-				nodes, err := util.FindDeviceNodes()
-				if err != nil {
-					return nil, err
-				}
-				deviceNodes = nodes
-			}
-			path, ok := deviceNodes[key]
-			if !ok {
-				logrus.Warnf("Could not locate device %s on host", key)
-				continue
-			}
-			newDev := define.InspectDevice{}
-			newDev.PathOnHost = path
-			newDev.PathInContainer = dev.Path
-			hostConfig.Devices = append(hostConfig.Devices, newDev)
-		}
+	var err error
+	hostConfig.Devices, err = c.GetDevices(*&hostConfig.Privileged, *ctrSpec, deviceNodes)
+	if err != nil {
+		return nil, err
 	}
 
 	// Ulimits
@@ -884,4 +867,30 @@ func (c *Container) inHostPidNS() (bool, error) {
 		}
 	}
 	return true, nil
+}
+
+func (c *Container) GetDevices(priv bool, ctrSpec spec.Spec, deviceNodes map[string]string) ([]define.InspectDevice, error) {
+	devices := []define.InspectDevice{}
+	if ctrSpec.Linux != nil && !priv {
+		for _, dev := range ctrSpec.Linux.Devices {
+			key := fmt.Sprintf("%d:%d", dev.Major, dev.Minor)
+			if deviceNodes == nil {
+				nodes, err := util.FindDeviceNodes()
+				if err != nil {
+					return nil, err
+				}
+				deviceNodes = nodes
+			}
+			path, ok := deviceNodes[key]
+			if !ok {
+				logrus.Warnf("Could not locate device %s on host", key)
+				continue
+			}
+			newDev := define.InspectDevice{}
+			newDev.PathOnHost = path
+			newDev.PathInContainer = dev.Path
+			devices = append(devices, newDev)
+		}
+	}
+	return devices, nil
 }

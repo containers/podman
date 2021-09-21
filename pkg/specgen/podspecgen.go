@@ -88,6 +88,8 @@ type PodBasicConfig struct {
 	// Image volumes bind-mount a container-image mount into the pod's infra container.
 	// Optional.
 	ImageVolumes []*ImageVolume `json:"image_volumes,omitempty"`
+	// Devices contains user specified Devices to be added to the Pod
+	Devices []string `json:"pod_devices,omitempty"`
 }
 
 // PodNetworkConfig contains networking configuration for a pod.

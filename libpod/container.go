@@ -278,6 +278,11 @@ func (c *Container) Config() *ContainerConfig {
 	return returnConfig
 }
 
+// DeviceHostSrc returns the user supplied device to be passed down in the pod
+func (c *Container) DeviceHostSrc() []spec.LinuxDevice {
+	return c.config.DeviceHostSrc
+}
+
 // Runtime returns the container's Runtime.
 func (c *Container) Runtime() *Runtime {
 	return c.runtime

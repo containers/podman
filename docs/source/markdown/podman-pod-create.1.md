@@ -38,6 +38,22 @@ Examples of the List Format:
 0-4,9           # bits 0, 1, 2, 3, 4, and 9 set
 0-2,7,12-14     # bits 0, 1, 2, 7, 12, 13, and 14 set
 
+#### **--device**=_host-device_[**:**_container-device_][**:**_permissions_]
+
+Add a host device to the pod. Optional *permissions* parameter
+can be used to specify device permissions It is a combination of
+**r** for read, **w** for write, and **m** for **mknod**(2).
+
+Example: **--device=/dev/sdc:/dev/xvdc:rwm**.
+
+Note: if _host_device_ is a symbolic link then it will be resolved first.
+The pod will only store the major and minor numbers of the host device.
+
+Note: the pod implements devices by storing the initial configuration passed by the user and recreating the device on each container added to the pod.
+
+Podman may load kernel modules required for using the specified
+device. The devices that Podman will load modules for when necessary are:
+/dev/fuse.
 
 #### **--dns**=*ipaddr*
 

@@ -881,6 +881,25 @@ ENTRYPOINT ["sleep","99999"]
 		ctr3 := podmanTest.Podman([]string{"run", "--pod", podName, ALPINE, "cat", "/tmp1/test"})
 		ctr3.WaitWithDefaultTimeout()
 		Expect(ctr3.OutputToString()).To(ContainSubstring("hello"))
+	})
+
+	It("podman pod create --device", func() {
+		SkipIfRootless("Cannot create devices in /dev in rootless mode")
+		Expect(os.MkdirAll("/dev/foodevdir", os.ModePerm)).To(BeNil())
+		defer os.RemoveAll("/dev/foodevdir")
+
+		mknod := SystemExec("mknod", []string{"/dev/foodevdir/null", "c", "1", "3"})
+		mknod.WaitWithDefaultTimeout()
+		Expect(mknod).Should(Exit(0))
+
+		podName := "testPod"
+		session := podmanTest.Podman([]string{"pod", "create", "--device", "/dev/foodevdir:/dev/bar", "--name", podName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		session = podmanTest.Podman([]string{"run", "-q", "--pod", podName, ALPINE, "stat", "-c%t:%T", "/dev/bar/null"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal("1:3"))
 
 	})
 
