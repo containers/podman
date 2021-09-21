@@ -31,6 +31,7 @@ release.txt
 /test/checkseccomp/checkseccomp
 /test/copyimg/copyimg
 /test/goecho/goecho
+/test/version/version
 /test/testvol/testvol
 .vscode*
 tags
