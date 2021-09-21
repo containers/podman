@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/pkg/env"
 	"github.com/containers/podman/v3/pkg/lookup"
 	"github.com/containers/podman/v3/pkg/namespaces"
 	"github.com/containers/podman/v3/pkg/specgen"
@@ -570,11 +571,15 @@ func ocicniPortMappingToContainerPort(portMappings []ocicni.PortMapping) ([]v1.C
 
 // libpodEnvVarsToKubeEnvVars converts a key=value string slice to []v1.EnvVar
 func libpodEnvVarsToKubeEnvVars(envs []string) ([]v1.EnvVar, error) {
+	defaultEnv := env.DefaultEnvVariables()
 	envVars := make([]v1.EnvVar, 0, len(envs))
 	for _, e := range envs {
 		split := strings.SplitN(e, "=", 2)
 		if len(split) != 2 {
 			return envVars, errors.Errorf("environment variable %s is malformed; should be key=value", e)
+		}
+		if defaultEnv[split[0]] == split[1] {
+			continue
 		}
 		ev := v1.EnvVar{
 			Name:  split[0],
