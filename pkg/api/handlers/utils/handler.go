@@ -89,21 +89,21 @@ func WriteResponse(w http.ResponseWriter, code int, value interface{}) {
 		w.WriteHeader(code)
 
 		if _, err := fmt.Fprintln(w, v); err != nil {
-			logrus.Errorf("unable to send string response: %q", err)
+			logrus.Errorf("Unable to send string response: %q", err)
 		}
 	case *os.File:
 		w.Header().Set("Content-Type", "application/octet; charset=us-ascii")
 		w.WriteHeader(code)
 
 		if _, err := io.Copy(w, v); err != nil {
-			logrus.Errorf("unable to copy to response: %q", err)
+			logrus.Errorf("Unable to copy to response: %q", err)
 		}
 	case io.Reader:
 		w.Header().Set("Content-Type", "application/x-tar")
 		w.WriteHeader(code)
 
 		if _, err := io.Copy(w, v); err != nil {
-			logrus.Errorf("unable to copy to response: %q", err)
+			logrus.Errorf("Unable to copy to response: %q", err)
 		}
 	default:
 		WriteJSON(w, code, value)
@@ -162,7 +162,7 @@ func WriteJSON(w http.ResponseWriter, code int, value interface{}) {
 	coder := json.NewEncoder(w)
 	coder.SetEscapeHTML(true)
 	if err := coder.Encode(value); err != nil {
-		logrus.Errorf("unable to write json: %q", err)
+		logrus.Errorf("Unable to write json: %q", err)
 	}
 }
 

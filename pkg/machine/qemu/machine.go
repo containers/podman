@@ -366,7 +366,7 @@ func (v *MachineVM) Stop(name string, _ machine.StopOptions) error {
 		return err
 	}
 	if _, err := os.Stat(pidFile); os.IsNotExist(err) {
-		logrus.Infof("pid file %s does not exist", pidFile)
+		logrus.Info(err)
 		return nil
 	}
 	pidString, err := ioutil.ReadFile(pidFile)

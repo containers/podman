@@ -94,7 +94,7 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 			}
 
 			if err := coder.Encode(e); err != nil {
-				logrus.Errorf("unable to write json: %q", err)
+				logrus.Errorf("Unable to write json: %q", err)
 			}
 			flush()
 		case <-r.Context().Done():

@@ -78,7 +78,7 @@ func WaitContainerDocker(w http.ResponseWriter, r *http.Request) {
 	exitCode, err := waitDockerCondition(ctx, name, interval, condition)
 	var errStruct *struct{ Message string }
 	if err != nil {
-		logrus.Errorf("error while waiting on condition: %q", err)
+		logrus.Errorf("While waiting on condition: %q", err)
 		errStruct = &struct {
 			Message string
 		}{
@@ -94,7 +94,7 @@ func WaitContainerDocker(w http.ResponseWriter, r *http.Request) {
 	enc.SetEscapeHTML(true)
 	err = enc.Encode(&responseData)
 	if err != nil {
-		logrus.Errorf("unable to write json: %q", err)
+		logrus.Errorf("Unable to write json: %q", err)
 	}
 }
 

@@ -178,13 +178,13 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 	if size {
 		rootFsSize, err := c.rootFsSize()
 		if err != nil {
-			logrus.Errorf("error getting rootfs size %q: %v", config.ID, err)
+			logrus.Errorf("Getting rootfs size %q: %v", config.ID, err)
 		}
 		data.SizeRootFs = rootFsSize
 
 		rwSize, err := c.rwSize()
 		if err != nil {
-			logrus.Errorf("error getting rw size %q: %v", config.ID, err)
+			logrus.Errorf("Getting rw size %q: %v", config.ID, err)
 		}
 		data.SizeRw = &rwSize
 	}

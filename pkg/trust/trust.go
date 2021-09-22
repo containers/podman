@@ -188,7 +188,7 @@ func GetGPGIdFromKeyPath(path string) []string {
 	cmd := exec.Command("gpg2", "--with-colons", path)
 	results, err := cmd.Output()
 	if err != nil {
-		logrus.Errorf("error getting key identity: %s", err)
+		logrus.Errorf("Getting key identity: %s", err)
 		return nil
 	}
 	return parseUids(results)
@@ -203,7 +203,7 @@ func GetGPGIdFromKeyData(key string) []string {
 	}
 	tmpfileName, err := CreateTmpFile("", "", decodeKey)
 	if err != nil {
-		logrus.Errorf("error creating key date temp file %s", err)
+		logrus.Errorf("Creating key date temp file %s", err)
 	}
 	defer os.Remove(tmpfileName)
 	return GetGPGIdFromKeyPath(tmpfileName)

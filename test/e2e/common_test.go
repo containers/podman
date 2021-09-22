@@ -311,7 +311,7 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 
 func (p PodmanTestIntegration) AddImageToRWStore(image string) {
 	if err := p.RestoreArtifact(image); err != nil {
-		logrus.Errorf("unable to restore %s to RW store", image)
+		logrus.Errorf("Unable to restore %s to RW store", image)
 	}
 }
 

@@ -210,7 +210,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 		var err error
 		path, err = exec.LookPath("slirp4netns")
 		if err != nil {
-			logrus.Errorf("could not find slirp4netns, the network namespace won't be configured: %v", err)
+			logrus.Errorf("Could not find slirp4netns, the network namespace won't be configured: %v", err)
 			return nil
 		}
 	}
@@ -303,7 +303,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 	defer func() {
 		servicereaper.AddPID(cmd.Process.Pid)
 		if err := cmd.Process.Release(); err != nil {
-			logrus.Errorf("unable to release command process: %q", err)
+			logrus.Errorf("Unable to release command process: %q", err)
 		}
 	}()
 
@@ -421,7 +421,7 @@ func waitForSync(syncR *os.File, cmd *exec.Cmd, logFile io.ReadSeeker, timeout t
 				if status.Exited() {
 					// Seek at the beginning of the file and read all its content
 					if _, err := logFile.Seek(0, 0); err != nil {
-						logrus.Errorf("could not seek log file: %q", err)
+						logrus.Errorf("Could not seek log file: %q", err)
 					}
 					logContent, err := ioutil.ReadAll(logFile)
 					if err != nil {
@@ -506,7 +506,7 @@ func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath strin
 	defer func() {
 		servicereaper.AddPID(cmd.Process.Pid)
 		if err := cmd.Process.Release(); err != nil {
-			logrus.Errorf("unable to release rootlessport process: %q", err)
+			logrus.Errorf("Unable to release rootlessport process: %q", err)
 		}
 	}()
 	if err := waitForSync(syncR, cmd, logFile, 3*time.Second); err != nil {
@@ -559,7 +559,7 @@ func (r *Runtime) setupRootlessPortMappingViaSlirp(ctr *Container, cmd *exec.Cmd
 		}
 		defer func() {
 			if err := conn.Close(); err != nil {
-				logrus.Errorf("unable to close connection: %q", err)
+				logrus.Errorf("Unable to close connection: %q", err)
 			}
 		}()
 		hostIP := i.HostIP

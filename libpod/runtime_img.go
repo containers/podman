@@ -54,7 +54,7 @@ func (r *Runtime) newImageBuildCompleteEvent(idOrName string) {
 	e.Type = events.Image
 	e.Name = idOrName
 	if err := r.eventer.Write(e); err != nil {
-		logrus.Errorf("unable to write build event: %q", err)
+		logrus.Errorf("Unable to write build event: %q", err)
 	}
 }
 

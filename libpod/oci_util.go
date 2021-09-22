@@ -72,7 +72,7 @@ func bindPorts(ports []types.OCICNIPortMapping) ([]*os.File, error) {
 			// note that this does not affect the fd, see the godoc for server.File()
 			err = server.Close()
 			if err != nil {
-				logrus.Warnf("failed to close connection: %v", err)
+				logrus.Warnf("Failed to close connection: %v", err)
 			}
 
 		case "tcp":
@@ -106,13 +106,13 @@ func bindPorts(ports []types.OCICNIPortMapping) ([]*os.File, error) {
 			// note that this does not affect the fd, see the godoc for server.File()
 			err = server.Close()
 			if err != nil {
-				logrus.Warnf("failed to close connection: %v", err)
+				logrus.Warnf("Failed to close connection: %v", err)
 			}
 
 		case "sctp":
 			if !notifySCTP {
 				notifySCTP = true
-				logrus.Warnf("port reservation for SCTP is not supported")
+				logrus.Warnf("Port reservation for SCTP is not supported")
 			}
 		default:
 			return nil, fmt.Errorf("unknown protocol %s", i.Protocol)

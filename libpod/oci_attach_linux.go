@@ -67,7 +67,7 @@ func (c *Container) attach(streams *define.AttachStreams, keys string, resize <-
 	}
 	defer func() {
 		if err := conn.Close(); err != nil {
-			logrus.Errorf("unable to close socket: %q", err)
+			logrus.Errorf("Unable to close socket: %q", err)
 		}
 	}()
 
@@ -142,7 +142,7 @@ func (c *Container) attachToExec(streams *define.AttachStreams, keys *string, se
 	if newSize != nil {
 		err = c.ociRuntime.ExecAttachResize(c, sessionID, *newSize)
 		if err != nil {
-			logrus.Warn("resize failed", err)
+			logrus.Warnf("Resize failed: %v", err)
 		}
 	}
 
@@ -153,7 +153,7 @@ func (c *Container) attachToExec(streams *define.AttachStreams, keys *string, se
 	}
 	defer func() {
 		if err := conn.Close(); err != nil {
-			logrus.Errorf("unable to close socket: %q", err)
+			logrus.Errorf("Unable to close socket: %q", err)
 		}
 	}()
 
@@ -210,7 +210,7 @@ func setupStdioChannels(streams *define.AttachStreams, conn *net.UnixConn, detac
 			_, err = utils.CopyDetachable(conn, streams.InputStream, detachKeys)
 			if err == nil {
 				if connErr := conn.CloseWrite(); connErr != nil {
-					logrus.Errorf("unable to close conn: %q", connErr)
+					logrus.Errorf("Unable to close conn: %q", connErr)
 				}
 			}
 		}

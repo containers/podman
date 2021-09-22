@@ -273,7 +273,7 @@ func (n *cniNetwork) teardown(namespacePath string, options types.TeardownOption
 		if err == nil {
 			rt = newRt
 		} else {
-			logrus.Warnf("failed to load cached network config: %v, falling back to loading network %s from disk", err, name)
+			logrus.Warnf("Failed to load cached network config: %v, falling back to loading network %s from disk", err, name)
 			network := n.networks[name]
 			if network == nil {
 				multiErr = multierror.Append(multiErr, errors.Wrapf(define.ErrNoSuchNetwork, "network %s", name))

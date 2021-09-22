@@ -42,7 +42,7 @@ func ProxySignals(ctr *libpod.Container) {
 				if errors.Cause(err) == define.ErrCtrStateInvalid {
 					logrus.Infof("Ceasing signal forwarding to container %s as it has stopped", ctr.ID())
 				} else {
-					logrus.Errorf("Error forwarding signal %d to container %s: %v", s, ctr.ID(), err)
+					logrus.Errorf("forwarding signal %d to container %s: %v", s, ctr.ID(), err)
 				}
 				// If the container dies, and we find out here,
 				// we need to forward that one signal to
@@ -51,7 +51,7 @@ func ProxySignals(ctr *libpod.Container) {
 				// play out.
 				signal.StopCatch(sigBuffer)
 				if err := syscall.Kill(syscall.Getpid(), s.(syscall.Signal)); err != nil {
-					logrus.Errorf("failed to kill pid %d", syscall.Getpid())
+					logrus.Errorf("Failed to kill pid %d", syscall.Getpid())
 				}
 				return
 			}

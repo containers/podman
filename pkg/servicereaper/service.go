@@ -46,7 +46,7 @@ func reaper(sigc chan os.Signal) {
 			if err != nil {
 				// do not log error for ECHILD
 				if err != syscall.ECHILD {
-					logrus.Warnf("wait for pid %d failed: %v ", pid, err)
+					logrus.Warnf("Wait for pid %d failed: %v ", pid, err)
 				}
 				delete(s.pidMap, pid)
 				continue

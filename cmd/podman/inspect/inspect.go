@@ -220,7 +220,7 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 		err = printTmpl(tmpType, row, data)
 	}
 	if err != nil {
-		logrus.Errorf("Error printing inspect output: %v", err)
+		logrus.Errorf("Printing inspect output: %v", err)
 	}
 
 	if len(errs) > 0 {

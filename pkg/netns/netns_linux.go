@@ -133,19 +133,19 @@ func NewNSWithName(name string) (ns.NetNS, error) {
 		var origNS ns.NetNS
 		origNS, err = ns.GetNS(threadNsPath)
 		if err != nil {
-			logrus.Warnf("cannot open current network namespace %s: %q", threadNsPath, err)
+			logrus.Warnf("Cannot open current network namespace %s: %q", threadNsPath, err)
 			return
 		}
 		defer func() {
 			if err := origNS.Close(); err != nil {
-				logrus.Errorf("unable to close namespace: %q", err)
+				logrus.Errorf("Unable to close namespace: %q", err)
 			}
 		}()
 
 		// create a new netns on the current thread
 		err = unix.Unshare(unix.CLONE_NEWNET)
 		if err != nil {
-			logrus.Warnf("cannot create a new network namespace: %q", err)
+			logrus.Warnf("Cannot create a new network namespace: %q", err)
 			return
 		}
 
@@ -157,7 +157,7 @@ func NewNSWithName(name string) (ns.NetNS, error) {
 					// the network namespace owned by root on the host.
 					return
 				}
-				logrus.Warnf("unable to reset namespace: %q", err)
+				logrus.Warnf("Unable to reset namespace: %q", err)
 			}
 		}()
 

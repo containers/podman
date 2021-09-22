@@ -312,7 +312,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 
 	contextDir, err := filepath.Abs(options.ContextDirectory)
 	if err != nil {
-		logrus.Errorf("cannot find absolute path of %v: %v", options.ContextDirectory, err)
+		logrus.Errorf("Cannot find absolute path of %v: %v", options.ContextDirectory, err)
 		return nil, err
 	}
 
@@ -339,7 +339,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		}
 		containerfile, err := filepath.Abs(c)
 		if err != nil {
-			logrus.Errorf("cannot find absolute path of %v: %v", c, err)
+			logrus.Errorf("Cannot find absolute path of %v: %v", c, err)
 			return nil, err
 		}
 
@@ -371,7 +371,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	}
 	tarfile, err := nTar(append(excludes, dontexcludes...), tarContent...)
 	if err != nil {
-		logrus.Errorf("cannot tar container entries %v error: %v", tarContent, err)
+		logrus.Errorf("Cannot tar container entries %v error: %v", tarContent, err)
 		return nil, err
 	}
 	defer func() {
@@ -477,7 +477,7 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 		for _, src := range sources {
 			s, err := filepath.Abs(src)
 			if err != nil {
-				logrus.Errorf("cannot stat one of source context: %v", err)
+				logrus.Errorf("Cannot stat one of source context: %v", err)
 				merr = multierror.Append(merr, err)
 				return
 			}

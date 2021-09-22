@@ -63,7 +63,7 @@ func StringsToErrors(strErrs []string) []error {
 // a defer.
 func SyncQuiet(f *os.File) {
 	if err := f.Sync(); err != nil {
-		logrus.Errorf("unable to sync file %s: %q", f.Name(), err)
+		logrus.Errorf("Unable to sync file %s: %q", f.Name(), err)
 	}
 }
 
@@ -71,7 +71,7 @@ func SyncQuiet(f *os.File) {
 // a defer.
 func CloseQuiet(f *os.File) {
 	if err := f.Close(); err != nil {
-		logrus.Errorf("unable to close file %s: %q", f.Name(), err)
+		logrus.Errorf("Unable to close file %s: %q", f.Name(), err)
 	}
 }
 

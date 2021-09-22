@@ -186,9 +186,9 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 	}
 	// Try to clean up the pod - but only warn on failure, it's nonfatal.
 	if cleanupCtrs, cleanupErr := pod.Cleanup(r.Context()); cleanupErr != nil {
-		logrus.Errorf("Error cleaning up pod %s: %v", pod.ID(), cleanupErr)
+		logrus.Errorf("Cleaning up pod %s: %v", pod.ID(), cleanupErr)
 		for id, err := range cleanupCtrs {
-			logrus.Errorf("Error cleaning up pod %s container %s: %v", pod.ID(), id, err)
+			logrus.Errorf("Cleaning up pod %s container %s: %v", pod.ID(), id, err)
 		}
 	}
 

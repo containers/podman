@@ -267,6 +267,6 @@ func (l *LogLine) Write(stdout io.Writer, stderr io.Writer, logOpts *LogOptions)
 		}
 	default:
 		// Warn the user if the device type does not match. Most likely the file is corrupted.
-		logrus.Warnf("unknown Device type '%s' in log file from Container %s", l.Device, l.CID)
+		logrus.Warnf("Unknown Device type '%s' in log file from Container %s", l.Device, l.CID)
 	}
 }

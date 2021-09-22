@@ -369,7 +369,7 @@ func StartWatcher(rt *libpod.Runtime) {
 			logrus.Debugf("waiting for SIGHUP to reload configuration")
 			<-ch
 			if err := rt.Reload(); err != nil {
-				logrus.Errorf("unable to reload configuration: %v", err)
+				logrus.Errorf("Unable to reload configuration: %v", err)
 				continue
 			}
 		}

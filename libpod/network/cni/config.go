@@ -162,7 +162,7 @@ func (n *cniNetwork) NetworkRemove(nameOrID string) error {
 			err = netlink.LinkDel(link)
 			// only log the error, it is not fatal
 			if err != nil {
-				logrus.Infof("failed to remove network interface %s: %v", network.libpodNet.NetworkInterface, err)
+				logrus.Infof("Failed to remove network interface %s: %v", network.libpodNet.NetworkInterface, err)
 			}
 		}
 	}

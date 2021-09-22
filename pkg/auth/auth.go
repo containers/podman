@@ -208,7 +208,7 @@ func RemoveAuthfile(authfile string) {
 		return
 	}
 	if err := os.Remove(authfile); err != nil {
-		logrus.Errorf("Error removing temporary auth file %q: %v", authfile, err)
+		logrus.Errorf("Removing temporary auth file %q: %v", authfile, err)
 	}
 }
 

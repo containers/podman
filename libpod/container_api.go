@@ -53,7 +53,7 @@ func (c *Container) Init(ctx context.Context, recursive bool) error {
 
 	if err := c.prepare(); err != nil {
 		if err2 := c.cleanup(ctx); err2 != nil {
-			logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
+			logrus.Errorf("Cleaning up container %s: %v", c.ID(), err2)
 		}
 		return err
 	}

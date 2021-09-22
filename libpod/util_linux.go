@@ -119,7 +119,7 @@ func LabelVolumePath(path string) error {
 func Unmount(mount string) {
 	if err := unix.Unmount(mount, unix.MNT_DETACH); err != nil {
 		if err != syscall.EINVAL {
-			logrus.Warnf("failed to unmount %s : %v", mount, err)
+			logrus.Warnf("Failed to unmount %s : %v", mount, err)
 		} else {
 			logrus.Debugf("failed to unmount %s : %v", mount, err)
 		}

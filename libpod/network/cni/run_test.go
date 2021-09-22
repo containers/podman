@@ -1256,7 +1256,7 @@ var _ = Describe("run CNI", func() {
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("network somenet: network not found"))
 				logString := logBuffer.String()
-				Expect(logString).To(ContainSubstring("failed to load cached network config"))
+				Expect(logString).To(ContainSubstring("Failed to load cached network config"))
 			})
 		})
 
@@ -1283,7 +1283,7 @@ var _ = Describe("run CNI", func() {
 				err = libpodNet.Teardown(netNSContainer.Path(), teardownOpts)
 				Expect(err).To(BeNil())
 				logString := logBuffer.String()
-				Expect(logString).To(ContainSubstring("failed to load cached network config"))
+				Expect(logString).To(ContainSubstring("Failed to load cached network config"))
 			})
 		})
 	})

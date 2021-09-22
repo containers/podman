@@ -113,7 +113,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 			report.Volumes = append(report.Volumes, r.Volumes...)
 			validKinds++
 		default:
-			logrus.Infof("kube kind %s not supported", kind)
+			logrus.Infof("Kube kind %s not supported", kind)
 			continue
 		}
 	}
@@ -662,21 +662,21 @@ func getBuildFile(imageName string, cwd string) (string, error) {
 	containerfilePath := filepath.Join(cwd, buildDirName, "Containerfile")
 	dockerfilePath := filepath.Join(cwd, buildDirName, "Dockerfile")
 
-	_, err := os.Stat(filepath.Join(containerfilePath))
+	_, err := os.Stat(containerfilePath)
 	if err == nil {
-		logrus.Debugf("building %s with %s", imageName, containerfilePath)
+		logrus.Debugf("Building %s with %s", imageName, containerfilePath)
 		return containerfilePath, nil
 	}
 	// If the error is not because the file does not exist, take
 	// a mulligan and try Dockerfile.  If that also fails, return that
 	// error
 	if err != nil && !os.IsNotExist(err) {
-		logrus.Errorf("%v: unable to check for %s", err, containerfilePath)
+		logrus.Error(err.Error())
 	}
 
 	_, err = os.Stat(filepath.Join(dockerfilePath))
 	if err == nil {
-		logrus.Debugf("building %s with %s", imageName, dockerfilePath)
+		logrus.Debugf("Building %s with %s", imageName, dockerfilePath)
 		return dockerfilePath, nil
 	}
 	// Strike two

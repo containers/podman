@@ -561,7 +561,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 				errorhandling.Contains(err, define.ErrCtrRemoved) {
 				logrus.Debugf("Container %s does not exist: %v", id, err)
 			} else {
-				logrus.Errorf("Error removing container %s: %v", id, err)
+				logrus.Errorf("Removing container %s: %v", id, err)
 			}
 		}
 	}
@@ -646,7 +646,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 							errorhandling.Contains(err, types.ErrLayerUnknown) {
 							logrus.Debugf("Container %s does not exist: %v", ctr.ID, err)
 						} else {
-							logrus.Errorf("Error removing container %s: %v", ctr.ID, err)
+							logrus.Errorf("Removing container %s: %v", ctr.ID, err)
 						}
 					}
 				}
@@ -731,7 +731,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 						errorhandling.Contains(err, types.ErrLayerUnknown) {
 						logrus.Debugf("Container %s does not exist: %v", con.ID, err)
 					} else {
-						logrus.Errorf("Error removing container %s: %v", con.ID, err)
+						logrus.Errorf("Removing container %s: %v", con.ID, err)
 					}
 				}
 			}

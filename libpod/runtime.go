@@ -211,7 +211,7 @@ func newRuntimeFromConfig(ctx context.Context, conf *config.Config, options ...R
 		os.Exit(1)
 		return nil
 	}); err != nil && errors.Cause(err) != shutdown.ErrHandlerExists {
-		logrus.Errorf("Error registering shutdown handler for libpod: %v", err)
+		logrus.Errorf("Registering shutdown handler for libpod: %v", err)
 	}
 
 	if err := shutdown.Start(); err != nil {
@@ -344,7 +344,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 					logrus.Warn(msg)
 				}
 			} else {
-				logrus.Warn(msg)
+				logrus.Warnf("%s: %v", msg, err)
 			}
 		}
 	}
@@ -388,7 +388,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 			// Don't forcibly shut down
 			// We could be opening a store in use by another libpod
 			if _, err := store.Shutdown(false); err != nil {
-				logrus.Errorf("Error removing store for partially-created runtime: %s", err)
+				logrus.Errorf("Removing store for partially-created runtime: %s", err)
 			}
 		}
 	}()
@@ -436,7 +436,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 			// This will allow us to ship configs including optional
 			// runtimes that might not be installed (crun, kata).
 			// Only a infof so default configs don't spec errors.
-			logrus.Debugf("configured OCI runtime %s initialization failed: %v", name, err)
+			logrus.Debugf("Configured OCI runtime %s initialization failed: %v", name, err)
 			continue
 		}
 
@@ -767,7 +767,7 @@ func (r *Runtime) libimageEvents() {
 					Type:   events.Image,
 				}
 				if err := r.eventer.Write(e); err != nil {
-					logrus.Errorf("unable to write image event: %q", err)
+					logrus.Errorf("Unable to write image event: %q", err)
 				}
 			}
 
@@ -807,11 +807,11 @@ func (r *Runtime) Shutdown(force bool) error {
 	if force {
 		ctrs, err := r.state.AllContainers()
 		if err != nil {
-			logrus.Errorf("Error retrieving containers from database: %v", err)
+			logrus.Errorf("Retrieving containers from database: %v", err)
 		} else {
 			for _, ctr := range ctrs {
 				if err := ctr.StopWithTimeout(r.config.Engine.StopTimeout); err != nil {
-					logrus.Errorf("Error stopping container %s: %v", ctr.ID(), err)
+					logrus.Errorf("Stopping container %s: %v", ctr.ID(), err)
 				}
 			}
 		}
@@ -833,7 +833,7 @@ func (r *Runtime) Shutdown(force bool) error {
 	}
 	if err := r.state.Close(); err != nil {
 		if lastError != nil {
-			logrus.Errorf("%v", lastError)
+			logrus.Error(lastError)
 		}
 		lastError = err
 	}
@@ -879,17 +879,17 @@ func (r *Runtime) refresh(alivePath string) error {
 	// until this has run.
 	for _, ctr := range ctrs {
 		if err := ctr.refresh(); err != nil {
-			logrus.Errorf("Error refreshing container %s: %v", ctr.ID(), err)
+			logrus.Errorf("Refreshing container %s: %v", ctr.ID(), err)
 		}
 	}
 	for _, pod := range pods {
 		if err := pod.refresh(); err != nil {
-			logrus.Errorf("Error refreshing pod %s: %v", pod.ID(), err)
+			logrus.Errorf("Refreshing pod %s: %v", pod.ID(), err)
 		}
 	}
 	for _, vol := range vols {
 		if err := vol.refresh(); err != nil {
-			logrus.Errorf("Error refreshing volume %s: %v", vol.Name(), err)
+			logrus.Errorf("Refreshing volume %s: %v", vol.Name(), err)
 		}
 	}
 
@@ -1099,7 +1099,7 @@ func (r *Runtime) reloadContainersConf() error {
 		return err
 	}
 	r.config = config
-	logrus.Infof("applied new containers configuration: %v", config)
+	logrus.Infof("Applied new containers configuration: %v", config)
 	return nil
 }
 
@@ -1110,7 +1110,7 @@ func (r *Runtime) reloadStorageConf() error {
 		return err
 	}
 	storage.ReloadConfigurationFile(configFile, &r.storageConfig)
-	logrus.Infof("applied new storage configuration: %v", r.storageConfig)
+	logrus.Infof("Applied new storage configuration: %v", r.storageConfig)
 	return nil
 }
 

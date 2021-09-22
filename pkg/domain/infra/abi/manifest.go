@@ -146,7 +146,7 @@ func (ir *ImageEngine) remoteManifestInspect(ctx context.Context, name string) (
 
 	switch manType {
 	case manifest.DockerV2Schema2MediaType:
-		logrus.Warnf("Warning! The manifest type %s is not a manifest list but a single image.", manType)
+		logrus.Warnf("The manifest type %s is not a manifest list but a single image.", manType)
 		schema2Manifest, err := manifest.Schema2FromManifest(result)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error parsing manifest blob %q as a %q", string(result), manType)

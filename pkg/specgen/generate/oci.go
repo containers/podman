@@ -62,7 +62,7 @@ func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) error {
 		if isRootless {
 			var rlimit unix.Rlimit
 			if err := unix.Getrlimit(unix.RLIMIT_NOFILE, &rlimit); err != nil {
-				logrus.Warnf("failed to return RLIMIT_NOFILE ulimit %q", err)
+				logrus.Warnf("Failed to return RLIMIT_NOFILE ulimit %q", err)
 			}
 			if rlimit.Cur < current {
 				current = rlimit.Cur
@@ -79,7 +79,7 @@ func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) error {
 		if isRootless {
 			var rlimit unix.Rlimit
 			if err := unix.Getrlimit(unix.RLIMIT_NPROC, &rlimit); err != nil {
-				logrus.Warnf("failed to return RLIMIT_NPROC ulimit %q", err)
+				logrus.Warnf("Failed to return RLIMIT_NPROC ulimit %q", err)
 			}
 			if rlimit.Cur < current {
 				current = rlimit.Cur

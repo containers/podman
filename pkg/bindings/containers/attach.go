@@ -102,7 +102,7 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 		}
 		defer func() {
 			if err := terminal.Restore(int(file.Fd()), state); err != nil {
-				logrus.Errorf("unable to restore terminal: %q", err)
+				logrus.Errorf("Unable to restore terminal: %q", err)
 			}
 			logrus.SetFormatter(&logrus.TextFormatter{})
 		}()
@@ -166,7 +166,7 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 			_, err := utils.CopyDetachable(socket, stdin, detachKeysInBytes)
 
 			if err != nil && err != define.ErrDetach {
-				logrus.Error("failed to write input to service: " + err.Error())
+				logrus.Errorf("Failed to write input to service: %v", err)
 			}
 			stdinChan <- err
 
@@ -349,7 +349,7 @@ func attachHandleResize(ctx, winCtx context.Context, winChange chan os.Signal, i
 	resize := func() {
 		w, h, err := terminal.GetSize(int(file.Fd()))
 		if err != nil {
-			logrus.Warnf("failed to obtain TTY size: %v", err)
+			logrus.Warnf("Failed to obtain TTY size: %v", err)
 		}
 
 		var resizeErr error
@@ -359,7 +359,7 @@ func attachHandleResize(ctx, winCtx context.Context, winChange chan os.Signal, i
 			resizeErr = ResizeContainerTTY(ctx, id, new(ResizeTTYOptions).WithHeight(h).WithWidth(w))
 		}
 		if resizeErr != nil {
-			logrus.Infof("failed to resize TTY: %v", resizeErr)
+			logrus.Infof("Failed to resize TTY: %v", resizeErr)
 		}
 	}
 
@@ -443,13 +443,13 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 		}
 		defer func() {
 			if err := terminal.Restore(int(terminalFile.Fd()), state); err != nil {
-				logrus.Errorf("unable to restore terminal: %q", err)
+				logrus.Errorf("Unable to restore terminal: %q", err)
 			}
 			logrus.SetFormatter(&logrus.TextFormatter{})
 		}()
 		w, h, err := terminal.GetSize(int(terminalFile.Fd()))
 		if err != nil {
-			logrus.Warnf("failed to obtain TTY size: %v", err)
+			logrus.Warnf("Failed to obtain TTY size: %v", err)
 		}
 		body.Width = uint16(w)
 		body.Height = uint16(h)
@@ -502,7 +502,7 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 			logrus.Debugf("Copying STDIN to socket")
 			_, err := utils.CopyDetachable(socket, options.InputStream, []byte{})
 			if err != nil {
-				logrus.Error("failed to write input to service: " + err.Error())
+				logrus.Errorf("Failed to write input to service: %v", err)
 			}
 
 			if closeWrite, ok := socket.(CloseWriter); ok {

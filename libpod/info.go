@@ -186,7 +186,7 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 
 	conmonInfo, ociruntimeInfo, err := r.defaultOCIRuntime.RuntimeInfo()
 	if err != nil {
-		logrus.Errorf("Error getting info on OCI runtime %s: %v", r.defaultOCIRuntime.Name(), err)
+		logrus.Errorf("Getting info on OCI runtime %s: %v", r.defaultOCIRuntime.Name(), err)
 	} else {
 		info.Conmon = conmonInfo
 		info.OCIRuntime = ociruntimeInfo
