@@ -26,8 +26,8 @@ import (
 )
 
 func ToPodOpt(ctx context.Context, podName string, p entities.PodCreateOptions, podYAML *v1.PodTemplateSpec) (entities.PodCreateOptions, error) {
-	//	p := specgen.NewPodSpecGenerator()
-	p.Net = &entities.NetOptions{}
+	p.Net = &entities.NetOptions{NoHosts: p.Net.NoHosts}
+
 	p.Name = podName
 	p.Labels = podYAML.ObjectMeta.Labels
 	// Kube pods must share {ipc, net, uts} by default
@@ -47,6 +47,9 @@ func ToPodOpt(ctx context.Context, podName string, p entities.PodCreateOptions, 
 		p.Net.Network = specgen.Namespace{NSMode: "host"}
 	}
 	if podYAML.Spec.HostAliases != nil {
+		if p.Net.NoHosts {
+			return p, errors.New("HostAliases in yaml file will not work with --no-hosts")
+		}
 		hosts := make([]string, 0, len(podYAML.Spec.HostAliases))
 		for _, hostAlias := range podYAML.Spec.HostAliases {
 			for _, host := range hostAlias.Hostnames {

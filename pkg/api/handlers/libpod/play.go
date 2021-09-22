@@ -29,6 +29,7 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 		Start      bool     `schema:"start"`
 		StaticIPs  []string `schema:"staticIPs"`
 		StaticMACs []string `schema:"staticMACs"`
+		NoHosts    bool     `schema:"noHosts"`
 	}{
 		TLSVerify: true,
 		Start:     true,
@@ -102,6 +103,7 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 		Username:   username,
 		Password:   password,
 		Network:    query.Network,
+		NoHosts:    query.NoHosts,
 		Quiet:      true,
 		LogDriver:  query.LogDriver,
 		StaticIPs:  staticIPs,
