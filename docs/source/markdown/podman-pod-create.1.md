@@ -157,7 +157,7 @@ Set network mode for the pod. Supported values are:
 
 #### **--network-alias**=strings
 
-Add a DNS alias for the container. When the container is joined to a CNI network with support for the dnsname plugin, the container will be accessible through this name from other containers in the network.
+Add a DNS alias for the pod. When the pod is joined to a CNI network with support for the dnsname plugin, the containers inside the pod will be accessible through this name from other containers in the network.
 
 #### **--no-hosts**
 
