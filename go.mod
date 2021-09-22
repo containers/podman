@@ -6,11 +6,11 @@ require (
 	github.com/BurntSushi/toml v0.4.1
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/buger/goterm v0.0.0-20181115115552-c206103e1f37
-	github.com/checkpoint-restore/checkpointctl v0.0.0-20210301084134-a2024f5584e7
+	github.com/checkpoint-restore/checkpointctl v0.0.0-20210922093614-c31748bec9f2
 	github.com/checkpoint-restore/go-criu/v5 v5.1.0
 	github.com/container-orchestrated-devices/container-device-interface v0.0.0-20210325223243-f99e8b6c10b9
-	github.com/containernetworking/cni v0.8.1
-	github.com/containernetworking/plugins v0.9.1
+	github.com/containernetworking/cni v1.0.1
+	github.com/containernetworking/plugins v1.0.1
 	github.com/containers/buildah v1.23.0
 	github.com/containers/common v0.44.1-0.20210921143342-f2f10e650c73
 	github.com/containers/conmon v2.0.20+incompatible
@@ -62,7 +62,7 @@ require (
 	github.com/uber/jaeger-client-go v2.29.1+incompatible
 	github.com/vbauerster/mpb/v6 v6.0.4
 	github.com/vbauerster/mpb/v7 v7.1.4 // indirect
-	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
+	github.com/vishvananda/netlink v1.1.1-0.20210330154013-f5de75959ad5
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c

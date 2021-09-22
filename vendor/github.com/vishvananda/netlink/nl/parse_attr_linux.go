@@ -3,6 +3,7 @@ package nl
 import (
 	"encoding/binary"
 	"fmt"
+	"log"
 )
 
 type Attribute struct {
@@ -18,9 +19,20 @@ func ParseAttributes(data []byte) <-chan Attribute {
 		i := 0
 		for i+4 < len(data) {
 			length := int(native.Uint16(data[i : i+2]))
+			attrType := native.Uint16(data[i+2 : i+4])
+
+			if length < 4 {
+				log.Printf("attribute 0x%02x has invalid length of %d bytes", attrType, length)
+				break
+			}
+
+			if len(data) < i+length {
+				log.Printf("attribute 0x%02x of length %d is truncated, only %d bytes remaining", attrType, length, len(data)-i)
+				break
+			}
 
 			result <- Attribute{
-				Type:  native.Uint16(data[i+2 : i+4]),
+				Type:  attrType,
 				Value: data[i+4 : i+length],
 			}
 			i += rtaAlignOf(length)

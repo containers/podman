@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	cnitypes "github.com/containernetworking/cni/pkg/types/current"
+	types040 "github.com/containernetworking/cni/pkg/types/040"
 	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v3/libpod/define"
@@ -176,7 +176,7 @@ type ContainerState struct {
 	// active.
 	// These are DEPRECATED and will be removed in a future release.
 	// This field is only used for backwarts compatibility.
-	NetworkStatusOld []*cnitypes.Result `json:"networkResults,omitempty"`
+	NetworkStatusOld []*types040.Result `json:"networkResults,omitempty"`
 	// NetworkStatus contains the network Status for all networks
 	// the container is attached to. Only populated if we created a network
 	// namespace for the container, and the network namespace is currently

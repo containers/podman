@@ -250,7 +250,15 @@ func qdiscPayload(req *nl.NetlinkRequest, qdisc Qdisc) error {
 		if qdisc.Quantum > 0 {
 			options.AddRtAttr(nl.TCA_FQ_CODEL_QUANTUM, nl.Uint32Attr((uint32(qdisc.Quantum))))
 		}
-
+		if qdisc.CEThreshold > 0 {
+			options.AddRtAttr(nl.TCA_FQ_CODEL_CE_THRESHOLD, nl.Uint32Attr(qdisc.CEThreshold))
+		}
+		if qdisc.DropBatchSize > 0 {
+			options.AddRtAttr(nl.TCA_FQ_CODEL_DROP_BATCH_SIZE, nl.Uint32Attr(qdisc.DropBatchSize))
+		}
+		if qdisc.MemoryLimit > 0 {
+			options.AddRtAttr(nl.TCA_FQ_CODEL_MEMORY_LIMIT, nl.Uint32Attr(qdisc.MemoryLimit))
+		}
 	case *Fq:
 		options.AddRtAttr(nl.TCA_FQ_RATE_ENABLE, nl.Uint32Attr((uint32(qdisc.Pacing))))
 
@@ -497,6 +505,12 @@ func parseFqCodelData(qdisc Qdisc, data []syscall.NetlinkRouteAttr) error {
 			fqCodel.Flows = native.Uint32(datum.Value)
 		case nl.TCA_FQ_CODEL_QUANTUM:
 			fqCodel.Quantum = native.Uint32(datum.Value)
+		case nl.TCA_FQ_CODEL_CE_THRESHOLD:
+			fqCodel.CEThreshold = native.Uint32(datum.Value)
+		case nl.TCA_FQ_CODEL_DROP_BATCH_SIZE:
+			fqCodel.DropBatchSize = native.Uint32(datum.Value)
+		case nl.TCA_FQ_CODEL_MEMORY_LIMIT:
+			fqCodel.MemoryLimit = native.Uint32(datum.Value)
 		}
 	}
 	return nil

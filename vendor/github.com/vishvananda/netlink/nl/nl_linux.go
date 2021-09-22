@@ -35,6 +35,9 @@ var SupportedNlFamilies = []int{unix.NETLINK_ROUTE, unix.NETLINK_XFRM, unix.NETL
 
 var nextSeqNr uint32
 
+// Default netlink socket timeout, 60s
+var SocketTimeoutTv = unix.Timeval{Sec: 60, Usec: 0}
+
 // GetIPFamily returns the family type of a net.IP.
 func GetIPFamily(ip net.IP) int {
 	if len(ip) <= net.IPv4len {
@@ -426,6 +429,14 @@ func (req *NetlinkRequest) Execute(sockType int, resType uint16) ([][]byte, erro
 		if err != nil {
 			return nil, err
 		}
+
+		if err := s.SetSendTimeout(&SocketTimeoutTv); err != nil {
+			return nil, err
+		}
+		if err := s.SetReceiveTimeout(&SocketTimeoutTv); err != nil {
+			return nil, err
+		}
+
 		defer s.Close()
 	} else {
 		s.Lock()

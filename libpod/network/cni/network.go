@@ -127,7 +127,7 @@ func (n *cniNetwork) loadNetworks() error {
 		conf, err := libcni.ConfListFromFile(file)
 		if err != nil {
 			// do not log ENOENT errors
-			if !os.IsNotExist(err) {
+			if !errors.Is(err, os.ErrNotExist) {
 				logrus.Warnf("Error loading CNI config file %s: %v", file, err)
 			}
 			continue

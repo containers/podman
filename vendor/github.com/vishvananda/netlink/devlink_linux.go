@@ -27,6 +27,18 @@ type DevlinkDevice struct {
 	Attrs      DevlinkDevAttrs
 }
 
+// DevlinkPort represents port and its attributes
+type DevlinkPort struct {
+	BusName        string
+	DeviceName     string
+	PortIndex      uint32
+	PortType       uint16
+	NetdeviceName  string
+	NetdevIfIndex  uint32
+	RdmaDeviceName string
+	PortFlavour    uint16
+}
+
 func parseDevLinkDeviceList(msgs [][]byte) ([]*DevlinkDevice, error) {
 	devices := make([]*DevlinkDevice, 0, len(msgs))
 	for _, m := range msgs {
@@ -269,4 +281,113 @@ func (h *Handle) DevLinkSetEswitchMode(Dev *DevlinkDevice, NewMode string) error
 // Equivalent to: `devlink dev eswitch set $dev mode legacy`
 func DevLinkSetEswitchMode(Dev *DevlinkDevice, NewMode string) error {
 	return pkgHandle.DevLinkSetEswitchMode(Dev, NewMode)
+}
+
+func (port *DevlinkPort) parseAttributes(attrs []syscall.NetlinkRouteAttr) error {
+	for _, a := range attrs {
+		switch a.Attr.Type {
+		case nl.DEVLINK_ATTR_BUS_NAME:
+			port.BusName = string(a.Value)
+		case nl.DEVLINK_ATTR_DEV_NAME:
+			port.DeviceName = string(a.Value)
+		case nl.DEVLINK_ATTR_PORT_INDEX:
+			port.PortIndex = native.Uint32(a.Value)
+		case nl.DEVLINK_ATTR_PORT_TYPE:
+			port.PortType = native.Uint16(a.Value)
+		case nl.DEVLINK_ATTR_PORT_NETDEV_NAME:
+			port.NetdeviceName = string(a.Value)
+		case nl.DEVLINK_ATTR_PORT_NETDEV_IFINDEX:
+			port.NetdevIfIndex = native.Uint32(a.Value)
+		case nl.DEVLINK_ATTR_PORT_IBDEV_NAME:
+			port.RdmaDeviceName = string(a.Value)
+		case nl.DEVLINK_ATTR_PORT_FLAVOUR:
+			port.PortFlavour = native.Uint16(a.Value)
+		}
+	}
+	return nil
+}
+
+func parseDevLinkAllPortList(msgs [][]byte) ([]*DevlinkPort, error) {
+	ports := make([]*DevlinkPort, 0, len(msgs))
+	for _, m := range msgs {
+		attrs, err := nl.ParseRouteAttr(m[nl.SizeofGenlmsg:])
+		if err != nil {
+			return nil, err
+		}
+		port := &DevlinkPort{}
+		if err = port.parseAttributes(attrs); err != nil {
+			return nil, err
+		}
+		ports = append(ports, port)
+	}
+	return ports, nil
+}
+
+// DevLinkGetPortList provides a pointer to devlink ports and nil error,
+// otherwise returns an error code.
+func (h *Handle) DevLinkGetAllPortList() ([]*DevlinkPort, error) {
+	f, err := h.GenlFamilyGet(nl.GENL_DEVLINK_NAME)
+	if err != nil {
+		return nil, err
+	}
+	msg := &nl.Genlmsg{
+		Command: nl.DEVLINK_CMD_PORT_GET,
+		Version: nl.GENL_DEVLINK_VERSION,
+	}
+	req := h.newNetlinkRequest(int(f.ID),
+		unix.NLM_F_REQUEST|unix.NLM_F_ACK|unix.NLM_F_DUMP)
+	req.AddData(msg)
+	msgs, err := req.Execute(unix.NETLINK_GENERIC, 0)
+	if err != nil {
+		return nil, err
+	}
+	ports, err := parseDevLinkAllPortList(msgs)
+	if err != nil {
+		return nil, err
+	}
+	return ports, nil
+}
+
+// DevLinkGetPortList provides a pointer to devlink ports and nil error,
+// otherwise returns an error code.
+func DevLinkGetAllPortList() ([]*DevlinkPort, error) {
+	return pkgHandle.DevLinkGetAllPortList()
+}
+
+func parseDevlinkPortMsg(msgs [][]byte) (*DevlinkPort, error) {
+	m := msgs[0]
+	attrs, err := nl.ParseRouteAttr(m[nl.SizeofGenlmsg:])
+	if err != nil {
+		return nil, err
+	}
+	port := &DevlinkPort{}
+	if err = port.parseAttributes(attrs); err != nil {
+		return nil, err
+	}
+	return port, nil
+}
+
+// DevLinkGetPortByIndexprovides a pointer to devlink device and nil error,
+// otherwise returns an error code.
+func (h *Handle) DevLinkGetPortByIndex(Bus string, Device string, PortIndex uint32) (*DevlinkPort, error) {
+
+	_, req, err := h.createCmdReq(nl.DEVLINK_CMD_PORT_GET, Bus, Device)
+	if err != nil {
+		return nil, err
+	}
+
+	req.AddData(nl.NewRtAttr(nl.DEVLINK_ATTR_PORT_INDEX, nl.Uint32Attr(PortIndex)))
+
+	respmsg, err := req.Execute(unix.NETLINK_GENERIC, 0)
+	if err != nil {
+		return nil, err
+	}
+	port, err := parseDevlinkPortMsg(respmsg)
+	return port, err
+}
+
+// DevLinkGetPortByIndex provides a pointer to devlink portand nil error,
+// otherwise returns an error code.
+func DevLinkGetPortByIndex(Bus string, Device string, PortIndex uint32) (*DevlinkPort, error) {
+	return pkgHandle.DevLinkGetPortByIndex(Bus, Device, PortIndex)
 }
