@@ -32,11 +32,11 @@ type ContainerNetwork interface {
 // Network describes the Network attributes.
 type Network struct {
 	// Name of the Network.
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 	// ID of the Network.
-	ID string `json:"id,omitempty"`
+	ID string `json:"id"`
 	// Driver for this Network, e.g. bridge, macvlan...
-	Driver string `json:"driver,omitempty"`
+	Driver string `json:"driver"`
 	// InterfaceName is the network interface name on the host.
 	NetworkInterface string `json:"network_interface,omitempty"`
 	// Created contains the timestamp when this network was created.
@@ -97,7 +97,7 @@ func (n *IPNet) UnmarshalText(text []byte) error {
 type Subnet struct {
 	// Subnet for this Network in CIDR form.
 	// swagger:strfmt string
-	Subnet IPNet `json:"subnet,omitempty"`
+	Subnet IPNet `json:"subnet"`
 	// Gateway IP for this Network.
 	// swagger:strfmt string
 	Gateway net.IP `json:"gateway,omitempty"`
@@ -134,14 +134,14 @@ type NetInterface struct {
 	// Networks list of assigned subnets with their gateway.
 	Networks []NetAddress `json:"networks,omitempty"`
 	// MacAddress for this Interface.
-	MacAddress net.HardwareAddr `json:"mac_address,omitempty"`
+	MacAddress net.HardwareAddr `json:"mac_address"`
 }
 
 // NetAddress contains the subnet and gatway.
 type NetAddress struct {
 	// Subnet of this NetAddress. Note that the subnet contains the
 	// actual ip of the net interface and not the network address.
-	Subnet IPNet `json:"subnet,omitempty"`
+	Subnet IPNet `json:"subnet"`
 	// Gateway for the Subnet. This can be nil if there is no gateway, e.g. internal network.
 	Gateway net.IP `json:"gateway,omitempty"`
 }
@@ -157,27 +157,27 @@ type PerNetworkOptions struct {
 	// StaticMac for this container. Optional.
 	StaticMAC net.HardwareAddr `json:"static_mac,omitempty"`
 	// InterfaceName for this container. Required.
-	InterfaceName string `json:"interface_name,omitempty"`
+	InterfaceName string `json:"interface_name"`
 }
 
 // NetworkOptions for a given container.
 type NetworkOptions struct {
 	// ContainerID is the container id, used for iptables comments and ipam allocation.
-	ContainerID string `json:"container_id,omitempty"`
+	ContainerID string `json:"container_id"`
 	// ContainerName is the container name, used as dns name.
-	ContainerName string `json:"container_name,omitempty"`
+	ContainerName string `json:"container_name"`
 	// PortMappings contains the port mappings for this container
 	PortMappings []PortMapping `json:"port_mappings,omitempty"`
 	// Networks contains all networks with the PerNetworkOptions.
 	// The map should contain at least one element.
-	Networks map[string]PerNetworkOptions `json:"networks,omitempty"`
+	Networks map[string]PerNetworkOptions `json:"networks"`
 }
 
 // PortMapping is one or more ports that will be mapped into the container.
 type PortMapping struct {
 	// HostIP is the IP that we will bind to on the host.
 	// If unset, assumed to be 0.0.0.0 (all interfaces).
-	HostIP string `json:"host_ip,omitempty"`
+	HostIP string `json:"host_ip"`
 	// ContainerPort is the port number that will be exposed from the
 	// container.
 	// Mandatory.
@@ -186,7 +186,7 @@ type PortMapping struct {
 	// the container.
 	// If omitted, a random port on the host (guaranteed to be over 1024)
 	// will be assigned.
-	HostPort uint16 `json:"host_port,omitempty"`
+	HostPort uint16 `json:"host_port"`
 	// Range is the number of ports that will be forwarded, starting at
 	// HostPort and ContainerPort and counting up.
 	// This is 1-indexed, so 1 is assumed to be a single port (only the
@@ -195,12 +195,12 @@ type PortMapping struct {
 	// If unset, assumed to be 1 (a single port).
 	// Both hostport + range and containerport + range must be less than
 	// 65536.
-	Range uint16 `json:"range,omitempty"`
+	Range uint16 `json:"range"`
 	// Protocol is the protocol forward.
 	// Must be either "tcp", "udp", and "sctp", or some combination of these
 	// separated by commas.
 	// If unset, assumed to be TCP.
-	Protocol string `json:"protocol,omitempty"`
+	Protocol string `json:"protocol"`
 }
 
 // OCICNIPortMapping maps to the standard CNI portmapping Capability.
