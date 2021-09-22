@@ -80,6 +80,7 @@ func NewIgnitionFile(ign DynamicIgnition) error {
 	// so a listening host knows it can being interacting with it
 	ready := `[Unit]
 Requires=dev-virtio\\x2dports-%s.device
+After=replace-moby.service
 OnFailure=emergency.target
 OnFailureJobMode=isolate
 [Service]
@@ -89,6 +90,25 @@ ExecStart=/bin/sh -c '/usr/bin/echo Ready >/dev/%s'
 [Install]
 RequiredBy=multi-user.target
 `
+	deMoby := `[Unit]
+Description=Remove moby-engine, alias podman
+# Run once for the machine
+After=systemd-machine-id-commit.service
+Before=zincati.service
+ConditionPathExists=!/var/lib/%N.stamp
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/rpm-ostree override remove moby-engine
+ExecStart=/bin/ln -fs /usr/bin/podman /usr/local/bin/docker
+ExecStart=/bin/ln -fs /run/podman/podman.sock /run/docker.sock
+ExecStart=/bin/touch /var/lib/%N.stamp
+ExecStart=/usr/bin/rpm-ostree ex apply-live --allow-replacement
+
+[Install]
+WantedBy=multi-user.target
+ `
 	_ = ready
 	ignSystemd := Systemd{
 		Units: []Unit{
@@ -100,6 +120,15 @@ RequiredBy=multi-user.target
 				Enabled:  boolToPtr(true),
 				Name:     "ready.service",
 				Contents: strToPtr(fmt.Sprintf(ready, "vport1p1", "vport1p1")),
+			},
+			{
+				Name: "docker.service",
+				Mask: boolToPtr(true),
+			},
+			{
+				Enabled:  boolToPtr(true),
+				Name:     "replace-moby.service",
+				Contents: &deMoby,
 			},
 		}}
 	ignConfig := Config{
