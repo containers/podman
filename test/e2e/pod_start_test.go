@@ -92,7 +92,7 @@ var _ = Describe("Podman pod start", func() {
 		pod, _, podid1 := podmanTest.CreatePod(map[string][]string{
 			"--infra":   {"true"},
 			"--name":    {podName[0]},
-			"--publish": {"127.0.0.1:8080:80"},
+			"--publish": {"127.0.0.1:8083:80"},
 		})
 		Expect(pod).To(Exit(0))
 
@@ -103,7 +103,7 @@ var _ = Describe("Podman pod start", func() {
 		pod, _, podid2 := podmanTest.CreatePod(map[string][]string{
 			"--infra":   {"true"},
 			"--name":    {podName[1]},
-			"--publish": {"127.0.0.1:8080:80"},
+			"--publish": {"127.0.0.1:8083:80"},
 		})
 		Expect(pod).To(Exit(0))
 
