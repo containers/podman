@@ -198,7 +198,6 @@ func DefaultConfig() (*Config, error) {
 			TZ:                 "",
 			Umask:              "0022",
 			UTSNS:              "private",
-			UserNS:             "host",
 			UserNSSize:         DefaultUserNSSize,
 		},
 		Network: NetworkConfig{

@@ -1150,6 +1150,10 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: compress
 	//    type: boolean
 	//    description: use compression on image
+	//  - in: query
+	//    name: ociAcceptUncompressedLayers
+	//    type: boolean
+	//    description: accept uncompressed layers when copying OCI images
 	// produces:
 	// - application/json
 	// responses:

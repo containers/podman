@@ -65,6 +65,8 @@ type ExportOptions struct {
 	Compress *bool
 	// Format of the output
 	Format *string
+	// Accept uncompressed layers when copying OCI images.
+	OciAcceptUncompressedLayers *bool
 }
 
 //go:generate go run ../generator/generator.go PruneOptions
