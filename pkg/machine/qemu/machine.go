@@ -64,6 +64,7 @@ func NewMachine(opts machine.InitOptions) (machine.VM, error) {
 
 	vm.CPUs = opts.CPUS
 	vm.Memory = opts.Memory
+	vm.DiskSize = opts.DiskSize
 
 	// Look up the executable
 	execPath, err := exec.LookPath(QemuCommand)
@@ -576,6 +577,7 @@ func GetVMInfos() ([]*machine.ListResponse, error) {
 			listEntry.VMType = "qemu"
 			listEntry.CPUs = vm.CPUs
 			listEntry.Memory = vm.Memory
+			listEntry.DiskSize = vm.DiskSize
 			fi, err := os.Stat(fullPath)
 			if err != nil {
 				return err
