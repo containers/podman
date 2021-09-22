@@ -2001,15 +2001,16 @@ func (c *Container) getHosts() string {
 
 		// Do we have a network namespace?
 		netNone := false
-		for _, ns := range c.config.Spec.Linux.Namespaces {
-			if ns.Type == spec.NetworkNamespace {
-				if ns.Path == "" && !c.config.CreateNetNS {
-					netNone = true
+		if c.config.NetNsCtr == "" && !c.config.CreateNetNS {
+			for _, ns := range c.config.Spec.Linux.Namespaces {
+				if ns.Type == spec.NetworkNamespace {
+					if ns.Path == "" {
+						netNone = true
+					}
+					break
 				}
-				break
 			}
 		}
-
 		// If we are net=none (have a network namespace, but not connected to
 		// anything) add the container's name and hostname to localhost.
 		if netNone {

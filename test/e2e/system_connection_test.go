@@ -138,7 +138,7 @@ var _ = Describe("podman system connection", func() {
 	It("add tcp", func() {
 		cmd := []string{"system", "connection", "add",
 			"QA-TCP",
-			"tcp://localhost:8080",
+			"tcp://localhost:8888",
 		}
 		session := podmanTest.Podman(cmd)
 		session.WaitWithDefaultTimeout()
@@ -150,7 +150,7 @@ var _ = Describe("podman system connection", func() {
 		Expect(cfg.Engine.ActiveService).To(Equal("QA-TCP"))
 		Expect(cfg.Engine.ServiceDestinations["QA-TCP"]).To(Equal(
 			config.Destination{
-				URI:      "tcp://localhost:8080",
+				URI:      "tcp://localhost:8888",
 				Identity: "",
 			},
 		))

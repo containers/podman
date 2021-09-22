@@ -6,7 +6,6 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
-	"strings"
 
 	. "github.com/containers/podman/v3/test/utils"
 	"github.com/containers/storage/pkg/stringid"
@@ -187,7 +186,10 @@ var _ = Describe("Podman ps", func() {
 		result.WaitWithDefaultTimeout()
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(result.OutputToString()).To(ContainSubstring("bravo"))
+
+		actual := result.OutputToString()
+		Expect(actual).To(ContainSubstring("bravo"))
+		Expect(actual).To(ContainSubstring("NAMES"))
 	})
 
 	It("podman ps --filter network=container:<id>", func() {
@@ -206,7 +208,9 @@ var _ = Describe("Podman ps", func() {
 		result.WaitWithDefaultTimeout()
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(result.OutputToString()).To(ContainSubstring("second"))
+		actual := result.OutputToString()
+		Expect(actual).To(ContainSubstring("second"))
+		Expect(actual).ToNot(ContainSubstring("table"))
 	})
 
 	It("podman ps namespace flag", func() {
@@ -228,7 +232,7 @@ var _ = Describe("Podman ps", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		// it must contains `::` when some ns is null. If it works normally, it should be "$num1:$num2:$num3"
-		Expect(result.OutputToString()).To(Not(ContainSubstring(`::`)))
+		Expect(result.OutputToString()).ToNot(ContainSubstring(`::`))
 	})
 
 	It("podman ps with no containers is valid json format", func() {
@@ -285,11 +289,14 @@ var _ = Describe("Podman ps", func() {
 
 		result := podmanTest.Podman([]string{"ps", "-a", "--format", "table {{.ID}} {{.Image}} {{.ImageID}} {{.Labels}}"})
 		result.WaitWithDefaultTimeout()
-
-		Expect(result.OutputToStringArray()[0]).ToNot(ContainSubstring("table"))
-		Expect(result.OutputToStringArray()[0]).ToNot(ContainSubstring("ImageID"))
-		Expect(result.OutputToStringArray()[0]).To(ContainSubstring("alpine:latest"))
 		Expect(result).Should(Exit(0))
+
+		Expect(result.OutputToString()).ToNot(ContainSubstring("table"))
+
+		actual := result.OutputToStringArray()
+		Expect(actual[0]).To(ContainSubstring("CONTAINER ID"))
+		Expect(actual[0]).ToNot(ContainSubstring("ImageID"))
+		Expect(actual[1]).To(ContainSubstring("alpine:latest"))
 	})
 
 	It("podman ps ancestor filter flag", func() {
@@ -380,7 +387,9 @@ var _ = Describe("Podman ps", func() {
 		psFilter.WaitWithDefaultTimeout()
 		Expect(psFilter).Should(Exit(0))
 
-		Expect(strings.Contains(psFilter.OutputToString(), ctrName)).To(BeFalse())
+		actual := psFilter.OutputToString()
+		Expect(actual).ToNot(ContainSubstring(ctrName))
+		Expect(actual).ToNot(ContainSubstring("NAMES"))
 	})
 
 	It("podman ps mutually exclusive flags", func() {
@@ -453,14 +462,13 @@ var _ = Describe("Podman ps", func() {
 		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"ps", "-a", "--sort=command", "--format", "{{.Command}}"})
-
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
+		Expect(session.OutputToString()).ToNot(ContainSubstring("COMMAND"))
+
 		sortedArr := session.OutputToStringArray()
-
 		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool { return sortedArr[i] < sortedArr[j] })).To(BeTrue())
-
 	})
 
 	It("podman --pod", func() {
@@ -474,7 +482,7 @@ var _ = Describe("Podman ps", func() {
 		session = podmanTest.Podman([]string{"ps", "--no-trunc"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(Not(ContainSubstring(podid)))
+		Expect(session.OutputToString()).ToNot(ContainSubstring(podid))
 
 		session = podmanTest.Podman([]string{"ps", "--pod", "--no-trunc"})
 		session.WaitWithDefaultTimeout()
@@ -510,7 +518,11 @@ var _ = Describe("Podman ps", func() {
 
 		session = podmanTest.Podman([]string{"ps", "--format", "{{.Ports}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.OutputToString()).To(ContainSubstring("0.0.0.0:2000-2006"))
+		Expect(session).To(Exit(0))
+
+		actual := session.OutputToString()
+		Expect(actual).To(ContainSubstring("0.0.0.0:2000-2006"))
+		Expect(actual).ToNot(ContainSubstring("PORT"))
 	})
 
 	It("podman ps test with invalid port range", func() {
@@ -597,7 +609,7 @@ var _ = Describe("Podman ps", func() {
 
 	It("podman ps test with port shared with pod", func() {
 		podName := "testPod"
-		pod := podmanTest.Podman([]string{"pod", "create", "-p", "8080:80", "--name", podName})
+		pod := podmanTest.Podman([]string{"pod", "create", "-p", "8085:80", "--name", podName})
 		pod.WaitWithDefaultTimeout()
 		Expect(pod).Should(Exit(0))
 
@@ -609,7 +621,7 @@ var _ = Describe("Podman ps", func() {
 		ps := podmanTest.Podman([]string{"ps", "--filter", fmt.Sprintf("name=%s", ctrName), "--format", "{{.Ports}}"})
 		ps.WaitWithDefaultTimeout()
 		Expect(ps).Should(Exit(0))
-		Expect(ps.OutputToString()).To(ContainSubstring("0.0.0.0:8080->80/tcp"))
+		Expect(ps.OutputToString()).To(ContainSubstring("0.0.0.0:8085->80/tcp"))
 	})
 
 	It("podman ps truncate long create command", func() {
@@ -628,7 +640,10 @@ var _ = Describe("Podman ps", func() {
 		result := podmanTest.Podman([]string{"ps", "-a", "--format", "{{.RunningFor}}"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(result.OutputToString()).To(ContainSubstring("ago"))
+
+		actual := result.OutputToString()
+		Expect(actual).To(ContainSubstring("ago"))
+		Expect(actual).ToNot(ContainSubstring("RUNNING FOR"))
 	})
 
 	It("podman ps filter test", func() {
@@ -823,8 +838,9 @@ var _ = Describe("Podman ps", func() {
 		session = podmanTest.Podman([]string{"ps", "--all", "--no-trunc", "--filter", "network=" + net})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(ContainSubstring(ctrWithNet))
-		Expect(session.OutputToString()).To(Not(ContainSubstring(ctrWithoutNet)))
+		actual := session.OutputToString()
+		Expect(actual).To(ContainSubstring(ctrWithNet))
+		Expect(actual).ToNot(ContainSubstring(ctrWithoutNet))
 	})
 
 	It("podman ps --format networks", func() {
@@ -835,12 +851,15 @@ var _ = Describe("Podman ps", func() {
 		session = podmanTest.Podman([]string{"ps", "--all", "--format", "{{ .Networks }}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+
+		actual := session.OutputToString()
+		Expect(actual).ToNot(ContainSubstring("NETWORKS"))
 		if isRootless() {
 			// rootless container don't have a network by default
-			Expect(session.OutputToString()).To(Equal(""))
+			Expect(actual).To(BeEmpty())
 		} else {
 			// default network name is podman
-			Expect(session.OutputToString()).To(Equal("podman"))
+			Expect(actual).To(Equal("podman"))
 		}
 
 		net1 := stringid.GenerateNonCryptoID()

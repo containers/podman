@@ -61,13 +61,22 @@
 - Fixed a bug where the `podman run` command could return 0 when the application in the container exited with 125 ([#11540](https://github.com/containers/podman/issues/11540)).
 - Fixed a bug where containers with `--restart=always` set using the rootlessport port-forwarding service could not be restarted automatically.
 - Fixed a bug where the `--cgroups=split` option to `podman create` and `podman run` was silently discarded if the container was part of a pod.
+- Fixed a bug where the `podman container runlabel` command could fail if the image name given included a tag.
+- Fixed a bug where Podman could add an extra `127.0.0.1` entry to `/etc/hosts` under some circumstances ([#11596](https://github.com/containers/podman/issues/11596)).
+- Fixed a bug where the remote Podman client's `podman untag` command did not properly handle tags including a digest ([#11557](https://github.com/containers/podman/issues/11557)).
+- Fixed a bug where the `--format` option to `podman ps` did not properly support the `table` argument for tabular output.
+- Fixed a bug where the `--filter` option to `podman ps` did not properly handle filtering by healthcheck status ([#11687](https://github.com/containers/podman/issues/11687)).
+- Fixed a bug where the `podman run` and `podman start --attach` commands could race when retrieving the exit code of a container that had already been removed resulting in an error (e.g. by an external `podman rm -f`) ([#11633](https://github.com/containers/podman/issues/11633)).
+- Fixed a bug where the `podman generate kube` command would add default environment variables to generated YAML.
 
 ### API
 - The Libpod Pull endpoint for Images now has a new query parameter, `quiet`, which (when set to true) suppresses image pull progress reports ([#10612](https://github.com/containers/podman/issues/10612)).
 - The Compat Events endpoint now includes several deprecated fields from the Docker v1.21 API for improved compatibility with older clients.
+- The Compat List and Inspect endpoints for Images now prefix image IDs with `sha256:` for improved Docker compatibility ([#11623](https://github.com/containers/podman/issues/11623)).
 - The Compat Create endpoint for Containers now properly sets defaults for healthcheck-related fields ([#11225](https://github.com/containers/podman/issues/11225)).
 - The Compat Create endpoint for Containers now supports volume options provided by the `Mounts` field ([#10831](https://github.com/containers/podman/issues/10831)).
 - The Compat List endpoint for Secrets now supports a new query parameter, `filter`, which allows returned results to be filtered.
+- The Compat Auth endpoint now returns the correct response code (500 instead of 400) when logging into a registry fails.
 - The Version endpoint now includes information about the OCI runtime and Conmon in use ([#11227](https://github.com/containers/podman/issues/11227)).
 - Fixed a bug where the X-Registry-Config header was not properly handled, leading to errors when pulling images ([#11235](https://github.com/containers/podman/issues/11235)).
 - Fixed a bug where invalid query parameters could cause a null pointer dereference when creating error messages.

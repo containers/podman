@@ -50,9 +50,19 @@ func Auth(w http.ResponseWriter, r *http.Request) {
 			Status:        "Login Succeeded",
 		})
 	} else {
-		utils.WriteResponse(w, http.StatusBadRequest, entities.AuthReport{
-			IdentityToken: "",
-			Status:        "login attempt to " + authConfig.ServerAddress + " failed with status: " + err.Error(),
+		var msg string
+
+		var unauthErr DockerClient.ErrUnauthorizedForCredentials
+		if errors.As(err, &unauthErr) {
+			msg = "401 Unauthorized"
+		} else {
+			msg = err.Error()
+		}
+
+		utils.WriteResponse(w, http.StatusInternalServerError, struct {
+			Message string `json:"message"`
+		}{
+			Message: "login attempt to " + authConfig.ServerAddress + " failed with status: " + msg,
 		})
 	}
 }

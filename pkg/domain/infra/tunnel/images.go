@@ -165,6 +165,9 @@ func (ir *ImageEngine) Untag(ctx context.Context, nameOrID string, tags []string
 		if t, ok := ref.(reference.Tagged); ok {
 			tag = t.Tag()
 		}
+		if t, ok := ref.(reference.Digested); ok {
+			tag += "@" + t.Digest().String()
+		}
 		if r, ok := ref.(reference.Named); ok {
 			repo = r.Name()
 		}

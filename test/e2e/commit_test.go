@@ -332,7 +332,7 @@ var _ = Describe("Podman commit", func() {
 
 	It("podman commit adds exposed ports", func() {
 		name := "testcon"
-		s := podmanTest.Podman([]string{"run", "--name", name, "-p", "8080:80", ALPINE, "true"})
+		s := podmanTest.Podman([]string{"run", "--name", name, "-p", "8585:80", ALPINE, "true"})
 		s.WaitWithDefaultTimeout()
 		Expect(s).Should(Exit(0))
 
