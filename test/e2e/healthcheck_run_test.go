@@ -214,5 +214,12 @@ var _ = Describe("Podman healthcheck run", func() {
 
 		inspect = podmanTest.InspectContainer("hc")
 		Expect(inspect[0].State.Healthcheck.Status).To(Equal(define.HealthCheckHealthy))
+
+		// Test podman ps --filter heath is working (#11687)
+		ps := podmanTest.Podman([]string{"ps", "--filter", "health=healthy"})
+		ps.WaitWithDefaultTimeout()
+		Expect(ps).Should(Exit(0))
+		Expect(len(ps.OutputToStringArray())).To(Equal(2))
+		Expect(ps.OutputToString()).To(ContainSubstring("hc"))
 	})
 })
