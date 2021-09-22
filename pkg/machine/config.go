@@ -60,6 +60,7 @@ type ListResponse struct {
 	VMType    string
 	CPUs      uint64
 	Memory    uint64
+	DiskSize  uint64
 }
 
 type SSHOptions struct {
