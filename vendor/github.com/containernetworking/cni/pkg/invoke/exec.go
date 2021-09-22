@@ -20,6 +20,7 @@ import (
 	"os"
 
 	"github.com/containernetworking/cni/pkg/types"
+	"github.com/containernetworking/cni/pkg/types/create"
 	"github.com/containernetworking/cni/pkg/version"
 )
 
@@ -83,14 +84,7 @@ func ExecPluginWithResult(ctx context.Context, pluginPath string, netconf []byte
 		return nil, err
 	}
 
-	// Plugin must return result in same version as specified in netconf
-	versionDecoder := &version.ConfigDecoder{}
-	confVersion, err := versionDecoder.Decode(netconf)
-	if err != nil {
-		return nil, err
-	}
-
-	return version.NewResult(confVersion, stdoutBytes)
+	return create.CreateFromBytes(stdoutBytes)
 }
 
 func ExecPluginWithoutResult(ctx context.Context, pluginPath string, netconf []byte, args CNIArgs, exec Exec) error {

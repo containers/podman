@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/pkg/machine"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/utils"
@@ -534,7 +535,12 @@ func (v *MachineVM) SSH(name string, opts machine.SSHOptions) error {
 		return errors.Errorf("vm %q is not running.", v.Name)
 	}
 
-	sshDestination := v.RemoteUsername + "@localhost"
+	username := opts.Username
+	if username == "" {
+		username = v.RemoteUsername
+	}
+
+	sshDestination := username + "@localhost"
 	port := strconv.Itoa(v.Port)
 
 	args := []string{"-i", v.IdentityPath, "-p", port, sshDestination, "-o", "UserKnownHostsFile /dev/null", "-o", "StrictHostKeyChecking no"}
@@ -668,9 +674,12 @@ func CheckActiveVM() (bool, string, error) {
 // startHostNetworking runs a binary on the host system that allows users
 // to setup port forwarding to the podman virtual machine
 func (v *MachineVM) startHostNetworking() error {
-	// TODO we may wish to configure the directory in containers common
-	binary := filepath.Join("/usr/libexec/podman/", machine.ForwarderBinaryName)
-	if _, err := os.Stat(binary); err != nil {
+	cfg, err := config.Default()
+	if err != nil {
+		return err
+	}
+	binary, err := cfg.FindHelperBinary(machine.ForwarderBinaryName, false)
+	if err != nil {
 		return err
 	}
 

@@ -169,7 +169,7 @@ var _ = Describe("Podman mount", func() {
 		Expect(setup).Should(Exit(0))
 		cid := setup.OutputToString()
 
-		lmount := podmanTest.Podman([]string{"mount", "--notruncate"})
+		lmount := podmanTest.Podman([]string{"mount", "--no-trunc"})
 		lmount.WaitWithDefaultTimeout()
 		Expect(lmount).Should(Exit(0))
 		Expect(lmount.OutputToString()).To(Equal(""))
@@ -178,7 +178,7 @@ var _ = Describe("Podman mount", func() {
 		mount.WaitWithDefaultTimeout()
 		Expect(mount).Should(Exit(0))
 
-		lmount = podmanTest.Podman([]string{"mount", "--notruncate"})
+		lmount = podmanTest.Podman([]string{"mount", "--no-trunc"})
 		lmount.WaitWithDefaultTimeout()
 		Expect(lmount).Should(Exit(0))
 		Expect(lmount.OutputToString()).To(ContainSubstring(cid))
@@ -195,7 +195,7 @@ var _ = Describe("Podman mount", func() {
 		Expect(setup).Should(Exit(0))
 		cid := setup.OutputToString()
 
-		lmount := podmanTest.Podman([]string{"mount", "--notruncate"})
+		lmount := podmanTest.Podman([]string{"mount", "--no-trunc"})
 		lmount.WaitWithDefaultTimeout()
 		Expect(lmount).Should(Exit(0))
 		Expect(lmount.OutputToString()).To(ContainSubstring(cid))
@@ -204,7 +204,7 @@ var _ = Describe("Podman mount", func() {
 		stop.WaitWithDefaultTimeout()
 		Expect(stop).Should(Exit(0))
 
-		lmount = podmanTest.Podman([]string{"mount", "--notruncate"})
+		lmount = podmanTest.Podman([]string{"mount", "--no-trunc"})
 		lmount.WaitWithDefaultTimeout()
 		Expect(lmount).Should(Exit(0))
 		Expect(lmount.OutputToString()).To(Equal(""))
@@ -227,7 +227,7 @@ var _ = Describe("Podman mount", func() {
 		Expect(setup).Should(Exit(0))
 		cid3 := setup.OutputToString()
 
-		lmount := podmanTest.Podman([]string{"mount", "--notruncate"})
+		lmount := podmanTest.Podman([]string{"mount", "--no-trunc"})
 		lmount.WaitWithDefaultTimeout()
 		Expect(lmount).Should(Exit(0))
 		Expect(lmount.OutputToString()).To(Equal(""))
@@ -236,7 +236,7 @@ var _ = Describe("Podman mount", func() {
 		mount.WaitWithDefaultTimeout()
 		Expect(mount).Should(Exit(0))
 
-		lmount = podmanTest.Podman([]string{"mount", "--notruncate"})
+		lmount = podmanTest.Podman([]string{"mount", "--no-trunc"})
 		lmount.WaitWithDefaultTimeout()
 		Expect(lmount).Should(Exit(0))
 		Expect(lmount.OutputToString()).To(ContainSubstring(cid1))
@@ -247,7 +247,7 @@ var _ = Describe("Podman mount", func() {
 		umount.WaitWithDefaultTimeout()
 		Expect(umount).Should(Exit(0))
 
-		lmount = podmanTest.Podman([]string{"mount", "--notruncate"})
+		lmount = podmanTest.Podman([]string{"mount", "--no-trunc"})
 		lmount.WaitWithDefaultTimeout()
 		Expect(lmount).Should(Exit(0))
 		Expect(lmount.OutputToString()).To(Equal(""))
@@ -261,7 +261,7 @@ var _ = Describe("Podman mount", func() {
 		Expect(setup).Should(Exit(0))
 		cid := setup.OutputToString()
 
-		lmount := podmanTest.Podman([]string{"mount", "--notruncate"})
+		lmount := podmanTest.Podman([]string{"mount", "--no-trunc"})
 		lmount.WaitWithDefaultTimeout()
 		Expect(lmount).Should(Exit(0))
 		Expect(lmount.OutputToString()).To(Equal(""))
@@ -270,6 +270,7 @@ var _ = Describe("Podman mount", func() {
 		mount.WaitWithDefaultTimeout()
 		Expect(mount).Should(Exit(0))
 
+		// test --notruncate alias
 		lmount = podmanTest.Podman([]string{"mount", "--notruncate"})
 		lmount.WaitWithDefaultTimeout()
 		Expect(lmount).Should(Exit(0))

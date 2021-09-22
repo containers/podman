@@ -68,7 +68,7 @@ func (*PluginDecoder) Decode(jsonBytes []byte) (PluginInfo, error) {
 	var info pluginInfo
 	err := json.Unmarshal(jsonBytes, &info)
 	if err != nil {
-		return nil, fmt.Errorf("decoding version info: %s", err)
+		return nil, fmt.Errorf("decoding version info: %w", err)
 	}
 	if info.CNIVersion_ == "" {
 		return nil, fmt.Errorf("decoding version info: missing field cniVersion")
@@ -97,20 +97,20 @@ func ParseVersion(version string) (int, int, int, error) {
 
 	major, err := strconv.Atoi(parts[0])
 	if err != nil {
-		return -1, -1, -1, fmt.Errorf("failed to convert major version part %q: %v", parts[0], err)
+		return -1, -1, -1, fmt.Errorf("failed to convert major version part %q: %w", parts[0], err)
 	}
 
 	if len(parts) >= 2 {
 		minor, err = strconv.Atoi(parts[1])
 		if err != nil {
-			return -1, -1, -1, fmt.Errorf("failed to convert minor version part %q: %v", parts[1], err)
+			return -1, -1, -1, fmt.Errorf("failed to convert minor version part %q: %w", parts[1], err)
 		}
 	}
 
 	if len(parts) >= 3 {
 		micro, err = strconv.Atoi(parts[2])
 		if err != nil {
-			return -1, -1, -1, fmt.Errorf("failed to convert micro version part %q: %v", parts[2], err)
+			return -1, -1, -1, fmt.Errorf("failed to convert micro version part %q: %w", parts[2], err)
 		}
 	}
 

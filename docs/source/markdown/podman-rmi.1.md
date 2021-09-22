@@ -12,6 +12,8 @@ podman\-rmi - Removes one or more locally stored images
 Removes one or more locally stored images.
 Passing an argument _image_ deletes it, along with any of its dangling parent images.  A dangling image is an image without a tag and without being referenced by another image.
 
+Note: To delete an image from a remote registry, use the [**skopeo delete**](https://github.com/containers/skopeo/blob/main/docs/skopeo-delete.1.md) command. Some registries do not allow users to delete an image via a CLI remotely.
+
 ## OPTIONS
 
 #### **--all**, **-a**
@@ -51,7 +53,7 @@ $ podman rmi -a -f
   **125** The command fails for any other reason
 
 ## SEE ALSO
-podman(1)
+podman(1), skopeo-delete(1)
 
 ## HISTORY
 March 2017, Originally compiled by Dan Walsh <dwalsh@redhat.com>

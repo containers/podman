@@ -3,20 +3,22 @@ package tunnel
 import (
 	"context"
 
+	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/bindings/network"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/errorhandling"
 	"github.com/pkg/errors"
 )
 
-func (ic *ContainerEngine) NetworkList(ctx context.Context, opts entities.NetworkListOptions) ([]*entities.NetworkListReport, error) {
+func (ic *ContainerEngine) NetworkList(ctx context.Context, opts entities.NetworkListOptions) ([]types.Network, error) {
 	options := new(network.ListOptions).WithFilters(opts.Filters)
 	return network.List(ic.ClientCtx, options)
 }
 
-func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []string, opts entities.InspectOptions) ([]entities.NetworkInspectReport, []error, error) {
+func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []string, opts entities.InspectOptions) ([]types.Network, []error, error) {
 	var (
-		reports = make([]entities.NetworkInspectReport, 0, len(namesOrIds))
+		reports = make([]types.Network, 0, len(namesOrIds))
 		errs    = []error{}
 	)
 	options := new(network.InspectOptions)
@@ -28,12 +30,12 @@ func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []stri
 				return nil, nil, err
 			}
 			if errModel.ResponseCode == 404 {
-				errs = append(errs, errors.Errorf("no such network %q", name))
+				errs = append(errs, errors.Wrapf(define.ErrNoSuchNetwork, "network %s", name))
 				continue
 			}
 			return nil, nil, err
 		}
-		reports = append(reports, report...)
+		reports = append(reports, report)
 	}
 	return reports, errs, nil
 }
@@ -60,11 +62,12 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 	return reports, nil
 }
 
-func (ic *ContainerEngine) NetworkCreate(ctx context.Context, name string, opts entities.NetworkCreateOptions) (*entities.NetworkCreateReport, error) {
-	options := new(network.CreateOptions).WithName(name).WithDisableDNS(opts.DisableDNS).WithDriver(opts.Driver).WithGateway(opts.Gateway)
-	options.WithInternal(opts.Internal).WithIPRange(opts.Range).WithIPv6(opts.IPv6).WithLabels(opts.Labels).WithIPv6(opts.IPv6)
-	options.WithMacVLAN(opts.MacVLAN).WithOptions(opts.Options).WithSubnet(opts.Subnet)
-	return network.Create(ic.ClientCtx, options)
+func (ic *ContainerEngine) NetworkCreate(ctx context.Context, net types.Network) (*types.Network, error) {
+	net, err := network.Create(ic.ClientCtx, &net)
+	if err != nil {
+		return nil, err
+	}
+	return &net, nil
 }
 
 // NetworkDisconnect removes a container from a given network

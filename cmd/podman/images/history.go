@@ -11,6 +11,7 @@ import (
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
+	"github.com/containers/podman/v3/cmd/podman/utils"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
@@ -73,8 +74,8 @@ func historyFlags(cmd *cobra.Command) {
 
 	flags.BoolVarP(&opts.human, "human", "H", true, "Display sizes and dates in human readable format")
 	flags.BoolVar(&opts.noTrunc, "no-trunc", false, "Do not truncate the output")
-	flags.BoolVar(&opts.noTrunc, "notruncate", false, "Do not truncate the output")
 	flags.BoolVarP(&opts.quiet, "quiet", "q", false, "Display the numeric IDs only")
+	flags.SetNormalizeFunc(utils.AliasFlags)
 }
 
 func history(cmd *cobra.Command, args []string) error {

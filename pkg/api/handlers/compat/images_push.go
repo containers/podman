@@ -152,7 +152,7 @@ loop: // break out of for/select infinite loop
 		case err := <-pushErrChan:
 			if err != nil {
 				var msg string
-				if errors.Cause(err) != storage.ErrImageUnknown {
+				if errors.Is(err, storage.ErrImageUnknown) {
 					msg = "An image does not exist locally with the tag: " + imageName
 				} else {
 					msg = err.Error()

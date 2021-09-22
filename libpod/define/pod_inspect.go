@@ -57,6 +57,10 @@ type InspectPodData struct {
 	CPUQuota int64 `json:"cpu_quota,omitempty"`
 	// CPUSetCPUs contains linux specific CPU data for the pod
 	CPUSetCPUs string `json:"cpuset_cpus,omitempty"`
+	// Mounts contains volume related information for the pod
+	Mounts []InspectMount `json:"mounts,omitempty"`
+	// Devices contains the specified host devices
+	Devices []InspectDevice `json:"devices,omitempty"`
 }
 
 // InspectPodInfraConfig contains the configuration of the pod's infra

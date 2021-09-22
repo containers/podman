@@ -367,6 +367,7 @@ func (ir *ImageEngine) Load(ctx context.Context, options entities.ImageLoadOptio
 func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string, options entities.ImageSaveOptions) error {
 	saveOptions := &libimage.SaveOptions{}
 	saveOptions.DirForceCompress = options.Compress
+	saveOptions.OciAcceptUncompressedLayers = options.OciAcceptUncompressedLayers
 	saveOptions.RemoveSignatures = options.RemoveSignatures
 
 	if !options.Quiet {

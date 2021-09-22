@@ -165,6 +165,9 @@ func (ir *ImageEngine) Untag(ctx context.Context, nameOrID string, tags []string
 		if t, ok := ref.(reference.Tagged); ok {
 			tag = t.Tag()
 		}
+		if t, ok := ref.(reference.Digested); ok {
+			tag += "@" + t.Digest().String()
+		}
 		if r, ok := ref.(reference.Named); ok {
 			repo = r.Name()
 		}
@@ -253,6 +256,7 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string,
 		err error
 	)
 	options := new(images.ExportOptions).WithFormat(opts.Format).WithCompress(opts.Compress)
+	options = options.WithOciAcceptUncompressedLayers(opts.OciAcceptUncompressedLayers)
 
 	switch opts.Format {
 	case "oci-dir", "docker-dir":

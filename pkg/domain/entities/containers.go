@@ -11,7 +11,6 @@ import (
 	nettypes "github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 )
 
 // ContainerRunlabelOptions are the options to execute container-runlabel.
@@ -422,7 +421,7 @@ type ContainerPortOptions struct {
 // the CLI to output ports
 type ContainerPortReport struct {
 	Id    string //nolint
-	Ports []ocicni.PortMapping
+	Ports []nettypes.OCICNIPortMapping
 }
 
 // ContainerCpOptions describes input options for cp.

@@ -14,14 +14,14 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
-	netTypes "github.com/containers/podman/v3/libpod/network/types"
+	nettypes "github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/namespaces"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/cri-o/ocicni/pkg/ocicni"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -1040,7 +1040,7 @@ func WithDependencyCtrs(ctrs []*Container) CtrCreateOption {
 // namespace with a minimal configuration.
 // An optional array of port mappings can be provided.
 // Conflicts with WithNetNSFrom().
-func WithNetNS(portMappings []ocicni.PortMapping, exposedPorts map[uint16][]string, postConfigureNetNS bool, netmode string, networks []string) CtrCreateOption {
+func WithNetNS(portMappings []nettypes.OCICNIPortMapping, exposedPorts map[uint16][]string, postConfigureNetNS bool, netmode string, networks []string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
@@ -1337,7 +1337,7 @@ func WithCommand(command []string) CtrCreateOption {
 
 // WithRootFS sets the rootfs for the container.
 // This creates a container from a directory on disk and not an image.
-func WithRootFS(rootfs string) CtrCreateOption {
+func WithRootFS(rootfs string, overlay bool) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
@@ -1346,6 +1346,7 @@ func WithRootFS(rootfs string) CtrCreateOption {
 			return err
 		}
 		ctr.config.Rootfs = rootfs
+		ctr.config.RootfsOverlay = overlay
 		return nil
 	}
 }
@@ -1809,6 +1810,17 @@ func WithInitCtrType(containerType string) CtrCreateOption {
 	}
 }
 
+// WithHostDevice adds the original host src to the config
+func WithHostDevice(dev []specs.LinuxDevice) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.DeviceHostSrc = dev
+		return nil
+	}
+}
+
 // Pod Creation Options
 
 // WithPodCreateCommand adds the full command plus arguments of the current
@@ -2062,10 +2074,10 @@ func WithInfraContainer() PodCreateOption {
 }
 
 // WithInfraContainerPorts tells the pod to add port bindings to the pause container
-func WithInfraContainerPorts(bindings []ocicni.PortMapping, infraSpec *specgen.SpecGenerator) []netTypes.PortMapping {
-	bindingSpec := []netTypes.PortMapping{}
+func WithInfraContainerPorts(bindings []nettypes.OCICNIPortMapping, infraSpec *specgen.SpecGenerator) []nettypes.PortMapping {
+	bindingSpec := []nettypes.PortMapping{}
 	for _, bind := range bindings {
-		currBind := netTypes.PortMapping{}
+		currBind := nettypes.PortMapping{}
 		currBind.ContainerPort = uint16(bind.ContainerPort)
 		currBind.HostIP = bind.HostIP
 		currBind.HostPort = uint16(bind.HostPort)

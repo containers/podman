@@ -41,8 +41,8 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !psg.NoInfra {
-		infraOptions := &entities.ContainerCreateOptions{ImageVolume: "bind", IsInfra: true, Net: &entities.NetOptions{}} // options for pulling the image and FillOutSpec
-		err = specgenutil.FillOutSpecGen(psg.InfraContainerSpec, infraOptions, []string{})                                // necessary for default values in many cases (userns, idmappings)
+		infraOptions := &entities.ContainerCreateOptions{ImageVolume: "bind", IsInfra: true, Net: &entities.NetOptions{}, Devices: psg.Devices} // options for pulling the image and FillOutSpec
+		err = specgenutil.FillOutSpecGen(psg.InfraContainerSpec, infraOptions, []string{})                                                      // necessary for default values in many cases (userns, idmappings)
 		if err != nil {
 			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error filling out specgen"))
 			return
@@ -52,13 +52,11 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to decode specgen"))
 			return
 		}
-		tempSpec := &specgen.SpecGenerator{} // temporary spec since infra cannot be decoded into
-		err = json.Unmarshal(out, tempSpec)  // unmarhal matching options
+		err = json.Unmarshal(out, psg.InfraContainerSpec) // unmarhal matching options
 		if err != nil {
 			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to decode specgen"))
 			return
 		}
-		psg.InfraContainerSpec = tempSpec // set infra spec equal to temp
 		// a few extra that do not have the same json tags
 		psg.InfraContainerSpec.Name = psg.InfraName
 		psg.InfraContainerSpec.ConmonPidFile = psg.InfraConmonPidFile

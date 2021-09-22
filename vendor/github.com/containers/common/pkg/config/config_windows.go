@@ -13,3 +13,7 @@ func customConfigFile() (string, error) {
 func ifRootlessConfigPath() (string, error) {
 	return os.Getenv("APPDATA") + "\\containers\\containers.conf", nil
 }
+
+var defaultHelperBinariesDir = []string{
+	"C:\\Program Files\\RedHat\\Podman",
+}

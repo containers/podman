@@ -346,7 +346,7 @@ This option allows arbitrary environment variables that are available for the pr
 
 See [**Environment**](#environment) note below for precedence and examples.
 
-#### **--env-host**=*true|false*
+#### **--env-host**
 
 Use host environment inside of the container. See **Environment** note below for precedence. (This option is not available with the remote Podman client)
 
@@ -414,7 +414,7 @@ Sets the container host name that is available inside the container. Can only be
 
 Print usage statement
 
-#### **--http-proxy**=*true|false*
+#### **--http-proxy**
 
 By default proxy environment variables are passed into the container if set
 for the Podman process. This can be disabled by setting the `--http-proxy`
@@ -465,7 +465,7 @@ pod when that pod is not running.
 
 Path to the container-init binary.
 
-#### **--interactive**, **-i**=*true|false*
+#### **--interactive**, **-i**
 
 Keep STDIN open even if not attached. The default is *false*.
 
@@ -682,20 +682,20 @@ Valid _mode_ values are:
 
 #### **--network-alias**=*alias*
 
-Add network-scoped alias for the container
+Add network-scoped alias for the container.  NOTE: A container will only have access to aliases on the first network that it joins. This is a limitation that will be removed in a later release.
 
-#### **--no-healthcheck**=*true|false*
+#### **--no-healthcheck**
 
 Disable any defined healthchecks for container.
 
-#### **--no-hosts**=*true|false*
+#### **--no-hosts**
 
 Do not create /etc/hosts for the container.
 By default, Podman will manage /etc/hosts, adding the container's own IP address and any hosts from **--add-host**.
 #### **--no-hosts** disables this, and the image's **/etc/host** will be preserved unmodified.
 This option conflicts with **--add-host**.
 
-#### **--oom-kill-disable**=*true|false*
+#### **--oom-kill-disable**
 
 Whether to disable OOM Killer for the container or not.
 
@@ -737,7 +737,7 @@ To make a pod with more granular options, use the `podman pod create` command be
 
 Run container in an existing pod and read the pod's ID from the specified file. If a container is run within a pod, and the pod has an infra-container, the infra-container will be started before the container is.
 
-#### **--privileged**=*true|false*
+#### **--privileged**
 
 Give extended privileges to this container. The default is *false*.
 
@@ -776,7 +776,7 @@ associated ports. If one container binds to a port, no other container can use t
 within the pod while it is in use. Containers in the pod can also communicate over localhost
 by having one container bind to localhost in the pod, and another connect to that port.
 
-#### **--publish-all**, **-P**=*true|false*
+#### **--publish-all**, **-P**
 
 Publish all exposed ports to random ports on the host interfaces. The default is *false*.
 
@@ -801,7 +801,7 @@ Defaults to *missing*.
 
 Suppress output information when pulling images
 
-#### **--read-only**=*true|false*
+#### **--read-only**
 
 Mount the container's root filesystem as read only.
 
@@ -809,11 +809,11 @@ By default a container will have its root filesystem writable allowing processes
 to write files anywhere. By specifying the `--read-only` flag the container will have
 its root filesystem mounted as read only prohibiting any writes.
 
-#### **--read-only-tmpfs**=*true|false*
+#### **--read-only-tmpfs**
 
 If container is running in --read-only mode, then mount a read-write tmpfs on /run, /tmp, and /var/tmp. The default is *true*
 
-#### **--replace**=**true**|**false**
+#### **--replace**
 
 If another container with the same name already exists, replace and remove it. The default is **false**.
 
@@ -839,7 +839,7 @@ Please note that restart will not restart containers after a system reboot.
 If this functionality is required in your environment, you can invoke Podman from a systemd unit file, or create an init script for whichever init system is in use.
 To generate systemd unit files, please see *podman generate systemd*
 
-#### **--rm**=*true|false*
+#### **--rm**
 
 Automatically remove the container when it exits. The default is *false*.
 
@@ -849,6 +849,16 @@ If specified, the first argument refers to an exploded container on the file sys
 
 This is useful to run a container without requiring any image management, the rootfs
 of the container is assumed to be managed externally.
+
+  `Overlay Rootfs Mounts`
+
+   The `:O` flag tells Podman to mount the directory from the rootfs path as
+storage using the `overlay file system`. The container processes
+can modify content within the mount point which is stored in the
+container storage in a separate directory. In overlay terms, the source
+directory will be the lower, and the container storage directory will be the
+upper. Modifications to the mount point are destroyed when the container
+finishes executing, similar to a tmpfs mount point being unmounted.
 
 #### **--sdnotify**=**container**|**conmon**|**ignore**
 
@@ -991,7 +1001,7 @@ Maximum time a container is allowed to run before conmon sends it the kill
 signal.  By default containers will run until they exit or are stopped by
 `podman stop`.
 
-#### **--tls-verify**=**true**|**false**
+#### **--tls-verify**
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true, then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified, TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf.
 
@@ -1008,7 +1018,7 @@ options are the same as the Linux default `mount` flags. If you do not specify
 any options, the systems uses the following options:
 `rw,noexec,nosuid,nodev`.
 
-#### **--tty**, **-t**=*true|false*
+#### **--tty**, **-t**
 
 Allocate a pseudo-TTY. The default is *false*.
 
@@ -1441,6 +1451,12 @@ $ podman create -v /var/lib/design:/var/lib/design --group-add keep-groups ubi8
 
 ```
 $ podman create --name container1 --personaity=LINUX32 fedora bash
+```
+
+### Create a container with external rootfs mounted as an overlay
+
+```
+$ podman create --name container1 --rootfs /path/to/rootfs:O bash
 ```
 
 ### Rootless Containers

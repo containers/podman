@@ -32,6 +32,9 @@ class ImageTestCase(APITestCase):
             for k in required_keys:
                 self.assertIn(k, item)
 
+            # Id should be prefixed with sha256: (#11645)
+            self.assertIn("sha256:",item['Id'])
+
     def test_inspect(self):
         r = requests.get(self.podman_url + "/v1.40/images/alpine/json")
         self.assertEqual(r.status_code, 200, r.text)
@@ -59,6 +62,8 @@ class ImageTestCase(APITestCase):
         for item in required_keys:
             self.assertIn(item, image)
         _ = parse(image["Created"])
+        # Id should be prefixed with sha256: (#11645)
+        self.assertIn("sha256:",image['Id'])
 
     def test_delete(self):
         r = requests.delete(self.podman_url + "/v1.40/images/alpine?force=true")

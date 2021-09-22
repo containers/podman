@@ -10,8 +10,8 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/containers/podman/v3/pkg/network"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -90,13 +90,13 @@ func networkList(cmd *cobra.Command, args []string) error {
 	return err
 }
 
-func quietOut(responses []*entities.NetworkListReport) {
+func quietOut(responses []types.Network) {
 	for _, r := range responses {
 		fmt.Println(r.Name)
 	}
 }
 
-func jsonOut(responses []*entities.NetworkListReport) error {
+func jsonOut(responses []types.Network) error {
 	prettyJSON, err := json.MarshalIndent(responses, "", "  ")
 	if err != nil {
 		return err
@@ -105,7 +105,7 @@ func jsonOut(responses []*entities.NetworkListReport) error {
 	return nil
 }
 
-func templateOut(responses []*entities.NetworkListReport, cmd *cobra.Command) error {
+func templateOut(responses []types.Network, cmd *cobra.Command) error {
 	nlprs := make([]ListPrintReports, 0, len(responses))
 	for _, r := range responses {
 		nlprs = append(nlprs, ListPrintReports{r})
@@ -113,12 +113,10 @@ func templateOut(responses []*entities.NetworkListReport, cmd *cobra.Command) er
 
 	// Headers() gets lost resolving the embedded field names so add them
 	headers := report.Headers(ListPrintReports{}, map[string]string{
-		"Name":       "name",
-		"CNIVersion": "version",
-		"Version":    "version",
-		"Plugins":    "plugins",
-		"Labels":     "labels",
-		"ID":         "network id",
+		"Name":   "name",
+		"Driver": "driver",
+		"Labels": "labels",
+		"ID":     "network id",
 	})
 
 	renderHeaders := report.HasTable(networkListOptions.Format)
@@ -127,7 +125,7 @@ func templateOut(responses []*entities.NetworkListReport, cmd *cobra.Command) er
 		row = report.NormalizeFormat(networkListOptions.Format)
 	} else { // 'podman network ls' equivalent to 'podman network ls --format="table {{.ID}} {{.Name}} {{.Version}} {{.Plugins}}" '
 		renderHeaders = true
-		row = "{{.ID}}\t{{.Name}}\t{{.Version}}\t{{.Plugins}}\n"
+		row = "{{.ID}}\t{{.Name}}\t{{.Driver}}\n"
 	}
 	format = report.EnforceRange(row)
 
@@ -153,23 +151,13 @@ func templateOut(responses []*entities.NetworkListReport, cmd *cobra.Command) er
 
 // ListPrintReports returns the network list report
 type ListPrintReports struct {
-	*entities.NetworkListReport
-}
-
-// Version returns the CNI version
-func (n ListPrintReports) Version() string {
-	return n.CNIVersion
-}
-
-// Plugins returns the CNI Plugins
-func (n ListPrintReports) Plugins() string {
-	return network.GetCNIPlugins(n.NetworkConfigList)
+	types.Network
 }
 
 // Labels returns any labels added to a Network
 func (n ListPrintReports) Labels() string {
-	list := make([]string, 0, len(n.NetworkListReport.Labels))
-	for k, v := range n.NetworkListReport.Labels {
+	list := make([]string, 0, len(n.Network.Labels))
+	for k, v := range n.Network.Labels {
 		list = append(list, k+"="+v)
 	}
 	return strings.Join(list, ",")
@@ -181,5 +169,5 @@ func (n ListPrintReports) ID() string {
 	if noTrunc {
 		length = 64
 	}
-	return network.GetNetworkID(n.Name)[:length]
+	return n.Network.ID[:length]
 }

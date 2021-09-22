@@ -89,14 +89,10 @@ func init() {
 
 func Execute() {
 	if err := rootCmd.ExecuteContext(registry.GetContextWithOptions()); err != nil {
+		if registry.GetExitCode() == 0 {
+			registry.SetExitCode(define.ExecErrorCodeGeneric)
+		}
 		fmt.Fprintln(os.Stderr, formatError(err))
-	} else if registry.GetExitCode() == registry.ExecErrorCodeGeneric {
-		// The exitCode modified from registry.ExecErrorCodeGeneric,
-		// indicates an application
-		// running inside of a container failed, as opposed to the
-		// podman command failed.  Must exit with that exit code
-		// otherwise command exited correctly.
-		registry.SetExitCode(0)
 	}
 	os.Exit(registry.GetExitCode())
 }
@@ -178,7 +174,11 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	}
 	// Hard code TMPDIR functions to use /var/tmp, if user did not override
 	if _, ok := os.LookupEnv("TMPDIR"); !ok {
-		os.Setenv("TMPDIR", "/var/tmp")
+		if tmpdir, err := cfg.ImageCopyTmpDir(); err != nil {
+			logrus.Warnf("failed to retrieve default tmp dir: %s", err.Error())
+		} else {
+			os.Setenv("TMPDIR", tmpdir)
+		}
 	}
 
 	context := cmd.Root().LocalFlags().Lookup("context")

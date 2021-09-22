@@ -1,11 +1,13 @@
 package integration
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/rootless"
 	. "github.com/containers/podman/v3/test/utils"
 	"github.com/containers/storage/pkg/stringid"
@@ -61,17 +63,17 @@ var _ = Describe("Podman network", func() {
 		name, path := generateNetworkConfig(podmanTest)
 		defer removeConf(path)
 
-		session := podmanTest.Podman([]string{"network", "ls", "--filter", "plugin=bridge"})
+		session := podmanTest.Podman([]string{"network", "ls", "--filter", "driver=bridge"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.LineInOutputContains(name)).To(BeTrue())
 	})
 
-	It("podman network list --filter plugin and name", func() {
+	It("podman network list --filter driver and name", func() {
 		name, path := generateNetworkConfig(podmanTest)
 		defer removeConf(path)
 
-		session := podmanTest.Podman([]string{"network", "ls", "--filter", "plugin=bridge", "--filter", "name=" + name})
+		session := podmanTest.Podman([]string{"network", "ls", "--filter", "driver=bridge", "--filter", "name=" + name})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring(name))
@@ -136,7 +138,7 @@ var _ = Describe("Podman network", func() {
 		name, path := generateNetworkConfig(podmanTest)
 		defer removeConf(path)
 
-		session := podmanTest.Podman([]string{"network", "ls", "--filter", "plugin=test"})
+		session := podmanTest.Podman([]string{"network", "ls", "--filter", "label=abc"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.LineInOutputContains(name)).To(BeFalse())
@@ -155,7 +157,7 @@ var _ = Describe("Podman network", func() {
 		session = podmanTest.Podman([]string{"network", "ls", "--filter", "id=" + netID})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		expectedTable := "NETWORK ID NAME VERSION PLUGINS"
+		expectedTable := "NETWORK ID NAME DRIVER"
 		Expect(session.OutputToString()).To(ContainSubstring(expectedTable))
 
 		session = podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}} {{.ID}}", "--filter", "id=" + netID})
@@ -176,7 +178,7 @@ var _ = Describe("Podman network", func() {
 		session = podmanTest.Podman([]string{"network", "inspect", netID[1:]})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring("no such network"))
+		Expect(session.ErrorToString()).To(ContainSubstring("network not found"))
 
 		session = podmanTest.Podman([]string{"network", "rm", netID})
 		session.WaitWithDefaultTimeout()
@@ -239,10 +241,10 @@ var _ = Describe("Podman network", func() {
 		name, path := generateNetworkConfig(podmanTest)
 		defer removeConf(path)
 
-		session := podmanTest.Podman([]string{"network", "inspect", name, "--format", "{{.cniVersion}}"})
+		session := podmanTest.Podman([]string{"network", "inspect", name, "--format", "{{.Driver}}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContains("0.3.0")).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("bridge"))
 	})
 
 	It("podman inspect container single CNI network", func() {
@@ -512,9 +514,14 @@ var _ = Describe("Podman network", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 
-		out, err := inspect.jq(".[0].plugins[0].master")
+		// JSON the network configuration into something usable
+		var results []types.Network
+		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
 		Expect(err).To(BeNil())
-		Expect(out).To(Equal("\"\""))
+		Expect(results).To(HaveLen(1))
+		result := results[0]
+		Expect(result.NetworkInterface).To(Equal(""))
+		Expect(result.IPAMOptions).To(HaveKeyWithValue("driver", "dhcp"))
 
 		nc = podmanTest.Podman([]string{"network", "rm", net})
 		nc.WaitWithDefaultTimeout()
@@ -532,13 +539,16 @@ var _ = Describe("Podman network", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 
-		out, err := inspect.jq(".[0].plugins[0].master")
+		var results []types.Network
+		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
 		Expect(err).To(BeNil())
-		Expect(out).To(Equal(`"lo"`))
+		Expect(results).To(HaveLen(1))
+		result := results[0]
 
-		ipamType, err := inspect.jq(".[0].plugins[0].ipam.type")
-		Expect(err).To(BeNil())
-		Expect(ipamType).To(Equal(`"dhcp"`))
+		Expect(result.Driver).To(Equal("macvlan"))
+		Expect(result.NetworkInterface).To(Equal("lo"))
+		Expect(result.IPAMOptions).To(HaveKeyWithValue("driver", "dhcp"))
+		Expect(result.Subnets).To(HaveLen(0))
 
 		nc = podmanTest.Podman([]string{"network", "rm", net})
 		nc.WaitWithDefaultTimeout()
@@ -572,33 +582,20 @@ var _ = Describe("Podman network", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 
-		mtu, err := inspect.jq(".[0].plugins[0].mtu")
+		var results []types.Network
+		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
 		Expect(err).To(BeNil())
-		Expect(mtu).To(Equal("1500"))
+		Expect(results).To(HaveLen(1))
+		result := results[0]
 
-		name, err := inspect.jq(".[0].plugins[0].type")
-		Expect(err).To(BeNil())
-		Expect(name).To(Equal(`"macvlan"`))
+		Expect(result.Options).To(HaveKeyWithValue("mtu", "1500"))
+		Expect(result.Driver).To(Equal("macvlan"))
+		Expect(result.NetworkInterface).To(Equal("lo"))
+		Expect(result.IPAMOptions).To(HaveKeyWithValue("driver", "host-local"))
 
-		netInt, err := inspect.jq(".[0].plugins[0].master")
-		Expect(err).To(BeNil())
-		Expect(netInt).To(Equal(`"lo"`))
-
-		ipamType, err := inspect.jq(".[0].plugins[0].ipam.type")
-		Expect(err).To(BeNil())
-		Expect(ipamType).To(Equal(`"host-local"`))
-
-		gw, err := inspect.jq(".[0].plugins[0].ipam.ranges[0][0].gateway")
-		Expect(err).To(BeNil())
-		Expect(gw).To(Equal(`"192.168.1.254"`))
-
-		subnet, err := inspect.jq(".[0].plugins[0].ipam.ranges[0][0].subnet")
-		Expect(err).To(BeNil())
-		Expect(subnet).To(Equal(`"192.168.1.0/24"`))
-
-		routes, err := inspect.jq(".[0].plugins[0].ipam.routes[0].dst")
-		Expect(err).To(BeNil())
-		Expect(routes).To(Equal(`"0.0.0.0/0"`))
+		Expect(result.Subnets).To(HaveLen(1))
+		Expect(result.Subnets[0].Subnet.String()).To(Equal("192.168.1.0/24"))
+		Expect(result.Subnets[0].Gateway.String()).To(Equal("192.168.1.254"))
 
 		nc = podmanTest.Podman([]string{"network", "rm", net})
 		nc.WaitWithDefaultTimeout()

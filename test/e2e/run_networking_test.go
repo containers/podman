@@ -709,6 +709,18 @@ var _ = Describe("Podman run networking", func() {
 		Expect(strings.Contains(run.OutputToString(), hostname)).To(BeTrue())
 	})
 
+	It("podman run with pod does not add extra 127 entry to /etc/hosts", func() {
+		pod := "testpod"
+		hostname := "test-hostname"
+		run := podmanTest.Podman([]string{"pod", "create", "--hostname", hostname, "--name", pod})
+		run.WaitWithDefaultTimeout()
+		Expect(run).Should(Exit(0))
+		run = podmanTest.Podman([]string{"run", "--pod", pod, ALPINE, "cat", "/etc/hosts"})
+		run.WaitWithDefaultTimeout()
+		Expect(run).Should(Exit(0))
+		Expect(run.OutputToString()).ToNot(ContainSubstring("127.0.0.1 %s", hostname))
+	})
+
 	ping_test := func(netns string) {
 		hostname := "testctr"
 		run := podmanTest.Podman([]string{"run", netns, "--hostname", hostname, ALPINE, "ping", "-c", "1", hostname})

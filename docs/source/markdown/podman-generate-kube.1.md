@@ -37,8 +37,6 @@ random port is assigned by Podman in the specification.
 Create Kubernetes Pod YAML for a container called `some-mariadb`.
 ```
 $ sudo podman generate kube some-mariadb
-# Generation of Kubernetes YAML is still under development!
-#
 # Save the output of this file and use kubectl create -f to import
 # it into Kubernetes.
 #
@@ -93,8 +91,6 @@ status: {}
 Create Kubernetes Pod YAML for a container with the directory `/home/user/my-data` on the host bind-mounted in the container to `/volume`.
 ```
 $ podman generate kube my-container-with-bind-mounted-data
-# Generation of Kubernetes YAML is still under development!
-#
 # Save the output of this file and use kubectl create -f to import
 # it into Kubernetes.
 #
@@ -147,8 +143,6 @@ status: {}
 Create Kubernetes Pod YAML for a container with the named volume `priceless-data` mounted in the container at `/volume`.
 ```
 $ podman generate kube my-container-using-priceless-data
-# Generation of Kubernetes YAML is still under development!
-#
 # Save the output of this file and use kubectl create -f to import
 # it into Kubernetes.
 #
@@ -200,8 +194,6 @@ status: {}
 Create Kubernetes Pod YAML for a pod called `demoweb` and include a service.
 ```
 $ sudo podman generate kube -s demoweb
-# Generation of Kubernetes YAML is still under development!
-#
 # Save the output of this file and use kubectl create -f to import
 # it into Kubernetes.
 #

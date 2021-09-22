@@ -156,8 +156,14 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	filterMap, err := util.PrepareFilters(r)
+	if err != nil {
+		utils.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError,
+			errors.
+				Wrapf(err, "failed to decode filter parameters for %s", r.URL.String()))
+		return
+	}
 
-	if dErr := decoder.Decode(&query, r.URL.Query()); dErr != nil || err != nil {
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError,
 			errors.
 				Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
@@ -283,9 +289,10 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
-		Compress   bool     `schema:"compress"`
-		Format     string   `schema:"format"`
-		References []string `schema:"references"`
+		Compress                    bool     `schema:"compress"`
+		Format                      string   `schema:"format"`
+		OciAcceptUncompressedLayers bool     `schema:"ociAcceptUncompressedLayers"`
+		References                  []string `schema:"references"`
 	}{
 		Format: define.OCIArchive,
 	}
@@ -347,11 +354,12 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 
 	// Use the ABI image engine to share as much code as possible.
 	opts := entities.ImageSaveOptions{
-		Compress:          query.Compress,
-		Format:            query.Format,
-		MultiImageArchive: len(query.References) > 1,
-		Output:            output,
-		RemoveSignatures:  true,
+		Compress:                    query.Compress,
+		Format:                      query.Format,
+		MultiImageArchive:           len(query.References) > 1,
+		OciAcceptUncompressedLayers: query.OciAcceptUncompressedLayers,
+		Output:                      output,
+		RemoveSignatures:            true,
 	}
 
 	imageEngine := abi.ImageEngine{Libpod: runtime}

@@ -308,13 +308,15 @@ func (qdisc *Fq) Type() string {
 // FQ_Codel (Fair Queuing Controlled Delay) is queuing discipline that combines Fair Queuing with the CoDel AQM scheme.
 type FqCodel struct {
 	QdiscAttrs
-	Target   uint32
-	Limit    uint32
-	Interval uint32
-	ECN      uint32
-	Flows    uint32
-	Quantum  uint32
-	// There are some more attributes here, but support for them seems not ubiquitous
+	Target        uint32
+	Limit         uint32
+	Interval      uint32
+	ECN           uint32
+	Flows         uint32
+	Quantum       uint32
+	CEThreshold   uint32
+	DropBatchSize uint32
+	MemoryLimit   uint32
 }
 
 func (fqcodel *FqCodel) String() string {

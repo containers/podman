@@ -94,6 +94,10 @@ t GET libpod/images/json?filters='garb1age}' 500 \
 t GET libpod/images/json?filters='{"label":["testl' 500 \
     .cause="unexpected end of JSON input"
 
+# Prune images - bad all input
+t POST libpod/images/prune?all='garb1age' 500 \
+    .cause="schema: error converting value for \"all\""
+
 # Prune images - bad filter input
 t POST images/prune?filters='garb1age}' 500 \
     .cause="invalid character 'g' looking for beginning of value"

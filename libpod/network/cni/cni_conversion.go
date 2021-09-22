@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/containernetworking/cni/libcni"
-	"github.com/containernetworking/cni/pkg/version"
 	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/libpod/network/util"
 	pkgutil "github.com/containers/podman/v3/pkg/util"
@@ -81,20 +80,24 @@ func createNetworkFromCNIConfigList(conf *libcni.NetworkConfigList, confPath str
 			return nil, err
 		}
 
-	case types.MacVLANNetworkDriver:
-		var macvlan macVLANConfig
-		err := json.Unmarshal(firstPlugin.Bytes, &macvlan)
+	case types.MacVLANNetworkDriver, types.IPVLANNetworkDriver:
+		var vlan VLANConfig
+		err := json.Unmarshal(firstPlugin.Bytes, &vlan)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to unmarshal the macvlan plugin config in %s", confPath)
 		}
-		network.NetworkInterface = macvlan.Master
+		network.NetworkInterface = vlan.Master
 
 		// set network options
-		if macvlan.MTU != 0 {
-			network.Options["mtu"] = strconv.Itoa(macvlan.MTU)
+		if vlan.MTU != 0 {
+			network.Options["mtu"] = strconv.Itoa(vlan.MTU)
 		}
 
-		err = convertIPAMConfToNetwork(&network, macvlan.IPAM, confPath)
+		if vlan.Mode != "" {
+			network.Options["mode"] = vlan.Mode
+		}
+
+		err = convertIPAMConfToNetwork(&network, vlan.IPAM, confPath)
 		if err != nil {
 			return nil, err
 		}
@@ -185,6 +188,9 @@ func convertIPAMConfToNetwork(network *types.Network, ipam ipamConfig, confPath 
 				s.LeaseRange.StartIP = rangeStart
 				s.LeaseRange.EndIP = rangeEnd
 			}
+			if util.IsIPv6(s.Subnet.IP) {
+				network.IPv6Enabled = true
+			}
 			network.Subnets = append(network.Subnets, s)
 		}
 	}
@@ -204,7 +210,7 @@ func getNetworkArgsFromConfList(args map[string]interface{}, argType string) map
 			return result
 		}
 	}
-	return nil
+	return map[string]string{}
 }
 
 // createCNIConfigListFromNetwork will create a cni config file from the given network.
@@ -234,6 +240,7 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 
 	vlan := 0
 	mtu := 0
+	vlanPluginMode := ""
 	for k, v := range network.Options {
 		switch k {
 		case "mtu":
@@ -248,6 +255,21 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 				return nil, "", err
 			}
 
+		case "mode":
+			switch network.Driver {
+			case types.MacVLANNetworkDriver:
+				if !pkgutil.StringInSlice(v, []string{"", "bridge", "private", "vepa", "passthru"}) {
+					return nil, "", errors.Errorf("unknown macvlan mode %q", v)
+				}
+			case types.IPVLANNetworkDriver:
+				if !pkgutil.StringInSlice(v, []string{"", "l2", "l3", "l3s"}) {
+					return nil, "", errors.Errorf("unknown ipvlan mode %q", v)
+				}
+			default:
+				return nil, "", errors.Errorf("cannot set option \"mode\" with driver %q", network.Driver)
+			}
+			vlanPluginMode = v
+
 		default:
 			return nil, "", errors.Errorf("unsupported network option %s", k)
 		}
@@ -260,7 +282,10 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 		ipMasq = false
 	}
 	// create CNI plugin configuration
-	ncList := newNcList(network.Name, version.Current(), network.Labels, network.Options)
+	// explicitly use CNI version 0.4.0 here, to use v1.0.0 at least containernetwork-plugins-1.0.1 has to be installed
+	// the dnsname plugin also needs to be updated for 1.0.0
+	// TODO change to 1.0.0 when most distros support it
+	ncList := newNcList(network.Name, "0.4.0", network.Labels, network.Options)
 	var plugins []interface{}
 
 	switch network.Driver {
@@ -278,7 +303,10 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 		}
 
 	case types.MacVLANNetworkDriver:
-		plugins = append(plugins, newMacVLANPlugin(network.NetworkInterface, mtu, ipamConf))
+		plugins = append(plugins, newVLANPlugin(types.MacVLANNetworkDriver, network.NetworkInterface, vlanPluginMode, mtu, ipamConf))
+
+	case types.IPVLANNetworkDriver:
+		plugins = append(plugins, newVLANPlugin(types.IPVLANNetworkDriver, network.NetworkInterface, vlanPluginMode, mtu, ipamConf))
 
 	default:
 		return nil, "", errors.Errorf("driver %q is not supported by cni", network.Driver)

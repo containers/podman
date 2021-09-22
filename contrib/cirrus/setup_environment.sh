@@ -173,6 +173,9 @@ esac
 case "$PRIV_NAME" in
     root) ;;
     rootless)
+        # load kernel modules since the rootless user has no permission to do so
+        modprobe ip6_tables || :
+        modprobe ip6table_nat || :
         # Needs to exist for setup_rootless()
         ROOTLESS_USER="${ROOTLESS_USER:-some${RANDOM}dude}"
         echo "ROOTLESS_USER=$ROOTLESS_USER" >> /etc/ci_environment

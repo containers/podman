@@ -93,6 +93,10 @@ filters are supported:
 
 In the case where an ID is used, the ID may be in its full or shortened form.
 
+#### **--no-trunc**
+
+Do not truncate the output (default *true*).
+
 #### **--since**=*timestamp*
 
 Show all events created since the given timestamp

@@ -62,7 +62,8 @@ func mountFlags(cmd *cobra.Command) {
 	flags.StringVar(&mountOpts.Format, formatFlagName, "", "Print the mounted containers in specified format (json)")
 	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(nil))
 
-	flags.BoolVar(&mountOpts.NoTruncate, "notruncate", false, "Do not truncate output")
+	flags.BoolVar(&mountOpts.NoTruncate, "no-trunc", false, "Do not truncate output")
+	flags.SetNormalizeFunc(utils.AliasFlags)
 }
 
 func init() {

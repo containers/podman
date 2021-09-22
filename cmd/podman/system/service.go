@@ -52,8 +52,9 @@ func init() {
 
 	flags := srvCmd.Flags()
 
+	cfg := registry.PodmanConfig()
 	timeFlagName := "time"
-	flags.Int64VarP(&srvArgs.Timeout, timeFlagName, "t", 5, "Time until the service session expires in seconds.  Use 0 to disable the timeout")
+	flags.Int64VarP(&srvArgs.Timeout, timeFlagName, "t", int64(cfg.Engine.ServiceTimeout), "Time until the service session expires in seconds.  Use 0 to disable the timeout")
 	_ = srvCmd.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
 	flags.StringVarP(&srvArgs.CorsHeaders, "cors", "", "", "Set CORS Headers")
 	_ = srvCmd.RegisterFlagCompletionFunc("cors", completion.AutocompleteNone)

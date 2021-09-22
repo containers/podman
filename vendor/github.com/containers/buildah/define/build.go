@@ -7,9 +7,10 @@ import (
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/containers/storage/pkg/archive"
+	"golang.org/x/sync/semaphore"
 )
 
-// CommonBuildOptions are resources that can be defined by flags for both buildah from and build-using-dockerfile
+// CommonBuildOptions are resources that can be defined by flags for both buildah from and build
 type CommonBuildOptions struct {
 	// AddHost is the list of hostnames to add to the build container's /etc/hosts.
 	AddHost []string
@@ -71,6 +72,8 @@ type CommonBuildOptions struct {
 	Volumes []string
 	// Secrets are the available secrets to use in a build
 	Secrets []string
+	// SSHSources is the available ssh agent connections to forward in the build
+	SSHSources []string
 }
 
 // BuildOptions can be used to alter how an image is built.
@@ -214,7 +217,10 @@ type BuildOptions struct {
 	// encrypted if non-nil. If nil, it does not attempt to decrypt an image.
 	OciDecryptConfig *encconfig.DecryptConfig
 	// Jobs is the number of stages to run in parallel.  If not specified it defaults to 1.
+	// Ignored if a JobSemaphore is provided.
 	Jobs *int
+	// JobSemaphore, for when you want Jobs to be shared with more than just this build.
+	JobSemaphore *semaphore.Weighted
 	// LogRusage logs resource usage for each step.
 	LogRusage bool
 	// File to which the Rusage logs will be saved to instead of stdout
@@ -224,4 +230,8 @@ type BuildOptions struct {
 	// From is the image name to use to replace the value specified in the first
 	// FROM instruction in the Containerfile
 	From string
+	// Platforms is the list of parsed OS/Arch/Variant triples that we want
+	// to build the image for.  If this slice has items in it, the OS and
+	// Architecture fields above are ignored.
+	Platforms []struct{ OS, Arch, Variant string }
 }

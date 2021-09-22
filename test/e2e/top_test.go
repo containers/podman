@@ -73,6 +73,12 @@ var _ = Describe("Podman top", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		Expect(len(result.OutputToStringArray())).To(BeNumerically(">", 1))
+
+		// Just a smoke test since groups may change over time.
+		result = podmanTest.Podman([]string{"container", "top", "test", "groups", "hgroups"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(len(result.OutputToStringArray())).To(BeNumerically(">", 1))
 	})
 
 	It("podman top with options", func() {

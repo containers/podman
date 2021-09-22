@@ -561,7 +561,7 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 		}
 
 		if pullPolicy == config.PullPolicyNewer && localImage != nil {
-			isNewer, err := localImage.HasDifferentDigest(ctx, srcRef)
+			isNewer, err := localImage.hasDifferentDigestWithSystemContext(ctx, srcRef, c.systemContext)
 			if err != nil {
 				pullErrors = append(pullErrors, err)
 				continue

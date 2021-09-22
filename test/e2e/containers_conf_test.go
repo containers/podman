@@ -397,4 +397,59 @@ var _ = Describe("Podman run", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal(profile))
 	})
+
+	It("podman info image_copy_tmp_dir", func() {
+		session := podmanTest.Podman([]string{"info", "--format", "{{.Store.ImageCopyTmpDir}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal("/var/tmp"))
+
+		configPath := filepath.Join(podmanTest.TempDir, "containers.conf")
+		os.Setenv("CONTAINERS_CONF", configPath)
+
+		containersConf := []byte(fmt.Sprintf("[engine]\nimage_copy_tmp_dir=\"/foobar\""))
+		err = ioutil.WriteFile(configPath, containersConf, os.ModePerm)
+		Expect(err).To(BeNil())
+
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		session = podmanTest.Podman([]string{"info", "--format", "{{.Store.ImageCopyTmpDir}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal("/foobar"))
+
+		containersConf = []byte(fmt.Sprintf("[engine]\nimage_copy_tmp_dir=\"storage\""))
+		err = ioutil.WriteFile(configPath, containersConf, os.ModePerm)
+		Expect(err).To(BeNil())
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		session = podmanTest.Podman([]string{"info", "--format", "{{.Store.ImageCopyTmpDir}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.LineInOutputContains("containers/storage/tmp")).To(BeTrue())
+
+		containersConf = []byte(fmt.Sprintf("[engine]\nimage_copy_tmp_dir=\"storage1\""))
+		err = ioutil.WriteFile(configPath, containersConf, os.ModePerm)
+		Expect(err).To(BeNil())
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		session = podmanTest.Podman([]string{"info", "--format", "{{.Store.ImageCopyTmpDir}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.ErrorToString()).To(ContainSubstring("invalid image_copy_tmp_dir"))
+	})
+
+	It("podman system sevice --help shows (default 20)", func() {
+		SkipIfRemote("this test is only for local")
+		result := podmanTest.Podman([]string{"system", "service", "--help"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(ContainSubstring("(default 1234)"))
+	})
 })

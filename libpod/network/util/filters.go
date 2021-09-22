@@ -28,12 +28,6 @@ func createFilterFuncs(key string, filterValues []string) (types.FilterFunc, err
 			return util.StringMatchRegexSlice(net.Name, filterValues)
 		}, nil
 
-	case "label":
-		// matches all labels
-		return func(net types.Network) bool {
-			return util.MatchLabelFilters(filterValues, net.Labels)
-		}, nil
-
 	case "driver":
 		// matches network driver
 		return func(net types.Network) bool {
@@ -46,9 +40,39 @@ func createFilterFuncs(key string, filterValues []string) (types.FilterFunc, err
 			return util.StringMatchRegexSlice(net.ID, filterValues)
 		}, nil
 
-	// FIXME: What should we do with the old plugin filter
-	// TODO: add dangling, dns enabled, internal filter
+		// TODO: add dns enabled, internal filter
+	}
+	return createPruneFilterFuncs(key, filterValues)
+}
 
+func GenerateNetworkPruneFilters(filters map[string][]string) ([]types.FilterFunc, error) {
+	filterFuncs := make([]types.FilterFunc, 0, len(filters))
+	for key, filterValues := range filters {
+		filterFunc, err := createPruneFilterFuncs(key, filterValues)
+		if err != nil {
+			return nil, err
+		}
+		filterFuncs = append(filterFuncs, filterFunc)
+	}
+	return filterFuncs, nil
+}
+
+func createPruneFilterFuncs(key string, filterValues []string) (types.FilterFunc, error) {
+	switch strings.ToLower(key) {
+	case "label":
+		// matches all labels
+		return func(net types.Network) bool {
+			return util.MatchLabelFilters(filterValues, net.Labels)
+		}, nil
+
+	case "until":
+		until, err := util.ComputeUntilTimestamp(filterValues)
+		if err != nil {
+			return nil, err
+		}
+		return func(net types.Network) bool {
+			return net.Created.Before(until)
+		}, nil
 	default:
 		return nil, errors.Errorf("invalid filter %q", key)
 	}

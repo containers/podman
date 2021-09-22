@@ -220,6 +220,16 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	if len(platform) > 0 {
 		params.Set("platform", platform)
 	}
+	if len(options.Platforms) > 0 {
+		params.Del("platform")
+		for _, platformSpec := range options.Platforms {
+			platform = platformSpec.OS + "/" + platformSpec.Arch
+			if platformSpec.Variant != "" {
+				platform += "/" + platformSpec.Variant
+			}
+			params.Add("platform", platform)
+		}
+	}
 
 	params.Set("pullpolicy", options.PullPolicy.String())
 

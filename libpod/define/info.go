@@ -78,7 +78,9 @@ type IDMappings struct {
 // for libpod
 type DistributionInfo struct {
 	Distribution string `json:"distribution"`
+	Variant      string `json:"variant,omitempty"`
 	Version      string `json:"version"`
+	Codename     string `json:"codename,omitempty"`
 }
 
 // ConmonInfo describes the conmon executable being used
@@ -106,6 +108,7 @@ type StoreInfo struct {
 	GraphOptions    map[string]interface{} `json:"graphOptions"`
 	GraphRoot       string                 `json:"graphRoot"`
 	GraphStatus     map[string]string      `json:"graphStatus"`
+	ImageCopyTmpDir string                 `json:"imageCopyTmpDir"`
 	ImageStore      ImageStore             `json:"imageStore"`
 	RunRoot         string                 `json:"runRoot"`
 	VolumePath      string                 `json:"volumePath"`

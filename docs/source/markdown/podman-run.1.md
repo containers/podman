@@ -270,7 +270,7 @@ Memory nodes (MEMs) in which to allow execution. Only effective on NUMA systems.
 For example, if you have four memory nodes (0-3) on your system, use **--cpuset-mems=0,1**
 to only use memory from the first two memory nodes.
 
-#### **--detach**, **-d**=**true**|**false**
+#### **--detach**, **-d**
 
 Detached mode: run the container in the background and print the new container ID. The default is *false*.
 
@@ -381,7 +381,7 @@ This option allows arbitrary environment variables that are available for the pr
 
 See [**Environment**](#environment) note below for precedence and examples.
 
-#### **--env-host**=**true**|**false**
+#### **--env-host**
 
 Use host environment inside of the container. See **Environment** note below for precedence. (This option is not available with the remote Podman client)
 
@@ -456,7 +456,7 @@ Container host name
 
 Sets the container host name that is available inside the container. Can only be used with a private UTS namespace `--uts=private` (default). If `--pod` is specified and the pod shares the UTS namespace (default) the pod's hostname will be used.
 
-#### **--http-proxy**=**true**|**false**
+#### **--http-proxy**
 
 By default proxy environment variables are passed into the container if set
 for the Podman process. This can be disabled by setting the value to **false**.
@@ -488,7 +488,7 @@ Run an init inside the container that forwards signals and reaps processes.
 
 Path to the container-init binary.
 
-#### **--interactive**, **-i**=**true**|**false**
+#### **--interactive**, **-i**
 
 When set to **true**, keep stdin open even if not attached. The default is **false**.
 
@@ -702,13 +702,13 @@ Valid _mode_ values are:
 
 #### **--network-alias**=*alias*
 
-Add network-scoped alias for the container
+Add network-scoped alias for the container.  NOTE: A container will only have access to aliases on the first network that it joins. This is a limitation that will be removed in a later release.
 
-#### **--no-healthcheck**=*true|false*
+#### **--no-healthcheck**
 
 Disable any defined healthchecks for container.
 
-#### **--no-hosts**=**true**|**false**
+#### **--no-hosts**
 
 Do not create _/etc/hosts_ for the container.
 
@@ -716,7 +716,7 @@ By default, Podman will manage _/etc/hosts_, adding the container's own IP addre
 #### **--no-hosts** disables this, and the image's _/etc/hosts_ will be preserved unmodified.
 This option conflicts with **--add-host**.
 
-#### **--oom-kill-disable**=**true**|**false**
+#### **--oom-kill-disable**
 
 Whether to disable OOM Killer for the container or not.
 
@@ -766,7 +766,7 @@ If a container is run within a pod, and the pod has an infra-container, the infr
 Pass down to the process N additional file descriptors (in addition to 0, 1, 2).
 The total FDs will be 3+N. (This option is not available with the remote Podman client)
 
-#### **--privileged**=**true**|**false**
+#### **--privileged**
 
 Give extended privileges to this container. The default is **false**.
 
@@ -804,7 +804,7 @@ associated ports. If one container binds to a port, no other container can use t
 within the pod while it is in use. Containers in the pod can also communicate over localhost
 by having one container bind to localhost in the pod, and another connect to that port.
 
-#### **--publish-all**, **-P**=**true**|**false**
+#### **--publish-all**, **-P**
 
 Publish all exposed ports to random ports on the host interfaces. The default is **false**.
 
@@ -829,7 +829,7 @@ Pull image before running. The default is **missing**.
 
 Suppress output information when pulling images
 
-#### **--read-only**=**true**|**false**
+#### **--read-only**
 
 Mount the container's root filesystem as read only.
 
@@ -837,11 +837,11 @@ By default a container will have its root filesystem writable allowing processes
 to write files anywhere. By specifying the **--read-only** flag, the container will have
 its root filesystem mounted as read only prohibiting any writes.
 
-#### **--read-only-tmpfs**=**true**|**false**
+#### **--read-only-tmpfs**
 
 If container is running in **--read-only** mode, then mount a read-write tmpfs on _/run_, _/tmp_, and _/var/tmp_. The default is **true**.
 
-#### **--replace**=**true**|**false**
+#### **--replace**
 
 If another container with the same name already exists, replace and remove it. The default is **false**.
 
@@ -867,11 +867,11 @@ Please note that restart will not restart containers after a system reboot.
 If this functionality is required in your environment, you can invoke Podman from a **systemd.unit**(5) file, or create an init script for whichever init system is in use.
 To generate systemd unit files, please see **podman generate systemd**.
 
-#### **--rm**=**true**|**false**
+#### **--rm**
 
 Automatically remove the container when it exits. The default is **false**.
 
-#### **--rmi**=*true|false*
+#### **--rmi**
 
 After exit of the container, remove the image unless another
 container is using it. The default is *false*.
@@ -882,6 +882,16 @@ If specified, the first argument refers to an exploded container on the file sys
 
 This is useful to run a container without requiring any image management, the rootfs
 of the container is assumed to be managed externally.
+
+  `Overlay Rootfs Mounts`
+
+   The `:O` flag tells Podman to mount the directory from the rootfs path as
+storage using the `overlay file system`. The container processes
+can modify content within the mount point which is stored in the
+container storage in a separate directory. In overlay terms, the source
+directory will be the lower, and the container storage directory will be the
+upper. Modifications to the mount point are destroyed when the container
+finishes executing, similar to a tmpfs mount point being unmounted.
 
 Note: On **SELinux** systems, the rootfs needs the correct label, which is by default
 **unconfined_u:object_r:container_file_t**.
@@ -964,7 +974,7 @@ Size of _/dev/shm_. A _unit_ can be **b** (bytes), **k** (kilobytes), **m** (meg
 If you omit the unit, the system uses bytes. If you omit the size entirely, the default is **64m**.
 When _size_ is **0**, there is no limit on the amount of memory used for IPC by the container.
 
-#### **--sig-proxy**=**true**|**false**
+#### **--sig-proxy**
 
 Sets whether the signals sent to the **podman run** command are proxied to the container process. SIGCHLD, SIGSTOP, and SIGKILL are not proxied. The default is **true**.
 
@@ -1048,7 +1058,7 @@ Maximum time a container is allowed to run before conmon sends it the kill
 signal.  By default containers will run until they exit or are stopped by
 `podman stop`.
 
-#### **--tls-verify**=**true**|**false**
+#### **--tls-verify**
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true, then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified, TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf.
 
@@ -1067,7 +1077,7 @@ options are the same as the Linux default mount flags. If you do not specify
 any options, the systems uses the following options:
 **rw,noexec,nosuid,nodev**.
 
-#### **--tty**, **-t**=**true**|**false**
+#### **--tty**, **-t**
 
 Allocate a pseudo-TTY. The default is **false**.
 
@@ -1789,6 +1799,12 @@ $ podman run -v /var/lib/design:/var/lib/design --group-add keep-groups ubi8
 
 ```
 $ podman run --name container1 --personaity=LINUX32 fedora bash
+```
+
+### Run a container with external rootfs mounted as an overlay
+
+```
+$ podman run --name container1 --rootfs /path/to/rootfs:O bash
 ```
 
 ### Rootless Containers

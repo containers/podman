@@ -19,13 +19,13 @@ import (
 	"fmt"
 
 	"github.com/containernetworking/cni/pkg/types"
-	"github.com/containernetworking/cni/pkg/types/020"
-	"github.com/containernetworking/cni/pkg/types/current"
+	types100 "github.com/containernetworking/cni/pkg/types/100"
+	"github.com/containernetworking/cni/pkg/types/create"
 )
 
 // Current reports the version of the CNI spec implemented by this library
 func Current() string {
-	return "0.4.0"
+	return types100.ImplementedSpecVersion
 }
 
 // Legacy PluginInfo describes a plugin that is backwards compatible with the
@@ -36,29 +36,28 @@ func Current() string {
 // Any future CNI spec versions which meet this definition should be added to
 // this list.
 var Legacy = PluginSupports("0.1.0", "0.2.0")
-var All = PluginSupports("0.1.0", "0.2.0", "0.3.0", "0.3.1", "0.4.0")
+var All = PluginSupports("0.1.0", "0.2.0", "0.3.0", "0.3.1", "0.4.0", "1.0.0")
 
-var resultFactories = []struct {
-	supportedVersions []string
-	newResult         types.ResultFactoryFunc
-}{
-	{current.SupportedVersions, current.NewResult},
-	{types020.SupportedVersions, types020.NewResult},
+// VersionsFrom returns a list of versions starting from min, inclusive
+func VersionsStartingFrom(min string) PluginInfo {
+	out := []string{}
+	// cheat, just assume ordered
+	ok := false
+	for _, v := range All.SupportedVersions() {
+		if !ok && v == min {
+			ok = true
+		}
+		if ok {
+			out = append(out, v)
+		}
+	}
+	return PluginSupports(out...)
 }
 
 // Finds a Result object matching the requested version (if any) and asks
 // that object to parse the plugin result, returning an error if parsing failed.
 func NewResult(version string, resultBytes []byte) (types.Result, error) {
-	reconciler := &Reconciler{}
-	for _, resultFactory := range resultFactories {
-		err := reconciler.CheckRaw(version, resultFactory.supportedVersions)
-		if err == nil {
-			// Result supports this version
-			return resultFactory.newResult(resultBytes)
-		}
-	}
-
-	return nil, fmt.Errorf("unsupported CNI result version %q", version)
+	return create.Create(version, resultBytes)
 }
 
 // ParsePrevResult parses a prevResult in a NetConf structure and sets
@@ -68,15 +67,22 @@ func ParsePrevResult(conf *types.NetConf) error {
 		return nil
 	}
 
+	// Prior to 1.0.0, Result types may not marshal a CNIVersion. Since the
+	// result version must match the config version, if the Result's version
+	// is empty, inject the config version.
+	if ver, ok := conf.RawPrevResult["CNIVersion"]; !ok || ver == "" {
+		conf.RawPrevResult["CNIVersion"] = conf.CNIVersion
+	}
+
 	resultBytes, err := json.Marshal(conf.RawPrevResult)
 	if err != nil {
-		return fmt.Errorf("could not serialize prevResult: %v", err)
+		return fmt.Errorf("could not serialize prevResult: %w", err)
 	}
 
 	conf.RawPrevResult = nil
-	conf.PrevResult, err = NewResult(conf.CNIVersion, resultBytes)
+	conf.PrevResult, err = create.Create(conf.CNIVersion, resultBytes)
 	if err != nil {
-		return fmt.Errorf("could not parse prevResult: %v", err)
+		return fmt.Errorf("could not parse prevResult: %w", err)
 	}
 
 	return nil

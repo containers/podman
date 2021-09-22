@@ -63,12 +63,6 @@ spec:
     - -d
     - "1.5"
     env:
-    - name: PATH
-      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-    - name: TERM
-      value: xterm
-    - name: container
-      value: podman
     - name: HOSTNAME
       value: label-pod
     image: quay.io/libpod/alpine:latest
@@ -171,12 +165,6 @@ spec:
     - -d
     - "1.5"
     env:
-    - name: PATH
-      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-    - name: TERM
-      value: xterm
-    - name: container
-      value: podman
     - name: HOSTNAME
       value: label-pod
     image: quay.io/libpod/alpine:latest
@@ -287,13 +275,7 @@ spec:
     - {{.}}
     {{ end }}
     env:
-    - name: PATH
-      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-    - name: TERM
-      value: xterm
     - name: HOSTNAME
-    - name: container
-      value: podman
     {{ range .Env }}
     - name: {{ .Name }}
     {{ if (eq .ValueFrom "configmap") }}
@@ -453,13 +435,7 @@ spec:
         - {{.}}
         {{ end }}
         env:
-        - name: PATH
-          value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-        - name: TERM
-          value: xterm
         - name: HOSTNAME
-        - name: container
-          value: podman
         image: {{ .Image }}
         name: {{ .Name }}
         imagePullPolicy: {{ .PullPolicy }}
