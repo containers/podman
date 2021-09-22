@@ -415,7 +415,7 @@ func (c *Container) ExecHTTPStartAndAttach(sessionID string, r *http.Request, w 
 		session.ExitCode = define.ExecErrorCodeGeneric
 
 		if err := c.save(); err != nil {
-			logrus.Errorf("Error saving container %s exec session %s after failure to prepare: %v", err, c.ID(), session.ID())
+			logrus.Errorf("Saving container %s exec session %s after failure to prepare: %v", err, c.ID(), session.ID())
 		}
 
 		return err
@@ -440,7 +440,7 @@ func (c *Container) ExecHTTPStartAndAttach(sessionID string, r *http.Request, w 
 		session.ExitCode = define.TranslateExecErrorToExitCode(define.ExecErrorCodeGeneric, err)
 
 		if err := c.save(); err != nil {
-			logrus.Errorf("Error saving container %s exec session %s after failure to start: %v", err, c.ID(), session.ID())
+			logrus.Errorf("Saving container %s exec session %s after failure to start: %v", err, c.ID(), session.ID())
 		}
 
 		return err
@@ -549,7 +549,7 @@ func (c *Container) ExecStop(sessionID string, timeout *uint) error {
 
 	if err := c.cleanupExecBundle(session.ID()); err != nil {
 		if cleanupErr != nil {
-			logrus.Errorf("Error stopping container %s exec session %s: %v", c.ID(), session.ID(), cleanupErr)
+			logrus.Errorf("Stopping container %s exec session %s: %v", c.ID(), session.ID(), cleanupErr)
 		}
 		cleanupErr = err
 	}
@@ -695,7 +695,7 @@ func (c *Container) ExecResize(sessionID string, newSize define.TerminalSize) er
 		session.State = define.ExecStateStopped
 
 		if err := c.save(); err != nil {
-			logrus.Errorf("Error saving state of container %s: %v", c.ID(), err)
+			logrus.Errorf("Saving state of container %s: %v", c.ID(), err)
 		}
 
 		return errors.Wrapf(define.ErrExecSessionStateInvalid, "cannot resize container %s exec session %s as it has stopped", c.ID(), session.ID())
@@ -825,7 +825,7 @@ func (c *Container) createExecBundle(sessionID string) (retErr error) {
 	defer func() {
 		if retErr != nil {
 			if err := os.RemoveAll(bundlePath); err != nil {
-				logrus.Warnf("error removing exec bundle after creation caused another error: %v", err)
+				logrus.Warnf("Error removing exec bundle after creation caused another error: %v", err)
 			}
 		}
 	}()
@@ -911,7 +911,7 @@ func (c *Container) getActiveExecSessions() ([]string, error) {
 		alive, err := c.ociRuntime.ExecUpdateStatus(c, id)
 		if err != nil {
 			if lastErr != nil {
-				logrus.Errorf("Error checking container %s exec sessions: %v", c.ID(), lastErr)
+				logrus.Errorf("Checking container %s exec sessions: %v", c.ID(), lastErr)
 			}
 			lastErr = err
 			continue
@@ -926,7 +926,7 @@ func (c *Container) getActiveExecSessions() ([]string, error) {
 				exitCode, err := c.readExecExitCode(session.ID())
 				if err != nil {
 					if lastErr != nil {
-						logrus.Errorf("Error checking container %s exec sessions: %v", c.ID(), lastErr)
+						logrus.Errorf("Checking container %s exec sessions: %v", c.ID(), lastErr)
 					}
 					lastErr = err
 				}
@@ -940,7 +940,7 @@ func (c *Container) getActiveExecSessions() ([]string, error) {
 			}
 			if err := c.cleanupExecBundle(id); err != nil {
 				if lastErr != nil {
-					logrus.Errorf("Error checking container %s exec sessions: %v", c.ID(), lastErr)
+					logrus.Errorf("Checking container %s exec sessions: %v", c.ID(), lastErr)
 				}
 				lastErr = err
 			}
@@ -951,7 +951,7 @@ func (c *Container) getActiveExecSessions() ([]string, error) {
 	if needSave {
 		if err := c.save(); err != nil {
 			if lastErr != nil {
-				logrus.Errorf("Error reaping exec sessions for container %s: %v", c.ID(), lastErr)
+				logrus.Errorf("Reaping exec sessions for container %s: %v", c.ID(), lastErr)
 			}
 			lastErr = err
 		}
@@ -970,7 +970,7 @@ func (c *Container) removeAllExecSessions() error {
 	for _, id := range knownSessions {
 		if err := c.ociRuntime.ExecStopContainer(c, id, c.StopTimeout()); err != nil {
 			if lastErr != nil {
-				logrus.Errorf("Error stopping container %s exec sessions: %v", c.ID(), lastErr)
+				logrus.Errorf("Stopping container %s exec sessions: %v", c.ID(), lastErr)
 			}
 			lastErr = err
 			continue
@@ -978,7 +978,7 @@ func (c *Container) removeAllExecSessions() error {
 
 		if err := c.cleanupExecBundle(id); err != nil {
 			if lastErr != nil {
-				logrus.Errorf("Error stopping container %s exec sessions: %v", c.ID(), lastErr)
+				logrus.Errorf("Stopping container %s exec sessions: %v", c.ID(), lastErr)
 			}
 			lastErr = err
 		}
@@ -987,7 +987,7 @@ func (c *Container) removeAllExecSessions() error {
 	if err := c.runtime.state.RemoveContainerExecSessions(c); err != nil {
 		if errors.Cause(err) != define.ErrCtrRemoved {
 			if lastErr != nil {
-				logrus.Errorf("Error stopping container %s exec sessions: %v", c.ID(), lastErr)
+				logrus.Errorf("Stopping container %s exec sessions: %v", c.ID(), lastErr)
 			}
 			lastErr = err
 		}
@@ -997,7 +997,7 @@ func (c *Container) removeAllExecSessions() error {
 	if err := c.save(); err != nil {
 		if errors.Cause(err) != define.ErrCtrRemoved {
 			if lastErr != nil {
-				logrus.Errorf("Error stopping container %s exec sessions: %v", c.ID(), lastErr)
+				logrus.Errorf("Stopping container %s exec sessions: %v", c.ID(), lastErr)
 			}
 			lastErr = err
 		}

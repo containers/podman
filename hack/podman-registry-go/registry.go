@@ -61,7 +61,7 @@ func Start() (*Registry, error) {
 		case portKey:
 			registry.Port = val
 		default:
-			logrus.Errorf("unexpected podman-registry output: %q", s)
+			logrus.Errorf("Unexpected podman-registry output: %q", s)
 		}
 	}
 

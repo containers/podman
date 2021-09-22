@@ -70,7 +70,7 @@ func (c *Container) unmountSHM(mount string) error {
 			return errors.Wrapf(err, "error unmounting container %s SHM mount %s", c.ID(), mount)
 		}
 		// If it's just an EINVAL or ENOENT, debug logs only
-		logrus.Debugf("container %s failed to unmount %s : %v", c.ID(), mount, err)
+		logrus.Debugf("Container %s failed to unmount %s : %v", c.ID(), mount, err)
 	}
 	return nil
 }
@@ -143,7 +143,7 @@ func (c *Container) prepare() error {
 	}
 	if mountStorageErr != nil {
 		if createErr != nil {
-			logrus.Errorf("Error preparing container %s: %v", c.ID(), createErr)
+			logrus.Errorf("Preparing container %s: %v", c.ID(), createErr)
 		}
 		createErr = mountStorageErr
 	}
@@ -154,7 +154,7 @@ func (c *Container) prepare() error {
 		if err := c.cleanupStorage(); err != nil {
 			// createErr is guaranteed non-nil, so print
 			// unconditionally
-			logrus.Errorf("Error preparing container %s: %v", c.ID(), createErr)
+			logrus.Errorf("Preparing container %s: %v", c.ID(), createErr)
 			createErr = errors.Wrapf(err, "error unmounting storage for container %s after network create failure", c.ID())
 		}
 	}
@@ -163,7 +163,7 @@ func (c *Container) prepare() error {
 	// isn't ready it will do nothing.
 	if createErr != nil {
 		if err := c.cleanupNetwork(); err != nil {
-			logrus.Errorf("Error preparing container %s: %v", c.ID(), createErr)
+			logrus.Errorf("Preparing container %s: %v", c.ID(), createErr)
 			createErr = errors.Wrapf(err, "error cleaning up container %s network after setup failure", c.ID())
 		}
 	}
@@ -258,7 +258,7 @@ func (c *Container) cleanupNetwork() error {
 
 	// Stop the container's network namespace (if it has one)
 	if err := c.runtime.teardownNetNS(c); err != nil {
-		logrus.Errorf("unable to cleanup network for container %s: %q", c.ID(), err)
+		logrus.Errorf("Unable to cleanup network for container %s: %q", c.ID(), err)
 	}
 
 	c.state.NetNS = nil
@@ -599,7 +599,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			if isGIDAvailable {
 				g.AddProcessAdditionalGid(uint32(gid))
 			} else {
-				logrus.Warnf("additional gid=%d is not present in the user namespace, skip setting it", gid)
+				logrus.Warnf("Additional gid=%d is not present in the user namespace, skip setting it", gid)
 			}
 		}
 	}
@@ -640,7 +640,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			// The kernel-provided files only exist if user namespaces are supported
-			logrus.Debugf("user or group ID mappings not available: %s", err)
+			logrus.Debugf("User or group ID mappings not available: %s", err)
 		} else {
 			return nil, err
 		}
@@ -781,7 +781,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	if rootPropagation != "" {
-		logrus.Debugf("set root propagation to %q", rootPropagation)
+		logrus.Debugf("Set root propagation to %q", rootPropagation)
 		if err := g.SetLinuxRootPropagation(rootPropagation); err != nil {
 			return nil, err
 		}
@@ -838,7 +838,7 @@ func (c *Container) mountNotifySocket(g generate.Generator) error {
 	}
 
 	notifyDir := filepath.Join(c.bundlePath(), "notify")
-	logrus.Debugf("checking notify %q dir", notifyDir)
+	logrus.Debugf("Checking notify %q dir", notifyDir)
 	if err := os.MkdirAll(notifyDir, 0755); err != nil {
 		if !os.IsExist(err) {
 			return errors.Wrapf(err, "unable to create notify %q dir", notifyDir)
@@ -847,7 +847,7 @@ func (c *Container) mountNotifySocket(g generate.Generator) error {
 	if err := label.Relabel(notifyDir, c.MountLabel(), true); err != nil {
 		return errors.Wrapf(err, "relabel failed %q", notifyDir)
 	}
-	logrus.Debugf("add bindmount notify %q dir", notifyDir)
+	logrus.Debugf("Add bindmount notify %q dir", notifyDir)
 	if _, ok := c.state.BindMounts["/run/notify"]; !ok {
 		c.state.BindMounts["/run/notify"] = notifyDir
 	}
@@ -1199,7 +1199,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		for _, del := range cleanup {
 			file := filepath.Join(c.bundlePath(), del)
 			if err := os.Remove(file); err != nil {
-				logrus.Debugf("unable to remove file %s", file)
+				logrus.Debugf("Unable to remove file %s", file)
 			}
 		}
 	}
@@ -1299,7 +1299,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	var netStatus map[string]types.StatusBlock
 	_, err := metadata.ReadJSONFile(&netStatus, c.bundlePath(), metadata.NetworkStatusFile)
 	if err != nil {
-		logrus.Infof("failed to unmarshal network status, cannot restore the same ip/mac: %v", err)
+		logrus.Infof("Failed to unmarshal network status, cannot restore the same ip/mac: %v", err)
 	}
 	// If the restored container should get a new name, the IP address of
 	// the container will not be restored. This assumes that if a new name is
@@ -1349,7 +1349,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	defer func() {
 		if retErr != nil {
 			if err := c.cleanup(ctx); err != nil {
-				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err)
+				logrus.Errorf("Cleaning up container %s: %v", c.ID(), err)
 			}
 		}
 	}()
@@ -1903,11 +1903,11 @@ func (c *Container) generateResolvConf() (string, error) {
 			for _, nsIP := range status.DNSServerIPs {
 				networkNameServers = append(networkNameServers, nsIP.String())
 			}
-			logrus.Debugf("adding nameserver(s) from network status of '%q'", status.DNSServerIPs)
+			logrus.Debugf("Adding nameserver(s) from network status of '%q'", status.DNSServerIPs)
 		}
 		if status.DNSSearchDomains != nil {
 			networkSearchDomains = append(networkSearchDomains, status.DNSSearchDomains...)
-			logrus.Debugf("adding search domain(s) from network status of '%q'", status.DNSSearchDomains)
+			logrus.Debugf("Adding search domain(s) from network status of '%q'", status.DNSSearchDomains)
 		}
 	}
 
@@ -1956,7 +1956,7 @@ func (c *Container) generateResolvConf() (string, error) {
 		if c.config.NetMode.IsSlirp4netns() {
 			slirp4netnsDNS, err := GetSlirp4netnsDNS(c.slirp4netnsSubnet)
 			if err != nil {
-				logrus.Warn("failed to determine Slirp4netns DNS: ", err.Error())
+				logrus.Warn("Failed to determine Slirp4netns DNS: ", err.Error())
 			} else {
 				nameservers = append([]string{slirp4netnsDNS.String()}, nameservers...)
 			}
@@ -2058,7 +2058,7 @@ func (c *Container) getHosts() string {
 			// When using slirp4netns, the interface gets a static IP
 			slirp4netnsIP, err := GetSlirp4netnsIP(c.slirp4netnsSubnet)
 			if err != nil {
-				logrus.Warnf("failed to determine slirp4netnsIP: %v", err.Error())
+				logrus.Warnf("Failed to determine slirp4netnsIP: %v", err.Error())
 			} else {
 				hosts += fmt.Sprintf("# used by slirp4netns\n%s\t%s %s\n", slirp4netnsIP.String(), c.Hostname(), c.config.Name)
 			}
@@ -2109,12 +2109,12 @@ func (c *Container) getHosts() string {
 		} else if c.config.NetMode.IsSlirp4netns() {
 			gatewayIP, err := GetSlirp4netnsGateway(c.slirp4netnsSubnet)
 			if err != nil {
-				logrus.Warn("failed to determine gatewayIP: ", err.Error())
+				logrus.Warn("Failed to determine gatewayIP: ", err.Error())
 			} else {
 				hosts += fmt.Sprintf("%s host.containers.internal\n", gatewayIP.String())
 			}
 		} else {
-			logrus.Debug("network configuration does not support host.containers.internal address")
+			logrus.Debug("Network configuration does not support host.containers.internal address")
 		}
 	}
 

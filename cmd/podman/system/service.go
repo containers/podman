@@ -74,7 +74,7 @@ func service(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	logrus.Infof("using API endpoint: '%s'", apiURI)
+	logrus.Infof("Using API endpoint: '%s'", apiURI)
 	// Clean up any old existing unix domain socket
 	if len(apiURI) > 0 {
 		uri, err := url.Parse(apiURI)
@@ -120,7 +120,7 @@ func resolveAPIURI(_url []string) (string, error) {
 	case len(_url) > 0 && _url[0] != "":
 		return _url[0], nil
 	case systemd.SocketActivated():
-		logrus.Info("using systemd socket activation to determine API endpoint")
+		logrus.Info("Using systemd socket activation to determine API endpoint")
 		return "", nil
 	case rootless.IsRootless():
 		xdg, err := util.GetRuntimeDir()

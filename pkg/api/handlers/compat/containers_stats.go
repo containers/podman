@@ -227,10 +227,10 @@ func toBlkioStatEntry(entries []cgroups.BlkIOEntry) []docker.BlkioStatEntry {
 	for i, e := range entries {
 		bits, err := json.Marshal(e)
 		if err != nil {
-			logrus.Errorf("unable to marshal blkio stats: %q", err)
+			logrus.Errorf("Unable to marshal blkio stats: %q", err)
 		}
 		if err := json.Unmarshal(bits, &results[i]); err != nil {
-			logrus.Errorf("unable to unmarshal blkio stats: %q", err)
+			logrus.Errorf("Unable to unmarshal blkio stats: %q", err)
 		}
 	}
 	return results

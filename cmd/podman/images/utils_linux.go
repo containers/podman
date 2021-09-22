@@ -24,7 +24,7 @@ func setupPipe() (string, func() <-chan error, error) {
 	err = unix.Mkfifo(pipePath, 0600)
 	if err != nil {
 		if e := os.RemoveAll(pipeDir); e != nil {
-			logrus.Errorf("error removing named pipe: %q", e)
+			logrus.Errorf("Removing named pipe: %q", e)
 		}
 		return "", nil, errors.Wrapf(err, "error creating named pipe")
 	}
@@ -40,7 +40,7 @@ func setupPipe() (string, func() <-chan error, error) {
 	}()
 	return pipePath, func() <-chan error {
 		if e := os.RemoveAll(pipeDir); e != nil {
-			logrus.Errorf("error removing named pipe: %q", e)
+			logrus.Errorf("Removing named pipe: %q", e)
 		}
 		return errc
 	}, nil

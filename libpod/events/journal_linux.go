@@ -195,7 +195,7 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) { /
 		if code, ok := entry.Fields["PODMAN_EXIT_CODE"]; ok {
 			intCode, err := strconv.Atoi(code)
 			if err != nil {
-				logrus.Errorf("Error parsing event exit code %s", code)
+				logrus.Errorf("Parsing event exit code %s", code)
 			} else {
 				newEvent.ContainerExitCode = intCode
 			}

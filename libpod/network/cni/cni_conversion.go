@@ -104,7 +104,7 @@ func createNetworkFromCNIConfigList(conf *libcni.NetworkConfigList, confPath str
 
 	default:
 		// A warning would be good but users would get this warning everytime so keep this at info level.
-		logrus.Infof("unsupported CNI config type %s in %s, this network can still be used but inspect or list cannot show all information",
+		logrus.Infof("Unsupported CNI config type %s in %s, this network can still be used but inspect or list cannot show all information",
 			firstPlugin.Network.Type, confPath)
 	}
 

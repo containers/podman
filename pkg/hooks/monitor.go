@@ -36,7 +36,7 @@ func (m *Manager) Monitor(ctx context.Context, sync chan<- error) {
 	for _, dir := range m.directories {
 		err = watcher.Add(dir)
 		if err != nil {
-			logrus.Errorf("failed to watch %q for hooks", dir)
+			logrus.Errorf("Failed to watch %q for hooks", dir)
 			sync <- err
 			return
 		}
@@ -52,7 +52,7 @@ func (m *Manager) Monitor(ctx context.Context, sync chan<- error) {
 			for _, dir := range m.directories {
 				err = ReadDir(dir, m.extensionStages, m.hooks)
 				if err != nil {
-					logrus.Errorf("failed loading hooks for %s: %v", event.Name, err)
+					logrus.Errorf("Failed loading hooks for %s: %v", event.Name, err)
 				}
 			}
 		case <-ctx.Done():

@@ -33,7 +33,7 @@ func (c *Container) newContainerEvent(status events.Status) {
 	}
 
 	if err := c.runtime.eventer.Write(e); err != nil {
-		logrus.Errorf("unable to write pod event: %q", err)
+		logrus.Errorf("Unable to write pod event: %q", err)
 	}
 }
 
@@ -46,7 +46,7 @@ func (c *Container) newContainerExitedEvent(exitCode int32) {
 	e.Type = events.Container
 	e.ContainerExitCode = int(exitCode)
 	if err := c.runtime.eventer.Write(e); err != nil {
-		logrus.Errorf("unable to write container exited event: %q", err)
+		logrus.Errorf("Unable to write container exited event: %q", err)
 	}
 }
 
@@ -61,7 +61,7 @@ func (c *Container) newExecDiedEvent(sessionID string, exitCode int) {
 	e.Attributes = make(map[string]string)
 	e.Attributes["execID"] = sessionID
 	if err := c.runtime.eventer.Write(e); err != nil {
-		logrus.Errorf("unable to write exec died event: %q", err)
+		logrus.Errorf("Unable to write exec died event: %q", err)
 	}
 }
 
@@ -73,7 +73,7 @@ func (c *Container) newNetworkEvent(status events.Status, netName string) {
 	e.Type = events.Network
 	e.Network = netName
 	if err := c.runtime.eventer.Write(e); err != nil {
-		logrus.Errorf("unable to write pod event: %q", err)
+		logrus.Errorf("Unable to write pod event: %q", err)
 	}
 }
 
@@ -84,7 +84,7 @@ func (p *Pod) newPodEvent(status events.Status) {
 	e.Name = p.Name()
 	e.Type = events.Pod
 	if err := p.runtime.eventer.Write(e); err != nil {
-		logrus.Errorf("unable to write pod event: %q", err)
+		logrus.Errorf("Unable to write pod event: %q", err)
 	}
 }
 
@@ -94,7 +94,7 @@ func (r *Runtime) newSystemEvent(status events.Status) {
 	e.Type = events.System
 
 	if err := r.eventer.Write(e); err != nil {
-		logrus.Errorf("unable to write system event: %q", err)
+		logrus.Errorf("Unable to write system event: %q", err)
 	}
 }
 
@@ -104,7 +104,7 @@ func (v *Volume) newVolumeEvent(status events.Status) {
 	e.Name = v.Name()
 	e.Type = events.Volume
 	if err := v.runtime.eventer.Write(e); err != nil {
-		logrus.Errorf("unable to write volume event: %q", err)
+		logrus.Errorf("Unable to write volume event: %q", err)
 	}
 }
 

@@ -51,7 +51,7 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 	}
 	defer func() {
 		if err := os.RemoveAll(dir); err != nil {
-			logrus.Errorf("could not recursively remove %s: %q", dir, err)
+			logrus.Errorf("Could not recursively remove %s: %q", dir, err)
 		}
 	}()
 	err = archive.Untar(archiveFile, dir, options)

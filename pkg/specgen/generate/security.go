@@ -139,7 +139,7 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 			if len(privCapsRequired) == 0 {
 				caplist = capsRequired
 			} else {
-				logrus.Errorf("capabilities requested by user or image are not allowed by default: %q", strings.Join(privCapsRequired, ","))
+				logrus.Errorf("Capabilities requested by user or image are not allowed by default: %q", strings.Join(privCapsRequired, ","))
 			}
 		}
 	}

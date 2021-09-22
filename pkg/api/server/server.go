@@ -233,7 +233,7 @@ func (s *APIServer) Serve() error {
 			s.pprof = &http.Server{Addr: "localhost:8888", Handler: pprofMux}
 			err := s.pprof.ListenAndServe()
 			if err != nil && err != http.ErrServerClosed {
-				logrus.Warn("API profiler service failed: " + err.Error())
+				logrus.Warnf("API profiler service failed: %v", err)
 			}
 		}()
 	}
@@ -272,7 +272,7 @@ func (s *APIServer) Shutdown() error {
 				go func() {
 					defer cancel()
 					if err := s.pprof.Shutdown(ctx); err != nil {
-						logrus.Warn("Failed to cleanly shutdown API pprof service: " + err.Error())
+						logrus.Warnf("Failed to cleanly shutdown API pprof service: %v", err)
 					}
 				}()
 				<-ctx.Done()

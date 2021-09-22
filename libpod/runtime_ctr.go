@@ -59,7 +59,7 @@ func (r *Runtime) PrepareVolumeOnCreateContainer(ctx context.Context, ctr *Conta
 
 	defer func() {
 		if err := ctr.cleanupStorage(); err != nil {
-			logrus.Errorf("error cleaning up container storage %s: %v", ctr.ID(), err)
+			logrus.Errorf("Cleaning up container storage %s: %v", ctr.ID(), err)
 		}
 	}()
 
@@ -69,7 +69,7 @@ func (r *Runtime) PrepareVolumeOnCreateContainer(ctx context.Context, ctr *Conta
 		ctr.state.Mounted = true
 		ctr.state.Mountpoint = mountPoint
 		if err = ctr.save(); err != nil {
-			logrus.Errorf("Error saving container %s state: %v", ctr.ID(), err)
+			logrus.Errorf("Saving container %s state: %v", ctr.ID(), err)
 		}
 	}
 
@@ -286,7 +286,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 	defer func() {
 		if retErr != nil {
 			if err := ctr.lock.Free(); err != nil {
-				logrus.Errorf("Error freeing lock for container after creation failed: %v", err)
+				logrus.Errorf("Freeing lock for container after creation failed: %v", err)
 			}
 		}
 	}()
@@ -409,7 +409,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 	defer func() {
 		if retErr != nil {
 			if err := ctr.teardownStorage(); err != nil {
-				logrus.Errorf("Error removing partially-created container root filesystem: %s", err)
+				logrus.Errorf("Removing partially-created container root filesystem: %s", err)
 			}
 		}
 	}()
@@ -696,7 +696,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 		if cleanupErr == nil {
 			cleanupErr = err
 		} else {
-			logrus.Errorf("cleanup storage: %v", err)
+			logrus.Errorf("Cleanup storage: %v", err)
 		}
 	}
 
@@ -709,7 +709,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 				if cleanupErr == nil {
 					cleanupErr = err
 				} else {
-					logrus.Errorf("Error removing container %s from database: %v", c.ID(), err)
+					logrus.Errorf("Removing container %s from database: %v", c.ID(), err)
 				}
 			}
 		}
@@ -718,7 +718,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 			if cleanupErr == nil {
 				cleanupErr = err
 			} else {
-				logrus.Errorf("Error removing container %s from database: %v", c.ID(), err)
+				logrus.Errorf("Removing container %s from database: %v", c.ID(), err)
 			}
 		}
 	}
@@ -728,7 +728,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 		if cleanupErr == nil {
 			cleanupErr = errors.Wrapf(err, "error freeing lock for container %s", c.ID())
 		} else {
-			logrus.Errorf("free container lock: %v", err)
+			logrus.Errorf("Free container lock: %v", err)
 		}
 	}
 
@@ -747,7 +747,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 				continue
 			}
 			if err := runtime.removeVolume(ctx, volume, false); err != nil && errors.Cause(err) != define.ErrNoSuchVolume {
-				logrus.Errorf("cleanup volume (%s): %v", v, err)
+				logrus.Errorf("Cleanup volume (%s): %v", v, err)
 			}
 		}
 	}
@@ -888,7 +888,7 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 				continue
 			}
 			if err := r.removeVolume(ctx, volume, false); err != nil && err != define.ErrNoSuchVolume && err != define.ErrVolumeBeingUsed {
-				logrus.Errorf("cleanup volume (%s): %v", v, err)
+				logrus.Errorf("Cleanup volume (%s): %v", v, err)
 			}
 		}
 	}

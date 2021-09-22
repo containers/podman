@@ -61,7 +61,7 @@ func Start() error {
 				}
 				logrus.Infof("Invoking shutdown handler %s", name)
 				if err := handler(sig); err != nil {
-					logrus.Errorf("Error running shutdown handler %s: %v", name, err)
+					logrus.Errorf("Running shutdown handler %s: %v", name, err)
 				}
 			}
 			handlerLock.Unlock()

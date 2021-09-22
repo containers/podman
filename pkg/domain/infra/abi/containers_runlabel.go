@@ -87,7 +87,7 @@ func (ic *ContainerEngine) ContainerRunlabel(ctx context.Context, label string, 
 				ctr, err := ic.Libpod.LookupContainer(name)
 				if err != nil {
 					if errors.Cause(err) != define.ErrNoSuchCtr {
-						logrus.Debugf("Error occurred searching for container %s: %s", name, err.Error())
+						logrus.Debugf("Error occurred searching for container %s: %v", name, err)
 						return err
 					}
 				} else {
@@ -167,7 +167,7 @@ func generateRunlabelCommand(runlabel string, img *libimage.Image, inputName str
 			// I would prefer to use os.getenv but it appears PWD is not in the os env list.
 			d, err := os.Getwd()
 			if err != nil {
-				logrus.Error("unable to determine current working directory")
+				logrus.Error("Unable to determine current working directory")
 				return ""
 			}
 			return d

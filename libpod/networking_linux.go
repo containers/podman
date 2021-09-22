@@ -320,14 +320,14 @@ func (r *RootlessCNI) Cleanup(runtime *Runtime) error {
 				}
 			}
 			if err != nil {
-				logrus.Errorf("failed to kill slirp4netns process: %s", err)
+				logrus.Errorf("Failed to kill slirp4netns process: %s", err)
 			}
 			err = os.RemoveAll(r.dir)
 			if err != nil {
 				logrus.Error(err)
 			}
 		} else if err != nil && !os.IsNotExist(err) {
-			logrus.Errorf("could not read rootless cni directory, skipping cleanup: %s", err)
+			logrus.Errorf("Could not read rootless cni directory, skipping cleanup: %s", err)
 		}
 	}
 	return nil
@@ -458,7 +458,7 @@ func (r *Runtime) GetRootlessCNINetNs(new bool) (*RootlessCNI, error) {
 
 		defer func() {
 			if err := cmd.Process.Release(); err != nil {
-				logrus.Errorf("unable to release command process: %q", err)
+				logrus.Errorf("Unable to release command process: %q", err)
 			}
 		}()
 
@@ -635,10 +635,10 @@ func (r *Runtime) createNetNS(ctr *Container) (n ns.NetNS, q map[string]types.St
 	defer func() {
 		if retErr != nil {
 			if err := netns.UnmountNS(ctrNS); err != nil {
-				logrus.Errorf("Error unmounting partially created network namespace for container %s: %v", ctr.ID(), err)
+				logrus.Errorf("Unmounting partially created network namespace for container %s: %v", ctr.ID(), err)
 			}
 			if err := ctrNS.Close(); err != nil {
-				logrus.Errorf("Error closing partially created network namespace for container %s: %v", ctr.ID(), err)
+				logrus.Errorf("Closing partially created network namespace for container %s: %v", ctr.ID(), err)
 			}
 		}
 	}()

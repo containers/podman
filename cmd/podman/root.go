@@ -175,7 +175,7 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	// Hard code TMPDIR functions to use /var/tmp, if user did not override
 	if _, ok := os.LookupEnv("TMPDIR"); !ok {
 		if tmpdir, err := cfg.ImageCopyTmpDir(); err != nil {
-			logrus.Warnf("failed to retrieve default tmp dir: %s", err.Error())
+			logrus.Warnf("Failed to retrieve default tmp dir: %s", err.Error())
 		} else {
 			os.Setenv("TMPDIR", tmpdir)
 		}
@@ -313,7 +313,7 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	pFlags := cmd.PersistentFlags()
 	if registry.IsRemote() {
 		if err := lFlags.MarkHidden("remote"); err != nil {
-			logrus.Warnf("unable to mark --remote flag as hidden: %s", err.Error())
+			logrus.Warnf("Unable to mark --remote flag as hidden: %s", err.Error())
 		}
 		opts.Remote = true
 	} else {
@@ -387,7 +387,7 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 			"trace",
 		} {
 			if err := pFlags.MarkHidden(f); err != nil {
-				logrus.Warnf("unable to mark %s flag as hidden: %s", f, err.Error())
+				logrus.Warnf("Unable to mark %s flag as hidden: %s", f, err.Error())
 			}
 		}
 	}

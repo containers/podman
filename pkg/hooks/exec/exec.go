@@ -56,7 +56,7 @@ func Run(ctx context.Context, hook *rspec.Hook, state []byte, stdout io.Writer, 
 		return err, err
 	case <-ctx.Done():
 		if err := cmd.Process.Kill(); err != nil {
-			logrus.Errorf("failed to kill pid %v", cmd.Process)
+			logrus.Errorf("Failed to kill pid %v", cmd.Process)
 		}
 		timer := time.NewTimer(postKillTimeout)
 		defer timer.Stop()

@@ -259,7 +259,7 @@ func (s *BoltState) getDBCon() (*bolt.DB, error) {
 // of a defer statement only
 func (s *BoltState) deferredCloseDBCon(db *bolt.DB) {
 	if err := s.closeDBCon(db); err != nil {
-		logrus.Errorf("failed to close libpod db: %q", err)
+		logrus.Errorf("Failed to close libpod db: %q", err)
 	}
 }
 
@@ -875,7 +875,7 @@ func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error
 		podCtrs := podDB.Bucket(containersBkt)
 		if podCtrs == nil {
 			// Malformed pod
-			logrus.Errorf("pod %s malformed in database, missing containers bucket!", pod.ID())
+			logrus.Errorf("Pod %s malformed in database, missing containers bucket!", pod.ID())
 		} else {
 			ctrInPod := podCtrs.Get(ctrID)
 			if ctrInPod == nil {

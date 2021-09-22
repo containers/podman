@@ -139,7 +139,7 @@ func (locks *FileLocks) DeallocateAllLocks() error {
 		err := os.Remove(p)
 		if err != nil {
 			lastErr = err
-			logrus.Errorf("deallocating lock %s", p)
+			logrus.Errorf("Deallocating lock %s", p)
 		}
 	}
 	return lastErr

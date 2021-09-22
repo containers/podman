@@ -573,7 +573,7 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 			}
 			defer func() {
 				if err = rawSource.Close(); err != nil {
-					logrus.Errorf("unable to close %s image source %q", srcRef.DockerReference().Name(), err)
+					logrus.Errorf("Unable to close %s image source %q", srcRef.DockerReference().Name(), err)
 				}
 			}()
 			topManifestBlob, manifestType, err := rawSource.GetManifest(ctx, nil)

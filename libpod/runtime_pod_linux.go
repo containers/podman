@@ -66,7 +66,7 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 	defer func() {
 		if deferredErr != nil {
 			if err := pod.lock.Free(); err != nil {
-				logrus.Errorf("Error freeing pod lock after failed creation: %v", err)
+				logrus.Errorf("Freeing pod lock after failed creation: %v", err)
 			}
 		}
 	}()
@@ -224,7 +224,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 		conmonCgroupPath := filepath.Join(p.state.CgroupPath, "conmon")
 		conmonCgroup, err := cgroups.Load(conmonCgroupPath)
 		if err != nil && err != cgroups.ErrCgroupDeleted && err != cgroups.ErrCgroupV1Rootless {
-			logrus.Errorf("Error retrieving pod %s conmon cgroup %s: %v", p.ID(), conmonCgroupPath, err)
+			logrus.Errorf("Retrieving pod %s conmon cgroup %s: %v", p.ID(), conmonCgroupPath, err)
 		}
 
 		// New resource limits
@@ -259,7 +259,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 			if removalErr == nil {
 				removalErr = err
 			} else {
-				logrus.Errorf("Error removing container %s from pod %s: %v", ctr.ID(), p.ID(), err)
+				logrus.Errorf("Removing container %s from pod %s: %v", ctr.ID(), p.ID(), err)
 			}
 		}
 	}
@@ -275,7 +275,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 	for volName := range ctrNamedVolumes {
 		volume, err := r.state.Volume(volName)
 		if err != nil && errors.Cause(err) != define.ErrNoSuchVolume {
-			logrus.Errorf("Error retrieving volume %s: %v", volName, err)
+			logrus.Errorf("Retrieving volume %s: %v", volName, err)
 			continue
 		}
 		if !volume.Anonymous() {
@@ -285,7 +285,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 			if errors.Cause(err) == define.ErrNoSuchVolume || errors.Cause(err) == define.ErrVolumeRemoved {
 				continue
 			}
-			logrus.Errorf("Error removing volume %s: %v", volName, err)
+			logrus.Errorf("Removing volume %s: %v", volName, err)
 		}
 	}
 
@@ -299,7 +299,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 				if removalErr == nil {
 					removalErr = errors.Wrapf(err, "error removing pod %s cgroup", p.ID())
 				} else {
-					logrus.Errorf("Error deleting pod %s cgroup %s: %v", p.ID(), p.state.CgroupPath, err)
+					logrus.Errorf("Deleting pod %s cgroup %s: %v", p.ID(), p.state.CgroupPath, err)
 				}
 			}
 		case config.CgroupfsCgroupsManager:
@@ -321,7 +321,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 					if removalErr == nil {
 						removalErr = errors.Wrapf(err, "error removing pod %s conmon cgroup", p.ID())
 					} else {
-						logrus.Errorf("Error deleting pod %s conmon cgroup %s: %v", p.ID(), conmonCgroupPath, err)
+						logrus.Errorf("Deleting pod %s conmon cgroup %s: %v", p.ID(), conmonCgroupPath, err)
 					}
 				}
 			}
@@ -330,7 +330,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 				if removalErr == nil {
 					removalErr = errors.Wrapf(err, "error retrieving pod %s cgroup", p.ID())
 				} else {
-					logrus.Errorf("Error retrieving pod %s cgroup %s: %v", p.ID(), p.state.CgroupPath, err)
+					logrus.Errorf("Retrieving pod %s cgroup %s: %v", p.ID(), p.state.CgroupPath, err)
 				}
 			}
 			if err == nil {
@@ -338,7 +338,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 					if removalErr == nil {
 						removalErr = errors.Wrapf(err, "error removing pod %s cgroup", p.ID())
 					} else {
-						logrus.Errorf("Error deleting pod %s cgroup %s: %v", p.ID(), p.state.CgroupPath, err)
+						logrus.Errorf("Deleting pod %s cgroup %s: %v", p.ID(), p.state.CgroupPath, err)
 					}
 				}
 			}
@@ -371,7 +371,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 		if removalErr == nil {
 			removalErr = errors.Wrapf(err, "error freeing pod %s lock", p.ID())
 		} else {
-			logrus.Errorf("Error freeing pod %s lock: %v", p.ID(), err)
+			logrus.Errorf("Freeing pod %s lock: %v", p.ID(), err)
 		}
 	}
 

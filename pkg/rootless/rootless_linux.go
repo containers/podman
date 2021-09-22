@@ -61,20 +61,20 @@ func IsRootless() bool {
 		if rootlessUIDInit != 0 {
 			// This happens if we joined the user+mount namespace as part of
 			if err := os.Setenv("_CONTAINERS_USERNS_CONFIGURED", "done"); err != nil {
-				logrus.Errorf("failed to set environment variable %s as %s", "_CONTAINERS_USERNS_CONFIGURED", "done")
+				logrus.Errorf("Failed to set environment variable %s as %s", "_CONTAINERS_USERNS_CONFIGURED", "done")
 			}
 			if err := os.Setenv("_CONTAINERS_ROOTLESS_UID", fmt.Sprintf("%d", rootlessUIDInit)); err != nil {
-				logrus.Errorf("failed to set environment variable %s as %d", "_CONTAINERS_ROOTLESS_UID", rootlessUIDInit)
+				logrus.Errorf("Failed to set environment variable %s as %d", "_CONTAINERS_ROOTLESS_UID", rootlessUIDInit)
 			}
 			if err := os.Setenv("_CONTAINERS_ROOTLESS_GID", fmt.Sprintf("%d", rootlessGIDInit)); err != nil {
-				logrus.Errorf("failed to set environment variable %s as %d", "_CONTAINERS_ROOTLESS_GID", rootlessGIDInit)
+				logrus.Errorf("Failed to set environment variable %s as %d", "_CONTAINERS_ROOTLESS_GID", rootlessGIDInit)
 			}
 		}
 		isRootless = os.Geteuid() != 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != ""
 		if !isRootless {
 			hasCapSysAdmin, err := unshare.HasCapSysAdmin()
 			if err != nil {
-				logrus.Warnf("failed to read CAP_SYS_ADMIN presence for the current process")
+				logrus.Warnf("Failed to read CAP_SYS_ADMIN presence for the current process")
 			}
 			if err == nil && !hasCapSysAdmin {
 				isRootless = true
@@ -284,12 +284,12 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 			toWrite = []byte("1")
 		}
 		if _, err := w.Write(toWrite); err != nil {
-			logrus.Errorf("failed to write byte 0: %q", err)
+			logrus.Errorf("Failed to write byte 0: %q", err)
 		}
 		if retErr != nil && pid > 0 {
 			if err := unix.Kill(pid, unix.SIGKILL); err != nil {
 				if err != unix.ESRCH {
-					logrus.Errorf("failed to cleanup process %d: %v", pid, err)
+					logrus.Errorf("Failed to cleanup process %d: %v", pid, err)
 				}
 			}
 			C.reexec_in_user_namespace_wait(C.int(pid), 0)
@@ -325,7 +325,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		uidsMapped = err == nil
 	}
 	if !uidsMapped {
-		logrus.Warnf("using rootless single mapping into the namespace. This might break some images. Check /etc/subuid and /etc/subgid for adding sub*ids")
+		logrus.Warnf("Using rootless single mapping into the namespace. This might break some images. Check /etc/subuid and /etc/subgid for adding sub*ids")
 		setgroups := fmt.Sprintf("/proc/%d/setgroups", pid)
 		err = ioutil.WriteFile(setgroups, []byte("deny\n"), 0666)
 		if err != nil {
@@ -416,7 +416,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 
 			if err := unix.Kill(int(pidC), s.(unix.Signal)); err != nil {
 				if err != unix.ESRCH {
-					logrus.Errorf("failed to propagate signal to child process %d: %v", int(pidC), err)
+					logrus.Errorf("Failed to propagate signal to child process %d: %v", int(pidC), err)
 				}
 			}
 		}

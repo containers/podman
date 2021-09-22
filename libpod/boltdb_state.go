@@ -954,7 +954,7 @@ func (s *BoltState) AllContainers() ([]*Container, error) {
 					// not worth erroring over.
 					// If we do, a single bad container JSON
 					// could render libpod unusable.
-					logrus.Errorf("Error retrieving container %s from the database: %v", string(id), err)
+					logrus.Errorf("Retrieving container %s from the database: %v", string(id), err)
 				}
 			} else {
 				ctrs = append(ctrs, ctr)
@@ -2556,7 +2556,7 @@ func (s *BoltState) AllVolumes() ([]*Volume, error) {
 
 			if err := s.getVolumeFromDB(id, volume, volBucket); err != nil {
 				if errors.Cause(err) != define.ErrNSMismatch {
-					logrus.Errorf("Error retrieving volume %s from the database: %v", string(id), err)
+					logrus.Errorf("Retrieving volume %s from the database: %v", string(id), err)
 				}
 			} else {
 				volumes = append(volumes, volume)
@@ -3352,7 +3352,7 @@ func (s *BoltState) AllPods() ([]*Pod, error) {
 
 			if err := s.getPodFromDB(id, pod, podBucket); err != nil {
 				if errors.Cause(err) != define.ErrNSMismatch {
-					logrus.Errorf("Error retrieving pod %s from the database: %v", string(id), err)
+					logrus.Errorf("Retrieving pod %s from the database: %v", string(id), err)
 				}
 			} else {
 				pods = append(pods, pod)

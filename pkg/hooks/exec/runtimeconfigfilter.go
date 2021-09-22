@@ -61,7 +61,7 @@ func RuntimeConfigFilter(ctx context.Context, hooks []spec.Hook, config *spec.Sp
 			if err == nil {
 				logrus.Debugf("precreate hook %d made configuration changes:\n%s", i, diff)
 			} else {
-				logrus.Warnf("precreate hook %d made configuration changes, but we could not compute a diff: %v", i, err)
+				logrus.Warnf("Precreate hook %d made configuration changes, but we could not compute a diff: %v", i, err)
 			}
 		}
 

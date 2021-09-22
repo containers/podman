@@ -51,7 +51,7 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 		}
 		defer func() {
 			if err := c.unpause(); err != nil {
-				logrus.Errorf("error unpausing container %q: %v", c.ID(), err)
+				logrus.Errorf("Unpausing container %q: %v", c.ID(), err)
 			}
 		}()
 	}

@@ -71,7 +71,7 @@ func (p *Pod) refresh() error {
 		case config.SystemdCgroupsManager:
 			cgroupPath, err := systemdSliceFromPath(p.config.CgroupParent, fmt.Sprintf("libpod_pod_%s", p.ID()))
 			if err != nil {
-				logrus.Errorf("Error creating CGroup for pod %s: %v", p.ID(), err)
+				logrus.Errorf("Creating CGroup for pod %s: %v", p.ID(), err)
 			}
 			p.state.CgroupPath = cgroupPath
 		case config.CgroupfsCgroupsManager:

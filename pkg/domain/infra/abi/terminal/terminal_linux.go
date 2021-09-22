@@ -29,7 +29,7 @@ func ExecAttachCtr(ctx context.Context, ctr *libpod.Container, execConfig *libpo
 		defer cancel()
 		defer func() {
 			if err := restoreTerminal(oldTermState); err != nil {
-				logrus.Errorf("unable to restore terminal: %q", err)
+				logrus.Errorf("Unable to restore terminal: %q", err)
 			}
 		}()
 	}
@@ -53,7 +53,7 @@ func StartAttachCtr(ctx context.Context, ctr *libpod.Container, stdout, stderr, 
 		}
 		defer func() {
 			if err := restoreTerminal(oldTermState); err != nil {
-				logrus.Errorf("unable to restore terminal: %q", err)
+				logrus.Errorf("Unable to restore terminal: %q", err)
 			}
 		}()
 		defer cancel()

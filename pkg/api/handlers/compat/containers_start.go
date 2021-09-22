@@ -25,7 +25,7 @@ func StartContainer(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(query.DetachKeys) > 0 {
 		// TODO - start does not support adding detach keys
-		logrus.Info("the detach keys parameter is not supported on start container")
+		logrus.Info("The detach keys parameter is not supported on start container")
 	}
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	name := utils.GetName(r)

@@ -825,7 +825,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 				})
 				if ctr.AutoRemove() {
 					if err := ic.removeContainer(ctx, ctr, entities.RmOptions{}); err != nil {
-						logrus.Errorf("Error removing container %s: %v", ctr.ID(), err)
+						logrus.Errorf("Removing container %s: %v", ctr.ID(), err)
 					}
 				}
 				return reports, errors.Wrapf(err, "unable to start container %s", ctr.ID())
@@ -860,7 +860,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 				reports = append(reports, report)
 				if ctr.AutoRemove() {
 					if err := ic.removeContainer(ctx, ctr, entities.RmOptions{}); err != nil {
-						logrus.Errorf("Error removing container %s: %v", ctr.ID(), err)
+						logrus.Errorf("Removing container %s: %v", ctr.ID(), err)
 					}
 				}
 				continue
@@ -978,7 +978,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 				errors.Cause(err) == define.ErrCtrRemoved {
 				logrus.Infof("Container %s was already removed, skipping --rm", ctr.ID())
 			} else {
-				logrus.Errorf("Error removing container %s: %v", ctr.ID(), err)
+				logrus.Errorf("Removing container %s: %v", ctr.ID(), err)
 			}
 		}
 	}

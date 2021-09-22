@@ -139,11 +139,11 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		}
 		startedTime, err = c.StartedTime()
 		if err != nil {
-			logrus.Errorf("error getting started time for %q: %v", c.ID(), err)
+			logrus.Errorf("Getting started time for %q: %v", c.ID(), err)
 		}
 		exitedTime, err = c.FinishedTime()
 		if err != nil {
-			logrus.Errorf("error getting exited time for %q: %v", c.ID(), err)
+			logrus.Errorf("Getting exited time for %q: %v", c.ID(), err)
 		}
 
 		pid, err = c.PID()
@@ -170,12 +170,12 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 
 			rootFsSize, err := c.RootFsSize()
 			if err != nil {
-				logrus.Errorf("error getting root fs size for %q: %v", c.ID(), err)
+				logrus.Errorf("Getting root fs size for %q: %v", c.ID(), err)
 			}
 
 			rwSize, err := c.RWSize()
 			if err != nil {
-				logrus.Errorf("error getting rw size for %q: %v", c.ID(), err)
+				logrus.Errorf("Getting rw size for %q: %v", c.ID(), err)
 			}
 
 			size.RootFsSize = rootFsSize

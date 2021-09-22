@@ -215,7 +215,7 @@ func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *Conta
 					}
 					defer func() {
 						if err := unix.Setns(int(fd.Fd()), unix.CLONE_NEWNS); err != nil {
-							logrus.Errorf("unable to clone new namespace: %q", err)
+							logrus.Errorf("Unable to clone new namespace: %q", err)
 						}
 					}()
 
@@ -524,7 +524,7 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 		conn = newConn
 		defer func() {
 			if err := conn.Close(); err != nil {
-				logrus.Errorf("unable to close container %s attach socket: %q", ctr.ID(), err)
+				logrus.Errorf("Unable to close container %s attach socket: %q", ctr.ID(), err)
 			}
 		}()
 
@@ -936,7 +936,7 @@ func waitPidStop(pid int, timeout time.Duration) error {
 						close(done)
 						return
 					}
-					logrus.Errorf("Error pinging PID %d with signal 0: %v", pid, err)
+					logrus.Errorf("Pinging PID %d with signal 0: %v", pid, err)
 				}
 				time.Sleep(100 * time.Millisecond)
 			}
@@ -1199,7 +1199,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	pid, err := readConmonPipeData(parentSyncPipe, ociLog)
 	if err != nil {
 		if err2 := r.DeleteContainer(ctr); err2 != nil {
-			logrus.Errorf("Error removing container %s from runtime after creation failed", ctr.ID())
+			logrus.Errorf("Removing container %s from runtime after creation failed", ctr.ID())
 		}
 		return err
 	}
@@ -1207,7 +1207,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 
 	conmonPID, err := readConmonPidFile(ctr.config.ConmonPidFile)
 	if err != nil {
-		logrus.Warnf("error reading conmon pid file for container %s: %v", ctr.ID(), err)
+		logrus.Warnf("Error reading conmon pid file for container %s: %v", ctr.ID(), err)
 	} else if conmonPID > 0 {
 		// conmon not having a pid file is a valid state, so don't set it if we don't have it
 		logrus.Infof("Got Conmon PID as %d", conmonPID)
@@ -1220,7 +1220,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 
 		default:
 			if sent, err := daemon.SdNotify(false, fmt.Sprintf("MAINPID=%d", conmonPID)); err != nil {
-				logrus.Errorf("Error notifying systemd of Conmon PID: %v", err)
+				logrus.Errorf("Notifying systemd of Conmon PID: %v", err)
 			} else if sent {
 				logrus.Debugf("Notify MAINPID sent successfully")
 			}
@@ -1346,7 +1346,7 @@ func startCommandGivenSelinux(cmd *exec.Cmd, ctr *Container) error {
 
 			defer func() {
 				if err := os.Setenv("NOTIFY_SOCKET", ctr.notifySocket); err != nil {
-					logrus.Errorf("Error resetting NOTIFY_SOCKET=%s", ctr.notifySocket)
+					logrus.Errorf("Resetting NOTIFY_SOCKET=%s", ctr.notifySocket)
 				}
 			}()
 		}
@@ -1385,7 +1385,7 @@ func startCommandGivenSelinux(cmd *exec.Cmd, ctr *Container) error {
 	// Ignore error returned from SetProcessLabel("") call,
 	// can't recover.
 	if labelErr := label.SetProcessLabel(""); labelErr != nil {
-		logrus.Errorf("unable to set process label: %q", err)
+		logrus.Errorf("Unable to set process label: %q", err)
 	}
 	runtime.UnlockOSThread()
 	return err
@@ -1608,7 +1608,7 @@ func httpAttachTerminalCopy(container *net.UnixConn, http *bufio.ReadWriter, cid
 			numW, err2 := http.Write(buf[1:numR])
 			if err2 != nil {
 				if err != nil {
-					logrus.Errorf("Error reading container %s STDOUT: %v", cid, err)
+					logrus.Errorf("Reading container %s STDOUT: %v", cid, err)
 				}
 				return err2
 			} else if numW+1 != numR {
@@ -1618,7 +1618,7 @@ func httpAttachTerminalCopy(container *net.UnixConn, http *bufio.ReadWriter, cid
 			// there isn't a delay on the terminal side.
 			if err2 := http.Flush(); err2 != nil {
 				if err != nil {
-					logrus.Errorf("Error reading container %s STDOUT: %v", cid, err)
+					logrus.Errorf("Reading container %s STDOUT: %v", cid, err)
 				}
 				return err2
 			}
@@ -1670,7 +1670,7 @@ func httpAttachNonTerminalCopy(container *net.UnixConn, http *bufio.ReadWriter, 
 			numH, err2 := http.Write(headerBuf)
 			if err2 != nil {
 				if err != nil {
-					logrus.Errorf("Error reading container %s standard streams: %v", cid, err)
+					logrus.Errorf("Reading container %s standard streams: %v", cid, err)
 				}
 
 				return err2
@@ -1680,7 +1680,7 @@ func httpAttachNonTerminalCopy(container *net.UnixConn, http *bufio.ReadWriter, 
 			// of the protocol.
 			if numH != 8 {
 				if err != nil {
-					logrus.Errorf("Error reading container %s standard streams: %v", cid, err)
+					logrus.Errorf("Reading container %s standard streams: %v", cid, err)
 				}
 
 				return io.ErrShortWrite
@@ -1689,13 +1689,13 @@ func httpAttachNonTerminalCopy(container *net.UnixConn, http *bufio.ReadWriter, 
 			numW, err2 := http.Write(buf[1:numR])
 			if err2 != nil {
 				if err != nil {
-					logrus.Errorf("Error reading container %s standard streams: %v", cid, err)
+					logrus.Errorf("Reading container %s standard streams: %v", cid, err)
 				}
 
 				return err2
 			} else if numW+1 != numR {
 				if err != nil {
-					logrus.Errorf("Error reading container %s standard streams: %v", cid, err)
+					logrus.Errorf("Reading container %s standard streams: %v", cid, err)
 				}
 
 				return io.ErrShortWrite
@@ -1704,7 +1704,7 @@ func httpAttachNonTerminalCopy(container *net.UnixConn, http *bufio.ReadWriter, 
 			// there isn't a delay on the terminal side.
 			if err2 := http.Flush(); err2 != nil {
 				if err != nil {
-					logrus.Errorf("Error reading container %s STDOUT: %v", cid, err)
+					logrus.Errorf("Reading container %s STDOUT: %v", cid, err)
 				}
 				return err2
 			}

@@ -528,7 +528,7 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 	if newSize != nil {
 		err = c.ociRuntime.ExecAttachResize(c, sessionID, *newSize)
 		if err != nil {
-			logrus.Warn("resize failed", err)
+			logrus.Warnf("Resize failed: %v", err)
 		}
 	}
 
@@ -540,7 +540,7 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 	}
 	defer func() {
 		if err := conn.Close(); err != nil {
-			logrus.Errorf("unable to close socket: %q", err)
+			logrus.Errorf("Unable to close socket: %q", err)
 		}
 	}()
 
