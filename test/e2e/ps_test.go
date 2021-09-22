@@ -609,7 +609,7 @@ var _ = Describe("Podman ps", func() {
 
 	It("podman ps test with port shared with pod", func() {
 		podName := "testPod"
-		pod := podmanTest.Podman([]string{"pod", "create", "-p", "8080:80", "--name", podName})
+		pod := podmanTest.Podman([]string{"pod", "create", "-p", "8085:80", "--name", podName})
 		pod.WaitWithDefaultTimeout()
 		Expect(pod).Should(Exit(0))
 
@@ -621,7 +621,7 @@ var _ = Describe("Podman ps", func() {
 		ps := podmanTest.Podman([]string{"ps", "--filter", fmt.Sprintf("name=%s", ctrName), "--format", "{{.Ports}}"})
 		ps.WaitWithDefaultTimeout()
 		Expect(ps).Should(Exit(0))
-		Expect(ps.OutputToString()).To(ContainSubstring("0.0.0.0:8080->80/tcp"))
+		Expect(ps.OutputToString()).To(ContainSubstring("0.0.0.0:8085->80/tcp"))
 	})
 
 	It("podman ps truncate long create command", func() {

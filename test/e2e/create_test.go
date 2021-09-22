@@ -618,7 +618,7 @@ var _ = Describe("Podman create", func() {
 		pod.WaitWithDefaultTimeout()
 		Expect(pod).Should(Exit(0))
 
-		session := podmanTest.Podman([]string{"create", "--pod", name, "-p", "8080:80", ALPINE, "top"})
+		session := podmanTest.Podman([]string{"create", "--pod", name, "-p", "8086:80", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitWithError())
 	})
