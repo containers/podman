@@ -85,7 +85,7 @@ var _ = Describe("Podman pod inspect", func() {
 
 	It("podman pod inspect outputs port bindings", func() {
 		podName := "testPod"
-		create := podmanTest.Podman([]string{"pod", "create", "--name", podName, "-p", "8080:80"})
+		create := podmanTest.Podman([]string{"pod", "create", "--name", podName, "-p", "8383:80"})
 		create.WaitWithDefaultTimeout()
 		Expect(create).Should(Exit(0))
 
@@ -98,7 +98,7 @@ var _ = Describe("Podman pod inspect", func() {
 		Expect(err).To(BeNil())
 		Expect(inspectJSON.InfraConfig).To(Not(BeNil()))
 		Expect(len(inspectJSON.InfraConfig.PortBindings["80/tcp"])).To(Equal(1))
-		Expect(inspectJSON.InfraConfig.PortBindings["80/tcp"][0].HostPort).To(Equal("8080"))
+		Expect(inspectJSON.InfraConfig.PortBindings["80/tcp"][0].HostPort).To(Equal("8383"))
 	})
 
 	It("podman pod inspect outputs show correct MAC", func() {
