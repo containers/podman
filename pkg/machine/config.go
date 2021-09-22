@@ -58,6 +58,8 @@ type ListResponse struct {
 	LastUp    time.Time
 	Running   bool
 	VMType    string
+	CPUs      uint64
+	Memory    uint64
 }
 
 type SSHOptions struct {
