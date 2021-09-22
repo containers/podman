@@ -574,6 +574,8 @@ func GetVMInfos() ([]*machine.ListResponse, error) {
 
 			listEntry.Name = vm.Name
 			listEntry.VMType = "qemu"
+			listEntry.CPUs = vm.CPUs
+			listEntry.Memory = vm.Memory
 			fi, err := os.Stat(fullPath)
 			if err != nil {
 				return err
