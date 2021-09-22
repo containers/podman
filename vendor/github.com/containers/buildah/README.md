@@ -104,7 +104,7 @@ $ sudo ./lighttpd.sh
 | Command                                              | Description                                                                                          |
 | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | [buildah-add(1)](/docs/buildah-add.md)               | Add the contents of a file, URL, or a directory to the container.                                    |
-| [buildah-bud(1)](/docs/buildah-bud.md)               | Build an image using instructions from Dockerfiles.                                                  |
+| [buildah-build(1)](/docs/buildah-build.md)           | Build an image using instructions from Containerfiles or Dockerfiles.                                |
 | [buildah-commit(1)](/docs/buildah-commit.md)         | Create an image from a working container.                                                            |
 | [buildah-config(1)](/docs/buildah-config.md)         | Update image configuration settings.                                                                 |
 | [buildah-containers(1)](/docs/buildah-containers.md) | List the working containers and their base images.                                                   |

@@ -17,12 +17,12 @@ import (
 	"github.com/opencontainers/go-digest"
 )
 
-type ZstdTOC struct {
-	Version int                `json:"version"`
-	Entries []ZstdFileMetadata `json:"entries"`
+type TOC struct {
+	Version int            `json:"version"`
+	Entries []FileMetadata `json:"entries"`
 }
 
-type ZstdFileMetadata struct {
+type FileMetadata struct {
 	Type       string            `json:"type"`
 	Name       string            `json:"name"`
 	Linkname   string            `json:"linkName,omitempty"`
@@ -114,11 +114,11 @@ func appendZstdSkippableFrame(dest io.Writer, data []byte) error {
 	return nil
 }
 
-func WriteZstdChunkedManifest(dest io.Writer, outMetadata map[string]string, offset uint64, metadata []ZstdFileMetadata, level int) error {
+func WriteZstdChunkedManifest(dest io.Writer, outMetadata map[string]string, offset uint64, metadata []FileMetadata, level int) error {
 	// 8 is the size of the zstd skippable frame header + the frame size
 	manifestOffset := offset + 8
 
-	toc := ZstdTOC{
+	toc := TOC{
 		Version: 1,
 		Entries: metadata,
 	}

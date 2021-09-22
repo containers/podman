@@ -6,9 +6,9 @@ import (
 
 	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/namespaces"
 	"github.com/containers/storage"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -107,6 +107,8 @@ type ContainerRootFSConfig struct {
 	// as the container's root.
 	// Conflicts with RootfsImageID.
 	Rootfs string `json:"rootfs,omitempty"`
+	// RootfsOverlay tells if rootfs has to be mounted as an overlay
+	RootfsOverlay bool `json:"rootfs_overlay,omitempty"`
 	// ShmDir is the path to be mounted on /dev/shm in container.
 	// If not set manually at creation time, Libpod will create a tmpfs
 	// with the size specified in ShmSize and populate this with the path of
@@ -228,7 +230,7 @@ type ContainerNetworkConfig struct {
 	// PortMappings are the ports forwarded to the container's network
 	// namespace
 	// These are not used unless CreateNetNS is true
-	PortMappings []ocicni.PortMapping `json:"portMappings,omitempty"`
+	PortMappings []types.OCICNIPortMapping `json:"portMappings,omitempty"`
 	// ExposedPorts are the ports which are exposed but not forwarded
 	// into the container.
 	// The map key is the port and the string slice contains the protocols,
@@ -379,6 +381,8 @@ type ContainerMiscConfig struct {
 	PidFile string `json:"pid_file,omitempty"`
 	// CDIDevices contains devices that use the CDI
 	CDIDevices []string `json:"cdiDevices,omitempty"`
+	// DeviceHostSrc contains the original source on the host
+	DeviceHostSrc []spec.LinuxDevice `json:"device_host_src,omitempty"`
 	// EnvSecrets are secrets that are set as environment variables
 	EnvSecrets map[string]*secrets.Secret `json:"secret_env,omitempty"`
 	// InitContainerType specifies if the container is an initcontainer

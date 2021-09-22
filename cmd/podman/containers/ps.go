@@ -15,8 +15,8 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/utils"
 	"github.com/containers/podman/v3/cmd/podman/validate"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -221,7 +221,10 @@ func ps(cmd *cobra.Command, _ []string) error {
 	}
 
 	hdrs, format := createPsOut()
+
+	noHeading, _ := cmd.Flags().GetBool("noheading")
 	if cmd.Flags().Changed("format") {
+		noHeading = noHeading || !report.HasTable(listOpts.Format)
 		format = report.NormalizeFormat(listOpts.Format)
 		format = report.EnforceRange(format)
 	}
@@ -240,8 +243,7 @@ func ps(cmd *cobra.Command, _ []string) error {
 	defer w.Flush()
 
 	headers := func() error { return nil }
-	noHeading, _ := cmd.Flags().GetBool("noheading")
-	if !(noHeading || listOpts.Quiet || cmd.Flags().Changed("format")) {
+	if !noHeading {
 		headers = func() error {
 			return tmpl.Execute(w, hdrs)
 		}
@@ -298,9 +300,11 @@ func createPsOut() ([]map[string]string, string) {
 		"IPC":          "ipc",
 		"MNT":          "mnt",
 		"NET":          "net",
+		"Networks":     "networks",
 		"PIDNS":        "pidns",
 		"Pod":          "pod id",
 		"PodName":      "podname", // undo camelcase space break
+		"RunningFor":   "running for",
 		"UTS":          "uts",
 		"User":         "userns",
 	})
@@ -469,7 +473,7 @@ func (l psReporter) UTS() string {
 
 // portsToString converts the ports used to a string of the from "port1, port2"
 // and also groups a continuous list of ports into a readable format.
-func portsToString(ports []ocicni.PortMapping) string {
+func portsToString(ports []types.OCICNIPortMapping) string {
 	if len(ports) == 0 {
 		return ""
 	}
@@ -478,8 +482,8 @@ func portsToString(ports []ocicni.PortMapping) string {
 		return comparePorts(ports[i], ports[j])
 	})
 
-	portGroups := [][]ocicni.PortMapping{}
-	currentGroup := []ocicni.PortMapping{}
+	portGroups := [][]types.OCICNIPortMapping{}
+	currentGroup := []types.OCICNIPortMapping{}
 	for i, v := range ports {
 		var prevPort, nextPort *int32
 		if i > 0 {
@@ -492,17 +496,17 @@ func portsToString(ports []ocicni.PortMapping) string {
 		port := v.ContainerPort
 
 		// Helper functions
-		addToCurrentGroup := func(x ocicni.PortMapping) {
+		addToCurrentGroup := func(x types.OCICNIPortMapping) {
 			currentGroup = append(currentGroup, x)
 		}
 
-		addToPortGroup := func(x ocicni.PortMapping) {
-			portGroups = append(portGroups, []ocicni.PortMapping{x})
+		addToPortGroup := func(x types.OCICNIPortMapping) {
+			portGroups = append(portGroups, []types.OCICNIPortMapping{x})
 		}
 
 		finishCurrentGroup := func() {
 			portGroups = append(portGroups, currentGroup)
-			currentGroup = []ocicni.PortMapping{}
+			currentGroup = []types.OCICNIPortMapping{}
 		}
 
 		// Single entry slice
@@ -600,7 +604,7 @@ func portsToString(ports []ocicni.PortMapping) string {
 	return strings.Join(portDisplay, ", ")
 }
 
-func comparePorts(i, j ocicni.PortMapping) bool {
+func comparePorts(i, j types.OCICNIPortMapping) bool {
 	if i.ContainerPort != j.ContainerPort {
 		return i.ContainerPort < j.ContainerPort
 	}

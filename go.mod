@@ -6,21 +6,20 @@ require (
 	github.com/BurntSushi/toml v0.4.1
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/buger/goterm v0.0.0-20181115115552-c206103e1f37
-	github.com/checkpoint-restore/checkpointctl v0.0.0-20210301084134-a2024f5584e7
+	github.com/checkpoint-restore/checkpointctl v0.0.0-20210922093614-c31748bec9f2
 	github.com/checkpoint-restore/go-criu/v5 v5.1.0
 	github.com/container-orchestrated-devices/container-device-interface v0.0.0-20210325223243-f99e8b6c10b9
-	github.com/containernetworking/cni v0.8.1
-	github.com/containernetworking/plugins v0.9.1
-	github.com/containers/buildah v1.22.3
-	github.com/containers/common v0.43.3-0.20210902095222-a7acc160fb25
+	github.com/containernetworking/cni v1.0.1
+	github.com/containernetworking/plugins v1.0.1
+	github.com/containers/buildah v1.23.0
+	github.com/containers/common v0.44.1-0.20210921143342-f2f10e650c73
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.16.0
 	github.com/containers/ocicrypt v1.1.2
-	github.com/containers/psgo v1.6.0
-	github.com/containers/storage v1.35.0
+	github.com/containers/psgo v1.7.1
+	github.com/containers/storage v1.36.0
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
-	github.com/cri-o/ocicni v0.2.1-0.20210621164014-d0acc7862283
 	github.com/cyphar/filepath-securejoin v0.2.3
 	github.com/davecgh/go-spew v1.1.1
 	github.com/digitalocean/go-qemu v0.0.0-20210209191958-152a1535e49f
@@ -40,9 +39,9 @@ require (
 	github.com/gorilla/schema v1.2.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hpcloud/tail v1.0.0
-	github.com/json-iterator/go v1.1.11
+	github.com/json-iterator/go v1.1.12
 	github.com/mattn/go-colorable v0.1.8 // indirect
-	github.com/moby/term v0.0.0-20201216013528-df9cb8a40635
+	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6
 	github.com/mrunalp/fileutils v0.5.0
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.16.0
@@ -63,9 +62,9 @@ require (
 	github.com/uber/jaeger-client-go v2.29.1+incompatible
 	github.com/vbauerster/mpb/v6 v6.0.4
 	github.com/vbauerster/mpb/v7 v7.1.4 // indirect
-	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
+	github.com/vishvananda/netlink v1.1.1-0.20210330154013-f5de75959ad5
 	go.etcd.io/bbolt v1.3.6
-	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
+	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20210906170528-6f6e22806c34
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b

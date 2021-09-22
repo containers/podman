@@ -6,12 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"os"
 	"path/filepath"
 	"time"
 
-	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 )
@@ -91,16 +89,73 @@ type CheckpointedPodOptions struct {
 	ProcessLabel string   `json:"processLabel"`
 }
 
-func DetectCheckpointArchiveType(checkpointDirectory string) (CheckpointType, error) {
-	_, err := os.Stat(filepath.Join(checkpointDirectory, CheckpointedPodsFile))
+// This is metadata stored inside of Pod checkpoint archive
+type PodSandboxConfig struct {
+	Metadata SandboxMetadta `json:"metadata"`
+	Hostname string         `json:"hostname"`
+}
+
+type SandboxMetadta struct {
+	Name      string `json:"name"`
+	UID       string `json:"uid"`
+	Namespace string `json:"namespace"`
+}
+
+func checkForFile(checkpointDirectory, file string) (bool, error) {
+	_, err := os.Stat(filepath.Join(checkpointDirectory, file))
 	if err != nil && !os.IsNotExist(err) {
-		return Unknown, errors.Wrapf(err, "Failed to access %q\n", CheckpointedPodsFile)
+		return false, errors.Wrapf(err, "Failed to access %q\n", file)
 	}
 	if os.IsNotExist(err) {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func DetectCheckpointArchiveType(checkpointDirectory string) (CheckpointType, error) {
+	kubelet, err := checkForFile(checkpointDirectory, CheckpointedPodsFile)
+	if os.IsNotExist(err) {
+		return Unknown, err
+	}
+
+	container, err := checkForFile(checkpointDirectory, ConfigDumpFile)
+	if os.IsNotExist(err) {
+		return Unknown, err
+	}
+
+	pod, err := checkForFile(checkpointDirectory, PodDumpFile)
+	if os.IsNotExist(err) {
+		return Unknown, err
+	}
+
+	if pod && !container && !kubelet {
+		return Pod, nil
+	}
+
+	if !pod && container && !kubelet {
 		return Container, nil
 	}
 
-	return Kubelet, nil
+	if !pod && !container && kubelet {
+		return Kubelet, nil
+	}
+
+	return Unknown, nil
+}
+
+func ReadPodCheckpointDumpFile(checkpointDirectory string) (*PodSandboxConfig, string, error) {
+	var podSandboxConfig PodSandboxConfig
+	podDumpFile, err := ReadJSONFile(&podSandboxConfig, checkpointDirectory, PodDumpFile)
+
+	return &podSandboxConfig, podDumpFile, err
+}
+
+func ReadPodCheckpointOptionsFile(checkpointDirectory string) (*CheckpointedPodOptions, string, error) {
+	var checkpointedPodOptions CheckpointedPodOptions
+	podOptionsFile, err := ReadJSONFile(&checkpointedPodOptions, checkpointDirectory, PodOptionsFile)
+
+	return &checkpointedPodOptions, podOptionsFile, err
 }
 
 func ReadContainerCheckpointSpecDump(checkpointDirectory string) (*spec.Spec, string, error) {
@@ -124,52 +179,11 @@ func ReadContainerCheckpointDeletedFiles(checkpointDirectory string) ([]string, 
 	return deletedFiles, deletedFilesFile, err
 }
 
-func ReadContainerCheckpointNetworkStatus(checkpointDirectory string) ([]*cnitypes.Result, string, error) {
-	var networkStatus []*cnitypes.Result
-	networkStatusFile, err := ReadJSONFile(&networkStatus, checkpointDirectory, NetworkStatusFile)
-
-	return networkStatus, networkStatusFile, err
-}
-
 func ReadKubeletCheckpoints(checkpointsDirectory string) (*CheckpointMetadata, string, error) {
 	var checkpointMetadata CheckpointMetadata
 	checkpointMetadataPath, err := ReadJSONFile(&checkpointMetadata, checkpointsDirectory, CheckpointedPodsFile)
 
 	return &checkpointMetadata, checkpointMetadataPath, err
-}
-
-func GetIPFromNetworkStatus(networkStatus []*cnitypes.Result) net.IP {
-	if len(networkStatus) == 0 {
-		return nil
-	}
-	// Take the first IP address
-	if len(networkStatus[0].IPs) == 0 {
-		return nil
-	}
-	IP := networkStatus[0].IPs[0].Address.IP
-
-	return IP
-}
-
-func GetMACFromNetworkStatus(networkStatus []*cnitypes.Result) net.HardwareAddr {
-	if len(networkStatus) == 0 {
-		return nil
-	}
-	// Take the first device with a defined sandbox
-	if len(networkStatus[0].Interfaces) == 0 {
-		return nil
-	}
-	var MAC net.HardwareAddr
-	MAC = nil
-	for _, n := range networkStatus[0].Interfaces {
-		if n.Sandbox != "" {
-			MAC, _ = net.ParseMAC(n.Mac)
-
-			break
-		}
-	}
-
-	return MAC
 }
 
 // WriteJSONFile marshalls and writes the given data to a JSON file

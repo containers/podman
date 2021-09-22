@@ -22,6 +22,10 @@ var GlobalDockerfile = fmt.Sprintf(`
 FROM %s
 LABEL RUN echo \$GLOBAL_OPTS`, ALPINE)
 
+var PodmanRunlabelNameDockerfile = fmt.Sprintf(`
+FROM  %s
+LABEL RUN podman run --name NAME IMAGE`, ALPINE)
+
 var _ = Describe("podman container runlabel", func() {
 	var (
 		tempdir    string
@@ -123,6 +127,20 @@ var _ = Describe("podman container runlabel", func() {
 		result := podmanTest.Podman([]string{"container", "runlabel", "--authfile", "/tmp/nonexistent", "RUN", image})
 		result.WaitWithDefaultTimeout()
 		Expect(result).To(ExitWithError())
+
+		result = podmanTest.Podman([]string{"rmi", image})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+	})
+
+	It("podman container runlabel name removes tag from image", func() {
+		image := "podman-runlabel-name:sometag"
+		podmanTest.BuildImage(PodmanRunlabelNameDockerfile, image, "false")
+
+		result := podmanTest.Podman([]string{"container", "runlabel", "--display", "RUN", image})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(Equal("command: " + podmanTest.PodmanBinary + " run --name podman-runlabel-name localhost/" + image))
 
 		result = podmanTest.Podman([]string{"rmi", image})
 		result.WaitWithDefaultTimeout()

@@ -6,58 +6,51 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/bindings"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	jsoniter "github.com/json-iterator/go"
 )
 
 // Create makes a new CNI network configuration
-func Create(ctx context.Context, options *CreateOptions) (*entities.NetworkCreateReport, error) {
-	var report entities.NetworkCreateReport
-	if options == nil {
-		options = new(CreateOptions)
-	}
+func Create(ctx context.Context, network *types.Network) (types.Network, error) {
+	var report types.Network
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
-		return nil, err
+		return report, err
 	}
-	params := url.Values{}
-	if options.Name != nil {
-		params.Set("name", options.GetName())
+	// create empty network if the caller did not provide one
+	if network == nil {
+		network = &types.Network{}
 	}
-	networkConfig, err := jsoniter.MarshalToString(options)
+	networkConfig, err := jsoniter.MarshalToString(*network)
 	if err != nil {
-		return nil, err
+		return report, err
 	}
-	stringReader := strings.NewReader(networkConfig)
-	response, err := conn.DoRequest(stringReader, http.MethodPost, "/networks/create", params, nil)
+	reader := strings.NewReader(networkConfig)
+	response, err := conn.DoRequest(reader, http.MethodPost, "/networks/create", nil, nil)
 	if err != nil {
-		return nil, err
+		return report, err
 	}
 	defer response.Body.Close()
 
-	return &report, response.Process(&report)
+	return report, response.Process(&report)
 }
 
 // Inspect returns low level information about a CNI network configuration
-func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) ([]entities.NetworkInspectReport, error) {
-	var reports []entities.NetworkInspectReport
-	reports = append(reports, entities.NetworkInspectReport{})
-	if options == nil {
-		options = new(InspectOptions)
-	}
-	_ = options
+func Inspect(ctx context.Context, nameOrID string, _ *InspectOptions) (types.Network, error) {
+	var net types.Network
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
-		return nil, err
+		return net, err
 	}
 	response, err := conn.DoRequest(nil, http.MethodGet, "/networks/%s/json", nil, nil, nameOrID)
 	if err != nil {
-		return nil, err
+		return net, err
 	}
 	defer response.Body.Close()
 
-	return reports, response.Process(&reports[0])
+	return net, response.Process(&net)
 }
 
 // Remove deletes a defined CNI network configuration by name.  The optional force boolean
@@ -86,10 +79,8 @@ func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) ([]*en
 }
 
 // List returns a summary of all CNI network configurations
-func List(ctx context.Context, options *ListOptions) ([]*entities.NetworkListReport, error) {
-	var (
-		netList []*entities.NetworkListReport
-	)
+func List(ctx context.Context, options *ListOptions) ([]types.Network, error) {
+	var netList []types.Network
 	if options == nil {
 		options = new(ListOptions)
 	}

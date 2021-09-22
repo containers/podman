@@ -582,6 +582,8 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 	// Infra config contains detailed information on the pod's infra
 	// container.
 	var infraConfig *define.InspectPodInfraConfig
+	var inspectMounts []define.InspectMount
+	var devices []define.InspectDevice
 	if p.state.InfraContainerID != "" {
 		infra, err := p.runtime.GetContainer(p.state.InfraContainerID)
 		if err != nil {
@@ -597,6 +599,17 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		infraConfig.CPUSetCPUs = p.ResourceLim().CPU.Cpus
 		infraConfig.PidNS = p.PidMode()
 		infraConfig.UserNS = p.UserNSMode()
+		namedVolumes, mounts := infra.sortUserVolumes(infra.Config().Spec)
+		inspectMounts, err = infra.GetInspectMounts(namedVolumes, infra.config.ImageVolumes, mounts)
+		if err != nil {
+			return nil, err
+		}
+
+		var nodes map[string]string
+		devices, err = infra.GetDevices(false, *infra.config.Spec, nodes)
+		if err != nil {
+			return nil, err
+		}
 
 		if len(infra.Config().ContainerNetworkConfig.DNSServer) > 0 {
 			infraConfig.DNSServer = make([]string, 0, len(infra.Config().ContainerNetworkConfig.DNSServer))
@@ -645,6 +658,8 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		CPUSetCPUs:       p.ResourceLim().CPU.Cpus,
 		CPUPeriod:        p.CPUPeriod(),
 		CPUQuota:         p.CPUQuota(),
+		Mounts:           inspectMounts,
+		Devices:          devices,
 	}
 
 	return &inspectData, nil

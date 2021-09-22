@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/ps/define"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 )
 
@@ -54,7 +54,7 @@ type ListContainer struct {
 	// boolean to be set
 	PodName string
 	// Port mappings
-	Ports []ocicni.PortMapping
+	Ports []types.OCICNIPortMapping
 	// Size of the container rootfs.  Requires the size boolean to be true
 	Size *define.ContainerSize
 	// Time when container started

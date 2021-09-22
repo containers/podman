@@ -285,21 +285,11 @@ EOF
         build_arg_implicit+="=$arg_implicit_value"
     fi
 
-    # FIXME FIXME FIXME: 2021-03-15: workaround for #9567 (slow ubuntu 2004):
-    # we're seeing lots of timeouts in CI. Until/unless #9567 gets fixed,
-    # let's get CI passing by extending the timeout when remote on ubuntu
-    local localtimeout=${PODMAN_TIMEOUT}
-    if is_remote; then
-        if grep -qi ubuntu /etc/os-release; then
-            localtimeout=$(( 2 * $localtimeout ))
-        fi
-    fi
-
     # cd to the dir, so we test relative paths (important for podman-remote)
     cd $PODMAN_TMPDIR
     export arg_explicit="THIS SHOULD BE OVERRIDDEN BY COMMAND LINE!"
     export arg_implicit=${arg_implicit_value}
-    PODMAN_TIMEOUT=$localtimeout run_podman ${MOUNTS_CONF} build \
+    run_podman ${MOUNTS_CONF} build \
                --build-arg arg_explicit=${arg_explicit_value} \
                $build_arg_implicit \
                --dns-search $nosuchdomain \
@@ -456,16 +446,24 @@ Labels.$label_name | $label_value
 
 @test "podman build - COPY with ignore" {
     local tmpdir=$PODMAN_TMPDIR/build-test-$(random_string 10)
-    mkdir -p $tmpdir/subdir
+    mkdir -p $tmpdir/subdir{1,2}
 
     # Create a bunch of files. Declare this as an array to avoid duplication
     # because we iterate over that list below, checking for each file.
     # A leading "-" indicates that the file SHOULD NOT exist in the built image
+    #
+    # Weird side effect of Buildah 3486, relating to subdirectories and
+    # wildcard patterns. See that PR for details, it's way too confusing
+    # to explain in a comment.
     local -a files=(
         -test1 -test1.txt
          test2  test2.txt
-         subdir/sub1  subdir/sub1.txt
-         -subdir/sub2 -subdir/sub2.txt
+          subdir1/sub1  subdir1/sub1.txt
+         -subdir1/sub2 -subdir1/sub2.txt
+          subdir1/sub3  subdir1/sub3.txt
+         -subdir2/sub1 -subdir2/sub1.txt
+         -subdir2/sub2 -subdir2/sub2.txt
+         -subdir2/sub3 -subdir2/sub3.txt
          this-file-does-not-match-anything-in-ignore-file
          comment
     )
@@ -492,8 +490,10 @@ EOF
 # comment
 test*
 !test2*
-subdir
+subdir1
+subdir2
 !*/sub1*
+!subdir1/sub3*
 EOF
 
         # Build an image. For .dockerignore

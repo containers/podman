@@ -146,11 +146,11 @@ Suppress output information when pulling images
 
 Directory path for seccomp profiles (default: "/var/lib/kubelet/seccomp"). (This option is not available with the remote Podman client)
 
-#### **--start**=*true|false*
+#### **--start**
 
 Start the pod after creating it, set to false to only create it.
 
-#### **--tls-verify**=*true|false*
+#### **--tls-verify**
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
 then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,

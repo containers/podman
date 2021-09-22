@@ -157,7 +157,7 @@ On other Linux distributions Buildah requires a kernel version that supports the
 
 ### runc Requirement
 
-Buildah uses `runc` to run commands when `buildah run` is used, or when `buildah build-using-dockerfile`
+Buildah uses `runc` to run commands when `buildah run` is used, or when `buildah build`
 encounters a `RUN` instruction, so you'll also need to build and install a compatible version of
 [runc](https://github.com/opencontainers/runc) for Buildah to call for those cases.  If Buildah is installed
 via a package manager such as yum, dnf or apt-get, runc will be installed as part of that process.
@@ -396,7 +396,7 @@ registries = []
 
 `/usr/share/containers/mounts.conf` and optionally `/etc/containers/mounts.conf`
 
-The mounts.conf files specify volume mount files or directories that are automatically mounted inside containers when executing the `buildah run` or `buildah build-using-dockerfile` commands.  Container processes can then use this content.  The volume mount content does not get committed to the final image.  This file is usually provided by the containers-common package.
+The mounts.conf files specify volume mount files or directories that are automatically mounted inside containers when executing the `buildah run` or `buildah build` commands.  Container processes can then use this content.  The volume mount content does not get committed to the final image.  This file is usually provided by the containers-common package.
 
 Usually these directories are used for passing secrets or credentials required by the package software to access remote package repositories.
 

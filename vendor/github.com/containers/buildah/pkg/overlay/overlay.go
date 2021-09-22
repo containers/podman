@@ -20,7 +20,6 @@ import (
 
 // TempDir generates an overlay Temp directory in the container content
 func TempDir(containerDir string, rootUID, rootGID int) (string, error) {
-
 	contentDir := filepath.Join(containerDir, "overlay")
 	if err := idtools.MkdirAllAs(contentDir, 0700, rootUID, rootGID); err != nil {
 		return "", errors.Wrapf(err, "failed to create the overlay %s directory", contentDir)
@@ -30,20 +29,36 @@ func TempDir(containerDir string, rootUID, rootGID int) (string, error) {
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to create the overlay tmpdir in %s directory", contentDir)
 	}
-	upperDir := filepath.Join(contentDir, "upper")
-	workDir := filepath.Join(contentDir, "work")
+
+	return generateOverlayStructure(contentDir, rootUID, rootGID)
+}
+
+// GenerateStructure generates an overlay directory structure for container content
+func GenerateStructure(containerDir, containerID, name string, rootUID, rootGID int) (string, error) {
+	contentDir := filepath.Join(containerDir, "overlay-containers", containerID, name)
+	if err := idtools.MkdirAllAs(contentDir, 0700, rootUID, rootGID); err != nil {
+		return "", errors.Wrapf(err, "failed to create the overlay %s directory", contentDir)
+	}
+
+	return generateOverlayStructure(contentDir, rootUID, rootGID)
+}
+
+// generateOverlayStructure generates upper, work and merge directory structure for overlay directory
+func generateOverlayStructure(containerDir string, rootUID, rootGID int) (string, error) {
+	upperDir := filepath.Join(containerDir, "upper")
+	workDir := filepath.Join(containerDir, "work")
 	if err := idtools.MkdirAllAs(upperDir, 0700, rootUID, rootGID); err != nil {
 		return "", errors.Wrapf(err, "failed to create the overlay %s directory", upperDir)
 	}
 	if err := idtools.MkdirAllAs(workDir, 0700, rootUID, rootGID); err != nil {
 		return "", errors.Wrapf(err, "failed to create the overlay %s directory", workDir)
 	}
-	mergeDir := filepath.Join(contentDir, "merge")
+	mergeDir := filepath.Join(containerDir, "merge")
 	if err := idtools.MkdirAllAs(mergeDir, 0700, rootUID, rootGID); err != nil {
 		return "", errors.Wrapf(err, "failed to create the overlay %s directory", mergeDir)
 	}
 
-	return contentDir, nil
+	return containerDir, nil
 }
 
 // Mount creates a subdir of the contentDir based on the source directory
@@ -129,6 +144,7 @@ func mountHelper(contentDir, source, dest string, _, _ int, graphOptions []strin
 			return mount, nil
 		}
 		/* If a mount_program is not specified, fallback to try mount native overlay.  */
+		overlayOptions = fmt.Sprintf("%s,userxattr", overlayOptions)
 	}
 
 	mount.Source = mergeDir

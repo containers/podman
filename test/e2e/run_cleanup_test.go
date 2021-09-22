@@ -46,7 +46,7 @@ var _ = Describe("Podman run exit", func() {
 		Expect(mount).Should(Exit(0))
 		Expect(mount.OutputToString()).To(ContainSubstring(cid))
 
-		pmount := podmanTest.Podman([]string{"mount", "--notruncate"})
+		pmount := podmanTest.Podman([]string{"mount", "--no-trunc"})
 		pmount.WaitWithDefaultTimeout()
 		Expect(pmount).Should(Exit(0))
 		Expect(pmount.OutputToString()).To(ContainSubstring(cid))
@@ -64,7 +64,7 @@ var _ = Describe("Podman run exit", func() {
 		Expect(mount).Should(Exit(0))
 		Expect(mount.OutputToString()).NotTo(ContainSubstring(cid))
 
-		pmount = podmanTest.Podman([]string{"mount", "--notruncate"})
+		pmount = podmanTest.Podman([]string{"mount", "--no-trunc"})
 		pmount.WaitWithDefaultTimeout()
 		Expect(pmount).Should(Exit(0))
 		Expect(pmount.OutputToString()).NotTo(ContainSubstring(cid))

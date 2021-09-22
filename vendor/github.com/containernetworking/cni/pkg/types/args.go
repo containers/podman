@@ -91,16 +91,26 @@ func LoadArgs(args string, container interface{}) error {
 			unknownArgs = append(unknownArgs, pair)
 			continue
 		}
-		keyFieldIface := keyField.Addr().Interface()
-		u, ok := keyFieldIface.(encoding.TextUnmarshaler)
+
+		var keyFieldInterface interface{}
+		switch {
+		case keyField.Kind() == reflect.Ptr:
+			keyField.Set(reflect.New(keyField.Type().Elem()))
+			keyFieldInterface = keyField.Interface()
+		case keyField.CanAddr() && keyField.Addr().CanInterface():
+			keyFieldInterface = keyField.Addr().Interface()
+		default:
+			return UnmarshalableArgsError{fmt.Errorf("field '%s' has no valid interface", keyString)}
+		}
+		u, ok := keyFieldInterface.(encoding.TextUnmarshaler)
 		if !ok {
 			return UnmarshalableArgsError{fmt.Errorf(
 				"ARGS: cannot unmarshal into field '%s' - type '%s' does not implement encoding.TextUnmarshaler",
-				keyString, reflect.TypeOf(keyFieldIface))}
+				keyString, reflect.TypeOf(keyFieldInterface))}
 		}
 		err := u.UnmarshalText([]byte(valueString))
 		if err != nil {
-			return fmt.Errorf("ARGS: error parsing value of pair %q: %v)", pair, err)
+			return fmt.Errorf("ARGS: error parsing value of pair %q: %w", pair, err)
 		}
 	}
 

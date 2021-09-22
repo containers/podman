@@ -112,25 +112,28 @@ type PodSpec struct {
 	PodSpecGen specgen.PodSpecGenerator
 }
 
-// PodCreateOptions provides all possible options for creating a pod and its infra container
+// PodCreateOptions provides all possible options for creating a pod and its infra container.
+// The JSON tags below are made to match the respective field in ContainerCreateOptions for the purpose of mapping.
 // swagger:model PodCreateOptions
 type PodCreateOptions struct {
-	CGroupParent       string
-	CreateCommand      []string
-	Hostname           string
-	Infra              bool
-	InfraImage         string
-	InfraName          string
-	InfraCommand       string
-	InfraConmonPidFile string
-	Labels             map[string]string
-	Name               string
-	Net                *NetOptions
-	Share              []string
-	Pid                string
-	Cpus               float64
-	CpusetCpus         string
-	Userns             specgen.Namespace
+	CGroupParent       string            `json:"cgroup_parent,omitempty"`
+	CreateCommand      []string          `json:"create_command,omitempty"`
+	Devices            []string          `json:"devices,omitempty"`
+	Hostname           string            `json:"hostname,omitempty"`
+	Infra              bool              `json:"infra,omitempty"`
+	InfraImage         string            `json:"infra_image,omitempty"`
+	InfraName          string            `json:"container_name,omitempty"`
+	InfraCommand       *string           `json:"container_command,omitempty"`
+	InfraConmonPidFile string            `json:"container_conmon_pidfile,omitempty"`
+	Labels             map[string]string `json:"labels,omitempty"`
+	Name               string            `json:"name,omitempty"`
+	Net                *NetOptions       `json:"net,omitempty"`
+	Share              []string          `json:"share,omitempty"`
+	Pid                string            `json:"pid,omitempty"`
+	Cpus               float64           `json:"cpus,omitempty"`
+	CpusetCpus         string            `json:"cpuset_cpus,omitempty"`
+	Userns             specgen.Namespace `json:"-"`
+	Volume             []string          `json:"volume,omitempty"`
 }
 
 // PodLogsOptions describes the options to extract pod logs.
@@ -151,24 +154,24 @@ type ContainerCreateOptions struct {
 	CapDrop           []string
 	CgroupNS          string
 	CGroupsMode       string
-	CGroupParent      string
+	CGroupParent      string `json:"cgroup_parent,omitempty"`
 	CIDFile           string
-	ConmonPIDFile     string
+	ConmonPIDFile     string `json:"container_conmon_pidfile,omitempty"`
 	CPUPeriod         uint64
 	CPUQuota          int64
 	CPURTPeriod       uint64
 	CPURTRuntime      int64
 	CPUShares         uint64
-	CPUS              float64
-	CPUSetCPUs        string
+	CPUS              float64 `json:"cpus,omitempty"`
+	CPUSetCPUs        string  `json:"cpuset_cpus,omitempty"`
 	CPUSetMems        string
-	Devices           []string
+	Devices           []string `json:"devices,omitempty"`
 	DeviceCGroupRule  []string
 	DeviceReadBPs     []string
 	DeviceReadIOPs    []string
 	DeviceWriteBPs    []string
 	DeviceWriteIOPs   []string
-	Entrypoint        *string
+	Entrypoint        *string `json:"container_command,omitempty"`
 	Env               []string
 	EnvHost           bool
 	EnvFile           []string
@@ -180,7 +183,7 @@ type ContainerCreateOptions struct {
 	HealthRetries     uint
 	HealthStartPeriod string
 	HealthTimeout     string
-	Hostname          string
+	Hostname          string `json:"hostname,omitempty"`
 	HTTPProxy         bool
 	ImageVolume       string
 	Init              bool
@@ -197,14 +200,14 @@ type ContainerCreateOptions struct {
 	MemoryReservation string
 	MemorySwap        string
 	MemorySwappiness  int64
-	Name              string
+	Name              string `json:"container_name,omitempty"`
 	NoHealthCheck     bool
 	OOMKillDisable    bool
 	OOMScoreAdj       int
 	Arch              string
 	OS                string
 	Variant           string
-	PID               string
+	PID               string `json:"pid,omitempty"`
 	PIDsLimit         *int64
 	Platform          string
 	Pod               string
@@ -243,17 +246,17 @@ type ContainerCreateOptions struct {
 	UIDMap            []string
 	Ulimit            []string
 	User              string
-	UserNS            string
+	UserNS            string `json:"-"`
 	UTS               string
 	Mount             []string
-	Volume            []string
+	Volume            []string `json:"volume,omitempty"`
 	VolumesFrom       []string
 	Workdir           string
 	SeccompPolicy     string
 	PidFile           string
 	IsInfra           bool
 
-	Net *NetOptions
+	Net *NetOptions `json:"net,omitempty"`
 
 	CgroupConf []string
 }
@@ -293,9 +296,10 @@ func ToPodSpecGen(s specgen.PodSpecGenerator, p *PodCreateOptions) (*specgen.Pod
 	s.Pid = out
 	s.Hostname = p.Hostname
 	s.Labels = p.Labels
+	s.Devices = p.Devices
 	s.NoInfra = !p.Infra
-	if len(p.InfraCommand) > 0 {
-		s.InfraCommand = strings.Split(p.InfraCommand, " ")
+	if p.InfraCommand != nil && len(*p.InfraCommand) > 0 {
+		s.InfraCommand = strings.Split(*p.InfraCommand, " ")
 	}
 	if len(p.InfraConmonPidFile) > 0 {
 		s.InfraConmonPidFile = p.InfraConmonPidFile

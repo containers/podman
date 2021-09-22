@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/cri-o/ocicni/pkg/ocicni"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -32,7 +32,7 @@ func createUnitName(prefix string, name string) string {
 }
 
 // Bind ports to keep them closed on the host
-func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
+func bindPorts(ports []types.OCICNIPortMapping) ([]*os.File, error) {
 	var files []*os.File
 	notifySCTP := false
 	for _, i := range ports {
@@ -68,6 +68,12 @@ func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
 				return nil, errors.Wrapf(err, "cannot get file for UDP socket")
 			}
 			files = append(files, f)
+			// close the listener
+			// note that this does not affect the fd, see the godoc for server.File()
+			err = server.Close()
+			if err != nil {
+				logrus.Warnf("failed to close connection: %v", err)
+			}
 
 		case "tcp":
 			var (
@@ -96,6 +102,13 @@ func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
 				return nil, errors.Wrapf(err, "cannot get file for TCP socket")
 			}
 			files = append(files, f)
+			// close the listener
+			// note that this does not affect the fd, see the godoc for server.File()
+			err = server.Close()
+			if err != nil {
+				logrus.Warnf("failed to close connection: %v", err)
+			}
+
 		case "sctp":
 			if !notifySCTP {
 				notifySCTP = true

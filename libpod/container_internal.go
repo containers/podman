@@ -15,6 +15,7 @@ import (
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/containers/buildah/copier"
+	"github.com/containers/buildah/pkg/overlay"
 	butil "github.com/containers/buildah/util"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
@@ -288,6 +289,15 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 	// setup slirp4netns again because slirp4netns will die when conmon exits
 	if c.config.NetMode.IsSlirp4netns() {
 		err := c.runtime.setupSlirp4netns(c)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	// setup rootlesskit port forwarder again since it dies when conmon exits
+	// we use rootlesskit port forwarder only as rootless and when bridge network is used
+	if rootless.IsRootless() && c.config.NetMode.IsBridge() && len(c.config.PortMappings) > 0 {
+		err := c.runtime.setupRootlessPortMappingViaRLK(c, c.state.NetNS.Path())
 		if err != nil {
 			return false, err
 		}
@@ -634,17 +644,8 @@ func (c *Container) refresh() error {
 	}
 	c.lock = lock
 
-	// Try to delete any lingering IP allocations.
-	// If this fails, just log and ignore.
-	// I'm a little concerned that this is so far down in refresh() and we
-	// could fail before getting to it - but the worst that would happen is
-	// that Inspect() would return info on IPs we no longer own.
-	if len(c.state.NetworkStatus) > 0 {
-		if err := c.removeIPv4Allocations(); err != nil {
-			logrus.Errorf("Error removing IP allocations for container %s: %v", c.ID(), err)
-		}
-	}
 	c.state.NetworkStatus = nil
+	c.state.NetworkStatusOld = nil
 
 	if err := c.save(); err != nil {
 		return errors.Wrapf(err, "error refreshing state for container %s", c.ID())
@@ -653,57 +654,6 @@ func (c *Container) refresh() error {
 	// Remove ctl and attach files, which may persist across reboot
 	if err := c.removeConmonFiles(); err != nil {
 		return err
-	}
-
-	return nil
-}
-
-// Try and remove IP address allocations. Presently IPv4 only.
-// Should be safe as rootless because NetworkStatus should only be populated if
-// CNI is running.
-func (c *Container) removeIPv4Allocations() error {
-	cniNetworksDir, err := getCNINetworksDir()
-	if err != nil {
-		return err
-	}
-
-	if len(c.state.NetworkStatus) == 0 {
-		return nil
-	}
-
-	cniDefaultNetwork := ""
-	if c.runtime.netPlugin != nil {
-		cniDefaultNetwork = c.runtime.netPlugin.GetDefaultNetworkName()
-	}
-
-	networks, _, err := c.networks()
-	if err != nil {
-		return err
-	}
-
-	if len(networks) != len(c.state.NetworkStatus) {
-		return errors.Wrapf(define.ErrInternal, "network mismatch: asked to join %d CNI networks but got %d CNI results", len(networks), len(c.state.NetworkStatus))
-	}
-
-	for index, result := range c.state.NetworkStatus {
-		for _, ctrIP := range result.IPs {
-			if ctrIP.Version != "4" {
-				continue
-			}
-			candidate := ""
-			if len(networks) > 0 {
-				// CNI returns networks in order we passed them.
-				// So our index into results should be our index
-				// into networks.
-				candidate = filepath.Join(cniNetworksDir, networks[index], ctrIP.Address.IP.String())
-			} else {
-				candidate = filepath.Join(cniNetworksDir, cniDefaultNetwork, ctrIP.Address.IP.String())
-			}
-			logrus.Debugf("Going to try removing IP address reservation file %q for container %s", candidate, c.ID())
-			if err := os.Remove(candidate); err != nil && !os.IsNotExist(err) {
-				return errors.Wrapf(err, "error removing CNI IP reservation file %q for container %s", candidate, c.ID())
-			}
-		}
 	}
 
 	return nil
@@ -1007,11 +957,9 @@ func (c *Container) completeNetworkSetup() error {
 	}
 	state := c.state
 	// collect any dns servers that cni tells us to use (dnsname)
-	for _, cni := range state.NetworkStatus {
-		if cni.DNS.Nameservers != nil {
-			for _, server := range cni.DNS.Nameservers {
-				outResolvConf = append(outResolvConf, fmt.Sprintf("nameserver %s", server))
-			}
+	for _, status := range c.getNetworkStatus() {
+		for _, server := range status.DNSServerIPs {
+			outResolvConf = append(outResolvConf, fmt.Sprintf("nameserver %s", server))
 		}
 	}
 	// check if we have a bindmount for /etc/hosts
@@ -1052,9 +1000,12 @@ func (c *Container) completeNetworkSetup() error {
 
 func (c *Container) cniHosts() string {
 	var hosts string
-	if len(c.state.NetworkStatus) > 0 && len(c.state.NetworkStatus[0].IPs) > 0 {
-		ipAddress := strings.Split(c.state.NetworkStatus[0].IPs[0].Address.String(), "/")[0]
-		hosts += fmt.Sprintf("%s\t%s %s\n", ipAddress, c.Hostname(), c.Config().Name)
+	for _, status := range c.getNetworkStatus() {
+		for _, netInt := range status.Interfaces {
+			for _, netAddress := range netInt.Networks {
+				hosts += fmt.Sprintf("%s\t%s %s\n", netAddress.Subnet.IP.String(), c.Hostname(), c.Config().Name)
+			}
+		}
 	}
 	return hosts
 }
@@ -1541,6 +1492,32 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 	// We need to mount the container before volumes - to ensure the copyup
 	// works properly.
 	mountPoint := c.config.Rootfs
+	// Check if overlay has to be created on top of Rootfs
+	if c.config.RootfsOverlay {
+		overlayDest := c.runtime.store.GraphRoot()
+		contentDir, err := overlay.GenerateStructure(c.runtime.store.GraphRoot(), c.ID(), "rootfs", c.RootUID(), c.RootGID())
+		if err != nil {
+			return "", errors.Wrapf(err, "rootfs-overlay: failed to create TempDir in the %s directory", overlayDest)
+		}
+		overlayMount, err := overlay.Mount(contentDir, c.config.Rootfs, overlayDest, c.RootUID(), c.RootGID(), c.runtime.store.GraphOptions())
+		if err != nil {
+			return "", errors.Wrapf(err, "rootfs-overlay: creating overlay failed %q", c.config.Rootfs)
+		}
+
+		// Seems fuse-overlayfs is not present
+		// fallback to native overlay
+		if overlayMount.Type == "overlay" {
+			overlayMount.Options = append(overlayMount.Options, "nodev")
+			mountOpts := label.FormatMountLabel(strings.Join(overlayMount.Options, ","), c.MountLabel())
+			err = mount.Mount("overlay", overlayMount.Source, overlayMount.Type, mountOpts)
+			if err != nil {
+				return "", errors.Wrapf(err, "rootfs-overlay: creating overlay failed %q from native overlay", c.config.Rootfs)
+			}
+		}
+
+		mountPoint = overlayMount.Source
+	}
+
 	if mountPoint == "" {
 		mountPoint, err = c.mount()
 		if err != nil {
@@ -1713,6 +1690,17 @@ func (c *Container) cleanupStorage() error {
 	}
 
 	var cleanupErr error
+
+	// umount rootfs overlay if it was created
+	if c.config.RootfsOverlay {
+		overlayBasePath := c.runtime.store.GraphRoot()
+		overlayBasePath = filepath.Join(overlayBasePath, "rootfs")
+		if err := overlay.Unmount(overlayBasePath); err != nil {
+			// If the container can't remove content report the error
+			logrus.Errorf("Failed to cleanup overlay mounts for %s: %v", c.ID(), err)
+			cleanupErr = err
+		}
+	}
 
 	for _, containerMount := range c.config.Mounts {
 		if err := c.unmountSHM(containerMount); err != nil {

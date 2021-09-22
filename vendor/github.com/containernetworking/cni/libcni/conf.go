@@ -43,7 +43,7 @@ func (e NoConfigsFoundError) Error() string {
 func ConfFromBytes(bytes []byte) (*NetworkConfig, error) {
 	conf := &NetworkConfig{Bytes: bytes}
 	if err := json.Unmarshal(bytes, &conf.Network); err != nil {
-		return nil, fmt.Errorf("error parsing configuration: %s", err)
+		return nil, fmt.Errorf("error parsing configuration: %w", err)
 	}
 	if conf.Network.Type == "" {
 		return nil, fmt.Errorf("error parsing configuration: missing 'type'")
@@ -54,7 +54,7 @@ func ConfFromBytes(bytes []byte) (*NetworkConfig, error) {
 func ConfFromFile(filename string) (*NetworkConfig, error) {
 	bytes, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return nil, fmt.Errorf("error reading %s: %s", filename, err)
+		return nil, fmt.Errorf("error reading %s: %w", filename, err)
 	}
 	return ConfFromBytes(bytes)
 }
@@ -62,7 +62,7 @@ func ConfFromFile(filename string) (*NetworkConfig, error) {
 func ConfListFromBytes(bytes []byte) (*NetworkConfigList, error) {
 	rawList := make(map[string]interface{})
 	if err := json.Unmarshal(bytes, &rawList); err != nil {
-		return nil, fmt.Errorf("error parsing configuration list: %s", err)
+		return nil, fmt.Errorf("error parsing configuration list: %w", err)
 	}
 
 	rawName, ok := rawList["name"]
@@ -114,11 +114,11 @@ func ConfListFromBytes(bytes []byte) (*NetworkConfigList, error) {
 	for i, conf := range plugins {
 		newBytes, err := json.Marshal(conf)
 		if err != nil {
-			return nil, fmt.Errorf("failed to marshal plugin config %d: %v", i, err)
+			return nil, fmt.Errorf("failed to marshal plugin config %d: %w", i, err)
 		}
 		netConf, err := ConfFromBytes(newBytes)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse plugin config %d: %v", i, err)
+			return nil, fmt.Errorf("failed to parse plugin config %d: %w", i, err)
 		}
 		list.Plugins = append(list.Plugins, netConf)
 	}
@@ -129,7 +129,7 @@ func ConfListFromBytes(bytes []byte) (*NetworkConfigList, error) {
 func ConfListFromFile(filename string) (*NetworkConfigList, error) {
 	bytes, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return nil, fmt.Errorf("error reading %s: %s", filename, err)
+		return nil, fmt.Errorf("error reading %s: %w", filename, err)
 	}
 	return ConfListFromBytes(bytes)
 }
@@ -218,7 +218,7 @@ func InjectConf(original *NetworkConfig, newValues map[string]interface{}) (*Net
 	config := make(map[string]interface{})
 	err := json.Unmarshal(original.Bytes, &config)
 	if err != nil {
-		return nil, fmt.Errorf("unmarshal existing network bytes: %s", err)
+		return nil, fmt.Errorf("unmarshal existing network bytes: %w", err)
 	}
 
 	for key, value := range newValues {

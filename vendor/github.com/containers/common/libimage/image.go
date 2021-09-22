@@ -715,10 +715,18 @@ func (i *Image) Size() (int64, error) {
 	return i.runtime.store.ImageSize(i.ID())
 }
 
+// HasDifferentDigestOptions allows for customizing the check if another
+// (remote) image has a different digest.
+type HasDifferentDigestOptions struct {
+	// containers-auth.json(5) file to use when authenticating against
+	// container registries.
+	AuthFilePath string
+}
+
 // HasDifferentDigest returns true if the image specified by `remoteRef` has a
 // different digest than the local one.  This check can be useful to check for
 // updates on remote registries.
-func (i *Image) HasDifferentDigest(ctx context.Context, remoteRef types.ImageReference) (bool, error) {
+func (i *Image) HasDifferentDigest(ctx context.Context, remoteRef types.ImageReference, options *HasDifferentDigestOptions) (bool, error) {
 	// We need to account for the arch that the image uses.  It seems
 	// common on ARM to tweak this option to pull the correct image.  See
 	// github.com/containers/podman/issues/6613.
@@ -738,6 +746,14 @@ func (i *Image) HasDifferentDigest(ctx context.Context, remoteRef types.ImageRef
 		sys.VariantChoice = inspectInfo.Variant
 	}
 
+	if options != nil && options.AuthFilePath != "" {
+		sys.AuthFilePath = options.AuthFilePath
+	}
+
+	return i.hasDifferentDigestWithSystemContext(ctx, remoteRef, sys)
+}
+
+func (i *Image) hasDifferentDigestWithSystemContext(ctx context.Context, remoteRef types.ImageReference, sys *types.SystemContext) (bool, error) {
 	remoteImg, err := remoteRef.NewImage(ctx, sys)
 	if err != nil {
 		return false, err

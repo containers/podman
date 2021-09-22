@@ -8,8 +8,8 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -73,7 +73,7 @@ func port(_ *cobra.Command, args []string) error {
 	var (
 		container string
 		err       error
-		userPort  ocicni.PortMapping
+		userPort  types.OCICNIPortMapping
 	)
 
 	if len(args) == 0 && !portOpts.Latest && !portOpts.All {
@@ -105,7 +105,7 @@ func port(_ *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		userPort = ocicni.PortMapping{
+		userPort = types.OCICNIPortMapping{
 			HostPort:      0,
 			ContainerPort: int32(portNum),
 			Protocol:      fields[1],

@@ -215,7 +215,7 @@ func (p *Process) StartTime() (time.Time, error) {
 	return time.Unix(sinceBoot+bootTime, 0), nil
 }
 
-// CPUTime returns the cumlative CPU time of process p as a time.Duration.
+// CPUTime returns the cumulative CPU time of process p as a time.Duration.
 func (p *Process) CPUTime() (time.Duration, error) {
 	user, err := strconv.ParseInt(p.Stat.Utime, 10, 64)
 	if err != nil {

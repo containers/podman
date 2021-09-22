@@ -237,6 +237,10 @@ func (h *Handle) RouteAdd(route *Route) error {
 	return ErrNotImplemented
 }
 
+func (h *Handle) RouteAppend(route *Route) error {
+	return ErrNotImplemented
+}
+
 func (h *Handle) RouteDel(route *Route) error {
 	return ErrNotImplemented
 }

@@ -57,6 +57,9 @@ function setup() {
 
     # Now untag the digest reference again.
     run_podman untag $IMAGE $IMAGE@$digest
+
+    # Make sure the original image is still present (#11557).
+    run_podman image exists $IMAGE
 }
 
 # PR #7212: allow --remote anywhere before subcommand, not just as 1st flag

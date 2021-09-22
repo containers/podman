@@ -30,7 +30,7 @@ command to be executed.
 
 Read in a line delimited file of environment variables.
 
-#### **--interactive**, **-i**=*true|false*
+#### **--interactive**, **-i**
 
 When set to true, keep stdin open even if not attached. The default is *false*.
 

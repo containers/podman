@@ -14,6 +14,8 @@ Once connected, the container can communicate with other containers in the same 
 #### **--alias**
 Add network-scoped alias for the container.  If the network is using the `dnsname` CNI plugin, these aliases
 can be used for name resolution on the given network.  Multiple *--alias* options may be specified as input.
+NOTE: A container will only have access to aliases on the first network that it joins.  This is a limitation
+that will be removed in a later release.
 
 ## EXAMPLE
 

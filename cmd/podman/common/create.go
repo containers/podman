@@ -15,6 +15,18 @@ const sizeWithUnitFormat = "(format: `<number>[<unit>]`, where unit = b (bytes),
 
 var containerConfig = registry.PodmanConfig()
 
+// ContainerToPodOptions takes the Container and Pod Create options, assigning the matching values back to podCreate for the purpose of the libpod API
+// For this function to succeed, the JSON tags in PodCreateOptions and ContainerCreateOptions need to match due to the Marshaling and Unmarshaling done.
+// The types of the options also need to match or else the unmarshaling will fail even if the tags match
+func ContainerToPodOptions(containerCreate *entities.ContainerCreateOptions, podCreate *entities.PodCreateOptions) error {
+	contMarshal, err := json.Marshal(containerCreate)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(contMarshal, podCreate)
+}
+
+// DefineCreateFlags declares and instantiates the container create flags
 func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, isInfra bool) {
 	createFlags := cmd.Flags()
 
@@ -143,14 +155,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"Memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(cpusetMemsFlagName, completion.AutocompleteNone)
-
-		deviceFlagName := "device"
-		createFlags.StringSliceVar(
-			&cf.Devices,
-			deviceFlagName, devices(),
-			"Add a host device to the container",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(deviceFlagName, completion.AutocompleteDefault)
 
 		deviceCgroupRuleFlagName := "device-cgroup-rule"
 		createFlags.StringSliceVar(
@@ -660,18 +664,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(mountFlagName, AutocompleteMountFlag)
 
-		volumeDesciption := "Bind mount a volume into the container"
-		if registry.IsRemote() {
-			volumeDesciption = "Bind mount a volume into the container. Volume src will be on the server machine, not the client"
-		}
-		volumeFlagName := "volume"
-		createFlags.StringArrayVarP(
-			&cf.Volume,
-			volumeFlagName, "v", volumes(),
-			volumeDesciption,
-		)
-		_ = cmd.RegisterFlagCompletionFunc(volumeFlagName, AutocompleteVolumeFlag)
-
 		volumesFromFlagName := "volumes-from"
 		createFlags.StringArrayVar(
 			&cf.VolumesFrom,
@@ -865,4 +857,23 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		"PID namespace to use",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(pidFlagName, AutocompleteNamespace)
+
+	volumeDesciption := "Bind mount a volume into the container"
+	if registry.IsRemote() {
+		volumeDesciption = "Bind mount a volume into the container. Volume source will be on the server machine, not the client"
+	}
+	volumeFlagName := "volume"
+	createFlags.StringArrayVarP(
+		&cf.Volume,
+		volumeFlagName, "v", volumes(),
+		volumeDesciption,
+	)
+	_ = cmd.RegisterFlagCompletionFunc(volumeFlagName, AutocompleteVolumeFlag)
+	deviceFlagName := "device"
+	createFlags.StringSliceVar(
+		&cf.Devices,
+		deviceFlagName, devices(),
+		"Add a host device to the container",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(deviceFlagName, completion.AutocompleteDefault)
 }

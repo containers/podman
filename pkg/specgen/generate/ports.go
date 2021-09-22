@@ -11,7 +11,6 @@ import (
 	"github.com/containers/podman/v3/utils"
 
 	"github.com/containers/podman/v3/pkg/specgen"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -25,11 +24,11 @@ const (
 // Parse port maps to OCICNI port mappings.
 // Returns a set of OCICNI port mappings, and maps of utilized container and
 // host ports.
-func ParsePortMapping(portMappings []types.PortMapping) ([]ocicni.PortMapping, map[string]map[string]map[uint16]uint16, map[string]map[string]map[uint16]uint16, error) {
+func ParsePortMapping(portMappings []types.PortMapping) ([]types.OCICNIPortMapping, map[string]map[string]map[uint16]uint16, map[string]map[string]map[uint16]uint16, error) {
 	// First, we need to validate the ports passed in the specgen, and then
 	// convert them into CNI port mappings.
 	type tempMapping struct {
-		mapping      ocicni.PortMapping
+		mapping      types.OCICNIPortMapping
 		startOfRange bool
 		isInRange    bool
 	}
@@ -159,7 +158,7 @@ func ParsePortMapping(portMappings []types.PortMapping) ([]ocicni.PortMapping, m
 				// struct.
 				// Don't use hostIP - we want to preserve the
 				// empty string hostIP by default for compat.
-				cniPort := ocicni.PortMapping{
+				cniPort := types.OCICNIPortMapping{
 					HostPort:      int32(hPort),
 					ContainerPort: int32(cPort),
 					Protocol:      p,
@@ -179,7 +178,7 @@ func ParsePortMapping(portMappings []types.PortMapping) ([]ocicni.PortMapping, m
 
 	// Handle any 0 host ports now by setting random container ports.
 	if postAssignHostPort {
-		remadeMappings := make([]ocicni.PortMapping, 0, len(tempMappings))
+		remadeMappings := make([]types.OCICNIPortMapping, 0, len(tempMappings))
 
 		var (
 			candidate int
@@ -245,7 +244,7 @@ func ParsePortMapping(portMappings []types.PortMapping) ([]ocicni.PortMapping, m
 		return remadeMappings, containerPortValidate, hostPortValidate, nil
 	}
 
-	finalMappings := []ocicni.PortMapping{}
+	finalMappings := []types.OCICNIPortMapping{}
 	for _, m := range tempMappings {
 		finalMappings = append(finalMappings, m.mapping)
 	}
@@ -254,7 +253,7 @@ func ParsePortMapping(portMappings []types.PortMapping) ([]ocicni.PortMapping, m
 }
 
 // Make final port mappings for the container
-func createPortMappings(ctx context.Context, s *specgen.SpecGenerator, imageData *libimage.ImageData) ([]ocicni.PortMapping, map[uint16][]string, error) {
+func createPortMappings(ctx context.Context, s *specgen.SpecGenerator, imageData *libimage.ImageData) ([]types.OCICNIPortMapping, map[uint16][]string, error) {
 	finalMappings, containerPortValidate, hostPortValidate, err := ParsePortMapping(s.PortMappings)
 	if err != nil {
 		return nil, nil, err
@@ -356,7 +355,7 @@ func createPortMappings(ctx context.Context, s *specgen.SpecGenerator, imageData
 				logrus.Debugf("Mapping exposed port %d/%s to host port %d", port, p, hostPort)
 
 				// Make a CNI port mapping
-				cniPort := ocicni.PortMapping{
+				cniPort := types.OCICNIPortMapping{
 					HostPort:      int32(candidate),
 					ContainerPort: int32(port),
 					Protocol:      p,

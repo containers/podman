@@ -10,7 +10,7 @@ import (
 
 	"github.com/containernetworking/cni/libcni"
 	cnitypes "github.com/containernetworking/cni/pkg/types"
-	"github.com/containernetworking/cni/pkg/types/current"
+	types040 "github.com/containernetworking/cni/pkg/types/040"
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/network/types"
@@ -107,14 +107,9 @@ func (n *cniNetwork) Setup(namespacePath string, options types.SetupOptions) (ma
 			return nil, retErr
 		}
 
-		var cnires *current.Result
-		cnires, retErr = current.GetResult(res)
-		if retErr != nil {
-			return nil, retErr
-		}
-		logrus.Debugf("cni result for container %s network %s: %v", options.ContainerID, name, cnires)
+		logrus.Debugf("cni result for container %s network %s: %v", options.ContainerID, name, res)
 		var status types.StatusBlock
-		status, retErr = cniResultToStatus(cnires)
+		status, retErr = CNIResultToStatus(res)
 		if retErr != nil {
 			return nil, retErr
 		}
@@ -123,9 +118,14 @@ func (n *cniNetwork) Setup(namespacePath string, options types.SetupOptions) (ma
 	return results, nil
 }
 
-// cniResultToStatus convert the cni result to status block
-func cniResultToStatus(cniResult *current.Result) (types.StatusBlock, error) {
+// CNIResultToStatus convert the cni result to status block
+// nolint:golint
+func CNIResultToStatus(res cnitypes.Result) (types.StatusBlock, error) {
 	result := types.StatusBlock{}
+	cniResult, err := types040.GetResult(res)
+	if err != nil {
+		return result, err
+	}
 	nameservers := make([]net.IP, 0, len(cniResult.DNS.Nameservers))
 	for _, nameserver := range cniResult.DNS.Nameservers {
 		ip := net.ParseIP(nameserver)

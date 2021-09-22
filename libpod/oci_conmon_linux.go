@@ -1140,6 +1140,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		if err != nil {
 			return err
 		}
+		filesToClose = append(filesToClose, ports...)
 
 		// Leak the port we bound in the conmon process.  These fd's won't be used
 		// by the container and conmon will keep the ports busy so that another

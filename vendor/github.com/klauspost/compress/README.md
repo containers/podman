@@ -17,6 +17,10 @@ This package provides various compression algorithms.
 
 # changelog
 
+* Aug 12, 2021 (v1.13.4)
+	* Add [snappy replacement package](https://github.com/klauspost/compress/tree/master/snappy).
+	* zstd: Fix incorrect encoding in "best" mode [#415](https://github.com/klauspost/compress/pull/415)
+
 * Aug 3, 2021 (v1.13.3) 
 
 	* zstd: Improve Best compression [#404](https://github.com/klauspost/compress/pull/404)

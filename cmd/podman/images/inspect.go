@@ -17,9 +17,9 @@ var (
 		Long:              `Displays the low-level information of an image identified by name or ID.`,
 		RunE:              inspectExec,
 		ValidArgsFunction: common.AutocompleteImages,
-		Example: `podman inspect alpine
-  podman inspect --format "imageId: {{.Id}} size: {{.Size}}" alpine
-  podman inspect --format "image: {{.ImageName}} driver: {{.Driver}}" myctr`,
+		Example: `podman image inspect alpine
+  podman image inspect --format "imageId: {{.Id}} size: {{.Size}}" alpine
+  podman image inspect --format "image: {{.ImageName}} driver: {{.Driver}}" myctr`,
 	}
 	inspectOpts *entities.InspectOptions
 )

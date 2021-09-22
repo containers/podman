@@ -23,6 +23,7 @@
 export GOPROXY=https://proxy.golang.org
 
 GO ?= go
+GOCMD = CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO)
 COVERAGE_PATH ?= .coverage
 DESTDIR ?=
 EPOCH_TEST_COMMIT ?= $(shell git merge-base $${DEST_BRANCH:-main} HEAD)
@@ -107,12 +108,9 @@ LIBSECCOMP_COMMIT := v2.3.3
 # caller may override in special circumstances if needed.
 GINKGOTIMEOUT ?= -timeout=90m
 
-RELEASE_VERSION ?= $(shell hack/get_release_info.sh VERSION)
-RELEASE_NUMBER ?= $(shell hack/get_release_info.sh NUMBER|sed -e 's/^v\(.*\)/\1/')
-RELEASE_DIST ?= $(shell hack/get_release_info.sh DIST)
-RELEASE_DIST_VER ?= $(shell hack/get_release_info.sh DIST_VER)
-RELEASE_ARCH ?= $(shell hack/get_release_info.sh ARCH)
-RELEASE_BASENAME := $(shell hack/get_release_info.sh BASENAME)
+# Conditional required to produce empty-output if binary not built yet.
+RELEASE_VERSION = $(shell if test -x test/version/version; then test/version/version; fi)
+RELEASE_NUMBER = $(shell echo "$(RELEASE_VERSION)" | sed -e 's/^v\(.*\)/\1/')
 
 # If non-empty, logs all output from server during remote system testing
 PODMAN_SERVER_LOG ?=
@@ -153,7 +151,11 @@ err_if_empty = $(if $(strip $($(1))),$(strip $($(1))),$(error Required variable 
 # Podman does not work w/o CGO_ENABLED, except in some very specific cases
 CGO_ENABLED ?= 1
 # Default to the native OS type and architecture unless otherwise specified
-GOOS ?= $(shell $(GO) env GOOS)
+NATIVE_GOOS := $(shell env -u GOOS $(GO) env GOOS)
+GOOS ?= $(NATIVE_GOOS)
+# Default to the native architecture type
+NATIVE_GOARCH := $(shell env -u GOARCH $(GO) env GOARCH)
+GOARCH ?= $(NATIVE_GOARCH)
 ifeq ($(call err_if_empty,GOOS),windows)
 BINSFX := .exe
 SRCBINDIR := bin/windows
@@ -165,7 +167,7 @@ BINSFX := -remote
 SRCBINDIR := bin
 endif
 # Necessary for nested-$(MAKE) calls and docs/remote-docs.sh
-export GOOS CGO_ENABLED BINSFX SRCBINDIR
+export GOOS GOARCH CGO_ENABLED BINSFX SRCBINDIR
 
 define go-get
 	env GO111MODULE=off \
@@ -242,11 +244,11 @@ gofmt: ## Verify the source code gofmt
 
 .PHONY: test/checkseccomp/checkseccomp
 test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
-	$(GO) build $(BUILDFLAGS) -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o $@ ./test/checkseccomp
+	$(GOCMD) build $(BUILDFLAGS) -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o $@ ./test/checkseccomp
 
 .PHONY: test/testvol/testvol
 test/testvol/testvol: .gopathok $(wildcard test/testvol/*.go)
-	$(GO) build $(BUILDFLAGS) -ldflags '$(LDFLAGS_PODMAN)' -o $@ ./test/testvol
+	$(GOCMD) build $(BUILDFLAGS) -ldflags '$(LDFLAGS_PODMAN)' -o $@ ./test/testvol
 
 .PHONY: volume-plugin-test-image
 volume-plugin-test-img:
@@ -254,7 +256,10 @@ volume-plugin-test-img:
 
 .PHONY: test/goecho/goecho
 test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
-	$(GO) build $(BUILDFLAGS) -ldflags '$(LDFLAGS_PODMAN)' -o $@ ./test/goecho
+	$(GOCMD) build $(BUILDFLAGS) -ldflags '$(LDFLAGS_PODMAN)' -o $@ ./test/goecho
+
+test/version/version: .gopathok version/version.go
+	$(GO) build -o $@ ./test/version/
 
 .PHONY: codespell
 codespell:
@@ -292,8 +297,7 @@ ifeq (,$(findstring systemd,$(BUILDTAGS)))
 		Install libsystemd on Ubuntu or systemd-devel on rpm based \
 		distro for journald support."
 endif
-	CGO_ENABLED=$(CGO_ENABLED) \
-		$(GO) build \
+	$(GOCMD) build \
 		$(BUILDFLAGS) \
 		-ldflags '$(LDFLAGS_PODMAN)' \
 		-tags "$(BUILDTAGS)" \
@@ -304,18 +308,14 @@ $(SRCBINDIR):
 	mkdir -p $(SRCBINDIR)
 
 $(SRCBINDIR)/podman$(BINSFX): $(SRCBINDIR) .gopathok $(SOURCES) go.mod go.sum
-	CGO_ENABLED=$(CGO_ENABLED) \
-		GOOS=$(GOOS) \
-		$(GO) build \
+	$(GOCMD) build \
 		$(BUILDFLAGS) \
 		-ldflags '$(LDFLAGS_PODMAN)' \
 		-tags "${REMOTETAGS}" \
 		-o $@ ./cmd/podman
 
 $(SRCBINDIR)/podman-remote-static: $(SRCBINDIR) .gopathok $(SOURCES) go.mod go.sum
-	CGO_ENABLED=0 \
-		GOOS=$(GOOS) \
-		$(GO) build \
+	$(GOCMD) build \
 		$(BUILDFLAGS) \
 		-ldflags '$(LDFLAGS_PODMAN_STATIC)' \
 		-tags "${REMOTETAGS}" \
@@ -333,6 +333,7 @@ podman-remote-linux: ## Build podman-remote for Linux
 	$(MAKE) \
 		CGO_ENABLED=0 \
 		GOOS=linux \
+		GOARCH=$(GOARCH) \
 		bin/podman-remote
 
 PHONY: podman-remote-static
@@ -350,6 +351,7 @@ podman-remote-darwin: ## Build podman-remote for macOS
 	$(MAKE) \
 		CGO_ENABLED=0 \
 		GOOS=darwin \
+		GOARCH=$(GOARCH) \
 		bin/darwin/podman
 
 ###
@@ -359,7 +361,7 @@ podman-remote-darwin: ## Build podman-remote for macOS
 .PHONY: generate-bindings
 generate-bindings:
 ifneq ($(GOOS),darwin)
-	GO111MODULE=off $(GO) generate ./pkg/bindings/... ;
+	GO111MODULE=off $(GOCMD) generate ./pkg/bindings/... ;
 endif
 
 # DO NOT USE: use local-cross instead
@@ -444,12 +446,14 @@ docs: $(MANPAGES) ## Generate documentation
 
 # docs/remote-docs.sh requires a locally executable 'podman-remote' binary
 # in addition to the target-archetecture binary (if any).
-install-podman-remote-%-docs: podman-remote-$(shell env -i HOME=$$HOME PATH=$$PATH go env GOOS) docs $(MANPAGES)
+podman-remote-%-docs: podman-remote-$(NATIVE_GOOS)
+	$(eval GOOS := $*)
+	$(MAKE) docs $(MANPAGES)
 	rm -rf docs/build/remote
 	mkdir -p docs/build/remote
 	ln -sf $(CURDIR)/docs/source/markdown/links docs/build/man/
 	docs/remote-docs.sh \
-		$* \
+		$(GOOS) \
 		docs/build/remote/$* \
 		$(if $(findstring windows,$*),docs/source/markdown,docs/build/man)
 
@@ -491,7 +495,7 @@ run-docker-py-tests:
 	-rm test/__init__.py
 
 .PHONY: localunit
-localunit: test/goecho/goecho
+localunit: test/goecho/goecho test/version/version
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
 	$(GOBIN)/ginkgo \
 		-r \
@@ -581,7 +585,8 @@ system.test-binary: .install.ginkgo
 	$(GO) test -c ./test/system
 
 .PHONY: test-binaries
-test-binaries: test/checkseccomp/checkseccomp test/goecho/goecho install.catatonit
+test-binaries: test/checkseccomp/checkseccomp test/goecho/goecho install.catatonit test/version/version
+	@echo "Canonical source version: $(call err_if_empty,RELEASE_VERSION)"
 
 .PHONY: tests-included
 tests-included:
@@ -601,40 +606,71 @@ tests-expect-exit:
 ### Release/Packaging targets
 ###
 
-podman-release.tar.gz: binaries docs  ## Build all binaries, docs., and installation tree, into a tarball.
+.PHONY: podman-release
+podman-release: podman-release-$(GOARCH).tar.gz  # Build all Linux binaries for $GOARCH, docs., and installation tree, into a tarball.
+
+# The following two targets are nuanced and complex:
+# Cross-building the podman-remote documentation requires a functional
+# native architecture executable.  However `make` only deals with
+# files/timestamps, it doesn't understand if an existing binary will
+# function on the system or not.  This makes building cross-platform
+# releases incredibly accident-prone and fragile.  The only practical
+# way to deal with this, is via multiple conditional (nested) `make`
+# calls along with careful manipulation of `$GOOS` and `$GOARCH`.
+
+podman-release-%.tar.gz: test/version/version
 	$(eval TMPDIR := $(shell mktemp -d podman_tmp_XXXX))
-	$(eval SUBDIR := podman-v$(RELEASE_NUMBER))
+	$(eval SUBDIR := podman-v$(call err_if_empty,RELEASE_NUMBER))
+	$(eval _DSTARGS := "DESTDIR=$(TMPDIR)/$(SUBDIR)" "PREFIX=/usr")
+	$(eval GOARCH := $*)
 	mkdir -p "$(TMPDIR)/$(SUBDIR)"
-	$(MAKE) install.bin install.man \
-		install.systemd "DESTDIR=$(TMPDIR)/$(SUBDIR)" "PREFIX=/usr"
+	$(MAKE) GOOS=$(GOOS) GOARCH=$(NATIVE_GOARCH) \
+		clean-binaries docs podman-remote-$(GOOS)-docs
+	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then \
+		$(MAKE) CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) \
+			BUILDTAGS="$(BUILDTAGS_CROSS)" clean-binaries binaries; \
+	else \
+		$(MAKE) GOOS=$(GOOS) GOARCH=$(GOARCH) binaries; \
+	fi
+	$(MAKE) $(_DSTARGS) install.bin-nobuild install.remote-nobuild install.man install.systemd
 	tar -czvf $@ --xattrs -C "$(TMPDIR)" "./$(SUBDIR)"
+	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then $(MAKE) clean-binaries; fi
 	-rm -rf "$(TMPDIR)"
 
-podman-remote-release-%.zip: podman-remote-% install-podman-remote-%-docs  ## Build podman-remote for GOOS=%, docs., and installation zip.
+podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$GOOS_$GOARCH, and docs. into an installation zip.
 	$(eval TMPDIR := $(shell mktemp -d podman_tmp_XXXX))
-	$(eval SUBDIR := podman-$(RELEASE_NUMBER))
+	$(eval SUBDIR := podman-$(call err_if_empty,RELEASE_NUMBER))
+	$(eval _DSTARGS := "DESTDIR=$(TMPDIR)/$(SUBDIR)" "PREFIX=/usr")
+	$(eval GOOS := $(firstword $(subst _, ,$*)))
+	$(eval GOARCH := $(lastword $(subst _, ,$*)))
+	$(eval _GOPLAT := GOOS=$(call err_if_empty,GOOS) GOARCH=$(call err_if_empty,GOARCH))
 	mkdir -p "$(TMPDIR)/$(SUBDIR)"
-	$(MAKE) \
-		GOOS=$* \
-		DESTDIR=$(TMPDIR)/ \
-		BINDIR=$(SUBDIR) \
-		SELINUXOPT="" \
-		install.remote-nobuild
-	cp -r ./docs/build/remote/$* "$(TMPDIR)/$(SUBDIR)/docs/"
+	$(MAKE) GOOS=$(GOOS) GOARCH=$(NATIVE_GOARCH) \
+		clean-binaries podman-remote-$(GOOS)-docs
+	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then \
+		$(MAKE) CGO_ENABLED=0 $(GOPLAT) BUILDTAGS="$(BUILDTAGS_CROSS)" \
+			clean-binaries podman-remote-$(GOOS); \
+	else \
+		$(MAKE) $(GOPLAT) podman-remote-$(GOOS); \
+	fi
+	cp -r ./docs/build/remote/$(GOOS) "$(TMPDIR)/$(SUBDIR)/docs/"
 	cp ./contrib/remote/containers.conf "$(TMPDIR)/$(SUBDIR)/"
+	$(MAKE) $(GOPLAT) $(_DSTARGS) SELINUXOPT="" install.remote-nobuild
 	cd "$(TMPDIR)" && \
 		zip --recurse-paths "$(CURDIR)/$@" "./"
+	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then $(MAKE) clean-binaries; fi
 	-rm -rf "$(TMPDIR)"
 
 .PHONY: podman.msi
-podman.msi: podman-v$(RELEASE_NUMBER).msi  ## Build podman-remote, package for installation on Windows
-podman-v$(RELEASE_NUMBER).msi: podman-remote-windows install-podman-remote-windows-docs
+podman.msi: test/version/version  ## Build podman-remote, package for installation on Windows
+	$(MAKE) podman-v$(RELEASE_NUMBER).msi
+podman-v$(RELEASE_NUMBER).msi: podman-remote-windows podman-remote-windows-docs
 	$(eval DOCFILE := docs/build/remote/windows)
 	find $(DOCFILE) -print | \
 		wixl-heat --var var.ManSourceDir --component-group ManFiles \
 		--directory-ref INSTALLDIR --prefix $(DOCFILE)/ > \
 			$(DOCFILE)/pages.wsx
-	wixl -D VERSION=$(RELEASE_VERSION) -D ManSourceDir=$(DOCFILE) \
+	wixl -D VERSION=$(call err_if_empty,RELEASE_VERSION) -D ManSourceDir=$(DOCFILE) \
 		-o $@ contrib/msi/podman.wxs $(DOCFILE)/pages.wsx
 
 .PHONY: package
@@ -819,8 +855,13 @@ uninstall:
 	rm -f ${DESTDIR}${USERSYSTEMDDIR}/podman.socket
 	rm -f ${DESTDIR}${USERSYSTEMDDIR}/podman.service
 
+.PHONY: clean-binaries
+clean-binaries: ## Remove platform/architecture specific binary files
+	rm -rf \
+		bin \
+
 .PHONY: clean
-clean: ## Clean all make artifacts
+clean: clean-binaries ## Clean all make artifacts
 	rm -rf \
 		.gopathok \
 		_output \
@@ -828,10 +869,10 @@ clean: ## Clean all make artifacts
 		$(wildcard podman-remote*.zip) \
 		$(wildcard podman_tmp_*) \
 		$(wildcard podman*.tar.gz) \
-		bin \
 		build \
 		test/checkseccomp/checkseccomp \
 		test/goecho/goecho \
+		test/version/version \
 		test/__init__.py \
 		test/testdata/redis-image \
 		libpod/container_ffjson.go \

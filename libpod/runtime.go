@@ -20,7 +20,6 @@ import (
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/common/pkg/defaultnet"
 	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	is "github.com/containers/image/v5/storage"
@@ -28,15 +27,17 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/libpod/lock"
+	"github.com/containers/podman/v3/libpod/network/cni"
+	nettypes "github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/libpod/plugin"
 	"github.com/containers/podman/v3/libpod/shutdown"
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/systemd"
 	"github.com/containers/podman/v3/pkg/util"
+	"github.com/containers/podman/v3/utils"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/unshare"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/docker/pkg/namesgenerator"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -80,7 +81,7 @@ type Runtime struct {
 	defaultOCIRuntime      OCIRuntime
 	ociRuntimes            map[string]OCIRuntime
 	runtimeFlags           []string
-	netPlugin              ocicni.CNIPlugin
+	network                nettypes.ContainerNetwork
 	conmonPath             string
 	libimageRuntime        *libimage.Runtime
 	libimageEventsShutdown chan bool
@@ -482,17 +483,20 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		}
 	}
 
-	// If we need to make a default network - do so now.
-	if err := defaultnet.Create(runtime.config.Network.DefaultNetwork, runtime.config.Network.DefaultSubnet, runtime.config.Network.NetworkConfigDir, runtime.config.Engine.StaticDir, runtime.config.Engine.MachineEnabled); err != nil {
-		logrus.Errorf("Failed to created default CNI network: %v", err)
+	netInterface, err := cni.NewCNINetworkInterface(cni.InitConfig{
+		CNIConfigDir:   runtime.config.Network.NetworkConfigDir,
+		CNIPluginDirs:  runtime.config.Network.CNIPluginDirs,
+		DefaultNetwork: runtime.config.Network.DefaultNetwork,
+		DefaultSubnet:  runtime.config.Network.DefaultSubnet,
+		IsMachine:      runtime.config.Engine.MachineEnabled,
+		// TODO use cni.lock
+		LockFile: filepath.Join(runtime.config.Network.NetworkConfigDir, "cni1.lock"),
+	})
+	if err != nil {
+		return errors.Wrapf(err, "could not create network interface")
 	}
 
-	// Set up the CNI net plugin
-	netPlugin, err := ocicni.InitCNINoInotify(runtime.config.Network.DefaultNetwork, runtime.config.Network.NetworkConfigDir, "", runtime.config.Network.CNIPluginDirs...)
-	if err != nil {
-		return errors.Wrapf(err, "error configuring CNI network plugin")
-	}
-	runtime.netPlugin = netPlugin
+	runtime.network = netInterface
 
 	// We now need to see if the system has restarted
 	// We check for the presence of a file in our tmp directory to verify this
@@ -540,6 +544,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 				return err
 			}
 			if became {
+				utils.MovePauseProcessToScope(pausePid)
 				os.Exit(ret)
 			}
 		}
@@ -1165,4 +1170,14 @@ func (r *Runtime) graphRootMountedFlag(mounts []spec.Mount) string {
 		}
 	}
 	return ""
+}
+
+// Network returns the network interface which is used by the runtime
+func (r *Runtime) Network() nettypes.ContainerNetwork {
+	return r.network
+}
+
+// Network returns the network interface which is used by the runtime
+func (r *Runtime) GetDefaultNetworkName() string {
+	return r.config.Network.DefaultNetwork
 }

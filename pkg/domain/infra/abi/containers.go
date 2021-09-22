@@ -830,21 +830,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 				}
 				return reports, errors.Wrapf(err, "unable to start container %s", ctr.ID())
 			}
-
-			if ecode, err := ctr.Wait(ctx); err != nil {
-				if errors.Cause(err) == define.ErrNoSuchCtr {
-					// Check events
-					event, err := ic.Libpod.GetLastContainerEvent(ctx, ctr.ID(), events.Exited)
-					if err != nil {
-						logrus.Errorf("Cannot get exit code: %v", err)
-						exitCode = define.ExecErrorCodeNotFound
-					} else {
-						exitCode = event.ContainerExitCode
-					}
-				}
-			} else {
-				exitCode = int(ecode)
-			}
+			exitCode = ic.GetContainerExitCode(ctx, ctr)
 			reports = append(reports, &entities.ContainerStartReport{
 				Id:       ctr.ID(),
 				RawInput: rawInput,
@@ -985,21 +971,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 		report.ExitCode = define.ExitCode(err)
 		return &report, err
 	}
-
-	if ecode, err := ctr.Wait(ctx); err != nil {
-		if errors.Cause(err) == define.ErrNoSuchCtr {
-			// Check events
-			event, err := ic.Libpod.GetLastContainerEvent(ctx, ctr.ID(), events.Exited)
-			if err != nil {
-				logrus.Errorf("Cannot get exit code: %v", err)
-				report.ExitCode = define.ExecErrorCodeNotFound
-			} else {
-				report.ExitCode = event.ContainerExitCode
-			}
-		}
-	} else {
-		report.ExitCode = int(ecode)
-	}
+	report.ExitCode = ic.GetContainerExitCode(ctx, ctr)
 	if opts.Rm && !ctr.ShouldRestart(ctx) {
 		if err := ic.Libpod.RemoveContainer(ctx, ctr, false, true); err != nil {
 			if errors.Cause(err) == define.ErrNoSuchCtr ||
@@ -1011,6 +983,29 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 		}
 	}
 	return &report, nil
+}
+
+func (ic *ContainerEngine) GetContainerExitCode(ctx context.Context, ctr *libpod.Container) int {
+	exitCode, err := ctr.Wait(ctx)
+	if err == nil {
+		return int(exitCode)
+	}
+	if errors.Cause(err) != define.ErrNoSuchCtr {
+		logrus.Errorf("Could not retrieve exit code: %v", err)
+		return define.ExecErrorCodeNotFound
+	}
+	// Make 4 attempt with 0.25s backoff between each for 1 second total
+	var event *events.Event
+	for i := 0; i < 4; i++ {
+		event, err = ic.Libpod.GetLastContainerEvent(ctx, ctr.ID(), events.Exited)
+		if err != nil {
+			time.Sleep(250 * time.Millisecond)
+			continue
+		}
+		return int(event.ContainerExitCode)
+	}
+	logrus.Errorf("Could not retrieve exit code from event: %v", err)
+	return define.ExecErrorCodeNotFound
 }
 
 func (ic *ContainerEngine) ContainerLogs(ctx context.Context, containers []string, options entities.ContainerLogsOptions) error {

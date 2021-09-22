@@ -36,6 +36,7 @@ type U32 struct {
 	ClassId    uint32
 	Divisor    uint32 // Divisor MUST be power of 2.
 	Hash       uint32
+	Link       uint32
 	RedirIndex int
 	Sel        *TcU32Sel
 	Actions    []Action
@@ -224,6 +225,9 @@ func (h *Handle) filterModify(filter Filter, flags int) error {
 		}
 		if filter.Hash != 0 {
 			options.AddRtAttr(nl.TCA_U32_HASH, nl.Uint32Attr(filter.Hash))
+		}
+		if filter.Link != 0 {
+			options.AddRtAttr(nl.TCA_U32_LINK, nl.Uint32Attr(filter.Link))
 		}
 		actionsAttr := options.AddRtAttr(nl.TCA_U32_ACT, nil)
 		// backwards compatibility
@@ -666,6 +670,8 @@ func parseU32Data(filter Filter, data []syscall.NetlinkRouteAttr) (bool, error) 
 			u32.Divisor = native.Uint32(datum.Value)
 		case nl.TCA_U32_HASH:
 			u32.Hash = native.Uint32(datum.Value)
+		case nl.TCA_U32_LINK:
+			u32.Link = native.Uint32(datum.Value)
 		}
 	}
 	return detailed, nil

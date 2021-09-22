@@ -242,6 +242,39 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(session).Should(Exit(0))
 	})
 
+	It("podman support overlay on named volume", func() {
+		SkipIfRemote("Overlay volumes only work locally")
+		if os.Getenv("container") != "" {
+			Skip("Overlay mounts not supported when running in a container")
+		}
+		if rootless.IsRootless() {
+			if _, err := exec.LookPath("fuse-overlayfs"); err != nil {
+				Skip("Fuse-Overlayfs required for rootless overlay mount test")
+			}
+		}
+		session := podmanTest.Podman([]string{"volume", "create", "myvolume"})
+		session.WaitWithDefaultTimeout()
+		volName := session.OutputToString()
+		Expect(session).Should(Exit(0))
+
+		// create file on actual volume
+		session = podmanTest.Podman([]string{"run", "--volume", volName + ":/data", ALPINE, "sh", "-c", "echo hello >> " + "/data/test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// create file on overlayed volume
+		session = podmanTest.Podman([]string{"run", "--volume", volName + ":/data:O", ALPINE, "sh", "-c", "echo hello >> " + "/data/overlayed"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// volume should contain only `test` not `overlayed`
+		session = podmanTest.Podman([]string{"run", "--volume", volName + ":/data", ALPINE, "sh", "-c", "ls /data"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(Not(ContainSubstring("overlayed")))
+		Expect(session.OutputToString()).To(ContainSubstring("test"))
+
+	})
+
 	It("podman run with noexec can't exec", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "-v", "/bin:/hostbin:noexec", ALPINE, "/hostbin/ls", "/"})
 		session.WaitWithDefaultTimeout()

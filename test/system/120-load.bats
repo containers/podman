@@ -183,4 +183,16 @@ verify_iid_and_name() {
     run_podman rmi -f $img1 $img2
 }
 
+@test "podman save --oci-accept-uncompressed-layers" {
+    archive=$PODMAN_TMPDIR/myimage-$(random_string 8).tar
+    untar=$PODMAN_TMPDIR/myuntar-$(random_string 8)
+    mkdir -p $untar
+
+    # Create a tarball, unpack it and make sure the layers are uncompressed.
+    run_podman save -o $archive --format oci-archive --uncompressed $IMAGE
+    run tar -C $untar -xvf $archive
+    run file $untar/blobs/sha256/*
+    is "$output" ".*POSIX tar archive" "layers are uncompressed"
+}
+
 # vim: filetype=sh
