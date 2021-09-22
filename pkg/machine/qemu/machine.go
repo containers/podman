@@ -140,7 +140,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 	v.IdentityPath = filepath.Join(sshDir, v.Name)
 
 	switch opts.ImagePath {
-	case "testing", "stable", "":
+	case "testing", "next", "stable", "":
 		// Get image as usual
 		dd, err := machine.NewFcosDownloader(vmtype, v.Name, opts.ImagePath)
 		if err != nil {

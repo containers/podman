@@ -139,6 +139,8 @@ func getFCOSDownload(imageStream string) (*fcosDownloadInfo, error) {
 	)
 	switch imageStream {
 	case "testing", "":
+		streamType = fedoracoreos.StreamTesting
+	case "next":
 		streamType = fedoracoreos.StreamNext
 	case "stable":
 		streamType = fedoracoreos.StreamStable
