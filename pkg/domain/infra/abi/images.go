@@ -367,7 +367,10 @@ func (ir *ImageEngine) Load(ctx context.Context, options entities.ImageLoadOptio
 func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string, options entities.ImageSaveOptions) error {
 	saveOptions := &libimage.SaveOptions{}
 	saveOptions.DirForceCompress = options.Compress
-	saveOptions.RemoveSignatures = options.RemoveSignatures
+
+	// Force signature removal to preserve backwards compat.
+	// See https://github.com/containers/podman/pull/11669#issuecomment-925250264
+	saveOptions.RemoveSignatures = true
 
 	if !options.Quiet {
 		saveOptions.Writer = os.Stderr
