@@ -12,6 +12,7 @@ import (
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/pkg/machine"
@@ -62,7 +63,7 @@ func init() {
 	flags := lsCmd.Flags()
 	formatFlagName := "format"
 	flags.StringVar(&listFlag.format, formatFlagName, "{{.Name}}\t{{.VMType}}\t{{.Created}}\t{{.LastUp}}\t{{.CPUs}}\t{{.Memory}}\t{{.DiskSize}}\n", "Format volume output using JSON or a Go template")
-	_ = lsCmd.RegisterFlagCompletionFunc(formatFlagName, completion.AutocompleteNone)
+	_ = lsCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(machineReporter{}))
 	flags.BoolVar(&listFlag.noHeading, "noheading", false, "Do not print headers")
 }
 
