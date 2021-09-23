@@ -23,6 +23,7 @@
 export GOPROXY=https://proxy.golang.org
 
 GO ?= go
+GO_LDFLAGS:= $(shell if $(GO) version|grep -q gccgo ; then echo "-gccgoflags"; else echo "-ldflags"; fi)
 GOCMD = CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO)
 COVERAGE_PATH ?= .coverage
 DESTDIR ?=
@@ -244,11 +245,11 @@ gofmt: ## Verify the source code gofmt
 
 .PHONY: test/checkseccomp/checkseccomp
 test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
-	$(GOCMD) build $(BUILDFLAGS) -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o $@ ./test/checkseccomp
+	$(GOCMD) build $(BUILDFLAGS) $(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o $@ ./test/checkseccomp
 
 .PHONY: test/testvol/testvol
 test/testvol/testvol: .gopathok $(wildcard test/testvol/*.go)
-	$(GOCMD) build $(BUILDFLAGS) -ldflags '$(LDFLAGS_PODMAN)' -o $@ ./test/testvol
+	$(GOCMD) build $(BUILDFLAGS) $(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' -o $@ ./test/testvol
 
 .PHONY: volume-plugin-test-image
 volume-plugin-test-img:
@@ -256,7 +257,7 @@ volume-plugin-test-img:
 
 .PHONY: test/goecho/goecho
 test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
-	$(GOCMD) build $(BUILDFLAGS) -ldflags '$(LDFLAGS_PODMAN)' -o $@ ./test/goecho
+	$(GOCMD) build $(BUILDFLAGS) $(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' -o $@ ./test/goecho
 
 test/version/version: .gopathok version/version.go
 	$(GO) build -o $@ ./test/version/
@@ -299,7 +300,7 @@ ifeq (,$(findstring systemd,$(BUILDTAGS)))
 endif
 	$(GOCMD) build \
 		$(BUILDFLAGS) \
-		-ldflags '$(LDFLAGS_PODMAN)' \
+		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' \
 		-tags "$(BUILDTAGS)" \
 		-o $@ ./cmd/podman
 
@@ -310,14 +311,14 @@ $(SRCBINDIR):
 $(SRCBINDIR)/podman$(BINSFX): $(SRCBINDIR) .gopathok $(SOURCES) go.mod go.sum
 	$(GOCMD) build \
 		$(BUILDFLAGS) \
-		-ldflags '$(LDFLAGS_PODMAN)' \
+		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' \
 		-tags "${REMOTETAGS}" \
 		-o $@ ./cmd/podman
 
 $(SRCBINDIR)/podman-remote-static: $(SRCBINDIR) .gopathok $(SOURCES) go.mod go.sum
 	$(GOCMD) build \
 		$(BUILDFLAGS) \
-		-ldflags '$(LDFLAGS_PODMAN_STATIC)' \
+		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN_STATIC)' \
 		-tags "${REMOTETAGS}" \
 		-o $@ ./cmd/podman
 
@@ -372,7 +373,7 @@ bin/podman.cross.%: .gopathok
 	CGO_ENABLED=0 \
 		$(GO) build \
 		$(BUILDFLAGS) \
-		-ldflags '$(LDFLAGS_PODMAN)' \
+		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' \
 		-tags '$(BUILDTAGS_CROSS)' \
 		-o "$@" ./cmd/podman
 
