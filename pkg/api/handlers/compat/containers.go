@@ -410,11 +410,11 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 
 	if l.HasHealthCheck() && state.Status != "created" {
 		state.Health = &types.Health{
-			Status:        inspect.State.Healthcheck.Status,
-			FailingStreak: inspect.State.Healthcheck.FailingStreak,
+			Status:        inspect.State.Health.Status,
+			FailingStreak: inspect.State.Health.FailingStreak,
 		}
 
-		log := inspect.State.Healthcheck.Log
+		log := inspect.State.Health.Log
 
 		for _, item := range log {
 			res := &types.HealthcheckResult{}

@@ -156,7 +156,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 			// An error here is not considered fatal; no health state will be displayed
 			logrus.Error(err)
 		} else {
-			data.State.Healthcheck = healthCheckState
+			data.State.Health = healthCheckState
 		}
 	}
 

@@ -56,7 +56,7 @@ class ContainerTestCase(APITestCase):
         self.assertEqual(r.status_code, 200, r.text)
         self.assertId(r.content)
         out = r.json()
-        self.assertIsNone(out["State"].get("Health"))
+        self.assertIsNotNone(out["State"].get("Health"))
         self.assertListEqual(["CMD", "pidof", "top"], out["Config"]["Healthcheck"]["Test"])
         self.assertEqual(5000000000, out["Config"]["Healthcheck"]["Interval"])
         self.assertEqual(2000000000, out["Config"]["Healthcheck"]["Timeout"])
