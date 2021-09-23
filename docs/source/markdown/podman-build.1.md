@@ -64,8 +64,10 @@ discarded when writing images in Docker formats.
 
 #### **--arch**=*arch*
 
-Set the ARCH of the image to the provided value instead of the architecture of
-the host.
+Set the architecture of the image to be built, and that of the base image to be
+pulled, if the build uses one, to the provided value instead of using the
+architecture of the build host. (Examples: arm, arm64, 386, amd64, ppc64le,
+s390x)
 
 #### **--authfile**=*path*
 
@@ -321,7 +323,8 @@ Pass through HTTP Proxy environment variables.
 
 #### **--iidfile**=*ImageIDfile*
 
-Write the image ID to the file.
+Write the built image's ID to the file.  When `--platform` is specified more
+than once, attempting to use this option will trigger an error.
 
 #### **--ignorefile**
 
@@ -389,6 +392,7 @@ Name of the manifest list to which the image will be added. Creates the manifest
 if it does not exist. This option is useful for building multi architecture images.
 
 #### **--memory**, **-m**=*LIMIT*
+
 Memory limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kilobytes),
 m (megabytes), or g (gigabytes))
 
@@ -430,8 +434,9 @@ with a new set of cached layers.
 
 #### **--os**=*string*
 
-Set the OS to the provided value instead of the current operating system of the
-host.
+Set the OS of the image to be built, and that of the base image to be pulled,
+if the build uses one, instead of using the current operating system of the
+build host.
 
 #### **--pid**=*pid*
 
@@ -442,11 +447,28 @@ that the PID namespace in which `podman` itself is being run should be reused,
 or it can be the path to a PID namespace which is already in use by another
 process.
 
-#### **--platform**="Linux"
+#### **--platform**="OS/ARCH[/VARIANT][,...]"
 
-This option has no effect on the build. Other container engines use this option
-to control the execution platform for the build (e.g., Windows, Linux) which is
-not required for Buildah as it supports only Linux.
+Set the OS/ARCH of the built image (and its base image, if your build uses one)
+to the provided value instead of using the current operating system and
+architecture of the host (for example `linux/arm`). If `--platform` is set,
+then the values of the `--arch`, `--os`, and `--variant` options will be
+overridden.
+
+The `--platform` flag can be specified more than once, or given a
+comma-separated list of values as its argument.  When more than one platform is
+specified, the `--manifest` option should be used instead of the `--tag`
+option.
+
+OS/ARCH pairs are those used by the Go Programming Language.  In several cases
+the ARCH value for a platform differs from one produced by other tools such as
+the `arch` command.  Valid OS and architecture name combinations are listed as
+values for $GOOS and $GOARCH at https://golang.org/doc/install/source#environment,
+and can also be found by running `go tool dist list`.
+
+While `podman build` is happy to use base images and build images for any
+platform that exists, `RUN` instructions will not be able to succeed without
+the help of emulation provided by packages like `qemu-user-static`.
 
 #### **--pull**
 
@@ -486,7 +508,6 @@ commands specified by the **RUN** instruction.
 Note: You can also override the default runtime by setting the BUILDAH\_RUNTIME
 environment variable.  `export BUILDAH_RUNTIME=/usr/local/bin/runc`
 
-
 #### **--secret**=**id=id,src=path**
 
 Pass secret information to be used in the Containerfile for building images
@@ -496,7 +517,6 @@ The secret will be mounted in the container at the default location of `/run/sec
 To later use the secret, use the --mount flag in a `RUN` instruction within a `Containerfile`:
 
 `RUN --mount=type=secret,id=mysecret cat /run/secrets/mysecret`
-
 
 #### **--security-opt**=*option*
 
@@ -697,7 +717,9 @@ process.
 
 #### **--variant**=""
 
-Set the architecture variant of the image to be pulled.
+Set the architecture variant of the image to be built, and that of the base
+image to be pulled, if the build uses one, to the provided value instead of
+using the architecture variant of the build host.
 
 #### **--volume**, **-v**[=*[HOST-DIR:CONTAINER-DIR[:OPTIONS]]*]
 
@@ -858,7 +880,7 @@ $ podman build --layers --force-rm -t imageName .
 $ podman build --no-cache --rm=false -t imageName .
 ```
 
-### Building an multi-architecture image using a --manifest option (Requires emulation software)
+### Building a multi-architecture image using the --manifest option (requires emulation software)
 
 ```
 $ podman build --arch arm --manifest myimage /tmp/mysrc
@@ -866,6 +888,10 @@ $ podman build --arch arm --manifest myimage /tmp/mysrc
 $ podman build --arch amd64 --manifest myimage /tmp/mysrc
 
 $ podman build --arch s390x --manifest myimage /tmp/mysrc
+
+$ podman build --platform linux/s390x,linux/ppc64le,linux/amd64 --manifest myimage /tmp/mysrc
+
+$ podman build --platform linux/arm64 --platform linux/amd64 --manifest myimage /tmp/mysrc
 ```
 
 ### Building an image using a URL, Git repo, or archive
