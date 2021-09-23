@@ -303,8 +303,6 @@ type ImageSaveOptions struct {
 	MultiImageArchive bool
 	// Output - write image to the specified path.
 	Output string
-	// Do not save the signature from the source image
-	RemoveSignatures bool
 	// Quiet - suppress output when copying images
 	Quiet bool
 }

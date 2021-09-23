@@ -357,7 +357,6 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 		Format:            query.Format,
 		MultiImageArchive: len(query.References) > 1,
 		Output:            output,
-		RemoveSignatures:  true,
 	}
 
 	imageEngine := abi.ImageEngine{Libpod: runtime}
