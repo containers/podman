@@ -194,20 +194,13 @@ func getImages(cmd *cobra.Command, toComplete string) ([]string, cobra.ShellComp
 			} else {
 				// suggested "registry.fedoraproject.org/f29/httpd:latest" as
 				// - "registry.fedoraproject.org/f29/httpd:latest"
-				// - "registry.fedoraproject.org/f29/httpd"
 				// - "f29/httpd:latest"
-				// - "f29/httpd"
 				// - "httpd:latest"
-				// - "httpd"
 				paths := strings.Split(repo, "/")
 				for i := range paths {
 					suggestionWithTag := strings.Join(paths[i:], "/")
 					if strings.HasPrefix(suggestionWithTag, toComplete) {
 						suggestions = append(suggestions, suggestionWithTag)
-					}
-					suggestionWithoutTag := strings.SplitN(strings.SplitN(suggestionWithTag, ":", 2)[0], "@", 2)[0]
-					if strings.HasPrefix(suggestionWithoutTag, toComplete) {
-						suggestions = append(suggestions, suggestionWithoutTag)
 					}
 				}
 			}
