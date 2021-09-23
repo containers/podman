@@ -359,7 +359,6 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 		MultiImageArchive:           len(query.References) > 1,
 		OciAcceptUncompressedLayers: query.OciAcceptUncompressedLayers,
 		Output:                      output,
-		RemoveSignatures:            true,
 	}
 
 	imageEngine := abi.ImageEngine{Libpod: runtime}
