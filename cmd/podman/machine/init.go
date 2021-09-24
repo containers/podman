@@ -42,7 +42,7 @@ func init() {
 	cpusFlagName := "cpus"
 	flags.Uint64Var(
 		&initOpts.CPUS,
-		cpusFlagName, 1,
+		cpusFlagName, cfg.Machine.CPUs,
 		"Number of CPUs",
 	)
 	_ = initCmd.RegisterFlagCompletionFunc(cpusFlagName, completion.AutocompleteNone)
@@ -50,7 +50,7 @@ func init() {
 	diskSizeFlagName := "disk-size"
 	flags.Uint64Var(
 		&initOpts.DiskSize,
-		diskSizeFlagName, 10,
+		diskSizeFlagName, cfg.Machine.DiskSize,
 		"Disk size in GB",
 	)
 
@@ -59,7 +59,7 @@ func init() {
 	memoryFlagName := "memory"
 	flags.Uint64VarP(
 		&initOpts.Memory,
-		memoryFlagName, "m", 2048,
+		memoryFlagName, "m", cfg.Machine.Memory,
 		"Memory in MB",
 	)
 	_ = initCmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
@@ -71,7 +71,7 @@ func init() {
 	)
 
 	ImagePathFlagName := "image-path"
-	flags.StringVar(&initOpts.ImagePath, ImagePathFlagName, cfg.Engine.MachineImage, "Path to qcow image")
+	flags.StringVar(&initOpts.ImagePath, ImagePathFlagName, cfg.Machine.Image, "Path to qcow image")
 	_ = initCmd.RegisterFlagCompletionFunc(ImagePathFlagName, completion.AutocompleteDefault)
 
 	IgnitionPathFlagName := "ignition-path"
