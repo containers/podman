@@ -113,15 +113,15 @@ func prune(cmd *cobra.Command, args []string) error {
 
 func createPruneWarningMessage(pruneOpts entities.SystemPruneOptions) string {
 	if pruneOpts.All {
-		return `WARNING! This will remove:
+		return `WARNING! This command removes:
 	- all stopped containers
 	- all networks not used by at least one container%s
-	- all images without at least one container associated to them
+	- all images without at least one container associated with them
 	- all build cache
 
 %s`
 	}
-	return `WARNING! This will remove:
+	return `WARNING! This command removes:
 	- all stopped containers
 	- all networks not used by at least one container%s
 	- all dangling images
