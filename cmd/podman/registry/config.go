@@ -89,12 +89,7 @@ func newPodmanConfig() {
 // use for the containers.conf configuration file.
 func setXdgDirs() error {
 	if !rootless.IsRootless() {
-		// unset XDG_RUNTIME_DIR for root
-		// Sometimes XDG_RUNTIME_DIR is set to /run/user/0 sometimes it is unset,
-		// the inconsistency is causing issues for the dnsname plugin.
-		// It is already set to an empty string for conmon so lets do the same
-		// for podman. see #10806 and #10745
-		return os.Unsetenv("XDG_RUNTIME_DIR")
+		return nil
 	}
 
 	// Setup XDG_RUNTIME_DIR
