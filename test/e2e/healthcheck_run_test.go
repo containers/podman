@@ -80,6 +80,11 @@ var _ = Describe("Podman healthcheck run", func() {
 			time.Sleep(1 * time.Second)
 		}
 		Expect(exitCode).To(Equal(0))
+
+		ps := podmanTest.Podman([]string{"ps"})
+		ps.WaitWithDefaultTimeout()
+		Expect(ps).Should(Exit(0))
+		Expect(ps.OutputToString()).To(ContainSubstring("(healthy)"))
 	})
 
 	It("podman healthcheck that should fail", func() {
