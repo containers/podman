@@ -176,6 +176,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: limit
 	//    type: integer
+	//    default: 25
 	//    description: maximum number of results
 	//  - in: query
 	//    name: filters
@@ -185,6 +186,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//        - `is-automated=(true|false)`
 	//        - `is-official=(true|false)`
 	//        - `stars=<number>` Matches images that has at least 'number' stars.
+	//  - in: query
+	//    name: tlsVerify
+	//    type: boolean
+	//    default: false
+	//    description: skip TLS verification for registries
 	//  - in: query
 	//    name: listTags
 	//    type: boolean
@@ -1075,6 +1081,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: limit
 	//    type: integer
+	//    default: 25
 	//    description: maximum number of results
 	//  - in: query
 	//    name: noTrunc
@@ -1088,6 +1095,16 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//        - `is-automated=(true|false)`
 	//        - `is-official=(true|false)`
 	//        - `stars=<number>` Matches images that has at least 'number' stars.
+	//  - in: query
+	//    name: tlsVerify
+	//    type: boolean
+	//    default: false
+	//    description: skip TLS verification for registries
+	//  - in: query
+	//    name: listTags
+	//    type: boolean
+	//    default: false
+	//    description: list the available tags in the repository
 	// produces:
 	// - application/json
 	// responses:
