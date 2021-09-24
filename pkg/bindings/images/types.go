@@ -74,6 +74,8 @@ type ExportOptions struct {
 type PruneOptions struct {
 	// Prune all images
 	All *bool
+	// Prune images even when they're used by external containers
+	External *bool
 	// Filters to apply when pruning images
 	Filters map[string][]string
 }

@@ -304,7 +304,7 @@ func (r *Runtime) newCopier(options *CopyOptions) (*copier, error) {
 
 	defaultContainerConfig, err := config.Default()
 	if err != nil {
-		logrus.Warnf("failed to get container config for copy options: %v", err)
+		logrus.Warnf("Failed to get container config for copy options: %v", err)
 	} else {
 		c.imageCopyOptions.MaxParallelDownloads = defaultContainerConfig.Engine.ImageParallelCopies
 	}

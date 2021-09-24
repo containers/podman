@@ -17,6 +17,10 @@ The image prune command does not prune cache images that only use layers that ar
 
 Remove dangling images and images that have no associated containers.
 
+#### **--external**
+
+Remove images even when they are used by external containers (e.g., build containers).
+
 #### **--filter**=*filters*
 
 Provide filter values.

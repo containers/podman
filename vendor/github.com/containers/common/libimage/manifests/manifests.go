@@ -125,19 +125,19 @@ func (l *list) SaveToImage(store storage.Store, imageID string, names []string, 
 		if err != nil {
 			if created {
 				if _, err2 := store.DeleteImage(img.ID, true); err2 != nil {
-					logrus.Errorf("error deleting image %q after failing to save manifest for it", img.ID)
+					logrus.Errorf("Deleting image %q after failing to save manifest for it", img.ID)
 				}
 			}
-			return "", errors.Wrapf(err, "error saving manifest list to image %q", imageID)
+			return "", errors.Wrapf(err, "saving manifest list to image %q", imageID)
 		}
 		err = store.SetImageBigData(imageID, instancesData, instancesBytes, nil)
 		if err != nil {
 			if created {
 				if _, err2 := store.DeleteImage(img.ID, true); err2 != nil {
-					logrus.Errorf("error deleting image %q after failing to save instance locations for it", img.ID)
+					logrus.Errorf("Deleting image %q after failing to save instance locations for it", img.ID)
 				}
 			}
-			return "", errors.Wrapf(err, "error saving instance list to image %q", imageID)
+			return "", errors.Wrapf(err, "saving instance list to image %q", imageID)
 		}
 		return imageID, nil
 	}
@@ -200,7 +200,7 @@ func (l *list) Push(ctx context.Context, dest types.ImageReference, options Push
 	}
 	defer func() {
 		if err2 := policyContext.Destroy(); err2 != nil {
-			logrus.Errorf("error destroying signature policy context: %v", err2)
+			logrus.Errorf("Destroying signature policy context: %v", err2)
 		}
 	}()
 

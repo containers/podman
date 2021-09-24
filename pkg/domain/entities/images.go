@@ -251,8 +251,9 @@ type ImageListOptions struct {
 }
 
 type ImagePruneOptions struct {
-	All    bool     `json:"all" schema:"all"`
-	Filter []string `json:"filter" schema:"filter"`
+	All      bool     `json:"all" schema:"all"`
+	External bool     `json:"external" schema:"external"`
+	Filter   []string `json:"filter" schema:"filter"`
 }
 
 type ImageTagOptions struct{}

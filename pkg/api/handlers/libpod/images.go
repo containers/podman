@@ -150,7 +150,8 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
-		All bool `schema:"all"`
+		All      bool `schema:"all"`
+		External bool `schema:"external"`
 	}{
 		// override any golang type defaults
 	}
@@ -190,8 +191,9 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 
 	pruneOptions := entities.ImagePruneOptions{
-		All:    query.All,
-		Filter: libpodFilters,
+		All:      query.All,
+		External: query.External,
+		Filter:   libpodFilters,
 	}
 	imagePruneReports, err := imageEngine.Prune(r.Context(), pruneOptions)
 	if err != nil {

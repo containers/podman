@@ -41,12 +41,20 @@ func (ir *ImageEngine) Exists(_ context.Context, nameOrID string) (*entities.Boo
 
 func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOptions) ([]*reports.PruneReport, error) {
 	pruneOptions := &libimage.RemoveImagesOptions{
-		Filters:  append(opts.Filter, "containers=false", "readonly=false"),
-		WithSize: true,
+		RemoveContainerFunc:     ir.Libpod.RemoveContainersForImageCallback(ctx),
+		IsExternalContainerFunc: ir.Libpod.IsExternalContainerCallback(ctx),
+		ExternalContainers:      opts.External,
+		Filters:                 append(opts.Filter, "readonly=false"),
+		WithSize:                true,
 	}
 
 	if !opts.All {
 		pruneOptions.Filters = append(pruneOptions.Filters, "dangling=true")
+	}
+	if opts.External {
+		pruneOptions.Filters = append(pruneOptions.Filters, "containers=external")
+	} else {
+		pruneOptions.Filters = append(pruneOptions.Filters, "containers=false")
 	}
 
 	var pruneReports []*reports.PruneReport

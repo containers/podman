@@ -114,13 +114,13 @@ func getMounts(filePath string) []string {
 	file, err := os.Open(filePath)
 	if err != nil {
 		// This is expected on most systems
-		logrus.Debugf("file %q not found, skipping...", filePath)
+		logrus.Debugf("File %q not found, skipping...", filePath)
 		return nil
 	}
 	defer file.Close()
 	scanner := bufio.NewScanner(file)
 	if err = scanner.Err(); err != nil {
-		logrus.Errorf("error reading file %q, %v skipping...", filePath, err)
+		logrus.Errorf("Reading file %q, %v skipping...", filePath, err)
 		return nil
 	}
 	var mounts []string
@@ -128,7 +128,7 @@ func getMounts(filePath string) []string {
 		if strings.HasPrefix(strings.TrimSpace(scanner.Text()), "/") {
 			mounts = append(mounts, scanner.Text())
 		} else {
-			logrus.Debugf("skipping unrecognized mount in %v: %q",
+			logrus.Debugf("Skipping unrecognized mount in %v: %q",
 				filePath, scanner.Text())
 		}
 	}
@@ -176,7 +176,7 @@ func MountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPoint str
 		if _, err := os.Stat(file); err == nil {
 			mounts, err := addSubscriptionsFromMountsFile(file, mountLabel, containerWorkingDir, uid, gid)
 			if err != nil {
-				logrus.Warnf("error mounting subscriptions, skipping entry in %s: %v", file, err)
+				logrus.Warnf("Failed to mount subscriptions, skipping entry in %s: %v", file, err)
 			}
 			subscriptionMounts = mounts
 			break
@@ -192,7 +192,7 @@ func MountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPoint str
 	switch {
 	case err == nil:
 		if err := addFIPSModeSubscription(&subscriptionMounts, containerWorkingDir, mountPoint, mountLabel, uid, gid); err != nil {
-			logrus.Errorf("error adding FIPS mode subscription to container: %v", err)
+			logrus.Errorf("Adding FIPS mode subscription to container: %v", err)
 		}
 	case os.IsNotExist(err):
 		logrus.Debug("/etc/system-fips does not exist on host, not mounting FIPS mode subscription")

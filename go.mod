@@ -12,7 +12,7 @@ require (
 	github.com/containernetworking/cni v1.0.1
 	github.com/containernetworking/plugins v1.0.1
 	github.com/containers/buildah v1.23.0
-	github.com/containers/common v0.46.0
+	github.com/containers/common v0.46.1-0.20210928081721-32e20295f1c6
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.16.0
 	github.com/containers/ocicrypt v1.1.2
@@ -61,7 +61,6 @@ require (
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 	github.com/uber/jaeger-client-go v2.29.1+incompatible
 	github.com/vbauerster/mpb/v6 v6.0.4
-	github.com/vbauerster/mpb/v7 v7.1.4 // indirect
 	github.com/vishvananda/netlink v1.1.1-0.20210330154013-f5de75959ad5
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
