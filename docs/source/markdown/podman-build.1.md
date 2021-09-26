@@ -45,6 +45,12 @@ command to see these containers. External containers can be removed with the
 
 `podman buildx build` command is an alias of `podman build`.  Not all `buildx build` features are available in Podman. The `buildx build` option is provided for scripting compatibility.
 
+## COMMANDS
+
+| Command  | Man Page                                            | Description             |
+| -------- | --------------------------------------------------- | ----------------------- |
+| prune    | [podman-build-prune(1)](podman-build-prune.1.md)    | Remove build cache.     |
+
 ## OPTIONS
 
 #### **--add-host**=*host*

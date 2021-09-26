@@ -14,11 +14,12 @@ var (
 	// If we are adding new buildx features, we will add them by default
 	// to podman build.
 	buildxCmd = &cobra.Command{
-		Use:    "buildx",
-		Short:  "Build images",
-		Long:   "Build images",
-		RunE:   validate.SubCommandExists,
-		Hidden: true,
+		Use:     "buildx",
+		Aliases: []string{"builder"},
+		Short:   "Build images",
+		Long:    "Build images",
+		RunE:    validate.SubCommandExists,
+		Hidden:  true,
 	}
 )
 
