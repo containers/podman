@@ -71,7 +71,7 @@ func init() {
 	)
 
 	ImagePathFlagName := "image-path"
-	flags.StringVar(&initOpts.ImagePath, ImagePathFlagName, cfg.Engine.MachineImage, "Path to qcow image")
+	flags.StringVar(&initOpts.ImagePath, ImagePathFlagName, cfg.Machine.Image, "Path to qcow image")
 	_ = initCmd.RegisterFlagCompletionFunc(ImagePathFlagName, completion.AutocompleteDefault)
 
 	IgnitionPathFlagName := "ignition-path"
