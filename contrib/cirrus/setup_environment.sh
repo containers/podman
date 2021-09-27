@@ -243,6 +243,44 @@ case "$TEST_FLAVOR" in
 
         install_test_configs
         ;;
+    gitlab)
+        # This only runs on Ubuntu for now
+        if [[ "$OS_RELEASE_ID" != "ubuntu" ]]; then
+            die "This test only runs on Ubuntu due to sheer laziness"
+        fi
+
+        # Ref: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27270#note_499585550
+
+        remove_packaged_podman_files
+        make install PREFIX=/usr ETCDIR=/etc
+
+        # Need to re-build lists (removed during image production)
+        ooe.sh apt-get -qq -y update
+        msg "Installing previously downloaded/cached packages"
+        # N/B: Tests check/expect `docker info` output, and this `!= podman info`
+        ooe.sh apt-get install --yes --no-download --ignore-missing containerd.io docker-ce docker-ce-cli
+
+        msg "Disabling docker service and socket activation"
+        systemctl stop docker.service docker.socket
+        systemctl disable docker.service docker.socket
+        rm -rf /run/docker*
+        # Guarantee the docker daemon can't be started, even by accident
+        rm -vf $(type -P dockerd)
+
+        msg "Obtaining necessary gitlab-runner testing bits"
+        slug="gitlab.com/gitlab-org/gitlab-runner"
+        helper_fqin="registry.gitlab.com/gitlab-org/gitlab-runner/gitlab-runner-helper:x86_64-latest-pwsh"
+        ssh="ssh $ROOTLESS_USER@localhost -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o CheckHostIP=no env GOPATH=$GOPATH"
+        showrun $ssh go get -u github.com/jstemmer/go-junit-report
+        showrun $ssh git clone https://$slug $GOPATH/src/$slug
+        showrun $ssh make -C $GOPATH/src/$slug development_setup
+        showrun $ssh bash -c "'cd $GOPATH/src/$slug && GOPATH=$GOPATH go get .'"
+
+        showrun $ssh podman pull $helper_fqin
+        # Tests expect image with this exact name
+        showrun $ssh podman tag $helper_fqin \
+            docker.io/gitlab/gitlab-runner-helper:x86_64-latest-pwsh
+        ;;
     swagger) ;&  # use next item
     consistency) make clean ;;
     release) ;;
