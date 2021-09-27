@@ -169,6 +169,10 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 				logrus.Debugf("Container %s is already stopped", c.ID())
 			case options.All && errors.Cause(err) == define.ErrCtrStateInvalid:
 				logrus.Debugf("Container %s is not running, could not stop", c.ID())
+			// container never created in OCI runtime
+			// docker parity: do nothing just return container id
+			case errors.Cause(err) == define.ErrCtrStateInvalid:
+				logrus.Debugf("Container %s is either not created on runtime or is in a invalid state", c.ID())
 			default:
 				return err
 			}
