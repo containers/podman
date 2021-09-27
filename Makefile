@@ -412,9 +412,9 @@ completions: podman podman-remote
 	declare -A outfiles=([bash]=%s [zsh]=_%s [fish]=%s.fish [powershell]=%s.ps1);\
 	for shell in $${!outfiles[*]}; do \
 	    for remote in "" "-remote"; do \
-	        podman="podman$$remote"; \
-	        outfile=$$(printf "completions/$$shell/$${outfiles[$$shell]}" $$podman); \
-	        ./bin/$$podman completion $$shell >| $$outfile; \
+		podman="podman$$remote"; \
+		outfile=$$(printf "completions/$$shell/$${outfiles[$$shell]}" $$podman); \
+		./bin/$$podman completion $$shell >| $$outfile; \
 	    done;\
 	done
 
@@ -432,10 +432,10 @@ $(MANPAGES): %: %.md .install.md2man docdir
 ### this ensures that manpages are renderd correctly
 
 	@sed -e 's/\((podman[^)]*\.md\(#.*\)\?)\)//g' \
-         -e 's/\[\(podman[^]]*\)\]/\1/g' \
+	 -e 's/\[\(podman[^]]*\)\]/\1/g' \
 		 -e 's/\[\([^]]*\)](http[^)]\+)/\1/g' \
-         -e 's;<\(/\)\?\(a\|a\s\+[^>]*\|sup\)>;;g' \
-         -e 's/\\$$/  /g' $<  | \
+	 -e 's;<\(/\)\?\(a\|a\s\+[^>]*\|sup\)>;;g' \
+	 -e 's/\\$$/  /g' $<  | \
 	$(GOMD2MAN) -in /dev/stdin -out $(subst source/markdown,build/man,$@)
 
 .PHONY: docdir
@@ -759,6 +759,8 @@ install.docker:
 install.docker-docs-nobuild:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(MANDIR)/man1
 	install ${SELINUXOPT} -m 644 docs/build/man/docker*.1 -t $(DESTDIR)$(MANDIR)/man1
+	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(MANDIR)/man5
+	install ${SELINUXOPT} -m 644 docs/build/man/docker*.5 -t $(DESTDIR)$(MANDIR)/man5
 
 .PHONY: install.docker-docs
 install.docker-docs: docker-docs install.docker-docs-nobuild

@@ -4,3 +4,4 @@ for i in $@; do
     filename=$(echo $i | sed 's/podman/docker/g')
     echo .so man1/$b > $filename
 done
+echo .so man5/containerfile.5 > $(dirname $1)/dockerfile.5
