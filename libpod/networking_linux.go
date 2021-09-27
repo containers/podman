@@ -48,6 +48,41 @@ const (
 	persistentCNIDir = "/var/lib/cni"
 )
 
+// GetAllNetworkAliases returns all configured aliases for this container.
+// It also adds the container short ID as alias to match docker.
+func (c *Container) GetAllNetworkAliases() (map[string][]string, error) {
+	allAliases, err := c.runtime.state.GetAllNetworkAliases(c)
+	if err != nil {
+		return nil, err
+	}
+
+	// get the all attached networks, we cannot use GetAllNetworkAliases()
+	// since it returns nil if there are no aliases
+	nets, _, err := c.networks()
+	if err != nil {
+		return nil, err
+	}
+
+	// add container short ID as alias to match docker
+	for _, net := range nets {
+		allAliases[net] = append(allAliases[net], c.config.ID[:12])
+	}
+	return allAliases, nil
+}
+
+// GetNetworkAliases returns configured aliases for this network.
+// It also adds the container short ID as alias to match docker.
+func (c *Container) GetNetworkAliases(netName string) ([]string, error) {
+	aliases, err := c.runtime.state.GetNetworkAliases(c, netName)
+	if err != nil {
+		return nil, err
+	}
+
+	// add container short ID as alias to match docker
+	aliases = append(aliases, c.config.ID[:12])
+	return aliases, nil
+}
+
 func (c *Container) getNetworkOptions() (types.NetworkOptions, error) {
 	opts := types.NetworkOptions{
 		ContainerID:   c.config.ID,
@@ -61,7 +96,7 @@ func (c *Container) getNetworkOptions() (types.NetworkOptions, error) {
 	if err != nil {
 		return opts, err
 	}
-	aliases, err := c.runtime.state.GetAllNetworkAliases(c)
+	aliases, err := c.GetAllNetworkAliases()
 	if err != nil {
 		return opts, err
 	}
@@ -872,7 +907,7 @@ func (r *Runtime) reloadContainerNetwork(ctr *Container) (map[string]types.Statu
 		}
 	}
 
-	aliases, err := ctr.runtime.state.GetAllNetworkAliases(ctr)
+	aliases, err := ctr.GetAllNetworkAliases()
 	if err != nil {
 		return nil, err
 	}
@@ -975,6 +1010,11 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 			for _, net := range networks {
 				cniNet := new(define.InspectAdditionalNetwork)
 				cniNet.NetworkID = net
+				aliases, err := c.GetNetworkAliases(net)
+				if err != nil {
+					return nil, err
+				}
+				cniNet.Aliases = aliases
 				settings.Networks[net] = cniNet
 			}
 		}
@@ -1009,7 +1049,7 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 				return nil, err
 			}
 
-			aliases, err := c.runtime.state.GetNetworkAliases(c, name)
+			aliases, err := c.GetNetworkAliases(name)
 			if err != nil {
 				return nil, err
 			}
@@ -1253,6 +1293,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, aliases []string) e
 	if !exists {
 		return errors.Errorf("no network interface name for container %s on network %s", c.config.ID, netName)
 	}
+	aliases = append(aliases, c.config.ID[:12])
 	opts.Networks = map[string]types.PerNetworkOptions{
 		netName: {
 			Aliases:       aliases,

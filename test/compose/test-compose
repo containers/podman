@@ -247,6 +247,7 @@ function podman() {
 	--storage-driver=vfs \
         --root    $WORKDIR/root    \
         --runroot $WORKDIR/runroot \
+        --cni-config-dir $WORKDIR/cni \
         "$@")
     echo -n "$output" >>$WORKDIR/output.log
 }

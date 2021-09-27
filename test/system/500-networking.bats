@@ -415,6 +415,10 @@ load helpers
     run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
     mac="$output"
 
+    # check network alias for container short id
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").Aliases}}"
+    is "$output" "\[${cid:0:12}\]" "short container id in network aliases"
+
     run_podman network disconnect $netname $cid
 
     # check that we cannot curl (timeout after 3 sec)
@@ -442,6 +446,10 @@ load helpers
 
     # connect a second network
     run_podman network connect $netname2 $cid
+
+    # check network2 alias for container short id
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname2\").Aliases}}"
+    is "$output" "\[${cid:0:12}\]" "short container id in network aliases"
 
     # curl should work
     run curl --max-time 3 -s $SERVER/index.txt
