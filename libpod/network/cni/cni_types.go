@@ -110,12 +110,6 @@ type dnsNameConfig struct {
 	Capabilities map[string]bool `json:"capabilities"`
 }
 
-//  podmanMachineConfig enables port handling on the host OS
-type podmanMachineConfig struct {
-	PluginType   string          `json:"type"`
-	Capabilities map[string]bool `json:"capabilities"`
-}
-
 // ncList describes a generic map
 type ncList map[string]interface{}
 
@@ -284,13 +278,4 @@ func newVLANPlugin(pluginType, device, mode string, mtu int, ipam ipamConfig) VL
 		m.Capabilities = caps
 	}
 	return m
-}
-
-func newPodmanMachinePlugin() podmanMachineConfig {
-	caps := make(map[string]bool, 1)
-	caps["portMappings"] = true
-	return podmanMachineConfig{
-		PluginType:   "podman-machine",
-		Capabilities: caps,
-	}
 }

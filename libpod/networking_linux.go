@@ -87,12 +87,28 @@ func (c *Container) GetNetworkAliases(netName string) ([]string, error) {
 	return aliases, nil
 }
 
+// convertPortMappings will remove the HostIP part from the ports when running inside podman machine.
+// This is need because a HostIP of 127.0.0.1 would now allow the gvproxy forwarder to reach to open ports.
+// For machine the HostIP must only be used by gvproxy and never in the VM.
+func (c *Container) convertPortMappings() []types.PortMapping {
+	if !c.runtime.config.Engine.MachineEnabled || len(c.config.PortMappings) == 0 {
+		return c.config.PortMappings
+	}
+	// if we run in a machine VM we have to ignore the host IP part
+	newPorts := make([]types.PortMapping, 0, len(c.config.PortMappings))
+	for _, port := range c.config.PortMappings {
+		port.HostIP = ""
+		newPorts = append(newPorts, port)
+	}
+	return newPorts
+}
+
 func (c *Container) getNetworkOptions() (types.NetworkOptions, error) {
 	opts := types.NetworkOptions{
 		ContainerID:   c.config.ID,
 		ContainerName: getCNIPodName(c),
 	}
-	opts.PortMappings = c.config.PortMappings
+	opts.PortMappings = c.convertPortMappings()
 	networks, _, err := c.networks()
 	if err != nil {
 		return opts, err
@@ -591,32 +607,9 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 	return rootlessNetNS, nil
 }
 
-// setPrimaryMachineIP is used for podman-machine and it sets
-// and environment variable with the IP address of the podman-machine
-// host.
-func setPrimaryMachineIP() error {
-	// no connection is actually made here
-	conn, err := net.Dial("udp", "8.8.8.8:80")
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := conn.Close(); err != nil {
-			logrus.Error(err)
-		}
-	}()
-	addr := conn.LocalAddr().(*net.UDPAddr)
-	return os.Setenv("PODMAN_MACHINE_HOST", addr.IP.String())
-}
-
 // setUpNetwork will set up the the networks, on error it will also tear down the cni
 // networks. If rootless it will join/create the rootless network namespace.
 func (r *Runtime) setUpNetwork(ns string, opts types.NetworkOptions) (map[string]types.StatusBlock, error) {
-	if r.config.MachineEnabled() {
-		if err := setPrimaryMachineIP(); err != nil {
-			return nil, err
-		}
-	}
 	rootlessNetNS, err := r.GetRootlessNetNs(true)
 	if err != nil {
 		return nil, err
@@ -650,7 +643,18 @@ func getCNIPodName(c *Container) string {
 }
 
 // Create and configure a new network namespace for a container
-func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (map[string]types.StatusBlock, error) {
+func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (status map[string]types.StatusBlock, rerr error) {
+	if err := r.exposeMachinePorts(ctr.config.PortMappings); err != nil {
+		return nil, err
+	}
+	defer func() {
+		// make sure to unexpose the gvproxy ports when an error happens
+		if rerr != nil {
+			if err := r.unexposeMachinePorts(ctr.config.PortMappings); err != nil {
+				logrus.Errorf("failed to free gvproxy machine ports: %v", err)
+			}
+		}
+	}()
 	if ctr.config.NetMode.IsSlirp4netns() {
 		return nil, r.setupSlirp4netns(ctr, ctrNS)
 	}
@@ -836,6 +840,10 @@ func (r *Runtime) teardownCNI(ctr *Container) error {
 
 // Tear down a network namespace, undoing all state associated with it.
 func (r *Runtime) teardownNetNS(ctr *Container) error {
+	if err := r.unexposeMachinePorts(ctr.config.PortMappings); err != nil {
+		// do not return an error otherwise we would prevent network cleanup
+		logrus.Errorf("failed to free gvproxy machine ports: %v", err)
+	}
 	if err := r.teardownCNI(ctr); err != nil {
 		return err
 	}
@@ -1206,7 +1214,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 		ContainerID:   c.config.ID,
 		ContainerName: getCNIPodName(c),
 	}
-	opts.PortMappings = c.config.PortMappings
+	opts.PortMappings = c.convertPortMappings()
 	eth, exists := c.state.NetInterfaceDescriptions.getInterfaceByName(netName)
 	if !exists {
 		return errors.Errorf("no network interface name for container %s on network %s", c.config.ID, netName)
@@ -1298,7 +1306,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, aliases []string) e
 		ContainerID:   c.config.ID,
 		ContainerName: getCNIPodName(c),
 	}
-	opts.PortMappings = c.config.PortMappings
+	opts.PortMappings = c.convertPortMappings()
 	eth, exists := c.state.NetInterfaceDescriptions.getInterfaceByName(netName)
 	if !exists {
 		return errors.Errorf("no network interface name for container %s on network %s", c.config.ID, netName)

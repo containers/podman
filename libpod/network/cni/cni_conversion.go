@@ -295,10 +295,6 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 			// Note: in the future we might like to allow for dynamic domain names
 			plugins = append(plugins, newDNSNamePlugin(defaultPodmanDomainName))
 		}
-		// Add the podman-machine CNI plugin if we are in a machine
-		if n.isMachine {
-			plugins = append(plugins, newPodmanMachinePlugin())
-		}
 
 	case types.MacVLANNetworkDriver:
 		plugins = append(plugins, newVLANPlugin(types.MacVLANNetworkDriver, network.NetworkInterface, vlanPluginMode, mtu, ipamConf))
@@ -368,4 +364,15 @@ func convertSpecgenPortsToCNIPorts(ports []types.PortMapping) ([]cniPortMapEntry
 		}
 	}
 	return cniPorts, nil
+}
+
+func removeMachinePlugin(conf *libcni.NetworkConfigList) *libcni.NetworkConfigList {
+	plugins := make([]*libcni.NetworkConfig, 0, len(conf.Plugins))
+	for _, net := range conf.Plugins {
+		if net.Network.Type != "podman-machine" {
+			plugins = append(plugins, net)
+		}
+	}
+	conf.Plugins = plugins
+	return conf
 }
