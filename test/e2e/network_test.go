@@ -603,6 +603,11 @@ var _ = Describe("Podman network", func() {
 	})
 
 	It("podman network prune --filter", func() {
+		// set custom cni directory to prevent flakes
+		podmanTest.CNIConfigDir = tempdir
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
 		net1 := "macvlan" + stringid.GenerateNonCryptoID() + "net1"
 
 		nc := podmanTest.Podman([]string{"network", "create", net1})
@@ -613,11 +618,10 @@ var _ = Describe("Podman network", func() {
 		list := podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}}"})
 		list.WaitWithDefaultTimeout()
 		Expect(list).Should(Exit(0))
+		Expect(list.OutputToStringArray()).Should(HaveLen(2))
 
-		Expect(StringInSlice(net1, list.OutputToStringArray())).To(BeTrue())
-		if !isRootless() {
-			Expect(StringInSlice("podman", list.OutputToStringArray())).To(BeTrue())
-		}
+		Expect(list.OutputToStringArray()).Should(ContainElement(net1))
+		Expect(list.OutputToStringArray()).Should(ContainElement("podman"))
 
 		// -f needed only to skip y/n question
 		prune := podmanTest.Podman([]string{"network", "prune", "-f", "--filter", "until=50"})
@@ -627,11 +631,10 @@ var _ = Describe("Podman network", func() {
 		listAgain := podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}}"})
 		listAgain.WaitWithDefaultTimeout()
 		Expect(listAgain).Should(Exit(0))
+		Expect(listAgain.OutputToStringArray()).Should(HaveLen(2))
 
-		Expect(StringInSlice(net1, listAgain.OutputToStringArray())).To(BeTrue())
-		if !isRootless() {
-			Expect(StringInSlice("podman", list.OutputToStringArray())).To(BeTrue())
-		}
+		Expect(listAgain.OutputToStringArray()).Should(ContainElement(net1))
+		Expect(listAgain.OutputToStringArray()).Should(ContainElement("podman"))
 
 		// -f needed only to skip y/n question
 		prune = podmanTest.Podman([]string{"network", "prune", "-f", "--filter", "until=5000000000000"})
@@ -641,14 +644,18 @@ var _ = Describe("Podman network", func() {
 		listAgain = podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}}"})
 		listAgain.WaitWithDefaultTimeout()
 		Expect(listAgain).Should(Exit(0))
+		Expect(listAgain.OutputToStringArray()).Should(HaveLen(1))
 
-		Expect(StringInSlice(net1, listAgain.OutputToStringArray())).To(BeFalse())
-		if !isRootless() {
-			Expect(StringInSlice("podman", list.OutputToStringArray())).To(BeTrue())
-		}
+		Expect(listAgain.OutputToStringArray()).ShouldNot(ContainElement(net1))
+		Expect(listAgain.OutputToStringArray()).Should(ContainElement("podman"))
 	})
 
 	It("podman network prune", func() {
+		// set custom cni directory to prevent flakes
+		podmanTest.CNIConfigDir = tempdir
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
 		// Create two networks
 		// Check they are there
 		// Run a container on one of them
@@ -669,13 +676,11 @@ var _ = Describe("Podman network", func() {
 
 		list := podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}}"})
 		list.WaitWithDefaultTimeout()
-		Expect(list).Should(Exit(0))
+		Expect(list.OutputToStringArray()).Should(HaveLen(3))
 
-		Expect(StringInSlice(net1, list.OutputToStringArray())).To(BeTrue())
-		Expect(StringInSlice(net2, list.OutputToStringArray())).To(BeTrue())
-		if !isRootless() {
-			Expect(StringInSlice("podman", list.OutputToStringArray())).To(BeTrue())
-		}
+		Expect(list.OutputToStringArray()).Should(ContainElement(net1))
+		Expect(list.OutputToStringArray()).Should(ContainElement(net2))
+		Expect(list.OutputToStringArray()).Should(ContainElement("podman"))
 
 		session := podmanTest.Podman([]string{"run", "-dt", "--net", net2, ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
@@ -688,13 +693,10 @@ var _ = Describe("Podman network", func() {
 		listAgain := podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}}"})
 		listAgain.WaitWithDefaultTimeout()
 		Expect(listAgain).Should(Exit(0))
+		Expect(listAgain.OutputToStringArray()).Should(HaveLen(2))
 
-		Expect(StringInSlice(net1, listAgain.OutputToStringArray())).To(BeFalse())
-		Expect(StringInSlice(net2, listAgain.OutputToStringArray())).To(BeTrue())
-		// Make sure default network 'podman' still exists
-		if !isRootless() {
-			Expect(StringInSlice("podman", list.OutputToStringArray())).To(BeTrue())
-		}
-
+		Expect(listAgain.OutputToStringArray()).ShouldNot(ContainElement(net1))
+		Expect(listAgain.OutputToStringArray()).Should(ContainElement(net2))
+		Expect(listAgain.OutputToStringArray()).Should(ContainElement("podman"))
 	})
 })

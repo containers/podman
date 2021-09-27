@@ -170,7 +170,11 @@ func (n *cniNetwork) NetworkRemove(nameOrID string) error {
 	file := network.filename
 	delete(n.networks, network.libpodNet.Name)
 
-	return os.Remove(file)
+	// make sure to not error for ErrNotExist
+	if err := os.Remove(file); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return nil
 }
 
 // NetworkList will return all known Networks. Optionally you can
