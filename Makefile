@@ -672,7 +672,7 @@ podman-v$(RELEASE_NUMBER).msi: podman-remote-windows podman-remote-windows-docs
 		--directory-ref INSTALLDIR --prefix $(DOCFILE)/ > \
 			$(DOCFILE)/pages.wsx
 	wixl -D VERSION=$(call err_if_empty,RELEASE_VERSION) -D ManSourceDir=$(DOCFILE) \
-		-o $@ contrib/msi/podman.wxs $(DOCFILE)/pages.wsx
+		-o $@ contrib/msi/podman.wxs $(DOCFILE)/pages.wsx --arch x64
 
 .PHONY: package
 package:  ## Build rpm packages
