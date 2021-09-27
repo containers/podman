@@ -234,6 +234,17 @@ var _ = Describe("Podman stop", func() {
 		Expect(strings.TrimSpace(finalCtrs.OutputToString())).To(Equal(""))
 	})
 
+	It("podman stop should return silent success on stopping configured containers", func() {
+		// following container is not created on OCI runtime
+		// so we return success and assume that is is stopped
+		session2 := podmanTest.Podman([]string{"create", "--name", "stopctr", ALPINE, "/bin/sh"})
+		session2.WaitWithDefaultTimeout()
+		Expect(session2).Should(Exit(0))
+		session3 := podmanTest.Podman([]string{"stop", "stopctr"})
+		session3.WaitWithDefaultTimeout()
+		Expect(session3).Should(Exit(0))
+	})
+
 	It("podman stop --cidfile", func() {
 
 		tmpDir, err := ioutil.TempDir("", "")
