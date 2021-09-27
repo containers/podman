@@ -90,10 +90,18 @@ load helpers
     is "${#lines[@]}" "1" "setup check: no storage containers at start of test"
 
     # Force a buildah timeout; this leaves a buildah container behind
+    local t0=$SECONDS
     PODMAN_TIMEOUT=5 run_podman 124 build -t thiswillneverexist - <<EOF
 FROM $IMAGE
 RUN sleep 30
 EOF
+    local t1=$SECONDS
+    local delta_t=$((t1 - t0))
+    if [[ $delta_t -gt 10 ]]; then
+        # FIXME FIXME FIXME: when buildah issue 3544 gets fixed and vendored,
+        # change 'echo' to 'die'
+        echo "podman build did not get killed within 10 seconds (actual time: $delta_t seconds)"
+    fi
 
     run_podman ps -a
     is "${#lines[@]}" "1" "podman ps -a does not see buildah container"

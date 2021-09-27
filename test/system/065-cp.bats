@@ -256,6 +256,7 @@ load helpers
 "
 
     # From RUNNING container
+    local -a destcontainers=()
     while read id src dest dest_fullname description; do
         # dest may be "''" for empty table cells
         if [[ $dest == "''" ]];then
@@ -265,26 +266,25 @@ load helpers
         # To RUNNING container
         run_podman run -d $IMAGE sleep infinity
         destcontainer="$output"
+        destcontainers+=($destcontainer)
         run_podman cp cpcontainer:$src $destcontainer:"/$dest"
         run_podman exec $destcontainer cat "/$dest_fullname"
         is "$output" "${randomcontent[$id]}" "$description (cp ctr:$src to /$dest)"
-        run_podman kill $destcontainer
-        run_podman rm -f $destcontainer
 
 	# To CREATED container
         run_podman create $IMAGE sleep infinity
         destcontainer="$output"
+        destcontainers+=($destcontainer)
         run_podman cp cpcontainer:$src $destcontainer:"/$dest"
         run_podman start $destcontainer
         run_podman exec $destcontainer cat "/$dest_fullname"
         is "$output" "${randomcontent[$id]}" "$description (cp ctr:$src to /$dest)"
-        run_podman kill $destcontainer
-        run_podman rm -f $destcontainer
     done < <(parse_table "$tests")
-    run_podman kill cpcontainer
-    run_podman rm -f cpcontainer
+    run_podman kill cpcontainer ${destcontainers[@]}
+    run_podman rm -f cpcontainer ${destcontainers[@]}
 
     # From CREATED container
+    destcontainers=()
     run_podman create --name cpcontainer --workdir=/srv $cpimage
     while read id src dest dest_fullname description; do
         # dest may be "''" for empty table cells
@@ -295,23 +295,21 @@ load helpers
         # To RUNNING container
         run_podman run -d $IMAGE sleep infinity
         destcontainer="$output"
+        destcontainers+=($destcontainer)
         run_podman cp cpcontainer:$src $destcontainer:"/$dest"
         run_podman exec $destcontainer cat "/$dest_fullname"
         is "$output" "${randomcontent[$id]}" "$description (cp ctr:$src to /$dest)"
-        run_podman kill $destcontainer
-        run_podman rm -f $destcontainer
-
 	# To CREATED container
         run_podman create $IMAGE sleep infinity
         destcontainer="$output"
+        destcontainers+=($destcontainer)
         run_podman cp cpcontainer:$src $destcontainer:"/$dest"
         run_podman start $destcontainer
         run_podman exec $destcontainer cat "/$dest_fullname"
         is "$output" "${randomcontent[$id]}" "$description (cp ctr:$src to /$dest)"
-        run_podman kill $destcontainer
-        run_podman rm -f $destcontainer
     done < <(parse_table "$tests")
-    run_podman rm -f cpcontainer
+    run_podman kill ${destcontainers[@]}
+    run_podman rm -f cpcontainer ${destcontainers[@]}
 
     run_podman rmi -f $cpimage
 }
@@ -496,6 +494,7 @@ load helpers
 "
 
     # From RUNNING container
+    local -a destcontainers=()
     while read src dest dest_fullname description; do
         if [[ $src == "''" ]];then
             unset src
@@ -510,28 +509,27 @@ load helpers
         # To RUNNING container
         run_podman run -d $IMAGE sleep infinity
         destcontainer="$output"
+        destcontainers+=($destcontainer)
         run_podman cp cpcontainer:$src $destcontainer:"/$dest"
         run_podman exec $destcontainer cat "/$dest_fullname/containerfile0" "/$dest_fullname/containerfile1"
         is "$output" "${randomcontent[0]}
 ${randomcontent[1]}" "$description"
-        run_podman kill $destcontainer
-        run_podman rm -f $destcontainer
 
 	# To CREATED container
         run_podman create $IMAGE sleep infinity
         destcontainer="$output"
+        destcontainers+=($destcontainer)
         run_podman cp cpcontainer:$src $destcontainer:"/$dest"
         run_podman start $destcontainer
         run_podman exec $destcontainer cat "/$dest_fullname/containerfile0" "/$dest_fullname/containerfile1"
         is "$output" "${randomcontent[0]}
 ${randomcontent[1]}" "$description"
-        run_podman kill $destcontainer
-        run_podman rm -f $destcontainer
     done < <(parse_table "$tests")
-    run_podman kill cpcontainer
-    run_podman rm -f cpcontainer
+    run_podman kill cpcontainer ${destcontainers[@]}
+    run_podman rm -f cpcontainer ${destcontainers[@]}
 
     # From CREATED container
+    destcontainers=()
     run_podman create --name cpcontainer --workdir=/srv $cpimage
     while read src dest dest_fullname description; do
         if [[ $src == "''" ]];then
@@ -547,26 +545,25 @@ ${randomcontent[1]}" "$description"
 	# To RUNNING container
         run_podman run -d $IMAGE sleep infinity
         destcontainer="$output"
+        destcontainers+=($destcontainer)
         run_podman cp cpcontainer:$src $destcontainer:"/$dest"
         run_podman exec $destcontainer cat "/$dest_fullname/containerfile0" "/$dest_fullname/containerfile1"
         is "$output" "${randomcontent[0]}
 ${randomcontent[1]}" "$description"
-        run_podman kill $destcontainer
-        run_podman rm -f $destcontainer
 
 	# To CREATED container
         run_podman create $IMAGE sleep infinity
         destcontainer="$output"
+        destcontainers+=($destcontainer)
         run_podman start $destcontainer
         run_podman cp cpcontainer:$src $destcontainer:"/$dest"
         run_podman exec $destcontainer cat "/$dest_fullname/containerfile0" "/$dest_fullname/containerfile1"
         is "$output" "${randomcontent[0]}
 ${randomcontent[1]}" "$description"
-        run_podman kill $destcontainer
-        run_podman rm -f $destcontainer
     done < <(parse_table "$tests")
 
-    run_podman rm -f cpcontainer
+    run_podman kill ${destcontainers[@]}
+    run_podman rm -f cpcontainer ${destcontainers[@]}
     run_podman rmi -f $cpimage
 }
 

@@ -960,7 +960,7 @@ EOF
     tmpdir=$PODMAN_TMPDIR/build-test
     mkdir -p $tmpdir/target
     ln -s target $tmpdir/link
-    echo FROM alpine > $tmpdir/link/Dockerfile
+    echo FROM $IMAGE > $tmpdir/link/Dockerfile
     echo RUN echo hello >> $tmpdir/link/Dockerfile
     run_podman build -t build_test $tmpdir/link
 }
