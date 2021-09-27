@@ -198,7 +198,6 @@ func DefaultConfig() (*Config, error) {
 			TZ:                 "",
 			Umask:              "0022",
 			UTSNS:              "private",
-			UserNS:             "host",
 			UserNSSize:         DefaultUserNSSize,
 		},
 		Network: NetworkConfig{
@@ -209,6 +208,7 @@ func DefaultConfig() (*Config, error) {
 		},
 		Engine:  *defaultEngineConfig,
 		Secrets: defaultSecretConfig(),
+		Machine: defaultMachineConfig(),
 	}, nil
 }
 
@@ -217,6 +217,16 @@ func DefaultConfig() (*Config, error) {
 func defaultSecretConfig() SecretConfig {
 	return SecretConfig{
 		Driver: "file",
+	}
+}
+
+// defaultMachineConfig returns the default machine configuration.
+func defaultMachineConfig() MachineConfig {
+	return MachineConfig{
+		CPUs:     1,
+		DiskSize: 10,
+		Image:    "testing",
+		Memory:   2048,
 	}
 }
 
@@ -244,6 +254,8 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		logrus.Warnf("Storage configuration is unset - using hardcoded default graph root %q", _defaultGraphRoot)
 		storeOpts.GraphRoot = _defaultGraphRoot
 	}
+	c.graphRoot = storeOpts.GraphRoot
+	c.ImageCopyTmpDir = "/var/tmp"
 	c.StaticDir = filepath.Join(storeOpts.GraphRoot, "libpod")
 	c.VolumePath = filepath.Join(storeOpts.GraphRoot, "volumes")
 
@@ -255,8 +267,11 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.ImageBuildFormat = "oci"
 
 	c.CgroupManager = defaultCgroupManager()
+	c.ServiceTimeout = uint(5)
 	c.StopTimeout = uint(10)
-
+	c.NetworkCmdOptions = []string{
+		"enable_ipv6=true",
+	}
 	c.Remote = isRemote()
 	c.OCIRuntimes = map[string][]string{
 		"crun": {
@@ -297,6 +312,10 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 			"/sbin/runsc",
 			"/run/current-system/sw/bin/runsc",
 		},
+		"krun": {
+			"/usr/bin/krun",
+			"/usr/local/bin/krun",
+		},
 	}
 	// Needs to be called after populating c.OCIRuntimes
 	c.OCIRuntime = c.findRuntime()
@@ -320,9 +339,10 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		"runc",
 		"kata",
 		"runsc",
+		"krun",
 	}
-	c.RuntimeSupportsNoCgroups = []string{"crun"}
-	c.RuntimeSupportsKVM = []string{"kata", "kata-runtime", "kata-qemu", "kata-fc"}
+	c.RuntimeSupportsNoCgroups = []string{"crun", "krun"}
+	c.RuntimeSupportsKVM = []string{"kata", "kata-runtime", "kata-qemu", "kata-fc", "krun"}
 	c.InitPath = DefaultInitPath
 	c.NoPivotRoot = false
 
@@ -336,8 +356,6 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	// constants.
 	c.LockType = "shm"
 	c.MachineEnabled = false
-	c.MachineImage = "testing"
-
 	c.ChownCopiedFiles = true
 
 	return c, nil
@@ -556,10 +574,4 @@ func (c *Config) MachineEnabled() bool {
 // rootless containers should use
 func (c *Config) RootlessNetworking() string {
 	return c.Containers.RootlessNetworking
-}
-
-// MachineImage returns the image to be
-// used when creating a podman-machine VM
-func (c *Config) MachineImage() string {
-	return c.Engine.MachineImage
 }
