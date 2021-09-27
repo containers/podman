@@ -253,7 +253,9 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 			// We add the original port declarations from the libpod infra container
 			// to the first kubernetes container description because otherwise we loose
 			// the original container/port bindings.
-			if first && len(ports) > 0 {
+			// Add the port configuration to the first regular container or the first
+			// init container if only init containers have been created in the pod.
+			if first && len(ports) > 0 && (!isInit || len(containers) == 2) {
 				ctr.Ports = ports
 				first = false
 			}
