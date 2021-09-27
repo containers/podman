@@ -230,6 +230,9 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 			params.Add("platform", platform)
 		}
 	}
+	if contextDir, err := filepath.EvalSymlinks(options.ContextDirectory); err == nil {
+		options.ContextDirectory = contextDir
+	}
 
 	params.Set("pullpolicy", options.PullPolicy.String())
 
