@@ -69,26 +69,36 @@ function teardown() {
 
 @test "podman system service - socket activation - no container" {
     run curl -s --max-time 3 --unix-socket $SERVICE_SOCK_ADDR http://podman/libpod/_ping
-    is "$output" "OK" "podman service responses normally"
+    is "$output" "OK" "podman service responds normally"
 }
 
-@test "podman system service - socket activation - exist container " {
-    run_podman run $IMAGE sleep 90
+@test "podman system service - socket activation - existing container" {
+    run_podman run -d $IMAGE sleep 90
+    cid="$output"
+
     run curl -s --max-time 3 --unix-socket $SERVICE_SOCK_ADDR http://podman/libpod/_ping
-    is "$output" "OK" "podman service responses normally"
+    is "$output" "OK" "podman service responds normally"
+
+    run_podman stop -t 0 $cid
+    run_podman rm -f $cid
 }
 
-@test "podman system service - socket activation - kill rootless pause " {
+@test "podman system service - socket activation - kill rootless pause" {
     if ! is_rootless; then
         skip "root podman no need pause process"
     fi
-    run_podman run $IMAGE sleep 90
+    run_podman run -d $IMAGE sleep 90
+    cid="$output"
+
     local pause_pid="$XDG_RUNTIME_DIR/libpod/tmp/pause.pid"
     if [ -f $pause_pid ]; then
         kill -9 $(cat $pause_pid) 2> /dev/null
     fi
     run curl -s --max-time 3 --unix-socket $SERVICE_SOCK_ADDR http://podman/libpod/_ping
-    is "$output" "OK" "podman service responses normally"
+    is "$output" "OK" "podman service responds normally"
+
+    run_podman stop -t 0 $cid
+    run_podman rm -f $cid
 }
 
 # vim: filetype=sh
