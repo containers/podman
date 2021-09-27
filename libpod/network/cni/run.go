@@ -186,9 +186,6 @@ outer:
 		}
 		return errors.Errorf("requested static ip %s not in any subnet on network %s", ip.String(), network.libpodNet.Name)
 	}
-	if len(netOpts.Aliases) > 0 && !network.libpodNet.DNSEnabled {
-		return errors.New("cannot set aliases on a network without dns enabled")
-	}
 	return nil
 }
 

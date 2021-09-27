@@ -966,6 +966,26 @@ var _ = Describe("run CNI", func() {
 			})
 		})
 
+		It("setup with aliases but dns disabled should work", func() {
+			runTest(func() {
+				defNet := types.DefaultNetworkName
+				intName := "eth0"
+				setupOpts := types.SetupOptions{
+					NetworkOptions: types.NetworkOptions{
+						ContainerID: stringid.GenerateNonCryptoID(),
+						Networks: map[string]types.PerNetworkOptions{
+							defNet: {
+								InterfaceName: intName,
+								Aliases:       []string{"somealias"},
+							},
+						},
+					},
+				}
+				_, err := libpodNet.Setup(netNSContainer.Path(), setupOpts)
+				Expect(err).ToNot(HaveOccurred())
+			})
+		})
+
 	})
 
 	Context("invalid network setup test", func() {
@@ -1049,27 +1069,6 @@ var _ = Describe("run CNI", func() {
 				_, err := libpodNet.Setup(netNSContainer.Path(), setupOpts)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("ContainerID is empty"))
-			})
-		})
-
-		It("setup with aliases but dns disabled", func() {
-			runTest(func() {
-				defNet := types.DefaultNetworkName
-				intName := "eth0"
-				setupOpts := types.SetupOptions{
-					NetworkOptions: types.NetworkOptions{
-						ContainerID: stringid.GenerateNonCryptoID(),
-						Networks: map[string]types.PerNetworkOptions{
-							defNet: {
-								InterfaceName: intName,
-								Aliases:       []string{"somealias"},
-							},
-						},
-					},
-				}
-				_, err := libpodNet.Setup(netNSContainer.Path(), setupOpts)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("cannot set aliases on a network without dns enabled"))
 			})
 		})
 

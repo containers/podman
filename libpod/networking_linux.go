@@ -1262,6 +1262,14 @@ func (c *Container) NetworkConnect(nameOrID, netName string, aliases []string) e
 	// get network status before we connect
 	networkStatus := c.getNetworkStatus()
 
+	network, err := c.runtime.network.NetworkInspect(netName)
+	if err != nil {
+		return err
+	}
+	if !network.DNSEnabled && len(aliases) > 0 {
+		return errors.Wrapf(define.ErrInvalidArg, "cannot set network aliases for network %q because dns is disabled", netName)
+	}
+
 	if err := c.runtime.state.NetworkConnect(c, netName, aliases); err != nil {
 		return err
 	}

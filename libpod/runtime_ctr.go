@@ -234,13 +234,6 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 }
 
 func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Container, retErr error) {
-	// Validate the container
-	if err := ctr.validate(); err != nil {
-		return nil, err
-	}
-	if ctr.config.IsInfra {
-		ctr.config.StopTimeout = 10
-	}
 	// normalize the networks to names
 	// ocicni only knows about cni names so we have to make
 	// sure we do not use ids internally
@@ -265,9 +258,24 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 			if err != nil {
 				return nil, err
 			}
+			network, err := r.network.NetworkInspect(netName)
+			if err != nil {
+				return nil, err
+			}
+			if !network.DNSEnabled {
+				return nil, errors.Wrapf(define.ErrInvalidArg, "cannot set network aliases for network %q because dns is disabled", netName)
+			}
 			netAliases[netName] = aliases
 		}
 		ctr.config.NetworkAliases = netAliases
+	}
+
+	// Validate the container
+	if err := ctr.validate(); err != nil {
+		return nil, err
+	}
+	if ctr.config.IsInfra {
+		ctr.config.StopTimeout = 10
 	}
 
 	// Inhibit shutdown until creation succeeds
