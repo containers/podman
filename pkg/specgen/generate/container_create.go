@@ -498,6 +498,7 @@ func CreateExitCommandArgs(storageConfig types.StoreOptions, config *config.Conf
 		"--log-level", logrus.GetLevel().String(),
 		"--cgroup-manager", config.Engine.CgroupManager,
 		"--tmpdir", config.Engine.TmpDir,
+		"--cni-config-dir", config.Network.NetworkConfigDir,
 	}
 	if config.Engine.OCIRuntime != "" {
 		command = append(command, []string{"--runtime", config.Engine.OCIRuntime}...)
