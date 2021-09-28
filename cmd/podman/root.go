@@ -92,6 +92,11 @@ func Execute() {
 		if registry.GetExitCode() == 0 {
 			registry.SetExitCode(define.ExecErrorCodeGeneric)
 		}
+		if registry.IsRemote() {
+			if strings.Contains(err.Error(), "unable to connect to Podman") {
+				fmt.Fprintln(os.Stderr, "Cannot connect to Podman. Please verify your connection to the Linux system using `podman system connection list`, or try `podman machine init` and `podman machine start` to manage a new Linux VM")
+			}
+		}
 		fmt.Fprintln(os.Stderr, formatError(err))
 	}
 	os.Exit(registry.GetExitCode())
