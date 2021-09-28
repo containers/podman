@@ -54,6 +54,8 @@ type Config struct {
 	Containers ContainersConfig `toml:"containers"`
 	// Engine specifies how the container engine based on Engine will run
 	Engine EngineConfig `toml:"engine"`
+	// Machine specifies configurations of podman machine VMs
+	Machine MachineConfig `toml:"machine"`
 	// Network section defines the configuration of CNI Plugins
 	Network NetworkConfig `toml:"network"`
 	// Secret section defines configurations for the secret management
@@ -278,9 +280,6 @@ type EngineConfig struct {
 	// MachineEnabled indicates if Podman is running in a podman-machine VM
 	MachineEnabled bool `toml:"machine_enabled,omitempty"`
 
-	// MachineImage is the image used when creating a podman-machine VM
-	MachineImage string `toml:"machine_image,omitempty"`
-
 	// MultiImageArchive - if true, the container engine allows for storing
 	// archives (e.g., of the docker-archive transport) with multiple
 	// images.  By default, Podman creates single-image archives.
@@ -475,6 +474,18 @@ type SecretConfig struct {
 	Driver string `toml:"driver,omitempty"`
 	// Opts contains driver specific options
 	Opts map[string]string `toml:"opts,omitempty"`
+}
+
+// MachineConfig represents the "machine" TOML config table
+type MachineConfig struct {
+	// Number of CPU's a machine is created with.
+	CPUs uint64 `toml:"cpus,omitempty"`
+	// DiskSize is the size of the disk in GB created when init-ing a podman-machine VM
+	DiskSize uint64 `toml:"disk_size,omitempty"`
+	// MachineImage is the image used when init-ing a podman-machine VM
+	Image string `toml:"image,omitempty"`
+	// Memory in MB a machine is created with.
+	Memory uint64 `toml:"memory,omitempty"`
 }
 
 // Destination represents destination for remote service
