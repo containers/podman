@@ -222,7 +222,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 	defer errorhandling.CloseQuiet(syncR)
 	defer errorhandling.CloseQuiet(syncW)
 
-	havePortMapping := len(ctr.Config().PortMappings) > 0
+	havePortMapping := len(ctr.config.PortMappings) > 0
 	logPath := filepath.Join(ctr.runtime.config.Engine.TmpDir, fmt.Sprintf("slirp4netns-%s.log", ctr.config.ID))
 
 	ctrNetworkSlipOpts := []string{}

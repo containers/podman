@@ -164,8 +164,7 @@ func (p *Pod) PidMode() string {
 	if err != nil {
 		return ""
 	}
-	conf := infra.Config()
-	ctrSpec := conf.Spec
+	ctrSpec := infra.config.Spec
 	if ctrSpec != nil && ctrSpec.Linux != nil {
 		for _, ns := range ctrSpec.Linux.Namespaces {
 			if ns.Type == specs.PIDNamespace {
@@ -186,8 +185,7 @@ func (p *Pod) UserNSMode() string {
 	if err != nil {
 		return ""
 	}
-	conf := infra.Config()
-	ctrSpec := conf.Spec
+	ctrSpec := infra.config.Spec
 	if ctrSpec != nil && ctrSpec.Linux != nil {
 		for _, ns := range ctrSpec.Linux.Namespaces {
 			if ns.Type == specs.UserNamespace {
