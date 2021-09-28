@@ -2,6 +2,11 @@
 
 # Changelog
 
+## v1.23.1 (2021-09-27)
+
+    Vendor containers/common v0.44.2
+    post-1.23 branch fixups
+
 ## v1.23.0 (2021-09-13)
 
     Vendor in containers/common v0.44.0
