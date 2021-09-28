@@ -923,12 +923,11 @@ func (c *Container) checkDependenciesRunning() ([]string, error) {
 		}
 
 		// Check the status
-		conf := depCtr.Config()
 		state, err := depCtr.State()
 		if err != nil {
 			return nil, errors.Wrapf(err, "error retrieving state of dependency %s of container %s", dep, c.ID())
 		}
-		if state != define.ContainerStateRunning && !conf.IsInfra {
+		if state != define.ContainerStateRunning && !depCtr.config.IsInfra {
 			notRunning = append(notRunning, dep)
 		}
 		depCtrs[dep] = depCtr
@@ -1003,7 +1002,7 @@ func (c *Container) cniHosts() string {
 	for _, status := range c.getNetworkStatus() {
 		for _, netInt := range status.Interfaces {
 			for _, netAddress := range netInt.Networks {
-				hosts += fmt.Sprintf("%s\t%s %s\n", netAddress.Subnet.IP.String(), c.Hostname(), c.Config().Name)
+				hosts += fmt.Sprintf("%s\t%s %s\n", netAddress.Subnet.IP.String(), c.Hostname(), c.config.Name)
 			}
 		}
 	}
@@ -2106,7 +2105,7 @@ func (c *Container) canWithPrevious() error {
 // JSON files for later export
 func (c *Container) prepareCheckpointExport() error {
 	// save live config
-	if _, err := metadata.WriteJSONFile(c.Config(), c.bundlePath(), metadata.ConfigDumpFile); err != nil {
+	if _, err := metadata.WriteJSONFile(c.config, c.bundlePath(), metadata.ConfigDumpFile); err != nil {
 		return err
 	}
 

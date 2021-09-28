@@ -174,7 +174,7 @@ func (c *Container) copyToArchive(ctx context.Context, path string, writer io.Wr
 
 // getContainerUser returns the specs.User and ID mappings of the container.
 func getContainerUser(container *Container, mountPoint string) (specs.User, error) {
-	userspec := container.Config().User
+	userspec := container.config.User
 
 	uid, gid, _, err := chrootuser.GetUser(mountPoint, userspec)
 	u := specs.User{
