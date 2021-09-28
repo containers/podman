@@ -1756,6 +1756,23 @@ func (s *BoltState) SafeRewriteContainerConfig(ctr *Container, oldName, newName 
 				if err := allCtrsBkt.Put([]byte(ctr.ID()), []byte(newName)); err != nil {
 					return errors.Wrapf(err, "error renaming container %s in all containers bucket in DB", ctr.ID())
 				}
+				if ctr.config.Pod != "" {
+					podsBkt, err := getPodBucket(tx)
+					if err != nil {
+						return err
+					}
+					podBkt := podsBkt.Bucket([]byte(ctr.config.Pod))
+					if podBkt == nil {
+						return errors.Wrapf(define.ErrInternal, "bucket for pod %s does not exist", ctr.config.Pod)
+					}
+					podCtrBkt := podBkt.Bucket(containersBkt)
+					if podCtrBkt == nil {
+						return errors.Wrapf(define.ErrInternal, "pod %s does not have a containers bucket", ctr.config.Pod)
+					}
+					if err := podCtrBkt.Put([]byte(ctr.ID()), []byte(newName)); err != nil {
+						return errors.Wrapf(err, "error renaming container %s in pod %s members bucket", ctr.ID(), ctr.config.Pod)
+					}
+				}
 			}
 		}
 
