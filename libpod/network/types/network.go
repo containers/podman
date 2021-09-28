@@ -151,7 +151,9 @@ type PerNetworkOptions struct {
 	// StaticIPv4 for this container. Optional.
 	StaticIPs []net.IP `json:"static_ips,omitempty"`
 	// Aliases contains a list of names which the dns server should resolve
-	// to this container. Can only be set when DNSEnabled is true on the Network.
+	// to this container. Should only be set when DNSEnabled is true on the Network.
+	// If aliases are set but there is no dns support for this network the
+	// network interface implementation should ignore this and NOT error.
 	// Optional.
 	Aliases []string `json:"aliases,omitempty"`
 	// StaticMac for this container. Optional.

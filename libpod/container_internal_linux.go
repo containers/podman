@@ -1310,7 +1310,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	if err == nil && options.Name == "" && (!options.IgnoreStaticIP || !options.IgnoreStaticMAC) {
 		// The file with the network.status does exist. Let's restore the
 		// container with the same networks settings as during checkpointing.
-		aliases, err := c.runtime.state.GetAllNetworkAliases(c)
+		aliases, err := c.GetAllNetworkAliases()
 		if err != nil {
 			return err
 		}

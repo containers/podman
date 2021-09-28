@@ -52,7 +52,6 @@ var _ = Describe("Podman network connect and disconnect", func() {
 	})
 
 	It("network disconnect with net mode slirp4netns should result in error", func() {
-		SkipIfRootless("network connect and disconnect are only rootful")
 		netName := "slirp" + stringid.GenerateNonCryptoID()
 		session := podmanTest.Podman([]string{"network", "create", netName})
 		session.WaitWithDefaultTimeout()
@@ -118,7 +117,6 @@ var _ = Describe("Podman network connect and disconnect", func() {
 	})
 
 	It("network connect with net mode slirp4netns should result in error", func() {
-		SkipIfRootless("network connect and disconnect are only rootful")
 		netName := "slirp" + stringid.GenerateNonCryptoID()
 		session := podmanTest.Podman([]string{"network", "create", netName})
 		session.WaitWithDefaultTimeout()
@@ -146,6 +144,13 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		ctr := podmanTest.Podman([]string{"create", "--name", "test", "--network", netName, ALPINE, "top"})
 		ctr.WaitWithDefaultTimeout()
 		Expect(ctr).Should(Exit(0))
+		cid := ctr.OutputToString()
+
+		// network alias container short id is always added and shown in inspect
+		inspect := podmanTest.Podman([]string{"container", "inspect", "test", "--format", "{{(index .NetworkSettings.Networks \"" + netName + "\").Aliases}}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(Equal("[" + cid[0:12] + "]"))
 
 		con := podmanTest.Podman([]string{"network", "connect", netName, "test"})
 		con.WaitWithDefaultTimeout()
@@ -153,7 +158,6 @@ var _ = Describe("Podman network connect and disconnect", func() {
 	})
 
 	It("podman network connect", func() {
-		SkipIfRemote("This requires a pending PR to be merged before it will work")
 		netName := "aliasTest" + stringid.GenerateNonCryptoID()
 		session := podmanTest.Podman([]string{"network", "create", netName})
 		session.WaitWithDefaultTimeout()
@@ -163,6 +167,7 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		ctr := podmanTest.Podman([]string{"run", "-dt", "--name", "test", "--network", netName, ALPINE, "top"})
 		ctr.WaitWithDefaultTimeout()
 		Expect(ctr).Should(Exit(0))
+		cid := ctr.OutputToString()
 
 		exec := podmanTest.Podman([]string{"exec", "-it", "test", "ip", "addr", "show", "eth0"})
 		exec.WaitWithDefaultTimeout()
@@ -184,6 +189,12 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).To(Equal("2"))
 
+		// network alias container short id is always added and shown in inspect
+		inspect = podmanTest.Podman([]string{"container", "inspect", "test", "--format", "{{(index .NetworkSettings.Networks \"" + newNetName + "\").Aliases}}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(Equal("[" + cid[0:12] + "]"))
+
 		exec = podmanTest.Podman([]string{"exec", "-it", "test", "ip", "addr", "show", "eth1"})
 		exec.WaitWithDefaultTimeout()
 		Expect(exec).Should(Exit(0))
@@ -193,7 +204,6 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		rm.WaitWithDefaultTimeout()
 		Expect(rm).Should(Exit(0))
 		Expect(rm.ErrorToString()).To(Equal(""))
-
 	})
 
 	It("podman network connect when not running", func() {
