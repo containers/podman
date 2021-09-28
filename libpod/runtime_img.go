@@ -48,6 +48,27 @@ func (r *Runtime) RemoveContainersForImageCallback(ctx context.Context) libimage
 	}
 }
 
+// IsExternalContainerCallback returns a callback that be used in `libimage` to
+// figure out whether a given container is an external one.  A container is
+// considered external if it is not present in libpod's database.
+func (r *Runtime) IsExternalContainerCallback(_ context.Context) libimage.IsExternalContainerFunc {
+	// NOTE: pruning external containers is subject to race conditions
+	// (e.g., when a container gets removed). To address this and similar
+	// races, pruning had to happen inside c/storage.  Containers has to be
+	// labelled with "podman/libpod" along with callbacks similar to
+	// libimage.
+	return func(idOrName string) (bool, error) {
+		_, err := r.LookupContainer(idOrName)
+		if err == nil {
+			return false, nil
+		}
+		if errors.Is(err, define.ErrNoSuchCtr) {
+			return true, nil
+		}
+		return false, nil
+	}
+}
+
 // newBuildEvent creates a new event based on completion of a built image
 func (r *Runtime) newImageBuildCompleteEvent(idOrName string) {
 	e := events.NewEvent(events.Build)

@@ -83,12 +83,12 @@ func (s *supplementedImageReference) NewImageSource(ctx context.Context, sys *ty
 			if iss != nil {
 				// The composite source has been created.  Use its Close method.
 				if err2 := iss.Close(); err2 != nil {
-					logrus.Errorf("error opening image: %v", err2)
+					logrus.Errorf("Opening image: %v", err2)
 				}
 			} else if top != nil {
 				// The composite source has not been created, but the top was already opened.  Close it.
 				if err2 := top.Close(); err2 != nil {
-					logrus.Errorf("error opening image: %v", err2)
+					logrus.Errorf("Closing image: %v", err2)
 				}
 			}
 		}

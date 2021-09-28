@@ -237,7 +237,7 @@ func checkCgroupPids(cgMounts map[string]string, quiet bool) cgroupPids {
 		_, ok := cgMounts["pids"]
 		if !ok {
 			if !quiet {
-				logrus.Warn("unable to find pids cgroup in mounts")
+				logrus.Warn("Unable to find pids cgroup in mounts")
 			}
 			return cgroupPids{}
 		}

@@ -47,11 +47,11 @@ func filterImages(images []*Image, filters []filterFunc) ([]*Image, error) {
 // compileImageFilters creates `filterFunc`s for the specified filters.  The
 // required format is `key=value` with the following supported keys:
 //           after, since, before, containers, dangling, id, label, readonly, reference, intermediate
-func (r *Runtime) compileImageFilters(ctx context.Context, filters []string) ([]filterFunc, error) {
-	logrus.Tracef("Parsing image filters %s", filters)
+func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOptions) ([]filterFunc, error) {
+	logrus.Tracef("Parsing image filters %s", options.Filters)
 
 	filterFuncs := []filterFunc{}
-	for _, filter := range filters {
+	for _, filter := range options.Filters {
 		var key, value string
 		split := strings.SplitN(filter, "=", 2)
 		if len(split) != 2 {
@@ -77,11 +77,16 @@ func (r *Runtime) compileImageFilters(ctx context.Context, filters []string) ([]
 			filterFuncs = append(filterFuncs, filterBefore(img.Created()))
 
 		case "containers":
-			containers, err := strconv.ParseBool(value)
-			if err != nil {
-				return nil, errors.Wrapf(err, "non-boolean value %q for dangling filter", value)
+			switch value {
+			case "false", "true":
+			case "external":
+				if options.IsExternalContainerFunc == nil {
+					return nil, fmt.Errorf("libimage error: external containers filter without callback")
+				}
+			default:
+				return nil, fmt.Errorf("unsupported value %q for containers filter", value)
 			}
-			filterFuncs = append(filterFuncs, filterContainers(containers))
+			filterFuncs = append(filterFuncs, filterContainers(value, options.IsExternalContainerFunc))
 
 		case "dangling":
 			dangling, err := strconv.ParseBool(value)
@@ -190,13 +195,28 @@ func filterReadOnly(value bool) filterFunc {
 }
 
 // filterContainers creates a container filter for matching the specified value.
-func filterContainers(value bool) filterFunc {
+func filterContainers(value string, fn IsExternalContainerFunc) filterFunc {
 	return func(img *Image) (bool, error) {
 		ctrs, err := img.Containers()
 		if err != nil {
 			return false, err
 		}
-		return (len(ctrs) > 0) == value, nil
+		if value != "external" {
+			boolValue := value == "true"
+			return (len(ctrs) > 0) == boolValue, nil
+		}
+
+		// Check whether all associated containers are external ones.
+		for _, c := range ctrs {
+			isExternal, err := fn(c)
+			if err != nil {
+				return false, fmt.Errorf("checking if %s is an external container in filter: %w", c, err)
+			}
+			if !isExternal {
+				return isExternal, nil
+			}
+		}
+		return true, nil
 	}
 }
 
