@@ -811,7 +811,7 @@ install.tools: .install.goimports .install.gitvalidation .install.md2man .instal
 
 .PHONY: .install.golangci-lint
 .install.golangci-lint: .gopathok
-	VERSION=1.36.0 GOBIN=$(GOBIN) sh ./hack/install_golangci.sh
+	VERSION=1.36.0 GOBIN=$(GOBIN) ./hack/install_golangci.sh
 
 .PHONY: .install.bats
 .install.bats: .gopathok
