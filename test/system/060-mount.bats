@@ -125,6 +125,7 @@ load helpers
     run_podman exec $cid find /image-mount/etc/
 
     # Clean up
+    run_podman stop -t 0 $cid
     run_podman rm -f $cid
 }
 
@@ -147,6 +148,7 @@ load helpers
     run_podman inspect --format "{{(index .Mounts 0).RW}}" $cid
     is "$output" "true" "inspect data includes image mount source"
 
+    run_podman stop -t 0 $cid
     run_podman rm -f $cid
 }
 
