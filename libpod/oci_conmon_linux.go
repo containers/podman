@@ -1148,7 +1148,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 
 	if ctr.config.NetMode.IsSlirp4netns() || rootless.IsRootless() {
 		if ctr.config.PostConfigureNetNS {
-			havePortMapping := len(ctr.Config().PortMappings) > 0
+			havePortMapping := len(ctr.config.PortMappings) > 0
 			if havePortMapping {
 				ctr.rootlessPortSyncR, ctr.rootlessPortSyncW, err = os.Pipe()
 				if err != nil {

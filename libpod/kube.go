@@ -90,7 +90,7 @@ func (p *Pod) GenerateForKube(ctx context.Context) (*v1.Pod, []v1.ServicePort, e
 	// so set it at here
 	for _, ctr := range allContainers {
 		if !ctr.IsInfra() {
-			switch ctr.Config().RestartPolicy {
+			switch ctr.config.RestartPolicy {
 			case define.RestartPolicyAlways:
 				pod.Spec.RestartPolicy = v1.RestartPolicyAlways
 			case define.RestartPolicyOnFailure:
