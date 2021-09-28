@@ -101,7 +101,9 @@ function setup() {
     fi
 
     run_podman 125 --remote
-    is "$output" "Error: missing command 'podman COMMAND'" "podman remote show usage message without running endpoint"
+    is "$output" "Error: missing command 'podman COMMAND'
+Try 'podman --help' for more information." \
+       "podman --remote show usage message without running endpoint"
 }
 
 # This is for development only; it's intended to make sure our timeout

@@ -30,7 +30,7 @@ spec:
   containers:
   - command:
     - sleep
-    - "100"
+    - \"100\"
     env:
     - name: PATH
       value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
@@ -49,7 +49,7 @@ spec:
       capabilities: {}
       privileged: false
       seLinuxOptions:
-         level: "s0:c1,c2"
+         level: \"s0:c1,c2\"
       readOnlyRootFilesystem: false
     volumeMounts:
     - mountPath: /testdir:z
@@ -73,7 +73,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
     run_podman play kube - < $PODMAN_TMPDIR/test.yaml
     if [ -e /usr/sbin/selinuxenabled -a /usr/sbin/selinuxenabled ]; then
        run ls -Zd $TESTDIR
-       is "$output" ${RELABEL} "selinux relabel should have happened"
+       is "$output" "${RELABEL} $TESTDIR" "selinux relabel should have happened"
     fi
 
     run_podman stop -a -t 0
@@ -88,7 +88,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
     run_podman play kube $PODMAN_TMPDIR/test.yaml
     if [ -e /usr/sbin/selinuxenabled -a /usr/sbin/selinuxenabled ]; then
        run ls -Zd $TESTDIR
-       is "$output" ${RELABEL} "selinux relabel should have happened"
+       is "$output" "${RELABEL} $TESTDIR" "selinux relabel should have happened"
     fi
 
     run_podman stop -a -t 0

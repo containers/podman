@@ -11,7 +11,7 @@ load helpers
 # initialize, read image ID and name
 get_iid_and_name() {
     run_podman images -a --format '{{.ID}} {{.Repository}}:{{.Tag}}'
-    read iid img_name < <(echo "$output")
+    read iid img_name <<<"$output"
 
     archive=$PODMAN_TMPDIR/myimage-$(random_string 8).tar
 }
@@ -62,7 +62,7 @@ verify_iid_and_name() {
 
     # FIXME: cannot compare IID, see #7371, so we check only the tag
     run_podman images $fqin --format '{{.Repository}}:{{.Tag}}'
-    is "$output" "$fqin" "image preserves name across save/load"
+    is "${lines[0]}" "$fqin" "image preserves name across save/load"
 
     # Load with a new tag
     local new_name=x1$(random_string 14 | tr A-Z a-z)

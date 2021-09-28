@@ -20,26 +20,26 @@ load helpers
     # Simple import
     run_podman import -q $archive
     iid="$output"
-    run_podman run -t --rm $iid cat /random.txt
+    run_podman run --rm $iid cat /random.txt
     is "$output" "$random_content" "simple import"
     run_podman rmi -f $iid
 
     # Simple import via stdin
     run_podman import -q - < <(cat $archive)
     iid="$output"
-    run_podman run -t --rm $iid cat /random.txt
+    run_podman run --rm $iid cat /random.txt
     is "$output" "$random_content" "simple import via stdin"
     run_podman rmi -f $iid
 
     # Tagged import
     run_podman import -q $archive $fqin
-    run_podman run -t --rm $fqin cat /random.txt
+    run_podman run --rm $fqin cat /random.txt
     is "$output" "$random_content" "tagged import"
     run_podman rmi -f $fqin
 
     # Tagged import via stdin
     run_podman import -q - $fqin < <(cat $archive)
-    run_podman run -t --rm $fqin cat /random.txt
+    run_podman run --rm $fqin cat /random.txt
     is "$output" "$random_content" "tagged import via stdin"
     run_podman rmi -f $fqin
 }
@@ -100,7 +100,7 @@ EOF
 
     # Confirm exit within timeout
     run_podman ps -a --filter name=$a_cnt --format '{{.Status}}'
-    is "$output" "Exited (33)" "Exit by non-TERM/KILL"
+    is "$output" "Exited (33) .*" "Exit by non-TERM/KILL"
 
     run_podman rm -f $a_cnt
     run_podman rmi $b_img $a_img

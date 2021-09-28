@@ -261,7 +261,8 @@ EOF
 
     # prune should remove v4
     run_podman volume prune --force
-    is "$output" "${v[4]}" "volume prune, with 1, 2, 3 in use, deletes only 4"
+    is "$(echo $(sort <<<$output))" "${v[4]} ${v[5]} ${v[6]}" \
+       "volume prune, with 1, 2, 3 in use, deletes only 4, 5, 6"
 
     # Remove the container using v2 and v3. Prune should now remove those.
     # The 'echo sort' is to get the output sorted and in one line.

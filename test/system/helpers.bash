@@ -478,13 +478,30 @@ function is() {
     local expect="$2"
     local testname="${3:-${MOST_RECENT_PODMAN_COMMAND:-[no test name given]}}"
 
+    local is_expr=
     if [ -z "$expect" ]; then
         if [ -z "$actual" ]; then
+            # Both strings are empty.
             return
         fi
         expect='[no output]'
-    elif expr "$actual" : "$expect" >/dev/null; then
+    elif [[ "$actual" = "$expect" ]]; then
+        # Strings are identical.
         return
+    else
+        # Strings are not identical. Are there wild cards in our expect string?
+        if expr "$expect" : ".*[^\\][\*\[]" >/dev/null; then
+            # There is a '[' or '*' without a preceding backslash.
+            is_expr=' (using expr)'
+        elif [[ "${expect:0:1}" = '[' ]]; then
+            # String starts with '[', e.g. checking seconds like '[345]'
+            is_expr=' (using expr)'
+        fi
+        if [[ -n "$is_expr" ]]; then
+            if expr "$actual" : "$expect" >/dev/null; then
+                return
+            fi
+        fi
     fi
 
     # This is a multi-line message, which may in turn contain multi-line
@@ -493,7 +510,7 @@ function is() {
     readarray -t actual_split <<<"$actual"
     printf "#/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n" >&2
     printf "#|     FAIL: $testname\n"                          >&2
-    printf "#| expected: '%s'\n" "$expect"                     >&2
+    printf "#| expected: '%s'%s\n" "$expect" "$is_expr"        >&2
     printf "#|   actual: '%s'\n" "${actual_split[0]}"          >&2
     local line
     for line in "${actual_split[@]:1}"; do
