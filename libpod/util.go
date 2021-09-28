@@ -295,19 +295,21 @@ func writeHijackHeader(r *http.Request, conn io.Writer) {
 }
 
 // Convert OCICNI port bindings into Inspect-formatted port bindings.
-func makeInspectPortBindings(bindings []types.OCICNIPortMapping, expose map[uint16][]string) map[string][]define.InspectHostPort {
+func makeInspectPortBindings(bindings []types.PortMapping, expose map[uint16][]string) map[string][]define.InspectHostPort {
 	portBindings := make(map[string][]define.InspectHostPort)
 	for _, port := range bindings {
-		key := fmt.Sprintf("%d/%s", port.ContainerPort, port.Protocol)
-		hostPorts := portBindings[key]
-		if hostPorts == nil {
-			hostPorts = []define.InspectHostPort{}
+		protocols := strings.Split(port.Protocol, ",")
+		for _, protocol := range protocols {
+			for i := uint16(0); i < port.Range; i++ {
+				key := fmt.Sprintf("%d/%s", port.ContainerPort+i, protocol)
+				hostPorts := portBindings[key]
+				hostPorts = append(hostPorts, define.InspectHostPort{
+					HostIP:   port.HostIP,
+					HostPort: fmt.Sprintf("%d", port.HostPort+i),
+				})
+				portBindings[key] = hostPorts
+			}
 		}
-		hostPorts = append(hostPorts, define.InspectHostPort{
-			HostIP:   port.HostIP,
-			HostPort: fmt.Sprintf("%d", port.HostPort),
-		})
-		portBindings[key] = hostPorts
 	}
 	// add exposed ports without host port information to match docker
 	for port, protocols := range expose {

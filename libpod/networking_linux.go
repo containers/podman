@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -88,10 +89,7 @@ func (c *Container) getNetworkOptions() (types.NetworkOptions, error) {
 		ContainerID:   c.config.ID,
 		ContainerName: getCNIPodName(c),
 	}
-	// TODO remove ocicni PortMappings from container config and store as types PortMappings
-	if len(c.config.PortMappings) > 0 {
-		opts.PortMappings = ocicniPortsToNetTypesPorts(c.config.PortMappings)
-	}
+	opts.PortMappings = c.config.PortMappings
 	networks, _, err := c.networks()
 	if err != nil {
 		return opts, err
@@ -1200,9 +1198,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 		ContainerID:   c.config.ID,
 		ContainerName: getCNIPodName(c),
 	}
-	if len(c.config.PortMappings) > 0 {
-		opts.PortMappings = ocicniPortsToNetTypesPorts(c.config.PortMappings)
-	}
+	opts.PortMappings = c.config.PortMappings
 	eth, exists := c.state.NetInterfaceDescriptions.getInterfaceByName(netName)
 	if !exists {
 		return errors.Errorf("no network interface name for container %s on network %s", c.config.ID, netName)
@@ -1294,9 +1290,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, aliases []string) e
 		ContainerID:   c.config.ID,
 		ContainerName: getCNIPodName(c),
 	}
-	if len(c.config.PortMappings) > 0 {
-		opts.PortMappings = ocicniPortsToNetTypesPorts(c.config.PortMappings)
-	}
+	opts.PortMappings = c.config.PortMappings
 	eth, exists := c.state.NetInterfaceDescriptions.getInterfaceByName(netName)
 	if !exists {
 		return errors.Errorf("no network interface name for container %s on network %s", c.config.ID, netName)
@@ -1364,16 +1358,67 @@ func (r *Runtime) normalizeNetworkName(nameOrID string) (string, error) {
 	return net.Name, nil
 }
 
+// ocicniPortsToNetTypesPorts convert the old port format to the new one
+// while deduplicating ports into ranges
 func ocicniPortsToNetTypesPorts(ports []types.OCICNIPortMapping) []types.PortMapping {
-	newPorts := make([]types.PortMapping, 0, len(ports))
-	for _, port := range ports {
-		newPorts = append(newPorts, types.PortMapping{
-			HostIP:        port.HostIP,
-			HostPort:      uint16(port.HostPort),
-			ContainerPort: uint16(port.ContainerPort),
-			Protocol:      port.Protocol,
-			Range:         1,
-		})
+	if len(ports) == 0 {
+		return nil
 	}
+
+	newPorts := make([]types.PortMapping, 0, len(ports))
+
+	// first sort the ports
+	sort.Slice(ports, func(i, j int) bool {
+		return compareOCICNIPorts(ports[i], ports[j])
+	})
+
+	// we already check if the slice is empty so we can use the first element
+	currentPort := types.PortMapping{
+		HostIP:        ports[0].HostIP,
+		HostPort:      uint16(ports[0].HostPort),
+		ContainerPort: uint16(ports[0].ContainerPort),
+		Protocol:      ports[0].Protocol,
+		Range:         1,
+	}
+
+	for i := 1; i < len(ports); i++ {
+		if ports[i].HostIP == currentPort.HostIP &&
+			ports[i].Protocol == currentPort.Protocol &&
+			ports[i].HostPort-int32(currentPort.Range) == int32(currentPort.HostPort) &&
+			ports[i].ContainerPort-int32(currentPort.Range) == int32(currentPort.ContainerPort) {
+			currentPort.Range = currentPort.Range + 1
+		} else {
+			newPorts = append(newPorts, currentPort)
+			currentPort = types.PortMapping{
+				HostIP:        ports[i].HostIP,
+				HostPort:      uint16(ports[i].HostPort),
+				ContainerPort: uint16(ports[i].ContainerPort),
+				Protocol:      ports[i].Protocol,
+				Range:         1,
+			}
+		}
+	}
+	newPorts = append(newPorts, currentPort)
 	return newPorts
+}
+
+// compareOCICNIPorts will sort the ocicni ports by
+// 1) host ip
+// 2) protocol
+// 3) hostPort
+// 4) container port
+func compareOCICNIPorts(i, j types.OCICNIPortMapping) bool {
+	if i.HostIP != j.HostIP {
+		return i.HostIP < j.HostIP
+	}
+
+	if i.Protocol != j.Protocol {
+		return i.Protocol < j.Protocol
+	}
+
+	if i.HostPort != j.HostPort {
+		return i.HostPort < j.HostPort
+	}
+
+	return i.ContainerPort < j.ContainerPort
 }

@@ -1051,7 +1051,7 @@ func WithDependencyCtrs(ctrs []*Container) CtrCreateOption {
 // namespace with a minimal configuration.
 // An optional array of port mappings can be provided.
 // Conflicts with WithNetNSFrom().
-func WithNetNS(portMappings []nettypes.OCICNIPortMapping, exposedPorts map[uint16][]string, postConfigureNetNS bool, netmode string, networks []string) CtrCreateOption {
+func WithNetNS(portMappings []nettypes.PortMapping, exposedPorts map[uint16][]string, postConfigureNetNS bool, netmode string, networks []string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
@@ -2082,21 +2082,6 @@ func WithInfraContainer() PodCreateOption {
 
 		return nil
 	}
-}
-
-// WithInfraContainerPorts tells the pod to add port bindings to the pause container
-func WithInfraContainerPorts(bindings []nettypes.OCICNIPortMapping, infraSpec *specgen.SpecGenerator) []nettypes.PortMapping {
-	bindingSpec := []nettypes.PortMapping{}
-	for _, bind := range bindings {
-		currBind := nettypes.PortMapping{}
-		currBind.ContainerPort = uint16(bind.ContainerPort)
-		currBind.HostIP = bind.HostIP
-		currBind.HostPort = uint16(bind.HostPort)
-		currBind.Protocol = bind.Protocol
-		bindingSpec = append(bindingSpec, currBind)
-	}
-	infraSpec.PortMappings = bindingSpec
-	return infraSpec.PortMappings
 }
 
 // WithVolatile sets the volatile flag for the container storage.

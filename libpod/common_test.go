@@ -41,18 +41,20 @@ func getTestContainer(id, name string, manager lock.Manager) (*Container, error)
 			ContainerNetworkConfig: ContainerNetworkConfig{
 				DNSServer: []net.IP{net.ParseIP("192.168.1.1"), net.ParseIP("192.168.2.2")},
 				DNSSearch: []string{"example.com", "example.example.com"},
-				PortMappings: []types.OCICNIPortMapping{
+				PortMappings: []types.PortMapping{
 					{
 						HostPort:      80,
 						ContainerPort: 90,
 						Protocol:      "tcp",
 						HostIP:        "192.168.3.3",
+						Range:         1,
 					},
 					{
 						HostPort:      100,
 						ContainerPort: 110,
 						Protocol:      "udp",
 						HostIP:        "192.168.4.4",
+						Range:         1,
 					},
 				},
 			},

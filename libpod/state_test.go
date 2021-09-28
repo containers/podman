@@ -11,6 +11,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/lock"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -3703,5 +3704,44 @@ func TestGetContainerConfigNonExistentIDFails(t *testing.T) {
 	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		_, err := state.GetContainerConfig("does not exist")
 		assert.Error(t, err)
+	})
+}
+
+// Test that the state will convert the ports to the new format
+func TestConvertPortMapping(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
+		assert.NoError(t, err)
+
+		ports := testCtr.config.PortMappings
+
+		oldPorts := []types.OCICNIPortMapping{
+			{
+				HostPort:      80,
+				ContainerPort: 90,
+				Protocol:      "tcp",
+				HostIP:        "192.168.3.3",
+			},
+			{
+				HostPort:      100,
+				ContainerPort: 110,
+				Protocol:      "udp",
+				HostIP:        "192.168.4.4",
+			},
+		}
+
+		testCtr.config.OldPortMappings = oldPorts
+		testCtr.config.PortMappings = nil
+
+		err = state.AddContainer(testCtr)
+		assert.NoError(t, err)
+
+		retrievedCtr, err := state.Container(testCtr.ID())
+		assert.NoError(t, err)
+
+		// set values to expected ones
+		testCtr.config.PortMappings = ports
+
+		testContainersEqual(t, retrievedCtr, testCtr, true)
 	})
 }

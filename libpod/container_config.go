@@ -78,6 +78,11 @@ type ContainerConfig struct {
 	// These containers must be started before this container is started.
 	Dependencies []string
 
+	// rewrite is an internal bool to indicate that the config was modified after
+	// a read from the db, e.g. to migrate config fields after an upgrade.
+	// This field should never be written to the db, the json tag ensures this.
+	rewrite bool `json:"-"`
+
 	// embedded sub-configs
 	ContainerRootFSConfig
 	ContainerSecurityConfig
@@ -232,7 +237,12 @@ type ContainerNetworkConfig struct {
 	// PortMappings are the ports forwarded to the container's network
 	// namespace
 	// These are not used unless CreateNetNS is true
-	PortMappings []types.OCICNIPortMapping `json:"portMappings,omitempty"`
+	PortMappings []types.PortMapping `json:"newPortMappings,omitempty"`
+	// OldPortMappings are the ports forwarded to the container's network
+	// namespace. As of podman 4.0 this field is deprecated, use PortMappings
+	// instead. The db will convert the old ports to the new structure for you.
+	// These are not used unless CreateNetNS is true
+	OldPortMappings []types.OCICNIPortMapping `json:"portMappings,omitempty"`
 	// ExposedPorts are the ports which are exposed but not forwarded
 	// into the container.
 	// The map key is the port and the string slice contains the protocols,

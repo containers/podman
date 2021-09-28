@@ -384,6 +384,15 @@ func (s *BoltState) getContainerConfigFromDB(id []byte, config *ContainerConfig,
 		return errors.Wrapf(err, "error unmarshalling container %s config", string(id))
 	}
 
+	// convert ports to the new format if needed
+	if len(config.ContainerNetworkConfig.OldPortMappings) > 0 && len(config.ContainerNetworkConfig.PortMappings) == 0 {
+		config.ContainerNetworkConfig.PortMappings = ocicniPortsToNetTypesPorts(config.ContainerNetworkConfig.OldPortMappings)
+		// keep the OldPortMappings in case an user has to downgrade podman
+
+		// indicate the the config was modified and should be written back to the db when possible
+		config.rewrite = true
+	}
+
 	return nil
 }
 

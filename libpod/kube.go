@@ -75,7 +75,7 @@ func (p *Pod) GenerateForKube(ctx context.Context) (*v1.Pod, []v1.ServicePort, e
 				Hostnames: []string{hostSli[0]},
 			})
 		}
-		ports, err = ocicniPortMappingToContainerPort(infraContainer.config.PortMappings)
+		ports, err = portMappingToContainerPort(infraContainer.config.PortMappings)
 		if err != nil {
 			return nil, servicePorts, err
 		}
@@ -452,7 +452,7 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 	if err != nil {
 		return kubeContainer, kubeVolumes, nil, annotations, err
 	}
-	ports, err := ocicniPortMappingToContainerPort(portmappings)
+	ports, err := portMappingToContainerPort(portmappings)
 	if err != nil {
 		return kubeContainer, kubeVolumes, nil, annotations, err
 	}
@@ -588,29 +588,36 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 	return kubeContainer, kubeVolumes, &dns, annotations, nil
 }
 
-// ocicniPortMappingToContainerPort takes an ocicni portmapping and converts
+// portMappingToContainerPort takes an portmapping and converts
 // it to a v1.ContainerPort format for kube output
-func ocicniPortMappingToContainerPort(portMappings []types.OCICNIPortMapping) ([]v1.ContainerPort, error) {
+func portMappingToContainerPort(portMappings []types.PortMapping) ([]v1.ContainerPort, error) {
 	containerPorts := make([]v1.ContainerPort, 0, len(portMappings))
 	for _, p := range portMappings {
-		var protocol v1.Protocol
-		switch strings.ToUpper(p.Protocol) {
-		case "TCP":
-			// do nothing as it is the default protocol in k8s, there is no need to explicitly
-			// add it to the generated yaml
-		case "UDP":
-			protocol = v1.ProtocolUDP
-		default:
-			return containerPorts, errors.Errorf("unknown network protocol %s", p.Protocol)
+		protocols := strings.Split(p.Protocol, ",")
+		for _, proto := range protocols {
+			var protocol v1.Protocol
+			switch strings.ToUpper(proto) {
+			case "TCP":
+				// do nothing as it is the default protocol in k8s, there is no need to explicitly
+				// add it to the generated yaml
+			case "UDP":
+				protocol = v1.ProtocolUDP
+			case "SCTP":
+				protocol = v1.ProtocolSCTP
+			default:
+				return containerPorts, errors.Errorf("unknown network protocol %s", p.Protocol)
+			}
+			for i := uint16(0); i < p.Range; i++ {
+				cp := v1.ContainerPort{
+					// Name will not be supported
+					HostPort:      int32(p.HostPort + i),
+					HostIP:        p.HostIP,
+					ContainerPort: int32(p.ContainerPort + i),
+					Protocol:      protocol,
+				}
+				containerPorts = append(containerPorts, cp)
+			}
 		}
-		cp := v1.ContainerPort{
-			// Name will not be supported
-			HostPort:      p.HostPort,
-			HostIP:        p.HostIP,
-			ContainerPort: p.ContainerPort,
-			Protocol:      protocol,
-		}
-		containerPorts = append(containerPorts, cp)
 	}
 	return containerPorts, nil
 }

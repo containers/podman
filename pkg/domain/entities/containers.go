@@ -422,7 +422,7 @@ type ContainerPortOptions struct {
 // the CLI to output ports
 type ContainerPortReport struct {
 	Id    string //nolint
-	Ports []nettypes.OCICNIPortMapping
+	Ports []nettypes.PortMapping
 }
 
 // ContainerCpOptions describes input options for cp.
