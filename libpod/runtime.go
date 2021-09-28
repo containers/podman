@@ -718,7 +718,7 @@ func (r *Runtime) GetConfig() (*config.Config, error) {
 	config := new(config.Config)
 
 	// Copy so the caller won't be able to modify the actual config
-	if err := JSONDeepCopy(r.config, config); err != nil {
+	if err := DeepCopy(r.config, config); err != nil {
 		return nil, errors.Wrapf(err, "error copying config")
 	}
 

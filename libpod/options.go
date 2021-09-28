@@ -955,7 +955,7 @@ func WithUserNSFrom(nsCtr *Container) CtrCreateOption {
 		}
 
 		ctr.config.UserNsCtr = nsCtr.ID()
-		if err := JSONDeepCopy(nsCtr.IDMappings(), &ctr.config.IDMappings); err != nil {
+		if err := DeepCopy(nsCtr.IDMappings(), &ctr.config.IDMappings); err != nil {
 			return err
 		}
 		g := generate.Generator{Config: ctr.config.Spec}

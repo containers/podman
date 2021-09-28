@@ -18,6 +18,7 @@ import (
 	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/utils"
 	"github.com/fsnotify/fsnotify"
+	"github.com/jinzhu/copier"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -130,6 +131,11 @@ func validPodNSOption(p *Pod, ctrPod string) error {
 		return errors.Wrapf(define.ErrInvalidArg, "pod passed in is not the pod the container is associated with")
 	}
 	return nil
+}
+
+// DeepCopy performs a deep copy of the two structs.
+func DeepCopy(from, to interface{}) error {
+	return copier.Copy(to, from)
 }
 
 // JSONDeepCopy performs a deep copy by performing a JSON encode/decode of the

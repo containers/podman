@@ -180,7 +180,7 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 	} else {
 		// This is a restore from an imported checkpoint
 		ctr.restoreFromCheckpoint = true
-		if err := JSONDeepCopy(config, ctr.config); err != nil {
+		if err := DeepCopy(config, ctr.config); err != nil {
 			return nil, errors.Wrapf(err, "error copying container config for restore")
 		}
 		// If the ID is empty a new name for the restored container was requested
@@ -194,7 +194,7 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 	}
 
 	ctr.config.Spec = new(spec.Spec)
-	if err := JSONDeepCopy(rSpec, ctr.config.Spec); err != nil {
+	if err := DeepCopy(rSpec, ctr.config.Spec); err != nil {
 		return nil, errors.Wrapf(err, "error copying runtime spec while creating container")
 	}
 	ctr.config.CreatedTime = time.Now()

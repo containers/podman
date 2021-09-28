@@ -271,7 +271,7 @@ type ContainerNetworkDescriptions map[string]int
 // Config returns the configuration used to create the container
 func (c *Container) Config() *ContainerConfig {
 	returnConfig := new(ContainerConfig)
-	if err := JSONDeepCopy(c.config, returnConfig); err != nil {
+	if err := DeepCopy(c.config, returnConfig); err != nil {
 		return nil
 	}
 
@@ -293,7 +293,7 @@ func (c *Container) Runtime() *Runtime {
 // spec may differ slightly as mounts are added based on the image
 func (c *Container) Spec() *spec.Spec {
 	returnSpec := new(spec.Spec)
-	if err := JSONDeepCopy(c.config.Spec, returnSpec); err != nil {
+	if err := DeepCopy(c.config.Spec, returnSpec); err != nil {
 		return nil
 	}
 
@@ -792,7 +792,7 @@ func (c *Container) ExecSession(id string) (*ExecSession, error) {
 	}
 
 	returnSession := new(ExecSession)
-	if err := JSONDeepCopy(session, returnSession); err != nil {
+	if err := DeepCopy(session, returnSession); err != nil {
 		return nil, errors.Wrapf(err, "error copying contents of container %s exec session %s", c.ID(), session.ID())
 	}
 
@@ -1072,7 +1072,7 @@ func (c *Container) ContainerState() (*ContainerState, error) {
 		}
 	}
 	returnConfig := new(ContainerState)
-	if err := JSONDeepCopy(c.state, returnConfig); err != nil {
+	if err := DeepCopy(c.state, returnConfig); err != nil {
 		return nil, errors.Wrapf(err, "error copying container %s state", c.ID())
 	}
 	return c.state, nil

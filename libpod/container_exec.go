@@ -201,7 +201,7 @@ func (c *Container) ExecCreate(config *ExecConfig) (string, error) {
 	session.ContainerId = c.ID()
 	session.State = define.ExecStateCreated
 	session.Config = new(ExecConfig)
-	if err := JSONDeepCopy(config, session.Config); err != nil {
+	if err := DeepCopy(config, session.Config); err != nil {
 		return "", errors.Wrapf(err, "error copying exec configuration into exec session")
 	}
 

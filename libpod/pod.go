@@ -116,7 +116,7 @@ func (p *Pod) ResourceLim() *specs.LinuxResources {
 	if conf.Linux == nil || conf.Linux.Resources == nil {
 		return empty
 	}
-	if err = JSONDeepCopy(conf.Linux.Resources, resCopy); err != nil {
+	if err = DeepCopy(conf.Linux.Resources, resCopy); err != nil {
 		return nil
 	}
 	if resCopy.CPU != nil {

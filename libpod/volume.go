@@ -223,7 +223,7 @@ func (v *Volume) CreatedTime() time.Time {
 // Config returns the volume's configuration.
 func (v *Volume) Config() (*VolumeConfig, error) {
 	config := VolumeConfig{}
-	err := JSONDeepCopy(v.config, &config)
+	err := DeepCopy(v.config, &config)
 	return &config, err
 }
 

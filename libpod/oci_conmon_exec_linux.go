@@ -668,7 +668,7 @@ func prepareProcessExec(c *Container, options *ExecOptions, env []string, sessio
 		return nil, err
 	}
 	pspec := new(spec.Process)
-	if err := JSONDeepCopy(c.config.Spec.Process, pspec); err != nil {
+	if err := DeepCopy(c.config.Spec.Process, pspec); err != nil {
 		return nil, err
 	}
 	pspec.SelinuxLabel = c.config.ProcessLabel
