@@ -2004,7 +2004,7 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (map[s
 				}
 				return nil, err
 			}
-			ociHooks, err := manager.Hooks(config, c.Spec().Annotations, len(c.config.UserVolumes) > 0)
+			ociHooks, err := manager.Hooks(config, c.config.Spec.Annotations, len(c.config.UserVolumes) > 0)
 			if err != nil {
 				return nil, err
 			}
@@ -2021,7 +2021,7 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (map[s
 			return nil, err
 		}
 
-		allHooks, err = manager.Hooks(config, c.Spec().Annotations, len(c.config.UserVolumes) > 0)
+		allHooks, err = manager.Hooks(config, c.config.Spec.Annotations, len(c.config.UserVolumes) > 0)
 		if err != nil {
 			return nil, err
 		}

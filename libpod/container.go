@@ -1095,7 +1095,7 @@ func (c *Container) AutoRemove() bool {
 	if spec.Annotations == nil {
 		return false
 	}
-	return c.Spec().Annotations[define.InspectAnnotationAutoremove] == define.InspectResponseTrue
+	return spec.Annotations[define.InspectAnnotationAutoremove] == define.InspectResponseTrue
 }
 
 // Timezone returns the timezone configured inside the container.
