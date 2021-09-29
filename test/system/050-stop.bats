@@ -166,4 +166,11 @@ load helpers
     is "$output" "137" "Exit code of killed container"
 }
 
+@test "podman stop -t 1 Generate warning" {
+    skip_if_remote "warning only happens on server side"
+    run_podman run --rm --name stopme -d $IMAGE sleep 100
+    run_podman stop -t 1 stopme
+    is "$output" ".*StopSignal SIGTERM failed to stop container stopme in 1 seconds, resorting to SIGKILL"  "stopping container should print warning"
+}
+
 # vim: filetype=sh
