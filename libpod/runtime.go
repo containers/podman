@@ -706,19 +706,32 @@ func (r *Runtime) TmpDir() (string, error) {
 	return r.config.Engine.TmpDir, nil
 }
 
-// GetConfig returns a copy of the configuration used by the runtime
-func (r *Runtime) GetConfig() (*config.Config, error) {
+// GetConfig returns the configuration used by the runtime.
+// Note that the returned value is not a copy and must hence
+// only be used in a reading fashion.
+func (r *Runtime) GetConfigNoCopy() (*config.Config, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
 	}
+	return r.config, nil
+}
+
+// GetConfig returns a copy of the configuration used by the runtime.
+// Please use GetConfigNoCopy() in case you only want to read from
+// but not write to the returned config.
+func (r *Runtime) GetConfig() (*config.Config, error) {
+	rtConfig, err := r.GetConfigNoCopy()
+	if err != nil {
+		return nil, err
+	}
 
 	config := new(config.Config)
 
 	// Copy so the caller won't be able to modify the actual config
-	if err := JSONDeepCopy(r.config, config); err != nil {
+	if err := JSONDeepCopy(rtConfig, config); err != nil {
 		return nil, errors.Wrapf(err, "error copying config")
 	}
 

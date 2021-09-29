@@ -54,7 +54,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		}
 	}
 
-	rtc, err := r.GetConfig()
+	rtc, err := r.GetConfigNoCopy()
 	if err != nil {
 		return nil, err
 	}

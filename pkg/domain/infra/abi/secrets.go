@@ -21,7 +21,7 @@ func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader
 
 	// set defaults from config for the case they are not set by an upper layer
 	// (-> i.e. tests that talk directly to the api)
-	cfg, err := ic.Libpod.GetConfig()
+	cfg, err := ic.Libpod.GetConfigNoCopy()
 	if err != nil {
 		return nil, err
 	}
