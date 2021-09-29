@@ -747,7 +747,7 @@ func (c *Container) Exec(config *ExecConfig, streams *define.AttachStreams, resi
 		return -1, err
 	}
 
-	session, err := c.ExecSession(sessionID)
+	session, err := c.execSessionNoCopy(sessionID)
 	if err != nil {
 		if errors.Cause(err) == define.ErrNoSuchExecSession {
 			// TODO: If a proper Context is ever plumbed in here, we

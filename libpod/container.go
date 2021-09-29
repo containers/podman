@@ -774,9 +774,9 @@ func (c *Container) ExecSessions() ([]string, error) {
 	return ids, nil
 }
 
-// ExecSession retrieves detailed information on a single active exec session in
-// a container
-func (c *Container) ExecSession(id string) (*ExecSession, error) {
+// execSessionNoCopy returns the associated exec session to id.
+// Note that the session is not a deep copy.
+func (c *Container) execSessionNoCopy(id string) (*ExecSession, error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -789,6 +789,17 @@ func (c *Container) ExecSession(id string) (*ExecSession, error) {
 	session, ok := c.state.ExecSessions[id]
 	if !ok {
 		return nil, errors.Wrapf(define.ErrNoSuchExecSession, "no exec session with ID %s found in container %s", id, c.ID())
+	}
+
+	return session, nil
+}
+
+// ExecSession retrieves detailed information on a single active exec session in
+// a container
+func (c *Container) ExecSession(id string) (*ExecSession, error) {
+	session, err := c.execSessionNoCopy(id)
+	if err != nil {
+		return nil, err
 	}
 
 	returnSession := new(ExecSession)
@@ -1095,7 +1106,7 @@ func (c *Container) AutoRemove() bool {
 	if spec.Annotations == nil {
 		return false
 	}
-	return c.Spec().Annotations[define.InspectAnnotationAutoremove] == define.InspectResponseTrue
+	return spec.Annotations[define.InspectAnnotationAutoremove] == define.InspectResponseTrue
 }
 
 // Timezone returns the timezone configured inside the container.

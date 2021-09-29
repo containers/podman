@@ -193,10 +193,7 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 		ctr.config.LogPath = ""
 	}
 
-	ctr.config.Spec = new(spec.Spec)
-	if err := JSONDeepCopy(rSpec, ctr.config.Spec); err != nil {
-		return nil, errors.Wrapf(err, "error copying runtime spec while creating container")
-	}
+	ctr.config.Spec = rSpec
 	ctr.config.CreatedTime = time.Now()
 
 	ctr.state.BindMounts = make(map[string]string)
