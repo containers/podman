@@ -18,10 +18,12 @@
 - Volumes created by `podman volume create` now support setting quotas when run atop XFS. The `size` and `inode` options allow the maximum size and maximum number of inodes consumed by a volume to be limited.
 - The `podman info` command now outputs information on what log drivers, network drivers, and volume plugins are available for use ([#11265](https://github.com/containers/podman/issues/11265)).
 - The `podman info` command now outputs the current log driver in use, and the variant and codename of the distribution in use.
+- The parameters of the VM created by `podman machine init` (amount of disk space, memory, CPUs) can now be set in `containers.conf`.
+- The `podman machine ls` command now shows additional information (CPUs, memory, disk size) about VMs managed by `podman machine`.
+- The `podman ps` command now includes healthcheck status in container state for containers that have healthchecks ([#11527](https://github.com/containers/podman/issues/11527)).
 
 ### Changes
 - The `podman build` command has a new alias, `podman buildx`, to improve compatibility with Docker. We have already added support for many `docker buildx` flags to `podman build` and aim to continue to do so.
-- Podman commands run as root now ignore `XDG_RUNTIME_DIR` when determining where to place temporary files, which should resolve a number of issues including [#10745](https://github.com/containers/podman/issues/10745) and [#10806](https://github.com/containers/podman/issues/10806).
 - Cases where Podman is run without a user session or a writable temporary files directory will now produce better error messages.
 - The default log driver has been changed from `file` to `journald`. The `file` driver did not properly support log rotation, so this should lead to a better experience. If journald is not available on the system, Podman will automatically revert to the `file`.
 - Podman no longer depends on `ip` for removing networks ([#11403](https://github.com/containers/podman/issues/11403)).
@@ -51,6 +53,7 @@
 - Fixed a bug where the `podman logs -f` command could hang when a container exited ([#11461](https://github.com/containers/podman/issues/11461)).
 - Fixed a bug where the `podman generate systemd` command could not be used on containers that specified a restart policy ([#11438](https://github.com/containers/podman/issues/11438)).
 - Fixed a bug where the remote Podman client's `podman build` command would fail to build containers if the UID and GID on the client were higher than 65536 ([#11474](https://github.com/containers/podman/issues/11474)).
+- Fixed a bug where the remote Podman client's `podman build` command would fail to build containers if the context directory was a symlink ([#11732](https://github.com/containers/podman/issues/11732)).
 - Fixed a bug where the `--network` flag to `podman play kube` was not properly parsed when a non-bridge network configuration was specified.
 - Fixed a bug where the `podman inspect` command could error when the container being inspected was removed as it was being inspected ([#11392](https://github.com/containers/podman/issues/11392)).
 - Fixed a bug where the `podman play kube` command ignored the default pod infra image specified in `containers.conf`.
@@ -68,6 +71,11 @@
 - Fixed a bug where the `--filter` option to `podman ps` did not properly handle filtering by healthcheck status ([#11687](https://github.com/containers/podman/issues/11687)).
 - Fixed a bug where the `podman run` and `podman start --attach` commands could race when retrieving the exit code of a container that had already been removed resulting in an error (e.g. by an external `podman rm -f`) ([#11633](https://github.com/containers/podman/issues/11633)).
 - Fixed a bug where the `podman generate kube` command would add default environment variables to generated YAML.
+- Fixed a bug where the `podman generate kube` command would add the default CMD from the image to generated YAML ([#11672](https://github.com/containers/podman/issues/11672)).
+- Fixed a bug where the `podman rm --storage` command could fail to remove containers under some circumstances ([#11207](https://github.com/containers/podman/issues/11207)).
+- Fixed a bug where the CNI plugins were unable to locate state information when Podman was run as root, leading to a failure to properly tear down container networking ([#10745](https://github.com/containers/podman/issues/10745) and [#10806](https://github.com/containers/podman/issues/10806)).
+- Fixed a bug where the `podman machine ssh` command could fail when run on Linux ([#11731](https://github.com/containers/podman/issues/11731)).
+- Fixed a bug where the `podman stop` command would error when used on a container that was already stopped ([#11740](https://github.com/containers/podman/issues/11740)).
 
 ### API
 - The Libpod Pull endpoint for Images now has a new query parameter, `quiet`, which (when set to true) suppresses image pull progress reports ([#10612](https://github.com/containers/podman/issues/10612)).
