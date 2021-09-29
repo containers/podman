@@ -243,18 +243,33 @@ func PodDelete(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
+	options := entities.PodRmOptions{
+		Force: query.Force,
+	}
+
+	containerEngine := abi.ContainerEngine{Libpod: runtime}
 	name := utils.GetName(r)
-	pod, err := runtime.LookupPod(name)
+	report, err := containerEngine.PodRm(r.Context(), []string{name}, options)
 	if err != nil {
-		utils.PodNotFound(w, name, err)
+		if errors.Cause(err) == define.ErrNoSuchPod {
+			utils.PodNotFound(w, name, err)
+			return
+		}
+
+		utils.InternalServerError(w, err)
 		return
 	}
-	if err := runtime.RemovePod(r.Context(), pod, true, query.Force, query.Timeout); err != nil {
-		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
+	if len(report) > 0 && report[0].Err != nil {
+		err = report[0].Err
+		if errors.Cause(err) == define.ErrNoSuchPod {
+			utils.PodNotFound(w, name, err)
+			return
+		}
+		utils.InternalServerError(w, err)
 		return
 	}
-	report := entities.PodRmReport{Id: pod.ID()}
-	utils.WriteResponse(w, http.StatusOK, report)
+
+	utils.WriteResponse(w, http.StatusOK, nil)
 }
 
 func PodRestart(w http.ResponseWriter, r *http.Request) {

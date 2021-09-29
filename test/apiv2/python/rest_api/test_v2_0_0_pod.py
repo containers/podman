@@ -60,6 +60,14 @@ class TestApi(APITestCase):
         start = r.json()
         self.assertGreater(len(start["Errs"]), 0, r.text)
 
+        r = requests.post(self.uri(f"/pods/{pod_name[0]}/stop"))
+        self.assertEqual(r.status_code, 200, r.text)
+
+        r = requests.delete(self.uri("/pods/foobar"))
+        self.assertEqual(r.status_code, 404, r.text)
+        out = r.json()
+        self.assertIsInstance(out["Err"], str)
+
 
 if __name__ == "__main__":
     unittest.main()
