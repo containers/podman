@@ -770,20 +770,26 @@ install.docker-full: install.docker install.docker-docs
 
 .PHONY: install.systemd
 ifneq (,$(findstring systemd,$(BUILDTAGS)))
+
+define install-systemd-unit
+	install ${SELINUXOPT} -m 644 $(1) $(2)
+	$(shell awk -i inplace '{gsub(/@@PODMAN@@/,"$(DESTDIR)$(BINDIR)/podman")}1' $(2))
+endef
+
 install.systemd:
 	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${SYSTEMDDIR}  ${DESTDIR}${USERSYSTEMDDIR}
 	# User services
-	install ${SELINUXOPT} -m 644 contrib/systemd/auto-update/podman-auto-update.service ${DESTDIR}${USERSYSTEMDDIR}/podman-auto-update.service
-	install ${SELINUXOPT} -m 644 contrib/systemd/auto-update/podman-auto-update.timer ${DESTDIR}${USERSYSTEMDDIR}/podman-auto-update.timer
-	install ${SELINUXOPT} -m 644 contrib/systemd/user/podman.socket ${DESTDIR}${USERSYSTEMDDIR}/podman.socket
-	install ${SELINUXOPT} -m 644 contrib/systemd/user/podman.service ${DESTDIR}${USERSYSTEMDDIR}/podman.service
-	install ${SELINUXOPT} -m 644 contrib/systemd/user/podman-restart.service ${DESTDIR}${USERSYSTEMDDIR}/podman-restart.service
+	$(call install-systemd-unit, contrib/systemd/auto-update/podman-auto-update.service, ${DESTDIR}${USERSYSTEMDDIR}/podman-auto-update.service)
+	$(call install-systemd-unit, contrib/systemd/auto-update/podman-auto-update.timer, ${DESTDIR}${USERSYSTEMDDIR}/podman-auto-update.timer)
+	$(call install-systemd-unit, contrib/systemd/user/podman.socket, ${DESTDIR}${USERSYSTEMDDIR}/podman.socket)
+	$(call install-systemd-unit, contrib/systemd/user/podman.service, ${DESTDIR}${USERSYSTEMDDIR}/podman.service)
+	$(call install-systemd-unit, contrib/systemd/user/podman-restart.service, ${DESTDIR}${USERSYSTEMDDIR}/podman-restart.service)
 	# System services
-	install ${SELINUXOPT} -m 644 contrib/systemd/auto-update/podman-auto-update.service ${DESTDIR}${SYSTEMDDIR}/podman-auto-update.service
-	install ${SELINUXOPT} -m 644 contrib/systemd/auto-update/podman-auto-update.timer ${DESTDIR}${SYSTEMDDIR}/podman-auto-update.timer
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman.socket ${DESTDIR}${SYSTEMDDIR}/podman.socket
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman.service ${DESTDIR}${SYSTEMDDIR}/podman.service
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-restart.service ${DESTDIR}${SYSTEMDDIR}/podman-restart.service
+	$(call install-systemd-unit, contrib/systemd/auto-update/podman-auto-update.service, ${DESTDIR}${SYSTEMDDIR}/podman-auto-update.service)
+	$(call install-systemd-unit, contrib/systemd/auto-update/podman-auto-update.timer, ${DESTDIR}${SYSTEMDDIR}/podman-auto-update.timer)
+	$(call install-systemd-unit, contrib/systemd/system/podman.socket, ${DESTDIR}${SYSTEMDDIR}/podman.socket)
+	$(call install-systemd-unit, contrib/systemd/system/podman.service, ${DESTDIR}${SYSTEMDDIR}/podman.service)
+	$(call install-systemd-unit, contrib/systemd/system/podman-restart.service, ${DESTDIR}${SYSTEMDDIR}/podman-restart.service)
 else
 install.systemd:
 endif
