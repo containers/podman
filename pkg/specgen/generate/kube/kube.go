@@ -12,6 +12,7 @@ import (
 	"github.com/containers/common/pkg/parse"
 	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/network/types"
 	ann "github.com/containers/podman/v3/pkg/annotations"
 	"github.com/containers/podman/v3/pkg/domain/entities"
@@ -86,6 +87,8 @@ func ToPodOpt(ctx context.Context, podName string, p entities.PodCreateOptions, 
 }
 
 type CtrSpecGenOptions struct {
+	// Annotations from the Pod
+	Annotations map[string]string
 	// Container as read from the pod yaml
 	Container v1.Container
 	// Image available to use (pulled or found local)
@@ -289,6 +292,14 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		volume.MountPath = dest
 		switch volumeSource.Type {
 		case KubeVolumeTypeBindMount:
+			// If the container has bind mounts, we need to check if
+			// a selinux mount option exists for it
+			for k, v := range opts.Annotations {
+				// Make sure the z/Z option is not already there (from editing the YAML)
+				if strings.Replace(k, define.BindMountPrefix, "", 1) == volumeSource.Source && !util.StringInSlice("z", options) && !util.StringInSlice("Z", options) {
+					options = append(options, v)
+				}
+			}
 			mount := spec.Mount{
 				Destination: volume.MountPath,
 				Source:      volumeSource.Source,
