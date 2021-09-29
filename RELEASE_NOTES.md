@@ -73,9 +73,9 @@
 - Fixed a bug where the `podman generate kube` command would add default environment variables to generated YAML.
 - Fixed a bug where the `podman generate kube` command would add the default CMD from the image to generated YAML ([#11672](https://github.com/containers/podman/issues/11672)).
 - Fixed a bug where the `podman rm --storage` command could fail to remove containers under some circumstances ([#11207](https://github.com/containers/podman/issues/11207)).
-- Fixed a bug where the CNI plugins were unable to locate state information when Podman was run as root, leading to a failure to properly tear down container networking ([#10745](https://github.com/containers/podman/issues/10745) and [#10806](https://github.com/containers/podman/issues/10806)).
 - Fixed a bug where the `podman machine ssh` command could fail when run on Linux ([#11731](https://github.com/containers/podman/issues/11731)).
 - Fixed a bug where the `podman stop` command would error when used on a container that was already stopped ([#11740](https://github.com/containers/podman/issues/11740)).
+- Fixed a bug where renaming a container in a pod using the `podman rename` command, then removing the pod using `podman pod rm`, could cause Podman to believe the new name of the container was permanently in use, despite the container being removed ([#11750](https://github.com/containers/podman/issues/11750)).
 
 ### API
 - The Libpod Pull endpoint for Images now has a new query parameter, `quiet`, which (when set to true) suppresses image pull progress reports ([#10612](https://github.com/containers/podman/issues/10612)).
