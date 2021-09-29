@@ -224,6 +224,10 @@ func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra 
 
 		if c.Flags().Changed("pids-limit") {
 			val := c.Flag("pids-limit").Value.String()
+			// Convert -1 to 0, so that -1 maps to unlimited pids limit
+			if val == "-1" {
+				val = "0"
+			}
 			pidsLimit, err := strconv.ParseInt(val, 10, 32)
 			if err != nil {
 				return vals, err
