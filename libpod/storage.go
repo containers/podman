@@ -184,8 +184,12 @@ func (r *storageService) DeleteContainer(idOrName string) error {
 	}
 	err = r.store.DeleteContainer(container.ID)
 	if err != nil {
-		logrus.Debugf("Failed to delete container %q: %v", container.ID, err)
-		return err
+		if errors.Cause(err) == storage.ErrNotAContainer || errors.Cause(err) == storage.ErrContainerUnknown {
+			logrus.Infof("Storage for container %s already removed", container.ID)
+		} else {
+			logrus.Debugf("Failed to delete container %q: %v", container.ID, err)
+			return err
+		}
 	}
 	return nil
 }
