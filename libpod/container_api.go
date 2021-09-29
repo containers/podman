@@ -229,6 +229,10 @@ func (c *Container) Kill(signal uint) error {
 // This function returns when the attach finishes. It does not hold the lock for
 // the duration of its runtime, only using it at the beginning to verify state.
 func (c *Container) Attach(streams *define.AttachStreams, keys string, resize <-chan define.TerminalSize) error {
+	switch c.LogDriver() {
+	case define.PassthroughLogging:
+		return errors.Wrapf(define.ErrNoLogs, "this container is using the 'passthrough' log driver, cannot attach")
+	}
 	if !c.batched {
 		c.lock.Lock()
 		if err := c.syncContainer(); err != nil {

@@ -478,7 +478,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 	}
 
 	switch ctr.config.LogDriver {
-	case define.NoLogging:
+	case define.NoLogging, define.PassthroughLogging:
 		break
 	case define.JournaldLogging:
 		ctr.initializeJournal(ctx)

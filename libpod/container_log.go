@@ -18,7 +18,7 @@ import (
 var logDrivers []string
 
 func init() {
-	logDrivers = append(logDrivers, define.KubernetesLogging, define.NoLogging)
+	logDrivers = append(logDrivers, define.KubernetesLogging, define.NoLogging, define.PassthroughLogging)
 }
 
 // Log is a runtime function that can read one or more container logs.
@@ -34,6 +34,8 @@ func (r *Runtime) Log(ctx context.Context, containers []*Container, options *log
 // ReadLog reads a containers log based on the input options and returns log lines over a channel.
 func (c *Container) ReadLog(ctx context.Context, options *logs.LogOptions, logChannel chan *logs.LogLine) error {
 	switch c.LogDriver() {
+	case define.PassthroughLogging:
+		return errors.Wrapf(define.ErrNoLogs, "this container is using the 'passthrough' log driver, cannot read logs")
 	case define.NoLogging:
 		return errors.Wrapf(define.ErrNoLogs, "this container is using the 'none' log driver, cannot read logs")
 	case define.JournaldLogging:

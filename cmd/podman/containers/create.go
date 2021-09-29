@@ -19,6 +19,7 @@ import (
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/specgenutil"
 	"github.com/containers/podman/v3/pkg/util"
+	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -161,7 +162,9 @@ func create(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	fmt.Println(report.Id)
+	if cliVals.LogDriver != define.PassthroughLogging {
+		fmt.Println(report.Id)
+	}
 	return nil
 }
 
@@ -186,6 +189,14 @@ func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra 
 			vals.SubUIDName != "" ||
 			vals.SubGIDName != "" {
 			vals.UserNS = "private"
+		}
+	}
+	if cliVals.LogDriver == define.PassthroughLogging {
+		if isatty.IsTerminal(0) || isatty.IsTerminal(1) || isatty.IsTerminal(2) {
+			return vals, errors.New("the '--log-driver passthrough' option cannot be used on a TTY")
+		}
+		if registry.IsRemote() {
+			return vals, errors.New("the '--log-driver passthrough' option is not supported in remote mode")
 		}
 	}
 
