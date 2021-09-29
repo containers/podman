@@ -119,12 +119,6 @@ case "$OS_RELEASE_ID" in
     ubuntu) ;;
     fedora)
         if ((CONTAINER==0)); then
-            msg "Configuring / Expanding host storage."
-            # VM is setup to allow flexibility in testing alternate storage.
-            # For general use, simply make use of all available space.
-            bash "$SCRIPT_BASE/add_second_partition.sh"
-            $SCRIPT_BASE/logcollector.sh df
-
             # All SELinux distros need this for systemd-in-a-container
             msg "Enabling container_manage_cgroup"
             setsebool container_manage_cgroup true
@@ -224,10 +218,8 @@ case "$TEST_FLAVOR" in
         remove_packaged_podman_files
         make install PREFIX=/usr ETCDIR=/etc
 
-        # TODO: Don't install stuff at test runtime!  Do this from
-        # cache_images/fedora_packaging.sh in containers/automation_images
-        # and STRONGLY prefer installing RPMs vs pip packages in venv
-        dnf install -y python3-virtualenv python3-pytest4
+        msg "Installing previously downloaded/cached packages"
+        dnf install -y $PACKAGE_DOWNLOAD_DIR/python3*.rpm
         virtualenv venv
         source venv/bin/activate
         pip install --upgrade pip
