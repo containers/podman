@@ -1131,10 +1131,6 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore ROImageStore, crea
 		if options.HostGIDMapping && len(layer.GIDMap) != 0 {
 			return false
 		}
-		// If we don't care about the mapping, it's fine.
-		if len(options.UIDMap) == 0 && len(options.GIDMap) == 0 {
-			return true
-		}
 		// Compare the maps.
 		return reflect.DeepEqual(layer.UIDMap, options.UIDMap) && reflect.DeepEqual(layer.GIDMap, options.GIDMap)
 	}

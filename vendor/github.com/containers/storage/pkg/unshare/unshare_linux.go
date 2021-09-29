@@ -154,7 +154,7 @@ func (c *Cmd) Start() error {
 	pidString := ""
 	b := new(bytes.Buffer)
 	if _, err := io.Copy(b, pidRead); err != nil {
-		return errors.Wrapf(err, "error reading child PID")
+		return errors.Wrapf(err, "Reading child PID")
 	}
 	pidString = b.String()
 	pid, err := strconv.Atoi(pidString)
@@ -188,8 +188,8 @@ func (c *Cmd) Start() error {
 		if len(c.UidMappings) == 0 || len(c.GidMappings) == 0 {
 			uidmap, gidmap, err := GetHostIDMappings("")
 			if err != nil {
-				fmt.Fprintf(continueWrite, "error reading ID mappings in parent: %v", err)
-				return errors.Wrapf(err, "error reading ID mappings in parent")
+				fmt.Fprintf(continueWrite, "Reading ID mappings in parent: %v", err)
+				return errors.Wrapf(err, "Reading ID mappings in parent")
 			}
 			if len(c.UidMappings) == 0 {
 				c.UidMappings = uidmap
@@ -222,8 +222,8 @@ func (c *Cmd) Start() error {
 				if err == nil {
 					gidmapSet = true
 				} else {
-					logrus.Warnf("error running newgidmap: %v: %s", err, g.String())
-					logrus.Warnf("falling back to single mapping")
+					logrus.Warnf("Error running newgidmap: %v: %s", err, g.String())
+					logrus.Warnf("Falling back to single mapping")
 					g.Reset()
 					g.Write([]byte(fmt.Sprintf("0 %d 1\n", os.Getegid())))
 				}
@@ -271,8 +271,8 @@ func (c *Cmd) Start() error {
 				if err == nil {
 					uidmapSet = true
 				} else {
-					logrus.Warnf("error running newuidmap: %v: %s", err, u.String())
-					logrus.Warnf("falling back to single mapping")
+					logrus.Warnf("Error running newuidmap: %v: %s", err, u.String())
+					logrus.Warnf("Falling back to single mapping")
 					u.Reset()
 					u.Write([]byte(fmt.Sprintf("0 %d 1\n", os.Geteuid())))
 				}
@@ -407,7 +407,7 @@ func MaybeReexecUsingUserNamespace(evenForRoot bool) {
 		// ID and a range size.
 		uidmap, gidmap, err = GetSubIDMappings(me.Username, me.Username)
 		if err != nil {
-			logrus.Warnf("error reading allowed ID mappings: %v", err)
+			logrus.Warnf("Reading allowed ID mappings: %v", err)
 		}
 		if len(uidmap) == 0 {
 			logrus.Warnf("Found no UID ranges set aside for user %q in /etc/subuid.", me.Username)
@@ -434,13 +434,13 @@ func MaybeReexecUsingUserNamespace(evenForRoot bool) {
 		// If we have CAP_SYS_ADMIN, then we don't need to create a new namespace in order to be able
 		// to use unshare(), so don't bother creating a new user namespace at this point.
 		capabilities, err := capability.NewPid(0)
-		bailOnError(err, "error reading the current capabilities sets")
+		bailOnError(err, "Reading the current capabilities sets")
 		if capabilities.Get(capability.EFFECTIVE, capability.CAP_SYS_ADMIN) {
 			return
 		}
 		// Read the set of ID mappings that we're currently using.
 		uidmap, gidmap, err = GetHostIDMappings("")
-		bailOnError(err, "error reading current ID mappings")
+		bailOnError(err, "Reading current ID mappings")
 		// Just reuse them.
 		for i := range uidmap {
 			uidmap[i].HostID = uidmap[i].ContainerID
@@ -463,7 +463,7 @@ func MaybeReexecUsingUserNamespace(evenForRoot bool) {
 	if _, present := os.LookupEnv("BUILDAH_ISOLATION"); !present {
 		if err = os.Setenv("BUILDAH_ISOLATION", "rootless"); err != nil {
 			if err := os.Setenv("BUILDAH_ISOLATION", "rootless"); err != nil {
-				logrus.Errorf("error setting BUILDAH_ISOLATION=rootless in environment: %v", err)
+				logrus.Errorf("Setting BUILDAH_ISOLATION=rootless in environment: %v", err)
 				os.Exit(1)
 			}
 		}
@@ -483,7 +483,7 @@ func MaybeReexecUsingUserNamespace(evenForRoot bool) {
 	cmd.GidMappingsEnableSetgroups = true
 
 	// Finish up.
-	logrus.Debugf("running %+v with environment %+v, UID map %+v, and GID map %+v", cmd.Cmd.Args, os.Environ(), cmd.UidMappings, cmd.GidMappings)
+	logrus.Debugf("Running %+v with environment %+v, UID map %+v, and GID map %+v", cmd.Cmd.Args, os.Environ(), cmd.UidMappings, cmd.GidMappings)
 	ExecRunnable(cmd, nil)
 }
 
@@ -512,7 +512,7 @@ func ExecRunnable(cmd Runnable, cleanup func()) {
 			}
 		}
 		logrus.Errorf("%v", err)
-		logrus.Errorf("(unable to determine exit status)")
+		logrus.Errorf("(Unable to determine exit status)")
 		exit(1)
 	}
 	exit(0)
@@ -523,7 +523,7 @@ func getHostIDMappings(path string) ([]specs.LinuxIDMapping, error) {
 	var mappings []specs.LinuxIDMapping
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error reading ID mappings from %q", path)
+		return nil, errors.Wrapf(err, "Reading ID mappings from %q", path)
 	}
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
@@ -571,7 +571,7 @@ func GetHostIDMappings(pid string) ([]specs.LinuxIDMapping, []specs.LinuxIDMappi
 func GetSubIDMappings(user, group string) ([]specs.LinuxIDMapping, []specs.LinuxIDMapping, error) {
 	mappings, err := idtools.NewIDMappings(user, group)
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "error reading subuid mappings for user %q and subgid mappings for group %q", user, group)
+		return nil, nil, errors.Wrapf(err, "Reading subuid mappings for user %q and subgid mappings for group %q", user, group)
 	}
 	var uidmap, gidmap []specs.LinuxIDMapping
 	for _, m := range mappings.UIDs() {
