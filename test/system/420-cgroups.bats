@@ -8,9 +8,7 @@ load helpers
 @test "podman run, preserves initial --cgroup-manager" {
     skip_if_remote "podman-remote does not support --cgroup-manager"
 
-    if is_rootless && is_cgroupsv1; then
-        skip "not supported as rootless under cgroups v1"
-    fi
+    skip_if_rootless_cgroupsv1
 
     # Find out our default cgroup manager, and from that, get the non-default
     run_podman info --format '{{.Host.CgroupManager}}'
