@@ -30,6 +30,7 @@ import (
 
 	"github.com/containernetworking/cni/pkg/invoke"
 	"github.com/containernetworking/cni/pkg/version"
+	"github.com/containers/podman/v3/pkg/rootless"
 )
 
 type cniExec struct {
@@ -66,6 +67,17 @@ func (e *cniExec) ExecPlugin(ctx context.Context, pluginPath string, stdinData [
 	c.Stdin = bytes.NewBuffer(stdinData)
 	c.Stdout = stdout
 	c.Stderr = stderr
+
+	// The dnsname plugin tries to use XDG_RUNTIME_DIR to store files.
+	// podman run will have XDG_RUNTIME_DIR set and thus the cni plugin can use
+	// it. The problem is that XDG_RUNTIME_DIR is unset for the conmon process
+	// for rootful users. This causes issues since the cleanup process is spawned
+	// by conmon and thus not have XDG_RUNTIME_DIR set to same value as podman run.
+	// Because of it dnsname will not find the config files and cannot correctly cleanup.
+	// To fix this we should also unset XDG_RUNTIME_DIR for the cni plugins as rootful.
+	if !rootless.IsRootless() {
+		c.Env = append(c.Env, "XDG_RUNTIME_DIR=")
+	}
 
 	err := c.Run()
 	if err != nil {

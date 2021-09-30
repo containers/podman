@@ -375,6 +375,10 @@ func (l psReporter) State() string {
 
 // Status is a synonym for State()
 func (l psReporter) Status() string {
+	hc := l.ListContainer.Status
+	if hc != "" {
+		return l.State() + " (" + hc + ")"
+	}
 	return l.State()
 }
 

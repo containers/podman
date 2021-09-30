@@ -107,7 +107,7 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 
 	// Generate kube pods and services from pods.
 	if len(pods) >= 1 {
-		pos, svcs, err := getKubePods(pods, options.Service)
+		pos, svcs, err := getKubePods(ctx, pods, options.Service)
 		if err != nil {
 			return nil, err
 		}
@@ -120,7 +120,7 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 
 	// Generate the kube pods from containers.
 	if len(ctrs) >= 1 {
-		po, err := libpod.GenerateForKube(ctrs)
+		po, err := libpod.GenerateForKube(ctx, ctrs)
 		if err != nil {
 			return nil, err
 		}
@@ -153,12 +153,12 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 }
 
 // getKubePods returns kube pod and service YAML files from podman pods.
-func getKubePods(pods []*libpod.Pod, getService bool) ([][]byte, [][]byte, error) {
+func getKubePods(ctx context.Context, pods []*libpod.Pod, getService bool) ([][]byte, [][]byte, error) {
 	pos := [][]byte{}
 	svcs := [][]byte{}
 
 	for _, p := range pods {
-		po, sp, err := p.GenerateForKube()
+		po, sp, err := p.GenerateForKube(ctx)
 		if err != nil {
 			return nil, nil, err
 		}

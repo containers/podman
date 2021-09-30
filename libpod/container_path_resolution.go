@@ -112,7 +112,7 @@ func (c *Container) resolvePath(mountPoint string, containerPath string) (string
 func findVolume(c *Container, containerPath string) (*Volume, error) {
 	runtime := c.Runtime()
 	cleanedContainerPath := filepath.Clean(containerPath)
-	for _, vol := range c.Config().NamedVolumes {
+	for _, vol := range c.config.NamedVolumes {
 		if cleanedContainerPath == filepath.Clean(vol.Dest) {
 			return runtime.GetVolume(vol.Name)
 		}
@@ -124,7 +124,7 @@ func findVolume(c *Container, containerPath string) (*Volume, error) {
 // Volume's destination.
 func isPathOnVolume(c *Container, containerPath string) bool {
 	cleanedContainerPath := filepath.Clean(containerPath)
-	for _, vol := range c.Config().NamedVolumes {
+	for _, vol := range c.config.NamedVolumes {
 		if cleanedContainerPath == filepath.Clean(vol.Dest) {
 			return true
 		}
@@ -141,7 +141,7 @@ func isPathOnVolume(c *Container, containerPath string) bool {
 // path of a Mount.  Returns a matching Mount or nil.
 func findBindMount(c *Container, containerPath string) *specs.Mount {
 	cleanedPath := filepath.Clean(containerPath)
-	for _, m := range c.Config().Spec.Mounts {
+	for _, m := range c.config.Spec.Mounts {
 		if m.Type != "bind" {
 			continue
 		}
@@ -157,7 +157,7 @@ func findBindMount(c *Container, containerPath string) *specs.Mount {
 // Mount's destination.
 func isPathOnBindMount(c *Container, containerPath string) bool {
 	cleanedContainerPath := filepath.Clean(containerPath)
-	for _, m := range c.Config().Spec.Mounts {
+	for _, m := range c.config.Spec.Mounts {
 		if cleanedContainerPath == filepath.Clean(m.Destination) {
 			return true
 		}

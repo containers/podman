@@ -108,6 +108,7 @@ Log[-1].Output   |
     is "$output" "unhealthy" "output from 'podman healthcheck run'"
 
     # Clean up
+    run_podman stop -t 0 healthcheck_c
     run_podman rm -f healthcheck_c
     run_podman rmi   healthcheck_i
 }

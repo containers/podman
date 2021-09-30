@@ -17,6 +17,8 @@ type MachineVM struct {
 	ImagePath string
 	// Memory in megabytes assigned to the vm
 	Memory uint64
+	// Disk size in gigabytes assigned to the vm
+	DiskSize uint64
 	// Name of the vm
 	Name string
 	// SSH port for user networking

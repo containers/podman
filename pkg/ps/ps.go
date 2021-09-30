@@ -241,6 +241,13 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 			UTS:    uts,
 		}
 	}
+
+	if hc, err := ctr.HealthCheckStatus(); err == nil {
+		ps.Status = hc
+	} else {
+		logrus.Debug(err)
+	}
+
 	return ps, nil
 }
 

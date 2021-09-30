@@ -956,6 +956,15 @@ EOF
     run_podman build -t build_test $tmpdir
 }
 
+@test "podman build build context is a symlink to a directory" {
+    tmpdir=$PODMAN_TMPDIR/build-test
+    mkdir -p $tmpdir/target
+    ln -s target $tmpdir/link
+    echo FROM $IMAGE > $tmpdir/link/Dockerfile
+    echo RUN echo hello >> $tmpdir/link/Dockerfile
+    run_podman build -t build_test $tmpdir/link
+}
+
 function teardown() {
     # A timeout or other error in 'build' can leave behind stale images
     # that podman can't even see and which will cascade into subsequent

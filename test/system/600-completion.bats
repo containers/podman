@@ -110,12 +110,10 @@ function check_shell_completion() {
                     is "$output" ".*localhost/$random_image_name:$random_image_tag${nl}" \
                        "$* $cmd: actual image listed in suggestions"
 
-                    # check that we complete the image with and without tag after at least one char is typed
+                    # check that we complete the image with tag after at least one char is typed
                     run_completion "$@" $cmd "${extra_args[@]}" "${random_image_name:0:1}"
                     is "$output" ".*$random_image_name:$random_image_tag${nl}" \
                        "$* $cmd: image name:tag included in suggestions"
-                    is "$output" ".*$random_image_name${nl}" \
-                       "$* $cmd: image name(w/o tag) included in suggestions"
 
                     # check that we complete the image id after at least two chars are typed
                     run_completion "$@" $cmd "${extra_args[@]}" "${random_image_id:0:2}"

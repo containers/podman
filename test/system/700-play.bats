@@ -69,11 +69,15 @@ RELABEL="system_u:object_r:container_file_t:s0"
     TESTDIR=$PODMAN_TMPDIR/testdir
     mkdir -p $TESTDIR
     echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
+
     run_podman play kube - < $PODMAN_TMPDIR/test.yaml
     if [ -e /usr/sbin/selinuxenabled -a /usr/sbin/selinuxenabled ]; then
        run ls -Zd $TESTDIR
        is "$output" ${RELABEL} "selinux relabel should have happened"
     fi
+
+    run_podman stop -a -t 0
+    run_podman pod stop test_pod
     run_podman pod rm -f test_pod
 }
 
@@ -86,6 +90,9 @@ RELABEL="system_u:object_r:container_file_t:s0"
        run ls -Zd $TESTDIR
        is "$output" ${RELABEL} "selinux relabel should have happened"
     fi
+
+    run_podman stop -a -t 0
+    run_podman pod stop test_pod
     run_podman pod rm -f test_pod
 }
 
@@ -102,12 +109,19 @@ RELABEL="system_u:object_r:container_file_t:s0"
     infraID="$output"
     run_podman container inspect --format "{{.HostConfig.NetworkMode}}" $infraID
     is "$output" "slirp4netns" "network mode slirp4netns is set for the container"
+
+    run_podman stop -a -t 0
+    run_podman pod stop test_pod
     run_podman pod rm -f test_pod
+
     run_podman play kube --network none $PODMAN_TMPDIR/test.yaml
     run_podman pod inspect --format {{.InfraContainerID}} "${lines[1]}"
     infraID="$output"
     run_podman container inspect --format "{{.HostConfig.NetworkMode}}" $infraID
     is "$output" "none" "network mode none is set for the container"
+
+    run_podman stop -a -t 0
+    run_podman pod stop test_pod
     run_podman pod rm -f test_pod
 }
 
@@ -149,6 +163,9 @@ _EOF
     run_podman play kube --start=false $PODMAN_TMPDIR/test.yaml
     run_podman inspect --format "{{ .Config.User }}" test_pod-test
     is "$output" bin "expect container within pod to run as the bin user"
+
+    run_podman stop -a -t 0
+    run_podman pod stop test_pod
     run_podman pod rm -f test_pod
     run_podman rmi -f userimage:latest
 }

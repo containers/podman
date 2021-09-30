@@ -111,4 +111,29 @@ var _ = Describe("podman rename", func() {
 		Expect(ps).Should(Exit(0))
 		Expect(ps.OutputToString()).To(ContainSubstring(newName))
 	})
+
+	It("Rename a container that is part of a pod", func() {
+		podName := "testPod"
+		infraName := "infra1"
+		pod := podmanTest.Podman([]string{"pod", "create", "--name", podName, "--infra-name", infraName})
+		pod.WaitWithDefaultTimeout()
+		Expect(pod).Should(Exit(0))
+
+		infraName2 := "infra2"
+		rename := podmanTest.Podman([]string{"rename", infraName, infraName2})
+		rename.WaitWithDefaultTimeout()
+		Expect(rename).Should(Exit(0))
+
+		remove := podmanTest.Podman([]string{"pod", "rm", "-f", podName})
+		remove.WaitWithDefaultTimeout()
+		Expect(remove).Should(Exit(0))
+
+		create := podmanTest.Podman([]string{"create", "--name", infraName2, ALPINE, "top"})
+		create.WaitWithDefaultTimeout()
+		Expect(create).Should(Exit(0))
+
+		create2 := podmanTest.Podman([]string{"create", "--name", infraName, ALPINE, "top"})
+		create2.WaitWithDefaultTimeout()
+		Expect(create2).Should(Exit(0))
+	})
 })

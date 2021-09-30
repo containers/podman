@@ -106,18 +106,18 @@ func (r *Runtime) removeStorageContainer(idOrName string, force bool) error {
 				logrus.Infof("Storage for container %s already removed", ctr.ID)
 				return nil
 			}
-			return errors.Wrapf(err, "error looking up container %q mounts", idOrName)
+			logrus.Warnf("Checking if container %q is mounted, attempting to delete: %v", idOrName, err)
 		}
 		if timesMounted > 0 {
 			return errors.Wrapf(define.ErrCtrStateInvalid, "container %q is mounted and cannot be removed without using force", idOrName)
 		}
 	} else if _, err := r.store.Unmount(ctr.ID, true); err != nil {
-		if errors.Cause(err) == storage.ErrContainerUnknown {
+		if errors.Is(err, storage.ErrContainerUnknown) {
 			// Container again gone, no error
 			logrus.Infof("Storage for container %s already removed", ctr.ID)
 			return nil
 		}
-		return errors.Wrapf(err, "error unmounting container %q", idOrName)
+		logrus.Warnf("Unmounting container %q while attempting to delete storage: %v", idOrName, err)
 	}
 
 	if err := r.store.DeleteContainer(ctr.ID); err != nil {

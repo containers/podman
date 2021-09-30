@@ -792,6 +792,45 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(containers[0].Args).To(Equal([]string{"10s"}))
 	})
 
+	It("podman generate kube - no command", func() {
+		session := podmanTest.Podman([]string{"create", "--name", "test", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "test"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		// Now make sure that the container's command is not set to the
+		// entrypoint and it's arguments to "10s".
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+
+		containers := pod.Spec.Containers
+		Expect(len(containers)).To(Equal(1))
+		Expect(len(containers[0].Command)).To(Equal(0))
+
+		cmd := []string{"echo", "hi"}
+		session = podmanTest.Podman(append([]string{"create", "--name", "test1", ALPINE}, cmd...))
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube = podmanTest.Podman([]string{"generate", "kube", "test1"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		// Now make sure that the container's command is not set to the
+		// entrypoint and it's arguments to "10s".
+		pod = new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+
+		containers = pod.Spec.Containers
+		Expect(len(containers)).To(Equal(1))
+		Expect(containers[0].Command).To(Equal(cmd))
+	})
+
 	It("podman generate kube - use entrypoint from image", func() {
 		// Build an image with an entrypoint.
 		containerfile := `FROM quay.io/libpod/alpine:latest

@@ -1,9 +1,11 @@
 package libpod
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"os"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -27,14 +29,14 @@ import (
 
 // GenerateForKube takes a slice of libpod containers and generates
 // one v1.Pod description that includes just a single container.
-func GenerateForKube(ctrs []*Container) (*v1.Pod, error) {
+func GenerateForKube(ctx context.Context, ctrs []*Container) (*v1.Pod, error) {
 	// Generate the v1.Pod yaml description
-	return simplePodWithV1Containers(ctrs)
+	return simplePodWithV1Containers(ctx, ctrs)
 }
 
 // GenerateForKube takes a slice of libpod containers and generates
 // one v1.Pod description
-func (p *Pod) GenerateForKube() (*v1.Pod, []v1.ServicePort, error) {
+func (p *Pod) GenerateForKube(ctx context.Context) (*v1.Pod, []v1.ServicePort, error) {
 	// Generate the v1.Pod yaml description
 	var (
 		ports        []v1.ContainerPort //nolint
@@ -78,7 +80,7 @@ func (p *Pod) GenerateForKube() (*v1.Pod, []v1.ServicePort, error) {
 		servicePorts = containerPortsToServicePorts(ports)
 		hostNetwork = infraContainer.NetworkMode() == string(namespaces.NetworkMode(specgen.Host))
 	}
-	pod, err := p.podWithContainers(allContainers, ports, hostNetwork)
+	pod, err := p.podWithContainers(ctx, allContainers, ports, hostNetwork)
 	if err != nil {
 		return nil, servicePorts, err
 	}
@@ -88,7 +90,7 @@ func (p *Pod) GenerateForKube() (*v1.Pod, []v1.ServicePort, error) {
 	// so set it at here
 	for _, ctr := range allContainers {
 		if !ctr.IsInfra() {
-			switch ctr.Config().RestartPolicy {
+			switch ctr.config.RestartPolicy {
 			case define.RestartPolicyAlways:
 				pod.Spec.RestartPolicy = v1.RestartPolicyAlways
 			case define.RestartPolicyOnFailure:
@@ -218,7 +220,7 @@ func containersToServicePorts(containers []v1.Container) []v1.ServicePort {
 	return sps
 }
 
-func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPort, hostNetwork bool) (*v1.Pod, error) {
+func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, ports []v1.ContainerPort, hostNetwork bool) (*v1.Pod, error) {
 	deDupPodVolumes := make(map[string]*v1.Volume)
 	first := true
 	podContainers := make([]v1.Container, 0, len(containers))
@@ -239,7 +241,7 @@ func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPor
 
 			isInit := ctr.IsInitCtr()
 
-			ctr, volumes, _, err := containerToV1Container(ctr)
+			ctr, volumes, _, err := containerToV1Container(ctx, ctr)
 			if err != nil {
 				return nil, err
 			}
@@ -251,7 +253,9 @@ func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPor
 			// We add the original port declarations from the libpod infra container
 			// to the first kubernetes container description because otherwise we loose
 			// the original container/port bindings.
-			if first && len(ports) > 0 {
+			// Add the port configuration to the first regular container or the first
+			// init container if only init containers have been created in the pod.
+			if first && len(ports) > 0 && (!isInit || len(containers) == 2) {
 				ctr.Ports = ports
 				first = false
 			}
@@ -267,7 +271,7 @@ func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPor
 				deDupPodVolumes[vol.Name] = &vol
 			}
 		} else {
-			_, _, infraDNS, err := containerToV1Container(ctr)
+			_, _, infraDNS, err := containerToV1Container(ctx, ctr)
 			if err != nil {
 				return nil, err
 			}
@@ -337,7 +341,7 @@ func newPodObject(podName string, annotations map[string]string, initCtrs, conta
 
 // simplePodWithV1Containers is a function used by inspect when kube yaml needs to be generated
 // for a single container.  we "insert" that container description in a pod.
-func simplePodWithV1Containers(ctrs []*Container) (*v1.Pod, error) {
+func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod, error) {
 	kubeCtrs := make([]v1.Container, 0, len(ctrs))
 	kubeInitCtrs := []v1.Container{}
 	kubeVolumes := make([]v1.Volume, 0)
@@ -355,7 +359,7 @@ func simplePodWithV1Containers(ctrs []*Container) (*v1.Pod, error) {
 		if !ctr.HostNetwork() {
 			hostNetwork = false
 		}
-		kubeCtr, kubeVols, ctrDNS, err := containerToV1Container(ctr)
+		kubeCtr, kubeVols, ctrDNS, err := containerToV1Container(ctx, ctr)
 		if err != nil {
 			return nil, err
 		}
@@ -411,7 +415,7 @@ func simplePodWithV1Containers(ctrs []*Container) (*v1.Pod, error) {
 
 // containerToV1Container converts information we know about a libpod container
 // to a V1.Container specification.
-func containerToV1Container(c *Container) (v1.Container, []v1.Volume, *v1.PodDNSConfig, error) {
+func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []v1.Volume, *v1.PodDNSConfig, error) {
 	kubeContainer := v1.Container{}
 	kubeVolumes := []v1.Volume{}
 	kubeSec, err := generateKubeSecurityContext(c)
@@ -463,6 +467,17 @@ func containerToV1Container(c *Container) (v1.Container, []v1.Volume, *v1.PodDNS
 	_, image := c.Image()
 	kubeContainer.Image = image
 	kubeContainer.Stdin = c.Stdin()
+	img, _, err := c.runtime.libimageRuntime.LookupImage(image, nil)
+	if err != nil {
+		return kubeContainer, kubeVolumes, nil, err
+	}
+	imgData, err := img.Inspect(ctx, false)
+	if err != nil {
+		return kubeContainer, kubeVolumes, nil, err
+	}
+	if reflect.DeepEqual(imgData.Config.Cmd, kubeContainer.Command) {
+		kubeContainer.Command = nil
+	}
 
 	kubeContainer.WorkingDir = c.WorkingDir()
 	kubeContainer.Ports = ports
