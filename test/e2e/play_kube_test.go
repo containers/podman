@@ -2320,6 +2320,39 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		}
 	})
 
+	It("podman play kube allows setting resource limits with --cpus 1", func() {
+		SkipIfContainerized("Resource limits require a running systemd")
+		SkipIfRootless("CPU limits require root")
+		podmanTest.CgroupManager = "systemd"
+
+		var (
+			expectedCpuLimit string = "1"
+		)
+
+		deployment := getDeployment(
+			withPod(getPod(withCtr(getCtr(
+				withCpuLimit(expectedCpuLimit),
+			)))))
+		err := generateKubeYaml("deployment", deployment, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		for _, pod := range getPodNamesInDeployment(deployment) {
+			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&pod), "--format", `{{ .HostConfig.CpuPeriod }}:{{ .HostConfig.CpuQuota }}`})
+
+			inspect.WaitWithDefaultTimeout()
+			Expect(inspect).Should(Exit(0))
+
+			parts := strings.Split(strings.Trim(inspect.OutputToString(), "\n"), ":")
+			Expect(parts).To(HaveLen(2))
+
+			Expect(parts[0]).To(Equal(parts[1]))
+		}
+	})
+
 	It("podman play kube reports invalid image name", func() {
 		invalidImageName := "./myimage"
 

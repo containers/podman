@@ -160,7 +160,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		return nil, errors.Wrap(err, "Failed to set CPU quota")
 	}
 	if milliCPU > 0 {
-		period, quota := util.CoresToPeriodAndQuota(float64(milliCPU) / 1000)
+		period, quota := util.CoresToPeriodAndQuota(float64(milliCPU))
 		s.ResourceLimits.CPU = &spec.LinuxCPU{
 			Quota:  &quota,
 			Period: &period,
