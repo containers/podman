@@ -15,6 +15,7 @@ import (
 	"github.com/containers/podman/v3/pkg/domain/filters"
 	psdefine "github.com/containers/podman/v3/pkg/ps/define"
 	"github.com/containers/storage"
+	"github.com/containers/storage/types"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -63,10 +64,14 @@ func GetContainerLists(runtime *libpod.Runtime, options entities.ContainerListOp
 	}
 	for _, con := range cons {
 		listCon, err := ListContainerBatch(runtime, con, options)
-		if err != nil {
+		switch {
+		case errors.Cause(err) == define.ErrNoSuchCtr:
+			continue
+		case err != nil:
 			return nil, err
+		default:
+			pss = append(pss, listCon)
 		}
-		pss = append(pss, listCon)
 	}
 
 	if options.All && options.External {
@@ -89,7 +94,7 @@ func GetContainerLists(runtime *libpod.Runtime, options entities.ContainerListOp
 	return pss, nil
 }
 
-// GetExternalContainerLists returns list of external containers for e.g created by buildah
+// GetExternalContainerLists returns list of external containers for e.g. created by buildah
 func GetExternalContainerLists(runtime *libpod.Runtime) ([]entities.ListContainer, error) {
 	var (
 		pss = []entities.ListContainer{}
@@ -102,15 +107,19 @@ func GetExternalContainerLists(runtime *libpod.Runtime) ([]entities.ListContaine
 
 	for _, con := range externCons {
 		listCon, err := ListStorageContainer(runtime, con)
-		if err != nil {
+		switch {
+		case errors.Cause(err) == types.ErrLoadError:
+			continue
+		case err != nil:
 			return nil, err
+		default:
+			pss = append(pss, listCon)
 		}
-		pss = append(pss, listCon)
 	}
 	return pss, nil
 }
 
-// BatchContainerOp is used in ps to reduce performance hits by "batching"
+// ListContainerBatch is used in ps to reduce performance hits by "batching"
 // locks.
 func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities.ContainerListOptions) (entities.ListContainer, error) {
 	var (

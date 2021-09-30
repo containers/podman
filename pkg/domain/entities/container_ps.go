@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Listcontainer describes a container suitable for listing
+// ListContainer describes a container suitable for listing
 type ListContainer struct {
 	// AutoRemove
 	AutoRemove bool
@@ -18,7 +18,7 @@ type ListContainer struct {
 	Command []string
 	// Container creation time
 	Created time.Time
-	// Human readable container creation time.
+	// Human-readable container creation time.
 	CreatedAt string
 	// If container has exited/stopped
 	Exited bool
@@ -65,7 +65,7 @@ type ListContainer struct {
 	Status string
 }
 
-// ListContainer Namespaces contains the identifiers of the container's Linux namespaces
+// ListContainerNamespaces contains the identifiers of the container's Linux namespaces
 type ListContainerNamespaces struct {
 	// Mount namespace
 	MNT string `json:"Mnt,omitempty"`
