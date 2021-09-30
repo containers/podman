@@ -319,8 +319,8 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		if err != nil {
 			return nil, err
 		}
-
 		specgenOpts := kube.CtrSpecGenOptions{
+			Annotations:       annotations,
 			Container:         initCtr,
 			Image:             pulledImage,
 			Volumes:           volumes,
