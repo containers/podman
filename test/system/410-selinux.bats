@@ -113,6 +113,10 @@ function check_label() {
 @test "podman selinux: shared context in (some) namespaces" {
     skip_if_no_selinux
 
+    # rootless users have no usable cgroups with cgroupsv1, so containers
+    # must use a pid namespace and not join an existing one.
+    skip_if_rootless_cgroupsv1
+
     run_podman run -d --name myctr $IMAGE top
     run_podman exec myctr cat -v /proc/self/attr/current
     context_c1="$output"
