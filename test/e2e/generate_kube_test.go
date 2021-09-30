@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/containers/podman/v3/libpod/define"
+
 	"github.com/containers/podman/v3/pkg/util"
 	. "github.com/containers/podman/v3/test/utils"
 	"github.com/ghodss/yaml"
@@ -554,6 +556,15 @@ var _ = Describe("Podman generate kube", func() {
 		kube := podmanTest.Podman([]string{"generate", "kube", "test1", "-f", outputFile})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
+
+		b, err := ioutil.ReadFile(outputFile)
+		Expect(err).ShouldNot(HaveOccurred())
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal(b, pod)
+		Expect(err).To(BeNil())
+		val, found := pod.Annotations[define.BindMountPrefix+vol1]
+		Expect(found).To(BeTrue())
+		Expect(val).To(HaveSuffix("z"))
 
 		rm := podmanTest.Podman([]string{"pod", "rm", "-f", "test1"})
 		rm.WaitWithDefaultTimeout()

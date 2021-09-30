@@ -241,11 +241,13 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 
 			isInit := ctr.IsInitCtr()
 
-			ctr, volumes, _, err := containerToV1Container(ctx, ctr)
+			ctr, volumes, _, annotations, err := containerToV1Container(ctx, ctr)
 			if err != nil {
 				return nil, err
 			}
-
+			for k, v := range annotations {
+				podAnnotations[define.BindMountPrefix+k] = v
+			}
 			// Since port bindings for the pod are handled by the
 			// infra container, wipe them here.
 			ctr.Ports = nil
@@ -271,7 +273,7 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 				deDupPodVolumes[vol.Name] = &vol
 			}
 		} else {
-			_, _, infraDNS, err := containerToV1Container(ctx, ctr)
+			_, _, infraDNS, _, err := containerToV1Container(ctx, ctr)
 			if err != nil {
 				return nil, err
 			}
@@ -359,9 +361,12 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 		if !ctr.HostNetwork() {
 			hostNetwork = false
 		}
-		kubeCtr, kubeVols, ctrDNS, err := containerToV1Container(ctx, ctr)
+		kubeCtr, kubeVols, ctrDNS, annotations, err := containerToV1Container(ctx, ctr)
 		if err != nil {
 			return nil, err
+		}
+		for k, v := range annotations {
+			kubeAnnotations[define.BindMountPrefix+k] = v
 		}
 		if isInit {
 			kubeInitCtrs = append(kubeInitCtrs, kubeCtr)
@@ -369,7 +374,6 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 			kubeCtrs = append(kubeCtrs, kubeCtr)
 		}
 		kubeVolumes = append(kubeVolumes, kubeVols...)
-
 		// Combine DNS information in sum'd structure
 		if ctrDNS != nil {
 			// nameservers
@@ -415,42 +419,44 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 
 // containerToV1Container converts information we know about a libpod container
 // to a V1.Container specification.
-func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []v1.Volume, *v1.PodDNSConfig, error) {
+func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []v1.Volume, *v1.PodDNSConfig, map[string]string, error) {
 	kubeContainer := v1.Container{}
 	kubeVolumes := []v1.Volume{}
+	annotations := make(map[string]string)
 	kubeSec, err := generateKubeSecurityContext(c)
 	if err != nil {
-		return kubeContainer, kubeVolumes, nil, err
+		return kubeContainer, kubeVolumes, nil, annotations, err
 	}
 
 	// NOTE: a privileged container mounts all of /dev/*.
 	if !c.Privileged() && len(c.config.Spec.Linux.Devices) > 0 {
 		// TODO Enable when we can support devices and their names
-		kubeContainer.VolumeDevices = generateKubeVolumeDeviceFromLinuxDevice(c.Spec().Linux.Devices)
-		return kubeContainer, kubeVolumes, nil, errors.Wrapf(define.ErrNotImplemented, "linux devices")
+		kubeContainer.VolumeDevices = generateKubeVolumeDeviceFromLinuxDevice(c.config.Spec.Linux.Devices)
+		return kubeContainer, kubeVolumes, nil, annotations, errors.Wrapf(define.ErrNotImplemented, "linux devices")
 	}
 
 	if len(c.config.UserVolumes) > 0 {
-		volumeMounts, volumes, err := libpodMountsToKubeVolumeMounts(c)
+		volumeMounts, volumes, localAnnotations, err := libpodMountsToKubeVolumeMounts(c)
 		if err != nil {
-			return kubeContainer, kubeVolumes, nil, err
+			return kubeContainer, kubeVolumes, nil, nil, err
 		}
+		annotations = localAnnotations
 		kubeContainer.VolumeMounts = volumeMounts
 		kubeVolumes = append(kubeVolumes, volumes...)
 	}
 
 	envVariables, err := libpodEnvVarsToKubeEnvVars(c.config.Spec.Process.Env)
 	if err != nil {
-		return kubeContainer, kubeVolumes, nil, err
+		return kubeContainer, kubeVolumes, nil, annotations, err
 	}
 
 	portmappings, err := c.PortMappings()
 	if err != nil {
-		return kubeContainer, kubeVolumes, nil, err
+		return kubeContainer, kubeVolumes, nil, annotations, err
 	}
 	ports, err := ocicniPortMappingToContainerPort(portmappings)
 	if err != nil {
-		return kubeContainer, kubeVolumes, nil, err
+		return kubeContainer, kubeVolumes, nil, annotations, err
 	}
 
 	// Handle command and arguments.
@@ -469,11 +475,11 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 	kubeContainer.Stdin = c.Stdin()
 	img, _, err := c.runtime.libimageRuntime.LookupImage(image, nil)
 	if err != nil {
-		return kubeContainer, kubeVolumes, nil, err
+		return kubeContainer, kubeVolumes, nil, annotations, err
 	}
 	imgData, err := img.Inspect(ctx, false)
 	if err != nil {
-		return kubeContainer, kubeVolumes, nil, err
+		return kubeContainer, kubeVolumes, nil, annotations, err
 	}
 	if reflect.DeepEqual(imgData.Config.Cmd, kubeContainer.Command) {
 		kubeContainer.Command = nil
@@ -555,7 +561,7 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 		}
 		dns.Options = dnsOptions
 	}
-	return kubeContainer, kubeVolumes, &dns, nil
+	return kubeContainer, kubeVolumes, &dns, annotations, nil
 }
 
 // ocicniPortMappingToContainerPort takes an ocicni portmapping and converts
@@ -606,16 +612,23 @@ func libpodEnvVarsToKubeEnvVars(envs []string) ([]v1.EnvVar, error) {
 }
 
 // libpodMountsToKubeVolumeMounts converts the containers mounts to a struct kube understands
-func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, []v1.Volume, error) {
+func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, []v1.Volume, map[string]string, error) {
 	namedVolumes, mounts := c.sortUserVolumes(c.config.Spec)
 	vms := make([]v1.VolumeMount, 0, len(mounts))
 	vos := make([]v1.Volume, 0, len(mounts))
+	annotations := make(map[string]string)
 
 	var suffix string
 	for index, m := range mounts {
+		for _, opt := range m.Options {
+			if opt == "Z" || opt == "z" {
+				annotations[m.Source] = opt
+				break
+			}
+		}
 		vm, vo, err := generateKubeVolumeMount(m)
 		if err != nil {
-			return vms, vos, err
+			return vms, vos, annotations, err
 		}
 		// Name will be the same, so use the index as suffix
 		suffix = fmt.Sprintf("-%d", index)
@@ -629,7 +642,7 @@ func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, []v1.Volume
 		vms = append(vms, vm)
 		vos = append(vos, vo)
 	}
-	return vms, vos, nil
+	return vms, vos, annotations, nil
 }
 
 // generateKubePersistentVolumeClaim converts a ContainerNamedVolume to a Kubernetes PersistentVolumeClaim
