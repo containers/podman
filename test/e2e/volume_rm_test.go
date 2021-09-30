@@ -59,7 +59,7 @@ var _ = Describe("Podman volume rm", func() {
 		Expect(session).Should(Exit(2))
 		Expect(session.ErrorToString()).To(ContainSubstring(cid))
 
-		session = podmanTest.Podman([]string{"volume", "rm", "-f", "myvol"})
+		session = podmanTest.Podman([]string{"volume", "rm", "-t", "0", "-f", "myvol"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 

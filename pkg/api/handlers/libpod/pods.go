@@ -246,7 +246,8 @@ func PodDelete(w http.ResponseWriter, r *http.Request) {
 		decoder = r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	)
 	query := struct {
-		Force bool `schema:"force"`
+		Force   bool  `schema:"force"`
+		Timeout *uint `schema:"timeout"`
 	}{
 		// override any golang type defaults
 	}
@@ -262,7 +263,7 @@ func PodDelete(w http.ResponseWriter, r *http.Request) {
 		utils.PodNotFound(w, name, err)
 		return
 	}
-	if err := runtime.RemovePod(r.Context(), pod, true, query.Force); err != nil {
+	if err := runtime.RemovePod(r.Context(), pod, true, query.Force, query.Timeout); err != nil {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}

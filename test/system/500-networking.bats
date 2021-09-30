@@ -192,9 +192,9 @@ load helpers
     is "$output" "Error: network name $mynetname already used: network already exists" \
        "Trying to create an already-existing network"
 
-    run_podman rm $cid
+    run_podman rm -t 0 -f $cid
     run_podman network rm $mynetname
-    run_podman 1 network rm $mynetname
+    run_podman 1 network rm -f $mynetname
 }
 
 @test "podman network reload" {
@@ -293,13 +293,13 @@ load helpers
     is "$output" "$random_1" "curl 127.0.0.1:/index.txt"
 
     # cleanup the container
-    run_podman rm -f $cid
+    run_podman rm -t 0 -f $cid
 
     # test that we cannot remove the default network
-    run_podman 125 network rm -f $netname
+    run_podman 125 network rm -t 0 -f $netname
     is "$output" "Error: default network $netname cannot be removed" "Remove default network"
 
-    run_podman network rm -f $netname2
+    run_podman network rm -t 0 -f $netname2
 }
 
 @test "podman rootless cni adds /usr/sbin to PATH" {
@@ -314,7 +314,7 @@ load helpers
     PATH=/usr/local/bin:/usr/bin run_podman run --rm --network $mynetname $IMAGE ip addr
     is "$output" ".*eth0.*" "Interface eth0 not found in ip addr output"
 
-    run_podman network rm -f $mynetname
+    run_podman network rm -t 0 -f $mynetname
 }
 
 @test "podman ipv6 in /etc/resolv.conf" {
@@ -357,7 +357,7 @@ load helpers
         die "resolv.conf contains a ipv6 nameserver"
     fi
 
-    run_podman network rm -f $netname
+    run_podman network rm -t 0 -f $netname
 
     # ipv6 cni
     mysubnet=fd00:4:4:4:4::/64
@@ -372,7 +372,7 @@ load helpers
         die "resolv.conf does not contain a ipv6 nameserver"
     fi
 
-    run_podman network rm -f $netname
+    run_podman network rm -t 0 -f $netname
 }
 
 # Test for https://github.com/containers/podman/issues/10052
@@ -463,9 +463,8 @@ load helpers
     is "$output" "$random_1" "curl 127.0.0.1:/index.txt should still work"
 
     # cleanup
-    run_podman stop -t 0 $cid $background_cid
-    run_podman rm -f $cid $background_cid
-    run_podman network rm -f $netname $netname2
+    run_podman rm -t 0 -f $cid $background_cid
+    run_podman network rm -t 0 -f $netname $netname2
 }
 
 @test "podman network after restart" {
@@ -538,12 +537,11 @@ load helpers
         run curl --retry 2 -s $SERVER/index.txt
         is "$output" "$random_1" "curl 127.0.0.1:/index.txt after podman restart"
 
-        run_podman stop -t 0 $cid
-        run_podman rm -f $cid
+        run_podman rm -t 0 -f $cid
     done
 
     # Cleanup network
-    run_podman network rm $netname
+    run_podman network rm -t 0 -f $netname
 }
 
 # vim: filetype=sh

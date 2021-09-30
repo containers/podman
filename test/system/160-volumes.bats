@@ -13,7 +13,7 @@ function setup() {
 
 function teardown() {
     run_podman '?' rm -a --volumes
-    run_podman '?' volume rm -a -f
+    run_podman '?' volume rm -t 0 -a -f
 
     basic_teardown
 }

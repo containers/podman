@@ -40,7 +40,8 @@ type InspectOptions struct {
 // RemoveOptions are optional options for inspecting networks
 type RemoveOptions struct {
 	// Force removes the network even if it is being used
-	Force *bool
+	Force   *bool
+	Timeout *uint
 }
 
 //go:generate go run ../generator/generator.go ListOptions

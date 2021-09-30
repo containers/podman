@@ -105,7 +105,7 @@ function check_label() {
       "'podman inspect' preserves all --security-opts"
 
     run_podman exec myc touch /stop
-    run_podman rm -f myc
+    run_podman rm -t 0 -f myc
 }
 
 # Sharing context between two containers not in a pod

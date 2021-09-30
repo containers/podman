@@ -78,7 +78,7 @@ function generate_service() {
 
     (cd $UNIT_DIR; run_podman generate systemd --new --files --name $cname)
     echo "container-$cname" >> $SNAME_FILE
-    run_podman rm -f $cname
+    run_podman rm -t 0 -f $cname
 
     systemctl daemon-reload
     systemctl start container-$cname

@@ -34,11 +34,12 @@ import (
 func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
-		Force         bool `schema:"force"`
-		Ignore        bool `schema:"ignore"`
-		Link          bool `schema:"link"`
-		DockerVolumes bool `schema:"v"`
-		LibpodVolumes bool `schema:"volumes"`
+		Force         bool  `schema:"force"`
+		Ignore        bool  `schema:"ignore"`
+		Link          bool  `schema:"link"`
+		Timeout       *uint `schema:"timeout"`
+		DockerVolumes bool  `schema:"v"`
+		LibpodVolumes bool  `schema:"volumes"`
 	}{
 		// override any golang type defaults
 	}
@@ -55,6 +56,7 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 	}
 	if utils.IsLibpodRequest(r) {
 		options.Volumes = query.LibpodVolumes
+		options.Timeout = query.Timeout
 	} else {
 		if query.Link {
 			utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,

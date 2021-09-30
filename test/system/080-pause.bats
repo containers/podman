@@ -48,8 +48,7 @@ load helpers
     # would imply that the container never paused.
     is "$max_delta" "[3456]" "delta t between paused and restarted"
 
-    run_podman stop -t 0 $cname
-    run_podman rm -f $cname
+    run_podman rm -t 0 -f $cname
 
     # Pause/unpause on nonexistent name or id - these should all fail
     run_podman 125 pause $cid
@@ -75,7 +74,7 @@ load helpers
     run_podman ps --format '{{.ID}} {{.Names}} {{.Status}}'
     is "$output" "${cid:0:12} $cname Up.*" "podman ps on resumed container"
     run_podman stop -t 0 $cname
-    run_podman rm -f $cname
-    run_podman rm -f notrunning
+    run_podman rm -t 0 -f $cname
+    run_podman rm -t 0 -f notrunning
 }
 # vim: filetype=sh

@@ -66,7 +66,7 @@ func (ic *ContainerEngine) VolumeRm(ctx context.Context, namesOrIds []string, op
 	}
 	for _, vol := range vols {
 		reports = append(reports, &entities.VolumeRmReport{
-			Err: ic.Libpod.RemoveVolume(ctx, vol, opts.Force),
+			Err: ic.Libpod.RemoveVolume(ctx, vol, opts.Force, opts.Timeout),
 			Id:  vol.Name(),
 		})
 	}

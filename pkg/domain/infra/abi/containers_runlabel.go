@@ -92,7 +92,8 @@ func (ic *ContainerEngine) ContainerRunlabel(ctx context.Context, label string, 
 					}
 				} else {
 					logrus.Debugf("Runlabel --replace option given. Container %s will be deleted. The new container will be named %s", ctr.ID(), name)
-					if err := ic.Libpod.RemoveContainer(ctx, ctr, true, false); err != nil {
+					var timeout *uint
+					if err := ic.Libpod.RemoveContainer(ctx, ctr, true, false, timeout); err != nil {
 						return err
 					}
 				}

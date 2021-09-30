@@ -94,8 +94,9 @@ type VolumeConfigResponse struct {
 }
 
 type VolumeRmOptions struct {
-	All   bool
-	Force bool
+	All     bool
+	Force   bool
+	Timeout *uint
 }
 
 type VolumeRmReport struct {

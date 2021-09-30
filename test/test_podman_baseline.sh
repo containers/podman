@@ -553,7 +553,7 @@ podman build -f Dockerfile -t build-priv
 ########
 # Cleanup
 ########
-podman rm -a -f
+podman rm -a -f -t 0
 podman rmi -a -f
 rm ./Dockerfile
 

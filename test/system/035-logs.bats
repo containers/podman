@@ -114,7 +114,7 @@ $s_after"
 
     run_podman logs --since $after test
     is "$output" "$s_after"
-    run_podman rm -f test
+    run_podman rm -t 1 -f test
 }
 
 @test "podman logs - since k8s-file" {
@@ -167,7 +167,7 @@ $s_after"
 
     run_podman logs --until $after test
     is "$output" "$s_both" "podman logs --until after"
-    run_podman rm -f test
+    run_podman rm -t 0 -f test
 }
 
 @test "podman logs - until k8s-file" {
@@ -195,7 +195,7 @@ function _log_test_follow() {
 $contentB
 $contentC" "logs -f on exitted container works"
 
-    run_podman rm -f $cname
+    run_podman rm -t 0 -f $cname
 }
 
 @test "podman logs - --follow k8s-file" {

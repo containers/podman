@@ -56,7 +56,7 @@ fi
 # Setup helper: establish a test environment with exactly the images needed
 function basic_setup() {
     # Clean up all containers
-    run_podman rm --all --force
+    run_podman rm -t 0 --all --force
 
     # ...including external (buildah) ones
     run_podman ps --all --external --format '{{.ID}} {{.Names}}'
@@ -109,8 +109,8 @@ function basic_setup() {
 # Basic teardown: remove all pods and containers
 function basic_teardown() {
     echo "# [teardown]" >&2
-    run_podman '?' pod rm --all --force
-    run_podman '?'     rm --all --force
+    run_podman '?' pod rm -t 0 --all --force
+    run_podman '?'     rm -t 0 --all --force
 
     command rm -rf $PODMAN_TMPDIR
 }

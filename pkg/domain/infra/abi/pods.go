@@ -259,7 +259,7 @@ func (ic *ContainerEngine) PodRm(ctx context.Context, namesOrIds []string, optio
 	reports := make([]*entities.PodRmReport, 0, len(pods))
 	for _, p := range pods {
 		report := entities.PodRmReport{Id: p.ID()}
-		err := ic.Libpod.RemovePod(ctx, p, true, options.Force)
+		err := ic.Libpod.RemovePod(ctx, p, true, options.Force, options.Timeout)
 		if err != nil {
 			report.Err = err
 		}

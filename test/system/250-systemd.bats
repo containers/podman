@@ -156,7 +156,7 @@ function service_cleanup() {
     is "$output" ".*Restart=on-failure.*" "on-failure:xx is parsed correclty"
     is "$output" ".*StartLimitBurst=42.*" "on-failure:xx is parsed correctly"
 
-    run_podman rm -f $cname $cname2 $cname3
+    run_podman rm -t 0 -f $cname $cname2 $cname3
 }
 
 function set_listen_env() {

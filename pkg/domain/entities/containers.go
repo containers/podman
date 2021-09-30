@@ -132,6 +132,7 @@ type RmOptions struct {
 	Force   bool
 	Ignore  bool
 	Latest  bool
+	Timeout *uint
 	Volumes bool
 }
 

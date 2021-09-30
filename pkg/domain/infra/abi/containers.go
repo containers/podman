@@ -283,7 +283,7 @@ func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []st
 }
 
 func (ic *ContainerEngine) removeContainer(ctx context.Context, ctr *libpod.Container, options entities.RmOptions) error {
-	err := ic.Libpod.RemoveContainer(ctx, ctr, options.Force, options.Volumes)
+	err := ic.Libpod.RemoveContainer(ctx, ctr, options.Force, options.Volumes, options.Timeout)
 	if err == nil {
 		return nil
 	}
@@ -963,7 +963,8 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 			return &report, nil
 		}
 		if opts.Rm {
-			if deleteError := ic.Libpod.RemoveContainer(ctx, ctr, true, false); deleteError != nil {
+			var timeout *uint
+			if deleteError := ic.Libpod.RemoveContainer(ctx, ctr, true, false, timeout); deleteError != nil {
 				logrus.Debugf("unable to remove container %s after failing to start and attach to it", ctr.ID())
 			}
 		}
@@ -977,7 +978,8 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	}
 	report.ExitCode = ic.GetContainerExitCode(ctx, ctr)
 	if opts.Rm && !ctr.ShouldRestart(ctx) {
-		if err := ic.Libpod.RemoveContainer(ctx, ctr, false, true); err != nil {
+		var timeout *uint
+		if err := ic.Libpod.RemoveContainer(ctx, ctr, false, true, timeout); err != nil {
 			if errors.Cause(err) == define.ErrNoSuchCtr ||
 				errors.Cause(err) == define.ErrCtrRemoved {
 				logrus.Infof("Container %s was already removed, skipping --rm", ctr.ID())
@@ -1082,7 +1084,8 @@ func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []st
 		}
 
 		if options.Remove && !ctr.ShouldRestart(ctx) {
-			err = ic.Libpod.RemoveContainer(ctx, ctr, false, true)
+			var timeout *uint
+			err = ic.Libpod.RemoveContainer(ctx, ctr, false, true, timeout)
 			if err != nil {
 				report.RmErr = errors.Wrapf(err, "failed to cleanup and remove container %v", ctr.ID())
 			}

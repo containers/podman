@@ -68,7 +68,8 @@ type StatsOptions struct {
 //go:generate go run ../generator/generator.go RemoveOptions
 // RemoveOptions are optional options for removing pods
 type RemoveOptions struct {
-	Force *bool
+	Force   *bool
+	Timeout *uint
 }
 
 //go:generate go run ../generator/generator.go ExistsOptions

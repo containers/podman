@@ -61,3 +61,18 @@ func (o *RemoveOptions) GetVolumes() bool {
 	}
 	return *o.Volumes
 }
+
+// WithTimeout set field Timeout to given value
+func (o *RemoveOptions) WithTimeout(value uint) *RemoveOptions {
+	o.Timeout = &value
+	return o
+}
+
+// GetTimeout returns value of field Timeout
+func (o *RemoveOptions) GetTimeout() uint {
+	if o.Timeout == nil {
+		var z uint
+		return z
+	}
+	return *o.Timeout
+}

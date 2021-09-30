@@ -189,7 +189,7 @@ func makeVolumeInPluginIfNotExist(name string, options map[string]string, plugin
 }
 
 // removeVolume removes the specified volume from state as well tears down its mountpoint and storage
-func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error {
+func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool, timeout *uint) error {
 	if !v.valid {
 		if ok, _ := r.state.HasVolume(v.Name()); !ok {
 			return nil
@@ -234,7 +234,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 			// containers?
 			// I'm inclined to say no, in case someone accidentally
 			// wipes a container they're using...
-			if err := r.removeContainer(ctx, ctr, false, false, false); err != nil {
+			if err := r.removeContainer(ctx, ctr, false, false, false, timeout); err != nil {
 				return errors.Wrapf(err, "error removing container %s that depends on volume %s", ctr.ID(), v.Name())
 			}
 		}

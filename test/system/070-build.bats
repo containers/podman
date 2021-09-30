@@ -969,7 +969,7 @@ function teardown() {
     # A timeout or other error in 'build' can leave behind stale images
     # that podman can't even see and which will cascade into subsequent
     # test failures. Try a last-ditch force-rm in cleanup, ignoring errors.
-    run_podman '?' rm -a -f
+    run_podman '?' rm -t 0 -a -f
     run_podman '?' rmi -f build_test
 
     # Many of the tests above leave interim layers behind. Clean them up.

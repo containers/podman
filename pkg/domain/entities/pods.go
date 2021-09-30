@@ -95,10 +95,11 @@ type PodStartReport struct {
 }
 
 type PodRmOptions struct {
-	All    bool
-	Force  bool
-	Ignore bool
-	Latest bool
+	All     bool
+	Force   bool
+	Ignore  bool
+	Latest  bool
+	Timeout *uint
 }
 
 type PodRmReport struct {

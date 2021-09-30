@@ -680,7 +680,7 @@ var _ = Describe("Podman run networking", func() {
 		Expect(run).Should(Exit(0))
 		Expect(run.OutputToString()).To(ContainSubstring(ipAddr))
 
-		podrm := podmanTest.Podman([]string{"pod", "rm", "-f", podname})
+		podrm := podmanTest.Podman([]string{"pod", "rm", "-t", "0", "-f", podname})
 		podrm.WaitWithDefaultTimeout()
 		Expect(podrm).Should(Exit(0))
 	})

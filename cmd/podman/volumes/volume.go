@@ -3,6 +3,7 @@ package volumes
 import (
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -17,6 +18,7 @@ var (
 		Long:  "Volumes are created in and can be shared between containers",
 		RunE:  validate.SubCommandExists,
 	}
+	containerConfig = util.DefaultContainerConfig()
 )
 
 func init() {

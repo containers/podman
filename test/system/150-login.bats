@@ -83,7 +83,7 @@ function setup() {
     fi
 
     # Run the registry container.
-    run_podman '?' ${PODMAN_LOGIN_ARGS} rm -f registry
+    run_podman '?' ${PODMAN_LOGIN_ARGS} rm -t 0 -f registry
     run_podman ${PODMAN_LOGIN_ARGS} run -d \
                -p ${PODMAN_LOGIN_REGISTRY_PORT}:5000 \
                --name registry \

@@ -91,10 +91,10 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 					if err != nil {
 						return reports, err
 					}
-					if err := ic.Libpod.RemovePod(ctx, pod, true, true); err != nil {
+					if err := ic.Libpod.RemovePod(ctx, pod, true, true, options.Timeout); err != nil {
 						return reports, err
 					}
-				} else if err := ic.Libpod.RemoveContainer(ctx, c, true, true); err != nil && errors.Cause(err) != define.ErrNoSuchCtr {
+				} else if err := ic.Libpod.RemoveContainer(ctx, c, true, true, options.Timeout); err != nil && errors.Cause(err) != define.ErrNoSuchCtr {
 					return reports, err
 				}
 			}

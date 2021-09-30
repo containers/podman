@@ -169,6 +169,9 @@ func (ic *ContainerEngine) PodRm(ctx context.Context, namesOrIds []string, opts 
 	}
 	reports := make([]*entities.PodRmReport, 0, len(foundPods))
 	options := new(pods.RemoveOptions).WithForce(opts.Force)
+	if opts.Timeout != nil {
+		options = options.WithTimeout(*opts.Timeout)
+	}
 	for _, p := range foundPods {
 		response, err := pods.Remove(ic.ClientCtx, p.Id, options)
 		if err != nil {

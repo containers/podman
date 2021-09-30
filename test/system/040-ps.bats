@@ -138,7 +138,7 @@ EOF
     is "$output" "Error: container .* is mounted and cannot be removed without using force: container state improper" "podman rm <buildah container> without -f"
 
     # With -f, we can remove it.
-    run_podman rm -f "$cid"
+    run_podman rm -t 0 -f "$cid"
 
     run_podman ps --external -a
     is "${#lines[@]}" "1" "storage container has been removed"

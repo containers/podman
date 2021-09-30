@@ -4,8 +4,8 @@ load helpers
 
 # This is a long ugly way to clean up pods and remove the pause image
 function teardown() {
-    run_podman pod rm -f -a
-    run_podman rm -f -a
+    run_podman pod rm -f -t 0 -a
+    run_podman rm -f -t 0 -a
     run_podman image list --format '{{.ID}} {{.Repository}}'
     while read id name; do
         if [[ "$name" =~ /pause ]]; then
@@ -57,7 +57,7 @@ function teardown() {
     fi
 
     # Clean up
-    run_podman pod rm -f $podid
+    run_podman pod rm -f -t 0 $podid
 }
 
 
@@ -301,7 +301,7 @@ EOF
 
     # Clean up
     run_podman rm $cid
-    run_podman pod rm -f mypod
+    run_podman pod rm -t 0 -f mypod
     run_podman rmi $infra_image
 
 }

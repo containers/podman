@@ -47,6 +47,9 @@ func (ic *ContainerEngine) NetworkReload(ctx context.Context, names []string, op
 func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, opts entities.NetworkRmOptions) ([]*entities.NetworkRmReport, error) {
 	reports := make([]*entities.NetworkRmReport, 0, len(namesOrIds))
 	options := new(network.RemoveOptions).WithForce(opts.Force)
+	if opts.Timeout != nil {
+		options = options.WithTimeout(*opts.Timeout)
+	}
 	for _, name := range namesOrIds {
 		response, err := network.Remove(ic.ClientCtx, name, options)
 		if err != nil {

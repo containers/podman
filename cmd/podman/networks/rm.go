@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/utils"
@@ -26,6 +27,7 @@ var (
 		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: common.AutocompleteNetworks,
 	}
+	stopTimeout uint
 )
 
 var (
@@ -34,6 +36,9 @@ var (
 
 func networkRmFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&networkRmOptions.Force, "force", "f", false, "remove any containers using network")
+	timeFlagName := "time"
+	flags.UintVarP(&stopTimeout, timeFlagName, "t", containerConfig.Engine.StopTimeout, "Seconds to wait for running containers to stop before killing the container")
+	_ = networkrmCommand.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
 }
 
 func init() {
@@ -50,6 +55,12 @@ func networkRm(cmd *cobra.Command, args []string) error {
 		errs utils.OutputErrors
 	)
 
+	if cmd.Flag("time").Changed {
+		if !networkRmOptions.Force {
+			return errors.New("--force option must be specified to use the --time option")
+		}
+		networkRmOptions.Timeout = &stopTimeout
+	}
 	responses, err := registry.ContainerEngine().NetworkRm(registry.Context(), args, networkRmOptions)
 	if err != nil {
 		setExitCode(err)

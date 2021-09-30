@@ -245,7 +245,8 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 	ic := abi.ContainerEngine{Libpod: runtime}
 
 	query := struct {
-		Force bool `schema:"force"`
+		Force   bool  `schema:"force"`
+		Timeout *uint `schema:"timeout"`
 	}{
 		// This is where you can override the golang default value for one of fields
 	}
@@ -257,7 +258,8 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 	}
 
 	options := entities.NetworkRmOptions{
-		Force: query.Force,
+		Force:   query.Force,
+		Timeout: query.Timeout,
 	}
 
 	name := utils.GetName(r)

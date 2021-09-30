@@ -272,7 +272,7 @@ var _ = Describe("Podman network", func() {
 		Expect(strings.HasPrefix(net.IPAddress, "10.50.50.")).To(BeTrue())
 
 		// Necessary to ensure the CNI network is removed cleanly
-		rmAll := podmanTest.Podman([]string{"rm", "-f", ctrName})
+		rmAll := podmanTest.Podman([]string{"rm", "-t", "0", "-f", ctrName})
 		rmAll.WaitWithDefaultTimeout()
 		Expect(rmAll).Should(Exit(0))
 	})
@@ -309,7 +309,7 @@ var _ = Describe("Podman network", func() {
 		Expect(net2.NetworkID).To(Equal(netName2))
 
 		// Necessary to ensure the CNI network is removed cleanly
-		rmAll := podmanTest.Podman([]string{"rm", "-f", ctrName})
+		rmAll := podmanTest.Podman([]string{"rm", "-t", "0", "-f", ctrName})
 		rmAll.WaitWithDefaultTimeout()
 		Expect(rmAll).Should(Exit(0))
 	})
@@ -350,7 +350,7 @@ var _ = Describe("Podman network", func() {
 		Expect(strings.HasPrefix(net2.IPAddress, "10.50.51.")).To(BeTrue())
 
 		// Necessary to ensure the CNI network is removed cleanly
-		rmAll := podmanTest.Podman([]string{"rm", "-f", ctrName})
+		rmAll := podmanTest.Podman([]string{"rm", "-t", "0", "-f", ctrName})
 		rmAll.WaitWithDefaultTimeout()
 		Expect(rmAll).Should(Exit(0))
 	})
@@ -404,7 +404,7 @@ var _ = Describe("Podman network", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(2))
 
-		session = podmanTest.Podman([]string{"network", "rm", "--force", netName})
+		session = podmanTest.Podman([]string{"network", "rm", "-t", "0", "--force", netName})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 

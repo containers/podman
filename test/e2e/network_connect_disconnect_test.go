@@ -200,7 +200,7 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		Expect(exec).Should(Exit(0))
 
 		// make sure no logrus errors are shown https://github.com/containers/podman/issues/9602
-		rm := podmanTest.Podman([]string{"rm", "-f", "test"})
+		rm := podmanTest.Podman([]string{"rm", "--time=0", "-f", "test"})
 		rm.WaitWithDefaultTimeout()
 		Expect(rm).Should(Exit(0))
 		Expect(rm.ErrorToString()).To(Equal(""))
