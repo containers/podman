@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/buildah/define"
 	"github.com/containers/podman/v3/pkg/auth"
 	"github.com/containers/podman/v3/pkg/bindings"
 	"github.com/containers/podman/v3/pkg/domain/entities"
@@ -39,6 +40,10 @@ var (
 
 // Build creates an image using a containerfile reference
 func Build(ctx context.Context, containerFiles []string, options entities.BuildOptions) (*entities.BuildReport, error) {
+	if options.CommonBuildOpts == nil {
+		options.CommonBuildOpts = new(define.CommonBuildOptions)
+	}
+
 	params := url.Values{}
 
 	if caps := options.AddCapabilities; len(caps) > 0 {
