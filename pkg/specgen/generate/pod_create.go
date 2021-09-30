@@ -59,6 +59,12 @@ func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (*libpod.Pod, error) {
 		if err != nil {
 			return nil, err
 		}
+	} else {
+		// SavePod is used to save the pod state and trigger a create event even if infra is not created
+		err := rt.SavePod(pod)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return pod, nil
 }

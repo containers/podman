@@ -199,4 +199,17 @@ var _ = Describe("Podman events", func() {
 
 		wg.Wait()
 	})
+
+	It("podman events pod creation", func() {
+		create := podmanTest.Podman([]string{"pod", "create", "--infra=false", "--name", "foobarpod"})
+		create.WaitWithDefaultTimeout()
+		Expect(create).Should(Exit(0))
+		id := create.OutputToString()
+		result := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "pod=" + id})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(result.OutputToStringArray()).To(HaveLen(1))
+		Expect(result.OutputToString()).To(ContainSubstring("create"))
+	})
+
 })
