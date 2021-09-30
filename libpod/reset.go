@@ -123,7 +123,7 @@ func (r *Runtime) Reset(ctx context.Context) error {
 	if storageConfPath, err := storage.DefaultConfigFile(rootless.IsRootless()); err == nil {
 		if _, err = os.Stat(storageConfPath); err == nil {
 			fmt.Printf("A storage.conf file exists at %s\n", storageConfPath)
-			fmt.Println("You should remove this file if you did not modified the configuration.")
+			fmt.Println("You should remove this file if you did not modify the configuration.")
 		}
 	} else {
 		if prevError != nil {
