@@ -70,7 +70,7 @@ function _stop_socat() {
 
 # Check that MAINPID=xxxxx points to a running conmon process
 function _assert_mainpid_is_conmon() {
-    local mainpid=$(expr "$1" : "MAINPID=\([0-9]\+\)")
+    local mainpid=$(expr "$1" : ".*MAINPID=\([0-9]\+\)")
     test -n "$mainpid" || die "Could not parse '$1' as 'MAINPID=nnnn'"
 
     test -d /proc/$mainpid || die "sdnotify MAINPID=$mainpid - but /proc/$mainpid does not exist"
@@ -121,7 +121,7 @@ function _assert_mainpid_is_conmon() {
     # we look for READY=1 _anywhere_ in the output, not just the last line.
     is "$output" ".*READY=1.*" "sdnotify sent READY=1"
 
-    _assert_mainpid_is_conmon "${lines[0]}"
+    _assert_mainpid_is_conmon "$output"
 
     # Done. Stop container, clean up.
     run_podman exec $cid touch /stop
@@ -163,7 +163,7 @@ function _assert_mainpid_is_conmon() {
 
     is "$output" ".*READY=1" "received READY=1 through notify socket"
 
-    _assert_mainpid_is_conmon "${lines[0]}"
+    _assert_mainpid_is_conmon "$output"
 
     # Done. Stop container, clean up.
     run_podman exec $cid touch /stop
