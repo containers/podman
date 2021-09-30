@@ -43,7 +43,7 @@ func getAdditionalSubIDs(username string) (*idSet, *idSet, error) {
 	}
 	mappings, err := idtools.NewIDMappings(username, username)
 	if err != nil {
-		logrus.Errorf("cannot find mappings for user %q: %v", username, err)
+		logrus.Errorf("Cannot find mappings for user %q: %v", username, err)
 	} else {
 		uids = getHostIDs(mappings.UIDs())
 		gids = getHostIDs(mappings.GIDs())

@@ -35,7 +35,7 @@ func GetKernelVersion() (*VersionInfo, error) {
 // the given version.
 func CheckKernelVersion(k, major, minor int) bool {
 	if v, err := GetKernelVersion(); err != nil {
-		logrus.Warnf("error getting kernel version: %s", err)
+		logrus.Warnf("Error getting kernel version: %s", err)
 	} else {
 		if CompareKernelVersion(*v, VersionInfo{Kernel: k, Major: major, Minor: minor}) < 0 {
 			return false

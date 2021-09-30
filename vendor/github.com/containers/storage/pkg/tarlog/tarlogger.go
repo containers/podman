@@ -34,7 +34,7 @@ func NewLogger(logger func(*tar.Header)) (io.WriteCloser, error) {
 		}
 		// Make sure to avoid writes after the reader has been closed.
 		if err := reader.Close(); err != nil {
-			logrus.Errorf("error closing tarlogger reader: %v", err)
+			logrus.Errorf("Closing tarlogger reader: %v", err)
 		}
 		// Unblock the Close().
 		t.closeMutex.Unlock()
