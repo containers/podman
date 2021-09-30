@@ -411,7 +411,7 @@ type ContainerNetworkConfig struct {
 	// Expose is a number of ports that will be forwarded to the container
 	// if PublishExposedPorts is set.
 	// Expose is a map of uint16 (port number) to a string representing
-	// protocol. Allowed protocols are "tcp", "udp", and "sctp", or some
+	// protocol i.e map[uint16]string. Allowed protocols are "tcp", "udp", and "sctp", or some
 	// combination of the three separated by commas.
 	// If protocol is set to "" we will assume TCP.
 	// Only available if NetNS is set to Bridge or Slirp, and
