@@ -5,6 +5,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/containers/common/libimage"
 	"github.com/containers/image/v5/manifest"
 	nettypes "github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/storage/types"
@@ -512,6 +513,21 @@ type SpecGenerator struct {
 	ContainerNetworkConfig
 	ContainerResourceConfig
 	ContainerHealthCheckConfig
+
+	image             *libimage.Image `json:"-"`
+	resolvedImageName string          `json:"-"`
+}
+
+// SetImage sets the associated for the generator.
+func (s *SpecGenerator) SetImage(image *libimage.Image, resolvedImageName string) {
+	s.image = image
+	s.resolvedImageName = resolvedImageName
+}
+
+// Image returns the associated image for the generator.
+// May be nil if no image has been set yet.
+func (s *SpecGenerator) GetImage() (*libimage.Image, string) {
+	return s.image, s.resolvedImageName
 }
 
 type Secret struct {

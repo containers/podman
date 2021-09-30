@@ -18,19 +18,43 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+func getImageFromSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerator) (*libimage.Image, string, *libimage.ImageData, error) {
+	if s.Image == "" || s.Rootfs != "" {
+		return nil, "", nil, nil
+	}
+
+	// Image may already have been set in the generator.
+	image, resolvedName := s.GetImage()
+	if image != nil {
+		inspectData, err := image.Inspect(ctx, false)
+		if err != nil {
+			return nil, "", nil, err
+		}
+		return image, resolvedName, inspectData, nil
+	}
+
+	// Need to look up image.
+	image, resolvedName, err := r.LibimageRuntime().LookupImage(s.Image, nil)
+	if err != nil {
+		return nil, "", nil, err
+	}
+	s.SetImage(image, resolvedName)
+	inspectData, err := image.Inspect(ctx, false)
+	if err != nil {
+		return nil, "", nil, err
+	}
+	return image, resolvedName, inspectData, err
+}
+
 // Fill any missing parts of the spec generator (e.g. from the image).
 // Returns a set of warnings or any fatal error that occurred.
 func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerator) ([]string, error) {
 	// Only add image configuration if we have an image
-	var newImage *libimage.Image
-	var inspectData *libimage.ImageData
-	var err error
-	if s.Image != "" {
-		newImage, _, err = r.LibimageRuntime().LookupImage(s.Image, nil)
-		if err != nil {
-			return nil, err
-		}
-
+	newImage, _, inspectData, err := getImageFromSpec(ctx, r, s)
+	if err != nil {
+		return nil, err
+	}
+	if inspectData != nil {
 		inspectData, err = newImage.Inspect(ctx, false)
 		if err != nil {
 			return nil, err

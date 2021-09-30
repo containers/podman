@@ -102,20 +102,15 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		options = append(options, libpod.WithCreateCommand(s.ContainerCreateCommand))
 	}
 
-	var newImage *libimage.Image
-	var imageData *libimage.ImageData
 	if s.Rootfs != "" {
 		options = append(options, libpod.WithRootFS(s.Rootfs, s.RootfsOverlay))
-	} else {
-		var resolvedImageName string
-		newImage, resolvedImageName, err = rt.LibimageRuntime().LookupImage(s.Image, nil)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		imageData, err = newImage.Inspect(ctx, false)
-		if err != nil {
-			return nil, nil, nil, err
-		}
+	}
+
+	newImage, resolvedImageName, imageData, err := getImageFromSpec(ctx, rt, s)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	if newImage != nil {
 		// If the input name changed, we could properly resolve the
 		// image. Otherwise, it must have been an ID where we're
 		// defaulting to the first name or an empty one if no names are
