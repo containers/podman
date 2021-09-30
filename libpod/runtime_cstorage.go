@@ -121,7 +121,7 @@ func (r *Runtime) removeStorageContainer(idOrName string, force bool) error {
 	}
 
 	if err := r.store.DeleteContainer(ctr.ID); err != nil {
-		if errors.Cause(err) == storage.ErrContainerUnknown {
+		if errors.Cause(err) == storage.ErrNotAContainer || errors.Cause(err) == storage.ErrContainerUnknown {
 			// Container again gone, no error
 			logrus.Infof("Storage for container %s already removed", ctr.ID)
 			return nil
