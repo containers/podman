@@ -392,7 +392,12 @@ func (v *MachineVM) Stop(name string, _ machine.StopOptions) error {
 		logrus.Warn(err)
 	}
 	// Remove socket
-	return os.Remove(qemuSocketFile)
+	if err := os.Remove(qemuSocketFile); err != nil {
+		return err
+	}
+
+	fmt.Printf("Successfully stopped machine: %s", name)
+	return nil
 }
 
 // NewQMPMonitor creates the monitor subsection of our vm
