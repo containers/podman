@@ -256,9 +256,9 @@ case "$TEST_FLAVOR" in
 
         # Need to re-build lists (removed during image production)
         ooe.sh apt-get -qq -y update
-        msg "Installing previously downloaded/cached packages"
+        msg "Installing docker and containerd"
         # N/B: Tests check/expect `docker info` output, and this `!= podman info`
-        ooe.sh apt-get install --yes --no-download --ignore-missing containerd.io docker-ce docker-ce-cli
+        ooe.sh apt-get install --yes containerd.io docker-ce docker-ce-cli
 
         msg "Disabling docker service and socket activation"
         systemctl stop docker.service docker.socket
