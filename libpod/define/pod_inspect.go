@@ -61,6 +61,8 @@ type InspectPodData struct {
 	Mounts []InspectMount `json:"mounts,omitempty"`
 	// Devices contains the specified host devices
 	Devices []InspectDevice `json:"devices,omitempty"`
+	// BlkioDeviceReadBps contains the Read/Access limit for the pod's devices
+	BlkioDeviceReadBps []InspectBlkioThrottleDevice `json:"device_read_bps,omitempty"`
 }
 
 // InspectPodInfraConfig contains the configuration of the pod's infra

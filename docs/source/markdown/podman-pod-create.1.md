@@ -41,7 +41,7 @@ Examples of the List Format:
 #### **--device**=_host-device_[**:**_container-device_][**:**_permissions_]
 
 Add a host device to the pod. Optional *permissions* parameter
-can be used to specify device permissions It is a combination of
+can be used to specify device permissions. It is a combination of
 **r** for read, **w** for write, and **m** for **mknod**(2).
 
 Example: **--device=/dev/sdc:/dev/xvdc:rwm**.
@@ -54,6 +54,10 @@ Note: the pod implements devices by storing the initial configuration passed by 
 Podman may load kernel modules required for using the specified
 device. The devices that Podman will load modules for when necessary are:
 /dev/fuse.
+
+#### **--device-read-bps**=*path*
+
+Limit read rate (bytes per second) from a device (e.g. --device-read-bps=/dev/sda:1mb)
 
 #### **--dns**=*ipaddr*
 

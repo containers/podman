@@ -531,49 +531,25 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 					hostConfig.BlkioWeightDevice = append(hostConfig.BlkioWeightDevice, weightDev)
 				}
 
-				handleThrottleDevice := func(devs []spec.LinuxThrottleDevice) ([]define.InspectBlkioThrottleDevice, error) {
-					out := []define.InspectBlkioThrottleDevice{}
-					for _, dev := range devs {
-						key := fmt.Sprintf("%d:%d", dev.Major, dev.Minor)
-						if deviceNodes == nil {
-							nodes, err := util.FindDeviceNodes()
-							if err != nil {
-								return nil, err
-							}
-							deviceNodes = nodes
-						}
-						path, ok := deviceNodes[key]
-						if !ok {
-							logrus.Infof("Could not locate throttle device %s in system devices", key)
-							continue
-						}
-						throttleDev := define.InspectBlkioThrottleDevice{}
-						throttleDev.Path = path
-						throttleDev.Rate = dev.Rate
-						out = append(out, throttleDev)
-					}
-					return out, nil
-				}
-
-				readBps, err := handleThrottleDevice(ctrSpec.Linux.Resources.BlockIO.ThrottleReadBpsDevice)
+				readBps, err := blkioDeviceThrottle(deviceNodes, ctrSpec.Linux.Resources.BlockIO.ThrottleReadBpsDevice)
 				if err != nil {
 					return nil, err
 				}
 				hostConfig.BlkioDeviceReadBps = readBps
 
-				writeBps, err := handleThrottleDevice(ctrSpec.Linux.Resources.BlockIO.ThrottleWriteBpsDevice)
+				writeBps, err := blkioDeviceThrottle(deviceNodes, ctrSpec.Linux.Resources.BlockIO.ThrottleWriteBpsDevice)
 				if err != nil {
 					return nil, err
 				}
 				hostConfig.BlkioDeviceWriteBps = writeBps
 
-				readIops, err := handleThrottleDevice(ctrSpec.Linux.Resources.BlockIO.ThrottleReadIOPSDevice)
+				readIops, err := blkioDeviceThrottle(deviceNodes, ctrSpec.Linux.Resources.BlockIO.ThrottleReadIOPSDevice)
 				if err != nil {
 					return nil, err
 				}
 				hostConfig.BlkioDeviceReadIOps = readIops
 
-				writeIops, err := handleThrottleDevice(ctrSpec.Linux.Resources.BlockIO.ThrottleWriteIOPSDevice)
+				writeIops, err := blkioDeviceThrottle(deviceNodes, ctrSpec.Linux.Resources.BlockIO.ThrottleWriteIOPSDevice)
 				if err != nil {
 					return nil, err
 				}
@@ -893,4 +869,28 @@ func (c *Container) GetDevices(priv bool, ctrSpec spec.Spec, deviceNodes map[str
 		}
 	}
 	return devices, nil
+}
+
+func blkioDeviceThrottle(deviceNodes map[string]string, devs []spec.LinuxThrottleDevice) ([]define.InspectBlkioThrottleDevice, error) {
+	out := []define.InspectBlkioThrottleDevice{}
+	for _, dev := range devs {
+		key := fmt.Sprintf("%d:%d", dev.Major, dev.Minor)
+		if deviceNodes == nil {
+			nodes, err := util.FindDeviceNodes()
+			if err != nil {
+				return nil, err
+			}
+			deviceNodes = nodes
+		}
+		path, ok := deviceNodes[key]
+		if !ok {
+			logrus.Infof("Could not locate throttle device %s in system devices", key)
+			continue
+		}
+		throttleDev := define.InspectBlkioThrottleDevice{}
+		throttleDev.Path = path
+		throttleDev.Rate = dev.Rate
+		out = append(out, throttleDev)
+	}
+	return out, nil
 }

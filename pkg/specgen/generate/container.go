@@ -191,9 +191,6 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	if len(s.User) == 0 && inspectData != nil {
 		s.User = inspectData.Config.User
 	}
-	if err := finishThrottleDevices(s); err != nil {
-		return nil, err
-	}
 	// Unless already set via the CLI, check if we need to disable process
 	// labels or set the defaults.
 	if len(s.SelinuxOpts) == 0 {
@@ -251,10 +248,10 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	return warnings, nil
 }
 
-// finishThrottleDevices takes the temporary representation of the throttle
+// FinishThrottleDevices takes the temporary representation of the throttle
 // devices in the specgen and looks up the major and major minors. it then
 // sets the throttle devices proper in the specgen
-func finishThrottleDevices(s *specgen.SpecGenerator) error {
+func FinishThrottleDevices(s *specgen.SpecGenerator) error {
 	if bps := s.ThrottleReadBpsDevice; len(bps) > 0 {
 		for k, v := range bps {
 			statT := unix.Stat_t{}
@@ -263,6 +260,9 @@ func finishThrottleDevices(s *specgen.SpecGenerator) error {
 			}
 			v.Major = (int64(unix.Major(uint64(statT.Rdev))))
 			v.Minor = (int64(unix.Minor(uint64(statT.Rdev))))
+			if s.ResourceLimits.BlockIO == nil {
+				s.ResourceLimits.BlockIO = new(spec.LinuxBlockIO)
+			}
 			s.ResourceLimits.BlockIO.ThrottleReadBpsDevice = append(s.ResourceLimits.BlockIO.ThrottleReadBpsDevice, v)
 		}
 	}

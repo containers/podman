@@ -101,6 +101,7 @@ func create(cmd *cobra.Command, args []string) error {
 		podIDFD      *os.File
 		imageName    string
 		rawImageName string
+		podName      string
 	)
 	labelFile = infraOptions.LabelFile
 	labels = infraOptions.Label
@@ -158,10 +159,12 @@ func create(cmd *cobra.Command, args []string) error {
 				return err
 			}
 		}
+		podName = createOptions.Name
 		err = common.ContainerToPodOptions(&infraOptions, &createOptions)
 		if err != nil {
 			return err
 		}
+		createOptions.Name = podName
 	}
 
 	if cmd.Flag("pod-id-file").Changed {
@@ -264,6 +267,17 @@ func create(cmd *cobra.Command, args []string) error {
 		podSpec.ImageVolumes = podSpec.InfraContainerSpec.ImageVolumes
 		podSpec.OverlayVolumes = podSpec.InfraContainerSpec.OverlayVolumes
 		podSpec.Mounts = podSpec.InfraContainerSpec.Mounts
+
+		// Marshall and Unmarshal the spec in order to map similar entities
+		wrapped, err := json.Marshal(podSpec.InfraContainerSpec)
+		if err != nil {
+			return err
+		}
+		err = json.Unmarshal(wrapped, podSpec)
+		if err != nil {
+			return err
+		}
+		podSpec.Name = podName
 	}
 	PodSpec := entities.PodSpec{PodSpecGen: *podSpec}
 	response, err := registry.ContainerEngine().PodCreate(context.Background(), PodSpec)
