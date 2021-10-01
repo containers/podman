@@ -79,7 +79,7 @@ github.com/containernetworking/cni/pkg/utils
 github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.0.1
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.23.0
+# github.com/containers/buildah v1.23.1
 github.com/containers/buildah
 github.com/containers/buildah/bind
 github.com/containers/buildah/chroot
