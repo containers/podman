@@ -2288,6 +2288,9 @@ type RemoteIovec struct {
 //sys	ProcessVMReadv(pid int, localIov []Iovec, remoteIov []RemoteIovec, flags uint) (n int, err error) = SYS_PROCESS_VM_READV
 //sys	ProcessVMWritev(pid int, localIov []Iovec, remoteIov []RemoteIovec, flags uint) (n int, err error) = SYS_PROCESS_VM_WRITEV
 
+//sys	PidfdOpen(pid int, flags int) (fd int, err error) = SYS_PIDFD_OPEN
+//sys	PidfdGetfd(pidfd int, targetfd int, flags int) (fd int, err error) = SYS_PIDFD_GETFD
+
 /*
  * Unimplemented
  */

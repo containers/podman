@@ -17,6 +17,33 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Resolve resolves the specified image to one more images that may be used
+// during a pull in the specified order.
+func Resolve(ctx context.Context, nameOrID string, options *ResolveOptions) (*entities.ImageResolveReport, error) {
+	if options == nil {
+		options = new(ResolveOptions)
+	}
+
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := conn.DoRequest(nil, http.MethodGet, "/images/%s/resolve", params, nil, nameOrID)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	report := &entities.ImageResolveReport{}
+	return report, response.Process(&report)
+}
+
 // Pull is the binding for libpod's v2 endpoints for pulling images.  Note that
 // `rawImage` must be a reference to a registry (i.e., of docker transport or be
 // normalized to one).  Other transports are rejected as they do not make sense

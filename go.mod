@@ -66,8 +66,12 @@ require (
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210906170528-6f6e22806c34
+	golang.org/x/sys v0.0.0-20210910150752-751e447fb3d0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/api v0.22.2
 	k8s.io/apimachinery v0.22.2
 )
+
+replace github.com/containers/common => github.com/vrothberg/common v0.0.3-0.20211005130851-48a21d2d5f5f
+
+replace github.com/containers/image/v5 => github.com/vrothberg/image/v5 v5.0.0-20211005133333-0683338cafd2

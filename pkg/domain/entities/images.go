@@ -83,6 +83,15 @@ func (i *ImageSummary) IsDangling() bool {
 	return i.Dangling
 }
 
+// ImageResolveReport is the response from resolving an image to one or more
+// candidates that may be used when attempting to pull a given image name.
+type ImageResolveReport struct {
+	// Candidates for pulling.
+	Candidates []string
+	// The configured short-name mode.
+	ShortNameMode types.ShortNameMode
+}
+
 // ImageRemoveOptions can be used to alter image removal.
 type ImageRemoveOptions struct {
 	// All will remove all images.

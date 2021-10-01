@@ -762,6 +762,29 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/{name:.*}/exists"), s.APIHandler(libpod.ImageExists)).Methods(http.MethodGet)
+	// swagger:operation GET /libpod/images/{name}/resolve libpod ImageResolveLibpod
+	// ---
+	// tags:
+	//  - images
+	// summary: Resolve an image name to one more fully-qualified names
+	// description: Allows for resolving short-names to one more fully-qualified names, depending on the server configuration
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name or ID of the image
+	//  - in: query
+	//    name: policy
+	//    type: boolean
+	//    required: true
+	//    description: Pull policy, "always" (default), "missing", "newer", "never".
+	// produces:
+	// - application/json
+	// responses:
+	//   500:
+	//     $ref: '#/responses/InternalError'
+	r.Handle(VersionedPath("/libpod/images/{name:.*}/resolve"), s.APIHandler(libpod.ImageResolve)).Methods(http.MethodGet)
 	// swagger:operation GET /libpod/images/{name}/tree libpod ImageTreeLibpod
 	// ---
 	// tags:

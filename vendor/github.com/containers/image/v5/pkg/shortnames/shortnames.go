@@ -216,6 +216,10 @@ func (c *PullCandidate) Record() error {
 	return nil
 }
 
+// errNoTTY is returned when short-name mode is enforced but either stdout or
+// stdin are not a TTY preventing presenting a prompt to the user.
+var errNoTTY = fmt.Errorf("short-name resolution enforced but cannot prompt without a TTY")
+
 // Resolve resolves the specified name to either one or more fully-qualified
 // image references that the short name may be *pulled* from.  If the specified
 // name is already a fully-qualified reference (i.e., not a short name), it is
@@ -343,14 +347,14 @@ func Resolve(ctx *types.SystemContext, name string) (*Resolved, error) {
 	}
 
 	// If we don't have a TTY, act according to the mode.
-	if !term.IsTerminal(int(os.Stdout.Fd())) || !term.IsTerminal(int(os.Stdin.Fd())) {
+	if !canPromptWithTTY() {
 		switch mode {
 		case types.ShortNameModePermissive:
 			// Permissive falls back to using all candidates.
 			return resolved, nil
 		case types.ShortNameModeEnforcing:
 			// Enforcing errors out without a prompt.
-			return nil, errors.New("short-name resolution enforced but cannot prompt without a TTY")
+			return nil, errNoTTY
 		default:
 			// We should not end up here.
 			return nil, errors.Errorf("unexpected short-name mode (%v) during resolution", mode)
@@ -363,13 +367,7 @@ func Resolve(ctx *types.SystemContext, name string) (*Resolved, error) {
 	for _, candidate := range resolved.PullCandidates {
 		strCandidates = append(strCandidates, candidate.Value.String())
 	}
-	prompt := promptui.Select{
-		Label:    "Please select an image",
-		Items:    strCandidates,
-		HideHelp: true, // do not show navigation help
-	}
-
-	_, selection, err := prompt.Run()
+	selection, err := promptNoChecks(strCandidates)
 	if err != nil {
 		return nil, err
 	}
@@ -384,6 +382,55 @@ func Resolve(ctx *types.SystemContext, name string) (*Resolved, error) {
 	resolved.rationale = rationaleUserSelection
 
 	return resolved, nil
+}
+
+// canPromptWithTTY indicates if stdout or stdin is not a TTY.
+func canPromptWithTTY() bool {
+	return term.IsTerminal(int(os.Stdout.Fd())) && term.IsTerminal(int(os.Stdin.Fd()))
+}
+
+// Prompt opens a prompt in the terminal to let the user choose *one* of the
+// specified items.
+func Prompt(mode types.ShortNameMode, original string, items []string) (string, error) {
+	switch len(items) {
+	case 0:
+		return "", fmt.Errorf("cannot prompt without items")
+	case 1:
+		// NOTE: return the original will make sure that information on
+		// how the (possibly short) name is resolved afterwards. For
+		// instance, `podman-remote pull short` will then print if
+		// `short` resolved to an alias.
+		//
+		// Returning `items[0]` would return a FQN and hence hide the
+		// fact that it's an alias when actually pulling down the
+		// image.
+		return original, nil
+	default:
+		if !canPromptWithTTY() {
+			if mode == types.ShortNameModeEnforcing {
+				return "", errNoTTY
+			}
+			return original, nil
+		}
+		return promptNoChecks(items)
+	}
+}
+
+// promptNoChecks is a helper for Prompt() but does not perform any TTY or
+// input checks.
+func promptNoChecks(items []string) (string, error) {
+	prompt := promptui.Select{
+		Label:    "Please select an image",
+		Items:    items,
+		HideHelp: true, // do not show navigation help
+	}
+
+	_, selection, err := prompt.Run()
+	if err != nil {
+		return "", err
+	}
+
+	return selection, nil
 }
 
 // ResolveLocally resolves the specified name to either one or more local

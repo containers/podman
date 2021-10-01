@@ -141,6 +141,14 @@ type SearchOptions struct {
 	ListTags *bool
 }
 
+//go:generate go run ../generator/generator.go ResolveOptions
+// ResolveOptions are optional options for resolving images
+type ResolveOptions struct {
+	// Policy is the pull policy. Supported values are "missing", "never",
+	// "newer", "always". An empty string defaults to "always".
+	Policy *string
+}
+
 //go:generate go run ../generator/generator.go PullOptions
 // PullOptions are optional options for pulling images
 type PullOptions struct {

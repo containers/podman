@@ -11,6 +11,7 @@ import (
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/pkg/shortnames"
 	"github.com/containers/image/v5/types"
 	images "github.com/containers/podman/v3/pkg/bindings/images"
 	"github.com/containers/podman/v3/pkg/domain/entities"
@@ -103,6 +104,23 @@ func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOption
 	return reports, nil
 }
 
+// resolveShortName resolves the specified name.  May query the user.
+func (ir *ImageEngine) resolveShortName(ctx context.Context, name string, pullPolicy string) (string, error) {
+	options := new(images.ResolveOptions)
+	options.WithPolicy(pullPolicy)
+	report, err := images.Resolve(ir.ClientCtx, name, options)
+	if err != nil {
+		return "", err
+	}
+
+	selection, err := shortnames.Prompt(report.ShortNameMode, name, report.Candidates)
+	if err != nil {
+		return "", err
+	}
+
+	return selection, nil
+}
+
 func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, opts entities.ImagePullOptions) (*entities.ImagePullReport, error) {
 	options := new(images.PullOptions)
 	options.WithAllTags(opts.AllTags).WithAuthfile(opts.Authfile).WithArch(opts.Arch).WithOS(opts.OS)
@@ -115,7 +133,13 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, opts entities.
 			options.WithSkipTLSVerify(false)
 		}
 	}
-	pulledImages, err := images.Pull(ir.ClientCtx, rawImage, options)
+
+	resolvedImage, err := ir.resolveShortName(ctx, rawImage, opts.PullPolicy.String())
+	if err != nil {
+		return nil, err
+	}
+
+	pulledImages, err := images.Pull(ir.ClientCtx, resolvedImage, options)
 	if err != nil {
 		return nil, err
 	}

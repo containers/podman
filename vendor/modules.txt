@@ -97,7 +97,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.46.1-0.20211001143714-161e078e4c7f
+# github.com/containers/common v0.46.1-0.20211001143714-161e078e4c7f => github.com/vrothberg/common v0.0.3-0.20211005130851-48a21d2d5f5f
 github.com/containers/common/libimage
 github.com/containers/common/libimage/manifests
 github.com/containers/common/pkg/apparmor
@@ -129,7 +129,7 @@ github.com/containers/common/pkg/umask
 github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.16.0
+# github.com/containers/image/v5 v5.16.0 => github.com/vrothberg/image/v5 v5.0.0-20211005133333-0683338cafd2
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
 github.com/containers/image/v5/directory/explicitfilepath
@@ -612,7 +612,7 @@ github.com/vbauerster/mpb/v6
 github.com/vbauerster/mpb/v6/cwriter
 github.com/vbauerster/mpb/v6/decor
 github.com/vbauerster/mpb/v6/internal
-# github.com/vbauerster/mpb/v7 v7.1.4
+# github.com/vbauerster/mpb/v7 v7.1.5
 github.com/vbauerster/mpb/v7
 github.com/vbauerster/mpb/v7/cwriter
 github.com/vbauerster/mpb/v7/decor
@@ -676,7 +676,7 @@ golang.org/x/net/trace
 # golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20210906170528-6f6e22806c34
+# golang.org/x/sys v0.0.0-20210910150752-751e447fb3d0
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
 golang.org/x/sys/internal/unsafeheader

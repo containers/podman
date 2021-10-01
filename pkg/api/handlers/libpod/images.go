@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/containers/buildah"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/filters"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
@@ -30,16 +31,39 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Commit
-// author string
-// "container"
-// repo string
-// tag string
-// message
-// pause bool
-// changes []string
+func ImageResolve(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	name := utils.GetName(r)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	query := struct {
+		PullPolicy string `schema:"policy"`
+	}{
+		PullPolicy: "always",
+	}
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		return
+	}
 
-// create
+	pullPolicy, err := config.ParsePullPolicy(query.PullPolicy)
+	if err != nil {
+		utils.Error(w, "failed to parse pull policy", http.StatusBadRequest, err)
+		return
+	}
+
+	pullCandidates, shortNameMode, err := runtime.LibimageRuntime().PullCandidates(r.Context(), name, pullPolicy)
+	if err != nil {
+		utils.Error(w, "Server error", http.StatusInternalServerError, err)
+		return
+	}
+
+	report := entities.ImageResolveReport{
+		Candidates:    pullCandidates,
+		ShortNameMode: shortNameMode,
+	}
+	utils.WriteResponse(w, http.StatusOK, report)
+}
 
 func ImageExists(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)

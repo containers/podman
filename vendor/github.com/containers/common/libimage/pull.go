@@ -16,6 +16,7 @@ import (
 	ociArchiveTransport "github.com/containers/image/v5/oci/archive"
 	ociTransport "github.com/containers/image/v5/oci/layout"
 	"github.com/containers/image/v5/pkg/shortnames"
+	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	storageTransport "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
@@ -25,6 +26,127 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// PullCandidates resolves the specified name to one or more pull candidates.
+// The pull candidates either refer to local image or to images on registries,
+// all depending on the specified pull policy.  It also returns the configured
+// short-name mode (see containers-registries.conf(5)).
+//
+// Note that specified name must either refer to a registry (i.e.,
+// docker-transport) or refer to no transport at all.
+func (r *Runtime) PullCandidates(ctx context.Context, name string, pullPolicy config.PullPolicy) ([]string, types.ShortNameMode, error) {
+	logrus.Debugf("Resolving image %s (policy: %s)", name, pullPolicy)
+	// NOTE: this function is meant to only be used for podman-remote to
+	// prompt.
+
+	// If the short-name mode is set to disalbed, there is no need to
+	// prompt the user and podman-remote can send the name over as is.
+	// However, this decision should be left to c/image to prevent
+	// scattering the logic of short-name modes; it should remain in
+	// c/image.
+	//
+	// Hence, this function will return all possible candidates and
+	// podman-remote will implicitly make the right decision by calling
+	// shortnames.Prompt().
+
+	mode, err := sysregistriesv2.GetShortNameMode(&r.systemContext)
+	if err != nil {
+		return nil, -1, err
+	}
+	possiblyUnqualifiedName, ref, localImage, err := r.parsePossiblyUnqualifiedName(name, pullPolicy)
+	if err != nil {
+		return nil, -1, err
+	}
+
+	// Already resolved to a local image.  Only possible when it clearly
+	// refers to a local one by digest.
+	if localImage != nil {
+		return []string{possiblyUnqualifiedName}, mode, nil
+	}
+
+	switch ref.Transport().Name() {
+	case registryTransport.Transport.Name():
+		// All good
+	default:
+		return nil, -1, fmt.Errorf("unsupported transport for image resolution: %q (does not refer to a registry)", ref.Transport().Name())
+	}
+
+	shortNameModeDisabled := types.ShortNameModeDisabled // we want to either fetch the alias or all search registries
+	options := &PullOptions{
+		copyFromRegistryDryRun: true,
+		shortNameMode:          &shortNameModeDisabled,
+	}
+
+	candidates, err := r.copyFromRegistry(ctx, ref, possiblyUnqualifiedName, pullPolicy, options)
+	if err != nil {
+		return nil, -1, err
+	}
+
+	return candidates, mode, nil
+}
+
+// parsePossiblyUnqualifiedName parses the specified name into four components:
+// 1) A (possibly unqualified) image name
+// 2) A reference in possibly any supported transport or nil
+// 3) An image when the name cleary refers to a local one (*must* be used if set)
+// 4) An error
+func (r *Runtime) parsePossiblyUnqualifiedName(name string, pullPolicy config.PullPolicy) (string, types.ImageReference, *Image, error) {
+	var possiblyUnqualifiedName string // used for short-name resolution
+	ref, err := alltransports.ParseImageName(name)
+	if err != nil {
+		// Check whether `name` points to a transport.  If so, we
+		// return the error.  Otherwise we assume that `name` refers to
+		// an image on a registry (e.g., "fedora").
+		//
+		// NOTE: the `docker` transport is an exception to support a
+		// `pull docker:latest` which would otherwise return an error.
+		if t := alltransports.TransportFromImageName(name); t != nil && t.Name() != registryTransport.Transport.Name() {
+			return "", nil, nil, err
+		}
+
+		// If the image clearly refers to a local one, we can look it up directly.
+		// In fact, we need to since they are not parseable.
+		if strings.HasPrefix(name, "sha256:") || (len(name) == 64 && !strings.ContainsAny(name, "/.:@")) {
+			if pullPolicy == config.PullPolicyAlways {
+				return "", nil, nil, errors.Errorf("pull policy is always but image has been referred to by ID (%s)", name)
+			}
+			local, resolvedName, err := r.LookupImage(name, nil)
+			if err != nil {
+				return "", nil, nil, err
+			}
+			return resolvedName, nil, local, nil
+		}
+
+		// Docker compat: strip off the tag iff name is tagged and digested
+		// (e.g., fedora:latest@sha256...).  In that case, the tag is stripped
+		// off and entirely ignored.  The digest is the sole source of truth.
+		normalizedName, normalizeError := normalizeTaggedDigestedString(name)
+		if normalizeError != nil {
+			return "", nil, nil, normalizeError
+		}
+		name = normalizedName
+
+		// If the input does not include a transport assume it refers
+		// to a registry.
+		dockerRef, dockerErr := alltransports.ParseImageName("docker://" + name)
+		if dockerErr != nil {
+			return "", nil, nil, err
+		}
+		ref = dockerRef
+		possiblyUnqualifiedName = name
+	} else if ref.Transport().Name() == registryTransport.Transport.Name() {
+		// Normalize the input if we're referring to the docker
+		// transport directly. That makes sure that a `docker://fedora`
+		// will resolve directly to `docker.io/library/fedora:latest`
+		// and not be subject to short-name resolution.
+		named := ref.DockerReference()
+		if named == nil {
+			return "", nil, nil, errors.New("internal error: unexpected nil reference")
+		}
+		possiblyUnqualifiedName = named.String()
+	}
+	return possiblyUnqualifiedName, ref, nil, nil
+}
+
 // PullOptions allows for custommizing image pulls.
 type PullOptions struct {
 	CopyOptions
@@ -32,6 +154,12 @@ type PullOptions struct {
 	// If true, all tags of the image will be pulled from the container
 	// registry.  Only supported for the docker transport.
 	AllTags bool
+
+	// Do not copy from a registry.
+	copyFromRegistryDryRun bool
+
+	// Use this short-name mode instead of what registries.conf may set.
+	shortNameMode *types.ShortNameMode
 }
 
 // Pull pulls the specified name.  Name may refer to any of the supported
@@ -55,59 +183,15 @@ func (r *Runtime) Pull(ctx context.Context, name string, pullPolicy config.PullP
 		options = &PullOptions{}
 	}
 
-	var possiblyUnqualifiedName string // used for short-name resolution
-	ref, err := alltransports.ParseImageName(name)
+	possiblyUnqualifiedName, ref, localImage, err := r.parsePossiblyUnqualifiedName(name, pullPolicy)
 	if err != nil {
-		// Check whether `name` points to a transport.  If so, we
-		// return the error.  Otherwise we assume that `name` refers to
-		// an image on a registry (e.g., "fedora").
-		//
-		// NOTE: the `docker` transport is an exception to support a
-		// `pull docker:latest` which would otherwise return an error.
-		if t := alltransports.TransportFromImageName(name); t != nil && t.Name() != registryTransport.Transport.Name() {
-			return nil, err
-		}
+		return nil, err
+	}
 
-		// If the image clearly refers to a local one, we can look it up directly.
-		// In fact, we need to since they are not parseable.
-		if strings.HasPrefix(name, "sha256:") || (len(name) == 64 && !strings.ContainsAny(name, "/.:@")) {
-			if pullPolicy == config.PullPolicyAlways {
-				return nil, errors.Errorf("pull policy is always but image has been referred to by ID (%s)", name)
-			}
-			local, _, err := r.LookupImage(name, nil)
-			if err != nil {
-				return nil, err
-			}
-			return []*Image{local}, err
-		}
-
-		// Docker compat: strip off the tag iff name is tagged and digested
-		// (e.g., fedora:latest@sha256...).  In that case, the tag is stripped
-		// off and entirely ignored.  The digest is the sole source of truth.
-		normalizedName, normalizeError := normalizeTaggedDigestedString(name)
-		if normalizeError != nil {
-			return nil, normalizeError
-		}
-		name = normalizedName
-
-		// If the input does not include a transport assume it refers
-		// to a registry.
-		dockerRef, dockerErr := alltransports.ParseImageName("docker://" + name)
-		if dockerErr != nil {
-			return nil, err
-		}
-		ref = dockerRef
-		possiblyUnqualifiedName = name
-	} else if ref.Transport().Name() == registryTransport.Transport.Name() {
-		// Normalize the input if we're referring to the docker
-		// transport directly. That makes sure that a `docker://fedora`
-		// will resolve directly to `docker.io/library/fedora:latest`
-		// and not be subject to short-name resolution.
-		named := ref.DockerReference()
-		if named == nil {
-			return nil, errors.New("internal error: unexpected nil reference")
-		}
-		possiblyUnqualifiedName = named.String()
+	// Already resolved to a local image.  Only possible when it clearly
+	// refers to a local one by digest.
+	if localImage != nil {
+		return []*Image{localImage}, nil
 	}
 
 	if options.AllTags && ref.Transport().Name() != registryTransport.Transport.Name() {
@@ -516,6 +600,9 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 	}
 
 	sys := r.systemContextCopy()
+	if options.shortNameMode != nil {
+		sys.ShortNameMode = options.shortNameMode
+	}
 	resolved, err := shortnames.Resolve(sys, imageName)
 	if err != nil {
 		return nil, err
@@ -551,10 +638,17 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 	}
 	defer c.close()
 
+	var dryCopyCanidates []string
 	var pullErrors []error
 	for _, candidate := range resolved.PullCandidates {
 		candidateString := candidate.Value.String()
+		if options.copyFromRegistryDryRun {
+			dryCopyCanidates = append(dryCopyCanidates, candidate.Value.String())
+			continue
+		}
+
 		logrus.Debugf("Attempting to pull candidate %s for %s", candidateString, imageName)
+
 		srcRef, err := registryTransport.NewReference(candidate.Value)
 		if err != nil {
 			return nil, err
@@ -604,6 +698,10 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 			return ids, nil
 		}
 		return []string{candidate.Value.String()}, nil
+	}
+
+	if options.copyFromRegistryDryRun {
+		return dryCopyCanidates, nil
 	}
 
 	if localImage != nil && pullPolicy == config.PullPolicyNewer {
