@@ -63,6 +63,8 @@ type InspectPodData struct {
 	Devices []InspectDevice `json:"devices,omitempty"`
 	// BlkioDeviceReadBps contains the Read/Access limit for the pod's devices
 	BlkioDeviceReadBps []InspectBlkioThrottleDevice `json:"device_read_bps,omitempty"`
+	// VolumesFrom contains the containers that the pod inherits mounts from
+	VolumesFrom []string `json:"volumes_from,omitempty"`
 }
 
 // InspectPodInfraConfig contains the configuration of the pod's infra

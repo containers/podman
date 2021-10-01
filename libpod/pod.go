@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/containers/podman/v3/libpod/define"
@@ -198,6 +199,21 @@ func (p *Pod) UserNSMode() string {
 		return "host"
 	}
 	return ""
+}
+
+// CPUQuota returns the pod CPU quota
+func (p *Pod) VolumesFrom() []string {
+	if p.state.InfraContainerID == "" {
+		return nil
+	}
+	infra, err := p.runtime.GetContainer(p.state.InfraContainerID)
+	if err != nil {
+		return nil
+	}
+	if ctrs, ok := infra.config.Spec.Annotations[define.InspectAnnotationVolumesFrom]; ok {
+		return strings.Split(ctrs, ",")
+	}
+	return nil
 }
 
 // Labels returns the pod's labels

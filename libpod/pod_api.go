@@ -668,6 +668,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		Mounts:             inspectMounts,
 		Devices:            devices,
 		BlkioDeviceReadBps: deviceLimits,
+		VolumesFrom:        p.VolumesFrom(),
 	}
 
 	return &inspectData, nil
