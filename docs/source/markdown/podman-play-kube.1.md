@@ -138,6 +138,10 @@ Valid _mode_ values are:
   Note: Rootlesskit changes the source IP address of incoming packets to a IP address in the container network namespace, usually `10.0.2.100`. If your application requires the real source IP address, e.g. web server logs, use the slirp4netns port handler. The rootlesskit port handler is also used for rootless containers when connected to user-defined networks.
   - **port_handler=slirp4netns**: Use the slirp4netns port forwarding, it is slower than rootlesskit but preserves the correct source IP address. This port handler cannot be used for user-defined networks.
 
+#### **--no-hosts**
+
+Do not create /etc/hosts within the pod's containers, instead use the version from the image
+
 #### **--quiet**, **-q**
 
 Suppress output information when pulling images

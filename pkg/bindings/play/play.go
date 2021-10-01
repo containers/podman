@@ -6,11 +6,10 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/containers/podman/v3/pkg/auth"
 	"github.com/containers/podman/v3/pkg/bindings"
 	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/sirupsen/logrus"
 )
 
 func Kube(ctx context.Context, path string, options *KubeOptions) (*entities.PlayKubeReport, error) {

@@ -1137,6 +1137,49 @@ var _ = Describe("Podman play kube", func() {
 		Expect(infraContainerImage).To(Equal(config.DefaultInfraImage))
 	})
 
+	It("podman play kube --no-host", func() {
+		err := writeYaml(checkInfraImagePodYaml, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", "--no-hosts", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		podInspect := podmanTest.Podman([]string{"pod", "inspect", "check-infra-image"})
+		podInspect.WaitWithDefaultTimeout()
+		Expect(podInspect).Should(Exit(0))
+
+		data := podInspect.InspectPodToJSON()
+		for _, ctr := range data.Containers {
+			if strings.HasSuffix(ctr.Name, "-infra") {
+				continue
+			}
+			exec := podmanTest.Podman([]string{"exec", ctr.ID, "cat", "/etc/hosts"})
+			exec.WaitWithDefaultTimeout()
+			Expect(exec).Should(Exit(0))
+			Expect(exec.OutputToString()).To(Not(ContainSubstring("check-infra-image")))
+		}
+	})
+
+	It("podman play kube test HostAliases with --no-hosts", func() {
+		pod := getPod(withHostAliases("192.168.1.2", []string{
+			"test1.podman.io",
+			"test2.podman.io",
+		}),
+			withHostAliases("192.168.1.3", []string{
+				"test3.podman.io",
+				"test4.podman.io",
+			}),
+		)
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", "--no-hosts", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(125))
+		Expect(kube.ErrorToString()).To(ContainSubstring("HostAliases in yaml file will not work with --no-hosts"))
+	})
+
 	It("podman play kube should use customized infra_image", func() {
 		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
 

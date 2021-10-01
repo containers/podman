@@ -13,7 +13,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, opts entit
 	options.WithCertDir(opts.CertDir).WithQuiet(opts.Quiet).WithSignaturePolicy(opts.SignaturePolicy).WithConfigMaps(opts.ConfigMaps)
 	options.WithLogDriver(opts.LogDriver).WithNetwork(opts.Network).WithSeccompProfileRoot(opts.SeccompProfileRoot)
 	options.WithStaticIPs(opts.StaticIPs).WithStaticMACs(opts.StaticMACs)
-
+	options.WithNoHosts(opts.NoHosts)
 	if s := opts.SkipTLSVerify; s != types.OptionalBoolUndefined {
 		options.WithSkipTLSVerify(s == types.OptionalBoolTrue)
 	}
