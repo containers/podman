@@ -15,6 +15,15 @@
 // NOTE: if you install the package podman-docker, it will create a symbolic
 // link for /run/docker.sock to /run/podman/podman.sock
 //
+// NOTE: some fields in the API response JSON are set as omitempty, which means that
+// if there is no value set for them, they will not show up in the API response. This
+// is a feature to help reduce the size of the JSON responses returned via the API.
+//
+// NOTE: due to the limitations of [go-swagger](https://github.com/go-swagger/go-swagger),
+// some field values that have a complex type show up as null in the docs as well as in the
+// API responses. This is because the zero value for the field type is null. The field
+// description in the docs will state what type the field is expected to be for such cases.
+//
 // See podman-service(1) for more information.
 //
 //  Quick Examples:
