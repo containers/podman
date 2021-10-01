@@ -37,7 +37,7 @@ cgroupVersion: v[12]
     # FIXME: if we're ever able to get package versions on Debian,
     #        add '-[0-9]' to all '*.package' queries below.
     tests="
-host.buildahVersion       | [0-9.]
+host.buildahVersion       | [1-9][0-9]*\.[0-9.]\\\+.*
 host.conmon.path          | $expr_path
 host.conmon.package       | .*conmon.*
 host.cgroupManager        | \\\(systemd\\\|cgroupfs\\\)

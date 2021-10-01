@@ -19,6 +19,8 @@ $0 is a wrapper for invoking podman system tests.
                   version of bats installed, runs with '--filter pattern'
                   which runs only subtests that match 'pattern'
 
+   -T             Passed on to bats, which will then show timing data
+
    --help         display usage message
 
 By default, tests ./bin/podman. To test a different podman, do:
@@ -60,6 +62,8 @@ REMOTE=
 ROOT_ONLY=
 ROOTLESS_ONLY=
 
+declare -a bats_opts=()
+
 declare -a bats_filter=()
 
 for i;do
@@ -69,6 +73,7 @@ for i;do
         --root)     ROOT_ONLY=1 ;;
         --rootless) ROOTLESS_ONLY=1 ;;
         --remote)   REMOTE=remote; echo "--remote is TBI"; exit 1;;
+        --ts|-T)    bats_opts+=("-T") ;;
         */*.bats)   TESTS=$i ;;
         *)
             if [[ $i =~ : ]]; then
@@ -94,7 +99,7 @@ if [ -z "$ROOTLESS_ONLY" ]; then
     sudo    --preserve-env=PODMAN \
             --preserve-env=PODMAN_TEST_DEBUG \
             --preserve-env=OCI_RUNTIME \
-            bats "${bats_filter[@]}" $TESTS
+            bats "${bats_opts[@]}" "${bats_filter[@]}" $TESTS
     rc=$?
 fi
 
@@ -102,7 +107,7 @@ fi
 echo "--------------------------------------------------"
 if [ -z "$ROOT_ONLY" ]; then
     echo "\$ bats ${bats_filter[@]} $TESTS"
-    bats "${bats_filter[@]}" $TESTS
+    bats "${bats_opts[@]}" "${bats_filter[@]}" $TESTS
     rc=$((rc | $?))
 fi
 

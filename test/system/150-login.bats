@@ -245,7 +245,7 @@ function _test_skopeo_credential_sharing() {
     is "$status" "0" "skopeo inspect - exit status"
 
     got_name=$(jq -r .Name <<<"$output")
-    is "$got_name" "$registry/$dest_name" "skopeo inspect -> Name"
+    is "$got_name" "$registry/$destname" "skopeo inspect -> Name"
 
     # Now try without a valid login; it should fail
     run_podman logout "$@" $registry

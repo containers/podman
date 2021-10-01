@@ -417,7 +417,7 @@ load helpers
 
     # check network alias for container short id
     run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").Aliases}}"
-    is "$output" "\[${cid:0:12}\]" "short container id in network aliases"
+    is "$output" "[${cid:0:12}]" "short container id in network aliases"
 
     run_podman network disconnect $netname $cid
 
@@ -449,7 +449,7 @@ load helpers
 
     # check network2 alias for container short id
     run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname2\").Aliases}}"
-    is "$output" "\[${cid:0:12}\]" "short container id in network aliases"
+    is "$output" "[${cid:0:12}]" "short container id in network aliases"
 
     # curl should work
     run curl --max-time 3 -s $SERVER/index.txt

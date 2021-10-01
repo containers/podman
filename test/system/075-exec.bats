@@ -77,7 +77,7 @@ load helpers
     is "${lines[1]}" "3000+0 records out" "dd: number of records out"
     # Verify sha. '% *' strips off the path, keeping only the SHA
     run_podman exec $cid sha512sum /tmp/bigfile
-    is "${output% *}" "$expect" "SHA of file in container"
+    is "${output% *}" "$expect " "SHA of file in container"
 
     # Clean up
     run_podman exec $cid touch /stop

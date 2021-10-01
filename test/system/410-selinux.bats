@@ -29,7 +29,7 @@ function check_label() {
     if [ -n "$2" ]; then
         # e.g. from the above example -> "s0:c45,c745"
         range=$(cut -d: -f4,5 <<<"$context")
-        is "$range" "$2" "SELinux range"
+        is "$range" "$2^@" "SELinux range"
     fi
 }
 
@@ -101,7 +101,7 @@ function check_label() {
                --security-opt label=level:s0 \
                $IMAGE sh -c 'while test ! -e /stop; do sleep 0.1; done'
     run_podman inspect --format='{{ .HostConfig.SecurityOpt }}' myc
-    is "$output" "\[label=type:spc_t,label=level:s0 seccomp=unconfined]" \
+    is "$output" "[label=type:spc_t,label=level:s0 seccomp=unconfined]" \
       "'podman inspect' preserves all --security-opts"
 
     run_podman exec myc touch /stop
@@ -116,6 +116,10 @@ function check_label() {
     # rootless users have no usable cgroups with cgroupsv1, so containers
     # must use a pid namespace and not join an existing one.
     skip_if_rootless_cgroupsv1
+
+    if [[ $(podman_runtime) == "runc" ]]; then
+        skip "some sort of runc bug, not worth fixing (#11784)"
+    fi
 
     run_podman run -d --name myctr $IMAGE top
     run_podman exec myctr cat -v /proc/self/attr/current
@@ -225,24 +229,25 @@ function check_label() {
 
     run_podman run -v $tmpdir:/test $IMAGE cat /proc/self/attr/current
     run ls -dZ ${tmpdir}
-    is "$output" ${LABEL} "No Relabel Correctly"
+    is "$output" "${LABEL} ${tmpdir}" "No Relabel Correctly"
 
     run_podman run -v $tmpdir:/test:z --security-opt label=disable $IMAGE cat /proc/self/attr/current
     run ls -dZ $tmpdir
-    is "$output" ${RELABEL} "Privileged Relabel Correctly"
+    is "$output" "${RELABEL} $tmpdir" "Privileged Relabel Correctly"
 
     run_podman run -v $tmpdir:/test:z --privileged $IMAGE cat /proc/self/attr/current
     run ls -dZ $tmpdir
-    is "$output" ${RELABEL} "Privileged Relabel Correctly"
+    is "$output" "${RELABEL} $tmpdir" "Privileged Relabel Correctly"
 
     run_podman run -v $tmpdir:/test:Z $IMAGE cat /proc/self/attr/current
     level=$(secon -l $output)
     run ls -dZ $tmpdir
-    is "$output" "system_u:object_r:container_file_t:$level" "Confined Relabel Correctly"
+    is "$output" "system_u:object_r:container_file_t:$level $tmpdir" \
+       "Confined Relabel Correctly"
 
     run_podman run -v $tmpdir:/test:z $IMAGE cat /proc/self/attr/current
     run ls -dZ $tmpdir
-    is "$output" ${RELABEL} "Shared Relabel Correctly"
+    is "$output" "${RELABEL} $tmpdir" "Shared Relabel Correctly"
 }
 
 # vim: filetype=sh

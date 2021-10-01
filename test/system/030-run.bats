@@ -517,7 +517,8 @@ json-file | f
     cid="$output"
 
     run_podman inspect --format "{{.ImageName}}" $cid
-    is "$output" "$newtag" "container .ImageName is the container-create name"
+    is "$output" "$newtag:latest" \
+       "container .ImageName is the container-create name"
 
     # Same thing, but now with a :tag, and making sure it works with --name
     newtag2="${newtag}:$(random_string 6|tr A-Z a-z)"
@@ -526,7 +527,8 @@ json-file | f
     cname="$(random_string 14|tr A-Z a-z)"
     run_podman create --name $cname $newtag2
     run_podman inspect --format "{{.ImageName}}" $cname
-    is "$output" "$newtag2" "container .ImageName is the container-create name"
+    is "$output" "$newtag2" \
+       "container .ImageName is the container-create name, with :tag"
 
     # Clean up.
     run_podman rm $cid $cname
@@ -718,7 +720,7 @@ EOF
     run_podman 125 run --device-cgroup-rule="b 7:2" --rm $IMAGE
     is "$output" 'Error: invalid device cgroup rule requires type, major:Minor, and access rules: "b 7:2"'
     run_podman 125 run --device-cgroup-rule="x 7:* rmw" --rm $IMAGE
-    is "$output" "Error: invalid device type in device-access-add:"
+    is "$output" "Error: invalid device type in device-access-add: x"
     run_podman 125 run --device-cgroup-rule="a a:* rmw" --rm $IMAGE
     is "$output" "Error: strconv.ParseInt: parsing \"a\": invalid syntax"
 }

@@ -19,8 +19,8 @@ load helpers
 
 @test "podman images - custom formats" {
     tests="
-{{.ID}}                  |        [0-9a-f]\\\{12\\\}
-{{.ID| upper}}           |        [0-9A-F]\\\{12\\\}
+{{.ID}}                  |        [0-9a-f]\\\{12\\\}\\\$
+{{.ID| upper}}           |        [0-9A-F]\\\{12\\\}\\\$
 {{.Repository}}:{{.Tag}} | $PODMAN_TEST_IMAGE_FQN
 {{.Labels.created_by}}   | test/system/build-testimage
 {{.Labels.created_at}}   | 20[0-9-]\\\+T[0-9:]\\\+Z
@@ -28,7 +28,7 @@ load helpers
 
     parse_table "$tests" | while read fmt expect; do
         run_podman images --format "$fmt"
-        is "$output" "$expect\$" "podman images $fmt"
+        is "$output" "$expect" "podman images --format '$fmt'"
     done
 
     run_podman images --format "{{.ID}}" --no-trunc

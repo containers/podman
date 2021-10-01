@@ -55,9 +55,11 @@ function teardown() {
     cols=$(( 15 + RANDOM % 60 & 126 ))
     stty rows $rows cols $cols <$PODMAN_TEST_PTY
 
+    CR=$'\r'
+
     # ...and make sure stty under podman reads that.
     run_podman run -it --name mystty $IMAGE stty size <$PODMAN_TEST_PTY
-    is "$output" "$rows $cols" "stty under podman run reads the correct dimensions"
+    is "$output" "$rows $cols$CR" "stty under podman run reads the correct dimensions"
 
     run_podman rm -f mystty
 
@@ -75,7 +77,7 @@ function teardown() {
 @test "podman load - will not read from tty" {
     run_podman 125 load <$PODMAN_TEST_PTY
     is "$output" \
-       "Error: cannot read from terminal. Use command-line redirection" \
+       "Error: cannot read from terminal. Use command-line redirection or the --input flag." \
        "Diagnostic from 'podman load' without redirection or -i"
 }
 
@@ -84,14 +86,15 @@ function teardown() {
     run_podman run --tty -i --rm $IMAGE echo hello < /dev/null
     is "$output" ".*The input device is not a TTY.*" "-it _without_ a tty"
 
+    CR=$'\r'
     run_podman run --tty -i --rm $IMAGE echo hello <$PODMAN_TEST_PTY
-    is "$output" "hello" "-it _with_ a pty"
+    is "$output" "hello$CR" "-it _with_ a pty"
 
     run_podman run --tty=false -i --rm $IMAGE echo hello < /dev/null
     is "$output" "hello" "-tty=false: no warning"
 
     run_podman run --tty -i=false --rm $IMAGE echo hello < /dev/null
-    is "$output" "hello" "-i=false: no warning"
+    is "$output" "hello$CR" "-i=false: no warning"
 }
 
 # vim: filetype=sh
