@@ -50,6 +50,40 @@ const (
 	FsMagicOverlay = FsMagic(0x794C7630)
 	// FsMagicFUSE filesystem id for FUSE
 	FsMagicFUSE = FsMagic(0x65735546)
+	// FsMagicAcfs filesystem id for Acfs
+	FsMagicAcfs = FsMagic(0x61636673)
+	// FsMagicAfs filesystem id for Afs
+	FsMagicAfs = FsMagic(0x5346414f)
+	// FsMagicCephFs filesystem id for Ceph
+	FsMagicCephFs = FsMagic(0x00C36400)
+	// FsMagicCIFS filesystem id for CIFS
+	FsMagicCIFS = FsMagic(0xFF534D42)
+	// FsMagicFHGFS filesystem id for FHGFS
+	FsMagicFHGFSFs = FsMagic(0x19830326)
+	// FsMagicIBRIX filesystem id for IBRIX
+	FsMagicIBRIX = FsMagic(0x013111A8)
+	// FsMagicKAFS filesystem id for KAFS
+	FsMagicKAFS = FsMagic(0x6B414653)
+	// FsMagicLUSTRE filesystem id for LUSTRE
+	FsMagicLUSTRE = FsMagic(0x0BD00BD0)
+	// FsMagicNCP filesystem id for NCP
+	FsMagicNCP = FsMagic(0x564C)
+	// FsMagicNFSD filesystem id for NFSD
+	FsMagicNFSD = FsMagic(0x6E667364)
+	// FsMagicOCFS2 filesystem id for OCFS2
+	FsMagicOCFS2 = FsMagic(0x7461636F)
+	// FsMagicPANFS filesystem id for PANFS
+	FsMagicPANFS = FsMagic(0xAAD7AAEA)
+	// FsMagicPRLFS filesystem id for PRLFS
+	FsMagicPRLFS = FsMagic(0x7C7C6673)
+	// FsMagicSMB2 filesystem id for SMB2
+	FsMagicSMB2 = FsMagic(0xFE534D42)
+	// FsMagicSNFS filesystem id for SNFS
+	FsMagicSNFS = FsMagic(0xBEEFDEAD)
+	// FsMagicVBOXSF filesystem id for VBOXSF
+	FsMagicVBOXSF = FsMagic(0x786F4256)
+	// FsMagicVXFS filesystem id for VXFS
+	FsMagicVXFS = FsMagic(0xA501FCF5)
 )
 
 var (

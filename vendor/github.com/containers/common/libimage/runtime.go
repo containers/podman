@@ -13,9 +13,13 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	deepcopy "github.com/jinzhu/copier"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
+
+// Faster than the standard library, see https://github.com/json-iterator/go.
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // RuntimeOptions allow for creating a customized Runtime.
 type RuntimeOptions struct {

@@ -1,8 +1,11 @@
-// +build linux freebsd
+// +build linux freebsd darwin
 
 package system
 
-import "golang.org/x/sys/unix"
+import (
+	"github.com/pkg/errors"
+	"golang.org/x/sys/unix"
+)
 
 // Unmount is a platform-specific helper function to call
 // the unmount syscall.
@@ -14,4 +17,9 @@ func Unmount(dest string) error {
 // It simply returns commandLine in the only element in the returned array.
 func CommandLineToArgv(commandLine string) ([]string, error) {
 	return []string{commandLine}, nil
+}
+
+// IsEBUSY checks if the specified error is EBUSY.
+func IsEBUSY(err error) bool {
+	return errors.Is(err, unix.EBUSY)
 }

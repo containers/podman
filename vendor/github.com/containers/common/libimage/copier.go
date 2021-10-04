@@ -2,7 +2,6 @@ package libimage
 
 import (
 	"context"
-	"encoding/json"
 	"io"
 	"os"
 	"strings"
