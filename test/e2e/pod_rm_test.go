@@ -107,7 +107,7 @@ var _ = Describe("Podman pod rm", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		result := podmanTest.Podman([]string{"pod", "rm", "-f", podid})
+		result := podmanTest.Podman([]string{"pod", "rm", "-t", "0", "-f", podid})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 
@@ -179,7 +179,7 @@ var _ = Describe("Podman pod rm", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		result := podmanTest.Podman([]string{"pod", "rm", "-fa"})
+		result := podmanTest.Podman([]string{"pod", "rm", "-t", "0", "-fa"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 
@@ -225,7 +225,7 @@ var _ = Describe("Podman pod rm", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session = podmanTest.Podman([]string{"pod", "rm", "--force", "--ignore", "bogus", "test1"})
+		session = podmanTest.Podman([]string{"pod", "rm", "-t", "0", "--force", "--ignore", "bogus", "test1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
@@ -257,7 +257,7 @@ var _ = Describe("Podman pod rm", func() {
 		Expect(session).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(2)) // infra+top
 
-		session = podmanTest.Podman([]string{"pod", "rm", "--pod-id-file", tmpFile, "--force"})
+		session = podmanTest.Podman([]string{"pod", "rm", "-t", "0", "--pod-id-file", tmpFile, "--force"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
@@ -294,7 +294,7 @@ var _ = Describe("Podman pod rm", func() {
 		Expect(session).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(20)) // 10*(infra+top)
 
-		cmd = []string{"pod", "rm", "--force"}
+		cmd = []string{"pod", "rm", "--time=0", "--force"}
 		cmd = append(cmd, podIDFiles...)
 		session = podmanTest.Podman(cmd)
 		session.WaitWithDefaultTimeout()

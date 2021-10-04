@@ -53,7 +53,7 @@ load helpers
     is "$(check_exec_pid)" "" "there isn't any exec pid hash file leak"
 
     run_podman stop --time 1 $cid
-    run_podman rm -f $cid
+    run_podman rm -t 0 -f $cid
 }
 
 # Issue #4785 - piping to exec statement - fixed in #4818
@@ -126,7 +126,7 @@ load helpers
     is "$output" "" "exec output is identical with the file"
 
     # Clean up
-    run_podman rm -f $cid
+    run_podman rm -t 0 -f $cid
 }
 
 # vim: filetype=sh

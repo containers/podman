@@ -535,10 +535,10 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 // If removeVolume is specified, named volumes used by the container will
 // be removed also if and only if the container is the sole user
 // Otherwise, RemoveContainer will return an error if the container is running
-func (r *Runtime) RemoveContainer(ctx context.Context, c *Container, force bool, removeVolume bool) error {
+func (r *Runtime) RemoveContainer(ctx context.Context, c *Container, force bool, removeVolume bool, timeout *uint) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
-	return r.removeContainer(ctx, c, force, removeVolume, false)
+	return r.removeContainer(ctx, c, force, removeVolume, false, timeout)
 }
 
 // Internal function to remove a container.
@@ -546,7 +546,7 @@ func (r *Runtime) RemoveContainer(ctx context.Context, c *Container, force bool,
 // removePod is used only when removing pods. It instructs Podman to ignore
 // infra container protections, and *not* remove from the database (as pod
 // remove will handle that).
-func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, removeVolume, removePod bool) error {
+func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, removeVolume, removePod bool, timeout *uint) error {
 	if !c.valid {
 		if ok, _ := r.state.HasContainer(c.ID()); !ok {
 			// Container probably already removed
@@ -642,9 +642,13 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 
 	// Check that the container's in a good state to be removed.
 	if c.state.State == define.ContainerStateRunning {
+		time := c.StopTimeout()
+		if timeout != nil {
+			time = *timeout
+		}
 		// Ignore ErrConmonDead - we couldn't retrieve the container's
 		// exit code properly, but it's still stopped.
-		if err := c.stop(c.StopTimeout()); err != nil && errors.Cause(err) != define.ErrConmonDead {
+		if err := c.stop(time); err != nil && errors.Cause(err) != define.ErrConmonDead {
 			return errors.Wrapf(err, "cannot remove container %s as it could not be stopped", c.ID())
 		}
 
@@ -751,7 +755,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 			if !volume.Anonymous() {
 				continue
 			}
-			if err := runtime.removeVolume(ctx, volume, false); err != nil && errors.Cause(err) != define.ErrNoSuchVolume {
+			if err := runtime.removeVolume(ctx, volume, false, timeout); err != nil && errors.Cause(err) != define.ErrNoSuchVolume {
 				logrus.Errorf("Cleanup volume (%s): %v", v, err)
 			}
 		}
@@ -782,6 +786,7 @@ func (r *Runtime) EvictContainer(ctx context.Context, idOrName string, removeVol
 // remove will handle that).
 func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVolume bool) (string, error) {
 	var err error
+	var timeout *uint
 
 	if !r.valid {
 		return "", define.ErrRuntimeStopped
@@ -797,7 +802,7 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 	if err == nil {
 		logrus.Infof("Container %s successfully retrieved from state, attempting normal removal", id)
 		// Assume force = true for the evict case
-		err = r.removeContainer(ctx, tmpCtr, true, removeVolume, false)
+		err = r.removeContainer(ctx, tmpCtr, true, removeVolume, false, timeout)
 		if !tmpCtr.valid {
 			// If the container is marked invalid, remove succeeded
 			// in kicking it out of the state - no need to continue.
@@ -892,7 +897,7 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 			if !volume.Anonymous() {
 				continue
 			}
-			if err := r.removeVolume(ctx, volume, false); err != nil && err != define.ErrNoSuchVolume && err != define.ErrVolumeBeingUsed {
+			if err := r.removeVolume(ctx, volume, false, timeout); err != nil && err != define.ErrNoSuchVolume && err != define.ErrVolumeBeingUsed {
 				logrus.Errorf("Cleanup volume (%s): %v", v, err)
 			}
 		}
@@ -1089,7 +1094,8 @@ func (r *Runtime) PruneContainers(filterFuncs []ContainerFilter) ([]*reports.Pru
 			preports = append(preports, report)
 			continue
 		}
-		err = r.RemoveContainer(context.Background(), c, false, false)
+		var time *uint
+		err = r.RemoveContainer(context.Background(), c, false, false, time)
 		if err != nil {
 			report.Err = err
 		} else {

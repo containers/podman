@@ -37,7 +37,8 @@ func (r *Runtime) RemoveContainersForImageCallback(ctx context.Context) libimage
 		}
 		for _, ctr := range ctrs {
 			if ctr.config.RootfsImageID == imageID {
-				if err := r.removeContainer(ctx, ctr, true, false, false); err != nil {
+				var timeout *uint
+				if err := r.removeContainer(ctx, ctr, true, false, false, timeout); err != nil {
 					return errors.Wrapf(err, "error removing image %s: container %s using image could not be removed", imageID, ctr.ID())
 				}
 			}

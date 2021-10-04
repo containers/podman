@@ -227,7 +227,7 @@ var _ = Describe("Podman logs", func() {
 				Expect(inspect.ErrorToString()).To(ContainSubstring("no such container"))
 			}
 
-			results = podmanTest.Podman([]string{"rm", "-f", containerName})
+			results = podmanTest.Podman([]string{"rm", "--time", "0", "-f", containerName})
 			results.WaitWithDefaultTimeout()
 			Expect(results).To(Exit(0))
 		})

@@ -169,7 +169,8 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 		decoder = r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	)
 	query := struct {
-		Force bool `schema:"force"`
+		Force   bool  `schema:"force"`
+		Timeout *uint `schema:"timeout"`
 	}{
 		// override any golang type defaults
 	}
@@ -185,7 +186,7 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 		utils.VolumeNotFound(w, name, err)
 		return
 	}
-	if err := runtime.RemoveVolume(r.Context(), vol, query.Force); err != nil {
+	if err := runtime.RemoveVolume(r.Context(), vol, query.Force, query.Timeout); err != nil {
 		if errors.Cause(err) == define.ErrVolumeBeingUsed {
 			utils.Error(w, "volumes being used", http.StatusConflict, err)
 			return

@@ -42,6 +42,7 @@ var (
   podman pod rm -f 860a4b23
   podman pod rm -f -a`,
 	}
+	stopTimeout uint
 )
 
 func init() {
@@ -59,6 +60,10 @@ func init() {
 	flags.StringArrayVarP(&rmOptions.PodIDFiles, podIDFileFlagName, "", nil, "Read the pod ID from the file")
 	_ = rmCommand.RegisterFlagCompletionFunc(podIDFileFlagName, completion.AutocompleteDefault)
 
+	timeFlagName := "time"
+	flags.UintVarP(&stopTimeout, timeFlagName, "t", containerConfig.Engine.StopTimeout, "Seconds to wait for pod stop before killing the container")
+	_ = rmCommand.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
+
 	validate.AddLatestFlag(rmCommand, &rmOptions.Latest)
 
 	if registry.IsRemote() {
@@ -66,12 +71,18 @@ func init() {
 	}
 }
 
-func rm(_ *cobra.Command, args []string) error {
+func rm(cmd *cobra.Command, args []string) error {
 	ids, err := specgenutil.ReadPodIDFiles(rmOptions.PodIDFiles)
 	if err != nil {
 		return err
 	}
 	args = append(args, ids...)
+	if cmd.Flag("time").Changed {
+		if !rmOptions.Force {
+			return errors.New("--force option must be specified to use the --time option")
+		}
+		rmOptions.Timeout = &stopTimeout
+	}
 	return removePods(args, rmOptions.PodRmOptions, true)
 }
 

@@ -185,7 +185,9 @@ func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []st
 func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string, opts entities.RmOptions) ([]*entities.RmReport, error) {
 	// TODO there is no endpoint for container eviction.  Need to discuss
 	options := new(containers.RemoveOptions).WithForce(opts.Force).WithVolumes(opts.Volumes).WithIgnore(opts.Ignore)
-
+	if opts.Timeout != nil {
+		options = options.WithTimeout(*opts.Timeout)
+	}
 	if opts.All {
 		ctrs, err := getContainersByContext(ic.ClientCtx, opts.All, opts.Ignore, namesOrIds)
 		if err != nil {

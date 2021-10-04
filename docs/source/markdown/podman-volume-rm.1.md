@@ -28,6 +28,9 @@ If it is being used by containers, the containers will be removed first.
 
 Print usage statement
 
+#### **--time**, **-t**=*seconds*
+
+Seconds to wait before forcibly stopping running containers that are using the specified volume. The --force option must be specified to use the --time option.
 
 ## EXAMPLES
 

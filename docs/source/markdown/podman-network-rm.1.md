@@ -15,6 +15,10 @@ Delete one or more Podman networks.
 The `force` option will remove all containers that use the named network. If the container is
 running, the container will be stopped and removed.
 
+#### **--time**, **-t**=*seconds*
+
+Seconds to wait before forcibly stopping the running containers that are using the specified network. The --force option must be specified to use the --time option.
+
 ## EXAMPLE
 
 Delete the `cni-podman9` network

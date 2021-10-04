@@ -7,8 +7,8 @@ load helpers
 
 # This is a long ugly way to clean up pods and remove the pause image
 function teardown() {
-    run_podman pod rm -f -a
-    run_podman rm -f -a
+    run_podman pod rm -t 0 -f -a
+    run_podman rm -t 0 -f -a
     run_podman image list --format '{{.ID}} {{.Repository}}'
     while read id name; do
         if [[ "$name" =~ /pause ]]; then
@@ -77,8 +77,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
     fi
 
     run_podman stop -a -t 0
-    run_podman pod stop test_pod
-    run_podman pod rm -f test_pod
+    run_podman pod rm -t 0 -f test_pod
 }
 
 @test "podman play" {
@@ -92,8 +91,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
     fi
 
     run_podman stop -a -t 0
-    run_podman pod stop test_pod
-    run_podman pod rm -f test_pod
+    run_podman pod rm -t 0 -f test_pod
 }
 
 @test "podman play --network" {
@@ -111,8 +109,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
     is "$output" "slirp4netns" "network mode slirp4netns is set for the container"
 
     run_podman stop -a -t 0
-    run_podman pod stop test_pod
-    run_podman pod rm -f test_pod
+    run_podman pod rm -t 0 -f test_pod
 
     run_podman play kube --network none $PODMAN_TMPDIR/test.yaml
     run_podman pod inspect --format {{.InfraContainerID}} "${lines[1]}"
@@ -121,8 +118,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
     is "$output" "none" "network mode none is set for the container"
 
     run_podman stop -a -t 0
-    run_podman pod stop test_pod
-    run_podman pod rm -f test_pod
+    run_podman pod rm -t 0 -f test_pod
 }
 
 @test "podman play with user from image" {
@@ -165,7 +161,6 @@ _EOF
     is "$output" bin "expect container within pod to run as the bin user"
 
     run_podman stop -a -t 0
-    run_podman pod stop test_pod
-    run_podman pod rm -f test_pod
+    run_podman pod rm -t 0 -f test_pod
     run_podman rmi -f userimage:latest
 }

@@ -70,7 +70,7 @@ load helpers
        "copy into nonexistent path in container"
 
     run_podman kill cpcontainer
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 -f cpcontainer
 
     # CREATED container
     while read id dest dest_fullname description; do
@@ -80,7 +80,7 @@ load helpers
         run_podman exec cpcontainer cat $dest_fullname
         is "$output" "${randomcontent[$id]}" "$description (cp -> ctr:$dest)"
         run_podman kill cpcontainer
-        run_podman rm -f cpcontainer
+        run_podman rm -t 0 -f cpcontainer
     done < <(parse_table "$tests")
 
     run_podman rmi -f $cpimage
@@ -99,7 +99,7 @@ load helpers
     run_podman exec cpcontainer cat /tmp/file
     is "$output" "${content}" "cp to running container's tmpfs"
     run_podman kill cpcontainer
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 -f cpcontainer
 
     # CREATED container (with copy up)
     run_podman create --mount type=tmpfs,dst=/tmp --name cpcontainer $IMAGE sleep infinity
@@ -108,7 +108,7 @@ load helpers
     run_podman exec cpcontainer cat /tmp/file
     is "$output" "${content}" "cp to created container's tmpfs"
     run_podman kill cpcontainer
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 -f cpcontainer
 }
 
 
@@ -124,7 +124,7 @@ load helpers
     run_podman exec cpcontainer stat -c "%u" /tmp/hostfile
     is "$output" "$userid" "copied file is chowned to the container user"
     run_podman kill cpcontainer
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 -f cpcontainer
 }
 
 @test "podman cp (-a=false) file from host to container and check ownership" {
@@ -143,7 +143,7 @@ load helpers
     run_podman exec cpcontainer stat -c "%u:%g" /tmp/a.txt
     is "$output" "1042:1043" "copied file retains uid/gid from the tar"
     run_podman kill cpcontainer
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 -f cpcontainer
 }
 
 
@@ -160,7 +160,7 @@ load helpers
     run_podman cp $srcdir/hostfile cpcontainer:/tmp/hostfile
     run_podman cp cpcontainer:/tmp/hostfile $srcdir/hostfile1
     run_podman kill cpcontainer
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 -f cpcontainer
 }
 
 @test "podman cp file from container to host" {
@@ -206,7 +206,7 @@ load helpers
         rm $srcdir$dest_fullname
     done < <(parse_table "$tests")
     run_podman kill cpcontainer
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 -f cpcontainer
 
     # Created container
     run_podman create --name cpcontainer --workdir=/srv $cpimage
@@ -219,7 +219,7 @@ load helpers
         is "$(< $srcdir$dest_fullname)" "${randomcontent[$id]}" "$description (cp ctr:$src to \$srcdir$dest)"
         rm $srcdir$dest_fullname
     done < <(parse_table "$tests")
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 -f cpcontainer
 
     run_podman rmi -f $cpimage
 }
@@ -281,7 +281,7 @@ load helpers
         is "$output" "${randomcontent[$id]}" "$description (cp ctr:$src to /$dest)"
     done < <(parse_table "$tests")
     run_podman kill cpcontainer ${destcontainers[@]}
-    run_podman rm -f cpcontainer ${destcontainers[@]}
+    run_podman rm -t 0 -f cpcontainer ${destcontainers[@]}
 
     # From CREATED container
     destcontainers=()
@@ -309,8 +309,7 @@ load helpers
         is "$output" "${randomcontent[$id]}" "$description (cp ctr:$src to /$dest)"
     done < <(parse_table "$tests")
     run_podman kill ${destcontainers[@]}
-    run_podman rm -f cpcontainer ${destcontainers[@]}
-
+    run_podman rm -t 0 -f cpcontainer ${destcontainers[@]}
     run_podman rmi -f $cpimage
 }
 
@@ -361,7 +360,7 @@ load helpers
         is "${lines[1]}" "${randomcontent[1]}" "$description (cp -> ctr:$dest)"
     done < <(parse_table "$tests")
     run_podman kill cpcontainer
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 -f cpcontainer
 
     # CREATED container
     while read src dest dest_fullname description; do
@@ -376,13 +375,13 @@ load helpers
         is "${lines[0]}" "${randomcontent[0]}" "$description (cp -> ctr:$dest)"
         is "${lines[1]}" "${randomcontent[1]}" "$description (cp -> ctr:$dest)"
         run_podman kill cpcontainer
-        run_podman rm -f cpcontainer
+        run_podman rm -t 0 -f cpcontainer
     done < <(parse_table "$tests")
 
     run_podman create --name cpcontainer --workdir=/srv $cpimage sleep infinity
     run_podman 125 cp $srcdir cpcontainer:/etc/os-release
     is "$output" "Error: destination must be a directory when copying a directory" "cannot copy directory to file"
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 -f cpcontainer
 
     run_podman rmi -f $cpimage
 }
@@ -436,7 +435,7 @@ load helpers
         rm -rf $destdir/*
     done < <(parse_table "$tests")
     run_podman kill cpcontainer
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 -f cpcontainer
 
     # CREATED container
     run_podman create --name cpcontainer --workdir=/srv $cpimage
@@ -459,7 +458,7 @@ load helpers
     touch $destdir/testfile
     run_podman 125 cp cpcontainer:/etc/ $destdir/testfile
     is "$output" "Error: destination must be a directory when copying a directory" "cannot copy directory to file"
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 -f cpcontainer
 
     run_podman rmi -f $cpimage
 }
@@ -526,7 +525,7 @@ ${randomcontent[1]}" "$description"
 ${randomcontent[1]}" "$description"
     done < <(parse_table "$tests")
     run_podman kill cpcontainer ${destcontainers[@]}
-    run_podman rm -f cpcontainer ${destcontainers[@]}
+    run_podman rm -t 0 -f cpcontainer ${destcontainers[@]}
 
     # From CREATED container
     destcontainers=()
@@ -563,7 +562,7 @@ ${randomcontent[1]}" "$description"
     done < <(parse_table "$tests")
 
     run_podman kill ${destcontainers[@]}
-    run_podman rm -f cpcontainer ${destcontainers[@]}
+    run_podman rm -t 0 -f cpcontainer ${destcontainers[@]}
     run_podman rmi -f $cpimage
 }
 
@@ -595,7 +594,7 @@ ${randomcontent[1]}" "$description"
     is "${lines[1]}" "${randomcontent[1]}" "eval symlink - running container"
 
     run_podman kill cpcontainer
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 -f cpcontainer
     run rm -rf $srcdir/dest
 
     # CREATED container
@@ -604,7 +603,7 @@ ${randomcontent[1]}" "$description"
     run cat $destdir/dest/containerfile0 $destdir/dest/containerfile1
     is "${lines[0]}" "${randomcontent[0]}" "eval symlink - created container"
     is "${lines[1]}" "${randomcontent[1]}" "eval symlink - created container"
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 -f cpcontainer
     run_podman rmi $cpimage
 }
 
@@ -638,7 +637,7 @@ ${randomcontent[1]}" "$description"
     run ls $volume1_mount
     is "$output" ""
 
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 -f cpcontainer
     run_podman volume rm $volume1 $volume2
 }
 
@@ -658,7 +657,7 @@ ${randomcontent[1]}" "$description"
     run_podman cp $srcdir/hostfile cpcontainer:/tmp/volume/mount
     is "$(< $mountdir/hostfile)" "This file should be in the mount"
 
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 -f cpcontainer
     run_podman volume rm $volume
 }
 
@@ -684,7 +683,7 @@ ${randomcontent[1]}" "$description"
     # cp no longer supports wildcarding
     run_podman 125 cp 'cpcontainer:/tmp/*' $dstdir
 
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 -f cpcontainer
 }
 
 
@@ -708,7 +707,7 @@ ${randomcontent[1]}" "$description"
     # make sure there are no files in dstdir
     is "$(/bin/ls -1 $dstdir)" "" "incorrectly copied symlink from host"
 
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 -f cpcontainer
 }
 
 
@@ -732,7 +731,7 @@ ${randomcontent[1]}" "$description"
     # make sure there are no files in dstdir
     is "$(/bin/ls -1 $dstdir)" "" "incorrectly copied symlink from host"
 
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 -f cpcontainer
 }
 
 
@@ -752,7 +751,7 @@ ${randomcontent[1]}" "$description"
     # dstdir must be empty
     is "$(/bin/ls -1 $dstdir)" "" "incorrectly copied symlink from host"
 
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 -f cpcontainer
 }
 
 
@@ -810,7 +809,7 @@ ${randomcontent[1]}" "$description"
     is "$output" "$rand_content3" "cp creates file named x"
 
     run_podman kill cpcontainer
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 -f cpcontainer
 }
 
 
@@ -848,7 +847,7 @@ ${randomcontent[1]}" "$description"
     is "$output" "$rand_content" "Contents of file copied into container"
 
     run_podman kill cpcontainer
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 -f cpcontainer
 }
 
 
@@ -897,7 +896,7 @@ ${randomcontent[1]}" "$description"
     is "$output" 'Error: destination must be a directory when copying from stdin'
 
     run_podman kill cpcontainer
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 -f cpcontainer
 }
 
 
@@ -945,12 +944,12 @@ ${randomcontent[1]}" "$description"
     is "$(< $srcdir/tmp/empty.txt)" ""
 
     run_podman kill cpcontainer
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 -f cpcontainer
 }
 
 function teardown() {
     # In case any test fails, clean up the container we left behind
-    run_podman rm -f cpcontainer
+    run_podman rm -t 0 f cpcontainer
     basic_teardown
 }
 

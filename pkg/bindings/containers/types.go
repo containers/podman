@@ -132,6 +132,7 @@ type RemoveOptions struct {
 	Ignore  *bool
 	Force   *bool
 	Volumes *bool
+	Timeout *uint
 }
 
 //go:generate go run ../generator/generator.go InspectOptions

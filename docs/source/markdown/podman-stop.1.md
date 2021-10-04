@@ -36,9 +36,9 @@ during the ExecStop directive of a systemd service referencing that container.
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods. (This option is not available with the remote Podman client)
 
-#### **--time**, **-t**=*time*
+#### **--time**, **-t**=*seconds*
 
-Time to wait before forcibly stopping the container
+Seconds to wait before forcibly stopping the container
 
 ## EXAMPLES
 

@@ -299,7 +299,7 @@ function _check_completion_end() {
     run_podman image untag $IMAGE $random_image_name:$random_image_tag
 
     for state in created running degraded exited; do
-        run_podman pod rm --force $state-$random_pod_name
+        run_podman pod rm -t 0 --force $state-$random_pod_name
     done
 
     for state in created running pause exited; do

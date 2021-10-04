@@ -28,7 +28,8 @@ type PruneOptions struct {
 // RemoveOptions are optional options for removing volumes
 type RemoveOptions struct {
 	// Force removes the volume even if it is being used
-	Force *bool
+	Force   *bool
+	Timeout *uint
 }
 
 //go:generate go run ../generator/generator.go ExistsOptions

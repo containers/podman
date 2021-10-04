@@ -201,7 +201,7 @@ var _ = Describe("Podman run", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal(label1))
 
-		session = podmanTest.Podman([]string{"pod", "rm", podID, "--force"})
+		session = podmanTest.Podman([]string{"pod", "rm", "-t", "0", podID, "--force"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})
@@ -222,7 +222,7 @@ var _ = Describe("Podman run", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Not(Equal(label1)))
 
-		session = podmanTest.Podman([]string{"pod", "rm", podID, "--force"})
+		session = podmanTest.Podman([]string{"pod", "rm", "-t", "0", podID, "--force"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})

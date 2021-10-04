@@ -566,7 +566,7 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(found).To(BeTrue())
 		Expect(val).To(HaveSuffix("z"))
 
-		rm := podmanTest.Podman([]string{"pod", "rm", "-f", "test1"})
+		rm := podmanTest.Podman([]string{"pod", "rm", "-t", "0", "-f", "test1"})
 		rm.WaitWithDefaultTimeout()
 		Expect(rm).Should(Exit(0))
 
@@ -619,7 +619,7 @@ var _ = Describe("Podman generate kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
-		rm := podmanTest.Podman([]string{"pod", "rm", "-f", "test1"})
+		rm := podmanTest.Podman([]string{"pod", "rm", "-t", "0", "-f", "test1"})
 		rm.WaitWithDefaultTimeout()
 		Expect(rm).Should(Exit(0))
 
@@ -648,7 +648,7 @@ var _ = Describe("Podman generate kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
-		rm := podmanTest.Podman([]string{"pod", "rm", "-f", podName})
+		rm := podmanTest.Podman([]string{"pod", "rm", "-t", "0", "-f", podName})
 		rm.WaitWithDefaultTimeout()
 		Expect(rm).Should(Exit(0))
 
@@ -905,7 +905,7 @@ ENTRYPOINT /bin/sleep`
 		Expect(kube).Should(Exit(0))
 
 		// Remove the pod so play can recreate it.
-		kube = podmanTest.Podman([]string{"pod", "rm", "-f", "testpod"})
+		kube = podmanTest.Podman([]string{"pod", "rm", "-t", "0", "-f", "testpod"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 

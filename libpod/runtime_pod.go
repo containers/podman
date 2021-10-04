@@ -26,7 +26,7 @@ type PodFilter func(*Pod) bool
 // If force is specified with removeCtrs, all containers will be stopped before
 // being removed
 // Otherwise, the pod will not be removed if any containers are running
-func (r *Runtime) RemovePod(ctx context.Context, p *Pod, removeCtrs, force bool) error {
+func (r *Runtime) RemovePod(ctx context.Context, p *Pod, removeCtrs, force bool, timeout *uint) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -45,7 +45,7 @@ func (r *Runtime) RemovePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	return r.removePod(ctx, p, removeCtrs, force)
+	return r.removePod(ctx, p, removeCtrs, force, timeout)
 }
 
 // GetPod retrieves a pod by its ID
@@ -196,7 +196,8 @@ func (r *Runtime) PrunePods(ctx context.Context) (map[string]error, error) {
 		return response, nil
 	}
 	for _, pod := range pods {
-		err := r.removePod(context.TODO(), pod, true, false)
+		var timeout *uint
+		err := r.removePod(context.TODO(), pod, true, false, timeout)
 		response[pod.ID()] = err
 	}
 	return response, nil

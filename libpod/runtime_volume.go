@@ -21,7 +21,7 @@ type VolumeCreateOption func(*Volume) error
 type VolumeFilter func(*Volume) bool
 
 // RemoveVolume removes a volumes
-func (r *Runtime) RemoveVolume(ctx context.Context, v *Volume, force bool) error {
+func (r *Runtime) RemoveVolume(ctx context.Context, v *Volume, force bool, timeout *uint) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -36,7 +36,7 @@ func (r *Runtime) RemoveVolume(ctx context.Context, v *Volume, force bool) error
 			return nil
 		}
 	}
-	return r.removeVolume(ctx, v, force)
+	return r.removeVolume(ctx, v, force, timeout)
 }
 
 // GetVolume retrieves a volume given its full name.
@@ -149,7 +149,8 @@ func (r *Runtime) PruneVolumes(ctx context.Context, filterFuncs []VolumeFilter) 
 		}
 		report.Size = volSize
 		report.Id = vol.Name()
-		if err := r.RemoveVolume(ctx, vol, false); err != nil {
+		var timeout *uint
+		if err := r.RemoveVolume(ctx, vol, false, timeout); err != nil {
 			if errors.Cause(err) != define.ErrVolumeBeingUsed && errors.Cause(err) != define.ErrVolumeRemoved {
 				report.Err = err
 			} else {

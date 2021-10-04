@@ -37,7 +37,8 @@ func (p *Pod) startInitContainers(ctx context.Context) error {
 		if initCon.config.InitContainerType == define.OneShotInitContainer {
 			icLock := initCon.lock
 			icLock.Lock()
-			if err := p.runtime.removeContainer(ctx, initCon, false, false, true); err != nil {
+			var time *uint
+			if err := p.runtime.removeContainer(ctx, initCon, false, false, true, time); err != nil {
 				icLock.Unlock()
 				return errors.Wrapf(err, "failed to remove once init container %s", initCon.ID())
 			}

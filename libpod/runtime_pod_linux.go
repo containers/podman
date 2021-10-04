@@ -168,7 +168,7 @@ func (r *Runtime) SavePod(pod *Pod) error {
 	return nil
 }
 
-func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool) error {
+func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool, timeout *uint) error {
 	if err := p.updatePod(); err != nil {
 		return err
 	}
@@ -255,7 +255,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 			ctrNamedVolumes[vol.Name] = vol
 		}
 
-		if err := r.removeContainer(ctx, ctr, force, false, true); err != nil {
+		if err := r.removeContainer(ctx, ctr, force, false, true, timeout); err != nil {
 			if removalErr == nil {
 				removalErr = err
 			} else {
@@ -281,7 +281,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 		if !volume.Anonymous() {
 			continue
 		}
-		if err := r.removeVolume(ctx, volume, false); err != nil {
+		if err := r.removeVolume(ctx, volume, false, timeout); err != nil {
 			if errors.Cause(err) == define.ErrNoSuchVolume || errors.Cause(err) == define.ErrVolumeRemoved {
 				continue
 			}

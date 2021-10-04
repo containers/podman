@@ -33,6 +33,10 @@ Stop running containers and delete all stopped containers before removal of pod.
 
 Read pod ID from the specified file and remove the pod.  Can be specified multiple times.
 
+#### **--time**, **-t**=*seconds*
+
+Seconds to wait before forcibly stopping running containers within the pod. The --force option must be specified to use the --time option.
+
 ## EXAMPLE
 
 podman pod rm mywebserverpod

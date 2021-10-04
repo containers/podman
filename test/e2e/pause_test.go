@@ -168,7 +168,7 @@ var _ = Describe("Podman pause", func() {
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(strings.ToLower(podmanTest.GetContainerStatus())).To(ContainSubstring(pausedState))
 
-		result = podmanTest.Podman([]string{"rm", "--force", cid})
+		result = podmanTest.Podman([]string{"rm", "-t", "0", "--force", cid})
 		result.WaitWithDefaultTimeout()
 
 		Expect(result).Should(Exit(0))
@@ -205,7 +205,7 @@ var _ = Describe("Podman pause", func() {
 		Expect(result).Should(Exit(2))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 
-		result = podmanTest.Podman([]string{"rm", "-f", cid})
+		result = podmanTest.Podman([]string{"rm", "-t", "0", "-f", cid})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))

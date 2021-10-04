@@ -18,12 +18,13 @@ import (
 
 // Reset removes all storage
 func (r *Runtime) Reset(ctx context.Context) error {
+	var timeout *uint
 	pods, err := r.GetAllPods()
 	if err != nil {
 		return err
 	}
 	for _, p := range pods {
-		if err := r.RemovePod(ctx, p, true, true); err != nil {
+		if err := r.RemovePod(ctx, p, true, true, timeout); err != nil {
 			if errors.Cause(err) == define.ErrNoSuchPod {
 				continue
 			}
@@ -37,7 +38,7 @@ func (r *Runtime) Reset(ctx context.Context) error {
 	}
 
 	for _, c := range ctrs {
-		if err := r.RemoveContainer(ctx, c, true, true); err != nil {
+		if err := r.RemoveContainer(ctx, c, true, true, timeout); err != nil {
 			if err := r.RemoveStorageContainer(c.ID(), true); err != nil {
 				if errors.Cause(err) == define.ErrNoSuchCtr {
 					continue
@@ -61,7 +62,7 @@ func (r *Runtime) Reset(ctx context.Context) error {
 		return err
 	}
 	for _, v := range volumes {
-		if err := r.RemoveVolume(ctx, v, true); err != nil {
+		if err := r.RemoveVolume(ctx, v, true, timeout); err != nil {
 			if errors.Cause(err) == define.ErrNoSuchVolume {
 				continue
 			}

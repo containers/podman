@@ -61,7 +61,7 @@ function teardown() {
     run_podman run -it --name mystty $IMAGE stty size <$PODMAN_TEST_PTY
     is "$output" "$rows $cols$CR" "stty under podman run reads the correct dimensions"
 
-    run_podman rm -f mystty
+    run_podman rm -t 0 -f mystty
 
     # FIXME: the checks below are flaking a lot (see #10710).
 
@@ -70,7 +70,7 @@ function teardown() {
 #    run_podman exec -it mystty stty size <$PODMAN_TEST_PTY
 #    is "$output" "$rows $cols" "stty under podman exec reads the correct dimensions"
 #
-#    run_podman rm -f mystty
+#    run_podman rm -t 0 -f mystty
 }
 
 

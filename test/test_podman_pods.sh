@@ -114,4 +114,4 @@ podman pod kill foobar
 ########
 # Remove all pods and their containers
 ########
-podman pod rm -fa
+podman pod rm -t 0 -fa

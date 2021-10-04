@@ -31,6 +31,9 @@ func (ic *ContainerEngine) VolumeRm(ctx context.Context, namesOrIds []string, op
 	reports := make([]*entities.VolumeRmReport, 0, len(namesOrIds))
 	for _, id := range namesOrIds {
 		options := new(volumes.RemoveOptions).WithForce(opts.Force)
+		if opts.Timeout != nil {
+			options = options.WithTimeout(*opts.Timeout)
+		}
 		reports = append(reports, &entities.VolumeRmReport{
 			Err: volumes.Remove(ic.ClientCtx, id, options),
 			Id:  id,

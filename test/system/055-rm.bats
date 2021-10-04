@@ -30,7 +30,7 @@ load helpers
     is "$output" "Error: cannot remove container $cid as it is running - running or paused containers cannot be removed without force: container state improper" "error message"
 
     # rm -f should succeed
-    run_podman rm -f $cid
+    run_podman rm -t 0 -f $cid
 }
 
 @test "podman rm container from storage" {
@@ -70,7 +70,7 @@ load helpers
 # See https://github.com/containers/podman/issues/3795
 @test "podman rm -f" {
     rand=$(random_string 30)
-    ( sleep 3; run_podman rm -f $rand ) &
+    ( sleep 3; run_podman rm -t 0 -f $rand ) &
     run_podman 137 run --name $rand $IMAGE sleep 30
 }
 

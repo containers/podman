@@ -27,7 +27,8 @@ type NetworkReloadReport struct {
 
 // NetworkRmOptions describes options for removing networks
 type NetworkRmOptions struct {
-	Force bool
+	Force   bool
+	Timeout *uint
 }
 
 //NetworkRmReport describes the results of network removal

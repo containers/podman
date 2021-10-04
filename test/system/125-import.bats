@@ -15,7 +15,7 @@ load helpers
 
     run_podman run --name import $IMAGE sh -c "echo ${random_content} > /random.txt"
     run_podman export import -o $archive
-    run_podman rm -f import
+    run_podman rm -t 0 -f import
 
     # Simple import
     run_podman import -q $archive
@@ -71,7 +71,7 @@ EOF
 
     # Export built container as tarball
     run_podman export -o $PODMAN_TMPDIR/$b_cnt.tar $b_cnt
-    run_podman rm -f $b_cnt
+    run_podman rm -t 0 -f $b_cnt
 
     # Modify tarball contents
     tar --delete -f $PODMAN_TMPDIR/$b_cnt.tar tmp/testfile1
@@ -102,7 +102,7 @@ EOF
     run_podman ps -a --filter name=$a_cnt --format '{{.Status}}'
     is "$output" "Exited (33) .*" "Exit by non-TERM/KILL"
 
-    run_podman rm -f $a_cnt
+    run_podman rm -t 0 -f $a_cnt
     run_podman rmi $b_img $a_img
 
 }
