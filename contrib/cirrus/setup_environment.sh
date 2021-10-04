@@ -254,11 +254,11 @@ case "$TEST_FLAVOR" in
         remove_packaged_podman_files
         make install PREFIX=/usr ETCDIR=/etc
 
-        # Need to re-build lists (removed during image production)
-        ooe.sh apt-get -qq -y update
         msg "Installing docker and containerd"
         # N/B: Tests check/expect `docker info` output, and this `!= podman info`
-        ooe.sh apt-get install --yes containerd.io docker-ce docker-ce-cli
+        ooe.sh dpkg -i \
+            $PACKAGE_DOWNLOAD_DIR/containerd.io*.deb \
+            $PACKAGE_DOWNLOAD_DIR/docker-ce*.deb
 
         msg "Disabling docker service and socket activation"
         systemctl stop docker.service docker.socket
