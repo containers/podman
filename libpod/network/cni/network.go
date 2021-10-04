@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/containernetworking/cni/libcni"
 	"github.com/containers/podman/v3/libpod/define"
@@ -39,6 +40,9 @@ type cniNetwork struct {
 
 	// lock is a internal lock for critical operations
 	lock lockfile.Locker
+
+	// modTime is the timestamp when the config dir was modified
+	modTime time.Time
 
 	// networks is a map with loaded networks, the key is the network name
 	networks map[string]*network
@@ -113,10 +117,22 @@ func (n *cniNetwork) Drivers() []string {
 }
 
 func (n *cniNetwork) loadNetworks() error {
-	// skip loading networks if they are already loaded
-	if n.networks != nil {
+	// check the mod time of the config dir
+	f, err := os.Stat(n.cniConfigDir)
+	if err != nil {
+		return err
+	}
+	modTime := f.ModTime()
+
+	// skip loading networks if they are already loaded and
+	// if the config dir was not modified since the last call
+	if n.networks != nil && modTime.Equal(n.modTime) {
 		return nil
 	}
+	// make sure the remove all networks before we reload them
+	n.networks = nil
+	n.modTime = modTime
+
 	// FIXME: do we have to support other file types as well, e.g. .conf?
 	files, err := libcni.ConfFiles(n.cniConfigDir, []string{".conflist"})
 	if err != nil {
@@ -153,7 +169,7 @@ func (n *cniNetwork) loadNetworks() error {
 			logrus.Errorf("CNI config list %s could not be converted to a libpod config, skipping: %v", file, err)
 			continue
 		}
-		logrus.Tracef("Successfully loaded network %s: %v", net.Name, net)
+		logrus.Debugf("Successfully loaded network %s: %v", net.Name, net)
 		networkInfo := network{
 			filename:  file,
 			cniNet:    conf,

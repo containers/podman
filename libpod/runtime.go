@@ -489,8 +489,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		DefaultNetwork: runtime.config.Network.DefaultNetwork,
 		DefaultSubnet:  runtime.config.Network.DefaultSubnet,
 		IsMachine:      runtime.config.Engine.MachineEnabled,
-		// TODO use cni.lock
-		LockFile: filepath.Join(runtime.config.Network.NetworkConfigDir, "cni1.lock"),
+		LockFile:       filepath.Join(runtime.config.Network.NetworkConfigDir, "cni.lock"),
 	})
 	if err != nil {
 		return errors.Wrapf(err, "could not create network interface")

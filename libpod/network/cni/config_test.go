@@ -1020,28 +1020,6 @@ var _ = Describe("Config", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("subnet 10.10.0.0/24 is already used on the host or by another config"))
 		})
-
-		It("remove network should not error when config file does not exists on disk", func() {
-			name := "mynet"
-			network := types.Network{Name: name}
-			_, err := libpodNet.NetworkCreate(network)
-			Expect(err).To(BeNil())
-
-			path := filepath.Join(cniConfDir, name+".conflist")
-			Expect(path).To(BeARegularFile())
-
-			err = os.Remove(path)
-			Expect(err).To(BeNil())
-			Expect(path).ToNot(BeARegularFile())
-
-			err = libpodNet.NetworkRemove(name)
-			Expect(err).To(BeNil())
-
-			nets, err := libpodNet.NetworkList()
-			Expect(err).To(BeNil())
-			Expect(nets).To(HaveLen(1))
-			Expect(nets).ToNot(ContainElement(HaveNetworkName(name)))
-		})
 	})
 
 	Context("network load valid existing ones", func() {
