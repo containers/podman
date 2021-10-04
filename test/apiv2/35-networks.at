@@ -131,8 +131,8 @@ t DELETE libpod/networks/network2 200 \
   .[0].Err=null
 
 # test until filter - libpod api
-t POST libpod/networks/create name='"network5"' labels='{"xyz":""}' 200 \
-  .name=network5
+# create network via cli to test that the server can use it
+podman network create --label xyz network5
 
 # with date way back in the past, network should not be deleted
 t POST libpod/networks/prune?filters='{"until":["500000"]}' 200
