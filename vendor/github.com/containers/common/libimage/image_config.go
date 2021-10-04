@@ -1,7 +1,6 @@
 package libimage
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strconv"

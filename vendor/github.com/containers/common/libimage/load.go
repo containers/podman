@@ -35,6 +35,17 @@ func (r *Runtime) Load(ctx context.Context, path string, options *LoadOptions) (
 	var loadErrors []error
 
 	for _, f := range []func() ([]string, string, error){
+		// DOCKER-ARCHIVE - must be first (see containers/podman/issues/10809)
+		func() ([]string, string, error) {
+			logrus.Debugf("-> Attempting to load %q as a Docker archive", path)
+			ref, err := dockerArchiveTransport.ParseReference(path)
+			if err != nil {
+				return nil, dockerArchiveTransport.Transport.Name(), err
+			}
+			images, err := r.loadMultiImageDockerArchive(ctx, ref, &options.CopyOptions)
+			return images, dockerArchiveTransport.Transport.Name(), err
+		},
+
 		// OCI
 		func() ([]string, string, error) {
 			logrus.Debugf("-> Attempting to load %q as an OCI directory", path)
@@ -66,17 +77,6 @@ func (r *Runtime) Load(ctx context.Context, path string, options *LoadOptions) (
 			}
 			images, err := r.copyFromDefault(ctx, ref, &options.CopyOptions)
 			return images, dirTransport.Transport.Name(), err
-		},
-
-		// DOCKER-ARCHIVE
-		func() ([]string, string, error) {
-			logrus.Debugf("-> Attempting to load %q as a Docker archive", path)
-			ref, err := dockerArchiveTransport.ParseReference(path)
-			if err != nil {
-				return nil, dockerArchiveTransport.Transport.Name(), err
-			}
-			images, err := r.loadMultiImageDockerArchive(ctx, ref, &options.CopyOptions)
-			return images, dockerArchiveTransport.Transport.Name(), err
 		},
 	} {
 		loadedImages, transportName, err := f()

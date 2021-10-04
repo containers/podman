@@ -248,6 +248,23 @@ func (d *Driver) getSupportsVolatile() (bool, error) {
 	return supportsVolatile, nil
 }
 
+// isNetworkFileSystem checks if the specified file system is supported by native overlay
+// as backing store when running in a user namespace.
+func isNetworkFileSystem(fsMagic graphdriver.FsMagic) bool {
+	switch fsMagic {
+	// a bunch of network file systems...
+	case graphdriver.FsMagicNfsFs, graphdriver.FsMagicSmbFs, graphdriver.FsMagicAcfs,
+		graphdriver.FsMagicAfs, graphdriver.FsMagicCephFs, graphdriver.FsMagicCIFS,
+		graphdriver.FsMagicFHGFSFs, graphdriver.FsMagicGPFS, graphdriver.FsMagicIBRIX,
+		graphdriver.FsMagicKAFS, graphdriver.FsMagicLUSTRE, graphdriver.FsMagicNCP,
+		graphdriver.FsMagicNFSD, graphdriver.FsMagicOCFS2, graphdriver.FsMagicPANFS,
+		graphdriver.FsMagicPRLFS, graphdriver.FsMagicSMB2, graphdriver.FsMagicSNFS,
+		graphdriver.FsMagicVBOXSF, graphdriver.FsMagicVXFS:
+		return true
+	}
+	return false
+}
+
 // Init returns the a native diff driver for overlay filesystem.
 // If overlay filesystem is not supported on the host, a wrapped graphdriver.ErrNotSupported is returned as error.
 // If an overlay filesystem is not supported over an existing filesystem then a wrapped graphdriver.ErrIncompatibleFS is returned.
@@ -266,17 +283,26 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 	}
 
 	if opts.mountProgram != "" {
+		if unshare.IsRootless() && isNetworkFileSystem(fsMagic) && opts.forceMask == nil {
+			m := os.FileMode(0700)
+			opts.forceMask = &m
+			logrus.Warnf("Network file system detected as backing store.  Enforcing overlay option `force_mask=\"%o\"`.  Add it to storage.conf to silence this warning", m)
+		}
+
 		if err := ioutil.WriteFile(getMountProgramFlagFile(home), []byte("true"), 0600); err != nil {
 			return nil, err
 		}
 	} else {
-		// check if they are running over btrfs, aufs, zfs, overlay, or ecryptfs
 		if opts.forceMask != nil {
 			return nil, errors.New("'force_mask' is supported only with 'mount_program'")
 		}
+		// check if they are running over btrfs, aufs, zfs, overlay, or ecryptfs
 		switch fsMagic {
 		case graphdriver.FsMagicAufs, graphdriver.FsMagicZfs, graphdriver.FsMagicOverlay, graphdriver.FsMagicEcryptfs:
 			return nil, errors.Wrapf(graphdriver.ErrIncompatibleFS, "'overlay' is not supported over %s, a mount_program is required", backingFs)
+		}
+		if unshare.IsRootless() && isNetworkFileSystem(fsMagic) {
+			return nil, errors.Wrapf(graphdriver.ErrIncompatibleFS, "A network file system with user namespaces is not supported.  Please use a mount_program")
 		}
 	}
 
@@ -1429,6 +1455,11 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		mountFunc = func(source string, target string, mType string, flags uintptr, label string) error {
 			if !disableShifting {
 				label = d.optsAppendMappings(label, options.UidMaps, options.GidMaps)
+			}
+
+			// if forceMask is in place, tell fuse-overlayfs to write the permissions mask to an unprivileged xattr as well.
+			if d.options.forceMask != nil {
+				label = label + ",xattr_permissions=2"
 			}
 
 			mountProgram := exec.Command(d.options.mountProgram, "-o", label, target)

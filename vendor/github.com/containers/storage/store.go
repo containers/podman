@@ -23,6 +23,7 @@ import (
 	"github.com/containers/storage/pkg/parsers"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/containers/storage/pkg/stringutils"
+	"github.com/containers/storage/pkg/system"
 	"github.com/containers/storage/types"
 	"github.com/hashicorp/go-multierror"
 	digest "github.com/opencontainers/go-digest"
@@ -2498,7 +2499,15 @@ func (s *store) DeleteContainer(id string) error {
 			gcpath := filepath.Join(s.GraphRoot(), middleDir, container.ID)
 			wg.Add(1)
 			go func() {
-				errChan <- os.RemoveAll(gcpath)
+				var err error
+				for attempts := 0; attempts < 50; attempts++ {
+					err = os.RemoveAll(gcpath)
+					if err == nil || !system.IsEBUSY(err) {
+						break
+					}
+					time.Sleep(time.Millisecond * 100)
+				}
+				errChan <- err
 				wg.Done()
 			}()
 
