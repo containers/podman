@@ -177,10 +177,9 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 	if err != nil {
 		return err
 	}
-
 	numCtrs := len(ctrs)
 
-	// If the only container in the pod is the pause container, remove the pod and container unconditionally.
+	// If the only running container in the pod is the pause container, remove the pod and container unconditionally.
 	pauseCtrID := p.state.InfraContainerID
 	if numCtrs == 1 && ctrs[0].ID() == pauseCtrID {
 		removeCtrs = true
