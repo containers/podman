@@ -191,7 +191,7 @@ EOF
     run_podman run --rm -v my_vol:/data $IMAGE sh -c "echo hello >> /data/test"
     run_podman volume create my_vol2
 
-    tarfile=hello$(random_string | tr A-Z a-z).tar
+    tarfile=${PODMAN_TMPDIR}/hello$(random_string | tr A-Z a-z).tar
     run_podman volume export my_vol --output=$tarfile
     # we want to use `run_podman volume export my_vol` but run_podman is wrapping EOF
     run_podman volume import my_vol2 - < $tarfile
