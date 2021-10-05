@@ -8,7 +8,10 @@ if [[ "${CIRRUS_CHANGE_TITLE}" =~ CI:DOCS ]]; then
     exit 0
 fi
 
-# So are PRs where 'NO TESTS NEEDED' appears in the Github message
+# So are PRs where 'NO NEW TESTS NEEDED' appears in the Github message
+if [[ "${CIRRUS_CHANGE_MESSAGE}" =~ NO.NEW.TESTS.NEEDED ]]; then
+    exit 0
+fi
 if [[ "${CIRRUS_CHANGE_MESSAGE}" =~ NO.TESTS.NEEDED ]]; then
     exit 0
 fi
@@ -49,8 +52,11 @@ if [[ -z "$filtered_changes" ]]; then
     exit 0
 fi
 
-# One last chance: perhaps the developer included the magic '[NO TESTS NEEDED]'
+# One last chance: perhaps the developer included the magic '[NO (NEW) TESTS NEEDED]'
 # string in an amended commit.
+if git log --format=%B ${base}..${head} | fgrep '[NO NEW TESTS NEEDED]'; then
+   exit 0
+fi
 if git log --format=%B ${base}..${head} | fgrep '[NO TESTS NEEDED]'; then
    exit 0
 fi
@@ -67,7 +73,7 @@ tests, possibly just adding a small step to a similar existing test.
 Every second counts in CI.
 
 If your commit really, truly does not need tests, you can proceed
-by adding '[NO TESTS NEEDED]' to the body of your commit message.
+by adding '[NO NEW TESTS NEEDED]' to the body of your commit message.
 Please think carefully before doing so.
 EOF
 
