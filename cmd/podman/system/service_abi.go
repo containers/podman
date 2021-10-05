@@ -5,9 +5,9 @@ package system
 import (
 	"context"
 	"net"
+	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 
 	api "github.com/containers/podman/v3/pkg/api/server"
 	"github.com/containers/podman/v3/pkg/domain/entities"
@@ -20,41 +20,54 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func restService(opts entities.ServiceOptions, flags *pflag.FlagSet, cfg *entities.PodmanConfig) error {
+func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities.ServiceOptions) error {
 	var (
 		listener *net.Listener
 		err      error
 	)
 
 	if opts.URI != "" {
-		fields := strings.Split(opts.URI, ":")
-		if len(fields) == 1 {
+		uri, err := url.Parse(opts.URI)
+		if err != nil {
 			return errors.Errorf("%s is an invalid socket destination", opts.URI)
 		}
-		path := opts.URI
-		if fields[0] == "unix" {
-			if path, err = filepath.Abs(fields[1]); err != nil {
-				return err
-			}
-		}
-		util.SetSocketPath(path)
-		if os.Getenv("LISTEN_FDS") != "" {
-			// If it is activated by systemd, use the first LISTEN_FD (3)
-			// instead of opening the socket file.
-			f := os.NewFile(uintptr(3), "podman.sock")
-			l, err := net.FileListener(f)
+
+		switch uri.Scheme {
+		case "unix":
+			path, err := filepath.Abs(uri.Path)
 			if err != nil {
 				return err
 			}
-			listener = &l
-		} else {
-			network := fields[0]
-			address := strings.Join(fields[1:], ":")
-			l, err := net.Listen(network, address)
+			util.SetSocketPath(path)
+			if os.Getenv("LISTEN_FDS") != "" {
+				// If it is activated by systemd, use the first LISTEN_FD (3)
+				// instead of opening the socket file.
+				f := os.NewFile(uintptr(3), "podman.sock")
+				l, err := net.FileListener(f)
+				if err != nil {
+					return err
+				}
+				listener = &l
+			} else {
+				l, err := net.Listen(uri.Scheme, path)
+				if err != nil {
+					return errors.Wrapf(err, "unable to create socket")
+				}
+				listener = &l
+			}
+		case "tcp":
+			host := uri.Host
+			if host == "" {
+				// For backward compatibility, support "tcp:<host>:<port>" and "tcp://<host>:<port>"
+				host = uri.Opaque
+			}
+			l, err := net.Listen(uri.Scheme, host)
 			if err != nil {
-				return errors.Wrapf(err, "unable to create socket")
+				return errors.Wrapf(err, "unable to create socket %v", host)
 			}
 			listener = &l
+		default:
+			logrus.Debugf("Attempting API Service endpoint scheme %q", uri.Scheme)
 		}
 	}
 
@@ -75,12 +88,12 @@ func restService(opts entities.ServiceOptions, flags *pflag.FlagSet, cfg *entiti
 	servicereaper.Start()
 
 	infra.StartWatcher(rt)
-	server, err := api.NewServerWithSettings(rt, listener, api.Options{Timeout: opts.Timeout, CorsHeaders: opts.CorsHeaders})
+	server, err := api.NewServerWithSettings(rt, listener, opts)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		if err := server.Shutdown(); err != nil {
+		if err := server.Shutdown(false); err != nil {
 			logrus.Warnf("Error when stopping API service: %s", err)
 		}
 	}()

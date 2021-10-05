@@ -35,12 +35,14 @@ Enable a listening service for API access to Podman commands.
 		Long:              srvDescription,
 		RunE:              service,
 		ValidArgsFunction: common.AutocompleteDefaultOneArg,
-		Example:           `podman system service --time=0 unix:///tmp/podman.sock`,
+		Example: `podman system service --time=0 unix:///tmp/podman.sock
+  podman system service --time=0 tcp://localhost:8888`,
 	}
 
 	srvArgs = struct {
-		Timeout     int64
 		CorsHeaders string
+		PProfAddr   string
+		Timeout     uint
 	}{}
 )
 
@@ -51,15 +53,20 @@ func init() {
 	})
 
 	flags := srvCmd.Flags()
-
 	cfg := registry.PodmanConfig()
+
 	timeFlagName := "time"
-	flags.Int64VarP(&srvArgs.Timeout, timeFlagName, "t", int64(cfg.Engine.ServiceTimeout), "Time until the service session expires in seconds.  Use 0 to disable the timeout")
+	flags.UintVarP(&srvArgs.Timeout, timeFlagName, "t", cfg.Engine.ServiceTimeout,
+		"Time until the service session expires in seconds.  Use 0 to disable the timeout")
 	_ = srvCmd.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
+	flags.SetNormalizeFunc(aliasTimeoutFlag)
+
 	flags.StringVarP(&srvArgs.CorsHeaders, "cors", "", "", "Set CORS Headers")
 	_ = srvCmd.RegisterFlagCompletionFunc("cors", completion.AutocompleteNone)
 
-	flags.SetNormalizeFunc(aliasTimeoutFlag)
+	flags.StringVarP(&srvArgs.PProfAddr, "pprof-address", "", "",
+		"Binding network address for pprof profile endpoints, default: do not expose endpoints")
+	flags.MarkHidden("pprof-address")
 }
 
 func aliasTimeoutFlag(_ *pflag.FlagSet, name string) pflag.NormalizedName {
@@ -74,7 +81,7 @@ func service(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	logrus.Infof("Using API endpoint: '%s'", apiURI)
+
 	// Clean up any old existing unix domain socket
 	if len(apiURI) > 0 {
 		uri, err := url.Parse(apiURI)
@@ -92,33 +99,31 @@ func service(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	opts := entities.ServiceOptions{
-		URI:         apiURI,
-		Command:     cmd,
+	return restService(cmd.Flags(), registry.PodmanConfig(), entities.ServiceOptions{
 		CorsHeaders: srvArgs.CorsHeaders,
-	}
-
-	opts.Timeout = time.Duration(srvArgs.Timeout) * time.Second
-	return restService(opts, cmd.Flags(), registry.PodmanConfig())
+		PProfAddr:   srvArgs.PProfAddr,
+		Timeout:     time.Duration(srvArgs.Timeout) * time.Second,
+		URI:         apiURI,
+	})
 }
 
-func resolveAPIURI(_url []string) (string, error) {
+func resolveAPIURI(uri []string) (string, error) {
 	// When determining _*THE*_ listening endpoint --
 	// 1) User input wins always
 	// 2) systemd socket activation
 	// 3) rootless honors XDG_RUNTIME_DIR
 	// 4) lastly adapter.DefaultAPIAddress
 
-	if len(_url) == 0 {
+	if len(uri) == 0 {
 		if v, found := os.LookupEnv("PODMAN_SOCKET"); found {
-			logrus.Debugf("PODMAN_SOCKET='%s' used to determine API endpoint", v)
-			_url = []string{v}
+			logrus.Debugf("PODMAN_SOCKET=%q used to determine API endpoint", v)
+			uri = []string{v}
 		}
 	}
 
 	switch {
-	case len(_url) > 0 && _url[0] != "":
-		return _url[0], nil
+	case len(uri) > 0 && uri[0] != "":
+		return uri[0], nil
 	case systemd.SocketActivated():
 		logrus.Info("Using systemd socket activation to determine API endpoint")
 		return "", nil
