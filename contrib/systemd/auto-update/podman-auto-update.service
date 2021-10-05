@@ -6,8 +6,8 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/podman auto-update
-ExecStartPost=/usr/bin/podman image prune -f
+ExecStart=/usr/local/bin/podman auto-update
+ExecStartPost=/usr/local/bin/podman image prune -f
 
 [Install]
 WantedBy=multi-user.target default.target

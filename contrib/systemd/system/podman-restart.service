@@ -6,7 +6,7 @@ StartLimitIntervalSec=0
 [Service]
 Type=oneshot
 Environment=LOGGING="--log-level=info"
-ExecStart=/usr/bin/podman $LOGGING start --all --filter restart-policy=always
+ExecStart=/usr/local/bin/podman $LOGGING start --all --filter restart-policy=always
 
 [Install]
 WantedBy=multi-user.target
