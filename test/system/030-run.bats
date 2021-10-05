@@ -723,4 +723,10 @@ EOF
     is "$output" "Error: strconv.ParseInt: parsing \"a\": invalid syntax"
 }
 
+@test "podman run closes stdin" {
+    random_1=$(random_string 25)
+    run_podman run -i --rm $IMAGE cat <<<"$random_1"
+    is "$output" "$random_1" "output matches STDIN"
+}
+
 # vim: filetype=sh

@@ -84,7 +84,7 @@ func (c *Container) attach(streams *define.AttachStreams, keys string, resize <-
 	if attachRdy != nil {
 		attachRdy <- true
 	}
-	return readStdio(streams, receiveStdoutError, stdinDone)
+	return readStdio(conn, streams, receiveStdoutError, stdinDone)
 }
 
 // Attach to the given container's exec session
@@ -165,7 +165,7 @@ func (c *Container) attachToExec(streams *define.AttachStreams, keys *string, se
 		return err
 	}
 
-	return readStdio(streams, receiveStdoutError, stdinDone)
+	return readStdio(conn, streams, receiveStdoutError, stdinDone)
 }
 
 func processDetachKeys(keys string) ([]byte, error) {
@@ -208,11 +208,6 @@ func setupStdioChannels(streams *define.AttachStreams, conn *net.UnixConn, detac
 		var err error
 		if streams.AttachInput {
 			_, err = utils.CopyDetachable(conn, streams.InputStream, detachKeys)
-			if err == nil {
-				if connErr := conn.CloseWrite(); connErr != nil {
-					logrus.Errorf("unable to close conn: %q", connErr)
-				}
-			}
 		}
 		stdinDone <- err
 	}()
@@ -265,7 +260,7 @@ func redirectResponseToOutputStreams(outputStream, errorStream io.Writer, writeO
 	return err
 }
 
-func readStdio(streams *define.AttachStreams, receiveStdoutError, stdinDone chan error) error {
+func readStdio(conn *net.UnixConn, streams *define.AttachStreams, receiveStdoutError, stdinDone chan error) error {
 	var err error
 	select {
 	case err = <-receiveStdoutError:
@@ -273,6 +268,12 @@ func readStdio(streams *define.AttachStreams, receiveStdoutError, stdinDone chan
 	case err = <-stdinDone:
 		if err == define.ErrDetach {
 			return err
+		}
+		if err == nil {
+			// copy stdin is done, close it
+			if connErr := conn.CloseWrite(); connErr != nil {
+				logrus.Errorf("Unable to close conn: %v", connErr)
+			}
 		}
 		if streams.AttachOutput || streams.AttachError {
 			return <-receiveStdoutError

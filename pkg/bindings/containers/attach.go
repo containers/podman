@@ -157,24 +157,24 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 	}
 
 	stdoutChan := make(chan error)
-	stdinChan := make(chan error)
+	stdinChan := make(chan error, 1) //stdin channel should not block
 
 	if isSet.stdin {
 		go func() {
 			logrus.Debugf("Copying STDIN to socket")
 
 			_, err := utils.CopyDetachable(socket, stdin, detachKeysInBytes)
-
 			if err != nil && err != define.ErrDetach {
 				logrus.Error("failed to write input to service: " + err.Error())
 			}
-			stdinChan <- err
-
-			if closeWrite, ok := socket.(CloseWriter); ok {
-				if err := closeWrite.CloseWrite(); err != nil {
-					logrus.Warnf("Failed to close STDIN for writing: %v", err)
+			if err == nil {
+				if closeWrite, ok := socket.(CloseWriter); ok {
+					if err := closeWrite.CloseWrite(); err != nil {
+						logrus.Warnf("Failed to close STDIN for writing: %v", err)
+					}
 				}
 			}
+			stdinChan <- err
 		}()
 	}
 
