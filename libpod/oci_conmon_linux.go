@@ -701,6 +701,10 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 			if err != nil {
 				return err
 			}
+			// copy stdin is done, close it
+			if connErr := conn.CloseWrite(); connErr != nil {
+				logrus.Errorf("Unable to close conn: %v", connErr)
+			}
 		case <-cancel:
 			return nil
 		}
