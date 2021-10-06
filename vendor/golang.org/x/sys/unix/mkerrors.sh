@@ -229,6 +229,7 @@ struct ltchars {
 #include <linux/input.h>
 #include <linux/kexec.h>
 #include <linux/keyctl.h>
+#include <linux/landlock.h>
 #include <linux/loop.h>
 #include <linux/lwtunnel.h>
 #include <linux/magic.h>
@@ -497,6 +498,7 @@ ccflags="$@"
 		$2 ~ /^O?XTABS$/ ||
 		$2 ~ /^TC[IO](ON|OFF)$/ ||
 		$2 ~ /^IN_/ ||
+		$2 ~ /^LANDLOCK_/ ||
 		$2 ~ /^LOCK_(SH|EX|NB|UN)$/ ||
 		$2 ~ /^LO_(KEY|NAME)_SIZE$/ ||
 		$2 ~ /^LOOP_(CLR|CTL|GET|SET)_/ ||

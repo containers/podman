@@ -192,6 +192,7 @@ github.com/containerd/containerd v1.5.0-beta.3/go.mod h1:/wr9AVtEM7x9c+n0+stptlo
 github.com/containerd/containerd v1.5.0-beta.4/go.mod h1:GmdgZd2zA2GYIBZ0w09ZvgqEq8EfBp/m3lcVZIvPHhI=
 github.com/containerd/containerd v1.5.0-rc.0/go.mod h1:V/IXoMqNGgBlabz3tHD2TWDoTJseu1FGOKuoA4nNb2s=
 github.com/containerd/containerd v1.5.1/go.mod h1:0DOxVqwDy2iZvrZp2JUx/E+hS0UNTVn7dJnIOwtYR4g=
+github.com/containerd/containerd v1.5.4/go.mod h1:sx18RgvW6ABJ4iYUw7Q5x7bgFOAB9B6G7+yO0XBc4zw=
 github.com/containerd/containerd v1.5.5 h1:q1gxsZsGZ8ddVe98yO6pR21b5xQSMiR61lD0W96pgQo=
 github.com/containerd/containerd v1.5.5/go.mod h1:oSTh0QpT1w6jYcGmbiSbxv9OSQYaa88mPyWIuU79zyo=
 github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc/go.mod h1:GL3xCUCBDV3CZiTSEKksMWbLE66hEyuu9qyDOOqM47Y=
@@ -255,8 +256,9 @@ github.com/containers/common v0.46.1-0.20211001143714-161e078e4c7f h1:vVmx51AzWv
 github.com/containers/common v0.46.1-0.20211001143714-161e078e4c7f/go.mod h1:aml/OO4FmYfPbfT87rvWiCgkLzTdqO6PuZ/xXq6bPbk=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
-github.com/containers/image/v5 v5.16.0 h1:WQcNSzb7+ngS2cfynx0vUwhk+scpgiKlldVcsF8GPbI=
 github.com/containers/image/v5 v5.16.0/go.mod h1:XgTpfAPLRGOd1XYyCU5cISFr777bLmOerCSpt/v7+Q4=
+github.com/containers/image/v5 v5.16.1 h1:4786k48/af3dOkVf9EM+xB880ArkXalICsGC4AXC6to=
+github.com/containers/image/v5 v5.16.1/go.mod h1:mCvIFdzyyP1B0NBcZ80OIuaYqFn/OpFpaOMOMn1kU2M=
 github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b h1:Q8ePgVfHDplZ7U33NwHZkrVELsZP5fYj9pM5WBZB2GE=
 github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b/go.mod h1:9rfv8iPl1ZP7aqh9YA68wnZv2NUDbXdcdPHVz0pFbPY=
 github.com/containers/ocicrypt v1.0.1/go.mod h1:MeJDzk1RJHv89LjsH0Sp5KTY3ZYkjXO/C+bKAeWFIrc=
@@ -919,8 +921,9 @@ github.com/vbatts/tar-split v0.11.2/go.mod h1:vV3ZuO2yWSVsz+pfFzDG/upWH1JhjOiEaW
 github.com/vbauerster/mpb/v6 v6.0.4 h1:h6J5zM/2wimP5Hj00unQuV8qbo5EPcj6wbkCqgj7KcY=
 github.com/vbauerster/mpb/v6 v6.0.4/go.mod h1:a/+JT57gqh6Du0Ay5jSR+uBMfXGdlR7VQlGP52fJxLM=
 github.com/vbauerster/mpb/v7 v7.1.3/go.mod h1:X5GlohZw2fIpypMXWaKart+HGSAjpz49skxkDk+ZL7c=
-github.com/vbauerster/mpb/v7 v7.1.4 h1:XGWpWEB8aWnvqSlAMA7F7kdeUGqcTujuVFvYj9+59Ww=
 github.com/vbauerster/mpb/v7 v7.1.4/go.mod h1:4zulrZfvshMOnd2APiHgWS9Yrw08AzZVRr9G11tkpcQ=
+github.com/vbauerster/mpb/v7 v7.1.5 h1:vtUEUfQHmNeJETyF4AcRCOV6RC4wqFwNORy52UMXPbQ=
+github.com/vbauerster/mpb/v7 v7.1.5/go.mod h1:4M8+qAoQqV60WDNktBM5k05i1iTrXE7rjKOHEVkVlec=
 github.com/vishvananda/netlink v0.0.0-20181108222139-023a6dafdcdf/go.mod h1:+SR5DhBJrl6ZM7CoCKvpw5BKroDKQ+PJqOg65H/2ktk=
 github.com/vishvananda/netlink v1.1.0/go.mod h1:cTgwzPIzzgDAYoQrMm0EdrjRUBkTqKYppBueQtXaqoE=
 github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852/go.mod h1:twkDnbuQxJYemMlGd4JFIcuhgX83tXhKS2B/PRMpOho=
@@ -1208,8 +1211,9 @@ golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c/go.mod h1:oPkhp1MJrh7nUepCBc
 golang.org/x/sys v0.0.0-20210809222454-d867a43fc93e/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20210817190340-bfb29a6856f2/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20210820121016-41cdb8703e55/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
-golang.org/x/sys v0.0.0-20210906170528-6f6e22806c34 h1:GkvMjFtXUmahfDtashnc1mnrCtuBVcwse5QV2lUk/tI=
 golang.org/x/sys v0.0.0-20210906170528-6f6e22806c34/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.0.0-20210910150752-751e447fb3d0 h1:xrCZDmdtoloIiooiA9q0OQb9r8HejIHYoHGhGCe1pGg=
+golang.org/x/sys v0.0.0-20210910150752-751e447fb3d0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b h1:9zKuko04nR4gjZ4+DNjHqRlAJqbJETHwiNKDqTfOjfE=
 golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b/go.mod h1:jbD1KX2456YbFQfuXm/mYQcufACuNUgVhRMnK/tPxf8=

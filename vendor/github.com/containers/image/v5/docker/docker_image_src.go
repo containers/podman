@@ -370,12 +370,6 @@ func (s *dockerImageSource) GetBlobAt(ctx context.Context, info types.BlobInfo, 
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := httpResponseToError(res, "Error fetching partial blob"); err != nil {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, nil, err
-	}
 
 	switch res.StatusCode {
 	case http.StatusOK:
@@ -396,9 +390,16 @@ func (s *dockerImageSource) GetBlobAt(ctx context.Context, info types.BlobInfo, 
 
 		go handle206Response(streams, errs, res.Body, chunks, mediaType, params)
 		return streams, errs, nil
-	default:
+	case http.StatusBadRequest:
 		res.Body.Close()
-		return nil, nil, errors.Errorf("invalid status code returned when fetching blob %d (%s)", res.StatusCode, http.StatusText(res.StatusCode))
+		return nil, nil, internalTypes.BadPartialRequestError{Status: res.Status}
+	default:
+		err := httpResponseToError(res, "Error fetching partial blob")
+		if err == nil {
+			err = errors.Errorf("invalid status code returned when fetching blob %d (%s)", res.StatusCode, http.StatusText(res.StatusCode))
+		}
+		res.Body.Close()
+		return nil, nil, err
 	}
 }
 
