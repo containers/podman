@@ -351,6 +351,12 @@ func (r *ConmonOCIRuntime) UpdateContainerStatus(ctr *Container) error {
 		return ctr.handleExitFile(exitFile, fi)
 	}
 
+	// Handle ContainerStateStopping - keep it unless the container
+	// transitioned to no longer running.
+	if oldState == define.ContainerStateStopping && (ctr.state.State == define.ContainerStatePaused || ctr.state.State == define.ContainerStateRunning) {
+		ctr.state.State = define.ContainerStateStopping
+	}
+
 	return nil
 }
 
