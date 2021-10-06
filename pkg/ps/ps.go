@@ -127,6 +127,12 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 	)
 
 	batchErr := ctr.Batch(func(c *libpod.Container) error {
+		if opts.Sync {
+			if err := c.Sync(); err != nil {
+				return errors.Wrapf(err, "unable to update container state from OCI runtime")
+			}
+		}
+
 		conConfig = c.Config()
 		conState, err = c.State()
 		if err != nil {
