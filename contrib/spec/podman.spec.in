@@ -435,7 +435,7 @@ BUILDTAGS=$BUILDTAGS make binaries
 %install
 install -dp %{buildroot}%{_unitdir}
 install -dp %{buildroot}%{_usr}/lib/systemd/user
-PODMAN_VERSION=%{version} %{__make} PREFIX=%{buildroot}%{_prefix} ETCDIR=%{buildroot}%{_sysconfdir} \
+PODMAN_VERSION=%{version} %{__make} DESTDIR=%{buildroot} PREFIX=%{_prefix} ETCDIR=%{_sysconfdir} \
         install.bin-nobuild \
         install.remote-nobuild \
 %if %{with doc}
