@@ -82,7 +82,7 @@ Remote connections use local containers.conf for default.
 
 #### **--log-level**=*level*
 
-Log messages above specified level: debug, info, warn, error (default), fatal or panic (default: "error")
+Log messages at and above specified level: debug, info, warn, error, fatal or panic (default: "warn")
 
 #### **--namespace**=*namespace*
 
