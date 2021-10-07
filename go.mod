@@ -71,3 +71,5 @@ require (
 	k8s.io/api v0.22.2
 	k8s.io/apimachinery v0.22.2
 )
+
+replace github.com/containers/storage => github.com/giuseppe/storage v1.19.2-0.20211007071743-0213e6cdd315
