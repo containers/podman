@@ -17,6 +17,8 @@ type PlayKubeOptions struct {
 	// Down indicates whether to bring contents of a yaml file "down"
 	// as in stop
 	Down bool
+	// Replace indicates whether to delete and recreate a yaml file
+	Replace bool
 	// Do not create /etc/hosts within the pod's containers,
 	// instead use the version from the image
 	NoHosts bool

@@ -11,7 +11,9 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/utils"
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/errorhandling"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -90,6 +92,9 @@ func init() {
 	downFlagName := "down"
 	flags.BoolVar(&kubeOptions.Down, downFlagName, false, "Stop pods defined in the YAML file")
 
+	replaceFlagName := "replace"
+	flags.BoolVar(&kubeOptions.Replace, replaceFlagName, false, "Delete and recreate pods defined in the YAML file")
+
 	if !registry.IsRemote() {
 		certDirFlagName := "cert-dir"
 		flags.StringVar(&kubeOptions.CertDir, certDirFlagName, "", "`Pathname` of a directory containing TLS certificates and keys")
@@ -150,6 +155,11 @@ func kube(cmd *cobra.Command, args []string) error {
 	}
 	if kubeOptions.Down {
 		return teardown(yamlfile)
+	}
+	if kubeOptions.Replace {
+		if err := teardown(yamlfile); err != nil && !errorhandling.Contains(err, define.ErrNoSuchPod) {
+			return err
+		}
 	}
 	return playkube(yamlfile)
 }

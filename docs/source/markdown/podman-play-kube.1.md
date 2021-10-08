@@ -9,6 +9,7 @@ podman-play-kube - Create containers, pods or volumes based on Kubernetes YAML
 ## DESCRIPTION
 **podman play kube** will read in a structured file of Kubernetes YAML.  It will then recreate the containers, pods or volumes described in the YAML.  Containers within a pod are then started and the ID of the new Pod or the name of the new Volume is output. If the yaml file is specified as "-" then `podman play kube` will read the YAML file from stdin.
 Using the `--down` command line option, it is also capable of tearing down the pods created by a previous run of `podman play kube`.
+Using the `--replace` command line option, it will tear down the pods(if any) created by a previous run of `podman play kube` and recreate the pods with the Kubernetes YAML file.
 Ideally the input file would be one created by Podman (see podman-generate-kube(1)).  This would guarantee a smooth import and expected results.
 
 Currently, the supported Kubernetes kinds are:
@@ -145,6 +146,10 @@ Do not create /etc/hosts within the pod's containers, instead use the version fr
 #### **--quiet**, **-q**
 
 Suppress output information when pulling images
+
+#### **--replace**
+
+Tears down the pods created by a previous run of `play kube` and recreates the pods. This option is used to keep the existing pods up to date based upon the Kubernetes YAML.
 
 #### **--seccomp-profile-root**=*path*
 
