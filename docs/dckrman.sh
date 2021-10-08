@@ -5,3 +5,5 @@ for i in $@; do
     echo .so man1/$b > $filename
 done
 echo .so man5/containerfile.5 > $(dirname $1)/dockerfile.5
+echo .so man5/containerignore.5 > $(dirname $1)/.dockerignore.5
+echo .so man5/containerignore.5 > $(dirname $1)/dockerignore.5

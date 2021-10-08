@@ -35,8 +35,8 @@ location.
 When a Git repository is set as the URL, the repository is cloned locally and
 then set as the context.
 
-NOTE: `podman build` uses code sourced from the `buildah` project to build
-container images.  This `buildah` code creates `buildah` containers for the
+NOTE: `podman build` uses code sourced from the `Buildah` project to build
+container images.  This `Buildah` code creates `Buildah` containers for the
 `RUN` options in container storage. In certain situations, when the
 `podman build` crashes or users kill the `podman build` process, these external
 containers can be left in container storage. Use the `podman ps --all --storage`
@@ -256,7 +256,7 @@ specifying **--disable-compression=false**.
 
 #### **--disable-content-trust**
 
-This is a Docker specific option to disable image verification to a Docker
+This is a Docker specific option to disable image verification to a container
 registry and is not supported by Podman.  This flag is a NOOP and provided
 solely for scripting compatibility. (This option is not available with the remote Podman client)
 
@@ -328,7 +328,7 @@ than once, attempting to use this option will trigger an error.
 
 #### **--ignorefile**
 
-Path to an alternative .dockerignore file.
+Path to an alternative .containerignore file.
 
 #### **--ipc**=*how*
 
@@ -845,15 +845,15 @@ $ podman build .
 
 $ podman build -f Containerfile.simple .
 
-$ cat $HOME/Dockerfile | podman build -f - .
+$ cat $HOME/Containerfile | podman build -f - .
 
-$ podman build -f Dockerfile.simple -f Containerfile.notsosimple .
+$ podman build -f Containerfile.simple -f Containerfile.notsosimple .
 
-$ podman build -f Dockerfile.in $HOME
+$ podman build -f Containerfile.in $HOME
 
 $ podman build -t imageName .
 
-$ podman build --tls-verify=true -t imageName -f Dockerfile.simple .
+$ podman build --tls-verify=true -t imageName -f Containrfile.simple .
 
 $ podman build --tls-verify=false -t imageName .
 
@@ -861,7 +861,7 @@ $ podman build --runtime-flag log-format=json .
 
 $ podman build --runtime-flag debug .
 
-$ podman build --authfile /tmp/auths/myauths.json --cert-dir $HOME/auth --tls-verify=true --creds=username:password -t imageName -f Dockerfile.simple .
+$ podman build --authfile /tmp/auths/myauths.json --cert-dir $HOME/auth --tls-verify=true --creds=username:password -t imageName -f Containerfile.simple .
 
 $ podman build --memory 40m --cpu-period 10000 --cpu-quota 50000 --ulimit nofile=1024:1028 -t imageName .
 
@@ -940,22 +940,26 @@ $ podman build -f dev/Containerfile https://10.10.10.1/podman/context.tar.gz
 
 ## Files
 
-### `.dockerignore`
+### .containerignore/.dockerignore
 
-If the file .dockerignore exists in the context directory, `buildah copy` reads
-its contents. Use the `--ignorefile` flag to override .dockerignore path location.
+If the file *.containerignore* or *.dockerignore* exists in the context directory,
+`podman build` reads its contents. Use the `--ignorefile` flag to override the
+.containerignore path location.
 Podman uses the content to exclude files and directories from the context
 directory, when executing COPY and ADD directives in the
 Containerfile/Dockerfile
 
-Users can specify a series of Unix shell globals in a .dockerignore file to
+The .containerignore and .dockerignore files use the same syntax; if both
+are in the context directory, podman build will only use .containerignore.
+
+Users can specify a series of Unix shell globals in a .containerignore file to
 identify files/directories to exclude.
 
 Podman supports a special wildcard string `**` which matches any number of
 directories (including zero). For example, **/*.go will exclude all files that
 end with .go that are found in all directories.
 
-Example .dockerignore file:
+Example .containerignore file:
 
 ```
 # exclude this content for image
@@ -975,7 +979,7 @@ Excludes files and directories starting with `output` from any directory.
 Excludes files named src and the directory src as well as any content in it.
 
 Lines starting with ! (exclamation mark) can be used to make exceptions to
-exclusions. The following is an example .dockerignore file that uses this
+exclusions. The following is an example .containerignore file that uses this
 mechanism:
 ```
 *.doc
@@ -984,10 +988,10 @@ mechanism:
 
 Exclude all doc files except Help.doc from the image.
 
-This functionality is compatible with the handling of .dockerignore files
+This functionality is compatible with the handling of .containerignore files
 described here:
 
-https://docs.docker.com/engine/reference/builder/#dockerignore-file
+https://github.com/containers/buildah/blob/main/docs/containerignore.5.md
 
 **registries.conf** (`/etc/containers/registries.conf`)
 
@@ -1009,10 +1013,10 @@ If you are using `useradd` within your build script, you should pass the
 useradd to stop creating the lastlog file.
 
 ## SEE ALSO
-podman(1), buildah(1), containers-certs.d(5), containers-registries.conf(5), crun(8), runc(8), useradd(8), podman-ps(1), podman-rm(1)
+podman(1), buildah(1), containers-certs.d(5), containers-registries.conf(5), crun(8), runc(8), useradd(8), podman-ps(1), podman-rm(1), Containerfile(5), containerignore(5)
 
 ## HISTORY
-Aug 2020, Additional options and .dockerignore added by Dan Walsh `<dwalsh@redhat.com>`
+Aug 2020, Additional options and .containerignore added by Dan Walsh `<dwalsh@redhat.com>`
 
 May 2018, Minor revisions added by Joe Doss `<joe@solidadmin.com>`
 
