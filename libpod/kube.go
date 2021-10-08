@@ -477,7 +477,7 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 	if err != nil {
 		return kubeContainer, kubeVolumes, nil, annotations, err
 	}
-	imgData, err := img.Inspect(ctx, false)
+	imgData, err := img.Inspect(ctx, nil)
 	if err != nil {
 		return kubeContainer, kubeVolumes, nil, annotations, err
 	}

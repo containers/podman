@@ -208,7 +208,7 @@ func getImageVolumes(ctx context.Context, img *libimage.Image, s *specgen.SpecGe
 		return mounts, volumes, nil
 	}
 
-	inspect, err := img.Inspect(ctx, false)
+	inspect, err := img.Inspect(ctx, nil)
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "error inspecting image to get image volumes")
 	}

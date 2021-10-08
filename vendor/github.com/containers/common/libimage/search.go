@@ -284,8 +284,9 @@ func searchRepositoryTags(ctx context.Context, sys *types.SystemContext, registr
 	paramsArr := []SearchResult{}
 	for i := 0; i < limit; i++ {
 		params := SearchResult{
-			Name: imageRef.DockerReference().Name(),
-			Tag:  tags[i],
+			Name:  imageRef.DockerReference().Name(),
+			Tag:   tags[i],
+			Index: registry,
 		}
 		paramsArr = append(paramsArr, params)
 	}
