@@ -188,11 +188,13 @@ func toHumanFormat(vms []*machine.ListResponse) ([]*machineReporter, error) {
 		response := new(machineReporter)
 		if vm.Name == cfg.Engine.ActiveService {
 			response.Name = vm.Name + "*"
+			response.Default = true
 		} else {
 			response.Name = vm.Name
 		}
 		if vm.Running {
 			response.LastUp = "Currently running"
+			response.Running = true
 		} else {
 			response.LastUp = units.HumanDuration(time.Since(vm.LastUp)) + " ago"
 		}
