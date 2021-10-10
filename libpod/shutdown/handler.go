@@ -87,12 +87,12 @@ func Stop() error {
 	return nil
 }
 
-// Temporarily inhibit signals from shutting down Libpod.
+// Inhibit temporarily inhibit signals from shutting down Libpod.
 func Inhibit() {
 	shutdownInhibit.RLock()
 }
 
-// Stop inhibiting signals from shutting down Libpod.
+// Uninhibit stop inhibiting signals from shutting down Libpod.
 func Uninhibit() {
 	shutdownInhibit.RUnlock()
 }

@@ -38,7 +38,7 @@ SOCKET_FILE="$UNIT_DIR/$SERVICE_NAME.socket"
 @test "podman system service - CORS enabled in logs" {
     skip_if_remote "system service tests are meaningless over remote"
     run_podman system service --log-level="debug" --cors="*" -t 1
-    is "$output" ".*CORS Headers were set to \*.*" "debug log confirms CORS headers set"
+    is "$output" ".*CORS Headers were set to ..\*...*" "debug log confirms CORS headers set"
 }
 
 # vim: filetype=sh
