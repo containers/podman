@@ -166,7 +166,8 @@ type ExecStartConfig struct {
 }
 
 func ImageToImageSummary(l *libimage.Image) (*entities.ImageSummary, error) {
-	imageData, err := l.Inspect(context.TODO(), true)
+	options := &libimage.InspectOptions{WithParent: true, WithSize: true}
+	imageData, err := l.Inspect(context.TODO(), options)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to obtain summary for image %s", l.ID())
 	}
@@ -205,7 +206,8 @@ func ImageToImageSummary(l *libimage.Image) (*entities.ImageSummary, error) {
 }
 
 func ImageDataToImageInspect(ctx context.Context, l *libimage.Image) (*ImageInspect, error) {
-	info, err := l.Inspect(context.Background(), true)
+	options := &libimage.InspectOptions{WithParent: true, WithSize: true}
+	info, err := l.Inspect(context.Background(), options)
 	if err != nil {
 		return nil, err
 	}

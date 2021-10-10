@@ -477,10 +477,10 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 
 	if pullPolicy == config.PullPolicyNever {
 		if localImage != nil {
-			logrus.Debugf("Pull policy %q but no local image has been found for %s", pullPolicy, imageName)
+			logrus.Debugf("Pull policy %q and %s resolved to local image %s", pullPolicy, imageName, resolvedImageName)
 			return []string{resolvedImageName}, nil
 		}
-		logrus.Debugf("Pull policy %q and %s resolved to local image %s", pullPolicy, imageName, resolvedImageName)
+		logrus.Debugf("Pull policy %q but no local image has been found for %s", pullPolicy, imageName)
 		return nil, errors.Wrap(storage.ErrImageUnknown, imageName)
 	}
 

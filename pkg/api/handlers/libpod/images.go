@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/containers/buildah"
+	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/filters"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
@@ -93,7 +94,8 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "failed to find image %s", name))
 		return
 	}
-	inspect, err := newImage.Inspect(r.Context(), true)
+	options := &libimage.InspectOptions{WithParent: true, WithSize: true}
+	inspect, err := newImage.Inspect(r.Context(), options)
 	if err != nil {
 		utils.Error(w, "Server error", http.StatusInternalServerError, errors.Wrapf(err, "failed in inspect image %s", inspect.ID))
 		return

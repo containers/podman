@@ -252,6 +252,8 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts entities.InspectOptions) ([]*entities.ImageInspectReport, []error, error) {
 	reports := []*entities.ImageInspectReport{}
 	errs := []error{}
+
+	inspectOptions := &libimage.InspectOptions{WithParent: true, WithSize: true}
 	for _, i := range namesOrIDs {
 		img, _, err := ir.Libpod.LibimageRuntime().LookupImage(i, nil)
 		if err != nil {
@@ -259,7 +261,7 @@ func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts en
 			errs = append(errs, err)
 			continue
 		}
-		result, err := img.Inspect(ctx, true)
+		result, err := img.Inspect(ctx, inspectOptions)
 		if err != nil {
 			// This is more likely to be fatal.
 			return nil, nil, err

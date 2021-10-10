@@ -194,7 +194,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 
 	// TODO: We don't understand why specgen does not take of this, but
 	// integration tests clearly pointed out that it was required.
-	imageData, err := opts.Image.Inspect(ctx, false)
+	imageData, err := opts.Image.Inspect(ctx, nil)
 	if err != nil {
 		return nil, err
 	}

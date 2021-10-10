@@ -26,7 +26,7 @@ func getImageFromSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGen
 	// Image may already have been set in the generator.
 	image, resolvedName := s.GetImage()
 	if image != nil {
-		inspectData, err := image.Inspect(ctx, false)
+		inspectData, err := image.Inspect(ctx, nil)
 		if err != nil {
 			return nil, "", nil, err
 		}
@@ -39,7 +39,7 @@ func getImageFromSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGen
 		return nil, "", nil, err
 	}
 	s.SetImage(image, resolvedName)
-	inspectData, err := image.Inspect(ctx, false)
+	inspectData, err := image.Inspect(ctx, nil)
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -55,7 +55,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		return nil, err
 	}
 	if inspectData != nil {
-		inspectData, err = newImage.Inspect(ctx, false)
+		inspectData, err = newImage.Inspect(ctx, nil)
 		if err != nil {
 			return nil, err
 		}
