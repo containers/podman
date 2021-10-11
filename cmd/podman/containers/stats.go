@@ -11,9 +11,7 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/utils"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
@@ -113,16 +111,6 @@ func checkStatOptions(cmd *cobra.Command, args []string) error {
 }
 
 func stats(cmd *cobra.Command, args []string) error {
-	if rootless.IsRootless() {
-		unified, err := cgroups.IsCgroup2UnifiedMode()
-		if err != nil {
-			return err
-		}
-		if !unified {
-			return errors.New("stats is not supported in rootless mode without cgroups v2")
-		}
-	}
-
 	// Convert to the entities options.  We should not leak CLI-only
 	// options into the backend and separate concerns.
 	opts := entities.ContainerStatsOptions{
