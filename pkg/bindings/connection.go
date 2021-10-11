@@ -349,6 +349,17 @@ func (c *Connection) DoRequest(httpBody io.Reader, httpMethod, endpoint string, 
 	return &APIResponse{response, req}, err
 }
 
+// Get raw Transport.DialContext from client
+func (c *Connection) GetDialer(ctx context.Context) (net.Conn, error) {
+	client := c.Client
+	transport := client.Transport.(*http.Transport)
+	if transport.DialContext != nil && transport.TLSClientConfig == nil {
+		return transport.DialContext(ctx, c.URI.Scheme, c.URI.String())
+	}
+
+	return nil, errors.New("Unable to get dial context")
+}
+
 // FiltersToString converts our typical filter format of a
 // map[string][]string to a query/html safe string.
 func FiltersToString(filters map[string][]string) (string, error) {
