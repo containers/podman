@@ -1316,6 +1316,15 @@ func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []stri
 	if options.Interval < 1 {
 		return nil, errors.New("Invalid interval, must be a positive number greater zero")
 	}
+	if rootless.IsRootless() {
+		unified, err := cgroups.IsCgroup2UnifiedMode()
+		if err != nil {
+			return nil, err
+		}
+		if !unified {
+			return nil, errors.New("stats is not supported in rootless mode without cgroups v2")
+		}
+	}
 	statsChan = make(chan entities.ContainerStatsReport, 1)
 
 	containerFunc := ic.Libpod.GetRunningContainers
