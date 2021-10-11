@@ -417,6 +417,7 @@ func (ir *ImageEngine) Import(ctx context.Context, options entities.ImageImportO
 	return &entities.ImageImportReport{Id: imageID}, nil
 }
 
+// Search for images using term and filters
 func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.ImageSearchOptions) ([]entities.ImageSearchReport, error) {
 	filter, err := libimage.ParseSearchFilter(opts.Filters)
 	if err != nil {
@@ -427,7 +428,7 @@ func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.Im
 		Authfile:              opts.Authfile,
 		Filter:                *filter,
 		Limit:                 opts.Limit,
-		NoTrunc:               opts.NoTrunc,
+		NoTrunc:               true,
 		InsecureSkipTLSVerify: opts.SkipTLSVerify,
 		ListTags:              opts.ListTags,
 	}
@@ -454,7 +455,7 @@ func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.Im
 	return reports, nil
 }
 
-// GetConfig returns a copy of the configuration used by the runtime
+// Config returns a copy of the configuration used by the runtime
 func (ir *ImageEngine) Config(_ context.Context) (*config.Config, error) {
 	return ir.Libpod.GetConfig()
 }

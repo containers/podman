@@ -12,7 +12,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
-	images "github.com/containers/podman/v3/pkg/bindings/images"
+	"github.com/containers/podman/v3/pkg/bindings/images"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/entities/reports"
 	"github.com/containers/podman/v3/pkg/domain/utils"
@@ -323,7 +323,7 @@ func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.Im
 
 	options := new(images.SearchOptions)
 	options.WithAuthfile(opts.Authfile).WithFilters(mappedFilters).WithLimit(opts.Limit)
-	options.WithListTags(opts.ListTags).WithNoTrunc(opts.NoTrunc)
+	options.WithListTags(opts.ListTags)
 	if s := opts.SkipTLSVerify; s != types.OptionalBoolUndefined {
 		if s == types.OptionalBoolTrue {
 			options.WithSkipTLSVerify(true)

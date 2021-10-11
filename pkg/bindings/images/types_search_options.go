@@ -62,21 +62,6 @@ func (o *SearchOptions) GetLimit() int {
 	return *o.Limit
 }
 
-// WithNoTrunc set field NoTrunc to given value
-func (o *SearchOptions) WithNoTrunc(value bool) *SearchOptions {
-	o.NoTrunc = &value
-	return o
-}
-
-// GetNoTrunc returns value of field NoTrunc
-func (o *SearchOptions) GetNoTrunc() bool {
-	if o.NoTrunc == nil {
-		var z bool
-		return z
-	}
-	return *o.NoTrunc
-}
-
 // WithSkipTLSVerify set field SkipTLSVerify to given value
 func (o *SearchOptions) WithSkipTLSVerify(value bool) *SearchOptions {
 	o.SkipTLSVerify = &value
