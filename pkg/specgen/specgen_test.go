@@ -19,7 +19,7 @@ func TestNewSpecGeneratorWithRootfs(t *testing.T) {
 	}
 	for _, args := range tests {
 		val := NewSpecGenerator(args.rootfs, true)
-		assert.Equal(t, val.RootfsOverlay, args.rootfs)
-		assert.Equal(t, val.Rootfs, args.rootfs)
+		assert.Equal(t, val.RootfsOverlay, args.expectedRootfsOverlay)
+		assert.Equal(t, val.Rootfs, args.expectedRootfs)
 	}
 }
