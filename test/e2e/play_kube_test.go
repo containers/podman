@@ -18,6 +18,7 @@ import (
 	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/format"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/opencontainers/selinux/go-selinux"
 )
@@ -2721,5 +2722,45 @@ invalid kube kind
 		exists = podmanTest.Podman([]string{"volume", "exists", volName})
 		exists.WaitWithDefaultTimeout()
 		Expect(exists).To(Exit(0))
+	})
+
+	Describe("verify environment variables", func() {
+		var maxLength int
+		BeforeEach(func() {
+			maxLength = format.MaxLength
+			format.MaxLength = 0
+		})
+		AfterEach(func() {
+			format.MaxLength = maxLength
+		})
+
+		It("values containing equal sign", func() {
+			javaToolOptions := `-XX:+IgnoreUnrecognizedVMOptions -XX:+IdleTuningGcOnIdle -Xshareclasses:name=openj9_system_scc,cacheDir=/opt/java/.scc,readonly,nonFatal`
+			openj9JavaOptions := `-XX:+IgnoreUnrecognizedVMOptions -XX:+IdleTuningGcOnIdle -Xshareclasses:name=openj9_system_scc,cacheDir=/opt/java/.scc,readonly,nonFatal -Dosgi.checkConfiguration=false`
+
+			containerfile := fmt.Sprintf(`FROM %s
+ENV JAVA_TOOL_OPTIONS=%q
+ENV OPENJ9_JAVA_OPTIONS=%q
+`,
+				ALPINE, javaToolOptions, openj9JavaOptions)
+
+			image := "podman-kube-test:env"
+			podmanTest.BuildImage(containerfile, image, "false")
+			ctnr := getCtr(withImage(image))
+			pod := getPod(withCtr(ctnr))
+			Expect(generateKubeYaml("pod", pod, kubeYaml)).Should(Succeed())
+
+			play := podmanTest.Podman([]string{"play", "kube", "--start", kubeYaml})
+			play.WaitWithDefaultTimeout()
+			Expect(play).Should(Exit(0))
+
+			inspect := podmanTest.Podman([]string{"container", "inspect", "--format=json", getCtrNameInPod(pod)})
+			inspect.WaitWithDefaultTimeout()
+			Expect(inspect).Should(Exit(0))
+
+			contents := string(inspect.Out.Contents())
+			Expect(contents).To(ContainSubstring(javaToolOptions))
+			Expect(contents).To(ContainSubstring(openj9JavaOptions))
+		})
 	})
 })
