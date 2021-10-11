@@ -552,10 +552,10 @@ func NewSpecGenerator(arg string, rootfs bool) *SpecGenerator {
 	if rootfs {
 		csc.Rootfs = arg
 		// check if rootfs is actually overlayed
-		parts := strings.SplitN(csc.Rootfs, ":", 2)
-		if len(parts) > 1 && parts[1] == "O" {
+		lastColonIndex := strings.LastIndex(csc.Rootfs, ":")
+		if lastColonIndex != -1 && lastColonIndex+1 < len(csc.Rootfs) && csc.Rootfs[lastColonIndex+1:] == "O" {
 			csc.RootfsOverlay = true
-			csc.Rootfs = parts[0]
+			csc.Rootfs = csc.Rootfs[:lastColonIndex]
 		}
 	} else {
 		csc.Image = arg
