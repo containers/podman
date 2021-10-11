@@ -230,11 +230,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool, timeo
 
 			logrus.Debugf("Removing container %s (depends on volume %q)", ctr.ID(), v.Name())
 
-			// TODO: do we want to set force here when removing
-			// containers?
-			// I'm inclined to say no, in case someone accidentally
-			// wipes a container they're using...
-			if err := r.removeContainer(ctx, ctr, false, false, false, timeout); err != nil {
+			if err := r.removeContainer(ctx, ctr, force, false, false, timeout); err != nil {
 				return errors.Wrapf(err, "error removing container %s that depends on volume %s", ctr.ID(), v.Name())
 			}
 		}

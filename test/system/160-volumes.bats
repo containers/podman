@@ -97,6 +97,14 @@ Labels.l       | $mylabel
     run_podman volume rm $myvolume
 }
 
+# Removing volumes with --force
+@test "podman volume rm --force" {
+    run_podman run -d --volume myvol:/myvol $IMAGE top
+    cid=$output
+    run_podman 2 volume rm myvol
+    is "$output" "Error: volume myvol is being used by the following container(s): $cid: volume is being used" "should error since container is running"
+    run_podman volume rm myvol --force
+}
 
 # Running scripts (executables) from a volume
 @test "podman volume: exec/noexec" {
