@@ -942,7 +942,7 @@ USER test1`
 		pod := new(v1.Pod)
 		err = yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).To(BeNil())
-		Expect(*pod.Spec.Containers[0].SecurityContext.RunAsUser).To(Equal(int64(10001)))
+		Expect(pod.Spec.Containers[0].SecurityContext.RunAsUser).To(BeNil())
 	})
 
 	It("podman generate kube on named volume", func() {

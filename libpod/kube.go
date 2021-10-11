@@ -485,6 +485,10 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 		kubeContainer.Command = nil
 	}
 
+	if imgData.User == c.User() {
+		kubeSec.RunAsGroup, kubeSec.RunAsUser = nil, nil
+	}
+
 	kubeContainer.WorkingDir = c.WorkingDir()
 	kubeContainer.Ports = ports
 	// This should not be applicable
