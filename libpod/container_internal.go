@@ -17,12 +17,14 @@ import (
 	"github.com/containers/buildah/copier"
 	"github.com/containers/buildah/pkg/overlay"
 	butil "github.com/containers/buildah/util"
+	"github.com/containers/common/pkg/chown"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/ctime"
 	"github.com/containers/podman/v3/pkg/hooks"
 	"github.com/containers/podman/v3/pkg/hooks/exec"
+	"github.com/containers/podman/v3/pkg/lookup"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/selinux"
 	"github.com/containers/podman/v3/pkg/util"
@@ -485,8 +487,12 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		return errors.Wrapf(err, "error creating container storage")
 	}
 
-	c.config.IDMappings.UIDMap = containerInfo.UIDMap
-	c.config.IDMappings.GIDMap = containerInfo.GIDMap
+	// only reconfig IDMappings if layer was mounted from storage
+	// if its a external overlay do not reset IDmappings
+	if !c.config.RootfsOverlay {
+		c.config.IDMappings.UIDMap = containerInfo.UIDMap
+		c.config.IDMappings.GIDMap = containerInfo.GIDMap
+	}
 
 	processLabel, err := c.processLabel(containerInfo.ProcessLabel)
 	if err != nil {
@@ -1515,6 +1521,19 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 		}
 
 		mountPoint = overlayMount.Source
+		execUser, err := lookup.GetUserGroupInfo(mountPoint, c.config.User, nil)
+		if err != nil {
+			return "", err
+		}
+		hostUID, hostGID, err := butil.GetHostIDs(util.IDtoolsToRuntimeSpec(c.config.IDMappings.UIDMap), util.IDtoolsToRuntimeSpec(c.config.IDMappings.GIDMap), uint32(execUser.Uid), uint32(execUser.Gid))
+		if err != nil {
+			return "", errors.Wrap(err, "unable to get host UID and host GID")
+		}
+
+		//note: this should not be recursive, if using external rootfs users should be responsible on configuring ownership.
+		if err := chown.ChangeHostPathOwnership(mountPoint, false, int(hostUID), int(hostGID)); err != nil {
+			return "", err
+		}
 	}
 
 	if mountPoint == "" {

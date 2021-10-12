@@ -259,6 +259,18 @@ var _ = Describe("Podman run", func() {
 		startsession.WaitWithDefaultTimeout()
 		Expect(startsession).Should(Exit(0))
 		Expect(startsession.OutputToString()).To(Equal("hello"))
+
+		// remove container for above test overlay-foo
+		osession = podmanTest.Podman([]string{"rm", "overlay-foo"})
+		osession.WaitWithDefaultTimeout()
+		Expect(osession).Should(Exit(0))
+
+		// Test --rootfs with an external overlay with --uidmap
+		osession = podmanTest.Podman([]string{"run", "--uidmap", "0:1000:1000", "--rm", "--security-opt", "label=disable",
+			"--rootfs", rootfs + ":O", "echo", "hello"})
+		osession.WaitWithDefaultTimeout()
+		Expect(osession).Should(Exit(0))
+		Expect(osession.OutputToString()).To(Equal("hello"))
 	})
 
 	It("podman run a container with --init", func() {
