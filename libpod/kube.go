@@ -481,7 +481,9 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 	if err != nil {
 		return kubeContainer, kubeVolumes, nil, annotations, err
 	}
-	if reflect.DeepEqual(imgData.Config.Cmd, kubeContainer.Command) {
+	// If the user doesn't set a command/entrypoint when creating the container with podman and
+	// is using the image command or entrypoint from the image, don't add it to the generated kube yaml
+	if reflect.DeepEqual(imgData.Config.Cmd, kubeContainer.Command) || reflect.DeepEqual(imgData.Config.Entrypoint, kubeContainer.Command) {
 		kubeContainer.Command = nil
 	}
 
