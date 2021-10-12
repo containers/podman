@@ -3,6 +3,7 @@ package images
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
@@ -79,7 +80,7 @@ func searchFlags(cmd *cobra.Command) {
 
 	filterFlagName := "filter"
 	flags.StringSliceVarP(&searchOptions.Filters, filterFlagName, "f", []string{}, "Filter output based on conditions provided (default [])")
-	//TODO add custom filter function
+	// TODO add custom filter function
 	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, completion.AutocompleteNone)
 
 	formatFlagName := "format"
@@ -90,7 +91,7 @@ func searchFlags(cmd *cobra.Command) {
 	flags.IntVar(&searchOptions.Limit, limitFlagName, 0, "Limit the number of results")
 	_ = cmd.RegisterFlagCompletionFunc(limitFlagName, completion.AutocompleteNone)
 
-	flags.BoolVar(&searchOptions.NoTrunc, "no-trunc", false, "Do not truncate the output")
+	flags.Bool("no-trunc", true, "Do not truncate the output. Default: true")
 
 	authfileFlagName := "authfile"
 	flags.StringVar(&searchOptions.Authfile, authfileFlagName, auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
@@ -132,9 +133,18 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-
 	if len(searchReport) == 0 {
 		return nil
+	}
+
+	noTrunc, _ := cmd.Flags().GetBool("no-trunc")
+	isJSON := report.IsJSON(searchOptions.Format)
+	for i, element := range searchReport {
+		d := strings.ReplaceAll(element.Description, "\n", " ")
+		if len(d) > 44 && !(noTrunc || isJSON) {
+			d = strings.TrimSpace(d[:44]) + "..."
+		}
+		searchReport[i].Description = d
 	}
 
 	hdrs := report.Headers(entities.ImageSearchReport{}, nil)
@@ -145,12 +155,12 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 		if len(searchOptions.Filters) != 0 {
 			return errors.Errorf("filters are not applicable to list tags result")
 		}
-		if report.IsJSON(searchOptions.Format) {
+		if isJSON {
 			listTagsEntries := buildListTagsJSON(searchReport)
 			return printArbitraryJSON(listTagsEntries)
 		}
 		row = "{{.Name}}\t{{.Tag}}\n"
-	case report.IsJSON(searchOptions.Format):
+	case isJSON:
 		return printArbitraryJSON(searchReport)
 	case cmd.Flags().Changed("format"):
 		renderHeaders = report.HasTable(searchOptions.Format)
@@ -190,7 +200,7 @@ func printArbitraryJSON(v interface{}) error {
 }
 
 func buildListTagsJSON(searchReport []entities.ImageSearchReport) []listEntryTag {
-	entries := []listEntryTag{}
+	entries := make([]listEntryTag, 0)
 
 ReportLoop:
 	for _, report := range searchReport {

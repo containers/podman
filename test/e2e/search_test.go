@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"strconv"
 	"text/template"
 
+	"github.com/containers/podman/v3/pkg/domain/entities"
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -123,6 +125,15 @@ registries = ['{{.Host}}:{{.Port}}']`
 		Expect(search).Should(Exit(0))
 		Expect(search.IsJSONOutputValid()).To(BeTrue())
 		Expect(search.OutputToString()).To(ContainSubstring("docker.io/library/alpine"))
+
+		// Test for https://github.com/containers/podman/issues/11894
+		contents := make([]entities.ImageSearchReport, 0)
+		err := json.Unmarshal(search.Out.Contents(), &contents)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(contents)).To(BeNumerically(">", 0), "No results from image search")
+		for _, element := range contents {
+			Expect(element.Description).ToNot(HaveSuffix("..."))
+		}
 	})
 
 	It("podman search format json list tags", func() {
@@ -135,13 +146,17 @@ registries = ['{{.Host}}:{{.Port}}']`
 		Expect(search.OutputToString()).To(ContainSubstring("2.7"))
 	})
 
-	It("podman search no-trunc flag", func() {
-		search := podmanTest.Podman([]string{"search", "--no-trunc", "alpine"})
+	// Test for https://github.com/containers/podman/issues/11894
+	It("podman search no-trunc=false flag", func() {
+		search := podmanTest.Podman([]string{"search", "--no-trunc=false", "alpine", "--format={{.Description}}"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
-		Expect(len(search.OutputToStringArray())).To(BeNumerically(">", 1))
-		Expect(search.LineInOutputContains("docker.io/library/alpine")).To(BeTrue())
-		Expect(search.LineInOutputContains("...")).To(BeFalse())
+
+		for _, line := range search.OutputToStringArray() {
+			if len(line) > 44 {
+				Expect(line).To(HaveSuffix("..."), line+" should have been truncated")
+			}
+		}
 	})
 
 	It("podman search limit flag", func() {

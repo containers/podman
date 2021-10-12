@@ -133,8 +133,6 @@ type SearchOptions struct {
 	Filters map[string][]string
 	// Limit the number of results.
 	Limit *int
-	// NoTrunc will not truncate the output.
-	NoTrunc *bool
 	// SkipTLSVerify to skip  HTTPS and certificate verification.
 	SkipTLSVerify *bool
 	// ListTags search the available tags of the repository

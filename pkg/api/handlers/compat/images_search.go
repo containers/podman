@@ -22,7 +22,6 @@ func SearchImages(w http.ResponseWriter, r *http.Request) {
 	query := struct {
 		Term      string              `json:"term"`
 		Limit     int                 `json:"limit"`
-		NoTrunc   bool                `json:"noTrunc"`
 		Filters   map[string][]string `json:"filters"`
 		TLSVerify bool                `json:"tlsVerify"`
 		ListTags  bool                `json:"listTags"`
@@ -50,7 +49,6 @@ func SearchImages(w http.ResponseWriter, r *http.Request) {
 	options := entities.ImageSearchOptions{
 		Authfile: authfile,
 		Limit:    query.Limit,
-		NoTrunc:  query.NoTrunc,
 		ListTags: query.ListTags,
 		Filters:  filters,
 	}
