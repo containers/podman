@@ -93,7 +93,7 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 		return err
 	}
 	defer func() {
-		if err := server.Shutdown(false); err != nil {
+		if err := server.Shutdown(true); err != nil {
 			logrus.Warnf("Error when stopping API service: %s", err)
 		}
 	}()

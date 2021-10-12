@@ -207,7 +207,7 @@ func (s *APIServer) setupSystemd() {
 func (s *APIServer) Serve() error {
 	s.setupPprof()
 
-	if err := shutdown.Register("server", func(sig os.Signal) error {
+	if err := shutdown.Register("service", func(sig os.Signal) error {
 		return s.Shutdown(true)
 	}); err != nil {
 		return err
@@ -272,20 +272,24 @@ func (s *APIServer) setupPprof() {
 
 // Shutdown is a clean shutdown waiting on existing clients
 func (s *APIServer) Shutdown(halt bool) error {
-	if s.idleTracker.Duration == UnlimitedServiceDuration && !halt {
-		logrus.Debug("API service shutdown request ignored as Duration is UnlimitedService")
+	switch {
+	case halt:
+		logrus.Debug("API service forced shutdown, ignoring timeout Duration")
+	case s.idleTracker.Duration == UnlimitedServiceDuration:
+		logrus.Debug("API service shutdown request ignored as timeout Duration is UnlimitedService")
 		return nil
 	}
 
 	shutdownOnce.Do(func() {
-		if logrus.IsLevelEnabled(logrus.DebugLevel) {
-			_, file, line, _ := runtime.Caller(1)
-			logrus.Debugf("API service shutdown by %s:%d, %d/%d connection(s)",
-				file, line, s.idleTracker.ActiveConnections(), s.idleTracker.TotalConnections())
-		}
+		logrus.Debugf("API service shutdown, %d/%d connection(s)",
+			s.idleTracker.ActiveConnections(), s.idleTracker.TotalConnections())
 
 		// Gracefully shutdown server(s), duration of wait same as idle window
-		ctx, cancel := context.WithTimeout(context.Background(), s.idleTracker.Duration)
+		deadline := 1 * time.Second
+		if s.idleTracker.Duration > 0 {
+			deadline = s.idleTracker.Duration
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), deadline)
 		go func() {
 			defer cancel()
 
@@ -296,7 +300,6 @@ func (s *APIServer) Shutdown(halt bool) error {
 		}()
 		<-ctx.Done()
 	})
-
 	return nil
 }
 

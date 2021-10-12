@@ -65,7 +65,7 @@ var _ = Describe("podman system service", func() {
 
 			pprofPort := randomPort()
 			session := podmanTest.Podman([]string{
-				"system", "service", "--log-level=info", "--time=0",
+				"system", "service", "--log-level=debug", "--time=0",
 				"--pprof-address=localhost:" + pprofPort, address.String(),
 			})
 			defer session.Kill()
@@ -91,7 +91,7 @@ var _ = Describe("podman system service", func() {
 			Expect(body).ShouldNot(BeEmpty())
 
 			session.Interrupt().Wait(2 * time.Second)
-			Eventually(session, 2).Should(Exit(1))
+			Eventually(session).Should(Exit(1))
 		})
 
 		It("are not available", func() {
@@ -103,7 +103,7 @@ var _ = Describe("podman system service", func() {
 			}
 
 			session := podmanTest.Podman([]string{
-				"system", "service", "--log-level=info", "--time=0", address.String(),
+				"system", "service", "--log-level=debug", "--time=0", address.String(),
 			})
 			defer session.Kill()
 
@@ -113,7 +113,7 @@ var _ = Describe("podman system service", func() {
 			Expect(session.Err.Contents()).ShouldNot(ContainSubstring(magicComment))
 
 			session.Interrupt().Wait(2 * time.Second)
-			Eventually(session, 2).Should(Exit(1))
+			Eventually(session).Should(Exit(1))
 		})
 	})
 })
