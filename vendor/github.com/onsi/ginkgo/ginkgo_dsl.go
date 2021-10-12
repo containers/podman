@@ -73,9 +73,15 @@ func GinkgoRandomSeed() int64 {
 	return config.GinkgoConfig.RandomSeed
 }
 
-//GinkgoParallelNode returns the parallel node number for the current ginkgo process
-//The node number is 1-indexed
+//GinkgoParallelNode is deprecated, use GinkgoParallelProcess instead
 func GinkgoParallelNode() int {
+	deprecationTracker.TrackDeprecation(types.Deprecations.ParallelNode(), codelocation.New(1))
+	return GinkgoParallelProcess()
+}
+
+//GinkgoParallelProcess returns the parallel process number for the current ginkgo process
+//The process number is 1-indexed
+func GinkgoParallelProcess() int {
 	return config.GinkgoConfig.ParallelNode
 }
 
@@ -109,6 +115,7 @@ func GinkgoT(optionalOffset ...int) GinkgoTInterface {
 //in the testing package's T.
 type GinkgoTInterface interface {
 	Cleanup(func())
+	Setenv(key, value string)
 	Error(args ...interface{})
 	Errorf(format string, args ...interface{})
 	Fail()

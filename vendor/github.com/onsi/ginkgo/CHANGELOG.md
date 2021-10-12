@@ -1,3 +1,10 @@
+## 1.16.5
+
+Ginkgo 2.0 now has a Release Candidate.  1.16.5 advertises the existence of the RC.
+1.16.5 deprecates GinkgoParallelNode in favor of GinkgoParallelProcess
+
+You can silence the RC advertisement by setting an `ACK_GINKG_RC=true` environment variable or creating a file in your home directory called `.ack-ginkgo-rc`
+
 ## 1.16.4
 
 ### Fixes

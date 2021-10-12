@@ -34,6 +34,11 @@ func (t *ginkgoTestingTProxy) Cleanup(func()) {
 	// No-op
 }
 
+func (t *ginkgoTestingTProxy) Setenv(kev, value string) {
+	fmt.Println("Setenv is a noop for Ginkgo at the moment but will be implemented in V2")
+	// No-op until Cleanup is implemented
+}
+
 func (t *ginkgoTestingTProxy) Error(args ...interface{}) {
 	t.fail(fmt.Sprintln(args...), t.offset)
 }

@@ -1,6 +1,6 @@
 module github.com/onsi/ginkgo
 
-go 1.15
+go 1.16
 
 require (
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0

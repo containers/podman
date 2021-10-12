@@ -36,6 +36,7 @@ func BuildGenerateCommand() *Command {
 		},
 		Command: func(args []string, additionalArgs []string) {
 			generateSpec(args, agouti, noDot, internal, customTestFile)
+			emitRCAdvertisement()
 		},
 	}
 }
