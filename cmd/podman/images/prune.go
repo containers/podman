@@ -36,6 +36,11 @@ var (
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: pruneCmd,
+		Parent:  buildxCmd,
+	})
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Command: pruneCmd,
 		Parent:  imageCmd,
 	})
 
