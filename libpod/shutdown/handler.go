@@ -5,9 +5,10 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
+	logrusImport "github.com/sirupsen/logrus"
 )
 
 var (
@@ -25,6 +26,7 @@ var (
 	// Ordering that on-shutdown handlers will be invoked.
 	handlerOrder    []string
 	shutdownInhibit sync.RWMutex
+	logrus          = logrusImport.WithField("PID", os.Getpid())
 )
 
 // Start begins handling SIGTERM and SIGINT and will run the given on-signal
@@ -44,25 +46,31 @@ func Start() error {
 	go func() {
 		select {
 		case <-cancelChan:
+			logrus.Infof("Received shutdown.Stop(), terminating!")
 			signal.Stop(sigChan)
 			close(sigChan)
 			close(cancelChan)
 			stopped = true
 			return
 		case sig := <-sigChan:
-			logrus.Infof("Received shutdown signal %v, terminating!", sig)
+			logrus.Infof("Received shutdown signal %q, terminating!", sig.String())
 			shutdownInhibit.Lock()
 			handlerLock.Lock()
+
 			for _, name := range handlerOrder {
 				handler, ok := handlers[name]
 				if !ok {
-					logrus.Errorf("Shutdown handler %s definition not found!", name)
+					logrus.Errorf("Shutdown handler %q definition not found!", name)
 					continue
 				}
-				logrus.Infof("Invoking shutdown handler %s", name)
+
+				logrus.Infof("Invoking shutdown handler %q", name)
+				start := time.Now()
 				if err := handler(sig); err != nil {
-					logrus.Errorf("Running shutdown handler %s: %v", name, err)
+					logrus.Errorf("Running shutdown handler %q: %v", name, err)
 				}
+				logrus.Debugf("Completed shutdown handler %q, duration %v", name,
+					time.Since(start).Round(time.Second))
 			}
 			handlerLock.Unlock()
 			shutdownInhibit.Unlock()
