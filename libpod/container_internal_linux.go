@@ -2016,7 +2016,7 @@ func (c *Container) generateHosts(path string) (string, error) {
 }
 
 // based on networking mode we may want to append the localhost
-// if there isn't any record for it and also this shoud happen
+// if there isn't any record for it and also this should happen
 // in slirp4netns and similar network modes.
 func (c *Container) appendLocalhost(hosts string) string {
 	if !strings.Contains(hosts, "localhost") &&

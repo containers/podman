@@ -137,7 +137,7 @@ type NetInterface struct {
 	MacAddress net.HardwareAddr `json:"mac_address"`
 }
 
-// NetAddress contains the subnet and gatway.
+// NetAddress contains the subnet and gateway.
 type NetAddress struct {
 	// Subnet of this NetAddress. Note that the subnet contains the
 	// actual ip of the net interface and not the network address.

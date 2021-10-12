@@ -22,7 +22,7 @@ Print usage statement
 ## EXAMPLES
 
 ```
-$ gunzip -c hellow.tar.gz | podman volume import myvol -
+$ gunzip -c hello.tar.gz | podman volume import myvol -
 ```
 ```
 $ podman volume import myvol test.tar

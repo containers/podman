@@ -15,7 +15,7 @@ Note: Long running command of `podman pod log` with a `-f` or `--follow` needs t
 
 #### **--container**, **-c**
 
-By default `podman pod logs` retrives logs for all the containers available within the pod differentiate by field `container`. However there are use-cases where user would want to limit the log stream only to a particular container of a pod for such cases `-c` can be used like `podman pod logs -c ctrNameorID podname`.
+By default `podman pod logs` retrieves logs for all the containers available within the pod differentiate by field `container`. However there are use-cases where user would want to limit the log stream only to a particular container of a pod for such cases `-c` can be used like `podman pod logs -c ctrNameorID podname`.
 
 #### **--follow**, **-f**
 
