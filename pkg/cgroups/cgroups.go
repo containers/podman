@@ -129,8 +129,8 @@ func init() {
 func getAvailableControllers(exclude map[string]controllerHandler, cgroup2 bool) ([]controller, error) {
 	if cgroup2 {
 		controllers := []controller{}
-		subtreeControl := cgroupRoot + "/cgroup.subtree_control"
-		// rootless cgroupv2: check available controllers for current user ,systemd or servicescope will inherit
+		controllersFile := cgroupRoot + "/cgroup.controllers"
+		// rootless cgroupv2: check available controllers for current user, systemd or servicescope will inherit
 		if rootless.IsRootless() {
 			userSlice, err := getCgroupPathForCurrentProcess()
 			if err != nil {
@@ -138,13 +138,13 @@ func getAvailableControllers(exclude map[string]controllerHandler, cgroup2 bool)
 			}
 			//userSlice already contains '/' so not adding here
 			basePath := cgroupRoot + userSlice
-			subtreeControl = fmt.Sprintf("%s/cgroup.subtree_control", basePath)
+			controllersFile = fmt.Sprintf("%s/cgroup.controllers", basePath)
 		}
-		subtreeControlBytes, err := ioutil.ReadFile(subtreeControl)
+		controllersFileBytes, err := ioutil.ReadFile(controllersFile)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed while reading controllers for cgroup v2 from %q", subtreeControl)
+			return nil, errors.Wrapf(err, "failed while reading controllers for cgroup v2 from %q", controllersFile)
 		}
-		for _, controllerName := range strings.Fields(string(subtreeControlBytes)) {
+		for _, controllerName := range strings.Fields(string(controllersFileBytes)) {
 			c := controller{
 				name:    controllerName,
 				symlink: false,
