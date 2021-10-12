@@ -1,23 +1,18 @@
 ![Ginkgo: A Go BDD Testing Framework](https://onsi.github.io/ginkgo/images/ginkgo.png)
 
-[![Build Status](https://travis-ci.org/onsi/ginkgo.svg?branch=master)](https://travis-ci.org/onsi/ginkgo)
 [![test](https://github.com/onsi/ginkgo/workflows/test/badge.svg?branch=master)](https://github.com/onsi/ginkgo/actions?query=workflow%3Atest+branch%3Amaster)
 
 Jump to the [docs](https://onsi.github.io/ginkgo/) | [中文文档](https://ke-chain.github.io/ginkgodoc) to learn more.  To start rolling your Ginkgo tests *now* [keep reading](#set-me-up)!
 
 If you have a question, comment, bug report, feature request, etc. please open a GitHub issue, or visit the [Ginkgo Slack channel](https://app.slack.com/client/T029RQSE6/CQQ50BBNW).
 
-# Ginkgo 2.0 is coming soon!
+# Ginkgo 2.0 Release Candidate is available!
 
-An effort is underway to develop and deliver Ginkgo 2.0.  The work is happening in the [v2](https://github.com/onsi/ginkgo/tree/v2) branch and a changelog and migration guide is being maintained on that branch [here](https://github.com/onsi/ginkgo/blob/v2/docs/MIGRATING_TO_V2.md).  Issue [#711](https://github.com/onsi/ginkgo/issues/711) is the central place for discussion and links to the original [proposal doc](https://docs.google.com/document/d/1h28ZknXRsTLPNNiOjdHIO-F2toCzq4xoZDXbfYaBdoQ/edit#).
+An effort is underway to develop and deliver Ginkgo 2.0.  The work is happening in the [ver2](https://github.com/onsi/ginkgo/tree/ver2) branch and a changelog and migration guide is being maintained on that branch [here](https://github.com/onsi/ginkgo/blob/ver2/docs/MIGRATING_TO_V2.md).  Issue [#711](https://github.com/onsi/ginkgo/issues/711) is the central place for discussion.
 
-As described in the [changelog](https://github.com/onsi/ginkgo/blob/v2/docs/MIGRATING_TO_V2.md) and [proposal](https://docs.google.com/document/d/1h28ZknXRsTLPNNiOjdHIO-F2toCzq4xoZDXbfYaBdoQ/edit#), Ginkgo 2.0 will clean up the Ginkgo codebase, deprecate and remove some v1 functionality, and add several new much-requested features.  To help users get ready for the migration, Ginkgo v1 has started emitting deprecation warnings for features that will no longer be supported with links to documentation for how to migrate away from these features.  If you have concerns or comments please chime in on [#711](https://github.com/onsi/ginkgo/issues/711).
+As described in the [changelog](https://github.com/onsi/ginkgo/blob/ver2/docs/MIGRATING_TO_V2.md) and [proposal](https://docs.google.com/document/d/1h28ZknXRsTLPNNiOjdHIO-F2toCzq4xoZDXbfYaBdoQ/edit#), Ginkgo 2.0 will clean up the Ginkgo codebase, deprecate and remove some v1 functionality, and add several new much-requested features.  To help users get ready for the migration, Ginkgo v1 has started emitting deprecation warnings for features that will no longer be supported with links to documentation for how to migrate away from these features.  If you have concerns or comments please chime in on [#711](https://github.com/onsi/ginkgo/issues/711).
 
-The current timeline for completion of 2.0 looks like:
-
-- Early April 2021: first public release of 2.0, deprecation warnings land in v1.
-- May 2021: first beta/rc of 2.0 with most new functionality in place.
-- June/July 2021: 2.0 ships and fully replaces the 1.x codebase on master.
+Please start exploring and using the V2 release!  To get started follow the [Using the Release Candidate](https://github.com/onsi/ginkgo/blob/ver2/docs/MIGRATING_TO_V2.md#using-the-beta) directions in the migration guide.
 
 ## TLDR
 Ginkgo builds on Go's `testing` package, allowing expressive [Behavior-Driven Development](https://en.wikipedia.org/wiki/Behavior-driven_development) ("BDD") style tests.

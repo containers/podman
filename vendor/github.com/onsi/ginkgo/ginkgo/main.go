@@ -131,9 +131,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/onsi/ginkgo/config"
+	"github.com/onsi/ginkgo/formatter"
 	"github.com/onsi/ginkgo/ginkgo/testsuite"
 )
 
@@ -243,6 +245,7 @@ func usageForCommand(command *Command, longForm bool) {
 
 func complainAndQuit(complaint string) {
 	fmt.Fprintf(os.Stderr, "%s\nFor usage instructions:\n\tginkgo help\n", complaint)
+	emitRCAdvertisement()
 	os.Exit(1)
 }
 
@@ -305,4 +308,30 @@ func pluralizedWord(singular, plural string, count int) string {
 		return singular
 	}
 	return plural
+}
+
+func emitRCAdvertisement() {
+	ackRC := os.Getenv("ACK_GINKGO_RC")
+	if ackRC != "" {
+		return
+	}
+	home, err := os.UserHomeDir()
+	if err == nil {
+		_, err := os.Stat(filepath.Join(home, ".ack-ginkgo-rc"))
+		if err == nil {
+			return
+		}
+	}
+
+	out := formatter.F("\n{{light-yellow}}Ginkgo 2.0 is coming soon!{{/}}\n")
+	out += formatter.F("{{light-yellow}}=========================={{/}}\n")
+	out += formatter.F("{{bold}}{{green}}Ginkgo 2.0{{/}} is under active development and will introduce several new features, improvements, and a small handful of breaking changes.\n")
+	out += formatter.F("A release candidate for 2.0 is now available and 2.0 should GA in Fall 2021.  {{bold}}Please give the RC a try and send us feedback!{{/}}\n")
+	out += formatter.F("  - To learn more, view the migration guide at {{cyan}}{{underline}}https://github.com/onsi/ginkgo/blob/ver2/docs/MIGRATING_TO_V2.md{{/}}\n")
+	out += formatter.F("  - For instructions on using the Release Candidate visit {{cyan}}{{underline}}https://github.com/onsi/ginkgo/blob/ver2/docs/MIGRATING_TO_V2.md#using-the-beta{{/}}\n")
+	out += formatter.F("  - To comment, chime in at {{cyan}}{{underline}}https://github.com/onsi/ginkgo/issues/711{{/}}\n\n")
+	out += formatter.F("To {{bold}}{{coral}}silence this notice{{/}}, set the environment variable: {{bold}}ACK_GINKGO_RC=true{{/}}\n")
+	out += formatter.F("Alternatively you can: {{bold}}touch $HOME/.ack-ginkgo-rc{{/}}")
+
+	fmt.Println(out)
 }

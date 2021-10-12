@@ -161,6 +161,7 @@ func (r *SpecRunner) RunSpecs(args []string, additionalArgs []string) {
 		}
 	} else {
 		fmt.Printf("Test Suite Failed\n")
+		emitRCAdvertisement()
 		os.Exit(1)
 	}
 }
