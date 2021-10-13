@@ -50,6 +50,7 @@ import (
 	runcuser "github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -390,11 +391,11 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			for _, o := range namedVol.Options {
 				switch o {
 				case "U":
-					if err := chown.ChangeHostPathOwnership(mountPoint, true, int(hostUID), int(hostGID)); err != nil {
+					if err := c.ChangeHostPathOwnership(mountPoint, true, int(hostUID), int(hostGID)); err != nil {
 						return nil, err
 					}
 
-					if err := chown.ChangeHostPathOwnership(contentDir, true, int(hostUID), int(hostGID)); err != nil {
+					if err := c.ChangeHostPathOwnership(contentDir, true, int(hostUID), int(hostGID)); err != nil {
 						return nil, err
 					}
 				}
@@ -423,14 +424,15 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 				if m.Type == "tmpfs" {
 					options = append(options, []string{fmt.Sprintf("uid=%d", execUser.Uid), fmt.Sprintf("gid=%d", execUser.Gid)}...)
 				} else {
-					if err := chown.ChangeHostPathOwnership(m.Source, true, int(hostUID), int(hostGID)); err != nil {
+					// only chown on initial creation of container
+					if err := c.ChangeHostPathOwnership(m.Source, true, int(hostUID), int(hostGID)); err != nil {
 						return nil, err
 					}
 				}
 			case "z":
 				fallthrough
 			case "Z":
-				if err := label.Relabel(m.Source, c.MountLabel(), label.IsShared(o)); err != nil {
+				if err := c.relabel(m.Source, c.MountLabel(), label.IsShared(o)); err != nil {
 					return nil, err
 				}
 
@@ -477,11 +479,11 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		for _, o := range overlayVol.Options {
 			switch o {
 			case "U":
-				if err := chown.ChangeHostPathOwnership(overlayVol.Source, true, int(hostUID), int(hostGID)); err != nil {
+				if err := c.ChangeHostPathOwnership(overlayVol.Source, true, int(hostUID), int(hostGID)); err != nil {
 					return nil, err
 				}
 
-				if err := chown.ChangeHostPathOwnership(contentDir, true, int(hostUID), int(hostGID)); err != nil {
+				if err := c.ChangeHostPathOwnership(contentDir, true, int(hostUID), int(hostGID)); err != nil {
 					return nil, err
 				}
 			}
@@ -1709,13 +1711,13 @@ func (c *Container) makeBindMounts() error {
 		}
 
 		if c.state.BindMounts["/etc/hosts"] != "" {
-			if err := label.Relabel(c.state.BindMounts["/etc/hosts"], c.config.MountLabel, true); err != nil {
+			if err := c.relabel(c.state.BindMounts["/etc/hosts"], c.config.MountLabel, true); err != nil {
 				return err
 			}
 		}
 
 		if c.state.BindMounts["/etc/resolv.conf"] != "" {
-			if err := label.Relabel(c.state.BindMounts["/etc/resolv.conf"], c.config.MountLabel, true); err != nil {
+			if err := c.relabel(c.state.BindMounts["/etc/resolv.conf"], c.config.MountLabel, true); err != nil {
 				return err
 			}
 		}
@@ -1997,7 +1999,7 @@ func (c *Container) generateResolvConf() (string, error) {
 	}
 
 	// Relabel resolv.conf for the container
-	if err := label.Relabel(destPath, c.config.MountLabel, true); err != nil {
+	if err := c.relabel(destPath, c.config.MountLabel, true); err != nil {
 		return "", err
 	}
 
@@ -2614,7 +2616,7 @@ func (c *Container) copyTimezoneFile(zonePath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err := label.Relabel(localtimeCopy, c.config.MountLabel, false); err != nil {
+	if err := c.relabel(localtimeCopy, c.config.MountLabel, false); err != nil {
 		return "", err
 	}
 	if err := dest.Chown(c.RootUID(), c.RootGID()); err != nil {
@@ -2748,4 +2750,38 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 		}
 	}
 	return nil
+}
+
+func (c *Container) relabel(src, mountLabel string, recurse bool) error {
+	if !selinux.GetEnabled() || mountLabel == "" {
+		return nil
+	}
+	// only relabel on initial creation of container
+	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateUnknown) {
+		label, err := label.FileLabel(src)
+		if err != nil {
+			return err
+		}
+		// If labels are different, might be on a tmpfs
+		if label == mountLabel {
+			return nil
+		}
+	}
+	return label.Relabel(src, mountLabel, recurse)
+}
+
+func (c *Container) ChangeHostPathOwnership(src string, recurse bool, uid, gid int) error {
+	// only chown on initial creation of container
+	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateUnknown) {
+		st, err := os.Stat(src)
+		if err != nil {
+			return err
+		}
+
+		// If labels are different, might be on a tmpfs
+		if int(st.Sys().(*syscall.Stat_t).Uid) == uid && int(st.Sys().(*syscall.Stat_t).Gid) == gid {
+			return nil
+		}
+	}
+	return chown.ChangeHostPathOwnership(src, recurse, uid, gid)
 }

@@ -27,9 +27,9 @@ function check_label() {
     is "$type" "$1" "SELinux type"
 
     if [ -n "$2" ]; then
-        # e.g. from the above example -> "s0:c45,c745"
-        range=$(cut -d: -f4,5 <<<"$context")
-        is "$range" "$2^@" "SELinux range"
+	# e.g. from the above example -> "s0:c45,c745"
+	range=$(cut -d: -f4,5 <<<"$context")
+	is "$range" "$2^@" "SELinux range"
     fi
 }
 
@@ -66,9 +66,9 @@ function check_label() {
     # FIXME this test fails when run rootless with runc:
     #   Error: container_linux.go:367: starting container process caused: process_linux.go:495: container init caused: readonly path /proc/asound: operation not permitted: OCI permission denied
     if is_rootless; then
-        runtime=$(podman_runtime)
-        test "$runtime" == "crun" \
-            || skip "runtime is $runtime; this test requires crun"
+	runtime=$(podman_runtime)
+	test "$runtime" == "crun" \
+	    || skip "runtime is $runtime; this test requires crun"
     fi
 
     check_label "--pid=host" "spc_t"
@@ -96,10 +96,10 @@ function check_label() {
     skip_if_no_selinux
 
     run_podman run -d --name myc \
-               --security-opt seccomp=unconfined \
-               --security-opt label=type:spc_t \
-               --security-opt label=level:s0 \
-               $IMAGE sh -c 'while test ! -e /stop; do sleep 0.1; done'
+	       --security-opt seccomp=unconfined \
+	       --security-opt label=type:spc_t \
+	       --security-opt label=level:s0 \
+	       $IMAGE sh -c 'while test ! -e /stop; do sleep 0.1; done'
     run_podman inspect --format='{{ .HostConfig.SecurityOpt }}' myc
     is "$output" "[label=type:spc_t,label=level:s0 seccomp=unconfined]" \
       "'podman inspect' preserves all --security-opts"
@@ -118,7 +118,7 @@ function check_label() {
     skip_if_rootless_cgroupsv1
 
     if [[ $(podman_runtime) == "runc" ]]; then
-        skip "some sort of runc bug, not worth fixing (#11784)"
+	skip "some sort of runc bug, not worth fixing (#11784)"
     fi
 
     run_podman run -d --name myctr $IMAGE top
@@ -136,7 +136,7 @@ function check_label() {
     # net NS: do not share context
     run_podman run --rm --net container:myctr $IMAGE cat -v /proc/self/attr/current
     if [[ "$output" = "$context_c1" ]]; then
-        die "run --net : context ($output) is same as running container (it should not be)"
+	die "run --net : context ($output) is same as running container (it should not be)"
     fi
 
     # The 'myctr2' above was not run with --rm, so it still exists, and
@@ -158,8 +158,8 @@ function check_label() {
 
     # We don't need a fullblown pause container; avoid pulling the k8s one
     run_podman pod create --name myselinuxpod \
-               --infra-image $IMAGE \
-               --infra-command /home/podman/pause
+	       --infra-image $IMAGE \
+	       --infra-command /home/podman/pause
 
     # Get baseline
     run_podman run --rm --pod myselinuxpod $IMAGE cat -v /proc/self/attr/current
@@ -190,7 +190,7 @@ function check_label() {
     # Even after #7902, labels (':c123,c456') should be different
     run_podman run --rm --pod myselinuxpod $IMAGE cat -v /proc/self/attr/current
     if [[ "$output" = "$context_c1" ]]; then
-        die "context ($output) is the same on two separate containers, it should have been different"
+	die "context ($output) is the same on two separate containers, it should have been different"
     fi
 
     run_podman pod rm myselinuxpod
@@ -203,12 +203,12 @@ function check_label() {
     # runc and crun emit different diagnostics
     runtime=$(podman_runtime)
     case "$runtime" in
-        # crun 0.20.1 changes the error message
-        #   from /proc/thread-self/attr/exec`: .* unable to assign
-        #   to   /proc/self/attr/keycreate`: .* unable to process
-        crun) expect="\`/proc/.*\`: OCI runtime error: unable to \(assign\|process\) security attribute" ;;
-        runc) expect="OCI runtime error: .*: failed to set /proc/self/attr/keycreate on procfs" ;;
-        *)    skip "Unknown runtime '$runtime'";;
+	# crun 0.20.1 changes the error message
+	#   from /proc/thread-self/attr/exec`: .* unable to assign
+	#   to   /proc/self/attr/keycreate`: .* unable to process
+	crun) expect="\`/proc/.*\`: OCI runtime error: unable to \(assign\|process\) security attribute" ;;
+	runc) expect="OCI runtime error: .*: failed to set /proc/self/attr/keycreate on procfs" ;;
+	*)    skip "Unknown runtime '$runtime'";;
     esac
 
     # The '.*' in the error below is for dealing with podman-remote, which
@@ -223,7 +223,7 @@ function check_label() {
     LABEL="system_u:object_r:tmp_t:s0"
     RELABEL="system_u:object_r:container_file_t:s0"
     tmpdir=$PODMAN_TMPDIR/vol
-    touch $tmpdir
+    mkdir -p $tmpdir
     chcon -vR ${LABEL} $tmpdir
     ls -Z $tmpdir
 
@@ -239,12 +239,36 @@ function check_label() {
     run ls -dZ $tmpdir
     is "$output" "${RELABEL} $tmpdir" "Privileged Relabel Correctly"
 
-    run_podman run -v $tmpdir:/test:Z $IMAGE cat /proc/self/attr/current
+    run_podman run --name label -v $tmpdir:/test:Z $IMAGE cat /proc/self/attr/current
     level=$(secon -l $output)
     run ls -dZ $tmpdir
     is "$output" "system_u:object_r:container_file_t:$level $tmpdir" \
        "Confined Relabel Correctly"
 
+    if is_rootless; then
+       run_podman unshare touch $tmpdir/test1
+       # Relabel entire directory
+       run_podman unshare chcon system_u:object_r:usr_t:s0 $tmpdir
+       run_podman start --attach label
+       newlevel=$(secon -l $output)
+       is "$level" "$newlevel" "start should relabel with same SELinux labels"
+       run ls -dZ $tmpdir
+       is "$output" "system_u:object_r:container_file_t:$level $tmpdir" \
+	  "Confined Relabel Correctly"
+	run ls -dZ $tmpdir/test1
+	is "$output" "system_u:object_r:container_file_t:$level $tmpdir/test1" \
+	   "Start did not Relabel"
+
+	# Relabel only file in subdir
+	run_podman unshare chcon system_u:object_r:usr_t:s0 $tmpdir/test1
+	run_podman start --attach label
+	newlevel=$(secon -l $output)
+	is "$level" "$newlevel" "start should use same SELinux labels"
+
+	run ls -dZ $tmpdir/test1
+	is "$output" "system_u:object_r:usr_t:s0 $tmpdir/test1" \
+	   "Start did not Relabel"
+    fi
     run_podman run -v $tmpdir:/test:z $IMAGE cat /proc/self/attr/current
     run ls -dZ $tmpdir
     is "$output" "${RELABEL} $tmpdir" "Shared Relabel Correctly"
