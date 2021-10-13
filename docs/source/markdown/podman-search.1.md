@@ -37,6 +37,11 @@ Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
 environment variable. `export REGISTRY_AUTH_FILE=path`
 
+#### **--compatible**
+
+After the name and the description, also show the stars, official and automated descriptors as Docker does.
+Podman does not show these decsriptors by default since they are not supported by most public container registries.
+
 #### **--filter**, **-f**=*filter*
 
 Filter output based on conditions provided (default [])
@@ -97,71 +102,38 @@ Print usage statement
 ## EXAMPLES
 
 ```
-$ podman search --limit 3 rhel
-INDEX        NAME                                 DESCRIPTION                                       STARS   OFFICIAL   AUTOMATED
-docker.io    docker.io/richxsl/rhel7              RHEL 7 image with minimal installation            9
-docker.io    docker.io/bluedata/rhel7             RHEL-7.x base container images                    1
-docker.io    docker.io/gidikern/rhel-oracle-jre   RHEL7 with jre8u60                                5                  [OK]
-redhat.com   redhat.com/rhel                      This platform image provides a minimal runti...   0
-redhat.com   redhat.com/rhel6                     This platform image provides a minimal runti...   0
-redhat.com   redhat.com/rhel6.5                   This platform image provides a minimal runti...   0
+$ podman search --limit 3 fedora
+NAME                                     DESCRIPTION
+registry.centos.org/centos
+registry.centos.org/cdrage/mosh-centos7
+registry.centos.org/centos/bind
+docker.io/library/centos                 The official build of CentOS.
+docker.io/jdeathe/centos-ssh             OpenSSH / Supervisor / EPEL/IUS/SCL Repos - ...
+docker.io/ansible/centos7-ansible        Ansible on Centos7
+quay.io/centos/centos                    The official CentOS base containers.
+quay.io/ukhomeofficedigital/centos-base
+quay.io/quarkus/centos-quarkus-maven     Quarkus.io builder image for building Quarku...
+```
+
+Note that the Stars, Official and Automated descriptors are only available on Docker Hub and are hence not displayed by default.
+```
+$ podman search --format "{{.Name}}\t{{.Stars}}\t{{.Official}}" alpine --limit 3
+docker.io/library/alpine       7956        [OK]
+docker.io/alpine/git           192
+docker.io/anapsix/alpine-java  474
+quay.io/libpod/alpine          0
+quay.io/vqcomms/alpine-tools   0
+quay.io/wire/alpine-deps       0
 ```
 
 ```
-$ podman search alpine
-INDEX       NAME                                             DESCRIPTION                                       STARS   OFFICIAL   AUTOMATED
-docker.io   docker.io/library/alpine                         A minimal Docker image based on Alpine Linux...   3009    [OK]
-docker.io   docker.io/mhart/alpine-node                      Minimal Node.js built on Alpine Linux             332
-docker.io   docker.io/anapsix/alpine-java                    Oracle Java 8 (and 7) with GLIBC 2.23 over A...   272                [OK]
-docker.io   docker.io/tenstartups/alpine                     Alpine linux base docker image with useful p...   5                  [OK]
-```
+$ podman search --list-tags registry.access.redhat.com/ubi8 --limit 4
+NAME                             TAG
+registry.access.redhat.com/ubi8  8.4-211
+registry.access.redhat.com/ubi8  8.4-206.1626828523-source
+registry.access.redhat.com/ubi8  8.4-199
+registry.access.redhat.com/ubi8  8.4-211-source
 
-```
-$ podman search registry.fedoraproject.org/fedora
-INDEX               NAME                               DESCRIPTION   STARS   OFFICIAL   AUTOMATED
-fedoraproject.org   fedoraproject.org/fedora                         0
-fedoraproject.org   fedoraproject.org/fedora-minimal                 0
-```
-
-```
-$ podman search --filter=is-official alpine
-INDEX       NAME                       DESCRIPTION                                       STARS   OFFICIAL   AUTOMATED
-docker.io   docker.io/library/alpine   A minimal Docker image based on Alpine Linux...   3009    [OK]
-```
-
-```
-$ podman search --format "table {{.Index}} {{.Name}}" registry.fedoraproject.org/fedora
-INDEX               NAME
-fedoraproject.org   fedoraproject.org/fedora
-fedoraproject.org   fedoraproject.org/fedora-minimal
-```
-
-```
-$ podman search registry.fedoraproject.org/
-INDEX               NAME                                                           DESCRIPTION   STARS   OFFICIAL   AUTOMATED
-fedoraproject.org   registry.fedoraproject.org/f25/cockpit                                       0
-fedoraproject.org   registry.fedoraproject.org/f25/container-engine                              0
-fedoraproject.org   registry.fedoraproject.org/f25/docker                                        0
-fedoraproject.org   registry.fedoraproject.org/f25/etcd                                          0
-fedoraproject.org   registry.fedoraproject.org/f25/flannel                                       0
-fedoraproject.org   registry.fedoraproject.org/f25/httpd                                         0
-fedoraproject.org   registry.fedoraproject.org/f25/kubernetes-apiserver                          0
-fedoraproject.org   registry.fedoraproject.org/f25/kubernetes-controller-manager                 0
-fedoraproject.org   registry.fedoraproject.org/f25/kubernetes-kubelet                            0
-fedoraproject.org   registry.fedoraproject.org/f25/kubernetes-master                             0
-fedoraproject.org   registry.fedoraproject.org/f25/kubernetes-node                               0
-fedoraproject.org   registry.fedoraproject.org/f25/kubernetes-proxy                              0
-fedoraproject.org   registry.fedoraproject.org/f25/kubernetes-scheduler                          0
-fedoraproject.org   registry.fedoraproject.org/f25/mariadb                                       0
-```
-
-```
-$ podman search --list-tags  registry.redhat.io/rhel
-NAME                      TAG
-registry.redhat.io/rhel   7.3-74
-registry.redhat.io/rhel   7.6-301
-registry.redhat.io/rhel   7.1-9
-...
 ```
 Note: This works only with registries that implement the v2 API. If tried with a v1 registry an error will be returned.
 

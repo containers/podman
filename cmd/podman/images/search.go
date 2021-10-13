@@ -20,6 +20,7 @@ import (
 type searchOptionsWrapper struct {
 	entities.ImageSearchOptions
 	// CLI only flags
+	Compatible   bool   // Docker compat
 	TLSVerifyCLI bool   // Used to convert to an optional bool later
 	Format       string // For go templating
 }
@@ -92,6 +93,7 @@ func searchFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(limitFlagName, completion.AutocompleteNone)
 
 	flags.Bool("no-trunc", true, "Do not truncate the output. Default: true")
+	flags.BoolVar(&searchOptions.Compatible, "compatible", false, "List stars, official and automated columns (Docker compatibility)")
 
 	authfileFlagName := "authfile"
 	flags.StringVar(&searchOptions.Authfile, authfileFlagName, auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
@@ -166,7 +168,11 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 		renderHeaders = report.HasTable(searchOptions.Format)
 		row = report.NormalizeFormat(searchOptions.Format)
 	default:
-		row = "{{.Index}}\t{{.Name}}\t{{.Description}}\t{{.Stars}}\t{{.Official}}\t{{.Automated}}\n"
+		row = "{{.Name}}\t{{.Description}}"
+		if searchOptions.Compatible {
+			row += "\t{{.Stars}}\t{{.Official}}\t{{.Automated}}"
+		}
+		row += "\n"
 	}
 	format := report.EnforceRange(row)
 
