@@ -2,9 +2,9 @@ package util
 
 import "net"
 
-// GetLiveNetworkSubnets returns a slice of subnets representing what the system
+// getLiveNetworkSubnets returns a slice of subnets representing what the system
 // has defined as network interfaces
-func GetLiveNetworkSubnets() ([]*net.IPNet, error) {
+func getLiveNetworkSubnets() ([]*net.IPNet, error) {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		return nil, err

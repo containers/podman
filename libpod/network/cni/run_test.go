@@ -1232,7 +1232,7 @@ var _ = Describe("run CNI", func() {
 				}
 				_, err := libpodNet.Setup(netNSContainer.Path(), setupOpts)
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("network somenet: network not found"))
+				Expect(err.Error()).To(ContainSubstring("unable to find network with name or ID somenet: network not found"))
 			})
 		})
 
