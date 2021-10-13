@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/env"
@@ -468,11 +469,23 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 
 	kubeContainer.Name = removeUnderscores(c.Name())
 	_, image := c.Image()
+
+	// The infra container may have been created with an overlay root FS
+	// instead of an infra image.  If so, set the imageto the default K8s
+	// pause one and make sure it's in the storage by pulling it down if
+	// missing.
+	if image == "" && c.IsInfra() {
+		image = config.DefaultInfraImage
+		if _, err := c.runtime.libimageRuntime.Pull(ctx, image, config.PullPolicyMissing, nil); err != nil {
+			return kubeContainer, nil, nil, nil, err
+		}
+	}
+
 	kubeContainer.Image = image
 	kubeContainer.Stdin = c.Stdin()
 	img, _, err := c.runtime.libimageRuntime.LookupImage(image, nil)
 	if err != nil {
-		return kubeContainer, kubeVolumes, nil, annotations, err
+		return kubeContainer, kubeVolumes, nil, annotations, fmt.Errorf("looking up image %q of container %q: %w", image, c.ID(), err)
 	}
 	imgData, err := img.Inspect(ctx, nil)
 	if err != nil {

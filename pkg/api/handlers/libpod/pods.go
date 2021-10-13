@@ -1,15 +1,12 @@
 package libpod
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 
-	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/api/handlers"
@@ -67,20 +64,6 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 			imageName = config.DefaultInfraImage
 			rawImageName = config.DefaultInfraImage
 		}
-		curr := infraOptions.Quiet
-		infraOptions.Quiet = true
-		pullOptions := &libimage.PullOptions{}
-		pulledImages, err := runtime.LibimageRuntime().Pull(context.Background(), imageName, config.PullPolicyMissing, pullOptions)
-		if err != nil {
-			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "could not pull image"))
-			return
-		}
-		if _, err := alltransports.ParseImageName(imageName); err == nil {
-			if len(pulledImages) != 0 {
-				imageName = pulledImages[0].ID()
-			}
-		}
-		infraOptions.Quiet = curr
 		psg.InfraImage = imageName
 		psg.InfraContainerSpec.Image = imageName
 		psg.InfraContainerSpec.RawImageName = rawImageName
