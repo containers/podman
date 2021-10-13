@@ -251,7 +251,7 @@ spelled with complete minutiae.
       binaries under the "binary", then "bin" links.  Tar these files as
       `podman-static.tar.gz`.
    1. The `podman-vX.Y.Z.dmg` file is produced manually by someone in
-      posession of a developer signing key.
+      possession of a developer signing key.
    1. In the directory where you downloaded the archives, run
       `sha256sum *.tar.gz *.zip *.msi > shasums` to generate SHA sums.
    1. Go to `https://github.com/containers/podman/releases/tag/vX.Y.Z` and

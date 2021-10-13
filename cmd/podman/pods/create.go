@@ -132,7 +132,7 @@ func create(cmd *cobra.Command, args []string) error {
 		}
 		createOptions.Share = nil
 	} else {
-		// reassign certain optios for lbpod api, these need to be populated in spec
+		// reassign certain options for lbpod api, these need to be populated in spec
 		flags := cmd.Flags()
 		infraOptions.Net, err = common.NetFlagsToNetOptions(nil, *flags, false)
 		if err != nil {

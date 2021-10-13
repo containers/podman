@@ -445,7 +445,7 @@ var _ = Describe("Podman run", func() {
 		Expect(session.ErrorToString()).To(ContainSubstring("invalid image_copy_tmp_dir"))
 	})
 
-	It("podman system sevice --help shows (default 20)", func() {
+	It("podman system service --help shows (default 20)", func() {
 		SkipIfRemote("this test is only for local")
 		result := podmanTest.Podman([]string{"system", "service", "--help"})
 		result.WaitWithDefaultTimeout()

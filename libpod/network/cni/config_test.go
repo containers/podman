@@ -1313,7 +1313,7 @@ var _ = Describe("Config", func() {
 			Expect(networks).To(HaveLen(0))
 		})
 
-		It("crate bridge network with used interface name", func() {
+		It("create bridge network with used interface name", func() {
 			network := types.Network{
 				NetworkInterface: "cni-podman9",
 			}

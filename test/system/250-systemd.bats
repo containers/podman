@@ -153,7 +153,7 @@ function service_cleanup() {
     cname3=$(random_string)
     run_podman create --restart=on-failure:42 --name $cname3 $IMAGE
     run_podman generate systemd --new $cname3
-    is "$output" ".*Restart=on-failure.*" "on-failure:xx is parsed correclty"
+    is "$output" ".*Restart=on-failure.*" "on-failure:xx is parsed correctly"
     is "$output" ".*StartLimitBurst=42.*" "on-failure:xx is parsed correctly"
 
     run_podman rm -t 0 -f $cname $cname2 $cname3

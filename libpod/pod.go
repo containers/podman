@@ -390,7 +390,7 @@ func (p *Pod) InfraContainerID() (string, error) {
 	return p.infraContainerID()
 }
 
-// infraContainer is the unlocked versio of InfraContainer which returns the infra container
+// infraContainer is the unlocked version of InfraContainer which returns the infra container
 func (p *Pod) infraContainer() (*Container, error) {
 	id, err := p.infraContainerID()
 	if err != nil {
