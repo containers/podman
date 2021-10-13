@@ -185,6 +185,10 @@ ifdef HOMEBREW_PREFIX
 endif
 endif
 
+# For building pause/pause.c
+GCC ?= gcc
+PAUSE_CFLAGS = -Os -static -Wall -Werror -DVERSION=v$(RELEASE_VERSION)
+
 ###
 ### Primary entry-point targets
 ###
@@ -196,7 +200,7 @@ default: all
 all: binaries docs
 
 .PHONY: binaries
-binaries: podman podman-remote rootlessport ## Build podman, podman-remote and rootlessport binaries
+binaries: podman podman-remote rootlessport pause
 
 # Extract text following double-# for targets, as their description for
 # the `help` target.  Otherwise These simple-substitutions are resolved
@@ -373,6 +377,12 @@ bin/rootlessport: .gopathok $(SOURCES) go.mod go.sum
 
 .PHONY: rootlessport
 rootlessport: bin/rootlessport
+
+bin/pause: pause/pause.c
+	$(GCC) $(PAUSE_CFLAGS) pause/pause.c -o bin/pause
+
+.PHONY: pause
+pause: bin/pause
 
 ###
 ### Secondary binary-build targets
@@ -733,7 +743,7 @@ install.remote-nobuild:
 install.remote: podman-remote install.remote-nobuild
 
 .PHONY: install.bin-nobuild
-install.bin-nobuild:
+install.bin-nobuild: install.pause
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
 	install ${SELINUXOPT} -m 755 bin/podman $(DESTDIR)$(BINDIR)/podman
 	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(BINDIR)/podman bin/podman
@@ -787,8 +797,10 @@ install.docker-docs-nobuild:
 .PHONY: install.docker-docs
 install.docker-docs: docker-docs install.docker-docs-nobuild
 
-.PHONY: install.docker-full
-install.docker-full: install.docker install.docker-docs
+.PHONY: install.pause
+install.pause: pause
+	install ${SELINUXOPT} -m 755 -d $(DESTDIR)$(LIBEXECPODMAN)/pause
+	install ${SELINUXOPT} -m 755 bin/pause $(DESTDIR)$(LIBEXECPODMAN)/pause/pause
 
 .PHONY: install.systemd
 ifneq (,$(findstring systemd,$(BUILDTAGS)))
@@ -818,6 +830,9 @@ install.systemd: $(PODMAN_UNIT_FILES)
 else
 install.systemd:
 endif
+
+.PHONY: install.pause
+install.pause: pause
 
 .PHONY: install.tools
 install.tools: .install.goimports .install.gitvalidation .install.md2man .install.ginkgo .install.golangci-lint .install.bats ## Install needed tools
