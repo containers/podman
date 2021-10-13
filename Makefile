@@ -39,6 +39,7 @@ LIBPOD_INSTANCE := libpod_dev
 PREFIX ?= /usr/local
 BINDIR ?= ${PREFIX}/bin
 LIBEXECDIR ?= ${PREFIX}/libexec
+LIBEXECPODMAN ?= ${LIBEXECDIR}/podman
 MANDIR ?= ${PREFIX}/share/man
 SHAREDIR_CONTAINERS ?= ${PREFIX}/share/containers
 ETCDIR ?= ${PREFIX}/etc
@@ -186,7 +187,7 @@ default: all
 all: binaries docs
 
 .PHONY: binaries
-binaries: podman podman-remote ## Build podman and podman-remote binaries
+binaries: podman podman-remote rootlessport ## Build podman, podman-remote and rootlessport binaries
 
 # Extract text following double-# for targets, as their description for
 # the `help` target.  Otherwise These simple-substitutions are resolved
@@ -354,6 +355,15 @@ podman-remote-darwin: ## Build podman-remote for macOS
 		GOOS=darwin \
 		GOARCH=$(GOARCH) \
 		bin/darwin/podman
+
+bin/rootlessport: .gopathok $(SOURCES) go.mod go.sum
+	CGO_ENABLED=$(CGO_ENABLED) \
+		$(GO) build \
+		$(BUILDFLAGS) \
+		-o $@ ./cmd/rootlessport
+
+.PHONY: rootlessport
+rootlessport: bin/rootlessport
 
 ###
 ### Secondary binary-build targets
@@ -718,11 +728,14 @@ install.bin-nobuild:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
 	install ${SELINUXOPT} -m 755 bin/podman $(DESTDIR)$(BINDIR)/podman
 	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(BINDIR)/podman bin/podman
+	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(LIBEXECPODMAN)
+	install ${SELINUXOPT} -m 755 bin/rootlessport $(DESTDIR)$(LIBEXECPODMAN)/rootlessport
+	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(LIBEXECPODMAN)/rootlessport bin/rootlessport
 	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${TMPFILESDIR}
 	install ${SELINUXOPT} -m 644 contrib/tmpfile/podman.conf ${DESTDIR}${TMPFILESDIR}/podman.conf
 
 .PHONY: install.bin
-install.bin: podman install.bin-nobuild
+install.bin: podman rootlessport install.bin-nobuild
 
 .PHONY: install.man-nobuild
 install.man-nobuild:

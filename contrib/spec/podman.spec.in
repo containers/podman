@@ -3,18 +3,8 @@
 %global with_check 0
 %global with_unit_test 0
 %bcond_without doc
-%bcond_without debug
 
-%if %{with debug}
-%global _find_debuginfo_dwz_opts %{nil}
-%global _dwz_low_mem_die_limit 0
-%else
 %global debug_package   %{nil}
-%endif
-
-%if ! 0%{?gobuild:1}
-%define gobuild(o:) go build -buildmode pie -compiler gc -tags="rpm_crashtraceback ${BUILDTAGS:-}" -ldflags "${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -extldflags '-Wl,-z,relro -Wl,--as-needed  -Wl,-z,now -specs=/usr/lib/rpm/redhat/redhat-hardened-ld  '" -a -v -x %{?**};
-%endif
 
 # podman hack directory
 %define hackdir %{_builddir}/%{repo}-%{shortcommit0}
@@ -536,6 +526,8 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %{_usr}/lib/systemd/user/podman-auto-update.timer
 %{_usr}/lib/systemd/user/podman-restart.service
 %{_usr}/lib/tmpfiles.d/podman.conf
+%dir %{_libexecdir}/%{name}
+%{_libexecdir}/%{name}/rootlessport
 
 %if 0%{?with_devel}
 %files -n libpod-devel -f devel.file-list
