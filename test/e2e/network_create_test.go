@@ -43,7 +43,7 @@ var _ = Describe("Podman network create", func() {
 
 	It("podman network create with name and subnet", func() {
 		netName := "subnet-" + stringid.GenerateNonCryptoID()
-		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.12.0/24", netName})
+		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.12.0/24", "--ip-range", "10.11.12.0/26", netName})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(netName)
 		Expect(nc).Should(Exit(0))
@@ -61,7 +61,11 @@ var _ = Describe("Podman network create", func() {
 		result := results[0]
 		Expect(result.Name).To(Equal(netName))
 		Expect(result.Subnets).To(HaveLen(1))
+		Expect(result.Subnets[0].Subnet.String()).To(Equal("10.11.12.0/24"))
 		Expect(result.Subnets[0].Gateway.String()).To(Equal("10.11.12.1"))
+		Expect(result.Subnets[0].LeaseRange).ToNot(BeNil())
+		Expect(result.Subnets[0].LeaseRange.StartIP.String()).To(Equal("10.11.12.1"))
+		Expect(result.Subnets[0].LeaseRange.EndIP.String()).To(Equal("10.11.12.63"))
 
 		// Once a container executes a new network, the nic will be created. We should clean those up
 		// best we can

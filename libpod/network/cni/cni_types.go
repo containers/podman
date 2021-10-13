@@ -182,7 +182,7 @@ func newIPAMLocalHostRange(subnet types.IPNet, leaseRange *types.LeaseRange, gw 
 			hostRange.RangeStart = leaseRange.StartIP.String()
 		}
 		if leaseRange.EndIP != nil {
-			hostRange.RangeStart = leaseRange.EndIP.String()
+			hostRange.RangeEnd = leaseRange.EndIP.String()
 		}
 	}
 

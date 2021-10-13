@@ -621,7 +621,7 @@ var _ = Describe("Config", func() {
 			err = libpodNet.NetworkRemove(network1.Name)
 			Expect(err).To(BeNil())
 
-			endIP := "10.0.0.10"
+			endIP := "10.0.0.30"
 			network = types.Network{
 				Driver: "bridge",
 				Subnets: []types.Subnet{
@@ -655,6 +655,22 @@ var _ = Describe("Config", func() {
 				},
 			}
 			network1, err = libpodNet.NetworkCreate(network)
+			Expect(err).To(BeNil())
+			Expect(network1.Name).ToNot(BeEmpty())
+			Expect(network1.ID).ToNot(BeEmpty())
+			Expect(network1.NetworkInterface).ToNot(BeEmpty())
+			Expect(network1.Driver).To(Equal("bridge"))
+			Expect(network1.Subnets).To(HaveLen(1))
+			Expect(network1.Subnets[0].Subnet.String()).To(Equal(subnet))
+			Expect(network1.Subnets[0].Gateway.String()).To(Equal("10.0.0.1"))
+			Expect(network1.Subnets[0].LeaseRange.StartIP.String()).To(Equal(startIP))
+			Expect(network1.Subnets[0].LeaseRange.EndIP.String()).To(Equal(endIP))
+
+			// create a new interface to force a config load from disk
+			libpodNet, err = getNetworkInterface(cniConfDir, false)
+			Expect(err).To(BeNil())
+
+			network1, err = libpodNet.NetworkInspect(network1.Name)
 			Expect(err).To(BeNil())
 			Expect(network1.Name).ToNot(BeEmpty())
 			Expect(network1.ID).ToNot(BeEmpty())
