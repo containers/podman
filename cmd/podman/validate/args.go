@@ -27,7 +27,7 @@ func SubCommandExists(cmd *cobra.Command, args []string) error {
 		}
 		return errors.Errorf("unrecognized command `%[1]s %[2]s`\n\nDid you mean this?\n\t%[3]s\n\nTry '%[1]s --help' for more information.", cmd.CommandPath(), args[0], strings.Join(suggestions, "\n\t"))
 	}
-	return errors.Errorf("missing command '%[1]s COMMAND'\nTry '%[1]s --help' for more information.", cmd.CommandPath())
+	return cmd.Help()
 }
 
 // IDOrLatestArgs used to validate a nameOrId was provided or the "--latest" flag
