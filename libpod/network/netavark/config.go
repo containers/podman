@@ -1,23 +1,24 @@
 // +build linux
 
-package cni
+package netavark
 
 import (
+	"encoding/json"
 	"net"
 	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/containers/podman/v3/libpod/define"
 	internalutil "github.com/containers/podman/v3/libpod/network/internal/util"
 	"github.com/containers/podman/v3/libpod/network/types"
-	pkgutil "github.com/containers/podman/v3/pkg/util"
+	"github.com/containers/storage/pkg/stringid"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"github.com/vishvananda/netlink"
 )
 
 // NetworkCreate will take a partial filled Network and fill the
 // missing fields. It creates the Network and returns the full Network.
-func (n *cniNetwork) NetworkCreate(net types.Network) (types.Network, error) {
+func (n *netavarkNetwork) NetworkCreate(net types.Network) (types.Network, error) {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 	err := n.loadNetworks()
@@ -29,22 +30,34 @@ func (n *cniNetwork) NetworkCreate(net types.Network) (types.Network, error) {
 		return types.Network{}, err
 	}
 	// add the new network to the map
-	n.networks[network.libpodNet.Name] = network
-	return *network.libpodNet, nil
+	n.networks[network.Name] = network
+	return *network, nil
 }
 
-// networkCreate will fill out the given network struct and return the new network entry.
-// If defaultNet is true it will not validate against used subnets and it will not write the cni config to disk.
-func (n *cniNetwork) networkCreate(newNetwork types.Network, defaultNet bool) (*network, error) {
+func (n *netavarkNetwork) networkCreate(newNetwork types.Network, defaultNet bool) (*types.Network, error) {
 	// if no driver is set use the default one
 	if newNetwork.Driver == "" {
 		newNetwork.Driver = types.DefaultNetworkDriver
 	}
+	if !defaultNet {
+		// FIXME: Should we use a different type for network create without the ID field?
+		// the caller is not allowed to set a specific ID
+		if newNetwork.ID != "" {
+			return nil, errors.Wrap(define.ErrInvalidArg, "ID can not be set for network create")
+		}
 
-	// FIXME: Should we use a different type for network create without the ID field?
-	// the caller is not allowed to set a specific ID
-	if newNetwork.ID != "" {
-		return nil, errors.Wrap(define.ErrInvalidArg, "ID can not be set for network create")
+		// generate random network ID
+		var i int
+		for i = 0; i < 1000; i++ {
+			id := stringid.GenerateNonCryptoID()
+			if _, err := n.getNetwork(id); err != nil {
+				newNetwork.ID = id
+				break
+			}
+		}
+		if i == 1000 {
+			return nil, errors.New("failed to create random network ID")
+		}
 	}
 
 	err := internalutil.CommonNetworkCreate(n, &newNetwork)
@@ -73,11 +86,26 @@ func (n *cniNetwork) networkCreate(newNetwork types.Network, defaultNet bool) (*
 		if err != nil {
 			return nil, err
 		}
-	case types.MacVLANNetworkDriver, types.IPVLANNetworkDriver:
-		err = createIPMACVLAN(&newNetwork)
-		if err != nil {
-			return nil, err
+		// validate the given options, we do not need them but just check to make sure they are valid
+		for key, value := range newNetwork.Options {
+			switch key {
+			case "mtu":
+				_, err = internalutil.ParseMTU(value)
+				if err != nil {
+					return nil, err
+				}
+
+			case "vlan":
+				_, err = internalutil.ParseVlan(value)
+				if err != nil {
+					return nil, err
+				}
+
+			default:
+				return nil, errors.Errorf("unsupported network option %s", key)
+			}
 		}
+
 	default:
 		return nil, errors.Wrapf(define.ErrInvalidArg, "unsupported driver %s", newNetwork.Driver)
 	}
@@ -87,25 +115,33 @@ func (n *cniNetwork) networkCreate(newNetwork types.Network, defaultNet bool) (*
 		return nil, err
 	}
 
-	// generate the network ID
-	newNetwork.ID = getNetworkIDFromName(newNetwork.Name)
-
-	// FIXME: Should this be a hard error?
-	if newNetwork.DNSEnabled && newNetwork.Internal && hasDNSNamePlugin(n.cniPluginDirs) {
-		logrus.Warnf("dnsname and internal networks are incompatible. dnsname plugin not configured for network %s", newNetwork.Name)
-		newNetwork.DNSEnabled = false
+	// FIXME: If we have a working solution for internal networks with dns this check should be removed.
+	if newNetwork.DNSEnabled && newNetwork.Internal {
+		return nil, errors.New("cannot set internal and dns enabled")
 	}
 
-	cniConf, path, err := n.createCNIConfigListFromNetwork(&newNetwork, !defaultNet)
-	if err != nil {
-		return nil, err
+	newNetwork.Created = time.Now()
+
+	if !defaultNet {
+		confPath := filepath.Join(n.networkConfigDir, newNetwork.Name+".json")
+		f, err := os.Create(confPath)
+		if err != nil {
+			return nil, err
+		}
+		enc := json.NewEncoder(f)
+		enc.SetIndent("", "     ")
+		err = enc.Encode(newNetwork)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return &network{cniNet: cniConf, libpodNet: &newNetwork, filename: path}, nil
+
+	return &newNetwork, nil
 }
 
 // NetworkRemove will remove the Network with the given name or ID.
 // It does not ensure that the network is unused.
-func (n *cniNetwork) NetworkRemove(nameOrID string) error {
+func (n *netavarkNetwork) NetworkRemove(nameOrID string) error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 	err := n.loadNetworks()
@@ -119,36 +155,23 @@ func (n *cniNetwork) NetworkRemove(nameOrID string) error {
 	}
 
 	// Removing the default network is not allowed.
-	if network.libpodNet.Name == n.defaultNetwork {
+	if network.Name == n.defaultNetwork {
 		return errors.Errorf("default network %s cannot be removed", n.defaultNetwork)
 	}
 
-	// Remove the bridge network interface on the host.
-	if network.libpodNet.Driver == types.BridgeNetworkDriver {
-		link, err := netlink.LinkByName(network.libpodNet.NetworkInterface)
-		if err == nil {
-			err = netlink.LinkDel(link)
-			// only log the error, it is not fatal
-			if err != nil {
-				logrus.Infof("Failed to remove network interface %s: %v", network.libpodNet.NetworkInterface, err)
-			}
-		}
-	}
-
-	file := network.filename
-	delete(n.networks, network.libpodNet.Name)
-
+	file := filepath.Join(n.networkConfigDir, network.Name+".json")
 	// make sure to not error for ErrNotExist
 	if err := os.Remove(file); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
+	delete(n.networks, network.Name)
 	return nil
 }
 
 // NetworkList will return all known Networks. Optionally you can
 // supply a list of filter functions. Only if a network matches all
 // functions it is returned.
-func (n *cniNetwork) NetworkList(filters ...types.FilterFunc) ([]types.Network, error) {
+func (n *netavarkNetwork) NetworkList(filters ...types.FilterFunc) ([]types.Network, error) {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 	err := n.loadNetworks()
@@ -161,17 +184,17 @@ outer:
 	for _, net := range n.networks {
 		for _, filter := range filters {
 			// All filters have to match, if one does not match we can skip to the next network.
-			if !filter(*net.libpodNet) {
+			if !filter(*net) {
 				continue outer
 			}
 		}
-		networks = append(networks, *net.libpodNet)
+		networks = append(networks, *net)
 	}
 	return networks, nil
 }
 
 // NetworkInspect will return the Network with the given name or ID.
-func (n *cniNetwork) NetworkInspect(nameOrID string) (types.Network, error) {
+func (n *netavarkNetwork) NetworkInspect(nameOrID string) (types.Network, error) {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 	err := n.loadNetworks()
@@ -183,26 +206,5 @@ func (n *cniNetwork) NetworkInspect(nameOrID string) (types.Network, error) {
 	if err != nil {
 		return types.Network{}, err
 	}
-	return *network.libpodNet, nil
-}
-
-func createIPMACVLAN(network *types.Network) error {
-	if network.Internal {
-		return errors.New("internal is not supported with macvlan")
-	}
-	if network.NetworkInterface != "" {
-		interfaceNames, err := internalutil.GetLiveNetworkNames()
-		if err != nil {
-			return err
-		}
-		if !pkgutil.StringInSlice(network.NetworkInterface, interfaceNames) {
-			return errors.Errorf("parent interface %s does not exists", network.NetworkInterface)
-		}
-	}
-	if len(network.Subnets) == 0 {
-		network.IPAMOptions["driver"] = types.DHCPIPAMDriver
-	} else {
-		network.IPAMOptions["driver"] = types.HostLocalIPAMDriver
-	}
-	return nil
+	return *network, nil
 }

@@ -1,0 +1,19 @@
+{
+    "name": "name_miss",
+    "id": "3bed2cb3a3acf7b6a8ef408420cc682d5520e26976d354254f528c965612054f",
+    "driver": "bridge",
+    "network_interface": "podman8",
+    "created": "2021-10-06T18:50:54.25770461+02:00",
+    "subnets": [
+        {
+            "subnet": "10.89.7.0/24",
+            "gateway": "10.89.7.1"
+        }
+    ],
+    "ipv6_enabled": false,
+    "internal": true,
+    "dns_enabled": false,
+    "ipam_options": {
+        "driver": "host-local"
+    }
+}

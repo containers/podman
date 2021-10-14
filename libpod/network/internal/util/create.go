@@ -7,12 +7,6 @@ import (
 )
 
 func CommonNetworkCreate(n NetUtil, network *types.Network) error {
-	// FIXME: Should we use a different type for network create without the ID field?
-	// the caller is not allowed to set a specific ID
-	if network.ID != "" {
-		return errors.Wrap(define.ErrInvalidArg, "ID can not be set for network create")
-	}
-
 	if network.Labels == nil {
 		network.Labels = map[string]string{}
 	}

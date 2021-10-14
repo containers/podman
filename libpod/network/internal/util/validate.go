@@ -38,6 +38,7 @@ func ValidateSubnet(s *types.Subnet, addGateway bool, usedNetworks []*net.IPNet)
 		if !s.Subnet.Contains(s.Gateway) {
 			return errors.Errorf("gateway %s not in subnet %s", s.Gateway, &s.Subnet)
 		}
+		NormalizeIP(&s.Gateway)
 	} else if addGateway {
 		ip, err := util.FirstIPInSubnet(net)
 		if err != nil {
@@ -45,12 +46,35 @@ func ValidateSubnet(s *types.Subnet, addGateway bool, usedNetworks []*net.IPNet)
 		}
 		s.Gateway = ip
 	}
+
 	if s.LeaseRange != nil {
-		if s.LeaseRange.StartIP != nil && !s.Subnet.Contains(s.LeaseRange.StartIP) {
-			return errors.Errorf("lease range start ip %s not in subnet %s", s.LeaseRange.StartIP, &s.Subnet)
+		if s.LeaseRange.StartIP != nil {
+			if !s.Subnet.Contains(s.LeaseRange.StartIP) {
+				return errors.Errorf("lease range start ip %s not in subnet %s", s.LeaseRange.StartIP, &s.Subnet)
+			}
+			NormalizeIP(&s.LeaseRange.StartIP)
 		}
-		if s.LeaseRange.EndIP != nil && !s.Subnet.Contains(s.LeaseRange.EndIP) {
-			return errors.Errorf("lease range end ip %s not in subnet %s", s.LeaseRange.EndIP, &s.Subnet)
+		if s.LeaseRange.EndIP != nil {
+			if !s.Subnet.Contains(s.LeaseRange.EndIP) {
+				return errors.Errorf("lease range end ip %s not in subnet %s", s.LeaseRange.EndIP, &s.Subnet)
+			}
+			NormalizeIP(&s.LeaseRange.EndIP)
+		}
+	}
+	return nil
+}
+
+// ValidateSubnets will validate the subnets for this network.
+// It also sets the gateway if the gateway is empty and it sets
+// IPv6Enabled to true if at least one subnet is ipv6.
+func ValidateSubnets(network *types.Network, usedNetworks []*net.IPNet) error {
+	for i := range network.Subnets {
+		err := ValidateSubnet(&network.Subnets[i], !network.Internal, usedNetworks)
+		if err != nil {
+			return err
+		}
+		if util.IsIPv6(network.Subnets[i].Subnet.IP) {
+			network.IPv6Enabled = true
 		}
 	}
 	return nil

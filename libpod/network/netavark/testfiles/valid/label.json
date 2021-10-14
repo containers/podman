@@ -1,0 +1,22 @@
+{
+    "name": "label",
+    "id": "1aca80e8b55c802f7b43740da2990e1b5735bbb323d93eb5ebda8395b04025e2",
+    "driver": "bridge",
+    "network_interface": "podman15",
+    "created": "2021-10-06T18:50:54.25770461+02:00",
+    "subnets": [
+        {
+            "subnet": "10.89.13.0/24",
+            "gateway": "10.89.13.1"
+        }
+    ],
+    "ipv6_enabled": false,
+    "internal": false,
+    "dns_enabled": true,
+    "labels": {
+        "mykey": "value"
+    },
+    "ipam_options": {
+        "driver": "host-local"
+    }
+}
