@@ -8,7 +8,7 @@ import (
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/docker/docker/pkg/archive"
+	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
