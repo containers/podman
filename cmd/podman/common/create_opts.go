@@ -104,15 +104,18 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *c
 		addField(&builder, "target", m.Target)
 		addField(&builder, "ro", strconv.FormatBool(m.ReadOnly))
 		addField(&builder, "consistency", string(m.Consistency))
-
 		// Map any specialized mount options that intersect between *Options and cli options
 		switch m.Type {
 		case mount.TypeBind:
-			addField(&builder, "bind-propagation", string(m.BindOptions.Propagation))
-			addField(&builder, "bind-nonrecursive", strconv.FormatBool(m.BindOptions.NonRecursive))
+			if m.BindOptions != nil {
+				addField(&builder, "bind-propagation", string(m.BindOptions.Propagation))
+				addField(&builder, "bind-nonrecursive", strconv.FormatBool(m.BindOptions.NonRecursive))
+			}
 		case mount.TypeTmpfs:
-			addField(&builder, "tmpfs-size", strconv.FormatInt(m.TmpfsOptions.SizeBytes, 10))
-			addField(&builder, "tmpfs-mode", strconv.FormatUint(uint64(m.TmpfsOptions.Mode), 10))
+			if m.TmpfsOptions != nil {
+				addField(&builder, "tmpfs-size", strconv.FormatInt(m.TmpfsOptions.SizeBytes, 10))
+				addField(&builder, "tmpfs-mode", strconv.FormatUint(uint64(m.TmpfsOptions.Mode), 10))
+			}
 		case mount.TypeVolume:
 			// All current VolumeOpts are handled above
 			// See vendor/github.com/containers/common/pkg/parse/parse.go:ValidateVolumeOpts()
