@@ -25,6 +25,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // GenerateForKube takes a slice of libpod containers and generates
@@ -196,10 +197,11 @@ func containerPortsToServicePorts(containerPorts []v1.ContainerPort) []v1.Servic
 	for _, cp := range containerPorts {
 		nodePort := 30000 + rand.Intn(32767-30000+1)
 		servicePort := v1.ServicePort{
-			Protocol: cp.Protocol,
-			Port:     cp.ContainerPort,
-			NodePort: int32(nodePort),
-			Name:     strconv.Itoa(int(cp.ContainerPort)),
+			Protocol:   cp.Protocol,
+			Port:       cp.ContainerPort,
+			NodePort:   int32(nodePort),
+			Name:       strconv.Itoa(int(cp.ContainerPort)),
+			TargetPort: intstr.Parse(strconv.Itoa(int(cp.ContainerPort))),
 		}
 		sps = append(sps, servicePort)
 	}
