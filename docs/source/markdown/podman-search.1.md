@@ -40,7 +40,7 @@ environment variable. `export REGISTRY_AUTH_FILE=path`
 #### **--compatible**
 
 After the name and the description, also show the stars, official and automated descriptors as Docker does.
-Podman does not show these decsriptors by default since they are not supported by most public container registries.
+Podman does not show these descriptors by default since they are not supported by most public container registries.
 
 #### **--filter**, **-f**=*filter*
 

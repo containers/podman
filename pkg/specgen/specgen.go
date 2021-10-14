@@ -551,7 +551,7 @@ func NewSpecGenerator(arg string, rootfs bool) *SpecGenerator {
 	csc := ContainerStorageConfig{}
 	if rootfs {
 		csc.Rootfs = arg
-		// check if rootfs is actually overlayed
+		// check if rootfs should use overlay
 		lastColonIndex := strings.LastIndex(csc.Rootfs, ":")
 		if lastColonIndex != -1 && lastColonIndex+1 < len(csc.Rootfs) && csc.Rootfs[lastColonIndex+1:] == "O" {
 			csc.RootfsOverlay = true

@@ -875,7 +875,7 @@ def signal_listener():
         sys.exit(0)
     except Exception as e:
         loop.quit()
-        sys.stderr.write(f"Error occured {e}")
+        sys.stderr.write(f"Error occurred {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
