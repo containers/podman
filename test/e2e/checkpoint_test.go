@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/containers/podman/v3/pkg/checkpoint/crutils"
 	"github.com/containers/podman/v3/pkg/criu"
@@ -247,16 +248,19 @@ var _ = Describe("Podman checkpoint", func() {
 		session := podmanTest.Podman(localRunString)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+		cid := session.OutputToString()
+		if !WaitContainerReady(podmanTest, cid, "Ready to accept connections", 20, 1) {
+			Fail("Container failed to get ready")
+		}
 
 		IP := podmanTest.Podman([]string{"inspect", "-l", "--format={{.NetworkSettings.IPAddress}}"})
 		IP.WaitWithDefaultTimeout()
 		Expect(IP).Should(Exit(0))
 
 		// Open a network connection to the redis server
-		conn, err := net.Dial("tcp", IP.OutputToString()+":6379")
-		if err != nil {
-			os.Exit(1)
-		}
+		conn, err := net.DialTimeout("tcp4", IP.OutputToString()+":6379", time.Duration(3)*time.Second)
+		Expect(err).To(BeNil())
+
 		// This should fail as the container has established TCP connections
 		result := podmanTest.Podman([]string{"container", "checkpoint", "-l"})
 		result.WaitWithDefaultTimeout()
