@@ -451,6 +451,10 @@ var _ = Describe("Podman generate kube", func() {
 		foundOtherPort := 0
 		for _, ctr := range pod.Spec.Containers {
 			for _, port := range ctr.Ports {
+				// Since we are using tcp here, the generated kube yaml shouldn't
+				// have anything for protocol under the ports as tcp is the default
+				// for k8s
+				Expect(port.Protocol).To(BeEmpty())
 				if port.HostPort == 4000 {
 					foundPort4000 = foundPort4000 + 1
 				} else if port.HostPort == 5000 {
@@ -463,6 +467,24 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(foundPort4000).To(Equal(1))
 		Expect(foundPort5000).To(Equal(1))
 		Expect(foundOtherPort).To(Equal(0))
+
+		// Create container with UDP port and check the generated kube yaml
+		ctrWithUDP := podmanTest.Podman([]string{"create", "--pod", "new:test-pod", "-p", "6666:66/udp", ALPINE, "top"})
+		ctrWithUDP.WaitWithDefaultTimeout()
+		Expect(ctrWithUDP).Should(Exit(0))
+
+		kube = podmanTest.Podman([]string{"generate", "kube", "test-pod"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod = new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+
+		containers := pod.Spec.Containers
+		Expect(len(containers)).To(Equal(1))
+		Expect(len(containers[0].Ports)).To(Equal(1))
+		Expect(containers[0].Ports[0].Protocol).To(Equal(v1.ProtocolUDP))
 	})
 
 	It("podman generate and reimport kube on pod", func() {

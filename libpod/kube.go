@@ -578,7 +578,8 @@ func ocicniPortMappingToContainerPort(portMappings []ocicni.PortMapping) ([]v1.C
 		var protocol v1.Protocol
 		switch strings.ToUpper(p.Protocol) {
 		case "TCP":
-			protocol = v1.ProtocolTCP
+			// do nothing as it is the default protocol in k8s, there is no need to explicitly
+			// add it to the generated yaml
 		case "UDP":
 			protocol = v1.ProtocolUDP
 		default:
