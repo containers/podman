@@ -176,6 +176,15 @@ define go-get
 		$(GO) get -u ${1}
 endef
 
+# Need to use CGO for mDNS resolution, but cross builds need CGO disabled
+# See https://github.com/golang/go/issues/12524 for details
+DARWIN_GCO := 0
+ifeq ($(NATIVE_GOOS),darwin)
+ifdef HOMEBREW_PREFIX
+	DARWIN_GCO := 1
+endif
+endif
+
 ###
 ### Primary entry-point targets
 ###
@@ -351,7 +360,7 @@ podman-remote-windows: ## Build podman-remote for Windows
 .PHONY: podman-remote-darwin
 podman-remote-darwin: ## Build podman-remote for macOS
 	$(MAKE) \
-		CGO_ENABLED=0 \
+		CGO_ENABLED=$(DARWIN_GCO) \
 		GOOS=darwin \
 		GOARCH=$(GOARCH) \
 		bin/darwin/podman
