@@ -853,7 +853,7 @@ $ podman build -f Containerfile.in $HOME
 
 $ podman build -t imageName .
 
-$ podman build --tls-verify=true -t imageName -f Containrfile.simple .
+$ podman build --tls-verify=true -t imageName -f Containerfile.simple .
 
 $ podman build --tls-verify=false -t imageName .
 
@@ -952,7 +952,7 @@ Containerfile/Dockerfile
 The .containerignore and .dockerignore files use the same syntax; if both
 are in the context directory, podman build will only use .containerignore.
 
-Users can specify a series of Unix shell globals in a .containerignore file to
+Users can specify a series of Unix shell globs in a .containerignore file to
 identify files/directories to exclude.
 
 Podman supports a special wildcard string `**` which matches any number of

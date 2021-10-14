@@ -222,7 +222,7 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(matches[0]).To(Not(ContainSubstring("nosuid")))
 	})
 
-	// Container should start when workdir is overlayed volume
+	// Container should start when workdir is overlay volume
 	It("podman run with volume mounted as overlay and used as workdir", func() {
 		SkipIfRemote("Overlay volumes only work locally")
 		if os.Getenv("container") != "" {
@@ -236,7 +236,7 @@ var _ = Describe("Podman run with volumes", func() {
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
 		os.Mkdir(mountPath, 0755)
 
-		//Container should be able to start with custom overlayed volume
+		//Container should be able to start with custom overlay volume
 		session := podmanTest.Podman([]string{"run", "--rm", "-v", mountPath + ":/data:O", "--workdir=/data", ALPINE, "echo", "hello"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -262,15 +262,15 @@ var _ = Describe("Podman run with volumes", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		// create file on overlayed volume
-		session = podmanTest.Podman([]string{"run", "--volume", volName + ":/data:O", ALPINE, "sh", "-c", "echo hello >> " + "/data/overlayed"})
+		// create file on overlay volume
+		session = podmanTest.Podman([]string{"run", "--volume", volName + ":/data:O", ALPINE, "sh", "-c", "echo hello >> " + "/data/overlay"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		// volume should contain only `test` not `overlayed`
+		// volume should contain only `test` not `overlay`
 		session = podmanTest.Podman([]string{"run", "--volume", volName + ":/data", ALPINE, "sh", "-c", "ls /data"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.OutputToString()).To(Not(ContainSubstring("overlayed")))
+		Expect(session.OutputToString()).To(Not(ContainSubstring("overlay")))
 		Expect(session.OutputToString()).To(ContainSubstring("test"))
 
 	})
