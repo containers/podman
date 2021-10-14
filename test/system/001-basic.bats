@@ -93,6 +93,15 @@ function setup() {
     is "$output" "Error: unknown flag: --remote" "podman version --remote"
 }
 
+@test "podman-remote: defaults" {
+    if is_remote; then
+        skip "only applicable on a local run"
+    fi
+
+    CONTAINER_HOST=foobar run_podman --log-level=info --help
+    is "$output" ".*defaulting to '--remote=true'" "CONTAINER_HOST sets --remote true"
+}
+
 # Check that just calling "podman-remote" prints the usage message even
 # without a running endpoint. Use "podman --remote" for this as this works the same.
 @test "podman-remote: check for command usage message without a running endpoint" {

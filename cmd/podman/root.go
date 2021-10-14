@@ -314,7 +314,15 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	lFlags.StringVar(&opts.Identity, identityFlagName, ident, "path to SSH identity file, (CONTAINER_SSHKEY)")
 	_ = cmd.RegisterFlagCompletionFunc(identityFlagName, completion.AutocompleteDefault)
 
-	lFlags.BoolVarP(&opts.Remote, "remote", "r", false, "Access remote Podman service (default false)")
+	remote := false
+	if env, ok := os.LookupEnv("CONTAINER_HOST"); ok {
+		logrus.Infof("CONTAINER_HOST==%q, defaulting to '--remote=true'", env)
+		remote = true
+	} else if env, ok := os.LookupEnv("CONTAINER_CONNECTION"); ok {
+		logrus.Infof("CONTAINER_CONNECTION==%q, defaulting to '--remote=true'", env)
+		remote = true
+	}
+	lFlags.BoolVarP(&opts.Remote, "remote", "r", remote, "Access remote Podman service")
 	pFlags := cmd.PersistentFlags()
 	if registry.IsRemote() {
 		if err := lFlags.MarkHidden("remote"); err != nil {

@@ -29,6 +29,8 @@ The `containers.conf` file should be placed under `$HOME/.config/containers/cont
 
 Remote connection name
 
+Overrides environment variable `CONTAINER_CONNECTION` if set.
+
 #### **--help**, **-h**
 
 Print usage statement
@@ -70,6 +72,26 @@ URL value resolution precedence:
 #### **--version**
 
 Print the version
+
+## Environment Variables
+
+Podman can set up environment variables from env of [engine] table in containers.conf. These variables can be overridden by passing  environment variables before the `podman` commands.
+
+#### **CONTAINERS_CONF**
+
+Set default locations of containers.conf file
+
+#### **CONTAINER_CONNECTION**
+
+Set default `--connection` value to access Podman service.
+
+#### **CONTAINER_HOST**
+
+Set default `--url` value to access Podman service.
+
+#### **CONTAINER_SSHKEY**
+
+Set default `--identity` path to ssh key file value used to access Podman service.
 
 ## Exit Status
 

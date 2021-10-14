@@ -93,8 +93,9 @@ When namespace is set, created containers and pods will join the given namespace
 Path to the command binary to use for setting up a network.  It is currently only used for setting up a slirp4netns network.  If "" is used then the binary is looked up using the $PATH environment variable.
 
 #### **--remote**, **-r**
-Access Podman service will be remote
-Remote connections use local containers.conf for default.
+When true, access to the Podman service will be remote. Defaults to false.
+Settings can be modified in the containers.conf file. If the CONTAINER_HOST
+environment variable is set, the remote option defaults to true.
 
 #### **--url**=*value*
 URL to access Podman service (default from `containers.conf`, rootless `unix://run/user/$UID/podman/podman.sock` or as root `unix://run/podman/podman.sock`).
@@ -171,6 +172,58 @@ Print the version
 ## Environment Variables
 
 Podman can set up environment variables from env of [engine] table in containers.conf. These variables can be overridden by passing  environment variables before the `podman` commands.
+
+#### **CONTAINERS_CONF**
+
+Set default locations of containers.conf file
+
+#### **CONTAINERS_REGISTRIES_CONF**
+
+Set default location of the registries.conf file.
+
+#### **CONTAINERS_STORAGE_CONF**
+
+Set default location of the storage.conf file.
+
+#### **CONTAINER_CONNECTION**
+
+Override default `--connection` value to access Podman service. Also enabled --remote option.
+
+#### **CONTAINER_HOST**
+
+Set default `--url` value to access Podman service. Also enabled --remote option.
+
+#### **CONTAINER_SSHKEY**
+
+Set default `--identity` path to ssh key file value used to access Podman service.
+
+#### **STORAGE_DRIVER**
+
+Set default `--storage-driver` value.
+
+#### **STORAGE_OPTS**
+
+Set default `--storage-opts` value.
+
+#### **TMPDIR**
+
+Set the the temporary storage location of downloaded container images. Podman defaults to use `/var/tmp`.
+
+#### **XDG_CONFIG_HOME**
+
+In Rootless mode configuration files are read from `XDG_CONFIG_HOME` when
+specified, otherwise in the home directory of the user under
+`$HOME/.config/containers`.
+
+#### **XDG_DATA_HOME**
+
+In Rootless mode images are pulled under `XDG_DATA_HOME` when specified,
+otherwise in the home directory of the user under
+`$HOME/.local/share/containers/storage`.
+
+#### **XDG_RUNTIME_DIR**
+
+In Rootless mode temporary configuration data is stored in `${XDG_RUNTIME_DIR}/containers`.
 
 ## Remote Access
 
