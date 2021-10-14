@@ -974,12 +974,15 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 
 	includeFiles := []string{
 		"artifacts",
-		"ctr.log",
 		metadata.ConfigDumpFile,
 		metadata.SpecDumpFile,
 		metadata.NetworkStatusFile,
 	}
 
+	if c.LogDriver() == define.KubernetesLogging ||
+		c.LogDriver() == define.JSONLogging {
+		includeFiles = append(includeFiles, "ctr.log")
+	}
 	if options.PreCheckPoint {
 		includeFiles = append(includeFiles, preCheckpointDir)
 	} else {
