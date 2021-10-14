@@ -100,10 +100,8 @@ function setup() {
         skip "only applicable on a local run since this requires no endpoint"
     fi
 
-    run_podman 125 --remote
-    is "$output" "Error: missing command 'podman COMMAND'
-Try 'podman --help' for more information." \
-       "podman --remote show usage message without running endpoint"
+    run_podman --remote
+    is "$output" ".*Usage:" "podman --remote show usage message without running endpoint"
 }
 
 # This is for development only; it's intended to make sure our timeout
