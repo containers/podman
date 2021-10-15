@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/containers/podman/v3/libpod/define"
 
@@ -119,20 +120,28 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(kube.OutputToString()).To(ContainSubstring("type: foo_bar_t"))
 	})
 
-	It("podman generate service kube on container", func() {
-		session := podmanTest.RunTopContainer("top")
+	It("podman generate service kube on container - targetPort should match port name", func() {
+		session := podmanTest.Podman([]string{"create", "--name", "test-ctr", "-p", "3890:3890", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "-s", "top"})
+		kube := podmanTest.Podman([]string{"generate", "kube", "-s", "test-ctr"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
-		// TODO - test generated YAML - service produces multiple
-		// structs.
-		// pod := new(v1.Pod)
-		// err := yaml.Unmarshal([]byte(kube.OutputToString()), pod)
-		// Expect(err).To(BeNil())
+		// Separate out the Service and Pod yaml
+		arr := strings.Split(string(kube.Out.Contents()), "---")
+		Expect(len(arr)).To(Equal(2))
+
+		svc := new(v1.Service)
+		err := yaml.Unmarshal([]byte(arr[0]), svc)
+		Expect(err).To(BeNil())
+		Expect(len(svc.Spec.Ports)).To(Equal(1))
+		Expect(svc.Spec.Ports[0].TargetPort.IntValue()).To(Equal(3890))
+
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal([]byte(arr[1]), pod)
+		Expect(err).To(BeNil())
 	})
 
 	It("podman generate kube on pod", func() {
@@ -315,21 +324,28 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman generate service kube on pod", func() {
-		_, rc, _ := podmanTest.CreatePod(map[string][]string{"--name": {"toppod"}})
-		Expect(rc).To(Equal(0))
-
-		session := podmanTest.RunTopContainerInPod("topcontainer", "toppod")
+		session := podmanTest.Podman([]string{"create", "--pod", "new:test-pod", "-p", "4000:4000/udp", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "-s", "toppod"})
+		kube := podmanTest.Podman([]string{"generate", "kube", "-s", "test-pod"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
-		// TODO: How do we test unmarshal with a service? We have two
-		// structs that need to be unmarshalled...
-		// _, err := yaml.Marshal(kube.OutputToString())
-		// Expect(err).To(BeNil())
+		// Separate out the Service and Pod yaml
+		arr := strings.Split(string(kube.Out.Contents()), "---")
+		Expect(len(arr)).To(Equal(2))
+
+		svc := new(v1.Service)
+		err := yaml.Unmarshal([]byte(arr[0]), svc)
+		Expect(err).To(BeNil())
+		Expect(len(svc.Spec.Ports)).To(Equal(1))
+		Expect(svc.Spec.Ports[0].TargetPort.IntValue()).To(Equal(4000))
+		Expect(svc.Spec.Ports[0].Protocol).To(Equal(v1.ProtocolUDP))
+
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal([]byte(arr[1]), pod)
+		Expect(err).To(BeNil())
 	})
 
 	It("podman generate kube on pod with restartPolicy", func() {
