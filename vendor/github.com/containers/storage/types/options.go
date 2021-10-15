@@ -29,8 +29,9 @@ type tomlConfig struct {
 
 // defaultConfigFile path to the system wide storage.conf file
 var (
-	defaultConfigFile    = "/etc/containers/storage.conf"
-	defaultConfigFileSet = false
+	defaultConfigFile         = "/usr/share/containers/storage.conf"
+	defaultOverrideConfigFile = "/etc/containers/storage.conf"
+	defaultConfigFileSet      = false
 	// DefaultStoreOptions is a reasonable default set of options.
 	defaultStoreOptions StoreOptions
 )
@@ -40,7 +41,14 @@ func init() {
 	defaultStoreOptions.GraphRoot = "/var/lib/containers/storage"
 	defaultStoreOptions.GraphDriverName = ""
 
-	ReloadConfigurationFileIfNeeded(defaultConfigFile, &defaultStoreOptions)
+	if _, err := os.Stat(defaultOverrideConfigFile); err == nil {
+		ReloadConfigurationFileIfNeeded(defaultOverrideConfigFile, &defaultStoreOptions)
+	} else {
+		if !os.IsNotExist(err) {
+			logrus.Warningf("Attempting to use %s, %v", defaultConfigFile, err)
+		}
+		ReloadConfigurationFileIfNeeded(defaultConfigFile, &defaultStoreOptions)
+	}
 }
 
 // defaultStoreOptionsIsolated is an internal implementation detail of DefaultStoreOptions to allow testing.

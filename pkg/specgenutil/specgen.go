@@ -392,6 +392,17 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	}
 	s.Annotations = annotations
 
+	if len(c.StorageOpts) > 0 {
+		opts := make(map[string]string, len(c.StorageOpts))
+		for _, opt := range c.StorageOpts {
+			split := strings.SplitN(opt, "=", 2)
+			if len(split) != 2 {
+				return errors.Errorf("storage-opt must be formatted KEY=VALUE")
+			}
+			opts[split[0]] = split[1]
+		}
+		s.StorageOpts = opts
+	}
 	s.WorkDir = c.Workdir
 	if c.Entrypoint != nil {
 		entrypoint := []string{}

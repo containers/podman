@@ -366,6 +366,9 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	if s.Entrypoint != nil {
 		options = append(options, libpod.WithEntrypoint(s.Entrypoint))
 	}
+	if len(s.ContainerStorageConfig.StorageOpts) > 0 {
+		options = append(options, libpod.WithStorageOpts(s.StorageOpts))
+	}
 	// If the user did not specify a workdir on the CLI, let's extract it
 	// from the image.
 	if s.WorkDir == "" && imageData != nil {

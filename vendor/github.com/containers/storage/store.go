@@ -575,10 +575,11 @@ type ContainerOptions struct {
 	// container's layer will inherit settings from the image's top layer
 	// or, if it is not being created based on an image, the Store object.
 	types.IDMappingOptions
-	LabelOpts []string
-	Flags     map[string]interface{}
-	MountOpts []string
-	Volatile  bool
+	LabelOpts  []string
+	Flags      map[string]interface{}
+	MountOpts  []string
+	Volatile   bool
+	StorageOpt map[string]string
 }
 
 type store struct {
@@ -1384,7 +1385,7 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		options.Flags["MountLabel"] = mountLabel
 	}
 
-	clayer, err := rlstore.Create(layer, imageTopLayer, nil, options.Flags["MountLabel"].(string), nil, layerOptions, true)
+	clayer, err := rlstore.Create(layer, imageTopLayer, nil, options.Flags["MountLabel"].(string), options.StorageOpt, layerOptions, true)
 	if err != nil {
 		return nil, err
 	}
@@ -2830,10 +2831,33 @@ func (s *store) Diff(from, to string, options *DiffOptions) (io.ReadCloser, erro
 	if err != nil {
 		return nil, err
 	}
+
+	// NaiveDiff could cause mounts to happen without a lock, so be safe
+	// and treat the .Diff operation as a Mount.
+	s.graphLock.Lock()
+	defer s.graphLock.Unlock()
+
+	modified, err := s.graphLock.Modified()
+	if err != nil {
+		return nil, err
+	}
+
+	// We need to make sure the home mount is present when the Mount is done.
+	if modified {
+		s.graphDriver = nil
+		s.layerStore = nil
+		s.graphDriver, err = s.getGraphDriver()
+		if err != nil {
+			return nil, err
+		}
+		s.lastLoaded = time.Now()
+	}
+
 	for _, s := range append([]ROLayerStore{lstore}, lstores...) {
 		store := s
 		store.RLock()
 		if err := store.ReloadIfChanged(); err != nil {
+			store.Unlock()
 			return nil, err
 		}
 		if store.Exists(to) {

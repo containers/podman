@@ -443,6 +443,18 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		},
 		LabelOpts: c.config.LabelOpts,
 	}
+
+	nopts := len(c.config.StorageOpts)
+	if nopts > 0 {
+		options.StorageOpt = make(map[string]string, nopts)
+		for _, opt := range c.config.StorageOpts {
+			split2 := strings.SplitN(opt, "=", 2)
+			if len(split2) > 2 {
+				return errors.Wrapf(define.ErrInvalidArg, "invalid storage options %q for %s", opt, c.ID())
+			}
+			options.StorageOpt[split2[0]] = split2[1]
+		}
+	}
 	if c.restoreFromCheckpoint && !c.config.Privileged {
 		// If restoring from a checkpoint, the root file-system
 		// needs to be mounted with the same SELinux labels as
