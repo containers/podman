@@ -98,8 +98,19 @@ function setup() {
         skip "only applicable on a local run"
     fi
 
-    CONTAINER_HOST=foobar run_podman --log-level=info --help
-    is "$output" ".*defaulting to '--remote=true'" "CONTAINER_HOST sets --remote true"
+    CONTAINER_HOST=foobar run_podman --help
+    # Should not have --remote flag
+    echo $output  |  grep -v -qw -- "--remote"
+    if [ $? -ne 0 ]; then
+        die "Should not have --remote flag"
+    fi
+
+    CONTAINER_CONNECTION=foobar run_podman --help
+    # Should not have --remote flag
+    echo $output  |  grep -v -qw -- "--remote"
+    if [ $? -ne 0 ]; then
+        die "Should not have --remote flag"
+    fi
 }
 
 # Check that just calling "podman-remote" prints the usage message even

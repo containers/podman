@@ -19,11 +19,17 @@ var remoteFromCLI = struct {
 // Use in init() functions as an initialization check
 func IsRemote() bool {
 	remoteFromCLI.sync.Do(func() {
+		remote := false
+		if _, ok := os.LookupEnv("CONTAINER_HOST"); ok {
+			remote = true
+		} else if _, ok := os.LookupEnv("CONTAINER_CONNECTION"); ok {
+			remote = true
+		}
 		fs := pflag.NewFlagSet("remote", pflag.ContinueOnError)
 		fs.ParseErrorsWhitelist.UnknownFlags = true
 		fs.Usage = func() {}
 		fs.SetInterspersed(false)
-		fs.BoolVarP(&remoteFromCLI.Value, "remote", "r", false, "")
+		fs.BoolVarP(&remoteFromCLI.Value, "remote", "r", remote, "")
 
 		// The shell completion logic will call a command called "__complete" or "__completeNoDesc"
 		// This command will always be the second argument
