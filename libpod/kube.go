@@ -332,7 +332,7 @@ func newPodObject(podName string, annotations map[string]string, initCtrs, conta
 		InitContainers: initCtrs,
 		Volumes:        volumes,
 	}
-	if dnsOptions != nil {
+	if dnsOptions != nil && (len(dnsOptions.Nameservers)+len(dnsOptions.Searches)+len(dnsOptions.Options) > 0) {
 		ps.DNSConfig = dnsOptions
 	}
 	p := v1.Pod{
@@ -447,11 +447,6 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 		kubeVolumes = append(kubeVolumes, volumes...)
 	}
 
-	envVariables, err := libpodEnvVarsToKubeEnvVars(c.config.Spec.Process.Env)
-	if err != nil {
-		return kubeContainer, kubeVolumes, nil, annotations, err
-	}
-
 	portmappings, err := c.PortMappings()
 	if err != nil {
 		return kubeContainer, kubeVolumes, nil, annotations, err
@@ -489,15 +484,23 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 		kubeContainer.Command = nil
 	}
 
+	if c.WorkingDir() != "/" && imgData.Config.WorkingDir != c.WorkingDir() {
+		kubeContainer.WorkingDir = c.WorkingDir()
+	}
+
 	if imgData.User == c.User() {
 		kubeSec.RunAsGroup, kubeSec.RunAsUser = nil, nil
 	}
 
-	kubeContainer.WorkingDir = c.WorkingDir()
+	envVariables, err := libpodEnvVarsToKubeEnvVars(c.config.Spec.Process.Env, imgData.Config.Env)
+	if err != nil {
+		return kubeContainer, kubeVolumes, nil, annotations, err
+	}
+	kubeContainer.Env = envVariables
+
 	kubeContainer.Ports = ports
 	// This should not be applicable
 	//container.EnvFromSource =
-	kubeContainer.Env = envVariables
 	kubeContainer.SecurityContext = kubeSec
 	kubeContainer.StdinOnce = false
 	kubeContainer.TTY = c.config.Spec.Process.Terminal
@@ -600,15 +603,23 @@ func ocicniPortMappingToContainerPort(portMappings []types.OCICNIPortMapping) ([
 }
 
 // libpodEnvVarsToKubeEnvVars converts a key=value string slice to []v1.EnvVar
-func libpodEnvVarsToKubeEnvVars(envs []string) ([]v1.EnvVar, error) {
+func libpodEnvVarsToKubeEnvVars(envs []string, imageEnvs []string) ([]v1.EnvVar, error) {
 	defaultEnv := env.DefaultEnvVariables()
 	envVars := make([]v1.EnvVar, 0, len(envs))
+	imageMap := make(map[string]string, len(imageEnvs))
+	for _, ie := range envs {
+		split := strings.SplitN(ie, "=", 2)
+		imageMap[split[0]] = split[1]
+	}
 	for _, e := range envs {
 		split := strings.SplitN(e, "=", 2)
 		if len(split) != 2 {
 			return envVars, errors.Errorf("environment variable %s is malformed; should be key=value", e)
 		}
 		if defaultEnv[split[0]] == split[1] {
+			continue
+		}
+		if imageMap[split[0]] == split[1] {
 			continue
 		}
 		ev := v1.EnvVar{
@@ -808,33 +819,42 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 		capabilities = newCaps
 	}
 
-	var selinuxOpts v1.SELinuxOptions
-	opts := strings.SplitN(c.config.Spec.Annotations[define.InspectAnnotationLabel], ":", 2)
-	if len(opts) == 2 {
-		switch opts[0] {
-		case "type":
-			selinuxOpts.Type = opts[1]
-		case "level":
-			selinuxOpts.Level = opts[1]
-		}
-	}
-	if len(opts) == 1 {
-		if opts[0] == "disable" {
-			selinuxOpts.Type = "spc_t"
-		}
-	}
-
 	sc := v1.SecurityContext{
-		Capabilities:   capabilities,
-		Privileged:     &privileged,
-		SELinuxOptions: &selinuxOpts,
 		// RunAsNonRoot is an optional parameter; our first implementations should be root only; however
 		// I'm leaving this as a bread-crumb for later
 		//RunAsNonRoot:             &nonRoot,
-		ReadOnlyRootFilesystem:   &ro,
-		AllowPrivilegeEscalation: &allowPrivEscalation,
+	}
+	if capabilities != nil {
+		sc.Capabilities = capabilities
+	}
+	var selinuxOpts v1.SELinuxOptions
+	opts := strings.SplitN(c.config.Spec.Annotations[define.InspectAnnotationLabel], ":", 2)
+	switch len(opts) {
+	case 2:
+		switch opts[0] {
+		case "type":
+			selinuxOpts.Type = opts[1]
+			sc.SELinuxOptions = &selinuxOpts
+		case "level":
+			selinuxOpts.Level = opts[1]
+			sc.SELinuxOptions = &selinuxOpts
+		}
+	case 1:
+		if opts[0] == "disable" {
+			selinuxOpts.Type = "spc_t"
+			sc.SELinuxOptions = &selinuxOpts
+		}
 	}
 
+	if !allowPrivEscalation {
+		sc.AllowPrivilegeEscalation = &allowPrivEscalation
+	}
+	if privileged {
+		sc.Privileged = &privileged
+	}
+	if ro {
+		sc.ReadOnlyRootFilesystem = &ro
+	}
 	if c.User() != "" {
 		if !c.batched {
 			c.lock.Lock()

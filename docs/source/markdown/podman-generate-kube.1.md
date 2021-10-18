@@ -54,13 +54,7 @@ spec:
     - docker-entrypoint.sh
     - mysqld
     env:
-    - name: PATH
-      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-    - name: TERM
-      value: xterm
     - name: HOSTNAME
-    - name: container
-      value: podman
     - name: GOSU_VERSION
       value: "1.10"
     - name: GPG_KEYS
@@ -77,14 +71,14 @@ spec:
     ports:
     - containerPort: 3306
       hostPort: 36533
-      protocol: TCP
     resources: {}
     securityContext:
-      allowPrivilegeEscalation: true
-      privileged: false
-      readOnlyRootFilesystem: false
+      capabilities:
+        drop:
+        - CAP_MKNOD
+        - CAP_NET_RAW
+        - CAP_AUDIT_WRITE
     tty: true
-    workingDir: /
 status: {}
 ```
 
@@ -106,31 +100,18 @@ spec:
   containers:
   - command:
     - /bin/sh
-    env:
-    - name: PATH
-      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-    - name: TERM
-      value: xterm
-    - name: container
-      value: podman
     image: docker.io/library/alpine:latest
     name: test-bind-mount
     resources: {}
     securityContext:
-      allowPrivilegeEscalation: true
       capabilities:
         drop:
         - CAP_MKNOD
         - CAP_NET_RAW
         - CAP_AUDIT_WRITE
-      privileged: false
-      readOnlyRootFilesystem: false
-      seLinuxOptions: {}
     volumeMounts:
     - mountPath: /volume
       name: home-user-my-data-host
-    workingDir: /
-  dnsConfig: {}
   restartPolicy: Never
   volumes:
   - hostPath:
@@ -158,31 +139,18 @@ spec:
   containers:
   - command:
     - /bin/sh
-    env:
-    - name: PATH
-      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-    - name: TERM
-      value: xterm
-    - name: container
-      value: podman
     image: docker.io/library/alpine:latest
     name: test-bind-mount
     resources: {}
     securityContext:
-      allowPrivilegeEscalation: true
       capabilities:
         drop:
         - CAP_MKNOD
         - CAP_NET_RAW
         - CAP_AUDIT_WRITE
-      privileged: false
-      readOnlyRootFilesystem: false
-      seLinuxOptions: {}
     volumeMounts:
     - mountPath: /volume
       name: priceless-data-pvc
-    workingDir: /
-  dnsConfig: {}
   restartPolicy: Never
   volumes:
   - name: priceless-data-pvc
@@ -210,22 +178,9 @@ spec:
   - command:
     - python3
     - /root/code/graph.py
-    env:
-    - name: PATH
-      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-    - name: TERM
-      value: xterm
-    - name: HOSTNAME
-    - name: container
-      value: podman
     image: quay.io/baude/demoweb:latest
     name: practicalarchimedes
     resources: {}
-    securityContext:
-      allowPrivilegeEscalation: true
-      capabilities: {}
-      privileged: false
-      readOnlyRootFilesystem: false
     tty: true
     workingDir: /root/code
 status: {}
@@ -242,7 +197,6 @@ spec:
   - name: "8050"
     nodePort: 31269
     port: 8050
-    protocol: TCP
     targetPort: 0
   selector:
     app: demoweb
