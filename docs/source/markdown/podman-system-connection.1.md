@@ -24,8 +24,8 @@ The user will be prompted for the ssh login password or key file pass phrase as 
 ## EXAMPLE
 ```
 $ podman system connection list
-Name URI                                           Identity
-devl ssh://root@example.com/run/podman/podman.sock ~/.ssh/id_rsa
+Name URI                                           Identity	  Default
+devl ssh://root@example.com/run/podman/podman.sock ~/.ssh/id_rsa  true
 ```
 ## SEE ALSO
 podman-system(1) , containers.conf(5)

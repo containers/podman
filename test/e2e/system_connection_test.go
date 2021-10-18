@@ -208,13 +208,13 @@ var _ = Describe("podman system connection", func() {
 		session = podmanTest.Podman(cmd)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.Out).Should(Say("Name *Identity *URI"))
+		Expect(session.Out).Should(Say("Name *URI *Identity *Default"))
 
 		cmd = []string{"system", "connection", "list", "--format", "{{.Name}}"}
 		session = podmanTest.Podman(cmd)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).Should(Equal("devl* qe"))
+		Expect(session.OutputToString()).Should(Equal("devl qe"))
 	})
 
 	It("failed default", func() {
