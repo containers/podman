@@ -133,12 +133,14 @@ func getMemoryLimits(s *specgen.SpecGenerator, c *entities.ContainerCreateOption
 		if err != nil {
 			return nil, errors.Wrapf(err, "invalid value for memory")
 		}
-		memory.Limit = &ml
-		if c.MemorySwap == "" {
-			limit := 2 * ml
-			memory.Swap = &(limit)
+		if ml > 0 {
+			memory.Limit = &ml
+			if c.MemorySwap == "" {
+				limit := 2 * ml
+				memory.Swap = &(limit)
+			}
+			hasLimits = true
 		}
-		hasLimits = true
 	}
 	if m := c.MemoryReservation; len(m) > 0 {
 		mr, err := units.RAMInBytes(m)
