@@ -16,18 +16,10 @@ import (
 	"time"
 
 	"github.com/containers/podman/v3/pkg/rootless"
-	"github.com/onsi/ginkgo"
 )
 
 func IsRemote() bool {
 	return true
-}
-
-func SkipIfRemote(reason string) {
-	if len(reason) < 5 {
-		panic("SkipIfRemote must specify a reason to skip")
-	}
-	ginkgo.Skip("[remote]: " + reason)
 }
 
 // Podman is the exec call to podman on the filesystem

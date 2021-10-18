@@ -397,7 +397,7 @@ func tagOutputToMap(imagesOutput []string) map[string]map[string]bool {
 	return m
 }
 
-// GetHostDistributionInfo returns a struct with its distribution name and version
+// GetHostDistributionInfo returns a struct with its distribution Name and version
 func GetHostDistributionInfo() HostOS {
 	f, err := os.Open(OSReleasePath)
 	defer f.Close()
@@ -490,14 +490,4 @@ func RandomString(n int) string {
 		b[i] = randomLetters[rand.Intn(len(randomLetters))]
 	}
 	return string(b)
-}
-
-//SkipIfInContainer skips a test if the test is run inside a container
-func SkipIfInContainer(reason string) {
-	if len(reason) < 5 {
-		panic("SkipIfInContainer must specify a reason to skip")
-	}
-	if os.Getenv("TEST_ENVIRON") == "container" {
-		Skip("[container]: " + reason)
-	}
 }

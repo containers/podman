@@ -226,12 +226,7 @@ func getUDS(cmd *cobra.Command, uri *url.URL, iden string) (string, error) {
 	if v, found := os.LookupEnv("PODMAN_BINARY"); found {
 		podman = v
 	}
-	run := podman + " info --format=json"
-	out, err := ExecRemoteCommand(dial, run)
-	if err != nil {
-		return "", err
-	}
-	infoJSON, err := json.Marshal(out)
+	infoJSON, err := ExecRemoteCommand(dial, podman+" info --format=json")
 	if err != nil {
 		return "", err
 	}

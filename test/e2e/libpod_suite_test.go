@@ -16,9 +16,6 @@ func IsRemote() bool {
 	return false
 }
 
-func SkipIfRemote(string) {
-}
-
 // Podman is the exec call to podman on the filesystem
 func (p *PodmanTestIntegration) Podman(args []string) *PodmanSessionIntegration {
 	podmanSession := p.PodmanBase(args, false, false)

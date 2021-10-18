@@ -168,7 +168,7 @@ func loadToRemote(localFile string, tag string, url *urlP.URL, iden string) (str
 
 	n, err := scpD.CopyTo(dial, localFile, remoteFile)
 	if err != nil {
-		errOut := (strconv.Itoa(int(n)) + " Bytes copied before error")
+		errOut := strconv.Itoa(int(n)) + " Bytes copied before error"
 		return " ", errors.Wrapf(err, errOut)
 	}
 	run := ""
@@ -181,7 +181,7 @@ func loadToRemote(localFile string, tag string, url *urlP.URL, iden string) (str
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimSuffix(out, "\n"), nil
+	return strings.TrimSuffix(string(out), "\n"), nil
 }
 
 // saveToRemote takes image information and remote connection information. it connects to the specified client
@@ -207,7 +207,7 @@ func saveToRemote(image, localFile string, tag string, uri *urlP.URL, iden strin
 	n, err := scpD.CopyFrom(dial, remoteFile, localFile)
 	connection.ExecRemoteCommand(dial, "rm "+remoteFile)
 	if err != nil {
-		errOut := (strconv.Itoa(int(n)) + " Bytes copied before error")
+		errOut := strconv.Itoa(int(n)) + " Bytes copied before error"
 		return errors.Wrapf(err, errOut)
 	}
 	return nil
@@ -221,11 +221,7 @@ func makeRemoteFile(dial *ssh.Client) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	remoteFile = strings.TrimSuffix(remoteFile, "\n")
-	if err != nil {
-		return "", err
-	}
-	return remoteFile, nil
+	return strings.TrimSuffix(string(remoteFile), "\n"), nil
 }
 
 // createConnections takes a boolean determining which ssh client to dial
