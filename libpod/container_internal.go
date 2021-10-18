@@ -1690,9 +1690,23 @@ func (c *Container) cleanupStorage() error {
 
 	var cleanupErr error
 
+	markUnmounted := func() {
+		c.state.Mountpoint = ""
+		c.state.Mounted = false
+
+		if c.valid {
+			if err := c.save(); err != nil {
+				if cleanupErr != nil {
+					logrus.Errorf("Unmounting container %s: %v", c.ID(), cleanupErr)
+				}
+				cleanupErr = err
+			}
+		}
+	}
+
 	// umount rootfs overlay if it was created
 	if c.config.RootfsOverlay {
-		overlayBasePath := c.runtime.store.GraphRoot()
+		overlayBasePath := filepath.Dir(c.config.StaticDir)
 		overlayBasePath = filepath.Join(overlayBasePath, "rootfs")
 		if err := overlay.Unmount(overlayBasePath); err != nil {
 			// If the container can't remove content report the error
@@ -1717,6 +1731,7 @@ func (c *Container) cleanupStorage() error {
 	}
 
 	if c.config.Rootfs != "" {
+		markUnmounted()
 		return cleanupErr
 	}
 
@@ -1761,17 +1776,7 @@ func (c *Container) cleanupStorage() error {
 		}
 	}
 
-	c.state.Mountpoint = ""
-	c.state.Mounted = false
-
-	if c.valid {
-		if err := c.save(); err != nil {
-			if cleanupErr != nil {
-				logrus.Errorf("Unmounting container %s: %v", c.ID(), cleanupErr)
-			}
-			cleanupErr = err
-		}
-	}
+	markUnmounted()
 	return cleanupErr
 }
 

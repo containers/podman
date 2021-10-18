@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v3/pkg/cgroups"
+	"github.com/containers/podman/v3/pkg/rootless"
 	. "github.com/containers/podman/v3/test/utils"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/mrunalp/fileutils"
@@ -226,6 +228,37 @@ var _ = Describe("Podman run", func() {
 		stdoutLines := session.OutputToStringArray()
 		Expect(stdoutLines).Should(HaveLen(1))
 		Expect(stdoutLines[0]).Should(Equal(uniqueString))
+
+		SkipIfRemote("External overlay only work locally")
+		if os.Getenv("container") != "" {
+			Skip("Overlay mounts not supported when running in a container")
+		}
+		if rootless.IsRootless() {
+			if _, err := exec.LookPath("fuse-overlayfs"); err != nil {
+				Skip("Fuse-Overlayfs required for rootless overlay mount test")
+			}
+		}
+		// Test --rootfs with an external overlay
+		// use --rm to remove container and confirm if we did not leak anything
+		osession := podmanTest.Podman([]string{"run", "-i", "--rm", "--security-opt", "label=disable",
+			"--rootfs", rootfs + ":O", "cat", testFilePath})
+		osession.WaitWithDefaultTimeout()
+		Expect(osession).Should(Exit(0))
+
+		// Test podman start stop with overlay
+		osession = podmanTest.Podman([]string{"run", "--name", "overlay-foo", "--security-opt", "label=disable",
+			"--rootfs", rootfs + ":O", "echo", "hello"})
+		osession.WaitWithDefaultTimeout()
+		Expect(osession).Should(Exit(0))
+
+		osession = podmanTest.Podman([]string{"stop", "overlay-foo"})
+		osession.WaitWithDefaultTimeout()
+		Expect(osession).Should(Exit(0))
+
+		startsession := podmanTest.Podman([]string{"start", "--attach", "overlay-foo"})
+		startsession.WaitWithDefaultTimeout()
+		Expect(startsession).Should(Exit(0))
+		Expect(startsession.OutputToString()).To(Equal("hello"))
 	})
 
 	It("podman run a container with --init", func() {
