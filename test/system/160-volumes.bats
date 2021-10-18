@@ -210,6 +210,36 @@ EOF
     run_podman volume rm my_vol2
 }
 
+# Podman volume user test
+@test "podman volume user test" {
+    is_rootless || skip "only meaningful when run rootless"
+    user="1000:2000"
+    newuser="100:200"
+    tmpdir=${PODMAN_TMPDIR}/volume_$(random_string)
+    mkdir $tmpdir
+    touch $tmpdir/test1
+
+    run_podman run --name user --user $user -v $tmpdir:/data:U $IMAGE stat -c "%u:%g" /data
+    is "$output" "$user" "user should be changed"
+
+    # Now chown the source directory and make sure recursive chown happens
+    run_podman unshare chown -R $newuser $tmpdir
+    run_podman start --attach user
+    is "$output" "$user" "user should be the same"
+
+    # Now chown the file in source directory and make sure recursive chown
+    # doesn't happen
+    run_podman unshare chown -R $newuser $tmpdir/test1
+    run_podman start --attach user
+    is "$output" "$user" "user should be the same"
+    # test1 should still be chowned to $newuser
+    run_podman unshare stat -c "%u:%g" $tmpdir/test1
+    is "$output" "$newuser" "user should not be changed"
+
+    run_podman unshare rm $tmpdir/test1
+    run_podman rm user
+}
+
 
 # Confirm that container sees the correct id
 @test "podman volume with --userns=keep-id" {
