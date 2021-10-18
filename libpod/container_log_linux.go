@@ -91,8 +91,12 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 	var cursorError error
 	for i := 1; i <= 3; i++ {
 		cursor, cursorError = journal.GetCursor()
+		hundreds := 1
+		for j := 1; j < i; j++ {
+			hundreds *= 2
+		}
 		if cursorError != nil {
-			time.Sleep(time.Duration(i*100) * time.Millisecond)
+			time.Sleep(time.Duration(hundreds*100) * time.Millisecond)
 			continue
 		}
 		break
