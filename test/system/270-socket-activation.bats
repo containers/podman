@@ -85,7 +85,7 @@ function teardown() {
     is "$status" "0" "curl exit status"
     is "$output" "OK" "podman service responds normally"
 
-    run_podman rm -f -t 0 $cid
+    run_podman rm -f $cid
 }
 
 @test "podman system service - socket activation - kill rootless pause" {
@@ -109,7 +109,7 @@ function teardown() {
     is "$status" "0" "curl exit status"
     is "$output" "OK" "podman service responds normally"
 
-    run_podman rm -f -t 0 $cid
+    run_podman rm -f $cid
 }
 
 # vim: filetype=sh
