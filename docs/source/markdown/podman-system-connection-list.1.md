@@ -23,14 +23,14 @@ Valid placeholders for the Go template listed below:
 | *.Name*         | Connection Name/Identifier |
 | *.Identity*     | Path to file containing SSH identity |
 | *.URI*          | URI to podman service. Valid schemes are ssh://[user@]*host*[:port]*Unix domain socket*[?secure=True], unix://*Unix domain socket*, and tcp://localhost[:*port*] |
-
-An asterisk is appended to the default connection.
+| *.Default*      | Indicates whether connection is the default |
 
 ## EXAMPLE
 ```
 $ podman system connection list
-Name URI                                           Identity
-devl ssh://root@example.com/run/podman/podman.sock ~/.ssh/id_rsa
+Name URI                                                      Identity	    Default
+devl ssh://root@example.com:/run/podman/podman.sock           ~/.ssh/id_rsa True
+devl ssh://user@example.com:/run/user/1000/podman/podman.sock ~/.ssh/id_rsa False
 ```
 ## SEE ALSO
 podman-system(1) , containers.conf(5)

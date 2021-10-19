@@ -44,6 +44,7 @@ func init() {
 type namedDestination struct {
 	Name string
 	config.Destination
+	Default bool
 }
 
 func list(cmd *cobra.Command, _ []string) error {
@@ -60,12 +61,14 @@ func list(cmd *cobra.Command, _ []string) error {
 		"Identity": "Identity",
 		"Name":     "Name",
 		"URI":      "URI",
+		"Default":  "Default",
 	}}
 
 	rows := make([]namedDestination, 0)
 	for k, v := range cfg.Engine.ServiceDestinations {
+		def := false
 		if k == cfg.Engine.ActiveService {
-			k += "*"
+			def = true
 		}
 
 		r := namedDestination{
@@ -74,6 +77,7 @@ func list(cmd *cobra.Command, _ []string) error {
 				Identity: v.Identity,
 				URI:      v.URI,
 			},
+			Default: def,
 		}
 		rows = append(rows, r)
 	}
@@ -82,7 +86,7 @@ func list(cmd *cobra.Command, _ []string) error {
 		return rows[i].Name < rows[j].Name
 	})
 
-	format := "{{.Name}}\t{{.Identity}}\t{{.URI}}\n"
+	format := "{{.Name}}\t{{.URI}}\t{{.Identity}}\t{{.Default}}\n"
 	switch {
 	case report.IsJSON(cmd.Flag("format").Value.String()):
 		buf, err := registry.JSONLibrary().MarshalIndent(rows, "", "    ")
