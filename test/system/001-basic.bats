@@ -94,22 +94,21 @@ function setup() {
 }
 
 @test "podman-remote: defaults" {
-    if is_remote; then
-        skip "only applicable on a local run"
-    fi
+    skip_if_remote "only applicable on a local run"
 
+    # By default, podman should include '--remote' in its help output
+    run_podman --help
+    is "$output" ".* --remote " "podman --help includes the --remote option"
+
+    # When it detects CONTAINER_HOST or _CONNECTION, --remote is not an option
     CONTAINER_HOST=foobar run_podman --help
-    # Should not have --remote flag
-    echo $output  |  grep -v -qw -- "--remote"
-    if [ $? -ne 0 ]; then
-        die "Should not have --remote flag"
+    if grep -- " --remote " <<<"$output"; then
+        die "podman --help, with CONTAINER_HOST set, is showing --remote"
     fi
 
     CONTAINER_CONNECTION=foobar run_podman --help
-    # Should not have --remote flag
-    echo $output  |  grep -v -qw -- "--remote"
-    if [ $? -ne 0 ]; then
-        die "Should not have --remote flag"
+    if grep -- " --remote " <<<"$output"; then
+        die "podman --help, with CONTAINER_CONNECTION set, is showing --remote"
     fi
 }
 
