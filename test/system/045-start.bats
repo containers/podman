@@ -36,10 +36,6 @@ load helpers
     expected="Error: either start all containers or the container(s) provided in the arguments"
     run_podman 125 start --all 12333
     is "$output" "$expected" "start --all, with args, throws error"
-    if ! is_remote; then
-        run_podman 125 start --all --latest
-        is "$output" "$expected" "podman start --all --latest"
-    fi
 }
 
 @test "podman start --filter - start only containers that match the filter" {
