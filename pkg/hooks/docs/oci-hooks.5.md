@@ -1,4 +1,4 @@
-% oci-hooks(5) OCI Hooks Configuration
+% oci-hooks 5 OCI Hooks Configuration
 % W. Trevor King
 % MAY 2018
 

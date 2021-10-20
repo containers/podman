@@ -460,6 +460,22 @@ func (v *MachineVM) Remove(name string, opts machine.RemoveOptions) (string, fun
 	for _, msg := range files {
 		confirmationMessage += msg + "\n"
 	}
+
+	// Get path to socket and pidFile before we do any cleanups
+	qemuSocketFile, pidFile, errSocketFile := v.getSocketandPid()
+	//silently try to delete socket and pid file
+	//remove socket and pid file if any: warn at low priority if things fail
+	if errSocketFile == nil {
+		// Remove the pidfile
+		if err := os.Remove(pidFile); err != nil && !errors.Is(err, os.ErrNotExist) {
+			logrus.Debugf("Error while removing pidfile: %v", err)
+		}
+		// Remove socket
+		if err := os.Remove(qemuSocketFile); err != nil && !errors.Is(err, os.ErrNotExist) {
+			logrus.Debugf("Error while removing podman-machine-socket: %v", err)
+		}
+	}
+
 	confirmationMessage += "\n"
 	return confirmationMessage, func() error {
 		for _, f := range files {

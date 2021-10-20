@@ -351,6 +351,12 @@ func (r *ConmonOCIRuntime) UpdateContainerStatus(ctr *Container) error {
 		return ctr.handleExitFile(exitFile, fi)
 	}
 
+	// Handle ContainerStateStopping - keep it unless the container
+	// transitioned to no longer running.
+	if oldState == define.ContainerStateStopping && (ctr.state.State == define.ContainerStatePaused || ctr.state.State == define.ContainerStateRunning) {
+		ctr.state.State = define.ContainerStateStopping
+	}
+
 	return nil
 }
 
@@ -698,6 +704,10 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 		case err := <-stdinChan:
 			if err != nil {
 				return err
+			}
+			// copy stdin is done, close it
+			if connErr := conn.CloseWrite(); connErr != nil {
+				logrus.Errorf("Unable to close conn: %v", connErr)
 			}
 		case <-cancel:
 			return nil

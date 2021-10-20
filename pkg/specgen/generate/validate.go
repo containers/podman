@@ -72,10 +72,9 @@ func verifyContainerResourcesCgroupV1(s *specgen.SpecGenerator) ([]string, error
 
 	// Pids checks
 	if s.ResourceLimits.Pids != nil {
-		pids := s.ResourceLimits.Pids
 		// TODO: Should this be 0, or checking that ResourceLimits.Pids
 		// is set at all?
-		if pids.Limit > 0 && !sysInfo.PidsLimit {
+		if s.ResourceLimits.Pids.Limit >= 0 && !sysInfo.PidsLimit {
 			warnings = append(warnings, "Your kernel does not support pids limit capabilities or the cgroup is not mounted. PIDs limit discarded.")
 			s.ResourceLimits.Pids = nil
 		}

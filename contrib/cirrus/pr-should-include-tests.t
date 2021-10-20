@@ -36,9 +36,9 @@ tests="
 0  a47515008  ecedda63a   PR 8816, unit tests only
 0  caa84cd35  e55320efd   PR 8565, hack/podman-socat only
 0  c342583da  12f835d12   PR 8523, version.go + podman.spec.in
-0  c342583da  db1d2ff11   version bump to v2.2.0
 0  8f75ed958  7b3ad6d89   PR 8835, only a README.md change
 0  b6db60e58  f06dd45e0   PR 9420, a test rename
+0  c6a896b0c  4ea5d6971   PR 11833, includes magic string
 "
 
 # The script we're testing

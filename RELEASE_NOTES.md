@@ -1,5 +1,25 @@
 # Release Notes
 
+## 3.4.1
+### Bugfixes
+- Fixed a bug where `podman machine init` could, under some circumstances, create invalid machine configurations which could not be started ([#11824](https://github.com/containers/podman/issues/11824)).
+- Fixed a bug where the `podman machine list` command would not properly populate some output fields.
+- Fixed a bug where `podman machine rm` could leave dangling sockets from the removed machine ([#11393](https://github.com/containers/podman/issues/11393)).
+- Fixed a bug where `podman run --pids-limit=-1` was not supported (it now sets the PID limit in the container to unlimited) ([#11782](https://github.com/containers/podman/issues/11782)).
+- Fixed a bug where `podman run` and `podman attach` could throw errors about a closed network connection when STDIN was closed by the client ([#11856](https://github.com/containers/podman/issues/11856)).
+- Fixed a bug where the `podman stop` command could fail when run on a container that had another `podman stop` command run on it previously.
+- Fixed a bug where the `--sync` flag to `podman ps` was nonfunctional.
+- Fixed a bug where the Windows and OS X remote clients' `podman stats` command would fail ([#11909](https://github.com/containers/podman/issues/11909)).
+- Fixed a bug where the `podman play kube` command did not properly handle environment variables whose values contained an `=` ([#11891](https://github.com/containers/podman/issues/11891)).
+- Fixed a bug where the `podman generate kube` command could generate invalid annotations when run on containers with volumes that use SELinux relabelling (`:z` or `:Z`) ([#11929](https://github.com/containers/podman/issues/11929)).
+- Fixed a bug where the `podman generate kube` command would generate YAML including some unnecessary (set to default) fields (e.g. user and group, entrypoint, default protocol for forwarded ports) ([#11914](https://github.com/containers/podman/issues/11914), [#11915](https://github.com/containers/podman/issues/11915), and [#11965](https://github.com/containers/podman/issues/11965)).
+- Fixed a bug where the `podman generate kube` command could, under some circumstances, generate YAML including an invalid `targetPort` field for forwarded ports ([#11930](https://github.com/containers/podman/issues/11930)).
+- Fixed a bug where rootless Podman's `podman info` command could, under some circumstances, not read available CGroup controllers ([#11931](https://github.com/containers/podman/issues/11931)).
+- Fixed a bug where `podman container checkpoint --export` would fail to checkpoint any container created with `--log-driver=none` ([#11974](https://github.com/containers/podman/issues/11974)).
+
+### API
+- Fixed a bug where the Compat Create endpoint for Containers could panic when no options were passed to a bind mount of tmpfs ([#11961](https://github.com/containers/podman/issues/11961)).
+
 ## 3.4.0
 ### Features
 - Pods now support init containers! Init containers are containers which run before the rest of the pod starts. There are two types of init containers: "always", which always run before the pod is started, and "once", which only run the first time the pod starts and are subsequently removed. They can be added using the `podman create` command's `--init-ctr` option.

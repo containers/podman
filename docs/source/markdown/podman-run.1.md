@@ -743,7 +743,7 @@ The default is to create a private PID namespace for the container.
 
 #### **--pids-limit**=*limit*
 
-Tune the container's pids limit. Set to **0** to have unlimited pids for the container. The default is **4096** on systems that support "pids" cgroup controller.
+Tune the container's pids limit. Set to **-1** to have unlimited pids for the container. The default is **4096** on systems that support "pids" cgroup controller.
 
 #### **--platform**=*OS/ARCH*
 

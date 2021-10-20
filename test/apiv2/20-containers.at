@@ -379,3 +379,21 @@ t GET containers/$cid/json 200 \
     .HostConfig.Tmpfs['"/mnt/scratch"']~.*mode=755.*
 
 t DELETE containers/$cid?v=true 204
+
+# compat api: tmpfs without mount options
+payload='{"Mounts":[{"Type":"tmpfs","Target":"/mnt/scratch"}]}'
+t POST containers/create Image=$IMAGE HostConfig="$payload" 201 .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+t GET containers/$cid/json 200 \
+    .HostConfig.Tmpfs['"/mnt/scratch"']~.*tmpcopyup.* \
+
+t DELETE containers/$cid?v=true 204
+
+# compat api: bind mount without mount options
+payload='{"Mounts":[{"Type":"bind","Source":"/tmp","Target":"/mnt"}]}'
+t POST containers/create Image=$IMAGE HostConfig="$payload" 201 .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+t GET containers/$cid/json 200 \
+    .HostConfig.Binds[0]~/tmp:/mnt:.* \
+
+t DELETE containers/$cid?v=true 204

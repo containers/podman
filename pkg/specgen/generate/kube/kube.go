@@ -254,7 +254,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	// Environment Variables
 	envs := map[string]string{}
 	for _, env := range imageData.Config.Env {
-		keyval := strings.Split(env, "=")
+		keyval := strings.SplitN(env, "=", 2)
 		envs[keyval[0]] = keyval[1]
 	}
 

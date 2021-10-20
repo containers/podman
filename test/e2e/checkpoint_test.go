@@ -6,10 +6,12 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/containers/podman/v3/pkg/checkpoint/crutils"
 	"github.com/containers/podman/v3/pkg/criu"
 	. "github.com/containers/podman/v3/test/utils"
+	"github.com/containers/podman/v3/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -247,16 +249,19 @@ var _ = Describe("Podman checkpoint", func() {
 		session := podmanTest.Podman(localRunString)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+		cid := session.OutputToString()
+		if !WaitContainerReady(podmanTest, cid, "Ready to accept connections", 20, 1) {
+			Fail("Container failed to get ready")
+		}
 
 		IP := podmanTest.Podman([]string{"inspect", "-l", "--format={{.NetworkSettings.IPAddress}}"})
 		IP.WaitWithDefaultTimeout()
 		Expect(IP).Should(Exit(0))
 
 		// Open a network connection to the redis server
-		conn, err := net.Dial("tcp", IP.OutputToString()+":6379")
-		if err != nil {
-			os.Exit(1)
-		}
+		conn, err := net.DialTimeout("tcp4", IP.OutputToString()+":6379", time.Duration(3)*time.Second)
+		Expect(err).To(BeNil())
+
 		// This should fail as the container has established TCP connections
 		result := podmanTest.Podman([]string{"container", "checkpoint", "-l"})
 		result.WaitWithDefaultTimeout()
@@ -933,18 +938,23 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 
 	It("podman checkpoint and restore container with different port mappings", func() {
-		localRunString := getRunString([]string{"-p", "1234:6379", "--rm", redis})
+		randomPort, err := utils.GetRandomPort()
+		Expect(err).ShouldNot(HaveOccurred())
+		localRunString := getRunString([]string{"-p", fmt.Sprintf("%d:6379", randomPort), "--rm", redis})
 		session := podmanTest.Podman(localRunString)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		cid := session.OutputToString()
 		fileName := "/tmp/checkpoint-" + cid + ".tar.gz"
 
-		// Open a network connection to the redis server via initial port mapping
-		conn, err := net.Dial("tcp", "localhost:1234")
-		if err != nil {
-			os.Exit(1)
+		if !WaitContainerReady(podmanTest, cid, "Ready to accept connections", 20, 1) {
+			Fail("Container failed to get ready")
 		}
+
+		fmt.Fprintf(os.Stderr, "Trying to connect to redis server at localhost:%d", randomPort)
+		// Open a network connection to the redis server via initial port mapping
+		conn, err := net.DialTimeout("tcp4", fmt.Sprintf("localhost:%d", randomPort), time.Duration(3)*time.Second)
+		Expect(err).ShouldNot(HaveOccurred())
 		conn.Close()
 
 		// Checkpoint the container
@@ -958,7 +968,9 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
 
 		// Restore container with different port mapping
-		result = podmanTest.Podman([]string{"container", "restore", "-p", "1235:6379", "-i", fileName})
+		newRandomPort, err := utils.GetRandomPort()
+		Expect(err).ShouldNot(HaveOccurred())
+		result = podmanTest.Podman([]string{"container", "restore", "-p", fmt.Sprintf("%d:6379", newRandomPort), "-i", fileName})
 		result.WaitWithDefaultTimeout()
 
 		Expect(result).Should(Exit(0))
@@ -967,13 +979,12 @@ var _ = Describe("Podman checkpoint", func() {
 
 		// Open a network connection to the redis server via initial port mapping
 		// This should fail
-		conn, err = net.Dial("tcp", "localhost:1234")
+		conn, err = net.DialTimeout("tcp4", fmt.Sprintf("localhost:%d", randomPort), time.Duration(3)*time.Second)
 		Expect(err.Error()).To(ContainSubstring("connection refused"))
 		// Open a network connection to the redis server via new port mapping
-		conn, err = net.Dial("tcp", "localhost:1235")
-		if err != nil {
-			os.Exit(1)
-		}
+		fmt.Fprintf(os.Stderr, "Trying to reconnect to redis server at localhost:%d", newRandomPort)
+		conn, err = net.DialTimeout("tcp4", fmt.Sprintf("localhost:%d", newRandomPort), time.Duration(3)*time.Second)
+		Expect(err).ShouldNot(HaveOccurred())
 		conn.Close()
 
 		result = podmanTest.Podman([]string{"rm", "-fa"})

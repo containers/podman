@@ -25,6 +25,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // GenerateForKube takes a slice of libpod containers and generates
@@ -196,10 +197,11 @@ func containerPortsToServicePorts(containerPorts []v1.ContainerPort) []v1.Servic
 	for _, cp := range containerPorts {
 		nodePort := 30000 + rand.Intn(32767-30000+1)
 		servicePort := v1.ServicePort{
-			Protocol: cp.Protocol,
-			Port:     cp.ContainerPort,
-			NodePort: int32(nodePort),
-			Name:     strconv.Itoa(int(cp.ContainerPort)),
+			Protocol:   cp.Protocol,
+			Port:       cp.ContainerPort,
+			NodePort:   int32(nodePort),
+			Name:       strconv.Itoa(int(cp.ContainerPort)),
+			TargetPort: intstr.Parse(strconv.Itoa(int(cp.ContainerPort))),
 		}
 		sps = append(sps, servicePort)
 	}
@@ -246,7 +248,7 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 				return nil, err
 			}
 			for k, v := range annotations {
-				podAnnotations[define.BindMountPrefix+k] = v
+				podAnnotations[define.BindMountPrefix+k] = strings.TrimSpace(v)
 			}
 			// Since port bindings for the pod are handled by the
 			// infra container, wipe them here.
@@ -366,7 +368,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 			return nil, err
 		}
 		for k, v := range annotations {
-			kubeAnnotations[define.BindMountPrefix+k] = v
+			kubeAnnotations[define.BindMountPrefix+k] = strings.TrimSpace(v)
 		}
 		if isInit {
 			kubeInitCtrs = append(kubeInitCtrs, kubeCtr)
@@ -481,8 +483,14 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 	if err != nil {
 		return kubeContainer, kubeVolumes, nil, annotations, err
 	}
-	if reflect.DeepEqual(imgData.Config.Cmd, kubeContainer.Command) {
+	// If the user doesn't set a command/entrypoint when creating the container with podman and
+	// is using the image command or entrypoint from the image, don't add it to the generated kube yaml
+	if reflect.DeepEqual(imgData.Config.Cmd, kubeContainer.Command) || reflect.DeepEqual(imgData.Config.Entrypoint, kubeContainer.Command) {
 		kubeContainer.Command = nil
+	}
+
+	if imgData.User == c.User() {
+		kubeSec.RunAsGroup, kubeSec.RunAsUser = nil, nil
 	}
 
 	kubeContainer.WorkingDir = c.WorkingDir()
@@ -572,7 +580,8 @@ func ocicniPortMappingToContainerPort(portMappings []ocicni.PortMapping) ([]v1.C
 		var protocol v1.Protocol
 		switch strings.ToUpper(p.Protocol) {
 		case "TCP":
-			protocol = v1.ProtocolTCP
+			// do nothing as it is the default protocol in k8s, there is no need to explicitly
+			// add it to the generated yaml
 		case "UDP":
 			protocol = v1.ProtocolUDP
 		default:

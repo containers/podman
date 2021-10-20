@@ -8,14 +8,16 @@ load helpers.systemd
 
 SERVICE_NAME="podman_test_$(random_string)"
 
-SERVICE_SOCK_ADDR="/run/podman/podman.sock"
+SERVICE_SOCK_ADDR="/run/podman/$SERVICE_NAME.sock"
 if is_rootless; then
-    SERVICE_SOCK_ADDR="$XDG_RUNTIME_DIR/podman/podman.sock"
+    SERVICE_SOCK_ADDR="$XDG_RUNTIME_DIR/podman/$SERVICE_NAME.sock"
 fi
 
 SERVICE_FILE="$UNIT_DIR/$SERVICE_NAME.service"
 SOCKET_FILE="$UNIT_DIR/$SERVICE_NAME.socket"
 
+# URL to use for ping
+_PING=http://placeholder-hostname/libpod/_ping
 
 function setup() {
     skip_if_remote "systemd tests are meaningless over remote"
@@ -25,8 +27,8 @@ function setup() {
     cat > $SERVICE_FILE <<EOF
 [Unit]
 Description=Podman API Service
-Requires=podman.socket
-After=podman.socket
+Requires=$SERVICE_NAME.socket
+After=$SERVICE_NAME.socket
 Documentation=man:podman-system-service(1)
 StartLimitIntervalSec=0
 
@@ -42,7 +44,7 @@ Description=Podman API Socket
 Documentation=man:podman-system-service(1)
 
 [Socket]
-ListenStream=%t/podman/podman.sock
+ListenStream=%t/podman/$SERVICE_NAME.sock
 SocketMode=0660
 
 [Install]
@@ -51,10 +53,10 @@ EOF
 
     # ensure pause die before each test runs
     if is_rootless; then
-        local pause_pid="$XDG_RUNTIME_DIR/libpod/tmp/pause.pid"
-        if [ -f $pause_pid ]; then
-            kill -9 $(cat $pause_pid) 2> /dev/null
-            rm -f $pause_pid
+        local pause_pid_file="$XDG_RUNTIME_DIR/libpod/tmp/pause.pid"
+        if [ -f $pause_pid_file ]; then
+            kill -9 $(< $pause_pid_file) 2> /dev/null
+            rm -f $pause_pid_file
         fi
     fi
     systemctl start "$SERVICE_NAME.socket"
@@ -68,7 +70,9 @@ function teardown() {
 }
 
 @test "podman system service - socket activation - no container" {
-    run curl -s --max-time 3 --unix-socket $SERVICE_SOCK_ADDR http://podman/libpod/_ping
+    run curl -s --max-time 3 --unix-socket $SERVICE_SOCK_ADDR $_PING
+    echo "curl output: $output"
+    is "$status" "0" "curl exit status"
     is "$output" "OK" "podman service responds normally"
 }
 
@@ -76,28 +80,35 @@ function teardown() {
     run_podman run -d $IMAGE sleep 90
     cid="$output"
 
-    run curl -s --max-time 3 --unix-socket $SERVICE_SOCK_ADDR http://podman/libpod/_ping
+    run curl -s --max-time 3 --unix-socket $SERVICE_SOCK_ADDR $_PING
+    echo "curl output: $output"
+    is "$status" "0" "curl exit status"
     is "$output" "OK" "podman service responds normally"
 
-    run_podman stop -t 0 $cid
     run_podman rm -f $cid
 }
 
 @test "podman system service - socket activation - kill rootless pause" {
     if ! is_rootless; then
-        skip "root podman no need pause process"
+        skip "there is no pause process when running rootful"
     fi
     run_podman run -d $IMAGE sleep 90
     cid="$output"
 
-    local pause_pid="$XDG_RUNTIME_DIR/libpod/tmp/pause.pid"
-    if [ -f $pause_pid ]; then
-        kill -9 $(cat $pause_pid) 2> /dev/null
+    local pause_pid_file="$XDG_RUNTIME_DIR/libpod/tmp/pause.pid"
+    if [ ! -f $pause_pid_file ]; then
+        # This seems unlikely, but not impossible
+        die "Pause pid file does not exist: $pause_pid_file"
     fi
-    run curl -s --max-time 3 --unix-socket $SERVICE_SOCK_ADDR http://podman/libpod/_ping
+
+    echo "kill -9 $(< pause_pid_file)"
+    kill -9 $(< $pause_pid_file)
+
+    run curl -s --max-time 3 --unix-socket $SERVICE_SOCK_ADDR $_PING
+    echo "curl output: $output"
+    is "$status" "0" "curl exit status"
     is "$output" "OK" "podman service responds normally"
 
-    run_podman stop -t 0 $cid
     run_podman rm -f $cid
 }
 

@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/containers/image/v5/pkg/compression"
-	"github.com/docker/docker/pkg/archive"
+	"github.com/containers/storage/pkg/archive"
 	"github.com/sirupsen/logrus"
 	"github.com/vbauerster/mpb/v6"
 	"github.com/vbauerster/mpb/v6/decor"
