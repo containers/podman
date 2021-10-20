@@ -87,6 +87,9 @@ func validateStart(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 && !startOptions.Latest && !startOptions.All {
 		return errors.New("start requires at least one argument")
 	}
+	if startOptions.All && startOptions.Latest {
+		return errors.Errorf("--all and --latest cannot be used together")
+	}
 	if len(args) > 0 && startOptions.Latest {
 		return errors.Errorf("--latest and containers cannot be used together")
 	}
