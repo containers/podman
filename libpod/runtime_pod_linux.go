@@ -264,6 +264,15 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 		}
 	}
 
+	// Clear infra container ID before we remove the infra container.
+	// There is a potential issue if we don't do that, and removal is
+	// interrupted between RemoveAllContainers() below and the pod's removal
+	// later - we end up with a reference to a nonexistent infra container.
+	p.state.InfraContainerID = ""
+	if err := p.save(); err != nil {
+		return err
+	}
+
 	// Remove all containers in the pod from the state.
 	if err := r.state.RemovePodContainers(p); err != nil {
 		// If this fails, there isn't much more we can do.
