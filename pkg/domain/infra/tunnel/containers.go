@@ -228,7 +228,7 @@ func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []st
 	for _, name := range namesOrIds {
 		inspect, err := containers.Inspect(ic.ClientCtx, name, options)
 		if err != nil {
-			errModel, ok := err.(errorhandling.ErrorModel)
+			errModel, ok := err.(*errorhandling.ErrorModel)
 			if !ok {
 				return nil, nil, err
 			}
