@@ -1511,8 +1511,8 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 	mountPoint := c.config.Rootfs
 	// Check if overlay has to be created on top of Rootfs
 	if c.config.RootfsOverlay {
-		overlayDest := c.runtime.store.GraphRoot()
-		contentDir, err := overlay.GenerateStructure(c.runtime.store.GraphRoot(), c.ID(), "rootfs", c.RootUID(), c.RootGID())
+		overlayDest := c.runtime.RunRoot()
+		contentDir, err := overlay.GenerateStructure(overlayDest, c.ID(), "rootfs", c.RootUID(), c.RootGID())
 		if err != nil {
 			return "", errors.Wrapf(err, "rootfs-overlay: failed to create TempDir in the %s directory", overlayDest)
 		}
@@ -1737,11 +1737,11 @@ func (c *Container) cleanupStorage() error {
 
 	// umount rootfs overlay if it was created
 	if c.config.RootfsOverlay {
-		overlayBasePath := filepath.Dir(c.config.StaticDir)
-		overlayBasePath = filepath.Join(overlayBasePath, "rootfs")
+		overlayBasePath := filepath.Dir(c.state.Mountpoint)
 		if err := overlay.Unmount(overlayBasePath); err != nil {
-			// If the container can't remove content report the error
-			logrus.Errorf("Failed to cleanup overlay mounts for %s: %v", c.ID(), err)
+			if cleanupErr != nil {
+				logrus.Errorf("Failed to cleanup overlay mounts for %s: %v", c.ID(), err)
+			}
 			cleanupErr = err
 		}
 	}
