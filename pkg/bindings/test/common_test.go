@@ -225,12 +225,23 @@ func (b *bindingTest) RunTopContainer(containerName *string, podName *string) (s
 // This method creates a pod with the given pod name.
 // Podname is an optional parameter
 func (b *bindingTest) Podcreate(name *string) {
+	b.PodcreateAndExpose(name, nil)
+}
+
+// This method creates a pod with the given pod name and publish port.
+// Podname is an optional parameter
+// port is an optional parameter
+func (b *bindingTest) PodcreateAndExpose(name *string, port *string) {
+	command := []string{"pod", "create"}
 	if name != nil {
 		podname := *name
-		b.runPodman([]string{"pod", "create", "--name", podname}).Wait(45)
-	} else {
-		b.runPodman([]string{"pod", "create"}).Wait(45)
+		command = append(command, "--name", podname)
 	}
+	if port != nil {
+		podport := *port
+		command = append(command, "--publish", podport)
+	}
+	b.runPodman(command).Wait(45)
 }
 
 //  StringInSlice returns a boolean based on whether a given

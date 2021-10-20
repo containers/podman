@@ -1,6 +1,7 @@
 package test_bindings
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -9,7 +10,9 @@ import (
 	"github.com/containers/podman/v3/pkg/bindings"
 	"github.com/containers/podman/v3/pkg/bindings/pods"
 	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/errorhandling"
 	"github.com/containers/podman/v3/pkg/specgen"
+	"github.com/containers/podman/v3/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -206,6 +209,29 @@ var _ = Describe("Podman pods", func() {
 			Expect(define.StringToContainerStatus(i.State)).
 				To(Equal(define.ContainerStateRunning))
 		}
+	})
+
+	It("start pod with port conflict", func() {
+		randomport, err := utils.GetRandomPort()
+		Expect(err).To(BeNil())
+
+		portPublish := fmt.Sprintf("%d:%d", randomport, randomport)
+		var podwithport string = "newpodwithport"
+		bt.PodcreateAndExpose(&podwithport, &portPublish)
+
+		// Start pod and expose port 12345
+		_, err = pods.Start(bt.conn, podwithport, nil)
+		Expect(err).To(BeNil())
+
+		// Start another pod and expose same port 12345
+		var podwithport2 string = "newpodwithport2"
+		bt.PodcreateAndExpose(&podwithport2, &portPublish)
+
+		_, err = pods.Start(bt.conn, podwithport2, nil)
+		Expect(err).ToNot(BeNil())
+		code, _ := bindings.CheckResponseCode(err)
+		Expect(code).To(BeNumerically("==", http.StatusConflict))
+		Expect(err).To(BeAssignableToTypeOf(&errorhandling.PodConflictErrorModel{}))
 	})
 
 	It("start stop restart pod", func() {

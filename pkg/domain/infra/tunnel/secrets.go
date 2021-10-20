@@ -28,7 +28,7 @@ func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string
 	for _, name := range nameOrIDs {
 		inspected, err := secrets.Inspect(ic.ClientCtx, name, nil)
 		if err != nil {
-			errModel, ok := err.(errorhandling.ErrorModel)
+			errModel, ok := err.(*errorhandling.ErrorModel)
 			if !ok {
 				return nil, nil, err
 			}
@@ -67,7 +67,7 @@ func (ic *ContainerEngine) SecretRm(ctx context.Context, nameOrIDs []string, opt
 	for _, name := range nameOrIDs {
 		secret, err := secrets.Inspect(ic.ClientCtx, name, nil)
 		if err != nil {
-			errModel, ok := err.(errorhandling.ErrorModel)
+			errModel, ok := err.(*errorhandling.ErrorModel)
 			if !ok {
 				return nil, err
 			}

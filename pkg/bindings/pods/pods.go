@@ -9,6 +9,7 @@ import (
 	"github.com/containers/podman/v3/pkg/api/handlers"
 	"github.com/containers/podman/v3/pkg/bindings"
 	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/errorhandling"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -97,7 +98,7 @@ func Kill(ctx context.Context, nameOrID string, options *KillOptions) (*entities
 	}
 	defer response.Body.Close()
 
-	return &report, response.Process(&report)
+	return &report, response.ProcessWithError(&report, &errorhandling.PodConflictErrorModel{})
 }
 
 // Pause pauses all running containers in a given pod.
@@ -117,7 +118,7 @@ func Pause(ctx context.Context, nameOrID string, options *PauseOptions) (*entiti
 	}
 	defer response.Body.Close()
 
-	return &report, response.Process(&report)
+	return &report, response.ProcessWithError(&report, &errorhandling.PodConflictErrorModel{})
 }
 
 // Prune by default removes all non-running pods in local storage.
@@ -184,7 +185,7 @@ func Restart(ctx context.Context, nameOrID string, options *RestartOptions) (*en
 	}
 	defer response.Body.Close()
 
-	return &report, response.Process(&report)
+	return &report, response.ProcessWithError(&report, &errorhandling.PodConflictErrorModel{})
 }
 
 // Remove deletes a Pod from from local storage. The optional force parameter denotes
@@ -232,7 +233,8 @@ func Start(ctx context.Context, nameOrID string, options *StartOptions) (*entiti
 		report.Id = nameOrID
 		return &report, nil
 	}
-	return &report, response.Process(&report)
+
+	return &report, response.ProcessWithError(&report, &errorhandling.PodConflictErrorModel{})
 }
 
 // Stop stops all containers in a Pod. The optional timeout parameter can be
@@ -260,7 +262,7 @@ func Stop(ctx context.Context, nameOrID string, options *StopOptions) (*entities
 		report.Id = nameOrID
 		return &report, nil
 	}
-	return &report, response.Process(&report)
+	return &report, response.ProcessWithError(&report, &errorhandling.PodConflictErrorModel{})
 }
 
 // Top gathers statistics about the running processes in a pod. The nameOrID can be a pod name
@@ -316,7 +318,7 @@ func Unpause(ctx context.Context, nameOrID string, options *UnpauseOptions) (*en
 	}
 	defer response.Body.Close()
 
-	return &report, response.Process(&report)
+	return &report, response.ProcessWithError(&report, &errorhandling.PodConflictErrorModel{})
 }
 
 // Stats display resource-usage statistics of one or more pods.
