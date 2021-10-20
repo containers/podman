@@ -14,8 +14,6 @@ package netavark_test
 // })
 
 import (
-	"bytes"
-	"fmt"
 	"io/ioutil"
 	"net"
 	"os"
@@ -39,7 +37,6 @@ var _ = Describe("run netavark", func() {
 	var (
 		libpodNet      types.ContainerNetwork
 		confDir        string
-		logBuffer      bytes.Buffer
 		netNSTest      ns.NetNS
 		netNSContainer ns.NetNS
 	)
@@ -60,8 +57,11 @@ var _ = Describe("run netavark", func() {
 	}
 
 	BeforeEach(func() {
+		// set the logrus settings
 		logrus.SetLevel(logrus.TraceLevel)
+		// disable extra quotes so we can easily copy the netavark command
 		logrus.SetFormatter(&logrus.TextFormatter{DisableQuote: true})
+		logrus.SetOutput(os.Stderr)
 		// The tests need root privileges.
 		// Technically we could work around that by using user namespaces and
 		// the rootless cni code but this is to much work to get it right for a unit test.
@@ -74,8 +74,6 @@ var _ = Describe("run netavark", func() {
 		if err != nil {
 			Fail("Failed to create tmpdir")
 		}
-		logBuffer = bytes.Buffer{}
-		logrus.SetOutput(&logBuffer)
 
 		netNSTest, err = netns.NewNS()
 		if err != nil {
@@ -106,8 +104,6 @@ var _ = Describe("run netavark", func() {
 
 		netns.UnmountNS(netNSContainer)
 		netNSContainer.Close()
-
-		fmt.Println(logBuffer.String())
 	})
 
 	It("test basic setup", func() {

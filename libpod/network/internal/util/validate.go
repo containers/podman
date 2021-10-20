@@ -38,7 +38,7 @@ func ValidateSubnet(s *types.Subnet, addGateway bool, usedNetworks []*net.IPNet)
 		if !s.Subnet.Contains(s.Gateway) {
 			return errors.Errorf("gateway %s not in subnet %s", s.Gateway, &s.Subnet)
 		}
-		NormalizeIP(&s.Gateway)
+		util.NormalizeIP(&s.Gateway)
 	} else if addGateway {
 		ip, err := util.FirstIPInSubnet(net)
 		if err != nil {
@@ -52,13 +52,13 @@ func ValidateSubnet(s *types.Subnet, addGateway bool, usedNetworks []*net.IPNet)
 			if !s.Subnet.Contains(s.LeaseRange.StartIP) {
 				return errors.Errorf("lease range start ip %s not in subnet %s", s.LeaseRange.StartIP, &s.Subnet)
 			}
-			NormalizeIP(&s.LeaseRange.StartIP)
+			util.NormalizeIP(&s.LeaseRange.StartIP)
 		}
 		if s.LeaseRange.EndIP != nil {
 			if !s.Subnet.Contains(s.LeaseRange.EndIP) {
 				return errors.Errorf("lease range end ip %s not in subnet %s", s.LeaseRange.EndIP, &s.Subnet)
 			}
-			NormalizeIP(&s.LeaseRange.EndIP)
+			util.NormalizeIP(&s.LeaseRange.EndIP)
 		}
 	}
 	return nil

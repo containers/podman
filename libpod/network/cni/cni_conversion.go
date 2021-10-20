@@ -157,7 +157,7 @@ func convertIPAMConfToNetwork(network *types.Network, ipam ipamConfig, confPath 
 					return errors.Errorf("failed to parse gateway ip %s", ipam.Gateway)
 				}
 				// convert to 4 byte if ipv4
-				internalutil.NormalizeIP(&gateway)
+				util.NormalizeIP(&gateway)
 			} else if !network.Internal {
 				// only add a gateway address if the network is not internal
 				gateway, err = util.FirstIPInSubnet(sub)

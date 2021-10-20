@@ -68,11 +68,3 @@ func getRandomIPv6Subnet() (net.IPNet, error) {
 	ip = append(ip, make([]byte, 8)...)
 	return net.IPNet{IP: ip, Mask: net.CIDRMask(64, 128)}, nil
 }
-
-// NormalizeIP will transform the given ip to the 4 byte len ipv4 if possible
-func NormalizeIP(ip *net.IP) {
-	ipv4 := ip.To4()
-	if ipv4 != nil {
-		*ip = ipv4
-	}
-}

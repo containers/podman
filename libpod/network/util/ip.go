@@ -1,6 +1,8 @@
 package util
 
-import "net"
+import (
+	"net"
+)
 
 // IsIPv6 returns true if netIP is IPv6.
 func IsIPv6(netIP net.IP) bool {
@@ -43,4 +45,12 @@ func FirstIPInSubnet(addr *net.IPNet) (net.IP, error) { //nolint:interfacer
 	}
 	cidr.IP[len(cidr.IP)-1]++
 	return cidr.IP, nil
+}
+
+// NormalizeIP will transform the given ip to the 4 byte len ipv4 if possible
+func NormalizeIP(ip *net.IP) {
+	ipv4 := ip.To4()
+	if ipv4 != nil {
+		*ip = ipv4
+	}
 }

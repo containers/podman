@@ -32,21 +32,29 @@ func (n *netavarkNetwork) Setup(namespacePath string, options types.SetupOptions
 		return nil, err
 	}
 
-	// TODO IP address assignment
+	// allocate IPs in the IPAM db
+	err = n.allocIPs(&options.NetworkOptions)
+	if err != nil {
+		return nil, err
+	}
 
 	netavarkOpts, err := n.convertNetOpts(options.NetworkOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to convert net opts")
 	}
 
-	b, err := json.Marshal(&netavarkOpts)
-	if err != nil {
-		return nil, err
+	// trace output to get the json
+	if logrus.IsLevelEnabled(logrus.TraceLevel) {
+		b, err := json.Marshal(&netavarkOpts)
+		if err != nil {
+			return nil, err
+		}
+		// show the full netavark command so we can easily reproduce errors from the cli
+		logrus.Tracef("netavark command: printf '%s' | %s setup %s", string(b), n.netavarkBinary, namespacePath)
 	}
-	fmt.Println(string(b))
 
 	result := map[string]types.StatusBlock{}
-	err = execNetavark(n.netavarkBinary, []string{"setup", namespacePath}, netavarkOpts, result)
+	err = execNetavark(n.netavarkBinary, []string{"setup", namespacePath}, netavarkOpts, &result)
 
 	if len(result) != len(options.Networks) {
 		logrus.Errorf("unexpected netavark result: %v", result)
@@ -65,12 +73,33 @@ func (n *netavarkNetwork) Teardown(namespacePath string, options types.TeardownO
 		return err
 	}
 
+	// get IPs from the IPAM db
+	err = n.getAssignedIPs(&options.NetworkOptions)
+	if err != nil {
+		// when there is an error getting the ips we should still continue
+		// to call teardown for netavark to prevent leaking network interfaces
+		logrus.Error(err)
+	}
+
 	netavarkOpts, err := n.convertNetOpts(options.NetworkOptions)
 	if err != nil {
 		return errors.Wrap(err, "failed to convert net opts")
 	}
 
-	return execNetavark(n.netavarkBinary, []string{"teardown", namespacePath}, netavarkOpts, nil)
+	retErr := execNetavark(n.netavarkBinary, []string{"teardown", namespacePath}, netavarkOpts, nil)
+
+	// when netavark returned an error we still free the used ips
+	// otherwise we could end up in a state where block the ips forever
+	err = n.deallocIPs(&netavarkOpts.NetworkOptions)
+	if err != nil {
+		if retErr != nil {
+			logrus.Error(err)
+		} else {
+			retErr = err
+		}
+	}
+
+	return retErr
 }
 
 func (n *netavarkNetwork) convertNetOpts(opts types.NetworkOptions) (*netavarkOptions, error) {

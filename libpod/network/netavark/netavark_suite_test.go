@@ -32,6 +32,7 @@ func getNetworkInterface(confDir string, machine bool) (types.ContainerNetwork, 
 		NetworkConfigDir: confDir,
 		IsMachine:        machine,
 		NetavarkBinary:   netavarkBinary,
+		IPAMDBPath:       filepath.Join(confDir, "ipam.db"),
 		LockFile:         filepath.Join(confDir, "netavark.lock"),
 	})
 }
