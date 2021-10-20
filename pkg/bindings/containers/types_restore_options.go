@@ -32,6 +32,21 @@ func (o *RestoreOptions) GetIgnoreRootfs() bool {
 	return *o.IgnoreRootfs
 }
 
+// WithIgnoreVolumes set field IgnoreVolumes to given value
+func (o *RestoreOptions) WithIgnoreVolumes(value bool) *RestoreOptions {
+	o.IgnoreVolumes = &value
+	return o
+}
+
+// GetIgnoreVolumes returns value of field IgnoreVolumes
+func (o *RestoreOptions) GetIgnoreVolumes() bool {
+	if o.IgnoreVolumes == nil {
+		var z bool
+		return z
+	}
+	return *o.IgnoreVolumes
+}
+
 // WithIgnoreStaticIP set field IgnoreStaticIP to given value
 func (o *RestoreOptions) WithIgnoreStaticIP(value bool) *RestoreOptions {
 	o.IgnoreStaticIP = &value
@@ -135,4 +150,34 @@ func (o *RestoreOptions) GetPod() string {
 		return z
 	}
 	return *o.Pod
+}
+
+// WithPrintStats set field PrintStats to given value
+func (o *RestoreOptions) WithPrintStats(value bool) *RestoreOptions {
+	o.PrintStats = &value
+	return o
+}
+
+// GetPrintStats returns value of field PrintStats
+func (o *RestoreOptions) GetPrintStats() bool {
+	if o.PrintStats == nil {
+		var z bool
+		return z
+	}
+	return *o.PrintStats
+}
+
+// WithPublishPorts set field PublishPorts to given value
+func (o *RestoreOptions) WithPublishPorts(value []string) *RestoreOptions {
+	o.PublishPorts = value
+	return o
+}
+
+// GetPublishPorts returns value of field PublishPorts
+func (o *RestoreOptions) GetPublishPorts() []string {
+	if o.PublishPorts == nil {
+		var z []string
+		return z
+	}
+	return o.PublishPorts
 }
