@@ -67,6 +67,11 @@ echo $rand        |   0 | $rand
     is "$output" ".*invalidflag" "failed when passing undefined flags to the runtime"
 }
 
+@test "podman run --memory=0 runtime option" {
+    run_podman run --memory=0 --rm $IMAGE echo hello
+    is "$output" "hello" "failed to run when --memory is set to 0"
+}
+
 # 'run --preserve-fds' passes a number of additional file descriptors into the container
 @test "podman run --preserve-fds" {
     skip_if_remote "preserve-fds is meaningless over remote"
