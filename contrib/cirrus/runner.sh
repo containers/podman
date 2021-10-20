@@ -117,6 +117,7 @@ exec_container() {
     set -x
     # shellcheck disable=SC2154
     exec podman run --rm --privileged --net=host --cgroupns=host \
+        -v `mktemp -d -p /var/tmp`:/tmp:Z \
         -v /dev/fuse:/dev/fuse \
         -v "$GOPATH:$GOPATH:Z" \
         --workdir "$GOSRC" \
