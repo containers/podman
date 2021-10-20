@@ -2103,7 +2103,7 @@ func (c *Container) checkReadyForRemoval() error {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s is in invalid state", c.ID())
 	}
 
-	if c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused) {
+	if c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused) && !c.IsInfra() {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot remove container %s as it is %s - running or paused containers cannot be removed without force", c.ID(), c.state.State.String())
 	}
 
