@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/containers/common/libimage"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v3/pkg/api/types"
@@ -16,7 +17,9 @@ func TagImage(w http.ResponseWriter, r *http.Request) {
 	// /v1.xx/images/(name)/tag
 	name := utils.GetName(r)
 
-	newImage, _, err := runtime.LibimageRuntime().LookupImage(name, nil)
+	// Allow tagging manifest list instead of resolving instances from manifest
+	lookupOptions := &libimage.LookupImageOptions{ManifestList: true}
+	newImage, _, err := runtime.LibimageRuntime().LookupImage(name, lookupOptions)
 	if err != nil {
 		utils.ImageNotFound(w, name, errors.Wrapf(err, "failed to find image %s", name))
 		return
