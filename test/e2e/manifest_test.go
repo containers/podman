@@ -93,6 +93,25 @@ var _ = Describe("Podman manifest", func() {
 		Expect(session.OutputToString()).To(ContainSubstring(imageListARM64InstanceDigest))
 	})
 
+	It("podman manifest tag", func() {
+		session := podmanTest.Podman([]string{"manifest", "create", "foobar"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		session = podmanTest.Podman([]string{"manifest", "add", "foobar", "quay.io/libpod/busybox"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		session = podmanTest.Podman([]string{"tag", "foobar", "foobar2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		session = podmanTest.Podman([]string{"manifest", "inspect", "foobar"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		session2 := podmanTest.Podman([]string{"manifest", "inspect", "foobar2"})
+		session2.WaitWithDefaultTimeout()
+		Expect(session2).Should(Exit(0))
+		Expect(session2.OutputToString()).To(Equal(session.OutputToString()))
+	})
+
 	It("podman manifest add --all", func() {
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
