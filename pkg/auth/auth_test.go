@@ -3,7 +3,6 @@ package auth
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -30,10 +29,9 @@ var largeAuthFileValues = map[string]types.DockerAuthConfig{
 	"quay.io":          {Username: "quay", Password: "top"},
 }
 
-// Test that GetCredentials() correctly parses what Header() produces
-func TestHeaderGetCredentialsRoundtrip(t *testing.T) {
+// Test that GetCredentials() correctly parses what MakeXRegistryConfigHeader() produces
+func TestMakeXRegistryConfigHeaderGetCredentialsRoundtrip(t *testing.T) {
 	for _, tc := range []struct {
-		headerName         HeaderAuthName
 		name               string
 		fileContents       string
 		username, password string
@@ -41,7 +39,6 @@ func TestHeaderGetCredentialsRoundtrip(t *testing.T) {
 		expectedFileValues map[string]types.DockerAuthConfig
 	}{
 		{
-			headerName:         XRegistryConfigHeader,
 			name:               "no data",
 			fileContents:       "",
 			username:           "",
@@ -50,7 +47,6 @@ func TestHeaderGetCredentialsRoundtrip(t *testing.T) {
 			expectedFileValues: nil,
 		},
 		{
-			headerName:         XRegistryConfigHeader,
 			name:               "file data",
 			fileContents:       largeAuthFile,
 			username:           "",
@@ -59,7 +55,6 @@ func TestHeaderGetCredentialsRoundtrip(t *testing.T) {
 			expectedFileValues: largeAuthFileValues,
 		},
 		{
-			headerName:         XRegistryConfigHeader,
 			name:               "file data + override",
 			fileContents:       largeAuthFile,
 			username:           "override-user",
@@ -67,25 +62,8 @@ func TestHeaderGetCredentialsRoundtrip(t *testing.T) {
 			expectedOverride:   &types.DockerAuthConfig{Username: "override-user", Password: "override-pass"},
 			expectedFileValues: largeAuthFileValues,
 		},
-		{
-			headerName:         XRegistryAuthHeader,
-			name:               "override",
-			fileContents:       "",
-			username:           "override-user",
-			password:           "override-pass",
-			expectedOverride:   &types.DockerAuthConfig{Username: "override-user", Password: "override-pass"},
-			expectedFileValues: nil,
-		},
-		{
-			headerName:         XRegistryAuthHeader,
-			name:               "file data",
-			fileContents:       largeAuthFile,
-			username:           "",
-			password:           "",
-			expectedFileValues: largeAuthFileValues,
-		},
 	} {
-		name := fmt.Sprintf("%s: %s", tc.headerName, tc.name)
+		name := tc.name
 		inputAuthFile := ""
 		if tc.fileContents != "" {
 			f, err := ioutil.TempFile("", "auth.json")
@@ -96,7 +74,7 @@ func TestHeaderGetCredentialsRoundtrip(t *testing.T) {
 			require.NoError(t, err, name)
 		}
 
-		headers, err := Header(nil, tc.headerName, inputAuthFile, tc.username, tc.password)
+		headers, err := MakeXRegistryConfigHeader(nil, inputAuthFile, tc.username, tc.password)
 		require.NoError(t, err)
 		req, err := http.NewRequest(http.MethodPost, "/", nil)
 		require.NoError(t, err, name)
@@ -121,9 +99,69 @@ func TestHeaderGetCredentialsRoundtrip(t *testing.T) {
 	}
 }
 
-func TestHeader(t *testing.T) {
+// Test that GetCredentials() correctly parses what MakeXRegistryAuthHeader() produces
+func TestMakeXRegistryAuthHeaderGetCredentialsRoundtrip(t *testing.T) {
 	for _, tc := range []struct {
-		headerName         HeaderAuthName
+		name               string
+		fileContents       string
+		username, password string
+		expectedOverride   *types.DockerAuthConfig
+		expectedFileValues map[string]types.DockerAuthConfig
+	}{
+		{
+			name:               "override",
+			fileContents:       "",
+			username:           "override-user",
+			password:           "override-pass",
+			expectedOverride:   &types.DockerAuthConfig{Username: "override-user", Password: "override-pass"},
+			expectedFileValues: nil,
+		},
+		{
+			name:               "file data",
+			fileContents:       largeAuthFile,
+			username:           "",
+			password:           "",
+			expectedFileValues: largeAuthFileValues,
+		},
+	} {
+		name := tc.name
+		inputAuthFile := ""
+		if tc.fileContents != "" {
+			f, err := ioutil.TempFile("", "auth.json")
+			require.NoError(t, err, name)
+			defer os.Remove(f.Name())
+			inputAuthFile = f.Name()
+			err = ioutil.WriteFile(inputAuthFile, []byte(tc.fileContents), 0700)
+			require.NoError(t, err, name)
+		}
+
+		headers, err := MakeXRegistryAuthHeader(nil, inputAuthFile, tc.username, tc.password)
+		require.NoError(t, err)
+		req, err := http.NewRequest(http.MethodPost, "/", nil)
+		require.NoError(t, err, name)
+		for k, v := range headers {
+			req.Header.Set(k, v)
+		}
+
+		override, resPath, err := GetCredentials(req)
+		require.NoError(t, err, name)
+		defer RemoveAuthfile(resPath)
+		if tc.expectedOverride == nil {
+			assert.Nil(t, override, name)
+		} else {
+			require.NotNil(t, override, name)
+			assert.Equal(t, *tc.expectedOverride, *override, name)
+		}
+		for key, expectedAuth := range tc.expectedFileValues {
+			auth, err := config.GetCredentials(&types.SystemContext{AuthFilePath: resPath}, key)
+			require.NoError(t, err, name)
+			assert.Equal(t, expectedAuth, auth, "%s, key %s", name, key)
+		}
+	}
+}
+
+func TestMakeXRegistryConfigHeader(t *testing.T) {
+	for _, tc := range []struct {
 		name               string
 		fileContents       string
 		username, password string
@@ -131,7 +169,6 @@ func TestHeader(t *testing.T) {
 		expectedContents   string
 	}{
 		{
-			headerName:       XRegistryConfigHeader,
 			name:             "no data",
 			fileContents:     "",
 			username:         "",
@@ -139,7 +176,6 @@ func TestHeader(t *testing.T) {
 			expectedContents: "",
 		},
 		{
-			headerName:   XRegistryConfigHeader,
 			name:         "invalid JSON",
 			fileContents: "@invalid JSON",
 			username:     "",
@@ -147,7 +183,6 @@ func TestHeader(t *testing.T) {
 			shouldErr:    true,
 		},
 		{
-			headerName:   XRegistryConfigHeader,
 			name:         "file data",
 			fileContents: largeAuthFile,
 			username:     "",
@@ -160,7 +195,6 @@ func TestHeader(t *testing.T) {
 			}`,
 		},
 		{
-			headerName:   XRegistryConfigHeader,
 			name:         "file data + override",
 			fileContents: largeAuthFile,
 			username:     "override-user",
@@ -173,8 +207,53 @@ func TestHeader(t *testing.T) {
 				"": {"username": "override-user", "password": "override-pass"}
 				}`,
 		},
+	} {
+		name := tc.name
+		authFile := ""
+		if tc.fileContents != "" {
+			f, err := ioutil.TempFile("", "auth.json")
+			require.NoError(t, err, name)
+			defer os.Remove(f.Name())
+			authFile = f.Name()
+			err = ioutil.WriteFile(authFile, []byte(tc.fileContents), 0700)
+			require.NoError(t, err, name)
+		}
+
+		res, err := MakeXRegistryConfigHeader(nil, authFile, tc.username, tc.password)
+		if tc.shouldErr {
+			assert.Error(t, err, name)
+		} else {
+			require.NoError(t, err, name)
+			if tc.expectedContents == "" {
+				assert.Empty(t, res, name)
+			} else {
+				require.Len(t, res, 1, name)
+				header, ok := res[XRegistryConfigHeader.String()]
+				require.True(t, ok, name)
+				decodedHeader, err := base64.URLEncoding.DecodeString(header)
+				require.NoError(t, err, name)
+				// Don't test for a specific JSON representation, just for the expected contents.
+				expected := map[string]interface{}{}
+				actual := map[string]interface{}{}
+				err = json.Unmarshal([]byte(tc.expectedContents), &expected)
+				require.NoError(t, err, name)
+				err = json.Unmarshal(decodedHeader, &actual)
+				require.NoError(t, err, name)
+				assert.Equal(t, expected, actual, name)
+			}
+		}
+	}
+}
+
+func TestMakeXRegistryAuthHeader(t *testing.T) {
+	for _, tc := range []struct {
+		name               string
+		fileContents       string
+		username, password string
+		shouldErr          bool
+		expectedContents   string
+	}{
 		{
-			headerName:       XRegistryAuthHeader,
 			name:             "override",
 			fileContents:     "",
 			username:         "override-user",
@@ -182,7 +261,6 @@ func TestHeader(t *testing.T) {
 			expectedContents: `{"username": "override-user", "password": "override-pass"}`,
 		},
 		{
-			headerName:   XRegistryAuthHeader,
 			name:         "invalid JSON",
 			fileContents: "@invalid JSON",
 			username:     "",
@@ -190,7 +268,6 @@ func TestHeader(t *testing.T) {
 			shouldErr:    true,
 		},
 		{
-			headerName:   XRegistryAuthHeader,
 			name:         "file data",
 			fileContents: largeAuthFile,
 			username:     "",
@@ -203,7 +280,7 @@ func TestHeader(t *testing.T) {
 			}`,
 		},
 	} {
-		name := fmt.Sprintf("%s: %s", tc.headerName, tc.name)
+		name := tc.name
 		authFile := ""
 		if tc.fileContents != "" {
 			f, err := ioutil.TempFile("", "auth.json")
@@ -214,7 +291,7 @@ func TestHeader(t *testing.T) {
 			require.NoError(t, err, name)
 		}
 
-		res, err := Header(nil, tc.headerName, authFile, tc.username, tc.password)
+		res, err := MakeXRegistryAuthHeader(nil, authFile, tc.username, tc.password)
 		if tc.shouldErr {
 			assert.Error(t, err, name)
 		} else {
@@ -223,7 +300,7 @@ func TestHeader(t *testing.T) {
 				assert.Empty(t, res, name)
 			} else {
 				require.Len(t, res, 1, name)
-				header, ok := res[tc.headerName.String()]
+				header, ok := res[XRegistryAuthHeader.String()]
 				require.True(t, ok, name)
 				decodedHeader, err := base64.URLEncoding.DecodeString(header)
 				require.NoError(t, err, name)

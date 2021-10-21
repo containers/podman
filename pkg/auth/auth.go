@@ -3,7 +3,6 @@ package auth
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -141,18 +140,6 @@ func getAuthCredentials(headers []string) (*types.DockerAuthConfig, map[string]t
 		return nil, nil, err
 	}
 	return &authConfig, nil, nil
-}
-
-// Header builds the requested Authentication Header
-func Header(sys *types.SystemContext, headerName HeaderAuthName, authfile, username, password string) (map[string]string, error) {
-	switch headerName {
-	case XRegistryAuthHeader:
-		return MakeXRegistryAuthHeader(sys, authfile, username, password)
-	case XRegistryConfigHeader:
-		return MakeXRegistryConfigHeader(sys, authfile, username, password)
-	default:
-		return nil, fmt.Errorf("unsupported authentication header: %q", headerName)
-	}
 }
 
 // MakeXRegistryConfigHeader returns a map with the XRegistryConfigHeader set which can
