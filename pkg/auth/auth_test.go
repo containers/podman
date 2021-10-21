@@ -29,12 +29,12 @@ var largeAuthFileValues = map[string]types.DockerAuthConfig{
 	"quay.io":          {Username: "quay", Password: "top"},
 }
 
-// tempAuthFilePath returns a non-empty path pointing
-// to a temporary file with fileContents, or "" if fileContents is empty; and a cleanup
-// function the caller must arrange to call.
-func tempAuthFilePath(t *testing.T, fileContents string) (string, func()) {
+// systemContextForAuthFile returns a types.SystemContext with AuthFilePath pointing
+// to a temporary file with fileContents, or nil if fileContents is empty; and a cleanup
+// function the calle rmust arrange to call.
+func systemContextForAuthFile(t *testing.T, fileContents string) (*types.SystemContext, func()) {
 	if fileContents == "" {
-		return "", func() {}
+		return nil, func() {}
 	}
 
 	f, err := ioutil.TempFile("", "auth.json")
@@ -42,7 +42,7 @@ func tempAuthFilePath(t *testing.T, fileContents string) (string, func()) {
 	path := f.Name()
 	err = ioutil.WriteFile(path, []byte(fileContents), 0700)
 	require.NoError(t, err)
-	return path, func() { os.Remove(path) }
+	return &types.SystemContext{AuthFilePath: path}, func() { os.Remove(path) }
 }
 
 // Test that GetCredentials() correctly parses what MakeXRegistryConfigHeader() produces
@@ -79,9 +79,9 @@ func TestMakeXRegistryConfigHeaderGetCredentialsRoundtrip(t *testing.T) {
 			expectedFileValues: largeAuthFileValues,
 		},
 	} {
-		inputAuthFile, cleanup := tempAuthFilePath(t, tc.fileContents)
+		sys, cleanup := systemContextForAuthFile(t, tc.fileContents)
 		defer cleanup()
-		headers, err := MakeXRegistryConfigHeader(&types.SystemContext{AuthFilePath: inputAuthFile}, tc.username, tc.password)
+		headers, err := MakeXRegistryConfigHeader(sys, tc.username, tc.password)
 		require.NoError(t, err)
 		req, err := http.NewRequest(http.MethodPost, "/", nil)
 		require.NoError(t, err, tc.name)
@@ -131,9 +131,9 @@ func TestMakeXRegistryAuthHeaderGetCredentialsRoundtrip(t *testing.T) {
 			expectedFileValues: largeAuthFileValues,
 		},
 	} {
-		inputAuthFile, cleanup := tempAuthFilePath(t, tc.fileContents)
+		sys, cleanup := systemContextForAuthFile(t, tc.fileContents)
 		defer cleanup()
-		headers, err := MakeXRegistryAuthHeader(nil, inputAuthFile, tc.username, tc.password)
+		headers, err := MakeXRegistryAuthHeader(sys, tc.username, tc.password)
 		require.NoError(t, err)
 		req, err := http.NewRequest(http.MethodPost, "/", nil)
 		require.NoError(t, err, tc.name)
@@ -206,9 +206,9 @@ func TestMakeXRegistryConfigHeader(t *testing.T) {
 				}`,
 		},
 	} {
-		authFile, cleanup := tempAuthFilePath(t, tc.fileContents)
+		sys, cleanup := systemContextForAuthFile(t, tc.fileContents)
 		defer cleanup()
-		res, err := MakeXRegistryConfigHeader(&types.SystemContext{AuthFilePath: authFile}, tc.username, tc.password)
+		res, err := MakeXRegistryConfigHeader(sys, tc.username, tc.password)
 		if tc.shouldErr {
 			assert.Error(t, err, tc.name)
 		} else {
@@ -269,9 +269,9 @@ func TestMakeXRegistryAuthHeader(t *testing.T) {
 			}`,
 		},
 	} {
-		authFile, cleanup := tempAuthFilePath(t, tc.fileContents)
+		sys, cleanup := systemContextForAuthFile(t, tc.fileContents)
 		defer cleanup()
-		res, err := MakeXRegistryAuthHeader(nil, authFile, tc.username, tc.password)
+		res, err := MakeXRegistryAuthHeader(sys, tc.username, tc.password)
 		if tc.shouldErr {
 			assert.Error(t, err, tc.name)
 		} else {

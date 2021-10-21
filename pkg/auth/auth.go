@@ -172,7 +172,7 @@ func MakeXRegistryConfigHeader(sys *types.SystemContext, username, password stri
 
 // MakeXRegistryAuthHeader returns a map with the XRegistryAuthHeader set which can
 // conveniently be used in the http stack.
-func MakeXRegistryAuthHeader(sys *types.SystemContext, authfile, username, password string) (map[string]string, error) {
+func MakeXRegistryAuthHeader(sys *types.SystemContext, username, password string) (map[string]string, error) {
 	if username != "" {
 		content, err := encodeSingleAuthConfig(types.DockerAuthConfig{Username: username, Password: password})
 		if err != nil {
@@ -183,9 +183,6 @@ func MakeXRegistryAuthHeader(sys *types.SystemContext, authfile, username, passw
 
 	if sys == nil {
 		sys = &types.SystemContext{}
-	}
-	if authfile != "" {
-		sys.AuthFilePath = authfile
 	}
 	authConfigs, err := imageAuth.GetAllCredentials(sys)
 	if err != nil {
