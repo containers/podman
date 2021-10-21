@@ -79,30 +79,29 @@ func TestMakeXRegistryConfigHeaderGetCredentialsRoundtrip(t *testing.T) {
 			expectedFileValues: largeAuthFileValues,
 		},
 	} {
-		name := tc.name
 		inputAuthFile, cleanup := tempAuthFilePath(t, tc.fileContents)
 		defer cleanup()
 		headers, err := MakeXRegistryConfigHeader(nil, inputAuthFile, tc.username, tc.password)
 		require.NoError(t, err)
 		req, err := http.NewRequest(http.MethodPost, "/", nil)
-		require.NoError(t, err, name)
+		require.NoError(t, err, tc.name)
 		for k, v := range headers {
 			req.Header.Set(k, v)
 		}
 
 		override, resPath, err := GetCredentials(req)
-		require.NoError(t, err, name)
+		require.NoError(t, err, tc.name)
 		defer RemoveAuthfile(resPath)
 		if tc.expectedOverride == nil {
-			assert.Nil(t, override, name)
+			assert.Nil(t, override, tc.name)
 		} else {
-			require.NotNil(t, override, name)
-			assert.Equal(t, *tc.expectedOverride, *override, name)
+			require.NotNil(t, override, tc.name)
+			assert.Equal(t, *tc.expectedOverride, *override, tc.name)
 		}
 		for key, expectedAuth := range tc.expectedFileValues {
 			auth, err := config.GetCredentials(&types.SystemContext{AuthFilePath: resPath}, key)
-			require.NoError(t, err, name)
-			assert.Equal(t, expectedAuth, auth, "%s, key %s", name, key)
+			require.NoError(t, err, tc.name)
+			assert.Equal(t, expectedAuth, auth, "%s, key %s", tc.name, key)
 		}
 	}
 }
@@ -132,30 +131,29 @@ func TestMakeXRegistryAuthHeaderGetCredentialsRoundtrip(t *testing.T) {
 			expectedFileValues: largeAuthFileValues,
 		},
 	} {
-		name := tc.name
 		inputAuthFile, cleanup := tempAuthFilePath(t, tc.fileContents)
 		defer cleanup()
 		headers, err := MakeXRegistryAuthHeader(nil, inputAuthFile, tc.username, tc.password)
 		require.NoError(t, err)
 		req, err := http.NewRequest(http.MethodPost, "/", nil)
-		require.NoError(t, err, name)
+		require.NoError(t, err, tc.name)
 		for k, v := range headers {
 			req.Header.Set(k, v)
 		}
 
 		override, resPath, err := GetCredentials(req)
-		require.NoError(t, err, name)
+		require.NoError(t, err, tc.name)
 		defer RemoveAuthfile(resPath)
 		if tc.expectedOverride == nil {
-			assert.Nil(t, override, name)
+			assert.Nil(t, override, tc.name)
 		} else {
-			require.NotNil(t, override, name)
-			assert.Equal(t, *tc.expectedOverride, *override, name)
+			require.NotNil(t, override, tc.name)
+			assert.Equal(t, *tc.expectedOverride, *override, tc.name)
 		}
 		for key, expectedAuth := range tc.expectedFileValues {
 			auth, err := config.GetCredentials(&types.SystemContext{AuthFilePath: resPath}, key)
-			require.NoError(t, err, name)
-			assert.Equal(t, expectedAuth, auth, "%s, key %s", name, key)
+			require.NoError(t, err, tc.name)
+			assert.Equal(t, expectedAuth, auth, "%s, key %s", tc.name, key)
 		}
 	}
 }
@@ -208,30 +206,29 @@ func TestMakeXRegistryConfigHeader(t *testing.T) {
 				}`,
 		},
 	} {
-		name := tc.name
 		authFile, cleanup := tempAuthFilePath(t, tc.fileContents)
 		defer cleanup()
 		res, err := MakeXRegistryConfigHeader(nil, authFile, tc.username, tc.password)
 		if tc.shouldErr {
-			assert.Error(t, err, name)
+			assert.Error(t, err, tc.name)
 		} else {
-			require.NoError(t, err, name)
+			require.NoError(t, err, tc.name)
 			if tc.expectedContents == "" {
-				assert.Empty(t, res, name)
+				assert.Empty(t, res, tc.name)
 			} else {
-				require.Len(t, res, 1, name)
+				require.Len(t, res, 1, tc.name)
 				header, ok := res[XRegistryConfigHeader.String()]
-				require.True(t, ok, name)
+				require.True(t, ok, tc.name)
 				decodedHeader, err := base64.URLEncoding.DecodeString(header)
-				require.NoError(t, err, name)
+				require.NoError(t, err, tc.name)
 				// Don't test for a specific JSON representation, just for the expected contents.
 				expected := map[string]interface{}{}
 				actual := map[string]interface{}{}
 				err = json.Unmarshal([]byte(tc.expectedContents), &expected)
-				require.NoError(t, err, name)
+				require.NoError(t, err, tc.name)
 				err = json.Unmarshal(decodedHeader, &actual)
-				require.NoError(t, err, name)
-				assert.Equal(t, expected, actual, name)
+				require.NoError(t, err, tc.name)
+				assert.Equal(t, expected, actual, tc.name)
 			}
 		}
 	}
@@ -272,30 +269,29 @@ func TestMakeXRegistryAuthHeader(t *testing.T) {
 			}`,
 		},
 	} {
-		name := tc.name
 		authFile, cleanup := tempAuthFilePath(t, tc.fileContents)
 		defer cleanup()
 		res, err := MakeXRegistryAuthHeader(nil, authFile, tc.username, tc.password)
 		if tc.shouldErr {
-			assert.Error(t, err, name)
+			assert.Error(t, err, tc.name)
 		} else {
-			require.NoError(t, err, name)
+			require.NoError(t, err, tc.name)
 			if tc.expectedContents == "" {
-				assert.Empty(t, res, name)
+				assert.Empty(t, res, tc.name)
 			} else {
-				require.Len(t, res, 1, name)
+				require.Len(t, res, 1, tc.name)
 				header, ok := res[XRegistryAuthHeader.String()]
-				require.True(t, ok, name)
+				require.True(t, ok, tc.name)
 				decodedHeader, err := base64.URLEncoding.DecodeString(header)
-				require.NoError(t, err, name)
+				require.NoError(t, err, tc.name)
 				// Don't test for a specific JSON representation, just for the expected contents.
 				expected := map[string]interface{}{}
 				actual := map[string]interface{}{}
 				err = json.Unmarshal([]byte(tc.expectedContents), &expected)
-				require.NoError(t, err, name)
+				require.NoError(t, err, tc.name)
 				err = json.Unmarshal(decodedHeader, &actual)
-				require.NoError(t, err, name)
-				assert.Equal(t, expected, actual, name)
+				require.NoError(t, err, tc.name)
+				assert.Equal(t, expected, actual, tc.name)
 			}
 		}
 	}
