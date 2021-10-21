@@ -304,6 +304,32 @@ machine_enabled=true
 		},
 	})
 
+	hackDockerDialStdioScript := `#!/bin/sh
+
+if [ "$1" = "system" ] &&
+  [ "$2" = "dial-stdio" ] &&
+  (! podman system dial-stdio </dev/null >/dev/null 2>&1); then
+  exec socat -t1200 - "$(podman info -f "{{.Host.RemoteSocket.Path}}")"
+fi
+exec podman "$@"
+`
+
+	files = append(files, File{
+		Node: Node{
+			Group:     getNodeGrp("root"),
+			Path:      "/usr/local/bin/docker",
+			Overwrite: boolToPtr(true),
+			User:      getNodeUsr("root"),
+		},
+		FileEmbedded1: FileEmbedded1{
+			Append: nil,
+			Contents: Resource{
+				Source: encodeDataURLPtr(hackDockerDialStdioScript),
+			},
+			Mode: intToPtr(0755),
+		},
+	})
+
 	return files
 }
 
@@ -317,17 +343,6 @@ func getLinks(usrName string) []Link {
 		LinkEmbedded1: LinkEmbedded1{
 			Hard:   boolToPtr(false),
 			Target: "/home/" + usrName + "/.config/systemd/user/linger-example.service",
-		},
-	}, {
-		Node: Node{
-			Group:     getNodeGrp("root"),
-			Path:      "/usr/local/bin/docker",
-			Overwrite: boolToPtr(true),
-			User:      getNodeUsr("root"),
-		},
-		LinkEmbedded1: LinkEmbedded1{
-			Hard:   boolToPtr(false),
-			Target: "/usr/bin/podman",
 		},
 	}}
 }
