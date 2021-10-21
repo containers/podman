@@ -14,7 +14,8 @@ import (
 
 var _ = Describe("Podman trust", func() {
 	var (
-		tempdir    string
+		tempdir string
+
 		err        error
 		podmanTest *PodmanTestIntegration
 	)
@@ -38,11 +39,7 @@ var _ = Describe("Podman trust", func() {
 	})
 
 	It("podman image trust show", func() {
-		path, err := os.Getwd()
-		if err != nil {
-			os.Exit(1)
-		}
-		session := podmanTest.Podman([]string{"image", "trust", "show", "--registrypath", filepath.Dir(path), "--policypath", filepath.Join(filepath.Dir(path), "policy.json")})
+		session := podmanTest.Podman([]string{"image", "trust", "show", "--registrypath", filepath.Join(INTEGRATION_ROOT, "test"), "--policypath", filepath.Join(INTEGRATION_ROOT, "test/policy.json")})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		outArray := session.OutputToStringArray()
