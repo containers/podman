@@ -45,11 +45,11 @@ var _ = Describe("Podman trust", func() {
 		outArray := session.OutputToStringArray()
 		Expect(len(outArray)).To(Equal(3))
 
-		// image order is not guaranteed. All we can do is check that
-		// these strings appear in output, we can't cross-check them.
-		Expect(session.OutputToString()).To(ContainSubstring("accept"))
-		Expect(session.OutputToString()).To(ContainSubstring("reject"))
-		Expect(session.OutputToString()).To(ContainSubstring("signed"))
+		// Repository order is not guaranteed. So, check that
+		// all expected lines appear in output; we also check total number of lines, so that handles all of them.
+		Expect(string(session.Out.Contents())).To(MatchRegexp(`(?m)^default\s+accept\s*$`))
+		Expect(string(session.Out.Contents())).To(MatchRegexp(`(?m)^docker.io/library/hello-world\s+reject\s*$`))
+		Expect(string(session.Out.Contents())).To(MatchRegexp(`(?m)^registry.access.redhat.com\s+signedBy\s+security@redhat.com, security@redhat.com\s+https://access.redhat.com/webassets/docker/content/sigstore\s*$`))
 	})
 
 	It("podman image trust set", func() {
