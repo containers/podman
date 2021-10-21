@@ -217,7 +217,7 @@ func TestMakeXRegistryConfigHeader(t *testing.T) {
 				assert.Empty(t, res, tc.name)
 			} else {
 				require.Len(t, res, 1, tc.name)
-				header, ok := res[XRegistryConfigHeader.String()]
+				header, ok := res[xRegistryConfigHeader]
 				require.True(t, ok, tc.name)
 				decodedHeader, err := base64.URLEncoding.DecodeString(header)
 				require.NoError(t, err, tc.name)
@@ -280,7 +280,7 @@ func TestMakeXRegistryAuthHeader(t *testing.T) {
 				assert.Empty(t, res, tc.name)
 			} else {
 				require.Len(t, res, 1, tc.name)
-				header, ok := res[XRegistryAuthHeader.String()]
+				header, ok := res[xRegistryAuthHeader]
 				require.True(t, ok, tc.name)
 				decodedHeader, err := base64.URLEncoding.DecodeString(header)
 				require.NoError(t, err, tc.name)

@@ -15,37 +15,33 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type HeaderAuthName string
-
-func (h HeaderAuthName) String() string { return string(h) }
-
-// XRegistryAuthHeader is the key to the encoded registry authentication configuration in an http-request header.
+// xRegistryAuthHeader is the key to the encoded registry authentication configuration in an http-request header.
 // This header supports one registry per header occurrence. To support N registries provide N headers, one per registry.
 // As of Docker API 1.40 and Libpod API 1.0.0, this header is supported by all endpoints.
-const XRegistryAuthHeader HeaderAuthName = "X-Registry-Auth"
+const xRegistryAuthHeader = "X-Registry-Auth"
 
-// XRegistryConfigHeader is the key to the encoded registry authentication configuration in an http-request header.
+// xRegistryConfigHeader is the key to the encoded registry authentication configuration in an http-request header.
 // This header supports N registries in one header via a Base64 encoded, JSON map.
 // As of Docker API 1.40 and Libpod API 2.0.0, this header is supported by build endpoints.
-const XRegistryConfigHeader HeaderAuthName = "X-Registry-Config"
+const xRegistryConfigHeader = "X-Registry-Config"
 
 // GetCredentials queries the http.Request for X-Registry-.* headers and extracts
 // the necessary authentication information for libpod operations, possibly
 // creating a config file. If that is the case, the caller must call RemoveAuthFile.
 func GetCredentials(r *http.Request) (*types.DockerAuthConfig, string, error) {
-	nonemptyHeaderValue := func(key HeaderAuthName) ([]string, bool) {
-		hdr := r.Header.Values(key.String())
+	nonemptyHeaderValue := func(key string) ([]string, bool) {
+		hdr := r.Header.Values(key)
 		return hdr, len(hdr) > 0
 	}
 	var override *types.DockerAuthConfig
 	var fileContents map[string]types.DockerAuthConfig
-	var headerName HeaderAuthName
+	var headerName string
 	var err error
-	if hdr, ok := nonemptyHeaderValue(XRegistryConfigHeader); ok {
-		headerName = XRegistryConfigHeader
+	if hdr, ok := nonemptyHeaderValue(xRegistryConfigHeader); ok {
+		headerName = xRegistryConfigHeader
 		override, fileContents, err = getConfigCredentials(r, hdr)
-	} else if hdr, ok := nonemptyHeaderValue(XRegistryAuthHeader); ok {
-		headerName = XRegistryAuthHeader
+	} else if hdr, ok := nonemptyHeaderValue(xRegistryAuthHeader); ok {
+		headerName = xRegistryAuthHeader
 		override, fileContents, err = getAuthCredentials(hdr)
 	} else {
 		return nil, "", nil
@@ -67,7 +63,7 @@ func GetCredentials(r *http.Request) (*types.DockerAuthConfig, string, error) {
 }
 
 // getConfigCredentials extracts one or more docker.AuthConfig from a request and its
-// XRegistryConfigHeader value.  An empty key will be used as default while a named registry will be
+// xRegistryConfigHeader value.  An empty key will be used as default while a named registry will be
 // returned as types.DockerAuthConfig
 func getConfigCredentials(r *http.Request, headers []string) (*types.DockerAuthConfig, map[string]types.DockerAuthConfig, error) {
 	var auth *types.DockerAuthConfig
@@ -76,13 +72,13 @@ func getConfigCredentials(r *http.Request, headers []string) (*types.DockerAuthC
 	for _, h := range headers {
 		param, err := base64.URLEncoding.DecodeString(h)
 		if err != nil {
-			return nil, nil, errors.Wrapf(err, "failed to decode %q", XRegistryConfigHeader)
+			return nil, nil, errors.Wrapf(err, "failed to decode %q", xRegistryConfigHeader)
 		}
 
 		ac := make(map[string]dockerAPITypes.AuthConfig)
 		err = json.Unmarshal(param, &ac)
 		if err != nil {
-			return nil, nil, errors.Wrapf(err, "failed to unmarshal %q", XRegistryConfigHeader)
+			return nil, nil, errors.Wrapf(err, "failed to unmarshal %q", xRegistryConfigHeader)
 		}
 
 		for k, v := range ac {
@@ -112,16 +108,16 @@ func getConfigCredentials(r *http.Request, headers []string) (*types.DockerAuthC
 
 		if auth == nil {
 			logrus.Debugf("%q header found in request, but \"registry=%v\" query parameter not provided",
-				XRegistryConfigHeader, registries)
+				xRegistryConfigHeader, registries)
 		} else {
-			logrus.Debugf("%q header found in request for username %q", XRegistryConfigHeader, auth.Username)
+			logrus.Debugf("%q header found in request for username %q", xRegistryConfigHeader, auth.Username)
 		}
 	}
 
 	return auth, configs, nil
 }
 
-// getAuthCredentials extracts one or more DockerAuthConfigs from an XRegistryAuthHeader
+// getAuthCredentials extracts one or more DockerAuthConfigs from an xRegistryAuthHeader
 // value.  The header could specify a single-auth config in which case the
 // first return value is set.  In case of a multi-auth header, the contents are
 // returned in the second return value.
@@ -142,7 +138,7 @@ func getAuthCredentials(headers []string) (*types.DockerAuthConfig, map[string]t
 	return &authConfig, nil, nil
 }
 
-// MakeXRegistryConfigHeader returns a map with the XRegistryConfigHeader set which can
+// MakeXRegistryConfigHeader returns a map with the "X-Registry-Config" header set, which can
 // conveniently be used in the http stack.
 func MakeXRegistryConfigHeader(sys *types.SystemContext, username, password string) (map[string]string, error) {
 	if sys == nil {
@@ -167,10 +163,10 @@ func MakeXRegistryConfigHeader(sys *types.SystemContext, username, password stri
 	if err != nil {
 		return nil, err
 	}
-	return map[string]string{XRegistryConfigHeader.String(): content}, nil
+	return map[string]string{xRegistryConfigHeader: content}, nil
 }
 
-// MakeXRegistryAuthHeader returns a map with the XRegistryAuthHeader set which can
+// MakeXRegistryAuthHeader returns a map with the "X-Registry-Auth" header set, which can
 // conveniently be used in the http stack.
 func MakeXRegistryAuthHeader(sys *types.SystemContext, username, password string) (map[string]string, error) {
 	if username != "" {
@@ -178,7 +174,7 @@ func MakeXRegistryAuthHeader(sys *types.SystemContext, username, password string
 		if err != nil {
 			return nil, err
 		}
-		return map[string]string{XRegistryAuthHeader.String(): content}, nil
+		return map[string]string{xRegistryAuthHeader: content}, nil
 	}
 
 	if sys == nil {
@@ -192,7 +188,7 @@ func MakeXRegistryAuthHeader(sys *types.SystemContext, username, password string
 	if err != nil {
 		return nil, err
 	}
-	return map[string]string{XRegistryAuthHeader.String(): content}, nil
+	return map[string]string{xRegistryAuthHeader: content}, nil
 }
 
 // RemoveAuthfile is a convenience function that is meant to be called in a
@@ -309,7 +305,7 @@ func imageAuthToDockerAuth(authConfig types.DockerAuthConfig) dockerAPITypes.Aut
 	}
 }
 
-// parseSingleAuthHeader extracts a DockerAuthConfig from an XRegistryAuthHeader value.
+// parseSingleAuthHeader extracts a DockerAuthConfig from an xRegistryAuthHeader value.
 // The header content is a single DockerAuthConfig.
 func parseSingleAuthHeader(authHeader string) (types.DockerAuthConfig, error) {
 	// Accept "null" and handle it as empty value for compatibility reason with Docker.
@@ -326,7 +322,7 @@ func parseSingleAuthHeader(authHeader string) (types.DockerAuthConfig, error) {
 	return dockerAuthToImageAuth(authConfig), nil
 }
 
-// parseMultiAuthHeader extracts a DockerAuthConfig from an XRegistryAuthHeader value.
+// parseMultiAuthHeader extracts a DockerAuthConfig from an xRegistryAuthHeader value.
 // The header content is a map[string]DockerAuthConfigs.
 func parseMultiAuthHeader(authHeader string) (map[string]types.DockerAuthConfig, error) {
 	// Accept "null" and handle it as empty value for compatibility reason with Docker.
