@@ -29,6 +29,22 @@ var largeAuthFileValues = map[string]types.DockerAuthConfig{
 	"quay.io":          {Username: "quay", Password: "top"},
 }
 
+// tempAuthFilePath returns a non-empty path pointing
+// to a temporary file with fileContents, or "" if fileContents is empty; and a cleanup
+// function the caller must arrange to call.
+func tempAuthFilePath(t *testing.T, fileContents string) (string, func()) {
+	if fileContents == "" {
+		return "", func() {}
+	}
+
+	f, err := ioutil.TempFile("", "auth.json")
+	require.NoError(t, err)
+	path := f.Name()
+	err = ioutil.WriteFile(path, []byte(fileContents), 0700)
+	require.NoError(t, err)
+	return path, func() { os.Remove(path) }
+}
+
 // Test that GetCredentials() correctly parses what MakeXRegistryConfigHeader() produces
 func TestMakeXRegistryConfigHeaderGetCredentialsRoundtrip(t *testing.T) {
 	for _, tc := range []struct {
@@ -64,16 +80,8 @@ func TestMakeXRegistryConfigHeaderGetCredentialsRoundtrip(t *testing.T) {
 		},
 	} {
 		name := tc.name
-		inputAuthFile := ""
-		if tc.fileContents != "" {
-			f, err := ioutil.TempFile("", "auth.json")
-			require.NoError(t, err, name)
-			defer os.Remove(f.Name())
-			inputAuthFile = f.Name()
-			err = ioutil.WriteFile(inputAuthFile, []byte(tc.fileContents), 0700)
-			require.NoError(t, err, name)
-		}
-
+		inputAuthFile, cleanup := tempAuthFilePath(t, tc.fileContents)
+		defer cleanup()
 		headers, err := MakeXRegistryConfigHeader(nil, inputAuthFile, tc.username, tc.password)
 		require.NoError(t, err)
 		req, err := http.NewRequest(http.MethodPost, "/", nil)
@@ -125,16 +133,8 @@ func TestMakeXRegistryAuthHeaderGetCredentialsRoundtrip(t *testing.T) {
 		},
 	} {
 		name := tc.name
-		inputAuthFile := ""
-		if tc.fileContents != "" {
-			f, err := ioutil.TempFile("", "auth.json")
-			require.NoError(t, err, name)
-			defer os.Remove(f.Name())
-			inputAuthFile = f.Name()
-			err = ioutil.WriteFile(inputAuthFile, []byte(tc.fileContents), 0700)
-			require.NoError(t, err, name)
-		}
-
+		inputAuthFile, cleanup := tempAuthFilePath(t, tc.fileContents)
+		defer cleanup()
 		headers, err := MakeXRegistryAuthHeader(nil, inputAuthFile, tc.username, tc.password)
 		require.NoError(t, err)
 		req, err := http.NewRequest(http.MethodPost, "/", nil)
@@ -209,16 +209,8 @@ func TestMakeXRegistryConfigHeader(t *testing.T) {
 		},
 	} {
 		name := tc.name
-		authFile := ""
-		if tc.fileContents != "" {
-			f, err := ioutil.TempFile("", "auth.json")
-			require.NoError(t, err, name)
-			defer os.Remove(f.Name())
-			authFile = f.Name()
-			err = ioutil.WriteFile(authFile, []byte(tc.fileContents), 0700)
-			require.NoError(t, err, name)
-		}
-
+		authFile, cleanup := tempAuthFilePath(t, tc.fileContents)
+		defer cleanup()
 		res, err := MakeXRegistryConfigHeader(nil, authFile, tc.username, tc.password)
 		if tc.shouldErr {
 			assert.Error(t, err, name)
@@ -281,16 +273,8 @@ func TestMakeXRegistryAuthHeader(t *testing.T) {
 		},
 	} {
 		name := tc.name
-		authFile := ""
-		if tc.fileContents != "" {
-			f, err := ioutil.TempFile("", "auth.json")
-			require.NoError(t, err, name)
-			defer os.Remove(f.Name())
-			authFile = f.Name()
-			err = ioutil.WriteFile(authFile, []byte(tc.fileContents), 0700)
-			require.NoError(t, err, name)
-		}
-
+		authFile, cleanup := tempAuthFilePath(t, tc.fileContents)
+		defer cleanup()
 		res, err := MakeXRegistryAuthHeader(nil, authFile, tc.username, tc.password)
 		if tc.shouldErr {
 			assert.Error(t, err, name)
