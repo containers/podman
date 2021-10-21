@@ -81,7 +81,7 @@ func TestMakeXRegistryConfigHeaderGetCredentialsRoundtrip(t *testing.T) {
 	} {
 		inputAuthFile, cleanup := tempAuthFilePath(t, tc.fileContents)
 		defer cleanup()
-		headers, err := MakeXRegistryConfigHeader(nil, inputAuthFile, tc.username, tc.password)
+		headers, err := MakeXRegistryConfigHeader(&types.SystemContext{AuthFilePath: inputAuthFile}, tc.username, tc.password)
 		require.NoError(t, err)
 		req, err := http.NewRequest(http.MethodPost, "/", nil)
 		require.NoError(t, err, tc.name)
@@ -208,7 +208,7 @@ func TestMakeXRegistryConfigHeader(t *testing.T) {
 	} {
 		authFile, cleanup := tempAuthFilePath(t, tc.fileContents)
 		defer cleanup()
-		res, err := MakeXRegistryConfigHeader(nil, authFile, tc.username, tc.password)
+		res, err := MakeXRegistryConfigHeader(&types.SystemContext{AuthFilePath: authFile}, tc.username, tc.password)
 		if tc.shouldErr {
 			assert.Error(t, err, tc.name)
 		} else {
