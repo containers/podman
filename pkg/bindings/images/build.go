@@ -293,14 +293,10 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		headers map[string]string
 		err     error
 	)
-	if options.SystemContext == nil {
-		headers, err = auth.MakeXRegistryConfigHeader(options.SystemContext, "", "")
+	if options.SystemContext != nil && options.SystemContext.DockerAuthConfig != nil {
+		headers, err = auth.MakeXRegistryAuthHeader(options.SystemContext, options.SystemContext.AuthFilePath, options.SystemContext.DockerAuthConfig.Username, options.SystemContext.DockerAuthConfig.Password)
 	} else {
-		if options.SystemContext.DockerAuthConfig != nil {
-			headers, err = auth.MakeXRegistryAuthHeader(options.SystemContext, options.SystemContext.AuthFilePath, options.SystemContext.DockerAuthConfig.Username, options.SystemContext.DockerAuthConfig.Password)
-		} else {
-			headers, err = auth.MakeXRegistryConfigHeader(options.SystemContext, "", "")
-		}
+		headers, err = auth.MakeXRegistryConfigHeader(options.SystemContext, "", "")
 	}
 	if err != nil {
 		return nil, err
