@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	commonFlag "github.com/containers/common/pkg/flag"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
@@ -235,7 +236,7 @@ type ContainerCreateOptions struct {
 	Sysctl            []string
 	Systemd           string
 	Timeout           uint
-	TLSVerify         bool
+	TLSVerify         commonFlag.OptionalBool
 	TmpFS             []string
 	TTY               bool
 	Timezone          string

@@ -186,6 +186,12 @@ var _ = Describe("Podman run", func() {
 		run.WaitWithDefaultTimeout()
 		Expect(run).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(3))
+
+		// Now registries.conf will be consulted where localhost:5000
+		// is set to be insecure.
+		run = podmanTest.Podman([]string{"run", ALPINE})
+		run.WaitWithDefaultTimeout()
+		Expect(run).Should(Exit(0))
 	})
 
 	It("podman run a container with a --rootfs", func() {
