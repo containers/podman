@@ -244,7 +244,7 @@ func (r *Runtime) searchImageInRegistry(ctx context.Context, term, registry stri
 			name = index + "/library/" + results[i].Name
 		}
 		params := SearchResult{
-			Index:       index,
+			Index:       registry,
 			Name:        name,
 			Description: description,
 			Official:    official,

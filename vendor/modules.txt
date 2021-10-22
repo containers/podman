@@ -95,7 +95,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.46.1-0.20211008123044-d846f5aaec0e
+# github.com/containers/common v0.46.1-0.20211026130826-7abfd453c86f
 github.com/containers/common/libimage
 github.com/containers/common/libimage/manifests
 github.com/containers/common/pkg/apparmor
@@ -108,6 +108,7 @@ github.com/containers/common/pkg/completion
 github.com/containers/common/pkg/config
 github.com/containers/common/pkg/defaultnet
 github.com/containers/common/pkg/filters
+github.com/containers/common/pkg/flag
 github.com/containers/common/pkg/manifests
 github.com/containers/common/pkg/parse
 github.com/containers/common/pkg/report

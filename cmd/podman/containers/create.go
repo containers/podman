@@ -303,6 +303,11 @@ func PullImage(imageName string, cliVals entities.ContainerCreateOptions) (strin
 		}
 	}
 
+	skipTLSVerify := types.OptionalBoolUndefined
+	if cliVals.TLSVerify.Present() {
+		skipTLSVerify = types.NewOptionalBool(!cliVals.TLSVerify.Value())
+	}
+
 	pullReport, pullErr := registry.ImageEngine().Pull(registry.GetContext(), imageName, entities.ImagePullOptions{
 		Authfile:        cliVals.Authfile,
 		Quiet:           cliVals.Quiet,
@@ -311,7 +316,7 @@ func PullImage(imageName string, cliVals entities.ContainerCreateOptions) (strin
 		Variant:         cliVals.Variant,
 		SignaturePolicy: cliVals.SignaturePolicy,
 		PullPolicy:      pullPolicy,
-		SkipTLSVerify:   types.NewOptionalBool(!cliVals.TLSVerify), // If Flag changed for TLS Verification
+		SkipTLSVerify:   skipTLSVerify,
 	})
 	if pullErr != nil {
 		return "", pullErr
