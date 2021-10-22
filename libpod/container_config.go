@@ -153,6 +153,8 @@ type ContainerRootFSConfig struct {
 	Secrets []*ContainerSecret `json:"secrets,omitempty"`
 	// SecretPath is the secrets location in storage
 	SecretsPath string `json:"secretsPath"`
+	// StorageOpts to be used when creating rootfs
+	StorageOpts map[string]string `json:"storageOpts"`
 	// Volatile specifies whether the container storage can be optimized
 	// at the cost of not syncing all the dirty files in memory.
 	Volatile bool `json:"volatile,omitempty"`

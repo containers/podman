@@ -310,6 +310,17 @@ func WithCDI(devices []string) CtrCreateOption {
 	}
 }
 
+// WithStorageOpts sets the devices to check for for CDI configuration.
+func WithStorageOpts(storageOpts map[string]string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.StorageOpts = storageOpts
+		return nil
+	}
+}
+
 // WithDefaultMountsFile sets the file to look at for default mounts (mainly
 // secrets).
 // Note we are not saving this in the database as it is for testing purposes

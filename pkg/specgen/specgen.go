@@ -272,6 +272,9 @@ type ContainerStorageConfig struct {
 	// If unset, the default, /, will be used.
 	// Optional.
 	WorkDir string `json:"work_dir,omitempty"`
+	// StorageOpts is the container's storage options
+	// Optional.
+	StorageOpts map[string]string `json:"storage_opts,omitempty"`
 	// RootfsPropagation is the rootfs propagation mode for the container.
 	// If not set, the default of rslave will be used.
 	// Optional.

@@ -235,7 +235,7 @@ type ContainerCreateOptions struct {
 	SignaturePolicy   string
 	StopSignal        string
 	StopTimeout       uint
-	StorageOpt        []string
+	StorageOpts       []string
 	SubUIDName        string
 	SubGIDName        string
 	Sysctl            []string
