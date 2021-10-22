@@ -512,18 +512,6 @@ a private IPC namespace.
 - **host**: use the host shared memory,semaphores and message queues inside the container. Note: the host mode gives the container full access to local shared memory and is therefore considered insecure.
 - **ns:**_path_: path to an IPC namespace to join.
 
-#### **--kernel-memory**=_number_[_unit_]
-
-Kernel memory limit. A _unit_ can be **b** (bytes), **k** (kilobytes), **m** (megabytes), or **g** (gigabytes).
-
-Constrains the kernel memory available to a container. If a limit of 0
-is specified (not using *--kernel-memory*), the container's kernel memory
-is not limited. If you specify a limit, it may be rounded up to a multiple
-of the operating system's page size and the value can be very large,
-millions of trillions.
-
-This flag is not supported on cgroups V2 systems.
-
 #### **--label**, **-l**=*key*=*value*
 
 Add metadata to a container.

@@ -319,6 +319,9 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"Kernel memory limit "+sizeWithUnitFormat,
 		)
 		_ = cmd.RegisterFlagCompletionFunc(kernelMemoryFlagName, completion.AutocompleteNone)
+		// kernel-memory is deprecated in the runtime spec.
+		_ = createFlags.MarkHidden("kernel-memory")
+
 		logDriverFlagName := "log-driver"
 		createFlags.StringVar(
 			&cf.LogDriver,

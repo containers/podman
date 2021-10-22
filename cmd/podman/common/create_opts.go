@@ -18,6 +18,7 @@ import (
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 func stringMaptoArray(m map[string]string) []string {
@@ -382,6 +383,9 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *c
 
 	if cc.HostConfig.Memory > 0 {
 		cliOpts.Memory = strconv.Itoa(int(cc.HostConfig.Memory))
+	}
+	if cc.HostConfig.KernelMemory > 0 {
+		logrus.Warnf("The --kernel-memory flag has been deprecated. May not work properly on your system.")
 	}
 
 	if cc.HostConfig.MemoryReservation > 0 {
