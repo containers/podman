@@ -1823,7 +1823,7 @@ Note: RHEL7 and Centos 7 will not have this feature until RHEL7.7 is released.
 In order for users to run rootless, there must be an entry for their username in _/etc/subuid_ and _/etc/subgid_ which lists the UIDs for their user namespace.
 
 Rootless Podman works better if the fuse-overlayfs and slirp4netns packages are installed.
-The **fuse-overlay** package provides a userspace overlay storage driver, otherwise users need to use
+The **fuse-overlayfs** package provides a userspace overlay storage driver, otherwise users need to use
 the **vfs** storage driver, which is diskspace expensive and does not perform well. slirp4netns is
 required for VPN, without it containers need to be run with the **--network=host** flag.
 
