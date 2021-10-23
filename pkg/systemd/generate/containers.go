@@ -125,6 +125,7 @@ Type={{{{.Type}}}}
 {{{{- if .NotifyAccess}}}}
 NotifyAccess={{{{.NotifyAccess}}}}
 {{{{- end}}}}
+RestartPreventExitStatus=137
 
 [Install]
 WantedBy=multi-user.target default.target
