@@ -51,9 +51,9 @@ In cases where the container image runs as a specific, non-root user, though, th
 solution is to fix the user namespace.  This would include container images such as
 the Jupyter Notebook image (which runs as "jovyan") and the Postgres image (which runs
 as "postgres").  In either case, use the `--userns` switch to map user namespaces,
-most of the time by using keep_id option.
+most of the time by using the **keep-id** option.
 
-$ podman run -v "$PWD":/home/jovyan/work --userns=keep_id jupyter/scipy-notebook
+$ podman run -v "$PWD":/home/jovyan/work --userns=keep-id jupyter/scipy-notebook
 
 ---
 ### 3) No such image or Bare keys cannot contain ':'
