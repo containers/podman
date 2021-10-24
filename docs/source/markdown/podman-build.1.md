@@ -631,7 +631,7 @@ Sets the configuration for user namespaces when handling `RUN` instructions.
 The configured value can be "" (the empty string) or "container" to indicate
 that a new user namespace should be created, it can be "host" to indicate that
 the user namespace in which `podman` itself is being run should be reused, or
-it can be the path to an user namespace which is already in use by another
+it can be the path to a user namespace which is already in use by another
 process.
 
 #### **--userns-uid-map**=*mapping*
