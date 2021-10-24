@@ -333,7 +333,7 @@ func readKernelVersion() (string, error) {
 		return "", err
 	}
 	f := bytes.Fields(buf)
-	if len(f) < 2 {
+	if len(f) < 3 {
 		return string(bytes.TrimSpace(buf)), nil
 	}
 	return string(f[2]), nil
