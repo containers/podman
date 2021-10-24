@@ -113,7 +113,7 @@
 ### Features
 - Containers inside VMs created by `podman machine` will now automatically handle port forwarding - containers in `podman machine` VMs that publish ports via `--publish` or `--publish-all` will have these ports not just forwarded on the VM, but also on the host system.
 - The `podman play kube` command's `--network` option now accepts advanced network options (e.g. `--network slirp4netns:port_handler=slirp4netns`) ([#10807](https://github.com/containers/podman/issues/10807)).
-- The `podman play kube` commmand now supports Kubernetes liveness probes, which will be created as Podman healthchecks.
+- The `podman play kube` command now supports Kubernetes liveness probes, which will be created as Podman healthchecks.
 - Podman now provides a systemd unit, `podman-restart.service`, which, when enabled, will restart all containers that were started with `--restart=always` after the system reboots.
 - Rootless Podman can now be configured to use CNI networking by default by using the `rootless_networking` option in `containers.conf`.
 - Images can now be pulled using `image:tag@digest` syntax (e.g. `podman pull fedora:34@sha256:1b0d4ddd99b1a8c8a80e885aafe6034c95f266da44ead992aab388e6aa91611a`) ([#6721](https://github.com/containers/podman/issues/6721)).
@@ -369,7 +369,7 @@
 - Fixed a bug where images with empty layers were stored incorrectly, causing them to be unable to be pushed or saved.
 - Fixed a bug where the `podman rmi` command could fail to remove corrupt images from storage.
 - Fixed a bug where the remote Podman client's `podman save` command did not support the `oci-dir` and `docker-dir` formats ([#9742](https://github.com/containers/podman/issues/9742)).
-- Fixed a bug where volume mounts from `podman play kube` created with a trailing `/` in the container path were were not properly superceding named volumes from the image ([#9618](https://github.com/containers/podman/issues/9618)).
+- Fixed a bug where volume mounts from `podman play kube` created with a trailing `/` in the container path were were not properly superseding named volumes from the image ([#9618](https://github.com/containers/podman/issues/9618)).
 - Fixed a bug where Podman could fail to build on 32-bit architectures.
 
 ### Misc
@@ -1014,7 +1014,7 @@
 ## 2.0.5
 ### Features
 - Rootless Podman will now add an entry to `/etc/passwd` for the user who ran Podman if run with `--userns=keep-id`.
-- The `podman system connection` command has been reworked to support multiple connections, and reenabled for use!
+- The `podman system connection` command has been reworked to support multiple connections, and re-enabled for use!
 - Podman now has a new global flag, `--connection`, to specify a connection to a remote Podman API instance.
 
 ### Changes
