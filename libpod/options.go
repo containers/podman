@@ -969,7 +969,7 @@ func WithUserNSFrom(nsCtr *Container) CtrCreateOption {
 		if err := JSONDeepCopy(nsCtr.IDMappings(), &ctr.config.IDMappings); err != nil {
 			return err
 		}
-		g := generate.Generator{Config: ctr.config.Spec}
+		g := generate.NewFromSpec(ctr.config.Spec)
 
 		g.ClearLinuxUIDMappings()
 		for _, uidmap := range nsCtr.config.IDMappings.UIDMap {

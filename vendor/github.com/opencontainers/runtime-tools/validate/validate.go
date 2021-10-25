@@ -144,7 +144,7 @@ func JSONSchemaURL(version string) (url string, err error) {
 func (v *Validator) CheckJSONSchema() (errs error) {
 	logrus.Debugf("check JSON schema")
 
-	url, err := JSONSchemaURL(v.spec.Version)
+	url, err := JSONSchemaURL(strings.TrimSuffix(v.spec.Version, "-dev"))
 	if err != nil {
 		errs = multierror.Append(errs, err)
 		return errs
