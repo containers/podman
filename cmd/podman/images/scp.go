@@ -185,7 +185,7 @@ func saveToRemote(image, localFile string, tag string, uri *urlP.URL, iden strin
 		return errors.Wrapf(define.ErrInvalidArg, "Renaming of an image is currently not supported")
 	}
 	podman := os.Args[0]
-	run := podman + " image save " + image + " --format=oci-archive --output=" + remoteFile // run ssh image load of the file copied via scp. Files are reverse in thie case...
+	run := podman + " image save " + image + " --format=oci-archive --output=" + remoteFile // run ssh image load of the file copied via scp. Files are reverse in this case...
 	_, err = connection.ExecRemoteCommand(dial, run)
 	if err != nil {
 		return nil
