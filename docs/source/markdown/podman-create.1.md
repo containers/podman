@@ -529,12 +529,6 @@ It supports the same keys as **podman inspect --format**.
 
 This option is currently supported only by the **journald** log driver.
 
-`--log-opt tag="{{.ImageName}}"`
-
-It supports the same keys as `podman inspect --format`.
-
-It is currently supported only by the journald log driver.
-
 #### **--mac-address**=*address*
 
 Container MAC address (e.g. 92:d0:c6:0a:29:33)

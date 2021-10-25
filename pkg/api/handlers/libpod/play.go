@@ -26,6 +26,7 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 		Network    string   `schema:"network"`
 		TLSVerify  bool     `schema:"tlsVerify"`
 		LogDriver  string   `schema:"logDriver"`
+		LogOptions []string `schema:"logOptions"`
 		Start      bool     `schema:"start"`
 		StaticIPs  []string `schema:"staticIPs"`
 		StaticMACs []string `schema:"staticMACs"`
@@ -106,6 +107,7 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 		NoHosts:    query.NoHosts,
 		Quiet:      true,
 		LogDriver:  query.LogDriver,
+		LogOptions: query.LogOptions,
 		StaticIPs:  staticIPs,
 		StaticMACs: staticMACs,
 	}

@@ -37,6 +37,8 @@ type KubeOptions struct {
 	ConfigMaps *[]string
 	// LogDriver for the container. For example: journald
 	LogDriver *string
+	// LogOptions for the container. For example: journald
+	LogOptions *[]string
 	// Start - don't start the pod if false
 	Start *bool
 }

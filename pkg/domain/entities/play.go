@@ -46,6 +46,8 @@ type PlayKubeOptions struct {
 	ConfigMaps []string
 	// LogDriver for the container. For example: journald
 	LogDriver string
+	// LogOptions for the log driver for the container.
+	LogOptions []string
 	// Start - don't start the pod if false
 	Start types.OptionalBool
 }

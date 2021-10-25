@@ -2421,14 +2421,19 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
-		kube := podmanTest.Podman([]string{"play", "kube", "--log-driver", "journald", kubeYaml})
+		kube := podmanTest.Podman([]string{"play", "kube", "--log-opt=max-size=10k", "--log-driver", "journald", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
-		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .HostConfig.LogConfig.Type }}'"})
+		cid := getCtrNameInPod(pod)
+		inspect := podmanTest.Podman([]string{"inspect", cid, "--format", "'{{ .HostConfig.LogConfig.Type }}'"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).To(ContainSubstring("journald"))
+		inspect = podmanTest.Podman([]string{"container", "inspect", "--format", "{{.HostConfig.LogConfig.Size}}", cid})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).To(Exit(0))
+		Expect(inspect.OutputToString()).To(Equal("10kB"))
 	})
 
 	It("podman play kube test only creating the containers", func() {

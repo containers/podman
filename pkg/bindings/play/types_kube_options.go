@@ -228,6 +228,21 @@ func (o *KubeOptions) GetLogDriver() string {
 	return *o.LogDriver
 }
 
+// WithLogOptions set field LogOptions to given value
+func (o *KubeOptions) WithLogOptions(value []string) *KubeOptions {
+	o.LogOptions = &value
+	return o
+}
+
+// GetLogOptions returns value of field LogOptions
+func (o *KubeOptions) GetLogOptions() []string {
+	if o.LogOptions == nil {
+		var z []string
+		return z
+	}
+	return *o.LogOptions
+}
+
 // WithStart set field Start to given value
 func (o *KubeOptions) WithStart(value bool) *KubeOptions {
 	o.Start = &value
