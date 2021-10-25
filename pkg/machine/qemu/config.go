@@ -13,6 +13,8 @@ type MachineVM struct {
 	IdentityPath string
 	// IgnitionFilePath is the fq path to the .ign file
 	IgnitionFilePath string
+	// ImageStream is the update stream for the image
+	ImageStream string
 	// ImagePath is the fq path to
 	ImagePath string
 	// Memory in megabytes assigned to the vm
