@@ -357,6 +357,13 @@ var _ = Describe("Podman run networking", func() {
 		Expect(ncBusy).To(ExitWithError())
 	})
 
+	It("podman run slirp4netns verify net.ipv6.conf.all.accept_dad=0", func() {
+		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns", ALPINE, "cat", "/proc/sys/net/ipv6/conf/all/accept_dad"})
+		session.Wait(30)
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal("0"))
+	})
+
 	It("podman run network expose host port 18082 to container port 8000 using slirp4netns port handler", func() {
 		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns:port_handler=slirp4netns", "-dt", "-p", "18082:8000", ALPINE, "/bin/sh"})
 		session.Wait(30)

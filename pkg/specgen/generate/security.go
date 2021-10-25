@@ -9,6 +9,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/pkg/namespaces"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -237,6 +238,11 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 		}
 
 		g.AddLinuxSysctl(sysctlKey, sysctlVal)
+	}
+
+	// Fixes #11062, speeds up creation of network.
+	if namespaces.NetworkMode(s.NetNS.NSMode).IsSlirp4netns() {
+		g.AddLinuxSysctl("net.ipv6.conf.all.accept_dad", "0")
 	}
 
 	for sysctlKey, sysctlVal := range s.Sysctl {
