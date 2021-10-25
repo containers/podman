@@ -151,22 +151,19 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		var m = []string{}
 		if err := json.Unmarshal([]byte(query.Dockerfile), &m); err != nil {
 			// it's not json, assume just a string
-			m = append(m, query.Dockerfile)
+			m = []string{filepath.Join(contextDirectory, query.Dockerfile)}
 		}
 		containerFiles = m
 	} else {
-		containerFiles = []string{"Dockerfile"}
+		containerFiles = []string{filepath.Join(contextDirectory, "Dockerfile")}
 		if utils.IsLibpodRequest(r) {
-			containerFiles = []string{"Containerfile"}
-			if _, err = os.Stat(filepath.Join(contextDirectory, "Containerfile")); err != nil {
-				if _, err1 := os.Stat(filepath.Join(contextDirectory, "Dockerfile")); err1 == nil {
-					containerFiles = []string{"Dockerfile"}
-				} else {
+			containerFiles = []string{filepath.Join(contextDirectory, "Containerfile")}
+			if _, err = os.Stat(containerFiles[0]); err != nil {
+				containerFiles = []string{filepath.Join(contextDirectory, "Dockerfile")}
+				if _, err1 := os.Stat(containerFiles[0]); err1 != nil {
 					utils.BadRequest(w, "dockerfile", query.Dockerfile, err)
 				}
 			}
-		} else {
-			containerFiles = []string{"Dockerfile"}
 		}
 	}
 
