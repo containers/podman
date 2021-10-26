@@ -1117,6 +1117,18 @@ Remote connections use local containers.conf for defaults
 Set the umask inside the container. Defaults to `0022`.
 Remote connections use local containers.conf for defaults
 
+#### **--unsetenv**=*env*
+
+Unset default environment variables for the container. Default environment
+variables include variables provided natively by Podman, environment variables
+configured by the image, and environment variables from containers.conf.
+
+#### **--unsetenv-all**=*true|false*
+
+Unset all default environment variables for the container. Default environment
+variables include variables provided natively by Podman, environment variables
+configured by the image, and environment variables from containers.conf.
+
 #### **--uidmap**=*container_uid*:*from_uid*:*amount*
 
 Run the container in a new user namespace using the supplied mapping. This

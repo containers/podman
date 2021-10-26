@@ -709,18 +709,6 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		g.AddAnnotation(annotations.ContainerManager, annotations.ContainerManagerLibpod)
 	}
 
-	// Only add container environment variable if not already present
-	foundContainerEnv := false
-	for _, env := range g.Config.Process.Env {
-		if strings.HasPrefix(env, "container=") {
-			foundContainerEnv = true
-			break
-		}
-	}
-	if !foundContainerEnv {
-		g.AddProcessEnv("container", "libpod")
-	}
-
 	cgroupPath, err := c.getOCICgroupPath()
 	if err != nil {
 		return nil, err
