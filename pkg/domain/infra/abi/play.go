@@ -333,6 +333,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			NetNSIsHost:       p.NetNS.IsHost(),
 			SecretsManager:    secretsManager,
 			LogDriver:         options.LogDriver,
+			LogOptions:        options.LogOptions,
 			Labels:            labels,
 			InitContainerType: define.AlwaysInitContainer,
 		}
@@ -371,6 +372,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 				NetNSIsHost:    p.NetNS.IsHost(),
 				SecretsManager: secretsManager,
 				LogDriver:      options.LogDriver,
+				LogOptions:     options.LogOptions,
 				Labels:         labels,
 			}
 			specGen, err := kube.ToSpecGen(ctx, &specgenOpts)

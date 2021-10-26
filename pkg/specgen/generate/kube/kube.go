@@ -19,6 +19,7 @@ import (
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/specgen/generate"
 	"github.com/containers/podman/v3/pkg/util"
+	"github.com/docker/go-units"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
@@ -116,6 +117,8 @@ type CtrSpecGenOptions struct {
 	SecretsManager *secrets.SecretsManager
 	// LogDriver which should be used for the container
 	LogDriver string
+	// LogOptions log options which should be used for the container
+	LogOptions []string
 	// Labels define key-value pairs of metadata
 	Labels map[string]string
 	//
@@ -142,6 +145,27 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 
 	s.LogConfiguration = &specgen.LogConfig{
 		Driver: opts.LogDriver,
+	}
+
+	for _, o := range opts.LogOptions {
+		split := strings.SplitN(o, "=", 2)
+		if len(split) < 2 {
+			return nil, errors.Errorf("invalid log option %q", o)
+		}
+		switch strings.ToLower(split[0]) {
+		case "driver":
+			s.LogConfiguration.Driver = split[1]
+		case "path":
+			s.LogConfiguration.Path = split[1]
+		case "max-size":
+			logSize, err := units.FromHumanSize(split[1])
+			if err != nil {
+				return nil, err
+			}
+			s.LogConfiguration.Size = logSize
+		default:
+			s.LogConfiguration.Options[split[0]] = split[1]
+		}
 	}
 
 	s.InitContainerType = opts.InitContainerType
