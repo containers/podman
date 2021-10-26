@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/podman/v3/pkg/errorhandling"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/rootlessport"
@@ -57,6 +58,8 @@ type slirp4netnsNetworkOptions struct {
 	outboundAddr        string
 	outboundAddr6       string
 }
+
+const ipv6ConfDefaultAcceptDadSysctl = "/proc/sys/net/ipv6/conf/default/accept_dad"
 
 func checkSlirpFlags(path string) (*slirpFeatures, error) {
 	cmd := exec.Command(path, "--help")
@@ -297,6 +300,39 @@ func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 	}
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
+
+	var slirpReadyChan (chan struct{})
+
+	if netOptions.enableIPv6 {
+		slirpReadyChan = make(chan struct{})
+		defer close(slirpReadyChan)
+		go func() {
+			err := ns.WithNetNSPath(netnsPath, func(_ ns.NetNS) error {
+				// Duplicate Address Detection slows the ipv6 setup down for 1-2 seconds.
+				// Since slirp4netns is run it is own namespace and not directly routed
+				// we can skip this to make the ipv6 address immediately available.
+				// We change the default to make sure the slirp tap interface gets the
+				// correct value assigned so DAD is disabled for it
+				// Also make sure to change this value back to the original after slirp4netns
+				// is ready in case users rely on this sysctl.
+				orgValue, err := ioutil.ReadFile(ipv6ConfDefaultAcceptDadSysctl)
+				if err != nil {
+					return err
+				}
+				err = ioutil.WriteFile(ipv6ConfDefaultAcceptDadSysctl, []byte("0"), 0644)
+				if err != nil {
+					return err
+				}
+				// wait for slirp to finish setup
+				<-slirpReadyChan
+				return ioutil.WriteFile(ipv6ConfDefaultAcceptDadSysctl, orgValue, 0644)
+			})
+			if err != nil {
+				logrus.Warnf("failed to set net.ipv6.conf.default.accept_dad sysctl: %v", err)
+			}
+		}()
+	}
+
 	if err := cmd.Start(); err != nil {
 		return errors.Wrapf(err, "failed to start slirp4netns process")
 	}
@@ -309,6 +345,9 @@ func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 
 	if err := waitForSync(syncR, cmd, logFile, 1*time.Second); err != nil {
 		return err
+	}
+	if slirpReadyChan != nil {
+		slirpReadyChan <- struct{}{}
 	}
 
 	// Set a default slirp subnet. Parsing a string with the net helper is easier than building the struct myself
