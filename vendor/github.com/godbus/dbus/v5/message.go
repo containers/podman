@@ -279,8 +279,8 @@ func (msg *Message) EncodeToWithFDs(out io.Writer, order binary.ByteOrder) (fds 
 // be either binary.LittleEndian or binary.BigEndian. If the message is not
 // valid or an error occurs when writing, an error is returned.
 func (msg *Message) EncodeTo(out io.Writer, order binary.ByteOrder) (err error) {
-	_, err = msg.EncodeToWithFDs(out, order);
-	return err;
+	_, err = msg.EncodeToWithFDs(out, order)
+	return err
 }
 
 // IsValid checks whether msg is a valid message and returns an
