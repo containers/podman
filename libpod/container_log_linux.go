@@ -121,7 +121,24 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 		}()
 
 		tailQueue := []*logs.LogLine{} // needed for options.Tail
-		doTail := options.Tail > 0
+		doTail := options.Tail >= 0
+		doTailFunc := func() {
+			// Flush *once* we hit the end of the journal.
+			startIndex := int64(len(tailQueue))
+			outputLines := int64(0)
+			for startIndex > 0 && outputLines < options.Tail {
+				startIndex--
+				for startIndex > 0 && tailQueue[startIndex].Partial() {
+					startIndex--
+				}
+				outputLines++
+			}
+			for i := startIndex; i < int64(len(tailQueue)); i++ {
+				logChannel <- tailQueue[i]
+			}
+			tailQueue = nil
+			doTail = false
+		}
 		lastReadCursor := ""
 		for {
 			select {
@@ -152,16 +169,7 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 			// Hit the end of the journal (so far?).
 			if cursor == lastReadCursor {
 				if doTail {
-					// Flush *once* we hit the end of the journal.
-					startIndex := int64(len(tailQueue)-1) - options.Tail
-					if startIndex < 0 {
-						startIndex = 0
-					}
-					for i := startIndex; i < int64(len(tailQueue)); i++ {
-						logChannel <- tailQueue[i]
-					}
-					tailQueue = nil
-					doTail = false
+					doTailFunc()
 				}
 				// Unless we follow, quit.
 				if !options.Follow {
@@ -194,6 +202,9 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 					return
 				}
 				if status == events.Exited {
+					if doTail {
+						doTailFunc()
+					}
 					return
 				}
 				continue
