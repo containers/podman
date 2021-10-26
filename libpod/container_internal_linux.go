@@ -322,7 +322,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		return nil, err
 	}
 
-	g := generate.Generator{Config: c.config.Spec}
+	g := generate.NewFromSpec(c.config.Spec)
 
 	// If network namespace was requested, add it now
 	if c.config.CreateNetNS {
@@ -1219,7 +1219,8 @@ func (c *Container) importCheckpoint(input string) error {
 	}
 
 	// Make sure the newly created config.json exists on disk
-	g := generate.Generator{Config: c.config.Spec}
+	g := generate.NewFromSpec(c.config.Spec)
+
 	if err := c.saveSpec(g.Config); err != nil {
 		return errors.Wrap(err, "saving imported container specification for restore failed")
 	}
