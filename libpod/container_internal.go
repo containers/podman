@@ -457,10 +457,12 @@ func (c *Container) setupStorage(ctx context.Context) error {
 			options.StorageOpt[split2[0]] = split2[1]
 		}
 	}
-	if c.restoreFromCheckpoint && !c.config.Privileged {
-		// If restoring from a checkpoint, the root file-system
-		// needs to be mounted with the same SELinux labels as
-		// it was mounted previously.
+	if c.restoreFromCheckpoint && c.config.ProcessLabel != "" && c.config.MountLabel != "" {
+		// If restoring from a checkpoint, the root file-system needs
+		// to be mounted with the same SELinux labels as it was mounted
+		// previously. But only if both labels have been set. For
+		// privileged containers or '--ipc host' only ProcessLabel will
+		// be set and so we will skip it for cases like that.
 		if options.Flags == nil {
 			options.Flags = make(map[string]interface{})
 		}
