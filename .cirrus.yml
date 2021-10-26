@@ -230,12 +230,18 @@ bindings_task:
     clone_script: *noop  # Comes from cache
     setup_script: *setup
     main_script: *main
-    always: &html_artifacts
+    always: &logs_artifacts
         <<: *runner_stats
         # Required for `contrib/cirrus/logformatter` to work properly
         html_artifacts:
             path: ./*.html
             type: text/html
+        package_versions_script: '$SCRIPT_BASE/logcollector.sh packages'
+        df_script: '$SCRIPT_BASE/logcollector.sh df'
+        audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
+        journal_script: '$SCRIPT_BASE/logcollector.sh journal'
+        podman_system_info_script: '$SCRIPT_BASE/logcollector.sh podman'
+        time_script: '$SCRIPT_BASE/logcollector.sh time'
 
 
 # Build the "libpod" API documentation `swagger.yaml` and
@@ -416,7 +422,7 @@ unit_test_task:
     gopath_cache: *ro_gopath_cache
     setup_script: *setup
     main_script: *main
-    always: *runner_stats
+    always: *logs_artifacts
 
 
 apiv2_test_task:
@@ -437,14 +443,8 @@ apiv2_test_task:
     gopath_cache: *ro_gopath_cache
     setup_script: *setup
     main_script: *main
-    always: &logs_artifacts
-        <<: *html_artifacts
-        package_versions_script: '$SCRIPT_BASE/logcollector.sh packages'
-        df_script: '$SCRIPT_BASE/logcollector.sh df'
-        audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
-        journal_script: '$SCRIPT_BASE/logcollector.sh journal'
-        podman_system_info_script: '$SCRIPT_BASE/logcollector.sh podman'
-        time_script: '$SCRIPT_BASE/logcollector.sh time'
+    always: *logs_artifacts
+
 
 compose_test_task:
     name: "compose test on $DISTRO_NV ($PRIV_NAME)"
