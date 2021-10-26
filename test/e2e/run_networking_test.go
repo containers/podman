@@ -357,6 +357,26 @@ var _ = Describe("Podman run networking", func() {
 		Expect(ncBusy).To(ExitWithError())
 	})
 
+	It("podman run slirp4netns verify net.ipv6.conf.default.accept_dad=0", func() {
+		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns:enable_ipv6=true", ALPINE, "ip", "addr"})
+		session.Wait(30)
+		Expect(session).Should(Exit(0))
+		// check the ipv6 setup id done without delay (https://github.com/containers/podman/issues/11062)
+		Expect(session.OutputToString()).To(ContainSubstring("inet6 fd00::"))
+
+		const ipv6ConfDefaultAcceptDadSysctl = "/proc/sys/net/ipv6/conf/all/accept_dad"
+
+		cat := SystemExec("cat", []string{ipv6ConfDefaultAcceptDadSysctl})
+		cat.Wait(30)
+		Expect(cat).Should(Exit(0))
+		sysctlValue := cat.OutputToString()
+
+		session = podmanTest.Podman([]string{"run", "--network", "slirp4netns:enable_ipv6=true", ALPINE, "cat", ipv6ConfDefaultAcceptDadSysctl})
+		session.Wait(30)
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal(sysctlValue))
+	})
+
 	It("podman run network expose host port 18082 to container port 8000 using slirp4netns port handler", func() {
 		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns:port_handler=slirp4netns", "-dt", "-p", "18082:8000", ALPINE, "/bin/sh"})
 		session.Wait(30)
