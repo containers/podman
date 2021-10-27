@@ -73,7 +73,7 @@ func SessionBus() (conn *Conn, err error) {
 	return
 }
 
-func getSessionBusAddress() (string, error) {
+func getSessionBusAddress(autolaunch bool) (string, error) {
 	if address := os.Getenv("DBUS_SESSION_BUS_ADDRESS"); address != "" && address != "autolaunch:" {
 		return address, nil
 
@@ -81,12 +81,26 @@ func getSessionBusAddress() (string, error) {
 		os.Setenv("DBUS_SESSION_BUS_ADDRESS", address)
 		return address, nil
 	}
+	if !autolaunch {
+		return "", errors.New("dbus: couldn't determine address of session bus")
+	}
 	return getSessionBusPlatformAddress()
 }
 
 // SessionBusPrivate returns a new private connection to the session bus.
 func SessionBusPrivate(opts ...ConnOption) (*Conn, error) {
-	address, err := getSessionBusAddress()
+	address, err := getSessionBusAddress(true)
+	if err != nil {
+		return nil, err
+	}
+
+	return Dial(address, opts...)
+}
+
+// SessionBusPrivate returns a new private connection to the session bus.  If
+// the session bus is not already open, do not attempt to launch it.
+func SessionBusPrivateNoAutoStartup(opts ...ConnOption) (*Conn, error) {
+	address, err := getSessionBusAddress(false)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +135,7 @@ func SystemBus() (conn *Conn, err error) {
 
 // ConnectSessionBus connects to the session bus.
 func ConnectSessionBus(opts ...ConnOption) (*Conn, error) {
-	address, err := getSessionBusAddress()
+	address, err := getSessionBusAddress(true)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +194,7 @@ func Dial(address string, opts ...ConnOption) (*Conn, error) {
 //
 // Deprecated: use Dial with options instead.
 func DialHandler(address string, handler Handler, signalHandler SignalHandler) (*Conn, error) {
-	return Dial(address, WithSignalHandler(signalHandler))
+	return Dial(address, WithHandler(handler), WithSignalHandler(signalHandler))
 }
 
 // ConnOption is a connection option.
