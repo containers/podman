@@ -1016,7 +1016,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	}
 
 	if ctr.config.CgroupsMode == cgroupSplit {
-		if err := utils.MoveUnderCgroupSubtree("supervisor"); err != nil {
+		if err := utils.MoveUnderCgroupSubtree("runtime"); err != nil {
 			return err
 		}
 	}
