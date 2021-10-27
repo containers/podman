@@ -39,6 +39,7 @@ EOF
     cat >$dockerfile <<EOF
 FROM $IMAGE
 RUN echo $rand_content > /$rand_filename
+VOLUME ['/etc/foo', '/etc/bar']
 EOF
 
     run_podman buildx build --load -t build_test --format=docker $tmpdir
@@ -46,6 +47,14 @@ EOF
 
     run_podman run --rm build_test cat /$rand_filename
     is "$output"   "$rand_content"   "reading generated file in image"
+
+    # Make sure the volumes are created at surprising yet Docker-compatible
+    # destinations (see bugzilla.redhat.com/show_bug.cgi?id=2014149).
+    run_podman run --rm build_test find /[ /etc/bar\] -print
+    is "$output" "/\[
+/\[/etc
+/\[/etc/foo,
+/etc/bar]" "weird VOLUME gets converted to directories with brackets and comma"
 
     run_podman rmi -f build_test
 }

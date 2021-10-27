@@ -214,9 +214,6 @@ func getImageVolumes(ctx context.Context, img *libimage.Image, s *specgen.SpecGe
 	}
 	for volume := range inspect.Config.Volumes {
 		logrus.Debugf("Image has volume at %q", volume)
-		if err = parse.ValidateVolumeCtrDir(volume); err != nil {
-			return nil, nil, err
-		}
 		cleanDest := filepath.Clean(volume)
 		switch mode {
 		case "", "anonymous":
