@@ -191,8 +191,8 @@ func moveProcessToScope(pidPath, slice, scope string) error {
 func MovePauseProcessToScope(pausePidPath string) {
 	err := moveProcessToScope(pausePidPath, "user.slice", "podman-pause.scope")
 	if err != nil {
-		unified, err := cgroups.IsCgroup2UnifiedMode()
-		if err != nil {
+		unified, err2 := cgroups.IsCgroup2UnifiedMode()
+		if err2 != nil {
 			logrus.Warnf("Failed to detect if running with cgroup unified: %v", err)
 		}
 		if RunsOnSystemd() && unified {
