@@ -60,6 +60,8 @@ var _ = Describe("podman system reset", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
+		Expect(session.ErrorToString()).To(Not(ContainSubstring("Failed to add pause process")))
+
 		// If remote then the API service should have exited
 		// On local tests this is a noop
 		podmanTest.StartRemoteService()
