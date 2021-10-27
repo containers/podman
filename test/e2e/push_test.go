@@ -146,7 +146,7 @@ var _ = Describe("Podman push", func() {
 		session = podmanTest.Podman([]string{"logs", "registry"})
 		session.WaitWithDefaultTimeout()
 
-		push := podmanTest.Podman([]string{"push", "--format=v2s2", "--creds=podmantest:test", ALPINE, "localhost:5000/tlstest"})
+		push := podmanTest.Podman([]string{"push", "--tls-verify=true", "--format=v2s2", "--creds=podmantest:test", ALPINE, "localhost:5000/tlstest"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).To(ExitWithError())
 
@@ -163,7 +163,7 @@ var _ = Describe("Podman push", func() {
 
 		if !IsRemote() {
 			// remote does not support --cert-dir
-			push = podmanTest.Podman([]string{"push", "--creds=podmantest:test", "--cert-dir=fakedir", ALPINE, "localhost:5000/certdirtest"})
+			push = podmanTest.Podman([]string{"push", "--tls-verify=true", "--creds=podmantest:test", "--cert-dir=fakedir", ALPINE, "localhost:5000/certdirtest"})
 			push.WaitWithDefaultTimeout()
 			Expect(push).To(ExitWithError())
 		}

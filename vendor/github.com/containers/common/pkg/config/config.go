@@ -574,7 +574,7 @@ func readConfigFromFile(path string, config *Config) error {
 	}
 	keys := meta.Undecoded()
 	if len(keys) > 0 {
-		logrus.Warningf("Failed to decode the keys %q from %q.", keys, path)
+		logrus.Debugf("Failed to decode the keys %q from %q.", keys, path)
 	}
 
 	return nil
