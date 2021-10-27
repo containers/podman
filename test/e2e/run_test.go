@@ -1386,6 +1386,7 @@ USER mail`, BB)
 	})
 
 	It("podman run with cgroups=disabled runs without cgroups", func() {
+		Skip("Test occasionally races with a 'supervisor' cgroup.  See issue #11191")
 		SkipIfRootlessCgroupsV1("Disable cgroups not supported on cgroupv1 for rootless users")
 		// Only works on crun
 		if !strings.Contains(podmanTest.OCIRuntime, "crun") {
