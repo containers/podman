@@ -11,7 +11,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/util"
 	. "github.com/containers/podman/v3/test/utils"
@@ -1118,24 +1117,6 @@ var _ = Describe("Podman play kube", func() {
 		label := inspect.OutputToString()
 
 		Expect(label).To(ContainSubstring("unconfined_u:system_r:spc_t:s0"))
-	})
-
-	It("podman play kube should use default infra_image", func() {
-		err := writeYaml(checkInfraImagePodYaml, kubeYaml)
-		Expect(err).To(BeNil())
-
-		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(Exit(0))
-
-		podInspect := podmanTest.Podman([]string{"inspect", "check-infra-image", "--format", "{{ .InfraContainerID }}"})
-		podInspect.WaitWithDefaultTimeout()
-		infraContainerID := podInspect.OutputToString()
-
-		conInspect := podmanTest.Podman([]string{"inspect", infraContainerID, "--format", "{{ .ImageName }}"})
-		conInspect.WaitWithDefaultTimeout()
-		infraContainerImage := conInspect.OutputToString()
-		Expect(infraContainerImage).To(Equal(config.DefaultInfraImage))
 	})
 
 	It("podman play kube --no-host", func() {

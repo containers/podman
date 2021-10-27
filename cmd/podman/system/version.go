@@ -67,7 +67,7 @@ func version(cmd *cobra.Command, args []string) error {
 		}
 		if err := tmpl.Execute(w, versions); err != nil {
 			// On Failure, assume user is using older version of podman version --format and check client
-			row = strings.Replace(row, ".Server.", ".", 1)
+			row = strings.ReplaceAll(row, ".Server.", ".")
 			tmpl, err := report.NewTemplate("version 1.0.0").Parse(row)
 			if err != nil {
 				return err

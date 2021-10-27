@@ -112,7 +112,7 @@ The command that will be run to start the infra container. Default: "/pause".
 
 #### **--infra-image**=*image*
 
-The image that will be created for the infra container. Default: "k8s.gcr.io/pause:3.1".
+The custom image that will be used for the infra container.  Unless specified, Podman builds a custom local image which does not require pulling down an image.
 
 #### **--infra-name**=*name*
 

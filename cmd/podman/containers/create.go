@@ -372,15 +372,10 @@ func createPodIfNecessary(s *specgen.SpecGenerator, netOpts *entities.NetOptions
 	}
 
 	infraOpts := entities.ContainerCreateOptions{ImageVolume: "bind", Net: netOpts, Quiet: true}
-	rawImageName := config.DefaultInfraImage
-	name, err := PullImage(rawImageName, infraOpts)
-	if err != nil {
-		fmt.Println(err)
-	}
-	imageName := name
+	imageName := config.DefaultInfraImage
 	podGen.InfraImage = imageName
 	podGen.InfraContainerSpec = specgen.NewSpecGenerator(imageName, false)
-	podGen.InfraContainerSpec.RawImageName = rawImageName
+	podGen.InfraContainerSpec.RawImageName = imageName
 	podGen.InfraContainerSpec.NetworkOptions = podGen.NetworkOptions
 	err = specgenutil.FillOutSpecGen(podGen.InfraContainerSpec, &infraOpts, []string{})
 	if err != nil {

@@ -242,16 +242,6 @@ func create(cmd *cobra.Command, args []string) error {
 	}
 	if createOptions.Infra {
 		rawImageName = img
-		if !infraOptions.RootFS {
-			curr := infraOptions.Quiet
-			infraOptions.Quiet = true
-			name, err := containers.PullImage(imageName, infraOptions)
-			if err != nil {
-				fmt.Println(err)
-			}
-			imageName = name
-			infraOptions.Quiet = curr
-		}
 		podSpec.InfraImage = imageName
 		if infraOptions.Entrypoint != nil {
 			createOptions.InfraCommand = infraOptions.Entrypoint

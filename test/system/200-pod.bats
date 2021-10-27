@@ -60,6 +60,10 @@ function teardown() {
     run_podman pod rm -f -t 0 $podid
 }
 
+function rm_podman_pause_image() {
+    run_podman version --format "{{.Server.Version}}-{{.Server.Built}}"
+    run_podman rmi -f "localhost/podman-pause:$output"
+}
 
 @test "podman pod - communicating between pods" {
     podname=pod$(random_string)
@@ -100,19 +104,14 @@ function teardown() {
     # Clean up. First the nc -l container...
     run_podman rm $cid1
 
-    # ...then, from pause container, find the image ID of the pause image...
-    run_podman pod inspect --format '{{(index .Containers 0).ID}}' $podname
-    pause_cid="$output"
-    run_podman container inspect --format '{{.Image}}' $pause_cid
-    pause_iid="$output"
-
     # ...then rm the pod, then rmi the pause image so we don't leave strays.
     run_podman pod rm $podname
-    run_podman rmi $pause_iid
 
     # Pod no longer exists
     run_podman 1 pod exists $podid
     run_podman 1 pod exists $podname
+
+    rm_podman_pause_image
 }
 
 @test "podman pod - communicating via /dev/shm " {
@@ -133,6 +132,10 @@ function teardown() {
     # Pod no longer exists
     run_podman 1 pod exists $podid
     run_podman 1 pod exists $podname
+
+    # Pause image hasn't been pulled
+    run_podman 1 image exists k8s.gcr.io/pause:3.5
+    rm_podman_pause_image
 }
 
 # Random byte
@@ -303,16 +306,25 @@ EOF
     run_podman rm $cid
     run_podman pod rm -t 0 -f mypod
     run_podman rmi $infra_image
-
 }
 
 @test "podman pod create should fail when infra-name is already in use" {
     local infra_name="infra_container_$(random_string 10 | tr A-Z a-z)"
-    run_podman pod create --infra-name "$infra_name"
+    local pod_name="$(random_string 10 | tr A-Z a-z)"
+
+    # Note that the internal pause image is built even when --infra-image is
+    # set to the K8s one.
+    run_podman pod create --name $pod_name --infra-name "$infra_name" --infra-image "k8s.gcr.io/pause:3.5"
     run_podman '?' pod create --infra-name "$infra_name"
     if [ $status -eq 0 ]; then
         die "Podman should fail when user try to create two pods with the same infra-name value"
     fi
+    run_podman pod rm -f $pod_name
+    run_podman images -a
+
+    # Pause image hasn't been pulled
+    run_podman 1 image exists k8s.gcr.io/pause:3.5
+    rm_podman_pause_image
 }
 
 # vim: filetype=sh
