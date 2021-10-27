@@ -541,7 +541,11 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 				return err
 			}
 			if became {
-				utils.MovePauseProcessToScope(pausePid)
+				// Check if the pause process was created.  If it was created, then
+				// move it to its own systemd scope.
+				if _, err = os.Stat(pausePid); err == nil {
+					utils.MovePauseProcessToScope(pausePid)
+				}
 				os.Exit(ret)
 			}
 		}
