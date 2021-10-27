@@ -78,8 +78,10 @@ type VolumeCreateOptions struct {
 	Name string `schema:"name"`
 	// Volume driver to use
 	Driver string `schema:"driver"`
-	// User-defined key/value metadata.
+	// User-defined key/value metadata. Provided for compatibility
 	Label map[string]string `schema:"label"`
+	// User-defined key/value metadata. Preferred field, will override Label
+	Labels map[string]string `schema:"labels"`
 	// Mapping of driver options and values.
 	Options map[string]string `schema:"opts"`
 }
