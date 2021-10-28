@@ -45,6 +45,18 @@ func newNetavarkError(msg string, err error) error {
 	}
 }
 
+// getRustLogEnv returns the RUST_LOG env var based on the current logrus level
+func getRustLogEnv() string {
+	level := logrus.GetLevel().String()
+	// rust env_log uses warn instead of warning
+	if level == "warning" {
+		level = "warn"
+	}
+	// the rust netlink library is very verbose
+	// make sure to only log netavark logs
+	return "RUST_LOG=netavark=" + level
+}
+
 // execNetavark will execute netavark with the following arguments
 // It takes the path to the binary, the list of args and an interface which is
 // marshaled to json and send via stdin to netavark. The result interface is
@@ -72,7 +84,7 @@ func execNetavark(binary string, args []string, stdin, result interface{}) error
 	// connect stderr to the podman stderr for logging
 	cmd.Stderr = os.Stderr
 	// set the netavark log level to the same as the podman
-	cmd.Env = append(os.Environ(), "RUST_LOG="+logrus.GetLevel().String())
+	cmd.Env = append(os.Environ(), getRustLogEnv())
 	// if we run with debug log level lets also set RUST_BACKTRACE=1 so we can get the full stack trace in case of panics
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
 		cmd.Env = append(cmd.Env, "RUST_BACKTRACE=1")
