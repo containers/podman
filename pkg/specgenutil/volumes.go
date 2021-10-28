@@ -360,7 +360,7 @@ func getBindMount(args []string) (spec.Mount, error) {
 			// Since Docker ignores this option so shall we.
 			continue
 		default:
-			return newMount, errors.Wrapf(util.ErrBadMntOption, kv[0])
+			return newMount, errors.Wrapf(util.ErrBadMntOption, "%s", kv[0])
 		}
 	}
 
@@ -460,7 +460,7 @@ func getTmpfsMount(args []string) (spec.Mount, error) {
 			// Since Docker ignores this option so shall we.
 			continue
 		default:
-			return newMount, errors.Wrapf(util.ErrBadMntOption, kv[0])
+			return newMount, errors.Wrapf(util.ErrBadMntOption, "%s", kv[0])
 		}
 	}
 
@@ -483,6 +483,8 @@ func getDevptsMount(args []string) (spec.Mount, error) {
 	for _, val := range args {
 		kv := strings.SplitN(val, "=", 2)
 		switch kv[0] {
+		case "uid", "gid", "mode", "ptxmode", "newinstance", "max":
+			newMount.Options = append(newMount.Options, val)
 		case "target", "dst", "destination":
 			if len(kv) == 1 {
 				return newMount, errors.Wrapf(optionArgError, kv[0])
@@ -493,7 +495,7 @@ func getDevptsMount(args []string) (spec.Mount, error) {
 			newMount.Destination = filepath.Clean(kv[1])
 			setDest = true
 		default:
-			return newMount, errors.Wrapf(util.ErrBadMntOption, kv[0])
+			return newMount, errors.Wrapf(util.ErrBadMntOption, "%s", kv[0])
 		}
 	}
 
@@ -573,7 +575,7 @@ func getNamedVolume(args []string) (*specgen.NamedVolume, error) {
 			// Since Docker ignores this option so shall we.
 			continue
 		default:
-			return nil, errors.Wrapf(util.ErrBadMntOption, kv[0])
+			return nil, errors.Wrapf(util.ErrBadMntOption, "%s", kv[0])
 		}
 	}
 
@@ -624,7 +626,7 @@ func getImageVolume(args []string) (*specgen.ImageVolume, error) {
 			// Since Docker ignores this option so shall we.
 			continue
 		default:
-			return nil, errors.Wrapf(util.ErrBadMntOption, kv[0])
+			return nil, errors.Wrapf(util.ErrBadMntOption, "%s", kv[0])
 		}
 	}
 
