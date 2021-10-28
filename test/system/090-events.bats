@@ -85,6 +85,17 @@ function _events_disjunctive_filters() {
     _events_disjunctive_filters --events-backend=journald
 }
 
+@test "events with file backend and journald logdriver with --follow failure" {
+    skip_if_remote "remote does not support --events-backend"
+    skip_if_journald_unavailable "system does not support journald events"
+    run_podman --events-backend=file run --log-driver=journald --name=test $IMAGE echo hi
+    is "$output" "hi" "Should support events-backend=file"
+
+    run_podman 125 --events-backend=file logs --follow test
+    is "$output" "Error: using --follow with the journald --log-driver but without the journald --events-backend (file) is not supported" "Should fail with reasonable error message when events-backend and events-logger do not match"
+
+}
+
 @test "events with disjunctive filters - default" {
     _events_disjunctive_filters ""
 }

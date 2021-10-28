@@ -44,6 +44,12 @@ func (c *Container) initializeJournal(ctx context.Context) error {
 }
 
 func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOptions, logChannel chan *logs.LogLine) error {
+	// We need the container's events in the same journal to guarantee
+	// consistency, see #10323.
+	if options.Follow && c.runtime.config.Engine.EventsLogger != "journald" {
+		return errors.Errorf("using --follow with the journald --log-driver but without the journald --events-backend (%s) is not supported", c.runtime.config.Engine.EventsLogger)
+	}
+
 	journal, err := sdjournal.NewJournal()
 	if err != nil {
 		return err
@@ -103,12 +109,6 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 	}
 	if cursorError != nil {
 		return errors.Wrap(cursorError, "initial journal cursor")
-	}
-
-	// We need the container's events in the same journal to guarantee
-	// consistency, see #10323.
-	if options.Follow && c.runtime.config.Engine.EventsLogger != "journald" {
-		return errors.Errorf("using --follow with the journald --log-driver but without the journald --events-backend (%s) is not supported", c.runtime.config.Engine.EventsLogger)
 	}
 
 	options.WaitGroup.Add(1)
