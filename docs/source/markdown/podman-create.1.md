@@ -638,6 +638,16 @@ Current supported mount TYPEs are **bind**, **volume**, **image**, **tmpfs** and
 
         . U, chown: true or false (default). Change recursively the owner and group of the source volume based on the UID and GID of the container.
 
+       Options specific to devpts:
+
+	      · uid: UID of the file owner (default 0).
+
+	      · gid: GID of the file owner (default 0).
+
+	      · mode: permission mask for the file (default 600).
+
+	      · max: maximum number of PTYs (default 1048576).
+
 #### **--name**=*name*
 
 Assign a name to the container

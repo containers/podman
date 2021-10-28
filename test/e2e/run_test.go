@@ -1198,6 +1198,14 @@ USER mail`, BB)
 		Expect(session.OutputToString()).To(ContainSubstring("devpts"))
 	})
 
+	It("podman run --mount type=devpts,target=/dev/pts with uid, gid and mode", func() {
+		// runc doesn't seem to honor uid= so avoid testing it
+		session := podmanTest.Podman([]string{"run", "-t", "--mount", "type=devpts,target=/dev/pts,uid=1000,gid=1001,mode=123", fedoraMinimal, "stat", "-c%g-%a", "/dev/pts/0"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("1001-123"))
+	})
+
 	It("podman run --pod automatically", func() {
 		session := podmanTest.Podman([]string{"run", "-d", "--pod", "new:foobar", ALPINE, "nc", "-l", "-p", "8686"})
 		session.WaitWithDefaultTimeout()
