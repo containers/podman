@@ -7,7 +7,7 @@ from .fixtures import APITestCase
 
 
 class VolumeTestCase(APITestCase):
-    def test_volume(self):
+    def test_volume_crud(self):
         name = f"Volume_{random.getrandbits(160):x}"
 
         ls = requests.get(self.podman_url + "/v1.40/volumes")
@@ -69,6 +69,71 @@ class VolumeTestCase(APITestCase):
         payload = prune.json()
         self.assertIn(name, payload["VolumesDeleted"])
         self.assertGreater(payload["SpaceReclaimed"], 0)
+
+    def test_volume_label(self):
+        name = f"Volume_{random.getrandbits(160):x}"
+        expected = {
+            "Production": "False",
+            "Database": "Foxbase",
+        }
+
+        create = requests.post(
+            self.podman_url + "/v4.0.0/libpod/volumes/create",
+            json={"name": name, "label": expected},
+        )
+        self.assertEqual(create.status_code, 201, create.text)
+
+        inspect = requests.get(self.podman_url + f"/v4.0.0/libpod/volumes/{name}/json")
+        self.assertEqual(inspect.status_code, 200, inspect.text)
+
+        volume = inspect.json()
+        self.assertIn("Labels", volume)
+        self.assertNotIn("Label", volume)
+        self.assertDictEqual(expected, volume["Labels"])
+
+    def test_volume_labels(self):
+        name = f"Volume_{random.getrandbits(160):x}"
+        expected = {
+            "Production": "False",
+            "Database": "Foxbase",
+        }
+
+        create = requests.post(
+            self.podman_url + "/v4.0.0/libpod/volumes/create",
+            json={"name": name, "labels": expected},
+        )
+        self.assertEqual(create.status_code, 201, create.text)
+
+        inspect = requests.get(self.podman_url + f"/v4.0.0/libpod/volumes/{name}/json")
+        self.assertEqual(inspect.status_code, 200, inspect.text)
+
+        volume = inspect.json()
+        self.assertIn("Labels", volume)
+        self.assertDictEqual(expected, volume["Labels"])
+
+    def test_volume_label_override(self):
+        name = f"Volume_{random.getrandbits(160):x}"
+        create = requests.post(
+            self.podman_url + "/v4.0.0/libpod/volumes/create",
+            json={
+                "Name": name,
+                "Label": {
+                    "Database": "dbase",
+                },
+                "Labels": {
+                    "Database": "sqlserver",
+                },
+            },
+        )
+        self.assertEqual(create.status_code, 201, create.text)
+
+        inspect = requests.get(self.podman_url + f"/v4.0.0/libpod/volumes/{name}/json")
+        self.assertEqual(inspect.status_code, 200, inspect.text)
+
+        volume = inspect.json()
+        self.assertIn("Labels", volume)
+        self.assertNotIn("Label", volume)
+        self.assertDictEqual({"Database": "sqlserver"}, volume["Labels"])
 
 
 if __name__ == "__main__":

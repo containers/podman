@@ -29,12 +29,13 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 	}{
 		// override any golang type defaults
 	}
-	input := entities.VolumeCreateOptions{}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError,
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
+
+	input := entities.VolumeCreateOptions{}
 	// decode params from body
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
@@ -47,9 +48,19 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 	if len(input.Driver) > 0 {
 		volumeOptions = append(volumeOptions, libpod.WithVolumeDriver(input.Driver))
 	}
-	if len(input.Label) > 0 {
-		volumeOptions = append(volumeOptions, libpod.WithVolumeLabels(input.Label))
+
+	// Label provided for compatibility.
+	labels := make(map[string]string, len(input.Label)+len(input.Labels))
+	for k, v := range input.Label {
+		labels[k] = v
 	}
+	for k, v := range input.Labels {
+		labels[k] = v
+	}
+	if len(labels) > 0 {
+		volumeOptions = append(volumeOptions, libpod.WithVolumeLabels(labels))
+	}
+
 	if len(input.Options) > 0 {
 		parsedOptions, err := parse.VolumeOptions(input.Options)
 		if err != nil {
