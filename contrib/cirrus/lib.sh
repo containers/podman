@@ -143,6 +143,8 @@ setup_rootless() {
     local rootless_uid
     local rootless_gid
     local env_var_val
+    local akfilepath
+    local sshcmd
 
     # Only do this once; established by setup_environment.sh
     # shellcheck disable=SC2154
@@ -169,24 +171,25 @@ setup_rootless() {
         ssh-keygen -P "" -f "$HOME/.ssh/id_rsa"
 
     msg "Allowing ssh key for $ROOTLESS_USER"
+    akfilepath="/home/$ROOTLESS_USER/.ssh/authorized_keys"
     (umask 077 && mkdir "/home/$ROOTLESS_USER/.ssh")
     chown -R $ROOTLESS_USER:$ROOTLESS_USER "/home/$ROOTLESS_USER/.ssh"
     install -o $ROOTLESS_USER -g $ROOTLESS_USER -m 0600 \
-        "$HOME/.ssh/id_rsa.pub" "/home/$ROOTLESS_USER/.ssh/authorized_keys"
+        "$HOME/.ssh/id_rsa.pub" "$akfilepath"
     # Makes debugging easier
-    cat /root/.ssh/authorized_keys >> "/home/$ROOTLESS_USER/.ssh/authorized_keys"
-
-    msg "Configuring subuid and subgid"
-    grep -q "${ROOTLESS_USER}" /etc/subuid || \
-        echo "${ROOTLESS_USER}:$[rootless_uid * 100]:65536" | \
-            tee -a /etc/subuid >> /etc/subgid
+    cat /root/.ssh/authorized_keys >> "$akfilepath"
 
     msg "Ensure the ssh daemon is up and running within 5 minutes"
     systemctl start sshd
-    lilto ssh $ROOTLESS_USER@localhost \
-           -o UserKnownHostsFile=/dev/null \
-           -o StrictHostKeyChecking=no \
-           -o CheckHostIP=no true
+    sshcmd="ssh $ROOTLESS_USER@localhost
+           -o UserKnownHostsFile=/dev/null
+           -o StrictHostKeyChecking=no
+           -o CheckHostIP=no"
+    lilto $sshcmd true  # retry until sshd is up
+
+    msg "Configuring rootless user self-access to ssh to localhost"
+    $sshcmd ssh-keygen -P '""' -f "/home/$ROOTLESS_USER/.ssh/id_rsa"
+    cat "/home/$ROOTLESS_USER/.ssh/id_rsa" >> "$akfilepath"
 }
 
 install_test_configs() {
