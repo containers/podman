@@ -48,6 +48,7 @@ type machineReporter struct {
 	Created  string
 	Running  bool
 	LastUp   string
+	Stream   string
 	VMType   string
 	CPUs     uint64
 	Memory   string
@@ -153,6 +154,13 @@ func strUint(u uint64) string {
 	return strconv.FormatUint(u, 10)
 }
 
+func streamName(imageStream string) string {
+	if imageStream == "" {
+		return "default"
+	}
+	return imageStream
+}
+
 func toMachineFormat(vms []*machine.ListResponse) ([]*machineReporter, error) {
 	cfg, err := config.ReadCustomConfig()
 	if err != nil {
@@ -167,6 +175,7 @@ func toMachineFormat(vms []*machine.ListResponse) ([]*machineReporter, error) {
 		response.Running = vm.Running
 		response.LastUp = strTime(vm.LastUp)
 		response.Created = strTime(vm.CreatedAt)
+		response.Stream = streamName(vm.Stream)
 		response.VMType = vm.VMType
 		response.CPUs = vm.CPUs
 		response.Memory = strUint(vm.Memory * units.MiB)
