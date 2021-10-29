@@ -31,7 +31,7 @@ podman pause 860a4b23
 
 Pause all **running** containers.
 ```
-podman stop -a
+podman pause -a
 ```
 
 ## SEE ALSO
