@@ -18,6 +18,10 @@ tied to the Linux kernel.
 SSH keys are automatically generated to access the VM, and system connections to the root account
 and a user account inside the VM are added.
 
+By default, the VM distribution is [Fedora CoreOS](https://getfedora.org/en/coreos?stream=testing).
+Fedora CoreOS upgrades come out every 14 days and are detected and installed automatically. The VM will be rebooted during the upgrade.
+For more information on updates and advanced configuration, please see the FCOS update docs [here](https://docs.fedoraproject.org/en-US/fedora-coreos/auto-updates/) and [here](https://coreos.github.io/zincati/usage/updates-strategy/).
+
 ## OPTIONS
 
 #### **--cpus**=*number*
