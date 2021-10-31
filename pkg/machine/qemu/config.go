@@ -36,10 +36,11 @@ type MachineVM struct {
 }
 
 type Mount struct {
-	Type   string
-	Tag    string
-	Source string
-	Target string
+	Type     string
+	Tag      string
+	Source   string
+	Target   string
+	ReadOnly bool
 }
 
 type Monitor struct {

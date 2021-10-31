@@ -36,6 +36,11 @@ func GetQemuProvider() machine.Provider {
 	return qemuProvider
 }
 
+const (
+	VolumeTypeVirtfs = "virtfs"
+	MountType9p      = "9p"
+)
+
 // NewMachine initializes an instance of a virtual machine based on the qemu
 // virtualization.
 func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
@@ -167,18 +172,42 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	// Add arch specific options including image location
 	v.CmdLine = append(v.CmdLine, v.addArchOptions()...)
 
+	// TODO: add to opts
+	volumeType := VolumeTypeVirtfs
+
 	mounts := []Mount{}
 	for i, volume := range opts.Volumes {
 		tag := fmt.Sprintf("vol%d", i)
-		paths := strings.SplitN(volume, ":", 2)
+		paths := strings.SplitN(volume, ":", 3)
 		source := paths[0]
 		target := source
+		readonly := false
 		if len(paths) > 1 {
 			target = paths[1]
 		}
-		addVirtfsOptions := []string{"-virtfs", fmt.Sprintf("local,path=%s,mount_tag=%s,security_model=mapped-xattr", source, tag)}
-		v.CmdLine = append(v.CmdLine, addVirtfsOptions...)
-		mounts = append(mounts, Mount{Type: "9p", Tag: tag, Source: source, Target: target})
+		if len(paths) > 2 {
+			options := paths[2]
+			volopts := strings.Split(options, ",")
+			for _, o := range volopts {
+				switch o {
+				case "rw":
+					readonly = false
+				case "ro":
+					readonly = true
+				default:
+					fmt.Printf("Unknown option: %s\n", o)
+				}
+			}
+		}
+		switch volumeType {
+		case VolumeTypeVirtfs:
+			virtfsOptions := fmt.Sprintf("local,path=%s,mount_tag=%s,security_model=mapped-xattr", source, tag)
+			if readonly {
+				virtfsOptions += ",readonly"
+			}
+			v.CmdLine = append(v.CmdLine, []string{"-virtfs", virtfsOptions}...)
+			mounts = append(mounts, Mount{Type: MountType9p, Tag: tag, Source: source, Target: target, ReadOnly: readonly})
+		}
 	}
 	v.Mounts = mounts
 
@@ -360,9 +389,20 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		if err != nil {
 			return err
 		}
-		err = v.SSH(name, machine.SSHOptions{Args: []string{"-q", "--", "sudo", "mount", "-t", mount.Type, "-o", "trans=virtio", mount.Tag, mount.Target, "-o", "version=9p2000.L,msize=131072"}})
-		if err != nil {
-			return err
+		switch mount.Type {
+		case MountType9p:
+			mountOptions := []string{"-t", "9p"}
+			mountOptions = append(mountOptions, []string{"-o", "trans=virtio", mount.Tag, mount.Target}...)
+			mountOptions = append(mountOptions, []string{"-o", "version=9p2000.L,msize=131072"}...)
+			if mount.ReadOnly {
+				mountOptions = append(mountOptions, []string{"-o", "ro"}...)
+			}
+			err = v.SSH(name, machine.SSHOptions{Args: append([]string{"-q", "--", "sudo", "mount"}, mountOptions...)})
+			if err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unknown mount type: %s", mount.Type)
 		}
 	}
 	return nil
