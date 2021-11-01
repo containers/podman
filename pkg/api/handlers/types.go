@@ -43,7 +43,7 @@ type ContainersPruneReport struct {
 
 type LibpodContainersPruneReport struct {
 	ID             string `json:"Id"`
-	SpaceReclaimed int64  `json:"Space"`
+	SpaceReclaimed int64  `json:"Size"`
 	PruneError     string `json:"Err,omitempty"`
 }
 
