@@ -442,6 +442,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: ps_args
 	//    type: string
+	//    default: -ef
 	//    description: arguments to pass to ps such as aux. Requires ps(1) to be installed in the container if no ps(1) compatible AIX descriptors are used.
 	// produces:
 	// - application/json
@@ -1142,19 +1143,23 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    name: name
 	//    type: string
 	//    required: true
-	//    description: |
-	//      Name of container to query for processes
-	//      (As of version 1.xx)
+	//    description: Name of container to query for processes (As of version 1.xx)
 	//  - in: query
 	//    name: stream
 	//    type: boolean
-	//    default: true
-	//    description: Stream the output
+	//    description: when true, repeatedly stream the latest output (As of version 4.0)
+	//  - in: query
+	//    name: delay
+	//    type: integer
+	//    description: if streaming, delay in seconds between updates. Must be >1. (As of version 4.0)
+	//    default: 5
 	//  - in: query
 	//    name: ps_args
 	//    type: string
 	//    default: -ef
-	//    description: arguments to pass to ps such as aux. Requires ps(1) to be installed in the container if no ps(1) compatible AIX descriptors are used.
+	//    description: |
+	//      arguments to pass to ps such as aux.
+	//      Requires ps(1) to be installed in the container if no ps(1) compatible AIX descriptors are used.
 	// produces:
 	// - application/json
 	// responses:
