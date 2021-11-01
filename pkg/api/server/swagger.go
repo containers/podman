@@ -6,6 +6,7 @@ import (
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/entities/reports"
 	"github.com/containers/podman/v3/pkg/errorhandling"
+	docker "github.com/docker/docker/api/types"
 )
 
 // No such image
@@ -134,9 +135,16 @@ type swagPodAlreadyStopped struct {
 	}
 }
 
-// Image summary
-// swagger:response DockerImageSummary
-type swagImageSummary struct {
+// Image summary for compat API
+// swagger:response DockerImageSummaryResponse
+type swagDockerImageSummaryResponse struct {
+	// in:body
+	Body []docker.ImageSummary
+}
+
+// Image summary for libpod API
+// swagger:response LibpodImageSummaryResponse
+type swagLibpodImageSummaryResponse struct {
 	// in:body
 	Body []entities.ImageSummary
 }
