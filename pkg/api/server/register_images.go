@@ -967,7 +967,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   200:
-	//     $ref: "#/responses/DocsImageDeleteResponse"
+	//     $ref: "#/responses/DocsLibpodImagesRemoveResponse"
 	//   400:
 	//     $ref: "#/responses/BadParamError"
 	//   404:
