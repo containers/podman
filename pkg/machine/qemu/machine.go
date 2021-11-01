@@ -38,7 +38,9 @@ func GetQemuProvider() machine.Provider {
 
 const (
 	VolumeTypeVirtfs = "virtfs"
+	VolumeTypeSshfs  = "sshfs"
 	MountType9p      = "9p"
+	MountTypeSshfs   = "sshfs"
 )
 
 // NewMachine initializes an instance of a virtual machine based on the qemu
@@ -176,6 +178,8 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	switch opts.VolumeDriver {
 	case "virtfs":
 		volumeType = VolumeTypeVirtfs
+	case "sshfs":
+		volumeType = VolumeTypeSshfs
 	case "": // default driver
 		volumeType = VolumeTypeVirtfs
 	default:
@@ -215,6 +219,8 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 			}
 			v.CmdLine = append(v.CmdLine, []string{"-virtfs", virtfsOptions}...)
 			mounts = append(mounts, Mount{Type: MountType9p, Tag: tag, Source: source, Target: target, ReadOnly: readonly})
+		case VolumeTypeSshfs:
+			mounts = append(mounts, Mount{Type: MountTypeSshfs, Tag: tag, Source: source, Target: target, ReadOnly: readonly})
 		}
 	}
 	v.Mounts = mounts
@@ -406,6 +412,15 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 				mountOptions = append(mountOptions, []string{"-o", "ro"}...)
 			}
 			err = v.SSH(name, machine.SSHOptions{Args: append([]string{"-q", "--", "sudo", "mount"}, mountOptions...)})
+			if err != nil {
+				return err
+			}
+		case MountTypeSshfs:
+			err = v.SSH(name, machine.SSHOptions{Args: []string{"-q", "--", "sudo", "chown", v.RemoteUsername, mount.Target}})
+			if err != nil {
+				return err
+			}
+			err = v.SSHocker(name, mount.Source, mount.Target, mount.ReadOnly)
 			if err != nil {
 				return err
 			}
@@ -630,6 +645,41 @@ func (v *MachineVM) SSH(name string, opts machine.SSHOptions) error {
 	cmd.Stdin = os.Stdin
 
 	return cmd.Run()
+}
+
+// SSHocker does a reverse sshfs mount over a SSH connection.
+func (v *MachineVM) SSHocker(name string, source, target string, readonly bool) error {
+	volumeDefinition := source + ":" + target
+	if readonly {
+		volumeDefinition += ":ro"
+	}
+
+	config := fmt.Sprintf("Host %s\n", v.Name)
+	config += fmt.Sprintf("    IdentityFile %s\n", v.IdentityPath)
+	config += fmt.Sprintf("    User %s\n", v.RemoteUsername)
+	config += fmt.Sprintf("    Hostname %s\n", "localhost")
+	config += fmt.Sprintf("    Port %d\n", v.Port)
+	config += fmt.Sprintf("    UserKnownHostsFile %s\n", "/dev/null")
+	config += fmt.Sprintf("    StrictHostKeyChecking %s\n", "no")
+	vmConfigDir, err := machine.GetConfDir(vmtype)
+	if err != nil {
+		return err
+	}
+	sshConfigFile := filepath.Join(vmConfigDir, v.Name+".config")
+	err = ioutil.WriteFile(sshConfigFile, []byte(config), 0666)
+	if err != nil {
+		return err
+	}
+
+	sshDestination := fmt.Sprintf("%s:%d", v.Name, v.Port)
+
+	args := []string{"run", "-F", sshConfigFile, "-v", volumeDefinition,
+		sshDestination, "sleep", "36500d"} // "Sleeping Beauty" 100y
+
+	cmd := exec.Command("sshocker", args...)
+	logrus.Debugf("Executing: sshocker %v\n", args)
+
+	return cmd.Start()
 }
 
 // executes qemu-image info to get the virtual disk size
