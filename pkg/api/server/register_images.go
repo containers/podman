@@ -103,7 +103,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   200:
-	//     $ref: "#/responses/DockerImageSummary"
+	//     $ref: "#/responses/DockerImageSummaryResponse"
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/images/json"), s.APIHandler(compat.GetImages)).Methods(http.MethodGet)
@@ -831,7 +831,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   200:
-	//     $ref: "#/responses/DockerImageSummary"
+	//     $ref: "#/responses/LibpodImageSummaryResponse"
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/json"), s.APIHandler(libpod.GetImages)).Methods(http.MethodGet)
