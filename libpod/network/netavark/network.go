@@ -110,6 +110,10 @@ func NewNetworkInterface(conf InitConfig) (types.ContainerNetwork, error) {
 		ipamdbPath = filepath.Join(ipamdbPath, "ipam.db")
 	}
 
+	if err := os.MkdirAll(conf.NetworkConfigDir, 0755); err != nil {
+		return nil, err
+	}
+
 	n := &netavarkNetwork{
 		networkConfigDir: conf.NetworkConfigDir,
 		netavarkBinary:   conf.NetavarkBinary,
