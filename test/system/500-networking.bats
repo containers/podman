@@ -332,7 +332,8 @@ load helpers
     is_rootless || skip "only meaningful for rootless"
 
     local mynetname=testnet-$(random_string 10)
-    run_podman network create $mynetname
+    run_podman --noout network create $mynetname
+    is "$output" "" "output should be empty"
 
     # Test that rootless cni adds /usr/sbin to $PATH
     # iptables is located under /usr/sbin and is needed for the CNI plugins.
@@ -340,7 +341,8 @@ load helpers
     PATH=/usr/local/bin:/usr/bin run_podman run --rm --network $mynetname $IMAGE ip addr
     is "$output" ".*eth0.*" "Interface eth0 not found in ip addr output"
 
-    run_podman network rm -t 0 -f $mynetname
+    run_podman --noout network rm -t 0 -f $mynetname
+    is "$output" "" "output should be empty"
 }
 
 @test "podman ipv6 in /etc/resolv.conf" {

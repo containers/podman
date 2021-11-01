@@ -509,6 +509,21 @@ json-file | f
     rm -f $new_runtime
 }
 
+@test "podman --noout run should print output" {
+    run_podman --noout run -d --name test $IMAGE echo hi
+    is "$output" "" "output should be empty"
+    run_podman wait test
+    run_podman --noout rm test
+    is "$output" "" "output should be empty"
+}
+
+@test "podman --noout create should print output" {
+    run_podman --noout create --name test $IMAGE echo hi
+    is "$output" "" "output should be empty"
+    run_podman --noout rm test
+    is "$output" "" "output should be empty"
+}
+
 # Regression test for issue #8082
 @test "podman run : look up correct image name" {
     # Create a 2nd tag for the local image. Force to lower case, and apply it.
