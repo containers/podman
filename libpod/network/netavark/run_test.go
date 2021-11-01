@@ -28,6 +28,7 @@ import (
 	"github.com/vishvananda/netlink"
 
 	"github.com/containers/podman/v3/libpod/network/types"
+	"github.com/containers/podman/v3/libpod/network/util"
 	"github.com/containers/podman/v3/pkg/netns"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/storage/pkg/stringid"
@@ -57,6 +58,10 @@ var _ = Describe("run netavark", func() {
 	}
 
 	BeforeEach(func() {
+		if _, ok := os.LookupEnv("NETAVARK_BINARY"); !ok {
+			Skip("NETAVARK_BINARY not set skip run tests")
+		}
+
 		// set the logrus settings
 		logrus.SetLevel(logrus.TraceLevel)
 		// disable extra quotes so we can easily copy the netavark command
@@ -130,6 +135,7 @@ var _ = Describe("run netavark", func() {
 			ip := res[defNet].Interfaces[intName].Networks[0].Subnet.IP
 			Expect(ip.String()).To(ContainSubstring("10.88.0."))
 			gw := res[defNet].Interfaces[intName].Networks[0].Gateway
+			util.NormalizeIP(&gw)
 			Expect(gw.String()).To(Equal("10.88.0.1"))
 			macAddress := res[defNet].Interfaces[intName].MacAddress
 			Expect(macAddress).To(HaveLen(6))
@@ -143,14 +149,14 @@ var _ = Describe("run netavark", func() {
 				i, err := net.InterfaceByName(intName)
 				Expect(err).To(BeNil())
 				Expect(i.Name).To(Equal(intName))
-				Expect(i.HardwareAddr).To(Equal(macAddress))
+				Expect(i.HardwareAddr).To(Equal(net.HardwareAddr(macAddress)))
 				addrs, err := i.Addrs()
 				Expect(err).To(BeNil())
 				subnet := &net.IPNet{
 					IP:   ip,
 					Mask: net.CIDRMask(16, 32),
 				}
-				Expect(addrs).To(ContainElements(subnet))
+				Expect(addrs).To(ContainElements(EqualSubnet(subnet)))
 
 				// check loopback adapter
 				i, err = net.InterfaceByName("lo")
@@ -175,12 +181,13 @@ var _ = Describe("run netavark", func() {
 				IP:   gw,
 				Mask: net.CIDRMask(16, 32),
 			}
-			Expect(addrs).To(ContainElements(subnet))
+			Expect(addrs).To(ContainElements(EqualSubnet(subnet)))
 
 			wg := &sync.WaitGroup{}
 			expected := stringid.GenerateNonCryptoID()
 			// now check ip connectivity
 			err = netNSContainer.Do(func(_ ns.NetNS) error {
+				wg.Add(1)
 				runNetListener(wg, "tcp", "0.0.0.0", 5000, expected)
 				return nil
 			})
@@ -193,6 +200,256 @@ var _ = Describe("run netavark", func() {
 			conn.Close()
 
 			err = libpodNet.Teardown(netNSContainer.Path(), types.TeardownOptions(opts))
+			Expect(err).ToNot(HaveOccurred())
+			wg.Wait()
+		})
+	})
+
+	It("setup two containers", func() {
+		runTest(func() {
+			defNet := types.DefaultNetworkName
+			intName := "eth0"
+			setupOpts1 := types.SetupOptions{
+				NetworkOptions: types.NetworkOptions{
+					ContainerID: stringid.GenerateNonCryptoID(),
+					Networks: map[string]types.PerNetworkOptions{
+						defNet: {InterfaceName: intName},
+					},
+				},
+			}
+			res, err := libpodNet.Setup(netNSContainer.Path(), setupOpts1)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(res).To(HaveLen(1))
+			Expect(res).To(HaveKey(defNet))
+			Expect(res[defNet].Interfaces).To(HaveKey(intName))
+			Expect(res[defNet].Interfaces[intName].Networks).To(HaveLen(1))
+			ip1 := res[defNet].Interfaces[intName].Networks[0].Subnet.IP
+			Expect(ip1.String()).To(ContainSubstring("10.88.0."))
+			Expect(res[defNet].Interfaces[intName].MacAddress).To(HaveLen(6))
+
+			setupOpts2 := types.SetupOptions{
+				NetworkOptions: types.NetworkOptions{
+					ContainerID: stringid.GenerateNonCryptoID(),
+					Networks: map[string]types.PerNetworkOptions{
+						defNet: {InterfaceName: intName},
+					},
+				},
+			}
+
+			netNSContainer2, err := netns.NewNS()
+			Expect(err).ToNot(HaveOccurred())
+			defer netns.UnmountNS(netNSContainer2)
+			defer netNSContainer2.Close()
+
+			res, err = libpodNet.Setup(netNSContainer2.Path(), setupOpts2)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(res).To(HaveLen(1))
+			Expect(res).To(HaveKey(defNet))
+			Expect(res[defNet].Interfaces).To(HaveKey(intName))
+			Expect(res[defNet].Interfaces[intName].Networks).To(HaveLen(1))
+			ip2 := res[defNet].Interfaces[intName].Networks[0].Subnet.IP
+			Expect(ip2.String()).To(ContainSubstring("10.88.0."))
+			Expect(res[defNet].Interfaces[intName].MacAddress).To(HaveLen(6))
+			Expect(ip1.Equal(ip2)).To(BeFalse(), "IP1 %s should not be equal to IP2 %s", ip1.String(), ip2.String())
+
+			err = libpodNet.Teardown(netNSContainer.Path(), types.TeardownOptions(setupOpts1))
+			Expect(err).ToNot(HaveOccurred())
+			err = libpodNet.Teardown(netNSContainer.Path(), types.TeardownOptions(setupOpts2))
+			Expect(err).ToNot(HaveOccurred())
+		})
+	})
+
+	It("setup dualstack network", func() {
+		runTest(func() {
+			s1, _ := types.ParseCIDR("10.0.0.1/24")
+			s2, _ := types.ParseCIDR("fd10:88:a::/64")
+			network, err := libpodNet.NetworkCreate(types.Network{
+				Subnets: []types.Subnet{
+					{Subnet: s1}, {Subnet: s2},
+				},
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			netName := network.Name
+			intName := "eth0"
+
+			setupOpts := types.SetupOptions{
+				NetworkOptions: types.NetworkOptions{
+					ContainerID: stringid.GenerateNonCryptoID(),
+					Networks: map[string]types.PerNetworkOptions{
+						netName: {InterfaceName: intName},
+					},
+				},
+			}
+			res, err := libpodNet.Setup(netNSContainer.Path(), setupOpts)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(res).To(HaveLen(1))
+			Expect(res).To(HaveKey(netName))
+			Expect(res[netName].Interfaces).To(HaveKey(intName))
+			Expect(res[netName].Interfaces[intName].Networks).To(HaveLen(2))
+			ip1 := res[netName].Interfaces[intName].Networks[0].Subnet.IP
+			Expect(ip1.String()).To(ContainSubstring("10.0.0."))
+			gw1 := res[netName].Interfaces[intName].Networks[0].Gateway
+			Expect(gw1.String()).To(Equal("10.0.0.1"))
+			ip2 := res[netName].Interfaces[intName].Networks[1].Subnet.IP
+			Expect(ip2.String()).To(ContainSubstring("fd10:88:a::"))
+			gw2 := res[netName].Interfaces[intName].Networks[0].Gateway
+			Expect(gw2.String()).To(Equal("fd10:88:a::1"))
+			Expect(res[netName].Interfaces[intName].MacAddress).To(HaveLen(6))
+
+			// check in the container namespace if the settings are applied
+			err = netNSContainer.Do(func(_ ns.NetNS) error {
+				defer GinkgoRecover()
+				i, err := net.InterfaceByName(intName)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(i.Name).To(Equal(intName))
+				addrs, err := i.Addrs()
+				Expect(err).ToNot(HaveOccurred())
+				subnet1 := s1.IPNet
+				subnet1.IP = ip1
+				subnet2 := s2.IPNet
+				subnet2.IP = ip2
+				Expect(addrs).To(ContainElements(EqualSubnet(&subnet1), EqualSubnet(&subnet2)))
+
+				// check loopback adapter
+				i, err = net.InterfaceByName("lo")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(i.Name).To(Equal("lo"))
+				Expect(i.Flags & net.FlagLoopback).To(Equal(net.FlagLoopback))
+				Expect(i.Flags&net.FlagUp).To(Equal(net.FlagUp), "Loopback adapter should be up")
+				return nil
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			bridgeName := network.NetworkInterface
+			// check settings on the host side
+			i, err := net.InterfaceByName(bridgeName)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(i.Name).To(Equal(bridgeName))
+			addrs, err := i.Addrs()
+			Expect(err).ToNot(HaveOccurred())
+			// test that the gateway ip is assigned to the interface
+			subnet1 := s1.IPNet
+			subnet1.IP = gw1
+			subnet2 := s2.IPNet
+			subnet2.IP = gw2
+			Expect(addrs).To(ContainElements(EqualSubnet(&subnet1), EqualSubnet(&subnet2)))
+
+			err = libpodNet.Teardown(netNSContainer.Path(), types.TeardownOptions(setupOpts))
+			Expect(err).ToNot(HaveOccurred())
+		})
+	})
+
+	It("setup two networks", func() {
+		runTest(func() {
+			s1, _ := types.ParseCIDR("10.0.0.1/24")
+			network1, err := libpodNet.NetworkCreate(types.Network{
+				Subnets: []types.Subnet{
+					{Subnet: s1},
+				},
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			netName1 := network1.Name
+			intName1 := "eth0"
+
+			s2, _ := types.ParseCIDR("10.1.0.0/24")
+			network2, err := libpodNet.NetworkCreate(types.Network{
+				Subnets: []types.Subnet{
+					{Subnet: s2},
+				},
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			netName2 := network2.Name
+			intName2 := "eth1"
+
+			setupOpts := types.SetupOptions{
+				NetworkOptions: types.NetworkOptions{
+					ContainerID: stringid.GenerateNonCryptoID(),
+					Networks: map[string]types.PerNetworkOptions{
+						netName1: {InterfaceName: intName1},
+						netName2: {InterfaceName: intName2},
+					},
+				},
+			}
+			res, err := libpodNet.Setup(netNSContainer.Path(), setupOpts)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(res).To(HaveLen(2))
+			Expect(res).To(HaveKey(netName1))
+			Expect(res).To(HaveKey(netName2))
+			Expect(res[netName1].Interfaces).To(HaveKey(intName1))
+			Expect(res[netName2].Interfaces).To(HaveKey(intName2))
+			Expect(res[netName1].Interfaces[intName1].Networks).To(HaveLen(1))
+			ip1 := res[netName1].Interfaces[intName1].Networks[0].Subnet.IP
+			Expect(ip1.String()).To(ContainSubstring("10.0.0."))
+			gw1 := res[netName1].Interfaces[intName1].Networks[0].Gateway
+			Expect(gw1.String()).To(Equal("10.0.0.1"))
+			ip2 := res[netName2].Interfaces[intName2].Networks[0].Subnet.IP
+			Expect(ip2.String()).To(ContainSubstring("10.1.0."))
+			gw2 := res[netName2].Interfaces[intName2].Networks[0].Gateway
+			Expect(gw2.String()).To(Equal("10.1.0.1"))
+			mac1 := res[netName1].Interfaces[intName1].MacAddress
+			Expect(mac1).To(HaveLen(6))
+			mac2 := res[netName2].Interfaces[intName2].MacAddress
+			Expect(mac2).To(HaveLen(6))
+
+			// check in the container namespace if the settings are applied
+			err = netNSContainer.Do(func(_ ns.NetNS) error {
+				defer GinkgoRecover()
+				i, err := net.InterfaceByName(intName1)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(i.Name).To(Equal(intName1))
+				addrs, err := i.Addrs()
+				Expect(err).ToNot(HaveOccurred())
+				subnet1 := s1.IPNet
+				subnet1.IP = ip1
+				Expect(addrs).To(ContainElements(EqualSubnet(&subnet1)))
+
+				i, err = net.InterfaceByName(intName2)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(i.Name).To(Equal(intName2))
+				addrs, err = i.Addrs()
+				Expect(err).ToNot(HaveOccurred())
+				subnet2 := s2.IPNet
+				subnet2.IP = ip2
+				Expect(addrs).To(ContainElements(EqualSubnet(&subnet2)))
+
+				// check loopback adapter
+				i, err = net.InterfaceByName("lo")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(i.Name).To(Equal("lo"))
+				Expect(i.Flags & net.FlagLoopback).To(Equal(net.FlagLoopback))
+				Expect(i.Flags&net.FlagUp).To(Equal(net.FlagUp), "Loopback adapter should be up")
+				return nil
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			bridgeName1 := network1.NetworkInterface
+			// check settings on the host side
+			i, err := net.InterfaceByName(bridgeName1)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(i.Name).To(Equal(bridgeName1))
+			addrs, err := i.Addrs()
+			Expect(err).ToNot(HaveOccurred())
+			// test that the gateway ip is assigned to the interface
+			subnet1 := s1.IPNet
+			subnet1.IP = gw1
+			Expect(addrs).To(ContainElements(EqualSubnet(&subnet1)))
+
+			bridgeName2 := network2.NetworkInterface
+			// check settings on the host side
+			i, err = net.InterfaceByName(bridgeName2)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(i.Name).To(Equal(bridgeName2))
+			addrs, err = i.Addrs()
+			Expect(err).ToNot(HaveOccurred())
+			// test that the gateway ip is assigned to the interface
+			subnet2 := s2.IPNet
+			subnet2.IP = gw2
+			Expect(addrs).To(ContainElements(EqualSubnet(&subnet2)))
+
+			err = libpodNet.Teardown(netNSContainer.Path(), types.TeardownOptions(setupOpts))
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
@@ -316,6 +573,52 @@ var _ = Describe("run netavark", func() {
 		})
 	}
 
+	It("simple teardown", func() {
+		runTest(func() {
+			defNet := types.DefaultNetworkName
+			intName := "eth0"
+			opts := types.SetupOptions{
+				NetworkOptions: types.NetworkOptions{
+					ContainerID:   "someID",
+					ContainerName: "someName",
+					Networks: map[string]types.PerNetworkOptions{
+						defNet: {
+							InterfaceName: intName,
+						},
+					},
+				},
+			}
+			res, err := libpodNet.Setup(netNSContainer.Path(), opts)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(res).To(HaveLen(1))
+			Expect(res).To(HaveKey(defNet))
+			Expect(res[defNet].Interfaces).To(HaveKey(intName))
+			Expect(res[defNet].Interfaces[intName].Networks).To(HaveLen(1))
+			ip := res[defNet].Interfaces[intName].Networks[0].Subnet.IP
+			Expect(ip.String()).To(ContainSubstring("10.88.0."))
+			gw := res[defNet].Interfaces[intName].Networks[0].Gateway
+			Expect(gw.String()).To(Equal("10.88.0.1"))
+			macAddress := res[defNet].Interfaces[intName].MacAddress
+			Expect(macAddress).To(HaveLen(6))
+
+			err = libpodNet.Teardown(netNSContainer.Path(), types.TeardownOptions(opts))
+			Expect(err).ToNot(HaveOccurred())
+			err = netNSContainer.Do(func(_ ns.NetNS) error {
+				defer GinkgoRecover()
+				// check that the container interface is removed
+				_, err := net.InterfaceByName(intName)
+				Expect(err).To(HaveOccurred())
+				return nil
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			// default bridge name
+			bridgeName := "podman0"
+			// check that bridge interface was removed
+			_, err = net.InterfaceByName(bridgeName)
+			Expect(err).To(HaveOccurred())
+		})
+	})
 })
 
 func runNetListener(wg *sync.WaitGroup, protocol, ip string, port int, expectedData string) {
