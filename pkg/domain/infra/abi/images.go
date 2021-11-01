@@ -321,7 +321,9 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 }
 
 func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, options entities.ImageTagOptions) error {
-	image, _, err := ir.Libpod.LibimageRuntime().LookupImage(nameOrID, nil)
+	// Allow tagging manifest list instead of resolving instances from manifest
+	lookupOptions := &libimage.LookupImageOptions{ManifestList: true}
+	image, _, err := ir.Libpod.LibimageRuntime().LookupImage(nameOrID, lookupOptions)
 	if err != nil {
 		return err
 	}
