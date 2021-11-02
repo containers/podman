@@ -296,18 +296,23 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//    name: name
 	//    type: string
 	//    required: true
-	//    description: |
-	//      Name of pod to query for processes
+	//    description: Name of pod to query for processes
 	//  - in: query
 	//    name: stream
 	//    type: boolean
-	//    default: true
-	//    description: Stream the output
+	//    description: when true, repeatedly stream the latest output (As of version 4.0)
+	//  - in: query
+	//    name: delay
+	//    type: integer
+	//    description: if streaming, delay in seconds between updates. Must be >1. (As of version 4.0)
+	//    default: 5
 	//  - in: query
 	//    name: ps_args
 	//    type: string
 	//    default: -ef
-	//    description: arguments to pass to ps such as aux. Requires ps(1) to be installed in the container if no ps(1) compatible AIX descriptors are used.
+	//    description: |
+	//      arguments to pass to ps such as aux.
+	//      Requires ps(1) to be installed in the container if no ps(1) compatible AIX descriptors are used.
 	// responses:
 	//   200:
 	//     $ref: "#/responses/DocsPodTopResponse"
