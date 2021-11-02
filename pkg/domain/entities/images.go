@@ -50,6 +50,7 @@ func (i *Image) Id() string { // nolint
 	return i.ID
 }
 
+// swagger:model LibpodImageSummary
 type ImageSummary struct {
 	ID          string `json:"Id"`
 	ParentId    string // nolint
