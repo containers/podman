@@ -38,11 +38,25 @@ func (p *PodmanTestIntegration) Podman(args []string) *PodmanSessionIntegration 
 	return &PodmanSessionIntegration{podmanSession}
 }
 
+// PodmanSystemdScope runs the podman command in a new systemd scope
+func (p *PodmanTestIntegration) PodmanSystemdScope(args []string) *PodmanSessionIntegration {
+	var remoteArgs = []string{"--remote", "--url", p.RemoteSocket}
+	remoteArgs = append(remoteArgs, args...)
+
+	wrapper := []string{"systemd-run", "--scope"}
+	if rootless.IsRootless() {
+		wrapper = []string{"systemd-run", "--scope", "--user"}
+	}
+
+	podmanSession := p.PodmanAsUserBase(remoteArgs, 0, 0, "", nil, false, false, wrapper, nil)
+	return &PodmanSessionIntegration{podmanSession}
+}
+
 // PodmanExtraFiles is the exec call to podman on the filesystem and passes down extra files
 func (p *PodmanTestIntegration) PodmanExtraFiles(args []string, extraFiles []*os.File) *PodmanSessionIntegration {
 	var remoteArgs = []string{"--remote", "--url", p.RemoteSocket}
 	remoteArgs = append(remoteArgs, args...)
-	podmanSession := p.PodmanAsUserBase(remoteArgs, 0, 0, "", nil, false, false, extraFiles)
+	podmanSession := p.PodmanAsUserBase(remoteArgs, 0, 0, "", nil, false, false, nil, extraFiles)
 	return &PodmanSessionIntegration{podmanSession}
 }
 
