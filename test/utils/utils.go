@@ -66,27 +66,31 @@ func (p *PodmanTest) MakeOptions(args []string, noEvents, noCache bool) []string
 
 // PodmanAsUserBase exec podman as user. uid and gid is set for credentials usage. env is used
 // to record the env for debugging
-func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string, env []string, noEvents, noCache bool, extraFiles []*os.File) *PodmanSession {
+func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string, env []string, noEvents, noCache bool, wrapper []string, extraFiles []*os.File) *PodmanSession {
 	var command *exec.Cmd
 	podmanOptions := p.MakeOptions(args, noEvents, noCache)
 	podmanBinary := p.PodmanBinary
 	if p.RemoteTest {
 		podmanBinary = p.RemotePodmanBinary
 	}
+
+	runCmd := append(wrapper, podmanBinary)
 	if p.RemoteTest {
 		podmanOptions = append([]string{"--remote", "--url", p.RemoteSocket}, podmanOptions...)
 	}
 	if env == nil {
-		fmt.Printf("Running: %s %s\n", podmanBinary, strings.Join(podmanOptions, " "))
+		fmt.Printf("Running: %s %s\n", strings.Join(runCmd, " "), strings.Join(podmanOptions, " "))
 	} else {
-		fmt.Printf("Running: (env: %v) %s %s\n", env, podmanBinary, strings.Join(podmanOptions, " "))
+		fmt.Printf("Running: (env: %v) %s %s\n", env, strings.Join(runCmd, " "), strings.Join(podmanOptions, " "))
 	}
 	if uid != 0 || gid != 0 {
 		pythonCmd := fmt.Sprintf("import os; import sys; uid = %d; gid = %d; cwd = '%s'; os.setgid(gid); os.setuid(uid); os.chdir(cwd) if len(cwd)>0 else True; os.execv(sys.argv[1], sys.argv[1:])", gid, uid, cwd)
-		nsEnterOpts := append([]string{"-c", pythonCmd, podmanBinary}, podmanOptions...)
+		runCmd = append(runCmd, podmanOptions...)
+		nsEnterOpts := append([]string{"-c", pythonCmd}, runCmd...)
 		command = exec.Command("python", nsEnterOpts...)
 	} else {
-		command = exec.Command(podmanBinary, podmanOptions...)
+		runCmd = append(runCmd, podmanOptions...)
+		command = exec.Command(runCmd[0], runCmd[1:]...)
 	}
 	if env != nil {
 		command.Env = env
@@ -106,7 +110,7 @@ func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string
 
 // PodmanBase exec podman with default env.
 func (p *PodmanTest) PodmanBase(args []string, noEvents, noCache bool) *PodmanSession {
-	return p.PodmanAsUserBase(args, 0, 0, "", nil, noEvents, noCache, nil)
+	return p.PodmanAsUserBase(args, 0, 0, "", nil, noEvents, noCache, nil, nil)
 }
 
 // WaitForContainer waits on a started container

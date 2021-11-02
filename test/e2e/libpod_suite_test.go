@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/containers/podman/v3/pkg/rootless"
 )
 
 func IsRemote() bool {
@@ -23,9 +25,19 @@ func (p *PodmanTestIntegration) Podman(args []string) *PodmanSessionIntegration 
 	return &PodmanSessionIntegration{podmanSession}
 }
 
+// PodmanSystemdScope runs the podman command in a new systemd scope
+func (p *PodmanTestIntegration) PodmanSystemdScope(args []string) *PodmanSessionIntegration {
+	wrapper := []string{"systemd-run", "--scope"}
+	if rootless.IsRootless() {
+		wrapper = []string{"systemd-run", "--scope", "--user"}
+	}
+	podmanSession := p.PodmanAsUserBase(args, 0, 0, "", nil, false, false, wrapper, nil)
+	return &PodmanSessionIntegration{podmanSession}
+}
+
 // PodmanExtraFiles is the exec call to podman on the filesystem and passes down extra files
 func (p *PodmanTestIntegration) PodmanExtraFiles(args []string, extraFiles []*os.File) *PodmanSessionIntegration {
-	podmanSession := p.PodmanAsUserBase(args, 0, 0, "", nil, false, false, extraFiles)
+	podmanSession := p.PodmanAsUserBase(args, 0, 0, "", nil, false, false, nil, extraFiles)
 	return &PodmanSessionIntegration{podmanSession}
 }
 
