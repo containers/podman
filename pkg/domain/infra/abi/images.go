@@ -57,7 +57,7 @@ func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOption
 		pruneOptions.Filters = append(pruneOptions.Filters, "containers=false")
 	}
 
-	var pruneReports []*reports.PruneReport
+	pruneReports := make([]*reports.PruneReport, 0)
 
 	// Now prune all images until we converge.
 	numPreviouslyRemovedImages := 1

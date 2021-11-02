@@ -218,6 +218,9 @@ if ! grep -q '400 Bad Request' "${TMPD}/headers.txt"; then
     BUILD_TEST_ERROR="1"
 fi
 
+t POST libpod/images/prune 200
+t POST libpod/images/prune 200 length=0 []
+
 cleanBuildTest
 if [[ "${BUILD_TEST_ERROR}" ]]; then
     exit 1

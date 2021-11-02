@@ -145,12 +145,12 @@ func MarshalErrorSliceJSON(ptr unsafe.Pointer, stream *jsoniter.Stream) {
 	}
 }
 
-func MarshalErrorJSONIsEmpty(_ unsafe.Pointer) bool {
-	return false
+func MarshalErrorJSONIsEmpty(ptr unsafe.Pointer) bool {
+	return *((*error)(ptr)) == nil
 }
 
-func MarshalErrorSliceJSONIsEmpty(_ unsafe.Pointer) bool {
-	return false
+func MarshalErrorSliceJSONIsEmpty(ptr unsafe.Pointer) bool {
+	return len(*((*[]error)(ptr))) <= 0
 }
 
 // WriteJSON writes an interface value encoded as JSON to w
