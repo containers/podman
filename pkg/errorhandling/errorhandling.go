@@ -83,6 +83,12 @@ func Contains(err error, sub error) bool {
 	return strings.Contains(err.Error(), sub.Error())
 }
 
+// PodConflictErrorModel is used in remote connections with podman
+type PodConflictErrorModel struct {
+	Errs []string
+	Id   string //nolint
+}
+
 // ErrorModel is used in remote connections with podman
 type ErrorModel struct {
 	// API root cause formatted for automated parsing
@@ -105,4 +111,12 @@ func (e ErrorModel) Cause() error {
 
 func (e ErrorModel) Code() int {
 	return e.ResponseCode
+}
+
+func (e PodConflictErrorModel) Error() string {
+	return strings.Join(e.Errs, ",")
+}
+
+func (e PodConflictErrorModel) Code() int {
+	return 409
 }

@@ -390,6 +390,11 @@ func (h *APIResponse) IsClientError() bool {
 	return h.Response.StatusCode/100 == 4
 }
 
+// IsConflictError returns true if the response code is 409
+func (h *APIResponse) IsConflictError() bool {
+	return h.Response.StatusCode == 409
+}
+
 // IsServerError returns true if the response code is 5xx
 func (h *APIResponse) IsServerError() bool {
 	return h.Response.StatusCode/100 == 5
