@@ -274,15 +274,15 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 	}
 
 	if remote {
-		uuid := stringid.GenerateNonCryptoID()
+		var pathPrefix string
 		if !rootless.IsRootless() {
-			p.RemoteSocket = fmt.Sprintf("unix:/run/podman/podman-%s.sock", uuid)
+			pathPrefix = "/run/podman/podman"
 		} else {
 			runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
-			socket := fmt.Sprintf("podman-%s.sock", uuid)
-			fqpath := filepath.Join(runtimeDir, socket)
-			p.RemoteSocket = fmt.Sprintf("unix:%s", fqpath)
+			pathPrefix = filepath.Join(runtimeDir, "podman")
 		}
+		uuid := stringid.GenerateNonCryptoID()
+		p.RemoteSocket = fmt.Sprintf("unix:%s-%s.sock", pathPrefix, uuid)
 	}
 
 	// Setup registries.conf ENV variable
