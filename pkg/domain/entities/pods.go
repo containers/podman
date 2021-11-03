@@ -7,6 +7,7 @@ import (
 
 	commonFlag "github.com/containers/common/pkg/flag"
 	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -318,7 +319,8 @@ func ToPodSpecGen(s specgen.PodSpecGenerator, p *PodCreateOptions) (*specgen.Pod
 	if p.Net != nil {
 		s.NetNS = p.Net.Network
 		s.StaticIP = p.Net.StaticIP
-		s.StaticMAC = p.Net.StaticMAC
+		// type cast to types.HardwareAddr
+		s.StaticMAC = (*types.HardwareAddr)(p.Net.StaticMAC)
 		s.PortMappings = p.Net.PublishPorts
 		s.CNINetworks = p.Net.CNINetworks
 		s.NetworkOptions = p.Net.NetworkOptions

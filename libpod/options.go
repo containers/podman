@@ -1104,7 +1104,7 @@ func WithNetworkOptions(options map[string][]string) CtrCreateOption {
 // It cannot be set unless WithNetNS has already been passed.
 // Further, it cannot be set if additional CNI networks to join have been
 // specified.
-func WithStaticMAC(mac net.HardwareAddr) CtrCreateOption {
+func WithStaticMAC(mac nettypes.HardwareAddr) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized

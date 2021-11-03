@@ -99,6 +99,7 @@ podman \$opts run -d --name myrunningcontainer --label mylabel=$LABEL_RUNNING \
                                                -p $HOST_PORT:80 \
                                                -v $pmroot/var/www:/var/www \
                                                -w /var/www \
+                                               --mac-address aa:bb:cc:dd:ee:ff \
                                                $IMAGE /bin/busybox-extras httpd -f -p 80
 
 podman \$opts pod create --name mypod

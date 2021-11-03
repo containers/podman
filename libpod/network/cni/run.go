@@ -160,7 +160,7 @@ func CNIResultToStatus(res cnitypes.Result) (types.StatusBlock, error) {
 				return result, err
 			}
 			interfaces[cniInt.Name] = types.NetInterface{
-				MacAddress: mac,
+				MacAddress: types.HardwareAddr(mac),
 				Networks: []types.NetAddress{{
 					Subnet:  types.IPNet{IPNet: ip.Address},
 					Gateway: ip.Gateway,
