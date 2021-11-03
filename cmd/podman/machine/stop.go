@@ -3,6 +3,8 @@
 package machine
 
 import (
+	"fmt"
+
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/pkg/machine"
 	"github.com/containers/podman/v3/pkg/machine/qemu"
@@ -46,5 +48,9 @@ func stop(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	return vm.Stop(vmName, machine.StopOptions{})
+	if err := vm.Stop(vmName, machine.StopOptions{}); err != nil {
+		return err
+	}
+	fmt.Printf("Machine %q stopped successfully\n", vmName)
+	return nil
 }
