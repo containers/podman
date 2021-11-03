@@ -64,7 +64,7 @@ gcp_credentials: ENCRYPTED[a28959877b2c9c36f151781b0a05407218cda646c7d047fc556e4
 ext_svc_check_task:
     alias: 'ext_svc_check'  # int. ref. name - required for depends_on reference
     name: "Ext. services"  # Displayed Title - has no other significance
-    skip: &tags "$CIRRUS_TAG != ''"  # Don't run on tags
+    skip: $CI == $CI
     # Default/small container image to execute tasks with
     container: &smallcontainer
         image: ${CTR_FQIN}
@@ -107,7 +107,7 @@ ext_svc_check_task:
 automation_task:
     alias: 'automation'
     name: "Check Automation"
-    skip: &branches_and_tags "$CIRRUS_PR == '' || $CIRRUS_TAG != ''" # Don't run on branches/tags
+    skip: $CI == $CI
     container: *smallcontainer
     env:
         TEST_FLAVOR: automation
@@ -191,7 +191,7 @@ validate_task:
     # automation reliability/speed in those contexts.  Any missed errors due
     # to nonsequential PR merging practices, will be caught on a future PR,
     # build or test task failures.
-    skip: *branches_and_tags
+    skip: $CI == $CI
     depends_on:
         - ext_svc_check
         - automation
@@ -219,7 +219,7 @@ bindings_task:
     name: "Test Bindings"
     alias: bindings
     only_if: &not_docs $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
-    skip: *branches_and_tags
+    skip: $CI == $CI
     depends_on:
         - build
     gce_instance: *standardvm
@@ -245,6 +245,7 @@ swagger_task:
     alias: swagger
     depends_on:
         - build
+    skip: $CI == $CI
     gce_instance: *standardvm
     env:
         <<: *stdenvars
@@ -271,7 +272,7 @@ swagger_task:
 consistency_task:
     name: "Test Code Consistency"
     alias: consistency
-    skip: *tags
+    skip: $CI == $CI
     depends_on:
         - build
     container: *smallcontainer
@@ -292,7 +293,7 @@ consistency_task:
 alt_build_task:
     name: "$ALT_NAME"
     alias: alt_build
-    only_if: *not_docs
+    skip: $CI == $CI
     depends_on:
         - build
     env:
@@ -321,7 +322,7 @@ alt_build_task:
 static_alt_build_task:
     name: "Static Build"
     alias: static_alt_build
-    only_if: *not_docs
+    skip: $CI == $CI
     depends_on:
         - build
     # Community-maintained task, may fail on occasion.  If so, uncomment
@@ -351,6 +352,7 @@ static_alt_build_task:
 osx_alt_build_task:
     name: "OSX Cross"
     alias: osx_alt_build
+    skip: $CI == $CI
     depends_on:
         - build
     env:
@@ -375,8 +377,7 @@ osx_alt_build_task:
 docker-py_test_task:
     name: Docker-py Compat.
     alias: docker-py_test
-    skip: *tags
-    only_if: *not_docs
+    skip: $CI == $CI
     depends_on:
         - build
     gce_instance: *standardvm
@@ -396,8 +397,7 @@ docker-py_test_task:
 unit_test_task:
     name: "Unit tests on $DISTRO_NV"
     alias: unit_test
-    skip: *tags
-    only_if: *not_docs
+    skip: $CI == $CI
     depends_on:
         - validate
     matrix:
@@ -422,8 +422,7 @@ unit_test_task:
 apiv2_test_task:
     name: "APIv2 test on $DISTRO_NV"
     alias: apiv2_test
-    only_if: *not_docs
-    skip: *tags
+    skip: $CI == $CI
     depends_on:
         - validate
     gce_instance: *standardvm
@@ -449,8 +448,7 @@ apiv2_test_task:
 compose_test_task:
     name: "compose test on $DISTRO_NV ($PRIV_NAME)"
     alias: compose_test
-    only_if: *not_docs
-    skip: *tags
+    skip: $CI == $CI
     depends_on:
         - validate
     gce_instance: *standardvm
@@ -476,8 +474,7 @@ local_integration_test_task: &local_integration_test_task
     # <int.|sys.> <podman|remote> <Distro NV> <root|rootless>
     name: &std_name_fmt "$TEST_FLAVOR $PODBIN_NAME $DISTRO_NV $PRIV_NAME $TEST_ENVIRON"
     alias: local_integration_test
-    only_if: *not_docs
-    skip: *branches_and_tags
+    skip: $CI == $CI
     depends_on:
         - unit_test
     matrix: *platform_axis
@@ -501,6 +498,9 @@ local_integration_test_task: &local_integration_test_task
 # running on the same host.
 remote_integration_test_task:
     <<: *local_integration_test_task
+    # ONLY run the remote tests
+    only_if: $CI == $CI
+    skip: $CI != $CI
     alias: remote_integration_test
     env:
         TEST_FLAVOR: int
@@ -512,8 +512,7 @@ remote_integration_test_task:
 container_integration_test_task:
     name: *std_name_fmt
     alias: container_integration_test
-    only_if: *not_docs
-    skip: *branches_and_tags
+    skip: $CI == $CI
     depends_on:
         - unit_test
     matrix: &fedora_vm_axis
@@ -543,8 +542,7 @@ container_integration_test_task:
 rootless_integration_test_task:
     name: *std_name_fmt
     alias: rootless_integration_test
-    only_if: *not_docs
-    skip: *branches_and_tags
+    skip: $CI == $CI
     depends_on:
         - unit_test
     matrix: *platform_axis
@@ -567,8 +565,7 @@ rootless_integration_test_task:
 local_system_test_task: &local_system_test_task
     name: *std_name_fmt
     alias: local_system_test
-    skip: *tags
-    only_if: *not_docs
+    skip: $CI == $CI
     depends_on:
       - local_integration_test
     matrix: *platform_axis
@@ -584,6 +581,9 @@ local_system_test_task: &local_system_test_task
 
 remote_system_test_task:
     <<: *local_system_test_task
+    # ONLY run the remote tests
+    only_if: $CI == $CI
+    skip: $CI != $CI
     alias: remote_system_test
     depends_on:
       - remote_integration_test
@@ -594,8 +594,7 @@ remote_system_test_task:
 buildah_bud_test_task:
     name: *std_name_fmt
     alias: buildah_bud_test
-    skip: *tags
-    only_if: *not_docs
+    skip: $CI == $CI
     depends_on:
       - local_integration_test
     env:
@@ -622,8 +621,7 @@ buildah_bud_test_task:
 rootless_system_test_task:
     name: *std_name_fmt
     alias: rootless_system_test
-    skip: *tags
-    only_if: *not_docs
+    skip: $CI == $CI
     depends_on:
       - rootless_integration_test
     matrix: *platform_axis
@@ -640,8 +638,7 @@ rootless_system_test_task:
 rootless_gitlab_test_task:
     name: *std_name_fmt
     alias: rootless_gitlab_test
-    skip: *tags
-    only_if: *not_docs
+    skip: $CI == $CI
     # Community-maintained downstream test may fail unexpectedly.
     # Ref. repository: https://gitlab.com/gitlab-org/gitlab-runner
     # If necessary, uncomment the next line and file issue(s) with details.
@@ -667,8 +664,7 @@ rootless_gitlab_test_task:
 upgrade_test_task:
     name: "Upgrade test: from $PODMAN_UPGRADE_FROM"
     alias: upgrade_test
-    skip: *tags
-    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' || $CIRRUS_CRON != ''
+    skip: $CI == $CI
     depends_on:
       - local_system_test
     matrix:
@@ -764,7 +760,7 @@ success_task:
 release_task:
     name: "Verify Release"
     alias: release
-    only_if: *tags
+    skip: $CI == $CI
     depends_on:
         - success
     gce_instance: *standardvm
@@ -787,7 +783,7 @@ release_task:
 release_test_task:
     name: "Optional Release Test"
     alias: release_test
-    only_if: $CIRRUS_PR != ''
+    skip: $CI == $CI
     trigger_type: manual
     depends_on:
         - success
