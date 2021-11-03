@@ -298,8 +298,26 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 			runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
 			pathPrefix = filepath.Join(runtimeDir, "podman")
 		}
-		uuid := stringid.GenerateNonCryptoID()
-		p.RemoteSocket = fmt.Sprintf("unix:%s-%s.sock", pathPrefix, uuid)
+		// We want to avoid collisions in socket paths, but using the
+		// socket directly for a collision check doesn’t work; bind(2) on AF_UNIX
+		// creates the file, and we need to pass a unique path now before the bind(2)
+		// happens. So, use a podman-%s.sock-lock empty file as a marker.
+		tries := 0
+		for {
+			uuid := stringid.GenerateNonCryptoID()
+			lockPath := fmt.Sprintf("%s-%s.sock-lock", pathPrefix, uuid)
+			lockFile, err := os.OpenFile(lockPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0700)
+			if err == nil {
+				lockFile.Close()
+				p.RemoteSocketLock = lockPath
+				p.RemoteSocket = fmt.Sprintf("unix:%s-%s.sock", pathPrefix, uuid)
+				break
+			}
+			tries++
+			if tries >= 1000 {
+				panic("Too many RemoteSocket collisions")
+			}
+		}
 	}
 
 	// Setup registries.conf ENV variable

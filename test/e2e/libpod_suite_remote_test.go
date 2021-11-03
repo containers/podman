@@ -1,3 +1,4 @@
+//go:build remote
 // +build remote
 
 package integration
@@ -151,6 +152,11 @@ func (p *PodmanTestIntegration) StopRemoteService() {
 	socket := strings.Split(p.RemoteSocket, ":")[1]
 	if err := os.Remove(socket); err != nil {
 		fmt.Println(err)
+	}
+	if p.RemoteSocketLock != "" {
+		if err := os.Remove(p.RemoteSocketLock); err != nil {
+			fmt.Println(err)
+		}
 	}
 }
 
