@@ -228,7 +228,7 @@ type ContainerNetworkConfig struct {
 	// StaticMAC is a static MAC to request for the container.
 	// This cannot be set unless CreateNetNS is set.
 	// If not set, the container will be dynamically assigned a MAC by CNI.
-	StaticMAC net.HardwareAddr `json:"staticMAC"`
+	StaticMAC types.HardwareAddr `json:"staticMAC"`
 	// PortMappings are the ports forwarded to the container's network
 	// namespace
 	// These are not used unless CreateNetNS is true

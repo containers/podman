@@ -398,7 +398,7 @@ var _ = Describe("run CNI", func() {
 					i, err := net.InterfaceByName(intName1)
 					Expect(err).To(BeNil())
 					Expect(i.Name).To(Equal(intName1))
-					Expect(i.HardwareAddr).To(Equal(macInt1))
+					Expect(i.HardwareAddr).To(Equal((net.HardwareAddr)(macInt1)))
 					addrs, err := i.Addrs()
 					Expect(err).To(BeNil())
 					subnet := &net.IPNet{
@@ -448,7 +448,7 @@ var _ = Describe("run CNI", func() {
 					i, err := net.InterfaceByName(intName1)
 					Expect(err).To(BeNil())
 					Expect(i.Name).To(Equal(intName1))
-					Expect(i.HardwareAddr).To(Equal(macInt1))
+					Expect(i.HardwareAddr).To(Equal(net.HardwareAddr(macInt1)))
 					addrs, err := i.Addrs()
 					Expect(err).To(BeNil())
 					subnet := &net.IPNet{
@@ -460,7 +460,7 @@ var _ = Describe("run CNI", func() {
 					i, err = net.InterfaceByName(intName2)
 					Expect(err).To(BeNil())
 					Expect(i.Name).To(Equal(intName2))
-					Expect(i.HardwareAddr).To(Equal(macInt2))
+					Expect(i.HardwareAddr).To(Equal(net.HardwareAddr(macInt2)))
 					addrs, err = i.Addrs()
 					Expect(err).To(BeNil())
 					subnet = &net.IPNet{
@@ -600,7 +600,7 @@ var _ = Describe("run CNI", func() {
 					i, err := net.InterfaceByName(intName1)
 					Expect(err).To(BeNil())
 					Expect(i.Name).To(Equal(intName1))
-					Expect(i.HardwareAddr).To(Equal(macInt1))
+					Expect(i.HardwareAddr).To(Equal(net.HardwareAddr(macInt1)))
 					addrs, err := i.Addrs()
 					Expect(err).To(BeNil())
 					subnet := &net.IPNet{
@@ -612,7 +612,7 @@ var _ = Describe("run CNI", func() {
 					i, err = net.InterfaceByName(intName2)
 					Expect(err).To(BeNil())
 					Expect(i.Name).To(Equal(intName2))
-					Expect(i.HardwareAddr).To(Equal(macInt2))
+					Expect(i.HardwareAddr).To(Equal(net.HardwareAddr(macInt2)))
 					addrs, err = i.Addrs()
 					Expect(err).To(BeNil())
 					subnet = &net.IPNet{
@@ -690,7 +690,7 @@ var _ = Describe("run CNI", func() {
 							netName: {
 								InterfaceName: interfaceName,
 								StaticIPs:     []net.IP{ip1, ip2},
-								StaticMAC:     mac,
+								StaticMAC:     types.HardwareAddr(mac),
 							},
 						},
 					},
@@ -708,7 +708,7 @@ var _ = Describe("run CNI", func() {
 				Expect(res[netName].Interfaces[interfaceName].Networks[1].Subnet.IP.String()).To(Equal(ip2.String()))
 				Expect(res[netName].Interfaces[interfaceName].Networks[1].Subnet.Mask).To(Equal(subnet2.Mask))
 				Expect(res[netName].Interfaces[interfaceName].Networks[1].Gateway).To(Equal(net.ParseIP("fd41:0a75:2ca0:48a9::1")))
-				Expect(res[netName].Interfaces[interfaceName].MacAddress).To(Equal(mac))
+				Expect(res[netName].Interfaces[interfaceName].MacAddress).To(Equal(types.HardwareAddr(mac)))
 				// default network has no dns
 				Expect(res[netName].DNSServerIPs).To(BeEmpty())
 				Expect(res[netName].DNSSearchDomains).To(BeEmpty())

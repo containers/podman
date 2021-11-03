@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"net"
 	"time"
 )
@@ -94,6 +95,50 @@ func (n *IPNet) UnmarshalText(text []byte) error {
 	return nil
 }
 
+// HardwareAddr is the same as net.HardwareAddr except
+// that it adds the json marshal/unmarshal methods.
+// This allows us to read the mac from a json string
+// and a byte array.
+type HardwareAddr net.HardwareAddr
+
+func (h *HardwareAddr) String() string {
+	return (*net.HardwareAddr)(h).String()
+}
+
+func (h *HardwareAddr) MarshalText() ([]byte, error) {
+	return []byte((*net.HardwareAddr)(h).String()), nil
+}
+
+func (h *HardwareAddr) UnmarshalJSON(text []byte) error {
+	if len(text) == 0 {
+		*h = nil
+		return nil
+	}
+
+	// if the json string start with a quote we got a string
+	// unmarshal the string and parse the mac from this string
+	if string(text[0]) == `"` {
+		var macString string
+		err := json.Unmarshal(text, &macString)
+		if err == nil {
+			mac, err := net.ParseMAC(macString)
+			if err == nil {
+				*h = HardwareAddr(mac)
+				return nil
+			}
+		}
+	}
+	// not a string or got an error fallback to the normal parsing
+	mac := make(net.HardwareAddr, 0, 6)
+	// use the standard json unmarshal for backwards compat
+	err := json.Unmarshal(text, &mac)
+	if err != nil {
+		return err
+	}
+	*h = HardwareAddr(mac)
+	return nil
+}
+
 type Subnet struct {
 	// Subnet for this Network in CIDR form.
 	// swagger:strfmt string
@@ -134,7 +179,7 @@ type NetInterface struct {
 	// Networks list of assigned subnets with their gateway.
 	Networks []NetAddress `json:"networks,omitempty"`
 	// MacAddress for this Interface.
-	MacAddress net.HardwareAddr `json:"mac_address"`
+	MacAddress HardwareAddr `json:"mac_address"`
 }
 
 // NetAddress contains the subnet and gateway.
@@ -157,7 +202,7 @@ type PerNetworkOptions struct {
 	// Optional.
 	Aliases []string `json:"aliases,omitempty"`
 	// StaticMac for this container. Optional.
-	StaticMAC net.HardwareAddr `json:"static_mac,omitempty"`
+	StaticMAC HardwareAddr `json:"static_mac,omitempty"`
 	// InterfaceName for this container. Required.
 	InterfaceName string `json:"interface_name"`
 }

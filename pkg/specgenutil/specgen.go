@@ -11,6 +11,7 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/libpod/network/types"
 	ann "github.com/containers/podman/v3/pkg/annotations"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	envLib "github.com/containers/podman/v3/pkg/env"
@@ -457,7 +458,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.DNSSearch = c.Net.DNSSearch
 		s.DNSOptions = c.Net.DNSOptions
 		s.StaticIP = c.Net.StaticIP
-		s.StaticMAC = c.Net.StaticMAC
+		// type cast to types.HardwareAddr
+		s.StaticMAC = (*types.HardwareAddr)(c.Net.StaticMAC)
 		s.NetworkOptions = c.Net.NetworkOptions
 		s.UseImageHosts = c.Net.NoHosts
 	}
