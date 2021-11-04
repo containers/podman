@@ -214,7 +214,7 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 			// Read multiplexed channels and write to appropriate stream
 			fd, l, err := DemuxHeader(socket, buffer)
 			if err != nil {
-				if errors.Is(err, io.EOF) {
+				if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
 					return nil
 				}
 				return err
@@ -531,7 +531,7 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 			// Read multiplexed channels and write to appropriate stream
 			fd, l, err := DemuxHeader(socket, buffer)
 			if err != nil {
-				if errors.Is(err, io.EOF) {
+				if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
 					return nil
 				}
 				return err
