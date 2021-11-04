@@ -214,7 +214,9 @@ func containerPortsToServicePorts(containerPorts []v1.ContainerPort) []v1.Servic
 func containersToServicePorts(containers []v1.Container) []v1.ServicePort {
 	// Without the call to rand.Seed, a program will produce the same sequence of pseudo-random numbers
 	// for each execution. Legal nodeport range is 30000-32767
-	rand.Seed(time.Now().UnixNano())
+	seed := time.Now().UnixNano()
+	logrus.Warnf("rand.Seed @ libpod/kube.go:containersToServicePorts %#v", seed)
+	rand.Seed(seed)
 
 	sps := make([]v1.ServicePort, 0, len(containers))
 	for _, ctr := range containers {

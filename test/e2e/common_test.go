@@ -408,7 +408,9 @@ func GetPortLock(port string) storage.Locker {
 // collisions during parallel tests
 func GetRandomIPAddress() string {
 	// To avoid IP collisions of initialize random seed for random IP addresses
-	rand.Seed(time.Now().UnixNano())
+	seed := time.Now().UnixNano()
+	logrus.Warnf("rand.Seed @ test/e2e/common_test.go:GetRandomIPAddress: %#v", seed)
+	rand.Seed(seed)
 	// Add GinkgoParallelNode() on top of the IP address
 	// in case of the same random seed
 	ip3 := strconv.Itoa(rand.Intn(230) + GinkgoParallelNode())

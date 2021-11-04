@@ -7,9 +7,13 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 func init() {
+	seed := time.Now().UnixNano()
+	logrus.Warnf("rand.Seed @ vendor/github.com/go-task/slim-sprig/defaults.go:init %#v", seed)
 	rand.Seed(time.Now().UnixNano())
 }
 

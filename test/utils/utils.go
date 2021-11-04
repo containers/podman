@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -478,7 +479,9 @@ func Containerized() bool {
 }
 
 func init() {
-	rand.Seed(GinkgoRandomSeed())
+	seed := GinkgoRandomSeed()
+	logrus.Warnf("rand.Seed @ test/utils/utils.go:init %#v", seed)
+	rand.Seed(seed)
 }
 
 var randomLetters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")

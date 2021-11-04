@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 const shortLen = 12
@@ -89,6 +91,7 @@ func init() {
 		seed = cryptoseed.Int64()
 	}
 
+	logrus.Warnf("rand.Seed @ vendor/github.com/containers/storage/pkg/stringid/stringid.go:init %#v", seed)
 	rand.Seed(seed)
 }
 
