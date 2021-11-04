@@ -194,12 +194,23 @@ eof
 }
 
 function _run_consistency() {
+    local output
     make vendor
     SUGGESTION="run 'make vendor' and commit all changes" ./hack/tree_status.sh
     make generate-bindings
     SUGGESTION="run 'make generate-bindings' and commit all changes" ./hack/tree_status.sh
     make completions
     SUGGESTION="run 'make completions' and commit all changes" ./hack/tree_status.sh
+    msg "Detecting possible unicode bidi trojans (CVE-2021-42574,CVE-2021-42694)"
+    # Script outputs any findings to stderr only
+    output=$(python3 $GOSRC/$SCRIPT_BASE/find_unicode_control2.py \
+                 -d -c $GOSRC/$SCRIPT_BASE/unicode_scan_conf.py \
+                 $GOSRC/* \
+                 &>)
+    if [[ -n $(tr -d '[:space:]' <<<"$output") ]]; then
+        die "Expecting no output, received:
+$output"
+    fi
 }
 
 function _run_build() {
