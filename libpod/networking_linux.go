@@ -314,8 +314,25 @@ func (r *RootlessCNI) Cleanup(runtime *Runtime) error {
 	r.Lock.Lock()
 	defer r.Lock.Unlock()
 	running := func(c *Container) bool {
+		// no bridge => no need to check
+		if !c.config.NetMode.IsBridge() {
+			return false
+		}
+
 		// we cannot use c.state() because it will try to lock the container
-		// using c.state.State directly should be good enough for this use case
+		// locking is a problem because cleanup is called after net teardown
+		// at this stage the container is already locked.
+		// also do not try to lock only containers which are not currently in net
+		// teardown because this will result in an ABBA deadlock between the rootless
+		// cni lock and the container lock
+		// because we need to get the state we have to sync otherwise this will not
+		// work because the state is empty by default
+		// I do not like this but I do not see a better way at moment
+		err := c.syncContainer()
+		if err != nil {
+			return false
+		}
+
 		state := c.state.State
 		return state == define.ContainerStateRunning
 	}
@@ -323,13 +340,8 @@ func (r *RootlessCNI) Cleanup(runtime *Runtime) error {
 	if err != nil {
 		return err
 	}
-	cleanup := true
-	for _, ctr := range ctrs {
-		if ctr.config.NetMode.IsBridge() {
-			cleanup = false
-		}
-	}
-	if cleanup {
+	// cleanup if we found no containers
+	if len(ctrs) == 0 {
 		// make sure the the cni results (cache) dir is empty
 		// libpod instances with another root dir are not covered by the check above
 		// this allows several libpod instances to use the same rootless cni ns
