@@ -312,8 +312,8 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 	}, nil
 }
 
-func (se *SystemEngine) Reset(ctx context.Context) error {
-	return se.Libpod.Reset(ctx)
+func (se *SystemEngine) Reset(ctx context.Context, updateConf bool) error {
+	return se.Libpod.Reset(ctx, updateConf)
 }
 
 func (se *SystemEngine) Renumber(ctx context.Context, flags *pflag.FlagSet, config *entities.PodmanConfig) error {

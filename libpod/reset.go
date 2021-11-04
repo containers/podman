@@ -13,12 +13,13 @@ import (
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
+	storageTypes "github.com/containers/storage/types"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 // Reset removes all storage
-func (r *Runtime) Reset(ctx context.Context) error {
+func (r *Runtime) Reset(ctx context.Context, updateConf bool) error {
 	var timeout *uint
 	pods, err := r.GetAllPods()
 	if err != nil {
@@ -139,9 +140,27 @@ func (r *Runtime) Reset(ctx context.Context) error {
 		}
 	}
 	if storageConfPath, err := storage.DefaultConfigFile(rootless.IsRootless()); err == nil {
-		if _, err = os.Stat(storageConfPath); err == nil {
+		if _, err := os.Stat(storageConfPath); err == nil {
 			fmt.Printf("A storage.conf file exists at %s\n", storageConfPath)
-			fmt.Println("You should remove this file if you did not modify the configuration.")
+			fmt.Println("you can remove it or override it with the --run-root and --graph-root options.")
+			if updateConf { // only update the config if we have a storage.conf, we do not want to create a new one
+				store, err := storageTypes.StorageConfig(rootless.IsRootless())
+				if err != nil {
+					return err
+				}
+				store.Storage.RunRoot = r.store.RunRoot()
+				store.Storage.GraphRoot = r.store.GraphRoot()
+				store.Storage.Driver = r.store.GraphDriverName()
+
+				err = storageTypes.Save(*store, rootless.IsRootless())
+				if err != nil {
+					return err
+				}
+
+				fmt.Println("Wrote new storage config to", storageConfPath)
+			}
+		} else {
+			logrus.Warnf("storage.conf path %s does not exist. Please create a storage.conf file before attempting to modify", storageConfPath)
 		}
 	} else {
 		if prevError != nil {

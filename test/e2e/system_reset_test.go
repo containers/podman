@@ -90,5 +90,38 @@ var _ = Describe("podman system reset", func() {
 		Expect(session).Should(Exit(0))
 		// default network should exists
 		Expect(session.OutputToStringArray()).To(HaveLen(1))
+
+		var f *os.File
+		f, err = os.Create("tempStorage.conf")
+		if err != nil {
+			os.Exit(1)
+		}
+
+		env := os.Getenv("CONTAINERS_STORAGE_CONF")
+		err = os.Setenv("CONTAINERS_STORAGE_CONF", "tempStorage.conf")
+		if err != nil {
+			os.Exit(1)
+		}
+
+		_, err = f.WriteString("[storage]\ndriver = \"overlay\"\nrunroot = \"" + podmanTest.RunRoot + "\"\ngraphroot = \"" + podmanTest.Root + "\"")
+		Expect(err).Should(BeNil())
+
+		session = podmanTest.Podman([]string{"system", "reset", "-f", "--run-root", "foo", "--graph-root", "bar"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		content, _ := os.ReadFile(f.Name())
+		Expect(string(content[:])).Should(ContainSubstring("foo"))
+		Expect(string(content[:])).Should(ContainSubstring("bar"))
+
+		err = os.Setenv("CONTAINERS_STORAGE_CONF", env)
+		Expect(err).Should(BeNil())
+		err = os.Remove("tempStorage.conf")
+		Expect(err).Should(BeNil())
+
+		session = podmanTest.Podman([]string{"system", "reset", "-f"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
 	})
 })

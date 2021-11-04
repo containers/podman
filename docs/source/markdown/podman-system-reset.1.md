@@ -7,7 +7,7 @@ podman\-system\-reset - Reset storage back to initial state
 **podman system reset** [*options*]
 
 ## DESCRIPTION
-**podman system reset** removes all pods, containers, images, networks and volumes.
+**podman system reset** removes all pods, containers, images and volumes. Can also be used to instantiate new directories for storing images and information about Podmans's state.
 
 This command must be run **before** changing any of the following fields in the
 `containers.conf` or `storage.conf` files: `driver`, `static_dir`, `tmp_dir`
@@ -22,11 +22,23 @@ of the relevant configurations. If the administrator modified the configuration 
 
 Do not prompt for confirmation
 
+#### **--graph-root**
+
+Establishes a new graph root directory and storage.conf file once the system is reset
+
 #### **--help**, **-h**
 
 Print usage statement
 
+#### **--run-root**
+
+Establishes a new run root directory and storage.conf file once the system is reset
+
 ## EXAMPLES
+Reset the system and create a new storage.conf file with the given run and graph root.
+```
+$ podman system reset --run-root=/run/user/1000/containers --graph-root=/home/charliedoern/.local/share/containers
+```
 
 ```
 $ podman system reset

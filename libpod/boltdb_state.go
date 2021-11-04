@@ -408,12 +408,7 @@ func (s *BoltState) ValidateDBConfig(runtime *Runtime) error {
 	}
 	defer s.deferredCloseDBCon(db)
 
-	// Check runtime configuration
-	if err := checkRuntimeConfig(db, runtime); err != nil {
-		return err
-	}
-
-	return nil
+	return checkRuntimeConfig(db, runtime)
 }
 
 // SetNamespace sets the namespace that will be used for container and pod

@@ -127,12 +127,15 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 		storageSet = true
 	}
 
-	if fs.Changed("root") {
+	if fs.Changed("root") || fs.Lookup("graph-root") != nil {
+		options = append(options, libpod.WithNewDB())
 		storageSet = true
 		storageOpts.GraphRoot = cfg.Engine.StaticDir
 		storageOpts.GraphDriverOptions = []string{}
 	}
-	if fs.Changed("runroot") {
+
+	if fs.Changed("runroot") || fs.Lookup("run-root") != nil {
+		options = append(options, libpod.WithNewDB())
 		storageSet = true
 		storageOpts.RunRoot = cfg.Runroot
 	}

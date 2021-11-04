@@ -116,6 +116,8 @@ type Runtime struct {
 	noStore bool
 	// secretsManager manages secrets
 	secretsManager *secrets.SecretsManager
+	// newDB indicates that we do not need to merge the db config, just create a new one
+	newDB bool
 }
 
 // SetXdgDirs ensures the XDG_RUNTIME_DIR env and XDG_CONFIG_HOME variables are set.
@@ -577,7 +579,6 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 			return err
 		}
 	}
-
 	// If we need to refresh the state, do it now - things are guaranteed to
 	// be set up by now.
 	if doRefresh {
@@ -592,7 +593,6 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 			return err2
 		}
 	}
-
 	// Mark the runtime as valid - ready to be used, cannot be modified
 	// further
 	runtime.valid = true
@@ -602,7 +602,6 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -949,8 +948,10 @@ func (r *Runtime) configureStore() error {
 	if err != nil {
 		return err
 	}
-
 	r.store = store
+	if store.RunRoot() != r.storageConfig.RunRoot && store.GraphRoot() == r.storageConfig.GraphRoot {
+		logrus.Debug("config reset due to graph root being the default value ")
+	}
 	is.Transport.SetStore(store)
 
 	// Set up a storage service for creating container root filesystems from

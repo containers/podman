@@ -157,10 +157,12 @@ func checkRuntimeConfig(db *bolt.DB, rt *Runtime) error {
 
 		for _, check := range checks {
 			exists, err := readOnlyValidateConfig(configBkt, check)
-			if err != nil {
+			// when using podman system reset, these configs are bound to mismatch
+			// if we are trying to override what is currently in the DB.
+			if err != nil && (err != define.ErrDBBadConfig && !rt.newDB) {
 				return err
 			}
-			if !exists {
+			if !exists || (err != nil && rt.newDB) {
 				missingFields = append(missingFields, check)
 			}
 		}
@@ -187,7 +189,6 @@ func checkRuntimeConfig(db *bolt.DB, rt *Runtime) error {
 			if missing.runtimeValue == "" && missing.defaultValue != "" {
 				dbValue = []byte(missing.defaultValue)
 			}
-
 			if err := configBkt.Put(missing.key, dbValue); err != nil {
 				return errors.Wrapf(err, "error updating %s in DB runtime config", missing.name)
 			}

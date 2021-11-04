@@ -35,6 +35,8 @@ var (
 	}
 
 	forceFlag bool
+	runDir    string
+	graphDir  string
 )
 
 func init() {
@@ -44,6 +46,12 @@ func init() {
 	})
 	flags := systemResetCommand.Flags()
 	flags.BoolVarP(&forceFlag, "force", "f", false, "Do not prompt for confirmation")
+
+	flags.StringVar(&runDir, "run-root", "", "run root directory to use for storage")
+	_ = systemResetCommand.RegisterFlagCompletionFunc("run-root", completion.AutocompleteDefault)
+
+	flags.StringVar(&graphDir, "graph-root", "", "graph root directory to use")
+	_ = systemResetCommand.RegisterFlagCompletionFunc("graph-root", completion.AutocompleteDefault)
 }
 
 func reset(cmd *cobra.Command, args []string) {
@@ -86,6 +94,14 @@ func reset(cmd *cobra.Command, args []string) {
 	registry.ContainerEngine().Shutdown(registry.Context())
 	registry.ImageEngine().Shutdown(registry.Context())
 
+	cfg := registry.PodmanConfig()
+	if len(runDir) > 0 {
+		cfg.Runroot = runDir
+	}
+	if len(graphDir) > 0 {
+		cfg.Engine.StaticDir = graphDir
+	}
+
 	engine, err := infra.NewSystemEngine(entities.ResetMode, registry.PodmanConfig())
 	if err != nil {
 		logrus.Error(err)
@@ -93,7 +109,7 @@ func reset(cmd *cobra.Command, args []string) {
 	}
 	defer engine.Shutdown(registry.Context())
 
-	if err := engine.Reset(registry.Context()); err != nil {
+	if err := engine.Reset(registry.Context(), (len(runDir) > 0 || len(graphDir) > 0)); err != nil {
 		logrus.Error(err)
 		os.Exit(define.ExecErrorCodeGeneric)
 	}

@@ -532,6 +532,16 @@ func WithRuntimeFlags(runtimeFlags []string) RuntimeOption {
 	}
 }
 
+func WithNewDB() RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return define.ErrRuntimeFinalized
+		}
+		rt.newDB = true
+		return nil
+	}
+}
+
 // Container Creation Options
 
 // WithMaxLogSize sets the maximum size of container logs.

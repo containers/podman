@@ -9,6 +9,6 @@ import (
 type SystemEngine interface {
 	Renumber(ctx context.Context, flags *pflag.FlagSet, config *PodmanConfig) error
 	Migrate(ctx context.Context, flags *pflag.FlagSet, config *PodmanConfig, options SystemMigrateOptions) error
-	Reset(ctx context.Context) error
+	Reset(ctx context.Context, updateConf bool) error
 	Shutdown(ctx context.Context)
 }
