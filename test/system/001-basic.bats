@@ -100,7 +100,7 @@ function setup() {
         skip "only applicable on a local run since this requires no endpoint"
     fi
 
-    run_podman --remote
+    run_podman 125 --remote
     is "$output" ".*Usage:" "podman --remote show usage message without running endpoint"
 }
 
