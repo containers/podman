@@ -259,6 +259,7 @@ var _ = Describe("Podman containers ", func() {
 		_, err = bt.RunTopContainer(&name, nil)
 		Expect(err).To(BeNil())
 		go func() {
+			defer GinkgoRecover()
 			exitCode, err = containers.Wait(bt.conn, name, nil)
 			errChan <- err
 			close(errChan)
@@ -281,6 +282,7 @@ var _ = Describe("Podman containers ", func() {
 		_, err := bt.RunTopContainer(&name, nil)
 		Expect(err).To(BeNil())
 		go func() {
+			defer GinkgoRecover()
 			exitCode, err = containers.Wait(bt.conn, name, new(containers.WaitOptions).WithCondition([]define.ContainerStatus{pause}))
 			errChan <- err
 			close(errChan)
@@ -366,7 +368,10 @@ var _ = Describe("Podman containers ", func() {
 
 		opts := new(containers.LogOptions).WithStdout(true).WithFollow(true)
 		go func() {
-			containers.Logs(bt.conn, r.ID, opts, stdoutChan, nil)
+			defer GinkgoRecover()
+			err := containers.Logs(bt.conn, r.ID, opts, stdoutChan, nil)
+			close(stdoutChan)
+			Expect(err).ShouldNot(HaveOccurred())
 		}()
 		o := <-stdoutChan
 		o = strings.TrimSpace(o)
