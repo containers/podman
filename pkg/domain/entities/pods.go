@@ -138,6 +138,7 @@ type PodCreateOptions struct {
 	Userns             specgen.Namespace `json:"-"`
 	Volume             []string          `json:"volume,omitempty"`
 	VolumesFrom        []string          `json:"volumes_from,omitempty"`
+	SecurityOpt        []string          `json:"security_opt,omitempty"`
 }
 
 // PodLogsOptions describes the options to extract pod logs.
@@ -230,7 +231,7 @@ type ContainerCreateOptions struct {
 	Rm                bool
 	RootFS            bool
 	Secrets           []string
-	SecurityOpt       []string
+	SecurityOpt       []string `json:"security_opt,omitempty"`
 	SdNotifyMode      string
 	ShmSize           string
 	SignaturePolicy   string
@@ -312,6 +313,7 @@ func ToPodSpecGen(s specgen.PodSpecGenerator, p *PodCreateOptions) (*specgen.Pod
 	s.Hostname = p.Hostname
 	s.Labels = p.Labels
 	s.Devices = p.Devices
+	s.SecurityOpt = p.SecurityOpt
 	s.NoInfra = !p.Infra
 	if p.InfraCommand != nil && len(*p.InfraCommand) > 0 {
 		s.InfraCommand = strings.Split(*p.InfraCommand, " ")

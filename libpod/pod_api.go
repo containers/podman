@@ -586,6 +586,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 	var inspectMounts []define.InspectMount
 	var devices []define.InspectDevice
 	var deviceLimits []define.InspectBlkioThrottleDevice
+	var infraSecurity []string
 	if p.state.InfraContainerID != "" {
 		infra, err := p.runtime.GetContainer(p.state.InfraContainerID)
 		if err != nil {
@@ -603,6 +604,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		infraConfig.UserNS = p.UserNSMode()
 		namedVolumes, mounts := infra.sortUserVolumes(infra.config.Spec)
 		inspectMounts, err = infra.GetInspectMounts(namedVolumes, infra.config.ImageVolumes, mounts)
+		infraSecurity = infra.GetSecurityOptions()
 		if err != nil {
 			return nil, err
 		}
@@ -678,6 +680,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		Devices:            devices,
 		BlkioDeviceReadBps: deviceLimits,
 		VolumesFrom:        p.VolumesFrom(),
+		SecurityOpts:       infraSecurity,
 	}
 
 	return &inspectData, nil

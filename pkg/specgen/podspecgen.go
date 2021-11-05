@@ -196,6 +196,7 @@ type PodSpecGenerator struct {
 	PodCgroupConfig
 	PodResourceConfig
 	PodStorageConfig
+	PodSecurityConfig
 	InfraContainerSpec *SpecGenerator `json:"-"`
 }
 
@@ -208,6 +209,10 @@ type PodResourceConfig struct {
 	CPUQuota int64 `json:"cpu_quota,omitempty"`
 	// ThrottleReadBpsDevice contains the rate at which the devices in the pod can be read from/accessed
 	ThrottleReadBpsDevice map[string]spec.LinuxThrottleDevice `json:"throttleReadBpsDevice,omitempty"`
+}
+
+type PodSecurityConfig struct {
+	SecurityOpt []string `json:"security_opt,omitempty"`
 }
 
 // NewPodSpecGenerator creates a new pod spec

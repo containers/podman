@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/common/pkg/apparmor"
+	"github.com/containers/common/pkg/seccomp"
 	"github.com/containers/common/pkg/sysinfo"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/util"
@@ -16,6 +18,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	"github.com/opencontainers/selinux/go-selinux"
 )
 
 var _ = Describe("Podman pod create", func() {
@@ -966,5 +969,64 @@ ENTRYPOINT ["sleep","99999"]
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).Should(Equal("host"))
+	})
+
+	It("podman pod create --security-opt", func() {
+		if !selinux.GetEnabled() {
+			Skip("SELinux not enabled")
+		}
+		podCreate := podmanTest.Podman([]string{"pod", "create", "--security-opt", "label=type:spc_t", "--security-opt", "seccomp=unconfined"})
+		podCreate.WaitWithDefaultTimeout()
+		Expect(podCreate).Should(Exit(0))
+
+		ctrCreate := podmanTest.Podman([]string{"container", "create", "--pod", podCreate.OutputToString(), ALPINE})
+		ctrCreate.WaitWithDefaultTimeout()
+		Expect(ctrCreate).Should(Exit(0))
+
+		ctrInspect := podmanTest.InspectContainer(ctrCreate.OutputToString())
+		Expect(ctrInspect[0].HostConfig.SecurityOpt).To(Equal([]string{"label=type:spc_t", "seccomp=unconfined"}))
+
+		podCreate = podmanTest.Podman([]string{"pod", "create", "--security-opt", "label=disable"})
+		podCreate.WaitWithDefaultTimeout()
+		Expect(podCreate).Should(Exit(0))
+
+		ctrCreate = podmanTest.Podman([]string{"container", "run", "-it", "--pod", podCreate.OutputToString(), ALPINE, "cat", "/proc/self/attr/current"})
+		ctrCreate.WaitWithDefaultTimeout()
+		Expect(ctrCreate).Should(Exit(0))
+		match, _ := ctrCreate.GrepString("spc_t")
+		Expect(match).Should(BeTrue())
+	})
+
+	It("podman pod create --security-opt seccomp", func() {
+		if !seccomp.IsEnabled() {
+			Skip("seccomp is not enabled")
+		}
+		podCreate := podmanTest.Podman([]string{"pod", "create", "--security-opt", "seccomp=unconfined"})
+		podCreate.WaitWithDefaultTimeout()
+		Expect(podCreate).Should(Exit(0))
+
+		ctrCreate := podmanTest.Podman([]string{"container", "create", "--pod", podCreate.OutputToString(), ALPINE})
+		ctrCreate.WaitWithDefaultTimeout()
+		Expect(ctrCreate).Should(Exit(0))
+
+		ctrInspect := podmanTest.InspectContainer(ctrCreate.OutputToString())
+		Expect(ctrInspect[0].HostConfig.SecurityOpt).To(Equal([]string{"seccomp=unconfined"}))
+	})
+
+	It("podman pod create --security-opt apparmor test", func() {
+		if !apparmor.IsEnabled() {
+			Skip("Apparmor is not enabled")
+		}
+		podCreate := podmanTest.Podman([]string{"pod", "create", "--security-opt", fmt.Sprintf("apparmor=%s", apparmor.Profile)})
+		podCreate.WaitWithDefaultTimeout()
+		Expect(podCreate).Should(Exit(0))
+
+		ctrCreate := podmanTest.Podman([]string{"container", "create", "--pod", podCreate.OutputToString(), ALPINE})
+		ctrCreate.WaitWithDefaultTimeout()
+		Expect(ctrCreate).Should(Exit(0))
+
+		inspect := podmanTest.InspectContainer(ctrCreate.OutputToString())
+		Expect(inspect[0].AppArmorProfile).To(Equal(apparmor.Profile))
+
 	})
 })

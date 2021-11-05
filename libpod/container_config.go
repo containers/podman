@@ -400,3 +400,14 @@ type ContainerMiscConfig struct {
 	// and if so, what type: always or once are possible non-nil entries
 	InitContainerType string `json:"init_container_type,omitempty"`
 }
+
+type InfraInherit struct {
+	InfraSecurity     ContainerSecurityConfig
+	InfraLabels       []string                  `json:"labelopts,omitempty"`
+	InfraVolumes      []*ContainerNamedVolume   `json:"namedVolumes,omitempty"`
+	InfraOverlay      []*ContainerOverlayVolume `json:"overlayVolumes,omitempty"`
+	InfraImageVolumes []*ContainerImageVolume   `json:"ctrImageVolumes,omitempty"`
+	InfraUserVolumes  []string                  `json:"userVolumes,omitempty"`
+	InfraResources    *spec.LinuxResources      `json:"resources,omitempty"`
+	InfraDevices      []spec.LinuxDevice        `json:"device_host_src,omitempty"`
+}

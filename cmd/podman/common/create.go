@@ -540,14 +540,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(secretFlagName, AutocompleteSecrets)
 
-		securityOptFlagName := "security-opt"
-		createFlags.StringArrayVar(
-			&cf.SecurityOpt,
-			securityOptFlagName, []string{},
-			"Security Options",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(securityOptFlagName, AutocompleteSecurityOption)
-
 		shmSizeFlagName := "shm-size"
 		createFlags.String(
 			shmSizeFlagName, shmSize(),
@@ -720,6 +712,13 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			`If a container with the same name exists, replace it`,
 		)
 	}
+	securityOptFlagName := "security-opt"
+	createFlags.StringArrayVar(
+		&cf.SecurityOpt,
+		securityOptFlagName, []string{},
+		"Security Options",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(securityOptFlagName, AutocompleteSecurityOption)
 
 	subgidnameFlagName := "subgidname"
 	createFlags.StringVar(
@@ -890,6 +889,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		"Limit read rate (bytes per second) from a device (e.g. --device-read-bps=/dev/sda:1mb)",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(deviceReadBpsFlagName, completion.AutocompleteDefault)
+
 	volumesFromFlagName := "volumes-from"
 	createFlags.StringArrayVar(
 		&cf.VolumesFrom,

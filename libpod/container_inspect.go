@@ -273,6 +273,27 @@ func (c *Container) GetInspectMounts(namedVolumes []*ContainerNamedVolume, image
 	return inspectMounts, nil
 }
 
+// GetSecurityOptions retrives and returns the security related annotations and process information upon inspection
+func (c *Container) GetSecurityOptions() []string {
+	ctrSpec := c.config.Spec
+	SecurityOpt := []string{}
+	if ctrSpec.Process != nil {
+		if ctrSpec.Process.NoNewPrivileges {
+			SecurityOpt = append(SecurityOpt, "no-new-privileges")
+		}
+	}
+	if label, ok := ctrSpec.Annotations[define.InspectAnnotationLabel]; ok {
+		SecurityOpt = append(SecurityOpt, fmt.Sprintf("label=%s", label))
+	}
+	if seccomp, ok := ctrSpec.Annotations[define.InspectAnnotationSeccomp]; ok {
+		SecurityOpt = append(SecurityOpt, fmt.Sprintf("seccomp=%s", seccomp))
+	}
+	if apparmor, ok := ctrSpec.Annotations[define.InspectAnnotationApparmor]; ok {
+		SecurityOpt = append(SecurityOpt, fmt.Sprintf("apparmor=%s", apparmor))
+	}
+	return SecurityOpt
+}
+
 // Parse mount options so we can populate them in the mount structure.
 // The mount passed in will be modified.
 func parseMountOptionsForInspect(options []string, mount *define.InspectMount) {
@@ -422,15 +443,13 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	hostConfig.GroupAdd = make([]string, 0, len(c.config.Groups))
 	hostConfig.GroupAdd = append(hostConfig.GroupAdd, c.config.Groups...)
 
-	hostConfig.SecurityOpt = []string{}
 	if ctrSpec.Process != nil {
 		if ctrSpec.Process.OOMScoreAdj != nil {
 			hostConfig.OomScoreAdj = *ctrSpec.Process.OOMScoreAdj
 		}
-		if ctrSpec.Process.NoNewPrivileges {
-			hostConfig.SecurityOpt = append(hostConfig.SecurityOpt, "no-new-privileges")
-		}
 	}
+
+	hostConfig.SecurityOpt = c.GetSecurityOptions()
 
 	hostConfig.ReadonlyRootfs = ctrSpec.Root.Readonly
 	hostConfig.ShmSize = c.config.ShmSize
@@ -455,15 +474,6 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 		}
 		if ctrSpec.Annotations[define.InspectAnnotationInit] == define.InspectResponseTrue {
 			hostConfig.Init = true
-		}
-		if label, ok := ctrSpec.Annotations[define.InspectAnnotationLabel]; ok {
-			hostConfig.SecurityOpt = append(hostConfig.SecurityOpt, fmt.Sprintf("label=%s", label))
-		}
-		if seccomp, ok := ctrSpec.Annotations[define.InspectAnnotationSeccomp]; ok {
-			hostConfig.SecurityOpt = append(hostConfig.SecurityOpt, fmt.Sprintf("seccomp=%s", seccomp))
-		}
-		if apparmor, ok := ctrSpec.Annotations[define.InspectAnnotationApparmor]; ok {
-			hostConfig.SecurityOpt = append(hostConfig.SecurityOpt, fmt.Sprintf("apparmor=%s", apparmor))
 		}
 	}
 

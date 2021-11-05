@@ -2,13 +2,14 @@ package generate
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 	"path/filepath"
 	"strings"
 
 	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg"
 	"github.com/containers/common/libimage"
 	"github.com/containers/podman/v3/libpod"
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/namespaces"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
@@ -29,43 +30,30 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 
 	// If joining a pod, retrieve the pod for use, and its infra container
 	var pod *libpod.Pod
-	var infraConfig *libpod.ContainerConfig
+	var infra *libpod.Container
 	if s.Pod != "" {
 		pod, err = rt.LookupPod(s.Pod)
 		if err != nil {
 			return nil, nil, nil, errors.Wrapf(err, "error retrieving pod %s", s.Pod)
 		}
 		if pod.HasInfraContainer() {
-			infra, err := pod.InfraContainer()
+			infra, err = pod.InfraContainer()
 			if err != nil {
 				return nil, nil, nil, err
 			}
-			infraConfig = infra.Config()
 		}
 	}
 
-	if infraConfig != nil && (len(infraConfig.NamedVolumes) > 0 || len(infraConfig.UserVolumes) > 0 || len(infraConfig.ImageVolumes) > 0 || len(infraConfig.OverlayVolumes) > 0) {
-		s.VolumesFrom = append(s.VolumesFrom, infraConfig.ID)
+	options := []libpod.CtrCreateOption{}
+	compatibleOptions := &libpod.InfraInherit{}
+	var infraSpec *spec.Spec
+	if infra != nil {
+		options, infraSpec, compatibleOptions, err = Inherit(*infra)
+		if err != nil {
+			return nil, nil, nil, err
+		}
 	}
 
-	if infraConfig != nil && len(infraConfig.Spec.Linux.Devices) > 0 {
-		s.DevicesFrom = append(s.DevicesFrom, infraConfig.ID)
-	}
-	if infraConfig != nil && infraConfig.Spec.Linux.Resources != nil && infraConfig.Spec.Linux.Resources.BlockIO != nil && len(infraConfig.Spec.Linux.Resources.BlockIO.ThrottleReadBpsDevice) > 0 {
-		tempDev := make(map[string]spec.LinuxThrottleDevice)
-		for _, val := range infraConfig.Spec.Linux.Resources.BlockIO.ThrottleReadBpsDevice {
-			nodes, err := util.FindDeviceNodes()
-			if err != nil {
-				return nil, nil, nil, err
-			}
-			key := fmt.Sprintf("%d:%d", val.Major, val.Minor)
-			tempDev[nodes[key]] = spec.LinuxThrottleDevice{Rate: uint64(val.Rate)}
-		}
-		for i, dev := range s.ThrottleReadBpsDevice {
-			tempDev[i] = dev
-		}
-		s.ThrottleReadBpsDevice = tempDev
-	}
 	if err := FinishThrottleDevices(s); err != nil {
 		return nil, nil, nil, err
 	}
@@ -119,8 +107,6 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		s.CgroupNS = defaultNS
 	}
 
-	options := []libpod.CtrCreateOption{}
-
 	if s.ContainerCreateCommand != nil {
 		options = append(options, libpod.WithCreateCommand(s.ContainerCreateCommand))
 	}
@@ -165,7 +151,8 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		return nil, nil, nil, err
 	}
 
-	opts, err := createContainerOptions(ctx, rt, s, pod, finalVolumes, finalOverlays, imageData, command)
+	infraVolumes := (len(compatibleOptions.InfraVolumes) > 0 || len(compatibleOptions.InfraUserVolumes) > 0 || len(compatibleOptions.InfraImageVolumes) > 0)
+	opts, err := createContainerOptions(ctx, rt, s, pod, finalVolumes, finalOverlays, imageData, command, infraVolumes, *compatibleOptions)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -178,26 +165,28 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		logrus.Debugf("setting container name %s", s.Name)
 		options = append(options, libpod.WithName(s.Name))
 	}
-	if len(s.DevicesFrom) > 0 {
-		for _, dev := range s.DevicesFrom {
-			ctr, err := rt.GetContainer(dev)
-			if err != nil {
-				return nil, nil, nil, err
-			}
-			devices := ctr.DeviceHostSrc()
-			s.Devices = append(s.Devices, devices...)
-		}
-	}
 	if len(s.Devices) > 0 {
-		opts = extractCDIDevices(s)
+		opts = ExtractCDIDevices(s)
 		options = append(options, opts...)
 	}
-	runtimeSpec, err := SpecGenToOCI(ctx, s, rt, rtc, newImage, finalMounts, pod, command)
+	runtimeSpec, err := SpecGenToOCI(ctx, s, rt, rtc, newImage, finalMounts, pod, command, compatibleOptions)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 	if len(s.HostDeviceList) > 0 {
 		options = append(options, libpod.WithHostDevice(s.HostDeviceList))
+	}
+	if infraSpec != nil && infraSpec.Linux != nil { // if we are inheriting Linux info from a pod...
+		// Pass Security annotations
+		if len(infraSpec.Annotations[define.InspectAnnotationLabel]) > 0 && len(runtimeSpec.Annotations[define.InspectAnnotationLabel]) == 0 {
+			runtimeSpec.Annotations[define.InspectAnnotationLabel] = infraSpec.Annotations[define.InspectAnnotationLabel]
+		}
+		if len(infraSpec.Annotations[define.InspectAnnotationSeccomp]) > 0 && len(runtimeSpec.Annotations[define.InspectAnnotationSeccomp]) == 0 {
+			runtimeSpec.Annotations[define.InspectAnnotationSeccomp] = infraSpec.Annotations[define.InspectAnnotationSeccomp]
+		}
+		if len(infraSpec.Annotations[define.InspectAnnotationApparmor]) > 0 && len(runtimeSpec.Annotations[define.InspectAnnotationApparmor]) == 0 {
+			runtimeSpec.Annotations[define.InspectAnnotationApparmor] = infraSpec.Annotations[define.InspectAnnotationApparmor]
+		}
 	}
 	return runtimeSpec, s, options, err
 }
@@ -210,7 +199,7 @@ func ExecuteCreate(ctx context.Context, rt *libpod.Runtime, runtimeSpec *spec.Sp
 	return ctr, rt.PrepareVolumeOnCreateContainer(ctx, ctr)
 }
 
-func extractCDIDevices(s *specgen.SpecGenerator) []libpod.CtrCreateOption {
+func ExtractCDIDevices(s *specgen.SpecGenerator) []libpod.CtrCreateOption {
 	devs := make([]spec.LinuxDevice, 0, len(s.Devices))
 	var cdiDevs []string
 	var options []libpod.CtrCreateOption
@@ -224,19 +213,16 @@ func extractCDIDevices(s *specgen.SpecGenerator) []libpod.CtrCreateOption {
 			cdiDevs = append(cdiDevs, device.Path)
 			continue
 		}
-
 		devs = append(devs, device)
 	}
-
 	s.Devices = devs
 	if len(cdiDevs) > 0 {
 		options = append(options, libpod.WithCDI(cdiDevs))
 	}
-
 	return options
 }
 
-func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGenerator, pod *libpod.Pod, volumes []*specgen.NamedVolume, overlays []*specgen.OverlayVolume, imageData *libimage.ImageData, command []string) ([]libpod.CtrCreateOption, error) {
+func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGenerator, pod *libpod.Pod, volumes []*specgen.NamedVolume, overlays []*specgen.OverlayVolume, imageData *libimage.ImageData, command []string, infraVolumes bool, compatibleOptions libpod.InfraInherit) ([]libpod.CtrCreateOption, error) {
 	var options []libpod.CtrCreateOption
 	var err error
 
@@ -317,7 +303,10 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	for _, imageVolume := range s.ImageVolumes {
 		destinations = append(destinations, imageVolume.Destination)
 	}
-	options = append(options, libpod.WithUserVolumes(destinations))
+
+	if len(destinations) > 0 || !infraVolumes {
+		options = append(options, libpod.WithUserVolumes(destinations))
+	}
 
 	if len(volumes) != 0 {
 		var vols []*libpod.ContainerNamedVolume
@@ -405,7 +394,7 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	if len(s.SelinuxOpts) > 0 {
 		options = append(options, libpod.WithSecLabels(s.SelinuxOpts))
 	} else {
-		if pod != nil {
+		if pod != nil && len(compatibleOptions.InfraLabels) == 0 {
 			// duplicate the security options from the pod
 			processLabel, err := pod.ProcessLabel()
 			if err != nil {
@@ -497,4 +486,34 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	options = append(options, libpod.WithSelectedPasswordManagement(s.Passwd))
 
 	return options, nil
+}
+
+func Inherit(infra libpod.Container) (opts []libpod.CtrCreateOption, infraS *spec.Spec, compat *libpod.InfraInherit, err error) {
+	options := []libpod.CtrCreateOption{}
+	compatibleOptions := &libpod.InfraInherit{}
+	infraConf := infra.Config()
+	infraSpec := infraConf.Spec
+
+	config, err := json.Marshal(infraConf)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	err = json.Unmarshal(config, compatibleOptions)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	if infraSpec.Linux != nil && infraSpec.Linux.Resources != nil {
+		resources, err := json.Marshal(infraSpec.Linux.Resources)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		err = json.Unmarshal(resources, &compatibleOptions.InfraResources)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+	}
+	if compatibleOptions != nil {
+		options = append(options, libpod.WithInfraConfig(*compatibleOptions))
+	}
+	return options, infraSpec, compatibleOptions, nil
 }
