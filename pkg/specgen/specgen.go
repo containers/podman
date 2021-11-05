@@ -401,6 +401,7 @@ type ContainerNetworkConfig struct {
 	// StaticMAC is a static MAC address to set in the container.
 	// Only available if NetNS is set to bridge.
 	// Optional.
+	// swagger:strfmt string
 	StaticMAC *nettypes.HardwareAddr `json:"static_mac,omitempty"`
 	// PortBindings is a set of ports to map into the container.
 	// Only available if NetNS is set to bridge or slirp.

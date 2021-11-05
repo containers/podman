@@ -99,6 +99,7 @@ func (n *IPNet) UnmarshalText(text []byte) error {
 // that it adds the json marshal/unmarshal methods.
 // This allows us to read the mac from a json string
 // and a byte array.
+// swagger:model MacAddress
 type HardwareAddr net.HardwareAddr
 
 func (h *HardwareAddr) String() string {
