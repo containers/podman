@@ -6,6 +6,7 @@ import (
 	"os"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
+	"github.com/checkpoint-restore/go-criu/v5/stats"
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod"
@@ -39,6 +40,7 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 			"volumes",
 			"ctr.log",
 			"artifacts",
+			stats.StatsDump,
 			metadata.RootFsDiffTar,
 			metadata.DeletedFilesFile,
 			metadata.NetworkStatusFile,

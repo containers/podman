@@ -21,6 +21,7 @@ import (
 	"time"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
+	"github.com/checkpoint-restore/go-criu/v5/stats"
 	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg"
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/buildah/pkg/chrootuser"
@@ -1013,6 +1014,7 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 		metadata.ConfigDumpFile,
 		metadata.SpecDumpFile,
 		metadata.NetworkStatusFile,
+		stats.StatsDump,
 	}
 
 	if c.LogDriver() == define.KubernetesLogging ||
@@ -1197,7 +1199,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	if !options.Keep && !options.PreCheckPoint {
 		cleanup := []string{
 			"dump.log",
-			"stats-dump",
+			stats.StatsDump,
 			metadata.ConfigDumpFile,
 			metadata.SpecDumpFile,
 		}
@@ -1564,8 +1566,8 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		cleanup := [...]string{
 			"restore.log",
 			"dump.log",
-			"stats-dump",
-			"stats-restore",
+			stats.StatsDump,
+			stats.StatsRestore,
 			metadata.NetworkStatusFile,
 			metadata.RootFsDiffTar,
 			metadata.DeletedFilesFile,
