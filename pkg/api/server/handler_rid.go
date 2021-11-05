@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/containers/podman/v3/pkg/api/types"
@@ -15,7 +16,13 @@ import (
 // and Apache style request logging
 func referenceIDHandler() mux.MiddlewareFunc {
 	return func(h http.Handler) http.Handler {
-		return handlers.CombinedLoggingHandler(logrus.StandardLogger().Out,
+		// Only log Apache access_log-like entries at Info level or below
+		out := ioutil.Discard
+		if logrus.IsLevelEnabled(logrus.InfoLevel) {
+			out = logrus.StandardLogger().Out
+		}
+
+		return handlers.CombinedLoggingHandler(out,
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				rid := r.Header.Get("X-Reference-Id")
 				if rid == "" {
