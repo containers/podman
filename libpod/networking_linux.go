@@ -161,7 +161,7 @@ func (r *RootlessCNI) Do(toRun func() error) error {
 		// Because the plugins also need access to XDG_RUNTIME_DIR/netns some special setup is needed.
 
 		// The following bind mounts are needed
-		// 1. XDG_RUNTIME_DIR/netns -> XDG_RUNTIME_DIR/rootless-cni/XDG_RUNTIME_DIR/netns
+		// 1. XDG_RUNTIME_DIR -> XDG_RUNTIME_DIR/rootless-cni/XDG_RUNTIME_DIR
 		// 2. /run/systemd -> XDG_RUNTIME_DIR/rootless-cni/run/systemd (only if it exists)
 		// 3. XDG_RUNTIME_DIR/rootless-cni/resolv.conf -> /etc/resolv.conf or XDG_RUNTIME_DIR/rootless-cni/run/symlink/target
 		// 4. XDG_RUNTIME_DIR/rootless-cni/var/lib/cni -> /var/lib/cni (if /var/lib/cni does not exists use the parent dir)
@@ -174,16 +174,16 @@ func (r *RootlessCNI) Do(toRun func() error) error {
 			return errors.Wrapf(err, "cannot create a new mount namespace")
 		}
 
-		netNsDir, err := netns.GetNSRunDir()
+		xdgRuntimeDir, err := util.GetRuntimeDir()
 		if err != nil {
-			return errors.Wrap(err, "could not get network namespace directory")
+			return errors.Wrap(err, "could not get runtime directory")
 		}
-		newNetNsDir := r.getPath(netNsDir)
+		newXDGRuntimeDir := r.getPath(xdgRuntimeDir)
 		// 1. Mount the netns into the new run to keep them accessible.
 		// Otherwise cni setup will fail because it cannot access the netns files.
-		err = unix.Mount(netNsDir, newNetNsDir, "none", unix.MS_BIND|unix.MS_SHARED|unix.MS_REC, "")
+		err = unix.Mount(xdgRuntimeDir, newXDGRuntimeDir, "none", unix.MS_BIND|unix.MS_SHARED|unix.MS_REC, "")
 		if err != nil {
-			return errors.Wrap(err, "failed to mount netns directory for rootless cni")
+			return errors.Wrap(err, "failed to mount runtime directory for rootless cni")
 		}
 
 		// 2. Also keep /run/systemd if it exists.
