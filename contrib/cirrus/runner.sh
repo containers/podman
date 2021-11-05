@@ -206,7 +206,7 @@ function _run_consistency() {
     output=$(python3 $GOSRC/$SCRIPT_BASE/find_unicode_control2.py \
                  -d -c $GOSRC/$SCRIPT_BASE/unicode_scan_conf.py \
                  $GOSRC/* \
-                 &>)
+                 2>&1)
     if [[ -n $(tr -d '[:space:]' <<<"$output") ]]; then
         die "Expecting no output, received:
 $output"

@@ -221,7 +221,7 @@ bindings_task:
     only_if: &not_docs $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
     skip: *branches_and_tags
     depends_on:
-        - build
+        - consistency
     gce_instance: *standardvm
     env:
         <<: *stdenvars
@@ -244,7 +244,7 @@ swagger_task:
     name: "Test Swagger"
     alias: swagger
     depends_on:
-        - build
+        - consistency
     gce_instance: *standardvm
     env:
         <<: *stdenvars
@@ -273,7 +273,7 @@ consistency_task:
     alias: consistency
     skip: *tags
     depends_on:
-        - build
+        - validate
     container: *smallcontainer
     env:
         <<: *stdenvars
@@ -378,7 +378,7 @@ docker-py_test_task:
     skip: *tags
     only_if: *not_docs
     depends_on:
-        - build
+        - consistency
     gce_instance: *standardvm
     env:
         <<: *stdenvars
@@ -399,7 +399,7 @@ unit_test_task:
     skip: *tags
     only_if: *not_docs
     depends_on:
-        - validate
+        - consistency
     matrix:
         - env: *stdenvars
         - env: *priorfedora_envvars
@@ -425,7 +425,7 @@ apiv2_test_task:
     only_if: *not_docs
     skip: *tags
     depends_on:
-        - validate
+        - consistency
     gce_instance: *standardvm
     # Test is normally pretty quick, about 10-minutes.  If it hangs,
     # don't make developers wait the full 1-hour timeout.
@@ -452,7 +452,7 @@ compose_test_task:
     only_if: *not_docs
     skip: *tags
     depends_on:
-        - validate
+        - consistency
     gce_instance: *standardvm
     env:
         <<: *stdenvars
