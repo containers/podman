@@ -99,6 +99,7 @@ type PodNetworkConfig struct {
 	// Only available if NetNS is set to Bridge (the default for root).
 	// As such, conflicts with NoInfra=true by proxy.
 	// Optional.
+	// swagger:strfmt string
 	StaticMAC *types.HardwareAddr `json:"static_mac,omitempty"`
 	// PortMappings is a set of ports to map into the infra container.
 	// As, by default, containers share their network with the infra
