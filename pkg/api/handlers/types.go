@@ -44,7 +44,13 @@ type ContainersPruneReport struct {
 type LibpodContainersPruneReport struct {
 	ID             string `json:"Id"`
 	SpaceReclaimed int64  `json:"Size"`
-	PruneError     string `json:"Err,omitempty"`
+	// Error which occurred during prune operation (if any).
+	// This field is optional and may be omitted if no error occurred.
+	//
+	// Extensions:
+	// x-omitempty: true
+	// x-nullable: true
+	PruneError string `json:"Err,omitempty"`
 }
 
 type Info struct {
