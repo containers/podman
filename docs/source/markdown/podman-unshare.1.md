@@ -30,10 +30,10 @@ The unshare session defines two environment variables:
 
 Print usage statement
 
-#### **--rootless-cni**
+#### **--rootless-netns**
 
-Join the rootless network namespace used for CNI networking. It can be used to
-connect to a rootless container via IP address (CNI networking). This is otherwise
+Join the rootless network namespace used for CNI and netavark networking. It can be used to
+connect to a rootless container via IP address (bridge networking). This is otherwise
 not possible from the host network namespace.
 _Note: Using this option with more than one unshare session can have unexpected results._
 
@@ -78,7 +78,7 @@ $ podman unshare cat /proc/self/uid_map /proc/self/gid_map
          0       1000          1
          1      10000      65536
 
-$ podman unshare --rootless-cni ip addr
+$ podman unshare --rootless-netns ip addr
 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
     inet 127.0.0.1/8 scope host lo

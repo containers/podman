@@ -360,15 +360,15 @@ func (ic *ContainerEngine) Unshare(ctx context.Context, args []string, options e
 		return cmd.Run()
 	}
 
-	if options.RootlessCNI {
-		rootlesscni, err := ic.Libpod.GetRootlessCNINetNs(true)
+	if options.RootlessNetNS {
+		rootlessNetNS, err := ic.Libpod.GetRootlessNetNs(true)
 		if err != nil {
 			return err
 		}
 		// make sure to unlock, unshare can run for a long time
-		rootlesscni.Lock.Unlock()
-		defer rootlesscni.Cleanup(ic.Libpod)
-		return rootlesscni.Do(unshare)
+		rootlessNetNS.Lock.Unlock()
+		defer rootlessNetNS.Cleanup(ic.Libpod)
+		return rootlessNetNS.Do(unshare)
 	}
 	return unshare()
 }

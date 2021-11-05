@@ -100,7 +100,7 @@ type SystemVersionReport struct {
 
 // SystemUnshareOptions describes the options for the unshare command
 type SystemUnshareOptions struct {
-	RootlessCNI bool
+	RootlessNetNS bool
 }
 
 type ComponentVersion struct {
