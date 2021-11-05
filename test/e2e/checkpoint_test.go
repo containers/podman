@@ -5,9 +5,11 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/checkpoint-restore/go-criu/v5/stats"
 	"github.com/containers/podman/v3/pkg/checkpoint/crutils"
 	"github.com/containers/podman/v3/pkg/criu"
 	. "github.com/containers/podman/v3/test/utils"
@@ -1187,6 +1189,57 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(result).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
+
+		// Remove exported checkpoint
+		os.Remove(fileName)
+	})
+
+	It("podman checkpoint container with export and statistics", func() {
+		localRunString := getRunString([]string{
+			"--rm",
+			ALPINE,
+			"top",
+		})
+		session := podmanTest.Podman(localRunString)
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		cid := session.OutputToString()
+		fileName := "/tmp/checkpoint-" + cid + ".tar.gz"
+
+		result := podmanTest.Podman([]string{
+			"container",
+			"checkpoint",
+			"-l", "-e",
+			fileName,
+		})
+		result.WaitWithDefaultTimeout()
+
+		// As the container has been started with '--rm' it will be completely
+		// cleaned up after checkpointing.
+		Expect(result).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
+
+		// Extract checkpoint archive
+		destinationDirectory, err := CreateTempDirInTempDir()
+		Expect(err).ShouldNot(HaveOccurred())
+
+		tarsession := SystemExec(
+			"tar",
+			[]string{
+				"xf",
+				fileName,
+				"-C",
+				destinationDirectory,
+			},
+		)
+		Expect(tarsession).Should(Exit(0))
+
+		_, err = os.Stat(filepath.Join(destinationDirectory, stats.StatsDump))
+		Expect(err).ShouldNot(HaveOccurred())
+
+		Expect(os.RemoveAll(destinationDirectory)).To(BeNil())
 
 		// Remove exported checkpoint
 		os.Remove(fileName)
