@@ -465,7 +465,7 @@ func (c *Container) NewNetNS() bool {
 // PortMappings returns the ports that will be mapped into a container if
 // a new network namespace is created
 // If NewNetNS() is false, this value is unused
-func (c *Container) PortMappings() ([]types.OCICNIPortMapping, error) {
+func (c *Container) PortMappings() ([]types.PortMapping, error) {
 	// First check if the container belongs to a network namespace (like a pod)
 	if len(c.config.NetNsCtr) > 0 {
 		netNsCtr, err := c.runtime.GetContainer(c.config.NetNsCtr)

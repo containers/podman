@@ -38,9 +38,9 @@ type slirpFeatures struct {
 type slirp4netnsCmdArg struct {
 	Proto     string `json:"proto,omitempty"`
 	HostAddr  string `json:"host_addr"`
-	HostPort  int32  `json:"host_port"`
+	HostPort  uint16 `json:"host_port"`
 	GuestAddr string `json:"guest_addr"`
-	GuestPort int32  `json:"guest_port"`
+	GuestPort uint16 `json:"guest_port"`
 }
 
 type slirp4netnsCmd struct {

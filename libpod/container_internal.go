@@ -667,6 +667,19 @@ func (c *Container) refresh() error {
 	c.state.NetworkStatus = nil
 	c.state.NetworkStatusOld = nil
 
+	// Rewrite the config if necessary.
+	// Podman 4.0 uses a new port format in the config.
+	// getContainerConfigFromDB() already converted the old ports to the new one
+	// but it did not write the config to the db back for performance reasons.
+	// If a rewrite must happen the config.rewrite field is set to true.
+	if c.config.rewrite {
+		// SafeRewriteContainerConfig must be used with care. Make sure to not change config fields by accident.
+		if err := c.runtime.state.SafeRewriteContainerConfig(c, "", "", c.config); err != nil {
+			return errors.Wrapf(err, "failed to rewrite the config for container %s", c.config.ID)
+		}
+		c.config.rewrite = false
+	}
+
 	if err := c.save(); err != nil {
 		return errors.Wrapf(err, "error refreshing state for container %s", c.ID())
 	}

@@ -54,7 +54,7 @@ type ListContainer struct {
 	// boolean to be set
 	PodName string
 	// Port mappings
-	Ports []types.OCICNIPortMapping
+	Ports []types.PortMapping
 	// Size of the container rootfs.  Requires the size boolean to be true
 	Size *define.ContainerSize
 	// Time when container started

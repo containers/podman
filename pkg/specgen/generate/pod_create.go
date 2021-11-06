@@ -204,11 +204,11 @@ func createPodOptions(p *specgen.PodSpecGenerator, rt *libpod.Runtime, infraSpec
 // replacing necessary values with those specified in pod creation
 func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 	if len(p.PortMappings) > 0 {
-		ports, _, _, err := ParsePortMapping(p.PortMappings)
+		ports, err := ParsePortMapping(p.PortMappings, nil)
 		if err != nil {
 			return nil, err
 		}
-		p.InfraContainerSpec.PortMappings = libpod.WithInfraContainerPorts(ports, p.InfraContainerSpec)
+		p.InfraContainerSpec.PortMappings = ports
 	}
 	switch p.NetNS.NSMode {
 	case specgen.Default, "":

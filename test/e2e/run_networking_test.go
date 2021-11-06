@@ -494,6 +494,23 @@ var _ = Describe("Podman run networking", func() {
 		Expect(containerConfig[0].NetworkSettings.Ports["80/tcp"][0].HostPort).ToNot(Equal(80))
 	})
 
+	It("podman run forward sctp protocol", func() {
+		SkipIfRootless("sctp protocol only works as root")
+		session := podmanTest.Podman([]string{"--log-level=info", "run", "--name=test", "-p", "80/sctp", "-p", "81/sctp", ALPINE})
+		session.Wait(90)
+		Expect(session).Should(Exit(0))
+		// we can only check logrus on local podman
+		if !IsRemote() {
+			// check that the info message for sctp protocol is only displayed once
+			Expect(strings.Count(session.ErrorToString(), "Port reservation for SCTP is not supported")).To(Equal(1), "`Port reservation for SCTP is not supported` is not displayed exactly one time in the logrus logs")
+		}
+		results := podmanTest.Podman([]string{"inspect", "test"})
+		results.Wait(30)
+		Expect(results).Should(Exit(0))
+		Expect(results.OutputToString()).To(ContainSubstring(`"80/sctp":`))
+		Expect(results.OutputToString()).To(ContainSubstring(`"81/sctp":`))
+	})
+
 	It("podman run hostname test", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "printenv", "HOSTNAME"})
 		session.WaitWithDefaultTimeout()

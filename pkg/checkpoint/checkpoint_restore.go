@@ -193,7 +193,7 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 	}
 
 	if len(restoreOptions.PublishPorts) > 0 {
-		ports, _, _, err := generate.ParsePortMapping(restoreOptions.PublishPorts)
+		ports, err := generate.ParsePortMapping(restoreOptions.PublishPorts, nil)
 		if err != nil {
 			return nil, err
 		}

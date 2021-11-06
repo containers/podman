@@ -97,6 +97,7 @@ podman \$opts run    --name myfailedcontainer  --label mylabel=$LABEL_FAILED \
 podman \$opts run -d --name myrunningcontainer --label mylabel=$LABEL_RUNNING \
                                                --network bridge \
                                                -p $HOST_PORT:80 \
+                                               -p 127.0.0.1:8080-8082:8080-8082 \
                                                -v $pmroot/var/www:/var/www \
                                                -w /var/www \
                                                --mac-address aa:bb:cc:dd:ee:ff \
@@ -186,7 +187,7 @@ EOF
     is "${lines[1]}" "mycreatedcontainer--Created----$LABEL_CREATED" "created"
     is "${lines[2]}" "mydonecontainer--Exited (0).*----<no value>" "done"
     is "${lines[3]}" "myfailedcontainer--Exited (17) .*----$LABEL_FAILED" "fail"
-    is "${lines[4]}" "myrunningcontainer--Up .*--0.0.0.0:$HOST_PORT->80/tcp--$LABEL_RUNNING" "running"
+    is "${lines[4]}" "myrunningcontainer--Up .*--0\.0\.0\.0:$HOST_PORT->80\/tcp, 127\.0\.0\.1\:8080-8082->8080-8082\/tcp--$LABEL_RUNNING" "running"
 
     # For debugging: dump containers and IDs
     if [[ -n "$PODMAN_UPGRADE_TEST_DEBUG" ]]; then

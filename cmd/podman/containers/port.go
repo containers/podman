@@ -8,7 +8,6 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
-	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -73,7 +72,8 @@ func port(_ *cobra.Command, args []string) error {
 	var (
 		container string
 		err       error
-		userPort  types.OCICNIPortMapping
+		userPort  uint16
+		userProto string
 	)
 
 	if len(args) == 0 && !portOpts.Latest && !portOpts.All {
@@ -101,16 +101,12 @@ func port(_ *cobra.Command, args []string) error {
 			fields = append(fields, "tcp")
 		}
 
-		portNum, err := strconv.Atoi(fields[0])
+		portNum, err := strconv.ParseUint(fields[0], 10, 16)
 		if err != nil {
 			return err
 		}
-		userPort = types.OCICNIPortMapping{
-			HostPort:      0,
-			ContainerPort: int32(portNum),
-			Protocol:      fields[1],
-			HostIP:        "",
-		}
+		userPort = uint16(portNum)
+		userProto = fields[1]
 	}
 
 	reports, err := registry.ContainerEngine().ContainerPort(registry.GetContext(), container, portOpts)
@@ -120,24 +116,36 @@ func port(_ *cobra.Command, args []string) error {
 	var found bool
 	// Iterate mappings
 	for _, report := range reports {
+		allPrefix := ""
+		if portOpts.All {
+			allPrefix = report.Id[:12] + "\t"
+		}
 		for _, v := range report.Ports {
 			hostIP := v.HostIP
 			// Set host IP to 0.0.0.0 if blank
 			if hostIP == "" {
 				hostIP = "0.0.0.0"
 			}
-			if portOpts.All {
-				fmt.Printf("%s\t", report.Id[:12])
-			}
-			// If not searching by port or port/proto, then dump what we see
-			if port == "" {
-				fmt.Printf("%d/%s -> %s:%d\n", v.ContainerPort, v.Protocol, hostIP, v.HostPort)
-				continue
-			}
-			if v.ContainerPort == userPort.ContainerPort {
-				fmt.Printf("%s:%d\n", hostIP, v.HostPort)
-				found = true
-				break
+			protocols := strings.Split(v.Protocol, ",")
+			for _, protocol := range protocols {
+				// If not searching by port or port/proto, then dump what we see
+				if port == "" {
+					for i := uint16(0); i < v.Range; i++ {
+						fmt.Printf("%s%d/%s -> %s:%d\n", allPrefix, v.ContainerPort+i, protocol, hostIP, v.HostPort+i)
+					}
+					continue
+				}
+				// check if the proto matches and if the port is in the range
+				// this is faster than looping over the range for no reason
+				if v.Protocol == userProto &&
+					v.ContainerPort <= userPort &&
+					v.ContainerPort+v.Range > userPort {
+					// we have to add the current range to the host port
+					hostPort := v.HostPort + userPort - v.ContainerPort
+					fmt.Printf("%s%s:%d\n", allPrefix, hostIP, hostPort)
+					found = true
+					break
+				}
 			}
 		}
 		if !found && port != "" {
