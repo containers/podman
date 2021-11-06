@@ -664,9 +664,6 @@ func (v *MachineVM) startHostNetworking() error {
 		return err
 	}
 
-	// Listen on all at port 7777 for setting up and tearing
-	// down forwarding
-	listenSocket := "tcp://0.0.0.0:7777"
 	qemuSocket, pidFile, err := v.getSocketandPid()
 	if err != nil {
 		return err
@@ -676,7 +673,7 @@ func (v *MachineVM) startHostNetworking() error {
 	files := []*os.File{os.Stdin, os.Stdout, os.Stderr}
 	attr.Files = files
 	cmd := []string{binary}
-	cmd = append(cmd, []string{"-listen", listenSocket, "-listen-qemu", fmt.Sprintf("unix://%s", qemuSocket), "-pid-file", pidFile}...)
+	cmd = append(cmd, []string{"-listen-qemu", fmt.Sprintf("unix://%s", qemuSocket), "-pid-file", pidFile}...)
 	// Add the ssh port
 	cmd = append(cmd, []string{"-ssh-port", fmt.Sprintf("%d", v.Port)}...)
 	if logrus.GetLevel() == logrus.DebugLevel {
