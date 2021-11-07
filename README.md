@@ -168,7 +168,11 @@ was replaced by the REST API. Varlink support has been removed as of the 3.0 rel
 For more details, you can see [this blog](https://podman.io/blogs/2020/01/17/podman-new-api.html).
 
 ## Static Binary Builds
-The Cirrus CI integration within this repository contains a `static_build` job
-which produces a static Podman binary for testing purposes. Please note that
-this binary is not officially supported with respect to feature-completeness
-and functionality and should be only used for testing.
+The Cirrus CI integration within this repository contains a `Static_Build` job
+which produces static Podman binaries for testing purposes. Please note that
+these binaries are not officially supported with respect to feature-completeness
+and functionality and should be only used for testing. To download these binaries,
+load the build link with the commit SHA at
+[main](https://cirrus-ci.com/github/containers/podman/main) or
+`https://cirrus-ci.com/github/containers/podman/pull/<selected PR>`
+and open the artifacts folder within `Static Build`.
