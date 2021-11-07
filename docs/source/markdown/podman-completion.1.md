@@ -40,7 +40,7 @@ Shell completion needs to be already enabled in the environment. The following c
 **echo "autoload -U compinit; compinit" >> ~/.zshrc**
 
 To make it available for all zsh sessions run:\
-**podman completion -f "${fpath[1]}/_podman zsh"**
+**podman completion -f "${fpath[1]}/_podman" zsh**
 
 Once the shell is reloaded the auto-completion should be working.
 
