@@ -166,9 +166,83 @@ func (v *Volume) GenerateForKube() *v1.PersistentVolumeClaim {
 	}
 }
 
+// YAMLPodSpec represents the same k8s API core PodSpec struct with a small
+// change and that is having Containers as a pointer to YAMLContainer.
+// Because Go doesn't omit empty struct and we want to omit Status in YAML
+// if it's empty. Fixes: GH-11998
+type YAMLPodSpec struct {
+	v1.PodSpec
+	Containers []*YAMLContainer `json:"containers"`
+}
+
+// YAMLPod represents the same k8s API core Pod struct with a small
+// change and that is having Spec as a pointer to YAMLPodSpec and
+// Status as a pointer to k8s API core PodStatus.
+// Because Go doesn't omit empty struct and we want to omit Status in YAML
+// if it's empty. Fixes: GH-11998
+type YAMLPod struct {
+	v1.Pod
+	Spec   *YAMLPodSpec  `json:"spec,omitempty"`
+	Status *v1.PodStatus `json:"status,omitempty"`
+}
+
+// YAMLService represents the same k8s API core Service struct with a small
+// change and that is having Status as a pointer to k8s API core ServiceStatus.
+// Because Go doesn't omit empty struct and we want to omit Status in YAML
+// if it's empty. Fixes: GH-11998
+type YAMLService struct {
+	v1.Service
+	Status *v1.ServiceStatus `json:"status,omitempty"`
+}
+
+// YAMLContainer represents the same k8s API core Container struct with a small
+// change and that is having Resources as a pointer to k8s API core ResourceRequirements.
+// Because Go doesn't omit empty struct and we want to omit Status in YAML
+// if it's empty. Fixes: GH-11998
+type YAMLContainer struct {
+	v1.Container
+	Resources *v1.ResourceRequirements `json:"resources,omitempty"`
+}
+
+// ConvertV1PodToYAMLPod takes k8s API core Pod and returns a pointer to YAMLPod
+func ConvertV1PodToYAMLPod(pod *v1.Pod) *YAMLPod {
+	cs := []*YAMLContainer{}
+	for _, cc := range pod.Spec.Containers {
+		var res *v1.ResourceRequirements = nil
+		if len(cc.Resources.Limits) > 0 || len(cc.Resources.Requests) > 0 {
+			res = &cc.Resources
+		}
+		cs = append(cs, &YAMLContainer{Container: cc, Resources: res})
+	}
+	mpo := &YAMLPod{Pod: *pod}
+	mpo.Spec = &YAMLPodSpec{PodSpec: (*pod).Spec, Containers: cs}
+	for _, ctr := range pod.Spec.Containers {
+		if ctr.SecurityContext == nil || ctr.SecurityContext.SELinuxOptions == nil {
+			continue
+		}
+		selinuxOpts := ctr.SecurityContext.SELinuxOptions
+		if selinuxOpts.User == "" && selinuxOpts.Role == "" && selinuxOpts.Type == "" && selinuxOpts.Level == "" {
+			ctr.SecurityContext.SELinuxOptions = nil
+		}
+	}
+	dnsCfg := pod.Spec.DNSConfig
+	if dnsCfg != nil && (len(dnsCfg.Nameservers)+len(dnsCfg.Searches)+len(dnsCfg.Options) > 0) {
+		mpo.Spec.DNSConfig = dnsCfg
+	}
+	status := pod.Status
+	if status.Phase != "" || len(status.Conditions) > 0 ||
+		status.Message != "" || status.Reason != "" ||
+		status.NominatedNodeName != "" || status.HostIP != "" ||
+		status.PodIP != "" || status.StartTime != nil ||
+		len(status.InitContainerStatuses) > 0 || len(status.ContainerStatuses) > 0 || status.QOSClass != "" || len(status.EphemeralContainerStatuses) > 0 {
+		mpo.Status = &status
+	}
+	return mpo
+}
+
 // GenerateKubeServiceFromV1Pod creates a v1 service object from a v1 pod object
-func GenerateKubeServiceFromV1Pod(pod *v1.Pod, servicePorts []v1.ServicePort) v1.Service {
-	service := v1.Service{}
+func GenerateKubeServiceFromV1Pod(pod *v1.Pod, servicePorts []v1.ServicePort) YAMLService {
+	service := YAMLService{}
 	selector := make(map[string]string)
 	selector["app"] = pod.Labels["app"]
 	ports := servicePorts
