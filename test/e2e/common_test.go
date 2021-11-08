@@ -208,9 +208,7 @@ var _ = SynchronizedAfterSuite(func() {},
 
 // PodmanTestCreate creates a PodmanTestIntegration instance for the tests
 func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
-	var (
-		podmanRemoteBinary string
-	)
+	var podmanRemoteBinary string
 
 	host := GetHostDistributionInfo()
 	cwd, _ := os.Getwd()
@@ -220,12 +218,11 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 		podmanBinary = os.Getenv("PODMAN_BINARY")
 	}
 
-	if remote {
-		podmanRemoteBinary = filepath.Join(cwd, "../../bin/podman-remote")
-		if os.Getenv("PODMAN_REMOTE_BINARY") != "" {
-			podmanRemoteBinary = os.Getenv("PODMAN_REMOTE_BINARY")
-		}
+	podmanRemoteBinary = filepath.Join(cwd, "../../bin/podman-remote")
+	if os.Getenv("PODMAN_REMOTE_BINARY") != "" {
+		podmanRemoteBinary = os.Getenv("PODMAN_REMOTE_BINARY")
 	}
+
 	conmonBinary := filepath.Join("/usr/libexec/podman/conmon")
 	altConmonBinary := "/usr/bin/conmon"
 	if _, err := os.Stat(conmonBinary); os.IsNotExist(err) {
@@ -271,12 +268,13 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 
 	p := &PodmanTestIntegration{
 		PodmanTest: PodmanTest{
-			PodmanBinary:  podmanBinary,
-			ArtifactPath:  ARTIFACT_DIR,
-			TempDir:       tempDir,
-			RemoteTest:    remote,
-			ImageCacheFS:  storageFs,
-			ImageCacheDir: ImageCacheDir,
+			PodmanBinary:       podmanBinary,
+			RemotePodmanBinary: podmanRemoteBinary,
+			ArtifactPath:       ARTIFACT_DIR,
+			TempDir:            tempDir,
+			RemoteTest:         remote,
+			ImageCacheFS:       storageFs,
+			ImageCacheDir:      ImageCacheDir,
 		},
 		ConmonBinary:        conmonBinary,
 		CrioRoot:            filepath.Join(tempDir, "crio"),
@@ -289,8 +287,8 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 		CgroupManager:       cgroupManager,
 		Host:                host,
 	}
+
 	if remote {
-		p.PodmanTest.RemotePodmanBinary = podmanRemoteBinary
 		uuid := stringid.GenerateNonCryptoID()
 		if !rootless.IsRootless() {
 			p.RemoteSocket = fmt.Sprintf("unix:/run/podman/podman-%s.sock", uuid)
@@ -632,6 +630,19 @@ func SkipIfNotRootless(reason string) {
 	}
 }
 
+func SkipIfSystemdNotRunning(reason string) {
+	checkReason(reason)
+
+	cmd := exec.Command("systemctl", "list-units")
+	err := cmd.Run()
+	if err != nil {
+		if _, ok := err.(*exec.Error); ok {
+			ginkgo.Skip("[notSystemd]: not running " + reason)
+		}
+		Expect(err).ToNot(HaveOccurred())
+	}
+}
+
 func SkipIfNotSystemd(manager, reason string) {
 	checkReason(reason)
 	if manager != "systemd" {
@@ -680,6 +691,41 @@ func SkipIfContainerized(reason string) {
 	checkReason(reason)
 	if isContainerized() {
 		Skip(reason)
+	}
+}
+
+func SkipIfRemote(reason string) {
+	checkReason(reason)
+	if !IsRemote() {
+		return
+	}
+	ginkgo.Skip("[remote]: " + reason)
+}
+
+// SkipIfInContainer skips a test if the test is run inside a container
+func SkipIfInContainer(reason string) {
+	checkReason(reason)
+	if os.Getenv("TEST_ENVIRON") == "container" {
+		Skip("[container]: " + reason)
+	}
+}
+
+// SkipIfNotActive skips a test if the given systemd unit is not active
+func SkipIfNotActive(unit string, reason string) {
+	checkReason(reason)
+
+	var buffer bytes.Buffer
+	cmd := exec.Command("systemctl", "is-active", unit)
+	cmd.Stdout = &buffer
+	err := cmd.Start()
+	Expect(err).ToNot(HaveOccurred())
+
+	err = cmd.Wait()
+	Expect(err).ToNot(HaveOccurred())
+
+	Expect(err).ToNot(HaveOccurred())
+	if strings.TrimSpace(buffer.String()) != "active" {
+		Skip(fmt.Sprintf("[systemd]: unit %s is not active: %s", unit, reason))
 	}
 }
 
