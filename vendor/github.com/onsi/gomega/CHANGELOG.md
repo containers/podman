@@ -1,3 +1,15 @@
+## 1.17.0
+
+### Features
+- Add HaveField matcher [3a26311]
+- add Error() assertions on the final error value of multi-return values (#480) [2f96943]
+- separate out offsets and timeouts (#478) [18a4723]
+- fix transformation error reporting (#479) [e001fab]
+- allow transform functions to report errors (#472) [bf93408]
+
+### Fixes
+Stop using deprecated ioutil package (#467) [07f405d]
+
 ## 1.16.0
 
 ### Features

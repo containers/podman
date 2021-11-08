@@ -87,6 +87,21 @@ func NewAsyncAssertion(asyncType AsyncAssertionType, actualInput interface{}, g 
 	return out
 }
 
+func (assertion *AsyncAssertion) WithOffset(offset int) types.AsyncAssertion {
+	assertion.offset = offset
+	return assertion
+}
+
+func (assertion *AsyncAssertion) WithTimeout(interval time.Duration) types.AsyncAssertion {
+	assertion.timeoutInterval = interval
+	return assertion
+}
+
+func (assertion *AsyncAssertion) WithPolling(interval time.Duration) types.AsyncAssertion {
+	assertion.pollingInterval = interval
+	return assertion
+}
+
 func (assertion *AsyncAssertion) Should(matcher types.GomegaMatcher, optionalDescription ...interface{}) bool {
 	assertion.g.THelper()
 	return assertion.match(matcher, true, optionalDescription...)
@@ -118,11 +133,11 @@ func (assertion *AsyncAssertion) pollActual() (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	extras := []interface{}{}
+	extras := []interface{}{nil}
 	for _, value := range values[1:] {
 		extras = append(extras, value.Interface())
 	}
-	success, message := vetExtras(extras)
+	success, message := vetActuals(extras, 0)
 	if !success {
 		return nil, errors.New(message)
 	}

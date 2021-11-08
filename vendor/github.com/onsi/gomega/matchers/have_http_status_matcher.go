@@ -2,7 +2,7 @@ package matchers
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -78,7 +78,7 @@ func formatHttpResponse(input interface{}) string {
 	body := "<nil>"
 	if resp.Body != nil {
 		defer resp.Body.Close()
-		data, err := ioutil.ReadAll(resp.Body)
+		data, err := io.ReadAll(resp.Body)
 		if err != nil {
 			data = []byte("<error reading body>")
 		}

@@ -22,7 +22,7 @@ import (
 	"github.com/onsi/gomega/types"
 )
 
-const GOMEGA_VERSION = "1.16.0"
+const GOMEGA_VERSION = "1.17.0"
 
 const nilGomegaPanic = `You are trying to make an assertion, but haven't registered Gomega's fail handler.
 If you're using Ginkgo then you probably forgot to put your assertion in an It().
@@ -204,7 +204,8 @@ func Expect(actual interface{}, extra ...interface{}) Assertion {
 //    ExpectWithOffset(1, "foo").To(Equal("foo"))
 //
 // Unlike `Expect` and `Ω`, `ExpectWithOffset` takes an additional integer argument
-// that is used to modify the call-stack offset when computing line numbers.
+// that is used to modify the call-stack offset when computing line numbers. It is
+// the same as `Expect(...).WithOffset`.
 //
 // This is most useful in helper functions that make assertions.  If you want Gomega's
 // error message to refer to the calling line in the test (as opposed to the line in the helper function)
@@ -300,6 +301,9 @@ For example:
     }).Should(Succeed())
 
 will rerun the function until all assertions pass.
+
+`Eventually` specifying a timeout interval (and an optional polling interval) are
+the same as `Eventually(...).WithTimeout` or `Eventually(...).WithTimeout(...).WithPolling`.
 */
 func Eventually(actual interface{}, intervals ...interface{}) AsyncAssertion {
 	ensureDefaultGomegaIsConfigured()
@@ -309,6 +313,12 @@ func Eventually(actual interface{}, intervals ...interface{}) AsyncAssertion {
 // EventuallyWithOffset operates like Eventually but takes an additional
 // initial argument to indicate an offset in the call stack.  This is useful when building helper
 // functions that contain matchers.  To learn more, read about `ExpectWithOffset`.
+//
+// `EventuallyWithOffset` is the same as `Eventually(...).WithOffset`.
+//
+// `EventuallyWithOffset` specifying a timeout interval (and an optional polling interval) are
+// the same as `Eventually(...).WithOffset(...).WithTimeout` or
+// `Eventually(...).WithOffset(...).WithTimeout(...).WithPolling`.
 func EventuallyWithOffset(offset int, actual interface{}, intervals ...interface{}) AsyncAssertion {
 	ensureDefaultGomegaIsConfigured()
 	return Default.EventuallyWithOffset(offset, actual, intervals...)
@@ -337,6 +347,9 @@ func Consistently(actual interface{}, intervals ...interface{}) AsyncAssertion {
 // ConsistentlyWithOffset operates like Consistently but takes an additional
 // initial argument to indicate an offset in the call stack. This is useful when building helper
 // functions that contain matchers. To learn more, read about `ExpectWithOffset`.
+//
+// `ConsistentlyWithOffset` is the same as `Consistently(...).WithOffset` and
+// optional `WithTimeout` and `WithPolling`.
 func ConsistentlyWithOffset(offset int, actual interface{}, intervals ...interface{}) AsyncAssertion {
 	ensureDefaultGomegaIsConfigured()
 	return Default.ConsistentlyWithOffset(offset, actual, intervals...)
