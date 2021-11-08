@@ -108,15 +108,6 @@ func (c *Container) prepare() error {
 			c.state.NetNS = netNS
 			c.state.NetworkStatus = networkStatus
 		}
-
-		// handle rootless network namespace setup
-		if noNetNS && !c.config.PostConfigureNetNS {
-			if rootless.IsRootless() {
-				createNetNSErr = c.runtime.setupRootlessNetNS(c)
-			} else if c.config.NetMode.IsSlirp4netns() {
-				createNetNSErr = c.runtime.setupSlirp4netns(c)
-			}
-		}
 	}()
 	// Mount storage if not mounted
 	go func() {

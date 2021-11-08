@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/errorhandling"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/rootlessport"
@@ -207,7 +208,7 @@ func createBasicSlirp4netnsCmdArgs(options *slirp4netnsNetworkOptions, features 
 }
 
 // setupSlirp4netns can be called in rootful as well as in rootless
-func (r *Runtime) setupSlirp4netns(ctr *Container) error {
+func (r *Runtime) setupSlirp4netns(ctr *Container, netns ns.NetNS) error {
 	path := r.config.Engine.NetworkCmdPath
 	if path == "" {
 		var err error
@@ -263,7 +264,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to create rootless network sync pipe")
 		}
-		netnsPath = ctr.state.NetNS.Path()
+		netnsPath = netns.Path()
 		cmdArgs = append(cmdArgs, "--netns-type=path", netnsPath, "tap0")
 	} else {
 		defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncR)
@@ -366,7 +367,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container) error {
 		if netOptions.isSlirpHostForward {
 			return r.setupRootlessPortMappingViaSlirp(ctr, cmd, apiSocket)
 		}
-		return r.setupRootlessPortMappingViaRLK(ctr, netnsPath)
+		return r.setupRootlessPortMappingViaRLK(ctr, netnsPath, nil)
 	}
 
 	return nil
@@ -479,7 +480,7 @@ func waitForSync(syncR *os.File, cmd *exec.Cmd, logFile io.ReadSeeker, timeout t
 	return nil
 }
 
-func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath string) error {
+func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath string, netStatus map[string]types.StatusBlock) error {
 	syncR, syncW, err := os.Pipe()
 	if err != nil {
 		return errors.Wrapf(err, "failed to open pipe")
@@ -506,7 +507,7 @@ func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath strin
 		}
 	}
 
-	childIP := getRootlessPortChildIP(ctr)
+	childIP := getRootlessPortChildIP(ctr, netStatus)
 	cfg := rootlessport.Config{
 		Mappings:    ctr.config.PortMappings,
 		NetNSPath:   netnsPath,
@@ -531,9 +532,7 @@ func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath strin
 	cmd.Args = []string{rootlessport.BinaryName}
 
 	// Leak one end of the pipe in rootlessport process, the other will be sent to conmon
-	if ctr.rootlessPortSyncR != nil {
-		defer errorhandling.CloseQuiet(ctr.rootlessPortSyncR)
-	}
+	defer errorhandling.CloseQuiet(ctr.rootlessPortSyncR)
 
 	cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessPortSyncR, syncW)
 	cmd.Stdin = cfgR
@@ -649,7 +648,7 @@ func (r *Runtime) setupRootlessPortMappingViaSlirp(ctr *Container, cmd *exec.Cmd
 	return nil
 }
 
-func getRootlessPortChildIP(c *Container) string {
+func getRootlessPortChildIP(c *Container, netStatus map[string]types.StatusBlock) string {
 	if c.config.NetMode.IsSlirp4netns() {
 		slirp4netnsIP, err := GetSlirp4netnsIP(c.slirp4netnsSubnet)
 		if err != nil {
@@ -659,7 +658,7 @@ func getRootlessPortChildIP(c *Container) string {
 	}
 
 	var ipv6 net.IP
-	for _, status := range c.getNetworkStatus() {
+	for _, status := range netStatus {
 		for _, netInt := range status.Interfaces {
 			for _, netAddress := range netInt.Networks {
 				ipv4 := netAddress.Subnet.IP.To4()
@@ -679,7 +678,7 @@ func getRootlessPortChildIP(c *Container) string {
 // reloadRootlessRLKPortMapping will trigger a reload for the port mappings in the rootlessport process.
 // This should only be called by network connect/disconnect and only as rootless.
 func (c *Container) reloadRootlessRLKPortMapping() error {
-	childIP := getRootlessPortChildIP(c)
+	childIP := getRootlessPortChildIP(c, c.state.NetworkStatus)
 	logrus.Debugf("reloading rootless ports for container %s, childIP is %s", c.config.ID, childIP)
 
 	conn, err := openUnixSocket(filepath.Join(c.runtime.config.Engine.TmpDir, "rp", c.config.ID))

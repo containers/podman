@@ -78,6 +78,9 @@ load helpers
         if [[ -z $cidr ]]; then
             # regex to match that we are in 10.X subnet
             match="10\..*"
+            # force bridge networking also for rootless
+            # this ensures that rootless + bridge + userns + ports works
+            network_arg="--network bridge"
         else
             # Issue #9828 make sure a custom slir4netns cidr also works
             network_arg="--network slirp4netns:cidr=$cidr"
