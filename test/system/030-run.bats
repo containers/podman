@@ -736,4 +736,14 @@ EOF
     is "$output" "$random_1" "output matches STDIN"
 }
 
+# rhbz#1763007 : the --log-opt for podman run does not work as expected
+@test "podman run with log-opt option" {
+    run_podman run -d --rm --log-opt max-size=1m $IMAGE sleep 5
+    cid=$output
+    run_podman inspect --format "{{ .Config.CreateCommand }}" $cid
+    is "${lines[0]}" ".*max-size=1m.*"
+
+    run_podman rm -t 0 -f $cid
+}
+
 # vim: filetype=sh
