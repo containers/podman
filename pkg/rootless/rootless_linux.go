@@ -325,7 +325,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		uidsMapped = err == nil
 	}
 	if !uidsMapped {
-		logrus.Warnf("Using rootless single mapping into the namespace. This might break some images. Check /etc/subuid and /etc/subgid for adding sub*ids")
+		logrus.Warnf("Using rootless single mapping into the namespace. This might break some images. Check /etc/subuid and /etc/subgid for adding sub*ids if not using a network user")
 		setgroups := fmt.Sprintf("/proc/%d/setgroups", pid)
 		err = ioutil.WriteFile(setgroups, []byte("deny\n"), 0666)
 		if err != nil {
