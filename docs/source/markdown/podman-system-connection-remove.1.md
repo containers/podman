@@ -4,10 +4,16 @@
 podman\-system\-connection\-remove - Delete named destination
 
 ## SYNOPSIS
-**podman system connection remove** *name*
+**podman system connection remove** [*options*] *name*
 
 ## DESCRIPTION
 Delete named ssh destination.
+
+## OPTIONS
+
+#### **--all**=*false*, **-a**
+
+Remove all connections.
 
 ## EXAMPLE
 ```

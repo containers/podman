@@ -34,10 +34,7 @@ function teardown() {
         | xargs -l1 --no-run-if-empty umount
 
     # Remove all system connections
-    run_podman system connection ls --format json
-    while read name; do
-        run_podman system connection rm "$name"
-    done < <(jq -r '.[].Name' <<<"$output")
+    run_podman system connection rm --all
 
     basic_teardown
 }
