@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 BASE_PATH="/usr/libexec/podman"
 CATATONIT_PATH="${BASE_PATH}/catatonit"
-CATATONIT_VERSION="v0.1.4"
+CATATONIT_VERSION="v0.1.7"
 set -e
 
 if [ -f $CATATONIT_PATH ]; then
