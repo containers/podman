@@ -529,7 +529,6 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %{_usr}/lib/tmpfiles.d/podman.conf
 %dir %{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/rootlessport
-%{_libexecdir}/%{name}/pause/pause
 
 %if 0%{?with_devel}
 %files -n libpod-devel -f devel.file-list
