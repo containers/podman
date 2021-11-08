@@ -110,11 +110,11 @@ t GET libpod/pods/fakename/top 404 \
   .cause="no such pod"
 
 t GET libpod/pods/foo/top 200 \
-  .Processes[0][-1]="/pause" \
+  .Processes[0][-1]="/catatonit -P" \
   .Titles[-1]="COMMAND"
 
 t GET libpod/pods/foo/top?ps_args=args,pid 200 \
-  .Processes[0][0]="/pause" \
+  .Processes[0][0]="/catatonit -P" \
   .Processes[0][1]="1" \
   .Titles[0]="COMMAND" \
   .Titles[1]="PID" \

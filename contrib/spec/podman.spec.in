@@ -58,6 +58,7 @@ BuildRequires: libselinux-devel
 BuildRequires: pkgconfig
 BuildRequires: make
 BuildRequires: systemd-devel
+Requires: catatonit >= 0.1.7
 Requires: containers-common
 Requires: conmon
 Requires: containernetworking-plugins >= 0.6.0-3
