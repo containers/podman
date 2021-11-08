@@ -503,7 +503,11 @@ func policy() string {
 	if !registry.IsRemote() {
 		return containerConfig.Engine.PullPolicy
 	}
-	return ""
+	// If registry is remote default pull policy
+	// must be "missing" instead of empty string.
+	// since empty string == PullPolicy {always}
+	// more context: https://github.com/containers/podman/pull/10739
+	return config.DefaultPullPolicy
 }
 
 func shmSize() string {
