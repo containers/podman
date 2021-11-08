@@ -736,4 +736,27 @@ EOF
     is "$output" "$random_1" "output matches STDIN"
 }
 
+# rhbz#1854566 : UBI has incorrect permission 755 on the root '/' filesystem
+@test "podman run UBI image with filesystem permission" {
+    # make sure the ubi7 and ubi8 minimal image have permissiong of 555 like filesystem RPM expects
+    CNAME1=$(random_string 25)
+    CNAME2=$(random_string 25)
+    IMAGE_REGISTRY=registry.access.redhat.com
+    run_podman run -td --name $CNAME1 $IMAGE_REGISTRY/ubi7/ubi-minimal:latest sleep 5
+    run_podman exec -i $CNAME1 ls -lad /
+    is "$output" "dr-xr-xr-x.*"
+    run_podman exec -i $CNAME1 sh -c 'rpm -qV filesystem | grep -v missing'
+    is "${lines[0]}" ".....UG..    /proc"
+    is "${lines[1]}" ".....UG..    /sys"
+
+    run_podman run -td --name $CNAME2 $IMAGE_REGISTRY/ubi8/ubi-minimal:latest sleep 5
+    run_podman exec -i $CNAME2 ls -lad /
+    is "$output" "dr-xr-xr-x.*"
+    run_podman exec -i $CNAME2 sh -c 'rpm -qV filesystem | grep -v missing'
+    is "${lines[0]}" ".....UG..    /proc"
+    is "${lines[1]}" ".....UG..    /sys"
+
+    run_podman rm -f -t 0 $CNAME1 $CNAME2
+}
+
 # vim: filetype=sh
