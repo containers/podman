@@ -204,7 +204,7 @@ LISTEN_FDNAMES=listen_fdnames" "LISTEN Environment passed: $context"
 
 @test "podman generate - systemd template" {
     cname=$(random_string)
-    run_podman run -dt --name $cname $IMAGE top
+    run_podman create --name $cname $IMAGE top
 
     run_podman generate systemd --template -n $cname
     echo "$output" > "$TEMPLATE_FILE_PREFIX@.service"

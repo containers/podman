@@ -394,6 +394,10 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 			info.IdentifySpecifier = true
 			runIx := -1
 			nameIx := -1
+			// Add systemd identify specifier next to the name value
+			// to set a name to the container according to the parameters passed to systemd.
+			// In case no --name set for that container, use ServiceName specified
+			// in the containerInfo struct.
 			for argIx, arg := range startCommand {
 				if arg == "run" {
 					runIx = argIx
