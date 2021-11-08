@@ -18,12 +18,12 @@ import (
 )
 
 var (
-	validFormats    = []string{define.OCIManifestDir, define.OCIArchive, define.V2s2ManifestDir, define.V2s2Archive}
+	validFormats    = []string{define.OCIManifestDir, define.OCIArchive, define.V2s2ManifestDir, define.V2s2Archive, "docker-dir", "docker-archive"}
 	containerConfig = registry.PodmanConfig()
 )
 
 var (
-	saveDescription = `Save an image to docker-archive or oci-archive on the local machine. Default is docker-archive.`
+	saveDescription = `Save an image to compat-archive or oci-archive on the local machine. Default is compat-archive.`
 
 	saveCommand = &cobra.Command{
 		Use:   "save [options] IMAGE [IMAGE...]",
@@ -45,7 +45,7 @@ var (
 		},
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman save --quiet -o myimage.tar imageID
-  podman save --format docker-dir -o ubuntu-dir ubuntu
+  podman save --format dir -o ubuntu-dir ubuntu
   podman save > alpine-all.tar alpine:latest`,
 	}
 
@@ -57,7 +57,7 @@ var (
 		RunE:              saveCommand.RunE,
 		ValidArgsFunction: saveCommand.ValidArgsFunction,
 		Example: `podman image save --quiet -o myimage.tar imageID
-  podman image save --format docker-dir -o ubuntu-dir ubuntu
+  podman image save --format dir -o ubuntu-dir ubuntu
   podman image save > alpine-all.tar alpine:latest`,
 	}
 )
@@ -87,7 +87,7 @@ func saveFlags(cmd *cobra.Command) {
 	flags.BoolVar(&saveOpts.OciAcceptUncompressedLayers, "uncompressed", false, "Accept uncompressed layers when copying OCI images")
 
 	formatFlagName := "format"
-	flags.StringVar(&saveOpts.Format, formatFlagName, define.V2s2Archive, "Save image to oci-archive, oci-dir (directory with oci manifest type), docker-archive, docker-dir (directory with v2s2 manifest type)")
+	flags.StringVar(&saveOpts.Format, formatFlagName, define.V2s2Archive, "Save image to oci-archive, oci-dir (directory with oci manifest type), compat-archive, dir (directory with v2s2 manifest type)")
 	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteImageSaveFormat)
 
 	outputFlagName := "output"
@@ -95,7 +95,7 @@ func saveFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(outputFlagName, completion.AutocompleteDefault)
 
 	flags.BoolVarP(&saveOpts.Quiet, "quiet", "q", false, "Suppress the output")
-	flags.BoolVarP(&saveOpts.MultiImageArchive, "multi-image-archive", "m", containerConfig.Engine.MultiImageArchive, "Interpret additional arguments as images not tags and create a multi-image-archive (only for docker-archive)")
+	flags.BoolVarP(&saveOpts.MultiImageArchive, "multi-image-archive", "m", containerConfig.Engine.MultiImageArchive, "Interpret additional arguments as images not tags and create a multi-image-archive (only for compat-archive)")
 }
 
 func save(cmd *cobra.Command, args []string) (finalErr error) {
@@ -104,7 +104,7 @@ func save(cmd *cobra.Command, args []string) (finalErr error) {
 		succeeded = false
 	)
 	if cmd.Flag("compress").Changed && (saveOpts.Format != define.OCIManifestDir && saveOpts.Format != define.V2s2ManifestDir) {
-		return errors.Errorf("--compress can only be set when --format is either 'oci-dir' or 'docker-dir'")
+		return errors.Errorf("--compress can only be set when --format is either 'oci-dir' or 'dir'")
 	}
 	if len(saveOpts.Output) == 0 {
 		saveOpts.Quiet = true

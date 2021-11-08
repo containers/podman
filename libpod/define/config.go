@@ -43,8 +43,8 @@ const VolumeDriverLocal = "local"
 const (
 	OCIManifestDir  = "oci-dir"
 	OCIArchive      = "oci-archive"
-	V2s2ManifestDir = "docker-dir"
-	V2s2Archive     = "docker-archive"
+	V2s2ManifestDir = "dir"
+	V2s2Archive     = "compat-archive"
 )
 
 // AttachStreams contains streams that will be attached to the container

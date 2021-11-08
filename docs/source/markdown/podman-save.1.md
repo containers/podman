@@ -9,8 +9,8 @@ podman\-save - Save image(s) to an archive
 **podman image save** [*options*] *name*[:*tag*]
 
 ## DESCRIPTION
-**podman save** saves an image to either **docker-archive**, **oci-archive**, **oci-dir** (directory with oci manifest type), or **docker-dir** (directory with v2s2 manifest type) on the local machine,
-default is **docker-archive**. **podman save** writes to STDOUT by default and can be redirected to a
+**podman save** saves an image to either **compat-archive**, **oci-archive**, **oci-dir** (directory with oci manifest type), or **dir** (directory with v2s2 manifest type) on the local machine,
+default is **compat-archive**. **podman save** writes to STDOUT by default and can be redirected to a
 file using the **output** flag. The **quiet** flag suppresses the output when set.
 **podman save** will save parent layers of the image(s) and the image(s) can be loaded using **podman load**.
 To export the containers, use the **podman export**.
@@ -27,7 +27,7 @@ Note: `:` is a restricted character and cannot be part of the file name.
 #### **--compress**
 
 Compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type, compressed or uncompressed, as source)
-Note: This flag can only be set when using the **dir** transport i.e --format=oci-dir or --format=docker-dir
+Note: This flag can only be set when using the **dir** transport i.e --format=oci-dir or --format=dir
 
 #### **--uncompressed**
 
@@ -39,17 +39,17 @@ Write to a file, default is STDOUT
 
 #### **--format**=*format*
 
-Save image to **docker-archive**, **oci-archive** (see `containers-transports(5)`), **oci-dir** (`oci` transport), or **docker-dir** (`dir` transport with v2s2 manifest type).
+Save image to **compat-archive**, **oci-archive** (see `containers-transports(5)`), **oci-dir** (`oci` transport), or **dir** (`dir` transport with v2s2 manifest type).
 ```
---format docker-archive
+--format compat-archive
 --format oci-archive
 --format oci-dir
---format docker-dir
+--format dir
 ```
 
 #### **--multi-image-archive**, **-m**
 
-Allow for creating archives with more than one image.  Additional names will be interpreted as images instead of tags.  Only supported for **docker-archive**.
+Allow for creating archives with more than one image.  Additional names will be interpreted as images instead of tags.  Only supported for **compat-archive**.
 The default for this option can be modified via the `multi_image_archive="true"|"false"` flag in containers.conf.
 
 #### **--quiet**, **-q**
@@ -86,7 +86,7 @@ Storing signatures
 ```
 
 ```
-$ podman save --format docker-dir -o ubuntu-dir ubuntu
+$ podman save --format dir -o ubuntu-dir ubuntu
 Getting image source signatures
 Copying blob sha256:660c48dd555dcbfdfe19c80a30f557ac57a15f595250e67bfad1e5663c1725bb
  45.55 MB / 45.55 MB [======================================================] 8s
