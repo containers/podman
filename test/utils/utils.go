@@ -2,9 +2,12 @@ package utils
 
 import (
 	"bufio"
+	cryptorand "crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math"
+	"math/big"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -16,7 +19,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -479,9 +481,20 @@ func Containerized() bool {
 }
 
 func init() {
-	seed := GinkgoRandomSeed()
-	logrus.Warnf("rand.Seed @ test/utils/utils.go:init %#v", seed)
+	// safely set the seed globally so we generate random ids. Tries to use a
+	// crypto seed before falling back to time.
+	var seed int64
+	if cryptoseed, err := cryptorand.Int(cryptorand.Reader, big.NewInt(math.MaxInt64)); err != nil {
+		fmt.Printf("Entropy-exhauseted, using fallback @ test/utils/utils.go:init")
+		// This should not happen, but worst-case fallback to time-based seed.
+		seed = time.Now().UnixNano()
+	} else {
+		seed = cryptoseed.Int64()
+	}
+
+	fmt.Printf("rand.Seed @ test/utils/utils.go:init %#v", seed)
 	rand.Seed(seed)
+
 }
 
 var randomLetters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")

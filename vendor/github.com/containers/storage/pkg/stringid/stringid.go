@@ -13,8 +13,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/sirupsen/logrus"
 )
 
 const shortLen = 12
@@ -86,12 +84,13 @@ func init() {
 	var seed int64
 	if cryptoseed, err := cryptorand.Int(cryptorand.Reader, big.NewInt(math.MaxInt64)); err != nil {
 		// This should not happen, but worst-case fallback to time-based seed.
+		fmt.Printf("Entropy-exhauseted, using fallback @ vendor/github.com/containers/storage/pkg/stringid/stringid.go:init")
 		seed = time.Now().UnixNano()
 	} else {
 		seed = cryptoseed.Int64()
 	}
 
-	logrus.Warnf("rand.Seed @ vendor/github.com/containers/storage/pkg/stringid/stringid.go:init %#v", seed)
+	fmt.Printf("rand.Seed @ vendor/github.com/containers/storage/pkg/stringid/stringid.go:init %#v", seed)
 	rand.Seed(seed)
 }
 

@@ -2,11 +2,8 @@ package integration
 
 import (
 	"bytes"
-	cryptorand "crypto/rand"
 	"fmt"
 	"io/ioutil"
-	"math"
-	"math/big"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -318,19 +315,12 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 			}
 			// For an unknown reason, we see fairly frequent collisions in the generated
 			// path names. So, collect quite a bit of information to hopefully help with that.
-			logrus.Warnf("RemoteSocket collision? on lock %#v, lock creation error %v", lockPath, err)
-			logrus.Warnf("GinkgoRandomSeed for PID %#v = %#v", os.Getpid(), GinkgoRandomSeed())
-			// stringid initializes the seed with something like this. It’s not likely to be very
-			// reproducible, stringid.init() probably ran a _long_ time ago, but let’s at least record the error,
-			// and maybe allow detecting unexpected low-entropy patterns.
-			cryptoseed, err := cryptorand.Int(cryptorand.Reader, big.NewInt(math.MaxInt64))
-			logrus.Warnf("cryptoseed (%v, %v), time %v", cryptoseed, err, time.Now().UnixNano())
 			tries++
-			if tries >= 1000 {
+			logrus.Warnf("RemoteSocket collision %#v on lock %#v, lock creation error %v", tries, lockPath, err)
+			if tries >= 10 {
 				panic("Too many RemoteSocket collisions")
 			}
 		}
-		logrus.Infof("Chosen RemoteSocket %#v, PID %v", p.RemoteSocket, os.Getpid())
 	}
 
 	// Setup registries.conf ENV variable
@@ -407,10 +397,6 @@ func GetPortLock(port string) storage.Locker {
 // GetRandomIPAddress returns a random IP address to avoid IP
 // collisions during parallel tests
 func GetRandomIPAddress() string {
-	// To avoid IP collisions of initialize random seed for random IP addresses
-	seed := time.Now().UnixNano()
-	logrus.Warnf("rand.Seed @ test/e2e/common_test.go:GetRandomIPAddress: %#v", seed)
-	rand.Seed(seed)
 	// Add GinkgoParallelNode() on top of the IP address
 	// in case of the same random seed
 	ip3 := strconv.Itoa(rand.Intn(230) + GinkgoParallelNode())
