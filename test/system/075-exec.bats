@@ -129,4 +129,20 @@ load helpers
     run_podman rm -t 0 -f $cid
 }
 
+# rhbz#1972311 : podman exec -ti prints a resizing exec error when run
+# with short lived commands
+@test "podman exec with short lived commands" {
+    run_podman run -td $IMAGE sleep 5
+    cid=$output
+
+    run_podman exec -til ls /
+    is "${lines[0]}" ".*bin.*"
+
+    run_podman exec -til cat /etc/os-release
+    is "${lines[0]}" ".*Alpine Linux.*"
+
+    # Clean up
+    run_podman rm -f -t 0 $cid
+}
+
 # vim: filetype=sh
