@@ -12,9 +12,6 @@ fi
 if [[ "${CIRRUS_CHANGE_MESSAGE}" =~ NO.NEW.TESTS.NEEDED ]]; then
     exit 0
 fi
-if [[ "${CIRRUS_CHANGE_MESSAGE}" =~ NO.TESTS.NEEDED ]]; then
-    exit 0
-fi
 
 # HEAD should be good enough, but the CIRRUS envariable allows us to test
 head=${CIRRUS_CHANGE_IN_REPO:-HEAD}
@@ -52,12 +49,9 @@ if [[ -z "$filtered_changes" ]]; then
     exit 0
 fi
 
-# One last chance: perhaps the developer included the magic '[NO (NEW) TESTS NEEDED]'
+# One last chance: perhaps the developer included the magic '[NO NEW TESTS NEEDED]'
 # string in an amended commit.
 if git log --format=%B ${base}..${head} | fgrep '[NO NEW TESTS NEEDED]'; then
-   exit 0
-fi
-if git log --format=%B ${base}..${head} | fgrep '[NO TESTS NEEDED]'; then
    exit 0
 fi
 
