@@ -181,6 +181,31 @@ var _ = Describe("podman system connection", func() {
 		}
 	})
 
+	It("remove --all", func() {
+		cmd := []string{"system", "connection", "add",
+			"--default",
+			"--identity", "~/.ssh/id_rsa",
+			"QA",
+			"ssh://root@server.fubar.com:2222/run/podman/podman.sock",
+		}
+		session := podmanTest.Podman(cmd)
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		cmd = []string{"system", "connection", "remove", "--all"}
+		session = podmanTest.Podman(cmd)
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.Out).Should(Say(""))
+
+		cmd = []string{"system", "connection", "list"}
+		session = podmanTest.Podman(cmd)
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.Out).Should(Say(""))
+		Expect(session.Err).Should(Say(""))
+	})
+
 	It("default", func() {
 		for _, name := range []string{"devl", "qe"} {
 			cmd := []string{"system", "connection", "add",
