@@ -68,10 +68,22 @@ Copying blob e2eb06d8af82 done
 Copying config 696d33ca15 done
 Writing manifest to image destination
 Storing signatures
-Run Directory Obtained: /run/user/1000/
-[Run Root: /var/tmp/containers-user-1000/containers Graph Root: /root/.local/share/containers/storage DB Path: /root/.local/share/containers/storage/libpod/bolt_state.db]
 Getting image source signatures
 Copying blob 5eb901baf107 skipped: already exists
+Copying config 696d33ca15 done
+Writing manifest to image destination
+Storing signatures
+Loaded image(s): docker.io/library/alpine:latest
+```
+
+```
+$ sudo podman image scp root@localhost::alpine
+Copying blob e2eb06d8af82 done
+Copying config 696d33ca15 done
+Writing manifest to image destination
+Storing signatures
+Getting image source signatures
+Copying blob 5eb901baf107
 Copying config 696d33ca15 done
 Writing manifest to image destination
 Storing signatures

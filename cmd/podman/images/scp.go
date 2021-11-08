@@ -137,9 +137,15 @@ func scp(cmd *cobra.Command, args []string) (finalErr error) {
 		scpOpts.Save.Format = "oci-archive"
 		abiErr := abiEng.Save(context.Background(), scpOpts.SourceImageName, []string{}, scpOpts.Save) // save the image locally before loading it on remote, local, or ssh
 		if abiErr != nil {
-			errors.Wrapf(abiErr, "could not save image as specified")
+			return errors.Wrapf(abiErr, "could not save image as specified")
 		}
 		if !rootless.IsRootless() && scpOpts.Rootless {
+			if scpOpts.User == "" {
+				scpOpts.User = os.Getenv("SUDO_USER")
+				if scpOpts.User == "" {
+					return errors.New("could not obtain root user, make sure the environmental variable SUDO_USER is set, and that this command is being run as root")
+				}
+			}
 			err := abiEng.Transfer(context.Background(), scpOpts)
 			if err != nil {
 				return err
@@ -274,7 +280,13 @@ func parseArgs(args []string, cfg *config.Config) (map[string]config.Destination
 	cliConnections := []string{}
 	switch len(args) {
 	case 1:
-		if strings.Contains(args[0], "::") {
+		if strings.Contains(args[0], "localhost") {
+			if strings.Split(args[0], "@")[0] != "root" {
+				return nil, errors.Wrapf(define.ErrInvalidArg, "cannot transfer images from any user besides root using sudo")
+			}
+			scpOpts.Rootless = true
+			scpOpts.SourceImageName = strings.Split(args[0], "::")[1]
+		} else if strings.Contains(args[0], "::") {
 			scpOpts.FromRemote = true
 			cliConnections = append(cliConnections, args[0])
 		} else {
@@ -286,11 +298,15 @@ func parseArgs(args []string, cfg *config.Config) (map[string]config.Destination
 		}
 	case 2:
 		if strings.Contains(args[0], "localhost") || strings.Contains(args[1], "localhost") { // only supporting root to local using sudo at the moment
-			scpOpts.Rootless = true
-			scpOpts.User = strings.Split(args[1], "@")[0]
-			scpOpts.SourceImageName = strings.Split(args[0], "::")[1]
 			if strings.Split(args[0], "@")[0] != "root" {
-				return nil, errors.Wrapf(define.ErrInvalidArg, "cannot transfer images from any user besides root using sudo")
+				return nil, errors.Wrapf(define.ErrInvalidArg, "currently, transferring images to a user account is not supported")
+			}
+			if len(strings.Split(args[0], "::")) > 1 {
+				scpOpts.Rootless = true
+				scpOpts.User = strings.Split(args[1], "@")[0]
+				scpOpts.SourceImageName = strings.Split(args[0], "::")[1]
+			} else {
+				return nil, errors.Wrapf(define.ErrInvalidArg, "currently, you cannot rename images during the transfer or transfer them to a user account")
 			}
 		} else if strings.Contains(args[0], "::") {
 			if !(strings.Contains(args[1], "::")) && remoteArgLength(args[0], 1) == 0 { // if an image is specified, this mean we are loading to our client
