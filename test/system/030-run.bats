@@ -736,4 +736,20 @@ EOF
     is "$output" "$random_1" "output matches STDIN"
 }
 
+# rhbz#1890707 : 'podman run' of this command, with FIPS enabled, fails with
+# /usr/bin/runc: error while loading shared libraries: ... cannot open shared object file
+@test "podman run with FIPS enabled" {
+#    skip_if_rootless
+    skip_if_fips_disabled
+    CNAME=$(random_string 10)
+    CPORT=5005
+    REG_IMAGE="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/registry:2"
+    run_podman run -d -p $CPORT:$CPORT --name $CNAME  -e "discovery.type=single-node" $REG_IMAGE
+
+    run_podman container port $CNAME
+    is "$output" "$CPORT.*"
+
+    run_podman rm -f -t 0 $CNAME
+}
+
 # vim: filetype=sh

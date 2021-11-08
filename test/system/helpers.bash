@@ -388,6 +388,16 @@ function _add_label_if_missing() {
     fi
 }
 
+# check if FIPS mode enabled on hosts
+function is_fips_mode() {
+    output=$(fips-mode-setup --is-enabled)
+    if [ $? -ne 0 ]; then
+        # if FIPS mode is disabled
+        return 1
+    fi
+    return 0
+}
+
 ######################
 #  skip_if_rootless  #  ...with an optional message
 ######################
@@ -446,6 +456,15 @@ function skip_if_rootless_cgroupsv1() {
 function skip_if_journald_unavailable {
     if journald_unavailable; then
         skip "Cannot use rootless journald on this system"
+    fi
+}
+
+###########################
+#  skip_if_fips_disabled  #
+###########################
+function skip_if_fips_disabled {
+    if ! is_fips_mode; then
+        skip "FIPS mode is disabled"
     fi
 }
 
