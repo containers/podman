@@ -12,6 +12,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/bindings/images"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/entities/reports"
@@ -120,6 +121,10 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, opts entities.
 		return nil, err
 	}
 	return &entities.ImagePullReport{Images: pulledImages}, nil
+}
+
+func (ir *ImageEngine) Transfer(ctx context.Context, scpOpts entities.ImageScpOptions) error {
+	return errors.Wrapf(define.ErrNotImplemented, "cannot use the remote client to transfer images between root and rootless storage")
 }
 
 func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, opt entities.ImageTagOptions) error {

@@ -16,6 +16,7 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/system/connection"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/docker/distribution/reference"
 	scpD "github.com/dtylman/scp"
 	"github.com/pkg/errors"
@@ -125,6 +126,11 @@ func scp(cmd *cobra.Command, args []string) (finalErr error) {
 		fmt.Println(rep)
 	// TODO: Add podman remote support
 	default: // else native load
+		scpOpts.Save.Format = "oci-archive"
+		_, err := os.Open(scpOpts.Save.Output)
+		if err != nil {
+			return err
+		}
 		if scpOpts.Tag != "" {
 			return errors.Wrapf(define.ErrInvalidArg, "Renaming of an image is currently not supported")
 		}
@@ -133,12 +139,20 @@ func scp(cmd *cobra.Command, args []string) (finalErr error) {
 		if abiErr != nil {
 			errors.Wrapf(abiErr, "could not save image as specified")
 		}
-		rep, err := abiEng.Load(context.Background(), scpOpts.Load)
-		if err != nil {
-			return err
+		if !rootless.IsRootless() && scpOpts.Rootless {
+			err := abiEng.Transfer(context.Background(), scpOpts)
+			if err != nil {
+				return err
+			}
+		} else {
+			rep, err := abiEng.Load(context.Background(), scpOpts.Load)
+			if err != nil {
+				return err
+			}
+			fmt.Println("Loaded image(s): " + strings.Join(rep.Names, ","))
 		}
-		fmt.Println("Loaded image(s): " + strings.Join(rep.Names, ","))
 	}
+
 	return nil
 }
 
@@ -271,7 +285,14 @@ func parseArgs(args []string, cfg *config.Config) (map[string]config.Destination
 			scpOpts.SourceImageName = args[0]
 		}
 	case 2:
-		if strings.Contains(args[0], "::") {
+		if strings.Contains(args[0], "localhost") || strings.Contains(args[1], "localhost") { // only supporting root to local using sudo at the moment
+			scpOpts.Rootless = true
+			scpOpts.User = strings.Split(args[1], "@")[0]
+			scpOpts.SourceImageName = strings.Split(args[0], "::")[1]
+			if strings.Split(args[0], "@")[0] != "root" {
+				return nil, errors.Wrapf(define.ErrInvalidArg, "cannot transfer images from any user besides root using sudo")
+			}
+		} else if strings.Contains(args[0], "::") {
 			if !(strings.Contains(args[1], "::")) && remoteArgLength(args[0], 1) == 0 { // if an image is specified, this mean we are loading to our client
 				cliConnections = append(cliConnections, args[0])
 				scpOpts.ToRemote = true
