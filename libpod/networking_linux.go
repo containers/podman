@@ -651,6 +651,9 @@ func getCNIPodName(c *Container) string {
 
 // Create and configure a new network namespace for a container
 func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (map[string]types.StatusBlock, error) {
+	if ctr.config.NetMode.IsSlirp4netns() {
+		return nil, r.setupSlirp4netns(ctr, ctrNS)
+	}
 	networks, _, err := ctr.networks()
 	if err != nil {
 		return nil, err
@@ -665,7 +668,24 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (map[string]typ
 	if err != nil {
 		return nil, err
 	}
-	return r.setUpNetwork(ctrNS.Path(), netOpts)
+	netStatus, err := r.setUpNetwork(ctrNS.Path(), netOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	// setup rootless port forwarder when rootless with ports and the network status is empty,
+	// if this is called from network reload the network status will not be empty and we should
+	// not setup port because they are still active
+	if rootless.IsRootless() && len(ctr.config.PortMappings) > 0 && ctr.getNetworkStatus() == nil {
+		// set up port forwarder for rootless netns
+		netnsPath := ctrNS.Path()
+		// TODO: support slirp4netns port forwarder as well
+		// make sure to fix this in container.handleRestartPolicy() as well
+		// Important we have to call this after r.setUpNetwork() so that
+		// we can use the proper netStatus
+		err = r.setupRootlessPortMappingViaRLK(ctr, netnsPath, netStatus)
+	}
+	return netStatus, err
 }
 
 // Create and configure a new network namespace for a container
@@ -688,29 +708,8 @@ func (r *Runtime) createNetNS(ctr *Container) (n ns.NetNS, q map[string]types.St
 	logrus.Debugf("Made network namespace at %s for container %s", ctrNS.Path(), ctr.ID())
 
 	var networkStatus map[string]types.StatusBlock
-	if !ctr.config.NetMode.IsSlirp4netns() {
-		networkStatus, err = r.configureNetNS(ctr, ctrNS)
-	}
+	networkStatus, err = r.configureNetNS(ctr, ctrNS)
 	return ctrNS, networkStatus, err
-}
-
-// Configure the network namespace for a rootless container
-func (r *Runtime) setupRootlessNetNS(ctr *Container) error {
-	if ctr.config.NetMode.IsSlirp4netns() {
-		return r.setupSlirp4netns(ctr)
-	}
-	networks, _, err := ctr.networks()
-	if err != nil {
-		return err
-	}
-	if len(networks) > 0 && len(ctr.config.PortMappings) > 0 {
-		// set up port forwarder for rootless netns
-		netnsPath := ctr.state.NetNS.Path()
-		// TODO: support slirp4netns port forwarder as well
-		// make sure to fix this in container.handleRestartPolicy() as well
-		return r.setupRootlessPortMappingViaRLK(ctr, netnsPath)
-	}
-	return nil
 }
 
 // Configure the network namespace using the container process
