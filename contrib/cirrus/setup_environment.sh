@@ -171,6 +171,18 @@ case "$TEST_ENVIRON" in
             # affected/related tests are sensitive to this variable.
             warn "Disabling usernamespace integration testing"
             echo "SKIP_USERNS=1" >> /etc/ci_environment
+
+            # In F35 the hard-coded default
+            # (from containers-common-1-32.fc35.noarch) is 'journald' despite
+            # the upstream repository having this line commented-out.
+            # Containerized integration tests cannot run with 'journald'
+            # as there is no daemon/process there to receive them.
+            cconf="/usr/share/containers/containers.conf"
+            note="- commented-out by setup_environment.sh"
+            if grep -Eq '^log_driver.+journald' "$cconf"; then
+                warn "Patching out $cconf journald log_driver"
+                sed -r -i -e "s/^log_driver(.*)/# log_driver\1 $note/" "$cconf"
+            fi
         fi
         ;;
     *) die_unknown TEST_ENVIRON
