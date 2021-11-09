@@ -153,8 +153,8 @@ func (r *MissingRuntime) ExecUpdateStatus(ctr *Container, sessionID string) (boo
 }
 
 // CheckpointContainer is not available as the runtime is missing
-func (r *MissingRuntime) CheckpointContainer(ctr *Container, options ContainerCheckpointOptions) error {
-	return r.printError()
+func (r *MissingRuntime) CheckpointContainer(ctr *Container, options ContainerCheckpointOptions) (int64, error) {
+	return 0, r.printError()
 }
 
 // CheckConmonRunning is not available as the runtime is missing

@@ -760,9 +760,9 @@ func (r *ConmonOCIRuntime) AttachResize(ctr *Container, newSize define.TerminalS
 }
 
 // CheckpointContainer checkpoints the given container.
-func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options ContainerCheckpointOptions) error {
+func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options ContainerCheckpointOptions) (int64, error) {
 	if err := label.SetSocketLabel(ctr.ProcessLabel()); err != nil {
-		return err
+		return 0, err
 	}
 	// imagePath is used by CRIU to store the actual checkpoint files
 	imagePath := ctr.CheckpointPath()
@@ -802,14 +802,25 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 	}
 	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if err = os.Setenv("XDG_RUNTIME_DIR", runtimeDir); err != nil {
-		return errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
+		return 0, errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
 	}
 	args = append(args, ctr.ID())
 	logrus.Debugf("the args to checkpoint: %s %s", r.path, strings.Join(args, " "))
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, nil, r.path, args...)
+
+	runtimeCheckpointStarted := time.Now()
+	err = utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, nil, r.path, args...)
+
+	runtimeCheckpointDuration := func() int64 {
+		if options.PrintStats {
+			return time.Since(runtimeCheckpointStarted).Microseconds()
+		}
+		return 0
+	}()
+
+	return runtimeCheckpointDuration, err
 }
 
 func (r *ConmonOCIRuntime) CheckConmonRunning(ctr *Container) (bool, error) {

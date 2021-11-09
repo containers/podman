@@ -1129,25 +1129,26 @@ func (c *Container) checkpointRestoreSupported(version int) error {
 	return nil
 }
 
-func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointOptions) error {
+func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointOptions) (*define.CRIUCheckpointRestoreStatistics, int64, error) {
 	if err := c.checkpointRestoreSupported(criu.MinCriuVersion); err != nil {
-		return err
+		return nil, 0, err
 	}
 
 	if c.state.State != define.ContainerStateRunning {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "%q is not running, cannot checkpoint", c.state.State)
+		return nil, 0, errors.Wrapf(define.ErrCtrStateInvalid, "%q is not running, cannot checkpoint", c.state.State)
 	}
 
 	if c.AutoRemove() && options.TargetFile == "" {
-		return errors.Errorf("cannot checkpoint containers that have been started with '--rm' unless '--export' is used")
+		return nil, 0, errors.Errorf("cannot checkpoint containers that have been started with '--rm' unless '--export' is used")
 	}
 
 	if err := crutils.CRCreateFileWithLabel(c.bundlePath(), "dump.log", c.MountLabel()); err != nil {
-		return err
+		return nil, 0, err
 	}
 
-	if err := c.ociRuntime.CheckpointContainer(c, options); err != nil {
-		return err
+	runtimeCheckpointDuration, err := c.ociRuntime.CheckpointContainer(c, options)
+	if err != nil {
+		return nil, 0, err
 	}
 
 	// Save network.status. This is needed to restore the container with
@@ -1155,7 +1156,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	// with one interface.
 	// FIXME: will this break something?
 	if _, err := metadata.WriteJSONFile(c.getNetworkStatus(), c.bundlePath(), metadata.NetworkStatusFile); err != nil {
-		return err
+		return nil, 0, err
 	}
 
 	defer c.newContainerEvent(events.Checkpoint)
@@ -1165,13 +1166,13 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	if options.WithPrevious {
 		os.Remove(path.Join(c.CheckpointPath(), "parent"))
 		if err := os.Symlink("../pre-checkpoint", path.Join(c.CheckpointPath(), "parent")); err != nil {
-			return err
+			return nil, 0, err
 		}
 	}
 
 	if options.TargetFile != "" {
 		if err := c.exportCheckpoint(options); err != nil {
-			return err
+			return nil, 0, err
 		}
 	}
 
@@ -1183,8 +1184,35 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 
 		// Cleanup Storage and Network
 		if err := c.cleanup(ctx); err != nil {
-			return err
+			return nil, 0, err
 		}
+	}
+
+	criuStatistics, err := func() (*define.CRIUCheckpointRestoreStatistics, error) {
+		if !options.PrintStats {
+			return nil, nil
+		}
+		statsDirectory, err := os.Open(c.bundlePath())
+		if err != nil {
+			return nil, errors.Wrapf(err, "Not able to open %q", c.bundlePath())
+		}
+
+		dumpStatistics, err := stats.CriuGetDumpStats(statsDirectory)
+		if err != nil {
+			return nil, errors.Wrap(err, "Displaying checkpointing statistics not possible")
+		}
+
+		return &define.CRIUCheckpointRestoreStatistics{
+			FreezingTime: dumpStatistics.GetFreezingTime(),
+			FrozenTime:   dumpStatistics.GetFrozenTime(),
+			MemdumpTime:  dumpStatistics.GetMemdumpTime(),
+			MemwriteTime: dumpStatistics.GetMemwriteTime(),
+			PagesScanned: dumpStatistics.GetPagesScanned(),
+			PagesWritten: dumpStatistics.GetPagesWritten(),
+		}, nil
+	}()
+	if err != nil {
+		return nil, 0, err
 	}
 
 	if !options.Keep && !options.PreCheckPoint {
@@ -1203,7 +1231,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	}
 
 	c.state.FinishedTime = time.Now()
-	return c.save()
+	return criuStatistics, runtimeCheckpointDuration, c.save()
 }
 
 func (c *Container) importCheckpoint(input string) error {

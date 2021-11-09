@@ -101,8 +101,10 @@ type OCIRuntime interface {
 	// CheckpointContainer checkpoints the given container.
 	// Some OCI runtimes may not support this - if SupportsCheckpoint()
 	// returns false, this is not implemented, and will always return an
-	// error.
-	CheckpointContainer(ctr *Container, options ContainerCheckpointOptions) error
+	// error. If CheckpointOptions.PrintStats is true the first return parameter
+	// contains the number of microseconds the runtime needed to checkpoint
+	// the given container.
+	CheckpointContainer(ctr *Container, options ContainerCheckpointOptions) (int64, error)
 
 	// CheckConmonRunning verifies that the given container's Conmon
 	// instance is still running. Runtimes without Conmon, or systems where

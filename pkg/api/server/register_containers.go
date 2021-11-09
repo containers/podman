@@ -1441,6 +1441,10 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    name: ignoreRootFS
 	//    type: boolean
 	//    description: do not include root file-system changes when exporting
+	//  - in: query
+	//    name: printStats
+	//    type: boolean
+	//    description: add checkpoint statistics to the returned CheckpointReport
 	// produces:
 	// - application/json
 	// responses:
