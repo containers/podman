@@ -2,8 +2,13 @@ package integration
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"github.com/containers/podman/v3/pkg/bindings"
+	"github.com/containers/podman/v3/pkg/bindings/play"
 	"io/ioutil"
+	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -2838,6 +2843,43 @@ invalid kube kind
 		ls.WaitWithDefaultTimeout()
 		Expect(ls).Should(Exit(0))
 		Expect(len(ls.OutputToStringArray())).To(Equal(1))
+	})
+
+	It("podman play kube test env value from local-to-service configmaps using HTTP API", func() {
+		SkipIfRemote("configmap list is supported when present on the same host as podman service")
+		address := url.URL{
+			Scheme: "tcp",
+			Host:   net.JoinHostPort("localhost", randomPort()),
+		}
+
+		session := podmanTest.Podman([]string{
+			"system", "service", "--log-level=debug", "--time=0", address.String(),
+		})
+		defer session.Kill()
+
+		WaitForService(address)
+
+		cmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
+		cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
+		err := generateKubeYaml("configmap", cm, cmYamlPathname)
+		Expect(err).To(BeNil())
+
+		pod := getPod(withCtr(getCtr(withEnv("FOO", "", "configmap", "foo", "FOO", false))))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+
+		podmanConnection, err := bindings.NewConnection(context.Background(), address.String())
+		Expect(err).ToNot(HaveOccurred())
+
+		options := play.KubeOptions{
+			ConfigMaps: &[]string{cmYamlPathname},
+		}
+		_, err = play.Kube(podmanConnection, kubeYaml, &options)
+		Expect(err).ToNot(HaveOccurred())
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Env }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`FOO=foo`))
 	})
 
 	Describe("verify environment variables", func() {
