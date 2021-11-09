@@ -130,8 +130,17 @@ func (locks *SHMLocks) AllocateSemaphore() (uint32, error) {
 	// semaphore indexes, and can still return error codes.
 	retCode := C.allocate_semaphore(locks.lockStruct)
 	if retCode < 0 {
+		var err = syscall.Errno(-1 * retCode)
 		// Negative errno returned
-		return 0, syscall.Errno(-1 * retCode)
+		if errors.Is(err, syscall.ENOSPC) {
+			// ENOSPC expands to "no space left on device".  While it is technically true
+			// that there's no room in the SHM inn for this lock, this tends to send normal people
+			// down the path of checking disk-space which is not actually their problem.
+			// Give a clue that it's actually due to num_locks filling up.
+			var errFull = errors.Errorf("allocation failed; exceeded num_locks (%d)", locks.maxLocks)
+			return uint32(retCode), errFull
+		}
+		return uint32(retCode), syscall.Errno(-1 * retCode)
 	}
 
 	return uint32(retCode), nil
