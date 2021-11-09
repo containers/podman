@@ -61,7 +61,7 @@ podman pod rm --pod-id-file /path/to/id/file
   **125** The command fails for any other reason
 
 ## SEE ALSO
-podman-pod(1)
+**[podman(1)](podman.1.md)**, **[podman-pod(1)](podman-pod.1.md)**
 
 ## HISTORY
 July 2018, Originally compiled by Peter Hunt <pehunt@redhat.com>

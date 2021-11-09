@@ -35,4 +35,4 @@ $ podman container rename 6e7514b47180 databaseCtr
 ```
 
 ## SEE ALSO
-podman(1), podman-create(1), podman-run(1)
+**[podman(1)](podman.1.md)**

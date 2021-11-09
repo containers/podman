@@ -80,7 +80,7 @@ $ podman pod stop -a -t 1
 ```
 
 ## SEE ALSO
-podman-pod(1), podman-pod-start(1), podman-stop(1)
+**[podman(1)](podman.1.md)**, **[podman-pod(1)](podman-pod.1.md)**, **[podman-pod-start(1)](podman-pod-start.1.md)**
 
 ## HISTORY
 July 2018, Originally compiled by Peter Hunt <pehunt@redhat.com>

@@ -26,7 +26,7 @@ $ sudo podman pod prune
 ```
 
 ## SEE ALSO
-podman-pod(1), podman-pod-ps(1), podman-pod-rm(1)
+**[podman(1)](podman.1.md)**, **[podman-pod(1)](podman-pod.1.md)**
 
 ## HISTORY
 April 2019, Originally compiled by Peter Hunt (pehunt at redhat dot com)

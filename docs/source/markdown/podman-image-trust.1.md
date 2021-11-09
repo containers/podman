@@ -85,8 +85,7 @@ Display trust as JSON
    sudo podman image trust show --json
 
 ## SEE ALSO
-
-containers-policy.json(5)
+**[containers-policy.json(5)](https://github.com/containers/image/blob/main/docs/containers-policy.json.5.md)**
 
 ## HISTORY
 January 2019, updated by Tom Sweeney (tsweeney at redhat dot com)

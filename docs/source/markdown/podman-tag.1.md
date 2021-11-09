@@ -30,7 +30,7 @@ $ podman tag httpd myregistryhost:5000/fedora/httpd:v2
 
 
 ## SEE ALSO
-podman(1)
+**[podman(1)](podman.1.md)**
 
 ## HISTORY
 December 2019, Update description to refer to 'name' instead of 'alias' by Sascha Grunert <sgrunert@suse.com>

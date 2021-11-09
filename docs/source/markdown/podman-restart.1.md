@@ -60,7 +60,7 @@ $ podman restart --all
 ```
 
 ## SEE ALSO
-podman(1), podman-run(1), podman-start(1), podman-create(1)
+**[podman(1)](podman.1.md)**
 
 ## HISTORY
 March 2018, Originally compiled by Matt Heon <mheon@redhat.com>

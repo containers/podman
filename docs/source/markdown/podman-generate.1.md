@@ -18,4 +18,4 @@ The generate command will create structured output (like YAML) based on a contai
 
 
 ## SEE ALSO
-podman, podman-pod, podman-container
+**[podman(1)](podman.1.md)**, **[podman-pod(1)](podman-pod.1.md)**, **[podman-container(1)](podman-container.1.md)**

@@ -61,7 +61,7 @@ the signature will be written into sub-directories of
 the signature will be 'read' from that same location on a pull-related function.
 
 ## SEE ALSO
-containers-certs.d(5), containers-registries.d(5)
+**[containers-certs.d(5)](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)**, **[containers-registries.d(5)](https://github.com/containers/image/blob/main/docs/containers-registries.d.5.md)**
 
 ## HISTORY
 November 2018, Originally compiled by Qi Wang (qiwan at redhat dot com)

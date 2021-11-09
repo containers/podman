@@ -91,7 +91,7 @@ $ podman rm -f --latest
   **125** The command fails for any other reason
 
 ## SEE ALSO
-podman(1), podman-image-rm(1), podman-ps(1), podman-build(1), buildah(1), cri-o(1)
+**[podman(1)](podman.1.md)**, **[crio(8)](https://github.com/cri-o/cri-o/blob/main/docs/crio.8.md)**
 
 ## HISTORY
 August 2017, Originally compiled by Ryan Cole <rycole@redhat.com>

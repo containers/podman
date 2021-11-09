@@ -44,7 +44,7 @@ PID   SECCOMP   COMMAND   %CPU
 ```
 
 ## SEE ALSO
-podman-pod(1), podman-top(1), ps(1), seccomp(2), proc(5), capabilities(7)
+**[podman(1)](podman.1.md)**, **[podman-pod(1)](podman-pod.1.md)**, **ps(1)**, **seccomp(2)**, **proc(5)**, **capabilities(7)**
 
 ## HISTORY
 August 2018, Originally compiled by Peter Hunt <pehunt@redhat.com>

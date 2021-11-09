@@ -45,7 +45,7 @@ $ printf <secret> | podman secret create my_secret -
 ```
 
 ## SEE ALSO
-podman-secret (1)
+**[podman(1)](podman.1.md)**, **[podman-secret(1)](podman-secret.1.md)**
 
 ## HISTORY
 January 2021, Originally compiled by Ashley Cui <acui@redhat.com>

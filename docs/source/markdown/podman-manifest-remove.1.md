@@ -20,4 +20,4 @@ e604eabaaee4858232761b4fef84e2316ed8f93e15eceafce845966ee3400036 :sha256:cb8a924
 ```
 
 ## SEE ALSO
-podman(1), podman-manifest(1), podman-manifest-add(1), podman-manifest-create(1), podman-manifest-inspect(1), podman-manifest-push(1), podman-rmi(1)
+**[podman(1)](podman.1.md)**, **[podman-manifest(1)](podman-manifest.1.md)**

@@ -169,7 +169,7 @@ POD ID         NAME   STATUS    CREATED        INFRA ID       NAMES
 Print a list of pods
 
 ## SEE ALSO
-podman-pod(1)
+**[podman(1)](podman.1.md)**, **[podman-pod(1)](podman-pod.1.md)**
 
 ## HISTORY
 July 2018, Originally compiled by Peter Hunt <pehunt@redhat.com>

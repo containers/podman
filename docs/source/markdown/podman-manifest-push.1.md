@@ -107,4 +107,4 @@ podman manifest push mylist:v1.11 docker://registry.example.org/mylist:v1.11
 ```
 
 ## SEE ALSO
-podman(1), podman-manifest(1), podman-manifest-add(1), podman-manifest-create(1), podman-manifest-inspect(1), podman-manifest-remove(1), podman-rmi(1), containers-certs.d(5)
+**[podman(1)](podman.1.md)**, **[podman-manifest(1)](podman-manifest.1.md)**

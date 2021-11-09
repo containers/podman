@@ -33,7 +33,7 @@ This can be used after a system upgrade which changes the default OCI runtime to
 There are no guarantees that the containers will continue to work under the new runtime, as some runtimes support differing options and configurations.
 
 ## SEE ALSO
-`podman(1)`, `containers.conf(5)`, `usermod(8)`
+**[podman(1)](podman.1.md)**, **[podman-system(1)](podman-system.1.md)**, **usermod(8)**
 
 ## HISTORY
 April 2019, Originally compiled by Giuseppe Scrivano (gscrivan at redhat dot com)

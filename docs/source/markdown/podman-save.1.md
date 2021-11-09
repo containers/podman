@@ -105,7 +105,7 @@ Storing signatures
 ```
 
 ## SEE ALSO
-podman(1), podman-load(1), containers.conf(5), containers-transports(5)
+**[podman(1)](podman.1.md)**, **[podman-load(1)](podman-load.1.md)**, **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**, **[containers-transports(5)](https://github.com/containers/image/blob/main/docs/containers-transports.5.md)**
 
 ## HISTORY
 July 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

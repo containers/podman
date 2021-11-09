@@ -227,7 +227,7 @@ $ podman play kube demo.yml --network cni1,cni2
 Please take into account that CNI networks must be created first using podman-network-create(1).
 
 ## SEE ALSO
-podman(1), podman-container(1), podman-pod(1), podman-generate-kube(1), podman-play(1), podman-network-create(1), containers-certs.d(5)
+**[podman(1)](podman.1.md)**, **[podman-play(1)](podman-play.1.md)**, **[podman-network-create(1)](podman-network-create.1.md)**, **[podman-generate-kube(1)](podman-generate-kube.1.md)**, **[containers-certs.d(5)](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)**
 
 ## HISTORY
 December 2018, Originally compiled by Brent Baude (bbaude at redhat dot com)

@@ -290,4 +290,4 @@ map[registries:[docker.io quay.io registry.fedoraproject.org registry.access.red
 ```
 
 ## SEE ALSO
-podman(1), containers-registries.conf(5), containers-storage.conf(5)
+**[podman(1)](podman.1.md)**, **[containers-registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md)**, **[containers-storage.conf(5)](https://github.com/containers/storage/blob/main/docs/containers-storage.conf.5.md)**
