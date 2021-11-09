@@ -11,7 +11,7 @@ function teardown() {
     run_podman rm -t 0 -f -a
     run_podman image list --format '{{.ID}} {{.Repository}}'
     while read id name; do
-        if [[ "$name" =~ /pause ]]; then
+        if [[ "$name" =~ /podman-pause ]]; then
             run_podman rmi $id
         fi
     done <<<"$output"
