@@ -117,7 +117,7 @@ func create(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("cannot specify no-hosts without an infra container")
 		}
 		flags := cmd.Flags()
-		createOptions.Net, err = common.NetFlagsToNetOptions(nil, *flags, false)
+		createOptions.Net, err = common.NetFlagsToNetOptions(nil, *flags, createOptions.Infra)
 		if err != nil {
 			return err
 		}
@@ -134,7 +134,7 @@ func create(cmd *cobra.Command, args []string) error {
 	} else {
 		// reassign certain options for lbpod api, these need to be populated in spec
 		flags := cmd.Flags()
-		infraOptions.Net, err = common.NetFlagsToNetOptions(nil, *flags, false)
+		infraOptions.Net, err = common.NetFlagsToNetOptions(nil, *flags, createOptions.Infra)
 		if err != nil {
 			return err
 		}

@@ -957,4 +957,22 @@ ENTRYPOINT ["sleep","99999"]
 		Expect(ctr3.OutputToString()).To(ContainSubstring("hello"))
 	})
 
+	It("podman pod create read network mode from config", func() {
+		confPath, err := filepath.Abs("config/containers-netns.conf")
+		Expect(err).ToNot(HaveOccurred())
+		os.Setenv("CONTAINERS_CONF", confPath)
+		defer os.Unsetenv("CONTAINERS_CONF")
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		pod := podmanTest.Podman([]string{"pod", "create", "--name", "test", "--infra-name", "test-infra"})
+		pod.WaitWithDefaultTimeout()
+		Expect(pod).Should(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "--format", "{{.HostConfig.NetworkMode}}", "test-infra"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).Should(Equal("host"))
+	})
 })
