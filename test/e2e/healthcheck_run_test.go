@@ -52,6 +52,18 @@ var _ = Describe("Podman healthcheck run", func() {
 		Expect(hc).Should(Exit(125))
 	})
 
+	It("podman healthcheck from image's config (not container config)", func() {
+		// Regression test for #12226: a health check may be defined in
+		// the container or the container-config of an image.
+		session := podmanTest.Podman([]string{"create", "--name", "hc", "quay.io/libpod/healthcheck:config-only", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		hc := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Config.Healthcheck}}", "hc"})
+		hc.WaitWithDefaultTimeout()
+		Expect(hc).Should(Exit(0))
+		Expect(hc.OutputToString()).To(Equal("{[CMD-SHELL curl -f http://localhost/ || exit 1] 0s 5m0s 3s 0}"))
+	})
+
 	It("podman disable healthcheck with --health-cmd=none on valid container", func() {
 		session := podmanTest.Podman([]string{"run", "-dt", "--health-cmd", "none", "--name", "hc", healthcheck})
 		session.WaitWithDefaultTimeout()

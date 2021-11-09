@@ -12,7 +12,7 @@ require (
 	github.com/containernetworking/cni v1.0.1
 	github.com/containernetworking/plugins v1.0.1
 	github.com/containers/buildah v1.23.1
-	github.com/containers/common v0.46.1-0.20211026130826-7abfd453c86f
+	github.com/containers/common v0.46.1-0.20211109131927-c342e496bf76
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.16.1
 	github.com/containers/ocicrypt v1.1.2
@@ -45,7 +45,7 @@ require (
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6
 	github.com/mrunalp/fileutils v0.5.0
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.16.0
+	github.com/onsi/gomega v1.17.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.2-0.20210819154149-5ad6f50d6283
 	github.com/opencontainers/runc v1.0.2
@@ -67,7 +67,10 @@ require (
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20210910150752-751e447fb3d0
+	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/api v0.22.3
 	k8s.io/apimachinery v0.22.3
 )
+
+replace github.com/onsi/gomega => github.com/onsi/gomega v1.16.0
