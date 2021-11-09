@@ -124,8 +124,7 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 		if err != nil {
 			return nil, err
 		}
-
-		b, err := generateKubeYAML(po)
+		b, err := generateKubeYAML(libpod.ConvertV1PodToYAMLPod(po))
 		if err != nil {
 			return nil, err
 		}
