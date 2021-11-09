@@ -50,7 +50,8 @@ function _run_podman_remote() {
 # Very basic test, does not actually connect at any time
 @test "podman system connection - basic add / ls / remove" {
     run_podman system connection ls
-    is "$output" "" "system connection ls: no connections"
+    is "$output" "Name        URI         Identity    Default" \
+       "system connection ls: no connections"
 
     c1="c1_$(random_string 15)"
     c2="c2_$(random_string 15)"

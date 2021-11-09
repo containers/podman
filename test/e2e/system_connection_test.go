@@ -236,7 +236,7 @@ var _ = Describe("podman system connection", func() {
 			session := podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(0))
-			Expect(session.Out.Contents()).Should(BeEmpty())
+			Expect(len(session.OutputToStringArray())).Should(Equal(1))
 			Expect(session.Err.Contents()).Should(BeEmpty())
 		})
 	})

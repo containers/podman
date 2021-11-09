@@ -53,10 +53,6 @@ func list(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	if len(cfg.Engine.ServiceDestinations) == 0 {
-		return nil
-	}
-
 	hdrs := []map[string]string{{
 		"Identity": "Identity",
 		"Name":     "Name",
