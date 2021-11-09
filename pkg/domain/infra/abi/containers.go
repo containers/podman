@@ -560,6 +560,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		IgnoreStaticMAC: options.IgnoreStaticMAC,
 		ImportPrevious:  options.ImportPrevious,
 		Pod:             options.Pod,
+		PrintStats:      options.PrintStats,
 	}
 
 	filterFuncs := []libpod.ContainerFilter{
@@ -582,10 +583,12 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 	}
 	reports := make([]*entities.RestoreReport, 0, len(cons))
 	for _, con := range cons {
-		err := con.Restore(ctx, restoreOptions)
+		criuStatistics, runtimeRestoreDuration, err := con.Restore(ctx, restoreOptions)
 		reports = append(reports, &entities.RestoreReport{
-			Err: err,
-			Id:  con.ID(),
+			Err:             err,
+			Id:              con.ID(),
+			RuntimeDuration: runtimeRestoreDuration,
+			CRIUStatistics:  criuStatistics,
 		})
 	}
 	return reports, nil

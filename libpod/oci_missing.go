@@ -66,8 +66,8 @@ func (r *MissingRuntime) Path() string {
 }
 
 // CreateContainer is not available as the runtime is missing
-func (r *MissingRuntime) CreateContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) error {
-	return r.printError()
+func (r *MissingRuntime) CreateContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) (int64, error) {
+	return 0, r.printError()
 }
 
 // UpdateContainerStatus is not available as the runtime is missing
