@@ -61,4 +61,4 @@ completion output to a file and source that to the user's powershell profile.
 More information about profiles is available with **Get-Help about_Profiles**.
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, zsh(1), fish(1), powershell(1)
+**[podman(1)](podman.1.md)**, **zsh(1)**, **fish(1)**, **powershell(1)**
