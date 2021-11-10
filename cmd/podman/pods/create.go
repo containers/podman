@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/completion"
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/sysinfo"
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/containers"
@@ -48,6 +47,7 @@ var (
 var (
 	createOptions     entities.PodCreateOptions
 	infraOptions      entities.ContainerCreateOptions
+	infraImage        string
 	labels, labelFile []string
 	podIDFile         string
 	replace           bool
@@ -72,7 +72,7 @@ func init() {
 	_ = createCommand.RegisterFlagCompletionFunc(nameFlagName, completion.AutocompleteNone)
 
 	infraImageFlagName := "infra-image"
-	flags.String(infraImageFlagName, containerConfig.Engine.InfraImage, "The image of the infra container to associate with the pod")
+	flags.StringVar(&infraImage, infraImageFlagName, containerConfig.Engine.InfraImage, "The image of the infra container to associate with the pod")
 	_ = createCommand.RegisterFlagCompletionFunc(infraImageFlagName, common.AutocompleteImages)
 
 	podIDFileFlagName := "pod-id-file"
@@ -110,7 +110,7 @@ func create(cmd *cobra.Command, args []string) error {
 		return errors.Wrapf(err, "unable to process labels")
 	}
 
-	imageName = config.DefaultInfraImage
+	imageName = infraImage
 	img := imageName
 	if !createOptions.Infra {
 		if cmd.Flag("no-hosts").Changed {
@@ -147,14 +147,6 @@ func create(cmd *cobra.Command, args []string) error {
 			// Only send content to server side if user changed defaults
 			cmdIn, err := cmd.Flags().GetString("infra-command")
 			infraOptions.Entrypoint = &cmdIn
-			if err != nil {
-				return err
-			}
-		}
-		if cmd.Flag("infra-image").Changed {
-			// Only send content to server side if user changed defaults
-			img, err = cmd.Flags().GetString("infra-image")
-			imageName = img
 			if err != nil {
 				return err
 			}
