@@ -87,6 +87,7 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		dis := podmanTest.Podman([]string{"network", "disconnect", netName, "test"})
 		dis.WaitWithDefaultTimeout()
 		Expect(dis).Should(Exit(0))
+		Expect(dis.ErrorToString()).Should(Equal(""))
 
 		inspect := podmanTest.Podman([]string{"container", "inspect", "test", "--format", "{{len .NetworkSettings.Networks}}"})
 		inspect.WaitWithDefaultTimeout()
@@ -183,6 +184,7 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		connect := podmanTest.Podman([]string{"network", "connect", newNetName, "test"})
 		connect.WaitWithDefaultTimeout()
 		Expect(connect).Should(Exit(0))
+		Expect(connect.ErrorToString()).Should(Equal(""))
 
 		inspect := podmanTest.Podman([]string{"container", "inspect", "test", "--format", "{{len .NetworkSettings.Networks}}"})
 		inspect.WaitWithDefaultTimeout()

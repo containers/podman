@@ -678,15 +678,15 @@ func getRootlessPortChildIP(c *Container, netStatus map[string]types.StatusBlock
 // reloadRootlessRLKPortMapping will trigger a reload for the port mappings in the rootlessport process.
 // This should only be called by network connect/disconnect and only as rootless.
 func (c *Container) reloadRootlessRLKPortMapping() error {
+	if len(c.config.PortMappings) == 0 {
+		return nil
+	}
 	childIP := getRootlessPortChildIP(c, c.state.NetworkStatus)
 	logrus.Debugf("reloading rootless ports for container %s, childIP is %s", c.config.ID, childIP)
 
 	conn, err := openUnixSocket(filepath.Join(c.runtime.config.Engine.TmpDir, "rp", c.config.ID))
 	if err != nil {
-		// This is not a hard error for backwards compatibility. A container started
-		// with an old version did not created the rootlessport socket.
-		logrus.Warnf("Could not reload rootless port mappings, port forwarding may no longer work correctly: %v", err)
-		return nil
+		return errors.Wrap(err, "could not reload rootless port mappings, port forwarding may no longer work correctly")
 	}
 	defer conn.Close()
 	enc := json.NewEncoder(conn)

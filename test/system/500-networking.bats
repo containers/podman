@@ -430,6 +430,7 @@ load helpers
     is "$output" "[${cid:0:12}]" "short container id in network aliases"
 
     run_podman network disconnect $netname $cid
+    is "$output" "" "Output should be empty (no errors)"
 
     # check that we cannot curl (timeout after 3 sec)
     run curl --max-time 3 -s $SERVER/index.txt
@@ -438,6 +439,7 @@ load helpers
     fi
 
     run_podman network connect $netname $cid
+    is "$output" "" "Output should be empty (no errors)"
 
     # curl should work again
     run curl --max-time 3 -s $SERVER/index.txt
@@ -454,6 +456,12 @@ load helpers
         die "MAC address did not change after podman network disconnect/connect"
     fi
 
+    # Disconnect/reconnect of a container *with no ports* should succeed quietly
+    run_podman network disconnect $netname $background_cid
+    is "$output" "" "disconnect of container with no open ports"
+    run_podman network connect $netname $background_cid
+    is "$output" "" "(re)connect of container with no open ports"
+
     # FIXME FIXME FIXME: #11825: bodhi tests are failing, remote+rootless only,
     # with "dnsmasq: failed to create inotify". This error has never occurred
     # in CI, and Ed has been unable to reproduce it on 1minutetip. This next
@@ -464,6 +472,7 @@ load helpers
 
     # connect a second network
     run_podman network connect $netname2 $cid
+    is "$output" "" "Output should be empty (no errors)"
 
     # check network2 alias for container short id
     run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname2\").Aliases}}"
