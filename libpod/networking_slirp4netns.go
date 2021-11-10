@@ -686,10 +686,7 @@ func (c *Container) reloadRootlessRLKPortMapping() error {
 
 	conn, err := openUnixSocket(filepath.Join(c.runtime.config.Engine.TmpDir, "rp", c.config.ID))
 	if err != nil {
-		// This is not a hard error for backwards compatibility. A container started
-		// with an old version did not created the rootlessport socket.
-		logrus.Warnf("Could not reload rootless port mappings, port forwarding may no longer work correctly: %v", err)
-		return nil
+		return errors.Wrap(err, "could not reload rootless port mappings, port forwarding may no longer work correctly")
 	}
 	defer conn.Close()
 	enc := json.NewEncoder(conn)
