@@ -102,6 +102,30 @@ from (see **[podman pod create --share](podman-pod-create.1.md#--share)**).
 
 This option requires at least CRIU 3.16.
 
+#### **--print-stats**
+
+Print out statistics about restoring the container(s). The output is
+rendered in a JSON array and contains information about how much time different
+restore operations required. Many of the restore statistics are created
+by CRIU and just passed through to Podman. The following information is provided
+in the JSON array:
+
+- **podman_restore_duration**: Overall time (in microseconds) needed to restore
+  all checkpoints.
+
+- **runtime_restore_duration**: Time (in microseconds) the container runtime
+  needed to restore the checkpoint.
+
+- **forking_time**: Time (in microseconds) CRIU needed to create (fork) all
+  processes in the restored container (measured by CRIU).
+
+- **restore_time**: Time (in microseconds) CRIU needed to restore all processes
+  in the container (measured by CRIU).
+
+- **pages_restored**: Number of memory pages restored (measured by CRIU).
+
+The default is **false**.
+
 #### **--publish**, **-p**=*port*
 
 Replaces the ports that the *container* publishes, as configured during the
@@ -137,7 +161,7 @@ $ podman run --rm -p 2345:80 -d webserver
 ```
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-container-checkpoint(1)](podman-container-checkpoint.1.md)**, **[podman-run(1)](podman-run.1.md)**, **[podman-pod-create(1)](podman-pod-create.1.md)**
+**[podman(1)](podman.1.md)**, **[podman-container-checkpoint(1)](podman-container-checkpoint.1.md)**, **[podman-run(1)](podman-run.1.md)**, **[podman-pod-create(1)](podman-pod-create.1.md)**, **criu(8)**
 
 ## HISTORY
 September 2018, Originally compiled by Adrian Reber <areber@redhat.com>
