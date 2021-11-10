@@ -120,7 +120,7 @@ Login Succeeded!
 ```
 
 ## SEE ALSO
-podman(1), podman-logout(1), containers-auth.json(5), containers-certs.d(5), containers-registries.conf(5)
+**[podman(1)](podman.1.md)**, **[podman-logout(1)](podman-logout.1.md)**, **[containers-auth.json(5)](https://github.com/containers/image/blob/main/docs/containers-auth.json.5.md)**, **[containers-certs.d(5)](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)**, **[containers-registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md)**
 
 ## HISTORY
 August 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

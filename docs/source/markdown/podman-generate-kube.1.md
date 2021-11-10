@@ -206,7 +206,7 @@ status:
 ```
 
 ## SEE ALSO
-podman(1), podman-container(1), podman-pod(1), podman-play-kube(1)
+**[podman(1)](podman.1.md)**, **[podman-container(1)](podman-container.1.md)**, **[podman-pod(1)](podman-pod.1.md)**, **[podman-play-kube(1)](podman-play-kube.1.md)**
 
 ## HISTORY
 December 2018, Originally compiled by Brent Baude (bbaude at redhat dot com)

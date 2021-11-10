@@ -58,4 +58,4 @@ podman manifest annotate --arch arm64 --variant v8 mylist:v1.11 sha256:59eec8837
 ```
 
 ## SEE ALSO
-podman(1), podman-manifest(1), podman-manifest-add(1), podman-manifest-create(1), podman-manifest-inspect(1), podman-rmi(1)
+**[podman(1)](podman.1.md)**, **[podman-manifest(1)](podman-manifest.1.md)**

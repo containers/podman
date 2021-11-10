@@ -24,4 +24,4 @@ The network command manages CNI networks for Podman.
 | rm         | [podman-network-rm(1)](podman-network-rm.1.md)                 | Remove one or more CNI networks                                     |
 
 ## SEE ALSO
-podman(1)
+**[podman(1)](podman.1.md)**

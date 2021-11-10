@@ -44,7 +44,7 @@ cc8f0bea67b1a1a11aec1ecd38102a1be4b145577f21fc843c7c83b77fc28907
 ```
 
 ## SEE ALSO
-podman-pod(1), podman-pod-start(1), podman-restart(1)
+**[podman(1)](podman.1.md)**, **[podman-pod(1)](podman-pod.1.md)**, **[podman-restart(1)](podman-restart.1.md)**
 
 ## HISTORY
 July 2018, Originally compiled by Peter Hunt <pehunt@redhat.com>

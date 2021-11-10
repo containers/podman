@@ -36,7 +36,7 @@ podman init test1
 podman init --latest
 
 ## SEE ALSO
-podman(1), podman-start(1)
+**[podman(1)](podman.1.md)**, **[podman-start(1)](podman-start.1.md)**
 
 ## HISTORY
 April 2019, Originally compiled by Matthew Heon <mheon@redhat.com>

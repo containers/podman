@@ -71,7 +71,7 @@ Are you sure you want to continue? [y/N] y
 ```
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-ps](podman-ps.1.md)**
+**[podman(1)](podman.1.md)**, **[podman-ps(1)](podman-ps.1.md)**
 
 ## HISTORY
 December 2018, Originally compiled by Brent Baude <bbaude@redhat.com>\

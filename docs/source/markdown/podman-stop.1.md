@@ -59,7 +59,7 @@ $ podman stop -a
 $ podman stop --latest
 
 ## SEE ALSO
-podman(1), podman-rm(1)
+**[podman(1)](podman.1.md)**, **[podman-rm(1)](podman-rm.1.md)**
 
 ## HISTORY
 September 2018, Originally compiled by Brent Baude <bbaude@redhat.com>

@@ -44,7 +44,7 @@ $ podman volume prune --filter label=mylabel=mylabelvalue
 ```
 
 ## SEE ALSO
-podman-volume(1)
+**[podman(1)](podman.1.md)**, **[podman-volume(1)](podman-volume.1.md)**
 
 ## HISTORY
 November 2018, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

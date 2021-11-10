@@ -37,4 +37,4 @@ The image command allows you to manage images
 | untag    | [podman-untag(1)](podman-untag.1.md)                | Removes one or more names from a locally-stored image.                  |
 
 ## SEE ALSO
-podman
+**[podman(1)](podman.1.md)**

@@ -69,7 +69,7 @@ $ podman machine init --memory=1024 myvm
 ```
 
 ## SEE ALSO
-podman-machine(1)
+**[podman(1)](podman.1.md)**, **[podman-machine(1)](podman-machine.1.md)**
 
 ## HISTORY
 March 2021, Originally compiled by Ashley Cui <acui@redhat.com>

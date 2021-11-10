@@ -114,7 +114,7 @@ $ podman exec --user root ctrID ls
 ```
 
 ## SEE ALSO
-podman(1), podman-run(1)
+**[podman(1)](podman.1.md)**, **[podman-run(1)](podman-run.1.md)**
 
 ## HISTORY
 December 2017, Originally compiled by Brent Baude<bbaude@redhat.com>

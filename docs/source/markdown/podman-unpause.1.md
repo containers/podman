@@ -36,7 +36,7 @@ podman unpause -a
 ```
 
 ## SEE ALSO
-podman(1), podman-pause(1)
+**[podman(1)](podman.1.md)**, **[podman-pause(1)](podman-pause.1.md)**
 
 ## HISTORY
 September 2017, Originally compiled by Dan Walsh <dwalsh@redhat.com>

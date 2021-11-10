@@ -40,7 +40,7 @@ $ podman version --format '{{.Client.Version}}'
 ```
 
 ## SEE ALSO
-podman(1)
+**[podman(1)](podman.1.md)**
 
 ## HISTORY
 November 2018, Added --format flag by Tomas Tomecek <ttomecek@redhat.com>

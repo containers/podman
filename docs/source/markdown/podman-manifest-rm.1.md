@@ -22,4 +22,4 @@ storage.conf is the storage configuration file for all tools using containers/st
 The storage configuration file specifies all of the available container storage options for tools using shared container storage.
 
 ## SEE ALSO
-podman(1), containers-storage.conf(5), podman-manifest(1)
+**[podman(1)](podman.1.md)**, **[podman-manifest(1)](podman-manifest.1.md)**,  **[containers-storage.conf(5)](https://github.com/containers/storage/blob/main/docs/containers-storage.conf.5.md)**

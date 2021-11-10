@@ -23,4 +23,4 @@ The system command allows you to manage the podman systems
 | service    | [podman-system-service(1)](podman-system-service.1.md)       | Run an API service                                                   |
 
 ## SEE ALSO
-podman(1)
+**[podman(1)](podman.1.md)**

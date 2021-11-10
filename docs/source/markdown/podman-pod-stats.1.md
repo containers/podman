@@ -85,7 +85,7 @@ ID             NAME           MEM USAGE / LIMIT
 ```
 
 ## SEE ALSO
-podman-pod(1), podman(1)
+**[podman(1)](podman.1.md)**, **[podman-pod(1)](podman-pod.1.md)**
 
 ## HISTORY
 February 2019, Originally compiled by Dan Walsh <dwalsh@redhat.com>

@@ -40,4 +40,4 @@ podman manifest create --all mylist:v1.11 docker://fedora
 ```
 
 ## SEE ALSO
-podman(1), podman-manifest(1), podman-manifest-add(1), podman-manifest-inspect(1), podman-manifest-push(1), podman-manifest-remove(1), podman-rmi(1)
+**[podman(1)](podman.1.md)**, **[podman-manifest(1)](podman-manifest.1.md)**
