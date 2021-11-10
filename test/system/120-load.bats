@@ -126,6 +126,26 @@ verify_iid_and_name() {
     verify_iid_and_name $img_name
 }
 
+@test "podman load - from URL" {
+    get_iid_and_name
+    run_podman save $img_name -o $archive
+    run_podman rmi $iid
+
+    HOST_PORT=$(random_free_port)
+    SERVER=http://127.0.0.1:$HOST_PORT
+
+    # Bind-mount the archive to a container running httpd
+    run_podman run -d --name myweb -p "$HOST_PORT:80" \
+            -v $archive:/var/www/image.tar:Z \
+            -w /var/www \
+            $IMAGE /bin/busybox-extras httpd -f -p 80
+
+    run_podman load -i $SERVER/image.tar
+    verify_iid_and_name $img_name
+
+    run_podman rm -f -t0 myweb
+}
+
 @test "podman load - redirect corrupt payload" {
     run_podman 125 load <<< "Danger, Will Robinson!! This is a corrupt tarball!"
     is "$output" \

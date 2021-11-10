@@ -80,6 +80,7 @@ func DefaultProfile() *Seccomp {
 				"vmsplice",
 			},
 			Action:   ActErrno,
+			Errno:    "EPERM",
 			ErrnoRet: &eperm,
 			Args:     []*Arg{},
 		},
@@ -574,6 +575,7 @@ func DefaultProfile() *Seccomp {
 				"open_by_handle_at",
 			},
 			Action:   ActErrno,
+			Errno:    "EPERM",
 			ErrnoRet: &eperm,
 			Args:     []*Arg{},
 			Excludes: Filter{
@@ -609,6 +611,7 @@ func DefaultProfile() *Seccomp {
 				"setns",
 			},
 			Action:   ActErrno,
+			Errno:    "EPERM",
 			ErrnoRet: &eperm,
 			Args:     []*Arg{},
 			Excludes: Filter{
@@ -630,6 +633,7 @@ func DefaultProfile() *Seccomp {
 				"chroot",
 			},
 			Action:   ActErrno,
+			Errno:    "EPERM",
 			ErrnoRet: &eperm,
 			Args:     []*Arg{},
 			Excludes: Filter{
@@ -657,6 +661,7 @@ func DefaultProfile() *Seccomp {
 				"query_module",
 			},
 			Action:   ActErrno,
+			Errno:    "EPERM",
 			ErrnoRet: &eperm,
 			Args:     []*Arg{},
 			Excludes: Filter{
@@ -678,6 +683,7 @@ func DefaultProfile() *Seccomp {
 				"acct",
 			},
 			Action:   ActErrno,
+			Errno:    "EPERM",
 			ErrnoRet: &eperm,
 			Args:     []*Arg{},
 			Excludes: Filter{
@@ -707,6 +713,7 @@ func DefaultProfile() *Seccomp {
 				"ptrace",
 			},
 			Action:   ActErrno,
+			Errno:    "EPERM",
 			ErrnoRet: &eperm,
 			Args:     []*Arg{},
 			Excludes: Filter{
@@ -730,6 +737,7 @@ func DefaultProfile() *Seccomp {
 				"ioperm",
 			},
 			Action:   ActErrno,
+			Errno:    "EPERM",
 			ErrnoRet: &eperm,
 			Args:     []*Arg{},
 			Excludes: Filter{
@@ -757,6 +765,7 @@ func DefaultProfile() *Seccomp {
 				"clock_settime64",
 			},
 			Action:   ActErrno,
+			Errno:    "EPERM",
 			ErrnoRet: &eperm,
 			Args:     []*Arg{},
 			Excludes: Filter{
@@ -778,6 +787,7 @@ func DefaultProfile() *Seccomp {
 				"vhangup",
 			},
 			Action:   ActErrno,
+			Errno:    "EPERM",
 			ErrnoRet: &eperm,
 			Args:     []*Arg{},
 			Excludes: Filter{
@@ -789,6 +799,7 @@ func DefaultProfile() *Seccomp {
 				"socket",
 			},
 			Action:   ActErrno,
+			Errno:    "EINVAL",
 			ErrnoRet: &einval,
 			Args: []*Arg{
 				{
@@ -867,6 +878,7 @@ func DefaultProfile() *Seccomp {
 
 	return &Seccomp{
 		DefaultAction:   ActErrno,
+		DefaultErrno:    "ENOSYS",
 		DefaultErrnoRet: &enosys,
 		ArchMap:         arches(),
 		Syscalls:        syscalls,

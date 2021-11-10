@@ -28,7 +28,7 @@ Note: `:` is a restricted character and cannot be part of the file name.
 
 #### **--input**, **-i**=*input*
 
-Read from archive file, default is STDIN.
+Load the specified input file instead of from stdin.  The file can be on the local file system or on a server (e.g., https://server.com/archive.tar)
 
 The remote client requires the use of this option.
 
@@ -49,7 +49,7 @@ $ podman load --quiet -i fedora.tar
 ```
 
 ```
-$ podman load -q -i fedora.tar
+$ podman load -q -i https://server.com/archive.tar
 ```
 
 ```
