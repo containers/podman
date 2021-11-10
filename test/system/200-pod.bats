@@ -60,6 +60,25 @@ function teardown() {
     run_podman pod rm -f -t 0 $podid
 }
 
+
+@test "podman pod create - custom infra image" {
+    image="i.do/not/exist:image"
+
+    tmpdir=$PODMAN_TMPDIR/pod-test
+    run mkdir -p $tmpdir
+    containersconf=$tmpdir/containers.conf
+    cat >$containersconf <<EOF
+[engine]
+infra_image="$image"
+EOF
+
+    run_podman 125 pod create --infra-image $image
+    is "$output" ".*initializing source docker://$image:.*"
+
+    CONTAINERS_CONF=$containersconf run_podman 125 pod create
+    is "$output" ".*initializing source docker://$image:.*"
+}
+
 function rm_podman_pause_image() {
     run_podman version --format "{{.Server.Version}}-{{.Server.Built}}"
     run_podman rmi -f "localhost/podman-pause:$output"
