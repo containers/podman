@@ -957,6 +957,34 @@ ENTRYPOINT ["sleep","99999"]
 		Expect(ctr3.OutputToString()).To(ContainSubstring("hello"))
 	})
 
+	It("podman pod create should use customized infra_image", func() {
+		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
+
+		infraImage := "k8s.gcr.io/pause:3.2"
+		err := ioutil.WriteFile(conffile, []byte(fmt.Sprintf("[engine]\ninfra_image=\"%s\"\n", infraImage)), 0644)
+		Expect(err).To(BeNil())
+
+		os.Setenv("CONTAINERS_CONF", conffile)
+		defer os.Unsetenv("CONTAINERS_CONF")
+
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		cmd := podmanTest.Podman([]string{"pod", "create", "--name=check-pod-customized-image"})
+		cmd.WaitWithDefaultTimeout()
+		Expect(cmd).Should(Exit(0))
+
+		podInspect := podmanTest.Podman([]string{"inspect", "check-pod-customized-image", "--format", "{{ .InfraContainerID }}"})
+		podInspect.WaitWithDefaultTimeout()
+		infraContainerID := podInspect.OutputToString()
+
+		conInspect := podmanTest.Podman([]string{"inspect", infraContainerID, "--format", "{{ .ImageName }}"})
+		conInspect.WaitWithDefaultTimeout()
+		infraContainerImage := conInspect.OutputToString()
+		Expect(infraContainerImage).To(Equal(infraImage))
+	})
+
 	It("podman pod create read network mode from config", func() {
 		confPath, err := filepath.Abs("config/containers-netns.conf")
 		Expect(err).ToNot(HaveOccurred())

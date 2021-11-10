@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/completion"
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/sysinfo"
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/containers"
@@ -110,7 +109,7 @@ func create(cmd *cobra.Command, args []string) error {
 		return errors.Wrapf(err, "unable to process labels")
 	}
 
-	imageName = config.DefaultInfraImage
+	imageName = ""
 	img := imageName
 	if !createOptions.Infra {
 		if cmd.Flag("no-hosts").Changed {
