@@ -2,9 +2,11 @@ package libimage
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"os"
 
+	"github.com/containers/common/pkg/download"
 	storageTransport "github.com/containers/image/v5/storage"
 	tarballTransport "github.com/containers/image/v5/tarball"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -61,7 +63,8 @@ func (r *Runtime) Import(ctx context.Context, path string, options *ImportOption
 	u, err := url.ParseRequestURI(path)
 	if err == nil && u.Scheme != "" {
 		// If source is a URL, download the file.
-		file, err := r.downloadFromURL(path)
+		fmt.Printf("Downloading from %q\n", path)
+		file, err := download.FromURL(r.systemContext.BigFilesTemporaryDir, path)
 		if err != nil {
 			return "", err
 		}

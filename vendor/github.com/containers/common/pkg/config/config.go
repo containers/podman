@@ -461,6 +461,10 @@ type SetOptions struct {
 
 // NetworkConfig represents the "network" TOML config table
 type NetworkConfig struct {
+	// NetworkBackend determines what backend should be used for Podman's
+	// networking.
+	NetworkBackend string `toml:"network_backend,omitempty"`
+
 	// CNIPluginDirs is where CNI plugin binaries are stored.
 	CNIPluginDirs []string `toml:"cni_plugin_dirs,omitempty"`
 

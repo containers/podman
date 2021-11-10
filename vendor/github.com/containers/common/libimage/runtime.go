@@ -21,6 +21,16 @@ import (
 // Faster than the standard library, see https://github.com/json-iterator/go.
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
+// tmpdir returns a path to a temporary directory.
+func tmpdir() string {
+	tmpdir := os.Getenv("TMPDIR")
+	if tmpdir == "" {
+		tmpdir = "/var/tmp"
+	}
+
+	return tmpdir
+}
+
 // RuntimeOptions allow for creating a customized Runtime.
 type RuntimeOptions struct {
 	// The base system context of the runtime which will be used throughout
