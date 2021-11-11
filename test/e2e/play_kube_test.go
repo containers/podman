@@ -2759,6 +2759,34 @@ invalid kube kind
 		Expect(exists).To(Exit(0))
 	})
 
+	It("podman play kube use network mode from config", func() {
+		confPath, err := filepath.Abs("config/containers-netns2.conf")
+		Expect(err).ToNot(HaveOccurred())
+		os.Setenv("CONTAINERS_CONF", confPath)
+		defer os.Unsetenv("CONTAINERS_CONF")
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		pod := getPod()
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		podInspect := podmanTest.Podman([]string{"pod", "inspect", pod.Name, "--format", "{{.InfraContainerID}}"})
+		podInspect.WaitWithDefaultTimeout()
+		Expect(podInspect).To(Exit(0))
+		infraID := podInspect.OutputToString()
+
+		inspect := podmanTest.Podman([]string{"inspect", "--format", "{{.HostConfig.NetworkMode}}", infraID})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).To(Exit(0))
+		Expect(inspect.OutputToString()).To(Equal("bridge"))
+	})
+
 	Describe("verify environment variables", func() {
 		var maxLength int
 		BeforeEach(func() {
