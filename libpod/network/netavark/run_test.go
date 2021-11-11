@@ -619,6 +619,37 @@ var _ = Describe("run netavark", func() {
 			Expect(err).To(HaveOccurred())
 		})
 	})
+
+	It("test netavark error", func() {
+		runTest(func() {
+			intName := "eth0"
+			err := netNSContainer.Do(func(_ ns.NetNS) error {
+				defer GinkgoRecover()
+
+				attr := netlink.NewLinkAttrs()
+				attr.Name = "eth0"
+				err := netlink.LinkAdd(&netlink.Bridge{LinkAttrs: attr})
+				Expect(err).ToNot(HaveOccurred())
+				return nil
+			})
+			Expect(err).ToNot(HaveOccurred())
+			defNet := types.DefaultNetworkName
+			opts := types.SetupOptions{
+				NetworkOptions: types.NetworkOptions{
+					ContainerID:   "someID",
+					ContainerName: "someName",
+					Networks: map[string]types.PerNetworkOptions{
+						defNet: {
+							InterfaceName: intName,
+						},
+					},
+				},
+			}
+			_, err = libpodNet.Setup(netNSContainer.Path(), opts)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("interface eth0 already exists on container namespace"))
+		})
+	})
 })
 
 func runNetListener(wg *sync.WaitGroup, protocol, ip string, port int, expectedData string) {
