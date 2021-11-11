@@ -629,6 +629,9 @@ func getRootlessPortChildIP(c *Container) string {
 // reloadRootlessRLKPortMapping will trigger a reload for the port mappings in the rootlessport process.
 // This should only be called by network connect/disconnect and only as rootless.
 func (c *Container) reloadRootlessRLKPortMapping() error {
+	if len(c.config.PortMappings) == 0 {
+		return nil
+	}
 	childIP := getRootlessPortChildIP(c)
 	logrus.Debugf("reloading rootless ports for container %s, childIP is %s", c.config.ID, childIP)
 
