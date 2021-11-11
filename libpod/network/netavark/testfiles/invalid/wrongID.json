@@ -1,0 +1,19 @@
+{
+    "name": "wrongID",
+    "id": "someID",
+    "driver": "bridge",
+    "network_interface": "podman1",
+    "created": "2021-10-06T18:50:54.25770461+02:00",
+    "subnets": [
+        {
+            "subnet": "10.89.0.0/24",
+            "gateway": "10.89.0.1"
+        }
+    ],
+    "ipv6_enabled": false,
+    "internal": false,
+    "dns_enabled": false,
+    "ipam_options": {
+        "driver": "host-local"
+    }
+}

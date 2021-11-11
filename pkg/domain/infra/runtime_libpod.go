@@ -200,6 +200,9 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 	if fs.Changed("network-cmd-path") {
 		options = append(options, libpod.WithNetworkCmdPath(cfg.Engine.NetworkCmdPath))
 	}
+	if fs.Changed("network-backend") {
+		options = append(options, libpod.WithNetworkBackend(cfg.Network.NetworkBackend))
+	}
 
 	if fs.Changed("events-backend") {
 		options = append(options, libpod.WithEventsLogger(cfg.Engine.EventsLogger))

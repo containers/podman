@@ -28,6 +28,7 @@ import (
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/libpod/lock"
 	"github.com/containers/podman/v3/libpod/network/cni"
+	"github.com/containers/podman/v3/libpod/network/netavark"
 	nettypes "github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/libpod/plugin"
 	"github.com/containers/podman/v3/libpod/shutdown"
@@ -483,16 +484,45 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		}
 	}
 
-	netInterface, err := cni.NewCNINetworkInterface(cni.InitConfig{
-		CNIConfigDir:   runtime.config.Network.NetworkConfigDir,
-		CNIPluginDirs:  runtime.config.Network.CNIPluginDirs,
-		DefaultNetwork: runtime.config.Network.DefaultNetwork,
-		DefaultSubnet:  runtime.config.Network.DefaultSubnet,
-		IsMachine:      runtime.config.Engine.MachineEnabled,
-		LockFile:       filepath.Join(runtime.config.Network.NetworkConfigDir, "cni.lock"),
-	})
-	if err != nil {
-		return errors.Wrapf(err, "could not create network interface")
+	var netInterface nettypes.ContainerNetwork
+
+	switch runtime.config.Network.NetworkBackend {
+	case "", "cni":
+		netInterface, err = cni.NewCNINetworkInterface(cni.InitConfig{
+			CNIConfigDir:   runtime.config.Network.NetworkConfigDir,
+			CNIPluginDirs:  runtime.config.Network.CNIPluginDirs,
+			DefaultNetwork: runtime.config.Network.DefaultNetwork,
+			DefaultSubnet:  runtime.config.Network.DefaultSubnet,
+			IsMachine:      runtime.config.Engine.MachineEnabled,
+			LockFile:       filepath.Join(runtime.config.Network.NetworkConfigDir, "cni.lock"),
+		})
+		if err != nil {
+			return errors.Wrapf(err, "could not create network interface")
+		}
+		if runtime.config.Network.NetworkBackend == "" {
+			// set backend to cni so that podman info can display it
+			runtime.config.Network.NetworkBackend = "cni"
+		}
+
+	case "netavark":
+		netavarkBin, err := runtime.config.FindHelperBinary("netavark", false)
+		if err != nil {
+			return err
+		}
+
+		netInterface, err = netavark.NewNetworkInterface(netavark.InitConfig{
+			NetavarkBinary:   netavarkBin,
+			NetworkConfigDir: filepath.Join(runtime.config.Engine.StaticDir, "networks"),
+			DefaultNetwork:   runtime.config.Network.DefaultNetwork,
+			DefaultSubnet:    runtime.config.Network.DefaultSubnet,
+			IsMachine:        runtime.config.Engine.MachineEnabled,
+			LockFile:         filepath.Join(runtime.config.Network.NetworkConfigDir, "netavark.lock"),
+		})
+		if err != nil {
+			return errors.Wrapf(err, "could not create network interface")
+		}
+	default:
+		return errors.Errorf("unsupported network backend %q, check network_backend in containers.conf", runtime.config.Network.NetworkBackend)
 	}
 
 	runtime.network = netInterface

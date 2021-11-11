@@ -1,0 +1,19 @@
+{
+    "name": "invalid_gateway",
+    "id": "49be6e401e7f8b9844afb969dcbc96e78205ed86ec1e5a46150bd4ab4fdd5686",
+    "driver": "bridge",
+    "network_interface": "podman9",
+    "created": "2021-10-06T18:50:54.25770461+02:00",
+    "subnets": [
+        {
+            "subnet": "10.89.9.0/24",
+            "gateway": "10.89.100.1"
+        }
+    ],
+    "ipv6_enabled": false,
+    "internal": false,
+    "dns_enabled": true,
+    "ipam_options": {
+        "driver": "host-local"
+    }
+}

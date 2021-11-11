@@ -357,6 +357,11 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 		pFlags.StringVar(&cfg.Engine.Namespace, namespaceFlagName, cfg.Engine.Namespace, "Set the libpod namespace, used to create separate views of the containers and pods on the system")
 		_ = cmd.RegisterFlagCompletionFunc(namespaceFlagName, completion.AutocompleteNone)
 
+		networkBackendFlagName := "network-backend"
+		pFlags.StringVar(&cfg.Network.NetworkBackend, networkBackendFlagName, cfg.Network.NetworkBackend, `Network backend to use ("cni"|"netavark")`)
+		_ = cmd.RegisterFlagCompletionFunc(networkBackendFlagName, common.AutocompleteNetworkBackend)
+		pFlags.MarkHidden(networkBackendFlagName)
+
 		rootFlagName := "root"
 		pFlags.StringVar(&cfg.Engine.StaticDir, rootFlagName, "", "Path to the root directory in which data, including images, is stored")
 		_ = cmd.RegisterFlagCompletionFunc(rootFlagName, completion.AutocompleteDefault)

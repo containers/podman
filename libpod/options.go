@@ -227,6 +227,19 @@ func WithNetworkCmdPath(path string) RuntimeOption {
 	}
 }
 
+// WithNetworkBackend specifies the name of the network backend.
+func WithNetworkBackend(name string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return define.ErrRuntimeFinalized
+		}
+
+		rt.config.Network.NetworkBackend = name
+
+		return nil
+	}
+}
+
 // WithCgroupManager specifies the manager implementation name which is used to
 // handle cgroups for containers.
 // Current valid values are "cgroupfs" and "systemd".

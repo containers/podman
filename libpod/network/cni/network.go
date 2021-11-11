@@ -6,8 +6,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
-	"net"
 	"os"
 	"strings"
 	"time"
@@ -15,8 +13,6 @@ import (
 	"github.com/containernetworking/cni/libcni"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/network/types"
-	"github.com/containers/podman/v3/libpod/network/util"
-	pkgutil "github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -242,111 +238,29 @@ func getNetworkIDFromName(name string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-// getFreeIPv6NetworkSubnet returns a unused ipv4 subnet
-func (n *cniNetwork) getFreeIPv4NetworkSubnet(usedNetworks []*net.IPNet) (*types.Subnet, error) {
-	// the default podman network is 10.88.0.0/16
-	// start locking for free /24 networks
-	network := &net.IPNet{
-		IP:   net.IP{10, 89, 0, 0},
-		Mask: net.IPMask{255, 255, 255, 0},
-	}
+// Implement the NetUtil interface for easy code sharing with other network interfaces.
 
-	// TODO: make sure to not use public subnets
-	for {
-		if intersectsConfig := util.NetworkIntersectsWithNetworks(network, usedNetworks); !intersectsConfig {
-			logrus.Debugf("found free ipv4 network subnet %s", network.String())
-			return &types.Subnet{
-				Subnet: types.IPNet{IPNet: *network},
-			}, nil
-		}
-		var err error
-		network, err = util.NextSubnet(network)
-		if err != nil {
-			return nil, err
-		}
-	}
-}
-
-// getFreeIPv6NetworkSubnet returns a unused ipv6 subnet
-func (n *cniNetwork) getFreeIPv6NetworkSubnet(usedNetworks []*net.IPNet) (*types.Subnet, error) {
-	// FIXME: Is 10000 fine as limit? We should prevent an endless loop.
-	for i := 0; i < 10000; i++ {
-		// RFC4193: Choose the ipv6 subnet random and NOT sequentially.
-		network, err := util.GetRandomIPv6Subnet()
-		if err != nil {
-			return nil, err
-		}
-		if intersectsConfig := util.NetworkIntersectsWithNetworks(&network, usedNetworks); !intersectsConfig {
-			logrus.Debugf("found free ipv6 network subnet %s", network.String())
-			return &types.Subnet{
-				Subnet: types.IPNet{IPNet: network},
-			}, nil
-		}
-	}
-	return nil, errors.New("failed to get random ipv6 subnet")
-}
-
-// getUsedSubnets returns a list of all used subnets by network
-// configs and interfaces on the host.
-func (n *cniNetwork) getUsedSubnets() ([]*net.IPNet, error) {
-	// first, load all used subnets from network configs
-	subnets := make([]*net.IPNet, 0, len(n.networks))
+// ForEach call the given function for each network
+func (n *cniNetwork) ForEach(run func(types.Network)) {
 	for _, val := range n.networks {
-		for i := range val.libpodNet.Subnets {
-			subnets = append(subnets, &val.libpodNet.Subnets[i].Subnet.IPNet)
-		}
+		run(*val.libpodNet)
 	}
-	// second, load networks from the current system
-	liveSubnets, err := util.GetLiveNetworkSubnets()
+}
+
+// Len return the number of networks
+func (n *cniNetwork) Len() int {
+	return len(n.networks)
+}
+
+// DefaultInterfaceName return the default cni bridge name, must be suffixed with a number.
+func (n *cniNetwork) DefaultInterfaceName() string {
+	return cniDeviceName
+}
+
+func (n *cniNetwork) Network(nameOrID string) (*types.Network, error) {
+	network, err := n.getNetwork(nameOrID)
 	if err != nil {
 		return nil, err
 	}
-	return append(subnets, liveSubnets...), nil
-}
-
-// getFreeDeviceName returns a free device name which can
-// be used for new configs as name and bridge interface name
-func (n *cniNetwork) getFreeDeviceName() (string, error) {
-	bridgeNames := n.getBridgeInterfaceNames()
-	netNames := n.getUsedNetworkNames()
-	liveInterfaces, err := util.GetLiveNetworkNames()
-	if err != nil {
-		return "", nil
-	}
-	names := make([]string, 0, len(bridgeNames)+len(netNames)+len(liveInterfaces))
-	names = append(names, bridgeNames...)
-	names = append(names, netNames...)
-	names = append(names, liveInterfaces...)
-	// FIXME: Is a limit fine?
-	// Start by 1, 0 is reserved for the default network
-	for i := 1; i < 1000000; i++ {
-		deviceName := fmt.Sprintf("%s%d", cniDeviceName, i)
-		if !pkgutil.StringInSlice(deviceName, names) {
-			logrus.Debugf("found free device name %s", deviceName)
-			return deviceName, nil
-		}
-	}
-	return "", errors.New("could not find free device name, to many iterations")
-}
-
-// getUsedNetworkNames returns all network names already used
-// by network configs
-func (n *cniNetwork) getUsedNetworkNames() []string {
-	names := make([]string, 0, len(n.networks))
-	for _, val := range n.networks {
-		names = append(names, val.libpodNet.Name)
-	}
-	return names
-}
-
-// getUsedNetworkNames returns all bridge device names already used
-// by network configs
-func (n *cniNetwork) getBridgeInterfaceNames() []string {
-	names := make([]string, 0, len(n.networks))
-	for _, val := range n.networks {
-		if val.libpodNet.Driver == types.BridgeNetworkDriver {
-			names = append(names, val.libpodNet.NetworkInterface)
-		}
-	}
-	return names
+	return network.libpodNet, err
 }

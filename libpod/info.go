@@ -131,6 +131,7 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 		Kernel:            kv,
 		MemFree:           mi.MemFree,
 		MemTotal:          mi.MemTotal,
+		NetworkBackend:    r.config.Network.NetworkBackend,
 		OS:                runtime.GOOS,
 		Security: define.SecurityInfo{
 			AppArmorEnabled:     apparmor.IsEnabled(),
