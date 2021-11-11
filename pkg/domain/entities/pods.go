@@ -266,6 +266,15 @@ type ContainerCreateOptions struct {
 	CgroupConf []string
 }
 
+func NewInfraContainerCreateOptions() ContainerCreateOptions {
+	options := ContainerCreateOptions{
+		IsInfra:          true,
+		ImageVolume:      "bind",
+		MemorySwappiness: -1,
+	}
+	return options
+}
+
 type PodCreateReport struct {
 	Id string //nolint
 }

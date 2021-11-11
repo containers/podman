@@ -172,7 +172,7 @@ func getMemoryLimits(s *specgen.SpecGenerator, c *entities.ContainerCreateOption
 		memory.Kernel = &mk
 		hasLimits = true
 	}
-	if c.MemorySwappiness > 0 {
+	if c.MemorySwappiness >= 0 {
 		swappiness := uint64(c.MemorySwappiness)
 		memory.Swappiness = &swappiness
 		hasLimits = true
