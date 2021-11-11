@@ -1,6 +1,7 @@
 package generate
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/containers/podman/v3/pkg/domain/entities"
@@ -1034,5 +1035,50 @@ WantedBy=multi-user.target default.target
 			}
 			assert.Equal(t, test.want, got, test.name)
 		})
+	}
+}
+
+func TestSetContainerNameForTemplate(t *testing.T) {
+	tt := []struct {
+		name         string
+		startCommand []string
+		info         *containerInfo
+		expected     []string
+		err          error
+	}{
+		{
+			name:         "no name argument is set",
+			startCommand: []string{"/usr/bin/podman", "run", "busybox", "top"},
+			info:         &containerInfo{ServiceName: "container-122"},
+			expected:     []string{"/usr/bin/podman", "run", "--name=container-122-%i", "busybox", "top"},
+			err:          nil,
+		},
+		{
+			name:         "--name=value is used in arguments",
+			startCommand: []string{"/usr/bin/podman", "run", "--name=lovely_james", "busybox", "top"},
+			info:         &containerInfo{},
+			expected:     []string{"/usr/bin/podman", "run", "--name=lovely_james-%i", "busybox", "top"},
+			err:          nil,
+		},
+		{
+			name:         "--name value is used in arguments",
+			startCommand: []string{"/usr/bin/podman", "run", "--name", "lovely_james", "busybox", "top"},
+			info:         &containerInfo{},
+			expected:     []string{"/usr/bin/podman", "run", "--name", "lovely_james-%i", "busybox", "top"},
+			err:          nil,
+		},
+		{
+			name:         "--name value is used in arguments",
+			startCommand: []string{"/usr/bin/podman", "create", "busybox", "top"},
+			info:         &containerInfo{},
+			expected:     []string{"/usr/bin/podman", "create", "busybox", "top"},
+			err:          fmt.Errorf("\"run\" is missing in the command arguments"),
+		},
+	}
+
+	for _, te := range tt {
+		res, err := setContainerNameForTemplate(te.startCommand, te.info)
+		assert.Equal(t, te.err, err)
+		assert.Equal(t, te.expected, res)
 	}
 }
