@@ -39,6 +39,7 @@ type HostInfo struct {
 	LogDriver         string           `json:"logDriver"`
 	MemFree           int64            `json:"memFree"`
 	MemTotal          int64            `json:"memTotal"`
+	NetworkBackend    string           `json:"networkBackend"`
 	OCIRuntime        *OCIRuntimeInfo  `json:"ociRuntime"`
 	OS                string           `json:"os"`
 	// RemoteSocket returns the UNIX domain socket the Podman service is listening on
