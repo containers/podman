@@ -499,6 +499,10 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		if err != nil {
 			return errors.Wrapf(err, "could not create network interface")
 		}
+		if runtime.config.Network.NetworkBackend == "" {
+			// set backend to cni so that podman info can display it
+			runtime.config.Network.NetworkBackend = "cni"
+		}
 
 	case "netavark":
 		netavarkBin, err := runtime.config.FindHelperBinary("netavark", false)
