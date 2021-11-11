@@ -1,5 +1,24 @@
 # Release Notes
 
+## 3.4.2
+### Bugfixes
+- Fixed a bug where `podman tag` could not tag manifest lists ([#12046](https://github.com/containers/podman/issues/12046)).
+- Fixed a bug where built-in volumes specified by images would not be created correctly under some circumstances.
+- Fixed a bug where, when using Podman Machine on OS X, containers in pods did not have working port forwarding from the host ([#12207](https://github.com/containers/podman/issues/12207)).
+- Fixed a bug where the `podman network reload` command command on containers using the `slirp4netns` network mode and the `rootlessport` port forwarding driver would make an unnecessary attempt to restart `rootlessport` on containers that did not forward ports.
+- Fixed a bug where the `podman generate kube` command would generate YAML including some unnecessary (set to default) fields (e.g. empty SELinux and DNS configuration blocks, and the `privileged` flag when set to false) ([#11995](https://github.com/containers/podman/issues/11995)).
+- Fixed a bug where the `podman pod rm` command could, if interrupted at the right moment, leave a reference to an already-removed infra container behind ([#12034](https://github.com/containers/podman/issues/12034)).
+- Fixed a bug where the `podman pod rm` command would not remove pods with more than one container if all containers save for the infra container were stopped unless `--force` was specified ([#11713](https://github.com/containers/podman/issues/11713)).
+- Fixed a bug where the `--memory` flag to `podman run` and `podman create` did not accept a limit of 0 (which should specify unlimited memory) ([#12002](https://github.com/containers/podman/issues/12002)).
+- Fixed a bug where the remote Podman client's `podman build` command could attempt to build a Dockerfile in the working directory of the `podman system service` instance instead of the Dockerfile specified by the user ([#12054](https://github.com/containers/podman/issues/12054)).
+- Fixed a bug where the `podman logs --tail` command could function improperly (printing more output than requested) when the `journald` log driver was used.
+- Fixed a bug where containers run using the `slirp4netns` network mode with IPv6 enabled would not have IPv6 connectivity until several seconds after they started ([#11062](https://github.com/containers/podman/issues/11062)).
+- Fixed a bug where some Podman commands could cause an extra `dbus-daemon` process to be created ([#9727](https://github.com/containers/podman/issues/9727)).
+- Fixed a bug where rootless Podman would sometimes print warnings about a failure to move the pause process into a given CGroup ([#12065](https://github.com/containers/podman/issues/12065)).
+- Fixed a bug where the `checkpointed` field in `podman inspect` on a container was not set to false after a container was restored.
+- Fixed a bug where the `podman system service` command would print overly-verbose logs about request IDs ([#12181](https://github.com/containers/podman/issues/12181)).
+- Fixed a bug where Podman could, when creating a new container without a name explicitly specified by the user, sometimes use an auto-generated name already in use by another container if multiple containers were being created in parallel ([#11735](https://github.com/containers/podman/issues/11735)).
+
 ## 3.4.1
 ### Bugfixes
 - Fixed a bug where `podman machine init` could, under some circumstances, create invalid machine configurations which could not be started ([#11824](https://github.com/containers/podman/issues/11824)).
