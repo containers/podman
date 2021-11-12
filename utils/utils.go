@@ -14,6 +14,7 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/godbus/dbus/v5"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -177,13 +178,26 @@ func RunsOnSystemd() bool {
 func moveProcessToScope(pidPath, slice, scope string) error {
 	data, err := ioutil.ReadFile(pidPath)
 	if err != nil {
+		// do not raise an error if the file doesn't exist
+		if os.IsNotExist(err) {
+			return nil
+		}
 		return errors.Wrapf(err, "cannot read pid file %s", pidPath)
 	}
 	pid, err := strconv.ParseUint(string(data), 10, 0)
 	if err != nil {
 		return errors.Wrapf(err, "cannot parse pid file %s", pidPath)
 	}
-	return RunUnderSystemdScope(int(pid), slice, scope)
+	err = RunUnderSystemdScope(int(pid), slice, scope)
+
+	// If the PID is not valid anymore, do not return an error.
+	if dbusErr, ok := err.(dbus.Error); ok {
+		if dbusErr.Name == "org.freedesktop.DBus.Error.UnixProcessIdUnknown" {
+			return nil
+		}
+	}
+
+	return err
 }
 
 // MovePauseProcessToScope moves the pause process used for rootless mode to keep the namespaces alive to
@@ -191,8 +205,8 @@ func moveProcessToScope(pidPath, slice, scope string) error {
 func MovePauseProcessToScope(pausePidPath string) {
 	err := moveProcessToScope(pausePidPath, "user.slice", "podman-pause.scope")
 	if err != nil {
-		unified, err := cgroups.IsCgroup2UnifiedMode()
-		if err != nil {
+		unified, err2 := cgroups.IsCgroup2UnifiedMode()
+		if err2 != nil {
 			logrus.Warnf("Failed to detect if running with cgroup unified: %v", err)
 		}
 		if RunsOnSystemd() && unified {

@@ -5,8 +5,9 @@ StartLimitIntervalSec=0
 
 [Service]
 Type=oneshot
+RemainAfterExit=true
 Environment=LOGGING="--log-level=info"
 ExecStart=/usr/bin/podman $LOGGING start --all --filter restart-policy=always
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=multi-user.target default.target

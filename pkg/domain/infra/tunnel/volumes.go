@@ -56,7 +56,7 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 	for _, id := range namesOrIds {
 		data, err := volumes.Inspect(ic.ClientCtx, id, nil)
 		if err != nil {
-			errModel, ok := err.(errorhandling.ErrorModel)
+			errModel, ok := err.(*errorhandling.ErrorModel)
 			if !ok {
 				return nil, nil, err
 			}

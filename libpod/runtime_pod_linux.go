@@ -43,18 +43,6 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 		}
 	}
 
-	if pod.config.Name == "" {
-		name, err := r.generateName()
-		if err != nil {
-			return nil, err
-		}
-		pod.config.Name = name
-	}
-
-	if p.InfraContainerSpec != nil && p.InfraContainerSpec.Hostname == "" {
-		p.InfraContainerSpec.Hostname = pod.config.Name
-	}
-
 	// Allocate a lock for the pod
 	lock, err := r.lockManager.AllocateLock()
 	if err != nil {
@@ -131,9 +119,33 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 		logrus.Infof("Pod has an infra container, but shares no namespaces")
 	}
 
-	if err := r.state.AddPod(pod); err != nil {
-		return nil, errors.Wrapf(err, "error adding pod to state")
+	// Unless the user has specified a name, use a randomly generated one.
+	// Note that name conflicts may occur (see #11735), so we need to loop.
+	generateName := pod.config.Name == ""
+	var addPodErr error
+	for {
+		if generateName {
+			name, err := r.generateName()
+			if err != nil {
+				return nil, err
+			}
+			pod.config.Name = name
+		}
+
+		if p.InfraContainerSpec != nil && p.InfraContainerSpec.Hostname == "" {
+			p.InfraContainerSpec.Hostname = pod.config.Name
+		}
+		if addPodErr = r.state.AddPod(pod); addPodErr == nil {
+			return pod, nil
+		}
+		if !generateName || (errors.Cause(addPodErr) != define.ErrPodExists && errors.Cause(addPodErr) != define.ErrCtrExists) {
+			break
+		}
 	}
+	if addPodErr != nil {
+		return nil, errors.Wrapf(addPodErr, "error adding pod to state")
+	}
+
 	return pod, nil
 }
 
@@ -177,10 +189,9 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 	if err != nil {
 		return err
 	}
-
 	numCtrs := len(ctrs)
 
-	// If the only container in the pod is the pause container, remove the pod and container unconditionally.
+	// If the only running container in the pod is the pause container, remove the pod and container unconditionally.
 	pauseCtrID := p.state.InfraContainerID
 	if numCtrs == 1 && ctrs[0].ID() == pauseCtrID {
 		removeCtrs = true
@@ -262,6 +273,15 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 				logrus.Errorf("Error removing container %s from pod %s: %v", ctr.ID(), p.ID(), err)
 			}
 		}
+	}
+
+	// Clear infra container ID before we remove the infra container.
+	// There is a potential issue if we don't do that, and removal is
+	// interrupted between RemoveAllContainers() below and the pod's removal
+	// later - we end up with a reference to a nonexistent infra container.
+	p.state.InfraContainerID = ""
+	if err := p.save(); err != nil {
+		return err
 	}
 
 	// Remove all containers in the pod from the state.

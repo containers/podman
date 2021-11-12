@@ -1,5 +1,24 @@
 # Release Notes
 
+## 3.4.2
+### Bugfixes
+- Fixed a bug where `podman tag` could not tag manifest lists ([#12046](https://github.com/containers/podman/issues/12046)).
+- Fixed a bug where built-in volumes specified by images would not be created correctly under some circumstances.
+- Fixed a bug where, when using Podman Machine on OS X, containers in pods did not have working port forwarding from the host ([#12207](https://github.com/containers/podman/issues/12207)).
+- Fixed a bug where the `podman network reload` command command on containers using the `slirp4netns` network mode and the `rootlessport` port forwarding driver would make an unnecessary attempt to restart `rootlessport` on containers that did not forward ports.
+- Fixed a bug where the `podman generate kube` command would generate YAML including some unnecessary (set to default) fields (e.g. empty SELinux and DNS configuration blocks, and the `privileged` flag when set to false) ([#11995](https://github.com/containers/podman/issues/11995)).
+- Fixed a bug where the `podman pod rm` command could, if interrupted at the right moment, leave a reference to an already-removed infra container behind ([#12034](https://github.com/containers/podman/issues/12034)).
+- Fixed a bug where the `podman pod rm` command would not remove pods with more than one container if all containers save for the infra container were stopped unless `--force` was specified ([#11713](https://github.com/containers/podman/issues/11713)).
+- Fixed a bug where the `--memory` flag to `podman run` and `podman create` did not accept a limit of 0 (which should specify unlimited memory) ([#12002](https://github.com/containers/podman/issues/12002)).
+- Fixed a bug where the remote Podman client's `podman build` command could attempt to build a Dockerfile in the working directory of the `podman system service` instance instead of the Dockerfile specified by the user ([#12054](https://github.com/containers/podman/issues/12054)).
+- Fixed a bug where the `podman logs --tail` command could function improperly (printing more output than requested) when the `journald` log driver was used.
+- Fixed a bug where containers run using the `slirp4netns` network mode with IPv6 enabled would not have IPv6 connectivity until several seconds after they started ([#11062](https://github.com/containers/podman/issues/11062)).
+- Fixed a bug where some Podman commands could cause an extra `dbus-daemon` process to be created ([#9727](https://github.com/containers/podman/issues/9727)).
+- Fixed a bug where rootless Podman would sometimes print warnings about a failure to move the pause process into a given CGroup ([#12065](https://github.com/containers/podman/issues/12065)).
+- Fixed a bug where the `checkpointed` field in `podman inspect` on a container was not set to false after a container was restored.
+- Fixed a bug where the `podman system service` command would print overly-verbose logs about request IDs ([#12181](https://github.com/containers/podman/issues/12181)).
+- Fixed a bug where Podman could, when creating a new container without a name explicitly specified by the user, sometimes use an auto-generated name already in use by another container if multiple containers were being created in parallel ([#11735](https://github.com/containers/podman/issues/11735)).
+
 ## 3.4.1
 ### Bugfixes
 - Fixed a bug where `podman machine init` could, under some circumstances, create invalid machine configurations which could not be started ([#11824](https://github.com/containers/podman/issues/11824)).
@@ -133,7 +152,7 @@
 ### Features
 - Containers inside VMs created by `podman machine` will now automatically handle port forwarding - containers in `podman machine` VMs that publish ports via `--publish` or `--publish-all` will have these ports not just forwarded on the VM, but also on the host system.
 - The `podman play kube` command's `--network` option now accepts advanced network options (e.g. `--network slirp4netns:port_handler=slirp4netns`) ([#10807](https://github.com/containers/podman/issues/10807)).
-- The `podman play kube` commmand now supports Kubernetes liveness probes, which will be created as Podman healthchecks.
+- The `podman play kube` command now supports Kubernetes liveness probes, which will be created as Podman healthchecks.
 - Podman now provides a systemd unit, `podman-restart.service`, which, when enabled, will restart all containers that were started with `--restart=always` after the system reboots.
 - Rootless Podman can now be configured to use CNI networking by default by using the `rootless_networking` option in `containers.conf`.
 - Images can now be pulled using `image:tag@digest` syntax (e.g. `podman pull fedora:34@sha256:1b0d4ddd99b1a8c8a80e885aafe6034c95f266da44ead992aab388e6aa91611a`) ([#6721](https://github.com/containers/podman/issues/6721)).
@@ -389,7 +408,7 @@
 - Fixed a bug where images with empty layers were stored incorrectly, causing them to be unable to be pushed or saved.
 - Fixed a bug where the `podman rmi` command could fail to remove corrupt images from storage.
 - Fixed a bug where the remote Podman client's `podman save` command did not support the `oci-dir` and `docker-dir` formats ([#9742](https://github.com/containers/podman/issues/9742)).
-- Fixed a bug where volume mounts from `podman play kube` created with a trailing `/` in the container path were were not properly superceding named volumes from the image ([#9618](https://github.com/containers/podman/issues/9618)).
+- Fixed a bug where volume mounts from `podman play kube` created with a trailing `/` in the container path were were not properly superseding named volumes from the image ([#9618](https://github.com/containers/podman/issues/9618)).
 - Fixed a bug where Podman could fail to build on 32-bit architectures.
 
 ### Misc
@@ -1034,7 +1053,7 @@
 ## 2.0.5
 ### Features
 - Rootless Podman will now add an entry to `/etc/passwd` for the user who ran Podman if run with `--userns=keep-id`.
-- The `podman system connection` command has been reworked to support multiple connections, and reenabled for use!
+- The `podman system connection` command has been reworked to support multiple connections, and re-enabled for use!
 - Podman now has a new global flag, `--connection`, to specify a connection to a remote Podman API instance.
 
 ### Changes

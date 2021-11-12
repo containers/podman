@@ -188,7 +188,7 @@ func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts en
 	for _, i := range namesOrIDs {
 		r, err := images.GetImage(ir.ClientCtx, i, options)
 		if err != nil {
-			errModel, ok := err.(errorhandling.ErrorModel)
+			errModel, ok := err.(*errorhandling.ErrorModel)
 			if !ok {
 				return nil, nil, err
 			}

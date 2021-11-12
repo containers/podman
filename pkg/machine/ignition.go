@@ -304,6 +304,24 @@ machine_enabled=true
 		},
 	})
 
+	setDockerHost := `export DOCKER_HOST="unix://$(podman info -f "{{.Host.RemoteSocket.Path}}")"
+`
+
+	files = append(files, File{
+		Node: Node{
+			Group: getNodeGrp("root"),
+			Path:  "/etc/profile.d/docker-host.sh",
+			User:  getNodeUsr("root"),
+		},
+		FileEmbedded1: FileEmbedded1{
+			Append: nil,
+			Contents: Resource{
+				Source: encodeDataURLPtr(setDockerHost),
+			},
+			Mode: intToPtr(0644),
+		},
+	})
+
 	return files
 }
 

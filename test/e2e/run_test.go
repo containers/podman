@@ -1322,13 +1322,13 @@ USER mail`, BB)
 			}
 		}
 
-		container := podmanTest.Podman([]string{"run", "--rm", "--cgroups=split", ALPINE, "cat", "/proc/self/cgroup"})
+		container := podmanTest.PodmanSystemdScope([]string{"run", "--rm", "--cgroups=split", ALPINE, "cat", "/proc/self/cgroup"})
 		container.WaitWithDefaultTimeout()
 		Expect(container).Should(Exit(0))
 		checkLines(container.OutputToStringArray())
 
 		// check that --cgroups=split is honored also when a container runs in a pod
-		container = podmanTest.Podman([]string{"run", "--rm", "--pod", "new:split-test-pod", "--cgroups=split", ALPINE, "cat", "/proc/self/cgroup"})
+		container = podmanTest.PodmanSystemdScope([]string{"run", "--rm", "--pod", "new:split-test-pod", "--cgroups=split", ALPINE, "cat", "/proc/self/cgroup"})
 		container.WaitWithDefaultTimeout()
 		Expect(container).Should(Exit(0))
 		checkLines(container.OutputToStringArray())

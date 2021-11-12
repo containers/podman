@@ -86,6 +86,12 @@ function check_help() {
                 run_podman 125 "$@" $cmd -l nonexistent-container
                 is "$output" "Error: .*--latest and \(containers\|pods\|arguments\) cannot be used together" \
                    "'$command_string' with both -l and container"
+
+                # Combine -l and -a, too (but spell it as --all, because "-a"
+                # means "attach" in podman container start)
+                run_podman 125 "$@" $cmd --all --latest
+                is "$output" "Error: \(--all and --latest cannot be used together\|--all, --latest and containers cannot be used together\|--all, --latest and arguments cannot be used together\|unknown flag\)" \
+                   "'$command_string' with both --all and --latest"
             fi
         fi
 

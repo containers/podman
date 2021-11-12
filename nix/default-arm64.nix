@@ -59,7 +59,8 @@ let
 
   self = with pkgs; buildGoModule rec {
     name = "podman";
-    src = ./..;
+    src = builtins.filterSource
+      (path: type: !(type == "directory" && baseNameOf path == "bin")) ./..;
     vendorSha256 = null;
     doCheck = false;
     enableParallelBuilding = true;

@@ -91,8 +91,12 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 	var cursorError error
 	for i := 1; i <= 3; i++ {
 		cursor, cursorError = journal.GetCursor()
+		hundreds := 1
+		for j := 1; j < i; j++ {
+			hundreds *= 2
+		}
 		if cursorError != nil {
-			time.Sleep(time.Duration(i*100) * time.Millisecond)
+			time.Sleep(time.Duration(hundreds*100) * time.Millisecond)
 			continue
 		}
 		break
@@ -117,8 +121,26 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 		}()
 
 		tailQueue := []*logs.LogLine{} // needed for options.Tail
-		doTail := options.Tail > 0
+		doTail := options.Tail >= 0
+		doTailFunc := func() {
+			// Flush *once* we hit the end of the journal.
+			startIndex := int64(len(tailQueue))
+			outputLines := int64(0)
+			for startIndex > 0 && outputLines < options.Tail {
+				startIndex--
+				for startIndex > 0 && tailQueue[startIndex].Partial() {
+					startIndex--
+				}
+				outputLines++
+			}
+			for i := startIndex; i < int64(len(tailQueue)); i++ {
+				logChannel <- tailQueue[i]
+			}
+			tailQueue = nil
+			doTail = false
+		}
 		lastReadCursor := ""
+		partial := ""
 		for {
 			select {
 			case <-ctx.Done():
@@ -148,16 +170,7 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 			// Hit the end of the journal (so far?).
 			if cursor == lastReadCursor {
 				if doTail {
-					// Flush *once* we hit the end of the journal.
-					startIndex := int64(len(tailQueue)-1) - options.Tail
-					if startIndex < 0 {
-						startIndex = 0
-					}
-					for i := startIndex; i < int64(len(tailQueue)); i++ {
-						logChannel <- tailQueue[i]
-					}
-					tailQueue = nil
-					doTail = false
+					doTailFunc()
 				}
 				// Unless we follow, quit.
 				if !options.Follow {
@@ -190,6 +203,9 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 					return
 				}
 				if status == events.Exited {
+					if doTail {
+						doTailFunc()
+					}
 					return
 				}
 				continue
@@ -214,6 +230,12 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 				logrus.Errorf("Failed parse log line: %v", err)
 				return
 			}
+			if logLine.Partial() {
+				partial += logLine.Msg
+				continue
+			}
+			logLine.Msg = partial + logLine.Msg
+			partial = ""
 			if doTail {
 				tailQueue = append(tailQueue, logLine)
 				continue

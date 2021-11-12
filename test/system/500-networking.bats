@@ -167,6 +167,13 @@ load helpers
 	       $IMAGE nc -l -n -v -p $myport
     cid="$output"
 
+    # FIXME: debugging for #11871
+    run_podman exec $cid cat /etc/resolv.conf
+    if is_rootless; then
+        run_podman unshare --rootless-cni cat /etc/resolv.conf
+    fi
+    ps uxww
+
     # check that dns is working inside the container
     run_podman exec $cid nslookup google.com
 

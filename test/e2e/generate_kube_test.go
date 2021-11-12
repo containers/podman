@@ -67,6 +67,10 @@ var _ = Describe("Podman generate kube", func() {
 		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).To(BeNil())
 		Expect(pod.Spec.HostNetwork).To(Equal(false))
+		Expect(pod.Spec.SecurityContext).To(BeNil())
+		Expect(pod.Spec.DNSConfig).To(BeNil())
+		Expect(pod.Spec.Containers[0].WorkingDir).To(Equal(""))
+		Expect(pod.Spec.Containers[0].Env).To(BeNil())
 
 		numContainers := 0
 		for range pod.Spec.Containers {
@@ -103,6 +107,7 @@ var _ = Describe("Podman generate kube", func() {
 		err = yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).To(BeNil())
 		Expect(kube.OutputToString()).To(ContainSubstring("type: spc_t"))
+
 	})
 
 	It("podman generate service kube on container with --security-opt type", func() {
@@ -1079,7 +1084,7 @@ USER test1`
 		top1.WaitWithDefaultTimeout()
 		Expect(top1).Should(Exit(0))
 
-		top2 := podmanTest.Podman([]string{"run", "-dt", "--name", "top2", "--pod", "pod1", "--label", "io.containers.autoupdate=registry", "--label", "io.containers.autoupdate.authfile=/some/authfile.json", ALPINE, "top"})
+		top2 := podmanTest.Podman([]string{"run", "-dt", "--name", "top2", "--workdir", "/root", "--pod", "pod1", "--label", "io.containers.autoupdate=registry", "--label", "io.containers.autoupdate.authfile=/some/authfile.json", ALPINE, "top"})
 		top2.WaitWithDefaultTimeout()
 		Expect(top2).Should(Exit(0))
 
@@ -1090,6 +1095,8 @@ USER test1`
 		pod := new(v1.Pod)
 		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).To(BeNil())
+		Expect(pod.Spec.Containers[0].WorkingDir).To(Equal(""))
+		Expect(pod.Spec.Containers[1].WorkingDir).To(Equal("/root"))
 
 		for _, ctr := range []string{"top1", "top2"} {
 			v, ok := pod.GetAnnotations()["io.containers.autoupdate/"+ctr]

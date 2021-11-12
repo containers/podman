@@ -301,4 +301,21 @@ var _ = Describe("Podman pod rm", func() {
 		Expect(session).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 	})
+
+	It("podman pod rm with exited containers", func() {
+		_, ec, podid := podmanTest.CreatePod(nil)
+		Expect(ec).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"run", "--pod", podid, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "--pod", podid, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		result := podmanTest.Podman([]string{"pod", "rm", podid})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+	})
 })

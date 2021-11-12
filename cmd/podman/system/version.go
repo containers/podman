@@ -20,7 +20,7 @@ var (
 	versionCommand = &cobra.Command{
 		Use:               "version [options]",
 		Args:              validate.NoArgs,
-		Short:             "Display the Podman Version Information",
+		Short:             "Display the Podman version information",
 		RunE:              version,
 		ValidArgsFunction: completion.AutocompleteNone,
 	}

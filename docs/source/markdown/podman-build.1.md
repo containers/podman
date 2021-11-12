@@ -631,7 +631,7 @@ Sets the configuration for user namespaces when handling `RUN` instructions.
 The configured value can be "" (the empty string) or "container" to indicate
 that a new user namespace should be created, it can be "host" to indicate that
 the user namespace in which `podman` itself is being run should be reused, or
-it can be the path to an user namespace which is already in use by another
+it can be the path to a user namespace which is already in use by another
 process.
 
 #### **--userns-uid-map**=*mapping*
@@ -773,6 +773,14 @@ share the volume content. As a result, Podman labels the content with a shared
 content label. Shared volume labels allow all containers to read/write content.
 The `Z` option tells Podman to label the content with a private unshared label.
 Only the current container can use a private volume.
+
+Note: Do not relabel system files and directories. Relabeling system content
+might cause other confined services on your machine to fail.  For these types
+of containers, disabling SELinux separation is recommended.  The option
+`--security-opt label=disable` disables SELinux separation for the container.
+For example, if a user wanted to volume mount their entire home directory into the build containers, they need to disable SELinux separation.
+
+	   $ podman build --security-opt label=disable -v $HOME:/home/user .
 
   `Overlay Volume Mounts`
 

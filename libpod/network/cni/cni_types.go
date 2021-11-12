@@ -175,7 +175,7 @@ func newIPAMLocalHostRange(subnet types.IPNet, leaseRange *types.LeaseRange, gw 
 		Subnet: subnet.String(),
 	}
 
-	// an user provided a range, we add it here
+	// a user provided a range, we add it here
 	if leaseRange != nil {
 		if leaseRange.StartIP != nil {
 			hostRange.RangeStart = leaseRange.StartIP.String()

@@ -84,7 +84,7 @@ func IsSystemdSessionValid(uid int) bool {
 	return true
 }
 
-// GetDbusConnection returns an user connection to D-BUS
+// GetDbusConnection returns a user connection to D-BUS
 func GetLogindConnection(uid int) (*godbus.Conn, error) {
 	return dbusAuthConnectionLogind(uid)
 }

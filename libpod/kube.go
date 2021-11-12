@@ -166,9 +166,83 @@ func (v *Volume) GenerateForKube() *v1.PersistentVolumeClaim {
 	}
 }
 
+// YAMLPodSpec represents the same k8s API core PodSpec struct with a small
+// change and that is having Containers as a pointer to YAMLContainer.
+// Because Go doesn't omit empty struct and we want to omit Status in YAML
+// if it's empty. Fixes: GH-11998
+type YAMLPodSpec struct {
+	v1.PodSpec
+	Containers []*YAMLContainer `json:"containers"`
+}
+
+// YAMLPod represents the same k8s API core Pod struct with a small
+// change and that is having Spec as a pointer to YAMLPodSpec and
+// Status as a pointer to k8s API core PodStatus.
+// Because Go doesn't omit empty struct and we want to omit Status in YAML
+// if it's empty. Fixes: GH-11998
+type YAMLPod struct {
+	v1.Pod
+	Spec   *YAMLPodSpec  `json:"spec,omitempty"`
+	Status *v1.PodStatus `json:"status,omitempty"`
+}
+
+// YAMLService represents the same k8s API core Service struct with a small
+// change and that is having Status as a pointer to k8s API core ServiceStatus.
+// Because Go doesn't omit empty struct and we want to omit Status in YAML
+// if it's empty. Fixes: GH-11998
+type YAMLService struct {
+	v1.Service
+	Status *v1.ServiceStatus `json:"status,omitempty"`
+}
+
+// YAMLContainer represents the same k8s API core Container struct with a small
+// change and that is having Resources as a pointer to k8s API core ResourceRequirements.
+// Because Go doesn't omit empty struct and we want to omit Status in YAML
+// if it's empty. Fixes: GH-11998
+type YAMLContainer struct {
+	v1.Container
+	Resources *v1.ResourceRequirements `json:"resources,omitempty"`
+}
+
+// ConvertV1PodToYAMLPod takes k8s API core Pod and returns a pointer to YAMLPod
+func ConvertV1PodToYAMLPod(pod *v1.Pod) *YAMLPod {
+	cs := []*YAMLContainer{}
+	for _, cc := range pod.Spec.Containers {
+		var res *v1.ResourceRequirements = nil
+		if len(cc.Resources.Limits) > 0 || len(cc.Resources.Requests) > 0 {
+			res = &cc.Resources
+		}
+		cs = append(cs, &YAMLContainer{Container: cc, Resources: res})
+	}
+	mpo := &YAMLPod{Pod: *pod}
+	mpo.Spec = &YAMLPodSpec{PodSpec: (*pod).Spec, Containers: cs}
+	for _, ctr := range pod.Spec.Containers {
+		if ctr.SecurityContext == nil || ctr.SecurityContext.SELinuxOptions == nil {
+			continue
+		}
+		selinuxOpts := ctr.SecurityContext.SELinuxOptions
+		if selinuxOpts.User == "" && selinuxOpts.Role == "" && selinuxOpts.Type == "" && selinuxOpts.Level == "" {
+			ctr.SecurityContext.SELinuxOptions = nil
+		}
+	}
+	dnsCfg := pod.Spec.DNSConfig
+	if dnsCfg != nil && (len(dnsCfg.Nameservers)+len(dnsCfg.Searches)+len(dnsCfg.Options) > 0) {
+		mpo.Spec.DNSConfig = dnsCfg
+	}
+	status := pod.Status
+	if status.Phase != "" || len(status.Conditions) > 0 ||
+		status.Message != "" || status.Reason != "" ||
+		status.NominatedNodeName != "" || status.HostIP != "" ||
+		status.PodIP != "" || status.StartTime != nil ||
+		len(status.InitContainerStatuses) > 0 || len(status.ContainerStatuses) > 0 || status.QOSClass != "" || len(status.EphemeralContainerStatuses) > 0 {
+		mpo.Status = &status
+	}
+	return mpo
+}
+
 // GenerateKubeServiceFromV1Pod creates a v1 service object from a v1 pod object
-func GenerateKubeServiceFromV1Pod(pod *v1.Pod, servicePorts []v1.ServicePort) v1.Service {
-	service := v1.Service{}
+func GenerateKubeServiceFromV1Pod(pod *v1.Pod, servicePorts []v1.ServicePort) YAMLService {
+	service := YAMLService{}
 	selector := make(map[string]string)
 	selector["app"] = pod.Labels["app"]
 	ports := servicePorts
@@ -332,7 +406,7 @@ func newPodObject(podName string, annotations map[string]string, initCtrs, conta
 		InitContainers: initCtrs,
 		Volumes:        volumes,
 	}
-	if dnsOptions != nil {
+	if dnsOptions != nil && (len(dnsOptions.Nameservers)+len(dnsOptions.Searches)+len(dnsOptions.Options) > 0) {
 		ps.DNSConfig = dnsOptions
 	}
 	p := v1.Pod{
@@ -447,11 +521,6 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 		kubeVolumes = append(kubeVolumes, volumes...)
 	}
 
-	envVariables, err := libpodEnvVarsToKubeEnvVars(c.config.Spec.Process.Env)
-	if err != nil {
-		return kubeContainer, kubeVolumes, nil, annotations, err
-	}
-
 	portmappings, err := c.PortMappings()
 	if err != nil {
 		return kubeContainer, kubeVolumes, nil, annotations, err
@@ -489,15 +558,23 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 		kubeContainer.Command = nil
 	}
 
+	if c.WorkingDir() != "/" && imgData.Config.WorkingDir != c.WorkingDir() {
+		kubeContainer.WorkingDir = c.WorkingDir()
+	}
+
 	if imgData.User == c.User() {
 		kubeSec.RunAsGroup, kubeSec.RunAsUser = nil, nil
 	}
 
-	kubeContainer.WorkingDir = c.WorkingDir()
+	envVariables, err := libpodEnvVarsToKubeEnvVars(c.config.Spec.Process.Env, imgData.Config.Env)
+	if err != nil {
+		return kubeContainer, kubeVolumes, nil, annotations, err
+	}
+	kubeContainer.Env = envVariables
+
 	kubeContainer.Ports = ports
 	// This should not be applicable
 	//container.EnvFromSource =
-	kubeContainer.Env = envVariables
 	kubeContainer.SecurityContext = kubeSec
 	kubeContainer.StdinOnce = false
 	kubeContainer.TTY = c.config.Spec.Process.Terminal
@@ -600,15 +677,23 @@ func ocicniPortMappingToContainerPort(portMappings []ocicni.PortMapping) ([]v1.C
 }
 
 // libpodEnvVarsToKubeEnvVars converts a key=value string slice to []v1.EnvVar
-func libpodEnvVarsToKubeEnvVars(envs []string) ([]v1.EnvVar, error) {
+func libpodEnvVarsToKubeEnvVars(envs []string, imageEnvs []string) ([]v1.EnvVar, error) {
 	defaultEnv := env.DefaultEnvVariables()
 	envVars := make([]v1.EnvVar, 0, len(envs))
+	imageMap := make(map[string]string, len(imageEnvs))
+	for _, ie := range envs {
+		split := strings.SplitN(ie, "=", 2)
+		imageMap[split[0]] = split[1]
+	}
 	for _, e := range envs {
 		split := strings.SplitN(e, "=", 2)
 		if len(split) != 2 {
 			return envVars, errors.Errorf("environment variable %s is malformed; should be key=value", e)
 		}
 		if defaultEnv[split[0]] == split[1] {
+			continue
+		}
+		if imageMap[split[0]] == split[1] {
 			continue
 		}
 		ev := v1.EnvVar{
@@ -808,33 +893,42 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 		capabilities = newCaps
 	}
 
-	var selinuxOpts v1.SELinuxOptions
-	opts := strings.SplitN(c.config.Spec.Annotations[define.InspectAnnotationLabel], ":", 2)
-	if len(opts) == 2 {
-		switch opts[0] {
-		case "type":
-			selinuxOpts.Type = opts[1]
-		case "level":
-			selinuxOpts.Level = opts[1]
-		}
-	}
-	if len(opts) == 1 {
-		if opts[0] == "disable" {
-			selinuxOpts.Type = "spc_t"
-		}
-	}
-
 	sc := v1.SecurityContext{
-		Capabilities:   capabilities,
-		Privileged:     &privileged,
-		SELinuxOptions: &selinuxOpts,
 		// RunAsNonRoot is an optional parameter; our first implementations should be root only; however
 		// I'm leaving this as a bread-crumb for later
 		//RunAsNonRoot:             &nonRoot,
-		ReadOnlyRootFilesystem:   &ro,
-		AllowPrivilegeEscalation: &allowPrivEscalation,
+	}
+	if capabilities != nil {
+		sc.Capabilities = capabilities
+	}
+	var selinuxOpts v1.SELinuxOptions
+	opts := strings.SplitN(c.config.Spec.Annotations[define.InspectAnnotationLabel], ":", 2)
+	switch len(opts) {
+	case 2:
+		switch opts[0] {
+		case "type":
+			selinuxOpts.Type = opts[1]
+			sc.SELinuxOptions = &selinuxOpts
+		case "level":
+			selinuxOpts.Level = opts[1]
+			sc.SELinuxOptions = &selinuxOpts
+		}
+	case 1:
+		if opts[0] == "disable" {
+			selinuxOpts.Type = "spc_t"
+			sc.SELinuxOptions = &selinuxOpts
+		}
 	}
 
+	if !allowPrivEscalation {
+		sc.AllowPrivilegeEscalation = &allowPrivEscalation
+	}
+	if privileged {
+		sc.Privileged = &privileged
+	}
+	if ro {
+		sc.ReadOnlyRootFilesystem = &ro
+	}
 	if c.User() != "" {
 		if !c.batched {
 			c.lock.Lock()

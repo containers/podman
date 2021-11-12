@@ -92,7 +92,7 @@ func pullFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(osFlagName, completion.AutocompleteOS)
 
 	variantFlagName := "variant"
-	flags.StringVar(&pullOptions.Variant, variantFlagName, "", " use VARIANT instead of the running architecture variant for choosing images")
+	flags.StringVar(&pullOptions.Variant, variantFlagName, "", "Use VARIANT instead of the running architecture variant for choosing images")
 	_ = cmd.RegisterFlagCompletionFunc(variantFlagName, completion.AutocompleteNone)
 
 	platformFlagName := "platform"

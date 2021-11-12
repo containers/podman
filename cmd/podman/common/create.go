@@ -426,7 +426,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		createFlags.StringVar(
 			&cf.Variant,
 			variantFlagName, "",
-			"Use _VARIANT_ instead of the running architecture variant for choosing images",
+			"Use `VARIANT` instead of the running architecture variant for choosing images",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(variantFlagName, completion.AutocompleteNone)
 

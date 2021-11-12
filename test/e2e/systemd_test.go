@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
-	"time"
 
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -82,27 +81,13 @@ WantedBy=multi-user.target
 		run := podmanTest.Podman([]string{"run", "--name", ctrName, "-t", "-i", "-d", ubi_init, "/sbin/init"})
 		run.WaitWithDefaultTimeout()
 		Expect(run).Should(Exit(0))
-		ctrID := run.OutputToString()
 
 		logs := podmanTest.Podman([]string{"logs", ctrName})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs).Should(Exit(0))
 
 		// Give container 10 seconds to start
-		started := false
-		for i := 0; i < 10; i++ {
-			runningCtrs := podmanTest.Podman([]string{"ps", "-q", "--no-trunc"})
-			runningCtrs.WaitWithDefaultTimeout()
-			Expect(runningCtrs).Should(Exit(0))
-
-			if strings.Contains(runningCtrs.OutputToString(), ctrID) {
-				started = true
-				break
-			}
-
-			time.Sleep(1 * time.Second)
-		}
-
+		started := podmanTest.WaitContainerReady(ctrName, "Reached target Multi-User System.", 30, 1)
 		Expect(started).To(BeTrue())
 
 		systemctl := podmanTest.Podman([]string{"exec", "-t", "-i", ctrName, "systemctl", "status", "--no-pager"})

@@ -14,7 +14,8 @@ import (
 
 var _ = Describe("Podman trust", func() {
 	var (
-		tempdir    string
+		tempdir string
+
 		err        error
 		podmanTest *PodmanTestIntegration
 	)
@@ -38,21 +39,17 @@ var _ = Describe("Podman trust", func() {
 	})
 
 	It("podman image trust show", func() {
-		path, err := os.Getwd()
-		if err != nil {
-			os.Exit(1)
-		}
-		session := podmanTest.Podman([]string{"image", "trust", "show", "--registrypath", filepath.Dir(path), "--policypath", filepath.Join(filepath.Dir(path), "policy.json")})
+		session := podmanTest.Podman([]string{"image", "trust", "show", "--registrypath", filepath.Join(INTEGRATION_ROOT, "test"), "--policypath", filepath.Join(INTEGRATION_ROOT, "test/policy.json")})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		outArray := session.OutputToStringArray()
 		Expect(len(outArray)).To(Equal(3))
 
-		// image order is not guaranteed. All we can do is check that
-		// these strings appear in output, we can't cross-check them.
-		Expect(session.OutputToString()).To(ContainSubstring("accept"))
-		Expect(session.OutputToString()).To(ContainSubstring("reject"))
-		Expect(session.OutputToString()).To(ContainSubstring("signed"))
+		// Repository order is not guaranteed. So, check that
+		// all expected lines appear in output; we also check total number of lines, so that handles all of them.
+		Expect(string(session.Out.Contents())).To(MatchRegexp(`(?m)^default\s+accept\s*$`))
+		Expect(string(session.Out.Contents())).To(MatchRegexp(`(?m)^docker.io/library/hello-world\s+reject\s*$`))
+		Expect(string(session.Out.Contents())).To(MatchRegexp(`(?m)^registry.access.redhat.com\s+signedBy\s+security@redhat.com, security@redhat.com\s+https://access.redhat.com/webassets/docker/content/sigstore\s*$`))
 	})
 
 	It("podman image trust set", func() {
@@ -76,24 +73,52 @@ var _ = Describe("Podman trust", func() {
 	})
 
 	It("podman image trust show --json", func() {
-		session := podmanTest.Podman([]string{"image", "trust", "show", "--json"})
+		session := podmanTest.Podman([]string{"image", "trust", "show", "--registrypath", filepath.Join(INTEGRATION_ROOT, "test"), "--policypath", filepath.Join(INTEGRATION_ROOT, "test/policy.json"), "--json"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.IsJSONOutputValid()).To(BeTrue())
 		var teststruct []map[string]string
 		json.Unmarshal(session.Out.Contents(), &teststruct)
-		Expect(teststruct[0]["name"]).To(Equal("* (default)"))
-		Expect(teststruct[0]["repo_name"]).To(Equal("default"))
-		Expect(teststruct[0]["type"]).To(Equal("accept"))
-		Expect(teststruct[1]["type"]).To(Equal("insecureAcceptAnything"))
+		Expect(len(teststruct)).To(Equal(3))
+		// To ease comparison, group the unordered array of repos by repo (and we expect only one entry by repo, so order within groups doesn’t matter)
+		repoMap := map[string][]map[string]string{}
+		for _, e := range teststruct {
+			key := e["name"]
+			repoMap[key] = append(repoMap[key], e)
+		}
+		Expect(repoMap).To(Equal(map[string][]map[string]string{
+			"* (default)": {{
+				"name":      "* (default)",
+				"repo_name": "default",
+				"sigstore":  "",
+				"transport": "",
+				"type":      "accept",
+			}},
+			"docker.io/library/hello-world": {{
+				"name":      "docker.io/library/hello-world",
+				"repo_name": "docker.io/library/hello-world",
+				"sigstore":  "",
+				"transport": "",
+				"type":      "reject",
+			}},
+			"registry.access.redhat.com": {{
+				"name":      "registry.access.redhat.com",
+				"repo_name": "registry.access.redhat.com",
+				"sigstore":  "https://access.redhat.com/webassets/docker/content/sigstore",
+				"transport": "",
+				"type":      "signedBy",
+				"gpg_id":    "security@redhat.com, security@redhat.com",
+			}},
+		}))
 	})
 
 	It("podman image trust show --raw", func() {
-		session := podmanTest.Podman([]string{"image", "trust", "show", "--raw"})
+		session := podmanTest.Podman([]string{"image", "trust", "show", "--policypath", filepath.Join(INTEGRATION_ROOT, "test/policy.json"), "--raw"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+		contents, err := ioutil.ReadFile(filepath.Join(INTEGRATION_ROOT, "test/policy.json"))
+		Expect(err).ShouldNot(HaveOccurred())
 		Expect(session.IsJSONOutputValid()).To(BeTrue())
-		Expect(session.OutputToString()).To(ContainSubstring("default"))
-		Expect(session.OutputToString()).To(ContainSubstring("insecureAcceptAnything"))
+		Expect(string(session.Out.Contents())).To(Equal(string(contents) + "\n"))
 	})
 })

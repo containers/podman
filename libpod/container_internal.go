@@ -479,9 +479,27 @@ func (c *Container) setupStorage(ctx context.Context) error {
 
 	c.setupStorageMapping(&options.IDMappingOptions, &c.config.IDMappings)
 
-	containerInfo, err := c.runtime.storageService.CreateContainerStorage(ctx, c.runtime.imageContext, c.config.RootfsImageName, c.config.RootfsImageID, c.config.Name, c.config.ID, options)
-	if err != nil {
-		return errors.Wrapf(err, "error creating container storage")
+	// Unless the user has specified a name, use a randomly generated one.
+	// Note that name conflicts may occur (see #11735), so we need to loop.
+	generateName := c.config.Name == ""
+	var containerInfo ContainerInfo
+	var containerInfoErr error
+	for {
+		if generateName {
+			name, err := c.runtime.generateName()
+			if err != nil {
+				return err
+			}
+			c.config.Name = name
+		}
+		containerInfo, containerInfoErr = c.runtime.storageService.CreateContainerStorage(ctx, c.runtime.imageContext, c.config.RootfsImageName, c.config.RootfsImageID, c.config.Name, c.config.ID, options)
+
+		if !generateName || errors.Cause(containerInfoErr) != storage.ErrDuplicateName {
+			break
+		}
+	}
+	if containerInfoErr != nil {
+		return errors.Wrapf(containerInfoErr, "error creating container storage")
 	}
 
 	c.config.IDMappings.UIDMap = containerInfo.UIDMap
@@ -2100,7 +2118,7 @@ func (c *Container) checkReadyForRemoval() error {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s is in invalid state", c.ID())
 	}
 
-	if c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused) {
+	if c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused) && !c.IsInfra() {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot remove container %s as it is %s - running or paused containers cannot be removed without force", c.ID(), c.state.State.String())
 	}
 

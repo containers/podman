@@ -121,8 +121,15 @@ EOF
     # Clean up vestiges of previous run
     $PODMAN rm -f podman_parent || true
 
-    # Not entirely a NOP! This is just so we get /run/crun created on a CI VM
-    $PODMAN run --rm $OLD_PODMAN true
+
+    local netname=testnet-$(random_string 10)
+    $PODMAN network create $netname
+
+    # Not entirely a NOP! This is just so we get the /run/... mount points created on a CI VM
+    # --mac-address is needed to create /run/cni, --network is needed to create /run/containers for dnsname
+    $PODMAN run --rm --mac-address 78:28:a6:8d:24:8a --network $netname $OLD_PODMAN true
+    $PODMAN network rm -f $netname
+
 
     #
     # Use new-podman to run the above script under old-podman.
@@ -134,7 +141,8 @@ EOF
     #
     # mount /etc/containers/storage.conf to use the same storage settings as on the host
     # mount /dev/shm because the container locks are stored there
-    # mount /var/lib/cni and /etc/cni/net.d for cni networking
+    # mount /var/lib/cni, /run/cni and /etc/cni/net.d for cni networking
+    # mount /run/containers for the dnsname plugin
     #
     $PODMAN run -d --name podman_parent --pid=host \
             --privileged \
@@ -145,6 +153,8 @@ EOF
             -v /dev/fuse:/dev/fuse \
             -v /run/crun:/run/crun \
             -v /run/netns:/run/netns:rshared \
+            -v /run/containers:/run/containers \
+            -v /run/cni:/run/cni \
             -v /var/lib/cni:/var/lib/cni \
             -v /etc/cni/net.d:/etc/cni/net.d \
             -v /dev/shm:/dev/shm \

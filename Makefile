@@ -59,10 +59,11 @@ PKG_MANAGER ?= $(shell command -v dnf yum|head -n1)
 PRE_COMMIT = $(shell command -v bin/venv/bin/pre-commit ~/.local/bin/pre-commit pre-commit | head -n1)
 
 # This isn't what we actually build; it's a superset, used for target
-# dependencies. Basically: all *.go files, except *_test.go, and except
-# anything in a dot subdirectory. If any of these files is newer than
-# our target (bin/podman{,-remote}), a rebuild is triggered.
-SOURCES = $(shell find . -path './.*' -prune -o \( -name '*.go' -a ! -name '*_test.go' \) -print)
+# dependencies. Basically: all *.go and *.c files, except *_test.go,
+# and except anything in a dot subdirectory. If any of these files is
+# newer than our target (bin/podman{,-remote}), a rebuild is
+# triggered.
+SOURCES = $(shell find . -path './.*' -prune -o \( \( -name '*.go' -o -name '*.c' \) -a ! -name '*_test.go' \) -print)
 
 BUILDFLAGS := -mod=vendor $(BUILDFLAGS)
 

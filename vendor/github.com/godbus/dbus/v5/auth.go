@@ -53,7 +53,7 @@ type Auth interface {
 // bus. Auth must not be called on shared connections.
 func (conn *Conn) Auth(methods []Auth) error {
 	if methods == nil {
-		uid := strconv.Itoa(os.Getuid())
+		uid := strconv.Itoa(os.Geteuid())
 		methods = []Auth{AuthExternal(uid), AuthCookieSha1(uid, getHomeDir())}
 	}
 	in := bufio.NewReader(conn.transport)

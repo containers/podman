@@ -1483,6 +1483,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	logrus.Debugf("Restored container %s", c.ID())
 
 	c.state.State = define.ContainerStateRunning
+	c.state.Checkpointed = false
 
 	if !options.Keep {
 		// Delete all checkpoint related files. At this point, in theory, all files

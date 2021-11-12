@@ -322,15 +322,6 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		}
 	}
 
-	if ctr.config.Name == "" {
-		name, err := r.generateName()
-		if err != nil {
-			return nil, err
-		}
-
-		ctr.config.Name = name
-	}
-
 	// Check CGroup parent sanity, and set it if it was not set.
 	// Only if we're actually configuring CGroups.
 	if !ctr.config.NoCgroups {
