@@ -269,17 +269,11 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	}
 
 	if podOpt.Infra {
-		containerConfig := util.DefaultContainerConfig()
-
-		pulledImages, err := pullImage(ic, writer, containerConfig.Engine.InfraImage, options, config.PullPolicyNewer)
-		if err != nil {
-			return nil, err
-		}
+		infraImage := util.DefaultContainerConfig().Engine.InfraImage
 		infraOptions := entities.ContainerCreateOptions{ImageVolume: "bind"}
-
-		podSpec.PodSpecGen.InfraImage = pulledImages[0].Names()[0]
+		podSpec.PodSpecGen.InfraImage = infraImage
 		podSpec.PodSpecGen.NoInfra = false
-		podSpec.PodSpecGen.InfraContainerSpec = specgen.NewSpecGenerator(pulledImages[0].Names()[0], false)
+		podSpec.PodSpecGen.InfraContainerSpec = specgen.NewSpecGenerator(infraImage, false)
 		podSpec.PodSpecGen.InfraContainerSpec.NetworkOptions = p.NetworkOptions
 
 		err = specgenutil.FillOutSpecGen(podSpec.PodSpecGen.InfraContainerSpec, &infraOptions, []string{})
@@ -757,22 +751,4 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, path string, _ enti
 		return nil, err
 	}
 	return reports, nil
-}
-
-// pullImage is a helper function to set up the proper pull options and pull the image for certain containers
-func pullImage(ic *ContainerEngine, writer io.Writer, imagePull string, options entities.PlayKubeOptions, pullPolicy config.PullPolicy) ([]*libimage.Image, error) {
-	// This ensures the image is the image store
-	pullOptions := &libimage.PullOptions{}
-	pullOptions.AuthFilePath = options.Authfile
-	pullOptions.CertDirPath = options.CertDir
-	pullOptions.SignaturePolicyPath = options.SignaturePolicy
-	pullOptions.Writer = writer
-	pullOptions.Username = options.Username
-	pullOptions.Password = options.Password
-	pullOptions.InsecureSkipTLSVerify = options.SkipTLSVerify
-	pulledImages, err := ic.Libpod.LibimageRuntime().Pull(context.Background(), imagePull, pullPolicy, pullOptions)
-	if err != nil {
-		return nil, err
-	}
-	return pulledImages, nil
 }
