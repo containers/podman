@@ -76,6 +76,27 @@ ${cid[0]} d"   "Sequential output from logs"
     _log_test_multi journald
 }
 
+function _log_test_restarted() {
+    run_podman run --log-driver=$1 --name logtest $IMAGE sh -c 'start=0; if test -s log; then start=`tail -n 1 log`; fi; seq `expr $start + 1` `expr $start + 10` | tee -a log'
+    run_podman start -a logtest
+    logfile=$(mktemp -p ${PODMAN_TMPDIR} logfileXXXXXXXX)
+    $PODMAN $_PODMAN_TEST_OPTS logs -f logtest > $logfile
+    expected=$(mktemp -p ${PODMAN_TMPDIR} expectedXXXXXXXX)
+    seq 1 20  > $expected
+    diff -u ${expected} ${logfile}
+}
+
+@test "podman logs restarted - k8s-file" {
+    _log_test_restarted k8s-file
+}
+
+@test "podman logs restarted journald" {
+    # We can't use journald on RHEL as rootless: rhbz#1895105
+    skip_if_journald_unavailable
+
+    _log_test_restarted journald
+}
+
 @test "podman logs - journald log driver requires journald events backend" {
     skip_if_remote "remote does not support --events-backend"
     # We can't use journald on RHEL as rootless: rhbz#1895105
