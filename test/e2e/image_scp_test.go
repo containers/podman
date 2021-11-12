@@ -78,6 +78,10 @@ var _ = Describe("podman image scp", func() {
 		list.WaitWithDefaultTimeout()
 		Expect(list).To(Exit(0))
 		Expect(list.LineInOutputStartsWith("quay.io/libpod/alpine")).To(BeTrue())
+
+		scp = podmanTest.PodmanAsUser([]string{"image", "scp", "root@localhost::" + ALPINE}, 0, 0, "", env) //transfer from root to rootless (us)
+		scp.WaitWithDefaultTimeout()
+		Expect(scp).To(Exit(0))
 	})
 
 	It("podman image scp bogus image", func() {
