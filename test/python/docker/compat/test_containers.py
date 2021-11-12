@@ -251,3 +251,17 @@ class TestContainers(unittest.TestCase):
         ctr.start()
         ret, out = ctr.exec_run(["stat", "-c", "%u:%g", "/workspace"])
         self.assertEqual(out.rstrip(), b'1042:1043', "UID/GID set in dockerfile")
+
+
+    def test_non_existant_workdir(self):
+        dockerfile = (B'FROM quay.io/libpod/alpine:latest\n'
+                      B'USER root\n'
+                      B'WORKDIR /workspace/scratch\n'
+                      B'RUN touch test')
+        img: Image
+        img, out = self.client.images.build(fileobj=io.BytesIO(dockerfile))
+        ctr: Container = self.client.containers.create(image=img.id, detach=True, command="top",
+                                                       volumes=["test_non_existant_workdir:/workspace"])
+        ctr.start()
+        ret, out = ctr.exec_run(["stat", "/workspace/scratch/test"])
+        self.assertEqual(ret, 0, "Working directory created if it doesn't exist")
