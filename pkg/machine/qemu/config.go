@@ -4,6 +4,8 @@ package qemu
 
 import "time"
 
+type Provider struct{}
+
 type MachineVM struct {
 	// CPUs to be assigned to the VM
 	CPUs uint64
@@ -44,6 +46,4 @@ var (
 	// defaultQMPTimeout is the timeout duration for the
 	// qmp monitor interactions
 	defaultQMPTimeout time.Duration = 2 * time.Second
-	// defaultRemoteUser describes the ssh username default
-	defaultRemoteUser = "core"
 )

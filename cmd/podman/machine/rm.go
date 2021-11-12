@@ -1,4 +1,4 @@
-// +build amd64,!windows arm64,!windows
+// +build amd64 arm64
 
 package machine
 
@@ -10,7 +10,6 @@ import (
 
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/pkg/machine"
-	"github.com/containers/podman/v3/pkg/machine/qemu"
 	"github.com/spf13/cobra"
 )
 
@@ -52,18 +51,16 @@ func init() {
 
 func rm(cmd *cobra.Command, args []string) error {
 	var (
-		err    error
-		vm     machine.VM
-		vmType string
+		err error
+		vm  machine.VM
 	)
 	vmName := defaultMachineName
 	if len(args) > 0 && len(args[0]) > 0 {
 		vmName = args[0]
 	}
-	switch vmType {
-	default:
-		vm, err = qemu.LoadVMByName(vmName)
-	}
+
+	provider := getSystemDefaultProvider()
+	vm, err = provider.LoadVMByName(vmName)
 	if err != nil {
 		return err
 	}

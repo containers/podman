@@ -1,4 +1,4 @@
-// +build amd64,!windows arm64,!windows
+// +build amd64 arm64
 
 package machine
 
@@ -65,25 +65,6 @@ func NewFcosDownloader(vmType, vmName, imageStream string) (DistributionDownload
 	return fcd, nil
 }
 
-func (f FcosDownload) getLocalUncompressedName() string {
-	uncompressedFilename := filepath.Join(filepath.Dir(f.LocalPath), f.VMName+"_"+f.ImageName)
-	return strings.TrimSuffix(uncompressedFilename, ".xz")
-}
-
-func (f FcosDownload) DownloadImage() error {
-	// check if the latest image is already present
-	ok, err := UpdateAvailable(&f.Download)
-	if err != nil {
-		return err
-	}
-	if !ok {
-		if err := DownloadVMImage(f.URL, f.LocalPath); err != nil {
-			return err
-		}
-	}
-	return Decompress(f.LocalPath, f.getLocalUncompressedName())
-}
-
 func (f FcosDownload) Get() *Download {
 	return &f.Download
 }
@@ -95,14 +76,14 @@ type fcosDownloadInfo struct {
 	Sha256Sum       string
 }
 
-func UpdateAvailable(d *Download) (bool, error) {
+func (f FcosDownload) HasUsableCache() (bool, error) {
 	//	 check the sha of the local image if it exists
 	//  get the sha of the remote image
 	// == dont bother to pull
-	if _, err := os.Stat(d.LocalPath); os.IsNotExist(err) {
+	if _, err := os.Stat(f.LocalPath); os.IsNotExist(err) {
 		return false, nil
 	}
-	fd, err := os.Open(d.LocalPath)
+	fd, err := os.Open(f.LocalPath)
 	if err != nil {
 		return false, err
 	}
@@ -115,7 +96,7 @@ func UpdateAvailable(d *Download) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return sum.Encoded() == d.Sha256sum, nil
+	return sum.Encoded() == f.Sha256sum, nil
 }
 
 func getFcosArch() string {

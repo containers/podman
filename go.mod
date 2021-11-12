@@ -12,7 +12,7 @@ require (
 	github.com/containernetworking/cni v1.0.1
 	github.com/containernetworking/plugins v1.0.1
 	github.com/containers/buildah v1.23.1
-	github.com/containers/common v0.46.1-0.20211205182721-515a2805e7b9
+	github.com/containers/common v0.46.1-0.20211209220542-24f363480347
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.17.1-0.20211207161909-6f3c8453e1a7
 	github.com/containers/ocicrypt v1.1.2
@@ -60,12 +60,14 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
+	github.com/ulikunitz/xz v0.5.10
 	github.com/vbauerster/mpb/v6 v6.0.4
 	github.com/vishvananda/netlink v1.1.1-0.20210330154013-f5de75959ad5
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20211205182925-97ca703d548d
+	golang.org/x/text v0.3.7
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b

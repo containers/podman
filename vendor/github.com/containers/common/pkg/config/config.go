@@ -512,6 +512,8 @@ type MachineConfig struct {
 	Image string `toml:"image,omitempty"`
 	// Memory in MB a machine is created with.
 	Memory uint64 `toml:"memory,omitempty,omitzero"`
+	// Username to use for rootless podman when init-ing a podman machine VM
+	User string `toml:"user,omitempty"`
 }
 
 // Destination represents destination for remote service
