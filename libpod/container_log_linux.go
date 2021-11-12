@@ -140,6 +140,7 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 			doTail = false
 		}
 		lastReadCursor := ""
+		partial := ""
 		for {
 			select {
 			case <-ctx.Done():
@@ -229,6 +230,12 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 				logrus.Errorf("Failed parse log line: %v", err)
 				return
 			}
+			if logLine.Partial() {
+				partial += logLine.Msg
+				continue
+			}
+			logLine.Msg = partial + logLine.Msg
+			partial = ""
 			if doTail {
 				tailQueue = append(tailQueue, logLine)
 				continue
