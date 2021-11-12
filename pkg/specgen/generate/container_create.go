@@ -378,6 +378,9 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	if s.WorkDir == "" {
 		s.WorkDir = "/"
 	}
+	if s.CreateWorkingDir {
+		options = append(options, libpod.WithCreateWorkingDir())
+	}
 	if s.StopSignal != nil {
 		options = append(options, libpod.WithStopSignal(*s.StopSignal))
 	}

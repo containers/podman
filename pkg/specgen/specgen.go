@@ -272,6 +272,10 @@ type ContainerStorageConfig struct {
 	// If unset, the default, /, will be used.
 	// Optional.
 	WorkDir string `json:"work_dir,omitempty"`
+	// Create the working directory if it doesn't exist.
+	// If unset, it doesn't create it.
+	// Optional.
+	CreateWorkingDir bool `json:"create_working_dir,omitempty"`
 	// StorageOpts is the container's storage options
 	// Optional.
 	StorageOpts map[string]string `json:"storage_opts,omitempty"`
