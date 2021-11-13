@@ -361,6 +361,7 @@ Man pages for the %{name} commands
 Summary: Tests for %{name}
 
 Requires: %{name} = %{epoch}:%{version}-%{release}
+Requires: gnupg
 Requires: bats
 Requires: jq
 Requires: skopeo

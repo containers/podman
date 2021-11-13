@@ -23,6 +23,13 @@ Print usage statement.
 
 Sign all the manifests of the multi-architecture image (default false).
 
+#### **--authfile**=*path*
+
+Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json
+
+Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
+environment variable. `export REGISTRY_AUTH_FILE=path`
+
 #### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
@@ -40,6 +47,8 @@ Override the default identity of the signature.
 Sign the busybox image with the identity of foo@bar.com with a user's keyring and save the signature in /tmp/signatures/.
 
    sudo podman image sign --sign-by foo@bar.com --directory /tmp/signatures docker://privateregistry.example.com/foobar
+
+   sudo podman image sign --authfile=/tmp/foobar.json --sign-by foo@bar.com --directory /tmp/signatures docker://privateregistry.example.com/foobar
 
 ## RELATED CONFIGURATION
 

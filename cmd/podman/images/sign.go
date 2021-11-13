@@ -3,6 +3,7 @@ package images
 import (
 	"os"
 
+	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
@@ -48,6 +49,10 @@ func init() {
 	flags.StringVar(&signOptions.CertDir, certDirFlagName, "", "`Pathname` of a directory containing TLS certificates and keys")
 	_ = signCommand.RegisterFlagCompletionFunc(certDirFlagName, completion.AutocompleteDefault)
 	flags.BoolVarP(&signOptions.All, "all", "a", false, "Sign all the manifests of the multi-architecture image")
+
+	authfileFlagName := "authfile"
+	flags.StringVar(&signOptions.Authfile, authfileFlagName, auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+	_ = signCommand.RegisterFlagCompletionFunc(authfileFlagName, completion.AutocompleteDefault)
 }
 
 func sign(cmd *cobra.Command, args []string) error {
