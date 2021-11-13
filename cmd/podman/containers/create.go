@@ -376,7 +376,9 @@ func createPodIfNecessary(s *specgen.SpecGenerator, netOpts *entities.NetOptions
 		return nil, err
 	}
 
-	infraOpts := entities.ContainerCreateOptions{ImageVolume: "bind", Net: netOpts, Quiet: true}
+	infraOpts := entities.NewInfraContainerCreateOptions()
+	infraOpts.Net = netOpts
+	infraOpts.Quiet = true
 	imageName := config.DefaultInfraImage
 	podGen.InfraImage = imageName
 	podGen.InfraContainerSpec = specgen.NewSpecGenerator(imageName, false)

@@ -270,7 +270,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 
 	if podOpt.Infra {
 		infraImage := util.DefaultContainerConfig().Engine.InfraImage
-		infraOptions := entities.ContainerCreateOptions{ImageVolume: "bind"}
+		infraOptions := entities.NewInfraContainerCreateOptions()
 		podSpec.PodSpecGen.InfraImage = infraImage
 		podSpec.PodSpecGen.NoInfra = false
 		podSpec.PodSpecGen.InfraContainerSpec = specgen.NewSpecGenerator(infraImage, false)

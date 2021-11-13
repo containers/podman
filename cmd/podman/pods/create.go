@@ -46,7 +46,7 @@ var (
 
 var (
 	createOptions     entities.PodCreateOptions
-	infraOptions      entities.ContainerCreateOptions
+	infraOptions      = entities.NewInfraContainerCreateOptions()
 	infraImage        string
 	labels, labelFile []string
 	podIDFile         string
@@ -61,7 +61,6 @@ func init() {
 	})
 	flags := createCommand.Flags()
 	flags.SetInterspersed(false)
-	infraOptions.IsInfra = true
 	common.DefineCreateFlags(createCommand, &infraOptions, true)
 	common.DefineNetFlags(createCommand)
 
