@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/api/handlers"
@@ -54,13 +55,20 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 
 	newImage, resolvedName, err := runtime.LibimageRuntime().LookupImage(body.Config.Image, nil)
 	if err != nil {
-		if errors.Cause(err) == storage.ErrImageUnknown {
-			utils.Error(w, "No such image", http.StatusNotFound, err)
+		if errors.Cause(err) != storage.ErrImageUnknown {
+			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error looking up image"))
 			return
 		}
-
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error looking up image"))
-		return
+		_, err = runtime.LibimageRuntime().Pull(r.Context(), body.Config.Image, config.PullPolicyAlways, nil)
+		if err != nil {
+			utils.Error(w, "No such image", http.StatusNotFound, errors.Wrap(err, "Cannot pull image"))
+			return
+		}
+		newImage, resolvedName, err = runtime.LibimageRuntime().LookupImage(body.Config.Image, nil)
+		if err != nil {
+			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error looking up image after pulling"))
+			return
+		}
 	}
 
 	// Take body structure and convert to cliopts

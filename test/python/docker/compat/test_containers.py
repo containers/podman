@@ -265,3 +265,19 @@ class TestContainers(unittest.TestCase):
         ctr.start()
         ret, out = ctr.exec_run(["stat", "/workspace/scratch/test"])
         self.assertEqual(ret, 0, "Working directory created if it doesn't exist")
+
+    def test_non_local_image(self):
+        self.assertEqual(len(self.client.images.list(filters={"reference": "alpine"})), 1)
+
+        for c in self.client.containers.list(all=True):
+            c.remove(force=True)
+
+        self.client.images.remove(constant.ALPINE)
+
+        self.assertEqual(len(self.client.images.list(filters={"reference": "alpine"})), 0)
+
+        ctr: Container = self.client.containers.create(image=constant.ALPINE, detach=True,
+                                                       name="non_local", command="top")
+        ctr.start()
+
+        self.assertEqual(len(self.client.images.list(filters={"reference": "alpine"})), 1)
