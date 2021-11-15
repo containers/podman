@@ -26,7 +26,7 @@ func CreateWithSpec(ctx context.Context, s *specgen.SpecGenerator, options *Crea
 		return ccr, err
 	}
 	stringReader := strings.NewReader(specgenString)
-	response, err := conn.DoRequest(stringReader, http.MethodPost, "/containers/create", nil, nil)
+	response, err := conn.DoRequest(ctx, stringReader, http.MethodPost, "/containers/create", nil, nil)
 	if err != nil {
 		return ccr, err
 	}

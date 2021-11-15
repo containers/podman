@@ -22,7 +22,7 @@ func List(ctx context.Context, options *ListOptions) ([]*entities.SecretInfoRepo
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/secrets/json", params, nil)
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/secrets/json", params, nil)
 	if err != nil {
 		return secrs, err
 	}
@@ -40,7 +40,7 @@ func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) (*en
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/secrets/%s/json", nil, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/secrets/%s/json", nil, nil, nameOrID)
 	if err != nil {
 		return inspect, err
 	}
@@ -56,7 +56,7 @@ func Remove(ctx context.Context, nameOrID string) error {
 		return err
 	}
 
-	response, err := conn.DoRequest(nil, http.MethodDelete, "/secrets/%s", nil, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodDelete, "/secrets/%s", nil, nil, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func Create(ctx context.Context, reader io.Reader, options *CreateOptions) (*ent
 		return nil, err
 	}
 
-	response, err := conn.DoRequest(reader, http.MethodPost, "/secrets/create", params, nil)
+	response, err := conn.DoRequest(ctx, reader, http.MethodPost, "/secrets/create", params, nil)
 	if err != nil {
 		return nil, err
 	}

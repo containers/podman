@@ -38,7 +38,7 @@ func List(ctx context.Context, options *ListOptions) ([]entities.ListContainer, 
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/json", params, nil)
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/containers/json", params, nil)
 	if err != nil {
 		return containers, err
 	}
@@ -64,7 +64,7 @@ func Prune(ctx context.Context, options *PruneOptions) ([]*reports.PruneReport, 
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/prune", params, nil)
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/containers/prune", params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) error 
 	if err != nil {
 		return err
 	}
-	response, err := conn.DoRequest(nil, http.MethodDelete, "/containers/%s", params, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodDelete, "/containers/%s", params, nil, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -115,7 +115,7 @@ func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) (*de
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/json", params, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/containers/%s/json", params, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func Kill(ctx context.Context, nameOrID string, options *KillOptions) error {
 	if err != nil {
 		return err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/kill", params, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/containers/%s/kill", params, nil, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -160,7 +160,7 @@ func Pause(ctx context.Context, nameOrID string, options *PauseOptions) error {
 	if err != nil {
 		return err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/pause", nil, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/containers/%s/pause", nil, nil, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -184,7 +184,7 @@ func Restart(ctx context.Context, nameOrID string, options *RestartOptions) erro
 	if err != nil {
 		return err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/restart", params, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/containers/%s/restart", params, nil, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -209,7 +209,7 @@ func Start(ctx context.Context, nameOrID string, options *StartOptions) error {
 	if err != nil {
 		return err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/start", params, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/containers/%s/start", params, nil, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -235,7 +235,7 @@ func Stats(ctx context.Context, containers []string, options *StatsOptions) (cha
 		params.Add("containers", c)
 	}
 
-	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/stats", params, nil)
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/containers/stats", params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -293,7 +293,7 @@ func Top(ctx context.Context, nameOrID string, options *TopOptions) ([]string, e
 		psArgs := strings.Join(options.GetDescriptors(), ",")
 		params.Add("ps_args", psArgs)
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/top", params, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/containers/%s/top", params, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -326,7 +326,7 @@ func Unpause(ctx context.Context, nameOrID string, options *UnpauseOptions) erro
 	if err != nil {
 		return err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/unpause", nil, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/containers/%s/unpause", nil, nil, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -351,7 +351,7 @@ func Wait(ctx context.Context, nameOrID string, options *WaitOptions) (int32, er
 	if err != nil {
 		return exitCode, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/wait", params, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/containers/%s/wait", params, nil, nameOrID)
 	if err != nil {
 		return exitCode, err
 	}
@@ -372,7 +372,7 @@ func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool,
 	if err != nil {
 		return false, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/exists", params, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/containers/%s/exists", params, nil, nameOrID)
 	if err != nil {
 		return false, err
 	}
@@ -395,7 +395,7 @@ func Stop(ctx context.Context, nameOrID string, options *StopOptions) error {
 	if err != nil {
 		return err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/stop", params, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/containers/%s/stop", params, nil, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -416,7 +416,7 @@ func Export(ctx context.Context, nameOrID string, w io.Writer, options *ExportOp
 	if err != nil {
 		return err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/export", params, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/containers/%s/export", params, nil, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -441,7 +441,7 @@ func ContainerInit(ctx context.Context, nameOrID string, options *InitOptions) e
 	if err != nil {
 		return err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/init", nil, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/containers/%s/init", nil, nil, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -462,7 +462,7 @@ func ShouldRestart(ctx context.Context, nameOrID string, options *ShouldRestartO
 	if err != nil {
 		return false, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/shouldrestart", nil, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/containers/%s/shouldrestart", nil, nil, nameOrID)
 	if err != nil {
 		return false, err
 	}

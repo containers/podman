@@ -130,7 +130,7 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 		IdleConnTimeout: time.Duration(0),
 	}
 	conn.Client.Transport = t
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/attach", params, headers, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/containers/%s/attach", params, headers, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -322,7 +322,7 @@ func resizeTTY(ctx context.Context, endpoint string, height *int, width *int) er
 		params.Set("w", strconv.Itoa(*width))
 	}
 	params.Set("running", "true")
-	rsp, err := conn.DoRequest(nil, http.MethodPost, endpoint, params, nil)
+	rsp, err := conn.DoRequest(ctx, nil, http.MethodPost, endpoint, params, nil)
 	if err != nil {
 		return err
 	}
@@ -407,7 +407,7 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 
 	// We need to inspect the exec session first to determine whether to use
 	// -t.
-	resp, err := conn.DoRequest(nil, http.MethodGet, "/exec/%s/json", nil, nil, sessionID)
+	resp, err := conn.DoRequest(ctx, nil, http.MethodGet, "/exec/%s/json", nil, nil, sessionID)
 	if err != nil {
 		return err
 	}
@@ -478,7 +478,7 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 		IdleConnTimeout: time.Duration(0),
 	}
 	conn.Client.Transport = t
-	response, err := conn.DoRequest(bytes.NewReader(bodyJSON), http.MethodPost, "/exec/%s/start", nil, nil, sessionID)
+	response, err := conn.DoRequest(ctx, bytes.NewReader(bodyJSON), http.MethodPost, "/exec/%s/start", nil, nil, sessionID)
 	if err != nil {
 		return err
 	}
