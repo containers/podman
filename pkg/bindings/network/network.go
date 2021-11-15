@@ -28,7 +28,7 @@ func Create(ctx context.Context, network *types.Network) (types.Network, error) 
 		return report, err
 	}
 	reader := strings.NewReader(networkConfig)
-	response, err := conn.DoRequest(reader, http.MethodPost, "/networks/create", nil, nil)
+	response, err := conn.DoRequest(ctx, reader, http.MethodPost, "/networks/create", nil, nil)
 	if err != nil {
 		return report, err
 	}
@@ -44,7 +44,7 @@ func Inspect(ctx context.Context, nameOrID string, _ *InspectOptions) (types.Net
 	if err != nil {
 		return net, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/networks/%s/json", nil, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/networks/%s/json", nil, nil, nameOrID)
 	if err != nil {
 		return net, err
 	}
@@ -69,7 +69,7 @@ func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) ([]*en
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodDelete, "/networks/%s", params, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodDelete, "/networks/%s", params, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func List(ctx context.Context, options *ListOptions) ([]types.Network, error) {
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/networks/json", params, nil)
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/networks/json", params, nil)
 	if err != nil {
 		return netList, err
 	}
@@ -128,7 +128,7 @@ func Disconnect(ctx context.Context, networkName string, ContainerNameOrID strin
 		return err
 	}
 	stringReader := strings.NewReader(body)
-	response, err := conn.DoRequest(stringReader, http.MethodPost, "/networks/%s/disconnect", params, nil, networkName)
+	response, err := conn.DoRequest(ctx, stringReader, http.MethodPost, "/networks/%s/disconnect", params, nil, networkName)
 	if err != nil {
 		return err
 	}
@@ -163,7 +163,7 @@ func Connect(ctx context.Context, networkName string, ContainerNameOrID string, 
 		return err
 	}
 	stringReader := strings.NewReader(body)
-	response, err := conn.DoRequest(stringReader, http.MethodPost, "/networks/%s/connect", params, nil, networkName)
+	response, err := conn.DoRequest(ctx, stringReader, http.MethodPost, "/networks/%s/connect", params, nil, networkName)
 	if err != nil {
 		return err
 	}
@@ -178,7 +178,7 @@ func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool,
 	if err != nil {
 		return false, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/networks/%s/exists", nil, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/networks/%s/exists", nil, nil, nameOrID)
 	if err != nil {
 		return false, err
 	}
@@ -204,7 +204,7 @@ func Prune(ctx context.Context, options *PruneOptions) ([]*entities.NetworkPrune
 		return nil, err
 	}
 
-	response, err := conn.DoRequest(nil, http.MethodPost, "/networks/prune", params, nil)
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/networks/prune", params, nil)
 	if err != nil {
 		return nil, err
 	}

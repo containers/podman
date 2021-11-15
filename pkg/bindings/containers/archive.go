@@ -23,7 +23,7 @@ func Stat(ctx context.Context, nameOrID string, path string) (*entities.Containe
 	params := url.Values{}
 	params.Set("path", path)
 
-	response, err := conn.DoRequest(nil, http.MethodHead, "/containers/%s/archive", params, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodHead, "/containers/%s/archive", params, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func CopyFromArchiveWithOptions(ctx context.Context, nameOrID string, path strin
 	params.Set("path", path)
 
 	return func() error {
-		response, err := conn.DoRequest(reader, http.MethodPut, "/containers/%s/archive", params, nil, nameOrID)
+		response, err := conn.DoRequest(ctx, reader, http.MethodPut, "/containers/%s/archive", params, nil, nameOrID)
 		if err != nil {
 			return err
 		}
@@ -92,7 +92,7 @@ func CopyToArchive(ctx context.Context, nameOrID string, path string, writer io.
 	params := url.Values{}
 	params.Set("path", path)
 
-	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/archive", params, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/containers/%s/archive", params, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}

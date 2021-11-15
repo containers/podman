@@ -32,7 +32,7 @@ func Remove(ctx context.Context, images []string, options *RemoveOptions) (*enti
 	for _, image := range images {
 		params.Add("images", image)
 	}
-	response, err := conn.DoRequest(nil, http.MethodDelete, "/images/remove", params, nil)
+	response, err := conn.DoRequest(ctx, nil, http.MethodDelete, "/images/remove", params, nil)
 	if err != nil {
 		return nil, []error{err}
 	}

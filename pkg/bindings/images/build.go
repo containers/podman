@@ -392,7 +392,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(tarfile, http.MethodPost, "/build", params, headers)
+	response, err := conn.DoRequest(ctx, tarfile, http.MethodPost, "/build", params, headers)
 	if err != nil {
 		return nil, err
 	}

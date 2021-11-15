@@ -23,7 +23,7 @@ func Checkpoint(ctx context.Context, nameOrID string, options *CheckpointOptions
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/checkpoint", params, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/containers/%s/checkpoint", params, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func Restore(ctx context.Context, nameOrID string, options *RestoreOptions) (*en
 	if i := options.GetImportAchive(); options.Changed("ImportArchive") {
 		params.Set("import", i)
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/restore", params, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/containers/%s/restore", params, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}

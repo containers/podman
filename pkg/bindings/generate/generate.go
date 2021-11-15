@@ -22,7 +22,7 @@ func Systemd(ctx context.Context, nameOrID string, options *SystemdOptions) (*en
 		return nil, err
 	}
 
-	response, err := conn.DoRequest(nil, http.MethodGet, "/generate/%s/systemd", params, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/generate/%s/systemd", params, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func Kube(ctx context.Context, nameOrIDs []string, options *KubeOptions) (*entit
 	for _, name := range nameOrIDs {
 		params.Add("names", name)
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/generate/kube", params, nil)
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/generate/kube", params, nil)
 	if err != nil {
 		return nil, err
 	}

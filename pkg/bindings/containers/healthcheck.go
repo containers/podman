@@ -22,7 +22,7 @@ func RunHealthCheck(ctx context.Context, nameOrID string, options *HealthCheckOp
 	var (
 		status define.HealthCheckResults
 	)
-	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/healthcheck", nil, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/containers/%s/healthcheck", nil, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}
