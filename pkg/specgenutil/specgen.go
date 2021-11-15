@@ -85,7 +85,7 @@ func getIOLimits(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) (
 	}
 
 	if len(c.BlkIOWeightDevice) > 0 {
-		if err := parseWeightDevices(s, c.BlkIOWeightDevice); err != nil {
+		if s.WeightDevice, err = parseWeightDevices(c.BlkIOWeightDevice); err != nil {
 			return nil, err
 		}
 		hasLimits = true
@@ -791,29 +791,30 @@ func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, start
 	return &hc, nil
 }
 
-func parseWeightDevices(s *specgen.SpecGenerator, weightDevs []string) error {
+func parseWeightDevices(weightDevs []string) (map[string]specs.LinuxWeightDevice, error) {
+	wd := make(map[string]specs.LinuxWeightDevice)
 	for _, val := range weightDevs {
 		split := strings.SplitN(val, ":", 2)
 		if len(split) != 2 {
-			return fmt.Errorf("bad format: %s", val)
+			return nil, fmt.Errorf("bad format: %s", val)
 		}
 		if !strings.HasPrefix(split[0], "/dev/") {
-			return fmt.Errorf("bad format for device path: %s", val)
+			return nil, fmt.Errorf("bad format for device path: %s", val)
 		}
 		weight, err := strconv.ParseUint(split[1], 10, 0)
 		if err != nil {
-			return fmt.Errorf("invalid weight for device: %s", val)
+			return nil, fmt.Errorf("invalid weight for device: %s", val)
 		}
 		if weight > 0 && (weight < 10 || weight > 1000) {
-			return fmt.Errorf("invalid weight for device: %s", val)
+			return nil, fmt.Errorf("invalid weight for device: %s", val)
 		}
 		w := uint16(weight)
-		s.WeightDevice[split[0]] = specs.LinuxWeightDevice{
+		wd[split[0]] = specs.LinuxWeightDevice{
 			Weight:     &w,
 			LeafWeight: nil,
 		}
 	}
-	return nil
+	return wd, nil
 }
 
 func parseThrottleBPSDevices(bpsDevices []string) (map[string]specs.LinuxThrottleDevice, error) {
