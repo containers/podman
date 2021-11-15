@@ -45,6 +45,17 @@ var _ = Describe("Podman volume ls", func() {
 		Expect(len(session.OutputToStringArray())).To(Equal(2))
 	})
 
+	It("podman ls volume filter with a key pattern", func() {
+		session := podmanTest.Podman([]string{"volume", "create", "--label", "helloworld=world", "myvol2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"volume", "ls", "--filter", "label=hello*"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(2))
+	})
+
 	It("podman ls volume with JSON format", func() {
 		session := podmanTest.Podman([]string{"volume", "create", "myvol"})
 		session.WaitWithDefaultTimeout()
