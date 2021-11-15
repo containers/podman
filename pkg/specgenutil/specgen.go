@@ -314,7 +314,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.Pod = podID
 	}
 
-	expose, err := createExpose(c.Expose)
+	expose, err := CreateExpose(c.Expose)
 	if err != nil {
 		return err
 	}
