@@ -253,6 +253,8 @@ type ContainerSecret struct {
 	GID uint32
 	// Mode is the mode of the secret file
 	Mode uint32
+	// Secret target inside container
+	Target string
 }
 
 // ContainerNetworkDescriptions describes the relationship between the CNI
