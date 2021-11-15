@@ -1089,7 +1089,7 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	}
 
 	// With the spec complete, do an OCI create
-	if err := c.ociRuntime.CreateContainer(c, nil); err != nil {
+	if _, err = c.ociRuntime.CreateContainer(c, nil); err != nil {
 		// Fedora 31 is carrying a patch to display improved error
 		// messages to better handle the V2 transition. This is NOT
 		// upstream in any OCI runtime.

@@ -3,6 +3,7 @@ package containers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v3/cmd/podman/common"
@@ -38,6 +39,11 @@ var (
 )
 
 var restoreOptions entities.RestoreOptions
+
+type restoreStatistics struct {
+	PodmanDuration      int64                     `json:"podman_restore_duration"`
+	ContainerStatistics []*entities.RestoreReport `json:"container_statistics"`
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -75,11 +81,19 @@ func init() {
 	flags.StringVar(&restoreOptions.Pod, "pod", "", "Restore container into existing Pod (only works with --import)")
 	_ = restoreCommand.RegisterFlagCompletionFunc("pod", common.AutocompletePodsRunning)
 
+	flags.BoolVar(
+		&restoreOptions.PrintStats,
+		"print-stats",
+		false,
+		"Display restore statistics",
+	)
+
 	validate.AddLatestFlag(restoreCommand, &restoreOptions.Latest)
 }
 
 func restore(cmd *cobra.Command, args []string) error {
 	var errs utils.OutputErrors
+	podmanStart := time.Now()
 	if rootless.IsRootless() {
 		return errors.New("restoring a container requires root")
 	}
@@ -132,12 +146,30 @@ func restore(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	podmanFinished := time.Now()
+
+	var statistics restoreStatistics
+
 	for _, r := range responses {
 		if r.Err == nil {
-			fmt.Println(r.Id)
+			if restoreOptions.PrintStats {
+				statistics.ContainerStatistics = append(statistics.ContainerStatistics, r)
+			} else {
+				fmt.Println(r.Id)
+			}
 		} else {
 			errs = append(errs, r.Err)
 		}
 	}
+
+	if restoreOptions.PrintStats {
+		statistics.PodmanDuration = podmanFinished.Sub(podmanStart).Microseconds()
+		j, err := json.MarshalIndent(statistics, "", "    ")
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(j))
+	}
+
 	return errs.PrintErrors()
 }

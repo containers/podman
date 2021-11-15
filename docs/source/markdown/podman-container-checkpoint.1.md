@@ -68,6 +68,40 @@ Dump the *container's* memory information only, leaving the *container* running.
 operations will supersede prior dumps. It only works on `runc 1.0-rc3` or `higher`.\
 The default is **false**.
 
+#### **--print-stats**
+
+Print out statistics about checkpointing the container(s). The output is
+rendered in a JSON array and contains information about how much time different
+checkpoint operations required. Many of the checkpoint statistics are created
+by CRIU and just passed through to Podman. The following information is provided
+in the JSON array:
+
+- **podman_checkpoint_duration**: Overall time (in microseconds) needed to create
+  all checkpoints.
+
+- **runtime_checkpoint_duration**: Time (in microseconds) the container runtime
+  needed to create the checkpoint.
+
+- **freezing_time**: Time (in microseconds) CRIU needed to pause (freeze) all
+  processes in the container (measured by CRIU).
+
+- **frozen_time**: Time (in microseconds) all processes in the container were
+  paused (measured by CRIU).
+
+- **memdump_time**: Time (in microseconds) needed to extract all required memory
+  pages from all container processes (measured by CRIU).
+
+- **memwrite_time**: Time (in microseconds) needed to write all required memory
+  pages to the corresponding checkpoint image files (measured by CRIU).
+
+- **pages_scanned**: Number of memory pages scanned to determine if they need
+  to be checkpointed (measured by CRIU).
+
+- **pages_written**: Number of memory pages actually written to the checkpoint
+  image files (measured by CRIU).
+
+The default is **false**.
+
 #### **--tcp-established**
 
 Checkpoint a *container* with established TCP connections. If the checkpoint
@@ -106,7 +140,7 @@ Dump the container's memory information of the latest container into an archive 
 ```
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-container-restore(1)](podman-container-restore.1.md)**
+**[podman(1)](podman.1.md)**, **[podman-container-restore(1)](podman-container-restore.1.md)**, **criu(8)**
 
 ## HISTORY
 September 2018, Originally compiled by Adrian Reber <areber@redhat.com>

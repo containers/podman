@@ -23,7 +23,10 @@ type OCIRuntime interface {
 	Path() string
 
 	// CreateContainer creates the container in the OCI runtime.
-	CreateContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) error
+	// The returned int64 contains the microseconds needed to restore
+	// the given container if it is a restore and if restoreOptions.PrintStats
+	// is true. In all other cases the returned int64 is 0.
+	CreateContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) (int64, error)
 	// UpdateContainerStatus updates the status of the given container.
 	UpdateContainerStatus(ctr *Container) error
 	// StartContainer starts the given container.
@@ -101,8 +104,10 @@ type OCIRuntime interface {
 	// CheckpointContainer checkpoints the given container.
 	// Some OCI runtimes may not support this - if SupportsCheckpoint()
 	// returns false, this is not implemented, and will always return an
-	// error.
-	CheckpointContainer(ctr *Container, options ContainerCheckpointOptions) error
+	// error. If CheckpointOptions.PrintStats is true the first return parameter
+	// contains the number of microseconds the runtime needed to checkpoint
+	// the given container.
+	CheckpointContainer(ctr *Container, options ContainerCheckpointOptions) (int64, error)
 
 	// CheckConmonRunning verifies that the given container's Conmon
 	// instance is still running. Runtimes without Conmon, or systems where

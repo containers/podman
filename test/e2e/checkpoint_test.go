@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"github.com/checkpoint-restore/go-criu/v5/stats"
 	"github.com/containers/podman/v3/pkg/checkpoint/crutils"
 	"github.com/containers/podman/v3/pkg/criu"
+	"github.com/containers/podman/v3/pkg/domain/entities"
 	. "github.com/containers/podman/v3/test/utils"
 	"github.com/containers/podman/v3/utils"
 	. "github.com/onsi/ginkgo"
@@ -1244,4 +1246,97 @@ var _ = Describe("Podman checkpoint", func() {
 		// Remove exported checkpoint
 		os.Remove(fileName)
 	})
+
+	It("podman checkpoint and restore containers with --print-stats", func() {
+		session1 := podmanTest.Podman(getRunString([]string{redis}))
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+
+		session2 := podmanTest.Podman(getRunString([]string{redis, "top"}))
+		session2.WaitWithDefaultTimeout()
+		Expect(session2).Should(Exit(0))
+
+		result := podmanTest.Podman([]string{
+			"container",
+			"checkpoint",
+			"-a",
+			"--print-stats",
+		})
+		result.WaitWithDefaultTimeout()
+
+		Expect(result).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+
+		type checkpointStatistics struct {
+			PodmanDuration      int64                        `json:"podman_checkpoint_duration"`
+			ContainerStatistics []*entities.CheckpointReport `json:"container_statistics"`
+		}
+
+		cS := new(checkpointStatistics)
+		err := json.Unmarshal([]byte(result.OutputToString()), cS)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		Expect(len(cS.ContainerStatistics)).To(Equal(2))
+		Expect(cS.PodmanDuration).To(BeNumerically(">", cS.ContainerStatistics[0].RuntimeDuration))
+		Expect(cS.PodmanDuration).To(BeNumerically(">", cS.ContainerStatistics[1].RuntimeDuration))
+		Expect(cS.ContainerStatistics[0].RuntimeDuration).To(
+			BeNumerically(">", cS.ContainerStatistics[0].CRIUStatistics.FrozenTime),
+		)
+		Expect(cS.ContainerStatistics[1].RuntimeDuration).To(
+			BeNumerically(">", cS.ContainerStatistics[1].CRIUStatistics.FrozenTime),
+		)
+
+		ps := podmanTest.Podman([]string{
+			"ps",
+			"-q",
+			"--no-trunc",
+		})
+		ps.WaitWithDefaultTimeout()
+		Expect(ps).Should(Exit(0))
+		Expect(ps.LineInOutputContains(session1.OutputToString())).To(BeFalse())
+		Expect(ps.LineInOutputContains(session2.OutputToString())).To(BeFalse())
+
+		result = podmanTest.Podman([]string{
+			"container",
+			"restore",
+			"-a",
+			"--print-stats",
+		})
+		result.WaitWithDefaultTimeout()
+
+		Expect(result).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(2))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
+		Expect(podmanTest.GetContainerStatus()).To(Not(ContainSubstring("Exited")))
+
+		type restoreStatistics struct {
+			PodmanDuration      int64                     `json:"podman_restore_duration"`
+			ContainerStatistics []*entities.RestoreReport `json:"container_statistics"`
+		}
+
+		rS := new(restoreStatistics)
+		err = json.Unmarshal([]byte(result.OutputToString()), rS)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		Expect(len(cS.ContainerStatistics)).To(Equal(2))
+		Expect(cS.PodmanDuration).To(BeNumerically(">", cS.ContainerStatistics[0].RuntimeDuration))
+		Expect(cS.PodmanDuration).To(BeNumerically(">", cS.ContainerStatistics[1].RuntimeDuration))
+		Expect(cS.ContainerStatistics[0].RuntimeDuration).To(
+			BeNumerically(">", cS.ContainerStatistics[0].CRIUStatistics.RestoreTime),
+		)
+		Expect(cS.ContainerStatistics[1].RuntimeDuration).To(
+			BeNumerically(">", cS.ContainerStatistics[1].CRIUStatistics.RestoreTime),
+		)
+
+		result = podmanTest.Podman([]string{
+			"rm",
+			"-t",
+			"0",
+			"-fa",
+		})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+	})
+
 })

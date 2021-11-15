@@ -515,6 +515,7 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 		PreCheckPoint:  options.PreCheckPoint,
 		WithPrevious:   options.WithPrevious,
 		Compression:    options.Compression,
+		PrintStats:     options.PrintStats,
 	}
 
 	if options.All {
@@ -531,10 +532,12 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 	}
 	reports := make([]*entities.CheckpointReport, 0, len(cons))
 	for _, con := range cons {
-		err = con.Checkpoint(ctx, checkOpts)
+		criuStatistics, runtimeCheckpointDuration, err := con.Checkpoint(ctx, checkOpts)
 		reports = append(reports, &entities.CheckpointReport{
-			Err: err,
-			Id:  con.ID(),
+			Err:             err,
+			Id:              con.ID(),
+			RuntimeDuration: runtimeCheckpointDuration,
+			CRIUStatistics:  criuStatistics,
 		})
 	}
 	return reports, nil
@@ -557,6 +560,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		IgnoreStaticMAC: options.IgnoreStaticMAC,
 		ImportPrevious:  options.ImportPrevious,
 		Pod:             options.Pod,
+		PrintStats:      options.PrintStats,
 	}
 
 	filterFuncs := []libpod.ContainerFilter{
@@ -579,10 +583,12 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 	}
 	reports := make([]*entities.RestoreReport, 0, len(cons))
 	for _, con := range cons {
-		err := con.Restore(ctx, restoreOptions)
+		criuStatistics, runtimeRestoreDuration, err := con.Restore(ctx, restoreOptions)
 		reports = append(reports, &entities.RestoreReport{
-			Err: err,
-			Id:  con.ID(),
+			Err:             err,
+			Id:              con.ID(),
+			RuntimeDuration: runtimeRestoreDuration,
+			CRIUStatistics:  criuStatistics,
 		})
 	}
 	return reports, nil

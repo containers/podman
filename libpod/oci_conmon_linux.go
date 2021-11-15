@@ -183,35 +183,39 @@ func hasCurrentUserMapped(ctr *Container) bool {
 }
 
 // CreateContainer creates a container.
-func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) error {
+func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) (int64, error) {
 	// always make the run dir accessible to the current user so that the PID files can be read without
 	// being in the rootless user namespace.
 	if err := makeAccessible(ctr.state.RunDir, 0, 0); err != nil {
-		return err
+		return 0, err
 	}
 	if !hasCurrentUserMapped(ctr) {
 		for _, i := range []string{ctr.state.RunDir, ctr.runtime.config.Engine.TmpDir, ctr.config.StaticDir, ctr.state.Mountpoint, ctr.runtime.config.Engine.VolumePath} {
 			if err := makeAccessible(i, ctr.RootUID(), ctr.RootGID()); err != nil {
-				return err
+				return 0, err
 			}
 		}
 
 		// if we are running a non privileged container, be sure to umount some kernel paths so they are not
 		// bind mounted inside the container at all.
 		if !ctr.config.Privileged && !rootless.IsRootless() {
-			ch := make(chan error)
+			type result struct {
+				restoreDuration int64
+				err             error
+			}
+			ch := make(chan result)
 			go func() {
 				runtime.LockOSThread()
-				err := func() error {
+				restoreDuration, err := func() (int64, error) {
 					fd, err := os.Open(fmt.Sprintf("/proc/%d/task/%d/ns/mnt", os.Getpid(), unix.Gettid()))
 					if err != nil {
-						return err
+						return 0, err
 					}
 					defer errorhandling.CloseQuiet(fd)
 
 					// create a new mountns on the current thread
 					if err = unix.Unshare(unix.CLONE_NEWNS); err != nil {
-						return err
+						return 0, err
 					}
 					defer func() {
 						if err := unix.Setns(int(fd.Fd()), unix.CLONE_NEWNS); err != nil {
@@ -224,12 +228,12 @@ func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *Conta
 					// changes are propagated to the host.
 					err = unix.Mount("/sys", "/sys", "none", unix.MS_REC|unix.MS_SLAVE, "")
 					if err != nil {
-						return errors.Wrapf(err, "cannot make /sys slave")
+						return 0, errors.Wrapf(err, "cannot make /sys slave")
 					}
 
 					mounts, err := pmount.GetMounts()
 					if err != nil {
-						return err
+						return 0, err
 					}
 					for _, m := range mounts {
 						if !strings.HasPrefix(m.Mountpoint, "/sys/kernel") {
@@ -237,15 +241,18 @@ func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *Conta
 						}
 						err = unix.Unmount(m.Mountpoint, 0)
 						if err != nil && !os.IsNotExist(err) {
-							return errors.Wrapf(err, "cannot unmount %s", m.Mountpoint)
+							return 0, errors.Wrapf(err, "cannot unmount %s", m.Mountpoint)
 						}
 					}
 					return r.createOCIContainer(ctr, restoreOptions)
 				}()
-				ch <- err
+				ch <- result{
+					restoreDuration: restoreDuration,
+					err:             err,
+				}
 			}()
-			err := <-ch
-			return err
+			r := <-ch
+			return r.restoreDuration, r.err
 		}
 	}
 	return r.createOCIContainer(ctr, restoreOptions)
@@ -760,9 +767,9 @@ func (r *ConmonOCIRuntime) AttachResize(ctr *Container, newSize define.TerminalS
 }
 
 // CheckpointContainer checkpoints the given container.
-func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options ContainerCheckpointOptions) error {
+func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options ContainerCheckpointOptions) (int64, error) {
 	if err := label.SetSocketLabel(ctr.ProcessLabel()); err != nil {
-		return err
+		return 0, err
 	}
 	// imagePath is used by CRIU to store the actual checkpoint files
 	imagePath := ctr.CheckpointPath()
@@ -802,14 +809,25 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 	}
 	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if err = os.Setenv("XDG_RUNTIME_DIR", runtimeDir); err != nil {
-		return errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
+		return 0, errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
 	}
 	args = append(args, ctr.ID())
 	logrus.Debugf("the args to checkpoint: %s %s", r.path, strings.Join(args, " "))
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, nil, r.path, args...)
+
+	runtimeCheckpointStarted := time.Now()
+	err = utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, nil, r.path, args...)
+
+	runtimeCheckpointDuration := func() int64 {
+		if options.PrintStats {
+			return time.Since(runtimeCheckpointStarted).Microseconds()
+		}
+		return 0
+	}()
+
+	return runtimeCheckpointDuration, err
 }
 
 func (r *ConmonOCIRuntime) CheckConmonRunning(ctr *Container) (bool, error) {
@@ -984,23 +1002,23 @@ func (r *ConmonOCIRuntime) getLogTag(ctr *Container) (string, error) {
 }
 
 // createOCIContainer generates this container's main conmon instance and prepares it for starting
-func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) error {
+func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) (int64, error) {
 	var stderrBuf bytes.Buffer
 
 	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	parentSyncPipe, childSyncPipe, err := newPipe()
 	if err != nil {
-		return errors.Wrapf(err, "error creating socket pair")
+		return 0, errors.Wrapf(err, "error creating socket pair")
 	}
 	defer errorhandling.CloseQuiet(parentSyncPipe)
 
 	childStartPipe, parentStartPipe, err := newPipe()
 	if err != nil {
-		return errors.Wrapf(err, "error creating socket pair for start pipe")
+		return 0, errors.Wrapf(err, "error creating socket pair for start pipe")
 	}
 
 	defer errorhandling.CloseQuiet(parentStartPipe)
@@ -1012,12 +1030,12 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 
 	logTag, err := r.getLogTag(ctr)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	if ctr.config.CgroupsMode == cgroupSplit {
 		if err := utils.MoveUnderCgroupSubtree("runtime"); err != nil {
-			return err
+			return 0, err
 		}
 	}
 
@@ -1068,7 +1086,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		} else {
 			fds, err := strconv.Atoi(val)
 			if err != nil {
-				return fmt.Errorf("converting LISTEN_FDS=%s: %w", val, err)
+				return 0, fmt.Errorf("converting LISTEN_FDS=%s: %w", val, err)
 			}
 			preserveFDs = uint(fds)
 		}
@@ -1149,7 +1167,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	if r.reservePorts && !rootless.IsRootless() && !ctr.config.NetMode.IsSlirp4netns() {
 		ports, err := bindPorts(ctr.config.PortMappings)
 		if err != nil {
-			return err
+			return 0, err
 		}
 		filesToClose = append(filesToClose, ports...)
 
@@ -1165,12 +1183,12 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 			if havePortMapping {
 				ctr.rootlessPortSyncR, ctr.rootlessPortSyncW, err = os.Pipe()
 				if err != nil {
-					return errors.Wrapf(err, "failed to create rootless port sync pipe")
+					return 0, errors.Wrapf(err, "failed to create rootless port sync pipe")
 				}
 			}
 			ctr.rootlessSlirpSyncR, ctr.rootlessSlirpSyncW, err = os.Pipe()
 			if err != nil {
-				return errors.Wrapf(err, "failed to create rootless network sync pipe")
+				return 0, errors.Wrapf(err, "failed to create rootless network sync pipe")
 			}
 		} else {
 			if ctr.rootlessSlirpSyncR != nil {
@@ -1189,22 +1207,25 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 			cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessPortSyncW)
 		}
 	}
-
+	var runtimeRestoreStarted time.Time
+	if restoreOptions != nil {
+		runtimeRestoreStarted = time.Now()
+	}
 	err = startCommandGivenSelinux(cmd, ctr)
 
 	// regardless of whether we errored or not, we no longer need the children pipes
 	childSyncPipe.Close()
 	childStartPipe.Close()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if err := r.moveConmonToCgroupAndSignal(ctr, cmd, parentStartPipe); err != nil {
-		return err
+		return 0, err
 	}
 	/* Wait for initial setup and fork, and reap child */
 	err = cmd.Wait()
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	pid, err := readConmonPipeData(parentSyncPipe, ociLog)
@@ -1212,7 +1233,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		if err2 := r.DeleteContainer(ctr); err2 != nil {
 			logrus.Errorf("Removing container %s from runtime after creation failed", ctr.ID())
 		}
-		return err
+		return 0, err
 	}
 	ctr.state.PID = pid
 
@@ -1238,13 +1259,20 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		}
 	}
 
+	runtimeRestoreDuration := func() int64 {
+		if restoreOptions != nil && restoreOptions.PrintStats {
+			return time.Since(runtimeRestoreStarted).Microseconds()
+		}
+		return 0
+	}()
+
 	// These fds were passed down to the runtime.  Close them
 	// and not interfere
 	for _, f := range filesToClose {
 		errorhandling.CloseQuiet(f)
 	}
 
-	return nil
+	return runtimeRestoreDuration, nil
 }
 
 // configureConmonEnv gets the environment values to add to conmon's exec struct

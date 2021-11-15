@@ -190,11 +190,14 @@ type CheckpointOptions struct {
 	PreCheckPoint  bool
 	WithPrevious   bool
 	Compression    archive.Compression
+	PrintStats     bool
 }
 
 type CheckpointReport struct {
-	Err error
-	Id  string //nolint
+	Err             error                                   `json:"-"`
+	Id              string                                  `json:"Id` //nolint
+	RuntimeDuration int64                                   `json:"runtime_checkpoint_duration"`
+	CRIUStatistics  *define.CRIUCheckpointRestoreStatistics `json:"criu_statistics"`
 }
 
 type RestoreOptions struct {
@@ -211,11 +214,14 @@ type RestoreOptions struct {
 	ImportPrevious  string
 	PublishPorts    []nettypes.PortMapping
 	Pod             string
+	PrintStats      bool
 }
 
 type RestoreReport struct {
-	Err error
-	Id  string //nolint
+	Err             error                                   `json:"-"`
+	Id              string                                  `json:"Id` //nolint
+	RuntimeDuration int64                                   `json:"runtime_restore_duration"`
+	CRIUStatistics  *define.CRIUCheckpointRestoreStatistics `json:"criu_statistics"`
 }
 
 type ContainerCreateReport struct {

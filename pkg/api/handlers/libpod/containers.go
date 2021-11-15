@@ -214,6 +214,7 @@ func Checkpoint(w http.ResponseWriter, r *http.Request) {
 		TCPEstablished bool `schema:"tcpEstablished"`
 		Export         bool `schema:"export"`
 		IgnoreRootFS   bool `schema:"ignoreRootFS"`
+		PrintStats     bool `schema:"printStats"`
 	}{
 		// override any golang type defaults
 	}
@@ -248,11 +249,12 @@ func Checkpoint(w http.ResponseWriter, r *http.Request) {
 		KeepRunning:    query.LeaveRunning,
 		TCPEstablished: query.TCPEstablished,
 		IgnoreRootfs:   query.IgnoreRootFS,
+		PrintStats:     query.PrintStats,
 	}
 	if query.Export {
 		options.TargetFile = targetFile
 	}
-	err = ctr.Checkpoint(r.Context(), options)
+	criuStatistics, runtimeCheckpointDuration, err := ctr.Checkpoint(r.Context(), options)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
@@ -267,7 +269,15 @@ func Checkpoint(w http.ResponseWriter, r *http.Request) {
 		utils.WriteResponse(w, http.StatusOK, f)
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, entities.CheckpointReport{Id: ctr.ID()})
+	utils.WriteResponse(
+		w,
+		http.StatusOK,
+		entities.CheckpointReport{
+			Id:              ctr.ID(),
+			RuntimeDuration: runtimeCheckpointDuration,
+			CRIUStatistics:  criuStatistics,
+		},
+	)
 }
 
 func Restore(w http.ResponseWriter, r *http.Request) {
@@ -284,6 +294,7 @@ func Restore(w http.ResponseWriter, r *http.Request) {
 		IgnoreVolumes   bool   `schema:"ignoreVolumes"`
 		IgnoreStaticIP  bool   `schema:"ignoreStaticIP"`
 		IgnoreStaticMAC bool   `schema:"ignoreStaticMAC"`
+		PrintStats      bool   `schema:"printStats"`
 	}{
 		// override any golang type defaults
 	}
@@ -319,17 +330,26 @@ func Restore(w http.ResponseWriter, r *http.Request) {
 		IgnoreRootfs:    query.IgnoreRootFS,
 		IgnoreStaticIP:  query.IgnoreStaticIP,
 		IgnoreStaticMAC: query.IgnoreStaticMAC,
+		PrintStats:      query.PrintStats,
 	}
 	if query.Import {
 		options.TargetFile = targetFile
 		options.Name = query.Name
 	}
-	err = ctr.Restore(r.Context(), options)
+	criuStatistics, runtimeRestoreDuration, err := ctr.Restore(r.Context(), options)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, entities.RestoreReport{Id: ctr.ID()})
+	utils.WriteResponse(
+		w,
+		http.StatusOK,
+		entities.RestoreReport{
+			Id:              ctr.ID(),
+			RuntimeDuration: runtimeRestoreDuration,
+			CRIUStatistics:  criuStatistics,
+		},
+	)
 }
 
 func InitContainer(w http.ResponseWriter, r *http.Request) {
