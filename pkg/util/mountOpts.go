@@ -33,6 +33,7 @@ func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string
 		// Some options have parameters - size, mode
 		splitOpt := strings.SplitN(opt, "=", 2)
 		switch splitOpt[0] {
+		case "idmap":
 		case "O":
 			if len(options) > 1 {
 				return nil, errors.Wrapf(ErrDupeMntOption, "'O' option can not be used with other options")

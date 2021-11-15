@@ -606,7 +606,9 @@ Current supported mount TYPEs are **bind**, **volume**, **image**, **tmpfs** and
 
 	      · ro, readonly: true or false (default).
 
-        . U, chown: true or false (default). Change recursively the owner and group of the source volume based on the UID and GID of the container.
+	      . U, chown: true or false (default). Change recursively the owner and group of the source volume based on the UID and GID of the container.
+
+	      · idmap: true or false (default).  If specified, create an idmapped mount to the target user namespace in the container.
 
        Options specific to image:
 
@@ -622,7 +624,9 @@ Current supported mount TYPEs are **bind**, **volume**, **image**, **tmpfs** and
 
 	      . relabel: shared, private.
 
-        . U, chown: true or false (default). Change recursively the owner and group of the source volume based on the UID and GID of the container.
+	      · idmap: true or false (default).  If specified, create an idmapped mount to the target user namespace in the container.
+
+	      . U, chown: true or false (default). Change recursively the owner and group of the source volume based on the UID and GID of the container.
 
        Options specific to tmpfs:
 
@@ -636,7 +640,7 @@ Current supported mount TYPEs are **bind**, **volume**, **image**, **tmpfs** and
 
 	      · notmpcopyup: Disable copying files from the image to the tmpfs.
 
-        . U, chown: true or false (default). Change recursively the owner and group of the source volume based on the UID and GID of the container.
+	      . U, chown: true or false (default). Change recursively the owner and group of the source volume based on the UID and GID of the container.
 
        Options specific to devpts:
 
