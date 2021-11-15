@@ -37,9 +37,11 @@ func (c *Container) initializeJournal(ctx context.Context) error {
 	m := make(map[string]string)
 	m["SYSLOG_IDENTIFIER"] = "podman"
 	m["PODMAN_ID"] = c.ID()
-	m["CONTAINER_ID_FULL"] = c.ID()
 	history := events.History
 	m["PODMAN_EVENT"] = history.String()
+	container := events.Container
+	m["PODMAN_TYPE"] = container.String()
+	m["PODMAN_TIME"] = time.Now().Format(time.RFC3339Nano)
 	return journal.Send("", journal.PriInfo, m)
 }
 
@@ -95,6 +97,7 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 	// exponential backoff.
 	var cursor string
 	var cursorError error
+	var containerCouldBeLogging bool
 	for i := 1; i <= 3; i++ {
 		cursor, cursorError = journal.GetCursor()
 		hundreds := 1
@@ -172,7 +175,7 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 					doTailFunc()
 				}
 				// Unless we follow, quit.
-				if !options.Follow {
+				if !options.Follow || !containerCouldBeLogging {
 					return
 				}
 				// Sleep until something's happening on the journal.
@@ -201,11 +204,14 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 					logrus.Errorf("Failed to translate event: %v", err)
 					return
 				}
-				if status == events.Exited {
+				switch status {
+				case events.History, events.Init, events.Start, events.Restart:
+					containerCouldBeLogging = true
+				case events.Exited:
+					containerCouldBeLogging = false
 					if doTail {
 						doTailFunc()
 					}
-					return
 				}
 				continue
 			}
