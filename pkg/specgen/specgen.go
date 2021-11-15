@@ -513,6 +513,7 @@ type SpecGenerator struct {
 
 type Secret struct {
 	Source string
+	Target string
 	UID    uint32
 	GID    uint32
 	Mode   uint32
