@@ -21,6 +21,7 @@ import (
 const (
 	restartPolicyFlagName = "restart-policy"
 	timeFlagName          = "time"
+	newFlagName           = "new"
 )
 
 var (
@@ -53,10 +54,11 @@ func init() {
 	flags := systemdCmd.Flags()
 	flags.BoolVarP(&systemdOptions.Name, "name", "n", false, "Use container/pod names instead of IDs")
 	flags.BoolVarP(&files, "files", "f", false, "Generate .service files instead of printing to stdout")
+	flags.BoolVar(&systemdOptions.TemplateUnitFile, "template", false, "Make it a template file and use %i and %I specifiers. Working only for containers")
 
 	flags.UintVarP(&systemdTimeout, timeFlagName, "t", containerConfig.Engine.StopTimeout, "Stop timeout override")
 	_ = systemdCmd.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
-	flags.BoolVarP(&systemdOptions.New, "new", "", false, "Create a new container or pod instead of starting an existing one")
+	flags.BoolVar(&systemdOptions.New, newFlagName, false, "Create a new container or pod instead of starting an existing one")
 	flags.BoolVarP(&systemdOptions.NoHeader, "no-header", "", false, "Skip header generation")
 
 	containerPrefixFlagName := "container-prefix"
@@ -91,6 +93,13 @@ func systemd(cmd *cobra.Command, args []string) error {
 
 	if registry.IsRemote() {
 		logrus.Warnln("The generated units should be placed on your remote system")
+	}
+
+	if cmd.Flags().Changed(newFlagName) && !systemdOptions.New && systemdOptions.TemplateUnitFile {
+		return errors.New("--template cannot be set with --new=false")
+	}
+	if !systemdOptions.New && systemdOptions.TemplateUnitFile {
+		systemdOptions.New = true
 	}
 
 	reports, err := registry.ContainerEngine().GenerateSystemd(registry.GetContext(), args[0], systemdOptions)

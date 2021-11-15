@@ -90,6 +90,8 @@ type containerInfo struct {
 	// Location of the RunRoot for the container.  Required for ensuring the tmpfs
 	// or volume exists and is mounted when coming online at boot.
 	RunRoot string
+	// Add %i and %I to description and execute parts
+	IdentifySpecifier bool
 }
 
 const containerTemplate = headerTemplate + `
@@ -99,7 +101,7 @@ After={{{{- range $index, $value := .BoundToServices -}}}}{{{{if $index}}}} {{{{
 {{{{- end}}}}
 
 [Service]
-Environment={{{{.EnvVariable}}}}=%n
+Environment={{{{.EnvVariable}}}}=%n{{{{- if (eq .IdentifySpecifier true) }}}}-%i{{{{- end}}}}
 {{{{- if .ExtraEnvs}}}}
 Environment={{{{- range $index, $value := .ExtraEnvs -}}}}{{{{if $index}}}} {{{{end}}}}{{{{ $value }}}}{{{{end}}}}
 {{{{- end}}}}
@@ -204,6 +206,46 @@ func containerServiceName(ctr *libpod.Container, options entities.GenerateSystem
 	return nameOrID, serviceName
 }
 
+// setContainerNameForTemplate updates startCommand to contain the name argument with
+// a value that includes the identify specifier.
+// In case startCommand doesn't contain that argument it's added after "run" and its
+// value will be set to info.ServiceName concated with the identify specifier %i.
+func setContainerNameForTemplate(startCommand []string, info *containerInfo) ([]string, error) {
+	// find the index of "--name" in the command slice
+	nameIx := -1
+	for argIx, arg := range startCommand {
+		if arg == "--name" {
+			nameIx = argIx + 1
+			break
+		}
+		if strings.HasPrefix(arg, "--name=") {
+			nameIx = argIx
+			break
+		}
+	}
+	switch {
+	case nameIx == -1:
+		// if not found, add --name argument in the command slice before the "run" argument.
+		// it's assumed that the command slice contains this argument.
+		runIx := -1
+		for argIx, arg := range startCommand {
+			if arg == "run" {
+				runIx = argIx
+				break
+			}
+		}
+		if runIx == -1 {
+			return startCommand, fmt.Errorf("\"run\" is missing in the command arguments")
+		}
+		startCommand = append(startCommand[:runIx+1], startCommand[runIx:]...)
+		startCommand[runIx+1] = fmt.Sprintf("--name=%s-%%i", info.ServiceName)
+	default:
+		// append the identity specifier (%i) to the end of the --name value
+		startCommand[nameIx] = fmt.Sprintf("%s-%%i", startCommand[nameIx])
+	}
+	return startCommand, nil
+}
+
 // executeContainerTemplate executes the container template on the specified
 // containerInfo.  Note that the containerInfo is also post processed and
 // completed, which allows for an easier unit testing.
@@ -273,7 +315,6 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 			"--rm",
 		)
 		remainingCmd := info.CreateCommand[index:]
-
 		// Presence check for certain flags/options.
 		fs := pflag.NewFlagSet("args", pflag.ContinueOnError)
 		fs.ParseErrorsWhitelist.UnknownFlags = true
@@ -389,6 +430,13 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 
 		startCommand = append(startCommand, remainingCmd...)
 		startCommand = escapeSystemdArguments(startCommand)
+		if options.TemplateUnitFile {
+			info.IdentifySpecifier = true
+			startCommand, err = setContainerNameForTemplate(startCommand, info)
+			if err != nil {
+				return "", err
+			}
+		}
 		info.ExecStart = strings.Join(startCommand, " ")
 	}
 

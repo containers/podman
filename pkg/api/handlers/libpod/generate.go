@@ -17,14 +17,15 @@ func GenerateSystemd(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
-		Name            bool    `schema:"useName"`
-		New             bool    `schema:"new"`
-		NoHeader        bool    `schema:"noHeader"`
-		RestartPolicy   *string `schema:"restartPolicy"`
-		StopTimeout     uint    `schema:"stopTimeout"`
-		ContainerPrefix string  `schema:"containerPrefix"`
-		PodPrefix       string  `schema:"podPrefix"`
-		Separator       string  `schema:"separator"`
+		Name             bool    `schema:"useName"`
+		New              bool    `schema:"new"`
+		NoHeader         bool    `schema:"noHeader"`
+		TemplateUnitFile bool    `schema:"templateUnitFile"`
+		RestartPolicy    *string `schema:"restartPolicy"`
+		StopTimeout      uint    `schema:"stopTimeout"`
+		ContainerPrefix  string  `schema:"containerPrefix"`
+		PodPrefix        string  `schema:"podPrefix"`
+		Separator        string  `schema:"separator"`
 	}{
 		StopTimeout:     util.DefaultContainerConfig().Engine.StopTimeout,
 		ContainerPrefix: "container",
@@ -40,14 +41,15 @@ func GenerateSystemd(w http.ResponseWriter, r *http.Request) {
 
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
 	options := entities.GenerateSystemdOptions{
-		Name:            query.Name,
-		New:             query.New,
-		NoHeader:        query.NoHeader,
-		RestartPolicy:   query.RestartPolicy,
-		StopTimeout:     &query.StopTimeout,
-		ContainerPrefix: query.ContainerPrefix,
-		PodPrefix:       query.PodPrefix,
-		Separator:       query.Separator,
+		Name:             query.Name,
+		New:              query.New,
+		NoHeader:         query.NoHeader,
+		TemplateUnitFile: query.TemplateUnitFile,
+		RestartPolicy:    query.RestartPolicy,
+		StopTimeout:      &query.StopTimeout,
+		ContainerPrefix:  query.ContainerPrefix,
+		PodPrefix:        query.PodPrefix,
+		Separator:        query.Separator,
 	}
 
 	report, err := containerEngine.GenerateSystemd(r.Context(), utils.GetName(r), options)
