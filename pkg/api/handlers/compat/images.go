@@ -255,6 +255,10 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 	// without this early check this function would return 200 but reported error via body stream soon after
 	// it's better to let caller know early via HTTP status code that request cannot be processed
 	_, err := shortnames.Resolve(runtime.SystemContext(), fromImage)
+	if err != nil && shortnames.IsShortName(fromImage) {
+		fromImage = fmt.Sprintf("%s/%s", "docker.io", fromImage)
+		_, err = shortnames.Resolve(runtime.SystemContext(), fromImage)
+	}
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrap(err, "failed to resolve image name"))
 		return
