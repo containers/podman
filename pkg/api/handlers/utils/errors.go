@@ -26,7 +26,7 @@ func Error(w http.ResponseWriter, apiMessage string, code int, err error) {
 	// Log detailed message of what happened to machine running podman service
 	log.Infof("Request Failed(%s): %s", http.StatusText(code), err.Error())
 	em := errorhandling.ErrorModel{
-		Because:      (errors.Cause(err)).Error(),
+		Because:      strings.ReplaceAll((errors.Cause(err)).Error(), "image not known", "No such image"),
 		Message:      err.Error(),
 		ResponseCode: code,
 	}
