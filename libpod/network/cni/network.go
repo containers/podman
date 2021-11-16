@@ -150,6 +150,13 @@ func (n *cniNetwork) loadNetworks() error {
 			continue
 		}
 
+		// podman < v4.0 used the podman-machine cni plugin for podman machine port forwarding
+		// since this is now build into podman we no longer use the plugin
+		// old configs may still contain it so we just remove it here
+		if n.isMachine {
+			conf = removeMachinePlugin(conf)
+		}
+
 		if _, err := n.cniConf.ValidateNetworkList(context.Background(), conf); err != nil {
 			logrus.Warnf("Error validating CNI config file %s: %v", file, err)
 			continue

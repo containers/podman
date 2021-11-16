@@ -509,7 +509,7 @@ func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath strin
 
 	childIP := getRootlessPortChildIP(ctr, netStatus)
 	cfg := rootlessport.Config{
-		Mappings:    ctr.config.PortMappings,
+		Mappings:    ctr.convertPortMappings(),
 		NetNSPath:   netnsPath,
 		ExitFD:      3,
 		ReadyFD:     4,
@@ -594,7 +594,7 @@ func (r *Runtime) setupRootlessPortMappingViaSlirp(ctr *Container, cmd *exec.Cmd
 
 	// for each port we want to add we need to open a connection to the slirp4netns control socket
 	// and send the add_hostfwd command.
-	for _, i := range ctr.config.PortMappings {
+	for _, i := range ctr.convertPortMappings() {
 		conn, err := net.Dial("unix", apiSocket)
 		if err != nil {
 			return errors.Wrapf(err, "cannot open connection to %s", apiSocket)
