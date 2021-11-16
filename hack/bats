@@ -93,19 +93,25 @@ done
 
 rc=0
 
+# As of 2021-11 podman has a bunch of external helper binaries
+if [[ -z "$CONTAINERS_HELPER_BINARY_DIR" ]]; then
+    export CONTAINERS_HELPER_BINARY_DIR=$(pwd)/bin
+fi
+
 # Root
 if [ -z "$ROOTLESS_ONLY" ]; then
     echo "# bats ${bats_filter[@]} $TESTS"
     sudo    --preserve-env=PODMAN \
             --preserve-env=PODMAN_TEST_DEBUG \
             --preserve-env=OCI_RUNTIME \
+            --preserve-env=CONTAINERS_HELPER_BINARY_DIR \
             bats "${bats_opts[@]}" "${bats_filter[@]}" $TESTS
     rc=$?
 fi
 
-# Rootless
-echo "--------------------------------------------------"
-if [ -z "$ROOT_ONLY" ]; then
+# Rootless. (Only if we're not already root)
+if [[ -z "$ROOT_ONLY" && "$(id -u)" != 0 ]]; then
+    echo "--------------------------------------------------"
     echo "\$ bats ${bats_filter[@]} $TESTS"
     bats "${bats_opts[@]}" "${bats_filter[@]}" $TESTS
     rc=$((rc | $?))
