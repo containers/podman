@@ -135,8 +135,8 @@ func CNIResultToStatus(res cnitypes.Result) (types.StatusBlock, error) {
 		cniInt := cniResult.Interfaces[*ip.Interface]
 		netInt, ok := interfaces[cniInt.Name]
 		if ok {
-			netInt.Networks = append(netInt.Networks, types.NetAddress{
-				Subnet:  types.IPNet{IPNet: ip.Address},
+			netInt.Subnets = append(netInt.Subnets, types.NetAddress{
+				IPNet:   types.IPNet{IPNet: ip.Address},
 				Gateway: ip.Gateway,
 			})
 			interfaces[cniInt.Name] = netInt
@@ -147,8 +147,8 @@ func CNIResultToStatus(res cnitypes.Result) (types.StatusBlock, error) {
 			}
 			interfaces[cniInt.Name] = types.NetInterface{
 				MacAddress: types.HardwareAddr(mac),
-				Networks: []types.NetAddress{{
-					Subnet:  types.IPNet{IPNet: ip.Address},
+				Subnets: []types.NetAddress{{
+					IPNet:   types.IPNet{IPNet: ip.Address},
 					Gateway: ip.Gateway,
 				}},
 			}

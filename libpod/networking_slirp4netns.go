@@ -660,12 +660,12 @@ func getRootlessPortChildIP(c *Container, netStatus map[string]types.StatusBlock
 	var ipv6 net.IP
 	for _, status := range netStatus {
 		for _, netInt := range status.Interfaces {
-			for _, netAddress := range netInt.Networks {
-				ipv4 := netAddress.Subnet.IP.To4()
+			for _, netAddress := range netInt.Subnets {
+				ipv4 := netAddress.IPNet.IP.To4()
 				if ipv4 != nil {
 					return ipv4.String()
 				}
-				ipv6 = netAddress.Subnet.IP
+				ipv6 = netAddress.IPNet.IP
 			}
 		}
 	}
