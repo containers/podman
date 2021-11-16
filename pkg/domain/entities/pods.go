@@ -248,6 +248,8 @@ type ContainerCreateOptions struct {
 	TTY               bool
 	Timezone          string
 	Umask             string
+	UnsetEnv          []string
+	UnsetEnvAll       bool
 	UIDMap            []string
 	Ulimit            []string
 	User              string

@@ -736,4 +736,26 @@ EOF
     is "$output" "$random_1" "output matches STDIN"
 }
 
+@test "podman run defaultenv" {
+    run_podman run --rm $IMAGE printenv
+    is "$output" ".*TERM=xterm" "output matches TERM"
+    is "$output" ".*container=podman" "output matches container=podman"
+
+    run_podman run --unsetenv=TERM --rm $IMAGE printenv
+    is "$output" ".*container=podman" "output matches container=podman"
+    run grep TERM <<<$output
+    is "$output" "" "unwanted TERM environment variable despite --unsetenv=TERM"
+
+    run_podman run --unsetenv-all --rm $IMAGE /bin/printenv
+    run grep TERM <<<$output
+    is "$output" "" "unwanted TERM environment variable despite --unsetenv-all"
+    run grep container <<<$output
+    is "$output" "" "unwanted container environment variable despite --unsetenv-all"
+    run grep PATH <<<$output
+    is "$output" "" "unwanted PATH environment variable despite --unsetenv-all"
+
+    run_podman run --unsetenv-all --env TERM=abc --rm $IMAGE /bin/printenv
+    is "$output" ".*TERM=abc" "missing TERM environment variable despite TERM being set on commandline"
+}
+
 # vim: filetype=sh

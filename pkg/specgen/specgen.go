@@ -194,6 +194,13 @@ type ContainerBasicConfig struct {
 	// The execution domain system allows Linux to provide limited support
 	// for binaries compiled under other UNIX-like operating systems.
 	Personality *spec.LinuxPersonality `json:"personality,omitempty"`
+	// UnsetEnv unsets the specified default environment variables from the image or from buildin or containers.conf
+	// Optional.
+	UnsetEnv []string `json:"unsetenv,omitempty"`
+	// UnsetEnvAll unsetall default environment variables from the image or from buildin or containers.conf
+	// UnsetEnvAll unsets all default environment variables from the image or from buildin
+	// Optional.
+	UnsetEnvAll bool `json:"unsetenvall,omitempty"`
 }
 
 // ContainerStorageConfig contains information on the storage configuration of a

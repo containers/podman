@@ -300,8 +300,7 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 	ctrConfig.User = c.config.User
 	if spec.Process != nil {
 		ctrConfig.Tty = spec.Process.Terminal
-		ctrConfig.Env = []string{}
-		ctrConfig.Env = append(ctrConfig.Env, spec.Process.Env...)
+		ctrConfig.Env = append([]string{}, spec.Process.Env...)
 		ctrConfig.WorkingDir = spec.Process.Cwd
 	}
 

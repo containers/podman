@@ -711,6 +711,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	s.Umask = c.Umask
 	s.PidFile = c.PidFile
 	s.Volatile = c.Rm
+	s.UnsetEnv = c.UnsetEnv
+	s.UnsetEnvAll = c.UnsetEnvAll
 
 	// Initcontainers
 	s.InitContainerType = c.InitContainerType

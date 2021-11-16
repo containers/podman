@@ -297,6 +297,8 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *c
 		Systemd:           "true", // podman default
 		TmpFS:             parsedTmp,
 		TTY:               cc.Config.Tty,
+		UnsetEnv:          cc.UnsetEnv,
+		UnsetEnvAll:       cc.UnsetEnvAll,
 		User:              cc.Config.User,
 		UserNS:            string(cc.HostConfig.UsernsMode),
 		UTS:               string(cc.HostConfig.UTSMode),

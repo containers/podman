@@ -201,6 +201,20 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(envFlagName, completion.AutocompleteNone)
 
+		unsetenvFlagName := "unsetenv"
+		createFlags.StringArrayVar(
+			&cf.UnsetEnv,
+			unsetenvFlagName, []string{},
+			"Unset environment default variables in container",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(unsetenvFlagName, completion.AutocompleteNone)
+
+		createFlags.BoolVar(
+			&cf.UnsetEnvAll,
+			"unsetenv-all", false,
+			"Unset all default environment variables in container",
+		)
+
 		if !registry.IsRemote() {
 			createFlags.BoolVar(
 				&cf.EnvHost,
