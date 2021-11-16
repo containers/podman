@@ -474,6 +474,7 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 				UID:    s.UID,
 				GID:    s.GID,
 				Mode:   s.Mode,
+				Target: s.Target,
 			})
 		}
 		options = append(options, libpod.WithSecrets(secrs))
