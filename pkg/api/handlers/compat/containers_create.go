@@ -55,7 +55,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	newImage, resolvedName, err := runtime.LibimageRuntime().LookupImage(body.Config.Image, nil)
 	if err != nil {
 		if errors.Cause(err) == storage.ErrImageUnknown {
-			utils.Error(w, "No such image", http.StatusNotFound, err)
+			utils.Error(w, "No such image", http.StatusNotFound, errors.Wrap(err, "No such image"))
 			return
 		}
 
