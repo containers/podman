@@ -133,8 +133,8 @@ var _ = Describe("run CNI", func() {
 				Expect(res).To(HaveLen(1))
 				Expect(res).To(HaveKey(defNet))
 				Expect(res[defNet].Interfaces).To(HaveKey(intName))
-				Expect(res[defNet].Interfaces[intName].Networks).To(HaveLen(1))
-				Expect(res[defNet].Interfaces[intName].Networks[0].Subnet.IP.String()).To(ContainSubstring("10.88.0."))
+				Expect(res[defNet].Interfaces[intName].Subnets).To(HaveLen(1))
+				Expect(res[defNet].Interfaces[intName].Subnets[0].IPNet.IP.String()).To(ContainSubstring("10.88.0."))
 				Expect(res[defNet].Interfaces[intName].MacAddress).To(HaveLen(6))
 				// default network has no dns
 				Expect(res[defNet].DNSServerIPs).To(BeEmpty())
@@ -170,8 +170,8 @@ var _ = Describe("run CNI", func() {
 				Expect(res).To(HaveLen(1))
 				Expect(res).To(HaveKey(defNet))
 				Expect(res[defNet].Interfaces).To(HaveKey(intName))
-				Expect(res[defNet].Interfaces[intName].Networks).To(HaveLen(1))
-				Expect(res[defNet].Interfaces[intName].Networks[0].Subnet.IP).To(Equal(ip))
+				Expect(res[defNet].Interfaces[intName].Subnets).To(HaveLen(1))
+				Expect(res[defNet].Interfaces[intName].Subnets[0].IPNet.IP).To(Equal(ip))
 				Expect(res[defNet].Interfaces[intName].MacAddress).To(HaveLen(6))
 				// default network has no dns
 				Expect(res[defNet].DNSServerIPs).To(BeEmpty())
@@ -209,8 +209,8 @@ var _ = Describe("run CNI", func() {
 					Expect(res).To(HaveLen(1))
 					Expect(res).To(HaveKey(defNet))
 					Expect(res[defNet].Interfaces).To(HaveKey(intName))
-					Expect(res[defNet].Interfaces[intName].Networks).To(HaveLen(1))
-					Expect(res[defNet].Interfaces[intName].Networks[0].Subnet.IP.String()).To(ContainSubstring("10.88.0."))
+					Expect(res[defNet].Interfaces[intName].Subnets).To(HaveLen(1))
+					Expect(res[defNet].Interfaces[intName].Subnets[0].IPNet.IP.String()).To(ContainSubstring("10.88.0."))
 					Expect(res[defNet].Interfaces[intName].MacAddress).To(HaveLen(6))
 					// default network has no dns
 					Expect(res[defNet].DNSServerIPs).To(BeEmpty())
@@ -263,8 +263,8 @@ var _ = Describe("run CNI", func() {
 					Expect(res).To(HaveLen(1))
 					Expect(res).To(HaveKey(defNet))
 					Expect(res[defNet].Interfaces).To(HaveKey(intName))
-					Expect(res[defNet].Interfaces[intName].Networks).To(HaveLen(1))
-					containerIP := res[defNet].Interfaces[intName].Networks[0].Subnet.IP.String()
+					Expect(res[defNet].Interfaces[intName].Subnets).To(HaveLen(1))
+					containerIP := res[defNet].Interfaces[intName].Subnets[0].IPNet.IP.String()
 					Expect(containerIP).To(ContainSubstring("10.88.0."))
 					Expect(res[defNet].Interfaces[intName].MacAddress).To(HaveLen(6))
 					// default network has no dns
@@ -324,8 +324,8 @@ var _ = Describe("run CNI", func() {
 				Expect(res).To(HaveLen(1))
 				Expect(res).To(HaveKey(defNet))
 				Expect(res[defNet].Interfaces).To(HaveKey(intName))
-				Expect(res[defNet].Interfaces[intName].Networks).To(HaveLen(1))
-				Expect(res[defNet].Interfaces[intName].Networks[0].Subnet.IP.String()).To(ContainSubstring("10.88.0."))
+				Expect(res[defNet].Interfaces[intName].Subnets).To(HaveLen(1))
+				Expect(res[defNet].Interfaces[intName].Subnets[0].IPNet.IP.String()).To(ContainSubstring("10.88.0."))
 				Expect(res[defNet].Interfaces[intName].MacAddress).To(HaveLen(6))
 
 				for _, proto := range []string{"tcp", "udp"} {
@@ -386,8 +386,8 @@ var _ = Describe("run CNI", func() {
 
 				Expect(res).To(HaveKey(netName1))
 				Expect(res[netName1].Interfaces).To(HaveKey(intName1))
-				Expect(res[netName1].Interfaces[intName1].Networks).To(HaveLen(1))
-				ipInt1 := res[netName1].Interfaces[intName1].Networks[0].Subnet.IP
+				Expect(res[netName1].Interfaces[intName1].Subnets).To(HaveLen(1))
+				ipInt1 := res[netName1].Interfaces[intName1].Subnets[0].IPNet.IP
 				Expect(ipInt1).ToNot(BeEmpty())
 				macInt1 := res[netName1].Interfaces[intName1].MacAddress
 				Expect(macInt1).To(HaveLen(6))
@@ -436,8 +436,8 @@ var _ = Describe("run CNI", func() {
 
 				Expect(res).To(HaveKey(netName2))
 				Expect(res[netName2].Interfaces).To(HaveKey(intName2))
-				Expect(res[netName2].Interfaces[intName2].Networks).To(HaveLen(1))
-				ipInt2 := res[netName2].Interfaces[intName2].Networks[0].Subnet.IP
+				Expect(res[netName2].Interfaces[intName2].Subnets).To(HaveLen(1))
+				ipInt2 := res[netName2].Interfaces[intName2].Subnets[0].IPNet.IP
 				Expect(ipInt2).ToNot(BeEmpty())
 				macInt2 := res[netName2].Interfaces[intName2].MacAddress
 				Expect(macInt2).To(HaveLen(6))
@@ -576,16 +576,16 @@ var _ = Describe("run CNI", func() {
 
 				Expect(res).To(HaveKey(netName1))
 				Expect(res[netName1].Interfaces).To(HaveKey(intName1))
-				Expect(res[netName1].Interfaces[intName1].Networks).To(HaveLen(1))
-				ipInt1 := res[netName1].Interfaces[intName1].Networks[0].Subnet.IP
+				Expect(res[netName1].Interfaces[intName1].Subnets).To(HaveLen(1))
+				ipInt1 := res[netName1].Interfaces[intName1].Subnets[0].IPNet.IP
 				Expect(ipInt1.String()).To(ContainSubstring("192.168.0."))
 				macInt1 := res[netName1].Interfaces[intName1].MacAddress
 				Expect(macInt1).To(HaveLen(6))
 
 				Expect(res).To(HaveKey(netName2))
 				Expect(res[netName2].Interfaces).To(HaveKey(intName2))
-				Expect(res[netName2].Interfaces[intName2].Networks).To(HaveLen(1))
-				ipInt2 := res[netName2].Interfaces[intName2].Networks[0].Subnet.IP
+				Expect(res[netName2].Interfaces[intName2].Subnets).To(HaveLen(1))
+				ipInt2 := res[netName2].Interfaces[intName2].Subnets[0].IPNet.IP
 				Expect(ipInt2.String()).To(ContainSubstring("192.168.1."))
 				macInt2 := res[netName2].Interfaces[intName2].MacAddress
 				Expect(macInt2).To(HaveLen(6))
@@ -701,13 +701,13 @@ var _ = Describe("run CNI", func() {
 				Expect(res).To(HaveLen(1))
 				Expect(res).To(HaveKey(netName))
 				Expect(res[netName].Interfaces).To(HaveKey(interfaceName))
-				Expect(res[netName].Interfaces[interfaceName].Networks).To(HaveLen(2))
-				Expect(res[netName].Interfaces[interfaceName].Networks[0].Subnet.IP.String()).To(Equal(ip1.String()))
-				Expect(res[netName].Interfaces[interfaceName].Networks[0].Subnet.Mask).To(Equal(subnet1.Mask))
-				Expect(res[netName].Interfaces[interfaceName].Networks[0].Gateway).To(Equal(net.ParseIP("192.168.0.1")))
-				Expect(res[netName].Interfaces[interfaceName].Networks[1].Subnet.IP.String()).To(Equal(ip2.String()))
-				Expect(res[netName].Interfaces[interfaceName].Networks[1].Subnet.Mask).To(Equal(subnet2.Mask))
-				Expect(res[netName].Interfaces[interfaceName].Networks[1].Gateway).To(Equal(net.ParseIP("fd41:0a75:2ca0:48a9::1")))
+				Expect(res[netName].Interfaces[interfaceName].Subnets).To(HaveLen(2))
+				Expect(res[netName].Interfaces[interfaceName].Subnets[0].IPNet.IP.String()).To(Equal(ip1.String()))
+				Expect(res[netName].Interfaces[interfaceName].Subnets[0].IPNet.Mask).To(Equal(subnet1.Mask))
+				Expect(res[netName].Interfaces[interfaceName].Subnets[0].Gateway).To(Equal(net.ParseIP("192.168.0.1")))
+				Expect(res[netName].Interfaces[interfaceName].Subnets[1].IPNet.IP.String()).To(Equal(ip2.String()))
+				Expect(res[netName].Interfaces[interfaceName].Subnets[1].IPNet.Mask).To(Equal(subnet2.Mask))
+				Expect(res[netName].Interfaces[interfaceName].Subnets[1].Gateway).To(Equal(net.ParseIP("fd41:0a75:2ca0:48a9::1")))
 				Expect(res[netName].Interfaces[interfaceName].MacAddress).To(Equal(types.HardwareAddr(mac)))
 				// default network has no dns
 				Expect(res[netName].DNSServerIPs).To(BeEmpty())
@@ -799,9 +799,9 @@ var _ = Describe("run CNI", func() {
 				Expect(res).To(HaveLen(1))
 				Expect(res).To(HaveKey(netName))
 				Expect(res[netName].Interfaces).To(HaveKey(intName))
-				Expect(res[netName].Interfaces[intName].Networks).To(HaveLen(1))
-				Expect(res[netName].Interfaces[intName].Networks[0].Subnet.IP.String()).To(Equal(ip))
-				Expect(res[netName].Interfaces[intName].Networks[0].Subnet.Mask).To(Equal(net.CIDRMask(24, 32)))
+				Expect(res[netName].Interfaces[intName].Subnets).To(HaveLen(1))
+				Expect(res[netName].Interfaces[intName].Subnets[0].IPNet.IP.String()).To(Equal(ip))
+				Expect(res[netName].Interfaces[intName].Subnets[0].IPNet.Mask).To(Equal(net.CIDRMask(24, 32)))
 
 				// check in the container namespace if the settings are applied
 				err = netNSContainer.Do(func(_ ns.NetNS) error {
@@ -902,11 +902,11 @@ var _ = Describe("run CNI", func() {
 				Expect(res).To(HaveLen(1))
 				Expect(res).To(HaveKey(netName))
 				Expect(res[netName].Interfaces).To(HaveKey(interfaceName))
-				Expect(res[netName].Interfaces[interfaceName].Networks).To(HaveLen(2))
-				Expect(res[netName].Interfaces[interfaceName].Networks[0].Subnet.IP.String()).To(Equal(ip1.String()))
-				Expect(res[netName].Interfaces[interfaceName].Networks[0].Subnet.Mask).To(Equal(mask1))
-				Expect(res[netName].Interfaces[interfaceName].Networks[1].Subnet.IP.String()).To(Equal(ip2.String()))
-				Expect(res[netName].Interfaces[interfaceName].Networks[1].Subnet.Mask).To(Equal(mask2))
+				Expect(res[netName].Interfaces[interfaceName].Subnets).To(HaveLen(2))
+				Expect(res[netName].Interfaces[interfaceName].Subnets[0].IPNet.IP.String()).To(Equal(ip1.String()))
+				Expect(res[netName].Interfaces[interfaceName].Subnets[0].IPNet.Mask).To(Equal(mask1))
+				Expect(res[netName].Interfaces[interfaceName].Subnets[1].IPNet.IP.String()).To(Equal(ip2.String()))
+				Expect(res[netName].Interfaces[interfaceName].Subnets[1].IPNet.Mask).To(Equal(mask2))
 				// dualstack network dns
 				Expect(res[netName].DNSServerIPs).To(HaveLen(2))
 				Expect(res[netName].DNSSearchDomains).To(HaveLen(1))

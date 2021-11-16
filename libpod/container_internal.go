@@ -1050,8 +1050,8 @@ func (c *Container) cniHosts() string {
 	var hosts string
 	for _, status := range c.getNetworkStatus() {
 		for _, netInt := range status.Interfaces {
-			for _, netAddress := range netInt.Networks {
-				hosts += fmt.Sprintf("%s\t%s %s\n", netAddress.Subnet.IP.String(), c.Hostname(), c.config.Name)
+			for _, netAddress := range netInt.Subnets {
+				hosts += fmt.Sprintf("%s\t%s %s\n", netAddress.IPNet.IP.String(), c.Hostname(), c.config.Name)
 			}
 		}
 	}

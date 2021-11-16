@@ -937,8 +937,8 @@ func (r *Runtime) reloadContainerNetwork(ctr *Container) (map[string]types.Statu
 				Aliases:       aliases[network],
 				StaticMAC:     netInt.MacAddress,
 			}
-			for _, netAddress := range netInt.Networks {
-				perNetOpts.StaticIPs = append(perNetOpts.StaticIPs, netAddress.Subnet.IP)
+			for _, netAddress := range netInt.Subnets {
+				perNetOpts.StaticIPs = append(perNetOpts.StaticIPs, netAddress.IPNet.IP)
 			}
 			// Normally interfaces have a length of 1, only for some special cni configs we could get more.
 			// For now just use the first interface to get the ips this should be good enough for most cases.
@@ -1124,25 +1124,25 @@ func (c *Container) setupNetworkDescriptions(networks []string) error {
 func resultToBasicNetworkConfig(result types.StatusBlock) (define.InspectBasicNetworkConfig, error) {
 	config := define.InspectBasicNetworkConfig{}
 	for _, netInt := range result.Interfaces {
-		for _, netAddress := range netInt.Networks {
-			size, _ := netAddress.Subnet.Mask.Size()
-			if netAddress.Subnet.IP.To4() != nil {
+		for _, netAddress := range netInt.Subnets {
+			size, _ := netAddress.IPNet.Mask.Size()
+			if netAddress.IPNet.IP.To4() != nil {
 				//ipv4
 				if config.IPAddress == "" {
-					config.IPAddress = netAddress.Subnet.IP.String()
+					config.IPAddress = netAddress.IPNet.IP.String()
 					config.IPPrefixLen = size
 					config.Gateway = netAddress.Gateway.String()
 				} else {
-					config.SecondaryIPAddresses = append(config.SecondaryIPAddresses, netAddress.Subnet.IP.String())
+					config.SecondaryIPAddresses = append(config.SecondaryIPAddresses, netAddress.IPNet.IP.String())
 				}
 			} else {
 				//ipv6
 				if config.GlobalIPv6Address == "" {
-					config.GlobalIPv6Address = netAddress.Subnet.IP.String()
+					config.GlobalIPv6Address = netAddress.IPNet.IP.String()
 					config.GlobalIPv6PrefixLen = size
 					config.IPv6Gateway = netAddress.Gateway.String()
 				} else {
-					config.SecondaryIPv6Addresses = append(config.SecondaryIPv6Addresses, netAddress.Subnet.IP.String())
+					config.SecondaryIPv6Addresses = append(config.SecondaryIPv6Addresses, netAddress.IPNet.IP.String())
 				}
 			}
 		}

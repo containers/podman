@@ -131,10 +131,10 @@ var _ = Describe("run netavark", func() {
 			Expect(res).To(HaveLen(1))
 			Expect(res).To(HaveKey(defNet))
 			Expect(res[defNet].Interfaces).To(HaveKey(intName))
-			Expect(res[defNet].Interfaces[intName].Networks).To(HaveLen(1))
-			ip := res[defNet].Interfaces[intName].Networks[0].Subnet.IP
+			Expect(res[defNet].Interfaces[intName].Subnets).To(HaveLen(1))
+			ip := res[defNet].Interfaces[intName].Subnets[0].IPNet.IP
 			Expect(ip.String()).To(ContainSubstring("10.88.0."))
-			gw := res[defNet].Interfaces[intName].Networks[0].Gateway
+			gw := res[defNet].Interfaces[intName].Subnets[0].Gateway
 			util.NormalizeIP(&gw)
 			Expect(gw.String()).To(Equal("10.88.0.1"))
 			macAddress := res[defNet].Interfaces[intName].MacAddress
@@ -222,8 +222,8 @@ var _ = Describe("run netavark", func() {
 			Expect(res).To(HaveLen(1))
 			Expect(res).To(HaveKey(defNet))
 			Expect(res[defNet].Interfaces).To(HaveKey(intName))
-			Expect(res[defNet].Interfaces[intName].Networks).To(HaveLen(1))
-			ip1 := res[defNet].Interfaces[intName].Networks[0].Subnet.IP
+			Expect(res[defNet].Interfaces[intName].Subnets).To(HaveLen(1))
+			ip1 := res[defNet].Interfaces[intName].Subnets[0].IPNet.IP
 			Expect(ip1.String()).To(ContainSubstring("10.88.0."))
 			Expect(res[defNet].Interfaces[intName].MacAddress).To(HaveLen(6))
 
@@ -246,8 +246,8 @@ var _ = Describe("run netavark", func() {
 			Expect(res).To(HaveLen(1))
 			Expect(res).To(HaveKey(defNet))
 			Expect(res[defNet].Interfaces).To(HaveKey(intName))
-			Expect(res[defNet].Interfaces[intName].Networks).To(HaveLen(1))
-			ip2 := res[defNet].Interfaces[intName].Networks[0].Subnet.IP
+			Expect(res[defNet].Interfaces[intName].Subnets).To(HaveLen(1))
+			ip2 := res[defNet].Interfaces[intName].Subnets[0].IPNet.IP
 			Expect(ip2.String()).To(ContainSubstring("10.88.0."))
 			Expect(res[defNet].Interfaces[intName].MacAddress).To(HaveLen(6))
 			Expect(ip1.Equal(ip2)).To(BeFalse(), "IP1 %s should not be equal to IP2 %s", ip1.String(), ip2.String())
@@ -286,14 +286,14 @@ var _ = Describe("run netavark", func() {
 			Expect(res).To(HaveLen(1))
 			Expect(res).To(HaveKey(netName))
 			Expect(res[netName].Interfaces).To(HaveKey(intName))
-			Expect(res[netName].Interfaces[intName].Networks).To(HaveLen(2))
-			ip1 := res[netName].Interfaces[intName].Networks[0].Subnet.IP
+			Expect(res[netName].Interfaces[intName].Subnets).To(HaveLen(2))
+			ip1 := res[netName].Interfaces[intName].Subnets[0].IPNet.IP
 			Expect(ip1.String()).To(ContainSubstring("10.0.0."))
-			gw1 := res[netName].Interfaces[intName].Networks[0].Gateway
+			gw1 := res[netName].Interfaces[intName].Subnets[0].Gateway
 			Expect(gw1.String()).To(Equal("10.0.0.1"))
-			ip2 := res[netName].Interfaces[intName].Networks[1].Subnet.IP
+			ip2 := res[netName].Interfaces[intName].Subnets[1].IPNet.IP
 			Expect(ip2.String()).To(ContainSubstring("fd10:88:a::"))
-			gw2 := res[netName].Interfaces[intName].Networks[0].Gateway
+			gw2 := res[netName].Interfaces[intName].Subnets[0].Gateway
 			Expect(gw2.String()).To(Equal("fd10:88:a::1"))
 			Expect(res[netName].Interfaces[intName].MacAddress).To(HaveLen(6))
 
@@ -380,14 +380,14 @@ var _ = Describe("run netavark", func() {
 			Expect(res).To(HaveKey(netName2))
 			Expect(res[netName1].Interfaces).To(HaveKey(intName1))
 			Expect(res[netName2].Interfaces).To(HaveKey(intName2))
-			Expect(res[netName1].Interfaces[intName1].Networks).To(HaveLen(1))
-			ip1 := res[netName1].Interfaces[intName1].Networks[0].Subnet.IP
+			Expect(res[netName1].Interfaces[intName1].Subnets).To(HaveLen(1))
+			ip1 := res[netName1].Interfaces[intName1].Subnets[0].IPNet.IP
 			Expect(ip1.String()).To(ContainSubstring("10.0.0."))
-			gw1 := res[netName1].Interfaces[intName1].Networks[0].Gateway
+			gw1 := res[netName1].Interfaces[intName1].Subnets[0].Gateway
 			Expect(gw1.String()).To(Equal("10.0.0.1"))
-			ip2 := res[netName2].Interfaces[intName2].Networks[0].Subnet.IP
+			ip2 := res[netName2].Interfaces[intName2].Subnets[0].IPNet.IP
 			Expect(ip2.String()).To(ContainSubstring("10.1.0."))
-			gw2 := res[netName2].Interfaces[intName2].Networks[0].Gateway
+			gw2 := res[netName2].Interfaces[intName2].Subnets[0].Gateway
 			Expect(gw2.String()).To(Equal("10.1.0.1"))
 			mac1 := res[netName1].Interfaces[intName1].MacAddress
 			Expect(mac1).To(HaveLen(6))
@@ -481,8 +481,8 @@ var _ = Describe("run netavark", func() {
 				Expect(res).To(HaveLen(1))
 				Expect(res).To(HaveKey(defNet))
 				Expect(res[defNet].Interfaces).To(HaveKey(intName))
-				Expect(res[defNet].Interfaces[intName].Networks).To(HaveLen(1))
-				Expect(res[defNet].Interfaces[intName].Networks[0].Subnet.IP.String()).To(ContainSubstring("10.88.0."))
+				Expect(res[defNet].Interfaces[intName].Subnets).To(HaveLen(1))
+				Expect(res[defNet].Interfaces[intName].Subnets[0].IPNet.IP.String()).To(ContainSubstring("10.88.0."))
 				Expect(res[defNet].Interfaces[intName].MacAddress).To(HaveLen(6))
 				// default network has no dns
 				Expect(res[defNet].DNSServerIPs).To(BeEmpty())
@@ -535,8 +535,8 @@ var _ = Describe("run netavark", func() {
 				Expect(res).To(HaveLen(1))
 				Expect(res).To(HaveKey(defNet))
 				Expect(res[defNet].Interfaces).To(HaveKey(intName))
-				Expect(res[defNet].Interfaces[intName].Networks).To(HaveLen(1))
-				containerIP := res[defNet].Interfaces[intName].Networks[0].Subnet.IP.String()
+				Expect(res[defNet].Interfaces[intName].Subnets).To(HaveLen(1))
+				containerIP := res[defNet].Interfaces[intName].Subnets[0].IPNet.IP.String()
 				Expect(containerIP).To(ContainSubstring("10.88.0."))
 				Expect(res[defNet].Interfaces[intName].MacAddress).To(HaveLen(6))
 				// default network has no dns
@@ -593,10 +593,10 @@ var _ = Describe("run netavark", func() {
 			Expect(res).To(HaveLen(1))
 			Expect(res).To(HaveKey(defNet))
 			Expect(res[defNet].Interfaces).To(HaveKey(intName))
-			Expect(res[defNet].Interfaces[intName].Networks).To(HaveLen(1))
-			ip := res[defNet].Interfaces[intName].Networks[0].Subnet.IP
+			Expect(res[defNet].Interfaces[intName].Subnets).To(HaveLen(1))
+			ip := res[defNet].Interfaces[intName].Subnets[0].IPNet.IP
 			Expect(ip.String()).To(ContainSubstring("10.88.0."))
-			gw := res[defNet].Interfaces[intName].Networks[0].Gateway
+			gw := res[defNet].Interfaces[intName].Subnets[0].Gateway
 			Expect(gw.String()).To(Equal("10.88.0.1"))
 			macAddress := res[defNet].Interfaces[intName].MacAddress
 			Expect(macAddress).To(HaveLen(6))

@@ -1341,8 +1341,8 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 					perNetOpts.StaticMAC = netInt.MacAddress
 				}
 				if !options.IgnoreStaticIP {
-					for _, netAddress := range netInt.Networks {
-						perNetOpts.StaticIPs = append(perNetOpts.StaticIPs, netAddress.Subnet.IP)
+					for _, netAddress := range netInt.Subnets {
+						perNetOpts.StaticIPs = append(perNetOpts.StaticIPs, netAddress.IPNet.IP)
 					}
 				}
 				// Normally interfaces have a length of 1, only for some special cni configs we could get more.
@@ -1943,9 +1943,9 @@ func (c *Container) generateResolvConf() (string, error) {
 	netStatus := c.getNetworkStatus()
 	for _, status := range netStatus {
 		for _, netInt := range status.Interfaces {
-			for _, netAddress := range netInt.Networks {
+			for _, netAddress := range netInt.Subnets {
 				// Note: only using To16() does not work since it also returns a valid ip for ipv4
-				if netAddress.Subnet.IP.To4() == nil && netAddress.Subnet.IP.To16() != nil {
+				if netAddress.IPNet.IP.To4() == nil && netAddress.IPNet.IP.To16() != nil {
 					ipv6 = true
 				}
 			}
@@ -2151,7 +2151,7 @@ func (c *Container) getHosts() string {
 		if depCtr != nil {
 			for _, status := range depCtr.getNetworkStatus() {
 				for _, netInt := range status.Interfaces {
-					for _, netAddress := range netInt.Networks {
+					for _, netAddress := range netInt.Subnets {
 						if netAddress.Gateway != nil {
 							hosts += fmt.Sprintf("%s host.containers.internal\n", netAddress.Gateway.String())
 						}
