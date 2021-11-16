@@ -29,19 +29,16 @@ func buildPauseImage(rt *libpod.Runtime, rtConfig *config.Config) (string, error
 		return imageName, nil
 	}
 
-	// NOTE: Having the pause binary in its own directory keeps the door
-	// open for replacing the image building with using an overlay root FS.
-	// The latter turned out to be complex and error prone (see #11956) but
-	// we may be able to come up with a proper solution at a later point in
-	// time.
-	pausePath, err := rtConfig.FindHelperBinary("pause/pause", false)
+	// Also look into the path as some distributions install catatonit in
+	// /usr/bin.
+	catatonitPath, err := rtConfig.FindHelperBinary("catatonit", true)
 	if err != nil {
 		return "", fmt.Errorf("finding pause binary: %w", err)
 	}
 
 	buildContent := fmt.Sprintf(`FROM scratch
-COPY %s /pause
-ENTRYPOINT ["/pause"]`, pausePath)
+COPY %s /catatonit
+ENTRYPOINT ["/catatonit", "-P"]`, catatonitPath)
 
 	tmpF, err := ioutil.TempFile("", "pause.containerfile")
 	if err != nil {

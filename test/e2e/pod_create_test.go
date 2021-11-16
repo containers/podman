@@ -369,13 +369,13 @@ var _ = Describe("Podman pod create", func() {
 		check1 := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Config.Entrypoint}}", data.Containers[0].ID})
 		check1.WaitWithDefaultTimeout()
 		Expect(check1).Should(Exit(0))
-		Expect(check1.OutputToString()).To(Equal("/pause"))
+		Expect(check1.OutputToString()).To(Equal("/catatonit -P"))
 
 		// check the Path and Args
 		check2 := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Path}}:{{.Args}}", data.Containers[0].ID})
 		check2.WaitWithDefaultTimeout()
 		Expect(check2).Should(Exit(0))
-		Expect(check2.OutputToString()).To(Equal("/pause:[/pause]"))
+		Expect(check2.OutputToString()).To(Equal("/catatonit:[-P]"))
 	})
 
 	It("podman create pod with --infra-command", func() {

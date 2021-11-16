@@ -20,6 +20,13 @@ die_unknown() {
 }
 
 msg "************************************************************"
+msg "FIXME: force-install catatonit 0.17.0 until CI images are updated"
+msg "************************************************************"
+# FIXME: this is just a temporary workaround to force-install
+# catatonit 0.17.0.  Please remove once the images are updated.
+./hack/install_catatonit.sh --force
+
+msg "************************************************************"
 msg "Setting up runtime environment"
 msg "************************************************************"
 show_env_vars
