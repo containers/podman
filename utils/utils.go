@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"os/exec"
 	"strconv"
@@ -203,7 +204,16 @@ func moveProcessToScope(pidPath, slice, scope string) error {
 // MovePauseProcessToScope moves the pause process used for rootless mode to keep the namespaces alive to
 // a separate scope.
 func MovePauseProcessToScope(pausePidPath string) {
-	err := moveProcessToScope(pausePidPath, "user.slice", "podman-pause.scope")
+	var err error
+
+	for i := 0; i < 3; i++ {
+		r := rand.Int()
+		err = moveProcessToScope(pausePidPath, "user.slice", fmt.Sprintf("podman-pause-%d.scope", r))
+		if err == nil {
+			return
+		}
+	}
+
 	if err != nil {
 		unified, err2 := cgroups.IsCgroup2UnifiedMode()
 		if err2 != nil {
