@@ -346,7 +346,7 @@ static void __attribute__((constructor)) init()
         if (saved_systemd_listen_pid == NULL
                 || saved_systemd_listen_fds == NULL)
           {
-            fprintf (stderr, "save socket listen environments error: %s\n", strerror (errno));
+            fprintf (stderr, "save socket listen environments error: %m\n");
             _exit (EXIT_FAILURE);
           }
       }
@@ -374,14 +374,15 @@ static void __attribute__((constructor)) init()
       cwd = getcwd (NULL, 0);
       if (cwd == NULL)
         {
-          fprintf (stderr, "error getting current working directory: %s\n", strerror (errno));
+          fprintf (stderr, "error getting current working directory: %m\n");
           _exit (EXIT_FAILURE);
         }
 
       len = snprintf (path, PATH_MAX, "%s%s", xdg_runtime_dir, suffix);
       if (len >= PATH_MAX)
         {
-          fprintf (stderr, "invalid value for XDG_RUNTIME_DIR: %s", strerror (ENAMETOOLONG));
+          errno = ENAMETOOLONG;
+          fprintf (stderr, "invalid value for XDG_RUNTIME_DIR: %m");
           exit (EXIT_FAILURE);
         }
 
@@ -418,7 +419,7 @@ static void __attribute__((constructor)) init()
 
       if (setns (mntns_fd, 0) < 0)
         {
-          fprintf (stderr, "cannot join mount namespace for %ld: %s", pid, strerror (errno));
+          fprintf (stderr, "cannot join mount namespace for %ld: %m", pid);
           exit (EXIT_FAILURE);
         }
 
@@ -431,19 +432,19 @@ static void __attribute__((constructor)) init()
 
       if (syscall_setresgid (0, 0, 0) < 0)
         {
-          fprintf (stderr, "cannot setresgid: %s\n", strerror (errno));
+          fprintf (stderr, "cannot setresgid: %m\n");
           _exit (EXIT_FAILURE);
         }
 
       if (syscall_setresuid (0, 0, 0) < 0)
         {
-          fprintf (stderr, "cannot setresuid: %s\n", strerror (errno));
+          fprintf (stderr, "cannot setresuid: %m\n");
           _exit (EXIT_FAILURE);
         }
 
       if (chdir (cwd) < 0)
         {
-          fprintf (stderr, "cannot chdir to %s: %s\n", cwd, strerror (errno));
+          fprintf (stderr, "cannot chdir to %s: %m\n", cwd);
           _exit (EXIT_FAILURE);
         }
 
@@ -545,7 +546,7 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
           fd = mkstemp (tmp_file_path);
           if (fd < 0)
             {
-              fprintf (stderr, "error creating temporary file: %s\n", strerror (errno));
+              fprintf (stderr, "error creating temporary file: %m\n");
               kill (pid, SIGKILL);
               _exit (EXIT_FAILURE);
             }
@@ -553,7 +554,7 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
           r = TEMP_FAILURE_RETRY (write (fd, pid_str, strlen (pid_str)));
           if (r < 0)
             {
-              fprintf (stderr, "cannot write to file descriptor: %s\n", strerror (errno));
+              fprintf (stderr, "cannot write to file descriptor: %m\n");
               kill (pid, SIGKILL);
               _exit (EXIT_FAILURE);
             }
@@ -571,7 +572,7 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
           r = TEMP_FAILURE_RETRY (write (p[1], "0", 1));
           if (r < 0)
             {
-              fprintf (stderr, "cannot write to pipe: %s\n", strerror (errno));
+              fprintf (stderr, "cannot write to pipe: %m\n");
               _exit (EXIT_FAILURE);
             }
           close (p[1]);
@@ -632,7 +633,7 @@ reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
   cwd = getcwd (NULL, 0);
   if (cwd == NULL)
     {
-      fprintf (stderr, "error getting current working directory: %s\n", strerror (errno));
+      fprintf (stderr, "error getting current working directory: %m\n");
       _exit (EXIT_FAILURE);
     }
 
@@ -642,7 +643,7 @@ reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
   argv = get_cmd_line_args ();
   if (argv == NULL)
     {
-      fprintf (stderr, "cannot read argv: %s\n", strerror (errno));
+      fprintf (stderr, "cannot read argv: %m\n");
       _exit (EXIT_FAILURE);
     }
 
@@ -657,7 +658,7 @@ reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
 
   pid = fork ();
   if (pid < 0)
-    fprintf (stderr, "cannot fork: %s\n", strerror (errno));
+    fprintf (stderr, "cannot fork: %m\n");
 
   if (pid)
     {
@@ -678,22 +679,22 @@ reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
 
   if (sigfillset (&sigset) < 0)
     {
-      fprintf (stderr, "cannot fill sigset: %s\n", strerror (errno));
+      fprintf (stderr, "cannot fill sigset: %m\n");
       _exit (EXIT_FAILURE);
     }
   if (sigdelset (&sigset, SIGCHLD) < 0)
     {
-      fprintf (stderr, "cannot sigdelset(SIGCHLD): %s\n", strerror (errno));
+      fprintf (stderr, "cannot sigdelset(SIGCHLD): %m\n");
       _exit (EXIT_FAILURE);
     }
   if (sigdelset (&sigset, SIGTERM) < 0)
     {
-      fprintf (stderr, "cannot sigdelset(SIGTERM): %s\n", strerror (errno));
+      fprintf (stderr, "cannot sigdelset(SIGTERM): %m\n");
       _exit (EXIT_FAILURE);
     }
   if (sigprocmask (SIG_BLOCK, &sigset, &oldsigset) < 0)
     {
-      fprintf (stderr, "cannot block signals: %s\n", strerror (errno));
+      fprintf (stderr, "cannot block signals: %m\n");
       _exit (EXIT_FAILURE);
     }
 
@@ -714,7 +715,7 @@ reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
 
   if (prctl (PR_SET_PDEATHSIG, SIGTERM, 0, 0, 0) < 0)
     {
-      fprintf (stderr, "cannot prctl(PR_SET_PDEATHSIG): %s\n", strerror (errno));
+      fprintf (stderr, "cannot prctl(PR_SET_PDEATHSIG): %m\n");
       _exit (EXIT_FAILURE);
     }
 
@@ -723,19 +724,19 @@ reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
 
   if (syscall_setresgid (0, 0, 0) < 0)
     {
-      fprintf (stderr, "cannot setresgid: %s\n", strerror (errno));
+      fprintf (stderr, "cannot setresgid: %m\n");
       _exit (EXIT_FAILURE);
     }
 
   if (syscall_setresuid (0, 0, 0) < 0)
     {
-      fprintf (stderr, "cannot setresuid: %s\n", strerror (errno));
+      fprintf (stderr, "cannot setresuid: %m\n");
       _exit (EXIT_FAILURE);
     }
 
   if (chdir (cwd) < 0)
     {
-      fprintf (stderr, "cannot chdir to %s: %s\n", cwd, strerror (errno));
+      fprintf (stderr, "cannot chdir to %s: %m\n", cwd);
       _exit (EXIT_FAILURE);
     }
 
@@ -746,7 +747,7 @@ reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
     }
   if (sigprocmask (SIG_SETMASK, &oldsigset, NULL) < 0)
     {
-      fprintf (stderr, "cannot block signals: %s\n", strerror (errno));
+      fprintf (stderr, "cannot block signals: %m\n");
       _exit (EXIT_FAILURE);
     }
 
@@ -822,7 +823,7 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
   cwd = getcwd (NULL, 0);
   if (cwd == NULL)
     {
-      fprintf (stderr, "error getting current working directory: %s\n", strerror (errno));
+      fprintf (stderr, "error getting current working directory: %m\n");
       _exit (EXIT_FAILURE);
     }
 
@@ -832,7 +833,7 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
   pid = syscall_clone (CLONE_NEWUSER|CLONE_NEWNS|SIGCHLD, NULL);
   if (pid < 0)
     {
-      fprintf (stderr, "cannot clone: %s\n", strerror (errno));
+      fprintf (stderr, "cannot clone: %m\n");
       check_proc_sys_userns_file (_max_user_namespaces);
       check_proc_sys_userns_file (_unprivileged_user_namespaces);
     }
@@ -860,29 +861,29 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
 
   if (sigfillset (&sigset) < 0)
     {
-      fprintf (stderr, "cannot fill sigset: %s\n", strerror (errno));
+      fprintf (stderr, "cannot fill sigset: %m\n");
       _exit (EXIT_FAILURE);
     }
   if (sigdelset (&sigset, SIGCHLD) < 0)
     {
-      fprintf (stderr, "cannot sigdelset(SIGCHLD): %s\n", strerror (errno));
+      fprintf (stderr, "cannot sigdelset(SIGCHLD): %m\n");
       _exit (EXIT_FAILURE);
     }
   if (sigdelset (&sigset, SIGTERM) < 0)
     {
-      fprintf (stderr, "cannot sigdelset(SIGTERM): %s\n", strerror (errno));
+      fprintf (stderr, "cannot sigdelset(SIGTERM): %m\n");
       _exit (EXIT_FAILURE);
     }
   if (sigprocmask (SIG_BLOCK, &sigset, &oldsigset) < 0)
     {
-      fprintf (stderr, "cannot block signals: %s\n", strerror (errno));
+      fprintf (stderr, "cannot block signals: %m\n");
       _exit (EXIT_FAILURE);
     }
 
   argv = get_cmd_line_args ();
   if (argv == NULL)
     {
-      fprintf (stderr, "cannot read argv: %s\n", strerror (errno));
+      fprintf (stderr, "cannot read argv: %m\n");
       _exit (EXIT_FAILURE);
     }
 
@@ -906,7 +907,7 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
   ret = TEMP_FAILURE_RETRY (read (ready, &b, 1));
   if (ret < 0)
     {
-      fprintf (stderr, "cannot read from sync pipe: %s\n", strerror (errno));
+      fprintf (stderr, "cannot read from sync pipe: %m\n");
       _exit (EXIT_FAILURE);
     }
   if (ret != 1 || b != '0')
@@ -914,21 +915,21 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
 
   if (syscall_setresgid (0, 0, 0) < 0)
     {
-      fprintf (stderr, "cannot setresgid: %s\n", strerror (errno));
+      fprintf (stderr, "cannot setresgid: %m\n");
       TEMP_FAILURE_RETRY (write (ready, "1", 1));
       _exit (EXIT_FAILURE);
     }
 
   if (syscall_setresuid (0, 0, 0) < 0)
     {
-      fprintf (stderr, "cannot setresuid: %s\n", strerror (errno));
+      fprintf (stderr, "cannot setresuid: %m\n");
       TEMP_FAILURE_RETRY (write (ready, "1", 1));
       _exit (EXIT_FAILURE);
     }
 
   if (chdir (cwd) < 0)
     {
-      fprintf (stderr, "cannot chdir to %s: %s\n", cwd, strerror (errno));
+      fprintf (stderr, "cannot chdir to %s: %m\n", cwd);
       TEMP_FAILURE_RETRY (write (ready, "1", 1));
       _exit (EXIT_FAILURE);
     }
@@ -945,14 +946,14 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
   ret = TEMP_FAILURE_RETRY (write (ready, "0", 1));
   if (ret < 0)
   {
-    fprintf (stderr, "cannot write to ready pipe: %s\n", strerror (errno));
+    fprintf (stderr, "cannot write to ready pipe: %m\n");
     _exit (EXIT_FAILURE);
   }
   close (ready);
 
   if (sigprocmask (SIG_SETMASK, &oldsigset, NULL) < 0)
     {
-      fprintf (stderr, "cannot block signals: %s\n", strerror (errno));
+      fprintf (stderr, "cannot block signals: %m\n");
       _exit (EXIT_FAILURE);
     }
 
