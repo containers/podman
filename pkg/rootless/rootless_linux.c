@@ -19,6 +19,33 @@
 #include <sys/select.h>
 #include <stdio.h>
 
+#define cleanup_free __attribute__ ((cleanup (cleanup_freep)))
+#define cleanup_close __attribute__ ((cleanup (cleanup_closep)))
+#define cleanup_dir __attribute__ ((cleanup (cleanup_dirp)))
+
+static inline void
+cleanup_freep (void *p)
+{
+  void **pp = (void **) p;
+  free (*pp);
+}
+
+static inline void
+cleanup_closep (void *p)
+{
+  int *pp = p;
+  if (*pp >= 0)
+    TEMP_FAILURE_RETRY (close (*pp));
+}
+
+static inline void
+cleanup_dirp (DIR **p)
+{
+  DIR *dir = *p;
+  if (dir)
+    closedir (dir);
+}
+
 int rename_noreplace (int olddirfd, const char *oldpath, int newdirfd, const char *newpath)
 {
   int ret;
@@ -114,8 +141,8 @@ do_pause ()
 static char **
 get_cmd_line_args ()
 {
-  int fd;
-  char *buffer;
+  cleanup_free char *buffer = NULL;
+  cleanup_close int fd = -1;
   size_t allocated;
   size_t used = 0;
   int ret;
@@ -134,10 +161,7 @@ get_cmd_line_args ()
     {
       ret = TEMP_FAILURE_RETRY (read (fd, buffer + used, allocated - used));
       if (ret < 0)
-        {
-          free (buffer);
-          return NULL;
-        }
+        return NULL;
 
       if (ret == 0)
         break;
@@ -148,30 +172,21 @@ get_cmd_line_args ()
           allocated += 512;
           char *tmp = realloc (buffer, allocated);
           if (tmp == NULL)
-            {
-              free (buffer);
-              return NULL;
-            }
+            return NULL;
 	  buffer = tmp;
         }
     }
-  close (fd);
 
   for (i = 0; i < used; i++)
     if (buffer[i] == '\0')
       argc++;
   if (argc == 0)
-    {
-      free (buffer);
-      return NULL;
-    }
+    return NULL;
 
   argv = malloc (sizeof (char *) * (argc + 1));
   if (argv == NULL)
-    {
-      free (buffer);
-      return NULL;
-    }
+    return NULL;
+
   argc = 0;
 
   argv[argc++] = buffer;
@@ -181,15 +196,19 @@ get_cmd_line_args ()
 
   argv[argc] = NULL;
 
+  /* Move ownership.  */
+  buffer = NULL;
+
   return argv;
 }
 
 static bool
 can_use_shortcut ()
 {
-  int argc;
-  char **argv;
+  cleanup_free char **argv = NULL;
+  cleanup_free char *argv0 = NULL;
   bool ret = true;
+  int argc;
 
 #ifdef DISABLE_JOIN_SHORTCUT
   return false;
@@ -199,12 +218,10 @@ can_use_shortcut ()
   if (argv == NULL)
     return false;
 
+  argv0 = argv[0];
+
   if (strstr (argv[0], "podman") == NULL)
-    {
-      free (argv[0]);
-      free (argv);
-      return false;
-    }
+    return false;
 
   for (argc = 0; argv[argc]; argc++)
     {
@@ -229,8 +246,6 @@ can_use_shortcut ()
         }
     }
 
-  free (argv[0]);
-  free (argv);
   return ret;
 }
 
@@ -250,8 +265,7 @@ static void __attribute__((constructor)) init()
   const char *listen_pid;
   const char *listen_fds;
   const char *listen_fdnames;
-
-  DIR *d;
+  cleanup_dir DIR *d = NULL;
 
   pause = getenv ("_PODMAN_PAUSE");
   if (pause && pause[0])
@@ -299,7 +313,6 @@ static void __attribute__((constructor)) init()
 
           FD_SET (fd % FD_SETSIZE, &(open_files_set[fd / FD_SETSIZE]));
         }
-      closedir (d);
     }
 
     listen_pid = getenv("LISTEN_PID");
@@ -327,19 +340,22 @@ static void __attribute__((constructor)) init()
   xdg_runtime_dir = getenv ("XDG_RUNTIME_DIR");
   if (geteuid () != 0 && xdg_runtime_dir && xdg_runtime_dir[0] && can_use_shortcut ())
     {
-      int r;
-      int fd;
+      cleanup_free char *cwd = NULL;
+      cleanup_close int userns_fd = -1;
+      cleanup_close int mntns_fd = -1;
+      cleanup_close int fd = -1;
       long pid;
       char buf[12];
       uid_t uid;
       gid_t gid;
       char path[PATH_MAX];
       const char *const suffix = "/libpod/tmp/pause.pid";
-      char *cwd = getcwd (NULL, 0);
       char uid_fmt[16];
       char gid_fmt[16];
       size_t len;
+      int r;
 
+      cwd = getcwd (NULL, 0);
       if (cwd == NULL)
         {
           fprintf (stderr, "error getting current working directory: %s\n", strerror (errno));
@@ -355,45 +371,40 @@ static void __attribute__((constructor)) init()
 
       fd = open (path, O_RDONLY);
       if (fd < 0)
-        {
-          free (cwd);
-          return;
-        }
+        return;
 
       r = TEMP_FAILURE_RETRY (read (fd, buf, sizeof (buf) - 1));
-      close (fd);
+
       if (r < 0)
-        {
-          free (cwd);
-          return;
-        }
+        return;
       buf[r] = '\0';
 
       pid = strtol (buf, NULL, 10);
       if (pid == LONG_MAX)
-        {
-          free (cwd);
-          return;
-        }
+        return;
 
       uid = geteuid ();
       gid = getegid ();
 
       sprintf (path, "/proc/%ld/ns/user", pid);
-      fd = open (path, O_RDONLY);
-      if (fd < 0 || setns (fd, 0) < 0)
-        {
-          free (cwd);
-          return;
-        }
-      close (fd);
+      userns_fd = open (path, O_RDONLY);
+      if (userns_fd < 0)
+        return;
 
-      /* Errors here cannot be ignored as we already joined a ns.  */
       sprintf (path, "/proc/%ld/ns/mnt", pid);
-      fd = open (path, O_RDONLY);
-      if (fd < 0)
+      mntns_fd = open (path, O_RDONLY);
+      if (mntns_fd < 0)
+        return;
+
+      if (setns (userns_fd, 0) < 0)
+        return;
+
+      /* The user namespace was joined, after this point errors are
+         not recoverable anymore.  */
+
+      if (setns (mntns_fd, 0) < 0)
         {
-          fprintf (stderr, "cannot open %s: %s", path, strerror (errno));
+          fprintf (stderr, "cannot join mount namespace for %ld: %s", pid, strerror (errno));
           exit (EXIT_FAILURE);
         }
 
@@ -403,14 +414,6 @@ static void __attribute__((constructor)) init()
       setenv ("_CONTAINERS_USERNS_CONFIGURED", "init", 1);
       setenv ("_CONTAINERS_ROOTLESS_UID", uid_fmt, 1);
       setenv ("_CONTAINERS_ROOTLESS_GID", gid_fmt, 1);
-
-      r = setns (fd, 0);
-      if (r < 0)
-        {
-          fprintf (stderr, "cannot join mount namespace for %ld: %s", pid, strerror (errno));
-          exit (EXIT_FAILURE);
-        }
-      close (fd);
 
       if (syscall_setresgid (0, 0, 0) < 0)
         {
@@ -430,7 +433,6 @@ static void __attribute__((constructor)) init()
           _exit (EXIT_FAILURE);
         }
 
-      free (cwd);
       rootless_uid_init = uid;
       rootless_gid_init = gid;
     }
@@ -619,15 +621,17 @@ join_namespace_or_die (const char *name, int ns_fd)
 int
 reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
 {
+  cleanup_close int userns_fd = -1;
+  cleanup_close int mntns_fd = -1;
+  cleanup_free char *cwd = NULL;
   char uid[16];
   char gid[16];
-  char **argv;
+  cleanup_free char *argv0 = NULL;
+  cleanup_free char **argv = NULL;
   int pid;
-  int mnt_ns = -1;
-  int user_ns = -1;
-  char *cwd = getcwd (NULL, 0);
   sigset_t sigset, oldsigset;
 
+  cwd = getcwd (NULL, 0);
   if (cwd == NULL)
     {
       fprintf (stderr, "error getting current working directory: %s\n", strerror (errno));
@@ -644,15 +648,14 @@ reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
       _exit (EXIT_FAILURE);
     }
 
-  user_ns = open_namespace (pid_to_join, "user");
-  if (user_ns < 0)
-    return user_ns;
-  mnt_ns = open_namespace (pid_to_join, "mnt");
-  if (mnt_ns < 0)
-    {
-      close (user_ns);
-      return mnt_ns;
-    }
+  argv0 = argv[0];
+
+  userns_fd = open_namespace (pid_to_join, "user");
+  if (userns_fd < 0)
+    return userns_fd;
+  mntns_fd = open_namespace (pid_to_join, "mnt");
+  if (mntns_fd < 0)
+    return mntns_fd;
 
   pid = fork ();
   if (pid < 0)
@@ -661,10 +664,6 @@ reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
   if (pid)
     {
       int f;
-
-      /* We passed down these fds, close them.  */
-      close (user_ns);
-      close (mnt_ns);
 
       for (f = 3; f <= open_files_max_fd; f++)
         if (is_fd_inherited (f))
@@ -721,10 +720,8 @@ reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
       _exit (EXIT_FAILURE);
     }
 
-  join_namespace_or_die ("user", user_ns);
-  join_namespace_or_die ("mnt", mnt_ns);
-  close (user_ns);
-  close (mnt_ns);
+  join_namespace_or_die ("user", userns_fd);
+  join_namespace_or_die ("mnt", mntns_fd);
 
   if (syscall_setresgid (0, 0, 0) < 0)
     {
@@ -743,7 +740,6 @@ reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
       fprintf (stderr, "cannot chdir to %s: %s\n", cwd, strerror (errno));
       _exit (EXIT_FAILURE);
     }
-  free (cwd);
 
   if (pause_pid_file_path && pause_pid_file_path[0] != '\0')
     {
@@ -784,7 +780,7 @@ static int
 copy_file_to_fd (const char *file_to_read, int outfd)
 {
   char buf[512];
-  int fd;
+  cleanup_close int fd = -1;
 
   fd = open (file_to_read, O_RDONLY);
   if (fd < 0)
@@ -796,10 +792,7 @@ copy_file_to_fd (const char *file_to_read, int outfd)
 
       r = TEMP_FAILURE_RETRY (read (fd, buf, sizeof buf));
       if (r < 0)
-        {
-          close (fd);
-          return r;
-        }
+        return r;
 
       if (r == 0)
         break;
@@ -808,35 +801,32 @@ copy_file_to_fd (const char *file_to_read, int outfd)
         {
           w = TEMP_FAILURE_RETRY (write (outfd, &buf[t], r - t));
           if (w < 0)
-            {
-              close (fd);
-              return w;
-            }
+            return w;
           t += w;
         }
     }
-  close (fd);
   return 0;
 }
 
 int
 reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_read, int outputfd)
 {
+  cleanup_free char **argv = NULL;
+  cleanup_free char *argv0 = NULL;
+  cleanup_free char *cwd = NULL;
+  sigset_t sigset, oldsigset;
   int ret;
   pid_t pid;
   char b;
-  char **argv;
   char uid[16];
   char gid[16];
-  char *cwd = getcwd (NULL, 0);
-  sigset_t sigset, oldsigset;
 
+  cwd = getcwd (NULL, 0);
   if (cwd == NULL)
     {
       fprintf (stderr, "error getting current working directory: %s\n", strerror (errno));
       _exit (EXIT_FAILURE);
     }
-
 
   sprintf (uid, "%d", geteuid ());
   sprintf (gid, "%d", getegid ());
@@ -898,6 +888,8 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
       _exit (EXIT_FAILURE);
     }
 
+  argv0 = argv[0];
+
   if (do_socket_activation)
     {
       char s[32];
@@ -942,7 +934,6 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
       TEMP_FAILURE_RETRY (write (ready, "1", 1));
       _exit (EXIT_FAILURE);
     }
-  free (cwd);
 
   if (pause_pid_file_path && pause_pid_file_path[0] != '\0')
     {
@@ -956,8 +947,8 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
   ret = TEMP_FAILURE_RETRY (write (ready, "0", 1));
   if (ret < 0)
   {
-	  fprintf (stderr, "cannot write to ready pipe: %s\n", strerror (errno));
-	  _exit (EXIT_FAILURE);
+    fprintf (stderr, "cannot write to ready pipe: %s\n", strerror (errno));
+    _exit (EXIT_FAILURE);
   }
   close (ready);
 
