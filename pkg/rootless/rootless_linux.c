@@ -249,6 +249,22 @@ can_use_shortcut ()
   return ret;
 }
 
+static int
+open_namespace (int pid_to_join, const char *ns_file)
+{
+  char ns_path[PATH_MAX];
+  int ret;
+
+  ret = snprintf (ns_path, PATH_MAX, "/proc/%d/ns/%s", pid_to_join, ns_file);
+  if (ret == PATH_MAX)
+    {
+      fprintf (stderr, "internal error: namespace path too long\n");
+      return -1;
+    }
+
+  return open (ns_path, O_CLOEXEC | O_RDONLY);
+}
+
 int
 is_fd_inherited(int fd)
 {
@@ -386,13 +402,11 @@ static void __attribute__((constructor)) init()
       uid = geteuid ();
       gid = getegid ();
 
-      sprintf (path, "/proc/%ld/ns/user", pid);
-      userns_fd = open (path, O_RDONLY);
+      userns_fd = open_namespace (pid, "user");
       if (userns_fd < 0)
         return;
 
-      sprintf (path, "/proc/%ld/ns/mnt", pid);
-      mntns_fd = open (path, O_RDONLY);
+      mntns_fd = open_namespace (pid, "mnt");
       if (mntns_fd < 0)
         return;
 
@@ -590,22 +604,6 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
           _exit (EXIT_FAILURE);
         }
     }
-}
-
-static int
-open_namespace (int pid_to_join, const char *ns_file)
-{
-  char ns_path[PATH_MAX];
-  int ret;
-
-  ret = snprintf (ns_path, PATH_MAX, "/proc/%d/ns/%s", pid_to_join, ns_file);
-  if (ret == PATH_MAX)
-    {
-      fprintf (stderr, "internal error: namespace path too long\n");
-      return -1;
-    }
-
-  return open (ns_path, O_CLOEXEC | O_RDONLY);
 }
 
 static void
