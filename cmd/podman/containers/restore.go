@@ -12,7 +12,6 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/rootless"
-	"github.com/containers/podman/v3/pkg/specgenutil"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -120,12 +119,7 @@ func restore(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	if len(inputPorts) > 0 {
-		restoreOptions.PublishPorts, err = specgenutil.CreatePortBindings(inputPorts)
-		if err != nil {
-			return err
-		}
-	}
+	restoreOptions.PublishPorts = inputPorts
 
 	argLen := len(args)
 	if restoreOptions.Import != "" {

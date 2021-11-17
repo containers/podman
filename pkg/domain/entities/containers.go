@@ -212,7 +212,7 @@ type RestoreOptions struct {
 	Name            string
 	TCPEstablished  bool
 	ImportPrevious  string
-	PublishPorts    []nettypes.PortMapping
+	PublishPorts    []string
 	Pod             string
 	PrintStats      bool
 }

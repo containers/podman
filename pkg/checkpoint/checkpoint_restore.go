@@ -16,6 +16,7 @@ import (
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/errorhandling"
 	"github.com/containers/podman/v3/pkg/specgen/generate"
+	"github.com/containers/podman/v3/pkg/specgenutil"
 	"github.com/containers/storage/pkg/archive"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -195,7 +196,12 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 	}
 
 	if len(restoreOptions.PublishPorts) > 0 {
-		ports, err := generate.ParsePortMapping(restoreOptions.PublishPorts, nil)
+		pubPorts, err := specgenutil.CreatePortBindings(restoreOptions.PublishPorts)
+		if err != nil {
+			return nil, err
+		}
+
+		ports, err := generate.ParsePortMapping(pubPorts, nil)
 		if err != nil {
 			return nil, err
 		}

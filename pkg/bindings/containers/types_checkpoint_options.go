@@ -91,3 +91,18 @@ func (o *CheckpointOptions) GetTCPEstablished() bool {
 	}
 	return *o.TCPEstablished
 }
+
+// WithPrintStats set field PrintStats to given value
+func (o *CheckpointOptions) WithPrintStats(value bool) *CheckpointOptions {
+	o.PrintStats = &value
+	return o
+}
+
+// GetPrintStats returns value of field PrintStats
+func (o *CheckpointOptions) GetPrintStats() bool {
+	if o.PrintStats == nil {
+		var z bool
+		return z
+	}
+	return *o.PrintStats
+}
