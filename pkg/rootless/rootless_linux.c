@@ -106,6 +106,11 @@ do_pause ()
   for (i = 0; sig[i]; i++)
     sigaction (sig[i], &act, NULL);
 
+  /* Attempt to execv catatonit to keep the pause process alive.  */
+  execl ("/usr/libexec/podman/catatonit", "catatonit", "-P", NULL);
+  execl ("/usr/bin/catatonit", "catatonit", "-P", NULL);
+  /* and if the catatonit executable could not be found, fallback here... */
+
   prctl (PR_SET_NAME, "podman pause", NULL, NULL, NULL);
   while (1)
     pause ();
