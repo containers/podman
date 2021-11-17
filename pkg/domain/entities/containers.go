@@ -191,6 +191,7 @@ type CheckpointOptions struct {
 	WithPrevious   bool
 	Compression    archive.Compression
 	PrintStats     bool
+	FileLocks      bool
 }
 
 type CheckpointReport struct {
@@ -215,6 +216,7 @@ type RestoreOptions struct {
 	PublishPorts    []string
 	Pod             string
 	PrintStats      bool
+	FileLocks       bool
 }
 
 type RestoreReport struct {

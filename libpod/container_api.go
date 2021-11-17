@@ -798,6 +798,9 @@ type ContainerCheckpointOptions struct {
 	// how much time each component in the stack requires to
 	// checkpoint a container.
 	PrintStats bool
+	// FileLocks tells the API to checkpoint/restore a container
+	// with file-locks
+	FileLocks bool
 }
 
 // Checkpoint checkpoints a container

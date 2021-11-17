@@ -110,6 +110,14 @@ restore. Defaults to not checkpointing *containers* with established TCP
 connections.\
 The default is **false**.
 
+#### **--file-locks**
+
+Checkpoint a *container* with file locks. If an application running in the container
+is using file locks, this OPTION is required during checkpoint and restore. Otherwise
+checkpointing *containers* with file locks is expected to fail. If file locks are not
+used, this option is ignored.\
+The default is **false**.
+
 #### **--with-previous**
 
 Check out the *container* with previous criu image files in pre-dump. It only works on `runc 1.0-rc3` or `higher`.\

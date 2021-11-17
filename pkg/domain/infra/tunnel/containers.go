@@ -303,6 +303,7 @@ func (ic *ContainerEngine) ContainerExport(ctx context.Context, nameOrID string,
 
 func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds []string, opts entities.CheckpointOptions) ([]*entities.CheckpointReport, error) {
 	options := new(containers.CheckpointOptions)
+	options.WithFileLocks(opts.FileLocks)
 	options.WithIgnoreRootfs(opts.IgnoreRootFS)
 	options.WithKeep(opts.Keep)
 	options.WithExport(opts.Export)
@@ -352,6 +353,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 	}
 
 	options := new(containers.RestoreOptions)
+	options.WithFileLocks(opts.FileLocks)
 	options.WithIgnoreRootfs(opts.IgnoreRootFS)
 	options.WithIgnoreVolumes(opts.IgnoreVolumes)
 	options.WithIgnoreStaticIP(opts.IgnoreStaticIP)

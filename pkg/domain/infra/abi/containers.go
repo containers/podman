@@ -516,6 +516,7 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 		WithPrevious:   options.WithPrevious,
 		Compression:    options.Compression,
 		PrintStats:     options.PrintStats,
+		FileLocks:      options.FileLocks,
 	}
 
 	if options.All {

@@ -55,6 +55,7 @@ func init() {
 	flags.BoolVarP(&checkpointOptions.Keep, "keep", "k", false, "Keep all temporary checkpoint files")
 	flags.BoolVarP(&checkpointOptions.LeaveRunning, "leave-running", "R", false, "Leave the container running after writing checkpoint to disk")
 	flags.BoolVar(&checkpointOptions.TCPEstablished, "tcp-established", false, "Checkpoint a container with established TCP connections")
+	flags.BoolVar(&checkpointOptions.FileLocks, "file-locks", false, "Checkpoint a container with file locks")
 	flags.BoolVarP(&checkpointOptions.All, "all", "a", false, "Checkpoint all running containers")
 
 	exportFlagName := "export"
