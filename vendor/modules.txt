@@ -97,7 +97,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.46.1-0.20211110143743-73e7b462c358
+# github.com/containers/common v0.46.1-0.20211115170340-7ae7bd1c3f8e
 github.com/containers/common/libimage
 github.com/containers/common/libimage/manifests
 github.com/containers/common/pkg/apparmor

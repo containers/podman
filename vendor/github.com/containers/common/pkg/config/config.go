@@ -563,6 +563,10 @@ func NewConfig(userConfigPath string) (*Config, error) {
 		return nil, err
 	}
 
+	if err := config.setupEnv(); err != nil {
+		return nil, err
+	}
+
 	return config, nil
 }
 
@@ -1146,7 +1150,14 @@ func (c *Config) ActiveDestination() (uri, identity string, err error) {
 // FindHelperBinary will search the given binary name in the configured directories.
 // If searchPATH is set to true it will also search in $PATH.
 func (c *Config) FindHelperBinary(name string, searchPATH bool) (string, error) {
-	for _, path := range c.Engine.HelperBinariesDir {
+	dir_list := c.Engine.HelperBinariesDir
+
+	// If set, search this directory first. This is used in testing.
+	if dir, found := os.LookupEnv("CONTAINERS_HELPER_BINARY_DIR"); found {
+		dir_list = append([]string{dir}, dir_list...)
+	}
+
+	for _, path := range dir_list {
 		fullpath := filepath.Join(path, name)
 		if fi, err := os.Stat(fullpath); err == nil && fi.Mode().IsRegular() {
 			return fullpath, nil
@@ -1179,4 +1190,24 @@ func (c *Config) ImageCopyTmpDir() (string, error) {
 	}
 
 	return "", errors.Errorf("invalid image_copy_tmp_dir value %q (relative paths are not accepted)", c.Engine.ImageCopyTmpDir)
+}
+
+// setupEnv sets the environment variables for the engine
+func (c *Config) setupEnv() error {
+	for _, env := range c.Engine.Env {
+		splitEnv := strings.SplitN(env, "=", 2)
+		if len(splitEnv) != 2 {
+			logrus.Warnf("invalid environment variable for engine %s, valid configuration is KEY=value pair", env)
+			continue
+		}
+		// skip if the env is already defined
+		if _, ok := os.LookupEnv(splitEnv[0]); ok {
+			logrus.Debugf("environment variable %s is already defined, skip the settings from containers.conf", splitEnv[0])
+			continue
+		}
+		if err := os.Setenv(splitEnv[0], splitEnv[1]); err != nil {
+			return err
+		}
+	}
+	return nil
 }
