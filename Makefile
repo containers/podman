@@ -893,7 +893,7 @@ uninstall:
 .PHONY: clean-binaries
 clean-binaries: ## Remove platform/architecture specific binary files
 	rm -rf \
-		bin \
+		bin
 
 .PHONY: clean
 clean: clean-binaries ## Clean all make artifacts

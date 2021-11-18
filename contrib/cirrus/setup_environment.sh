@@ -20,13 +20,6 @@ die_unknown() {
 }
 
 msg "************************************************************"
-msg "FIXME: force-install catatonit 0.17.0 until CI images are updated"
-msg "************************************************************"
-# FIXME: this is just a temporary workaround to force-install
-# catatonit 0.17.0.  Please remove once the images are updated.
-./hack/install_catatonit.sh --force
-
-msg "************************************************************"
 msg "Setting up runtime environment"
 msg "************************************************************"
 show_env_vars
@@ -126,12 +119,6 @@ case "$OS_RELEASE_ID" in
     ubuntu) ;;
     fedora)
         if ((CONTAINER==0)); then
-            msg "Configuring / Expanding host storage."
-            # VM is setup to allow flexibility in testing alternate storage.
-            # For general use, simply make use of all available space.
-            bash "$SCRIPT_BASE/add_second_partition.sh"
-            $SCRIPT_BASE/logcollector.sh df
-
             # All SELinux distros need this for systemd-in-a-container
             msg "Enabling container_manage_cgroup"
             setsebool container_manage_cgroup true
@@ -171,6 +158,18 @@ case "$TEST_ENVIRON" in
             # affected/related tests are sensitive to this variable.
             warn "Disabling usernamespace integration testing"
             echo "SKIP_USERNS=1" >> /etc/ci_environment
+
+            # In F35 the hard-coded default
+            # (from containers-common-1-32.fc35.noarch) is 'journald' despite
+            # the upstream repository having this line commented-out.
+            # Containerized integration tests cannot run with 'journald'
+            # as there is no daemon/process there to receive them.
+            cconf="/usr/share/containers/containers.conf"
+            note="- commented-out by setup_environment.sh"
+            if grep -Eq '^log_driver.+journald' "$cconf"; then
+                warn "Patching out $cconf journald log_driver"
+                sed -r -i -e "s/^log_driver(.*)/# log_driver\1 $note/" "$cconf"
+            fi
         fi
         ;;
     *) die_unknown TEST_ENVIRON
@@ -219,10 +218,8 @@ case "$TEST_FLAVOR" in
         remove_packaged_podman_files
         make install PREFIX=/usr ETCDIR=/etc
 
-        # TODO: Don't install stuff at test runtime!  Do this from
-        # cache_images/fedora_packaging.sh in containers/automation_images
-        # and STRONGLY prefer installing RPMs vs pip packages in venv
-        dnf install -y python3-virtualenv python3-pytest4
+        msg "Installing previously downloaded/cached packages"
+        dnf install -y $PACKAGE_DOWNLOAD_DIR/python3*.rpm
         virtualenv venv
         source venv/bin/activate
         pip install --upgrade pip

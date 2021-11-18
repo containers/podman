@@ -151,7 +151,7 @@ func createTempDirInTempDir() (string, error) {
 }
 
 func (b *bindingTest) startAPIService() *gexec.Session {
-	cmd := []string{"--log-level=debug", "--events-backend=file", "system", "service", "--timeout=0", b.sock}
+	cmd := []string{"--log-level=debug", "system", "service", "--timeout=0", b.sock}
 	session := b.runPodman(cmd)
 
 	sock := strings.TrimPrefix(b.sock, "unix://")
