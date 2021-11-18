@@ -794,6 +794,9 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 	if options.TCPEstablished {
 		args = append(args, "--tcp-established")
 	}
+	if options.FileLocks {
+		args = append(args, "--file-locks")
+	}
 	if !options.PreCheckPoint && options.KeepRunning {
 		args = append(args, "--leave-running")
 	}
@@ -1100,6 +1103,9 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		args = append(args, "--restore", ctr.CheckpointPath())
 		if restoreOptions.TCPEstablished {
 			args = append(args, "--runtime-opt", "--tcp-established")
+		}
+		if restoreOptions.FileLocks {
+			args = append(args, "--runtime-opt", "--file-locks")
 		}
 		if restoreOptions.Pod != "" {
 			mountLabel := ctr.config.MountLabel

@@ -143,6 +143,14 @@ option is ignored. Defaults to not restoring *containers* with established TCP
 connections.\
 The default is **false**.
 
+#### **--file-locks**
+
+Restore a *container* with file locks. This option is required to
+restore file locks from a checkpoint image. If the checkpoint image
+does not contain file locks, this option is ignored. Defaults to not
+restoring file locks.\
+The default is **false**.
+
 ## EXAMPLE
 Restores the container "mywebserver".
 ```

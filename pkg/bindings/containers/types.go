@@ -53,6 +53,7 @@ type CheckpointOptions struct {
 	PrintStats     *bool
 	PreCheckpoint  *bool
 	WithPrevious   *bool
+	FileLocks      *bool
 }
 
 //go:generate go run ../generator/generator.go RestoreOptions
@@ -69,6 +70,7 @@ type RestoreOptions struct {
 	Pod             *string
 	PrintStats      *bool
 	PublishPorts    []string
+	FileLocks       *bool
 }
 
 //go:generate go run ../generator/generator.go CreateOptions

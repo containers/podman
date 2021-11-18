@@ -136,3 +136,18 @@ func (o *CheckpointOptions) GetWithPrevious() bool {
 	}
 	return *o.WithPrevious
 }
+
+// WithFileLocks set field FileLocks to given value
+func (o *CheckpointOptions) WithFileLocks(value bool) *CheckpointOptions {
+	o.FileLocks = &value
+	return o
+}
+
+// GetFileLocks returns value of field FileLocks
+func (o *CheckpointOptions) GetFileLocks() bool {
+	if o.FileLocks == nil {
+		var z bool
+		return z
+	}
+	return *o.FileLocks
+}

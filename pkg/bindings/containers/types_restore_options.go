@@ -181,3 +181,18 @@ func (o *RestoreOptions) GetPublishPorts() []string {
 	}
 	return o.PublishPorts
 }
+
+// WithFileLocks set field FileLocks to given value
+func (o *RestoreOptions) WithFileLocks(value bool) *RestoreOptions {
+	o.FileLocks = &value
+	return o
+}
+
+// GetFileLocks returns value of field FileLocks
+func (o *RestoreOptions) GetFileLocks() bool {
+	if o.FileLocks == nil {
+		var z bool
+		return z
+	}
+	return *o.FileLocks
+}

@@ -53,6 +53,7 @@ func init() {
 	flags.BoolVarP(&restoreOptions.All, "all", "a", false, "Restore all checkpointed containers")
 	flags.BoolVarP(&restoreOptions.Keep, "keep", "k", false, "Keep all temporary checkpoint files")
 	flags.BoolVar(&restoreOptions.TCPEstablished, "tcp-established", false, "Restore a container with established TCP connections")
+	flags.BoolVar(&restoreOptions.FileLocks, "file-locks", false, "Restore a container with file locks")
 
 	importFlagName := "import"
 	flags.StringVarP(&restoreOptions.Import, importFlagName, "i", "", "Restore from exported checkpoint archive (tar.gz)")
