@@ -24,7 +24,7 @@ func (v *MachineVM) addArchOptions() []string {
 
 func (v *MachineVM) prepare() error {
 	ovmfDir := getOvmfDir(v.ImagePath, v.Name)
-	cmd := []string{"dd", "if=/dev/zero", "conv=sync", "bs=1m", "count=64", "of=" + ovmfDir}
+	cmd := []string{"/bin/dd", "if=/dev/zero", "conv=sync", "bs=1m", "count=64", "of=" + ovmfDir}
 	return exec.Command(cmd[0], cmd[1:]...).Run()
 }
 
