@@ -81,6 +81,7 @@ to import a checkpointed *container* from another host.\
 
 Import a pre-checkpoint tar.gz file which was exported by Podman. This option
 must be used with **-i** or **--import**. It only works on `runc 1.0-rc3` or `higher`.
+*IMPORTANT: This OPTION is not supported on the remote client.*
 
 #### **--name**, **-n**=*name*
 

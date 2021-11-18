@@ -51,6 +51,8 @@ type CheckpointOptions struct {
 	LeaveRunning   *bool
 	TCPEstablished *bool
 	PrintStats     *bool
+	PreCheckpoint  *bool
+	WithPrevious   *bool
 }
 
 //go:generate go run ../generator/generator.go RestoreOptions

@@ -899,6 +899,7 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 
 	It("podman checkpoint container with --pre-checkpoint and export (migration)", func() {
+		SkipIfRemote("--import-previous is not yet supported on the remote client")
 		if !strings.Contains(podmanTest.OCIRuntime, "runc") {
 			Skip("Test only works on runc 1.0-rc3 or higher.")
 		}

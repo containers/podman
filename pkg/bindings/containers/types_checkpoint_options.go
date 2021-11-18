@@ -106,3 +106,33 @@ func (o *CheckpointOptions) GetPrintStats() bool {
 	}
 	return *o.PrintStats
 }
+
+// WithPreCheckpoint set field PreCheckpoint to given value
+func (o *CheckpointOptions) WithPreCheckpoint(value bool) *CheckpointOptions {
+	o.PreCheckpoint = &value
+	return o
+}
+
+// GetPreCheckpoint returns value of field PreCheckpoint
+func (o *CheckpointOptions) GetPreCheckpoint() bool {
+	if o.PreCheckpoint == nil {
+		var z bool
+		return z
+	}
+	return *o.PreCheckpoint
+}
+
+// WithWithPrevious set field WithPrevious to given value
+func (o *CheckpointOptions) WithWithPrevious(value bool) *CheckpointOptions {
+	o.WithPrevious = &value
+	return o
+}
+
+// GetWithPrevious returns value of field WithPrevious
+func (o *CheckpointOptions) GetWithPrevious() bool {
+	if o.WithPrevious == nil {
+		var z bool
+		return z
+	}
+	return *o.WithPrevious
+}
