@@ -1457,7 +1457,7 @@ USER mail`, BB)
 	})
 
 	It("podman run --privileged and --group-add", func() {
-		groupName := "kvm"
+		groupName := "mail"
 		session := podmanTest.Podman([]string{"run", "-t", "-i", "--group-add", groupName, "--privileged", fedoraMinimal, "groups"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
