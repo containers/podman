@@ -835,20 +835,6 @@ func WithIDMappings(idmappings storage.IDMappingOptions) CtrCreateOption {
 	}
 }
 
-// WithExitCommand sets the ExitCommand for the container, appending on the ctr.ID() to the end
-func WithExitCommand(exitCommand []string) CtrCreateOption {
-	return func(ctr *Container) error {
-		if ctr.valid {
-			return define.ErrCtrFinalized
-		}
-
-		ctr.config.ExitCommand = exitCommand
-		ctr.config.ExitCommand = append(ctr.config.ExitCommand, ctr.ID())
-
-		return nil
-	}
-}
-
 // WithUTSNSFromPod indicates the the container should join the UTS namespace of
 // its pod
 func WithUTSNSFromPod(p *Pod) CtrCreateOption {

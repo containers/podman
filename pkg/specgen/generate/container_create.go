@@ -3,17 +3,14 @@ package generate
 import (
 	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
 	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg"
 	"github.com/containers/common/libimage"
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
-	"github.com/containers/storage/types"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -162,15 +159,6 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		return nil, nil, nil, err
 	}
 	options = append(options, opts...)
-
-	var exitCommandArgs []string
-
-	exitCommandArgs, err = CreateExitCommandArgs(rt.StorageConfig(), rtc, logrus.IsLevelEnabled(logrus.DebugLevel), s.Remove, false)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	options = append(options, libpod.WithExitCommand(exitCommandArgs))
 
 	if len(s.Aliases) > 0 {
 		options = append(options, libpod.WithNetworkAliases(s.Aliases))
@@ -499,55 +487,4 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 		options = append(options, libpod.WithPidFile(s.PidFile))
 	}
 	return options, nil
-}
-
-func CreateExitCommandArgs(storageConfig types.StoreOptions, config *config.Config, syslog, rm, exec bool) ([]string, error) {
-	// We need a cleanup process for containers in the current model.
-	// But we can't assume that the caller is Podman - it could be another
-	// user of the API.
-	// As such, provide a way to specify a path to Podman, so we can
-	// still invoke a cleanup process.
-
-	podmanPath, err := os.Executable()
-	if err != nil {
-		return nil, err
-	}
-
-	command := []string{podmanPath,
-		"--root", storageConfig.GraphRoot,
-		"--runroot", storageConfig.RunRoot,
-		"--log-level", logrus.GetLevel().String(),
-		"--cgroup-manager", config.Engine.CgroupManager,
-		"--tmpdir", config.Engine.TmpDir,
-		"--cni-config-dir", config.Network.NetworkConfigDir,
-	}
-	if config.Engine.OCIRuntime != "" {
-		command = append(command, []string{"--runtime", config.Engine.OCIRuntime}...)
-	}
-	if storageConfig.GraphDriverName != "" {
-		command = append(command, []string{"--storage-driver", storageConfig.GraphDriverName}...)
-	}
-	for _, opt := range storageConfig.GraphDriverOptions {
-		command = append(command, []string{"--storage-opt", opt}...)
-	}
-	if config.Engine.EventsLogger != "" {
-		command = append(command, []string{"--events-backend", config.Engine.EventsLogger}...)
-	}
-
-	if syslog {
-		command = append(command, "--syslog")
-	}
-	command = append(command, []string{"container", "cleanup"}...)
-
-	if rm {
-		command = append(command, "--rm")
-	}
-
-	// This has to be absolutely last, to ensure that the exec session ID
-	// will be added after it by Libpod.
-	if exec {
-		command = append(command, "--exec")
-	}
-
-	return command, nil
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	"github.com/containers/podman/v3/pkg/api/server/idle"
 	api "github.com/containers/podman/v3/pkg/api/types"
-	"github.com/containers/podman/v3/pkg/specgen/generate"
+	"github.com/containers/podman/v3/pkg/specgenutil"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -65,7 +65,7 @@ func ExecCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Automatically log to syslog if the server has log-level=debug set
-	exitCommandArgs, err := generate.CreateExitCommandArgs(storageConfig, runtimeConfig, logrus.IsLevelEnabled(logrus.DebugLevel), true, true)
+	exitCommandArgs, err := specgenutil.CreateExitCommandArgs(storageConfig, runtimeConfig, logrus.IsLevelEnabled(logrus.DebugLevel), true, true)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return

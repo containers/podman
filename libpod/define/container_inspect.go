@@ -654,7 +654,6 @@ type InspectContainerData struct {
 	Mounts          []InspectMount              `json:"Mounts"`
 	Dependencies    []string                    `json:"Dependencies"`
 	NetworkSettings *InspectNetworkSettings     `json:"NetworkSettings"` //TODO
-	ExitCommand     []string                    `json:"ExitCommand"`
 	Namespace       string                      `json:"Namespace"`
 	IsInfra         bool                        `json:"IsInfra"`
 	Config          *InspectContainerConfig     `json:"Config"`
