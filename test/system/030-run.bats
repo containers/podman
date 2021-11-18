@@ -236,7 +236,7 @@ echo $rand        |   0 | $rand
 }
 
 @test "podman run docker-archive" {
-    skip_if_remote "podman-remote does not support docker-archive (#7116)"
+    skip_if_remote "podman-remote does not support docker-archive"
 
     # Create an image that, when run, outputs a random magic string
     expect=$(random_string 20)

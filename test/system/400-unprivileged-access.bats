@@ -101,11 +101,6 @@ EOF
 
 # #6957 - mask out /proc/acpi, /sys/dev, and other sensitive system files
 @test "sensitive mount points are masked without --privileged" {
-    # Weird error, maybe a flake?
-    #   can only attach to created or running containers: container state improper
-    # https://github.com/containers/podman/pull/7111#issuecomment-666858715
-    skip_if_remote "FIXME: Weird flake"
-
     # FIXME: this should match the list in pkg/specgen/generate/config_linux.go
     local -a mps=(
         /proc/acpi

@@ -214,7 +214,7 @@ var _ = Describe("Podman logs", func() {
 
 		It("two containers showing short container IDs: "+log, func() {
 			skipIfJournaldInContainer()
-			SkipIfRemote("FIXME: podman-remote logs does not support showing two containers at the same time")
+			SkipIfRemote("podman-remote logs does not support showing two containers at the same time")
 
 			log1 := podmanTest.Podman([]string{"run", "--log-driver", log, "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
 			log1.WaitWithDefaultTimeout()
