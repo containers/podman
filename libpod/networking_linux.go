@@ -4,6 +4,7 @@ package libpod
 
 import (
 	"crypto/rand"
+	"crypto/sha1"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -400,10 +401,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 		return nil, nil
 	}
 	var rootlessNetNS *RootlessNetNS
-	runDir, err := util.GetRuntimeDir()
-	if err != nil {
-		return nil, err
-	}
+	runDir := r.config.Engine.TmpDir
 
 	lfile := filepath.Join(runDir, "rootless-netns.lock")
 	lock, err := lockfile.GetLockfile(lfile)
@@ -429,7 +427,15 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 	if err != nil {
 		return nil, err
 	}
-	path := filepath.Join(nsDir, rootlessNetNsName)
+
+	// create a hash from the static dir
+	// the cleanup will check if there are running containers
+	// if you run a several libpod instances with different root/runroot directories this check will fail
+	// we want one netns for each libpod static dir so we use the hash to prevent name collisions
+	hash := sha1.Sum([]byte(r.config.Engine.StaticDir))
+	netnsName := fmt.Sprintf("%s-%x", rootlessNetNsName, hash[:10])
+
+	path := filepath.Join(nsDir, netnsName)
 	ns, err := ns.GetNS(path)
 	if err != nil {
 		if !new {
@@ -437,8 +443,8 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 			return nil, errors.Wrap(err, "error getting rootless network namespace")
 		}
 		// create a new namespace
-		logrus.Debug("creating rootless network namespace")
-		ns, err = netns.NewNSWithName(rootlessNetNsName)
+		logrus.Debugf("creating rootless network namespace with name %q", netnsName)
+		ns, err = netns.NewNSWithName(netnsName)
 		if err != nil {
 			return nil, errors.Wrap(err, "error creating rootless network namespace")
 		}
