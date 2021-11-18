@@ -81,7 +81,7 @@ func NewIgnitionFile(ign DynamicIgnition) error {
 	// so a listening host knows it can being interacting with it
 	ready := `[Unit]
 Requires=dev-virtio\\x2dports-%s.device
-After=remove-moby.service
+After=remove-moby.service sshd.socket sshd.service
 OnFailure=emergency.target
 OnFailureJobMode=isolate
 [Service]
