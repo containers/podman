@@ -27,11 +27,11 @@ type logsOptionsWrapper struct {
 var (
 	logsPodOptions     logsOptionsWrapper
 	logsPodDescription = `Displays logs for pod with one or more containers.`
-	logsPodCommand     = &cobra.Command{
+	podLogsCommand     = &cobra.Command{
 		Use:   "logs [options] POD",
 		Short: "Fetch logs for pod with one or more containers",
 		Long:  logsPodDescription,
-		// We dont want users to invoke latest and pod togather
+		// We dont want users to invoke latest and pod together
 		Args: func(cmd *cobra.Command, args []string) error {
 			switch {
 			case registry.IsRemote() && logsPodOptions.Latest:
@@ -53,35 +53,16 @@ var (
 		podman pod logs --follow=true --since 10m podID
 		podman pod logs mywebserver`,
 	}
-
-	containerLogsCommand = &cobra.Command{
-		Use:               logsPodCommand.Use,
-		Short:             logsPodCommand.Short,
-		Long:              logsPodCommand.Long,
-		Args:              logsPodCommand.Args,
-		RunE:              logsPodCommand.RunE,
-		ValidArgsFunction: logsPodCommand.ValidArgsFunction,
-		Example: `podman pod logs podId
-		podman pod logs -c ctrname podName
-		podman pod logs --tail 2 mywebserver
-		podman pod logs --follow=true --since 10m podID`,
-	}
 )
 
 func init() {
+	// pod logs
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Command: logsPodCommand,
-	})
-	logsFlags(logsPodCommand)
-	validate.AddLatestFlag(logsPodCommand, &logsPodOptions.Latest)
-
-	// container logs
-	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Command: containerLogsCommand,
+		Command: podLogsCommand,
 		Parent:  podCmd,
 	})
-	logsFlags(containerLogsCommand)
-	validate.AddLatestFlag(containerLogsCommand, &logsPodOptions.Latest)
+	logsFlags(podLogsCommand)
+	validate.AddLatestFlag(podLogsCommand, &logsPodOptions.Latest)
 }
 
 func logsFlags(cmd *cobra.Command) {
