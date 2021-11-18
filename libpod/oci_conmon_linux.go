@@ -30,6 +30,7 @@ import (
 	"github.com/containers/podman/v3/pkg/checkpoint/crutils"
 	"github.com/containers/podman/v3/pkg/errorhandling"
 	"github.com/containers/podman/v3/pkg/rootless"
+	"github.com/containers/podman/v3/pkg/specgenutil"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/podman/v3/utils"
 	"github.com/containers/storage/pkg/homedir"
@@ -1071,11 +1072,15 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		args = append(args, "--no-pivot")
 	}
 
-	if len(ctr.config.ExitCommand) > 0 {
-		args = append(args, "--exit-command", ctr.config.ExitCommand[0])
-		for _, arg := range ctr.config.ExitCommand[1:] {
-			args = append(args, []string{"--exit-command-arg", arg}...)
-		}
+	exitCommand, err := specgenutil.CreateExitCommandArgs(ctr.runtime.storageConfig, ctr.runtime.config, logrus.IsLevelEnabled(logrus.DebugLevel), ctr.AutoRemove(), false)
+	if err != nil {
+		return 0, err
+	}
+	exitCommand = append(exitCommand, ctr.config.ID)
+
+	args = append(args, "--exit-command", exitCommand[0])
+	for _, arg := range exitCommand[1:] {
+		args = append(args, []string{"--exit-command-arg", arg}...)
 	}
 
 	// Pass down the LISTEN_* environment (see #10443).

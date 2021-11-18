@@ -133,28 +133,6 @@ $ podman container inspect foobar
             "Ports": {},
             "SandboxKey": ""
         },
-        "ExitCommand": [
-            "/usr/bin/podman",
-            "--root",
-            "/home/dwalsh/.local/share/containers/storage",
-            "--runroot",
-            "/run/user/3267/containers",
-            "--log-level",
-            "warning",
-            "--cgroup-manager",
-            "systemd",
-            "--tmpdir",
-            "/run/user/3267/libpod/tmp",
-            "--runtime",
-            "crun",
-            "--storage-driver",
-            "overlay",
-            "--events-backend",
-            "journald",
-            "container",
-            "cleanup",
-            "99f66530fe9c7249f7cf29f78e8661669d5831cbe4ee80ea757d5e922dd6a8a6"
-        ],
         "Namespace": "",
         "IsInfra": false,
         "Config": {

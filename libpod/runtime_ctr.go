@@ -186,8 +186,6 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 		// If the ID is empty a new name for the restored container was requested
 		if ctr.config.ID == "" {
 			ctr.config.ID = stringid.GenerateNonCryptoID()
-			// Fixup ExitCommand with new ID
-			ctr.config.ExitCommand[len(ctr.config.ExitCommand)-1] = ctr.config.ID
 		}
 		// Reset the log path to point to the default
 		ctr.config.LogPath = ""

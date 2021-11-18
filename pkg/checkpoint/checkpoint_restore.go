@@ -239,11 +239,6 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 		}
 	}
 
-	// Check if the ExitCommand points to the correct container ID
-	if containerConfig.ExitCommand[len(containerConfig.ExitCommand)-1] != containerConfig.ID {
-		return nil, errors.Errorf("'ExitCommandID' uses ID %s instead of container ID %s", containerConfig.ExitCommand[len(containerConfig.ExitCommand)-1], containerConfig.ID)
-	}
-
 	containers = append(containers, container)
 	return containers, nil
 }
