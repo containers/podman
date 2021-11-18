@@ -283,6 +283,42 @@ var _ = Describe("Podman run networking", func() {
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostIP).To(Equal(""))
 	})
 
+	It("podman run --publish-all with EXPOSE port ranges in Dockerfile", func() {
+		// Test port ranges, range with protocol and with an overlapping port
+		podmanTest.AddImageToRWStore(ALPINE)
+		dockerfile := fmt.Sprintf(`FROM %s
+EXPOSE 2002
+EXPOSE 2001-2003
+EXPOSE 2004-2005/tcp`, ALPINE)
+		imageName := "testimg"
+		podmanTest.BuildImage(dockerfile, imageName, "false")
+
+		// Verify that the buildah is just passing through the EXPOSE keys
+		inspect := podmanTest.Podman([]string{"inspect", imageName})
+		inspect.WaitWithDefaultTimeout()
+		image := inspect.InspectImageJSON()
+		Expect(len(image)).To(Equal(1))
+		Expect(len(image[0].Config.ExposedPorts)).To(Equal(3))
+		Expect(image[0].Config.ExposedPorts).To(HaveKey("2002/tcp"))
+		Expect(image[0].Config.ExposedPorts).To(HaveKey("2001-2003/tcp"))
+		Expect(image[0].Config.ExposedPorts).To(HaveKey("2004-2005/tcp"))
+
+		containerName := "testcontainer"
+		session := podmanTest.Podman([]string{"create", "--name", containerName, imageName, "true"})
+		session.WaitWithDefaultTimeout()
+		inspectOut := podmanTest.InspectContainer(containerName)
+		Expect(len(inspectOut)).To(Equal(1))
+
+		// Inspect the network settings with available ports to be mapped to the host
+		// Don't need to verity HostConfig.PortBindings since we used --publish-all
+		Expect(len(inspectOut[0].NetworkSettings.Ports)).To(Equal(5))
+		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveKey("2001/tcp"))
+		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveKey("2002/tcp"))
+		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveKey("2003/tcp"))
+		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveKey("2004/tcp"))
+		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveKey("2005/tcp"))
+	})
+
 	It("podman run -p 127.0.0.1::8980/udp", func() {
 		name := "testctr"
 		session := podmanTest.Podman([]string{"create", "-t", "-p", "127.0.0.1::8980/udp", "--name", name, ALPINE, "/bin/sh"})
