@@ -149,9 +149,9 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 		searchReport[i].Description = d
 	}
 
-	hdrs := report.Headers(entities.ImageSearchReport{}, nil)
-	renderHeaders := true
-	var row string
+	rpt := report.New(os.Stdout, cmd.Name())
+	defer rpt.Flush()
+
 	switch {
 	case searchOptions.ListTags:
 		if len(searchOptions.Filters) != 0 {
@@ -161,39 +161,30 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 			listTagsEntries := buildListTagsJSON(searchReport)
 			return printArbitraryJSON(listTagsEntries)
 		}
-		row = "{{.Name}}\t{{.Tag}}\n"
+		rpt, err = rpt.Parse(report.OriginPodman, "{{range .}}{{.Name}}\t{{.Tag}}\n{{end -}}")
 	case isJSON:
 		return printArbitraryJSON(searchReport)
 	case cmd.Flags().Changed("format"):
-		renderHeaders = report.HasTable(searchOptions.Format)
-		row = report.NormalizeFormat(searchOptions.Format)
+		rpt, err = rpt.Parse(report.OriginUser, searchOptions.Format)
 	default:
-		row = "{{.Name}}\t{{.Description}}"
+		row := "{{.Name}}\t{{.Description}}"
 		if searchOptions.Compatible {
 			row += "\t{{.Stars}}\t{{.Official}}\t{{.Automated}}"
 		}
-		row += "\n"
+		row = "{{range . }}" + row + "\n{{end -}}"
+		rpt, err = rpt.Parse(report.OriginPodman, row)
 	}
-	format := report.EnforceRange(row)
-
-	tmpl, err := report.NewTemplate("search").Parse(format)
 	if err != nil {
 		return err
 	}
 
-	w, err := report.NewWriterDefault(os.Stdout)
-	if err != nil {
-		return err
-	}
-	defer w.Flush()
-
-	if renderHeaders {
-		if err := tmpl.Execute(w, hdrs); err != nil {
-			return errors.Wrapf(err, "failed to write search column headers")
+	if rpt.RenderHeaders {
+		hdrs := report.Headers(entities.ImageSearchReport{}, nil)
+		if err := rpt.Execute(hdrs); err != nil {
+			return errors.Wrapf(err, "failed to write report column headers")
 		}
 	}
-
-	return tmpl.Execute(w, searchReport)
+	return rpt.Execute(searchReport)
 }
 
 func printArbitraryJSON(v interface{}) error {

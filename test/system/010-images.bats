@@ -221,9 +221,7 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
     iid=${output:0:12}
 
     # Run the test: this will output three column-aligned rows. Test them.
-    # Tab character (\t) should have the same effect as the 'table' directive
     _run_format_test 'table' 'table {{.Repository}} {{.Tag}} {{.ID}}'
-    _run_format_test 'tabs'  '{{.Repository}}\t{{.Tag}}\t{{.ID}}'
 
     # Clean up.
     run_podman rmi ${aaa_name}:${aaa_tag} ${zzz_name}:${zzz_tag}

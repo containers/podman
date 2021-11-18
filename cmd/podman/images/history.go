@@ -1,7 +1,6 @@
 package images
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -79,7 +78,7 @@ func historyFlags(cmd *cobra.Command) {
 }
 
 func history(cmd *cobra.Command, args []string) error {
-	results, err := registry.ImageEngine().History(context.Background(), args[0], entities.ImageHistoryOptions{})
+	results, err := registry.ImageEngine().History(registry.Context(), args[0], entities.ImageHistoryOptions{})
 	if err != nil {
 		return err
 	}
@@ -111,37 +110,32 @@ func history(cmd *cobra.Command, args []string) error {
 		hr = append(hr, historyReporter{l})
 	}
 
-	hdrs := report.Headers(historyReporter{}, map[string]string{
-		"CreatedBy": "CREATED BY",
-	})
+	rpt := report.New(os.Stdout, cmd.Name())
+	defer rpt.Flush()
 
-	// Defaults
-	row := "{{.ID}}\t{{.Created}}\t{{.CreatedBy}}\t{{.Size}}\t{{.Comment}}\n"
 	switch {
-	case cmd.Flags().Changed("format"):
-		row = report.NormalizeFormat(opts.format)
 	case opts.quiet:
-		row = "{{.ID}}\n"
+		rpt, err = rpt.Parse(report.OriginUser, "{{range .}}{{.ID}}\n{{end -}}")
+	case cmd.Flags().Changed("format"):
+		rpt, err = rpt.Parse(report.OriginUser, cmd.Flag("format").Value.String())
+	default:
+		format := "{{range .}}{{.ID}}\t{{.Created}}\t{{.CreatedBy}}\t{{.Size}}\t{{.Comment}}\n{{end -}}"
+		rpt, err = rpt.Parse(report.OriginPodman, format)
 	}
-	format := report.EnforceRange(row)
-
-	tmpl, err := report.NewTemplate("history").Parse(format)
 	if err != nil {
 		return err
 	}
 
-	w, err := report.NewWriterDefault(os.Stdout)
-	if err != nil {
-		return err
-	}
-	defer w.Flush()
+	if rpt.RenderHeaders {
+		hdrs := report.Headers(historyReporter{}, map[string]string{
+			"CreatedBy": "CREATED BY",
+		})
 
-	if !opts.quiet && !cmd.Flags().Changed("format") {
-		if err := tmpl.Execute(w, hdrs); err != nil {
+		if err := rpt.Execute(hdrs); err != nil {
 			return errors.Wrapf(err, "failed to write report column headers")
 		}
 	}
-	return tmpl.Execute(w, hr)
+	return rpt.Execute(hr)
 }
 
 type historyReporter struct {

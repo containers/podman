@@ -64,11 +64,13 @@ func inspect(cmd *cobra.Command, args []string) error {
 	}
 
 	if report.IsJSON(inspectOptions.Format) {
+		json.MarshalIndent(responses, "", "     ")
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "     ")
 		return enc.Encode(responses)
 	}
 
+	// cmd.Flags().Changed("format") must be true to reach this code
 	row := report.NormalizeFormat(inspectOptions.Format)
 
 	t, err := report.NewTemplate("inspect").Parse(row)
