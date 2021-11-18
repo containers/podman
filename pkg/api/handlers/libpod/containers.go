@@ -219,6 +219,8 @@ func Checkpoint(w http.ResponseWriter, r *http.Request) {
 		Export         bool `schema:"export"`
 		IgnoreRootFS   bool `schema:"ignoreRootFS"`
 		PrintStats     bool `schema:"printStats"`
+		PreCheckpoint  bool `schema:"preCheckpoint"`
+		WithPrevious   bool `schema:"withPrevious"`
 	}{
 		// override any golang type defaults
 	}
@@ -242,6 +244,8 @@ func Checkpoint(w http.ResponseWriter, r *http.Request) {
 		TCPEstablished: query.TCPEstablished,
 		IgnoreRootFS:   query.IgnoreRootFS,
 		PrintStats:     query.PrintStats,
+		PreCheckPoint:  query.PreCheckpoint,
+		WithPrevious:   query.WithPrevious,
 	}
 
 	if query.Export {

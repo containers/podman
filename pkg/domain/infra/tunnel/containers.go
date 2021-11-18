@@ -308,7 +308,9 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 	options.WithExport(opts.Export)
 	options.WithTCPEstablished(opts.TCPEstablished)
 	options.WithPrintStats(opts.PrintStats)
+	options.WithPreCheckpoint(opts.PreCheckPoint)
 	options.WithLeaveRunning(opts.LeaveRunning)
+	options.WithWithPrevious(opts.WithPrevious)
 
 	var (
 		err  error
@@ -345,6 +347,10 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 }
 
 func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []string, opts entities.RestoreOptions) ([]*entities.RestoreReport, error) {
+	if opts.ImportPrevious != "" {
+		return nil, fmt.Errorf("--import-previous is not supported on the remote client")
+	}
+
 	options := new(containers.RestoreOptions)
 	options.WithIgnoreRootfs(opts.IgnoreRootFS)
 	options.WithIgnoreVolumes(opts.IgnoreVolumes)
