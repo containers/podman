@@ -244,6 +244,13 @@ sub podman_help {
             if ($line =~ /^\s{1,4}(\S+)\s/) {
                 my $subcommand = $1;
                 print "> podman @_ $subcommand\n"               if $debug;
+
+                # check that the same subcommand is not listed twice (#12356)
+                if (exists $help{$subcommand}) {
+                    warn "$ME: 'podman @_ help' lists '$subcommand' twice\n";
+                    ++$Errs;
+                }
+
                 $help{$subcommand} = podman_help(@_, $subcommand)
                     unless $subcommand eq 'help';       # 'help' not in man
             }
