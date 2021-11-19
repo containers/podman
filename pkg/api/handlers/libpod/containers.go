@@ -221,6 +221,7 @@ func Checkpoint(w http.ResponseWriter, r *http.Request) {
 		PrintStats     bool `schema:"printStats"`
 		PreCheckpoint  bool `schema:"preCheckpoint"`
 		WithPrevious   bool `schema:"withPrevious"`
+		FileLocks      bool `schema:"fileLocks"`
 	}{
 		// override any golang type defaults
 	}
@@ -246,6 +247,7 @@ func Checkpoint(w http.ResponseWriter, r *http.Request) {
 		PrintStats:     query.PrintStats,
 		PreCheckPoint:  query.PreCheckpoint,
 		WithPrevious:   query.WithPrevious,
+		FileLocks:      query.FileLocks,
 	}
 
 	if query.Export {
@@ -305,6 +307,7 @@ func Restore(w http.ResponseWriter, r *http.Request) {
 		IgnoreStaticIP  bool   `schema:"ignoreStaticIP"`
 		IgnoreStaticMAC bool   `schema:"ignoreStaticMAC"`
 		PrintStats      bool   `schema:"printStats"`
+		FileLocks       bool   `schema:"fileLocks"`
 		PublishPorts    string `schema:"publishPorts"`
 	}{
 		// override any golang type defaults
@@ -324,6 +327,7 @@ func Restore(w http.ResponseWriter, r *http.Request) {
 		IgnoreStaticIP:  query.IgnoreStaticIP,
 		IgnoreStaticMAC: query.IgnoreStaticMAC,
 		PrintStats:      query.PrintStats,
+		FileLocks:       query.FileLocks,
 		PublishPorts:    strings.Fields(query.PublishPorts),
 	}
 

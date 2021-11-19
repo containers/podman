@@ -1355,7 +1355,7 @@ var _ = Describe("Podman checkpoint", func() {
 		result := podmanTest.Podman([]string{"container", "checkpoint", "test_name"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(125))
-		Expect(result.ErrorToString()).To(ContainSubstring("criu failed"))
+		Expect(result.ErrorToString()).To(ContainSubstring("failed: exit status 1"))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 
 		// Checkpoint is expected to succeed with --file-locks
