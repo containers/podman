@@ -276,12 +276,14 @@ func GenerateKubeServiceFromV1Pod(pod *v1.Pod, servicePorts []v1.ServicePort) (Y
 type servicePortState struct {
 	// A program using the shared math/rand state with the default seed will produce the same sequence of pseudo-random numbers
 	// for each execution. Use a private RNG state not to interfere with other users.
-	rng *rand.Rand
+	rng       *rand.Rand
+	usedPorts map[int]struct{}
 }
 
 func newServicePortState() servicePortState {
 	return servicePortState{
-		rng: rand.New(rand.NewSource(time.Now().UnixNano())),
+		rng:       rand.New(rand.NewSource(time.Now().UnixNano())),
+		usedPorts: map[int]struct{}{},
 	}
 }
 
@@ -290,8 +292,20 @@ func newServicePortState() servicePortState {
 func (state *servicePortState) containerPortsToServicePorts(containerPorts []v1.ContainerPort) ([]v1.ServicePort, error) {
 	sps := make([]v1.ServicePort, 0, len(containerPorts))
 	for _, cp := range containerPorts {
-		// Legal nodeport range is 30000-32767
-		nodePort := 30000 + state.rng.Intn(32767-30000+1)
+		var nodePort int
+		attempt := 0
+		for {
+			// Legal nodeport range is 30000-32767
+			nodePort = 30000 + state.rng.Intn(32767-30000+1)
+			if _, found := state.usedPorts[nodePort]; !found {
+				state.usedPorts[nodePort] = struct{}{}
+				break
+			}
+			attempt++
+			if attempt >= 100 {
+				return nil, fmt.Errorf("too many attempts trying to generate a unique NodePort number")
+			}
+		}
 		servicePort := v1.ServicePort{
 			Protocol:   cp.Protocol,
 			Port:       cp.ContainerPort,
