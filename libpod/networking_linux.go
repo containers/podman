@@ -1139,7 +1139,7 @@ func resultToBasicNetworkConfig(result types.StatusBlock) (define.InspectBasicNe
 					config.IPPrefixLen = size
 					config.Gateway = netAddress.Gateway.String()
 				} else {
-					config.SecondaryIPAddresses = append(config.SecondaryIPAddresses, netAddress.IPNet.IP.String())
+					config.SecondaryIPAddresses = append(config.SecondaryIPAddresses, define.Address{Addr: netAddress.IPNet.IP.String(), PrefixLength: size})
 				}
 			} else {
 				//ipv6
@@ -1148,7 +1148,7 @@ func resultToBasicNetworkConfig(result types.StatusBlock) (define.InspectBasicNe
 					config.GlobalIPv6PrefixLen = size
 					config.IPv6Gateway = netAddress.Gateway.String()
 				} else {
-					config.SecondaryIPv6Addresses = append(config.SecondaryIPv6Addresses, netAddress.IPNet.IP.String())
+					config.SecondaryIPv6Addresses = append(config.SecondaryIPv6Addresses, define.Address{Addr: netAddress.IPNet.IP.String(), PrefixLength: size})
 				}
 			}
 		}
