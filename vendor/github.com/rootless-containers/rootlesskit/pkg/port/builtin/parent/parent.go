@@ -2,9 +2,9 @@ package parent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -13,8 +13,6 @@ import (
 	"sync"
 	"syscall"
 	"time"
-
-	"github.com/pkg/errors"
 
 	"github.com/rootless-containers/rootlesskit/pkg/api"
 	"github.com/rootless-containers/rootlesskit/pkg/port"
@@ -32,10 +30,10 @@ func NewDriver(logWriter io.Writer, stateDir string) (port.ParentDriver, error) 
 	childReadyPipePath := filepath.Join(stateDir, ".bp-ready.pipe")
 	// remove the path just in case the previous rootlesskit instance crashed
 	if err := os.RemoveAll(childReadyPipePath); err != nil {
-		return nil, errors.Wrapf(err, "cannot remove %s", childReadyPipePath)
+		return nil, fmt.Errorf("cannot remove %s: %w", childReadyPipePath, err)
 	}
 	if err := syscall.Mkfifo(childReadyPipePath, 0600); err != nil {
-		return nil, errors.Wrapf(err, "cannot mkfifo %s", childReadyPipePath)
+		return nil, fmt.Errorf("cannot mkfifo %s: %w", childReadyPipePath, err)
 	}
 	d := driver{
 		logWriter:          logWriter,
@@ -79,7 +77,7 @@ func (d *driver) RunParentDriver(initComplete chan struct{}, quit <-chan struct{
 	if err != nil {
 		return err
 	}
-	if _, err = ioutil.ReadAll(childReadyPipeR); err != nil {
+	if _, err = io.ReadAll(childReadyPipeR); err != nil {
 		return err
 	}
 	childReadyPipeR.Close()
@@ -110,7 +108,7 @@ func annotateEPERM(origErr error, spec port.Spec) error {
 	// Read "net.ipv4.ip_unprivileged_port_start" value (typically 1024)
 	// TODO: what for IPv6?
 	// NOTE: sync.Once should not be used here
-	b, e := ioutil.ReadFile("/proc/sys/net/ipv4/ip_unprivileged_port_start")
+	b, e := os.ReadFile("/proc/sys/net/ipv4/ip_unprivileged_port_start")
 	if e != nil {
 		return origErr
 	}
@@ -129,7 +127,7 @@ func annotateEPERM(origErr error, spec port.Spec) error {
 		text += ", or set CAP_NET_BIND_SERVICE on rootlesskit binary"
 	}
 	text += fmt.Sprintf(", or choose a larger port number (>= %d)", start)
-	return errors.Wrap(origErr, text)
+	return fmt.Errorf(text+": %w", origErr)
 }
 
 func (d *driver) AddPort(ctx context.Context, spec port.Spec) (*port.Status, error) {
@@ -152,7 +150,7 @@ func (d *driver) AddPort(ctx context.Context, spec port.Spec) (*port.Status, err
 			}
 			return errors.New("routineStoppedCh was closed without sending data?")
 		case <-ctx.Done():
-			return errors.Wrap(err, "timed out while waiting for routineStoppedCh after closing routineStopCh")
+			return fmt.Errorf("timed out while waiting for routineStoppedCh after closing routineStopCh: %w", err)
 		}
 	}
 	switch spec.Proto {
@@ -198,7 +196,7 @@ func (d *driver) RemovePort(ctx context.Context, id int) error {
 	defer d.mu.Unlock()
 	stop, ok := d.stoppers[id]
 	if !ok {
-		return errors.Errorf("unknown id: %d", id)
+		return fmt.Errorf("unknown id: %d", id)
 	}
 	if _, ok := ctx.Deadline(); !ok {
 		var cancel context.CancelFunc

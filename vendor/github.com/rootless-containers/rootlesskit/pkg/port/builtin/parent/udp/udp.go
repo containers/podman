@@ -1,12 +1,11 @@
 package udp
 
 import (
+	"fmt"
 	"io"
 	"net"
 	"os"
 	"strconv"
-
-	"github.com/pkg/errors"
 
 	"github.com/rootless-containers/rootlesskit/pkg/port"
 	"github.com/rootless-containers/rootlesskit/pkg/port/builtin/msg"
@@ -39,7 +38,7 @@ func Run(socketPath string, spec port.Spec, stopCh <-chan struct{}, stoppedCh ch
 			}
 			uc, ok := fc.(*net.UDPConn)
 			if !ok {
-				return nil, errors.Errorf("file conn doesn't implement *net.UDPConn: %+v", fc)
+				return nil, fmt.Errorf("file conn doesn't implement *net.UDPConn: %+v", fc)
 			}
 			return uc, nil
 		},
