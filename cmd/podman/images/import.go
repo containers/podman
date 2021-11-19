@@ -77,8 +77,10 @@ func importFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(messageFlagName, completion.AutocompleteNone)
 
 	flags.BoolVarP(&importOpts.Quiet, "quiet", "q", false, "Suppress output")
-	flags.StringVar(&importOpts.SignaturePolicy, "signature-policy", "", "Path to a signature-policy file")
-	_ = flags.MarkHidden("signature-policy")
+	if !registry.IsRemote() {
+		flags.StringVar(&importOpts.SignaturePolicy, "signature-policy", "", "Path to a signature-policy file")
+		_ = flags.MarkHidden("signature-policy")
+	}
 }
 
 func importCon(cmd *cobra.Command, args []string) error {

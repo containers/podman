@@ -108,8 +108,6 @@ func init() {
 		flags.StringVar(&kubeOptions.CertDir, certDirFlagName, "", "`Pathname` of a directory containing TLS certificates and keys")
 		_ = kubeCmd.RegisterFlagCompletionFunc(certDirFlagName, completion.AutocompleteDefault)
 
-		flags.StringVar(&kubeOptions.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
-
 		seccompProfileRootFlagName := "seccomp-profile-root"
 		flags.StringVar(&kubeOptions.SeccompProfileRoot, seccompProfileRootFlagName, defaultSeccompRoot, "Directory path for seccomp profiles")
 		_ = kubeCmd.RegisterFlagCompletionFunc(seccompProfileRootFlagName, completion.AutocompleteDefault)
@@ -121,7 +119,12 @@ func init() {
 		buildFlagName := "build"
 		flags.BoolVar(&kubeOptions.Build, buildFlagName, false, "Build all images in a YAML (given Containerfiles exist)")
 	}
-	_ = flags.MarkHidden("signature-policy")
+
+	if !registry.IsRemote() {
+		flags.StringVar(&kubeOptions.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
+
+		_ = flags.MarkHidden("signature-policy")
+	}
 }
 
 func kube(cmd *cobra.Command, args []string) error {

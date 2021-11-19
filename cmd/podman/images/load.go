@@ -64,8 +64,10 @@ func loadFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(inputFlagName, completion.AutocompleteDefault)
 
 	flags.BoolVarP(&loadOpts.Quiet, "quiet", "q", false, "Suppress the output")
-	flags.StringVar(&loadOpts.SignaturePolicy, "signature-policy", "", "Pathname of signature policy file")
-	_ = flags.MarkHidden("signature-policy")
+	if !registry.IsRemote() {
+		flags.StringVar(&loadOpts.SignaturePolicy, "signature-policy", "", "Pathname of signature policy file")
+		_ = flags.MarkHidden("signature-policy")
+	}
 }
 
 func load(cmd *cobra.Command, args []string) error {

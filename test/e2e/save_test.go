@@ -194,14 +194,16 @@ default-docker:
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session = podmanTest.Podman([]string{"pull", "--tls-verify=false", "--signature-policy=sign/policy.json", "localhost:5000/alpine"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		if !IsRemote() {
+			session = podmanTest.Podman([]string{"pull", "--tls-verify=false", "--signature-policy=sign/policy.json", "localhost:5000/alpine"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
 
-		outfile := filepath.Join(podmanTest.TempDir, "temp.tar")
-		save := podmanTest.Podman([]string{"save", "remove-signatures=true", "-o", outfile, "localhost:5000/alpine"})
-		save.WaitWithDefaultTimeout()
-		Expect(save).To(ExitWithError())
+			outfile := filepath.Join(podmanTest.TempDir, "temp.tar")
+			save := podmanTest.Podman([]string{"save", "remove-signatures=true", "-o", outfile, "localhost:5000/alpine"})
+			save.WaitWithDefaultTimeout()
+			Expect(save).To(ExitWithError())
+		}
 	})
 
 	It("podman save image with digest reference", func() {

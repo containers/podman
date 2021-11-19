@@ -101,7 +101,6 @@ func pushFlags(cmd *cobra.Command) {
 
 	flags.BoolVarP(&pushOptions.Quiet, "quiet", "q", false, "Suppress output information when pushing images")
 	flags.BoolVar(&pushOptions.RemoveSignatures, "remove-signatures", false, "Discard any pre-existing signatures in the image")
-	flags.StringVar(&pushOptions.SignaturePolicy, "signature-policy", "", "Path to a signature-policy file")
 
 	signByFlagName := "sign-by"
 	flags.StringVar(&pushOptions.SignBy, signByFlagName, "", "Add a signature at the destination using the specified key")
@@ -117,7 +116,10 @@ func pushFlags(cmd *cobra.Command) {
 		_ = flags.MarkHidden("remove-signatures")
 		_ = flags.MarkHidden("sign-by")
 	}
-	_ = flags.MarkHidden("signature-policy")
+	if !registry.IsRemote() {
+		flags.StringVar(&pushOptions.SignaturePolicy, "signature-policy", "", "Path to a signature-policy file")
+		_ = flags.MarkHidden("signature-policy")
+	}
 }
 
 // imagePush is implement the command for pushing images.

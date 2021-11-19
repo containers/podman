@@ -104,7 +104,15 @@ var _ = Describe("Podman load", func() {
 
 		result := podmanTest.Podman([]string{"load", "--signature-policy", "/etc/containers/policy.json", "-i", outfile})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		if IsRemote() {
+			Expect(result).To(ExitWithError())
+			Expect(result.ErrorToString()).To(ContainSubstring("unknown flag"))
+			result = podmanTest.Podman([]string{"load", "-i", outfile})
+			result.WaitWithDefaultTimeout()
+			Expect(result).Should(Exit(0))
+		} else {
+			Expect(result).Should(Exit(0))
+		}
 	})
 
 	It("podman load with quiet flag", func() {
