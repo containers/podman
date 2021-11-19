@@ -88,6 +88,11 @@ type Runtime struct {
 	libimageEventsShutdown chan bool
 	lockManager            lock.Manager
 
+	// syslog describes whenever logrus should log to the syslog as well.
+	// Note that the syslog hook will be enabled early in cmd/podman/syslog_linux.go
+	// This bool is just needed so that we can set it for netavark interface.
+	syslog bool
+
 	// doRenumber indicates that the runtime should perform a lock renumber
 	// during initialization.
 	// Once the runtime has been initialized and returned, this variable is
@@ -517,6 +522,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 			DefaultSubnet:    runtime.config.Network.DefaultSubnet,
 			IsMachine:        runtime.config.Engine.MachineEnabled,
 			LockFile:         filepath.Join(runtime.config.Network.NetworkConfigDir, "netavark.lock"),
+			Syslog:           runtime.syslog,
 		})
 		if err != nil {
 			return errors.Wrapf(err, "could not create network interface")

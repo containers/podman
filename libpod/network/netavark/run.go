@@ -54,7 +54,7 @@ func (n *netavarkNetwork) Setup(namespacePath string, options types.SetupOptions
 	}
 
 	result := map[string]types.StatusBlock{}
-	err = execNetavark(n.netavarkBinary, []string{"setup", namespacePath}, netavarkOpts, &result)
+	err = n.execNetavark([]string{"setup", namespacePath}, netavarkOpts, &result)
 
 	if len(result) != len(options.Networks) {
 		logrus.Errorf("unexpected netavark result: %v", result)
@@ -86,7 +86,7 @@ func (n *netavarkNetwork) Teardown(namespacePath string, options types.TeardownO
 		return errors.Wrap(err, "failed to convert net opts")
 	}
 
-	retErr := execNetavark(n.netavarkBinary, []string{"teardown", namespacePath}, netavarkOpts, nil)
+	retErr := n.execNetavark([]string{"teardown", namespacePath}, netavarkOpts, nil)
 
 	// when netavark returned an error we still free the used ips
 	// otherwise we could end up in a state where block the ips forever

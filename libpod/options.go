@@ -578,6 +578,14 @@ func WithEnableSDNotify() RuntimeOption {
 	}
 }
 
+// WithSyslog sets a runtime option so we know that we have to log to the syslog as well
+func WithSyslog() RuntimeOption {
+	return func(rt *Runtime) error {
+		rt.syslog = true
+		return nil
+	}
+}
+
 // WithRuntimeFlags adds the global runtime flags to the container config
 func WithRuntimeFlags(runtimeFlags []string) RuntimeOption {
 	return func(rt *Runtime) error {
