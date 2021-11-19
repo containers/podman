@@ -80,7 +80,10 @@ func (p *Pod) GenerateForKube(ctx context.Context) (*v1.Pod, []v1.ServicePort, e
 			return nil, servicePorts, err
 		}
 		spState := newServicePortState()
-		servicePorts = spState.containerPortsToServicePorts(ports)
+		servicePorts, err = spState.containerPortsToServicePorts(ports)
+		if err != nil {
+			return nil, servicePorts, err
+		}
 		hostNetwork = infraContainer.NetworkMode() == string(namespaces.NetworkMode(specgen.Host))
 	}
 	pod, err := p.podWithContainers(ctx, allContainers, ports, hostNetwork)
@@ -243,13 +246,17 @@ func ConvertV1PodToYAMLPod(pod *v1.Pod) *YAMLPod {
 }
 
 // GenerateKubeServiceFromV1Pod creates a v1 service object from a v1 pod object
-func GenerateKubeServiceFromV1Pod(pod *v1.Pod, servicePorts []v1.ServicePort) YAMLService {
+func GenerateKubeServiceFromV1Pod(pod *v1.Pod, servicePorts []v1.ServicePort) (YAMLService, error) {
 	service := YAMLService{}
 	selector := make(map[string]string)
 	selector["app"] = pod.Labels["app"]
 	ports := servicePorts
 	if len(ports) == 0 {
-		ports = containersToServicePorts(pod.Spec.Containers)
+		p, err := containersToServicePorts(pod.Spec.Containers)
+		if err != nil {
+			return service, err
+		}
+		ports = p
 	}
 	serviceSpec := v1.ServiceSpec{
 		Ports:    ports,
@@ -263,7 +270,7 @@ func GenerateKubeServiceFromV1Pod(pod *v1.Pod, servicePorts []v1.ServicePort) YA
 		APIVersion: pod.TypeMeta.APIVersion,
 	}
 	service.TypeMeta = tm
-	return service
+	return service, nil
 }
 
 // servicePortState allows calling containerPortsToServicePorts for a single service
@@ -281,7 +288,7 @@ func newServicePortState() servicePortState {
 
 // containerPortsToServicePorts takes a slice of containerports and generates a
 // slice of service ports
-func (state *servicePortState) containerPortsToServicePorts(containerPorts []v1.ContainerPort) []v1.ServicePort {
+func (state *servicePortState) containerPortsToServicePorts(containerPorts []v1.ContainerPort) ([]v1.ServicePort, error) {
 	sps := make([]v1.ServicePort, 0, len(containerPorts))
 	for _, cp := range containerPorts {
 		// Legal nodeport range is 30000-32767
@@ -295,18 +302,22 @@ func (state *servicePortState) containerPortsToServicePorts(containerPorts []v1.
 		}
 		sps = append(sps, servicePort)
 	}
-	return sps
+	return sps, nil
 }
 
 // containersToServicePorts takes a slice of v1.Containers and generates an
 // inclusive list of serviceports to expose
-func containersToServicePorts(containers []v1.Container) []v1.ServicePort {
+func containersToServicePorts(containers []v1.Container) ([]v1.ServicePort, error) {
 	state := newServicePortState()
 	sps := make([]v1.ServicePort, 0, len(containers))
 	for _, ctr := range containers {
-		sps = append(sps, state.containerPortsToServicePorts(ctr.Ports)...)
+		ports, err := state.containerPortsToServicePorts(ctr.Ports)
+		if err != nil {
+			return nil, err
+		}
+		sps = append(sps, ports...)
 	}
-	return sps
+	return sps, nil
 }
 
 func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, ports []v1.ContainerPort, hostNetwork bool) (*v1.Pod, error) {
