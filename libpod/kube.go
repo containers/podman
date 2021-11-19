@@ -269,6 +269,7 @@ func GenerateKubeServiceFromV1Pod(pod *v1.Pod, servicePorts []v1.ServicePort) YA
 func containerPortsToServicePorts(containerPorts []v1.ContainerPort) []v1.ServicePort {
 	sps := make([]v1.ServicePort, 0, len(containerPorts))
 	for _, cp := range containerPorts {
+		// Legal nodeport range is 30000-32767
 		nodePort := 30000 + rand.Intn(32767-30000+1)
 		servicePort := v1.ServicePort{
 			Protocol:   cp.Protocol,
@@ -286,7 +287,7 @@ func containerPortsToServicePorts(containerPorts []v1.ContainerPort) []v1.Servic
 // inclusive list of serviceports to expose
 func containersToServicePorts(containers []v1.Container) []v1.ServicePort {
 	// Without the call to rand.Seed, a program will produce the same sequence of pseudo-random numbers
-	// for each execution. Legal nodeport range is 30000-32767
+	// for each execution.
 	rand.Seed(time.Now().UnixNano())
 
 	sps := make([]v1.ServicePort, 0, len(containers))
