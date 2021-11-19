@@ -79,7 +79,8 @@ func (p *Pod) GenerateForKube(ctx context.Context) (*v1.Pod, []v1.ServicePort, e
 		if err != nil {
 			return nil, servicePorts, err
 		}
-		servicePorts = containerPortsToServicePorts(ports)
+		spState := newServicePortState()
+		servicePorts = spState.containerPortsToServicePorts(ports)
 		hostNetwork = infraContainer.NetworkMode() == string(namespaces.NetworkMode(specgen.Host))
 	}
 	pod, err := p.podWithContainers(ctx, allContainers, ports, hostNetwork)
@@ -265,13 +266,26 @@ func GenerateKubeServiceFromV1Pod(pod *v1.Pod, servicePorts []v1.ServicePort) YA
 	return service
 }
 
+// servicePortState allows calling containerPortsToServicePorts for a single service
+type servicePortState struct {
+	// A program using the shared math/rand state with the default seed will produce the same sequence of pseudo-random numbers
+	// for each execution. Use a private RNG state not to interfere with other users.
+	rng *rand.Rand
+}
+
+func newServicePortState() servicePortState {
+	return servicePortState{
+		rng: rand.New(rand.NewSource(time.Now().UnixNano())),
+	}
+}
+
 // containerPortsToServicePorts takes a slice of containerports and generates a
 // slice of service ports
-func containerPortsToServicePorts(containerPorts []v1.ContainerPort) []v1.ServicePort {
+func (state *servicePortState) containerPortsToServicePorts(containerPorts []v1.ContainerPort) []v1.ServicePort {
 	sps := make([]v1.ServicePort, 0, len(containerPorts))
 	for _, cp := range containerPorts {
 		// Legal nodeport range is 30000-32767
-		nodePort := 30000 + rand.Intn(32767-30000+1)
+		nodePort := 30000 + state.rng.Intn(32767-30000+1)
 		servicePort := v1.ServicePort{
 			Protocol:   cp.Protocol,
 			Port:       cp.ContainerPort,
@@ -287,13 +301,10 @@ func containerPortsToServicePorts(containerPorts []v1.ContainerPort) []v1.Servic
 // containersToServicePorts takes a slice of v1.Containers and generates an
 // inclusive list of serviceports to expose
 func containersToServicePorts(containers []v1.Container) []v1.ServicePort {
-	// Without the call to rand.Seed, a program will produce the same sequence of pseudo-random numbers
-	// for each execution.
-	rand.Seed(time.Now().UnixNano())
-
+	state := newServicePortState()
 	sps := make([]v1.ServicePort, 0, len(containers))
 	for _, ctr := range containers {
-		sps = append(sps, containerPortsToServicePorts(ctr.Ports)...)
+		sps = append(sps, state.containerPortsToServicePorts(ctr.Ports)...)
 	}
 	return sps
 }
