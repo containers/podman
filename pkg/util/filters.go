@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"regexp"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -95,24 +95,13 @@ func PrepareFilters(r *http.Request) (*map[string][]string, error) {
 	return &filterMap, nil
 }
 
-func wildCardToRegexp(pattern string) string {
-	var result strings.Builder
-	for i, literal := range strings.Split(pattern, "*") {
-		// Replace * with .*
-		if i > 0 {
-			result.WriteString(".*")
-		}
-		// Quote any regular expression meta characters in the
-		// literal text.
-		result.WriteString(regexp.QuoteMeta(literal))
-	}
-	return result.String()
-}
-
 func matchPattern(pattern string, value string) bool {
 	if strings.Contains(pattern, "*") {
-		result, _ := regexp.MatchString(wildCardToRegexp(pattern), value)
-		return result
+		filter := fmt.Sprintf("*%s*", pattern)
+		filter = strings.ReplaceAll(filter, string(filepath.Separator), "|")
+		newName := strings.ReplaceAll(value, string(filepath.Separator), "|")
+		match, _ := filepath.Match(filter, newName)
+		return match
 	}
 	return false
 }
