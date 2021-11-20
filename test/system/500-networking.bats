@@ -139,10 +139,11 @@ load helpers
 
 @test "podman run with slirp4ns assigns correct addresses to /etc/hosts" {
     CIDR="$(random_rfc1918_subnet)"
+    IP=$(hostname -I | cut -f 1 -d " ")
     local conname=con-$(random_string 10)
     run_podman run --rm --network slirp4netns:cidr="${CIDR}.0/24" \
                 --name $conname --hostname $conname $IMAGE cat /etc/hosts
-    is "$output"   ".*${CIDR}.2 host.containers.internal"   "host.containers.internal should be the cidr+2 address"
+    is "$output"   ".*${IP}	host.containers.internal"   "host.containers.internal should be the cidr+2 address"
     is "$output"   ".*${CIDR}.100	$conname $conname"   "$conname should be the cidr+100 address"
 }
 

@@ -2154,11 +2154,24 @@ func (c *Container) getHosts() string {
 				}
 			}
 		} else if c.config.NetMode.IsSlirp4netns() {
-			gatewayIP, err := GetSlirp4netnsGateway(c.slirp4netnsSubnet)
-			if err != nil {
-				logrus.Warn("Failed to determine gatewayIP: ", err.Error())
-			} else {
-				hosts += fmt.Sprintf("%s host.containers.internal\n", gatewayIP.String())
+			// getLocalIP returns the non loopback local IP of the host
+			getLocalIP := func() string {
+				addrs, err := net.InterfaceAddrs()
+				if err != nil {
+					return ""
+				}
+				for _, address := range addrs {
+					// check the address type and if it is not a loopback the display it
+					if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+						if ipnet.IP.To4() != nil {
+							return ipnet.IP.String()
+						}
+					}
+				}
+				return ""
+			}
+			if ip := getLocalIP(); ip != "" {
+				hosts += fmt.Sprintf("%s\t%s\n", ip, "host.containers.internal")
 			}
 		} else {
 			logrus.Debug("Network configuration does not support host.containers.internal address")
