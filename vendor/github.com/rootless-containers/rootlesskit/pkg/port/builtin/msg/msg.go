@@ -1,10 +1,11 @@
 package msg
 
 import (
+	"errors"
+	"fmt"
 	"net"
 	"time"
 
-	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 
 	"github.com/rootless-containers/rootlesskit/pkg/msgutil"
@@ -78,7 +79,7 @@ func ConnectToChild(c *net.UnixConn, spec port.Spec) (int, error) {
 		return 0, err
 	}
 	if oobN != oobSpace {
-		return 0, errors.Errorf("expected OOB space %d, got %d", oobSpace, oobN)
+		return 0, fmt.Errorf("expected OOB space %d, got %d", oobSpace, oobN)
 	}
 	oob = oob[:oobN]
 	fd, err := parseFDFromOOB(oob)
@@ -126,7 +127,7 @@ func parseFDFromOOB(oob []byte) (int, error) {
 		return 0, err
 	}
 	if len(scms) != 1 {
-		return 0, errors.Errorf("unexpected scms: %v", scms)
+		return 0, fmt.Errorf("unexpected scms: %v", scms)
 	}
 	scm := scms[0]
 	fds, err := unix.ParseUnixRights(&scm)
@@ -134,7 +135,7 @@ func parseFDFromOOB(oob []byte) (int, error) {
 		return 0, err
 	}
 	if len(fds) != 1 {
-		return 0, errors.Errorf("unexpected fds: %v", fds)
+		return 0, fmt.Errorf("unexpected fds: %v", fds)
 	}
 	return fds[0], nil
 }

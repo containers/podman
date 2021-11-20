@@ -5,9 +5,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"io"
-
-	"github.com/pkg/errors"
 )
 
 const (
@@ -20,7 +19,7 @@ func MarshalToWriter(w io.Writer, x interface{}) (int, error) {
 		return 0, err
 	}
 	if len(b) > maxLength {
-		return 0, errors.Errorf("bad message length: %d (max: %d)", len(b), maxLength)
+		return 0, fmt.Errorf("bad message length: %d (max: %d)", len(b), maxLength)
 	}
 	h := make([]byte, 4)
 	binary.LittleEndian.PutUint32(h, uint32(len(b)))
@@ -34,11 +33,11 @@ func UnmarshalFromReader(r io.Reader, x interface{}) (int, error) {
 		return n, err
 	}
 	if n != 4 {
-		return n, errors.Errorf("read %d bytes, expected 4 bytes", n)
+		return n, fmt.Errorf("read %d bytes, expected 4 bytes", n)
 	}
 	bLen := binary.LittleEndian.Uint32(hdr)
 	if bLen > maxLength || bLen < 1 {
-		return n, errors.Errorf("bad message length: %d (max: %d)", bLen, maxLength)
+		return n, fmt.Errorf("bad message length: %d (max: %d)", bLen, maxLength)
 	}
 	b := make([]byte, bLen)
 	n, err = r.Read(b)
@@ -46,7 +45,7 @@ func UnmarshalFromReader(r io.Reader, x interface{}) (int, error) {
 		return 4 + n, err
 	}
 	if n != int(bLen) {
-		return 4 + n, errors.Errorf("read %d bytes, expected %d bytes", n, bLen)
+		return 4 + n, fmt.Errorf("read %d bytes, expected %d bytes", n, bLen)
 	}
 	return 4 + n, json.Unmarshal(b, x)
 }
@@ -60,7 +59,7 @@ func Marshal(x interface{}) ([]byte, error) {
 func Unmarshal(b []byte, x interface{}) error {
 	n, err := UnmarshalFromReader(bytes.NewReader(b), x)
 	if n != len(b) {
-		return errors.Errorf("read %d bytes, expected %d bytes", n, len(b))
+		return fmt.Errorf("read %d bytes, expected %d bytes", n, len(b))
 	}
 	return err
 }

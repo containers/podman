@@ -1,12 +1,11 @@
 package portutil
 
 import (
+	"fmt"
 	"net"
 	"strconv"
 	"strings"
 	"text/scanner"
-
-	"github.com/pkg/errors"
 
 	"github.com/rootless-containers/rootlesskit/pkg/port"
 )
@@ -49,18 +48,18 @@ func ParsePortSpec(portSpec string) (*port.Spec, error) {
 	// Get the proto
 	protoPos := strings.LastIndex(portSpec, "/")
 	if protoPos < 0 {
-		return nil, errors.Errorf("missing proto in PortSpec string: %q", portSpec)
+		return nil, fmt.Errorf("missing proto in PortSpec string: %q", portSpec)
 	}
 	parts[proto] = portSpec[protoPos+1:]
 	err = validateProto(parts[proto])
 	if err != nil {
-		return nil, errors.Wrapf(err, "invalid PortSpec string: %q", portSpec)
+		return nil, fmt.Errorf("invalid PortSpec string: %q: %w", portSpec, err)
 	}
 
 	// Get the parent port
 	portPos := strings.LastIndex(portSpec, ":")
 	if portPos < 0 {
-		return nil, errors.Errorf("unexpected PortSpec string: %q", portSpec)
+		return nil, fmt.Errorf("unexpected PortSpec string: %q", portSpec)
 	}
 	parts[childPort] = portSpec[portPos+1 : protoPos]
 
@@ -69,7 +68,7 @@ func ParsePortSpec(portSpec string) (*port.Spec, error) {
 
 	for tok := s.Scan(); tok != scanner.EOF; tok = s.Scan() {
 		if index > childPort {
-			return nil, errors.Errorf("unexpected PortSpec string: %q", portSpec)
+			return nil, fmt.Errorf("unexpected PortSpec string: %q", portSpec)
 		}
 
 		switch tok {
@@ -92,10 +91,10 @@ func ParsePortSpec(portSpec string) (*port.Spec, error) {
 	}
 
 	if parts[parentIP] != "" && net.ParseIP(parts[parentIP]) == nil {
-		return nil, errors.Errorf("unexpected ParentIP in PortSpec string: %q", portSpec)
+		return nil, fmt.Errorf("unexpected ParentIP in PortSpec string: %q", portSpec)
 	}
 	if parts[childIP] != "" && net.ParseIP(parts[childIP]) == nil {
-		return nil, errors.Errorf("unexpected ParentIP in PortSpec string: %q", portSpec)
+		return nil, fmt.Errorf("unexpected ParentIP in PortSpec string: %q", portSpec)
 	}
 
 	ps := &port.Spec{
@@ -106,12 +105,12 @@ func ParsePortSpec(portSpec string) (*port.Spec, error) {
 
 	ps.ParentPort, err = strconv.Atoi(parts[parentPort])
 	if err != nil {
-		return nil, errors.Wrapf(err, "unexpected ChildPort in PortSpec string: %q", portSpec)
+		return nil, fmt.Errorf("unexpected ChildPort in PortSpec string: %q: %w", portSpec, err)
 	}
 
 	ps.ChildPort, err = strconv.Atoi(parts[childPort])
 	if err != nil {
-		return nil, errors.Wrapf(err, "unexpected ParentPort in PortSpec string: %q", portSpec)
+		return nil, fmt.Errorf("unexpected ParentPort in PortSpec string: %q: %w", portSpec, err)
 	}
 
 	return ps, nil
@@ -125,26 +124,26 @@ func ValidatePortSpec(spec port.Spec, existingPorts map[int]*port.Status) error 
 	}
 	if spec.ParentIP != "" {
 		if net.ParseIP(spec.ParentIP) == nil {
-			return errors.Errorf("invalid ParentIP: %q", spec.ParentIP)
+			return fmt.Errorf("invalid ParentIP: %q", spec.ParentIP)
 		}
 	}
 	if spec.ChildIP != "" {
 		if net.ParseIP(spec.ChildIP) == nil {
-			return errors.Errorf("invalid ChildIP: %q", spec.ChildIP)
+			return fmt.Errorf("invalid ChildIP: %q", spec.ChildIP)
 		}
 	}
 	if spec.ParentPort <= 0 || spec.ParentPort > 65535 {
-		return errors.Errorf("invalid ParentPort: %q", spec.ParentPort)
+		return fmt.Errorf("invalid ParentPort: %q", spec.ParentPort)
 	}
 	if spec.ChildPort <= 0 || spec.ChildPort > 65535 {
-		return errors.Errorf("invalid ChildPort: %q", spec.ChildPort)
+		return fmt.Errorf("invalid ChildPort: %q", spec.ChildPort)
 	}
 	for id, p := range existingPorts {
 		sp := p.Spec
 		sameProto := sp.Proto == spec.Proto
 		sameParent := sp.ParentIP == spec.ParentIP && sp.ParentPort == spec.ParentPort
 		if sameProto && sameParent {
-			return errors.Errorf("conflict with ID %d", id)
+			return fmt.Errorf("conflict with ID %d", id)
 		}
 	}
 	return nil
@@ -158,6 +157,6 @@ func validateProto(proto string) error {
 		"sctp", "sctp4", "sctp6":
 		return nil
 	default:
-		return errors.Errorf("unknown proto: %q", proto)
+		return fmt.Errorf("unknown proto: %q", proto)
 	}
 }
