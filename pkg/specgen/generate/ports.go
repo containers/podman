@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/containers/common/libimage"
@@ -13,6 +12,7 @@ import (
 	"github.com/containers/podman/v3/utils"
 
 	"github.com/containers/podman/v3/pkg/specgen"
+	"github.com/containers/podman/v3/pkg/specgenutil"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -410,31 +410,13 @@ func checkProtocol(protocol string, allowSCTP bool) ([]string, error) {
 }
 
 func GenExposedPorts(exposedPorts map[string]struct{}) (map[uint16]string, error) {
-	expose := make(map[uint16]string, len(exposedPorts))
-	for imgExpose := range exposedPorts {
-		// Expose format is portNumber[/protocol]
-		splitExpose := strings.SplitN(imgExpose, "/", 2)
-		num, err := strconv.Atoi(splitExpose[0])
-		if err != nil {
-			return nil, errors.Wrapf(err, "unable to convert image EXPOSE statement %q to port number", imgExpose)
-		}
-		if num > 65535 || num < 1 {
-			return nil, errors.Errorf("%d from image EXPOSE statement %q is not a valid port number", num, imgExpose)
-		}
-
-		// No need to validate protocol, we'll do it later.
-		newProto := "tcp"
-		if len(splitExpose) == 2 {
-			newProto = splitExpose[1]
-		}
-
-		proto := expose[uint16(num)]
-		if len(proto) > 1 {
-			proto = proto + "," + newProto
-		} else {
-			proto = newProto
-		}
-		expose[uint16(num)] = proto
+	expose := make([]string, 0, len(exposedPorts))
+	for e := range exposedPorts {
+		expose = append(expose, e)
 	}
-	return expose, nil
+	toReturn, err := specgenutil.CreateExpose(expose)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to convert image EXPOSE")
+	}
+	return toReturn, nil
 }

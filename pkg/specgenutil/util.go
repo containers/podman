@@ -53,11 +53,11 @@ func ParseFilters(filter []string) (map[string][]string, error) {
 	return filters, nil
 }
 
-// createExpose parses user-provided exposed port definitions and converts them
+// CreateExpose parses user-provided exposed port definitions and converts them
 // into SpecGen format.
 // TODO: The SpecGen format should really handle ranges more sanely - we could
 // be massively inflating what is sent over the wire with a large range.
-func createExpose(expose []string) (map[uint16]string, error) {
+func CreateExpose(expose []string) (map[uint16]string, error) {
 	toReturn := make(map[uint16]string)
 
 	for _, e := range expose {
