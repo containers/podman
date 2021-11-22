@@ -124,6 +124,14 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 		if err != nil {
 			return nil, err
 		}
+		if len(po.Spec.Volumes) != 0 {
+			warning := `
+# NOTE: If you generated this yaml from an unprivileged and rootless podman container on an SELinux
+# enabled system, check the podman generate kube man page for steps to follow to ensure that your pod/container
+# has the right permissions to access the volumes added.
+`
+			content = append(content, []byte(warning))
+		}
 		b, err := generateKubeYAML(libpod.ConvertV1PodToYAMLPod(po))
 		if err != nil {
 			return nil, err
