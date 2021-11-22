@@ -2,7 +2,7 @@ package integration
 
 var (
 	redis             = "quay.io/libpod/redis:alpine"
-	fedoraMinimal     = "quay.io/libpod/fedora-minimal:latest"
+	fedoraMinimal     = "registry.fedoraproject.org/fedora-minimal:34"
 	ALPINE            = "quay.io/libpod/alpine:latest"
 	ALPINELISTTAG     = "quay.io/libpod/alpine:3.10.2"
 	ALPINELISTDIGEST  = "quay.io/libpod/alpine@sha256:fa93b01658e3a5a1686dc3ae55f170d8de487006fb53a28efcd12ab0710a2e5f"
