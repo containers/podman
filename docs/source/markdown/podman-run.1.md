@@ -1853,7 +1853,7 @@ $ podman run --name container1 --rootfs /path/to/rootfs:O bash
 In order to use a timezone other than UTC when running a
 Java application within a container, the `TZ` environment variable must be
 set within the container. Java applications will ignore the value set with the
-`--tz` option.  This will be corrected in a later relase.
+`--tz` option.
 
 ```
 # Example run
