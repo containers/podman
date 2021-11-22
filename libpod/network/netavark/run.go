@@ -55,7 +55,15 @@ func (n *netavarkNetwork) Setup(namespacePath string, options types.SetupOptions
 
 	result := map[string]types.StatusBlock{}
 	err = n.execNetavark([]string{"setup", namespacePath}, netavarkOpts, &result)
+	if err != nil {
+		// lets dealloc ips to prevent leaking
+		if err := n.deallocIPs(&options.NetworkOptions); err != nil {
+			logrus.Error(err)
+		}
+		return nil, err
+	}
 
+	// make sure that the result makes sense
 	if len(result) != len(options.Networks) {
 		logrus.Errorf("unexpected netavark result: %v", result)
 		return nil, fmt.Errorf("unexpected netavark result length, want (%d), got (%d) networks", len(options.Networks), len(result))
