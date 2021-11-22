@@ -37,6 +37,10 @@ type netavarkNetwork struct {
 	// isMachine describes whenever podman runs in a podman machine environment.
 	isMachine bool
 
+	// syslog describes whenever the netavark debbug output should be log to the syslog as well.
+	// This will use logrus to do so, make sure logrus is set up to log to the syslog.
+	syslog bool
+
 	// lock is a internal lock for critical operations
 	lock lockfile.Locker
 
@@ -68,6 +72,10 @@ type InitConfig struct {
 
 	// LockFile is the path to lock file.
 	LockFile string
+
+	// Syslog describes whenever the netavark debbug output should be log to the syslog as well.
+	// This will use logrus to do so, make sure logrus is set up to log to the syslog.
+	Syslog bool
 }
 
 // NewNetworkInterface creates the ContainerNetwork interface for the netavark backend.
@@ -122,6 +130,7 @@ func NewNetworkInterface(conf InitConfig) (types.ContainerNetwork, error) {
 		defaultSubnet:    defaultNet,
 		isMachine:        conf.IsMachine,
 		lock:             lock,
+		syslog:           conf.Syslog,
 	}
 
 	return n, nil

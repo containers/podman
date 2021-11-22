@@ -89,6 +89,10 @@ var _ = Describe("run netavark", func() {
 		if err != nil {
 			Fail("Failed to create netns")
 		}
+
+		// Force iptables driver, firewalld is broken inside the extra
+		// namespace because it still connects to firewalld on the host.
+		_ = os.Setenv("NETAVARK_FW", "iptables")
 	})
 
 	JustBeforeEach(func() {
@@ -109,6 +113,8 @@ var _ = Describe("run netavark", func() {
 
 		netns.UnmountNS(netNSContainer)
 		netNSContainer.Close()
+
+		_ = os.Unsetenv("NETAVARK_FW")
 	})
 
 	It("test basic setup", func() {

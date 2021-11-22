@@ -236,6 +236,11 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 		options = append(options, libpod.WithRegistriesConf(cfg.RegistriesConf))
 	}
 
+	// no need to handle the error, it will return false anyway
+	if syslog, _ := fs.GetBool("syslog"); syslog {
+		options = append(options, libpod.WithSyslog())
+	}
+
 	// TODO flag to set CNI plugins dir?
 
 	if !opts.withFDS {

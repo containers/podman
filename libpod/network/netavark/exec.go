@@ -3,6 +3,7 @@ package netavark
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"os"
 	"os/exec"
 	"strconv"
@@ -45,6 +46,15 @@ func newNetavarkError(msg string, err error) error {
 	}
 }
 
+// Type to implement io.Writer interface
+// This will write the logrus at info level
+type logrusNetavarkWriter struct{}
+
+func (l *logrusNetavarkWriter) Write(b []byte) (int, error) {
+	logrus.Info("netavark: ", string(b))
+	return len(b), nil
+}
+
 // getRustLogEnv returns the RUST_LOG env var based on the current logrus level
 func getRustLogEnv() string {
 	level := logrus.GetLevel().String()
@@ -63,26 +73,43 @@ func getRustLogEnv() string {
 // used to marshal the netavark output into it. This can be nil.
 // All errors return by this function should be of the type netavarkError
 // to provide a helpful error message.
-func execNetavark(binary string, args []string, stdin, result interface{}) error {
+func (n *netavarkNetwork) execNetavark(args []string, stdin, result interface{}) error {
 	stdinR, stdinW, err := os.Pipe()
 	if err != nil {
 		return newNetavarkError("failed to create stdin pipe", err)
 	}
-	defer stdinR.Close()
+	stdinWClosed := false
+	defer func() {
+		stdinR.Close()
+		if !stdinWClosed {
+			stdinW.Close()
+		}
+	}()
 
 	stdoutR, stdoutW, err := os.Pipe()
 	if err != nil {
 		return newNetavarkError("failed to create stdout pipe", err)
 	}
-	defer stdoutR.Close()
-	defer stdoutW.Close()
+	stdoutWClosed := false
+	defer func() {
+		stdoutR.Close()
+		if !stdoutWClosed {
+			stdoutW.Close()
+		}
+	}()
 
-	cmd := exec.Command(binary, args...)
+	// connect stderr to the podman stderr for logging
+	var logWriter io.Writer = os.Stderr
+	if n.syslog {
+		// connect logrus to stderr as well so that the logs will be written to the syslog as well
+		logWriter = io.MultiWriter(logWriter, &logrusNetavarkWriter{})
+	}
+
+	cmd := exec.Command(n.netavarkBinary, args...)
 	// connect the pipes to stdin and stdout
 	cmd.Stdin = stdinR
 	cmd.Stdout = stdoutW
-	// connect stderr to the podman stderr for logging
-	cmd.Stderr = os.Stderr
+	cmd.Stderr = logWriter
 	// set the netavark log level to the same as the podman
 	cmd.Env = append(os.Environ(), getRustLogEnv())
 	// if we run with debug log level lets also set RUST_BACKTRACE=1 so we can get the full stack trace in case of panics
@@ -95,7 +122,9 @@ func execNetavark(binary string, args []string, stdin, result interface{}) error
 		return newNetavarkError("failed to start process", err)
 	}
 	err = json.NewEncoder(stdinW).Encode(stdin)
+	// we have to close stdinW so netavark gets the EOF and does not hang forever
 	stdinW.Close()
+	stdinWClosed = true
 	if err != nil {
 		return newNetavarkError("failed to encode stdin data", err)
 	}
@@ -103,7 +132,9 @@ func execNetavark(binary string, args []string, stdin, result interface{}) error
 	dec := json.NewDecoder(stdoutR)
 
 	err = cmd.Wait()
+	// we have to close stdoutW so we can decode the json without hanging forever
 	stdoutW.Close()
+	stdoutWClosed = true
 	if err != nil {
 		exitError := &exec.ExitError{}
 		if errors.As(err, &exitError) {
