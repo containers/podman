@@ -5,13 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"io/ioutil"
-	"os"
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/internal/iolimits"
-	"github.com/containers/image/v5/internal/putblobdigest"
-	"github.com/containers/image/v5/internal/tmpdir"
+	"github.com/containers/image/v5/internal/streamdigest"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
@@ -98,25 +95,11 @@ func (d *Destination) PutBlob(ctx context.Context, stream io.Reader, inputInfo t
 	// When the layer is decompressed, we also have to generate the digest on uncompressed data.
 	if inputInfo.Size == -1 || inputInfo.Digest == "" {
 		logrus.Debugf("docker tarfile: input with unknown size, streaming to disk first ...")
-		streamCopy, err := ioutil.TempFile(tmpdir.TemporaryDirectoryForBigFiles(d.sysCtx), "docker-tarfile-blob")
+		streamCopy, cleanup, err := streamdigest.ComputeBlobInfo(d.sysCtx, stream, &inputInfo)
 		if err != nil {
 			return types.BlobInfo{}, err
 		}
-		defer os.Remove(streamCopy.Name())
-		defer streamCopy.Close()
-
-		digester, stream2 := putblobdigest.DigestIfUnknown(stream, inputInfo)
-		// TODO: This can take quite some time, and should ideally be cancellable using ctx.Done().
-		size, err := io.Copy(streamCopy, stream2)
-		if err != nil {
-			return types.BlobInfo{}, err
-		}
-		_, err = streamCopy.Seek(0, io.SeekStart)
-		if err != nil {
-			return types.BlobInfo{}, err
-		}
-		inputInfo.Size = size // inputInfo is a struct, so we are only modifying our copy.
-		inputInfo.Digest = digester.Digest()
+		defer cleanup()
 		stream = streamCopy
 		logrus.Debugf("... streaming done")
 	}
