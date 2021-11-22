@@ -6,18 +6,19 @@ import (
 	"io/ioutil"
 	urlP "net/url"
 	"os"
+	"os/exec"
+	"os/user"
 	"strconv"
 	"strings"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/cmd/podman/common"
-	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/system/connection"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/rootless"
-	"github.com/docker/distribution/reference"
+	"github.com/containers/podman/v3/utils"
 	scpD "github.com/dtylman/scp"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -28,8 +29,12 @@ import (
 var (
 	saveScpDescription = `Securely copy an image from one host to another.`
 	imageScpCommand    = &cobra.Command{
-		Use:               "scp [options] IMAGE [HOST::]",
-		Annotations:       map[string]string{registry.EngineMode: registry.ABIMode},
+		Use: "scp [options] IMAGE [HOST::]",
+		Annotations: map[string]string{
+			registry.UnshareNSRequired: "",
+			registry.ParentNSRequired:  "",
+			registry.EngineMode:        registry.ABIMode,
+		},
 		Long:              saveScpDescription,
 		Short:             "securely copy images",
 		RunE:              scp,
@@ -40,7 +45,10 @@ var (
 )
 
 var (
-	scpOpts entities.ImageScpOptions
+	parentFlags []string
+	source      entities.ImageScpOptions
+	dest        entities.ImageScpOptions
+	sshInfo     entities.ImageScpConnections
 )
 
 func init() {
@@ -53,7 +61,7 @@ func init() {
 
 func scpFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
-	flags.BoolVarP(&scpOpts.Save.Quiet, "quiet", "q", false, "Suppress the output")
+	flags.BoolVarP(&source.Quiet, "quiet", "q", false, "Suppress the output")
 }
 
 func scp(cmd *cobra.Command, args []string) (finalErr error) {
@@ -61,24 +69,31 @@ func scp(cmd *cobra.Command, args []string) (finalErr error) {
 		// TODO add tag support for images
 		err error
 	)
-	if scpOpts.Save.Quiet { // set quiet for both load and save
-		scpOpts.Load.Quiet = true
+	for i, val := range os.Args {
+		if val == "image" {
+			break
+		}
+		if i == 0 {
+			continue
+		}
+		if strings.Contains(val, "CIRRUS") { // need to skip CIRRUS flags for testing suite purposes
+			continue
+		}
+		parentFlags = append(parentFlags, val)
 	}
-	f, err := ioutil.TempFile("", "podman") // open temp file for load/save output
+	podman, err := os.Executable()
 	if err != nil {
 		return err
 	}
-	defer os.Remove(f.Name())
-
-	scpOpts.Save.Output = f.Name()
-	scpOpts.Load.Input = scpOpts.Save.Output
-	if err := parse.ValidateFileName(saveOpts.Output); err != nil {
+	f, err := ioutil.TempFile("", "podman") // open temp file for load/save output
+	if err != nil {
 		return err
 	}
 	confR, err := config.NewConfig("") // create a hand made config for the remote engine since we might use remote and native at once
 	if err != nil {
 		return errors.Wrapf(err, "could not make config")
 	}
+
 	abiEng, err := registry.NewImageEngine(cmd, args) // abi native engine
 	if err != nil {
 		return err
@@ -88,77 +103,115 @@ func scp(cmd *cobra.Command, args []string) (finalErr error) {
 	if err != nil {
 		return err
 	}
-	serv, err := parseArgs(args, cfg) // parses connection data and "which way" we are loading and saving
-	if err != nil {
-		return err
-	}
-	// TODO: Add podman remote support
-	confR.Engine = config.EngineConfig{Remote: true, CgroupManager: "cgroupfs", ServiceDestinations: serv} // pass the service dest (either remote or something else) to engine
-	switch {
-	case scpOpts.FromRemote: // if we want to load FROM the remote
-		err = saveToRemote(scpOpts.SourceImageName, scpOpts.Save.Output, "", scpOpts.URI[0], scpOpts.Iden[0])
+	locations := []*entities.ImageScpOptions{}
+	cliConnections := []string{}
+	flipConnections := false
+	for _, arg := range args {
+		loc, connect, err := parseImageSCPArg(arg)
 		if err != nil {
 			return err
 		}
-		if scpOpts.ToRemote { // we want to load remote -> remote
-			rep, err := loadToRemote(scpOpts.Save.Output, "", scpOpts.URI[1], scpOpts.Iden[1])
+		locations = append(locations, loc)
+		cliConnections = append(cliConnections, connect...)
+	}
+	source = *locations[0]
+	switch {
+	case len(locations) > 1:
+		if flipConnections, err = validateSCPArgs(locations); err != nil {
+			return err
+		}
+		if flipConnections { // the order of cliConnections matters, we need to flip both arrays since the args are parsed separately sometimes.
+			connect := cliConnections[0]
+			cliConnections[0] = cliConnections[1]
+			cliConnections[1] = connect
+
+			loc := locations[0]
+			locations[0] = locations[1]
+			locations[1] = loc
+		}
+		dest = *locations[1]
+	case len(locations) == 1:
+		switch {
+		case len(locations[0].Image) == 0:
+			return errors.Wrapf(define.ErrInvalidArg, "no source image specified")
+		case len(locations[0].Image) > 0 && !locations[0].Remote && len(locations[0].User) == 0: // if we have podman image scp $IMAGE
+			return errors.Wrapf(define.ErrInvalidArg, "must specify a destination")
+		}
+	}
+
+	source.File = f.Name() // after parsing the arguments, set the file for the save/load
+	dest.File = source.File
+	if err = os.Remove(source.File); err != nil { // remove the file and simply use its name so podman creates the file upon save. avoids umask errors
+		return err
+	}
+
+	var serv map[string]config.Destination
+	serv, err = GetServiceInformation(cliConnections, cfg)
+	if err != nil {
+		return err
+	}
+
+	// TODO: Add podman remote support
+	confR.Engine = config.EngineConfig{Remote: true, CgroupManager: "cgroupfs", ServiceDestinations: serv} // pass the service dest (either remote or something else) to engine
+	saveCmd, loadCmd := createCommands(podman)
+	switch {
+	case source.Remote: // if we want to load FROM the remote, dest can either be local or remote in this case
+		err = saveToRemote(source.Image, source.File, "", sshInfo.URI[0], sshInfo.Identities[0])
+		if err != nil {
+			return err
+		}
+		if dest.Remote { // we want to load remote -> remote, both source and dest are remote
+			rep, err := loadToRemote(dest.File, "", sshInfo.URI[1], sshInfo.Identities[1])
 			if err != nil {
 				return err
 			}
 			fmt.Println(rep)
 			break
 		}
-		report, err := abiEng.Load(context.Background(), scpOpts.Load)
+		err = execPodman(podman, loadCmd)
 		if err != nil {
 			return err
 		}
-		fmt.Println("Loaded image(s): " + strings.Join(report.Names, ","))
-	case scpOpts.ToRemote: // remote host load
-		scpOpts.Save.Format = "oci-archive"
-		abiErr := abiEng.Save(context.Background(), scpOpts.SourceImageName, []string{}, scpOpts.Save) // save the image locally before loading it on remote, local, or ssh
-		if abiErr != nil {
-			errors.Wrapf(abiErr, "could not save image as specified")
+	case dest.Remote: // remote host load, implies source is local
+		err = execPodman(podman, saveCmd)
+		if err != nil {
+			return err
 		}
-		rep, err := loadToRemote(scpOpts.Save.Output, "", scpOpts.URI[0], scpOpts.Iden[0])
+		rep, err := loadToRemote(source.File, "", sshInfo.URI[0], sshInfo.Identities[0])
 		if err != nil {
 			return err
 		}
 		fmt.Println(rep)
+		if err = os.Remove(source.File); err != nil {
+			return err
+		}
 	// TODO: Add podman remote support
-	default: // else native load
-		scpOpts.Save.Format = "oci-archive"
-		_, err := os.Open(scpOpts.Save.Output)
+	default: // else native load, both source and dest are local and transferring between users
+		if source.User == "" { // source user has to be set, destination does not
+			source.User = os.Getenv("USER")
+			if source.User == "" {
+				u, err := user.Current()
+				if err != nil {
+					return errors.Wrapf(err, "could not obtain user, make sure the environmental variable $USER is set")
+				}
+				source.User = u.Username
+			}
+		}
+		err := abiEng.Transfer(context.Background(), source, dest, parentFlags)
 		if err != nil {
 			return err
 		}
-		if scpOpts.Tag != "" {
-			return errors.Wrapf(define.ErrInvalidArg, "Renaming of an image is currently not supported")
-		}
-		scpOpts.Save.Format = "oci-archive"
-		abiErr := abiEng.Save(context.Background(), scpOpts.SourceImageName, []string{}, scpOpts.Save) // save the image locally before loading it on remote, local, or ssh
-		if abiErr != nil {
-			return errors.Wrapf(abiErr, "could not save image as specified")
-		}
-		if !rootless.IsRootless() && scpOpts.Rootless {
-			if scpOpts.User == "" {
-				scpOpts.User = os.Getenv("SUDO_USER")
-				if scpOpts.User == "" {
-					return errors.New("could not obtain root user, make sure the environmental variable SUDO_USER is set, and that this command is being run as root")
-				}
-			}
-			err := abiEng.Transfer(context.Background(), scpOpts)
-			if err != nil {
-				return err
-			}
-		} else {
-			rep, err := abiEng.Load(context.Background(), scpOpts.Load)
-			if err != nil {
-				return err
-			}
-			fmt.Println("Loaded image(s): " + strings.Join(rep.Names, ","))
-		}
 	}
 
+	src, err := json.MarshalIndent(source, "", "    ")
+	if err != nil {
+		return err
+	}
+	dst, err := json.MarshalIndent(dest, "", "    ")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("SOURCE: %s\nDEST: %s\n", string(src), string(dst))
 	return nil
 }
 
@@ -249,119 +302,28 @@ func createConnection(url *urlP.URL, iden string) (*ssh.Client, string, error) {
 	return dialAdd, file, nil
 }
 
-// validateImageName makes sure that the image given is valid and no injections are occurring
-// we simply use this for error checking, bot setting the image
-func validateImageName(input string) error {
-	// ParseNormalizedNamed transforms a shortname image into its
-	// full name reference so busybox => docker.io/library/busybox
-	// we want to keep our shortnames, so only return an error if
-	// we cannot parse what th euser has given us
-	_, err := reference.ParseNormalizedNamed(input)
-	return err
-}
-
-// remoteArgLength is a helper function to simplify the extracting of host argument data
-// returns an int which contains the length of a specified index in a host::image string
-func remoteArgLength(input string, side int) int {
-	return len((strings.Split(input, "::"))[side])
-}
-
-// parseArgs returns the valid connection data based off of the information provided by the user
-// args is an array of the command arguments and cfg is tooling configuration used to get service destinations
-// returned is serv and an error if applicable. serv is a map of service destinations with the connection name as the index
-// this connection name is intended to be used as EngineConfig.ServiceDestinations
-// this function modifies the global scpOpt entities: FromRemote, ToRemote, Connections, and SourceImageName
-func parseArgs(args []string, cfg *config.Config) (map[string]config.Destination, error) {
-	serv := map[string]config.Destination{}
-	cliConnections := []string{}
-	switch len(args) {
-	case 1:
-		if strings.Contains(args[0], "localhost") {
-			if strings.Split(args[0], "@")[0] != "root" {
-				return nil, errors.Wrapf(define.ErrInvalidArg, "cannot transfer images from any user besides root using sudo")
-			}
-			scpOpts.Rootless = true
-			scpOpts.SourceImageName = strings.Split(args[0], "::")[1]
-		} else if strings.Contains(args[0], "::") {
-			scpOpts.FromRemote = true
-			cliConnections = append(cliConnections, args[0])
-		} else {
-			err := validateImageName(args[0])
-			if err != nil {
-				return nil, err
-			}
-			scpOpts.SourceImageName = args[0]
-		}
-	case 2:
-		if strings.Contains(args[0], "localhost") || strings.Contains(args[1], "localhost") { // only supporting root to local using sudo at the moment
-			if strings.Split(args[0], "@")[0] != "root" {
-				return nil, errors.Wrapf(define.ErrInvalidArg, "currently, transferring images to a user account is not supported")
-			}
-			if len(strings.Split(args[0], "::")) > 1 {
-				scpOpts.Rootless = true
-				scpOpts.User = strings.Split(args[1], "@")[0]
-				scpOpts.SourceImageName = strings.Split(args[0], "::")[1]
-			} else {
-				return nil, errors.Wrapf(define.ErrInvalidArg, "currently, you cannot rename images during the transfer or transfer them to a user account")
-			}
-		} else if strings.Contains(args[0], "::") {
-			if !(strings.Contains(args[1], "::")) && remoteArgLength(args[0], 1) == 0 { // if an image is specified, this mean we are loading to our client
-				cliConnections = append(cliConnections, args[0])
-				scpOpts.ToRemote = true
-				scpOpts.SourceImageName = args[1]
-			} else if strings.Contains(args[1], "::") { // both remote clients
-				scpOpts.FromRemote = true
-				scpOpts.ToRemote = true
-				if remoteArgLength(args[0], 1) == 0 { // is save->load w/ one image name
-					cliConnections = append(cliConnections, args[0])
-					cliConnections = append(cliConnections, args[1])
-				} else if remoteArgLength(args[0], 1) > 0 && remoteArgLength(args[1], 1) > 0 {
-					//in the future, this function could, instead of rejecting renames, also set a DestImageName field
-					return nil, errors.Wrapf(define.ErrInvalidArg, "cannot specify an image rename")
-				} else { // else its a load save (order of args)
-					cliConnections = append(cliConnections, args[1])
-					cliConnections = append(cliConnections, args[0])
-				}
-			} else {
-				//in the future, this function could, instead of rejecting renames, also set a DestImageName field
-				return nil, errors.Wrapf(define.ErrInvalidArg, "cannot specify an image rename")
-			}
-		} else if strings.Contains(args[1], "::") { // if we are given image host::
-			if remoteArgLength(args[1], 1) > 0 {
-				//in the future, this function could, instead of rejecting renames, also set a DestImageName field
-				return nil, errors.Wrapf(define.ErrInvalidArg, "cannot specify an image rename")
-			}
-			err := validateImageName(args[0])
-			if err != nil {
-				return nil, err
-			}
-			scpOpts.SourceImageName = args[0]
-			scpOpts.ToRemote = true
-			cliConnections = append(cliConnections, args[1])
-		} else {
-			//in the future, this function could, instead of rejecting renames, also set a DestImageName field
-			return nil, errors.Wrapf(define.ErrInvalidArg, "cannot specify an image rename")
-		}
-	}
+// GetSerivceInformation takes the parsed list of hosts to connect to and validates the information
+func GetServiceInformation(cliConnections []string, cfg *config.Config) (map[string]config.Destination, error) {
+	var serv map[string]config.Destination
 	var url string
 	var iden string
 	for i, val := range cliConnections {
 		splitEnv := strings.SplitN(val, "::", 2)
-		scpOpts.Connections = append(scpOpts.Connections, splitEnv[0])
+		sshInfo.Connections = append(sshInfo.Connections, splitEnv[0])
 		if len(splitEnv[1]) != 0 {
 			err := validateImageName(splitEnv[1])
 			if err != nil {
 				return nil, err
 			}
-			scpOpts.SourceImageName = splitEnv[1]
+			source.Image = splitEnv[1]
 			//TODO: actually use the new name given by the user
 		}
-		conn, found := cfg.Engine.ServiceDestinations[scpOpts.Connections[i]]
+		conn, found := cfg.Engine.ServiceDestinations[sshInfo.Connections[i]]
 		if found {
 			url = conn.URI
 			iden = conn.Identity
 		} else { // no match, warn user and do a manual connection.
-			url = "ssh://" + scpOpts.Connections[i]
+			url = "ssh://" + sshInfo.Connections[i]
 			iden = ""
 			logrus.Warnf("Unknown connection name given. Please use system connection add to specify the default remote socket location")
 		}
@@ -374,8 +336,45 @@ func parseArgs(args []string, cfg *config.Config) (map[string]config.Destination
 				return nil, err
 			}
 		}
-		scpOpts.URI = append(scpOpts.URI, urlT)
-		scpOpts.Iden = append(scpOpts.Iden, iden)
+		sshInfo.URI = append(sshInfo.URI, urlT)
+		sshInfo.Identities = append(sshInfo.Identities, iden)
 	}
 	return serv, nil
+}
+
+// execPodman executes the podman save/load command given the podman binary
+func execPodman(podman string, command []string) error {
+	if rootless.IsRootless() {
+		cmd := exec.Command(podman)
+		utils.CreateSCPCommand(cmd, command[1:])
+		logrus.Debug("Executing podman command")
+		return cmd.Run()
+	}
+	machinectl, err := exec.LookPath("machinectl")
+	if err != nil {
+		cmd := exec.Command("su", "-l", "root", "--command")
+		cmd = utils.CreateSCPCommand(cmd, []string{strings.Join(command, " ")})
+		return cmd.Run()
+	}
+	cmd := exec.Command(machinectl, "shell", "-q", "root@.host")
+	cmd = utils.CreateSCPCommand(cmd, command)
+	logrus.Debug("Executing load command machinectl")
+	return cmd.Run()
+}
+
+// createCommands forms the podman save and load commands used by SCP
+func createCommands(podman string) ([]string, []string) {
+	var parentString string
+	quiet := ""
+	if source.Quiet {
+		quiet = "-q "
+	}
+	if len(parentFlags) > 0 {
+		parentString = strings.Join(parentFlags, " ") + " " // if there are parent args, an extra space needs to be added
+	} else {
+		parentString = strings.Join(parentFlags, " ")
+	}
+	loadCmd := strings.Split(fmt.Sprintf("%s %sload %s--input %s", podman, parentString, quiet, dest.File), " ")
+	saveCmd := strings.Split(fmt.Sprintf("%s %vsave %s--output %s %s", podman, parentString, quiet, source.File, source.Image), " ")
+	return saveCmd, loadCmd
 }

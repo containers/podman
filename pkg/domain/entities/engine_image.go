@@ -27,7 +27,7 @@ type ImageEngine interface {
 	ShowTrust(ctx context.Context, args []string, options ShowTrustOptions) (*ShowTrustReport, error)
 	Shutdown(ctx context.Context)
 	Tag(ctx context.Context, nameOrID string, tags []string, options ImageTagOptions) error
-	Transfer(ctx context.Context, scpOpts ImageScpOptions) error
+	Transfer(ctx context.Context, source ImageScpOptions, dest ImageScpOptions, parentFlags []string) error
 	Tree(ctx context.Context, nameOrID string, options ImageTreeOptions) (*ImageTreeReport, error)
 	Unmount(ctx context.Context, images []string, options ImageUnmountOptions) ([]*ImageUnmountReport, error)
 	Untag(ctx context.Context, nameOrID string, tags []string, options ImageUntagOptions) error

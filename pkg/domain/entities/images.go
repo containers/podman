@@ -311,30 +311,28 @@ type ImageSaveOptions struct {
 	Quiet bool
 }
 
-// ImageScpOptions provide options for securely copying images to podman remote
+// ImageScpOptions provide options for securely copying images to and from a remote host
 type ImageScpOptions struct {
-	// SoureImageName is the image the user is providing to load on a remote machine
-	SourceImageName string
-	// Tag allows for a new image to be created under the given name
-	Tag string
-	// ToRemote specifies that we are loading to the remote host
-	ToRemote bool
-	// FromRemote specifies that we are loading from the remote host
-	FromRemote bool
+	// Remote determines if this entity is operating on a remote machine
+	Remote bool `json:"remote,omitempty"`
+	// File is the input/output file for the save and load Operation
+	File string `json:"file,omitempty"`
+	// Quiet Determines if the save and load operation will be done quietly
+	Quiet bool `json:"quiet,omitempty"`
+	// Image is the image the user is providing to save and load
+	Image string `json:"image,omitempty"`
+	// User is used in conjunction with Transfer to determine if a valid user was given to save from/load into
+	User string `json:"user,omitempty"`
+}
+
+// ImageScpConnections provides the ssh related information used in remote image transfer
+type ImageScpConnections struct {
 	// Connections holds the raw string values for connections (ssh or unix)
 	Connections []string
 	// URI contains the ssh connection URLs to be used by the client
 	URI []*url.URL
-	// Iden contains ssh identity keys to be used by the client
-	Iden []string
-	// Save Options used for first half of the scp operation
-	Save ImageSaveOptions
-	// Load options used for the second half of the scp operation
-	Load ImageLoadOptions
-	// Rootless determines whether we are loading locally from root storage to rootless storage
-	Rootless bool
-	// User is used in conjunction with Rootless to determine which user to use to obtain the uid
-	User string
+	// Identities contains ssh identity keys to be used by the client
+	Identities []string
 }
 
 // ImageTreeOptions provides options for ImageEngine.Tree()

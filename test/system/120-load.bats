@@ -78,6 +78,35 @@ verify_iid_and_name() {
     run_podman rmi $fqin
 }
 
+@test "podman image scp transfer" {
+    skip_if_root_ubuntu "cannot create a new user successfully on ubuntu"
+    get_iid_and_name
+    if ! is_remote; then
+        if is_rootless; then
+            whoami=$(id -un)
+            run_podman image scp $whoami@localhost::$iid root@localhost::
+            if [ "$status" -ne 0 ]; then
+                die "Command failed: podman image scp transfer"
+            fi
+            whoami=$(id -un)
+            run_podman image scp -q $whoami@localhost::$iid root@localhost::
+            if [ "$status" -ne 0 ]; then
+                die "Command failed: podman image scp quiet transfer failed"
+            fi
+        fi
+        if ! is_rootless; then
+             id -u 1000 &>/dev/null || useradd -u 1000 -g 1000 testingUsr
+             if [ "$status" -ne 0 ]; then
+                die "Command failed: useradd 1000"
+             fi
+             run_podman image scp root@localhost::$iid 1000:1000@localhost::
+             if [ "$status" -ne 0 ]; then
+                 die "Command failed: podman image scp transfer"
+             fi
+        fi
+    fi
+}
+
 
 @test "podman load - by image ID" {
     # FIXME: how to build a simple archive instead?

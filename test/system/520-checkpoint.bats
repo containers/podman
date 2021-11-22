@@ -11,7 +11,7 @@ function setup() {
     # TL;DR they keep fixing it then breaking it again. There's a test we
     # could run to see if it's fixed, but it's way too complicated. Since
     # integration tests also skip checkpoint tests on Ubuntu, do the same here.
-    if grep -qiw ubuntu /etc/os-release; then
+    if is_ubuntu; then
         skip "FIXME: checkpointing broken in Ubuntu 2004, 2104, 2110, ..."
     fi
 

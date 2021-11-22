@@ -224,3 +224,12 @@ func MovePauseProcessToScope(pausePidPath string) {
 		}
 	}
 }
+
+// CreateSCPCommand takes an existing command, appends the given arguments and returns a configured podman command for image scp
+func CreateSCPCommand(cmd *exec.Cmd, command []string) *exec.Cmd {
+	cmd.Args = append(cmd.Args, command...)
+	cmd.Env = os.Environ()
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	return cmd
+}

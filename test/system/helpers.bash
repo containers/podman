@@ -318,6 +318,10 @@ function wait_for_port() {
 # BEGIN miscellaneous tools
 
 # Shortcuts for common needs:
+function is_ubuntu() {
+    grep -qiw ubuntu /etc/os-release
+}
+
 function is_rootless() {
     [ "$(id -u)" -ne 0 ]
 }
@@ -446,6 +450,16 @@ function skip_if_rootless_cgroupsv1() {
 function skip_if_journald_unavailable {
     if journald_unavailable; then
         skip "Cannot use rootless journald on this system"
+    fi
+}
+
+function skip_if_root_ubuntu {
+    if is_ubuntu; then
+        if ! is_remote; then
+            if ! is_rootless; then
+                 skip "Cannot run this test on rootful ubuntu, usually due to user errors"
+            fi
+        fi
     fi
 }
 
