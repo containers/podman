@@ -134,6 +134,15 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// if layers field not set assume its not from a valid podman-client
+	// could be a docker client, set `layers=true` since that is the default
+	// expected behviour
+	if !utils.IsLibpodRequest(r) {
+		if _, found := r.URL.Query()["layers"]; !found {
+			query.Layers = true
+		}
+	}
+
 	// convert addcaps formats
 	var addCaps = []string{}
 	if _, found := r.URL.Query()["addcaps"]; found {
