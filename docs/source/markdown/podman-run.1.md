@@ -1848,6 +1848,25 @@ $ podman run --name container1 --personaity=LINUX32 fedora bash
 $ podman run --name container1 --rootfs /path/to/rootfs:O bash
 ```
 
+### Handling Timezones in java applications in a container.
+
+In order to use a timezone other than UTC when running a
+Java application within a container, the `TZ` environment variable must be
+set within the container. Java applications will ignore the value set with the
+`--tz` option.  This will be corrected in a later relase.
+
+```
+# Example run
+podman run -ti --rm  -e TZ=EST mytzimage
+lrwxrwxrwx. 1 root root 29 Nov  3 08:51 /etc/localtime -> ../usr/share/zoneinfo/Etc/UTC
+Now with default timezone:
+Fri Nov 19 18:10:55 EST 2021
+Java default sees the following timezone:
+2021-11-19T18:10:55.651130-05:00
+Forcing UTC:
+Fri Nov 19 23:10:55 UTC 2021
+```
+
 ### Rootless Containers
 
 Podman runs as a non root user on most systems. This feature requires that a new enough version of **shadow-utils**
