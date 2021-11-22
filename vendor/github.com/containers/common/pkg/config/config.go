@@ -215,6 +215,12 @@ type EngineConfig struct {
 	// The first path pointing to a valid file will be used.
 	ConmonPath []string `toml:"conmon_path,omitempty"`
 
+	// CompatAPIEnforceDockerHub enforces using docker.io for completing
+	// short names in Podman's compatibility REST API.  Note that this will
+	// ignore unqualified-search-registries and short-name aliases defined
+	// in containers-registries.conf(5).
+	CompatAPIEnforceDockerHub bool `toml:"compat_api_enforce_docker_hub,omitempty"`
+
 	// DetachKeys is the sequence of keys used to detach a container.
 	DetachKeys string `toml:"detach_keys,omitempty"`
 

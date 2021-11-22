@@ -185,18 +185,14 @@ func (i *IDMappings) RootPair() IDPair {
 // Remapping is only performed if the ids aren't already the remapped root ids
 func (i *IDMappings) ToHost(pair IDPair) (IDPair, error) {
 	var err error
-	target := i.RootPair()
+	var target IDPair
 
-	if pair.UID != target.UID {
-		target.UID, err = toHost(pair.UID, i.uids)
-		if err != nil {
-			return target, err
-		}
+	target.UID, err = toHost(pair.UID, i.uids)
+	if err != nil {
+		return target, err
 	}
 
-	if pair.GID != target.GID {
-		target.GID, err = toHost(pair.GID, i.gids)
-	}
+	target.GID, err = toHost(pair.GID, i.gids)
 	return target, err
 }
 
@@ -293,7 +289,7 @@ func parseSubidFile(path, username string) (ranges, error) {
 
 func checkChownErr(err error, name string, uid, gid int) error {
 	if e, ok := err.(*os.PathError); ok && e.Err == syscall.EINVAL {
-		return errors.Wrapf(err, "potentially insufficient UIDs or GIDs available in user namespace (requested %d:%d for %s): Check /etc/subuid and /etc/subgid", uid, gid, name)
+		return errors.Wrapf(err, "potentially insufficient UIDs or GIDs available in user namespace (requested %d:%d for %s): Check /etc/subuid and /etc/subgid if configured locally", uid, gid, name)
 	}
 	return err
 }

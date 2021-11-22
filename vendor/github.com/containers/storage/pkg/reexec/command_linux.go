@@ -17,6 +17,7 @@ func Self() string {
 // This will use the in-memory version (/proc/self/exe) of the current binary,
 // it is thus safe to delete or replace the on-disk binary (os.Args[0]).
 func Command(args ...string) *exec.Cmd {
+	panicIfNotInitialized()
 	cmd := exec.Command(Self())
 	cmd.Args = args
 	return cmd
@@ -26,6 +27,7 @@ func Command(args ...string) *exec.Cmd {
 // This will use the in-memory version (/proc/self/exe) of the current binary,
 // it is thus safe to delete or replace the on-disk binary (os.Args[0]).
 func CommandContext(ctx context.Context, args ...string) *exec.Cmd {
+	panicIfNotInitialized()
 	cmd := exec.CommandContext(ctx, Self())
 	cmd.Args = args
 	return cmd

@@ -389,16 +389,17 @@ func (r *Runtime) lookupImageInDigestsAndRepoTags(name string, options *LookupIm
 		return nil, "", err
 	}
 
-	if !shortnames.IsShortName(name) {
-		named, err := reference.ParseNormalizedNamed(name)
-		if err != nil {
-			return nil, "", err
-		}
-		digested, hasDigest := named.(reference.Digested)
-		if !hasDigest {
-			return nil, "", errors.Wrap(storage.ErrImageUnknown, name)
-		}
+	ref, err := reference.Parse(name) // Warning! This is not ParseNormalizedNamed
+	if err != nil {
+		return nil, "", err
+	}
+	named, isNamed := ref.(reference.Named)
+	if !isNamed {
+		return nil, "", errors.Wrap(storage.ErrImageUnknown, name)
+	}
 
+	digested, isDigested := named.(reference.Digested)
+	if isDigested {
 		logrus.Debug("Looking for image with matching recorded digests")
 		digest := digested.Digest()
 		for _, image := range allImages {
@@ -408,22 +409,23 @@ func (r *Runtime) lookupImageInDigestsAndRepoTags(name string, options *LookupIm
 				}
 			}
 		}
-
 		return nil, "", errors.Wrap(storage.ErrImageUnknown, name)
 	}
 
-	// Podman compat: if we're looking for a short name but couldn't
-	// resolve it via the registries.conf dance, we need to look at *all*
-	// images and check if the name we're looking for matches a repo tag.
-	// Split the name into a repo/tag pair
-	split := strings.SplitN(name, ":", 2)
-	repo := split[0]
-	tag := ""
-	if len(split) == 2 {
-		tag = split[1]
+	if !shortnames.IsShortName(name) {
+		return nil, "", errors.Wrap(storage.ErrImageUnknown, name)
 	}
+
+	named = reference.TagNameOnly(named) // Make sure to add ":latest" if needed
+	namedTagged, isNammedTagged := named.(reference.NamedTagged)
+	if !isNammedTagged {
+		// NOTE: this should never happen since we already know it's
+		// not a digested reference.
+		return nil, "", fmt.Errorf("%s: %w (could not cast to tagged)", name, storage.ErrImageUnknown)
+	}
+
 	for _, image := range allImages {
-		named, err := image.inRepoTags(repo, tag)
+		named, err := image.inRepoTags(namedTagged)
 		if err != nil {
 			return nil, "", err
 		}

@@ -48,7 +48,7 @@ var _ = Describe("Podman pull", func() {
 		found, _ := session.ErrorGrepString(expectedError)
 		Expect(found).To(Equal(true))
 
-		session = podmanTest.Podman([]string{"rmi", "busybox", "alpine", "testdigest_v2s2", "quay.io/libpod/cirros"})
+		session = podmanTest.Podman([]string{"rmi", "busybox:musl", "alpine", "quay.io/libpod/cirros", "testdigest_v2s2@sha256:755f4d90b3716e2bf57060d249e2cd61c9ac089b1233465c5c2cb2d7ee550fdb"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})
@@ -104,7 +104,12 @@ var _ = Describe("Podman pull", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
+		// Without a tag/digest the input is normalized with the "latest" tag, see #11964
 		session = podmanTest.Podman([]string{"rmi", "testdigest_v2s2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(1))
+
+		session = podmanTest.Podman([]string{"rmi", "testdigest_v2s2@sha256:755f4d90b3716e2bf57060d249e2cd61c9ac089b1233465c5c2cb2d7ee550fdb"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})
