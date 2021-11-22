@@ -121,6 +121,7 @@ func (p *PodmanTest) WaitForContainer() bool {
 		}
 		time.Sleep(1 * time.Second)
 	}
+	fmt.Printf("WaitForContainer(): timed out\n")
 	return false
 }
 

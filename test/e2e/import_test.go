@@ -18,7 +18,6 @@ var _ = Describe("Podman import", func() {
 	)
 
 	BeforeEach(func() {
-		SkipIfRemote("FIXME: These look like it is supposed to work in remote")
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -156,6 +155,8 @@ var _ = Describe("Podman import", func() {
 	})
 
 	It("podman import with signature", func() {
+		SkipIfRemote("FIXME: remote ignores --signature-policy, #12357")
+
 		outfile := filepath.Join(podmanTest.TempDir, "container.tar")
 		_, ec, cid := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))

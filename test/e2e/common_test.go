@@ -320,7 +320,7 @@ func (p *PodmanTestIntegration) createArtifact(image string) {
 	}
 	dest := strings.Split(image, "/")
 	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
-	fmt.Printf("Caching %s at %s...", image, destName)
+	fmt.Printf("Caching %s at %s...\n", image, destName)
 	if _, err := os.Stat(destName); os.IsNotExist(err) {
 		pull := p.PodmanNoCache([]string{"pull", image})
 		pull.Wait(440)
@@ -466,6 +466,9 @@ func (p *PodmanTestIntegration) BuildImageWithLabel(dockerfile, imageName string
 // PodmanPID execs podman and returns its PID
 func (p *PodmanTestIntegration) PodmanPID(args []string) (*PodmanSessionIntegration, int) {
 	podmanOptions := p.MakeOptions(args, false, false)
+	if p.RemoteTest {
+		podmanOptions = append([]string{"--remote", "--url", p.RemoteSocket}, podmanOptions...)
+	}
 	fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
 	command := exec.Command(p.PodmanBinary, podmanOptions...)
 	session, err := Start(command, GinkgoWriter, GinkgoWriter)

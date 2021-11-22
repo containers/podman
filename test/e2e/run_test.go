@@ -681,7 +681,7 @@ USER bin`, BB)
 	})
 
 	It("podman run device-read-bps test", func() {
-		SkipIfRootless("FIXME: Missing /sys/fs/cgroup/user.slice/user-14467.slice/user@14467.service/cgroup.subtree_control")
+		SkipIfRootless("FIXME: requested cgroup controller `io` is not available")
 		SkipIfRootlessCgroupsV1("Setting device-read-bps not supported on cgroupv1 for rootless users")
 
 		var session *PodmanSessionIntegration
@@ -700,7 +700,7 @@ USER bin`, BB)
 	})
 
 	It("podman run device-write-bps test", func() {
-		SkipIfRootless("FIXME /sys/fs/cgroup/user.slice/user-14467.slice/user@14467.service/cgroup.subtree_control does not exist")
+		SkipIfRootless("FIXME: requested cgroup controller `io` is not available")
 		SkipIfRootlessCgroupsV1("Setting device-write-bps not supported on cgroupv1 for rootless users")
 
 		var session *PodmanSessionIntegration
@@ -718,7 +718,7 @@ USER bin`, BB)
 	})
 
 	It("podman run device-read-iops test", func() {
-		SkipIfRootless("FIXME /sys/fs/cgroup/user.slice/user-14467.slice/user@14467.service/cgroup.subtree_control does not exist")
+		SkipIfRootless("FIXME: requested cgroup controller `io` is not available")
 		SkipIfRootlessCgroupsV1("Setting device-read-iops not supported on cgroupv1 for rootless users")
 		var session *PodmanSessionIntegration
 
@@ -736,7 +736,7 @@ USER bin`, BB)
 	})
 
 	It("podman run device-write-iops test", func() {
-		SkipIfRootless("FIXME /sys/fs/cgroup/user.slice/user-14467.slice/user@14467.service/cgroup.subtree_control does not exist")
+		SkipIfRootless("FIXME: requested cgroup controller `io` is not available")
 		SkipIfRootlessCgroupsV1("Setting device-write-iops not supported on cgroupv1 for rootless users")
 		var session *PodmanSessionIntegration
 
