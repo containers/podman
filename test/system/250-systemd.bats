@@ -138,7 +138,7 @@ function service_cleanup() {
 }
 
 # Regression test for #11438
-@test "podman generate systemd - restart policy" {
+@test "podman generate systemd - restart policy & timeouts" {
     cname=$(random_string)
     run_podman create --restart=always --name $cname $IMAGE
     run_podman generate systemd --new $cname

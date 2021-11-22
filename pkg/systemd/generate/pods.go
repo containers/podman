@@ -195,9 +195,9 @@ func generatePodInfo(pod *libpod.Pod, options entities.GenerateSystemdOptions) (
 		return nil, errors.Wrap(err, "could not find infra container")
 	}
 
-	timeout := infraCtr.StopTimeout()
+	stopTimeout := infraCtr.StopTimeout()
 	if options.StopTimeout != nil {
-		timeout = *options.StopTimeout
+		stopTimeout = *options.StopTimeout
 	}
 
 	config := infraCtr.Config()
@@ -223,7 +223,7 @@ func generatePodInfo(pod *libpod.Pod, options entities.GenerateSystemdOptions) (
 		ServiceName:       serviceName,
 		InfraNameOrID:     ctrNameOrID,
 		PIDFile:           conmonPidFile,
-		StopTimeout:       timeout,
+		StopTimeout:       stopTimeout,
 		GenerateTimestamp: true,
 		CreateCommand:     createCommand,
 	}
