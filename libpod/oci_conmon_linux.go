@@ -777,9 +777,6 @@ func (r *ConmonOCIRuntime) AttachResize(ctr *Container, newSize define.TerminalS
 
 // CheckpointContainer checkpoints the given container.
 func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options ContainerCheckpointOptions) (int64, error) {
-	if err := label.SetSocketLabel(ctr.ProcessLabel()); err != nil {
-		return 0, err
-	}
 	// imagePath is used by CRIU to store the actual checkpoint files
 	imagePath := ctr.CheckpointPath()
 	if options.PreCheckPoint {
@@ -823,14 +820,37 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 	if err != nil {
 		return 0, err
 	}
-	if err = os.Setenv("XDG_RUNTIME_DIR", runtimeDir); err != nil {
-		return 0, errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
-	}
 	args = append(args, ctr.ID())
 	logrus.Debugf("the args to checkpoint: %s %s", r.path, strings.Join(args, " "))
 
+	oldRuntimeDir, oldRuntimeDirSet := os.LookupEnv("XDG_RUNTIME_DIR")
+	if err = os.Setenv("XDG_RUNTIME_DIR", runtimeDir); err != nil {
+		return 0, errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
+	}
+	runtime.LockOSThread()
+	if err := label.SetSocketLabel(ctr.ProcessLabel()); err != nil {
+		return 0, err
+	}
+	defer func() {
+		if oldRuntimeDirSet {
+			if err := os.Setenv("XDG_RUNTIME_DIR", oldRuntimeDir); err != nil {
+				logrus.Warnf("cannot resset XDG_RUNTIME_DIR: %v", err)
+			}
+		} else {
+			if err := os.Unsetenv("XDG_RUNTIME_DIR"); err != nil {
+				logrus.Warnf("cannot unset XDG_RUNTIME_DIR: %v", err)
+			}
+		}
+	}()
+
 	runtimeCheckpointStarted := time.Now()
 	err = utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, nil, r.path, args...)
+	// Ignore error returned from SetSocketLabel("") call,
+	// can't recover.
+	if labelErr := label.SetSocketLabel(""); labelErr != nil {
+		logrus.Errorf("Unable to reset socket label: %q", labelErr)
+	}
+	runtime.UnlockOSThread()
 
 	runtimeCheckpointDuration := func() int64 {
 		if options.PrintStats {
@@ -1445,7 +1465,7 @@ func startCommandGivenSelinux(cmd *exec.Cmd, ctr *Container) error {
 	// Ignore error returned from SetProcessLabel("") call,
 	// can't recover.
 	if labelErr := label.SetProcessLabel(""); labelErr != nil {
-		logrus.Errorf("Unable to set process label: %q", err)
+		logrus.Errorf("Unable to set process label: %q", labelErr)
 	}
 	runtime.UnlockOSThread()
 	return err
