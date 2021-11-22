@@ -1500,6 +1500,13 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//      JSON map of key, value pairs to set as labels on the new image
 	//      (As of version 1.xx)
 	//  - in: query
+	//    name: layers
+	//    type: boolean
+	//    default: true
+	//    description: |
+	//      Cache intermediate layers during build.
+	//      (As of version 1.xx)
+	//  - in: query
 	//    name: networkmode
 	//    type: string
 	//    default: bridge
