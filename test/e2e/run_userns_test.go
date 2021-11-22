@@ -47,8 +47,7 @@ var _ = Describe("Podman UserNS support", func() {
 		session := podmanTest.Podman([]string{"run", "--uidmap=0:100:5000", "--gidmap=0:200:5000", "alpine", "echo", "hello"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		ok, _ := session.GrepString("hello")
-		Expect(ok).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("hello"))
 	})
 
 	// It essentially repeats the test above but with the `-it` short option
@@ -59,24 +58,21 @@ var _ = Describe("Podman UserNS support", func() {
 		session := podmanTest.Podman([]string{"run", "--uidmap=0:1:5000", "--gidmap=0:200:5000", "-it", "alpine", "echo", "hello"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		ok, _ := session.GrepString("hello")
-		Expect(ok).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("hello"))
 	})
 
 	It("podman uidmapping and gidmapping with a volume", func() {
 		session := podmanTest.Podman([]string{"run", "--uidmap=0:1:500", "--gidmap=0:200:5000", "-v", "my-foo-volume:/foo:Z", "alpine", "echo", "hello"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		ok, _ := session.GrepString("hello")
-		Expect(ok).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("hello"))
 	})
 
 	It("podman uidmapping and gidmapping --net=host", func() {
 		session := podmanTest.Podman([]string{"run", "--net=host", "--uidmap=0:1:5000", "--gidmap=0:200:5000", "alpine", "echo", "hello"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		ok, _ := session.GrepString("hello")
-		Expect(ok).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("hello"))
 	})
 
 	It("podman --userns=keep-id", func() {
@@ -84,8 +80,7 @@ var _ = Describe("Podman UserNS support", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		uid := fmt.Sprintf("%d", os.Geteuid())
-		ok, _ := session.GrepString(uid)
-		Expect(ok).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring(uid))
 	})
 
 	It("podman --userns=keep-id check passwd", func() {
@@ -94,8 +89,7 @@ var _ = Describe("Podman UserNS support", func() {
 		Expect(session).Should(Exit(0))
 		u, err := user.Current()
 		Expect(err).To(BeNil())
-		ok, _ := session.GrepString(u.Name)
-		Expect(ok).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring(u.Name))
 	})
 
 	It("podman --userns=keep-id root owns /usr", func() {
@@ -201,8 +195,7 @@ var _ = Describe("Podman UserNS support", func() {
 		session = podmanTest.Podman([]string{"run", "--userns=auto", "--user=4000:1000", "alpine", "cat", "/proc/self/uid_map"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		ok, _ = session.GrepString("4001")
-		Expect(ok).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("4001"))
 	})
 
 	It("podman --userns=auto:uidmapping=", func() {
@@ -231,8 +224,7 @@ var _ = Describe("Podman UserNS support", func() {
 		session = podmanTest.Podman([]string{"run", "--userns=auto:size=8192,uidmapping=0:0:1", "alpine", "cat", "/proc/self/uid_map"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		ok, _ := session.GrepString("8191")
-		Expect(ok).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("8191"))
 	})
 
 	It("podman --userns=auto:gidmapping=", func() {
@@ -261,8 +253,7 @@ var _ = Describe("Podman UserNS support", func() {
 		session = podmanTest.Podman([]string{"run", "--userns=auto:size=8192,gidmapping=0:0:1", "alpine", "cat", "/proc/self/gid_map"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		ok, _ := session.GrepString("8191")
-		Expect(ok).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("8191"))
 	})
 
 	It("podman --userns=container:CTR", func() {
@@ -276,15 +267,13 @@ var _ = Describe("Podman UserNS support", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		ok, _ := session.GrepString("4998")
-		Expect(ok).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("4998"))
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--userns=container:" + ctrName, "--net=container:" + ctrName, "alpine", "cat", "/proc/self/uid_map"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		ok, _ = session.GrepString("4998")
-		Expect(ok).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("4998"))
 	})
 
 	It("podman --user with volume", func() {

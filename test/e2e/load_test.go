@@ -214,7 +214,7 @@ var _ = Describe("Podman load", func() {
 		result := podmanTest.Podman([]string{"images", "hello:world"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.LineInOutputContains("docker")).To(Not(BeTrue()))
-		Expect(result.LineInOutputContains("localhost")).To(BeTrue())
+		Expect(result.OutputToString()).To(ContainSubstring("localhost"))
 	})
 
 	It("podman load localhost registry from scratch and :latest", func() {
@@ -239,7 +239,7 @@ var _ = Describe("Podman load", func() {
 		result := podmanTest.Podman([]string{"images", "hello:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.LineInOutputContains("docker")).To(Not(BeTrue()))
-		Expect(result.LineInOutputContains("localhost")).To(BeTrue())
+		Expect(result.OutputToString()).To(ContainSubstring("localhost"))
 	})
 
 	It("podman load localhost registry from dir", func() {
@@ -265,7 +265,7 @@ var _ = Describe("Podman load", func() {
 		result := podmanTest.Podman([]string{"images", "load:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.LineInOutputContains("docker")).To(Not(BeTrue()))
-		Expect(result.LineInOutputContains("localhost")).To(BeTrue())
+		Expect(result.OutputToString()).To(ContainSubstring("localhost"))
 	})
 
 	It("podman load xz compressed image", func() {
@@ -290,7 +290,7 @@ var _ = Describe("Podman load", func() {
 		result := podmanTest.Podman([]string{"load", "-i", "./testdata/docker-two-images.tar.xz"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(result.LineInOutputContains("example.com/empty:latest")).To(BeTrue())
-		Expect(result.LineInOutputContains("example.com/empty/but:different")).To(BeTrue())
+		Expect(result.OutputToString()).To(ContainSubstring("example.com/empty:latest"))
+		Expect(result.OutputToString()).To(ContainSubstring("example.com/empty/but:different"))
 	})
 })

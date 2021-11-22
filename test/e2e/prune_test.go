@@ -153,8 +153,7 @@ var _ = Describe("Podman prune", func() {
 		session := podmanTest.Podman([]string{"images", "-a"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		hasNone, _ := session.GrepString("<none>")
-		Expect(hasNone).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("<none>"))
 
 		// Nothing will be pruned.
 		session = podmanTest.Podman([]string{"image", "prune", "-f"})

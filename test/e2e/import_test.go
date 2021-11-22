@@ -87,7 +87,7 @@ var _ = Describe("Podman import", func() {
 		results := podmanTest.Podman([]string{"history", "imported-image", "--format", "{{.Comment}}"})
 		results.WaitWithDefaultTimeout()
 		Expect(results).Should(Exit(0))
-		Expect(results.LineInOutputStartsWith("importing container test message")).To(BeTrue())
+		Expect(results.OutputToStringArray()).To(ContainElement(HavePrefix("importing container test message")))
 	})
 
 	It("podman import with change flag CMD=<path>", func() {

@@ -92,14 +92,14 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
 		Expect(len(search.OutputToStringArray())).To(BeNumerically(">", 1))
-		Expect(search.LineInOutputContains("docker.io/library/alpine")).To(BeTrue())
+		Expect(search.OutputToString()).To(ContainSubstring("docker.io/library/alpine"))
 	})
 
 	It("podman search single registry flag", func() {
 		search := podmanTest.Podman([]string{"search", "quay.io/skopeo/stable:latest"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
-		Expect(search.LineInOutputContains("quay.io/skopeo/stable")).To(BeTrue())
+		Expect(search.OutputToString()).To(ContainSubstring("quay.io/skopeo/stable"))
 	})
 
 	It("podman search image with description", func() {
@@ -127,7 +127,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
 		Expect(len(search.OutputToStringArray())).To(BeNumerically(">", 1))
-		Expect(search.LineInOutputContains("docker.io/library/alpine")).To(BeTrue())
+		Expect(search.OutputToString()).To(ContainSubstring("docker.io/library/alpine"))
 	})
 
 	It("podman search format json", func() {
@@ -277,8 +277,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		searchEmpty.WaitWithDefaultTimeout()
 		Expect(searchEmpty).Should(Exit(0))
 		Expect(len(searchEmpty.OutputToStringArray())).To(BeNumerically(">=", 1))
-		match, _ := search.GrepString("my-alpine")
-		Expect(match).Should(BeTrue())
+		Expect(search.OutputToString()).To(ContainSubstring("my-alpine"))
 	})
 
 	It("podman search attempts HTTP if registry is in registries.insecure and force secure is false", func() {
@@ -317,8 +316,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search.WaitWithDefaultTimeout()
 
 		Expect(search).Should(Exit(0))
-		match, _ := search.GrepString("my-alpine")
-		Expect(match).Should(BeTrue())
+		Expect(search.OutputToString()).To(ContainSubstring("my-alpine"))
 		Expect(search.ErrorToString()).Should(BeEmpty())
 
 		// cleanup

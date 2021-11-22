@@ -97,7 +97,7 @@ var _ = Describe("Podman run dns", func() {
 		session := podmanTest.Podman([]string{"run", "-t", "-i", "--hostname=foobar", ALPINE, "cat", "/etc/hosts"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContains("foobar")).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("foobar"))
 	})
 
 	It("podman run mutually excludes --dns* and --network", func() {

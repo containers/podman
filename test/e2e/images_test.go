@@ -41,8 +41,8 @@ var _ = Describe("Podman images", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 2))
-		Expect(session.LineInOutputStartsWith("quay.io/libpod/alpine")).To(BeTrue())
-		Expect(session.LineInOutputStartsWith("quay.io/libpod/busybox")).To(BeTrue())
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("quay.io/libpod/alpine")))
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("quay.io/libpod/busybox")))
 	})
 
 	It("podman image List", func() {
@@ -50,8 +50,8 @@ var _ = Describe("Podman images", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 2))
-		Expect(session.LineInOutputStartsWith("quay.io/libpod/alpine")).To(BeTrue())
-		Expect(session.LineInOutputStartsWith("quay.io/libpod/busybox")).To(BeTrue())
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("quay.io/libpod/alpine")))
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("quay.io/libpod/busybox")))
 	})
 
 	It("podman images with multiple tags", func() {
@@ -86,8 +86,8 @@ var _ = Describe("Podman images", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 2))
-		Expect(session.LineInOutputStartsWith("quay.io/libpod/alpine")).To(BeTrue())
-		Expect(session.LineInOutputStartsWith("quay.io/libpod/busybox")).To(BeTrue())
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("quay.io/libpod/alpine")))
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("quay.io/libpod/busybox")))
 	})
 
 	It("podman empty images list in JSON format", func() {
@@ -150,13 +150,13 @@ var _ = Describe("Podman images", func() {
 		retalpine.WaitWithDefaultTimeout()
 		Expect(retalpine).Should(Exit(0))
 		Expect(len(retalpine.OutputToStringArray())).To(Equal(6))
-		Expect(retalpine.LineInOutputContains("alpine")).To(BeTrue())
+		Expect(retalpine.OutputToString()).To(ContainSubstring("alpine"))
 
 		retalpine = podmanTest.Podman([]string{"images", "-f", "reference=alpine"})
 		retalpine.WaitWithDefaultTimeout()
 		Expect(retalpine).Should(Exit(0))
 		Expect(len(retalpine.OutputToStringArray())).To(Equal(6))
-		Expect(retalpine.LineInOutputContains("alpine")).To(BeTrue())
+		Expect(retalpine.OutputToString()).To(ContainSubstring("alpine"))
 
 		retnone := podmanTest.Podman([]string{"images", "-q", "-f", "reference=bogus"})
 		retnone.WaitWithDefaultTimeout()

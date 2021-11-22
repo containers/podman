@@ -559,38 +559,33 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		session := podmanTest.Podman([]string{"run", "--rm", "--net", "host", ALPINE, "printenv", "HOSTNAME"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		match, _ := session.GrepString(hostname)
-		Expect(match).Should(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring(hostname))
 	})
 	It("podman run --net host --uts host hostname test", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "--net", "host", "--uts", "host", ALPINE, "printenv", "HOSTNAME"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		match, _ := session.GrepString(hostname)
-		Expect(match).Should(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring(hostname))
 	})
 	It("podman run --uts host hostname test", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "--uts", "host", ALPINE, "printenv", "HOSTNAME"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		match, _ := session.GrepString(hostname)
-		Expect(match).Should(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring(hostname))
 	})
 
 	It("podman run --net host --hostname ... hostname test", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "--net", "host", "--hostname", "foobar", ALPINE, "printenv", "HOSTNAME"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		match, _ := session.GrepString("foobar")
-		Expect(match).Should(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("foobar"))
 	})
 
 	It("podman run --hostname ... hostname test", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "--hostname", "foobar", ALPINE, "printenv", "HOSTNAME"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		match, _ := session.GrepString("foobar")
-		Expect(match).Should(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("foobar"))
 	})
 
 	It("podman run --net container: and --uts container:", func() {

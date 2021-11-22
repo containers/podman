@@ -681,21 +681,18 @@ VOLUME /test/`, ALPINE)
 		session := podmanTest.Podman([]string{"run", "--rm", "--user", "888:888", "-v", vol, ALPINE, "stat", "-c", "%u:%g", dest})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		found, _ := session.GrepString("888:888")
-		Expect(found).Should(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("888:888"))
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--user", "888:888", "--userns", "auto", "-v", vol, ALPINE, "stat", "-c", "%u:%g", dest})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		found, _ = session.GrepString("888:888")
-		Expect(found).Should(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("888:888"))
 
 		vol = vol + ",O"
 		session = podmanTest.Podman([]string{"run", "--rm", "--user", "888:888", "--userns", "keep-id", "-v", vol, ALPINE, "stat", "-c", "%u:%g", dest})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		found, _ = session.GrepString("888:888")
-		Expect(found).Should(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("888:888"))
 	})
 
 	It("podman run with --mount and U flag", func() {

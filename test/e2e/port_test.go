@@ -62,7 +62,7 @@ var _ = Describe("Podman port", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		port := strings.Split(result.OutputToStringArray()[0], ":")[1]
-		Expect(result.LineInOutputStartsWith(fmt.Sprintf("80/tcp -> 0.0.0.0:%s", port))).To(BeTrue())
+		Expect(result.OutputToStringArray()).To(ContainElement(HavePrefix(fmt.Sprintf("80/tcp -> 0.0.0.0:%s", port))))
 	})
 
 	It("podman container port  -l nginx", func() {
@@ -80,7 +80,7 @@ var _ = Describe("Podman port", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		port := strings.Split(result.OutputToStringArray()[0], ":")[1]
-		Expect(result.LineInOutputStartsWith(fmt.Sprintf("80/tcp -> 0.0.0.0:%s", port))).To(BeTrue())
+		Expect(result.OutputToStringArray()).To(ContainElement(HavePrefix(fmt.Sprintf("80/tcp -> 0.0.0.0:%s", port))))
 	})
 
 	It("podman port -l port nginx", func() {
@@ -98,7 +98,7 @@ var _ = Describe("Podman port", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		port := strings.Split(result.OutputToStringArray()[0], ":")[1]
-		Expect(result.LineInOutputStartsWith(fmt.Sprintf("0.0.0.0:%s", port))).To(BeTrue())
+		Expect(result.OutputToStringArray()).To(ContainElement(HavePrefix(fmt.Sprintf("0.0.0.0:%s", port))))
 	})
 
 	It("podman port -a nginx", func() {
@@ -143,12 +143,12 @@ var _ = Describe("Podman port", func() {
 		result1 := podmanTest.Podman([]string{"port", "test", "5000"})
 		result1.WaitWithDefaultTimeout()
 		Expect(result1).Should(Exit(0))
-		Expect(result1.LineInOutputStartsWith("0.0.0.0:5000")).To(BeTrue())
+		Expect(result1.OutputToStringArray()).To(ContainElement(HavePrefix("0.0.0.0:5000")))
 
 		// Check that the second port was honored
 		result2 := podmanTest.Podman([]string{"port", "test", "5001"})
 		result2.WaitWithDefaultTimeout()
 		Expect(result2).Should(Exit(0))
-		Expect(result2.LineInOutputStartsWith("0.0.0.0:5001")).To(BeTrue())
+		Expect(result2.OutputToStringArray()).To(ContainElement(HavePrefix("0.0.0.0:5001")))
 	})
 })

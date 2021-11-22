@@ -253,8 +253,7 @@ func multiImageSave(podmanTest *PodmanTestIntegration, images []string) {
 	Expect(session).Should(Exit(0))
 	// Grep for each image in the `podman load` output.
 	for _, image := range images {
-		found, _ := session.GrepString(image)
-		Expect(found).Should(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring(image))
 	}
 
 	// Make sure that each image has really been loaded.

@@ -60,7 +60,7 @@ WORKDIR  /etc/foobar`, ALPINE)
 
 		session = podmanTest.Podman([]string{"run", "test", "ls", "-ld", "."})
 		session.WaitWithDefaultTimeout()
-		Expect(session.LineInOutputContains("bin")).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("bin"))
 
 		session = podmanTest.Podman([]string{"run", "--workdir", "/home/foobar", "test", "pwd"})
 		session.WaitWithDefaultTimeout()

@@ -42,8 +42,7 @@ var _ = Describe("Podman volume create", func() {
 
 		check := podmanTest.Podman([]string{"volume", "ls", "-q"})
 		check.WaitWithDefaultTimeout()
-		match, _ := check.GrepString(volName)
-		Expect(match).To(BeTrue())
+		Expect(check.OutputToString()).To(ContainSubstring(volName))
 		Expect(len(check.OutputToStringArray())).To(Equal(1))
 	})
 
@@ -55,8 +54,7 @@ var _ = Describe("Podman volume create", func() {
 
 		check := podmanTest.Podman([]string{"volume", "ls", "-q"})
 		check.WaitWithDefaultTimeout()
-		match, _ := check.GrepString(volName)
-		Expect(match).To(BeTrue())
+		Expect(check.OutputToString()).To(ContainSubstring(volName))
 		Expect(len(check.OutputToStringArray())).To(Equal(1))
 	})
 

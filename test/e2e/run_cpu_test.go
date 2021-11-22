@@ -52,7 +52,7 @@ var _ = Describe("Podman run cpu", func() {
 		}
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(result.LineInOutputContains("5000")).To(BeTrue())
+		Expect(result.OutputToString()).To(ContainSubstring("5000"))
 	})
 
 	It("podman run cpu-quota", func() {
@@ -65,7 +65,7 @@ var _ = Describe("Podman run cpu", func() {
 		}
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(result.LineInOutputContains("5000")).To(BeTrue())
+		Expect(result.OutputToString()).To(ContainSubstring("5000"))
 	})
 
 	It("podman run cpus", func() {
