@@ -224,21 +224,21 @@ var _ = Describe("Podman run", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		session.LineInOutputStartsWith("search foobar.com")
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("search foobar.com")))
 	})
 
 	It("podman run add dns server", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		session.LineInOutputStartsWith("server 1.2.3.4")
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("nameserver 1.2.3.4")))
 	})
 
 	It("podman run add dns option", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		session.LineInOutputStartsWith("options debug")
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("options debug")))
 	})
 
 	It("podman run containers.conf remove all search domain", func() {

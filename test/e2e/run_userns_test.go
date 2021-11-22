@@ -180,17 +180,17 @@ var _ = Describe("Podman UserNS support", func() {
 		session := podmanTest.Podman([]string{"run", "--userns=auto:size=500", "alpine", "cat", "/proc/self/uid_map"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		ok, _ := session.GrepString("500")
+		Expect(session.OutputToString()).To(ContainSubstring("500"))
 
 		session = podmanTest.Podman([]string{"run", "--userns=auto:size=3000", "alpine", "cat", "/proc/self/uid_map"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		ok, _ = session.GrepString("3000")
+		Expect(session.OutputToString()).To(ContainSubstring("3000"))
 
 		session = podmanTest.Podman([]string{"run", "--userns=auto", "--user=2000:3000", "alpine", "cat", "/proc/self/uid_map"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		ok, _ = session.GrepString("3001")
+		Expect(session.OutputToString()).To(ContainSubstring("3001"))
 
 		session = podmanTest.Podman([]string{"run", "--userns=auto", "--user=4000:1000", "alpine", "cat", "/proc/self/uid_map"})
 		session.WaitWithDefaultTimeout()

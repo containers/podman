@@ -125,7 +125,7 @@ var _ = Describe("Podman port", func() {
 		result := podmanTest.Podman([]string{"port", "portcheck"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		result.LineInOutputStartsWith("80/tcp -> 0.0.0.0:")
+		Expect(result.OutputToStringArray()).To(ContainElement(HavePrefix("80/tcp -> 0.0.0.0:")))
 	})
 
 	It("podman port multiple ports", func() {
