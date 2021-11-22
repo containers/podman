@@ -60,6 +60,10 @@ func Schema1FromManifest(manifest []byte) (*Schema1, error) {
 	if s1.SchemaVersion != 1 {
 		return nil, errors.Errorf("unsupported schema version %d", s1.SchemaVersion)
 	}
+	if err := validateUnambiguousManifestFormat(manifest, DockerV2Schema1SignedMediaType,
+		allowedFieldFSLayers|allowedFieldHistory); err != nil {
+		return nil, err
+	}
 	if err := s1.initialize(); err != nil {
 		return nil, err
 	}

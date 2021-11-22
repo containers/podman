@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 
@@ -113,7 +114,12 @@ func (s *ociImageSource) HasThreadSafeGetBlob() bool {
 // May update BlobInfoCache, preferably after it knows for certain that a blob truly exists at a specific location.
 func (s *ociImageSource) GetBlob(ctx context.Context, info types.BlobInfo, cache types.BlobInfoCache) (io.ReadCloser, int64, error) {
 	if len(info.URLs) != 0 {
-		return s.getExternalBlob(ctx, info.URLs)
+		r, s, err := s.getExternalBlob(ctx, info.URLs)
+		if err != nil {
+			return nil, 0, err
+		} else if r != nil {
+			return r, s, nil
+		}
 	}
 
 	path, err := s.ref.blobPath(info.Digest, s.sharedBlobDir)
@@ -140,33 +146,43 @@ func (s *ociImageSource) GetSignatures(ctx context.Context, instanceDigest *dige
 	return [][]byte{}, nil
 }
 
+// getExternalBlob returns the reader of the first available blob URL from urls, which must not be empty.
+// This function can return nil reader when no url is supported by this function. In this case, the caller
+// should fallback to fetch the non-external blob (i.e. pull from the registry).
 func (s *ociImageSource) getExternalBlob(ctx context.Context, urls []string) (io.ReadCloser, int64, error) {
 	if len(urls) == 0 {
 		return nil, 0, errors.New("internal error: getExternalBlob called with no URLs")
 	}
 
 	errWrap := errors.New("failed fetching external blob from all urls")
-	for _, url := range urls {
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	hasSupportedURL := false
+	for _, u := range urls {
+		if u, err := url.Parse(u); err != nil || (u.Scheme != "http" && u.Scheme != "https") {
+			continue // unsupported url. skip this url.
+		}
+		hasSupportedURL = true
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 		if err != nil {
-			errWrap = errors.Wrapf(errWrap, "fetching %s failed %s", url, err.Error())
+			errWrap = errors.Wrapf(errWrap, "fetching %s failed %s", u, err.Error())
 			continue
 		}
 
 		resp, err := s.client.Do(req)
 		if err != nil {
-			errWrap = errors.Wrapf(errWrap, "fetching %s failed %s", url, err.Error())
+			errWrap = errors.Wrapf(errWrap, "fetching %s failed %s", u, err.Error())
 			continue
 		}
 
 		if resp.StatusCode != http.StatusOK {
 			resp.Body.Close()
-			errWrap = errors.Wrapf(errWrap, "fetching %s failed, response code not 200", url)
+			errWrap = errors.Wrapf(errWrap, "fetching %s failed, response code not 200", u)
 			continue
 		}
 
 		return resp.Body, getBlobSize(resp), nil
+	}
+	if !hasSupportedURL {
+		return nil, 0, nil // fallback to non-external blob
 	}
 
 	return nil, 0, errWrap

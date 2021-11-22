@@ -14,7 +14,7 @@ require (
 	github.com/containers/buildah v1.23.1
 	github.com/containers/common v0.46.1-0.20211115170340-7ae7bd1c3f8e
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.16.1
+	github.com/containers/image/v5 v5.17.0
 	github.com/containers/ocicrypt v1.1.2
 	github.com/containers/psgo v1.7.1
 	github.com/containers/storage v1.37.1-0.20211014130921-5c5bf639ed01
@@ -40,7 +40,6 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hpcloud/tail v1.0.0
 	github.com/json-iterator/go v1.1.12
-	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-isatty v0.0.14
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6
 	github.com/mrunalp/fileutils v0.5.0
