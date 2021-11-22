@@ -427,7 +427,9 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 	hostNetwork := true
 	podDNS := v1.PodDNSConfig{}
 	kubeAnnotations := make(map[string]string)
+	ctrNames := make([]string, 0, len(ctrs))
 	for _, ctr := range ctrs {
+		ctrNames = append(ctrNames, strings.ReplaceAll(ctr.Name(), "_", ""))
 		// Convert auto-update labels into kube annotations
 		for k, v := range getAutoUpdateAnnotations(removeUnderscores(ctr.Name()), ctr.Labels()) {
 			kubeAnnotations[k] = v
@@ -484,8 +486,15 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 			}
 		} // end if ctrDNS
 	}
+	podName := strings.ReplaceAll(ctrs[0].Name(), "_", "")
+	// Check if the pod name and container name will end up conflicting
+	// Append _pod if so
+	if util.StringInSlice(podName, ctrNames) {
+		podName = podName + "_pod"
+	}
+
 	return newPodObject(
-		strings.ReplaceAll(ctrs[0].Name(), "_", ""),
+		podName,
 		kubeAnnotations,
 		kubeInitCtrs,
 		kubeCtrs,
