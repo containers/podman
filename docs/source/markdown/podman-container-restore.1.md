@@ -77,6 +77,12 @@ Import a checkpoint tar.gz file, which was exported by Podman. This can be used
 to import a checkpointed *container* from another host.\
 *IMPORTANT: This OPTION does not need a container name or ID as input argument.*
 
+During the import of a checkpoint file Podman will select the same container runtime
+which was used during checkpointing. This is especially important if a specific
+(non-default) container runtime was specified during container creation. Podman will
+also abort the restore if the container runtime specified during restore does
+not much the container runtime used for container creation.
+
 #### **--import-previous**=*file*
 
 Import a pre-checkpoint tar.gz file which was exported by Podman. This option

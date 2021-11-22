@@ -6,7 +6,6 @@ import (
 	"os"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
-	"github.com/checkpoint-restore/go-criu/v5/stats"
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod"
@@ -14,10 +13,8 @@ import (
 	"github.com/containers/podman/v3/pkg/checkpoint/crutils"
 	"github.com/containers/podman/v3/pkg/criu"
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/containers/podman/v3/pkg/errorhandling"
 	"github.com/containers/podman/v3/pkg/specgen/generate"
 	"github.com/containers/podman/v3/pkg/specgenutil"
-	"github.com/containers/storage/pkg/archive"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -30,24 +27,6 @@ import (
 func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOptions entities.RestoreOptions) ([]*libpod.Container, error) {
 	// First get the container definition from the
 	// tarball to a temporary directory
-	archiveFile, err := os.Open(restoreOptions.Import)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to open checkpoint archive for import")
-	}
-	defer errorhandling.CloseQuiet(archiveFile)
-	options := &archive.TarOptions{
-		// Here we only need the files config.dump and spec.dump
-		ExcludePatterns: []string{
-			"volumes",
-			"ctr.log",
-			"artifacts",
-			stats.StatsDump,
-			metadata.RootFsDiffTar,
-			metadata.DeletedFilesFile,
-			metadata.NetworkStatusFile,
-			metadata.CheckpointDirectory,
-		},
-	}
 	dir, err := ioutil.TempDir("", "checkpoint")
 	if err != nil {
 		return nil, err
@@ -57,9 +36,8 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 			logrus.Errorf("Could not recursively remove %s: %q", dir, err)
 		}
 	}()
-	err = archive.Untar(archiveFile, dir, options)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Unpacking of checkpoint archive %s failed", restoreOptions.Import)
+	if err := crutils.CRImportCheckpointConfigOnly(dir, restoreOptions.Import); err != nil {
+		return nil, err
 	}
 
 	// Load spec.dump from temporary directory

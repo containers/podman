@@ -1377,4 +1377,177 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(result).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 	})
+
+	It("podman checkpoint container with export and verify runtime", func() {
+		SkipIfRemote("podman-remote does not support --runtime flag")
+		localRunString := getRunString([]string{
+			"--rm",
+			ALPINE,
+			"top",
+		})
+		session := podmanTest.Podman(localRunString)
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		cid := session.OutputToString()
+
+		session = podmanTest.Podman([]string{
+			"inspect",
+			"--format",
+			"{{.OCIRuntime}}",
+			cid,
+		})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		runtime := session.OutputToString()
+
+		fileName := "/tmp/checkpoint-" + cid + ".tar.gz"
+
+		result := podmanTest.Podman([]string{
+			"container",
+			"checkpoint",
+			cid, "-e",
+			fileName,
+		})
+		result.WaitWithDefaultTimeout()
+
+		// As the container has been started with '--rm' it will be completely
+		// cleaned up after checkpointing.
+		Expect(result).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
+
+		result = podmanTest.Podman([]string{
+			"container",
+			"restore",
+			"-i",
+			fileName,
+		})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
+
+		// The restored container should have the same runtime as the original container
+		result = podmanTest.Podman([]string{
+			"inspect",
+			"--format",
+			"{{.OCIRuntime}}",
+			cid,
+		})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal(runtime))
+
+		// Remove exported checkpoint
+		os.Remove(fileName)
+	})
+
+	It("podman checkpoint container with export and try to change the runtime", func() {
+		SkipIfRemote("podman-remote does not support --runtime flag")
+		// This test will only run if runc and crun both exist
+		if !strings.Contains(podmanTest.OCIRuntime, "crun") {
+			Skip("Test requires crun and runc")
+		}
+		cmd := exec.Command("runc")
+		if err := cmd.Start(); err != nil {
+			Skip("Test requires crun and runc")
+		}
+		if err := cmd.Wait(); err != nil {
+			Skip("Test requires crun and runc")
+		}
+		localRunString := getRunString([]string{
+			"--rm",
+			ALPINE,
+			"top",
+		})
+		// Let's start a container with runc and try to restore it with crun (expected to fail)
+		localRunString = append(
+			[]string{
+				"--runtime",
+				"runc",
+			},
+			localRunString...,
+		)
+		session := podmanTest.Podman(localRunString)
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		cid := session.OutputToString()
+
+		session = podmanTest.Podman([]string{
+			"inspect",
+			"--format",
+			"{{.OCIRuntime}}",
+			cid,
+		})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		runtime := session.OutputToString()
+
+		fileName := "/tmp/checkpoint-" + cid + ".tar.gz"
+
+		result := podmanTest.Podman([]string{
+			"container",
+			"checkpoint",
+			cid, "-e",
+			fileName,
+		})
+		result.WaitWithDefaultTimeout()
+
+		// As the container has been started with '--rm' it will be completely
+		// cleaned up after checkpointing.
+		Expect(result).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
+
+		// This should fail as the container was checkpointed with runc
+		result = podmanTest.Podman([]string{
+			"--runtime",
+			"crun",
+			"container",
+			"restore",
+			"-i",
+			fileName,
+		})
+		result.WaitWithDefaultTimeout()
+
+		Expect(result).Should(Exit(125))
+		Expect(result.ErrorToString()).To(
+			ContainSubstring("and cannot be restored with runtime"),
+		)
+
+		result = podmanTest.Podman([]string{
+			"--runtime",
+			"runc",
+			"container",
+			"restore",
+			"-i",
+			fileName,
+		})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+
+		result = podmanTest.Podman([]string{
+			"inspect",
+			"--format",
+			"{{.OCIRuntime}}",
+			cid,
+		})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(Equal(runtime))
+
+		result = podmanTest.Podman([]string{
+			"--runtime",
+			"runc",
+			"rm",
+			"-fa",
+		})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+		// Remove exported checkpoint
+		os.Remove(fileName)
+	})
 })
