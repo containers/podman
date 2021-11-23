@@ -624,8 +624,7 @@ func (i *Image) NamedRepoTags() ([]reference.Named, error) {
 }
 
 // inRepoTags looks for the specified name/tag pair in the image's repo tags.
-// Note that tag may be empty.
-func (i *Image) inRepoTags(name, tag string) (reference.Named, error) {
+func (i *Image) inRepoTags(namedTagged reference.NamedTagged) (reference.Named, error) {
 	repoTags, err := i.NamedRepoTags()
 	if err != nil {
 		return nil, err
@@ -636,8 +635,10 @@ func (i *Image) inRepoTags(name, tag string) (reference.Named, error) {
 		return nil, err
 	}
 
+	name := namedTagged.Name()
+	tag := namedTagged.Tag()
 	for _, pair := range pairs {
-		if tag != "" && tag != pair.Tag {
+		if tag != pair.Tag {
 			continue
 		}
 		if !strings.HasSuffix(pair.Name, name) {

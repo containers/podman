@@ -5,11 +5,12 @@ go 1.13
 require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/Microsoft/go-winio v0.4.17
+	github.com/cenkalti/backoff/v4 v4.1.1
 	github.com/containerd/cgroups v1.0.1
 	github.com/containerd/console v1.0.2
 	github.com/containerd/containerd v1.5.7
 	github.com/containerd/go-runc v1.0.0
-	github.com/containerd/ttrpc v1.0.2
+	github.com/containerd/ttrpc v1.1.0
 	github.com/containerd/typeurl v1.0.2
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/mock v1.6.0

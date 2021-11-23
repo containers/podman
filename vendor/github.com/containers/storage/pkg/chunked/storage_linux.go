@@ -67,6 +67,24 @@ func timeToTimespec(time time.Time) (ts unix.Timespec) {
 	return unix.NsecToTimespec(time.UnixNano())
 }
 
+func doHardLink(srcFd int, destDirFd int, destBase string) error {
+	doLink := func() error {
+		// Using unix.AT_EMPTY_PATH requires CAP_DAC_READ_SEARCH while this variant that uses
+		// /proc/self/fd doesn't and can be used with rootless.
+		srcPath := fmt.Sprintf("/proc/self/fd/%d", srcFd)
+		return unix.Linkat(unix.AT_FDCWD, srcPath, destDirFd, destBase, unix.AT_SYMLINK_FOLLOW)
+	}
+
+	err := doLink()
+
+	// if the destination exists, unlink it first and try again
+	if err != nil && os.IsExist(err) {
+		unix.Unlinkat(destDirFd, destBase, 0)
+		return doLink()
+	}
+	return err
+}
+
 func copyFileContent(srcFd int, destFile string, dirfd int, mode os.FileMode, useHardLinks bool) (*os.File, int64, error) {
 	src := fmt.Sprintf("/proc/self/fd/%d", srcFd)
 	st, err := os.Stat(src)
@@ -83,20 +101,7 @@ func copyFileContent(srcFd int, destFile string, dirfd int, mode os.FileMode, us
 		if err == nil {
 			defer destDir.Close()
 
-			doLink := func() error {
-				// Using unix.AT_EMPTY_PATH requires CAP_DAC_READ_SEARCH while this variant that uses
-				// /proc/self/fd doesn't and can be used with rootless.
-				srcPath := fmt.Sprintf("/proc/self/fd/%d", srcFd)
-				return unix.Linkat(unix.AT_FDCWD, srcPath, int(destDir.Fd()), destBase, unix.AT_SYMLINK_FOLLOW)
-			}
-
-			err := doLink()
-
-			// if the destination exists, unlink it first and try again
-			if err != nil && os.IsExist(err) {
-				unix.Unlinkat(int(destDir.Fd()), destBase, 0)
-				err = doLink()
-			}
+			err := doHardLink(srcFd, int(destDir.Fd()), destBase)
 			if err == nil {
 				return nil, st.Size(), nil
 			}
@@ -797,7 +802,7 @@ func safeLink(dirfd int, mode os.FileMode, metadata *internal.FileMetadata, opti
 		destDirFd = int(f.Fd())
 	}
 
-	err = unix.Linkat(int(sourceFile.Fd()), "", destDirFd, destBase, unix.AT_EMPTY_PATH)
+	err = doHardLink(int(sourceFile.Fd()), destDirFd, destBase)
 	if err != nil {
 		return err
 	}
@@ -861,7 +866,7 @@ func (d whiteoutHandler) Mknod(path string, mode uint32, dev int) error {
 
 func checkChownErr(err error, name string, uid, gid int) error {
 	if errors.Is(err, syscall.EINVAL) {
-		return errors.Wrapf(err, "potentially insufficient UIDs or GIDs available in user namespace (requested %d:%d for %s): Check /etc/subuid and /etc/subgid", uid, gid, name)
+		return errors.Wrapf(err, "potentially insufficient UIDs or GIDs available in user namespace (requested %d:%d for %s): Check /etc/subuid and /etc/subgid if configured locally", uid, gid, name)
 	}
 	return err
 }

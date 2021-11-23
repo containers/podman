@@ -46,6 +46,9 @@ func mkdirAs(path string, mode os.FileMode, ownerUID, ownerGID int, mkAll, chown
 		// walk back to "/" looking for directories which do not exist
 		// and add them to the paths array for chown after creation
 		dirPath := path
+		if !filepath.IsAbs(dirPath) {
+			return fmt.Errorf("path: %s should be absolute", dirPath)
+		}
 		for {
 			dirPath = filepath.Dir(dirPath)
 			if dirPath == "/" {

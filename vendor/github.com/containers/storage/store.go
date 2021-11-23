@@ -2371,22 +2371,16 @@ func (s *store) DeleteImage(id string, commit bool) (layers []string, err error)
 		if err != nil {
 			return nil, err
 		}
-		childrenByParent := make(map[string]*[]string)
+		childrenByParent := make(map[string][]string)
 		for _, layer := range layers {
-			parent := layer.Parent
-			if list, ok := childrenByParent[parent]; ok {
-				newList := append(*list, layer.ID)
-				childrenByParent[parent] = &newList
-			} else {
-				childrenByParent[parent] = &([]string{layer.ID})
-			}
+			childrenByParent[layer.Parent] = append(childrenByParent[layer.Parent], layer.ID)
 		}
-		otherImagesByTopLayer := make(map[string]string)
+		otherImagesTopLayers := make(map[string]struct{})
 		for _, img := range images {
 			if img.ID != id {
-				otherImagesByTopLayer[img.TopLayer] = img.ID
+				otherImagesTopLayers[img.TopLayer] = struct{}{}
 				for _, layerID := range img.MappedTopLayers {
-					otherImagesByTopLayer[layerID] = img.ID
+					otherImagesTopLayers[layerID] = struct{}{}
 				}
 			}
 		}
@@ -2396,43 +2390,46 @@ func (s *store) DeleteImage(id string, commit bool) (layers []string, err error)
 			}
 		}
 		layer := image.TopLayer
-		lastRemoved := ""
+		layersToRemoveMap := make(map[string]struct{})
 		for layer != "" {
 			if rcstore.Exists(layer) {
 				break
 			}
-			if _, ok := otherImagesByTopLayer[layer]; ok {
+			if _, used := otherImagesTopLayers[layer]; used {
 				break
 			}
 			parent := ""
 			if l, err := rlstore.Get(layer); err == nil {
 				parent = l.Parent
 			}
-			hasOtherRefs := func() bool {
+			hasChildrenNotBeingRemoved := func() bool {
 				layersToCheck := []string{layer}
 				if layer == image.TopLayer {
 					layersToCheck = append(layersToCheck, image.MappedTopLayers...)
 				}
 				for _, layer := range layersToCheck {
-					if childList, ok := childrenByParent[layer]; ok && childList != nil {
-						children := *childList
-						for _, child := range children {
-							if child != lastRemoved {
-								return true
+					if childList := childrenByParent[layer]; len(childList) > 0 {
+						for _, child := range childList {
+							if _, childIsSlatedForRemoval := layersToRemoveMap[child]; childIsSlatedForRemoval {
+								continue
 							}
+							return true
 						}
 					}
 				}
 				return false
 			}
-			if hasOtherRefs() {
+			if hasChildrenNotBeingRemoved() {
 				break
 			}
-			lastRemoved = layer
 			if layer == image.TopLayer {
 				layersToRemove = append(layersToRemove, image.MappedTopLayers...)
+				for _, mappedTopLayer := range image.MappedTopLayers {
+					layersToRemoveMap[mappedTopLayer] = struct{}{}
+				}
 			}
-			layersToRemove = append(layersToRemove, lastRemoved)
+			layersToRemove = append(layersToRemove, layer)
+			layersToRemoveMap[layer] = struct{}{}
 			layer = parent
 		}
 	} else {
