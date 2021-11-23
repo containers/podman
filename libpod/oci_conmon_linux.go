@@ -407,8 +407,11 @@ func (r *ConmonOCIRuntime) KillContainer(ctr *Container, signal uint, all bool) 
 		args = append(args, "kill", ctr.ID(), fmt.Sprintf("%d", signal))
 	}
 	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, args...); err != nil {
-		// try updating container state but ignore errors we cant do anything if this fails.
-		r.UpdateContainerStatus(ctr)
+		// Update container state - there's a chance we failed because
+		// the container exited in the meantime.
+		if err2 := r.UpdateContainerStatus(ctr); err2 != nil {
+			logrus.Infof("Error updating status for container %s: %v", ctr.ID(), err2)
+		}
 		if ctr.state.State == define.ContainerStateExited {
 			return nil
 		}
