@@ -80,13 +80,13 @@ type copier struct {
 
 // imageCopier tracks state specific to a single image (possibly an item of a manifest list)
 type imageCopier struct {
-	c                  *copier
-	manifestUpdates    *types.ManifestUpdateOptions
-	src                types.Image
-	diffIDsAreNeeded   bool
-	canModifyManifest  bool
-	canSubstituteBlobs bool
-	ociEncryptLayers   *[]int
+	c                          *copier
+	manifestUpdates            *types.ManifestUpdateOptions
+	src                        types.Image
+	diffIDsAreNeeded           bool
+	cannotModifyManifestReason string // The reason the manifest cannot be modified, or an empty string if it can
+	canSubstituteBlobs         bool
+	ociEncryptLayers           *[]int
 }
 
 const (
@@ -129,10 +129,14 @@ type Options struct {
 	DestinationCtx   *types.SystemContext
 	ProgressInterval time.Duration                 // time to wait between reports to signal the progress channel
 	Progress         chan types.ProgressProperties // Reported to when ProgressInterval has arrived for a single artifact+offset.
+
+	// Preserve digests, and fail if we cannot.
+	PreserveDigests bool
 	// manifest MIME type of image set by user. "" is default and means use the autodetection to the the manifest MIME type
 	ForceManifestMIMEType string
 	ImageListSelection    ImageListSelection // set to either CopySystemImage (the default), CopyAllImages, or CopySpecificImages to control which instances we copy when the source reference is a list; ignored if the source reference is not a list
 	Instances             []digest.Digest    // if ImageListSelection is CopySpecificImages, copy only these instances and the list itself
+
 	// If OciEncryptConfig is non-nil, it indicates that an image should be encrypted.
 	// The encryption options is derived from the construction of EncryptConfig object.
 	// Note: During initial encryption process of a layer, the resultant digest is not known
@@ -410,7 +414,36 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 			return nil, errors.Wrapf(err, "Can not copy signatures to %s", transports.ImageName(c.dest.Reference()))
 		}
 	}
-	canModifyManifestList := (len(sigs) == 0)
+
+	// If the destination is a digested reference, make a note of that, determine what digest value we're
+	// expecting, and check that the source manifest matches it.
+	destIsDigestedReference := false
+	if named := c.dest.Reference().DockerReference(); named != nil {
+		if digested, ok := named.(reference.Digested); ok {
+			destIsDigestedReference = true
+			matches, err := manifest.MatchesDigest(manifestList, digested.Digest())
+			if err != nil {
+				return nil, errors.Wrapf(err, "computing digest of source image's manifest")
+			}
+			if !matches {
+				return nil, errors.New("Digest of source image's manifest would not match destination reference")
+			}
+		}
+	}
+
+	// Determine if we're allowed to modify the manifest list.
+	// If we can, set to the empty string. If we can't, set to the reason why.
+	// Compare, and perhaps keep in sync with, the version in copyOneImage.
+	cannotModifyManifestListReason := ""
+	if len(sigs) > 0 {
+		cannotModifyManifestListReason = "Would invalidate signatures"
+	}
+	if destIsDigestedReference {
+		cannotModifyManifestListReason = "Destination specifies a digest"
+	}
+	if options.PreserveDigests {
+		cannotModifyManifestListReason = "Instructed to preserve digests"
+	}
 
 	// Determine if we'll need to convert the manifest list to a different format.
 	forceListMIMEType := options.ForceManifestMIMEType
@@ -425,8 +458,8 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 		return nil, errors.Wrapf(err, "determining manifest list type to write to destination")
 	}
 	if selectedListType != originalList.MIMEType() {
-		if !canModifyManifestList {
-			return nil, errors.Errorf("manifest list must be converted to type %q to be written to destination, but that would invalidate signatures", selectedListType)
+		if cannotModifyManifestListReason != "" {
+			return nil, errors.Errorf("Manifest list must be converted to type %q to be written to destination, but we cannot modify it: %q", selectedListType, cannotModifyManifestListReason)
 		}
 	}
 
@@ -510,8 +543,8 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 
 		// If we can't just use the original value, but we have to change it, flag an error.
 		if !bytes.Equal(attemptedManifestList, originalManifestList) {
-			if !canModifyManifestList {
-				return nil, errors.Errorf(" manifest list must be converted to type %q to be written to destination, but that would invalidate signatures", thisListType)
+			if cannotModifyManifestListReason != "" {
+				return nil, errors.Errorf("Manifest list must be converted to type %q to be written to destination, but we cannot modify it: %q", thisListType, cannotModifyManifestListReason)
 			}
 			logrus.Debugf("Manifest list has been updated")
 		} else {
@@ -629,13 +662,27 @@ func (c *copier) copyOneImage(ctx context.Context, policyContext *signature.Poli
 		}
 	}
 
+	// Determine if we're allowed to modify the manifest.
+	// If we can, set to the empty string. If we can't, set to the reason why.
+	// Compare, and perhaps keep in sync with, the version in copyMultipleImages.
+	cannotModifyManifestReason := ""
+	if len(sigs) > 0 {
+		cannotModifyManifestReason = "Would invalidate signatures"
+	}
+	if destIsDigestedReference {
+		cannotModifyManifestReason = "Destination specifies a digest"
+	}
+	if options.PreserveDigests {
+		cannotModifyManifestReason = "Instructed to preserve digests"
+	}
+
 	ic := imageCopier{
 		c:               c,
 		manifestUpdates: &types.ManifestUpdateOptions{InformationOnly: types.ManifestUpdateInformation{Destination: c.dest}},
 		src:             src,
 		// diffIDsAreNeeded is computed later
-		canModifyManifest: len(sigs) == 0 && !destIsDigestedReference,
-		ociEncryptLayers:  options.OciEncryptLayers,
+		cannotModifyManifestReason: cannotModifyManifestReason,
+		ociEncryptLayers:           options.OciEncryptLayers,
 	}
 	// Ensure _this_ copy sees exactly the intended data when either processing a signed image or signing it.
 	// This may be too conservative, but for now, better safe than sorry, _especially_ on the SignBy path:
@@ -643,7 +690,7 @@ func (c *copier) copyOneImage(ctx context.Context, policyContext *signature.Poli
 	// We do intend the RecordDigestUncompressedPair calls to only work with reliable data, but at least there’s a risk
 	// that the compressed version coming from a third party may be designed to attack some other decompressor implementation,
 	// and we would reuse and sign it.
-	ic.canSubstituteBlobs = ic.canModifyManifest && options.SignBy == ""
+	ic.canSubstituteBlobs = ic.cannotModifyManifestReason == "" && options.SignBy == ""
 
 	if err := ic.updateEmbeddedDockerReference(); err != nil {
 		return nil, "", "", err
@@ -710,10 +757,10 @@ func (c *copier) copyOneImage(ctx context.Context, policyContext *signature.Poli
 		}
 		// If the original MIME type is acceptable, determineManifestConversion always uses it as preferredManifestMIMEType.
 		// So if we are here, we will definitely be trying to convert the manifest.
-		// With !ic.canModifyManifest, that would just be a string of repeated failures for the same reason,
+		// With ic.cannotModifyManifestReason != "", that would just be a string of repeated failures for the same reason,
 		// so let’s bail out early and with a better error message.
-		if !ic.canModifyManifest {
-			return nil, "", "", errors.Wrap(err, "Writing manifest failed (and converting it is not possible, image is signed or the destination specifies a digest)")
+		if ic.cannotModifyManifestReason != "" {
+			return nil, "", "", errors.Wrapf(err, "Writing manifest failed and we cannot try conversions: %q", cannotModifyManifestReason)
 		}
 
 		// errs is a list of errors when trying various manifest types. Also serves as an "upload succeeded" flag when set to nil.
@@ -813,9 +860,9 @@ func (ic *imageCopier) updateEmbeddedDockerReference() error {
 		return nil // No reference embedded in the manifest, or it matches destRef already.
 	}
 
-	if !ic.canModifyManifest {
-		return errors.Errorf("Copying a schema1 image with an embedded Docker reference to %s (Docker reference %s) would change the manifest, which is not possible (image is signed or the destination specifies a digest)",
-			transports.ImageName(ic.c.dest.Reference()), destRef.String())
+	if ic.cannotModifyManifestReason != "" {
+		return errors.Errorf("Copying a schema1 image with an embedded Docker reference to %s (Docker reference %s) would change the manifest, which we cannot do: %q",
+			transports.ImageName(ic.c.dest.Reference()), destRef.String(), ic.cannotModifyManifestReason)
 	}
 	ic.manifestUpdates.EmbeddedDockerReference = destRef
 	return nil
@@ -833,7 +880,7 @@ func isTTY(w io.Writer) bool {
 	return false
 }
 
-// copyLayers copies layers from ic.src/ic.c.rawSource to dest, using and updating ic.manifestUpdates if necessary and ic.canModifyManifest.
+// copyLayers copies layers from ic.src/ic.c.rawSource to dest, using and updating ic.manifestUpdates if necessary and ic.cannotModifyManifestReason == "".
 func (ic *imageCopier) copyLayers(ctx context.Context) error {
 	srcInfos := ic.src.LayerInfos()
 	numLayers := len(srcInfos)
@@ -844,8 +891,8 @@ func (ic *imageCopier) copyLayers(ctx context.Context) error {
 	srcInfosUpdated := false
 	// If we only need to check authorization, no updates required.
 	if updatedSrcInfos != nil && !reflect.DeepEqual(srcInfos, updatedSrcInfos) {
-		if !ic.canModifyManifest {
-			return errors.Errorf("Copying this image requires changing layer representation, which is not possible (image is signed or the destination specifies a digest)")
+		if ic.cannotModifyManifestReason != "" {
+			return errors.Errorf("Copying this image would require changing layer representation, which we cannot do: %q", ic.cannotModifyManifestReason)
 		}
 		srcInfos = updatedSrcInfos
 		srcInfosUpdated = true
@@ -975,8 +1022,8 @@ func layerDigestsDiffer(a, b []types.BlobInfo) bool {
 func (ic *imageCopier) copyUpdatedConfigAndManifest(ctx context.Context, instanceDigest *digest.Digest) ([]byte, digest.Digest, error) {
 	pendingImage := ic.src
 	if !ic.noPendingManifestUpdates() {
-		if !ic.canModifyManifest {
-			return nil, "", errors.Errorf("Internal error: copy needs an updated manifest but that was known to be forbidden")
+		if ic.cannotModifyManifestReason != "" {
+			return nil, "", errors.Errorf("Internal error: copy needs an updated manifest but that was known to be forbidden: %q", ic.cannotModifyManifestReason)
 		}
 		if !ic.diffIDsAreNeeded && ic.src.UpdatedImageNeedsLayerDiffIDs(*ic.manifestUpdates) {
 			// We have set ic.diffIDsAreNeeded based on the preferred MIME type returned by determineManifestConversion.
@@ -1359,7 +1406,7 @@ func (ic *imageCopier) copyLayerFromStream(ctx context.Context, srcStream io.Rea
 		}
 	}
 
-	blobInfo, err := ic.c.copyBlobFromStream(ctx, srcStream, srcInfo, getDiffIDRecorder, ic.canModifyManifest, false, toEncrypt, bar, layerIndex, emptyLayer) // Sets err to nil on success
+	blobInfo, err := ic.c.copyBlobFromStream(ctx, srcStream, srcInfo, getDiffIDRecorder, ic.cannotModifyManifestReason == "", false, toEncrypt, bar, layerIndex, emptyLayer) // Sets err to nil on success
 	return blobInfo, diffIDChan, err
 	// We need the defer … pipeWriter.CloseWithError() to happen HERE so that the caller can block on reading from diffIDChan
 }

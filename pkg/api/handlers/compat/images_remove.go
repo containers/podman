@@ -34,12 +34,18 @@ func RemoveImage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	name := utils.GetName(r)
+	possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, name)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+		return
+	}
+
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 
 	options := entities.ImageRemoveOptions{
 		Force: query.Force,
 	}
-	report, rmerrors := imageEngine.Remove(r.Context(), []string{name}, options)
+	report, rmerrors := imageEngine.Remove(r.Context(), []string{possiblyNormalizedName}, options)
 	if len(rmerrors) > 0 && rmerrors[0] != nil {
 		err := rmerrors[0]
 		if errors.Cause(err) == storage.ErrImageUnknown {

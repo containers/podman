@@ -14,9 +14,15 @@ func HistoryImage(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	name := utils.GetName(r)
 
-	newImage, _, err := runtime.LibimageRuntime().LookupImage(name, nil)
+	possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, name)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "failed to find image %s", name))
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+		return
+	}
+
+	newImage, _, err := runtime.LibimageRuntime().LookupImage(possiblyNormalizedName, nil)
+	if err != nil {
+		utils.ImageNotFound(w, possiblyNormalizedName, errors.Wrapf(err, "failed to find image %s", possiblyNormalizedName))
 		return
 	}
 	history, err := newImage.History(r.Context())

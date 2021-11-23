@@ -61,9 +61,21 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 	if query.Tag != "" {
 		imageName += ":" + query.Tag
 	}
+
 	if _, err := utils.ParseStorageReference(imageName); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
 			errors.Wrapf(err, "image source %q is not a containers-storage-transport reference", imageName))
+		return
+	}
+
+	possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, imageName)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+		return
+	}
+	imageName = possiblyNormalizedName
+	if _, _, err := runtime.LibimageRuntime().LookupImage(possiblyNormalizedName, nil); err != nil {
+		utils.ImageNotFound(w, imageName, errors.Wrapf(err, "failed to find image %s", imageName))
 		return
 	}
 

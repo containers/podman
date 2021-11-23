@@ -118,7 +118,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		SecurityOpt            string   `schema:"securityopt"`
 		ShmSize                int      `schema:"shmsize"`
 		Squash                 bool     `schema:"squash"`
-		Tag                    []string `schema:"t"`
+		Tags                   []string `schema:"t"`
 		Target                 string   `schema:"target"`
 		Timestamp              int64    `schema:"timestamp"`
 		Ulimits                string   `schema:"ulimits"`
@@ -143,6 +143,9 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			query.Layers = true
 		}
 	}
+
+	// convert tag formats
+	tags := query.Tags
 
 	// convert addcaps formats
 	var addCaps = []string{}
@@ -240,8 +243,13 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var output string
-	if len(query.Tag) > 0 {
-		output = query.Tag[0]
+	if len(tags) > 0 {
+		possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, tags[0])
+		if err != nil {
+			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+			return
+		}
+		output = possiblyNormalizedName
 	}
 	format := buildah.Dockerv2ImageManifest
 	registry := query.Registry
@@ -257,9 +265,14 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	var additionalTags []string
-	if len(query.Tag) > 1 {
-		additionalTags = query.Tag[1:]
+	var additionalTags []string // nolint
+	for i := 1; i < len(tags); i++ {
+		possiblyNormalizedTag, err := utils.NormalizeToDockerHub(r, tags[i])
+		if err != nil {
+			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+			return
+		}
+		additionalTags = append(additionalTags, possiblyNormalizedTag)
 	}
 
 	var buildArgs = map[string]string{}
@@ -404,6 +417,22 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer auth.RemoveAuthfile(authfile)
 
+	fromImage := query.From
+	if fromImage != "" {
+		possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, fromImage)
+		if err != nil {
+			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+			return
+		}
+		fromImage = possiblyNormalizedName
+	}
+
+	systemContext := &types.SystemContext{
+		AuthFilePath:     authfile,
+		DockerAuthConfig: creds,
+	}
+	utils.PossiblyEnforceDockerHub(r, systemContext)
+
 	// Channels all mux'ed in select{} below to follow API build protocol
 	stdout := channel.NewWriter(make(chan []byte))
 	defer stdout.Close()
@@ -458,7 +487,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Err:                            auxout,
 		Excludes:                       excludes,
 		ForceRmIntermediateCtrs:        query.ForceRm,
-		From:                           query.From,
+		From:                           fromImage,
 		IgnoreUnrecognizedInstructions: query.Ignore,
 		Isolation:                      isolation,
 		Jobs:                           &jobs,
@@ -481,10 +510,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		RusageLogFile:                  query.RusageLogFile,
 		Squash:                         query.Squash,
 		Target:                         query.Target,
-		SystemContext: &types.SystemContext{
-			AuthFilePath:     authfile,
-			DockerAuthConfig: creds,
-		},
+		SystemContext:                  systemContext,
 	}
 
 	for _, platformSpec := range query.Platform {
@@ -590,7 +616,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 						logrus.Warnf("Failed to json encode error %v", err)
 					}
 					flush()
-					for _, tag := range query.Tag {
+					for _, tag := range tags {
 						m.Stream = fmt.Sprintf("Successfully tagged %s\n", tag)
 						if err := enc.Encode(m); err != nil {
 							logrus.Warnf("Failed to json encode error %v", err)
