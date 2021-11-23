@@ -152,8 +152,7 @@ var _ = Describe("Podman run", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "find", "/etc", "-name", "hosts"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		match, _ := session.GrepString("/etc/hosts")
-		Expect(match).Should(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("/etc/hosts"))
 	})
 
 	It("podman create pod with name in /etc/hosts", func() {
@@ -162,10 +161,8 @@ var _ = Describe("Podman run", func() {
 		session := podmanTest.Podman([]string{"run", "-ti", "--rm", "--name", name, "--hostname", hostname, ALPINE, "cat", "/etc/hosts"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		match, _ := session.GrepString(name)
-		Expect(match).Should(BeTrue())
-		match, _ = session.GrepString(hostname)
-		Expect(match).Should(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring(name))
+		Expect(session.OutputToString()).To(ContainSubstring(hostname))
 	})
 
 	It("podman run a container based on remote image", func() {
@@ -421,16 +418,14 @@ var _ = Describe("Podman run", func() {
 		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", strings.Join([]string{"seccomp=", forbidGetCWDSeccompProfile()}, ""), ALPINE, "pwd"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
-		match, _ := session.GrepString("Operation not permitted")
-		Expect(match).Should(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("Operation not permitted"))
 	})
 
 	It("podman run seccomp test --privileged", func() {
 		session := podmanTest.Podman([]string{"run", "-it", "--privileged", "--security-opt", strings.Join([]string{"seccomp=", forbidGetCWDSeccompProfile()}, ""), ALPINE, "pwd"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
-		match, _ := session.GrepString("Operation not permitted")
-		Expect(match).Should(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("Operation not permitted"))
 	})
 
 	It("podman run seccomp test --privileged no profile should be unconfined", func() {
@@ -879,14 +874,14 @@ USER bin`, BB)
 		session := podmanTest.Podman([]string{"run", "--rm", "--group-add=audio", "--group-add=nogroup", "--group-add=777", ALPINE, "id"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContains("777,65533(nogroup)")).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("777,65533(nogroup)"))
 	})
 
 	It("podman run with user (default)", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "id"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContains("uid=0(root) gid=0(root)")).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("uid=0(root) gid=0(root)"))
 	})
 
 	It("podman run with user (integer, not in /etc/passwd)", func() {
@@ -900,14 +895,14 @@ USER bin`, BB)
 		session := podmanTest.Podman([]string{"run", "--rm", "--user=8", ALPINE, "id"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContains("uid=8(mail) gid=12(mail)")).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("uid=8(mail) gid=12(mail)"))
 	})
 
 	It("podman run with user (username)", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "--user=mail", ALPINE, "id"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContains("uid=8(mail) gid=12(mail)")).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("uid=8(mail) gid=12(mail)"))
 	})
 
 	It("podman run with user:group (username:integer)", func() {
@@ -939,7 +934,7 @@ USER bin`, BB)
 		ps := podmanTest.Podman([]string{"ps", "-aq", "--no-trunc"})
 		ps.WaitWithDefaultTimeout()
 		Expect(ps).Should(Exit(0))
-		Expect(ps.LineInOutputContains(session.OutputToString())).To(BeTrue())
+		Expect(ps.OutputToString()).To(ContainSubstring(session.OutputToString()))
 	})
 
 	It("podman run with attach stdout does not print stderr", func() {
@@ -1217,8 +1212,7 @@ USER mail`, BB)
 
 		check := podmanTest.Podman([]string{"pod", "ps", "--no-trunc"})
 		check.WaitWithDefaultTimeout()
-		match, _ := check.GrepString("foobar")
-		Expect(match).To(BeTrue())
+		Expect(check.OutputToString()).To(ContainSubstring("foobar"))
 	})
 
 	It("podman run --pod new with hostname", func() {

@@ -237,8 +237,7 @@ var _ = Describe("Podman create", func() {
 
 		check := podmanTest.Podman([]string{"pod", "ps", "--no-trunc"})
 		check.WaitWithDefaultTimeout()
-		match, _ := check.GrepString("foobar")
-		Expect(match).To(BeTrue())
+		Expect(check.OutputToString()).To(ContainSubstring("foobar"))
 	})
 
 	It("podman create --pod-id-file", func() {

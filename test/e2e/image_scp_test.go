@@ -77,7 +77,7 @@ var _ = Describe("podman image scp", func() {
 		list := podmanTest.Podman([]string{"image", "list"}) // our image should now contain alpine loaded in from root
 		list.WaitWithDefaultTimeout()
 		Expect(list).To(Exit(0))
-		Expect(list.LineInOutputStartsWith("quay.io/libpod/alpine")).To(BeTrue())
+		Expect(list.OutputToStringArray()).To(ContainElement(HavePrefix("quay.io/libpod/alpine")))
 
 		scp = podmanTest.PodmanAsUser([]string{"image", "scp", "root@localhost::" + ALPINE}, 0, 0, "", env) //transfer from root to rootless (us)
 		scp.WaitWithDefaultTimeout()

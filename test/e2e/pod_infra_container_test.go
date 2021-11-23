@@ -42,8 +42,7 @@ var _ = Describe("Podman pod create", func() {
 
 		check := podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc"})
 		check.WaitWithDefaultTimeout()
-		match, _ := check.GrepString(podID)
-		Expect(match).To(BeTrue())
+		Expect(check.OutputToString()).To(ContainSubstring(podID))
 		Expect(len(check.OutputToStringArray())).To(Equal(1))
 
 		check = podmanTest.Podman([]string{"ps", "-qa", "--no-trunc"})

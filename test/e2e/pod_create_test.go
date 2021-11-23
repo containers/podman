@@ -48,8 +48,7 @@ var _ = Describe("Podman pod create", func() {
 
 		check := podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc"})
 		check.WaitWithDefaultTimeout()
-		match, _ := check.GrepString(podID)
-		Expect(match).To(BeTrue())
+		Expect(check.OutputToString()).To(ContainSubstring(podID))
 		Expect(len(check.OutputToStringArray())).To(Equal(1))
 	})
 
@@ -60,8 +59,7 @@ var _ = Describe("Podman pod create", func() {
 
 		check := podmanTest.Podman([]string{"pod", "ps", "--no-trunc"})
 		check.WaitWithDefaultTimeout()
-		match, _ := check.GrepString(name)
-		Expect(match).To(BeTrue())
+		Expect(check.OutputToString()).To(ContainSubstring(name))
 	})
 
 	It("podman create pod with doubled name", func() {
@@ -646,8 +644,7 @@ ENTRYPOINT ["sleep","99999"]
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		uid := fmt.Sprintf("%d", os.Geteuid())
-		ok, _ := session.GrepString(uid)
-		Expect(ok).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring(uid))
 
 		// Check passwd
 		session = podmanTest.Podman([]string{"run", "--pod", podName, ALPINE, "id", "-un"})
@@ -655,8 +652,7 @@ ENTRYPOINT ["sleep","99999"]
 		Expect(session).Should(Exit(0))
 		u, err := user.Current()
 		Expect(err).To(BeNil())
-		ok, _ = session.GrepString(u.Name)
-		Expect(ok).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring(u.Name))
 
 		// root owns /usr
 		session = podmanTest.Podman([]string{"run", "--pod", podName, ALPINE, "stat", "-c%u", "/usr"})
@@ -808,8 +804,7 @@ ENTRYPOINT ["sleep","99999"]
 		session = podmanTest.Podman([]string{"run", "--pod", podName, ALPINE, "cat", "/proc/self/uid_map"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		ok, _ := session.GrepString("8191")
-		Expect(ok).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("8191"))
 	})
 
 	It("podman pod create --userns=auto:gidmapping=", func() {
@@ -846,8 +841,7 @@ ENTRYPOINT ["sleep","99999"]
 		session = podmanTest.Podman([]string{"run", "--pod", podName, ALPINE, "cat", "/proc/self/gid_map"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		ok, _ := session.GrepString("8191")
-		Expect(ok).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("8191"))
 	})
 
 	It("podman pod create --volume", func() {

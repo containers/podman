@@ -112,12 +112,12 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 		session := podmanTest.Podman([]string{"run", "--entrypoint=uname", "foobar.com/entrypoint:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputStartsWith("Linux")).To(BeTrue())
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("Linux")))
 
 		session = podmanTest.Podman([]string{"run", "--entrypoint", "", "foobar.com/entrypoint:latest", "uname"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputStartsWith("Linux")).To(BeTrue())
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("Linux")))
 	})
 
 	It("podman run user entrypoint with command overrides image entrypoint and image cmd", func() {

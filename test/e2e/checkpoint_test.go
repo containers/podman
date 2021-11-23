@@ -191,7 +191,7 @@ var _ = Describe("Podman checkpoint", func() {
 		ps := podmanTest.Podman([]string{"ps", "-q", "--no-trunc"})
 		ps.WaitWithDefaultTimeout()
 		Expect(ps).Should(Exit(0))
-		Expect(ps.LineInOutputContains(session1.OutputToString())).To(BeTrue())
+		Expect(ps.OutputToString()).To(ContainSubstring(session1.OutputToString()))
 		Expect(ps.LineInOutputContains(session2.OutputToString())).To(BeFalse())
 
 		result = podmanTest.Podman([]string{"container", "restore", "second"})

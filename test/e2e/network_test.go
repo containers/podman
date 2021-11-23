@@ -46,7 +46,7 @@ var _ = Describe("Podman network", func() {
 		session := podmanTest.Podman([]string{"network", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContains(name)).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring(name))
 	})
 
 	It("podman network list -q", func() {
@@ -56,7 +56,7 @@ var _ = Describe("Podman network", func() {
 		session := podmanTest.Podman([]string{"network", "ls", "--quiet"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContains(name)).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring(name))
 	})
 
 	It("podman network list --filter success", func() {
@@ -66,7 +66,7 @@ var _ = Describe("Podman network", func() {
 		session := podmanTest.Podman([]string{"network", "ls", "--filter", "driver=bridge"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContains(name)).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring(name))
 	})
 
 	It("podman network list --filter driver and name", func() {
@@ -200,7 +200,7 @@ var _ = Describe("Podman network", func() {
 			session := podmanTest.Podman([]string{"network", "ls", "--quiet"})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(0))
-			Expect(session.LineInOutputContains(name)).To(BeTrue())
+			Expect(session.OutputToString()).To(ContainSubstring(name))
 
 			rm := podmanTest.Podman([]string{"network", rm, name})
 			rm.WaitWithDefaultTimeout()
