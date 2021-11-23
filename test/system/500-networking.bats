@@ -169,7 +169,7 @@ load helpers
 
     # FIXME: debugging for #11871
     run_podman exec $cid cat /etc/resolv.conf
-    if is_rootless; then
+    if is_rootless && ! is_remote; then
         run_podman unshare --rootless-cni cat /etc/resolv.conf
     fi
     ps uxww
