@@ -2,7 +2,6 @@ package integration
 
 import (
 	"os"
-	"strings"
 
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -61,7 +60,7 @@ var _ = Describe("Podman inspect", func() {
 		Expect(inspect).Should(Exit(0))
 		// output should not be empty
 		// test validates fix for https://github.com/containers/podman/issues/8785
-		Expect(strings.Contains(inspect.OutputToString(), "TEST"))
+		Expect(inspect.OutputToString()).To(ContainSubstring("TEST="), ".Config.Env")
 
 		session = podmanTest.Podman([]string{"rmi", "envwithtab"})
 		session.WaitWithDefaultTimeout()
@@ -76,7 +75,7 @@ var _ = Describe("Podman inspect", func() {
 		result := podmanTest.Podman([]string{"images", "-q", "--no-trunc", ALPINE})
 		result.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(strings.Contains(result.OutputToString(), session.OutputToString()))
+		Expect(result.OutputToStringArray()).To(ContainElement("sha256:"+session.OutputToString()), "'podman images -q --no-truncate' includes 'podman inspect --format .ID'")
 	})
 
 	It("podman inspect specified type", func() {

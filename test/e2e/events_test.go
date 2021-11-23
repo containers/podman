@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -62,12 +61,10 @@ var _ = Describe("Podman events", func() {
 		result := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "event=start"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray()) >= 1)
+		Expect(len(result.OutputToStringArray())).To(BeNumerically(">=", 1), "Number of events")
 	})
 
 	It("podman events with an event filter and container=cid", func() {
-		Skip("Does not work on v2")
-		SkipIfNotFedora()
 		_, ec, cid := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
 		_, ec2, cid2 := podmanTest.RunLsContainer("")
@@ -76,8 +73,10 @@ var _ = Describe("Podman events", func() {
 		result := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "event=start", "--filter", fmt.Sprintf("container=%s", cid)})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(1))
-		Expect(!strings.Contains(result.OutputToString(), cid2))
+		events := result.OutputToStringArray()
+		Expect(len(events)).To(Equal(1), "number of events")
+		Expect(events[0]).To(ContainSubstring(cid), "event log includes CID")
+		Expect(events[0]).To(Not(ContainSubstring(cid2)), "event log does not include second CID")
 	})
 
 	It("podman events with a type and filter container=id", func() {
@@ -101,8 +100,12 @@ var _ = Describe("Podman events", func() {
 		result := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "type=pod", "--filter", "pod=foobarpod"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		fmt.Println(result.OutputToStringArray())
-		Expect(len(result.OutputToStringArray()) >= 2)
+		events := result.OutputToStringArray()
+		fmt.Println(events)
+		Expect(len(events)).To(BeNumerically(">=", 2), "Number of events")
+		Expect(events).To(ContainElement(ContainSubstring(" pod create ")))
+		Expect(events).To(ContainElement(ContainSubstring(" pod stop ")))
+		Expect(events).To(ContainElement(ContainSubstring("name=foobarpod")))
 	})
 
 	It("podman events --since", func() {
