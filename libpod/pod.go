@@ -371,7 +371,7 @@ func (p *Pod) HasInfraContainer() bool {
 // SharesNamespaces checks if the pod has any kernel namespaces set as shared. An infra container will not be
 // created if no kernel namespaces are shared.
 func (p *Pod) SharesNamespaces() bool {
-	return p.SharesPID() || p.SharesIPC() || p.SharesNet() || p.SharesMount() || p.SharesUser() || p.SharesUTS()
+	return p.SharesPID() || p.SharesIPC() || p.SharesNet() || p.SharesMount() || p.SharesUser() || p.SharesUTS() || p.SharesCgroup()
 }
 
 // infraContainerID returns the infra ID without a lock

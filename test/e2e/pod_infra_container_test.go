@@ -3,6 +3,7 @@ package integration
 import (
 	"os"
 	"strconv"
+	"strings"
 
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -414,5 +415,35 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring(hostname))
+	})
+
+	It("podman pod correctly sets up CgroupNS", func() {
+		if strings.Contains(podmanTest.OCIRuntime, "crun") {
+			Skip("As of crun 1.2, crun always unshare cgroup namespace.")
+		}
+
+		session := podmanTest.Podman([]string{"pod", "create", "--share", "cgroup"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		podID := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"pod", "start", podID})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		getNSinPod := func(ctrName string) string {
+			session = podmanTest.RunTopContainerInPod(ctrName, podID)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+
+			session = podmanTest.Podman([]string{"exec", ctrName, "ls", "-l", "/proc/self/ns/cgroup"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+			fields := strings.Split(session.OutputToString(), " ")
+			return strings.TrimSuffix(fields[len(fields)-1], "\n")
+		}
+		ctr1NS := getNSinPod("ctr1")
+		ctr2NS := getNSinPod("ctr2")
+		Expect(ctr1NS).To(Equal(ctr2NS))
 	})
 })

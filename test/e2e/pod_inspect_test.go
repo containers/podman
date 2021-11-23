@@ -2,6 +2,7 @@ package integration
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 
 	"github.com/containers/podman/v3/libpod/define"
@@ -119,4 +120,28 @@ var _ = Describe("Podman pod inspect", func() {
 
 		Expect(inspectOut.OutputToString()).To(ContainSubstring(macAddr))
 	})
+
+	for _, ns := range []string{"pid", "ipc", "net", "uts", "cgroup", ""} {
+		// This is important to move the 'log' var to the correct scope under Ginkgo flow.
+		ns := ns
+		testName := fmt.Sprintf("podman pod inspect outputs correct shared namespaces (%s)", ns)
+
+		It(testName, func() {
+			podName := "testPod"
+			create := podmanTest.Podman([]string{"pod", "create", "--name", podName, "--share", ns})
+			create.WaitWithDefaultTimeout()
+			Expect(create).Should(Exit(0))
+
+			inspect := podmanTest.Podman([]string{"pod", "inspect", podName})
+			inspect.WaitWithDefaultTimeout()
+			Expect(inspect).Should(Exit(0))
+			Expect(inspect.IsJSONOutputValid()).To(BeTrue())
+			if ns != "" {
+				Expect(inspect.InspectPodToJSON().SharedNamespaces).To(Equal([]string{ns}))
+			} else {
+				Expect(inspect.InspectPodToJSON().SharedNamespaces).To(BeNil())
+			}
+		})
+
+	}
 })

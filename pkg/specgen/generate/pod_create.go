@@ -176,6 +176,7 @@ func createPodOptions(p *specgen.PodSpecGenerator, rt *libpod.Runtime, infraSpec
 			options = append(options, libpod.WithPodUser())
 		}
 	}
+	options = append(options, libpod.WithPodCgroups())
 	if len(p.CgroupParent) > 0 {
 		options = append(options, libpod.WithPodCgroupParent(p.CgroupParent))
 	}
