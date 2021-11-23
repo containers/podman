@@ -289,7 +289,7 @@ func (r *ConmonOCIRuntime) UpdateContainerStatus(ctr *Container) error {
 		if err2 != nil {
 			return errors.Wrapf(err, "error getting container %s state", ctr.ID())
 		}
-		if strings.Contains(string(out), "does not exist") {
+		if strings.Contains(string(out), "does not exist") || strings.Contains(string(out), "No such file") {
 			if err := ctr.removeConmonFiles(); err != nil {
 				logrus.Debugf("unable to remove conmon files for container %s", ctr.ID())
 			}
