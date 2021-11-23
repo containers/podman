@@ -47,7 +47,7 @@ var _ = Describe("Podman commit", func() {
 		check := podmanTest.Podman([]string{"inspect", "foobar.com/test1-image:latest"})
 		check.WaitWithDefaultTimeout()
 		data := check.InspectImageJSON()
-		Expect(StringInSlice("foobar.com/test1-image:latest", data[0].RepoTags)).To(BeTrue())
+		Expect(data[0].RepoTags).To(ContainElement("foobar.com/test1-image:latest"))
 	})
 
 	It("podman commit single letter container", func() {
@@ -62,7 +62,7 @@ var _ = Describe("Podman commit", func() {
 		check := podmanTest.Podman([]string{"inspect", "localhost/a:latest"})
 		check.WaitWithDefaultTimeout()
 		data := check.InspectImageJSON()
-		Expect(StringInSlice("localhost/a:latest", data[0].RepoTags)).To(BeTrue())
+		Expect(data[0].RepoTags).To(ContainElement("localhost/a:latest"))
 	})
 
 	It("podman container commit container", func() {
@@ -77,7 +77,7 @@ var _ = Describe("Podman commit", func() {
 		check := podmanTest.Podman([]string{"image", "inspect", "foobar.com/test1-image:latest"})
 		check.WaitWithDefaultTimeout()
 		data := check.InspectImageJSON()
-		Expect(StringInSlice("foobar.com/test1-image:latest", data[0].RepoTags)).To(BeTrue())
+		Expect(data[0].RepoTags).To(ContainElement("foobar.com/test1-image:latest"))
 	})
 
 	It("podman commit container with message", func() {

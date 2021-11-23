@@ -775,8 +775,8 @@ var _ = Describe("Podman generate kube", func() {
 		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).To(BeNil())
 
-		Expect(StringInSlice("8.8.8.8", pod.Spec.DNSConfig.Nameservers)).To(BeTrue())
-		Expect(StringInSlice("foobar.com", pod.Spec.DNSConfig.Searches)).To(BeTrue())
+		Expect(pod.Spec.DNSConfig.Nameservers).To(ContainElement("8.8.8.8"))
+		Expect(pod.Spec.DNSConfig.Searches).To(ContainElement("foobar.com"))
 		Expect(len(pod.Spec.DNSConfig.Options)).To(BeNumerically(">", 0))
 		Expect(pod.Spec.DNSConfig.Options[0].Name).To(Equal("color"))
 		Expect(*pod.Spec.DNSConfig.Options[0].Value).To(Equal("blue"))
@@ -799,10 +799,10 @@ var _ = Describe("Podman generate kube", func() {
 		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).To(BeNil())
 
-		Expect(StringInSlice("8.8.8.8", pod.Spec.DNSConfig.Nameservers)).To(BeTrue())
-		Expect(StringInSlice("8.7.7.7", pod.Spec.DNSConfig.Nameservers)).To(BeTrue())
-		Expect(StringInSlice("foobar.com", pod.Spec.DNSConfig.Searches)).To(BeTrue())
-		Expect(StringInSlice("homer.com", pod.Spec.DNSConfig.Searches)).To(BeTrue())
+		Expect(pod.Spec.DNSConfig.Nameservers).To(ContainElement("8.8.8.8"))
+		Expect(pod.Spec.DNSConfig.Nameservers).To(ContainElement("8.7.7.7"))
+		Expect(pod.Spec.DNSConfig.Searches).To(ContainElement("foobar.com"))
+		Expect(pod.Spec.DNSConfig.Searches).To(ContainElement("homer.com"))
 	})
 
 	It("podman generate kube on a pod with dns options", func() {
@@ -818,8 +818,8 @@ var _ = Describe("Podman generate kube", func() {
 		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).To(BeNil())
 
-		Expect(StringInSlice("8.8.8.8", pod.Spec.DNSConfig.Nameservers)).To(BeTrue())
-		Expect(StringInSlice("foobar.com", pod.Spec.DNSConfig.Searches)).To(BeTrue())
+		Expect(pod.Spec.DNSConfig.Nameservers).To(ContainElement("8.8.8.8"))
+		Expect(pod.Spec.DNSConfig.Searches).To(ContainElement("foobar.com"))
 		Expect(len(pod.Spec.DNSConfig.Options)).To(BeNumerically(">", 0))
 		Expect(pod.Spec.DNSConfig.Options[0].Name).To(Equal("color"))
 		Expect(*pod.Spec.DNSConfig.Options[0].Value).To(Equal("blue"))
