@@ -2,6 +2,7 @@ package compat
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
 
@@ -69,12 +70,20 @@ func convertLibpodNetworktoDockerNetwork(runtime *libpod.Runtime, network nettyp
 			return nil, err
 		}
 		if netData, ok := data.NetworkSettings.Networks[network.Name]; ok {
+			ipv4Address := ""
+			if netData.IPAddress != "" {
+				ipv4Address = fmt.Sprintf("%s/%d", netData.IPAddress, netData.IPPrefixLen)
+			}
+			ipv6Address := ""
+			if netData.GlobalIPv6Address != "" {
+				ipv6Address = fmt.Sprintf("%s/%d", netData.GlobalIPv6Address, netData.GlobalIPv6PrefixLen)
+			}
 			containerEndpoint := types.EndpointResource{
-				Name:        netData.NetworkID,
+				Name:        con.Name(),
 				EndpointID:  netData.EndpointID,
 				MacAddress:  netData.MacAddress,
-				IPv4Address: netData.IPAddress,
-				IPv6Address: netData.GlobalIPv6Address,
+				IPv4Address: ipv4Address,
+				IPv6Address: ipv6Address,
 			}
 			containerEndpoints[con.ID()] = containerEndpoint
 		}
