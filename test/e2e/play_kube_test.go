@@ -2,8 +2,13 @@ package integration
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"github.com/containers/podman/v3/pkg/bindings"
+	"github.com/containers/podman/v3/pkg/bindings/play"
 	"io/ioutil"
+	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -436,6 +441,41 @@ spec:
         {{ end }}
         env:
         - name: HOSTNAME
+        {{ range .Env }}
+        - name: {{ .Name }}
+        {{ if (eq .ValueFrom "configmap") }}
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .RefName }}
+              key: {{ .RefKey }}
+              optional: {{ .Optional }}
+        {{ end }}
+        {{ if (eq .ValueFrom "secret") }}
+          valueFrom:
+            secretKeyRef:
+              name: {{ .RefName }}
+              key: {{ .RefKey }}
+              optional: {{ .Optional }}
+        {{ end }}
+        {{ if (eq .ValueFrom "") }}
+          value: {{ .Value }}
+        {{ end }}
+        {{ end }}
+        {{ with .EnvFrom}}
+        envFrom:
+        {{ range . }}
+        {{ if (eq .From "configmap") }}
+        - configMapRef:
+            name: {{ .Name }}
+            optional: {{ .Optional }}
+        {{ end }}
+        {{ if (eq .From "secret") }}
+        - secretRef:
+            name: {{ .Name }}
+            optional: {{ .Optional }}
+        {{ end }}
+        {{ end }}
+        {{ end }}
         image: {{ .Image }}
         name: {{ .Name }}
         imagePullPolicy: {{ .PullPolicy }}
@@ -2908,4 +2948,277 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		})
 	})
 
+	Context("with configmap in multi-doc yaml", func() {
+		It("podman play kube uses env value", func() {
+			cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
+
+			cmYaml, err := getKubeYaml("configmap", cm)
+			Expect(err).To(BeNil())
+
+			pod := getPod(withCtr(getCtr(withEnv("FOO", "", "configmap", "foo", "FOO", false))))
+
+			podYaml, err := getKubeYaml("pod", pod)
+			Expect(err).To(BeNil())
+
+			yamls := []string{cmYaml, podYaml}
+			err = generateMultiDocKubeYaml(yamls, kubeYaml)
+			Expect(err).To(BeNil())
+
+			kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+			kube.WaitWithDefaultTimeout()
+			Expect(kube).Should(Exit(0))
+
+			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Env }}'"})
+			inspect.WaitWithDefaultTimeout()
+			Expect(inspect).Should(Exit(0))
+			Expect(inspect.OutputToString()).To(ContainSubstring(`FOO=foo`))
+		})
+
+		It("podman play kube fails for required env value with missing key", func() {
+			cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
+
+			cmYaml, err := getKubeYaml("configmap", cm)
+			Expect(err).To(BeNil())
+
+			pod := getPod(withCtr(getCtr(withEnv("FOO", "", "configmap", "foo", "MISSING_KEY", false))))
+
+			podYaml, err := getKubeYaml("pod", pod)
+			Expect(err).To(BeNil())
+
+			yamls := []string{cmYaml, podYaml}
+			err = generateMultiDocKubeYaml(yamls, kubeYaml)
+			Expect(err).To(BeNil())
+
+			kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+			kube.WaitWithDefaultTimeout()
+			Expect(kube).To(ExitWithError())
+		})
+
+		It("podman play kube succeeds for optional env value with missing key", func() {
+			cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
+
+			cmYaml, err := getKubeYaml("configmap", cm)
+			Expect(err).To(BeNil())
+
+			pod := getPod(withCtr(getCtr(withEnv("FOO", "", "configmap", "foo", "MISSING_KEY", true))))
+
+			podYaml, err := getKubeYaml("pod", pod)
+			Expect(err).To(BeNil())
+
+			yamls := []string{cmYaml, podYaml}
+			err = generateMultiDocKubeYaml(yamls, kubeYaml)
+			Expect(err).To(BeNil())
+
+			kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+			kube.WaitWithDefaultTimeout()
+			Expect(kube).Should(Exit(0))
+
+			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ range .Config.Env }}[{{ . }}]{{end}}'"})
+			inspect.WaitWithDefaultTimeout()
+			Expect(inspect).Should(Exit(0))
+			Expect(inspect.OutputToString()).To(ContainSubstring(`[FOO=]`))
+		})
+
+		It("podman play kube uses all key-value pairs as envs", func() {
+			cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO1", "foo1"), withConfigMapData("FOO2", "foo2"))
+			cmYaml, err := getKubeYaml("configmap", cm)
+			Expect(err).To(BeNil())
+
+			pod := getPod(withCtr(getCtr(withEnvFrom("foo", "configmap", false))))
+
+			podYaml, err := getKubeYaml("pod", pod)
+			Expect(err).To(BeNil())
+
+			yamls := []string{cmYaml, podYaml}
+			err = generateMultiDocKubeYaml(yamls, kubeYaml)
+			Expect(err).To(BeNil())
+
+			kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+			kube.WaitWithDefaultTimeout()
+			Expect(kube).Should(Exit(0))
+
+			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Env }}'"})
+			inspect.WaitWithDefaultTimeout()
+			Expect(inspect).Should(Exit(0))
+			Expect(inspect.OutputToString()).To(ContainSubstring(`FOO1=foo1`))
+			Expect(inspect.OutputToString()).To(ContainSubstring(`FOO2=foo2`))
+		})
+
+		It("podman play kube deployment uses variable from config map", func() {
+			cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
+
+			cmYaml, err := getKubeYaml("configmap", cm)
+			Expect(err).To(BeNil())
+
+			pod := getPod(withCtr(getCtr(withEnv("FOO", "", "configmap", "foo", "FOO", false))))
+
+			deployment := getDeployment(withPod(pod))
+			deploymentYaml, err := getKubeYaml("deployment", deployment)
+			yamls := []string{cmYaml, deploymentYaml}
+			err = generateMultiDocKubeYaml(yamls, kubeYaml)
+			Expect(err).To(BeNil())
+
+			kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+			kube.WaitWithDefaultTimeout()
+			Expect(kube).Should(Exit(0))
+
+			inspect := podmanTest.Podman([]string{"inspect", fmt.Sprintf("%s-%s-%s", deployment.Name, "pod-0", defaultCtrName), "--format", "'{{ .Config }}'"})
+			inspect.WaitWithDefaultTimeout()
+			Expect(inspect).Should(Exit(0))
+			Expect(inspect.OutputToString()).To(ContainSubstring(`FOO=foo`))
+
+		})
+
+		It("podman play kube uses env value from configmap for HTTP API client", func() {
+			SkipIfRemote("cannot run in a remote setup")
+			address := url.URL{
+				Scheme: "tcp",
+				Host:   net.JoinHostPort("localhost", randomPort()),
+			}
+
+			session := podmanTest.Podman([]string{
+				"system", "service", "--log-level=debug", "--time=0", address.String(),
+			})
+			defer session.Kill()
+
+			WaitForService(address)
+
+			cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
+			cmYaml, err := getKubeYaml("configmap", cm)
+			Expect(err).To(BeNil())
+
+			pod := getPod(withCtr(getCtr(withEnv("FOO", "", "configmap", "foo", "FOO", false))))
+			podYaml, err := getKubeYaml("pod", pod)
+			Expect(err).To(BeNil())
+			yamls := []string{cmYaml, podYaml}
+			err = generateMultiDocKubeYaml(yamls, kubeYaml)
+			Expect(err).To(BeNil())
+
+			podmanConnection, err := bindings.NewConnection(context.Background(), address.String())
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = play.Kube(podmanConnection, kubeYaml, nil)
+			Expect(err).ToNot(HaveOccurred())
+
+			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Env }}'"})
+			inspect.WaitWithDefaultTimeout()
+			Expect(inspect).Should(Exit(0))
+			Expect(inspect.OutputToString()).To(ContainSubstring(`FOO=foo`))
+		})
+	})
+
+	Context("with configmap in multi-doc yaml and files", func() {
+		It("podman play kube uses env values from both sources", func() {
+			SkipIfRemote("--configmaps is not supported for remote")
+
+			fsCmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
+			fsCm := getConfigMap(withConfigMapName("fooFs"), withConfigMapData("FOO_FS", "fooFS"))
+			err := generateKubeYaml("configmap", fsCm, fsCmYamlPathname)
+			Expect(err).To(BeNil())
+
+			cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
+
+			cmYaml, err := getKubeYaml("configmap", cm)
+			Expect(err).To(BeNil())
+
+			pod := getPod(withCtr(getCtr(
+				withEnv("FOO_FS", "", "configmap", "fooFs", "FOO_FS", false),
+				withEnv("FOO", "", "configmap", "foo", "FOO", false),
+			)))
+
+			podYaml, err := getKubeYaml("pod", pod)
+			Expect(err).To(BeNil())
+
+			yamls := []string{cmYaml, podYaml}
+			err = generateMultiDocKubeYaml(yamls, kubeYaml)
+			Expect(err).To(BeNil())
+
+			kube := podmanTest.Podman([]string{"play", "kube", kubeYaml, "--configmap", fsCmYamlPathname})
+			kube.WaitWithDefaultTimeout()
+			Expect(kube).Should(Exit(0))
+
+			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Env }}'"})
+			inspect.WaitWithDefaultTimeout()
+			Expect(inspect).Should(Exit(0))
+			Expect(inspect.OutputToString()).To(And(
+				ContainSubstring(`FOO=foo`),
+				ContainSubstring(`FOO_FS=fooFS`),
+			))
+		})
+
+		It("podman play kube uses all env values from both sources", func() {
+			SkipIfRemote("--configmaps is not supported for remote")
+
+			fsCmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
+			fsCm := getConfigMap(withConfigMapName("fooFs"),
+				withConfigMapData("FOO_FS_1", "fooFS1"),
+				withConfigMapData("FOO_FS_2", "fooFS2"))
+			err := generateKubeYaml("configmap", fsCm, fsCmYamlPathname)
+			Expect(err).To(BeNil())
+
+			cm := getConfigMap(withConfigMapName("foo"),
+				withConfigMapData("FOO_1", "foo1"),
+				withConfigMapData("FOO_2", "foo2"),
+			)
+
+			cmYaml, err := getKubeYaml("configmap", cm)
+			Expect(err).To(BeNil())
+
+			pod := getPod(withCtr(getCtr(
+				withEnvFrom("foo", "configmap", false),
+				withEnvFrom("fooFs", "configmap", false),
+			)))
+
+			podYaml, err := getKubeYaml("pod", pod)
+			Expect(err).To(BeNil())
+
+			yamls := []string{cmYaml, podYaml}
+			err = generateMultiDocKubeYaml(yamls, kubeYaml)
+			Expect(err).To(BeNil())
+
+			kube := podmanTest.Podman([]string{"play", "kube", kubeYaml, "--configmap", fsCmYamlPathname})
+			kube.WaitWithDefaultTimeout()
+			Expect(kube).Should(Exit(0))
+
+			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Env }}'"})
+			inspect.WaitWithDefaultTimeout()
+			Expect(inspect).Should(Exit(0))
+			Expect(inspect.OutputToString()).To(And(
+				ContainSubstring(`FOO_1=foo1`),
+				ContainSubstring(`FOO_2=foo2`),
+				ContainSubstring(`FOO_FS_1=fooFS1`),
+				ContainSubstring(`FOO_FS_2=fooFS2`),
+			))
+		})
+
+		It("podman play kube reports error when the same configmap name is present in both sources", func() {
+			SkipIfRemote("--configmaps is not supported for remote")
+
+			fsCmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
+			fsCm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "fooFS"))
+			err := generateKubeYaml("configmap", fsCm, fsCmYamlPathname)
+			Expect(err).To(BeNil())
+
+			cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
+
+			cmYaml, err := getKubeYaml("configmap", cm)
+			Expect(err).To(BeNil())
+
+			pod := getPod(withCtr(getCtr(
+				withEnv("FOO", "", "configmap", "foo", "FOO", false),
+			)))
+
+			podYaml, err := getKubeYaml("pod", pod)
+			Expect(err).To(BeNil())
+
+			yamls := []string{cmYaml, podYaml}
+			err = generateMultiDocKubeYaml(yamls, kubeYaml)
+			Expect(err).To(BeNil())
+
+			kube := podmanTest.Podman([]string{"play", "kube", kubeYaml, "--configmap", fsCmYamlPathname})
+			kube.WaitWithDefaultTimeout()
+			Expect(kube).Should(Exit(125))
+			Expect(kube.ErrorToString()).To(ContainSubstring("ambiguous configuration: the same config map foo is present in YAML and in --configmaps"))
+		})
+	})
 })
