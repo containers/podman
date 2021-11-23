@@ -362,14 +362,18 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("podman create --signature-policy", func() {
-		SkipIfRemote("SigPolicy not handled by remote")
 		session := podmanTest.Podman([]string{"create", "--pull=always", "--signature-policy", "/no/such/file", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 
 		session = podmanTest.Podman([]string{"create", "--pull=always", "--signature-policy", "/etc/containers/policy.json", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		if IsRemote() {
+			Expect(session).To(ExitWithError())
+			Expect(session.ErrorToString()).To(ContainSubstring("unknown flag"))
+		} else {
+			Expect(session).Should(Exit(0))
+		}
 	})
 
 	It("podman create with unset label", func() {

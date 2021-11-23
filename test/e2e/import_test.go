@@ -171,6 +171,12 @@ var _ = Describe("Podman import", func() {
 
 		result := podmanTest.Podman([]string{"import", "--signature-policy", "/etc/containers/policy.json", outfile})
 		result.WaitWithDefaultTimeout()
+		if IsRemote() {
+			Expect(result).To(ExitWithError())
+			Expect(result.ErrorToString()).To(ContainSubstring("unknown flag"))
+			result := podmanTest.Podman([]string{"import", outfile})
+			result.WaitWithDefaultTimeout()
+		}
 		Expect(result).Should(Exit(0))
 	})
 })

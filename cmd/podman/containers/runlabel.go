@@ -70,7 +70,6 @@ func init() {
 	flags.BoolVarP(&runlabelOptions.Pull, "pull", "p", true, "Pull the image if it does not exist locally prior to executing the label contents")
 	flags.BoolVarP(&runlabelOptions.Quiet, "quiet", "q", false, "Suppress output information when installing images")
 	flags.BoolVar(&runlabelOptions.Replace, "replace", false, "Replace existing container with a new one from the image")
-	flags.StringVar(&runlabelOptions.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 	flags.BoolVar(&runlabelOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 
 	// Hide the optional flags.
@@ -78,8 +77,10 @@ func init() {
 	_ = flags.MarkHidden("opt2")
 	_ = flags.MarkHidden("opt3")
 	_ = flags.MarkHidden("pull")
-	_ = flags.MarkHidden("signature-policy")
-
+	if !registry.IsRemote() {
+		flags.StringVar(&runlabelOptions.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
+		_ = flags.MarkHidden("signature-policy")
+	}
 	if err := flags.MarkDeprecated("pull", "podman will pull if not found in local storage"); err != nil {
 		logrus.Error("unable to mark pull flag deprecated")
 	}
