@@ -1024,8 +1024,16 @@ func WithCgroupNSFrom(nsCtr *Container) CtrCreateOption {
 			return err
 		}
 
-		ctr.config.CgroupNsCtr = nsCtr.ID()
+		for _, ns := range nsCtr.config.Spec.Linux.Namespaces {
+			if ns.Type == specs.CgroupNamespace {
+				ctr.config.CgroupNsCtr = nsCtr.ID()
+				return nil
+			}
+		}
 
+		// When the given container is in the host cgroup namespace,
+		// the container does't have to re-enter the host cgroup namespace.
+		// (Especially, a rootless container cannot re-enter the host cgroup namespace.)
 		return nil
 	}
 }
