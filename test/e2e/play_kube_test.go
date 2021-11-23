@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/containers/podman/v3/pkg/bindings"
-	"github.com/containers/podman/v3/pkg/bindings/play"
 	"io/ioutil"
 	"net"
 	"net/url"
@@ -17,6 +15,8 @@ import (
 	"time"
 
 	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/pkg/bindings"
+	"github.com/containers/podman/v3/pkg/bindings/play"
 	"github.com/containers/podman/v3/pkg/util"
 	. "github.com/containers/podman/v3/test/utils"
 	"github.com/containers/storage/pkg/stringid"
@@ -319,16 +319,16 @@ spec:
     image: {{ .Image }}
     name: {{ .Name }}
     imagePullPolicy: {{ .PullPolicy }}
-    {{- if or .CpuRequest .CpuLimit .MemoryRequest .MemoryLimit }}
+    {{- if or .CPURequest .CPULimit .MemoryRequest .MemoryLimit }}
     resources:
-      {{- if or .CpuRequest .MemoryRequest }}
+      {{- if or .CPURequest .MemoryRequest }}
       requests:
-        {{if .CpuRequest }}cpu: {{ .CpuRequest }}{{ end }}
+        {{if .CPURequest }}cpu: {{ .CPURequest }}{{ end }}
         {{if .MemoryRequest }}memory: {{ .MemoryRequest }}{{ end }}
       {{- end }}
-      {{- if or .CpuLimit .MemoryLimit }}
+      {{- if or .CPULimit .MemoryLimit }}
       limits:
-        {{if .CpuLimit }}cpu: {{ .CpuLimit }}{{ end }}
+        {{if .CPULimit }}cpu: {{ .CPULimit }}{{ end }}
         {{if .MemoryLimit }}memory: {{ .MemoryLimit }}{{ end }}
       {{- end }}
     {{- end }}
@@ -479,16 +479,16 @@ spec:
         image: {{ .Image }}
         name: {{ .Name }}
         imagePullPolicy: {{ .PullPolicy }}
-        {{- if or .CpuRequest .CpuLimit .MemoryRequest .MemoryLimit }}
+        {{- if or .CPURequest .CPULimit .MemoryRequest .MemoryLimit }}
         resources:
-          {{- if or .CpuRequest .MemoryRequest }}
+          {{- if or .CPURequest .MemoryRequest }}
           requests:
-            {{if .CpuRequest }}cpu: {{ .CpuRequest }}{{ end }}
+            {{if .CPURequest }}cpu: {{ .CPURequest }}{{ end }}
             {{if .MemoryRequest }}memory: {{ .MemoryRequest }}{{ end }}
           {{- end }}
-          {{- if or .CpuLimit .MemoryLimit }}
+          {{- if or .CPULimit .MemoryLimit }}
           limits:
-            {{if .CpuLimit }}cpu: {{ .CpuLimit }}{{ end }}
+            {{if .CPULimit }}cpu: {{ .CPULimit }}{{ end }}
             {{if .MemoryLimit }}memory: {{ .MemoryLimit }}{{ end }}
           {{- end }}
         {{- end }}
@@ -820,12 +820,6 @@ func getDeployment(options ...deploymentOption) *Deployment {
 
 type deploymentOption func(*Deployment)
 
-func withDeploymentLabel(k, v string) deploymentOption {
-	return func(deployment *Deployment) {
-		deployment.Labels[k] = v
-	}
-}
-
 func withDeploymentAnnotation(k, v string) deploymentOption {
 	return func(deployment *Deployment) {
 		deployment.Annotations[k] = v
@@ -866,8 +860,8 @@ type Ctr struct {
 	Image           string
 	Cmd             []string
 	Arg             []string
-	CpuRequest      string
-	CpuLimit        string
+	CPURequest      string
+	CPULimit        string
 	MemoryRequest   string
 	MemoryLimit     string
 	SecurityContext bool
@@ -947,15 +941,15 @@ func withImage(img string) ctrOption {
 	}
 }
 
-func withCpuRequest(request string) ctrOption {
+func withCPURequest(request string) ctrOption {
 	return func(c *Ctr) {
-		c.CpuRequest = request
+		c.CPURequest = request
 	}
 }
 
-func withCpuLimit(limit string) ctrOption {
+func withCPULimit(limit string) ctrOption {
 	return func(c *Ctr) {
-		c.CpuLimit = limit
+		c.CPULimit = limit
 	}
 }
 
@@ -1848,7 +1842,7 @@ var _ = Describe("Podman play kube", func() {
 	It("podman play kube seccomp container level", func() {
 		SkipIfRemote("podman-remote does not support --seccomp-profile-root flag")
 		// expect play kube is expected to set a seccomp label if it's applied as an annotation
-		jsonFile, err := podmanTest.CreateSeccompJson(seccompPwdEPERM)
+		jsonFile, err := podmanTest.CreateSeccompJSON(seccompPwdEPERM)
 		if err != nil {
 			fmt.Println(err)
 			Skip("Failed to prepare seccomp.json for test.")
@@ -1861,7 +1855,7 @@ var _ = Describe("Podman play kube", func() {
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
-		// CreateSeccompJson will put the profile into podmanTest.TempDir. Use --seccomp-profile-root to tell play kube where to look
+		// CreateSeccompJSON will put the profile into podmanTest.TempDir. Use --seccomp-profile-root to tell play kube where to look
 		kube := podmanTest.Podman([]string{"play", "kube", "--seccomp-profile-root", podmanTest.TempDir, kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
@@ -1875,7 +1869,7 @@ var _ = Describe("Podman play kube", func() {
 	It("podman play kube seccomp pod level", func() {
 		SkipIfRemote("podman-remote does not support --seccomp-profile-root flag")
 		// expect play kube is expected to set a seccomp label if it's applied as an annotation
-		jsonFile, err := podmanTest.CreateSeccompJson(seccompPwdEPERM)
+		jsonFile, err := podmanTest.CreateSeccompJSON(seccompPwdEPERM)
 		if err != nil {
 			fmt.Println(err)
 			Skip("Failed to prepare seccomp.json for test.")
@@ -1888,7 +1882,7 @@ var _ = Describe("Podman play kube", func() {
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
-		// CreateSeccompJson will put the profile into podmanTest.TempDir. Use --seccomp-profile-root to tell play kube where to look
+		// CreateSeccompJSON will put the profile into podmanTest.TempDir. Use --seccomp-profile-root to tell play kube where to look
 		kube := podmanTest.Podman([]string{"play", "kube", "--seccomp-profile-root", podmanTest.TempDir, kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
@@ -2348,19 +2342,19 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 
 		var (
 			numReplicas           int32  = 3
-			expectedCpuRequest    string = "100m"
-			expectedCpuLimit      string = "200m"
+			expectedCPURequest    string = "100m"
+			expectedCPULimit      string = "200m"
 			expectedMemoryRequest string = "10000000"
 			expectedMemoryLimit   string = "20000000"
 		)
 
-		expectedCpuQuota := milliCPUToQuota(expectedCpuLimit)
+		expectedCPUQuota := milliCPUToQuota(expectedCPULimit)
 
 		deployment := getDeployment(
 			withReplicas(numReplicas),
 			withPod(getPod(withCtr(getCtr(
-				withCpuRequest(expectedCpuRequest),
-				withCpuLimit(expectedCpuLimit),
+				withCPURequest(expectedCPURequest),
+				withCPULimit(expectedCPULimit),
 				withMemoryRequest(expectedMemoryRequest),
 				withMemoryLimit(expectedMemoryLimit),
 			)))))
@@ -2372,6 +2366,7 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 		Expect(kube).Should(Exit(0))
 
 		for _, pod := range getPodNamesInDeployment(deployment) {
+			pod := pod // copy into local scope
 			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&pod), "--format", `
 CpuPeriod: {{ .HostConfig.CpuPeriod }}
 CpuQuota: {{ .HostConfig.CpuQuota }}
@@ -2379,7 +2374,7 @@ Memory: {{ .HostConfig.Memory }}
 MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 			inspect.WaitWithDefaultTimeout()
 			Expect(inspect).Should(Exit(0))
-			Expect(inspect.OutputToString()).To(ContainSubstring(fmt.Sprintf("%s: %d", "CpuQuota", expectedCpuQuota)))
+			Expect(inspect.OutputToString()).To(ContainSubstring(fmt.Sprintf("%s: %d", "CpuQuota", expectedCPUQuota)))
 			Expect(inspect.OutputToString()).To(ContainSubstring("MemoryReservation: " + expectedMemoryRequest))
 			Expect(inspect.OutputToString()).To(ContainSubstring("Memory: " + expectedMemoryLimit))
 		}
@@ -2391,12 +2386,12 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		podmanTest.CgroupManager = "systemd"
 
 		var (
-			expectedCpuLimit string = "1"
+			expectedCPULimit string = "1"
 		)
 
 		deployment := getDeployment(
 			withPod(getPod(withCtr(getCtr(
-				withCpuLimit(expectedCpuLimit),
+				withCPULimit(expectedCPULimit),
 			)))))
 		err := generateKubeYaml("deployment", deployment, kubeYaml)
 		Expect(err).To(BeNil())
@@ -2406,6 +2401,7 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		Expect(kube).Should(Exit(0))
 
 		for _, pod := range getPodNamesInDeployment(deployment) {
+			pod := pod // copy into local scope
 			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&pod), "--format", `{{ .HostConfig.CpuPeriod }}:{{ .HostConfig.CpuQuota }}`})
 
 			inspect.WaitWithDefaultTimeout()
@@ -3054,6 +3050,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 			deployment := getDeployment(withPod(pod))
 			deploymentYaml, err := getKubeYaml("deployment", deployment)
+			Expect(err).To(BeNil(), "getKubeYaml(deployment)")
 			yamls := []string{cmYaml, deploymentYaml}
 			err = generateMultiDocKubeYaml(yamls, kubeYaml)
 			Expect(err).To(BeNil())

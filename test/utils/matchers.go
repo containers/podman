@@ -5,7 +5,7 @@ import (
 	"net/url"
 
 	"github.com/containers/common/pkg/config"
-	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega" //nolint:golint,stylecheck
 	"github.com/onsi/gomega/format"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/matchers"
@@ -95,7 +95,7 @@ func (matcher *URLMatcher) Match(actual interface{}) (bool, error) {
 	if !ok {
 		return false, fmt.Errorf("VerifyURL requires string inputs %T is not supported", matcher.Expected)
 	}
-	e_uri, err := url.Parse(e)
+	eURI, err := url.Parse(e)
 	if err != nil {
 		return false, err
 	}
@@ -104,12 +104,12 @@ func (matcher *URLMatcher) Match(actual interface{}) (bool, error) {
 	if !ok {
 		return false, fmt.Errorf("VerifyURL requires string inputs %T is not supported", actual)
 	}
-	a_uri, err := url.Parse(a)
+	aURI, err := url.Parse(a)
 	if err != nil {
 		return false, err
 	}
 
-	return (&matchers.EqualMatcher{Expected: e_uri}).Match(a_uri)
+	return (&matchers.EqualMatcher{Expected: eURI}).Match(aURI)
 }
 
 type ExitMatcher struct {

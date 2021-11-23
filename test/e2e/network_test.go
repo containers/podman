@@ -185,7 +185,7 @@ var _ = Describe("Podman network", func() {
 		Expect(session).Should(Exit(0))
 	})
 
-	rm_func := func(rm string) {
+	rmFunc := func(rm string) {
 		It(fmt.Sprintf("podman network %s no args", rm), func() {
 			session := podmanTest.Podman([]string{"network", rm})
 			session.WaitWithDefaultTimeout()
@@ -213,8 +213,8 @@ var _ = Describe("Podman network", func() {
 		})
 	}
 
-	rm_func("rm")
-	rm_func("remove")
+	rmFunc("rm")
+	rmFunc("remove")
 
 	It("podman network inspect no args", func() {
 		session := podmanTest.Podman([]string{"network", "inspect"})

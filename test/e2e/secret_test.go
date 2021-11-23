@@ -208,7 +208,6 @@ var _ = Describe("Podman secret", func() {
 		// no env variable set, should fail
 		session := podmanTest.Podman([]string{"secret", "create", "--env", "a", "MYENVVAR"})
 		session.WaitWithDefaultTimeout()
-		secrID := session.OutputToString()
 		Expect(session).To(ExitWithError())
 
 		os.Setenv("MYENVVAR", "somedata")
@@ -218,7 +217,7 @@ var _ = Describe("Podman secret", func() {
 
 		session = podmanTest.Podman([]string{"secret", "create", "--env", "a", "MYENVVAR"})
 		session.WaitWithDefaultTimeout()
-		secrID = session.OutputToString()
+		secrID := session.OutputToString()
 		Expect(session).Should(Exit(0))
 
 		inspect := podmanTest.Podman([]string{"secret", "inspect", "--format", "{{.ID}}", secrID})

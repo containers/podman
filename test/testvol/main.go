@@ -129,8 +129,8 @@ func (d *DirDriver) Capabilities() *volume.CapabilitiesResponse {
 	logrus.Infof("Hit Capabilities() endpoint")
 
 	return &volume.CapabilitiesResponse{
-		volume.Capability{
-			"local",
+		Capabilities: volume.Capability{
+			Scope: "local",
 		},
 	}
 }
@@ -260,7 +260,7 @@ func (d *DirDriver) Path(req *volume.PathRequest) (*volume.PathResponse, error) 
 	}
 
 	return &volume.PathResponse{
-		vol.path,
+		Mountpoint: vol.path,
 	}, nil
 }
 
@@ -280,7 +280,7 @@ func (d *DirDriver) Mount(req *volume.MountRequest) (*volume.MountResponse, erro
 	vol.mounts[req.ID] = true
 
 	return &volume.MountResponse{
-		vol.path,
+		Mountpoint: vol.path,
 	}, nil
 }
 

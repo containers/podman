@@ -318,7 +318,7 @@ var _ = Describe("Podman run", func() {
 
 	forbidGetCWDSeccompProfile := func() string {
 		in := []byte(`{"defaultAction":"SCMP_ACT_ALLOW","syscalls":[{"name":"getcwd","action":"SCMP_ACT_ERRNO"}]}`)
-		jsonFile, err := podmanTest.CreateSeccompJson(in)
+		jsonFile, err := podmanTest.CreateSeccompJSON(in)
 		if err != nil {
 			fmt.Println(err)
 			Skip("Failed to prepare seccomp.json for test.")

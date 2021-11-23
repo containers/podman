@@ -95,6 +95,7 @@ LABEL marge=mom
 		// Setup
 		yamlDir := filepath.Join(tempdir, RandomString(12))
 		err := os.Mkdir(yamlDir, 0755)
+		Expect(err).To(BeNil(), "mkdir "+yamlDir)
 		err = writeYaml(testYAML, filepath.Join(yamlDir, "top.yaml"))
 		Expect(err).To(BeNil())
 		app1Dir := filepath.Join(yamlDir, "foobar")
@@ -131,6 +132,7 @@ LABEL marge=mom
 		// Setup
 		yamlDir := filepath.Join(tempdir, RandomString(12))
 		err := os.Mkdir(yamlDir, 0755)
+		Expect(err).To(BeNil(), "mkdir "+yamlDir)
 		err = writeYaml(testYAML, filepath.Join(yamlDir, "top.yaml"))
 		Expect(err).To(BeNil())
 		app1Dir := filepath.Join(yamlDir, "foobar")
@@ -167,6 +169,7 @@ LABEL marge=mom
 		// Setup
 		yamlDir := filepath.Join(tempdir, RandomString(12))
 		err := os.Mkdir(yamlDir, 0755)
+		Expect(err).To(BeNil(), "mkdir "+yamlDir)
 		err = writeYaml(testYAML, filepath.Join(yamlDir, "top.yaml"))
 		Expect(err).To(BeNil())
 
@@ -213,6 +216,7 @@ LABEL marge=mom
 		// Setup
 		yamlDir := filepath.Join(tempdir, RandomString(12))
 		err := os.Mkdir(yamlDir, 0755)
+		Expect(err).To(BeNil(), "os.Mkdir "+yamlDir)
 		err = writeYaml(testYAML, filepath.Join(yamlDir, "top.yaml"))
 		Expect(err).To(BeNil())
 

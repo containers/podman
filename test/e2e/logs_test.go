@@ -20,10 +20,7 @@ func isEventBackendJournald(podmanTest *PodmanTestIntegration) bool {
 	}
 	info := podmanTest.Podman([]string{"info", "--format", "{{.Host.EventLogger}}"})
 	info.WaitWithDefaultTimeout()
-	if info.OutputToString() == "journald" {
-		return true
-	}
-	return false
+	return info.OutputToString() == "journald"
 }
 
 var _ = Describe("Podman logs", func() {

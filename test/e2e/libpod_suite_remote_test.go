@@ -111,7 +111,6 @@ func (p *PodmanTestIntegration) StopRemoteService() {
 		if _, err := remoteSession.Wait(); err != nil {
 			fmt.Fprintf(os.Stderr, "error on remote stop-wait %q", err)
 		}
-
 	} else {
 		parentPid := fmt.Sprintf("%d", p.RemoteSession.Pid)
 		pgrep := exec.Command("pgrep", "-P", parentPid)

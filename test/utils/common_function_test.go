@@ -90,24 +90,24 @@ var _ = Describe("Common functions test", func() {
 		Entry("Command exist", "Fakecmd", false),
 	)
 
-	It("Test WriteJsonFile", func() {
-		type testJson struct {
+	It("Test WriteJSONFile", func() {
+		type testJSON struct {
 			Item1 int
 			Item2 []string
 		}
-		compareData := &testJson{}
+		compareData := &testJSON{}
 
-		testData := &testJson{
+		testData := &testJSON{
 			Item1: 5,
 			Item2: []string{"test"},
 		}
 
 		testByte, _ := json.Marshal(testData)
-		err := WriteJsonFile(testByte, "/tmp/testJson")
+		err := WriteJSONFile(testByte, "/tmp/testJSON")
 
 		Expect(err).To(BeNil(), "Failed to write JSON to file.")
 
-		read, err := os.Open("/tmp/testJson")
+		read, err := os.Open("/tmp/testJSON")
 		defer read.Close()
 
 		Expect(err).To(BeNil(), "Can not find the JSON file after we write it.")

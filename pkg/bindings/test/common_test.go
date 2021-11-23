@@ -1,4 +1,4 @@
-package test_bindings
+package bindings_test
 
 import (
 	"context"
@@ -51,7 +51,7 @@ var (
 		shortName:   "busybox",
 		tarballName: "busybox.tar",
 	}
-	CACHE_IMAGES = []testImage{alpine, busybox}
+	CACHE_IMAGES = []testImage{alpine, busybox} //nolint:golint,stylecheck
 )
 
 type bindingTest struct {

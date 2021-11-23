@@ -97,19 +97,19 @@ var _ = Describe("Podman rmi", func() {
 		setup := podmanTest.Podman([]string{"images", "-q", cirros})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(Exit(0))
-		cirrosId := setup.OutputToString()
+		cirrosID := setup.OutputToString()
 
 		session := podmanTest.Podman([]string{"tag", "cirros", "foo:bar", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
 		// Trying without --force should fail
-		result := podmanTest.Podman([]string{"rmi", cirrosId})
+		result := podmanTest.Podman([]string{"rmi", cirrosID})
 		result.WaitWithDefaultTimeout()
 		Expect(result).To(ExitWithError())
 
 		// With --force it should work
-		resultForce := podmanTest.Podman([]string{"rmi", "-f", cirrosId})
+		resultForce := podmanTest.Podman([]string{"rmi", "-f", cirrosID})
 		resultForce.WaitWithDefaultTimeout()
 		Expect(resultForce).Should(Exit(0))
 	})

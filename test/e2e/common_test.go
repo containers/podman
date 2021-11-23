@@ -24,7 +24,6 @@ import (
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/containers/storage/pkg/stringid"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -33,16 +32,14 @@ import (
 )
 
 var (
-	PODMAN_BINARY      string
-	CONMON_BINARY      string
-	CNI_CONFIG_DIR     string
-	RUNC_BINARY        string
-	INTEGRATION_ROOT   string
-	CGROUP_MANAGER     = "systemd"
-	ARTIFACT_DIR       = "/tmp/.artifacts"
-	RESTORE_IMAGES     = []string{ALPINE, BB, nginx}
+	//lint:ignore ST1003
+	PODMAN_BINARY      string                        //nolint:golint,stylecheck
+	INTEGRATION_ROOT   string                        //nolint:golint,stylecheck
+	CGROUP_MANAGER     = "systemd"                   //nolint:golint,stylecheck
+	ARTIFACT_DIR       = "/tmp/.artifacts"           //nolint:golint,stylecheck
+	RESTORE_IMAGES     = []string{ALPINE, BB, nginx} //nolint:golint,stylecheck
 	defaultWaitTimeout = 90
-	CGROUPSV2, _       = cgroups.IsCgroup2UnifiedMode()
+	CGROUPSV2, _       = cgroups.IsCgroup2UnifiedMode() //nolint:golint,stylecheck
 )
 
 // PodmanTestIntegration struct for command line options
@@ -73,8 +70,6 @@ type testResult struct {
 	name   string
 	length float64
 }
-
-var noCache = "Cannot run nocache with remote"
 
 type testResultsSorted []testResult
 
@@ -475,7 +470,7 @@ func (p *PodmanTestIntegration) PodmanPID(args []string) (*PodmanSessionIntegrat
 	if err != nil {
 		Fail(fmt.Sprintf("unable to run podman command: %s", strings.Join(podmanOptions, " ")))
 	}
-	podmanSession := &PodmanSession{session}
+	podmanSession := &PodmanSession{Session: session}
 	return &PodmanSessionIntegration{podmanSession}, command.Process.Pid
 }
 
@@ -597,9 +592,9 @@ func (p *PodmanTestIntegration) RunHealthCheck(cid string) error {
 	return errors.Errorf("unable to detect %s as running", cid)
 }
 
-func (p *PodmanTestIntegration) CreateSeccompJson(in []byte) (string, error) {
+func (p *PodmanTestIntegration) CreateSeccompJSON(in []byte) (string, error) {
 	jsonFile := filepath.Join(p.TempDir, "seccomp.json")
-	err := WriteJsonFile(in, jsonFile)
+	err := WriteJSONFile(in, jsonFile)
 	if err != nil {
 		return "", err
 	}
@@ -622,14 +617,14 @@ func SkipIfRootlessCgroupsV1(reason string) {
 func SkipIfRootless(reason string) {
 	checkReason(reason)
 	if os.Geteuid() != 0 {
-		ginkgo.Skip("[rootless]: " + reason)
+		Skip("[rootless]: " + reason)
 	}
 }
 
 func SkipIfNotRootless(reason string) {
 	checkReason(reason)
 	if os.Geteuid() == 0 {
-		ginkgo.Skip("[notRootless]: " + reason)
+		Skip("[notRootless]: " + reason)
 	}
 }
 
@@ -640,7 +635,7 @@ func SkipIfSystemdNotRunning(reason string) {
 	err := cmd.Run()
 	if err != nil {
 		if _, ok := err.(*exec.Error); ok {
-			ginkgo.Skip("[notSystemd]: not running " + reason)
+			Skip("[notSystemd]: not running " + reason)
 		}
 		Expect(err).ToNot(HaveOccurred())
 	}
@@ -649,14 +644,14 @@ func SkipIfSystemdNotRunning(reason string) {
 func SkipIfNotSystemd(manager, reason string) {
 	checkReason(reason)
 	if manager != "systemd" {
-		ginkgo.Skip("[notSystemd]: " + reason)
+		Skip("[notSystemd]: " + reason)
 	}
 }
 
 func SkipIfNotFedora() {
 	info := GetHostDistributionInfo()
 	if info.Distribution != "fedora" {
-		ginkgo.Skip("Test can only run on Fedora")
+		Skip("Test can only run on Fedora")
 	}
 }
 
@@ -684,10 +679,7 @@ func SkipIfCgroupV2(reason string) {
 
 func isContainerized() bool {
 	// This is set to "podman" by podman automatically
-	if os.Getenv("container") != "" {
-		return true
-	}
-	return false
+	return os.Getenv("container") != ""
 }
 
 func SkipIfContainerized(reason string) {
@@ -702,7 +694,7 @@ func SkipIfRemote(reason string) {
 	if !IsRemote() {
 		return
 	}
-	ginkgo.Skip("[remote]: " + reason)
+	Skip("[remote]: " + reason)
 }
 
 // SkipIfInContainer skips a test if the test is run inside a container
@@ -872,10 +864,10 @@ func (p *PodmanTestIntegration) removeCNINetwork(name string) {
 	Expect(session.ExitCode()).To(BeNumerically("<=", 1), "Exit code must be 0 or 1")
 }
 
-func (p *PodmanSessionIntegration) jq(jqCommand string) (string, error) {
+func (s *PodmanSessionIntegration) jq(jqCommand string) (string, error) {
 	var out bytes.Buffer
 	cmd := exec.Command("jq", jqCommand)
-	cmd.Stdin = strings.NewReader(p.OutputToString())
+	cmd.Stdin = strings.NewReader(s.OutputToString())
 	cmd.Stdout = &out
 	err := cmd.Run()
 	return strings.TrimRight(out.String(), "\n"), err

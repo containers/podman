@@ -151,6 +151,7 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(err).To(BeNil())
 		testFile := filepath.Join(mountPath, "test1")
 		f, err := os.Create(testFile)
+		Expect(err).To(BeNil(), "os.Create(testfile)")
 		f.Close()
 		Expect(err).To(BeNil())
 		session := podmanTest.Podman([]string{"run", "-v", fmt.Sprintf("%s:/data", mountPath), redis, "ls", "/data/test1"})
@@ -550,6 +551,7 @@ VOLUME /test/`, ALPINE)
 		os.Mkdir(mountPath, 0755)
 		testFile := filepath.Join(mountPath, "test1")
 		f, err := os.Create(testFile)
+		Expect(err).To(BeNil(), "os.Create "+testFile)
 		f.Close()
 
 		// Make sure host directory gets mounted in to container as overlay
