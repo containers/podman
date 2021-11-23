@@ -37,10 +37,15 @@ func (s *APIServer) registerGenerateHandlers(r *mux.Router) error {
 	//    default: false
 	//    description: Do not generate the header including the Podman version and the timestamp.
 	//  - in: query
-	//    name: time
+	//    name: startTimeout
+	//    type: integer
+	//    default: 0
+	//    description: Start timeout in seconds.
+	//  - in: query
+	//    name: stopTimeout
 	//    type: integer
 	//    default: 10
-	//    description: Stop timeout override.
+	//    description: Stop timeout in seconds.
 	//  - in: query
 	//    name: restartPolicy
 	//    default: on-failure

@@ -92,6 +92,21 @@ func (o *SystemdOptions) GetRestartPolicy() string {
 	return *o.RestartPolicy
 }
 
+// WithStartTimeout set field StartTimeout to given value
+func (o *SystemdOptions) WithStartTimeout(value uint) *SystemdOptions {
+	o.StartTimeout = &value
+	return o
+}
+
+// GetStartTimeout returns value of field StartTimeout
+func (o *SystemdOptions) GetStartTimeout() uint {
+	if o.StartTimeout == nil {
+		var z uint
+		return z
+	}
+	return *o.StartTimeout
+}
+
 // WithStopTimeout set field StopTimeout to given value
 func (o *SystemdOptions) WithStopTimeout(value uint) *SystemdOptions {
 	o.StopTimeout = &value

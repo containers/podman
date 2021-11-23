@@ -147,6 +147,15 @@ var _ = Describe("Podman generate systemd", func() {
 		session := podmanTest.Podman([]string{"generate", "systemd", "--time", "5", "nginx"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("TimeoutStopSec=65"))
+		Expect(session.OutputToString()).ToNot(ContainSubstring("TimeoutStartSec="))
+		Expect(session.OutputToString()).To(ContainSubstring("podman stop -t 5"))
+
+		session = podmanTest.Podman([]string{"generate", "systemd", "--stop-timeout", "5", "--start-timeout", "123", "nginx"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("TimeoutStartSec=123"))
+		Expect(session.OutputToString()).To(ContainSubstring("TimeoutStopSec=65"))
 		Expect(session.OutputToString()).To(ContainSubstring("podman stop -t 5"))
 	})
 

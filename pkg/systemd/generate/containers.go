@@ -73,6 +73,8 @@ type containerInfo struct {
 	ExecStartPre string
 	// ExecStart of the unit.
 	ExecStart string
+	// TimeoutStartSec of the unit.
+	TimeoutStartSec uint
 	// TimeoutStopSec of the unit.
 	TimeoutStopSec uint
 	// ExecStop of the unit.
@@ -108,6 +110,9 @@ Environment={{{{- range $index, $value := .ExtraEnvs -}}}}{{{{if $index}}}} {{{{
 Restart={{{{.RestartPolicy}}}}
 {{{{- if .StartLimitBurst}}}}
 StartLimitBurst={{{{.StartLimitBurst}}}}
+{{{{- end}}}}
+{{{{- if ne .TimeoutStartSec 0}}}}
+TimeoutStartSec={{{{.TimeoutStartSec}}}}
 {{{{- end}}}}
 TimeoutStopSec={{{{.TimeoutStopSec}}}}
 {{{{- if .ExecStartPre}}}}
@@ -148,9 +153,14 @@ func ContainerUnit(ctr *libpod.Container, options entities.GenerateSystemdOption
 }
 
 func generateContainerInfo(ctr *libpod.Container, options entities.GenerateSystemdOptions) (*containerInfo, error) {
-	timeout := ctr.StopTimeout()
+	stopTimeout := ctr.StopTimeout()
 	if options.StopTimeout != nil {
-		timeout = *options.StopTimeout
+		stopTimeout = *options.StopTimeout
+	}
+
+	startTimeout := uint(0)
+	if options.StartTimeout != nil {
+		startTimeout = *options.StartTimeout
 	}
 
 	config := ctr.Config()
@@ -185,7 +195,8 @@ func generateContainerInfo(ctr *libpod.Container, options entities.GenerateSyste
 		ContainerNameOrID: nameOrID,
 		RestartPolicy:     define.DefaultRestartPolicy,
 		PIDFile:           conmonPidFile,
-		StopTimeout:       timeout,
+		TimeoutStartSec:   startTimeout,
+		StopTimeout:       stopTimeout,
 		GenerateTimestamp: true,
 		CreateCommand:     createCommand,
 		RunRoot:           runRoot,

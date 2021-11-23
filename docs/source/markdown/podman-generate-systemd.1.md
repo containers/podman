@@ -38,9 +38,13 @@ Note that `--new` only works on containers and pods created directly via Podman 
 
 Do not generate the header including meta data such as the Podman version and the timestamp.
 
-#### **--time**, **-t**=*value*
+#### **--start-timeout** =*value*
 
-Override the default stop timeout for the container with the given value.
+Override the default start timeout for the container with the given value in seconds.
+
+#### **--stop-timeout** =*value*
+
+Override the default stop timeout for the container with the given value in seconds.
 
 #### **--restart-policy**=*policy*
 
