@@ -816,35 +816,26 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 			filepath.Join("..", preCheckpointDir),
 		)
 	}
+
+	args = append(args, ctr.ID())
+	logrus.Debugf("the args to checkpoint: %s %s", r.path, strings.Join(args, " "))
+
 	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return 0, err
 	}
-	args = append(args, ctr.ID())
-	logrus.Debugf("the args to checkpoint: %s %s", r.path, strings.Join(args, " "))
-
-	oldRuntimeDir, oldRuntimeDirSet := os.LookupEnv("XDG_RUNTIME_DIR")
-	if err = os.Setenv("XDG_RUNTIME_DIR", runtimeDir); err != nil {
-		return 0, errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
+	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
+	if path, ok := os.LookupEnv("PATH"); ok {
+		env = append(env, fmt.Sprintf("PATH=%s", path))
 	}
+
 	runtime.LockOSThread()
 	if err := label.SetSocketLabel(ctr.ProcessLabel()); err != nil {
 		return 0, err
 	}
-	defer func() {
-		if oldRuntimeDirSet {
-			if err := os.Setenv("XDG_RUNTIME_DIR", oldRuntimeDir); err != nil {
-				logrus.Warnf("cannot resset XDG_RUNTIME_DIR: %v", err)
-			}
-		} else {
-			if err := os.Unsetenv("XDG_RUNTIME_DIR"); err != nil {
-				logrus.Warnf("cannot unset XDG_RUNTIME_DIR: %v", err)
-			}
-		}
-	}()
 
 	runtimeCheckpointStarted := time.Now()
-	err = utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, nil, r.path, args...)
+	err = utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, args...)
 	// Ignore error returned from SetSocketLabel("") call,
 	// can't recover.
 	if labelErr := label.SetSocketLabel(""); labelErr == nil {
