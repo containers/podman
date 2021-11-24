@@ -792,29 +792,29 @@ var _ = Describe("Podman ps", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(2))
-		Expect(StringInSlice(pod1.OutputToString(), session.OutputToStringArray()))
+		Expect(session.OutputToStringArray()).To(ContainElement(con1.OutputToString()))
 
 		// filter by full pod id
 		session = podmanTest.Podman([]string{"ps", "-q", "--no-trunc", "--filter", "pod=" + pod1.OutputToString()})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(2))
-		Expect(StringInSlice(pod1.OutputToString(), session.OutputToStringArray()))
+		Expect(session.OutputToStringArray()).To(ContainElement(con1.OutputToString()))
 
 		// filter by partial pod id
 		session = podmanTest.Podman([]string{"ps", "-q", "--no-trunc", "--filter", "pod=" + pod1.OutputToString()[0:12]})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(2))
-		Expect(StringInSlice(pod1.OutputToString(), session.OutputToStringArray()))
+		Expect(session.OutputToStringArray()).To(ContainElement(con1.OutputToString()))
 
 		// filter by multiple pods is inclusive
 		session = podmanTest.Podman([]string{"ps", "-q", "--no-trunc", "--filter", "pod=pod1", "--filter", "pod=pod2"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(4))
-		Expect(StringInSlice(pod1.OutputToString(), session.OutputToStringArray()))
-		Expect(StringInSlice(pod2.OutputToString(), session.OutputToStringArray()))
+		Expect(session.OutputToStringArray()).To(ContainElement(con1.OutputToString()))
+		Expect(session.OutputToStringArray()).To(ContainElement(con2.OutputToString()))
 
 	})
 

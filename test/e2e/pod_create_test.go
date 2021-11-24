@@ -756,7 +756,7 @@ ENTRYPOINT ["sleep","99999"]
 		session := podmanTest.Podman([]string{"run", "--pod", podName, ALPINE, "cat", "/proc/self/uid_map"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		ok, _ := session.GrepString("500")
+		Expect(session.OutputToString()).To(ContainSubstring("500"))
 
 		podName = "testPod-1"
 		podCreate = podmanTest.Podman([]string{"pod", "create", "--userns=auto:size=3000", "--name", podName})
@@ -765,9 +765,7 @@ ENTRYPOINT ["sleep","99999"]
 		session = podmanTest.Podman([]string{"run", "--pod", podName, ALPINE, "cat", "/proc/self/uid_map"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		ok, _ = session.GrepString("3000")
-
-		Expect(ok).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("3000"))
 	})
 
 	It("podman pod create --userns=auto:uidmapping=", func() {

@@ -230,7 +230,7 @@ default-docker:
 		Expect(session).Should(Exit(0))
 		ids := session.OutputToStringArray()
 
-		Expect(len(RESTORE_IMAGES), len(ids))
+		Expect(len(ids)).To(BeNumerically(">", 1), "We need to have *some* images to save")
 		multiImageSave(podmanTest, ids)
 	})
 })

@@ -42,8 +42,8 @@ var _ = Describe("Podman tag", func() {
 		results.WaitWithDefaultTimeout()
 		Expect(results).Should(Exit(0))
 		inspectData := results.InspectImageJSON()
-		Expect(StringInSlice("quay.io/libpod/alpine:latest", inspectData[0].RepoTags)).To(BeTrue())
-		Expect(StringInSlice("localhost/foobar:latest", inspectData[0].RepoTags)).To(BeTrue())
+		Expect(inspectData[0].RepoTags).To(ContainElement("quay.io/libpod/alpine:latest"))
+		Expect(inspectData[0].RepoTags).To(ContainElement("localhost/foobar:latest"))
 	})
 
 	It("podman tag shortname", func() {
@@ -55,8 +55,8 @@ var _ = Describe("Podman tag", func() {
 		results.WaitWithDefaultTimeout()
 		Expect(results).Should(Exit(0))
 		inspectData := results.InspectImageJSON()
-		Expect(StringInSlice("quay.io/libpod/alpine:latest", inspectData[0].RepoTags)).To(BeTrue())
-		Expect(StringInSlice("localhost/foobar:latest", inspectData[0].RepoTags)).To(BeTrue())
+		Expect(inspectData[0].RepoTags).To(ContainElement("quay.io/libpod/alpine:latest"))
+		Expect(inspectData[0].RepoTags).To(ContainElement("localhost/foobar:latest"))
 	})
 
 	It("podman tag shortname:tag", func() {
@@ -68,8 +68,8 @@ var _ = Describe("Podman tag", func() {
 		results.WaitWithDefaultTimeout()
 		Expect(results).Should(Exit(0))
 		inspectData := results.InspectImageJSON()
-		Expect(StringInSlice("quay.io/libpod/alpine:latest", inspectData[0].RepoTags)).To(BeTrue())
-		Expect(StringInSlice("localhost/foobar:new", inspectData[0].RepoTags)).To(BeTrue())
+		Expect(inspectData[0].RepoTags).To(ContainElement("quay.io/libpod/alpine:latest"))
+		Expect(inspectData[0].RepoTags).To(ContainElement("localhost/foobar:new"))
 	})
 
 	It("podman tag shortname image no tag", func() {
