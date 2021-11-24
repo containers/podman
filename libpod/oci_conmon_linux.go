@@ -847,10 +847,14 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 	err = utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, nil, r.path, args...)
 	// Ignore error returned from SetSocketLabel("") call,
 	// can't recover.
-	if labelErr := label.SetSocketLabel(""); labelErr != nil {
+	if labelErr := label.SetSocketLabel(""); labelErr == nil {
+		// Unlock the thread only if the process label could be restored
+		// successfully.  Otherwise leave the thread locked and the Go runtime
+		// will terminate it once it returns to the threads pool.
+		runtime.UnlockOSThread()
+	} else {
 		logrus.Errorf("Unable to reset socket label: %q", labelErr)
 	}
-	runtime.UnlockOSThread()
 
 	runtimeCheckpointDuration := func() int64 {
 		if options.PrintStats {
@@ -1464,10 +1468,14 @@ func startCommandGivenSelinux(cmd *exec.Cmd, ctr *Container) error {
 	err = cmd.Start()
 	// Ignore error returned from SetProcessLabel("") call,
 	// can't recover.
-	if labelErr := label.SetProcessLabel(""); labelErr != nil {
+	if labelErr := label.SetProcessLabel(""); labelErr == nil {
+		// Unlock the thread only if the process label could be restored
+		// successfully.  Otherwise leave the thread locked and the Go runtime
+		// will terminate it once it returns to the threads pool.
+		runtime.UnlockOSThread()
+	} else {
 		logrus.Errorf("Unable to set process label: %q", labelErr)
 	}
-	runtime.UnlockOSThread()
 	return err
 }
 
