@@ -82,9 +82,16 @@ function _run_bindings() {
     # shellcheck disable=SC2155
     export PATH=$PATH:$GOSRC/hack
 
+    # if logformatter sees this, it can link directly to failing source lines
+    local gitcommit_magic=
+    if [[ -n "$GIT_COMMIT" ]]; then
+        gitcommit_magic="/define.gitCommit=${GIT_COMMIT}"
+    fi
+
     # Subshell needed so logformatter will write output in cwd; if it runs in
     # the subdir, .cirrus.yml will not find the html'ized log
     (cd pkg/bindings/test && \
+         echo "$gitcommit_magic" && \
          ginkgo -progress -trace -noColor -debug -timeout 30m -r -v) |& logformatter
 }
 
