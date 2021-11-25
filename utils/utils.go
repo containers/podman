@@ -43,9 +43,7 @@ func ExecCmdWithStdStreams(stdin io.Reader, stdout, stderr io.Writer, env []stri
 	cmd.Stdin = stdin
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
-	if env != nil {
-		cmd.Env = env
-	}
+	cmd.Env = env
 
 	err := cmd.Run()
 	if err != nil {
