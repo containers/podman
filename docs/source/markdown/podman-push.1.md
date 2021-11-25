@@ -63,7 +63,7 @@ value can be entered.  The password is entered without echo.
 
 #### **--cert-dir**=*path*
 
-Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
+Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry. (Default: /etc/containers/certs.d)
 Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client)
 
 #### **--compress**
