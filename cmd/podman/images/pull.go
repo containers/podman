@@ -109,7 +109,7 @@ func pullFlags(cmd *cobra.Command) {
 
 	if !registry.IsRemote() {
 		certDirFlagName := "cert-dir"
-		flags.StringVar(&pullOptions.CertDir, certDirFlagName, "", "`Pathname` of a directory containing TLS certificates and keys")
+		flags.StringVar(&pullOptions.CertDir, certDirFlagName, "/etc/containers/certs.d", "`Pathname` of a directory containing TLS certificates and keys")
 		_ = cmd.RegisterFlagCompletionFunc(certDirFlagName, completion.AutocompleteDefault)
 	}
 	if !registry.IsRemote() {
