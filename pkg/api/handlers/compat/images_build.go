@@ -122,6 +122,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Target                 string   `schema:"target"`
 		Timestamp              int64    `schema:"timestamp"`
 		Ulimits                string   `schema:"ulimits"`
+		Secrets                string   `schema:"secrets"`
 	}{
 		Dockerfile: "Dockerfile",
 		Registry:   "docker.io",
@@ -237,6 +238,16 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		dnssearch = m
+	}
+
+	var secrets = []string{}
+	if _, found := r.URL.Query()["secrets"]; found {
+		var m = []string{}
+		if err := json.Unmarshal([]byte(query.Secrets), &m); err != nil {
+			utils.BadRequest(w, "secrets", query.Secrets, err)
+			return
+		}
+		secrets = m
 	}
 
 	var output string
@@ -447,6 +458,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			SeccompProfilePath: seccomp,
 			ShmSize:            strconv.Itoa(query.ShmSize),
 			Ulimit:             ulimits,
+			Secrets:            secrets,
 		},
 		CNIConfigDir:                   rtc.Network.CNIPluginDirs[0],
 		CNIPluginPath:                  util.DefaultCNIPluginPath,

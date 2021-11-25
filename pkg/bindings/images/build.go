@@ -116,6 +116,13 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		}
 		params.Add("dnsservers", c)
 	}
+	if secrets := options.CommonBuildOpts.Secrets; len(secrets) > 0 {
+		c, err := jsoniter.MarshalToString(secrets)
+		if err != nil {
+			return nil, err
+		}
+		params.Add("secrets", c)
+	}
 	if dnsoptions := options.CommonBuildOpts.DNSOptions; len(dnsoptions) > 0 {
 		c, err := jsoniter.MarshalToString(dnsoptions)
 		if err != nil {
