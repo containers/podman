@@ -204,6 +204,7 @@ type InspectContainerState struct {
 	FinishedAt   time.Time          `json:"FinishedAt"`
 	Health       HealthCheckResults `json:"Health,omitempty"`
 	Checkpointed bool               `json:"Checkpointed,omitempty"`
+	CgroupPath   string             `json:"CgroupPath,omitempty"`
 }
 
 // Healthcheck returns the HealthCheckResults. This is used for old podman compat

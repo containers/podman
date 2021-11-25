@@ -6,9 +6,11 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	types040 "github.com/containernetworking/cni/pkg/types/040"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v3/libpod/define"
@@ -961,6 +963,29 @@ func (c *Container) cGroupPath() (string, error) {
 
 	if len(cgroupPath) == 0 {
 		return "", errors.Errorf("could not find any cgroup in %q", procPath)
+	}
+
+	cgroupManager := c.CgroupManager()
+	switch {
+	case c.config.CgroupsMode == cgroupSplit:
+		name := fmt.Sprintf("/libpod-payload-%s/", c.ID())
+		if index := strings.LastIndex(cgroupPath, name); index >= 0 {
+			return cgroupPath[:index+len(name)-1], nil
+		}
+	case cgroupManager == config.CgroupfsCgroupsManager:
+		name := fmt.Sprintf("/libpod-%s/", c.ID())
+		if index := strings.LastIndex(cgroupPath, name); index >= 0 {
+			return cgroupPath[:index+len(name)-1], nil
+		}
+	case cgroupManager == config.SystemdCgroupsManager:
+		// When running under systemd, try to detect the scope that was requested
+		// to be created.  It improves the heuristic since we report the first
+		// cgroup that was created instead of the cgroup where PID 1 might have
+		// moved to.
+		name := fmt.Sprintf("/libpod-%s.scope/", c.ID())
+		if index := strings.LastIndex(cgroupPath, name); index >= 0 {
+			return cgroupPath[:index+len(name)-1], nil
+		}
 	}
 
 	return cgroupPath, nil
