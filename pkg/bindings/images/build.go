@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -115,13 +116,6 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 			return nil, err
 		}
 		params.Add("dnsservers", c)
-	}
-	if secrets := options.CommonBuildOpts.Secrets; len(secrets) > 0 {
-		c, err := jsoniter.MarshalToString(secrets)
-		if err != nil {
-			return nil, err
-		}
-		params.Add("secrets", c)
 	}
 	if dnsoptions := options.CommonBuildOpts.DNSOptions; len(dnsoptions) > 0 {
 		c, err := jsoniter.MarshalToString(dnsoptions)
@@ -384,6 +378,59 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		}
 		params.Set("dockerfile", string(cFileJSON))
 	}
+
+	// build secrets are usually absolute host path or relative to context dir on host
+	// in any case move secret to current context and ship the tar.
+	if secrets := options.CommonBuildOpts.Secrets; len(secrets) > 0 {
+		secretsForRemote := []string{}
+
+		for _, secret := range secrets {
+			secretOpt := strings.Split(secret, ",")
+			if len(secretOpt) > 0 {
+				modifiedOpt := []string{}
+				for _, token := range secretOpt {
+					arr := strings.SplitN(token, "=", 2)
+					if len(arr) > 1 {
+						if arr[0] == "src" {
+							// read specified secret into a tmp file
+							// move tmp file to tar and change secret source to relative tmp file
+							tmpSecretFile, err := ioutil.TempFile(options.ContextDirectory, "podman-build-secret")
+							if err != nil {
+								return nil, err
+							}
+							defer os.Remove(tmpSecretFile.Name()) // clean up
+							defer tmpSecretFile.Close()
+							srcSecretFile, err := os.Open(arr[1])
+							if err != nil {
+								return nil, err
+							}
+							defer srcSecretFile.Close()
+							_, err = io.Copy(tmpSecretFile, srcSecretFile)
+							if err != nil {
+								return nil, err
+							}
+
+							//add tmp file to context dir
+							tarContent = append(tarContent, tmpSecretFile.Name())
+
+							modifiedSrc := fmt.Sprintf("src=%s", filepath.Base(tmpSecretFile.Name()))
+							modifiedOpt = append(modifiedOpt, modifiedSrc)
+						} else {
+							modifiedOpt = append(modifiedOpt, token)
+						}
+					}
+				}
+				secretsForRemote = append(secretsForRemote, strings.Join(modifiedOpt[:], ","))
+			}
+		}
+
+		c, err := jsoniter.MarshalToString(secretsForRemote)
+		if err != nil {
+			return nil, err
+		}
+		params.Add("secrets", c)
+	}
+
 	tarfile, err := nTar(append(excludes, dontexcludes...), tarContent...)
 	if err != nil {
 		logrus.Errorf("Cannot tar container entries %v error: %v", tarContent, err)

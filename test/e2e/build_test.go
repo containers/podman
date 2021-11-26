@@ -59,6 +59,29 @@ var _ = Describe("Podman build", func() {
 		Expect(session).Should(Exit(0))
 	})
 
+	It("podman build with a secret from file", func() {
+		session := podmanTest.Podman([]string{"build", "-f", "build/Dockerfile.with-secret", "-t", "secret-test", "--secret", "id=mysecret,src=build/secret.txt", "build/"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("somesecret"))
+
+		session = podmanTest.Podman([]string{"rmi", "secret-test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+	})
+
+	It("podman build with multiple secrets from files", func() {
+		session := podmanTest.Podman([]string{"build", "-f", "build/Dockerfile.with-multiple-secret", "-t", "multiple-secret-test", "--secret", "id=mysecret,src=build/secret.txt", "--secret", "id=mysecret2,src=build/anothersecret.txt", "build/"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("somesecret"))
+		Expect(session.OutputToString()).To(ContainSubstring("anothersecret"))
+
+		session = podmanTest.Podman([]string{"rmi", "multiple-secret-test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+	})
+
 	It("podman build with logfile", func() {
 		logfile := filepath.Join(podmanTest.TempDir, "logfile")
 		session := podmanTest.Podman([]string{"build", "--pull-never", "--tag", "test", "--logfile", logfile, "build/basicalpine"})

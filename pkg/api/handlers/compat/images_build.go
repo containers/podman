@@ -247,7 +247,28 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			utils.BadRequest(w, "secrets", query.Secrets, err)
 			return
 		}
-		secrets = m
+
+		// for podman-remote all secrets must be picked from context director
+		// hence modify src so contextdir is added as prefix
+
+		for _, secret := range m {
+			secretOpt := strings.Split(secret, ",")
+			if len(secretOpt) > 0 {
+				modifiedOpt := []string{}
+				for _, token := range secretOpt {
+					arr := strings.SplitN(token, "=", 2)
+					if len(arr) > 1 {
+						if arr[0] == "src" {
+							modifiedSrc := fmt.Sprintf("src=%s", filepath.Join(contextDirectory, arr[1]))
+							modifiedOpt = append(modifiedOpt, modifiedSrc)
+						} else {
+							modifiedOpt = append(modifiedOpt, token)
+						}
+					}
+				}
+				secrets = append(secrets, strings.Join(modifiedOpt[:], ","))
+			}
+		}
 	}
 
 	var output string
