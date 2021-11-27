@@ -345,6 +345,11 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 			}
 			c = tmpFile.Name()
 		}
+		cfDir := filepath.Dir(c)
+		if absDir, err := filepath.EvalSymlinks(cfDir); err == nil {
+			name := filepath.ToSlash(strings.TrimPrefix(c, cfDir+string(filepath.Separator)))
+			c = filepath.Join(absDir, name)
+		}
 		containerfile, err := filepath.Abs(c)
 		if err != nil {
 			logrus.Errorf("cannot find absolute path of %v: %v", c, err)
