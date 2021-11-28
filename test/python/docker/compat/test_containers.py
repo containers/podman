@@ -3,12 +3,13 @@ import subprocess
 import sys
 import time
 import unittest
-from typing import IO, Optional
+from typing import IO, Optional, List
 
 from docker import DockerClient, errors
 from docker.models.containers import Container
 from docker.models.images import Image
 from docker.models.volumes import Volume
+from docker.types import Mount
 
 from test.python.docker import Podman
 from test.python.docker.compat import common, constant
@@ -277,3 +278,25 @@ class TestContainers(unittest.TestCase):
         ctr.start()
         ret, out = ctr.exec_run(["stat", "/workspace/scratch/test"])
         self.assertEqual(ret, 0, "Working directory created if it doesn't exist")
+
+    def test_mount_rw_by_default(self):
+        ctr: Optional[Container] = None
+        vol: Optional[Volume] = None
+        try:
+            vol = self.client.volumes.create("test-volume")
+            ctr = self.client.containers.create(image="alpine",
+                                                detach=True,
+                                                command="top",
+                                                mounts=[Mount(target="/vol-mnt",
+                                                              source="test-volume",
+                                                              type='volume',
+                                                              read_only=False)])
+            ctr_inspect = self.client.api.inspect_container(ctr.id)
+            binds: List[str] = ctr_inspect["HostConfig"]["Binds"]
+            self.assertEqual(len(binds), 1)
+            self.assertEqual(binds[0], 'test-volume:/vol-mnt:rw,rprivate,nosuid,nodev,rbind')
+        finally:
+            if ctr is not None:
+                ctr.remove()
+            if vol is not None:
+                vol.remove(force=True)
