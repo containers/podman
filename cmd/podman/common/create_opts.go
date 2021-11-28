@@ -102,7 +102,9 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *c
 		addField(&builder, "type", string(m.Type))
 		addField(&builder, "source", m.Source)
 		addField(&builder, "target", m.Target)
-		addField(&builder, "ro", strconv.FormatBool(m.ReadOnly))
+		if m.ReadOnly {
+			addField(&builder, "ro", "true")
+		}
 		addField(&builder, "consistency", string(m.Consistency))
 		// Map any specialized mount options that intersect between *Options and cli options
 		switch m.Type {
