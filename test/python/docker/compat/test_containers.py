@@ -8,6 +8,7 @@ from typing import IO, Optional
 from docker import DockerClient, errors
 from docker.models.containers import Container
 from docker.models.images import Image
+from docker.models.volumes import Volume
 
 from test.python.docker import Podman
 from test.python.docker.compat import common, constant
@@ -207,9 +208,14 @@ class TestContainers(unittest.TestCase):
 
     def test_copy_to_container(self):
         ctr: Optional[Container] = None
+        vol: Optional[Volume] = None
         try:
             test_file_content = b"Hello World!"
-            ctr = self.client.containers.create(image="alpine", detach=True, command="top")
+            vol = self.client.volumes.create("test-volume")
+            ctr = self.client.containers.create(image="alpine",
+                                                detach=True,
+                                                command="top",
+                                                volumes=["test-volume:/test-volume-read-only:ro"])
             ctr.start()
 
             buff: IO[bytes] = io.BytesIO()
@@ -234,10 +240,16 @@ class TestContainers(unittest.TestCase):
             ret, out = ctr.exec_run(["cat", "/tmp/a.txt"])
             self.assertEqual(ret, 0)
             self.assertEqual(out.rstrip(), test_file_content, "Content of copied file")
+
+            buff.seek(0)
+            with self.assertRaises(errors.APIError):
+                ctr.put_archive("/test-volume-read-only/", buff)
         finally:
             if ctr is not None:
                 ctr.stop()
                 ctr.remove()
+            if vol is not None:
+                vol.remove(force=True)
 
     def test_mount_preexisting_dir(self):
         dockerfile = (B'FROM quay.io/libpod/alpine:latest\n'
