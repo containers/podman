@@ -1,26 +1,12 @@
 package qemu
 
 import (
-	"os"
 	"os/exec"
-	"path/filepath"
 )
 
 var (
 	QemuCommand = "qemu-system-aarch64"
 )
-
-func (v *MachineVM) addArchOptions() []string {
-	ovmfDir := getOvmfDir(v.ImagePath, v.Name)
-	opts := []string{
-		"-accel", "hvf",
-		"-accel", "tcg",
-		"-cpu", "cortex-a57",
-		"-M", "virt,highmem=off",
-		"-drive", "file=" + getEdk2CodeFd("edk2-aarch64-code.fd") + ",if=pflash,format=raw,readonly=on",
-		"-drive", "file=" + ovmfDir + ",if=pflash,format=raw"}
-	return opts
-}
 
 func (v *MachineVM) prepare() error {
 	ovmfDir := getOvmfDir(v.ImagePath, v.Name)

@@ -179,8 +179,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	case "testing", "next", "stable", "":
 		// Get image as usual
 		v.ImageStream = opts.ImagePath
-		dd, err := machine.NewFcosDownloader(vmtype, v.Name, opts.ImagePath)
-
+		dd, err := machine.NewFcosDownloader(vmtype, v.Name, opts.VMArch, opts.ImagePath)
 		if err != nil {
 			return false, err
 		}
@@ -202,7 +201,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		}
 	}
 	// Add arch specific options including image location
-	v.CmdLine = append(v.CmdLine, v.addArchOptions()...)
+	v.CmdLine = append(v.CmdLine, v.addArchOptions(opts.HostArch, opts.VMArch)...)
 
 	var volumeType string
 	switch opts.VolumeDriver {

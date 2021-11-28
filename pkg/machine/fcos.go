@@ -1,3 +1,4 @@
+//go:build amd64 || arm64
 // +build amd64 arm64
 
 package machine
@@ -10,7 +11,6 @@ import (
 	url2 "net/url"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/coreos/stream-metadata-go/fedoracoreos"
@@ -41,8 +41,8 @@ type FcosDownload struct {
 	Download
 }
 
-func NewFcosDownloader(vmType, vmName, imageStream string) (DistributionDownload, error) {
-	info, err := getFCOSDownload(imageStream)
+func NewFcosDownloader(vmType, vmName, vmArch, imageStream string) (DistributionDownload, error) {
+	info, err := getFCOSDownload(imageStream, vmArch)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func NewFcosDownloader(vmType, vmName, imageStream string) (DistributionDownload
 
 	fcd := FcosDownload{
 		Download: Download{
-			Arch:      getFcosArch(),
+			Arch:      vmArch,
 			Artifact:  artifact,
 			Format:    Format,
 			ImageName: imageName,
@@ -108,18 +108,6 @@ func (f FcosDownload) HasUsableCache() (bool, error) {
 	return sum.Encoded() == f.Sha256sum, nil
 }
 
-func getFcosArch() string {
-	var arch string
-	// TODO fill in more architectures
-	switch runtime.GOARCH {
-	case "arm64":
-		arch = "aarch64"
-	default:
-		arch = "x86_64"
-	}
-	return arch
-}
-
 // getStreamURL is a wrapper for the fcos.GetStream URL
 // so that we can inject a special stream and url for
 // testing podman before it merges into fcos builds
@@ -138,7 +126,7 @@ func getStreamURL(streamType string) url2.URL {
 
 // This should get Exported and stay put as it will apply to all fcos downloads
 // getFCOS parses fedoraCoreOS's stream and returns the image download URL and the release version
-func getFCOSDownload(imageStream string) (*fcosDownloadInfo, error) {
+func getFCOSDownload(imageStream, vmArch string) (*fcosDownloadInfo, error) {
 	var (
 		fcosstable stream.Stream
 		altMeta    release.Release
@@ -181,7 +169,7 @@ func getFCOSDownload(imageStream string) (*fcosDownloadInfo, error) {
 			return nil, err
 		}
 
-		arches, ok := altMeta.Architectures[getFcosArch()]
+		arches, ok := altMeta.Architectures[vmArch]
 		if !ok {
 			return nil, fmt.Errorf("unable to pull VM image: no targetArch in stream")
 		}
@@ -201,7 +189,7 @@ func getFCOSDownload(imageStream string) (*fcosDownloadInfo, error) {
 	if err := json.Unmarshal(body, &fcosstable); err != nil {
 		return nil, err
 	}
-	arch, ok := fcosstable.Architectures[getFcosArch()]
+	arch, ok := fcosstable.Architectures[vmArch]
 	if !ok {
 		return nil, fmt.Errorf("unable to pull VM image: no targetArch in stream")
 	}

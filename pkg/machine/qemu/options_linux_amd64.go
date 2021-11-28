@@ -4,14 +4,6 @@ var (
 	QemuCommand = "qemu-system-x86_64"
 )
 
-func (v *MachineVM) addArchOptions() []string {
-	opts := []string{
-		"-accel", "kvm",
-		"-cpu", "host",
-	}
-	return opts
-}
-
 func (v *MachineVM) prepare() error {
 	return nil
 }

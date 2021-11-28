@@ -1,9 +1,11 @@
+//go:build amd64 || arm64
 // +build amd64 arm64
 
 package machine
 
 import (
 	"fmt"
+	"runtime"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/registry"
@@ -27,6 +29,7 @@ var (
 var (
 	initOpts           = machine.InitOptions{}
 	defaultMachineName = machine.DefaultMachineName
+	supportedVmArchs   = []string{"x86_64", "aarch64"}
 	now                bool
 )
 
@@ -102,6 +105,10 @@ func init() {
 
 	rootfulFlagName := "rootful"
 	flags.BoolVar(&initOpts.Rootful, rootfulFlagName, false, "Whether this machine should prefer rootful container exectution")
+
+	ArchFlagName := "arch"
+	flags.StringVar(&initOpts.VMArch, ArchFlagName, getHostArch(), fmt.Sprintf("Virtual machine architecture. Valid values: %v", supportedVmArchs))
+	_ = initCmd.RegisterFlagCompletionFunc(ArchFlagName, AutocompleteVMArch)
 }
 
 // TODO should we allow for a users to append to the qemu cmdline?
@@ -116,6 +123,13 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 {
 		initOpts.Name = args[0]
 	}
+
+	if !contains(supportedVmArchs, initOpts.VMArch) {
+		return fmt.Errorf("unsupported VM architecture %s. Valid values: %v", initOpts.VMArch, supportedVmArchs)
+	}
+
+	initOpts.HostArch = getHostArch()
+
 	if _, err := provider.LoadVMByName(initOpts.Name); err == nil {
 		return errors.Wrap(machine.ErrVMAlreadyExists, initOpts.Name)
 	}
@@ -151,3 +165,31 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	}
 	return err
 }
+
+func getHostArch() string {
+	var arch string
+
+	switch runtime.GOARCH {
+	case "arm64":
+		arch = "aarch64"
+	default:
+		arch = "x86_64"
+	}
+	return arch
+}
+
+func AutocompleteVMArch(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return supportedVmArchs, cobra.ShellCompDirectiveNoFileComp
+}
+
+func contains(items []string, need string) bool {
+	for _, item := range items {
+		if item == need {
+			return true
+		}
+	}
+
+	return false
+}
+
+// TODO: output the arch in the list of machines?

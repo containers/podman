@@ -17,6 +17,7 @@ import (
 type InitOptions struct {
 	CPUS         uint64
 	DiskSize     uint64
+	HostArch     string
 	IgnitionPath string
 	ImagePath    string
 	Volumes      []string
@@ -30,7 +31,8 @@ type InitOptions struct {
 	ReExec       bool
 	Rootful      bool
 	// The numberical userid of the user that called machine
-	UID string
+	UID    string
+	VMArch string
 }
 
 type QemuMachineStatus = string
