@@ -407,7 +407,7 @@ var _ = Describe("Podman run", func() {
 		configPath := filepath.Join(podmanTest.TempDir, "containers.conf")
 		os.Setenv("CONTAINERS_CONF", configPath)
 
-		containersConf := []byte(fmt.Sprintf("[engine]\nimage_copy_tmp_dir=\"/foobar\""))
+		containersConf := []byte("[engine]\nimage_copy_tmp_dir=\"/foobar\"")
 		err = ioutil.WriteFile(configPath, containersConf, os.ModePerm)
 		Expect(err).To(BeNil())
 
@@ -420,7 +420,7 @@ var _ = Describe("Podman run", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal("/foobar"))
 
-		containersConf = []byte(fmt.Sprintf("[engine]\nimage_copy_tmp_dir=\"storage\""))
+		containersConf = []byte("[engine]\nimage_copy_tmp_dir=\"storage\"")
 		err = ioutil.WriteFile(configPath, containersConf, os.ModePerm)
 		Expect(err).To(BeNil())
 		if IsRemote() {
@@ -432,7 +432,7 @@ var _ = Describe("Podman run", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("containers/storage/tmp"))
 
-		containersConf = []byte(fmt.Sprintf("[engine]\nimage_copy_tmp_dir=\"storage1\""))
+		containersConf = []byte("[engine]\nimage_copy_tmp_dir=\"storage1\"")
 		err = ioutil.WriteFile(configPath, containersConf, os.ModePerm)
 		Expect(err).To(BeNil())
 		if IsRemote() {

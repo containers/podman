@@ -1,4 +1,4 @@
-package test_bindings
+package bindings_test
 
 import (
 	"fmt"
@@ -79,6 +79,7 @@ var _ = Describe("Podman pods", func() {
 		var newpod2 string = "newpod2"
 		bt.Podcreate(&newpod2)
 		podSummary, err = pods.List(bt.conn, nil)
+		Expect(err).To(BeNil(), "Error from pods.List")
 		Expect(len(podSummary)).To(Equal(2))
 		var names []string
 		for _, i := range podSummary {
@@ -106,6 +107,7 @@ var _ = Describe("Podman pods", func() {
 		options := new(pods.ListOptions).WithFilters(filters)
 		filteredPods, err := pods.List(bt.conn, options)
 		Expect(err).ToNot(BeNil())
+		Expect(len(filteredPods)).To(Equal(0), "len(filteredPods)")
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
 
@@ -301,6 +303,7 @@ var _ = Describe("Podman pods", func() {
 		// No pods pruned since no pod in exited state
 		pruneResponse, err := pods.Prune(bt.conn, nil)
 		Expect(err).To(BeNil())
+		Expect(len(pruneResponse)).To(Equal(0), "len(pruneResponse)")
 		podSummary, err := pods.List(bt.conn, nil)
 		Expect(err).To(BeNil())
 		Expect(len(podSummary)).To(Equal(2))
@@ -317,6 +320,7 @@ var _ = Describe("Podman pods", func() {
 		Expect(response.State).To(Equal(define.PodStateExited))
 		pruneResponse, err = pods.Prune(bt.conn, nil)
 		Expect(err).To(BeNil())
+		Expect(len(pruneResponse)).To(Equal(1), "len(pruneResponse)")
 		// Validate status and record pod id of pod to be pruned
 		Expect(response.State).To(Equal(define.PodStateExited))
 		podID := response.ID

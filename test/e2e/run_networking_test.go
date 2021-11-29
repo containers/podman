@@ -789,7 +789,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(run.OutputToString()).ToNot(ContainSubstring("127.0.0.1 %s", hostname))
 	})
 
-	ping_test := func(netns string) {
+	pingTest := func(netns string) {
 		hostname := "testctr"
 		run := podmanTest.Podman([]string{"run", netns, "--hostname", hostname, ALPINE, "ping", "-c", "1", hostname})
 		run.WaitWithDefaultTimeout()
@@ -801,11 +801,11 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 	}
 
 	It("podman attempt to ping container name and hostname --net=none", func() {
-		ping_test("--net=none")
+		pingTest("--net=none")
 	})
 
 	It("podman attempt to ping container name and hostname --net=private", func() {
-		ping_test("--net=private")
+		pingTest("--net=private")
 	})
 
 	It("podman run check dnsname plugin", func() {

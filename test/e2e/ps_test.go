@@ -443,11 +443,10 @@ var _ = Describe("Podman ps", func() {
 			// sanity check in case an oddly formatted size appears
 			if len(matches1) < 2 || len(matches2) < 2 {
 				return sortedArr[i] < sortedArr[j]
-			} else {
-				size1, _ := units.FromHumanSize(matches1[1])
-				size2, _ := units.FromHumanSize(matches2[1])
-				return size1 < size2
 			}
+			size1, _ := units.FromHumanSize(matches1[1])
+			size2, _ := units.FromHumanSize(matches2[1])
+			return size1 < size2
 		})).To(BeTrue())
 
 	})

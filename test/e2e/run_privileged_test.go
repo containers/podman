@@ -21,18 +21,18 @@ func containerCapMatchesHost(ctrCap string, hostCap string) {
 	if isRootless() {
 		return
 	}
-	ctrCap_n, err := strconv.ParseUint(ctrCap, 16, 64)
+	ctrCapN, err := strconv.ParseUint(ctrCap, 16, 64)
 	Expect(err).NotTo(HaveOccurred(), "Error parsing %q as hex", ctrCap)
 
-	hostCap_n, err := strconv.ParseUint(hostCap, 16, 64)
+	hostCapN, err := strconv.ParseUint(hostCap, 16, 64)
 	Expect(err).NotTo(HaveOccurred(), "Error parsing %q as hex", hostCap)
 
 	// host caps can never be zero (except rootless).
 	// and host caps must always be a superset (inclusive) of container
-	Expect(hostCap_n).To(BeNumerically(">", 0), "host cap %q should be nonzero", hostCap)
-	Expect(hostCap_n).To(BeNumerically(">=", ctrCap_n), "host cap %q should never be less than container cap %q", hostCap, ctrCap)
-	hostCap_masked := hostCap_n & (1<<len(capability.List()) - 1)
-	Expect(ctrCap_n).To(Equal(hostCap_masked), "container cap %q is not a subset of host cap %q", ctrCap, hostCap)
+	Expect(hostCapN).To(BeNumerically(">", 0), "host cap %q should be nonzero", hostCap)
+	Expect(hostCapN).To(BeNumerically(">=", ctrCapN), "host cap %q should never be less than container cap %q", hostCap, ctrCap)
+	hostCapMasked := hostCapN & (1<<len(capability.List()) - 1)
+	Expect(ctrCapN).To(Equal(hostCapMasked), "container cap %q is not a subset of host cap %q", ctrCap, hostCap)
 }
 
 var _ = Describe("Podman privileged container tests", func() {

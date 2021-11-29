@@ -1019,6 +1019,9 @@ var _ = Describe("Podman checkpoint", func() {
 			"podman checkpoint and restore container out of and into pod (%s)",
 			share,
 		)
+
+		share := share // copy into local scope, for use inside function
+
 		It(testName, func() {
 			if !criu.CheckForCriu(criu.PodCriuVersion) {
 				Skip("CRIU is missing or too old.")

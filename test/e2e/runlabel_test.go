@@ -105,7 +105,8 @@ var _ = Describe("podman container runlabel", func() {
 	})
 
 	It("podman container runlabel global options", func() {
-		Skip("Test nonfunctional for podman-in-podman testing")
+		fmt.Printf("FIXME: for lint. Remove when you fix this test: %s", GlobalDockerfile)
+		Skip("FIXME: $GLOBAL_OPTS does not work at all, #12436")
 		image := "podman-global-test:ls"
 		podmanTest.BuildImage(GlobalDockerfile, image, "false")
 		result := podmanTest.Podman([]string{"--syslog", "--log-level", "debug", "container", "runlabel", "RUN", image})

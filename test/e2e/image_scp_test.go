@@ -62,7 +62,7 @@ var _ = Describe("podman image scp", func() {
 	})
 
 	It("podman image scp root to rootless transfer", func() {
-		SkipIfNotRootless("this is a rootless only test, transfering from root to rootless using PodmanAsUser")
+		SkipIfNotRootless("this is a rootless only test, transferring from root to rootless using PodmanAsUser")
 		if IsRemote() {
 			Skip("this test is only for non-remote")
 		}

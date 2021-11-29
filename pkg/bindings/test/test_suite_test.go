@@ -1,4 +1,4 @@
-package test_bindings_test
+package bindings_test
 
 import (
 	"testing"

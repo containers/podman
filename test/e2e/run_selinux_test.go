@@ -320,7 +320,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman test init labels", func() {
-		session := podmanTest.Podman([]string{"create", ubi_init, "/sbin/init"})
+		session := podmanTest.Podman([]string{"create", UBI_INIT, "/sbin/init"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		cid := session.OutputToString()

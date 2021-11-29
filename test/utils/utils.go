@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/containers/storage/pkg/parsers/kernel"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
+	. "github.com/onsi/ginkgo"       //nolint:golint,stylecheck
+	. "github.com/onsi/gomega"       //nolint:golint,stylecheck
+	. "github.com/onsi/gomega/gexec" //nolint:golint,stylecheck
 )
 
 var (
@@ -439,25 +439,21 @@ func IsKernelNewerThan(version string) (bool, error) {
 		return true, nil
 	}
 	return false, nil
-
 }
 
 // IsCommandAvailable check if command exist
 func IsCommandAvailable(command string) bool {
 	check := exec.Command("bash", "-c", strings.Join([]string{"command -v", command}, " "))
 	err := check.Run()
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
-// WriteJsonFile write json format data to a json file
-func WriteJsonFile(data []byte, filePath string) error {
+// WriteJSONFile write json format data to a json file
+func WriteJSONFile(data []byte, filePath string) error {
 	var jsonData map[string]interface{}
 	json.Unmarshal(data, &jsonData)
-	formatJson, _ := json.MarshalIndent(jsonData, "", "	")
-	return ioutil.WriteFile(filePath, formatJson, 0644)
+	formatJSON, _ := json.MarshalIndent(jsonData, "", "	")
+	return ioutil.WriteFile(filePath, formatJSON, 0644)
 }
 
 // Containerized check the podman command run inside container
@@ -471,10 +467,7 @@ func Containerized() bool {
 		// shrug, if we cannot read that file, return false
 		return false
 	}
-	if strings.Index(string(b), "docker") > -1 {
-		return true
-	}
-	return false
+	return strings.Contains(string(b), "docker")
 }
 
 func init() {
@@ -485,7 +478,6 @@ var randomLetters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
 
 // RandomString returns a string of given length composed of random characters
 func RandomString(n int) string {
-
 	b := make([]rune, n)
 	for i := range b {
 		b[i] = randomLetters[rand.Intn(len(randomLetters))]

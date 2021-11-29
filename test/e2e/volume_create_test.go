@@ -97,13 +97,12 @@ var _ = Describe("Podman volume create", func() {
 
 		session = podmanTest.Podman([]string{"volume", "create", "my_vol2"})
 		session.WaitWithDefaultTimeout()
-		volName = session.OutputToString()
 		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"volume", "import", "my_vol2", "hello.tar"})
 		session.WaitWithDefaultTimeout()
-		volName = session.OutputToString()
 		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal(""), "output of volume import")
 
 		session = podmanTest.Podman([]string{"run", "--volume", "my_vol2:/data", ALPINE, "cat", "/data/test"})
 		session.WaitWithDefaultTimeout()

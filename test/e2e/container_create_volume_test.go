@@ -28,7 +28,7 @@ VOLUME %s/`, data, dest, dest)
 
 func createContainersConfFile(pTest *PodmanTestIntegration) {
 	configPath := filepath.Join(pTest.TempDir, "containers.conf")
-	containersConf := []byte(fmt.Sprintf("[containers]\nprepare_volume_on_create = true\n"))
+	containersConf := []byte("[containers]\nprepare_volume_on_create = true\n")
 	err := ioutil.WriteFile(configPath, containersConf, os.ModePerm)
 	Expect(err).To(BeNil())
 
