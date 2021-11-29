@@ -470,10 +470,6 @@ func Containerized() bool {
 	return strings.Contains(string(b), "docker")
 }
 
-func init() {
-	rand.Seed(GinkgoRandomSeed())
-}
-
 var randomLetters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 // RandomString returns a string of given length composed of random characters
