@@ -1917,6 +1917,37 @@ process to complete the container cleanup, by shutting down the network and
 storage.   For more information on conmon, please reference the conmon(8) man
 page.
 
+## Name Resolution between containers.
+
+Name resolution between containers and pods requires the dnsname CNI plugin to be
+used. The CNI plugin adds each container's name to an instance of a dnsmasq server.
+The plugin is enabled through adding it to a network's CNI configuration. The
+containers will only be able to resolve each other if they are on the same CNI
+network. The dnsname plugin, /usr/libexec/cni/dnsname, is usually installed as part
+of the podman-plugins package.
+
+To start using it first, create a new network with `podman network create` command.
+Afterward all containers and pods added to this network will automatically have
+name resolution to other containers and pods in the same network. You can change the
+default network used by Podman when creating containers and pods by editing the
+containers.conf file and changing the default_network field.
+
+To make name resolution work with the default `podman` network, add the dnsname
+plugin to the default network file usually /etc/cni/net.d/87-podman-bridge.conflist.
+
+Add the followign stanza to /etc/cni/net.d/87-podman-bridge.conflist:
+```
+   "plugins": [
+     {
+        "type": "dnsname",
+        "domainName": "dns.podman",
+        "capabilities": {
+           "aliases": true
+        }
+     }
+  ]
+```
+
 ## FILES
 
 **/etc/subuid**
