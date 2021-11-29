@@ -239,27 +239,6 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		return nil, err
 	}
 	podSpec := entities.PodSpec{PodSpecGen: *p}
-	volumes, err := kube.InitializeVolumes(podYAML.Spec.Volumes)
-	if err != nil {
-		return nil, err
-	}
-
-	seccompPaths, err := kube.InitializeSeccompPaths(podYAML.ObjectMeta.Annotations, options.SeccompProfileRoot)
-	if err != nil {
-		return nil, err
-	}
-
-	var ctrRestartPolicy string
-	switch podYAML.Spec.RestartPolicy {
-	case v1.RestartPolicyAlways:
-		ctrRestartPolicy = define.RestartPolicyAlways
-	case v1.RestartPolicyOnFailure:
-		ctrRestartPolicy = define.RestartPolicyOnFailure
-	case v1.RestartPolicyNever:
-		ctrRestartPolicy = define.RestartPolicyNo
-	default: // Default to Always
-		ctrRestartPolicy = define.RestartPolicyAlways
-	}
 
 	configMapIndex := make(map[string]struct{})
 	for _, configMap := range configMaps {
@@ -282,6 +261,56 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		}
 
 		configMaps = append(configMaps, cm)
+	}
+
+	volumes, err := kube.InitializeVolumes(podYAML.Spec.Volumes, configMaps)
+	if err != nil {
+		return nil, err
+	}
+
+	// Go through the volumes and create a podman volume for all volumes that have been
+	// defined by a configmap
+	for _, v := range volumes {
+		if v.Type == kube.KubeVolumeTypeConfigMap && !v.Optional {
+			vol, err := ic.Libpod.NewVolume(ctx, libpod.WithVolumeName(v.Source))
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot create a local volume for volume from configmap %q", v.Source)
+			}
+			mountPoint, err := vol.MountPoint()
+			if err != nil || mountPoint == "" {
+				return nil, errors.Wrapf(err, "unable to get mountpoint of volume %q", vol.Name())
+			}
+			// Create files and add data to the volume mountpoint based on the Items in the volume
+			for k, v := range v.Items {
+				dataPath := filepath.Join(mountPoint, k)
+				f, err := os.Create(dataPath)
+				if err != nil {
+					return nil, errors.Wrapf(err, "cannot create file %q at volume mountpoint %q", k, mountPoint)
+				}
+				defer f.Close()
+				_, err = f.WriteString(v)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
+
+	seccompPaths, err := kube.InitializeSeccompPaths(podYAML.ObjectMeta.Annotations, options.SeccompProfileRoot)
+	if err != nil {
+		return nil, err
+	}
+
+	var ctrRestartPolicy string
+	switch podYAML.Spec.RestartPolicy {
+	case v1.RestartPolicyAlways:
+		ctrRestartPolicy = define.RestartPolicyAlways
+	case v1.RestartPolicyOnFailure:
+		ctrRestartPolicy = define.RestartPolicyOnFailure
+	case v1.RestartPolicyNever:
+		ctrRestartPolicy = define.RestartPolicyNo
+	default: // Default to Always
+		ctrRestartPolicy = define.RestartPolicyAlways
 	}
 
 	if podOpt.Infra {
