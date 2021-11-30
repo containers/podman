@@ -1518,7 +1518,7 @@ USER mail`, BB)
 		session := podmanTest.Podman([]string{"run", "-t", "-i", "--group-add", groupName, "--privileged", fedoraMinimal, "groups"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(strings.Contains(session.OutputToString(), groupName)).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring(groupName))
 	})
 
 	It("podman run --tz", func() {

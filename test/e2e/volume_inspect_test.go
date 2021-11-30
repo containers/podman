@@ -86,6 +86,6 @@ var _ = Describe("Podman volume inspect", func() {
 		inspect := podmanTest.Podman([]string{"volume", "inspect", volName})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
-		Expect(strings.Contains(inspect.OutputToString(), "tmpfs")).To(BeTrue())
+		Expect(inspect.OutputToString()).To(ContainSubstring("tmpfs"))
 	})
 })

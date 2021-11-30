@@ -93,7 +93,7 @@ WantedBy=default.target
 		systemctl := podmanTest.Podman([]string{"exec", "-t", "-i", ctrName, "systemctl", "status", "--no-pager"})
 		systemctl.WaitWithDefaultTimeout()
 		Expect(systemctl).Should(Exit(0))
-		Expect(strings.Contains(systemctl.OutputToString(), "State:")).To(BeTrue())
+		Expect(systemctl.OutputToString()).To(ContainSubstring("State:"))
 
 		result := podmanTest.Podman([]string{"inspect", ctrName})
 		result.WaitWithDefaultTimeout()
