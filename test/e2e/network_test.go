@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/containers/podman/v3/libpod/network/types"
@@ -269,7 +268,7 @@ var _ = Describe("Podman network", func() {
 		Expect(ok).To(BeTrue())
 		Expect(net.NetworkID).To(Equal(netName))
 		Expect(net.IPPrefixLen).To(Equal(24))
-		Expect(strings.HasPrefix(net.IPAddress, "10.50.50.")).To(BeTrue())
+		Expect(net.IPAddress).To(HavePrefix("10.50.50."))
 
 		// Necessary to ensure the CNI network is removed cleanly
 		rmAll := podmanTest.Podman([]string{"rm", "-t", "0", "-f", ctrName})
@@ -342,12 +341,12 @@ var _ = Describe("Podman network", func() {
 		Expect(ok).To(BeTrue())
 		Expect(net1.NetworkID).To(Equal(netName1))
 		Expect(net1.IPPrefixLen).To(Equal(25))
-		Expect(strings.HasPrefix(net1.IPAddress, "10.50.51.")).To(BeTrue())
+		Expect(net1.IPAddress).To(HavePrefix("10.50.51."))
 		net2, ok := conData[0].NetworkSettings.Networks[netName2]
 		Expect(ok).To(BeTrue())
 		Expect(net2.NetworkID).To(Equal(netName2))
 		Expect(net2.IPPrefixLen).To(Equal(26))
-		Expect(strings.HasPrefix(net2.IPAddress, "10.50.51.")).To(BeTrue())
+		Expect(net2.IPAddress).To(HavePrefix("10.50.51."))
 
 		// Necessary to ensure the CNI network is removed cleanly
 		rmAll := podmanTest.Podman([]string{"rm", "-t", "0", "-f", ctrName})

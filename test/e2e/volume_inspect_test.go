@@ -2,7 +2,6 @@ package integration
 
 import (
 	"os"
-	"strings"
 
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"

@@ -221,7 +221,7 @@ var _ = Describe("Podman load", func() {
 
 		result := podmanTest.Podman([]string{"images", "hello:world"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.LineInOutputContains("docker")).To(Not(BeTrue()))
+		Expect(result.OutputToString()).To(Not(ContainSubstring("docker")))
 		Expect(result.OutputToString()).To(ContainSubstring("localhost"))
 	})
 
@@ -246,7 +246,7 @@ var _ = Describe("Podman load", func() {
 
 		result := podmanTest.Podman([]string{"images", "hello:latest"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.LineInOutputContains("docker")).To(Not(BeTrue()))
+		Expect(result.OutputToString()).To(Not(ContainSubstring("docker")))
 		Expect(result.OutputToString()).To(ContainSubstring("localhost"))
 	})
 
@@ -272,7 +272,7 @@ var _ = Describe("Podman load", func() {
 
 		result := podmanTest.Podman([]string{"images", "load:latest"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.LineInOutputContains("docker")).To(Not(BeTrue()))
+		Expect(result.OutputToString()).To(Not(ContainSubstring("docker")))
 		Expect(result.OutputToString()).To(ContainSubstring("localhost"))
 	})
 

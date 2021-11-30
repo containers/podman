@@ -168,18 +168,18 @@ func (matcher *ExitMatcher) MatchMayChangeInTheFuture(actual interface{}) bool {
 	return true
 }
 
-type validJSONMatcher struct {
+type ValidJSONMatcher struct {
 	types.GomegaMatcher
 }
 
-func BeValidJSON() *validJSONMatcher {
-	return &validJSONMatcher{}
+func BeValidJSON() *ValidJSONMatcher {
+	return &ValidJSONMatcher{}
 }
 
-func (matcher *validJSONMatcher) Match(actual interface{}) (success bool, err error) {
+func (matcher *ValidJSONMatcher) Match(actual interface{}) (success bool, err error) {
 	s, ok := actual.(string)
 	if !ok {
-		return false, fmt.Errorf("validJSONMatcher expects a string, not %q", actual)
+		return false, fmt.Errorf("ValidJSONMatcher expects a string, not %q", actual)
 	}
 
 	var i interface{}
@@ -189,10 +189,10 @@ func (matcher *validJSONMatcher) Match(actual interface{}) (success bool, err er
 	return true, nil
 }
 
-func (matcher *validJSONMatcher) FailureMessage(actual interface{}) (message string) {
+func (matcher *ValidJSONMatcher) FailureMessage(actual interface{}) (message string) {
 	return format.Message(actual, "to be valid JSON")
 }
 
-func (matcher *validJSONMatcher) NegatedFailureMessage(actual interface{}) (message string) {
+func (matcher *ValidJSONMatcher) NegatedFailureMessage(actual interface{}) (message string) {
 	return format.Message(actual, "to _not_ be valid JSON")
 }
