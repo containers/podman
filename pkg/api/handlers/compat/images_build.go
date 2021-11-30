@@ -122,6 +122,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Target                 string   `schema:"target"`
 		Timestamp              int64    `schema:"timestamp"`
 		Ulimits                string   `schema:"ulimits"`
+		Secrets                string   `schema:"secrets"`
 	}{
 		Dockerfile: "Dockerfile",
 		Registry:   "docker.io",
@@ -240,6 +241,49 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		dnssearch = m
+	}
+
+	var secrets = []string{}
+	if _, found := r.URL.Query()["secrets"]; found {
+		var m = []string{}
+		if err := json.Unmarshal([]byte(query.Secrets), &m); err != nil {
+			utils.BadRequest(w, "secrets", query.Secrets, err)
+			return
+		}
+
+		// for podman-remote all secrets must be picked from context director
+		// hence modify src so contextdir is added as prefix
+
+		for _, secret := range m {
+			secretOpt := strings.Split(secret, ",")
+			if len(secretOpt) > 0 {
+				modifiedOpt := []string{}
+				for _, token := range secretOpt {
+					arr := strings.SplitN(token, "=", 2)
+					if len(arr) > 1 {
+						if arr[0] == "src" {
+							/* move secret away from contextDir */
+							/* to make sure we dont accidentally commit temporary secrets to image*/
+							builderDirectory, _ := filepath.Split(contextDirectory)
+							// following path is outside build context
+							newSecretPath := filepath.Join(builderDirectory, arr[1])
+							oldSecretPath := filepath.Join(contextDirectory, arr[1])
+							err := os.Rename(oldSecretPath, newSecretPath)
+							if err != nil {
+								utils.BadRequest(w, "secrets", query.Secrets, err)
+								return
+							}
+
+							modifiedSrc := fmt.Sprintf("src=%s", newSecretPath)
+							modifiedOpt = append(modifiedOpt, modifiedSrc)
+						} else {
+							modifiedOpt = append(modifiedOpt, token)
+						}
+					}
+				}
+				secrets = append(secrets, strings.Join(modifiedOpt[:], ","))
+			}
+		}
 	}
 
 	var output string
@@ -476,6 +520,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			SeccompProfilePath: seccomp,
 			ShmSize:            strconv.Itoa(query.ShmSize),
 			Ulimit:             ulimits,
+			Secrets:            secrets,
 		},
 		CNIConfigDir:                   rtc.Network.CNIPluginDirs[0],
 		CNIPluginPath:                  util.DefaultCNIPluginPath,
