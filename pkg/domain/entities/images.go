@@ -208,6 +208,8 @@ type ImagePushOptions struct {
 	SkipTLSVerify types.OptionalBool
 	// Progress to get progress notifications
 	Progress chan types.ProgressProperties
+	// CompressionFormat is the format to use for the compression of the blobs
+	CompressionFormat string
 }
 
 // ImageSearchOptions are the arguments for searching images.
