@@ -239,7 +239,7 @@ var _ = Describe("Podman ps", func() {
 		result := podmanTest.Podman([]string{"ps", "--format", "json"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(result.IsJSONOutputValid()).To(BeTrue())
+		Expect(result.OutputToString()).To(BeValidJSON())
 	})
 
 	It("podman ps namespace flag with json format", func() {
@@ -249,7 +249,7 @@ var _ = Describe("Podman ps", func() {
 		result := podmanTest.Podman([]string{"ps", "-a", "--ns", "--format", "json"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(result.IsJSONOutputValid()).To(BeTrue())
+		Expect(result.OutputToString()).To(BeValidJSON())
 	})
 
 	It("podman ps json format Created field is int64", func() {
@@ -275,7 +275,7 @@ var _ = Describe("Podman ps", func() {
 		result := podmanTest.Podman([]string{"ps", "-a", "--format", "json"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(result.IsJSONOutputValid()).To(BeTrue())
+		Expect(result.OutputToString()).To(BeValidJSON())
 		// must contain "Status"
 		match, StatusLine := result.GrepString(`Status`)
 		Expect(match).To(BeTrue())

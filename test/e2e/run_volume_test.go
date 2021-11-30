@@ -287,7 +287,7 @@ var _ = Describe("Podman run with volumes", func() {
 		os.Stderr.Sync()
 		mountOut1 := strings.Join(strings.Fields(string(mountCmd1.Out.Contents())), " ")
 		fmt.Printf("Output: %s", mountOut1)
-		Expect(strings.Contains(mountOut1, volName)).To(BeFalse())
+		Expect(mountOut1).To(Not(ContainSubstring(volName)))
 
 		ctrName := "testctr"
 		podmanSession := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, "-v", fmt.Sprintf("%s:/testvol", volName), ALPINE, "top"})
@@ -303,7 +303,7 @@ var _ = Describe("Podman run with volumes", func() {
 		os.Stderr.Sync()
 		mountOut2 := strings.Join(strings.Fields(string(mountCmd2.Out.Contents())), " ")
 		fmt.Printf("Output: %s", mountOut2)
-		Expect(strings.Contains(mountOut2, volName)).To(BeTrue())
+		Expect(mountOut2).To(ContainSubstring(volName))
 
 		// Stop the container to unmount
 		podmanStopSession := podmanTest.Podman([]string{"stop", "--time", "0", ctrName})
@@ -324,7 +324,7 @@ var _ = Describe("Podman run with volumes", func() {
 		os.Stderr.Sync()
 		mountOut3 := strings.Join(strings.Fields(string(mountCmd3.Out.Contents())), " ")
 		fmt.Printf("Output: %s", mountOut3)
-		Expect(strings.Contains(mountOut3, volName)).To(BeFalse())
+		Expect(mountOut3).To(Not(ContainSubstring(volName)))
 	})
 
 	It("podman named volume copyup", func() {
@@ -516,7 +516,7 @@ RUN sh -c "cd /etc/apk && ln -s ../../testfile"`, ALPINE)
 		Expect(runLs).Should(Exit(0))
 		outputArr := runLs.OutputToStringArray()
 		Expect(len(outputArr)).To(Equal(1))
-		Expect(strings.Contains(outputArr[0], fileName)).To(BeTrue())
+		Expect(outputArr[0]).To(ContainSubstring(fileName))
 	})
 
 	It("Podman mount over image volume with trailing /", func() {
@@ -752,7 +752,7 @@ USER testuser`, fedoraMinimal)
 		test1 := podmanTest.Podman([]string{"run", "-v", "testvol1:/test", imgName, "bash", "-c", "ls -al /test | grep -v root | grep -v total"})
 		test1.WaitWithDefaultTimeout()
 		Expect(test1).Should(Exit(0))
-		Expect(strings.Contains(test1.OutputToString(), testString)).To(BeTrue())
+		Expect(test1.OutputToString()).To(ContainSubstring(testString))
 
 		volName := "testvol2"
 		vol := podmanTest.Podman([]string{"volume", "create", volName})
@@ -762,7 +762,7 @@ USER testuser`, fedoraMinimal)
 		test2 := podmanTest.Podman([]string{"run", "-v", fmt.Sprintf("%s:/test", volName), imgName, "bash", "-c", "ls -al /test | grep -v root | grep -v total"})
 		test2.WaitWithDefaultTimeout()
 		Expect(test2).Should(Exit(0))
-		Expect(strings.Contains(test2.OutputToString(), testString)).To(BeTrue())
+		Expect(test2.OutputToString()).To(ContainSubstring(testString))
 
 	})
 

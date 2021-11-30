@@ -420,7 +420,7 @@ var _ = Describe("Podman generate systemd", func() {
 		session := podmanTest.Podman([]string{"generate", "systemd", "--format", "json", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.IsJSONOutputValid()).To(BeTrue())
+		Expect(session.OutputToString()).To(BeValidJSON())
 	})
 
 	It("podman generate systemd --new create command with double curly braces", func() {

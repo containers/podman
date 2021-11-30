@@ -53,7 +53,7 @@ var _ = Describe("Podman diff", func() {
 		session := podmanTest.Podman([]string{"diff", "--format=json", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.IsJSONOutputValid()).To(BeTrue())
+		Expect(session.OutputToString()).To(BeValidJSON())
 	})
 
 	It("podman diff container and committed image", func() {

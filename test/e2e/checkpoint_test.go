@@ -102,7 +102,7 @@ var _ = Describe("Podman checkpoint", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		inspectOut := inspect.InspectContainerToJSON()
-		Expect(inspectOut[0].State.Checkpointed).To(BeTrue())
+		Expect(inspectOut[0].State.Checkpointed).To(BeTrue(), ".State.Checkpointed")
 
 		result = podmanTest.Podman([]string{"container", "restore", cid})
 		result.WaitWithDefaultTimeout()

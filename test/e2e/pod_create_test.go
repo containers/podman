@@ -173,7 +173,7 @@ var _ = Describe("Podman pod create", func() {
 		podResolvConf := podmanTest.Podman([]string{"run", "--pod", name, "-ti", "--rm", ALPINE, "cat", "/etc/hosts"})
 		podResolvConf.WaitWithDefaultTimeout()
 		Expect(podResolvConf).Should(Exit(0))
-		Expect(strings.Contains(podResolvConf.OutputToString(), "12.34.56.78 test.example.com")).To(BeTrue())
+		Expect(podResolvConf.OutputToString()).To(ContainSubstring("12.34.56.78 test.example.com"))
 	})
 
 	It("podman create pod with --add-host and no infra should fail", func() {
@@ -193,7 +193,7 @@ var _ = Describe("Podman pod create", func() {
 		podResolvConf := podmanTest.Podman([]string{"run", "--pod", name, "-ti", "--rm", ALPINE, "cat", "/etc/resolv.conf"})
 		podResolvConf.WaitWithDefaultTimeout()
 		Expect(podResolvConf).Should(Exit(0))
-		Expect(strings.Contains(podResolvConf.OutputToString(), fmt.Sprintf("nameserver %s", server))).To(BeTrue())
+		Expect(podResolvConf.OutputToString()).To(ContainSubstring("nameserver %s", server))
 	})
 
 	It("podman create pod with DNS server set and no infra should fail", func() {
@@ -214,7 +214,7 @@ var _ = Describe("Podman pod create", func() {
 		podResolvConf := podmanTest.Podman([]string{"run", "--pod", name, "-ti", "--rm", ALPINE, "cat", "/etc/resolv.conf"})
 		podResolvConf.WaitWithDefaultTimeout()
 		Expect(podResolvConf).Should(Exit(0))
-		Expect(strings.Contains(podResolvConf.OutputToString(), fmt.Sprintf("options %s", option))).To(BeTrue())
+		Expect(podResolvConf.OutputToString()).To(ContainSubstring(fmt.Sprintf("options %s", option)))
 	})
 
 	It("podman create pod with DNS option set and no infra should fail", func() {
@@ -235,7 +235,7 @@ var _ = Describe("Podman pod create", func() {
 		podResolvConf := podmanTest.Podman([]string{"run", "--pod", name, "-ti", "--rm", ALPINE, "cat", "/etc/resolv.conf"})
 		podResolvConf.WaitWithDefaultTimeout()
 		Expect(podResolvConf).Should(Exit(0))
-		Expect(strings.Contains(podResolvConf.OutputToString(), fmt.Sprintf("search %s", search))).To(BeTrue())
+		Expect(podResolvConf.OutputToString()).To(ContainSubstring(fmt.Sprintf("search %s", search)))
 	})
 
 	It("podman create pod with DNS search domain set and no infra should fail", func() {
@@ -259,7 +259,7 @@ var _ = Describe("Podman pod create", func() {
 			podResolvConf := podmanTest.Podman([]string{"run", "--pod", name, "-ti", "--rm", ALPINE, "ip", "addr"})
 			podResolvConf.WaitWithDefaultTimeout()
 			Expect(podResolvConf).Should(Exit(0))
-			Expect(strings.Contains(podResolvConf.OutputToString(), ip)).To(BeTrue())
+			Expect(podResolvConf.OutputToString()).To(ContainSubstring(ip))
 		}
 	})
 
@@ -302,7 +302,7 @@ var _ = Describe("Podman pod create", func() {
 			podResolvConf := podmanTest.Podman([]string{"run", "--pod", name, "-ti", "--rm", ALPINE, "ip", "addr"})
 			podResolvConf.WaitWithDefaultTimeout()
 			Expect(podResolvConf).Should(Exit(0))
-			Expect(strings.Contains(podResolvConf.OutputToString(), mac)).To(BeTrue())
+			Expect(podResolvConf.OutputToString()).To(ContainSubstring(mac))
 		}
 	})
 
@@ -474,7 +474,7 @@ entrypoint ["/fromimage"]
 		status1 := podmanTest.Podman([]string{"pod", "inspect", "--format", "{{ .State }}", podName})
 		status1.WaitWithDefaultTimeout()
 		Expect(status1).Should(Exit(0))
-		Expect(strings.Contains(status1.OutputToString(), "Created")).To(BeTrue())
+		Expect(status1.OutputToString()).To(ContainSubstring("Created"))
 
 		ctr1 := podmanTest.Podman([]string{"run", "--pod", podName, "-d", ALPINE, "top"})
 		ctr1.WaitWithDefaultTimeout()
@@ -483,7 +483,7 @@ entrypoint ["/fromimage"]
 		status2 := podmanTest.Podman([]string{"pod", "inspect", "--format", "{{ .State }}", podName})
 		status2.WaitWithDefaultTimeout()
 		Expect(status2).Should(Exit(0))
-		Expect(strings.Contains(status2.OutputToString(), "Running")).To(BeTrue())
+		Expect(status2.OutputToString()).To(ContainSubstring("Running"))
 
 		ctr2 := podmanTest.Podman([]string{"create", "--pod", podName, ALPINE, "top"})
 		ctr2.WaitWithDefaultTimeout()
@@ -492,7 +492,7 @@ entrypoint ["/fromimage"]
 		status3 := podmanTest.Podman([]string{"pod", "inspect", "--format", "{{ .State }}", podName})
 		status3.WaitWithDefaultTimeout()
 		Expect(status3).Should(Exit(0))
-		Expect(strings.Contains(status3.OutputToString(), "Degraded")).To(BeTrue())
+		Expect(status3.OutputToString()).To(ContainSubstring("Degraded"))
 	})
 
 	It("podman create with unsupported network options", func() {
@@ -725,7 +725,7 @@ ENTRYPOINT ["sleep","99999"]
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(0))
 			l := session.OutputToString()
-			Expect(strings.Contains(l, "1024")).To(BeTrue())
+			Expect(l).To(ContainSubstring("1024"))
 			m[l] = l
 		}
 		// check for no duplicates

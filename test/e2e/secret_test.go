@@ -78,7 +78,7 @@ var _ = Describe("Podman secret", func() {
 		inspect := podmanTest.Podman([]string{"secret", "inspect", secrID})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
-		Expect(inspect.IsJSONOutputValid()).To(BeTrue())
+		Expect(inspect.OutputToString()).To(BeValidJSON())
 	})
 
 	It("podman secret inspect with --format", func() {
@@ -115,7 +115,7 @@ var _ = Describe("Podman secret", func() {
 		inspect := podmanTest.Podman([]string{"secret", "inspect", secrID, secrID2})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
-		Expect(inspect.IsJSONOutputValid()).To(BeTrue())
+		Expect(inspect.OutputToString()).To(BeValidJSON())
 	})
 
 	It("podman secret inspect bogus", func() {

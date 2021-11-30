@@ -73,6 +73,6 @@ var _ = Describe("Podman image sign", func() {
 		Expect(session).Should(Exit(0))
 		fInfos, err := ioutil.ReadDir(filepath.Join(sigDir, "library"))
 		Expect(err).To(BeNil())
-		Expect(len(fInfos) > 1).To(BeTrue())
+		Expect(len(fInfos)).To(BeNumerically(">", 1), "len(fInfos)")
 	})
 })

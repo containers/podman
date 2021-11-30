@@ -153,7 +153,7 @@ var _ = Describe("Podman UserNS support", func() {
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(0))
 			l := session.OutputToString()
-			Expect(strings.Contains(l, "1024")).To(BeTrue())
+			Expect(l).To(ContainSubstring("1024"))
 			m[l] = l
 		}
 		// check for no duplicates

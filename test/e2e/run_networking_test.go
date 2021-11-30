@@ -758,7 +758,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		run := podmanTest.Podman([]string{"run", "--net=host", "--hostname", hostname, ALPINE, "hostname"})
 		run.WaitWithDefaultTimeout()
 		Expect(run).Should(Exit(0))
-		Expect(strings.Contains(run.OutputToString(), hostname)).To(BeTrue())
+		Expect(run.OutputToString()).To(ContainSubstring(hostname))
 	})
 
 	It("podman run with --net=none sets hostname", func() {
@@ -766,7 +766,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		run := podmanTest.Podman([]string{"run", "--net=none", "--hostname", hostname, ALPINE, "hostname"})
 		run.WaitWithDefaultTimeout()
 		Expect(run).Should(Exit(0))
-		Expect(strings.Contains(run.OutputToString(), hostname)).To(BeTrue())
+		Expect(run.OutputToString()).To(ContainSubstring(hostname))
 	})
 
 	It("podman run with --net=none adds hostname to /etc/hosts", func() {
@@ -774,7 +774,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		run := podmanTest.Podman([]string{"run", "--net=none", "--hostname", hostname, ALPINE, "cat", "/etc/hosts"})
 		run.WaitWithDefaultTimeout()
 		Expect(run).Should(Exit(0))
-		Expect(strings.Contains(run.OutputToString(), hostname)).To(BeTrue())
+		Expect(run.OutputToString()).To(ContainSubstring(hostname))
 	})
 
 	It("podman run with pod does not add extra 127 entry to /etc/hosts", func() {

@@ -108,7 +108,7 @@ var _ = Describe("Podman create", func() {
 		check.WaitWithDefaultTimeout()
 		data := check.InspectContainerToJSON()
 		value, ok := data[0].Config.Annotations["HELLO"]
-		Expect(ok).To(BeTrue())
+		Expect(ok).To(BeTrue(), ".Config.Annotations[HELLO]")
 		Expect(value).To(Equal("WORLD"))
 	})
 
@@ -202,7 +202,7 @@ var _ = Describe("Podman create", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("/create/test ro"))
 
-		session = podmanTest.Podman([]string{"create", "--log-driver", "k8s-file", "--name", "test_shared", "--mount", fmt.Sprintf("type=bind,src=%s,target=/create/test,shared", mountPath), ALPINE, "grep", "/create/test", "/proc/self/mountinfo"})
+		session = podmanTest.Podman([]string{"create", "--log-driver", "k8s-file", "--name", "test_shared", "--mount", fmt.Sprintf("type=bind,src=%s,target=/create/test,shared", mountPath), ALPINE, "awk", `$5 == "/create/test" { print $6 " " $7}`, "/proc/self/mountinfo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		session = podmanTest.Podman([]string{"start", "test_shared"})
@@ -211,10 +211,8 @@ var _ = Describe("Podman create", func() {
 		session = podmanTest.Podman([]string{"logs", "test_shared"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		found, matches := session.GrepString("/create/test")
-		Expect(found).Should(BeTrue())
-		Expect(matches[0]).To(ContainSubstring("rw"))
-		Expect(matches[0]).To(ContainSubstring("shared"))
+		Expect(session.OutputToString()).To(ContainSubstring("rw"))
+		Expect(session.OutputToString()).To(ContainSubstring("shared"))
 
 		mountPath = filepath.Join(podmanTest.TempDir, "scratchpad")
 		os.Mkdir(mountPath, 0755)
@@ -263,7 +261,7 @@ var _ = Describe("Podman create", func() {
 		session = podmanTest.Podman([]string{"pod", "inspect", podName})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.IsJSONOutputValid()).To(BeTrue())
+		Expect(session.OutputToString()).To(BeValidJSON())
 		podData := session.InspectPodToJSON()
 
 		// Finally we can create a container with --pod-id-file and do
@@ -386,12 +384,12 @@ var _ = Describe("Podman create", func() {
 		inspect := podmanTest.Podman([]string{"inspect", ctrName})
 		inspect.WaitWithDefaultTimeout()
 		data := inspect.InspectContainerToJSON()
-		Expect(len(data)).To(Equal(1))
+		Expect(len(data)).To(Equal(1), "len(InspectContainerToJSON)")
 		Expect(len(data[0].Config.Labels)).To(Equal(2))
 		_, ok1 := data[0].Config.Labels["TESTKEY1"]
-		Expect(ok1).To(BeTrue())
+		Expect(ok1).To(BeTrue(), ".Config.Labels[TESTKEY1]")
 		_, ok2 := data[0].Config.Labels["TESTKEY2"]
-		Expect(ok2).To(BeTrue())
+		Expect(ok2).To(BeTrue(), ".Config.Labels[TESTKEY2]")
 	})
 
 	It("podman create with set label", func() {
@@ -407,10 +405,10 @@ var _ = Describe("Podman create", func() {
 		Expect(len(data)).To(Equal(1))
 		Expect(len(data[0].Config.Labels)).To(Equal(2))
 		val1, ok1 := data[0].Config.Labels["TESTKEY1"]
-		Expect(ok1).To(BeTrue())
+		Expect(ok1).To(BeTrue(), ".Config.Labels[TESTKEY1]")
 		Expect(val1).To(Equal("value1"))
 		val2, ok2 := data[0].Config.Labels["TESTKEY2"]
-		Expect(ok2).To(BeTrue())
+		Expect(ok2).To(BeTrue(), ".Config.Labels[TESTKEY2]")
 		Expect(val2).To(Equal("bar"))
 	})
 

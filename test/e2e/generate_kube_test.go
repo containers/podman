@@ -607,7 +607,7 @@ var _ = Describe("Podman generate kube", func() {
 		err = yaml.Unmarshal(b, pod)
 		Expect(err).To(BeNil())
 		val, found := pod.Annotations[define.BindMountPrefix+vol1]
-		Expect(found).To(BeTrue())
+		Expect(found).To(BeTrue(), "pod.Annotations["+vol1+"]")
 		Expect(val).To(HaveSuffix("z"))
 
 		rm := podmanTest.Podman([]string{"pod", "rm", "-t", "0", "-f", "test1"})

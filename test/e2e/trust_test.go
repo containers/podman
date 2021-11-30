@@ -76,7 +76,7 @@ var _ = Describe("Podman trust", func() {
 		session := podmanTest.Podman([]string{"image", "trust", "show", "--registrypath", filepath.Join(INTEGRATION_ROOT, "test"), "--policypath", filepath.Join(INTEGRATION_ROOT, "test/policy.json"), "--json"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.IsJSONOutputValid()).To(BeTrue())
+		Expect(session.OutputToString()).To(BeValidJSON())
 		var teststruct []map[string]string
 		json.Unmarshal(session.Out.Contents(), &teststruct)
 		Expect(len(teststruct)).To(Equal(3))
@@ -118,7 +118,7 @@ var _ = Describe("Podman trust", func() {
 		Expect(session).Should(Exit(0))
 		contents, err := ioutil.ReadFile(filepath.Join(INTEGRATION_ROOT, "test/policy.json"))
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(session.IsJSONOutputValid()).To(BeTrue())
+		Expect(session.OutputToString()).To(BeValidJSON())
 		Expect(string(session.Out.Contents())).To(Equal(string(contents) + "\n"))
 	})
 })
