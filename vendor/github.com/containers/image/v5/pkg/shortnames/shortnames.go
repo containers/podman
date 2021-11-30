@@ -118,6 +118,7 @@ type Resolved struct {
 }
 
 func (r *Resolved) addCandidate(named reference.Named) {
+	named = reference.TagNameOnly(named) // Make sure to add ":latest" if needed
 	r.PullCandidates = append(r.PullCandidates, PullCandidate{named, false, r})
 }
 
@@ -138,6 +139,8 @@ const (
 	rationaleUSR
 	// Resolved value has been selected by the user (via the prompt).
 	rationaleUserSelection
+	// Resolved value has been enforced to use Docker Hub (via SystemContext).
+	rationaleEnforcedDockerHub
 )
 
 // Description returns a human-readable description about the resolution
@@ -152,6 +155,8 @@ func (r *Resolved) Description() string {
 		return fmt.Sprintf("Resolved %q as an alias (%s)", r.userInput, r.originDescription)
 	case rationaleUSR:
 		return fmt.Sprintf("Resolving %q using unqualified-search registries (%s)", r.userInput, r.originDescription)
+	case rationaleEnforcedDockerHub:
+		return fmt.Sprintf("Resolving %q to docker.io (%s)", r.userInput, r.originDescription)
 	case rationaleUserSelection, rationaleNone:
 		fallthrough
 	default:
@@ -265,8 +270,20 @@ func Resolve(ctx *types.SystemContext, name string) (*Resolved, error) {
 		return nil, err
 	}
 	if !isShort { // no short name
-		named := reference.TagNameOnly(shortRef) // Make sure to add ":latest" if needed
+		resolved.addCandidate(shortRef)
+		return resolved, nil
+	}
+
+	// Resolve to docker.io only if enforced by the caller (e.g., Podman's
+	// Docker-compatible REST API).
+	if ctx != nil && ctx.PodmanOnlyShortNamesIgnoreRegistriesConfAndForceDockerHub {
+		named, err := reference.ParseNormalizedNamed(name)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot normalize input: %q", name)
+		}
 		resolved.addCandidate(named)
+		resolved.rationale = rationaleEnforcedDockerHub
+		resolved.originDescription = "enforced by caller"
 		return resolved, nil
 	}
 
@@ -295,9 +312,6 @@ func Resolve(ctx *types.SystemContext, name string) (*Resolved, error) {
 				return nil, err
 			}
 		}
-		// Make sure to add ":latest" if needed
-		namedAlias = reference.TagNameOnly(namedAlias)
-
 		resolved.addCandidate(namedAlias)
 		resolved.rationale = rationaleAlias
 		resolved.originDescription = aliasOriginDescription
@@ -325,9 +339,6 @@ func Resolve(ctx *types.SystemContext, name string) (*Resolved, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "creating reference with unqualified-search registry %q", reg)
 		}
-		// Make sure to add ":latest" if needed
-		named = reference.TagNameOnly(named)
-
 		resolved.addCandidate(named)
 	}
 
@@ -412,6 +423,23 @@ func ResolveLocally(ctx *types.SystemContext, name string) ([]reference.Named, e
 
 	var candidates []reference.Named
 
+	// Complete the candidates with the specified registries.
+	completeCandidates := func(registries []string) ([]reference.Named, error) {
+		for _, reg := range registries {
+			named, err := reference.ParseNormalizedNamed(fmt.Sprintf("%s/%s", reg, name))
+			if err != nil {
+				return nil, errors.Wrapf(err, "creating reference with unqualified-search registry %q", reg)
+			}
+			named = reference.TagNameOnly(named) // Make sure to add ":latest" if needed
+			candidates = append(candidates, named)
+		}
+		return candidates, nil
+	}
+
+	if ctx != nil && ctx.PodmanOnlyShortNamesIgnoreRegistriesConfAndForceDockerHub {
+		return completeCandidates([]string{"docker.io"})
+	}
+
 	// Strip off the tag to normalize the short name for looking it up in
 	// the config files.
 	isTagged, isDigested, shortNameRepo, tag, digest := splitUserInput(shortRef)
@@ -434,9 +462,7 @@ func ResolveLocally(ctx *types.SystemContext, name string) ([]reference.Named, e
 				return nil, err
 			}
 		}
-		// Make sure to add ":latest" if needed
-		namedAlias = reference.TagNameOnly(namedAlias)
-
+		namedAlias = reference.TagNameOnly(namedAlias) // Make sure to add ":latest" if needed
 		candidates = append(candidates, namedAlias)
 	}
 
@@ -447,16 +473,5 @@ func ResolveLocally(ctx *types.SystemContext, name string) ([]reference.Named, e
 	}
 
 	// Note that "localhost" has precedence over the unqualified-search registries.
-	for _, reg := range append([]string{"localhost"}, unqualifiedSearchRegistries...) {
-		named, err := reference.ParseNormalizedNamed(fmt.Sprintf("%s/%s", reg, name))
-		if err != nil {
-			return nil, errors.Wrapf(err, "creating reference with unqualified-search registry %q", reg)
-		}
-		// Make sure to add ":latest" if needed
-		named = reference.TagNameOnly(named)
-
-		candidates = append(candidates, named)
-	}
-
-	return candidates, nil
+	return completeCandidates(append([]string{"localhost"}, unqualifiedSearchRegistries...))
 }

@@ -561,6 +561,11 @@ type SystemContext struct {
 	UserShortNameAliasConfPath string
 	// If set, short-name resolution in pkg/shortnames must follow the specified mode
 	ShortNameMode *ShortNameMode
+	// If set, short names will resolve in pkg/shortnames to docker.io only, and unqualified-search registries and
+	// short-name aliases in registries.conf are ignored.  Note that this field is only intended to help enforce
+	// resolving to Docker Hub in the Docker-compatible REST API of Podman; it should never be used outside this
+	// specific context.
+	PodmanOnlyShortNamesIgnoreRegistriesConfAndForceDockerHub bool
 	// If not "", overrides the default path for the authentication file, but only new format files
 	AuthFilePath string
 	// if not "", overrides the default path for the authentication file, but with the legacy format;

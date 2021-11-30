@@ -79,10 +79,10 @@ func (ic *imageCopier) determineManifestConversion(ctx context.Context, destSupp
 	if _, ok := supportedByDest[srcType]; ok {
 		prioritizedTypes.append(srcType)
 	}
-	if !ic.canModifyManifest {
-		// We could also drop the !ic.canModifyManifest check and have the caller
+	if ic.cannotModifyManifestReason != "" {
+		// We could also drop this check and have the caller
 		// make the choice; it is already doing that to an extent, to improve error
-		// messages.  But it is nice to hide the “if !ic.canModifyManifest, do no conversion”
+		// messages.  But it is nice to hide the “if we can't modify, do no conversion”
 		// special case in here; the caller can then worry (or not) only about a good UI.
 		logrus.Debugf("We can't modify the manifest, hoping for the best...")
 		return srcType, []string{}, nil // Take our chances - FIXME? Or should we fail without trying?

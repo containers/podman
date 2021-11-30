@@ -52,6 +52,13 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	imageName, err := utils.NormalizeToDockerHub(r, body.Config.Image)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+		return
+	}
+	body.Config.Image = imageName
+
 	newImage, resolvedName, err := runtime.LibimageRuntime().LookupImage(body.Config.Image, nil)
 	if err != nil {
 		if errors.Cause(err) == storage.ErrImageUnknown {

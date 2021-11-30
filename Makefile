@@ -512,7 +512,7 @@ validate.completions:
 .PHONY: run-docker-py-tests
 run-docker-py-tests:
 	touch test/__init__.py
-	pytest test/python/docker/
+	env CONTAINERS_CONF=$(CURDIR)/test/apiv2/containers.conf pytest test/python/docker/
 	-rm test/__init__.py
 
 .PHONY: localunit
@@ -594,8 +594,8 @@ remotesystem:
 .PHONY: localapiv2
 localapiv2:
 	env PODMAN=./bin/podman ./test/apiv2/test-apiv2
-	env PODMAN=./bin/podman ${PYTHON} -m unittest discover -v ./test/apiv2/python
-	env PODMAN=./bin/podman ${PYTHON} -m unittest discover -v ./test/python/docker
+	env CONTAINERS_CONF=$(CURDIR)/test/apiv2/containers.conf PODMAN=./bin/podman ${PYTHON} -m unittest discover -v ./test/apiv2/python
+	env CONTAINERS_CONF=$(CURDIR)/test/apiv2/containers.conf PODMAN=./bin/podman ${PYTHON} -m unittest discover -v ./test/python/docker
 
 .PHONY: remoteapiv2
 remoteapiv2:

@@ -12,7 +12,6 @@ import (
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
-	"github.com/containers/image/v5/pkg/shortnames"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/api/handlers"
@@ -56,6 +55,12 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 	defer os.Remove(tmpfile.Name())
 
 	name := utils.GetName(r)
+	possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, name)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+		return
+	}
+
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 
 	saveOptions := entities.ImageSaveOptions{
@@ -63,7 +68,7 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 		Output: tmpfile.Name(),
 	}
 
-	if err := imageEngine.Save(r.Context(), name, nil, saveOptions); err != nil {
+	if err := imageEngine.Save(r.Context(), possiblyNormalizedName, nil, saveOptions); err != nil {
 		if errors.Cause(err) == storage.ErrImageUnknown {
 			utils.ImageNotFound(w, name, errors.Wrapf(err, "failed to find image %s", name))
 			return
@@ -87,9 +92,6 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func CommitContainer(w http.ResponseWriter, r *http.Request) {
-	var (
-		destImage string
-	)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
@@ -98,12 +100,12 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		Changes   string `schema:"changes"`
 		Comment   string `schema:"comment"`
 		Container string `schema:"container"`
+		Pause     bool   `schema:"pause"`
+		Repo      string `schema:"repo"`
+		Tag       string `schema:"tag"`
 		// fromSrc   string  # fromSrc is currently unused
-		Pause bool   `schema:"pause"`
-		Repo  string `schema:"repo"`
-		Tag   string `schema:"tag"`
 	}{
-		// This is where you can override the golang default value for one of fields
+		Tag: "latest",
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
@@ -116,7 +118,6 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sc := runtime.SystemContext()
-	tag := "latest"
 	options := libpod.ContainerCommitOptions{
 		Pause: true,
 	}
@@ -133,9 +134,6 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(query.Tag) > 0 {
-		tag = query.Tag
-	}
 	options.Message = query.Comment
 	options.Author = query.Author
 	options.Pause = query.Pause
@@ -146,9 +144,15 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// I know mitr hates this ... but doing for now
+	var destImage string
 	if len(query.Repo) > 1 {
-		destImage = fmt.Sprintf("%s:%s", query.Repo, tag)
+		destImage = fmt.Sprintf("%s:%s", query.Repo, query.Tag)
+		possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, destImage)
+		if err != nil {
+			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+			return
+		}
+		destImage = possiblyNormalizedName
 	}
 
 	commitImage, err := ctr.Commit(r.Context(), destImage, options)
@@ -156,7 +160,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "CommitFailure"))
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, handlers.IDResponse{ID: commitImage.ID()}) // nolint
+	utils.WriteResponse(w, http.StatusCreated, handlers.IDResponse{ID: commitImage.ID()}) // nolint
 }
 
 func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
@@ -195,12 +199,22 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	reference := query.Repo
+	if query.Repo != "" {
+		possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, reference)
+		if err != nil {
+			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+			return
+		}
+		reference = possiblyNormalizedName
+	}
+
 	platformSpecs := strings.Split(query.Platform, "/")
 	opts := entities.ImageImportOptions{
 		Source:    source,
 		Changes:   query.Changes,
 		Message:   query.Message,
-		Reference: query.Repo,
+		Reference: reference,
 		OS:        platformSpecs[0],
 	}
 	if len(platformSpecs) > 1 {
@@ -250,13 +264,9 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fromImage := mergeNameAndTagOrDigest(query.FromImage, query.Tag)
-
-	// without this early check this function would return 200 but reported error via body stream soon after
-	// it's better to let caller know early via HTTP status code that request cannot be processed
-	_, err := shortnames.Resolve(runtime.SystemContext(), fromImage)
+	possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, mergeNameAndTagOrDigest(query.FromImage, query.Tag))
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrap(err, "failed to resolve image name"))
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
 		return
 	}
 
@@ -291,7 +301,7 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 
 	pullResChan := make(chan pullResult)
 	go func() {
-		pulledImages, err := runtime.LibimageRuntime().Pull(r.Context(), fromImage, config.PullPolicyAlways, pullOptions)
+		pulledImages, err := runtime.LibimageRuntime().Pull(r.Context(), possiblyNormalizedName, config.PullPolicyAlways, pullOptions)
 		pullResChan <- pullResult{images: pulledImages, err: err}
 	}()
 
@@ -371,7 +381,13 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 	// 404 no such
 	// 500 internal
 	name := utils.GetName(r)
-	newImage, err := utils.GetImage(r, name)
+	possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, name)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+		return
+	}
+
+	newImage, err := utils.GetImage(r, possiblyNormalizedName)
 	if err != nil {
 		// Here we need to fiddle with the error message because docker-py is looking for "No
 		// such image" to determine on how to raise the correct exception.
@@ -483,7 +499,16 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	images := query.Names
+	images := make([]string, len(query.Names))
+	for i, img := range query.Names {
+		possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, img)
+		if err != nil {
+			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+			return
+		}
+		images[i] = possiblyNormalizedName
+	}
+
 	tmpfile, err := ioutil.TempFile("", "api.tar")
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))

@@ -199,7 +199,6 @@ github.com/containerd/containerd v1.5.0-beta.3/go.mod h1:/wr9AVtEM7x9c+n0+stptlo
 github.com/containerd/containerd v1.5.0-beta.4/go.mod h1:GmdgZd2zA2GYIBZ0w09ZvgqEq8EfBp/m3lcVZIvPHhI=
 github.com/containerd/containerd v1.5.0-rc.0/go.mod h1:V/IXoMqNGgBlabz3tHD2TWDoTJseu1FGOKuoA4nNb2s=
 github.com/containerd/containerd v1.5.1/go.mod h1:0DOxVqwDy2iZvrZp2JUx/E+hS0UNTVn7dJnIOwtYR4g=
-github.com/containerd/containerd v1.5.4/go.mod h1:sx18RgvW6ABJ4iYUw7Q5x7bgFOAB9B6G7+yO0XBc4zw=
 github.com/containerd/containerd v1.5.5/go.mod h1:oSTh0QpT1w6jYcGmbiSbxv9OSQYaa88mPyWIuU79zyo=
 github.com/containerd/containerd v1.5.7 h1:rQyoYtj4KddB3bxG6SAqd4+08gePNyJjRqvOIfV3rkM=
 github.com/containerd/containerd v1.5.7/go.mod h1:gyvv6+ugqY25TiXxcZC3L5yOeYgEw0QMhscqVp1AR9c=
@@ -263,14 +262,14 @@ github.com/containernetworking/plugins v1.0.1/go.mod h1:QHCfGpaTwYTbbH+nZXKVTxNB
 github.com/containers/buildah v1.23.1 h1:Tpc9DsRuU+0Oofewpxb6OJVNQjCu7yloN/obUqzfDTY=
 github.com/containers/buildah v1.23.1/go.mod h1:4WnrN0yrA7ab0ppgunixu2WM1rlD2rG8QLJAKbEkZlQ=
 github.com/containers/common v0.44.2/go.mod h1:7sdP4vmI5Bm6FPFxb3lvAh1Iktb6tiO1MzjUzhxdoGo=
-github.com/containers/common v0.46.1-0.20211122213330-d4e7724a0c58 h1:d99ZfYePYt1gU5dPvtIdnORNtv/7mkAZUHhCJzR5D5k=
-github.com/containers/common v0.46.1-0.20211122213330-d4e7724a0c58/go.mod h1:GrXYaGvQtdKA+fCQLudCTOSGRwZ06MVmRnC7KlI+syY=
+github.com/containers/common v0.46.1-0.20211125160015-ccf46abecd91 h1:h9SrSLSQkvluH/sEJ8X1rlBqCoGJtLvSOu4OGK0Qtuw=
+github.com/containers/common v0.46.1-0.20211125160015-ccf46abecd91/go.mod h1:PHwsa3UBgbvn2/MwpTQvyHXvVpuwfBrlDBx3GpIRPDQ=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.16.0/go.mod h1:XgTpfAPLRGOd1XYyCU5cISFr777bLmOerCSpt/v7+Q4=
-github.com/containers/image/v5 v5.16.1/go.mod h1:mCvIFdzyyP1B0NBcZ80OIuaYqFn/OpFpaOMOMn1kU2M=
-github.com/containers/image/v5 v5.17.0 h1:KS5pro80CCsSp5qDBTMmSAWQo+xcBX19zUPExmYX2OQ=
 github.com/containers/image/v5 v5.17.0/go.mod h1:GnYVusVRFPMMTAAUkrcS8NNSpBp8oyrjOUe04AAmRr4=
+github.com/containers/image/v5 v5.17.1-0.20211129144953-4f6d0b45be6c h1:WfMOQlq3CDvVe5ONUGfj9/MajskqUHnbo24j24Xg2ZM=
+github.com/containers/image/v5 v5.17.1-0.20211129144953-4f6d0b45be6c/go.mod h1:boW5ckkT0wu9obDEiOIxrtWQmz1znMuHiVMQPcpHnk0=
 github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b h1:Q8ePgVfHDplZ7U33NwHZkrVELsZP5fYj9pM5WBZB2GE=
 github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b/go.mod h1:9rfv8iPl1ZP7aqh9YA68wnZv2NUDbXdcdPHVz0pFbPY=
 github.com/containers/ocicrypt v1.0.1/go.mod h1:MeJDzk1RJHv89LjsH0Sp5KTY3ZYkjXO/C+bKAeWFIrc=
