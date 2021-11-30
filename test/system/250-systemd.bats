@@ -34,6 +34,12 @@ function service_setup() {
 
     systemctl daemon-reload
 
+    # Also test enabling services (see #12438).
+    run systemctl enable "$SERVICE_NAME"
+    if [ $status -ne 0 ]; then
+        die "Error enabling systemd unit $SERVICE_NAME, output: $output"
+    fi
+
     run systemctl start "$SERVICE_NAME"
     if [ $status -ne 0 ]; then
         die "Error starting systemd unit $SERVICE_NAME, output: $output"
@@ -51,6 +57,11 @@ function service_cleanup() {
     run systemctl stop "$SERVICE_NAME"
     if [ $status -ne 0 ]; then
         die "Error stopping systemd unit $SERVICE_NAME, output: $output"
+    fi
+
+    run systemctl disable "$SERVICE_NAME"
+    if [ $status -ne 0 ]; then
+        die "Error disbling systemd unit $SERVICE_NAME, output: $output"
     fi
 
     if [[ -z "$status" ]]; then

@@ -35,7 +35,7 @@ ExecStart=/usr/bin/podman start -a redis
 ExecStop=/usr/bin/podman stop -t 10 redis
 KillMode=process
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 `
 	})
 

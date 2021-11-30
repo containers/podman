@@ -62,7 +62,7 @@ PIDFile=/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e
 Type=forking
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 	goodID := serviceInfo + headerInfo + goodIDContent
 	goodIDNoHeaderInfo := serviceInfo + goodIDContent
@@ -88,7 +88,7 @@ PIDFile=/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e
 Type=forking
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 
 	goodNameBoundTo := `# container-foobar.service
@@ -114,7 +114,7 @@ PIDFile=/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e
 Type=forking
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 
 	goodWithNameAndGeneric := `# jadda-jadda.service
@@ -139,7 +139,7 @@ Type=notify
 NotifyAccess=all
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 
 	goodWithNameAndSdnotify := `# jadda-jadda.service
@@ -164,7 +164,7 @@ Type=notify
 NotifyAccess=all
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 
 	goodWithExplicitShortDetachParam := `# jadda-jadda.service
@@ -189,7 +189,7 @@ Type=notify
 NotifyAccess=all
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 
 	goodNameNewWithPodFile := `# jadda-jadda.service
@@ -214,7 +214,7 @@ Type=notify
 NotifyAccess=all
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 
 	goodNameNewDetach := `# jadda-jadda.service
@@ -239,7 +239,7 @@ Type=notify
 NotifyAccess=all
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 
 	goodIDNew := `# container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401.service
@@ -264,7 +264,7 @@ Type=notify
 NotifyAccess=all
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 
 	genGoodNewDetach := func(detachparam string) string {
@@ -292,7 +292,7 @@ Type=notify
 NotifyAccess=all
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 		return goodNewDetach
 	}
@@ -319,7 +319,7 @@ Type=notify
 NotifyAccess=all
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 
 	goodNewRootFlags := `# jadda-jadda.service
@@ -344,7 +344,7 @@ Type=notify
 NotifyAccess=all
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 
 	goodContainerCreate := `# jadda-jadda.service
@@ -369,7 +369,7 @@ Type=notify
 NotifyAccess=all
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 
 	goodNewWithJournaldTag := `# jadda-jadda.service
@@ -394,7 +394,7 @@ Type=notify
 NotifyAccess=all
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 
 	goodNewWithSpecialChars := `# jadda-jadda.service
@@ -419,7 +419,7 @@ Type=notify
 NotifyAccess=all
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 
 	goodNewWithIDFiles := `# jadda-jadda.service
@@ -444,7 +444,7 @@ Type=notify
 NotifyAccess=all
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 
 	goodNewWithPodIDFiles := `# jadda-jadda.service
@@ -469,7 +469,7 @@ Type=notify
 NotifyAccess=all
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 
 	goodNewWithEnvar := `# jadda-jadda.service
@@ -495,7 +495,7 @@ Type=notify
 NotifyAccess=all
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 
 	goodNewWithRestartPolicy := `# jadda-jadda.service
@@ -521,7 +521,7 @@ Type=notify
 NotifyAccess=all
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 
 	templateGood := `# container-foo@.service
@@ -547,7 +547,7 @@ Type=notify
 NotifyAccess=all
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 	tests := []struct {
 		name     string
