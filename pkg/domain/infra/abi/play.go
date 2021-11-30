@@ -57,6 +57,8 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 
 	ipIndex := 0
 
+	var configMaps []v1.ConfigMap
+
 	// create pod on each document if it is a pod or deployment
 	// any other kube kind will be skipped
 	for _, document := range documentList {
@@ -77,7 +79,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 			podTemplateSpec.ObjectMeta = podYAML.ObjectMeta
 			podTemplateSpec.Spec = podYAML.Spec
 
-			r, err := ic.playKubePod(ctx, podTemplateSpec.ObjectMeta.Name, &podTemplateSpec, options, &ipIndex, podYAML.Annotations)
+			r, err := ic.playKubePod(ctx, podTemplateSpec.ObjectMeta.Name, &podTemplateSpec, options, &ipIndex, podYAML.Annotations, configMaps)
 			if err != nil {
 				return nil, err
 			}
@@ -91,7 +93,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 				return nil, errors.Wrapf(err, "unable to read YAML %q as Kube Deployment", path)
 			}
 
-			r, err := ic.playKubeDeployment(ctx, &deploymentYAML, options, &ipIndex)
+			r, err := ic.playKubeDeployment(ctx, &deploymentYAML, options, &ipIndex, configMaps)
 			if err != nil {
 				return nil, err
 			}
@@ -112,6 +114,13 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 
 			report.Volumes = append(report.Volumes, r.Volumes...)
 			validKinds++
+		case "ConfigMap":
+			var configMap v1.ConfigMap
+
+			if err := yaml.Unmarshal(document, &configMap); err != nil {
+				return nil, errors.Wrapf(err, "unable to read YAML %q as Kube ConfigMap", path)
+			}
+			configMaps = append(configMaps, configMap)
 		default:
 			logrus.Infof("kube kind %s not supported", kind)
 			continue
@@ -125,7 +134,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 	return report, nil
 }
 
-func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAML *v1apps.Deployment, options entities.PlayKubeOptions, ipIndex *int) (*entities.PlayKubeReport, error) {
+func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAML *v1apps.Deployment, options entities.PlayKubeOptions, ipIndex *int, configMaps []v1.ConfigMap) (*entities.PlayKubeReport, error) {
 	var (
 		deploymentName string
 		podSpec        v1.PodTemplateSpec
@@ -147,7 +156,7 @@ func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAM
 	// create "replicas" number of pods
 	for i = 0; i < numReplicas; i++ {
 		podName := fmt.Sprintf("%s-pod-%d", deploymentName, i)
-		podReport, err := ic.playKubePod(ctx, podName, &podSpec, options, ipIndex, deploymentYAML.Annotations)
+		podReport, err := ic.playKubePod(ctx, podName, &podSpec, options, ipIndex, deploymentYAML.Annotations, configMaps)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error encountered while bringing up pod %s", podName)
 		}
@@ -156,7 +165,7 @@ func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAM
 	return &report, nil
 }
 
-func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec, options entities.PlayKubeOptions, ipIndex *int, annotations map[string]string) (*entities.PlayKubeReport, error) {
+func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec, options entities.PlayKubeOptions, ipIndex *int, annotations map[string]string, configMaps []v1.ConfigMap) (*entities.PlayKubeReport, error) {
 	var (
 		writer      io.Writer
 		playKubePod entities.PlayKubePod
@@ -252,7 +261,10 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		ctrRestartPolicy = define.RestartPolicyAlways
 	}
 
-	configMaps := []v1.ConfigMap{}
+	configMapIndex := make(map[string]struct{})
+	for _, configMap := range configMaps {
+		configMapIndex[configMap.Name] = struct{}{}
+	}
 	for _, p := range options.ConfigMaps {
 		f, err := os.Open(p)
 		if err != nil {
@@ -263,6 +275,10 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		cm, err := readConfigMapFromFile(f)
 		if err != nil {
 			return nil, errors.Wrapf(err, "%q", p)
+		}
+
+		if _, present := configMapIndex[cm.Name]; present {
+			return nil, errors.Errorf("ambiguous configuration: the same config map %s is present in YAML and in --configmaps %s file", cm.Name, p)
 		}
 
 		configMaps = append(configMaps, cm)
