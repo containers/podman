@@ -5,6 +5,7 @@ import (
 
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
+	commonFlag "github.com/containers/common/pkg/flag"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/domain/entities"
@@ -606,12 +607,9 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(timeoutFlagName, completion.AutocompleteNone)
 
-		// Flag for TLS verification, so that `run` and `create` commands can make use of it.
-		// Make sure to use `=` while using this flag i.e `--tls-verify=false/true`
-		tlsVerifyFlagName := "tls-verify"
-		createFlags.BoolVar(
+		commonFlag.OptionalBoolFlag(createFlags,
 			&cf.TLSVerify,
-			tlsVerifyFlagName, true,
+			"tls-verify",
 			"Require HTTPS and verify certificates when contacting registries for pulling images",
 		)
 
