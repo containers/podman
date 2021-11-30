@@ -148,7 +148,7 @@ var _ = Describe("Podman stats", func() {
 		stats := podmanTest.Podman([]string{"stats", "--all", "--no-stream", "--format", "json"})
 		stats.WaitWithDefaultTimeout()
 		Expect(stats).Should(Exit(0))
-		Expect(stats.IsJSONOutputValid()).To(BeTrue())
+		Expect(stats.OutputToString()).To(BeValidJSON())
 	})
 
 	It("podman stats on a container with no net ns", func() {

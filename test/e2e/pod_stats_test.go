@@ -149,7 +149,7 @@ var _ = Describe("Podman pod stats", func() {
 		stats := podmanTest.Podman([]string{"pod", "stats", "--format", "json", "--no-stream", "-a"})
 		stats.WaitWithDefaultTimeout()
 		Expect(stats).Should(Exit(0))
-		Expect(stats.IsJSONOutputValid()).To(BeTrue())
+		Expect(stats.OutputToString()).To(BeValidJSON())
 	})
 	It("podman pod stats with GO template", func() {
 		_, ec, podid := podmanTest.CreatePod(nil)
@@ -189,6 +189,6 @@ var _ = Describe("Podman pod stats", func() {
 		stats := podmanTest.Podman([]string{"pod", "stats", "--format", "json", "--no-stream", podName})
 		stats.WaitWithDefaultTimeout()
 		Expect(stats).Should(Exit(0))
-		Expect(stats.IsJSONOutputValid()).To(BeTrue())
+		Expect(stats.OutputToString()).To(BeValidJSON())
 	})
 })

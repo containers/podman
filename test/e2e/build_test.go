@@ -388,13 +388,10 @@ subdir**`
 		session := podmanTest.Podman([]string{"build", "-t", "test", "."})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		ok, _ := session.GrepString("/testfilter/dummy1")
-		Expect(ok).NotTo(BeTrue())
-		Expect(session.OutputToString()).To(ContainSubstring("/testfilter/dummy2"))
-		ok, _ = session.GrepString("/testfilter/subdir")
-		Expect(ok).NotTo(BeTrue()) //.dockerignore filters both subdir and inside subdir
-		ok, _ = session.GrepString("/testfilter/subdir/dummy3")
-		Expect(ok).NotTo(BeTrue())
+		output := session.OutputToString()
+		Expect(output).To(ContainSubstring("/testfilter/dummy2"))
+		Expect(output).NotTo(ContainSubstring("/testfilter/dummy1"))
+		Expect(output).NotTo(ContainSubstring("/testfilter/subdir"))
 	})
 
 	It("podman remote test context dir contains empty dirs and symlinks", func() {

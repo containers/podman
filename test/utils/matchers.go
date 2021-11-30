@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 
@@ -165,4 +166,33 @@ func (matcher *ExitMatcher) MatchMayChangeInTheFuture(actual interface{}) bool {
 		return session.ExitCode() == -1
 	}
 	return true
+}
+
+type validJSONMatcher struct {
+	types.GomegaMatcher
+}
+
+func BeValidJSON() *validJSONMatcher {
+	return &validJSONMatcher{}
+}
+
+func (matcher *validJSONMatcher) Match(actual interface{}) (success bool, err error) {
+	s, ok := actual.(string)
+	if !ok {
+		return false, fmt.Errorf("validJSONMatcher expects a string, not %q", actual)
+	}
+
+	var i interface{}
+	if err := json.Unmarshal([]byte(s), &i); err != nil {
+		return false, nil
+	}
+	return true, nil
+}
+
+func (matcher *validJSONMatcher) FailureMessage(actual interface{}) (message string) {
+	return format.Message(actual, "to be valid JSON")
+}
+
+func (matcher *validJSONMatcher) NegatedFailureMessage(actual interface{}) (message string) {
+	return format.Message(actual, "to _not_ be valid JSON")
 }

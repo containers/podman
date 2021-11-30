@@ -134,7 +134,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search := podmanTest.Podman([]string{"search", "--format", "json", "alpine"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
-		Expect(search.IsJSONOutputValid()).To(BeTrue())
+		Expect(search.OutputToString()).To(BeValidJSON())
 		Expect(search.OutputToString()).To(ContainSubstring("docker.io/library/alpine"))
 
 		// Test for https://github.com/containers/podman/issues/11894
@@ -151,7 +151,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search := podmanTest.Podman([]string{"search", "--list-tags", "--format", "json", "alpine"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
-		Expect(search.IsJSONOutputValid()).To(BeTrue())
+		Expect(search.OutputToString()).To(BeValidJSON())
 		Expect(search.OutputToString()).To(ContainSubstring("docker.io/library/alpine"))
 		Expect(search.OutputToString()).To(ContainSubstring("3.10"))
 		Expect(search.OutputToString()).To(ContainSubstring("2.7"))

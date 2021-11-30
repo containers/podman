@@ -43,7 +43,7 @@ var _ = Describe("Podman volume inspect", func() {
 		session = podmanTest.Podman([]string{"volume", "inspect", volName})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.IsJSONOutputValid()).To(BeTrue())
+		Expect(session.OutputToString()).To(BeValidJSON())
 	})
 
 	It("podman inspect volume with Go format", func() {

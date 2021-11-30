@@ -64,7 +64,7 @@ var _ = Describe("Podman volume ls", func() {
 		session = podmanTest.Podman([]string{"volume", "ls", "--format", "json"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.IsJSONOutputValid()).To(BeTrue())
+		Expect(session.OutputToString()).To(BeValidJSON())
 	})
 
 	It("podman ls volume with Go template", func() {

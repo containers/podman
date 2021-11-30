@@ -234,7 +234,7 @@ var _ = Describe("Podman network", func() {
 		session := podmanTest.Podman(append([]string{"network", "inspect"}, expectedNetworks...))
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.IsJSONOutputValid()).To(BeTrue())
+		Expect(session.OutputToString()).To(BeValidJSON())
 	})
 
 	It("podman network inspect", func() {

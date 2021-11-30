@@ -94,14 +94,14 @@ var _ = Describe("Podman images", func() {
 		session := podmanTest.Podman([]string{"images", "--format=json", "not-existing-image"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.IsJSONOutputValid()).To(BeTrue())
+		Expect(session.OutputToString()).To(BeValidJSON())
 	})
 
 	It("podman images in JSON format", func() {
 		session := podmanTest.Podman([]string{"images", "--format=json"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.IsJSONOutputValid()).To(BeTrue())
+		Expect(session.OutputToString()).To(BeValidJSON())
 	})
 
 	It("podman images in GO template format", func() {
@@ -254,7 +254,7 @@ WORKDIR /test
 		session := podmanTest.Podman([]string{"inspect", "--format=json", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.IsJSONOutputValid()).To(BeTrue())
+		Expect(session.OutputToString()).To(BeValidJSON())
 		imageData := session.InspectImageJSON()
 
 		result := podmanTest.Podman([]string{"images", "sha256:" + imageData[0].ID})
@@ -266,7 +266,7 @@ WORKDIR /test
 		session := podmanTest.Podman([]string{"image", "inspect", "--format=json", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.IsJSONOutputValid()).To(BeTrue())
+		Expect(session.OutputToString()).To(BeValidJSON())
 		imageData := session.InspectImageJSON()
 
 		result := podmanTest.Podman([]string{"image", "ls", fmt.Sprintf("sha256:%s", imageData[0].ID)})
