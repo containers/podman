@@ -107,9 +107,7 @@ var _ = Describe("Podman create", func() {
 		check := podmanTest.Podman([]string{"inspect", "annotate_test"})
 		check.WaitWithDefaultTimeout()
 		data := check.InspectContainerToJSON()
-		value, ok := data[0].Config.Annotations["HELLO"]
-		Expect(ok).To(BeTrue(), ".Config.Annotations[HELLO]")
-		Expect(value).To(Equal("WORLD"))
+		Expect(data[0].Config.Annotations).To(HaveKeyWithValue("HELLO", "WORLD"))
 	})
 
 	It("podman create --entrypoint command", func() {
@@ -386,10 +384,8 @@ var _ = Describe("Podman create", func() {
 		data := inspect.InspectContainerToJSON()
 		Expect(len(data)).To(Equal(1), "len(InspectContainerToJSON)")
 		Expect(len(data[0].Config.Labels)).To(Equal(2))
-		_, ok1 := data[0].Config.Labels["TESTKEY1"]
-		Expect(ok1).To(BeTrue(), ".Config.Labels[TESTKEY1]")
-		_, ok2 := data[0].Config.Labels["TESTKEY2"]
-		Expect(ok2).To(BeTrue(), ".Config.Labels[TESTKEY2]")
+		Expect(data[0].Config.Labels).To(HaveKey("TESTKEY1"))
+		Expect(data[0].Config.Labels).To(HaveKey("TESTKEY2"))
 	})
 
 	It("podman create with set label", func() {
@@ -404,12 +400,8 @@ var _ = Describe("Podman create", func() {
 		data := inspect.InspectContainerToJSON()
 		Expect(len(data)).To(Equal(1))
 		Expect(len(data[0].Config.Labels)).To(Equal(2))
-		val1, ok1 := data[0].Config.Labels["TESTKEY1"]
-		Expect(ok1).To(BeTrue(), ".Config.Labels[TESTKEY1]")
-		Expect(val1).To(Equal("value1"))
-		val2, ok2 := data[0].Config.Labels["TESTKEY2"]
-		Expect(ok2).To(BeTrue(), ".Config.Labels[TESTKEY2]")
-		Expect(val2).To(Equal("bar"))
+		Expect(data[0].Config.Labels).To(HaveKeyWithValue("TESTKEY1", "value1"))
+		Expect(data[0].Config.Labels).To(HaveKeyWithValue("TESTKEY2", "bar"))
 	})
 
 	It("podman create with --restart=on-failure:5 parses correctly", func() {

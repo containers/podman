@@ -606,9 +606,7 @@ var _ = Describe("Podman generate kube", func() {
 		pod := new(v1.Pod)
 		err = yaml.Unmarshal(b, pod)
 		Expect(err).To(BeNil())
-		val, found := pod.Annotations[define.BindMountPrefix+vol1]
-		Expect(found).To(BeTrue(), "pod.Annotations["+vol1+"]")
-		Expect(val).To(HaveSuffix("z"))
+		Expect(pod.Annotations).To(HaveKeyWithValue(define.BindMountPrefix+vol1, HaveSuffix("z")))
 
 		rm := podmanTest.Podman([]string{"pod", "rm", "-t", "0", "-f", "test1"})
 		rm.WaitWithDefaultTimeout()
@@ -1071,9 +1069,7 @@ USER test1`
 		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).To(BeNil())
 
-		v, ok := pod.GetAnnotations()["io.containers.autoupdate/top"]
-		Expect(ok).To(Equal(true))
-		Expect(v).To(Equal("local"))
+		Expect(pod.GetAnnotations()).To(HaveKeyWithValue("io.containers.autoupdate/top", "local"))
 	})
 
 	It("podman generate kube on pod with auto update labels in all containers", func() {
@@ -1100,13 +1096,8 @@ USER test1`
 		Expect(pod.Spec.Containers[1].WorkingDir).To(Equal("/root"))
 
 		for _, ctr := range []string{"top1", "top2"} {
-			v, ok := pod.GetAnnotations()["io.containers.autoupdate/"+ctr]
-			Expect(ok).To(Equal(true))
-			Expect(v).To(Equal("registry"))
-
-			v, ok = pod.GetAnnotations()["io.containers.autoupdate.authfile/"+ctr]
-			Expect(ok).To(Equal(true))
-			Expect(v).To(Equal("/some/authfile.json"))
+			Expect(pod.GetAnnotations()).To(HaveKeyWithValue("io.containers.autoupdate/"+ctr, "registry"))
+			Expect(pod.GetAnnotations()).To(HaveKeyWithValue("io.containers.autoupdate.authfile/"+ctr, "/some/authfile.json"))
 		}
 	})
 })

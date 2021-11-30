@@ -116,8 +116,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 		}
 		session, pid := podmanTest.PodmanPID([]string{"run", "--name", "test2", "--sig-proxy=false", fedoraMinimal, "bash", "-c", sigCatch2})
 
-		ok := WaitForContainer(podmanTest)
-		Expect(ok).To(BeTrue())
+		Expect(WaitForContainer(podmanTest)).To(BeTrue(), "WaitForContainer()")
 
 		// Kill with given signal
 		// Should be no output, SIGPOLL is usually ignored
@@ -132,8 +131,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
-		ok, _ = session.GrepString("Received")
-		Expect(ok).To(BeFalse())
+		Expect(session.OutputToString()).To(Not(ContainSubstring("Received")))
 	})
 
 })

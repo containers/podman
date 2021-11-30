@@ -140,7 +140,7 @@ var _ = Describe("Podman network", func() {
 		session := podmanTest.Podman([]string{"network", "ls", "--filter", "label=abc"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContains(name)).To(BeFalse())
+		Expect(session.OutputToString()).To(Not(ContainSubstring(name)))
 	})
 
 	It("podman network ID test", func() {
@@ -208,7 +208,7 @@ var _ = Describe("Podman network", func() {
 			results := podmanTest.Podman([]string{"network", "ls", "--quiet"})
 			results.WaitWithDefaultTimeout()
 			Expect(results).Should(Exit(0))
-			Expect(results.LineInOutputContains(name)).To(BeFalse())
+			Expect(results.OutputToString()).To(Not(ContainSubstring(name)))
 		})
 	}
 

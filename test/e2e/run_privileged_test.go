@@ -63,9 +63,7 @@ var _ = Describe("Podman privileged container tests", func() {
 		session := podmanTest.Podman([]string{"run", "--privileged", BB, "mount"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		ok, lines := session.GrepString("sysfs")
-		Expect(ok).To(BeTrue())
-		Expect(lines[0]).To(ContainSubstring("sysfs (rw,"))
+		Expect(session.OutputToString()).To(ContainSubstring("sysfs (rw,"))
 	})
 
 	It("podman privileged CapEff", func() {

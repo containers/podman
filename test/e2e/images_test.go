@@ -229,11 +229,10 @@ WORKDIR /test
 			result.WaitWithDefaultTimeout()
 			Expect(result).Should(Exit(0))
 
-			found, _ := result.GrepString("<none>")
 			if noneTag {
-				Expect(found).To(BeTrue())
+				Expect(result.OutputToString()).To(ContainSubstring("<none>"))
 			} else {
-				Expect(found).To(BeFalse())
+				Expect(result.OutputToString()).To(Not(ContainSubstring("<none>")))
 			}
 		}
 		// No "<none>" tag as tagged alpine instances should be present.

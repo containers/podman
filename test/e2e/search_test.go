@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"regexp"
 	"strconv"
 	"text/template"
 
@@ -107,10 +106,8 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
 		output := string(search.Out.Contents())
-		match, _ := regexp.MatchString(`(?m)NAME\s+DESCRIPTION$`, output)
-		Expect(match).To(BeTrue())
-		match, _ = regexp.MatchString(`(?m)quay.io/libpod/whalesay\s+Static image used for automated testing.+$`, output)
-		Expect(match).To(BeTrue())
+		Expect(output).To(MatchRegexp(`(?m)NAME\s+DESCRIPTION$`))
+		Expect(output).To(MatchRegexp(`(?m)quay.io/libpod/whalesay\s+Static image used for automated testing.+$`))
 	})
 
 	It("podman search image with --compatible", func() {
@@ -118,8 +115,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
 		output := string(search.Out.Contents())
-		match, _ := regexp.MatchString(`(?m)NAME\s+DESCRIPTION\s+STARS\s+OFFICIAL\s+AUTOMATED$`, output)
-		Expect(match).To(BeTrue())
+		Expect(output).To(MatchRegexp(`(?m)NAME\s+DESCRIPTION\s+STARS\s+OFFICIAL\s+AUTOMATED$`))
 	})
 
 	It("podman search format flag", func() {
@@ -354,8 +350,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 
 		Expect(search).Should(Exit(125))
 		Expect(search.OutputToString()).Should(BeEmpty())
-		match, _ := search.ErrorGrepString("error")
-		Expect(match).Should(BeTrue())
+		Expect(search.ErrorToString()).To(ContainSubstring("error"))
 
 		// cleanup
 		resetRegistriesConfigEnv()
@@ -397,8 +392,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 
 		Expect(search).Should(Exit(125))
 		Expect(search.OutputToString()).Should(BeEmpty())
-		match, _ := search.ErrorGrepString("error")
-		Expect(match).Should(BeTrue())
+		Expect(search.ErrorToString()).To(ContainSubstring("error"))
 
 		// cleanup
 		resetRegistriesConfigEnv()
@@ -451,8 +445,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 
 		Expect(search).Should(Exit(125))
 		Expect(search.OutputToString()).Should(BeEmpty())
-		match, _ := search.ErrorGrepString("error")
-		Expect(match).Should(BeTrue())
+		Expect(search.ErrorToString()).To(ContainSubstring("error"))
 
 		// cleanup
 		resetRegistriesConfigEnv()
@@ -474,7 +467,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search = podmanTest.Podman([]string{"search", "registry.redhat.io/*openshift*"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
-		Expect(len(search.OutputToStringArray()) > 1).To(BeTrue())
+		Expect(len(search.OutputToStringArray())).To(BeNumerically(">", 1))
 	})
 
 	It("podman search repository tags", func() {
@@ -494,7 +487,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 
 		search = podmanTest.Podman([]string{"search", "--list-tags", "docker.io/library/"})
 		search.WaitWithDefaultTimeout()
-		Expect(len(search.OutputToStringArray()) == 0).To(BeTrue())
+		Expect(search.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("podman search with limit over 100", func() {

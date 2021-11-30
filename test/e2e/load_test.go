@@ -160,8 +160,7 @@ var _ = Describe("Podman load", func() {
 		Expect(result).Should(Exit(125))
 
 		errMsg := fmt.Sprintf("remote client supports archives only but %q is a directory", podmanTest.TempDir)
-		found, _ := result.ErrorGrepString(errMsg)
-		Expect(found).Should(BeTrue())
+		Expect(result.ErrorToString()).To(ContainSubstring(errMsg))
 	})
 
 	It("podman load bogus file", func() {

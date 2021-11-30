@@ -98,8 +98,7 @@ var _ = Describe("Podman prune", func() {
 		session := podmanTest.Podman([]string{"images", "-a"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		hasNone, _ := session.GrepString("<none>")
-		Expect(hasNone).To(BeFalse())
+		Expect(session.OutputToString()).To(Not(ContainSubstring("<none>")))
 		numImages := len(session.OutputToStringArray())
 
 		// Since there's no dangling image, none should be removed.
@@ -125,8 +124,7 @@ var _ = Describe("Podman prune", func() {
 		session = podmanTest.Podman([]string{"images", "-a"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		hasNone, _ = session.GrepString("<none>")
-		Expect(hasNone).To(BeTrue()) // ! we have dangling ones
+		Expect(session.OutputToString()).To(ContainSubstring("<none>"))
 		numImages = len(session.OutputToStringArray())
 
 		// Since there's at least one dangling image, prune should
@@ -135,7 +133,7 @@ var _ = Describe("Podman prune", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		numPrunedImages := len(session.OutputToStringArray())
-		Expect(numPrunedImages >= 1).To(BeTrue())
+		Expect(numPrunedImages).To(BeNumerically(">=", 1), "numPrunedImages")
 
 		// Now make sure that exactly the number of pruned images has
 		// been removed.
@@ -189,11 +187,11 @@ var _ = Describe("Podman prune", func() {
 
 		after := podmanTest.Podman([]string{"images", "-a"})
 		after.WaitWithDefaultTimeout()
-		Expect(none).Should(Exit(0))
-		hasNoneAfter, result := none.GrepString("<none>")
+		Expect(after).Should(Exit(0))
+		hasNoneAfter, result := after.GrepString("<none>")
 		Expect(hasNoneAfter).To(BeTrue())
-		Expect(len(after.OutputToStringArray()) > 1).To(BeTrue())
-		Expect(len(result) > 0).To(BeTrue())
+		Expect(len(after.OutputToStringArray())).To(BeNumerically(">", 1))
+		Expect(len(result)).To(BeNumerically(">", 0))
 	})
 
 	It("podman image prune unused images", func() {
