@@ -767,7 +767,7 @@ Type=simple
 ExecStart=/bin/bash -c '/bin/busctl monitor --system --match "interface=org.fedoraproject.FirewallD1,member=Reloaded" --match "interface=org.fedoraproject.FirewallD1,member=PropertiesChanged" | while read -r line ; do podman network reload --all ; done'
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 ```
 2) For "systemctl restart firewalld", create a systemd unit file with the following
 ```
@@ -783,7 +783,7 @@ RemainAfterExit=yes
 ExecStart=/usr/bin/podman network reload --all
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 ```
 However, If you use busctl monitor then you can't get machine-readable output on `RHEL 8`.
 Since it doesn't have `busctl -j` as mentioned here by [@yrro](https://github.com/containers/podman/issues/5431#issuecomment-896943018).
@@ -802,7 +802,7 @@ ExecStart=/bin/bash -c "dbus-monitor --profile --system 'type=signal,sender=org.
 Restart=Always
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 ```
 `busctl-monitor` is almost usable in `RHEL 8`, except that it always outputs two bogus events when it starts up,
 one of which is (in its only machine-readable format) indistinguishable from the `NameOwnerChanged` that you get when firewalld starts up.
@@ -823,7 +823,7 @@ ExecStart=/usr/bin/python  /path/to/python/code/podman-redo-nat.py
 Restart=always
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 ```
 The code reloads podman network twice when you use `systemctl restart firewalld`.
 ```
