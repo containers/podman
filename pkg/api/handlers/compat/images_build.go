@@ -259,7 +259,19 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 					arr := strings.SplitN(token, "=", 2)
 					if len(arr) > 1 {
 						if arr[0] == "src" {
-							modifiedSrc := fmt.Sprintf("src=%s", filepath.Join(contextDirectory, arr[1]))
+							/* move secret away from contextDir */
+							/* to make sure we dont accidentally commit temporary secrets to image*/
+							builderDirectory, _ := filepath.Split(contextDirectory)
+							// following path is outside build context
+							newSecretPath := filepath.Join(builderDirectory, arr[1])
+							oldSecretPath := filepath.Join(contextDirectory, arr[1])
+							err := os.Rename(oldSecretPath, newSecretPath)
+							if err != nil {
+								utils.BadRequest(w, "secrets", query.Secrets, err)
+								return
+							}
+
+							modifiedSrc := fmt.Sprintf("src=%s", newSecretPath)
 							modifiedOpt = append(modifiedOpt, modifiedSrc)
 						} else {
 							modifiedOpt = append(modifiedOpt, token)

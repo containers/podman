@@ -82,6 +82,22 @@ var _ = Describe("Podman build", func() {
 		Expect(session).Should(Exit(0))
 	})
 
+	It("podman build with a secret from file and verify if secret file is not leaked into image", func() {
+		session := podmanTest.Podman([]string{"build", "-f", "build/Dockerfile.with-secret-verify-leak", "-t", "secret-test-leak", "--secret", "id=mysecret,src=build/secret.txt", "build/"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("somesecret"))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "secret-test-leak", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Not(ContainSubstring("podman-build-secret")))
+
+		session = podmanTest.Podman([]string{"rmi", "secret-test-leak"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+	})
+
 	It("podman build with logfile", func() {
 		logfile := filepath.Join(podmanTest.TempDir, "logfile")
 		session := podmanTest.Podman([]string{"build", "--pull-never", "--tag", "test", "--logfile", logfile, "build/basicalpine"})
