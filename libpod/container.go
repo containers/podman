@@ -939,6 +939,11 @@ func (c *Container) cGroupPath() (string, error) {
 	procPath := fmt.Sprintf("/proc/%d/cgroup", c.state.PID)
 	lines, err := ioutil.ReadFile(procPath)
 	if err != nil {
+		// If the file doesn't exist, it means the container could have been terminated
+		// so report it.
+		if os.IsNotExist(err) {
+			return "", errors.Wrapf(define.ErrCtrStopped, "cannot get cgroup path unless container %s is running", c.ID())
+		}
 		return "", err
 	}
 
