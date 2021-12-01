@@ -18,6 +18,7 @@ import (
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
@@ -304,6 +305,14 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 	pushOptions.RemoveSignatures = options.RemoveSignatures
 	pushOptions.SignBy = options.SignBy
 	pushOptions.InsecureSkipTLSVerify = options.SkipTLSVerify
+
+	if options.CompressionFormat != "" {
+		algo, err := compression.AlgorithmByName(options.CompressionFormat)
+		if err != nil {
+			return err
+		}
+		pushOptions.CompressionFormat = &algo
+	}
 
 	if !options.Quiet {
 		pushOptions.Writer = os.Stderr

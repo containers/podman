@@ -108,6 +108,10 @@ func pushFlags(cmd *cobra.Command) {
 
 	flags.BoolVar(&pushOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 
+	compressionFormat := "compression-format"
+	flags.StringVar(&pushOptions.CompressionFormat, compressionFormat, "", "compression format to use")
+	_ = cmd.RegisterFlagCompletionFunc(compressionFormat, common.AutocompleteCompressionFormat)
+
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("cert-dir")
 		_ = flags.MarkHidden("compress")

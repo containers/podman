@@ -2,12 +2,14 @@ package integration
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/containers/podman/v3/pkg/rootless"
 	. "github.com/containers/podman/v3/test/utils"
+	"github.com/containers/storage/pkg/archive"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -61,6 +63,36 @@ var _ = Describe("Podman push", func() {
 			fmt.Sprintf("dir:%s", bbdir)})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+	})
+
+	It("podman push to oci with compression-format", func() {
+		SkipIfRemote("Remote push does not support dir transport")
+		bbdir := filepath.Join(podmanTest.TempDir, "busybox-oci")
+		session := podmanTest.Podman([]string{"push", "--compression-format=zstd", "--remove-signatures", ALPINE,
+			fmt.Sprintf("oci:%s", bbdir)})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		foundZstdFile := false
+
+		blobsDir := filepath.Join(bbdir, "blobs/sha256")
+
+		blobs, err := ioutil.ReadDir(blobsDir)
+		Expect(err).To(BeNil())
+
+		for _, f := range blobs {
+			blobPath := filepath.Join(blobsDir, f.Name())
+
+			sourceFile, err := ioutil.ReadFile(blobPath)
+			Expect(err).To(BeNil())
+
+			compressionType := archive.DetectCompression(sourceFile)
+			if compressionType == archive.Zstd {
+				foundZstdFile = true
+				break
+			}
+		}
+		Expect(foundZstdFile).To(BeTrue())
 	})
 
 	It("podman push to local registry", func() {
