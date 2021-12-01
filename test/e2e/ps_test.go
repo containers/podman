@@ -118,7 +118,7 @@ var _ = Describe("Podman ps", func() {
 		result := podmanTest.Podman([]string{"ps", "-q", "--latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).Should(Equal(1))
+		Expect(result.OutputToStringArray()).To(HaveLen(1))
 	})
 
 	It("podman ps last flag", func() {
@@ -133,7 +133,7 @@ var _ = Describe("Podman ps", func() {
 		result := podmanTest.Podman([]string{"ps", "--last", "2"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).Should(Equal(2)) // 1 container
+		Expect(result.OutputToStringArray()).Should(HaveLen(2)) // 1 container
 
 		_, ec, _ := podmanTest.RunLsContainer("test1")
 		Expect(ec).To(Equal(0))
@@ -147,17 +147,17 @@ var _ = Describe("Podman ps", func() {
 		result = podmanTest.Podman([]string{"ps", "--last", "2"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).Should(Equal(3)) // 2 containers
+		Expect(result.OutputToStringArray()).Should(HaveLen(3)) // 2 containers
 
 		result = podmanTest.Podman([]string{"ps", "--last", "3"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).Should(Equal(4)) // 3 containers
+		Expect(result.OutputToStringArray()).Should(HaveLen(4)) // 3 containers
 
 		result = podmanTest.Podman([]string{"ps", "--last", "100"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).Should(Equal(5)) // 4 containers (3 running + 1 created)
+		Expect(result.OutputToStringArray()).Should(HaveLen(5)) // 4 containers (3 running + 1 created)
 	})
 
 	It("podman ps no-trunc", func() {

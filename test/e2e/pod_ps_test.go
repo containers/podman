@@ -368,7 +368,7 @@ var _ = Describe("Podman ps", func() {
 
 		infra := podmanTest.Podman([]string{"pod", "ps", "--format", "{{.InfraId}}"})
 		infra.WaitWithDefaultTimeout()
-		Expect(len(infra.OutputToString())).To(BeZero())
+		Expect(infra.OutputToString()).To(BeEmpty())
 	})
 
 	It("podman pod ps format with labels", func() {

@@ -74,7 +74,7 @@ var _ = Describe("Podman events", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		events := result.OutputToStringArray()
-		Expect(len(events)).To(Equal(1), "number of events")
+		Expect(events).To(HaveLen(1), "number of events")
 		Expect(events[0]).To(ContainSubstring(cid), "event log includes CID")
 		Expect(events[0]).To(Not(ContainSubstring(cid2)), "event log does not include second CID")
 	})

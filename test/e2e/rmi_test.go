@@ -141,8 +141,8 @@ var _ = Describe("Podman rmi", func() {
 		session = podmanTest.Podman([]string{"images", "--sort", "created", "--format", "{{.Id}}", "--all"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(13),
-			"Output from 'podman images -q -a':'%s'", session.Out.Contents())
+		Expect(session.OutputToStringArray()).To(HaveLen(13),
+			"Output from 'podman images -q -a'")
 		untaggedImg := session.OutputToStringArray()[1]
 
 		session = podmanTest.Podman([]string{"rmi", "-f", untaggedImg})

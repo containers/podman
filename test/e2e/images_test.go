@@ -172,8 +172,7 @@ RUN apk update && apk add strace
 		result := podmanTest.Podman([]string{"images", "-q", "-f", "before=foobar.com/before:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray()) >= 1).To(BeTrue())
-
+		Expect(len(result.OutputToStringArray())).To(BeNumerically(">=", 1))
 	})
 
 	It("podman images workingdir from  image", func() {

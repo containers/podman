@@ -382,7 +382,7 @@ var _ = Describe("Podman create", func() {
 		inspect := podmanTest.Podman([]string{"inspect", ctrName})
 		inspect.WaitWithDefaultTimeout()
 		data := inspect.InspectContainerToJSON()
-		Expect(len(data)).To(Equal(1), "len(InspectContainerToJSON)")
+		Expect(data).To(HaveLen(1), "len(InspectContainerToJSON)")
 		Expect(data[0].Config.Labels).To(HaveLen(2))
 		Expect(data[0].Config.Labels).To(HaveKey("TESTKEY1"))
 		Expect(data[0].Config.Labels).To(HaveKey("TESTKEY2"))
