@@ -89,7 +89,7 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=/bin/sh -c '/usr/bin/echo Ready >/dev/%s'
 [Install]
-RequiredBy=multi-user.target
+RequiredBy=default.target
 `
 	deMoby := `[Unit]
 Description=Remove moby-engine
@@ -106,7 +106,7 @@ ExecStart=/usr/bin/rpm-ostree ex apply-live --allow-replacement
 ExecStartPost=/bin/touch /var/lib/%N.stamp
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
  `
 	_ = ready
 	ignSystemd := Systemd{

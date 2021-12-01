@@ -366,7 +366,7 @@ Type=oneshot
 ExecStart=/usr/bin/podman auto-update
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 EOF
 
     echo "podman-auto-update-$cname" >> $SNAME_FILE
