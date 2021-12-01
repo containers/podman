@@ -136,6 +136,7 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 		pushErrChan <- imageEngine.Push(r.Context(), imageName, destination, options)
 	}()
 
+	var size int64
 loop: // break out of for/select infinite loop
 	for {
 		report = jsonmessage.JSONMessage{}
@@ -147,6 +148,7 @@ loop: // break out of for/select infinite loop
 				report.Status = "Preparing"
 			case types.ProgressEventRead:
 				report.Status = "Pushing"
+				size += e.Artifact.Size
 				report.Progress = &jsonmessage.JSONProgress{
 					Current: int64(e.Offset),
 					Total:   e.Artifact.Size,
@@ -196,7 +198,7 @@ loop: // break out of for/select infinite loop
 			if tag == "" {
 				tag = "latest"
 			}
-			report.Status = fmt.Sprintf("%s: digest: %s", tag, string(digestBytes))
+			report.Status = fmt.Sprintf("%s: digest: %s size: %d", tag, string(digestBytes), size)
 			if err := enc.Encode(report); err != nil {
 				logrus.Warnf("Failed to json encode error %q", err.Error())
 			}
