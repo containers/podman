@@ -149,7 +149,7 @@ RUN echo test
 		session := podmanTest.Podman([]string{"image", "diff", ALPINE, ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically("==", 0))
+		Expect(session.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("podman diff container and image with same name", func() {
