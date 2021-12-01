@@ -871,7 +871,7 @@ USER bin`, BB)
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "id"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContains("27(video),777,65533(nogroup)")).To(BeFalse())
+		Expect(session.OutputToString()).To(Not(ContainSubstring("27(video),777,65533(nogroup)")))
 	})
 
 	It("podman run with group-add", func() {
@@ -1151,8 +1151,7 @@ USER mail`, BB)
 		session := podmanTest.Podman([]string{"run", "--volume", vol1 + ":/myvol1:z", "--volume", vol2 + ":/myvol2:z", fedoraMinimal, "findmnt", "-o", "TARGET,PROPAGATION"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		match, _ := session.GrepString("shared")
-		Expect(match).Should(BeFalse())
+		Expect(session.OutputToString()).To(Not(ContainSubstring("shared")))
 	})
 
 	It("podman run findmnt shared", func() {

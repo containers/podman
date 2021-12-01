@@ -129,6 +129,6 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 		session := podmanTest.Podman([]string{"run", "--entrypoint=uname", "foobar.com/entrypoint:latest", "-r"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputStartsWith("Linux")).To(BeFalse())
+		Expect(session.OutputToStringArray()).To(Not(ContainElement(HavePrefix("Linux"))))
 	})
 })

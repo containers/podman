@@ -204,8 +204,7 @@ var _ = Describe("Podman commit", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		image := inspect.InspectImageJSON()
-		_, ok := image[0].Config.Volumes["/foo"]
-		Expect(ok).To(BeFalse())
+		Expect(image[0].Config.Volumes).To(Not(HaveKey("/foo")))
 	})
 
 	It("podman commit with volume mounts and --include-volumes", func() {
@@ -224,8 +223,7 @@ var _ = Describe("Podman commit", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		image := inspect.InspectImageJSON()
-		_, ok := image[0].Config.Volumes["/foo"]
-		Expect(ok).To(BeTrue(), ".Config.Volumes[/foo]")
+		Expect(image[0].Config.Volumes).To(HaveKey("/foo"))
 
 		r := podmanTest.Podman([]string{"run", "newimage"})
 		r.WaitWithDefaultTimeout()
@@ -250,7 +248,7 @@ var _ = Describe("Podman commit", func() {
 		for _, v := range image[0].Config.Env {
 			envMap[v] = true
 		}
-		Expect(envMap["TEST=1=1-01=9.01"]).To(BeTrue(), "envMap[TEST=1=1-01=9.01]")
+		Expect(envMap).To(HaveKey("TEST=1=1-01=9.01"))
 	})
 
 	It("podman commit container and print id to external file", func() {

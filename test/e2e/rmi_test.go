@@ -276,8 +276,7 @@ RUN find $LOCAL
 		session := podmanTest.Podman([]string{"image", "rm"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(125))
-		match, _ := session.ErrorGrepString("image name or ID must be specified")
-		Expect(match).To(BeTrue())
+		Expect(session.ErrorToString()).To(ContainSubstring("image name or ID must be specified"))
 	})
 
 	It("podman image rm - concurrent with shared layers", func() {

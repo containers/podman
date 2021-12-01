@@ -127,6 +127,6 @@ var _ = Describe("Podman volume rm", func() {
 		session = podmanTest.Podman([]string{"volume", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray()) >= 2).To(BeTrue())
+		Expect(len(session.OutputToStringArray())).To(BeNumerically(">=", 2))
 	})
 })

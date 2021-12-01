@@ -551,8 +551,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "printenv", "HOSTNAME"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		match, _ := session.GrepString(hostname)
-		Expect(match).Should(BeFalse())
+		Expect(session.OutputToString()).To(Not(ContainSubstring(hostname)))
 	})
 
 	It("podman run --net host hostname test", func() {
@@ -866,7 +865,6 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		inspectOut := podmanTest.InspectContainer(ctrName)
 		Expect(len(inspectOut)).To(Equal(1))
 		Expect(len(inspectOut[0].NetworkSettings.Networks)).To(Equal(1))
-		_, ok := inspectOut[0].NetworkSettings.Networks["podman"]
-		Expect(ok).To(BeTrue())
+		Expect(inspectOut[0].NetworkSettings.Networks).To(HaveKey("podman"))
 	})
 })

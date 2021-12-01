@@ -44,7 +44,7 @@ var _ = Describe("Podman run dns", func() {
 		session := podmanTest.Podman([]string{"run", "--dns-search=.", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputStartsWith("search")).To(BeFalse())
+		Expect(session.OutputToStringArray()).To(Not(ContainElement(HavePrefix("search"))))
 	})
 
 	It("podman run add bad dns server", func() {
