@@ -213,7 +213,7 @@ var _ = Describe("Podman stats", func() {
 		// We have three containers.  The unlimited ones need to have
 		// the same limit, the limited one a lower one.
 		limits := session.OutputToStringArray()
-		Expect(len(limits)).To(BeNumerically("==", 3))
+		Expect(limits).To(HaveLen(3))
 		Expect(limits[0]).To(Equal(limits[1]))
 		Expect(limits[0]).ToNot(Equal(limits[2]))
 

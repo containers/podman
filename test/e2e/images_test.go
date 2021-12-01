@@ -78,7 +78,7 @@ var _ = Describe("Podman images", func() {
 		session = podmanTest.Podman([]string{"images", "-qn"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically("==", len(CACHE_IMAGES)))
+		Expect(session.OutputToStringArray()).To(HaveLen(len(CACHE_IMAGES)))
 	})
 
 	It("podman images with digests", func() {
