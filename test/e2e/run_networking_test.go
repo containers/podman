@@ -526,7 +526,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 
 		containerConfig := inspect.InspectContainerToJSON()
 		Expect(containerConfig[0].NetworkSettings.Ports).To(Not(BeNil()))
-		Expect(containerConfig[0].NetworkSettings.Ports["80/tcp"]).To(Not(BeNil()))
+		Expect(containerConfig[0].NetworkSettings.Ports).To(HaveKeyWithValue("80/tcp", Not(BeNil())))
 		Expect(containerConfig[0].NetworkSettings.Ports["80/tcp"][0].HostPort).ToNot(Equal(80))
 	})
 

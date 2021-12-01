@@ -2012,8 +2012,8 @@ spec:
 
 		ctr := inspect.InspectContainerToJSON()
 		Expect(ctr[0].Config.WorkingDir).To(ContainSubstring("/etc"))
-		Expect(ctr[0].Config.Labels["key1"]).To(ContainSubstring("value1"))
-		Expect(ctr[0].Config.Labels["key1"]).To(ContainSubstring("value1"))
+		Expect(ctr[0].Config.Labels).To(HaveKeyWithValue("key1", ContainSubstring("value1")))
+		Expect(ctr[0].Config.Labels).To(HaveKeyWithValue("key1", ContainSubstring("value1")))
 		Expect(ctr[0].Config.StopSignal).To(Equal(uint(51)))
 	})
 
