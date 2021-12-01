@@ -220,30 +220,28 @@ func ps(cmd *cobra.Command, _ []string) error {
 
 	hdrs, format := createPsOut()
 
+	var origin report.Origin
 	noHeading, _ := cmd.Flags().GetBool("noheading")
 	if cmd.Flags().Changed("format") {
 		noHeading = noHeading || !report.HasTable(listOpts.Format)
-		format = report.NormalizeFormat(listOpts.Format)
-		format = report.EnforceRange(format)
+		format = listOpts.Format
+		origin = report.OriginUser
+	} else {
+		origin = report.OriginPodman
 	}
 	ns := strings.NewReplacer(".Namespaces.", ".")
 	format = ns.Replace(format)
 
-	tmpl, err := report.NewTemplate("list").Parse(format)
+	rpt, err := report.New(os.Stdout, cmd.Name()).Parse(origin, format)
 	if err != nil {
 		return err
 	}
-
-	w, err := report.NewWriterDefault(os.Stdout)
-	if err != nil {
-		return err
-	}
-	defer w.Flush()
+	defer rpt.Flush()
 
 	headers := func() error { return nil }
 	if !noHeading {
 		headers = func() error {
-			return tmpl.Execute(w, hdrs)
+			return rpt.Execute(hdrs)
 		}
 	}
 
@@ -268,10 +266,10 @@ func ps(cmd *cobra.Command, _ []string) error {
 			if err := headers(); err != nil {
 				return err
 			}
-			if err := tmpl.Execute(w, responses); err != nil {
+			if err := rpt.Execute(responses); err != nil {
 				return err
 			}
-			if err := w.Flush(); err != nil {
+			if err := rpt.Flush(); err != nil {
 				// we usually do not care about Flush() failures but here do not loop if Flush() has failed
 				return err
 			}
@@ -282,7 +280,7 @@ func ps(cmd *cobra.Command, _ []string) error {
 		if err := headers(); err != nil {
 			return err
 		}
-		if err := tmpl.Execute(w, responses); err != nil {
+		if err := rpt.Execute(responses); err != nil {
 			return err
 		}
 	}

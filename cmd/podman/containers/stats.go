@@ -126,14 +126,14 @@ func stats(cmd *cobra.Command, args []string) error {
 		if report.Error != nil {
 			return report.Error
 		}
-		if err := outputStats(report.Stats); err != nil {
+		if err := outputStats(cmd, report.Stats); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func outputStats(reports []define.ContainerStats) error {
+func outputStats(cmd *cobra.Command, reports []define.ContainerStats) error {
 	headers := report.Headers(define.ContainerStats{}, map[string]string{
 		"ID":            "ID",
 		"UpTime":        "CPU TIME",
@@ -158,32 +158,27 @@ func outputStats(reports []define.ContainerStats) error {
 	if report.IsJSON(statsOptions.Format) {
 		return outputJSON(stats)
 	}
-	format := "{{.ID}}\t{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.NetIO}}\t{{.BlockIO}}\t{{.PIDS}}\t{{.UpTime}}\t{{.AVGCPU}}\n"
-	if len(statsOptions.Format) > 0 {
-		format = report.NormalizeFormat(statsOptions.Format)
-	}
-	format = report.EnforceRange(format)
 
-	tmpl, err := report.NewTemplate("stats").Parse(format)
+	rpt := report.New(os.Stdout, cmd.Name())
+	defer rpt.Flush()
+
+	var err error
+	if cmd.Flags().Changed("format") {
+		rpt, err = rpt.Parse(report.OriginUser, statsOptions.Format)
+	} else {
+		format := "{{range .}}{{.ID}}\t{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.NetIO}}\t{{.BlockIO}}\t{{.PIDS}}\t{{.UpTime}}\t{{.AVGCPU}}\n{{end -}}"
+		rpt, err = rpt.Parse(report.OriginPodman, format)
+	}
 	if err != nil {
 		return err
 	}
 
-	w, err := report.NewWriterDefault(os.Stdout)
-	if err != nil {
-		return err
-	}
-	defer w.Flush()
-
-	if len(statsOptions.Format) < 1 {
-		if err := tmpl.Execute(w, headers); err != nil {
+	if rpt.RenderHeaders {
+		if err := rpt.Execute(headers); err != nil {
 			return err
 		}
 	}
-	if err := tmpl.Execute(w, stats); err != nil {
-		return err
-	}
-	return nil
+	return rpt.Execute(stats)
 }
 
 type containerStats struct {
