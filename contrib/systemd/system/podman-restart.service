@@ -10,4 +10,4 @@ Environment=LOGGING="--log-level=info"
 ExecStart=/usr/bin/podman $LOGGING start --all --filter restart-policy=always
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target

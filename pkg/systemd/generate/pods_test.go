@@ -62,7 +62,7 @@ PIDFile=/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e
 Type=forking
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 	podGood := serviceInfo + headerInfo + podContent
 	podGoodNoHeaderInfo := serviceInfo + podContent
@@ -92,7 +92,7 @@ PIDFile=%t/pod-123abc.pid
 Type=forking
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 
 	podGoodNamedNewWithRootArgs := `# pod-123abc.service
@@ -120,7 +120,7 @@ PIDFile=%t/pod-123abc.pid
 Type=forking
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 
 	podGoodNamedNewWithReplaceFalse := `# pod-123abc.service
@@ -148,7 +148,7 @@ PIDFile=%t/pod-123abc.pid
 Type=forking
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 
 	podNewLabelWithCurlyBraces := `# pod-123abc.service
@@ -176,7 +176,7 @@ PIDFile=%t/pod-123abc.pid
 Type=forking
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 
 	tests := []struct {
