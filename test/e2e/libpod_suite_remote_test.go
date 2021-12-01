@@ -164,15 +164,16 @@ func (p *PodmanTestIntegration) SeedImages() error {
 
 // RestoreArtifact puts the cached image into our test store
 func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
-	fmt.Printf("Restoring %s...\n", image)
-	dest := strings.Split(image, "/")
-	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
-	args := []string{"load", "-q", "-i", destName}
-	podmanOptions := getRemoteOptions(p, args)
-	command := exec.Command(p.PodmanBinary, podmanOptions...)
-	fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
-	command.Start()
-	command.Wait()
+	tarball := imageTarPath(image)
+	if _, err := os.Stat(tarball); err == nil {
+		fmt.Printf("Restoring %s...\n", image)
+		args := []string{"load", "-q", "-i", tarball}
+		podmanOptions := getRemoteOptions(p, args)
+		command := exec.Command(p.PodmanBinary, podmanOptions...)
+		fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
+		command.Start()
+		command.Wait()
+	}
 	return nil
 }
 

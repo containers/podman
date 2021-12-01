@@ -308,15 +308,29 @@ func (p PodmanTestIntegration) AddImageToRWStore(image string) {
 	}
 }
 
-// createArtifact creates a cached image in the artifact dir
+func imageTarPath(image string) string {
+	cacheDir := os.Getenv("PODMAN_TEST_IMAGE_CACHE_DIR")
+	if cacheDir == "" {
+		cacheDir = os.Getenv("TMPDIR")
+		if cacheDir == "" {
+			cacheDir = "/tmp"
+		}
+	}
+
+	// e.g., registry.com/fubar:latest -> registry.com-fubar-latest.tar
+	imageCacheName := strings.Replace(strings.Replace(image, ":", "-", -1), "/", "-", -1) + ".tar"
+
+	return filepath.Join(cacheDir, imageCacheName)
+}
+
+// createArtifact creates a cached image tarball in a local directory
 func (p *PodmanTestIntegration) createArtifact(image string) {
 	if os.Getenv("NO_TEST_CACHE") != "" {
 		return
 	}
-	dest := strings.Split(image, "/")
-	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
-	fmt.Printf("Caching %s at %s...\n", image, destName)
+	destName := imageTarPath(image)
 	if _, err := os.Stat(destName); os.IsNotExist(err) {
+		fmt.Printf("Caching %s at %s...\n", image, destName)
 		pull := p.PodmanNoCache([]string{"pull", image})
 		pull.Wait(440)
 		Expect(pull).Should(Exit(0))
@@ -326,7 +340,7 @@ func (p *PodmanTestIntegration) createArtifact(image string) {
 		Expect(save).Should(Exit(0))
 		fmt.Printf("\n")
 	} else {
-		fmt.Printf(" already exists.\n")
+		fmt.Printf("[image already cached: %s]\n", destName)
 	}
 }
 
@@ -738,12 +752,13 @@ func (p *PodmanTestIntegration) RestartRemoteService() {
 
 // RestoreArtifactToCache populates the imagecache from tarballs that were cached earlier
 func (p *PodmanTestIntegration) RestoreArtifactToCache(image string) error {
-	fmt.Printf("Restoring %s...\n", image)
-	dest := strings.Split(image, "/")
-	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
-	p.Root = p.ImageCacheDir
-	restore := p.PodmanNoEvents([]string{"load", "-q", "-i", destName})
-	restore.WaitWithDefaultTimeout()
+	tarball := imageTarPath(image)
+	if _, err := os.Stat(tarball); err == nil {
+		fmt.Printf("Restoring %s...\n", image)
+		p.Root = p.ImageCacheDir
+		restore := p.PodmanNoEvents([]string{"load", "-q", "-i", tarball})
+		restore.WaitWithDefaultTimeout()
+	}
 	return nil
 }
 
