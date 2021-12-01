@@ -122,7 +122,7 @@ var _ = Describe("Podman privileged container tests", func() {
 		session := podmanTest.Podman([]string{"run", "-t", BB, "ls", "-l", "/dev"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(17))
+		Expect(session.OutputToStringArray()).To(HaveLen(17))
 	})
 
 	It("podman privileged should inherit host devices", func() {

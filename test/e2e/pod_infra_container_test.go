@@ -43,11 +43,11 @@ var _ = Describe("Podman pod create", func() {
 		check := podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc"})
 		check.WaitWithDefaultTimeout()
 		Expect(check.OutputToString()).To(ContainSubstring(podID))
-		Expect(len(check.OutputToStringArray())).To(Equal(1))
+		Expect(check.OutputToStringArray()).To(HaveLen(1))
 
 		check = podmanTest.Podman([]string{"ps", "-qa", "--no-trunc"})
 		check.WaitWithDefaultTimeout()
-		Expect(len(check.OutputToStringArray())).To(Equal(1))
+		Expect(check.OutputToStringArray()).To(HaveLen(1))
 	})
 
 	It("podman start infra container", func() {
@@ -63,7 +63,7 @@ var _ = Describe("Podman pod create", func() {
 		check := podmanTest.Podman([]string{"ps", "-qa", "--no-trunc", "--filter", "status=running"})
 		check.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(check.OutputToStringArray())).To(Equal(1))
+		Expect(check.OutputToStringArray()).To(HaveLen(1))
 	})
 
 	It("podman start infra container different image", func() {
@@ -95,13 +95,13 @@ var _ = Describe("Podman pod create", func() {
 		check := podmanTest.Podman([]string{"ps", "-a", "--no-trunc", "--ns", "--format", "{{.Namespaces.IPC}} {{.Namespaces.NET}}"})
 		check.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(check.OutputToStringArray())).To(Equal(2))
+		Expect(check.OutputToStringArray()).To(HaveLen(2))
 		Expect(check.OutputToStringArray()[0]).To(Equal(check.OutputToStringArray()[1]))
 
 		check = podmanTest.Podman([]string{"ps", "-a", "--no-trunc", "--ns", "--format", "{{.IPC}} {{.NET}}"})
 		check.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(check.OutputToStringArray())).To(Equal(2))
+		Expect(check.OutputToStringArray()).To(HaveLen(2))
 		Expect(check.OutputToStringArray()[0]).To(Equal(check.OutputToStringArray()[1]))
 	})
 
@@ -169,7 +169,7 @@ var _ = Describe("Podman pod create", func() {
 		check.WaitWithDefaultTimeout()
 		Expect(check).Should(Exit(0))
 		PIDs := check.OutputToStringArray()
-		Expect(len(PIDs)).To(Equal(3))
+		Expect(PIDs).To(HaveLen(3))
 
 		ctrPID, _ := strconv.Atoi(PIDs[1])
 		infraPID, _ := strconv.Atoi(PIDs[2])
@@ -243,13 +243,13 @@ var _ = Describe("Podman pod create", func() {
 		check.WaitWithDefaultTimeout()
 		Expect(check).Should(Exit(0))
 		outputArray := check.OutputToStringArray()
-		Expect(len(outputArray)).To(Equal(2))
+		Expect(outputArray).To(HaveLen(2))
 
 		check = podmanTest.Podman([]string{"ps", "-a", "--ns", "--format", "{{.PIDNS}}"})
 		check.WaitWithDefaultTimeout()
 		Expect(check).Should(Exit(0))
 		outputArray = check.OutputToStringArray()
-		Expect(len(outputArray)).To(Equal(2))
+		Expect(outputArray).To(HaveLen(2))
 
 		PID1 := outputArray[0]
 		PID2 := outputArray[1]
@@ -274,7 +274,7 @@ var _ = Describe("Podman pod create", func() {
 		check.WaitWithDefaultTimeout()
 		Expect(check).Should(Exit(0))
 		outputArray := check.OutputToStringArray()
-		Expect(len(outputArray)).To(Equal(2))
+		Expect(outputArray).To(HaveLen(2))
 
 		PID1 := outputArray[0]
 		PID2 := outputArray[1]
@@ -299,7 +299,7 @@ var _ = Describe("Podman pod create", func() {
 		check.WaitWithDefaultTimeout()
 		Expect(check).Should(Exit(0))
 		outputArray := check.OutputToStringArray()
-		Expect(len(outputArray)).To(Equal(2))
+		Expect(outputArray).To(HaveLen(2))
 
 		PID1 := outputArray[0]
 		PID2 := outputArray[1]

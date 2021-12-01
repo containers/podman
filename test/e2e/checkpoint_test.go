@@ -568,7 +568,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(result.OutputToString()).To(ContainSubstring("C /etc"))
 		Expect(result.OutputToString()).To(ContainSubstring("A /test.output"))
 		Expect(result.OutputToString()).To(ContainSubstring("D /etc/motd"))
-		Expect(len(result.OutputToStringArray())).To(Equal(3))
+		Expect(result.OutputToStringArray()).To(HaveLen(3))
 
 		// Checkpoint the container
 		result = podmanTest.Podman([]string{"container", "checkpoint", cid, "-e", fileName})
@@ -599,7 +599,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(result.OutputToString()).To(ContainSubstring("C /etc"))
 		Expect(result.OutputToString()).To(ContainSubstring("A /test.output"))
 		Expect(result.OutputToString()).To(ContainSubstring("D /etc/motd"))
-		Expect(len(result.OutputToStringArray())).To(Equal(3))
+		Expect(result.OutputToStringArray()).To(HaveLen(3))
 
 		// Remove exported checkpoint
 		os.Remove(fileName)
@@ -1280,7 +1280,7 @@ var _ = Describe("Podman checkpoint", func() {
 		err := json.Unmarshal([]byte(result.OutputToString()), cS)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		Expect(len(cS.ContainerStatistics)).To(Equal(2))
+		Expect(cS.ContainerStatistics).To(HaveLen(2))
 		Expect(cS.PodmanDuration).To(BeNumerically(">", cS.ContainerStatistics[0].RuntimeDuration))
 		Expect(cS.PodmanDuration).To(BeNumerically(">", cS.ContainerStatistics[1].RuntimeDuration))
 		Expect(cS.ContainerStatistics[0].RuntimeDuration).To(
@@ -1322,7 +1322,7 @@ var _ = Describe("Podman checkpoint", func() {
 		err = json.Unmarshal([]byte(result.OutputToString()), rS)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		Expect(len(cS.ContainerStatistics)).To(Equal(2))
+		Expect(cS.ContainerStatistics).To(HaveLen(2))
 		Expect(cS.PodmanDuration).To(BeNumerically(">", cS.ContainerStatistics[0].RuntimeDuration))
 		Expect(cS.PodmanDuration).To(BeNumerically(">", cS.ContainerStatistics[1].RuntimeDuration))
 		Expect(cS.ContainerStatistics[0].RuntimeDuration).To(

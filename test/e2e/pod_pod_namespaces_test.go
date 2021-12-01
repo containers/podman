@@ -52,7 +52,7 @@ var _ = Describe("Podman pod create", func() {
 		check.WaitWithDefaultTimeout()
 		Expect(check).Should(Exit(0))
 		outputArray := check.OutputToStringArray()
-		Expect(len(outputArray)).To(Equal(2))
+		Expect(outputArray).To(HaveLen(2))
 
 		NAMESPACE1 := outputArray[0]
 		fmt.Println("NAMESPACE1:", NAMESPACE1)
@@ -98,7 +98,7 @@ var _ = Describe("Podman pod create", func() {
 		check.WaitWithDefaultTimeout()
 		Expect(check).Should(Exit(0))
 		outputArray := check.OutputToStringArray()
-		Expect(len(outputArray)).To(Equal(2))
+		Expect(outputArray).To(HaveLen(2))
 
 		NAMESPACE1 := outputArray[0]
 		fmt.Println("NAMESPACE1:", NAMESPACE1)

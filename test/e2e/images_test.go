@@ -125,7 +125,7 @@ var _ = Describe("Podman images", func() {
 		session := podmanTest.Podman([]string{"images", "-q", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(1))
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
 
 		session = podmanTest.Podman([]string{"tag", ALPINE, "foo:a"})
 		session.WaitWithDefaultTimeout()
@@ -137,25 +137,25 @@ var _ = Describe("Podman images", func() {
 		session = podmanTest.Podman([]string{"images", "-q", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(2))
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
 	})
 
 	It("podman images filter reference", func() {
 		result := podmanTest.Podman([]string{"images", "-q", "-f", "reference=quay.io*"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(7))
+		Expect(result.OutputToStringArray()).To(HaveLen(7))
 
 		retalpine := podmanTest.Podman([]string{"images", "-f", "reference=a*pine"})
 		retalpine.WaitWithDefaultTimeout()
 		Expect(retalpine).Should(Exit(0))
-		Expect(len(retalpine.OutputToStringArray())).To(Equal(6))
+		Expect(retalpine.OutputToStringArray()).To(HaveLen(6))
 		Expect(retalpine.OutputToString()).To(ContainSubstring("alpine"))
 
 		retalpine = podmanTest.Podman([]string{"images", "-f", "reference=alpine"})
 		retalpine.WaitWithDefaultTimeout()
 		Expect(retalpine).Should(Exit(0))
-		Expect(len(retalpine.OutputToStringArray())).To(Equal(6))
+		Expect(retalpine.OutputToStringArray()).To(HaveLen(6))
 		Expect(retalpine.OutputToString()).To(ContainSubstring("alpine"))
 
 		retnone := podmanTest.Podman([]string{"images", "-q", "-f", "reference=bogus"})
@@ -194,7 +194,7 @@ WORKDIR /test
 		result := podmanTest.Podman([]string{"images", "-q", "-f", "since=quay.io/libpod/alpine:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(9))
+		Expect(result.OutputToStringArray()).To(HaveLen(9))
 	})
 
 	It("podman image list filter after image", func() {
@@ -326,12 +326,12 @@ ENV foo=bar
 		session := podmanTest.Podman([]string{"images"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(len(CACHE_IMAGES) + 2))
+		Expect(session.OutputToStringArray()).To(HaveLen(len(CACHE_IMAGES) + 2))
 
 		session2 := podmanTest.Podman([]string{"images", "--all"})
 		session2.WaitWithDefaultTimeout()
 		Expect(session2).Should(Exit(0))
-		Expect(len(session2.OutputToStringArray())).To(Equal(len(CACHE_IMAGES) + 4))
+		Expect(session2.OutputToStringArray()).To(HaveLen(len(CACHE_IMAGES) + 4))
 	})
 
 	It("podman images filter by label", func() {
@@ -343,7 +343,7 @@ LABEL "com.example.vendor"="Example Vendor"
 		session := podmanTest.Podman([]string{"images", "-f", "label=version=1.0"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(2))
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
 	})
 
 	It("podman with images with no layers", func() {
@@ -380,7 +380,7 @@ LABEL "com.example.vendor"="Example Vendor"
 		session = podmanTest.Podman([]string{"history", "--quiet", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(6))
+		Expect(session.OutputToStringArray()).To(HaveLen(6))
 
 		session = podmanTest.Podman([]string{"image", "list", "foo"})
 		session.WaitWithDefaultTimeout()
@@ -437,7 +437,7 @@ RUN > file2
 		result := podmanTest.Podman([]string{"image", "prune", "--filter", "label=abc", "--force"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(1))
+		Expect(result.OutputToStringArray()).To(HaveLen(1))
 
 		//check if really abc is removed
 		result = podmanTest.Podman([]string{"image", "list", "--filter", "label=abc"})
@@ -458,7 +458,7 @@ RUN > file2
 		result := podmanTest.Podman([]string{"builder", "prune", "--filter", "label=abc", "--force"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(1))
+		Expect(result.OutputToStringArray()).To(HaveLen(1))
 
 		//check if really abc is removed
 		result = podmanTest.Podman([]string{"image", "list", "--filter", "label=abc"})

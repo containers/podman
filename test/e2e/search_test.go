@@ -175,12 +175,12 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search = podmanTest.Podman([]string{"search", "--limit", "3", "docker.io/alpine"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
-		Expect(len(search.OutputToStringArray())).To(Equal(4))
+		Expect(search.OutputToStringArray()).To(HaveLen(4))
 
 		search = podmanTest.Podman([]string{"search", "--limit", "30", "docker.io/alpine"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
-		Expect(len(search.OutputToStringArray())).To(Equal(31))
+		Expect(search.OutputToStringArray()).To(HaveLen(31))
 	})
 
 	It("podman search with filter stars", func() {
@@ -462,7 +462,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search := podmanTest.Podman([]string{"search", "--limit", "30", "registry.redhat.io/*"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
-		Expect(len(search.OutputToStringArray())).To(Equal(31))
+		Expect(search.OutputToStringArray()).To(HaveLen(31))
 
 		search = podmanTest.Podman([]string{"search", "registry.redhat.io/*openshift*"})
 		search.WaitWithDefaultTimeout()
@@ -474,7 +474,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search := podmanTest.Podman([]string{"search", "--list-tags", "--limit", "30", "docker.io/library/alpine"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
-		Expect(len(search.OutputToStringArray())).To(Equal(31))
+		Expect(search.OutputToStringArray()).To(HaveLen(31))
 
 		search = podmanTest.Podman([]string{"search", "--list-tags", "docker.io/library/alpine"})
 		search.WaitWithDefaultTimeout()

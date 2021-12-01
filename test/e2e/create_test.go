@@ -279,8 +279,8 @@ var _ = Describe("Podman create", func() {
 		Expect(create).Should(Exit(0))
 
 		ctrJSON := podmanTest.InspectContainer(name)
-		Expect(len(ctrJSON)).To(Equal(1))
-		Expect(len(ctrJSON[0].Config.Cmd)).To(Equal(1))
+		Expect(ctrJSON).To(HaveLen(1))
+		Expect(ctrJSON[0].Config.Cmd).To(HaveLen(1))
 		Expect(ctrJSON[0].Config.Cmd[0]).To(Equal("redis-server"))
 		Expect(ctrJSON[0].Config.Entrypoint).To(Equal("docker-entrypoint.sh"))
 	})
@@ -383,7 +383,7 @@ var _ = Describe("Podman create", func() {
 		inspect.WaitWithDefaultTimeout()
 		data := inspect.InspectContainerToJSON()
 		Expect(len(data)).To(Equal(1), "len(InspectContainerToJSON)")
-		Expect(len(data[0].Config.Labels)).To(Equal(2))
+		Expect(data[0].Config.Labels).To(HaveLen(2))
 		Expect(data[0].Config.Labels).To(HaveKey("TESTKEY1"))
 		Expect(data[0].Config.Labels).To(HaveKey("TESTKEY2"))
 	})
@@ -398,8 +398,8 @@ var _ = Describe("Podman create", func() {
 		inspect := podmanTest.Podman([]string{"inspect", ctrName})
 		inspect.WaitWithDefaultTimeout()
 		data := inspect.InspectContainerToJSON()
-		Expect(len(data)).To(Equal(1))
-		Expect(len(data[0].Config.Labels)).To(Equal(2))
+		Expect(data).To(HaveLen(1))
+		Expect(data[0].Config.Labels).To(HaveLen(2))
 		Expect(data[0].Config.Labels).To(HaveKeyWithValue("TESTKEY1", "value1"))
 		Expect(data[0].Config.Labels).To(HaveKeyWithValue("TESTKEY2", "bar"))
 	})
@@ -413,7 +413,7 @@ var _ = Describe("Podman create", func() {
 		inspect := podmanTest.Podman([]string{"inspect", ctrName})
 		inspect.WaitWithDefaultTimeout()
 		data := inspect.InspectContainerToJSON()
-		Expect(len(data)).To(Equal(1))
+		Expect(data).To(HaveLen(1))
 		Expect(data[0].HostConfig.RestartPolicy.Name).To(Equal("on-failure"))
 		Expect(data[0].HostConfig.RestartPolicy.MaximumRetryCount).To(Equal(uint(5)))
 	})
@@ -434,7 +434,7 @@ var _ = Describe("Podman create", func() {
 		inspect := podmanTest.Podman([]string{"inspect", ctrName})
 		inspect.WaitWithDefaultTimeout()
 		data := inspect.InspectContainerToJSON()
-		Expect(len(data)).To(Equal(1))
+		Expect(data).To(HaveLen(1))
 		Expect(data[0].HostConfig.RestartPolicy.Name).To(Equal(unlessStopped))
 	})
 
@@ -448,7 +448,7 @@ var _ = Describe("Podman create", func() {
 		inspect := podmanTest.Podman([]string{"inspect", ctrName})
 		inspect.WaitWithDefaultTimeout()
 		data := inspect.InspectContainerToJSON()
-		Expect(len(data)).To(Equal(1))
+		Expect(data).To(HaveLen(1))
 		Expect(data[0].HostConfig.MemorySwap).To(Equal(int64(2 * numMem)))
 	})
 
@@ -463,7 +463,7 @@ var _ = Describe("Podman create", func() {
 		inspect := podmanTest.Podman([]string{"inspect", ctrName})
 		inspect.WaitWithDefaultTimeout()
 		data := inspect.InspectContainerToJSON()
-		Expect(len(data)).To(Equal(1))
+		Expect(data).To(HaveLen(1))
 		Expect(data[0].HostConfig.NanoCpus).To(Equal(int64(nanoCPUs)))
 	})
 
@@ -491,7 +491,7 @@ var _ = Describe("Podman create", func() {
 		inspect := podmanTest.Podman([]string{"inspect", ctrName})
 		inspect.WaitWithDefaultTimeout()
 		data := inspect.InspectContainerToJSON()
-		Expect(len(data)).To(Equal(1))
+		Expect(data).To(HaveLen(1))
 		Expect(data[0].Config.StopSignal).To(Equal(uint(15)))
 	})
 
@@ -509,7 +509,7 @@ var _ = Describe("Podman create", func() {
 		inspect := podmanTest.Podman([]string{"inspect", "zone"})
 		inspect.WaitWithDefaultTimeout()
 		data := inspect.InspectContainerToJSON()
-		Expect(len(data)).To(Equal(1))
+		Expect(data).To(HaveLen(1))
 		Expect(data[0].Config.Timezone).To(Equal("Pacific/Honolulu"))
 
 		session = podmanTest.Podman([]string{"create", "--tz", "local", "--name", "lcl", ALPINE, "date"})
@@ -517,7 +517,7 @@ var _ = Describe("Podman create", func() {
 		inspect = podmanTest.Podman([]string{"inspect", "lcl"})
 		inspect.WaitWithDefaultTimeout()
 		data = inspect.InspectContainerToJSON()
-		Expect(len(data)).To(Equal(1))
+		Expect(data).To(HaveLen(1))
 		Expect(data[0].Config.Timezone).To(Equal("local"))
 	})
 
@@ -531,7 +531,7 @@ var _ = Describe("Podman create", func() {
 		inspect := podmanTest.Podman([]string{"inspect", "default"})
 		inspect.WaitWithDefaultTimeout()
 		data := inspect.InspectContainerToJSON()
-		Expect(len(data)).To(Equal(1))
+		Expect(data).To(HaveLen(1))
 		Expect(data[0].Config.Umask).To(Equal("0022"))
 
 		session = podmanTest.Podman([]string{"create", "--umask", "0002", "--name", "umask", ALPINE})
@@ -539,7 +539,7 @@ var _ = Describe("Podman create", func() {
 		inspect = podmanTest.Podman([]string{"inspect", "umask"})
 		inspect.WaitWithDefaultTimeout()
 		data = inspect.InspectContainerToJSON()
-		Expect(len(data)).To(Equal(1))
+		Expect(data).To(HaveLen(1))
 		Expect(data[0].Config.Umask).To(Equal("0002"))
 
 		session = podmanTest.Podman([]string{"create", "--umask", "0077", "--name", "fedora", fedoraMinimal})
@@ -547,7 +547,7 @@ var _ = Describe("Podman create", func() {
 		inspect = podmanTest.Podman([]string{"inspect", "fedora"})
 		inspect.WaitWithDefaultTimeout()
 		data = inspect.InspectContainerToJSON()
-		Expect(len(data)).To(Equal(1))
+		Expect(data).To(HaveLen(1))
 		Expect(data[0].Config.Umask).To(Equal("0077"))
 
 		session = podmanTest.Podman([]string{"create", "--umask", "22", "--name", "umask-short", ALPINE})
@@ -555,7 +555,7 @@ var _ = Describe("Podman create", func() {
 		inspect = podmanTest.Podman([]string{"inspect", "umask-short"})
 		inspect.WaitWithDefaultTimeout()
 		data = inspect.InspectContainerToJSON()
-		Expect(len(data)).To(Equal(1))
+		Expect(data).To(HaveLen(1))
 		Expect(data[0].Config.Umask).To(Equal("0022"))
 
 		session = podmanTest.Podman([]string{"create", "--umask", "9999", "--name", "bad", ALPINE})
@@ -689,7 +689,7 @@ var _ = Describe("Podman create", func() {
 		Expect(setup).Should(Exit(0))
 
 		idata := setup.InspectImageJSON() // returns []inspect.ImageData
-		Expect(len(idata)).To(Equal(1))
+		Expect(idata).To(HaveLen(1))
 		Expect(idata[0].Os).To(Equal(runtime.GOOS))
 		Expect(idata[0].Architecture).To(Equal("arm64"))
 	})

@@ -137,12 +137,12 @@ var _ = Describe("Podman generate kube", func() {
 
 		// Separate out the Service and Pod yaml
 		arr := strings.Split(string(kube.Out.Contents()), "---")
-		Expect(len(arr)).To(Equal(2))
+		Expect(arr).To(HaveLen(2))
 
 		svc := new(v1.Service)
 		err := yaml.Unmarshal([]byte(arr[0]), svc)
 		Expect(err).To(BeNil())
-		Expect(len(svc.Spec.Ports)).To(Equal(1))
+		Expect(svc.Spec.Ports).To(HaveLen(1))
 		Expect(svc.Spec.Ports[0].TargetPort.IntValue()).To(Equal(3890))
 
 		pod := new(v1.Pod)
@@ -324,7 +324,7 @@ var _ = Describe("Podman generate kube", func() {
 		pod := new(v1.Pod)
 		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).To(BeNil())
-		Expect(len(pod.Spec.HostAliases)).To(Equal(2))
+		Expect(pod.Spec.HostAliases).To(HaveLen(2))
 		Expect(pod.Spec.HostAliases[0].IP).To(Equal(testIP))
 		Expect(pod.Spec.HostAliases[1].IP).To(Equal(testIP))
 	})
@@ -340,12 +340,12 @@ var _ = Describe("Podman generate kube", func() {
 
 		// Separate out the Service and Pod yaml
 		arr := strings.Split(string(kube.Out.Contents()), "---")
-		Expect(len(arr)).To(Equal(2))
+		Expect(arr).To(HaveLen(2))
 
 		svc := new(v1.Service)
 		err := yaml.Unmarshal([]byte(arr[0]), svc)
 		Expect(err).To(BeNil())
-		Expect(len(svc.Spec.Ports)).To(Equal(1))
+		Expect(svc.Spec.Ports).To(HaveLen(1))
 		Expect(svc.Spec.Ports[0].TargetPort.IntValue()).To(Equal(4000))
 		Expect(svc.Spec.Ports[0].Protocol).To(Equal(v1.ProtocolUDP))
 
@@ -504,8 +504,8 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(err).To(BeNil())
 
 		containers := pod.Spec.Containers
-		Expect(len(containers)).To(Equal(1))
-		Expect(len(containers[0].Ports)).To(Equal(1))
+		Expect(containers).To(HaveLen(1))
+		Expect(containers[0].Ports).To(HaveLen(1))
 		Expect(containers[0].Ports[0].Protocol).To(Equal(v1.ProtocolUDP))
 	})
 
@@ -641,7 +641,7 @@ var _ = Describe("Podman generate kube", func() {
 		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).To(BeNil())
 
-		Expect(len(pod.Spec.Volumes)).To(Equal(2))
+		Expect(pod.Spec.Volumes).To(HaveLen(2))
 
 	})
 
@@ -839,7 +839,7 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(err).To(BeNil())
 
 		containers := pod.Spec.Containers
-		Expect(len(containers)).To(Equal(1))
+		Expect(containers).To(HaveLen(1))
 
 		Expect(containers[0].Command).To(Equal([]string{"/bin/sleep"}))
 		Expect(containers[0].Args).To(Equal([]string{"10s"}))
@@ -861,7 +861,7 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(err).To(BeNil())
 
 		containers := pod.Spec.Containers
-		Expect(len(containers)).To(Equal(1))
+		Expect(containers).To(HaveLen(1))
 		Expect(containers[0].Command).To(BeEmpty())
 
 		cmd := []string{"echo", "hi"}
@@ -880,7 +880,7 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(err).To(BeNil())
 
 		containers = pod.Spec.Containers
-		Expect(len(containers)).To(Equal(1))
+		Expect(containers).To(HaveLen(1))
 		Expect(containers[0].Command).To(Equal(cmd))
 	})
 
@@ -915,7 +915,7 @@ ENTRYPOINT ["sleep"]`
 		Expect(err).To(BeNil())
 
 		containers := pod.Spec.Containers
-		Expect(len(containers)).To(Equal(1))
+		Expect(containers).To(HaveLen(1))
 		Expect(containers[0].Args).To(Equal([]string{"10s"}))
 
 		session = podmanTest.Podman([]string{"create", "--pod", "new:testpod-2", "--entrypoint", "echo", image, "hello"})
@@ -933,7 +933,7 @@ ENTRYPOINT ["sleep"]`
 		Expect(err).To(BeNil())
 
 		containers = pod.Spec.Containers
-		Expect(len(containers)).To(Equal(1))
+		Expect(containers).To(HaveLen(1))
 		Expect(containers[0].Command).To(Equal([]string{"echo"}))
 		Expect(containers[0].Args).To(Equal([]string{"hello"}))
 	})
@@ -953,7 +953,7 @@ ENTRYPOINT ["sleep"]`
 		Expect(err).To(BeNil())
 
 		containers := pod.Spec.Containers
-		Expect(len(containers)).To(Equal(1))
+		Expect(containers).To(HaveLen(1))
 		Expect(containers[0].SecurityContext.Capabilities).To(BeNil())
 
 		// Now make sure we can also `play` it.

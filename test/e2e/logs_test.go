@@ -68,7 +68,7 @@ var _ = Describe("Podman logs", func() {
 			results := podmanTest.Podman([]string{"logs", cid})
 			results.WaitWithDefaultTimeout()
 			Expect(results).To(Exit(0))
-			Expect(len(results.OutputToStringArray())).To(Equal(3))
+			Expect(results.OutputToStringArray()).To(HaveLen(3))
 			Expect(results.OutputToString()).To(Equal("podman podman podman"))
 		})
 
@@ -83,7 +83,7 @@ var _ = Describe("Podman logs", func() {
 			results := podmanTest.Podman([]string{"logs", "--tail", "2", cid})
 			results.WaitWithDefaultTimeout()
 			Expect(results).To(Exit(0))
-			Expect(len(results.OutputToStringArray())).To(Equal(2))
+			Expect(results.OutputToStringArray()).To(HaveLen(2))
 		})
 
 		It("tail zero lines: "+log, func() {
@@ -111,7 +111,7 @@ var _ = Describe("Podman logs", func() {
 			results := podmanTest.Podman([]string{"logs", "--tail", "99", cid})
 			results.WaitWithDefaultTimeout()
 			Expect(results).To(Exit(0))
-			Expect(len(results.OutputToStringArray())).To(Equal(3))
+			Expect(results.OutputToStringArray()).To(HaveLen(3))
 		})
 
 		It("tail 800 lines: "+log, func() {
@@ -125,7 +125,7 @@ var _ = Describe("Podman logs", func() {
 			results := podmanTest.Podman([]string{"logs", "--tail", "800", cid})
 			results.WaitWithDefaultTimeout()
 			Expect(results).To(Exit(0))
-			Expect(len(results.OutputToStringArray())).To(Equal(800))
+			Expect(results.OutputToStringArray()).To(HaveLen(800))
 		})
 
 		It("tail 2 lines with timestamps: "+log, func() {
@@ -139,7 +139,7 @@ var _ = Describe("Podman logs", func() {
 			results := podmanTest.Podman([]string{"logs", "--tail", "2", "-t", cid})
 			results.WaitWithDefaultTimeout()
 			Expect(results).To(Exit(0))
-			Expect(len(results.OutputToStringArray())).To(Equal(2))
+			Expect(results.OutputToStringArray()).To(HaveLen(2))
 		})
 
 		It("since time 2017-08-07: "+log, func() {
@@ -153,7 +153,7 @@ var _ = Describe("Podman logs", func() {
 			results := podmanTest.Podman([]string{"logs", "--since", "2017-08-07T10:10:09.056611202-04:00", cid})
 			results.WaitWithDefaultTimeout()
 			Expect(results).To(Exit(0))
-			Expect(len(results.OutputToStringArray())).To(Equal(3))
+			Expect(results.OutputToStringArray()).To(HaveLen(3))
 		})
 
 		It("since duration 10m: "+log, func() {
@@ -167,7 +167,7 @@ var _ = Describe("Podman logs", func() {
 			results := podmanTest.Podman([]string{"logs", "--since", "10m", cid})
 			results.WaitWithDefaultTimeout()
 			Expect(results).To(Exit(0))
-			Expect(len(results.OutputToStringArray())).To(Equal(3))
+			Expect(results.OutputToStringArray()).To(HaveLen(3))
 		})
 
 		It("until duration 10m: "+log, func() {
@@ -181,7 +181,7 @@ var _ = Describe("Podman logs", func() {
 			results := podmanTest.Podman([]string{"logs", "--until", "10m", cid})
 			results.WaitWithDefaultTimeout()
 			Expect(results).To(Exit(0))
-			Expect(len(results.OutputToStringArray())).To(Equal(3))
+			Expect(results.OutputToStringArray()).To(HaveLen(3))
 		})
 
 		It("until time NOW: "+log, func() {
@@ -198,7 +198,7 @@ var _ = Describe("Podman logs", func() {
 			results := podmanTest.Podman([]string{"logs", "--until", nowS, cid})
 			results.WaitWithDefaultTimeout()
 			Expect(results).To(Exit(0))
-			Expect(len(results.OutputToStringArray())).To(Equal(3))
+			Expect(results.OutputToStringArray()).To(HaveLen(3))
 		})
 
 		It("latest and container name should fail: "+log, func() {
@@ -228,7 +228,7 @@ var _ = Describe("Podman logs", func() {
 			Expect(results).Should(Exit(0))
 
 			output := results.OutputToStringArray()
-			Expect(len(output)).To(Equal(6))
+			Expect(output).To(HaveLen(6))
 			Expect(strings.Contains(output[0], cid1[:12]) || strings.Contains(output[0], cid2[:12])).To(BeTrue())
 		})
 
@@ -342,7 +342,7 @@ var _ = Describe("Podman logs", func() {
 			results.WaitWithDefaultTimeout()
 			Expect(results).To(Exit(0))
 			outlines := results.OutputToStringArray()
-			Expect(len(outlines)).To(Equal(2))
+			Expect(outlines).To(HaveLen(2))
 			Expect(outlines[0]).To(Equal("1\r"))
 			Expect(outlines[1]).To(Equal("2\r"))
 		})

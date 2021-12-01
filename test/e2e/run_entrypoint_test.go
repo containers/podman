@@ -64,7 +64,7 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 		session := podmanTest.Podman([]string{"run", "foobar.com/entrypoint:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(2))
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
 	})
 
 	It("podman run entrypoint with cmd", func() {
@@ -76,7 +76,7 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 		session := podmanTest.Podman([]string{"run", "foobar.com/entrypoint:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(4))
+		Expect(session.OutputToStringArray()).To(HaveLen(4))
 	})
 
 	It("podman run entrypoint with user cmd overrides image cmd", func() {
@@ -88,7 +88,7 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 		session := podmanTest.Podman([]string{"run", "foobar.com/entrypoint:latest", "-i"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(5))
+		Expect(session.OutputToStringArray()).To(HaveLen(5))
 	})
 
 	It("podman run entrypoint with user cmd no image cmd", func() {
@@ -99,7 +99,7 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 		session := podmanTest.Podman([]string{"run", "foobar.com/entrypoint:latest", "-i"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(5))
+		Expect(session.OutputToStringArray()).To(HaveLen(5))
 	})
 
 	It("podman run user entrypoint overrides image entrypoint and image cmd", func() {

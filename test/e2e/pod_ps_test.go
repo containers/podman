@@ -135,14 +135,14 @@ var _ = Describe("Podman ps", func() {
 		Expect(result).Should(Exit(0))
 
 		output := result.OutputToStringArray()
-		Expect(len(output)).To(Equal(2))
+		Expect(output).To(HaveLen(2))
 
 		result = podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc", "--filter", "name=mypod$"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 
 		output = result.OutputToStringArray()
-		Expect(len(output)).To(Equal(1))
+		Expect(output).To(HaveLen(1))
 		Expect(output[0]).To(Equal(podid))
 	})
 

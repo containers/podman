@@ -72,7 +72,7 @@ var _ = Describe("Podman volume plugins", func() {
 		ls1.WaitWithDefaultTimeout()
 		Expect(ls1).Should(Exit(0))
 		arrOutput := ls1.OutputToStringArray()
-		Expect(len(arrOutput)).To(Equal(1))
+		Expect(arrOutput).To(HaveLen(1))
 		Expect(arrOutput[0]).To(ContainSubstring(volName))
 
 		remove := podmanTest.Podman([]string{"volume", "rm", volName})
@@ -130,7 +130,7 @@ var _ = Describe("Podman volume plugins", func() {
 		ls1.WaitWithDefaultTimeout()
 		Expect(ls1).Should(Exit(0))
 		arrOutput := ls1.OutputToStringArray()
-		Expect(len(arrOutput)).To(Equal(1))
+		Expect(arrOutput).To(HaveLen(1))
 		Expect(arrOutput[0]).To(ContainSubstring(volName))
 
 		stop := podmanTest.Podman([]string{"stop", "--timeout", "0", ctrName})

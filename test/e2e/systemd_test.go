@@ -99,7 +99,7 @@ WantedBy=default.target
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		conData := result.InspectContainerToJSON()
-		Expect(len(conData)).To(Equal(1))
+		Expect(conData).To(HaveLen(1))
 		Expect(conData[0].Config.SystemdMode).To(BeTrue())
 
 		// stats not supported w/ CGv1 rootless or containerized
@@ -126,7 +126,7 @@ WantedBy=default.target
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		conData := result.InspectContainerToJSON()
-		Expect(len(conData)).To(Equal(1))
+		Expect(conData).To(HaveLen(1))
 		Expect(conData[0].Config.SystemdMode).To(BeTrue())
 	})
 
@@ -155,7 +155,7 @@ WantedBy=default.target
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		conData := result.InspectContainerToJSON()
-		Expect(len(conData)).To(Equal(1))
+		Expect(conData).To(HaveLen(1))
 		Expect(conData[0].Config.SystemdMode).To(BeTrue())
 	})
 

@@ -348,7 +348,7 @@ var _ = Describe("Podman mount", func() {
 		umount := podmanTest.Podman([]string{"image", "umount", "--all"})
 		umount.WaitWithDefaultTimeout()
 		Expect(umount).Should(Exit(0))
-		Expect(len(umount.OutputToStringArray())).To(Equal(1))
+		Expect(umount.OutputToStringArray()).To(HaveLen(1))
 	})
 
 	It("podman mount many", func() {

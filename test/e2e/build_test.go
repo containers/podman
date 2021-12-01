@@ -139,7 +139,7 @@ var _ = Describe("Podman build", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		// Check for two layers
-		Expect(len(strings.Fields(session.OutputToString()))).To(Equal(2))
+		Expect(strings.Fields(session.OutputToString())).To(HaveLen(2))
 
 		session = podmanTest.Podman([]string{"build", "--pull-never", "-f", "build/squash/Dockerfile.squash-b", "--squash", "-t", "test-squash-b:latest", "build/squash"})
 		session.WaitWithDefaultTimeout()
@@ -149,7 +149,7 @@ var _ = Describe("Podman build", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		// Check for three layers
-		Expect(len(strings.Fields(session.OutputToString()))).To(Equal(3))
+		Expect(strings.Fields(session.OutputToString())).To(HaveLen(3))
 
 		session = podmanTest.Podman([]string{"build", "--pull-never", "-f", "build/squash/Dockerfile.squash-c", "--squash", "-t", "test-squash-c:latest", "build/squash"})
 		session.WaitWithDefaultTimeout()
@@ -159,7 +159,7 @@ var _ = Describe("Podman build", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		// Check for two layers
-		Expect(len(strings.Fields(session.OutputToString()))).To(Equal(2))
+		Expect(strings.Fields(session.OutputToString())).To(HaveLen(2))
 
 		session = podmanTest.Podman([]string{"build", "--pull-never", "-f", "build/squash/Dockerfile.squash-c", "--squash-all", "-t", "test-squash-d:latest", "build/squash"})
 		session.WaitWithDefaultTimeout()
@@ -169,7 +169,7 @@ var _ = Describe("Podman build", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		// Check for one layers
-		Expect(len(strings.Fields(session.OutputToString()))).To(Equal(1))
+		Expect(strings.Fields(session.OutputToString())).To(HaveLen(1))
 
 		session = podmanTest.Podman([]string{"rm", "-a"})
 		session.WaitWithDefaultTimeout()

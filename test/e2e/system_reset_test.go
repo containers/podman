@@ -69,7 +69,7 @@ var _ = Describe("podman system reset", func() {
 		session = podmanTest.Podman([]string{"images", "-n"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(l))
+		Expect(session.OutputToStringArray()).To(HaveLen(l))
 
 		session = podmanTest.Podman([]string{"volume", "ls"})
 		session.WaitWithDefaultTimeout()

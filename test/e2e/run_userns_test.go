@@ -157,7 +157,7 @@ var _ = Describe("Podman UserNS support", func() {
 			m[l] = l
 		}
 		// check for no duplicates
-		Expect(len(m)).To(Equal(5))
+		Expect(m).To(HaveLen(5))
 	})
 
 	It("podman --userns=auto:size=%d", func() {
