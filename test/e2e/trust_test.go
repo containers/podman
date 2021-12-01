@@ -69,7 +69,7 @@ var _ = Describe("Podman trust", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		Expect(teststruct["default"][0]["type"]).To(Equal("insecureAcceptAnything"))
+		Expect(teststruct["default"][0]).To(HaveKeyWithValue("type", "insecureAcceptAnything"))
 	})
 
 	It("podman image trust show --json", func() {

@@ -289,7 +289,7 @@ var _ = Describe("Podman run", func() {
 		Expect(result).Should(Exit(0))
 		conData := result.InspectContainerToJSON()
 		Expect(conData[0].Path).To(Equal("/dev/init"))
-		Expect(conData[0].Config.Annotations["io.podman.annotations.init"]).To(Equal("TRUE"))
+		Expect(conData[0].Config.Annotations).To(HaveKeyWithValue("io.podman.annotations.init", "TRUE"))
 	})
 
 	It("podman run a container with --init and --init-path", func() {
@@ -301,7 +301,7 @@ var _ = Describe("Podman run", func() {
 		Expect(result).Should(Exit(0))
 		conData := result.InspectContainerToJSON()
 		Expect(conData[0].Path).To(Equal("/dev/init"))
-		Expect(conData[0].Config.Annotations["io.podman.annotations.init"]).To(Equal("TRUE"))
+		Expect(conData[0].Config.Annotations).To(HaveKeyWithValue("io.podman.annotations.init", "TRUE"))
 	})
 
 	It("podman run a container without --init", func() {
@@ -313,7 +313,7 @@ var _ = Describe("Podman run", func() {
 		Expect(result).Should(Exit(0))
 		conData := result.InspectContainerToJSON()
 		Expect(conData[0].Path).To(Equal("ls"))
-		Expect(conData[0].Config.Annotations["io.podman.annotations.init"]).To(Equal("FALSE"))
+		Expect(conData[0].Config.Annotations).To(HaveKeyWithValue("io.podman.annotations.init", "FALSE"))
 	})
 
 	forbidGetCWDSeccompProfile := func() string {
