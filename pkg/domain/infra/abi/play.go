@@ -287,6 +287,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	if podOpt.Infra {
 		infraImage := util.DefaultContainerConfig().Engine.InfraImage
 		infraOptions := entities.NewInfraContainerCreateOptions()
+		infraOptions.Hostname = podSpec.PodSpecGen.PodBasicConfig.Hostname
 		podSpec.PodSpecGen.InfraImage = infraImage
 		podSpec.PodSpecGen.NoInfra = false
 		podSpec.PodSpecGen.InfraContainerSpec = specgen.NewSpecGenerator(infraImage, false)
