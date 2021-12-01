@@ -36,7 +36,6 @@ var (
 	PODMAN_BINARY      string                        //nolint:golint,stylecheck
 	INTEGRATION_ROOT   string                        //nolint:golint,stylecheck
 	CGROUP_MANAGER     = "systemd"                   //nolint:golint,stylecheck
-	ARTIFACT_DIR       = "/tmp/.artifacts"           //nolint:golint,stylecheck
 	RESTORE_IMAGES     = []string{ALPINE, BB, nginx} //nolint:golint,stylecheck
 	defaultWaitTimeout = 90
 	CGROUPSV2, _       = cgroups.IsCgroup2UnifiedMode() //nolint:golint,stylecheck
@@ -111,13 +110,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	cwd, _ := os.Getwd()
 	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
 	podman := PodmanTestSetup("/tmp")
-	podman.ArtifactPath = ARTIFACT_DIR
-	if _, err := os.Stat(ARTIFACT_DIR); os.IsNotExist(err) {
-		if err = os.Mkdir(ARTIFACT_DIR, 0777); err != nil {
-			fmt.Printf("%q\n", err)
-			os.Exit(1)
-		}
-	}
 
 	// Pull cirros but don't put it into the cache
 	pullImages := []string{cirros, fedoraToolbox, volumeTest}
@@ -170,7 +162,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 func (p *PodmanTestIntegration) Setup() {
 	cwd, _ := os.Getwd()
 	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
-	p.ArtifactPath = ARTIFACT_DIR
 }
 
 var _ = SynchronizedAfterSuite(func() {},
@@ -265,7 +256,6 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 		PodmanTest: PodmanTest{
 			PodmanBinary:       podmanBinary,
 			RemotePodmanBinary: podmanRemoteBinary,
-			ArtifactPath:       ARTIFACT_DIR,
 			TempDir:            tempDir,
 			RemoteTest:         remote,
 			ImageCacheFS:       storageFs,

@@ -36,7 +36,6 @@ type PodmanTestCommon interface {
 type PodmanTest struct {
 	PodmanMakeOptions  func(args []string, noEvents, noCache bool) []string
 	PodmanBinary       string
-	ArtifactPath       string
 	TempDir            string
 	RemoteTest         bool
 	RemotePodmanBinary string
