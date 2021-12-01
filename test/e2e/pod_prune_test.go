@@ -72,6 +72,6 @@ var _ = Describe("Podman pod prune", func() {
 
 		result = podmanTest.Podman([]string{"ps", "-qa"})
 		result.WaitWithDefaultTimeout()
-		Expect(len(result.OutputToStringArray())).To(Equal(0))
+		Expect(result.OutputToStringArray()).To(BeEmpty())
 	})
 })

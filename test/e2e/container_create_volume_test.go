@@ -62,7 +62,7 @@ func checkDataVolumeContainer(pTest *PodmanTestIntegration, image, cont, dest, d
 	Expect(err).To(BeNil())
 
 	if data == "" {
-		Expect(len(files)).To(Equal(0))
+		Expect(files).To(BeEmpty())
 	} else {
 		Expect(len(files)).To(Equal(1))
 		Expect(files[0].Name()).To(Equal(data))

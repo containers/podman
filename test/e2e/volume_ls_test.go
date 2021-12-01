@@ -98,7 +98,7 @@ var _ = Describe("Podman volume ls", func() {
 		session = podmanTest.Podman([]string{"volume", "ls", "--filter", "label=foo=foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(0))
+		Expect(session.OutputToStringArray()).To(BeEmpty())
 
 		session = podmanTest.Podman([]string{"volume", "ls", "--filter", "label=foo=bar"})
 		session.WaitWithDefaultTimeout()
@@ -109,7 +109,7 @@ var _ = Describe("Podman volume ls", func() {
 		session = podmanTest.Podman([]string{"volume", "ls", "--filter", "label=foo=baz"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(0))
+		Expect(session.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("podman ls volume with --filter until flag", func() {
@@ -125,7 +125,7 @@ var _ = Describe("Podman volume ls", func() {
 		session = podmanTest.Podman([]string{"volume", "ls", "--filter", "until=50000"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(0))
+		Expect(session.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("podman volume ls with --filter dangling", func() {

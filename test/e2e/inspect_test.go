@@ -245,7 +245,7 @@ var _ = Describe("Podman inspect", func() {
 		baseInspect.WaitWithDefaultTimeout()
 		Expect(baseInspect).To(ExitWithError())
 		emptyJSON := baseInspect.InspectContainerToJSON()
-		Expect(len(emptyJSON)).To(Equal(0))
+		Expect(emptyJSON).To(BeEmpty())
 	})
 
 	It("podman inspect one container with not exist returns 1-length valid array", func() {

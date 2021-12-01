@@ -291,7 +291,7 @@ var _ = Describe("Podman pause", func() {
 		running = podmanTest.Podman([]string{"ps", "-q"})
 		running.WaitWithDefaultTimeout()
 		Expect(running).Should(Exit(0))
-		Expect(len(running.OutputToStringArray())).To(Equal(0))
+		Expect(running.OutputToStringArray()).To(BeEmpty())
 
 		unpause := podmanTest.Podman([]string{"unpause", "--all"})
 		unpause.WaitWithDefaultTimeout()

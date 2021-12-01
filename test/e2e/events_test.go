@@ -86,7 +86,7 @@ var _ = Describe("Podman events", func() {
 		result := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "type=pod", "--filter", fmt.Sprintf("container=%s", cid)})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(0))
+		Expect(result.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("podman events with a type", func() {

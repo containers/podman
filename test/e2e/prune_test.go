@@ -105,7 +105,7 @@ var _ = Describe("Podman prune", func() {
 		session = podmanTest.Podman([]string{"image", "prune", "-f"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(0))
+		Expect(session.OutputToStringArray()).To(BeEmpty())
 
 		// Let's be extra sure that the same number of images is
 		// reported.
@@ -157,7 +157,7 @@ var _ = Describe("Podman prune", func() {
 		session = podmanTest.Podman([]string{"image", "prune", "-f"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(0))
+		Expect(session.OutputToStringArray()).To(BeEmpty())
 
 		// Now the image will be untagged, and its parent images will
 		// be removed recursively.
@@ -354,7 +354,7 @@ var _ = Describe("Podman prune", func() {
 		session = podmanTest.Podman([]string{"volume", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(0))
+		Expect(session.OutputToStringArray()).To(BeEmpty())
 
 		// One Pod should not be pruned as it was running
 		Expect(podmanTest.NumberOfPods()).To(Equal(1))

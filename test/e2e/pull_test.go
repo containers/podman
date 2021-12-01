@@ -458,7 +458,7 @@ var _ = Describe("Podman pull", func() {
 
 			data := setup.InspectImageJSON() // returns []inspect.ImageData
 			Expect(len(data)).To(Equal(1))
-			Expect(len(data[0].RepoTags)).To(Equal(0))
+			Expect(data[0].RepoTags).To(BeEmpty())
 		}
 
 		tag := func(image, tag string) {

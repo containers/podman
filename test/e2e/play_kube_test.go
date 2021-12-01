@@ -2780,7 +2780,7 @@ invalid kube kind
 		checkls := podmanTest.Podman([]string{"pod", "ps", "--format", "'{{.ID}}'"})
 		checkls.WaitWithDefaultTimeout()
 		Expect(checkls).Should(Exit(0))
-		Expect(len(checkls.OutputToStringArray())).To(Equal(0))
+		Expect(checkls.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("podman play kube teardown pod does not exist", func() {

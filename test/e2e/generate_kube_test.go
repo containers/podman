@@ -862,7 +862,7 @@ var _ = Describe("Podman generate kube", func() {
 
 		containers := pod.Spec.Containers
 		Expect(len(containers)).To(Equal(1))
-		Expect(len(containers[0].Command)).To(Equal(0))
+		Expect(containers[0].Command).To(BeEmpty())
 
 		cmd := []string{"echo", "hi"}
 		session = podmanTest.Podman(append([]string{"create", "--name", "test1", ALPINE}, cmd...))

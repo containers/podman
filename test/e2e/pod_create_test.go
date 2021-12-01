@@ -86,7 +86,7 @@ var _ = Describe("Podman pod create", func() {
 
 		check := podmanTest.Podman([]string{"pod", "ps", "-q"})
 		check.WaitWithDefaultTimeout()
-		Expect(len(check.OutputToStringArray())).To(Equal(0))
+		Expect(check.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("podman create pod without network portbindings", func() {

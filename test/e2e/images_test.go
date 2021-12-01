@@ -161,7 +161,7 @@ var _ = Describe("Podman images", func() {
 		retnone := podmanTest.Podman([]string{"images", "-q", "-f", "reference=bogus"})
 		retnone.WaitWithDefaultTimeout()
 		Expect(retnone).Should(Exit(0))
-		Expect(len(retnone.OutputToStringArray())).To(Equal(0))
+		Expect(retnone.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("podman images filter before image", func() {
@@ -441,7 +441,7 @@ RUN > file2
 
 		//check if really abc is removed
 		result = podmanTest.Podman([]string{"image", "list", "--filter", "label=abc"})
-		Expect(len(result.OutputToStringArray())).To(Equal(0))
+		Expect(result.OutputToStringArray()).To(BeEmpty())
 
 	})
 
@@ -462,7 +462,7 @@ RUN > file2
 
 		//check if really abc is removed
 		result = podmanTest.Podman([]string{"image", "list", "--filter", "label=abc"})
-		Expect(len(result.OutputToStringArray())).To(Equal(0))
+		Expect(result.OutputToStringArray()).To(BeEmpty())
 
 	})
 

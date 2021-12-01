@@ -97,7 +97,7 @@ var _ = Describe("Podman logs", func() {
 			results := podmanTest.Podman([]string{"logs", "--tail", "0", cid})
 			results.WaitWithDefaultTimeout()
 			Expect(results).To(Exit(0))
-			Expect(len(results.OutputToStringArray())).To(Equal(0))
+			Expect(results.OutputToStringArray()).To(BeEmpty())
 		})
 
 		It("tail 99 lines: "+log, func() {
