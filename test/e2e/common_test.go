@@ -46,7 +46,7 @@ var (
 type PodmanTestIntegration struct {
 	PodmanTest
 	ConmonBinary        string
-	CrioRoot            string
+	Root                string
 	CNIConfigDir        string
 	OCIRuntime          string
 	RunRoot             string
@@ -130,7 +130,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		fmt.Printf("%q\n", err)
 		os.Exit(1)
 	}
-	podman.CrioRoot = ImageCacheDir
+	podman.Root = ImageCacheDir
 	// If running localized tests, the cache dir is created and populated. if the
 	// tests are remote, this is a no-op
 	populateCache(podman)
@@ -181,14 +181,14 @@ var _ = SynchronizedAfterSuite(func() {},
 			fmt.Printf("%s\t\t%f\n", result.name, result.length)
 		}
 
-		// previous crio-run
+		// previous runroot
 		tempdir, err := CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
 		}
 		podmanTest := PodmanTestCreate(tempdir)
 
-		if err := os.RemoveAll(podmanTest.CrioRoot); err != nil {
+		if err := os.RemoveAll(podmanTest.Root); err != nil {
 			fmt.Printf("%q\n", err)
 		}
 
@@ -272,11 +272,11 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 			ImageCacheDir:      ImageCacheDir,
 		},
 		ConmonBinary:        conmonBinary,
-		CrioRoot:            filepath.Join(tempDir, "crio"),
+		Root:                filepath.Join(tempDir, "root"),
 		TmpDir:              tempDir,
 		CNIConfigDir:        CNIConfigDir,
 		OCIRuntime:          ociRuntime,
-		RunRoot:             filepath.Join(tempDir, "crio-run"),
+		RunRoot:             filepath.Join(tempDir, "runroot"),
 		StorageOptions:      storageOptions,
 		SignaturePolicyPath: filepath.Join(INTEGRATION_ROOT, "test/policy.json"),
 		CgroupManager:       cgroupManager,
@@ -741,7 +741,7 @@ func (p *PodmanTestIntegration) RestoreArtifactToCache(image string) error {
 	fmt.Printf("Restoring %s...\n", image)
 	dest := strings.Split(image, "/")
 	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
-	p.CrioRoot = p.ImageCacheDir
+	p.Root = p.ImageCacheDir
 	restore := p.PodmanNoEvents([]string{"load", "-q", "-i", destName})
 	restore.WaitWithDefaultTimeout()
 	return nil
@@ -795,7 +795,7 @@ func (p *PodmanTestIntegration) makeOptions(args []string, noEvents, noCache boo
 	}
 
 	podmanOptions := strings.Split(fmt.Sprintf("%s--root %s --runroot %s --runtime %s --conmon %s --cni-config-dir %s --cgroup-manager %s --tmpdir %s --events-backend %s",
-		debug, p.CrioRoot, p.RunRoot, p.OCIRuntime, p.ConmonBinary, p.CNIConfigDir, p.CgroupManager, p.TmpDir, eventsType), " ")
+		debug, p.Root, p.RunRoot, p.OCIRuntime, p.ConmonBinary, p.CNIConfigDir, p.CgroupManager, p.TmpDir, eventsType), " ")
 	if os.Getenv("HOOK_OPTION") != "" {
 		podmanOptions = append(podmanOptions, os.Getenv("HOOK_OPTION"))
 	}
