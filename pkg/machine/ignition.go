@@ -322,6 +322,54 @@ machine_enabled=true
 		},
 	})
 
+	// increase timeout
+	systemdService := `[Unit]
+Description=Podman API Service
+Requires=podman.socket
+After=podman.socket
+Documentation=man:podman-system-service(1)
+StartLimitIntervalSec=0
+
+[Service]
+Type=exec
+KillMode=process
+Environment=LOGGING="--log-level=info"
+ExecStart=/usr/bin/podman $LOGGING system service --time=1800
+
+[Install]
+WantedBy=multi-user.target
+`
+
+	files = append(files, File{
+		Node: Node{
+			Group: getNodeGrp("root"),
+			Path:  "/etc/systemd/user/podman.service",
+			User:  getNodeUsr("root"),
+		},
+		FileEmbedded1: FileEmbedded1{
+			Append: nil,
+			Contents: Resource{
+				Source: encodeDataURLPtr(systemdService),
+			},
+			Mode: intToPtr(0644),
+		},
+	})
+
+	files = append(files, File{
+		Node: Node{
+			Group: getNodeGrp("root"),
+			Path:  "/etc/systemd/system/podman.service",
+			User:  getNodeUsr("root"),
+		},
+		FileEmbedded1: FileEmbedded1{
+			Append: nil,
+			Contents: Resource{
+				Source: encodeDataURLPtr(systemdService),
+			},
+			Mode: intToPtr(0644),
+		},
+	})
+
 	return files
 }
 
