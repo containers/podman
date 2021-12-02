@@ -393,14 +393,20 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Failed get images"))
 		return
 	}
-	var summaries = make([]*entities.ImageSummary, len(images))
-	for j, img := range images {
+
+	summaries := make([]*entities.ImageSummary, 0, len(images))
+	for _, img := range images {
+		// If the image is a manifest list, extract as much as we can.
+		if isML, _ := img.IsManifestList(r.Context()); isML {
+			continue
+		}
+
 		is, err := handlers.ImageToImageSummary(img)
 		if err != nil {
 			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Failed transform image summaries"))
 			return
 		}
-		summaries[j] = is
+		summaries = append(summaries, is)
 	}
 	utils.WriteResponse(w, http.StatusOK, summaries)
 }
