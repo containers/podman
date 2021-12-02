@@ -43,7 +43,7 @@ var _ = Describe("Podman trust", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		outArray := session.OutputToStringArray()
-		Expect(len(outArray)).To(Equal(3))
+		Expect(outArray).To(HaveLen(3))
 
 		// Repository order is not guaranteed. So, check that
 		// all expected lines appear in output; we also check total number of lines, so that handles all of them.
@@ -69,7 +69,7 @@ var _ = Describe("Podman trust", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		Expect(teststruct["default"][0]["type"]).To(Equal("insecureAcceptAnything"))
+		Expect(teststruct["default"][0]).To(HaveKeyWithValue("type", "insecureAcceptAnything"))
 	})
 
 	It("podman image trust show --json", func() {
@@ -79,7 +79,7 @@ var _ = Describe("Podman trust", func() {
 		Expect(session.OutputToString()).To(BeValidJSON())
 		var teststruct []map[string]string
 		json.Unmarshal(session.Out.Contents(), &teststruct)
-		Expect(len(teststruct)).To(Equal(3))
+		Expect(teststruct).To(HaveLen(3))
 		// To ease comparison, group the unordered array of repos by repo (and we expect only one entry by repo, so order within groups doesn’t matter)
 		repoMap := map[string][]map[string]string{}
 		for _, e := range teststruct {

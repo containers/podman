@@ -45,8 +45,8 @@ func checkDataVolumeContainer(pTest *PodmanTestIntegration, image, cont, dest, d
 	Expect(create).Should(Exit(0))
 
 	inspect := pTest.InspectContainer(cont)
-	Expect(len(inspect)).To(Equal(1))
-	Expect(len(inspect[0].Mounts)).To(Equal(1))
+	Expect(inspect).To(HaveLen(1))
+	Expect(inspect[0].Mounts).To(HaveLen(1))
 	Expect(inspect[0].Mounts[0].Destination).To(Equal(dest))
 
 	mntName, mntSource := inspect[0].Mounts[0].Name, inspect[0].Mounts[0].Source
@@ -54,7 +54,7 @@ func checkDataVolumeContainer(pTest *PodmanTestIntegration, image, cont, dest, d
 	volList := pTest.Podman([]string{"volume", "list", "--quiet"})
 	volList.WaitWithDefaultTimeout()
 	Expect(volList).Should(Exit(0))
-	Expect(len(volList.OutputToStringArray())).To(Equal(1))
+	Expect(volList.OutputToStringArray()).To(HaveLen(1))
 	Expect(volList.OutputToStringArray()[0]).To(Equal(mntName))
 
 	// Check the mount source directory
@@ -62,9 +62,9 @@ func checkDataVolumeContainer(pTest *PodmanTestIntegration, image, cont, dest, d
 	Expect(err).To(BeNil())
 
 	if data == "" {
-		Expect(len(files)).To(Equal(0))
+		Expect(files).To(BeEmpty())
 	} else {
-		Expect(len(files)).To(Equal(1))
+		Expect(files).To(HaveLen(1))
 		Expect(files[0].Name()).To(Equal(data))
 	}
 }

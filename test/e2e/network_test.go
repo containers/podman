@@ -262,8 +262,8 @@ var _ = Describe("Podman network", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		conData := inspect.InspectContainerToJSON()
-		Expect(len(conData)).To(Equal(1))
-		Expect(len(conData[0].NetworkSettings.Networks)).To(Equal(1))
+		Expect(conData).To(HaveLen(1))
+		Expect(conData[0].NetworkSettings.Networks).To(HaveLen(1))
 		net, ok := conData[0].NetworkSettings.Networks[netName]
 		Expect(ok).To(BeTrue())
 		Expect(net.NetworkID).To(Equal(netName))
@@ -298,8 +298,8 @@ var _ = Describe("Podman network", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		conData := inspect.InspectContainerToJSON()
-		Expect(len(conData)).To(Equal(1))
-		Expect(len(conData[0].NetworkSettings.Networks)).To(Equal(2))
+		Expect(conData).To(HaveLen(1))
+		Expect(conData[0].NetworkSettings.Networks).To(HaveLen(2))
 		net1, ok := conData[0].NetworkSettings.Networks[netName1]
 		Expect(ok).To(BeTrue())
 		Expect(net1.NetworkID).To(Equal(netName1))
@@ -335,8 +335,8 @@ var _ = Describe("Podman network", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		conData := inspect.InspectContainerToJSON()
-		Expect(len(conData)).To(Equal(1))
-		Expect(len(conData[0].NetworkSettings.Networks)).To(Equal(2))
+		Expect(conData).To(HaveLen(1))
+		Expect(conData[0].NetworkSettings.Networks).To(HaveLen(2))
 		net1, ok := conData[0].NetworkSettings.Networks[netName1]
 		Expect(ok).To(BeTrue())
 		Expect(net1.NetworkID).To(Equal(netName1))

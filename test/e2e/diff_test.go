@@ -120,13 +120,13 @@ RUN echo test
 		session := podmanTest.Podman([]string{"image", "diff", image})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically("==", 1))
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
 		Expect(session.OutputToString()).To(Equal("A " + file3))
 
 		session = podmanTest.Podman([]string{"image", "diff", image, baseImage})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically("==", 4))
+		Expect(session.OutputToStringArray()).To(HaveLen(4))
 		Expect(session.OutputToString()).To(ContainSubstring("A " + file1))
 		Expect(session.OutputToString()).To(ContainSubstring("A " + file2))
 		Expect(session.OutputToString()).To(ContainSubstring("A " + file3))
@@ -149,7 +149,7 @@ RUN echo test
 		session := podmanTest.Podman([]string{"image", "diff", ALPINE, ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically("==", 0))
+		Expect(session.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("podman diff container and image with same name", func() {
@@ -172,20 +172,20 @@ RUN touch %s`, ALPINE, imagefile)
 		session = podmanTest.Podman([]string{"diff", name})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically("==", 2))
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
 		Expect(session.OutputToString()).To(ContainSubstring(imagefile))
 
 		session = podmanTest.Podman([]string{"image", "diff", name})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically("==", 2))
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
 		Expect(session.OutputToString()).To(ContainSubstring(imagefile))
 
 		// container diff has to show the container
 		session = podmanTest.Podman([]string{"container", "diff", name})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically("==", 2))
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
 		Expect(session.OutputToString()).To(ContainSubstring(confile))
 	})
 

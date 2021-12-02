@@ -289,7 +289,7 @@ var _ = Describe("Podman run", func() {
 		Expect(result).Should(Exit(0))
 		conData := result.InspectContainerToJSON()
 		Expect(conData[0].Path).To(Equal("/dev/init"))
-		Expect(conData[0].Config.Annotations["io.podman.annotations.init"]).To(Equal("TRUE"))
+		Expect(conData[0].Config.Annotations).To(HaveKeyWithValue("io.podman.annotations.init", "TRUE"))
 	})
 
 	It("podman run a container with --init and --init-path", func() {
@@ -301,7 +301,7 @@ var _ = Describe("Podman run", func() {
 		Expect(result).Should(Exit(0))
 		conData := result.InspectContainerToJSON()
 		Expect(conData[0].Path).To(Equal("/dev/init"))
-		Expect(conData[0].Config.Annotations["io.podman.annotations.init"]).To(Equal("TRUE"))
+		Expect(conData[0].Config.Annotations).To(HaveKeyWithValue("io.podman.annotations.init", "TRUE"))
 	})
 
 	It("podman run a container without --init", func() {
@@ -313,7 +313,7 @@ var _ = Describe("Podman run", func() {
 		Expect(result).Should(Exit(0))
 		conData := result.InspectContainerToJSON()
 		Expect(conData[0].Path).To(Equal("ls"))
-		Expect(conData[0].Config.Annotations["io.podman.annotations.init"]).To(Equal("FALSE"))
+		Expect(conData[0].Config.Annotations).To(HaveKeyWithValue("io.podman.annotations.init", "FALSE"))
 	})
 
 	forbidGetCWDSeccompProfile := func() string {
@@ -1186,7 +1186,7 @@ USER mail`, BB)
 		session := podmanTest.Podman([]string{"run", "--mount", "type=bind,bind-nonrecursive,slave,src=/,target=/host", fedoraMinimal, "findmnt", "-nR", "/host"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(1))
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
 	})
 
 	It("podman run --mount type=devpts,target=/foo/bar", func() {
@@ -1444,7 +1444,7 @@ USER mail`, BB)
 
 		// Get PID and get cgroups of that PID
 		inspectOut := podmanTest.InspectContainer(ctrName)
-		Expect(len(inspectOut)).To(Equal(1))
+		Expect(inspectOut).To(HaveLen(1))
 		pid := inspectOut[0].State.Pid
 		Expect(pid).To(Not(Equal(0)))
 
@@ -1897,7 +1897,7 @@ WORKDIR /madethis`, BB)
 		running := podmanTest.Podman([]string{"ps", "-q"})
 		running.WaitWithDefaultTimeout()
 		Expect(running).Should(Exit(0))
-		Expect(len(running.OutputToStringArray())).To(Equal(2))
+		Expect(running.OutputToStringArray()).To(HaveLen(2))
 	})
 
 	It("podman run with pidfile", func() {

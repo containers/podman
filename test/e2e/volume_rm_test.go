@@ -45,7 +45,7 @@ var _ = Describe("Podman volume rm", func() {
 		session = podmanTest.Podman([]string{"volume", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(0))
+		Expect(session.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("podman volume rm with --force flag", func() {
@@ -66,7 +66,7 @@ var _ = Describe("Podman volume rm", func() {
 		session = podmanTest.Podman([]string{"volume", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(0))
+		Expect(session.OutputToStringArray()).To(BeEmpty())
 
 		podmanTest.Cleanup()
 	})
@@ -93,7 +93,7 @@ var _ = Describe("Podman volume rm", func() {
 		session = podmanTest.Podman([]string{"volume", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(0))
+		Expect(session.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("podman volume rm by partial name", func() {
@@ -108,7 +108,7 @@ var _ = Describe("Podman volume rm", func() {
 		session = podmanTest.Podman([]string{"volume", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(0))
+		Expect(session.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("podman volume rm by nonunique partial name", func() {

@@ -125,7 +125,7 @@ LABEL marge=mom
 		Expect(inspect).Should(Exit(0))
 		inspectData := inspect.InspectContainerToJSON()
 		Expect(len(inspectData)).To(BeNumerically(">", 0))
-		Expect(inspectData[0].Config.Labels["homer"]).To(Equal("dad"))
+		Expect(inspectData[0].Config.Labels).To(HaveKeyWithValue("homer", "dad"))
 	})
 
 	It("Check that image is built using Containerfile", func() {
@@ -162,7 +162,7 @@ LABEL marge=mom
 		Expect(inspect).Should(Exit(0))
 		inspectData := inspect.InspectContainerToJSON()
 		Expect(len(inspectData)).To(BeNumerically(">", 0))
-		Expect(inspectData[0].Config.Labels["homer"]).To(Equal("dad"))
+		Expect(inspectData[0].Config.Labels).To(HaveKeyWithValue("homer", "dad"))
 	})
 
 	It("Do not build image if already in the local store", func() {
@@ -208,8 +208,8 @@ LABEL marge=mom
 		Expect(inspect).Should(Exit(0))
 		inspectData := inspect.InspectContainerToJSON()
 		Expect(len(inspectData)).To(BeNumerically(">", 0))
-		Expect(inspectData[0].Config.Labels["homer"]).To(Equal(""))
-		Expect(inspectData[0].Config.Labels["marge"]).To(Equal("mom"))
+		Expect(inspectData[0].Config.Labels).To(Not(HaveKey("homer")))
+		Expect(inspectData[0].Config.Labels).To(HaveKeyWithValue("marge", "mom"))
 	})
 
 	It("--build should override image in store", func() {
@@ -255,8 +255,8 @@ LABEL marge=mom
 		Expect(inspect).Should(Exit(0))
 		inspectData := inspect.InspectContainerToJSON()
 		Expect(len(inspectData)).To(BeNumerically(">", 0))
-		Expect(inspectData[0].Config.Labels["homer"]).To(Equal("dad"))
-		Expect(inspectData[0].Config.Labels["marge"]).To(Equal(""))
+		Expect(inspectData[0].Config.Labels).To(HaveKeyWithValue("homer", "dad"))
+		Expect(inspectData[0].Config.Labels).To(Not(HaveKey("marge")))
 	})
 
 })

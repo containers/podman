@@ -71,7 +71,7 @@ var _ = Describe("Podman volume inspect", func() {
 		session = podmanTest.Podman([]string{"volume", "inspect", "--format", "{{.Name}}", "--all"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(2))
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
 		Expect(session.OutputToStringArray()[0]).To(Equal(volName1))
 		Expect(session.OutputToStringArray()[1]).To(Equal(volName2))
 	})

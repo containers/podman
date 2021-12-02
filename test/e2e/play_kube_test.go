@@ -2012,8 +2012,8 @@ spec:
 
 		ctr := inspect.InspectContainerToJSON()
 		Expect(ctr[0].Config.WorkingDir).To(ContainSubstring("/etc"))
-		Expect(ctr[0].Config.Labels["key1"]).To(ContainSubstring("value1"))
-		Expect(ctr[0].Config.Labels["key1"]).To(ContainSubstring("value1"))
+		Expect(ctr[0].Config.Labels).To(HaveKeyWithValue("key1", ContainSubstring("value1")))
+		Expect(ctr[0].Config.Labels).To(HaveKeyWithValue("key1", ContainSubstring("value1")))
 		Expect(ctr[0].Config.StopSignal).To(Equal(uint(51)))
 	})
 
@@ -2286,7 +2286,7 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 		// If two volumes are specified and share the same destination,
 		// only one will be mounted. Host path volumes take precedence.
 		ctrJSON := inspect.InspectContainerToJSON()
-		Expect(len(ctrJSON[0].Mounts)).To(Equal(1))
+		Expect(ctrJSON[0].Mounts).To(HaveLen(1))
 		Expect(ctrJSON[0].Mounts[0].Type).To(Equal("bind"))
 
 	})
@@ -2770,7 +2770,7 @@ invalid kube kind
 		ls := podmanTest.Podman([]string{"pod", "ps", "--format", "'{{.ID}}'"})
 		ls.WaitWithDefaultTimeout()
 		Expect(ls).Should(Exit(0))
-		Expect(len(ls.OutputToStringArray())).To(Equal(1))
+		Expect(ls.OutputToStringArray()).To(HaveLen(1))
 
 		//	 teardown
 		teardown := podmanTest.Podman([]string{"play", "kube", "--down", kubeYaml})
@@ -2780,7 +2780,7 @@ invalid kube kind
 		checkls := podmanTest.Podman([]string{"pod", "ps", "--format", "'{{.ID}}'"})
 		checkls.WaitWithDefaultTimeout()
 		Expect(checkls).Should(Exit(0))
-		Expect(len(checkls.OutputToStringArray())).To(Equal(0))
+		Expect(checkls.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("podman play kube teardown pod does not exist", func() {
@@ -2862,7 +2862,7 @@ invalid kube kind
 		ls := podmanTest.Podman([]string{"pod", "ps", "--format", "'{{.ID}}'"})
 		ls.WaitWithDefaultTimeout()
 		Expect(ls).Should(Exit(0))
-		Expect(len(ls.OutputToStringArray())).To(Equal(1))
+		Expect(ls.OutputToStringArray()).To(HaveLen(1))
 
 		containerLen := podmanTest.Podman([]string{"pod", "inspect", pod.Name, "--format", "'{{len .Containers}}'"})
 
@@ -2901,7 +2901,7 @@ invalid kube kind
 		ls := podmanTest.Podman([]string{"pod", "ps", "--format", "'{{.ID}}'"})
 		ls.WaitWithDefaultTimeout()
 		Expect(ls).Should(Exit(0))
-		Expect(len(ls.OutputToStringArray())).To(Equal(1))
+		Expect(ls.OutputToStringArray()).To(HaveLen(1))
 	})
 
 	Describe("verify environment variables", func() {

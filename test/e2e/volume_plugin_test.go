@@ -72,7 +72,7 @@ var _ = Describe("Podman volume plugins", func() {
 		ls1.WaitWithDefaultTimeout()
 		Expect(ls1).Should(Exit(0))
 		arrOutput := ls1.OutputToStringArray()
-		Expect(len(arrOutput)).To(Equal(1))
+		Expect(arrOutput).To(HaveLen(1))
 		Expect(arrOutput[0]).To(ContainSubstring(volName))
 
 		remove := podmanTest.Podman([]string{"volume", "rm", volName})
@@ -82,7 +82,7 @@ var _ = Describe("Podman volume plugins", func() {
 		ls2 := podmanTest.Podman([]string{"volume", "ls", "-q"})
 		ls2.WaitWithDefaultTimeout()
 		Expect(ls2).Should(Exit(0))
-		Expect(len(ls2.OutputToStringArray())).To(Equal(0))
+		Expect(ls2.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("volume inspect with running plugin succeeds", func() {
@@ -130,7 +130,7 @@ var _ = Describe("Podman volume plugins", func() {
 		ls1.WaitWithDefaultTimeout()
 		Expect(ls1).Should(Exit(0))
 		arrOutput := ls1.OutputToStringArray()
-		Expect(len(arrOutput)).To(Equal(1))
+		Expect(arrOutput).To(HaveLen(1))
 		Expect(arrOutput[0]).To(ContainSubstring(volName))
 
 		stop := podmanTest.Podman([]string{"stop", "--timeout", "0", ctrName})
@@ -146,7 +146,7 @@ var _ = Describe("Podman volume plugins", func() {
 		ls2 := podmanTest.Podman([]string{"volume", "ls", "-q"})
 		ls2.WaitWithDefaultTimeout()
 		Expect(ls2).Should(Exit(0))
-		Expect(len(ls2.OutputToStringArray())).To(Equal(0))
+		Expect(ls2.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("use plugin in containers", func() {

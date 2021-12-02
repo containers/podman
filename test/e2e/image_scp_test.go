@@ -109,7 +109,7 @@ var _ = Describe("podman image scp", func() {
 		cfg, err := config.ReadCustomConfig()
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(cfg.Engine.ActiveService).To(Equal("QA"))
-		Expect(cfg.Engine.ServiceDestinations["QA"]).To(Equal(
+		Expect(cfg.Engine.ServiceDestinations).To(HaveKeyWithValue("QA",
 			config.Destination{
 				URI: "ssh://root@server.fubar.com:2222/run/podman/podman.sock",
 			},

@@ -239,7 +239,7 @@ var _ = Describe("Podman healthcheck run", func() {
 		ps := podmanTest.Podman([]string{"ps", "--filter", "health=healthy"})
 		ps.WaitWithDefaultTimeout()
 		Expect(ps).Should(Exit(0))
-		Expect(len(ps.OutputToStringArray())).To(Equal(2))
+		Expect(ps.OutputToStringArray()).To(HaveLen(2))
 		Expect(ps.OutputToString()).To(ContainSubstring("hc"))
 	})
 })

@@ -68,7 +68,7 @@ var _ = Describe("Podman run", func() {
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--env", "FOO", ALPINE, "printenv", "FOO"})
 		session.WaitWithDefaultTimeout()
-		Expect(len(session.OutputToString())).To(Equal(0))
+		Expect(session.OutputToString()).To(BeEmpty())
 		Expect(session).Should(Exit(1))
 
 		session = podmanTest.Podman([]string{"run", "--rm", ALPINE, "printenv"})

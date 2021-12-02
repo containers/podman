@@ -113,7 +113,7 @@ var _ = Describe("Podman inspect", func() {
 		result := podmanTest.Podman([]string{"inspect", "--format={{.ID}}", cid, ALPINE})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(2))
+		Expect(result.OutputToStringArray()).To(HaveLen(2))
 	})
 
 	It("podman inspect container and filter for Image{ID}", func() {
@@ -124,12 +124,12 @@ var _ = Describe("Podman inspect", func() {
 		result := podmanTest.Podman([]string{"inspect", "--format={{.ImageID}}", cid})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(1))
+		Expect(result.OutputToStringArray()).To(HaveLen(1))
 
 		result = podmanTest.Podman([]string{"inspect", "--format={{.Image}}", cid})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(1))
+		Expect(result.OutputToStringArray()).To(HaveLen(1))
 	})
 
 	It("podman inspect container and filter for CreateCommand", func() {
@@ -140,7 +140,7 @@ var _ = Describe("Podman inspect", func() {
 		result := podmanTest.Podman([]string{"inspect", "--format={{.Config.CreateCommand}}", cid})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(1))
+		Expect(result.OutputToStringArray()).To(HaveLen(1))
 	})
 
 	It("podman inspect -l with additional input should fail", func() {
@@ -200,7 +200,7 @@ var _ = Describe("Podman inspect", func() {
 		baseInspect.WaitWithDefaultTimeout()
 		Expect(baseInspect).Should(Exit(0))
 		baseJSON := baseInspect.InspectImageJSON()
-		Expect(len(baseJSON)).To(Equal(1))
+		Expect(baseJSON).To(HaveLen(1))
 
 		ctrInspect := podmanTest.Podman([]string{"container", "inspect", ALPINE})
 		ctrInspect.WaitWithDefaultTimeout()
@@ -210,7 +210,7 @@ var _ = Describe("Podman inspect", func() {
 		imageInspect.WaitWithDefaultTimeout()
 		Expect(imageInspect).Should(Exit(0))
 		imageJSON := imageInspect.InspectImageJSON()
-		Expect(len(imageJSON)).To(Equal(1))
+		Expect(imageJSON).To(HaveLen(1))
 
 		Expect(baseJSON[0].ID).To(Equal(imageJSON[0].ID))
 	})
@@ -225,13 +225,13 @@ var _ = Describe("Podman inspect", func() {
 		baseInspect.WaitWithDefaultTimeout()
 		Expect(baseInspect).Should(Exit(0))
 		baseJSON := baseInspect.InspectContainerToJSON()
-		Expect(len(baseJSON)).To(Equal(1))
+		Expect(baseJSON).To(HaveLen(1))
 
 		ctrInspect := podmanTest.Podman([]string{"container", "inspect", ctrName})
 		ctrInspect.WaitWithDefaultTimeout()
 		Expect(ctrInspect).Should(Exit(0))
 		ctrJSON := ctrInspect.InspectContainerToJSON()
-		Expect(len(ctrJSON)).To(Equal(1))
+		Expect(ctrJSON).To(HaveLen(1))
 
 		imageInspect := podmanTest.Podman([]string{"image", "inspect", ctrName})
 		imageInspect.WaitWithDefaultTimeout()
@@ -245,7 +245,7 @@ var _ = Describe("Podman inspect", func() {
 		baseInspect.WaitWithDefaultTimeout()
 		Expect(baseInspect).To(ExitWithError())
 		emptyJSON := baseInspect.InspectContainerToJSON()
-		Expect(len(emptyJSON)).To(Equal(0))
+		Expect(emptyJSON).To(BeEmpty())
 	})
 
 	It("podman inspect one container with not exist returns 1-length valid array", func() {
@@ -258,7 +258,7 @@ var _ = Describe("Podman inspect", func() {
 		baseInspect.WaitWithDefaultTimeout()
 		Expect(baseInspect).To(ExitWithError())
 		baseJSON := baseInspect.InspectContainerToJSON()
-		Expect(len(baseJSON)).To(Equal(1))
+		Expect(baseJSON).To(HaveLen(1))
 		Expect(baseJSON[0].Name).To(Equal(ctrName))
 	})
 
@@ -277,7 +277,7 @@ var _ = Describe("Podman inspect", func() {
 		baseInspect.WaitWithDefaultTimeout()
 		Expect(baseInspect).Should(Exit(0))
 		baseJSON := baseInspect.InspectContainerToJSON()
-		Expect(len(baseJSON)).To(Equal(1))
+		Expect(baseJSON).To(HaveLen(1))
 		Expect(baseJSON[0].Name).To(Equal(ctrName))
 	})
 
@@ -301,7 +301,7 @@ var _ = Describe("Podman inspect", func() {
 		baseInspect.WaitWithDefaultTimeout()
 		Expect(baseInspect).Should(Exit(0))
 		baseJSON := baseInspect.InspectContainerToJSON()
-		Expect(len(baseJSON)).To(Equal(1))
+		Expect(baseJSON).To(HaveLen(1))
 		Expect(baseJSON[0].HostConfig.SecurityOpt).To(Equal([]string{"label=type:spc_t,label=level:s0", "seccomp=unconfined"}))
 	})
 
@@ -468,8 +468,8 @@ var _ = Describe("Podman inspect", func() {
 		Expect(session).Should(Exit(0))
 
 		inspect := podmanTest.InspectContainer(ctrName)
-		Expect(len(inspect)).To(Equal(1))
-		Expect(len(inspect[0].NetworkSettings.Networks)).To(Equal(1))
+		Expect(inspect).To(HaveLen(1))
+		Expect(inspect[0].NetworkSettings.Networks).To(HaveLen(1))
 	})
 
 	It("Verify stopped container still has default network in inspect", func() {
@@ -480,8 +480,8 @@ var _ = Describe("Podman inspect", func() {
 		Expect(session).Should(Exit(0))
 
 		inspect := podmanTest.InspectContainer(ctrName)
-		Expect(len(inspect)).To(Equal(1))
-		Expect(len(inspect[0].NetworkSettings.Networks)).To(Equal(1))
+		Expect(inspect).To(HaveLen(1))
+		Expect(inspect[0].NetworkSettings.Networks).To(HaveLen(1))
 	})
 
 	It("Container inspect with unlimited uilimits should be -1", func() {
@@ -519,8 +519,8 @@ var _ = Describe("Podman inspect", func() {
 		Expect(inspect).Should(Exit(0))
 
 		data := inspect.InspectContainerToJSON()
-		Expect(len(data)).To(Equal(1))
-		Expect(len(data[0].HostConfig.CapDrop)).To(Equal(3))
+		Expect(data).To(HaveLen(1))
+		Expect(data[0].HostConfig.CapDrop).To(HaveLen(3))
 		Expect(data[0].HostConfig.CapDrop[0]).To(Equal("CAP_AUDIT_WRITE"))
 		Expect(data[0].HostConfig.CapDrop[1]).To(Equal("CAP_MKNOD"))
 		Expect(data[0].HostConfig.CapDrop[2]).To(Equal("CAP_NET_RAW"))

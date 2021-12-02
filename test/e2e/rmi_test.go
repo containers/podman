@@ -136,13 +136,13 @@ var _ = Describe("Podman rmi", func() {
 		session = podmanTest.Podman([]string{"images", "-q"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(12))
+		Expect(session.OutputToStringArray()).To(HaveLen(12))
 
 		session = podmanTest.Podman([]string{"images", "--sort", "created", "--format", "{{.Id}}", "--all"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(13),
-			"Output from 'podman images -q -a':'%s'", session.Out.Contents())
+		Expect(session.OutputToStringArray()).To(HaveLen(13),
+			"Output from 'podman images -q -a'")
 		untaggedImg := session.OutputToStringArray()[1]
 
 		session = podmanTest.Podman([]string{"rmi", "-f", untaggedImg})
@@ -179,7 +179,7 @@ var _ = Describe("Podman rmi", func() {
 		session = podmanTest.Podman([]string{"images", "-q"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(len(CACHE_IMAGES) + 1))
+		Expect(session.OutputToStringArray()).To(HaveLen(len(CACHE_IMAGES) + 1))
 	})
 
 	It("podman rmi with cached images", func() {
@@ -221,7 +221,7 @@ var _ = Describe("Podman rmi", func() {
 		session = podmanTest.Podman([]string{"images", "-q", "-a"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(len(CACHE_IMAGES) + 1))
+		Expect(session.OutputToStringArray()).To(HaveLen(len(CACHE_IMAGES) + 1))
 
 		podmanTest.BuildImage(dockerfile, "test3", "true")
 
@@ -236,7 +236,7 @@ var _ = Describe("Podman rmi", func() {
 		session = podmanTest.Podman([]string{"images", "-q", "-a"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToString())).To(Equal(155))
+		Expect(session.OutputToString()).To(HaveLen(155))
 	})
 
 	It("podman rmi -a with no images should be exit 0", func() {
@@ -267,7 +267,7 @@ RUN find $LOCAL
 		images := podmanTest.Podman([]string{"images", "-aq"})
 		images.WaitWithDefaultTimeout()
 		Expect(images).Should(Exit(0))
-		Expect(len(images.OutputToStringArray())).To(Equal(len(CACHE_IMAGES)))
+		Expect(images.OutputToStringArray()).To(HaveLen(len(CACHE_IMAGES)))
 	})
 
 	// Don't rerun all tests; just assume that if we get that diagnostic,

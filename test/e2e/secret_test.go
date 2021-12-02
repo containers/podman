@@ -141,7 +141,7 @@ var _ = Describe("Podman secret", func() {
 		list := podmanTest.Podman([]string{"secret", "ls"})
 		list.WaitWithDefaultTimeout()
 		Expect(list).Should(Exit(0))
-		Expect(len(list.OutputToStringArray())).To(Equal(2))
+		Expect(list.OutputToStringArray()).To(HaveLen(2))
 
 	})
 
@@ -158,7 +158,7 @@ var _ = Describe("Podman secret", func() {
 		list.WaitWithDefaultTimeout()
 
 		Expect(list).Should(Exit(0))
-		Expect(len(list.OutputToStringArray())).To(Equal(2), list.OutputToString())
+		Expect(list.OutputToStringArray()).To(HaveLen(2), list.OutputToString())
 	})
 
 	It("podman secret rm", func() {
@@ -179,7 +179,7 @@ var _ = Describe("Podman secret", func() {
 		session = podmanTest.Podman([]string{"secret", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(1))
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
 	})
 
 	It("podman secret rm --all", func() {
@@ -201,7 +201,7 @@ var _ = Describe("Podman secret", func() {
 		session = podmanTest.Podman([]string{"secret", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(1))
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
 	})
 
 	It("podman secret creates from environment variable", func() {

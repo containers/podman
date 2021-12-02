@@ -96,7 +96,7 @@ var _ = Describe("Podman pod rm", func() {
 
 		result = podmanTest.Podman([]string{"ps", "-qa"})
 		result.WaitWithDefaultTimeout()
-		Expect(len(result.OutputToStringArray())).To(Equal(0))
+		Expect(result.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("podman pod rm -f does remove a running container", func() {

@@ -49,7 +49,7 @@ var _ = Describe("Podman pod create", func() {
 		check := podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc"})
 		check.WaitWithDefaultTimeout()
 		Expect(check.OutputToString()).To(ContainSubstring(podID))
-		Expect(len(check.OutputToStringArray())).To(Equal(1))
+		Expect(check.OutputToStringArray()).To(HaveLen(1))
 	})
 
 	It("podman create pod with name", func() {
@@ -72,7 +72,7 @@ var _ = Describe("Podman pod create", func() {
 
 		check := podmanTest.Podman([]string{"pod", "ps", "-q"})
 		check.WaitWithDefaultTimeout()
-		Expect(len(check.OutputToStringArray())).To(Equal(1))
+		Expect(check.OutputToStringArray()).To(HaveLen(1))
 	})
 
 	It("podman create pod with same name as ctr", func() {
@@ -86,7 +86,7 @@ var _ = Describe("Podman pod create", func() {
 
 		check := podmanTest.Podman([]string{"pod", "ps", "-q"})
 		check.WaitWithDefaultTimeout()
-		Expect(len(check.OutputToStringArray())).To(Equal(0))
+		Expect(check.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("podman create pod without network portbindings", func() {
@@ -517,7 +517,7 @@ entrypoint ["/fromimage"]
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("inet 127.0.0.1/8 scope host lo"))
-		Expect(len(session.OutputToStringArray())).To(Equal(1))
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
 	})
 
 	It("podman pod create --infra-image w/untagged image", func() {
@@ -729,7 +729,7 @@ ENTRYPOINT ["sleep","99999"]
 			m[l] = l
 		}
 		// check for no duplicates
-		Expect(len(m)).To(Equal(5))
+		Expect(m).To(HaveLen(5))
 	})
 
 	It("podman pod create --userns=auto:size=%d", func() {

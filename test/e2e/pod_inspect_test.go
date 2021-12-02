@@ -97,7 +97,7 @@ var _ = Describe("Podman pod inspect", func() {
 		err := json.Unmarshal(inspectOut.Out.Contents(), inspectJSON)
 		Expect(err).To(BeNil())
 		Expect(inspectJSON.InfraConfig).To(Not(BeNil()))
-		Expect(len(inspectJSON.InfraConfig.PortBindings["80/tcp"])).To(Equal(1))
+		Expect(inspectJSON.InfraConfig.PortBindings["80/tcp"]).To(HaveLen(1))
 		Expect(inspectJSON.InfraConfig.PortBindings["80/tcp"][0].HostPort).To(Equal("8383"))
 	})
 
