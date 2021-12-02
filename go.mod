@@ -17,7 +17,7 @@ require (
 	github.com/containers/image/v5 v5.17.1-0.20211129144953-4f6d0b45be6c
 	github.com/containers/ocicrypt v1.1.2
 	github.com/containers/psgo v1.7.1
-	github.com/containers/storage v1.37.1-0.20211122214631-59ba58582415
+	github.com/containers/storage v1.37.1-0.20211130181259-1a158c89a518
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
 	github.com/cyphar/filepath-securejoin v0.2.3
@@ -46,7 +46,7 @@ require (
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.17.0
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/opencontainers/image-spec v1.0.2-0.20210819154149-5ad6f50d6283
+	github.com/opencontainers/image-spec v1.0.2-0.20211123152302-43a7dee1ec31
 	github.com/opencontainers/runc v1.0.2
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/opencontainers/runtime-tools v0.9.1-0.20211020193359-09d837bf40a7

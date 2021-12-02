@@ -17,8 +17,8 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ###
-    FEDORA_NAME: "fedora-34"
-    PRIOR_FEDORA_NAME: "fedora-33"
+    FEDORA_NAME: "fedora-35"
+    PRIOR_FEDORA_NAME: "fedora-34"
     UBUNTU_NAME: "ubuntu-2104"
 
     # GCE project where images live
