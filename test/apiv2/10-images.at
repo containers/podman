@@ -10,6 +10,13 @@ t GET libpod/images/json 200 \
   .[0].Id~[0-9a-f]\\{64\\}
 iid=$(jq -r '.[0].Id' <<<"$output")
 
+# Create an empty manifest and make sure it is not listed
+# in the compat endpoint.
+t GET images/json 200 length=1
+podman manifest create foo
+t GET images/json 200 length=1
+t GET libpod/images/json 200 length=2
+
 t GET libpod/images/$iid/exists                     204
 t GET libpod/images/$PODMAN_TEST_IMAGE_NAME/exists  204
 t GET libpod/images/${iid}abcdef/exists  404 \
