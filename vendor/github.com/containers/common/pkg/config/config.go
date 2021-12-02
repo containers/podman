@@ -420,6 +420,9 @@ type EngineConfig struct {
 	// ChownCopiedFiles tells the container engine whether to chown files copied
 	// into a container to the container's primary uid/gid.
 	ChownCopiedFiles bool `toml:"chown_copied_files,omitempty"`
+
+	// CompressionFormat is the compression format used to compress image layers.
+	CompressionFormat string `toml:"compression_format,omitempty"`
 }
 
 // SetOptions contains a subset of options in a Config. It's used to indicate if

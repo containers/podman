@@ -1,3 +1,7 @@
+## 1.4.3
+
+* Fix cases where `json.Number` didn't decode properly [GH-261]
+
 ## 1.4.2
 
 * Custom name matchers to support any sort of casing, formatting, etc. for
