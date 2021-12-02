@@ -306,8 +306,16 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 	pushOptions.SignBy = options.SignBy
 	pushOptions.InsecureSkipTLSVerify = options.SkipTLSVerify
 
-	if options.CompressionFormat != "" {
-		algo, err := compression.AlgorithmByName(options.CompressionFormat)
+	compressionFormat := options.CompressionFormat
+	if compressionFormat == "" {
+		config, err := ir.Libpod.GetConfigNoCopy()
+		if err != nil {
+			return err
+		}
+		compressionFormat = config.Engine.CompressionFormat
+	}
+	if compressionFormat != "" {
+		algo, err := compression.AlgorithmByName(compressionFormat)
 		if err != nil {
 			return err
 		}
