@@ -27,11 +27,11 @@ Note: `:` is a restricted character and cannot be part of the file name.
 #### **--compress**
 
 Compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type, compressed or uncompressed, as source)
-Note: This flag can only be set when using the **dir** transport i.e --format=oci-dir or --format=docker-dir
+Note: This flag can only be set with **--format=docker-dir**.
 
 #### **--uncompressed**
 
-Accept uncompressed layers when copying OCI images.
+Accept uncompressed layers when using one of the OCI formats.
 
 #### **--output**, **-o**=*file*
 
