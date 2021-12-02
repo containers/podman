@@ -74,8 +74,14 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	imageName = possiblyNormalizedName
-	if _, _, err := runtime.LibimageRuntime().LookupImage(possiblyNormalizedName, nil); err != nil {
+	localImage, _, err := runtime.LibimageRuntime().LookupImage(possiblyNormalizedName, nil)
+	if err != nil {
 		utils.ImageNotFound(w, imageName, errors.Wrapf(err, "failed to find image %s", imageName))
+		return
+	}
+	rawManifest, _, err := localImage.Manifest(r.Context())
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, err)
 		return
 	}
 
@@ -196,7 +202,7 @@ loop: // break out of for/select infinite loop
 			if tag == "" {
 				tag = "latest"
 			}
-			report.Status = fmt.Sprintf("%s: digest: %s", tag, string(digestBytes))
+			report.Status = fmt.Sprintf("%s: digest: %s size: %d", tag, string(digestBytes), len(rawManifest))
 			if err := enc.Encode(report); err != nil {
 				logrus.Warnf("Failed to json encode error %q", err.Error())
 			}
