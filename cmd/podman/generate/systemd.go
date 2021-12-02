@@ -21,6 +21,7 @@ import (
 const (
 	restartPolicyFlagName = "restart-policy"
 	timeFlagName          = "time"
+	restartSecFlagName    = "restart-sec"
 )
 
 var (
@@ -28,6 +29,7 @@ var (
 	format             string
 	systemdTimeout     uint
 	systemdRestart     string
+	systemdRestartSec  uint
 	systemdOptions     = entities.GenerateSystemdOptions{}
 	systemdDescription = `Generate systemd units for a pod or container.
   The generated units can later be controlled via systemctl(1).`
@@ -74,6 +76,9 @@ func init() {
 	flags.StringVar(&systemdRestart, restartPolicyFlagName, systemDefine.DefaultRestartPolicy, "Systemd restart-policy")
 	_ = systemdCmd.RegisterFlagCompletionFunc(restartPolicyFlagName, common.AutocompleteSystemdRestartOptions)
 
+	flags.UintVarP(&systemdRestartSec, restartSecFlagName, "", 0, "Systemd restart-sec")
+	_ = systemdCmd.RegisterFlagCompletionFunc(restartSecFlagName, completion.AutocompleteNone)
+
 	formatFlagName := "format"
 	flags.StringVar(&format, formatFlagName, "", "Print the created units in specified format (json)")
 	_ = systemdCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(nil))
@@ -91,6 +96,10 @@ func systemd(cmd *cobra.Command, args []string) error {
 
 	if registry.IsRemote() {
 		logrus.Warnln("The generated units should be placed on your remote system")
+	}
+
+	if cmd.Flags().Changed(restartSecFlagName) {
+		systemdOptions.RestartSec = &systemdRestartSec
 	}
 
 	reports, err := registry.ContainerEngine().GenerateSystemd(registry.GetContext(), args[0], systemdOptions)

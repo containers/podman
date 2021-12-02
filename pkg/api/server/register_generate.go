@@ -62,6 +62,11 @@ func (s *APIServer) registerGenerateHandlers(r *mux.Router) error {
 	//    type: string
 	//    default: "-"
 	//    description: Systemd unit name separator between name/id and prefix.
+	//  - in: query
+	//    name: restartSec
+	//    type: integer
+	//    default: 0
+	//    description: Configures the time to sleep before restarting a service.
 	// produces:
 	// - application/json
 	// responses:
