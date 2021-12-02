@@ -139,7 +139,11 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 
 		podContent = append(podContent, b)
 		if options.Service {
-			b, err := generateKubeYAML(libpod.GenerateKubeServiceFromV1Pod(po, []k8sAPI.ServicePort{}))
+			svc, err := libpod.GenerateKubeServiceFromV1Pod(po, []k8sAPI.ServicePort{})
+			if err != nil {
+				return nil, err
+			}
+			b, err := generateKubeYAML(svc)
 			if err != nil {
 				return nil, err
 			}
@@ -177,7 +181,11 @@ func getKubePods(ctx context.Context, pods []*libpod.Pod, getService bool) ([][]
 		pos = append(pos, b)
 
 		if getService {
-			b, err := generateKubeYAML(libpod.GenerateKubeServiceFromV1Pod(po, sp))
+			svc, err := libpod.GenerateKubeServiceFromV1Pod(po, sp)
+			if err != nil {
+				return nil, nil, err
+			}
+			b, err := generateKubeYAML(svc)
 			if err != nil {
 				return nil, nil, err
 			}
