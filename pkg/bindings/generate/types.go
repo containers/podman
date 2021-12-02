@@ -18,6 +18,8 @@ type SystemdOptions struct {
 	NoHeader *bool
 	// RestartPolicy - systemd restart policy.
 	RestartPolicy *string
+	// RestartSec - systemd service restartsec. Configures the time to sleep before restarting a service.
+	RestartSec *uint
 	// StopTimeout - time when stopping the container.
 	StopTimeout *uint
 	// ContainerPrefix - systemd unit name prefix for containers

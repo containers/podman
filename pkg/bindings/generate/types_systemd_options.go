@@ -77,6 +77,36 @@ func (o *SystemdOptions) GetRestartPolicy() string {
 	return *o.RestartPolicy
 }
 
+// WithRestartSec set field RestartSec to given value
+func (o *SystemdOptions) WithRestartSec(value uint) *SystemdOptions {
+	o.RestartSec = &value
+	return o
+}
+
+// GetRestartSec returns value of field RestartSec
+func (o *SystemdOptions) GetRestartSec() uint {
+	if o.RestartSec == nil {
+		var z uint
+		return z
+	}
+	return *o.RestartSec
+}
+
+// WithStartTimeout set field StartTimeout to given value
+func (o *SystemdOptions) WithStartTimeout(value uint) *SystemdOptions {
+	o.StartTimeout = &value
+	return o
+}
+
+// GetStartTimeout returns value of field StartTimeout
+func (o *SystemdOptions) GetStartTimeout() uint {
+	if o.StartTimeout == nil {
+		var z uint
+		return z
+	}
+	return *o.StartTimeout
+}
+
 // WithStopTimeout set field StopTimeout to given value
 func (o *SystemdOptions) WithStopTimeout(value uint) *SystemdOptions {
 	o.StopTimeout = &value
