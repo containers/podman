@@ -36,7 +36,6 @@ var (
 	PODMAN_BINARY      string                        //nolint:golint,stylecheck
 	INTEGRATION_ROOT   string                        //nolint:golint,stylecheck
 	CGROUP_MANAGER     = "systemd"                   //nolint:golint,stylecheck
-	ARTIFACT_DIR       = "/tmp/.artifacts"           //nolint:golint,stylecheck
 	RESTORE_IMAGES     = []string{ALPINE, BB, nginx} //nolint:golint,stylecheck
 	defaultWaitTimeout = 90
 	CGROUPSV2, _       = cgroups.IsCgroup2UnifiedMode() //nolint:golint,stylecheck
@@ -46,7 +45,7 @@ var (
 type PodmanTestIntegration struct {
 	PodmanTest
 	ConmonBinary        string
-	CrioRoot            string
+	Root                string
 	CNIConfigDir        string
 	OCIRuntime          string
 	RunRoot             string
@@ -111,13 +110,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	cwd, _ := os.Getwd()
 	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
 	podman := PodmanTestSetup("/tmp")
-	podman.ArtifactPath = ARTIFACT_DIR
-	if _, err := os.Stat(ARTIFACT_DIR); os.IsNotExist(err) {
-		if err = os.Mkdir(ARTIFACT_DIR, 0777); err != nil {
-			fmt.Printf("%q\n", err)
-			os.Exit(1)
-		}
-	}
 
 	// Pull cirros but don't put it into the cache
 	pullImages := []string{cirros, fedoraToolbox, volumeTest}
@@ -130,7 +122,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		fmt.Printf("%q\n", err)
 		os.Exit(1)
 	}
-	podman.CrioRoot = ImageCacheDir
+	podman.Root = ImageCacheDir
 	// If running localized tests, the cache dir is created and populated. if the
 	// tests are remote, this is a no-op
 	populateCache(podman)
@@ -170,7 +162,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 func (p *PodmanTestIntegration) Setup() {
 	cwd, _ := os.Getwd()
 	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
-	p.ArtifactPath = ARTIFACT_DIR
 }
 
 var _ = SynchronizedAfterSuite(func() {},
@@ -181,14 +172,14 @@ var _ = SynchronizedAfterSuite(func() {},
 			fmt.Printf("%s\t\t%f\n", result.name, result.length)
 		}
 
-		// previous crio-run
+		// previous runroot
 		tempdir, err := CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
 		}
 		podmanTest := PodmanTestCreate(tempdir)
 
-		if err := os.RemoveAll(podmanTest.CrioRoot); err != nil {
+		if err := os.RemoveAll(podmanTest.Root); err != nil {
 			fmt.Printf("%q\n", err)
 		}
 
@@ -265,18 +256,17 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 		PodmanTest: PodmanTest{
 			PodmanBinary:       podmanBinary,
 			RemotePodmanBinary: podmanRemoteBinary,
-			ArtifactPath:       ARTIFACT_DIR,
 			TempDir:            tempDir,
 			RemoteTest:         remote,
 			ImageCacheFS:       storageFs,
 			ImageCacheDir:      ImageCacheDir,
 		},
 		ConmonBinary:        conmonBinary,
-		CrioRoot:            filepath.Join(tempDir, "crio"),
+		Root:                filepath.Join(tempDir, "root"),
 		TmpDir:              tempDir,
 		CNIConfigDir:        CNIConfigDir,
 		OCIRuntime:          ociRuntime,
-		RunRoot:             filepath.Join(tempDir, "crio-run"),
+		RunRoot:             filepath.Join(tempDir, "runroot"),
 		StorageOptions:      storageOptions,
 		SignaturePolicyPath: filepath.Join(INTEGRATION_ROOT, "test/policy.json"),
 		CgroupManager:       cgroupManager,
@@ -308,15 +298,29 @@ func (p PodmanTestIntegration) AddImageToRWStore(image string) {
 	}
 }
 
-// createArtifact creates a cached image in the artifact dir
+func imageTarPath(image string) string {
+	cacheDir := os.Getenv("PODMAN_TEST_IMAGE_CACHE_DIR")
+	if cacheDir == "" {
+		cacheDir = os.Getenv("TMPDIR")
+		if cacheDir == "" {
+			cacheDir = "/tmp"
+		}
+	}
+
+	// e.g., registry.com/fubar:latest -> registry.com-fubar-latest.tar
+	imageCacheName := strings.Replace(strings.Replace(image, ":", "-", -1), "/", "-", -1) + ".tar"
+
+	return filepath.Join(cacheDir, imageCacheName)
+}
+
+// createArtifact creates a cached image tarball in a local directory
 func (p *PodmanTestIntegration) createArtifact(image string) {
 	if os.Getenv("NO_TEST_CACHE") != "" {
 		return
 	}
-	dest := strings.Split(image, "/")
-	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
-	fmt.Printf("Caching %s at %s...\n", image, destName)
+	destName := imageTarPath(image)
 	if _, err := os.Stat(destName); os.IsNotExist(err) {
+		fmt.Printf("Caching %s at %s...\n", image, destName)
 		pull := p.PodmanNoCache([]string{"pull", image})
 		pull.Wait(440)
 		Expect(pull).Should(Exit(0))
@@ -326,7 +330,7 @@ func (p *PodmanTestIntegration) createArtifact(image string) {
 		Expect(save).Should(Exit(0))
 		fmt.Printf("\n")
 	} else {
-		fmt.Printf(" already exists.\n")
+		fmt.Printf("[image already cached: %s]\n", destName)
 	}
 }
 
@@ -738,12 +742,13 @@ func (p *PodmanTestIntegration) RestartRemoteService() {
 
 // RestoreArtifactToCache populates the imagecache from tarballs that were cached earlier
 func (p *PodmanTestIntegration) RestoreArtifactToCache(image string) error {
-	fmt.Printf("Restoring %s...\n", image)
-	dest := strings.Split(image, "/")
-	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
-	p.CrioRoot = p.ImageCacheDir
-	restore := p.PodmanNoEvents([]string{"load", "-q", "-i", destName})
-	restore.WaitWithDefaultTimeout()
+	tarball := imageTarPath(image)
+	if _, err := os.Stat(tarball); err == nil {
+		fmt.Printf("Restoring %s...\n", image)
+		p.Root = p.ImageCacheDir
+		restore := p.PodmanNoEvents([]string{"load", "-q", "-i", tarball})
+		restore.WaitWithDefaultTimeout()
+	}
 	return nil
 }
 
@@ -795,7 +800,7 @@ func (p *PodmanTestIntegration) makeOptions(args []string, noEvents, noCache boo
 	}
 
 	podmanOptions := strings.Split(fmt.Sprintf("%s--root %s --runroot %s --runtime %s --conmon %s --cni-config-dir %s --cgroup-manager %s --tmpdir %s --events-backend %s",
-		debug, p.CrioRoot, p.RunRoot, p.OCIRuntime, p.ConmonBinary, p.CNIConfigDir, p.CgroupManager, p.TmpDir, eventsType), " ")
+		debug, p.Root, p.RunRoot, p.OCIRuntime, p.ConmonBinary, p.CNIConfigDir, p.CgroupManager, p.TmpDir, eventsType), " ")
 	if os.Getenv("HOOK_OPTION") != "" {
 		podmanOptions = append(podmanOptions, os.Getenv("HOOK_OPTION"))
 	}
