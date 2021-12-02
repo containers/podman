@@ -9,8 +9,8 @@ podman\-save - Save image(s) to an archive
 **podman image save** [*options*] *name*[:*tag*]
 
 ## DESCRIPTION
-**podman save** saves an image to either **docker-archive**, **oci-archive**, **oci-dir** (directory with oci manifest type), or **docker-dir** (directory with v2s2 manifest type) on the local machine,
-default is **docker-archive**. **podman save** writes to STDOUT by default and can be redirected to a
+**podman save** saves an image to a local file or directory.
+**podman save** writes to STDOUT by default and can be redirected to a
 file using the **output** flag. The **quiet** flag suppresses the output when set.
 **podman save** will save parent layers of the image(s) and the image(s) can be loaded using **podman load**.
 To export the containers, use the **podman export**.
@@ -35,17 +35,18 @@ Write to a file, default is STDOUT
 
 #### **--format**=*format*
 
-Save image to **docker-archive**, **oci-archive** (see `containers-transports(5)`), **oci-dir** (`oci` transport), or **docker-dir** (`dir` transport with v2s2 manifest type).
-```
---format docker-archive
---format oci-archive
---format oci-dir
---format docker-dir
-```
+An image format to produce, one of:
+
+| Format             | Description                                                                  |
+| ------------------ | ---------------------------------------------------------------------------- |
+| **docker-archive** | A tar archive interoperable with **docker load(1)** (the default)            |
+| **oci-archive**    | A tar archive using the OCI Image Format                                     |
+| **oci-dir**        | A directory using the OCI Image Format                                       |
+| **docker-dir**     | **dir** transport (see **containers-transports(5)**) with v2s2 manifest type |
 
 #### **--multi-image-archive**, **-m**
 
-Allow for creating archives with more than one image.  Additional names will be interpreted as images instead of tags.  Only supported for **docker-archive**.
+Allow for creating archives with more than one image.  Additional names will be interpreted as images instead of tags.  Only supported for **--format=docker-archive**.
 The default for this option can be modified via the `multi_image_archive="true"|"false"` flag in containers.conf.
 
 #### **--quiet**, **-q**
