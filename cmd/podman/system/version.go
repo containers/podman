@@ -59,7 +59,7 @@ func version(cmd *cobra.Command, args []string) error {
 	}
 	defer w.Flush()
 
-	if cmd.Flag("format").Changed {
+	if cmd.Flags().Changed("format") {
 		row := report.NormalizeFormat(versionFormat)
 		tmpl, err := report.NewTemplate("version 2.0.0").Parse(row)
 		if err != nil {

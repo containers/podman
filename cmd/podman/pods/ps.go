@@ -136,11 +136,12 @@ func pods(cmd *cobra.Command, _ []string) error {
 		renderHeaders = report.HasTable(psInput.Format)
 		row = report.NormalizeFormat(psInput.Format)
 	}
+	format := report.EnforceRange(row)
+
 	noHeading, _ := cmd.Flags().GetBool("noheading")
 	if noHeading {
 		renderHeaders = false
 	}
-	format := report.EnforceRange(row)
 
 	tmpl, err := report.NewTemplate("list").Parse(format)
 	if err != nil {

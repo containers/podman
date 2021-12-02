@@ -67,9 +67,7 @@ func stats(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	row := report.NormalizeFormat(statsOptions.Format)
-	doJSON := report.IsJSON(row)
-
+	doJSON := report.IsJSON(cmd.Flag("format").Value.String())
 	headers := report.Headers(entities.PodStatsReport{}, map[string]string{
 		"CPU":           "CPU %",
 		"MemUsage":      "MEM USAGE/ LIMIT",
@@ -96,6 +94,8 @@ func stats(cmd *cobra.Command, args []string) error {
 				goterm.Flush()
 			}
 			if cmd.Flags().Changed("format") {
+				row := report.NormalizeFormat(statsOptions.Format)
+				row = report.EnforceRange(row)
 				if err := printFormattedPodStatsLines(headers, row, reports); err != nil {
 					return err
 				}
@@ -142,8 +142,6 @@ func printFormattedPodStatsLines(headerNames []map[string]string, row string, st
 	if len(stats) == 0 {
 		return nil
 	}
-
-	row = report.EnforceRange(row)
 
 	tmpl, err := report.NewTemplate("stats").Parse(row)
 	if err != nil {

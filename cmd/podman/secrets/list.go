@@ -71,7 +71,10 @@ func outputTemplate(cmd *cobra.Command, responses []*entities.SecretListReport) 
 		"UpdatedAt": "UPDATED",
 	})
 
-	row := report.NormalizeFormat(listFlag.format)
+	row := cmd.Flag("format").Value.String()
+	if cmd.Flags().Changed("format") {
+		row = report.NormalizeFormat(row)
+	}
 	format := report.EnforceRange(row)
 
 	tmpl, err := report.NewTemplate("list").Parse(format)

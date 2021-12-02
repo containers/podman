@@ -82,7 +82,7 @@ func list(cmd *cobra.Command, _ []string) error {
 		return rows[i].Name < rows[j].Name
 	})
 
-	format := "{{.Name}}\t{{.URI}}\t{{.Identity}}\t{{.Default}}\n"
+	var format string
 	switch {
 	case report.IsJSON(cmd.Flag("format").Value.String()):
 		buf, err := registry.JSONLibrary().MarshalIndent(rows, "", "    ")
@@ -90,11 +90,10 @@ func list(cmd *cobra.Command, _ []string) error {
 			fmt.Println(string(buf))
 		}
 		return err
+	case cmd.Flags().Changed("format"):
+		format = report.NormalizeFormat(cmd.Flag("format").Value.String())
 	default:
-		if cmd.Flag("format").Changed {
-			format = cmd.Flag("format").Value.String()
-			format = report.NormalizeFormat(format)
-		}
+		format = "{{.Name}}\t{{.URI}}\t{{.Identity}}\t{{.Default}}\n"
 	}
 	format = report.EnforceRange(format)
 

@@ -116,7 +116,15 @@ func outputTemplate(cmd *cobra.Command, responses []*machineReporter) error {
 		"DiskSize": "DISK SIZE",
 	})
 
-	row := report.NormalizeFormat(listFlag.format)
+	var row string
+	switch {
+	case cmd.Flags().Changed("format"):
+		row = cmd.Flag("format").Value.String()
+		listFlag.noHeading = !report.HasTable(row)
+		row = report.NormalizeFormat(row)
+	default:
+		row = cmd.Flag("format").Value.String()
+	}
 	format := report.EnforceRange(row)
 
 	tmpl, err := report.NewTemplate("list").Parse(format)
@@ -129,10 +137,6 @@ func outputTemplate(cmd *cobra.Command, responses []*machineReporter) error {
 		return err
 	}
 	defer w.Flush()
-
-	if cmd.Flags().Changed("format") && !report.HasTable(listFlag.format) {
-		listFlag.noHeading = true
-	}
 
 	if !listFlag.noHeading {
 		if err := tmpl.Execute(w, headers); err != nil {

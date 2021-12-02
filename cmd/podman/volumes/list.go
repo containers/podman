@@ -97,9 +97,14 @@ func outputTemplate(cmd *cobra.Command, responses []*entities.VolumeListReport) 
 		"Name": "VOLUME NAME",
 	})
 
-	row := report.NormalizeFormat(cliOpts.Format)
-	if cliOpts.Quiet {
+	var row string
+	switch {
+	case cliOpts.Quiet:
 		row = "{{.Name}}\n"
+	case cmd.Flags().Changed("format"):
+		row = report.NormalizeFormat(cliOpts.Format)
+	default:
+		row = cmd.Flag("format").Value.String()
 	}
 	format := report.EnforceRange(row)
 
