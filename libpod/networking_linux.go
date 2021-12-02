@@ -322,17 +322,14 @@ func (r *RootlessNetNS) Do(toRun func() error) error {
 
 // Cleanup the rootless network namespace if needed.
 // It checks if we have running containers with the bridge network mode.
-// Cleanup() will try to lock RootlessNetNS, therefore you have to call
-// it with an unlocked lock.
+// Cleanup() expects that r.Lock is locked
 func (r *RootlessNetNS) Cleanup(runtime *Runtime) error {
 	_, err := os.Stat(r.dir)
 	if os.IsNotExist(err) {
 		// the directory does not exists no need for cleanup
 		return nil
 	}
-	r.Lock.Lock()
-	defer r.Lock.Unlock()
-	running := func(c *Container) bool {
+	activeNetns := func(c *Container) bool {
 		// no bridge => no need to check
 		if !c.config.NetMode.IsBridge() {
 			return false
@@ -352,15 +349,18 @@ func (r *RootlessNetNS) Cleanup(runtime *Runtime) error {
 			return false
 		}
 
-		state := c.state.State
-		return state == define.ContainerStateRunning
+		// only check for an active netns, we cannot use the container state
+		// because not running does not mean that the netns does not need cleanup
+		// only if the netns is empty we know that we do not need cleanup
+		return c.state.NetNS != nil
 	}
-	ctrs, err := runtime.GetContainersWithoutLock(running)
+	ctrs, err := runtime.GetContainersWithoutLock(activeNetns)
 	if err != nil {
 		return err
 	}
-	// no cleanup if we found containers
-	if len(ctrs) > 0 {
+	// no cleanup if we found no other containers with a netns
+	// we will always find one container (the container cleanup that is currently calling us)
+	if len(ctrs) > 1 {
 		return nil
 	}
 	logrus.Debug("Cleaning up rootless network namespace")
@@ -809,10 +809,10 @@ func (r *Runtime) teardownNetwork(ns string, opts types.NetworkOptions) error {
 	if rootlessNetNS != nil {
 		// execute the cni setup in the rootless net ns
 		err = rootlessNetNS.Do(tearDownPod)
-		rootlessNetNS.Lock.Unlock()
-		if err == nil {
-			err = rootlessNetNS.Cleanup(r)
+		if cerr := rootlessNetNS.Cleanup(r); cerr != nil {
+			logrus.WithError(err).Error("failed to cleanup rootless netns")
 		}
+		rootlessNetNS.Lock.Unlock()
 	} else {
 		err = tearDownPod()
 	}

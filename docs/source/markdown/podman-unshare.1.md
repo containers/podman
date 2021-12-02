@@ -35,7 +35,6 @@ Print usage statement
 Join the rootless network namespace used for CNI and netavark networking. It can be used to
 connect to a rootless container via IP address (bridge networking). This is otherwise
 not possible from the host network namespace.
-_Note: Using this option with more than one unshare session can have unexpected results._
 
 ## Exit Codes
 
@@ -57,13 +56,13 @@ the exit codes follow the `chroot` standard, see below:
 
   **127** Executing a _contained command_ and the _command_ cannot be found
 
-    $ podman run busybox foo; echo $?
+    $ podman unshare foo; echo $?
     Error: fork/exec /usr/bin/bogus: no such file or directory
     127
 
   **Exit code** _contained command_ exit code
 
-    $ podman run busybox /bin/sh -c 'exit 3'; echo $?
+    $ podman unshare /bin/sh -c 'exit 3'; echo $?
     3
 
 ## EXAMPLE
