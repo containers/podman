@@ -77,7 +77,7 @@ func eventsCmd(cmd *cobra.Command, _ []string) error {
 	errChannel := make(chan error)
 
 	var (
-		tmpl   *report.Template
+		rpt    *report.Formatter
 		doJSON bool
 	)
 
@@ -85,7 +85,7 @@ func eventsCmd(cmd *cobra.Command, _ []string) error {
 		doJSON = report.IsJSON(eventFormat)
 		if !doJSON {
 			var err error
-			tmpl, err = report.NewTemplate("events").Parse(eventFormat)
+			rpt, err = report.New(os.Stdout, cmd.Name()).Parse(report.OriginUser, eventFormat)
 			if err != nil {
 				return err
 			}
@@ -108,10 +108,10 @@ func eventsCmd(cmd *cobra.Command, _ []string) error {
 			}
 			fmt.Println(jsonStr)
 		case cmd.Flags().Changed("format"):
-			if err := tmpl.Execute(os.Stdout, event); err != nil {
+			if err := rpt.Execute(event); err != nil {
 				return err
 			}
-			fmt.Println("")
+			os.Stdout.WriteString("\n")
 		default:
 			fmt.Println(event.ToHumanReadable(!noTrunc))
 		}

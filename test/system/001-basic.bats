@@ -15,12 +15,10 @@ function setup() {
 @test "podman version emits reasonable output" {
     run_podman version
 
-    # First line of podman-remote is "Client:<blank>".
+    # First line of podman version is "Client: *Podman Engine".
     # Just delete it (i.e. remove the first entry from the 'lines' array)
-    if is_remote; then
-        if expr "${lines[0]}" : "Client:" >/dev/null; then
-            lines=("${lines[@]:1}")
-        fi
+    if expr "${lines[0]}" : "Client: *" >/dev/null; then
+        lines=("${lines[@]:1}")
     fi
 
     is "${lines[0]}" "Version:[ ]\+[1-9][0-9.]\+" "Version line 1"

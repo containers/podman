@@ -3,6 +3,7 @@ package system
 import (
 	"fmt"
 	"os"
+	"text/template"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
@@ -84,7 +85,10 @@ func info(cmd *cobra.Command, args []string) error {
 		}
 		fmt.Println(string(b))
 	case cmd.Flags().Changed("format"):
-		tmpl, err := report.NewTemplate("info").Parse(inFormat)
+		// Cannot use report.New() as it enforces {{range .}} for OriginUser templates
+		tmpl := template.New(cmd.Name()).Funcs(template.FuncMap(report.DefaultFuncs))
+		inFormat = report.NormalizeFormat(inFormat)
+		tmpl, err := tmpl.Parse(inFormat)
 		if err != nil {
 			return err
 		}
