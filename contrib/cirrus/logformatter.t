@@ -134,9 +134,35 @@ $SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}
 [+0103s] 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89
 [+0104s] Running: /var/tmp/go/src/github.com/containers/libpod/bin/podman-remote --storage-opt vfs.imagestore=/tmp/podman/imagecachedir --root /tmp/podman_test553496330/crio --runroot /tmp/podman_test553496330/crio-run --runtime /usr/bin/runc --conmon /usr/bin/conmon --cni-config-dir /etc/cni/net.d --cgroup-manager systemd --tmpdir /tmp/podman_test553496330 --events-backend file --storage-driver vfs --remote --url unix:/run/user/12345/podman-xyz.sock pod rm -fa
 [+0104s] 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89 again
+
+
 [+0107s] •
-[+0107s] ------------------------------
-[+0107s] podman system reset
+[+0523s] ------------------------------
+[+0523s] Podman play kube with build
+[+0523s]   --build should override image in store
+[+0523s]   /var/tmp/go/src/github.com/containers/podman/test/e2e/play_build_test.go:215
+
+
+[+0479s] •
+[+0479s] ------------------------------
+[+0479s] Podman pod rm
+[+0479s]   podman pod rm -a doesn't remove a running container
+[+0479s]   /var/tmp/go/src/github.com/containers/podman/test/e2e/pod_rm_test.go:119
+
+
+[+1405s] •
+[+1405s] ------------------------------
+[+1405s] Podman run entrypoint
+[+1405s]   podman run entrypoint == [""]
+[+1405s]   /var/tmp/go/src/github.com/containers/podman/test/e2e/run_entrypoint_test.go:47
+
+[+0184s] S [SKIPPING] [3.086 seconds]
+[+1385s] S [SKIPPING] in Spec Setup (BeforeEach) [0.001 seconds]
+
+[+1512s] Summarizing 6 Failures:
+[+1512s]
+[+1512s] [Fail] Podman play kube with build [It] --build should override image in store
+[+1512s] /var/tmp/go/src/github.com/containers/podman/test/e2e/play_build_test.go:259
 >>>
 $SCRIPT_BASE/integration_test.sh |&amp; ${TIMESTAMP}
 [08:26:19] START - All [+xxxx] lines that follow are relative to right now.
@@ -150,9 +176,9 @@ $SCRIPT_BASE/integration_test.sh |&amp; ${TIMESTAMP}
 <span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/pod_restart_test.go#L41'>/containers/podman/test/e2e/pod_restart_test.go:41</a>
 <span class="timestamp">         </span>[BeforeEach] Podman pod restart
 <span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/pod_restart_test.go#L18'>/containers/podman/test/e2e/pod_restart_test.go:18</a>
-<span class="timestamp">         </span>[It] podman pod restart single empty pod
+<span class="timestamp">         </span><span class="testname">[It] podman pod restart single empty pod</span>
 <span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/pod_restart_test.go#L41'>/containers/podman/test/e2e/pod_restart_test.go:41</a>
-<span class="timestamp">         </span>Running: <span title="/var/tmp/go/src/github.com/containers/podman/bin/podman"><b>podman</b></span> <span class="boring" title="--storage-opt vfs.imagestore=/tmp/podman/imagecachedir
+<span class="timestamp">         </span><span class="boring">#</span> <span title="/var/tmp/go/src/github.com/containers/podman/bin/podman"><b>podman</b></span> <span class="boring" title="--storage-opt vfs.imagestore=/tmp/podman/imagecachedir
 --root /tmp/podman_test553496330/crio
 --runroot /tmp/podman_test553496330/crio-run
 --runtime /usr/bin/runc
@@ -163,7 +189,7 @@ $SCRIPT_BASE/integration_test.sh |&amp; ${TIMESTAMP}
 --events-backend file
 --storage-driver vfs">[options]</span><b> pod create --infra=false --share</b>
 <span class="timestamp">         </span>4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89
-<span class="timestamp">         </span>Running: <span title="/var/tmp/go/src/github.com/containers/podman/bin/podman"><b>podman</b></span> <span class="boring" title="--storage-opt vfs.imagestore=/tmp/podman/imagecachedir
+<span class="timestamp">         </span><span class="boring">#</span> <span title="/var/tmp/go/src/github.com/containers/podman/bin/podman"><b>podman</b></span> <span class="boring" title="--storage-opt vfs.imagestore=/tmp/podman/imagecachedir
 --root /tmp/podman_test553496330/crio
 --runroot /tmp/podman_test553496330/crio-run
 --runtime /usr/bin/runc
@@ -177,7 +203,7 @@ $SCRIPT_BASE/integration_test.sh |&amp; ${TIMESTAMP}
 <span class="timestamp">         </span>output:
 <span class="timestamp">         </span>[AfterEach] Podman pod restart
 <span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/pod_restart_test.go#L28'>/containers/podman/test/e2e/pod_restart_test.go:28</a>
-<span class="timestamp">         </span>Running: <span title="/var/tmp/go/src/github.com/containers/podman/bin/podman"><b>podman</b></span> <span class="boring" title="--storage-opt vfs.imagestore=/tmp/podman/imagecachedir
+<span class="timestamp">         </span><span class="boring">#</span> <span title="/var/tmp/go/src/github.com/containers/podman/bin/podman"><b>podman</b></span> <span class="boring" title="--storage-opt vfs.imagestore=/tmp/podman/imagecachedir
 --root /tmp/podman_test553496330/crio
 --runroot /tmp/podman_test553496330/crio-run
 --runtime /usr/bin/runc
@@ -189,7 +215,7 @@ $SCRIPT_BASE/integration_test.sh |&amp; ${TIMESTAMP}
 --storage-driver vfs">[options]</span><b> pod rm -fa</b>
 <span class="timestamp">         </span>4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89
 
-<span class="timestamp">[+0104s] </span>Running: <span title="/var/tmp/go/src/github.com/containers/libpod/bin/podman-remote"><b>podman-remote</b></span> <span class="boring" title="--storage-opt vfs.imagestore=/tmp/podman/imagecachedir
+<span class="timestamp">[+0104s] </span><span class="boring">#</span> <span title="/var/tmp/go/src/github.com/containers/libpod/bin/podman-remote"><b>podman-remote</b></span> <span class="boring" title="--storage-opt vfs.imagestore=/tmp/podman/imagecachedir
 --root /tmp/podman_test553496330/crio
 --runroot /tmp/podman_test553496330/crio-run
 --runtime /usr/bin/runc
@@ -207,4 +233,34 @@ $SCRIPT_BASE/integration_test.sh |&amp; ${TIMESTAMP}
 </pre>
 <hr />
 <pre>
-<span class="timestamp">[+0107s] </span>podman system reset
+<span class="timestamp">[+0523s] </span>Podman play kube with build
+<span class="timestamp">         </span><a name='t----build-should-override-image-in-store--1'><h2>  --build should override image in store</h2></a>
+<span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/play_build_test.go#L215'>/containers/podman/test/e2e/play_build_test.go:215</a>
+
+
+<span class="timestamp">[+0479s] </span>•
+</pre>
+<hr />
+<pre>
+<span class="timestamp">[+0479s] </span>Podman pod rm
+<span class="timestamp">         </span><a name='t--podman-pod-rm--a-doesnt-remove-a-running-container--1'><h2>  podman pod rm -a doesn&#39;t remove a running container</h2></a>
+<span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/pod_rm_test.go#L119'>/containers/podman/test/e2e/pod_rm_test.go:119</a>
+
+
+<span class="timestamp">[+1405s] </span>•
+</pre>
+<hr />
+<pre>
+<span class="timestamp">[+1405s] </span>Podman run entrypoint
+<span class="timestamp">         </span><a name='t--podman-run-entrypoint---1'><h2>  podman run entrypoint == [&quot;&quot;]</h2></a>
+<span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/run_entrypoint_test.go#L47'>/containers/podman/test/e2e/run_entrypoint_test.go:47</a>
+
+
+<span class="timestamp">[+0184s] </span>S <span class="log-skip">[SKIPPING] [3.086 seconds]</span>
+<span class="timestamp">[+1385s] </span>S <span class="log-skip">[SKIPPING] in Spec Setup (BeforeEach) [0.001 seconds]</span>
+
+
+<span class="timestamp">[+1512s] </span>Summarizing 6 Failures:
+[+1512s]
+<span class="timestamp">         </span><b>[Fail] Podman play kube with build [It] <a href='#t----build-should-override-image-in-store--1'>--build should override image in store</a></b>
+<span class="timestamp">         </span>/var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/play_build_test.go#L259'>/containers/podman/test/e2e/play_build_test.go:259</a>
