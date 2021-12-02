@@ -22,6 +22,7 @@ func GenerateSystemd(w http.ResponseWriter, r *http.Request) {
 		NoHeader         bool    `schema:"noHeader"`
 		TemplateUnitFile bool    `schema:"templateUnitFile"`
 		RestartPolicy    *string `schema:"restartPolicy"`
+		RestartSec       uint    `schema:"restartSec"`
 		StopTimeout      uint    `schema:"stopTimeout"`
 		StartTimeout     uint    `schema:"startTimeout"`
 		ContainerPrefix  string  `schema:"containerPrefix"`
@@ -53,6 +54,7 @@ func GenerateSystemd(w http.ResponseWriter, r *http.Request) {
 		ContainerPrefix:  query.ContainerPrefix,
 		PodPrefix:        query.PodPrefix,
 		Separator:        query.Separator,
+		RestartSec:       &query.RestartSec,
 	}
 
 	report, err := containerEngine.GenerateSystemd(r.Context(), utils.GetName(r), options)
