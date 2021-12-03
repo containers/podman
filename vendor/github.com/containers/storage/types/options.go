@@ -42,6 +42,10 @@ func init() {
 	defaultStoreOptions.GraphDriverName = ""
 
 	if _, err := os.Stat(defaultOverrideConfigFile); err == nil {
+		// The DefaultConfigFile(rootless) function returns the path
+		// of the used storage.conf file, by returning defaultConfigFile
+		// If override exists containers/storage uses it by default.
+		defaultConfigFile = defaultOverrideConfigFile
 		ReloadConfigurationFileIfNeeded(defaultOverrideConfigFile, &defaultStoreOptions)
 	} else {
 		if !os.IsNotExist(err) {
