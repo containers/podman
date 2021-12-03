@@ -12,7 +12,7 @@ require (
 	github.com/containernetworking/cni v1.0.1
 	github.com/containernetworking/plugins v1.0.1
 	github.com/containers/buildah v1.23.1
-	github.com/containers/common v0.46.1-0.20211125160015-ccf46abecd91
+	github.com/containers/common v0.46.1-0.20211202172647-e77d74bd1976
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.17.1-0.20211129144953-4f6d0b45be6c
 	github.com/containers/ocicrypt v1.1.2
@@ -46,7 +46,7 @@ require (
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.17.0
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/opencontainers/image-spec v1.0.2-0.20210819154149-5ad6f50d6283
+	github.com/opencontainers/image-spec v1.0.2-0.20211123152302-43a7dee1ec31
 	github.com/opencontainers/runc v1.0.2
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/opencontainers/runtime-tools v0.9.1-0.20211020193359-09d837bf40a7
