@@ -380,6 +380,18 @@ spec:
     persistentVolumeClaim:
       claimName: {{ .PersistentVolumeClaim.ClaimName }}
     {{- end }}
+	{{- if (eq .VolumeType "ConfigMap") }}
+    configMap:
+      name: {{ .ConfigMap.Name }}
+      optional: {{ .ConfigMap.Optional }}
+      {{- with .ConfigMap.Items }}
+      items:
+      {{- range . }}
+        - key: {{ .key }}
+          path: {{ .path }}
+    {{- end }}
+    {{- end }}
+    {{- end }}
   {{ end }}
 {{ end }}
 status: {}
@@ -619,14 +631,14 @@ func createSecret(podmanTest *PodmanTestIntegration, name string, value []byte) 
 	Expect(secret).Should(Exit(0))
 }
 
-// ConfigMap describes the options a kube yaml can be configured at configmap level
-type ConfigMap struct {
+// CM describes the options a kube yaml can be configured at configmap level
+type CM struct {
 	Name string
 	Data map[string]string
 }
 
-func getConfigMap(options ...configMapOption) *ConfigMap {
-	cm := ConfigMap{
+func getConfigMap(options ...configMapOption) *CM {
+	cm := CM{
 		Name: defaultConfigMapName,
 		Data: map[string]string{},
 	}
@@ -638,16 +650,16 @@ func getConfigMap(options ...configMapOption) *ConfigMap {
 	return &cm
 }
 
-type configMapOption func(*ConfigMap)
+type configMapOption func(*CM)
 
 func withConfigMapName(name string) configMapOption {
-	return func(configmap *ConfigMap) {
+	return func(configmap *CM) {
 		configmap.Name = name
 	}
 }
 
 func withConfigMapData(k, v string) configMapOption {
-	return func(configmap *ConfigMap) {
+	return func(configmap *CM) {
 		configmap.Data[k] = v
 	}
 }
@@ -1047,11 +1059,18 @@ type PersistentVolumeClaim struct {
 	ClaimName string
 }
 
+type ConfigMap struct {
+	Name     string
+	Items    []map[string]string
+	Optional bool
+}
+
 type Volume struct {
 	VolumeType string
 	Name       string
 	HostPath
 	PersistentVolumeClaim
+	ConfigMap
 }
 
 // getHostPathVolume takes a type and a location for a HostPath
@@ -1075,6 +1094,20 @@ func getPersistentVolumeClaimVolume(vName string) *Volume {
 		Name:       defaultVolName,
 		PersistentVolumeClaim: PersistentVolumeClaim{
 			ClaimName: vName,
+		},
+	}
+}
+
+// getConfigMap returns a new ConfigMap Volume given the name and items
+// of the ConfigMap.
+func getConfigMapVolume(vName string, items []map[string]string, optional bool) *Volume {
+	return &Volume{
+		VolumeType: "ConfigMap",
+		Name:       defaultVolName,
+		ConfigMap: ConfigMap{
+			Name:     vName,
+			Items:    items,
+			Optional: optional,
 		},
 	}
 }
@@ -2309,6 +2342,75 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 
 		correct := fmt.Sprintf("volume:%s", volumeName)
 		Expect(inspect.OutputToString()).To(Equal(correct))
+	})
+
+	It("podman play kube ConfigMap volume with no items", func() {
+		volumeName := "cmVol"
+		cm := getConfigMap(withConfigMapName(volumeName), withConfigMapData("FOO", "foobar"))
+		cmYaml, err := getKubeYaml("configmap", cm)
+		Expect(err).To(BeNil())
+
+		ctr := getCtr(withVolumeMount("/test", false), withImage(BB))
+		pod := getPod(withVolume(getConfigMapVolume(volumeName, []map[string]string{}, false)), withCtr(ctr))
+		podYaml, err := getKubeYaml("pod", pod)
+		Expect(err).To(BeNil())
+		yamls := []string{cmYaml, podYaml}
+		err = generateMultiDocKubeYaml(yamls, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		cmData := podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "cat", "/test/FOO"})
+		cmData.WaitWithDefaultTimeout()
+		Expect(cmData).Should(Exit(0))
+		Expect(cmData.OutputToString()).To(Equal("foobar"))
+	})
+
+	It("podman play kube ConfigMap volume with items", func() {
+		volumeName := "cmVol"
+		cm := getConfigMap(withConfigMapName(volumeName), withConfigMapData("FOO", "foobar"))
+		cmYaml, err := getKubeYaml("configmap", cm)
+		Expect(err).To(BeNil())
+		volumeContents := []map[string]string{{
+			"key":  "FOO",
+			"path": "BAR",
+		}}
+
+		ctr := getCtr(withVolumeMount("/test", false), withImage(BB))
+		pod := getPod(withVolume(getConfigMapVolume(volumeName, volumeContents, false)), withCtr(ctr))
+		podYaml, err := getKubeYaml("pod", pod)
+		Expect(err).To(BeNil())
+		yamls := []string{cmYaml, podYaml}
+		err = generateMultiDocKubeYaml(yamls, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		cmData := podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "cat", "/test/BAR"})
+		cmData.WaitWithDefaultTimeout()
+		Expect(cmData).Should(Exit(0))
+		Expect(cmData.OutputToString()).To(Equal("foobar"))
+
+		cmData = podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "cat", "/test/FOO"})
+		cmData.WaitWithDefaultTimeout()
+		Expect(cmData).Should(Not(Exit(0)))
+	})
+
+	It("podman play kube with a missing optional ConfigMap volume", func() {
+		volumeName := "cmVol"
+
+		ctr := getCtr(withVolumeMount("/test", false), withImage(BB))
+		pod := getPod(withVolume(getConfigMapVolume(volumeName, []map[string]string{}, true)), withCtr(ctr))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
 	})
 
 	It("podman play kube applies labels to pods", func() {
