@@ -19,6 +19,9 @@ func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string,
 	if opts.RestartPolicy != nil {
 		options.WithRestartPolicy(*opts.RestartPolicy)
 	}
+	if opts.RestartSec != nil {
+		options.WithRestartSec(*opts.RestartSec)
+	}
 
 	return generate.Systemd(ic.ClientCtx, nameOrID, options)
 }

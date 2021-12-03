@@ -51,6 +51,11 @@ Override the default stop timeout for the container with the given value in seco
 Set the systemd restart policy.  The restart-policy must be one of: "no", "on-success", "on-failure", "on-abnormal",
 "on-watchdog", "on-abort", or "always".  The default policy is *on-failure*.
 
+#### **--restart-sec**=*time*
+
+Set the systemd service restartsec value. Configures the time to sleep before restarting a service (as configured with restart-policy).
+Takes a value in seconds.
+
 #### **--container-prefix**=*prefix*
 
 Set the systemd unit name prefix for containers. The default is *container*.

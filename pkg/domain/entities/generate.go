@@ -10,6 +10,8 @@ type GenerateSystemdOptions struct {
 	New bool
 	// RestartPolicy - systemd restart policy.
 	RestartPolicy *string
+	// RestartSec - systemd service restartsec. Configures the time to sleep before restarting a service.
+	RestartSec *uint
 	// StartTimeout - time when starting the container.
 	StartTimeout *uint
 	// StopTimeout - time when stopping the container.

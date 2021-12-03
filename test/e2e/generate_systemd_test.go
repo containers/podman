@@ -282,6 +282,19 @@ var _ = Describe("Podman generate systemd", func() {
 		Expect(session.OutputToString()).To(ContainSubstring(" pod create "))
 	})
 
+	It("podman generate systemd --restart-sec 15 --name foo", func() {
+		n := podmanTest.Podman([]string{"pod", "create", "--name", "foo"})
+		n.WaitWithDefaultTimeout()
+		Expect(n).Should(Exit(0))
+
+		session := podmanTest.Podman([]string{"generate", "systemd", "--restart-sec", "15", "--name", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// Grepping the output (in addition to unit tests)
+		Expect(session.OutputToString()).To(ContainSubstring("RestartSec=15"))
+	})
+
 	It("podman generate systemd --new=false pod", func() {
 		n := podmanTest.Podman([]string{"pod", "create", "--name", "foo"})
 		n.WaitWithDefaultTimeout()

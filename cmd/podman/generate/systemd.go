@@ -23,6 +23,7 @@ const (
 	stopTimeoutFlagName       = "stop-timeout"
 	stopTimeoutCompatFlagName = "time"
 	restartPolicyFlagName     = "restart-policy"
+	restartSecFlagName        = "restart-sec"
 	newFlagName               = "new"
 )
 
@@ -30,6 +31,7 @@ var (
 	files              bool
 	format             string
 	systemdRestart     string
+	systemdRestartSec  uint
 	startTimeout       uint
 	stopTimeout        uint
 	systemdOptions     = entities.GenerateSystemdOptions{}
@@ -88,6 +90,9 @@ func init() {
 	flags.StringVar(&systemdRestart, restartPolicyFlagName, systemDefine.DefaultRestartPolicy, "Systemd restart-policy")
 	_ = systemdCmd.RegisterFlagCompletionFunc(restartPolicyFlagName, common.AutocompleteSystemdRestartOptions)
 
+	flags.UintVarP(&systemdRestartSec, restartSecFlagName, "", 0, "Systemd restart-sec")
+	_ = systemdCmd.RegisterFlagCompletionFunc(restartSecFlagName, completion.AutocompleteNone)
+
 	formatFlagName := "format"
 	flags.StringVar(&format, formatFlagName, "", "Print the created units in specified format (json)")
 	_ = systemdCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(nil))
@@ -111,6 +116,9 @@ func systemd(cmd *cobra.Command, args []string) error {
 		systemdOptions.New = true
 	}
 
+	if cmd.Flags().Changed(restartSecFlagName) {
+		systemdOptions.RestartSec = &systemdRestartSec
+	}
 	if cmd.Flags().Changed(startTimeoutFlagName) {
 		systemdOptions.StartTimeout = &startTimeout
 	}
