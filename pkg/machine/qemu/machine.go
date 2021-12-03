@@ -659,7 +659,7 @@ func (v *MachineVM) startHostNetworking() error {
 
 	// Listen on all at port 7777 for setting up and tearing
 	// down forwarding
-	listenSocket := "tcp://0.0.0.0:7777"
+	listenSocket := "tcp://127.0.0.1:7777"
 	qemuSocket, pidFile, err := v.getSocketandPid()
 	if err != nil {
 		return err
