@@ -202,4 +202,5 @@ rm -f %{_sharedstatedir}/containers/storage/libpod/defaultCNINetExists
 exit 0
 
 %changelog
-%autochangelog
+* Fri Dec 03 2021 Lokesh Mandvekar <lsm5@fedoraproject.org> - %{version}-%{release}
+- auto copr build
