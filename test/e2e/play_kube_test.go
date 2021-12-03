@@ -1795,6 +1795,11 @@ var _ = Describe("Podman play kube", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).To(Equal(hostname))
+
+		hostnameInCtr := podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "hostname"})
+		hostnameInCtr.WaitWithDefaultTimeout()
+		Expect(hostnameInCtr).Should(Exit(0))
+		Expect(hostnameInCtr.OutputToString()).To(Equal(hostname))
 	})
 
 	It("podman play kube test HostAliases", func() {
