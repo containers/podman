@@ -150,9 +150,9 @@ RUN >file3
 EOF
 
 # image should not be deleted
-t GET images/json?filters='{"reference":["test1"]}' 200 length=1
+t GET images/json?filters='{"reference":["localhost/test1"]}' 200 length=1
 t POST images/prune?filters='{"until":["500000"]}' 200
-t GET images/json?filters='{"reference":["test1"]}' 200 length=1
+t GET images/json?filters='{"reference":["localhost/test1"]}' 200 length=1
 
 t DELETE libpod/images/test1:latest 200
 

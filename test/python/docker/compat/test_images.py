@@ -81,7 +81,7 @@ class TestImages(unittest.TestCase):
         self.assertEqual(len(self.client.images.list()), 2)
 
         # List images with filter
-        self.assertEqual(len(self.client.images.list(filters={"reference": "alpine"})), 1)
+        self.assertEqual(len(self.client.images.list(filters={"reference": "quay.io/libpod/alpine"})), 1)
 
     def test_search_image(self):
         """Search for image"""

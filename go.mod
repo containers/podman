@@ -12,9 +12,9 @@ require (
 	github.com/containernetworking/cni v1.0.1
 	github.com/containernetworking/plugins v1.0.1
 	github.com/containers/buildah v1.23.1
-	github.com/containers/common v0.46.1-0.20211202172647-e77d74bd1976
+	github.com/containers/common v0.46.1-0.20211203184446-677d95282f78
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.17.1-0.20211129144953-4f6d0b45be6c
+	github.com/containers/image/v5 v5.17.1-0.20211201214147-603ec1341d58
 	github.com/containers/ocicrypt v1.1.2
 	github.com/containers/psgo v1.7.1
 	github.com/containers/storage v1.37.1-0.20211130181259-1a158c89a518

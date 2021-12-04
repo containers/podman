@@ -85,7 +85,7 @@ var _ = Describe("Podman rmi", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		result := podmanTest.Podman([]string{"images", "-q", "foo"})
+		result := podmanTest.Podman([]string{"images", "-q", "localhost/foo"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 

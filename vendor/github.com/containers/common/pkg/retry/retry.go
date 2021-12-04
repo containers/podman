@@ -45,8 +45,12 @@ func RetryIfNecessary(ctx context.Context, operation func() error, retryOptions 
 func isRetryable(err error) bool {
 	err = errors.Cause(err)
 
-	if err == context.Canceled || err == context.DeadlineExceeded {
+	switch err {
+	case nil:
 		return false
+	case context.Canceled, context.DeadlineExceeded:
+		return false
+	default: // continue
 	}
 
 	type unwrapper interface {
@@ -57,7 +61,8 @@ func isRetryable(err error) bool {
 
 	case errcode.Error:
 		switch e.Code {
-		case errcode.ErrorCodeUnauthorized, errcodev2.ErrorCodeNameUnknown, errcodev2.ErrorCodeManifestUnknown:
+		case errcode.ErrorCodeUnauthorized, errcode.ErrorCodeDenied,
+			errcodev2.ErrorCodeNameUnknown, errcodev2.ErrorCodeManifestUnknown:
 			return false
 		}
 		return true
@@ -86,7 +91,7 @@ func isRetryable(err error) bool {
 			}
 		}
 		return true
-	case unwrapper:
+	case unwrapper: // Test this last, because various error types might implement .Unwrap()
 		err = e.Unwrap()
 		return isRetryable(err)
 	}

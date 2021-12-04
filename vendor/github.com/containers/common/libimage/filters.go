@@ -3,13 +3,13 @@ package libimage
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	filtersPkg "github.com/containers/common/pkg/filters"
 	"github.com/containers/common/pkg/timetype"
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -160,20 +160,16 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 
 // filterReference creates a reference filter for matching the specified value.
 func filterReference(value string) filterFunc {
-	// Replacing all '/' with '|' so that filepath.Match() can work '|'
-	// character is not valid in image name, so this is safe.
-	//
-	// TODO: this has been copied from Podman and requires some more review
-	// and especially tests.
-	filter := fmt.Sprintf("*%s*", value)
-	filter = strings.ReplaceAll(filter, "/", "|")
 	return func(img *Image) (bool, error) {
-		if len(value) < 1 {
-			return true, nil
+		refs, err := img.NamesReferences()
+		if err != nil {
+			return false, err
 		}
-		for _, name := range img.Names() {
-			newName := strings.ReplaceAll(name, "/", "|")
-			match, _ := filepath.Match(filter, newName)
+		for _, ref := range refs {
+			match, err := reference.FamiliarMatch(value, ref)
+			if err != nil {
+				return false, err
+			}
 			if match {
 				return true, nil
 			}

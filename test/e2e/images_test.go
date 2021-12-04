@@ -141,22 +141,21 @@ var _ = Describe("Podman images", func() {
 	})
 
 	It("podman images filter reference", func() {
-		result := podmanTest.Podman([]string{"images", "-q", "-f", "reference=quay.io*"})
+		result := podmanTest.Podman([]string{"images", "-q", "-f", "reference=quay.io/libpod/*"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		Expect(result.OutputToStringArray()).To(HaveLen(7))
 
-		retalpine := podmanTest.Podman([]string{"images", "-f", "reference=a*pine"})
+		retalpine := podmanTest.Podman([]string{"images", "-f", "reference=quay.io/libpod/a*pine"})
 		retalpine.WaitWithDefaultTimeout()
 		Expect(retalpine).Should(Exit(0))
-		Expect(retalpine.OutputToStringArray()).To(HaveLen(6))
+		Expect(retalpine.OutputToStringArray()).To(HaveLen(2))
 		Expect(retalpine.OutputToString()).To(ContainSubstring("alpine"))
 
-		retalpine = podmanTest.Podman([]string{"images", "-f", "reference=alpine"})
+		retalpine = podmanTest.Podman([]string{"images", "-q", "-f", "reference=quay.io/libpod/alpine*"})
 		retalpine.WaitWithDefaultTimeout()
 		Expect(retalpine).Should(Exit(0))
-		Expect(retalpine.OutputToStringArray()).To(HaveLen(6))
-		Expect(retalpine.OutputToString()).To(ContainSubstring("alpine"))
+		Expect(retalpine.OutputToStringArray()).To(HaveLen(4))
 
 		retnone := podmanTest.Podman([]string{"images", "-q", "-f", "reference=bogus"})
 		retnone.WaitWithDefaultTimeout()
