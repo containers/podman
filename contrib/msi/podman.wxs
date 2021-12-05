@@ -32,7 +32,8 @@
     </Directory>
 
     <Property Id="setx" Value="setx.exe"/>
-    <CustomAction Id="ChangePath" ExeCommand="PATH &quot;%PATH%;[INSTALLDIR]&quot;" Property="setx" Execute="deferred" Impersonate="yes" Return="check"/>
+    <!-- Directory table entries have a trailing slash, so an extra backslash is needed to prevent escaping the quote -->
+    <CustomAction Id="ChangePath" ExeCommand="PATH &quot;%PATH%;[INSTALLDIR]\&quot;" Property="setx" Execute="deferred" Impersonate="yes" Return="check"/>
 
     <Feature Id="Complete" Level="1">
       <ComponentRef Id="INSTALLDIR_Component"/>
