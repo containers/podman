@@ -3,6 +3,7 @@ package pods
 import (
 	"context"
 	"os"
+	"text/template"
 
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v3/cmd/podman/common"
@@ -64,25 +65,17 @@ func inspect(cmd *cobra.Command, args []string) error {
 	}
 
 	if report.IsJSON(inspectOptions.Format) {
-		json.MarshalIndent(responses, "", "     ")
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "     ")
 		return enc.Encode(responses)
 	}
 
-	// cmd.Flags().Changed("format") must be true to reach this code
-	row := report.NormalizeFormat(inspectOptions.Format)
-
-	t, err := report.NewTemplate("inspect").Parse(row)
+	// Cannot use report.New() as it enforces {{range .}} for OriginUser templates
+	tmpl := template.New(cmd.Name()).Funcs(template.FuncMap(report.DefaultFuncs))
+	format := report.NormalizeFormat(inspectOptions.Format)
+	tmpl, err = tmpl.Parse(format)
 	if err != nil {
 		return err
 	}
-
-	w, err := report.NewWriterDefault(os.Stdout)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(w, *responses)
-	w.Flush()
-	return err
+	return tmpl.Execute(os.Stdout, *responses)
 }
