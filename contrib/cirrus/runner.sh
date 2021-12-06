@@ -259,20 +259,6 @@ function _run_altbuild() {
                 make podman-release-${arch}.tar.gz GOARCH=$arch
             done
             ;;
-        *Static*)
-            req_env_vars CTR_FQIN
-            [[ "$UID" -eq 0 ]] || \
-                die "Static build must execute nixos container as root on host"
-            podman run -i --rm \
-                -e CACHIX_AUTH_TOKEN \
-                -v $PWD:$PWD:Z -w $PWD $CTR_FQIN sh -c \
-                "nix-env -iA cachix -f https://cachix.org/api/v1/install && \
-                 cachix use podman && \
-                 nix-build nix && \
-                 nix-store -qR --include-outputs \$(nix-instantiate nix/default.nix) | grep -v podman | cachix push podman && \
-                 cp -R result/bin ."
-            rm result  # makes cirrus puke
-            ;;
         *)
             die "Unknown/Unsupported \$$ALT_NAME '$ALT_NAME'"
     esac
