@@ -236,6 +236,9 @@ func (s *dockerImageSource) ensureManifestIsLoaded(ctx context.Context) error {
 	return nil
 }
 
+// getExternalBlob returns the reader of the first available blob URL from urls, which must not be empty.
+// This function can return nil reader when no url is supported by this function. In this case, the caller
+// should fallback to fetch the non-external blob (i.e. pull from the registry).
 func (s *dockerImageSource) getExternalBlob(ctx context.Context, urls []string) (io.ReadCloser, int64, error) {
 	var (
 		resp *http.Response
@@ -244,20 +247,26 @@ func (s *dockerImageSource) getExternalBlob(ctx context.Context, urls []string) 
 	if len(urls) == 0 {
 		return nil, 0, errors.New("internal error: getExternalBlob called with no URLs")
 	}
-	for _, url := range urls {
+	for _, u := range urls {
+		if u, err := url.Parse(u); err != nil || (u.Scheme != "http" && u.Scheme != "https") {
+			continue // unsupported url. skip this url.
+		}
 		// NOTE: we must not authenticate on additional URLs as those
 		//       can be abused to leak credentials or tokens.  Please
 		//       refer to CVE-2020-15157 for more information.
-		resp, err = s.c.makeRequestToResolvedURL(ctx, http.MethodGet, url, nil, nil, -1, noAuth, nil)
+		resp, err = s.c.makeRequestToResolvedURL(ctx, http.MethodGet, u, nil, nil, -1, noAuth, nil)
 		if err == nil {
 			if resp.StatusCode != http.StatusOK {
-				err = errors.Errorf("error fetching external blob from %q: %d (%s)", url, resp.StatusCode, http.StatusText(resp.StatusCode))
+				err = errors.Errorf("error fetching external blob from %q: %d (%s)", u, resp.StatusCode, http.StatusText(resp.StatusCode))
 				logrus.Debug(err)
 				resp.Body.Close()
 				continue
 			}
 			break
 		}
+	}
+	if resp == nil && err == nil {
+		return nil, 0, nil // fallback to non-external blob
 	}
 	if err != nil {
 		return nil, 0, err
@@ -370,12 +379,6 @@ func (s *dockerImageSource) GetBlobAt(ctx context.Context, info types.BlobInfo, 
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := httpResponseToError(res, "Error fetching partial blob"); err != nil {
-		if res.Body != nil {
-			res.Body.Close()
-		}
-		return nil, nil, err
-	}
 
 	switch res.StatusCode {
 	case http.StatusOK:
@@ -396,9 +399,16 @@ func (s *dockerImageSource) GetBlobAt(ctx context.Context, info types.BlobInfo, 
 
 		go handle206Response(streams, errs, res.Body, chunks, mediaType, params)
 		return streams, errs, nil
-	default:
+	case http.StatusBadRequest:
 		res.Body.Close()
-		return nil, nil, errors.Errorf("invalid status code returned when fetching blob %d (%s)", res.StatusCode, http.StatusText(res.StatusCode))
+		return nil, nil, internalTypes.BadPartialRequestError{Status: res.Status}
+	default:
+		err := httpResponseToError(res, "Error fetching partial blob")
+		if err == nil {
+			err = errors.Errorf("invalid status code returned when fetching blob %d (%s)", res.StatusCode, http.StatusText(res.StatusCode))
+		}
+		res.Body.Close()
+		return nil, nil, err
 	}
 }
 
@@ -407,7 +417,12 @@ func (s *dockerImageSource) GetBlobAt(ctx context.Context, info types.BlobInfo, 
 // May update BlobInfoCache, preferably after it knows for certain that a blob truly exists at a specific location.
 func (s *dockerImageSource) GetBlob(ctx context.Context, info types.BlobInfo, cache types.BlobInfoCache) (io.ReadCloser, int64, error) {
 	if len(info.URLs) != 0 {
-		return s.getExternalBlob(ctx, info.URLs)
+		r, s, err := s.getExternalBlob(ctx, info.URLs)
+		if err != nil {
+			return nil, 0, err
+		} else if r != nil {
+			return r, s, nil
+		}
 	}
 
 	path := fmt.Sprintf(blobsPath, reference.Path(s.physicalRef.ref), info.Digest.String())

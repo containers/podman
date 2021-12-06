@@ -202,6 +202,10 @@ func OCI1IndexFromManifest(manifest []byte) (*OCI1Index, error) {
 	if err := json.Unmarshal(manifest, &index); err != nil {
 		return nil, errors.Wrapf(err, "unmarshaling OCI1Index %q", string(manifest))
 	}
+	if err := validateUnambiguousManifestFormat(manifest, imgspecv1.MediaTypeImageIndex,
+		allowedFieldManifests); err != nil {
+		return nil, err
+	}
 	return &index, nil
 }
 

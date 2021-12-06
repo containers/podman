@@ -345,6 +345,56 @@ func getFileDigest(f *os.File) (digest.Digest, error) {
 	return digester.Digest(), nil
 }
 
+// findFileInOSTreeRepos checks whether the requested file already exist in one of the OSTree repo and copies the file content from there if possible.
+// file is the file to look for.
+// ostreeRepos is a list of OSTree repos.
+// dirfd is an open fd to the destination checkout.
+// useHardLinks defines whether the deduplication can be performed using hard links.
+func findFileInOSTreeRepos(file *internal.FileMetadata, ostreeRepos []string, dirfd int, useHardLinks bool) (bool, *os.File, int64, error) {
+	digest, err := digest.Parse(file.Digest)
+	if err != nil {
+		return false, nil, 0, nil
+	}
+	payloadLink := digest.Encoded() + ".payload-link"
+	if len(payloadLink) < 2 {
+		return false, nil, 0, nil
+	}
+
+	for _, repo := range ostreeRepos {
+		sourceFile := filepath.Join(repo, "objects", payloadLink[:2], payloadLink[2:])
+		st, err := os.Stat(sourceFile)
+		if err != nil || !st.Mode().IsRegular() {
+			continue
+		}
+		if st.Size() != file.Size {
+			continue
+		}
+		fd, err := unix.Open(sourceFile, unix.O_RDONLY|unix.O_NONBLOCK, 0)
+		if err != nil {
+			return false, nil, 0, nil
+		}
+		f := os.NewFile(uintptr(fd), "fd")
+		defer f.Close()
+
+		// check if the open file can be deduplicated with hard links
+		if useHardLinks && !canDedupFileWithHardLink(file, fd, st) {
+			continue
+		}
+
+		dstFile, written, err := copyFileContent(fd, file.Name, dirfd, 0, useHardLinks)
+		if err != nil {
+			return false, nil, 0, nil
+		}
+		return true, dstFile, written, nil
+	}
+	// If hard links deduplication was used and it has failed, try again without hard links.
+	if useHardLinks {
+		return findFileInOSTreeRepos(file, ostreeRepos, dirfd, false)
+	}
+
+	return false, nil, 0, nil
+}
+
 // findFileOnTheHost checks whether the requested file already exist on the host and copies the file content from there if possible.
 // It is currently implemented to look only at the file with the same path.  Ideally it can detect the same content also at different
 // paths.
@@ -873,6 +923,9 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions) (gra
 	// modifies the source file as well.
 	useHardLinks := parseBooleanPullOption(&storeOpts, "use_hard_links", false)
 
+	// List of OSTree repositories to use for deduplication
+	ostreeRepos := strings.Split(storeOpts.PullOptions["ostree_repos"], ":")
+
 	// Generate the manifest
 	var toc internal.TOC
 	if err := json.Unmarshal(c.manifest, &toc); err != nil {
@@ -1009,18 +1062,35 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions) (gra
 
 		totalChunksSize += r.Size
 
+		finalizeFile := func(dstFile *os.File) error {
+			if dstFile != nil {
+				defer dstFile.Close()
+				if err := setFileAttrs(dstFile, mode, &r, options); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+
 		found, dstFile, _, err := findFileInOtherLayers(&r, dirfd, otherLayersCache, c.layersTarget, useHardLinks)
 		if err != nil {
 			return output, err
 		}
-		if dstFile != nil {
-			if err := setFileAttrs(dstFile, mode, &r, options); err != nil {
-				dstFile.Close()
+		if found {
+			if err := finalizeFile(dstFile); err != nil {
 				return output, err
 			}
-			dstFile.Close()
+			continue
+		}
+
+		found, dstFile, _, err = findFileInOSTreeRepos(&r, ostreeRepos, dirfd, useHardLinks)
+		if err != nil {
+			return output, err
 		}
 		if found {
+			if err := finalizeFile(dstFile); err != nil {
+				return output, err
+			}
 			continue
 		}
 
@@ -1029,14 +1099,10 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions) (gra
 			if err != nil {
 				return output, err
 			}
-			if dstFile != nil {
-				if err := setFileAttrs(dstFile, mode, &r, options); err != nil {
-					dstFile.Close()
+			if found {
+				if err := finalizeFile(dstFile); err != nil {
 					return output, err
 				}
-				dstFile.Close()
-			}
-			if found {
 				continue
 			}
 		}

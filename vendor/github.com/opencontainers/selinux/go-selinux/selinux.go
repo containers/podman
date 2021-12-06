@@ -255,6 +255,8 @@ func CopyLevel(src, dest string) (string, error) {
 // Chcon changes the fpath file object to the SELinux label label.
 // If fpath is a directory and recurse is true, then Chcon walks the
 // directory tree setting the label.
+//
+// The fpath itself is guaranteed to be relabeled last.
 func Chcon(fpath string, label string, recurse bool) error {
 	return chcon(fpath, label, recurse)
 }

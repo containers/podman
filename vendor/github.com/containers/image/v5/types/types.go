@@ -622,6 +622,10 @@ type SystemContext struct {
 	DockerLogMirrorChoice bool
 	// Directory to use for OSTree temporary files
 	OSTreeTmpDirPath string
+	// If true, all blobs will have precomputed digests to ensure layers are not uploaded that already exist on the registry.
+	// Note that this requires writing blobs to temporary files, and takes more time than the default behavior,
+	// when the digest for a blob is unknown.
+	DockerRegistryPushPrecomputeDigests bool
 
 	// === docker/daemon.Transport overrides ===
 	// A directory containing a CA certificate (ending with ".crt"),

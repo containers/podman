@@ -51,6 +51,9 @@ func WalkN(root string, walkFn WalkFunc, num int) error {
 	var (
 		err error
 		wg  sync.WaitGroup
+
+		rootLen   = len(root)
+		rootEntry *walkArgs
 	)
 	wg.Add(1)
 	go func() {
@@ -58,6 +61,11 @@ func WalkN(root string, walkFn WalkFunc, num int) error {
 			if err != nil {
 				close(files)
 				return err
+			}
+			if len(p) == rootLen {
+				// Root entry is processed separately below.
+				rootEntry = &walkArgs{path: p, info: &info}
+				return nil
 			}
 			// add a file to the queue unless a callback sent an error
 			select {
@@ -91,6 +99,10 @@ func WalkN(root string, walkFn WalkFunc, num int) error {
 	}
 
 	wg.Wait()
+
+	if err == nil {
+		err = walkFn(rootEntry.path, *rootEntry.info, nil)
+	}
 
 	return err
 }

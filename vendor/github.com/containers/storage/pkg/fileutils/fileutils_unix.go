@@ -14,7 +14,7 @@ import (
 // reading it via /proc filesystem.
 func GetTotalUsedFds() int {
 	if fds, err := ioutil.ReadDir(fmt.Sprintf("/proc/%d/fd", os.Getpid())); err != nil {
-		logrus.Errorf("Error opening /proc/%d/fd: %s", os.Getpid(), err)
+		logrus.Errorf("%v", err)
 	} else {
 		return len(fds)
 	}

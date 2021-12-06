@@ -730,14 +730,14 @@ func useDirperm() bool {
 	enableDirpermLock.Do(func() {
 		base, err := ioutil.TempDir("", "storage-aufs-base")
 		if err != nil {
-			logrus.Errorf("error checking dirperm1: %v", err)
+			logrus.Errorf("Checking dirperm1: %v", err)
 			return
 		}
 		defer os.RemoveAll(base)
 
 		union, err := ioutil.TempDir("", "storage-aufs-union")
 		if err != nil {
-			logrus.Errorf("error checking dirperm1: %v", err)
+			logrus.Errorf("Checking dirperm1: %v", err)
 			return
 		}
 		defer os.RemoveAll(union)
@@ -748,7 +748,7 @@ func useDirperm() bool {
 		}
 		enableDirperm = true
 		if err := Unmount(union); err != nil {
-			logrus.Errorf("error checking dirperm1: failed to unmount %v", err)
+			logrus.Errorf("Checking dirperm1: failed to unmount %v", err)
 		}
 	})
 	return enableDirperm
