@@ -222,29 +222,62 @@ func (r *RootlessNetNS) Do(toRun func() error) error {
 		// the link target will be available in the mount ns.
 		// see: https://github.com/containers/podman/issues/10855
 		resolvePath := "/etc/resolv.conf"
-		for i := 0; i < 255; i++ {
+		linkCount := 0
+		for i := 1; i < len(resolvePath); i++ {
 			// Do not use filepath.EvalSymlinks, we only want the first symlink under /run.
 			// If /etc/resolv.conf has more than one symlink under /run, e.g.
 			// -> /run/systemd/resolve/stub-resolv.conf -> /run/systemd/resolve/resolv.conf
 			// we would put the netns resolv.conf file to the last path. However this will
 			// break dns because the second link does not exists in the mount ns.
 			// see https://github.com/containers/podman/issues/11222
-			link, err := os.Readlink(resolvePath)
-			if err != nil {
-				// if there is no symlink exit
-				break
+			//
+			// We also need to resolve all path components not just the last file.
+			// see https://github.com/containers/podman/issues/12461
+
+			if resolvePath[i] != '/' {
+				// if we are at the last char we need to inc i by one because there is no final slash
+				if i == len(resolvePath)-1 {
+					i++
+				} else {
+					// not the end of path, keep going
+					continue
+				}
 			}
+			path := resolvePath[:i]
+
+			fi, err := os.Lstat(path)
+			if err != nil {
+				return errors.Wrap(err, "failed to stat resolv.conf path")
+			}
+
+			// no link, just continue
+			if fi.Mode()&os.ModeSymlink == 0 {
+				continue
+			}
+
+			link, err := os.Readlink(path)
+			if err != nil {
+				return errors.Wrap(err, "failed to read resolv.conf symlink")
+			}
+			linkCount++
 			if filepath.IsAbs(link) {
 				// link is as an absolute path
-				resolvePath = link
+				resolvePath = filepath.Join(link, resolvePath[i:])
 			} else {
 				// link is as a relative, join it with the previous path
-				resolvePath = filepath.Join(filepath.Dir(resolvePath), link)
+				base := filepath.Dir(path)
+				resolvePath = filepath.Join(base, link, resolvePath[i:])
 			}
+			// set i back to zero since we now have a new base path
+			i = 0
+
+			// we have to stop at the first path under /run because we will have an empty /run and will create the path anyway
+			// if we would continue we would need to recreate all links under /run
 			if strings.HasPrefix(resolvePath, "/run/") {
 				break
 			}
-			if i == 254 {
+			// make sure wo do not loop forever
+			if linkCount == 255 {
 				return errors.New("too many symlinks while resolving /etc/resolv.conf")
 			}
 		}
