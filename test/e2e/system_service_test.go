@@ -45,8 +45,6 @@ var _ = Describe("podman system service", func() {
 			defer session.Kill()
 
 			WaitForService(address)
-
-			session.Wait(5 * time.Second)
 			Eventually(session, 5).Should(Exit(0))
 		})
 	})
@@ -91,7 +89,7 @@ var _ = Describe("podman system service", func() {
 			Expect(body).ShouldNot(BeEmpty())
 
 			session.Interrupt().Wait(2 * time.Second)
-			Eventually(session).Should(Exit(1))
+			Eventually(session, 5).Should(Exit(1))
 		})
 
 		It("are not available", func() {
@@ -113,7 +111,7 @@ var _ = Describe("podman system service", func() {
 			Expect(session.Err.Contents()).ShouldNot(ContainSubstring(magicComment))
 
 			session.Interrupt().Wait(2 * time.Second)
-			Eventually(session).Should(Exit(1))
+			Eventually(session, 5).Should(Exit(1))
 		})
 	})
 })
