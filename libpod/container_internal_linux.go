@@ -1777,8 +1777,17 @@ rootless=%d
 			return errors.Wrapf(err, "error creating secrets mount")
 		}
 		for _, secret := range c.Secrets() {
+			secretFileName := secret.Name
+			base := "/run/secrets"
+			if secret.Target != "" {
+				secretFileName = secret.Target
+				//If absolute path for target given remove base.
+				if filepath.IsAbs(secretFileName) {
+					base = ""
+				}
+			}
 			src := filepath.Join(c.config.SecretsPath, secret.Name)
-			dest := filepath.Join("/run/secrets", secret.Name)
+			dest := filepath.Join(base, secretFileName)
 			c.state.BindMounts[dest] = src
 		}
 	}
@@ -2503,7 +2512,7 @@ func (c *Container) getOCICgroupPath() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return filepath.Join(selfCgroup, "container"), nil
+		return filepath.Join(selfCgroup, fmt.Sprintf("libpod-payload-%s", c.ID())), nil
 	case cgroupManager == config.SystemdCgroupsManager:
 		// When the OCI runtime is set to use Systemd as a cgroup manager, it
 		// expects cgroups to be passed as follows:

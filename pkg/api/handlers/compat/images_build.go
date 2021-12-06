@@ -24,6 +24,7 @@ import (
 	"github.com/containers/podman/v3/pkg/auth"
 	"github.com/containers/podman/v3/pkg/channel"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/gorilla/schema"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -132,6 +133,15 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
 		return
+	}
+
+	// if layers field not set assume its not from a valid podman-client
+	// could be a docker client, set `layers=true` since that is the default
+	// expected behviour
+	if !utils.IsLibpodRequest(r) {
+		if _, found := r.URL.Query()["layers"]; !found {
+			query.Layers = true
+		}
 	}
 
 	// convert addcaps formats
@@ -537,8 +547,10 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		m := struct {
-			Stream string `json:"stream,omitempty"`
-			Error  string `json:"error,omitempty"`
+			Stream string                 `json:"stream,omitempty"`
+			Error  *jsonmessage.JSONError `json:"errorDetail,omitempty"`
+			// NOTE: `error` is being deprecated check https://github.com/moby/moby/blob/master/pkg/jsonmessage/jsonmessage.go#L148
+			ErrorMessage string `json:"error,omitempty"` // deprecate this slowly
 		}{}
 
 		select {
@@ -561,7 +573,10 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			}
 			flush()
 		case e := <-stderr.Chan():
-			m.Error = string(e)
+			m.ErrorMessage = string(e)
+			m.Error = &jsonmessage.JSONError{
+				Message: m.ErrorMessage,
+			}
 			if err := enc.Encode(m); err != nil {
 				logrus.Warnf("Failed to json encode error %v", err)
 			}

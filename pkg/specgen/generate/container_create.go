@@ -333,6 +333,9 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	if s.WorkDir == "" {
 		s.WorkDir = "/"
 	}
+	if s.CreateWorkingDir {
+		options = append(options, libpod.WithCreateWorkingDir())
+	}
 	if s.StopSignal != nil {
 		options = append(options, libpod.WithStopSignal(*s.StopSignal))
 	}
@@ -426,6 +429,7 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 				UID:    s.UID,
 				GID:    s.GID,
 				Mode:   s.Mode,
+				Target: s.Target,
 			})
 		}
 		options = append(options, libpod.WithSecrets(secrs))

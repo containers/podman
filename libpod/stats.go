@@ -3,6 +3,7 @@
 package libpod
 
 import (
+	"math"
 	"strings"
 	"syscall"
 	"time"
@@ -68,7 +69,7 @@ func (c *Container) GetContainerStats(previousStats *define.ContainerStats) (*de
 	stats.AvgCPU = calculateAvgCPU(stats.CPU, previousStats.AvgCPU, previousStats.DataPoints)
 	stats.DataPoints = previousStats.DataPoints + 1
 	stats.MemUsage = cgroupStats.Memory.Usage.Usage
-	stats.MemLimit = getMemLimit(cgroupStats.Memory.Usage.Limit)
+	stats.MemLimit = c.getMemLimit()
 	stats.MemPerc = (float64(stats.MemUsage) / float64(stats.MemLimit)) * 100
 	stats.PIDs = 0
 	if conState == define.ContainerStateRunning || conState == define.ContainerStatePaused {
@@ -91,22 +92,29 @@ func (c *Container) GetContainerStats(previousStats *define.ContainerStats) (*de
 	return stats, nil
 }
 
-// getMemory limit returns the memory limit for a given cgroup
-// If the configured memory limit is larger than the total memory on the sys, the
-// physical system memory size is returned
-func getMemLimit(cgroupLimit uint64) uint64 {
+// getMemory limit returns the memory limit for a container
+func (c *Container) getMemLimit() uint64 {
+	memLimit := uint64(math.MaxUint64)
+
+	if c.config.Spec.Linux != nil && c.config.Spec.Linux.Resources != nil &&
+		c.config.Spec.Linux.Resources.Memory != nil && c.config.Spec.Linux.Resources.Memory.Limit != nil {
+		memLimit = uint64(*c.config.Spec.Linux.Resources.Memory.Limit)
+	}
+
 	si := &syscall.Sysinfo_t{}
 	err := syscall.Sysinfo(si)
 	if err != nil {
-		return cgroupLimit
+		return memLimit
 	}
 
 	//nolint:unconvert
 	physicalLimit := uint64(si.Totalram)
-	if cgroupLimit > physicalLimit {
+
+	if memLimit <= 0 || memLimit > physicalLimit {
 		return physicalLimit
 	}
-	return cgroupLimit
+
+	return memLimit
 }
 
 // calculateCPUPercent calculates the cpu usage using the latest measurement in stats.

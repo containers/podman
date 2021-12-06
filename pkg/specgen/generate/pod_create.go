@@ -8,7 +8,6 @@ import (
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -115,15 +114,6 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 			logrus.Debugf("No networking because the infra container is missing")
 			break
 		}
-		if rootless.IsRootless() {
-			logrus.Debugf("Pod will use slirp4netns")
-			if p.InfraContainerSpec.NetNS.NSMode != "host" {
-				p.InfraContainerSpec.NetworkOptions = p.NetworkOptions
-				p.InfraContainerSpec.NetNS.NSMode = specgen.NamespaceMode("slirp4netns")
-			}
-		} else {
-			logrus.Debugf("Pod using bridge network mode")
-		}
 	case specgen.Bridge:
 		p.InfraContainerSpec.NetNS.NSMode = specgen.Bridge
 		logrus.Debugf("Pod using bridge network mode")
@@ -157,7 +147,6 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 		return nil, errors.Errorf("pods presently do not support network mode %s", p.NetNS.NSMode)
 	}
 
-	libpod.WithPodCgroups()
 	if len(p.InfraCommand) > 0 {
 		p.InfraContainerSpec.Entrypoint = p.InfraCommand
 	}

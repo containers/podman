@@ -165,6 +165,10 @@ func Schema2FromManifest(manifest []byte) (*Schema2, error) {
 	if err := json.Unmarshal(manifest, &s2); err != nil {
 		return nil, err
 	}
+	if err := validateUnambiguousManifestFormat(manifest, DockerV2Schema2MediaType,
+		allowedFieldConfig|allowedFieldLayers); err != nil {
+		return nil, err
+	}
 	// Check manifest's and layers' media types.
 	if err := SupportedSchema2MediaType(s2.MediaType); err != nil {
 		return nil, err

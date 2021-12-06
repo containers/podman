@@ -289,7 +289,7 @@ func (r *ConmonOCIRuntime) UpdateContainerStatus(ctr *Container) error {
 		if err2 != nil {
 			return errors.Wrapf(err, "error getting container %s state", ctr.ID())
 		}
-		if strings.Contains(string(out), "does not exist") {
+		if strings.Contains(string(out), "does not exist") || strings.Contains(string(out), "No such file") {
 			if err := ctr.removeConmonFiles(); err != nil {
 				logrus.Debugf("unable to remove conmon files for container %s", ctr.ID())
 			}
@@ -399,6 +399,11 @@ func (r *ConmonOCIRuntime) KillContainer(ctr *Container, signal uint, all bool) 
 		args = append(args, "kill", ctr.ID(), fmt.Sprintf("%d", signal))
 	}
 	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, args...); err != nil {
+		// try updating container state but ignore errors we cant do anything if this fails.
+		r.UpdateContainerStatus(ctr)
+		if ctr.state.State == define.ContainerStateExited {
+			return nil
+		}
 		return errors.Wrapf(err, "error sending signal to container %s", ctr.ID())
 	}
 

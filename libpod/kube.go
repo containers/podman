@@ -78,7 +78,11 @@ func (p *Pod) GenerateForKube(ctx context.Context) (*v1.Pod, []v1.ServicePort, e
 		if err != nil {
 			return nil, servicePorts, err
 		}
-		servicePorts = containerPortsToServicePorts(ports)
+		spState := newServicePortState()
+		servicePorts, err = spState.containerPortsToServicePorts(ports)
+		if err != nil {
+			return nil, servicePorts, err
+		}
 		hostNetwork = infraContainer.NetworkMode() == string(namespaces.NetworkMode(specgen.Host))
 	}
 	pod, err := p.podWithContainers(ctx, allContainers, ports, hostNetwork)
@@ -241,13 +245,17 @@ func ConvertV1PodToYAMLPod(pod *v1.Pod) *YAMLPod {
 }
 
 // GenerateKubeServiceFromV1Pod creates a v1 service object from a v1 pod object
-func GenerateKubeServiceFromV1Pod(pod *v1.Pod, servicePorts []v1.ServicePort) YAMLService {
+func GenerateKubeServiceFromV1Pod(pod *v1.Pod, servicePorts []v1.ServicePort) (YAMLService, error) {
 	service := YAMLService{}
 	selector := make(map[string]string)
 	selector["app"] = pod.Labels["app"]
 	ports := servicePorts
 	if len(ports) == 0 {
-		ports = containersToServicePorts(pod.Spec.Containers)
+		p, err := containersToServicePorts(pod.Spec.Containers)
+		if err != nil {
+			return service, err
+		}
+		ports = p
 	}
 	serviceSpec := v1.ServiceSpec{
 		Ports:    ports,
@@ -261,15 +269,43 @@ func GenerateKubeServiceFromV1Pod(pod *v1.Pod, servicePorts []v1.ServicePort) YA
 		APIVersion: pod.TypeMeta.APIVersion,
 	}
 	service.TypeMeta = tm
-	return service
+	return service, nil
+}
+
+// servicePortState allows calling containerPortsToServicePorts for a single service
+type servicePortState struct {
+	// A program using the shared math/rand state with the default seed will produce the same sequence of pseudo-random numbers
+	// for each execution. Use a private RNG state not to interfere with other users.
+	rng       *rand.Rand
+	usedPorts map[int]struct{}
+}
+
+func newServicePortState() servicePortState {
+	return servicePortState{
+		rng:       rand.New(rand.NewSource(time.Now().UnixNano())),
+		usedPorts: map[int]struct{}{},
+	}
 }
 
 // containerPortsToServicePorts takes a slice of containerports and generates a
 // slice of service ports
-func containerPortsToServicePorts(containerPorts []v1.ContainerPort) []v1.ServicePort {
+func (state *servicePortState) containerPortsToServicePorts(containerPorts []v1.ContainerPort) ([]v1.ServicePort, error) {
 	sps := make([]v1.ServicePort, 0, len(containerPorts))
 	for _, cp := range containerPorts {
-		nodePort := 30000 + rand.Intn(32767-30000+1)
+		var nodePort int
+		attempt := 0
+		for {
+			// Legal nodeport range is 30000-32767
+			nodePort = 30000 + state.rng.Intn(32767-30000+1)
+			if _, found := state.usedPorts[nodePort]; !found {
+				state.usedPorts[nodePort] = struct{}{}
+				break
+			}
+			attempt++
+			if attempt >= 100 {
+				return nil, fmt.Errorf("too many attempts trying to generate a unique NodePort number")
+			}
+		}
 		servicePort := v1.ServicePort{
 			Protocol:   cp.Protocol,
 			Port:       cp.ContainerPort,
@@ -279,21 +315,22 @@ func containerPortsToServicePorts(containerPorts []v1.ContainerPort) []v1.Servic
 		}
 		sps = append(sps, servicePort)
 	}
-	return sps
+	return sps, nil
 }
 
 // containersToServicePorts takes a slice of v1.Containers and generates an
 // inclusive list of serviceports to expose
-func containersToServicePorts(containers []v1.Container) []v1.ServicePort {
-	// Without the call to rand.Seed, a program will produce the same sequence of pseudo-random numbers
-	// for each execution. Legal nodeport range is 30000-32767
-	rand.Seed(time.Now().UnixNano())
-
+func containersToServicePorts(containers []v1.Container) ([]v1.ServicePort, error) {
+	state := newServicePortState()
 	sps := make([]v1.ServicePort, 0, len(containers))
 	for _, ctr := range containers {
-		sps = append(sps, containerPortsToServicePorts(ctr.Ports)...)
+		ports, err := state.containerPortsToServicePorts(ctr.Ports)
+		if err != nil {
+			return nil, err
+		}
+		sps = append(sps, ports...)
 	}
-	return sps
+	return sps, nil
 }
 
 func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, ports []v1.ContainerPort, hostNetwork bool) (*v1.Pod, error) {

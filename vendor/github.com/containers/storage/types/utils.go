@@ -87,7 +87,7 @@ func getRootlessRuntimeDirIsolated(env rootlessRuntimeDirEnvironment) (string, e
 	if tmpPerUserDir != "" {
 		if _, err := env.systemLstat(tmpPerUserDir); os.IsNotExist(err) {
 			if err := os.Mkdir(tmpPerUserDir, 0700); err != nil {
-				logrus.Errorf("failed to create temp directory for user: %v", err)
+				logrus.Errorf("Failed to create temp directory for user: %v", err)
 			} else {
 				return tmpPerUserDir, nil
 			}

@@ -62,7 +62,7 @@ Default is `${XDG\_RUNTIME\_DIR}/containers/auth.json`, which is set using `podm
 
 #### **--cert-dir**=*path*
 
-Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
+Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry. (Default: /etc/containers/certs.d)
 Please refer to **[containers-certs.d(5)](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)** for details. (This option is not available with the remote Podman client)
 
 #### **--creds**=*[username[:password]]*

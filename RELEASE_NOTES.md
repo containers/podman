@@ -1,5 +1,47 @@
 # Release Notes
 
+## 3.4.3
+### Security
+- This release addresses CVE-2021-4024, where the `podman machine` command opened the `gvproxy` API (used to forward ports to `podman machine` VMs) to the public internet on port 7777.
+- This release addresses CVE-2021-41190, where incomplete specification of behavior regarding image manifests could lead to inconsistent decoding on different clients.
+
+### Features
+- The `--secret type=mount` option to `podman create` and `podman run` supports a new option, `target=`, which specifies where in the container the secret will be mounted ([#12287](https://github.com/containers/podman/issues/12287)).
+
+### Bugfixes
+- Fixed a bug where rootless Podman would occasionally print warning messages about failing to move the pause process to a new cgroup ([#12065](https://github.com/containers/podman/issues/12065)).
+- Fixed a bug where the `podman run` and `podman create` commands would, when pulling images, still require TLS even with registries set to Insecure via config file ([#11933](https://github.com/containers/podman/issues/11933)).
+- Fixed a bug where the `podman generate systemd` command generated units that depended on `multi-user.target`, which has been removed from some distributions ([#12438](https://github.com/containers/podman/issues/12438)).
+- Fixed a bug where Podman could not run containers with images that had `/etc/` as a symlink ([#12189](https://github.com/containers/podman/issues/12189)).
+- Fixed a bug where the `podman logs -f` command would, when using the `journald` logs backend, exit immediately if the container had previously been restarted ([#12263](https://github.com/containers/podman/issues/12263)).
+- Fixed a bug where, in containers on VMs created by `podman machine`, the `host.containers.internal` name pointed to the VM, not the host system ([#11642](https://github.com/containers/podman/issues/11642)).
+- Fixed a bug where containers and pods created by the `podman play kube` command in VMs managed by `podman machine` would not automatically forward ports from the host machine ([#12248](https://github.com/containers/podman/issues/12248)).
+- Fixed a bug where `podman machine init` would fail on OS X when GNU Coreutils was installed ([#12329](https://github.com/containers/podman/issues/12329)).
+- Fixed a bug where `podman machine start` would exit before SSH on the started VM was accepting connections ([#11532](https://github.com/containers/podman/issues/11532)).
+- Fixed a bug where the `podman run` command with signal proxying (`--sig-proxy`) enabled could print an error if it attempted to send a signal to a container that had just exited ([#8086](https://github.com/containers/podman/issues/8086)).
+- Fixed a bug where the `podman stats` command would not return correct information for containers running Systemd as PID1 ([#12400](https://github.com/containers/podman/issues/12400)).
+- Fixed a bug where the `podman image save` command would fail on OS X when writing the image to STDOUT ([#12402](https://github.com/containers/podman/issues/12402)).
+- Fixed a bug where the `podman ps` command did not properly handle PS arguments which contained whitespace ([#12452](https://github.com/containers/podman/issues/12452)).
+- Fixed a bug where the `podman-remote wait` command could fail to detect that the container exited and return an error under some circumstances ([#12457](https://github.com/containers/podman/issues/12457)).
+- Fixed a bug where the Windows MSI installer for `podman-remote` would break the PATH environment variable by adding an extra `"` ([#11416](https://github.com/containers/podman/issues/11416)).
+
+### API
+- Updated the containers/image library to v5.17.0
+- The Libpod Play Kube endpoint now also accepts `ConfigMap` YAML as part of its payload, and will use provided any `ConfigMap` to configure provided pods and services.
+- Fixed a bug where the Compat Create endpoint for Containers would not always create the container's working directory if it did not exist ([#11842](https://github.com/containers/podman/issues/11842)).
+- Fixed a bug where the Compat Create endpoint for Containers returned an incorrect error message with 404 errors when the requested image was not found ([#12315](https://github.com/containers/podman/pull/12315)).
+- Fixed a bug where the Compat Create endpoint for Containers did not properly handle the `HostConfig.Mounts` field ([#12419](https://github.com/containers/podman/issues/12419)).
+- Fixed a bug where the Compat Archive endpoint for Containers did not properly report errors when the operation failed ([#12420](https://github.com/containers/podman/issues/12420)).
+- Fixed a bug where the Compat Build endpoint for Images ignored the `layers` query parameter (for caching intermediate layers from the build) ([#12378](https://github.com/containers/podman/issues/12378)).
+- Fixed a bug where the Compat Build endpoint for Images did not report errors in a manner compatible with Docker ([#12392](https://github.com/containers/podman/issues/12392)).
+- Fixed a bug where the Compat Build endpoint for Images would fail to build if the context directory was a symlink ([#12409](https://github.com/containers/podman/issues/12409)).
+- Fixed a bug where the Compat List endpoint for Images included manifest lists (and not just images) in returned results ([#12453](https://github.com/containers/podman/issues/12453)).
+
+### Misc
+- Updated the containers/image library to v5.17.0
+- Updated the containers/storage library to v1.37.0
+- Podman now builds by default with cgo enabled on OS X, resolving some issues with SSH ([#10737](https://github.com/containers/podman/issues/10737)).
+
 ## 3.4.2
 ### Bugfixes
 - Fixed a bug where `podman tag` could not tag manifest lists ([#12046](https://github.com/containers/podman/issues/12046)).

@@ -225,7 +225,7 @@ func (s *storageTransport) ParseReference(reference string) (types.ImageReferenc
 	// needs to match a store that was previously initialized using
 	// storage.GetStore(), or be enough to let the storage library fill out
 	// the rest using knowledge that it has from elsewhere.
-	if reference[0] == '[' {
+	if len(reference) > 0 && reference[0] == '[' {
 		closeIndex := strings.IndexRune(reference, ']')
 		if closeIndex < 1 {
 			return nil, ErrInvalidReference

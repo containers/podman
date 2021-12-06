@@ -264,6 +264,10 @@ type ContainerStorageConfig struct {
 	// If unset, the default, /, will be used.
 	// Optional.
 	WorkDir string `json:"work_dir,omitempty"`
+	// Create the working directory if it doesn't exist.
+	// If unset, it doesn't create it.
+	// Optional.
+	CreateWorkingDir bool `json:"create_working_dir,omitempty"`
 	// RootfsPropagation is the rootfs propagation mode for the container.
 	// If not set, the default of rslave will be used.
 	// Optional.
@@ -509,6 +513,7 @@ type SpecGenerator struct {
 
 type Secret struct {
 	Source string
+	Target string
 	UID    uint32
 	GID    uint32
 	Mode   uint32

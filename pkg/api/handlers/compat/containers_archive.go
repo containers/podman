@@ -133,8 +133,10 @@ func handlePut(w http.ResponseWriter, r *http.Request, decoder *schema.Decoder, 
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
 	if err := copyFunc(); err != nil {
 		logrus.Error(err.Error())
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		return
 	}
+	w.WriteHeader(http.StatusOK)
 }

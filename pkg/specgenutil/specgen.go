@@ -861,6 +861,7 @@ func parseSecrets(secrets []string) ([]specgen.Secret, map[string]string, error)
 		if len(split) == 1 {
 			mountSecret := specgen.Secret{
 				Source: val,
+				Target: target,
 				UID:    uid,
 				GID:    gid,
 				Mode:   mode,
@@ -926,11 +927,9 @@ func parseSecrets(secrets []string) ([]specgen.Secret, map[string]string, error)
 			return nil, nil, errors.Wrapf(secretParseError, "no source found %s", val)
 		}
 		if secretType == "mount" {
-			if target != "" {
-				return nil, nil, errors.Wrapf(secretParseError, "target option is invalid for mounted secrets")
-			}
 			mountSecret := specgen.Secret{
 				Source: source,
+				Target: target,
 				UID:    uid,
 				GID:    gid,
 				Mode:   mode,

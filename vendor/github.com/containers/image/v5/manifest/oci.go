@@ -54,6 +54,10 @@ func OCI1FromManifest(manifest []byte) (*OCI1, error) {
 	if err := json.Unmarshal(manifest, &oci1); err != nil {
 		return nil, err
 	}
+	if err := validateUnambiguousManifestFormat(manifest, imgspecv1.MediaTypeImageIndex,
+		allowedFieldConfig|allowedFieldLayers); err != nil {
+		return nil, err
+	}
 	return &oci1, nil
 }
 

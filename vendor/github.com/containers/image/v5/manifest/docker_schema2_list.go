@@ -192,6 +192,10 @@ func Schema2ListFromManifest(manifest []byte) (*Schema2List, error) {
 	if err := json.Unmarshal(manifest, &list); err != nil {
 		return nil, errors.Wrapf(err, "unmarshaling Schema2List %q", string(manifest))
 	}
+	if err := validateUnambiguousManifestFormat(manifest, DockerV2ListMediaType,
+		allowedFieldManifests); err != nil {
+		return nil, err
+	}
 	return &list, nil
 }
 

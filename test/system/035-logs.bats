@@ -30,6 +30,17 @@ load helpers
     run_podman rm $cid
 }
 
+function _additional_events_backend() {
+    local driver=$1
+    # Since PR#10431, 'logs -f' with journald driver is only supported with journald events backend.
+    if [[ $driver = "journald" ]]; then
+        run_podman info --format '{{.Host.EventLogger}}' >/dev/null
+        if [[ $output != "journald" ]]; then
+            echo "--events-backend journald"
+        fi
+    fi
+}
+
 function _log_test_multi() {
     local driver=$1
 
@@ -42,10 +53,12 @@ function _log_test_multi() {
         etc='.*'
     fi
 
+    local events_backend=$(_additional_events_backend $driver)
+
     # Simple helper to make the container starts, below, easier to read
     local -a cid
     doit() {
-        run_podman run --log-driver=$driver --rm -d --name "$1" $IMAGE sh -c "$2";
+        run_podman ${events_backend} run --log-driver=$driver --rm -d --name "$1" $IMAGE sh -c "$2";
         cid+=($(echo "${output:0:12}"))
     }
 
@@ -57,7 +70,7 @@ function _log_test_multi() {
     doit c1         "echo a;sleep 10;echo d;sleep 3"
     doit c2 "sleep 1;echo b;sleep  2;echo c;sleep 3"
 
-    run_podman logs -f c1 c2
+    run_podman ${events_backend} logs -f c1 c2
     is "$output" \
        "${cid[0]} a$etc
 ${cid[1]} b$etc
@@ -74,6 +87,27 @@ ${cid[0]} d"   "Sequential output from logs"
     skip_if_journald_unavailable
 
     _log_test_multi journald
+}
+
+function _log_test_restarted() {
+    run_podman run --log-driver=$1 --name logtest $IMAGE sh -c 'start=0; if test -s log; then start=`tail -n 1 log`; fi; seq `expr $start + 1` `expr $start + 10` | tee -a log'
+    run_podman start -a logtest
+    logfile=$(mktemp -p ${PODMAN_TMPDIR} logfileXXXXXXXX)
+    $PODMAN $_PODMAN_TEST_OPTS logs -f logtest > $logfile
+    expected=$(mktemp -p ${PODMAN_TMPDIR} expectedXXXXXXXX)
+    seq 1 20  > $expected
+    diff -u ${expected} ${logfile}
+}
+
+@test "podman logs restarted - k8s-file" {
+    _log_test_restarted k8s-file
+}
+
+@test "podman logs restarted journald" {
+    # We can't use journald on RHEL as rootless: rhbz#1895105
+    skip_if_journald_unavailable
+
+    _log_test_restarted journald
 }
 
 @test "podman logs - journald log driver requires journald events backend" {
@@ -187,15 +221,20 @@ function _log_test_follow() {
     contentA=$(random_string)
     contentB=$(random_string)
     contentC=$(random_string)
+    local events_backend=$(_additional_events_backend $driver)
+
+    if [[ -n "${events_backend}" ]]; then
+        skip_if_remote "remote does not support --events-backend"
+    fi
 
     # Note: it seems we need at least three log lines to hit #11461.
-    run_podman run --log-driver=$driver --name $cname $IMAGE sh -c "echo $contentA; echo $contentB; echo $contentC"
-    run_podman logs -f $cname
+    run_podman ${events_backend} run --log-driver=$driver --name $cname $IMAGE sh -c "echo $contentA; echo $contentB; echo $contentC"
+    run_podman ${events_backend} logs -f $cname
     is "$output" "$contentA
 $contentB
 $contentC" "logs -f on exitted container works"
 
-    run_podman rm -f $cname
+    run_podman ${events_backend} rm -f $cname
 }
 
 @test "podman logs - --follow k8s-file" {

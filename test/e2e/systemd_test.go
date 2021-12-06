@@ -109,6 +109,11 @@ WantedBy=default.target
 		stats := podmanTest.Podman([]string{"stats", "--no-stream", ctrName})
 		stats.WaitWithDefaultTimeout()
 		Expect(stats).Should(Exit(0))
+
+		cgroupPath := podmanTest.Podman([]string{"inspect", "--format='{{.State.CgroupPath}}'", ctrName})
+		cgroupPath.WaitWithDefaultTimeout()
+		Expect(cgroupPath).Should(Exit(0))
+		Expect(result.OutputToString()).To(Not(ContainSubstring("init.scope")))
 	})
 
 	It("podman create container with systemd entrypoint triggers systemd mode", func() {

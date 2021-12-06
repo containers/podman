@@ -204,6 +204,7 @@ type InspectContainerState struct {
 	FinishedAt   time.Time          `json:"FinishedAt"`
 	Healthcheck  HealthCheckResults `json:"Healthcheck,omitempty"`
 	Checkpointed bool               `json:"Checkpointed,omitempty"`
+	CgroupPath   string             `json:"CgroupPath,omitempty"`
 }
 
 // HealthCheckResults describes the results/logs from a healthcheck

@@ -264,7 +264,10 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string,
 			defer func() { _ = os.Remove(f.Name()) }()
 		}
 	default:
-		f, err = os.Create(opts.Output)
+		// This code was added to allow for opening stdout replacing
+		// os.Create(opts.Output) which was attempting to open the file
+		// for read/write which fails on Darwin platforms
+		f, err = os.OpenFile(opts.Output, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	}
 	if err != nil {
 		return err

@@ -36,6 +36,7 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -1581,14 +1582,49 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 		}()
 	}
 
+	rootUID, rootGID := c.RootUID(), c.RootGID()
+
+	dirfd, err := unix.Open(mountPoint, unix.O_RDONLY|unix.O_PATH, 0)
+	if err != nil {
+		return "", errors.Wrap(err, "open mount point")
+	}
+	defer unix.Close(dirfd)
+
+	err = unix.Mkdirat(dirfd, "etc", 0755)
+	if err != nil && !os.IsExist(err) {
+		return "", errors.Wrap(err, "create /etc")
+	}
+	// If the etc directory was created, chown it to root in the container
+	if err == nil && (rootUID != 0 || rootGID != 0) {
+		err = unix.Fchownat(dirfd, "etc", rootUID, rootGID, unix.AT_SYMLINK_NOFOLLOW)
+		if err != nil {
+			return "", errors.Wrap(err, "chown /etc")
+		}
+	}
+
+	etcInTheContainerPath, err := securejoin.SecureJoin(mountPoint, "etc")
+	if err != nil {
+		return "", errors.Wrap(err, "resolve /etc in the container")
+	}
+
+	etcInTheContainerFd, err := unix.Open(etcInTheContainerPath, unix.O_RDONLY|unix.O_PATH, 0)
+	if err != nil {
+		return "", errors.Wrap(err, "open /etc in the container")
+	}
+	defer unix.Close(etcInTheContainerFd)
+
 	// If /etc/mtab does not exist in container image, then we need to
 	// create it, so that mount command within the container will work.
-	mtab := filepath.Join(mountPoint, "/etc/mtab")
-	if err := idtools.MkdirAllAs(filepath.Dir(mtab), 0755, c.RootUID(), c.RootGID()); err != nil {
-		return "", errors.Wrap(err, "error creating mtab directory")
+	err = unix.Symlinkat("/proc/mounts", etcInTheContainerFd, "mtab")
+	if err != nil && !os.IsExist(err) {
+		return "", errors.Wrap(err, "creating /etc/mtab symlink")
 	}
-	if err = os.Symlink("/proc/mounts", mtab); err != nil && !os.IsExist(err) {
-		return "", err
+	// If the symlink was created, then also chown it to root in the container
+	if err == nil && (rootUID != 0 || rootGID != 0) {
+		err = unix.Fchownat(etcInTheContainerFd, "mtab", rootUID, rootGID, unix.AT_SYMLINK_NOFOLLOW)
+		if err != nil {
+			return "", errors.Wrap(err, "chown /etc/mtab")
+		}
 	}
 
 	// Request a mount of all named volumes
