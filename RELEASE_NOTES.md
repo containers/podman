@@ -38,6 +38,8 @@
 - Fixed a bug where the Compat List endpoint for Images included manifest lists (and not just images) in returned results ([#12453](https://github.com/containers/podman/issues/12453)).
 
 ### Misc
+- Updated the containers/image library to v5.17.0
+- Updated the containers/storage library to v1.37.0
 - Podman now builds by default with cgo enabled on OS X, resolving some issues with SSH ([#10737](https://github.com/containers/podman/issues/10737)).
 
 ## 3.4.2
