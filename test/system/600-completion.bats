@@ -309,7 +309,7 @@ function _check_completion_end() {
     # Clean up the pod pause image
     run_podman image list --format '{{.ID}} {{.Repository}}'
     while read id name; do
-        if [[ "$name" =~ /pause ]]; then
+        if [[ "$name" =~ /podman-pause ]]; then
             run_podman rmi $id
         fi
     done <<<"$output"

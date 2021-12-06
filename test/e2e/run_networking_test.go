@@ -514,9 +514,9 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 	})
 
 	It("podman run network expose duplicate host port results in error", func() {
-		SkipIfRootless("FIXME we should be able to run this test in rootless mode with different ports")
+		port := "8190" // Make sure this isn't used anywhere else
 
-		session := podmanTest.Podman([]string{"run", "--name", "test", "-dt", "-p", "80", ALPINE, "/bin/sh"})
+		session := podmanTest.Podman([]string{"run", "--name", "test", "-dt", "-p", port, ALPINE, "/bin/sh"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
@@ -526,8 +526,8 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 
 		containerConfig := inspect.InspectContainerToJSON()
 		Expect(containerConfig[0].NetworkSettings.Ports).To(Not(BeNil()))
-		Expect(containerConfig[0].NetworkSettings.Ports).To(HaveKeyWithValue("80/tcp", Not(BeNil())))
-		Expect(containerConfig[0].NetworkSettings.Ports["80/tcp"][0].HostPort).ToNot(Equal(80))
+		Expect(containerConfig[0].NetworkSettings.Ports).To(HaveKeyWithValue(port+"/tcp", Not(BeNil())))
+		Expect(containerConfig[0].NetworkSettings.Ports[port+"/tcp"][0].HostPort).ToNot(Equal(port))
 	})
 
 	It("podman run forward sctp protocol", func() {

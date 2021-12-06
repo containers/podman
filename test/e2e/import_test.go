@@ -155,7 +155,7 @@ var _ = Describe("Podman import", func() {
 	})
 
 	It("podman import with signature", func() {
-		SkipIfRemote("FIXME: remote ignores --signature-policy, #12357")
+		SkipIfRemote("--signature-policy N/A for remote")
 
 		outfile := filepath.Join(podmanTest.TempDir, "container.tar")
 		_, ec, cid := podmanTest.RunLsContainer("")
