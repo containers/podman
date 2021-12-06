@@ -44,6 +44,8 @@ type Image struct {
 		completeInspectData *ImageData
 		// Corresponding OCI image.
 		ociv1Image *ociv1.Image
+		// Names() parsed into references.
+		namesReferences []reference.Reference
 	}
 }
 
@@ -59,6 +61,7 @@ func (i *Image) reload() error {
 	i.cached.partialInspectData = nil
 	i.cached.completeInspectData = nil
 	i.cached.ociv1Image = nil
+	i.cached.namesReferences = nil
 	return nil
 }
 
@@ -87,6 +90,23 @@ func (i *Image) isCorrupted(name string) error {
 // digests.
 func (i *Image) Names() []string {
 	return i.storageImage.Names
+}
+
+// NamesReferences returns Names() as references.
+func (i *Image) NamesReferences() ([]reference.Reference, error) {
+	if i.cached.namesReferences != nil {
+		return i.cached.namesReferences, nil
+	}
+	refs := make([]reference.Reference, 0, len(i.Names()))
+	for _, name := range i.Names() {
+		ref, err := reference.Parse(name)
+		if err != nil {
+			return nil, err
+		}
+		refs = append(refs, ref)
+	}
+	i.cached.namesReferences = refs
+	return refs, nil
 }
 
 // StorageImage returns the underlying storage.Image.
