@@ -66,6 +66,7 @@ func OCI1FromComponents(config imgspecv1.Descriptor, layers []imgspecv1.Descript
 	return &OCI1{
 		imgspecv1.Manifest{
 			Versioned: specs.Versioned{SchemaVersion: 2},
+			MediaType: imgspecv1.MediaTypeImageManifest,
 			Config:    config,
 			Layers:    layers,
 		},
