@@ -300,7 +300,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	}
 
 	var (
-		headers map[string]string
+		headers http.Header
 		err     error
 	)
 	if options.SystemContext != nil && options.SystemContext.DockerAuthConfig != nil {
@@ -421,7 +421,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 								return nil, err
 							}
 
-							//add tmp file to context dir
+							// add tmp file to context dir
 							tarContent = append(tarContent, tmpSecretFile.Name())
 
 							modifiedSrc := fmt.Sprintf("src=%s", filepath.Base(tmpSecretFile.Name()))
@@ -634,7 +634,7 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 					if lerr := tw.WriteHeader(hdr); lerr != nil {
 						return lerr
 					}
-				} //skip other than file,folder and symlinks
+				} // skip other than file,folder and symlinks
 				return nil
 			})
 			merr = multierror.Append(merr, err)

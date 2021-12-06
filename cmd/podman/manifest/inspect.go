@@ -1,7 +1,6 @@
 package manifest
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/containers/podman/v3/cmd/podman/common"
@@ -29,10 +28,10 @@ func init() {
 }
 
 func inspect(cmd *cobra.Command, args []string) error {
-	buf, err := registry.ImageEngine().ManifestInspect(context.Background(), args[0])
+	buf, err := registry.ImageEngine().ManifestInspect(registry.Context(), args[0])
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%s\n", buf)
+	fmt.Println(string(buf))
 	return nil
 }

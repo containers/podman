@@ -85,8 +85,8 @@ func TestMakeXRegistryConfigHeaderGetCredentialsRoundtrip(t *testing.T) {
 		require.NoError(t, err)
 		req, err := http.NewRequest(http.MethodPost, "/", nil)
 		require.NoError(t, err, tc.name)
-		for k, v := range headers {
-			req.Header.Set(k, v)
+		for _, v := range headers.Values(xRegistryConfigHeader) {
+			req.Header.Add(xRegistryConfigHeader, v)
 		}
 
 		override, resPath, err := GetCredentials(req)
@@ -137,8 +137,8 @@ func TestMakeXRegistryAuthHeaderGetCredentialsRoundtrip(t *testing.T) {
 		require.NoError(t, err)
 		req, err := http.NewRequest(http.MethodPost, "/", nil)
 		require.NoError(t, err, tc.name)
-		for k, v := range headers {
-			req.Header.Set(k, v)
+		for _, v := range headers.Values(xRegistryAuthHeader) {
+			req.Header.Set(xRegistryAuthHeader, v)
 		}
 
 		override, resPath, err := GetCredentials(req)
@@ -219,7 +219,7 @@ func TestMakeXRegistryConfigHeader(t *testing.T) {
 				require.Len(t, res, 1, tc.name)
 				header, ok := res[xRegistryConfigHeader]
 				require.True(t, ok, tc.name)
-				decodedHeader, err := base64.URLEncoding.DecodeString(header)
+				decodedHeader, err := base64.URLEncoding.DecodeString(header[0])
 				require.NoError(t, err, tc.name)
 				// Don't test for a specific JSON representation, just for the expected contents.
 				expected := map[string]interface{}{}
@@ -282,7 +282,7 @@ func TestMakeXRegistryAuthHeader(t *testing.T) {
 				require.Len(t, res, 1, tc.name)
 				header, ok := res[xRegistryAuthHeader]
 				require.True(t, ok, tc.name)
-				decodedHeader, err := base64.URLEncoding.DecodeString(header)
+				decodedHeader, err := base64.URLEncoding.DecodeString(header[0])
 				require.NoError(t, err, tc.name)
 				// Don't test for a specific JSON representation, just for the expected contents.
 				expected := map[string]interface{}{}
