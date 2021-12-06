@@ -19,6 +19,7 @@ import (
 
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/libimage"
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
@@ -32,7 +33,6 @@ import (
 	nettypes "github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/libpod/plugin"
 	"github.com/containers/podman/v3/libpod/shutdown"
-	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/systemd"
 	"github.com/containers/podman/v3/pkg/util"

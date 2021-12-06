@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v3/pkg/api/types"
-	"github.com/containers/podman/v3/pkg/cgroups"
 	docker "github.com/docker/docker/api/types"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"

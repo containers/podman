@@ -7,8 +7,8 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"

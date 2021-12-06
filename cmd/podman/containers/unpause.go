@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/utils"
-	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/pkg/errors"

@@ -14,11 +14,11 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/common/pkg/apparmor"
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/seccomp"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/linkmode"
-	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/system"

@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/podman/v3/pkg/cgroups"
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage"

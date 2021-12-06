@@ -3,6 +3,7 @@ package cgroups
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -11,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/podman/v3/pkg/rootless"
+	"github.com/containers/storage/pkg/unshare"
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	"github.com/godbus/dbus/v5"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -131,12 +132,12 @@ func getAvailableControllers(exclude map[string]controllerHandler, cgroup2 bool)
 		controllers := []controller{}
 		controllersFile := cgroupRoot + "/cgroup.controllers"
 		// rootless cgroupv2: check available controllers for current user, systemd or servicescope will inherit
-		if rootless.IsRootless() {
+		if unshare.IsRootless() {
 			userSlice, err := getCgroupPathForCurrentProcess()
 			if err != nil {
 				return controllers, err
 			}
-			//userSlice already contains '/' so not adding here
+			// userSlice already contains '/' so not adding here
 			basePath := cgroupRoot + userSlice
 			controllersFile = fmt.Sprintf("%s/cgroup.controllers", basePath)
 		}
@@ -157,7 +158,7 @@ func getAvailableControllers(exclude map[string]controllerHandler, cgroup2 bool)
 	subsystems, _ := cgroupV1GetAllSubsystems()
 	controllers := []controller{}
 	// cgroupv1 and rootless: No subsystem is available: delegation is unsafe.
-	if rootless.IsRootless() {
+	if unshare.IsRootless() {
 		return controllers, nil
 	}
 
@@ -435,7 +436,7 @@ func Load(path string) (*CgroupControl, error) {
 
 		// if there is no controller at all, raise an error
 		if !oneExists {
-			if rootless.IsRootless() {
+			if unshare.IsRootless() {
 				return nil, ErrCgroupV1Rootless
 			}
 			// compatible with the error code
@@ -452,7 +453,7 @@ func (c *CgroupControl) CreateSystemdUnit(path string) error {
 		return fmt.Errorf("the cgroup controller is not using systemd")
 	}
 
-	conn, err := systemdDbus.New()
+	conn, err := systemdDbus.NewWithContext(context.TODO())
 	if err != nil {
 		return err
 	}
@@ -461,10 +462,10 @@ func (c *CgroupControl) CreateSystemdUnit(path string) error {
 	return systemdCreate(path, conn)
 }
 
-// GetUserConnection returns a user connection to D-BUS
+// GetUserConnection returns an user connection to D-BUS
 func GetUserConnection(uid int) (*systemdDbus.Conn, error) {
 	return systemdDbus.NewConnection(func() (*dbus.Conn, error) {
-		return dbusAuthConnection(uid, dbus.SessionBusPrivateNoAutoStartup)
+		return dbusAuthConnection(uid, dbus.SessionBusPrivate)
 	})
 }
 
@@ -565,7 +566,7 @@ func (c *CgroupControl) DeleteByPathConn(path string, conn *systemdDbus.Conn) er
 // DeleteByPath deletes the specified cgroup path
 func (c *CgroupControl) DeleteByPath(path string) error {
 	if c.systemd {
-		conn, err := systemdDbus.New()
+		conn, err := systemdDbus.NewWithContext(context.TODO())
 		if err != nil {
 			return err
 		}

@@ -1,6 +1,7 @@
 package cgroups
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -37,7 +38,7 @@ func systemdCreate(path string, c *systemdDbus.Conn) error {
 		}
 
 		ch := make(chan string)
-		_, err := c.StartTransientUnit(name, "replace", properties, ch)
+		_, err := c.StartTransientUnitContext(context.TODO(), name, "replace", properties, ch)
 		if err != nil {
 			lastError = err
 			continue
@@ -70,7 +71,7 @@ func systemdDestroyConn(path string, c *systemdDbus.Conn) error {
 	name := filepath.Base(path)
 
 	ch := make(chan string)
-	_, err := c.StopUnit(name, "replace", ch)
+	_, err := c.StopUnitContext(context.TODO(), name, "replace", ch)
 	if err != nil {
 		return err
 	}

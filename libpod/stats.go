@@ -8,8 +8,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/pkg/errors"
 )
 
