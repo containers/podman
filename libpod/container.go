@@ -1176,7 +1176,18 @@ func (c *Container) Networks() ([]string, bool, error) {
 		}
 	}
 
-	return c.networks()
+	networks, err := c.networks()
+	if err != nil {
+		return nil, false, err
+	}
+
+	names := make([]string, 0, len(networks))
+
+	for name := range networks {
+		names = append(names, name)
+	}
+
+	return names, false, nil
 }
 
 // NetworkMode gets the configured network mode for the container.
@@ -1220,36 +1231,8 @@ func (c *Container) NetworkMode() string {
 }
 
 // Unlocked accessor for networks
-func (c *Container) networks() ([]string, bool, error) {
-	networks, err := c.runtime.state.GetNetworks(c)
-	if err != nil && errors.Cause(err) == define.ErrNoSuchNetwork {
-		if len(c.config.Networks) == 0 && c.config.NetMode.IsBridge() {
-			return []string{c.runtime.config.Network.DefaultNetwork}, true, nil
-		}
-		return c.config.Networks, false, nil
-	}
-
-	return networks, false, err
-}
-
-// networksByNameIndex provides us with a map of container networks where key
-// is network name and value is the index position
-func (c *Container) networksByNameIndex() (map[string]int, error) {
-	networks, _, err := c.networks()
-	if err != nil {
-		return nil, err
-	}
-	networkNamesByIndex := make(map[string]int, len(networks))
-	for index, name := range networks {
-		networkNamesByIndex[name] = index
-	}
-	return networkNamesByIndex, nil
-}
-
-// add puts the new given CNI network name into the tracking map
-// and assigns it a new integer based on the map length
-func (d ContainerNetworkDescriptions) add(networkName string) {
-	d[networkName] = len(d)
+func (c *Container) networks() (map[string]types.PerNetworkOptions, error) {
+	return c.runtime.state.GetNetworks(c)
 }
 
 // getInterfaceByName returns a formatted interface name for a given
@@ -1270,9 +1253,7 @@ func (c *Container) getNetworkStatus() map[string]types.StatusBlock {
 		return c.state.NetworkStatus
 	}
 	if c.state.NetworkStatusOld != nil {
-		// Note: NetworkStatusOld does not contain the network names so we get them extra
-		// Generally the order should be the same
-		networks, _, err := c.networks()
+		networks, err := c.networks()
 		if err != nil {
 			return nil
 		}
@@ -1280,12 +1261,16 @@ func (c *Container) getNetworkStatus() map[string]types.StatusBlock {
 			return nil
 		}
 		result := make(map[string]types.StatusBlock, len(c.state.NetworkStatusOld))
-		for i := range c.state.NetworkStatusOld {
+		i := 0
+		// Note: NetworkStatusOld does not contain the network names so we get them extra
+		// We cannot guarantee the same order but after a state refresh it should work
+		for netName := range networks {
 			status, err := cni.CNIResultToStatus(c.state.NetworkStatusOld[i])
 			if err != nil {
 				return nil
 			}
-			result[networks[i]] = status
+			result[netName] = status
+			i++
 		}
 		c.state.NetworkStatus = result
 		_ = c.save()

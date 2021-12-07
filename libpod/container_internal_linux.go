@@ -1293,23 +1293,6 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		return nil, 0, err
 	}
 
-	// If a container is restored multiple times from an exported checkpoint with
-	// the help of '--import --name', the restore will fail if during 'podman run'
-	// a static container IP was set with '--ip'. The user can tell the restore
-	// process to ignore the static IP with '--ignore-static-ip'
-	if options.IgnoreStaticIP {
-		c.config.StaticIP = nil
-	}
-
-	// If a container is restored multiple times from an exported checkpoint with
-	// the help of '--import --name', the restore will fail if during 'podman run'
-	// a static container MAC address was set with '--mac-address'. The user
-	// can tell the restore process to ignore the static MAC with
-	// '--ignore-static-mac'
-	if options.IgnoreStaticMAC {
-		c.config.StaticMAC = nil
-	}
-
 	// Read network configuration from checkpoint
 	var netStatus map[string]types.StatusBlock
 	_, err := metadata.ReadJSONFile(&netStatus, c.bundlePath(), metadata.NetworkStatusFile)
@@ -1325,19 +1308,19 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	if err == nil && options.Name == "" && (!options.IgnoreStaticIP || !options.IgnoreStaticMAC) {
 		// The file with the network.status does exist. Let's restore the
 		// container with the same networks settings as during checkpointing.
-		aliases, err := c.GetAllNetworkAliases()
+		networkOpts, err := c.networks()
 		if err != nil {
 			return nil, 0, err
 		}
+
 		netOpts := make(map[string]types.PerNetworkOptions, len(netStatus))
-		for network, status := range netStatus {
-			perNetOpts := types.PerNetworkOptions{}
-			for name, netInt := range status.Interfaces {
-				perNetOpts = types.PerNetworkOptions{
-					InterfaceName: name,
-					Aliases:       aliases[network],
-				}
-				if !options.IgnoreStaticMAC {
+		for network, perNetOpts := range networkOpts {
+			// unset mac and ips before we start adding the ones from the status
+			perNetOpts.StaticMAC = nil
+			perNetOpts.StaticIPs = nil
+			for name, netInt := range netStatus[network].Interfaces {
+				perNetOpts.InterfaceName = name
+				if !options.IgnoreStaticIP {
 					perNetOpts.StaticMAC = netInt.MacAddress
 				}
 				if !options.IgnoreStaticIP {
@@ -1348,13 +1331,6 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 				// Normally interfaces have a length of 1, only for some special cni configs we could get more.
 				// For now just use the first interface to get the ips this should be good enough for most cases.
 				break
-			}
-			if perNetOpts.InterfaceName == "" {
-				eth, exists := c.state.NetInterfaceDescriptions.getInterfaceByName(network)
-				if !exists {
-					return nil, 0, errors.Errorf("no network interface name for container %s on network %s", c.config.ID, network)
-				}
-				perNetOpts.InterfaceName = eth
 			}
 			netOpts[network] = perNetOpts
 		}

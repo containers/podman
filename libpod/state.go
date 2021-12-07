@@ -1,5 +1,7 @@
 package libpod
 
+import "github.com/containers/podman/v3/libpod/network/types"
+
 // State is a storage backend for libpod's current state.
 // A State is only initialized once per instance of libpod.
 // As such, initialization methods for State implementations may safely assume
@@ -99,14 +101,14 @@ type State interface {
 	AllContainers() ([]*Container, error)
 
 	// Get networks the container is currently connected to.
-	GetNetworks(ctr *Container) ([]string, error)
+	GetNetworks(ctr *Container) (map[string]types.PerNetworkOptions, error)
 	// Get network aliases for the given container in the given network.
 	GetNetworkAliases(ctr *Container, network string) ([]string, error)
 	// Get all network aliases for the given container.
 	GetAllNetworkAliases(ctr *Container) (map[string][]string, error)
 	// Add the container to the given network, adding the given aliases
 	// (if present).
-	NetworkConnect(ctr *Container, network string, aliases []string) error
+	NetworkConnect(ctr *Container, network string, opts types.PerNetworkOptions) error
 	// Remove the container from the given network, removing all aliases for
 	// the container in that network in the process.
 	NetworkDisconnect(ctr *Container, network string) error
