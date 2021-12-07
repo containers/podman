@@ -15,8 +15,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/inspect"
 	"github.com/containers/podman/v3/pkg/rootless"
 	. "github.com/containers/podman/v3/test/utils"

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v3/libpod"
-	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/utils"

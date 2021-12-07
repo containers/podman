@@ -26,7 +26,7 @@ func cpusetCopyFileFromParent(dir, file string, cgroupv2 bool) ([]byte, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "open %s", path)
 	}
-	if len(strings.Trim(string(data), "\n")) != 0 {
+	if strings.Trim(string(data), "\n") != "" {
 		return data, nil
 	}
 	data, err = cpusetCopyFileFromParent(filepath.Dir(dir), file, cgroupv2)
