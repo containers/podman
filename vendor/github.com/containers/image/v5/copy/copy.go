@@ -1058,7 +1058,8 @@ func (ic *imageCopier) copyUpdatedConfigAndManifest(ctx context.Context, instanc
 		instanceDigest = &manifestDigest
 	}
 	if err := ic.c.dest.PutManifest(ctx, man, instanceDigest); err != nil {
-		return nil, "", errors.Wrapf(err, "writing manifest %q", string(man))
+		logrus.Debugf("Error %v while writing manifest %q", err, string(man))
+		return nil, "", errors.Wrapf(err, "writing manifest")
 	}
 	return man, manifestDigest, nil
 }

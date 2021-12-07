@@ -377,6 +377,11 @@ func (w WaitStatus) TrapCause() int { return -1 }
 
 //sys	fcntl(fd int, cmd int, arg int) (val int, err error)
 
+//sys	fsyncRange(fd int, how int, start int64, length int64) (err error) = fsync_range
+func Fsync(fd int) error {
+	return fsyncRange(fd, O_SYNC, 0, 0)
+}
+
 /*
  * Direct access
  */
@@ -393,7 +398,6 @@ func (w WaitStatus) TrapCause() int { return -1 }
 //sys	Fchmodat(dirfd int, path string, mode uint32, flags int) (err error)
 //sys	Fchownat(dirfd int, path string, uid int, gid int, flags int) (err error)
 //sys	Fdatasync(fd int) (err error)
-//sys	Fsync(fd int) (err error)
 // readdir_r
 //sysnb	Getpgid(pid int) (pgid int, err error)
 

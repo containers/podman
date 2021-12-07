@@ -14,7 +14,7 @@ require (
 	github.com/containers/buildah v1.23.1
 	github.com/containers/common v0.46.1-0.20211205182721-515a2805e7b9
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.17.1-0.20211201214147-603ec1341d58
+	github.com/containers/image/v5 v5.17.1-0.20211207161909-6f3c8453e1a7
 	github.com/containers/ocicrypt v1.1.2
 	github.com/containers/psgo v1.7.1
 	github.com/containers/storage v1.37.1-0.20211130181259-1a158c89a518
@@ -65,7 +65,7 @@ require (
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20211107104306-e0b2ad06fe42
+	golang.org/x/sys v0.0.0-20211124211545-fe61309f8881
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/api v0.22.4

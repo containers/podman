@@ -464,6 +464,18 @@ func (d *dockerImageDestination) PutManifest(ctx context.Context, m []byte, inst
 		}
 		return err
 	}
+	// A HTTP server may not be a registry at all, and just return 200 OK to everything
+	// (in particular that can fairly easily happen after tearing down a website and
+	// replacing it with a global 302 redirect to a new website, completely ignoring the
+	// path in the request); in that case we could “succeed” uploading a whole image.
+	// With docker/distribution we could rely on a Docker-Content-Digest header being present
+	// (because docker/distribution/registry/client has been failing uploads if it was missing),
+	// but that has been defined as explicitly optional by
+	// https://github.com/opencontainers/distribution-spec/blob/ec90a2af85fe4d612cf801e1815b95bfa40ae72b/spec.md#legacy-docker-support-http-headers
+	// So, just note the missing header in a debug log.
+	if v := res.Header.Values("Docker-Content-Digest"); len(v) == 0 {
+		logrus.Debugf("Manifest upload response didn’t contain a Docker-Content-Digest header, it might not be a container registry")
+	}
 	return nil
 }
 

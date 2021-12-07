@@ -620,6 +620,10 @@ func getAuthFromCredHelper(credHelper, registry string) (types.DockerAuthConfig,
 	p := helperclient.NewShellProgramFunc(helperName)
 	creds, err := helperclient.Get(p, registry)
 	if err != nil {
+		if credentials.IsErrCredentialsNotFoundMessage(err.Error()) {
+			logrus.Debugf("Not logged in to %s with credential helper %s", registry, credHelper)
+			err = nil
+		}
 		return types.DockerAuthConfig{}, err
 	}
 
