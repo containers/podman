@@ -1166,19 +1166,19 @@ func (c *Container) Secrets() []*ContainerSecret {
 // is joining the default CNI network - the network name will be included in the
 // returned array of network names, but the container did not explicitly join
 // this network.
-func (c *Container) Networks() ([]string, bool, error) {
+func (c *Container) Networks() ([]string, error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
 		if err := c.syncContainer(); err != nil {
-			return nil, false, err
+			return nil, err
 		}
 	}
 
 	networks, err := c.networks()
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	names := make([]string, 0, len(networks))
@@ -1187,7 +1187,7 @@ func (c *Container) Networks() ([]string, bool, error) {
 		names = append(names, name)
 	}
 
-	return names, false, nil
+	return names, nil
 }
 
 // NetworkMode gets the configured network mode for the container.
