@@ -1,6 +1,6 @@
 package decor
 
-// OnComplete returns decorator, which wraps provided decorator, with
+// OnComplete returns decorator, which wraps provided decorator with
 // sole purpose to display provided message on complete event.
 //
 //	`decorator` Decorator to wrap
