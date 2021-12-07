@@ -10,6 +10,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
@@ -250,7 +251,7 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 		if s.NetNS.Value != "" {
 			val = fmt.Sprintf("slirp4netns:%s", s.NetNS.Value)
 		}
-		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, val, s.CNINetworks))
+		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, val, nil))
 	case specgen.Private:
 		fallthrough
 	case specgen.Bridge:
@@ -258,7 +259,32 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 		if err != nil {
 			return nil, err
 		}
-		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, "bridge", s.CNINetworks))
+		if len(s.CNINetworks) == 0 {
+			rtConfig, err := rt.GetConfigNoCopy()
+			if err != nil {
+				return nil, err
+			}
+			s.CNINetworks = append(s.CNINetworks, rtConfig.Network.DefaultNetwork)
+		}
+		networks := make(map[string]types.PerNetworkOptions, len(s.CNINetworks))
+		for i, netName := range s.CNINetworks {
+			opts := types.PerNetworkOptions{}
+			opts.Aliases = s.Aliases[netName]
+			if i == 0 {
+				if s.StaticIP != nil {
+					opts.StaticIPs = append(opts.StaticIPs, *s.StaticIP)
+				}
+				if s.StaticIPv6 != nil {
+					opts.StaticIPs = append(opts.StaticIPs, *s.StaticIPv6)
+				}
+				if s.StaticMAC != nil {
+					opts.StaticMAC = *s.StaticMAC
+				}
+			}
+			networks[netName] = opts
+		}
+
+		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, "bridge", networks))
 	}
 
 	if s.UseImageHosts {
@@ -280,12 +306,6 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 	}
 	if len(s.DNSOptions) > 0 {
 		toReturn = append(toReturn, libpod.WithDNSOption(s.DNSOptions))
-	}
-	if s.StaticIP != nil {
-		toReturn = append(toReturn, libpod.WithStaticIP(*s.StaticIP))
-	}
-	if s.StaticMAC != nil {
-		toReturn = append(toReturn, libpod.WithStaticMAC(*s.StaticMAC))
 	}
 	if s.NetworkOptions != nil {
 		toReturn = append(toReturn, libpod.WithNetworkOptions(s.NetworkOptions))

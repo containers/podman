@@ -204,7 +204,8 @@ type PerNetworkOptions struct {
 	Aliases []string `json:"aliases,omitempty"`
 	// StaticMac for this container. Optional.
 	StaticMAC HardwareAddr `json:"static_mac,omitempty"`
-	// InterfaceName for this container. Required.
+	// InterfaceName for this container. Required in the backend.
+	// Optional in the frontend. Will be filled with ethX (where X is a integer) when empty.
 	InterfaceName string `json:"interface_name"`
 }
 

@@ -160,10 +160,6 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	}
 	options = append(options, opts...)
 
-	if len(s.Aliases) > 0 {
-		options = append(options, libpod.WithNetworkAliases(s.Aliases))
-	}
-
 	if containerType := s.InitContainerType; len(containerType) > 0 {
 		options = append(options, libpod.WithInitCtrType(containerType))
 	}
