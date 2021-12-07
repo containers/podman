@@ -691,6 +691,18 @@ USER testuser`, fedoraMinimal)
 
 	})
 
+	It("podman run with named volume check if we honor permission of target dir", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "stat", "-c", "%a %Y", "/var/tmp"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		perms := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"run", "--rm", "-v", "test:/var/tmp", ALPINE, "stat", "-c", "%a %Y", "/var/tmp"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal(perms))
+	})
+
 	It("podman volume with uid and gid works", func() {
 		volName := "testVol"
 		volCreate := podmanTest.Podman([]string{"volume", "create", "--opt", "o=uid=1000", volName})

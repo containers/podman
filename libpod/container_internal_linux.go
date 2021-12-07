@@ -2678,7 +2678,7 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 					return err
 				}
 			}
-			if err := os.Chmod(mountPoint, st.Mode()|0111); err != nil {
+			if err := os.Chmod(mountPoint, st.Mode()); err != nil {
 				return err
 			}
 			stat := st.Sys().(*syscall.Stat_t)
