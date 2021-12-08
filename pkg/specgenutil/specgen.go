@@ -397,11 +397,9 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	s.WorkDir = c.Workdir
 	if c.Entrypoint != nil {
 		entrypoint := []string{}
-		if ep := *c.Entrypoint; len(ep) > 0 {
-			// Check if entrypoint specified is json
-			if err := json.Unmarshal([]byte(*c.Entrypoint), &entrypoint); err != nil {
-				entrypoint = append(entrypoint, ep)
-			}
+		// Check if entrypoint specified is json
+		if err := json.Unmarshal([]byte(*c.Entrypoint), &entrypoint); err != nil {
+			entrypoint = append(entrypoint, *c.Entrypoint)
 		}
 		s.Entrypoint = entrypoint
 	}
