@@ -1170,7 +1170,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 }
 
 // ConnectNetwork connects a container to a given network
-func (c *Container) NetworkConnect(nameOrID, netName string, aliases []string) error {
+func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNetworkOptions) error {
 	// only the bridge mode supports cni networks
 	if err := isBridgeNetMode(c.config.NetMode); err != nil {
 		return err
@@ -1202,22 +1202,20 @@ func (c *Container) NetworkConnect(nameOrID, netName string, aliases []string) e
 	if err != nil {
 		return err
 	}
-	if !network.DNSEnabled && len(aliases) > 0 {
+	if !network.DNSEnabled && len(netOpts.Aliases) > 0 {
 		return errors.Wrapf(define.ErrInvalidArg, "cannot set network aliases for network %q because dns is disabled", netName)
 	}
+	// always add the short id as alias for docker compat
+	netOpts.Aliases = append(netOpts.Aliases, c.config.ID[:12])
 
-	eth := getFreeInterfaceName(networks)
-	if eth == "" {
-		return errors.New("could not find free network interface name")
+	if netOpts.InterfaceName == "" {
+		netOpts.InterfaceName = getFreeInterfaceName(networks)
+		if netOpts.InterfaceName == "" {
+			return errors.New("could not find free network interface name")
+		}
 	}
 
-	perNetOpt := types.PerNetworkOptions{
-		// always add the short id as alias to match docker
-		Aliases:       append(aliases, c.config.ID[:12]),
-		InterfaceName: eth,
-	}
-
-	if err := c.runtime.state.NetworkConnect(c, netName, perNetOpt); err != nil {
+	if err := c.runtime.state.NetworkConnect(c, netName, netOpts); err != nil {
 		return err
 	}
 	c.newNetworkEvent(events.NetworkConnect, netName)
@@ -1234,7 +1232,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, aliases []string) e
 	}
 	opts.PortMappings = c.convertPortMappings()
 	opts.Networks = map[string]types.PerNetworkOptions{
-		netName: perNetOpt,
+		netName: netOpts,
 	}
 
 	results, err := c.runtime.setUpNetwork(c.state.NetNS.Path(), opts)
@@ -1290,12 +1288,12 @@ func (r *Runtime) DisconnectContainerFromNetwork(nameOrID, netName string, force
 }
 
 // ConnectContainerToNetwork connects a container to a CNI network
-func (r *Runtime) ConnectContainerToNetwork(nameOrID, netName string, aliases []string) error {
+func (r *Runtime) ConnectContainerToNetwork(nameOrID, netName string, netOpts types.PerNetworkOptions) error {
 	ctr, err := r.LookupContainer(nameOrID)
 	if err != nil {
 		return err
 	}
-	return ctr.NetworkConnect(nameOrID, netName, aliases)
+	return ctr.NetworkConnect(nameOrID, netName, netOpts)
 }
 
 // normalizeNetworkName takes a network name, a partial or a full network ID and returns the network name.

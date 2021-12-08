@@ -124,7 +124,7 @@ func (ic *ContainerEngine) NetworkDisconnect(ctx context.Context, networkname st
 }
 
 func (ic *ContainerEngine) NetworkConnect(ctx context.Context, networkname string, options entities.NetworkConnectOptions) error {
-	return ic.Libpod.ConnectContainerToNetwork(options.Container, networkname, options.Aliases)
+	return ic.Libpod.ConnectContainerToNetwork(options.Container, networkname, options.PerNetworkOptions)
 }
 
 // NetworkExists checks if the given network exists

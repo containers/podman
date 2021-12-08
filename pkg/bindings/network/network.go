@@ -3,7 +3,6 @@ package network
 import (
 	"context"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/containers/podman/v3/libpod/network/types"
@@ -110,8 +109,6 @@ func Disconnect(ctx context.Context, networkName string, ContainerNameOrID strin
 	if err != nil {
 		return err
 	}
-	// No params are used for disconnect
-	params := url.Values{}
 	// Disconnect sends everything in body
 	disconnect := struct {
 		Container string
@@ -128,7 +125,7 @@ func Disconnect(ctx context.Context, networkName string, ContainerNameOrID strin
 		return err
 	}
 	stringReader := strings.NewReader(body)
-	response, err := conn.DoRequest(ctx, stringReader, http.MethodPost, "/networks/%s/disconnect", params, nil, networkName)
+	response, err := conn.DoRequest(ctx, stringReader, http.MethodPost, "/networks/%s/disconnect", nil, nil, networkName)
 	if err != nil {
 		return err
 	}
@@ -138,32 +135,26 @@ func Disconnect(ctx context.Context, networkName string, ContainerNameOrID strin
 }
 
 // Connect adds a container to a network
-func Connect(ctx context.Context, networkName string, ContainerNameOrID string, options *ConnectOptions) error {
+func Connect(ctx context.Context, networkName string, containerNameOrID string, options *types.PerNetworkOptions) error {
 	if options == nil {
-		options = new(ConnectOptions)
+		options = new(types.PerNetworkOptions)
 	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
-	// No params are used in connect
-	params := url.Values{}
 	// Connect sends everything in body
-	connect := struct {
-		Container string
-		Aliases   []string
-	}{
-		Container: ContainerNameOrID,
+	connect := entities.NetworkConnectOptions{
+		Container:         containerNameOrID,
+		PerNetworkOptions: *options,
 	}
-	if aliases := options.GetAliases(); options.Changed("Aliases") {
-		connect.Aliases = aliases
-	}
+
 	body, err := jsoniter.MarshalToString(connect)
 	if err != nil {
 		return err
 	}
 	stringReader := strings.NewReader(body)
-	response, err := conn.DoRequest(ctx, stringReader, http.MethodPost, "/networks/%s/connect", params, nil, networkName)
+	response, err := conn.DoRequest(ctx, stringReader, http.MethodPost, "/networks/%s/connect", nil, nil, networkName)
 	if err != nil {
 		return err
 	}

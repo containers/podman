@@ -1,6 +1,8 @@
 package network
 
-import "net"
+import (
+	"net"
+)
 
 //go:generate go run ../generator/generator.go CreateOptions
 // CreateOptions are optional options for creating networks
@@ -59,15 +61,6 @@ type DisconnectOptions struct {
 	// Force indicates to remove the container from
 	// the network forcibly
 	Force *bool
-}
-
-//go:generate go run ../generator/generator.go ConnectOptions
-// ConnectOptions are optional options for connecting
-// containers from a network
-type ConnectOptions struct {
-	// Aliases are names the container will be known as
-	// when using the dns plugin
-	Aliases *[]string
 }
 
 //go:generate go run ../generator/generator.go ExistsOptions

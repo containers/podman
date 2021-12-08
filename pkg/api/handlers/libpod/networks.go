@@ -125,7 +125,7 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := utils.GetName(r)
-	err := runtime.ConnectContainerToNetwork(netConnect.Container, name, netConnect.Aliases)
+	err := runtime.ConnectContainerToNetwork(netConnect.Container, name, netConnect.PerNetworkOptions)
 	if err != nil {
 		if errors.Cause(err) == define.ErrNoSuchCtr {
 			utils.ContainerNotFound(w, netConnect.Container, err)
