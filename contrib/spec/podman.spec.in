@@ -36,7 +36,7 @@ Epoch: 99
 %else
 Epoch: 0
 %endif
-Version: 3.4.4
+Version: 3.4.5
 Release: #COMMITDATE#.git%{shortcommit0}%{?dist}
 Summary: Manage Pods, Containers and Container Images
 License: ASL 2.0
