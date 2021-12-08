@@ -1,5 +1,11 @@
 # Release Notes
 
+## 3.4.4
+### Bugfixes
+- Fixed a bug where the `podman exec` command would, under some circumstances, print a warning message about failing to move `conmon` to the appropriate cgroup ([#12535](https://github.com/containers/podman/issues/12535)).
+- Fixed a bug where named volumes created as part of container creation (e.g. `podman run --volume avolume:/a/mountpoint` or similar) would be mounted with incorrect permissions ([#12523](https://github.com/containers/podman/issues/12523)).
+- Fixed a bug where the `podman-remote create` and `podman-remote run` commands did not properly handle the `--entrypoint=""` option (to clear the container's entrypoint) ([#12521](https://github.com/containers/podman/issues/12521)).
+
 ## 3.4.3
 ### Security
 - This release addresses CVE-2021-4024, where the `podman machine` command opened the `gvproxy` API (used to forward ports to `podman machine` VMs) to the public internet on port 7777.
