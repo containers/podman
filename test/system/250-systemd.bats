@@ -104,8 +104,9 @@ function service_cleanup() {
 }
 
 @test "podman autoupdate local" {
+    # Note that the entrypoint may be a JSON string which requires preserving the quotes (see #12477)
     cname=$(random_string)
-    run_podman create --name $cname --label "io.containers.autoupdate=local" $IMAGE top
+    run_podman create --name $cname --label "io.containers.autoupdate=local" --entrypoint '["top"]' $IMAGE
 
     # Start systemd service to run this container
     service_setup
