@@ -18,10 +18,6 @@ var LsDockerfile = fmt.Sprintf(`
 FROM  %s
 LABEL RUN ls -la`, ALPINE)
 
-var GlobalDockerfile = fmt.Sprintf(`
-FROM %s
-LABEL RUN echo \$GLOBAL_OPTS`, ALPINE)
-
 var PodmanRunlabelNameDockerfile = fmt.Sprintf(`
 FROM  %s
 LABEL RUN podman run --name NAME IMAGE`, ALPINE)
@@ -102,22 +98,6 @@ var _ = Describe("podman container runlabel", func() {
 		Expect(result).To(ExitWithError())
 		// should not panic when label missing the value or don't have the label
 		Expect(result.OutputToString()).To(Not(ContainSubstring("panic")))
-	})
-
-	It("podman container runlabel global options", func() {
-		fmt.Printf("FIXME: for lint. Remove when you fix this test: %s", GlobalDockerfile)
-		Skip("FIXME: $GLOBAL_OPTS does not work at all, #12436")
-		image := "podman-global-test:ls"
-		podmanTest.BuildImage(GlobalDockerfile, image, "false")
-		result := podmanTest.Podman([]string{"--syslog", "--log-level", "debug", "container", "runlabel", "RUN", image})
-		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
-
-		Expect(result.OutputToString()).To(ContainSubstring("--syslog true"))
-		Expect(result.OutputToString()).To(ContainSubstring("--log-level debug"))
-		result = podmanTest.Podman([]string{"rmi", image})
-		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
 	})
 
 	It("runlabel should fail with nonexistent authfile", func() {
