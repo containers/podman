@@ -91,6 +91,10 @@ ${cid[0]} d"   "Sequential output from logs"
 
 function _log_test_restarted() {
     run_podman run --log-driver=$1 --name logtest $IMAGE sh -c 'start=0; if test -s log; then start=`tail -n 1 log`; fi; seq `expr $start + 1` `expr $start + 10` | tee -a log'
+    # FIXME: #9597
+    # run/start is flaking for remote so let's wait for the container condition
+    # to stop wasting energy until the root cause gets fixed.
+    run_podman container wait --condition=exited logtest
     run_podman start -a logtest
     logfile=$(mktemp -p ${PODMAN_TMPDIR} logfileXXXXXXXX)
     $PODMAN $_PODMAN_TEST_OPTS logs -f logtest > $logfile
