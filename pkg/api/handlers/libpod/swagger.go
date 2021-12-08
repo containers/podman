@@ -133,6 +133,12 @@ type swagNetworkPruneResponse struct {
 	Body []entities.NetworkPruneReport
 }
 
+// Network connect
+// swagger:model NetworkConnectRequest
+type swagNetworkConnectRequest struct {
+	entities.NetworkConnectOptions
+}
+
 func ServeSwagger(w http.ResponseWriter, r *http.Request) {
 	path := DefaultPodmanSwaggerSpec
 	if p, found := os.LookupEnv("PODMAN_SWAGGER_SPEC"); found {

@@ -131,7 +131,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//    name: create
 	//    description: attributes for connecting a container to a network
 	//    schema:
-	//      $ref: "#/definitions/NetworkConnectRequest"
+	//      $ref: "#/definitions/NetworkCompatConnectRequest"
 	// responses:
 	//   200:
 	//     description: OK
@@ -159,7 +159,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//    name: create
 	//    description: attributes for disconnecting a container from a network
 	//    schema:
-	//      $ref: "#/definitions/NetworkDisconnectRequest"
+	//      $ref: "#/definitions/NetworkCompatDisconnectRequest"
 	// responses:
 	//   200:
 	//     description: OK
@@ -368,7 +368,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//    name: create
 	//    description: attributes for disconnecting a container from a network
 	//    schema:
-	//      $ref: "#/definitions/NetworkDisconnectRequest"
+	//      $ref: "#/definitions/NetworkCompatDisconnectRequest"
 	// responses:
 	//   200:
 	//     description: OK
