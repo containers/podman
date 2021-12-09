@@ -45,18 +45,16 @@ type NetFlags struct {
 // NetOptions reflect the shared network options between
 // pods and containers
 type NetOptions struct {
-	AddHosts           []string            `json:"hostadd,omitempty"`
-	Aliases            []string            `json:"network_alias,omitempty"`
-	CNINetworks        []string            `json:"cni_networks,omitempty"`
-	UseImageResolvConf bool                `json:"no_manage_resolv_conf,omitempty"`
-	DNSOptions         []string            `json:"dns_option,omitempty"`
-	DNSSearch          []string            `json:"dns_search,omitempty"`
-	DNSServers         []net.IP            `json:"dns_server,omitempty"`
-	Network            specgen.Namespace   `json:"netns,omitempty"`
-	NoHosts            bool                `json:"no_manage_hosts,omitempty"`
-	PublishPorts       []types.PortMapping `json:"portmappings,omitempty"`
-	StaticIP           *net.IP             `json:"static_ip,omitempty"`
-	StaticMAC          *net.HardwareAddr   `json:"static_mac,omitempty"`
+	AddHosts           []string                           `json:"hostadd,omitempty"`
+	Aliases            []string                           `json:"network_alias,omitempty"`
+	Networks           map[string]types.PerNetworkOptions `json:"networks,omitempty"`
+	UseImageResolvConf bool                               `json:"no_manage_resolv_conf,omitempty"`
+	DNSOptions         []string                           `json:"dns_option,omitempty"`
+	DNSSearch          []string                           `json:"dns_search,omitempty"`
+	DNSServers         []net.IP                           `json:"dns_server,omitempty"`
+	Network            specgen.Namespace                  `json:"netns,omitempty"`
+	NoHosts            bool                               `json:"no_manage_hosts,omitempty"`
+	PublishPorts       []types.PortMapping                `json:"portmappings,omitempty"`
 	// NetworkOptions are additional options for each network
 	NetworkOptions map[string][]string `json:"network_options,omitempty"`
 }

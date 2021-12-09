@@ -6,6 +6,7 @@ import (
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/specgenutil"
@@ -151,18 +152,6 @@ func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet, netnsF
 	}
 	opts.DNSSearch = dnsSearches
 
-	m, err := flags.GetString("mac-address")
-	if err != nil {
-		return nil, err
-	}
-	if len(m) > 0 {
-		mac, err := net.ParseMAC(m)
-		if err != nil {
-			return nil, err
-		}
-		opts.StaticMAC = &mac
-	}
-
 	inputPorts, err := flags.GetStringSlice("publish")
 	if err != nil {
 		return nil, err
@@ -172,21 +161,6 @@ func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet, netnsF
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	ip, err := flags.GetString("ip")
-	if err != nil {
-		return nil, err
-	}
-	if ip != "" {
-		staticIP := net.ParseIP(ip)
-		if staticIP == nil {
-			return nil, errors.Errorf("%s is not an ip address", ip)
-		}
-		if staticIP.To4() == nil {
-			return nil, errors.Wrapf(define.ErrInvalidArg, "%s is not an IPv4 address", ip)
-		}
-		opts.StaticIP = &staticIP
 	}
 
 	opts.NoHosts, err = flags.GetBool("no-hosts")
@@ -202,7 +176,7 @@ func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet, netnsF
 			return nil, err
 		}
 
-		ns, cniNets, options, err := specgen.ParseNetworkString(network)
+		ns, networks, options, err := specgen.ParseNetworkString(network)
 		if err != nil {
 			return nil, err
 		}
@@ -211,7 +185,49 @@ func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet, netnsF
 			opts.NetworkOptions = options
 		}
 		opts.Network = ns
-		opts.CNINetworks = cniNets
+		opts.Networks = networks
+	}
+
+	ip, err := flags.GetString("ip")
+	if err != nil {
+		return nil, err
+	}
+	if ip != "" {
+		staticIP := net.ParseIP(ip)
+		if staticIP == nil {
+			return nil, errors.Errorf("%s is not an ip address", ip)
+		}
+		if !opts.Network.IsBridge() {
+			return nil, errors.Wrap(define.ErrInvalidArg, "--ip can only be set when the network mode is bridge")
+		}
+		if len(opts.Networks) != 1 {
+			return nil, errors.Wrap(define.ErrInvalidArg, "--ip can only be set for a single network")
+		}
+		for name, netOpts := range opts.Networks {
+			netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
+			opts.Networks[name] = netOpts
+		}
+	}
+
+	m, err := flags.GetString("mac-address")
+	if err != nil {
+		return nil, err
+	}
+	if len(m) > 0 {
+		mac, err := net.ParseMAC(m)
+		if err != nil {
+			return nil, err
+		}
+		if !opts.Network.IsBridge() {
+			return nil, errors.Wrap(define.ErrInvalidArg, "--mac-address can only be set when the network mode is bridge")
+		}
+		if len(opts.Networks) != 1 {
+			return nil, errors.Wrap(define.ErrInvalidArg, "--mac-address can only be set for a single network")
+		}
+		for name, netOpts := range opts.Networks {
+			netOpts.StaticMAC = types.HardwareAddr(mac)
+			opts.Networks[name] = netOpts
+		}
 	}
 
 	aliases, err := flags.GetStringSlice("network-alias")
@@ -219,7 +235,13 @@ func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet, netnsF
 		return nil, err
 	}
 	if len(aliases) > 0 {
-		opts.Aliases = aliases
+		if !opts.Network.IsBridge() {
+			return nil, errors.Wrap(define.ErrInvalidArg, "--network-alias can only be set when the network mode is bridge")
+		}
+		for name, netOpts := range opts.Networks {
+			netOpts.Aliases = aliases
+			opts.Networks[name] = netOpts
+		}
 	}
 
 	return opts, err

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/cgroups"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage"
@@ -271,9 +272,9 @@ func ParseUserNamespace(ns string) (Namespace, error) {
 // ParseNetworkNamespace parses a network namespace specification in string
 // form.
 // Returns a namespace and (optionally) a list of CNI networks to join.
-func ParseNetworkNamespace(ns string, rootlessDefaultCNI bool) (Namespace, []string, error) {
+func ParseNetworkNamespace(ns string, rootlessDefaultCNI bool) (Namespace, map[string]types.PerNetworkOptions, error) {
 	toReturn := Namespace{}
-	var cniNetworks []string
+	networks := make(map[string]types.PerNetworkOptions)
 	// Net defaults to Slirp on rootless
 	switch {
 	case ns == string(Slirp), strings.HasPrefix(ns, string(Slirp)+":"):
@@ -313,18 +314,22 @@ func ParseNetworkNamespace(ns string, rootlessDefaultCNI bool) (Namespace, []str
 	default:
 		// Assume we have been given a list of CNI networks.
 		// Which only works in bridge mode, so set that.
-		cniNetworks = strings.Split(ns, ",")
+		networkList := strings.Split(ns, ",")
+		for _, net := range networkList {
+			networks[net] = types.PerNetworkOptions{}
+		}
+
 		toReturn.NSMode = Bridge
 	}
 
-	return toReturn, cniNetworks, nil
+	return toReturn, networks, nil
 }
 
-func ParseNetworkString(network string) (Namespace, []string, map[string][]string, error) {
+func ParseNetworkString(network string) (Namespace, map[string]types.PerNetworkOptions, map[string][]string, error) {
 	var networkOptions map[string][]string
 	parts := strings.SplitN(network, ":", 2)
 
-	ns, cniNets, err := ParseNetworkNamespace(network, containerConfig.Containers.RootlessNetworking == "cni")
+	ns, nets, err := ParseNetworkNamespace(network, containerConfig.Containers.RootlessNetworking == "cni")
 	if err != nil {
 		return Namespace{}, nil, nil, err
 	}
@@ -332,9 +337,9 @@ func ParseNetworkString(network string) (Namespace, []string, map[string][]strin
 	if len(parts) > 1 {
 		networkOptions = make(map[string][]string)
 		networkOptions[parts[0]] = strings.Split(parts[1], ",")
-		cniNets = nil
+		nets = nil
 	}
-	return ns, cniNets, networkOptions, nil
+	return ns, nets, networkOptions, nil
 }
 
 func SetupUserNS(idmappings *storage.IDMappingOptions, userns Namespace, g *generate.Generator) (string, error) {

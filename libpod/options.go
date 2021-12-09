@@ -1070,6 +1070,9 @@ func WithNetNS(portMappings []nettypes.PortMapping, exposedPorts map[uint16][]st
 		ctr.config.PortMappings = portMappings
 		ctr.config.ExposedPorts = exposedPorts
 
+		if !ctr.config.NetMode.IsBridge() && len(networks) > 0 {
+			return errors.New("cannot use networks when network mode is not bridge")
+		}
 		ctr.config.Networks = networks
 
 		return nil

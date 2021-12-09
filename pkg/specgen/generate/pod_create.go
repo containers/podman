@@ -218,9 +218,7 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 	case specgen.Host:
 		logrus.Debugf("Pod will use host networking")
 		if len(p.InfraContainerSpec.PortMappings) > 0 ||
-			p.InfraContainerSpec.StaticIP != nil ||
-			p.InfraContainerSpec.StaticMAC != nil ||
-			len(p.InfraContainerSpec.CNINetworks) > 0 ||
+			len(p.InfraContainerSpec.Networks) > 0 ||
 			p.InfraContainerSpec.NetNS.NSMode == specgen.NoNetwork {
 			return nil, errors.Wrapf(define.ErrInvalidArg, "cannot set host network if network-related configuration is specified")
 		}
@@ -234,9 +232,7 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 	case specgen.NoNetwork:
 		logrus.Debugf("Pod will not use networking")
 		if len(p.InfraContainerSpec.PortMappings) > 0 ||
-			p.InfraContainerSpec.StaticIP != nil ||
-			p.InfraContainerSpec.StaticMAC != nil ||
-			len(p.InfraContainerSpec.CNINetworks) > 0 ||
+			len(p.InfraContainerSpec.Networks) > 0 ||
 			p.InfraContainerSpec.NetNS.NSMode == "host" {
 			return nil, errors.Wrapf(define.ErrInvalidArg, "cannot disable pod network if network-related configuration is specified")
 		}
@@ -264,15 +260,13 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 	if len(p.DNSSearch) > 0 {
 		p.InfraContainerSpec.DNSSearch = p.DNSSearch
 	}
-	if p.StaticIP != nil {
-		p.InfraContainerSpec.StaticIP = p.StaticIP
-	}
-	if p.StaticMAC != nil {
-		p.InfraContainerSpec.StaticMAC = p.StaticMAC
-	}
 	if p.NoManageResolvConf {
 		p.InfraContainerSpec.UseImageResolvConf = true
 	}
+	if len(p.Networks) > 0 {
+		p.InfraContainerSpec.Networks = p.Networks
+	}
+	// deprecated cni networks for api users
 	if len(p.CNINetworks) > 0 {
 		p.InfraContainerSpec.CNINetworks = p.CNINetworks
 	}

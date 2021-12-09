@@ -184,52 +184,56 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *c
 	// network names
 	switch {
 	case len(cc.NetworkingConfig.EndpointsConfig) > 0:
-		var aliases []string
-
 		endpointsConfig := cc.NetworkingConfig.EndpointsConfig
-		cniNetworks := make([]string, 0, len(endpointsConfig))
+		networks := make(map[string]types.PerNetworkOptions, len(endpointsConfig))
 		for netName, endpoint := range endpointsConfig {
-			cniNetworks = append(cniNetworks, netName)
+			netOpts := types.PerNetworkOptions{}
+			if endpoint != nil {
+				netOpts.Aliases = endpoint.Aliases
 
-			if endpoint == nil {
-				continue
-			}
-			if len(endpoint.Aliases) > 0 {
-				aliases = append(aliases, endpoint.Aliases...)
-			}
-		}
-
-		// static IP and MAC
-		if len(endpointsConfig) == 1 {
-			for _, ep := range endpointsConfig {
-				if ep == nil {
-					continue
-				}
 				// if IP address is provided
-				if len(ep.IPAddress) > 0 {
-					staticIP := net.ParseIP(ep.IPAddress)
-					netInfo.StaticIP = &staticIP
+				if len(endpoint.IPAddress) > 0 {
+					staticIP := net.ParseIP(endpoint.IPAddress)
+					if staticIP == nil {
+						return nil, nil, errors.Errorf("failed to parse the ip address %q", endpoint.IPAddress)
+					}
+					netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
 				}
-				// if IPAMConfig.IPv4Address is provided
-				if ep.IPAMConfig != nil && ep.IPAMConfig.IPv4Address != "" {
-					staticIP := net.ParseIP(ep.IPAMConfig.IPv4Address)
-					netInfo.StaticIP = &staticIP
+
+				if endpoint.IPAMConfig != nil {
+					// if IPAMConfig.IPv4Address is provided
+					if len(endpoint.IPAMConfig.IPv4Address) > 0 {
+						staticIP := net.ParseIP(endpoint.IPAMConfig.IPv4Address)
+						if staticIP == nil {
+							return nil, nil, errors.Errorf("failed to parse the ipv4 address %q", endpoint.IPAMConfig.IPv4Address)
+						}
+						netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
+					}
+					// if IPAMConfig.IPv6Address is provided
+					if len(endpoint.IPAMConfig.IPv6Address) > 0 {
+						staticIP := net.ParseIP(endpoint.IPAMConfig.IPv6Address)
+						if staticIP == nil {
+							return nil, nil, errors.Errorf("failed to parse the ipv6 address %q", endpoint.IPAMConfig.IPv6Address)
+						}
+						netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
+					}
 				}
 				// If MAC address is provided
-				if len(ep.MacAddress) > 0 {
-					staticMac, err := net.ParseMAC(ep.MacAddress)
+				if len(endpoint.MacAddress) > 0 {
+					staticMac, err := net.ParseMAC(endpoint.MacAddress)
 					if err != nil {
-						return nil, nil, err
+						return nil, nil, errors.Errorf("failed to parse the mac address %q", endpoint.MacAddress)
 					}
-					netInfo.StaticMAC = &staticMac
+					netOpts.StaticMAC = types.HardwareAddr(staticMac)
 				}
-				break
 			}
+
+			networks[netName] = netOpts
 		}
-		netInfo.Aliases = aliases
-		netInfo.CNINetworks = cniNetworks
+
+		netInfo.Networks = networks
 	case len(cc.HostConfig.NetworkMode) > 0:
-		netInfo.CNINetworks = networks
+		netInfo.Networks = networks
 	}
 
 	parsedTmp := make([]string, 0, len(cc.HostConfig.Tmpfs))

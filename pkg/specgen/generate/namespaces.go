@@ -259,32 +259,28 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 		if err != nil {
 			return nil, err
 		}
-		if len(s.CNINetworks) == 0 {
-			rtConfig, err := rt.GetConfigNoCopy()
-			if err != nil {
-				return nil, err
-			}
-			s.CNINetworks = append(s.CNINetworks, rtConfig.Network.DefaultNetwork)
-		}
-		networks := make(map[string]types.PerNetworkOptions, len(s.CNINetworks))
-		for i, netName := range s.CNINetworks {
-			opts := types.PerNetworkOptions{}
-			opts.Aliases = s.Aliases[netName]
-			if i == 0 {
-				if s.StaticIP != nil {
-					opts.StaticIPs = append(opts.StaticIPs, *s.StaticIP)
+		// if no network was specified use add the default
+		if len(s.Networks) == 0 {
+			// backwards config still allow the old cni networks list and convert to new format
+			if len(s.CNINetworks) > 0 {
+				logrus.Warn(`specgen "cni_networks" option is deprecated use the "networks" map instead`)
+				networks := make(map[string]types.PerNetworkOptions, len(s.CNINetworks))
+				for _, net := range s.CNINetworks {
+					networks[net] = types.PerNetworkOptions{}
 				}
-				if s.StaticIPv6 != nil {
-					opts.StaticIPs = append(opts.StaticIPs, *s.StaticIPv6)
+				s.Networks = networks
+			} else {
+				// no networks given but bridge is set so use default network
+				rtConfig, err := rt.GetConfigNoCopy()
+				if err != nil {
+					return nil, err
 				}
-				if s.StaticMAC != nil {
-					opts.StaticMAC = *s.StaticMAC
+				s.Networks = map[string]types.PerNetworkOptions{
+					rtConfig.Network.DefaultNetwork: {},
 				}
 			}
-			networks[netName] = opts
 		}
-
-		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, "bridge", networks))
+		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, "bridge", s.Networks))
 	}
 
 	if s.UseImageHosts {

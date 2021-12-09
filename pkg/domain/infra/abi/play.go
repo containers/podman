@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -190,44 +189,45 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		}
 	}
 
-	podOpt := entities.PodCreateOptions{Infra: true, Net: &entities.NetOptions{StaticIP: &net.IP{}, StaticMAC: &net.HardwareAddr{}, NoHosts: options.NoHosts}}
+	podOpt := entities.PodCreateOptions{Infra: true, Net: &entities.NetOptions{NoHosts: options.NoHosts}}
 	podOpt, err = kube.ToPodOpt(ctx, podName, podOpt, podYAML)
 	if err != nil {
 		return nil, err
 	}
 
 	if options.Network != "" {
-		ns, cniNets, netOpts, err := specgen.ParseNetworkString(options.Network)
+		ns, networks, netOpts, err := specgen.ParseNetworkString(options.Network)
 		if err != nil {
 			return nil, err
 		}
 
-		if (ns.IsBridge() && len(cniNets) == 0) || ns.IsHost() {
+		if (ns.IsBridge() && len(networks) == 0) || ns.IsHost() {
 			return nil, errors.Errorf("invalid value passed to --network: bridge or host networking must be configured in YAML")
 		}
 
 		podOpt.Net.Network = ns
-		if len(cniNets) > 0 {
-			podOpt.Net.CNINetworks = append(podOpt.Net.CNINetworks, cniNets...)
+		if len(networks) > 0 {
+			podOpt.Net.Networks = networks
 		}
 		if len(netOpts) > 0 {
 			podOpt.Net.NetworkOptions = netOpts
 		}
 	}
 
-	if len(options.StaticIPs) > *ipIndex {
-		podOpt.Net.StaticIP = &options.StaticIPs[*ipIndex]
-	} else if len(options.StaticIPs) > 0 {
-		// only warn if the user has set at least one ip
-		logrus.Warn("No more static ips left using a random one")
-	}
-	if len(options.StaticMACs) > *ipIndex {
-		podOpt.Net.StaticMAC = &options.StaticMACs[*ipIndex]
-	} else if len(options.StaticIPs) > 0 {
-		// only warn if the user has set at least one mac
-		logrus.Warn("No more static macs left using a random one")
-	}
-	*ipIndex++
+	// FIXME This is very hard to support properly
+	// if len(options.StaticIPs) > *ipIndex {
+	// 	podOpt.Net.StaticIP = &options.StaticIPs[*ipIndex]
+	// } else if len(options.StaticIPs) > 0 {
+	// 	// only warn if the user has set at least one ip
+	// 	logrus.Warn("No more static ips left using a random one")
+	// }
+	// if len(options.StaticMACs) > *ipIndex {
+	// 	podOpt.Net.StaticMAC = &options.StaticMACs[*ipIndex]
+	// } else if len(options.StaticIPs) > 0 {
+	// 	// only warn if the user has set at least one mac
+	// 	logrus.Warn("No more static macs left using a random one")
+	// }
+	// *ipIndex++
 
 	p := specgen.NewPodSpecGenerator()
 	if err != nil {
