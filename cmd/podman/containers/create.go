@@ -141,7 +141,7 @@ func create(cmd *cobra.Command, args []string) error {
 	}
 	s.RawImageName = rawImageName
 
-	if _, err := createPodIfNecessary(s, cliVals.Net); err != nil {
+	if _, err := createPodIfNecessary(cmd, s, cliVals.Net); err != nil {
 		return err
 	}
 
@@ -335,7 +335,7 @@ func PullImage(imageName string, cliVals entities.ContainerCreateOptions) (strin
 // createPodIfNecessary automatically creates a pod when requested.  if the pod name
 // has the form new:ID, the pod ID is created and the name in the spec generator is replaced
 // with ID.
-func createPodIfNecessary(s *specgen.SpecGenerator, netOpts *entities.NetOptions) (*entities.PodCreateReport, error) {
+func createPodIfNecessary(cmd *cobra.Command, s *specgen.SpecGenerator, netOpts *entities.NetOptions) (*entities.PodCreateReport, error) {
 	if !strings.HasPrefix(s.Pod, "new:") {
 		return nil, nil
 	}
@@ -379,6 +379,10 @@ func createPodIfNecessary(s *specgen.SpecGenerator, netOpts *entities.NetOptions
 	infraOpts := entities.NewInfraContainerCreateOptions()
 	infraOpts.Net = netOpts
 	infraOpts.Quiet = true
+	infraOpts.Hostname, err = cmd.Flags().GetString("hostname")
+	if err != nil {
+		return nil, err
+	}
 	imageName := config.DefaultInfraImage
 	podGen.InfraImage = imageName
 	podGen.InfraContainerSpec = specgen.NewSpecGenerator(imageName, false)

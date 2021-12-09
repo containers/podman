@@ -254,6 +254,8 @@ EOF
 
     run_podman run --rm --pod mypod $IMAGE hostname
     is "$output" "$hostname" "--hostname set the hostname"
+    run_podman 125 run --rm --pod mypod --hostname foobar $IMAGE hostname
+    is "$output" ".*invalid config provided: cannot set hostname when joining the pod UTS namespace: invalid configuration" "--hostname should not be allowed in share UTS pod"
 
     run_podman run --rm --pod $pod_id $IMAGE cat /etc/hosts
     is "$output" ".*$add_host_ip $add_host_n" "--add-host was added"
@@ -337,4 +339,22 @@ EOF
     run_podman 1 image exists k8s.gcr.io/pause:3.5
 }
 
+@test "podman pod create --share" {
+    local pod_name="$(random_string 10 | tr A-Z a-z)"
+    run_podman 125 pod create --share bogus --name $pod_name
+    is "$output" ".*Invalid kernel namespace to share: bogus. Options are: cgroup, ipc, net, pid, uts or none" \
+       "pod test for bogus --share option"
+    run_podman pod create --share cgroup,ipc --name $pod_name
+    run_podman run --rm --pod $pod_name --hostname foobar $IMAGE hostname
+    is "$output" "foobar" "--hostname should work with non share UTS namespace"
+}
+
+@test "podman pod create --pod new:$POD --hostname" {
+    local pod_name="$(random_string 10 | tr A-Z a-z)"
+    run_podman run --rm --pod "new:$pod_name" --hostname foobar $IMAGE hostname
+    is "$output" "foobar" "--hostname should work when creating a new:pod"
+    run_podman pod rm $pod_name
+    run_podman run --rm --pod "new:$pod_name" $IMAGE hostname
+    is "$output" "$pod_name" "new:POD should have hostname name set to podname"
+}
 # vim: filetype=sh
