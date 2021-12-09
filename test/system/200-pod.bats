@@ -8,7 +8,7 @@ function teardown() {
     run_podman rm -f -t 0 -a
     run_podman image list --format '{{.ID}} {{.Repository}}'
     while read id name; do
-        if [[ "$name" =~ /pause ]]; then
+        if [[ "$name" =~ /podman-pause ]]; then
             run_podman rmi $id
         fi
     done <<<"$output"
@@ -79,11 +79,6 @@ EOF
     is "$output" ".*initializing source docker://$image:.*"
 }
 
-function rm_podman_pause_image() {
-    run_podman version --format "{{.Server.Version}}-{{.Server.Built}}"
-    run_podman rmi -f "localhost/podman-pause:$output"
-}
-
 @test "podman pod - communicating between pods" {
     podname=pod$(random_string)
     run_podman 1 pod exists $podname
@@ -129,8 +124,6 @@ function rm_podman_pause_image() {
     # Pod no longer exists
     run_podman 1 pod exists $podid
     run_podman 1 pod exists $podname
-
-    rm_podman_pause_image
 }
 
 @test "podman pod - communicating via /dev/shm " {
@@ -154,7 +147,6 @@ function rm_podman_pause_image() {
 
     # Pause image hasn't been pulled
     run_podman 1 image exists k8s.gcr.io/pause:3.5
-    rm_podman_pause_image
 }
 
 # Random byte
@@ -343,7 +335,6 @@ EOF
 
     # Pause image hasn't been pulled
     run_podman 1 image exists k8s.gcr.io/pause:3.5
-    rm_podman_pause_image
 }
 
 # vim: filetype=sh
