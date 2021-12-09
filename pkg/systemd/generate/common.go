@@ -101,7 +101,7 @@ func escapeSystemdArguments(command []string) []string {
 func escapeSystemdArg(arg string) string {
 	arg = strings.ReplaceAll(arg, "$", "$$")
 	arg = strings.ReplaceAll(arg, "%", "%%")
-	if strings.ContainsAny(arg, " \t") {
+	if strings.ContainsAny(arg, " \t\"") {
 		arg = strconv.Quote(arg)
 	} else if strings.Contains(arg, `\`) {
 		// strconv.Quote also escapes backslashes so

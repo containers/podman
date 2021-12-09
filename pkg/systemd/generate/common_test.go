@@ -146,7 +146,7 @@ func TestEscapeSystemdArguments(t *testing.T) {
 	}{
 		{
 			[]string{"foo", "bar=\"arg\""},
-			[]string{"foo", "bar=\"arg\""},
+			[]string{"foo", "\"bar=\\\"arg\\\"\""},
 		},
 		{
 			[]string{"foo", "bar=\"arg with space\""},
@@ -191,6 +191,22 @@ func TestEscapeSystemdArguments(t *testing.T) {
 		{
 			[]string{"foo", `command with two backslashes \\`},
 			[]string{"foo", `"command with two backslashes \\\\"`},
+		},
+		{
+			[]string{"podman", "create", "--entrypoint", "foo"},
+			[]string{"podman", "create", "--entrypoint", "foo"},
+		},
+		{
+			[]string{"podman", "create", "--entrypoint=foo"},
+			[]string{"podman", "create", "--entrypoint=foo"},
+		},
+		{
+			[]string{"podman", "create", "--entrypoint", "[\"foo\"]"},
+			[]string{"podman", "create", "--entrypoint", "\"[\\\"foo\\\"]\""},
+		},
+		{
+			[]string{"podman", "create", "--entrypoint", "[\"sh\", \"-c\", \"date '+%s'\"]"},
+			[]string{"podman", "create", "--entrypoint", "\"[\\\"sh\\\", \\\"-c\\\", \\\"date '+%%s'\\\"]\""},
 		},
 	}
 
