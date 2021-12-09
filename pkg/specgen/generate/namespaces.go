@@ -474,7 +474,7 @@ func GetNamespaceOptions(ns []string, netnsIsHost bool) ([]libpod.PodCreateOptio
 		case "none":
 			return erroredOptions, nil
 		default:
-			return erroredOptions, errors.Errorf("Invalid kernel namespace to share: %s. Options are: net, pid, ipc, uts or none", toShare)
+			return erroredOptions, errors.Errorf("Invalid kernel namespace to share: %s. Options are: cgroup, ipc, net, pid, uts or none", toShare)
 		}
 	}
 	return options, nil
