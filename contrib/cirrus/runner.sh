@@ -141,11 +141,8 @@ function _run_swagger() {
     local envvarsfile
     req_env_vars GCPJSON GCPNAME GCPPROJECT CTR_FQIN
 
-    # Building this is a PITA, just grab binary for use in automation
-    # Ref: https://goswagger.io/install.html#static-binary
-    download_url=$(\
-        curl -s https://api.github.com/repos/go-swagger/go-swagger/releases/latest | \
-        jq -r '.assets[] | select(.name | contains("linux_amd64")) | .browser_download_url')
+    [[ -x /usr/local/bin/swagger ]] || \
+        die "Expecting swagger binary to be present and executable."
 
     # The filename and bucket depend on the automation context
     #shellcheck disable=SC2154,SC2153
@@ -165,9 +162,6 @@ function _run_swagger() {
     else
         die "Unknown execution context, expected a non-empty value for \$CIRRUS_TAG, \$CIRRUS_BRANCH, or \$CIRRUS_PR"
     fi
-
-    curl -s -o /usr/local/bin/swagger -L'#' "$download_url"
-    chmod +x /usr/local/bin/swagger
 
     # Swagger validation takes a significant amount of time
     msg "Pulling \$CTR_FQIN '$CTR_FQIN' (background process)"
