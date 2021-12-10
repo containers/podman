@@ -655,7 +655,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			return
 		case <-runCtx.Done():
 			if success {
-				if !utils.IsLibpodRequest(r) {
+				if !utils.IsLibpodRequest(r) && !query.Quiet {
 					m.Stream = fmt.Sprintf("Successfully built %12.12s\n", imageID)
 					if err := enc.Encode(m); err != nil {
 						logrus.Warnf("Failed to json encode error %v", err)
