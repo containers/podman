@@ -499,9 +499,11 @@ Not implemented.
 #### **--ip**=*ip*
 
 Specify a static IP address for the container, for example **10.88.64.128**.
-This option can only be used if the container is joined to only a single network - i.e., `--network=_network-name_` is used at most once
-and if the container is not joining another container's network namespace via `--network=container:_id_`.
-The address must be within the CNI network's IP address pool (default **10.88.0.0/16**).
+This option can only be used if the container is joined to only a single network - i.e., **--network=network-name** is used at most once -
+and if the container is not joining another container's network namespace via **--network=container:_id_**.
+The address must be within the network's IP address pool (default **10.88.0.0/16**).
+
+To specify multiple static IP addresses per container, set multiple networks using the **--network** option with a static IP address specified for each using the `ip` mode for that option.
 
 #### **--ipc**=*mode*
 
@@ -557,11 +559,15 @@ This option is currently supported only by the **journald** log driver.
 
 #### **--mac-address**=*address*
 
-Container MAC address (e.g. **92:d0:c6:0a:29:33**).
+Container network interface MAC address (e.g. 92:d0:c6:0a:29:33)
+This option can only be used if the container is joined to only a single network - i.e., **--network=_network-name_** is used at most once -
+and if the container is not joining another container's network namespace via **--network=container:_id_**.
 
 Remember that the MAC address in an Ethernet network must be unique.
 The IPv6 link-local address will be based on the device's MAC address
 according to RFC4862.
+
+To specify multiple static MAC addresses per container, set multiple networks using the **--network** option with a static MAC address specified for each using the `mac` mode for that option.
 
 #### **--memory**, **-m**=_number_[_unit_]
 
@@ -696,15 +702,22 @@ This works for both background and foreground containers.
 
 #### **--network**=*mode*, **--net**
 
-Set the network mode for the container. Invalid if using **--dns**, **--dns-opt**, or **--dns-search** with **--network** that is set to **none** or **container:**_id_. If used together with **--pod**, the container will not join the pods network namespace.
+Set the network mode for the container. Invalid if using **--dns**, **--dns-opt**, or **--dns-search** with **--network** set to **none** or **container:**_id_. If used together with **--pod**, the container will not join the pod's network namespace.
 
 Valid _mode_ values are:
 
-- **bridge**: Create a network stack on the default bridge. This is the default for rootfull containers.
+- **bridge[:OPTIONS,...]**: Create a network stack on the default bridge. This is the default for rootfull containers. It is possible to specify these additional options:
+  - **alias=name**: Add network-scoped alias for the container.
+  - **ip=IPv4**: Specify a static ipv4 address for this container.
+  - **ip=IPv6**: Specify a static ipv6 address for this container.
+  - **mac=MAC**: Specify a static mac address address for this container.
+  - **interface_name**: Specify a name for the created network interface inside the container.
+
+  For example to set a static ipv4 address and a static mac address, use `--network bridge:ip=10.88.0.10,mac=44:33:22:11:00:99`.
+- \<network name or ID\>[:OPTIONS,...]: Connect to a user-defined network; this is the network name or ID from a network created by **[podman network create](podman-network-create.1.md)**. Using the network name implies the bridge network mode. It is possible to specify the same options described under the bridge mode above. You can use the **--network** option multiple times to specify additional networks.
 - **none**: Create a network namespace for the container but do not configure network interfaces for it, thus the container has no network connectivity.
 - **container:**_id_: Reuse another container's network stack.
 - **host**: Do not create a network namespace, the container will use the host's network. Note: The host mode gives the container full access to local system services such as D-bus and is therefore considered insecure.
-- **network**: Connect to a user-defined network, multiple networks should be comma-separated.
 - **ns:**_path_: Path to a network namespace to join.
 - **private**: Create a new namespace for the container. This will use the **bridge** mode for rootfull containers and **slirp4netns** for rootless ones.
 - **slirp4netns[:OPTIONS,...]**: use **slirp4netns**(1) to create a user network stack. This is the default for rootless containers. It is possible to specify these additional options:
@@ -722,7 +735,9 @@ Valid _mode_ values are:
 
 #### **--network-alias**=*alias*
 
-Add network-scoped alias for the container.  NOTE: A container will only have access to aliases on the first network that it joins. This is a limitation that will be removed in a later release.
+Add a network-scoped alias for the container, setting the alias for all networks that the container joins. To set a name only for a specific network, use the alias option as described under the **--network** option.
+Network aliases work only with the bridge networking mode. This option can be specified multiple times.
+NOTE: A container will only have access to aliases on the first network that it joins. This is a limitation that will be removed in a later release.
 
 #### **--no-healthcheck**
 
@@ -1865,6 +1880,12 @@ Java default sees the following timezone:
 2021-11-19T18:10:55.651130-05:00
 Forcing UTC:
 Fri Nov 19 23:10:55 UTC 2021
+```
+
+### Run a container connected to two networks (called net1 and net2) with a static ip
+
+```
+$ podman run --network net1:ip=10.89.1.5 --network net2:ip=10.89.10.10 alpine ip addr
 ```
 
 ### Rootless Containers

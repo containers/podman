@@ -586,9 +586,7 @@ json-file | f
 @test "podman run with --net=host and --port prints warning" {
     rand=$(random_string 10)
 
-    # Please keep the duplicate "--net" options; this tests against #8507,
-    # a regression in which subsequent --net options did not override earlier.
-    run_podman run --rm -p 8080 --net=none --net=host $IMAGE echo $rand
+    run_podman run --rm -p 8080 --net=host $IMAGE echo $rand
     is "${lines[0]}" \
        "Port mappings have been discarded as one of the Host, Container, Pod, and None network modes are in use" \
        "Warning is emitted before container output"

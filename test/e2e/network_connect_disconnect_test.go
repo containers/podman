@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	"github.com/onsi/gomega/types"
 )
 
 var _ = Describe("Podman network connect and disconnect", func() {
@@ -330,11 +331,17 @@ var _ = Describe("Podman network connect and disconnect", func() {
 
 		exec := podmanTest.Podman([]string{"exec", "-it", "test", "ip", "addr", "show", "eth0"})
 		exec.WaitWithDefaultTimeout()
-		Expect(exec).Should(Exit(0))
+
+		// because the network interface order is not guaranteed to be the same we have to check both eth0 and eth1
+		// if eth0 did not exists eth1 has to exists
+		var exitMatcher types.GomegaMatcher = ExitWithError()
+		if exec.ExitCode() > 0 {
+			exitMatcher = Exit(0)
+		}
 
 		exec = podmanTest.Podman([]string{"exec", "-it", "test", "ip", "addr", "show", "eth1"})
 		exec.WaitWithDefaultTimeout()
-		Expect(exec).Should(ExitWithError())
+		Expect(exec).Should(exitMatcher)
 	})
 
 	It("podman network disconnect and run with network ID", func() {

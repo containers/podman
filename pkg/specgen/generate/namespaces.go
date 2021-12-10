@@ -67,7 +67,7 @@ func GetDefaultNamespaceMode(nsType string, cfg *config.Config, pod *libpod.Pod)
 	case "cgroup":
 		return specgen.ParseCgroupNamespace(cfg.Containers.CgroupNS)
 	case "net":
-		ns, _, err := specgen.ParseNetworkNamespace(cfg.Containers.NetNS, cfg.Containers.RootlessNetworking == "cni")
+		ns, _, _, err := specgen.ParseNetworkFlag(nil)
 		return ns, err
 	}
 
@@ -259,6 +259,11 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 		if err != nil {
 			return nil, err
 		}
+
+		rtConfig, err := rt.GetConfigNoCopy()
+		if err != nil {
+			return nil, err
+		}
 		// if no network was specified use add the default
 		if len(s.Networks) == 0 {
 			// backwards config still allow the old cni networks list and convert to new format
@@ -271,14 +276,15 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 				s.Networks = networks
 			} else {
 				// no networks given but bridge is set so use default network
-				rtConfig, err := rt.GetConfigNoCopy()
-				if err != nil {
-					return nil, err
-				}
 				s.Networks = map[string]types.PerNetworkOptions{
 					rtConfig.Network.DefaultNetwork: {},
 				}
 			}
+		}
+		// rename the "default" network to the correct default name
+		if opts, ok := s.Networks["default"]; ok {
+			s.Networks[rtConfig.Network.DefaultNetwork] = opts
+			delete(s.Networks, "default")
 		}
 		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, "bridge", s.Networks))
 	}

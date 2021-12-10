@@ -156,16 +156,9 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *c
 	}
 
 	// netMode
-	nsmode, networks, err := specgen.ParseNetworkNamespace(string(cc.HostConfig.NetworkMode), true)
+	nsmode, networks, netOpts, err := specgen.ParseNetworkFlag([]string{string(cc.HostConfig.NetworkMode)})
 	if err != nil {
 		return nil, nil, err
-	}
-
-	var netOpts map[string][]string
-	parts := strings.SplitN(string(cc.HostConfig.NetworkMode), ":", 2)
-	if len(parts) > 1 {
-		netOpts = make(map[string][]string)
-		netOpts[parts[0]] = strings.Split(parts[1], ",")
 	}
 
 	// network

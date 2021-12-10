@@ -42,6 +42,11 @@ func (p *PodSpecGenerator) Validate() error {
 		if p.NetNS.NSMode != Default && p.NetNS.NSMode != "" {
 			return errors.New("NoInfra and network modes cannot be used together")
 		}
+		// Note that networks might be set when --ip or --mac was set
+		// so we need to check that no networks are set without the infra
+		if len(p.Networks) > 0 {
+			return errors.New("cannot set networks options without infra container")
+		}
 		if len(p.DNSOption) > 0 {
 			return exclusivePodOptions("NoInfra", "DNSOption")
 		}

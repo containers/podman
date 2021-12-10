@@ -65,6 +65,26 @@ var _ = Describe("Podman run with --ip flag", func() {
 		Expect(result.OutputToString()).To(ContainSubstring(ip + "/16"))
 	})
 
+	It("Podman run with --network bridge:ip=", func() {
+		ip := GetRandomIPAddress()
+		result := podmanTest.Podman([]string{"run", "-ti", "--network", "bridge:ip=" + ip, ALPINE, "ip", "addr"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(ContainSubstring(ip + "/16"))
+	})
+
+	It("Podman run with --network net:ip=,mac=,interface_name=", func() {
+		ip := GetRandomIPAddress()
+		mac := "44:33:22:11:00:99"
+		intName := "myeth"
+		result := podmanTest.Podman([]string{"run", "-ti", "--network", "bridge:ip=" + ip + ",mac=" + mac + ",interface_name=" + intName, ALPINE, "ip", "addr"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(ContainSubstring(ip + "/16"))
+		Expect(result.OutputToString()).To(ContainSubstring(mac))
+		Expect(result.OutputToString()).To(ContainSubstring(intName))
+	})
+
 	It("Podman run two containers with the same IP", func() {
 		ip := GetRandomIPAddress()
 		result := podmanTest.Podman([]string{"run", "-dt", "--ip", ip, nginx})

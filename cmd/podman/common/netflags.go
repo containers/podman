@@ -61,8 +61,8 @@ func DefineNetFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(macAddressFlagName, completion.AutocompleteNone)
 
 	networkFlagName := "network"
-	netFlags.String(
-		networkFlagName, containerConfig.NetNS(),
+	netFlags.StringArray(
+		networkFlagName, nil,
 		"Connect a container to a network",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(networkFlagName, AutocompleteNetworkFlag)
@@ -88,9 +88,7 @@ func DefineNetFlags(cmd *cobra.Command) {
 }
 
 // NetFlagsToNetOptions parses the network flags for the given cmd.
-// The netnsFromConfig bool is used to indicate if the --network flag
-// should always be parsed regardless if it was set on the cli.
-func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet, netnsFromConfig bool) (*entities.NetOptions, error) {
+func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet) (*entities.NetOptions, error) {
 	var (
 		err error
 	)
@@ -168,79 +166,100 @@ func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet, netnsF
 		return nil, err
 	}
 
-	// parse the --network value only when the flag is set or we need to use
-	// the netns config value, e.g. when --pod is not used
-	if netnsFromConfig || flags.Changed("network") {
-		network, err := flags.GetString("network")
+	// parse the network only when network was changed
+	// otherwise we send default to server so that the server
+	// can pick the correct default instead of the client
+	if flags.Changed("network") {
+		network, err := flags.GetStringArray("network")
 		if err != nil {
 			return nil, err
 		}
 
-		ns, networks, options, err := specgen.ParseNetworkString(network)
+		ns, networks, options, err := specgen.ParseNetworkFlag(network)
 		if err != nil {
 			return nil, err
 		}
 
-		if len(options) > 0 {
-			opts.NetworkOptions = options
-		}
+		opts.NetworkOptions = options
 		opts.Network = ns
 		opts.Networks = networks
 	}
 
-	ip, err := flags.GetString("ip")
-	if err != nil {
-		return nil, err
-	}
-	if ip != "" {
-		staticIP := net.ParseIP(ip)
-		if staticIP == nil {
-			return nil, errors.Errorf("%s is not an ip address", ip)
+	if flags.Changed("ip") || flags.Changed("mac-address") || flags.Changed("network-alias") {
+		// if there is no network we add the default
+		if len(opts.Networks) == 0 {
+			opts.Networks = map[string]types.PerNetworkOptions{
+				"default": {},
+			}
 		}
-		if !opts.Network.IsBridge() {
-			return nil, errors.Wrap(define.ErrInvalidArg, "--ip can only be set when the network mode is bridge")
-		}
-		if len(opts.Networks) != 1 {
-			return nil, errors.Wrap(define.ErrInvalidArg, "--ip can only be set for a single network")
-		}
-		for name, netOpts := range opts.Networks {
-			netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
-			opts.Networks[name] = netOpts
-		}
-	}
 
-	m, err := flags.GetString("mac-address")
-	if err != nil {
-		return nil, err
-	}
-	if len(m) > 0 {
-		mac, err := net.ParseMAC(m)
+		ip, err := flags.GetString("ip")
 		if err != nil {
 			return nil, err
 		}
-		if !opts.Network.IsBridge() {
-			return nil, errors.Wrap(define.ErrInvalidArg, "--mac-address can only be set when the network mode is bridge")
-		}
-		if len(opts.Networks) != 1 {
-			return nil, errors.Wrap(define.ErrInvalidArg, "--mac-address can only be set for a single network")
-		}
-		for name, netOpts := range opts.Networks {
-			netOpts.StaticMAC = types.HardwareAddr(mac)
-			opts.Networks[name] = netOpts
-		}
-	}
+		if ip != "" {
+			// if pod create --infra=false
+			if infra, err := flags.GetBool("infra"); err == nil && !infra {
+				return nil, errors.Wrap(define.ErrInvalidArg, "cannot set --ip without infra container")
+			}
 
-	aliases, err := flags.GetStringSlice("network-alias")
-	if err != nil {
-		return nil, err
-	}
-	if len(aliases) > 0 {
-		if !opts.Network.IsBridge() {
-			return nil, errors.Wrap(define.ErrInvalidArg, "--network-alias can only be set when the network mode is bridge")
+			staticIP := net.ParseIP(ip)
+			if staticIP == nil {
+				return nil, errors.Errorf("%s is not an ip address", ip)
+			}
+			if !opts.Network.IsBridge() && !opts.Network.IsDefault() {
+				return nil, errors.Wrap(define.ErrInvalidArg, "--ip can only be set when the network mode is bridge")
+			}
+			if len(opts.Networks) != 1 {
+				return nil, errors.Wrap(define.ErrInvalidArg, "--ip can only be set for a single network")
+			}
+			for name, netOpts := range opts.Networks {
+				netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
+				opts.Networks[name] = netOpts
+			}
 		}
-		for name, netOpts := range opts.Networks {
-			netOpts.Aliases = aliases
-			opts.Networks[name] = netOpts
+
+		m, err := flags.GetString("mac-address")
+		if err != nil {
+			return nil, err
+		}
+		if len(m) > 0 {
+			// if pod create --infra=false
+			if infra, err := flags.GetBool("infra"); err == nil && !infra {
+				return nil, errors.Wrap(define.ErrInvalidArg, "cannot set --mac without infra container")
+			}
+			mac, err := net.ParseMAC(m)
+			if err != nil {
+				return nil, err
+			}
+			if !opts.Network.IsBridge() && !opts.Network.IsDefault() {
+				return nil, errors.Wrap(define.ErrInvalidArg, "--mac-address can only be set when the network mode is bridge")
+			}
+			if len(opts.Networks) != 1 {
+				return nil, errors.Wrap(define.ErrInvalidArg, "--mac-address can only be set for a single network")
+			}
+			for name, netOpts := range opts.Networks {
+				netOpts.StaticMAC = types.HardwareAddr(mac)
+				opts.Networks[name] = netOpts
+			}
+		}
+
+		aliases, err := flags.GetStringSlice("network-alias")
+		if err != nil {
+			return nil, err
+		}
+		if len(aliases) > 0 {
+			// if pod create --infra=false
+			if infra, err := flags.GetBool("infra"); err == nil && !infra {
+				return nil, errors.Wrap(define.ErrInvalidArg, "cannot set --network-alias without infra container")
+			}
+			if !opts.Network.IsBridge() && !opts.Network.IsDefault() {
+				return nil, errors.Wrap(define.ErrInvalidArg, "--network-alias can only be set when the network mode is bridge")
+			}
+			for name, netOpts := range opts.Networks {
+				netOpts.Aliases = aliases
+				opts.Networks[name] = netOpts
+			}
 		}
 	}
 

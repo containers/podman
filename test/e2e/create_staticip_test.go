@@ -43,12 +43,6 @@ var _ = Describe("Podman create with --ip flag", func() {
 		Expect(result).To(ExitWithError())
 	})
 
-	It("Podman create --ip with v6 address", func() {
-		result := podmanTest.Podman([]string{"create", "--name", "test", "--ip", "2001:db8:bad:beef::1", ALPINE, "ls"})
-		result.WaitWithDefaultTimeout()
-		Expect(result).To(ExitWithError())
-	})
-
 	It("Podman create --ip with non-allocatable IP", func() {
 		SkipIfRootless("--ip not supported without network in rootless mode")
 		result := podmanTest.Podman([]string{"create", "--name", "test", "--ip", "203.0.113.124", ALPINE, "ls"})

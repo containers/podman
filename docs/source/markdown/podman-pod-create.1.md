@@ -118,9 +118,14 @@ The custom image that will be used for the infra container.  Unless specified, P
 
 The name that will be used for the pod's infra container.
 
-#### **--ip**=*ipaddr*
+#### **--ip**=*ip*
 
-Set a static IP for the pod's shared network.
+Specify a static IP address for the pod, for example **10.88.64.128**.
+This option can only be used if the pod is joined to only a single network - i.e., **--network=network-name** is used at most once -
+and if the pod is not joining another container's network namespace via **--network=container:_id_**.
+The address must be within the network's IP address pool (default **10.88.0.0/16**).
+
+To specify multiple static IP addresses per pod, set multiple networks using the **--network** option with a static IP address specified for each using the `ip` mode for that option.
 
 #### **--label**=*label*, **-l**
 
@@ -132,7 +137,16 @@ Read in a line delimited file of labels.
 
 #### **--mac-address**=*address*
 
-Set a static MAC address for the pod's shared network.
+Pod network interface MAC address (e.g. 92:d0:c6:0a:29:33)
+This option can only be used if the pod is joined to only a single network - i.e., **--network=_network-name_** is used at most once -
+and if the pod is not joining another container's network namespace via **--network=container:_id_**.
+
+Remember that the MAC address in an Ethernet network must be unique.
+The IPv6 link-local address will be based on the device's MAC address
+according to RFC4862.
+
+To specify multiple static MAC addresses per pod, set multiple networks using the **--network** option with a static MAC address specified for each using the `mac` mode for that option.
+
 
 #### **--name**=*name*, **-n**
 
@@ -140,11 +154,23 @@ Assign a name to the pod.
 
 #### **--network**=*mode*, **--net**
 
-Set network mode for the pod. Supported values are:
-- **bridge**: Create a network stack on the default bridge. This is the default for rootfull containers.
+Set the network mode for the pod. Invalid if using **--dns**, **--dns-opt**, or **--dns-search** with **--network** that is set to **none** or **container:**_id_.
+
+Valid _mode_ values are:
+
+- **bridge[:OPTIONS,...]**: Create a network stack on the default bridge. This is the default for rootfull containers. It is possible to specify these additional options:
+  - **alias=name**: Add network-scoped alias for the container.
+  - **ip=IPv4**: Specify a static ipv4 address for this container.
+  - **ip=IPv6**: Specify a static ipv6 address for this container.
+  - **mac=MAC**: Specify a static mac address address for this container.
+  - **interface_name**: Specify a name for the created network interface inside the container.
+
+  For example to set a static ipv4 address and a static mac address, use `--network bridge:ip=10.88.0.10,mac=44:33:22:11:00:99`.
+- \<network name or ID\>[:OPTIONS,...]: Connect to a user-defined network; this is the network name or ID from a network created by **[podman network create](podman-network-create.1.md)**. Using the network name implies the bridge network mode. It is possible to specify the same options described under the bridge mode above. You can use the **--network** option multiple times to specify additional networks.
 - **none**: Create a network namespace for the container but do not configure network interfaces for it, thus the container has no network connectivity.
-- **host**: Do not create a network namespace, all containers in the pod will use the host's network. Note: the host mode gives the container full access to local system services such as D-bus and is therefore considered insecure.
-- **network**: Connect to a user-defined network, multiple networks should be comma-separated.
+- **container:**_id_: Reuse another container's network stack.
+- **host**: Do not create a network namespace, the container will use the host's network. Note: The host mode gives the container full access to local system services such as D-bus and is therefore considered insecure.
+- **ns:**_path_: Path to a network namespace to join.
 - **private**: Create a new namespace for the container. This will use the **bridge** mode for rootfull containers and **slirp4netns** for rootless ones.
 - **slirp4netns[:OPTIONS,...]**: use **slirp4netns**(1) to create a user network stack. This is the default for rootless containers. It is possible to specify these additional options:
   - **allow_host_loopback=true|false**: Allow the slirp4netns to reach the host loopback IP (`10.0.2.2`, which is added to `/etc/hosts` as `host.containers.internal` for your convenience). Default is false.
@@ -159,9 +185,11 @@ Set network mode for the pod. Supported values are:
   Note: Rootlesskit changes the source IP address of incoming packets to a IP address in the container network namespace, usually `10.0.2.100`. If your application requires the real source IP address, e.g. web server logs, use the slirp4netns port handler. The rootlesskit port handler is also used for rootless containers when connected to user-defined networks.
   - **port_handler=slirp4netns**: Use the slirp4netns port forwarding, it is slower than rootlesskit but preserves the correct source IP address. This port handler cannot be used for user-defined networks.
 
-#### **--network-alias**=strings
+#### **--network-alias**=*alias*
 
-Add a DNS alias for the pod. When the pod is joined to a CNI network with support for the dnsname plugin, the containers inside the pod will be accessible through this name from other containers in the network.
+Add a network-scoped alias for the pod, setting the alias for all networks that the pod joins. To set a name only for a specific network, use the alias option as described under the **--network** option.
+Network aliases work only with the bridge networking mode. This option can be specified multiple times.
+NOTE: A container will only have access to aliases on the first network that it joins. This is a limitation that will be removed in a later release.
 
 #### **--no-hosts**
 
@@ -429,6 +457,8 @@ $ podman pod create --publish 8443:443
 $ podman pod create --network slirp4netns:outbound_addr=127.0.0.1,allow_host_loopback=true
 
 $ podman pod create --network slirp4netns:cidr=192.168.0.0/24
+
+$ podman pod create --network net1:ip=10.89.1.5 --network net2:ip=10.89.10.10
 ```
 
 ## SEE ALSO

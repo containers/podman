@@ -196,7 +196,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	}
 
 	if options.Network != "" {
-		ns, networks, netOpts, err := specgen.ParseNetworkString(options.Network)
+		ns, networks, netOpts, err := specgen.ParseNetworkFlag([]string{options.Network})
 		if err != nil {
 			return nil, err
 		}
