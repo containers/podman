@@ -172,8 +172,16 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	// Add arch specific options including image location
 	v.CmdLine = append(v.CmdLine, v.addArchOptions()...)
 
-	// TODO: add to opts
-	volumeType := VolumeTypeVirtfs
+	var volumeType string
+	switch opts.VolumeDriver {
+	case "virtfs":
+		volumeType = VolumeTypeVirtfs
+	case "": // default driver
+		volumeType = VolumeTypeVirtfs
+	default:
+		err := fmt.Errorf("unknown volume driver: %s", opts.VolumeDriver)
+		return false, err
+	}
 
 	mounts := []Mount{}
 	for i, volume := range opts.Volumes {
