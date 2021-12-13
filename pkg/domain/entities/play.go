@@ -26,8 +26,8 @@ type PlayKubeOptions struct {
 	Username string
 	// Password for authenticating against the registry.
 	Password string
-	// Network - name of the CNI network to connect to.
-	Network string
+	// Networks - name of the network to connect to.
+	Networks []string
 	// Quiet - suppress output when pulling images.
 	Quiet bool
 	// SignaturePolicy - path to a signature-policy file.

@@ -79,15 +79,15 @@ func (o *KubeOptions) GetPassword() string {
 }
 
 // WithNetwork set field Network to given value
-func (o *KubeOptions) WithNetwork(value string) *KubeOptions {
+func (o *KubeOptions) WithNetwork(value []string) *KubeOptions {
 	o.Network = &value
 	return o
 }
 
 // GetNetwork returns value of field Network
-func (o *KubeOptions) GetNetwork() string {
+func (o *KubeOptions) GetNetwork() []string {
 	if o.Network == nil {
-		var z string
+		var z []string
 		return z
 	}
 	return *o.Network

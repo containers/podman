@@ -2136,6 +2136,41 @@ spec:
 		}
 	})
 
+	It("podman play kube with multiple networks", func() {
+		ctr := getCtr(withImage(ALPINE))
+		pod := getPod(withCtr(ctr))
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		net1 := "net1" + stringid.GenerateNonCryptoID()
+		net2 := "net2" + stringid.GenerateNonCryptoID()
+
+		net := podmanTest.Podman([]string{"network", "create", "--subnet", "10.0.11.0/24", net1})
+		net.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net1)
+		Expect(net).Should(Exit(0))
+
+		net = podmanTest.Podman([]string{"network", "create", "--subnet", "10.0.12.0/24", net2})
+		net.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net2)
+		Expect(net).Should(Exit(0))
+
+		ip1 := "10.0.11.5"
+		ip2 := "10.0.12.10"
+
+		kube := podmanTest.Podman([]string{"play", "kube", "--network", net1 + ":ip=" + ip1, "--network", net2 + ":ip=" + ip2, kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "ip", "addr"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(ip1))
+		Expect(inspect.OutputToString()).To(ContainSubstring(ip2))
+		Expect(inspect.OutputToString()).To(ContainSubstring("eth0"))
+		Expect(inspect.OutputToString()).To(ContainSubstring("eth1"))
+	})
+
 	It("podman play kube test with network portbindings", func() {
 		ip := "127.0.0.100"
 		port := "5000"

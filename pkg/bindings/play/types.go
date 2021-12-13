@@ -15,8 +15,8 @@ type KubeOptions struct {
 	Username *string
 	// Password for authenticating against the registry.
 	Password *string
-	// Network - name of the CNI network to connect to.
-	Network *string
+	// Network - name of the networks to connect to.
+	Network *[]string
 	// NoHosts - do not generate /etc/hosts file in pod's containers
 	NoHosts *bool
 	// Quiet - suppress output when pulling images.

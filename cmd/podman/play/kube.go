@@ -69,7 +69,7 @@ func init() {
 	_ = kubeCmd.RegisterFlagCompletionFunc(staticMACFlagName, completion.AutocompleteNone)
 
 	networkFlagName := "network"
-	flags.StringVar(&kubeOptions.Network, networkFlagName, "", "Connect pod to CNI network(s)")
+	flags.StringArrayVar(&kubeOptions.Networks, networkFlagName, nil, "Connect pod to network(s) or network mode")
 	_ = kubeCmd.RegisterFlagCompletionFunc(networkFlagName, common.AutocompleteNetworkFlag)
 
 	staticIPFlagName := "ip"
