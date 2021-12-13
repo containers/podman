@@ -139,8 +139,11 @@ func SetXdgDirs() error {
 			return err
 		}
 	}
-	if err := os.Setenv("XDG_RUNTIME_DIR", runtimeDir); err != nil {
-		return errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
+
+	if runtimeDir != "" {
+		if err := os.Setenv("XDG_RUNTIME_DIR", runtimeDir); err != nil {
+			return errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
+		}
 	}
 
 	if rootless.IsRootless() && os.Getenv("DBUS_SESSION_BUS_ADDRESS") == "" {
@@ -156,8 +159,10 @@ func SetXdgDirs() error {
 		if err != nil {
 			return err
 		}
-		if err := os.Setenv("XDG_CONFIG_HOME", cfgHomeDir); err != nil {
-			return errors.Wrapf(err, "cannot set XDG_CONFIG_HOME")
+		if cfgHomeDir != "" {
+			if err := os.Setenv("XDG_CONFIG_HOME", cfgHomeDir); err != nil {
+				return errors.Wrapf(err, "cannot set XDG_CONFIG_HOME")
+			}
 		}
 	}
 	return nil
