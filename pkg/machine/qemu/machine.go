@@ -647,13 +647,7 @@ func (v *MachineVM) SSH(name string, opts machine.SSHOptions) error {
 	return cmd.Run()
 }
 
-// SSHocker does a reverse sshfs mount over a SSH connection.
-func (v *MachineVM) SSHocker(name string, source, target string, readonly bool) error {
-	volumeDefinition := source + ":" + target
-	if readonly {
-		volumeDefinition += ":ro"
-	}
-
+func (v *MachineVM) sshConfig() string {
 	config := fmt.Sprintf("Host %s\n", v.Name)
 	config += fmt.Sprintf("    IdentityFile %s\n", v.IdentityPath)
 	config += fmt.Sprintf("    User %s\n", v.RemoteUsername)
@@ -661,10 +655,21 @@ func (v *MachineVM) SSHocker(name string, source, target string, readonly bool) 
 	config += fmt.Sprintf("    Port %d\n", v.Port)
 	config += fmt.Sprintf("    UserKnownHostsFile %s\n", "/dev/null")
 	config += fmt.Sprintf("    StrictHostKeyChecking %s\n", "no")
+	return config
+}
+
+// SSHocker does a reverse sshfs mount over a SSH connection.
+func (v *MachineVM) SSHocker(name string, source, target string, readonly bool) error {
+	volumeDefinition := source + ":" + target
+	if readonly {
+		volumeDefinition += ":ro"
+	}
+
 	vmConfigDir, err := machine.GetConfDir(vmtype)
 	if err != nil {
 		return err
 	}
+	config := v.sshConfig()
 	sshConfigFile := filepath.Join(vmConfigDir, v.Name+".config")
 	err = ioutil.WriteFile(sshConfigFile, []byte(config), 0666)
 	if err != nil {
