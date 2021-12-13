@@ -189,5 +189,10 @@ func (s *SpecGenerator) Validate() error {
 	if err := validateNetNS(&s.NetNS); err != nil {
 		return err
 	}
+	if s.NetNS.NSMode != Bridge && len(s.Networks) > 0 {
+		// Note that we also get the ip and mac in the networks map
+		return errors.New("Networks and static ip/mac address can only be used with Bridge mode networking")
+	}
+
 	return nil
 }

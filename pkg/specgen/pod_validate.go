@@ -67,10 +67,8 @@ func (p *PodSpecGenerator) Validate() error {
 		if len(p.PortMappings) > 0 {
 			return errors.New("PortMappings can only be used with Bridge or slirp4netns networking")
 		}
-		if len(p.Networks) > 0 {
-			return errors.New("Networks can only be used with Bridge mode networking")
-		}
 	}
+
 	if p.NoManageResolvConf {
 		if len(p.DNSServer) > 0 {
 			return exclusivePodOptions("NoManageResolvConf", "DNSServer")
