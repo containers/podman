@@ -612,10 +612,10 @@ rootless_gitlab_test_task:
     alias: rootless_gitlab_test
     skip: *tags
     only_if: *not_docs
-    # Community-maintained downstream test may fail unexpectedly.
-    # Ref. repository: https://gitlab.com/gitlab-org/gitlab-runner
-    # If necessary, uncomment the next line and file issue(s) with details.
-    # allow_failures: $CI == $CI
+    # Test temporarily ignored due to failure on/around 7-10th Dec. 2021
+    # Appears related to https://gitlab.com/gitlab-org/gitlab-runner/-/issues/28732
+    # Log: https://cirrus-ci.com/task/5708221852680192?logs=setup#L433
+    allow_failures: $CI == $CI
     depends_on:
       - rootless_integration_test
     gce_instance: *standardvm
