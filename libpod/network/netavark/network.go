@@ -139,7 +139,7 @@ func NewNetworkInterface(conf InitConfig) (types.ContainerNetwork, error) {
 // Drivers will return the list of supported network drivers
 // for this interface.
 func (n *netavarkNetwork) Drivers() []string {
-	return []string{types.BridgeNetworkDriver}
+	return []string{types.BridgeNetworkDriver, types.MacVLANNetworkDriver}
 }
 
 func (n *netavarkNetwork) loadNetworks() error {

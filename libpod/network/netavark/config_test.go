@@ -712,7 +712,7 @@ var _ = Describe("Config", func() {
 			}}
 			_, err := libpodNet.NetworkCreate(network)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("unsupported network option someopt"))
+			Expect(err.Error()).To(ContainSubstring("unsupported bridge network option someopt"))
 		})
 
 		It("network create unsupported driver", func() {
@@ -787,6 +787,130 @@ var _ = Describe("Config", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("subnet 10.10.0.0/24 is already used on the host or by another config"))
 		})
+
+		It("create macvlan config without subnet", func() {
+			network := types.Network{Driver: "macvlan"}
+			_, err := libpodNet.NetworkCreate(network)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(Equal("macvlan driver needs at least one subnet specified, DHCP is not supported with netavark"))
+		})
+
+		It("create macvlan config with internal", func() {
+			network := types.Network{Driver: "macvlan", Internal: true}
+			_, err := libpodNet.NetworkCreate(network)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(Equal("internal is not supported with macvlan"))
+		})
+
+		It("create macvlan config with subnet", func() {
+			subnet := "10.1.0.0/24"
+			n, _ := types.ParseCIDR(subnet)
+			network := types.Network{
+				Driver: "macvlan",
+				Subnets: []types.Subnet{
+					{Subnet: n},
+				},
+			}
+			network1, err := libpodNet.NetworkCreate(network)
+			Expect(err).To(BeNil())
+			Expect(network1.Name).ToNot(BeEmpty())
+			path := filepath.Join(networkConfDir, network1.Name+".json")
+			Expect(path).To(BeARegularFile())
+			Expect(network1.ID).ToNot(BeEmpty())
+			Expect(network1.Driver).To(Equal("macvlan"))
+			Expect(network1.NetworkInterface).To(Equal(""))
+			Expect(network1.Labels).To(BeEmpty())
+			Expect(network1.Options).To(BeEmpty())
+			Expect(network1.Subnets).To(HaveLen(1))
+			Expect(network1.Subnets[0].Subnet.String()).To(Equal(subnet))
+			Expect(network1.Subnets[0].Gateway.String()).To(Equal("10.1.0.1"))
+			Expect(network1.Subnets[0].LeaseRange).To(BeNil())
+			Expect(network1.DNSEnabled).To(BeFalse())
+			Expect(network1.Internal).To(BeFalse())
+			Expect(network1.IPAMOptions).To(HaveKeyWithValue("driver", "host-local"))
+		})
+
+		It("create macvlan config with subnet and device", func() {
+			subnet := "10.1.0.0/24"
+			n, _ := types.ParseCIDR(subnet)
+			network := types.Network{
+				Driver:           "macvlan",
+				NetworkInterface: "lo",
+				Subnets: []types.Subnet{
+					{Subnet: n},
+				},
+			}
+			network1, err := libpodNet.NetworkCreate(network)
+			Expect(err).To(BeNil())
+			Expect(network1.Name).ToNot(BeEmpty())
+			path := filepath.Join(networkConfDir, network1.Name+".json")
+			Expect(path).To(BeARegularFile())
+			Expect(network1.ID).ToNot(BeEmpty())
+			Expect(network1.Driver).To(Equal("macvlan"))
+			Expect(network1.NetworkInterface).To(Equal("lo"))
+			Expect(network1.Labels).To(BeEmpty())
+			Expect(network1.Options).To(BeEmpty())
+			Expect(network1.Subnets).To(HaveLen(1))
+			Expect(network1.Subnets[0].Subnet.String()).To(Equal(subnet))
+			Expect(network1.Subnets[0].Gateway.String()).To(Equal("10.1.0.1"))
+			Expect(network1.Subnets[0].LeaseRange).To(BeNil())
+			Expect(network1.DNSEnabled).To(BeFalse())
+			Expect(network1.Internal).To(BeFalse())
+			Expect(network1.IPAMOptions).To(HaveKeyWithValue("driver", "host-local"))
+		})
+
+		It("create macvlan config with mode", func() {
+			subnet := "10.1.0.0/24"
+			n, _ := types.ParseCIDR(subnet)
+			network := types.Network{
+				Driver: "macvlan",
+				Subnets: []types.Subnet{
+					{Subnet: n},
+				},
+				Options: map[string]string{
+					"mode": "private",
+				},
+			}
+			network1, err := libpodNet.NetworkCreate(network)
+			Expect(err).To(BeNil())
+			Expect(network1.Name).ToNot(BeEmpty())
+			Expect(network1.Options).To(HaveKeyWithValue("mode", "private"))
+		})
+
+		It("create macvlan config with invalid mode", func() {
+			subnet := "10.1.0.0/24"
+			n, _ := types.ParseCIDR(subnet)
+			network := types.Network{
+				Driver: "macvlan",
+				Subnets: []types.Subnet{
+					{Subnet: n},
+				},
+				Options: map[string]string{
+					"mode": "abc",
+				},
+			}
+			_, err := libpodNet.NetworkCreate(network)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(Equal("unknown macvlan mode \"abc\""))
+		})
+
+		It("create macvlan config with invalid option", func() {
+			subnet := "10.1.0.0/24"
+			n, _ := types.ParseCIDR(subnet)
+			network := types.Network{
+				Driver: "macvlan",
+				Subnets: []types.Subnet{
+					{Subnet: n},
+				},
+				Options: map[string]string{
+					"abc": "123",
+				},
+			}
+			_, err := libpodNet.NetworkCreate(network)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(Equal("unsupported macvlan network option abc"))
+		})
+
 	})
 
 	Context("network load valid existing ones", func() {

@@ -12,6 +12,7 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	internalutil "github.com/containers/podman/v3/libpod/network/internal/util"
 	"github.com/containers/podman/v3/libpod/network/types"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/pkg/errors"
 )
@@ -102,7 +103,36 @@ func (n *netavarkNetwork) networkCreate(newNetwork types.Network, defaultNet boo
 				}
 
 			default:
-				return nil, errors.Errorf("unsupported network option %s", key)
+				return nil, errors.Errorf("unsupported bridge network option %s", key)
+			}
+		}
+	case types.MacVLANNetworkDriver:
+		if newNetwork.Internal {
+			return nil, errors.New("internal is not supported with macvlan")
+		}
+		if newNetwork.NetworkInterface != "" {
+			interfaceNames, err := internalutil.GetLiveNetworkNames()
+			if err != nil {
+				return nil, err
+			}
+			if !util.StringInSlice(newNetwork.NetworkInterface, interfaceNames) {
+				return nil, errors.Errorf("parent interface %s does not exist", newNetwork.NetworkInterface)
+			}
+		}
+		if len(newNetwork.Subnets) == 0 {
+			return nil, errors.Errorf("macvlan driver needs at least one subnet specified, DHCP is not supported with netavark")
+		}
+		newNetwork.IPAMOptions["driver"] = types.HostLocalIPAMDriver
+
+		// validate the given options, we do not need them but just check to make sure they are valid
+		for key, value := range newNetwork.Options {
+			switch key {
+			case "mode":
+				if !util.StringInSlice(value, []string{"", "bridge", "private", "vepa", "passthru"}) {
+					return nil, errors.Errorf("unknown macvlan mode %q", value)
+				}
+			default:
+				return nil, errors.Errorf("unsupported macvlan network option %s", key)
 			}
 		}
 

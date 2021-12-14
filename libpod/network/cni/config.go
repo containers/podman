@@ -196,7 +196,7 @@ func createIPMACVLAN(network *types.Network) error {
 			return err
 		}
 		if !pkgutil.StringInSlice(network.NetworkInterface, interfaceNames) {
-			return errors.Errorf("parent interface %s does not exists", network.NetworkInterface)
+			return errors.Errorf("parent interface %s does not exist", network.NetworkInterface)
 		}
 	}
 	if len(network.Subnets) == 0 {

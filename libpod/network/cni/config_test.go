@@ -318,7 +318,7 @@ var _ = Describe("Config", func() {
 			}
 			_, err := libpodNet.NetworkCreate(network)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("parent interface idonotexists does not exists"))
+			Expect(err.Error()).To(ContainSubstring("parent interface idonotexists does not exist"))
 		})
 
 		It("create macvlan config with internal should fail", func() {
