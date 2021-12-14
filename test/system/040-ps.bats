@@ -83,10 +83,10 @@ load helpers
     run_podman rm -a
 }
 
-@test "podman ps -a --external" {
+@test "podman ps --external" {
 
     # Setup: ensure that we have no hidden storage containers
-    run_podman ps --external -a
+    run_podman ps --external
     is "${#lines[@]}" "1" "setup check: no storage containers at start of test"
 
     # Force a buildah timeout; this leaves a buildah container behind
@@ -107,7 +107,7 @@ EOF
     run_podman ps -a
     is "${#lines[@]}" "1" "podman ps -a does not see buildah containers"
 
-    run_podman ps --external -a
+    run_podman ps --external
     is "${#lines[@]}" "3" "podman ps -a --external sees buildah containers"
     is "${lines[1]}" \
        "[0-9a-f]\{12\} \+$IMAGE *buildah .* seconds ago .* storage .* ${PODMAN_TEST_IMAGE_NAME}-working-container" \
@@ -115,7 +115,7 @@ EOF
 
     # 'rm -a' should be a NOP
     run_podman rm -a
-    run_podman ps --external -a
+    run_podman ps --external
     is "${#lines[@]}" "3" "podman ps -a --external sees buildah containers"
 
     # Cannot prune intermediate image as it's being used by a buildah
@@ -128,7 +128,7 @@ EOF
     is "${#lines[@]}" "1" "Image used by build container is pruned"
 
     # One buildah container has been removed.
-    run_podman ps --external -a
+    run_podman ps --external
     is "${#lines[@]}" "2" "podman ps -a --external sees buildah containers"
 
     cid="${lines[1]:0:12}"
@@ -140,7 +140,7 @@ EOF
     # With -f, we can remove it.
     run_podman rm -t 0 -f "$cid"
 
-    run_podman ps --external -a
+    run_podman ps --external
     is "${#lines[@]}" "1" "storage container has been removed"
 }
 
