@@ -26,18 +26,21 @@
             <Component Id="MainExecutable" Guid="73752F94-6589-4C7B-ABED-39D655A19714" Win64="Yes">
               <File Id="520C6E17-77A2-4F41-9611-30FA763A0702" Name="podman.exe" Source="bin/windows/podman.exe" KeyPath="yes"/>
             </Component>
+            <Component Id="WinPathExecutable" Guid="00F5B731-D4A6-4B69-87B0-EA4EBAB89F95" Win64="Yes">
+              <File Id="8F507E28-A61D-4E64-A92B-B5A00F023AE8" Name="winpath.exe" Source="bin/windows/winpath.exe" KeyPath="yes"/>
+            </Component>
           </Directory>
         </Directory>
       </Directory>
     </Directory>
 
-    <Property Id="setx" Value="setx.exe"/>
-    <!-- Directory table entries have a trailing slash, so an extra backslash is needed to prevent escaping the quote -->
-    <CustomAction Id="ChangePath" ExeCommand="PATH &quot;%PATH%;[INSTALLDIR]\&quot;" Property="setx" Execute="deferred" Impersonate="yes" Return="check"/>
+    <CustomAction Id="AddPath" ExeCommand="add" FileKey="8F507E28-A61D-4E64-A92B-B5A00F023AE8" Execute="deferred" Impersonate="yes" Return="check"/>
+    <CustomAction Id="RemovePath" ExeCommand="remove" FileKey="8F507E28-A61D-4E64-A92B-B5A00F023AE8" Execute="deferred" Impersonate="yes" Return="check"/>
 
     <Feature Id="Complete" Level="1">
       <ComponentRef Id="INSTALLDIR_Component"/>
       <ComponentRef Id="MainExecutable"/>
+      <ComponentRef Id="WinPathExecutable"/>
       <ComponentGroupRef Id="ManFiles"/>
     </Feature>
 
@@ -46,7 +49,8 @@
 
     <InstallExecuteSequence>
       <RemoveExistingProducts Before="InstallInitialize"/>
-      <Custom Action="ChangePath" After="InstallServices">NOT Installed</Custom>
+      <Custom Action="AddPath" After="InstallFiles">NOT Installed</Custom>
+      <Custom Action="RemovePath" Before="RemoveFiles" After="InstallInitiailize">(REMOVE="ALL") AND (NOT UPGRADINGPRODUCTCODE)</Custom>
     </InstallExecuteSequence>
 
   </Product>

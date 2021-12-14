@@ -358,6 +358,16 @@ podman-remote-windows: ## Build podman-remote for Windows
 		GOOS=windows \
 		bin/windows/podman.exe
 
+.PHONY: podman-winpath
+podman-winpath: .gopathok $(SOURCES) go.mod go.sum
+	CGO_ENABLED=0 \
+		GOOS=windows \
+		$(GO) build \
+		$(BUILDFLAGS) \
+		-ldflags -H=windowsgui \
+		-o bin/windows/winpath.exe \
+		./cmd/winpath
+
 .PHONY: podman-remote-darwin
 podman-remote-darwin: ## Build podman-remote for macOS
 	$(MAKE) \
@@ -685,7 +695,7 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 .PHONY: podman.msi
 podman.msi: test/version/version  ## Build podman-remote, package for installation on Windows
 	$(MAKE) podman-v$(RELEASE_NUMBER).msi
-podman-v$(RELEASE_NUMBER).msi: podman-remote-windows podman-remote-windows-docs
+podman-v$(RELEASE_NUMBER).msi: podman-remote-windows podman-remote-windows-docs podman-winpath
 	$(eval DOCFILE := docs/build/remote/windows)
 	find $(DOCFILE) -print | \
 		wixl-heat --var var.ManSourceDir --component-group ManFiles \
