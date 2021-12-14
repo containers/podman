@@ -60,6 +60,12 @@ of POST parameters in the form 'key=value', separated by spaces:
      t POST myentrypoint name=$name badparam='["foo","bar"]' 500  ! etc...
 `t` will convert the param list to JSON form for passing to the server.
 A numeric status code terminates processing of POST parameters.
+** As a special case, when one POST argument is a string ending in `.tar`,
+`t` will invoke `curl` with `--data-binary @PATH` and
+set `Content-type: application/x-tar`. This is useful for `build` endpoints.
+(To override `Content-type`, simply pass along an extra string argument
+matching `application/*`):
+      t POST myentrypoint /mytmpdir/myfile.tar application/foo 400
 
 * The final arguments are one or more expected string results. If an
 argument starts with a dot, `t` will invoke `jq` on the output to

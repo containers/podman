@@ -7,7 +7,7 @@ t GET networks/non-existing-network 404 \
   .cause='network not found'
 
 t POST libpod/networks/create name='"network1"' 200 \
-  .name=network1
+  .name=network1 \
   .created~[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}.* \
 
 # --data '{"name":"network2","subnets":[{"subnet":"10.10.254.0/24"}],"Labels":{"abc":"val"}}'

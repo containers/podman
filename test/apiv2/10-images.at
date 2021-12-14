@@ -171,84 +171,32 @@ function cleanBuildTest() {
 }
 CONTAINERFILE_TAR="${TMPD}/containerfile.tar"
 cat > $TMPD/containerfile << EOF
-FROM quay.io/libpod/alpine_labels:latest
+FROM $IMAGE
 EOF
 tar --format=posix -C $TMPD -cvf ${CONTAINERFILE_TAR} containerfile &> /dev/null
 
-curl -XPOST --data-binary @<(cat $CONTAINERFILE_TAR) \
-    -H "content-type: application/x-tar" \
-    --dump-header "${TMPD}/headers.txt" \
-    -o "${TMPD}/response.txt" \
-    "http://$HOST:$PORT/v1.40/libpod/build?dockerfile=containerfile" &> /dev/null
+t POST "libpod/build?dockerfile=containerfile" $CONTAINERFILE_TAR 200 \
+  .stream~"STEP 1/1: FROM $IMAGE"
 
-BUILD_TEST_ERROR=""
+# With -q, all we should get is image ID. Test both libpod & compat endpoints.
+t POST "libpod/build?dockerfile=containerfile&q=true" $CONTAINERFILE_TAR 200 \
+  .stream~'^[0-9a-f]\{64\}$'
+t POST "build?dockerfile=containerfile&q=true" $CONTAINERFILE_TAR 200 \
+  .stream~'^[0-9a-f]\{64\}$'
 
-if ! grep -q '200 OK' "${TMPD}/headers.txt"; then
-    echo -e "${red}NOK: Image build from tar failed response was not 200 OK (application/x-tar)"
-    BUILD_TEST_ERROR="1"
-fi
+# Override content-type and confirm that libpod rejects, but compat accepts
+t POST "libpod/build?dockerfile=containerfile" $CONTAINERFILE_TAR application/json 400 \
+  .cause='Content-Type: application/json is not supported. Should be "application/x-tar"'
+t POST "build?dockerfile=containerfile" $CONTAINERFILE_TAR application/json 200 \
+  .stream~"STEP 1/1: FROM $IMAGE"
 
-if ! grep -q 'quay.io/libpod/alpine_labels' "${TMPD}/response.txt"; then
-    echo -e "${red}NOK: Image build from tar failed image name not in response"
-    BUILD_TEST_ERROR="1"
-fi
-
-curl -XPOST --data-binary @<(cat $CONTAINERFILE_TAR) \
-    -H "content-type: application/tar" \
-    --dump-header "${TMPD}/headers.txt" \
-    -o "${TMPD}/response.txt" \
-    "http://$HOST:$PORT/v1.40/build?dockerfile=containerfile&q=true" &> /dev/null
-if ! grep -q '200 OK' "${TMPD}/headers.txt"; then
-    echo -e "${red}NOK: Image build from tar failed response was not 200 OK (application/tar)"
-    BUILD_TEST_ERROR="1"
-fi
-if grep -E "\"[0-9a-f]{64}\\\n\"" $(jq .stream "${TMPD}/response.txt"); then
-    echo -e "${red} quiet-mode should only send image ID"
-    BUILD_TEST_ERROR="1"
-fi
-
-# Yes, this is very un-RESTful re: Content-Type header ignored when compatibility endpoint used
-# See https://github.com/containers/podman/issues/11012
-curl -XPOST --data-binary @<(cat $CONTAINERFILE_TAR) \
-    -H "content-type: application/json" \
-    --dump-header "${TMPD}/headers.txt" \
-    -o /dev/null \
-    "http://$HOST:$PORT/v1.40/build?dockerfile=containerfile" &> /dev/null
-if ! grep -q '200 OK' "${TMPD}/headers.txt"; then
-    echo -e "${red}NOK: Image build from tar failed response was not 200 OK (application/tar)"
-    BUILD_TEST_ERROR="1"
-fi
-
-curl -XPOST --data-binary @<(cat $CONTAINERFILE_TAR) \
-    -H "content-type: application/json" \
-    --dump-header "${TMPD}/headers.txt" \
-    -o /dev/null \
-    "http://$HOST:$PORT/v1.40/libpod/build?dockerfile=containerfile" &> /dev/null
-if ! grep -q '400 Bad Request' "${TMPD}/headers.txt"; then
-    echo -e "${red}NOK: Image build should have failed with 400 (wrong Content-Type)"
-    BUILD_TEST_ERROR="1"
-fi
-
-curl -XPOST --data-binary @<(cat $CONTAINERFILE_TAR) \
-    -H "content-type: application/tar" \
-    --dump-header "${TMPD}/headers.txt" \
-    -o "${TMPD}/response.txt" \
-    "http://$HOST:$PORT/v1.40/build?dockerfile=containerfile" &> /dev/null
-if ! grep -q '200 OK' "${TMPD}/headers.txt"; then
-    echo -e "${red}NOK: Image build from tar failed response was not 200 OK (application/tar)"
-    BUILD_TEST_ERROR="1"
-fi
-if ! grep -qP '^{"aux":{"ID":"sha256:[0-9a-f]{64}"}}$' "${TMPD}/response.txt"; then
-    echo -e "${red}NOK: Image build response does not contain ID"
-    BUILD_TEST_ERROR="1"
-fi
+# PR #12091: output from compat API must now include {"aux":{"ID":"sha..."}}
+t POST "build?dockerfile=containerfile" $CONTAINERFILE_TAR 200 \
+  '.aux|select(has("ID")).ID~^sha256:[0-9a-f]\{64\}$'
 
 t POST libpod/images/prune 200
 t POST libpod/images/prune 200 length=0 []
 
 cleanBuildTest
-if [[ "${BUILD_TEST_ERROR}" ]]; then
-    exit 1
-fi
 
 # vim: filetype=sh
