@@ -55,6 +55,12 @@ Memory (in MB).
 
 Start the virtual machine immediately after it has been initialized.
 
+#### **--timezone**
+
+Set the timezone for the machine and containers.  Valid values are `local` or
+a `timezone` such as `America/Chicago`.  A value of `local`, which is the default,
+means to use the timezone of the machine host.
+
 #### **--help**
 
 Print usage statement.

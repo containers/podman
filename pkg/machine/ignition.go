@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/url"
+	"path/filepath"
 )
 
 /*
@@ -44,6 +45,7 @@ func getNodeGrp(grpName string) NodeGroup {
 type DynamicIgnition struct {
 	Name      string
 	Key       string
+	TimeZone  string
 	VMName    string
 	WritePath string
 }
@@ -74,6 +76,37 @@ func NewIgnitionFile(ign DynamicIgnition) error {
 		Directories: getDirs(ign.Name),
 		Files:       getFiles(ign.Name),
 		Links:       getLinks(ign.Name),
+	}
+
+	// Add or set the time zone for the machine
+	if len(ign.TimeZone) > 0 {
+		var (
+			err error
+			tz  string
+		)
+		// local means the same as the host
+		// lookup where it is pointing to on the host
+		if ign.TimeZone == "local" {
+			tz, err = getLocalTimeZone()
+			if err != nil {
+				return err
+			}
+		} else {
+			tz = ign.TimeZone
+		}
+		tzLink := Link{
+			Node: Node{
+				Group:     getNodeGrp("root"),
+				Path:      "/etc/localtime",
+				Overwrite: boolToPtr(false),
+				User:      getNodeUsr("root"),
+			},
+			LinkEmbedded1: LinkEmbedded1{
+				Hard:   boolToPtr(false),
+				Target: filepath.Join("/usr/share/zoneinfo", tz),
+			},
+		}
+		ignStorage.Links = append(ignStorage.Links, tzLink)
 	}
 
 	// ready is a unit file that sets up the virtual serial device
