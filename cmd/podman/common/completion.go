@@ -13,7 +13,6 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/containers/podman/v3/pkg/network"
 	"github.com/containers/podman/v3/pkg/rootless"
 	systemdDefine "github.com/containers/podman/v3/pkg/systemd/define"
 	"github.com/containers/podman/v3/pkg/util"
@@ -262,12 +261,11 @@ func getNetworks(cmd *cobra.Command, toComplete string, cType completeType) ([]s
 	}
 
 	for _, n := range networks {
-		id := network.GetNetworkID(n.Name)
 		// include ids in suggestions if cType == completeIDs or
 		// more then 2 chars are typed and cType == completeDefault
 		if ((len(toComplete) > 1 && cType == completeDefault) ||
-			cType == completeIDs) && strings.HasPrefix(id, toComplete) {
-			suggestions = append(suggestions, id[0:12])
+			cType == completeIDs) && strings.HasPrefix(n.ID, toComplete) {
+			suggestions = append(suggestions, n.ID[0:12])
 		}
 		// include name in suggestions
 		if cType != completeIDs && strings.HasPrefix(n.Name, toComplete) {
