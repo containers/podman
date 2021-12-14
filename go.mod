@@ -24,7 +24,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/digitalocean/go-qemu v0.0.0-20210209191958-152a1535e49f
 	github.com/docker/distribution v2.7.1+incompatible
-	github.com/docker/docker v20.10.11+incompatible
+	github.com/docker/docker v20.10.12+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-plugins-helpers v0.0.0-20200102110956-c9a8a2d92ccc
 	github.com/docker/go-units v0.4.0
