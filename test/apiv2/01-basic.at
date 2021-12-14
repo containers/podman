@@ -82,7 +82,7 @@ else
 fi
 
 # Simple events test (see #7078)
-t GET "events?stream=false"  200
-t GET "libpod/events?stream=false"  200
+t GET "events?stream=false&since=30s"  200
+t GET "libpod/events?stream=false&since=30s"  200
 
 # vim: filetype=sh
