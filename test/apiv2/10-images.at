@@ -229,6 +229,20 @@ if ! grep -q '400 Bad Request' "${TMPD}/headers.txt"; then
     BUILD_TEST_ERROR="1"
 fi
 
+curl -XPOST --data-binary @<(cat $CONTAINERFILE_TAR) \
+    -H "content-type: application/tar" \
+    --dump-header "${TMPD}/headers.txt" \
+    -o "${TMPD}/response.txt" \
+    "http://$HOST:$PORT/v1.40/build?dockerfile=containerfile" &> /dev/null
+if ! grep -q '200 OK' "${TMPD}/headers.txt"; then
+    echo -e "${red}NOK: Image build from tar failed response was not 200 OK (application/tar)"
+    BUILD_TEST_ERROR="1"
+fi
+if ! grep -qP '^{"aux":{"ID":"sha256:[0-9a-f]{64}"}}$' "${TMPD}/response.txt"; then
+    echo -e "${red}NOK: Image build response does not contain ID"
+    BUILD_TEST_ERROR="1"
+fi
+
 t POST libpod/images/prune 200
 t POST libpod/images/prune 200 length=0 []
 

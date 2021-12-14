@@ -621,7 +621,8 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			Stream string                 `json:"stream,omitempty"`
 			Error  *jsonmessage.JSONError `json:"errorDetail,omitempty"`
 			// NOTE: `error` is being deprecated check https://github.com/moby/moby/blob/master/pkg/jsonmessage/jsonmessage.go#L148
-			ErrorMessage string `json:"error,omitempty"` // deprecate this slowly
+			ErrorMessage string          `json:"error,omitempty"` // deprecate this slowly
+			Aux          json.RawMessage `json:"aux,omitempty"`
 		}{}
 
 		select {
@@ -656,6 +657,11 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		case <-runCtx.Done():
 			if success {
 				if !utils.IsLibpodRequest(r) && !query.Quiet {
+					m.Aux = []byte(fmt.Sprintf(`{"ID":"sha256:%s"}`, imageID))
+					if err := enc.Encode(m); err != nil {
+						logrus.Warnf("failed to json encode error %v", err)
+					}
+					m.Aux = nil
 					m.Stream = fmt.Sprintf("Successfully built %12.12s\n", imageID)
 					if err := enc.Encode(m); err != nil {
 						logrus.Warnf("Failed to json encode error %v", err)
