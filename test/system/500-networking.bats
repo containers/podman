@@ -16,6 +16,21 @@ load helpers
     if  [[ ${output} = ${heading} ]]; then
        die "network ls --noheading did not remove heading: $output"
     fi
+
+    # check deterministic list order
+    local net1=a-$(random_string 10)
+    local net2=b-$(random_string 10)
+    local net3=c-$(random_string 10)
+    run_podman network create $net1
+    run_podman network create $net2
+    run_podman network create $net3
+
+    run_podman network ls --quiet
+    # just check the the order of the created networks is correct
+    # we cannot do an exact match since developer and CI systems could contain more networks
+    is "$output" ".*$net1.*$net2.*$net3.*podman.*" "networks sorted alphabetically"
+
+    run_podman network rm $net1 $net2 $net3
 }
 
 # Copied from tsweeney's https://github.com/containers/podman/issues/4827

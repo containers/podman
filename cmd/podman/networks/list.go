@@ -3,6 +3,7 @@ package network
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/containers/common/pkg/completion"
@@ -72,6 +73,11 @@ func networkList(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
+	// sort the networks to make sure the order is deterministic
+	sort.Slice(responses, func(i, j int) bool {
+		return responses[i].Name < responses[j].Name
+	})
 
 	switch {
 	// quiet means we only print the network names
