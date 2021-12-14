@@ -57,6 +57,8 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 
 	ipIndex := 0
 
+	var configMaps []v1.ConfigMap
+
 	// create pod on each document if it is a pod or deployment
 	// any other kube kind will be skipped
 	for _, document := range documentList {
@@ -77,7 +79,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 			podTemplateSpec.ObjectMeta = podYAML.ObjectMeta
 			podTemplateSpec.Spec = podYAML.Spec
 
-			r, err := ic.playKubePod(ctx, podTemplateSpec.ObjectMeta.Name, &podTemplateSpec, options, &ipIndex, podYAML.Annotations)
+			r, err := ic.playKubePod(ctx, podTemplateSpec.ObjectMeta.Name, &podTemplateSpec, options, &ipIndex, podYAML.Annotations, configMaps)
 			if err != nil {
 				return nil, err
 			}
@@ -91,7 +93,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 				return nil, errors.Wrapf(err, "unable to read YAML %q as Kube Deployment", path)
 			}
 
-			r, err := ic.playKubeDeployment(ctx, &deploymentYAML, options, &ipIndex)
+			r, err := ic.playKubeDeployment(ctx, &deploymentYAML, options, &ipIndex, configMaps)
 			if err != nil {
 				return nil, err
 			}
@@ -112,6 +114,13 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 
 			report.Volumes = append(report.Volumes, r.Volumes...)
 			validKinds++
+		case "ConfigMap":
+			var configMap v1.ConfigMap
+
+			if err := yaml.Unmarshal(document, &configMap); err != nil {
+				return nil, errors.Wrapf(err, "unable to read YAML %q as Kube ConfigMap", path)
+			}
+			configMaps = append(configMaps, configMap)
 		default:
 			logrus.Infof("Kube kind %s not supported", kind)
 			continue
@@ -125,7 +134,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 	return report, nil
 }
 
-func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAML *v1apps.Deployment, options entities.PlayKubeOptions, ipIndex *int) (*entities.PlayKubeReport, error) {
+func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAML *v1apps.Deployment, options entities.PlayKubeOptions, ipIndex *int, configMaps []v1.ConfigMap) (*entities.PlayKubeReport, error) {
 	var (
 		deploymentName string
 		podSpec        v1.PodTemplateSpec
@@ -147,7 +156,7 @@ func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAM
 	// create "replicas" number of pods
 	for i = 0; i < numReplicas; i++ {
 		podName := fmt.Sprintf("%s-pod-%d", deploymentName, i)
-		podReport, err := ic.playKubePod(ctx, podName, &podSpec, options, ipIndex, deploymentYAML.Annotations)
+		podReport, err := ic.playKubePod(ctx, podName, &podSpec, options, ipIndex, deploymentYAML.Annotations, configMaps)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error encountered while bringing up pod %s", podName)
 		}
@@ -156,7 +165,7 @@ func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAM
 	return &report, nil
 }
 
-func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec, options entities.PlayKubeOptions, ipIndex *int, annotations map[string]string) (*entities.PlayKubeReport, error) {
+func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec, options entities.PlayKubeOptions, ipIndex *int, annotations map[string]string, configMaps []v1.ConfigMap) (*entities.PlayKubeReport, error) {
 	var (
 		writer      io.Writer
 		playKubePod entities.PlayKubePod
@@ -230,9 +239,61 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		return nil, err
 	}
 	podSpec := entities.PodSpec{PodSpecGen: *p}
-	volumes, err := kube.InitializeVolumes(podYAML.Spec.Volumes)
+
+	configMapIndex := make(map[string]struct{})
+	for _, configMap := range configMaps {
+		configMapIndex[configMap.Name] = struct{}{}
+	}
+	for _, p := range options.ConfigMaps {
+		f, err := os.Open(p)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+
+		cm, err := readConfigMapFromFile(f)
+		if err != nil {
+			return nil, errors.Wrapf(err, "%q", p)
+		}
+
+		if _, present := configMapIndex[cm.Name]; present {
+			return nil, errors.Errorf("ambiguous configuration: the same config map %s is present in YAML and in --configmaps %s file", cm.Name, p)
+		}
+
+		configMaps = append(configMaps, cm)
+	}
+
+	volumes, err := kube.InitializeVolumes(podYAML.Spec.Volumes, configMaps)
 	if err != nil {
 		return nil, err
+	}
+
+	// Go through the volumes and create a podman volume for all volumes that have been
+	// defined by a configmap
+	for _, v := range volumes {
+		if v.Type == kube.KubeVolumeTypeConfigMap && !v.Optional {
+			vol, err := ic.Libpod.NewVolume(ctx, libpod.WithVolumeName(v.Source))
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot create a local volume for volume from configmap %q", v.Source)
+			}
+			mountPoint, err := vol.MountPoint()
+			if err != nil || mountPoint == "" {
+				return nil, errors.Wrapf(err, "unable to get mountpoint of volume %q", vol.Name())
+			}
+			// Create files and add data to the volume mountpoint based on the Items in the volume
+			for k, v := range v.Items {
+				dataPath := filepath.Join(mountPoint, k)
+				f, err := os.Create(dataPath)
+				if err != nil {
+					return nil, errors.Wrapf(err, "cannot create file %q at volume mountpoint %q", k, mountPoint)
+				}
+				defer f.Close()
+				_, err = f.WriteString(v)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
 	}
 
 	seccompPaths, err := kube.InitializeSeccompPaths(podYAML.ObjectMeta.Annotations, options.SeccompProfileRoot)
@@ -252,34 +313,13 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		ctrRestartPolicy = define.RestartPolicyAlways
 	}
 
-	configMaps := []v1.ConfigMap{}
-	for _, p := range options.ConfigMaps {
-		f, err := os.Open(p)
-		if err != nil {
-			return nil, err
-		}
-		defer f.Close()
-
-		cm, err := readConfigMapFromFile(f)
-		if err != nil {
-			return nil, errors.Wrapf(err, "%q", p)
-		}
-
-		configMaps = append(configMaps, cm)
-	}
-
 	if podOpt.Infra {
-		containerConfig := util.DefaultContainerConfig()
-
-		pulledImages, err := pullImage(ic, writer, containerConfig.Engine.InfraImage, options, config.PullPolicyNewer)
-		if err != nil {
-			return nil, err
-		}
-		infraOptions := entities.ContainerCreateOptions{ImageVolume: "bind"}
-
-		podSpec.PodSpecGen.InfraImage = pulledImages[0].Names()[0]
+		infraImage := util.DefaultContainerConfig().Engine.InfraImage
+		infraOptions := entities.NewInfraContainerCreateOptions()
+		infraOptions.Hostname = podSpec.PodSpecGen.PodBasicConfig.Hostname
+		podSpec.PodSpecGen.InfraImage = infraImage
 		podSpec.PodSpecGen.NoInfra = false
-		podSpec.PodSpecGen.InfraContainerSpec = specgen.NewSpecGenerator(pulledImages[0].Names()[0], false)
+		podSpec.PodSpecGen.InfraContainerSpec = specgen.NewSpecGenerator(infraImage, false)
 		podSpec.PodSpecGen.InfraContainerSpec.NetworkOptions = p.NetworkOptions
 
 		err = specgenutil.FillOutSpecGen(podSpec.PodSpecGen.InfraContainerSpec, &infraOptions, []string{})
@@ -757,22 +797,4 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, path string, _ enti
 		return nil, err
 	}
 	return reports, nil
-}
-
-// pullImage is a helper function to set up the proper pull options and pull the image for certain containers
-func pullImage(ic *ContainerEngine, writer io.Writer, imagePull string, options entities.PlayKubeOptions, pullPolicy config.PullPolicy) ([]*libimage.Image, error) {
-	// This ensures the image is the image store
-	pullOptions := &libimage.PullOptions{}
-	pullOptions.AuthFilePath = options.Authfile
-	pullOptions.CertDirPath = options.CertDir
-	pullOptions.SignaturePolicyPath = options.SignaturePolicy
-	pullOptions.Writer = writer
-	pullOptions.Username = options.Username
-	pullOptions.Password = options.Password
-	pullOptions.InsecureSkipTLSVerify = options.SkipTLSVerify
-	pulledImages, err := ic.Libpod.LibimageRuntime().Pull(context.Background(), imagePull, pullPolicy, pullOptions)
-	if err != nil {
-		return nil, err
-	}
-	return pulledImages, nil
 }

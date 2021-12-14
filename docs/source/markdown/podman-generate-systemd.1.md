@@ -38,14 +38,23 @@ Note that `--new` only works on containers and pods created directly via Podman 
 
 Do not generate the header including meta data such as the Podman version and the timestamp.
 
-#### **--time**, **-t**=*value*
+#### **--start-timeout** =*value*
 
-Override the default stop timeout for the container with the given value.
+Override the default start timeout for the container with the given value in seconds.
+
+#### **--stop-timeout** =*value*
+
+Override the default stop timeout for the container with the given value in seconds.
 
 #### **--restart-policy**=*policy*
 
 Set the systemd restart policy.  The restart-policy must be one of: "no", "on-success", "on-failure", "on-abnormal",
 "on-watchdog", "on-abort", or "always".  The default policy is *on-failure*.
+
+#### **--restart-sec**=*time*
+
+Set the systemd service restartsec value. Configures the time to sleep before restarting a service (as configured with restart-policy).
+Takes a value in seconds.
 
 #### **--container-prefix**=*prefix*
 
@@ -58,6 +67,12 @@ Set the systemd unit name prefix for pods. The default is *pod*.
 #### **--separator**=*separator*
 
 Set the systemd unit name separator between the name/id of a container/pod and the prefix. The default is *-*.
+
+#### **--template**
+
+Add template specifiers to run multiple services from the systemd unit file.
+
+Note that if `--new` was not set to true, it is set to true by default. However, if `--new` is set to `false` explicitly the command will fail.
 
 ## EXAMPLES
 
@@ -88,7 +103,7 @@ Type=forking
 PIDFile=/run/user/1000/overlay-containers/de1e3223b1b888bc02d0962dd6cb5855eb00734061013ffdd3479d225abacdc6/userdata/conmon.pid
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 ```
 
 ### Generate systemd unit file for a container with `--new` flag
@@ -120,7 +135,7 @@ KillMode=none
 Type=forking
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 ```
 
 ### Generate systemd unit files for a pod with two simple alpine containers
@@ -159,7 +174,7 @@ Type=forking
 PIDFile=/run/user/1000/overlay-containers/ccfd5c71a088768774ca7bd05888d55cc287698dde06f475c8b02f696a25adcd/userdata/conmon.pid
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 ```
 
 ### Installation of generated systemd unit files.
@@ -235,7 +250,7 @@ CONTAINER ID  IMAGE                            COMMAND  CREATED        STATUS   
 bb310a0780ae  docker.io/library/alpine:latest  /bin/sh  3 minutes ago  Created                      busy_moser
 ```
 ## SEE ALSO
-[**podman**(1)](podman.1.md), [**podman-container**(1)](podman-container.1.md), **systemctl**(1), **systemd.unit**(5), **systemd.service**(5), **conmon**(8).
+**[podman(1)](podman.1.md)**, **[podman-container(1)](podman-container.1.md)**, **systemctl(1)**, **systemd.unit(5)**, **systemd.service(5)**, **[conmon(8)](https://github.com/containers/conmon/blob/main/docs/conmon.8.md)**
 
 ## HISTORY
 April 2020, Updated details and added use case to use generated .service files as root and non-root, by Sujil Shah (sushah at redhat dot com)

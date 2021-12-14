@@ -16,6 +16,7 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/system/connection"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/docker/distribution/reference"
 	scpD "github.com/dtylman/scp"
 	"github.com/pkg/errors"
@@ -125,20 +126,39 @@ func scp(cmd *cobra.Command, args []string) (finalErr error) {
 		fmt.Println(rep)
 	// TODO: Add podman remote support
 	default: // else native load
+		scpOpts.Save.Format = "oci-archive"
+		_, err := os.Open(scpOpts.Save.Output)
+		if err != nil {
+			return err
+		}
 		if scpOpts.Tag != "" {
 			return errors.Wrapf(define.ErrInvalidArg, "Renaming of an image is currently not supported")
 		}
 		scpOpts.Save.Format = "oci-archive"
 		abiErr := abiEng.Save(context.Background(), scpOpts.SourceImageName, []string{}, scpOpts.Save) // save the image locally before loading it on remote, local, or ssh
 		if abiErr != nil {
-			errors.Wrapf(abiErr, "could not save image as specified")
+			return errors.Wrapf(abiErr, "could not save image as specified")
 		}
-		rep, err := abiEng.Load(context.Background(), scpOpts.Load)
-		if err != nil {
-			return err
+		if !rootless.IsRootless() && scpOpts.Rootless {
+			if scpOpts.User == "" {
+				scpOpts.User = os.Getenv("SUDO_USER")
+				if scpOpts.User == "" {
+					return errors.New("could not obtain root user, make sure the environmental variable SUDO_USER is set, and that this command is being run as root")
+				}
+			}
+			err := abiEng.Transfer(context.Background(), scpOpts)
+			if err != nil {
+				return err
+			}
+		} else {
+			rep, err := abiEng.Load(context.Background(), scpOpts.Load)
+			if err != nil {
+				return err
+			}
+			fmt.Println("Loaded image(s): " + strings.Join(rep.Names, ","))
 		}
-		fmt.Println("Loaded image(s): " + strings.Join(rep.Names, ","))
 	}
+
 	return nil
 }
 
@@ -154,7 +174,7 @@ func loadToRemote(localFile string, tag string, url *urlP.URL, iden string) (str
 
 	n, err := scpD.CopyTo(dial, localFile, remoteFile)
 	if err != nil {
-		errOut := (strconv.Itoa(int(n)) + " Bytes copied before error")
+		errOut := strconv.Itoa(int(n)) + " Bytes copied before error"
 		return " ", errors.Wrapf(err, errOut)
 	}
 	run := ""
@@ -167,7 +187,7 @@ func loadToRemote(localFile string, tag string, url *urlP.URL, iden string) (str
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimSuffix(out, "\n"), nil
+	return strings.TrimSuffix(string(out), "\n"), nil
 }
 
 // saveToRemote takes image information and remote connection information. it connects to the specified client
@@ -193,7 +213,7 @@ func saveToRemote(image, localFile string, tag string, uri *urlP.URL, iden strin
 	n, err := scpD.CopyFrom(dial, remoteFile, localFile)
 	connection.ExecRemoteCommand(dial, "rm "+remoteFile)
 	if err != nil {
-		errOut := (strconv.Itoa(int(n)) + " Bytes copied before error")
+		errOut := strconv.Itoa(int(n)) + " Bytes copied before error"
 		return errors.Wrapf(err, errOut)
 	}
 	return nil
@@ -207,11 +227,7 @@ func makeRemoteFile(dial *ssh.Client) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	remoteFile = strings.TrimSuffix(remoteFile, "\n")
-	if err != nil {
-		return "", err
-	}
-	return remoteFile, nil
+	return strings.TrimSuffix(string(remoteFile), "\n"), nil
 }
 
 // createConnections takes a boolean determining which ssh client to dial
@@ -260,7 +276,13 @@ func parseArgs(args []string, cfg *config.Config) (map[string]config.Destination
 	cliConnections := []string{}
 	switch len(args) {
 	case 1:
-		if strings.Contains(args[0], "::") {
+		if strings.Contains(args[0], "localhost") {
+			if strings.Split(args[0], "@")[0] != "root" {
+				return nil, errors.Wrapf(define.ErrInvalidArg, "cannot transfer images from any user besides root using sudo")
+			}
+			scpOpts.Rootless = true
+			scpOpts.SourceImageName = strings.Split(args[0], "::")[1]
+		} else if strings.Contains(args[0], "::") {
 			scpOpts.FromRemote = true
 			cliConnections = append(cliConnections, args[0])
 		} else {
@@ -271,7 +293,18 @@ func parseArgs(args []string, cfg *config.Config) (map[string]config.Destination
 			scpOpts.SourceImageName = args[0]
 		}
 	case 2:
-		if strings.Contains(args[0], "::") {
+		if strings.Contains(args[0], "localhost") || strings.Contains(args[1], "localhost") { // only supporting root to local using sudo at the moment
+			if strings.Split(args[0], "@")[0] != "root" {
+				return nil, errors.Wrapf(define.ErrInvalidArg, "currently, transferring images to a user account is not supported")
+			}
+			if len(strings.Split(args[0], "::")) > 1 {
+				scpOpts.Rootless = true
+				scpOpts.User = strings.Split(args[1], "@")[0]
+				scpOpts.SourceImageName = strings.Split(args[0], "::")[1]
+			} else {
+				return nil, errors.Wrapf(define.ErrInvalidArg, "currently, you cannot rename images during the transfer or transfer them to a user account")
+			}
+		} else if strings.Contains(args[0], "::") {
 			if !(strings.Contains(args[1], "::")) && remoteArgLength(args[0], 1) == 0 { // if an image is specified, this mean we are loading to our client
 				cliConnections = append(cliConnections, args[0])
 				scpOpts.ToRemote = true

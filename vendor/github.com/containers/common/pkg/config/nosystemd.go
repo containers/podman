@@ -22,3 +22,7 @@ func defaultLogDriver() string {
 func useSystemd() bool {
 	return false
 }
+
+func useJournald() bool {
+	return false
+}

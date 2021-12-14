@@ -85,7 +85,7 @@ func getIOLimits(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) (
 	}
 
 	if len(c.BlkIOWeightDevice) > 0 {
-		if err := parseWeightDevices(s, c.BlkIOWeightDevice); err != nil {
+		if s.WeightDevice, err = parseWeightDevices(c.BlkIOWeightDevice); err != nil {
 			return nil, err
 		}
 		hasLimits = true
@@ -172,7 +172,7 @@ func getMemoryLimits(s *specgen.SpecGenerator, c *entities.ContainerCreateOption
 		memory.Kernel = &mk
 		hasLimits = true
 	}
-	if c.MemorySwappiness > 0 {
+	if c.MemorySwappiness >= 0 {
 		swappiness := uint64(c.MemorySwappiness)
 		memory.Swappiness = &swappiness
 		hasLimits = true
@@ -314,7 +314,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.Pod = podID
 	}
 
-	expose, err := createExpose(c.Expose)
+	expose, err := CreateExpose(c.Expose)
 	if err != nil {
 		return err
 	}
@@ -409,11 +409,9 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	s.WorkDir = c.Workdir
 	if c.Entrypoint != nil {
 		entrypoint := []string{}
-		if ep := *c.Entrypoint; len(ep) > 0 {
-			// Check if entrypoint specified is json
-			if err := json.Unmarshal([]byte(*c.Entrypoint), &entrypoint); err != nil {
-				entrypoint = append(entrypoint, ep)
-			}
+		// Check if entrypoint specified is json
+		if err := json.Unmarshal([]byte(*c.Entrypoint), &entrypoint); err != nil {
+			entrypoint = append(entrypoint, *c.Entrypoint)
 		}
 		s.Entrypoint = entrypoint
 	}
@@ -711,6 +709,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	s.Umask = c.Umask
 	s.PidFile = c.PidFile
 	s.Volatile = c.Rm
+	s.UnsetEnv = c.UnsetEnv
+	s.UnsetEnvAll = c.UnsetEnvAll
 
 	// Initcontainers
 	s.InitContainerType = c.InitContainerType
@@ -789,29 +789,30 @@ func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, start
 	return &hc, nil
 }
 
-func parseWeightDevices(s *specgen.SpecGenerator, weightDevs []string) error {
+func parseWeightDevices(weightDevs []string) (map[string]specs.LinuxWeightDevice, error) {
+	wd := make(map[string]specs.LinuxWeightDevice)
 	for _, val := range weightDevs {
 		split := strings.SplitN(val, ":", 2)
 		if len(split) != 2 {
-			return fmt.Errorf("bad format: %s", val)
+			return nil, fmt.Errorf("bad format: %s", val)
 		}
 		if !strings.HasPrefix(split[0], "/dev/") {
-			return fmt.Errorf("bad format for device path: %s", val)
+			return nil, fmt.Errorf("bad format for device path: %s", val)
 		}
 		weight, err := strconv.ParseUint(split[1], 10, 0)
 		if err != nil {
-			return fmt.Errorf("invalid weight for device: %s", val)
+			return nil, fmt.Errorf("invalid weight for device: %s", val)
 		}
 		if weight > 0 && (weight < 10 || weight > 1000) {
-			return fmt.Errorf("invalid weight for device: %s", val)
+			return nil, fmt.Errorf("invalid weight for device: %s", val)
 		}
 		w := uint16(weight)
-		s.WeightDevice[split[0]] = specs.LinuxWeightDevice{
+		wd[split[0]] = specs.LinuxWeightDevice{
 			Weight:     &w,
 			LeafWeight: nil,
 		}
 	}
-	return nil
+	return wd, nil
 }
 
 func parseThrottleBPSDevices(bpsDevices []string) (map[string]specs.LinuxThrottleDevice, error) {
@@ -874,6 +875,7 @@ func parseSecrets(secrets []string) ([]specgen.Secret, map[string]string, error)
 		if len(split) == 1 {
 			mountSecret := specgen.Secret{
 				Source: val,
+				Target: target,
 				UID:    uid,
 				GID:    gid,
 				Mode:   mode,
@@ -939,11 +941,9 @@ func parseSecrets(secrets []string) ([]specgen.Secret, map[string]string, error)
 			return nil, nil, errors.Wrapf(secretParseError, "no source found %s", val)
 		}
 		if secretType == "mount" {
-			if target != "" {
-				return nil, nil, errors.Wrapf(secretParseError, "target option is invalid for mounted secrets")
-			}
 			mountSecret := specgen.Secret{
 				Source: source,
+				Target: target,
 				UID:    uid,
 				GID:    gid,
 				Mode:   mode,

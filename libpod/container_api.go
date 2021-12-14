@@ -794,21 +794,32 @@ type ContainerCheckpointOptions struct {
 	// container no PID 1 will be in the namespace and that is not
 	// possible.
 	Pod string
+	// PrintStats tells the API to fill out the statistics about
+	// how much time each component in the stack requires to
+	// checkpoint a container.
+	PrintStats bool
+	// FileLocks tells the API to checkpoint/restore a container
+	// with file-locks
+	FileLocks bool
 }
 
 // Checkpoint checkpoints a container
-func (c *Container) Checkpoint(ctx context.Context, options ContainerCheckpointOptions) error {
+// The return values *define.CRIUCheckpointRestoreStatistics and int64 (time
+// the runtime needs to checkpoint the container) are only set if
+// options.PrintStats is set to true. Not setting options.PrintStats to true
+// will return nil and 0.
+func (c *Container) Checkpoint(ctx context.Context, options ContainerCheckpointOptions) (*define.CRIUCheckpointRestoreStatistics, int64, error) {
 	logrus.Debugf("Trying to checkpoint container %s", c.ID())
 
 	if options.TargetFile != "" {
 		if err := c.prepareCheckpointExport(); err != nil {
-			return err
+			return nil, 0, err
 		}
 	}
 
 	if options.WithPrevious {
 		if err := c.canWithPrevious(); err != nil {
-			return err
+			return nil, 0, err
 		}
 	}
 
@@ -817,14 +828,18 @@ func (c *Container) Checkpoint(ctx context.Context, options ContainerCheckpointO
 		defer c.lock.Unlock()
 
 		if err := c.syncContainer(); err != nil {
-			return err
+			return nil, 0, err
 		}
 	}
 	return c.checkpoint(ctx, options)
 }
 
 // Restore restores a container
-func (c *Container) Restore(ctx context.Context, options ContainerCheckpointOptions) error {
+// The return values *define.CRIUCheckpointRestoreStatistics and int64 (time
+// the runtime needs to restore the container) are only set if
+// options.PrintStats is set to true. Not setting options.PrintStats to true
+// will return nil and 0.
+func (c *Container) Restore(ctx context.Context, options ContainerCheckpointOptions) (*define.CRIUCheckpointRestoreStatistics, int64, error) {
 	if options.Pod == "" {
 		logrus.Debugf("Trying to restore container %s", c.ID())
 	} else {
@@ -835,7 +850,7 @@ func (c *Container) Restore(ctx context.Context, options ContainerCheckpointOpti
 		defer c.lock.Unlock()
 
 		if err := c.syncContainer(); err != nil {
-			return err
+			return nil, 0, err
 		}
 	}
 	defer c.newContainerEvent(events.Restore)

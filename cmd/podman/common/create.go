@@ -201,6 +201,20 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(envFlagName, completion.AutocompleteNone)
 
+		unsetenvFlagName := "unsetenv"
+		createFlags.StringArrayVar(
+			&cf.UnsetEnv,
+			unsetenvFlagName, []string{},
+			"Unset environment default variables in container",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(unsetenvFlagName, completion.AutocompleteNone)
+
+		createFlags.BoolVar(
+			&cf.UnsetEnvAll,
+			"unsetenv-all", false,
+			"Unset all default environment variables in container",
+		)
+
 		if !registry.IsRemote() {
 			createFlags.BoolVar(
 				&cf.EnvHost,
@@ -538,11 +552,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 
 		stopSignalFlagName := "stop-signal"
 		createFlags.StringVar(
-			&cf.SignaturePolicy,
-			"signature-policy", "",
-			"`Pathname` of signature policy file (not usually used)",
-		)
-		createFlags.StringVar(
 			&cf.StopSignal,
 			stopSignalFlagName, "",
 			"Signal to stop a container. Default is SIGTERM",
@@ -688,10 +697,16 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"Write the container process ID to the file")
 		_ = cmd.RegisterFlagCompletionFunc(pidFileFlagName, completion.AutocompleteDefault)
 
-		_ = createFlags.MarkHidden("signature-policy")
 		if registry.IsRemote() {
 			_ = createFlags.MarkHidden("env-host")
 			_ = createFlags.MarkHidden("http-proxy")
+		} else {
+			createFlags.StringVar(
+				&cf.SignaturePolicy,
+				"signature-policy", "",
+				"`Pathname` of signature policy file (not usually used)",
+			)
+			_ = createFlags.MarkHidden("signature-policy")
 		}
 
 		createFlags.BoolVar(

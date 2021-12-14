@@ -14,7 +14,7 @@ func Info(ctx context.Context, _ *InfoOptions) (*define.Info, error) {
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/info", nil, nil)
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/info", nil, nil)
 	if err != nil {
 		return nil, err
 	}

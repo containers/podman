@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/containers/buildah"
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/libpod/shutdown"
-	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/domain/entities/reports"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/specgen"
@@ -186,8 +186,6 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 		// If the ID is empty a new name for the restored container was requested
 		if ctr.config.ID == "" {
 			ctr.config.ID = stringid.GenerateNonCryptoID()
-			// Fixup ExitCommand with new ID
-			ctr.config.ExitCommand[len(ctr.config.ExitCommand)-1] = ctr.config.ID
 		}
 		// Reset the log path to point to the default
 		ctr.config.LogPath = ""
@@ -324,15 +322,6 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot add container %s to pod %s", ctr.ID(), ctr.config.Pod)
 		}
-	}
-
-	if ctr.config.Name == "" {
-		name, err := r.generateName()
-		if err != nil {
-			return nil, err
-		}
-
-		ctr.config.Name = name
 	}
 
 	// Check CGroup parent sanity, and set it if it was not set.

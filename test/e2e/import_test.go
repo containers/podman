@@ -18,7 +18,6 @@ var _ = Describe("Podman import", func() {
 	)
 
 	BeforeEach(func() {
-		SkipIfRemote("FIXME: These look like it is supposed to work in remote")
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -88,7 +87,7 @@ var _ = Describe("Podman import", func() {
 		results := podmanTest.Podman([]string{"history", "imported-image", "--format", "{{.Comment}}"})
 		results.WaitWithDefaultTimeout()
 		Expect(results).Should(Exit(0))
-		Expect(results.LineInOutputStartsWith("importing container test message")).To(BeTrue())
+		Expect(results.OutputToStringArray()).To(ContainElement(HavePrefix("importing container test message")))
 	})
 
 	It("podman import with change flag CMD=<path>", func() {
@@ -156,6 +155,8 @@ var _ = Describe("Podman import", func() {
 	})
 
 	It("podman import with signature", func() {
+		SkipIfRemote("--signature-policy N/A for remote")
+
 		outfile := filepath.Join(podmanTest.TempDir, "container.tar")
 		_, ec, cid := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
@@ -170,6 +171,12 @@ var _ = Describe("Podman import", func() {
 
 		result := podmanTest.Podman([]string{"import", "--signature-policy", "/etc/containers/policy.json", outfile})
 		result.WaitWithDefaultTimeout()
+		if IsRemote() {
+			Expect(result).To(ExitWithError())
+			Expect(result.ErrorToString()).To(ContainSubstring("unknown flag"))
+			result := podmanTest.Podman([]string{"import", outfile})
+			result.WaitWithDefaultTimeout()
+		}
 		Expect(result).Should(Exit(0))
 	})
 })

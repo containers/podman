@@ -144,7 +144,7 @@ Note: This works only with registries that implement the v2 API. If tried with a
 registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
 
 ## SEE ALSO
-podman(1), containers-registries.conf(5)
+**[podman(1)](podman.1.md)**, **[containers-registries(5)](https://github.com/containers/image/blob/main/docs/containers-registries.5.md)**
 
 ## HISTORY
 January 2018, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

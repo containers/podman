@@ -96,7 +96,7 @@ var _ = Describe("Podman pod rm", func() {
 
 		result = podmanTest.Podman([]string{"ps", "-qa"})
 		result.WaitWithDefaultTimeout()
-		Expect(len(result.OutputToStringArray())).To(Equal(0))
+		Expect(result.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("podman pod rm -f does remove a running container", func() {
@@ -132,11 +132,11 @@ var _ = Describe("Podman pod rm", func() {
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		fmt.Printf("Started container running in one pod")
 
-		num_pods := podmanTest.NumberOfPods()
-		Expect(num_pods).To(Equal(2))
+		numPods := podmanTest.NumberOfPods()
+		Expect(numPods).To(Equal(2))
 		ps := podmanTest.Podman([]string{"pod", "ps"})
 		ps.WaitWithDefaultTimeout()
-		fmt.Printf("Current %d pod(s):\n%s\n", num_pods, ps.OutputToString())
+		fmt.Printf("Current %d pod(s):\n%s\n", numPods, ps.OutputToString())
 
 		fmt.Printf("Removing all empty pods\n")
 		result := podmanTest.Podman([]string{"pod", "rm", "-a"})
@@ -145,11 +145,11 @@ var _ = Describe("Podman pod rm", func() {
 		foundExpectedError, _ := result.ErrorGrepString("cannot be removed")
 		Expect(foundExpectedError).To(Equal(true))
 
-		num_pods = podmanTest.NumberOfPods()
+		numPods = podmanTest.NumberOfPods()
 		ps = podmanTest.Podman([]string{"pod", "ps"})
 		ps.WaitWithDefaultTimeout()
-		fmt.Printf("Final %d pod(s):\n%s\n", num_pods, ps.OutputToString())
-		Expect(num_pods).To(Equal(1))
+		fmt.Printf("Final %d pod(s):\n%s\n", numPods, ps.OutputToString())
+		Expect(numPods).To(Equal(1))
 		// Confirm top container still running inside remaining pod
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 	})

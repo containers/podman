@@ -48,4 +48,4 @@ The container command allows you to manage containers
 | wait       | [podman-wait(1)](podman-wait.1.md)                  | Wait on one or more containers to stop and print their exit codes.           |
 
 ## SEE ALSO
-podman, podman-exec, podman-run
+**[podman(1)](podman.1.md)**, **[podman-exec(1)](podman-exec.1.md)**, **[podman-run(1)](podman-run.1.md)**

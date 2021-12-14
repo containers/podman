@@ -8,11 +8,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/api/handlers"
-	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/specgen"
@@ -103,7 +103,9 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *c
 		addField(&builder, "type", string(m.Type))
 		addField(&builder, "source", m.Source)
 		addField(&builder, "target", m.Target)
-		addField(&builder, "ro", strconv.FormatBool(m.ReadOnly))
+		if m.ReadOnly {
+			addField(&builder, "ro", "true")
+		}
 		addField(&builder, "consistency", string(m.Consistency))
 		// Map any specialized mount options that intersect between *Options and cli options
 		switch m.Type {
@@ -297,6 +299,8 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *c
 		Systemd:           "true", // podman default
 		TmpFS:             parsedTmp,
 		TTY:               cc.Config.Tty,
+		UnsetEnv:          cc.UnsetEnv,
+		UnsetEnvAll:       cc.UnsetEnvAll,
 		User:              cc.Config.User,
 		UserNS:            string(cc.HostConfig.UsernsMode),
 		UTS:               string(cc.HostConfig.UTSMode),

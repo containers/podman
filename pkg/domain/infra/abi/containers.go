@@ -10,13 +10,13 @@ import (
 	"time"
 
 	"github.com/containers/buildah"
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/libpod/logs"
-	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/checkpoint"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/entities/reports"
@@ -29,6 +29,7 @@ import (
 	"github.com/containers/podman/v3/pkg/signal"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/specgen/generate"
+	"github.com/containers/podman/v3/pkg/specgenutil"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
@@ -515,6 +516,8 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 		PreCheckPoint:  options.PreCheckPoint,
 		WithPrevious:   options.WithPrevious,
 		Compression:    options.Compression,
+		PrintStats:     options.PrintStats,
+		FileLocks:      options.FileLocks,
 	}
 
 	if options.All {
@@ -531,10 +534,12 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 	}
 	reports := make([]*entities.CheckpointReport, 0, len(cons))
 	for _, con := range cons {
-		err = con.Checkpoint(ctx, checkOpts)
+		criuStatistics, runtimeCheckpointDuration, err := con.Checkpoint(ctx, checkOpts)
 		reports = append(reports, &entities.CheckpointReport{
-			Err: err,
-			Id:  con.ID(),
+			Err:             err,
+			Id:              con.ID(),
+			RuntimeDuration: runtimeCheckpointDuration,
+			CRIUStatistics:  criuStatistics,
 		})
 	}
 	return reports, nil
@@ -557,6 +562,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		IgnoreStaticMAC: options.IgnoreStaticMAC,
 		ImportPrevious:  options.ImportPrevious,
 		Pod:             options.Pod,
+		PrintStats:      options.PrintStats,
 	}
 
 	filterFuncs := []libpod.ContainerFilter{
@@ -579,10 +585,12 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 	}
 	reports := make([]*entities.RestoreReport, 0, len(cons))
 	for _, con := range cons {
-		err := con.Restore(ctx, restoreOptions)
+		criuStatistics, runtimeRestoreDuration, err := con.Restore(ctx, restoreOptions)
 		reports = append(reports, &entities.RestoreReport{
-			Err: err,
-			Id:  con.ID(),
+			Err:             err,
+			Id:              con.ID(),
+			RuntimeDuration: runtimeRestoreDuration,
+			CRIUStatistics:  criuStatistics,
 		})
 	}
 	return reports, nil
@@ -650,7 +658,7 @@ func makeExecConfig(options entities.ExecOptions, rt *libpod.Runtime) (*libpod.E
 		return nil, errors.Wrapf(err, "error retrieving Libpod configuration to build exec exit command")
 	}
 	// TODO: Add some ability to toggle syslog
-	exitCommandArgs, err := generate.CreateExitCommandArgs(storageConfig, runtimeConfig, false, false, true)
+	exitCommandArgs, err := specgenutil.CreateExitCommandArgs(storageConfig, runtimeConfig, logrus.IsLevelEnabled(logrus.DebugLevel), false, true)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error constructing exit command for exec session")
 	}

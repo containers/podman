@@ -28,6 +28,7 @@ import (
 	"github.com/containers/buildah/pkg/overlay"
 	butil "github.com/containers/buildah/util"
 	"github.com/containers/common/pkg/apparmor"
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/chown"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/subscriptions"
@@ -36,7 +37,6 @@ import (
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/annotations"
-	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/checkpoint/crutils"
 	"github.com/containers/podman/v3/pkg/criu"
 	"github.com/containers/podman/v3/pkg/lookup"
@@ -107,15 +107,6 @@ func (c *Container) prepare() error {
 			// Assign NetNS attributes to container
 			c.state.NetNS = netNS
 			c.state.NetworkStatus = networkStatus
-		}
-
-		// handle rootless network namespace setup
-		if noNetNS && !c.config.PostConfigureNetNS {
-			if rootless.IsRootless() {
-				createNetNSErr = c.runtime.setupRootlessNetNS(c)
-			} else if c.config.NetMode.IsSlirp4netns() {
-				createNetNSErr = c.runtime.setupSlirp4netns(c)
-			}
 		}
 	}()
 	// Mount storage if not mounted
@@ -718,18 +709,6 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		g.AddAnnotation(annotations.ContainerManager, annotations.ContainerManagerLibpod)
 	}
 
-	// Only add container environment variable if not already present
-	foundContainerEnv := false
-	for _, env := range g.Config.Process.Env {
-		if strings.HasPrefix(env, "container=") {
-			foundContainerEnv = true
-			break
-		}
-	}
-	if !foundContainerEnv {
-		g.AddProcessEnv("container", "libpod")
-	}
-
 	cgroupPath, err := c.getOCICgroupPath()
 	if err != nil {
 		return nil, err
@@ -1138,25 +1117,26 @@ func (c *Container) checkpointRestoreSupported(version int) error {
 	return nil
 }
 
-func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointOptions) error {
+func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointOptions) (*define.CRIUCheckpointRestoreStatistics, int64, error) {
 	if err := c.checkpointRestoreSupported(criu.MinCriuVersion); err != nil {
-		return err
+		return nil, 0, err
 	}
 
 	if c.state.State != define.ContainerStateRunning {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "%q is not running, cannot checkpoint", c.state.State)
+		return nil, 0, errors.Wrapf(define.ErrCtrStateInvalid, "%q is not running, cannot checkpoint", c.state.State)
 	}
 
 	if c.AutoRemove() && options.TargetFile == "" {
-		return errors.Errorf("cannot checkpoint containers that have been started with '--rm' unless '--export' is used")
+		return nil, 0, errors.Errorf("cannot checkpoint containers that have been started with '--rm' unless '--export' is used")
 	}
 
 	if err := crutils.CRCreateFileWithLabel(c.bundlePath(), "dump.log", c.MountLabel()); err != nil {
-		return err
+		return nil, 0, err
 	}
 
-	if err := c.ociRuntime.CheckpointContainer(c, options); err != nil {
-		return err
+	runtimeCheckpointDuration, err := c.ociRuntime.CheckpointContainer(c, options)
+	if err != nil {
+		return nil, 0, err
 	}
 
 	// Save network.status. This is needed to restore the container with
@@ -1164,7 +1144,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	// with one interface.
 	// FIXME: will this break something?
 	if _, err := metadata.WriteJSONFile(c.getNetworkStatus(), c.bundlePath(), metadata.NetworkStatusFile); err != nil {
-		return err
+		return nil, 0, err
 	}
 
 	defer c.newContainerEvent(events.Checkpoint)
@@ -1174,13 +1154,13 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	if options.WithPrevious {
 		os.Remove(path.Join(c.CheckpointPath(), "parent"))
 		if err := os.Symlink("../pre-checkpoint", path.Join(c.CheckpointPath(), "parent")); err != nil {
-			return err
+			return nil, 0, err
 		}
 	}
 
 	if options.TargetFile != "" {
 		if err := c.exportCheckpoint(options); err != nil {
-			return err
+			return nil, 0, err
 		}
 	}
 
@@ -1192,8 +1172,35 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 
 		// Cleanup Storage and Network
 		if err := c.cleanup(ctx); err != nil {
-			return err
+			return nil, 0, err
 		}
+	}
+
+	criuStatistics, err := func() (*define.CRIUCheckpointRestoreStatistics, error) {
+		if !options.PrintStats {
+			return nil, nil
+		}
+		statsDirectory, err := os.Open(c.bundlePath())
+		if err != nil {
+			return nil, errors.Wrapf(err, "Not able to open %q", c.bundlePath())
+		}
+
+		dumpStatistics, err := stats.CriuGetDumpStats(statsDirectory)
+		if err != nil {
+			return nil, errors.Wrap(err, "Displaying checkpointing statistics not possible")
+		}
+
+		return &define.CRIUCheckpointRestoreStatistics{
+			FreezingTime: dumpStatistics.GetFreezingTime(),
+			FrozenTime:   dumpStatistics.GetFrozenTime(),
+			MemdumpTime:  dumpStatistics.GetMemdumpTime(),
+			MemwriteTime: dumpStatistics.GetMemwriteTime(),
+			PagesScanned: dumpStatistics.GetPagesScanned(),
+			PagesWritten: dumpStatistics.GetPagesWritten(),
+		}, nil
+	}()
+	if err != nil {
+		return nil, 0, err
 	}
 
 	if !options.Keep && !options.PreCheckPoint {
@@ -1212,7 +1219,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	}
 
 	c.state.FinishedTime = time.Now()
-	return c.save()
+	return criuStatistics, runtimeCheckpointDuration, c.save()
 }
 
 func (c *Container) importCheckpoint(input string) error {
@@ -1245,7 +1252,7 @@ func (c *Container) importPreCheckpoint(input string) error {
 	return nil
 }
 
-func (c *Container) restore(ctx context.Context, options ContainerCheckpointOptions) (retErr error) {
+func (c *Container) restore(ctx context.Context, options ContainerCheckpointOptions) (criuStatistics *define.CRIUCheckpointRestoreStatistics, runtimeRestoreDuration int64, retErr error) {
 	minCriuVersion := func() int {
 		if options.Pod == "" {
 			return criu.MinCriuVersion
@@ -1253,37 +1260,37 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		return criu.PodCriuVersion
 	}()
 	if err := c.checkpointRestoreSupported(minCriuVersion); err != nil {
-		return err
+		return nil, 0, err
 	}
 
 	if options.Pod != "" && !crutils.CRRuntimeSupportsPodCheckpointRestore(c.ociRuntime.Path()) {
-		return errors.Errorf("runtime %s does not support pod restore", c.ociRuntime.Path())
+		return nil, 0, errors.Errorf("runtime %s does not support pod restore", c.ociRuntime.Path())
 	}
 
 	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateExited) {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s is running or paused, cannot restore", c.ID())
+		return nil, 0, errors.Wrapf(define.ErrCtrStateInvalid, "container %s is running or paused, cannot restore", c.ID())
 	}
 
 	if options.ImportPrevious != "" {
 		if err := c.importPreCheckpoint(options.ImportPrevious); err != nil {
-			return err
+			return nil, 0, err
 		}
 	}
 
 	if options.TargetFile != "" {
 		if err := c.importCheckpoint(options.TargetFile); err != nil {
-			return err
+			return nil, 0, err
 		}
 	}
 
 	// Let's try to stat() CRIU's inventory file. If it does not exist, it makes
 	// no sense to try a restore. This is a minimal check if a checkpoint exist.
 	if _, err := os.Stat(filepath.Join(c.CheckpointPath(), "inventory.img")); os.IsNotExist(err) {
-		return errors.Wrapf(err, "a complete checkpoint for this container cannot be found, cannot restore")
+		return nil, 0, errors.Wrapf(err, "a complete checkpoint for this container cannot be found, cannot restore")
 	}
 
 	if err := crutils.CRCreateFileWithLabel(c.bundlePath(), "restore.log", c.MountLabel()); err != nil {
-		return err
+		return nil, 0, err
 	}
 
 	// If a container is restored multiple times from an exported checkpoint with
@@ -1320,7 +1327,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		// container with the same networks settings as during checkpointing.
 		aliases, err := c.GetAllNetworkAliases()
 		if err != nil {
-			return err
+			return nil, 0, err
 		}
 		netOpts := make(map[string]types.PerNetworkOptions, len(netStatus))
 		for network, status := range netStatus {
@@ -1334,8 +1341,8 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 					perNetOpts.StaticMAC = netInt.MacAddress
 				}
 				if !options.IgnoreStaticIP {
-					for _, netAddress := range netInt.Networks {
-						perNetOpts.StaticIPs = append(perNetOpts.StaticIPs, netAddress.Subnet.IP)
+					for _, netAddress := range netInt.Subnets {
+						perNetOpts.StaticIPs = append(perNetOpts.StaticIPs, netAddress.IPNet.IP)
 					}
 				}
 				// Normally interfaces have a length of 1, only for some special cni configs we could get more.
@@ -1345,7 +1352,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 			if perNetOpts.InterfaceName == "" {
 				eth, exists := c.state.NetInterfaceDescriptions.getInterfaceByName(network)
 				if !exists {
-					return errors.Errorf("no network interface name for container %s on network %s", c.config.ID, network)
+					return nil, 0, errors.Errorf("no network interface name for container %s on network %s", c.config.ID, network)
 				}
 				perNetOpts.InterfaceName = eth
 			}
@@ -1363,7 +1370,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	}()
 
 	if err := c.prepare(); err != nil {
-		return err
+		return nil, 0, err
 	}
 
 	// Read config
@@ -1372,7 +1379,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	g, err := generate.NewFromFile(jsonPath)
 	if err != nil {
 		logrus.Debugf("generate.NewFromFile failed with %v", err)
-		return err
+		return nil, 0, err
 	}
 
 	// Restoring from an import means that we are doing migration
@@ -1388,7 +1395,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		}
 
 		if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), netNSPath); err != nil {
-			return err
+			return nil, 0, err
 		}
 	}
 
@@ -1397,23 +1404,23 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		// the ones from the infrastructure container.
 		pod, err := c.runtime.LookupPod(options.Pod)
 		if err != nil {
-			return errors.Wrapf(err, "pod %q cannot be retrieved", options.Pod)
+			return nil, 0, errors.Wrapf(err, "pod %q cannot be retrieved", options.Pod)
 		}
 
 		infraContainer, err := pod.InfraContainer()
 		if err != nil {
-			return errors.Wrapf(err, "cannot retrieved infra container from pod %q", options.Pod)
+			return nil, 0, errors.Wrapf(err, "cannot retrieved infra container from pod %q", options.Pod)
 		}
 
 		infraContainer.lock.Lock()
 		if err := infraContainer.syncContainer(); err != nil {
 			infraContainer.lock.Unlock()
-			return errors.Wrapf(err, "Error syncing infrastructure container %s status", infraContainer.ID())
+			return nil, 0, errors.Wrapf(err, "Error syncing infrastructure container %s status", infraContainer.ID())
 		}
 		if infraContainer.state.State != define.ContainerStateRunning {
 			if err := infraContainer.initAndStart(ctx); err != nil {
 				infraContainer.lock.Unlock()
-				return errors.Wrapf(err, "Error starting infrastructure container %s status", infraContainer.ID())
+				return nil, 0, errors.Wrapf(err, "Error starting infrastructure container %s status", infraContainer.ID())
 			}
 		}
 		infraContainer.lock.Unlock()
@@ -1421,56 +1428,56 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		if c.config.IPCNsCtr != "" {
 			nsPath, err := infraContainer.namespacePath(IPCNS)
 			if err != nil {
-				return errors.Wrapf(err, "cannot retrieve IPC namespace path for Pod %q", options.Pod)
+				return nil, 0, errors.Wrapf(err, "cannot retrieve IPC namespace path for Pod %q", options.Pod)
 			}
 			if err := g.AddOrReplaceLinuxNamespace(string(spec.IPCNamespace), nsPath); err != nil {
-				return err
+				return nil, 0, err
 			}
 		}
 
 		if c.config.NetNsCtr != "" {
 			nsPath, err := infraContainer.namespacePath(NetNS)
 			if err != nil {
-				return errors.Wrapf(err, "cannot retrieve network namespace path for Pod %q", options.Pod)
+				return nil, 0, errors.Wrapf(err, "cannot retrieve network namespace path for Pod %q", options.Pod)
 			}
 			if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), nsPath); err != nil {
-				return err
+				return nil, 0, err
 			}
 		}
 
 		if c.config.PIDNsCtr != "" {
 			nsPath, err := infraContainer.namespacePath(PIDNS)
 			if err != nil {
-				return errors.Wrapf(err, "cannot retrieve PID namespace path for Pod %q", options.Pod)
+				return nil, 0, errors.Wrapf(err, "cannot retrieve PID namespace path for Pod %q", options.Pod)
 			}
 			if err := g.AddOrReplaceLinuxNamespace(string(spec.PIDNamespace), nsPath); err != nil {
-				return err
+				return nil, 0, err
 			}
 		}
 
 		if c.config.UTSNsCtr != "" {
 			nsPath, err := infraContainer.namespacePath(UTSNS)
 			if err != nil {
-				return errors.Wrapf(err, "cannot retrieve UTS namespace path for Pod %q", options.Pod)
+				return nil, 0, errors.Wrapf(err, "cannot retrieve UTS namespace path for Pod %q", options.Pod)
 			}
 			if err := g.AddOrReplaceLinuxNamespace(string(spec.UTSNamespace), nsPath); err != nil {
-				return err
+				return nil, 0, err
 			}
 		}
 
 		if c.config.CgroupNsCtr != "" {
 			nsPath, err := infraContainer.namespacePath(CgroupNS)
 			if err != nil {
-				return errors.Wrapf(err, "cannot retrieve Cgroup namespace path for Pod %q", options.Pod)
+				return nil, 0, errors.Wrapf(err, "cannot retrieve Cgroup namespace path for Pod %q", options.Pod)
 			}
 			if err := g.AddOrReplaceLinuxNamespace(string(spec.CgroupNamespace), nsPath); err != nil {
-				return err
+				return nil, 0, err
 			}
 		}
 	}
 
 	if err := c.makeBindMounts(); err != nil {
-		return err
+		return nil, 0, err
 	}
 
 	if options.TargetFile != "" {
@@ -1492,12 +1499,12 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 
 	// Cleanup for a working restore.
 	if err := c.removeConmonFiles(); err != nil {
-		return err
+		return nil, 0, err
 	}
 
 	// Save the OCI spec to disk
 	if err := c.saveSpec(g.Config); err != nil {
-		return err
+		return nil, 0, err
 	}
 
 	// When restoring from an imported archive, allow restoring the content of volumes.
@@ -1508,24 +1515,24 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 
 			volumeFile, err := os.Open(volumeFilePath)
 			if err != nil {
-				return errors.Wrapf(err, "failed to open volume file %s", volumeFilePath)
+				return nil, 0, errors.Wrapf(err, "failed to open volume file %s", volumeFilePath)
 			}
 			defer volumeFile.Close()
 
 			volume, err := c.runtime.GetVolume(v.Name)
 			if err != nil {
-				return errors.Wrapf(err, "failed to retrieve volume %s", v.Name)
+				return nil, 0, errors.Wrapf(err, "failed to retrieve volume %s", v.Name)
 			}
 
 			mountPoint, err := volume.MountPoint()
 			if err != nil {
-				return err
+				return nil, 0, err
 			}
 			if mountPoint == "" {
-				return errors.Wrapf(err, "unable to import volume %s as it is not mounted", volume.Name())
+				return nil, 0, errors.Wrapf(err, "unable to import volume %s as it is not mounted", volume.Name())
 			}
 			if err := archive.UntarUncompressed(volumeFile, mountPoint, nil); err != nil {
-				return errors.Wrapf(err, "Failed to extract volume %s to %s", volumeFilePath, mountPoint)
+				return nil, 0, errors.Wrapf(err, "Failed to extract volume %s to %s", volumeFilePath, mountPoint)
 			}
 		}
 	}
@@ -1533,16 +1540,43 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	// Before actually restarting the container, apply the root file-system changes
 	if !options.IgnoreRootfs {
 		if err := crutils.CRApplyRootFsDiffTar(c.bundlePath(), c.state.Mountpoint); err != nil {
-			return err
+			return nil, 0, err
 		}
 
 		if err := crutils.CRRemoveDeletedFiles(c.ID(), c.bundlePath(), c.state.Mountpoint); err != nil {
-			return err
+			return nil, 0, err
 		}
 	}
 
-	if err := c.ociRuntime.CreateContainer(c, &options); err != nil {
-		return err
+	runtimeRestoreDuration, err = c.ociRuntime.CreateContainer(c, &options)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	criuStatistics, err = func() (*define.CRIUCheckpointRestoreStatistics, error) {
+		if !options.PrintStats {
+			return nil, nil
+		}
+		statsDirectory, err := os.Open(c.bundlePath())
+		if err != nil {
+			return nil, errors.Wrapf(err, "Not able to open %q", c.bundlePath())
+		}
+
+		restoreStatistics, err := stats.CriuGetRestoreStats(statsDirectory)
+		if err != nil {
+			return nil, errors.Wrap(err, "Displaying restore statistics not possible")
+		}
+
+		return &define.CRIUCheckpointRestoreStatistics{
+			PagesCompared:   restoreStatistics.GetPagesCompared(),
+			PagesSkippedCow: restoreStatistics.GetPagesSkippedCow(),
+			ForkingTime:     restoreStatistics.GetForkingTime(),
+			RestoreTime:     restoreStatistics.GetRestoreTime(),
+			PagesRestored:   restoreStatistics.GetPagesRestored(),
+		}, nil
+	}()
+	if err != nil {
+		return nil, 0, err
 	}
 
 	logrus.Debugf("Restored container %s", c.ID())
@@ -1581,7 +1615,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		}
 	}
 
-	return c.save()
+	return criuStatistics, runtimeRestoreDuration, c.save()
 }
 
 // Retrieves a container's "root" net namespace container dependency.
@@ -1842,8 +1876,17 @@ rootless=%d
 			return errors.Wrapf(err, "error creating secrets mount")
 		}
 		for _, secret := range c.Secrets() {
+			secretFileName := secret.Name
+			base := "/run/secrets"
+			if secret.Target != "" {
+				secretFileName = secret.Target
+				//If absolute path for target given remove base.
+				if filepath.IsAbs(secretFileName) {
+					base = ""
+				}
+			}
 			src := filepath.Join(c.config.SecretsPath, secret.Name)
-			dest := filepath.Join("/run/secrets", secret.Name)
+			dest := filepath.Join(base, secretFileName)
 			c.state.BindMounts[dest] = src
 		}
 	}
@@ -1900,9 +1943,9 @@ func (c *Container) generateResolvConf() (string, error) {
 	netStatus := c.getNetworkStatus()
 	for _, status := range netStatus {
 		for _, netInt := range status.Interfaces {
-			for _, netAddress := range netInt.Networks {
+			for _, netAddress := range netInt.Subnets {
 				// Note: only using To16() does not work since it also returns a valid ip for ipv4
-				if netAddress.Subnet.IP.To4() == nil && netAddress.Subnet.IP.To16() != nil {
+				if netAddress.IPNet.IP.To4() == nil && netAddress.IPNet.IP.To16() != nil {
 					ipv6 = true
 				}
 			}
@@ -2108,7 +2151,7 @@ func (c *Container) getHosts() string {
 		if depCtr != nil {
 			for _, status := range depCtr.getNetworkStatus() {
 				for _, netInt := range status.Interfaces {
-					for _, netAddress := range netInt.Networks {
+					for _, netAddress := range netInt.Subnets {
 						if netAddress.Gateway != nil {
 							hosts += fmt.Sprintf("%s host.containers.internal\n", netAddress.Gateway.String())
 						}
@@ -2575,7 +2618,7 @@ func (c *Container) getOCICgroupPath() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return filepath.Join(selfCgroup, "container"), nil
+		return filepath.Join(selfCgroup, fmt.Sprintf("libpod-payload-%s", c.ID())), nil
 	case cgroupManager == config.SystemdCgroupsManager:
 		// When the OCI runtime is set to use Systemd as a cgroup manager, it
 		// expects cgroups to be passed as follows:
@@ -2741,7 +2784,7 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 					return err
 				}
 			}
-			if err := os.Chmod(mountPoint, st.Mode()|0111); err != nil {
+			if err := os.Chmod(mountPoint, st.Mode()); err != nil {
 				return err
 			}
 			stat := st.Sys().(*syscall.Stat_t)

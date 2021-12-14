@@ -170,4 +170,31 @@ t DELETE libpod/networks/macvlan1 200 \
   .[0].Name~macvlan1 \
   .[0].Err=null
 
+#
+# test networks with containers
+#
+podman pull $IMAGE &>/dev/null
+
+# Ensure clean slate
+podman rm -a -f &>/dev/null
+
+# create a network
+podman network create --subnet 10.10.253.0/24 --gateway 10.10.253.1 network5
+t GET libpod/networks/json?filters='{"name":["network5"]}' 200 \
+  .[0].id~[0-9a-f]\\{64\\}
+nid=$(jq -r '.[0].id' <<<"$output")
+# create a pod on a network
+CNAME=mynettest
+podman run --network network5 --name $CNAME --ip 10.10.253.2 --mac-address 0a:01:73:78:43:18 -td $IMAGE top
+t GET libpod/containers/json?all=true 200 \
+  .[0].Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.[0].Id' <<<"$output")
+# compat api inspect network
+t GET networks/$nid 200 .Name="network5" \
+  .Containers[\"$cid\"].Name=$CNAME \
+  .Containers[\"$cid\"].MacAddress=0a:01:73:78:43:18 \
+  .Containers[\"$cid\"].IPv4Address=10.10.253.2/24
+# clean the network
+podman network rm -f network5
+
 # vim: filetype=sh

@@ -9,9 +9,9 @@ import (
 	"os/signal"
 	"sync"
 
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v3/cmd/podman/utils"
 	"github.com/containers/podman/v3/libpod"
-	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/namespaces"
 	"github.com/containers/podman/v3/pkg/rootless"
@@ -200,6 +200,9 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 	if fs.Changed("network-cmd-path") {
 		options = append(options, libpod.WithNetworkCmdPath(cfg.Engine.NetworkCmdPath))
 	}
+	if fs.Changed("network-backend") {
+		options = append(options, libpod.WithNetworkBackend(cfg.Network.NetworkBackend))
+	}
 
 	if fs.Changed("events-backend") {
 		options = append(options, libpod.WithEventsLogger(cfg.Engine.EventsLogger))
@@ -231,6 +234,11 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 	}
 	if fs.Changed("registries-conf") {
 		options = append(options, libpod.WithRegistriesConf(cfg.RegistriesConf))
+	}
+
+	// no need to handle the error, it will return false anyway
+	if syslog, _ := fs.GetBool("syslog"); syslog {
+		options = append(options, libpod.WithSyslog())
 	}
 
 	// TODO flag to set CNI plugins dir?

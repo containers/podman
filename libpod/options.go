@@ -227,6 +227,19 @@ func WithNetworkCmdPath(path string) RuntimeOption {
 	}
 }
 
+// WithNetworkBackend specifies the name of the network backend.
+func WithNetworkBackend(name string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return define.ErrRuntimeFinalized
+		}
+
+		rt.config.Network.NetworkBackend = name
+
+		return nil
+	}
+}
+
 // WithCgroupManager specifies the manager implementation name which is used to
 // handle cgroups for containers.
 // Current valid values are "cgroupfs" and "systemd".
@@ -565,6 +578,14 @@ func WithEnableSDNotify() RuntimeOption {
 	}
 }
 
+// WithSyslog sets a runtime option so we know that we have to log to the syslog as well
+func WithSyslog() RuntimeOption {
+	return func(rt *Runtime) error {
+		rt.syslog = true
+		return nil
+	}
+}
+
 // WithRuntimeFlags adds the global runtime flags to the container config
 func WithRuntimeFlags(runtimeFlags []string) RuntimeOption {
 	return func(rt *Runtime) error {
@@ -818,20 +839,6 @@ func WithIDMappings(idmappings storage.IDMappingOptions) CtrCreateOption {
 		}
 
 		ctr.config.IDMappings = idmappings
-		return nil
-	}
-}
-
-// WithExitCommand sets the ExitCommand for the container, appending on the ctr.ID() to the end
-func WithExitCommand(exitCommand []string) CtrCreateOption {
-	return func(ctr *Container) error {
-		if ctr.valid {
-			return define.ErrCtrFinalized
-		}
-
-		ctr.config.ExitCommand = exitCommand
-		ctr.config.ExitCommand = append(ctr.config.ExitCommand, ctr.ID())
-
 		return nil
 	}
 }

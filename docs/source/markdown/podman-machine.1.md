@@ -21,7 +21,7 @@ podman\-machine - Manage Podman's virtual machine
 | stop    | [podman-machine-stop(1)](podman-machine-stop.1.md)      | Stop a virtual machine            |
 
 ## SEE ALSO
-podman(1), podman-machine-init(1), podman-machine-list(1), podman-machine-rm(1), podman-machine-ssh(1), podman-machine-start(1), podman-machine-stop(1)
+**[podman(1)](podman.1.md)**, **[podman-machine-init(1)](podman-machine-init.1.md)**, **[podman-machine-list(1)](podman-machine-list.1.md)**, **[podman-machine-rm(1)](podman-machine-rm.1.md)**, **[podman-machine-ssh(1)](podman-machine-ssh.1.md)**, **[podman-machine-start(1)](podman-machine-start.1.md)**, **[podman-machine-stop(1)](podman-machine-stop.1.md)**
 
 ## HISTORY
 March 2021, Originally compiled by Ashley Cui <acui@redhat.com>

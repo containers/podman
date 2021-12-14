@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/containernetworking/cni/libcni"
+	internalutil "github.com/containers/podman/v3/libpod/network/internal/util"
 	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/libpod/network/util"
 	pkgutil "github.com/containers/podman/v3/pkg/util"
@@ -156,10 +157,7 @@ func convertIPAMConfToNetwork(network *types.Network, ipam ipamConfig, confPath 
 					return errors.Errorf("failed to parse gateway ip %s", ipam.Gateway)
 				}
 				// convert to 4 byte if ipv4
-				ipv4 := gateway.To4()
-				if ipv4 != nil {
-					gateway = ipv4
-				}
+				util.NormalizeIP(&gateway)
 			} else if !network.Internal {
 				// only add a gateway address if the network is not internal
 				gateway, err = util.FirstIPInSubnet(sub)
@@ -244,13 +242,13 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 	for k, v := range network.Options {
 		switch k {
 		case "mtu":
-			mtu, err = parseMTU(v)
+			mtu, err = internalutil.ParseMTU(v)
 			if err != nil {
 				return nil, "", err
 			}
 
 		case "vlan":
-			vlan, err = parseVlan(v)
+			vlan, err = internalutil.ParseVlan(v)
 			if err != nil {
 				return nil, "", err
 			}
@@ -297,10 +295,6 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 			// Note: in the future we might like to allow for dynamic domain names
 			plugins = append(plugins, newDNSNamePlugin(defaultPodmanDomainName))
 		}
-		// Add the podman-machine CNI plugin if we are in a machine
-		if n.isMachine {
-			plugins = append(plugins, newPodmanMachinePlugin())
-		}
 
 	case types.MacVLANNetworkDriver:
 		plugins = append(plugins, newVLANPlugin(types.MacVLANNetworkDriver, network.NetworkInterface, vlanPluginMode, mtu, ipamConf))
@@ -339,36 +333,6 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 	return config, cniPathName, nil
 }
 
-// parseMTU parses the mtu option
-func parseMTU(mtu string) (int, error) {
-	if mtu == "" {
-		return 0, nil // default
-	}
-	m, err := strconv.Atoi(mtu)
-	if err != nil {
-		return 0, err
-	}
-	if m < 0 {
-		return 0, errors.Errorf("mtu %d is less than zero", m)
-	}
-	return m, nil
-}
-
-// parseVlan parses the vlan option
-func parseVlan(vlan string) (int, error) {
-	if vlan == "" {
-		return 0, nil // default
-	}
-	v, err := strconv.Atoi(vlan)
-	if err != nil {
-		return 0, err
-	}
-	if v < 0 || v > 4094 {
-		return 0, errors.Errorf("vlan ID %d must be between 0 and 4094", v)
-	}
-	return v, nil
-}
-
 func convertSpecgenPortsToCNIPorts(ports []types.PortMapping) ([]cniPortMapEntry, error) {
 	cniPorts := make([]cniPortMapEntry, 0, len(ports))
 	for _, port := range ports {
@@ -400,4 +364,15 @@ func convertSpecgenPortsToCNIPorts(ports []types.PortMapping) ([]cniPortMapEntry
 		}
 	}
 	return cniPorts, nil
+}
+
+func removeMachinePlugin(conf *libcni.NetworkConfigList) *libcni.NetworkConfigList {
+	plugins := make([]*libcni.NetworkConfig, 0, len(conf.Plugins))
+	for _, net := range conf.Plugins {
+		if net.Network.Type != "podman-machine" {
+			plugins = append(plugins, net)
+		}
+	}
+	conf.Plugins = plugins
+	return conf
 }

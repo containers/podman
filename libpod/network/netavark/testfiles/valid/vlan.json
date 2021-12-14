@@ -1,0 +1,22 @@
+{
+    "name": "vlan",
+    "id": "c3b258168c41c0bce97616716bef315eeed33eb1142904bfe7f32eb392c7cf80",
+    "driver": "bridge",
+    "network_interface": "podman14",
+    "created": "2021-10-06T18:50:54.25770461+02:00",
+    "subnets": [
+        {
+            "subnet": "10.89.12.0/24",
+            "gateway": "10.89.12.1"
+        }
+    ],
+    "ipv6_enabled": false,
+    "internal": false,
+    "dns_enabled": true,
+    "options": {
+        "vlan": "5"
+    },
+    "ipam_options": {
+        "driver": "host-local"
+    }
+}

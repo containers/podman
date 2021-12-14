@@ -7,16 +7,12 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/containers/podman/v3/pkg/rootless"
 )
 
 func IsRemote() bool {
 	return false
-}
-
-func SkipIfRemote(string) {
 }
 
 // Podman is the exec call to podman on the filesystem
@@ -62,11 +58,12 @@ func PodmanTestCreate(tempDir string) *PodmanTestIntegration {
 
 // RestoreArtifact puts the cached image into our test store
 func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
-	fmt.Printf("Restoring %s...\n", image)
-	dest := strings.Split(image, "/")
-	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
-	restore := p.PodmanNoEvents([]string{"load", "-q", "-i", destName})
-	restore.Wait(90)
+	tarball := imageTarPath(image)
+	if _, err := os.Stat(tarball); err == nil {
+		fmt.Printf("Restoring %s...\n", image)
+		restore := p.PodmanNoEvents([]string{"load", "-q", "-i", tarball})
+		restore.Wait(90)
+	}
 	return nil
 }
 

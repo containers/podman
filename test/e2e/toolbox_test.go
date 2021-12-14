@@ -66,9 +66,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 	})
 
 	It("podman run --dns=none - allows self-management of /etc/resolv.conf", func() {
-		var session *PodmanSessionIntegration
-
-		session = podmanTest.Podman([]string{"run", "--dns", "none", ALPINE, "sh", "-c",
+		session := podmanTest.Podman([]string{"run", "--dns", "none", ALPINE, "sh", "-c",
 			"rm -f /etc/resolv.conf; touch -d '1970-01-01 00:02:03' /etc/resolv.conf; stat -c %s:%Y /etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -76,9 +74,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 	})
 
 	It("podman run --no-hosts - allows self-management of /etc/hosts", func() {
-		var session *PodmanSessionIntegration
-
-		session = podmanTest.Podman([]string{"run", "--no-hosts", ALPINE, "sh", "-c",
+		session := podmanTest.Podman([]string{"run", "--no-hosts", ALPINE, "sh", "-c",
 			"rm -f /etc/hosts; touch -d '1970-01-01 00:02:03' /etc/hosts; stat -c %s:%Y /etc/hosts"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -164,9 +160,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 	})
 
 	It("podman create --userns=keep-id --user root:root - entrypoint - entrypoint is executed as root", func() {
-		var session *PodmanSessionIntegration
-
-		session = podmanTest.Podman([]string{"run", "--userns=keep-id", "--user", "root:root", ALPINE,
+		session := podmanTest.Podman([]string{"run", "--userns=keep-id", "--user", "root:root", ALPINE,
 			"id"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))

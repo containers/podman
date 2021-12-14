@@ -16,18 +16,10 @@ import (
 	"time"
 
 	"github.com/containers/podman/v3/pkg/rootless"
-	"github.com/onsi/ginkgo"
 )
 
 func IsRemote() bool {
 	return true
-}
-
-func SkipIfRemote(reason string) {
-	if len(reason) < 5 {
-		panic("SkipIfRemote must specify a reason to skip")
-	}
-	ginkgo.Skip("[remote]: " + reason)
 }
 
 // Podman is the exec call to podman on the filesystem
@@ -119,7 +111,6 @@ func (p *PodmanTestIntegration) StopRemoteService() {
 		if _, err := remoteSession.Wait(); err != nil {
 			fmt.Fprintf(os.Stderr, "error on remote stop-wait %q", err)
 		}
-
 	} else {
 		parentPid := fmt.Sprintf("%d", p.RemoteSession.Pid)
 		pgrep := exec.Command("pgrep", "-P", parentPid)
@@ -157,7 +148,7 @@ func (p *PodmanTestIntegration) StopRemoteService() {
 //MakeOptions assembles all the podman main options
 func getRemoteOptions(p *PodmanTestIntegration, args []string) []string {
 	podmanOptions := strings.Split(fmt.Sprintf("--root %s --runroot %s --runtime %s --conmon %s --cni-config-dir %s --cgroup-manager %s",
-		p.CrioRoot, p.RunRoot, p.OCIRuntime, p.ConmonBinary, p.CNIConfigDir, p.CgroupManager), " ")
+		p.Root, p.RunRoot, p.OCIRuntime, p.ConmonBinary, p.CNIConfigDir, p.CgroupManager), " ")
 	if os.Getenv("HOOK_OPTION") != "" {
 		podmanOptions = append(podmanOptions, os.Getenv("HOOK_OPTION"))
 	}
@@ -173,15 +164,16 @@ func (p *PodmanTestIntegration) SeedImages() error {
 
 // RestoreArtifact puts the cached image into our test store
 func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
-	fmt.Printf("Restoring %s...\n", image)
-	dest := strings.Split(image, "/")
-	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
-	args := []string{"load", "-q", "-i", destName}
-	podmanOptions := getRemoteOptions(p, args)
-	command := exec.Command(p.PodmanBinary, podmanOptions...)
-	fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
-	command.Start()
-	command.Wait()
+	tarball := imageTarPath(image)
+	if _, err := os.Stat(tarball); err == nil {
+		fmt.Printf("Restoring %s...\n", image)
+		args := []string{"load", "-q", "-i", tarball}
+		podmanOptions := getRemoteOptions(p, args)
+		command := exec.Command(p.PodmanBinary, podmanOptions...)
+		fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
+		command.Start()
+		command.Wait()
+	}
 	return nil
 }
 

@@ -21,6 +21,14 @@ load helpers
     done
 }
 
+@test "podman history - custom format" {
+    run_podman history --format "{{.ID}}\t{{.ID}}" $IMAGE
+    od -c <<<$output
+    while IFS= read -r row; do
+        is "$row" ".*	.*$"
+    done <<<$output
+}
+
 @test "podman history - json" {
     # Sigh. Timestamp in .created can be '...Z' or '...-06:00'
     tests="

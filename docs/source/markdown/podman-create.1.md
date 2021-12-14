@@ -606,7 +606,9 @@ Current supported mount TYPEs are **bind**, **volume**, **image**, **tmpfs** and
 
 	      · ro, readonly: true or false (default).
 
-        . U, chown: true or false (default). Change recursively the owner and group of the source volume based on the UID and GID of the container.
+	      . U, chown: true or false (default). Change recursively the owner and group of the source volume based on the UID and GID of the container.
+
+	      · idmap: true or false (default).  If specified, create an idmapped mount to the target user namespace in the container.
 
        Options specific to image:
 
@@ -622,7 +624,9 @@ Current supported mount TYPEs are **bind**, **volume**, **image**, **tmpfs** and
 
 	      . relabel: shared, private.
 
-        . U, chown: true or false (default). Change recursively the owner and group of the source volume based on the UID and GID of the container.
+	      · idmap: true or false (default).  If specified, create an idmapped mount to the target user namespace in the container.
+
+	      . U, chown: true or false (default). Change recursively the owner and group of the source volume based on the UID and GID of the container.
 
        Options specific to tmpfs:
 
@@ -636,7 +640,7 @@ Current supported mount TYPEs are **bind**, **volume**, **image**, **tmpfs** and
 
 	      · notmpcopyup: Disable copying files from the image to the tmpfs.
 
-        . U, chown: true or false (default). Change recursively the owner and group of the source volume based on the UID and GID of the container.
+	      . U, chown: true or false (default). Change recursively the owner and group of the source volume based on the UID and GID of the container.
 
        Options specific to devpts:
 
@@ -1046,6 +1050,18 @@ Remote connections use local containers.conf for defaults
 
 Set the umask inside the container. Defaults to `0022`.
 Remote connections use local containers.conf for defaults
+
+#### **--unsetenv**=*env*
+
+Unset default environment variables for the container. Default environment
+variables include variables provided natively by Podman, environment variables
+configured by the image, and environment variables from containers.conf.
+
+#### **--unsetenv-all**=*true|false*
+
+Unset all default environment variables for the container. Default environment
+variables include variables provided natively by Podman, environment variables
+configured by the image, and environment variables from containers.conf.
 
 #### **--uidmap**=*container_uid*:*from_uid*:*amount*
 
@@ -1537,8 +1553,7 @@ page.
 NOTE: Use the environment variable `TMPDIR` to change the temporary storage location of downloaded container images. Podman defaults to use `/var/tmp`.
 
 ## SEE ALSO
-**podman**(1), **podman-secret**(1), **podman-save**(1), **podman-ps**(1), **podman-attach**(1), **podman-pod-create**(1), **podman-port**(1), **podman-start*(1), **podman-kill**(1), **podman-stop**(1),
-**podman-generate-systemd**(1) **podman-rm**(1), **subgid**(5), **subuid**(5), **containers.conf**(5), **systemd.unit**(5), **setsebool**(8), **slirp4netns**(1), **fuse-overlayfs**(1), **proc**(5), **conmon**(8), **personality**(2).
+**[podman(1)](podman.1.md)**, **[podman-save(1)](podman-save.1.md)**, **[podman-ps(1)](podman-ps.1.md)**, **[podman-attach(1)](podman-attach.1.md)**, **[podman-pod-create(1)](podman-pod-create.1.md)**, **[podman-port(1)](podman-port.1.md)**, **[podman-start(1)](podman-start.1.md)**, **[podman-kill(1)](podman-kill.1.md)**, **[podman-stop(1)](podman-stop.1.md)**, **[podman-generate-systemd(1)](podman-generate-systemd.1.md)**, **[podman-rm(1)](podman-rm.1.md)**, **[subgid(5)](https://www.unix.com/man-page/linux/5/subgid)**, **[subuid(5)](https://www.unix.com/man-page/linux/5/subuid)**, **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**, **[systemd.unit(5)](https://www.freedesktop.org/software/systemd/man/systemd.unit.html)**, **[setsebool(8)](https://man7.org/linux/man-pages/man8/setsebool.8.html)**, **[slirp4netns(1)](https://github.com/rootless-containers/slirp4netns/blob/master/slirp4netns.1.md)**, **[fuse-overlayfs(1)](https://github.com/containers/fuse-overlayfs/blob/main/fuse-overlayfs.1.md)**, **proc(5)**, **[conmon(8)](https://github.com/containers/conmon/blob/main/docs/conmon.8.md)**, **personality(2)**
 
 ## HISTORY
 October 2017, converted from Docker documentation to Podman by Dan Walsh for Podman `<dwalsh@redhat.com>`

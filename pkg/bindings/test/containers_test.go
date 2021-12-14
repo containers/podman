@@ -1,4 +1,4 @@
-package test_bindings
+package bindings_test
 
 import (
 	"net/http"
@@ -103,6 +103,7 @@ var _ = Describe("Podman containers ", func() {
 		Expect(err).To(BeNil())
 		// Pause by name
 		err = containers.Pause(bt.conn, name, nil)
+		Expect(err).To(BeNil(), "error from containers.Pause()")
 		//paused := "paused"
 		//_, err = containers.Wait(bt.conn, cid, &paused)
 		//Expect(err).To(BeNil())

@@ -9,6 +9,7 @@ load helpers.systemd
 SERVICE_NAME="podman_test_$(random_string)"
 
 UNIT_FILE="$UNIT_DIR/$SERVICE_NAME.service"
+TEMPLATE_FILE_PREFIX="$UNIT_DIR/$SERVICE_NAME"
 
 function setup() {
     skip_if_remote "systemd tests are meaningless over remote"
@@ -33,6 +34,12 @@ function service_setup() {
 
     systemctl daemon-reload
 
+    # Also test enabling services (see #12438).
+    run systemctl enable "$SERVICE_NAME"
+    if [ $status -ne 0 ]; then
+        die "Error enabling systemd unit $SERVICE_NAME, output: $output"
+    fi
+
     run systemctl start "$SERVICE_NAME"
     if [ $status -ne 0 ]; then
         die "Error starting systemd unit $SERVICE_NAME, output: $output"
@@ -50,6 +57,11 @@ function service_cleanup() {
     run systemctl stop "$SERVICE_NAME"
     if [ $status -ne 0 ]; then
         die "Error stopping systemd unit $SERVICE_NAME, output: $output"
+    fi
+
+    run systemctl disable "$SERVICE_NAME"
+    if [ $status -ne 0 ]; then
+        die "Error disbling systemd unit $SERVICE_NAME, output: $output"
     fi
 
     if [[ -z "$status" ]]; then
@@ -92,8 +104,9 @@ function service_cleanup() {
 }
 
 @test "podman autoupdate local" {
+    # Note that the entrypoint may be a JSON string which requires preserving the quotes (see #12477)
     cname=$(random_string)
-    run_podman create --name $cname --label "io.containers.autoupdate=local" $IMAGE top
+    run_podman create --name $cname --label "io.containers.autoupdate=local" --entrypoint '["top"]' $IMAGE
 
     # Start systemd service to run this container
     service_setup
@@ -137,7 +150,7 @@ function service_cleanup() {
 }
 
 # Regression test for #11438
-@test "podman generate systemd - restart policy" {
+@test "podman generate systemd - restart policy & timeouts" {
     cname=$(random_string)
     run_podman create --restart=always --name $cname $IMAGE
     run_podman generate systemd --new $cname
@@ -173,10 +186,14 @@ function check_listen_env() {
     if is_remote; then
 	is "$output" "$stdenv" "LISTEN Environment did not pass: $context"
     else
-	is "$output" "$stdenv
+	out=$(for o in $output; do echo $o; done| sort)
+	std=$(echo "$stdenv
 LISTEN_PID=1
 LISTEN_FDS=1
-LISTEN_FDNAMES=listen_fdnames" "LISTEN Environment passed: $context"
+LISTEN_FDNAMES=listen_fdnames" | sort)
+       echo "<$out>"
+       echo "<$std>"
+       is "$out" "$std" "LISTEN Environment passed: $context"
     fi
 }
 
@@ -199,6 +216,64 @@ LISTEN_FDNAMES=listen_fdnames" "LISTEN Environment passed: $context"
     run_podman start --attach $cid
     unset_listen_env
     check_listen_env "$stdenv" "podman start"
+}
+
+@test "podman generate - systemd template" {
+    cname=$(random_string)
+    run_podman create --name $cname $IMAGE top
+
+    run_podman generate systemd --template -n $cname
+    echo "$output" > "$TEMPLATE_FILE_PREFIX@.service"
+    run_podman rm -f $cname
+
+    systemctl daemon-reload
+
+    INSTANCE="$SERVICE_NAME@1.service"
+    run systemctl start "$INSTANCE"
+    if [ $status -ne 0 ]; then
+        die "Error starting systemd unit $INSTANCE, output: $output"
+    fi
+
+    run systemctl status "$INSTANCE"
+    if [ $status -ne 0 ]; then
+        die "Non-zero status of systemd unit $INSTANCE, output: $output"
+    fi
+
+    run systemctl stop "$INSTANCE"
+    if [ $status -ne 0 ]; then
+        die "Error stopping systemd unit $INSTANCE, output: $output"
+    fi
+
+    if [[ -z "$status" ]]; then
+        run systemctl is-active "$INSTANCE"
+        if [ $status -ne 0 ]; then
+            die "Error checking stauts of systemd unit $INSTANCE, output: $output"
+        fi
+        is "$output" "$status" "$INSTANCE not in expected state"
+    fi
+
+    rm -f "$TEMPLATE_FILE_PREFIX@.service"
+    systemctl daemon-reload
+}
+
+@test "podman generate - systemd template no support for pod" {
+    cname=$(random_string)
+    podname=$(random_string)
+    run_podman pod create --name $podname
+    run_podman run --pod $podname -dt --name $cname $IMAGE top
+
+    run_podman 125 generate systemd --new --template -n $podname
+    is "$output" ".*--template is not supported for pods.*" "Error message contains 'not supported'"
+
+    run_podman rm -f $cname
+    run_podman pod rm -f $podname
+}
+
+@test "podman generate - systemd template only used on --new" {
+    cname=$(random_string)
+    run_podman create --name $cname $IMAGE top
+    run_podman 125 generate systemd --new=false --template -n $cname
+    is "$output" ".*--template cannot be set" "Error message should be '--template requires --new'"
 }
 
 # vim: filetype=sh

@@ -6,10 +6,10 @@ import (
 	"strings"
 
 	"github.com/containers/common/libimage"
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -298,7 +298,6 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	for key, val := range s.Annotations {
 		g.AddAnnotation(key, val)
 	}
-	g.AddProcessEnv("container", "podman")
 
 	g.Config.Linux.Resources = s.ResourceLimits
 	// Devices
@@ -330,8 +329,17 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		g.AddLinuxResourcesDevice(true, dev.Type, dev.Major, dev.Minor, dev.Access)
 	}
 
+	for k, v := range s.WeightDevice {
+		statT := unix.Stat_t{}
+		if err := unix.Stat(k, &statT); err != nil {
+			return nil, errors.Wrapf(err, "failed to inspect '%s' in --blkio-weight-device", k)
+		}
+		g.AddLinuxResourcesBlockIOWeightDevice((int64(unix.Major(uint64(statT.Rdev)))), (int64(unix.Minor(uint64(statT.Rdev)))), *v.Weight)
+	}
+
 	BlockAccessToKernelFilesystems(s.Privileged, s.PidNS.IsHost(), s.Mask, s.Unmask, &g)
 
+	g.ClearProcessEnv()
 	for name, val := range s.Env {
 		g.AddProcessEnv(name, val)
 	}

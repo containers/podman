@@ -141,4 +141,4 @@ $ podman auto-update
 ```
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-generate-systemd(1)](podman-generate-systemd.1.md)**, **[podman-run(1)](podman-run.1.md)**, sd_notify(3), systemd.unit(5)
+**[podman(1)](podman.1.md)**, **[podman-generate-systemd(1)](podman-generate-systemd.1.md)**, **[podman-run(1)](podman-run.1.md)**, **sd_notify(3)**, **[systemd.unit(5)](https://www.freedesktop.org/software/systemd/man/systemd.unit.html)**

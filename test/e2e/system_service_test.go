@@ -18,6 +18,10 @@ import (
 var _ = Describe("podman system service", func() {
 	var podmanTest *PodmanTestIntegration
 
+	// The timeout used to for the service to respond. As shown in #12167,
+	// this may take some time on machines under high load.
+	var timeout = 20
+
 	BeforeEach(func() {
 		tempdir, err := CreateTempDirInTempDir()
 		Expect(err).ShouldNot(HaveOccurred())
@@ -45,9 +49,7 @@ var _ = Describe("podman system service", func() {
 			defer session.Kill()
 
 			WaitForService(address)
-
-			session.Wait(5 * time.Second)
-			Eventually(session, 5).Should(Exit(0))
+			Eventually(session, timeout).Should(Exit(0))
 		})
 	})
 
@@ -90,8 +92,8 @@ var _ = Describe("podman system service", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(body).ShouldNot(BeEmpty())
 
-			session.Interrupt().Wait(2 * time.Second)
-			Eventually(session).Should(Exit(1))
+			session.Interrupt().Wait(time.Duration(timeout) * time.Second)
+			Eventually(session, timeout).Should(Exit(1))
 		})
 
 		It("are not available", func() {
@@ -112,8 +114,8 @@ var _ = Describe("podman system service", func() {
 			// Combined with test above we have positive/negative test for pprof
 			Expect(session.Err.Contents()).ShouldNot(ContainSubstring(magicComment))
 
-			session.Interrupt().Wait(2 * time.Second)
-			Eventually(session).Should(Exit(1))
+			session.Interrupt().Wait(time.Duration(timeout) * time.Second)
+			Eventually(session, timeout).Should(Exit(1))
 		})
 	})
 })

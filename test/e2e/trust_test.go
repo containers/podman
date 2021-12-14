@@ -43,7 +43,7 @@ var _ = Describe("Podman trust", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		outArray := session.OutputToStringArray()
-		Expect(len(outArray)).To(Equal(3))
+		Expect(outArray).To(HaveLen(3))
 
 		// Repository order is not guaranteed. So, check that
 		// all expected lines appear in output; we also check total number of lines, so that handles all of them.
@@ -69,17 +69,17 @@ var _ = Describe("Podman trust", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		Expect(teststruct["default"][0]["type"]).To(Equal("insecureAcceptAnything"))
+		Expect(teststruct["default"][0]).To(HaveKeyWithValue("type", "insecureAcceptAnything"))
 	})
 
 	It("podman image trust show --json", func() {
 		session := podmanTest.Podman([]string{"image", "trust", "show", "--registrypath", filepath.Join(INTEGRATION_ROOT, "test"), "--policypath", filepath.Join(INTEGRATION_ROOT, "test/policy.json"), "--json"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.IsJSONOutputValid()).To(BeTrue())
+		Expect(session.OutputToString()).To(BeValidJSON())
 		var teststruct []map[string]string
 		json.Unmarshal(session.Out.Contents(), &teststruct)
-		Expect(len(teststruct)).To(Equal(3))
+		Expect(teststruct).To(HaveLen(3))
 		// To ease comparison, group the unordered array of repos by repo (and we expect only one entry by repo, so order within groups doesn’t matter)
 		repoMap := map[string][]map[string]string{}
 		for _, e := range teststruct {
@@ -118,7 +118,7 @@ var _ = Describe("Podman trust", func() {
 		Expect(session).Should(Exit(0))
 		contents, err := ioutil.ReadFile(filepath.Join(INTEGRATION_ROOT, "test/policy.json"))
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(session.IsJSONOutputValid()).To(BeTrue())
+		Expect(session.OutputToString()).To(BeValidJSON())
 		Expect(string(session.Out.Contents())).To(Equal(string(contents) + "\n"))
 	})
 })

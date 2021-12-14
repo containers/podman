@@ -258,10 +258,10 @@ function _check_completion_end() {
     # create pods for each state
     run_podman pod create --name created-$random_pod_name
     run_podman pod create --name running-$random_pod_name
-    run_podman run -d --name running-$random_pod_name-con --pod running-$random_pod_name $IMAGE top
     run_podman pod create --name degraded-$random_pod_name
-    run_podman run -d --name degraded-$random_pod_name-con --pod degraded-$random_pod_name $IMAGE echo degraded
     run_podman pod create --name exited-$random_pod_name
+    run_podman run -d --name running-$random_pod_name-con --pod running-$random_pod_name $IMAGE top
+    run_podman run -d --name degraded-$random_pod_name-con --pod degraded-$random_pod_name $IMAGE echo degraded
     run_podman run -d --name exited-$random_pod_name-con --pod exited-$random_pod_name $IMAGE echo exited
     run_podman pod stop exited-$random_pod_name
 
@@ -309,7 +309,7 @@ function _check_completion_end() {
     # Clean up the pod pause image
     run_podman image list --format '{{.ID}} {{.Repository}}'
     while read id name; do
-        if [[ "$name" =~ /pause ]]; then
+        if [[ "$name" =~ /podman-pause ]]; then
             run_podman rmi $id
         fi
     done <<<"$output"

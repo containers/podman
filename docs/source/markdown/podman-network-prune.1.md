@@ -39,7 +39,7 @@ podman network prune
 
 
 ## SEE ALSO
-podman(1), podman-network(1), podman-network-remove(1)
+**[podman(1)](podman.1.md)**, **[podman-network(1)](podman-network.1.md)**, **[podman-network-rm(1)](podman-network-rm.1.md)**
 
 ## HISTORY
 February 2021, Originally compiled by Brent Baude <bbaude@redhat.com>

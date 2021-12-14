@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"regexp"
 	"strconv"
 	"text/template"
 
@@ -92,14 +91,14 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
 		Expect(len(search.OutputToStringArray())).To(BeNumerically(">", 1))
-		Expect(search.LineInOutputContains("docker.io/library/alpine")).To(BeTrue())
+		Expect(search.OutputToString()).To(ContainSubstring("docker.io/library/alpine"))
 	})
 
 	It("podman search single registry flag", func() {
 		search := podmanTest.Podman([]string{"search", "quay.io/skopeo/stable:latest"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
-		Expect(search.LineInOutputContains("quay.io/skopeo/stable")).To(BeTrue())
+		Expect(search.OutputToString()).To(ContainSubstring("quay.io/skopeo/stable"))
 	})
 
 	It("podman search image with description", func() {
@@ -107,10 +106,8 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
 		output := string(search.Out.Contents())
-		match, _ := regexp.MatchString(`(?m)NAME\s+DESCRIPTION$`, output)
-		Expect(match).To(BeTrue())
-		match, _ = regexp.MatchString(`(?m)quay.io/libpod/whalesay\s+Static image used for automated testing.+$`, output)
-		Expect(match).To(BeTrue())
+		Expect(output).To(MatchRegexp(`(?m)NAME\s+DESCRIPTION$`))
+		Expect(output).To(MatchRegexp(`(?m)quay.io/libpod/whalesay\s+Static image used for automated testing.+$`))
 	})
 
 	It("podman search image with --compatible", func() {
@@ -118,8 +115,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
 		output := string(search.Out.Contents())
-		match, _ := regexp.MatchString(`(?m)NAME\s+DESCRIPTION\s+STARS\s+OFFICIAL\s+AUTOMATED$`, output)
-		Expect(match).To(BeTrue())
+		Expect(output).To(MatchRegexp(`(?m)NAME\s+DESCRIPTION\s+STARS\s+OFFICIAL\s+AUTOMATED$`))
 	})
 
 	It("podman search format flag", func() {
@@ -127,14 +123,14 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
 		Expect(len(search.OutputToStringArray())).To(BeNumerically(">", 1))
-		Expect(search.LineInOutputContains("docker.io/library/alpine")).To(BeTrue())
+		Expect(search.OutputToString()).To(ContainSubstring("docker.io/library/alpine"))
 	})
 
 	It("podman search format json", func() {
 		search := podmanTest.Podman([]string{"search", "--format", "json", "alpine"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
-		Expect(search.IsJSONOutputValid()).To(BeTrue())
+		Expect(search.OutputToString()).To(BeValidJSON())
 		Expect(search.OutputToString()).To(ContainSubstring("docker.io/library/alpine"))
 
 		// Test for https://github.com/containers/podman/issues/11894
@@ -151,7 +147,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search := podmanTest.Podman([]string{"search", "--list-tags", "--format", "json", "alpine"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
-		Expect(search.IsJSONOutputValid()).To(BeTrue())
+		Expect(search.OutputToString()).To(BeValidJSON())
 		Expect(search.OutputToString()).To(ContainSubstring("docker.io/library/alpine"))
 		Expect(search.OutputToString()).To(ContainSubstring("3.10"))
 		Expect(search.OutputToString()).To(ContainSubstring("2.7"))
@@ -179,12 +175,12 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search = podmanTest.Podman([]string{"search", "--limit", "3", "docker.io/alpine"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
-		Expect(len(search.OutputToStringArray())).To(Equal(4))
+		Expect(search.OutputToStringArray()).To(HaveLen(4))
 
 		search = podmanTest.Podman([]string{"search", "--limit", "30", "docker.io/alpine"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
-		Expect(len(search.OutputToStringArray())).To(Equal(31))
+		Expect(search.OutputToStringArray()).To(HaveLen(31))
 	})
 
 	It("podman search with filter stars", func() {
@@ -277,8 +273,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		searchEmpty.WaitWithDefaultTimeout()
 		Expect(searchEmpty).Should(Exit(0))
 		Expect(len(searchEmpty.OutputToStringArray())).To(BeNumerically(">=", 1))
-		match, _ := search.GrepString("my-alpine")
-		Expect(match).Should(BeTrue())
+		Expect(search.OutputToString()).To(ContainSubstring("my-alpine"))
 	})
 
 	It("podman search attempts HTTP if registry is in registries.insecure and force secure is false", func() {
@@ -317,8 +312,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search.WaitWithDefaultTimeout()
 
 		Expect(search).Should(Exit(0))
-		match, _ := search.GrepString("my-alpine")
-		Expect(match).Should(BeTrue())
+		Expect(search.OutputToString()).To(ContainSubstring("my-alpine"))
 		Expect(search.ErrorToString()).Should(BeEmpty())
 
 		// cleanup
@@ -356,8 +350,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 
 		Expect(search).Should(Exit(125))
 		Expect(search.OutputToString()).Should(BeEmpty())
-		match, _ := search.ErrorGrepString("error")
-		Expect(match).Should(BeTrue())
+		Expect(search.ErrorToString()).To(ContainSubstring("error"))
 
 		// cleanup
 		resetRegistriesConfigEnv()
@@ -399,8 +392,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 
 		Expect(search).Should(Exit(125))
 		Expect(search.OutputToString()).Should(BeEmpty())
-		match, _ := search.ErrorGrepString("error")
-		Expect(match).Should(BeTrue())
+		Expect(search.ErrorToString()).To(ContainSubstring("error"))
 
 		// cleanup
 		resetRegistriesConfigEnv()
@@ -453,8 +445,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 
 		Expect(search).Should(Exit(125))
 		Expect(search.OutputToString()).Should(BeEmpty())
-		match, _ := search.ErrorGrepString("error")
-		Expect(match).Should(BeTrue())
+		Expect(search.ErrorToString()).To(ContainSubstring("error"))
 
 		// cleanup
 		resetRegistriesConfigEnv()
@@ -471,19 +462,19 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search := podmanTest.Podman([]string{"search", "--limit", "30", "registry.redhat.io/*"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
-		Expect(len(search.OutputToStringArray())).To(Equal(31))
+		Expect(search.OutputToStringArray()).To(HaveLen(31))
 
 		search = podmanTest.Podman([]string{"search", "registry.redhat.io/*openshift*"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
-		Expect(len(search.OutputToStringArray()) > 1).To(BeTrue())
+		Expect(len(search.OutputToStringArray())).To(BeNumerically(">", 1))
 	})
 
 	It("podman search repository tags", func() {
 		search := podmanTest.Podman([]string{"search", "--list-tags", "--limit", "30", "docker.io/library/alpine"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
-		Expect(len(search.OutputToStringArray())).To(Equal(31))
+		Expect(search.OutputToStringArray()).To(HaveLen(31))
 
 		search = podmanTest.Podman([]string{"search", "--list-tags", "docker.io/library/alpine"})
 		search.WaitWithDefaultTimeout()
@@ -496,7 +487,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 
 		search = podmanTest.Podman([]string{"search", "--list-tags", "docker.io/library/"})
 		search.WaitWithDefaultTimeout()
-		Expect(len(search.OutputToStringArray()) == 0).To(BeTrue())
+		Expect(search.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("podman search with limit over 100", func() {

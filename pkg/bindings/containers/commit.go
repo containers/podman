@@ -24,7 +24,7 @@ func Commit(ctx context.Context, nameOrID string, options *CommitOptions) (handl
 		return handlers.IDResponse{}, err
 	}
 	params.Set("container", nameOrID)
-	response, err := conn.DoRequest(nil, http.MethodPost, "/commit", params, nil)
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/commit", params, nil)
 	if err != nil {
 		return id, err
 	}

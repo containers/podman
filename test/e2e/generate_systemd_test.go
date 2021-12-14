@@ -147,6 +147,15 @@ var _ = Describe("Podman generate systemd", func() {
 		session := podmanTest.Podman([]string{"generate", "systemd", "--time", "5", "nginx"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("TimeoutStopSec=65"))
+		Expect(session.OutputToString()).ToNot(ContainSubstring("TimeoutStartSec="))
+		Expect(session.OutputToString()).To(ContainSubstring("podman stop -t 5"))
+
+		session = podmanTest.Podman([]string{"generate", "systemd", "--stop-timeout", "5", "--start-timeout", "123", "nginx"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("TimeoutStartSec=123"))
+		Expect(session.OutputToString()).To(ContainSubstring("TimeoutStopSec=65"))
 		Expect(session.OutputToString()).To(ContainSubstring("podman stop -t 5"))
 	})
 
@@ -271,6 +280,19 @@ var _ = Describe("Podman generate systemd", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring(" pod create "))
+	})
+
+	It("podman generate systemd --restart-sec 15 --name foo", func() {
+		n := podmanTest.Podman([]string{"pod", "create", "--name", "foo"})
+		n.WaitWithDefaultTimeout()
+		Expect(n).Should(Exit(0))
+
+		session := podmanTest.Podman([]string{"generate", "systemd", "--restart-sec", "15", "--name", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// Grepping the output (in addition to unit tests)
+		Expect(session.OutputToString()).To(ContainSubstring("RestartSec=15"))
 	})
 
 	It("podman generate systemd --new=false pod", func() {
@@ -411,7 +433,7 @@ var _ = Describe("Podman generate systemd", func() {
 		session := podmanTest.Podman([]string{"generate", "systemd", "--format", "json", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.IsJSONOutputValid()).To(BeTrue())
+		Expect(session.OutputToString()).To(BeValidJSON())
 	})
 
 	It("podman generate systemd --new create command with double curly braces", func() {

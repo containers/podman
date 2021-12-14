@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v3/cmd/podman/common"
+	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/libpod/define"
@@ -64,19 +64,18 @@ func init() {
 }
 
 func list(cmd *cobra.Command, args []string) error {
+	var err error
 	if cliOpts.Quiet && cmd.Flag("format").Changed {
 		return errors.New("quiet and format flags cannot be used together")
 	}
 	if len(cliOpts.Filter) > 0 {
 		lsOpts.Filter = make(map[string][]string)
 	}
-	for _, f := range cliOpts.Filter {
-		filterSplit := strings.SplitN(f, "=", 2)
-		if len(filterSplit) < 2 {
-			return errors.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
-		}
-		lsOpts.Filter[filterSplit[0]] = append(lsOpts.Filter[filterSplit[0]], filterSplit[1])
+	lsOpts.Filter, err = parse.FilterArgumentsIntoFilters(cliOpts.Filter)
+	if err != nil {
+		return err
 	}
+
 	responses, err := registry.ContainerEngine().VolumeList(context.Background(), lsOpts)
 	if err != nil {
 		return err
@@ -97,9 +96,14 @@ func outputTemplate(cmd *cobra.Command, responses []*entities.VolumeListReport) 
 		"Name": "VOLUME NAME",
 	})
 
-	row := report.NormalizeFormat(cliOpts.Format)
-	if cliOpts.Quiet {
+	var row string
+	switch {
+	case cliOpts.Quiet:
 		row = "{{.Name}}\n"
+	case cmd.Flags().Changed("format"):
+		row = report.NormalizeFormat(cliOpts.Format)
+	default:
+		row = cmd.Flag("format").Value.String()
 	}
 	format := report.EnforceRange(row)
 

@@ -48,7 +48,7 @@ var _ = Describe("Podman pull", func() {
 		found, _ := session.ErrorGrepString(expectedError)
 		Expect(found).To(Equal(true))
 
-		session = podmanTest.Podman([]string{"rmi", "busybox", "alpine", "testdigest_v2s2", "quay.io/libpod/cirros"})
+		session = podmanTest.Podman([]string{"rmi", "busybox:musl", "alpine", "quay.io/libpod/cirros", "testdigest_v2s2@sha256:755f4d90b3716e2bf57060d249e2cd61c9ac089b1233465c5c2cb2d7ee550fdb"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})
@@ -104,7 +104,12 @@ var _ = Describe("Podman pull", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
+		// Without a tag/digest the input is normalized with the "latest" tag, see #11964
 		session = podmanTest.Podman([]string{"rmi", "testdigest_v2s2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(1))
+
+		session = podmanTest.Podman([]string{"rmi", "testdigest_v2s2@sha256:755f4d90b3716e2bf57060d249e2cd61c9ac089b1233465c5c2cb2d7ee550fdb"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})
@@ -274,7 +279,7 @@ var _ = Describe("Podman pull", func() {
 		// Pulling a multi-image archive without further specifying
 		// which image _must_ error out. Pulling is restricted to one
 		// image.
-		session = podmanTest.Podman([]string{"pull", fmt.Sprintf("docker-archive:./testdata/docker-two-images.tar.xz")})
+		session = podmanTest.Podman([]string{"pull", "docker-archive:./testdata/docker-two-images.tar.xz"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(125))
 		expectedError := "Unexpected tar manifest.json: expected 1 item, got 2"
@@ -283,31 +288,31 @@ var _ = Describe("Podman pull", func() {
 
 		// Now pull _one_ image from a multi-image archive via the name
 		// and index syntax.
-		session = podmanTest.Podman([]string{"pull", fmt.Sprintf("docker-archive:./testdata/docker-two-images.tar.xz:@0")})
+		session = podmanTest.Podman([]string{"pull", "docker-archive:./testdata/docker-two-images.tar.xz:@0"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session = podmanTest.Podman([]string{"pull", fmt.Sprintf("docker-archive:./testdata/docker-two-images.tar.xz:example.com/empty:latest")})
+		session = podmanTest.Podman([]string{"pull", "docker-archive:./testdata/docker-two-images.tar.xz:example.com/empty:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session = podmanTest.Podman([]string{"pull", fmt.Sprintf("docker-archive:./testdata/docker-two-images.tar.xz:@1")})
+		session = podmanTest.Podman([]string{"pull", "docker-archive:./testdata/docker-two-images.tar.xz:@1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session = podmanTest.Podman([]string{"pull", fmt.Sprintf("docker-archive:./testdata/docker-two-images.tar.xz:example.com/empty/but:different")})
+		session = podmanTest.Podman([]string{"pull", "docker-archive:./testdata/docker-two-images.tar.xz:example.com/empty/but:different"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
 		// Now check for some errors.
-		session = podmanTest.Podman([]string{"pull", fmt.Sprintf("docker-archive:./testdata/docker-two-images.tar.xz:foo.com/does/not/exist:latest")})
+		session = podmanTest.Podman([]string{"pull", "docker-archive:./testdata/docker-two-images.tar.xz:foo.com/does/not/exist:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(125))
 		expectedError = "Tag \"foo.com/does/not/exist:latest\" not found"
 		found, _ = session.ErrorGrepString(expectedError)
 		Expect(found).To(Equal(true))
 
-		session = podmanTest.Podman([]string{"pull", fmt.Sprintf("docker-archive:./testdata/docker-two-images.tar.xz:@2")})
+		session = podmanTest.Podman([]string{"pull", "docker-archive:./testdata/docker-two-images.tar.xz:@2"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(125))
 		expectedError = "Invalid source index @2, only 2 manifest items available"
@@ -386,7 +391,7 @@ var _ = Describe("Podman pull", func() {
 		setup := podmanTest.Podman([]string{"images", ALPINE, "-q", "--no-trunc"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(Exit(0))
-		shortImageId := strings.Split(setup.OutputToString(), ":")[1]
+		shortImageID := strings.Split(setup.OutputToString(), ":")[1]
 
 		rmi := podmanTest.Podman([]string{"rmi", ALPINE})
 		rmi.WaitWithDefaultTimeout()
@@ -396,7 +401,7 @@ var _ = Describe("Podman pull", func() {
 		pull.WaitWithDefaultTimeout()
 		Expect(pull).Should(Exit(0))
 
-		Expect(pull.OutputToString()).To(ContainSubstring(shortImageId))
+		Expect(pull.OutputToString()).To(ContainSubstring(shortImageID))
 	})
 
 	It("podman pull check all tags", func() {
@@ -438,7 +443,7 @@ var _ = Describe("Podman pull", func() {
 			Expect(setup).Should(Exit(0))
 
 			data := setup.InspectImageJSON() // returns []inspect.ImageData
-			Expect(len(data)).To(Equal(1))
+			Expect(data).To(HaveLen(1))
 			return data[0].ID
 		}
 
@@ -452,8 +457,8 @@ var _ = Describe("Podman pull", func() {
 			Expect(setup).Should(Exit(0))
 
 			data := setup.InspectImageJSON() // returns []inspect.ImageData
-			Expect(len(data)).To(Equal(1))
-			Expect(len(data[0].RepoTags)).To(Equal(0))
+			Expect(data).To(HaveLen(1))
+			Expect(data[0].RepoTags).To(BeEmpty())
 		}
 
 		tag := func(image, tag string) {
@@ -506,8 +511,8 @@ var _ = Describe("Podman pull", func() {
 			Expect(setup).Should(Exit(0))
 
 			data := setup.InspectImageJSON() // returns []inspect.ImageData
-			Expect(len(data)).To(Equal(1))
-			Expect(len(data[0].RepoTags)).To(Equal(1))
+			Expect(data).To(HaveLen(1))
+			Expect(data[0].RepoTags).To(HaveLen(1))
 			Expect(data[0].RepoTags[0]).To(Equal(t.tag1))
 			Expect(data[0].ID).To(Equal(image1))
 		}
@@ -535,7 +540,7 @@ var _ = Describe("Podman pull", func() {
 		Expect(setup).Should(Exit(0))
 
 		data := setup.InspectImageJSON() // returns []inspect.ImageData
-		Expect(len(data)).To(Equal(1))
+		Expect(data).To(HaveLen(1))
 		Expect(data[0].Os).To(Equal(runtime.GOOS))
 		Expect(data[0].Architecture).To(Equal("arm64"))
 	})
@@ -562,7 +567,7 @@ var _ = Describe("Podman pull", func() {
 		Expect(setup).Should(Exit(0))
 
 		data := setup.InspectImageJSON() // returns []inspect.ImageData
-		Expect(len(data)).To(Equal(1))
+		Expect(data).To(HaveLen(1))
 		Expect(data[0].Os).To(Equal(runtime.GOOS))
 		Expect(data[0].Architecture).To(Equal("arm64"))
 	})

@@ -37,7 +37,7 @@ podman pod kill --latest
 podman pod kill --all
 
 ## SEE ALSO
-podman-pod(1), podman-pod-stop(1)
+**[podman(1)](podman.1.md)**, **[podman-pod(1)](podman-pod.1.md)**, **[podman-pod-stop(1)](podman-pod-stop.1.md)**
 
 ## HISTORY
 July 2018, Originally compiled by Peter Hunt <pehunt@redhat.com>

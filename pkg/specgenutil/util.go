@@ -3,10 +3,13 @@ package specgenutil
 import (
 	"io/ioutil"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod/network/types"
+	storageTypes "github.com/containers/storage/types"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -50,11 +53,11 @@ func ParseFilters(filter []string) (map[string][]string, error) {
 	return filters, nil
 }
 
-// createExpose parses user-provided exposed port definitions and converts them
+// CreateExpose parses user-provided exposed port definitions and converts them
 // into SpecGen format.
 // TODO: The SpecGen format should really handle ranges more sanely - we could
 // be massively inflating what is sent over the wire with a large range.
-func createExpose(expose []string) (map[uint16]string, error) {
+func CreateExpose(expose []string) (map[uint16]string, error) {
 	toReturn := make(map[uint16]string)
 
 	for _, e := range expose {
@@ -271,4 +274,56 @@ func parseAndValidatePort(port string) (uint16, error) {
 		return 0, errors.Errorf("port numbers must be between 1 and 65535 (inclusive), got %d", num)
 	}
 	return uint16(num), nil
+}
+
+func CreateExitCommandArgs(storageConfig storageTypes.StoreOptions, config *config.Config, syslog, rm, exec bool) ([]string, error) {
+	// We need a cleanup process for containers in the current model.
+	// But we can't assume that the caller is Podman - it could be another
+	// user of the API.
+	// As such, provide a way to specify a path to Podman, so we can
+	// still invoke a cleanup process.
+
+	podmanPath, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
+
+	command := []string{podmanPath,
+		"--root", storageConfig.GraphRoot,
+		"--runroot", storageConfig.RunRoot,
+		"--log-level", logrus.GetLevel().String(),
+		"--cgroup-manager", config.Engine.CgroupManager,
+		"--tmpdir", config.Engine.TmpDir,
+		"--cni-config-dir", config.Network.NetworkConfigDir,
+		"--network-backend", config.Network.NetworkBackend,
+	}
+	if config.Engine.OCIRuntime != "" {
+		command = append(command, []string{"--runtime", config.Engine.OCIRuntime}...)
+	}
+	if storageConfig.GraphDriverName != "" {
+		command = append(command, []string{"--storage-driver", storageConfig.GraphDriverName}...)
+	}
+	for _, opt := range storageConfig.GraphDriverOptions {
+		command = append(command, []string{"--storage-opt", opt}...)
+	}
+	if config.Engine.EventsLogger != "" {
+		command = append(command, []string{"--events-backend", config.Engine.EventsLogger}...)
+	}
+
+	if syslog {
+		command = append(command, "--syslog")
+	}
+	command = append(command, []string{"container", "cleanup"}...)
+
+	if rm {
+		command = append(command, "--rm")
+	}
+
+	// This has to be absolutely last, to ensure that the exec session ID
+	// will be added after it by Libpod.
+	if exec {
+		command = append(command, "--exec")
+	}
+
+	return command, nil
 }

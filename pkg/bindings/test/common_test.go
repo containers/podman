@@ -1,4 +1,4 @@
-package test_bindings
+package bindings_test
 
 import (
 	"context"
@@ -51,7 +51,7 @@ var (
 		shortName:   "busybox",
 		tarballName: "busybox.tar",
 	}
-	CACHE_IMAGES = []testImage{alpine, busybox}
+	CACHE_IMAGES = []testImage{alpine, busybox} //nolint:golint,stylecheck
 )
 
 type bindingTest struct {
@@ -151,7 +151,7 @@ func createTempDirInTempDir() (string, error) {
 }
 
 func (b *bindingTest) startAPIService() *gexec.Session {
-	cmd := []string{"--log-level=debug", "--events-backend=file", "system", "service", "--timeout=0", b.sock}
+	cmd := []string{"--log-level=debug", "system", "service", "--timeout=0", b.sock}
 	session := b.runPodman(cmd)
 
 	sock := strings.TrimPrefix(b.sock, "unix://")

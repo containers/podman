@@ -190,6 +190,7 @@ func DefaultConfig() (*Config, error) {
 			IPCNS:              "private",
 			LogDriver:          defaultLogDriver(),
 			LogSizeMax:         DefaultLogSizeMax,
+			NetNS:              "private",
 			NoHosts:            false,
 			PidsLimit:          DefaultPidsLimit,
 			PidNS:              "private",
@@ -201,6 +202,7 @@ func DefaultConfig() (*Config, error) {
 			UserNSSize:         DefaultUserNSSize,
 		},
 		Network: NetworkConfig{
+			NetworkBackend:   "cni",
 			DefaultNetwork:   "podman",
 			DefaultSubnet:    DefaultSubnet,
 			NetworkConfigDir: cniConfig,
@@ -224,7 +226,7 @@ func defaultSecretConfig() SecretConfig {
 func defaultMachineConfig() MachineConfig {
 	return MachineConfig{
 		CPUs:     1,
-		DiskSize: 10,
+		DiskSize: 100,
 		Image:    "testing",
 		Memory:   2048,
 	}
@@ -241,6 +243,8 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.TmpDir = tmp
 
 	c.EventsLogFilePath = filepath.Join(c.TmpDir, "events", "events.log")
+
+	c.CompatAPIEnforceDockerHub = true
 
 	if path, ok := os.LookupEnv("CONTAINERS_STORAGE_CONF"); ok {
 		types.SetDefaultConfigFilePath(path)

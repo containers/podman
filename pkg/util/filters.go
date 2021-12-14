@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -94,6 +95,17 @@ func PrepareFilters(r *http.Request) (*map[string][]string, error) {
 	return &filterMap, nil
 }
 
+func matchPattern(pattern string, value string) bool {
+	if strings.Contains(pattern, "*") {
+		filter := fmt.Sprintf("*%s*", pattern)
+		filter = strings.ReplaceAll(filter, string(filepath.Separator), "|")
+		newName := strings.ReplaceAll(value, string(filepath.Separator), "|")
+		match, _ := filepath.Match(filter, newName)
+		return match
+	}
+	return false
+}
+
 // MatchLabelFilters matches labels and returns true if they are valid
 func MatchLabelFilters(filterValues []string, labels map[string]string) bool {
 outer:
@@ -106,7 +118,7 @@ outer:
 			filterValue = ""
 		}
 		for labelKey, labelValue := range labels {
-			if labelKey == filterKey && (filterValue == "" || labelValue == filterValue) {
+			if ((labelKey == filterKey) || matchPattern(filterKey, labelKey)) && (filterValue == "" || labelValue == filterValue) {
 				continue outer
 			}
 		}

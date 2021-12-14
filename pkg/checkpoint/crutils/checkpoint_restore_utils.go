@@ -3,11 +3,13 @@ package crutils
 import (
 	"bytes"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
+	"github.com/checkpoint-restore/go-criu/v5/stats"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -30,6 +32,36 @@ func CRImportCheckpointWithoutConfig(destination, input string) error {
 			// Import everything else besides the container config
 			metadata.ConfigDumpFile,
 			metadata.SpecDumpFile,
+		},
+	}
+	if err = archive.Untar(archiveFile, destination, options); err != nil {
+		return errors.Wrapf(err, "Unpacking of checkpoint archive %s failed", input)
+	}
+
+	return nil
+}
+
+// CRImportCheckpointConfigOnly only imports the checkpoint configuration
+// from the checkpoint archive (input) into the directory destination.
+// Only the files "config.dump" and "spec.dump" are extracted.
+func CRImportCheckpointConfigOnly(destination, input string) error {
+	archiveFile, err := os.Open(input)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to open checkpoint archive %s for import", input)
+	}
+
+	defer archiveFile.Close()
+	options := &archive.TarOptions{
+		// Here we only need the files config.dump and spec.dump
+		ExcludePatterns: []string{
+			"volumes",
+			"ctr.log",
+			"artifacts",
+			stats.StatsDump,
+			metadata.RootFsDiffTar,
+			metadata.DeletedFilesFile,
+			metadata.NetworkStatusFile,
+			metadata.CheckpointDirectory,
 		},
 	}
 	if err = archive.Untar(archiveFile, destination, options); err != nil {
@@ -199,4 +231,27 @@ func CRRuntimeSupportsPodCheckpointRestore(runtimePath string) bool {
 	cmd := exec.Command(runtimePath, "restore", "--lsm-mount-context")
 	out, _ := cmd.CombinedOutput()
 	return bytes.Contains(out, []byte("flag needs an argument"))
+}
+
+// CRGetRuntimeFromArchive extracts the checkpoint metadata from the
+// given checkpoint archive and returns the runtime used to create
+// the given checkpoint archive.
+func CRGetRuntimeFromArchive(input string) (*string, error) {
+	dir, err := ioutil.TempDir("", "checkpoint")
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(dir)
+
+	if err := CRImportCheckpointConfigOnly(dir, input); err != nil {
+		return nil, err
+	}
+
+	// Load config.dump from temporary directory
+	ctrConfig := new(metadata.ContainerConfig)
+	if _, err = metadata.ReadJSONFile(ctrConfig, dir, metadata.ConfigDumpFile); err != nil {
+		return nil, err
+	}
+
+	return &ctrConfig.OCIRuntime, nil
 }

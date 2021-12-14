@@ -454,7 +454,7 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 		// NOTE that this is will even override --pull={false,never}.  This is
 		// very likely a bug but a consistent one in Podman/Buildah and should
 		// be addressed at a later point.
-		if pullPolicy != config.PullPolicyAlways {
+		if pullPolicy != config.PullPolicyAlways && pullPolicy != config.PullPolicyNever {
 			switch {
 			// User input clearly refer to a local image.
 			case strings.HasPrefix(imageName, "localhost/"):

@@ -42,9 +42,8 @@ var _ = Describe("Podman volume create", func() {
 
 		check := podmanTest.Podman([]string{"volume", "ls", "-q"})
 		check.WaitWithDefaultTimeout()
-		match, _ := check.GrepString(volName)
-		Expect(match).To(BeTrue())
-		Expect(len(check.OutputToStringArray())).To(Equal(1))
+		Expect(check.OutputToString()).To(ContainSubstring(volName))
+		Expect(check.OutputToStringArray()).To(HaveLen(1))
 	})
 
 	It("podman create volume with name", func() {
@@ -55,9 +54,8 @@ var _ = Describe("Podman volume create", func() {
 
 		check := podmanTest.Podman([]string{"volume", "ls", "-q"})
 		check.WaitWithDefaultTimeout()
-		match, _ := check.GrepString(volName)
-		Expect(match).To(BeTrue())
-		Expect(len(check.OutputToStringArray())).To(Equal(1))
+		Expect(check.OutputToString()).To(ContainSubstring(volName))
+		Expect(check.OutputToStringArray()).To(HaveLen(1))
 	})
 
 	It("podman create and export volume", func() {
@@ -99,13 +97,12 @@ var _ = Describe("Podman volume create", func() {
 
 		session = podmanTest.Podman([]string{"volume", "create", "my_vol2"})
 		session.WaitWithDefaultTimeout()
-		volName = session.OutputToString()
 		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"volume", "import", "my_vol2", "hello.tar"})
 		session.WaitWithDefaultTimeout()
-		volName = session.OutputToString()
 		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal(""), "output of volume import")
 
 		session = podmanTest.Podman([]string{"run", "--volume", "my_vol2:/data", ALPINE, "cat", "/data/test"})
 		session.WaitWithDefaultTimeout()

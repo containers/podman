@@ -38,11 +38,11 @@ type Network struct {
 	ID string `json:"id"`
 	// Driver for this Network, e.g. bridge, macvlan...
 	Driver string `json:"driver"`
-	// InterfaceName is the network interface name on the host.
+	// NetworkInterface is the network interface name on the host.
 	NetworkInterface string `json:"network_interface,omitempty"`
 	// Created contains the timestamp when this network was created.
 	Created time.Time `json:"created,omitempty"`
-	// Subnets to use.
+	// Subnets to use for this network.
 	Subnets []Subnet `json:"subnets,omitempty"`
 	// IPv6Enabled if set to true an ipv6 subnet should be created for this net.
 	IPv6Enabled bool `json:"ipv6_enabled"`
@@ -177,24 +177,24 @@ type StatusBlock struct {
 
 // NetInterface contains the settings for a given network interface.
 type NetInterface struct {
-	// Networks list of assigned subnets with their gateway.
-	Networks []NetAddress `json:"networks,omitempty"`
+	// Subnets list of assigned subnets with their gateway.
+	Subnets []NetAddress `json:"subnets,omitempty"`
 	// MacAddress for this Interface.
 	MacAddress HardwareAddr `json:"mac_address"`
 }
 
-// NetAddress contains the subnet and gateway.
+// NetAddress contains the ip address, subnet and gateway.
 type NetAddress struct {
-	// Subnet of this NetAddress. Note that the subnet contains the
-	// actual ip of the net interface and not the network address.
-	Subnet IPNet `json:"subnet"`
-	// Gateway for the Subnet. This can be nil if there is no gateway, e.g. internal network.
+	// IPNet of this NetAddress. Note that this is a subnet but it has to contain the
+	// actual ip of the network interface and not the network address.
+	IPNet IPNet `json:"ipnet"`
+	// Gateway for the network. This can be empty if there is no gateway, e.g. internal network.
 	Gateway net.IP `json:"gateway,omitempty"`
 }
 
 // PerNetworkOptions are options which should be set on a per network basis.
 type PerNetworkOptions struct {
-	// StaticIPv4 for this container. Optional.
+	// StaticIPs for this container. Optional.
 	StaticIPs []net.IP `json:"static_ips,omitempty"`
 	// Aliases contains a list of names which the dns server should resolve
 	// to this container. Should only be set when DNSEnabled is true on the Network.

@@ -24,6 +24,7 @@ import (
 	"github.com/containers/podman/v3/pkg/auth"
 	"github.com/containers/podman/v3/pkg/channel"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/gorilla/schema"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -117,10 +118,11 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		SecurityOpt            string   `schema:"securityopt"`
 		ShmSize                int      `schema:"shmsize"`
 		Squash                 bool     `schema:"squash"`
-		Tag                    []string `schema:"t"`
+		Tags                   []string `schema:"t"`
 		Target                 string   `schema:"target"`
 		Timestamp              int64    `schema:"timestamp"`
 		Ulimits                string   `schema:"ulimits"`
+		Secrets                string   `schema:"secrets"`
 	}{
 		Dockerfile: "Dockerfile",
 		Registry:   "docker.io",
@@ -133,6 +135,18 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
 		return
 	}
+
+	// if layers field not set assume its not from a valid podman-client
+	// could be a docker client, set `layers=true` since that is the default
+	// expected behviour
+	if !utils.IsLibpodRequest(r) {
+		if _, found := r.URL.Query()["layers"]; !found {
+			query.Layers = true
+		}
+	}
+
+	// convert tag formats
+	tags := query.Tags
 
 	// convert addcaps formats
 	var addCaps = []string{}
@@ -229,9 +243,57 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		dnssearch = m
 	}
 
+	var secrets = []string{}
+	if _, found := r.URL.Query()["secrets"]; found {
+		var m = []string{}
+		if err := json.Unmarshal([]byte(query.Secrets), &m); err != nil {
+			utils.BadRequest(w, "secrets", query.Secrets, err)
+			return
+		}
+
+		// for podman-remote all secrets must be picked from context director
+		// hence modify src so contextdir is added as prefix
+
+		for _, secret := range m {
+			secretOpt := strings.Split(secret, ",")
+			if len(secretOpt) > 0 {
+				modifiedOpt := []string{}
+				for _, token := range secretOpt {
+					arr := strings.SplitN(token, "=", 2)
+					if len(arr) > 1 {
+						if arr[0] == "src" {
+							/* move secret away from contextDir */
+							/* to make sure we dont accidentally commit temporary secrets to image*/
+							builderDirectory, _ := filepath.Split(contextDirectory)
+							// following path is outside build context
+							newSecretPath := filepath.Join(builderDirectory, arr[1])
+							oldSecretPath := filepath.Join(contextDirectory, arr[1])
+							err := os.Rename(oldSecretPath, newSecretPath)
+							if err != nil {
+								utils.BadRequest(w, "secrets", query.Secrets, err)
+								return
+							}
+
+							modifiedSrc := fmt.Sprintf("src=%s", newSecretPath)
+							modifiedOpt = append(modifiedOpt, modifiedSrc)
+						} else {
+							modifiedOpt = append(modifiedOpt, token)
+						}
+					}
+				}
+				secrets = append(secrets, strings.Join(modifiedOpt[:], ","))
+			}
+		}
+	}
+
 	var output string
-	if len(query.Tag) > 0 {
-		output = query.Tag[0]
+	if len(tags) > 0 {
+		possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, tags[0])
+		if err != nil {
+			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+			return
+		}
+		output = possiblyNormalizedName
 	}
 	format := buildah.Dockerv2ImageManifest
 	registry := query.Registry
@@ -247,9 +309,14 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	var additionalTags []string
-	if len(query.Tag) > 1 {
-		additionalTags = query.Tag[1:]
+	var additionalTags []string // nolint
+	for i := 1; i < len(tags); i++ {
+		possiblyNormalizedTag, err := utils.NormalizeToDockerHub(r, tags[i])
+		if err != nil {
+			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+			return
+		}
+		additionalTags = append(additionalTags, possiblyNormalizedTag)
 	}
 
 	var buildArgs = map[string]string{}
@@ -394,6 +461,22 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer auth.RemoveAuthfile(authfile)
 
+	fromImage := query.From
+	if fromImage != "" {
+		possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, fromImage)
+		if err != nil {
+			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+			return
+		}
+		fromImage = possiblyNormalizedName
+	}
+
+	systemContext := &types.SystemContext{
+		AuthFilePath:     authfile,
+		DockerAuthConfig: creds,
+	}
+	utils.PossiblyEnforceDockerHub(r, systemContext)
+
 	// Channels all mux'ed in select{} below to follow API build protocol
 	stdout := channel.NewWriter(make(chan []byte))
 	defer stdout.Close()
@@ -437,6 +520,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			SeccompProfilePath: seccomp,
 			ShmSize:            strconv.Itoa(query.ShmSize),
 			Ulimit:             ulimits,
+			Secrets:            secrets,
 		},
 		CNIConfigDir:                   rtc.Network.CNIPluginDirs[0],
 		CNIPluginPath:                  util.DefaultCNIPluginPath,
@@ -448,7 +532,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Err:                            auxout,
 		Excludes:                       excludes,
 		ForceRmIntermediateCtrs:        query.ForceRm,
-		From:                           query.From,
+		From:                           fromImage,
 		IgnoreUnrecognizedInstructions: query.Ignore,
 		Isolation:                      isolation,
 		Jobs:                           &jobs,
@@ -471,10 +555,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		RusageLogFile:                  query.RusageLogFile,
 		Squash:                         query.Squash,
 		Target:                         query.Target,
-		SystemContext: &types.SystemContext{
-			AuthFilePath:     authfile,
-			DockerAuthConfig: creds,
-		},
+		SystemContext:                  systemContext,
 	}
 
 	for _, platformSpec := range query.Platform {
@@ -537,8 +618,11 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		m := struct {
-			Stream string `json:"stream,omitempty"`
-			Error  string `json:"error,omitempty"`
+			Stream string                 `json:"stream,omitempty"`
+			Error  *jsonmessage.JSONError `json:"errorDetail,omitempty"`
+			// NOTE: `error` is being deprecated check https://github.com/moby/moby/blob/master/pkg/jsonmessage/jsonmessage.go#L148
+			ErrorMessage string          `json:"error,omitempty"` // deprecate this slowly
+			Aux          json.RawMessage `json:"aux,omitempty"`
 		}{}
 
 		select {
@@ -561,7 +645,10 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			}
 			flush()
 		case e := <-stderr.Chan():
-			m.Error = string(e)
+			m.ErrorMessage = string(e)
+			m.Error = &jsonmessage.JSONError{
+				Message: m.ErrorMessage,
+			}
 			if err := enc.Encode(m); err != nil {
 				logrus.Warnf("Failed to json encode error %v", err)
 			}
@@ -569,13 +656,18 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			return
 		case <-runCtx.Done():
 			if success {
-				if !utils.IsLibpodRequest(r) {
+				if !utils.IsLibpodRequest(r) && !query.Quiet {
+					m.Aux = []byte(fmt.Sprintf(`{"ID":"sha256:%s"}`, imageID))
+					if err := enc.Encode(m); err != nil {
+						logrus.Warnf("failed to json encode error %v", err)
+					}
+					m.Aux = nil
 					m.Stream = fmt.Sprintf("Successfully built %12.12s\n", imageID)
 					if err := enc.Encode(m); err != nil {
 						logrus.Warnf("Failed to json encode error %v", err)
 					}
 					flush()
-					for _, tag := range query.Tag {
+					for _, tag := range tags {
 						m.Stream = fmt.Sprintf("Successfully tagged %s\n", tag)
 						if err := enc.Encode(m); err != nil {
 							logrus.Warnf("Failed to json encode error %v", err)

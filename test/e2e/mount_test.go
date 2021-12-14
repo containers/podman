@@ -78,7 +78,7 @@ var _ = Describe("Podman mount", func() {
 		j := podmanTest.Podman([]string{"mount", "--format=json"})
 		j.WaitWithDefaultTimeout()
 		Expect(j).Should(Exit(0))
-		Expect(j.IsJSONOutputValid()).To(BeTrue())
+		Expect(j.OutputToString()).To(BeValidJSON())
 
 		j = podmanTest.Podman([]string{"mount", "--format='{{.foobar}}'"})
 		j.WaitWithDefaultTimeout()
@@ -332,7 +332,7 @@ var _ = Describe("Podman mount", func() {
 		j := podmanTest.Podman([]string{"image", "mount", "--format=json"})
 		j.WaitWithDefaultTimeout()
 		Expect(j).Should(Exit(0))
-		Expect(j.IsJSONOutputValid()).To(BeTrue())
+		Expect(j.OutputToString()).To(BeValidJSON())
 
 		umount := podmanTest.Podman([]string{"image", "umount", fedoraMinimal})
 		umount.WaitWithDefaultTimeout()
@@ -348,7 +348,7 @@ var _ = Describe("Podman mount", func() {
 		umount := podmanTest.Podman([]string{"image", "umount", "--all"})
 		umount.WaitWithDefaultTimeout()
 		Expect(umount).Should(Exit(0))
-		Expect(len(umount.OutputToStringArray())).To(Equal(1))
+		Expect(umount.OutputToStringArray()).To(HaveLen(1))
 	})
 
 	It("podman mount many", func() {

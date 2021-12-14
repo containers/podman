@@ -30,6 +30,8 @@ type podInfo struct {
 	StopTimeout uint
 	// RestartPolicy of the systemd unit (e.g., no, on-failure, always).
 	RestartPolicy string
+	// RestartSec of the systemd unit. Configures the time to sleep before restarting a service.
+	RestartSec uint
 	// PIDFile of the service. Required for forking services. Must point to the
 	// PID of the associated conmon process.
 	PIDFile string
@@ -79,6 +81,8 @@ type podInfo struct {
 	// Location of the RunRoot for the pod.  Required for ensuring the tmpfs
 	// or volume exists and is mounted when coming online at boot.
 	RunRoot string
+	// Add %i and %I to description and execute parts - this should not be used
+	IdentifySpecifier bool
 }
 
 const podTemplate = headerTemplate + `Requires={{{{- range $index, $value := .RequiredServices -}}}}{{{{if $index}}}} {{{{end}}}}{{{{ $value }}}}.service{{{{end}}}}
@@ -87,6 +91,9 @@ Before={{{{- range $index, $value := .RequiredServices -}}}}{{{{if $index}}}} {{
 [Service]
 Environment={{{{.EnvVariable}}}}=%n
 Restart={{{{.RestartPolicy}}}}
+{{{{- if .RestartSec}}}}
+RestartSec={{{{.RestartSec}}}}
+{{{{- end}}}}
 TimeoutStopSec={{{{.TimeoutStopSec}}}}
 {{{{- if .ExecStartPre1}}}}
 ExecStartPre={{{{.ExecStartPre1}}}}
@@ -101,13 +108,16 @@ PIDFile={{{{.PIDFile}}}}
 Type=forking
 
 [Install]
-WantedBy=multi-user.target default.target
+WantedBy=default.target
 `
 
 // PodUnits generates systemd units for the specified pod and its containers.
 // Based on the options, the return value might be the content of all units or
 // the files they been written to.
 func PodUnits(pod *libpod.Pod, options entities.GenerateSystemdOptions) (map[string]string, error) {
+	if options.TemplateUnitFile {
+		return nil, errors.New("--template is not supported for pods")
+	}
 	// Error out if the pod has no infra container, which we require to be the
 	// main service.
 	if !pod.HasInfraContainer() {
@@ -190,9 +200,9 @@ func generatePodInfo(pod *libpod.Pod, options entities.GenerateSystemdOptions) (
 		return nil, errors.Wrap(err, "could not find infra container")
 	}
 
-	timeout := infraCtr.StopTimeout()
+	stopTimeout := infraCtr.StopTimeout()
 	if options.StopTimeout != nil {
-		timeout = *options.StopTimeout
+		stopTimeout = *options.StopTimeout
 	}
 
 	config := infraCtr.Config()
@@ -218,7 +228,7 @@ func generatePodInfo(pod *libpod.Pod, options entities.GenerateSystemdOptions) (
 		ServiceName:       serviceName,
 		InfraNameOrID:     ctrNameOrID,
 		PIDFile:           conmonPidFile,
-		StopTimeout:       timeout,
+		StopTimeout:       stopTimeout,
 		GenerateTimestamp: true,
 		CreateCommand:     createCommand,
 	}
@@ -235,6 +245,10 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 			return "", err
 		}
 		info.RestartPolicy = *options.RestartPolicy
+	}
+
+	if options.RestartSec != nil {
+		info.RestartSec = *options.RestartSec
 	}
 
 	// Make sure the executable is set.

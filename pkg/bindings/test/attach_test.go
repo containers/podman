@@ -1,4 +1,4 @@
-package test_bindings
+package bindings_test
 
 import (
 	"bytes"

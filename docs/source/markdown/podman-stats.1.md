@@ -99,7 +99,7 @@ ID             NAME           MEM USAGE / LIMIT
 ```
 
 ## SEE ALSO
-podman(1)
+**[podman(1)](podman.1.md)**
 
 ## HISTORY
 July 2017, Originally compiled by Ryan Cole <rycole@redhat.com>

@@ -1,0 +1,23 @@
+{
+    "name": "bridge",
+    "id": "17f29b073143d8cd97b5bbe492bdeffec1c5fee55cc1fe2112c8b9335f8b6121",
+    "driver": "bridge",
+    "network_interface": "podman9",
+    "created": "2021-10-06T18:50:54.25770461+02:00",
+    "subnets": [
+        {
+            "subnet": "10.89.8.0/24",
+            "gateway": "10.89.8.1",
+            "lease_range": {
+                "start_ip": "10.89.8.20",
+                "end_ip": "10.89.8.50"
+            }
+        }
+    ],
+    "ipv6_enabled": false,
+    "internal": false,
+    "dns_enabled": true,
+    "ipam_options": {
+        "driver": "host-local"
+    }
+}

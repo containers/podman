@@ -15,6 +15,7 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/pkg/checkpoint/crutils"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/parallel"
 	"github.com/containers/podman/v3/pkg/rootless"
@@ -114,6 +115,48 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 
 	cfg := registry.PodmanConfig()
 
+	// Currently it is only possible to restore a container with the same runtime
+	// as used for checkpointing. It should be possible to make crun and runc
+	// compatible to restore a container with another runtime then checkpointed.
+	// Currently that does not work.
+	// To make it easier for users we will look into the checkpoint archive and
+	// set the runtime to the one used during checkpointing.
+	if !registry.IsRemote() && cmd.Name() == "restore" {
+		if cmd.Flag("import").Changed {
+			runtime, err := crutils.CRGetRuntimeFromArchive(cmd.Flag("import").Value.String())
+			if err != nil {
+				return errors.Wrapf(
+					err,
+					"failed extracting runtime information from %s",
+					cmd.Flag("import").Value.String(),
+				)
+			}
+			if cfg.RuntimePath == "" {
+				// If the user did not select a runtime, this takes the one from
+				// the checkpoint archives and tells Podman to use it for the restore.
+				runtimeFlag := cmd.Root().Flags().Lookup("runtime")
+				if runtimeFlag == nil {
+					return errors.Errorf(
+						"Unexcpected error setting runtime to '%s' for restore",
+						*runtime,
+					)
+				}
+				runtimeFlag.Value.Set(*runtime)
+				runtimeFlag.Changed = true
+				logrus.Debugf("Checkpoint was created using '%s'. Restore will use the same runtime", *runtime)
+			} else if cfg.RuntimePath != *runtime {
+				// If the user selected a runtime on the command-line this checks if
+				// it is the same then during checkpointing and errors out if not.
+				return errors.Errorf(
+					"checkpoint archive %s was created with runtime '%s' and cannot be restored with runtime '%s'",
+					cmd.Flag("import").Value.String(),
+					*runtime,
+					cfg.RuntimePath,
+				)
+			}
+		}
+	}
+
 	// --connection is not as "special" as --remote so we can wait and process it here
 	conn := cmd.Root().LocalFlags().Lookup("connection")
 	if conn != nil && conn.Changed {
@@ -163,20 +206,6 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	for _, env := range cfg.Engine.Env {
-		splitEnv := strings.SplitN(env, "=", 2)
-		if len(splitEnv) != 2 {
-			return fmt.Errorf("invalid environment variable for engine %s, valid configuration is KEY=value pair", env)
-		}
-		// skip if the env is already defined
-		if _, ok := os.LookupEnv(splitEnv[0]); ok {
-			logrus.Debugf("environment variable %s is already defined, skip the settings from containers.conf", splitEnv[0])
-			continue
-		}
-		if err := os.Setenv(splitEnv[0], splitEnv[1]); err != nil {
-			return err
-		}
-	}
 	// Hard code TMPDIR functions to use /var/tmp, if user did not override
 	if _, ok := os.LookupEnv("TMPDIR"); !ok {
 		if tmpdir, err := cfg.ImageCopyTmpDir(); err != nil {
@@ -356,6 +385,11 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 		namespaceFlagName := "namespace"
 		pFlags.StringVar(&cfg.Engine.Namespace, namespaceFlagName, cfg.Engine.Namespace, "Set the libpod namespace, used to create separate views of the containers and pods on the system")
 		_ = cmd.RegisterFlagCompletionFunc(namespaceFlagName, completion.AutocompleteNone)
+
+		networkBackendFlagName := "network-backend"
+		pFlags.StringVar(&cfg.Network.NetworkBackend, networkBackendFlagName, cfg.Network.NetworkBackend, `Network backend to use ("cni"|"netavark")`)
+		_ = cmd.RegisterFlagCompletionFunc(networkBackendFlagName, common.AutocompleteNetworkBackend)
+		pFlags.MarkHidden(networkBackendFlagName)
 
 		rootFlagName := "root"
 		pFlags.StringVar(&cfg.Engine.StaticDir, rootFlagName, "", "Path to the root directory in which data, including images, is stored")

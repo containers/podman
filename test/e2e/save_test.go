@@ -194,14 +194,16 @@ default-docker:
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session = podmanTest.Podman([]string{"pull", "--tls-verify=false", "--signature-policy=sign/policy.json", "localhost:5000/alpine"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		if !IsRemote() {
+			session = podmanTest.Podman([]string{"pull", "--tls-verify=false", "--signature-policy=sign/policy.json", "localhost:5000/alpine"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
 
-		outfile := filepath.Join(podmanTest.TempDir, "temp.tar")
-		save := podmanTest.Podman([]string{"save", "remove-signatures=true", "-o", outfile, "localhost:5000/alpine"})
-		save.WaitWithDefaultTimeout()
-		Expect(save).To(ExitWithError())
+			outfile := filepath.Join(podmanTest.TempDir, "temp.tar")
+			save := podmanTest.Podman([]string{"save", "remove-signatures=true", "-o", outfile, "localhost:5000/alpine"})
+			save.WaitWithDefaultTimeout()
+			Expect(save).To(ExitWithError())
+		}
 	})
 
 	It("podman save image with digest reference", func() {
@@ -228,7 +230,7 @@ default-docker:
 		Expect(session).Should(Exit(0))
 		ids := session.OutputToStringArray()
 
-		Expect(len(RESTORE_IMAGES), len(ids))
+		Expect(len(ids)).To(BeNumerically(">", 1), "We need to have *some* images to save")
 		multiImageSave(podmanTest, ids)
 	})
 })
@@ -253,8 +255,7 @@ func multiImageSave(podmanTest *PodmanTestIntegration, images []string) {
 	Expect(session).Should(Exit(0))
 	// Grep for each image in the `podman load` output.
 	for _, image := range images {
-		found, _ := session.GrepString(image)
-		Expect(found).Should(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring(image))
 	}
 
 	// Make sure that each image has really been loaded.

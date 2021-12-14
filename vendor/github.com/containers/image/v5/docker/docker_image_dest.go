@@ -17,9 +17,9 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/internal/blobinfocache"
 	"github.com/containers/image/v5/internal/putblobdigest"
+	"github.com/containers/image/v5/internal/streamdigest"
 	"github.com/containers/image/v5/internal/uploadreader"
 	"github.com/containers/image/v5/manifest"
-	"github.com/containers/image/v5/pkg/blobinfocache/none"
 	"github.com/containers/image/v5/types"
 	"github.com/docker/distribution/registry/api/errcode"
 	v2 "github.com/docker/distribution/registry/api/v2"
@@ -131,11 +131,23 @@ func (d *dockerImageDestination) HasThreadSafePutBlob() bool {
 // to any other readers for download using the supplied digest.
 // If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
 func (d *dockerImageDestination) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, cache types.BlobInfoCache, isConfig bool) (types.BlobInfo, error) {
+	// If requested, precompute the blob digest to prevent uploading layers that already exist on the registry.
+	// This functionality is particularly useful when BlobInfoCache has not been populated with compressed digests,
+	// the source blob is uncompressed, and the destination blob is being compressed "on the fly".
+	if inputInfo.Digest == "" && d.c.sys.DockerRegistryPushPrecomputeDigests {
+		logrus.Debugf("Precomputing digest layer for %s", reference.Path(d.ref.ref))
+		streamCopy, cleanup, err := streamdigest.ComputeBlobInfo(d.c.sys, stream, &inputInfo)
+		if err != nil {
+			return types.BlobInfo{}, err
+		}
+		defer cleanup()
+		stream = streamCopy
+	}
+
 	if inputInfo.Digest != "" {
 		// This should not really be necessary, at least the copy code calls TryReusingBlob automatically.
 		// Still, we need to check, if only because the "initiate upload" endpoint does not have a documented "blob already exists" return value.
-		// But we do that with NoCache, so that it _only_ checks the primary destination, instead of trying all mount candidates _again_.
-		haveBlob, reusedInfo, err := d.TryReusingBlob(ctx, inputInfo, none.NoCache, false)
+		haveBlob, reusedInfo, err := d.tryReusingExactBlob(ctx, inputInfo, cache)
 		if err != nil {
 			return types.BlobInfo{}, err
 		}
@@ -282,6 +294,21 @@ func (d *dockerImageDestination) mountBlob(ctx context.Context, srcRepo referenc
 	}
 }
 
+// tryReusingExactBlob is a subset of TryReusingBlob which _only_ looks for exactly the specified
+// blob in the current repository, with no cross-repo reuse or mounting; cache may be updated, it is not read.
+// The caller must ensure info.Digest is set.
+func (d *dockerImageDestination) tryReusingExactBlob(ctx context.Context, info types.BlobInfo, cache types.BlobInfoCache) (bool, types.BlobInfo, error) {
+	exists, size, err := d.blobExists(ctx, d.ref.ref, info.Digest, nil)
+	if err != nil {
+		return false, types.BlobInfo{}, err
+	}
+	if exists {
+		cache.RecordKnownLocation(d.ref.Transport(), bicTransportScope(d.ref), info.Digest, newBICLocationReference(d.ref))
+		return true, types.BlobInfo{Digest: info.Digest, MediaType: info.MediaType, Size: size}, nil
+	}
+	return false, types.BlobInfo{}, nil
+}
+
 // TryReusingBlob checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination
 // (e.g. if the blob is a filesystem layer, this signifies that the changes it describes need to be applied again when composing a filesystem tree).
 // info.Digest must not be empty.
@@ -297,13 +324,12 @@ func (d *dockerImageDestination) TryReusingBlob(ctx context.Context, info types.
 	}
 
 	// First, check whether the blob happens to already exist at the destination.
-	exists, size, err := d.blobExists(ctx, d.ref.ref, info.Digest, nil)
+	haveBlob, reusedInfo, err := d.tryReusingExactBlob(ctx, info, cache)
 	if err != nil {
 		return false, types.BlobInfo{}, err
 	}
-	if exists {
-		cache.RecordKnownLocation(d.ref.Transport(), bicTransportScope(d.ref), info.Digest, newBICLocationReference(d.ref))
-		return true, types.BlobInfo{Digest: info.Digest, MediaType: info.MediaType, Size: size}, nil
+	if haveBlob {
+		return true, reusedInfo, nil
 	}
 
 	// Then try reusing blobs from other locations.
@@ -437,6 +463,18 @@ func (d *dockerImageDestination) PutManifest(ctx context.Context, m []byte, inst
 			err = types.ManifestTypeRejectedError{Err: err}
 		}
 		return err
+	}
+	// A HTTP server may not be a registry at all, and just return 200 OK to everything
+	// (in particular that can fairly easily happen after tearing down a website and
+	// replacing it with a global 302 redirect to a new website, completely ignoring the
+	// path in the request); in that case we could “succeed” uploading a whole image.
+	// With docker/distribution we could rely on a Docker-Content-Digest header being present
+	// (because docker/distribution/registry/client has been failing uploads if it was missing),
+	// but that has been defined as explicitly optional by
+	// https://github.com/opencontainers/distribution-spec/blob/ec90a2af85fe4d612cf801e1815b95bfa40ae72b/spec.md#legacy-docker-support-http-headers
+	// So, just note the missing header in a debug log.
+	if v := res.Header.Values("Docker-Content-Digest"); len(v) == 0 {
+		logrus.Debugf("Manifest upload response didn’t contain a Docker-Content-Digest header, it might not be a container registry")
 	}
 	return nil
 }

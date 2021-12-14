@@ -8,6 +8,7 @@ import (
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v3/cmd/podman/common"
+	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/pkg/domain/entities"
@@ -32,6 +33,7 @@ var (
 type listFlagType struct {
 	format    string
 	noHeading bool
+	filter    []string
 }
 
 func init() {
@@ -44,14 +46,26 @@ func init() {
 	formatFlagName := "format"
 	flags.StringVar(&listFlag.format, formatFlagName, "{{.ID}}\t{{.Name}}\t{{.Driver}}\t{{.CreatedAt}}\t{{.UpdatedAt}}\t\n", "Format volume output using Go template")
 	_ = lsCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(entities.SecretInfoReport{}))
+	filterFlagName := "filter"
+	flags.StringSliceVarP(&listFlag.filter, filterFlagName, "f", []string{}, "Filter secret output")
+	_ = lsCmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteSecretFilters)
 	flags.BoolVar(&listFlag.noHeading, "noheading", false, "Do not print headers")
 }
 
 func ls(cmd *cobra.Command, args []string) error {
-	responses, err := registry.ContainerEngine().SecretList(context.Background(), entities.SecretListRequest{})
+	var err error
+	lsOpts := entities.SecretListRequest{}
+
+	lsOpts.Filters, err = parse.FilterArgumentsIntoFilters(listFlag.filter)
 	if err != nil {
 		return err
 	}
+
+	responses, err := registry.ContainerEngine().SecretList(context.Background(), lsOpts)
+	if err != nil {
+		return err
+	}
+
 	listed := make([]*entities.SecretListReport, 0, len(responses))
 	for _, response := range responses {
 		listed = append(listed, &entities.SecretListReport{
@@ -71,7 +85,10 @@ func outputTemplate(cmd *cobra.Command, responses []*entities.SecretListReport) 
 		"UpdatedAt": "UPDATED",
 	})
 
-	row := report.NormalizeFormat(listFlag.format)
+	row := cmd.Flag("format").Value.String()
+	if cmd.Flags().Changed("format") {
+		row = report.NormalizeFormat(row)
+	}
 	format := report.EnforceRange(row)
 
 	tmpl, err := report.NewTemplate("list").Parse(format)

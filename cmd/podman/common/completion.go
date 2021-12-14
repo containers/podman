@@ -209,7 +209,7 @@ func getImages(cmd *cobra.Command, toComplete string) ([]string, cobra.ShellComp
 	return suggestions, cobra.ShellCompDirectiveNoFileComp
 }
 
-func getSecrets(cmd *cobra.Command, toComplete string) ([]string, cobra.ShellCompDirective) {
+func getSecrets(cmd *cobra.Command, toComplete string, cType completeType) ([]string, cobra.ShellCompDirective) {
 	suggestions := []string{}
 
 	engine, err := setupContainerEngine(cmd)
@@ -224,7 +224,13 @@ func getSecrets(cmd *cobra.Command, toComplete string) ([]string, cobra.ShellCom
 	}
 
 	for _, s := range secrets {
-		if strings.HasPrefix(s.Spec.Name, toComplete) {
+		// works the same as in getNetworks
+		if ((len(toComplete) > 1 && cType == completeDefault) ||
+			cType == completeIDs) && strings.HasPrefix(s.ID, toComplete) {
+			suggestions = append(suggestions, s.ID[0:12])
+		}
+		// include name in suggestions
+		if cType != completeIDs && strings.HasPrefix(s.Spec.Name, toComplete) {
 			suggestions = append(suggestions, s.Spec.Name)
 		}
 	}
@@ -470,7 +476,7 @@ func AutocompleteSecrets(cmd *cobra.Command, args []string, toComplete string) (
 	if !validCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	return getSecrets(cmd, toComplete)
+	return getSecrets(cmd, toComplete, completeDefault)
 }
 
 func AutocompleteSecretCreate(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -1163,6 +1169,13 @@ func AutocompleteEventBackend(cmd *cobra.Command, args []string, toComplete stri
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
 
+// AutocompleteNetworkBackend - Autocomplete network backend options.
+// -> "cni", "netavark"
+func AutocompleteNetworkBackend(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	types := []string{"cni", "netavark"}
+	return types, cobra.ShellCompDirectiveNoFileComp
+}
+
 // AutocompleteLogLevel - Autocomplete log level options.
 // -> "trace", "debug", "info", "warn", "error", "fatal", "panic"
 func AutocompleteLogLevel(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -1276,9 +1289,24 @@ func AutocompleteVolumeFilters(cmd *cobra.Command, args []string, toComplete str
 	return completeKeyValues(toComplete, kv)
 }
 
+// AutocompleteSecretFilters - Autocomplete secret ls --filter options.
+func AutocompleteSecretFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	kv := keyValueCompletion{
+		"name=": func(s string) ([]string, cobra.ShellCompDirective) { return getSecrets(cmd, s, completeNames) },
+		"id=":   func(s string) ([]string, cobra.ShellCompDirective) { return getSecrets(cmd, s, completeIDs) },
+	}
+	return completeKeyValues(toComplete, kv)
+}
+
 // AutocompleteCheckpointCompressType - Autocomplete checkpoint compress type options.
 // -> "gzip", "none", "zstd"
 func AutocompleteCheckpointCompressType(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	types := []string{"gzip", "none", "zstd"}
+	return types, cobra.ShellCompDirectiveNoFileComp
+}
+
+// AutocompleteCompressionFormat - Autocomplete compression-format type options.
+func AutocompleteCompressionFormat(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	types := []string{"gzip", "zstd", "zstd:chunked"}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }

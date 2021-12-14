@@ -81,7 +81,7 @@ func NewIgnitionFile(ign DynamicIgnition) error {
 	// so a listening host knows it can being interacting with it
 	ready := `[Unit]
 Requires=dev-virtio\\x2dports-%s.device
-After=remove-moby.service
+After=remove-moby.service sshd.socket sshd.service
 OnFailure=emergency.target
 OnFailureJobMode=isolate
 [Service]
@@ -89,7 +89,7 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=/bin/sh -c '/usr/bin/echo Ready >/dev/%s'
 [Install]
-RequiredBy=multi-user.target
+RequiredBy=default.target
 `
 	deMoby := `[Unit]
 Description=Remove moby-engine
@@ -106,7 +106,7 @@ ExecStart=/usr/bin/rpm-ostree ex apply-live --allow-replacement
 ExecStartPost=/bin/touch /var/lib/%N.stamp
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
  `
 	_ = ready
 	ignSystemd := Systemd{

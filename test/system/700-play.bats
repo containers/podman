@@ -11,7 +11,7 @@ function teardown() {
     run_podman rm -t 0 -f -a
     run_podman image list --format '{{.ID}} {{.Repository}}'
     while read id name; do
-        if [[ "$name" =~ /pause ]]; then
+        if [[ "$name" =~ /podman-pause ]]; then
             run_podman rmi $id
         fi
     done <<<"$output"
@@ -75,6 +75,12 @@ RELABEL="system_u:object_r:container_file_t:s0"
        run ls -Zd $TESTDIR
        is "$output" "${RELABEL} $TESTDIR" "selinux relabel should have happened"
     fi
+
+    # Make sure that the K8s pause image isn't pulled but the local podman-pause is built.
+    run_podman images
+    run_podman 1 image exists k8s.gcr.io/pause
+    run_podman version --format "{{.Server.Version}}-{{.Server.Built}}"
+    run_podman image exists localhost/podman-pause:$output
 
     run_podman stop -a -t 0
     run_podman pod rm -t 0 -f test_pod

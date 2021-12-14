@@ -3,6 +3,7 @@ package containers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v3/cmd/podman/common"
@@ -11,7 +12,6 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/rootless"
-	"github.com/containers/podman/v3/pkg/specgenutil"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -39,6 +39,11 @@ var (
 
 var restoreOptions entities.RestoreOptions
 
+type restoreStatistics struct {
+	PodmanDuration      int64                     `json:"podman_restore_duration"`
+	ContainerStatistics []*entities.RestoreReport `json:"container_statistics"`
+}
+
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: restoreCommand,
@@ -48,6 +53,7 @@ func init() {
 	flags.BoolVarP(&restoreOptions.All, "all", "a", false, "Restore all checkpointed containers")
 	flags.BoolVarP(&restoreOptions.Keep, "keep", "k", false, "Keep all temporary checkpoint files")
 	flags.BoolVar(&restoreOptions.TCPEstablished, "tcp-established", false, "Restore a container with established TCP connections")
+	flags.BoolVar(&restoreOptions.FileLocks, "file-locks", false, "Restore a container with file locks")
 
 	importFlagName := "import"
 	flags.StringVarP(&restoreOptions.Import, importFlagName, "i", "", "Restore from exported checkpoint archive (tar.gz)")
@@ -75,11 +81,19 @@ func init() {
 	flags.StringVar(&restoreOptions.Pod, "pod", "", "Restore container into existing Pod (only works with --import)")
 	_ = restoreCommand.RegisterFlagCompletionFunc("pod", common.AutocompletePodsRunning)
 
+	flags.BoolVar(
+		&restoreOptions.PrintStats,
+		"print-stats",
+		false,
+		"Display restore statistics",
+	)
+
 	validate.AddLatestFlag(restoreCommand, &restoreOptions.Latest)
 }
 
 func restore(cmd *cobra.Command, args []string) error {
 	var errs utils.OutputErrors
+	podmanStart := time.Now()
 	if rootless.IsRootless() {
 		return errors.New("restoring a container requires root")
 	}
@@ -106,12 +120,7 @@ func restore(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	if len(inputPorts) > 0 {
-		restoreOptions.PublishPorts, err = specgenutil.CreatePortBindings(inputPorts)
-		if err != nil {
-			return err
-		}
-	}
+	restoreOptions.PublishPorts = inputPorts
 
 	argLen := len(args)
 	if restoreOptions.Import != "" {
@@ -132,12 +141,30 @@ func restore(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	podmanFinished := time.Now()
+
+	var statistics restoreStatistics
+
 	for _, r := range responses {
 		if r.Err == nil {
-			fmt.Println(r.Id)
+			if restoreOptions.PrintStats {
+				statistics.ContainerStatistics = append(statistics.ContainerStatistics, r)
+			} else {
+				fmt.Println(r.Id)
+			}
 		} else {
 			errs = append(errs, r.Err)
 		}
 	}
+
+	if restoreOptions.PrintStats {
+		statistics.PodmanDuration = podmanFinished.Sub(podmanStart).Microseconds()
+		j, err := json.MarshalIndent(statistics, "", "    ")
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(j))
+	}
+
 	return errs.PrintErrors()
 }

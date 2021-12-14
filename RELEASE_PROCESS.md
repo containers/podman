@@ -241,15 +241,11 @@ spelled with complete minutiae.
       * `Cirrus CI / Alt Arch. Cross` - tarball for each architecture
       * `Cirrus CI / OSX Cross` - two zip files (amd64 and arm64)
       * `Cirrus CI / Windows Cross` - an `msi` file
-      * `Cirrus CI / Static Build` - the `bin/podman-remote` file
 
       Under the "Artifacts" section of each task, click the "gosrc" link,
       find and download the release archive (`zip`, `tar.gz` or `.msi`).
       Save the the archive with a meaningful name, for example
       `podman-v3.0.0.msi`.
-   1. For the "Static Build" task, find the compiled `podman` and `podman-remote`
-      binaries under the "binary", then "bin" links.  Tar these files as
-      `podman-static.tar.gz`.
    1. The `podman-vX.Y.Z.dmg` file is produced manually by someone in
       possession of a developer signing key.
    1. In the directory where you downloaded the archives, run
@@ -267,7 +263,6 @@ spelled with complete minutiae.
 
       * podman-remote-release-darwin.zip
       * podman-remote-release-windows.zip
-      * podman-remote-static.tar.gz
       * podman-vX.Y.Z.msi
       * shasums
    1. Save the release.

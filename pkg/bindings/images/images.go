@@ -23,7 +23,7 @@ func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool,
 	if err != nil {
 		return false, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/images/%s/exists", nil, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/images/%s/exists", nil, nil, nameOrID)
 	if err != nil {
 		return false, err
 	}
@@ -47,7 +47,7 @@ func List(ctx context.Context, options *ListOptions) ([]*entities.ImageSummary, 
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/images/json", params, nil)
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/images/json", params, nil)
 	if err != nil {
 		return imageSummary, err
 	}
@@ -71,7 +71,7 @@ func GetImage(ctx context.Context, nameOrID string, options *GetOptions) (*entit
 		return nil, err
 	}
 	inspectedData := entities.ImageInspectReport{}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/images/%s/json", params, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/images/%s/json", params, nil, nameOrID)
 	if err != nil {
 		return &inspectedData, err
 	}
@@ -94,7 +94,7 @@ func Tree(ctx context.Context, nameOrID string, options *TreeOptions) (*entities
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/images/%s/tree", params, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/images/%s/tree", params, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +114,7 @@ func History(ctx context.Context, nameOrID string, options *HistoryOptions) ([]*
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/images/%s/history", nil, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/images/%s/history", nil, nil, nameOrID)
 	if err != nil {
 		return history, err
 	}
@@ -129,7 +129,7 @@ func Load(ctx context.Context, r io.Reader) (*entities.ImageLoadReport, error) {
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(r, http.MethodPost, "/images/load", nil, nil)
+	response, err := conn.DoRequest(ctx, r, http.MethodPost, "/images/load", nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +155,7 @@ func Export(ctx context.Context, nameOrIDs []string, w io.Writer, options *Expor
 	for _, ref := range nameOrIDs {
 		params.Add("references", ref)
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/images/export", params, nil)
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/images/export", params, nil)
 	if err != nil {
 		return err
 	}
@@ -185,7 +185,7 @@ func Prune(ctx context.Context, options *PruneOptions) ([]*reports.PruneReport, 
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/images/prune", params, nil)
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/images/prune", params, nil)
 	if err != nil {
 		return deleted, err
 	}
@@ -207,7 +207,7 @@ func Tag(ctx context.Context, nameOrID, tag, repo string, options *TagOptions) e
 	params := url.Values{}
 	params.Set("tag", tag)
 	params.Set("repo", repo)
-	response, err := conn.DoRequest(nil, http.MethodPost, "/images/%s/tag", params, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/images/%s/tag", params, nil, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -229,7 +229,7 @@ func Untag(ctx context.Context, nameOrID, tag, repo string, options *UntagOption
 	params := url.Values{}
 	params.Set("tag", tag)
 	params.Set("repo", repo)
-	response, err := conn.DoRequest(nil, http.MethodPost, "/images/%s/untag", params, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/images/%s/untag", params, nil, nameOrID)
 	if err != nil {
 		return err
 	}
@@ -257,7 +257,7 @@ func Import(ctx context.Context, r io.Reader, options *ImportOptions) (*entities
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(r, http.MethodPost, "/images/import", params, nil)
+	response, err := conn.DoRequest(ctx, r, http.MethodPost, "/images/import", params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -298,7 +298,7 @@ func Push(ctx context.Context, source string, destination string, options *PushO
 	params.Set("destination", destination)
 
 	path := fmt.Sprintf("/images/%s/push", source)
-	response, err := conn.DoRequest(nil, http.MethodPost, path, params, header)
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, path, params, header)
 	if err != nil {
 		return err
 	}
@@ -334,7 +334,7 @@ func Search(ctx context.Context, term string, options *SearchOptions) ([]entitie
 		return nil, err
 	}
 
-	response, err := conn.DoRequest(nil, http.MethodGet, "/images/search", params, header)
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/images/search", params, header)
 	if err != nil {
 		return nil, err
 	}

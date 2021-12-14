@@ -58,6 +58,10 @@ type SearchOptions struct {
 	InsecureSkipTLSVerify types.OptionalBool
 	// ListTags returns the search result with available tags
 	ListTags bool
+	// Registries to search if the specified term does not include a
+	// registry.  If set, the unqualified-search registries in
+	// containers-registries.conf(5) are ignored.
+	Registries []string
 }
 
 // SearchFilter allows filtering images while searching.
@@ -105,6 +109,10 @@ func ParseSearchFilter(filter []string) (*SearchFilter, error) {
 	return sFilter, nil
 }
 
+// Search searches term.  If term includes a registry, only this registry will
+// be used for searching.  Otherwise, the unqualified-search registries in
+// containers-registries.conf(5) or the ones specified in the options will be
+// used.
 func (r *Runtime) Search(ctx context.Context, term string, options *SearchOptions) ([]SearchResult, error) {
 	if options == nil {
 		options = &SearchOptions{}
@@ -117,10 +125,14 @@ func (r *Runtime) Search(ctx context.Context, term string, options *SearchOption
 	// that we cannot use the reference parser from the containers/image
 	// library as the search term may container arbitrary input such as
 	// wildcards.  See bugzilla.redhat.com/show_bug.cgi?id=1846629.
-	if spl := strings.SplitN(term, "/", 2); len(spl) > 1 {
-		searchRegistries = append(searchRegistries, spl[0])
+	spl := strings.SplitN(term, "/", 2)
+	switch {
+	case len(spl) > 1:
+		searchRegistries = []string{spl[0]}
 		term = spl[1]
-	} else {
+	case len(options.Registries) > 0:
+		searchRegistries = options.Registries
+	default:
 		regs, err := sysregistriesv2.UnqualifiedSearchRegistries(r.systemContextCopy())
 		if err != nil {
 			return nil, err

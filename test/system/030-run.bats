@@ -236,7 +236,7 @@ echo $rand        |   0 | $rand
 }
 
 @test "podman run docker-archive" {
-    skip_if_remote "podman-remote does not support docker-archive (#7116)"
+    skip_if_remote "podman-remote does not support docker-archive"
 
     # Create an image that, when run, outputs a random magic string
     expect=$(random_string 20)
@@ -737,10 +737,32 @@ EOF
 }
 
 # rhbz#1902979 : podman run fails to update /etc/hosts when --uidmap is provided
-@test "podman run update /etc/hosts" {
+@test "podman run update /etc/hosts when --uidmap is provided" {
     HOSTS=$(random_string 25)
     run_podman run --uidmap 0:10001:10002 --rm --hostname $HOSTS $IMAGE grep $HOSTS /etc/hosts
     is "${lines[0]}" ".*$HOSTS.*"
+}
+
+@test "podman run defaultenv" {
+    run_podman run --rm $IMAGE printenv
+    is "$output" ".*TERM=xterm" "output matches TERM"
+    is "$output" ".*container=podman" "output matches container=podman"
+
+    run_podman run --unsetenv=TERM --rm $IMAGE printenv
+    is "$output" ".*container=podman" "output matches container=podman"
+    run grep TERM <<<$output
+    is "$output" "" "unwanted TERM environment variable despite --unsetenv=TERM"
+
+    run_podman run --unsetenv-all --rm $IMAGE /bin/printenv
+    run grep TERM <<<$output
+    is "$output" "" "unwanted TERM environment variable despite --unsetenv-all"
+    run grep container <<<$output
+    is "$output" "" "unwanted container environment variable despite --unsetenv-all"
+    run grep PATH <<<$output
+    is "$output" "" "unwanted PATH environment variable despite --unsetenv-all"
+
+    run_podman run --unsetenv-all --env TERM=abc --rm $IMAGE /bin/printenv
+    is "$output" ".*TERM=abc" "missing TERM environment variable despite TERM being set on commandline"
 }
 
 # vim: filetype=sh

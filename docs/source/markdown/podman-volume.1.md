@@ -23,7 +23,7 @@ podman volume is a set of subcommands that manage volumes.
 | rm      | [podman-volume-rm(1)](podman-volume-rm.1.md)           | Remove one or more volumes.                                                    |
 
 ## SEE ALSO
-podman(1)
+**[podman(1)](podman.1.md)**
 
 ## HISTORY
 November 2018, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

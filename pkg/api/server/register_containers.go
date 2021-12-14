@@ -1441,6 +1441,10 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    name: ignoreRootFS
 	//    type: boolean
 	//    description: do not include root file-system changes when exporting
+	//  - in: query
+	//    name: printStats
+	//    type: boolean
+	//    description: add checkpoint statistics to the returned CheckpointReport
 	// produces:
 	// - application/json
 	// responses:
@@ -1495,6 +1499,10 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    name: ignoreStaticMAC
 	//    type: boolean
 	//    description: ignore MAC address if set statically
+	//  - in: query
+	//    name: printStats
+	//    type: boolean
+	//    description: add restore statistics to the returned RestoreReport
 	// produces:
 	// - application/json
 	// responses:

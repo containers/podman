@@ -110,55 +110,49 @@ func pods(cmd *cobra.Command, _ []string) error {
 		return nil
 	}
 
-	// Formatted output below
 	lpr := make([]ListPodReporter, 0, len(responses))
 	for _, r := range responses {
 		lpr = append(lpr, ListPodReporter{r})
 	}
 
-	headers := report.Headers(ListPodReporter{}, map[string]string{
-		"Id":                 "POD ID",
-		"Name":               "NAME",
-		"Status":             "STATUS",
-		"Labels":             "LABELS",
-		"NumberOfContainers": "# OF CONTAINERS",
-		"Created":            "CREATED",
-		"InfraID":            "INFRA ID",
-		"ContainerIds":       "IDS",
-		"ContainerNames":     "NAMES",
-		"ContainerStatuses":  "STATUS",
-		"Cgroup":             "CGROUP",
-		"Namespace":          "NAMESPACES",
-	})
-	renderHeaders := true
-	row := podPsFormat()
+	rpt := report.New(os.Stdout, cmd.Name())
+	defer rpt.Flush()
+
 	if cmd.Flags().Changed("format") {
-		renderHeaders = report.HasTable(psInput.Format)
-		row = report.NormalizeFormat(psInput.Format)
+		rpt, err = rpt.Parse(report.OriginUser, psInput.Format)
+	} else {
+		rpt, err = rpt.Parse(report.OriginPodman, podPsFormat())
 	}
-	noHeading, _ := cmd.Flags().GetBool("noheading")
-	if noHeading {
+	if err != nil {
+		return err
+	}
+
+	renderHeaders := true
+	if noHeading, _ := cmd.Flags().GetBool("noheading"); noHeading {
 		renderHeaders = false
 	}
-	format := report.EnforceRange(row)
 
-	tmpl, err := report.NewTemplate("list").Parse(format)
-	if err != nil {
-		return err
-	}
+	if renderHeaders && rpt.RenderHeaders {
+		headers := report.Headers(ListPodReporter{}, map[string]string{
+			"Id":                 "POD ID",
+			"Name":               "NAME",
+			"Status":             "STATUS",
+			"Labels":             "LABELS",
+			"NumberOfContainers": "# OF CONTAINERS",
+			"Created":            "CREATED",
+			"InfraID":            "INFRA ID",
+			"ContainerIds":       "IDS",
+			"ContainerNames":     "NAMES",
+			"ContainerStatuses":  "STATUS",
+			"Cgroup":             "CGROUP",
+			"Namespace":          "NAMESPACES",
+		})
 
-	w, err := report.NewWriterDefault(os.Stdout)
-	if err != nil {
-		return err
-	}
-	defer w.Flush()
-
-	if renderHeaders {
-		if err := tmpl.Execute(w, headers); err != nil {
+		if err := rpt.Execute(headers); err != nil {
 			return err
 		}
 	}
-	return tmpl.Execute(w, lpr)
+	return rpt.Execute(lpr)
 }
 
 func podPsFormat() string {
@@ -183,7 +177,7 @@ func podPsFormat() string {
 	if !psInput.CtrStatus && !psInput.CtrNames && !psInput.CtrIds {
 		row = append(row, "{{.NumberOfContainers}}")
 	}
-	return strings.Join(row, "\t") + "\n"
+	return "{{range . }}" + strings.Join(row, "\t") + "\n" + "{{end -}}"
 }
 
 // ListPodReporter is a struct for pod ps output

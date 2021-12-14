@@ -78,7 +78,7 @@ podman start --interactive --attach 860a4b231279
 podman start -i -l
 
 ## SEE ALSO
-podman(1), podman-create(1)
+**[podman(1)](podman.1.md)**
 
 ## HISTORY
 November 2018, Originally compiled by Brent Baude <bbaude@redhat.com>

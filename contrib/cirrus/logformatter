@@ -37,12 +37,15 @@ table.synopsis { border: none; border-collapse: collapse; margin-left: 2em; marg
 .synopsis td   { font-weight: bold;   font-size: 120%; font-family: monospace; }
 
 /* test results */
+.testname  { font-size: 125%; color: #444; }
 .boring    { color: #999; }
 .timestamp { color: #999; }
 .log-debug { color: #999; }
 .log-info  { color: #333; }
 .log-warn  { color: #f60; }
 .log-error { color: #900; font-weight: bold; }
+.log-skip  { color: #F90; }
+.log-slow  { background: #FF0; color: #000; font-weight: bold; }
 .subtest   { background: #eee; }
 .subsubtest { color: #F39; font-weight: bold; }
 .string    { color: #00c; }
@@ -205,10 +208,16 @@ END_HTML
 
     print { $out_fh } "<pre> <!-- begin processed output -->\n";
 
+    # Assume rootful prompt, check for rootless (here and in log itself, below)
+    my $Prompt = '#';
+    $Prompt = '$' if $test_name =~ /rootless/;
+
     # Main loop: read input, one line at a time, and write out reformatted
   LINE:
     while (my $line = <STDIN>) {
         print $line;                    # Immediately dump back to stdout
+
+        $Prompt = '$' if $line =~ /Runner executing .* as rootless /;
 
         # Remain robust in face of errors: always write stdout even if no HTML
         next LINE if ! $out_fh;
@@ -328,7 +337,7 @@ END_HTML
             next LINE;
         }
         # (bindings test sometimes emits 'Running' with leading bullet char)
-        elsif ($line =~ /^•?Running:/) {
+        elsif ($line =~ s!^•?Running:!<span class="boring">$Prompt</span>!) {
             # Highlight the important (non-boilerplate) podman command.
             $line =~ s/\s+--remote\s+/ /g;      # --remote takes no args
             # Strip out the global podman options, but show them on hover
@@ -365,19 +374,27 @@ END_HTML
         # an anchor so we can link to it later.
         if ($after_divider++ == 2) {
             # Sigh. There is no actual marker. Assume that anything with
-            ## two leading spaces then alpha (not slashes) is a test name.
-            if ($line =~ /^  [a-zA-Z]/) {
+            ## two leading spaces then alpha or hyphen (not slashes) is
+            ## a test name.
+            if ($line =~ /^  [a-zA-Z-]/) {
                 my $id = make_id($line, 'anchor');
 
                 $line = "<a name='t--$id'><h2>$line</h2></a>";
             }
         }
 
+        # Make SKIPPING and SLOW TEST visible
+        $line =~ s!(\[SKIPPING\].*)!<span class="log-skip">$1</span>!;
+        $line =~ s!(\[SLOW TEST.*\])!<span class="log-slow">$1</span>!;
+
+        # Highlight test name when it appears in the middle of commands.
+        # But make it boring, because we already have the test name in large
+        # bold just above. (Except in skipped tests).
+        $line =~ s!^(\s*)(\[It\]\s+.*)!$1<span class="testname">$2</span>!;
+
         # Failure name corresponds to a previously-seen block.
-        ## FIXME: sometimes there are three failures with the same name.
-        ##        ...I have no idea why or how to link to the right ones.
-        #              1  2           2        3             3   14          4
-        if ($line =~ /^(\[(Fail|Panic!)\] .* \[(It|BeforeEach)\] )([A-Za-z].*)/) {
+        #              1  2           2        3             3   14           4
+        if ($line =~ /^(\[(Fail|Panic!)\] .* \[(It|BeforeEach)\] )([A-Za-z-].*)/) {
             my ($lhs, $type, $ginkgo_fluff, $testname) = ($1, $2, $3, $4);
             my $id = make_id($testname, 'link');
 
@@ -486,7 +503,10 @@ sub make_id {
     state %counter;
 
     $name =~ s/^\s+|\s+$//g;            # strip leading/trailing whitespace
+    $name =~ s/\&#\d+;//g;              # 'doesn&#39;t' -> 'doesnt'
+    $name =~ s/\&quot;/-/g;             # '&quot;path&quot;' -> '-path-'
     $name =~ s/[^a-zA-Z0-9_-]/-/g;      # Convert non-alphanumeric to dash
+    $name =~ s/-{3,}/-/g;               # '------' to just '-'
 
     # Keep a running tally of how many times we've seen this identifier
     # for this given type! This lets us cross-match, in the bottom of

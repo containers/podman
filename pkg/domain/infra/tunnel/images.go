@@ -12,6 +12,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/bindings/images"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/domain/entities/reports"
@@ -120,6 +121,10 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, opts entities.
 		return nil, err
 	}
 	return &entities.ImagePullReport{Images: pulledImages}, nil
+}
+
+func (ir *ImageEngine) Transfer(ctx context.Context, scpOpts entities.ImageScpOptions) error {
+	return errors.Wrapf(define.ErrNotImplemented, "cannot use the remote client to transfer images between root and rootless storage")
 }
 
 func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, opt entities.ImageTagOptions) error {
@@ -265,7 +270,10 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string,
 			defer func() { _ = os.Remove(f.Name()) }()
 		}
 	default:
-		f, err = os.Create(opts.Output)
+		// This code was added to allow for opening stdout replacing
+		// os.Create(opts.Output) which was attempting to open the file
+		// for read/write which fails on Darwin platforms
+		f, err = os.OpenFile(opts.Output, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	}
 	if err != nil {
 		return err

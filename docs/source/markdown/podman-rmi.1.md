@@ -53,7 +53,7 @@ $ podman rmi -a -f
   **125** The command fails for any other reason
 
 ## SEE ALSO
-podman(1), skopeo-delete(1)
+**[podman(1)](podman.1.md)**, **[skopeo-delete(1)](https://github.com/containers/skopeo/blob/main/docs/skopeo-delete.1.md)**
 
 ## HISTORY
 March 2017, Originally compiled by Dan Walsh <dwalsh@redhat.com>

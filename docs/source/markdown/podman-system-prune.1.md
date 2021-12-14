@@ -46,7 +46,7 @@ Print usage statement
 Prune volumes currently unused by any container
 
 ## SEE ALSO
-podman(1), podman-image-prune(1), podman-container-prune(1), podman-pod-prune(1), podman-volume-prune(1)
+**[podman(1)](podman.1.md)**, **[podman-system(1)](podman-system.1.md)**
 
 ## HISTORY
 February 2019, Originally compiled by Dan Walsh (dwalsh at redhat dot com)

@@ -23,9 +23,16 @@ Print usage statement.
 
 Sign all the manifests of the multi-architecture image (default false).
 
+#### **--authfile**=*path*
+
+Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json
+
+Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
+environment variable. `export REGISTRY_AUTH_FILE=path`
+
 #### **--cert-dir**=*path*
 
-Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
+Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry. (Default: /etc/containers/certs.d)
 Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client)
 
 #### **--directory**, **-d**=*dir*
@@ -40,6 +47,8 @@ Override the default identity of the signature.
 Sign the busybox image with the identity of foo@bar.com with a user's keyring and save the signature in /tmp/signatures/.
 
    sudo podman image sign --sign-by foo@bar.com --directory /tmp/signatures docker://privateregistry.example.com/foobar
+
+   sudo podman image sign --authfile=/tmp/foobar.json --sign-by foo@bar.com --directory /tmp/signatures docker://privateregistry.example.com/foobar
 
 ## RELATED CONFIGURATION
 
@@ -61,7 +70,7 @@ the signature will be written into sub-directories of
 the signature will be 'read' from that same location on a pull-related function.
 
 ## SEE ALSO
-containers-certs.d(5), containers-registries.d(5)
+**[containers-certs.d(5)](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)**, **[containers-registries.d(5)](https://github.com/containers/image/blob/main/docs/containers-registries.d.5.md)**
 
 ## HISTORY
 November 2018, Originally compiled by Qi Wang (qiwan at redhat dot com)

@@ -353,9 +353,12 @@ func (l *list) Add(ctx context.Context, sys *types.SystemContext, ref types.Imag
 			}
 			if instanceInfo.OS == "" {
 				instanceInfo.OS = config.OS
+				instanceInfo.OSVersion = config.OSVersion
+				instanceInfo.OSFeatures = config.OSFeatures
 			}
 			if instanceInfo.Architecture == "" {
 				instanceInfo.Architecture = config.Architecture
+				instanceInfo.Variant = config.Variant
 			}
 		}
 		manifestBytes, manifestType, err := src.GetManifest(ctx, instanceInfo.instanceDigest)

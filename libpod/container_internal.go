@@ -17,10 +17,10 @@ import (
 	"github.com/containers/buildah/copier"
 	"github.com/containers/buildah/pkg/overlay"
 	butil "github.com/containers/buildah/util"
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/chown"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
-	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/podman/v3/pkg/ctime"
 	"github.com/containers/podman/v3/pkg/hooks"
 	"github.com/containers/podman/v3/pkg/hooks/exec"
@@ -39,6 +39,7 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -290,7 +291,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 
 	// setup slirp4netns again because slirp4netns will die when conmon exits
 	if c.config.NetMode.IsSlirp4netns() {
-		err := c.runtime.setupSlirp4netns(c)
+		err := c.runtime.setupSlirp4netns(c, c.state.NetNS)
 		if err != nil {
 			return false, err
 		}
@@ -299,7 +300,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 	// setup rootlesskit port forwarder again since it dies when conmon exits
 	// we use rootlesskit port forwarder only as rootless and when bridge network is used
 	if rootless.IsRootless() && c.config.NetMode.IsBridge() && len(c.config.PortMappings) > 0 {
-		err := c.runtime.setupRootlessPortMappingViaRLK(c, c.state.NetNS.Path())
+		err := c.runtime.setupRootlessPortMappingViaRLK(c, c.state.NetNS.Path(), c.state.NetworkStatus)
 		if err != nil {
 			return false, err
 		}
@@ -496,9 +497,27 @@ func (c *Container) setupStorage(ctx context.Context) error {
 
 	c.setupStorageMapping(&options.IDMappingOptions, &c.config.IDMappings)
 
-	containerInfo, err := c.runtime.storageService.CreateContainerStorage(ctx, c.runtime.imageContext, c.config.RootfsImageName, c.config.RootfsImageID, c.config.Name, c.config.ID, options)
-	if err != nil {
-		return errors.Wrapf(err, "error creating container storage")
+	// Unless the user has specified a name, use a randomly generated one.
+	// Note that name conflicts may occur (see #11735), so we need to loop.
+	generateName := c.config.Name == ""
+	var containerInfo ContainerInfo
+	var containerInfoErr error
+	for {
+		if generateName {
+			name, err := c.runtime.generateName()
+			if err != nil {
+				return err
+			}
+			c.config.Name = name
+		}
+		containerInfo, containerInfoErr = c.runtime.storageService.CreateContainerStorage(ctx, c.runtime.imageContext, c.config.RootfsImageName, c.config.RootfsImageID, c.config.Name, c.config.ID, options)
+
+		if !generateName || errors.Cause(containerInfoErr) != storage.ErrDuplicateName {
+			break
+		}
+	}
+	if containerInfoErr != nil {
+		return errors.Wrapf(containerInfoErr, "error creating container storage")
 	}
 
 	// only reconfig IDMappings if layer was mounted from storage
@@ -981,9 +1000,6 @@ func (c *Container) completeNetworkSetup() error {
 	if err := c.syncContainer(); err != nil {
 		return err
 	}
-	if c.config.NetMode.IsSlirp4netns() {
-		return c.runtime.setupSlirp4netns(c)
-	}
 	if err := c.runtime.setupNetNS(c); err != nil {
 		return err
 	}
@@ -1034,8 +1050,8 @@ func (c *Container) cniHosts() string {
 	var hosts string
 	for _, status := range c.getNetworkStatus() {
 		for _, netInt := range status.Interfaces {
-			for _, netAddress := range netInt.Networks {
-				hosts += fmt.Sprintf("%s\t%s %s\n", netAddress.Subnet.IP.String(), c.Hostname(), c.config.Name)
+			for _, netAddress := range netInt.Subnets {
+				hosts += fmt.Sprintf("%s\t%s %s\n", netAddress.IPNet.IP.String(), c.Hostname(), c.config.Name)
 			}
 		}
 	}
@@ -1073,7 +1089,7 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	}
 
 	// With the spec complete, do an OCI create
-	if err := c.ociRuntime.CreateContainer(c, nil); err != nil {
+	if _, err = c.ociRuntime.CreateContainer(c, nil); err != nil {
 		// Fedora 31 is carrying a patch to display improved error
 		// messages to better handle the V2 transition. This is NOT
 		// upstream in any OCI runtime.
@@ -1577,14 +1593,49 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 		}()
 	}
 
+	rootUID, rootGID := c.RootUID(), c.RootGID()
+
+	dirfd, err := unix.Open(mountPoint, unix.O_RDONLY|unix.O_PATH, 0)
+	if err != nil {
+		return "", errors.Wrap(err, "open mount point")
+	}
+	defer unix.Close(dirfd)
+
+	err = unix.Mkdirat(dirfd, "etc", 0755)
+	if err != nil && !os.IsExist(err) {
+		return "", errors.Wrap(err, "create /etc")
+	}
+	// If the etc directory was created, chown it to root in the container
+	if err == nil && (rootUID != 0 || rootGID != 0) {
+		err = unix.Fchownat(dirfd, "etc", rootUID, rootGID, unix.AT_SYMLINK_NOFOLLOW)
+		if err != nil {
+			return "", errors.Wrap(err, "chown /etc")
+		}
+	}
+
+	etcInTheContainerPath, err := securejoin.SecureJoin(mountPoint, "etc")
+	if err != nil {
+		return "", errors.Wrap(err, "resolve /etc in the container")
+	}
+
+	etcInTheContainerFd, err := unix.Open(etcInTheContainerPath, unix.O_RDONLY|unix.O_PATH, 0)
+	if err != nil {
+		return "", errors.Wrap(err, "open /etc in the container")
+	}
+	defer unix.Close(etcInTheContainerFd)
+
 	// If /etc/mtab does not exist in container image, then we need to
 	// create it, so that mount command within the container will work.
-	mtab := filepath.Join(mountPoint, "/etc/mtab")
-	if err := idtools.MkdirAllAs(filepath.Dir(mtab), 0755, c.RootUID(), c.RootGID()); err != nil {
-		return "", errors.Wrap(err, "error creating mtab directory")
+	err = unix.Symlinkat("/proc/mounts", etcInTheContainerFd, "mtab")
+	if err != nil && !os.IsExist(err) {
+		return "", errors.Wrap(err, "creating /etc/mtab symlink")
 	}
-	if err = os.Symlink("/proc/mounts", mtab); err != nil && !os.IsExist(err) {
-		return "", err
+	// If the symlink was created, then also chown it to root in the container
+	if err == nil && (rootUID != 0 || rootGID != 0) {
+		err = unix.Fchownat(etcInTheContainerFd, "mtab", rootUID, rootGID, unix.AT_SYMLINK_NOFOLLOW)
+		if err != nil {
+			return "", errors.Wrap(err, "chown /etc/mtab")
+		}
 	}
 
 	// Request a mount of all named volumes

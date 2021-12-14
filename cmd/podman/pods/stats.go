@@ -67,17 +67,22 @@ func stats(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	row := report.NormalizeFormat(statsOptions.Format)
-	doJSON := report.IsJSON(row)
+	rpt := report.New(os.Stdout, cmd.Name())
+	defer rpt.Flush()
 
-	headers := report.Headers(entities.PodStatsReport{}, map[string]string{
-		"CPU":           "CPU %",
-		"MemUsage":      "MEM USAGE/ LIMIT",
-		"MemUsageBytes": "MEM USAGE/ LIMIT",
-		"MEM":           "MEM %",
-		"NET IO":        "NET IO",
-		"BlockIO":       "BLOCK IO",
-	})
+	var err error
+	doJSON := report.IsJSON(statsOptions.Format)
+	if !doJSON {
+		if cmd.Flags().Changed("format") {
+			rpt, err = rpt.Parse(report.OriginUser, statsOptions.Format)
+			if err != nil {
+				return err
+			}
+		} else {
+			rpt = rpt.Init(os.Stdout, 12, 2, 2, ' ', 0)
+			rpt.Origin = report.OriginPodman
+		}
+	}
 
 	for ; ; time.Sleep(time.Second) {
 		reports, err := registry.ContainerEngine().PodStats(context.Background(), args, statsOptions.PodStatsOptions)
@@ -86,28 +91,26 @@ func stats(cmd *cobra.Command, args []string) error {
 		}
 		// Print the stats in the requested format and configuration.
 		if doJSON {
-			if err := printJSONPodStats(reports); err != nil {
-				return err
-			}
+			err = printJSONPodStats(reports)
 		} else {
 			if !statsOptions.NoReset {
 				goterm.Clear()
 				goterm.MoveCursor(1, 1)
 				goterm.Flush()
 			}
-			if cmd.Flags().Changed("format") {
-				if err := printFormattedPodStatsLines(headers, row, reports); err != nil {
-					return err
-				}
+			if report.OriginUser == rpt.Origin {
+				err = userTemplate(rpt, reports)
 			} else {
-				printPodStatsLines(reports)
+				err = defaultTemplate(rpt, reports)
 			}
+		}
+		if err != nil {
+			return err
 		}
 		if statsOptions.NoStream {
 			break
 		}
 	}
-
 	return nil
 }
 
@@ -120,44 +123,38 @@ func printJSONPodStats(stats []*entities.PodStatsReport) error {
 	return nil
 }
 
-func printPodStatsLines(stats []*entities.PodStatsReport) error {
-	w, err := report.NewWriterDefault(os.Stdout)
-	if err != nil {
-		return err
-	}
-
+func defaultTemplate(rpt *report.Formatter, stats []*entities.PodStatsReport) error {
 	outFormat := "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n"
-	fmt.Fprintf(w, outFormat, "POD", "CID", "NAME", "CPU %", "MEM USAGE/ LIMIT", "MEM %", "NET IO", "BLOCK IO", "PIDS")
+	fmt.Fprintf(rpt.Writer(), outFormat, "POD", "CID", "NAME", "CPU %", "MEM USAGE/ LIMIT", "MEM %", "NET IO", "BLOCK IO", "PIDS")
 	if len(stats) == 0 {
-		fmt.Fprintf(w, outFormat, "--", "--", "--", "--", "--", "--", "--", "--", "--")
+		fmt.Fprintf(rpt.Writer(), outFormat, "--", "--", "--", "--", "--", "--", "--", "--", "--")
 	} else {
 		for _, i := range stats {
-			fmt.Fprintf(w, outFormat, i.Pod, i.CID, i.Name, i.CPU, i.MemUsage, i.Mem, i.NetIO, i.BlockIO, i.PIDS)
+			fmt.Fprintf(rpt.Writer(), outFormat, i.Pod, i.CID, i.Name, i.CPU, i.MemUsage, i.Mem, i.NetIO, i.BlockIO, i.PIDS)
 		}
 	}
-	return w.Flush()
+	return rpt.Flush()
 }
 
-func printFormattedPodStatsLines(headerNames []map[string]string, row string, stats []*entities.PodStatsReport) error {
+func userTemplate(rpt *report.Formatter, stats []*entities.PodStatsReport) error {
 	if len(stats) == 0 {
 		return nil
 	}
 
-	row = report.EnforceRange(row)
+	headers := report.Headers(entities.PodStatsReport{}, map[string]string{
+		"CPU":           "CPU %",
+		"MemUsage":      "MEM USAGE/ LIMIT",
+		"MemUsageBytes": "MEM USAGE/ LIMIT",
+		"MEM":           "MEM %",
+		"NET IO":        "NET IO",
+		"BlockIO":       "BLOCK IO",
+	})
 
-	tmpl, err := report.NewTemplate("stats").Parse(row)
-	if err != nil {
+	if err := rpt.Execute(headers); err != nil {
 		return err
 	}
-
-	w, err := report.NewWriterDefault(os.Stdout)
-	if err != nil {
+	if err := rpt.Execute(stats); err != nil {
 		return err
 	}
-	defer w.Flush()
-
-	if err := tmpl.Execute(w, headerNames); err != nil {
-		return err
-	}
-	return tmpl.Execute(w, stats)
+	return rpt.Flush()
 }

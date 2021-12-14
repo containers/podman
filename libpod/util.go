@@ -56,6 +56,7 @@ func WaitForFile(path string, chWait chan error, timeout time.Duration) (bool, e
 			inotifyEvents = watcher.Events
 		}
 		defer watcher.Close()
+		defer watcher.Remove(filepath.Dir(path))
 	}
 
 	var timeoutChan <-chan time.Time

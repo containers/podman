@@ -14,12 +14,16 @@ import (
 func TagImage(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
-	// /v1.xx/images/(name)/tag
 	name := utils.GetName(r)
+	possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, name)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+		return
+	}
 
 	// Allow tagging manifest list instead of resolving instances from manifest
 	lookupOptions := &libimage.LookupImageOptions{ManifestList: true}
-	newImage, _, err := runtime.LibimageRuntime().LookupImage(name, lookupOptions)
+	newImage, _, err := runtime.LibimageRuntime().LookupImage(possiblyNormalizedName, lookupOptions)
 	if err != nil {
 		utils.ImageNotFound(w, name, errors.Wrapf(err, "failed to find image %s", name))
 		return
@@ -35,7 +39,14 @@ func TagImage(w http.ResponseWriter, r *http.Request) {
 	}
 	repo := r.Form.Get("repo")
 	tagName := fmt.Sprintf("%s:%s", repo, tag)
-	if err := newImage.Tag(tagName); err != nil {
+
+	possiblyNormalizedTag, err := utils.NormalizeToDockerHub(r, tagName)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+		return
+	}
+
+	if err := newImage.Tag(possiblyNormalizedTag); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}

@@ -6,7 +6,6 @@ run:
   skip-dirs:
     - contrib
     - dependencies
-    - test
   skip-files:
     - swagger.go
   modules-download-mode: readonly

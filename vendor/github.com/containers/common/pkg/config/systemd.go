@@ -4,12 +4,12 @@ package config
 
 import (
 	"io/ioutil"
+	"path/filepath"
 	"strings"
 	"sync"
 
 	"github.com/containers/common/pkg/cgroupv2"
 	"github.com/containers/storage/pkg/unshare"
-	"github.com/coreos/go-systemd/v22/sdjournal"
 )
 
 var (
@@ -67,12 +67,20 @@ func useJournald() bool {
 		if !useSystemd() {
 			return
 		}
-		journal, err := sdjournal.NewJournal()
-		if err != nil {
-			return
+		for _, root := range []string{"/run/log/journal", "/var/log/journal"} {
+			dirs, err := ioutil.ReadDir(root)
+			if err != nil {
+				continue
+			}
+			for _, d := range dirs {
+				if d.IsDir() {
+					if _, err := ioutil.ReadDir(filepath.Join(root, d.Name())); err == nil {
+						usesJournald = true
+						return
+					}
+				}
+			}
 		}
-		journal.Close()
-		usesJournald = true
 		return
 	})
 	return usesJournald

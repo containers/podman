@@ -310,6 +310,11 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		if !exists {
 			return nil, errors.Errorf("Volume mount %s specified for container but not configured in volumes", volume.Name)
 		}
+		// Skip if the volume is optional. This means that a configmap for a configmap volume was not found but it was
+		// optional so we can move on without throwing an error
+		if exists && volumeSource.Optional {
+			continue
+		}
 
 		dest, options, err := parseMountPath(volume.MountPath, volume.ReadOnly)
 		if err != nil {
@@ -341,6 +346,13 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 				Options: options,
 			}
 			s.Volumes = append(s.Volumes, &namedVolume)
+		case KubeVolumeTypeConfigMap:
+			cmVolume := specgen.NamedVolume{
+				Dest:    volume.MountPath,
+				Name:    volumeSource.Source,
+				Options: options,
+			}
+			s.Volumes = append(s.Volumes, &cmVolume)
 		default:
 			return nil, errors.Errorf("Unsupported volume source type")
 		}

@@ -16,6 +16,21 @@ load helpers
     if  [[ ${output} = ${heading} ]]; then
        die "network ls --noheading did not remove heading: $output"
     fi
+
+    # check deterministic list order
+    local net1=a-$(random_string 10)
+    local net2=b-$(random_string 10)
+    local net3=c-$(random_string 10)
+    run_podman network create $net1
+    run_podman network create $net2
+    run_podman network create $net3
+
+    run_podman network ls --quiet
+    # just check the the order of the created networks is correct
+    # we cannot do an exact match since developer and CI systems could contain more networks
+    is "$output" ".*$net1.*$net2.*$net3.*podman.*" "networks sorted alphabetically"
+
+    run_podman network rm $net1 $net2 $net3
 }
 
 # Copied from tsweeney's https://github.com/containers/podman/issues/4827
@@ -78,6 +93,9 @@ load helpers
         if [[ -z $cidr ]]; then
             # regex to match that we are in 10.X subnet
             match="10\..*"
+            # force bridge networking also for rootless
+            # this ensures that rootless + bridge + userns + ports works
+            network_arg="--network bridge"
         else
             # Issue #9828 make sure a custom slir4netns cidr also works
             network_arg="--network slirp4netns:cidr=$cidr"
@@ -166,6 +184,13 @@ load helpers
     run_podman run -d --network $mynetname -p 127.0.0.1:$myport:$myport \
 	       $IMAGE nc -l -n -v -p $myport
     cid="$output"
+
+    # FIXME: debugging for #11871
+    run_podman exec $cid cat /etc/resolv.conf
+    if is_rootless && ! is_remote; then
+        run_podman unshare --rootless-cni cat /etc/resolv.conf
+    fi
+    ps uxww
 
     # check that dns is working inside the container
     run_podman exec $cid nslookup google.com
@@ -420,6 +445,7 @@ load helpers
     is "$output" "[${cid:0:12}]" "short container id in network aliases"
 
     run_podman network disconnect $netname $cid
+    is "$output" "" "Output should be empty (no errors)"
 
     # check that we cannot curl (timeout after 3 sec)
     run curl --max-time 3 -s $SERVER/index.txt
@@ -428,6 +454,7 @@ load helpers
     fi
 
     run_podman network connect $netname $cid
+    is "$output" "" "Output should be empty (no errors)"
 
     # curl should work again
     run curl --max-time 3 -s $SERVER/index.txt
@@ -444,6 +471,12 @@ load helpers
         die "MAC address did not change after podman network disconnect/connect"
     fi
 
+    # Disconnect/reconnect of a container *with no ports* should succeed quietly
+    run_podman network disconnect $netname $background_cid
+    is "$output" "" "disconnect of container with no open ports"
+    run_podman network connect $netname $background_cid
+    is "$output" "" "(re)connect of container with no open ports"
+
     # FIXME FIXME FIXME: #11825: bodhi tests are failing, remote+rootless only,
     # with "dnsmasq: failed to create inotify". This error has never occurred
     # in CI, and Ed has been unable to reproduce it on 1minutetip. This next
@@ -454,6 +487,7 @@ load helpers
 
     # connect a second network
     run_podman network connect $netname2 $cid
+    is "$output" "" "Output should be empty (no errors)"
 
     # check network2 alias for container short id
     run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname2\").Aliases}}"

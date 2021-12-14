@@ -5,14 +5,16 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/godbus/dbus/v5"
 	"github.com/pkg/errors"
@@ -42,9 +44,7 @@ func ExecCmdWithStdStreams(stdin io.Reader, stdout, stderr io.Writer, env []stri
 	cmd.Stdin = stdin
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
-	if env != nil {
-		cmd.Env = env
-	}
+	cmd.Env = env
 
 	err := cmd.Run()
 	if err != nil {
@@ -203,7 +203,17 @@ func moveProcessToScope(pidPath, slice, scope string) error {
 // MovePauseProcessToScope moves the pause process used for rootless mode to keep the namespaces alive to
 // a separate scope.
 func MovePauseProcessToScope(pausePidPath string) {
-	err := moveProcessToScope(pausePidPath, "user.slice", "podman-pause.scope")
+	var err error
+
+	state := rand.New(rand.NewSource(time.Now().UnixNano()))
+	for i := 0; i < 10; i++ {
+		r := state.Int()
+		err = moveProcessToScope(pausePidPath, "user.slice", fmt.Sprintf("podman-pause-%d.scope", r))
+		if err == nil {
+			return
+		}
+	}
+
 	if err != nil {
 		unified, err2 := cgroups.IsCgroup2UnifiedMode()
 		if err2 != nil {

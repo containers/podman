@@ -29,7 +29,7 @@ func Logs(ctx context.Context, nameOrID string, options *LogOptions, stdoutChan,
 	if options.Stdout == nil && options.Stderr == nil {
 		params.Set("stdout", strconv.FormatBool(true))
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/logs", params, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/containers/%s/logs", params, nil, nameOrID)
 	if err != nil {
 		return err
 	}

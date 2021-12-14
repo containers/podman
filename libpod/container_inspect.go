@@ -97,6 +97,16 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 		return nil, err
 	}
 
+	cgroupPath, err := c.cGroupPath()
+	if err != nil {
+		// Handle the case where the container is not running or has no cgroup.
+		if errors.Is(err, define.ErrNoCgroups) || errors.Is(err, define.ErrCtrStopped) {
+			cgroupPath = ""
+		} else {
+			return nil, err
+		}
+	}
+
 	data := &define.InspectContainerData{
 		ID:      config.ID,
 		Created: config.CreatedTime,
@@ -116,10 +126,10 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 			StartedAt:    runtimeInfo.StartedTime,
 			FinishedAt:   runtimeInfo.FinishedTime,
 			Checkpointed: runtimeInfo.Checkpointed,
+			CgroupPath:   cgroupPath,
 		},
 		Image:           config.RootfsImageID,
 		ImageName:       config.RootfsImageName,
-		ExitCommand:     config.ExitCommand,
 		Namespace:       config.Namespace,
 		Rootfs:          config.Rootfs,
 		Pod:             config.Pod,
@@ -300,8 +310,7 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 	ctrConfig.User = c.config.User
 	if spec.Process != nil {
 		ctrConfig.Tty = spec.Process.Terminal
-		ctrConfig.Env = []string{}
-		ctrConfig.Env = append(ctrConfig.Env, spec.Process.Env...)
+		ctrConfig.Env = append([]string{}, spec.Process.Env...)
 		ctrConfig.WorkingDir = spec.Process.Cwd
 	}
 

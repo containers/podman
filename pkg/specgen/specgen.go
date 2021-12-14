@@ -194,6 +194,13 @@ type ContainerBasicConfig struct {
 	// The execution domain system allows Linux to provide limited support
 	// for binaries compiled under other UNIX-like operating systems.
 	Personality *spec.LinuxPersonality `json:"personality,omitempty"`
+	// UnsetEnv unsets the specified default environment variables from the image or from buildin or containers.conf
+	// Optional.
+	UnsetEnv []string `json:"unsetenv,omitempty"`
+	// UnsetEnvAll unsetall default environment variables from the image or from buildin or containers.conf
+	// UnsetEnvAll unsets all default environment variables from the image or from buildin
+	// Optional.
+	UnsetEnvAll bool `json:"unsetenvall,omitempty"`
 }
 
 // ContainerStorageConfig contains information on the storage configuration of a
@@ -272,6 +279,10 @@ type ContainerStorageConfig struct {
 	// If unset, the default, /, will be used.
 	// Optional.
 	WorkDir string `json:"work_dir,omitempty"`
+	// Create the working directory if it doesn't exist.
+	// If unset, it doesn't create it.
+	// Optional.
+	CreateWorkingDir bool `json:"create_working_dir,omitempty"`
 	// StorageOpts is the container's storage options
 	// Optional.
 	StorageOpts map[string]string `json:"storage_opts,omitempty"`
@@ -536,6 +547,7 @@ func (s *SpecGenerator) GetImage() (*libimage.Image, string) {
 
 type Secret struct {
 	Source string
+	Target string
 	UID    uint32
 	GID    uint32
 	Mode   uint32

@@ -77,10 +77,17 @@ Import a checkpoint tar.gz file, which was exported by Podman. This can be used
 to import a checkpointed *container* from another host.\
 *IMPORTANT: This OPTION does not need a container name or ID as input argument.*
 
+During the import of a checkpoint file Podman will select the same container runtime
+which was used during checkpointing. This is especially important if a specific
+(non-default) container runtime was specified during container creation. Podman will
+also abort the restore if the container runtime specified during restore does
+not much the container runtime used for container creation.
+
 #### **--import-previous**=*file*
 
 Import a pre-checkpoint tar.gz file which was exported by Podman. This option
 must be used with **-i** or **--import**. It only works on `runc 1.0-rc3` or `higher`.
+*IMPORTANT: This OPTION is not supported on the remote client.*
 
 #### **--name**, **-n**=*name*
 
@@ -102,6 +109,30 @@ from (see **[podman pod create --share](podman-pod-create.1.md#--share)**).
 
 This option requires at least CRIU 3.16.
 
+#### **--print-stats**
+
+Print out statistics about restoring the container(s). The output is
+rendered in a JSON array and contains information about how much time different
+restore operations required. Many of the restore statistics are created
+by CRIU and just passed through to Podman. The following information is provided
+in the JSON array:
+
+- **podman_restore_duration**: Overall time (in microseconds) needed to restore
+  all checkpoints.
+
+- **runtime_restore_duration**: Time (in microseconds) the container runtime
+  needed to restore the checkpoint.
+
+- **forking_time**: Time (in microseconds) CRIU needed to create (fork) all
+  processes in the restored container (measured by CRIU).
+
+- **restore_time**: Time (in microseconds) CRIU needed to restore all processes
+  in the container (measured by CRIU).
+
+- **pages_restored**: Number of memory pages restored (measured by CRIU).
+
+The default is **false**.
+
 #### **--publish**, **-p**=*port*
 
 Replaces the ports that the *container* publishes, as configured during the
@@ -116,6 +147,14 @@ contains established TCP connections, this option is required during restore.
 If the checkpoint image does not contain established TCP connections this
 option is ignored. Defaults to not restoring *containers* with established TCP
 connections.\
+The default is **false**.
+
+#### **--file-locks**
+
+Restore a *container* with file locks. This option is required to
+restore file locks from a checkpoint image. If the checkpoint image
+does not contain file locks, this option is ignored. Defaults to not
+restoring file locks.\
 The default is **false**.
 
 ## EXAMPLE
@@ -137,7 +176,7 @@ $ podman run --rm -p 2345:80 -d webserver
 ```
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-container-checkpoint(1)](podman-container-checkpoint.1.md)**, **[podman-run(1)](podman-run.1.md)**, **[podman-pod-create(1)](podman-pod-create.1.md)**
+**[podman(1)](podman.1.md)**, **[podman-container-checkpoint(1)](podman-container-checkpoint.1.md)**, **[podman-run(1)](podman-run.1.md)**, **[podman-pod-create(1)](podman-pod-create.1.md)**, **criu(8)**
 
 ## HISTORY
 September 2018, Originally compiled by Adrian Reber <areber@redhat.com>

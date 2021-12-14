@@ -80,7 +80,7 @@ func (e *Endpoint) rewriteReference(ref reference.Named, prefix string) (referen
 	// be dropped.
 	// https://github.com/containers/image/pull/1191#discussion_r610621608
 	if e.Location == "" {
-		if prefix[:2] != "*." {
+		if !strings.HasPrefix(prefix, "*.") {
 			return nil, fmt.Errorf("invalid prefix '%v' for empty location, should be in the format: *.example.com", prefix)
 		}
 		return ref, nil
@@ -369,7 +369,7 @@ func (config *V2RegistriesConf) postProcessRegistries() error {
 			}
 			// FIXME: allow config authors to always use Prefix.
 			// https://github.com/containers/image/pull/1191#discussion_r610622495
-			if reg.Prefix[:2] != "*." && reg.Location == "" {
+			if !strings.HasPrefix(reg.Prefix, "*.") && reg.Location == "" {
 				return &InvalidRegistries{s: "invalid condition: location is unset and prefix is not in the format: *.example.com"}
 			}
 		}
@@ -804,7 +804,7 @@ func refMatchingSubdomainPrefix(ref, prefix string) int {
 // (This is split from the caller primarily to make testing easier.)
 func refMatchingPrefix(ref, prefix string) int {
 	switch {
-	case prefix[0:2] == "*.":
+	case strings.HasPrefix(prefix, "*."):
 		return refMatchingSubdomainPrefix(ref, prefix)
 	case len(ref) < len(prefix):
 		return -1
@@ -924,7 +924,7 @@ func loadConfigFile(path string, forceV2 bool) (*parsedConfig, error) {
 	// https://github.com/containers/image/pull/1191#discussion_r610623829
 	for i := range res.partialV2.Registries {
 		prefix := res.partialV2.Registries[i].Prefix
-		if prefix[:2] == "*." && strings.ContainsAny(prefix, "/@:") {
+		if strings.HasPrefix(prefix, "*.") && strings.ContainsAny(prefix, "/@:") {
 			msg := fmt.Sprintf("Wildcarded prefix should be in the format: *.example.com. Current prefix %q is incorrectly formatted", prefix)
 			return nil, &InvalidRegistries{s: msg}
 		}

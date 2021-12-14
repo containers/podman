@@ -149,12 +149,12 @@ function check_help() {
         count=$(expr $count + 1)
     done
 
-    # Any command that takes subcommands, must throw error if called
+    # Any command that takes subcommands, prints its help and errors if called
     # without one.
     dprint "podman $@"
     run_podman '?' "$@"
     is "$status" 125 "'podman $*' without any subcommand - exit status"
-    is "$output" "Error: missing command .*$@ COMMAND" \
+    is "$output" ".*Usage:.*Error: missing command '.*$@ COMMAND'" \
        "'podman $*' without any subcommand - expected error message"
 
     # Assume that 'NoSuchCommand' is not a command

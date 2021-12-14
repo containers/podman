@@ -291,5 +291,5 @@ same network namespace, the DB and Web container can communicate with each other
 using localhost (127.0.0.1).  Furthermore, they are also both addressable by the
 IP address (and DNS name if applicable) assigned to the Pod itself.
 
-For more information on container to container networking, see Configuring container
-networking with Podman.
+For more information on container to container networking, see [Configuring container
+networking with Podman](https://www.redhat.com/sysadmin/container-networking-podman).

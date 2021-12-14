@@ -66,6 +66,7 @@ func ValidateVolumeOpts(options []string) ([]string, error) {
 			// are intended to be always safe to use, even not on OS
 			// X).
 			continue
+		case "idmap":
 		default:
 			return nil, errors.Errorf("invalid option type %q", opt)
 		}

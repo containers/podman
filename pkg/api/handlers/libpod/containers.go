@@ -1,9 +1,11 @@
 package libpod
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
@@ -206,7 +208,9 @@ func ShowMountedContainers(w http.ResponseWriter, r *http.Request) {
 }
 
 func Checkpoint(w http.ResponseWriter, r *http.Request) {
-	var targetFile string
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	containerEngine := abi.ContainerEngine{Libpod: runtime}
+
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
 		Keep           bool `schema:"keep"`
@@ -214,6 +218,10 @@ func Checkpoint(w http.ResponseWriter, r *http.Request) {
 		TCPEstablished bool `schema:"tcpEstablished"`
 		Export         bool `schema:"export"`
 		IgnoreRootFS   bool `schema:"ignoreRootFS"`
+		PrintStats     bool `schema:"printStats"`
+		PreCheckpoint  bool `schema:"preCheckpoint"`
+		WithPrevious   bool `schema:"withPrevious"`
+		FileLocks      bool `schema:"fileLocks"`
 	}{
 		// override any golang type defaults
 	}
@@ -223,57 +231,71 @@ func Checkpoint(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
+
 	name := utils.GetName(r)
-	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	ctr, err := runtime.LookupContainer(name)
-	if err != nil {
+	if _, err := runtime.LookupContainer(name); err != nil {
 		utils.ContainerNotFound(w, name, err)
 		return
 	}
+	names := []string{name}
+
+	options := entities.CheckpointOptions{
+		Keep:           query.Keep,
+		LeaveRunning:   query.LeaveRunning,
+		TCPEstablished: query.TCPEstablished,
+		IgnoreRootFS:   query.IgnoreRootFS,
+		PrintStats:     query.PrintStats,
+		PreCheckPoint:  query.PreCheckpoint,
+		WithPrevious:   query.WithPrevious,
+		FileLocks:      query.FileLocks,
+	}
+
 	if query.Export {
-		tmpFile, err := ioutil.TempFile("", "checkpoint")
+		f, err := ioutil.TempFile("", "checkpoint")
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return
 		}
-		defer os.Remove(tmpFile.Name())
-		if err := tmpFile.Close(); err != nil {
+		defer os.Remove(f.Name())
+		if err := f.Close(); err != nil {
 			utils.InternalServerError(w, err)
 			return
 		}
-		targetFile = tmpFile.Name()
+		options.Export = f.Name()
 	}
-	options := libpod.ContainerCheckpointOptions{
-		Keep:           query.Keep,
-		KeepRunning:    query.LeaveRunning,
-		TCPEstablished: query.TCPEstablished,
-		IgnoreRootfs:   query.IgnoreRootFS,
-	}
-	if query.Export {
-		options.TargetFile = targetFile
-	}
-	err = ctr.Checkpoint(r.Context(), options)
+
+	reports, err := containerEngine.ContainerCheckpoint(r.Context(), names, options)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
-	if query.Export {
-		f, err := os.Open(targetFile)
-		if err != nil {
-			utils.InternalServerError(w, err)
+
+	if !query.Export {
+		if len(reports) != 1 {
+			utils.InternalServerError(w, fmt.Errorf("expected 1 restore report but got %d", len(reports)))
 			return
 		}
-		defer f.Close()
-		utils.WriteResponse(w, http.StatusOK, f)
+		if reports[0].Err != nil {
+			utils.InternalServerError(w, reports[0].Err)
+			return
+		}
+		utils.WriteResponse(w, http.StatusOK, reports[0])
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, entities.CheckpointReport{Id: ctr.ID()})
+
+	f, err := os.Open(options.Export)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+	defer f.Close()
+	utils.WriteResponse(w, http.StatusOK, f)
 }
 
 func Restore(w http.ResponseWriter, r *http.Request) {
-	var (
-		targetFile string
-	)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	containerEngine := abi.ContainerEngine{Libpod: runtime}
+
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
 		Keep            bool   `schema:"keep"`
@@ -284,6 +306,9 @@ func Restore(w http.ResponseWriter, r *http.Request) {
 		IgnoreVolumes   bool   `schema:"ignoreVolumes"`
 		IgnoreStaticIP  bool   `schema:"ignoreStaticIP"`
 		IgnoreStaticMAC bool   `schema:"ignoreStaticMAC"`
+		PrintStats      bool   `schema:"printStats"`
+		FileLocks       bool   `schema:"fileLocks"`
+		PublishPorts    string `schema:"publishPorts"`
 	}{
 		// override any golang type defaults
 	}
@@ -292,44 +317,56 @@ func Restore(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-	name := utils.GetName(r)
-	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	ctr, err := runtime.LookupContainer(name)
-	if err != nil {
-		utils.ContainerNotFound(w, name, err)
-		return
+
+	options := entities.RestoreOptions{
+		Name:            query.Name,
+		Keep:            query.Keep,
+		TCPEstablished:  query.TCPEstablished,
+		IgnoreRootFS:    query.IgnoreRootFS,
+		IgnoreVolumes:   query.IgnoreVolumes,
+		IgnoreStaticIP:  query.IgnoreStaticIP,
+		IgnoreStaticMAC: query.IgnoreStaticMAC,
+		PrintStats:      query.PrintStats,
+		FileLocks:       query.FileLocks,
+		PublishPorts:    strings.Fields(query.PublishPorts),
 	}
+
+	var names []string
 	if query.Import {
 		t, err := ioutil.TempFile("", "restore")
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return
 		}
-		defer t.Close()
+		defer os.Remove(t.Name())
 		if err := compat.SaveFromBody(t, r); err != nil {
 			utils.InternalServerError(w, err)
 			return
 		}
-		targetFile = t.Name()
+		options.Import = t.Name()
+	} else {
+		name := utils.GetName(r)
+		if _, err := runtime.LookupContainer(name); err != nil {
+			utils.ContainerNotFound(w, name, err)
+			return
+		}
+		names = []string{name}
 	}
 
-	options := libpod.ContainerCheckpointOptions{
-		Keep:            query.Keep,
-		TCPEstablished:  query.TCPEstablished,
-		IgnoreRootfs:    query.IgnoreRootFS,
-		IgnoreStaticIP:  query.IgnoreStaticIP,
-		IgnoreStaticMAC: query.IgnoreStaticMAC,
-	}
-	if query.Import {
-		options.TargetFile = targetFile
-		options.Name = query.Name
-	}
-	err = ctr.Restore(r.Context(), options)
+	reports, err := containerEngine.ContainerRestore(r.Context(), names, options)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, entities.RestoreReport{Id: ctr.ID()})
+	if len(reports) != 1 {
+		utils.InternalServerError(w, fmt.Errorf("expected 1 restore report but got %d", len(reports)))
+		return
+	}
+	if reports[0].Err != nil {
+		utils.InternalServerError(w, reports[0].Err)
+		return
+	}
+	utils.WriteResponse(w, http.StatusOK, reports[0])
 }
 
 func InitContainer(w http.ResponseWriter, r *http.Request) {

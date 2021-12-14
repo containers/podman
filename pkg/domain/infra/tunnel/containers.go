@@ -302,6 +302,17 @@ func (ic *ContainerEngine) ContainerExport(ctx context.Context, nameOrID string,
 }
 
 func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds []string, opts entities.CheckpointOptions) ([]*entities.CheckpointReport, error) {
+	options := new(containers.CheckpointOptions)
+	options.WithFileLocks(opts.FileLocks)
+	options.WithIgnoreRootfs(opts.IgnoreRootFS)
+	options.WithKeep(opts.Keep)
+	options.WithExport(opts.Export)
+	options.WithTCPEstablished(opts.TCPEstablished)
+	options.WithPrintStats(opts.PrintStats)
+	options.WithPreCheckpoint(opts.PreCheckPoint)
+	options.WithLeaveRunning(opts.LeaveRunning)
+	options.WithWithPrevious(opts.WithPrevious)
+
 	var (
 		err  error
 		ctrs = []entities.ListContainer{}
@@ -325,19 +336,41 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 		}
 	}
 	reports := make([]*entities.CheckpointReport, 0, len(ctrs))
-	options := new(containers.CheckpointOptions).WithExport(opts.Export).WithIgnoreRootfs(opts.IgnoreRootFS).WithKeep(opts.Keep)
-	options.WithLeaveRunning(opts.LeaveRunning).WithTCPEstablished(opts.TCPEstablished)
 	for _, c := range ctrs {
 		report, err := containers.Checkpoint(ic.ClientCtx, c.ID, options)
 		if err != nil {
 			reports = append(reports, &entities.CheckpointReport{Id: c.ID, Err: err})
+		} else {
+			reports = append(reports, report)
 		}
-		reports = append(reports, report)
 	}
 	return reports, nil
 }
 
 func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []string, opts entities.RestoreOptions) ([]*entities.RestoreReport, error) {
+	if opts.ImportPrevious != "" {
+		return nil, fmt.Errorf("--import-previous is not supported on the remote client")
+	}
+
+	options := new(containers.RestoreOptions)
+	options.WithFileLocks(opts.FileLocks)
+	options.WithIgnoreRootfs(opts.IgnoreRootFS)
+	options.WithIgnoreVolumes(opts.IgnoreVolumes)
+	options.WithIgnoreStaticIP(opts.IgnoreStaticIP)
+	options.WithIgnoreStaticMAC(opts.IgnoreStaticMAC)
+	options.WithKeep(opts.Keep)
+	options.WithName(opts.Name)
+	options.WithTCPEstablished(opts.TCPEstablished)
+	options.WithPod(opts.Pod)
+	options.WithPrintStats(opts.PrintStats)
+	options.WithPublishPorts(opts.PublishPorts)
+
+	if opts.Import != "" {
+		options.WithImportAchive(opts.Import)
+		report, err := containers.Restore(ic.ClientCtx, "", options)
+		return []*entities.RestoreReport{report}, err
+	}
+
 	var (
 		err  error
 		ctrs = []entities.ListContainer{}
@@ -360,7 +393,6 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		}
 	}
 	reports := make([]*entities.RestoreReport, 0, len(ctrs))
-	options := new(containers.RestoreOptions)
 	for _, c := range ctrs {
 		report, err := containers.Restore(ic.ClientCtx, c.ID, options)
 		if err != nil {

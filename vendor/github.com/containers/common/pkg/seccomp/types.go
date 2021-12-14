@@ -6,8 +6,12 @@ package seccomp
 
 // Seccomp represents the config for a seccomp profile for syscall restriction.
 type Seccomp struct {
-	DefaultAction   Action `json:"defaultAction"`
+	DefaultAction Action `json:"defaultAction"`
+
+	// DefaultErrnoRet is obsolete, please use DefaultErrno
 	DefaultErrnoRet *uint  `json:"defaultErrnoRet,omitempty"`
+	DefaultErrno    string `json:"defaultErrno,omitempty"`
+
 	// Architectures is kept to maintain backward compatibility with the old
 	// seccomp profile.
 	Architectures []Arch         `json:"architectures,omitempty"`
@@ -107,5 +111,7 @@ type Syscall struct {
 	Comment  string   `json:"comment"`
 	Includes Filter   `json:"includes"`
 	Excludes Filter   `json:"excludes"`
-	ErrnoRet *uint    `json:"errnoRet,omitempty"`
+	// ErrnoRet is obsolete, please use Errno
+	ErrnoRet *uint  `json:"errnoRet,omitempty"`
+	Errno    string `json:"errno,omitempty"`
 }

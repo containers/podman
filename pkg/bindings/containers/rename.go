@@ -20,7 +20,7 @@ func Rename(ctx context.Context, nameOrID string, options *RenameOptions) error 
 	if err != nil {
 		return err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/rename", params, nil, nameOrID)
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/containers/%s/rename", params, nil, nameOrID)
 	if err != nil {
 		return err
 	}

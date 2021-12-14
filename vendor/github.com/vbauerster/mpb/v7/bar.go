@@ -8,6 +8,7 @@ import (
 	"log"
 	"runtime/debug"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/acarl005/stripansi"
@@ -50,11 +51,11 @@ type bState struct {
 	total             int64
 	current           int64
 	refill            int64
-	lastN             int64
-	iterated          bool
+	lastIncrement     int64
 	trimSpace         bool
 	completed         bool
 	completeFlushed   bool
+	aborted           bool
 	triggerComplete   bool
 	dropOnComplete    bool
 	noPop             bool
@@ -189,8 +190,7 @@ func (b *Bar) SetTotal(total int64, triggerComplete bool) {
 func (b *Bar) SetCurrent(current int64) {
 	select {
 	case b.operateState <- func(s *bState) {
-		s.iterated = true
-		s.lastN = current - s.current
+		s.lastIncrement = current - s.current
 		s.current = current
 		if s.triggerComplete && s.current >= s.total {
 			s.current = s.total
@@ -214,10 +214,12 @@ func (b *Bar) IncrBy(n int) {
 
 // IncrInt64 increments progress by amount of n.
 func (b *Bar) IncrInt64(n int64) {
+	if n <= 0 {
+		return
+	}
 	select {
 	case b.operateState <- func(s *bState) {
-		s.iterated = true
-		s.lastN = n
+		s.lastIncrement = n
 		s.current += n
 		if s.triggerComplete && s.current >= s.total {
 			s.current = s.total
@@ -236,10 +238,18 @@ func (b *Bar) IncrInt64(n int64) {
 func (b *Bar) DecoratorEwmaUpdate(dur time.Duration) {
 	select {
 	case b.operateState <- func(s *bState) {
-		ewmaIterationUpdate(false, s, dur)
+		if s.lastIncrement > 0 {
+			s.decoratorEwmaUpdate(dur)
+			s.lastIncrement = 0
+		} else {
+			panic("increment required before ewma iteration update")
+		}
 	}:
 	case <-b.done:
-		ewmaIterationUpdate(true, b.cacheState, dur)
+		if b.cacheState.lastIncrement > 0 {
+			b.cacheState.decoratorEwmaUpdate(dur)
+			b.cacheState.lastIncrement = 0
+		}
 	}
 }
 
@@ -249,9 +259,7 @@ func (b *Bar) DecoratorEwmaUpdate(dur time.Duration) {
 func (b *Bar) DecoratorAverageAdjust(start time.Time) {
 	select {
 	case b.operateState <- func(s *bState) {
-		for _, d := range s.averageDecorators {
-			d.AverageAdjust(start)
-		}
+		s.decoratorAverageAdjust(start)
 	}:
 	case <-b.done:
 	}
@@ -275,6 +283,8 @@ func (b *Bar) Abort(drop bool) {
 			close(done)
 			return
 		}
+		s.aborted = true
+		b.cancel()
 		// container must be run during lifetime of this inner goroutine
 		// we control this by done channel declared above
 		go func() {
@@ -295,7 +305,6 @@ func (b *Bar) Abort(drop bool) {
 			}
 			close(done) // release hold of Abort
 		}()
-		b.cancel()
 	}:
 		// guarantee: container is alive during lifetime of this hold
 		<-done
@@ -321,10 +330,7 @@ func (b *Bar) serve(ctx context.Context, s *bState) {
 		case op := <-b.operateState:
 			op(s)
 		case <-ctx.Done():
-			// Notifying decorators about shutdown event
-			for _, sl := range s.shutdownListeners {
-				sl.Shutdown()
-			}
+			s.decoratorShutdownNotify()
 			b.cacheState = s
 			close(b.done)
 			return
@@ -481,6 +487,45 @@ func (s *bState) wSyncTable() [][]chan int {
 	return table
 }
 
+func (s bState) decoratorEwmaUpdate(dur time.Duration) {
+	wg := new(sync.WaitGroup)
+	wg.Add(len(s.ewmaDecorators))
+	for _, d := range s.ewmaDecorators {
+		d := d
+		go func() {
+			d.EwmaUpdate(s.lastIncrement, dur)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+}
+
+func (s bState) decoratorAverageAdjust(start time.Time) {
+	wg := new(sync.WaitGroup)
+	wg.Add(len(s.averageDecorators))
+	for _, d := range s.averageDecorators {
+		d := d
+		go func() {
+			d.AverageAdjust(start)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+}
+
+func (s bState) decoratorShutdownNotify() {
+	wg := new(sync.WaitGroup)
+	wg.Add(len(s.shutdownListeners))
+	for _, d := range s.shutdownListeners {
+		d := d
+		go func() {
+			d.Shutdown()
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+}
+
 func newStatistics(tw int, s *bState) decor.Statistics {
 	return decor.Statistics{
 		ID:             s.id,
@@ -489,6 +534,7 @@ func newStatistics(tw int, s *bState) decor.Statistics {
 		Current:        s.current,
 		Refill:         s.refill,
 		Completed:      s.completeFlushed,
+		Aborted:        s.aborted,
 	}
 }
 
@@ -497,17 +543,6 @@ func extractBaseDecorator(d decor.Decorator) decor.Decorator {
 		return extractBaseDecorator(d.Base())
 	}
 	return d
-}
-
-func ewmaIterationUpdate(done bool, s *bState, dur time.Duration) {
-	if !done && !s.iterated {
-		panic("increment required before ewma iteration update")
-	} else {
-		s.iterated = false
-	}
-	for _, d := range s.ewmaDecorators {
-		d.EwmaUpdate(s.lastN, dur)
-	}
 }
 
 func makePanicExtender(p interface{}) extenderFunc {

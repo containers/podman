@@ -45,7 +45,7 @@ func Kube(ctx context.Context, path string, options *KubeOptions) (*entities.Pla
 		return nil, err
 	}
 
-	response, err := conn.DoRequest(f, http.MethodPost, "/play/kube", params, header)
+	response, err := conn.DoRequest(ctx, f, http.MethodPost, "/play/kube", params, header)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func KubeDown(ctx context.Context, path string) (*entities.PlayKubeReport, error
 			logrus.Warn(err)
 		}
 	}()
-	response, err := conn.DoRequest(f, http.MethodDelete, "/play/kube", nil, nil)
+	response, err := conn.DoRequest(ctx, f, http.MethodDelete, "/play/kube", nil, nil)
 	if err != nil {
 		return nil, err
 	}

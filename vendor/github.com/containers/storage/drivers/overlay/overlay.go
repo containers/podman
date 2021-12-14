@@ -155,6 +155,15 @@ func hasMetacopyOption(opts []string) bool {
 	return false
 }
 
+func stripOption(opts []string, option string) []string {
+	for i, s := range opts {
+		if s == option {
+			return stripOption(append(opts[:i], opts[i+1:]...), option)
+		}
+	}
+	return opts
+}
+
 func hasVolatileOption(opts []string) bool {
 	for _, s := range opts {
 		if s == "volatile" {
@@ -881,11 +890,18 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, disable
 	if err != nil {
 		return err
 	}
+
+	idPair := idtools.IDPair{
+		UID: rootUID,
+		GID: rootGID,
+	}
+
 	// Make the link directory if it does not exist
-	if err := idtools.MkdirAllAs(path.Join(d.home, linkDir), 0700, rootUID, rootGID); err != nil {
+	if err := idtools.MkdirAllAndChownNew(path.Join(d.home, linkDir), 0700, idPair); err != nil {
 		return err
 	}
-	if err := idtools.MkdirAllAs(path.Dir(dir), 0700, rootUID, rootGID); err != nil {
+
+	if err := idtools.MkdirAllAndChownNew(path.Dir(dir), 0700, idPair); err != nil {
 		return err
 	}
 	if parent != "" {
@@ -896,7 +912,7 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, disable
 		rootUID = int(st.UID())
 		rootGID = int(st.GID())
 	}
-	if err := idtools.MkdirAs(dir, 0700, rootUID, rootGID); err != nil {
+	if err := idtools.MkdirAllAndChownNew(dir, 0700, idPair); err != nil {
 		return err
 	}
 
@@ -1175,7 +1191,7 @@ func (d *Driver) recreateSymlinks() error {
 			// Read the "link" file under each layer to get the name of the symlink
 			data, err := ioutil.ReadFile(path.Join(d.dir(dir.Name()), "link"))
 			if err != nil {
-				errs = multierror.Append(errs, errors.Wrapf(err, "reading name of symlink for %q", dir))
+				errs = multierror.Append(errs, errors.Wrapf(err, "reading name of symlink for %q", dir.Name()))
 				continue
 			}
 			linkPath := path.Join(d.home, linkDir, strings.Trim(string(data), "\n"))
@@ -1254,6 +1270,10 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		disableShifting = true
 	}
 
+	logLevel := logrus.WarnLevel
+	if unshare.IsRootless() {
+		logLevel = logrus.DebugLevel
+	}
 	optsList := options.Options
 	if len(optsList) == 0 {
 		optsList = strings.Split(d.options.mountOptions, ",")
@@ -1262,16 +1282,18 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		// options otherwise the kernel refuses to follow the metacopy xattr.
 		if hasMetacopyOption(strings.Split(d.options.mountOptions, ",")) && !hasMetacopyOption(options.Options) {
 			if d.usingMetacopy {
+				logrus.StandardLogger().Logf(logrus.DebugLevel, "Adding metacopy option, configured globally")
 				optsList = append(optsList, "metacopy=on")
-			} else {
-				logLevel := logrus.WarnLevel
-				if unshare.IsRootless() {
-					logLevel = logrus.DebugLevel
-				}
-				logrus.StandardLogger().Logf(logLevel, "Ignoring metacopy option from storage.conf, not supported with booted kernel")
 			}
 		}
 	}
+	if !d.usingMetacopy {
+		if hasMetacopyOption(optsList) {
+			logrus.StandardLogger().Logf(logLevel, "Ignoring global metacopy option, not supported with booted kernel")
+		}
+		optsList = stripOption(optsList, "metacopy=on")
+	}
+
 	for _, o := range optsList {
 		if o == "ro" {
 			readWrite = false

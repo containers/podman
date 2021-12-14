@@ -215,8 +215,10 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 	case report.IsJSON(i.options.Format) || i.options.Format == "":
 		err = printJSON(data)
 	default:
+		// Landing here implies user has given a custom --format
 		row := inspectNormalize(i.options.Format)
-		row = "{{range . }}" + report.NormalizeFormat(row) + "{{end -}}"
+		row = report.NormalizeFormat(row)
+		row = report.EnforceRange(row)
 		err = printTmpl(tmpType, row, data)
 	}
 	if err != nil {

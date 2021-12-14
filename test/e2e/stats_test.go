@@ -148,7 +148,7 @@ var _ = Describe("Podman stats", func() {
 		stats := podmanTest.Podman([]string{"stats", "--all", "--no-stream", "--format", "json"})
 		stats.WaitWithDefaultTimeout()
 		Expect(stats).Should(Exit(0))
-		Expect(stats.IsJSONOutputValid()).To(BeTrue())
+		Expect(stats.OutputToString()).To(BeValidJSON())
 	})
 
 	It("podman stats on a container with no net ns", func() {
@@ -213,7 +213,7 @@ var _ = Describe("Podman stats", func() {
 		// We have three containers.  The unlimited ones need to have
 		// the same limit, the limited one a lower one.
 		limits := session.OutputToStringArray()
-		Expect(len(limits)).To(BeNumerically("==", 3))
+		Expect(limits).To(HaveLen(3))
 		Expect(limits[0]).To(Equal(limits[1]))
 		Expect(limits[0]).ToNot(Equal(limits[2]))
 

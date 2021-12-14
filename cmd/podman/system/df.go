@@ -54,23 +54,19 @@ func df(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	w, err := report.NewWriterDefault(os.Stdout)
-	if err != nil {
-		return err
-	}
-
 	if dfOptions.Verbose {
-		return printVerbose(w, cmd, reports)
+		return printVerbose(cmd, reports)
 	}
-	return printSummary(w, cmd, reports)
+	return printSummary(cmd, reports)
 }
 
-func printSummary(w *report.Writer, cmd *cobra.Command, reports *entities.SystemDfReport) error {
+func printSummary(cmd *cobra.Command, reports *entities.SystemDfReport) error {
 	var (
 		dfSummaries       []*dfSummary
 		active            int
 		size, reclaimable int64
 	)
+
 	for _, i := range reports.Images {
 		if i.Containers > 0 {
 			active++
@@ -136,17 +132,28 @@ func printSummary(w *report.Writer, cmd *cobra.Command, reports *entities.System
 		"Size":        "SIZE",
 		"Reclaimable": "RECLAIMABLE",
 	})
-	row := "{{.Type}}\t{{.Total}}\t{{.Active}}\t{{.Size}}\t{{.Reclaimable}}\n"
+
+	rpt := report.New(os.Stdout, cmd.Name())
+	defer rpt.Flush()
+
+	var err error
 	if cmd.Flags().Changed("format") {
-		row = report.NormalizeFormat(dfOptions.Format)
+		rpt, err = rpt.Parse(report.OriginUser, dfOptions.Format)
+	} else {
+		row := "{{range . }}{{.Type}}\t{{.Total}}\t{{.Active}}\t{{.Size}}\t{{.Reclaimable}}\n{{end -}}"
+		rpt, err = rpt.Parse(report.OriginPodman, row)
 	}
-	return writeTemplate(w, cmd, hdrs, row, dfSummaries)
+	if err != nil {
+		return err
+	}
+	return writeTemplate(rpt, hdrs, dfSummaries)
 }
 
-func printVerbose(w *report.Writer, cmd *cobra.Command, reports *entities.SystemDfReport) error {
-	defer w.Flush()
+func printVerbose(cmd *cobra.Command, reports *entities.SystemDfReport) error { // nolint:interfacer
+	rpt := report.New(os.Stdout, cmd.Name())
+	defer rpt.Flush()
 
-	fmt.Fprint(w, "Images space usage:\n\n")
+	fmt.Fprint(rpt.Writer(), "Images space usage:\n\n")
 	// convert to dfImage for output
 	dfImages := make([]*dfImage, 0, len(reports.Images))
 	for _, d := range reports.Images {
@@ -157,12 +164,16 @@ func printVerbose(w *report.Writer, cmd *cobra.Command, reports *entities.System
 		"SharedSize": "SHARED SIZE",
 		"UniqueSize": "UNIQUE SIZE",
 	})
-	imageRow := "{{.Repository}}\t{{.Tag}}\t{{.ImageID}}\t{{.Created}}\t{{.Size}}\t{{.SharedSize}}\t{{.UniqueSize}}\t{{.Containers}}\n"
-	if err := writeTemplate(w, cmd, hdrs, imageRow, dfImages); err != nil {
+	imageRow := "{{range .}}{{.Repository}}\t{{.Tag}}\t{{.ImageID}}\t{{.Created}}\t{{.Size}}\t{{.SharedSize}}\t{{.UniqueSize}}\t{{.Containers}}\n{{end -}}"
+	rpt, err := rpt.Parse(report.OriginPodman, imageRow)
+	if err != nil {
+		return err
+	}
+	if err := writeTemplate(rpt, hdrs, dfImages); err != nil {
 		return nil
 	}
 
-	fmt.Fprint(w, "\nContainers space usage:\n\n")
+	fmt.Fprint(rpt.Writer(), "\nContainers space usage:\n\n")
 	// convert to dfContainers for output
 	dfContainers := make([]*dfContainer, 0, len(reports.Containers))
 	for _, d := range reports.Containers {
@@ -173,12 +184,16 @@ func printVerbose(w *report.Writer, cmd *cobra.Command, reports *entities.System
 		"LocalVolumes": "LOCAL VOLUMES",
 		"RWSize":       "SIZE",
 	})
-	containerRow := "{{.ContainerID}}\t{{.Image}}\t{{.Command}}\t{{.LocalVolumes}}\t{{.RWSize}}\t{{.Created}}\t{{.Status}}\t{{.Names}}\n"
-	if err := writeTemplate(w, cmd, hdrs, containerRow, dfContainers); err != nil {
+	containerRow := "{{range .}}{{.ContainerID}}\t{{.Image}}\t{{.Command}}\t{{.LocalVolumes}}\t{{.RWSize}}\t{{.Created}}\t{{.Status}}\t{{.Names}}\n{{end -}}"
+	rpt, err = rpt.Parse(report.OriginPodman, containerRow)
+	if err != nil {
+		return err
+	}
+	if err := writeTemplate(rpt, hdrs, dfContainers); err != nil {
 		return nil
 	}
 
-	fmt.Fprint(w, "\nLocal Volumes space usage:\n\n")
+	fmt.Fprint(rpt.Writer(), "\nLocal Volumes space usage:\n\n")
 	dfVolumes := make([]*dfVolume, 0, len(reports.Volumes))
 	// convert to dfVolume for output
 	for _, d := range reports.Volumes {
@@ -187,25 +202,21 @@ func printVerbose(w *report.Writer, cmd *cobra.Command, reports *entities.System
 	hdrs = report.Headers(entities.SystemDfVolumeReport{}, map[string]string{
 		"VolumeName": "VOLUME NAME",
 	})
-	volumeRow := "{{.VolumeName}}\t{{.Links}}\t{{.Size}}\n"
-	return writeTemplate(w, cmd, hdrs, volumeRow, dfVolumes)
-}
-
-func writeTemplate(w *report.Writer, cmd *cobra.Command, hdrs []map[string]string, format string, output interface{}) error {
-	defer w.Flush()
-
-	format = report.EnforceRange(format)
-	tmpl, err := report.NewTemplate("df").Parse(format)
+	volumeRow := "{{range .}}{{.VolumeName}}\t{{.Links}}\t{{.Size}}\n{{end -}}"
+	rpt, err = rpt.Parse(report.OriginPodman, volumeRow)
 	if err != nil {
 		return err
 	}
+	return writeTemplate(rpt, hdrs, dfVolumes)
+}
 
-	if !cmd.Flags().Changed("format") {
-		if err := tmpl.Execute(w, hdrs); err != nil {
+func writeTemplate(rpt *report.Formatter, hdrs []map[string]string, output interface{}) error {
+	if rpt.RenderHeaders {
+		if err := rpt.Execute(hdrs); err != nil {
 			return err
 		}
 	}
-	return tmpl.Execute(w, output)
+	return rpt.Execute(output)
 }
 
 type dfImage struct {

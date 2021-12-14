@@ -19,7 +19,7 @@ podman secret is a set of subcommands that manage secrets.
 | rm      | [podman-secret-rm(1)](podman-secret-rm.1.md)           | Remove one or more secrets                             |
 
 ## SEE ALSO
-podman(1)
+**[podman(1)](podman.1.md)**
 
 ## HISTORY
 January 2021, Originally compiled by Ashley Cui <acui@redhat.com>

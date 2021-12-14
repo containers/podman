@@ -45,7 +45,6 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 	})
 
 	Specify("signals are forwarded to container using sig-proxy", func() {
-		SkipIfRemote("FIXME: This looks like it is supposed to work in remote")
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("Doesn't work on ppc64le")
 		}
@@ -111,15 +110,13 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 	})
 
 	Specify("signals are not forwarded to container with sig-proxy false", func() {
-		SkipIfRemote("FIXME: This looks like it is supposed to work in remote")
 		signal := syscall.SIGFPE
 		if rootless.IsRootless() {
 			podmanTest.RestoreArtifact(fedoraMinimal)
 		}
 		session, pid := podmanTest.PodmanPID([]string{"run", "--name", "test2", "--sig-proxy=false", fedoraMinimal, "bash", "-c", sigCatch2})
 
-		ok := WaitForContainer(podmanTest)
-		Expect(ok).To(BeTrue())
+		Expect(WaitForContainer(podmanTest)).To(BeTrue(), "WaitForContainer()")
 
 		// Kill with given signal
 		// Should be no output, SIGPOLL is usually ignored
@@ -134,8 +131,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
-		ok, _ = session.GrepString("Received")
-		Expect(ok).To(BeFalse())
+		Expect(session.OutputToString()).To(Not(ContainSubstring("Received")))
 	})
 
 })

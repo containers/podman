@@ -56,7 +56,7 @@ var _ = Describe("Podman pod inspect", func() {
 		inspect := podmanTest.Podman([]string{"pod", "inspect", podid})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
-		Expect(inspect.IsJSONOutputValid()).To(BeTrue())
+		Expect(inspect.OutputToString()).To(BeValidJSON())
 		podData := inspect.InspectPodToJSON()
 		Expect(podData.ID).To(Equal(podid))
 	})
@@ -75,7 +75,7 @@ var _ = Describe("Podman pod inspect", func() {
 		inspect := podmanTest.Podman([]string{"pod", "inspect", podName})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
-		Expect(inspect.IsJSONOutputValid()).To(BeTrue())
+		Expect(inspect.OutputToString()).To(BeValidJSON())
 		podData := inspect.InspectPodToJSON()
 		// Let's get the last len(createCommand) items in the command.
 		inspectCreateCommand := podData.CreateCommand
@@ -97,7 +97,7 @@ var _ = Describe("Podman pod inspect", func() {
 		err := json.Unmarshal(inspectOut.Out.Contents(), inspectJSON)
 		Expect(err).To(BeNil())
 		Expect(inspectJSON.InfraConfig).To(Not(BeNil()))
-		Expect(len(inspectJSON.InfraConfig.PortBindings["80/tcp"])).To(Equal(1))
+		Expect(inspectJSON.InfraConfig.PortBindings["80/tcp"]).To(HaveLen(1))
 		Expect(inspectJSON.InfraConfig.PortBindings["80/tcp"][0].HostPort).To(Equal("8383"))
 	})
 

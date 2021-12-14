@@ -248,6 +248,8 @@ type ContainerCreateOptions struct {
 	TTY               bool
 	Timezone          string
 	Umask             string
+	UnsetEnv          []string
+	UnsetEnvAll       bool
 	UIDMap            []string
 	Ulimit            []string
 	User              string
@@ -264,6 +266,15 @@ type ContainerCreateOptions struct {
 	Net *NetOptions `json:"net,omitempty"`
 
 	CgroupConf []string
+}
+
+func NewInfraContainerCreateOptions() ContainerCreateOptions {
+	options := ContainerCreateOptions{
+		IsInfra:          true,
+		ImageVolume:      "bind",
+		MemorySwappiness: -1,
+	}
+	return options
 }
 
 type PodCreateReport struct {

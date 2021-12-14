@@ -1,16 +1,16 @@
 package integration
 
 var (
-	STORAGE_FS               = "vfs"
-	STORAGE_OPTIONS          = "--storage-driver vfs"
-	ROOTLESS_STORAGE_FS      = "vfs"
-	ROOTLESS_STORAGE_OPTIONS = "--storage-driver vfs"
-	CACHE_IMAGES             = []string{ALPINE, BB, fedoraMinimal, nginx, redis, registry, infra, labels, healthcheck, ubi_init, ubi_minimal, fedoraToolbox}
+	STORAGE_FS               = "vfs"                                                                                                                         //nolint:golint,stylecheck
+	STORAGE_OPTIONS          = "--storage-driver vfs"                                                                                                        //nolint:golint,stylecheck
+	ROOTLESS_STORAGE_FS      = "vfs"                                                                                                                         //nolint:golint,stylecheck
+	ROOTLESS_STORAGE_OPTIONS = "--storage-driver vfs"                                                                                                        //nolint:golint,stylecheck
+	CACHE_IMAGES             = []string{ALPINE, BB, fedoraMinimal, nginx, redis, registry, infra, labels, healthcheck, UBI_INIT, UBI_MINIMAL, fedoraToolbox} //nolint:golint,stylecheck
 	nginx                    = "quay.io/libpod/alpine_nginx:latest"
-	BB_GLIBC                 = "docker.io/library/busybox:glibc"
+	BB_GLIBC                 = "docker.io/library/busybox:glibc" //nolint:golint,stylecheck
 	registry                 = "quay.io/libpod/registry:2.6"
 	labels                   = "quay.io/libpod/alpine_labels:latest"
-	ubi_minimal              = "registry.access.redhat.com/ubi8-minimal"
-	ubi_init                 = "registry.access.redhat.com/ubi8-init"
+	UBI_MINIMAL              = "registry.access.redhat.com/ubi8-minimal" //nolint:golint,stylecheck
+	UBI_INIT                 = "registry.access.redhat.com/ubi8-init"    //nolint:golint,stylecheck
 	cirros                   = "quay.io/libpod/cirros:latest"
 )

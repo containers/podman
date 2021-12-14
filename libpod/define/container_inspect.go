@@ -204,6 +204,7 @@ type InspectContainerState struct {
 	FinishedAt   time.Time          `json:"FinishedAt"`
 	Health       HealthCheckResults `json:"Health,omitempty"`
 	Checkpointed bool               `json:"Checkpointed,omitempty"`
+	CgroupPath   string             `json:"CgroupPath,omitempty"`
 }
 
 // Healthcheck returns the HealthCheckResults. This is used for old podman compat
@@ -542,6 +543,12 @@ type InspectContainerHostConfig struct {
 	CgroupConf map[string]string `json:"CgroupConf"`
 }
 
+// Address represents an IP address.
+type Address struct {
+	Addr         string
+	PrefixLength int
+}
+
 // InspectBasicNetworkConfig holds basic configuration information (e.g. IP
 // addresses, MAC address, subnet masks, etc) that are common for all networks
 // (both additional and main).
@@ -556,7 +563,7 @@ type InspectBasicNetworkConfig struct {
 	IPPrefixLen int `json:"IPPrefixLen"`
 	// SecondaryIPAddresses is a list of extra IP Addresses that the
 	// container has been assigned in this network.
-	SecondaryIPAddresses []string `json:"SecondaryIPAddresses,omitempty"`
+	SecondaryIPAddresses []Address `json:"SecondaryIPAddresses,omitempty"`
 	// IPv6Gateway is the IPv6 gateway this network will use.
 	IPv6Gateway string `json:"IPv6Gateway"`
 	// GlobalIPv6Address is the global-scope IPv6 Address for this network.
@@ -565,7 +572,7 @@ type InspectBasicNetworkConfig struct {
 	GlobalIPv6PrefixLen int `json:"GlobalIPv6PrefixLen"`
 	// SecondaryIPv6Addresses is a list of extra IPv6 Addresses that the
 	// container has been assigned in this network.
-	SecondaryIPv6Addresses []string `json:"SecondaryIPv6Addresses,omitempty"`
+	SecondaryIPv6Addresses []Address `json:"SecondaryIPv6Addresses,omitempty"`
 	// MacAddress is the MAC address for the interface in this network.
 	MacAddress string `json:"MacAddress"`
 	// AdditionalMacAddresses is a set of additional MAC Addresses beyond
@@ -654,7 +661,6 @@ type InspectContainerData struct {
 	Mounts          []InspectMount              `json:"Mounts"`
 	Dependencies    []string                    `json:"Dependencies"`
 	NetworkSettings *InspectNetworkSettings     `json:"NetworkSettings"` //TODO
-	ExitCommand     []string                    `json:"ExitCommand"`
 	Namespace       string                      `json:"Namespace"`
 	IsInfra         bool                        `json:"IsInfra"`
 	Config          *InspectContainerConfig     `json:"Config"`

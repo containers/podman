@@ -53,7 +53,7 @@ var _ = Describe("Podman diff", func() {
 		session := podmanTest.Podman([]string{"diff", "--format=json", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.IsJSONOutputValid()).To(BeTrue())
+		Expect(session.OutputToString()).To(BeValidJSON())
 	})
 
 	It("podman diff container and committed image", func() {
@@ -64,8 +64,8 @@ var _ = Describe("Podman diff", func() {
 		session.WaitWithDefaultTimeout()
 		containerDiff := session.OutputToStringArray()
 		sort.Strings(containerDiff)
-		Expect(session.LineInOutputContains("C /tmp")).To(BeTrue())
-		Expect(session.LineInOutputContains("A /tmp/diff-test")).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("C /tmp"))
+		Expect(session.OutputToString()).To(ContainSubstring("A /tmp/diff-test"))
 		session = podmanTest.Podman([]string{"commit", "diff-test", "diff-test-img"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -88,8 +88,8 @@ var _ = Describe("Podman diff", func() {
 		session.WaitWithDefaultTimeout()
 		containerDiff := session.OutputToStringArray()
 		sort.Strings(containerDiff)
-		Expect(session.LineInOutputContains("C /tmp")).To(BeTrue())
-		Expect(session.LineInOutputContains("A /tmp/diff-test")).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("C /tmp"))
+		Expect(session.OutputToString()).To(ContainSubstring("A /tmp/diff-test"))
 		Expect(session).Should(Exit(0))
 	})
 
@@ -120,16 +120,16 @@ RUN echo test
 		session := podmanTest.Podman([]string{"image", "diff", image})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically("==", 1))
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
 		Expect(session.OutputToString()).To(Equal("A " + file3))
 
 		session = podmanTest.Podman([]string{"image", "diff", image, baseImage})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically("==", 4))
-		Expect(session.LineInOutputContains("A " + file1)).To(BeTrue())
-		Expect(session.LineInOutputContains("A " + file2)).To(BeTrue())
-		Expect(session.LineInOutputContains("A " + file3)).To(BeTrue())
+		Expect(session.OutputToStringArray()).To(HaveLen(4))
+		Expect(session.OutputToString()).To(ContainSubstring("A " + file1))
+		Expect(session.OutputToString()).To(ContainSubstring("A " + file2))
+		Expect(session.OutputToString()).To(ContainSubstring("A " + file3))
 	})
 
 	It("podman image diff of single image", func() {
@@ -149,7 +149,7 @@ RUN echo test
 		session := podmanTest.Podman([]string{"image", "diff", ALPINE, ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically("==", 0))
+		Expect(session.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("podman diff container and image with same name", func() {
@@ -172,20 +172,20 @@ RUN touch %s`, ALPINE, imagefile)
 		session = podmanTest.Podman([]string{"diff", name})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically("==", 2))
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
 		Expect(session.OutputToString()).To(ContainSubstring(imagefile))
 
 		session = podmanTest.Podman([]string{"image", "diff", name})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically("==", 2))
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
 		Expect(session.OutputToString()).To(ContainSubstring(imagefile))
 
 		// container diff has to show the container
 		session = podmanTest.Podman([]string{"container", "diff", name})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically("==", 2))
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
 		Expect(session.OutputToString()).To(ContainSubstring(confile))
 	})
 

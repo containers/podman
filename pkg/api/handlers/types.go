@@ -116,6 +116,8 @@ type CreateContainerConfig struct {
 	dockerContainer.Config                                // desired container configuration
 	HostConfig             dockerContainer.HostConfig     // host dependent configuration for container
 	NetworkingConfig       dockerNetwork.NetworkingConfig // network configuration for container
+	UnsetEnv               []string                       // unset specified default environment variables
+	UnsetEnvAll            bool                           // unset all default environment variables
 }
 
 // swagger:model IDResponse

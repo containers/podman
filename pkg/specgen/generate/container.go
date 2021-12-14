@@ -88,9 +88,6 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	if err != nil {
 		return nil, errors.Wrap(err, "error parsing fields in containers.conf")
 	}
-	if defaultEnvs["container"] == "" {
-		defaultEnvs["container"] = "podman"
-	}
 	var envs map[string]string
 
 	// Image Environment defaults
@@ -101,9 +98,16 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		if err != nil {
 			return nil, errors.Wrap(err, "Env fields from image failed to parse")
 		}
-		defaultEnvs = envLib.Join(defaultEnvs, envs)
+		defaultEnvs = envLib.Join(envLib.DefaultEnvVariables(), envLib.Join(defaultEnvs, envs))
 	}
 
+	for _, e := range s.UnsetEnv {
+		delete(defaultEnvs, e)
+	}
+
+	if s.UnsetEnvAll {
+		defaultEnvs = make(map[string]string)
+	}
 	// First transform the os env into a map. We need it for the labels later in
 	// any case.
 	osEnv, err := envLib.ParseSlice(os.Environ())

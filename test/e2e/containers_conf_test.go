@@ -224,35 +224,35 @@ var _ = Describe("Podman run", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		session.LineInOutputStartsWith("search foobar.com")
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("search foobar.com")))
 	})
 
 	It("podman run add dns server", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		session.LineInOutputStartsWith("server 1.2.3.4")
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("nameserver 1.2.3.4")))
 	})
 
 	It("podman run add dns option", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		session.LineInOutputStartsWith("options debug")
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("options debug")))
 	})
 
 	It("podman run containers.conf remove all search domain", func() {
 		session := podmanTest.Podman([]string{"run", "--dns-search=.", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputStartsWith("search")).To(BeFalse())
+		Expect(session.OutputToStringArray()).To(Not(ContainElement(HavePrefix("search"))))
 	})
 
 	It("podman run use containers.conf search domain", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputStartsWith("search")).To(BeTrue())
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("search")))
 		Expect(session.OutputToString()).To(ContainSubstring("foobar.com"))
 
 		Expect(session.OutputToString()).To(ContainSubstring("1.2.3.4"))
@@ -308,7 +308,7 @@ var _ = Describe("Podman run", func() {
 		session = podmanTest.Podman([]string{"run", ALPINE, "cat", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputStartsWith("search")).To(BeTrue())
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("search")))
 		Expect(session.OutputToString()).To(ContainSubstring("foobar.com"))
 		Expect(session.OutputToString()).To(ContainSubstring("1.2.3.4"))
 		Expect(session.OutputToString()).To(ContainSubstring("debug"))
@@ -407,7 +407,7 @@ var _ = Describe("Podman run", func() {
 		configPath := filepath.Join(podmanTest.TempDir, "containers.conf")
 		os.Setenv("CONTAINERS_CONF", configPath)
 
-		containersConf := []byte(fmt.Sprintf("[engine]\nimage_copy_tmp_dir=\"/foobar\""))
+		containersConf := []byte("[engine]\nimage_copy_tmp_dir=\"/foobar\"")
 		err = ioutil.WriteFile(configPath, containersConf, os.ModePerm)
 		Expect(err).To(BeNil())
 
@@ -420,7 +420,7 @@ var _ = Describe("Podman run", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal("/foobar"))
 
-		containersConf = []byte(fmt.Sprintf("[engine]\nimage_copy_tmp_dir=\"storage\""))
+		containersConf = []byte("[engine]\nimage_copy_tmp_dir=\"storage\"")
 		err = ioutil.WriteFile(configPath, containersConf, os.ModePerm)
 		Expect(err).To(BeNil())
 		if IsRemote() {
@@ -430,9 +430,9 @@ var _ = Describe("Podman run", func() {
 		session = podmanTest.Podman([]string{"info", "--format", "{{.Store.ImageCopyTmpDir}}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContains("containers/storage/tmp")).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("containers/storage/tmp"))
 
-		containersConf = []byte(fmt.Sprintf("[engine]\nimage_copy_tmp_dir=\"storage1\""))
+		containersConf = []byte("[engine]\nimage_copy_tmp_dir=\"storage1\"")
 		err = ioutil.WriteFile(configPath, containersConf, os.ModePerm)
 		Expect(err).To(BeNil())
 		if IsRemote() {

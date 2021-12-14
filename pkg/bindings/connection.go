@@ -145,7 +145,7 @@ func pingNewConnection(ctx context.Context) error {
 		return err
 	}
 	// the ping endpoint sits at / in this case
-	response, err := client.DoRequest(nil, http.MethodGet, "/_ping", nil, nil)
+	response, err := client.DoRequest(ctx, nil, http.MethodGet, "/_ping", nil, nil)
 	if err != nil {
 		return err
 	}
@@ -306,7 +306,7 @@ func unixClient(_url *url.URL) Connection {
 }
 
 // DoRequest assembles the http request and returns the response
-func (c *Connection) DoRequest(httpBody io.Reader, httpMethod, endpoint string, queryParams url.Values, header map[string]string, pathValues ...string) (*APIResponse, error) {
+func (c *Connection) DoRequest(ctx context.Context, httpBody io.Reader, httpMethod, endpoint string, queryParams url.Values, header map[string]string, pathValues ...string) (*APIResponse, error) {
 	var (
 		err      error
 		response *http.Response
@@ -328,7 +328,7 @@ func (c *Connection) DoRequest(httpBody io.Reader, httpMethod, endpoint string, 
 	uri := fmt.Sprintf("http://d/v%d.%d.%d/libpod"+endpoint, params...)
 	logrus.Debugf("DoRequest Method: %s URI: %v", httpMethod, uri)
 
-	req, err := http.NewRequestWithContext(context.WithValue(context.Background(), clientKey, c), httpMethod, uri, httpBody)
+	req, err := http.NewRequestWithContext(ctx, httpMethod, uri, httpBody)
 	if err != nil {
 		return nil, err
 	}

@@ -29,8 +29,6 @@ type PodDeleteReport struct{ Report }
 type VolumeDeleteOptions struct{}
 type VolumeDeleteReport struct{ Report }
 
-// NetOptions reflect the shared network options between
-// pods and containers
 type NetFlags struct {
 	AddHosts     []string `json:"add-host,omitempty"`
 	DNS          []string `json:"dns,omitempty"`
@@ -43,6 +41,9 @@ type NetFlags struct {
 	Network      string   `json:"network,omitempty"`
 	NetworkAlias []string `json:"network-alias,omitempty"`
 }
+
+// NetOptions reflect the shared network options between
+// pods and containers
 type NetOptions struct {
 	AddHosts           []string            `json:"hostadd,omitempty"`
 	Aliases            []string            `json:"network_alias,omitempty"`

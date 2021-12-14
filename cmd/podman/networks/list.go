@@ -3,6 +3,7 @@ package network
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/containers/common/pkg/completion"
@@ -73,6 +74,11 @@ func networkList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// sort the networks to make sure the order is deterministic
+	sort.Slice(responses, func(i, j int) bool {
+		return responses[i].Name < responses[j].Name
+	})
+
 	switch {
 	// quiet means we only print the network names
 	case networkListOptions.Quiet:
@@ -84,7 +90,7 @@ func networkList(cmd *cobra.Command, args []string) error {
 
 	// table or other format output
 	default:
-		err = templateOut(responses, cmd)
+		err = templateOut(cmd, responses)
 	}
 
 	return err
@@ -105,7 +111,7 @@ func jsonOut(responses []types.Network) error {
 	return nil
 }
 
-func templateOut(responses []types.Network, cmd *cobra.Command) error {
+func templateOut(cmd *cobra.Command, responses []types.Network) error {
 	nlprs := make([]ListPrintReports, 0, len(responses))
 	for _, r := range responses {
 		nlprs = append(nlprs, ListPrintReports{r})
@@ -120,14 +126,16 @@ func templateOut(responses []types.Network, cmd *cobra.Command) error {
 	})
 
 	renderHeaders := report.HasTable(networkListOptions.Format)
-	var row, format string
-	if cmd.Flags().Changed("format") {
+	var row string
+	switch {
+	case cmd.Flags().Changed("format"):
 		row = report.NormalizeFormat(networkListOptions.Format)
-	} else { // 'podman network ls' equivalent to 'podman network ls --format="table {{.ID}} {{.Name}} {{.Version}} {{.Plugins}}" '
-		renderHeaders = true
+	default:
+		// 'podman network ls' equivalent to 'podman network ls --format="table {{.ID}} {{.Name}} {{.Version}} {{.Plugins}}" '
 		row = "{{.ID}}\t{{.Name}}\t{{.Driver}}\n"
+		renderHeaders = true
 	}
-	format = report.EnforceRange(row)
+	format := report.EnforceRange(row)
 
 	tmpl, err := report.NewTemplate("list").Parse(format)
 	if err != nil {

@@ -965,19 +965,6 @@ var _ = Describe("Config", func() {
 			Expect(logString).To(ContainSubstring("dnsname and internal networks are incompatible"))
 		})
 
-		It("create config with podman machine plugin", func() {
-			libpodNet, err := getNetworkInterface(cniConfDir, true)
-			Expect(err).To(BeNil())
-
-			network := types.Network{}
-			network1, err := libpodNet.NetworkCreate(network)
-			Expect(err).To(BeNil())
-			Expect(network1.Driver).To(Equal("bridge"))
-			path := filepath.Join(cniConfDir, network1.Name+".conflist")
-			Expect(path).To(BeARegularFile())
-			grepInFile(path, `"type": "podman-machine",`)
-		})
-
 		It("network inspect partial ID", func() {
 			network := types.Network{Name: "net4"}
 			network1, err := libpodNet.NetworkCreate(network)

@@ -62,10 +62,11 @@ PKG_MANAGER ?= $(shell command -v dnf yum|head -n1)
 PRE_COMMIT = $(shell command -v bin/venv/bin/pre-commit ~/.local/bin/pre-commit pre-commit | head -n1)
 
 # This isn't what we actually build; it's a superset, used for target
-# dependencies. Basically: all *.go files, except *_test.go, and except
-# anything in a dot subdirectory. If any of these files is newer than
-# our target (bin/podman{,-remote}), a rebuild is triggered.
-SOURCES = $(shell find . -path './.*' -prune -o \( -name '*.go' -a ! -name '*_test.go' \) -print)
+# dependencies. Basically: all *.go and *.c files, except *_test.go,
+# and except anything in a dot subdirectory. If any of these files is
+# newer than our target (bin/podman{,-remote}), a rebuild is
+# triggered.
+SOURCES = $(shell find . -path './.*' -prune -o \( \( -name '*.go' -o -name '*.c' \) -a ! -name '*_test.go' \) -print)
 
 BUILDFLAGS := -mod=vendor $(BUILDFLAGS)
 
@@ -185,10 +186,6 @@ ifdef HOMEBREW_PREFIX
 endif
 endif
 
-# For building pause/pause.c
-GCC ?= gcc
-PAUSE_CFLAGS = -Os -static -Wall -Werror -DVERSION=v$(RELEASE_VERSION)
-
 ###
 ### Primary entry-point targets
 ###
@@ -200,7 +197,7 @@ default: all
 all: binaries docs
 
 .PHONY: binaries
-binaries: podman podman-remote rootlessport pause
+binaries: podman podman-remote rootlessport ## Build podman, podman-remote and rootlessport binaries
 
 # Extract text following double-# for targets, as their description for
 # the `help` target.  Otherwise These simple-substitutions are resolved
@@ -378,12 +375,6 @@ bin/rootlessport: .gopathok $(SOURCES) go.mod go.sum
 .PHONY: rootlessport
 rootlessport: bin/rootlessport
 
-bin/pause: pause/pause.c
-	$(GCC) $(PAUSE_CFLAGS) pause/pause.c -o bin/pause
-
-.PHONY: pause
-pause: bin/pause
-
 ###
 ### Secondary binary-build targets
 ###
@@ -521,7 +512,7 @@ validate.completions:
 .PHONY: run-docker-py-tests
 run-docker-py-tests:
 	touch test/__init__.py
-	pytest test/python/docker/
+	env CONTAINERS_CONF=$(CURDIR)/test/apiv2/containers.conf pytest test/python/docker/
 	-rm test/__init__.py
 
 .PHONY: localunit
@@ -603,8 +594,8 @@ remotesystem:
 .PHONY: localapiv2
 localapiv2:
 	env PODMAN=./bin/podman ./test/apiv2/test-apiv2
-	env PODMAN=./bin/podman ${PYTHON} -m unittest discover -v ./test/apiv2/python
-	env PODMAN=./bin/podman ${PYTHON} -m unittest discover -v ./test/python/docker
+	env CONTAINERS_CONF=$(CURDIR)/test/apiv2/containers.conf PODMAN=./bin/podman ${PYTHON} -m unittest discover -v ./test/apiv2/python
+	env CONTAINERS_CONF=$(CURDIR)/test/apiv2/containers.conf PODMAN=./bin/podman ${PYTHON} -m unittest discover -v ./test/python/docker
 
 .PHONY: remoteapiv2
 remoteapiv2:
@@ -743,7 +734,7 @@ install.remote-nobuild:
 install.remote: podman-remote install.remote-nobuild
 
 .PHONY: install.bin-nobuild
-install.bin-nobuild: install.pause
+install.bin-nobuild:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
 	install ${SELINUXOPT} -m 755 bin/podman $(DESTDIR)$(BINDIR)/podman
 	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(BINDIR)/podman bin/podman
@@ -797,10 +788,8 @@ install.docker-docs-nobuild:
 .PHONY: install.docker-docs
 install.docker-docs: docker-docs install.docker-docs-nobuild
 
-.PHONY: install.pause
-install.pause: pause
-	install ${SELINUXOPT} -m 755 -d $(DESTDIR)$(LIBEXECPODMAN)/pause
-	install ${SELINUXOPT} -m 755 bin/pause $(DESTDIR)$(LIBEXECPODMAN)/pause/pause
+.PHONY: install.docker-full
+install.docker-full: install.docker install.docker-docs
 
 .PHONY: install.systemd
 ifneq (,$(findstring systemd,$(BUILDTAGS)))
@@ -830,9 +819,6 @@ install.systemd: $(PODMAN_UNIT_FILES)
 else
 install.systemd:
 endif
-
-.PHONY: install.pause
-install.pause: pause
 
 .PHONY: install.tools
 install.tools: .install.goimports .install.gitvalidation .install.md2man .install.ginkgo .install.golangci-lint .install.bats ## Install needed tools
@@ -907,7 +893,7 @@ uninstall:
 .PHONY: clean-binaries
 clean-binaries: ## Remove platform/architecture specific binary files
 	rm -rf \
-		bin \
+		bin
 
 .PHONY: clean
 clean: clean-binaries ## Clean all make artifacts

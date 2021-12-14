@@ -50,12 +50,17 @@ type CheckpointOptions struct {
 	Keep           *bool
 	LeaveRunning   *bool
 	TCPEstablished *bool
+	PrintStats     *bool
+	PreCheckpoint  *bool
+	WithPrevious   *bool
+	FileLocks      *bool
 }
 
 //go:generate go run ../generator/generator.go RestoreOptions
 // RestoreOptions are optional options for restoring containers
 type RestoreOptions struct {
 	IgnoreRootfs    *bool
+	IgnoreVolumes   *bool
 	IgnoreStaticIP  *bool
 	IgnoreStaticMAC *bool
 	ImportAchive    *string
@@ -63,6 +68,9 @@ type RestoreOptions struct {
 	Name            *string
 	TCPEstablished  *bool
 	Pod             *string
+	PrintStats      *bool
+	PublishPorts    []string
+	FileLocks       *bool
 }
 
 //go:generate go run ../generator/generator.go CreateOptions
@@ -86,7 +94,8 @@ type ExecInspectOptions struct{}
 //go:generate go run ../generator/generator.go ExecStartOptions
 // ExecStartOptions are optional options for starting
 // exec sessions
-type ExecStartOptions struct{}
+type ExecStartOptions struct {
+}
 
 //go:generate go run ../generator/generator.go HealthCheckOptions
 // HealthCheckOptions are optional options for checking

@@ -59,6 +59,45 @@ var _ = Describe("Podman build", func() {
 		Expect(session).Should(Exit(0))
 	})
 
+	It("podman build with a secret from file", func() {
+		session := podmanTest.Podman([]string{"build", "-f", "build/Dockerfile.with-secret", "-t", "secret-test", "--secret", "id=mysecret,src=build/secret.txt", "build/"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("somesecret"))
+
+		session = podmanTest.Podman([]string{"rmi", "secret-test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+	})
+
+	It("podman build with multiple secrets from files", func() {
+		session := podmanTest.Podman([]string{"build", "-f", "build/Dockerfile.with-multiple-secret", "-t", "multiple-secret-test", "--secret", "id=mysecret,src=build/secret.txt", "--secret", "id=mysecret2,src=build/anothersecret.txt", "build/"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("somesecret"))
+		Expect(session.OutputToString()).To(ContainSubstring("anothersecret"))
+
+		session = podmanTest.Podman([]string{"rmi", "multiple-secret-test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+	})
+
+	It("podman build with a secret from file and verify if secret file is not leaked into image", func() {
+		session := podmanTest.Podman([]string{"build", "-f", "build/Dockerfile.with-secret-verify-leak", "-t", "secret-test-leak", "--secret", "id=mysecret,src=build/secret.txt", "build/"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("somesecret"))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "secret-test-leak", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Not(ContainSubstring("podman-build-secret")))
+
+		session = podmanTest.Podman([]string{"rmi", "secret-test-leak"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+	})
+
 	It("podman build with logfile", func() {
 		logfile := filepath.Join(podmanTest.TempDir, "logfile")
 		session := podmanTest.Podman([]string{"build", "--pull-never", "--tag", "test", "--logfile", logfile, "build/basicalpine"})
@@ -100,7 +139,7 @@ var _ = Describe("Podman build", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		// Check for two layers
-		Expect(len(strings.Fields(session.OutputToString()))).To(Equal(2))
+		Expect(strings.Fields(session.OutputToString())).To(HaveLen(2))
 
 		session = podmanTest.Podman([]string{"build", "--pull-never", "-f", "build/squash/Dockerfile.squash-b", "--squash", "-t", "test-squash-b:latest", "build/squash"})
 		session.WaitWithDefaultTimeout()
@@ -110,7 +149,7 @@ var _ = Describe("Podman build", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		// Check for three layers
-		Expect(len(strings.Fields(session.OutputToString()))).To(Equal(3))
+		Expect(strings.Fields(session.OutputToString())).To(HaveLen(3))
 
 		session = podmanTest.Podman([]string{"build", "--pull-never", "-f", "build/squash/Dockerfile.squash-c", "--squash", "-t", "test-squash-c:latest", "build/squash"})
 		session.WaitWithDefaultTimeout()
@@ -120,7 +159,7 @@ var _ = Describe("Podman build", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		// Check for two layers
-		Expect(len(strings.Fields(session.OutputToString()))).To(Equal(2))
+		Expect(strings.Fields(session.OutputToString())).To(HaveLen(2))
 
 		session = podmanTest.Podman([]string{"build", "--pull-never", "-f", "build/squash/Dockerfile.squash-c", "--squash-all", "-t", "test-squash-d:latest", "build/squash"})
 		session.WaitWithDefaultTimeout()
@@ -130,7 +169,7 @@ var _ = Describe("Podman build", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		// Check for one layers
-		Expect(len(strings.Fields(session.OutputToString()))).To(Equal(1))
+		Expect(strings.Fields(session.OutputToString())).To(HaveLen(1))
 
 		session = podmanTest.Podman([]string{"rm", "-a"})
 		session.WaitWithDefaultTimeout()
@@ -230,8 +269,7 @@ RUN printenv http_proxy`, ALPINE)
 		session := podmanTest.Podman([]string{"build", "--pull-never", "--http-proxy", "--file", dockerfilePath, podmanTest.TempDir})
 		session.Wait(120)
 		Expect(session).Should(Exit(0))
-		ok, _ := session.GrepString("1.2.3.4")
-		Expect(ok).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("1.2.3.4"))
 		os.Unsetenv("http_proxy")
 	})
 
@@ -284,8 +322,7 @@ RUN find /test`, ALPINE)
 		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", "-f", "Containerfile", targetSubPath})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		ok, _ := session.GrepString("/test/dummy")
-		Expect(ok).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("/test/dummy"))
 	})
 
 	It("podman remote test container/docker file is not at root of context dir", func() {
@@ -390,14 +427,10 @@ subdir**`
 		session := podmanTest.Podman([]string{"build", "-t", "test", "."})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		ok, _ := session.GrepString("/testfilter/dummy1")
-		Expect(ok).NotTo(BeTrue())
-		ok, _ = session.GrepString("/testfilter/dummy2")
-		Expect(ok).To(BeTrue())
-		ok, _ = session.GrepString("/testfilter/subdir")
-		Expect(ok).NotTo(BeTrue()) //.dockerignore filters both subdir and inside subdir
-		ok, _ = session.GrepString("/testfilter/subdir/dummy3")
-		Expect(ok).NotTo(BeTrue())
+		output := session.OutputToString()
+		Expect(output).To(ContainSubstring("/testfilter/dummy2"))
+		Expect(output).NotTo(ContainSubstring("/testfilter/dummy1"))
+		Expect(output).NotTo(ContainSubstring("/testfilter/subdir"))
 	})
 
 	It("podman remote test context dir contains empty dirs and symlinks", func() {
@@ -450,14 +483,10 @@ RUN [[ -L /test/dummy-symlink ]] && echo SYMLNKOK || echo SYMLNKERR`, ALPINE)
 		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", targetSubPath})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		ok, _ := session.GrepString("/test/dummy")
-		Expect(ok).To(BeTrue())
-		ok, _ = session.GrepString("/test/emptyDir")
-		Expect(ok).To(BeTrue())
-		ok, _ = session.GrepString("/test/dummy-symlink")
-		Expect(ok).To(BeTrue())
-		ok, _ = session.GrepString("SYMLNKOK")
-		Expect(ok).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("/test/dummy"))
+		Expect(session.OutputToString()).To(ContainSubstring("/test/emptyDir"))
+		Expect(session.OutputToString()).To(ContainSubstring("/test/dummy-symlink"))
+		Expect(session.OutputToString()).To(ContainSubstring("SYMLNKOK"))
 	})
 
 	It("podman build --from, --add-host, --cap-drop, --cap-add", func() {

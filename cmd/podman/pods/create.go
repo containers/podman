@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/completion"
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/sysinfo"
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/containers"
@@ -47,7 +46,8 @@ var (
 
 var (
 	createOptions     entities.PodCreateOptions
-	infraOptions      entities.ContainerCreateOptions
+	infraOptions      = entities.NewInfraContainerCreateOptions()
+	infraImage        string
 	labels, labelFile []string
 	podIDFile         string
 	replace           bool
@@ -61,7 +61,6 @@ func init() {
 	})
 	flags := createCommand.Flags()
 	flags.SetInterspersed(false)
-	infraOptions.IsInfra = true
 	common.DefineCreateFlags(createCommand, &infraOptions, true)
 	common.DefineNetFlags(createCommand)
 
@@ -72,7 +71,7 @@ func init() {
 	_ = createCommand.RegisterFlagCompletionFunc(nameFlagName, completion.AutocompleteNone)
 
 	infraImageFlagName := "infra-image"
-	flags.String(infraImageFlagName, containerConfig.Engine.InfraImage, "The image of the infra container to associate with the pod")
+	flags.StringVar(&infraImage, infraImageFlagName, containerConfig.Engine.InfraImage, "The image of the infra container to associate with the pod")
 	_ = createCommand.RegisterFlagCompletionFunc(infraImageFlagName, common.AutocompleteImages)
 
 	podIDFileFlagName := "pod-id-file"
@@ -110,14 +109,14 @@ func create(cmd *cobra.Command, args []string) error {
 		return errors.Wrapf(err, "unable to process labels")
 	}
 
-	imageName = config.DefaultInfraImage
+	imageName = infraImage
 	img := imageName
 	if !createOptions.Infra {
 		if cmd.Flag("no-hosts").Changed {
 			return fmt.Errorf("cannot specify no-hosts without an infra container")
 		}
 		flags := cmd.Flags()
-		createOptions.Net, err = common.NetFlagsToNetOptions(nil, *flags, false)
+		createOptions.Net, err = common.NetFlagsToNetOptions(nil, *flags, createOptions.Infra)
 		if err != nil {
 			return err
 		}
@@ -134,7 +133,7 @@ func create(cmd *cobra.Command, args []string) error {
 	} else {
 		// reassign certain options for lbpod api, these need to be populated in spec
 		flags := cmd.Flags()
-		infraOptions.Net, err = common.NetFlagsToNetOptions(nil, *flags, false)
+		infraOptions.Net, err = common.NetFlagsToNetOptions(nil, *flags, createOptions.Infra)
 		if err != nil {
 			return err
 		}
@@ -147,14 +146,6 @@ func create(cmd *cobra.Command, args []string) error {
 			// Only send content to server side if user changed defaults
 			cmdIn, err := cmd.Flags().GetString("infra-command")
 			infraOptions.Entrypoint = &cmdIn
-			if err != nil {
-				return err
-			}
-		}
-		if cmd.Flag("infra-image").Changed {
-			// Only send content to server side if user changed defaults
-			img, err = cmd.Flags().GetString("infra-image")
-			imageName = img
 			if err != nil {
 				return err
 			}

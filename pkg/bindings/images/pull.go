@@ -47,7 +47,7 @@ func Pull(ctx context.Context, rawImage string, options *PullOptions) ([]string,
 		return nil, err
 	}
 
-	response, err := conn.DoRequest(nil, http.MethodPost, "/images/pull", params, header)
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/images/pull", params, header)
 	if err != nil {
 		return nil, err
 	}

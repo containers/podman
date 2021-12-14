@@ -38,27 +38,27 @@ var _ = Describe("Podman run passwd", func() {
 		session := podmanTest.Podman([]string{"run", "--read-only", BB, "mount"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContains("passwd")).To(BeFalse())
+		Expect(session.OutputToString()).To(Not(ContainSubstring("passwd")))
 	})
 	It("podman run user specified in container", func() {
 		session := podmanTest.Podman([]string{"run", "--read-only", "-u", "bin", BB, "mount"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContains("passwd")).To(BeFalse())
+		Expect(session.OutputToString()).To(Not(ContainSubstring("passwd")))
 	})
 
 	It("podman run UID specified in container", func() {
 		session := podmanTest.Podman([]string{"run", "--read-only", "-u", "2:1", BB, "mount"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContains("passwd")).To(BeFalse())
+		Expect(session.OutputToString()).To(Not(ContainSubstring("passwd")))
 	})
 
 	It("podman run UID not specified in container", func() {
 		session := podmanTest.Podman([]string{"run", "--read-only", "-u", "20001:1", BB, "mount"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContains("passwd")).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("passwd"))
 	})
 
 	It("podman can run container without /etc/passwd", func() {
@@ -77,14 +77,14 @@ USER 1000`, ALPINE)
 		session := podmanTest.Podman([]string{"run", "--read-only", BB, "mount"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContains("/etc/group")).To(BeFalse())
+		Expect(session.OutputToString()).To(Not(ContainSubstring("/etc/group")))
 	})
 
 	It("podman run group specified in container", func() {
 		session := podmanTest.Podman([]string{"run", "--read-only", "-u", "root:bin", BB, "mount"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContains("/etc/group")).To(BeFalse())
+		Expect(session.OutputToString()).To(Not(ContainSubstring("/etc/group")))
 	})
 
 	It("podman run non-numeric group not specified in container", func() {
@@ -97,21 +97,21 @@ USER 1000`, ALPINE)
 		session := podmanTest.Podman([]string{"run", "--read-only", "-u", "root:11", BB, "mount"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContains("/etc/group")).To(BeFalse())
+		Expect(session.OutputToString()).To(Not(ContainSubstring("/etc/group")))
 	})
 
 	It("podman run numeric group not specified in container", func() {
 		session := podmanTest.Podman([]string{"run", "--read-only", "-u", "20001:20001", BB, "mount"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContains("/etc/group")).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("/etc/group"))
 	})
 
 	It("podman run numeric user not specified in container modifies group", func() {
 		session := podmanTest.Podman([]string{"run", "--read-only", "-u", "20001", BB, "mount"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContains("/etc/group")).To(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("/etc/group"))
 	})
 
 	It("podman run numeric group from image and no group file", func() {
