@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v3/libpod/define"
@@ -204,8 +205,9 @@ func moveProcessToScope(pidPath, slice, scope string) error {
 func MovePauseProcessToScope(pausePidPath string) {
 	var err error
 
-	for i := 0; i < 3; i++ {
-		r := rand.Int()
+	state := rand.New(rand.NewSource(time.Now().UnixNano()))
+	for i := 0; i < 10; i++ {
+		r := state.Int()
 		err = moveProcessToScope(pausePidPath, "user.slice", fmt.Sprintf("podman-pause-%d.scope", r))
 		if err == nil {
 			return
