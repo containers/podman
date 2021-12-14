@@ -325,7 +325,7 @@ func (ic *ContainerEngine) PodPs(ctx context.Context, options entities.PodPSOpti
 
 	filters := make([]libpod.PodFilter, 0, len(options.Filters))
 	for k, v := range options.Filters {
-		f, err := dfilters.GeneratePodFilterFunc(k, v)
+		f, err := dfilters.GeneratePodFilterFunc(k, v, ic.Libpod)
 		if err != nil {
 			return nil, err
 		}
