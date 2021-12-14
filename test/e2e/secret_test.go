@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -143,6 +144,54 @@ var _ = Describe("Podman secret", func() {
 		Expect(list).Should(Exit(0))
 		Expect(list.OutputToStringArray()).To(HaveLen(2))
 
+	})
+
+	It("podman secret ls with filters", func() {
+		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
+		err := ioutil.WriteFile(secretFilePath, []byte("mysecret"), 0755)
+		Expect(err).To(BeNil())
+
+		secret1 := "Secret1"
+		secret2 := "Secret2"
+
+		session := podmanTest.Podman([]string{"secret", "create", secret1, secretFilePath})
+		session.WaitWithDefaultTimeout()
+		secrID1 := session.OutputToString()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"secret", "create", secret2, secretFilePath})
+		session.WaitWithDefaultTimeout()
+		secrID2 := session.OutputToString()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"secret", "create", "Secret3", secretFilePath})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		list := podmanTest.Podman([]string{"secret", "ls", "--filter", fmt.Sprintf("name=%s", secret1)})
+		list.WaitWithDefaultTimeout()
+		Expect(list).Should(Exit(0))
+		Expect(list.OutputToStringArray()).To(HaveLen(2), ContainSubstring(secret1))
+
+		list = podmanTest.Podman([]string{"secret", "ls", "--filter", fmt.Sprintf("name=%s", secret2)})
+		list.WaitWithDefaultTimeout()
+		Expect(list).Should(Exit(0))
+		Expect(list.OutputToStringArray()).To(HaveLen(2), ContainSubstring(secret2))
+
+		list = podmanTest.Podman([]string{"secret", "ls", "--filter", fmt.Sprintf("id=%s", secrID1)})
+		list.WaitWithDefaultTimeout()
+		Expect(list).Should(Exit(0))
+		Expect(list.OutputToStringArray()).To(HaveLen(2), ContainSubstring(secrID1))
+
+		list = podmanTest.Podman([]string{"secret", "ls", "--filter", fmt.Sprintf("id=%s", secrID2)})
+		list.WaitWithDefaultTimeout()
+		Expect(list).Should(Exit(0))
+		Expect(list.OutputToStringArray()).To(HaveLen(2), ContainSubstring(secrID2))
+
+		list = podmanTest.Podman([]string{"secret", "ls", "--filter", fmt.Sprintf("name=%s,name=%s", secret1, secret2)})
+		list.WaitWithDefaultTimeout()
+		Expect(list).Should(Exit(0))
+		Expect(list.OutputToStringArray()).To(HaveLen(3), ContainSubstring(secret1), ContainSubstring(secret2))
 	})
 
 	It("podman secret ls with Go template", func() {
