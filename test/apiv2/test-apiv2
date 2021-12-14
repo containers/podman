@@ -182,6 +182,7 @@ function t() {
     local method=$1; shift
     local path=$1; shift
     local curl_args
+    local content_type="application/json"
 
     local testname="$method $path"
     # POST requests may be followed by one or more key=value pairs.
@@ -190,13 +191,21 @@ function t() {
         local -a post_args
         for arg; do
             case "$arg" in
-                *=*)              post_args+=("$arg"); shift ;;
+                *=*)              post_args+=("$arg");
+                                  shift;;
+                *.tar)            curl_args="--data-binary @$arg" ;
+                                  content_type="application/x-tar";
+                                  shift;;
+                application/*)    content_type="$arg";
+                                  shift;;
                 [1-9][0-9][0-9])  break;;
                 *)                die "Internal error: invalid POST arg '$arg'" ;;
             esac
         done
-        curl_args="-d $(jsonify ${post_args[@]})"
-        testname="$testname [$curl_args]"
+        if [[ -z "$curl_args" ]]; then
+            curl_args="-d $(jsonify ${post_args[@]})"
+            testname="$testname [$curl_args]"
+        fi
     fi
 
     # entrypoint path can include a descriptive comment; strip it off
@@ -229,7 +238,7 @@ function t() {
     rm -f $WORKDIR/curl.*
     # -s = silent, but --write-out 'format' gives us important response data
     response=$(curl -s -X $method ${curl_args}                   \
-                    -H 'Content-type: application/json'          \
+                    -H "Content-type: $content_type"             \
                     --dump-header $WORKDIR/curl.headers.out       \
                     --write-out '%{http_code}^%{content_type}^%{time_total}' \
                     -o $WORKDIR/curl.result.out "$url")
@@ -328,10 +337,13 @@ function start_service() {
     fi
 
     echo $WORKDIR
-    $PODMAN_BIN --root $WORKDIR/server_root --syslog=true \
-                system service \
-                --time 15 \
-                tcp:127.0.0.1:$PORT \
+    # Some tests use shortnames; force registry override to work around
+    # docker.io throttling.
+    env CONTAINERS_REGISTRIES_CONF=$TESTS_DIR/../registries.conf $PODMAN_BIN \
+        --root $WORKDIR/server_root --syslog=true \
+        system service \
+        --time 15 \
+        tcp:127.0.0.1:$PORT \
         &> $WORKDIR/server.log &
     service_pid=$!
 
@@ -460,7 +472,8 @@ function wait_for_port() {
 ############
 function podman() {
     echo "\$ $PODMAN_BIN $*"                       >>$WORKDIR/output.log
-    $PODMAN_BIN --root $WORKDIR/server_root "$@"   >>$WORKDIR/output.log 2>&1
+    env CONTAINERS_REGISTRIES_CONF=$TESTS_DIR/../registries.conf \
+        $PODMAN_BIN --root $WORKDIR/server_root "$@"   >>$WORKDIR/output.log 2>&1
 }
 
 ####################
