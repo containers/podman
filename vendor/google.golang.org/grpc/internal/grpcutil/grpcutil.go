@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2018 gRPC authors.
+ * Copyright 2021 gRPC authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,5 @@
  *
  */
 
-package grpc
-
-// Version is the current grpc version.
-const Version = "1.42.0"
+// Package grpcutil provides utility functions used across the gRPC codebase.
+package grpcutil
