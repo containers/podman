@@ -105,7 +105,7 @@ func create(cmd *cobra.Command, args []string) error {
 		err error
 	)
 	flags := cmd.Flags()
-	cliVals.Net, err = common.NetFlagsToNetOptions(nil, *flags, cliVals.Pod == "" && cliVals.PodIDFile == "")
+	cliVals.Net, err = common.NetFlagsToNetOptions(nil, *flags)
 	if err != nil {
 		return err
 	}

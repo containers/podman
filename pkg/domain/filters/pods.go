@@ -142,7 +142,7 @@ func GeneratePodFilterFunc(filter string, filterValues []string, r *libpod.Runti
 			if err != nil {
 				return false
 			}
-			networks, _, err := infra.Networks()
+			networks, err := infra.Networks()
 			// if err or no networks, quick out
 			if err != nil || len(networks) == 0 {
 				return false

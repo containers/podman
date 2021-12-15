@@ -2,6 +2,8 @@ package entities
 
 import (
 	"net"
+
+	"github.com/containers/podman/v3/libpod/network/types"
 )
 
 // NetworkListOptions describes options for listing networks in cli
@@ -67,8 +69,8 @@ type NetworkDisconnectOptions struct {
 // NetworkConnectOptions describes options for connecting
 // a container to a network
 type NetworkConnectOptions struct {
-	Aliases   []string
-	Container string
+	Container string `json:"container"`
+	types.PerNetworkOptions
 }
 
 // NetworkPruneReport containers the name of network and an error

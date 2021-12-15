@@ -637,9 +637,17 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 			infraConfig.HostAdd = make([]string, 0, len(infra.config.HostAdd))
 			infraConfig.HostAdd = append(infraConfig.HostAdd, infra.config.HostAdd...)
 		}
-		if len(infra.config.ContainerNetworkConfig.Networks) > 0 {
-			infraConfig.Networks = make([]string, 0, len(infra.config.ContainerNetworkConfig.Networks))
-			infraConfig.Networks = append(infraConfig.Networks, infra.config.ContainerNetworkConfig.Networks...)
+
+		networks, err := infra.networks()
+		if err != nil {
+			return nil, err
+		}
+		netNames := make([]string, 0, len(networks))
+		for name := range networks {
+			netNames = append(netNames, name)
+		}
+		if len(netNames) > 0 {
+			infraConfig.Networks = netNames
 		}
 		infraConfig.NetworkOptions = infra.config.ContainerNetworkConfig.NetworkOptions
 		infraConfig.PortBindings = makeInspectPortBindings(infra.config.ContainerNetworkConfig.PortMappings, nil)

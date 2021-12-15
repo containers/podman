@@ -376,7 +376,7 @@ func (ic *ContainerEngine) PodPs(ctx context.Context, options entities.PodPSOpti
 			if err != nil {
 				return nil, err
 			}
-			networks, _, err = infra.Networks()
+			networks, err = infra.Networks()
 			if err != nil {
 				return nil, err
 			}

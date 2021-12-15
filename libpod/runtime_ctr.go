@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -13,10 +14,12 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/libpod/shutdown"
 	"github.com/containers/podman/v3/pkg/domain/entities/reports"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/specgen"
+	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/go-units"
@@ -230,39 +233,56 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 
 func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Container, retErr error) {
 	// normalize the networks to names
-	// ocicni only knows about cni names so we have to make
+	// the db backend only knows about network names so we have to make
 	// sure we do not use ids internally
 	if len(ctr.config.Networks) > 0 {
-		netNames := make([]string, 0, len(ctr.config.Networks))
-		for _, nameOrID := range ctr.config.Networks {
+		normalizeNetworks := make(map[string]types.PerNetworkOptions, len(ctr.config.Networks))
+		// first get the already used interface names so we do not conflict
+		usedIfNames := make([]string, 0, len(ctr.config.Networks))
+		for _, opts := range ctr.config.Networks {
+			if opts.InterfaceName != "" {
+				// check that no name is assigned to more than network
+				if util.StringInSlice(opts.InterfaceName, usedIfNames) {
+					return nil, errors.Errorf("network interface name %q is already assigned to another network", opts.InterfaceName)
+				}
+				usedIfNames = append(usedIfNames, opts.InterfaceName)
+			}
+		}
+		i := 0
+		for nameOrID, opts := range ctr.config.Networks {
 			netName, err := r.normalizeNetworkName(nameOrID)
 			if err != nil {
 				return nil, err
 			}
-			netNames = append(netNames, netName)
-		}
-		ctr.config.Networks = netNames
-	}
+			if len(opts.Aliases) > 0 {
+				network, err := r.network.NetworkInspect(netName)
+				if err != nil {
+					return nil, err
+				}
+				if !network.DNSEnabled {
+					return nil, errors.Wrapf(define.ErrInvalidArg, "cannot set network aliases for network %q because dns is disabled", netName)
+				}
+			}
+			// assign interface name if empty
+			if opts.InterfaceName == "" {
+				for i < 100000 {
+					ifName := fmt.Sprintf("eth%d", i)
+					if !util.StringInSlice(ifName, usedIfNames) {
+						opts.InterfaceName = ifName
+						usedIfNames = append(usedIfNames, ifName)
+						break
+					}
+					i++
+				}
+				// if still empty we did not find a free name
+				if opts.InterfaceName == "" {
+					return nil, errors.New("failed to find free network interface name")
+				}
+			}
 
-	// https://github.com/containers/podman/issues/11285
-	// normalize the networks aliases to use network names and never ids
-	if len(ctr.config.NetworkAliases) > 0 {
-		netAliases := make(map[string][]string, len(ctr.config.NetworkAliases))
-		for nameOrID, aliases := range ctr.config.NetworkAliases {
-			netName, err := r.normalizeNetworkName(nameOrID)
-			if err != nil {
-				return nil, err
-			}
-			network, err := r.network.NetworkInspect(netName)
-			if err != nil {
-				return nil, err
-			}
-			if !network.DNSEnabled {
-				return nil, errors.Wrapf(define.ErrInvalidArg, "cannot set network aliases for network %q because dns is disabled", netName)
-			}
-			netAliases[netName] = aliases
+			normalizeNetworks[netName] = opts
 		}
-		ctr.config.NetworkAliases = netAliases
+		ctr.config.Networks = normalizeNetworks
 	}
 
 	// Validate the container

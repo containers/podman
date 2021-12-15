@@ -86,33 +86,26 @@ type PodNetworkConfig struct {
 	// Defaults to Bridge as root and Slirp as rootless.
 	// Mandatory.
 	NetNS Namespace `json:"netns,omitempty"`
-	// StaticIP sets a static IP for the infra container. As the infra
-	// container's network is used for the entire pod by default, this will
-	// thus be a static IP for the whole pod.
-	// Only available if NetNS is set to Bridge (the default for root).
-	// As such, conflicts with NoInfra=true by proxy.
-	// Optional.
-	StaticIP *net.IP `json:"static_ip,omitempty"`
-	// StaticMAC sets a static MAC for the infra container. As the infra
-	// container's network is used for the entire pod by default, this will
-	// thus be a static MAC for the entire pod.
-	// Only available if NetNS is set to Bridge (the default for root).
-	// As such, conflicts with NoInfra=true by proxy.
-	// Optional.
-	// swagger:strfmt string
-	StaticMAC *types.HardwareAddr `json:"static_mac,omitempty"`
 	// PortMappings is a set of ports to map into the infra container.
 	// As, by default, containers share their network with the infra
 	// container, this will forward the ports to the entire pod.
 	// Only available if NetNS is set to Bridge or Slirp.
 	// Optional.
 	PortMappings []types.PortMapping `json:"portmappings,omitempty"`
-	// CNINetworks is a list of CNI networks that the infra container will
-	// join. As, by default, containers share their network with the infra
-	// container, these networks will effectively be joined by the
-	// entire pod.
-	// Only available when NetNS is set to Bridge, the default for root.
+	// Map of networks names ot ids the container should join to.
+	// You can request additional settings for each network, you can
+	// set network aliases, static ips, static mac address  and the
+	// network interface name for this container on the specifc network.
+	// If the map is empty and the bridge network mode is set the container
+	// will be joined to the default network.
+	Networks map[string]types.PerNetworkOptions
+	// CNINetworks is a list of CNI networks to join the container to.
+	// If this list is empty, the default CNI network will be joined
+	// instead. If at least one entry is present, we will not join the
+	// default network (unless it is part of this list).
+	// Only available if NetNS is set to bridge.
 	// Optional.
+	// Deprecated: as of podman 4.0 use "Networks" instead.
 	CNINetworks []string `json:"cni_networks,omitempty"`
 	// NoManageResolvConf indicates that /etc/resolv.conf should not be
 	// managed by the pod. Instead, each container will create and manage a

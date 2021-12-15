@@ -207,7 +207,7 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		return entities.ListContainer{}, err
 	}
 
-	networks, _, err := ctr.Networks()
+	networks, err := ctr.Networks()
 	if err != nil {
 		return entities.ListContainer{}, err
 	}

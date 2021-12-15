@@ -394,26 +394,10 @@ type ContainerCgroupConfig struct {
 // ContainerNetworkConfig contains information on a container's network
 // configuration.
 type ContainerNetworkConfig struct {
-	// Aliases are a list of network-scoped aliases for container
-	// Optional
-	Aliases map[string][]string `json:"aliases"`
 	// NetNS is the configuration to use for the container's network
 	// namespace.
 	// Mandatory.
 	NetNS Namespace `json:"netns,omitempty"`
-	// StaticIP is the a IPv4 address of the container.
-	// Only available if NetNS is set to Bridge.
-	// Optional.
-	StaticIP *net.IP `json:"static_ip,omitempty"`
-	// StaticIPv6 is a static IPv6 address to set in the container.
-	// Only available if NetNS is set to Bridge.
-	// Optional.
-	StaticIPv6 *net.IP `json:"static_ipv6,omitempty"`
-	// StaticMAC is a static MAC address to set in the container.
-	// Only available if NetNS is set to bridge.
-	// Optional.
-	// swagger:strfmt string
-	StaticMAC *nettypes.HardwareAddr `json:"static_mac,omitempty"`
 	// PortBindings is a set of ports to map into the container.
 	// Only available if NetNS is set to bridge or slirp.
 	// Optional.
@@ -434,12 +418,20 @@ type ContainerNetworkConfig struct {
 	// PublishExposedPorts is set.
 	// Optional.
 	Expose map[uint16]string `json:"expose,omitempty"`
+	// Map of networks names ot ids the container should join to.
+	// You can request additional settings for each network, you can
+	// set network aliases, static ips, static mac address  and the
+	// network interface name for this container on the specifc network.
+	// If the map is empty and the bridge network mode is set the container
+	// will be joined to the default network.
+	Networks map[string]nettypes.PerNetworkOptions
 	// CNINetworks is a list of CNI networks to join the container to.
 	// If this list is empty, the default CNI network will be joined
 	// instead. If at least one entry is present, we will not join the
 	// default network (unless it is part of this list).
 	// Only available if NetNS is set to bridge.
 	// Optional.
+	// Deprecated: as of podman 4.0 use "Networks" instead.
 	CNINetworks []string `json:"cni_networks,omitempty"`
 	// UseImageResolvConf indicates that resolv.conf should not be managed
 	// by Podman, but instead sourced from the image.

@@ -11,7 +11,6 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/libpod/network/types"
 	ann "github.com/containers/podman/v3/pkg/annotations"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	envLib "github.com/containers/podman/v3/pkg/env"
@@ -434,19 +433,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	}
 
 	if c.Net != nil {
-		s.CNINetworks = c.Net.CNINetworks
-	}
-
-	// Network aliases
-	if c.Net != nil {
-		if len(c.Net.Aliases) > 0 {
-			// build a map of aliases where key=cniName
-			aliases := make(map[string][]string, len(s.CNINetworks))
-			for _, cniNetwork := range s.CNINetworks {
-				aliases[cniNetwork] = c.Net.Aliases
-			}
-			s.Aliases = aliases
-		}
+		s.Networks = c.Net.Networks
 	}
 
 	if c.Net != nil {
@@ -455,9 +442,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.DNSServers = c.Net.DNSServers
 		s.DNSSearch = c.Net.DNSSearch
 		s.DNSOptions = c.Net.DNSOptions
-		s.StaticIP = c.Net.StaticIP
-		// type cast to types.HardwareAddr
-		s.StaticMAC = (*types.HardwareAddr)(c.Net.StaticMAC)
 		s.NetworkOptions = c.Net.NetworkOptions
 		s.UseImageHosts = c.Net.NoHosts
 	}

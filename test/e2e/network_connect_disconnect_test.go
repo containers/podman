@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	"github.com/onsi/gomega/types"
 )
 
 var _ = Describe("Podman network connect and disconnect", func() {
@@ -176,12 +177,14 @@ var _ = Describe("Podman network connect and disconnect", func() {
 
 		// Create a second network
 		newNetName := "aliasTest" + stringid.GenerateNonCryptoID()
-		session = podmanTest.Podman([]string{"network", "create", newNetName})
+		session = podmanTest.Podman([]string{"network", "create", newNetName, "--subnet", "10.11.100.0/24"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		defer podmanTest.removeCNINetwork(newNetName)
 
-		connect := podmanTest.Podman([]string{"network", "connect", newNetName, "test"})
+		ip := "10.11.100.99"
+		mac := "44:11:44:11:44:11"
+		connect := podmanTest.Podman([]string{"network", "connect", "--ip", ip, "--mac-address", mac, newNetName, "test"})
 		connect.WaitWithDefaultTimeout()
 		Expect(connect).Should(Exit(0))
 		Expect(connect.ErrorToString()).Should(Equal(""))
@@ -200,6 +203,8 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		exec = podmanTest.Podman([]string{"exec", "-it", "test", "ip", "addr", "show", "eth1"})
 		exec.WaitWithDefaultTimeout()
 		Expect(exec).Should(Exit(0))
+		Expect(exec.OutputToString()).Should(ContainSubstring(ip))
+		Expect(exec.OutputToString()).Should(ContainSubstring(mac))
 
 		// make sure no logrus errors are shown https://github.com/containers/podman/issues/9602
 		rm := podmanTest.Podman([]string{"rm", "--time=0", "-f", "test"})
@@ -326,11 +331,17 @@ var _ = Describe("Podman network connect and disconnect", func() {
 
 		exec := podmanTest.Podman([]string{"exec", "-it", "test", "ip", "addr", "show", "eth0"})
 		exec.WaitWithDefaultTimeout()
-		Expect(exec).Should(Exit(0))
+
+		// because the network interface order is not guaranteed to be the same we have to check both eth0 and eth1
+		// if eth0 did not exists eth1 has to exists
+		var exitMatcher types.GomegaMatcher = ExitWithError()
+		if exec.ExitCode() > 0 {
+			exitMatcher = Exit(0)
+		}
 
 		exec = podmanTest.Podman([]string{"exec", "-it", "test", "ip", "addr", "show", "eth1"})
 		exec.WaitWithDefaultTimeout()
-		Expect(exec).Should(ExitWithError())
+		Expect(exec).Should(exitMatcher)
 	})
 
 	It("podman network disconnect and run with network ID", func() {

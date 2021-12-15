@@ -1058,7 +1058,7 @@ func WithDependencyCtrs(ctrs []*Container) CtrCreateOption {
 // namespace with a minimal configuration.
 // An optional array of port mappings can be provided.
 // Conflicts with WithNetNSFrom().
-func WithNetNS(portMappings []nettypes.PortMapping, exposedPorts map[uint16][]string, postConfigureNetNS bool, netmode string, networks []string) CtrCreateOption {
+func WithNetNS(portMappings []nettypes.PortMapping, exposedPorts map[uint16][]string, postConfigureNetNS bool, netmode string, networks map[string]nettypes.PerNetworkOptions) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
@@ -1070,24 +1070,10 @@ func WithNetNS(portMappings []nettypes.PortMapping, exposedPorts map[uint16][]st
 		ctr.config.PortMappings = portMappings
 		ctr.config.ExposedPorts = exposedPorts
 
-		ctr.config.Networks = networks
-
-		return nil
-	}
-}
-
-// WithStaticIP indicates that the container should request a static IP from
-// the CNI plugins.
-// It cannot be set unless WithNetNS has already been passed.
-// Further, it cannot be set if additional CNI networks to join have been
-// specified.
-func WithStaticIP(ip net.IP) CtrCreateOption {
-	return func(ctr *Container) error {
-		if ctr.valid {
-			return define.ErrCtrFinalized
+		if !ctr.config.NetMode.IsBridge() && len(networks) > 0 {
+			return errors.New("cannot use networks when network mode is not bridge")
 		}
-
-		ctr.config.StaticIP = ip
+		ctr.config.Networks = networks
 
 		return nil
 	}
@@ -1101,23 +1087,6 @@ func WithNetworkOptions(options map[string][]string) CtrCreateOption {
 		}
 
 		ctr.config.NetworkOptions = options
-
-		return nil
-	}
-}
-
-// WithStaticMAC indicates that the container should request a static MAC from
-// the CNI plugins.
-// It cannot be set unless WithNetNS has already been passed.
-// Further, it cannot be set if additional CNI networks to join have been
-// specified.
-func WithStaticMAC(mac nettypes.HardwareAddr) CtrCreateOption {
-	return func(ctr *Container) error {
-		if ctr.valid {
-			return define.ErrCtrFinalized
-		}
-
-		ctr.config.StaticMAC = mac
 
 		return nil
 	}
@@ -1568,20 +1537,6 @@ func WithCreateWorkingDir() CtrCreateOption {
 		}
 
 		ctr.config.CreateWorkingDir = true
-		return nil
-	}
-}
-
-// WithNetworkAliases sets network aliases for the container.
-// Accepts a map of network name to aliases.
-func WithNetworkAliases(aliases map[string][]string) CtrCreateOption {
-	return func(ctr *Container) error {
-		if ctr.valid {
-			return define.ErrCtrFinalized
-		}
-
-		ctr.config.NetworkAliases = aliases
-
 		return nil
 	}
 }

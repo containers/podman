@@ -11,7 +11,7 @@ import (
 func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, opts entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {
 	options := new(play.KubeOptions).WithAuthfile(opts.Authfile).WithUsername(opts.Username).WithPassword(opts.Password)
 	options.WithCertDir(opts.CertDir).WithQuiet(opts.Quiet).WithSignaturePolicy(opts.SignaturePolicy).WithConfigMaps(opts.ConfigMaps)
-	options.WithLogDriver(opts.LogDriver).WithNetwork(opts.Network).WithSeccompProfileRoot(opts.SeccompProfileRoot)
+	options.WithLogDriver(opts.LogDriver).WithNetwork(opts.Networks).WithSeccompProfileRoot(opts.SeccompProfileRoot)
 	options.WithStaticIPs(opts.StaticIPs).WithStaticMACs(opts.StaticMACs)
 	if len(opts.LogOptions) > 0 {
 		options.WithLogOptions(opts.LogOptions)

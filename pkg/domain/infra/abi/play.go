@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -18,6 +17,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
+	nettypes "github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/autoupdate"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/specgen"
@@ -190,39 +190,52 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		}
 	}
 
-	podOpt := entities.PodCreateOptions{Infra: true, Net: &entities.NetOptions{StaticIP: &net.IP{}, StaticMAC: &net.HardwareAddr{}, NoHosts: options.NoHosts}}
+	podOpt := entities.PodCreateOptions{Infra: true, Net: &entities.NetOptions{NoHosts: options.NoHosts}}
 	podOpt, err = kube.ToPodOpt(ctx, podName, podOpt, podYAML)
 	if err != nil {
 		return nil, err
 	}
 
-	if options.Network != "" {
-		ns, cniNets, netOpts, err := specgen.ParseNetworkString(options.Network)
-		if err != nil {
-			return nil, err
-		}
-
-		if (ns.IsBridge() && len(cniNets) == 0) || ns.IsHost() {
-			return nil, errors.Errorf("invalid value passed to --network: bridge or host networking must be configured in YAML")
-		}
-
-		podOpt.Net.Network = ns
-		if len(cniNets) > 0 {
-			podOpt.Net.CNINetworks = append(podOpt.Net.CNINetworks, cniNets...)
-		}
-		if len(netOpts) > 0 {
-			podOpt.Net.NetworkOptions = netOpts
-		}
+	ns, networks, netOpts, err := specgen.ParseNetworkFlag(options.Networks)
+	if err != nil {
+		return nil, err
 	}
 
+	if (ns.IsBridge() && len(networks) == 0) || ns.IsHost() {
+		return nil, errors.Errorf("invalid value passed to --network: bridge or host networking must be configured in YAML")
+	}
+
+	podOpt.Net.Network = ns
+	podOpt.Net.Networks = networks
+	podOpt.Net.NetworkOptions = netOpts
+
+	// FIXME This is very hard to support properly with a good ux
 	if len(options.StaticIPs) > *ipIndex {
-		podOpt.Net.StaticIP = &options.StaticIPs[*ipIndex]
+		if !podOpt.Net.Network.IsBridge() {
+			errors.Wrap(define.ErrInvalidArg, "static ip addresses can only be set when the network mode is bridge")
+		}
+		if len(podOpt.Net.Networks) != 1 {
+			return nil, errors.Wrap(define.ErrInvalidArg, "cannot set static ip addresses for more than network, use netname:ip=<ip> syntax to specify ips for more than network")
+		}
+		for name, netOpts := range podOpt.Net.Networks {
+			netOpts.StaticIPs = append(netOpts.StaticIPs, options.StaticIPs[*ipIndex])
+			podOpt.Net.Networks[name] = netOpts
+		}
 	} else if len(options.StaticIPs) > 0 {
 		// only warn if the user has set at least one ip
 		logrus.Warn("No more static ips left using a random one")
 	}
 	if len(options.StaticMACs) > *ipIndex {
-		podOpt.Net.StaticMAC = &options.StaticMACs[*ipIndex]
+		if !podOpt.Net.Network.IsBridge() {
+			errors.Wrap(define.ErrInvalidArg, "static mac address can only be set when the network mode is bridge")
+		}
+		if len(podOpt.Net.Networks) != 1 {
+			return nil, errors.Wrap(define.ErrInvalidArg, "cannot set static mac address for more than network, use netname:mac=<mac> syntax to specify mac for more than network")
+		}
+		for name, netOpts := range podOpt.Net.Networks {
+			netOpts.StaticMAC = nettypes.HardwareAddr(options.StaticMACs[*ipIndex])
+			podOpt.Net.Networks[name] = netOpts
+		}
 	} else if len(options.StaticIPs) > 0 {
 		// only warn if the user has set at least one mac
 		logrus.Warn("No more static macs left using a random one")

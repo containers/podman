@@ -229,10 +229,12 @@ type ContainerNetworkConfig struct {
 	// StaticIP is a static IP to request for the container.
 	// This cannot be set unless CreateNetNS is set.
 	// If not set, the container will be dynamically assigned an IP by CNI.
+	// Deprecated: Do no use this anymore, this is only for DB backwards compat.
 	StaticIP net.IP `json:"staticIP"`
 	// StaticMAC is a static MAC to request for the container.
 	// This cannot be set unless CreateNetNS is set.
 	// If not set, the container will be dynamically assigned a MAC by CNI.
+	// Deprecated: Do no use this anymore, this is only for DB backwards compat.
 	StaticMAC types.HardwareAddr `json:"staticMAC"`
 	// PortMappings are the ports forwarded to the container's network
 	// namespace
@@ -269,24 +271,24 @@ type ContainerNetworkConfig struct {
 	// Hosts to add in container
 	// Will be appended to host's host file
 	HostAdd []string `json:"hostsAdd,omitempty"`
-	// Network names (CNI) to add container to. Empty to use default network.
+	// Network names with the network specific options.
+	// Please note that these can be altered at runtime. The actual list is
+	// stored in the DB and should be retrieved from there via c.networks()
+	// this value is only used for container create.
+	// Added in podman 4.0, previously NetworksDeprecated was used. Make
+	// sure to not change the json tags.
+	Networks map[string]types.PerNetworkOptions `json:"newNetworks,omitempty"`
+	// Network names to add container to. Empty to use default network.
 	// Please note that these can be altered at runtime. The actual list is
 	// stored in the DB and should be retrieved from there; this is only the
 	// set of networks the container was *created* with.
-	Networks []string `json:"networks,omitempty"`
+	// Deprecated: Do no use this anymore, this is only for DB backwards compat.
+	// Also note that we need to keep the old json tag to decode from DB correctly
+	NetworksDeprecated []string `json:"networks,omitempty"`
 	// Network mode specified for the default network.
 	NetMode namespaces.NetworkMode `json:"networkMode,omitempty"`
 	// NetworkOptions are additional options for each network
 	NetworkOptions map[string][]string `json:"network_options,omitempty"`
-	// NetworkAliases are aliases that will be added to each network.
-	// These are additional names that this container can be accessed as via
-	// DNS when the CNI dnsname plugin is in use.
-	// Please note that these can be altered at runtime. As such, the actual
-	// list is stored in the database and should be retrieved from there;
-	// this is only the set of aliases the container was *created with*.
-	// Formatted as map of network name to aliases. All network names must
-	// be present in the Networks list above.
-	NetworkAliases map[string][]string `json:"network_alises,omitempty"`
 }
 
 // ContainerImageConfig is an embedded sub-config providing image configuration

@@ -299,20 +299,66 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	var (
-		aliases    []string
 		netConnect types.NetworkConnect
 	)
 	if err := json.NewDecoder(r.Body).Decode(&netConnect); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
+
+	netOpts := nettypes.PerNetworkOptions{}
+
 	name := utils.GetName(r)
 	if netConnect.EndpointConfig != nil {
 		if netConnect.EndpointConfig.Aliases != nil {
-			aliases = netConnect.EndpointConfig.Aliases
+			netOpts.Aliases = netConnect.EndpointConfig.Aliases
+		}
+
+		// if IP address is provided
+		if len(netConnect.EndpointConfig.IPAddress) > 0 {
+			staticIP := net.ParseIP(netConnect.EndpointConfig.IPAddress)
+			if staticIP == nil {
+				utils.Error(w, "failed to parse the ip address", http.StatusInternalServerError,
+					errors.Errorf("failed to parse the ip address %q", netConnect.EndpointConfig.IPAddress))
+				return
+			}
+			netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
+		}
+
+		if netConnect.EndpointConfig.IPAMConfig != nil {
+			// if IPAMConfig.IPv4Address is provided
+			if len(netConnect.EndpointConfig.IPAMConfig.IPv4Address) > 0 {
+				staticIP := net.ParseIP(netConnect.EndpointConfig.IPAMConfig.IPv4Address)
+				if staticIP == nil {
+					utils.Error(w, "failed to parse the ipv4 address", http.StatusInternalServerError,
+						errors.Errorf("failed to parse the ipv4 address %q", netConnect.EndpointConfig.IPAMConfig.IPv4Address))
+					return
+				}
+				netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
+			}
+			// if IPAMConfig.IPv6Address is provided
+			if len(netConnect.EndpointConfig.IPAMConfig.IPv6Address) > 0 {
+				staticIP := net.ParseIP(netConnect.EndpointConfig.IPAMConfig.IPv6Address)
+				if staticIP == nil {
+					utils.Error(w, "failed to parse the ipv6 address", http.StatusInternalServerError,
+						errors.Errorf("failed to parse the ipv6 address %q", netConnect.EndpointConfig.IPAMConfig.IPv6Address))
+					return
+				}
+				netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
+			}
+		}
+		// If MAC address is provided
+		if len(netConnect.EndpointConfig.MacAddress) > 0 {
+			staticMac, err := net.ParseMAC(netConnect.EndpointConfig.MacAddress)
+			if err != nil {
+				utils.Error(w, "failed to parse the mac address", http.StatusInternalServerError,
+					errors.Errorf("failed to parse the mac address %q", netConnect.EndpointConfig.IPAMConfig.IPv6Address))
+				return
+			}
+			netOpts.StaticMAC = nettypes.HardwareAddr(staticMac)
 		}
 	}
-	err := runtime.ConnectContainerToNetwork(netConnect.Container, name, aliases)
+	err := runtime.ConnectContainerToNetwork(netConnect.Container, name, netOpts)
 	if err != nil {
 		if errors.Cause(err) == define.ErrNoSuchCtr {
 			utils.ContainerNotFound(w, netConnect.Container, err)

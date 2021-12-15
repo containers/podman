@@ -249,7 +249,7 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 				return false
 			}
 
-			networks, _, err := c.Networks()
+			networks, err := c.Networks()
 			// if err or no networks, quick out
 			if err != nil || len(networks) == 0 {
 				return false

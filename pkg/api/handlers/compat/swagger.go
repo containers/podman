@@ -55,15 +55,13 @@ type swagCompatNetworkCreateResponse struct {
 }
 
 // Network disconnect
-// swagger:model NetworkConnectRequest
+// swagger:model NetworkCompatConnectRequest
 type swagCompatNetworkConnectRequest struct {
-	// in:body
-	Body struct{ types.NetworkConnect }
+	types.NetworkConnect
 }
 
 // Network disconnect
-// swagger:model NetworkDisconnectRequest
+// swagger:model NetworkCompatDisconnectRequest
 type swagCompatNetworkDisconnectRequest struct {
-	// in:body
-	Body struct{ types.NetworkDisconnect }
+	types.NetworkDisconnect
 }

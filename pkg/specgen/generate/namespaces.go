@@ -10,6 +10,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
@@ -66,7 +67,7 @@ func GetDefaultNamespaceMode(nsType string, cfg *config.Config, pod *libpod.Pod)
 	case "cgroup":
 		return specgen.ParseCgroupNamespace(cfg.Containers.CgroupNS)
 	case "net":
-		ns, _, err := specgen.ParseNetworkNamespace(cfg.Containers.NetNS, cfg.Containers.RootlessNetworking == "cni")
+		ns, _, _, err := specgen.ParseNetworkFlag(nil)
 		return ns, err
 	}
 
@@ -250,7 +251,7 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 		if s.NetNS.Value != "" {
 			val = fmt.Sprintf("slirp4netns:%s", s.NetNS.Value)
 		}
-		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, val, s.CNINetworks))
+		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, val, nil))
 	case specgen.Private:
 		fallthrough
 	case specgen.Bridge:
@@ -258,7 +259,34 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 		if err != nil {
 			return nil, err
 		}
-		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, "bridge", s.CNINetworks))
+
+		rtConfig, err := rt.GetConfigNoCopy()
+		if err != nil {
+			return nil, err
+		}
+		// if no network was specified use add the default
+		if len(s.Networks) == 0 {
+			// backwards config still allow the old cni networks list and convert to new format
+			if len(s.CNINetworks) > 0 {
+				logrus.Warn(`specgen "cni_networks" option is deprecated use the "networks" map instead`)
+				networks := make(map[string]types.PerNetworkOptions, len(s.CNINetworks))
+				for _, net := range s.CNINetworks {
+					networks[net] = types.PerNetworkOptions{}
+				}
+				s.Networks = networks
+			} else {
+				// no networks given but bridge is set so use default network
+				s.Networks = map[string]types.PerNetworkOptions{
+					rtConfig.Network.DefaultNetwork: {},
+				}
+			}
+		}
+		// rename the "default" network to the correct default name
+		if opts, ok := s.Networks["default"]; ok {
+			s.Networks[rtConfig.Network.DefaultNetwork] = opts
+			delete(s.Networks, "default")
+		}
+		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, "bridge", s.Networks))
 	}
 
 	if s.UseImageHosts {
@@ -280,12 +308,6 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 	}
 	if len(s.DNSOptions) > 0 {
 		toReturn = append(toReturn, libpod.WithDNSOption(s.DNSOptions))
-	}
-	if s.StaticIP != nil {
-		toReturn = append(toReturn, libpod.WithStaticIP(*s.StaticIP))
-	}
-	if s.StaticMAC != nil {
-		toReturn = append(toReturn, libpod.WithStaticMAC(*s.StaticMAC))
 	}
 	if s.NetworkOptions != nil {
 		toReturn = append(toReturn, libpod.WithNetworkOptions(s.NetworkOptions))

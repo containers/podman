@@ -23,7 +23,7 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
-		Network    string   `schema:"network"`
+		Network    []string `schema:"network"`
 		TLSVerify  bool     `schema:"tlsVerify"`
 		LogDriver  string   `schema:"logDriver"`
 		LogOptions []string `schema:"logOptions"`
@@ -103,7 +103,7 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 		Authfile:   authfile,
 		Username:   username,
 		Password:   password,
-		Network:    query.Network,
+		Networks:   query.Network,
 		NoHosts:    query.NoHosts,
 		Quiet:      true,
 		LogDriver:  query.LogDriver,

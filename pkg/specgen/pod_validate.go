@@ -1,7 +1,6 @@
 package specgen
 
 import (
-	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/pkg/errors"
 )
@@ -19,15 +18,6 @@ func exclusivePodOptions(opt1, opt2 string) error {
 
 // Validate verifies the input is valid
 func (p *PodSpecGenerator) Validate() error {
-	if rootless.IsRootless() && len(p.CNINetworks) == 0 {
-		if p.StaticIP != nil {
-			return ErrNoStaticIPRootless
-		}
-		if p.StaticMAC != nil {
-			return ErrNoStaticMACRootless
-		}
-	}
-
 	// PodBasicConfig
 	if p.NoInfra {
 		if len(p.InfraCommand) > 0 {
@@ -52,11 +42,10 @@ func (p *PodSpecGenerator) Validate() error {
 		if p.NetNS.NSMode != Default && p.NetNS.NSMode != "" {
 			return errors.New("NoInfra and network modes cannot be used together")
 		}
-		if p.StaticIP != nil {
-			return exclusivePodOptions("NoInfra", "StaticIP")
-		}
-		if p.StaticMAC != nil {
-			return exclusivePodOptions("NoInfra", "StaticMAC")
+		// Note that networks might be set when --ip or --mac was set
+		// so we need to check that no networks are set without the infra
+		if len(p.Networks) > 0 {
+			return errors.New("cannot set networks options without infra container")
 		}
 		if len(p.DNSOption) > 0 {
 			return exclusivePodOptions("NoInfra", "DNSOption")
@@ -78,10 +67,8 @@ func (p *PodSpecGenerator) Validate() error {
 		if len(p.PortMappings) > 0 {
 			return errors.New("PortMappings can only be used with Bridge or slirp4netns networking")
 		}
-		if len(p.CNINetworks) > 0 {
-			return errors.New("CNINetworks can only be used with Bridge mode networking")
-		}
 	}
+
 	if p.NoManageResolvConf {
 		if len(p.DNSServer) > 0 {
 			return exclusivePodOptions("NoManageResolvConf", "DNSServer")

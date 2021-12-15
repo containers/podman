@@ -29,25 +29,10 @@ func exclusiveOptions(opt1, opt2 string) error {
 // Validate verifies that the given SpecGenerator is valid and satisfies required
 // input for creating a container.
 func (s *SpecGenerator) Validate() error {
-	if rootless.IsRootless() && len(s.CNINetworks) == 0 {
-		if s.StaticIP != nil || s.StaticIPv6 != nil {
-			return ErrNoStaticIPRootless
-		}
-		if s.StaticMAC != nil {
-			return ErrNoStaticMACRootless
-		}
-	}
-
 	// Containers being added to a pod cannot have certain network attributes
 	// associated with them because those should be on the infra container.
 	if len(s.Pod) > 0 && s.NetNS.NSMode == FromPod {
-		if s.StaticIP != nil || s.StaticIPv6 != nil {
-			return errors.Wrap(define.ErrNetworkOnPodContainer, "static ip addresses must be defined when the pod is created")
-		}
-		if s.StaticMAC != nil {
-			return errors.Wrap(define.ErrNetworkOnPodContainer, "MAC addresses must be defined when the pod is created")
-		}
-		if len(s.CNINetworks) > 0 {
+		if len(s.Networks) > 0 {
 			return errors.Wrap(define.ErrNetworkOnPodContainer, "networks must be defined when the pod is created")
 		}
 		if len(s.PortMappings) > 0 || s.PublishExposedPorts {
@@ -204,5 +189,10 @@ func (s *SpecGenerator) Validate() error {
 	if err := validateNetNS(&s.NetNS); err != nil {
 		return err
 	}
+	if s.NetNS.NSMode != Bridge && len(s.Networks) > 0 {
+		// Note that we also get the ip and mac in the networks map
+		return errors.New("Networks and static ip/mac address can only be used with Bridge mode networking")
+	}
+
 	return nil
 }

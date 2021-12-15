@@ -2206,6 +2206,24 @@ func (c *Container) canWithPrevious() error {
 // prepareCheckpointExport writes the config and spec to
 // JSON files for later export
 func (c *Container) prepareCheckpointExport() error {
+	networks, err := c.networks()
+	if err != nil {
+		return err
+	}
+	// make sure to exclude the short ID alias since the container gets a new ID on restore
+	for net, opts := range networks {
+		newAliases := make([]string, 0, len(opts.Aliases))
+		for _, alias := range opts.Aliases {
+			if alias != c.config.ID[:12] {
+				newAliases = append(newAliases, alias)
+			}
+		}
+		opts.Aliases = newAliases
+		networks[net] = opts
+	}
+
+	// add the networks from the db to the config so that the exported checkpoint still stores all current networks
+	c.config.Networks = networks
 	// save live config
 	if _, err := metadata.WriteJSONFile(c.config, c.bundlePath(), metadata.ConfigDumpFile); err != nil {
 		return err
