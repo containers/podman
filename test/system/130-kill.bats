@@ -116,4 +116,18 @@ load helpers
     is "$output" "Error: valid signals are 1 through 64" "podman create"
 }
 
+@test "podman kill - print IDs or raw input" {
+    # kill -a must print the IDs
+    run_podman run --rm -d $IMAGE top
+    ctrID="$output"
+    run_podman kill -a
+    is "$output" "$ctrID"
+
+    # kill $input must print $input
+    cname=$(random_string)
+    run_podman run --rm -d --name $cname $IMAGE top
+    run_podman kill $cname
+    is "$output" $cname
+}
+
 # vim: filetype=sh
