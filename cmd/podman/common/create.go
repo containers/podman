@@ -257,7 +257,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		healthIntervalFlagName := "health-interval"
 		createFlags.StringVar(
 			&cf.HealthInterval,
-			healthIntervalFlagName, DefaultHealthCheckInterval,
+			healthIntervalFlagName, define.DefaultHealthCheckInterval,
 			"set an interval for the healthchecks (a value of disable results in no automatic timer setup)",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(healthIntervalFlagName, completion.AutocompleteNone)
@@ -265,7 +265,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		healthRetriesFlagName := "health-retries"
 		createFlags.UintVar(
 			&cf.HealthRetries,
-			healthRetriesFlagName, DefaultHealthCheckRetries,
+			healthRetriesFlagName, define.DefaultHealthCheckRetries,
 			"the number of retries allowed before a healthcheck is considered to be unhealthy",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(healthRetriesFlagName, completion.AutocompleteNone)
@@ -273,7 +273,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		healthStartPeriodFlagName := "health-start-period"
 		createFlags.StringVar(
 			&cf.HealthStartPeriod,
-			healthStartPeriodFlagName, DefaultHealthCheckStartPeriod,
+			healthStartPeriodFlagName, define.DefaultHealthCheckStartPeriod,
 			"the initialization time needed for a container to bootstrap",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(healthStartPeriodFlagName, completion.AutocompleteNone)
@@ -281,7 +281,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		healthTimeoutFlagName := "health-timeout"
 		createFlags.StringVar(
 			&cf.HealthTimeout,
-			healthTimeoutFlagName, DefaultHealthCheckTimeout,
+			healthTimeoutFlagName, define.DefaultHealthCheckTimeout,
 			"the maximum time allowed to complete the healthcheck before an interval is considered failed",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(healthTimeoutFlagName, completion.AutocompleteNone)

@@ -2,7 +2,9 @@ package integration
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"time"
 
 	define "github.com/containers/podman/v3/libpod/define"
@@ -257,5 +259,41 @@ var _ = Describe("Podman healthcheck run", func() {
 		Expect(startAgain).Should(Exit(0))
 		Expect(startAgain.OutputToString()).To(Equal("hc"))
 		Expect(startAgain.ErrorToString()).To(Equal(""))
+	})
+
+	It("Verify default time is used and no utf-8 escapes", func() {
+		cwd, err := os.Getwd()
+		Expect(err).To(BeNil())
+
+		podmanTest.AddImageToRWStore(ALPINE)
+		// Write target and fake files
+		targetPath, err := CreateTempDirInTempDir()
+		Expect(err).To(BeNil())
+		containerfile := fmt.Sprintf(`FROM %s
+HEALTHCHECK CMD ls -l / 2>&1`, ALPINE)
+		containerfilePath := filepath.Join(targetPath, "Containerfile")
+		err = ioutil.WriteFile(containerfilePath, []byte(containerfile), 0644)
+		Expect(err).To(BeNil())
+		defer func() {
+			Expect(os.Chdir(cwd)).To(BeNil())
+			Expect(os.RemoveAll(targetPath)).To(BeNil())
+		}()
+
+		// make cwd as context root path
+		Expect(os.Chdir(targetPath)).To(BeNil())
+
+		session := podmanTest.Podman([]string{"build", "--format", "docker", "-t", "test", "."})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		run := podmanTest.Podman([]string{"run", "-dt", "--name", "hctest", "test", "ls"})
+		run.WaitWithDefaultTimeout()
+		Expect(run).Should(Exit(0))
+
+		inspect := podmanTest.InspectContainer("hctest")
+		// Check to make sure a default time value was added
+		Expect(inspect[0].Config.Healthcheck.Timeout).To(BeNumerically("==", 30000000000))
+		// Check to make sure characters were not coerced to utf8
+		Expect(inspect[0].Config.Healthcheck.Test).To(Equal([]string{"CMD-SHELL", "ls -l / 2>&1"}))
 	})
 })

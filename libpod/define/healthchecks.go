@@ -34,3 +34,16 @@ const (
 	// HealthCheckDefined means the healthcheck was found on the container
 	HealthCheckDefined HealthCheckStatus = iota
 )
+
+// Healthcheck defaults.  These are used both in the cli as well in
+// libpod and were moved from cmd/podman/common
+const (
+	// DefaultHealthCheckInterval default value
+	DefaultHealthCheckInterval = "30s"
+	// DefaultHealthCheckRetries default value
+	DefaultHealthCheckRetries uint = 3
+	// DefaultHealthCheckStartPeriod default value
+	DefaultHealthCheckStartPeriod = "0s"
+	// DefaultHealthCheckTimeout default value
+	DefaultHealthCheckTimeout = "30s"
+)
