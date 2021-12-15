@@ -634,6 +634,12 @@ func resetState(state *ContainerState) {
 	state.RestartPolicyMatch = false
 	state.RestartCount = 0
 	state.Checkpointed = false
+	state.Restored = false
+	state.CheckpointedTime = time.Time{}
+	state.RestoredTime = time.Time{}
+	state.CheckpointPath = ""
+	state.CheckpointLog = ""
+	state.RestoreLog = ""
 }
 
 // Refresh refreshes the container's state after a restart.
@@ -1111,6 +1117,12 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	}
 
 	c.state.Checkpointed = false
+	c.state.Restored = false
+	c.state.CheckpointedTime = time.Time{}
+	c.state.RestoredTime = time.Time{}
+	c.state.CheckpointPath = ""
+	c.state.CheckpointLog = ""
+	c.state.RestoreLog = ""
 	c.state.ExitCode = 0
 	c.state.Exited = false
 	c.state.State = define.ContainerStateCreated
