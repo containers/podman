@@ -256,11 +256,11 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 		case "mode":
 			switch network.Driver {
 			case types.MacVLANNetworkDriver:
-				if !pkgutil.StringInSlice(v, []string{"", "bridge", "private", "vepa", "passthru"}) {
+				if !pkgutil.StringInSlice(v, types.ValidMacVLANModes) {
 					return nil, "", errors.Errorf("unknown macvlan mode %q", v)
 				}
 			case types.IPVLANNetworkDriver:
-				if !pkgutil.StringInSlice(v, []string{"", "l2", "l3", "l3s"}) {
+				if !pkgutil.StringInSlice(v, types.ValidIPVLANModes) {
 					return nil, "", errors.Errorf("unknown ipvlan mode %q", v)
 				}
 			default:

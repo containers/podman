@@ -128,7 +128,7 @@ func (n *netavarkNetwork) networkCreate(newNetwork types.Network, defaultNet boo
 		for key, value := range newNetwork.Options {
 			switch key {
 			case "mode":
-				if !util.StringInSlice(value, []string{"", "bridge", "private", "vepa", "passthru"}) {
+				if !util.StringInSlice(value, types.ValidMacVLANModes) {
 					return nil, errors.Errorf("unknown macvlan mode %q", value)
 				}
 			default:
