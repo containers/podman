@@ -85,14 +85,16 @@ var _ = Describe("Podman images", func() {
 
 	// Test to validate the remove image api
 	It("remove image", func() {
-		// Remove invalid image should be a 404
+		// NOTE that removing an image that does not exist will still
+		// return a 200 http status.  The response, however, includes
+		// the exit code that podman-remote should exit with.
+		//
+		// The libpod/images/remove endpoint supports batch removal of
+		// images for performance reasons and for hiding the logic of
+		// deciding which exit code to use from the client.
 		response, errs := images.Remove(bt.conn, []string{"foobar5000"}, nil)
 		Expect(len(errs)).To(BeNumerically(">", 0))
-		code, _ := bindings.CheckResponseCode(errs[0])
-		// FIXME FIXME FIXME: #12441: THIS IS BROKEN
-		// FIXME FIXME FIXME: we get msg: "foobar5000: image not known"
-		// FIXME FIXME FIXME: ...with no ResponseCode
-		Expect(code).To(BeNumerically("==", -1))
+		Expect(response.ExitCode).To(BeNumerically("==", 1)) // podman-remote would exit with 1
 
 		// Remove an image by name, validate image is removed and error is nil
 		inspectData, err := images.GetImage(bt.conn, busybox.shortName, nil)
@@ -102,7 +104,7 @@ var _ = Describe("Podman images", func() {
 
 		Expect(inspectData.ID).To(Equal(response.Deleted[0]))
 		inspectData, err = images.GetImage(bt.conn, busybox.shortName, nil)
-		code, _ = bindings.CheckResponseCode(err)
+		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
 		// Start a container with alpine image
