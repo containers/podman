@@ -143,6 +143,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 	switch opts.ImagePath {
 	case "testing", "next", "stable", "":
 		// Get image as usual
+		v.ImageStream = opts.ImagePath
 		dd, err := machine.NewFcosDownloader(vmtype, v.Name, opts.ImagePath)
 		if err != nil {
 			return err
@@ -154,6 +155,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 	default:
 		// The user has provided an alternate image which can be a file path
 		// or URL.
+		v.ImageStream = "custom"
 		g, err := machine.NewGenericDownloader(vmtype, v.Name, opts.ImagePath)
 		if err != nil {
 			return err
@@ -590,6 +592,7 @@ func GetVMInfos() ([]*machine.ListResponse, error) {
 			listEntry := new(machine.ListResponse)
 
 			listEntry.Name = vm.Name
+			listEntry.Stream = vm.ImageStream
 			listEntry.VMType = "qemu"
 			listEntry.CPUs = vm.CPUs
 			listEntry.Memory = vm.Memory

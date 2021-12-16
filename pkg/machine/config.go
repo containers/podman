@@ -57,6 +57,7 @@ type ListResponse struct {
 	CreatedAt time.Time
 	LastUp    time.Time
 	Running   bool
+	Stream    string
 	VMType    string
 	CPUs      uint64
 	Memory    uint64
