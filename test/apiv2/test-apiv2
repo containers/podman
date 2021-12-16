@@ -48,6 +48,30 @@ TESTS_DIR=$(realpath $(dirname $0))
 # Path to podman binary
 PODMAN_BIN=${PODMAN:-${TESTS_DIR}/../../bin/podman}
 
+# Cleanup handlers
+clean_up_server() {
+    if [ -n "$service_pid" ]; then
+        # Remove any containers and images; this prevents the following warning:
+        #  'rm: cannot remove '/.../overlay': Device or resource busy
+        podman rm -a
+        podman rmi -af
+
+        stop_registry
+        stop_service
+    fi
+}
+
+# Any non-test-related error, be it syntax or podman-command, fails here.
+err_handler() {
+    echo "Fatal error in ${BASH_SOURCE[1]}:${BASH_LINENO[0]}"
+    echo "Log:"
+    sed -e 's/^/  >/' <$WORKDIR/output.log
+    echo "Bailing."
+    clean_up_server
+}
+
+trap err_handler ERR
+
 # END   setup
 ###############################################################################
 # BEGIN infrastructure code - the helper functions used in tests themselves
@@ -237,14 +261,15 @@ function t() {
     echo "\$ $testname"                                                  >>$LOG
     rm -f $WORKDIR/curl.*
     # -s = silent, but --write-out 'format' gives us important response data
-    response=$(curl -s -X $method ${curl_args}                   \
+    # The hairy "{ ...;rc=$?; } || :" lets us capture curl's exit code and
+    # give a helpful diagnostic if it fails.
+    { response=$(curl -s -X $method ${curl_args}                 \
                     -H "Content-type: $content_type"             \
-                    --dump-header $WORKDIR/curl.headers.out       \
+                    --dump-header $WORKDIR/curl.headers.out      \
                     --write-out '%{http_code}^%{content_type}^%{time_total}' \
-                    -o $WORKDIR/curl.result.out "$url")
+                    -o $WORKDIR/curl.result.out "$url"); rc=$?; } || :
 
     # Any error from curl is instant bad news, from which we can't recover
-    rc=$?
     if [[ $rc -ne 0 ]]; then
         echo "FATAL: curl failure ($rc) on $url - cannot continue" >&2
         exit 1
@@ -353,8 +378,8 @@ function start_service() {
 function stop_service() {
     # Stop the server
     if [[ -n $service_pid ]]; then
-        kill $service_pid
-        wait $service_pid
+        kill $service_pid || :
+        wait $service_pid || :
     fi
 }
 
@@ -471,7 +496,7 @@ function wait_for_port() {
 #  podman  #  Needed by some test scripts to invoke the actual podman binary
 ############
 function podman() {
-    echo "\$ $PODMAN_BIN $*"                       >>$WORKDIR/output.log
+    echo "\$ $PODMAN_BIN $*"                           >>$WORKDIR/output.log
     env CONTAINERS_REGISTRIES_CONF=$TESTS_DIR/../registries.conf \
         $PODMAN_BIN --root $WORKDIR/server_root "$@"   >>$WORKDIR/output.log 2>&1
 }
@@ -529,23 +554,17 @@ start_service
 
 for i in ${tests_to_run[@]}; do
     TEST_CONTEXT="[$(basename $i .at)]"
+
+    # Clear output from 'podman' helper
+    >| $WORKDIR/output.log
+
     source $i
 done
 
 # END   entry handler
 ###############################################################################
 
-# Clean up
-
-if [ -n "$service_pid" ]; then
-    # Remove any containers and images; this prevents the following warning:
-    #  'rm: cannot remove '/.../overlay': Device or resource busy
-    podman rm -a
-    podman rmi -af
-
-    stop_registry
-    stop_service
-fi
+clean_up_server
 
 test_count=$(<$testcounter_file)
 failure_count=$(<$failures_file)

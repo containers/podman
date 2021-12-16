@@ -97,7 +97,7 @@ t GET    libpod/containers/${cid}/json 200 \
 t DELETE libpod/containers/$cid 204
 
 CNAME=myfoo
-podman run --name $CNAME $IMAGE -td top
+podman run -d --name $CNAME $IMAGE top
 t GET libpod/containers/json?all=true 200 \
   .[0].Id~[0-9a-f]\\{64\\}
 cid=$(jq -r '.[0].Id' <<<"$output")
@@ -184,7 +184,7 @@ t GET containers/myctr/json 200 \
 t DELETE images/localhost/newrepo:latest?force=true 200
 t DELETE images/localhost/newrepo:v1?force=true 200
 t DELETE images/localhost/newrepo:v2?force=true 200
-t DELETE libpod/containers/$cid 204
+t DELETE libpod/containers/$cid?force=true 204
 t DELETE libpod/containers/myctr 204
 t DELETE libpod/containers/bogus 404
 
