@@ -152,6 +152,9 @@ type ContainerBasicConfig struct {
 	// Conflicts with UtsNS if UtsNS is not set to private.
 	// Optional.
 	Hostname string `json:"hostname,omitempty"`
+	// HostUses is a list of host usernames or UIDs to add to the container
+	// /etc/passwd file
+	HostUsers []string `json:"hostusers,omitempty"`
 	// Sysctl sets kernel parameters for the container
 	Sysctl map[string]string `json:"sysctl,omitempty"`
 	// Remove indicates if the container should be removed once it has been started

@@ -292,6 +292,14 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"Set proxy environment variables in the container based on the host proxy vars",
 		)
 
+		hostUserFlagName := "hostuser"
+		createFlags.StringSliceVar(
+			&cf.HostUsers,
+			hostUserFlagName, []string{},
+			"Host user account to add to /etc/passwd within container",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(hostUserFlagName, completion.AutocompleteNone)
+
 		imageVolumeFlagName := "image-volume"
 		createFlags.StringVar(
 			&cf.ImageVolume,

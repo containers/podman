@@ -437,6 +437,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.NetworkOptions = c.Net.NetworkOptions
 		s.UseImageHosts = c.Net.NoHosts
 	}
+	s.HostUsers = c.HostUsers
 	s.ImageVolumeMode = c.ImageVolume
 	if s.ImageVolumeMode == "bind" {
 		s.ImageVolumeMode = "anonymous"

@@ -305,13 +305,40 @@ func (c *Container) getUserOverrides() *lookup.Overrides {
 	return &overrides
 }
 
+func lookupHostUser(name string) (*runcuser.ExecUser, error) {
+	var execUser runcuser.ExecUser
+	// Lookup User on host
+	u, err := util.LookupUser(name)
+	if err != nil {
+		return &execUser, err
+	}
+	uid, err := strconv.ParseUint(u.Uid, 8, 32)
+	if err != nil {
+		return &execUser, err
+	}
+
+	gid, err := strconv.ParseUint(u.Gid, 8, 32)
+	if err != nil {
+		return &execUser, err
+	}
+	execUser.Uid = int(uid)
+	execUser.Gid = int(gid)
+	execUser.Home = u.HomeDir
+	return &execUser, nil
+}
+
 // Generate spec for a container
 // Accepts a map of the container's dependencies
 func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	overrides := c.getUserOverrides()
 	execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, c.config.User, overrides)
 	if err != nil {
-		return nil, err
+		if util.StringInSlice(c.config.User, c.config.HostUsers) {
+			execUser, err = lookupHostUser(c.config.User)
+		}
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	g := generate.NewFromSpec(c.config.Spec)
@@ -2348,12 +2375,25 @@ func (c *Container) generateUserGroupEntry(addedGID int) (string, int, error) {
 //    /etc/passwd via AddCurrentUserPasswdEntry (though this does not trigger if
 //    the user in question already exists in /etc/passwd) or the UID to be added
 //    is 0).
+// 3. The user specified additional host user accounts to add the the /etc/passwd file
 // Returns password entry (as a string that can be appended to /etc/passwd) and
 // any error that occurred.
 func (c *Container) generatePasswdEntry() (string, error) {
 	passwdString := ""
 
 	addedUID := 0
+	for _, userid := range c.config.HostUsers {
+		// Lookup User on host
+		u, err := util.LookupUser(userid)
+		if err != nil {
+			return "", err
+		}
+		entry, err := c.userPasswdEntry(u)
+		if err != nil {
+			return "", err
+		}
+		passwdString += entry
+	}
 	if c.config.AddCurrentUserPasswdEntry {
 		entry, uid, _, err := c.generateCurrentUserPasswdEntry()
 		if err != nil {
@@ -2386,17 +2426,25 @@ func (c *Container) generateCurrentUserPasswdEntry() (string, int, int, error) {
 	if err != nil {
 		return "", 0, 0, errors.Wrapf(err, "failed to get current user")
 	}
-
-	// Lookup the user to see if it exists in the container image.
-	_, err = lookup.GetUser(c.state.Mountpoint, u.Username)
-	if err != runcuser.ErrNoPasswdEntries {
+	pwd, err := c.userPasswdEntry(u)
+	if err != nil {
 		return "", 0, 0, err
+	}
+
+	return pwd, uid, rootless.GetRootlessGID(), nil
+}
+
+func (c *Container) userPasswdEntry(u *user.User) (string, error) {
+	// Lookup the user to see if it exists in the container image.
+	_, err := lookup.GetUser(c.state.Mountpoint, u.Username)
+	if err != runcuser.ErrNoPasswdEntries {
+		return "", err
 	}
 
 	// Lookup the UID to see if it exists in the container image.
 	_, err = lookup.GetUser(c.state.Mountpoint, u.Uid)
 	if err != runcuser.ErrNoPasswdEntries {
-		return "", 0, 0, err
+		return "", err
 	}
 
 	// If the user's actual home directory exists, or was mounted in - use
@@ -2430,7 +2478,7 @@ func (c *Container) generateCurrentUserPasswdEntry() (string, int, int, error) {
 		c.config.Spec.Process.Env = append(c.config.Spec.Process.Env, fmt.Sprintf("HOME=%s", homeDir))
 	}
 
-	return fmt.Sprintf("%s:*:%s:%s:%s:%s:/bin/sh\n", u.Username, u.Uid, u.Gid, u.Name, homeDir), uid, rootless.GetRootlessGID(), nil
+	return fmt.Sprintf("%s:*:%s:%s:%s:%s:/bin/sh\n", u.Username, u.Uid, u.Gid, u.Name, homeDir), nil
 }
 
 // generateUserPasswdEntry generates an /etc/passwd entry for the container user
@@ -2485,7 +2533,7 @@ func (c *Container) generateUserPasswdEntry(addedUID int) (string, int, int, err
 
 // generatePasswdAndGroup generates container-specific passwd and group files
 // iff g.config.User is a number or we are configured to make a passwd entry for
-// the current user.
+// the current user or the user specified HostsUsers
 // Returns path to file to mount at /etc/passwd, path to file to mount at
 // /etc/group, and any error that occurred. If no passwd/group file were
 // required, the empty string will be returned for those path (this may occur
@@ -2496,7 +2544,8 @@ func (c *Container) generateUserPasswdEntry(addedUID int) (string, int, int, err
 // with a bind mount). This is done in cases where the container is *not*
 // read-only. In this case, the function will return nothing ("", "", nil).
 func (c *Container) generatePasswdAndGroup() (string, string, error) {
-	if !c.config.AddCurrentUserPasswdEntry && c.config.User == "" {
+	if !c.config.AddCurrentUserPasswdEntry && c.config.User == "" &&
+		len(c.config.HostUsers) == 0 {
 		return "", "", nil
 	}
 

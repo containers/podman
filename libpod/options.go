@@ -1768,6 +1768,17 @@ func WithPidFile(pidFile string) CtrCreateOption {
 	}
 }
 
+// WithHostUsers indicates host users to add to /etc/passwd
+func WithHostUsers(hostUsers []string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.HostUsers = hostUsers
+		return nil
+	}
+}
+
 // WithInitCtrType indicates the container is a initcontainer
 func WithInitCtrType(containerType string) CtrCreateOption {
 	return func(ctr *Container) error {
