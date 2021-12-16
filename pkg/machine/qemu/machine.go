@@ -145,6 +145,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 		// Get image as usual
 		v.ImageStream = opts.ImagePath
 		dd, err := machine.NewFcosDownloader(vmtype, v.Name, opts.ImagePath)
+
 		if err != nil {
 			return err
 		}
@@ -235,6 +236,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 		Name:      opts.Username,
 		Key:       key,
 		VMName:    v.Name,
+		TimeZone:  opts.TimeZone,
 		WritePath: v.IgnitionFilePath,
 	}
 	return machine.NewIgnitionFile(ign)

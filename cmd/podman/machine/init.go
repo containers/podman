@@ -38,7 +38,6 @@ func init() {
 	})
 	flags := initCmd.Flags()
 	cfg := registry.PodmanConfig()
-
 	cpusFlagName := "cpus"
 	flags.Uint64Var(
 		&initOpts.CPUS,
@@ -69,6 +68,13 @@ func init() {
 		"now", false,
 		"Start machine now",
 	)
+	timezoneFlagName := "timezone"
+	defaultTz := cfg.TZ()
+	if len(defaultTz) < 1 {
+		defaultTz = "local"
+	}
+	flags.StringVar(&initOpts.TimeZone, timezoneFlagName, defaultTz, "Set timezone")
+	_ = initCmd.RegisterFlagCompletionFunc(timezoneFlagName, completion.AutocompleteDefault)
 
 	ImagePathFlagName := "image-path"
 	flags.StringVar(&initOpts.ImagePath, ImagePathFlagName, cfg.Machine.Image, "Path to qcow image")

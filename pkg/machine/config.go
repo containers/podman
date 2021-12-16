@@ -21,6 +21,7 @@ type InitOptions struct {
 	IsDefault    bool
 	Memory       uint64
 	Name         string
+	TimeZone     string
 	URI          url.URL
 	Username     string
 }
