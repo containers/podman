@@ -273,6 +273,23 @@ RUN printenv http_proxy`, ALPINE)
 		os.Unsetenv("http_proxy")
 	})
 
+	It("podman build relay exit code to process", func() {
+		if IsRemote() {
+			// following states true for all the remote commands
+			Skip("Remote server does not emits error with exit status")
+		}
+		podmanTest.AddImageToRWStore(ALPINE)
+		dockerfile := fmt.Sprintf(`FROM %s
+RUN exit 5`, ALPINE)
+
+		dockerfilePath := filepath.Join(podmanTest.TempDir, "Dockerfile")
+		err := ioutil.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
+		Expect(err).To(BeNil())
+		session := podmanTest.Podman([]string{"build", "-t", "error-test", "--file", dockerfilePath, podmanTest.TempDir})
+		session.Wait(120)
+		Expect(session).Should(Exit(5))
+	})
+
 	It("podman build and check identity", func() {
 		session := podmanTest.Podman([]string{"build", "--pull-never", "-f", "build/basicalpine/Containerfile.path", "--no-cache", "-t", "test", "build/basicalpine"})
 		session.WaitWithDefaultTimeout()

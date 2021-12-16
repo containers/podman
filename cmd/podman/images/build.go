@@ -1,9 +1,11 @@
 package images
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -289,7 +291,23 @@ func build(cmd *cobra.Command, args []string) error {
 	}
 
 	report, err := registry.ImageEngine().Build(registry.GetContext(), containerFiles, *apiBuildOpts)
+
 	if err != nil {
+		exitCode := buildahCLI.ExecErrorCodeGeneric
+		if registry.IsRemote() {
+			// errors from server does not contain ExitCode
+			// so parse exit code from error message
+			remoteExitCode, parseErr := utils.ExitCodeFromBuildError(fmt.Sprint(errors.Cause(err)))
+			if parseErr == nil {
+				exitCode = remoteExitCode
+			}
+		}
+
+		if ee, ok := (errors.Cause(err)).(*exec.ExitError); ok {
+			exitCode = ee.ExitCode()
+		}
+
+		registry.SetExitCode(exitCode)
 		return err
 	}
 
