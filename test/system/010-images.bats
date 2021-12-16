@@ -240,4 +240,64 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
 
     run_podman rmi test:1.0
 }
+
+@test "podman images - rmi -af removes all containers and pods" {
+    pname=$(random_string)
+    run_podman create --pod new:$pname $IMAGE
+
+    run_podman inspect --format '{{.ID}}' $IMAGE
+    imageID=$output
+
+    run_podman version --format "{{.Server.Version}}-{{.Server.Built}}"
+    pauseImage=localhost/podman-pause:$output
+    run_podman inspect --format '{{.ID}}' $pauseImage
+    pauseID=$output
+
+    run_podman 2 rmi -a
+    is "$output" "Error: 2 errors occurred:
+.** Image used by .*: image is in use by a container
+.** Image used by .*: image is in use by a container"
+
+    run_podman rmi -af
+    is "$output" "Untagged: $IMAGE
+Untagged: $pauseImage
+Deleted: $imageID
+Deleted: $pauseID" "infra images gets removed as well"
+
+    run_podman images --noheading
+    is "$output" ""
+    run_podman ps --all --noheading
+    is "$output" ""
+    run_podman pod ps --noheading
+    is "$output" ""
+
+    run_podman create --pod new:$pname $IMAGE
+}
+
+@test "podman images - rmi -f can remove infra images" {
+    pname=$(random_string)
+    run_podman create --pod new:$pname $IMAGE
+
+    run_podman version --format "{{.Server.Version}}-{{.Server.Built}}"
+    pauseImage=localhost/podman-pause:$output
+    run_podman inspect --format '{{.ID}}' $pauseImage
+    pauseID=$output
+
+    run_podman 2 rmi $pauseImage
+    is "$output" "Error: Image used by .* image is in use by a container"
+
+    run_podman rmi -f $pauseImage
+    is "$output" "Untagged: $pauseImage
+Deleted: $pauseID"
+
+    # Force-removing the infra container removes the pod and all its containers.
+    run_podman ps --all --noheading
+    is "$output" ""
+    run_podman pod ps --noheading
+    is "$output" ""
+
+    # Other images are still present.
+    run_podman image exists $IMAGE
+}
+
 # vim: filetype=sh
