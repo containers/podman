@@ -8,6 +8,7 @@ import (
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman healthcheck run", func() {
@@ -202,5 +203,21 @@ var _ = Describe("Podman healthcheck run", func() {
 
 		inspect = podmanTest.InspectContainer("hc")
 		Expect(inspect[0].State.Healthcheck.Status).To(Equal("healthy"))
+	})
+
+	It("stopping and then starting a container with healthcheck cmd", func() {
+		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", "--health-cmd", "[\"ls\", \"/foo\"]", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		stop := podmanTest.Podman([]string{"stop", "-t0", "hc"})
+		stop.WaitWithDefaultTimeout()
+		Expect(stop).Should(Exit(0))
+
+		startAgain := podmanTest.Podman([]string{"start", "hc"})
+		startAgain.WaitWithDefaultTimeout()
+		Expect(startAgain).Should(Exit(0))
+		Expect(startAgain.OutputToString()).To(Equal("hc"))
+		Expect(startAgain.ErrorToString()).To(Equal(""))
 	})
 })
