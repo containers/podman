@@ -2,16 +2,15 @@ package utils
 
 import (
 	"bytes"
+	"crypto/rand"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v3/libpod/define"
@@ -205,10 +204,14 @@ func moveProcessToScope(pidPath, slice, scope string) error {
 func MovePauseProcessToScope(pausePidPath string) {
 	var err error
 
-	state := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := 0; i < 10; i++ {
-		r := state.Int()
-		err = moveProcessToScope(pausePidPath, "user.slice", fmt.Sprintf("podman-pause-%d.scope", r))
+		randBytes := make([]byte, 4)
+		_, err = rand.Read(randBytes)
+		if err != nil {
+			logrus.Errorf("failed to read random bytes: %v", err)
+			continue
+		}
+		err = moveProcessToScope(pausePidPath, "user.slice", fmt.Sprintf("podman-pause-%x.scope", randBytes))
 		if err == nil {
 			return
 		}
