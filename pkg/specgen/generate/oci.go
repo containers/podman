@@ -325,8 +325,12 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	}
 	s.HostDeviceList = s.Devices
 
-	for _, dev := range s.DeviceCGroupRule {
-		g.AddLinuxResourcesDevice(true, dev.Type, dev.Major, dev.Minor, dev.Access)
+	// set the devices cgroup when not running in a user namespace
+	if !inUserNS && !s.Privileged {
+		g.AddLinuxResourcesDevice(false, "", nil, nil, "rwm")
+		for _, dev := range s.DeviceCGroupRule {
+			g.AddLinuxResourcesDevice(true, dev.Type, dev.Major, dev.Minor, dev.Access)
+		}
 	}
 
 	for k, v := range s.WeightDevice {

@@ -119,4 +119,11 @@ var _ = Describe("Podman run device", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})
+
+	It("podman run cannot access non default devices", func() {
+		session := podmanTest.Podman([]string{"run", "-v /dev:/dev-host", ALPINE, "head", "-1", "/dev-host/kmsg"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Not(Exit(0)))
+	})
+
 })
