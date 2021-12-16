@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -59,9 +60,9 @@ func (c *Container) startTimer() error {
 	return err
 }
 
-// removeTimer removes the systemd timer and unit files
+// removeTransientFiles removes the systemd timer and unit files
 // for the container
-func (c *Container) removeTimer() error {
+func (c *Container) removeTransientFiles(ctx context.Context) error {
 	if c.disableHealthCheckSystemd() {
 		return nil
 	}
@@ -71,12 +72,19 @@ func (c *Container) removeTimer() error {
 	}
 	defer conn.Close()
 	timerFile := fmt.Sprintf("%s.timer", c.ID())
-	_, err = conn.StopUnit(timerFile, "fail", nil)
-
-	// We want to ignore errors where the timer unit has already been removed. The error
-	// return is generic so we have to check against the string in the error
-	if err != nil && strings.HasSuffix(err.Error(), ".timer not loaded.") {
-		return nil
+	serviceFile := fmt.Sprintf("%s.service", c.ID())
+	// We want to ignore errors where the timer unit and/or service unit has already
+	// been removed. The error return is generic so we have to check against the
+	// string in the error
+	if _, err = conn.StopUnitContext(ctx, serviceFile, "fail", nil); err != nil {
+		if !strings.HasSuffix(err.Error(), ".service not loaded.") {
+			return errors.Wrapf(err, "unable to remove service file")
+		}
+	}
+	if _, err = conn.StopUnitContext(ctx, timerFile, "fail", nil); err != nil {
+		if strings.HasSuffix(err.Error(), ".timer not loaded.") {
+			return nil
+		}
 	}
 	return err
 }
