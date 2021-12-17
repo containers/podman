@@ -273,6 +273,23 @@ RUN printenv http_proxy`, ALPINE)
 		os.Unsetenv("http_proxy")
 	})
 
+	It("podman build relay exit code to process", func() {
+		if IsRemote() {
+			podmanTest.StopRemoteService()
+			podmanTest.StartRemoteService()
+		}
+		podmanTest.AddImageToRWStore(ALPINE)
+		dockerfile := fmt.Sprintf(`FROM %s
+RUN exit 5`, ALPINE)
+
+		dockerfilePath := filepath.Join(podmanTest.TempDir, "Dockerfile")
+		err := ioutil.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
+		Expect(err).To(BeNil())
+		session := podmanTest.Podman([]string{"build", "-t", "error-test", "--file", dockerfilePath, podmanTest.TempDir})
+		session.Wait(120)
+		Expect(session).Should(Exit(5))
+	})
+
 	It("podman build and check identity", func() {
 		session := podmanTest.Podman([]string{"build", "--pull-never", "-f", "build/basicalpine/Containerfile.path", "--no-cache", "-t", "test", "build/basicalpine"})
 		session.WaitWithDefaultTimeout()
@@ -646,7 +663,7 @@ RUN ls /dev/fuse`, ALPINE)
 		Expect(err).To(BeNil())
 		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", "--file", containerfilePath, podmanTest.TempDir})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(Exit(1))
 
 		session = podmanTest.Podman([]string{"build", "--pull-never", "--device", "/dev/fuse", "-t", "test", "--file", containerfilePath, podmanTest.TempDir})
 		session.WaitWithDefaultTimeout()
@@ -662,7 +679,7 @@ RUN ls /dev/test1`, ALPINE)
 		Expect(err).To(BeNil())
 		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", "--file", containerfilePath, podmanTest.TempDir})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(Exit(1))
 
 		session = podmanTest.Podman([]string{"build", "--pull-never", "--device", "/dev/zero:/dev/test1", "-t", "test", "--file", containerfilePath, podmanTest.TempDir})
 		session.WaitWithDefaultTimeout()

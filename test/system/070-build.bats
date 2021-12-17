@@ -115,7 +115,7 @@ FROM $IMAGE
 RUN echo $rand_content
 EOF
 
-    run_podman 125 --runtime-flag invalidflag build -t build_test $tmpdir
+    run_podman 1 --runtime-flag invalidflag build -t build_test $tmpdir
     is "$output" ".*invalidflag" "failed when passing undefined flags to the runtime"
 }
 
