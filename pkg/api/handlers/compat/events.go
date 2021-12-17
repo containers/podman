@@ -91,6 +91,7 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 			e := entities.ConvertToEntitiesEvent(*evt)
 			if !utils.IsLibpodRequest(r) && e.Status == "died" {
 				e.Status = "die"
+				e.Action = "die"
 			}
 
 			if err := coder.Encode(e); err != nil {
