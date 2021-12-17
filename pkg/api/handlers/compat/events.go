@@ -92,6 +92,7 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 			if !utils.IsLibpodRequest(r) && e.Status == "died" {
 				e.Status = "die"
 				e.Action = "die"
+				e.Actor.Attributes["exitCode"] = e.Actor.Attributes["containerExitCode"]
 			}
 
 			if err := coder.Encode(e); err != nil {

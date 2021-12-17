@@ -1,0 +1,27 @@
+# -*- sh -*-
+#
+# test container-related events
+#
+
+podman pull $IMAGE &>/dev/null
+
+# Ensure clean slate
+podman rm -a -f &>/dev/null
+
+START=$(date +%s)
+
+podman run $IMAGE false || true
+
+# libpod api
+t GET "libpod/events?stream=false&since=$START"  200  \
+  'select(.status | contains("start")).Action=start' \
+  'select(.status | contains("died")).Action=died' \
+  'select(.status | contains("died")).Actor.Attributes.containerExitCode=1'
+
+# compat api, uses status=die (#12643)
+t GET "events?stream=false&since=$START"  200  \
+  'select(.status | contains("start")).Action=start' \
+  'select(.status | contains("die")).Action=die' \
+  'select(.status | contains("die")).Actor.Attributes.exitCode=1'
+
+# vim: filetype=sh
