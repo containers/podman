@@ -145,8 +145,8 @@ func tryMappingTool(uid bool, pid int, hostID int, mappings []idtools.IDMap) err
 	}
 
 	if output, err := cmd.CombinedOutput(); err != nil {
-		logrus.Debugf("error from %s: %s", tool, output)
-		return errors.Wrapf(err, "cannot setup namespace using %s", tool)
+		logrus.Errorf("error running `%s`: %s", strings.Join(args, " "), output)
+		return errors.Wrapf(err, "cannot setup namespace using %q", path)
 	}
 	return nil
 }
