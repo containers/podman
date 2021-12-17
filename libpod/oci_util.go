@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

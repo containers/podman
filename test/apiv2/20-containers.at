@@ -177,7 +177,7 @@ t GET libpod/containers/myctr/json 200 \
   .ResolvConfPath=$userdata_path/resolv.conf \
   .HostnamePath=$userdata_path/hostname \
   .HostsPath=$userdata_path/hosts \
-  .NetworkSettings.SandboxKey~.*/netns/cni- \
+  .NetworkSettings.SandboxKey~.*/netns/netns- \
   .OCIConfigPath~.*config\.json \
   .GraphDriver.Data.MergedDir~.*merged
 

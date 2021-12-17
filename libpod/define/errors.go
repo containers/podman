@@ -3,6 +3,8 @@ package define
 import (
 	"errors"
 	"fmt"
+
+	"github.com/containers/common/libnetwork/types"
 )
 
 var (
@@ -16,7 +18,7 @@ var (
 	ErrNoSuchVolume = errors.New("no such volume")
 
 	// ErrNoSuchNetwork indicates the requested network does not exist
-	ErrNoSuchNetwork = errors.New("network not found")
+	ErrNoSuchNetwork = types.ErrNoSuchNetwork
 
 	// ErrNoSuchExecSession indicates that the requested exec session does
 	// not exist.
@@ -48,7 +50,7 @@ var (
 	ErrExecSessionExists = errors.New("exec session already exists")
 	// ErrNetworkExists indicates that a network with the given name already
 	// exists.
-	ErrNetworkExists = errors.New("network already exists")
+	ErrNetworkExists = types.ErrNetworkExists
 
 	// ErrCtrStateInvalid indicates a container is in an improper state for
 	// the requested operation
@@ -73,7 +75,7 @@ var (
 	ErrVolumeFinalized = errors.New("volume has been finalized")
 
 	// ErrInvalidArg indicates that an invalid argument was passed
-	ErrInvalidArg = errors.New("invalid argument")
+	ErrInvalidArg = types.ErrInvalidArg
 	// ErrEmptyID indicates that an empty ID was passed
 	ErrEmptyID = errors.New("name or ID cannot be empty")
 

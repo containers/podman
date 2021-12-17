@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/podman/v3/libpod/network/types"
+	"github.com/containers/common/libnetwork/types"
 	"github.com/sirupsen/logrus"
 )
 

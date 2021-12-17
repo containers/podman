@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/containers/podman/v3/libpod/network/types"
+	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v3/pkg/bindings"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	jsoniter "github.com/json-iterator/go"

@@ -6,10 +6,10 @@ import (
 	"net"
 	"net/http"
 
+	nettypes "github.com/containers/common/libnetwork/types"
+	netutil "github.com/containers/common/libnetwork/util"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
-	nettypes "github.com/containers/podman/v3/libpod/network/types"
-	netutil "github.com/containers/podman/v3/libpod/network/util"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v3/pkg/api/types"
 	"github.com/containers/podman/v3/pkg/domain/entities"
