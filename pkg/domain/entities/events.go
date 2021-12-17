@@ -42,7 +42,7 @@ func ConvertToLibpodEvent(e Event) *libpodEvents.Event {
 		Image:             image,
 		Name:              name,
 		Status:            status,
-		Time:              time.Unix(e.Time, e.TimeNano),
+		Time:              time.Unix(0, e.TimeNano),
 		Type:              t,
 		Details: libpodEvents.Details{
 			Attributes: details,
