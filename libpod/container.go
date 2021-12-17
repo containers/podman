@@ -213,6 +213,15 @@ type ContainerState struct {
 
 	// containerPlatformState holds platform-specific container state.
 	containerPlatformState
+
+	// Following checkpoint/restore related information is displayed
+	// if the container has been checkpointed or restored.
+	CheckpointedTime time.Time `json:"checkpointedTime,omitempty"`
+	RestoredTime     time.Time `json:"restoredTime,omitempty"`
+	CheckpointLog    string    `json:"checkpointLog,omitempty"`
+	CheckpointPath   string    `json:"checkpointPath,omitempty"`
+	RestoreLog       string    `json:"restoreLog,omitempty"`
+	Restored         bool      `json:"restored,omitempty"`
 }
 
 // ContainerNamedVolume is a named volume that will be mounted into the

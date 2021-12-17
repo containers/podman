@@ -1134,6 +1134,10 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		return nil, 0, err
 	}
 
+	// Setting CheckpointLog early in case there is a failure.
+	c.state.CheckpointLog = path.Join(c.bundlePath(), "dump.log")
+	c.state.CheckpointPath = c.CheckpointPath()
+
 	runtimeCheckpointDuration, err := c.ociRuntime.CheckpointContainer(c, options)
 	if err != nil {
 		return nil, 0, err
@@ -1169,6 +1173,9 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	if !options.KeepRunning && !options.PreCheckPoint {
 		c.state.State = define.ContainerStateStopped
 		c.state.Checkpointed = true
+		c.state.CheckpointedTime = time.Now()
+		c.state.Restored = false
+		c.state.RestoredTime = time.Time{}
 
 		// Cleanup Storage and Network
 		if err := c.cleanup(ctx); err != nil {
@@ -1216,6 +1223,8 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 				logrus.Debugf("Unable to remove file %s", file)
 			}
 		}
+		// The file has been deleted. Do not mention it.
+		c.state.CheckpointLog = ""
 	}
 
 	c.state.FinishedTime = time.Now()
@@ -1292,6 +1301,10 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	if err := crutils.CRCreateFileWithLabel(c.bundlePath(), "restore.log", c.MountLabel()); err != nil {
 		return nil, 0, err
 	}
+
+	// Setting RestoreLog early in case there is a failure.
+	c.state.RestoreLog = path.Join(c.bundlePath(), "restore.log")
+	c.state.CheckpointPath = c.CheckpointPath()
 
 	// Read network configuration from checkpoint
 	var netStatus map[string]types.StatusBlock
@@ -1559,6 +1572,9 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 
 	c.state.State = define.ContainerStateRunning
 	c.state.Checkpointed = false
+	c.state.Restored = true
+	c.state.CheckpointedTime = time.Time{}
+	c.state.RestoredTime = time.Now()
 
 	if !options.Keep {
 		// Delete all checkpoint related files. At this point, in theory, all files
@@ -1569,6 +1585,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		if err != nil {
 			logrus.Debugf("Non-fatal: removal of checkpoint directory (%s) failed: %v", c.CheckpointPath(), err)
 		}
+		c.state.CheckpointPath = ""
 		err = os.RemoveAll(c.PreCheckPointPath())
 		if err != nil {
 			logrus.Debugf("Non-fatal: removal of pre-checkpoint directory (%s) failed: %v", c.PreCheckPointPath(), err)
@@ -1589,6 +1606,8 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 				logrus.Debugf("Non-fatal: removal of checkpoint file (%s) failed: %v", file, err)
 			}
 		}
+		c.state.CheckpointLog = ""
+		c.state.RestoreLog = ""
 	}
 
 	return criuStatistics, runtimeRestoreDuration, c.save()
