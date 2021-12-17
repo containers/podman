@@ -1877,7 +1877,7 @@ func (c *Container) cleanupStorage() error {
 	return cleanupErr
 }
 
-// Unmount the a container and free its resources
+// Unmount the container and free its resources
 func (c *Container) cleanup(ctx context.Context) error {
 	var lastError error
 
@@ -1885,7 +1885,7 @@ func (c *Container) cleanup(ctx context.Context) error {
 
 	// Remove healthcheck unit/timer file if it execs
 	if c.config.HealthCheckConfig != nil {
-		if err := c.removeTimer(); err != nil {
+		if err := c.removeTransientFiles(ctx); err != nil {
 			logrus.Errorf("Removing timer for container %s healthcheck: %v", c.ID(), err)
 		}
 	}
