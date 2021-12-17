@@ -275,8 +275,8 @@ RUN printenv http_proxy`, ALPINE)
 
 	It("podman build relay exit code to process", func() {
 		if IsRemote() {
-			// following states true for all the remote commands
-			Skip("Remote server does not emits error with exit status")
+			podmanTest.StopRemoteService()
+			podmanTest.StartRemoteService()
 		}
 		podmanTest.AddImageToRWStore(ALPINE)
 		dockerfile := fmt.Sprintf(`FROM %s
@@ -663,7 +663,7 @@ RUN ls /dev/fuse`, ALPINE)
 		Expect(err).To(BeNil())
 		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", "--file", containerfilePath, podmanTest.TempDir})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(Exit(1))
 
 		session = podmanTest.Podman([]string{"build", "--pull-never", "--device", "/dev/fuse", "-t", "test", "--file", containerfilePath, podmanTest.TempDir})
 		session.WaitWithDefaultTimeout()
@@ -679,7 +679,7 @@ RUN ls /dev/test1`, ALPINE)
 		Expect(err).To(BeNil())
 		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", "--file", containerfilePath, podmanTest.TempDir})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(Exit(1))
 
 		session = podmanTest.Podman([]string{"build", "--pull-never", "--device", "/dev/zero:/dev/test1", "-t", "test", "--file", containerfilePath, podmanTest.TempDir})
 		session.WaitWithDefaultTimeout()
