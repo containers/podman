@@ -1100,4 +1100,28 @@ USER test1`
 			Expect(pod.GetAnnotations()).To(HaveKeyWithValue("io.containers.autoupdate.authfile/"+ctr, "/some/authfile.json"))
 		}
 	})
+
+	It("podman generate kube can export env variables correctly", func() {
+		// Fixes https://github.com/containers/podman/issues/12647
+		// PR https://github.com/containers/podman/pull/12648
+
+		ctrName := "gen-kube-env-ctr"
+		podName := "gen-kube-env"
+		session1 := podmanTest.Podman([]string{"run", "-d", "--pod", "new:" + podName, "--name", ctrName,
+			"-e", "FOO=bar",
+			"-e", "HELLO=WORLD",
+			"alpine", "top"})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", podName})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+
+		Expect(pod.Spec.Containers[0].Env).To(HaveLen(2))
+	})
 })
