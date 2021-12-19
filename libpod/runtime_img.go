@@ -36,10 +36,21 @@ func (r *Runtime) RemoveContainersForImageCallback(ctx context.Context) libimage
 			return err
 		}
 		for _, ctr := range ctrs {
-			if ctr.config.RootfsImageID == imageID {
-				var timeout *uint
+			if ctr.config.RootfsImageID != imageID {
+				continue
+			}
+			var timeout *uint
+			if ctr.config.IsInfra {
+				pod, err := r.state.Pod(ctr.config.Pod)
+				if err != nil {
+					return errors.Wrapf(err, "container %s is in pod %s, but pod cannot be retrieved", ctr.ID(), pod.ID())
+				}
+				if err := r.removePod(ctx, pod, true, true, timeout); err != nil {
+					return errors.Wrapf(err, "removing image %s: container %s using image could not be removed", imageID, ctr.ID())
+				}
+			} else {
 				if err := r.removeContainer(ctx, ctr, true, false, false, timeout); err != nil {
-					return errors.Wrapf(err, "error removing image %s: container %s using image could not be removed", imageID, ctr.ID())
+					return errors.Wrapf(err, "removing image %s: container %s using image could not be removed", imageID, ctr.ID())
 				}
 			}
 		}
