@@ -762,6 +762,11 @@ Tune the host's OOM preferences for containers (accepts values from **-1000** to
 #### **--os**=*OS*
 Override the OS, defaults to hosts, of the image to be pulled. For example, `windows`.
 
+#### **--passwd**
+
+Allow Podman to add entries to /etc/passwd and /etc/group when used in conjunction with the --user option.
+This is used to override the Podman provided user setup in favor of entrypoint configurations such as libnss-extrausers.
+
 #### **--personality**=*persona*
 
 Personality sets the execution domain via Linux personality(2).

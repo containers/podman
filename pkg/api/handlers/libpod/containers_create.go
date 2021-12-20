@@ -19,11 +19,15 @@ import (
 func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	var sg specgen.SpecGenerator
+
 	if err := json.NewDecoder(r.Body).Decode(&sg); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
-
+	if sg.Passwd == nil {
+		t := true
+		sg.Passwd = &t
+	}
 	warn, err := generate.CompleteSpec(r.Context(), runtime, &sg)
 	if err != nil {
 		utils.InternalServerError(w, err)

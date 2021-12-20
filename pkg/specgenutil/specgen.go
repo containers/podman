@@ -698,6 +698,9 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 
 	// Initcontainers
 	s.InitContainerType = c.InitContainerType
+
+	t := true
+	s.Passwd = &t
 	return nil
 }
 

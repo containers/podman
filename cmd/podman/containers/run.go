@@ -83,6 +83,9 @@ func runFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(gpuFlagName, completion.AutocompleteNone)
 	_ = flags.MarkHidden("gpus")
 
+	passwdFlagName := "passwd"
+	flags.BoolVar(&runOpts.Passwd, passwdFlagName, true, "add entries to /etc/passwd and /etc/group")
+
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("preserve-fds")
 		_ = flags.MarkHidden("conmon-pidfile")
@@ -191,6 +194,7 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	s.RawImageName = rawImageName
+	s.Passwd = &runOpts.Passwd
 	runOpts.Spec = s
 
 	if _, err := createPodIfNecessary(cmd, s, cliVals.Net); err != nil {

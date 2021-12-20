@@ -377,6 +377,8 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 		ctrConfig.Umask = c.config.Umask
 	}
 
+	ctrConfig.Passwd = c.config.Passwd
+
 	return ctrConfig
 }
 

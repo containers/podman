@@ -201,6 +201,8 @@ type ContainerBasicConfig struct {
 	// UnsetEnvAll unsets all default environment variables from the image or from buildin
 	// Optional.
 	UnsetEnvAll bool `json:"unsetenvall,omitempty"`
+	// Passwd is a container run option that determines if we are validating users/groups before running the container
+	Passwd *bool `json:"manage_password,omitempty"`
 }
 
 // ContainerStorageConfig contains information on the storage configuration of a

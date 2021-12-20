@@ -482,5 +482,8 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	if s.PidFile != "" {
 		options = append(options, libpod.WithPidFile(s.PidFile))
 	}
+
+	options = append(options, libpod.WithSelectedPasswordManagement(s.Passwd))
+
 	return options, nil
 }
