@@ -18,18 +18,3 @@ func GetRuntimeDir() (string, error) {
 func StickRuntimeDirContents(files []string) ([]string, error) {
 	return nil, errors.New("homedir.StickRuntimeDirContents() is not supported on this system")
 }
-
-// GetDataHome is unsupported on non-linux system.
-func GetDataHome() (string, error) {
-	return "", errors.New("homedir.GetDataHome() is not supported on this system")
-}
-
-// GetConfigHome is unsupported on non-linux system.
-func GetConfigHome() (string, error) {
-	return "", errors.New("homedir.GetConfigHome() is not supported on this system")
-}
-
-// GetCacheHome is unsupported on non-linux system.
-func GetCacheHome() (string, error) {
-	return "", errors.New("homedir.GetCacheHome() is not supported on this system")
-}
