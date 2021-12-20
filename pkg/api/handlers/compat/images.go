@@ -381,19 +381,22 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 	// 404 no such
 	// 500 internal
 	name := utils.GetName(r)
-	possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, name)
+	newImage, err := utils.GetImage(r, name)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
-		return
-	}
+		possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, name)
+		if err != nil {
+			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+			return
+		}
 
-	newImage, err := utils.GetImage(r, possiblyNormalizedName)
-	if err != nil {
-		// Here we need to fiddle with the error message because docker-py is looking for "No
-		// such image" to determine on how to raise the correct exception.
-		errMsg := strings.ReplaceAll(err.Error(), "image not known", "No such image")
-		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Errorf("failed to find image %s: %s", name, errMsg))
-		return
+		newImage, err = utils.GetImage(r, possiblyNormalizedName)
+		if err != nil {
+			// Here we need to fiddle with the error message because docker-py is looking for "No
+			// such image" to determine on how to raise the correct exception.
+			errMsg := strings.ReplaceAll(err.Error(), "image not known", "No such image")
+			utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Errorf("failed to find image %s: %s", name, errMsg))
+			return
+		}
 	}
 	inspect, err := handlers.ImageDataToImageInspect(r.Context(), newImage)
 	if err != nil {
