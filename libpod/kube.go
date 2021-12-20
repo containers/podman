@@ -747,7 +747,7 @@ func libpodEnvVarsToKubeEnvVars(envs []string, imageEnvs []string) ([]v1.EnvVar,
 	defaultEnv := env.DefaultEnvVariables()
 	envVars := make([]v1.EnvVar, 0, len(envs))
 	imageMap := make(map[string]string, len(imageEnvs))
-	for _, ie := range envs {
+	for _, ie := range imageEnvs {
 		split := strings.SplitN(ie, "=", 2)
 		imageMap[split[0]] = split[1]
 	}
