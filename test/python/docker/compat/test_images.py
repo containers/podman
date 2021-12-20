@@ -79,6 +79,7 @@ class TestImages(unittest.TestCase):
         # Add more images
         self.client.images.pull(constant.BB)
         self.assertEqual(len(self.client.images.list()), 2)
+        self.assertEqual(len(self.client.images.list(all=True)), 2)
 
         # List images with filter
         self.assertEqual(len(self.client.images.list(filters={"reference": "alpine"})), 1)
