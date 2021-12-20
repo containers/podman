@@ -39,7 +39,7 @@ The default is **false**.\
 
 If a *container* is restored from a checkpoint tar.gz file it is possible that it also contains all root file-system changes. With **--ignore-rootfs** it is possible to explicitly disable applying these root file-system changes to the restored *container*.\
 The default is **false**.\
-*IMPORTANT: This OPTION is only available in combination with **--import, -i**.*
+*IMPORTANT: This OPTION is only available in combination with __--import, -i__.*
 
 #### **--ignore-static-ip**
 
@@ -98,14 +98,14 @@ If the **--name, -n** option is used, Podman will not attempt to assign the same
 address to the *container* it was using before checkpointing as each IP address can only
 be used once and the restored *container* will have another IP address. This also means
 that **--name, -n** cannot be used in combination with **--tcp-established**.\
-*IMPORTANT: This OPTION is only available in combination with **--import, -i**.*
+*IMPORTANT: This OPTION is only available in combination with __--import, -i__.*
 
 #### **--pod**=*name*
 
 Restore a container into the pod *name*. The destination pod for this restore
 has to have the same namespaces shared as the pod this container was checkpointed
-from (see **[podman pod create --share](podman-pod-create.1.md#--share)**).
-*IMPORTANT: This OPTION is only available in combination with **--import, -i**.*
+from (see **[podman pod create --share](podman-pod-create.1.md#--share)**).\
+*IMPORTANT: This OPTION is only available in combination with __--import, -i__.*
 
 This option requires at least CRIU 3.16.
 
@@ -168,7 +168,7 @@ Import a checkpoint file and a pre-checkpoint file.
 # podman container restore --import-previous pre-checkpoint.tar.gz --import checkpoint.tar.gz
 ```
 
-Remove the container "mywebserver". Make a checkpoint of the container and export it. Restore the container with other port ranges from the exported file.
+Start the container "mywebserver". Make a checkpoint of the container and export it. Restore the container with other port ranges from the exported file.
 ```
 $ podman run --rm -p 2345:80 -d webserver
 # podman container checkpoint -l --export=dump.tar

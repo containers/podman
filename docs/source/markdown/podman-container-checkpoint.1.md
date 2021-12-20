@@ -37,7 +37,7 @@ root file-system, if not explicitly disabled using **--ignore-rootfs**.
 
 If a checkpoint is exported to a tar.gz file it is possible with the help of **--ignore-rootfs** to explicitly disable including changes to the root file-system into the checkpoint archive file.\
 The default is **false**.\
-*IMPORTANT: This OPTION only works in combination with **--export, -e**.*
+*IMPORTANT: This OPTION only works in combination with __--export, -e__.*
 
 #### **--ignore-volumes**
 
@@ -122,7 +122,7 @@ The default is **false**.
 
 Check out the *container* with previous criu image files in pre-dump. It only works on `runc 1.0-rc3` or `higher`.\
 The default is **false**.\
-*IMPORTANT: This OPTION is not available with **--pre-checkpoint***.
+*IMPORTANT: This OPTION is not available with __--pre-checkpoint__*.
 
 
 ## EXAMPLES
