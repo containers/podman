@@ -9,6 +9,7 @@ import (
 	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg"
 	"github.com/containers/common/libimage"
 	"github.com/containers/podman/v3/libpod"
+	"github.com/containers/podman/v3/pkg/namespaces"
 	"github.com/containers/podman/v3/pkg/specgen"
 	"github.com/containers/podman/v3/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -96,6 +97,12 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 			return nil, nil, nil, err
 		}
 		s.UserNS = defaultNS
+
+		mappings, err := util.ParseIDMapping(namespaces.UsernsMode(s.UserNS.NSMode), nil, nil, "", "")
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		s.IDMappings = mappings
 	}
 	if s.NetNS.IsDefault() {
 		defaultNS, err := GetDefaultNamespaceMode("net", rtc, pod)
