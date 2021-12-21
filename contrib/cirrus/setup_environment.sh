@@ -118,6 +118,9 @@ fi
 case "$OS_RELEASE_ID" in
     ubuntu) ;;
     fedora)
+        if test "$OS_RELEASE_VER" == "35"; then
+            yum upgrade -y https://kojipkgs.fedoraproject.org//work/tasks/8587/80318587/crun-1.3-99.dev.fc35.x86_64.rpm
+        fi
         if ((CONTAINER==0)); then
             # All SELinux distros need this for systemd-in-a-container
             msg "Enabling container_manage_cgroup"
