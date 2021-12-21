@@ -1735,11 +1735,9 @@ func (c *Container) makeBindMounts() error {
 			}
 
 			if !c.config.UseImageHosts {
-				newHosts, err := c.generateHosts("/etc/hosts")
-				if err != nil {
+				if err := c.updateHosts("/etc/hosts"); err != nil {
 					return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
 				}
-				c.state.BindMounts["/etc/hosts"] = newHosts
 			}
 		}
 
@@ -1756,11 +1754,9 @@ func (c *Container) makeBindMounts() error {
 		}
 	} else {
 		if !c.config.UseImageHosts && c.state.BindMounts["/etc/hosts"] == "" {
-			newHosts, err := c.generateHosts("/etc/hosts")
-			if err != nil {
+			if err := c.updateHosts("/etc/hosts"); err != nil {
 				return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
 			}
-			c.state.BindMounts["/etc/hosts"] = newHosts
 		}
 	}
 
@@ -2048,18 +2044,29 @@ func (c *Container) generateResolvConf() (string, error) {
 	return destPath, nil
 }
 
-// generateHosts creates a containers hosts file
-func (c *Container) generateHosts(path string) (string, error) {
+// updateHosts updates the container's hosts file
+func (c *Container) updateHosts(path string) error {
+	var hosts string
+
 	orig, err := ioutil.ReadFile(path)
 	if err != nil {
-		return "", err
+		// Ignore if the path does not exist
+		if !os.IsNotExist(err) {
+			return err
+		}
+	} else {
+		hosts = string(orig)
 	}
-	hosts := string(orig)
-	hosts += c.getHosts()
 
+	hosts += c.getHosts()
 	hosts = c.appendLocalhost(hosts)
 
-	return c.writeStringToRundir("hosts", hosts)
+	newHosts, err := c.writeStringToRundir("hosts", hosts)
+	if err != nil {
+		return err
+	}
+	c.state.BindMounts["/etc/hosts"] = newHosts
+	return nil
 }
 
 // based on networking mode we may want to append the localhost
