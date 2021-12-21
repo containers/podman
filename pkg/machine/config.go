@@ -14,16 +14,17 @@ import (
 )
 
 type InitOptions struct {
-	CPUS         uint64
-	DiskSize     uint64
-	IgnitionPath string
-	ImagePath    string
-	IsDefault    bool
-	Memory       uint64
-	Name         string
-	TimeZone     string
-	URI          url.URL
-	Username     string
+	CPUS                  uint64
+	DiskSize              uint64
+	IgnitionPath          string
+	IgnitionOverridePaths []string
+	ImagePath             string
+	IsDefault             bool
+	Memory                uint64
+	Name                  string
+	TimeZone              string
+	URI                   url.URL
+	Username              string
 }
 
 type RemoteConnectionType string

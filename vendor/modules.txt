@@ -672,6 +672,9 @@ github.com/vbauerster/mpb/v7
 github.com/vbauerster/mpb/v7/cwriter
 github.com/vbauerster/mpb/v7/decor
 github.com/vbauerster/mpb/v7/internal
+# github.com/vincent-petithory/dataurl v1.0.0
+## explicit
+github.com/vincent-petithory/dataurl
 # github.com/vishvananda/netlink v1.1.1-0.20210330154013-f5de75959ad5
 ## explicit
 github.com/vishvananda/netlink

@@ -8,12 +8,15 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/vincent-petithory/dataurl"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/pkg/machine"
@@ -231,6 +234,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 		}
 		return ioutil.WriteFile(v.IgnitionFilePath, inputIgnition, 0644)
 	}
+
 	// Write the ignition file
 	ign := machine.DynamicIgnition{
 		Name:      opts.Username,
@@ -239,6 +243,23 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 		TimeZone:  opts.TimeZone,
 		WritePath: v.IgnitionFilePath,
 	}
+
+	// Override ignition paths need to be collected and made
+	// into encoded data so that it can be merged
+	if overrides := opts.IgnitionOverridePaths; len(overrides) > 0 {
+		ign.Resources = []machine.Resource{}
+		for _, overridePath := range overrides {
+			uri, err := makeDataURL(overridePath)
+			if err != nil {
+				return err
+			}
+			r := machine.Resource{
+				Source: &uri,
+			}
+			ign.Resources = append(ign.Resources, r)
+		}
+	}
+
 	return machine.NewIgnitionFile(ign)
 }
 
@@ -698,4 +719,18 @@ func (v *MachineVM) getSocketandPid() (string, string, error) {
 	pidFile := filepath.Join(socketDir, fmt.Sprintf("%s.pid", v.Name))
 	qemuSocket := filepath.Join(socketDir, fmt.Sprintf("qemu_%s.sock", v.Name))
 	return qemuSocket, pidFile, nil
+}
+
+func makeDataURL(path string) (string, error) {
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	// URL-escaped, useful for ASCII text
+	data := "," + dataurl.Escape(b)
+	uri := &url.URL{
+		Scheme: "data",
+		Opaque: data,
+	}
+	return uri.String(), nil
 }

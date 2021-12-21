@@ -45,6 +45,7 @@ func getNodeGrp(grpName string) NodeGroup {
 type DynamicIgnition struct {
 	Name      string
 	Key       string
+	Resources []Resource
 	TimeZone  string
 	VMName    string
 	WritePath string
@@ -55,7 +56,7 @@ func NewIgnitionFile(ign DynamicIgnition) error {
 	if len(ign.Name) < 1 {
 		ign.Name = DefaultIgnitionUserName
 	}
-	ignVersion := Ignition{
+	ignition := Ignition{
 		Version: "3.2.0",
 	}
 
@@ -169,8 +170,15 @@ WantedBy=default.target
 				Contents: &deMoby,
 			},
 		}}
+
+	if ign.Resources != nil && len(ign.Resources) > 0 {
+		ignitionConfig := IgnitionConfig{
+			Merge: ign.Resources,
+		}
+		ignition.Config = ignitionConfig
+	}
 	ignConfig := Config{
-		Ignition: ignVersion,
+		Ignition: ignition,
 		Passwd:   ignPassword,
 		Storage:  ignStorage,
 		Systemd:  ignSystemd,

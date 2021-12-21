@@ -83,6 +83,10 @@ func init() {
 	IgnitionPathFlagName := "ignition-path"
 	flags.StringVar(&initOpts.IgnitionPath, IgnitionPathFlagName, "", "Path to ignition file")
 	_ = initCmd.RegisterFlagCompletionFunc(IgnitionPathFlagName, completion.AutocompleteDefault)
+
+	IgnitionOverridePathFlagName := "ignition-override-path"
+	flags.StringSliceVar(&initOpts.IgnitionOverridePaths, IgnitionOverridePathFlagName, []string{}, "Path to ignition override files")
+	_ = initCmd.RegisterFlagCompletionFunc(IgnitionOverridePathFlagName, completion.AutocompleteDefault)
 }
 
 // TODO should we allow for a users to append to the qemu cmdline?

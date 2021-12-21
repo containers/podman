@@ -32,6 +32,12 @@ Number of CPUs.
 
 Size of the disk for the guest VM in GB.
 
+#### **--ignition-override-path**
+
+A path to a complete or partial ignition file that will be merged with the ignition
+file created with `podman init`.  The merging of fields and values are to add them rather
+than replace the original entries. More than one override may be specified.
+
 #### **--ignition-path**
 
 Fully qualified path of the ignition file.
