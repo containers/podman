@@ -9,6 +9,8 @@ podman\-container\-checkpoint - Checkpoints one or more running containers
 ## DESCRIPTION
 **podman container checkpoint** checkpoints all the processes in one or more *containers*. A *container* can be restored from a checkpoint with **[podman-container-restore](podman-container-restore.1.md)**. The *container IDs* or *names* are used as input.
 
+*IMPORTANT: If the container is using __systemd__ as __entrypoint__ checkpointing the container might not be possible.*
+
 ## OPTIONS
 #### **--all**, **-a**
 
