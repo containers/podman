@@ -35,7 +35,7 @@ func NormalizeToDockerHub(r *http.Request, nameOrID string) (string, error) {
 		if errors.Cause(err) != storage.ErrImageUnknown {
 			return "", fmt.Errorf("normalizing name for compat API: %v", err)
 		}
-	} else if strings.HasPrefix(img.ID(), nameOrID) {
+	} else if strings.HasPrefix(img.ID(), strings.TrimPrefix(nameOrID, "sha256:")) {
 		return img.ID(), nil
 	}
 
