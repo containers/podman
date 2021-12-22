@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -136,7 +137,8 @@ func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string
 	}
 	defaults, err := getDefaultMountOptions(sourcePath)
 	if err != nil {
-		return nil, err
+		logrus.Warnf("Unable to get default mount options: %v", err)
+		logrus.Warnf("If not specified podman will fallback to default [noexec=%v, nosuid=%v, nodev=%v] for mount source: %s", defaults.noexec, defaults.nosuid, defaults.nodev, sourcePath)
 	}
 	if !foundExec && defaults.noexec {
 		newOptions = append(newOptions, "noexec")

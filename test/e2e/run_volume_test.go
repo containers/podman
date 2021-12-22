@@ -491,6 +491,13 @@ RUN sh -c "cd /etc/apk && ln -s ../../testfile"`, ALPINE)
 		Expect(volMount).To(ExitWithError())
 	})
 
+	It("podman mount with invalid path must be failed from OCI not early", func() {
+		volMount := podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/tmp", "/not/a/real/path"), ALPINE, "ls"})
+		volMount.WaitWithDefaultTimeout()
+		Expect(volMount.ErrorToString()).To(ContainSubstring("OCI runtime"))
+		Expect(volMount).To(ExitWithError())
+	})
+
 	It("Podman fix for CVE-2020-1726", func() {
 		volName := "testVol"
 		volCreate := podmanTest.Podman([]string{"volume", "create", volName})
