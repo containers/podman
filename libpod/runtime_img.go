@@ -13,6 +13,7 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/events"
 	"github.com/containers/podman/v3/pkg/util"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -93,6 +94,19 @@ func (r *Runtime) newImageBuildCompleteEvent(idOrName string) {
 
 // Build adds the runtime to the imagebuildah call
 func (r *Runtime) Build(ctx context.Context, options buildahDefine.BuildOptions, dockerfiles ...string) (string, reference.Canonical, error) {
+	netnsFound := false
+	for _, ns := range options.NamespaceOptions {
+		if ns.Name == string(specs.NetworkNamespace) {
+			netnsFound = true
+			break
+		}
+	}
+	if !netnsFound {
+		options.NamespaceOptions = append(options.NamespaceOptions, buildahDefine.NamespaceOption{
+			Name: string(specs.NetworkNamespace),
+			Host: true,
+		})
+	}
 	if options.Runtime == "" {
 		options.Runtime = r.GetOCIRuntimePath()
 	}
