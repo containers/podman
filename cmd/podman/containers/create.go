@@ -21,6 +21,7 @@ import (
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -191,6 +192,10 @@ func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra 
 			vals.UserNS = "private"
 		}
 	}
+	if c.Flag("kernel-memory") != nil && c.Flag("kernel-memory").Changed {
+		logrus.Warnf("The --kernel-memory flag is no longer supported. This flag is a noop.")
+	}
+
 	if cliVals.LogDriver == define.PassthroughLogging {
 		if isatty.IsTerminal(0) || isatty.IsTerminal(1) || isatty.IsTerminal(2) {
 			return vals, errors.New("the '--log-driver passthrough' option cannot be used on a TTY")

@@ -195,7 +195,6 @@ type ContainerCreateOptions struct {
 	InitPath          string
 	Interactive       bool
 	IPC               string
-	KernelMemory      string
 	Label             []string
 	LabelFile         []string
 	LogDriver         string

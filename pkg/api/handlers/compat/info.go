@@ -84,7 +84,6 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 		InitBinary:         "",
 		InitCommit:         docker.Commit{},
 		Isolation:          "",
-		KernelMemory:       sysInfo.KernelMemory,
 		KernelMemoryTCP:    false,
 		KernelVersion:      infoData.Host.Kernel,
 		Labels:             nil,

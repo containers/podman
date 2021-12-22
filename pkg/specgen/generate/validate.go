@@ -60,10 +60,6 @@ func verifyContainerResourcesCgroupV1(s *specgen.SpecGenerator) ([]string, error
 		if memory.Limit != nil && memory.Reservation != nil && *memory.Limit < *memory.Reservation {
 			return warnings, errors.New("minimum memory limit cannot be less than memory reservation limit, see usage")
 		}
-		if memory.Kernel != nil && !sysInfo.KernelMemory {
-			warnings = append(warnings, "Your kernel does not support kernel memory limit capabilities or the cgroup is not mounted. Limitation discarded.")
-			memory.Kernel = nil
-		}
 		if memory.DisableOOMKiller != nil && *memory.DisableOOMKiller && !sysInfo.OomKillDisable {
 			warnings = append(warnings, "Your kernel does not support OomKillDisable. OomKillDisable discarded.")
 			memory.DisableOOMKiller = nil

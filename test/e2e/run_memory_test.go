@@ -3,7 +3,6 @@ package integration
 import (
 	"fmt"
 	"os"
-	"strconv"
 
 	. "github.com/containers/podman/v3/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -79,45 +78,4 @@ var _ = Describe("Podman run memory", func() {
 			Expect(session.OutputToString()).To(Equal(limit))
 		})
 	}
-
-	It("podman run kernel-memory test", func() {
-		if podmanTest.Host.Distribution == "ubuntu" {
-			Skip("Unable to perform test on Ubuntu distributions due to memory management")
-		}
-
-		var session *PodmanSessionIntegration
-
-		if CGROUPSV2 {
-			session = podmanTest.Podman([]string{"run", "--net=none", "--memory-reservation=40m", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/memory.low"})
-		} else {
-			session = podmanTest.Podman([]string{"run", "--memory-reservation=40m", ALPINE, "cat", "/sys/fs/cgroup/memory/memory.soft_limit_in_bytes"})
-		}
-
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(Equal("41943040"))
-	})
-
-	It("podman run kernel-memory test", func() {
-		if podmanTest.Host.Distribution == "ubuntu" {
-			Skip("Unable to perform test on Ubuntu distributions due to memory management")
-		}
-		var session *PodmanSessionIntegration
-		if CGROUPSV2 {
-			session = podmanTest.Podman([]string{"run", "--memory", "256m", "--memory-swap", "-1", ALPINE, "cat", "/sys/fs/cgroup/memory.swap.max"})
-		} else {
-			session = podmanTest.Podman([]string{"run", "--cgroupns=private", ALPINE, "cat", "/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes"})
-		}
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
-		output := session.OutputToString()
-		Expect(err).To(BeNil())
-		if CGROUPSV2 {
-			Expect(output).To(Equal("max"))
-		} else {
-			crazyHighNumber, err := strconv.ParseInt(output, 10, 64)
-			Expect(err).To(BeZero())
-			Expect(crazyHighNumber).To(BeNumerically(">", 936854771712))
-		}
-	})
 })

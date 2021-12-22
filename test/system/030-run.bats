@@ -766,4 +766,10 @@ EOF
     is "$output" "1.2.3.4 foo.com.*" "users can add hosts even without /etc/hosts"
 }
 
+@test "podman run --kernel-memory warning" {
+    # Not sure what situations this fails in, but want to make sure warning shows.
+    run_podman '?' run --rm --kernel-memory 100 $IMAGE false
+    is "$output" ".*The --kernel-memory flag is no longer supported. This flag is a noop." "warn on use of --kernel-memory"
+
+}
 # vim: filetype=sh
