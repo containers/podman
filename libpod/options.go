@@ -1794,6 +1794,17 @@ func WithHostDevice(dev []specs.LinuxDevice) CtrCreateOption {
 	}
 }
 
+// WithSelectedPasswordManagement makes it so that the container either does or does not setup /etc/passwd or /etc/group
+func WithSelectedPasswordManagement(passwd *bool) CtrCreateOption {
+	return func(c *Container) error {
+		if c.valid {
+			return define.ErrCtrFinalized
+		}
+		c.config.Passwd = passwd
+		return nil
+	}
+}
+
 // Pod Creation Options
 
 // WithPodCreateCommand adds the full command plus arguments of the current

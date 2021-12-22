@@ -341,6 +341,7 @@ type ContainerRunOptions struct {
 	Rm           bool
 	SigProxy     bool
 	Spec         *specgen.SpecGenerator
+	Passwd       bool
 }
 
 // ContainerRunReport describes the results of running

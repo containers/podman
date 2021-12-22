@@ -68,6 +68,8 @@ type InspectContainerConfig struct {
 	Timeout uint `json:"Timeout"`
 	// StopTimeout is time before container is stopped when calling stop
 	StopTimeout uint `json:"StopTimeout"`
+	// Passwd determines whether or not podman can add entries to /etc/passwd and /etc/group
+	Passwd *bool `json:"Passwd,omitempty"`
 }
 
 // InspectRestartPolicy holds information about the container's restart policy.

@@ -927,6 +927,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	for _, w := range warn {
 		fmt.Fprintf(os.Stderr, "%s\n", w)
 	}
+
 	rtSpec, spec, optsN, err := generate.MakeContainer(ctx, ic.Libpod, opts.Spec)
 	if err != nil {
 		return nil, err

@@ -163,6 +163,8 @@ type ContainerRootFSConfig struct {
 	// Volatile specifies whether the container storage can be optimized
 	// at the cost of not syncing all the dirty files in memory.
 	Volatile bool `json:"volatile,omitempty"`
+	// Passwd allows to user to override podman's passwd/group file setup
+	Passwd *bool `json:"passwd,omitempty"`
 }
 
 // ContainerSecurityConfig is an embedded sub-config providing security configuration

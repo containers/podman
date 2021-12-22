@@ -1767,21 +1767,23 @@ func (c *Container) makeBindMounts() error {
 	// SHM is always added when we mount the container
 	c.state.BindMounts["/dev/shm"] = c.config.ShmDir
 
-	newPasswd, newGroup, err := c.generatePasswdAndGroup()
-	if err != nil {
-		return errors.Wrapf(err, "error creating temporary passwd file for container %s", c.ID())
-	}
-	if newPasswd != "" {
-		// Make /etc/passwd
-		// If it already exists, delete so we can recreate
-		delete(c.state.BindMounts, "/etc/passwd")
-		c.state.BindMounts["/etc/passwd"] = newPasswd
-	}
-	if newGroup != "" {
-		// Make /etc/group
-		// If it already exists, delete so we can recreate
-		delete(c.state.BindMounts, "/etc/group")
-		c.state.BindMounts["/etc/group"] = newGroup
+	if c.config.Passwd != nil && *c.config.Passwd {
+		newPasswd, newGroup, err := c.generatePasswdAndGroup()
+		if err != nil {
+			return errors.Wrapf(err, "error creating temporary passwd file for container %s", c.ID())
+		}
+		if newPasswd != "" {
+			// Make /etc/passwd
+			// If it already exists, delete so we can recreate
+			delete(c.state.BindMounts, "/etc/passwd")
+			c.state.BindMounts["/etc/passwd"] = newPasswd
+		}
+		if newGroup != "" {
+			// Make /etc/group
+			// If it already exists, delete so we can recreate
+			delete(c.state.BindMounts, "/etc/group")
+			c.state.BindMounts["/etc/group"] = newGroup
+		}
 	}
 
 	// Make /etc/hostname
