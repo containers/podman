@@ -63,7 +63,7 @@ function basic_setup() {
     for line in "${lines[@]}"; do
         set $line
         echo "# setup(): removing stray external container $1 ($2)" >&3
-        run_podman rm $1
+        run_podman rm -f $1
     done
 
     # Clean up all images except those desired

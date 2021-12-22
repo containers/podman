@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/pkg/rootless"
 	pluginapi "github.com/docker/go-plugins-helpers/volume"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -30,13 +29,6 @@ const pseudoCtrID = "2f73349cfc4630255319c6c8dfc1b46a8996ace9d14d8e07563b1659159
 func (v *Volume) mount() error {
 	if !v.needsMount() {
 		return nil
-	}
-
-	// We cannot mount 'local' volumes as rootless.
-	if !v.UsesVolumeDriver() && rootless.IsRootless() {
-		// This check should only be applied to 'local' driver
-		// so Volume Drivers must be excluded
-		return errors.Wrapf(define.ErrRootless, "cannot mount volumes without root privileges")
 	}
 
 	// Update the volume from the DB to get an accurate mount counter.
@@ -90,22 +82,27 @@ func (v *Volume) mount() error {
 	// TODO: might want to cache this path in the runtime?
 	mountPath, err := exec.LookPath("mount")
 	if err != nil {
-		return errors.Wrapf(err, "error locating 'mount' binary")
+		return errors.Wrapf(err, "locating 'mount' binary")
 	}
 	mountArgs := []string{}
 	if volOptions != "" {
 		mountArgs = append(mountArgs, "-o", volOptions)
 	}
-	if volType != "" {
+	switch volType {
+	case "":
+	case "bind":
+		mountArgs = append(mountArgs, "-o", volType)
+	default:
 		mountArgs = append(mountArgs, "-t", volType)
 	}
+
 	mountArgs = append(mountArgs, volDevice, v.config.MountPoint)
 	mountCmd := exec.Command(mountPath, mountArgs...)
 
 	logrus.Debugf("Running mount command: %s %s", mountPath, strings.Join(mountArgs, " "))
 	if output, err := mountCmd.CombinedOutput(); err != nil {
 		logrus.Debugf("Mount %v failed with %v", mountCmd, err)
-		return errors.Wrapf(errors.Errorf(string(output)), "error mounting volume %s", v.Name())
+		return errors.Errorf(string(output))
 	}
 
 	logrus.Debugf("Mounted volume %s", v.Name())
@@ -139,20 +136,6 @@ func (v *Volume) unmount(force bool) error {
 		return nil
 	}
 
-	// We cannot unmount 'local' volumes as rootless.
-	if !v.UsesVolumeDriver() && rootless.IsRootless() {
-		// If force is set, just clear the counter and bail without
-		// error, so we can remove volumes from the state if they are in
-		// an awkward configuration.
-		if force {
-			logrus.Errorf("Volume %s is mounted despite being rootless - state is not sane", v.Name())
-			v.state.MountCount = 0
-			return v.save()
-		}
-
-		return errors.Wrapf(define.ErrRootless, "cannot mount or unmount volumes without root privileges")
-	}
-
 	if !force {
 		v.state.MountCount--
 	} else {
@@ -184,7 +167,7 @@ func (v *Volume) unmount(force bool) error {
 				// Ignore EINVAL - the mount no longer exists.
 				return nil
 			}
-			return errors.Wrapf(err, "error unmounting volume %s", v.Name())
+			return errors.Wrapf(err, "unmounting volume %s", v.Name())
 		}
 		logrus.Debugf("Unmounted volume %s", v.Name())
 	}

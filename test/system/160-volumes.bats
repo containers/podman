@@ -319,5 +319,30 @@ EOF
     is "$output"  "" "no more volumes to prune"
 }
 
+@test "podman volume type=bind" {
+    myvoldir=${PODMAN_TMPDIR}/volume_$(random_string)
+    mkdir $myvoldir
+    touch $myvoldir/myfile
+
+    myvolume=myvol$(random_string)
+    run_podman 125 volume create -o type=bind -o device=/bogus $myvolume
+    is "$output" "Error: invalid volume option device for driver 'local': stat /bogus: no such file or directory" "should fail with bogus directory not existing"
+
+    run_podman volume create -o type=bind -o device=/$myvoldir $myvolume
+    is "$output" "$myvolume" "should successfully create myvolume"
+
+    run_podman run --rm -v $myvolume:/vol:z $IMAGE \
+               stat -c "%u:%s" /vol/myfile
+    is "$output" "0:0" "w/o keep-id: stat(file in container) == root"
+}
+
+@test "podman volume type=tmpfs" {
+    myvolume=myvol$(random_string)
+    run_podman volume create -o type=tmpfs -o device=tmpfs $myvolume
+    is "$output" "$myvolume" "should successfully create myvolume"
+
+    run_podman run --rm -v $myvolume:/vol $IMAGE stat -f -c "%T" /vol
+    is "$output" "tmpfs" "volume should be tmpfs"
+}
 
 # vim: filetype=sh

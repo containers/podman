@@ -762,7 +762,7 @@ func (c *Container) export(path string) error {
 	if !c.state.Mounted {
 		containerMount, err := c.runtime.store.Mount(c.ID(), c.config.MountLabel)
 		if err != nil {
-			return errors.Wrapf(err, "error mounting container %q", c.ID())
+			return errors.Wrapf(err, "mounting container %q", c.ID())
 		}
 		mountPoint = containerMount
 		defer func() {
