@@ -66,3 +66,15 @@ const (
 	// annotation.
 	InspectResponseFalse = "FALSE"
 )
+
+// IsReservedAnnotation returns true if the specified value corresponds to an
+// already reserved annotation that Podman sets during container creation.
+func IsReservedAnnotation(value string) bool {
+	switch value {
+	case InspectAnnotationCIDFile, InspectAnnotationAutoremove, InspectAnnotationVolumesFrom, InspectAnnotationPrivileged, InspectAnnotationPublishAll, InspectAnnotationInit, InspectAnnotationLabel, InspectAnnotationSeccomp, InspectAnnotationApparmor, InspectResponseTrue, InspectResponseFalse:
+		return true
+
+	default:
+		return false
+	}
+}

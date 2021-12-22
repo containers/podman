@@ -156,7 +156,9 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 
 		// Add annotations from the image
 		for k, v := range inspectData.Annotations {
-			annotations[k] = v
+			if !define.IsReservedAnnotation(k) {
+				annotations[k] = v
+			}
 		}
 	}
 

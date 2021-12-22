@@ -238,19 +238,25 @@ var _ = Describe("Podman build", func() {
 		Expect("sha256:" + data[0].ID).To(Equal(string(id)))
 	})
 
-	It("podman Test PATH in built image", func() {
+	It("podman Test PATH and reserved annotation in built image", func() {
 		path := "/tmp:/bin:/usr/bin:/usr/sbin"
 		session := podmanTest.Podman([]string{
-			"build", "--pull-never", "-f", "build/basicalpine/Containerfile.path", "-t", "test-path",
+			"build", "--annotation", "io.podman.annotations.seccomp=foobar", "--pull-never", "-f", "build/basicalpine/Containerfile.path", "-t", "test-path",
 		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session = podmanTest.Podman([]string{"run", "test-path", "printenv", "PATH"})
+		session = podmanTest.Podman([]string{"run", "--name", "foobar", "test-path", "printenv", "PATH"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		stdoutLines := session.OutputToStringArray()
 		Expect(stdoutLines[0]).Should(Equal(path))
+
+		// Reserved annotation should not be applied from the image to the container.
+		session = podmanTest.Podman([]string{"inspect", "foobar"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).NotTo(ContainSubstring("io.podman.annotations.seccomp"))
 	})
 
 	It("podman build --http_proxy flag", func() {
