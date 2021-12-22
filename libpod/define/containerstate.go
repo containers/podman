@@ -37,16 +37,23 @@ const (
 	ContainerStateStopping ContainerStatus = iota
 )
 
-// ContainerStatus returns a string representation for users
-// of a container state
+// ContainerStatus returns a string representation for users of a container
+// state. All results should match Docker's versions (from `docker ps`) as
+// closely as possible, given the different set of states we support.
 func (t ContainerStatus) String() string {
 	switch t {
 	case ContainerStateUnknown:
 		return "unknown"
 	case ContainerStateConfigured:
-		return "configured"
-	case ContainerStateCreated:
+		// The naming here is confusing, but it's necessary for Docker
+		// compatibility - their Created state is our Configured state.
 		return "created"
+	case ContainerStateCreated:
+		// Docker does not have an equivalent to this state, so give it
+		// a clear name. Most of the time this is a purely transitory
+		// state between Configured and Running so we don't expect to
+		// see it much anyways.
+		return "initialized"
 	case ContainerStateRunning:
 		return "running"
 	case ContainerStateStopped:

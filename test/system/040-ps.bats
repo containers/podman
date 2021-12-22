@@ -110,7 +110,7 @@ EOF
     run_podman ps --external
     is "${#lines[@]}" "3" "podman ps -a --external sees buildah containers"
     is "${lines[1]}" \
-       "[0-9a-f]\{12\} \+$IMAGE *buildah .* seconds ago .* storage .* ${PODMAN_TEST_IMAGE_NAME}-working-container" \
+       "[0-9a-f]\{12\} \+$IMAGE *buildah .* seconds ago .* Storage .* ${PODMAN_TEST_IMAGE_NAME}-working-container" \
        "podman ps --external"
 
     # 'rm -a' should be a NOP
