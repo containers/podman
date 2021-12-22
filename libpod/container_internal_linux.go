@@ -1763,7 +1763,7 @@ func (c *Container) makeBindMounts() error {
 	// SHM is always added when we mount the container
 	c.state.BindMounts["/dev/shm"] = c.config.ShmDir
 
-	if c.config.Passwd != nil && *c.config.Passwd {
+	if c.config.Passwd == nil || *c.config.Passwd {
 		newPasswd, newGroup, err := c.generatePasswdAndGroup()
 		if err != nil {
 			return errors.Wrapf(err, "error creating temporary passwd file for container %s", c.ID())
