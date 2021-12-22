@@ -949,11 +949,12 @@ Note: Labeling can be disabled for all containers by setting label=false in the 
 
 - `no-new-privileges` : Disable container processes from gaining additional privileges
 
-- `seccomp=unconfined` : Turn off seccomp confinement for the container
-- `seccomp=profile.json` :  White listed syscalls seccomp Json file to be used as a seccomp filter
+- `seccomp=unconfined` : Turn off seccomp confinement for the container.
+- `seccomp=profile.json` : JSON file to be used as a seccomp filter. Note that the `io.podman.annotations.seccomp` annotation is set with the specified value as shown in `podman inspect`.
 
 - `proc-opts=OPTIONS` : Comma-separated list of options to use for the /proc mount. More details for the
   possible mount options are specified in the **proc(5)** man page.
+
 
 - **unmask**=_ALL_ or _/path/1:/path/2_, or shell expanded paths (/proc/*): Paths to unmask separated by a colon. If set to **ALL**, it will unmask all the paths that are masked or made read only by default.
   The default masked paths are **/proc/acpi, /proc/kcore, /proc/keys, /proc/latency_stats, /proc/sched_debug, /proc/scsi, /proc/timer_list, /proc/timer_stats, /sys/firmware, and /sys/fs/selinux.**  The default paths that are read only are **/proc/asound, /proc/bus, /proc/fs, /proc/irq, /proc/sys, /proc/sysrq-trigger, /sys/fs/cgroup**.
