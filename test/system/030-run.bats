@@ -756,4 +756,14 @@ EOF
     is "$output" ".*TERM=abc" "missing TERM environment variable despite TERM being set on commandline"
 }
 
+@test "podman run - no /etc/hosts" {
+    skip_if_rootless "cannot move /etc/hosts file as a rootless user"
+    tmpfile=$PODMAN_TMPDIR/hosts
+    mv /etc/hosts $tmpfile
+    run_podman '?' run --rm --add-host "foo.com:1.2.3.4" $IMAGE cat "/etc/hosts"
+    mv $tmpfile /etc/hosts
+    is "$status" 0                   "podman run without /etc/hosts file should work"
+    is "$output" "1.2.3.4 foo.com.*" "users can add hosts even without /etc/hosts"
+}
+
 # vim: filetype=sh
