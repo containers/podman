@@ -73,6 +73,16 @@ func (c *Container) removeTransientFiles(ctx context.Context) error {
 	defer conn.Close()
 	timerFile := fmt.Sprintf("%s.timer", c.ID())
 	serviceFile := fmt.Sprintf("%s.service", c.ID())
+
+	// If the service has failed (the healthcheck has failed), then
+	// the .service file is not removed on stopping the unit file. If
+	// we check the properties of the service, it will automatically
+	// reset the state.  But checking the state takes msecs vs usecs to
+	// blindly call reset.
+	if err := conn.ResetFailedUnitContext(ctx, serviceFile); err != nil {
+		logrus.Debugf("failed to reset unit file: %q", err)
+	}
+
 	// We want to ignore errors where the timer unit and/or service unit has already
 	// been removed. The error return is generic so we have to check against the
 	// string in the error
