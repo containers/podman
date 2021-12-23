@@ -990,6 +990,7 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 
 	includeFiles := []string{
 		"artifacts",
+		metadata.DevShmCheckpointTar,
 		metadata.ConfigDumpFile,
 		metadata.SpecDumpFile,
 		metadata.NetworkStatusFile,
@@ -1141,6 +1142,29 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	runtimeCheckpointDuration, err := c.ociRuntime.CheckpointContainer(c, options)
 	if err != nil {
 		return nil, 0, err
+	}
+
+	// Keep the content of /dev/shm directory
+	if c.config.ShmDir != "" && c.state.BindMounts["/dev/shm"] == c.config.ShmDir {
+		shmDirTarFileFullPath := filepath.Join(c.bundlePath(), metadata.DevShmCheckpointTar)
+
+		shmDirTarFile, err := os.Create(shmDirTarFileFullPath)
+		if err != nil {
+			return nil, 0, err
+		}
+		defer shmDirTarFile.Close()
+
+		input, err := archive.TarWithOptions(c.config.ShmDir, &archive.TarOptions{
+			Compression:      archive.Uncompressed,
+			IncludeSourceDir: true,
+		})
+		if err != nil {
+			return nil, 0, err
+		}
+
+		if _, err = io.Copy(shmDirTarFile, input); err != nil {
+			return nil, 0, err
+		}
 	}
 
 	// Save network.status. This is needed to restore the container with
@@ -1482,6 +1506,24 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 			}
 			if !MountExists(g.Mounts(), dstPath) {
 				g.AddMount(newMount)
+			}
+		}
+	}
+
+	// Restore /dev/shm content
+	if c.config.ShmDir != "" && c.state.BindMounts["/dev/shm"] == c.config.ShmDir {
+		shmDirTarFileFullPath := filepath.Join(c.bundlePath(), metadata.DevShmCheckpointTar)
+		if _, err := os.Stat(shmDirTarFileFullPath); err != nil {
+			logrus.Debug("Container checkpoint doesn't contain dev/shm: ", err.Error())
+		} else {
+			shmDirTarFile, err := os.Open(shmDirTarFileFullPath)
+			if err != nil {
+				return nil, 0, err
+			}
+			defer shmDirTarFile.Close()
+
+			if err := archive.UntarUncompressed(shmDirTarFile, c.config.ShmDir, nil); err != nil {
+				return nil, 0, err
 			}
 		}
 	}

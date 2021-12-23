@@ -46,7 +46,7 @@ github.com/blang/semver
 github.com/buger/goterm
 # github.com/cespare/xxhash/v2 v2.1.2
 github.com/cespare/xxhash/v2
-# github.com/checkpoint-restore/checkpointctl v0.0.0-20210922093614-c31748bec9f2
+# github.com/checkpoint-restore/checkpointctl v0.0.0-20211204171957-54b4ebfdb681
 ## explicit
 github.com/checkpoint-restore/checkpointctl/lib
 # github.com/checkpoint-restore/go-criu/v5 v5.2.0
