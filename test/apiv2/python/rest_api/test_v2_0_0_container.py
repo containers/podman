@@ -99,7 +99,7 @@ class ContainerTestCase(APITestCase):
 
     def test_delete(self):
         r = requests.delete(self.uri(self.resolve_container("/containers/{}?force=true")))
-        self.assertEqual(r.status_code, 204, r.text)
+        self.assertEqual(r.status_code, 200, r.text)
 
     def test_stop(self):
         r = requests.post(self.uri(self.resolve_container("/containers/{}/start")))

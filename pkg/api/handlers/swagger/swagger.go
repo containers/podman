@@ -111,6 +111,13 @@ type swagLibpodInspectImageResponse struct {
 	}
 }
 
+// Rm containers
+// swagger:response DocsLibpodContainerRmReport
+type swagLibpodContainerRmReport struct {
+	// in: body
+	Body []handlers.LibpodContainersRmReport
+}
+
 // Prune containers
 // swagger:response DocsContainerPruneReport
 type swagContainerPruneReport struct {

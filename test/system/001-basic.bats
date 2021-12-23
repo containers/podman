@@ -41,7 +41,7 @@ function setup() {
     # This one must fail
     run_podman 125 --context=swarm version
     is "$output" \
-       "Error: Podman does not support swarm, the only --context value allowed is \"default\"" \
+       "Error: podman does not support swarm, the only --context value allowed is \"default\"" \
        "--context=default or fail"
 }
 

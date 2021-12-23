@@ -137,7 +137,7 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 				runtimeFlag := cmd.Root().Flags().Lookup("runtime")
 				if runtimeFlag == nil {
 					return errors.Errorf(
-						"Unexcpected error setting runtime to '%s' for restore",
+						"setting runtime to '%s' for restore",
 						*runtime,
 					)
 				}
@@ -217,7 +217,7 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 
 	context := cmd.Root().LocalFlags().Lookup("context")
 	if context.Value.String() != "default" {
-		return errors.New("Podman does not support swarm, the only --context value allowed is \"default\"")
+		return errors.New("podman does not support swarm, the only --context value allowed is \"default\"")
 	}
 	if !registry.IsRemote() {
 		if cmd.Flag("cpu-profile").Changed {

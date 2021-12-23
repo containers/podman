@@ -61,7 +61,8 @@ func rmFlags(cmd *cobra.Command) {
 
 	flags.BoolVarP(&rmOptions.All, "all", "a", false, "Remove all containers")
 	flags.BoolVarP(&rmOptions.Ignore, "ignore", "i", false, "Ignore errors when a specified container is missing")
-	flags.BoolVarP(&rmOptions.Force, "force", "f", false, "Force removal of a running or unusable container.  The default is false")
+	flags.BoolVarP(&rmOptions.Force, "force", "f", false, "Force removal of a running or unusable container")
+	flags.BoolVar(&rmOptions.Depend, "depend", false, "Remove container and all containers that depend on the selected container")
 	timeFlagName := "time"
 	flags.UintVarP(&stopTimeout, timeFlagName, "t", containerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
 	_ = cmd.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)

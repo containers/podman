@@ -40,7 +40,7 @@ type ContainerEngine interface {
 	ContainerRename(ctr context.Context, nameOrID string, options ContainerRenameOptions) error
 	ContainerRestart(ctx context.Context, namesOrIds []string, options RestartOptions) ([]*RestartReport, error)
 	ContainerRestore(ctx context.Context, namesOrIds []string, options RestoreOptions) ([]*RestoreReport, error)
-	ContainerRm(ctx context.Context, namesOrIds []string, options RmOptions) ([]*RmReport, error)
+	ContainerRm(ctx context.Context, namesOrIds []string, options RmOptions) ([]*reports.RmReport, error)
 	ContainerRun(ctx context.Context, opts ContainerRunOptions) (*ContainerRunReport, error)
 	ContainerRunlabel(ctx context.Context, label string, image string, args []string, opts ContainerRunlabelOptions) error
 	ContainerStart(ctx context.Context, namesOrIds []string, options ContainerStartOptions) ([]*ContainerStartReport, error)

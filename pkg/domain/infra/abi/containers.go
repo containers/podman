@@ -301,27 +301,27 @@ func (ic *ContainerEngine) removeContainer(ctx context.Context, ctr *libpod.Cont
 	return err
 }
 
-func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string, options entities.RmOptions) ([]*entities.RmReport, error) {
-	reports := []*entities.RmReport{}
+func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string, options entities.RmOptions) ([]*reports.RmReport, error) {
+	rmReports := []*reports.RmReport{}
 
 	names := namesOrIds
 	// Attempt to remove named containers directly from storage, if container is defined in libpod
 	// this will fail and code will fall through to removing the container from libpod.`
 	tmpNames := []string{}
 	for _, ctr := range names {
-		report := entities.RmReport{Id: ctr}
+		report := reports.RmReport{Id: ctr}
 		report.Err = ic.Libpod.RemoveStorageContainer(ctr, options.Force)
 		switch errors.Cause(report.Err) {
 		case nil:
 			// remove container names that we successfully deleted
-			reports = append(reports, &report)
+			rmReports = append(rmReports, &report)
 		case define.ErrNoSuchCtr, define.ErrCtrExists:
 			// There is still a potential this is a libpod container
 			tmpNames = append(tmpNames, ctr)
 		default:
 			if _, err := ic.Libpod.LookupContainer(ctr); errors.Cause(err) == define.ErrNoSuchCtr {
 				// remove container failed, but not a libpod container
-				reports = append(reports, &report)
+				rmReports = append(rmReports, &report)
 				continue
 			}
 			// attempt to remove as a libpod container
@@ -340,23 +340,34 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 
 		for _, ctr := range names {
 			logrus.Debugf("Evicting container %q", ctr)
-			report := entities.RmReport{Id: ctr}
+			report := reports.RmReport{Id: ctr}
 			_, err := ic.Libpod.EvictContainer(ctx, ctr, options.Volumes)
 			if err != nil {
 				if options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr {
 					logrus.Debugf("Ignoring error (--allow-missing): %v", err)
-					reports = append(reports, &report)
+					rmReports = append(rmReports, &report)
 					continue
 				}
 				report.Err = err
-				reports = append(reports, &report)
+				rmReports = append(rmReports, &report)
 				continue
 			}
-			reports = append(reports, &report)
+			rmReports = append(rmReports, &report)
 		}
-		return reports, nil
+		return rmReports, nil
 	}
 
+	if !options.All && options.Depend {
+		// Add additional containers based on dependencies to container map
+		for _, ctr := range ctrs {
+			reports, err := ic.Libpod.RemoveDepend(ctx, ctr, options.Force, options.Volumes, options.Timeout)
+			if err != nil {
+				return rmReports, err
+			}
+			rmReports = append(rmReports, reports...)
+		}
+		return rmReports, nil
+	}
 	errMap, err := parallelctr.ContainerOp(ctx, ctrs, func(c *libpod.Container) error {
 		return ic.removeContainer(ctx, c, options)
 	})
@@ -364,12 +375,12 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 		return nil, err
 	}
 	for ctr, err := range errMap {
-		report := new(entities.RmReport)
+		report := new(reports.RmReport)
 		report.Id = ctr.ID()
 		report.Err = err
-		reports = append(reports, report)
+		rmReports = append(rmReports, report)
 	}
-	return reports, nil
+	return rmReports, nil
 }
 
 func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []string, options entities.InspectOptions) ([]*entities.ContainerInspectReport, []error, error) {

@@ -915,6 +915,37 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 	return id, cleanupErr
 }
 
+// RemoveDepend removes all dependencies for a container
+func (r *Runtime) RemoveDepend(ctx context.Context, rmCtr *Container, force bool, removeVolume bool, timeout *uint) ([]*reports.RmReport, error) {
+	rmReports := make([]*reports.RmReport, 0)
+	deps, err := r.state.ContainerInUse(rmCtr)
+	if err != nil {
+		if err == define.ErrCtrRemoved {
+			return rmReports, nil
+		}
+		return rmReports, err
+	}
+	for _, cid := range deps {
+		ctr, err := r.state.Container(cid)
+		if err != nil {
+			if err == define.ErrNoSuchCtr {
+				continue
+			}
+			return rmReports, err
+		}
+
+		reports, err := r.RemoveDepend(ctx, ctr, force, removeVolume, timeout)
+		if err != nil {
+			return rmReports, err
+		}
+		rmReports = append(rmReports, reports...)
+	}
+	report := reports.RmReport{Id: rmCtr.ID()}
+	report.Err = r.removeContainer(ctx, rmCtr, force, removeVolume, false, timeout)
+
+	return append(rmReports, &report), nil
+}
+
 // GetContainer retrieves a container by its ID
 func (r *Runtime) GetContainer(id string) (*Container, error) {
 	r.lock.RLock()

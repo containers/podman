@@ -182,9 +182,9 @@ func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []st
 	return reports, nil
 }
 
-func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string, opts entities.RmOptions) ([]*entities.RmReport, error) {
+func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string, opts entities.RmOptions) ([]*reports.RmReport, error) {
 	// TODO there is no endpoint for container eviction.  Need to discuss
-	options := new(containers.RemoveOptions).WithForce(opts.Force).WithVolumes(opts.Volumes).WithIgnore(opts.Ignore)
+	options := new(containers.RemoveOptions).WithForce(opts.Force).WithVolumes(opts.Volumes).WithIgnore(opts.Ignore).WithDepend(opts.Depend)
 	if opts.Timeout != nil {
 		options = options.WithTimeout(*opts.Timeout)
 	}
@@ -193,25 +193,31 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 		if err != nil {
 			return nil, err
 		}
-		reports := make([]*entities.RmReport, 0, len(ctrs))
+		rmReports := make([]*reports.RmReport, 0, len(ctrs))
 		for _, c := range ctrs {
-			reports = append(reports, &entities.RmReport{
-				Id:  c.ID,
-				Err: containers.Remove(ic.ClientCtx, c.ID, options),
-			})
+			report, err := containers.Remove(ic.ClientCtx, c.ID, options)
+			if err != nil {
+				return rmReports, err
+			}
+			rmReports = append(rmReports, report...)
 		}
-		return reports, nil
+		return rmReports, nil
 	}
 
-	reports := make([]*entities.RmReport, 0, len(namesOrIds))
+	rmReports := make([]*reports.RmReport, 0, len(namesOrIds))
 	for _, name := range namesOrIds {
-		reports = append(reports, &entities.RmReport{
-			Id:  name,
-			Err: containers.Remove(ic.ClientCtx, name, options),
-		})
+		report, err := containers.Remove(ic.ClientCtx, name, options)
+		if err != nil {
+			rmReports = append(rmReports, &reports.RmReport{
+				Id:  name,
+				Err: err,
+			})
+			continue
+		}
+		rmReports = append(rmReports, report...)
 	}
 
-	return reports, nil
+	return rmReports, nil
 }
 
 func (ic *ContainerEngine) ContainerPrune(ctx context.Context, opts entities.ContainerPruneOptions) ([]*reports.PruneReport, error) {
@@ -552,6 +558,27 @@ func startAndAttach(ic *ContainerEngine, name string, detachKeys *string, input,
 	return <-attachErr
 }
 
+func logIfRmError(id string, err error, reports []*reports.RmReport) {
+	logError := func(id string, err error) {
+		if errorhandling.Contains(err, define.ErrNoSuchCtr) ||
+			errorhandling.Contains(err, define.ErrCtrRemoved) ||
+			errorhandling.Contains(err, types.ErrLayerUnknown) {
+			logrus.Debugf("Container %s does not exist: %v", id, err)
+		} else {
+			logrus.Errorf("Removing container %s: %v", id, err)
+		}
+	}
+	if err != nil {
+		logError(id, err)
+	} else {
+		for _, report := range reports {
+			if report.Err != nil {
+				logError(report.Id, report.Err)
+			}
+		}
+	}
+}
+
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
 	reports := []*entities.ContainerStartReport{}
 	var exitCode = define.ExecErrorCodeGeneric
@@ -590,14 +617,8 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 	}
 	removeOptions := new(containers.RemoveOptions).WithVolumes(true).WithForce(false)
 	removeContainer := func(id string) {
-		if err := containers.Remove(ic.ClientCtx, id, removeOptions); err != nil {
-			if errorhandling.Contains(err, define.ErrNoSuchCtr) ||
-				errorhandling.Contains(err, define.ErrCtrRemoved) {
-				logrus.Debugf("Container %s does not exist: %v", id, err)
-			} else {
-				logrus.Errorf("Removing container %s: %v", id, err)
-			}
-		}
+		reports, err := containers.Remove(ic.ClientCtx, id, removeOptions)
+		logIfRmError(id, err, reports)
 	}
 
 	// There can only be one container if attach was used
@@ -674,15 +695,8 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 			if err != nil {
 				if ctr.AutoRemove {
 					rmOptions := new(containers.RemoveOptions).WithForce(false).WithVolumes(true)
-					if err := containers.Remove(ic.ClientCtx, ctr.ID, rmOptions); err != nil {
-						if errorhandling.Contains(err, define.ErrNoSuchCtr) ||
-							errorhandling.Contains(err, define.ErrCtrRemoved) ||
-							errorhandling.Contains(err, types.ErrLayerUnknown) {
-							logrus.Debugf("Container %s does not exist: %v", ctr.ID, err)
-						} else {
-							logrus.Errorf("Removing container %s: %v", ctr.ID, err)
-						}
-					}
+					reports, err := containers.Remove(ic.ClientCtx, ctr.ID, rmOptions)
+					logIfRmError(ctr.ID, err, reports)
 				}
 				report.Err = errors.Wrapf(err, "unable to start container %q", name)
 				report.ExitCode = define.ExitCode(err)
@@ -741,7 +755,8 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 
 		report.ExitCode = define.ExitCode(err)
 		if opts.Rm {
-			if rmErr := containers.Remove(ic.ClientCtx, con.ID, new(containers.RemoveOptions).WithForce(false).WithVolumes(true)); rmErr != nil {
+			reports, rmErr := containers.Remove(ic.ClientCtx, con.ID, new(containers.RemoveOptions).WithForce(false).WithVolumes(true))
+			if rmErr != nil || reports[0].Err != nil {
 				logrus.Debugf("unable to remove container %s after failing to start and attach to it", con.ID)
 			}
 		}
@@ -759,15 +774,8 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 			}
 
 			if !shouldRestart {
-				if err := containers.Remove(ic.ClientCtx, con.ID, new(containers.RemoveOptions).WithForce(false).WithVolumes(true)); err != nil {
-					if errorhandling.Contains(err, define.ErrNoSuchCtr) ||
-						errorhandling.Contains(err, define.ErrCtrRemoved) ||
-						errorhandling.Contains(err, types.ErrLayerUnknown) {
-						logrus.Debugf("Container %s does not exist: %v", con.ID, err)
-					} else {
-						logrus.Errorf("Removing container %s: %v", con.ID, err)
-					}
-				}
+				reports, err := containers.Remove(ic.ClientCtx, con.ID, new(containers.RemoveOptions).WithForce(false).WithVolumes(true))
+				logIfRmError(con.ID, err, reports)
 			}
 		}()
 	}

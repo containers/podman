@@ -95,7 +95,7 @@ type PodNetworkConfig struct {
 	// Map of networks names ot ids the container should join to.
 	// You can request additional settings for each network, you can
 	// set network aliases, static ips, static mac address  and the
-	// network interface name for this container on the specifc network.
+	// network interface name for this container on the specific network.
 	// If the map is empty and the bridge network mode is set the container
 	// will be joined to the default network.
 	Networks map[string]types.PerNetworkOptions

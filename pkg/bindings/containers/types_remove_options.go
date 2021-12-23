@@ -17,6 +17,21 @@ func (o *RemoveOptions) ToParams() (url.Values, error) {
 	return util.ToParams(o)
 }
 
+// WithDepend set field Depend to given value
+func (o *RemoveOptions) WithDepend(value bool) *RemoveOptions {
+	o.Depend = &value
+	return o
+}
+
+// GetDepend returns value of field Depend
+func (o *RemoveOptions) GetDepend() bool {
+	if o.Depend == nil {
+		var z bool
+		return z
+	}
+	return *o.Depend
+}
+
 // WithIgnore set field Ignore to given value
 func (o *RemoveOptions) WithIgnore(value bool) *RemoveOptions {
 	o.Ignore = &value

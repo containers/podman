@@ -11,7 +11,7 @@ podman run -dt --name mytop $IMAGE top &>/dev/null
 t GET  libpod/containers/mytop/json 200 .State.Status=running
 t POST libpod/containers/mytop/stop 204
 t GET  libpod/containers/mytop/json 200 .State.Status~\\\(exited\\\|stopped\\\)
-t DELETE libpod/containers/mytop    204
+t DELETE libpod/containers/mytop    200
 
 # stop, by ID
 # Remember that podman() hides all output; we need to get our CID via inspect
@@ -21,4 +21,4 @@ t GET  libpod/containers/mytop/json 200 .State.Status=running
 cid=$(jq -r .Id <<<"$output")
 t POST libpod/containers/$cid/stop  204
 t GET  libpod/containers/mytop/json 200 .State.Status~\\\(exited\\\|stopped\\\)
-t DELETE libpod/containers/mytop    204
+t DELETE libpod/containers/mytop    200

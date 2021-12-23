@@ -58,6 +58,18 @@ load helpers
     run_podman rm -af
 }
 
+@test "podman rm --depend" {
+    run_podman create $IMAGE
+    dependCid=$output
+    run_podman create --net=container:$dependCid $IMAGE
+    cid=$output
+    run_podman 125 rm $dependCid
+    is "$output" "Error: container $dependCid has dependent containers which must be removed before it:.*" "Fail to remove because of dependencies"
+    run_podman rm --depend $dependCid
+    is "$output" ".*$cid" "Container should have been removed"
+    is "$output" ".*$dependCid" "Depend container should have been removed"
+}
+
 # I'm sorry! This test takes 13 seconds. There's not much I can do about it,
 # please know that I think it's justified: podman 1.5.0 had a strange bug
 # in with exit status was not preserved on some code paths with 'rm -f'

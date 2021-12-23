@@ -129,16 +129,12 @@ type RestartReport struct {
 
 type RmOptions struct {
 	All     bool
+	Depend  bool
 	Force   bool
 	Ignore  bool
 	Latest  bool
 	Timeout *uint
 	Volumes bool
-}
-
-type RmReport struct {
-	Err error
-	Id  string //nolint
 }
 
 type ContainerInspectReport struct {
