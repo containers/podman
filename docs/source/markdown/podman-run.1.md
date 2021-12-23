@@ -997,8 +997,8 @@ Note: Labeling can be disabled for all containers by setting label=false in the 
 
 - **no-new-privileges**: Disable container processes from gaining additional privileges
 
-- **seccomp=unconfined**: Turn off seccomp confinement for the container
-- **seccomp**=_profile.json_: Allowed syscall list seccomp JSON file to be used as a seccomp filter
+- **seccomp=unconfined**: Turn off seccomp confinement for the container.
+- **seccomp=profile.json**: JSON file to be used as a seccomp filter. Note that the `io.podman.annotations.seccomp` annotation is set with the specified value as shown in `podman inspect`.
 
 - **proc-opts**=_OPTIONS_ : Comma-separated list of options to use for the /proc mount. More details
   for the possible mount options are specified in the **proc(5)** man page.
