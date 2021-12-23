@@ -493,9 +493,6 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 				if ctrSpec.Linux.Resources.Memory.Limit != nil {
 					hostConfig.Memory = *ctrSpec.Linux.Resources.Memory.Limit
 				}
-				if ctrSpec.Linux.Resources.Memory.Kernel != nil {
-					hostConfig.KernelMemory = *ctrSpec.Linux.Resources.Memory.Kernel
-				}
 				if ctrSpec.Linux.Resources.Memory.Reservation != nil {
 					hostConfig.MemoryReservation = *ctrSpec.Linux.Resources.Memory.Reservation
 				}

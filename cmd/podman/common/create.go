@@ -327,13 +327,10 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(ipcFlagName, AutocompleteNamespace)
 
-		kernelMemoryFlagName := "kernel-memory"
-		createFlags.StringVar(
-			&cf.KernelMemory,
-			kernelMemoryFlagName, "",
-			"Kernel memory limit "+sizeWithUnitFormat,
+		createFlags.String(
+			"kernel-memory", "",
+			"DEPRECATED: Option is just hear for compatibility with Docker",
 		)
-		_ = cmd.RegisterFlagCompletionFunc(kernelMemoryFlagName, completion.AutocompleteNone)
 		// kernel-memory is deprecated in the runtime spec.
 		_ = createFlags.MarkHidden("kernel-memory")
 
