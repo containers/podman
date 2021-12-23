@@ -446,6 +446,11 @@ The initialization time needed for a container to bootstrap. The value can be ex
 The maximum time allowed to complete the healthcheck before an interval is considered failed. Like start-period, the
 value can be expressed in a time format such as **1m22s**. The default value is **30s**.
 
+#### **--hostuser**=*name*
+
+Add a user account to /etc/passwd from the host to the container. The Username
+or UID must exist on the host system.
+
 #### **--help**
 
 Print usage statement

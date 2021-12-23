@@ -711,6 +711,18 @@ EOF
     run_podman rmi nomtab
 }
 
+@test "podman run --hostuser tests" {
+    skip_if_not_rootless "test whether hostuser is successfully added"
+    user=$(id -un)
+    run_podman 1 run --rm $IMAGE grep $user /etc/passwd
+    run_podman run --hostuser=$user --rm $IMAGE grep $user /etc/passwd
+    user=$(id -u)
+    run_podman run --hostuser=$user --rm $IMAGE grep $user /etc/passwd
+    run_podman run --hostuser=$user --user $user --rm $IMAGE grep $user /etc/passwd
+    user=bogus
+    run_podman 126 run --hostuser=$user --rm $IMAGE grep $user /etc/passwd
+}
+
 @test "podman run --device-cgroup-rule tests" {
     skip_if_rootless "cannot add devices in rootless mode"
 

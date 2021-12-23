@@ -189,6 +189,7 @@ type ContainerCreateOptions struct {
 	HealthTimeout     string
 	Hostname          string `json:"hostname,omitempty"`
 	HTTPProxy         bool
+	HostUsers         []string
 	ImageVolume       string
 	Init              bool
 	InitContainerType string

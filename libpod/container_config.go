@@ -198,6 +198,8 @@ type ContainerSecurityConfig struct {
 	// Groups are additional groups to add the container's user to. These
 	// are resolved within the container using the container's /etc/passwd.
 	Groups []string `json:"groups,omitempty"`
+	// HostUsers are a list of host user accounts to add to /etc/passwd
+	HostUsers []string `json:"HostUsers,omitempty"`
 	// AddCurrentUserPasswdEntry indicates that Libpod should ensure that
 	// the container's /etc/passwd contains an entry for the user running
 	// Libpod - mostly used in rootless containers where the user running

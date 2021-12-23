@@ -410,6 +410,11 @@ Container host name
 
 Sets the container host name that is available inside the container. Can only be used with a private UTS namespace `--uts=private` (default). If `--pod` is specified and the pod shares the UTS namespace (default) the pod's hostname will be used.
 
+#### **--hostuser**=*name*
+
+Add a user account to /etc/passwd from the host to the container. The Username
+or UID must exist on the host system.
+
 #### **--help**
 
 Print usage statement
