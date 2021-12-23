@@ -70,6 +70,13 @@ Dump the *container's* memory information only, leaving the *container* running.
 operations will supersede prior dumps. It only works on `runc 1.0-rc3` or `higher`.\
 The default is **false**.
 
+The functionality to only checkpoint the memory of the container and in a second
+checkpoint only write out the memory pages which have changed since the first
+checkpoint relies on the Linux kernel's soft-dirty bit, which is not available
+on all systems as it depends on the system architecture and the configuration
+of the Linux kernel. Podman will verify if the current system supports this
+functionality and return an error if the current system does not support it.
+
 #### **--print-stats**
 
 Print out statistics about checkpointing the container(s). The output is
@@ -126,6 +133,11 @@ Check out the *container* with previous criu image files in pre-dump. It only wo
 The default is **false**.\
 *IMPORTANT: This OPTION is not available with __--pre-checkpoint__*.
 
+This option requires that the option __--pre-checkpoint__ has been used before on the
+same container. Without an existing pre-checkpoint, this option will fail.
+
+Also see __--pre-checkpoint__ for additional information about __--pre-checkpoint__
+availability on different systems.
 
 ## EXAMPLES
 Make a checkpoint for the container "mywebserver".
