@@ -1216,6 +1216,17 @@ If for example _amount_ is **5** the second mapping step would look like:
 | _from_uid_ + 3       | _container_uid_ + 3 |
 | _from_uid_ + 4       | _container_uid_ + 4 |
 
+When running as rootless, Podman will use all the ranges configured in the _/etc/subuid_ file.
+
+The current user ID is mapped to UID=0 in the rootless user namespace.
+Every additional range is added sequentially afterward:
+
+|   host                |rootless user namespace | length              |
+| -                     | -                      | -                   |
+| $UID                  | 0                      | 1                   |
+| 1                     | $FIRST_RANGE_ID        | $FIRST_RANGE_LENGTH |
+| 1+$FIRST_RANGE_LENGTH | $SECOND_RANGE_ID       | $SECOND_RANGE_LENGTH|
+
 Even if a user does not have any subordinate UIDs in  _/etc/subuid_,
 **--uidmap** could still be used to map the normal UID of the user to a
 container UID by running `podman run --uidmap $container_uid:0:1 --user $container_uid ...`.
