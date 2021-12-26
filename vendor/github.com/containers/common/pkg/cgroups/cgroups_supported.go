@@ -5,11 +5,13 @@ package cgroups
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
@@ -87,4 +89,41 @@ func UserOwnsCurrentSystemdCgroup() (bool, error) {
 		return false, errors.Wrapf(err, "parsing file /proc/self/cgroup")
 	}
 	return true, nil
+}
+
+// rmDirRecursively delete recursively a cgroup directory.
+// It differs from os.RemoveAll as it doesn't attempt to unlink files.
+// On cgroupfs we are allowed only to rmdir empty directories.
+func rmDirRecursively(path string) error {
+	if err := os.Remove(path); err == nil || os.IsNotExist(err) {
+		return nil
+	}
+	entries, err := ioutil.ReadDir(path)
+	if err != nil {
+		return err
+	}
+	for _, i := range entries {
+		if i.IsDir() {
+			if err := rmDirRecursively(filepath.Join(path, i.Name())); err != nil {
+				return err
+			}
+		}
+	}
+
+	attempts := 0
+	for {
+		err := os.Remove(path)
+		if err == nil || os.IsNotExist(err) {
+			return nil
+		}
+		if errors.Is(err, unix.EBUSY) {
+			// attempt up to 5 seconds if the cgroup is busy
+			if attempts < 500 {
+				time.Sleep(time.Millisecond * 10)
+				attempts++
+				continue
+			}
+		}
+		return errors.Wrapf(err, "remove %s", path)
+	}
 }

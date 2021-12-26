@@ -218,15 +218,7 @@ func (r *Runtime) newCopier(options *CopyOptions) (*copier, error) {
 
 	c.systemContext.DockerArchiveAdditionalTags = options.dockerArchiveAdditionalTags
 
-	if options.Architecture != "" {
-		c.systemContext.ArchitectureChoice = options.Architecture
-	}
-	if options.OS != "" {
-		c.systemContext.OSChoice = options.OS
-	}
-	if options.Variant != "" {
-		c.systemContext.VariantChoice = options.Variant
-	}
+	c.systemContext.OSChoice, c.systemContext.ArchitectureChoice, c.systemContext.VariantChoice = NormalizePlatform(options.OS, options.Architecture, options.Variant)
 
 	if options.SignaturePolicyPath != "" {
 		c.systemContext.SignaturePolicyPath = options.SignaturePolicyPath

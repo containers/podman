@@ -1,12 +1,12 @@
 // +build windows
 
-package config
+package util
 
 import (
 	"github.com/pkg/errors"
 )
 
 // getRuntimeDir returns the runtime directory
-func getRuntimeDir() (string, error) {
+func GetRuntimeDir() (string, error) {
 	return "", errors.New("this function is not implemented for windows")
 }
