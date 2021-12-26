@@ -1,4 +1,5 @@
-// +build amd64,!windows arm64,!windows
+//go:build amd64 || arm64
+// +build amd64 arm64
 
 package machine
 
@@ -16,7 +17,6 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/pkg/machine"
-	"github.com/containers/podman/v3/pkg/machine/qemu"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -69,9 +69,14 @@ func init() {
 }
 
 func list(cmd *cobra.Command, args []string) error {
-	var opts machine.ListOptions
-	// We only have qemu VM's for now
-	listResponse, err := qemu.List(opts)
+	var (
+		opts         machine.ListOptions
+		listResponse []*machine.ListResponse
+		err          error
+	)
+
+	provider := getSystemDefaultProvider()
+	listResponse, err = provider.List(opts)
 	if err != nil {
 		return errors.Wrap(err, "error listing vms")
 	}
@@ -182,8 +187,8 @@ func toMachineFormat(vms []*machine.ListResponse) ([]*machineReporter, error) {
 		response.Stream = streamName(vm.Stream)
 		response.VMType = vm.VMType
 		response.CPUs = vm.CPUs
-		response.Memory = strUint(vm.Memory * units.MiB)
-		response.DiskSize = strUint(vm.DiskSize * units.GiB)
+		response.Memory = strUint(vm.Memory)
+		response.DiskSize = strUint(vm.DiskSize)
 
 		machineResponses = append(machineResponses, response)
 	}
@@ -214,8 +219,8 @@ func toHumanFormat(vms []*machine.ListResponse) ([]*machineReporter, error) {
 		response.Created = units.HumanDuration(time.Since(vm.CreatedAt)) + " ago"
 		response.VMType = vm.VMType
 		response.CPUs = vm.CPUs
-		response.Memory = units.HumanSize(float64(vm.Memory) * units.MiB)
-		response.DiskSize = units.HumanSize(float64(vm.DiskSize) * units.GiB)
+		response.Memory = units.HumanSize(float64(vm.Memory))
+		response.DiskSize = units.HumanSize(float64(vm.DiskSize))
 
 		humanResponses = append(humanResponses, response)
 	}

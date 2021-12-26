@@ -1,4 +1,4 @@
-// +build amd64,!windows arm64,!windows
+// +build amd64 arm64
 
 package machine
 
@@ -9,7 +9,6 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/pkg/machine"
-	"github.com/containers/podman/v3/pkg/machine/qemu"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -47,27 +46,24 @@ func ssh(cmd *cobra.Command, args []string) error {
 		err     error
 		validVM bool
 		vm      machine.VM
-		vmType  string
 	)
 
 	// Set the VM to default
 	vmName := defaultMachineName
+	provider := getSystemDefaultProvider()
 
 	// If len is greater than 0, it means we may have been
 	// provided the VM name.  If so, we check.  The VM name,
 	// if provided, must be in args[0].
 	if len(args) > 0 {
-		switch vmType {
-		default:
-			validVM, err = qemu.IsValidVMName(args[0])
-			if err != nil {
-				return err
-			}
-			if validVM {
-				vmName = args[0]
-			} else {
-				sshOpts.Args = append(sshOpts.Args, args[0])
-			}
+		validVM, err = provider.IsValidVMName(args[0])
+		if err != nil {
+			return err
+		}
+		if validVM {
+			vmName = args[0]
+		} else {
+			sshOpts.Args = append(sshOpts.Args, args[0])
 		}
 	}
 
@@ -88,10 +84,7 @@ func ssh(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	switch vmType {
-	default:
-		vm, err = qemu.LoadVMByName(vmName)
-	}
+	vm, err = provider.LoadVMByName(vmName)
 	if err != nil {
 		return errors.Wrapf(err, "vm %s not found", vmName)
 	}

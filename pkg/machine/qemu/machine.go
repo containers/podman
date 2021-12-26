@@ -21,18 +21,24 @@ import (
 	"github.com/containers/podman/v3/utils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/digitalocean/go-qemu/qmp"
+	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 var (
+	qemuProvider = &Provider{}
 	// vmtype refers to qemu (vs libvirt, krun, etc)
 	vmtype = "qemu"
 )
 
+func GetQemuProvider() machine.Provider {
+	return qemuProvider
+}
+
 // NewMachine initializes an instance of a virtual machine based on the qemu
 // virtualization.
-func NewMachine(opts machine.InitOptions) (machine.VM, error) {
+func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	vmConfigDir, err := machine.GetConfDir(vmtype)
 	if err != nil {
 		return nil, err
@@ -44,16 +50,8 @@ func NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	ignitionFile := filepath.Join(vmConfigDir, vm.Name+".ign")
 	vm.IgnitionFilePath = ignitionFile
 
-	// An image was specified
-	if len(opts.ImagePath) > 0 {
-		vm.ImagePath = opts.ImagePath
-	}
-
-	// Assign remote user name. if not provided, use default
+	vm.ImagePath = opts.ImagePath
 	vm.RemoteUsername = opts.Username
-	if len(vm.RemoteUsername) < 1 {
-		vm.RemoteUsername = defaultRemoteUser
-	}
 
 	// Add a random port for ssh
 	port, err := utils.GetRandomPort()
@@ -106,7 +104,7 @@ func NewMachine(opts machine.InitOptions) (machine.VM, error) {
 
 // LoadByName reads a json file that describes a known qemu vm
 // and returns a vm instance
-func LoadVMByName(name string) (machine.VM, error) {
+func (p *Provider) LoadVMByName(name string) (machine.VM, error) {
 	vm := new(MachineVM)
 	vmConfigDir, err := machine.GetConfDir(vmtype)
 	if err != nil {
@@ -126,7 +124,7 @@ func LoadVMByName(name string) (machine.VM, error) {
 
 // Init writes the json configuration file to the filesystem for
 // other verbs (start, stop)
-func (v *MachineVM) Init(opts machine.InitOptions) error {
+func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	var (
 		key string
 	)
@@ -135,7 +133,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 	// its existence
 	vmConfigDir, err := machine.GetConfDir(vmtype)
 	if err != nil {
-		return err
+		return false, err
 	}
 	jsonFile := filepath.Join(vmConfigDir, v.Name) + ".json"
 	v.IdentityPath = filepath.Join(sshDir, v.Name)
@@ -147,11 +145,11 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 		dd, err := machine.NewFcosDownloader(vmtype, v.Name, opts.ImagePath)
 
 		if err != nil {
-			return err
+			return false, err
 		}
 		v.ImagePath = dd.Get().LocalUncompressedFile
-		if err := dd.DownloadImage(); err != nil {
-			return err
+		if err := machine.DownloadImage(dd); err != nil {
+			return false, err
 		}
 	default:
 		// The user has provided an alternate image which can be a file path
@@ -159,11 +157,11 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 		v.ImageStream = "custom"
 		g, err := machine.NewGenericDownloader(vmtype, v.Name, opts.ImagePath)
 		if err != nil {
-			return err
+			return false, err
 		}
 		v.ImagePath = g.Get().LocalUncompressedFile
-		if err := g.DownloadImage(); err != nil {
-			return err
+		if err := machine.DownloadImage(g); err != nil {
+			return false, err
 		}
 	}
 	// Add arch specific options including image location
@@ -175,12 +173,12 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 	if len(opts.IgnitionPath) < 1 {
 		uri := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/user/1000/podman/podman.sock", strconv.Itoa(v.Port), v.RemoteUsername)
 		if err := machine.AddConnection(&uri, v.Name, filepath.Join(sshDir, v.Name), opts.IsDefault); err != nil {
-			return err
+			return false, err
 		}
 
 		uriRoot := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/podman/podman.sock", strconv.Itoa(v.Port), "root")
 		if err := machine.AddConnection(&uriRoot, v.Name+"-root", filepath.Join(sshDir, v.Name), opts.IsDefault); err != nil {
-			return err
+			return false, err
 		}
 	} else {
 		fmt.Println("An ignition path was provided.  No SSH connection was added to Podman")
@@ -188,10 +186,10 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 	// Write the JSON file
 	b, err := json.MarshalIndent(v, "", " ")
 	if err != nil {
-		return err
+		return false, err
 	}
 	if err := ioutil.WriteFile(jsonFile, b, 0644); err != nil {
-		return err
+		return false, err
 	}
 
 	// User has provided ignition file so keygen
@@ -199,17 +197,17 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 	if len(opts.IgnitionPath) < 1 {
 		key, err = machine.CreateSSHKeys(v.IdentityPath)
 		if err != nil {
-			return err
+			return false, err
 		}
 	}
 	// Run arch specific things that need to be done
 	if err := v.prepare(); err != nil {
-		return err
+		return false, err
 	}
 
 	originalDiskSize, err := getDiskSize(v.ImagePath)
 	if err != nil {
-		return err
+		return false, err
 	}
 	// Resize the disk image to input disk size
 	// only if the virtualdisk size is less than
@@ -219,7 +217,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 		resize.Stdout = os.Stdout
 		resize.Stderr = os.Stderr
 		if err := resize.Run(); err != nil {
-			return errors.Errorf("error resizing image: %q", err)
+			return false, errors.Errorf("error resizing image: %q", err)
 		}
 	}
 	// If the user provides an ignition file, we need to
@@ -227,9 +225,9 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 	if len(opts.IgnitionPath) > 0 {
 		inputIgnition, err := ioutil.ReadFile(opts.IgnitionPath)
 		if err != nil {
-			return err
+			return false, err
 		}
-		return ioutil.WriteFile(v.IgnitionFilePath, inputIgnition, 0644)
+		return false, ioutil.WriteFile(v.IgnitionFilePath, inputIgnition, 0644)
 	}
 	// Write the ignition file
 	ign := machine.DynamicIgnition{
@@ -239,7 +237,8 @@ func (v *MachineVM) Init(opts machine.InitOptions) error {
 		TimeZone:  opts.TimeZone,
 		WritePath: v.IgnitionFilePath,
 	}
-	return machine.NewIgnitionFile(ign)
+	err = machine.NewIgnitionFile(ign)
+	return err == nil, err
 }
 
 // Start executes the qemu command line and forks it
@@ -571,7 +570,7 @@ func getDiskSize(path string) (uint64, error) {
 }
 
 // List lists all vm's that use qemu virtualization
-func List(_ machine.ListOptions) ([]*machine.ListResponse, error) {
+func (p *Provider) List(_ machine.ListOptions) ([]*machine.ListResponse, error) {
 	return GetVMInfos()
 }
 
@@ -601,8 +600,8 @@ func GetVMInfos() ([]*machine.ListResponse, error) {
 			listEntry.Stream = vm.ImageStream
 			listEntry.VMType = "qemu"
 			listEntry.CPUs = vm.CPUs
-			listEntry.Memory = vm.Memory
-			listEntry.DiskSize = vm.DiskSize
+			listEntry.Memory = vm.Memory * units.MiB
+			listEntry.DiskSize = vm.DiskSize * units.GiB
 			fi, err := os.Stat(fullPath)
 			if err != nil {
 				return err
@@ -627,7 +626,7 @@ func GetVMInfos() ([]*machine.ListResponse, error) {
 	return listed, err
 }
 
-func IsValidVMName(name string) (bool, error) {
+func (p *Provider) IsValidVMName(name string) (bool, error) {
 	infos, err := GetVMInfos()
 	if err != nil {
 		return false, err
@@ -640,8 +639,9 @@ func IsValidVMName(name string) (bool, error) {
 	return false, nil
 }
 
-// CheckActiveVM checks if there is a VM already running
-func CheckActiveVM() (bool, string, error) {
+// CheckExclusiveActiveVM checks if there is a VM already running
+// that does not allow other VMs to be running
+func (p *Provider) CheckExclusiveActiveVM() (bool, string, error) {
 	vms, err := GetVMInfos()
 	if err != nil {
 		return false, "", errors.Wrap(err, "error checking VM active")

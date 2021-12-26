@@ -1,4 +1,4 @@
-// +build amd64,!windows arm64,!windows
+// +build amd64 arm64
 
 package machine
 
@@ -8,7 +8,6 @@ import (
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/pkg/machine"
-	"github.com/containers/podman/v3/pkg/machine/qemu"
 	"github.com/spf13/cobra"
 )
 
@@ -51,7 +50,8 @@ func autocompleteMachine(cmd *cobra.Command, args []string, toComplete string) (
 
 func getMachines(toComplete string) ([]string, cobra.ShellCompDirective) {
 	suggestions := []string{}
-	machines, err := qemu.List(machine.ListOptions{})
+	provider := getSystemDefaultProvider()
+	machines, err := provider.List(machine.ListOptions{})
 	if err != nil {
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveNoFileComp

@@ -1,16 +1,14 @@
-// +build !linux,!windows
-
 package config
 
-// getDefaultMachineImage returns the default machine image stream
-// On Linux/Mac, this returns the FCOS stream
+// getDefaultImage returns the default machine image stream
+// On Windows this refers to the Fedora major release number
 func getDefaultMachineImage() string {
-	return "testing"
+	return "35"
 }
 
 // getDefaultMachineUser returns the user to use for rootless podman
 func getDefaultMachineUser() string {
-	return "core"
+	return "user"
 }
 
 // getDefaultRootlessNetwork returns the default rootless network configuration.
