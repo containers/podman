@@ -7,7 +7,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/url"
+	"os"
 	"path/filepath"
+
+	"github.com/sirupsen/logrus"
 )
 
 /*
@@ -354,6 +357,56 @@ machine_enabled=true
 			Mode: intToPtr(0644),
 		},
 	})
+
+	// get certs for current user
+	userHome, err := os.UserHomeDir()
+	if err != nil {
+		logrus.Warnf("Unable to copy certs via ignition %s", err.Error())
+		return files
+	}
+
+	certFiles := getCerts(filepath.Join(userHome, ".config/containers/certs.d"))
+	files = append(files, certFiles...)
+
+	certFiles = getCerts(filepath.Join(userHome, ".config/docker/certs.d"))
+	files = append(files, certFiles...)
+
+	return files
+}
+
+func getCerts(certsDir string) []File {
+	var (
+		files []File
+	)
+
+	certs, err := ioutil.ReadDir(certsDir)
+	if err == nil {
+		for _, cert := range certs {
+			b, err := ioutil.ReadFile(filepath.Join(certsDir, cert.Name()))
+			if err != nil {
+				logrus.Warnf("Unable to read cert file %s", err.Error())
+				continue
+			}
+			files = append(files, File{
+				Node: Node{
+					Group: getNodeGrp("root"),
+					Path:  filepath.Join("/etc/containers/certs.d/", cert.Name()),
+					User:  getNodeUsr("root"),
+				},
+				FileEmbedded1: FileEmbedded1{
+					Append: nil,
+					Contents: Resource{
+						Source: encodeDataURLPtr(string(b)),
+					},
+					Mode: intToPtr(0644),
+				},
+			})
+		}
+	} else {
+		if !os.IsNotExist(err) {
+			logrus.Warnf("Unable to copy certs via ignition, error while reading certs from %s:  %s", certsDir, err.Error())
+		}
+	}
 
 	return files
 }
