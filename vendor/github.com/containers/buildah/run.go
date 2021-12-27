@@ -93,6 +93,8 @@ type RunOptions struct {
 	User string
 	// WorkingDir is an override for the working directory.
 	WorkingDir string
+	// ContextDir is used as the root directory for the source location for mounts that are of type "bind".
+	ContextDir string
 	// Shell is default shell to run in a container.
 	Shell string
 	// Cmd is an override for the configured default command.
@@ -139,7 +141,7 @@ type RunOptions struct {
 	// Devices are the additional devices to add to the containers
 	Devices define.ContainerDevices
 	// Secrets are the available secrets to use in a RUN
-	Secrets map[string]string
+	Secrets map[string]define.Secret
 	// SSHSources is the available ssh agents to use in a RUN
 	SSHSources map[string]*sshagent.Source `json:"-"`
 	// RunMounts are mounts for this run. RunMounts for this run
@@ -151,6 +153,8 @@ type RunOptions struct {
 type runMountArtifacts struct {
 	// RunMountTargets are the run mount targets inside the container
 	RunMountTargets []string
+	// TmpFiles are artifacts that need to be removed outside the container
+	TmpFiles []string
 	// Agents are the ssh agents started
 	Agents []*sshagent.AgentServer
 	// SSHAuthSock is the path to the ssh auth sock inside the container

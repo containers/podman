@@ -6,7 +6,7 @@ env:
     #### Global variables used for all tasks
     ####
     # Name of the ultimate destination branch for this CI run, PR or post-merge.
-    DEST_BRANCH: "release-1.23"
+    DEST_BRANCH: "main"
     GOPATH: "/var/tmp/go"
     GOSRC: "${GOPATH}/src/github.com/containers/buildah"
     # Overrides default location (/tmp/cirrus) for repo clone
@@ -25,16 +25,14 @@ env:
     ####
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
-    FEDORA_NAME: "fedora-34"
-    PRIOR_FEDORA_NAME: "fedora-33"
-    UBUNTU_NAME: "ubuntu-2104"
-    PRIOR_UBUNTU_NAME: "ubuntu-2010"
+    FEDORA_NAME: "fedora-35"
+    PRIOR_FEDORA_NAME: "fedora-34"
+    UBUNTU_NAME: "ubuntu-2110"
 
-    IMAGE_SUFFIX: "c6248193773010944"
+    IMAGE_SUFFIX: "c6226133906620416"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
-    PRIOR_UBUNTU_CACHE_IMAGE_NAME: "prior-ubuntu-${IMAGE_SUFFIX}"
 
     IN_PODMAN_IMAGE: "quay.io/libpod/fedora_podman:${IMAGE_SUFFIX}"
 
@@ -76,7 +74,6 @@ meta_task:
             ${FEDORA_CACHE_IMAGE_NAME}
             ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
             ${UBUNTU_CACHE_IMAGE_NAME}
-            ${PRIOR_UBUNTU_CACHE_IMAGE_NAME}
         BUILDID: "${CIRRUS_BUILD_ID}"
         REPOREF: "${CIRRUS_CHANGE_IN_REPO}"
         GCPJSON: ENCRYPTED[d3614d6f5cc0e66be89d4252b3365fd84f14eee0259d4eb47e25fc0bc2842c7937f5ee8c882b7e547b4c5ec4b6733b14]
@@ -200,56 +197,6 @@ cross_build_task:
         path: ./bin/*
 
 
-static_build_task:
-    name: "Static Build"
-    alias: static_build
-    only_if: *not_docs
-    depends_on:
-      - unit
-
-    gce_instance:
-        image_name: "${FEDORA_CACHE_IMAGE_NAME}"
-        cpu: 8
-        memory: 12
-        disk: 200
-
-    env:
-        NIX_FQIN: "docker.io/nixos/nix:latest"
-
-    init_script: |
-        set -ex
-        setenforce 0
-        growpart /dev/sda 1 || true
-        resize2fs /dev/sda1 || true
-        yum -y install podman
-
-    nix_cache:
-      folder: '.cache'
-      fingerprint_script: cat nix/*
-
-    build_script: |
-        set -ex
-        mkdir -p .cache
-        mv .cache /nix
-        if [[ -z $(ls -A /nix) ]]; then
-            podman run --rm --privileged -i -v /:/mnt \
-                $NIX_FQIN \
-                cp -rfT /nix /mnt/nix
-        fi
-        podman run --rm --privileged -i -v /nix:/nix \
-            -v ${PWD}:${PWD} -w ${PWD} \
-            $NIX_FQIN \
-            nix --print-build-logs --option cores 8 \
-            --option max-jobs 8 build --file nix/
-
-    binaries_artifacts:
-        path: "result/bin/buildah"
-
-    save_cache_script: |
-        mv /nix .cache
-        chown -Rf $(whoami) .cache
-
-
 integration_task:
     name: "Integration $DISTRO_NV w/ $STORAGE_DRIVER"
     alias: integration
@@ -271,10 +218,6 @@ integration_task:
             DISTRO_NV: "${UBUNTU_NAME}"
             IMAGE_NAME: "${UBUNTU_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'vfs'
-        - env:
-            DISTRO_NV: "${PRIOR_UBUNTU_NAME}"
-            IMAGE_NAME: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"
-            STORAGE_DRIVER: 'vfs'
         # OVERLAY
         - env:
             DISTRO_NV: "${FEDORA_NAME}"
@@ -287,10 +230,6 @@ integration_task:
         - env:
             DISTRO_NV: "${UBUNTU_NAME}"
             IMAGE_NAME: "${UBUNTU_CACHE_IMAGE_NAME}"
-            STORAGE_DRIVER: 'overlay'
-        - env:
-            DISTRO_NV: "${PRIOR_UBUNTU_NAME}"
-            IMAGE_NAME: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'overlay'
 
     gce_instance:
@@ -356,7 +295,6 @@ success_task:
       - cross_build
       - integration
       - in_podman
-      - static_build
 
     container:
         image: "quay.io/libpod/alpine:latest"

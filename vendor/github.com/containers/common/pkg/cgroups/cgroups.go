@@ -509,32 +509,6 @@ func (c *CgroupControl) Delete() error {
 	return c.DeleteByPath(c.path)
 }
 
-// rmDirRecursively delete recursively a cgroup directory.
-// It differs from os.RemoveAll as it doesn't attempt to unlink files.
-// On cgroupfs we are allowed only to rmdir empty directories.
-func rmDirRecursively(path string) error {
-	if err := os.Remove(path); err == nil || os.IsNotExist(err) {
-		return nil
-	}
-	entries, err := ioutil.ReadDir(path)
-	if err != nil {
-		return err
-	}
-	for _, i := range entries {
-		if i.IsDir() {
-			if err := rmDirRecursively(filepath.Join(path, i.Name())); err != nil {
-				return err
-			}
-		}
-	}
-	if err := os.Remove(path); err != nil {
-		if !os.IsNotExist(err) {
-			return errors.Wrapf(err, "remove %s", path)
-		}
-	}
-	return nil
-}
-
 // DeleteByPathConn deletes the specified cgroup path using the specified
 // dbus connection if needed.
 func (c *CgroupControl) DeleteByPathConn(path string, conn *systemdDbus.Conn) error {

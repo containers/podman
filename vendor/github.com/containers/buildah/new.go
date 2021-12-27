@@ -197,6 +197,9 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 	}
 
 	name := "working-container"
+	if options.ContainerSuffix != "" {
+		name = options.ContainerSuffix
+	}
 	if options.Container != "" {
 		name = options.Container
 	} else {
@@ -290,6 +293,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		Format:          options.Format,
 		TempVolumes:     map[string]bool{},
 		Devices:         options.Devices,
+		Logger:          options.Logger,
 	}
 
 	if options.Mount {

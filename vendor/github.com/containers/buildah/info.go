@@ -11,10 +11,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containerd/containerd/platforms"
 	"github.com/containers/buildah/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/system"
 	"github.com/containers/storage/pkg/unshare"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -43,8 +45,10 @@ func Info(store storage.Store) ([]InfoData, error) {
 
 func hostInfo() map[string]interface{} {
 	info := map[string]interface{}{}
-	info["os"] = runtime.GOOS
-	info["arch"] = runtime.GOARCH
+	ps := platforms.Normalize(v1.Platform{OS: runtime.GOOS, Architecture: runtime.GOARCH})
+	info["os"] = ps.OS
+	info["arch"] = ps.Architecture
+	info["variant"] = ps.Variant
 	info["cpus"] = runtime.NumCPU()
 	info["rootless"] = unshare.IsRootless()
 

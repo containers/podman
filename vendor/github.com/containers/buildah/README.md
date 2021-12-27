@@ -77,7 +77,9 @@ From [`./examples/lighttpd.sh`](examples/lighttpd.sh):
 
 ```bash
 $ cat > lighttpd.sh <<"EOF"
-#!/usr/bin/env bash -x
+#!/usr/bin/env bash
+
+set -x
 
 ctr1=$(buildah from "${1:-fedora}")
 
@@ -103,27 +105,27 @@ $ sudo ./lighttpd.sh
 ## Commands
 | Command                                              | Description                                                                                          |
 | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| [buildah-add(1)](/docs/buildah-add.md)               | Add the contents of a file, URL, or a directory to the container.                                    |
-| [buildah-build(1)](/docs/buildah-build.md)           | Build an image using instructions from Containerfiles or Dockerfiles.                                |
-| [buildah-commit(1)](/docs/buildah-commit.md)         | Create an image from a working container.                                                            |
-| [buildah-config(1)](/docs/buildah-config.md)         | Update image configuration settings.                                                                 |
-| [buildah-containers(1)](/docs/buildah-containers.md) | List the working containers and their base images.                                                   |
-| [buildah-copy(1)](/docs/buildah-copy.md)             | Copies the contents of a file, URL, or directory into a container's working directory.               |
-| [buildah-from(1)](/docs/buildah-from.md)             | Creates a new working container, either from scratch or using a specified image as a starting point. |
-| [buildah-images(1)](/docs/buildah-images.md)         | List images in local storage.                                                                        |
-| [buildah-info(1)](/docs/buildah-info.md)             | Display Buildah system information.                                                                  |
-| [buildah-inspect(1)](/docs/buildah-inspect.md)       | Inspects the configuration of a container or image.                                                  |
-| [buildah-mount(1)](/docs/buildah-mount.md)           | Mount the working container's root filesystem.                                                       |
-| [buildah-pull(1)](/docs/buildah-pull.md)             | Pull an image from the specified location.                                                           |
-| [buildah-push(1)](/docs/buildah-push.md)             | Push an image from local storage to elsewhere.                                                       |
-| [buildah-rename(1)](/docs/buildah-rename.md)         | Rename a local container.                                                                            |
-| [buildah-rm(1)](/docs/buildah-rm.md)                 | Removes one or more working containers.                                                              |
-| [buildah-rmi(1)](/docs/buildah-rmi.md)               | Removes one or more images.                                                                          |
-| [buildah-run(1)](/docs/buildah-run.md)               | Run a command inside of the container.                                                               |
-| [buildah-tag(1)](/docs/buildah-tag.md)               | Add an additional name to a local image.                                                             |
-| [buildah-umount(1)](/docs/buildah-umount.md)         | Unmount a working container's root file system.                                                      |
-| [buildah-unshare(1)](/docs/buildah-unshare.md)       | Launch a command in a user namespace with modified ID mappings.                                      |
-| [buildah-version(1)](/docs/buildah-version.md)       | Display the Buildah Version Information                                                              |
+| [buildah-add(1)](/docs/buildah-add.1.md)               | Add the contents of a file, URL, or a directory to the container.                                    |
+| [buildah-build(1)](/docs/buildah-build.1.md)           | Build an image using instructions from Containerfiles or Dockerfiles.                                |
+| [buildah-commit(1)](/docs/buildah-commit.1.md)         | Create an image from a working container.                                                            |
+| [buildah-config(1)](/docs/buildah-config.1.md)         | Update image configuration settings.                                                                 |
+| [buildah-containers(1)](/docs/buildah-containers.1.md) | List the working containers and their base images.                                                   |
+| [buildah-copy(1)](/docs/buildah-copy.1.md)             | Copies the contents of a file, URL, or directory into a container's working directory.               |
+| [buildah-from(1)](/docs/buildah-from.1.md)             | Creates a new working container, either from scratch or using a specified image as a starting point. |
+| [buildah-images(1)](/docs/buildah-images.1.md)         | List images in local storage.                                                                        |
+| [buildah-info(1)](/docs/buildah-info.1.md)             | Display Buildah system information.                                                                  |
+| [buildah-inspect(1)](/docs/buildah-inspect.1.md)       | Inspects the configuration of a container or image.                                                  |
+| [buildah-mount(1)](/docs/buildah-mount.1.md)           | Mount the working container's root filesystem.                                                       |
+| [buildah-pull(1)](/docs/buildah-pull.1.md)             | Pull an image from the specified location.                                                           |
+| [buildah-push(1)](/docs/buildah-push.1.md)             | Push an image from local storage to elsewhere.                                                       |
+| [buildah-rename(1)](/docs/buildah-rename.1.md)         | Rename a local container.                                                                            |
+| [buildah-rm(1)](/docs/buildah-rm.1.md)                 | Removes one or more working containers.                                                              |
+| [buildah-rmi(1)](/docs/buildah-rmi.1.md)               | Removes one or more images.                                                                          |
+| [buildah-run(1)](/docs/buildah-run.1.md)               | Run a command inside of the container.                                                               |
+| [buildah-tag(1)](/docs/buildah-tag.1.md)               | Add an additional name to a local image.                                                             |
+| [buildah-umount(1)](/docs/buildah-umount.1.md)         | Unmount a working container's root file system.                                                      |
+| [buildah-unshare(1)](/docs/buildah-unshare.1.md)       | Launch a command in a user namespace with modified ID mappings.                                      |
+| [buildah-version(1)](/docs/buildah-version.1.md)       | Display the Buildah Version Information                                                              |
 
 **Future goals include:**
 * more CI tests

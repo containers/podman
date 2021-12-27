@@ -9,11 +9,11 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"unicode"
 
+	"github.com/containerd/containerd/platforms"
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/pkg/sshagent"
 	"github.com/containers/common/pkg/parse"
@@ -22,6 +22,7 @@ import (
 	"github.com/containers/storage/pkg/unshare"
 	units "github.com/docker/go-units"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/openshift/imagebuilder"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -37,6 +38,11 @@ const (
 	TypeBind = "bind"
 	// TypeTmpfs is the type for mounting tmpfs
 	TypeTmpfs = "tmpfs"
+	// TypeCache is the type for mounting a common persistent cache from host
+	TypeCache = "cache"
+	// mount=type=cache must create a persistent directory on host so its available for all consecutive builds.
+	// Lifecycle of following directory will be inherited from how host machine treats temporary directory
+	BuildahCacheDir = "buildah-cache"
 )
 
 var (
@@ -65,9 +71,13 @@ func CommonBuildOptions(c *cobra.Command) (*define.CommonBuildOptions, error) {
 
 	memSwapValue, _ := c.Flags().GetString("memory-swap")
 	if memSwapValue != "" {
-		memorySwap, err = units.RAMInBytes(memSwapValue)
-		if err != nil {
-			return nil, errors.Wrapf(err, "invalid value for memory-swap")
+		if memSwapValue == "-1" {
+			memorySwap = -1
+		} else {
+			memorySwap, err = units.RAMInBytes(memSwapValue)
+			if err != nil {
+				return nil, errors.Wrapf(err, "invalid value for memory-swap")
+			}
 		}
 	}
 
@@ -199,10 +209,39 @@ func parseSecurityOpts(securityOpts []string, commonOpts *define.CommonBuildOpti
 	return nil
 }
 
+// Split string into slice by colon. Backslash-escaped colon (i.e. "\:") will not be regarded as separator
+func SplitStringWithColonEscape(str string) []string {
+	result := make([]string, 0, 3)
+	sb := &strings.Builder{}
+	for idx, r := range str {
+		if r == ':' {
+			// the colon is backslash-escaped
+			if idx-1 > 0 && str[idx-1] == '\\' {
+				sb.WriteRune(r)
+			} else {
+				// os.Stat will fail if path contains escaped colon
+				result = append(result, revertEscapedColon(sb.String()))
+				sb.Reset()
+			}
+		} else {
+			sb.WriteRune(r)
+		}
+	}
+	if sb.Len() > 0 {
+		result = append(result, revertEscapedColon(sb.String()))
+	}
+	return result
+}
+
+// Convert "\:" to ":"
+func revertEscapedColon(source string) string {
+	return strings.ReplaceAll(source, "\\:", ":")
+}
+
 // Volume parses the input of --volume
 func Volume(volume string) (specs.Mount, error) {
 	mount := specs.Mount{}
-	arr := strings.SplitN(volume, ":", 3)
+	arr := SplitStringWithColonEscape(volume)
 	if len(arr) < 2 {
 		return mount, errors.Errorf("incorrect volume format %q, should be host-dir:ctr-dir[:option]", volume)
 	}
@@ -257,8 +296,8 @@ func getVolumeMounts(volumes []string) (map[string]specs.Mount, error) {
 }
 
 // GetVolumes gets the volumes from --volume and --mount
-func GetVolumes(volumes []string, mounts []string) ([]specs.Mount, error) {
-	unifiedMounts, err := getMounts(mounts)
+func GetVolumes(volumes []string, mounts []string, contextDir string) ([]specs.Mount, error) {
+	unifiedMounts, err := getMounts(mounts, contextDir)
 	if err != nil {
 		return nil, err
 	}
@@ -284,7 +323,7 @@ func GetVolumes(volumes []string, mounts []string) ([]specs.Mount, error) {
 // spec mounts.
 // buildah run --mount type=bind,src=/etc/resolv.conf,target=/etc/resolv.conf ...
 // buildah run --mount type=tmpfs,target=/dev/shm ...
-func getMounts(mounts []string) (map[string]specs.Mount, error) {
+func getMounts(mounts []string, contextDir string) (map[string]specs.Mount, error) {
 	finalMounts := make(map[string]specs.Mount)
 
 	errInvalidSyntax := errors.Errorf("incorrect mount format: should be --mount type=<bind|tmpfs>,[src=<host-dir>,]target=<ctr-dir>[,options]")
@@ -307,7 +346,16 @@ func getMounts(mounts []string) (map[string]specs.Mount, error) {
 		tokens := strings.Split(arr[1], ",")
 		switch kv[1] {
 		case TypeBind:
-			mount, err := GetBindMount(tokens)
+			mount, err := GetBindMount(tokens, contextDir)
+			if err != nil {
+				return nil, err
+			}
+			if _, ok := finalMounts[mount.Destination]; ok {
+				return nil, errors.Wrapf(errDuplicateDest, mount.Destination)
+			}
+			finalMounts[mount.Destination] = mount
+		case TypeCache:
+			mount, err := GetCacheMount(tokens)
 			if err != nil {
 				return nil, err
 			}
@@ -333,27 +381,30 @@ func getMounts(mounts []string) (map[string]specs.Mount, error) {
 }
 
 // GetBindMount parses a single bind mount entry from the --mount flag.
-func GetBindMount(args []string) (specs.Mount, error) {
+func GetBindMount(args []string, contextDir string) (specs.Mount, error) {
 	newMount := specs.Mount{
 		Type: TypeBind,
 	}
 
-	setSource := false
 	setDest := false
+	bindNonRecursive := false
 
 	for _, val := range args {
 		kv := strings.SplitN(val, "=", 2)
 		switch kv[0] {
 		case "bind-nonrecursive":
 			newMount.Options = append(newMount.Options, "bind")
+			bindNonRecursive = true
 		case "ro", "nosuid", "nodev", "noexec":
 			// TODO: detect duplication of these options.
 			// (Is this necessary?)
 			newMount.Options = append(newMount.Options, kv[0])
+		case "rw", "readwrite":
+			newMount.Options = append(newMount.Options, "rw")
 		case "readonly":
 			// Alias for "ro"
 			newMount.Options = append(newMount.Options, "ro")
-		case "shared", "rshared", "private", "rprivate", "slave", "rslave", "Z", "z":
+		case "shared", "rshared", "private", "rprivate", "slave", "rslave", "Z", "z", "U":
 			newMount.Options = append(newMount.Options, kv[0])
 		case "bind-propagation":
 			if len(kv) == 1 {
@@ -368,7 +419,6 @@ func GetBindMount(args []string) (specs.Mount, error) {
 				return newMount, err
 			}
 			newMount.Source = kv[1]
-			setSource = true
 		case "target", "dst", "destination":
 			if len(kv) == 1 {
 				return newMount, errors.Wrapf(optionArgError, kv[0])
@@ -387,13 +437,140 @@ func GetBindMount(args []string) (specs.Mount, error) {
 		}
 	}
 
+	// buildkit parity: default bind option must be `rbind`
+	// unless specified
+	if !bindNonRecursive {
+		newMount.Options = append(newMount.Options, "rbind")
+	}
+
 	if !setDest {
 		return newMount, noDestError
 	}
 
-	if !setSource {
-		newMount.Source = newMount.Destination
+	// buildkit parity: support absolute path for sources from current build context
+	if strings.HasPrefix(newMount.Source, ".") || newMount.Source == "" || !filepath.IsAbs(newMount.Source) {
+		// path should be /contextDir/specified path
+		newMount.Source = filepath.Join(contextDir, filepath.Clean(string(filepath.Separator)+newMount.Source))
 	}
+
+	opts, err := parse.ValidateVolumeOpts(newMount.Options)
+	if err != nil {
+		return newMount, err
+	}
+	newMount.Options = opts
+
+	return newMount, nil
+}
+
+// GetCacheMount parses a single cache mount entry from the --mount flag.
+func GetCacheMount(args []string) (specs.Mount, error) {
+	var err error
+	var (
+		setDest     bool
+		setShared   bool
+		setReadOnly bool
+	)
+	newMount := specs.Mount{
+		Type: TypeBind,
+	}
+	// if id is set a new subdirectory with `id` will be created under /host-temp/buildah-build-cache/id
+	id := ""
+	//buidkit parity: cache directory defaults to 755
+	mode := 0755
+	//buidkit parity: cache directory defaults to uid 0 if not specified
+	uid := 0
+	//buidkit parity: cache directory defaults to gid 0 if not specified
+	gid := 0
+
+	for _, val := range args {
+		kv := strings.SplitN(val, "=", 2)
+		switch kv[0] {
+		case "nosuid", "nodev", "noexec":
+			// TODO: detect duplication of these options.
+			// (Is this necessary?)
+			newMount.Options = append(newMount.Options, kv[0])
+		case "rw", "readwrite":
+			newMount.Options = append(newMount.Options, "rw")
+		case "readonly", "ro":
+			// Alias for "ro"
+			newMount.Options = append(newMount.Options, "ro")
+			setReadOnly = true
+		case "shared", "rshared", "private", "rprivate", "slave", "rslave", "Z", "z", "U":
+			newMount.Options = append(newMount.Options, kv[0])
+			setShared = true
+		case "bind-propagation":
+			if len(kv) == 1 {
+				return newMount, errors.Wrapf(optionArgError, kv[0])
+			}
+			newMount.Options = append(newMount.Options, kv[1])
+		case "id":
+			id = kv[1]
+		case "target", "dst", "destination":
+			if len(kv) == 1 {
+				return newMount, errors.Wrapf(optionArgError, kv[0])
+			}
+			if err := parse.ValidateVolumeCtrDir(kv[1]); err != nil {
+				return newMount, err
+			}
+			newMount.Destination = kv[1]
+			setDest = true
+		case "mode":
+			mode, err = strconv.Atoi(kv[1])
+			if err != nil {
+				return newMount, errors.Wrapf(err, "Unable to parse cache mode")
+			}
+		case "uid":
+			uid, err = strconv.Atoi(kv[1])
+			if err != nil {
+				return newMount, errors.Wrapf(err, "Unable to parse cache uid")
+			}
+		case "gid":
+			gid, err = strconv.Atoi(kv[1])
+			if err != nil {
+				return newMount, errors.Wrapf(err, "Unable to parse cache gid")
+			}
+		default:
+			return newMount, errors.Wrapf(errBadMntOption, kv[0])
+		}
+	}
+
+	if !setDest {
+		return newMount, noDestError
+	}
+
+	// since type is cache and cache can be resused by consecutive builds
+	// create a common cache directory, which should persists on hosts within temp lifecycle
+	// add subdirectory if specified
+	if id != "" {
+		newMount.Source = filepath.Join(GetTempDir(), BuildahCacheDir, id)
+	} else {
+		newMount.Source = filepath.Join(GetTempDir(), BuildahCacheDir)
+	}
+	// create cache on host if not present
+	err = os.MkdirAll(newMount.Source, os.FileMode(mode))
+	if err != nil {
+		return newMount, errors.Wrapf(err, "Unable to create build cache directory")
+	}
+	//buidkit parity: change uid and gid if specificed otheriwise keep `0`
+	err = os.Chown(newMount.Source, uid, gid)
+	if err != nil {
+		return newMount, errors.Wrapf(err, "Unable to change uid,gid of cache directory")
+	}
+
+	// buildkit parity: default sharing should be shared
+	// unless specified
+	if !setShared {
+		newMount.Options = append(newMount.Options, "shared")
+	}
+
+	// buildkit parity: cache must writable unless `ro` or `readonly` is configured explicitly
+	if !setReadOnly {
+		newMount.Options = append(newMount.Options, "rw")
+	}
+
+	// buildkit parity: default bind option for cache must be `rbind`
+	// since we are actually looking for arbitrary content under cache directory
+	newMount.Options = append(newMount.Options, "rbind")
 
 	opts, err := parse.ValidateVolumeOpts(newMount.Options)
 	if err != nil {
@@ -421,6 +598,9 @@ func GetTmpfsMount(args []string) (specs.Mount, error) {
 		case "readonly":
 			// Alias for "ro"
 			newMount.Options = append(newMount.Options, "ro")
+		case "tmpcopyup":
+			//the path that is shadowed by the tmpfs mount is recursively copied up to the tmpfs itself.
+			newMount.Options = append(newMount.Options, kv[0])
 		case "tmpfs-mode":
 			if len(kv) == 1 {
 				return newMount, errors.Wrapf(optionArgError, kv[0])
@@ -669,7 +849,7 @@ const platformSep = "/"
 
 // DefaultPlatform returns the standard platform for the current system
 func DefaultPlatform() string {
-	return runtime.GOOS + platformSep + runtime.GOARCH
+	return platforms.DefaultString()
 }
 
 // Platform separates the platform string into os, arch and variant,
@@ -829,13 +1009,6 @@ func IDMappingOptions(c *cobra.Command, isolation define.Isolation) (usernsOptio
 	}
 	usernsOptions = define.NamespaceOptions{usernsOption}
 
-	usernetwork := c.Flags().Lookup("network")
-	if usernetwork != nil && !usernetwork.Changed {
-		usernsOptions = append(usernsOptions, define.NamespaceOption{
-			Name: string(specs.NetworkNamespace),
-			Host: usernsOption.Host,
-		})
-	}
 	// If the user requested that we use the host namespace, but also that
 	// we use mappings, that's not going to work.
 	if (len(uidmap) != 0 || len(gidmap) != 0) && usernsOption.Host {
@@ -879,21 +1052,25 @@ func parseIDMap(spec []string) (m [][3]uint32, err error) {
 func NamespaceOptions(c *cobra.Command) (namespaceOptions define.NamespaceOptions, networkPolicy define.NetworkConfigurationPolicy, err error) {
 	options := make(define.NamespaceOptions, 0, 7)
 	policy := define.NetworkDefault
-	for _, what := range []string{string(specs.IPCNamespace), "network", string(specs.PIDNamespace), string(specs.UTSNamespace)} {
+	for _, what := range []string{"cgroupns", string(specs.IPCNamespace), "network", string(specs.PIDNamespace), string(specs.UTSNamespace)} {
 		if c.Flags().Lookup(what) != nil && c.Flag(what).Changed {
 			how := c.Flag(what).Value.String()
 			switch what {
 			case "network":
 				what = string(specs.NetworkNamespace)
+			case "cgroupns":
+				what = string(specs.CgroupNamespace)
 			}
 			switch how {
 			case "", "container", "private":
 				logrus.Debugf("setting %q namespace to %q", what, "")
+				policy = define.NetworkEnabled
 				options.AddOrReplace(define.NamespaceOption{
 					Name: what,
 				})
 			case "host":
 				logrus.Debugf("setting %q namespace to host", what)
+				policy = define.NetworkEnabled
 				options.AddOrReplace(define.NamespaceOption{
 					Name: what,
 					Host: true,
@@ -1034,35 +1211,60 @@ func GetTempDir() string {
 }
 
 // Secrets parses the --secret flag
-func Secrets(secrets []string) (map[string]string, error) {
-	parsed := make(map[string]string)
-	invalidSyntax := errors.Errorf("incorrect secret flag format: should be --secret id=foo,src=bar")
+func Secrets(secrets []string) (map[string]define.Secret, error) {
+	invalidSyntax := errors.Errorf("incorrect secret flag format: should be --secret id=foo,src=bar[,env=ENV,type=file|env]")
+	parsed := make(map[string]define.Secret)
 	for _, secret := range secrets {
-		split := strings.Split(secret, ",")
-		if len(split) > 2 {
-			return nil, invalidSyntax
-		}
-		if len(split) == 2 {
-			id := strings.Split(split[0], "=")
-			src := strings.Split(split[1], "=")
-			if len(split) == 2 && strings.ToLower(id[0]) == "id" && strings.ToLower(src[0]) == "src" {
-				fullPath, err := filepath.Abs(src[1])
-				if err != nil {
-					return nil, err
+		tokens := strings.Split(secret, ",")
+		var id, src, typ string
+		for _, val := range tokens {
+			kv := strings.SplitN(val, "=", 2)
+			switch kv[0] {
+			case "id":
+				id = kv[1]
+			case "src":
+				src = kv[1]
+			case "env":
+				src = kv[1]
+				typ = "env"
+			case "type":
+				if kv[1] != "file" && kv[1] != "env" {
+					return nil, errors.New("invalid secret type, must be file or env")
 				}
-				_, err = os.Stat(fullPath)
-				if err == nil {
-					parsed[id[1]] = fullPath
-				}
-				if err != nil {
-					return nil, errors.Wrap(err, "could not parse secrets")
-				}
-			} else {
-				return nil, invalidSyntax
+				typ = kv[1]
 			}
-		} else {
+		}
+		if id == "" {
 			return nil, invalidSyntax
 		}
+		if src == "" {
+			src = id
+		}
+		if typ == "" {
+			if _, ok := os.LookupEnv(id); ok {
+				typ = "env"
+			} else {
+				typ = "file"
+			}
+		}
+
+		if typ == "file" {
+			fullPath, err := filepath.Abs(src)
+			if err != nil {
+				return nil, errors.Wrap(err, "could not parse secrets")
+			}
+			_, err = os.Stat(fullPath)
+			if err != nil {
+				return nil, errors.Wrap(err, "could not parse secrets")
+			}
+			src = fullPath
+		}
+		newSecret := define.Secret{
+			Source:     src,
+			SourceType: typ,
+		}
+		parsed[id] = newSecret
+
 	}
 	return parsed, nil
 }
@@ -1084,4 +1286,21 @@ func SSH(sshSources []string) (map[string]*sshagent.Source, error) {
 		parsed[parts[0]] = source
 	}
 	return parsed, nil
+}
+
+func ContainerIgnoreFile(contextDir, path string) ([]string, string, error) {
+	if path != "" {
+		excludes, err := imagebuilder.ParseIgnore(path)
+		return excludes, path, err
+	}
+	path = filepath.Join(contextDir, ".containerignore")
+	excludes, err := imagebuilder.ParseIgnore(path)
+	if os.IsNotExist(err) {
+		path = filepath.Join(contextDir, ".dockerignore")
+		excludes, err = imagebuilder.ParseIgnore(path)
+	}
+	if os.IsNotExist(err) {
+		return excludes, "", nil
+	}
+	return excludes, path, err
 }

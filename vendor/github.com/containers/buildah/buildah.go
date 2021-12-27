@@ -257,6 +257,8 @@ type BuilderOptions struct {
 	// or "scratch" to indicate that the container should not be based on
 	// an image.
 	FromImage string
+	// ContainerSuffix is the suffix to add for generated container names
+	ContainerSuffix string
 	// Container is a desired name for the build container.
 	Container string
 	// PullPolicy decides whether or not we should pull the image that
@@ -271,6 +273,8 @@ type BuilderOptions struct {
 	// to store copies of layer blobs that we pull down, if any.  It should
 	// already exist.
 	BlobDirectory string
+	// Logger is the logrus logger to write log messages with
+	Logger *logrus.Logger `json:"-"`
 	// Mount signals to NewBuilder() that the container should be mounted
 	// immediately.
 	Mount bool

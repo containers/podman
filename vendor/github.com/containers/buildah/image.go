@@ -239,6 +239,7 @@ func (i *containerImageRef) createConfigsAndManifests() (v1.Image, v1.Manifest, 
 		Versioned: specs.Versioned{
 			SchemaVersion: 2,
 		},
+		MediaType: v1.MediaTypeImageManifest,
 		Config: v1.Descriptor{
 			MediaType: v1.MediaTypeImageConfig,
 		},
@@ -751,6 +752,10 @@ func (b *Builder) makeImageRef(options CommitOptions) (types.ImageReference, err
 	manifestType := options.PreferredManifestType
 	if manifestType == "" {
 		manifestType = define.OCIv1ImageManifest
+	}
+
+	for _, u := range options.UnsetEnvs {
+		b.UnsetEnv(u)
 	}
 	oconfig, err := json.Marshal(&b.OCIv1)
 	if err != nil {

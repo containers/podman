@@ -12,3 +12,7 @@ func selinuxGetEnabled() bool {
 
 func setupSelinux(g *generate.Generator, processLabel, mountLabel string) {
 }
+
+func runLabelStdioPipes(stdioPipe [][]int, processLabel, mountLabel string) error {
+	return nil
+}

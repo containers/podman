@@ -57,6 +57,7 @@ var builtinAllowedBuildArgs = map[string]bool{
 // interface.  It coordinates the entire build by using one or more
 // StageExecutors to handle each stage of the build.
 type Executor struct {
+	containerSuffix                string
 	logger                         *logrus.Logger
 	stages                         map[string]*StageExecutor
 	store                          storage.Store
@@ -101,6 +102,7 @@ type Executor struct {
 	rootfsMap                      map[string]bool             // Holds the names of every stage whose rootfs is referenced in a COPY or ADD instruction.
 	blobDirectory                  string
 	excludes                       []string
+	ignoreFile                     string
 	unusedArgs                     map[string]struct{}
 	capabilities                   []string
 	devices                        define.ContainerDevices
@@ -122,9 +124,10 @@ type Executor struct {
 	imageInfoCache                 map[string]imageTypeAndHistoryAndDiffIDs
 	fromOverride                   string
 	manifest                       string
-	secrets                        map[string]string
+	secrets                        map[string]define.Secret
 	sshsources                     map[string]*sshagent.Source
 	logPrefix                      string
+	unsetEnvs                      []string
 }
 
 type imageTypeAndHistoryAndDiffIDs struct {
@@ -143,7 +146,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 
 	excludes := options.Excludes
 	if len(excludes) == 0 {
-		excludes, err = imagebuilder.ParseDockerignore(options.ContextDirectory)
+		excludes, options.IgnoreFile, err = parse.ContainerIgnoreFile(options.ContextDirectory, options.IgnoreFile)
 		if err != nil {
 			return nil, err
 		}
@@ -203,11 +206,13 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 	}
 
 	exec := Executor{
+		containerSuffix:                options.ContainerSuffix,
 		logger:                         logger,
 		stages:                         make(map[string]*StageExecutor),
 		store:                          store,
 		contextDir:                     options.ContextDirectory,
 		excludes:                       excludes,
+		ignoreFile:                     options.IgnoreFile,
 		pullPolicy:                     options.PullPolicy,
 		registry:                       options.Registry,
 		ignoreUnrecognizedInstructions: options.IgnoreUnrecognizedInstructions,
@@ -268,6 +273,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		secrets:                        secrets,
 		sshsources:                     sshsources,
 		logPrefix:                      logPrefix,
+		unsetEnvs:                      options.UnsetEnvs,
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr
@@ -353,7 +359,7 @@ func (b *Executor) resolveNameToImageRef(output string) (types.ImageReference, e
 func (b *Executor) waitForStage(ctx context.Context, name string, stages imagebuilder.Stages) (bool, error) {
 	found := false
 	for _, otherStage := range stages {
-		if otherStage.Name == name || fmt.Sprintf("%d", otherStage.Position) == name {
+		if otherStage.Name == name || strconv.Itoa(otherStage.Position) == name {
 			found = true
 			break
 		}
@@ -521,9 +527,9 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 				lastErr = err
 			}
 		}
+		cleanupStages = nil
 		b.stagesLock.Unlock()
 
-		cleanupStages = nil
 		// Clean up any builders that we used to get data from images.
 		for _, builder := range b.containerMap {
 			if err := builder.Delete(); err != nil {
@@ -628,7 +634,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 		Error   error
 	}
 
-	ch := make(chan Result)
+	ch := make(chan Result, len(stages))
 
 	if b.stagesSemaphore == nil {
 		jobs := int64(b.jobs)
@@ -645,19 +651,43 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 	wg.Add(len(stages))
 
 	go func() {
+		cancel := false
 		for stageIndex := range stages {
 			index := stageIndex
 			// Acquire the semaphore before creating the goroutine so we are sure they
 			// run in the specified order.
 			if err := b.stagesSemaphore.Acquire(ctx, 1); err != nil {
+				cancel = true
 				b.lastError = err
-				return
+				ch <- Result{
+					Index: index,
+					Error: err,
+				}
+				wg.Done()
+				continue
 			}
+			b.stagesLock.Lock()
+			cleanupStages := cleanupStages
+			b.stagesLock.Unlock()
 			go func() {
 				defer b.stagesSemaphore.Release(1)
 				defer wg.Done()
+				if cancel || cleanupStages == nil {
+					var err error
+					if stages[index].Name != strconv.Itoa(index) {
+						err = errors.Errorf("not building stage %d: build canceled", index)
+					} else {
+						err = errors.Errorf("not building stage %d (%s): build canceled", index, stages[index].Name)
+					}
+					ch <- Result{
+						Index: index,
+						Error: err,
+					}
+					return
+				}
 				stageID, stageRef, stageErr := b.buildStage(ctx, cleanupStages, stages, index)
 				if stageErr != nil {
+					cancel = true
 					ch <- Result{
 						Index: index,
 						Error: stageErr,
@@ -684,7 +714,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 
 		b.stagesLock.Lock()
 		b.terminatedStage[stage.Name] = r.Error
-		b.terminatedStage[fmt.Sprintf("%d", stage.Position)] = r.Error
+		b.terminatedStage[strconv.Itoa(stage.Position)] = r.Error
 
 		if r.Error != nil {
 			b.stagesLock.Unlock()
