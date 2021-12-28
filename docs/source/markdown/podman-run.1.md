@@ -1394,6 +1394,10 @@ directory will be the lower, and the container storage directory will be the
 upper. Modifications to the mount point are destroyed when the container
 finishes executing, similar to a tmpfs mount point being unmounted.
 
+  For advanced users overlay option also supports custom non-volatile `upperdir` and `workdir`
+for the overlay mount. Custom `upperdir` and `workdir` can be fully managed by the users themselves
+and `podman` will not remove it on lifecycle completion. Example `:O,upperdir=/some/upper,workdir=/some/work`
+
   Subsequent executions of the container will see the original source directory
 content, any changes from previous container executions no longer exist.
 

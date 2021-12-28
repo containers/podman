@@ -391,18 +391,52 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 
 		overlayFlag := false
+		upperDir := ""
+		workDir := ""
 		for _, o := range namedVol.Options {
 			if o == "O" {
 				overlayFlag = true
 			}
+			if overlayFlag && strings.Contains(o, "upperdir") {
+				splitOpt := strings.SplitN(o, "=", 2)
+				if len(splitOpt) > 1 {
+					upperDir = splitOpt[1]
+					if upperDir == "" {
+						return nil, errors.New("cannot accept empty value for upperdir")
+					}
+				}
+			}
+			if overlayFlag && strings.Contains(o, "workdir") {
+				splitOpt := strings.SplitN(o, "=", 2)
+				if len(splitOpt) > 1 {
+					workDir = splitOpt[1]
+					if workDir == "" {
+						return nil, errors.New("cannot accept empty value for workdir")
+					}
+				}
+			}
 		}
 
 		if overlayFlag {
+			var overlayMount spec.Mount
+			var overlayOpts *overlay.Options
 			contentDir, err := overlay.TempDir(c.config.StaticDir, c.RootUID(), c.RootGID())
 			if err != nil {
 				return nil, err
 			}
-			overlayMount, err := overlay.Mount(contentDir, mountPoint, namedVol.Dest, c.RootUID(), c.RootGID(), c.runtime.store.GraphOptions())
+
+			if (upperDir != "" && workDir == "") || (upperDir == "" && workDir != "") {
+				return nil, errors.Wrapf(err, "must specify both upperdir and workdir")
+			}
+
+			overlayOpts = &overlay.Options{RootUID: c.RootUID(),
+				RootGID:                c.RootGID(),
+				UpperDirOptionFragment: upperDir,
+				WorkDirOptionFragment:  workDir,
+				GraphOpts:              c.runtime.store.GraphOptions(),
+			}
+
+			overlayMount, err = overlay.MountWithOptions(contentDir, mountPoint, namedVol.Dest, overlayOpts)
 			if err != nil {
 				return nil, errors.Wrapf(err, "mounting overlay failed %q", mountPoint)
 			}

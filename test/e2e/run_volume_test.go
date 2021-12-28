@@ -260,6 +260,60 @@ var _ = Describe("Podman run with volumes", func() {
 
 	})
 
+	It("podman support overlay on named volume with custom upperdir and workdir", func() {
+		SkipIfRemote("Overlay volumes only work locally")
+		if os.Getenv("container") != "" {
+			Skip("Overlay mounts not supported when running in a container")
+		}
+		if rootless.IsRootless() {
+			if _, err := exec.LookPath("fuse-overlayfs"); err != nil {
+				Skip("Fuse-Overlayfs required for rootless overlay mount test")
+			}
+		}
+
+		// create persistent upperdir on host
+		upperDir := filepath.Join(tempdir, "upper")
+		err := os.Mkdir(upperDir, 0755)
+		Expect(err).To(BeNil(), "mkdir "+upperDir)
+
+		// create persistent workdir on host
+		workDir := filepath.Join(tempdir, "work")
+		err = os.Mkdir(workDir, 0755)
+		Expect(err).To(BeNil(), "mkdir "+workDir)
+
+		overlayOpts := fmt.Sprintf("upperdir=%s,workdir=%s", upperDir, workDir)
+
+		session := podmanTest.Podman([]string{"volume", "create", "myvolume"})
+		session.WaitWithDefaultTimeout()
+		volName := session.OutputToString()
+		Expect(session).Should(Exit(0))
+
+		// create file on actual volume
+		session = podmanTest.Podman([]string{"run", "--volume", volName + ":/data", ALPINE, "sh", "-c", "echo hello >> " + "/data/test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// create file on overlay volume
+		session = podmanTest.Podman([]string{"run", "--volume", volName + ":/data:O," + overlayOpts, ALPINE, "sh", "-c", "echo hello >> " + "/data/overlay"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "--volume", volName + ":/data:O," + overlayOpts, ALPINE, "sh", "-c", "ls /data"})
+		session.WaitWithDefaultTimeout()
+		// must contain `overlay` file since it should be persistent on specified upper and workdir
+		Expect(session.OutputToString()).To(ContainSubstring("overlay"))
+		// this should be there since `test` was written on actual volume not on any overlay
+		Expect(session.OutputToString()).To(ContainSubstring("test"))
+
+		session = podmanTest.Podman([]string{"run", "--volume", volName + ":/data:O", ALPINE, "sh", "-c", "ls /data"})
+		session.WaitWithDefaultTimeout()
+		// must not contain `overlay` file which was on custom upper and workdir since we have not specified any upper or workdir
+		Expect(session.OutputToString()).To(Not(ContainSubstring("overlay")))
+		// this should be there since `test` was written on actual volume not on any overlay
+		Expect(session.OutputToString()).To(ContainSubstring("test"))
+
+	})
+
 	It("podman run with noexec can't exec", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "-v", "/bin:/hostbin:noexec", ALPINE, "/hostbin/ls", "/"})
 		session.WaitWithDefaultTimeout()

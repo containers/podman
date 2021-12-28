@@ -25,16 +25,30 @@ type defaultMountOptions struct {
 // The sourcePath variable, if not empty, contains a bind mount source.
 func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string, error) {
 	var (
-		foundWrite, foundSize, foundProp, foundMode, foundExec, foundSuid, foundDev, foundCopyUp, foundBind, foundZ, foundU bool
+		foundWrite, foundSize, foundProp, foundMode, foundExec, foundSuid, foundDev, foundCopyUp, foundBind, foundZ, foundU, foundOverlay bool
 	)
 
 	newOptions := make([]string, 0, len(options))
 	for _, opt := range options {
 		// Some options have parameters - size, mode
 		splitOpt := strings.SplitN(opt, "=", 2)
+
+		// add advanced options such as upperdir=/path and workdir=/path, when overlay is specified
+		if foundOverlay {
+			if strings.Contains(opt, "upperdir") {
+				newOptions = append(newOptions, opt)
+				continue
+			}
+			if strings.Contains(opt, "workdir") {
+				newOptions = append(newOptions, opt)
+				continue
+			}
+		}
+
 		switch splitOpt[0] {
-		case "idmap":
 		case "O":
+			foundOverlay = true
+		case "idmap":
 			if len(options) > 1 {
 				return nil, errors.Wrapf(ErrDupeMntOption, "'O' option can not be used with other options")
 			}
