@@ -360,7 +360,7 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 		ID:         l.ID(),
 		Names:      []string{fmt.Sprintf("/%s", l.Name())},
 		Image:      imageName,
-		ImageID:    imageID,
+		ImageID:    "sha256:" + imageID,
 		Command:    strings.Join(l.Command(), " "),
 		Created:    l.CreatedTime().Unix(),
 		Ports:      ports,

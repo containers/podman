@@ -46,6 +46,10 @@ t GET /containers/json?all=true 200 \
   .[0].Image=$IMAGE \
   $network_expect
 
+# compat API imageid with sha256: prefix
+t GET containers/json?limit=1 200 \
+  .[0].ImageID~sha256:[0-9a-f]\\{64\\}
+
 # Make sure `limit` works.
 t GET libpod/containers/json?limit=1 200 \
   length=1 \
