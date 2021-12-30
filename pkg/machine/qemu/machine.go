@@ -678,6 +678,12 @@ func (v *MachineVM) SSHocker(name string, source, target string, readonly bool) 
 		Persist:    true,
 	}
 
+	if strings.HasPrefix(source, "~") {
+		source = strings.Replace(source, "~", homedir.Get(), 1)
+	}
+	if strings.HasPrefix(target, "/mnt") {
+		target = "/var" + target // special case for Fedora CoreOS
+	}
 	m := mount.Mount{
 		Type:        mount.MountTypeReverseSSHFS,
 		Source:      source,
