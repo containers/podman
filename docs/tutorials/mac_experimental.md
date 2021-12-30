@@ -90,7 +90,7 @@ that you were given.  It will be used in two of the steps below.
 
 ## Test podman
 
-1. podman machine init --image-path /path/to/image
+1. podman machine init --image-path /path/to/image --cpus 2
 2. podman machine start
 3. podman images
 4. git clone http://github.com/baude/alpine_nginx && cd alpine_nginx
