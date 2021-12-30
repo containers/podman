@@ -22,6 +22,9 @@ import (
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/digitalocean/go-qemu/qmp"
 	"github.com/docker/go-units"
+	"github.com/lima-vm/sshocker/pkg/mount"
+	"github.com/lima-vm/sshocker/pkg/ssh"
+	"github.com/lima-vm/sshocker/pkg/sshocker"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -660,11 +663,6 @@ func (v *MachineVM) sshConfig() string {
 
 // SSHocker does a reverse sshfs mount over a SSH connection.
 func (v *MachineVM) SSHocker(name string, source, target string, readonly bool) error {
-	volumeDefinition := source + ":" + target
-	if readonly {
-		volumeDefinition += ":ro"
-	}
-
 	vmConfigDir, err := machine.GetConfDir(vmtype)
 	if err != nil {
 		return err
@@ -675,16 +673,28 @@ func (v *MachineVM) SSHocker(name string, source, target string, readonly bool) 
 	if err != nil {
 		return err
 	}
+	sshConfig := &ssh.SSHConfig{
+		ConfigFile: sshConfigFile,
+		Persist:    true,
+	}
 
-	sshDestination := fmt.Sprintf("%s:%d", v.Name, v.Port)
+	m := mount.Mount{
+		Type:        mount.MountTypeReverseSSHFS,
+		Source:      source,
+		Destination: target,
+		Readonly:    readonly,
+	}
 
-	args := []string{"run", "-F", sshConfigFile, "-v", volumeDefinition,
-		sshDestination, "sleep", "36500d"} // "Sleeping Beauty" 100y
-
-	cmd := exec.Command("sshocker", args...)
-	logrus.Debugf("Executing: sshocker %v\n", args)
-
-	return cmd.Start()
+	x := &sshocker.Sshocker{
+		SSHConfig:           sshConfig,
+		Mounts:              []mount.Mount{m},
+		Host:                v.Name,
+		Port:                v.Port,
+		Command:             []string{"sleep", "36500d"}, // 100y
+		SSHFSAdditionalArgs: []string{},
+	}
+	logrus.Debugf("Executing: sshocker %v\n", x)
+	return x.Run()
 }
 
 // executes qemu-image info to get the virtual disk size

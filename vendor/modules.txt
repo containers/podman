@@ -453,6 +453,15 @@ github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/klauspost/pgzip v1.2.5
 github.com/klauspost/pgzip
+# github.com/kr/fs v0.1.0
+github.com/kr/fs
+# github.com/lima-vm/sshocker v0.2.2
+## explicit
+github.com/lima-vm/sshocker/pkg/mount
+github.com/lima-vm/sshocker/pkg/reversesshfs
+github.com/lima-vm/sshocker/pkg/ssh
+github.com/lima-vm/sshocker/pkg/sshocker
+github.com/lima-vm/sshocker/pkg/util
 # github.com/manifoldco/promptui v0.9.0
 github.com/manifoldco/promptui
 github.com/manifoldco/promptui/list
@@ -588,6 +597,9 @@ github.com/ostreedev/ostree-go/pkg/otbuiltin
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
+# github.com/pkg/sftp v1.13.3
+github.com/pkg/sftp
+github.com/pkg/sftp/internal/encoding/ssh/filexfer
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib
