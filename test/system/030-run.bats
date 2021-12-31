@@ -778,6 +778,18 @@ EOF
     is "$output" "1.2.3.4 foo.com.*" "users can add hosts even without /etc/hosts"
 }
 
+# rhbz#1763007 : the --log-opt for podman run does not work as expected
+@test "podman run with log-opt option" {
+    # Pseudorandom size of the form N.NNN. The '| 1' handles '0.NNN' or 'N.NN0',
+    # which podman displays as 'NNN kB' or 'N.NN MB' respectively.
+    size=$(printf "%d.%03d" $(($RANDOM % 10 | 1)) $(($RANDOM % 100 | 1)))
+    run_podman run -d --rm --log-opt max-size=${size}m $IMAGE sleep 5
+    cid=$output
+    run_podman inspect --format "{{ .HostConfig.LogConfig.Size }}" $cid
+    is "$output" "${size}MB"
+    run_podman rm -t 0 -f $cid
+}
+
 @test "podman run --kernel-memory warning" {
     # Not sure what situations this fails in, but want to make sure warning shows.
     run_podman '?' run --rm --kernel-memory 100 $IMAGE false
