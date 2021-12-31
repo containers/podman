@@ -778,6 +778,13 @@ EOF
     is "$output" "1.2.3.4 foo.com.*" "users can add hosts even without /etc/hosts"
 }
 
+# rhbz#1854566 : $IMAGE has incorrect permission 555 on the root '/' filesystem
+@test "podman run image with filesystem permission" {
+    # make sure the IMAGE image have permissiong of 555 like filesystem RPM expects
+    run_podman run --rm $IMAGE stat -c %a /
+    is "$output" "555" "directory permissions on /"
+}
+
 # rhbz#1763007 : the --log-opt for podman run does not work as expected
 @test "podman run with log-opt option" {
     # Pseudorandom size of the form N.NNN. The '| 1' handles '0.NNN' or 'N.NN0',
