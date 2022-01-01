@@ -178,16 +178,9 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		return nil, err
 	}
 
-	// check for name collision between pod and container
+	// Assert the pod has a name
 	if podName == "" {
 		return nil, errors.Errorf("pod does not have a name")
-	}
-	for _, n := range podYAML.Spec.Containers {
-		if n.Name == podName {
-			playKubePod.Logs = append(playKubePod.Logs,
-				fmt.Sprintf("a container exists with the same name (%q) as the pod in your YAML file; changing pod name to %s_pod\n", podName, podName))
-			podName = fmt.Sprintf("%s_pod", podName)
-		}
 	}
 
 	podOpt := entities.PodCreateOptions{Infra: true, Net: &entities.NetOptions{NoHosts: options.NoHosts}}
