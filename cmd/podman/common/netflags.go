@@ -53,6 +53,13 @@ func DefineNetFlags(cmd *cobra.Command) {
 	)
 	_ = cmd.RegisterFlagCompletionFunc(ipFlagName, completion.AutocompleteNone)
 
+	ip6FlagName := "ip6"
+	netFlags.String(
+		ip6FlagName, "",
+		"Specify a static IPv6 address for the container",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(ip6FlagName, completion.AutocompleteNone)
+
 	macAddressFlagName := "mac-address"
 	netFlags.String(
 		macAddressFlagName, "",
@@ -185,7 +192,7 @@ func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet) (*enti
 		opts.Networks = networks
 	}
 
-	if flags.Changed("ip") || flags.Changed("mac-address") || flags.Changed("network-alias") {
+	if flags.Changed("ip") || flags.Changed("ip6") || flags.Changed("mac-address") || flags.Changed("network-alias") {
 		// if there is no network we add the default
 		if len(opts.Networks) == 0 {
 			opts.Networks = map[string]types.PerNetworkOptions{
@@ -193,29 +200,31 @@ func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet) (*enti
 			}
 		}
 
-		ip, err := flags.GetString("ip")
-		if err != nil {
-			return nil, err
-		}
-		if ip != "" {
-			// if pod create --infra=false
-			if infra, err := flags.GetBool("infra"); err == nil && !infra {
-				return nil, errors.Wrap(define.ErrInvalidArg, "cannot set --ip without infra container")
+		for _, ipFlagName := range []string{"ip", "ip6"} {
+			ip, err := flags.GetString(ipFlagName)
+			if err != nil {
+				return nil, err
 			}
+			if ip != "" {
+				// if pod create --infra=false
+				if infra, err := flags.GetBool("infra"); err == nil && !infra {
+					return nil, errors.Wrapf(define.ErrInvalidArg, "cannot set --%s without infra container", ipFlagName)
+				}
 
-			staticIP := net.ParseIP(ip)
-			if staticIP == nil {
-				return nil, errors.Errorf("%s is not an ip address", ip)
-			}
-			if !opts.Network.IsBridge() && !opts.Network.IsDefault() {
-				return nil, errors.Wrap(define.ErrInvalidArg, "--ip can only be set when the network mode is bridge")
-			}
-			if len(opts.Networks) != 1 {
-				return nil, errors.Wrap(define.ErrInvalidArg, "--ip can only be set for a single network")
-			}
-			for name, netOpts := range opts.Networks {
-				netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
-				opts.Networks[name] = netOpts
+				staticIP := net.ParseIP(ip)
+				if staticIP == nil {
+					return nil, errors.Errorf("%q is not an ip address", ip)
+				}
+				if !opts.Network.IsBridge() && !opts.Network.IsDefault() {
+					return nil, errors.Wrapf(define.ErrInvalidArg, "--%s can only be set when the network mode is bridge", ipFlagName)
+				}
+				if len(opts.Networks) != 1 {
+					return nil, errors.Wrapf(define.ErrInvalidArg, "--%s can only be set for a single network", ipFlagName)
+				}
+				for name, netOpts := range opts.Networks {
+					netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
+					opts.Networks[name] = netOpts
+				}
 			}
 		}
 
