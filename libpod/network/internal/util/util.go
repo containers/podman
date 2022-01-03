@@ -78,7 +78,7 @@ func GetUsedSubnets(n NetUtil) ([]*net.IPNet, error) {
 	return append(subnets, liveSubnets...), nil
 }
 
-// GetFreeIPv6NetworkSubnet returns a unused ipv4 subnet
+// GetFreeIPv4NetworkSubnet returns a unused ipv4 subnet
 func GetFreeIPv4NetworkSubnet(usedNetworks []*net.IPNet) (*types.Subnet, error) {
 	// the default podman network is 10.88.0.0/16
 	// start locking for free /24 networks
