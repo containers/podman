@@ -1,4 +1,4 @@
-// Package api Provides an API for the  Libpod library
+// Package api Provides an API for the Libpod library
 //
 // This documentation describes the Podman v2.0 RESTful API.
 // It replaces the Podman v1.0 API and was initially delivered
@@ -45,7 +45,7 @@
 //     Schemes: http, https
 //     Host: podman.io
 //     BasePath: /
-//     Version: 3.2.0
+//     Version: 4.0.0
 //     License: Apache-2.0 https://opensource.org/licenses/Apache-2.0
 //     Contact: Podman <podman@lists.podman.io> https://podman.io/community/
 //
