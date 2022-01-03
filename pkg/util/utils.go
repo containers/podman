@@ -665,8 +665,8 @@ func CreateCidFile(cidfile string, id string) error {
 	return nil
 }
 
-// DefaultCPUPeriod is the default CPU period is 100us, which is the same default
-// as Kubernetes.
+// DefaultCPUPeriod is the default CPU period (100ms) in microseconds, which is
+// the same default as Kubernetes.
 const DefaultCPUPeriod uint64 = 100000
 
 // CoresToPeriodAndQuota converts a fraction of cores to the equivalent
