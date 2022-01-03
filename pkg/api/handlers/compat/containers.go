@@ -356,6 +356,15 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 		return nil, err
 	}
 
+	m, err := json.Marshal(inspect.Mounts)
+	if err != nil {
+		return nil, err
+	}
+	mounts := []types.MountPoint{}
+	if err := json.Unmarshal(m, &mounts); err != nil {
+		return nil, err
+	}
+
 	return &handlers.Container{Container: types.Container{
 		ID:         l.ID(),
 		Names:      []string{fmt.Sprintf("/%s", l.Name())},
@@ -374,7 +383,7 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 		}{
 			"host"},
 		NetworkSettings: &networkSettings,
-		Mounts:          nil,
+		Mounts:          mounts,
 	},
 		ContainerCreateConfig: types.ContainerCreateConfig{},
 	}, nil
