@@ -104,7 +104,7 @@ cni-podman5
 
 Create a Macvlan based network using the host interface eth0. Macvlan networks can only be used as root.
 ```
-# podman network create -d macvlan -o parent=eth0 newnet
+$ podman network create -d macvlan -o parent=eth0 newnet
 newnet
 ```
 
