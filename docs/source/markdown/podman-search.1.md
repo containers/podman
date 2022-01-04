@@ -62,7 +62,7 @@ Valid placeholders for the Go template are listed below:
 | --------------- | ---------------------------- |
 | .Index          | Registry                     |
 | .Name           | Image name                   |
-| .Descriptions   | Image description            |
+| .Description    | Image description            |
 | .Stars          | Star count of image          |
 | .Official       | "[OK]" if image is official  |
 | .Automated      | "[OK]" if image is automated |
