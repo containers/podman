@@ -41,6 +41,7 @@ type PodmanTest struct {
 	RemotePodmanBinary string
 	RemoteSession      *os.Process
 	RemoteSocket       string
+	RemoteSocketLock   string // If not "", should be removed _after_ RemoteSocket is removed
 	RemoteCommand      *exec.Cmd
 	ImageCacheDir      string
 	ImageCacheFS       string
@@ -467,10 +468,6 @@ func Containerized() bool {
 		return false
 	}
 	return strings.Contains(string(b), "docker")
-}
-
-func init() {
-	rand.Seed(GinkgoRandomSeed())
 }
 
 var randomLetters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
