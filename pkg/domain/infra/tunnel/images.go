@@ -123,7 +123,7 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, opts entities.
 	return &entities.ImagePullReport{Images: pulledImages}, nil
 }
 
-func (ir *ImageEngine) Transfer(ctx context.Context, scpOpts entities.ImageScpOptions) error {
+func (ir *ImageEngine) Transfer(ctx context.Context, source entities.ImageScpOptions, dest entities.ImageScpOptions, parentFlags []string) error {
 	return errors.Wrapf(define.ErrNotImplemented, "cannot use the remote client to transfer images between root and rootless storage")
 }
 

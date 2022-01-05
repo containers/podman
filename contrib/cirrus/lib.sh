@@ -165,6 +165,7 @@ setup_rootless() {
     groupadd -g $rootless_gid $ROOTLESS_USER
     useradd -g $rootless_gid -u $rootless_uid --no-user-group --create-home $ROOTLESS_USER
     chown -R $ROOTLESS_USER:$ROOTLESS_USER "$GOPATH" "$GOSRC"
+    echo "$ROOTLESS_USER ALL=(root) NOPASSWD: ALL" > /etc/sudoers.d/ci-rootless
 
     mkdir -p "$HOME/.ssh" "/home/$ROOTLESS_USER/.ssh"
 
