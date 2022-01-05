@@ -383,47 +383,95 @@ machine_enabled=true
 		return files
 	}
 
-	certFiles := getCerts(filepath.Join(userHome, ".config/containers/certs.d"))
+	certFiles := getCerts(filepath.Join(userHome, ".config/containers/certs.d"), true)
 	files = append(files, certFiles...)
 
-	certFiles = getCerts(filepath.Join(userHome, ".config/docker/certs.d"))
+	certFiles = getCerts(filepath.Join(userHome, ".config/docker/certs.d"), true)
 	files = append(files, certFiles...)
+
+	if sslCertFile, ok := os.LookupEnv("SSL_CERT_FILE"); ok {
+		if _, err := os.Stat(sslCertFile); err == nil {
+			certFiles = getCerts(sslCertFile, false)
+			files = append(files, certFiles...)
+
+			if len(certFiles) > 0 {
+				setSSLCertFile := fmt.Sprintf("export %s=%s", "SSL_CERT_FILE", filepath.Join("/etc/containers/certs.d", filepath.Base(sslCertFile)))
+				files = append(files, File{
+					Node: Node{
+						Group: getNodeGrp("root"),
+						Path:  "/etc/profile.d/ssl_cert_file.sh",
+						User:  getNodeUsr("root"),
+					},
+					FileEmbedded1: FileEmbedded1{
+						Append: nil,
+						Contents: Resource{
+							Source: encodeDataURLPtr(setSSLCertFile),
+						},
+						Mode: intToPtr(0644),
+					},
+				})
+			}
+		}
+	}
 
 	return files
 }
 
-func getCerts(certsDir string) []File {
+func getCerts(certsDir string, isDir bool) []File {
 	var (
 		files []File
 	)
 
 	certs, err := ioutil.ReadDir(certsDir)
-	if err == nil {
-		for _, cert := range certs {
-			b, err := ioutil.ReadFile(filepath.Join(certsDir, cert.Name()))
-			if err != nil {
-				logrus.Warnf("Unable to read cert file %s", err.Error())
-				continue
-			}
-			files = append(files, File{
-				Node: Node{
-					Group: getNodeGrp("root"),
-					Path:  filepath.Join("/etc/containers/certs.d/", cert.Name()),
-					User:  getNodeUsr("root"),
-				},
-				FileEmbedded1: FileEmbedded1{
-					Append: nil,
-					Contents: Resource{
-						Source: encodeDataURLPtr(string(b)),
+	if isDir {
+		if err == nil {
+			for _, cert := range certs {
+				b, err := ioutil.ReadFile(filepath.Join(certsDir, cert.Name()))
+				if err != nil {
+					logrus.Warnf("Unable to read cert file %s", err.Error())
+					continue
+				}
+				files = append(files, File{
+					Node: Node{
+						Group: getNodeGrp("root"),
+						Path:  filepath.Join("/etc/containers/certs.d/", cert.Name()),
+						User:  getNodeUsr("root"),
 					},
-					Mode: intToPtr(0644),
-				},
-			})
+					FileEmbedded1: FileEmbedded1{
+						Append: nil,
+						Contents: Resource{
+							Source: encodeDataURLPtr(string(b)),
+						},
+						Mode: intToPtr(0644),
+					},
+				})
+			}
+		} else {
+			if !os.IsNotExist(err) {
+				logrus.Warnf("Unable to copy certs via ignition, error while reading certs from %s:  %s", certsDir, err.Error())
+			}
 		}
 	} else {
-		if !os.IsNotExist(err) {
-			logrus.Warnf("Unable to copy certs via ignition, error while reading certs from %s:  %s", certsDir, err.Error())
+		fileName := filepath.Base(certsDir)
+		b, err := ioutil.ReadFile(certsDir)
+		if err != nil {
+			logrus.Warnf("Unable to read cert file %s", err.Error())
+			return files
 		}
+		files = append(files, File{
+			Node: Node{
+				Group: getNodeGrp("root"),
+				Path:  filepath.Join("/etc/containers/certs.d/", fileName),
+				User:  getNodeUsr("root"),
+			},
+			FileEmbedded1: FileEmbedded1{
+				Append: nil,
+				Contents: Resource{
+					Source: encodeDataURLPtr(string(b)),
+				},
+				Mode: intToPtr(0644),
+			},
+		})
 	}
 
 	return files
