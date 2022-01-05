@@ -71,7 +71,6 @@ func networkList(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-
 	// sort the networks to make sure the order is deterministic
 	sort.Slice(responses, func(i, j int) bool {
 		return responses[i].Name < responses[j].Name
