@@ -106,6 +106,10 @@ var _ = Describe("Podman create with --ip flag", func() {
 		result = podmanTest.Podman([]string{"start", "test2"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).To(ExitWithError())
-		Expect(result.ErrorToString()).To(ContainSubstring("requested IP address " + ip + " is not available"))
+		if podmanTest.NetworkBackend == CNI {
+			Expect(result.ErrorToString()).To(ContainSubstring("requested IP address " + ip + " is not available"))
+		} else if podmanTest.NetworkBackend == Netavark {
+			Expect(result.ErrorToString()).To(ContainSubstring("requested ip address %s is already allocated", ip))
+		}
 	})
 })

@@ -32,18 +32,6 @@ var _ = Describe("Podman search", func() {
 		podmanTest *PodmanTestIntegration
 	)
 
-	var registryEndpoints = []endpoint{
-		{"localhost", "5001"},
-		{"localhost", "5002"},
-		{"localhost", "5003"},
-		{"localhost", "5004"},
-		{"localhost", "5005"},
-		{"localhost", "5006"},
-		{"localhost", "5007"},
-		{"localhost", "5008"},
-		{"localhost", "5009"},
-	}
-
 	const regFileContents = `
 [registries.search]
 registries = ['{{.Host}}:{{.Port}}']
@@ -217,21 +205,19 @@ registries = ['{{.Host}}:{{.Port}}']`
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
-		lock := GetPortLock(registryEndpoints[0].Port)
-		defer lock.Unlock()
-
+		port := GetPort()
 		fakereg := podmanTest.Podman([]string{"run", "-d", "--name", "registry",
-			"-p", fmt.Sprintf("%s:5000", registryEndpoints[0].Port),
+			"-p", fmt.Sprintf("%d:5000", port),
 			registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		fakereg.WaitWithDefaultTimeout()
 		Expect(fakereg).Should(Exit(0))
 
 		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
-			Skip("Cannot start docker registry.")
+			Fail("Cannot start docker registry on port %s", port)
 		}
-
+		ep := endpoint{Port: fmt.Sprintf("%d", port), Host: "localhost"}
 		search := podmanTest.Podman([]string{"search",
-			fmt.Sprintf("%s/fake/image:andtag", registryEndpoints[0].Address()), "--tls-verify=false"})
+			fmt.Sprintf("%s/fake/image:andtag", ep.Address()), "--tls-verify=false"})
 		search.WaitWithDefaultTimeout()
 
 		// if this test succeeded, there will be no output (there is no entry named fake/image:andtag in an empty registry)
@@ -245,20 +231,19 @@ registries = ['{{.Host}}:{{.Port}}']`
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
-		lock := GetPortLock(registryEndpoints[3].Port)
-		defer lock.Unlock()
+		port := GetPort()
 		registry := podmanTest.Podman([]string{"run", "-d", "--name", "registry3",
-			"-p", fmt.Sprintf("%s:5000", registryEndpoints[3].Port), registry,
+			"-p", fmt.Sprintf("%d:5000", port), registry,
 			"/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		registry.WaitWithDefaultTimeout()
 		Expect(registry).Should(Exit(0))
 
 		if !WaitContainerReady(podmanTest, "registry3", "listening on", 20, 1) {
-			Skip("Cannot start docker registry.")
+			Fail("Cannot start docker registry on port %s", port)
 		}
-
+		ep := endpoint{Port: fmt.Sprintf("%d", port), Host: "localhost"}
 		podmanTest.RestoreArtifact(ALPINE)
-		image := fmt.Sprintf("%s/my-alpine", registryEndpoints[3].Address())
+		image := fmt.Sprintf("%s/my-alpine", ep.Address())
 		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(Exit(0))
@@ -269,7 +254,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		Expect(search.OutputToString()).ShouldNot(BeEmpty())
 
 		// podman search v2 registry with empty query
-		searchEmpty := podmanTest.Podman([]string{"search", fmt.Sprintf("%s/", registryEndpoints[3].Address()), "--tls-verify=false"})
+		searchEmpty := podmanTest.Podman([]string{"search", fmt.Sprintf("%s/", ep.Address()), "--tls-verify=false"})
 		searchEmpty.WaitWithDefaultTimeout()
 		Expect(searchEmpty).Should(Exit(0))
 		Expect(len(searchEmpty.OutputToStringArray())).To(BeNumerically(">=", 1))
@@ -281,26 +266,26 @@ registries = ['{{.Host}}:{{.Port}}']`
 			Skip("No registry image for ppc64le")
 		}
 
-		lock := GetPortLock(registryEndpoints[4].Port)
-		defer lock.Unlock()
-		registry := podmanTest.Podman([]string{"run", "-d", "-p", fmt.Sprintf("%s:5000", registryEndpoints[4].Port),
+		port := GetPort()
+		ep := endpoint{Port: fmt.Sprintf("%d", port), Host: "localhost"}
+		registry := podmanTest.Podman([]string{"run", "-d", "-p", fmt.Sprintf("%d:5000", port),
 			"--name", "registry4", registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		registry.WaitWithDefaultTimeout()
 		Expect(registry).Should(Exit(0))
 
 		if !WaitContainerReady(podmanTest, "registry4", "listening on", 20, 1) {
-			Skip("Cannot start docker registry.")
+			Fail("unable to start registry on port %s", port)
 		}
 
 		podmanTest.RestoreArtifact(ALPINE)
-		image := fmt.Sprintf("%s/my-alpine", registryEndpoints[4].Address())
+		image := fmt.Sprintf("%s/my-alpine", ep.Address())
 		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(Exit(0))
 
 		// registries.conf set up
 		var buffer bytes.Buffer
-		registryFileTmpl.Execute(&buffer, registryEndpoints[4])
+		registryFileTmpl.Execute(&buffer, ep)
 		podmanTest.setRegistriesConfigEnv(buffer.Bytes())
 		ioutil.WriteFile(fmt.Sprintf("%s/registry4.conf", tempdir), buffer.Bytes(), 0644)
 		if IsRemote() {
@@ -323,25 +308,25 @@ registries = ['{{.Host}}:{{.Port}}']`
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
-		lock := GetPortLock(registryEndpoints[5].Port)
-		defer lock.Unlock()
-		registry := podmanTest.Podman([]string{"run", "-d", "-p", fmt.Sprintf("%s:5000", registryEndpoints[5].Port),
+		port := GetPort()
+		ep := endpoint{Port: fmt.Sprintf("%d", port), Host: "localhost"}
+		registry := podmanTest.Podman([]string{"run", "-d", "-p", fmt.Sprintf("%d:5000", port),
 			"--name", "registry5", registry})
 		registry.WaitWithDefaultTimeout()
 		Expect(registry).Should(Exit(0))
 
 		if !WaitContainerReady(podmanTest, "registry5", "listening on", 20, 1) {
-			Skip("Cannot start docker registry.")
+			Fail("Cannot start docker registry on port %s", port)
 		}
 
 		podmanTest.RestoreArtifact(ALPINE)
-		image := fmt.Sprintf("%s/my-alpine", registryEndpoints[5].Address())
+		image := fmt.Sprintf("%s/my-alpine", ep.Address())
 		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(Exit(0))
 
 		var buffer bytes.Buffer
-		registryFileTmpl.Execute(&buffer, registryEndpoints[5])
+		registryFileTmpl.Execute(&buffer, ep)
 		podmanTest.setRegistriesConfigEnv(buffer.Bytes())
 		ioutil.WriteFile(fmt.Sprintf("%s/registry5.conf", tempdir), buffer.Bytes(), 0644)
 
@@ -360,25 +345,25 @@ registries = ['{{.Host}}:{{.Port}}']`
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
-		lock := GetPortLock(registryEndpoints[6].Port)
-		defer lock.Unlock()
-		registry := podmanTest.Podman([]string{"run", "-d", "-p", fmt.Sprintf("%s:5000", registryEndpoints[6].Port),
+		port := GetPort()
+		ep := endpoint{Port: fmt.Sprintf("%d", port), Host: "localhost"}
+		registry := podmanTest.Podman([]string{"run", "-d", "-p", fmt.Sprintf("%d:5000", port),
 			"--name", "registry6", registry})
 		registry.WaitWithDefaultTimeout()
 		Expect(registry).Should(Exit(0))
 
 		if !WaitContainerReady(podmanTest, "registry6", "listening on", 20, 1) {
-			Skip("Cannot start docker registry.")
+			Fail("Cannot start docker registry on port %s", port)
 		}
 
 		podmanTest.RestoreArtifact(ALPINE)
-		image := fmt.Sprintf("%s/my-alpine", registryEndpoints[6].Address())
+		image := fmt.Sprintf("%s/my-alpine", ep.Address())
 		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(Exit(0))
 
 		var buffer bytes.Buffer
-		registryFileBadTmpl.Execute(&buffer, registryEndpoints[6])
+		registryFileBadTmpl.Execute(&buffer, ep)
 		podmanTest.setRegistriesConfigEnv(buffer.Bytes())
 		ioutil.WriteFile(fmt.Sprintf("%s/registry6.conf", tempdir), buffer.Bytes(), 0644)
 
@@ -402,36 +387,36 @@ registries = ['{{.Host}}:{{.Port}}']`
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
-		lock7 := GetPortLock(registryEndpoints[7].Port)
-		defer lock7.Unlock()
-		lock8 := GetPortLock("6000")
-		defer lock8.Unlock()
+		port1 := GetPort()
+		port2 := GetPort()
+		port3 := GetPort()
+		ep3 := endpoint{Port: fmt.Sprintf("%d", port3), Host: "localhost"}
 
-		registryLocal := podmanTest.Podman([]string{"run", "-d", "--net=host", "-p", fmt.Sprintf("%s:5000", registryEndpoints[7].Port),
+		registryLocal := podmanTest.Podman([]string{"run", "-d", "-p", fmt.Sprintf("%d", port1),
 			"--name", "registry7", registry})
 		registryLocal.WaitWithDefaultTimeout()
 		Expect(registryLocal).Should(Exit(0))
 
 		if !WaitContainerReady(podmanTest, "registry7", "listening on", 20, 1) {
-			Skip("Cannot start docker registry.")
+			Fail("Cannot start docker registry on port %s", port1)
 		}
 
-		registryLocal = podmanTest.Podman([]string{"run", "-d", "-p", "6000:5000", "--name", "registry8", registry})
+		registryLocal = podmanTest.Podman([]string{"run", "-d", "-p", fmt.Sprintf("%d:5000", port2), "--name", "registry8", registry})
 		registryLocal.WaitWithDefaultTimeout()
 		Expect(registryLocal).Should(Exit(0))
 
 		if !WaitContainerReady(podmanTest, "registry8", "listening on", 20, 1) {
-			Skip("Cannot start docker registry.")
+			Fail("Cannot start docker registry on port %s", port2)
 		}
 
 		podmanTest.RestoreArtifact(ALPINE)
-		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:6000/my-alpine"})
+		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, fmt.Sprintf("localhost:%d/my-alpine", port2)})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(Exit(0))
 
 		// registries.conf set up
 		var buffer bytes.Buffer
-		registryFileTwoTmpl.Execute(&buffer, registryEndpoints[8])
+		registryFileTwoTmpl.Execute(&buffer, ep3)
 		podmanTest.setRegistriesConfigEnv(buffer.Bytes())
 		ioutil.WriteFile(fmt.Sprintf("%s/registry8.conf", tempdir), buffer.Bytes(), 0644)
 

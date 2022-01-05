@@ -71,7 +71,7 @@ var _ = Describe("Podman run with --ip flag", func() {
 		ipv6 := "fd46:db93:aa76:ac37::10"
 		net := podmanTest.Podman([]string{"network", "create", "--subnet", "fd46:db93:aa76:ac37::/64", netName})
 		net.WaitWithDefaultTimeout()
-		defer podmanTest.removeCNINetwork(netName)
+		defer podmanTest.removeNetwork(netName)
 		Expect(net).To(Exit(0))
 
 		result := podmanTest.Podman([]string{"run", "-ti", "--network", netName, "--ip6", ipv6, ALPINE, "ip", "addr"})

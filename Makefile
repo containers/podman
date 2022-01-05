@@ -535,7 +535,7 @@ run-docker-py-tests:
 .PHONY: localunit
 localunit: test/goecho/goecho test/version/version
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
-	$(GOBIN)/ginkgo \
+	UNIT=1 $(GOBIN)/ginkgo \
 		-r \
 		$(TESTFLAGS) \
 		--skipPackage test/e2e,pkg/apparmor,pkg/bindings,hack \
