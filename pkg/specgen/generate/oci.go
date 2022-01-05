@@ -2,6 +2,7 @@ package generate
 
 import (
 	"context"
+	"encoding/json"
 	"path"
 	"strings"
 
@@ -174,7 +175,7 @@ func getCGroupPermissons(unmask []string) string {
 }
 
 // SpecGenToOCI returns the base configuration for the container.
-func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, rtc *config.Config, newImage *libimage.Image, mounts []spec.Mount, pod *libpod.Pod, finalCmd []string) (*spec.Spec, error) {
+func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, rtc *config.Config, newImage *libimage.Image, mounts []spec.Mount, pod *libpod.Pod, finalCmd []string, compatibleOptions *libpod.InfraInherit) (*spec.Spec, error) {
 	cgroupPerm := getCGroupPermissons(s.Unmask)
 
 	g, err := generate.New("linux")
@@ -299,9 +300,32 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		g.AddAnnotation(key, val)
 	}
 
-	g.Config.Linux.Resources = s.ResourceLimits
+	if compatibleOptions.InfraResources == nil && s.ResourceLimits != nil {
+		g.Config.Linux.Resources = s.ResourceLimits
+	} else if s.ResourceLimits != nil { // if we have predefined resource limits we need to make sure we keep the infra and container limits
+		originalResources, err := json.Marshal(s.ResourceLimits)
+		if err != nil {
+			return nil, err
+		}
+		infraResources, err := json.Marshal(compatibleOptions.InfraResources)
+		if err != nil {
+			return nil, err
+		}
+		err = json.Unmarshal(infraResources, s.ResourceLimits) // put infra's resource limits in the container
+		if err != nil {
+			return nil, err
+		}
+		err = json.Unmarshal(originalResources, s.ResourceLimits) // make sure we did not override anything
+		if err != nil {
+			return nil, err
+		}
+		g.Config.Linux.Resources = s.ResourceLimits
+	} else {
+		g.Config.Linux.Resources = compatibleOptions.InfraResources
+	}
 	// Devices
 
+	var userDevices []spec.LinuxDevice
 	if s.Privileged {
 		// If privileged, we need to add all the host devices to the
 		// spec.  We do not add the user provided ones because we are
@@ -316,14 +340,19 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 				return nil, err
 			}
 		}
+		if len(compatibleOptions.InfraDevices) > 0 && len(s.Devices) == 0 {
+			userDevices = compatibleOptions.InfraDevices
+		} else {
+			userDevices = s.Devices
+		}
 		// add default devices specified by caller
-		for _, device := range s.Devices {
+		for _, device := range userDevices {
 			if err = DevicesFromPath(&g, device.Path); err != nil {
 				return nil, err
 			}
 		}
 	}
-	s.HostDeviceList = s.Devices
+	s.HostDeviceList = userDevices
 
 	// set the devices cgroup when not running in a user namespace
 	if !inUserNS && !s.Privileged {

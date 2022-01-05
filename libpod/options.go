@@ -1816,6 +1816,25 @@ func WithSelectedPasswordManagement(passwd *bool) CtrCreateOption {
 	}
 }
 
+// WithInfraConfig allows for inheritance of compatible config entities from the infra container
+func WithInfraConfig(compatibleOptions InfraInherit) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		compatMarshal, err := json.Marshal(compatibleOptions)
+		if err != nil {
+			return errors.New("Could not marshal compatible options")
+		}
+
+		err = json.Unmarshal(compatMarshal, ctr.config)
+		if err != nil {
+			return errors.New("Could not unmarshal compatible options into contrainer config")
+		}
+		return nil
+	}
+}
+
 // Pod Creation Options
 
 // WithPodCreateCommand adds the full command plus arguments of the current
