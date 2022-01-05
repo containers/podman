@@ -8,7 +8,7 @@ load helpers
 function teardown() {
     lofile=${PODMAN_TMPDIR}/disk.img
     if [ -f ${lofile} ]; then
-        run_podman '?' rm -t 0 --all --force
+        run_podman '?' rm -t 0 --all --force --ignore
 
         while read path dev; do
             if [[ "$path" == "$lofile" ]]; then
