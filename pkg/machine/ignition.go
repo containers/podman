@@ -340,6 +340,24 @@ machine_enabled=true
 		},
 	})
 
+	setProxyOpts := getProxyVariables()
+	if setProxyOpts != "" {
+		files = append(files, File{
+			Node: Node{
+				Group: getNodeGrp("root"),
+				Path:  "/etc/profile.d/proxy-opts.sh",
+				User:  getNodeUsr("root"),
+			},
+			FileEmbedded1: FileEmbedded1{
+				Append: nil,
+				Contents: Resource{
+					Source: encodeDataURLPtr(setProxyOpts),
+				},
+				Mode: intToPtr(0644),
+			},
+		})
+	}
+
 	setDockerHost := `export DOCKER_HOST="unix://$(podman info -f "{{.Host.RemoteSocket.Path}}")"
 `
 
@@ -409,6 +427,17 @@ func getCerts(certsDir string) []File {
 	}
 
 	return files
+}
+
+func getProxyVariables() string {
+	proxyOpts := ""
+	proxyVariables := []string{"HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "no_proxy"}
+	for _, variable := range proxyVariables {
+		if value, ok := os.LookupEnv(variable); ok {
+			proxyOpts += fmt.Sprintf("\n export %s=%s", variable, value)
+		}
+	}
+	return proxyOpts
 }
 
 func getLinks(usrName string) []Link {
