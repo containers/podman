@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/sirupsen/logrus"
 )
 
@@ -479,8 +480,7 @@ func getCerts(certsDir string, isDir bool) []File {
 
 func getProxyVariables() string {
 	proxyOpts := ""
-	proxyVariables := []string{"HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "no_proxy"}
-	for _, variable := range proxyVariables {
+	for _, variable := range config.ProxyEnv {
 		if value, ok := os.LookupEnv(variable); ok {
 			proxyOpts += fmt.Sprintf("\n export %s=%s", variable, value)
 		}
