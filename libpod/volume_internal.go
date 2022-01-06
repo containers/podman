@@ -81,7 +81,7 @@ func (v *Volume) save() error {
 func (v *Volume) refresh() error {
 	lock, err := v.runtime.lockManager.AllocateAndRetrieveLock(v.config.LockID)
 	if err != nil {
-		return errors.Wrapf(err, "error acquiring lock %d for volume %s", v.config.LockID, v.Name())
+		return errors.Wrapf(err, "acquiring lock %d for volume %s", v.config.LockID, v.Name())
 	}
 	v.lock = lock
 

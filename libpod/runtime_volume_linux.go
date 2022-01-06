@@ -35,7 +35,7 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 	volume := newVolume(r)
 	for _, option := range options {
 		if err := option(volume); err != nil {
-			return nil, errors.Wrapf(err, "error running volume create option")
+			return nil, errors.Wrapf(err, "running volume create option")
 		}
 	}
 
@@ -50,7 +50,7 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 	// Check if volume with given name exists.
 	exists, err := r.state.HasVolume(volume.config.Name)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error checking if volume with name %s exists", volume.config.Name)
+		return nil, errors.Wrapf(err, "checking if volume with name %s exists", volume.config.Name)
 	}
 	if exists {
 		return nil, errors.Wrapf(define.ErrVolumeExists, "volume with name %s already exists", volume.config.Name)
@@ -67,9 +67,15 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 	if volume.config.Driver == define.VolumeDriverLocal {
 		logrus.Debugf("Validating options for local driver")
 		// Validate options
-		for key := range volume.config.Options {
-			switch key {
-			case "device", "o", "type", "UID", "GID", "SIZE", "INODES":
+		for key, val := range volume.config.Options {
+			switch strings.ToLower(key) {
+			case "device":
+				if strings.ToLower(volume.config.Options["type"]) == "bind" {
+					if _, err := os.Stat(val); err != nil {
+						return nil, errors.Wrapf(err, "invalid volume option %s for driver 'local'", key)
+					}
+				}
+			case "o", "type", "uid", "gid", "size", "inodes":
 				// Do nothing, valid keys
 			default:
 				return nil, errors.Wrapf(define.ErrInvalidArg, "invalid mount option %s for driver 'local'", key)
@@ -92,17 +98,17 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 		// Create the mountpoint of this volume
 		volPathRoot := filepath.Join(r.config.Engine.VolumePath, volume.config.Name)
 		if err := os.MkdirAll(volPathRoot, 0700); err != nil {
-			return nil, errors.Wrapf(err, "error creating volume directory %q", volPathRoot)
+			return nil, errors.Wrapf(err, "creating volume directory %q", volPathRoot)
 		}
 		if err := os.Chown(volPathRoot, volume.config.UID, volume.config.GID); err != nil {
-			return nil, errors.Wrapf(err, "error chowning volume directory %q to %d:%d", volPathRoot, volume.config.UID, volume.config.GID)
+			return nil, errors.Wrapf(err, "chowning volume directory %q to %d:%d", volPathRoot, volume.config.UID, volume.config.GID)
 		}
 		fullVolPath := filepath.Join(volPathRoot, "_data")
 		if err := os.MkdirAll(fullVolPath, 0755); err != nil {
-			return nil, errors.Wrapf(err, "error creating volume directory %q", fullVolPath)
+			return nil, errors.Wrapf(err, "creating volume directory %q", fullVolPath)
 		}
 		if err := os.Chown(fullVolPath, volume.config.UID, volume.config.GID); err != nil {
-			return nil, errors.Wrapf(err, "error chowning volume directory %q to %d:%d", fullVolPath, volume.config.UID, volume.config.GID)
+			return nil, errors.Wrapf(err, "chowning volume directory %q to %d:%d", fullVolPath, volume.config.UID, volume.config.GID)
 		}
 		if err := LabelVolumePath(fullVolPath); err != nil {
 			return nil, err
@@ -132,7 +138,7 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 
 	lock, err := r.lockManager.AllocateLock()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error allocating lock for new volume")
+		return nil, errors.Wrapf(err, "allocating lock for new volume")
 	}
 	volume.lock = lock
 	volume.config.LockID = volume.lock.ID()
@@ -149,7 +155,7 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 
 	// Add the volume to state
 	if err := r.state.AddVolume(volume); err != nil {
-		return nil, errors.Wrapf(err, "error adding volume to state")
+		return nil, errors.Wrapf(err, "adding volume to state")
 	}
 	defer volume.newVolumeEvent(events.Create)
 	return volume, nil
@@ -181,7 +187,7 @@ func makeVolumeInPluginIfNotExist(name string, options map[string]string, plugin
 		createReq.Name = name
 		createReq.Options = options
 		if err := plugin.CreateVolume(createReq); err != nil {
-			return errors.Wrapf(err, "error creating volume %q in plugin %s", name, plugin.Name)
+			return errors.Wrapf(err, "creating volume %q in plugin %s", name, plugin.Name)
 		}
 	}
 
@@ -225,13 +231,13 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool, timeo
 					continue
 				}
 
-				return errors.Wrapf(err, "error removing container %s that depends on volume %s", dep, v.Name())
+				return errors.Wrapf(err, "removing container %s that depends on volume %s", dep, v.Name())
 			}
 
 			logrus.Debugf("Removing container %s (depends on volume %q)", ctr.ID(), v.Name())
 
 			if err := r.removeContainer(ctx, ctr, force, false, false, timeout); err != nil {
-				return errors.Wrapf(err, "error removing container %s that depends on volume %s", ctr.ID(), v.Name())
+				return errors.Wrapf(err, "removing container %s that depends on volume %s", ctr.ID(), v.Name())
 			}
 		}
 	}
@@ -244,7 +250,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool, timeo
 			// them.
 			logrus.Errorf("Unmounting volume %s: %v", v.Name(), err)
 		} else {
-			return errors.Wrapf(err, "error unmounting volume %s", v.Name())
+			return errors.Wrapf(err, "unmounting volume %s", v.Name())
 		}
 	}
 
@@ -288,13 +294,13 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool, timeo
 		if removalErr != nil {
 			logrus.Errorf("Removing volume %s from plugin %s: %v", v.Name(), v.Driver(), removalErr)
 		}
-		return errors.Wrapf(err, "error removing volume %s", v.Name())
+		return errors.Wrapf(err, "removing volume %s", v.Name())
 	}
 
 	// Free the volume's lock
 	if err := v.lock.Free(); err != nil {
 		if removalErr == nil {
-			removalErr = errors.Wrapf(err, "error freeing lock for volume %s", v.Name())
+			removalErr = errors.Wrapf(err, "freeing lock for volume %s", v.Name())
 		} else {
 			logrus.Errorf("Freeing lock for volume %q: %v", v.Name(), err)
 		}
@@ -304,7 +310,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool, timeo
 	// from /var/lib/containers/storage/volumes
 	if err := v.teardownStorage(); err != nil {
 		if removalErr == nil {
-			removalErr = errors.Wrapf(err, "error cleaning up volume storage for %q", v.Name())
+			removalErr = errors.Wrapf(err, "cleaning up volume storage for %q", v.Name())
 		} else {
 			logrus.Errorf("Cleaning up volume storage for volume %q: %v", v.Name(), err)
 		}
