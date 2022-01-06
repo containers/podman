@@ -36,6 +36,11 @@ func GetQemuProvider() machine.Provider {
 	return qemuProvider
 }
 
+const (
+	VolumeTypeVirtfs = "virtfs"
+	MountType9p      = "9p"
+)
+
 // NewMachine initializes an instance of a virtual machine based on the qemu
 // virtualization.
 func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
@@ -166,6 +171,53 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	}
 	// Add arch specific options including image location
 	v.CmdLine = append(v.CmdLine, v.addArchOptions()...)
+
+	var volumeType string
+	switch opts.VolumeDriver {
+	case "virtfs":
+		volumeType = VolumeTypeVirtfs
+	case "": // default driver
+		volumeType = VolumeTypeVirtfs
+	default:
+		err := fmt.Errorf("unknown volume driver: %s", opts.VolumeDriver)
+		return false, err
+	}
+
+	mounts := []Mount{}
+	for i, volume := range opts.Volumes {
+		tag := fmt.Sprintf("vol%d", i)
+		paths := strings.SplitN(volume, ":", 3)
+		source := paths[0]
+		target := source
+		readonly := false
+		if len(paths) > 1 {
+			target = paths[1]
+		}
+		if len(paths) > 2 {
+			options := paths[2]
+			volopts := strings.Split(options, ",")
+			for _, o := range volopts {
+				switch o {
+				case "rw":
+					readonly = false
+				case "ro":
+					readonly = true
+				default:
+					fmt.Printf("Unknown option: %s\n", o)
+				}
+			}
+		}
+		switch volumeType {
+		case VolumeTypeVirtfs:
+			virtfsOptions := fmt.Sprintf("local,path=%s,mount_tag=%s,security_model=mapped-xattr", source, tag)
+			if readonly {
+				virtfsOptions += ",readonly"
+			}
+			v.CmdLine = append(v.CmdLine, []string{"-virtfs", virtfsOptions}...)
+			mounts = append(mounts, Mount{Type: MountType9p, Tag: tag, Source: source, Target: target, ReadOnly: readonly})
+		}
+	}
+	v.Mounts = mounts
 
 	// Add location of bootable image
 	v.CmdLine = append(v.CmdLine, "-drive", "if=virtio,file="+v.ImagePath)
@@ -329,7 +381,39 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		return err
 	}
 	_, err = bufio.NewReader(conn).ReadString('\n')
-	return err
+	if err != nil {
+		return err
+	}
+
+	if len(v.Mounts) > 0 {
+		for !v.isRunning() || !v.isListening() {
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+	for _, mount := range v.Mounts {
+		fmt.Printf("Mounting volume... %s:%s\n", mount.Source, mount.Target)
+		// create mountpoint directory if it doesn't exist
+		err = v.SSH(name, machine.SSHOptions{Args: []string{"-q", "--", "sudo", "mkdir", "-p", mount.Target}})
+		if err != nil {
+			return err
+		}
+		switch mount.Type {
+		case MountType9p:
+			mountOptions := []string{"-t", "9p"}
+			mountOptions = append(mountOptions, []string{"-o", "trans=virtio", mount.Tag, mount.Target}...)
+			mountOptions = append(mountOptions, []string{"-o", "version=9p2000.L,msize=131072"}...)
+			if mount.ReadOnly {
+				mountOptions = append(mountOptions, []string{"-o", "ro"}...)
+			}
+			err = v.SSH(name, machine.SSHOptions{Args: append([]string{"-q", "--", "sudo", "mount"}, mountOptions...)})
+			if err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unknown mount type: %s", mount.Type)
+		}
+	}
+	return nil
 }
 
 // Stop uses the qmp monitor to call a system_powerdown
@@ -503,6 +587,16 @@ func (v *MachineVM) isRunning() bool {
 	if _, err := qmp.NewSocketMonitor(v.QMPMonitor.Network, v.QMPMonitor.Address, v.QMPMonitor.Timeout); err != nil {
 		return false
 	}
+	return true
+}
+
+func (v *MachineVM) isListening() bool {
+	// Check if we can dial it
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", "localhost", v.Port), 10*time.Millisecond)
+	if err != nil {
+		return false
+	}
+	conn.Close()
 	return true
 }
 
