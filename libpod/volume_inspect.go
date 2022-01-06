@@ -60,6 +60,9 @@ func (v *Volume) Inspect() (*define.InspectVolumeData, error) {
 	data.UID = v.uid()
 	data.GID = v.gid()
 	data.Anonymous = v.config.IsAnon
+	data.MountCount = v.state.MountCount
+	data.NeedsCopyUp = v.state.NeedsCopyUp
+	data.NeedsChown = v.state.NeedsChown
 
 	return data, nil
 }

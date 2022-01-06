@@ -345,4 +345,44 @@ EOF
     is "$output" "tmpfs" "volume should be tmpfs"
 }
 
+# Named volumes copyup
+@test "podman volume create copyup" {
+    myvolume=myvol$(random_string)
+    mylabel=$(random_string)
+
+    # Create a named volume
+    run_podman volume create $myvolume
+    is "$output" "$myvolume" "output from volume create"
+
+    # Confirm that it shows up in 'volume ls', and confirm values
+    run_podman volume ls --format json
+    tests="
+Name           | $myvolume
+Driver         | local
+NeedsCopyUp    | true
+NeedsChown    | true
+"
+    parse_table "$tests" | while read field expect; do
+        actual=$(jq -r ".[0].$field" <<<"$output")
+        is "$actual" "$expect" "volume ls .$field"
+    done
+
+    run_podman run --rm --volume $myvolume:/vol $IMAGE true
+    run_podman volume inspect --format '{{ .NeedsCopyUp }}' $myvolume
+    is "${output}" "true" "If content in dest '/vol' empty NeedsCopyUP should still be true"
+    run_podman volume inspect --format '{{ .NeedsChown }}' $myvolume
+    is "${output}" "false" "After first use within a container NeedsChown should still be false"
+
+    run_podman run --rm --volume $myvolume:/etc $IMAGE ls /etc/passwd
+    run_podman volume inspect --format '{{ .NeedsCopyUp }}' $myvolume
+    is "${output}" "false" "If content in dest '/etc' non-empty NeedsCopyUP should still have happend and be false"
+
+    run_podman volume inspect --format '{{.Mountpoint}}' $myvolume
+    mountpoint="$output"
+    test -e "$mountpoint/passwd"
+
+    # Clean up
+    run_podman volume rm $myvolume
+}
+
 # vim: filetype=sh
