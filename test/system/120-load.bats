@@ -79,31 +79,26 @@ verify_iid_and_name() {
 }
 
 @test "podman image scp transfer" {
-    skip_if_root_ubuntu "cannot create a new user successfully on ubuntu"
+    skip_if_remote "only applicable under local podman"
+
+    skip "FIXME FIXME FIXME: this needs a big rewrite"
+
     get_iid_and_name
-    if ! is_remote; then
-        if is_rootless; then
-            whoami=$(id -un)
-            run_podman image scp $whoami@localhost::$iid root@localhost::
-            if [ "$status" -ne 0 ]; then
-                die "Command failed: podman image scp transfer"
-            fi
-            whoami=$(id -un)
-            run_podman image scp -q $whoami@localhost::$iid root@localhost::
-            if [ "$status" -ne 0 ]; then
-                die "Command failed: podman image scp quiet transfer failed"
-            fi
-        fi
-        if ! is_rootless; then
-             id -u 1000 &>/dev/null || useradd -u 1000 -g 1000 testingUsr
-             if [ "$status" -ne 0 ]; then
-                die "Command failed: useradd 1000"
-             fi
-             run_podman image scp root@localhost::$iid 1000:1000@localhost::
-             if [ "$status" -ne 0 ]; then
-                 die "Command failed: podman image scp transfer"
-             fi
-        fi
+    if is_rootless; then
+        whoami=$(id -un)
+        # FIXME: first, test that we can sudo. If we can't, skip.
+        # FIXME: test 'scp $IMAGE root@localhost::'
+        # FIXME: then test the rest
+        # FIXME: check output
+        run_podman image scp $whoami@localhost::$iid root@localhost::
+        is "$output" "Loaded image.*: $iid" "...."
+
+        # FIXME: "-q" is a NOP
+        run_podman image scp -q $whoami@localhost::$iid root@localhost::
+    else
+        # root
+        # FIXME: identify a rootless user. DO NOT CREATE ONE.
+        run_podman image scp root@localhost::$iid 1000:1000@localhost::
     fi
 }
 
