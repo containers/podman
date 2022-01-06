@@ -101,7 +101,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	// parameters:
 	//  - in: body
 	//    name: create
-	//    description: attributes for creating a container
+	//    description: attributes for creating a network
 	//    schema:
 	//      $ref: "#/definitions/NetworkCreateRequest"
 	// responses:
@@ -312,7 +312,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	// parameters:
 	//  - in: body
 	//    name: create
-	//    description: attributes for creating a container
+	//    description: attributes for creating a network
 	//    schema:
 	//      $ref: "#/definitions/NetworkCreateLibpod"
 	// responses:

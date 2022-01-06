@@ -17,7 +17,7 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	// parameters:
 	//  - in: body
 	//    name: create
-	//    description: attributes for creating a container
+	//    description: attributes for creating a volume
 	//    schema:
 	//      $ref: "#/definitions/VolumeCreate"
 	// produces:
@@ -188,7 +188,7 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//  - in: body
 	//    name: create
 	//    description: |
-	//      attributes for creating a container.
+	//      attributes for creating a volume.
 	//      Note: If a volume by the same name exists, a 201 response with that volume's information will be generated.
 	//    schema:
 	//      $ref: "#/definitions/DockerVolumeCreate"
