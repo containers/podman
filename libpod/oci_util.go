@@ -136,7 +136,7 @@ func bindPort(protocol, hostIP string, port uint16, isV6 bool, sctpWarning *bool
 	return file, nil
 }
 
-func getOCIRuntimeError(runtimeMsg string) error {
+func getOCIRuntimeError(name, runtimeMsg string) error {
 	includeFullOutput := logrus.GetLevel() == logrus.DebugLevel
 
 	if match := regexp.MustCompile("(?i).*permission denied.*|.*operation not permitted.*").FindString(runtimeMsg); match != "" {
@@ -144,14 +144,14 @@ func getOCIRuntimeError(runtimeMsg string) error {
 		if includeFullOutput {
 			errStr = runtimeMsg
 		}
-		return errors.Wrapf(define.ErrOCIRuntimePermissionDenied, "%s", strings.Trim(errStr, "\n"))
+		return errors.Wrapf(define.ErrOCIRuntimePermissionDenied, "%s: %s", name, strings.Trim(errStr, "\n"))
 	}
 	if match := regexp.MustCompile("(?i).*executable file not found in.*|.*no such file or directory.*").FindString(runtimeMsg); match != "" {
 		errStr := match
 		if includeFullOutput {
 			errStr = runtimeMsg
 		}
-		return errors.Wrapf(define.ErrOCIRuntimeNotFound, "%s", strings.Trim(errStr, "\n"))
+		return errors.Wrapf(define.ErrOCIRuntimeNotFound, "%s: %s", name, strings.Trim(errStr, "\n"))
 	}
 	if match := regexp.MustCompile("`/proc/[a-z0-9-].+/attr.*`").FindString(runtimeMsg); match != "" {
 		errStr := match
@@ -159,11 +159,11 @@ func getOCIRuntimeError(runtimeMsg string) error {
 			errStr = runtimeMsg
 		}
 		if strings.HasSuffix(match, "/exec`") {
-			return errors.Wrapf(define.ErrSetSecurityAttribute, "%s", strings.Trim(errStr, "\n"))
+			return errors.Wrapf(define.ErrSetSecurityAttribute, "%s: %s", name, strings.Trim(errStr, "\n"))
 		} else if strings.HasSuffix(match, "/current`") {
-			return errors.Wrapf(define.ErrGetSecurityAttribute, "%s", strings.Trim(errStr, "\n"))
+			return errors.Wrapf(define.ErrGetSecurityAttribute, "%s: %s", name, strings.Trim(errStr, "\n"))
 		}
-		return errors.Wrapf(define.ErrSecurityAttribute, "%s", strings.Trim(errStr, "\n"))
+		return errors.Wrapf(define.ErrSecurityAttribute, "%s: %s", name, strings.Trim(errStr, "\n"))
 	}
-	return errors.Wrapf(define.ErrOCIRuntime, "%s", strings.Trim(runtimeMsg, "\n"))
+	return errors.Wrapf(define.ErrOCIRuntime, "%s: %s", name, strings.Trim(runtimeMsg, "\n"))
 }

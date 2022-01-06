@@ -143,7 +143,7 @@ func (c *Container) attachToExec(streams *define.AttachStreams, keys *string, se
 	}
 
 	// 2: read from attachFd that the parent process has set up the console socket
-	if _, err := readConmonPipeData(attachFd, ""); err != nil {
+	if _, err := readConmonPipeData(c.ociRuntime.Name(), attachFd, ""); err != nil {
 		return err
 	}
 
