@@ -4,6 +4,7 @@ import (
 	"io"
 	"time"
 
+	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/containers/storage/pkg/archive"
@@ -70,7 +71,9 @@ type CommonBuildOptions struct {
 	Ulimit []string
 	// Volumes to bind mount into the container
 	Volumes []string
-	// Secrets are the available secrets to use in a build
+	// Secrets are the available secrets to use in a build.  Each item in the
+	// slice takes the form "id=foo,src=bar", where both "id" and "src" are
+	// required, in that order, and "bar" is the name of a file.
 	Secrets []string
 	// SSHSources is the available ssh agent connections to forward in the build
 	SSHSources []string
@@ -78,6 +81,8 @@ type CommonBuildOptions struct {
 
 // BuildOptions can be used to alter how an image is built.
 type BuildOptions struct {
+	// ContainerSuffix it the name to suffix containers with
+	ContainerSuffix string
 	// ContextDirectory is the default source location for COPY and ADD
 	// commands.
 	ContextDirectory string
@@ -157,6 +162,10 @@ type BuildOptions struct {
 	// CNIConfigDir is the location of CNI configuration files, if the files in
 	// the default configuration directory shouldn't be used.
 	CNIConfigDir string
+
+	// NetworkInterface is the libnetwork network interface used to setup CNI or netavark networks.
+	NetworkInterface nettypes.ContainerNetwork `json:"-"`
+
 	// ID mapping options to use if we're setting up our own user namespace
 	// when handling RUN instructions.
 	IDMappingOptions *IDMappingOptions
@@ -227,6 +236,8 @@ type BuildOptions struct {
 	RusageLogFile string
 	// Excludes is a list of excludes to be used instead of the .dockerignore file.
 	Excludes []string
+	// IgnoreFile is a name of the .containerignore file
+	IgnoreFile string
 	// From is the image name to use to replace the value specified in the first
 	// FROM instruction in the Containerfile
 	From string
@@ -234,4 +245,10 @@ type BuildOptions struct {
 	// to build the image for.  If this slice has items in it, the OS and
 	// Architecture fields above are ignored.
 	Platforms []struct{ OS, Arch, Variant string }
+	// AllPlatforms tells the builder to set the list of target platforms
+	// to match the set of platforms for which all of the build's base
+	// images are available.  If this field is set, Platforms is ignored.
+	AllPlatforms bool
+	// UnsetEnvs is a list of environments to not add to final image.
+	UnsetEnvs []string
 }

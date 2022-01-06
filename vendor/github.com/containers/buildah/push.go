@@ -10,6 +10,7 @@ import (
 	"github.com/containers/common/libimage"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
@@ -25,6 +26,7 @@ type PushOptions struct {
 	// Compression specifies the type of compression which is applied to
 	// layer blobs.  The default is to not use compression, but
 	// archive.Gzip is recommended.
+	// OBSOLETE: Use CompressionFormat instead.
 	Compression archive.Compression
 	// SignaturePolicyPath specifies an override location for the signature
 	// policy which should be used for verifying the new image as it is
@@ -71,6 +73,11 @@ type PushOptions struct {
 	// integers in the slice represent 0-indexed layer indices, with support for negative
 	// indexing. i.e. 0 is the first layer, -1 is the last (top-most) layer.
 	OciEncryptLayers *[]int
+
+	// CompressionFormat is the format to use for the compression of the blobs
+	CompressionFormat *compression.Algorithm
+	// CompressionLevel specifies what compression level is used
+	CompressionLevel *int
 }
 
 // Push copies the contents of the image to a new location.
@@ -84,6 +91,8 @@ func Push(ctx context.Context, image string, dest types.ImageReference, options 
 	libimageOptions.RetryDelay = &options.RetryDelay
 	libimageOptions.OciEncryptConfig = options.OciEncryptConfig
 	libimageOptions.OciEncryptLayers = options.OciEncryptLayers
+	libimageOptions.CompressionFormat = options.CompressionFormat
+	libimageOptions.CompressionLevel = options.CompressionLevel
 	libimageOptions.PolicyAllowStorage = true
 
 	if options.Quiet {

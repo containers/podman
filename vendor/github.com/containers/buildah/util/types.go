@@ -7,10 +7,6 @@ import (
 const (
 	// DefaultRuntime if containers.conf fails.
 	DefaultRuntime = define.DefaultRuntime
-	// DefaultCNIPluginPath is the default location of CNI plugin helpers.
-	DefaultCNIPluginPath = define.DefaultCNIPluginPath
-	// DefaultCNIConfigDir is the default location of CNI configuration files.
-	DefaultCNIConfigDir = define.DefaultCNIConfigDir
 )
 
 var (
