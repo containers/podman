@@ -237,12 +237,12 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 }
 
 func printJSON(data []interface{}) error {
-	buf, err := json.MarshalIndent(data, "", "    ")
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Println(string(buf))
-	return err
+	enc := json.NewEncoder(os.Stdout)
+	// by default, json marshallers will force utf=8 from
+	// a string. this breaks healthchecks that use <,>, &&.
+	enc.SetEscapeHTML(false)
+	enc.SetIndent("", "     ")
+	return enc.Encode(data)
 }
 
 func printTmpl(typ, row string, data []interface{}) error {

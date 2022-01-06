@@ -11,6 +11,7 @@ import (
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/cmd/podman/registry"
+	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/podman/v3/pkg/api/handlers"
 	"github.com/containers/podman/v3/pkg/domain/entities"
@@ -304,10 +305,10 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *c
 		VolumesFrom:       cc.HostConfig.VolumesFrom,
 		Workdir:           cc.Config.WorkingDir,
 		Net:               &netInfo,
-		HealthInterval:    DefaultHealthCheckInterval,
-		HealthRetries:     DefaultHealthCheckRetries,
-		HealthTimeout:     DefaultHealthCheckTimeout,
-		HealthStartPeriod: DefaultHealthCheckStartPeriod,
+		HealthInterval:    define.DefaultHealthCheckInterval,
+		HealthRetries:     define.DefaultHealthCheckRetries,
+		HealthTimeout:     define.DefaultHealthCheckTimeout,
+		HealthStartPeriod: define.DefaultHealthCheckStartPeriod,
 	}
 	if !rootless.IsRootless() {
 		var ulimits []string
