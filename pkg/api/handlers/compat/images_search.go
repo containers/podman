@@ -34,9 +34,9 @@ func SearchImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, authfile, key, err := auth.GetCredentials(r)
+	_, authfile, err := auth.GetCredentials(r)
 	if err != nil {
-		utils.Error(w, "failed to retrieve repository credentials", http.StatusBadRequest, errors.Wrapf(err, "failed to parse %q header for %s", key, r.URL.String()))
+		utils.Error(w, "failed to retrieve repository credentials", http.StatusBadRequest, err)
 		return
 	}
 	defer auth.RemoveAuthfile(authfile)

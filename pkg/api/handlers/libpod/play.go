@@ -86,9 +86,9 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error closing temporary file"))
 		return
 	}
-	authConf, authfile, key, err := auth.GetCredentials(r)
+	authConf, authfile, err := auth.GetCredentials(r)
 	if err != nil {
-		utils.Error(w, "failed to retrieve repository credentials", http.StatusBadRequest, errors.Wrapf(err, "failed to parse %q header for %s", key, r.URL.String()))
+		utils.Error(w, "failed to retrieve repository credentials", http.StatusBadRequest, err)
 		return
 	}
 	defer auth.RemoveAuthfile(authfile)

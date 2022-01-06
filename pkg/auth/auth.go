@@ -3,7 +3,6 @@ package auth
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -16,52 +15,70 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type HeaderAuthName string
-
-func (h HeaderAuthName) String() string { return string(h) }
-
-// XRegistryAuthHeader is the key to the encoded registry authentication configuration in an http-request header.
-// This header supports one registry per header occurrence. To support N registries provided N headers, one per registry.
+// xRegistryAuthHeader is the key to the encoded registry authentication configuration in an http-request header.
+// This header supports one registry per header occurrence. To support N registries provide N headers, one per registry.
 // As of Docker API 1.40 and Libpod API 1.0.0, this header is supported by all endpoints.
-const XRegistryAuthHeader HeaderAuthName = "X-Registry-Auth"
+const xRegistryAuthHeader = "X-Registry-Auth"
 
-// XRegistryConfigHeader is the key to the encoded registry authentication configuration in an http-request header.
+// xRegistryConfigHeader is the key to the encoded registry authentication configuration in an http-request header.
 // This header supports N registries in one header via a Base64 encoded, JSON map.
 // As of Docker API 1.40 and Libpod API 2.0.0, this header is supported by build endpoints.
-const XRegistryConfigHeader HeaderAuthName = "X-Registry-Config"
+const xRegistryConfigHeader = "X-Registry-Config"
 
 // GetCredentials queries the http.Request for X-Registry-.* headers and extracts
-// the necessary authentication information for libpod operations
-func GetCredentials(r *http.Request) (*types.DockerAuthConfig, string, HeaderAuthName, error) {
-	has := func(key HeaderAuthName) bool { hdr, found := r.Header[string(key)]; return found && len(hdr) > 0 }
-	switch {
-	case has(XRegistryConfigHeader):
-		c, f, err := getConfigCredentials(r)
-		return c, f, XRegistryConfigHeader, err
-	case has(XRegistryAuthHeader):
-		c, f, err := getAuthCredentials(r)
-		return c, f, XRegistryAuthHeader, err
+// the necessary authentication information for libpod operations, possibly
+// creating a config file. If that is the case, the caller must call RemoveAuthFile.
+func GetCredentials(r *http.Request) (*types.DockerAuthConfig, string, error) {
+	nonemptyHeaderValue := func(key string) ([]string, bool) {
+		hdr := r.Header.Values(key)
+		return hdr, len(hdr) > 0
 	}
-	return nil, "", "", nil
+	var override *types.DockerAuthConfig
+	var fileContents map[string]types.DockerAuthConfig
+	var headerName string
+	var err error
+	if hdr, ok := nonemptyHeaderValue(xRegistryConfigHeader); ok {
+		headerName = xRegistryConfigHeader
+		override, fileContents, err = getConfigCredentials(r, hdr)
+	} else if hdr, ok := nonemptyHeaderValue(xRegistryAuthHeader); ok {
+		headerName = xRegistryAuthHeader
+		override, fileContents, err = getAuthCredentials(hdr)
+	} else {
+		return nil, "", nil
+	}
+	if err != nil {
+		return nil, "", errors.Wrapf(err, "failed to parse %q header for %s", headerName, r.URL.String())
+	}
+
+	var authFile string
+	if fileContents == nil {
+		authFile = ""
+	} else {
+		authFile, err = authConfigsToAuthFile(fileContents)
+		if err != nil {
+			return nil, "", errors.Wrapf(err, "failed to parse %q header for %s", headerName, r.URL.String())
+		}
+	}
+	return override, authFile, nil
 }
 
-// getConfigCredentials extracts one or more docker.AuthConfig from the request's
-// header.  An empty key will be used as default while a named registry will be
+// getConfigCredentials extracts one or more docker.AuthConfig from a request and its
+// xRegistryConfigHeader value.  An empty key will be used as default while a named registry will be
 // returned as types.DockerAuthConfig
-func getConfigCredentials(r *http.Request) (*types.DockerAuthConfig, string, error) {
+func getConfigCredentials(r *http.Request, headers []string) (*types.DockerAuthConfig, map[string]types.DockerAuthConfig, error) {
 	var auth *types.DockerAuthConfig
 	configs := make(map[string]types.DockerAuthConfig)
 
-	for _, h := range r.Header[string(XRegistryConfigHeader)] {
+	for _, h := range headers {
 		param, err := base64.URLEncoding.DecodeString(h)
 		if err != nil {
-			return nil, "", errors.Wrapf(err, "failed to decode %q", XRegistryConfigHeader)
+			return nil, nil, errors.Wrapf(err, "failed to decode %q", xRegistryConfigHeader)
 		}
 
 		ac := make(map[string]dockerAPITypes.AuthConfig)
 		err = json.Unmarshal(param, &ac)
 		if err != nil {
-			return nil, "", errors.Wrapf(err, "failed to unmarshal %q", XRegistryConfigHeader)
+			return nil, nil, errors.Wrapf(err, "failed to unmarshal %q", xRegistryConfigHeader)
 		}
 
 		for k, v := range ac {
@@ -91,79 +108,45 @@ func getConfigCredentials(r *http.Request) (*types.DockerAuthConfig, string, err
 
 		if auth == nil {
 			logrus.Debugf("%q header found in request, but \"registry=%v\" query parameter not provided",
-				XRegistryConfigHeader, registries)
+				xRegistryConfigHeader, registries)
 		} else {
-			logrus.Debugf("%q header found in request for username %q", XRegistryConfigHeader, auth.Username)
+			logrus.Debugf("%q header found in request for username %q", xRegistryConfigHeader, auth.Username)
 		}
 	}
 
-	authfile, err := authConfigsToAuthFile(configs)
-	return auth, authfile, err
+	return auth, configs, nil
 }
 
-// getAuthCredentials extracts one or more DockerAuthConfigs from the request's
-// header.  The header could specify a single-auth config in which case the
+// getAuthCredentials extracts one or more DockerAuthConfigs from an xRegistryAuthHeader
+// value.  The header could specify a single-auth config in which case the
 // first return value is set.  In case of a multi-auth header, the contents are
-// stored in a temporary auth file (2nd return value).  Note that the auth file
-// should be removed after usage.
-func getAuthCredentials(r *http.Request) (*types.DockerAuthConfig, string, error) {
+// returned in the second return value.
+func getAuthCredentials(headers []string) (*types.DockerAuthConfig, map[string]types.DockerAuthConfig, error) {
+	authHeader := headers[0]
+
 	// First look for a multi-auth header (i.e., a map).
-	authConfigs, err := multiAuthHeader(r)
+	authConfigs, err := parseMultiAuthHeader(authHeader)
 	if err == nil {
-		authfile, err := authConfigsToAuthFile(authConfigs)
-		return nil, authfile, err
+		return nil, authConfigs, nil
 	}
 
 	// Fallback to looking for a single-auth header (i.e., one config).
-	authConfigs, err = singleAuthHeader(r)
+	authConfig, err := parseSingleAuthHeader(authHeader)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
-	var conf *types.DockerAuthConfig
-	for k := range authConfigs {
-		c := authConfigs[k]
-		conf = &c
-		break
-	}
-	return conf, "", nil
+	return &authConfig, nil, nil
 }
 
-// Header builds the requested Authentication Header
-func Header(sys *types.SystemContext, headerName HeaderAuthName, authfile, username, password string) (map[string]string, error) {
-	var (
-		content string
-		err     error
-	)
-	switch headerName {
-	case XRegistryAuthHeader:
-		content, err = headerAuth(sys, authfile, username, password)
-	case XRegistryConfigHeader:
-		content, err = headerConfig(sys, authfile, username, password)
-	default:
-		err = fmt.Errorf("unsupported authentication header: %q", headerName)
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	if len(content) > 0 {
-		return map[string]string{string(headerName): content}, nil
-	}
-	return nil, nil
-}
-
-// headerConfig returns a map with the XRegistryConfigHeader set which can
+// MakeXRegistryConfigHeader returns a map with the "X-Registry-Config" header set, which can
 // conveniently be used in the http stack.
-func headerConfig(sys *types.SystemContext, authfile, username, password string) (string, error) {
+func MakeXRegistryConfigHeader(sys *types.SystemContext, username, password string) (map[string]string, error) {
 	if sys == nil {
 		sys = &types.SystemContext{}
 	}
-	if authfile != "" {
-		sys.AuthFilePath = authfile
-	}
 	authConfigs, err := imageAuth.GetAllCredentials(sys)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if username != "" {
@@ -174,29 +157,38 @@ func headerConfig(sys *types.SystemContext, authfile, username, password string)
 	}
 
 	if len(authConfigs) == 0 {
-		return "", nil
+		return nil, nil
 	}
-	return encodeMultiAuthConfigs(authConfigs)
+	content, err := encodeMultiAuthConfigs(authConfigs)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]string{xRegistryConfigHeader: content}, nil
 }
 
-// headerAuth returns a base64 encoded map with the XRegistryAuthHeader set which can
+// MakeXRegistryAuthHeader returns a map with the "X-Registry-Auth" header set, which can
 // conveniently be used in the http stack.
-func headerAuth(sys *types.SystemContext, authfile, username, password string) (string, error) {
+func MakeXRegistryAuthHeader(sys *types.SystemContext, username, password string) (map[string]string, error) {
 	if username != "" {
-		return encodeSingleAuthConfig(types.DockerAuthConfig{Username: username, Password: password})
+		content, err := encodeSingleAuthConfig(types.DockerAuthConfig{Username: username, Password: password})
+		if err != nil {
+			return nil, err
+		}
+		return map[string]string{xRegistryAuthHeader: content}, nil
 	}
 
 	if sys == nil {
 		sys = &types.SystemContext{}
 	}
-	if authfile != "" {
-		sys.AuthFilePath = authfile
-	}
 	authConfigs, err := imageAuth.GetAllCredentials(sys)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return encodeMultiAuthConfigs(authConfigs)
+	content, err := encodeMultiAuthConfigs(authConfigs)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]string{xRegistryAuthHeader: content}, nil
 }
 
 // RemoveAuthfile is a convenience function that is meant to be called in a
@@ -258,34 +250,38 @@ func authConfigsToAuthFile(authConfigs map[string]types.DockerAuthConfig) (strin
 	// Now use the c/image packages to store the credentials. It's battle
 	// tested, and we make sure to use the same code as the image backend.
 	sys := types.SystemContext{AuthFilePath: authFilePath}
-	for server, config := range authConfigs {
-		server = normalize(server)
+	for authFileKey, config := range authConfigs {
+		key := normalizeAuthFileKey(authFileKey)
 
 		// Note that we do not validate the credentials here. We assume
 		// that all credentials are valid. They'll be used on demand
 		// later.
-		if err := imageAuth.SetAuthentication(&sys, server, config.Username, config.Password); err != nil {
-			return "", errors.Wrapf(err, "error storing credentials in temporary auth file (server: %q, user: %q)", server, config.Username)
+		if err := imageAuth.SetAuthentication(&sys, key, config.Username, config.Password); err != nil {
+			return "", errors.Wrapf(err, "error storing credentials in temporary auth file (key: %q / %q, user: %q)", authFileKey, key, config.Username)
 		}
 	}
 
 	return authFilePath, nil
 }
 
-// normalize takes a server and removes the leading "http[s]://" prefix as well
-// as removes path suffixes from docker registries.
-func normalize(server string) string {
-	stripped := strings.TrimPrefix(server, "http://")
+// normalizeAuthFileKey takes an auth file key and converts it into a new-style credential key
+// in the canonical format, as interpreted by c/image/pkg/docker/config.
+func normalizeAuthFileKey(authFileKey string) string {
+	stripped := strings.TrimPrefix(authFileKey, "http://")
 	stripped = strings.TrimPrefix(stripped, "https://")
 
-	/// Normalize docker registries
-	if strings.HasPrefix(stripped, "index.docker.io/") ||
-		strings.HasPrefix(stripped, "registry-1.docker.io/") ||
-		strings.HasPrefix(stripped, "docker.io/") {
+	if stripped != authFileKey { // URLs are interpreted to mean complete registries
 		stripped = strings.SplitN(stripped, "/", 2)[0]
 	}
 
-	return stripped
+	// Only non-namespaced registry names (or URLs) need to be normalized; repo namespaces
+	// always use the simple format.
+	switch stripped {
+	case "registry-1.docker.io", "index.docker.io":
+		return "docker.io"
+	default:
+		return stripped
+	}
 }
 
 // dockerAuthToImageAuth converts a docker auth config to one we're using
@@ -309,28 +305,26 @@ func imageAuthToDockerAuth(authConfig types.DockerAuthConfig) dockerAPITypes.Aut
 	}
 }
 
-// singleAuthHeader extracts a DockerAuthConfig from the request's header.
+// parseSingleAuthHeader extracts a DockerAuthConfig from an xRegistryAuthHeader value.
 // The header content is a single DockerAuthConfig.
-func singleAuthHeader(r *http.Request) (map[string]types.DockerAuthConfig, error) {
-	authHeader := r.Header.Get(string(XRegistryAuthHeader))
-	authConfig := dockerAPITypes.AuthConfig{}
+func parseSingleAuthHeader(authHeader string) (types.DockerAuthConfig, error) {
 	// Accept "null" and handle it as empty value for compatibility reason with Docker.
 	// Some java docker clients pass this value, e.g. this one used in Eclipse.
-	if len(authHeader) > 0 && authHeader != "null" {
-		authJSON := base64.NewDecoder(base64.URLEncoding, strings.NewReader(authHeader))
-		if err := json.NewDecoder(authJSON).Decode(&authConfig); err != nil {
-			return nil, err
-		}
+	if len(authHeader) == 0 || authHeader == "null" {
+		return types.DockerAuthConfig{}, nil
 	}
-	authConfigs := make(map[string]types.DockerAuthConfig)
-	authConfigs["0"] = dockerAuthToImageAuth(authConfig)
-	return authConfigs, nil
+
+	authConfig := dockerAPITypes.AuthConfig{}
+	authJSON := base64.NewDecoder(base64.URLEncoding, strings.NewReader(authHeader))
+	if err := json.NewDecoder(authJSON).Decode(&authConfig); err != nil {
+		return types.DockerAuthConfig{}, err
+	}
+	return dockerAuthToImageAuth(authConfig), nil
 }
 
-// multiAuthHeader extracts a DockerAuthConfig from the request's header.
+// parseMultiAuthHeader extracts a DockerAuthConfig from an xRegistryAuthHeader value.
 // The header content is a map[string]DockerAuthConfigs.
-func multiAuthHeader(r *http.Request) (map[string]types.DockerAuthConfig, error) {
-	authHeader := r.Header.Get(string(XRegistryAuthHeader))
+func parseMultiAuthHeader(authHeader string) (map[string]types.DockerAuthConfig, error) {
 	// Accept "null" and handle it as empty value for compatibility reason with Docker.
 	// Some java docker clients pass this value, e.g. this one used in Eclipse.
 	if len(authHeader) == 0 || authHeader == "null" {
