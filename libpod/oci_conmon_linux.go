@@ -1262,7 +1262,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		return 0, err
 	}
 
-	pid, err := readConmonPipeData(parentSyncPipe, ociLog)
+	pid, err := readConmonPipeData(r.name, parentSyncPipe, ociLog)
 	if err != nil {
 		if err2 := r.DeleteContainer(ctr); err2 != nil {
 			logrus.Errorf("Removing container %s from runtime after creation failed", ctr.ID())
@@ -1564,7 +1564,7 @@ func readConmonPidFile(pidFile string) (int, error) {
 }
 
 // readConmonPipeData attempts to read a syncInfo struct from the pipe
-func readConmonPipeData(pipe *os.File, ociLog string) (int, error) {
+func readConmonPipeData(runtimeName string, pipe *os.File, ociLog string) (int, error) {
 	// syncInfo is used to return data from monitor process to daemon
 	type syncInfo struct {
 		Data    int    `json:"data"`
@@ -1600,7 +1600,7 @@ func readConmonPipeData(pipe *os.File, ociLog string) (int, error) {
 				if err == nil {
 					var ociErr ociError
 					if err := json.Unmarshal(ociLogData, &ociErr); err == nil {
-						return -1, getOCIRuntimeError(ociErr.Msg)
+						return -1, getOCIRuntimeError(runtimeName, ociErr.Msg)
 					}
 				}
 			}
@@ -1613,13 +1613,13 @@ func readConmonPipeData(pipe *os.File, ociLog string) (int, error) {
 				if err == nil {
 					var ociErr ociError
 					if err := json.Unmarshal(ociLogData, &ociErr); err == nil {
-						return ss.si.Data, getOCIRuntimeError(ociErr.Msg)
+						return ss.si.Data, getOCIRuntimeError(runtimeName, ociErr.Msg)
 					}
 				}
 			}
 			// If we failed to parse the JSON errors, then print the output as it is
 			if ss.si.Message != "" {
-				return ss.si.Data, getOCIRuntimeError(ss.si.Message)
+				return ss.si.Data, getOCIRuntimeError(runtimeName, ss.si.Message)
 			}
 			return ss.si.Data, errors.Wrapf(define.ErrInternal, "container create failed")
 		}

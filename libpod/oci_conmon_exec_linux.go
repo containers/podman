@@ -76,7 +76,7 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 		return -1, nil, errors.Wrapf(err, "cannot run conmon")
 	}
 
-	pid, err := readConmonPipeData(pipes.syncPipe, ociLog)
+	pid, err := readConmonPipeData(r.name, pipes.syncPipe, ociLog)
 
 	return pid, attachChan, err
 }
@@ -134,7 +134,7 @@ func (r *ConmonOCIRuntime) ExecContainerHTTP(ctr *Container, sessionID string, o
 	conmonPipeDataChan := make(chan conmonPipeData)
 	go func() {
 		// attachToExec is responsible for closing pipes
-		attachChan <- attachExecHTTP(ctr, sessionID, req, w, streams, pipes, detachKeys, options.Terminal, cancel, hijackDone, holdConnOpen, execCmd, conmonPipeDataChan, ociLog, newSize)
+		attachChan <- attachExecHTTP(ctr, sessionID, req, w, streams, pipes, detachKeys, options.Terminal, cancel, hijackDone, holdConnOpen, execCmd, conmonPipeDataChan, ociLog, newSize, r.name)
 		close(attachChan)
 	}()
 
@@ -176,7 +176,7 @@ func (r *ConmonOCIRuntime) ExecContainerDetached(ctr *Container, sessionID strin
 	// Wait for Conmon to tell us we're ready to attach.
 	// We aren't actually *going* to attach, but this means that we're good
 	// to proceed.
-	if _, err := readConmonPipeData(pipes.attachPipe, ""); err != nil {
+	if _, err := readConmonPipeData(r.name, pipes.attachPipe, ""); err != nil {
 		return -1, err
 	}
 
@@ -190,7 +190,7 @@ func (r *ConmonOCIRuntime) ExecContainerDetached(ctr *Container, sessionID strin
 		return -1, errors.Wrapf(err, "cannot run conmon")
 	}
 
-	pid, err := readConmonPipeData(pipes.syncPipe, ociLog)
+	pid, err := readConmonPipeData(r.name, pipes.syncPipe, ociLog)
 
 	return pid, err
 }
@@ -486,7 +486,7 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 }
 
 // Attach to a container over HTTP
-func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, pipes *execPipes, detachKeys []byte, isTerminal bool, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool, execCmd *exec.Cmd, conmonPipeDataChan chan<- conmonPipeData, ociLog string, newSize *define.TerminalSize) (deferredErr error) {
+func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, pipes *execPipes, detachKeys []byte, isTerminal bool, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool, execCmd *exec.Cmd, conmonPipeDataChan chan<- conmonPipeData, ociLog string, newSize *define.TerminalSize, runtimeName string) (deferredErr error) {
 	// NOTE: As you may notice, the attach code is quite complex.
 	// Many things happen concurrently and yet are interdependent.
 	// If you ever change this function, make sure to write to the
@@ -519,7 +519,7 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 	}
 
 	// 2: read from attachFd that the parent process has set up the console socket
-	if _, err := readConmonPipeData(pipes.attachPipe, ""); err != nil {
+	if _, err := readConmonPipeData(runtimeName, pipes.attachPipe, ""); err != nil {
 		conmonPipeDataChan <- conmonPipeData{-1, err}
 		return err
 	}
@@ -582,7 +582,7 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 		if err := execCmd.Wait(); err != nil {
 			conmonPipeDataChan <- conmonPipeData{-1, err}
 		} else {
-			pid, err := readConmonPipeData(pipes.syncPipe, ociLog)
+			pid, err := readConmonPipeData(runtimeName, pipes.syncPipe, ociLog)
 			if err != nil {
 				hijackWriteError(err, c.ID(), isTerminal, httpBuf)
 				conmonPipeDataChan <- conmonPipeData{pid, err}
