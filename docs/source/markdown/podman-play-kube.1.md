@@ -96,9 +96,9 @@ spec:
     name: container-1
     image: foobar
     envFrom:
-      - configMapRef:
-      name: foo
-      optional: false
+    - configMapRef:
+        name: foo
+        optional: false
 ```
 
 and as a result environment variable `FOO` will be set to `bar` for container `container-1`.
