@@ -29,8 +29,8 @@ import (
 	"sync"
 
 	"github.com/containernetworking/plugins/pkg/ns"
-	"github.com/containers/podman/v3/pkg/rootless"
-	"github.com/containers/podman/v3/pkg/util"
+	"github.com/containers/common/pkg/util"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -38,7 +38,7 @@ import (
 // GetNSRunDir returns the dir of where to create the netNS. When running
 // rootless, it needs to be at a location writable by user.
 func GetNSRunDir() (string, error) {
-	if rootless.IsRootless() {
+	if unshare.IsRootless() {
 		rootlessDir, err := util.GetRuntimeDir()
 		if err != nil {
 			return "", err
@@ -56,7 +56,7 @@ func NewNS() (ns.NetNS, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate random netns name: %v", err)
 	}
-	nsName := fmt.Sprintf("cni-%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
+	nsName := fmt.Sprintf("netns-%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 	return NewNSWithName(nsName)
 }
 
@@ -152,7 +152,7 @@ func NewNSWithName(name string) (ns.NetNS, error) {
 		// Put this thread back to the orig ns, since it might get reused (pre go1.10)
 		defer func() {
 			if err := origNS.Set(); err != nil {
-				if rootless.IsRootless() && strings.Contains(err.Error(), "operation not permitted") {
+				if unshare.IsRootless() && strings.Contains(err.Error(), "operation not permitted") {
 					// When running in rootless mode it will fail to re-join
 					// the network namespace owned by root on the host.
 					return
@@ -180,13 +180,13 @@ func NewNSWithName(name string) (ns.NetNS, error) {
 }
 
 // UnmountNS unmounts the NS held by the netns object
-func UnmountNS(ns ns.NetNS) error {
+func UnmountNS(netns ns.NetNS) error {
 	nsRunDir, err := GetNSRunDir()
 	if err != nil {
 		return err
 	}
 
-	nsPath := ns.Path()
+	nsPath := netns.Path()
 	// Only unmount if it's been bind-mounted (don't touch namespaces in /proc...)
 	if strings.HasPrefix(nsPath, nsRunDir) {
 		if err := unix.Unmount(nsPath, unix.MNT_DETACH); err != nil {

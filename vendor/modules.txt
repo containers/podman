@@ -132,6 +132,7 @@ github.com/containers/common/pkg/download
 github.com/containers/common/pkg/filters
 github.com/containers/common/pkg/flag
 github.com/containers/common/pkg/manifests
+github.com/containers/common/pkg/netns
 github.com/containers/common/pkg/parse
 github.com/containers/common/pkg/report
 github.com/containers/common/pkg/report/camelcase
