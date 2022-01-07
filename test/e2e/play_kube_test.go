@@ -37,6 +37,31 @@ metadata:
 spec:
   hostname: unknown
 `
+
+var podnameEqualsContainerNameYaml = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: podnameEqualsContainerNameYaml
+spec:
+  containers:
+  - name: podnameEqualsContainerNameYaml
+    image: quay.io/libpod/alpine:latest
+    ports:
+    - containerPort: 80
+`
+
+var podWithoutAName = `
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: podDoesntHaveAName
+    image: quay.io/libpod/alpine:latest
+    ports:
+    - containerPort: 80
+`
+
 var checkInfraImagePodYaml = `
 apiVersion: v1
 kind: Pod
@@ -1276,6 +1301,39 @@ var _ = Describe("Podman play kube", func() {
 		Expect(sharednamespaces).To(ContainSubstring("net"))
 		Expect(sharednamespaces).To(ContainSubstring("uts"))
 		Expect(sharednamespaces).To(ContainSubstring("pid"))
+	})
+
+	It("podman play kube should not rename pod if container in pod has same name", func() {
+		err := writeYaml(podnameEqualsContainerNameYaml, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		testPodCreated := podmanTest.Podman([]string{"pod", "exists", "podnameEqualsContainerNameYaml"})
+		testPodCreated.WaitWithDefaultTimeout()
+		Expect(testPodCreated).Should(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "podnameEqualsContainerNameYaml"})
+		inspect.WaitWithDefaultTimeout()
+		podInspect := inspect.InspectPodArrToJSON()
+		Expect(podInspect).Should(HaveLen(1))
+		var containerNames []string
+		for _, container := range podInspect[0].Containers {
+			containerNames = append(containerNames, container.Name)
+		}
+		Expect(containerNames).To(ContainElement("podnameEqualsContainerNameYaml-podnameEqualsContainerNameYaml"))
+	})
+
+	It("podman play kube should error if pod dont have a name", func() {
+		err := writeYaml(podWithoutAName, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(125))
+
 	})
 
 	It("podman play kube support container liveness probe", func() {
