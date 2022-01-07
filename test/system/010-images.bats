@@ -272,6 +272,10 @@ Deleted: $pauseID" "infra images gets removed as well"
     is "$output" ""
 
     run_podman create --pod new:$pname $IMAGE
+    # Clean up
+    run_podman rm "${lines[-1]}"
+    run_podman pod rm -a
+    run_podman rmi $pauseImage
 }
 
 @test "podman images - rmi -f can remove infra images" {
