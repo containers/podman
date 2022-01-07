@@ -48,4 +48,12 @@ type InspectVolumeData struct {
 	// volume for a specific container, and will be be removed when any
 	// container using it is removed.
 	Anonymous bool `json:"Anonymous,omitempty"`
+	// MountCount is the number of times this volume has been mounted.
+	MountCount uint `json:"MountCount"`
+	// NeedsCopyUp indicates that the next time the volume is mounted into
+	NeedsCopyUp bool `json:"NeedsCopyUp,omitempty"`
+	// NeedsChown indicates that the next time the volume is mounted into
+	// a container, the container will chown the volume to the container process
+	// UID/GID.
+	NeedsChown bool `json:"NeedsChown,omitempty"`
 }

@@ -1691,13 +1691,6 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 	if vol.state.NeedsCopyUp {
 		logrus.Debugf("Copying up contents from container %s to volume %s", c.ID(), vol.Name())
 
-		// Set NeedsCopyUp to false immediately, so we don't try this
-		// again when there are already files copied.
-		vol.state.NeedsCopyUp = false
-		if err := vol.save(); err != nil {
-			return nil, err
-		}
-
 		// If the volume is not empty, we should not copy up.
 		volMount := vol.mountPoint()
 		contents, err := ioutil.ReadDir(volMount)
@@ -1742,6 +1735,13 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 		}
 		if len(srcContents) == 0 {
 			return vol, nil
+		}
+
+		// Set NeedsCopyUp to false since we are about to do first copy
+		// Do not copy second time.
+		vol.state.NeedsCopyUp = false
+		if err := vol.save(); err != nil {
+			return nil, err
 		}
 
 		// Buildah Copier accepts a reader, so we'll need a pipe.
