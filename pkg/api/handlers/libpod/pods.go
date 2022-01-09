@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/pkg/api/handlers"
@@ -62,15 +61,8 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 		psg.InfraContainerSpec.Name = psg.InfraName
 		psg.InfraContainerSpec.ConmonPidFile = psg.InfraConmonPidFile
 		psg.InfraContainerSpec.ContainerCreateCommand = psg.InfraCommand
-		imageName := psg.InfraImage
-		rawImageName := psg.InfraImage
-		if imageName == "" {
-			imageName = config.DefaultInfraImage
-			rawImageName = config.DefaultInfraImage
-		}
-		psg.InfraImage = imageName
-		psg.InfraContainerSpec.Image = imageName
-		psg.InfraContainerSpec.RawImageName = rawImageName
+		psg.InfraContainerSpec.Image = psg.InfraImage
+		psg.InfraContainerSpec.RawImageName = psg.InfraImage
 	}
 	podSpecComplete := entities.PodSpec{PodSpecGen: psg}
 	pod, err := generate.MakePod(&podSpecComplete, runtime)

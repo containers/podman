@@ -71,7 +71,11 @@ func init() {
 	_ = createCommand.RegisterFlagCompletionFunc(nameFlagName, completion.AutocompleteNone)
 
 	infraImageFlagName := "infra-image"
-	flags.StringVar(&infraImage, infraImageFlagName, containerConfig.Engine.InfraImage, "The image of the infra container to associate with the pod")
+	var defInfraImage string
+	if !registry.IsRemote() {
+		defInfraImage = containerConfig.Engine.InfraImage
+	}
+	flags.StringVar(&infraImage, infraImageFlagName, defInfraImage, "The image of the infra container to associate with the pod")
 	_ = createCommand.RegisterFlagCompletionFunc(infraImageFlagName, common.AutocompleteImages)
 
 	podIDFileFlagName := "pod-id-file"
@@ -109,7 +113,9 @@ func create(cmd *cobra.Command, args []string) error {
 		return errors.Wrapf(err, "unable to process labels")
 	}
 
-	imageName = infraImage
+	if cmd.Flag("infra-image").Changed {
+		imageName = infraImage
+	}
 	img := imageName
 	if !createOptions.Infra {
 		if cmd.Flag("no-hosts").Changed {

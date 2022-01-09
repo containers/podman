@@ -595,7 +595,7 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 	// pause one and make sure it's in the storage by pulling it down if
 	// missing.
 	if image == "" && c.IsInfra() {
-		image = config.DefaultInfraImage
+		image = c.runtime.config.Engine.InfraImage
 		if _, err := c.runtime.libimageRuntime.Pull(ctx, image, config.PullPolicyMissing, nil); err != nil {
 			return kubeContainer, nil, nil, nil, err
 		}
