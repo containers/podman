@@ -711,7 +711,7 @@ func (c *dockerClient) getBearerToken(ctx context.Context, challenge challenge,
 		return nil, err
 	}
 	defer res.Body.Close()
-	if err := httpResponseToError(res, "Requesting bear token"); err != nil {
+	if err := httpResponseToError(res, "Requesting bearer token"); err != nil {
 		return nil, err
 	}
 	tokenBlob, err := iolimits.ReadAtMost(res.Body, iolimits.MaxAuthTokenBodySize)

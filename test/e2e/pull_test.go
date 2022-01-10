@@ -354,13 +354,13 @@ var _ = Describe("Podman pull", func() {
 		session = podmanTest.Podman([]string{"rmi", "cirros"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		session = podmanTest.Podman([]string{"pull", imgPath})
+		session = podmanTest.Podman([]string{"run", imgPath, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		session = podmanTest.Podman([]string{"images"})
+		// Note that reference is not preserved in dir.
+		session = podmanTest.Podman([]string{"image", "exists", "cirros"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContainsTag(filepath.Join("localhost", dirpath), "latest")).To(BeTrue())
+		Expect(session).Should(Exit(1))
 	})
 
 	It("podman pull from local OCI directory", func() {

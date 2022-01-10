@@ -190,14 +190,12 @@ func GetAllCredentials(sys *types.SystemContext) (map[string]types.DockerAuthCon
 	for key := range allKeys {
 		authConf, err := GetCredentials(sys, key)
 		if err != nil {
-			if credentials.IsErrCredentialsNotFoundMessage(err.Error()) {
-				// Ignore if the credentials could not be found (anymore).
-				continue
-			}
 			// Note: we rely on the logging in `GetCredentials`.
 			return nil, err
 		}
-		authConfigs[key] = authConf
+		if authConf != (types.DockerAuthConfig{}) {
+			authConfigs[key] = authConf
+		}
 	}
 
 	return authConfigs, nil
@@ -285,7 +283,7 @@ func getCredentialsWithHomeDir(sys *types.SystemContext, key, homeDir string) (t
 				return types.DockerAuthConfig{}, "", err
 			}
 
-			if (authConfig.Username != "" && authConfig.Password != "") || authConfig.IdentityToken != "" {
+			if authConfig != (types.DockerAuthConfig{}) {
 				return authConfig, path.path, nil
 			}
 		}

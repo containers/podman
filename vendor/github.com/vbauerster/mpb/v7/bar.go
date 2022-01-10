@@ -165,12 +165,12 @@ func (b *Bar) TraverseDecorators(cb func(decor.Decorator)) {
 }
 
 // SetTotal sets total dynamically.
-// If total is less than or equal to zero it takes progress' current value.
+// If total is negative it takes progress' current value.
 func (b *Bar) SetTotal(total int64, triggerComplete bool) {
 	select {
 	case b.operateState <- func(s *bState) {
 		s.triggerComplete = triggerComplete
-		if total <= 0 {
+		if total < 0 {
 			s.total = s.current
 		} else {
 			s.total = total

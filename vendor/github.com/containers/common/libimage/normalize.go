@@ -1,12 +1,50 @@
 package libimage
 
 import (
+	"runtime"
 	"strings"
 
+	"github.com/containerd/containerd/platforms"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
+
+// NormalizePlatform normalizes (according to the OCI spec) the specified os,
+// arch and variant.  If left empty, the individual item will not be normalized.
+func NormalizePlatform(rawOS, rawArch, rawVariant string) (os, arch, variant string) {
+	os, arch, variant = rawOS, rawArch, rawVariant
+	if os == "" {
+		os = runtime.GOOS
+	}
+	if arch == "" {
+		arch = runtime.GOARCH
+	}
+	rawPlatform := os + "/" + arch
+	if variant != "" {
+		rawPlatform += "/" + variant
+	}
+
+	normalizedPlatform, err := platforms.Parse(rawPlatform)
+	if err != nil {
+		logrus.Debugf("Error normalizing platform: %v", err)
+		return rawOS, rawArch, rawVariant
+	}
+	logrus.Debugf("Normalized platform %s to %s", rawPlatform, normalizedPlatform)
+	os = rawOS
+	if rawOS != "" {
+		os = normalizedPlatform.OS
+	}
+	arch = rawArch
+	if rawArch != "" {
+		arch = normalizedPlatform.Architecture
+	}
+	variant = rawVariant
+	if rawVariant != "" {
+		variant = normalizedPlatform.Variant
+	}
+	return os, arch, variant
+}
 
 // NormalizeName normalizes the provided name according to the conventions by
 // Podman and Buildah.  If tag and digest are missing, the "latest" tag will be

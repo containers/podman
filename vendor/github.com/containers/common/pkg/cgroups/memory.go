@@ -7,8 +7,7 @@ import (
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
-type memHandler struct {
-}
+type memHandler struct{}
 
 func getMemoryHandler() *memHandler {
 	return &memHandler{}
@@ -41,22 +40,23 @@ func (c *memHandler) Stat(ctr *CgroupControl, m *Metrics) error {
 	usage := MemoryUsage{}
 
 	var memoryRoot string
-	filenames := map[string]string{}
+	var limitFilename string
 
 	if ctr.cgroup2 {
 		memoryRoot = filepath.Join(cgroupRoot, ctr.path)
-		filenames["usage"] = "memory.current"
-		filenames["limit"] = "memory.max"
+		limitFilename = "memory.max"
+		if usage.Usage, err = readFileByKeyAsUint64(filepath.Join(memoryRoot, "memory.stat"), "anon"); err != nil {
+			return err
+		}
 	} else {
 		memoryRoot = ctr.getCgroupv1Path(Memory)
-		filenames["usage"] = "memory.usage_in_bytes"
-		filenames["limit"] = "memory.limit_in_bytes"
+		limitFilename = "memory.limit_in_bytes"
+		if usage.Usage, err = readFileAsUint64(filepath.Join(memoryRoot, "memory.usage_in_bytes")); err != nil {
+			return err
+		}
 	}
-	usage.Usage, err = readFileAsUint64(filepath.Join(memoryRoot, filenames["usage"]))
-	if err != nil {
-		return err
-	}
-	usage.Limit, err = readFileAsUint64(filepath.Join(memoryRoot, filenames["limit"]))
+
+	usage.Limit, err = readFileAsUint64(filepath.Join(memoryRoot, limitFilename))
 	if err != nil {
 		return err
 	}

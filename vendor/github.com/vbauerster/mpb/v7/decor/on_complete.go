@@ -8,6 +8,9 @@ package decor
 //	`message` message to display on complete event
 //
 func OnComplete(decorator Decorator, message string) Decorator {
+	if decorator == nil {
+		return nil
+	}
 	d := &onCompleteWrapper{
 		Decorator: decorator,
 		msg:       message,

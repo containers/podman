@@ -1,6 +1,6 @@
 // +build linux darwin
 
-package config
+package util
 
 import (
 	"fmt"
@@ -19,8 +19,8 @@ var (
 	rootlessRuntimeDir     string
 )
 
-// getRuntimeDir returns the runtime directory
-func getRuntimeDir() (string, error) {
+// GetRuntimeDir returns the runtime directory
+func GetRuntimeDir() (string, error) {
 	var rootlessRuntimeDirError error
 
 	rootlessRuntimeDirOnce.Do(func() {
