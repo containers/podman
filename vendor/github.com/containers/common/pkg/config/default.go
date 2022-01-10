@@ -11,6 +11,7 @@ import (
 
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/cgroupv2"
+	"github.com/containers/common/pkg/util"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/containers/storage/types"
@@ -202,7 +203,6 @@ func DefaultConfig() (*Config, error) {
 			UserNSSize:         DefaultUserNSSize,
 		},
 		Network: NetworkConfig{
-			NetworkBackend:   "cni",
 			DefaultNetwork:   "podman",
 			DefaultSubnet:    DefaultSubnet,
 			NetworkConfigDir: cniConfig,
@@ -371,7 +371,7 @@ func defaultTmpDir() (string, error) {
 		return "/run/libpod", nil
 	}
 
-	runtimeDir, err := getRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return "", err
 	}

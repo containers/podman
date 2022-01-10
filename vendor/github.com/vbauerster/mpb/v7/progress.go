@@ -99,17 +99,19 @@ func NewWithContext(ctx context.Context, options ...ContainerOption) *Progress {
 	return p
 }
 
-// AddBar creates a bar with default bar filler. Different filler can
-// be chosen and applied via `*Progress.Add(...) *Bar` method.
+// AddBar creates a bar with default bar filler.
 func (p *Progress) AddBar(total int64, options ...BarOption) *Bar {
-	return p.Add(total, NewBarFiller(BarStyle()), options...)
+	return p.New(total, BarStyle(), options...)
 }
 
-// AddSpinner creates a bar with default spinner filler. Different
-// filler can be chosen and applied via `*Progress.Add(...) *Bar`
-// method.
+// AddSpinner creates a bar with default spinner filler.
 func (p *Progress) AddSpinner(total int64, options ...BarOption) *Bar {
-	return p.Add(total, NewBarFiller(SpinnerStyle()), options...)
+	return p.New(total, SpinnerStyle(), options...)
+}
+
+// New creates a bar with provided BarFillerBuilder.
+func (p *Progress) New(total int64, builder BarFillerBuilder, options ...BarOption) *Bar {
+	return p.Add(total, builder.Build(), options...)
 }
 
 // Add creates a bar which renders itself by provided filler.
@@ -117,7 +119,7 @@ func (p *Progress) AddSpinner(total int64, options ...BarOption) *Bar {
 // Panics if *Progress instance is done, i.e. called after *Progress.Wait().
 func (p *Progress) Add(total int64, filler BarFiller, options ...BarOption) *Bar {
 	if filler == nil {
-		filler = BarFillerFunc(func(io.Writer, int, decor.Statistics) {})
+		filler = NopStyle().Build()
 	}
 	p.bwg.Add(1)
 	result := make(chan *Bar)

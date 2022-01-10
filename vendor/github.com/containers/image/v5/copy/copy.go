@@ -1073,20 +1073,15 @@ func (c *copier) newProgressPool() *mpb.Progress {
 	return mpb.New(mpb.WithWidth(40), mpb.WithOutput(c.progressOutput))
 }
 
-// customPartialBlobCounter provides a decorator function for the partial blobs retrieval progress bar
-func customPartialBlobCounter(filler interface{}, wcc ...decor.WC) decor.Decorator {
-	producer := func(filler interface{}) decor.DecorFunc {
-		return func(s decor.Statistics) string {
-			if s.Total == 0 {
-				pairFmt := "%.1f / %.1f (skipped: %.1f)"
-				return fmt.Sprintf(pairFmt, decor.SizeB1024(s.Current), decor.SizeB1024(s.Total), decor.SizeB1024(s.Refill))
-			}
-			pairFmt := "%.1f / %.1f (skipped: %.1f = %.2f%%)"
-			percentage := 100.0 * float64(s.Refill) / float64(s.Total)
-			return fmt.Sprintf(pairFmt, decor.SizeB1024(s.Current), decor.SizeB1024(s.Total), decor.SizeB1024(s.Refill), percentage)
-		}
+// customPartialBlobDecorFunc implements mpb.DecorFunc for the partial blobs retrieval progress bar
+func customPartialBlobDecorFunc(s decor.Statistics) string {
+	if s.Total == 0 {
+		pairFmt := "%.1f / %.1f (skipped: %.1f)"
+		return fmt.Sprintf(pairFmt, decor.SizeB1024(s.Current), decor.SizeB1024(s.Total), decor.SizeB1024(s.Refill))
 	}
-	return decor.Any(producer(filler), wcc...)
+	pairFmt := "%.1f / %.1f (skipped: %.1f = %.2f%%)"
+	percentage := 100.0 * float64(s.Refill) / float64(s.Total)
+	return fmt.Sprintf(pairFmt, decor.SizeB1024(s.Current), decor.SizeB1024(s.Total), decor.SizeB1024(s.Refill), percentage)
 }
 
 // createProgressBar creates a mpb.Bar in pool.  Note that if the copier's reportWriter
@@ -1111,7 +1106,6 @@ func (c *copier) createProgressBar(pool *mpb.Progress, partial bool, info types.
 	// Use a normal progress bar when we know the size (i.e., size > 0).
 	// Otherwise, use a spinner to indicate that something's happening.
 	var bar *mpb.Bar
-	sstyle := mpb.SpinnerStyle(".", "..", "...", "....", "").PositionLeft()
 	if info.Size > 0 {
 		if partial {
 			bar = pool.AddBar(info.Size,
@@ -1120,7 +1114,7 @@ func (c *copier) createProgressBar(pool *mpb.Progress, partial bool, info types.
 					decor.OnComplete(decor.Name(prefix), onComplete),
 				),
 				mpb.AppendDecorators(
-					customPartialBlobCounter(sstyle.Build()),
+					decor.Any(customPartialBlobDecorFunc),
 				),
 			)
 		} else {
@@ -1135,8 +1129,8 @@ func (c *copier) createProgressBar(pool *mpb.Progress, partial bool, info types.
 			)
 		}
 	} else {
-		bar = pool.Add(0,
-			sstyle.Build(),
+		bar = pool.New(0,
+			mpb.SpinnerStyle(".", "..", "...", "....", "").PositionLeft(),
 			mpb.BarFillerClearOnComplete(),
 			mpb.PrependDecorators(
 				decor.OnComplete(decor.Name(prefix), onComplete),

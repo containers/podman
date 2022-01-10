@@ -15,7 +15,7 @@ func (x *proxyReader) Read(p []byte) (int, error) {
 	n, err := x.ReadCloser.Read(p)
 	x.bar.IncrBy(n)
 	if err == io.EOF {
-		go x.bar.SetTotal(0, true)
+		go x.bar.SetTotal(-1, true)
 	}
 	return n, err
 }
@@ -30,7 +30,7 @@ func (x *proxyWriterTo) WriteTo(w io.Writer) (int64, error) {
 	n, err := x.wt.WriteTo(w)
 	x.bar.IncrInt64(n)
 	if err == io.EOF {
-		go x.bar.SetTotal(0, true)
+		go x.bar.SetTotal(-1, true)
 	}
 	return n, err
 }

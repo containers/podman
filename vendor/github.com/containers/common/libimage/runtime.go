@@ -253,6 +253,8 @@ func (r *Runtime) LookupImage(name string, options *LookupImageOptions) (*Image,
 	if options.Variant == "" {
 		options.Variant = r.systemContext.VariantChoice
 	}
+	// Normalize platform to be OCI compatible (e.g., "aarch64" -> "arm64").
+	options.OS, options.Architecture, options.Variant = NormalizePlatform(options.OS, options.Architecture, options.Variant)
 
 	// First, check if we have an exact match in the storage. Maybe an ID
 	// or a fully-qualified image name.
@@ -404,9 +406,15 @@ func (r *Runtime) lookupImageInDigestsAndRepoTags(name string, options *LookupIm
 		digest := digested.Digest()
 		for _, image := range allImages {
 			for _, d := range image.Digests() {
-				if d == digest {
-					return image, name, nil
+				if d != digest {
+					continue
 				}
+				// Also make sure that the matching image fits all criteria (e.g., manifest list).
+				if _, err := r.lookupImageInLocalStorage(name, image.ID(), options); err != nil {
+					return nil, "", err
+				}
+				return image, name, nil
+
 			}
 		}
 		return nil, "", errors.Wrap(storage.ErrImageUnknown, name)
@@ -489,13 +497,16 @@ func (r *Runtime) imageReferenceMatchesContext(ref types.ImageReference, options
 	}
 
 	if options.Architecture != "" && options.Architecture != data.Architecture {
-		return false, err
+		logrus.Debugf("architecture %q does not match architecture %q of image %s", options.Architecture, data.Architecture, ref)
+		return false, nil
 	}
 	if options.OS != "" && options.OS != data.Os {
-		return false, err
+		logrus.Debugf("OS %q does not match OS %q of image %s", options.OS, data.Os, ref)
+		return false, nil
 	}
 	if options.Variant != "" && options.Variant != data.Variant {
-		return false, err
+		logrus.Debugf("variant %q does not match variant %q of image %s", options.Variant, data.Variant, ref)
+		return false, nil
 	}
 
 	return true, nil
@@ -551,16 +562,7 @@ func (r *Runtime) ListImages(ctx context.Context, names []string, options *ListI
 		}
 	}
 
-	var filters []filterFunc
-	if len(options.Filters) > 0 {
-		compiledFilters, err := r.compileImageFilters(ctx, options)
-		if err != nil {
-			return nil, err
-		}
-		filters = append(filters, compiledFilters...)
-	}
-
-	return filterImages(images, filters)
+	return r.filterImages(ctx, images, options)
 }
 
 // RemoveImagesOptions allow for customizing image removal.

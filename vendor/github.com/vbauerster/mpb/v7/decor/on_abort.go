@@ -9,6 +9,9 @@ package decor
 //	`message` message to display on abort event
 //
 func OnAbort(decorator Decorator, message string) Decorator {
+	if decorator == nil {
+		return nil
+	}
 	d := &onAbortWrapper{
 		Decorator: decorator,
 		msg:       message,

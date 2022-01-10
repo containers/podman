@@ -36,10 +36,10 @@ func main() {
 
     total := 100
     name := "Single Bar:"
-    // adding a single bar, which will inherit container's width
-    bar := p.Add(int64(total),
-        // progress bar filler with customized style
-        mpb.NewBarFiller(mpb.BarStyle().Lbound("╢").Filler("▌").Tip("▌").Padding("░").Rbound("╟")),
+    // create a single bar, which will inherit container's width
+    bar := p.New(int64(total),
+        // BarFillerBuilder with custom style
+        mpb.BarStyle().Lbound("╢").Filler("▌").Tip("▌").Padding("░").Rbound("╟"),
         mpb.PrependDecorators(
             // display our name with one space on the right
             decor.Name(name, decor.WC{W: len(name) + 1, C: decor.DidentRight}),
@@ -65,7 +65,7 @@ func main() {
 
 ```go
     var wg sync.WaitGroup
-    // passed &wg will be accounted at p.Wait() call
+    // passed wg will be accounted at p.Wait() call
     p := mpb.New(mpb.WithWaitGroup(&wg))
     total, numBars := 100, 3
     wg.Add(numBars)
@@ -103,7 +103,7 @@ func main() {
             }
         }()
     }
-    // Waiting for passed &wg and for all bars to complete and flush
+    // wait for passed wg and for all bars to complete and flush
     p.Wait()
 ```
 

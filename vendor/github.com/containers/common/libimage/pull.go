@@ -21,6 +21,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	digest "github.com/opencontainers/go-digest"
+	ociSpec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -169,6 +170,20 @@ func (r *Runtime) Pull(ctx context.Context, name string, pullPolicy config.PullP
 	return localImages, pullError
 }
 
+// nameFromAnnotations returns a reference string to be used as an image name,
+// or an empty string.  The annotations map may be nil.
+func nameFromAnnotations(annotations map[string]string) string {
+	if annotations == nil {
+		return ""
+	}
+	// buildkit/containerd are using a custom annotation see
+	// containers/podman/issues/12560.
+	if annotations["io.containerd.image.name"] != "" {
+		return annotations["io.containerd.image.name"]
+	}
+	return annotations[ociSpec.AnnotationRefName]
+}
+
 // copyFromDefault is the default copier for a number of transports.  Other
 // transports require some specific dancing, sometimes Yoga.
 func (r *Runtime) copyFromDefault(ctx context.Context, ref types.ImageReference, options *CopyOptions) ([]string, error) {
@@ -201,15 +216,16 @@ func (r *Runtime) copyFromDefault(ctx context.Context, ref types.ImageReference,
 		if err != nil {
 			return nil, err
 		}
-		// if index.json has no reference name, compute the image ID instead
-		if manifestDescriptor.Annotations == nil || manifestDescriptor.Annotations["org.opencontainers.image.ref.name"] == "" {
+		storageName = nameFromAnnotations(manifestDescriptor.Annotations)
+		switch len(storageName) {
+		case 0:
+			// If there's no reference name in the annotations, compute an ID.
 			storageName, err = getImageID(ctx, ref, nil)
 			if err != nil {
 				return nil, err
 			}
 			imageName = "sha256:" + storageName[1:]
-		} else {
-			storageName = manifestDescriptor.Annotations["org.opencontainers.image.ref.name"]
+		default:
 			named, err := NormalizeName(storageName)
 			if err != nil {
 				return nil, err
@@ -227,8 +243,14 @@ func (r *Runtime) copyFromDefault(ctx context.Context, ref types.ImageReference,
 		imageName = named.String()
 
 	default:
-		storageName = toLocalImageName(ref.StringWithinTransport())
-		imageName = storageName
+		// Path-based transports (e.g., dir) may include invalid
+		// characters, so we should pessimistically generate an ID
+		// instead of looking at the StringWithinTransport().
+		storageName, err = getImageID(ctx, ref, nil)
+		if err != nil {
+			return nil, err
+		}
+		imageName = "sha256:" + storageName[1:]
 	}
 
 	// Create a storage reference.

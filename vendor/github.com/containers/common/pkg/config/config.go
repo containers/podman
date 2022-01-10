@@ -48,6 +48,18 @@ const (
 	BoltDBStateStore RuntimeStateStore = iota
 )
 
+// ProxyEnv is a list of Proxy Environment variables
+var ProxyEnv = []string{
+	"http_proxy",
+	"https_proxy",
+	"ftp_proxy",
+	"no_proxy",
+	"HTTP_PROXY",
+	"HTTPS_PROXY",
+	"FTP_PROXY",
+	"NO_PROXY",
+}
+
 // Config contains configuration options for container tools
 type Config struct {
 	// Containers specify settings that configure how containers will run ont the system
@@ -897,8 +909,7 @@ func (c *Config) GetDefaultEnvEx(envHost, httpProxy bool) []string {
 	if envHost {
 		env = append(env, os.Environ()...)
 	} else if httpProxy {
-		proxy := []string{"http_proxy", "https_proxy", "ftp_proxy", "no_proxy", "HTTP_PROXY", "HTTPS_PROXY", "FTP_PROXY", "NO_PROXY"}
-		for _, p := range proxy {
+		for _, p := range ProxyEnv {
 			if val, ok := os.LookupEnv(p); ok {
 				env = append(env, fmt.Sprintf("%s=%s", p, val))
 			}
