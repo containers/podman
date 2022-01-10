@@ -1659,7 +1659,7 @@ var _ = Describe("Podman play kube", func() {
 		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ range .Config.Env }}[{{ . }}]{{end}}'"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
-		Expect(inspect.OutputToString()).To(ContainSubstring(`[FOO=]`))
+		Expect(inspect.OutputToString()).To(Not(ContainSubstring(`[FOO=]`)))
 	})
 
 	It("podman play kube test optional env value from missing configmap", func() {
@@ -1674,7 +1674,7 @@ var _ = Describe("Podman play kube", func() {
 		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ range .Config.Env }}[{{ . }}]{{end}}'"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
-		Expect(inspect.OutputToString()).To(ContainSubstring(`[FOO=]`))
+		Expect(inspect.OutputToString()).To(Not(ContainSubstring(`[FOO=]`)))
 	})
 
 	It("podman play kube test get all key-value pairs from configmap as envs", func() {
@@ -1768,7 +1768,7 @@ var _ = Describe("Podman play kube", func() {
 		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ range .Config.Env }}[{{ . }}]{{end}}'"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
-		Expect(inspect.OutputToString()).To(ContainSubstring(`[FOO=]`))
+		Expect(inspect.OutputToString()).To(Not(ContainSubstring(`[FOO=]`)))
 	})
 
 	It("podman play kube test optional env value from secret with missing key", func() {
@@ -1784,7 +1784,7 @@ var _ = Describe("Podman play kube", func() {
 		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ range .Config.Env }}[{{ . }}]{{end}}'"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
-		Expect(inspect.OutputToString()).To(ContainSubstring(`[FOO=]`))
+		Expect(inspect.OutputToString()).To(Not(ContainSubstring(`[FOO=]`)))
 	})
 
 	It("podman play kube test get all key-value pairs from secret as envs", func() {
@@ -3212,7 +3212,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ range .Config.Env }}[{{ . }}]{{end}}'"})
 			inspect.WaitWithDefaultTimeout()
 			Expect(inspect).Should(Exit(0))
-			Expect(inspect.OutputToString()).To(ContainSubstring(`[FOO=]`))
+			Expect(inspect.OutputToString()).To(Not(ContainSubstring(`[FOO=]`)))
 		})
 
 		It("podman play kube uses all key-value pairs as envs", func() {

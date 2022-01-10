@@ -291,7 +291,10 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 			return nil, err
 		}
 
-		envs[env.Name] = value
+		// Only set the env if the value is not ""
+		if value != "" {
+			envs[env.Name] = value
+		}
 	}
 	for _, envFrom := range opts.Container.EnvFrom {
 		cmEnvs, err := envVarsFrom(envFrom, opts)
