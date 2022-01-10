@@ -118,12 +118,6 @@ fi
 case "$OS_RELEASE_ID" in
     ubuntu) ;;
     fedora)
-        # Force a crun version that has this fix: https://github.com/containers/crun/pull/819
-        # FIXME: Remove once a fixed crun made its way into Fedora
-        if test "$OS_RELEASE_VER" == "35"; then
-            yum upgrade -y crun
-        fi
-
         if ((CONTAINER==0)); then
             # All SELinux distros need this for systemd-in-a-container
             msg "Enabling container_manage_cgroup"

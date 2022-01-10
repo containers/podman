@@ -29,7 +29,7 @@ env:
     UBUNTU_NAME: "ubuntu-2110"
 
     # Google-cloud VM Images
-    IMAGE_SUFFIX: "c6015869890330624"
+    IMAGE_SUFFIX: "c6454758209748992"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
@@ -612,10 +612,10 @@ rootless_gitlab_test_task:
     alias: rootless_gitlab_test
     skip: *tags
     only_if: *not_docs
-    # Test temporarily ignored due to failure on/around 7-10th Dec. 2021
-    # Appears related to https://gitlab.com/gitlab-org/gitlab-runner/-/issues/28732
-    # Log: https://cirrus-ci.com/task/5708221852680192?logs=setup#L433
-    allow_failures: $CI == $CI
+    # Community-maintained downstream test may fail unexpectedly.
+    # Ref. repository: https://gitlab.com/gitlab-org/gitlab-runner
+    # If necessary, uncomment the next line and file issue(s) with details.
+    # allow_failures: $CI == $CI
     depends_on:
       - rootless_integration_test
     gce_instance: *standardvm
