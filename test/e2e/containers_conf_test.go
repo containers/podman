@@ -452,4 +452,36 @@ var _ = Describe("Podman run", func() {
 		Expect(result).Should(Exit(0))
 		Expect(result.OutputToString()).To(ContainSubstring("(default 1234)"))
 	})
+
+	It("podman bad infra_image name in containers.conf", func() {
+		infra1 := "i.do/not/exist:image"
+		infra2 := "i.still.do/not/exist:image"
+		errorString := "initializing source docker://" + infra1
+		error2String := "initializing source docker://" + infra2
+		configPath := filepath.Join(podmanTest.TempDir, "containers.conf")
+		os.Setenv("CONTAINERS_CONF", configPath)
+
+		containersConf := []byte("[engine]\ninfra_image=\"" + infra1 + "\"")
+		err = ioutil.WriteFile(configPath, containersConf, os.ModePerm)
+		Expect(err).To(BeNil())
+
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		result := podmanTest.Podman([]string{"pod", "create", "--infra-image", infra2})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(125))
+		Expect(result.ErrorToString()).To(ContainSubstring(error2String))
+
+		result = podmanTest.Podman([]string{"pod", "create"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(125))
+		Expect(result.ErrorToString()).To(ContainSubstring(errorString))
+
+		result = podmanTest.Podman([]string{"create", "--pod", "new:pod1", ALPINE})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(125))
+		Expect(result.ErrorToString()).To(ContainSubstring(errorString))
+	})
 })

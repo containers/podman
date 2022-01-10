@@ -62,8 +62,8 @@ function teardown() {
 
 
 @test "podman pod create - custom infra image" {
+    skip_if_remote "CONTAINERS_CONF only effects server side"
     image="i.do/not/exist:image"
-
     tmpdir=$PODMAN_TMPDIR/pod-test
     run mkdir -p $tmpdir
     containersconf=$tmpdir/containers.conf
@@ -76,6 +76,9 @@ EOF
     is "$output" ".*initializing source docker://$image:.*"
 
     CONTAINERS_CONF=$containersconf run_podman 125 pod create
+    is "$output" ".*initializing source docker://$image:.*"
+
+    CONTAINERS_CONF=$containersconf run_podman 125 create --pod new:test $IMAGE
     is "$output" ".*initializing source docker://$image:.*"
 }
 

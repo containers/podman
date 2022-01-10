@@ -388,10 +388,7 @@ func createPodIfNecessary(cmd *cobra.Command, s *specgen.SpecGenerator, netOpts 
 	if err != nil {
 		return nil, err
 	}
-	imageName := config.DefaultInfraImage
-	podGen.InfraImage = imageName
-	podGen.InfraContainerSpec = specgen.NewSpecGenerator(imageName, false)
-	podGen.InfraContainerSpec.RawImageName = imageName
+	podGen.InfraContainerSpec = specgen.NewSpecGenerator("", false)
 	podGen.InfraContainerSpec.NetworkOptions = podGen.NetworkOptions
 	err = specgenutil.FillOutSpecGen(podGen.InfraContainerSpec, &infraOpts, []string{})
 	if err != nil {
