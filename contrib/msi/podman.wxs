@@ -50,7 +50,7 @@
     <InstallExecuteSequence>
       <RemoveExistingProducts Before="InstallInitialize"/>
       <Custom Action="AddPath" After="InstallFiles">NOT Installed</Custom>
-      <Custom Action="RemovePath" Before="RemoveFiles" After="InstallInitiailize">(REMOVE="ALL") AND (NOT UPGRADINGPRODUCTCODE)</Custom>
+      <Custom Action="RemovePath" Before="RemoveFiles" After="InstallInitialize">(REMOVE="ALL") AND (NOT UPGRADINGPRODUCTCODE)</Custom>
     </InstallExecuteSequence>
 
   </Product>
