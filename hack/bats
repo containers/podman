@@ -98,6 +98,9 @@ if [[ -z "$CONTAINERS_HELPER_BINARY_DIR" ]]; then
     export CONTAINERS_HELPER_BINARY_DIR=$(pwd)/bin
 fi
 
+# Used in 120-load test to identify rootless destination for podman image scp
+export PODMAN_ROOTLESS_USER=$(id -un)
+
 # Root
 if [ -z "$ROOTLESS_ONLY" ]; then
     echo "# bats ${bats_filter[@]} $TESTS"
@@ -105,6 +108,7 @@ if [ -z "$ROOTLESS_ONLY" ]; then
             --preserve-env=PODMAN_TEST_DEBUG \
             --preserve-env=OCI_RUNTIME \
             --preserve-env=CONTAINERS_HELPER_BINARY_DIR \
+            --preserve-env=PODMAN_ROOTLESS_USER \
             bats "${bats_opts[@]}" "${bats_filter[@]}" $TESTS
     rc=$?
 fi
