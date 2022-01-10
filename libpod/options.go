@@ -115,19 +115,6 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 	}
 }
 
-// WithDefaultTransport sets the default transport for retrieving images.
-func WithDefaultTransport(defaultTransport string) RuntimeOption {
-	return func(rt *Runtime) error {
-		if rt.valid {
-			return define.ErrRuntimeFinalized
-		}
-
-		rt.config.Engine.ImageDefaultTransport = defaultTransport
-
-		return nil
-	}
-}
-
 // WithSignaturePolicy specifies the path of a file which decides how trust is
 // managed for images we've pulled.
 // If this is not specified, the system default configuration will be used
@@ -139,26 +126,6 @@ func WithSignaturePolicy(path string) RuntimeOption {
 		}
 
 		rt.config.Engine.SignaturePolicyPath = path
-
-		return nil
-	}
-}
-
-// WithStateType sets the backing state implementation for libpod.
-// Please note that information is not portable between backing states.
-// As such, if this differs between two libpods running on the same system,
-// they will not share containers, and unspecified behavior may occur.
-func WithStateType(storeType config.RuntimeStateStore) RuntimeOption {
-	return func(rt *Runtime) error {
-		if rt.valid {
-			return define.ErrRuntimeFinalized
-		}
-
-		if storeType == config.InvalidStateStore {
-			return errors.Wrapf(define.ErrInvalidArg, "must provide a valid state store type")
-		}
-
-		rt.config.Engine.StateType = storeType
 
 		return nil
 	}
@@ -452,23 +419,6 @@ func WithVolumePath(volPath string) RuntimeOption {
 	}
 }
 
-// WithDefaultInfraImage sets the infra image for libpod.
-// An infra image is used for inter-container kernel
-// namespace sharing within a pod. Typically, an infra
-// container is lightweight and is there to reap
-// zombie processes within its pid namespace.
-func WithDefaultInfraImage(img string) RuntimeOption {
-	return func(rt *Runtime) error {
-		if rt.valid {
-			return define.ErrRuntimeFinalized
-		}
-
-		rt.config.Engine.InfraImage = img
-
-		return nil
-	}
-}
-
 // WithDefaultInfraCommand sets the command to
 // run on pause container start up.
 func WithDefaultInfraCommand(cmd string) RuntimeOption {
@@ -478,19 +428,6 @@ func WithDefaultInfraCommand(cmd string) RuntimeOption {
 		}
 
 		rt.config.Engine.InfraCommand = cmd
-
-		return nil
-	}
-}
-
-// WithDefaultInfraName sets the infra container name for a single pod.
-func WithDefaultInfraName(name string) RuntimeOption {
-	return func(rt *Runtime) error {
-		if rt.valid {
-			return define.ErrRuntimeFinalized
-		}
-
-		rt.config.Engine.InfraImage = name
 
 		return nil
 	}
