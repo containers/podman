@@ -32,6 +32,7 @@ var (
 		Args:              validate.NoArgs,
 		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman machine list,
+  podman machine list --format json
   podman machine ls`,
 	}
 	listFlag = listFlagType{}
@@ -96,7 +97,7 @@ func list(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
-		b, err := json.Marshal(machineReporter)
+		b, err := json.MarshalIndent(machineReporter, "", "    ")
 		if err != nil {
 			return err
 		}

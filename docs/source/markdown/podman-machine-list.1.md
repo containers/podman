@@ -20,16 +20,23 @@ tied to the Linux kernel.
 
 #### **--format**=*format*
 
-Format list output using a Go template.
-
+Change the default output format.  This can be of a supported type like 'json'
+or a Go template.
 Valid placeholders for the Go template are listed below:
 
 | **Placeholder** | **Description**                 |
 | --------------- | ------------------------------- |
-| .Name           | VM name                         |
+| .CPUs           | Number of CPUs                  |
 | .Created        | Time since VM creation          |
+| .Default        | Is default machine              |
+| .DiskSize       | Disk size of machine            |
+| .LastUp         | Time machine was last up        |
 | .LastUp         | Time since the VM was last run  |
-| .VMType         | VM type                      	|
+| .Memory         | Allocated memeory for machine   |
+| .Name           | VM name                         |
+| .Running        | Is machine running              |
+| .Stream         | Stream name                     |
+| .VMType         | VM type                         |
 
 #### **--help**
 
@@ -43,8 +50,28 @@ Omit the table headings from the listing of pods.
 
 ```
 $ podman machine list
+NAME                    VM TYPE     CREATED      LAST UP      CPUS        MEMORY      DISK SIZE
+podman-machine-default  qemu        2 weeks ago  2 weeks ago  1           2.147GB     10.74GB
 
-$ podman machine ls --format {{.Name}}\t{{.VMType}}\t{{.Created}}\t{{.LastUp}}\n
+$ podman machine ls --format "table {{.Name}}\t{{.VMType}}\t{{.Created}}\t{{.LastUp}}"
+NAME                    VM TYPE     CREATED      LAST UP
+podman-machine-default  qemu        2 weeks ago  2 weeks ago
+
+$ podman machine ls --format json
+[
+    {
+        "Name": "podman-machine-default",
+        "Default": false,
+        "Created": "2021-12-27T10:36:14.373347492-05:00",
+        "Running": false,
+        "LastUp": "2021-12-27T11:22:50.17333371-05:00",
+        "Stream": "default",
+        "VMType": "qemu",
+        "CPUs": 1,
+        "Memory": "2147483648",
+        "DiskSize": "10737418240"
+    }
+]
 ```
 
 ## SEE ALSO
