@@ -191,6 +191,16 @@ skip_if_remote "--stdin option will not be implemented in podman-remote" \
 # BEGIN tests which are skipped due to actual podman-remote bugs.
 
 ###############################################################################
+# BEGIN emergency handling of github git-protocol shutdown
+#
+# Please remove this as soon as we vendor buildah with #3701
+
+skip "emergency workaround until buildah #3701 gets vendored in" \
+     "bud-git-context" \
+     "bud using gitrepo and branch"
+
+# END   emergency handling of github git-protocol shutdown
+###############################################################################
 # Done.
 
 exit $RC
