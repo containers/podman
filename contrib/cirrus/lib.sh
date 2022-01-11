@@ -138,7 +138,9 @@ passthrough_envars(){
 }
 
 setup_rootless() {
-    req_env_vars ROOTLESS_USER GOPATH GOSRC SECRET_ENV_RE
+    req_env_vars GOPATH GOSRC SECRET_ENV_RE
+
+    ROOTLESS_USER="${ROOTLESS_USER:-some${RANDOM}dude}"
 
     local rootless_uid
     local rootless_gid
@@ -150,9 +152,11 @@ setup_rootless() {
     # shellcheck disable=SC2154
     if passwd --status $ROOTLESS_USER
     then
-        msg "Updating $ROOTLESS_USER user permissions on possibly changed libpod code"
-        chown -R $ROOTLESS_USER:$ROOTLESS_USER "$GOPATH" "$GOSRC"
-        return 0
+        if [[ $PRIV_NAME = "rootless" ]]; then
+            msg "Updating $ROOTLESS_USER user permissions on possibly changed libpod code"
+            chown -R $ROOTLESS_USER:$ROOTLESS_USER "$GOPATH" "$GOSRC"
+            return 0
+        fi
     fi
     msg "************************************************************"
     msg "Setting up rootless user '$ROOTLESS_USER'"
@@ -164,7 +168,11 @@ setup_rootless() {
     msg "creating $rootless_uid:$rootless_gid $ROOTLESS_USER user"
     groupadd -g $rootless_gid $ROOTLESS_USER
     useradd -g $rootless_gid -u $rootless_uid --no-user-group --create-home $ROOTLESS_USER
-    chown -R $ROOTLESS_USER:$ROOTLESS_USER "$GOPATH" "$GOSRC"
+
+    # We also set up rootless user for image-scp tests (running as root)
+    if [[ $PRIV_NAME = "rootless" ]]; then
+        chown -R $ROOTLESS_USER:$ROOTLESS_USER "$GOPATH" "$GOSRC"
+    fi
     echo "$ROOTLESS_USER ALL=(root) NOPASSWD: ALL" > /etc/sudoers.d/ci-rootless
 
     mkdir -p "$HOME/.ssh" "/home/$ROOTLESS_USER/.ssh"
