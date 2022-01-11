@@ -78,25 +78,26 @@ func Prune(ctx context.Context, options *PruneOptions) ([]*reports.PruneReport, 
 // The volumes bool dictates that a container's volumes should also be removed.
 // The All option indicates that all containers should be removed
 // The Ignore option indicates that if a container did not exist, ignore the error
-func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) error {
+func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) ([]*reports.RmReport, error) {
 	if options == nil {
 		options = new(RemoveOptions)
 	}
+	var reports []*reports.RmReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
-		return err
+		return reports, err
 	}
 	params, err := options.ToParams()
 	if err != nil {
-		return err
+		return reports, err
 	}
 	response, err := conn.DoRequest(ctx, nil, http.MethodDelete, "/containers/%s", params, nil, nameOrID)
 	if err != nil {
-		return err
+		return reports, err
 	}
 	defer response.Body.Close()
 
-	return response.Process(nil)
+	return reports, response.Process(&reports)
 }
 
 // Inspect returns low level information about a Container.  The nameOrID can be a container name

@@ -114,7 +114,7 @@ func addPathToRegistry(dir string) error {
 	return err
 }
 
-// Removes all occurences of a directory path from the Windows path stored in the registry
+// Removes all occurrences of a directory path from the Windows path stored in the registry
 func removePathFromRegistry(path string) error {
 	k, err := registry.OpenKey(registry.CURRENT_USER, Environment, registry.READ|registry.WRITE)
 	if err != nil {
@@ -155,7 +155,7 @@ func removePathFromRegistry(path string) error {
 	return err
 }
 
-// Sends a notification message to all top level windows informing them the environmental setings have changed.
+// Sends a notification message to all top level windows informing them the environmental settings have changed.
 // Applications such as the Windows command prompt and powershell will know to stop caching stale values on
 // subsequent restarts. Since applications block the sender when receiving a message, we set a 3 second timeout
 func broadcastEnvironmentChange() {

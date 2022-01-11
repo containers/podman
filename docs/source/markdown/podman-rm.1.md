@@ -18,6 +18,10 @@ Running or unusable containers will not be removed without the **-f** option.
 
 Remove all containers.  Can be used in conjunction with **-f** as well.
 
+#### **--depend**
+
+Remove selected container and recursively remove all containers that depend on it.
+
 #### **--cidfile**
 
 Read container ID from the specified file and remove the container.  Can be specified multiple times.
@@ -54,6 +58,11 @@ created with **podman volume create**, or the **--volume** option of **podman ru
 Remove a container by its name *mywebserver*
 ```
 $ podman rm mywebserver
+```
+
+Remove a *mywebserver* container and all of the containers that depend on it
+```
+$ podman rm --depend mywebserver
 ```
 
 Remove several containers by name and container id.

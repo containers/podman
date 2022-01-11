@@ -138,6 +138,7 @@ type PruneOptions struct {
 //go:generate go run ../generator/generator.go RemoveOptions
 // RemoveOptions are optional options for removing containers
 type RemoveOptions struct {
+	Depend  *bool
 	Ignore  *bool
 	Force   *bool
 	Volumes *bool

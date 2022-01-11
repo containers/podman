@@ -85,7 +85,7 @@ else
     fi
 fi
 
-t DELETE libpod/containers/$cid 204
+t DELETE libpod/containers/$cid 200 .[0].Id=$cid
 
 # Issue #6799: it should be possible to start a container, even w/o args.
 t POST libpod/containers/create?name=test_noargs Image=${IMAGE} 201 \
@@ -100,7 +100,7 @@ t GET    libpod/containers/${cid}/json 200 \
   .State.Status~\\\(exited\\\|stopped\\\) \
   .State.Running=false \
   .State.ExitCode=0
-t DELETE libpod/containers/$cid 204
+t DELETE libpod/containers/$cid 200 .[0].Id=$cid
 
 CNAME=myfoo
 podman run -d --name $CNAME $IMAGE top
@@ -190,8 +190,8 @@ t GET containers/myctr/json 200 \
 t DELETE images/localhost/newrepo:latest?force=true 200
 t DELETE images/localhost/newrepo:v1?force=true 200
 t DELETE images/localhost/newrepo:v2?force=true 200
-t DELETE libpod/containers/$cid?force=true 204
-t DELETE libpod/containers/myctr 204
+t DELETE libpod/containers/$cid?force=true 200 .[0].Id=$cid
+t DELETE libpod/containers/myctr 200
 t DELETE libpod/containers/bogus 404
 
 

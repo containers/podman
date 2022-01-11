@@ -36,6 +36,7 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 	query := struct {
 		Force         bool  `schema:"force"`
 		Ignore        bool  `schema:"ignore"`
+		Depend        bool  `schema:"depend"`
 		Link          bool  `schema:"link"`
 		Timeout       *uint `schema:"timeout"`
 		DockerVolumes bool  `schema:"v"`
@@ -57,6 +58,7 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 	if utils.IsLibpodRequest(r) {
 		options.Volumes = query.LibpodVolumes
 		options.Timeout = query.Timeout
+		options.Depend = query.Depend
 	} else {
 		if query.Link {
 			utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
@@ -71,7 +73,7 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 	// code.
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
 	name := utils.GetName(r)
-	report, err := containerEngine.ContainerRm(r.Context(), []string{name}, options)
+	reports, err := containerEngine.ContainerRm(r.Context(), []string{name}, options)
 	if err != nil {
 		if errors.Cause(err) == define.ErrNoSuchCtr {
 			utils.ContainerNotFound(w, name, err)
@@ -81,8 +83,8 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	if len(report) > 0 && report[0].Err != nil {
-		err = report[0].Err
+	if len(reports) > 0 && reports[0].Err != nil {
+		err = reports[0].Err
 		if errors.Cause(err) == define.ErrNoSuchCtr {
 			utils.ContainerNotFound(w, name, err)
 			return
@@ -90,7 +92,10 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-
+	if utils.IsLibpodRequest(r) {
+		utils.WriteResponse(w, http.StatusOK, reports)
+		return
+	}
 	utils.WriteResponse(w, http.StatusNoContent, nil)
 }
 

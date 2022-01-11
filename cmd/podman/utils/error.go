@@ -27,7 +27,7 @@ func (o OutputErrors) PrintErrors() (lastError error) {
    instead returns a message and we cast it to a new error.
 
    Following function performs parsing on build error and returns
-   exit status which was exepected for this current build
+   exit status which was expected for this current build
 */
 func ExitCodeFromBuildError(errorMsg string) (int, error) {
 	if strings.Contains(errorMsg, "exit status") {

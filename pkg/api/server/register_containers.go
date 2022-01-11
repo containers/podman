@@ -817,9 +817,22 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    required: true
 	//    description: the name or ID of the container
 	//  - in: query
+	//    name: depend
+	//    type: boolean
+	//    description: additionally remove containers that depend on the container to be removed
+	//  - in: query
 	//    name: force
 	//    type: boolean
-	//    description: need something
+	//    description: force stop container if running
+	//  - in: query
+	//    name: ignore
+	//    type: boolean
+	//    description: ignore errors when the container to be removed does not existxo
+	//  - in: query
+	//    name: timeout
+	//    type: integer
+	//    default: 10
+	//    description: number of seconds to wait before killing container when force removing
 	//  - in: query
 	//    name: v
 	//    type: boolean
@@ -827,6 +840,8 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// produces:
 	// - application/json
 	// responses:
+	//   200:
+	//     $ref: "#/responses/DocsLibpodContainerRmReport"
 	//   204:
 	//     description: no error
 	//   400:

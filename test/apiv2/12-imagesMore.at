@@ -53,7 +53,7 @@ t GET libpod/images/$IMAGE/json 200 \
   .RepoTags[-1]=$IMAGE
 
 # Remove the registry container
-t DELETE libpod/containers/registry?force=true 204
+t DELETE libpod/containers/registry?force=true 200
 
 # Remove images
 t DELETE libpod/images/$IMAGE 200 \

@@ -51,7 +51,7 @@ like "$output" ".*merged" "Check container mount"
 # Unmount the container
 t POST libpod/containers/foo/unmount 204
 
-t DELETE libpod/containers/foo?force=true 204
+t DELETE libpod/containers/foo?force=true 200
 
 podman run $IMAGE true
 
@@ -79,7 +79,7 @@ like "$output" ".*metadata:.*" "Check generated kube yaml(service=true) - metada
 like "$output" ".*spec:.*" "Check generated kube yaml(service=true) - spec"
 like "$output" ".*kind:\\sService.*" "Check generated kube yaml(service=true) - kind: Service"
 
-t DELETE libpod/containers/$cid 204
+t DELETE libpod/containers/$cid 200 .[0].Id=$cid
 
 # Create 3 stopped containers to test containers prune
 podman run $IMAGE true
