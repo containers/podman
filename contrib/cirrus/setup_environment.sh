@@ -130,7 +130,7 @@ esac
 # Required to be defined by caller: The environment where primary testing happens
 # shellcheck disable=SC2154
 case "$TEST_ENVIRON" in
-    host)
+    host*)
         # The e2e tests wrongly guess `--cgroup-manager` option
         # shellcheck disable=SC2154
         if [[ "$CG_FS_TYPE" == "cgroup2fs" ]] || [[ "$PRIV_NAME" == "root" ]]
@@ -140,6 +140,35 @@ case "$TEST_ENVIRON" in
         else
             warn "Forcing CGROUP_MANAGER=cgroupfs"
             echo "CGROUP_MANAGER=cgroupfs" >> /etc/ci_environment
+        fi
+        # TODO: For the foreseeable future, need to support running tests
+        # with and without the latest netavark.  Once netavark is more
+        # stable and widely supported in Fedora, it can be pre-installed
+        # from its RPM at VM image build-time.
+        if [[ "$TEST_ENVIRON" =~ netavark ]]; then
+            req_env_vars NETAVARK_BRANCH NETAVARK_URL NETAVARK_DEBUG
+            msg "Downloading latest netavark from upstream branch '$NETAVARK_BRANCH'"
+            curl --fail --location -o /tmp/netavark.zip "${NETAVARK_URL}"
+
+            # Needs to be in a specific location
+            # ref: https://github.com/containers/common/blob/main/pkg/config/config_linux.go#L39
+            _nvdir=/usr/local/libexec/podman
+            mkdir -p $_nvdir
+            cd $_nvdir
+            msg "$PWD"
+            unzip /tmp/netavark.zip
+            if ((NETAVARK_DEBUG)); then
+                warn "Using debug netavark binary"
+                mv netavark.debug netavark
+            else
+                rm netavark.debug
+            fi
+            cd -
+
+            chmod 0755 $_nvdir/netavark
+            restorecon -F -v $_nvdir
+            msg "Forcing NETWORK_BACKEND=netavark in all subsequent environments."
+            echo "NETWORK_BACKEND=netavark" >> /etc/ci_environment
         fi
         ;;
     container)
@@ -247,7 +276,7 @@ case "$TEST_FLAVOR" in
         # Use existing host bits when testing is to happen inside a container
         # since this script will run again in that environment.
         # shellcheck disable=SC2154
-        if [[ "$TEST_ENVIRON" == "host" ]]; then
+        if [[ "$TEST_ENVIRON" =~ host ]]; then
             if ((CONTAINER)); then
                 die "Refusing to config. host-test in container";
             fi
@@ -259,7 +288,7 @@ case "$TEST_FLAVOR" in
                 make install PREFIX=/usr ETCDIR=/etc
             fi
         else
-            die "Invalid value for $$TEST_ENVIRON=$TEST_ENVIRON"
+            die "Invalid value for \$TEST_ENVIRON=$TEST_ENVIRON"
         fi
 
         install_test_configs

@@ -12,7 +12,7 @@ set -eo pipefail
 # most notably:
 #
 #    PODBIN_NAME  : "podman" (i.e. local) or "remote"
-#    TEST_ENVIRON : 'host' or 'container'; desired environment in which to run
+#    TEST_ENVIRON : 'host', 'host-netavark', or 'container'; desired environment in which to run
 #    CONTAINER    : 1 if *currently* running inside a container, 0 if host
 #
 
