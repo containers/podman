@@ -2221,33 +2221,50 @@ func (c *Container) getHosts() string {
 			depCtr = c
 		}
 
+		// getLocalIP returns the non loopback local IP of the host
+		getLocalIP := func() string {
+			addrs, err := net.InterfaceAddrs()
+			if err != nil {
+				return ""
+			}
+			for _, address := range addrs {
+				// check the address type and if it is not a loopback the display it
+				if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+					if ipnet.IP.To4() != nil {
+						return ipnet.IP.String()
+					}
+				}
+			}
+			return ""
+		}
+
 		if depCtr != nil {
-			for _, status := range depCtr.getNetworkStatus() {
+			host := ""
+		outer:
+			for net, status := range depCtr.getNetworkStatus() {
+				network, err := c.runtime.network.NetworkInspect(net)
+				// only add the host entry for bridge networks
+				// ip/macvlan gateway is normally not on the host
+				if err != nil || network.Driver != types.BridgeNetworkDriver {
+					continue
+				}
 				for _, netInt := range status.Interfaces {
 					for _, netAddress := range netInt.Subnets {
 						if netAddress.Gateway != nil {
-							hosts += fmt.Sprintf("%s host.containers.internal\n", netAddress.Gateway.String())
+							host = fmt.Sprintf("%s host.containers.internal\n", netAddress.Gateway.String())
+							break outer
 						}
 					}
 				}
 			}
+			// if no bridge gw was found try to use a local ip
+			if host == "" {
+				if ip := getLocalIP(); ip != "" {
+					host = fmt.Sprintf("%s\t%s\n", ip, "host.containers.internal")
+				}
+			}
+			hosts += host
 		} else if c.config.NetMode.IsSlirp4netns() {
-			// getLocalIP returns the non loopback local IP of the host
-			getLocalIP := func() string {
-				addrs, err := net.InterfaceAddrs()
-				if err != nil {
-					return ""
-				}
-				for _, address := range addrs {
-					// check the address type and if it is not a loopback the display it
-					if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-						if ipnet.IP.To4() != nil {
-							return ipnet.IP.String()
-						}
-					}
-				}
-				return ""
-			}
 			if ip := getLocalIP(); ip != "" {
 				hosts += fmt.Sprintf("%s\t%s\n", ip, "host.containers.internal")
 			}
