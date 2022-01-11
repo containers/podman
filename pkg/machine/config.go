@@ -66,15 +66,18 @@ type Download struct {
 type ListOptions struct{}
 
 type ListResponse struct {
-	Name      string
-	CreatedAt time.Time
-	LastUp    time.Time
-	Running   bool
-	Stream    string
-	VMType    string
-	CPUs      uint64
-	Memory    uint64
-	DiskSize  uint64
+	Name           string
+	CreatedAt      time.Time
+	LastUp         time.Time
+	Running        bool
+	Stream         string
+	VMType         string
+	CPUs           uint64
+	Memory         uint64
+	DiskSize       uint64
+	Port           int
+	RemoteUsername string
+	IdentityPath   string
 }
 
 type SSHOptions struct {

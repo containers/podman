@@ -37,6 +37,9 @@ Valid placeholders for the Go template are listed below:
 | .Running        | Is machine running              |
 | .Stream         | Stream name                     |
 | .VMType         | VM type                         |
+| .Port           | SSH Port to use to connect to VM|
+| .RemoteUsername | VM Username for rootless Podman |
+| .IdentityPath   | Path to ssh identify file       |
 
 #### **--help**
 
