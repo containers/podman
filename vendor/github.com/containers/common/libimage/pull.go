@@ -464,37 +464,18 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 		}
 	}
 
-	customPlatform := false
-	if len(options.Architecture)+len(options.OS)+len(options.Variant) > 0 {
-		customPlatform = true
-		// Unless the pull policy is "always", we must pessimistically assume
-		// that the local image has an invalid architecture (see
-		// containers/podman/issues/10682).  Hence, whenever the user requests
-		// a custom platform, set the pull policy to "always" to make sure
-		// we're pulling down the image.
+	customPlatform := len(options.Architecture)+len(options.OS)+len(options.Variant) > 0
+	if customPlatform && pullPolicy != config.PullPolicyAlways && pullPolicy != config.PullPolicyNever {
+		// Unless the pull policy is always/never, we must
+		// pessimistically assume that the local image has an invalid
+		// architecture (see containers/podman/issues/10682).  Hence,
+		// whenever the user requests a custom platform, set the pull
+		// policy to "newer" to make sure we're pulling down the
+		// correct image.
 		//
-		// NOTE that this is will even override --pull={false,never}.  This is
-		// very likely a bug but a consistent one in Podman/Buildah and should
-		// be addressed at a later point.
-		if pullPolicy != config.PullPolicyAlways && pullPolicy != config.PullPolicyNever {
-			switch {
-			// User input clearly refer to a local image.
-			case strings.HasPrefix(imageName, "localhost/"):
-				logrus.Debugf("Enforcing pull policy to %q to support custom platform (arch: %q, os: %q, variant: %q)", "never", options.Architecture, options.OS, options.Variant)
-				pullPolicy = config.PullPolicyNever
-
-			// Image resolved to a local one, so let's still have a
-			// look at the registries or aliases but use it
-			// otherwise.
-			case strings.HasPrefix(resolvedImageName, "localhost/"):
-				logrus.Debugf("Enforcing pull policy to %q to support custom platform (arch: %q, os: %q, variant: %q)", "newer", options.Architecture, options.OS, options.Variant)
-				pullPolicy = config.PullPolicyNewer
-
-			default:
-				logrus.Debugf("Enforcing pull policy to %q to support custom platform (arch: %q, os: %q, variant: %q)", "always", options.Architecture, options.OS, options.Variant)
-				pullPolicy = config.PullPolicyAlways
-			}
-		}
+		// NOTE that this is will even override --pull={false,never}.
+		pullPolicy = config.PullPolicyNewer
+		logrus.Debugf("Enforcing pull policy to %q to pull custom platform (arch: %q, os: %q, variant: %q) - local image may mistakenly specify wrong platform", pullPolicy, options.Architecture, options.OS, options.Variant)
 	}
 
 	if pullPolicy == config.PullPolicyNever {
@@ -540,6 +521,12 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 	sys := r.systemContextCopy()
 	resolved, err := shortnames.Resolve(sys, imageName)
 	if err != nil {
+		// TODO: that is a too big of a hammer since we should only
+		// ignore errors that indicate that there's no alias and no
+		// USRs.  Must be addressed in c/image first.
+		if localImage != nil && pullPolicy == config.PullPolicyNewer {
+			return []string{resolvedImageName}, nil
+		}
 		return nil, err
 	}
 
