@@ -563,15 +563,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(stopTimeoutFlagName, completion.AutocompleteNone)
 
-		sysctlFlagName := "sysctl"
-		createFlags.StringSliceVar(
-			&cf.Sysctl,
-			sysctlFlagName, []string{},
-			"Sysctl options",
-		)
-		//TODO: Add function for sysctl completion.
-		_ = cmd.RegisterFlagCompletionFunc(sysctlFlagName, completion.AutocompleteNone)
-
 		systemdFlagName := "systemd"
 		createFlags.StringVar(
 			&cf.Systemd,
@@ -712,6 +703,16 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			`If a container with the same name exists, replace it`,
 		)
 	}
+
+	sysctlFlagName := "sysctl"
+	createFlags.StringSliceVar(
+		&cf.Sysctl,
+		sysctlFlagName, []string{},
+		"Sysctl options",
+	)
+	//TODO: Add function for sysctl completion.
+	_ = cmd.RegisterFlagCompletionFunc(sysctlFlagName, completion.AutocompleteNone)
+
 	securityOptFlagName := "security-opt"
 	createFlags.StringArrayVar(
 		&cf.SecurityOpt,
