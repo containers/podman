@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/containers/common/libimage"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
 	ann "github.com/containers/podman/v3/pkg/annotations"
@@ -126,16 +127,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	if s.EnvHost {
 		defaultEnvs = envLib.Join(defaultEnvs, osEnv)
 	} else if s.HTTPProxy {
-		for _, envSpec := range []string{
-			"http_proxy",
-			"HTTP_PROXY",
-			"https_proxy",
-			"HTTPS_PROXY",
-			"ftp_proxy",
-			"FTP_PROXY",
-			"no_proxy",
-			"NO_PROXY",
-		} {
+		for _, envSpec := range config.ProxyEnv {
 			if v, ok := osEnv[envSpec]; ok {
 				defaultEnvs[envSpec] = v
 			}
