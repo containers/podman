@@ -429,7 +429,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 	}()
 
 	ctr.config.SecretsPath = filepath.Join(ctr.config.StaticDir, "secrets")
-	err = os.MkdirAll(ctr.config.SecretsPath, 0644)
+	err = os.MkdirAll(ctr.config.SecretsPath, 0755)
 	if err != nil {
 		return nil, err
 	}
