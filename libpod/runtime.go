@@ -170,7 +170,6 @@ func NewRuntime(ctx context.Context, options ...RuntimeOption) (*Runtime, error)
 	if err != nil {
 		return nil, err
 	}
-	conf.CheckCgroupsAndAdjustConfig()
 	return newRuntimeFromConfig(ctx, conf, options...)
 }
 
@@ -227,6 +226,8 @@ func newRuntimeFromConfig(ctx context.Context, conf *config.Config, options ...R
 	if err := makeRuntime(ctx, runtime); err != nil {
 		return nil, err
 	}
+
+	runtime.config.CheckCgroupsAndAdjustConfig()
 
 	return runtime, nil
 }

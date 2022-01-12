@@ -276,4 +276,9 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
     is "$output" ".*--template cannot be set" "Error message should be '--template requires --new'"
 }
 
+@test "podman --cgroup=cgroupfs doesn't show systemd warning" {
+    DBUS_SESSION_BUS_ADDRESS= run_podman --log-level warning --cgroup-manager=cgroupfs info -f ''
+    is "$output" "" "output should be empty"
+}
+
 # vim: filetype=sh
