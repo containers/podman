@@ -915,9 +915,30 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 	return id, cleanupErr
 }
 
-// RemoveDepend removes all dependencies for a container
+// RemoveDepend removes all dependencies for a container.
+// If the container is an infra container, the entire pod gets removed.
 func (r *Runtime) RemoveDepend(ctx context.Context, rmCtr *Container, force bool, removeVolume bool, timeout *uint) ([]*reports.RmReport, error) {
+	logrus.Debugf("Removing container %s and all dependent containers", rmCtr.ID())
 	rmReports := make([]*reports.RmReport, 0)
+	if rmCtr.IsInfra() {
+		pod, err := r.GetPod(rmCtr.PodID())
+		if err != nil {
+			return nil, err
+		}
+		logrus.Debugf("Removing pod %s: depends on infra container %s", pod.ID(), rmCtr.ID())
+		podContainerIDS, err := pod.AllContainersByID()
+		if err != nil {
+			return nil, err
+		}
+		if err := r.RemovePod(ctx, pod, true, force, timeout); err != nil {
+			return nil, err
+		}
+		for _, cID := range podContainerIDS {
+			rmReports = append(rmReports, &reports.RmReport{Id: cID})
+		}
+		return rmReports, nil
+	}
+
 	deps, err := r.state.ContainerInUse(rmCtr)
 	if err != nil {
 		if err == define.ErrCtrRemoved {
@@ -940,9 +961,9 @@ func (r *Runtime) RemoveDepend(ctx context.Context, rmCtr *Container, force bool
 		}
 		rmReports = append(rmReports, reports...)
 	}
+
 	report := reports.RmReport{Id: rmCtr.ID()}
 	report.Err = r.removeContainer(ctx, rmCtr, force, removeVolume, false, timeout)
-
 	return append(rmReports, &report), nil
 }
 

@@ -110,6 +110,11 @@ func rm(cmd *cobra.Command, args []string) error {
 		args = append(args, id)
 	}
 
+	if rmOptions.All {
+		logrus.Debug("--all is set: enforcing --depend=true")
+		rmOptions.Depend = true
+	}
+
 	return removeContainers(args, rmOptions, true)
 }
 
