@@ -112,6 +112,7 @@ function skip_if_remote() {
 
 ###############################################################################
 # BEGIN differences in error messages between buildah and podman
+
 errmsg "non-directory/Dockerfile: not a directory" \
        "Error: context must be a directory:" \
        "bud with a path to a Dockerfile (-f) containing a non-directory entry"
@@ -177,7 +178,9 @@ skip_if_remote "--runtime not meaningful under podman-remote" \
 skip_if_remote "secret files not implemented under podman-remote" \
                "bud with containerfile secret" \
                "bud with containerfile secret accessed on second RUN" \
-               "bud with containerfile secret options"
+               "bud with containerfile secret options" \
+               "bud with containerfile env secret" \
+               "bud with containerfile env secret priority"
 
 skip_if_remote "volumes don't work with podman-remote" \
                "buildah bud --volume" \
@@ -188,18 +191,20 @@ skip_if_remote "--stdin option will not be implemented in podman-remote" \
                "bud test no --stdin"
 
 ###############################################################################
-# BEGIN tests which are skipped due to actual podman-remote bugs.
+# BEGIN tests which are skipped due to actual podman or podman-remote bugs.
 
-###############################################################################
-# BEGIN emergency handling of github git-protocol shutdown
-#
-# Please remove this as soon as we vendor buildah with #3701
+skip_if_remote "Podman #12838: different error messages" \
+               "bud with .dockerignore #2"
 
-skip "emergency workaround until buildah #3701 gets vendored in" \
-     "bud-git-context" \
-     "bud using gitrepo and branch"
+# These two tests, new in 2022-01, invoke podman (create, export) in ways
+# that don't work with podman-remote due to the use of --registries-conf
+skip_if_remote "FIXME FIXME FIXME: find a way to clean up their podman calls" \
+               "bud with run should not leave mounts behind cleanup test" \
+               "bud with custom files in /run/ should persist cleanup test"
 
-# END   emergency handling of github git-protocol shutdown
+skip_if_remote "Do envariables work with -remote? Please look into this." \
+               "build proxy"
+
 ###############################################################################
 # Done.
 
