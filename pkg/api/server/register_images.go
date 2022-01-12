@@ -840,7 +840,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/LibpodImageSummaryResponse"
 	//   500:
 	//     $ref: '#/responses/InternalError'
-	r.Handle(VersionedPath("/libpod/images/json"), s.APIHandler(libpod.GetImages)).Methods(http.MethodGet)
+	r.Handle(VersionedPath("/libpod/images/json"), s.APIHandler(compat.GetImages)).Methods(http.MethodGet)
 	// swagger:operation POST /libpod/images/load libpod ImageLoadLibpod
 	// ---
 	// tags:
