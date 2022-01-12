@@ -22,7 +22,7 @@ import (
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/checkpoint-restore/go-criu/v5/stats"
-	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg"
+	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/buildah/pkg/overlay"
@@ -744,7 +744,12 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	// Warning: CDI may alter g.Config in place.
 	if len(c.config.CDIDevices) > 0 {
-		if err = cdi.UpdateOCISpecForDevices(g.Config, c.config.CDIDevices); err != nil {
+		registry := cdi.GetRegistry()
+		if errs := registry.GetErrors(); len(errs) > 0 {
+			logrus.Debugf("The following errors were triggered when creating the CDI registry: %v", errs)
+		}
+		_, err := registry.InjectDevices(g.Config, c.config.CDIDevices...)
+		if err != nil {
 			return nil, errors.Wrapf(err, "error setting up CDI devices")
 		}
 	}

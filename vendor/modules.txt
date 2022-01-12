@@ -57,9 +57,9 @@ github.com/checkpoint-restore/go-criu/v5/rpc
 github.com/checkpoint-restore/go-criu/v5/stats
 # github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 github.com/chzyer/readline
-# github.com/container-orchestrated-devices/container-device-interface v0.0.0-20210325223243-f99e8b6c10b9
+# github.com/container-orchestrated-devices/container-device-interface v0.0.0-20220111162300-46367ec063fd
 ## explicit
-github.com/container-orchestrated-devices/container-device-interface/pkg
+github.com/container-orchestrated-devices/container-device-interface/pkg/cdi
 github.com/container-orchestrated-devices/container-device-interface/specs-go
 # github.com/containerd/cgroups v1.0.1
 github.com/containerd/cgroups/stats/v1
@@ -862,7 +862,6 @@ google.golang.org/protobuf/types/known/anypb
 google.golang.org/protobuf/types/known/durationpb
 google.golang.org/protobuf/types/known/timestamppb
 # gopkg.in/fsnotify.v1 v1.4.7
-## explicit
 gopkg.in/fsnotify.v1
 # gopkg.in/inf.v0 v0.9.1
 gopkg.in/inf.v0
@@ -908,4 +907,6 @@ k8s.io/apimachinery/third_party/forked/golang/reflect
 k8s.io/klog/v2
 # sigs.k8s.io/structured-merge-diff/v4 v4.1.2
 sigs.k8s.io/structured-merge-diff/v4/value
+# sigs.k8s.io/yaml v1.3.0
+sigs.k8s.io/yaml
 # github.com/onsi/gomega => github.com/onsi/gomega v1.16.0
