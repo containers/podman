@@ -696,6 +696,9 @@ func GetVMInfos() ([]*machine.ListResponse, error) {
 			listEntry.CPUs = vm.CPUs
 			listEntry.Memory = vm.Memory * units.MiB
 			listEntry.DiskSize = vm.DiskSize * units.GiB
+			listEntry.Port = vm.Port
+			listEntry.RemoteUsername = vm.RemoteUsername
+			listEntry.IdentityPath = vm.IdentityPath
 			fi, err := os.Stat(fullPath)
 			if err != nil {
 				return err

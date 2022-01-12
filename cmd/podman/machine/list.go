@@ -44,16 +44,19 @@ type listFlagType struct {
 }
 
 type machineReporter struct {
-	Name     string
-	Default  bool
-	Created  string
-	Running  bool
-	LastUp   string
-	Stream   string
-	VMType   string
-	CPUs     uint64
-	Memory   string
-	DiskSize string
+	Name           string
+	Default        bool
+	Created        string
+	Running        bool
+	LastUp         string
+	Stream         string
+	VMType         string
+	CPUs           uint64
+	Memory         string
+	DiskSize       string
+	Port           int
+	RemoteUsername string
+	IdentityPath   string
 }
 
 func init() {
@@ -190,6 +193,9 @@ func toMachineFormat(vms []*machine.ListResponse) ([]*machineReporter, error) {
 		response.CPUs = vm.CPUs
 		response.Memory = strUint(vm.Memory)
 		response.DiskSize = strUint(vm.DiskSize)
+		response.Port = vm.Port
+		response.RemoteUsername = vm.RemoteUsername
+		response.IdentityPath = vm.IdentityPath
 
 		machineResponses = append(machineResponses, response)
 	}
