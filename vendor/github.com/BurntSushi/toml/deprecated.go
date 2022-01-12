@@ -5,29 +5,17 @@ import (
 	"io"
 )
 
-// DEPRECATED!
-//
-// Use the identical encoding.TextMarshaler instead. It is defined here to
-// support Go 1.1 and older.
+// Deprecated: use encoding.TextMarshaler
 type TextMarshaler encoding.TextMarshaler
 
-// DEPRECATED!
-//
-// Use the identical encoding.TextUnmarshaler instead. It is defined here to
-// support Go 1.1 and older.
+// Deprecated: use encoding.TextUnmarshaler
 type TextUnmarshaler encoding.TextUnmarshaler
 
-// DEPRECATED!
-//
-// Use MetaData.PrimitiveDecode instead.
+// Deprecated: use MetaData.PrimitiveDecode.
 func PrimitiveDecode(primValue Primitive, v interface{}) error {
-	md := MetaData{decoded: make(map[string]bool)}
+	md := MetaData{decoded: make(map[string]struct{})}
 	return md.unify(primValue.undecoded, rvalue(v))
 }
 
-// DEPRECATED!
-//
-// Use NewDecoder(reader).Decode(&v) instead.
-func DecodeReader(r io.Reader, v interface{}) (MetaData, error) {
-	return NewDecoder(r).Decode(v)
-}
+// Deprecated: use NewDecoder(reader).Decode(&value).
+func DecodeReader(r io.Reader, v interface{}) (MetaData, error) { return NewDecoder(r).Decode(v) }
