@@ -111,8 +111,9 @@ func (a *AgentServer) Serve(processLabel string) (string, error) {
 				a.wg.Done()
 			}()
 			// the only way to get agent.ServeAgent is to close the connection it's serving on
+			// TODO: ideally we should use some sort of forwarding mechanism for output instead of manually closing connection.
 			go func() {
-				time.Sleep(500 * time.Millisecond)
+				time.Sleep(2000 * time.Millisecond)
 				c.Close()
 			}()
 		}

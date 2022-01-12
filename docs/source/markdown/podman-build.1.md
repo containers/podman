@@ -54,6 +54,10 @@ Add a custom host-to-IP mapping (host:ip)
 Add a line to /etc/hosts. The format is hostname:ip. The **--add-host** option
 can be set multiple times.
 
+#### **--all-platforms**
+
+Instead of building for a set of platforms specified using the **--platform** option, inspect the build's base images, and build for all of the platforms for which they are all available.  Stages that use *scratch* as a starting point can not be inspected, so at least one non-*scratch* stage must be present for detection to work usefully.
+
 #### **--annotation**=*annotation*
 
 Add an image *annotation* (e.g. annotation=*value*) to the image metadata. Can
@@ -123,23 +127,18 @@ Path to cgroups under which the cgroup for the container will be created. If the
 path is not absolute, the path is considered to be relative to the cgroups path
 of the init process. Cgroups will be created if they do not already exist.
 
+#### **--cgroupns** *how*
+
+Sets the configuration for cgroup namespaces when handling `RUN` instructions.
+The configured value can be "" (the empty string) or "private" to indicate
+that a new cgroup namespace should be created, or it can be "host" to indicate
+that the cgroup namespace in which `buildah` itself is being run should be reused.
+
 #### **--compress**
 
 This option is added to be aligned with other containers CLIs.
 Podman doesn't communicate with a daemon or a remote server.
 Thus, compressing the data before sending it is irrelevant to Podman. (This option is not available with the remote Podman client)
-
-#### **--cni-config-dir**=*directory*
-
-Location of CNI configuration files which will dictate which plugins will be
-used to configure network interfaces and routing for containers created for
-handling `RUN` instructions, if those containers will be run in their own
-network namespaces, and networking is not disabled.
-
-#### **--cni-plugin-path**=*directory[:directory[:directory[...]]]*
-
-List of directories in which the CNI plugins which will be used for configuring
-network namespaces can be found.
 
 #### **--cpu-period**=*limit*
 
@@ -624,6 +623,10 @@ types include:
   "rttime": maximum amount of real-time execution between blocking syscalls
   "sigpending": maximum number of pending signals (ulimit -i)
   "stack": maximum stack size (ulimit -s)
+
+#### **--unsetenv** *env*
+
+Unset environment variables from the final image.
 
 #### **--userns**=*how*
 

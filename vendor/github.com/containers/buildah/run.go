@@ -5,7 +5,9 @@ import (
 	"io"
 
 	"github.com/containers/buildah/define"
+	"github.com/containers/buildah/internal"
 	"github.com/containers/buildah/pkg/sshagent"
+	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )
@@ -93,6 +95,8 @@ type RunOptions struct {
 	User string
 	// WorkingDir is an override for the working directory.
 	WorkingDir string
+	// ContextDir is used as the root directory for the source location for mounts that are of type "bind".
+	ContextDir string
 	// Shell is default shell to run in a container.
 	Shell string
 	// Cmd is an override for the configured default command.
@@ -139,18 +143,30 @@ type RunOptions struct {
 	// Devices are the additional devices to add to the containers
 	Devices define.ContainerDevices
 	// Secrets are the available secrets to use in a RUN
-	Secrets map[string]string
+	Secrets map[string]define.Secret
 	// SSHSources is the available ssh agents to use in a RUN
 	SSHSources map[string]*sshagent.Source `json:"-"`
 	// RunMounts are mounts for this run. RunMounts for this run
 	// will not show up in subsequent runs.
 	RunMounts []string
+	// Map of stages and container mountpoint if any from stage executor
+	StageMountPoints map[string]internal.StageMountDetails
+	// External Image mounts to be cleaned up.
+	// Buildah run --mount could mount image before RUN calls, RUN could cleanup
+	// them up as well
+	ExternalImageMounts []string
+	// System context of current build
+	SystemContext *types.SystemContext
 }
 
 // RunMountArtifacts are the artifacts created when using a run mount.
 type runMountArtifacts struct {
 	// RunMountTargets are the run mount targets inside the container
 	RunMountTargets []string
+	// TmpFiles are artifacts that need to be removed outside the container
+	TmpFiles []string
+	// Any external images which were mounted inside container
+	MountedImages []string
 	// Agents are the ssh agents started
 	Agents []*sshagent.AgentServer
 	// SSHAuthSock is the path to the ssh auth sock inside the container

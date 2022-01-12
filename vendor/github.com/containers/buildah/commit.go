@@ -101,6 +101,8 @@ type CommitOptions struct {
 	// integers in the slice represent 0-indexed layer indices, with support for negative
 	// indexing. i.e. 0 is the first layer, -1 is the last (top-most) layer.
 	OciEncryptLayers *[]int
+	// UnsetEnvs is a list of environments to not add to final image.
+	UnsetEnvs []string
 }
 
 var (

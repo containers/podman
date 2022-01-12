@@ -15,6 +15,7 @@ import (
 	"github.com/containers/buildah/copier"
 	"github.com/containers/buildah/define"
 	buildahdocker "github.com/containers/buildah/docker"
+	"github.com/containers/buildah/internal"
 	"github.com/containers/buildah/pkg/rusage"
 	"github.com/containers/buildah/util"
 	cp "github.com/containers/image/v5/copy"
@@ -401,6 +402,7 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 			PreserveOwnership: preserveOwnership,
 			ContextDir:        contextDir,
 			Excludes:          copyExcludes,
+			IgnoreFile:        s.executor.ignoreFile,
 			IDMappingOptions:  idMappingOptions,
 			StripSetuidBit:    stripSetuid,
 			StripSetgidBit:    stripSetgid,
@@ -412,10 +414,67 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 	return nil
 }
 
+// Returns a map of StageName/ImageName:internal.StageMountDetails for RunOpts if any --mount with from is provided
+// Stage can automatically cleanup this mounts when a stage is removed
+// check if RUN contains `--mount` with `from`. If yes pre-mount images or stages from executor for Run.
+// stages mounted here will we used be Run().
+func (s *StageExecutor) runStageMountPoints(mountList []string) (map[string]internal.StageMountDetails, error) {
+	stageMountPoints := make(map[string]internal.StageMountDetails)
+	for _, flag := range mountList {
+		if strings.Contains(flag, "from") {
+			arr := strings.SplitN(flag, ",", 2)
+			if len(arr) < 2 {
+				return nil, errors.Errorf("Invalid --mount command: %s", flag)
+			}
+			tokens := strings.Split(arr[1], ",")
+			for _, val := range tokens {
+				kv := strings.SplitN(val, "=", 2)
+				switch kv[0] {
+				case "from":
+					if len(kv) == 1 {
+						return nil, errors.Errorf("unable to resolve argument for `from=`: bad argument")
+					}
+					if kv[1] == "" {
+						return nil, errors.Errorf("unable to resolve argument for `from=`: from points to an empty value")
+					}
+					from, fromErr := imagebuilder.ProcessWord(kv[1], s.stage.Builder.Arguments())
+					if fromErr != nil {
+						return nil, errors.Wrapf(fromErr, "unable to resolve argument %q", kv[1])
+					}
+					// If the source's name corresponds to the
+					// result of an earlier stage, wait for that
+					// stage to finish being built.
+					if isStage, err := s.executor.waitForStage(s.ctx, from, s.stages[:s.index]); isStage && err != nil {
+						return nil, err
+					}
+					if otherStage, ok := s.executor.stages[from]; ok && otherStage.index < s.index {
+						stageMountPoints[from] = internal.StageMountDetails{IsStage: true, MountPoint: otherStage.mountPoint}
+						break
+					} else {
+						mountPoint, err := s.getImageRootfs(s.ctx, from)
+						if err != nil {
+							return nil, errors.Errorf("%s from=%s: no stage or image found with that name", flag, from)
+						}
+						stageMountPoints[from] = internal.StageMountDetails{IsStage: false, MountPoint: mountPoint}
+						break
+					}
+				default:
+					continue
+				}
+			}
+		}
+	}
+	return stageMountPoints, nil
+}
+
 // Run executes a RUN instruction using the stage's current working container
 // as a root directory.
 func (s *StageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 	logrus.Debugf("RUN %#v, %#v", run, config)
+	stageMountPoints, err := s.runStageMountPoints(run.Mounts)
+	if err != nil {
+		return err
+	}
 	if s.builder == nil {
 		return errors.Errorf("no build container available")
 	}
@@ -439,6 +498,7 @@ func (s *StageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 		User:             config.User,
 		WorkingDir:       config.WorkingDir,
 		Entrypoint:       config.Entrypoint,
+		ContextDir:       s.executor.contextDir,
 		Cmd:              config.Cmd,
 		Stdin:            stdin,
 		Stdout:           s.executor.out,
@@ -449,6 +509,8 @@ func (s *StageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 		Secrets:          s.executor.secrets,
 		SSHSources:       s.executor.sshsources,
 		RunMounts:        run.Mounts,
+		StageMountPoints: stageMountPoints,
+		SystemContext:    s.executor.systemContext,
 	}
 	if config.NetworkDisabled {
 		options.ConfigureNetwork = buildah.NetworkDisabled
@@ -537,6 +599,7 @@ func (s *StageExecutor) prepare(ctx context.Context, from string, initializeIBCo
 		Args:                  ib.Args,
 		FromImage:             from,
 		PullPolicy:            pullPolicy,
+		ContainerSuffix:       s.executor.containerSuffix,
 		Registry:              s.executor.registry,
 		BlobDirectory:         s.executor.blobDirectory,
 		SignaturePolicyPath:   s.executor.signaturePolicyPath,
@@ -547,6 +610,7 @@ func (s *StageExecutor) prepare(ctx context.Context, from string, initializeIBCo
 		ConfigureNetwork:      s.executor.configureNetwork,
 		CNIPluginPath:         s.executor.cniPluginPath,
 		CNIConfigDir:          s.executor.cniConfigDir,
+		NetworkInterface:      s.executor.networkInterface,
 		IDMappingOptions:      s.executor.idmappingOptions,
 		CommonBuildOpts:       s.executor.commonBuildOptions,
 		DefaultMountsFilePath: s.executor.defaultMountsFilePath,
@@ -556,11 +620,24 @@ func (s *StageExecutor) prepare(ctx context.Context, from string, initializeIBCo
 		MaxPullRetries:        s.executor.maxPullPushRetries,
 		PullRetryDelay:        s.executor.retryPullPushDelay,
 		OciDecryptConfig:      s.executor.ociDecryptConfig,
+		Logger:                s.executor.logger,
+		ProcessLabel:          s.executor.processLabel,
+		MountLabel:            s.executor.mountLabel,
 	}
 
 	builder, err = buildah.NewBuilder(ctx, s.executor.store, builderOptions)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating build container")
+	}
+
+	// If executor's ProcessLabel and MountLabel is empty means this is the first stage
+	// Make sure we share first stage's ProcessLabel and MountLabel with all other subsequent stages
+	// Doing this will ensure and one stage in same build can mount another stage even if `selinux`
+	// is enabled.
+
+	if s.executor.mountLabel == "" && s.executor.processLabel == "" {
+		s.executor.mountLabel = builder.MountLabel
+		s.executor.processLabel = builder.ProcessLabel
 	}
 
 	if initializeIBConfig {
@@ -673,8 +750,8 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 	checkForLayers := s.executor.layers && s.executor.useCache
 	moreStages := s.index < len(s.stages)-1
 	lastStage := !moreStages
-	imageIsUsedLater := moreStages && (s.executor.baseMap[stage.Name] || s.executor.baseMap[fmt.Sprintf("%d", stage.Position)])
-	rootfsIsUsedLater := moreStages && (s.executor.rootfsMap[stage.Name] || s.executor.rootfsMap[fmt.Sprintf("%d", stage.Position)])
+	imageIsUsedLater := moreStages && (s.executor.baseMap[stage.Name] || s.executor.baseMap[strconv.Itoa(stage.Position)])
+	rootfsIsUsedLater := moreStages && (s.executor.rootfsMap[stage.Name] || s.executor.rootfsMap[strconv.Itoa(stage.Position)])
 
 	// If the base image's name corresponds to the result of an earlier
 	// stage, make sure that stage has finished building an image, and
@@ -971,7 +1048,13 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			}
 		}
 
-		if cacheID != "" && !(s.executor.squash && lastInstruction) {
+		// We want to save history for other layers during a squashed build.
+		// Toggle flag allows executor to treat other instruction and layers
+		// as regular builds and only perform squashing at last
+		squashToggle := false
+		// Note: If the build has squash, we must try to re-use as many layers as possible if cache is found.
+		// So only perform commit if its the lastInstruction of lastStage.
+		if cacheID != "" {
 			logCacheHit(cacheID)
 			// A suitable cached image was found, so we can just
 			// reuse it.  If we need to add a name to the resulting
@@ -985,6 +1068,13 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				}
 			}
 		} else {
+			if s.executor.squash {
+				// We want to save history for other layers during a squashed build.
+				// squashToggle flag allows executor to treat other instruction and layers
+				// as regular builds and only perform squashing at last
+				s.executor.squash = false
+				squashToggle = true
+			}
 			// We're not going to find any more cache hits, so we
 			// can stop looking for them.
 			checkForLayers = false
@@ -996,6 +1086,17 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				return "", nil, errors.Wrapf(err, "error committing container for step %+v", *step)
 			}
 		}
+
+		// Perform final squash for this build as we are one the,
+		// last instruction of last stage
+		if (s.executor.squash || squashToggle) && lastInstruction && lastStage {
+			s.executor.squash = true
+			imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentSummary), !s.stepRequiresLayer(step), commitName)
+			if err != nil {
+				return "", nil, errors.Wrapf(err, "error committing final squash step %+v", *step)
+			}
+		}
+
 		logImageID(imgID)
 
 		// Update our working container to be based off of the cached
@@ -1110,10 +1211,10 @@ func (s *StageExecutor) getCreatedBy(node *parser.Node, addedContentSummary stri
 	}
 	switch strings.ToUpper(node.Value) {
 	case "ARG":
-		buildArgs := s.getBuildArgs()
+		buildArgs := s.getBuildArgsKey()
 		return "/bin/sh -c #(nop) ARG " + buildArgs
 	case "RUN":
-		buildArgs := s.getBuildArgs()
+		buildArgs := s.getBuildArgsResolvedForRun()
 		if buildArgs != "" {
 			return "|" + strconv.Itoa(len(strings.Split(buildArgs, " "))) + " " + buildArgs + " /bin/sh -c " + node.Original[4:]
 		}
@@ -1131,10 +1232,47 @@ func (s *StageExecutor) getCreatedBy(node *parser.Node, addedContentSummary stri
 
 // getBuildArgs returns a string of the build-args specified during the build process
 // it excludes any build-args that were not used in the build process
-func (s *StageExecutor) getBuildArgs() string {
-	buildArgs := s.stage.Builder.Arguments()
-	sort.Strings(buildArgs)
-	return strings.Join(buildArgs, " ")
+// values for args are overridden by the values specified using ENV.
+// Reason: Values from ENV will always override values specified arg.
+func (s *StageExecutor) getBuildArgsResolvedForRun() string {
+	var envs []string
+	configuredEnvs := make(map[string]string)
+	dockerConfig := s.stage.Builder.Config()
+
+	for _, env := range dockerConfig.Env {
+		splitv := strings.SplitN(env, "=", 2)
+		if len(splitv) == 2 {
+			configuredEnvs[splitv[0]] = splitv[1]
+		}
+	}
+
+	for key, value := range s.stage.Builder.Args {
+		if _, ok := s.stage.Builder.AllowedArgs[key]; ok {
+			// if value was in image it will be given higher priority
+			// so please embed that into build history
+			_, inImage := configuredEnvs[key]
+			if inImage {
+				envs = append(envs, fmt.Sprintf("%s=%s", key, configuredEnvs[key]))
+			} else {
+				envs = append(envs, fmt.Sprintf("%s=%s", key, value))
+			}
+		}
+	}
+	sort.Strings(envs)
+	return strings.Join(envs, " ")
+}
+
+// getBuildArgs key returns set args are key which were specified during the build process
+// following function will be exclusively used by build history
+func (s *StageExecutor) getBuildArgsKey() string {
+	var envs []string
+	for key := range s.stage.Builder.Args {
+		if _, ok := s.stage.Builder.AllowedArgs[key]; ok {
+			envs = append(envs, key)
+		}
+	}
+	sort.Strings(envs)
+	return strings.Join(envs, " ")
 }
 
 // tagExistingImage adds names to an image already in the store
@@ -1364,6 +1502,7 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 		RetryDelay:            s.executor.retryPullPushDelay,
 		HistoryTimestamp:      s.executor.timestamp,
 		Manifest:              s.executor.manifest,
+		UnsetEnvs:             s.executor.unsetEnvs,
 	}
 	imgID, _, manifestDigest, err := s.builder.Commit(ctx, imageRef, options)
 	if err != nil {

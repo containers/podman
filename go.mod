@@ -11,10 +11,10 @@ require (
 	github.com/container-orchestrated-devices/container-device-interface v0.0.0-20210325223243-f99e8b6c10b9
 	github.com/containernetworking/cni v1.0.1
 	github.com/containernetworking/plugins v1.0.1
-	github.com/containers/buildah v1.23.1
+	github.com/containers/buildah v1.23.1-0.20220111191213-bf4722aa6e6b
 	github.com/containers/common v0.46.1-0.20220112112017-31e8cc4aeeab
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.17.1-0.20220106205022-73f80d60f0e1
+	github.com/containers/image/v5 v5.18.0
 	github.com/containers/ocicrypt v1.1.2
 	github.com/containers/psgo v1.7.1
 	github.com/containers/storage v1.37.1-0.20211213220314-73a749e4fec5
@@ -64,7 +64,7 @@ require (
 	github.com/vbauerster/mpb/v6 v6.0.4
 	github.com/vishvananda/netlink v1.1.1-0.20210330154013-f5de75959ad5
 	go.etcd.io/bbolt v1.3.6
-	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
+	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20211214234402-4825e8c3871d
 	golang.org/x/text v0.3.7
