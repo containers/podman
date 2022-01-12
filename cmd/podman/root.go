@@ -114,6 +114,10 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	}
 
 	cfg := registry.PodmanConfig()
+	if cfg.NoOut {
+		null, _ := os.Open(os.DevNull)
+		os.Stdout = null
+	}
 
 	// Currently it is only possible to restore a container with the same runtime
 	// as used for checkpointing. It should be possible to make crun and runc
@@ -343,6 +347,7 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	lFlags.StringVar(&opts.Identity, identityFlagName, ident, "path to SSH identity file, (CONTAINER_SSHKEY)")
 	_ = cmd.RegisterFlagCompletionFunc(identityFlagName, completion.AutocompleteDefault)
 
+	lFlags.BoolVar(&opts.NoOut, "noout", false, "do not output to stdout")
 	lFlags.BoolVarP(&opts.Remote, "remote", "r", registry.IsRemote(), "Access remote Podman service")
 	pFlags := cmd.PersistentFlags()
 	if registry.IsRemote() {

@@ -173,4 +173,9 @@ load helpers
     is "$output" ".*StopSignal SIGTERM failed to stop container stopme in 1 seconds, resorting to SIGKILL"  "stopping container should print warning"
 }
 
+@test "podman stop --noout" {
+    run_podman run --rm --name stopme -d $IMAGE top
+    run_podman --noout stop -t 0 stopme
+    is "$output" "" "output should be empty"
+}
 # vim: filetype=sh

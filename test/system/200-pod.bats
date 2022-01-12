@@ -57,7 +57,8 @@ function teardown() {
     fi
 
     # Clean up
-    run_podman pod rm -f -t 0 $podid
+    run_podman --noout pod rm -f -t 0 $podid
+    is "$output" "" "output should be empty"
 }
 
 
@@ -330,7 +331,8 @@ EOF
 
     # Note that the internal pause image is built even when --infra-image is
     # set to the K8s one.
-    run_podman pod create --name $pod_name --infra-name "$infra_name" --infra-image "k8s.gcr.io/pause:3.5"
+    run_podman --noout pod create --name $pod_name --infra-name "$infra_name" --infra-image "k8s.gcr.io/pause:3.5"
+    is "$output" "" "output should be empty"
     run_podman '?' pod create --infra-name "$infra_name"
     if [ $status -eq 0 ]; then
         die "Podman should fail when user try to create two pods with the same infra-name value"

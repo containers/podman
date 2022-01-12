@@ -92,6 +92,11 @@ When namespace is set, created containers and pods will join the given namespace
 #### **--network-cmd-path**=*path*
 Path to the command binary to use for setting up a network.  It is currently only used for setting up a slirp4netns network.  If "" is used then the binary is looked up using the $PATH environment variable.
 
+#### **--noout**
+
+Redirect stdout to /dev/null. This command will prevent all stdout from the Podman command. The **--noout**  option will not block stderr or stdout from containers.
+
+
 #### **--remote**, **-r**
 When true, access to the Podman service will be remote. Defaults to false.
 Settings can be modified in the containers.conf file. If the CONTAINER_HOST

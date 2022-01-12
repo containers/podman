@@ -21,7 +21,8 @@ load helpers
     # time to write a new post-restart time value. Pause by CID, unpause
     # by name, just to exercise code paths. While paused, check 'ps'
     # and 'inspect', then check again after restarting.
-    run_podman pause $cid
+    run_podman --noout pause $cid
+    is "$output" "" "output should be empty"
     run_podman inspect --format '{{.State.Status}}' $cid
     is "$output" "paused" "podman inspect .State.Status"
     sleep 3
