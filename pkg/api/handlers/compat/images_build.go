@@ -16,7 +16,7 @@ import (
 	"github.com/containers/buildah"
 	buildahDefine "github.com/containers/buildah/define"
 	"github.com/containers/buildah/pkg/parse"
-	"github.com/containers/buildah/util"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
@@ -442,7 +442,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			Ulimit:             ulimits,
 		},
 		CNIConfigDir:                   rtc.Network.CNIPluginDirs[0],
-		CNIPluginPath:                  util.DefaultCNIPluginPath,
+		CNIPluginPath:                  strings.Join(config.DefaultCNIPluginDirs[:], ":"),
 		Compression:                    compression,
 		ConfigureNetwork:               parseNetworkConfigurationPolicy(query.ConfigureNetwork),
 		ContextDirectory:               contextDirectory,
