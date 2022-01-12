@@ -46,6 +46,7 @@ var (
 
 var (
 	parentFlags []string
+	quiet       bool
 	source      entities.ImageScpOptions
 	dest        entities.ImageScpOptions
 	sshInfo     entities.ImageScpConnections
@@ -61,7 +62,7 @@ func init() {
 
 func scpFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
-	flags.BoolVarP(&source.Quiet, "quiet", "q", false, "Suppress the output")
+	flags.BoolVarP(&quiet, "quiet", "q", false, "Suppress the output")
 }
 
 func scp(cmd *cobra.Command, args []string) (finalErr error) {
@@ -139,6 +140,7 @@ func scp(cmd *cobra.Command, args []string) (finalErr error) {
 		}
 	}
 
+	source.Quiet = quiet
 	source.File = f.Name() // after parsing the arguments, set the file for the save/load
 	dest.File = source.File
 	if err = os.Remove(source.File); err != nil { // remove the file and simply use its name so podman creates the file upon save. avoids umask errors
@@ -203,15 +205,6 @@ func scp(cmd *cobra.Command, args []string) (finalErr error) {
 		}
 	}
 
-	src, err := json.MarshalIndent(source, "", "    ")
-	if err != nil {
-		return err
-	}
-	dst, err := json.MarshalIndent(dest, "", "    ")
-	if err != nil {
-		return err
-	}
-	fmt.Printf("SOURCE: %s\nDEST: %s\n", string(src), string(dst))
 	return nil
 }
 

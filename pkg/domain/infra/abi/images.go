@@ -745,11 +745,17 @@ func putSignature(manifestBlob []byte, mech signature.SigningMechanism, sigStore
 // TransferRootless creates new podman processes using exec.Command and sudo, transferring images between the given source and destination users
 func transferRootless(source entities.ImageScpOptions, dest entities.ImageScpOptions, podman string, parentFlags []string) error {
 	var cmdSave *exec.Cmd
-	saveCommand := parentFlags
-	saveCommand = append(saveCommand, []string{"save", "--output", source.File, source.Image}...)
+	saveCommand, loadCommand := parentFlags, parentFlags
+	saveCommand = append(saveCommand, []string{"save"}...)
+	loadCommand = append(loadCommand, []string{"load"}...)
+	if source.Quiet {
+		saveCommand = append(saveCommand, "-q")
+		loadCommand = append(loadCommand, "-q")
+	}
 
-	loadCommand := parentFlags
-	loadCommand = append(loadCommand, []string{"load", "--input", dest.File}...)
+	saveCommand = append(saveCommand, []string{"--output", source.File, source.Image}...)
+
+	loadCommand = append(loadCommand, []string{"--input", dest.File}...)
 
 	if source.User == "root" {
 		cmdSave = exec.Command("sudo", podman)
@@ -757,7 +763,7 @@ func transferRootless(source entities.ImageScpOptions, dest entities.ImageScpOpt
 		cmdSave = exec.Command(podman)
 	}
 	cmdSave = utils.CreateSCPCommand(cmdSave, saveCommand)
-	logrus.Debug("Executing save command")
+	logrus.Debugf("Executing save command: %q", cmdSave)
 	err := cmdSave.Run()
 	if err != nil {
 		return err
@@ -770,20 +776,22 @@ func transferRootless(source entities.ImageScpOptions, dest entities.ImageScpOpt
 		cmdLoad = exec.Command(podman)
 	}
 	cmdLoad = utils.CreateSCPCommand(cmdLoad, loadCommand)
-	logrus.Debug("Executing load command")
-	err = cmdLoad.Run()
-	if err != nil {
-		return err
-	}
-	return nil
+	logrus.Debugf("Executing load command: %q", cmdLoad)
+	return cmdLoad.Run()
 }
 
-// TransferRootless creates new podman processes using exec.Command and su/machinectl, transferring images between the given source and destination users
+// TransferRootful creates new podman processes using exec.Command and su/machinectl, transferring images between the given source and destination users
 func transferRootful(source entities.ImageScpOptions, dest entities.ImageScpOptions, podman string, parentFlags []string) error {
 	basicCommand := []string{podman}
 	basicCommand = append(basicCommand, parentFlags...)
-	saveCommand := append(basicCommand, []string{"save", "--output", source.File, source.Image}...)
-	loadCommand := append(basicCommand, []string{"load", "--input", dest.File}...)
+	saveCommand := append(basicCommand, "save")
+	loadCommand := append(basicCommand, "load")
+	if source.Quiet {
+		saveCommand = append(saveCommand, "-q")
+		loadCommand = append(loadCommand, "-q")
+	}
+	saveCommand = append(saveCommand, []string{"--output", source.File, source.Image}...)
+	loadCommand = append(loadCommand, []string{"--input", dest.File}...)
 	save := []string{strings.Join(saveCommand, " ")}
 	load := []string{strings.Join(loadCommand, " ")}
 
@@ -846,18 +854,18 @@ func lookupUser(u string) (*user.User, error) {
 func execSu(execUser *user.User, command []string) error {
 	cmd := exec.Command("su", "-l", execUser.Username, "--command")
 	cmd = utils.CreateSCPCommand(cmd, command)
-	logrus.Debug("Executing command su")
+	logrus.Debugf("Executing via su: %q", cmd)
 	return cmd.Run()
 }
 
 func execMachine(execUser *user.User, command []string, machinectl string) error {
-	var cmd *exec.Cmd
+	verb := machinectl
+	args := []string{"shell", "-q", execUser.Username + "@.host"}
 	if execUser.Uid == "0" {
-		cmd = exec.Command("sudo", machinectl, "shell", "-q", execUser.Username+"@.host")
-	} else {
-		cmd = exec.Command(machinectl, "shell", "-q", execUser.Username+"@.host")
+		args = append([]string{verb}, args...)
+		verb = "sudo"
 	}
-	cmd = utils.CreateSCPCommand(cmd, command)
-	logrus.Debug("Executing command machinectl")
+	cmd := utils.CreateSCPCommand(exec.Command(verb, args...), command)
+	logrus.Debugf("Executing via machinectl: %q", cmd)
 	return cmd.Run()
 }
