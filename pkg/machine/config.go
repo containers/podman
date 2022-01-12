@@ -29,6 +29,15 @@ type InitOptions struct {
 	ReExec       bool
 }
 
+type QemuMachineStatus = string
+
+const (
+	// Running indicates the qemu vm is running
+	Running QemuMachineStatus = "running"
+	//	Stopped indicates the vm has stopped
+	Stopped QemuMachineStatus = "stopped"
+)
+
 type Provider interface {
 	NewMachine(opts InitOptions) (VM, error)
 	LoadVMByName(name string) (VM, error)
