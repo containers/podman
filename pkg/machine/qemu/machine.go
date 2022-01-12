@@ -386,8 +386,16 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 	}
 
 	if len(v.Mounts) > 0 {
-		for !v.isRunning() || !v.isListening() {
+		running, err := v.isRunning()
+		if err != nil {
+			return err
+		}
+		for running || !v.isListening() {
 			time.Sleep(100 * time.Millisecond)
+			running, err = v.isRunning()
+			if err != nil {
+				return err
+			}
 		}
 	}
 	for _, mount := range v.Mounts {
@@ -416,8 +424,48 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 	return nil
 }
 
+func (v *MachineVM) checkStatus(monitor *qmp.SocketMonitor) (machine.QemuMachineStatus, error) {
+	// this is the format returned from the monitor
+	// {"return": {"status": "running", "singlestep": false, "running": true}}
+
+	type statusDetails struct {
+		Status  string `json:"status"`
+		Step    bool   `json:"singlestep"`
+		Running bool   `json:"running"`
+	}
+	type statusResponse struct {
+		Response statusDetails `json:"return"`
+	}
+	var response statusResponse
+
+	checkCommand := struct {
+		Execute string `json:"execute"`
+	}{
+		Execute: "query-status",
+	}
+	input, err := json.Marshal(checkCommand)
+	if err != nil {
+		return "", err
+	}
+	b, err := monitor.Run(input)
+	if err != nil {
+		if errors.Cause(err) == os.ErrNotExist {
+			return machine.Stopped, nil
+		}
+		return "", err
+	}
+	if err := json.Unmarshal(b, &response); err != nil {
+		return "", err
+	}
+	if response.Response.Status == machine.Running {
+		return machine.Running, nil
+	}
+	return machine.Stopped, nil
+}
+
 // Stop uses the qmp monitor to call a system_powerdown
 func (v *MachineVM) Stop(name string, _ machine.StopOptions) error {
+	var disconnected bool
 	// check if the qmp socket is there. if not, qemu instance is gone
 	if _, err := os.Stat(v.QMPMonitor.Address); os.IsNotExist(err) {
 		// Right now it is NOT an error to stop a stopped machine
@@ -442,19 +490,22 @@ func (v *MachineVM) Stop(name string, _ machine.StopOptions) error {
 		return err
 	}
 	defer func() {
-		if err := qmpMonitor.Disconnect(); err != nil {
-			logrus.Error(err)
+		if !disconnected {
+			if err := qmpMonitor.Disconnect(); err != nil {
+				logrus.Error(err)
+			}
 		}
 	}()
+
 	if _, err = qmpMonitor.Run(input); err != nil {
 		return err
 	}
+
 	qemuSocketFile, pidFile, err := v.getSocketandPid()
 	if err != nil {
 		return err
 	}
 	if _, err := os.Stat(pidFile); os.IsNotExist(err) {
-		logrus.Info(err)
 		return nil
 	}
 	pidString, err := ioutil.ReadFile(pidFile)
@@ -481,6 +532,24 @@ func (v *MachineVM) Stop(name string, _ machine.StopOptions) error {
 	// Remove socket
 	if err := os.Remove(qemuSocketFile); err != nil {
 		return err
+	}
+
+	if err := qmpMonitor.Disconnect(); err != nil {
+		return nil
+	}
+
+	disconnected = true
+	waitInternal := 250 * time.Millisecond
+	for i := 0; i < 5; i++ {
+		running, err := v.isRunning()
+		if err != nil {
+			return err
+		}
+		if !running {
+			break
+		}
+		time.Sleep(waitInternal)
+		waitInternal = waitInternal * 2
 	}
 
 	return nil
@@ -519,7 +588,11 @@ func (v *MachineVM) Remove(name string, opts machine.RemoveOptions) (string, fun
 	)
 
 	// cannot remove a running vm
-	if v.isRunning() {
+	running, err := v.isRunning()
+	if err != nil {
+		return "", nil, err
+	}
+	if running {
 		return "", nil, errors.Errorf("running vm %q cannot be destroyed", v.Name)
 	}
 
@@ -578,16 +651,33 @@ func (v *MachineVM) Remove(name string, opts machine.RemoveOptions) (string, fun
 	}, nil
 }
 
-func (v *MachineVM) isRunning() bool {
+func (v *MachineVM) isRunning() (bool, error) {
 	// Check if qmp socket path exists
 	if _, err := os.Stat(v.QMPMonitor.Address); os.IsNotExist(err) {
-		return false
+		return false, nil
 	}
 	// Check if we can dial it
-	if _, err := qmp.NewSocketMonitor(v.QMPMonitor.Network, v.QMPMonitor.Address, v.QMPMonitor.Timeout); err != nil {
-		return false
+	monitor, err := qmp.NewSocketMonitor(v.QMPMonitor.Network, v.QMPMonitor.Address, v.QMPMonitor.Timeout)
+	if err != nil {
+		return false, nil
 	}
-	return true
+	if err := monitor.Connect(); err != nil {
+		return false, err
+	}
+	defer func() {
+		if err := monitor.Disconnect(); err != nil {
+			logrus.Error(err)
+		}
+	}()
+	// If there is a monitor, lets see if we can query state
+	state, err := v.checkStatus(monitor)
+	if err != nil {
+		return false, err
+	}
+	if state == machine.Running {
+		return true, nil
+	}
+	return false, nil
 }
 
 func (v *MachineVM) isListening() bool {
@@ -603,7 +693,11 @@ func (v *MachineVM) isListening() bool {
 // SSH opens an interactive SSH session to the vm specified.
 // Added ssh function to VM interface: pkg/machine/config/go : line 58
 func (v *MachineVM) SSH(name string, opts machine.SSHOptions) error {
-	if !v.isRunning() {
+	running, err := v.isRunning()
+	if err != nil {
+		return err
+	}
+	if !running {
 		return errors.Errorf("vm %q is not running.", v.Name)
 	}
 
@@ -707,7 +801,11 @@ func GetVMInfos() ([]*machine.ListResponse, error) {
 				return err
 			}
 			listEntry.LastUp = fi.ModTime()
-			if vm.isRunning() {
+			running, err := vm.isRunning()
+			if err != nil {
+				return err
+			}
+			if running {
 				listEntry.Running = true
 			}
 
