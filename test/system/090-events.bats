@@ -116,3 +116,16 @@ function _events_disjunctive_filters() {
 @test "events with disjunctive filters - default" {
     _events_disjunctive_filters ""
 }
+
+@test "events with events_logfile_path in containers.conf" {
+    skip_if_remote "remote does not support --events-backend"
+    events_file=$PODMAN_TMPDIR/events.log
+    containersconf=$PODMAN_TMPDIR/containers.conf
+    cat >$containersconf <<EOF
+[engine]
+events_logfile_path="$events_file"
+EOF
+    CONTAINERS_CONF="$containersconf" run_podman --events-backend=file pull $IMAGE
+    run cat $events_file
+    is "$output" ".*\"Name\":\"$IMAGE" "test"
+}
