@@ -362,4 +362,38 @@ EOF
     run_podman run --rm --pod "new:$pod_name" $IMAGE hostname
     is "$output" "$pod_name" "new:POD should have hostname name set to podname"
 }
+
+@test "podman rm --force to remove infra container" {
+    local pod_name="$(random_string 10 | tr A-Z a-z)"
+    run_podman create --pod "new:$pod_name" $IMAGE
+    container_ID="$output"
+    run_podman pod inspect --format "{{.InfraContainerID}}" $pod_name
+    infra_ID="$output"
+
+    run_podman 125 container rm $infra_ID
+    is "$output" ".* and cannot be removed without removing the pod"
+    run_podman 125 container rm --force $infra_ID
+    is "$output" ".* and cannot be removed without removing the pod"
+
+    run_podman container rm --depend $infra_ID
+    is "$output" ".*$infra_ID.*"
+    is "$output" ".*$container_ID.*"
+
+    # Now make sure that --force --all works as well
+    run_podman create --pod "new:$pod_name" $IMAGE
+    container_1_ID="$output"
+    run_podman create --pod "$pod_name" $IMAGE
+    container_2_ID="$output"
+    run_podman create $IMAGE
+    container_3_ID="$output"
+    run_podman pod inspect --format "{{.InfraContainerID}}" $pod_name
+    infra_ID="$output"
+
+    run_podman container rm --force --all $infraID
+    is "$output" ".*$infra_ID.*"
+    is "$output" ".*$container_1_ID.*"
+    is "$output" ".*$container_2_ID.*"
+    is "$output" ".*$container_3_ID.*"
+}
+
 # vim: filetype=sh

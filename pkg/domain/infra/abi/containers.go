@@ -357,24 +357,56 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 		return rmReports, nil
 	}
 
+	alreadyRemoved := make(map[string]bool)
+	addReports := func(newReports []*reports.RmReport) {
+		for i := range newReports {
+			alreadyRemoved[newReports[i].Id] = true
+			rmReports = append(rmReports, newReports[i])
+		}
+	}
 	if !options.All && options.Depend {
 		// Add additional containers based on dependencies to container map
 		for _, ctr := range ctrs {
+			if alreadyRemoved[ctr.ID()] {
+				continue
+			}
 			reports, err := ic.Libpod.RemoveDepend(ctx, ctr, options.Force, options.Volumes, options.Timeout)
 			if err != nil {
 				return rmReports, err
 			}
-			rmReports = append(rmReports, reports...)
+			addReports(reports)
 		}
 		return rmReports, nil
 	}
+
+	// If --all is set, make sure to remove the infra containers'
+	// dependencies before doing the parallel removal below.
+	if options.All {
+		for _, ctr := range ctrs {
+			if alreadyRemoved[ctr.ID()] || !ctr.IsInfra() {
+				continue
+			}
+			reports, err := ic.Libpod.RemoveDepend(ctx, ctr, options.Force, options.Volumes, options.Timeout)
+			if err != nil {
+				return rmReports, err
+			}
+			addReports(reports)
+		}
+	}
+
 	errMap, err := parallelctr.ContainerOp(ctx, ctrs, func(c *libpod.Container) error {
+		if alreadyRemoved[c.ID()] {
+			return nil
+		}
 		return ic.removeContainer(ctx, c, options)
 	})
 	if err != nil {
 		return nil, err
 	}
 	for ctr, err := range errMap {
+		if alreadyRemoved[ctr.ID()] {
+			continue
+		}
 		report := new(reports.RmReport)
 		report.Id = ctr.ID()
 		report.Err = err

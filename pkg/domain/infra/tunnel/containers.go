@@ -188,35 +188,53 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	if opts.Timeout != nil {
 		options = options.WithTimeout(*opts.Timeout)
 	}
+
+	toRemove := []string{}
+	alreadyRemoved := make(map[string]bool) // Avoids trying to remove already removed containers
 	if opts.All {
-		ctrs, err := getContainersByContext(ic.ClientCtx, opts.All, opts.Ignore, namesOrIds)
+		ctrs, err := getContainersByContext(ic.ClientCtx, opts.All, opts.Ignore, nil)
 		if err != nil {
 			return nil, err
 		}
-		rmReports := make([]*reports.RmReport, 0, len(ctrs))
 		for _, c := range ctrs {
-			report, err := containers.Remove(ic.ClientCtx, c.ID, options)
-			if err != nil {
-				return rmReports, err
-			}
-			rmReports = append(rmReports, report...)
+			toRemove = append(toRemove, c.ID)
 		}
-		return rmReports, nil
+	} else {
+		for _, ctr := range namesOrIds {
+			// NOTE that we set ignore=true here to support
+			// removing external containers (e.g., Buildah
+			// containers). If we don't find the container,
+			// we'll use the raw input provided by the user
+			// instead of the ID. Since this can only happen
+			// with external containers, it poses no threat
+			// to the `alreadyRemoved` checks below.
+			ctrs, err := getContainersByContext(ic.ClientCtx, false, true, []string{ctr})
+			if err != nil {
+				return nil, err
+			}
+			id := ctr
+			if len(ctrs) == 1 {
+				id = ctrs[0].ID
+			}
+			toRemove = append(toRemove, id)
+		}
 	}
 
-	rmReports := make([]*reports.RmReport, 0, len(namesOrIds))
-	for _, name := range namesOrIds {
-		report, err := containers.Remove(ic.ClientCtx, name, options)
-		if err != nil {
-			rmReports = append(rmReports, &reports.RmReport{
-				Id:  name,
-				Err: err,
-			})
+	rmReports := make([]*reports.RmReport, 0, len(toRemove))
+	for _, nameOrID := range toRemove {
+		if alreadyRemoved[nameOrID] {
 			continue
 		}
-		rmReports = append(rmReports, report...)
+		newReports, err := containers.Remove(ic.ClientCtx, nameOrID, options)
+		if err != nil {
+			rmReports = append(rmReports, &reports.RmReport{Id: nameOrID, Err: err})
+			continue
+		}
+		for i := range newReports {
+			alreadyRemoved[newReports[i].Id] = true
+			rmReports = append(rmReports, newReports[i])
+		}
 	}
-
 	return rmReports, nil
 }
 
