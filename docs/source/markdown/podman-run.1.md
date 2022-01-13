@@ -407,6 +407,8 @@ Meaning **groupname** is initially mapped to gid **100000** which is referenced 
 above: The group **groupname** is mapped to group **100000** of the initial namespace then the
 **30000**st id of this namespace (which is gid 130000 in this namespace) is mapped to container namespace group id **0**. (groupname -> 100000 / 30000 -> 0)
 
+Note: the **--gidmap** flag cannot be called in conjunction with the **--pod** flag as a gidmap cannot be set on the container level when in a pod.
+
 #### **--group-add**=*group|keep-groups*
 
 Add additional groups to assign to primary user running within the container process.
@@ -1240,6 +1242,8 @@ Every additional range is added sequentially afterward:
 Even if a user does not have any subordinate UIDs in  _/etc/subuid_,
 **--uidmap** could still be used to map the normal UID of the user to a
 container UID by running `podman run --uidmap $container_uid:0:1 --user $container_uid ...`.
+
+Note: the **--uidmap** flag cannot be called in conjunction with the **--pod** flag as a uidmap cannot be set on the container level when in a pod.
 
 #### **--ulimit**=*option*
 
