@@ -386,31 +386,31 @@ var _ = Describe("Podman run", func() {
 
 		SkipIfCgroupV1("podman umask on /sys/fs/cgroup will fail with cgroups V1")
 		SkipIfRootless("/sys/fs/cgroup rw access is needed")
-		rwOnCGroups := "/sys/fs/cgroup cgroup2 rw"
+		rwOnCgroups := "/sys/fs/cgroup cgroup2 rw"
 		session := podmanTest.Podman([]string{"run", "--security-opt", "unmask=ALL", "--security-opt", "mask=/sys/fs/cgroup", ALPINE, "cat", "/proc/mounts"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(ContainSubstring(rwOnCGroups))
+		Expect(session.OutputToString()).To(ContainSubstring(rwOnCgroups))
 
 		session = podmanTest.Podman([]string{"run", "--security-opt", "unmask=/sys/fs/cgroup", ALPINE, "cat", "/proc/mounts"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(ContainSubstring(rwOnCGroups))
+		Expect(session.OutputToString()).To(ContainSubstring(rwOnCgroups))
 
 		session = podmanTest.Podman([]string{"run", "--security-opt", "unmask=/sys/fs/cgroup///", ALPINE, "cat", "/proc/mounts"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(ContainSubstring(rwOnCGroups))
+		Expect(session.OutputToString()).To(ContainSubstring(rwOnCgroups))
 
 		session = podmanTest.Podman([]string{"run", "--security-opt", "unmask=ALL", ALPINE, "cat", "/proc/mounts"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(ContainSubstring(rwOnCGroups))
+		Expect(session.OutputToString()).To(ContainSubstring(rwOnCgroups))
 
 		session = podmanTest.Podman([]string{"run", "--security-opt", "unmask=/sys/fs/cgroup", "--security-opt", "mask=/sys/fs/cgroup", ALPINE, "cat", "/proc/mounts"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(ContainSubstring(rwOnCGroups))
+		Expect(session.OutputToString()).To(ContainSubstring(rwOnCgroups))
 
 		session = podmanTest.Podman([]string{"run", "--security-opt", "unmask=/sys/fs/cgroup", ALPINE, "ls", "/sys/fs/cgroup"})
 		session.WaitWithDefaultTimeout()

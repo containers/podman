@@ -83,7 +83,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman Capabilities in containers.conf", func() {
-		SkipIfRootlessCgroupsV1("Not supported for rootless + CGroupsV1")
+		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		cap := podmanTest.Podman([]string{"run", ALPINE, "grep", "CapEff", "/proc/self/status"})
 		cap.WaitWithDefaultTimeout()
 		Expect(cap).Should(Exit(0))
@@ -123,7 +123,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	verifyNSHandling := func(nspath, option string) {
-		SkipIfRootlessCgroupsV1("Not supported for rootless + CGroupsV1")
+		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		os.Setenv("CONTAINERS_CONF", "config/containers-ns.conf")
 		if IsRemote() {
 			podmanTest.RestartRemoteService()

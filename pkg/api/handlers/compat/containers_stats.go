@@ -109,7 +109,7 @@ streamLabel: // A label to flatten the scope
 			return
 		}
 		// Cgroup stats
-		cgroupPath, err := ctnr.CGroupPath()
+		cgroupPath, err := ctnr.CgroupPath()
 		if err != nil {
 			logrus.Errorf("Unable to get cgroup path of container: %v", err)
 			return

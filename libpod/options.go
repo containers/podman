@@ -217,7 +217,7 @@ func WithCgroupManager(manager string) RuntimeOption {
 		}
 
 		if manager != config.CgroupfsCgroupsManager && manager != config.SystemdCgroupsManager {
-			return errors.Wrapf(define.ErrInvalidArg, "CGroup manager must be one of %s and %s",
+			return errors.Wrapf(define.ErrInvalidArg, "Cgroup manager must be one of %s and %s",
 				config.CgroupfsCgroupsManager, config.SystemdCgroupsManager)
 		}
 
@@ -945,7 +945,7 @@ func WithUTSNSFrom(nsCtr *Container) CtrCreateOption {
 	}
 }
 
-// WithCgroupNSFrom indicates the the container should join the CGroup namespace
+// WithCgroupNSFrom indicates the the container should join the Cgroup namespace
 // of the given container.
 // If the container has joined a pod, it can only join the namespaces of
 // containers in the same pod.
@@ -1080,7 +1080,7 @@ func WithLogTag(tag string) CtrCreateOption {
 	}
 }
 
-// WithCgroupsMode disables the creation of CGroups for the conmon process.
+// WithCgroupsMode disables the creation of Cgroups for the conmon process.
 func WithCgroupsMode(mode string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -1864,7 +1864,7 @@ func WithPodCgroupParent(path string) PodCreateOption {
 // WithPodCgroups tells containers in this pod to use the cgroup created for
 // this pod.
 // This can still be overridden at the container level by explicitly specifying
-// a CGroup parent.
+// a Cgroup parent.
 func WithPodCgroups() PodCreateOption {
 	return func(pod *Pod) error {
 		if pod.valid {

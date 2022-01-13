@@ -1402,7 +1402,7 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 		args = append(args, "--log-tag", logTag)
 	}
 	if ctr.config.NoCgroups {
-		logrus.Debugf("Running with no CGroups")
+		logrus.Debugf("Running with no Cgroups")
 		args = append(args, "--runtime-arg", "--cgroup-manager", "--runtime-arg", "disabled")
 	}
 	return args

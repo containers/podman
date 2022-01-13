@@ -44,9 +44,9 @@ type PodConfig struct {
 
 	// Labels contains labels applied to the pod
 	Labels map[string]string `json:"labels"`
-	// CgroupParent contains the pod's CGroup parent
+	// CgroupParent contains the pod's Cgroup parent
 	CgroupParent string `json:"cgroupParent"`
-	// UsePodCgroup indicates whether the pod will create its own CGroup and
+	// UsePodCgroup indicates whether the pod will create its own Cgroup and
 	// join containers to it.
 	// If true, all containers joined to the pod will use the pod cgroup as
 	// their cgroup parent, and cannot set a different cgroup parent
@@ -77,7 +77,7 @@ type PodConfig struct {
 
 // podState represents a pod's state
 type podState struct {
-	// CgroupPath is the path to the pod's CGroup
+	// CgroupPath is the path to the pod's Cgroup
 	CgroupPath string `json:"cgroupPath"`
 	// InfraContainerID is the container that holds pod namespace information
 	// Most often an infra container
@@ -237,7 +237,7 @@ func (p *Pod) CreateCommand() []string {
 	return p.config.CreateCommand
 }
 
-// CgroupParent returns the pod's CGroup parent
+// CgroupParent returns the pod's Cgroup parent
 func (p *Pod) CgroupParent() string {
 	return p.config.CgroupParent
 }
@@ -289,7 +289,7 @@ func (p *Pod) Hostname() string {
 	return p.config.Hostname
 }
 
-// CgroupPath returns the path to the pod's CGroup
+// CgroupPath returns the path to the pod's Cgroup
 func (p *Pod) CgroupPath() (string, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -315,7 +315,7 @@ func (p *Pod) CgroupPath() (string, error) {
 		}
 		if ctr != nil {
 			ctr.Start(context.Background(), true)
-			cgroupPath, err := ctr.CGroupPath()
+			cgroupPath, err := ctr.CgroupPath()
 			fmt.Println(cgroupPath)
 			if err != nil {
 				return "", errors.Wrapf(err, "could not get container cgroup")

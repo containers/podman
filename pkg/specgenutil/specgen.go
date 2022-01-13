@@ -488,8 +488,9 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	if ld := c.LogDriver; len(ld) > 0 {
 		s.LogConfiguration.Driver = ld
 	}
-	s.CgroupParent = c.CGroupParent
-	s.CgroupsMode = c.CGroupsMode
+	s.CgroupParent = c.CgroupParent
+	s.CgroupsMode = c.CgroupsMode
+
 	s.Groups = c.GroupAdd
 
 	s.Hostname = c.Hostname
@@ -587,12 +588,12 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.Devices = append(s.Devices, specs.LinuxDevice{Path: dev})
 	}
 
-	for _, rule := range c.DeviceCGroupRule {
+	for _, rule := range c.DeviceCgroupRule {
 		dev, err := parseLinuxResourcesDeviceAccess(rule)
 		if err != nil {
 			return err
 		}
-		s.DeviceCGroupRule = append(s.DeviceCGroupRule, dev)
+		s.DeviceCgroupRule = append(s.DeviceCgroupRule, dev)
 	}
 
 	s.Init = c.Init

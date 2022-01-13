@@ -730,7 +730,7 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	}
 	hostConfig.CgroupMode = cgroupMode
 
-	// CGroup parent
+	// Cgroup parent
 	// Need to check if it's the default, and not print if so.
 	defaultCgroupParent := ""
 	switch c.CgroupManager() {

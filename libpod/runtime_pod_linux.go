@@ -61,7 +61,7 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 
 	pod.valid = true
 
-	// Check CGroup parent sanity, and set it if it was not set
+	// Check Cgroup parent sanity, and set it if it was not set
 	switch r.config.Engine.CgroupManager {
 	case config.CgroupfsCgroupsManager:
 		canUseCgroup := !rootless.IsRootless() || isRootlessCgroupSet(pod.config.CgroupParent)
@@ -105,7 +105,7 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 			}
 		}
 	default:
-		return nil, errors.Wrapf(define.ErrInvalidArg, "unsupported CGroup manager: %s - cannot validate cgroup parent", r.config.Engine.CgroupManager)
+		return nil, errors.Wrapf(define.ErrInvalidArg, "unsupported Cgroup manager: %s - cannot validate cgroup parent", r.config.Engine.CgroupManager)
 	}
 
 	if pod.config.UsePodCgroup {
@@ -226,12 +226,12 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 	}
 
 	// We're going to be removing containers.
-	// If we are CGroupfs cgroup driver, to avoid races, we need to hit
-	// the pod and conmon CGroups with a PID limit to prevent them from
+	// If we are Cgroupfs cgroup driver, to avoid races, we need to hit
+	// the pod and conmon Cgroups with a PID limit to prevent them from
 	// spawning any further processes (particularly cleanup processes) which
-	// would prevent removing the CGroups.
+	// would prevent removing the Cgroups.
 	if p.runtime.config.Engine.CgroupManager == config.CgroupfsCgroupsManager {
-		// Get the conmon CGroup
+		// Get the conmon Cgroup
 		conmonCgroupPath := filepath.Join(p.state.CgroupPath, "conmon")
 		conmonCgroup, err := cgroups.Load(conmonCgroupPath)
 		if err != nil && err != cgroups.ErrCgroupDeleted && err != cgroups.ErrCgroupV1Rootless {

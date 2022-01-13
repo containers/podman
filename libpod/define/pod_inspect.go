@@ -26,12 +26,12 @@ type InspectPodData struct {
 	// Labels is a set of key-value labels that have been applied to the
 	// pod.
 	Labels map[string]string `json:"Labels,omitempty"`
-	// CreateCgroup is whether this pod will create its own CGroup to group
+	// CreateCgroup is whether this pod will create its own Cgroup to group
 	// containers under.
 	CreateCgroup bool
-	// CgroupParent is the parent of the pod's CGroup.
+	// CgroupParent is the parent of the pod's Cgroup.
 	CgroupParent string `json:"CgroupParent,omitempty"`
-	// CgroupPath is the path to the pod's CGroup.
+	// CgroupPath is the path to the pod's Cgroup.
 	CgroupPath string `json:"CgroupPath,omitempty"`
 	// CreateInfra is whether this pod will create an infra container to
 	// share namespaces.

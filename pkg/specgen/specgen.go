@@ -264,9 +264,9 @@ type ContainerStorageConfig struct {
 	// Devices are devices that will be added to the container.
 	// Optional.
 	Devices []spec.LinuxDevice `json:"devices,omitempty"`
-	// DeviceCGroupRule are device cgroup rules that allow containers
+	// DeviceCgroupRule are device cgroup rules that allow containers
 	// to use additional types of devices.
-	DeviceCGroupRule []spec.LinuxDeviceCgroup `json:"device_cgroup_rule,omitempty"`
+	DeviceCgroupRule []spec.LinuxDeviceCgroup `json:"device_cgroup_rule,omitempty"`
 	// DevicesFrom is a way to ensure your container inherits device specific information from another container
 	DevicesFrom []string `json:"devices_from,omitempty"`
 	// HostDeviceList is used to recreate the mounted device on inherited containers
@@ -390,7 +390,7 @@ type ContainerCgroupConfig struct {
 	// CgroupsMode sets a policy for how cgroups will be created in the
 	// container, including the ability to disable creation entirely.
 	CgroupsMode string `json:"cgroups_mode,omitempty"`
-	// CgroupParent is the container's CGroup parent.
+	// CgroupParent is the container's Cgroup parent.
 	// If not set, the default for the current cgroup driver will be used.
 	// Optional.
 	CgroupParent string `json:"cgroup_parent,omitempty"`

@@ -174,7 +174,7 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman pod ps --ctr-names", func() {
-		SkipIfRootlessCgroupsV1("Not supported for rootless + CGroupsV1")
+		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 

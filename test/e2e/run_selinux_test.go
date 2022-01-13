@@ -260,7 +260,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman test --pid=host", func() {
-		SkipIfRootlessCgroupsV1("Not supported for rootless + CGroupsV1")
+		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		session := podmanTest.Podman([]string{"run", "--pid=host", ALPINE, "cat", "/proc/self/attr/current"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
