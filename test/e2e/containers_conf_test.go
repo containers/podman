@@ -484,4 +484,35 @@ var _ = Describe("Podman run", func() {
 		Expect(result).Should(Exit(125))
 		Expect(result.ErrorToString()).To(ContainSubstring(errorString))
 	})
+
+	It("podman containers.conf cgroups=disabled", func() {
+		if !strings.Contains(podmanTest.OCIRuntime, "crun") {
+			Skip("FIXME: requires crun")
+		}
+		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
+
+		err := ioutil.WriteFile(conffile, []byte("[containers]\ncgroups=\"disabled\"\n"), 0755)
+		Expect(err).To(BeNil())
+
+		result := podmanTest.Podman([]string{"create", ALPINE, "true"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "--format", "{{ .HostConfig.Cgroups }}", result.OutputToString()})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.OutputToString()).To(Not(Equal("disabled")))
+
+		os.Setenv("CONTAINERS_CONF", conffile)
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+		result = podmanTest.Podman([]string{"create", ALPINE, "true"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+
+		inspect = podmanTest.Podman([]string{"inspect", "--format", "{{ .HostConfig.Cgroups }}", result.OutputToString()})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.OutputToString()).To(Equal("disabled"))
+	})
+
 })

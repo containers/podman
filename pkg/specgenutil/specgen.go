@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/libpod/define"
@@ -490,6 +491,14 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	}
 	s.CgroupParent = c.CgroupParent
 	s.CgroupsMode = c.CgroupsMode
+	if s.CgroupsMode == "" {
+		rtc, err := config.Default()
+		if err != nil {
+			return err
+		}
+
+		s.CgroupsMode = rtc.Cgroups()
+	}
 
 	s.Groups = c.GroupAdd
 
