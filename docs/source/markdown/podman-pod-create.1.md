@@ -276,6 +276,28 @@ podman generates a UUID for each pod, and if a name is not assigned
 to the container with **--name** then a random string name will be generated
 for it. The name is useful any place you need to identify a pod.
 
+#### **--sysctl**=_name_=_value_
+
+Configure namespace kernel parameters for all containers in the pod.
+
+For the IPC namespace, the following sysctls are allowed:
+
+- kernel.msgmax
+- kernel.msgmnb
+- kernel.msgmni
+- kernel.sem
+- kernel.shmall
+- kernel.shmmax
+- kernel.shmmni
+- kernel.shm_rmid_forced
+- Sysctls beginning with fs.mqueue.\*
+
+Note: if the ipc namespace is not shared within the pod, these sysctls are not allowed.
+
+For the network namespace, only sysctls beginning with net.\* are allowed.
+
+Note: if the network namespace is not shared within the pod, these sysctls are not allowed.
+
 #### **--userns**=*mode*
 
 Set the user namespace mode for all the containers in a pod. It defaults to the **PODMAN_USERNS** environment variable. An empty value ("") means user namespaces are disabled.

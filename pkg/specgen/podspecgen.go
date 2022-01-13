@@ -74,6 +74,8 @@ type PodBasicConfig struct {
 	Userns Namespace `json:"userns,omitempty"`
 	// Devices contains user specified Devices to be added to the Pod
 	Devices []string `json:"pod_devices,omitempty"`
+	// Sysctl sets kernel parameters for the pod
+	Sysctl map[string]string `json:"sysctl,omitempty"`
 }
 
 // PodNetworkConfig contains networking configuration for a pod.

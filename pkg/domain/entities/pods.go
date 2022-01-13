@@ -139,6 +139,7 @@ type PodCreateOptions struct {
 	Volume             []string          `json:"volume,omitempty"`
 	VolumesFrom        []string          `json:"volumes_from,omitempty"`
 	SecurityOpt        []string          `json:"security_opt,omitempty"`
+	Sysctl             []string          `json:"sysctl,omitempty"`
 }
 
 // PodLogsOptions describes the options to extract pod logs.
@@ -240,7 +241,7 @@ type ContainerCreateOptions struct {
 	StorageOpts       []string
 	SubUIDName        string
 	SubGIDName        string
-	Sysctl            []string
+	Sysctl            []string `json:"sysctl,omitempty"`
 	Systemd           string
 	Timeout           uint
 	TLSVerify         commonFlag.OptionalBool
@@ -360,6 +361,15 @@ func ToPodSpecGen(s specgen.PodSpecGenerator, p *PodCreateOptions) (*specgen.Pod
 		}
 	}
 	s.Userns = p.Userns
+	sysctl := map[string]string{}
+	if ctl := p.Sysctl; len(ctl) > 0 {
+		sysctl, err = util.ValidateSysctls(ctl)
+		if err != nil {
+			return nil, err
+		}
+	}
+	s.Sysctl = sysctl
+
 	return &s, nil
 }
 
