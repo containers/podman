@@ -62,6 +62,11 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		}
 		params.Set("annotations", l)
 	}
+
+	if options.AllPlatforms {
+		params.Add("allplatforms", "1")
+	}
+
 	params.Add("t", options.Output)
 	for _, tag := range options.AdditionalTags {
 		params.Add("t", tag)
@@ -289,6 +294,11 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		}
 		params.Set("ulimits", string(ulimitsJSON))
 	}
+
+	for _, uenv := range options.UnsetEnvs {
+		params.Add("unsetenv", uenv)
+	}
+
 	var (
 		headers map[string]string
 		err     error

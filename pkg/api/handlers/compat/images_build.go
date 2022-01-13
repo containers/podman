@@ -73,6 +73,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		AdditionalCapabilities string   `schema:"addcaps"`
 		Annotations            string   `schema:"annotations"`
 		AppArmor               string   `schema:"apparmor"`
+		AllPlatforms           bool     `schema:"allplatforms"`
 		BuildArgs              string   `schema:"buildargs"`
 		CacheFrom              string   `schema:"cachefrom"`
 		Compression            uint64   `schema:"compression"`
@@ -121,6 +122,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Target                 string   `schema:"target"`
 		Timestamp              int64    `schema:"timestamp"`
 		Ulimits                string   `schema:"ulimits"`
+		UnsetEnvs              []string `schema:"unsetenv"`
 		Secrets                string   `schema:"secrets"`
 	}{
 		Dockerfile: "Dockerfile",
@@ -495,6 +497,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		AdditionalTags:  additionalTags,
 		Annotations:     annotations,
 		Args:            buildArgs,
+		AllPlatforms:    query.AllPlatforms,
 		CommonBuildOpts: &buildah.CommonBuildOptions{
 			AddHost:            addhosts,
 			ApparmorProfile:    apparmor,
@@ -548,6 +551,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Squash:                         query.Squash,
 		Target:                         query.Target,
 		SystemContext:                  systemContext,
+		UnsetEnvs:                      query.UnsetEnvs,
 	}
 
 	for _, platformSpec := range query.Platform {

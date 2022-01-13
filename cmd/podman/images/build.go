@@ -514,11 +514,10 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 	opts := buildahDefine.BuildOptions{
 		AddCapabilities:         flags.CapAdd,
 		AdditionalTags:          tags,
+		AllPlatforms:            flags.AllPlatforms,
 		Annotations:             flags.Annotation,
 		Args:                    args,
 		BlobDirectory:           flags.BlobCache,
-		CNIConfigDir:            flags.CNIConfigDir,
-		CNIPluginPath:           flags.CNIPlugInPath,
 		CommonBuildOpts:         commonOpts,
 		Compression:             compression,
 		ConfigureNetwork:        networkPolicy,
@@ -559,6 +558,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		SystemContext:           systemContext,
 		Target:                  flags.Target,
 		TransientMounts:         flags.Volumes,
+		UnsetEnvs:               flags.UnsetEnvs,
 	}
 
 	if flags.IgnoreFile != "" {
