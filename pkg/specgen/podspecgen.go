@@ -3,7 +3,7 @@ package specgen
 import (
 	"net"
 
-	"github.com/containers/podman/v3/libpod/network/types"
+	"github.com/containers/common/libnetwork/types"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 

@@ -29,14 +29,10 @@ const (
 	Package = "buildah"
 	// Version for the Package.  Bump version in contrib/rpm/buildah.spec
 	// too.
-	Version = "1.23.1"
+	Version = "1.24.0-dev"
 
 	// DefaultRuntime if containers.conf fails.
 	DefaultRuntime = "runc"
-
-	DefaultCNIPluginPath = "/usr/libexec/cni:/opt/cni/bin"
-	// DefaultCNIConfigDir is the default location of CNI configuration files.
-	DefaultCNIConfigDir = "/etc/cni/net.d"
 
 	// OCIv1ImageManifest is the MIME type of an OCIv1 image manifest,
 	// suitable for specifying as a value of the PreferredManifestType
@@ -93,6 +89,13 @@ type IDMappingOptions struct {
 	GIDMap         []specs.LinuxIDMapping
 }
 
+// Secret is a secret source that can be used in a RUN
+type Secret struct {
+	ID         string
+	Source     string
+	SourceType string
+}
+
 // TempDirForURL checks if the passed-in string looks like a URL or -.  If it is,
 // TempDirForURL creates a temporary directory, arranges for its contents to be
 // the contents of that URL, and returns the temporary directory's path, along
@@ -117,12 +120,12 @@ func TempDirForURL(dir, prefix, url string) (name string, subdir string, err err
 		return "", "", errors.Wrapf(err, "error parsing url %q", url)
 	}
 	if strings.HasPrefix(url, "git://") || strings.HasSuffix(urlParsed.Path, ".git") {
-		err = cloneToDirectory(url, name)
+		combinedOutput, err := cloneToDirectory(url, name)
 		if err != nil {
 			if err2 := os.RemoveAll(name); err2 != nil {
 				logrus.Debugf("error removing temporary directory %q: %v", name, err2)
 			}
-			return "", "", err
+			return "", "", errors.Wrapf(err, "cloning %q to %q:\n%s", url, name, string(combinedOutput))
 		}
 		return name, "", nil
 	}
@@ -160,7 +163,7 @@ func TempDirForURL(dir, prefix, url string) (name string, subdir string, err err
 	return "", "", errors.Errorf("unreachable code reached")
 }
 
-func cloneToDirectory(url, dir string) error {
+func cloneToDirectory(url, dir string) ([]byte, error) {
 	gitBranch := strings.Split(url, "#")
 	var cmd *exec.Cmd
 	if len(gitBranch) < 2 {
@@ -170,7 +173,7 @@ func cloneToDirectory(url, dir string) error {
 		logrus.Debugf("cloning repo %q and branch %q to %q", gitBranch[0], gitBranch[1], dir)
 		cmd = exec.Command("git", "clone", "--recurse-submodules", "-b", gitBranch[1], gitBranch[0], dir)
 	}
-	return cmd.Run()
+	return cmd.CombinedOutput()
 }
 
 func downloadToDirectory(url, dir string) error {

@@ -16,7 +16,6 @@ import (
 	"github.com/containers/buildah"
 	buildahDefine "github.com/containers/buildah/define"
 	"github.com/containers/buildah/pkg/parse"
-	"github.com/containers/buildah/util"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/pkg/api/handlers/utils"
@@ -74,6 +73,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		AdditionalCapabilities string   `schema:"addcaps"`
 		Annotations            string   `schema:"annotations"`
 		AppArmor               string   `schema:"apparmor"`
+		AllPlatforms           bool     `schema:"allplatforms"`
 		BuildArgs              string   `schema:"buildargs"`
 		CacheFrom              string   `schema:"cachefrom"`
 		Compression            uint64   `schema:"compression"`
@@ -122,6 +122,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Target                 string   `schema:"target"`
 		Timestamp              int64    `schema:"timestamp"`
 		Ulimits                string   `schema:"ulimits"`
+		UnsetEnvs              []string `schema:"unsetenv"`
 		Secrets                string   `schema:"secrets"`
 	}{
 		Dockerfile: "Dockerfile",
@@ -491,16 +492,12 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	defer reporter.Close()
 
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	rtc, err := runtime.GetConfig()
-	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
-		return
-	}
 	buildOptions := buildahDefine.BuildOptions{
 		AddCapabilities: addCaps,
 		AdditionalTags:  additionalTags,
 		Annotations:     annotations,
 		Args:            buildArgs,
+		AllPlatforms:    query.AllPlatforms,
 		CommonBuildOpts: &buildah.CommonBuildOptions{
 			AddHost:            addhosts,
 			ApparmorProfile:    apparmor,
@@ -522,8 +519,6 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			Ulimit:             ulimits,
 			Secrets:            secrets,
 		},
-		CNIConfigDir:                   rtc.Network.CNIPluginDirs[0],
-		CNIPluginPath:                  util.DefaultCNIPluginPath,
 		Compression:                    compression,
 		ConfigureNetwork:               parseNetworkConfigurationPolicy(query.ConfigureNetwork),
 		ContextDirectory:               contextDirectory,
@@ -556,6 +551,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Squash:                         query.Squash,
 		Target:                         query.Target,
 		SystemContext:                  systemContext,
+		UnsetEnvs:                      query.UnsetEnvs,
 	}
 
 	for _, platformSpec := range query.Platform {

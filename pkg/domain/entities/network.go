@@ -3,7 +3,7 @@ package entities
 import (
 	"net"
 
-	"github.com/containers/podman/v3/libpod/network/types"
+	"github.com/containers/common/libnetwork/types"
 )
 
 // NetworkListOptions describes options for listing networks in cli

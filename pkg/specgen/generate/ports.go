@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/containers/common/libimage"
-	"github.com/containers/podman/v3/libpod/network/types"
+	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v3/utils"
 
 	"github.com/containers/podman/v3/pkg/specgen"

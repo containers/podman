@@ -238,7 +238,7 @@ func runUsingChrootMain() {
 		// Set the kernel's lock to "unlocked".
 		locked := 0
 		if result, _, err := unix.Syscall(unix.SYS_IOCTL, uintptr(ptyMasterFd), unix.TIOCSPTLCK, uintptr(unsafe.Pointer(&locked))); int(result) == -1 {
-			logrus.Errorf("error locking PTY descriptor: %v", err)
+			logrus.Errorf("error unlocking PTY descriptor: %v", err)
 			os.Exit(1)
 		}
 		// Get a handle for the other end.
@@ -1191,21 +1191,33 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		}
 		requestFlags := bindFlags
 		expectedFlags := uintptr(0)
-		if util.StringInSlice("nodev", m.Options) {
-			requestFlags |= unix.MS_NODEV
-			expectedFlags |= unix.ST_NODEV
-		}
-		if util.StringInSlice("noexec", m.Options) {
-			requestFlags |= unix.MS_NOEXEC
-			expectedFlags |= unix.ST_NOEXEC
-		}
-		if util.StringInSlice("nosuid", m.Options) {
-			requestFlags |= unix.MS_NOSUID
-			expectedFlags |= unix.ST_NOSUID
-		}
-		if util.StringInSlice("ro", m.Options) {
-			requestFlags |= unix.MS_RDONLY
-			expectedFlags |= unix.ST_RDONLY
+		for _, option := range m.Options {
+			switch option {
+			case "nodev":
+				requestFlags |= unix.MS_NODEV
+				expectedFlags |= unix.ST_NODEV
+			case "dev":
+				requestFlags &= ^uintptr(unix.MS_NODEV)
+				expectedFlags &= ^uintptr(unix.ST_NODEV)
+			case "noexec":
+				requestFlags |= unix.MS_NOEXEC
+				expectedFlags |= unix.ST_NOEXEC
+			case "exec":
+				requestFlags &= ^uintptr(unix.MS_NOEXEC)
+				expectedFlags &= ^uintptr(unix.ST_NOEXEC)
+			case "nosuid":
+				requestFlags |= unix.MS_NOSUID
+				expectedFlags |= unix.ST_NOSUID
+			case "suid":
+				requestFlags &= ^uintptr(unix.MS_NOSUID)
+				expectedFlags &= ^uintptr(unix.ST_NOSUID)
+			case "ro":
+				requestFlags |= unix.MS_RDONLY
+				expectedFlags |= unix.ST_RDONLY
+			case "rw":
+				requestFlags &= ^uintptr(unix.MS_RDONLY)
+				expectedFlags &= ^uintptr(unix.ST_RDONLY)
+			}
 		}
 		switch m.Type {
 		case "bind":

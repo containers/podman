@@ -47,8 +47,10 @@ type AddAndCopyOptions struct {
 	// If the sources include directory trees, Hasher will be passed
 	// tar-format archives of the directory trees.
 	Hasher io.Writer
-	// Excludes is the contents of the .dockerignore file.
+	// Excludes is the contents of the .containerignore file.
 	Excludes []string
+	// IgnoreFile is the path to the .containerignore file.
+	IgnoreFile string
 	// ContextDir is the base directory for content being copied and
 	// Excludes patterns.
 	ContextDir string
@@ -564,7 +566,11 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 			}
 		}
 		if itemsCopied == 0 {
-			return errors.Wrapf(syscall.ENOENT, "no items matching glob %q copied (%d filtered out)", localSourceStat.Glob, len(localSourceStat.Globbed))
+			excludesFile := ""
+			if options.IgnoreFile != "" {
+				excludesFile = " using " + options.IgnoreFile
+			}
+			return errors.Wrapf(syscall.ENOENT, "no items matching glob %q copied (%d filtered out%s)", localSourceStat.Glob, len(localSourceStat.Globbed), excludesFile)
 		}
 	}
 	return nil

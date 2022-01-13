@@ -96,6 +96,8 @@ func (r *Runtime) Build(ctx context.Context, options buildahDefine.BuildOptions,
 	if options.Runtime == "" {
 		options.Runtime = r.GetOCIRuntimePath()
 	}
+	// share the network interface between podman and buildah
+	options.NetworkInterface = r.network
 	id, ref, err := imagebuildah.BuildDockerfiles(ctx, r.store, options, dockerfiles...)
 	// Write event for build completion
 	r.newImageBuildCompleteEvent(id)

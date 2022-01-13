@@ -1,6 +1,6 @@
 package libpod
 
-import "github.com/containers/podman/v3/libpod/network/types"
+import "github.com/containers/common/libnetwork/types"
 
 // State is a storage backend for libpod's current state.
 // A State is only initialized once per instance of libpod.

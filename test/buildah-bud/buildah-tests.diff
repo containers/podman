@@ -1,15 +1,15 @@
-From 5baab334cac9853c1d4bae9466d46dbbe5ff7158 Mon Sep 17 00:00:00 2001
+From c18638abfbc1066442cf6ff0b3f012a5c25a918e Mon Sep 17 00:00:00 2001
 From: Ed Santiago <santiago@redhat.com>
 Date: Tue, 9 Feb 2021 17:28:05 -0700
 Subject: [PATCH] tweaks for running buildah tests under podman
 
 Signed-off-by: Ed Santiago <santiago@redhat.com>
 ---
- tests/helpers.bash | 71 +++++++++++++++++++++++++++++++++++++++++++---
- 1 file changed, 67 insertions(+), 4 deletions(-)
+ tests/helpers.bash | 72 +++++++++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 68 insertions(+), 4 deletions(-)
 
 diff --git a/tests/helpers.bash b/tests/helpers.bash
-index 166316d5..775d7c9b 100644
+index bd2794c9..ecf6ed7d 100644
 --- a/tests/helpers.bash
 +++ b/tests/helpers.bash
 @@ -43,6 +43,23 @@ EOF
@@ -36,9 +36,9 @@ index 166316d5..775d7c9b 100644
  }
  
  function starthttpd() {
-@@ -84,6 +101,12 @@ function teardown(){
- function teardown_tests() {
+@@ -85,6 +102,12 @@ function teardown_tests() {
      stophttpd
+     stop_git_daemon
  
 +    if [[ -n "$PODMAN_SERVER_PID" ]]; then
 +        kill $PODMAN_SERVER_PID
@@ -49,7 +49,7 @@ index 166316d5..775d7c9b 100644
      # Workaround for #1991 - buildah + overlayfs leaks mount points.
      # Many tests leave behind /var/tmp/.../root/overlay and sub-mounts;
      # let's find those and clean them up, otherwise 'rm -rf' fails.
-@@ -156,7 +179,13 @@ function copy() {
+@@ -157,7 +180,13 @@ function copy() {
  }
  
  function podman() {
@@ -64,7 +64,7 @@ index 166316d5..775d7c9b 100644
  }
  
  #################
-@@ -191,15 +220,40 @@ function run_buildah() {
+@@ -192,15 +221,41 @@ function run_buildah() {
          --retry)         retry=3;        shift;;  # retry network flakes
      esac
  
@@ -86,9 +86,10 @@ index 166316d5..775d7c9b 100644
 +            _opts=
 +        fi
 +
-+        # podman always exits 125 where buildah exits 1 or 2
++        # podman always exits 125 where buildah exits 1 or 2 (or, in the
++        # case of git, 128, which is a bug in git, but I won't harp on that).
 +        case $expected_rc in
-+            1|2)   expected_rc=125 ;;
++            1|2|128)   expected_rc=125 ;;
 +        esac
 +    fi
 +    local cmd_basename=$(basename ${podman_or_buildah})
@@ -108,11 +109,10 @@ index 166316d5..775d7c9b 100644
          # without "quotes", multiple lines are glommed together into one
          if [ -n "$output" ]; then
              echo "$output"
-@@ -477,3 +531,12 @@ function skip_if_no_docker() {
-     skip "this test needs actual docker, not podman-docker"
+@@ -499,6 +554,15 @@ function skip_if_no_docker() {
    fi
  }
-+
+ 
 +####################
 +#  skip_if_remote  #  (only applicable for podman)
 +####################
@@ -121,6 +121,10 @@ index 166316d5..775d7c9b 100644
 +        skip "${1:-test does not work with podman-remote}"
 +    fi
 +}
++
+ function start_git_daemon() {
+   daemondir=${TESTDIR}/git-daemon
+   mkdir -p ${daemondir}/repo
 -- 
-2.25.1
+2.34.1
 

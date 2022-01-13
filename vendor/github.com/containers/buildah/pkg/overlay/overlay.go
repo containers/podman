@@ -88,7 +88,7 @@ func mountHelper(contentDir, source, dest string, _, _ int, graphOptions []strin
 		if err := os.Mkdir(lowerTwo, 0755); err != nil {
 			return mount, err
 		}
-		overlayOptions = fmt.Sprintf("lowerdir=%s:%s,private", source, lowerTwo)
+		overlayOptions = fmt.Sprintf("lowerdir=%s:%s,private", escapeColon(source), lowerTwo)
 	} else {
 		// Read-write overlay mounts want a lower, upper and a work layer.
 		workDir := filepath.Join(contentDir, "work")
@@ -105,8 +105,7 @@ func mountHelper(contentDir, source, dest string, _, _ int, graphOptions []strin
 				return mount, err
 			}
 		}
-
-		overlayOptions = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s,private", source, upperDir, workDir)
+		overlayOptions = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s,private", escapeColon(source), upperDir, workDir)
 	}
 
 	if unshare.IsRootless() {
@@ -153,6 +152,11 @@ func mountHelper(contentDir, source, dest string, _, _ int, graphOptions []strin
 	mount.Options = strings.Split(overlayOptions, ",")
 
 	return mount, nil
+}
+
+// Convert ":" to "\:", the path which will be overlay mounted need to be escaped
+func escapeColon(source string) string {
+	return strings.ReplaceAll(source, ":", "\\:")
 }
 
 // RemoveTemp removes temporary mountpoint and all content from its parent

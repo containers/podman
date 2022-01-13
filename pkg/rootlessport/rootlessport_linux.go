@@ -12,7 +12,7 @@
 package rootlessport
 
 import (
-	"github.com/containers/podman/v3/libpod/network/types"
+	"github.com/containers/common/libnetwork/types"
 )
 
 const (

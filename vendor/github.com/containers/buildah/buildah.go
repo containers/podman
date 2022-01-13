@@ -13,6 +13,7 @@ import (
 
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/docker"
+	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/containers/storage"
@@ -154,6 +155,10 @@ type Builder struct {
 	// CNIConfigDir is the location of CNI configuration files, if the files in
 	// the default configuration directory shouldn't be used.
 	CNIConfigDir string
+
+	// NetworkInterface is the libnetwork network interface used to setup CNI or netavark networks.
+	NetworkInterface nettypes.ContainerNetwork `json:"-"`
+
 	// ID mapping options to use when running processes in the container with non-host user namespaces.
 	IDMappingOptions define.IDMappingOptions
 	// Capabilities is a list of capabilities to use when running commands in the container.
@@ -257,6 +262,8 @@ type BuilderOptions struct {
 	// or "scratch" to indicate that the container should not be based on
 	// an image.
 	FromImage string
+	// ContainerSuffix is the suffix to add for generated container names
+	ContainerSuffix string
 	// Container is a desired name for the build container.
 	Container string
 	// PullPolicy decides whether or not we should pull the image that
@@ -271,6 +278,8 @@ type BuilderOptions struct {
 	// to store copies of layer blobs that we pull down, if any.  It should
 	// already exist.
 	BlobDirectory string
+	// Logger is the logrus logger to write log messages with
+	Logger *logrus.Logger `json:"-"`
 	// Mount signals to NewBuilder() that the container should be mounted
 	// immediately.
 	Mount bool
@@ -307,6 +316,10 @@ type BuilderOptions struct {
 	// CNIConfigDir is the location of CNI configuration files, if the files in
 	// the default configuration directory shouldn't be used.
 	CNIConfigDir string
+
+	// NetworkInterface is the libnetwork network interface used to setup CNI or netavark networks.
+	NetworkInterface nettypes.ContainerNetwork `json:"-"`
+
 	// ID mapping options to use if we're setting up our own user namespace.
 	IDMappingOptions *define.IDMappingOptions
 	// Capabilities is a list of capabilities to use when
@@ -327,6 +340,10 @@ type BuilderOptions struct {
 	// OciDecryptConfig contains the config that can be used to decrypt an image if it is
 	// encrypted if non-nil. If nil, it does not attempt to decrypt an image.
 	OciDecryptConfig *encconfig.DecryptConfig
+	// ProcessLabel is the SELinux process label associated with the container
+	ProcessLabel string
+	// MountLabel is the SELinux mount label associated with the container
+	MountLabel string
 }
 
 // ImportOptions are used to initialize a Builder from an existing container
@@ -396,6 +413,12 @@ func OpenBuilder(store storage.Store, container string) (*Builder, error) {
 	if b.Type != containerType {
 		return nil, errors.Errorf("container %q is not a %s container (is a %q container)", container, define.Package, b.Type)
 	}
+
+	netInt, err := getNetworkInterface(store, b.CNIConfigDir, b.CNIPluginPath)
+	if err != nil {
+		return nil, err
+	}
+	b.NetworkInterface = netInt
 	b.store = store
 	b.fixupConfig(nil)
 	b.setupLogger()

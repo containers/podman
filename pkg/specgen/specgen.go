@@ -6,8 +6,8 @@ import (
 	"syscall"
 
 	"github.com/containers/common/libimage"
+	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/image/v5/manifest"
-	nettypes "github.com/containers/podman/v3/libpod/network/types"
 	"github.com/containers/storage/types"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"

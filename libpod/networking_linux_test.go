@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/libpod/network/types"
 )
 
 func Test_ocicniPortsToNetTypesPorts(t *testing.T) {

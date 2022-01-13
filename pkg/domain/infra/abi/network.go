@@ -3,9 +3,9 @@ package abi
 import (
 	"context"
 
+	"github.com/containers/common/libnetwork/types"
+	netutil "github.com/containers/common/libnetwork/util"
 	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/libpod/network/types"
-	netutil "github.com/containers/podman/v3/libpod/network/util"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/pkg/errors"

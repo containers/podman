@@ -3,7 +3,7 @@ package generate
 import (
 	"testing"
 
-	"github.com/containers/podman/v3/libpod/network/types"
+	"github.com/containers/common/libnetwork/types"
 	"github.com/stretchr/testify/assert"
 )
 
