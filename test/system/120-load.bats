@@ -104,10 +104,6 @@ verify_iid_and_name() {
     # If we can't sudo, we can't test.
     _sudo true || skip "cannot sudo to $notme"
 
-    # FIXME FIXME FIXME: it'd be reeeeeeally nice if we could pass --root
-    #                    to the non-self user, hence avoid vandalizing
-    #                    their storage.
-
     # Preserve digest of original image; we will compare against it later
     run_podman image inspect --format '{{.Digest}}' $IMAGE
     src_digest=$output
@@ -117,12 +113,8 @@ verify_iid_and_name() {
     run_podman tag $IMAGE $newname
 
     # Copy it there.
-    # FIXME: the first '.*' in the expect string below is unfortunate; it's
-    #        a workaround for Ubuntu which gripes:
-    #        "warning.*defaulting to su since machinectl is not available"
-    #        Reexamine this once #12829 is fixed
     run_podman image scp $newname ${notme}@localhost::
-    is "$output" ".*Copying blob .*Copying config.*Writing manifest.*Storing signatures"
+    is "$output" "Copying blob .*Copying config.*Writing manifest.*Storing signatures"
 
     # confirm that image was copied. FIXME: also try $PODMAN image inspect?
     _sudo $PODMAN image exists $newname
@@ -132,13 +124,6 @@ verify_iid_and_name() {
     run_podman image scp -q ${notme}@localhost::$newname
 
     expect="Loaded image(s): $newname"
-    # FIXME FIXME FIXME: ubuntu has no machinectl, emits useless warning message instead
-    if ! is_rootless; then
-        # FIXME: root on fedora uses machinectl, which emits useless \n and \r (#12829)
-        NL=$'\n'
-        CR=$'\r'
-        expect="$NL$expect$CR"
-    fi
     is "$output" "$expect" "-q silences output"
 
     # Confirm that we have it, and that its digest matches our original
@@ -150,17 +135,14 @@ verify_iid_and_name() {
     run_podman untag $IMAGE $newname
 
     # Negative test for nonexistent image.
-    # FIXME FIXME: cannot test on root, because it uses machinectl (#12829)
-    if is_rootless; then
-        # FIXME: error message is 2 lines, the 2nd being "exit status 125".
-        # FIXME: is that fixable, or do we have to live with it?
-        nope="nope.nope/nonesuch:notag"
-        run_podman 125 image scp ${notme}@localhost::$nope
-        is "$output" "Error: $nope: image not known.*" "Pulling nonexistent image"
+    # FIXME: error message is 2 lines, the 2nd being "exit status 125".
+    # FIXME: is that fixable, or do we have to live with it?
+    nope="nope.nope/nonesuch:notag"
+    run_podman 125 image scp ${notme}@localhost::$nope
+    is "$output" "Error: $nope: image not known.*" "Pulling nonexistent image"
 
-        run_podman 125 image scp $nope ${notme}@localhost::
-        is "$output" "Error: $nope: image not known.*" "Pushing nonexistent image"
-    fi
+    run_podman 125 image scp $nope ${notme}@localhost::
+    is "$output" "Error: $nope: image not known.*" "Pushing nonexistent image"
 
     # Negative test for copying to a different name
     run_podman 125 image scp $IMAGE ${notme}@localhost::newname:newtag
