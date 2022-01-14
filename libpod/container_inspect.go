@@ -9,6 +9,7 @@ import (
 	"github.com/containers/podman/v3/libpod/define"
 	"github.com/containers/podman/v3/libpod/driver"
 	"github.com/containers/podman/v3/pkg/util"
+	"github.com/containers/storage/types"
 	units "github.com/docker/go-units"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -401,6 +402,17 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 	ctrConfig.Passwd = c.config.Passwd
 
 	return ctrConfig
+}
+
+func generateIDMappings(idMappings types.IDMappingOptions) *define.InspectIDMappings {
+	var inspectMappings define.InspectIDMappings
+	for _, uid := range idMappings.UIDMap {
+		inspectMappings.UIDMap = append(inspectMappings.UIDMap, fmt.Sprintf("%d:%d:%d", uid.ContainerID, uid.HostID, uid.Size))
+	}
+	for _, gid := range idMappings.GIDMap {
+		inspectMappings.GIDMap = append(inspectMappings.GIDMap, fmt.Sprintf("%d:%d:%d", gid.ContainerID, gid.HostID, gid.Size))
+	}
+	return &inspectMappings
 }
 
 // Generate the InspectContainerHostConfig struct for the HostConfig field of
@@ -815,7 +827,9 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 		}
 	}
 	hostConfig.UsernsMode = usernsMode
-
+	if c.config.IDMappings.UIDMap != nil && c.config.IDMappings.GIDMap != nil {
+		hostConfig.IDMappings = generateIDMappings(c.config.IDMappings)
+	}
 	// Devices
 	// Do not include if privileged - assumed that all devices will be
 	// included.
