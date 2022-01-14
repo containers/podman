@@ -6,6 +6,11 @@ import (
 	"github.com/containers/image/v5/manifest"
 )
 
+type InspectIDMappings struct {
+	UIDMap []string `json:"UidMap"`
+	GIDMap []string `json:"GidMap"`
+}
+
 // InspectContainerConfig holds further data about how a container was initially
 // configured.
 type InspectContainerConfig struct {
@@ -401,7 +406,10 @@ type InspectContainerHostConfig struct {
 	// TODO Rootless has an additional 'keep-id' option, presently not
 	// reflected here.
 	UsernsMode string `json:"UsernsMode"`
+	// IDMappings is the UIDMapping and GIDMapping used within the container
+	IDMappings *InspectIDMappings `json:"IDMappings,omitempty"`
 	// ShmSize is the size of the container's SHM device.
+
 	ShmSize int64 `json:"ShmSize"`
 	// Runtime is provided purely for Docker compatibility.
 	// It is set unconditionally to "oci" as Podman does not presently
