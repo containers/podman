@@ -109,7 +109,7 @@ var _ = Describe("Podman run device", func() {
 		err = cmd.Run()
 		Expect(err).To(BeNil())
 
-		session := podmanTest.Podman([]string{"run", "-q", "--security-opt", "label=disable", "--device", "myKmsg", ALPINE, "test", "-c", "/dev/kmsg1"})
+		session := podmanTest.Podman([]string{"run", "-q", "--security-opt", "label=disable", "--device", "vendor.com/device=myKmsg", ALPINE, "test", "-c", "/dev/kmsg1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg"
+	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	"github.com/containers/common/libimage"
 	"github.com/containers/podman/v3/libpod"
 	"github.com/containers/podman/v3/libpod/define"
@@ -199,20 +199,21 @@ func ExecuteCreate(ctx context.Context, rt *libpod.Runtime, runtimeSpec *spec.Sp
 	return ctr, rt.PrepareVolumeOnCreateContainer(ctx, ctr)
 }
 
+// ExtractCDIDevices process the list of Devices in the spec and determines if any of these are CDI devices.
+// The CDI devices are added to the list of CtrCreateOptions.
+// Note that this may modify the device list associated with the spec, which should then only contain non-CDI devices.
 func ExtractCDIDevices(s *specgen.SpecGenerator) []libpod.CtrCreateOption {
 	devs := make([]spec.LinuxDevice, 0, len(s.Devices))
 	var cdiDevs []string
 	var options []libpod.CtrCreateOption
 
 	for _, device := range s.Devices {
-		isCDIDevice, err := cdi.HasDevice(device.Path)
-		if err != nil {
-			logrus.Debugf("CDI HasDevice Error: %v", err)
-		}
-		if err == nil && isCDIDevice {
+		if isCDIDevice(device.Path) {
+			logrus.Debugf("Identified CDI device %v", device.Path)
 			cdiDevs = append(cdiDevs, device.Path)
 			continue
 		}
+		logrus.Debugf("Non-CDI device %v; assuming standard device", device.Path)
 		devs = append(devs, device)
 	}
 	s.Devices = devs
@@ -220,6 +221,11 @@ func ExtractCDIDevices(s *specgen.SpecGenerator) []libpod.CtrCreateOption {
 		options = append(options, libpod.WithCDI(cdiDevs))
 	}
 	return options
+}
+
+// isCDIDevice checks whether the specified device is a CDI device.
+func isCDIDevice(device string) bool {
+	return cdi.IsQualifiedName(device)
 }
 
 func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGenerator, pod *libpod.Pod, volumes []*specgen.NamedVolume, overlays []*specgen.OverlayVolume, imageData *libimage.ImageData, command []string, infraVolumes bool, compatibleOptions libpod.InfraInherit) ([]libpod.CtrCreateOption, error) {
