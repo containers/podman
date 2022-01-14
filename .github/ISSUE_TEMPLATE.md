@@ -12,7 +12,7 @@ documented on the top of Podman's [README.md](../README.md).  If they differ, pl
 update your version of Podman to the latest possible and retry your command before creating
 an issue.
 
-Also, there is a running list of known issues in the [Podman Troubleshooting Guide](https://github.com/containers/podman/blob/master/troubleshooting.md),
+Also, there is a running list of known issues in the [Podman Troubleshooting Guide](https://github.com/containers/podman/blob/main/troubleshooting.md),
 please reference that page before opening a new issue.
 
 If you are filing a bug against `podman build`, please instead file a bug
@@ -67,7 +67,7 @@ Briefly describe the problem you are having in a few paragraphs.
 (paste your output here)
 ```
 
-**Have you tested with the latest version of Podman and have you checked the Podman Troubleshooting Guide? (https://github.com/containers/podman/blob/master/troubleshooting.md)**
+**Have you tested with the latest version of Podman and have you checked the Podman Troubleshooting Guide? (https://github.com/containers/podman/blob/main/troubleshooting.md)**
 
 
 Yes/No
