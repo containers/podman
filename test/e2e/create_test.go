@@ -693,4 +693,17 @@ var _ = Describe("Podman create", func() {
 		Expect(idata[0].Os).To(Equal(runtime.GOOS))
 		Expect(idata[0].Architecture).To(Equal("arm64"))
 	})
+
+	It("podman create --uid/gidmap --pod conflict test", func() {
+		create := podmanTest.Podman([]string{"create", "--uidmap", "0:1000:1000", "--pod", "new:testing123", ALPINE})
+		create.WaitWithDefaultTimeout()
+		Expect(create).ShouldNot(Exit(0))
+		Expect(create.ErrorToString()).To(ContainSubstring("cannot specify a new uid/gid map when entering a pod with an infra container"))
+
+		create = podmanTest.Podman([]string{"create", "--gidmap", "0:1000:1000", "--pod", "new:testing1234", ALPINE})
+		create.WaitWithDefaultTimeout()
+		Expect(create).ShouldNot(Exit(0))
+		Expect(create.ErrorToString()).To(ContainSubstring("cannot specify a new uid/gid map when entering a pod with an infra container"))
+
+	})
 })

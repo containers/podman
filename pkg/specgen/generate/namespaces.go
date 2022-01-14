@@ -193,8 +193,14 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 	// This wipes the UserNS settings that get set from the infra container
 	// when we are inheritting from the pod. So only apply this if the container
 	// is not being created in a pod.
-	if s.IDMappings != nil && pod == nil {
-		toReturn = append(toReturn, libpod.WithIDMappings(*s.IDMappings))
+	if s.IDMappings != nil {
+		if pod == nil {
+			toReturn = append(toReturn, libpod.WithIDMappings(*s.IDMappings))
+		} else {
+			if pod.HasInfraContainer() && (len(s.IDMappings.UIDMap) > 0 || len(s.IDMappings.GIDMap) > 0) {
+				return nil, errors.Wrapf(define.ErrInvalidArg, "cannot specify a new uid/gid map when entering a pod with an infra container")
+			}
+		}
 	}
 	if s.User != "" {
 		toReturn = append(toReturn, libpod.WithUser(s.User))

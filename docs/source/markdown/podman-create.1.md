@@ -365,6 +365,8 @@ GID map for the user namespace. Using this flag will run the container with user
 
 The following example maps uids 0-2000 in the container to the uids 30000-31999 on the host and gids 0-2000 in the container to the gids 30000-31999 on the host. `--gidmap=0:30000:2000`
 
+Note: the **--gidmap** flag cannot be called in conjunction with the **--pod** flag as a gidmap cannot be set on the container level when in a pod.
+
 #### **--group-add**=*group|keep-groups*
 
 Add additional groups to assign to primary user running within the container process.
@@ -1166,6 +1168,7 @@ Even if a user does not have any subordinate UIDs in  _/etc/subuid_,
 **--uidmap** could still be used to map the normal UID of the user to a
 container UID by running `podman create --uidmap $container_uid:0:1 --user $container_uid ...`.
 
+Note: the **--uidmap** flag cannot be called in conjunction with the **--pod** flag as a uidmap cannot be set on the container level when in a pod.
 
 #### **--ulimit**=*option*
 
