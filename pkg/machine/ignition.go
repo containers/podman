@@ -1,3 +1,4 @@
+//go:build amd64 || arm64
 // +build amd64 arm64
 
 package machine
@@ -423,59 +424,65 @@ func getCerts(certsDir string, isDir bool) []File {
 		files []File
 	)
 
-	certs, err := ioutil.ReadDir(certsDir)
 	if isDir {
-		if err == nil {
-			for _, cert := range certs {
-				b, err := ioutil.ReadFile(filepath.Join(certsDir, cert.Name()))
+		err := filepath.Walk(certsDir, func(path string, info os.FileInfo, err error) error {
+			if err == nil && !info.IsDir() {
+				certPath, err := filepath.Rel(certsDir, path)
 				if err != nil {
-					logrus.Warnf("Unable to read cert file %s", err.Error())
-					continue
+					logrus.Warnf("%s", err)
+					return nil
 				}
-				files = append(files, File{
-					Node: Node{
-						Group: getNodeGrp("root"),
-						Path:  filepath.Join("/etc/containers/certs.d/", cert.Name()),
-						User:  getNodeUsr("root"),
-					},
-					FileEmbedded1: FileEmbedded1{
-						Append: nil,
-						Contents: Resource{
-							Source: encodeDataURLPtr(string(b)),
-						},
-						Mode: intToPtr(0644),
-					},
-				})
+
+				file, err := prepareCertFile(filepath.Join(certsDir, certPath), certPath)
+				if err == nil {
+					files = append(files, file)
+				}
 			}
-		} else {
+
+			return nil
+		})
+		if err != nil {
 			if !os.IsNotExist(err) {
 				logrus.Warnf("Unable to copy certs via ignition, error while reading certs from %s:  %s", certsDir, err.Error())
 			}
 		}
 	} else {
 		fileName := filepath.Base(certsDir)
-		b, err := ioutil.ReadFile(certsDir)
-		if err != nil {
-			logrus.Warnf("Unable to read cert file %s", err.Error())
-			return files
+		file, err := prepareCertFile(certsDir, fileName)
+		if err == nil {
+			files = append(files, file)
 		}
-		files = append(files, File{
-			Node: Node{
-				Group: getNodeGrp("root"),
-				Path:  filepath.Join("/etc/containers/certs.d/", fileName),
-				User:  getNodeUsr("root"),
-			},
-			FileEmbedded1: FileEmbedded1{
-				Append: nil,
-				Contents: Resource{
-					Source: encodeDataURLPtr(string(b)),
-				},
-				Mode: intToPtr(0644),
-			},
-		})
 	}
 
 	return files
+}
+
+func prepareCertFile(path string, name string) (File, error) {
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		logrus.Warnf("Unable to read cert file %s", err.Error())
+		return File{}, err
+	}
+
+	targetPath := filepath.Join("/etc/containers/certs.d", name)
+
+	logrus.Debugf("Copying cert file from '%s' to '%s'.", path, targetPath)
+
+	file := File{
+		Node: Node{
+			Group: getNodeGrp("root"),
+			Path:  targetPath,
+			User:  getNodeUsr("root"),
+		},
+		FileEmbedded1: FileEmbedded1{
+			Append: nil,
+			Contents: Resource{
+				Source: encodeDataURLPtr(string(b)),
+			},
+			Mode: intToPtr(0644),
+		},
+	}
+	return file, nil
 }
 
 func getProxyVariables() string {
