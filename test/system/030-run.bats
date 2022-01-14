@@ -818,4 +818,11 @@ EOF
     is "$output" ".*The --kernel-memory flag is no longer supported. This flag is a noop." "warn on use of --kernel-memory"
 
 }
+
+# rhbz#1902979 : podman run fails to update /etc/hosts when --uidmap is provided
+@test "podman run update /etc/hosts" {
+    HOST=$(random_string 25)
+    run_podman run --uidmap 0:10001:10002 --rm --hostname ${HOST} $IMAGE grep ${HOST} /etc/hosts
+    is "${lines[0]}" ".*${HOST}.*"
+}
 # vim: filetype=sh
