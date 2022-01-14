@@ -1,5 +1,0 @@
-Enable COPR:
-sudo dnf copr enable rhcontainerbot/podman-next
-
-Install podman:
-sudo dnf install podman -y
