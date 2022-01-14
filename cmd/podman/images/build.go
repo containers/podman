@@ -257,6 +257,7 @@ func build(cmd *cobra.Command, args []string) error {
 				return errors.Wrapf(err, "error determining path to file %q", containerFiles[i])
 			}
 			contextDir = filepath.Dir(absFile)
+			containerFiles[i] = absFile
 			break
 		}
 	}
@@ -289,7 +290,6 @@ func build(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-
 	report, err := registry.ImageEngine().Build(registry.GetContext(), containerFiles, *apiBuildOpts)
 
 	if err != nil {
