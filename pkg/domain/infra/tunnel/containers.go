@@ -958,3 +958,7 @@ func (ic *ContainerEngine) ShouldRestart(_ context.Context, id string) (bool, er
 func (ic *ContainerEngine) ContainerRename(ctx context.Context, nameOrID string, opts entities.ContainerRenameOptions) error {
 	return containers.Rename(ic.ClientCtx, nameOrID, new(containers.RenameOptions).WithName(opts.NewName))
 }
+
+func (ic *ContainerEngine) ContainerClone(ctx context.Context, ctrCloneOpts entities.ContainerCloneOptions) (*entities.ContainerCreateReport, error) {
+	return nil, errors.New("cloning a container is not supported on the remote client")
+}

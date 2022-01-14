@@ -26,6 +26,8 @@ func validate(c *entities.ContainerCreateOptions) error {
 	if _, ok := imageVolType[c.ImageVolume]; !ok {
 		if c.IsInfra {
 			c.ImageVolume = "bind"
+		} else if c.IsClone { // the image volume type will be deduced later from the container we are cloning
+			return nil
 		} else {
 			return errors.Errorf("invalid image-volume type %q. Pick one of bind, tmpfs, or ignore", c.ImageVolume)
 		}

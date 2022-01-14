@@ -614,7 +614,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
-	if c.config.Systemd {
+	if c.Systemd() {
 		if err := c.setupSystemd(g.Mounts(), g); err != nil {
 			return nil, errors.Wrapf(err, "error adding systemd-specific mounts")
 		}

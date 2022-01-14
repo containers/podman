@@ -301,7 +301,14 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	}
 
 	if compatibleOptions.InfraResources == nil && s.ResourceLimits != nil {
-		g.Config.Linux.Resources = s.ResourceLimits
+		out, err := json.Marshal(s.ResourceLimits)
+		if err != nil {
+			return nil, err
+		}
+		err = json.Unmarshal(out, g.Config.Linux.Resources)
+		if err != nil {
+			return nil, err
+		}
 	} else if s.ResourceLimits != nil { // if we have predefined resource limits we need to make sure we keep the infra and container limits
 		originalResources, err := json.Marshal(s.ResourceLimits)
 		if err != nil {

@@ -463,3 +463,13 @@ type ContainerRenameOptions struct {
 	// NewName is the new name that will be given to the container.
 	NewName string
 }
+
+// ContainerCloneOptions contains options for cloning an existing continer
+type ContainerCloneOptions struct {
+	ID           string
+	Destroy      bool
+	CreateOpts   ContainerCreateOptions
+	Image        string
+	RawImageName string
+	Run          bool
+}

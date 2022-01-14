@@ -1308,3 +1308,17 @@ func AutocompleteCompressionFormat(cmd *cobra.Command, args []string, toComplete
 	types := []string{"gzip", "zstd", "zstd:chunked"}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
+
+// AutocompleteClone - Autocomplete container and image names
+func AutocompleteClone(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if !validCurrentCmdLine(cmd, args, toComplete) {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	switch len(args) {
+	case 0:
+		return getContainers(cmd, toComplete, completeDefault)
+	case 2:
+		return getImages(cmd, toComplete)
+	}
+	return nil, cobra.ShellCompDirectiveNoFileComp
+}

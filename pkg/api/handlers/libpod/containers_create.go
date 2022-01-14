@@ -33,7 +33,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	rtSpec, spec, opts, err := generate.MakeContainer(context.Background(), runtime, &sg)
+	rtSpec, spec, opts, err := generate.MakeContainer(context.Background(), runtime, &sg, false, nil)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
