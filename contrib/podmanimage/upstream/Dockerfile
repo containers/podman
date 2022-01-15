@@ -58,7 +58,7 @@ RUN yum -y update; rpm --restore shadow-utils 2>/dev/null;  yum -y install --exc
      mkdir -p /usr/libexec/cni; \
      \cp -fR bin/* /usr/libexec/cni; \
      mkdir -p /etc/cni/net.d; \
-     curl -qsSL https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist | tee /etc/cni/net.d/99-loopback.conf; \
+     curl -qsSL https://raw.githubusercontent.com/containers/podman/main/cni/87-podman-bridge.conflist | tee /etc/cni/net.d/99-loopback.conf; \
      mkdir -p /usr/share/containers; \
      rm -rf /root/podman/*; \
      yum -y remove git golang go-md2man make; \
@@ -68,8 +68,8 @@ RUN useradd podman; \
 echo podman:10000:5000 > /etc/subuid; \
 echo podman:10000:5000 > /etc/subgid;
 
-ADD https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/containers.conf /etc/containers/containers.conf
-ADD https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/podman-containers.conf /home/podman/.config/containers/containers.conf
+ADD https://raw.githubusercontent.com/containers/podman/main/contrib/podmanimage/stable/containers.conf /etc/containers/containers.conf
+ADD https://raw.githubusercontent.com/containers/podman/main/contrib/podmanimage/stable/podman-containers.conf /home/podman/.config/containers/containers.conf
 
 RUN mkdir -p /home/podman/.local/share/containers; chown podman:podman -R /home/podman
 
