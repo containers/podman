@@ -11,6 +11,7 @@ import (
 	"github.com/containers/buildah"
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/filters"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod"
@@ -404,25 +405,52 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetImages(w http.ResponseWriter, r *http.Request) {
-	images, err := utils.GetImages(w, r)
-	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Failed get images"))
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	query := struct {
+		All     bool
+		Digests bool
+		Filter  string // Docker 1.24 compatibility
+	}{
+		// This is where you can override the golang default value for one of fields
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+	if _, found := r.URL.Query()["digests"]; found && query.Digests {
+		utils.UnSupportedParameter("digests")
 		return
 	}
 
-	summaries := make([]*entities.ImageSummary, 0, len(images))
-	for _, img := range images {
-		// If the image is a manifest list, extract as much as we can.
-		if isML, _ := img.IsManifestList(r.Context()); isML {
-			continue
+	filterList, err := filters.FiltersFromRequest(r)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		return
+	}
+	if !utils.IsLibpodRequest(r) {
+		if len(query.Filter) > 0 { // Docker 1.24 compatibility
+			filterList = append(filterList, "reference="+query.Filter)
 		}
+		filterList = append(filterList, "manifest=false")
+	}
 
-		is, err := handlers.ImageToImageSummary(img)
-		if err != nil {
-			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Failed transform image summaries"))
-			return
+	imageEngine := abi.ImageEngine{Libpod: runtime}
+
+	listOptions := entities.ImageListOptions{All: query.All, Filter: filterList}
+	summaries, err := imageEngine.List(r.Context(), listOptions)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		return
+	}
+
+	if !utils.IsLibpodRequest(r) {
+		// docker adds sha256: in front of the ID
+		for _, s := range summaries {
+			s.ID = "sha256:" + s.ID
 		}
-		summaries = append(summaries, is)
 	}
 	utils.WriteResponse(w, http.StatusOK, summaries)
 }

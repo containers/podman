@@ -12,7 +12,6 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/common/libimage"
-	"github.com/containers/common/pkg/filters"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v3/libpod"
@@ -101,48 +100,6 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, inspect)
-}
-
-func GetImages(w http.ResponseWriter, r *http.Request) {
-	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
-	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	query := struct {
-		All     bool
-		Digests bool
-		Filter  string // Docker 1.24 compatibility
-	}{
-		// This is where you can override the golang default value for one of fields
-	}
-
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
-		return
-	}
-	if _, found := r.URL.Query()["digests"]; found && query.Digests {
-		utils.UnSupportedParameter("digests")
-		return
-	}
-
-	filterList, err := filters.FiltersFromRequest(r)
-	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
-		return
-	}
-	if !utils.IsLibpodRequest(r) && len(query.Filter) > 0 { // Docker 1.24 compatibility
-		filterList = append(filterList, "reference="+query.Filter)
-	}
-
-	imageEngine := abi.ImageEngine{Libpod: runtime}
-
-	listOptions := entities.ImageListOptions{All: query.All, Filter: filterList}
-	summaries, err := imageEngine.List(r.Context(), listOptions)
-	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
-		return
-	}
-
-	utils.WriteResponse(w, http.StatusOK, summaries)
 }
 
 func PruneImages(w http.ResponseWriter, r *http.Request) {
