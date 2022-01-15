@@ -25,8 +25,8 @@ can easily fail
   * When a container root process like YUM attempts to create a file owned by a different UID, NFS Server/GPFS denies the creation.
 * Does not work with homedirs mounted with noexec/nodev
   * User can setup storage to point to other directories they can write to that are not mounted noexec/nodev
-* Can not use overlayfs driver, but does support fuse-overlayfs
-  * Ubuntu supports non root overlay, but no other Linux distros do.
+* Support for using native overlayfs as an unprivileged user is only available for Podman version >= 3.1 on a Linux kernel version >= 5.12, otherwise the slower _fuse-overlayfs_ may be used.
+  * A few Linux distributions (e.g. Ubuntu) have supported even older Podman and Linux kernel versions by modifying the normal Linux kernel behaviour.
 * Only other supported driver is VFS.
 * Cannot use ping out of the box.
   * [(Can be fixed by setting sysctl on host)](https://github.com/containers/podman/blob/master/troubleshooting.md#5-rootless-containers-cannot-ping-hosts)
