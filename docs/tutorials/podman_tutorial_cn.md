@@ -7,14 +7,14 @@ Podman是由libpod库提供一个实用的程序，可以被用于创建和管�
 下面的教程会教你如何启动 Podman 并使用 Podman 执行一些基本的命令。
 
 如果你正在使用 Mac 或者 Windows
-，你应该先查看[Mac 和 Windows 使用说明](https://github.com/containers/podman/blob/master/docs/tutorials/mac_win_client.md)来设置 Podman
+，你应该先查看[Mac 和 Windows 使用说明](https://github.com/containers/podman/blob/main/docs/tutorials/mac_win_client.md)来设置 Podman
 远程客户端。
 
 **注意**：示例中所有命令皆以非 root 的用户运行，必要的时候通过 `sudo` 命令来获取 root 权限。
 
 ## 安装Podman
 
-安装或者编译 Podman ，请参照[安装说明](https://github.com/containers/podman/blob/master/install.md)。
+安装或者编译 Podman ，请参照[安装说明](https://github.com/containers/podman/blob/main/install.md)。
 
 ## 熟悉podman
 
