@@ -7,11 +7,11 @@ import (
 	"strings"
 
 	"github.com/containers/podman/v3/cmd/podman/common"
+	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/utils"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/containers/podman/v3/pkg/specgenutil"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -68,7 +68,7 @@ func networkPrune(cmd *cobra.Command, _ []string) error {
 			return nil
 		}
 	}
-	networkPruneOptions.Filters, err = specgenutil.ParseFilters(filter)
+	networkPruneOptions.Filters, err = parse.FilterArgumentsIntoFilters(filter)
 	if err != nil {
 		return err
 	}

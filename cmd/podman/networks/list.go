@@ -10,10 +10,10 @@ import (
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v3/cmd/podman/common"
+	"github.com/containers/podman/v3/cmd/podman/parse"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/cmd/podman/validate"
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -61,14 +61,12 @@ func init() {
 }
 
 func networkList(cmd *cobra.Command, args []string) error {
-	networkListOptions.Filters = make(map[string][]string)
-	for _, f := range filters {
-		split := strings.SplitN(f, "=", 2)
-		if len(split) == 1 {
-			return errors.Errorf("invalid filter %q", f)
-		}
-		networkListOptions.Filters[split[0]] = append(networkListOptions.Filters[split[0]], split[1])
+	var err error
+	networkListOptions.Filters, err = parse.FilterArgumentsIntoFilters(filters)
+	if err != nil {
+		return err
 	}
+
 	responses, err := registry.ContainerEngine().NetworkList(registry.Context(), networkListOptions)
 	if err != nil {
 		return err
