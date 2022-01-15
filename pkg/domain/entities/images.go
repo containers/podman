@@ -94,7 +94,7 @@ type ImageRemoveOptions struct {
 	LookupManifest bool
 }
 
-// ImageRemoveResponse is the response for removing one or more image(s) from storage
+// ImageRemoveReport is the response for removing one or more image(s) from storage
 // and images what was untagged vs actually removed.
 type ImageRemoveReport struct {
 	// Deleted images.

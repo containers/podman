@@ -44,19 +44,19 @@ var _ = Describe("Podman manifest", func() {
 		processTestResult(f)
 
 	})
-	It("podman manifest create", func() {
+	It("create w/o image", func() {
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})
 
-	It("podman manifest create", func() {
+	It("create w/ image", func() {
 		session := podmanTest.Podman([]string{"manifest", "create", "foo", imageList})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})
 
-	It("podman manifest inspect", func() {
+	It("inspect", func() {
 		session := podmanTest.Podman([]string{"manifest", "inspect", BB})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -71,29 +71,27 @@ var _ = Describe("Podman manifest", func() {
 		Expect(session).Should(Exit(0))
 	})
 
-	It("podman manifest add", func() {
+	It("add w/ inspect", func() {
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		session = podmanTest.Podman([]string{"manifest", "add", "--arch=arm64", "foo", imageListInstance})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
-	})
+		id := strings.TrimSpace(string(session.Out.Contents()))
 
-	It("podman manifest add one", func() {
-		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
+		session = podmanTest.Podman([]string{"manifest", "inspect", id})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+
 		session = podmanTest.Podman([]string{"manifest", "add", "--arch=arm64", "foo", imageListInstance})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+
 		session = podmanTest.Podman([]string{"manifest", "inspect", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring(imageListARM64InstanceDigest))
 	})
 
-	It("podman manifest tag", func() {
+	It("tag", func() {
 		session := podmanTest.Podman([]string{"manifest", "create", "foobar"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -112,7 +110,7 @@ var _ = Describe("Podman manifest", func() {
 		Expect(session2.OutputToString()).To(Equal(session.OutputToString()))
 	})
 
-	It("podman manifest add --all", func() {
+	It(" add --all", func() {
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -122,14 +120,17 @@ var _ = Describe("Podman manifest", func() {
 		session = podmanTest.Podman([]string{"manifest", "inspect", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(ContainSubstring(imageListAMD64InstanceDigest))
-		Expect(session.OutputToString()).To(ContainSubstring(imageListARMInstanceDigest))
-		Expect(session.OutputToString()).To(ContainSubstring(imageListARM64InstanceDigest))
-		Expect(session.OutputToString()).To(ContainSubstring(imageListPPC64LEInstanceDigest))
-		Expect(session.OutputToString()).To(ContainSubstring(imageListS390XInstanceDigest))
+		Expect(session.OutputToString()).To(
+			And(
+				ContainSubstring(imageListAMD64InstanceDigest),
+				ContainSubstring(imageListARMInstanceDigest),
+				ContainSubstring(imageListARM64InstanceDigest),
+				ContainSubstring(imageListPPC64LEInstanceDigest),
+				ContainSubstring(imageListS390XInstanceDigest),
+			))
 	})
 
-	It("podman manifest add --os", func() {
+	It("add --os", func() {
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -142,7 +143,7 @@ var _ = Describe("Podman manifest", func() {
 		Expect(session.OutputToString()).To(ContainSubstring(`"os": "bar"`))
 	})
 
-	It("podman manifest annotate", func() {
+	It("annotate", func() {
 		SkipIfRemote("Not supporting annotate on remote connections")
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
@@ -159,7 +160,7 @@ var _ = Describe("Podman manifest", func() {
 		Expect(session.OutputToString()).To(ContainSubstring(`"architecture": "bar"`))
 	})
 
-	It("podman manifest remove", func() {
+	It("remove digest", func() {
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -176,14 +177,18 @@ var _ = Describe("Podman manifest", func() {
 		session = podmanTest.Podman([]string{"manifest", "inspect", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(ContainSubstring(imageListAMD64InstanceDigest))
-		Expect(session.OutputToString()).To(ContainSubstring(imageListARMInstanceDigest))
-		Expect(session.OutputToString()).To(ContainSubstring(imageListPPC64LEInstanceDigest))
-		Expect(session.OutputToString()).To(ContainSubstring(imageListS390XInstanceDigest))
-		Expect(session.OutputToString()).To(Not(ContainSubstring(imageListARM64InstanceDigest)))
+		Expect(session.OutputToString()).To(
+			And(
+				ContainSubstring(imageListAMD64InstanceDigest),
+				ContainSubstring(imageListARMInstanceDigest),
+				ContainSubstring(imageListPPC64LEInstanceDigest),
+				ContainSubstring(imageListS390XInstanceDigest),
+				Not(
+					ContainSubstring(imageListARM64InstanceDigest)),
+			))
 	})
 
-	It("podman manifest remove not-found", func() {
+	It("remove not-found", func() {
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -199,7 +204,7 @@ var _ = Describe("Podman manifest", func() {
 		Expect(session).Should(Exit(0))
 	})
 
-	It("podman manifest push", func() {
+	It("push --all", func() {
 		SkipIfRemote("manifest push to dir not supported in remote mode")
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
@@ -216,20 +221,24 @@ var _ = Describe("Podman manifest", func() {
 		session = podmanTest.Podman([]string{"manifest", "push", "--all", "foo", "dir:" + dest})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+
 		files, err := filepath.Glob(dest + string(os.PathSeparator) + "*")
-		Expect(err).To(BeNil())
+		Expect(err).ShouldNot(HaveOccurred())
 		check := SystemExec("sha256sum", files)
 		check.WaitWithDefaultTimeout()
 		Expect(check).Should(Exit(0))
 		prefix := "sha256:"
-		Expect(check.OutputToString()).To(ContainSubstring(strings.TrimPrefix(imageListAMD64InstanceDigest, prefix)))
-		Expect(check.OutputToString()).To(ContainSubstring(strings.TrimPrefix(imageListARMInstanceDigest, prefix)))
-		Expect(check.OutputToString()).To(ContainSubstring(strings.TrimPrefix(imageListPPC64LEInstanceDigest, prefix)))
-		Expect(check.OutputToString()).To(ContainSubstring(strings.TrimPrefix(imageListS390XInstanceDigest, prefix)))
-		Expect(check.OutputToString()).To(ContainSubstring(strings.TrimPrefix(imageListARM64InstanceDigest, prefix)))
+		Expect(check.OutputToString()).To(
+			And(
+				ContainSubstring(strings.TrimPrefix(imageListAMD64InstanceDigest, prefix)),
+				ContainSubstring(strings.TrimPrefix(imageListARMInstanceDigest, prefix)),
+				ContainSubstring(strings.TrimPrefix(imageListPPC64LEInstanceDigest, prefix)),
+				ContainSubstring(strings.TrimPrefix(imageListS390XInstanceDigest, prefix)),
+				ContainSubstring(strings.TrimPrefix(imageListARM64InstanceDigest, prefix)),
+			))
 	})
 
-	It("podman push --all", func() {
+	It("push", func() {
 		SkipIfRemote("manifest push to dir not supported in remote mode")
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
@@ -251,15 +260,19 @@ var _ = Describe("Podman manifest", func() {
 		check := SystemExec("sha256sum", files)
 		check.WaitWithDefaultTimeout()
 		Expect(check).Should(Exit(0))
+
 		prefix := "sha256:"
-		Expect(check.OutputToString()).To(ContainSubstring(strings.TrimPrefix(imageListAMD64InstanceDigest, prefix)))
-		Expect(check.OutputToString()).To(ContainSubstring(strings.TrimPrefix(imageListARMInstanceDigest, prefix)))
-		Expect(check.OutputToString()).To(ContainSubstring(strings.TrimPrefix(imageListPPC64LEInstanceDigest, prefix)))
-		Expect(check.OutputToString()).To(ContainSubstring(strings.TrimPrefix(imageListS390XInstanceDigest, prefix)))
-		Expect(check.OutputToString()).To(ContainSubstring(strings.TrimPrefix(imageListARM64InstanceDigest, prefix)))
+		Expect(check.OutputToString()).To(
+			And(
+				ContainSubstring(strings.TrimPrefix(imageListAMD64InstanceDigest, prefix)),
+				ContainSubstring(strings.TrimPrefix(imageListARMInstanceDigest, prefix)),
+				ContainSubstring(strings.TrimPrefix(imageListPPC64LEInstanceDigest, prefix)),
+				ContainSubstring(strings.TrimPrefix(imageListS390XInstanceDigest, prefix)),
+				ContainSubstring(strings.TrimPrefix(imageListARM64InstanceDigest, prefix)),
+			))
 	})
 
-	It("podman manifest push --rm", func() {
+	It("push --rm", func() {
 		SkipIfRemote("remote does not support --rm")
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
@@ -285,7 +298,7 @@ var _ = Describe("Podman manifest", func() {
 		Expect(session).To(ExitWithError())
 	})
 
-	It("podman manifest exists", func() {
+	It("exists", func() {
 		manifestList := "manifest-list"
 		session := podmanTest.Podman([]string{"manifest", "create", manifestList})
 		session.WaitWithDefaultTimeout()
@@ -300,7 +313,7 @@ var _ = Describe("Podman manifest", func() {
 		Expect(session).Should(Exit(1))
 	})
 
-	It("podman manifest rm should not remove referenced images", func() {
+	It("rm should not remove referenced images", func() {
 		manifestList := "manifestlist"
 		imageName := "quay.io/libpod/busybox"
 
@@ -320,11 +333,9 @@ var _ = Describe("Podman manifest", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		//image should still show up
-		session = podmanTest.Podman([]string{"images"})
+		// image should still show up
+		session = podmanTest.Podman([]string{"image", "exists", imageName})
 		session.WaitWithDefaultTimeout()
-		Expect(session.OutputToString()).To(ContainSubstring(imageName))
 		Expect(session).Should(Exit(0))
 	})
-
 })

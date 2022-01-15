@@ -26,7 +26,7 @@ func NewContainerEngine(facts *entities.PodmanConfig) (entities.ContainerEngine,
 	return nil, fmt.Errorf("runtime mode '%v' is not supported", facts.EngineMode)
 }
 
-// NewContainerEngine factory provides a libpod runtime for image-related operations
+// NewImageEngine factory provides a libpod runtime for image-related operations
 func NewImageEngine(facts *entities.PodmanConfig) (entities.ImageEngine, error) {
 	switch facts.EngineMode {
 	case entities.ABIMode:

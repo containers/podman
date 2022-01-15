@@ -3,15 +3,18 @@ package manifests
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/blang/semver"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v3/pkg/api/handlers"
 	"github.com/containers/podman/v3/pkg/bindings"
 	"github.com/containers/podman/v3/pkg/bindings/images"
+	"github.com/containers/podman/v3/version"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -19,7 +22,7 @@ import (
 // the new manifest can also be specified.  The all boolean specifies to add all entries
 // of a list if the name provided is a manifest list.  The ID of the new manifest list
 // is returned as a string.
-func Create(ctx context.Context, names, images []string, options *CreateOptions) (string, error) {
+func Create(ctx context.Context, name string, images []string, options *CreateOptions) (string, error) {
 	var idr handlers.IDResponse
 	if options == nil {
 		options = new(CreateOptions)
@@ -28,21 +31,19 @@ func Create(ctx context.Context, names, images []string, options *CreateOptions)
 	if err != nil {
 		return "", err
 	}
-	if len(names) < 1 {
+	if len(name) < 1 {
 		return "", errors.New("creating a manifest requires at least one name argument")
 	}
 	params, err := options.ToParams()
 	if err != nil {
 		return "", err
 	}
-	for _, name := range names {
-		params.Add("name", name)
-	}
+
 	for _, i := range images {
-		params.Add("image", i)
+		params.Add("images", i)
 	}
 
-	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/manifests/create", params, nil)
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/manifests/%s", params, nil, name)
 	if err != nil {
 		return "", err
 	}
@@ -67,70 +68,96 @@ func Exists(ctx context.Context, name string, options *ExistsOptions) (bool, err
 }
 
 // Inspect returns a manifest list for a given name.
-func Inspect(ctx context.Context, name string, options *InspectOptions) (*manifest.Schema2List, error) {
-	var list manifest.Schema2List
-	if options == nil {
-		options = new(InspectOptions)
-	}
-	_ = options
+func Inspect(ctx context.Context, name string, _ *InspectOptions) (*manifest.Schema2List, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
+
 	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/manifests/%s/json", nil, nil, name)
 	if err != nil {
 		return nil, err
 	}
 	defer response.Body.Close()
 
+	var list manifest.Schema2List
 	return &list, response.Process(&list)
 }
 
 // Add adds a manifest to a given manifest list.  Additional options for the manifest
 // can also be specified.  The ID of the new manifest list is returned as a string
 func Add(ctx context.Context, name string, options *AddOptions) (string, error) {
-	var idr handlers.IDResponse
 	if options == nil {
 		options = new(AddOptions)
 	}
+
+	if bindings.ServiceVersion(ctx).GTE(semver.MustParse("4.0.0")) {
+		optionsv4 := ModifyOptions{
+			All:         options.All,
+			Annotations: options.Annotation,
+			Arch:        options.Arch,
+			Features:    options.Features,
+			Images:      options.Images,
+			OS:          options.OS,
+			OSFeatures:  nil,
+			OSVersion:   options.OSVersion,
+			Variant:     options.Variant,
+		}
+		optionsv4.WithOperation("update")
+		return Modify(ctx, name, options.Images, &optionsv4)
+	}
+
+	// API Version < 4.0.0
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return "", err
 	}
-	optionsString, err := jsoniter.MarshalToString(options)
+	opts, err := jsoniter.MarshalToString(options)
 	if err != nil {
 		return "", err
 	}
-	stringReader := strings.NewReader(optionsString)
-	response, err := conn.DoRequest(ctx, stringReader, http.MethodPost, "/manifests/%s/add", nil, nil, name)
+	reader := strings.NewReader(opts)
+
+	headers := make(http.Header)
+	v := version.APIVersion[version.Libpod][version.MinimalAPI]
+	headers.Add("API-Version",
+		fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch))
+	response, err := conn.DoRequest(ctx, reader, http.MethodPost, "/manifests/%s/add", nil, headers, name)
 	if err != nil {
 		return "", err
 	}
 	defer response.Body.Close()
 
+	var idr handlers.IDResponse
 	return idr.ID, response.Process(&idr)
 }
 
 // Remove deletes a manifest entry from a manifest list.  Both name and the digest to be
 // removed are mandatory inputs.  The ID of the new manifest list is returned as a string.
-func Remove(ctx context.Context, name, digest string, options *RemoveOptions) (string, error) {
-	var idr handlers.IDResponse
-	if options == nil {
-		options = new(RemoveOptions)
+func Remove(ctx context.Context, name, digest string, _ *RemoveOptions) (string, error) {
+	if bindings.ServiceVersion(ctx).GTE(semver.MustParse("4.0.0")) {
+		optionsv4 := new(ModifyOptions).WithOperation("remove")
+		return Modify(ctx, name, []string{digest}, optionsv4)
 	}
-	_ = options
+
+	// API Version < 4.0.0
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return "", err
 	}
+
+	headers := http.Header{}
+	headers.Add("API-Version", "3.4.0")
+
 	params := url.Values{}
 	params.Set("digest", digest)
-	response, err := conn.DoRequest(ctx, nil, http.MethodDelete, "/manifests/%s", params, nil, name)
+	response, err := conn.DoRequest(ctx, nil, http.MethodDelete, "/manifests/%s", params, headers, name)
 	if err != nil {
 		return "", err
 	}
 	defer response.Body.Close()
 
+	var idr handlers.IDResponse
 	return idr.ID, response.Process(&idr)
 }
 
@@ -151,19 +178,26 @@ func Push(ctx context.Context, name, destination string, options *images.PushOpt
 	if err != nil {
 		return "", err
 	}
+
 	params, err := options.ToParams()
 	if err != nil {
 		return "", err
 	}
 	// SkipTLSVerify is special.  We need to delete the param added by
-	// toparams and change the key and flip the bool
+	// ToParams() and change the key and flip the bool
 	if options.SkipTLSVerify != nil {
 		params.Del("SkipTLSVerify")
 		params.Set("tlsVerify", strconv.FormatBool(!options.GetSkipTLSVerify()))
 	}
-	params.Set("image", name)
-	params.Set("destination", destination)
-	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/manifests/%s/push", params, nil, name)
+
+	var response *bindings.APIResponse
+	if bindings.ServiceVersion(ctx).GTE(semver.MustParse("4.0.0")) {
+		response, err = conn.DoRequest(ctx, nil, http.MethodPost, "/manifests/%s/registry/%s", params, nil, name, destination)
+	} else {
+		params.Set("image", name)
+		params.Set("destination", destination)
+		response, err = conn.DoRequest(ctx, nil, http.MethodPost, "/manifests/%s/push", params, nil, name)
+	}
 	if err != nil {
 		return "", err
 	}
@@ -172,25 +206,37 @@ func Push(ctx context.Context, name, destination string, options *images.PushOpt
 	return idr.ID, err
 }
 
-// There is NO annotate endpoint.  this binding could never work
-// Annotate updates the image configuration of a given manifest list
-//func Annotate(ctx context.Context, name, digest string, options image.ManifestAnnotateOpts) (string, error) {
-//	var idr handlers.IDResponse
-//	conn, err := bindings.GetClient(ctx)
-//	if err != nil {
-//		return "", err
-//	}
-//	params := url.Values{}
-//	params.Set("digest", digest)
-//	optionsString, err := jsoniter.MarshalToString(options)
-//	if err != nil {
-//		return "", err
-//	}
-//	stringReader := strings.NewReader(optionsString)
-//	response, err := conn.DoRequest(ctx, stringReader, http.MethodPost, "/manifests/%s/annotate", params, name)
-//	if err != nil {
-//		return "", err
-//	}
-//  defer response.Body.Close()
-//	return idr.ID, response.Process(&idr)
-//}
+// Modify modifies the given manifest list using options and the optional list of images
+func Modify(ctx context.Context, name string, images []string, options *ModifyOptions) (string, error) {
+	if options == nil || *options.Operation == "" {
+		return "", errors.New(`the field ModifyOptions.Operation must be set to either "update" or "remove"`)
+	}
+	options.WithImages(images)
+
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return "", err
+	}
+	opts, err := jsoniter.MarshalToString(options)
+	if err != nil {
+		return "", err
+	}
+	reader := strings.NewReader(opts)
+
+	response, err := conn.DoRequest(ctx, reader, http.MethodPut, "/manifests/%s", nil, nil, name)
+	if err != nil {
+		return "", err
+	}
+	defer response.Body.Close()
+
+	var idr handlers.IDResponse
+	return idr.ID, response.Process(&idr)
+}
+
+// Annotate modifies the given manifest list using options and the optional list of images
+//
+// As of 4.0.0
+func Annotate(ctx context.Context, name string, images []string, options *ModifyOptions) (string, error) {
+	options.WithOperation("annotate")
+	return Modify(ctx, name, images, options)
+}

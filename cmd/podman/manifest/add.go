@@ -26,14 +26,14 @@ type manifestAddOptsWrapper struct {
 var (
 	manifestAddOpts = manifestAddOptsWrapper{}
 	addCmd          = &cobra.Command{
-		Use:               "add [options] LIST LIST",
+		Use:               "add [options] LIST IMAGE [IMAGE...]",
 		Short:             "Add images to a manifest list or image index",
 		Long:              "Adds an image to a manifest list or image index.",
 		RunE:              add,
+		Args:              cobra.MinimumNArgs(2),
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman manifest add mylist:v1.11 image:v1.11-amd64
 		podman manifest add mylist:v1.11 transport:imageName`,
-		Args: cobra.ExactArgs(2),
 	}
 )
 
@@ -93,10 +93,6 @@ func add(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// FIXME: (@vrothberg) this interface confuses me a lot.  Why are they
-	// not two arguments?
-	manifestAddOpts.Images = []string{args[1], args[0]}
-
 	if manifestAddOpts.CredentialsCLI != "" {
 		creds, err := util.ParseRegistryCreds(manifestAddOpts.CredentialsCLI)
 		if err != nil {
@@ -114,10 +110,10 @@ func add(cmd *cobra.Command, args []string) error {
 		manifestAddOpts.SkipTLSVerify = types.NewOptionalBool(!manifestAddOpts.TLSVerifyCLI)
 	}
 
-	listID, err := registry.ImageEngine().ManifestAdd(context.Background(), manifestAddOpts.ManifestAddOptions)
+	listID, err := registry.ImageEngine().ManifestAdd(context.Background(), args[0], args[1:], manifestAddOpts.ManifestAddOptions)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%s\n", listID)
+	fmt.Println(listID)
 	return nil
 }

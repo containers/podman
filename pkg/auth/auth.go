@@ -140,7 +140,7 @@ func getAuthCredentials(headers []string) (*types.DockerAuthConfig, map[string]t
 
 // MakeXRegistryConfigHeader returns a map with the "X-Registry-Config" header set, which can
 // conveniently be used in the http stack.
-func MakeXRegistryConfigHeader(sys *types.SystemContext, username, password string) (map[string]string, error) {
+func MakeXRegistryConfigHeader(sys *types.SystemContext, username, password string) (http.Header, error) {
 	if sys == nil {
 		sys = &types.SystemContext{}
 	}
@@ -163,18 +163,18 @@ func MakeXRegistryConfigHeader(sys *types.SystemContext, username, password stri
 	if err != nil {
 		return nil, err
 	}
-	return map[string]string{xRegistryConfigHeader: content}, nil
+	return http.Header{xRegistryConfigHeader: []string{content}}, nil
 }
 
 // MakeXRegistryAuthHeader returns a map with the "X-Registry-Auth" header set, which can
 // conveniently be used in the http stack.
-func MakeXRegistryAuthHeader(sys *types.SystemContext, username, password string) (map[string]string, error) {
+func MakeXRegistryAuthHeader(sys *types.SystemContext, username, password string) (http.Header, error) {
 	if username != "" {
 		content, err := encodeSingleAuthConfig(types.DockerAuthConfig{Username: username, Password: password})
 		if err != nil {
 			return nil, err
 		}
-		return map[string]string{xRegistryAuthHeader: content}, nil
+		return http.Header{xRegistryAuthHeader: []string{content}}, nil
 	}
 
 	if sys == nil {
@@ -188,7 +188,7 @@ func MakeXRegistryAuthHeader(sys *types.SystemContext, username, password string
 	if err != nil {
 		return nil, err
 	}
-	return map[string]string{xRegistryAuthHeader: content}, nil
+	return http.Header{xRegistryAuthHeader: []string{content}}, nil
 }
 
 // RemoveAuthfile is a convenience function that is meant to be called in a

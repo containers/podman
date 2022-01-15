@@ -1,7 +1,6 @@
 package manifest
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/containers/podman/v3/cmd/podman/common"
@@ -36,7 +35,7 @@ func init() {
 }
 
 func create(cmd *cobra.Command, args []string) error {
-	imageID, err := registry.ImageEngine().ManifestCreate(context.Background(), args[:1], args[1:], manifestCreateOpts)
+	imageID, err := registry.ImageEngine().ManifestCreate(registry.Context(), args[0], args[1:], manifestCreateOpts)
 	if err != nil {
 		return err
 	}

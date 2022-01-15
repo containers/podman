@@ -1,14 +1,12 @@
 package manifest
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v3/cmd/podman/common"
 	"github.com/containers/podman/v3/cmd/podman/registry"
 	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -20,8 +18,8 @@ var (
 		Short:             "Add or update information about an entry in a manifest list or image index",
 		Long:              "Adds or updates information about an entry in a manifest list or image index.",
 		RunE:              annotate,
-		Example:           `podman manifest annotate --annotation left=right mylist:v1.11 image:v1.11-amd64`,
 		Args:              cobra.ExactArgs(2),
+		Example:           `podman manifest annotate --annotation left=right mylist:v1.11 image:v1.11-amd64`,
 		ValidArgsFunction: common.AutocompleteImages,
 	}
 )
@@ -63,18 +61,10 @@ func init() {
 }
 
 func annotate(cmd *cobra.Command, args []string) error {
-	listImageSpec := args[0]
-	instanceSpec := args[1]
-	if listImageSpec == "" {
-		return errors.Errorf(`invalid image name "%s"`, listImageSpec)
-	}
-	if instanceSpec == "" {
-		return errors.Errorf(`invalid image digest "%s"`, instanceSpec)
-	}
-	updatedListID, err := registry.ImageEngine().ManifestAnnotate(context.Background(), args, manifestAnnotateOpts)
+	id, err := registry.ImageEngine().ManifestAnnotate(registry.Context(), args[0], args[1], manifestAnnotateOpts)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%s\n", updatedListID)
+	fmt.Println(id)
 	return nil
 }

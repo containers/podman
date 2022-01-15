@@ -7,16 +7,16 @@ import (
 	"strings"
 
 	"github.com/containers/image/v5/types"
-	images "github.com/containers/podman/v3/pkg/bindings/images"
+	"github.com/containers/podman/v3/pkg/bindings/images"
 	"github.com/containers/podman/v3/pkg/bindings/manifests"
 	"github.com/containers/podman/v3/pkg/domain/entities"
 	"github.com/pkg/errors"
 )
 
 // ManifestCreate implements manifest create via ImageEngine
-func (ir *ImageEngine) ManifestCreate(ctx context.Context, names, images []string, opts entities.ManifestCreateOptions) (string, error) {
+func (ir *ImageEngine) ManifestCreate(ctx context.Context, name string, images []string, opts entities.ManifestCreateOptions) (string, error) {
 	options := new(manifests.CreateOptions).WithAll(opts.All)
-	imageID, err := manifests.Create(ir.ClientCtx, names, images, options)
+	imageID, err := manifests.Create(ir.ClientCtx, name, images, options)
 	if err != nil {
 		return imageID, errors.Wrapf(err, "error creating manifest")
 	}
@@ -33,7 +33,7 @@ func (ir *ImageEngine) ManifestExists(ctx context.Context, name string) (*entiti
 }
 
 // ManifestInspect returns contents of manifest list with given name
-func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string) ([]byte, error) {
+func (ir *ImageEngine) ManifestInspect(_ context.Context, name string) ([]byte, error) {
 	list, err := manifests.Inspect(ir.ClientCtx, name, nil)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting content of manifest list or image %s", name)
@@ -47,9 +47,9 @@ func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string) ([]byte
 }
 
 // ManifestAdd adds images to the manifest list
-func (ir *ImageEngine) ManifestAdd(ctx context.Context, opts entities.ManifestAddOptions) (string, error) {
+func (ir *ImageEngine) ManifestAdd(_ context.Context, name string, imageNames []string, opts entities.ManifestAddOptions) (string, error) {
 	options := new(manifests.AddOptions).WithAll(opts.All).WithArch(opts.Arch).WithVariant(opts.Variant)
-	options.WithFeatures(opts.Features).WithImages(opts.Images).WithOS(opts.OS).WithOSVersion(opts.OSVersion)
+	options.WithFeatures(opts.Features).WithImages(imageNames).WithOS(opts.OS).WithOSVersion(opts.OSVersion)
 	if len(opts.Annotation) != 0 {
 		annotations := make(map[string]string)
 		for _, annotationSpec := range opts.Annotation {
@@ -62,25 +62,25 @@ func (ir *ImageEngine) ManifestAdd(ctx context.Context, opts entities.ManifestAd
 		options.WithAnnotation(annotations)
 	}
 
-	listID, err := manifests.Add(ir.ClientCtx, opts.Images[1], options)
+	id, err := manifests.Add(ir.ClientCtx, name, options)
 	if err != nil {
-		return listID, errors.Wrapf(err, "error adding to manifest list %s", opts.Images[1])
+		return id, errors.Wrapf(err, "error adding to manifest list %s", name)
 	}
-	return listID, nil
+	return id, nil
 }
 
 // ManifestAnnotate updates an entry of the manifest list
-func (ir *ImageEngine) ManifestAnnotate(ctx context.Context, names []string, opts entities.ManifestAnnotateOptions) (string, error) {
+func (ir *ImageEngine) ManifestAnnotate(ctx context.Context, name, images string, opts entities.ManifestAnnotateOptions) (string, error) {
 	return "", errors.New("not implemented")
 }
 
-// ManifestRemove removes the digest from manifest list
-func (ir *ImageEngine) ManifestRemove(ctx context.Context, names []string) (string, error) {
-	updatedListID, err := manifests.Remove(ir.ClientCtx, names[0], names[1], nil)
+// ManifestRemoveDigest removes the digest from manifest list
+func (ir *ImageEngine) ManifestRemoveDigest(ctx context.Context, name string, image string) (string, error) {
+	updatedListID, err := manifests.Remove(ir.ClientCtx, name, image, nil)
 	if err != nil {
-		return updatedListID, errors.Wrapf(err, "error removing from manifest %s", names[0])
+		return updatedListID, errors.Wrapf(err, "error removing from manifest %s", name)
 	}
-	return fmt.Sprintf("%s :%s\n", updatedListID, names[1]), nil
+	return fmt.Sprintf("%s :%s\n", updatedListID, image), nil
 }
 
 // ManifestRm removes the specified manifest list from storage

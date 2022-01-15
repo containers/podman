@@ -364,7 +364,9 @@ function start_service() {
     echo $WORKDIR
     # Some tests use shortnames; force registry override to work around
     # docker.io throttling.
-    env CONTAINERS_REGISTRIES_CONF=$TESTS_DIR/../registries.conf $PODMAN_BIN \
+#    FIXME esm revisit pulling expected images re: shortnames caused tests to fail
+#    env CONTAINERS_REGISTRIES_CONF=$TESTS_DIR/../registries.conf
+    $PODMAN_BIN \
         --root $WORKDIR/server_root --syslog=true \
         system service \
         --time 15 \
@@ -497,7 +499,7 @@ function wait_for_port() {
 ############
 function podman() {
     echo "\$ $PODMAN_BIN $*"                           >>$WORKDIR/output.log
-    env CONTAINERS_REGISTRIES_CONF=$TESTS_DIR/../registries.conf \
+#    env CONTAINERS_REGISTRIES_CONF=$TESTS_DIR/../registries.conf \
         $PODMAN_BIN --root $WORKDIR/server_root "$@"   >>$WORKDIR/output.log 2>&1
 }
 

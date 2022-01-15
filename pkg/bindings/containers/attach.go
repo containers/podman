@@ -108,9 +108,9 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 		}()
 	}
 
-	headers := make(map[string]string)
-	headers["Connection"] = "Upgrade"
-	headers["Upgrade"] = "tcp"
+	headers := make(http.Header)
+	headers.Add("Connection", "Upgrade")
+	headers.Add("Upgrade", "tcp")
 
 	var socket net.Conn
 	socketSet := false
@@ -157,7 +157,7 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 	}
 
 	stdoutChan := make(chan error)
-	stdinChan := make(chan error, 1) //stdin channel should not block
+	stdinChan := make(chan error, 1) // stdin channel should not block
 
 	if isSet.stdin {
 		go func() {

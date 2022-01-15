@@ -22,13 +22,10 @@ import (
 )
 
 // ManifestCreate implements logic for creating manifest lists via ImageEngine
-func (ir *ImageEngine) ManifestCreate(ctx context.Context, names []string, images []string, opts entities.ManifestCreateOptions) (string, error) {
-	// FIXME: change the interface of manifest create `names []string` ->
-	// `name string`.
-	if len(names) == 0 {
+func (ir *ImageEngine) ManifestCreate(ctx context.Context, name string, images []string, opts entities.ManifestCreateOptions) (string, error) {
+	if len(name) == 0 {
 		return "", errors.New("no name specified for creating a manifest list")
 	}
-	name := names[0]
 
 	manifestList, err := ir.Libpod.LibimageRuntime().CreateManifestList(name)
 	if err != nil {
@@ -175,18 +172,12 @@ func (ir *ImageEngine) remoteManifestInspect(ctx context.Context, name string) (
 }
 
 // ManifestAdd adds images to the manifest list
-func (ir *ImageEngine) ManifestAdd(ctx context.Context, opts entities.ManifestAddOptions) (string, error) {
-	// FIXME: the name options below are *mandatory* arguments and should
-	// be reflected as such in the signature.
-
-	if len(opts.Images) < 2 {
-		return "", errors.New("manifest add requires two images")
+func (ir *ImageEngine) ManifestAdd(ctx context.Context, name string, images []string, opts entities.ManifestAddOptions) (string, error) {
+	if len(images) < 1 {
+		return "", errors.New("manifest add requires at least one image")
 	}
 
-	imageName := opts.Images[0]
-	listName := opts.Images[1]
-
-	manifestList, err := ir.Libpod.LibimageRuntime().LookupManifestList(listName)
+	manifestList, err := ir.Libpod.LibimageRuntime().LookupManifestList(name)
 	if err != nil {
 		return "", err
 	}
@@ -200,53 +191,46 @@ func (ir *ImageEngine) ManifestAdd(ctx context.Context, opts entities.ManifestAd
 		Password:              opts.Password,
 	}
 
-	instanceDigest, err := manifestList.Add(ctx, imageName, addOptions)
-	if err != nil {
-		return "", err
-	}
-
-	annotateOptions := &libimage.ManifestListAnnotateOptions{
-		Architecture: opts.Arch,
-		Features:     opts.Features,
-		OS:           opts.OS,
-		OSVersion:    opts.OSVersion,
-		Variant:      opts.Variant,
-	}
-	if len(opts.Annotation) != 0 {
-		annotations := make(map[string]string)
-		for _, annotationSpec := range opts.Annotation {
-			spec := strings.SplitN(annotationSpec, "=", 2)
-			if len(spec) != 2 {
-				return "", errors.Errorf("no value given for annotation %q", spec[0])
-			}
-			annotations[spec[0]] = spec[1]
+	for _, image := range images {
+		instanceDigest, err := manifestList.Add(ctx, image, addOptions)
+		if err != nil {
+			return "", err
 		}
-		annotateOptions.Annotations = annotations
-	}
 
-	if err := manifestList.AnnotateInstance(instanceDigest, annotateOptions); err != nil {
-		return "", err
-	}
+		annotateOptions := &libimage.ManifestListAnnotateOptions{
+			Architecture: opts.Arch,
+			Features:     opts.Features,
+			OS:           opts.OS,
+			OSVersion:    opts.OSVersion,
+			Variant:      opts.Variant,
+		}
+		if len(opts.Annotation) != 0 {
+			annotations := make(map[string]string)
+			for _, annotationSpec := range opts.Annotation {
+				spec := strings.SplitN(annotationSpec, "=", 2)
+				if len(spec) != 2 {
+					return "", errors.Errorf("no value given for annotation %q", spec[0])
+				}
+				annotations[spec[0]] = spec[1]
+			}
+			annotateOptions.Annotations = annotations
+		}
 
+		if err := manifestList.AnnotateInstance(instanceDigest, annotateOptions); err != nil {
+			return "", err
+		}
+	}
 	return manifestList.ID(), nil
 }
 
 // ManifestAnnotate updates an entry of the manifest list
-func (ir *ImageEngine) ManifestAnnotate(ctx context.Context, names []string, opts entities.ManifestAnnotateOptions) (string, error) {
-	// FIXME: the `names` are *mandatory* arguments and should be
-	// reflected as such in the signature.
-
-	if len(names) < 2 {
-		return "", errors.New("manifest annotate requires two names")
-	}
-
-	listName := names[0]
-	instanceDigest, err := digest.Parse(names[1])
+func (ir *ImageEngine) ManifestAnnotate(ctx context.Context, name, image string, opts entities.ManifestAnnotateOptions) (string, error) {
+	instanceDigest, err := digest.Parse(image)
 	if err != nil {
-		return "", errors.Errorf(`invalid image digest "%s": %v`, names[1], err)
+		return "", errors.Errorf(`invalid image digest "%s": %v`, image, err)
 	}
 
-	manifestList, err := ir.Libpod.LibimageRuntime().LookupManifestList(listName)
+	manifestList, err := ir.Libpod.LibimageRuntime().LookupManifestList(name)
 	if err != nil {
 		return "", err
 	}
@@ -277,22 +261,14 @@ func (ir *ImageEngine) ManifestAnnotate(ctx context.Context, names []string, opt
 	return manifestList.ID(), nil
 }
 
-// ManifestRemove removes specified digest from the specified manifest list
-func (ir *ImageEngine) ManifestRemove(ctx context.Context, names []string) (string, error) {
-	// FIXME: the `names` are *mandatory* arguments and should be
-	// reflected as such in the signature.
-
-	if len(names) < 2 {
-		return "", errors.New("manifest remove requires two names")
-	}
-
-	listName := names[0]
-	instanceDigest, err := digest.Parse(names[1])
+// ManifestRemoveDigest removes specified digest from the specified manifest list
+func (ir *ImageEngine) ManifestRemoveDigest(ctx context.Context, name, image string) (string, error) {
+	instanceDigest, err := digest.Parse(image)
 	if err != nil {
-		return "", errors.Errorf(`invalid image digest "%s": %v`, names[1], err)
+		return "", errors.Errorf(`invalid image digest "%s": %v`, image, err)
 	}
 
-	manifestList, err := ir.Libpod.LibimageRuntime().LookupManifestList(listName)
+	manifestList, err := ir.Libpod.LibimageRuntime().LookupManifestList(name)
 	if err != nil {
 		return "", err
 	}

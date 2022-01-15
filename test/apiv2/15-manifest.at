@@ -1,0 +1,19 @@
+# -*- sh -*-
+#
+# Tests for manifest list endpoints
+
+t POST /v3.4.0/libpod/manifests/create?name=abc 200 \
+    .Id~[0-9a-f]\\{64\\}
+id_abc=$(jq -r '.Id' <<<"$output")
+
+t POST /v4.0.0/libpod/manifests/xyz 201 \
+    .Id~[0-9a-f]\\{64\\}
+echo xyz $output
+id_xyz=$(jq -r '.Id' <<<"$output")
+
+t GET /v3.4.0/libpod/manifests/$id_abc/exists 204
+t GET /v4.0.0/libpod/manifests/$id_xyz/exists 204
+
+# /v3.x cannot delete a manifest list
+t DELETE /v4.0.0/libpod/manifests/$id_abc 200
+t DELETE /v4.0.0/libpod/manifests/$id_xyz 200

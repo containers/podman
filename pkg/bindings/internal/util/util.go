@@ -104,3 +104,11 @@ func ToParams(o interface{}) (url.Values, error) {
 	}
 	return params, nil
 }
+
+func MapToArrayString(data map[string]string) []string {
+	l := make([]string, 0)
+	for k, v := range data {
+		l = append(l, k+"="+v)
+	}
+	return l
+}
