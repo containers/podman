@@ -94,10 +94,6 @@ const (
 	// InstallPrefix is the prefix where podman will be installed.
 	// It can be overridden at build time.
 	_installPrefix = "/usr"
-	// _cniConfigDir is the directory where cni configuration is found
-	_cniConfigDir = "/etc/cni/net.d/"
-	// _cniConfigDirRootless is the directory in XDG_CONFIG_HOME for cni plugins
-	_cniConfigDirRootless = "cni/net.d/"
 	// CgroupfsCgroupsManager represents cgroupfs native cgroup manager
 	CgroupfsCgroupsManager = "cgroupfs"
 	// DefaultApparmorProfile  specifies the default apparmor profile for the container.
@@ -141,8 +137,6 @@ func DefaultConfig() (*Config, error) {
 		return nil, err
 	}
 
-	cniConfig := _cniConfigDir
-
 	defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
 	if unshare.IsRootless() {
 		configHome, err := homedir.GetConfigHome()
@@ -156,7 +150,6 @@ func DefaultConfig() (*Config, error) {
 				defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
 			}
 		}
-		cniConfig = filepath.Join(configHome, _cniConfigDirRootless)
 	}
 
 	cgroupNS := "host"
@@ -203,10 +196,9 @@ func DefaultConfig() (*Config, error) {
 			UserNSSize:         DefaultUserNSSize,
 		},
 		Network: NetworkConfig{
-			DefaultNetwork:   "podman",
-			DefaultSubnet:    DefaultSubnet,
-			NetworkConfigDir: cniConfig,
-			CNIPluginDirs:    DefaultCNIPluginDirs,
+			DefaultNetwork: "podman",
+			DefaultSubnet:  DefaultSubnet,
+			CNIPluginDirs:  DefaultCNIPluginDirs,
 		},
 		Engine:  *defaultEngineConfig,
 		Secrets: defaultSecretConfig(),
