@@ -2026,7 +2026,7 @@
 - Updated Buildah to v1.7, picking up a number of bugfixes
 - Updated containers/image library to v1.5, picking up a number of bugfixes and performance improvements to pushing images
 - Updated containers/storage library to v1.10, picking up a number of bugfixes
-- Work on the remote Podman client for interacting with Podman remotely over Varlink is progressing steadily, and many image and pod commands are supported - please see the [Readme](https://github.com/containers/podman/blob/master/remote_client.md) for details
+- Work on the remote Podman client for interacting with Podman remotely over Varlink is progressing steadily, and many image and pod commands are supported - please see the [Readme](https://github.com/containers/podman/blob/main/remote_client.md) for details
 - Added path masking to mounts with the `:z` and `:Z` options, preventing users from accidentally performing an SELinux relabel of their entire home directory
 - The `podman container runlabel` command will not pull an image if it does not contain the requested label
 - Many commands' usage information now includes examples

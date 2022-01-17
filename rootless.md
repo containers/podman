@@ -29,7 +29,7 @@ can easily fail
   * A few Linux distributions (e.g. Ubuntu) have supported even older Podman and Linux kernel versions by modifying the normal Linux kernel behaviour.
 * Only other supported driver is VFS.
 * Cannot use ping out of the box.
-  * [(Can be fixed by setting sysctl on host)](https://github.com/containers/podman/blob/master/troubleshooting.md#5-rootless-containers-cannot-ping-hosts)
+  * [(Can be fixed by setting sysctl on host)](https://github.com/containers/podman/blob/main/troubleshooting.md#5-rootless-containers-cannot-ping-hosts)
 * Requires new shadow-utils (not found in older (RHEL7/Centos7 distros) Should be fixed in RHEL7.7 release)
 * A few commands do not work.
   * mount/unmount (on fuse-overlay)

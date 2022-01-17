@@ -60,10 +60,10 @@ Rootless Podman runs locked-down containers with no privileges that the user run
 Some of these restrictions can be lifted (via `--privileged`, for example), but rootless containers will never have more privileges than the user that launched them.
 If you run Podman as your user and mount in `/etc/passwd` from the host, you still won't be able to change it, since your user doesn't have permission to do so.
 
-Almost all normal Podman functionality is available, though there are some [shortcomings](https://github.com/containers/podman/blob/master/rootless.md).
-Any recent Podman release should be able to run rootless without any additional configuration, though your operating system may require some additional configuration detailed in the [install guide](https://github.com/containers/podman/blob/master/install.md).
+Almost all normal Podman functionality is available, though there are some [shortcomings](https://github.com/containers/podman/blob/main/rootless.md).
+Any recent Podman release should be able to run rootless without any additional configuration, though your operating system may require some additional configuration detailed in the [install guide](https://github.com/containers/podman/blob/main/install.md).
 
-A little configuration by an administrator is required before rootless Podman can be used, the necessary setup is documented [here](https://github.com/containers/podman/blob/master/docs/tutorials/rootless_tutorial.md).
+A little configuration by an administrator is required before rootless Podman can be used, the necessary setup is documented [here](https://github.com/containers/podman/blob/main/docs/tutorials/rootless_tutorial.md).
 
 ## Out of scope
 
@@ -110,10 +110,10 @@ includes tables showing Docker commands and their Podman equivalent commands.
 **[Tutorials](docs/tutorials)**
 Tutorials on using Podman.
 
-**[Remote Client](https://github.com/containers/podman/blob/master/docs/tutorials/remote_client.md)**
+**[Remote Client](https://github.com/containers/podman/blob/main/docs/tutorials/remote_client.md)**
 A brief how-to on using the Podman remote-client.
 
-**[Basic Setup and Use of Podman in a Rootless environment](https://github.com/containers/podman/blob/master/docs/tutorials/rootless_tutorial.md)**
+**[Basic Setup and Use of Podman in a Rootless environment](https://github.com/containers/podman/blob/main/docs/tutorials/rootless_tutorial.md)**
 A tutorial showing the setup and configuration necessary to run Rootless Podman.
 
 **[Release Notes](RELEASE_NOTES.md)**

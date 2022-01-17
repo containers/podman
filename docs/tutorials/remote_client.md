@@ -5,7 +5,7 @@ The purpose of the Podman remote-client is to allow users to interact with a Pod
 
 The remote client takes advantage of a client-server model. You need Podman installed on a Linux machine or VM that also has the SSH daemon running. On the local operating system, when you execute a Podman command, Podman connects to the server via SSH. It then connects to the Podman service by using systemd socket activation, and hitting our [Rest API](https://docs.podman.io/en/latest/_static/api.html). The Podman commands are executed on the server. From the client's point of view, it seems like Podman runs locally.
 
-This tutorial is for running Podman remotely on Linux. If you are using a Mac or a Windows PC, please follow the [Mac and Windows tutorial](https://github.com/containers/podman/blob/master/docs/tutorials/mac_win_client.md)
+This tutorial is for running Podman remotely on Linux. If you are using a Mac or a Windows PC, please follow the [Mac and Windows tutorial](https://github.com/containers/podman/blob/main/docs/tutorials/mac_win_client.md)
 
 ## Obtaining and installing Podman
 
@@ -113,4 +113,4 @@ You can use the Podman remote clients to manage your containers running on a Lin
 See the [Troubleshooting](../../troubleshooting.md) document if you run into issues.
 
 ## History
-Adapted from the [Mac and Windows tutorial](https://github.com/containers/podman/blob/master/docs/tutorials/mac_win_client.md)
+Adapted from the [Mac and Windows tutorial](https://github.com/containers/podman/blob/main/docs/tutorials/mac_win_client.md)
