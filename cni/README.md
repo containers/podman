@@ -11,7 +11,7 @@ For example a basic network configuration can be achieved with:
 
 ```bash
 sudo mkdir -p /etc/cni/net.d
-curl -qsSL https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist | sudo tee /etc/cni/net.d/87-podman-bridge.conflist
+curl -qsSL https://raw.githubusercontent.com/containers/podman/main/cni/87-podman-bridge.conflist | sudo tee /etc/cni/net.d/87-podman-bridge.conflist
 ```
 
 Dependent upon your CNI configuration, you will need to install as a minimum the `port` and `bridge`  [CNI plugins](https://github.com/containernetworking/plugins) into `/opt/cni/bin` (or the directory specified by `cni_plugin_dir` in containers.conf).  Please refer to the [CNI](https://github.com/containernetworking) project page in GitHub for more information.
