@@ -14,11 +14,24 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/ioutils"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/sirupsen/logrus"
 )
 
-const defaultNetworkBackendFileName = "defaultNetworkBackend"
+const (
+	// defaultNetworkBackendFileName is the file name for sentinel file to store the backend
+	defaultNetworkBackendFileName = "defaultNetworkBackend"
+	// cniConfigDir is the directory where cni configuration is found
+	cniConfigDir = "/etc/cni/net.d/"
+	// cniConfigDirRootless is the directory in XDG_CONFIG_HOME for cni plugins
+	cniConfigDirRootless = "cni/net.d/"
+	// netavarkConfigDir is the config directory for the rootful network files
+	netavarkConfigDir = "/etc/containers/networks"
+	// netavarkRunDir is the run directory for the rootful temporary network files such as the ipam db
+	netavarkRunDir = "/run/containers/networks"
+)
 
 // NetworkBackend returns the network backend name and interface
 // It returns either the CNI or netavark backend depending on what is set in the config.
@@ -42,9 +55,24 @@ func NetworkBackend(store storage.Store, conf *config.Config, syslog bool) (type
 		if err != nil {
 			return "", nil, err
 		}
+
+		confDir := conf.Network.NetworkConfigDir
+		if confDir == "" {
+			confDir = getDefaultNetavarkConfigDir(store)
+		}
+
+		// We cannot use the runroot for rootful since the network namespace is shared for all
+		// libpod instances they also have to share the same ipam db.
+		// For rootless we have our own network namespace per libpod instances,
+		// so this is not a problem there.
+		runDir := netavarkRunDir
+		if unshare.IsRootless() {
+			runDir = filepath.Join(store.RunRoot(), "networks")
+		}
+
 		netInt, err := netavark.NewNetworkInterface(&netavark.InitConfig{
-			NetworkConfigDir: filepath.Join(store.GraphRoot(), "networks"),
-			NetworkRunDir:    filepath.Join(store.RunRoot(), "networks"),
+			NetworkConfigDir: confDir,
+			NetworkRunDir:    runDir,
 			NetavarkBinary:   netavarkBin,
 			DefaultNetwork:   conf.Network.DefaultNetwork,
 			DefaultSubnet:    conf.Network.DefaultSubnet,
@@ -122,11 +150,42 @@ func defaultNetworkBackend(store storage.Store, conf *config.Config) (backend ty
 }
 
 func getCniInterface(conf *config.Config) (types.ContainerNetwork, error) {
+	confDir := conf.Network.NetworkConfigDir
+	if confDir == "" {
+		var err error
+		confDir, err = getDefultCNIConfigDir()
+		if err != nil {
+			return nil, err
+		}
+	}
 	return cni.NewCNINetworkInterface(&cni.InitConfig{
-		CNIConfigDir:   conf.Network.NetworkConfigDir,
+		CNIConfigDir:   confDir,
 		CNIPluginDirs:  conf.Network.CNIPluginDirs,
 		DefaultNetwork: conf.Network.DefaultNetwork,
 		DefaultSubnet:  conf.Network.DefaultSubnet,
 		IsMachine:      conf.Engine.MachineEnabled,
 	})
+}
+
+func getDefultCNIConfigDir() (string, error) {
+	if !unshare.IsRootless() {
+		return cniConfigDir, nil
+	}
+
+	configHome, err := homedir.GetConfigHome()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(configHome, cniConfigDirRootless), nil
+}
+
+// getDefaultNetavarkConfigDir return the netavark config dir. For rootful it will
+// use "/etc/containers/networks" and for rootless "$graphroot/networks". We cannot
+// use the graphroot for rootful since the network namespace is shared for all
+// libpod instances.
+func getDefaultNetavarkConfigDir(store storage.Store) string {
+	if !unshare.IsRootless() {
+		return netavarkConfigDir
+	}
+	return filepath.Join(store.GraphRoot(), "networks")
 }
