@@ -4,17 +4,18 @@
 package system
 
 import (
-	"context"
+	"fmt"
 	"net"
 	"net/url"
 	"os"
 	"path/filepath"
 
+	"github.com/containers/podman/v4/cmd/podman/registry"
 	api "github.com/containers/podman/v4/pkg/api/server"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/infra"
 	"github.com/containers/podman/v4/pkg/servicereaper"
-	"github.com/containers/podman/v4/pkg/util"
+	"github.com/coreos/go-systemd/v22/activation"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -27,7 +28,26 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 		err      error
 	)
 
-	if opts.URI != "" {
+	libpodRuntime, err := infra.GetRuntime(registry.Context(), flags, cfg)
+	if err != nil {
+		return err
+	}
+
+	if opts.URI == "" {
+		if _, found := os.LookupEnv("LISTEN_PID"); !found {
+			return errors.New("no service URI provided and socket activation protocol is not active")
+		}
+
+		listeners, err := activation.Listeners()
+		if err != nil {
+			return fmt.Errorf("cannot retrieve file descriptors from systemd: %w", err)
+		}
+		if len(listeners) != 1 {
+			return fmt.Errorf("wrong number of file descriptors for socket activation protocol (%d != 1)", len(listeners))
+		}
+		listener = &listeners[0]
+		libpodRuntime.SetRemoteURI(listeners[0].Addr().String())
+	} else {
 		uri, err := url.Parse(opts.URI)
 		if err != nil {
 			return errors.Errorf("%s is an invalid socket destination", opts.URI)
@@ -39,7 +59,6 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 			if err != nil {
 				return err
 			}
-			util.SetSocketPath(path)
 			if os.Getenv("LISTEN_FDS") != "" {
 				// If it is activated by systemd, use the first LISTEN_FD (3)
 				// instead of opening the socket file.
@@ -70,6 +89,7 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 		default:
 			logrus.Debugf("Attempting API Service endpoint scheme %q", uri.Scheme)
 		}
+		libpodRuntime.SetRemoteURI(uri.String())
 	}
 
 	// Close stdin, so shortnames will not prompt
@@ -81,15 +101,10 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 	if err := unix.Dup2(int(devNullfile.Fd()), int(os.Stdin.Fd())); err != nil {
 		return err
 	}
-	rt, err := infra.GetRuntime(context.Background(), flags, cfg)
-	if err != nil {
-		return err
-	}
 
 	servicereaper.Start()
-
-	infra.StartWatcher(rt)
-	server, err := api.NewServerWithSettings(rt, listener, opts)
+	infra.StartWatcher(libpodRuntime)
+	server, err := api.NewServerWithSettings(libpodRuntime, listener, opts)
 	if err != nil {
 		return err
 	}

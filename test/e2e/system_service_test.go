@@ -20,7 +20,7 @@ var _ = Describe("podman system service", func() {
 
 	// The timeout used to for the service to respond. As shown in #12167,
 	// this may take some time on machines under high load.
-	var timeout = 20
+	var timeout = 30
 
 	BeforeEach(func() {
 		tempdir, err := CreateTempDirInTempDir()

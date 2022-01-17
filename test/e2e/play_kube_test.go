@@ -3149,6 +3149,9 @@ invalid kube kind
 		Expect(ls.OutputToStringArray()).To(HaveLen(1))
 
 		containerLen := podmanTest.Podman([]string{"pod", "inspect", pod.Name, "--format", "'{{len .Containers}}'"})
+		containerLen.WaitWithDefaultTimeout()
+		Expect(ls).Should(Exit(0))
+		Expect(ls.OutputToStringArray()).Should(BeNumerically(">", 1))
 
 		ctr01Name := "ctr01"
 		ctr02Name := "ctr02"
