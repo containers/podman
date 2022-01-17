@@ -11,7 +11,7 @@ import (
 	"strings"
 	"unsafe"
 
-	securejoin "github.com/cyphar/filepath-securejoin"
+	"github.com/cyphar/filepath-securejoin"
 	"golang.org/x/sys/unix"
 )
 
@@ -31,6 +31,16 @@ func init() {
 	} else {
 		NativeEndian = binary.BigEndian
 	}
+}
+
+// ResolveRootfs ensures that the current working directory is
+// not a symlink and returns the absolute path to the rootfs
+func ResolveRootfs(uncleanRootfs string) (string, error) {
+	rootfs, err := filepath.Abs(uncleanRootfs)
+	if err != nil {
+		return "", err
+	}
+	return filepath.EvalSymlinks(rootfs)
 }
 
 // ExitStatus returns the correct exit status for a process based on if it
@@ -110,7 +120,7 @@ func WithProcfd(root, unsafePath string, fn func(procfd string) error) error {
 	unsafePath = stripRoot(root, unsafePath)
 	path, err := securejoin.SecureJoin(root, unsafePath)
 	if err != nil {
-		return fmt.Errorf("resolving path inside rootfs failed: %w", err)
+		return fmt.Errorf("resolving path inside rootfs failed: %v", err)
 	}
 
 	// Open the target path.

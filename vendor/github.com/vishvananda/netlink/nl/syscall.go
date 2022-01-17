@@ -1,6 +1,6 @@
 package nl
 
-// syscall package lack of rule atributes type.
+// syscall package lack of rule attributes type.
 // Thus there are defined below
 const (
 	FRA_UNSPEC  = iota

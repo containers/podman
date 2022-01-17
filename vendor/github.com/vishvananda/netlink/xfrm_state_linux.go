@@ -111,7 +111,7 @@ func (h *Handle) xfrmStateAddOrUpdate(state *XfrmState, nlProto int) error {
 
 	// A state with spi 0 can't be deleted so don't allow it to be set
 	if state.Spi == 0 {
-		return fmt.Errorf("Spi must be set when adding xfrm state.")
+		return fmt.Errorf("Spi must be set when adding xfrm state")
 	}
 	req := h.newNetlinkRequest(nlProto, unix.NLM_F_CREATE|unix.NLM_F_EXCL|unix.NLM_F_ACK)
 

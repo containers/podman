@@ -2,7 +2,9 @@ package goterm
 
 import (
 	"bytes"
+	"regexp"
 	"strings"
+	_ "unicode/utf8"
 )
 
 const DEFAULT_BORDER = "- │ ┌ ┐ └ ┘"
@@ -61,7 +63,9 @@ func (b *Box) Write(p []byte) (int, error) {
 	return b.Buf.Write(p)
 }
 
-// Render Box
+var ANSI_RE = regexp.MustCompile(`\\0\d+\[\d+(?:;\d+)?m`)
+
+// String renders Box
 func (b *Box) String() (out string) {
 	borders := strings.Split(b.Border, " ")
 	lines := strings.Split(b.Buf.String(), "\n")
@@ -74,7 +78,6 @@ func (b *Box) String() (out string) {
 
 	// Content width without borders and padding
 	contentWidth := b.Width - (b.PaddingX+1)*2
-
 	for y := 0; y < b.Height; y++ {
 		var line string
 
@@ -99,12 +102,63 @@ func (b *Box) String() (out string) {
 				line = ""
 			}
 
-			if len(line) > contentWidth-1 {
+			r := []rune(line)
+
+			lastAnsii := ""
+			withoutAnsii := []rune{}
+			withOffset := []rune{}
+			i := 0
+
+			for {
+				if i >= len(r) {
+					break
+				}
+
+				if r[i] == 27 {
+					lastAnsii = ""
+					withOffset = append(withOffset, r[i])
+					lastAnsii += string(r[i])
+					i++
+					for {
+
+						i++
+						if i > len(r) {
+							break
+						}
+
+						withOffset = append(withOffset, r[i])
+						lastAnsii += string(r[i])
+
+						if r[i] == 'm' {
+							i++
+							break
+						}
+					}
+				}
+
+				if i >= len(r) {
+					break
+				}
+
+				withoutAnsii = append(withoutAnsii, r[i])
+
+				if len(withoutAnsii) <= contentWidth {
+					withOffset = append(withOffset, r[i])
+				}
+
+				i++
+			}
+
+			if len(withoutAnsii) > contentWidth {
 				// If line is too large limit it
-				line = line[0:contentWidth]
+				line = string(withOffset)
 			} else {
 				// If line is too small enlarge it by adding spaces
-				line = line + strings.Repeat(" ", contentWidth-len(line))
+				line += strings.Repeat(" ", contentWidth-len(withoutAnsii))
+			}
+
+			if lastAnsii != "" {
+				line += RESET
 			}
 
 			line = prefix + line + suffix
@@ -112,7 +166,7 @@ func (b *Box) String() (out string) {
 
 		// Don't add newline for last element
 		if y != b.Height-1 {
-			line = line + "\n"
+			line += "\n"
 		}
 
 		out += line

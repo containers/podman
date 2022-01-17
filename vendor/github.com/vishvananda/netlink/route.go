@@ -41,6 +41,7 @@ type Route struct {
 	MultiPath        []*NexthopInfo
 	Protocol         RouteProtocol
 	Priority         int
+	Family           int
 	Table            int
 	Type             int
 	Tos              int
@@ -49,6 +50,7 @@ type Route struct {
 	NewDst           Destination
 	Encap            Encap
 	Via              Destination
+	Realm            int
 	MTU              int
 	Window           int
 	Rtt              int
@@ -94,6 +96,7 @@ func (r Route) String() string {
 	}
 	elems = append(elems, fmt.Sprintf("Flags: %s", r.ListFlags()))
 	elems = append(elems, fmt.Sprintf("Table: %d", r.Table))
+	elems = append(elems, fmt.Sprintf("Realm: %d", r.Realm))
 	return fmt.Sprintf("{%s}", strings.Join(elems, " "))
 }
 
@@ -107,6 +110,7 @@ func (r Route) Equal(x Route) bool {
 		nexthopInfoSlice(r.MultiPath).Equal(x.MultiPath) &&
 		r.Protocol == x.Protocol &&
 		r.Priority == x.Priority &&
+		r.Realm == x.Realm &&
 		r.Table == x.Table &&
 		r.Type == x.Type &&
 		r.Tos == x.Tos &&

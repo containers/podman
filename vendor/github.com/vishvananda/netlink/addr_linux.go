@@ -268,7 +268,7 @@ func parseAddr(m []byte) (addr Addr, family int, err error) {
 	// But obviously, as there are IPv6 PtP addresses, too,
 	// IFA_LOCAL should also be handled for IPv6.
 	if local != nil {
-		if family == FAMILY_V4 && local.IP.Equal(dst.IP) {
+		if family == FAMILY_V4 && dst != nil && local.IP.Equal(dst.IP) {
 			addr.IPNet = dst
 		} else {
 			addr.IPNet = local
@@ -357,7 +357,8 @@ func addrSubscribeAt(newNs, curNs netns.NsHandle, ch chan<- AddrUpdate, done <-c
 			msgs, from, err := s.Receive()
 			if err != nil {
 				if cberr != nil {
-					cberr(err)
+					cberr(fmt.Errorf("Receive failed: %v",
+						err))
 				}
 				return
 			}
@@ -372,7 +373,6 @@ func addrSubscribeAt(newNs, curNs netns.NsHandle, ch chan<- AddrUpdate, done <-c
 					continue
 				}
 				if m.Header.Type == unix.NLMSG_ERROR {
-					native := nl.NativeEndian()
 					error := int32(native.Uint32(m.Data[0:4]))
 					if error == 0 {
 						continue

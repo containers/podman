@@ -15,7 +15,7 @@ type Spec struct {
 	// Mounts configures additional mounts (on top of Root).
 	Mounts []Mount `json:"mounts,omitempty"`
 	// Hooks configures callbacks for container lifecycle events.
-	Hooks *Hooks `json:"hooks,omitempty" platform:"linux,solaris"`
+	Hooks *Hooks `json:"hooks,omitempty" platform:"linux,solaris,zos"`
 	// Annotations contains arbitrary metadata for the container.
 	Annotations map[string]string `json:"annotations,omitempty"`
 
@@ -27,6 +27,8 @@ type Spec struct {
 	Windows *Windows `json:"windows,omitempty" platform:"windows"`
 	// VM specifies configuration for virtual-machine-based containers.
 	VM *VM `json:"vm,omitempty" platform:"vm"`
+	// ZOS is platform-specific configuration for z/OS based containers.
+	ZOS *ZOS `json:"zos,omitempty" platform:"zos"`
 }
 
 // Process contains information to start a specific application inside the container.
@@ -49,7 +51,7 @@ type Process struct {
 	// Capabilities are Linux capabilities that are kept for the process.
 	Capabilities *LinuxCapabilities `json:"capabilities,omitempty" platform:"linux"`
 	// Rlimits specifies rlimit options to apply to the process.
-	Rlimits []POSIXRlimit `json:"rlimits,omitempty" platform:"linux,solaris"`
+	Rlimits []POSIXRlimit `json:"rlimits,omitempty" platform:"linux,solaris,zos"`
 	// NoNewPrivileges controls whether additional privileges could be gained by processes in the container.
 	NoNewPrivileges bool `json:"noNewPrivileges,omitempty" platform:"linux"`
 	// ApparmorProfile specifies the apparmor profile for the container.
@@ -86,11 +88,11 @@ type Box struct {
 // User specifies specific user (and group) information for the container process.
 type User struct {
 	// UID is the user id.
-	UID uint32 `json:"uid" platform:"linux,solaris"`
+	UID uint32 `json:"uid" platform:"linux,solaris,zos"`
 	// GID is the group id.
-	GID uint32 `json:"gid" platform:"linux,solaris"`
+	GID uint32 `json:"gid" platform:"linux,solaris,zos"`
 	// Umask is the umask for the init process.
-	Umask *uint32 `json:"umask,omitempty" platform:"linux,solaris"`
+	Umask *uint32 `json:"umask,omitempty" platform:"linux,solaris,zos"`
 	// AdditionalGids are additional group ids set for the container's process.
 	AdditionalGids []uint32 `json:"additionalGids,omitempty" platform:"linux,solaris"`
 	// Username is the user name.
@@ -110,7 +112,7 @@ type Mount struct {
 	// Destination is the absolute path where the mount will be placed in the container.
 	Destination string `json:"destination"`
 	// Type specifies the mount kind.
-	Type string `json:"type,omitempty" platform:"linux,solaris"`
+	Type string `json:"type,omitempty" platform:"linux,solaris,zos"`
 	// Source specifies the source path of the mount.
 	Source string `json:"source,omitempty"`
 	// Options are fstab style mount options.
@@ -178,7 +180,7 @@ type Linux struct {
 	// MountLabel specifies the selinux context for the mounts in the container.
 	MountLabel string `json:"mountLabel,omitempty"`
 	// IntelRdt contains Intel Resource Director Technology (RDT) information for
-	// handling resource constraints (e.g., L3 cache, memory bandwidth) for the container
+	// handling resource constraints and monitoring metrics (e.g., L3 cache, memory bandwidth) for the container
 	IntelRdt *LinuxIntelRdt `json:"intelRdt,omitempty"`
 	// Personality contains configuration for the Linux personality syscall
 	Personality *LinuxPersonality `json:"personality,omitempty"`
@@ -683,8 +685,9 @@ type LinuxSyscall struct {
 	Args     []LinuxSeccompArg  `json:"args,omitempty"`
 }
 
-// LinuxIntelRdt has container runtime resource constraints for Intel RDT
-// CAT and MBA features which introduced in Linux 4.10 and 4.12 kernel
+// LinuxIntelRdt has container runtime resource constraints for Intel RDT CAT and MBA
+// features and flags enabling Intel RDT CMT and MBM features.
+// Intel RDT features are available in Linux 4.14 and newer kernel versions.
 type LinuxIntelRdt struct {
 	// The identity for RDT Class of Service
 	ClosID string `json:"closID,omitempty"`
@@ -697,4 +700,36 @@ type LinuxIntelRdt struct {
 	// The unit of memory bandwidth is specified in "percentages" by
 	// default, and in "MBps" if MBA Software Controller is enabled.
 	MemBwSchema string `json:"memBwSchema,omitempty"`
+
+	// EnableCMT is the flag to indicate if the Intel RDT CMT is enabled. CMT (Cache Monitoring Technology) supports monitoring of
+	// the last-level cache (LLC) occupancy for the container.
+	EnableCMT bool `json:"enableCMT,omitempty"`
+
+	// EnableMBM is the flag to indicate if the Intel RDT MBM is enabled. MBM (Memory Bandwidth Monitoring) supports monitoring of
+	// total and local memory bandwidth for the container.
+	EnableMBM bool `json:"enableMBM,omitempty"`
+}
+
+// ZOS contains platform-specific configuration for z/OS based containers.
+type ZOS struct {
+	// Devices are a list of device nodes that are created for the container
+	Devices []ZOSDevice `json:"devices,omitempty"`
+}
+
+// ZOSDevice represents the mknod information for a z/OS special device file
+type ZOSDevice struct {
+	// Path to the device.
+	Path string `json:"path"`
+	// Device type, block, char, etc.
+	Type string `json:"type"`
+	// Major is the device's major number.
+	Major int64 `json:"major"`
+	// Minor is the device's minor number.
+	Minor int64 `json:"minor"`
+	// FileMode permission bits for the device.
+	FileMode *os.FileMode `json:"fileMode,omitempty"`
+	// UID of the device.
+	UID *uint32 `json:"uid,omitempty"`
+	// Gid of the device.
+	GID *uint32 `json:"gid,omitempty"`
 }

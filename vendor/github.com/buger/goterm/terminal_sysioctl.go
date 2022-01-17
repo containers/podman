@@ -4,6 +4,7 @@ package goterm
 
 import (
 	"os"
+
 	"golang.org/x/sys/unix"
 )
 
