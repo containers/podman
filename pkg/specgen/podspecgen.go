@@ -183,7 +183,7 @@ type PodStorageConfig struct {
 // PodCgroupConfig contains configuration options about a pod's cgroups.
 // This will be expanded in future updates to pods.
 type PodCgroupConfig struct {
-	// CgroupParent is the parent for the CGroup that the pod will create.
+	// CgroupParent is the parent for the Cgroup that the pod will create.
 	// This pod cgroup will, in turn, be the default cgroup parent for all
 	// containers in the pod.
 	// Optional.

@@ -97,7 +97,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 
 		cgroupsFlagName := "cgroups"
 		createFlags.StringVar(
-			&cf.CGroupsMode,
+			&cf.CgroupsMode,
 			cgroupsFlagName, cgroupConfig(),
 			`control container cgroup configuration ("enabled"|"disabled"|"no-conmon"|"split")`,
 		)
@@ -159,7 +159,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 
 		deviceCgroupRuleFlagName := "device-cgroup-rule"
 		createFlags.StringSliceVar(
-			&cf.DeviceCGroupRule,
+			&cf.DeviceCgroupRule,
 			deviceCgroupRuleFlagName, []string{},
 			"Add a rule to the cgroup allowed devices list",
 		)
@@ -762,7 +762,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 
 	cgroupParentFlagName := "cgroup-parent"
 	createFlags.StringVar(
-		&cf.CGroupParent,
+		&cf.CgroupParent,
 		cgroupParentFlagName, "",
 		"Optional parent cgroup for the container",
 	)

@@ -36,7 +36,7 @@ var _ = Describe("Podman run ns", func() {
 	})
 
 	It("podman run pidns test", func() {
-		SkipIfRootlessCgroupsV1("Not supported for rootless + CGroupsV1")
+		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		session := podmanTest.Podman([]string{"run", fedoraMinimal, "bash", "-c", "echo $$"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -115,7 +115,7 @@ var _ = Describe("Podman run ns", func() {
 	})
 
 	It("podman run --ipc=host --pid=host", func() {
-		SkipIfRootlessCgroupsV1("Not supported for rootless + CGroupsV1")
+		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		cmd := exec.Command("ls", "-l", "/proc/self/ns/pid")
 		res, err := cmd.Output()
 		Expect(err).To(BeNil())

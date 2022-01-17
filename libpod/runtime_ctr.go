@@ -344,8 +344,8 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		}
 	}
 
-	// Check CGroup parent sanity, and set it if it was not set.
-	// Only if we're actually configuring CGroups.
+	// Check Cgroup parent sanity, and set it if it was not set.
+	// Only if we're actually configuring Cgroups.
 	if !ctr.config.NoCgroups {
 		ctr.config.CgroupManager = r.config.Engine.CgroupManager
 		switch r.config.Engine.CgroupManager {
@@ -391,7 +391,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 				return nil, errors.Wrapf(define.ErrInvalidArg, "did not receive systemd slice as cgroup parent when using systemd to manage cgroups")
 			}
 		default:
-			return nil, errors.Wrapf(define.ErrInvalidArg, "unsupported CGroup manager: %s - cannot validate cgroup parent", r.config.Engine.CgroupManager)
+			return nil, errors.Wrapf(define.ErrInvalidArg, "unsupported Cgroup manager: %s - cannot validate cgroup parent", r.config.Engine.CgroupManager)
 		}
 	}
 
@@ -411,7 +411,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		g.RemoveMount("/run/.containerenv")
 		g.RemoveMount("/run/secrets")
 
-		// Regenerate CGroup paths so they don't point to the old
+		// Regenerate Cgroup paths so they don't point to the old
 		// container ID.
 		cgroupPath, err := ctr.getOCICgroupPath()
 		if err != nil {

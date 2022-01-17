@@ -148,7 +148,7 @@ type PodTopOKBody struct {
 // swagger:model PodCreateConfig
 type PodCreateConfig struct {
 	Name         string   `json:"name"`
-	CGroupParent string   `json:"cgroup-parent"`
+	CgroupParent string   `json:"cgroup-parent"`
 	Hostname     string   `json:"hostname"`
 	Infra        bool     `json:"infra"`
 	InfraCommand string   `json:"infra-command"`

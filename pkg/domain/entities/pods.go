@@ -118,7 +118,7 @@ type PodSpec struct {
 // The JSON tags below are made to match the respective field in ContainerCreateOptions for the purpose of mapping.
 // swagger:model PodCreateOptions
 type PodCreateOptions struct {
-	CGroupParent       string            `json:"cgroup_parent,omitempty"`
+	CgroupParent       string            `json:"cgroup_parent,omitempty"`
 	CreateCommand      []string          `json:"create_command,omitempty"`
 	Devices            []string          `json:"devices,omitempty"`
 	DeviceReadBPs      []string          `json:"device_read_bps,omitempty"`
@@ -159,8 +159,8 @@ type ContainerCreateOptions struct {
 	CapAdd            []string
 	CapDrop           []string
 	CgroupNS          string
-	CGroupsMode       string
-	CGroupParent      string `json:"cgroup_parent,omitempty"`
+	CgroupsMode       string
+	CgroupParent      string `json:"cgroup_parent,omitempty"`
 	CIDFile           string
 	ConmonPIDFile     string `json:"container_conmon_pidfile,omitempty"`
 	CPUPeriod         uint64
@@ -172,7 +172,7 @@ type ContainerCreateOptions struct {
 	CPUSetCPUs        string  `json:"cpuset_cpus,omitempty"`
 	CPUSetMems        string
 	Devices           []string `json:"devices,omitempty"`
-	DeviceCGroupRule  []string
+	DeviceCgroupRule  []string
 	DeviceReadBPs     []string `json:"device_read_bps,omitempty"`
 	DeviceReadIOPs    []string
 	DeviceWriteBPs    []string
@@ -345,7 +345,7 @@ func ToPodSpecGen(s specgen.PodSpecGenerator, p *PodCreateOptions) (*specgen.Pod
 	}
 
 	// Cgroup
-	s.CgroupParent = p.CGroupParent
+	s.CgroupParent = p.CgroupParent
 
 	// Resource config
 	cpuDat := p.CPULimits()

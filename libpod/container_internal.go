@@ -1092,7 +1092,7 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 		// upstream in any OCI runtime.
 		// TODO: Remove once runc supports cgroupsv2
 		if strings.Contains(err.Error(), "this version of runc doesn't work on cgroups v2") {
-			logrus.Errorf("Oci runtime %q does not support CGroups V2: use system migrate to mitigate", c.ociRuntime.Name())
+			logrus.Errorf("Oci runtime %q does not support Cgroups V2: use system migrate to mitigate", c.ociRuntime.Name())
 		}
 		return err
 	}
@@ -1291,8 +1291,8 @@ func (c *Container) stop(timeout uint) error {
 	// a pid namespace then the OCI Runtime needs to kill ALL processes in
 	// the containers cgroup in order to make sure the container is stopped.
 	all := !c.hasNamespace(spec.PIDNamespace)
-	// We can't use --all if CGroups aren't present.
-	// Rootless containers with CGroups v1 and NoCgroups are both cases
+	// We can't use --all if Cgroups aren't present.
+	// Rootless containers with Cgroups v1 and NoCgroups are both cases
 	// where this can happen.
 	if all {
 		if c.config.NoCgroups {
@@ -1400,7 +1400,7 @@ func (c *Container) stop(timeout uint) error {
 // Internal, non-locking function to pause a container
 func (c *Container) pause() error {
 	if c.config.NoCgroups {
-		return errors.Wrapf(define.ErrNoCgroups, "cannot pause without using CGroups")
+		return errors.Wrapf(define.ErrNoCgroups, "cannot pause without using Cgroups")
 	}
 
 	if rootless.IsRootless() {
@@ -1428,7 +1428,7 @@ func (c *Container) pause() error {
 // Internal, non-locking function to unpause a container
 func (c *Container) unpause() error {
 	if c.config.NoCgroups {
-		return errors.Wrapf(define.ErrNoCgroups, "cannot unpause without using CGroups")
+		return errors.Wrapf(define.ErrNoCgroups, "cannot unpause without using Cgroups")
 	}
 
 	if err := c.ociRuntime.UnpauseContainer(c); err != nil {

@@ -246,7 +246,7 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *c
 		Authfile:     "",
 		CapAdd:       append(capAdd, cc.HostConfig.CapAdd...),
 		CapDrop:      append(cappDrop, cc.HostConfig.CapDrop...),
-		CGroupParent: cc.HostConfig.CgroupParent,
+		CgroupParent: cc.HostConfig.CgroupParent,
 		CIDFile:      cc.HostConfig.ContainerIDFile,
 		CPUPeriod:    uint64(cc.HostConfig.CPUPeriod),
 		CPUQuota:     cc.HostConfig.CPUQuota,
@@ -259,7 +259,7 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *c
 		// Detach:            false, // don't need
 		// DetachKeys:        "",    // don't need
 		Devices:           devices,
-		DeviceCGroupRule:  nil,
+		DeviceCgroupRule:  nil,
 		DeviceReadBPs:     readBps,
 		DeviceReadIOPs:    readIops,
 		DeviceWriteBPs:    writeBps,

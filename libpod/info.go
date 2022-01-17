@@ -104,7 +104,7 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 		return nil, errors.Wrapf(err, "error getting Seccomp profile path")
 	}
 
-	// CGroups version
+	// Cgroups version
 	unified, err := cgroups.IsCgroup2UnifiedMode()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading cgroups mode")
@@ -150,7 +150,7 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 	if unified {
 		cgroupVersion = "v2"
 	}
-	info.CGroupsVersion = cgroupVersion
+	info.CgroupsVersion = cgroupVersion
 
 	slirp4netnsPath := r.config.Engine.NetworkCmdPath
 	if slirp4netnsPath == "" {

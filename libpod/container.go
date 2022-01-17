@@ -23,7 +23,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// CgroupfsDefaultCgroupParent is the cgroup parent for CGroupFS in libpod
+// CgroupfsDefaultCgroupParent is the cgroup parent for CgroupFS in libpod
 const CgroupfsDefaultCgroupParent = "/libpod_parent"
 
 // SystemdDefaultCgroupParent is the cgroup parent for the systemd cgroup
@@ -56,7 +56,7 @@ const (
 	UserNS LinuxNS = iota
 	// UTSNS is the UTS namespace
 	UTSNS LinuxNS = iota
-	// CgroupNS is the CGroup namespace
+	// CgroupNS is the Cgroup namespace
 	CgroupNS LinuxNS = iota
 )
 
@@ -575,7 +575,7 @@ func (c *Container) CreatedTime() time.Time {
 	return c.config.CreatedTime
 }
 
-// CgroupParent gets the container's CGroup parent
+// CgroupParent gets the container's Cgroup parent
 func (c *Container) CgroupParent() string {
 	return c.config.CgroupParent
 }
@@ -907,10 +907,10 @@ func (c *Container) CgroupManager() string {
 	return cgroupManager
 }
 
-// CGroupPath returns a cgroups "path" for the given container.
+// CgroupPath returns a cgroups "path" for the given container.
 // Note that the container must be running.  Otherwise, an error
 // is returned.
-func (c *Container) CGroupPath() (string, error) {
+func (c *Container) CgroupPath() (string, error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()

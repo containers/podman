@@ -215,7 +215,7 @@ func (s *BoltState) Refresh() error {
 					return errors.Wrapf(err, "error unmarshalling state for pod %s", string(id))
 				}
 
-				// Clear the CGroup path
+				// Clear the Cgroup path
 				state.CgroupPath = ""
 
 				newStateBytes, err := json.Marshal(state)

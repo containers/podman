@@ -128,7 +128,7 @@ var _ = Describe("Podman pod kill", func() {
 	})
 
 	It("podman pod kill all", func() {
-		SkipIfRootlessCgroupsV1("Not supported for rootless + CGroupsV1")
+		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 

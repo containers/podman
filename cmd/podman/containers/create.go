@@ -257,8 +257,8 @@ func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra 
 			}
 			vals.Env = env
 		}
-		if c.Flag("cgroups").Changed && vals.CGroupsMode == "split" && registry.IsRemote() {
-			return vals, errors.Errorf("the option --cgroups=%q is not supported in remote mode", vals.CGroupsMode)
+		if c.Flag("cgroups").Changed && vals.CgroupsMode == "split" && registry.IsRemote() {
+			return vals, errors.Errorf("the option --cgroups=%q is not supported in remote mode", vals.CgroupsMode)
 		}
 
 		if c.Flag("pod").Changed && !strings.HasPrefix(c.Flag("pod").Value.String(), "new:") && c.Flag("userns").Changed {

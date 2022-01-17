@@ -229,6 +229,10 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		}
 	}
 
+	if s.CgroupsMode == "" {
+		s.CgroupsMode = rtc.Cgroups()
+	}
+
 	// If caller did not specify Pids Limits load default
 	if s.ResourceLimits == nil || s.ResourceLimits.Pids == nil {
 		if s.CgroupsMode != "disabled" {

@@ -57,13 +57,13 @@ func (c *Container) validate() error {
 			if ns.Type == spec.PIDNamespace {
 				foundPid = true
 				if ns.Path != "" {
-					return errors.Wrapf(define.ErrInvalidArg, "containers not creating CGroups must create a private PID namespace - cannot use another")
+					return errors.Wrapf(define.ErrInvalidArg, "containers not creating Cgroups must create a private PID namespace - cannot use another")
 				}
 				break
 			}
 		}
 		if !foundPid {
-			return errors.Wrapf(define.ErrInvalidArg, "containers not creating CGroups must create a private PID namespace")
+			return errors.Wrapf(define.ErrInvalidArg, "containers not creating Cgroups must create a private PID namespace")
 		}
 	}
 

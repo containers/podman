@@ -989,7 +989,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	report := entities.ContainerRunReport{Id: ctr.ID()}
 
 	if logrus.GetLevel() == logrus.DebugLevel {
-		cgroupPath, err := ctr.CGroupPath()
+		cgroupPath, err := ctr.CgroupPath()
 		if err == nil {
 			logrus.Debugf("container %q has CgroupParent %q", ctr.ID(), cgroupPath)
 		}

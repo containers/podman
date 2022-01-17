@@ -152,7 +152,7 @@ func canMountSys(isRootless, isNewUserns bool, s *specgen.SpecGenerator) bool {
 	return true
 }
 
-func getCGroupPermissons(unmask []string) string {
+func getCgroupPermissons(unmask []string) string {
 	ro := "ro"
 	rw := "rw"
 	cgroup := "/sys/fs/cgroup"
@@ -176,7 +176,7 @@ func getCGroupPermissons(unmask []string) string {
 
 // SpecGenToOCI returns the base configuration for the container.
 func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, rtc *config.Config, newImage *libimage.Image, mounts []spec.Mount, pod *libpod.Pod, finalCmd []string, compatibleOptions *libpod.InfraInherit) (*spec.Spec, error) {
-	cgroupPerm := getCGroupPermissons(s.Unmask)
+	cgroupPerm := getCgroupPermissons(s.Unmask)
 
 	g, err := generate.New("linux")
 	if err != nil {
@@ -357,7 +357,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	// set the devices cgroup when not running in a user namespace
 	if !inUserNS && !s.Privileged {
 		g.AddLinuxResourcesDevice(false, "", nil, nil, "rwm")
-		for _, dev := range s.DeviceCGroupRule {
+		for _, dev := range s.DeviceCgroupRule {
 			g.AddLinuxResourcesDevice(true, dev.Type, dev.Major, dev.Minor, dev.Access)
 		}
 	}

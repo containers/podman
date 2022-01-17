@@ -96,7 +96,7 @@ var (
 	ErrWillDeadlock = errors.New("deadlock due to lock mismatch")
 
 	// ErrNoCgroups indicates that the container does not have its own
-	// CGroup.
+	// Cgroup.
 	ErrNoCgroups = errors.New("this container does not have a cgroup")
 	// ErrNoLogs indicates that this container is not creating a log so log
 	// operations cannot be performed on it

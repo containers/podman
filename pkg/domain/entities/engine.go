@@ -33,7 +33,7 @@ type PodmanConfig struct {
 	*config.Config
 	*pflag.FlagSet
 
-	CGroupUsage    string     // rootless code determines Usage message
+	CgroupUsage    string     // rootless code determines Usage message
 	ConmonPath     string     // --conmon flag will set Engine.ConmonPath
 	CPUProfile     string     // Hidden: Should CPU profile be taken
 	EngineMode     EngineMode // ABI or Tunneling mode

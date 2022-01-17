@@ -43,7 +43,7 @@ func getDefaultSystemdCgroup() string {
 	return SystemdDefaultCgroupParent
 }
 
-// makeSystemdCgroup creates a systemd CGroup at the given location.
+// makeSystemdCgroup creates a systemd Cgroup at the given location.
 func makeSystemdCgroup(path string) error {
 	controller, err := cgroups.NewSystemd(getDefaultSystemdCgroup())
 	if err != nil {
