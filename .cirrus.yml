@@ -327,7 +327,6 @@ alt_build_task:
 osx_alt_build_task:
     name: "OSX Cross"
     alias: osx_alt_build
-    only_if: $CI != $CI  # Temporarily disabled while infra. non-functional
     depends_on:
         - build
     env:
