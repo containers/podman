@@ -358,13 +358,12 @@ func (l psReporter) State() string {
 	case "running":
 		t := units.HumanDuration(time.Since(time.Unix(l.StartedAt, 0)))
 		state = "Up " + t + " ago"
-	case "configured":
-		state = "Created"
 	case "exited", "stopped":
 		t := units.HumanDuration(time.Since(time.Unix(l.ExitedAt, 0)))
 		state = fmt.Sprintf("Exited (%d) %s ago", l.ExitCode, t)
 	default:
-		state = l.ListContainer.State
+		// Need to capitalize the first letter to match Docker.
+		state = strings.Title(l.ListContainer.State)
 	}
 	return state
 }

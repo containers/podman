@@ -223,7 +223,7 @@ EOF
 @test "inspect - all container status" {
     tests="
 running   | running    |  0
-created   | configured |  0
+created   | created    |  0
 done      | exited     |  0
 failed    | exited     | 17
 "

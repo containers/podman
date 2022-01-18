@@ -16,7 +16,7 @@ var _ = Describe("Podman pod pause", func() {
 		podmanTest *PodmanTestIntegration
 	)
 
-	pausedState := "paused"
+	pausedState := "Paused"
 
 	BeforeEach(func() {
 		SkipIfRootlessCgroupsV1("Pause is not supported in cgroups v1")

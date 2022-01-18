@@ -156,7 +156,7 @@ podman create -t -i --name myctr $IMAGE ls
 # Check configuration before initializing
 t GET libpod/containers/myctr/json 200 \
   .Id~[0-9a-f]\\{64\\} \
-  .State.Status="configured" \
+  .State.Status="created" \
   .State.Pid=0 \
   .ResolvConfPath="" \
   .HostnamePath="" \
@@ -172,7 +172,7 @@ t POST libpod/containers/myctr/init 204
 # Check configuration after initializing
 t GET libpod/containers/myctr/json 200 \
   .Id~[0-9a-f]\\{64\\} \
-  .State.Status="created" \
+  .State.Status="initialized" \
   .State.Pid~[0-9]\\{1\,8\\} \
   .ResolvConfPath=$userdata_path/resolv.conf \
   .HostnamePath=$userdata_path/hostname \

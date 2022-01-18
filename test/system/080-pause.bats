@@ -27,7 +27,7 @@ load helpers
     is "$output" "paused" "podman inspect .State.Status"
     sleep 3
     run_podman ps -a --format '{{.ID}} {{.Names}} {{.Status}}'
-    is "$output" "${cid:0:12} $cname paused" "podman ps on paused container"
+    is "$output" "${cid:0:12} $cname Paused" "podman ps on paused container"
     run_podman unpause $cname
     run_podman ps -a --format '{{.ID}} {{.Names}} {{.Status}}'
     is "$output" "${cid:0:12} $cname Up .*" "podman ps on resumed container"
