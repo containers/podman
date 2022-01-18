@@ -408,3 +408,29 @@ t GET containers/$cid/json 200 \
     .HostConfig.Binds[0]~/tmp:/mnt:.* \
 
 t DELETE containers/$cid?v=true 204
+
+# test apiv2 create/commit
+t POST containers/create \
+  Image=$IMAGE \
+  Entrypoint='["echo"]' \
+  Cmd='["param1","param2"]' \
+  201 \
+  .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+
+# No such container
+t POST "commit?container=nonesuch" 404
+
+cparam="repo=newrepo&tag=v3&comment=abcd&author=eric"
+cparam="$cparam&format=docker&changes=CMD=/bin/bar,EXPOSE=9090"
+t POST "commit?container=${cid:0:12}&$cparam" 201 \
+  .Id~[0-9a-f]\\{64\\}
+iid=$(jq -r '.Id' <<<"$output")
+t GET images/$iid/json 200 \
+  .RepoTags[0]=docker.io/library/newrepo:v3 \
+  .Config.ExposedPorts~.*"9090/tcp" \
+  .Config.Cmd~.*"/bin/bar" \
+  .Comment="abcd"
+
+t DELETE containers/$cid 204
+t DELETE images/docker.io/library/newrepo:v3?force=false 200

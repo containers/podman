@@ -138,7 +138,9 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 	options.Message = query.Comment
 	options.Author = query.Author
 	options.Pause = query.Pause
-	options.Changes = strings.Fields(query.Changes)
+	if query.Changes != "" {
+		options.Changes = strings.Split(query.Changes, ",")
+	}
 	ctr, err := runtime.LookupContainer(query.Container)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusNotFound, err)
