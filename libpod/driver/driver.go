@@ -1,7 +1,7 @@
 package driver
 
 import (
-	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/storage"
 )
 

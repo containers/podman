@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v3/pkg/machine"
-	"github.com/containers/podman/v3/utils"
+	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/podman/v3/libpod"
+	"github.com/containers/podman/v4/libpod"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 )

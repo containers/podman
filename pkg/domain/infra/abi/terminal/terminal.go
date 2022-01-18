@@ -5,8 +5,8 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/containers/podman/v3/libpod/define"
-	lsignal "github.com/containers/podman/v3/pkg/signal"
+	"github.com/containers/podman/v4/libpod/define"
+	lsignal "github.com/containers/podman/v4/pkg/signal"
 	"github.com/moby/term"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

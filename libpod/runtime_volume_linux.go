@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/libpod/events"
-	volplugin "github.com/containers/podman/v3/libpod/plugin"
+	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/libpod/events"
+	volplugin "github.com/containers/podman/v4/libpod/plugin"
 	"github.com/containers/storage/drivers/quota"
 	"github.com/containers/storage/pkg/stringid"
 	pluginapi "github.com/docker/go-plugins-helpers/volume"

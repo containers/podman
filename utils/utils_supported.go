@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/cgroups"
-	"github.com/containers/podman/v3/pkg/rootless"
+	"github.com/containers/podman/v4/pkg/rootless"
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	"github.com/godbus/dbus/v5"
 	"github.com/pkg/errors"

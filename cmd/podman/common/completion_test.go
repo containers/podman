@@ -3,7 +3,7 @@ package common_test
 import (
 	"testing"
 
-	"github.com/containers/podman/v3/cmd/podman/common"
+	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 )

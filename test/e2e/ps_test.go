@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strconv"
 
-	. "github.com/containers/podman/v3/test/utils"
+	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/go-units"
 	. "github.com/onsi/ginkgo"

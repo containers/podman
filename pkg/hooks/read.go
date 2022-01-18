@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	old "github.com/containers/podman/v3/pkg/hooks/0.1.0"
-	current "github.com/containers/podman/v3/pkg/hooks/1.0.0"
+	old "github.com/containers/podman/v4/pkg/hooks/0.1.0"
+	current "github.com/containers/podman/v4/pkg/hooks/1.0.0"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

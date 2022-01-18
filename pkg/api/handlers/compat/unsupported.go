@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/containers/podman/v3/pkg/api/handlers/utils"
-	"github.com/containers/podman/v3/pkg/errorhandling"
+	"github.com/containers/podman/v4/pkg/api/handlers/utils"
+	"github.com/containers/podman/v4/pkg/errorhandling"
 	log "github.com/sirupsen/logrus"
 )
 

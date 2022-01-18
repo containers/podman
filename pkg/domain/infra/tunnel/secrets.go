@@ -4,9 +4,9 @@ import (
 	"context"
 	"io"
 
-	"github.com/containers/podman/v3/pkg/bindings/secrets"
-	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/containers/podman/v3/pkg/errorhandling"
+	"github.com/containers/podman/v4/pkg/bindings/secrets"
+	"github.com/containers/podman/v4/pkg/domain/entities"
+	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/pkg/errors"
 )
 

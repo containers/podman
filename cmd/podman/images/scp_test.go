@@ -3,7 +3,7 @@ package images
 import (
 	"testing"
 
-	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/stretchr/testify/assert"
 )
 

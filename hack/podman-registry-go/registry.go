@@ -3,7 +3,7 @@ package registry
 import (
 	"strings"
 
-	"github.com/containers/podman/v3/utils"
+	"github.com/containers/podman/v4/utils"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

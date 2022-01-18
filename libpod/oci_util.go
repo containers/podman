@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v4/libpod/define"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

@@ -3,8 +3,8 @@
 package machine
 
 import (
-	"github.com/containers/podman/v3/pkg/machine"
-	"github.com/containers/podman/v3/pkg/machine/qemu"
+	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/qemu"
 )
 
 func getSystemDefaultProvider() machine.Provider {

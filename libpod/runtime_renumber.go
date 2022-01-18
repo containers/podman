@@ -1,7 +1,7 @@
 package libpod
 
 import (
-	"github.com/containers/podman/v3/libpod/events"
+	"github.com/containers/podman/v4/libpod/events"
 	"github.com/pkg/errors"
 )
 
