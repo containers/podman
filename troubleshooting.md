@@ -912,4 +912,4 @@ Resolution steps
 
 ### Solution
 
-You will need to remove the hanging gv-proxy process bound to the port in question. For example, if the port mentioned in the error message is 127.0.0.1:7777, you can use the command $ kill -9 $(lsof -i:7777) in order to identify and remove the hanging process which prevents you from starting a new VM on that default port.
+You will need to remove the hanging gv-proxy process bound to the port in question. For example, if the port mentioned in the error message is 127.0.0.1:7777, you can use the command `kill -9 $(lsof -i:7777)` in order to identify and remove the hanging process which prevents you from starting a new VM on that default port.
