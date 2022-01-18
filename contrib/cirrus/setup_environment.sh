@@ -142,30 +142,36 @@ case "$TEST_ENVIRON" in
             echo "CGROUP_MANAGER=cgroupfs" >> /etc/ci_environment
         fi
         # TODO: For the foreseeable future, need to support running tests
-        # with and without the latest netavark.  Once netavark is more
-        # stable and widely supported in Fedora, it can be pre-installed
+        # with and without the latest netavark/aardvark.  Once they're more
+        # stable and widely supported in Fedora, they can be pre-installed
         # from its RPM at VM image build-time.
         if [[ "$TEST_ENVIRON" =~ netavark ]]; then
-            req_env_vars NETAVARK_BRANCH NETAVARK_URL NETAVARK_DEBUG
-            msg "Downloading latest netavark from upstream branch '$NETAVARK_BRANCH'"
-            curl --fail --location -o /tmp/netavark.zip "${NETAVARK_URL}"
+            for info in "netavark $NETAVARK_BRANCH $NETAVARK_URL $NETAVARK_DEBUG" \
+                        "aardvark-dns $AARDVARK_BRANCH $AARDVARK_URL $AARDVARK_DEBUG"; do
 
-            # Needs to be in a specific location
-            # ref: https://github.com/containers/common/blob/main/pkg/config/config_linux.go#L39
-            _nvdir=/usr/local/libexec/podman
-            mkdir -p $_nvdir
-            cd $_nvdir
-            msg "$PWD"
-            unzip /tmp/netavark.zip
-            if ((NETAVARK_DEBUG)); then
-                warn "Using debug netavark binary"
-                mv netavark.debug netavark
-            else
-                rm netavark.debug
-            fi
-            cd -
+                read _name _branch _url _debug <<<"$info"
+                req_env_vars _name _branch _url _debug
+                msg "Downloading latest $_name from upstream branch '$_branch'"
+                # Use identifiable archive filename in of a get_ci_env.sh environment
+                curl --fail --location -o /tmp/$_name.zip "$_url"
 
-            chmod 0755 $_nvdir/netavark
+                # Needs to be in a specific location
+                # ref: https://github.com/containers/common/blob/main/pkg/config/config_linux.go#L39
+                _pdir=/usr/local/libexec/podman
+                mkdir -p $_pdir
+                cd $_pdir
+                msg "$PWD"
+                unzip /tmp/$_name.zip
+                if ((_debug)); then
+                    warn "Using debug $_name binary"
+                    mv $_name.debug $_name
+                else
+                    rm $_name.debug
+                fi
+                chmod 0755 $_pdir/$_name
+                cd -
+            done
+
             restorecon -F -v $_nvdir
             msg "Forcing NETWORK_BACKEND=netavark in all subsequent environments."
             echo "NETWORK_BACKEND=netavark" >> /etc/ci_environment

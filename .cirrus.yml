@@ -9,6 +9,8 @@ env:
     DEST_BRANCH: "main"
     # Netavark branch to use when TEST_ENVIRON=host-netavark
     NETAVARK_BRANCH: "main"
+    # Aardvark branch to use
+    AARDVARK_BRANCH: "main"
     # Overrides default location (/tmp/cirrus) for repo clone
     GOPATH: &gopath "/var/tmp/go"
     GOBIN: "${GOPATH}/bin"
@@ -528,6 +530,8 @@ netavark_integration_test_task:
         TEST_ENVIRON: host-netavark
         NETAVARK_URL: "https://api.cirrus-ci.com/v1/artifact/github/containers/netavark/success/binary.zip?branch=${NETAVARK_BRANCH}"
         NETAVARK_DEBUG: 0  # set non-zero to use the debug-mode binary
+        AARDVARK_URL: "https://api.cirrus-ci.com/v1/artifact/github/containers/aardvark-dns/success/binary.zip?branch=${AARDVARK_BRANCH}"
+        AARDVARK_DEBUG: 0  # set non-zero to use the debug-mode binary
     clone_script: *noop  # Comes from cache
     gopath_cache: *ro_gopath_cache
     setup_script: *setup
