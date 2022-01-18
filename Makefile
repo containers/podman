@@ -186,6 +186,13 @@ ifdef HOMEBREW_PREFIX
 endif
 endif
 
+# win-sshproxy is checked out manually to keep from pulling in gvisor and it's transitive
+# dependencies. This is only used for the Windows installer task (podman.msi), which must
+# include this lightweight helper binary.
+#
+GV_GITURL=git://github.com/containers/gvisor-tap-vsock.git
+GV_SHA=e943b1806d94d387c4c38d96719432d50a84bbd0
+
 ###
 ### Primary entry-point targets
 ###
@@ -695,7 +702,7 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 .PHONY: podman.msi
 podman.msi: test/version/version  ## Build podman-remote, package for installation on Windows
 	$(MAKE) podman-v$(RELEASE_NUMBER).msi
-podman-v$(RELEASE_NUMBER).msi: podman-remote-windows podman-remote-windows-docs podman-winpath
+podman-v$(RELEASE_NUMBER).msi: podman-remote-windows podman-remote-windows-docs podman-winpath win-sshproxy
 	$(eval DOCFILE := docs/build/remote/windows)
 	find $(DOCFILE) -print | \
 		wixl-heat --var var.ManSourceDir --component-group ManFiles \
@@ -703,6 +710,19 @@ podman-v$(RELEASE_NUMBER).msi: podman-remote-windows podman-remote-windows-docs 
 			$(DOCFILE)/pages.wsx
 	wixl -D VERSION=$(call err_if_empty,RELEASE_VERSION) -D ManSourceDir=$(DOCFILE) \
 		-o $@ contrib/msi/podman.wxs $(DOCFILE)/pages.wsx --arch x64
+
+# Checks out and builds win-sshproxy helper. See comment on GV_GITURL declaration
+.PHONY: win-sshproxy
+win-sshproxy: test/version/version
+	rm -rf tmp-gv; mkdir tmp-gv
+	(cd tmp-gv; \
+         git init; \
+         git remote add origin $(GV_GITURL); \
+         git fetch --depth 1 origin $(GV_SHA); \
+         git checkout FETCH_HEAD; make win-sshproxy)
+	mkdir -p bin/windows/
+	cp tmp-gv/bin/win-sshproxy.exe bin/windows/
+	rm -rf tmp-gv
 
 .PHONY: package
 package:  ## Build rpm packages

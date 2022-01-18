@@ -67,6 +67,7 @@ const (
 	TOKEN_QUERY                     = 0x0008
 	SE_PRIVILEGE_ENABLED            = 0x00000002
 	SE_ERR_ACCESSDENIED             = 0x05
+	WM_QUIT                         = 0x12
 )
 
 func winVersionAtLeast(major uint, minor uint, build uint) bool {
@@ -279,6 +280,18 @@ func obtainShutdownPrivilege() error {
 	return nil
 }
 
+func getProcessState(pid int) (active bool, exitCode int) {
+	const da = syscall.STANDARD_RIGHTS_READ | syscall.PROCESS_QUERY_INFORMATION | syscall.SYNCHRONIZE
+	handle, err := syscall.OpenProcess(da, false, uint32(pid))
+	if err != nil {
+		return false, int(syscall.ERROR_PROC_NOT_FOUND)
+	}
+
+	var code uint32
+	syscall.GetExitCodeProcess(handle, &code)
+	return code == 259, int(code)
+}
+
 func addRunOnceRegistryEntry(command string) error {
 	k, _, err := registry.CreateKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\RunOnce`, registry.WRITE)
 	if err != nil {
@@ -335,4 +348,10 @@ func buildCommandArgs(elevate bool) string {
 		}
 	}
 	return strings.Join(args, " ")
+}
+
+func sendQuit(tid uint32) {
+	user32 := syscall.NewLazyDLL("user32.dll")
+	postMessage := user32.NewProc("PostThreadMessageW")
+	postMessage.Call(uintptr(tid), WM_QUIT, 0, 0)
 }
