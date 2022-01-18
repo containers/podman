@@ -52,9 +52,52 @@ VCS:        {{{ git_dir_vcs }}}
 # and returns its filename. The tarball will be used to build the rpm.
 Source:     {{{ git_dir_pack }}}
 
+%if 0%{?fedora} && ! 0%{?rhel}
+BuildRequires: btrfs-progs-devel
+%endif
+BuildRequires: gcc
+BuildRequires: golang >= 1.16.6
+BuildRequires: glib2-devel
+BuildRequires: glibc-devel
+BuildRequires: glibc-static
+BuildRequires: git-core
+BuildRequires: go-md2man
+BuildRequires: go-rpm-macros
+BuildRequires: gpgme-devel
+BuildRequires: libassuan-devel
+BuildRequires: libgpg-error-devel
+BuildRequires: libseccomp-devel
+BuildRequires: libselinux-devel
+%if 0%{?fedora} >= 35
+BuildRequires: shadow-utils-subid-devel
+%endif
+BuildRequires: pkgconfig
+BuildRequires: make
+BuildRequires: ostree-devel
+BuildRequires: systemd
+BuildRequires: systemd-devel
+Requires: conmon >= 2:2.0.30-2
+Requires: containers-common >= 4:1-30
+Requires: containernetworking-plugins >= 1.0.0-15.1
+Requires: iptables
+Requires: nftables
+Requires: netavark
+Recommends: %{name}-plugins = %{epoch}:%{version}-%{release}
+Recommends: catatonit
+Suggests: qemu-user-static
+
 # More detailed description of the package
 %description
-This is a hello world package.
+%{name} (Pod Manager) is a fully featured container engine that is a simple
+daemonless tool.  %{name} provides a Docker-CLI comparable command line that
+eases the transition from other container engines and allows the management of
+pods, containers and images.  Simply put: alias docker=%{name}.
+Most %{name} commands can be run as a regular user, without requiring
+additional privileges.
+
+%{name} uses Buildah(1) internally to create container images.
+Both tools share image (not container) storage, hence each can use or
+manipulate images (but not containers) created by the other.
 
 %package docker
 Summary: Emulate Docker CLI using %{name}
