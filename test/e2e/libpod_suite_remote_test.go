@@ -16,7 +16,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/podman/v3/pkg/rootless"
+	"github.com/containers/podman/v4/pkg/rootless"
 )
 
 func IsRemote() bool {

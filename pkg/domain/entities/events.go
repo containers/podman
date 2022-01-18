@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"time"
 
-	libpodEvents "github.com/containers/podman/v3/libpod/events"
+	libpodEvents "github.com/containers/podman/v4/libpod/events"
 	dockerEvents "github.com/docker/docker/api/types/events"
 )
 

@@ -3,7 +3,7 @@ package entities
 import (
 	"time"
 
-	"github.com/containers/podman/v3/pkg/errorhandling"
+	"github.com/containers/podman/v4/pkg/errorhandling"
 )
 
 type SecretCreateReport struct {

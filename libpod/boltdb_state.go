@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v4/libpod/define"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

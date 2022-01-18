@@ -10,7 +10,7 @@ import (
 	"unsafe"
 
 	"github.com/blang/semver"
-	"github.com/containers/podman/v3/version"
+	"github.com/containers/podman/v4/version"
 	"github.com/gorilla/mux"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"

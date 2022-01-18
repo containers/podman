@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/containers/common/pkg/cgroups"
-	"github.com/containers/podman/v3/libpod"
-	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/containers/podman/v3/pkg/rootless"
-	"github.com/containers/podman/v3/utils"
+	"github.com/containers/podman/v4/libpod"
+	"github.com/containers/podman/v4/pkg/domain/entities"
+	"github.com/containers/podman/v4/pkg/rootless"
+	"github.com/containers/podman/v4/utils"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 )

@@ -18,10 +18,10 @@ import (
 
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/podman/v3/pkg/errorhandling"
-	"github.com/containers/podman/v3/pkg/rootless"
-	"github.com/containers/podman/v3/pkg/rootlessport"
-	"github.com/containers/podman/v3/pkg/servicereaper"
+	"github.com/containers/podman/v4/pkg/errorhandling"
+	"github.com/containers/podman/v4/pkg/rootless"
+	"github.com/containers/podman/v4/pkg/rootlessport"
+	"github.com/containers/podman/v4/pkg/servicereaper"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

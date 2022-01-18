@@ -1,4 +1,4 @@
-module github.com/containers/podman/v3
+module github.com/containers/podman/v4
 
 go 1.16
 

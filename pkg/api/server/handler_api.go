@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"runtime"
 
-	"github.com/containers/podman/v3/version"
+	"github.com/containers/podman/v4/version"
 	"github.com/sirupsen/logrus"
 )
 

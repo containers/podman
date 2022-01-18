@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/containers/podman/v3/pkg/namespaces"
+	"github.com/containers/podman/v4/pkg/namespaces"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/assert"
 )

@@ -3,7 +3,7 @@ package libpod
 import (
 	"net/http"
 
-	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v4/libpod/define"
 )
 
 // OCIRuntime is an implementation of an OCI runtime.

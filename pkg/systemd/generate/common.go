@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/podman/v3/pkg/systemd/define"
+	"github.com/containers/podman/v4/pkg/systemd/define"
 	"github.com/pkg/errors"
 )
 

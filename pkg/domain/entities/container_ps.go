@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/podman/v3/pkg/ps/define"
+	"github.com/containers/podman/v4/pkg/ps/define"
 	"github.com/pkg/errors"
 )
 

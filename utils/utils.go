@@ -13,7 +13,7 @@ import (
 	"sync"
 
 	"github.com/containers/common/pkg/cgroups"
-	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/godbus/dbus/v5"
 	"github.com/pkg/errors"

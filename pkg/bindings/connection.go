@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/blang/semver"
-	"github.com/containers/podman/v3/pkg/terminal"
-	"github.com/containers/podman/v3/version"
+	"github.com/containers/podman/v4/pkg/terminal"
+	"github.com/containers/podman/v4/version"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"

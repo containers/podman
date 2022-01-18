@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/podman/v3/pkg/rootless"
+	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/stretchr/testify/assert"
 )
 

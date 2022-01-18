@@ -11,10 +11,10 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/containers/image/v5/manifest"
-	"github.com/containers/podman/v3/pkg/api/handlers"
-	"github.com/containers/podman/v3/pkg/bindings"
-	"github.com/containers/podman/v3/pkg/bindings/images"
-	"github.com/containers/podman/v3/version"
+	"github.com/containers/podman/v4/pkg/api/handlers"
+	"github.com/containers/podman/v4/pkg/bindings"
+	"github.com/containers/podman/v4/pkg/bindings/images"
+	"github.com/containers/podman/v4/version"
 	jsoniter "github.com/json-iterator/go"
 )
 

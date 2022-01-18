@@ -2,7 +2,7 @@ package specgenutil
 
 import (
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/podman/v3/pkg/domain/entities"
+	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/pkg/errors"
 )
 

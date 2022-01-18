@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/containers/podman/v3/version"
+	"github.com/containers/podman/v4/version"
 	"github.com/gorilla/mux"
 )
 

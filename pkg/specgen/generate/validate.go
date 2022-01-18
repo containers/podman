@@ -6,8 +6,8 @@ import (
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/sysinfo"
-	"github.com/containers/podman/v3/pkg/specgen"
-	"github.com/containers/podman/v3/utils"
+	"github.com/containers/podman/v4/pkg/specgen"
+	"github.com/containers/podman/v4/utils"
 	"github.com/pkg/errors"
 )
 

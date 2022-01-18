@@ -1,8 +1,8 @@
 package libpod
 
 import (
-	"github.com/containers/podman/v3/libpod/define"
-	"github.com/containers/podman/v3/libpod/layers"
+	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/libpod/layers"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
 )

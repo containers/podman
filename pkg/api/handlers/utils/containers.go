@@ -7,17 +7,17 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/containers/podman/v3/libpod/events"
-	api "github.com/containers/podman/v3/pkg/api/types"
-	"github.com/containers/podman/v3/pkg/domain/entities"
-	"github.com/containers/podman/v3/pkg/domain/infra/abi"
+	"github.com/containers/podman/v4/libpod/events"
+	api "github.com/containers/podman/v4/pkg/api/types"
+	"github.com/containers/podman/v4/pkg/domain/entities"
+	"github.com/containers/podman/v4/pkg/domain/infra/abi"
 
-	"github.com/containers/podman/v3/pkg/api/handlers"
+	"github.com/containers/podman/v4/pkg/api/handlers"
 	"github.com/sirupsen/logrus"
 
-	"github.com/containers/podman/v3/libpod/define"
+	"github.com/containers/podman/v4/libpod/define"
 
-	"github.com/containers/podman/v3/libpod"
+	"github.com/containers/podman/v4/libpod"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )

@@ -3,8 +3,8 @@ package ctr
 import (
 	"context"
 
-	"github.com/containers/podman/v3/libpod"
-	"github.com/containers/podman/v3/pkg/parallel"
+	"github.com/containers/podman/v4/libpod"
+	"github.com/containers/podman/v4/pkg/parallel"
 	"github.com/sirupsen/logrus"
 )
 

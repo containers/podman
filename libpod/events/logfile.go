@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/containers/podman/v3/pkg/util"
+	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/pkg/errors"
 )
