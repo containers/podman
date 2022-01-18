@@ -220,7 +220,7 @@ function start_service() {
         --root $WORKDIR/root \
         --runroot $WORKDIR/runroot \
         --cgroup-manager=systemd \
-        --cni-config-dir $WORKDIR/cni \
+        --network-config-dir $WORKDIR/cni \
         system service \
         --time 0 unix://$DOCKER_SOCK \
         &> $WORKDIR/server.log &
@@ -247,7 +247,7 @@ function podman() {
 	--storage-driver=vfs \
         --root    $WORKDIR/root    \
         --runroot $WORKDIR/runroot \
-        --cni-config-dir $WORKDIR/cni \
+        --network-config-dir $WORKDIR/cni \
         "$@")
     echo -n "$output" >>$WORKDIR/output.log
 }

@@ -122,17 +122,17 @@ $SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}
 [+0103s]   /var/tmp/go/src/github.com/containers/podman/test/e2e/pod_restart_test.go:18
 [+0103s] [It] podman pod restart single empty pod
 [+0103s]   /var/tmp/go/src/github.com/containers/podman/test/e2e/pod_restart_test.go:41
-[+0103s] Running: /var/tmp/go/src/github.com/containers/podman/bin/podman --storage-opt vfs.imagestore=/tmp/podman/imagecachedir --root /tmp/podman_test553496330/crio --runroot /tmp/podman_test553496330/crio-run --runtime /usr/bin/runc --conmon /usr/bin/conmon --cni-config-dir /etc/cni/net.d --cgroup-manager systemd --tmpdir /tmp/podman_test553496330 --events-backend file --storage-driver vfs pod create --infra=false --share
+[+0103s] Running: /var/tmp/go/src/github.com/containers/podman/bin/podman --storage-opt vfs.imagestore=/tmp/podman/imagecachedir --root /tmp/podman_test553496330/crio --runroot /tmp/podman_test553496330/crio-run --runtime /usr/bin/runc --conmon /usr/bin/conmon --network-config-dir /etc/cni/net.d --cgroup-manager systemd --tmpdir /tmp/podman_test553496330 --events-backend file --storage-driver vfs pod create --infra=false --share
 [+0103s] 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89
 [+0103s] output: 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89
-[+0103s] Running: /var/tmp/go/src/github.com/containers/podman/bin/podman --storage-opt vfs.imagestore=/tmp/podman/imagecachedir --root /tmp/podman_test553496330/crio --runroot /tmp/podman_test553496330/crio-run --runtime /usr/bin/runc --conmon /usr/bin/conmon --cni-config-dir /etc/cni/net.d --cgroup-manager systemd --tmpdir /tmp/podman_test553496330 --events-backend file --storage-driver vfs pod restart 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89
+[+0103s] Running: /var/tmp/go/src/github.com/containers/podman/bin/podman --storage-opt vfs.imagestore=/tmp/podman/imagecachedir --root /tmp/podman_test553496330/crio --runroot /tmp/podman_test553496330/crio-run --runtime /usr/bin/runc --conmon /usr/bin/conmon --network-config-dir /etc/cni/net.d --cgroup-manager systemd --tmpdir /tmp/podman_test553496330 --events-backend file --storage-driver vfs pod restart 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89
 [+0103s] Error: no containers in pod 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89 have no dependencies, cannot start pod: no such container
 [+0103s] output:
 [+0103s] [AfterEach] Podman pod restart
 [+0103s]   /var/tmp/go/src/github.com/containers/podman/test/e2e/pod_restart_test.go:28
-[+0103s] Running: /var/tmp/go/src/github.com/containers/podman/bin/podman --storage-opt vfs.imagestore=/tmp/podman/imagecachedir --root /tmp/podman_test553496330/crio --runroot /tmp/podman_test553496330/crio-run --runtime /usr/bin/runc --conmon /usr/bin/conmon --cni-config-dir /etc/cni/net.d --cgroup-manager systemd --tmpdir /tmp/podman_test553496330 --events-backend file --storage-driver vfs pod rm -fa
+[+0103s] Running: /var/tmp/go/src/github.com/containers/podman/bin/podman --storage-opt vfs.imagestore=/tmp/podman/imagecachedir --root /tmp/podman_test553496330/crio --runroot /tmp/podman_test553496330/crio-run --runtime /usr/bin/runc --conmon /usr/bin/conmon --network-config-dir /etc/cni/net.d --cgroup-manager systemd --tmpdir /tmp/podman_test553496330 --events-backend file --storage-driver vfs pod rm -fa
 [+0103s] 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89
-[+0104s] Running: /var/tmp/go/src/github.com/containers/libpod/bin/podman-remote --storage-opt vfs.imagestore=/tmp/podman/imagecachedir --root /tmp/podman_test553496330/crio --runroot /tmp/podman_test553496330/crio-run --runtime /usr/bin/runc --conmon /usr/bin/conmon --cni-config-dir /etc/cni/net.d --cgroup-manager systemd --tmpdir /tmp/podman_test553496330 --events-backend file --storage-driver vfs --remote --url unix:/run/user/12345/podman-xyz.sock pod rm -fa
+[+0104s] Running: /var/tmp/go/src/github.com/containers/libpod/bin/podman-remote --storage-opt vfs.imagestore=/tmp/podman/imagecachedir --root /tmp/podman_test553496330/crio --runroot /tmp/podman_test553496330/crio-run --runtime /usr/bin/runc --conmon /usr/bin/conmon --network-config-dir /etc/cni/net.d --cgroup-manager systemd --tmpdir /tmp/podman_test553496330 --events-backend file --storage-driver vfs --remote --url unix:/run/user/12345/podman-xyz.sock pod rm -fa
 [+0104s] 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89 again
 
 
@@ -183,7 +183,7 @@ $SCRIPT_BASE/integration_test.sh |&amp; ${TIMESTAMP}
 --runroot /tmp/podman_test553496330/crio-run
 --runtime /usr/bin/runc
 --conmon /usr/bin/conmon
---cni-config-dir /etc/cni/net.d
+--network-config-dir /etc/cni/net.d
 --cgroup-manager systemd
 --tmpdir /tmp/podman_test553496330
 --events-backend file
@@ -194,7 +194,7 @@ $SCRIPT_BASE/integration_test.sh |&amp; ${TIMESTAMP}
 --runroot /tmp/podman_test553496330/crio-run
 --runtime /usr/bin/runc
 --conmon /usr/bin/conmon
---cni-config-dir /etc/cni/net.d
+--network-config-dir /etc/cni/net.d
 --cgroup-manager systemd
 --tmpdir /tmp/podman_test553496330
 --events-backend file
@@ -208,7 +208,7 @@ $SCRIPT_BASE/integration_test.sh |&amp; ${TIMESTAMP}
 --runroot /tmp/podman_test553496330/crio-run
 --runtime /usr/bin/runc
 --conmon /usr/bin/conmon
---cni-config-dir /etc/cni/net.d
+--network-config-dir /etc/cni/net.d
 --cgroup-manager systemd
 --tmpdir /tmp/podman_test553496330
 --events-backend file
@@ -220,7 +220,7 @@ $SCRIPT_BASE/integration_test.sh |&amp; ${TIMESTAMP}
 --runroot /tmp/podman_test553496330/crio-run
 --runtime /usr/bin/runc
 --conmon /usr/bin/conmon
---cni-config-dir /etc/cni/net.d
+--network-config-dir /etc/cni/net.d
 --cgroup-manager systemd
 --tmpdir /tmp/podman_test553496330
 --events-backend file

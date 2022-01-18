@@ -38,6 +38,26 @@ var _ = Describe("Podman network", func() {
 
 	})
 
+	It("podman --cni-config-dir backwards compat", func() {
+		SkipIfRemote("--cni-config-dir only works locally")
+		netDir, err := CreateTempDirInTempDir()
+		Expect(err).ToNot(HaveOccurred())
+		defer os.RemoveAll(netDir)
+		session := podmanTest.Podman([]string{"--cni-config-dir", netDir, "network", "ls", "--noheading"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		// default network always exists
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
+
+		// check that the only file in the directory is the network lockfile
+		dir, err := os.Open(netDir)
+		Expect(err).ToNot(HaveOccurred())
+		names, err := dir.Readdirnames(5)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(names).To(HaveLen(1))
+		Expect(names[0]).To(Or(Equal("netavark.lock"), Equal("cni.lock")))
+	})
+
 	It("podman network list", func() {
 		name, path := generateNetworkConfig(podmanTest)
 		defer removeConf(path)

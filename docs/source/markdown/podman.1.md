@@ -32,8 +32,13 @@ The CGroup manager to use for container cgroups. Supported values are cgroupfs o
 Note: Setting this flag can cause certain commands to break when called on containers previously created by the other CGroup manager type.
 Note: CGroup manager is not supported in rootless mode when using CGroups Version V1.
 
-#### **--cni-config-dir**
-Path of the configuration directory for CNI networks.  (Default: `/etc/cni/net.d`)
+#### **--network-config-dir**=*directory*
+
+Path to the directory where network configuration files are located.
+For the CNI backend the default is "/etc/cni/net.d" as root
+and "$HOME/.config/cni/net.d" as rootless.
+For the netavark backend "/etc/containers/networks" is used as root
+and "$graphroot/networks" as rootless.
 
 #### **--connection**, **-c**
 Connection to use for remote podman (Default connection is configured in `containers.conf`)

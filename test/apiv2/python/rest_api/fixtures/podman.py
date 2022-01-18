@@ -44,7 +44,7 @@ class Podman:
 
         os.environ["CNI_CONFIG_PATH"] = os.path.join(self.anchor_directory, "cni", "net.d")
         os.makedirs(os.environ["CNI_CONFIG_PATH"], exist_ok=True)
-        self.cmd.append("--cni-config-dir=" + os.environ["CNI_CONFIG_PATH"])
+        self.cmd.append("--network-config-dir=" + os.environ["CNI_CONFIG_PATH"])
         cni_cfg = os.path.join(os.environ["CNI_CONFIG_PATH"], "87-podman-bridge.conflist")
         # json decoded and encoded to ensure legal json
         buf = json.loads(
