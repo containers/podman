@@ -86,7 +86,7 @@ func (b *bindingTest) runPodman(command []string) *gexec.Session {
 	}
 	val, ok = os.LookupEnv("CNI_CONFIG_DIR")
 	if ok {
-		cmd = append(cmd, "--cni-config-dir", val)
+		cmd = append(cmd, "--network-config-dir", val)
 	}
 	val, ok = os.LookupEnv("CONMON")
 	if ok {

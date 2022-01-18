@@ -95,7 +95,7 @@ EOT
 PODMAN_ARGS="--storage-driver=vfs \
   --root=${TMPDIR}/crio \
   --runroot=${TMPDIR}/crio-run \
-  --cni-config-dir=$CNI_CONFIG_PATH \
+  --network-config-dir=$CNI_CONFIG_PATH \
   --cgroup-manager=systemd \
   "
 if [[ -n $VERBOSE ]]; then

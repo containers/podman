@@ -223,7 +223,7 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 	// TODO flag to set libpod static dir?
 	// TODO flag to set libpod tmp dir?
 
-	if fs.Changed("cni-config-dir") {
+	if fs.Changed("network-config-dir") {
 		options = append(options, libpod.WithCNIConfigDir(cfg.Network.NetworkConfigDir))
 	}
 	if fs.Changed("default-mounts-file") {

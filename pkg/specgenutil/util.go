@@ -279,7 +279,7 @@ func CreateExitCommandArgs(storageConfig storageTypes.StoreOptions, config *conf
 		"--log-level", logrus.GetLevel().String(),
 		"--cgroup-manager", config.Engine.CgroupManager,
 		"--tmpdir", config.Engine.TmpDir,
-		"--cni-config-dir", config.Network.NetworkConfigDir,
+		"--network-config-dir", config.Network.NetworkConfigDir,
 		"--network-backend", config.Network.NetworkBackend,
 	}
 	if config.Engine.OCIRuntime != "" {

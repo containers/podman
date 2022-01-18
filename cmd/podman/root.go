@@ -85,6 +85,14 @@ func init() {
 	)
 
 	rootFlags(rootCmd, registry.PodmanConfig())
+
+	// backwards compat still allow --cni-config-dir
+	rootCmd.Flags().SetNormalizeFunc(func(f *pflag.FlagSet, name string) pflag.NormalizedName {
+		if name == "cni-config-dir" {
+			name = "network-config-dir"
+		}
+		return pflag.NormalizedName(name)
+	})
 	rootCmd.SetUsageTemplate(usageTemplate)
 }
 
@@ -371,9 +379,9 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 		pFlags.StringVar(&cfg.Engine.NetworkCmdPath, networkCmdPathFlagName, cfg.Engine.NetworkCmdPath, "Path to the command for configuring the network")
 		_ = cmd.RegisterFlagCompletionFunc(networkCmdPathFlagName, completion.AutocompleteDefault)
 
-		cniConfigDirFlagName := "cni-config-dir"
-		pFlags.StringVar(&cfg.Network.NetworkConfigDir, cniConfigDirFlagName, cfg.Network.NetworkConfigDir, "Path of the configuration directory for CNI networks")
-		_ = cmd.RegisterFlagCompletionFunc(cniConfigDirFlagName, completion.AutocompleteDefault)
+		networkConfigDirFlagName := "network-config-dir"
+		pFlags.StringVar(&cfg.Network.NetworkConfigDir, networkConfigDirFlagName, cfg.Network.NetworkConfigDir, "Path of the configuration directory for networks")
+		_ = cmd.RegisterFlagCompletionFunc(networkConfigDirFlagName, completion.AutocompleteDefault)
 
 		pFlags.StringVar(&cfg.Containers.DefaultMountsFile, "default-mounts-file", cfg.Containers.DefaultMountsFile, "Path to default mounts file")
 
