@@ -265,7 +265,7 @@ Note: Labeling can be disabled for all containers by setting label=false in the 
 
 #### **--share**=*namespace*
 
-A comma-separated list of kernel namespaces to share. If none or "" is specified, no namespaces will be shared. The namespaces to choose from are ipc, net, pid, uts.
+A comma-separated list of kernel namespaces to share. If none or "" is specified, no namespaces will be shared. The namespaces to choose from are cgroup, ipc, net, pid, uts.
 
 The operator can identify a pod in three ways:
 UUID long identifier (“f78375b1c487e03c9438c729345e54db9d20cfa2ac1fc3494b6eb60872e74778”)
@@ -275,6 +275,12 @@ Name (“jonah”)
 podman generates a UUID for each pod, and if a name is not assigned
 to the container with **--name** then a random string name will be generated
 for it. The name is useful any place you need to identify a pod.
+
+#### **--share-parent**
+
+This boolean determines whether or not all containers entering the pod will use the pod as their cgroup parent. The default value of this flag is true. If you are looking to share the cgroup namespace rather than a cgroup parent in a pod, use **--share**
+
+Note: This options conflict with **--share=cgroup** since that would set the pod as the cgroup parent but enter the container into the same cgroupNS as the infra container.
 
 #### **--sysctl**=_name_=_value_
 
