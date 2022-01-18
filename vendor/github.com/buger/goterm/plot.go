@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"unicode/utf8"
 )
 
 const (
@@ -119,7 +120,7 @@ func (c *LineChart) DrawAxes(maxX, minX, maxY, minY float64, index int) {
 	c.writeText(ff(minX), c.paddingX, 0)
 
 	x_col := c.data.columns[0]
-	c.writeText(c.data.columns[0], c.Width/2-len(x_col)/2, 1)
+	c.writeText(c.data.columns[0], c.Width/2-utf8.RuneCountInString(x_col)/2, 1)
 
 	if c.Flags&DRAW_INDEPENDENT != 0 || len(c.data.columns) < 3 {
 		col := c.data.columns[index]

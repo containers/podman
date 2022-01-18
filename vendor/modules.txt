@@ -41,7 +41,7 @@ github.com/beorn7/perks/quantile
 # github.com/blang/semver v3.5.1+incompatible
 ## explicit
 github.com/blang/semver
-# github.com/buger/goterm v0.0.0-20181115115552-c206103e1f37
+# github.com/buger/goterm v1.0.1
 ## explicit
 github.com/buger/goterm
 # github.com/cespare/xxhash/v2 v2.1.2
@@ -303,7 +303,7 @@ github.com/digitalocean/go-libvirt
 github.com/digitalocean/go-libvirt/internal/constants
 github.com/digitalocean/go-libvirt/internal/event
 github.com/digitalocean/go-libvirt/internal/go-xdr/xdr2
-# github.com/digitalocean/go-qemu v0.0.0-20210209191958-152a1535e49f
+# github.com/digitalocean/go-qemu v0.0.0-20210326154740-ac9e0b687001
 ## explicit
 github.com/digitalocean/go-qemu/qmp
 # github.com/disiqueira/gotree/v3 v3.0.2
@@ -363,7 +363,7 @@ github.com/docker/go-connections/sockets
 github.com/docker/go-connections/tlsconfig
 # github.com/docker/go-metrics v0.0.1
 github.com/docker/go-metrics
-# github.com/docker/go-plugins-helpers v0.0.0-20200102110956-c9a8a2d92ccc
+# github.com/docker/go-plugins-helpers v0.0.0-20211224144127-6eecb7beb651
 ## explicit
 github.com/docker/go-plugins-helpers/sdk
 github.com/docker/go-plugins-helpers/volume
@@ -377,6 +377,8 @@ github.com/docker/libnetwork/types
 # github.com/dtylman/scp v0.0.0-20181017070807-f3000a34aef4
 ## explicit
 github.com/dtylman/scp
+# github.com/felixge/httpsnoop v1.0.1
+github.com/felixge/httpsnoop
 # github.com/fsnotify/fsnotify v1.5.1
 ## explicit
 github.com/fsnotify/fsnotify
@@ -415,13 +417,13 @@ github.com/google/go-cmp/cmp/internal/value
 github.com/google/go-intervals/intervalset
 # github.com/google/gofuzz v1.1.0
 github.com/google/gofuzz
-# github.com/google/shlex v0.0.0-20181106134648-c34317bd91bf
+# github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 ## explicit
 github.com/google/shlex
 # github.com/google/uuid v1.3.0
 ## explicit
 github.com/google/uuid
-# github.com/gorilla/handlers v0.0.0-20150720190736-60c7bfde3e33
+# github.com/gorilla/handlers v1.5.1
 ## explicit
 github.com/gorilla/handlers
 # github.com/gorilla/mux v1.8.0
@@ -556,11 +558,11 @@ github.com/onsi/gomega/types
 # github.com/opencontainers/go-digest v1.0.0
 ## explicit
 github.com/opencontainers/go-digest
-# github.com/opencontainers/image-spec v1.0.3-0.20211215212317-ea0209f50ae1
+# github.com/opencontainers/image-spec v1.0.3-0.20220114050600-8b9d41f48198
 ## explicit
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runc v1.1.0
+# github.com/opencontainers/runc v1.0.3
 ## explicit
 github.com/opencontainers/runc/libcontainer/apparmor
 github.com/opencontainers/runc/libcontainer/cgroups
@@ -569,10 +571,10 @@ github.com/opencontainers/runc/libcontainer/devices
 github.com/opencontainers/runc/libcontainer/user
 github.com/opencontainers/runc/libcontainer/userns
 github.com/opencontainers/runc/libcontainer/utils
-# github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
+# github.com/opencontainers/runtime-spec v1.0.3-0.20211214071223-8958f93039ab
 ## explicit
 github.com/opencontainers/runtime-spec/specs-go
-# github.com/opencontainers/runtime-tools v0.9.1-0.20211020193359-09d837bf40a7
+# github.com/opencontainers/runtime-tools v0.9.1-0.20220110225228-7e2d60f1e41f
 ## explicit
 github.com/opencontainers/runtime-tools/error
 github.com/opencontainers/runtime-tools/filepath
@@ -631,7 +633,7 @@ github.com/rootless-containers/rootlesskit/pkg/port/builtin/parent/tcp
 github.com/rootless-containers/rootlesskit/pkg/port/builtin/parent/udp
 github.com/rootless-containers/rootlesskit/pkg/port/builtin/parent/udp/udpproxy
 github.com/rootless-containers/rootlesskit/pkg/port/portutil
-# github.com/seccomp/libseccomp-golang v0.9.2-0.20210429002308-3879420cc921
+# github.com/seccomp/libseccomp-golang v0.9.2-0.20200616122406-847368b35ebf
 github.com/seccomp/libseccomp-golang
 # github.com/sirupsen/logrus v1.8.1
 ## explicit
@@ -683,7 +685,7 @@ github.com/vbauerster/mpb/v7
 github.com/vbauerster/mpb/v7/cwriter
 github.com/vbauerster/mpb/v7/decor
 github.com/vbauerster/mpb/v7/internal
-# github.com/vishvananda/netlink v1.1.1-0.20210330154013-f5de75959ad5
+# github.com/vishvananda/netlink v1.1.1-0.20220115184804-dd687eb2f2d4
 ## explicit
 github.com/vishvananda/netlink
 github.com/vishvananda/netlink/nl
@@ -706,7 +708,7 @@ go.opencensus.io/internal
 go.opencensus.io/trace
 go.opencensus.io/trace/internal
 go.opencensus.io/trace/tracestate
-# golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
+# golang.org/x/crypto v0.0.0-20220112180741-5e0467b6c7ce
 ## explicit
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/cast5
@@ -746,7 +748,7 @@ golang.org/x/net/trace
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20211214234402-4825e8c3871d
+# golang.org/x/sys v0.0.0-20220114195835-da31bd327af9
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs

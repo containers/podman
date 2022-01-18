@@ -92,22 +92,6 @@ func identical(config1, config2 *rspec.LinuxSyscall) bool {
 	return reflect.DeepEqual(config1, config2)
 }
 
-func identicalExceptAction(config1, config2 *rspec.LinuxSyscall) bool {
-	samename := sameName(config1, config2)
-	sameAction := sameAction(config1, config2)
-	sameArgs := sameArgs(config1, config2)
-
-	return samename && !sameAction && sameArgs
-}
-
-func identicalExceptArgs(config1, config2 *rspec.LinuxSyscall) bool {
-	samename := sameName(config1, config2)
-	sameAction := sameAction(config1, config2)
-	sameArgs := sameArgs(config1, config2)
-
-	return samename && sameAction && !sameArgs
-}
-
 func sameName(config1, config2 *rspec.LinuxSyscall) bool {
 	return reflect.DeepEqual(config1.Names, config2.Names)
 }

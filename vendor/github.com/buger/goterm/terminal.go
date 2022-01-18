@@ -71,7 +71,7 @@ type winsize struct {
 // Its not recommended write to buffer dirrectly, use package Print,Printf,Println fucntions instead.
 var Screen *bytes.Buffer = new(bytes.Buffer)
 
-// Get relative or absolute coordinates
+// GetXY gets relative or absolute coordinates
 // To get relative, set PCT flag to number:
 //
 //      // Get 10% of total width to `x` and 20 to y
@@ -145,7 +145,7 @@ func MoveTo(str string, x int, y int) (out string) {
 	})
 }
 
-// Return carrier to start of line
+// ResetLine returns carrier to start of line
 func ResetLine(str string) (out string) {
 	return applyTransform(str, func(idx int, line string) string {
 		return fmt.Sprintf("%s%s", RESET_LINE, line)
@@ -188,7 +188,7 @@ func Background(str string, color int) string {
 	})
 }
 
-// Get console width
+// Width gets console width
 func Width() int {
 	ws, err := getWinsize()
 
@@ -199,7 +199,7 @@ func Width() int {
 	return int(ws.Col)
 }
 
-// Get console height
+// Height gets console height
 func Height() int {
 	ws, err := getWinsize()
 	if err != nil {
@@ -208,7 +208,7 @@ func Height() int {
 	return int(ws.Row)
 }
 
-// Get current height. Line count in Screen buffer.
+// CurrentHeight gets current height. Line count in Screen buffer.
 func CurrentHeight() int {
 	return strings.Count(Screen.String(), "\n")
 }

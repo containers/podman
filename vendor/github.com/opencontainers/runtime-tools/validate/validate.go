@@ -131,9 +131,8 @@ func JSONSchemaURL(version string) (url string, err error) {
 	if err != nil {
 		return "", specerror.NewError(specerror.SpecVersionInSemVer, err, rspec.Version)
 	}
-	configRenamedToConfigSchemaVersion, err := semver.Parse("1.0.0-rc2") // config.json became config-schema.json in 1.0.0-rc2
-	if ver.Compare(configRenamedToConfigSchemaVersion) == -1 {
-		return "", fmt.Errorf("unsupported configuration version (older than %s)", configRenamedToConfigSchemaVersion)
+	if ver.LT(semver.Version{Major: 1, Minor: 0, Patch: 2}) {
+		return "", errors.New("unsupported configuration version (older than 1.0.2)")
 	}
 	return fmt.Sprintf(configSchemaTemplate, version), nil
 }
