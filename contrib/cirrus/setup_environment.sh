@@ -177,18 +177,25 @@ esac
 
 # Required to be defined by caller: Are we testing as root or a regular user
 case "$PRIV_NAME" in
-    root) ;;
+    root)
+        if [[ "$TEST_FLAVOR" = "sys" ]]; then
+            # Used in local image-scp testing
+            setup_rootless
+            echo "PODMAN_ROOTLESS_USER=$ROOTLESS_USER" >> /etc/ci_environment
+        fi
+        ;;
     rootless)
         # load kernel modules since the rootless user has no permission to do so
         modprobe ip6_tables || :
         modprobe ip6table_nat || :
-        # Needs to exist for setup_rootless()
-        ROOTLESS_USER="${ROOTLESS_USER:-some${RANDOM}dude}"
-        echo "ROOTLESS_USER=$ROOTLESS_USER" >> /etc/ci_environment
         setup_rootless
         ;;
     *) die_unknown PRIV_NAME
 esac
+
+if [[ -n "$ROOTLESS_USER" ]]; then
+    echo "ROOTLESS_USER=$ROOTLESS_USER" >> /etc/ci_environment
+fi
 
 # Required to be defined by caller: Are we testing podman or podman-remote client
 # shellcheck disable=SC2154

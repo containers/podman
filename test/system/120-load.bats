@@ -80,26 +80,94 @@ verify_iid_and_name() {
 
 @test "podman image scp transfer" {
     skip_if_remote "only applicable under local podman"
-
-    skip "FIXME FIXME FIXME: this needs a big rewrite"
-
-    get_iid_and_name
-    if is_rootless; then
-        whoami=$(id -un)
-        # FIXME: first, test that we can sudo. If we can't, skip.
-        # FIXME: test 'scp $IMAGE root@localhost::'
-        # FIXME: then test the rest
-        # FIXME: check output
-        run_podman image scp $whoami@localhost::$iid root@localhost::
-        is "$output" "Loaded image.*: $iid" "...."
-
-        # FIXME: "-q" is a NOP
-        run_podman image scp -q $whoami@localhost::$iid root@localhost::
-    else
-        # root
-        # FIXME: identify a rootless user. DO NOT CREATE ONE.
-        run_podman image scp root@localhost::$iid 1000:1000@localhost::
+    if is_ubuntu; then
+        skip "I don't have time to deal with this"
     fi
+
+    # The testing is the same whether we're root or rootless; all that
+    # differs is the destination (not-me) username.
+    if is_rootless; then
+        # Simple: push to root.
+        whoami=$(id -un)
+        notme=root
+        _sudo() { command sudo -n "$@"; }
+    else
+        # Harder: our CI infrastructure needs to define this & set up the acct
+        whoami=root
+        notme=${PODMAN_ROOTLESS_USER}
+        if [[ -z "$notme" ]]; then
+            skip "To run this test, set PODMAN_ROOTLESS_USER to a safe username"
+        fi
+        _sudo() { command sudo -n -u "$notme" "$@"; }
+    fi
+
+    # If we can't sudo, we can't test.
+    _sudo true || skip "cannot sudo to $notme"
+
+    # FIXME FIXME FIXME: it'd be reeeeeeally nice if we could pass --root
+    #                    to the non-self user, hence avoid vandalizing
+    #                    their storage.
+
+    # Preserve digest of original image; we will compare against it later
+    run_podman image inspect --format '{{.Digest}}' $IMAGE
+    src_digest=$output
+
+    # image name that is not likely to exist in the destination
+    newname=foo.bar/nonesuch/c_$(random_string 10 | tr A-Z a-z):mytag
+    run_podman tag $IMAGE $newname
+
+    # Copy it there.
+    # FIXME: the first '.*' in the expect string below is unfortunate; it's
+    #        a workaround for Ubuntu which gripes:
+    #        "warning.*defaulting to su since machinectl is not available"
+    #        Reexamine this once #12829 is fixed
+    run_podman image scp $newname ${notme}@localhost::
+    is "$output" ".*Copying blob .*Copying config.*Writing manifest.*Storing signatures"
+
+    # confirm that image was copied. FIXME: also try $PODMAN image inspect?
+    _sudo $PODMAN image exists $newname
+
+    # Copy it back, this time using -q
+    run_podman untag $IMAGE $newname
+    run_podman image scp -q ${notme}@localhost::$newname
+
+    expect="Loaded image(s): $newname"
+    # FIXME FIXME FIXME: ubuntu has no machinectl, emits useless warning message instead
+    if ! is_rootless; then
+        # FIXME: root on fedora uses machinectl, which emits useless \n and \r (#12829)
+        NL=$'\n'
+        CR=$'\r'
+        expect="$NL$expect$CR"
+    fi
+    is "$output" "$expect" "-q silences output"
+
+    # Confirm that we have it, and that its digest matches our original
+    run_podman image inspect --format '{{.Digest}}' $newname
+    is "$output" "$src_digest" "Digest of re-fetched image matches original"
+
+    # Clean up
+    _sudo $PODMAN image rm $newname
+    run_podman untag $IMAGE $newname
+
+    # Negative test for nonexistent image.
+    # FIXME FIXME: cannot test on root, because it uses machinectl (#12829)
+    if is_rootless; then
+        # FIXME: error message is 2 lines, the 2nd being "exit status 125".
+        # FIXME: is that fixable, or do we have to live with it?
+        nope="nope.nope/nonesuch:notag"
+        run_podman 125 image scp ${notme}@localhost::$nope
+        is "$output" "Error: $nope: image not known.*" "Pulling nonexistent image"
+
+        run_podman 125 image scp $nope ${notme}@localhost::
+        is "$output" "Error: $nope: image not known.*" "Pushing nonexistent image"
+    fi
+
+    # Negative test for copying to a different name
+    run_podman 125 image scp $IMAGE ${notme}@localhost::newname:newtag
+    is "$output" "Error: cannot specify an image rename: invalid argument" \
+       "Pushing with a different name: not allowed"
+
+    # FIXME: any point in copying by image ID? What else should we test?
 }
 
 

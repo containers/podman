@@ -124,10 +124,14 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true" \
 
 # If we have ssh access to localhost (unlikely in CI), test that.
 @test "podman system connection - ssh" {
-    rand=$(random_string 20)
-    echo $rand >$PODMAN_TMPDIR/testfile
+    # system connection only really works if we have an agent
+    run ssh-add -l
+    test "$status"      -eq 0 || skip "Not running under ssh-agent"
+    test "${#lines[@]}" -ge 1 || skip "ssh agent has no identities"
 
     # Can we actually ssh to localhost?
+    rand=$(random_string 20)
+    echo $rand >$PODMAN_TMPDIR/testfile
     run ssh -q -o BatchMode=yes \
         -o UserKnownHostsFile=/dev/null \
         -o StrictHostKeyChecking=no \
