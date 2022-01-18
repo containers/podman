@@ -63,6 +63,8 @@ type PodBasicConfig struct {
 	// also be used by some tools that wish to recreate the pod
 	// (e.g. `podman generate systemd --new`).
 	// Optional.
+	// ShareParent determines if all containers in the pod will share the pod's cgroup as the cgroup parent
+	ShareParent      *bool    `json:"share_parent,omitempty"`
 	PodCreateCommand []string `json:"pod_create_command,omitempty"`
 	// Pid sets the process id namespace of the pod
 	// Optional (defaults to private if unset). This sets the PID namespace of the infra container

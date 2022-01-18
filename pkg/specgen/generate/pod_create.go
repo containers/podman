@@ -166,6 +166,9 @@ func createPodOptions(p *specgen.PodSpecGenerator, rt *libpod.Runtime, infraSpec
 	)
 	if !p.NoInfra { //&& infraSpec != nil {
 		options = append(options, libpod.WithInfraContainer())
+		if p.ShareParent == nil || (p.ShareParent != nil && *p.ShareParent) {
+			options = append(options, libpod.WithPodParent())
+		}
 		nsOptions, err := GetNamespaceOptions(p.SharedNamespaces, p.InfraContainerSpec.NetNS.IsHost())
 		if err != nil {
 			return nil, err

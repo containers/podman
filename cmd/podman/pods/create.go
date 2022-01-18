@@ -17,6 +17,7 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/parse"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/validate"
+	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/specgen"
@@ -52,6 +53,7 @@ var (
 	podIDFile         string
 	replace           bool
 	share             string
+	shareParent       bool
 )
 
 func init() {
@@ -87,6 +89,9 @@ func init() {
 	shareFlagName := "share"
 	flags.StringVar(&share, shareFlagName, specgen.DefaultKernelNamespaces, "A comma delimited list of kernel namespaces the pod will share")
 	_ = createCommand.RegisterFlagCompletionFunc(shareFlagName, common.AutocompletePodShareNamespace)
+
+	shareParentFlagName := "share-parent"
+	flags.BoolVar(&shareParent, shareParentFlagName, true, "Set the pod's cgroup as the cgroup parent for all containers joining the pod")
 
 	flags.SetNormalizeFunc(aliasNetworkFlag)
 }
@@ -147,7 +152,11 @@ func create(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
+		if strings.Contains(share, "cgroup") && shareParent {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot define the pod as the cgroup parent at the same time as joining the infra container's cgroupNS")
+		}
 		createOptions.Share = strings.Split(share, ",")
+		createOptions.ShareParent = &shareParent
 		if cmd.Flag("infra-command").Changed {
 			// Only send content to server side if user changed defaults
 			cmdIn, err := cmd.Flags().GetString("infra-command")

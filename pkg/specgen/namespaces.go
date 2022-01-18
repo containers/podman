@@ -57,7 +57,7 @@ const (
 
 	// DefaultKernelNamespaces is a comma-separated list of default kernel
 	// namespaces.
-	DefaultKernelNamespaces = "cgroup,ipc,net,uts"
+	DefaultKernelNamespaces = "ipc,net,uts"
 )
 
 // Namespace describes the namespace
