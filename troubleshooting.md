@@ -908,7 +908,13 @@ Resolution steps
 * Before invoking Podman command create a valid login session for your rootless user using `loginctl enable-linger <username>`
 * If `loginctl` is unavailable you can also try logging in via `ssh` i.e `ssh <username>@localhost`.
 
-### 31) After deletion of a client VM on MacOS via podman machine stop && podman machine rm, attempting to init a new client VM leads to an error with the 127.0.0.1:7777 port already bound.
+### 31) 127.0.0.1:7777 port already bound
+
+After deleting a VM on macOS, the initialization of subsequent VM's fails.
+
+#### Symptom 
+
+After deleting a client VM on macOS via `podman machine stop` && `podman machine rm`, attempting to init a new client VM leads to an error with the 127.0.0.1:7777 port already bound.
 
 ### Solution
 
