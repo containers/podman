@@ -206,9 +206,13 @@ func setNamespaces(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions)
 			return err
 		}
 	}
-	// userns must be treated differently
+	userns := os.Getenv("PODMAN_USERNS")
 	if c.UserNS != "" {
-		s.UserNS, err = specgen.ParseUserNamespace(c.UserNS)
+		userns = c.UserNS
+	}
+	// userns must be treated differently
+	if userns != "" {
+		s.UserNS, err = specgen.ParseUserNamespace(userns)
 		if err != nil {
 			return err
 		}
