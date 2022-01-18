@@ -660,13 +660,13 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 			}
 			errChan <- err
 		}()
+		if err := ctr.ReadLog(context.Background(), logOpts, logChan); err != nil {
+			return err
+		}
 		go func() {
 			logOpts.WaitGroup.Wait()
 			close(logChan)
 		}()
-		if err := ctr.ReadLog(context.Background(), logOpts, logChan); err != nil {
-			return err
-		}
 		logrus.Debugf("Done reading logs for container %s, %d bytes", ctr.ID(), logSize)
 		if err := <-errChan; err != nil {
 			return err

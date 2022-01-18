@@ -130,7 +130,7 @@ class ContainerTestCase(APITestCase):
 
     def test_attach(self):
         self.skipTest("FIXME: Test timeouts")
-        r = requests.post(self.uri(self.resolve_container("/containers/{}/attach")), timeout=5)
+        r = requests.post(self.uri(self.resolve_container("/containers/{}/attach?logs=true")), timeout=5)
         self.assertIn(r.status_code, (101, 500), r.text)
 
     def test_logs(self):
