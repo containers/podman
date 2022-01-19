@@ -1,3 +1,4 @@
+//go:build amd64 || arm64
 // +build amd64 arm64
 
 package machine
@@ -64,5 +65,6 @@ func start(cmd *cobra.Command, args []string) error {
 	if err := vm.Start(vmName, machine.StartOptions{}); err != nil {
 		return err
 	}
+	fmt.Printf("Machine %q started successfully\n", vmName)
 	return nil
 }
