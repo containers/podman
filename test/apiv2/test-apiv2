@@ -45,8 +45,14 @@ echo 0 >$failures_file
 # Where the tests live
 TESTS_DIR=$(realpath $(dirname $0))
 
+# As of 2021-11 podman has one external helper binary, rootlessport, needed
+# for rootless networking.
+if [[ -z "$CONTAINERS_HELPER_BINARY_DIR" ]]; then
+    export CONTAINERS_HELPER_BINARY_DIR=$(realpath ${TESTS_DIR}/../../bin)
+fi
+
 # Path to podman binary
-PODMAN_BIN=${PODMAN:-${TESTS_DIR}/../../bin/podman}
+PODMAN_BIN=${PODMAN:-${CONTAINERS_HELPER_BINARY_DIR}/podman}
 
 # Cleanup handlers
 clean_up_server() {
@@ -289,7 +295,8 @@ function t() {
         output="[$(file --brief $WORKDIR/curl.result.out)]"
         echo "$output" >>$LOG
     elif [[ -e $WORKDIR/curl.result.out ]]; then
-        output=$(< $WORKDIR/curl.result.out)
+        # Output from /logs sometimes includes NULs. Strip them.
+        output=$(tr -d '\0' < $WORKDIR/curl.result.out)
 
         if [[ $content_type =~ application/json ]] && [[ $method != "HEAD" ]]; then
             jq . <<<"$output" >>$LOG

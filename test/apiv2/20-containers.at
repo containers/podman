@@ -18,9 +18,12 @@ podman rm -a -f &>/dev/null
 
 t GET "libpod/containers/json (at start: clean slate)" 200 length=0
 
-# Regression test for #12904
-podman run --rm -d --replace --name foo $IMAGE sh -c "echo 123;sleep 42"
-t POST "containers/foo/attach?logs=true&stream=false" 200
+# Regression test for #12904 (race condition in logging code)
+mytext="hi-there-$(random_string 15)"
+podman run --rm -d --replace --name foo $IMAGE sh -c "echo $mytext;sleep 42"
+# Logs output is prepended by ^A^X
+t POST "containers/foo/attach?logs=true&stream=false" 200 \
+  $'\001\030'$mytext
 t POST "containers/foo/kill" 204
 
 podman run -v /tmp:/tmp $IMAGE true
@@ -236,11 +239,16 @@ t GET containers/$cid/json 200 \
 t POST containers/create Image=$IMAGE Entrypoint='["top"]' 201 \
   .Id~[0-9a-f]\\{64\\}
 cid_top=$(jq -r '.Id' <<<"$output")
+# .Network is N/A when rootless
+network_expect=
+if root; then
+    network_expect='.NetworkSettings.Networks.podman.NetworkID=podman'
+fi
 t GET containers/${cid_top}/json 200 \
   .Config.Entrypoint[0]="top" \
   .Config.Cmd='[]' \
   .Path="top" \
-  .NetworkSettings.Networks.podman.NetworkID=podman
+  $network_expect
 t POST  containers/${cid_top}/start 204
 # make sure the container is running
 t GET containers/${cid_top}/json 200 \
@@ -364,11 +372,15 @@ t GET containers/$cid/json 200 \
 t DELETE containers/$cid?v=true 204
 
 # Test Compat Create with default network mode (#10569)
+networkmode=slirp4netns
+if root; then
+    networkmode=bridge
+fi
 t POST containers/create Image=$IMAGE HostConfig='{"NetworkMode":"default"}' 201 \
   .Id~[0-9a-f]\\{64\\}
 cid=$(jq -r '.Id' <<<"$output")
 t GET containers/$cid/json 200 \
-  .HostConfig.NetworkMode="bridge"
+  .HostConfig.NetworkMode="$networkmode"
 
 t DELETE containers/$cid?v=true 204
 
