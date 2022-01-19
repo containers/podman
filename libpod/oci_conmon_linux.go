@@ -1318,6 +1318,10 @@ func (r *ConmonOCIRuntime) configureConmonEnv(ctr *Container, runtimeDir string)
 			env = append(env, e)
 		}
 	}
+	conf, ok := os.LookupEnv("CONTAINERS_CONF")
+	if ok {
+		env = append(env, fmt.Sprintf("CONTAINERS_CONF=%s", conf))
+	}
 	env = append(env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
 	env = append(env, fmt.Sprintf("_CONTAINERS_USERNS_CONFIGURED=%s", os.Getenv("_CONTAINERS_USERNS_CONFIGURED")))
 	env = append(env, fmt.Sprintf("_CONTAINERS_ROOTLESS_UID=%s", os.Getenv("_CONTAINERS_ROOTLESS_UID")))
