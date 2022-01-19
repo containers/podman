@@ -2,7 +2,7 @@
 ===============================================================================
 https://github.com/seccomp/libseccomp-golang
 
-[![Build Status](https://img.shields.io/travis/seccomp/libseccomp-golang/master.svg)](https://travis-ci.org/seccomp/libseccomp-golang)
+[![Build Status](https://img.shields.io/travis/seccomp/libseccomp-golang/main.svg)](https://travis-ci.org/seccomp/libseccomp-golang)
 
 The libseccomp library provides an easy to use, platform independent, interface
 to the Linux Kernel's syscall filtering mechanism.  The libseccomp API is
