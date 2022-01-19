@@ -17,17 +17,20 @@ func GenerateSystemd(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
-		Name             bool    `schema:"useName"`
-		New              bool    `schema:"new"`
-		NoHeader         bool    `schema:"noHeader"`
-		TemplateUnitFile bool    `schema:"templateUnitFile"`
-		RestartPolicy    *string `schema:"restartPolicy"`
-		RestartSec       uint    `schema:"restartSec"`
-		StopTimeout      uint    `schema:"stopTimeout"`
-		StartTimeout     uint    `schema:"startTimeout"`
-		ContainerPrefix  string  `schema:"containerPrefix"`
-		PodPrefix        string  `schema:"podPrefix"`
-		Separator        string  `schema:"separator"`
+		Name             bool     `schema:"useName"`
+		New              bool     `schema:"new"`
+		NoHeader         bool     `schema:"noHeader"`
+		TemplateUnitFile bool     `schema:"templateUnitFile"`
+		RestartPolicy    *string  `schema:"restartPolicy"`
+		RestartSec       uint     `schema:"restartSec"`
+		StopTimeout      uint     `schema:"stopTimeout"`
+		StartTimeout     uint     `schema:"startTimeout"`
+		ContainerPrefix  string   `schema:"containerPrefix"`
+		PodPrefix        string   `schema:"podPrefix"`
+		Separator        string   `schema:"separator"`
+		Wants            []string `schema:"wants"`
+		After            []string `schema:"after"`
+		Requires         []string `schema:"requires"`
 	}{
 		StartTimeout:    0,
 		StopTimeout:     util.DefaultContainerConfig().Engine.StopTimeout,
@@ -55,6 +58,9 @@ func GenerateSystemd(w http.ResponseWriter, r *http.Request) {
 		PodPrefix:        query.PodPrefix,
 		Separator:        query.Separator,
 		RestartSec:       &query.RestartSec,
+		Wants:            query.Wants,
+		After:            query.After,
+		Requires:         query.Requires,
 	}
 
 	report, err := containerEngine.GenerateSystemd(r.Context(), utils.GetName(r), options)
