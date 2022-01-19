@@ -54,7 +54,10 @@ class TestSystem(unittest.TestCase):
         return super().tearDownClass()
 
     def test_Info(self):
-        self.assertIsNotNone(self.client.info())
+        info = self.client.info()
+        self.assertIsNotNone(info)
+        self.assertEqual(info["RegistryConfig"]["IndexConfigs"]["localhost:5000"]["Secure"], False)
+        self.assertEqual(info["RegistryConfig"]["IndexConfigs"]["localhost:5000"]["Mirrors"], ["mirror.localhost:5000"])
 
     def test_info_container_details(self):
         info = self.client.info()

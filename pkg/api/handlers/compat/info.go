@@ -11,6 +11,7 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/sysinfo"
+	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/api/handlers"
@@ -108,7 +109,7 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 			Log:     infoData.Plugins.Log,
 		},
 		ProductLicense:  "Apache-2.0",
-		RegistryConfig:  new(registry.ServiceConfig),
+		RegistryConfig:  getServiceConfig(runtime),
 		RuncCommit:      docker.Commit{},
 		Runtimes:        getRuntimes(configInfo),
 		SecurityOptions: getSecOpts(sysInfo),
@@ -131,6 +132,37 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 		Uptime:             infoData.Host.Uptime,
 	}
 	utils.WriteResponse(w, http.StatusOK, info)
+}
+
+func getServiceConfig(runtime *libpod.Runtime) *registry.ServiceConfig {
+	var indexConfs map[string]*registry.IndexInfo
+
+	regs, err := sysregistriesv2.GetRegistries(runtime.SystemContext())
+	if err == nil {
+		indexConfs = make(map[string]*registry.IndexInfo, len(regs))
+		for _, reg := range regs {
+			mirrors := make([]string, len(reg.Mirrors))
+			for i, mirror := range reg.Mirrors {
+				mirrors[i] = mirror.Location
+			}
+			indexConfs[reg.Prefix] = &registry.IndexInfo{
+				Name:    reg.Prefix,
+				Mirrors: mirrors,
+				Secure:  !reg.Insecure,
+			}
+		}
+	} else {
+		log.Warnf("failed to get registries configuration: %v", err)
+		indexConfs = make(map[string]*registry.IndexInfo)
+	}
+
+	return &registry.ServiceConfig{
+		AllowNondistributableArtifactsCIDRs:     make([]*registry.NetIPNet, 0),
+		AllowNondistributableArtifactsHostnames: make([]string, 0),
+		InsecureRegistryCIDRs:                   make([]*registry.NetIPNet, 0),
+		IndexConfigs:                            indexConfs,
+		Mirrors:                                 make([]string, 0),
+	}
 }
 
 func getGraphStatus(storeInfo map[string]string) [][2]string {
