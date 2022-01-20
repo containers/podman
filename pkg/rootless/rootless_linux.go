@@ -390,11 +390,11 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 				return joinUserAndMountNS(uint(pid), "")
 			}
 		}
-		return false, -1, errors.Wrapf(err, "error setting up the process")
+		return false, -1, errors.New("error setting up the process")
 	}
 
 	if b[0] != '0' {
-		return false, -1, errors.Wrapf(err, "error setting up the process")
+		return false, -1, errors.New("error setting up the process")
 	}
 
 	signals := []os.Signal{}
