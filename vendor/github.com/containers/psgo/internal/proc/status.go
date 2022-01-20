@@ -18,8 +18,11 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"os/exec"
+	"strconv"
 	"strings"
+	"sync"
+
+	"github.com/containers/storage/pkg/idtools"
 )
 
 // Status is a direct translation of a `/proc/[pid]/status`, which provides much
@@ -173,23 +176,8 @@ type Status struct {
 	NonvoluntaryCtxtSwitches string
 }
 
-// readStatusUserNS joins the user namespace of pid and returns the content of
-// /proc/pid/status as a string slice.
-func readStatusUserNS(pid string) ([]string, error) {
-	path := fmt.Sprintf("/proc/%s/status", pid)
-	args := []string{"nsenter", "-U", "-t", pid, "cat", path}
-
-	c := exec.Command(args[0], args[1:]...)
-	output, err := c.CombinedOutput()
-	if err != nil {
-		return nil, fmt.Errorf("error executing %q: %w", strings.Join(args, " "), err)
-	}
-
-	return strings.Split(string(output), "\n"), nil
-}
-
-// readStatusDefault returns the content of /proc/pid/status as a string slice.
-func readStatusDefault(pid string) ([]string, error) {
+// readStatus returns the content of /proc/pid/status as a string slice.
+func readStatus(pid string) ([]string, error) {
 	path := fmt.Sprintf("/proc/%s/status", pid)
 	f, err := os.Open(path)
 	if err != nil {
@@ -203,21 +191,81 @@ func readStatusDefault(pid string) ([]string, error) {
 	return lines, nil
 }
 
-// ParseStatus parses the /proc/$pid/status file and returns a *Status.
-func ParseStatus(pid string, joinUserNS bool) (*Status, error) {
-	var lines []string
-	var err error
-
-	if joinUserNS {
-		lines, err = readStatusUserNS(pid)
-	} else {
-		lines, err = readStatusDefault(pid)
+// mapField maps a single string-typed ID field given the set of mappings. If
+// no mapping exists, the overflow uid/gid is used.
+func mapStatusField(field *string, mapping []idtools.IDMap, overflow string) {
+	hostId, err := strconv.Atoi(*field)
+	if err != nil {
+		*field = overflow
+		return
 	}
+	contId, err := idtools.RawToContainer(hostId, mapping)
+	if err != nil {
+		*field = overflow
+		return
+	}
+	*field = strconv.Itoa(contId)
+}
 
+var (
+	overflowOnce sync.Once
+	overflowUid  = "65534"
+	overflowGid  = "65534"
+)
+
+func overflowIds() (string, string) {
+	overflowOnce.Do(func() {
+		if uid, err := os.ReadFile("/proc/sys/kernel/overflowuid"); err == nil {
+			overflowUid = strings.TrimSpace(string(uid))
+		}
+		if gid, err := os.ReadFile("/proc/sys/kernel/overflowgid"); err == nil {
+			overflowGid = strings.TrimSpace(string(gid))
+		}
+	})
+	return overflowUid, overflowGid
+}
+
+// mapStatus takes a Status struct and remaps all of the relevant fields to
+// match the user namespace of the target process.
+func mapStatus(pid string, status *Status) (*Status, error) {
+	uidMap, err := ReadMappings(fmt.Sprintf("/proc/%s/uid_map", pid))
 	if err != nil {
 		return nil, err
 	}
-	return parseStatus(pid, lines)
+	gidMap, err := ReadMappings(fmt.Sprintf("/proc/%s/gid_map", pid))
+	if err != nil {
+		return nil, err
+	}
+	overflowUid, overflowGid := overflowIds()
+	for i := range status.Uids {
+		mapStatusField(&status.Uids[i], uidMap, overflowUid)
+	}
+	for i := range status.Gids {
+		mapStatusField(&status.Gids[i], gidMap, overflowGid)
+	}
+	for i := range status.Groups {
+		mapStatusField(&status.Groups[i], gidMap, overflowGid)
+	}
+	return status, nil
+}
+
+// ParseStatus parses the /proc/$pid/status file and returns a *Status.
+func ParseStatus(pid string, mapUserNS bool) (*Status, error) {
+	lines, err := readStatus(pid)
+	if err != nil {
+		return nil, err
+	}
+	status, err := parseStatus(pid, lines)
+	if err != nil {
+		return nil, err
+	}
+	if mapUserNS {
+		status, err = mapStatus(pid, status)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return status, nil
 }
 
 // parseStatus extracts data from lines and returns a *Status.

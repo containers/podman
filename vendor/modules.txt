@@ -221,7 +221,7 @@ github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
 github.com/containers/ocicrypt/utils/keyprovider
-# github.com/containers/psgo v1.7.1
+# github.com/containers/psgo v1.7.2
 ## explicit
 github.com/containers/psgo
 github.com/containers/psgo/internal/capabilities

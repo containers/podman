@@ -19,13 +19,9 @@ import (
 	"fmt"
 	"io"
 	"os"
-)
 
-type IDMap struct {
-	ContainerID int
-	HostID      int
-	Size        int
-}
+	"github.com/containers/storage/pkg/idtools"
+)
 
 // ParsePIDNamespace returns the content of /proc/$pid/ns/pid.
 func ParsePIDNamespace(pid string) (string, error) {
@@ -46,14 +42,14 @@ func ParseUserNamespace(pid string) (string, error) {
 }
 
 // ReadMappings reads the user namespace mappings at the specified path
-func ReadMappings(path string) ([]IDMap, error) {
+func ReadMappings(path string) ([]idtools.IDMap, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	mappings := []IDMap{}
+	var mappings []idtools.IDMap
 
 	buf := bufio.NewReader(file)
 	for {
@@ -68,10 +64,10 @@ func ReadMappings(path string) ([]IDMap, error) {
 			return mappings, nil
 		}
 
-		containerID, hostID, size := 0, 0, 0
+		var containerID, hostID, size int
 		if _, err := fmt.Sscanf(string(line), "%d %d %d", &containerID, &hostID, &size); err != nil {
 			return nil, fmt.Errorf("cannot parse %s: %w", string(line), err)
 		}
-		mappings = append(mappings, IDMap{ContainerID: containerID, HostID: hostID, Size: size})
+		mappings = append(mappings, idtools.IDMap{ContainerID: containerID, HostID: hostID, Size: size})
 	}
 }
