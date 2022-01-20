@@ -511,7 +511,7 @@ func LoadImages(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, struct {
 		Stream string `json:"stream"`
 	}{
-		Stream: fmt.Sprintf("Loaded image: %s\n", loadReport.Names[0]),
+		Stream: fmt.Sprintf("Loaded image: %s", strings.Join(loadReport.Names, ",")),
 	})
 }
 
