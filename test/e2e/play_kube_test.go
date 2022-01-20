@@ -78,6 +78,25 @@ spec:
         - 24h
 status: {}
 `
+
+var podWithoutConfigMapDefined = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: testpod1
+spec:
+  containers:
+    - name: alpine
+      image: quay.io/libpod/alpine:latest
+      volumeMounts:
+        - name: mycm
+          mountPath: /mycm
+  volumes:
+    - name: mycm
+      configMap:
+        name: mycm
+`
+
 var sharedNamespacePodYaml = `
 apiVersion: v1
 kind: Pod
@@ -1233,6 +1252,16 @@ var _ = Describe("Podman play kube", func() {
 			Expect(exec).Should(Exit(0))
 			Expect(exec.OutputToString()).To(Not(ContainSubstring("check-infra-image")))
 		}
+	})
+
+	It("podman play kube with non-existing configmap", func() {
+		err := writeYaml(podWithoutConfigMapDefined, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(125))
+		Expect(kube.ErrorToString()).To(ContainSubstring("failed to create volume \"mycm\": no such ConfigMap \"mycm\""))
 	})
 
 	It("podman play kube test HostAliases with --no-hosts", func() {
