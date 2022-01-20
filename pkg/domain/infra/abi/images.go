@@ -94,7 +94,9 @@ func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOption
 func toDomainHistoryLayer(layer *libimage.ImageHistory) entities.ImageHistoryLayer {
 	l := entities.ImageHistoryLayer{}
 	l.ID = layer.ID
-	l.Created = *layer.Created
+	if layer.Created != nil {
+		l.Created = *layer.Created
+	}
 	l.CreatedBy = layer.CreatedBy
 	copy(l.Tags, layer.Tags)
 	l.Size = layer.Size
