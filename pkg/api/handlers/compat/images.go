@@ -503,8 +503,8 @@ func LoadImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(loadReport.Names) != 1 {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Errorf("%d instead of 1 were loaded", len(loadReport.Names)))
+	if len(loadReport.Names) < 1 {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Errorf("one or more images are required"))
 		return
 	}
 
