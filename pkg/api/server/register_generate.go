@@ -72,6 +72,27 @@ func (s *APIServer) registerGenerateHandlers(r *mux.Router) error {
 	//    type: integer
 	//    default: 0
 	//    description: Configures the time to sleep before restarting a service.
+	//  - in: query
+	//    name: wants
+	//    type: array
+	//    items:
+	//        type: string
+	//    default: []
+	//    description: Systemd Wants list for the container or pods.
+	//  - in: query
+	//    name: after
+	//    type: array
+	//    items:
+	//        type: string
+	//    default: []
+	//    description: Systemd After list for the container or pods.
+	//  - in: query
+	//    name: requires
+	//    type: array
+	//    items:
+	//        type: string
+	//    default: []
+	//    description: Systemd Requires list for the container or pods.
 	// produces:
 	// - application/json
 	// responses:

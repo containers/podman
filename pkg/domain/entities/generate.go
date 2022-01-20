@@ -26,6 +26,12 @@ type GenerateSystemdOptions struct {
 	NoHeader bool
 	// TemplateUnitFile - make use of %i and %I to differentiate between the different instances of the unit
 	TemplateUnitFile bool
+	// Wants - systemd wants list for the container or pods
+	Wants []string
+	// After - systemd after list for the container or pods
+	After []string
+	// Requires - systemd requires list for the container or pods
+	Requires []string
 }
 
 // GenerateSystemdReport

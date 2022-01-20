@@ -32,4 +32,10 @@ type SystemdOptions struct {
 	PodPrefix *string
 	// Separator - systemd unit name separator between name/id and prefix
 	Separator *string
+	// Wants - systemd wants list for the container or pods
+	Wants *[]string
+	// After - systemd after list for the container or pods
+	After *[]string
+	// Requires - systemd requires list for the container or pods
+	Requires *[]string
 }

@@ -68,6 +68,22 @@ Set the systemd unit name prefix for pods. The default is *pod*.
 
 Set the systemd unit name separator between the name/id of a container/pod and the prefix. The default is *-*.
 
+#### **--wants**=*dependency_name*
+
+Add the systemd unit wants (`Wants=`) option, that this service is (weak) dependent on. This option may be specified more than once. This option does not influence the order in which services are started or stopped.
+
+User-defined dependencies will be appended to the generated unit file, but any existing options such as needed or defined by default (e.g. `online.target`) will **not** be removed or overridden.
+
+#### **--after**=*dependency_name*
+
+Add the systemd unit after (`After=`) option, that ordering dependencies between the list of dependencies and this service. This option may be specified more than once.
+
+User-defined dependencies will be appended to the generated unit file, but any existing options such as needed or defined by default (e.g. `online.target`) will **not** be removed or overridden.
+
+#### **--requires**=*dependency_name*
+
+Set the systemd unit requires (`Requires=`) option. Similar to wants, but declares a stronger requirement dependency.
+
 #### **--template**
 
 Add template specifiers to run multiple services from the systemd unit file.
