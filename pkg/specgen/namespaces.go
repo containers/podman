@@ -353,11 +353,11 @@ func ParseNetworkFlag(networks []string) (Namespace, map[string]types.PerNetwork
 		toReturn.NSMode = FromPod
 	case ns == "" || ns == string(Default) || ns == string(Private):
 		// Net defaults to Slirp on rootless
-		if rootless.IsRootless() && containerConfig.Containers.RootlessNetworking != "cni" {
+		if rootless.IsRootless() {
 			toReturn.NSMode = Slirp
 			break
 		}
-		// if not slirp we use bridge
+		// if root we use bridge
 		fallthrough
 	case ns == string(Bridge), strings.HasPrefix(ns, string(Bridge)+":"):
 		toReturn.NSMode = Bridge

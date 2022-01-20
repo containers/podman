@@ -243,7 +243,6 @@ ExecStart=/usr/bin/sleep infinity
 `
 	containers := `[containers]
 netns="bridge"
-rootless_networking="cni"
 `
 	rootContainers := `[engine]
 machine_enabled=true
