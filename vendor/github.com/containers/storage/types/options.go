@@ -17,7 +17,7 @@ import (
 )
 
 // TOML-friendly explicit tables used for conversions.
-type tomlConfig struct {
+type TomlConfig struct {
 	Storage struct {
 		Driver              string            `toml:"driver"`
 		RunRoot             string            `toml:"runroot"`
@@ -306,7 +306,7 @@ func ReloadConfigurationFileIfNeeded(configFile string, storeOptions *StoreOptio
 // ReloadConfigurationFile parses the specified configuration file and overrides
 // the configuration in storeOptions.
 func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
-	config := new(tomlConfig)
+	config := new(TomlConfig)
 
 	meta, err := toml.DecodeFile(configFile, &config)
 	if err == nil {
@@ -423,4 +423,39 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
 
 func Options() StoreOptions {
 	return defaultStoreOptions
+}
+
+// Save overwrites the tomlConfig in storage.conf with the given conf
+func Save(conf TomlConfig, rootless bool) error {
+	configFile, err := DefaultConfigFile(rootless)
+	if err != nil {
+		return err
+	}
+	if err = os.Remove(configFile); !os.IsNotExist(err) {
+		return err
+	}
+
+	f, err := os.Open(configFile)
+	if err != nil {
+		return err
+	}
+
+	return toml.NewEncoder(f).Encode(conf)
+}
+
+// StorageConfig is used to retreive the storage.conf toml in order to overwrite it
+func StorageConfig(rootless bool) (*TomlConfig, error) {
+	config := new(TomlConfig)
+
+	configFile, err := DefaultConfigFile(rootless)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = toml.DecodeFile(configFile, &config)
+	if err != nil {
+		return nil, err
+	}
+
+	return config, nil
 }

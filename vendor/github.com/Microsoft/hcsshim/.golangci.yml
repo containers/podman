@@ -1,3 +1,6 @@
+run:
+  timeout: 8m
+
 linters:
   enable:
     - stylecheck
