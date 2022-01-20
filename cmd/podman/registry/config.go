@@ -52,6 +52,12 @@ func newPodmanConfig() {
 		os.Exit(1)
 	}
 
+	cfg, err := config.NewConfig("")
+	if err != nil {
+		fmt.Fprint(os.Stderr, "Failed to obtain podman configuration: "+err.Error())
+		os.Exit(1)
+	}
+
 	var mode entities.EngineMode
 	switch runtime.GOOS {
 	case "darwin", "windows":
@@ -64,16 +70,15 @@ func newPodmanConfig() {
 		} else {
 			mode = entities.TunnelMode
 		}
-
 	default:
 		fmt.Fprintf(os.Stderr, "%s is not a supported OS", runtime.GOOS)
 		os.Exit(1)
 	}
 
-	cfg, err := config.NewConfig("")
-	if err != nil {
-		fmt.Fprint(os.Stderr, "Failed to obtain podman configuration: "+err.Error())
-		os.Exit(1)
+	// If EngineMode==Tunnel has not been set on the command line or environment
+	// but has been set in containers.conf...
+	if mode == entities.ABIMode && cfg.Engine.Remote {
+		mode = entities.TunnelMode
 	}
 
 	cfg.Network.NetworkConfigDir = cfg.Network.CNIPluginDirs[0]
