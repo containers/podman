@@ -12,10 +12,14 @@ import (
 #cgo LDFLAGS: -l subid
 #include <shadow/subid.h>
 #include <stdlib.h>
+#include <stdio.h>
 const char *Prog = "storage";
+FILE *shadow_logfd = NULL;
+
 struct subid_range get_range(struct subid_range *ranges, int i)
 {
-    return ranges[i];
+	shadow_logfd = stderr;
+	return ranges[i];
 }
 
 #if !defined(SUBID_ABI_MAJOR) || (SUBID_ABI_MAJOR < 4)

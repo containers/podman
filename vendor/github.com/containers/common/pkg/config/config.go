@@ -72,6 +72,8 @@ type Config struct {
 	Network NetworkConfig `toml:"network"`
 	// Secret section defines configurations for the secret management
 	Secrets SecretConfig `toml:"secrets"`
+	// ConfigMap section defines configurations for the configmaps management
+	ConfigMaps ConfigMapConfig `toml:"configmaps"`
 }
 
 // ContainersConfig represents the "containers" TOML config table
@@ -506,6 +508,17 @@ type NetworkConfig struct {
 // SecretConfig represents the "secret" TOML config table
 type SecretConfig struct {
 	// Driver specifies the secret driver to use.
+	// Current valid value:
+	//  * file
+	//  * pass
+	Driver string `toml:"driver,omitempty"`
+	// Opts contains driver specific options
+	Opts map[string]string `toml:"opts,omitempty"`
+}
+
+// ConfigMapConfig represents the "configmap" TOML config table
+type ConfigMapConfig struct {
+	// Driver specifies the configmap driver to use.
 	// Current valid value:
 	//  * file
 	//  * pass

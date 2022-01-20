@@ -13,6 +13,7 @@ import (
 	"github.com/containers/common/libnetwork/internal/util"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/storage/pkg/lockfile"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -20,6 +21,12 @@ import (
 type netavarkNetwork struct {
 	// networkConfigDir is directory where the network config files are stored.
 	networkConfigDir string
+
+	// networkRunDir is where temporary files are stored, i.e.the ipam db, aardvark config etc
+	networkRunDir string
+
+	// tells netavark wheather this is rootless mode or rootfull, "true" or "false"
+	networkRootless bool
 
 	// netavarkBinary is the path to the netavark binary.
 	netavarkBinary string
@@ -53,7 +60,7 @@ type InitConfig struct {
 	// NetavarkBinary is the path to the netavark binary.
 	NetavarkBinary string
 
-	// NetworkRunDir is where temporary files are stored, i.e.the ipam db.
+	// NetworkRunDir is where temporary files are stored, i.e.the ipam db, aardvark config
 	NetworkRunDir string
 
 	// DefaultNetwork is the name for the default network.
@@ -99,7 +106,9 @@ func NewNetworkInterface(conf *InitConfig) (types.ContainerNetwork, error) {
 
 	n := &netavarkNetwork{
 		networkConfigDir: conf.NetworkConfigDir,
+		networkRunDir:    conf.NetworkRunDir,
 		netavarkBinary:   conf.NetavarkBinary,
+		networkRootless:  unshare.IsRootless(),
 		ipamDBPath:       filepath.Join(conf.NetworkRunDir, "ipam.db"),
 		defaultNetwork:   defaultNetworkName,
 		defaultSubnet:    defaultNet,
