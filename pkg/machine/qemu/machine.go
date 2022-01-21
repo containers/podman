@@ -390,12 +390,14 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		if err != nil {
 			return err
 		}
-		for running || !v.isListening() {
+		listening := v.isListening()
+		for !running || !listening {
 			time.Sleep(100 * time.Millisecond)
 			running, err = v.isRunning()
 			if err != nil {
 				return err
 			}
+			listening = v.isListening()
 		}
 	}
 	for _, mount := range v.Mounts {
