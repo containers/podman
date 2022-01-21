@@ -97,13 +97,13 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	query := struct {
-		Author    string `schema:"author"`
-		Changes   string `schema:"changes"`
-		Comment   string `schema:"comment"`
-		Container string `schema:"container"`
-		Pause     bool   `schema:"pause"`
-		Repo      string `schema:"repo"`
-		Tag       string `schema:"tag"`
+		Author    string   `schema:"author"`
+		Changes   []string `schema:"changes"`
+		Comment   string   `schema:"comment"`
+		Container string   `schema:"container"`
+		Pause     bool     `schema:"pause"`
+		Repo      string   `schema:"repo"`
+		Tag       string   `schema:"tag"`
 		// fromSrc   string  # fromSrc is currently unused
 	}{
 		Tag: "latest",
@@ -138,8 +138,8 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 	options.Message = query.Comment
 	options.Author = query.Author
 	options.Pause = query.Pause
-	if query.Changes != "" {
-		options.Changes = strings.Split(query.Changes, ",")
+	for _, change := range query.Changes {
+		options.Changes = append(options.Changes, strings.Split(change, "\n")...)
 	}
 	ctr, err := runtime.LookupContainer(query.Container)
 	if err != nil {

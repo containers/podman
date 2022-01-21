@@ -434,7 +434,7 @@ cid=$(jq -r '.Id' <<<"$output")
 t POST "commit?container=nonesuch" 404
 
 cparam="repo=newrepo&tag=v3&comment=abcd&author=eric"
-cparam="$cparam&format=docker&changes=CMD=/bin/bar,EXPOSE=9090"
+cparam="$cparam&format=docker&changes=CMD%20/bin/bar%0aEXPOSE%209090"
 t POST "commit?container=${cid:0:12}&$cparam" 201 \
   .Id~[0-9a-f]\\{64\\}
 iid=$(jq -r '.Id' <<<"$output")
