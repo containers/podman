@@ -689,7 +689,7 @@ file `/etc/systemd/system/user@.service.d/delegate.conf` with the contents:
     [Service]
     Delegate=memory pids cpu io
 
-After logging out and loggin back in, you should have permission to set CPU
+After logging out and logging back in, you should have permission to set CPU
 limits.
 
 ### 26) `exec container process '/bin/sh': Exec format error` (or another binary than `bin/sh`)

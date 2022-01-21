@@ -274,7 +274,7 @@ func (c *Container) GetInspectMounts(namedVolumes []*ContainerNamedVolume, image
 	return inspectMounts, nil
 }
 
-// GetSecurityOptions retrives and returns the security related annotations and process information upon inspection
+// GetSecurityOptions retrieves and returns the security related annotations and process information upon inspection
 func (c *Container) GetSecurityOptions() []string {
 	ctrSpec := c.config.Spec
 	SecurityOpt := []string{}

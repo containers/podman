@@ -223,7 +223,7 @@ type ContainerStorageConfig struct {
 	// Conflicts with Image.
 	// At least one of Image or Rootfs must be specified.
 	Rootfs string `json:"rootfs,omitempty"`
-	// RootfsOverlay tells if rootfs is actuall an overlay on top of base path
+	// RootfsOverlay tells if rootfs is actually an overlay on top of base path
 	RootfsOverlay bool `json:"rootfs_overlay,omitempty"`
 	// ImageVolumeMode indicates how image volumes will be created.
 	// Supported modes are "ignore" (do not create), "tmpfs" (create as
@@ -423,7 +423,7 @@ type ContainerNetworkConfig struct {
 	// PublishExposedPorts is set.
 	// Optional.
 	Expose map[uint16]string `json:"expose,omitempty"`
-	// Map of networks names ot ids the container should join to.
+	// Map of networks names or ids that the container should join.
 	// You can request additional settings for each network, you can
 	// set network aliases, static ips, static mac address  and the
 	// network interface name for this container on the specific network.

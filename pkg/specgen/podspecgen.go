@@ -94,7 +94,7 @@ type PodNetworkConfig struct {
 	// Only available if NetNS is set to Bridge or Slirp.
 	// Optional.
 	PortMappings []types.PortMapping `json:"portmappings,omitempty"`
-	// Map of networks names ot ids the container should join to.
+	// Map of networks names to ids the container should join to.
 	// You can request additional settings for each network, you can
 	// set network aliases, static ips, static mac address  and the
 	// network interface name for this container on the specific network.

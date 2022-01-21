@@ -31,7 +31,7 @@ var largeAuthFileValues = map[string]types.DockerAuthConfig{
 
 // systemContextForAuthFile returns a types.SystemContext with AuthFilePath pointing
 // to a temporary file with fileContents, or nil if fileContents is empty; and a cleanup
-// function the calle rmust arrange to call.
+// function the caller must arrange to call.
 func systemContextForAuthFile(t *testing.T, fileContents string) (*types.SystemContext, func()) {
 	if fileContents == "" {
 		return nil, func() {}
