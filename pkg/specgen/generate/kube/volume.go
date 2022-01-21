@@ -122,7 +122,7 @@ func VolumeFromConfigMap(configMapVolumeSource *v1.ConfigMapVolumeSource, config
 
 	if configMap == nil {
 		// If the volumeSource was optional, move on even if a matching configmap wasn't found
-		if *configMapVolumeSource.Optional {
+		if configMapVolumeSource.Optional != nil && *configMapVolumeSource.Optional {
 			kv.Source = configMapVolumeSource.Name
 			kv.Optional = *configMapVolumeSource.Optional
 			return kv, nil
