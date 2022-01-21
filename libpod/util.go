@@ -150,6 +150,10 @@ func queryPackageVersion(cmdArg ...string) string {
 		if outp, err := cmd.Output(); err == nil {
 			output = string(outp)
 		}
+		if cmdArg[0] == "/sbin/apk" {
+			prefix := cmdArg[len(cmdArg)-1] + " is owned by "
+			output = strings.Replace(output, prefix, "", 1)
+		}
 	}
 	return strings.Trim(output, "\n")
 }
@@ -157,10 +161,11 @@ func queryPackageVersion(cmdArg ...string) string {
 func packageVersion(program string) string { // program is full path
 	packagers := [][]string{
 		{"/usr/bin/rpm", "-q", "-f"},
-		{"/usr/bin/dpkg", "-S"},    // Debian, Ubuntu
-		{"/usr/bin/pacman", "-Qo"}, // Arch
-		{"/usr/bin/qfile", "-qv"},  // Gentoo (quick)
-		{"/usr/bin/equery", "b"},   // Gentoo (slow)
+		{"/usr/bin/dpkg", "-S"},     // Debian, Ubuntu
+		{"/usr/bin/pacman", "-Qo"},  // Arch
+		{"/usr/bin/qfile", "-qv"},   // Gentoo (quick)
+		{"/usr/bin/equery", "b"},    // Gentoo (slow)
+		{"/sbin/apk", "info", "-W"}, // Alpine
 	}
 
 	for _, cmd := range packagers {
