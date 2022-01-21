@@ -32,7 +32,7 @@ Valid placeholders for the Go template are listed below:
 | .DiskSize       | Disk size of machine            |
 | .LastUp         | Time machine was last up        |
 | .LastUp         | Time since the VM was last run  |
-| .Memory         | Allocated memeory for machine   |
+| .Memory         | Allocated memory for machine   |
 | .Name           | VM name                         |
 | .Running        | Is machine running              |
 | .Stream         | Stream name                     |

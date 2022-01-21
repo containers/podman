@@ -173,7 +173,7 @@ LABEL marge=mom
 		err = writeYaml(testYAML, filepath.Join(yamlDir, "top.yaml"))
 		Expect(err).To(BeNil())
 
-		// build an image called foobar but make sure it doesnt have
+		// build an image called foobar but make sure it doesn't have
 		// the same label as the yaml buildfile, so we can check that
 		// the image is NOT rebuilt.
 		err = writeYaml(prebuiltImage, filepath.Join(yamlDir, "Containerfile"))
@@ -220,7 +220,7 @@ LABEL marge=mom
 		err = writeYaml(testYAML, filepath.Join(yamlDir, "top.yaml"))
 		Expect(err).To(BeNil())
 
-		// build an image called foobar but make sure it doesnt have
+		// build an image called foobar but make sure it doesn't have
 		// the same label as the yaml buildfile, so we can check that
 		// the image is NOT rebuilt.
 		err = writeYaml(prebuiltImage, filepath.Join(yamlDir, "Containerfile"))

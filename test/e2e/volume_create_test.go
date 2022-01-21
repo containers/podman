@@ -144,7 +144,7 @@ var _ = Describe("Podman volume create", func() {
 		Expect(inspectGID).Should(Exit(0))
 		Expect(inspectGID.OutputToString()).To(Equal(gid))
 
-		// options should containt `uid=3000,gid=4000:3000:4000`
+		// options should contain `uid=3000,gid=4000:3000:4000`
 		optionFormat := `{{ .Options.o }}:{{ .Options.UID }}:{{ .Options.GID }}`
 		optionStrFormatExpect := fmt.Sprintf(`uid=%s,gid=%s:%s:%s`, uid, gid, uid, gid)
 		inspectOpts := podmanTest.Podman([]string{"volume", "inspect", "--format", optionFormat, volName})

@@ -893,7 +893,7 @@ func parseSecrets(secrets []string) ([]specgen.Secret, map[string]string, error)
 				source = kv[1]
 			case "type":
 				if secretType != "" {
-					return nil, nil, errors.Wrap(secretParseError, "cannot set more tha one secret type")
+					return nil, nil, errors.Wrap(secretParseError, "cannot set more than one secret type")
 				}
 				if kv[1] != "mount" && kv[1] != "env" {
 					return nil, nil, errors.Wrapf(secretParseError, "type %s is invalid", kv[1])

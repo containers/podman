@@ -567,7 +567,7 @@ func installWslKernel() error {
 		}
 		// In case of unusual circumstances (e.g. race with installer actions)
 		// retry a few times
-		message = "An error occured attempting the WSL Kernel update, retrying..."
+		message = "An error occurred attempting the WSL Kernel update, retrying..."
 		fmt.Println(message)
 		fmt.Fprintln(log, message)
 		time.Sleep(backoff)

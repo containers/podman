@@ -714,7 +714,7 @@ var _ = Describe("Podman containers ", func() {
 		var name = "top"
 		cid, err := bt.RunTopContainer(&name, nil)
 		Expect(err).To(BeNil())
-		// Forcably Removing running container should succeed
+		// Forcibly Removing running container should succeed
 		rmResponse, err := containers.Remove(bt.conn, cid, new(containers.RemoveOptions).WithForce(true))
 		Expect(err).To(BeNil())
 		Expect(len(reports.RmReportsErrs(rmResponse))).To(Equal(0))
