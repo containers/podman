@@ -5,18 +5,8 @@ load helpers
 @test "podman run - basic tests" {
     rand=$(random_string 30)
 
-    # 2019-09 Fedora 31 and rawhide (32) are switching from runc to crun
-    # because of cgroups v2; crun emits different error messages.
-    # Default to runc:
-    err_no_such_cmd="Error: .*: starting container process caused.*exec:.*stat /no/such/command: no such file or directory"
-    err_no_exec_dir="Error: .*: starting container process caused.*exec:.* permission denied"
-
-    # ...but check the configured runtime engine, and switch to crun as needed
-    run_podman info --format '{{ .Host.OCIRuntime.Path }}'
-    if expr "$output" : ".*/crun"; then
-        err_no_such_cmd="Error: crun: executable file.* not found in \$PATH: No such file or directory: OCI runtime attempted to invoke a command that was not found"
-        err_no_exec_dir="Error: crun: open executable: Operation not permitted: OCI permission denied"
-    fi
+    err_no_such_cmd="Error:.*/no/such/command.*[Nn]o such file or directory"
+    err_no_exec_dir="Error:.*exec.*permission denied"
 
     tests="
 true              |   0 |
