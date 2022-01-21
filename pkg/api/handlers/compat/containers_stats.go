@@ -29,11 +29,11 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		Stream: true,
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	if query.Stream && query.OneShot { // mismatch. one-shot can only be passed with stream=false
-		utils.Error(w, "invalid combination of stream and one-shot", http.StatusBadRequest, define.ErrInvalidArg)
+		utils.Error(w, http.StatusBadRequest, define.ErrInvalidArg)
 		return
 	}
 
@@ -52,7 +52,7 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if state != define.ContainerStateRunning {
-		utils.Error(w, "Container not running and streaming requested", http.StatusConflict, define.ErrCtrStateInvalid)
+		utils.Error(w, http.StatusConflict, define.ErrCtrStateInvalid)
 		return
 	}
 

@@ -17,7 +17,7 @@ func TagImage(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
 	possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, name)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
 		return
 	}
 
@@ -34,7 +34,7 @@ func TagImage(w http.ResponseWriter, r *http.Request) {
 		tag = r.Form.Get("tag")
 	}
 	if len(r.Form.Get("repo")) < 1 {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.New("repo parameter is required to tag an image"))
+		utils.Error(w, http.StatusBadRequest, errors.New("repo parameter is required to tag an image"))
 		return
 	}
 	repo := r.Form.Get("repo")
@@ -42,12 +42,12 @@ func TagImage(w http.ResponseWriter, r *http.Request) {
 
 	possiblyNormalizedTag, err := utils.NormalizeToDockerHub(r, tagName)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
 		return
 	}
 
 	if err := newImage.Tag(possiblyNormalizedTag); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 	utils.WriteResponse(w, http.StatusCreated, "")

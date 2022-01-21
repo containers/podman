@@ -36,13 +36,13 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 		Tail: "all",
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
 	if !(query.Stdout || query.Stderr) {
 		msg := fmt.Sprintf("%s: you must choose at least one stream", http.StatusText(http.StatusBadRequest))
-		utils.Error(w, msg, http.StatusBadRequest, errors.Errorf("%s for %s", msg, r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Errorf("%s for %s", msg, r.URL.String()))
 		return
 	}
 

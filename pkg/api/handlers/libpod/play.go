@@ -37,8 +37,7 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -46,8 +45,7 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 	for _, ipString := range query.StaticIPs {
 		ip := net.ParseIP(ipString)
 		if ip == nil {
-			utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-				errors.Errorf("Invalid IP address %s", ipString))
+			utils.Error(w, http.StatusBadRequest, errors.Errorf("Invalid IP address %s", ipString))
 			return
 		}
 		staticIPs = append(staticIPs, ip)
@@ -57,8 +55,7 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 	for _, macString := range query.StaticMACs {
 		mac, err := net.ParseMAC(macString)
 		if err != nil {
-			utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-				err)
+			utils.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		staticMACs = append(staticMACs, mac)
@@ -67,7 +64,7 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 	// Fetch the K8s YAML file from the body, and copy it to a temp file.
 	tmpfile, err := ioutil.TempFile("", "libpod-play-kube.yml")
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
 		return
 	}
 	defer func() {
@@ -79,16 +76,16 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 		if err := tmpfile.Close(); err != nil {
 			logrus.Warn(err)
 		}
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to write archive to temporary file"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "unable to write archive to temporary file"))
 		return
 	}
 	if err := tmpfile.Close(); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error closing temporary file"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error closing temporary file"))
 		return
 	}
 	authConf, authfile, err := auth.GetCredentials(r)
 	if err != nil {
-		utils.Error(w, "failed to retrieve repository credentials", http.StatusBadRequest, err)
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 	defer auth.RemoveAuthfile(authfile)
@@ -119,7 +116,7 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 	}
 	report, err := containerEngine.PlayKube(r.Context(), tmpfile.Name(), options)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error playing YAML file"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error playing YAML file"))
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, report)
@@ -129,7 +126,7 @@ func PlayKubeDown(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	tmpfile, err := ioutil.TempFile("", "libpod-play-kube.yml")
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
 		return
 	}
 	defer func() {
@@ -141,18 +138,18 @@ func PlayKubeDown(w http.ResponseWriter, r *http.Request) {
 		if err := tmpfile.Close(); err != nil {
 			logrus.Warn(err)
 		}
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to write archive to temporary file"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "unable to write archive to temporary file"))
 		return
 	}
 	if err := tmpfile.Close(); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error closing temporary file"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error closing temporary file"))
 		return
 	}
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
 	options := new(entities.PlayKubeDownOptions)
 	report, err := containerEngine.PlayKubeDown(r.Context(), tmpfile.Name(), *options)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error tearing down YAML file"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error tearing down YAML file"))
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, report)

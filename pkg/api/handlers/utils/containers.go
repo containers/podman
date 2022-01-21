@@ -39,7 +39,7 @@ func WaitContainerDocker(w http.ResponseWriter, r *http.Request) {
 
 	decoder := ctx.Value(api.DecoderKey).(*schema.Decoder)
 	if err = decoder.Decode(&query, r.URL.Query()); err != nil {
-		Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -107,7 +107,7 @@ func WaitContainerLibpod(w http.ResponseWriter, r *http.Request) {
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := waitQueryLibpod{}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 

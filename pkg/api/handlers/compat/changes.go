@@ -20,7 +20,7 @@ func Changes(w http.ResponseWriter, r *http.Request) {
 		DiffType string `schema:"diffType"`
 	}{}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	var diffType define.DiffType
@@ -32,7 +32,7 @@ func Changes(w http.ResponseWriter, r *http.Request) {
 	case "image":
 		diffType = define.DiffImage
 	default:
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Errorf("invalid diffType value %q", query.DiffType))
+		utils.Error(w, http.StatusBadRequest, errors.Errorf("invalid diffType value %q", query.DiffType))
 		return
 	}
 

@@ -28,7 +28,7 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 
 	digestFile, err := ioutil.TempFile("", "digest.txt")
 	if err != nil {
-		utils.Error(w, "unable to create digest tempfile", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
 		return
 	}
 	defer digestFile.Close()
@@ -50,7 +50,7 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -63,14 +63,13 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := utils.ParseStorageReference(imageName); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "image source %q is not a containers-storage-transport reference", imageName))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "image source %q is not a containers-storage-transport reference", imageName))
 		return
 	}
 
 	possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, imageName)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
 		return
 	}
 	imageName = possiblyNormalizedName
@@ -81,13 +80,13 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 	}
 	rawManifest, _, err := localImage.Manifest(r.Context())
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, err)
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 
 	authconf, authfile, err := auth.GetCredentials(r)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, err)
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 	defer auth.RemoveAuthfile(authfile)

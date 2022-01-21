@@ -28,7 +28,7 @@ func Auth(w http.ResponseWriter, r *http.Request) {
 	var authConfig docker.AuthConfig
 	err := json.NewDecoder(r.Body).Decode(&authConfig)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to parse request"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrapf(err, "failed to parse request"))
 		return
 	}
 

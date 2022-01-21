@@ -36,12 +36,12 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 	}
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
 	if query.scope != "local" {
-		utils.Error(w, "Invalid scope value. Can only be local.", http.StatusBadRequest, define.ErrInvalidArg)
+		utils.Error(w, http.StatusBadRequest, define.ErrInvalidArg)
 		return
 	}
 	name := utils.GetName(r)
@@ -133,7 +133,7 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -166,7 +166,7 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 	)
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	if err := json.NewDecoder(r.Body).Decode(&networkCreate); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
 
@@ -262,7 +262,7 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -274,17 +274,17 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
 	reports, err := ic.NetworkRm(r.Context(), []string{name}, options)
 	if err != nil {
-		utils.Error(w, "remove Network failed", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 	if len(reports) == 0 {
-		utils.Error(w, "remove Network failed", http.StatusInternalServerError, errors.Errorf("internal error"))
+		utils.Error(w, http.StatusInternalServerError, errors.Errorf("internal error"))
 		return
 	}
 	report := reports[0]
 	if report.Err != nil {
 		if errors.Cause(report.Err) == define.ErrNoSuchNetwork {
-			utils.Error(w, "network not found", http.StatusNotFound, define.ErrNoSuchNetwork)
+			utils.Error(w, http.StatusNotFound, define.ErrNoSuchNetwork)
 			return
 		}
 		utils.InternalServerError(w, report.Err)
@@ -302,7 +302,7 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 		netConnect types.NetworkConnect
 	)
 	if err := json.NewDecoder(r.Body).Decode(&netConnect); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
 
@@ -318,7 +318,7 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 		if len(netConnect.EndpointConfig.IPAddress) > 0 {
 			staticIP := net.ParseIP(netConnect.EndpointConfig.IPAddress)
 			if staticIP == nil {
-				utils.Error(w, "failed to parse the ip address", http.StatusInternalServerError,
+				utils.Error(w, http.StatusInternalServerError,
 					errors.Errorf("failed to parse the ip address %q", netConnect.EndpointConfig.IPAddress))
 				return
 			}
@@ -330,7 +330,7 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 			if len(netConnect.EndpointConfig.IPAMConfig.IPv4Address) > 0 {
 				staticIP := net.ParseIP(netConnect.EndpointConfig.IPAMConfig.IPv4Address)
 				if staticIP == nil {
-					utils.Error(w, "failed to parse the ipv4 address", http.StatusInternalServerError,
+					utils.Error(w, http.StatusInternalServerError,
 						errors.Errorf("failed to parse the ipv4 address %q", netConnect.EndpointConfig.IPAMConfig.IPv4Address))
 					return
 				}
@@ -340,7 +340,7 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 			if len(netConnect.EndpointConfig.IPAMConfig.IPv6Address) > 0 {
 				staticIP := net.ParseIP(netConnect.EndpointConfig.IPAMConfig.IPv6Address)
 				if staticIP == nil {
-					utils.Error(w, "failed to parse the ipv6 address", http.StatusInternalServerError,
+					utils.Error(w, http.StatusInternalServerError,
 						errors.Errorf("failed to parse the ipv6 address %q", netConnect.EndpointConfig.IPAMConfig.IPv6Address))
 					return
 				}
@@ -351,7 +351,7 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 		if len(netConnect.EndpointConfig.MacAddress) > 0 {
 			staticMac, err := net.ParseMAC(netConnect.EndpointConfig.MacAddress)
 			if err != nil {
-				utils.Error(w, "failed to parse the mac address", http.StatusInternalServerError,
+				utils.Error(w, http.StatusInternalServerError,
 					errors.Errorf("failed to parse the mac address %q", netConnect.EndpointConfig.IPAMConfig.IPv6Address))
 				return
 			}
@@ -365,10 +365,10 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if errors.Cause(err) == define.ErrNoSuchNetwork {
-			utils.Error(w, "network not found", http.StatusNotFound, err)
+			utils.Error(w, http.StatusNotFound, err)
 			return
 		}
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, "OK")
@@ -380,7 +380,7 @@ func Disconnect(w http.ResponseWriter, r *http.Request) {
 
 	var netDisconnect types.NetworkDisconnect
 	if err := json.NewDecoder(r.Body).Decode(&netDisconnect); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
 
@@ -388,14 +388,14 @@ func Disconnect(w http.ResponseWriter, r *http.Request) {
 	err := runtime.DisconnectContainerFromNetwork(netDisconnect.Container, name, netDisconnect.Force)
 	if err != nil {
 		if errors.Cause(err) == define.ErrNoSuchCtr {
-			utils.Error(w, "container not found", http.StatusNotFound, err)
+			utils.Error(w, http.StatusNotFound, err)
 			return
 		}
 		if errors.Cause(err) == define.ErrNoSuchNetwork {
-			utils.Error(w, "network not found", http.StatusNotFound, err)
+			utils.Error(w, http.StatusNotFound, err)
 			return
 		}
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, "OK")
@@ -406,7 +406,7 @@ func Prune(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
 
@@ -416,7 +416,7 @@ func Prune(w http.ResponseWriter, r *http.Request) {
 	}
 	pruneReports, err := ic.NetworkPrune(r.Context(), pruneOptions)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 	type response struct {

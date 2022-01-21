@@ -21,7 +21,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	var sg specgen.SpecGenerator
 
 	if err := json.NewDecoder(r.Body).Decode(&sg); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
 	if sg.Passwd == nil {

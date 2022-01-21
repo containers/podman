@@ -28,8 +28,7 @@ func ResizeTTY(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -51,7 +50,7 @@ func ResizeTTY(w http.ResponseWriter, r *http.Request) {
 			if errors.Cause(err) != define.ErrCtrStateInvalid {
 				utils.InternalServerError(w, errors.Wrapf(err, "cannot resize container"))
 			} else {
-				utils.Error(w, "Container not running", http.StatusConflict, err)
+				utils.Error(w, http.StatusConflict, err)
 			}
 			return
 		}
@@ -69,8 +68,7 @@ func ResizeTTY(w http.ResponseWriter, r *http.Request) {
 			utils.InternalServerError(w, errors.Wrapf(err, "cannot obtain session container state"))
 			return
 		} else if state != define.ContainerStateRunning && !query.IgnoreNotRunning {
-			utils.Error(w, "Container not running", http.StatusConflict,
-				fmt.Errorf("container %q in wrong state %q", name, state.String()))
+			utils.Error(w, http.StatusConflict, fmt.Errorf("container %q in wrong state %q", name, state.String()))
 			return
 		}
 		if err := ctnr.ExecResize(name, sz); err != nil {

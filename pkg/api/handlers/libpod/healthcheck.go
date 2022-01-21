@@ -19,11 +19,11 @@ func RunHealthCheck(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if status == define.HealthCheckNotDefined {
-			utils.Error(w, "no healthcheck defined", http.StatusConflict, err)
+			utils.Error(w, http.StatusConflict, err)
 			return
 		}
 		if status == define.HealthCheckContainerStopped {
-			utils.Error(w, "container not running", http.StatusConflict, err)
+			utils.Error(w, http.StatusConflict, err)
 			return
 		}
 		utils.InternalServerError(w, err)

@@ -30,7 +30,7 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 		// override any golang type defaults
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError,
+		utils.Error(w, http.StatusInternalServerError,
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
@@ -38,7 +38,7 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 	input := entities.VolumeCreateOptions{}
 	// decode params from body
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
 
@@ -112,7 +112,7 @@ func ListVolumes(w http.ResponseWriter, r *http.Request) {
 	)
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
-		utils.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError,
+		utils.Error(w, http.StatusInternalServerError,
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
@@ -187,7 +187,7 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError,
+		utils.Error(w, http.StatusInternalServerError,
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
@@ -199,7 +199,7 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := runtime.RemoveVolume(r.Context(), vol, query.Force, query.Timeout); err != nil {
 		if errors.Cause(err) == define.ErrVolumeBeingUsed {
-			utils.Error(w, "volumes being used", http.StatusConflict, err)
+			utils.Error(w, http.StatusConflict, err)
 			return
 		}
 		utils.InternalServerError(w, err)
@@ -216,11 +216,11 @@ func ExistsVolume(w http.ResponseWriter, r *http.Request) {
 	ic := abi.ContainerEngine{Libpod: runtime}
 	report, err := ic.VolumeExists(r.Context(), name)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 	if !report.Value {
-		utils.Error(w, "volume not found", http.StatusNotFound, define.ErrNoSuchVolume)
+		utils.Error(w, http.StatusNotFound, define.ErrNoSuchVolume)
 		return
 	}
 	utils.WriteResponse(w, http.StatusNoContent, "")
