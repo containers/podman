@@ -24,6 +24,7 @@
 - The `podman pod create` command now supports the `--security-opt` option, allowing security settings (e.g. disabling SELinux or Seccomp) to be configured automatically for all containers in the pod ([#12173](https://github.com/containers/podman/issues/12173)).
 - The `podman pod create` command now supports the `--sysctl` option, allowing sysctls to be configured automatically for all containers in the pod.
 - The `podman events` command now supports the `--no-trunc` option, which will allow short container IDs to be displayed instead of the default full IDs. The flag defaults to true, so full IDs remain the default ([#8941](https://github.com/containers/podman/issues/8941)).
+- The `podman machine init` command now supports a new VM type, `wsl`, available only on Windows; this uses WSL as a backend for `podman machine`, instead of creating a separate VM and managing it via QEMU ([#12503](https://github.com/containers/podman/pull/12503)).
 - The `podman machine init` command now supports a new option, `--now`, to start the VM immediately after creating it.
 - The `podman machine init` command now supports a new option, `--volume`, to mount contents from the host into the created virtual machine.
 - Virtual machines created by `podman machine` now automatically mount certificates from the host's keychain into the virtual machine ([#11507](https://github.com/containers/podman/issues/11507)).
@@ -49,6 +50,7 @@
 - The `podman generate systemd` command now supports a new option, `--template`, to generate template unit files.
 - The `podman generate systemd` command now supports a new option, `--start-timeout`, to override the default start timeout for generated unit files ([#11618](https://github.com/containers/podman/issues/11618)).
 - The `podman generate systemd` command now supports a new option, `--restart-sec`, to override the default time before a failed unit is restarted by systemd for generated unit files.
+- The `podman generate systemd` command now supports three new options, `--wants`, `--after`, and `--requires`, which allow detailed control of systemd dependencies in generated unit files.
 - The `podman container checkpoint` and `podman container restore` commands can now print statistics about the checkpoint operation via a new option, `--print-stats`.
 - The `podman container checkpoint` and `podman container restore` commands can now checkpoint and restore containers which make use of file locks via a new option, `--file-locks`.
 - The `podman container restore` command can now be used with containers created using the host IPC namespace (`--ipc=host`).
@@ -92,6 +94,7 @@
 - The `--format` option to all Podman commands has been changed to improved functionality and Docker compatibility ([#10974](https://github.com/containers/podman/issues/10974)).
 - The `podman ps --external` flag previously required `--all` to also be specified; this is no longer true
 - The `podman machine stop` command now waits until the VM has stopped to return; previously, it returned immediately after the shutdown command was sent, without waiting for the VM to shut down.
+- The port-forwarding logic previously contined in the `podman-machine-cni` CNI plugin has been integrated directly into Podman. The `podman-machine-cni` plugin is no longer necessary and should be removed.
 
 ### Bugfixes
 - Fixed a bug where networks could be created with the same name as a container network mode (e.g. `host`) ([#11448](https://github.com/containers/podman/issues/11448)).
@@ -137,6 +140,9 @@
 - Fixed a bug where secrets could not be mounted into containers that joined a user namespace (e.g. `--userns=auto`) ([#12779](https://github.com/containers/podman/issues/12779)).
 - Fixed a bug where rootless Podman could produce an error about cgroups when containers were created inside existing pods ([#10800](https://github.com/containers/podman/issues/10800)).
 - Fixed a bug where Podman could error that a systemd session was not available despite having the cgroup manager set to `cgroupfs` ([#12802](https://github.com/containers/podman/issues/12802)).
+- Fixed a bug where the remote Podman client on Windows would ignore environment variables from the `--env` option to `podman create` and `podman run` ([#12056](https://github.com/containers/podman/issues/12056)).
+- Fixed a bug where Podman could segfault when an error occurred trying to set up rootless mode.
+- Fixed a bug where Podman could segfault when reading an image layer that did not have a creation timestamp set.
 
 ### API
 - The Podman remote API version has been bumped to v4.0.0.
@@ -151,6 +157,7 @@
 - Fixed a bug where the Libpod Prune endpoint for Images would return nothing, instead of an empty array, when nothing was pruned.
 - Fixed a bug where the Compat List endpoint for Images did not prefix image IDs with `sha256:`.
 - Fixed a bug where the Compat Push endpoint for Images would return JSON which did not include the `size` field ([#12468](https://github.com/containers/podman/issues/12468)).
+- Fixed a bug where the Compat Load endpoint for Images would refuse to accept input archives that contained more than one image.
 - Fixed a bug where the Compat Build endpoint for Images ignored the `quiet` query parameter ([#12566](https://github.com/containers/podman/issues/12566)).
 - Fixed a bug where the Compat Build endpoint for Images did not include `aux` JSON (which included the ID of built images) in returned output ([#12063](https://github.com/containers/podman/issues/12063)).
 - Fixed a bug where the Compat and Libpod List endpoints for Networks would sometimes not return networks created on the server by the Podman CLI after the API server had been started ([#11828](https://github.com/containers/podman/issues/11828)).
