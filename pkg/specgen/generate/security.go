@@ -246,7 +246,7 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 
 		// Ignore net sysctls if --net=host
 		if s.NetNS.IsHost() && strings.HasPrefix(sysctlKey, "net.") {
-			return errors.Wrapf(define.ErrInvalidArg, "sysctl %s=%s can't be set since Host Namespace set to host", sysctlKey, sysctlVal)
+			return errors.Wrapf(define.ErrInvalidArg, "sysctl %s=%s can't be set since Network Namespace set to host", sysctlKey, sysctlVal)
 		}
 
 		// Ignore uts sysctls if --uts=host
