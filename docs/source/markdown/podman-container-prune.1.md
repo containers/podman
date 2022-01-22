@@ -20,12 +20,12 @@ Supported filters:
 
 | Filter             | Description                                                                 |
 | :----------------: | --------------------------------------------------------------------------- |
-| *until*            | Only remove containers and images created before given timestamp.           |
-| *label*            | Only remove containers and images, with (or without, in the case of label!=[...] is used) the specified labels.                  |
+| *until*            | Only remove containers created before given timestamp.           |
+| *label*            | Only remove containers, with (or without, in the case of label!=[...] is used) the specified labels.                  |
 
 The `until` *filter* can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. 10m, 1h30m) computed relative to the machine’s time.
 
-The `label` *filter* accepts two formats. One is the `label`=*key*, `label`=*key*=*value*, which removes containers with the specified labels. The other format is the `label!`=*key*, or `label!`=*key*=*value*, which removes containers without the specified labels.
+The `label` *filter* accepts two formats. One is the `label`=*key* or `label`=*key*=*value*, which removes containers with the specified labels. The other format is the `label!`=*key* or `label!`=*key*=*value*, which removes containers without the specified labels.
 
 #### **--force**, **-f**
 
