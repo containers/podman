@@ -1197,7 +1197,7 @@ The `--userns=auto` flag, requires that the user name `containers` and a range o
 
 Example: `containers:2147483647:2147483648`.
 
-Podman allocates unique ranges of UIDs and GIDs from the `containers` subpordinate user ids. The size of the ranges is based on the number of UIDs required in the image. The number of UIDs and GIDs can be overridden with the `size` option. The `auto` options currently does not work in rootless mode
+Podman allocates unique ranges of UIDs and GIDs from the `containers` subordinate user ids. The size of the ranges is based on the number of UIDs required in the image. The number of UIDs and GIDs can be overridden with the `size` option. The `auto` options currently does not work in rootless mode
 
   Valid `auto` options:
 
