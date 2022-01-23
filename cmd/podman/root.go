@@ -415,12 +415,12 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 		_ = cmd.RegisterFlagCompletionFunc(runrootFlagName, completion.AutocompleteDefault)
 
 		runtimeFlagName := "runtime"
-		pFlags.StringVar(&opts.RuntimePath, runtimeFlagName, "", "Path to the OCI-compatible binary used to run containers, default is /usr/bin/runc")
+		pFlags.StringVar(&opts.RuntimePath, runtimeFlagName, cfg.Engine.OCIRuntime, "Path to the OCI-compatible binary used to run containers.")
 		_ = cmd.RegisterFlagCompletionFunc(runtimeFlagName, completion.AutocompleteDefault)
 
 		// -s is deprecated due to conflict with -s on subcommands
 		storageDriverFlagName := "storage-driver"
-		pFlags.StringVar(&opts.StorageDriver, storageDriverFlagName, "", "Select which storage driver is used to manage storage of images and containers (default is overlay)")
+		pFlags.StringVar(&opts.StorageDriver, storageDriverFlagName, "", "Select which storage driver is used to manage storage of images and containers")
 		_ = cmd.RegisterFlagCompletionFunc(storageDriverFlagName, completion.AutocompleteNone) //TODO: what can we recommend here?
 
 		tmpdirFlagName := "tmpdir"

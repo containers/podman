@@ -304,9 +304,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 	})
 
 	It("podman-remote test localcontainers.conf", func() {
-		if !IsRemote() {
-			Skip("this test is only for remote")
-		}
+		SkipIfNotRemote("this test is only for remote")
 
 		os.Setenv("CONTAINERS_CONF", "config/containers-remote.conf")
 		// Configuration that comes from remote server
@@ -559,5 +557,18 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		inspect = podmanTest.Podman([]string{"inspect", "--format", "{{ .HostConfig.Cgroups }}", result.OutputToString()})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.OutputToString()).To(Equal("disabled"))
+	})
+
+	It("podman containers.conf runtime", func() {
+		SkipIfRemote("--runtime option is not available for remote commands")
+		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
+		err := ioutil.WriteFile(conffile, []byte("[engine]\nruntime=\"testruntime\"\n"), 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		os.Setenv("CONTAINERS_CONF", conffile)
+		result := podmanTest.Podman([]string{"--help"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(ContainSubstring("Path to the OCI-compatible binary used to run containers. (default \"testruntime\")"))
 	})
 })
