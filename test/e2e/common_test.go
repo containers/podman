@@ -719,6 +719,14 @@ func SkipIfRemote(reason string) {
 	Skip("[remote]: " + reason)
 }
 
+func SkipIfNotRemote(reason string) {
+	checkReason(reason)
+	if IsRemote() {
+		return
+	}
+	Skip("[local]: " + reason)
+}
+
 // SkipIfInContainer skips a test if the test is run inside a container
 func SkipIfInContainer(reason string) {
 	checkReason(reason)
