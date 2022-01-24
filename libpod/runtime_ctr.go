@@ -254,15 +254,6 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 			if err != nil {
 				return nil, err
 			}
-			if len(opts.Aliases) > 0 {
-				network, err := r.network.NetworkInspect(netName)
-				if err != nil {
-					return nil, err
-				}
-				if !network.DNSEnabled {
-					return nil, errors.Wrapf(define.ErrInvalidArg, "cannot set network aliases for network %q because dns is disabled", netName)
-				}
-			}
 			// assign interface name if empty
 			if opts.InterfaceName == "" {
 				for i < 100000 {
