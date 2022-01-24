@@ -25,16 +25,18 @@ Remove images even when they are used by external containers (e.g., build contai
 
 Provide filter values.
 
-The --filter flag format is of “key=value”. If there is more than one filter, then pass multiple flags (e.g., --filter "foo=bar" --filter "bif=baz")
+The *filters* argument format is of `key=value`. If there is more than one *filter*, then pass multiple OPTIONS: **--filter** *foo=bar* **--filter** *bif=baz*.
 
 Supported filters:
 
-- `until` (_timestamp_) - only remove containers and images created before given timestamp
-- `label` (label=_key_, label=_key=value_, label!=_key_, or label!=_key=value_) - only remove containers and images, with (or without, in case label!=... is used) the specified labels.
+| Filter             | Description                                                                 |
+| :----------------: | --------------------------------------------------------------------------- |
+| *until*            | Only remove images created before given timestamp.           |
+| *label*            | Only remove images, with (or without, in the case of label!=[...] is used) the specified labels.                  |
 
-The until filter can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. 10m, 1h30m) computed relative to the machine’s time.
+The `until` *filter* can be Unix timestamps, date formatted timestamps or Go duration strings (e.g. 10m, 1h30m) computed relative to the machine’s time.
 
-The label filter accepts two formats. One is the label=... (label=_key_ or label=_key=value_), which removes images with the specified labels. The other format is the label!=... (label!=_key_ or label!=_key=value_), which removes images without the specified labels.
+The `label` *filter* accepts two formats. One is the `label`=*key* or `label`=*key*=*value*, which removes containers with the specified labels. The other format is the `label!`=*key* or `label!`=*key*=*value*, which removes containers without the specified labels.
 
 #### **--force**, **-f**
 
