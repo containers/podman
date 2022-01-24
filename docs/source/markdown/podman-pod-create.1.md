@@ -171,7 +171,7 @@ Valid _mode_ values are:
   - **alias=name**: Add network-scoped alias for the container.
   - **ip=IPv4**: Specify a static ipv4 address for this container.
   - **ip=IPv6**: Specify a static ipv6 address for this container.
-  - **mac=MAC**: Specify a static mac address address for this container.
+  - **mac=MAC**: Specify a static mac address for this container.
   - **interface_name**: Specify a name for the created network interface inside the container.
 
   For example to set a static ipv4 address and a static mac address, use `--network bridge:ip=10.88.0.10,mac=44:33:22:11:00:99`.
@@ -191,7 +191,7 @@ Valid _mode_ values are:
   - **outbound_addr6=INTERFACE**: Specify the outbound interface slirp should bind to (ipv6 traffic only).
   - **outbound_addr6=IPv6**: Specify the outbound ipv6 address slirp should bind to.
   - **port_handler=rootlesskit**: Use rootlesskit for port forwarding. Default.
-  Note: Rootlesskit changes the source IP address of incoming packets to a IP address in the container network namespace, usually `10.0.2.100`. If your application requires the real source IP address, e.g. web server logs, use the slirp4netns port handler. The rootlesskit port handler is also used for rootless containers when connected to user-defined networks.
+  Note: Rootlesskit changes the source IP address of incoming packets to an IP address in the container network namespace, usually `10.0.2.100`. If your application requires the real source IP address, e.g. web server logs, use the slirp4netns port handler. The rootlesskit port handler is also used for rootless containers when connected to user-defined networks.
   - **port_handler=slirp4netns**: Use the slirp4netns port forwarding, it is slower than rootlesskit but preserves the correct source IP address. This port handler cannot be used for user-defined networks.
 
 #### **--network-alias**=*alias*
