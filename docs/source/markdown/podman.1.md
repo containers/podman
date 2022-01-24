@@ -217,7 +217,7 @@ Set default `--storage-opts` value.
 
 #### **TMPDIR**
 
-Set the the temporary storage location of downloaded container images. Podman defaults to use `/var/tmp`.
+Set the temporary storage location of downloaded container images. Podman defaults to use `/var/tmp`.
 
 #### **XDG_CONFIG_HOME**
 
@@ -373,7 +373,7 @@ The storage configuration file specifies all of the available container storage 
 
 When Podman runs in rootless mode, the file `$HOME/.config/containers/storage.conf` is used instead of the system defaults.
 
-If the **CONTAINERS_STORAGE_CONF** environment variable is set, the its value is used for the storage.conf file rather than the default.
+If the **CONTAINERS_STORAGE_CONF** environment variable is set, then its value is used for the storage.conf file rather than the default.
 
 ## Rootless mode
 Podman can also be used as non-root user. When podman runs in rootless mode, a user namespace is automatically created for the user, defined in /etc/subuid and /etc/subgid.

@@ -78,22 +78,22 @@ Require HTTPS and verify certificates when talking to container registries. (def
   **dir:**_path_
   An existing local directory _path_ storing the manifest, layer tarballs and signatures as individual files. This is a non-standardized format, primarily useful for debugging or noninvasive container inspection.
 
-    $ podman manfiest push mylist:v1.11 dir:/tmp/mylist
+    $ podman manifest push mylist:v1.11 dir:/tmp/mylist
 
   **docker://**_docker-reference_
   An image in a registry implementing the "Docker Registry HTTP API V2". By default, uses the authorization state in `$XDG_RUNTIME_DIR/containers/auth.json`, which is set using `(podman login)`. If the authorization state is not found there, `$HOME/.docker/config.json` is checked, which is set using `(docker login)`.
 
-    $ podman manfiest push mylist:v1.11 docker://registry.example.org/mylist:v1.11
+    $ podman manifest push mylist:v1.11 docker://registry.example.org/mylist:v1.11
 
   **docker-archive:**_path_[**:**_docker-reference_]
   An image is stored in the `docker save` formatted file.  _docker-reference_ is only used when creating such a file, and it must not contain a digest.
 
-    $ podman manfiest push mylist:v1.11 docker-archive:/tmp/mylist
+    $ podman manifest push mylist:v1.11 docker-archive:/tmp/mylist
 
   **docker-daemon:**_docker-reference_
   An image in _docker-reference_ format stored in the docker daemon internal storage. _docker-reference_ must contain a tag.
 
-    $ podman manfiest push mylist:v1.11 docker-daemon:registry.example.org/mylist:v1.11
+    $ podman manifest push mylist:v1.11 docker-daemon:registry.example.org/mylist:v1.11
 
   **oci-archive:**_path_**:**_tag_
   An image _tag_ in a directory compliant with "Open Container Image Layout Specification" at _path_.

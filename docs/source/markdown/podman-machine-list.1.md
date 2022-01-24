@@ -39,7 +39,7 @@ Valid placeholders for the Go template are listed below:
 | .VMType         | VM type                         |
 | .Port           | SSH Port to use to connect to VM|
 | .RemoteUsername | VM Username for rootless Podman |
-| .IdentityPath   | Path to ssh identify file       |
+| .IdentityPath   | Path to ssh identity file       |
 
 #### **--help**
 

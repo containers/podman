@@ -23,21 +23,21 @@ The default is **false**.
 
 ## EXAMPLES
 
-Check if an container called "webclient" exists in local storage. Here, the container does exist.
+Check if a container called "webclient" exists in local storage. Here, the container does exist.
 ```
 $ podman container exists webclient
 $ echo $?
 0
 ```
 
-Check if an container called "webbackend" exists in local storage. Here, the container does not exist.
+Check if a container called "webbackend" exists in local storage. Here, the container does not exist.
 ```
 $ podman container exists webbackend
 $ echo $?
 1
 ```
 
-Check if an container called "ubi8-working-container" created via Buildah exists in local storage. Here, the container does not exist.
+Check if a container called "ubi8-working-container" created via Buildah exists in local storage. Here, the container does not exist.
 ```
 $ podman container exists --external ubi8-working-container
 $ echo $?

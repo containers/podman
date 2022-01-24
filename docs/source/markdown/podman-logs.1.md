@@ -20,7 +20,7 @@ any logs at the time you execute podman logs).
 Follow log output.  Default is false.
 
 Note: If you are following a container which is removed `podman container rm`
-or removed on exit `podman run --rm ...`, then there is a chance the the log
+or removed on exit `podman run --rm ...`, then there is a chance that the log
 file will be removed before `podman logs` reads the final content.
 
 #### **--latest**, **-l**

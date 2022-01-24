@@ -22,7 +22,7 @@ By default `podman pod logs` retrieves logs for all the containers available wit
 Follow log output.  Default is false.
 
 Note: If you are following a pod which is removed `podman pod rm`, then there is a
-chance the the log file will be removed before `podman pod logs` reads the final content.
+chance that the log file will be removed before `podman pod logs` reads the final content.
 
 #### **--latest**, **-l**
 

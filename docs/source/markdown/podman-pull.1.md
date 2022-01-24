@@ -17,7 +17,7 @@ podman pull copies an image from a registry onto the local machine. The command 
 *IMPORTANT: Images are stored in local image storage.*
 
 ## SOURCE
-SOURCE is the location from the container image is pulled from. It supports all transports from **[containers-transports(5)](https://github.com/containers/image/blob/main/docs/containers-transports.5.md)**. If no transport is specified, the input is subject to short-name resolution and the `docker` (i.e., container registry) transport is used.  For remote clients, `docker` is the only supported transport.
+SOURCE is the location from which the container image is pulled from. It supports all transports from **[containers-transports(5)](https://github.com/containers/image/blob/main/docs/containers-transports.5.md)**. If no transport is specified, the input is subject to short-name resolution and the `docker` (i.e., container registry) transport is used.  For remote clients, `docker` is the only supported transport.
 
 ```
 # Pull from a container registry
