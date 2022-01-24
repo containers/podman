@@ -28,7 +28,7 @@ $ echo $?
 $
 ```
 
-Check if an volume called `mysql` exists (the volume does not actually exist).
+Check if a volume called `mysql` exists (the volume does not actually exist).
 ```
 $ podman volume exists mysql
 $ echo $?

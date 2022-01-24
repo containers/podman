@@ -39,7 +39,7 @@ Additionally the `bridge` driver supports the following option:
 
 The `macvlan` and `ipvlan` driver support the following options:
 - `parent`: The host device which should be used for the macvlan interface. Defaults to the default route interface.
-- `mode`: This options sets the specified ip/macvlan mode on the interface.
+- `mode`: This option sets the specified ip/macvlan mode on the interface.
   - Supported values for `macvlan` are `bridge`, `private`, `vepa`, `passthru`. Defaults to `bridge`.
   - Supported values for `ipvlan` are `l2`, `l3`, `l3s`. Defaults to `l2`.
 

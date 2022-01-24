@@ -6,7 +6,7 @@ podman-generate-kube - Generate Kubernetes YAML based on containers, pods or vol
 **podman generate kube** [*options*] *container...* | *pod...* | *volume...*
 
 ## DESCRIPTION
-**podman generate kube** will generate Kubernetes YAML (v1 specification) from Podman containers, pods or volumes. Whether
+**podman generate kube** will generate Kubernetes YAML (v1 specification) from Podman containers, pods or volumes. Regardless of whether
 the input is for containers or pods, Podman will always generate the specification as a Pod. The input may be in the form
 of one or more containers, pods or volumes names or IDs.
 

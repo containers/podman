@@ -29,7 +29,7 @@ still be used by other tools when manually preprocessing them via `cpp -E`.
 When the URL is an archive, the contents of the URL is downloaded to a temporary
 location and extracted before execution.
 
-When the URL is an Containerfile, the Containerfile is downloaded to a temporary
+When the URL is a Containerfile, the Containerfile is downloaded to a temporary
 location.
 
 When a Git repository is set as the URL, the repository is cloned locally and
@@ -364,7 +364,7 @@ Add an image *label* (e.g. label=*value*) to the image metadata. Can be used
 multiple times.
 
 Users can set a special LABEL **io.containers.capabilities=CAP1,CAP2,CAP3** in
-a Containerfile that specified the list of Linux capabilities required for the
+a Containerfile that specifies the list of Linux capabilities required for the
 container to run properly. This label specified in a container image tells
 Podman to run the container with just these capabilities. Podman launches the
 container with just the specified capabilities, as long as this list of
@@ -711,7 +711,7 @@ than being relative to the host as it would be when run rootfull.
 
 #### **--uts**=*how*
 
-Sets the configuration for UTS namespaces when the handling `RUN` instructions.
+Sets the configuration for UTS namespaces when handling `RUN` instructions.
 The configured value can be "" (the empty string) or "container" to indicate
 that a new UTS namespace should be created, or it can be "host" to indicate
 that the UTS namespace in which `podman` itself is being run should be reused,

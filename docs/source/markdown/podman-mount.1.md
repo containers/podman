@@ -14,7 +14,7 @@ accessed from the host, and returns its location.
 
 If you execute the command without any arguments, Podman will list all of the
 currently mounted containers, including external containers. External containers are
-containers in container/storage by tools other then Podman. For example Buildah and
+containers in container/storage by tools other than Podman. For example Buildah and
 CRI-O.
 
 Rootless mode only supports mounting VFS driver, unless you enter the user namespace

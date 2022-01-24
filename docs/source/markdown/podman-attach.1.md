@@ -10,7 +10,7 @@ podman\-attach - Attach to a running container
 
 ## DESCRIPTION
 **podman attach** attaches to a running *container* using the *container's name* or *ID*, to either view its ongoing output or to control it interactively.\
-The *container* can detached from (and leave it running) using a configurable key sequence. The default sequence is `ctrl-p,ctrl-q`. Configure the keys sequence using the **--detach-keys** OPTION, or specifying it in the `containers.conf` file: see **[containers.conf(5)](https://github.com/containers/common/blob/master/docs/containers.conf.5.md)** for more information.
+The *container* can be detached from (and leave it running) using a configurable key sequence. The default sequence is `ctrl-p,ctrl-q`. Configure the keys sequence using the **--detach-keys** OPTION, or specifying it in the `containers.conf` file: see **[containers.conf(5)](https://github.com/containers/common/blob/master/docs/containers.conf.5.md)** for more information.
 
 ## OPTIONS
 #### **--detach-keys**=**sequence**

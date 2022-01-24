@@ -29,7 +29,7 @@ $ echo $?
 $
 ```
 
-Check if an network called `webbackend` exists (the network does not actually exist).
+Check if a network called `webbackend` exists (the network does not actually exist).
 ```
 $ podman network exists webbackend
 $ echo $?

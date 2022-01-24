@@ -127,7 +127,7 @@ If the host uses cgroups v1, the default is set to **host**. On cgroups v2 the d
 #### **--cgroups**=*mode*
 
 Determines whether the container will create CGroups.
-Valid values are *enabled*, *disabled*, *no-conmon*, *split*, which the default being *enabled*.
+Valid values are *enabled*, *disabled*, *no-conmon*, *split*, with the default being *enabled*.
 
 The *enabled* option will create a new cgroup under the cgroup-parent.
 The *disabled* option will force the container to not create CGroups, and thus conflicts with CGroup options (**--cgroupns** and **--cgroup-parent**).
@@ -308,7 +308,7 @@ Set custom DNS servers. Invalid if using **--dns** and **--network** that is set
 This option can be used to override the DNS
 configuration passed to the container. Typically this is necessary when the
 host DNS configuration is invalid for the container (e.g., 127.0.0.1). When this
-is the case the **--dns** flags is necessary for every run.
+is the case the **--dns** flag is necessary for every run.
 
 The special value **none** can be specified to disable creation of **/etc/resolv.conf** in the container by Podman.
 The **/etc/resolv.conf** file in the image will be used without changes.
@@ -695,7 +695,7 @@ Valid _mode_ values are:
   - **alias=name**: Add network-scoped alias for the container.
   - **ip=IPv4**: Specify a static ipv4 address for this container.
   - **ip=IPv6**: Specify a static ipv6 address for this container.
-  - **mac=MAC**: Specify a static mac address address for this container.
+  - **mac=MAC**: Specify a static mac address for this container.
   - **interface_name**: Specify a name for the created network interface inside the container.
 
   For example to set a static ipv4 address and a static mac address, use `--network bridge:ip=10.88.0.10,mac=44:33:22:11:00:99`.
@@ -715,7 +715,7 @@ Valid _mode_ values are:
   - **outbound_addr6=INTERFACE**: Specify the outbound interface slirp should bind to (ipv6 traffic only).
   - **outbound_addr6=IPv6**: Specify the outbound ipv6 address slirp should bind to.
   - **port_handler=rootlesskit**: Use rootlesskit for port forwarding. Default.
-  Note: Rootlesskit changes the source IP address of incoming packets to a IP address in the container network namespace, usually `10.0.2.100`. If your application requires the real source IP address, e.g. web server logs, use the slirp4netns port handler. The rootlesskit port handler is also used for rootless containers when connected to user-defined networks.
+  Note: Rootlesskit changes the source IP address of incoming packets to an IP address in the container network namespace, usually `10.0.2.100`. If your application requires the real source IP address, e.g. web server logs, use the slirp4netns port handler. The rootlesskit port handler is also used for rootless containers when connected to user-defined networks.
   - **port_handler=slirp4netns**: Use the slirp4netns port forwarding, it is slower than rootlesskit but preserves the correct source IP address. This port handler cannot be used for user-defined networks.
 
 #### **--network-alias**=*alias*
@@ -1028,7 +1028,7 @@ Podman will setup tmpfs mount points in the following directories:
 
 It will also set the default stop signal to SIGRTMIN+3.
 
-This allow systemd to run in a confined container without any modifications.
+This allows systemd to run in a confined container without any modifications.
 
 Note: On `SELinux` systems, systemd attempts to write to the cgroup
 file system. Containers writing to the cgroup file system are denied by default.
@@ -1307,7 +1307,7 @@ Only the current container can use a private volume.
 
 Note: Do not relabel system files and directories. Relabeling system content
 might cause other confined services on your machine to fail.  For these types
-of containers we recommend that disable SELinux separation.  The option
+of containers we recommend disabling SELinux separation.  The option
 `--security-opt label=disable` disables SELinux separation for containers used in the build.
 For example if a user wanted to volume mount their entire home directory into a
 container, they need to disable SELinux separation.
@@ -1372,7 +1372,7 @@ the volume will not be able to change their privilege. By default volumes
 are mounted with `nosuid`.
 
 Mounting the volume with the noexec option means that no executables on the
-volume will be able to executed within the container.
+volume will be able to be executed within the container.
 
 Mounting the volume with the nodev option means that no devices on the volume
 will be able to be used by processes within the container. By default volumes
@@ -1540,7 +1540,7 @@ $ podman create --network net1:ip=10.89.1.5 --network net2:ip=10.89.10.10 alpine
 
 ### Rootless Containers
 
-Podman runs as a non root user on most systems. This feature requires that a new enough version of shadow-utils
+Podman runs as a non-root user on most systems. This feature requires that a new enough version of shadow-utils
 be installed. The shadow-utils package must include the newuidmap and newgidmap executables.
 
 Note: RHEL7 and Centos 7 will not have this feature until RHEL7.7 is released.
