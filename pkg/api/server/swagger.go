@@ -1,7 +1,6 @@
 package server
 
 import (
-	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/entities/reports"
@@ -189,7 +188,7 @@ type swagVolumeCreateResponse struct {
 // swagger:response VolumeList
 type swagVolumeListResponse struct {
 	// in:body
-	Body []libpod.Volume
+	Body []entities.VolumeConfigResponse
 }
 
 // Healthcheck
