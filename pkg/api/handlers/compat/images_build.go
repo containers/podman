@@ -133,7 +133,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -291,7 +291,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	if len(tags) > 0 {
 		possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, tags[0])
 		if err != nil {
-			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+			utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
 			return
 		}
 		output = possiblyNormalizedName
@@ -314,7 +314,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	for i := 1; i < len(tags); i++ {
 		possiblyNormalizedTag, err := utils.NormalizeToDockerHub(r, tags[i])
 		if err != nil {
-			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+			utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
 			return
 		}
 		additionalTags = append(additionalTags, possiblyNormalizedTag)
@@ -457,7 +457,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	creds, authfile, err := auth.GetCredentials(r)
 	if err != nil {
 		// Credential value(s) not returned as their value is not human readable
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 	defer auth.RemoveAuthfile(authfile)
@@ -466,7 +466,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	if fromImage != "" {
 		possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, fromImage)
 		if err != nil {
-			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+			utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
 			return
 		}
 		fromImage = possiblyNormalizedName

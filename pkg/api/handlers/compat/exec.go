@@ -2,7 +2,6 @@ package compat
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -48,7 +47,7 @@ func ExecCreateHandler(w http.ResponseWriter, r *http.Request) {
 	for _, envStr := range input.Env {
 		split := strings.SplitN(envStr, "=", 2)
 		if len(split) != 2 {
-			utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, errors.Errorf("environment variable %q badly formed, must be key=value", envStr))
+			utils.Error(w, http.StatusBadRequest, errors.Errorf("environment variable %q badly formed, must be key=value", envStr))
 			return
 		}
 		libpodConfig.Environment[split[0]] = split[1]
@@ -85,7 +84,7 @@ func ExecCreateHandler(w http.ResponseWriter, r *http.Request) {
 				// Ignore the error != nil case. We're already
 				// throwing an InternalServerError below.
 				if state == define.ContainerStatePaused {
-					utils.Error(w, "Container is paused", http.StatusConflict, errors.Errorf("cannot create exec session as container %s is paused", ctr.ID()))
+					utils.Error(w, http.StatusConflict, errors.Errorf("cannot create exec session as container %s is paused", ctr.ID()))
 					return
 				}
 			}
@@ -107,7 +106,7 @@ func ExecInspectHandler(w http.ResponseWriter, r *http.Request) {
 	sessionID := mux.Vars(r)["id"]
 	sessionCtr, err := runtime.GetExecSessionContainer(sessionID)
 	if err != nil {
-		utils.Error(w, fmt.Sprintf("No such exec session: %s", sessionID), http.StatusNotFound, err)
+		utils.Error(w, http.StatusNotFound, err)
 		return
 	}
 
@@ -138,15 +137,14 @@ func ExecStartHandler(w http.ResponseWriter, r *http.Request) {
 	bodyParams := new(handlers.ExecStartConfig)
 
 	if err := json.NewDecoder(r.Body).Decode(&bodyParams); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "failed to decode parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to decode parameters for %s", r.URL.String()))
 		return
 	}
 	// TODO: Verify TTY setting against what inspect session was made with
 
 	sessionCtr, err := runtime.GetExecSessionContainer(sessionID)
 	if err != nil {
-		utils.Error(w, fmt.Sprintf("No such exec session: %s", sessionID), http.StatusNotFound, err)
+		utils.Error(w, http.StatusNotFound, err)
 		return
 	}
 
@@ -158,7 +156,7 @@ func ExecStartHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if state != define.ContainerStateRunning {
-		utils.Error(w, http.StatusText(http.StatusConflict), http.StatusConflict, errors.Errorf("cannot exec in a container that is not running; container %s is %s", sessionCtr.ID(), state.String()))
+		utils.Error(w, http.StatusConflict, errors.Errorf("cannot exec in a container that is not running; container %s is %s", sessionCtr.ID(), state.String()))
 		return
 	}
 

@@ -50,7 +50,7 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 
 	tmpfile, err := ioutil.TempFile("", "api.tar")
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
 		return
 	}
 	defer os.Remove(tmpfile.Name())
@@ -58,7 +58,7 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
 	possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, name)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
 		return
 	}
 
@@ -74,18 +74,18 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 			utils.ImageNotFound(w, name, errors.Wrapf(err, "failed to find image %s", name))
 			return
 		}
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
 		return
 	}
 
 	if err := tmpfile.Close(); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to close tempfile"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "unable to close tempfile"))
 		return
 	}
 
 	rdr, err := os.Open(tmpfile.Name())
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to read the exported tarfile"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "failed to read the exported tarfile"))
 		return
 	}
 	defer rdr.Close()
@@ -110,12 +110,12 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	rtc, err := runtime.GetConfig()
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
 	sc := runtime.SystemContext()
@@ -131,7 +131,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 
 	input := handlers.CreateContainerConfig{}
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
 
@@ -143,7 +143,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 	}
 	ctr, err := runtime.LookupContainer(query.Container)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusNotFound, err)
+		utils.Error(w, http.StatusNotFound, err)
 		return
 	}
 
@@ -152,7 +152,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		destImage = fmt.Sprintf("%s:%s", query.Repo, query.Tag)
 		possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, destImage)
 		if err != nil {
-			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+			utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
 			return
 		}
 		destImage = possiblyNormalizedName
@@ -160,7 +160,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 
 	commitImage, err := ctr.Commit(r.Context(), destImage, options)
 	if err != nil && !strings.Contains(err.Error(), "is not running") {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "CommitFailure"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrapf(err, "CommitFailure"))
 		return
 	}
 	utils.WriteResponse(w, http.StatusCreated, handlers.IDResponse{ID: commitImage.ID()}) // nolint
@@ -184,7 +184,7 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	// fromSrc – Source to import. The value may be a URL from which the image can be retrieved or - to read the image from the request body. This parameter may only be used when importing an image.
@@ -192,13 +192,13 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 	if source == "-" {
 		f, err := ioutil.TempFile("", "api_load.tar")
 		if err != nil {
-			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to create tempfile"))
+			utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "failed to create tempfile"))
 			return
 		}
 
 		source = f.Name()
 		if err := SaveFromBody(f, r); err != nil {
-			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to write temporary file"))
+			utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "failed to write temporary file"))
 		}
 	}
 
@@ -206,7 +206,7 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 	if query.Repo != "" {
 		possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, reference)
 		if err != nil {
-			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+			utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
 			return
 		}
 		reference = possiblyNormalizedName
@@ -227,7 +227,7 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 	report, err := imageEngine.Import(r.Context(), opts)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to import tarball"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "unable to import tarball"))
 		return
 	}
 	// Success
@@ -263,19 +263,19 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 		// This is where you can override the golang default value for one of fields
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
 	possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, mergeNameAndTagOrDigest(query.FromImage, query.Tag))
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
 		return
 	}
 
 	authConf, authfile, err := auth.GetCredentials(r)
 	if err != nil {
-		utils.Error(w, "failed to retrieve repository credentials", http.StatusBadRequest, err)
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 	defer auth.RemoveAuthfile(authfile)
@@ -386,7 +386,7 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
 	possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, name)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
 		return
 	}
 
@@ -395,12 +395,12 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 		// Here we need to fiddle with the error message because docker-py is looking for "No
 		// such image" to determine on how to raise the correct exception.
 		errMsg := strings.ReplaceAll(err.Error(), "image not known", "No such image")
-		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Errorf("failed to find image %s: %s", name, errMsg))
+		utils.Error(w, http.StatusNotFound, errors.Errorf("failed to find image %s: %s", name, errMsg))
 		return
 	}
 	inspect, err := handlers.ImageDataToImageInspect(r.Context(), newImage)
 	if err != nil {
-		utils.Error(w, "Server error", http.StatusInternalServerError, errors.Wrapf(err, "failed to convert ImageData to ImageInspect '%s'", inspect.ID))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrapf(err, "failed to convert ImageData to ImageInspect '%s'", inspect.ID))
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, inspect)
@@ -418,7 +418,7 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+		utils.Error(w, http.StatusBadRequest,
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
@@ -429,7 +429,7 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 
 	filterList, err := filters.FiltersFromRequest(r)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 	if !utils.IsLibpodRequest(r) {
@@ -444,7 +444,7 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 	listOptions := entities.ImageListOptions{All: query.All, Filter: filterList}
 	summaries, err := imageEngine.List(r.Context(), listOptions)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -472,7 +472,7 @@ func LoadImages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -480,7 +480,7 @@ func LoadImages(w http.ResponseWriter, r *http.Request) {
 	// to load.
 	f, err := ioutil.TempFile("", "api_load.tar")
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to create tempfile"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "failed to create tempfile"))
 		return
 	}
 	defer func() {
@@ -490,7 +490,7 @@ func LoadImages(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 	if err := SaveFromBody(f, r); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to write temporary file"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "failed to write temporary file"))
 		return
 	}
 
@@ -499,12 +499,12 @@ func LoadImages(w http.ResponseWriter, r *http.Request) {
 	loadOptions := entities.ImageLoadOptions{Input: f.Name()}
 	loadReport, err := imageEngine.Load(r.Context(), loadOptions)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to load image"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "failed to load image"))
 		return
 	}
 
 	if len(loadReport.Names) < 1 {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Errorf("one or more images are required"))
+		utils.Error(w, http.StatusInternalServerError, errors.Errorf("one or more images are required"))
 		return
 	}
 
@@ -527,11 +527,11 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 		// This is where you can override the golang default value for one of fields
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	if len(query.Names) <= 0 {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, fmt.Errorf("no images to download"))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("no images to download"))
 		return
 	}
 
@@ -539,7 +539,7 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 	for i, img := range query.Names {
 		possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, img)
 		if err != nil {
-			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+			utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
 			return
 		}
 		images[i] = possiblyNormalizedName
@@ -547,12 +547,12 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 
 	tmpfile, err := ioutil.TempFile("", "api.tar")
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
 		return
 	}
 	defer os.Remove(tmpfile.Name())
 	if err := tmpfile.Close(); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to close tempfile"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "unable to close tempfile"))
 		return
 	}
 
@@ -566,7 +566,7 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 
 	rdr, err := os.Open(tmpfile.Name())
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to read the exported tarfile"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "failed to read the exported tarfile"))
 		return
 	}
 	defer rdr.Close()

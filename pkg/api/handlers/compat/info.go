@@ -33,18 +33,18 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 
 	infoData, err := runtime.Info()
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to obtain system memory info"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrapf(err, "failed to obtain system memory info"))
 		return
 	}
 
 	configInfo, err := runtime.GetConfig()
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to obtain runtime config"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrapf(err, "failed to obtain runtime config"))
 		return
 	}
 	versionInfo, err := define.GetVersion()
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to obtain podman versions"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrapf(err, "failed to obtain podman versions"))
 		return
 	}
 	stateInfo := getContainersState(runtime)

@@ -24,17 +24,20 @@ import (
 )
 
 func PodCreate(w http.ResponseWriter, r *http.Request) {
+	const (
+		failedToDecodeSpecgen = "failed to decode specgen"
+	)
 	var (
 		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 		err     error
 	)
 	psg := specgen.PodSpecGenerator{InfraContainerSpec: &specgen.SpecGenerator{}}
 	if err := json.NewDecoder(r.Body).Decode(&psg); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to decode specgen"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, failedToDecodeSpecgen))
 		return
 	}
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to decode specgen"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, failedToDecodeSpecgen))
 		return
 	}
 	if !psg.NoInfra {
@@ -44,17 +47,17 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 		infraOptions.SecurityOpt = psg.SecurityOpt
 		err = specgenutil.FillOutSpecGen(psg.InfraContainerSpec, &infraOptions, []string{}) // necessary for default values in many cases (userns, idmappings)
 		if err != nil {
-			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "error filling out specgen"))
+			utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error filling out specgen"))
 			return
 		}
 		out, err := json.Marshal(psg) // marshal our spec so the matching options can be unmarshaled into infra
 		if err != nil {
-			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to decode specgen"))
+			utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, failedToDecodeSpecgen))
 			return
 		}
 		err = json.Unmarshal(out, psg.InfraContainerSpec) // unmarhal matching options
 		if err != nil {
-			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to decode specgen"))
+			utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, failedToDecodeSpecgen))
 			return
 		}
 		// a few extra that do not have the same json tags
@@ -71,7 +74,7 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 		if errors.Cause(err) == define.ErrPodExists {
 			httpCode = http.StatusConflict
 		}
-		utils.Error(w, "Something went wrong.", httpCode, errors.Wrap(err, "failed to make pod"))
+		utils.Error(w, httpCode, errors.Wrap(err, "failed to make pod"))
 		return
 	}
 	utils.WriteResponse(w, http.StatusCreated, handlers.IDResponse{ID: pod.ID()})
@@ -82,8 +85,7 @@ func Pods(w http.ResponseWriter, r *http.Request) {
 
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -93,7 +95,7 @@ func Pods(w http.ResponseWriter, r *http.Request) {
 	}
 	pods, err := containerEngine.PodPs(r.Context(), podPSOptions)
 	if err != nil {
-		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, pods)
@@ -109,7 +111,7 @@ func PodInspect(w http.ResponseWriter, r *http.Request) {
 	}
 	podData, err := pod.Inspect()
 	if err != nil {
-		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -133,8 +135,7 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	name := utils.GetName(r)
@@ -146,7 +147,7 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 
 	status, err := pod.GetPodStatus()
 	if err != nil {
-		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 	if status != define.PodStateRunning {
@@ -160,7 +161,7 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 		responses, stopError = pod.Stop(r.Context(), false)
 	}
 	if stopError != nil && errors.Cause(stopError) != define.ErrPodPartialFail {
-		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 	// Try to clean up the pod - but only warn on failure, it's nonfatal.
@@ -193,7 +194,7 @@ func PodStart(w http.ResponseWriter, r *http.Request) {
 	}
 	status, err := pod.GetPodStatus()
 	if err != nil {
-		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 	if status == define.PodStateRunning {
@@ -203,7 +204,7 @@ func PodStart(w http.ResponseWriter, r *http.Request) {
 
 	responses, err := pod.Start(r.Context())
 	if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
-		utils.Error(w, "Something went wrong", http.StatusConflict, err)
+		utils.Error(w, http.StatusConflict, err)
 		return
 	}
 
@@ -232,8 +233,7 @@ func PodDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	name := utils.GetName(r)
@@ -243,7 +243,7 @@ func PodDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := runtime.RemovePod(r.Context(), pod, true, query.Force, query.Timeout); err != nil {
-		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 	report := entities.PodRmReport{Id: pod.ID()}
@@ -260,7 +260,7 @@ func PodRestart(w http.ResponseWriter, r *http.Request) {
 	}
 	responses, err := pod.Restart(r.Context())
 	if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
-		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -313,7 +313,7 @@ func PodPause(w http.ResponseWriter, r *http.Request) {
 	}
 	responses, err := pod.Pause(r.Context())
 	if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
-		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -339,7 +339,7 @@ func PodUnpause(w http.ResponseWriter, r *http.Request) {
 	}
 	responses, err := pod.Unpause(r.Context())
 	if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
-		utils.Error(w, "failed to pause pod", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -372,14 +372,12 @@ func PodTop(w http.ResponseWriter, r *http.Request) {
 		PsArgs: psArgs,
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
 	if query.Delay < 1 {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			fmt.Errorf("\"delay\" parameter of value %d < 1", query.Delay))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("\"delay\" parameter of value %d < 1", query.Delay))
 		return
 	}
 
@@ -456,8 +454,7 @@ func PodKill(w http.ResponseWriter, r *http.Request) {
 		// override any golang type defaults
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	if _, found := r.URL.Query()["signal"]; found {
@@ -478,7 +475,7 @@ func PodKill(w http.ResponseWriter, r *http.Request) {
 	logrus.Debugf("Killing pod %s with signal %d", pod.ID(), sig)
 	podStates, err := pod.Status()
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 	hasRunning := false
@@ -489,14 +486,13 @@ func PodKill(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if !hasRunning {
-		msg := fmt.Sprintf("Container %s is not running", pod.ID())
-		utils.Error(w, msg, http.StatusConflict, errors.Errorf("cannot kill a pod with no running containers: %s", pod.ID()))
+		utils.Error(w, http.StatusConflict, errors.Errorf("cannot kill a pod with no running containers: %s", pod.ID()))
 		return
 	}
 
 	responses, err := pod.Kill(r.Context(), uint(sig))
 	if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
-		utils.Error(w, "failed to kill pod", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -536,8 +532,7 @@ func PodStats(w http.ResponseWriter, r *http.Request) {
 		// default would go here
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -554,7 +549,7 @@ func PodStats(w http.ResponseWriter, r *http.Request) {
 	// Error checks as documented in swagger.
 	switch errors.Cause(err) {
 	case define.ErrNoSuchPod:
-		utils.Error(w, "one or more pods not found", http.StatusNotFound, err)
+		utils.Error(w, http.StatusNotFound, err)
 		return
 	case nil:
 		// Nothing to do.

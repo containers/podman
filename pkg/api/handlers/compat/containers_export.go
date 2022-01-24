@@ -21,21 +21,21 @@ func ExportContainer(w http.ResponseWriter, r *http.Request) {
 	}
 	tmpfile, err := ioutil.TempFile("", "api.tar")
 	if err != nil {
-		utils.Error(w, "unable to create tarball tempfile", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
 		return
 	}
 	defer os.Remove(tmpfile.Name())
 	if err := tmpfile.Close(); err != nil {
-		utils.Error(w, "unable to close tempfile", http.StatusInternalServerError, errors.Wrap(err, "unable to close tempfile"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "unable to close tempfile"))
 		return
 	}
 	if err := con.Export(tmpfile.Name()); err != nil {
-		utils.Error(w, "failed to save the image", http.StatusInternalServerError, errors.Wrap(err, "failed to save image"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "failed to save image"))
 		return
 	}
 	rdr, err := os.Open(tmpfile.Name())
 	if err != nil {
-		utils.Error(w, "failed to read temp tarball", http.StatusInternalServerError, errors.Wrap(err, "failed to read the exported tarfile"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "failed to read the exported tarfile"))
 		return
 	}
 	defer rdr.Close()

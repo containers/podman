@@ -28,7 +28,7 @@ func Archive(w http.ResponseWriter, r *http.Request) {
 	case http.MethodHead, http.MethodGet:
 		handleHeadAndGet(w, r, decoder, runtime)
 	default:
-		utils.Error(w, fmt.Sprintf("unsupported method: %v", r.Method), http.StatusNotImplemented, errors.New(fmt.Sprintf("unsupported method: %v", r.Method)))
+		utils.Error(w, http.StatusNotImplemented, errors.New(fmt.Sprintf("unsupported method: %v", r.Method)))
 	}
 }
 
@@ -39,12 +39,12 @@ func handleHeadAndGet(w http.ResponseWriter, r *http.Request, decoder *schema.De
 
 	err := decoder.Decode(&query, r.URL.Query())
 	if err != nil {
-		utils.Error(w, "Bad Request.", http.StatusBadRequest, errors.Wrap(err, "couldn't decode the query"))
+		utils.Error(w, http.StatusBadRequest, errors.Wrap(err, "couldn't decode the query"))
 		return
 	}
 
 	if query.Path == "" {
-		utils.Error(w, "Bad Request.", http.StatusBadRequest, errors.New("missing `path` parameter"))
+		utils.Error(w, http.StatusBadRequest, errors.New("missing `path` parameter"))
 		return
 	}
 
@@ -59,7 +59,7 @@ func handleHeadAndGet(w http.ResponseWriter, r *http.Request, decoder *schema.De
 	if statReport != nil {
 		statHeader, err := copy.EncodeFileInfo(&statReport.FileInfo)
 		if err != nil {
-			utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
+			utils.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 		w.Header().Add(copy.XDockerContainerPathStatHeader, statHeader)
@@ -68,10 +68,10 @@ func handleHeadAndGet(w http.ResponseWriter, r *http.Request, decoder *schema.De
 	if errors.Cause(err) == define.ErrNoSuchCtr || errors.Cause(err) == copy.ErrENOENT {
 		// 404 is returned for an absent container and path.  The
 		// clients must deal with it accordingly.
-		utils.Error(w, "Not found.", http.StatusNotFound, err)
+		utils.Error(w, http.StatusNotFound, err)
 		return
 	} else if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -83,7 +83,7 @@ func handleHeadAndGet(w http.ResponseWriter, r *http.Request, decoder *schema.De
 
 	copyFunc, err := containerEngine.ContainerCopyToArchive(r.Context(), containerName, query.Path, w)
 	if err != nil {
-		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/x-tar")
@@ -106,14 +106,14 @@ func handlePut(w http.ResponseWriter, r *http.Request, decoder *schema.Decoder, 
 
 	err := decoder.Decode(&query, r.URL.Query())
 	if err != nil {
-		utils.Error(w, "Bad Request.", http.StatusBadRequest, errors.Wrap(err, "couldn't decode the query"))
+		utils.Error(w, http.StatusBadRequest, errors.Wrap(err, "couldn't decode the query"))
 		return
 	}
 
 	var rename map[string]string
 	if query.Rename != "" {
 		if err := json.Unmarshal([]byte(query.Rename), &rename); err != nil {
-			utils.Error(w, "Bad Request.", http.StatusBadRequest, errors.Wrap(err, "couldn't decode the query"))
+			utils.Error(w, http.StatusBadRequest, errors.Wrap(err, "couldn't decode the query"))
 			return
 		}
 	}
@@ -126,16 +126,16 @@ func handlePut(w http.ResponseWriter, r *http.Request, decoder *schema.Decoder, 
 	if errors.Cause(err) == define.ErrNoSuchCtr || os.IsNotExist(err) {
 		// 404 is returned for an absent container and path.  The
 		// clients must deal with it accordingly.
-		utils.Error(w, "Not found.", http.StatusNotFound, errors.Wrap(err, "the container doesn't exists"))
+		utils.Error(w, http.StatusNotFound, errors.Wrap(err, "the container doesn't exists"))
 		return
 	} else if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if err := copyFunc(); err != nil {
 		logrus.Error(err.Error())
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)

@@ -43,7 +43,7 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+		utils.Error(w, http.StatusBadRequest,
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
@@ -52,7 +52,7 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 	if name, ok := mux.Vars(r)["name"]; ok {
 		n, err := url.QueryUnescape(name)
 		if err != nil {
-			utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			utils.Error(w, http.StatusBadRequest,
 				errors.Wrapf(err, "failed to parse name parameter %q", name))
 			return
 		}
@@ -60,7 +60,7 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := reference.ParseNormalizedNamed(query.Name); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+		utils.Error(w, http.StatusBadRequest,
 			errors.Wrapf(err, "invalid image name %s", query.Name))
 		return
 	}
@@ -123,11 +123,11 @@ func ManifestExists(w http.ResponseWriter, r *http.Request) {
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 	report, err := imageEngine.ManifestExists(r.Context(), name)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 	if !report.Value {
-		utils.Error(w, "manifest not found", http.StatusNotFound, errors.New("manifest not found"))
+		utils.Error(w, http.StatusNotFound, errors.New("manifest not found"))
 		return
 	}
 	utils.WriteResponse(w, http.StatusNoContent, "")
@@ -140,13 +140,13 @@ func ManifestInspect(w http.ResponseWriter, r *http.Request) {
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 	rawManifest, err := imageEngine.ManifestInspect(r.Context(), name)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusNotFound, err)
+		utils.Error(w, http.StatusNotFound, err)
 		return
 	}
 
 	var schema2List manifest.Schema2List
 	if err := json.Unmarshal(rawManifest, &schema2List); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -165,13 +165,13 @@ func ManifestAdd(w http.ResponseWriter, r *http.Request) {
 		Images []string
 	}{}
 	if err := json.NewDecoder(r.Body).Decode(&query); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
 
 	name := utils.GetName(r)
 	if _, err := runtime.LibimageRuntime().LookupManifestList(name); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusNotFound, err)
+		utils.Error(w, http.StatusNotFound, err)
 		return
 	}
 
@@ -197,18 +197,18 @@ func ManifestRemoveDigest(w http.ResponseWriter, r *http.Request) {
 	}
 	name := utils.GetName(r)
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+		utils.Error(w, http.StatusBadRequest,
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	manifestList, err := runtime.LibimageRuntime().LookupManifestList(name)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusNotFound, err)
+		utils.Error(w, http.StatusNotFound, err)
 		return
 	}
 	d, err := digest.Parse(query.Digest)
 	if err != nil {
-		utils.Error(w, "invalid digest", http.StatusBadRequest, err)
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 	if err := manifestList.RemoveInstance(d); err != nil {
@@ -232,19 +232,19 @@ func ManifestPushV3(w http.ResponseWriter, r *http.Request) {
 		// Add defaults here once needed.
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+		utils.Error(w, http.StatusBadRequest,
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	if err := utils.IsRegistryReference(query.Destination); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 
 	source := utils.GetName(r)
 	authconf, authfile, err := auth.GetCredentials(r)
 	if err != nil {
-		utils.Error(w, "failed to retrieve repository credentials", http.StatusBadRequest, err)
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 	defer auth.RemoveAuthfile(authfile)
@@ -268,7 +268,7 @@ func ManifestPushV3(w http.ResponseWriter, r *http.Request) {
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 	digest, err := imageEngine.ManifestPush(context.Background(), source, query.Destination, options)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "error pushing image %q", query.Destination))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "error pushing image %q", query.Destination))
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, digest)
@@ -288,20 +288,20 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 		// Add defaults here once needed.
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+		utils.Error(w, http.StatusBadRequest,
 			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
 	destination := utils.GetVar(r, "destination")
 	if err := utils.IsRegistryReference(destination); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 
 	authconf, authfile, err := auth.GetCredentials(r)
 	if err != nil {
-		utils.Error(w, "failed to retrieve repository credentials", http.StatusBadRequest, errors.Wrapf(err, "failed to parse registry header for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse registry header for %s", r.URL.String()))
 		return
 	}
 	defer auth.RemoveAuthfile(authfile)
@@ -327,7 +327,7 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 	source := utils.GetName(r)
 	digest, err := imageEngine.ManifestPush(context.Background(), source, destination, options)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "error pushing image %q", destination))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "error pushing image %q", destination))
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, handlers.IDResponse{ID: digest})
@@ -340,13 +340,13 @@ func ManifestModify(w http.ResponseWriter, r *http.Request) {
 
 	body := new(entities.ManifestModifyOptions)
 	if err := json.NewDecoder(r.Body).Decode(body); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
 
 	name := utils.GetName(r)
 	if _, err := runtime.LibimageRuntime().LookupManifestList(name); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusNotFound, err)
+		utils.Error(w, http.StatusNotFound, err)
 		return
 	}
 
@@ -392,8 +392,7 @@ func ManifestModify(w http.ResponseWriter, r *http.Request) {
 			report.Images = append(report.Images, image)
 		}
 	default:
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			fmt.Errorf("illegal operation %q for %q", body.Operation, r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("illegal operation %q for %q", body.Operation, r.URL.String()))
 		return
 	}
 
@@ -414,7 +413,7 @@ func ManifestDelete(w http.ResponseWriter, r *http.Request) {
 
 	name := utils.GetName(r)
 	if _, err := runtime.LibimageRuntime().LookupManifestList(name); err != nil {
-		utils.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound, err)
+		utils.Error(w, http.StatusNotFound, err)
 		return
 	}
 

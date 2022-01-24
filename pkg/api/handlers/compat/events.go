@@ -34,7 +34,7 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 		Stream: true,
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "failed to parse parameters", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -44,7 +44,7 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 
 	libpodFilters, err := util.FiltersFromRequest(r)
 	if err != nil {
-		utils.Error(w, "failed to parse parameters", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	eventChannel := make(chan *events.Event)

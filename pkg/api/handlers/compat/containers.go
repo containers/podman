@@ -46,8 +46,7 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -61,8 +60,7 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 		options.Depend = query.Depend
 	} else {
 		if query.Link {
-			utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-				utils.ErrLinkNotSupport)
+			utils.Error(w, http.StatusBadRequest, utils.ErrLinkNotSupport)
 			return
 		}
 		options.Volumes = query.DockerVolumes
@@ -112,12 +110,12 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to decode filter parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrapf(err, "failed to decode filter parameters for %s", r.URL.String()))
 		return
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -189,7 +187,7 @@ func GetContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -217,7 +215,7 @@ func KillContainer(w http.ResponseWriter, r *http.Request) {
 		Signal: "KILL",
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -232,7 +230,7 @@ func KillContainer(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Cause(err) == define.ErrCtrStateInvalid ||
 			errors.Cause(err) == define.ErrCtrStopped {
-			utils.Error(w, fmt.Sprintf("Container %s is not running", name), http.StatusConflict, err)
+			utils.Error(w, http.StatusConflict, err)
 			return
 		}
 		if errors.Cause(err) == define.ErrNoSuchCtr {
@@ -262,7 +260,7 @@ func KillContainer(w http.ResponseWriter, r *http.Request) {
 				Interval:  time.Millisecond * 250,
 			}
 			if _, err := containerEngine.ContainerWait(r.Context(), []string{name}, opts); err != nil {
-				utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+				utils.Error(w, http.StatusInternalServerError, err)
 				return
 			}
 		}
@@ -613,7 +611,7 @@ func RenameContainer(w http.ResponseWriter, r *http.Request) {
 		Name string `schema:"name"`
 	}{}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
@@ -625,7 +623,7 @@ func RenameContainer(w http.ResponseWriter, r *http.Request) {
 
 	if _, err := runtime.RenameContainer(r.Context(), ctr, query.Name); err != nil {
 		if errors.Cause(err) == define.ErrPodExists || errors.Cause(err) == define.ErrCtrExists {
-			utils.Error(w, "Something went wrong.", http.StatusConflict, err)
+			utils.Error(w, http.StatusConflict, err)
 			return
 		}
 		utils.InternalServerError(w, err)

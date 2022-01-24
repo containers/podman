@@ -33,14 +33,12 @@ func TopContainer(w http.ResponseWriter, r *http.Request) {
 		PsArgs: psArgs,
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
 	if query.Delay < 1 {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			fmt.Errorf("\"delay\" parameter of value %d < 1", query.Delay))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("\"delay\" parameter of value %d < 1", query.Delay))
 		return
 	}
 
