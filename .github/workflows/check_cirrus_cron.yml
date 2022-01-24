@@ -19,9 +19,8 @@ env:
     # Debug-mode can reveal secrets, only enable by a secret value.
     # Ref: https://help.github.com/en/actions/configuring-and-managing-workflows/managing-a-workflow-run#enabling-step-debug-logging
     ACTIONS_STEP_DEBUG: '${{ secrets.ACTIONS_STEP_DEBUG }}'
-    # File with CSV listing of zero or more e-mail addresses for delivery
-    # of daily failure notice e-mails.
-    FAILMAILCSV: './contrib/cirrus/cron-fail_addrs.csv'
+    # CSV listing of e-mail addresses for delivery failure or error notices
+    RCPTCSV: rh.container.bot@gmail.com,podman-monitor@lists.podman.io
     # Filename for table of cron-name to build-id data
     # (must be in $GITHUB_WORKSPACE/artifacts/)
     NAME_ID_FILEPATH: './artifacts/name_id.txt'
@@ -60,10 +59,6 @@ jobs:
                 ) > ./artifacts/email_body.txt
 
             - if: steps.cron.outputs.failures > 0
-              id: mailto
-              run: printf "::set-output name=csv::%s\n" $(cat "$FAILMAILCSV")
-
-            - if: steps.mailto.outputs.csv != ''
               name: Send failure notification e-mail
               # Ref: https://github.com/dawidd6/action-send-mail
               uses: dawidd6/action-send-mail@v2.2.2
@@ -73,7 +68,7 @@ jobs:
                 username: ${{secrets.ACTION_MAIL_USERNAME}}
                 password: ${{secrets.ACTION_MAIL_PASSWORD}}
                 subject: Cirrus-CI cron build failures on ${{github.repository}}
-                to: ${{steps.mailto.outputs.csv}}
+                to: ${{env.RCPTCSV}}
                 from: ${{secrets.ACTION_MAIL_SENDER}}
                 body: file://./artifacts/email_body.txt
 
@@ -82,3 +77,16 @@ jobs:
               with:
                   name: ${{ github.job }}_artifacts
                   path: artifacts/*
+
+            - if: failure()
+              name: Send error notification e-mail
+              uses: dawidd6/action-send-mail@v2.2.2
+              with:
+                server_address: ${{secrets.ACTION_MAIL_SERVER}}
+                server_port: 465
+                username: ${{secrets.ACTION_MAIL_USERNAME}}
+                password: ${{secrets.ACTION_MAIL_PASSWORD}}
+                subject: Github workflow error on ${{github.repository}}
+                to: ${{env.RCPTCSV}}
+                from: ${{secrets.ACTION_MAIL_SENDER}}
+                body: Job failed: https://github.com/${{github.repository}}/runs/${{github.job}}?check_suite_focus=true
