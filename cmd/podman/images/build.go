@@ -183,12 +183,6 @@ func buildFlags(cmd *cobra.Command) {
 	completion.CompleteCommandFlags(cmd, fromAndBudFlagsCompletions)
 	flags.SetNormalizeFunc(buildahCLI.AliasFlags)
 	if registry.IsRemote() {
-		flag = flags.Lookup("isolation")
-		buildOpts.Isolation = buildahDefine.OCI
-		if err := flag.Value.Set(buildahDefine.OCI); err != nil {
-			logrus.Errorf("Unable to set --isolation to %v: %v", buildahDefine.OCI, err)
-		}
-		flag.DefValue = buildahDefine.OCI
 		_ = flags.MarkHidden("disable-content-trust")
 		_ = flags.MarkHidden("cache-from")
 		_ = flags.MarkHidden("sign-by")

@@ -22,6 +22,7 @@ import (
 	api "github.com/containers/podman/v4/pkg/api/types"
 	"github.com/containers/podman/v4/pkg/auth"
 	"github.com/containers/podman/v4/pkg/channel"
+	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/gorilla/schema"
@@ -300,7 +301,17 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	registry := query.Registry
 	isolation := buildah.IsolationDefault
 	if utils.IsLibpodRequest(r) {
-		isolation = parseLibPodIsolation(query.Isolation)
+		var err error
+		isolation, err = parseLibPodIsolation(query.Isolation)
+		if err != nil {
+			utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "failed to parse isolation"))
+			return
+		}
+
+		// make sure to force rootless as rootless otherwise buildah runs code which is intended to be run only as root.
+		if isolation == buildah.IsolationOCI && rootless.IsRootless() {
+			isolation = buildah.IsolationOCIRootless
+		}
 		registry = ""
 		format = query.OutputFormat
 	} else {
@@ -698,22 +709,11 @@ func parseNetworkConfigurationPolicy(network string) buildah.NetworkConfiguratio
 	}
 }
 
-func parseLibPodIsolation(isolation string) buildah.Isolation { // nolint
+func parseLibPodIsolation(isolation string) (buildah.Isolation, error) { // nolint
 	if val, err := strconv.Atoi(isolation); err == nil {
-		return buildah.Isolation(val)
+		return buildah.Isolation(val), nil
 	}
-	switch isolation {
-	case "IsolationDefault", "default":
-		return buildah.IsolationDefault
-	case "IsolationOCI":
-		return buildah.IsolationOCI
-	case "IsolationChroot":
-		return buildah.IsolationChroot
-	case "IsolationOCIRootless":
-		return buildah.IsolationOCIRootless
-	default:
-		return buildah.IsolationDefault
-	}
+	return parse.IsolationOption(isolation)
 }
 
 func extractTarFile(r *http.Request) (string, error) {
