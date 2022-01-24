@@ -867,4 +867,17 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(inspectOut[0].NetworkSettings.Networks).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Networks).To(HaveKey("podman"))
 	})
+
+	// see https://github.com/containers/podman/issues/12972
+	It("podman run check network-alias works on networks without dns", func() {
+		net := "dns" + stringid.GenerateNonCryptoID()
+		session := podmanTest.Podman([]string{"network", "create", "--disable-dns", net})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(net)
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "--network", net, "--network-alias", "abcdef", ALPINE, "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+	})
 })

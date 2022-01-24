@@ -1198,13 +1198,6 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 	// get network status before we connect
 	networkStatus := c.getNetworkStatus()
 
-	network, err := c.runtime.network.NetworkInspect(netName)
-	if err != nil {
-		return err
-	}
-	if !network.DNSEnabled && len(netOpts.Aliases) > 0 {
-		return errors.Wrapf(define.ErrInvalidArg, "cannot set network aliases for network %q because dns is disabled", netName)
-	}
 	// always add the short id as alias for docker compat
 	netOpts.Aliases = append(netOpts.Aliases, c.config.ID[:12])
 
