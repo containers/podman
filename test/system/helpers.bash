@@ -392,6 +392,20 @@ function _add_label_if_missing() {
     fi
 }
 
+# check if FIPS mode enabled on hosts
+function is_fips_mode() {
+    fips-mode-setup --is-enabled
+}
+###########################
+#  skip_if_not_fips_mode  #
+###########################
+function skip_if_not_fips_mode {
+    if ! is_fips_mode; then
+        skip "FIPS mode is disabled"
+    fi
+}
+
+
 ######################
 #  skip_if_rootless  #  ...with an optional message
 ######################

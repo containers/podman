@@ -809,6 +809,21 @@ EOF
 
 }
 
+# rhbz#1890707 : 'podman run' of this command, with FIPS enabled, fails with
+# /usr/bin/runc: error while loading shared libraries: ... cannot open shared object file
+@test "podman run with FIPS enabled" {
+    skip_if_not_fips_mode
+    CNAME=$(random_string 10)
+    CPORT=$(random_free_port)
+    REG_IMAGE="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/registry:2"
+    run_podman run -d -p $CPORT:$CPORT --name $CNAME  -e "discovery.type=single-node" $REG_IMAGE
+
+    run_podman container port $CNAME
+    is "$output" "$CPORT.*"
+
+    run_podman rm -f -t 0 $CNAME
+}
+
 # rhbz#1902979 : podman run fails to update /etc/hosts when --uidmap is provided
 @test "podman run update /etc/hosts" {
     HOST=$(random_string 25)
