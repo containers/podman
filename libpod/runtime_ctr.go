@@ -644,6 +644,20 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 		}
 	}
 
+	// Check that no other containers depend on the container.
+	// Only used if not removing a pod - pods guarantee that all
+	// deps will be evicted at the same time.
+	if !removePod {
+		deps, err := r.state.ContainerInUse(c)
+		if err != nil {
+			return err
+		}
+		if len(deps) != 0 {
+			depsStr := strings.Join(deps, ", ")
+			return errors.Wrapf(define.ErrCtrExists, "container %s has dependent containers which must be removed before it: %s", c.ID(), depsStr)
+		}
+	}
+
 	// Check that the container's in a good state to be removed.
 	if c.state.State == define.ContainerStateRunning {
 		time := c.StopTimeout()
@@ -666,25 +680,6 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 		}
 	}
 
-	// Remove all active exec sessions
-	if err := c.removeAllExecSessions(); err != nil {
-		return err
-	}
-
-	// Check that no other containers depend on the container.
-	// Only used if not removing a pod - pods guarantee that all
-	// deps will be evicted at the same time.
-	if !removePod {
-		deps, err := r.state.ContainerInUse(c)
-		if err != nil {
-			return err
-		}
-		if len(deps) != 0 {
-			depsStr := strings.Join(deps, ", ")
-			return errors.Wrapf(define.ErrCtrExists, "container %s has dependent containers which must be removed before it: %s", c.ID(), depsStr)
-		}
-	}
-
 	var cleanupErr error
 
 	// Clean up network namespace, cgroups, mounts.
@@ -702,6 +697,14 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 			logrus.Errorf(err.Error())
 		}
 		return errors.Wrapf(err, "unable to set container %s removing state in database", c.ID())
+	}
+
+	// Remove all active exec sessions
+	// removing the exec sessions might temporarily unlock the container's lock.  Using it
+	// after setting the state to ContainerStateRemoving will prevent that the container is
+	// restarted
+	if err := c.removeAllExecSessions(); err != nil {
+		return err
 	}
 
 	// Stop the container's storage

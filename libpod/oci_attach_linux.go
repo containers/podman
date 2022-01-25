@@ -273,9 +273,11 @@ func readStdio(conn *net.UnixConn, streams *define.AttachStreams, receiveStdoutE
 	var err error
 	select {
 	case err = <-receiveStdoutError:
+		conn.CloseWrite()
 		return err
 	case err = <-stdinDone:
 		if err == define.ErrDetach {
+			conn.CloseWrite()
 			return err
 		}
 		if err == nil {

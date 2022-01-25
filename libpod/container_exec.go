@@ -14,6 +14,7 @@ import (
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 // ExecConfig contains the configuration of an exec session
@@ -774,13 +775,40 @@ func (c *Container) Exec(config *ExecConfig, streams *define.AttachStreams, resi
 	return exitCode, nil
 }
 
-// cleanup an exec session after its done
-func (c *Container) cleanupExecBundle(sessionID string) error {
-	if err := os.RemoveAll(c.execBundlePath(sessionID)); err != nil && !os.IsNotExist(err) {
-		return err
+// cleanupExecBundle cleanups an exec session after its done
+// Please be careful when using this function since it might temporarily unlock
+// the container when os.RemoveAll($bundlePath) fails with ENOTEMPTY or EBUSY
+// errors.
+func (c *Container) cleanupExecBundle(sessionID string) (Err error) {
+	path := c.execBundlePath(sessionID)
+	for attempts := 0; attempts < 50; attempts++ {
+		Err = os.RemoveAll(path)
+		if Err == nil || os.IsNotExist(Err) {
+			return nil
+		}
+		if pathErr, ok := Err.(*os.PathError); ok {
+			Err = pathErr.Err
+			if errors.Cause(Err) == unix.ENOTEMPTY || errors.Cause(Err) == unix.EBUSY {
+				// give other processes a chance to use the container
+				if !c.batched {
+					if err := c.save(); err != nil {
+						return err
+					}
+					c.lock.Unlock()
+				}
+				time.Sleep(time.Millisecond * 100)
+				if !c.batched {
+					c.lock.Lock()
+					if err := c.syncContainer(); err != nil {
+						return err
+					}
+				}
+				continue
+			}
+		}
+		return
 	}
-
-	return nil
+	return
 }
 
 // the path to a containers exec session bundle
