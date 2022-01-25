@@ -369,7 +369,7 @@ Note: the **--gidmap** flag cannot be called in conjunction with the **--pod** f
 
 #### **--group-add**=*group|keep-groups*
 
-Add additional groups to assign to primary user running within the container process.
+Assign additional groups to the primary user running within the container process.
 
 - `keep-groups` is a special flag that tells Podman to keep the supplementary group access.
 
