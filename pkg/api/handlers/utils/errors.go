@@ -40,10 +40,12 @@ func VolumeNotFound(w http.ResponseWriter, name string, err error) {
 }
 
 func ContainerNotFound(w http.ResponseWriter, name string, err error) {
-	if errors.Cause(err) != define.ErrNoSuchCtr {
+	switch errors.Cause(err) {
+	case define.ErrNoSuchCtr, define.ErrCtrExists:
+		Error(w, http.StatusNotFound, err)
+	default:
 		InternalServerError(w, err)
 	}
-	Error(w, http.StatusNotFound, err)
 }
 
 func ImageNotFound(w http.ResponseWriter, name string, err error) {
