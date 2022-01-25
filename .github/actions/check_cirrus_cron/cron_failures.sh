@@ -22,7 +22,7 @@ mkdir -p artifacts
 cat > ./artifacts/query_raw.json << "EOF"
 {"query":"
   query CronNameStatus($owner: String!, $repo: String!) {
-    githubRepository(owner: $owner, name: $repo) {
+    ownerRepository(platform: \"LINUX\", owner: $owner, name: $repo) {
       cronSettings {
         name
         lastInvocationBuild {
