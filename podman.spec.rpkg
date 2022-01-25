@@ -196,13 +196,13 @@ make docs docker-docs
 # the installable rpm package.
 %install
 PODMAN_VERSION=%{version} %{__make} DESTDIR=%{buildroot} PREFIX=%{_prefix} ETCDIR=%{buildroot}%{_sysconfdir} \
-        install.bin-nobuild \
-        install.man-nobuild \
+        install.bin \
+        install.man \
         install.systemd \
         install.completions \
         install.docker \
-        install.docker-docs-nobuild \
-        install.remote-nobuild \
+        install.docker-docs \
+        install.remote \
 
 install -d -p %{buildroot}/%{_datadir}/%{name}/test/system
 cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
