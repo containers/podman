@@ -671,7 +671,7 @@ podman-release-%.tar.gz: test/version/version
 	else \
 		$(MAKE) GOOS=$(GOOS) GOARCH=$(GOARCH) binaries; \
 	fi
-	$(MAKE) $(_DSTARGS) install.bin-nobuild install.remote-nobuild install.man install.systemd
+	$(MAKE) $(_DSTARGS) install.bin install.remote install.man install.systemd
 	tar -czvf $@ --xattrs -C "$(TMPDIR)" "./$(SUBDIR)"
 	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then $(MAKE) clean-binaries; fi
 	-rm -rf "$(TMPDIR)"
@@ -694,7 +694,7 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 	fi
 	cp -r ./docs/build/remote/$(GOOS) "$(TMPDIR)/$(SUBDIR)/docs/"
 	cp ./contrib/remote/containers.conf "$(TMPDIR)/$(SUBDIR)/"
-	$(MAKE) $(GOPLAT) $(_DSTARGS) SELINUXOPT="" install.remote-nobuild
+	$(MAKE) $(GOPLAT) $(_DSTARGS) SELINUXOPT="" install.remote
 	cd "$(TMPDIR)" && \
 		zip --recurse-paths "$(CURDIR)/$@" "./"
 	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then $(MAKE) clean-binaries; fi
@@ -727,10 +727,7 @@ win-sshproxy: test/version/version
 
 .PHONY: package
 package:  ## Build rpm packages
-	## TODO(ssbarnea): make version number predictable, it should not change
-	## on each execution, producing duplicates.
-	rm -rf build/* *.src.rpm ~/rpmbuild/RPMS/*
-	./contrib/build_rpm.sh
+	rpkg local
 
 ###
 ### Installation targets
@@ -752,8 +749,8 @@ install: .gopathok install.bin install.remote install.man install.systemd  ## In
 install.catatonit:
 	./hack/install_catatonit.sh
 
-.PHONY: install.remote-nobuild
-install.remote-nobuild:
+.PHONY: install.remote
+install.remote:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
 	install ${SELINUXOPT} -m 755 $(SRCBINDIR)/podman$(BINSFX) \
 		$(DESTDIR)$(BINDIR)/podman$(BINSFX)
@@ -761,11 +758,8 @@ install.remote-nobuild:
 		chcon --verbose --reference=$(DESTDIR)$(BINDIR)/podman-remote \
 		bin/podman-remote
 
-.PHONY: install.remote
-install.remote: podman-remote install.remote-nobuild
-
-.PHONY: install.bin-nobuild
-install.bin-nobuild:
+.PHONY: install.bin
+install.bin:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
 	install ${SELINUXOPT} -m 755 bin/podman $(DESTDIR)$(BINDIR)/podman
 	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(BINDIR)/podman bin/podman
@@ -775,19 +769,13 @@ install.bin-nobuild:
 	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${TMPFILESDIR}
 	install ${SELINUXOPT} -m 644 contrib/tmpfile/podman.conf ${DESTDIR}${TMPFILESDIR}/podman.conf
 
-.PHONY: install.bin
-install.bin: podman rootlessport install.bin-nobuild
-
-.PHONY: install.man-nobuild
-install.man-nobuild:
+.PHONY: install.man
+install.man:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(MANDIR)/man1
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(MANDIR)/man5
 	install ${SELINUXOPT} -m 644 $(filter %.1,$(MANPAGES_DEST)) -t $(DESTDIR)$(MANDIR)/man1
 	install ${SELINUXOPT} -m 644 $(filter %.5,$(MANPAGES_DEST)) -t $(DESTDIR)$(MANDIR)/man5
 	install ${SELINUXOPT} -m 644 docs/source/markdown/links/*1 -t $(DESTDIR)$(MANDIR)/man1
-
-.PHONY: install.man
-install.man: docs install.man-nobuild
 
 .PHONY: install.completions
 install.completions:
@@ -809,15 +797,12 @@ install.docker:
 	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${SYSTEMDDIR}  ${DESTDIR}${USERSYSTEMDDIR} ${DESTDIR}${TMPFILESDIR}
 	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-docker.conf -t ${DESTDIR}${TMPFILESDIR}
 
-.PHONY: install.docker-docs-nobuild
-install.docker-docs-nobuild:
+.PHONY: install.docker-docs
+install.docker-docs:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(MANDIR)/man1
 	install ${SELINUXOPT} -m 644 docs/build/man/docker*.1 -t $(DESTDIR)$(MANDIR)/man1
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(MANDIR)/man5
 	install ${SELINUXOPT} -m 644 docs/build/man/docker*.5 -t $(DESTDIR)$(MANDIR)/man5
-
-.PHONY: install.docker-docs
-install.docker-docs: docker-docs install.docker-docs-nobuild
 
 .PHONY: install.docker-full
 install.docker-full: install.docker install.docker-docs

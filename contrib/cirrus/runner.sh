@@ -233,8 +233,7 @@ function _run_altbuild() {
             make build-no-cgo
             ;;
         *RPM*)
-            make -f ./.copr/Makefile
-            rpmbuild --rebuild ./podman-*.src.rpm
+            make package
             ;;
         Alt*Cross)
             arches=(\
