@@ -245,7 +245,8 @@ function check_label() {
     is "$output" "system_u:object_r:container_file_t:$level $tmpdir" \
        "Confined Relabel Correctly"
 
-    if is_rootless; then
+    # podman-remote has no 'unshare'
+    if is_rootless && ! is_remote; then
        run_podman unshare touch $tmpdir/test1
        # Relabel entire directory
        run_podman unshare chcon system_u:object_r:usr_t:s0 $tmpdir

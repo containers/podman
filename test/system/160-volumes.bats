@@ -213,6 +213,8 @@ EOF
 # Podman volume user test
 @test "podman volume user test" {
     is_rootless || skip "only meaningful when run rootless"
+    skip_if_remote "not applicable on podman-remote"
+
     user="1000:2000"
     newuser="100:200"
     tmpdir=${PODMAN_TMPDIR}/volume_$(random_string)
