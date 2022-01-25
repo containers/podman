@@ -18,17 +18,20 @@ Do not prompt for confirmation
 
 #### **--filter**
 
-Filter output based on conditions given.
-Multiple filters can be given with multiple uses of the --filter option.
-Filters with the same key work inclusive with the only exception being
-`label` which is exclusive. Filters with different keys always work exclusive.
+Provide filter values.
 
-Valid filters are listed below:
+The *filters* argument format is of `key=value`. If there is more than one *filter*, then pass multiple OPTIONS: **--filter** *foo=bar* **--filter** *bif=baz*.
 
-| **Filter** | **Description**                                                                       |
-| ---------- | ------------------------------------------------------------------------------------- |
-| label      | [Key] or [Key=Value] Label assigned to a network                                      |
-| until      | only remove networks created before given timestamp                                   |
+Supported filters:
+
+| Filter             | Description                                                                 |
+| :----------------: | --------------------------------------------------------------------------- |
+| *until*            | Only remove networks created before given timestamp.           |
+| *label*            | Only remove networks, with (or without, in the case of label!=[...] is used) the specified labels.                  |
+
+The `until` *filter* can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. 10m, 1h30m) computed relative to the machine’s time.
+
+The `label` *filter* accepts two formats. One is the `label`=*key* or `label`=*key*=*value*, which removes networks with the specified labels. The other format is the `label!`=*key* or `label!`=*key*=*value*, which removes networks without the specified labels.
 
 ## EXAMPLE
 Prune networks

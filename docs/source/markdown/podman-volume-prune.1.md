@@ -21,12 +21,20 @@ Do not prompt for confirmation.
 
 #### **--filter**
 
-Filter volumes to be pruned. Volumes can be filtered by the following attributes:
+Provide filter values.
 
-| **Filter** | **Description**                                                                       |
-| ---------- | ------------------------------------------------------------------------------------- |
-| label      | [Key] or [Key=Value] Label assigned to a volume                                       |
-| until      | Only remove volumes created before given timestamp                                    |
+The *filters* argument format is of `key=value`. If there is more than one *filter*, then pass multiple OPTIONS: **--filter** *foo=bar* **--filter** *bif=baz*.
+
+Supported filters:
+
+| Filter             | Description                                                                 |
+| :----------------: | --------------------------------------------------------------------------- |
+| *until*            | Only remove volumes created before given timestamp.           |
+| *label*            | Only remove volumes, with (or without, in the case of label!=[...] is used) the specified labels.                  |
+
+The `until` *filter* can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. 10m, 1h30m) computed relative to the machine’s time.
+
+The `label` *filter* accepts two formats. One is the `label`=*key* or `label`=*key*=*value*, which removes volumes with the specified labels. The other format is the `label!`=*key* or `label!`=*key*=*value*, which removes volumes without the specified labels.
 
 #### **--help**
 
