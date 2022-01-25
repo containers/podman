@@ -89,4 +89,4 @@ jobs:
                 subject: Github workflow error on ${{github.repository}}
                 to: ${{env.RCPTCSV}}
                 from: ${{secrets.ACTION_MAIL_SENDER}}
-                body: Job failed: https://github.com/${{github.repository}}/runs/${{github.job}}?check_suite_focus=true
+                body: "Job failed: https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
