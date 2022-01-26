@@ -2,8 +2,6 @@ package decor
 
 import (
 	"fmt"
-	"io"
-	"math"
 	"strconv"
 )
 
@@ -47,16 +45,16 @@ func (self SizeB1024) Format(st fmt.State, verb rune) {
 		unit = _iMiB
 	case self < _iTiB:
 		unit = _iGiB
-	case self <= math.MaxInt64:
+	default:
 		unit = _iTiB
 	}
 
-	io.WriteString(st, strconv.FormatFloat(float64(self)/float64(unit), 'f', prec, 64))
-
+	osw := optimisticStringWriter(st)
+	osw(strconv.FormatFloat(float64(self)/float64(unit), 'f', prec, 64))
 	if st.Flag(' ') {
-		io.WriteString(st, " ")
+		osw(" ")
 	}
-	io.WriteString(st, unit.String())
+	osw(unit.String())
 }
 
 const (
@@ -96,14 +94,14 @@ func (self SizeB1000) Format(st fmt.State, verb rune) {
 		unit = _MB
 	case self < _TB:
 		unit = _GB
-	case self <= math.MaxInt64:
+	default:
 		unit = _TB
 	}
 
-	io.WriteString(st, strconv.FormatFloat(float64(self)/float64(unit), 'f', prec, 64))
-
+	osw := optimisticStringWriter(st)
+	osw(strconv.FormatFloat(float64(self)/float64(unit), 'f', prec, 64))
 	if st.Flag(' ') {
-		io.WriteString(st, " ")
+		osw(" ")
 	}
-	io.WriteString(st, unit.String())
+	osw(unit.String())
 }

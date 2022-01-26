@@ -190,10 +190,18 @@ func (s *untrustedSignature) strictUnmarshalJSON(data []byte) error {
 // of the system just because it is a private key — actually the presence of a private key
 // on the system increases the likelihood of an a successful attack on that private key
 // on that particular system.)
-func (s untrustedSignature) sign(mech SigningMechanism, keyIdentity string) ([]byte, error) {
+func (s untrustedSignature) sign(mech SigningMechanism, keyIdentity string, passphrase string) ([]byte, error) {
 	json, err := json.Marshal(s)
 	if err != nil {
 		return nil, err
+	}
+
+	if newMech, ok := mech.(signingMechanismWithPassphrase); ok {
+		return newMech.SignWithPassphrase(json, keyIdentity, passphrase)
+	}
+
+	if passphrase != "" {
+		return nil, errors.New("signing mechanism does not support passphrases")
 	}
 
 	return mech.Sign(json, keyIdentity)

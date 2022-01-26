@@ -6,11 +6,6 @@
 
 #include <gpgme.h>
 
-/* GPGME_VERSION_NUMBER was introduced in 1.4.0 */
-#if !defined(GPGME_VERSION_NUMBER) || GPGME_VERSION_NUMBER < 0x010402
-typedef off_t gpgme_off_t; /* Introduced in 1.4.2 */
-#endif
-
 extern ssize_t gogpgme_readfunc(void *handle, void *buffer, size_t size);
 extern ssize_t gogpgme_writefunc(void *handle, void *buffer, size_t size);
 extern off_t gogpgme_seekfunc(void *handle, off_t offset, int whence);

@@ -667,6 +667,7 @@ func findCredentialsInFile(key, registry, path string, legacyFormat bool) (types
 	// This intentionally uses "registry", not "key"; we don't support namespaced
 	// credentials in helpers.
 	if ch, exists := auths.CredHelpers[registry]; exists {
+		logrus.Debugf("Looking up in credential helper %s based on credHelpers entry in %s", ch, path)
 		return getAuthFromCredHelper(ch, registry)
 	}
 
@@ -703,6 +704,9 @@ func findCredentialsInFile(key, registry, path string, legacyFormat bool) (types
 		}
 	}
 
+	// Only log this if we found nothing; getCredentialsWithHomeDir logs the
+	// source of found data.
+	logrus.Debugf("No credentials matching %s found in %s", key, path)
 	return types.DockerAuthConfig{}, nil
 }
 

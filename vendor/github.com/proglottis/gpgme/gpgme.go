@@ -53,13 +53,13 @@ const (
 
 type PinEntryMode int
 
-// const ( // Unavailable in 1.3.2
-// 	PinEntryDefault  PinEntryMode = C.GPGME_PINENTRY_MODE_DEFAULT
-// 	PinEntryAsk      PinEntryMode = C.GPGME_PINENTRY_MODE_ASK
-// 	PinEntryCancel   PinEntryMode = C.GPGME_PINENTRY_MODE_CANCEL
-// 	PinEntryError    PinEntryMode = C.GPGME_PINENTRY_MODE_ERROR
-// 	PinEntryLoopback PinEntryMode = C.GPGME_PINENTRY_MODE_LOOPBACK
-// )
+const (
+	PinEntryDefault  PinEntryMode = C.GPGME_PINENTRY_MODE_DEFAULT
+	PinEntryAsk      PinEntryMode = C.GPGME_PINENTRY_MODE_ASK
+	PinEntryCancel   PinEntryMode = C.GPGME_PINENTRY_MODE_CANCEL
+	PinEntryError    PinEntryMode = C.GPGME_PINENTRY_MODE_ERROR
+	PinEntryLoopback PinEntryMode = C.GPGME_PINENTRY_MODE_LOOPBACK
+)
 
 type EncryptFlag uint
 
@@ -348,19 +348,17 @@ func (c *Context) KeyListMode() KeyListMode {
 	return res
 }
 
-// Unavailable in 1.3.2:
-// func (c *Context) SetPinEntryMode(m PinEntryMode) error {
-// 	err := handleError(C.gpgme_set_pinentry_mode(c.ctx, C.gpgme_pinentry_mode_t(m)))
-// 	runtime.KeepAlive(c)
-// 	return err
-// }
+func (c *Context) SetPinEntryMode(m PinEntryMode) error {
+	err := handleError(C.gpgme_set_pinentry_mode(c.ctx, C.gpgme_pinentry_mode_t(m)))
+	runtime.KeepAlive(c)
+	return err
+}
 
-// Unavailable in 1.3.2:
-// func (c *Context) PinEntryMode() PinEntryMode {
-// 	res := PinEntryMode(C.gpgme_get_pinentry_mode(c.ctx))
-// 	runtime.KeepAlive(c)
-// 	return res
-// }
+func (c *Context) PinEntryMode() PinEntryMode {
+	res := PinEntryMode(C.gpgme_get_pinentry_mode(c.ctx))
+	runtime.KeepAlive(c)
+	return res
+}
 
 func (c *Context) SetCallback(callback Callback) error {
 	var err error

@@ -3,22 +3,46 @@
 package signature
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
 	"github.com/opencontainers/go-digest"
 )
 
+// SignOptions includes optional parameters for signing container images.
+type SignOptions struct {
+	// Passphare to use when signing with the key identity.
+	Passphrase string
+}
+
 // SignDockerManifest returns a signature for manifest as the specified dockerReference,
-// using mech and keyIdentity.
-func SignDockerManifest(m []byte, dockerReference string, mech SigningMechanism, keyIdentity string) ([]byte, error) {
+// using mech and keyIdentity, and the specified options.
+func SignDockerManifestWithOptions(m []byte, dockerReference string, mech SigningMechanism, keyIdentity string, options *SignOptions) ([]byte, error) {
 	manifestDigest, err := manifest.Digest(m)
 	if err != nil {
 		return nil, err
 	}
 	sig := newUntrustedSignature(manifestDigest, dockerReference)
-	return sig.sign(mech, keyIdentity)
+
+	var passphrase string
+	if options != nil {
+		passphrase = options.Passphrase
+		// The gpgme implementation can’t use passphrase with \n; reject it here for consistent behavior.
+		if strings.Contains(passphrase, "\n") {
+			return nil, errors.New("invalid passphrase: must not contain a line break")
+		}
+	}
+
+	return sig.sign(mech, keyIdentity, passphrase)
+}
+
+// SignDockerManifest returns a signature for manifest as the specified dockerReference,
+// using mech and keyIdentity.
+func SignDockerManifest(m []byte, dockerReference string, mech SigningMechanism, keyIdentity string) ([]byte, error) {
+	return SignDockerManifestWithOptions(m, dockerReference, mech, keyIdentity, nil)
 }
 
 // VerifyDockerManifestSignature checks that unverifiedSignature uses expectedKeyIdentity to sign unverifiedManifest as expectedDockerReference,

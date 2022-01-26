@@ -32,13 +32,13 @@ type BarStyleComposer interface {
 }
 
 type bFiller struct {
+	rev        bool
 	components [components]*component
 	tip        struct {
 		count      uint
 		onComplete *component
 		frames     []*component
 	}
-	flush func(dst io.Writer, filling, padding [][]byte)
 }
 
 type component struct {
@@ -113,14 +113,7 @@ func (s *barStyle) Reverse() BarStyleComposer {
 }
 
 func (s *barStyle) Build() BarFiller {
-	bf := new(bFiller)
-	if s.rev {
-		bf.flush = func(dst io.Writer, filling, padding [][]byte) {
-			flush(dst, padding, filling)
-		}
-	} else {
-		bf.flush = flush
-	}
+	bf := &bFiller{rev: s.rev}
 	bf.components[iLbound] = &component{
 		width: runewidth.StringWidth(stripansi.Strip(s.lbound)),
 		bytes: []byte(s.lbound),
@@ -164,8 +157,9 @@ func (s *bFiller) Fill(w io.Writer, width int, stat decor.Statistics) {
 		return
 	}
 
-	w.Write(s.components[iLbound].bytes)
-	defer w.Write(s.components[iRbound].bytes)
+	ow := optimisticWriter(w)
+	ow(s.components[iLbound].bytes)
+	defer ow(s.components[iRbound].bytes)
 
 	if width == 0 {
 		return
@@ -236,14 +230,27 @@ func (s *bFiller) Fill(w io.Writer, width int, stat decor.Statistics) {
 		}
 	}
 
-	s.flush(w, filling, padding)
+	if s.rev {
+		flush(ow, padding, filling)
+	} else {
+		flush(ow, filling, padding)
+	}
 }
 
-func flush(dst io.Writer, filling, padding [][]byte) {
+func flush(ow func([]byte), filling, padding [][]byte) {
 	for i := len(filling) - 1; i >= 0; i-- {
-		dst.Write(filling[i])
+		ow(filling[i])
 	}
 	for i := 0; i < len(padding); i++ {
-		dst.Write(padding[i])
+		ow(padding[i])
+	}
+}
+
+func optimisticWriter(w io.Writer) func([]byte) {
+	return func(p []byte) {
+		_, err := w.Write(p)
+		if err != nil {
+			panic(err)
+		}
 	}
 }

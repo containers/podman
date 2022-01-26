@@ -124,6 +124,7 @@ type ImageListSelection int
 type Options struct {
 	RemoveSignatures bool   // Remove any pre-existing signatures. SignBy will still add a new signature.
 	SignBy           string // If non-empty, asks for a signature to be added during the copy, and specifies a key ID, as accepted by signature.NewGPGSigningMechanism().SignDockerManifest(),
+	SignPassphrase   string // Passphare to use when signing with the key ID from `SignBy`.
 	ReportWriter     io.Writer
 	SourceCtx        *types.SystemContext
 	DestinationCtx   *types.SystemContext
@@ -569,7 +570,7 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 
 	// Sign the manifest list.
 	if options.SignBy != "" {
-		newSig, err := c.createSignature(manifestList, options.SignBy)
+		newSig, err := c.createSignature(manifestList, options.SignBy, options.SignPassphrase)
 		if err != nil {
 			return nil, err
 		}
@@ -791,7 +792,7 @@ func (c *copier) copyOneImage(ctx context.Context, policyContext *signature.Poli
 	}
 
 	if options.SignBy != "" {
-		newSig, err := c.createSignature(manifestBytes, options.SignBy)
+		newSig, err := c.createSignature(manifestBytes, options.SignBy, options.SignPassphrase)
 		if err != nil {
 			return nil, "", "", err
 		}
