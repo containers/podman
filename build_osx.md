@@ -28,7 +28,7 @@ can now be built.
 ```
 $ cd go/src/github.com/containers/podman
 $ make podman-remote-darwin
-$ mv bin/podman-remote-darwin bin/podman
+$ mv bin/darwin/podman bin/podman
 ```
 
 The binary will be located in bin/
