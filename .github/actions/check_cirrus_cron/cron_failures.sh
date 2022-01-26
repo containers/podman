@@ -75,7 +75,7 @@ fi
 # e.x. reply.json
 # {
 #   "data": {
-#     "githubRepository": {
+#     "ownerRepository": {
 #       "cronSettings": [
 #         {
 #           "name": "Keepalive_v2.0",
@@ -102,7 +102,7 @@ fi
 #     }
 #   }
 # }
-_filt='.data.githubRepository.cronSettings | map(select(.lastInvocationBuild.status=="FAILED") | { name:.name, id:.lastInvocationBuild.id} | join(" ")) | join("\n")'
+_filt='.data.ownerRepository.cronSettings | map(select(.lastInvocationBuild.status=="FAILED") | { name:.name, id:.lastInvocationBuild.id} | join(" ")) | join("\n")'
 jq --raw-output "$_filt" ./artifacts/reply.json > "$NAME_ID_FILEPATH"
 
 echo "<Cron Name> <Failed Build ID>"
