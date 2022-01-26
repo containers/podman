@@ -31,6 +31,7 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 		StaticIPs  []string `schema:"staticIPs"`
 		StaticMACs []string `schema:"staticMACs"`
 		NoHosts    bool     `schema:"noHosts"`
+		ConfigMaps []string `schema:"configMaps"`
 	}{
 		TLSVerify: true,
 		Start:     true,
@@ -110,6 +111,7 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 		LogOptions: query.LogOptions,
 		StaticIPs:  staticIPs,
 		StaticMACs: staticMACs,
+		ConfigMaps: query.ConfigMaps,
 	}
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		options.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
