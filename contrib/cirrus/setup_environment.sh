@@ -173,6 +173,8 @@ case "$TEST_ENVIRON" in
             done
 
             restorecon -F -v $_nvdir
+            # This is critical, it signals to all tests that netavark
+            # use is expected.
             msg "Forcing NETWORK_BACKEND=netavark in all subsequent environments."
             echo "NETWORK_BACKEND=netavark" >> /etc/ci_environment
         fi
