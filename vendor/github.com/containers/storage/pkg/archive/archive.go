@@ -511,6 +511,10 @@ func (ta *tarAppender) addTarFile(path, name string) error {
 			return err
 		}
 	}
+	if fi.Mode()&os.ModeSocket != 0 {
+		logrus.Warnf("archive: skipping %q since it is a socket", path)
+		return nil
+	}
 
 	hdr, err := FileInfoHeader(name, fi, link)
 	if err != nil {

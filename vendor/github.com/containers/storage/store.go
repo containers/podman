@@ -647,7 +647,7 @@ func GetStore(options types.StoreOptions) (Store, error) {
 	storesLock.Lock()
 	defer storesLock.Unlock()
 
-	// return if BOTH run and graph root are matched, otherwise our run-root can be overriden if the graph is found first
+	// return if BOTH run and graph root are matched, otherwise our run-root can be overridden if the graph is found first
 	for _, s := range stores {
 		if (s.graphRoot == options.GraphRoot) && (s.runRoot == options.RunRoot) && (options.GraphDriverName == "" || s.graphDriverName == options.GraphDriverName) {
 			return s, nil
@@ -1613,7 +1613,7 @@ func (s *store) ImageBigData(id, key string) ([]byte, error) {
 		}
 	}
 	if foundImage {
-		return nil, errors.Wrapf(os.ErrNotExist, "error locating item named %q for image with ID %q", key, id)
+		return nil, errors.Wrapf(os.ErrNotExist, "error locating item named %q for image with ID %q (consider removing the image to resolve the issue)", key, id)
 	}
 	return nil, errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 }
