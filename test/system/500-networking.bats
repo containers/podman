@@ -256,13 +256,17 @@ load helpers
 
     # rootless cannot modify iptables
     if ! is_rootless; then
-        # flush the CNI iptables here
-        run iptables -t nat -F CNI-HOSTPORT-DNAT
+        # flush the port forwarding iptable rule here
+        chain="CNI-HOSTPORT-DNAT"
+        if is_netavark; then
+            chain="NETAVARK-HOSTPORT-DNAT"
+        fi
+        run iptables -t nat -F "$chain"
 
         # check that we cannot curl (timeout after 5 sec)
         run timeout 5 curl -s $SERVER/index.txt
         if [ "$status" -ne 124 ]; then
-	        die "curl did not timeout, status code: $status"
+            die "curl did not timeout, status code: $status"
         fi
     fi
 
