@@ -51,7 +51,7 @@ const (
 // other than the ones the caller specifically allows.
 // expectedMIMEType is used only for diagnostics.
 // NOTE: The caller should do the non-heuristic validations (e.g. check for any specified format
-// identification/version, or other “magic numbers”) before calling this, to cleanly reject unambigous
+// identification/version, or other “magic numbers”) before calling this, to cleanly reject unambiguous
 // data that just isn’t what was expected, as opposed to actually ambiguous data.
 func validateUnambiguousManifestFormat(manifest []byte, expectedMIMEType string,
 	allowed allowedManifestFields) error {
@@ -71,7 +71,7 @@ func validateUnambiguousManifestFormat(manifest []byte, expectedMIMEType string,
 		Manifests interface{} `json:"manifests"`
 	}{}
 	if err := json.Unmarshal(manifest, &detectedFields); err != nil {
-		// The caller was supposed to already validate version numbers, so this shold not happen;
+		// The caller was supposed to already validate version numbers, so this should not happen;
 		// let’s not bother with making this error “nice”.
 		return err
 	}

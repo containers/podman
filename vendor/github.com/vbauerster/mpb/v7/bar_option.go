@@ -89,7 +89,10 @@ func BarFillerOnComplete(message string) BarOption {
 	return BarFillerMiddleware(func(base BarFiller) BarFiller {
 		return BarFillerFunc(func(w io.Writer, reqWidth int, st decor.Statistics) {
 			if st.Completed {
-				io.WriteString(w, message)
+				_, err := io.WriteString(w, message)
+				if err != nil {
+					panic(err)
+				}
 			} else {
 				base.Fill(w, reqWidth, st)
 			}

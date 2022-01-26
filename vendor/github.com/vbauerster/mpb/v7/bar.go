@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -36,7 +35,6 @@ type Bar struct {
 	cacheState *bState
 
 	container      *Progress
-	dlogger        *log.Logger
 	recoveredPanic interface{}
 }
 
@@ -64,7 +62,7 @@ type bState struct {
 	averageDecorators []decor.AverageDecorator
 	ewmaDecorators    []decor.EwmaDecorator
 	shutdownListeners []decor.ShutdownListener
-	bufP, bufB, bufA  *bytes.Buffer
+	buffers           [3]*bytes.Buffer
 	filler            BarFiller
 	middleware        func(BarFiller) BarFiller
 	extender          extenderFunc
@@ -81,7 +79,6 @@ type frame struct {
 }
 
 func newBar(container *Progress, bs *bState) *Bar {
-	logPrefix := fmt.Sprintf("%sbar#%02d ", container.dlogger.Prefix(), bs.id)
 	ctx, cancel := context.WithCancel(container.ctx)
 
 	bar := &Bar{
@@ -93,7 +90,6 @@ func newBar(container *Progress, bs *bState) *Bar {
 		frameCh:      make(chan *frame, 1),
 		done:         make(chan struct{}),
 		cancel:       cancel,
-		dlogger:      log.New(bs.debugOut, logPrefix, log.Lshortfile),
 	}
 
 	go bar.serve(ctx, bs)
@@ -106,7 +102,7 @@ func (b *Bar) ProxyReader(r io.Reader) io.ReadCloser {
 	if r == nil {
 		panic("expected non nil io.Reader")
 	}
-	return newProxyReader(r, b)
+	return b.newProxyReader(r)
 }
 
 // ID returs id of the bar.
@@ -279,7 +275,7 @@ func (b *Bar) Abort(drop bool) {
 	done := make(chan struct{})
 	select {
 	case b.operateState <- func(s *bState) {
-		if s.completed == true {
+		if s.completed {
 			close(done)
 			return
 		}
@@ -346,13 +342,16 @@ func (b *Bar) render(tw int) {
 			// recovering if user defined decorator panics for example
 			if p := recover(); p != nil {
 				if b.recoveredPanic == nil {
+					if s.debugOut != nil {
+						fmt.Fprintln(s.debugOut, p)
+						_, _ = s.debugOut.Write(debug.Stack())
+					}
 					s.extender = makePanicExtender(p)
 					b.toShutdown = !b.toShutdown
 					b.recoveredPanic = p
 				}
 				reader, lines := s.extender(nil, s.reqWidth, stat)
 				b.frameCh <- &frame{reader, lines + 1}
-				b.dlogger.Println(p)
 			}
 			s.completeFlushed = s.completed
 		}()
@@ -429,40 +428,41 @@ func (b *Bar) wSyncTable() [][]chan int {
 }
 
 func (s *bState) draw(stat decor.Statistics) io.Reader {
+	bufP, bufB, bufA := s.buffers[0], s.buffers[1], s.buffers[2]
 	nlr := strings.NewReader("\n")
 	tw := stat.AvailableWidth
 	for _, d := range s.pDecorators {
 		str := d.Decor(stat)
 		stat.AvailableWidth -= runewidth.StringWidth(stripansi.Strip(str))
-		s.bufP.WriteString(str)
+		bufP.WriteString(str)
 	}
 	if stat.AvailableWidth < 1 {
-		trunc := strings.NewReader(runewidth.Truncate(stripansi.Strip(s.bufP.String()), tw, "…"))
-		s.bufP.Reset()
+		trunc := strings.NewReader(runewidth.Truncate(stripansi.Strip(bufP.String()), tw, "…"))
+		bufP.Reset()
 		return io.MultiReader(trunc, nlr)
 	}
 
 	if !s.trimSpace && stat.AvailableWidth > 1 {
 		stat.AvailableWidth -= 2
-		s.bufB.WriteByte(' ')
-		defer s.bufB.WriteByte(' ')
+		bufB.WriteByte(' ')
+		defer bufB.WriteByte(' ')
 	}
 
 	tw = stat.AvailableWidth
 	for _, d := range s.aDecorators {
 		str := d.Decor(stat)
 		stat.AvailableWidth -= runewidth.StringWidth(stripansi.Strip(str))
-		s.bufA.WriteString(str)
+		bufA.WriteString(str)
 	}
 	if stat.AvailableWidth < 1 {
-		trunc := strings.NewReader(runewidth.Truncate(stripansi.Strip(s.bufA.String()), tw, "…"))
-		s.bufA.Reset()
-		return io.MultiReader(s.bufP, s.bufB, trunc, nlr)
+		trunc := strings.NewReader(runewidth.Truncate(stripansi.Strip(bufA.String()), tw, "…"))
+		bufA.Reset()
+		return io.MultiReader(bufP, bufB, trunc, nlr)
 	}
 
-	s.filler.Fill(s.bufB, s.reqWidth, stat)
+	s.filler.Fill(bufB, s.reqWidth, stat)
 
-	return io.MultiReader(s.bufP, s.bufB, s.bufA, nlr)
+	return io.MultiReader(bufP, bufB, bufA, nlr)
 }
 
 func (s *bState) wSyncTable() [][]chan int {
@@ -489,39 +489,51 @@ func (s *bState) wSyncTable() [][]chan int {
 
 func (s bState) decoratorEwmaUpdate(dur time.Duration) {
 	wg := new(sync.WaitGroup)
-	wg.Add(len(s.ewmaDecorators))
-	for _, d := range s.ewmaDecorators {
-		d := d
-		go func() {
+	for i := 0; i < len(s.ewmaDecorators); i++ {
+		switch d := s.ewmaDecorators[i]; i {
+		case len(s.ewmaDecorators) - 1:
 			d.EwmaUpdate(s.lastIncrement, dur)
-			wg.Done()
-		}()
+		default:
+			wg.Add(1)
+			go func() {
+				d.EwmaUpdate(s.lastIncrement, dur)
+				wg.Done()
+			}()
+		}
 	}
 	wg.Wait()
 }
 
 func (s bState) decoratorAverageAdjust(start time.Time) {
 	wg := new(sync.WaitGroup)
-	wg.Add(len(s.averageDecorators))
-	for _, d := range s.averageDecorators {
-		d := d
-		go func() {
+	for i := 0; i < len(s.averageDecorators); i++ {
+		switch d := s.averageDecorators[i]; i {
+		case len(s.averageDecorators) - 1:
 			d.AverageAdjust(start)
-			wg.Done()
-		}()
+		default:
+			wg.Add(1)
+			go func() {
+				d.AverageAdjust(start)
+				wg.Done()
+			}()
+		}
 	}
 	wg.Wait()
 }
 
 func (s bState) decoratorShutdownNotify() {
 	wg := new(sync.WaitGroup)
-	wg.Add(len(s.shutdownListeners))
-	for _, d := range s.shutdownListeners {
-		d := d
-		go func() {
+	for i := 0; i < len(s.shutdownListeners); i++ {
+		switch d := s.shutdownListeners[i]; i {
+		case len(s.shutdownListeners) - 1:
 			d.Shutdown()
-			wg.Done()
-		}()
+		default:
+			wg.Add(1)
+			go func() {
+				d.Shutdown()
+				wg.Done()
+			}()
+		}
 	}
 	wg.Wait()
 }
@@ -547,14 +559,11 @@ func extractBaseDecorator(d decor.Decorator) decor.Decorator {
 
 func makePanicExtender(p interface{}) extenderFunc {
 	pstr := fmt.Sprint(p)
-	stack := debug.Stack()
-	stackLines := bytes.Count(stack, []byte("\n"))
 	return func(_ io.Reader, _ int, st decor.Statistics) (io.Reader, int) {
 		mr := io.MultiReader(
 			strings.NewReader(runewidth.Truncate(pstr, st.AvailableWidth, "…")),
-			strings.NewReader(fmt.Sprintf("\n%#v\n", st)),
-			bytes.NewReader(stack),
+			strings.NewReader("\n"),
 		)
-		return mr, stackLines + 1
+		return mr, 0
 	}
 }

@@ -11,7 +11,7 @@ type proxyReader struct {
 	bar *Bar
 }
 
-func (x *proxyReader) Read(p []byte) (int, error) {
+func (x proxyReader) Read(p []byte) (int, error) {
 	n, err := x.ReadCloser.Read(p)
 	x.bar.IncrBy(n)
 	if err == io.EOF {
@@ -21,12 +21,11 @@ func (x *proxyReader) Read(p []byte) (int, error) {
 }
 
 type proxyWriterTo struct {
-	io.ReadCloser // *proxyReader
-	wt            io.WriterTo
-	bar           *Bar
+	proxyReader
+	wt io.WriterTo
 }
 
-func (x *proxyWriterTo) WriteTo(w io.Writer) (int64, error) {
+func (x proxyWriterTo) WriteTo(w io.Writer) (int64, error) {
 	n, err := x.wt.WriteTo(w)
 	x.bar.IncrInt64(n)
 	if err == io.EOF {
@@ -36,13 +35,12 @@ func (x *proxyWriterTo) WriteTo(w io.Writer) (int64, error) {
 }
 
 type ewmaProxyReader struct {
-	io.ReadCloser // *proxyReader
-	bar           *Bar
+	proxyReader
 }
 
-func (x *ewmaProxyReader) Read(p []byte) (int, error) {
+func (x ewmaProxyReader) Read(p []byte) (int, error) {
 	start := time.Now()
-	n, err := x.ReadCloser.Read(p)
+	n, err := x.proxyReader.Read(p)
 	if n > 0 {
 		x.bar.DecoratorEwmaUpdate(time.Since(start))
 	}
@@ -50,12 +48,11 @@ func (x *ewmaProxyReader) Read(p []byte) (int, error) {
 }
 
 type ewmaProxyWriterTo struct {
-	io.ReadCloser             // *ewmaProxyReader
-	wt            io.WriterTo // *proxyWriterTo
-	bar           *Bar
+	ewmaProxyReader
+	wt proxyWriterTo
 }
 
-func (x *ewmaProxyWriterTo) WriteTo(w io.Writer) (int64, error) {
+func (x ewmaProxyWriterTo) WriteTo(w io.Writer) (int64, error) {
 	start := time.Now()
 	n, err := x.wt.WriteTo(w)
 	if n > 0 {
@@ -64,17 +61,19 @@ func (x *ewmaProxyWriterTo) WriteTo(w io.Writer) (int64, error) {
 	return n, err
 }
 
-func newProxyReader(r io.Reader, bar *Bar) io.ReadCloser {
-	rc := toReadCloser(r)
-	rc = &proxyReader{rc, bar}
-
-	if wt, isWriterTo := r.(io.WriterTo); bar.hasEwmaDecorators {
-		rc = &ewmaProxyReader{rc, bar}
-		if isWriterTo {
-			rc = &ewmaProxyWriterTo{rc, wt, bar}
+func (b *Bar) newProxyReader(r io.Reader) (rc io.ReadCloser) {
+	pr := proxyReader{toReadCloser(r), b}
+	if wt, ok := r.(io.WriterTo); ok {
+		pw := proxyWriterTo{pr, wt}
+		if b.hasEwmaDecorators {
+			rc = ewmaProxyWriterTo{ewmaProxyReader{pr}, pw}
+		} else {
+			rc = pw
 		}
-	} else if isWriterTo {
-		rc = &proxyWriterTo{rc, wt, bar}
+	} else if b.hasEwmaDecorators {
+		rc = ewmaProxyReader{pr}
+	} else {
+		rc = pr
 	}
 	return rc
 }
