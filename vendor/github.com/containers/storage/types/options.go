@@ -321,7 +321,7 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
 		}
 	}
 
-	// Clear storeOptions of previos settings
+	// Clear storeOptions of previous settings
 	*storeOptions = StoreOptions{}
 	if config.Storage.Driver != "" {
 		storeOptions.GraphDriverName = config.Storage.Driver
@@ -443,7 +443,7 @@ func Save(conf TomlConfig, rootless bool) error {
 	return toml.NewEncoder(f).Encode(conf)
 }
 
-// StorageConfig is used to retreive the storage.conf toml in order to overwrite it
+// StorageConfig is used to retrieve the storage.conf toml in order to overwrite it
 func StorageConfig(rootless bool) (*TomlConfig, error) {
 	config := new(TomlConfig)
 
