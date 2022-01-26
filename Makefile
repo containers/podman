@@ -176,7 +176,7 @@ endef
 # Need to use CGO for mDNS resolution, but cross builds need CGO disabled
 # See https://github.com/golang/go/issues/12524 for details
 DARWIN_GCO := 0
-ifeq ($(NATIVE_GOOS),darwin)
+ifeq ($(GOOS),darwin)
 ifdef HOMEBREW_PREFIX
 	DARWIN_GCO := 1
 endif
