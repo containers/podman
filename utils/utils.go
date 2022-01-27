@@ -238,3 +238,18 @@ func CreateSCPCommand(cmd *exec.Cmd, command []string) *exec.Cmd {
 	cmd.Stdout = os.Stdout
 	return cmd
 }
+
+// LoginUser starts the user process on the host so that image scp can use systemd-run
+func LoginUser(user string) (*exec.Cmd, error) {
+	sleep, err := exec.LookPath("sleep")
+	if err != nil {
+		return nil, err
+	}
+	machinectl, err := exec.LookPath("machinectl")
+	if err != nil {
+		return nil, err
+	}
+	cmd := exec.Command(machinectl, "shell", "-q", user+"@.host", sleep, "inf")
+	err = cmd.Start()
+	return cmd, err
+}

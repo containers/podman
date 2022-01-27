@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
@@ -782,7 +783,7 @@ func transferRootless(source entities.ImageScpOptions, dest entities.ImageScpOpt
 	return cmdLoad.Run()
 }
 
-// TransferRootful creates new podman processes using exec.Command and su/machinectl, transferring images between the given source and destination users
+// TransferRootful creates new podman processes using exec.Command and a new uid/gid alongside a cleared environment
 func transferRootful(source entities.ImageScpOptions, dest entities.ImageScpOptions, podman string, parentFlags []string) error {
 	basicCommand := []string{podman}
 	basicCommand = append(basicCommand, parentFlags...)
@@ -794,12 +795,9 @@ func transferRootful(source entities.ImageScpOptions, dest entities.ImageScpOpti
 	}
 	saveCommand = append(saveCommand, []string{"--output", source.File, source.Image}...)
 	loadCommand = append(loadCommand, []string{"--input", dest.File}...)
-	save := []string{strings.Join(saveCommand, " ")}
-	load := []string{strings.Join(loadCommand, " ")}
 
-	// if executing using sudo or transferring between two users, the TransferRootless approach will not work, default to using machinectl or su as necessary.
-	// the approach using sudo is preferable and more straightforward. There is no reason for using sudo in these situations
-	// since the feature is meant to transfer from root to rootless an vice versa without explicit sudo evocaiton.
+	// if executing using sudo or transferring between two users, the TransferRootless approach will not work, the new process needs to be set up
+	// with the proper uid and gid as well as environmental variables.
 	var uSave *user.User
 	var uLoad *user.User
 	var err error
@@ -830,20 +828,11 @@ func transferRootful(source entities.ImageScpOptions, dest entities.ImageScpOpti
 			return err
 		}
 	}
-	machinectl, err := exec.LookPath("machinectl")
-	if err != nil {
-		logrus.Warn("defaulting to su since machinectl is not available, su will fail if no user session is available")
-		err = execSu(uSave, save)
-		if err != nil {
-			return err
-		}
-		return execSu(uLoad, load)
-	}
-	err = execMachine(uSave, saveCommand, machinectl)
+	err = execPodman(uSave, saveCommand)
 	if err != nil {
 		return err
 	}
-	return execMachine(uLoad, loadCommand, machinectl)
+	return execPodman(uLoad, loadCommand)
 }
 
 func lookupUser(u string) (*user.User, error) {
@@ -853,21 +842,37 @@ func lookupUser(u string) (*user.User, error) {
 	return user.Lookup(u)
 }
 
-func execSu(execUser *user.User, command []string) error {
-	cmd := exec.Command("su", "-l", execUser.Username, "--command")
-	cmd = utils.CreateSCPCommand(cmd, command)
-	logrus.Debugf("Executing via su: %q", cmd)
-	return cmd.Run()
-}
-
-func execMachine(execUser *user.User, command []string, machinectl string) error {
-	verb := machinectl
-	args := []string{"shell", "-q", execUser.Username + "@.host"}
-	if execUser.Uid == "0" {
-		args = append([]string{verb}, args...)
-		verb = "sudo"
+func execPodman(execUser *user.User, command []string) error {
+	cmdLogin, err := utils.LoginUser(execUser.Username)
+	if err != nil {
+		return err
 	}
-	cmd := utils.CreateSCPCommand(exec.Command(verb, args...), command)
-	logrus.Debugf("Executing via machinectl: %q", cmd)
+	defer func() error {
+		err := cmdLogin.Process.Kill()
+		if err != nil {
+			return err
+		}
+		return cmdLogin.Wait()
+	}()
+	cmd := exec.Command(command[0], command[1:]...)
+	cmd.Env = []string{"PATH=" + os.Getenv("PATH"), "TERM=" + os.Getenv("TERM")}
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	uid, err := strconv.ParseInt(execUser.Uid, 10, 32)
+	if err != nil {
+		return err
+	}
+	gid, err := strconv.ParseInt(execUser.Gid, 10, 32)
+	if err != nil {
+		return err
+	}
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Credential: &syscall.Credential{
+			Uid:         uint32(uid),
+			Gid:         uint32(gid),
+			Groups:      nil,
+			NoSetGroups: false,
+		},
+	}
 	return cmd.Run()
 }

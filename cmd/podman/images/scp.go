@@ -17,7 +17,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/system/connection"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/utils"
 	scpD "github.com/dtylman/scp"
 	"github.com/pkg/errors"
@@ -337,21 +336,9 @@ func GetServiceInformation(cliConnections []string, cfg *config.Config) (map[str
 
 // execPodman executes the podman save/load command given the podman binary
 func execPodman(podman string, command []string) error {
-	if rootless.IsRootless() {
-		cmd := exec.Command(podman)
-		utils.CreateSCPCommand(cmd, command[1:])
-		logrus.Debug("Executing podman command")
-		return cmd.Run()
-	}
-	machinectl, err := exec.LookPath("machinectl")
-	if err != nil {
-		cmd := exec.Command("su", "-l", "root", "--command")
-		cmd = utils.CreateSCPCommand(cmd, []string{strings.Join(command, " ")})
-		return cmd.Run()
-	}
-	cmd := exec.Command(machinectl, "shell", "-q", "root@.host")
-	cmd = utils.CreateSCPCommand(cmd, command)
-	logrus.Debug("Executing load command machinectl")
+	cmd := exec.Command(podman)
+	utils.CreateSCPCommand(cmd, command[1:])
+	logrus.Debugf("Executing podman command: %q", cmd)
 	return cmd.Run()
 }
 
