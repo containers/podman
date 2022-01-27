@@ -47,17 +47,6 @@ func addPrivilegedDevices(g *generate.Generator) error {
 			if _, found := mounts[d.Path]; found {
 				continue
 			}
-			st, err := os.Stat(d.Path)
-			if err != nil {
-				if err == unix.EPERM {
-					continue
-				}
-				return err
-			}
-			// Skip devices that the user has not access to.
-			if st.Mode()&0007 == 0 {
-				continue
-			}
 			newMounts = append(newMounts, devMnt)
 		}
 		g.Config.Mounts = append(newMounts, g.Config.Mounts...)
