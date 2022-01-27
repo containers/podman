@@ -907,3 +907,15 @@ Resolution steps
 
 * Before invoking Podman command create a valid login session for your rootless user using `loginctl enable-linger <username>`
 * If `loginctl` is unavailable you can also try logging in via `ssh` i.e `ssh <username>@localhost`.
+
+### 31) 127.0.0.1:7777 port already bound
+
+After deleting a VM on macOS, the initialization of subsequent VMs fails.
+
+#### Symptom
+
+After deleting a client VM on macOS via `podman machine stop` && `podman machine rm`, attempting to `podman machine init` a new client VM leads to an error with the 127.0.0.1:7777 port already bound.
+
+### Solution
+
+You will need to remove the hanging gv-proxy process bound to the port in question. For example, if the port mentioned in the error message is 127.0.0.1:7777, you can use the command `kill -9 $(lsof -i:7777)` in order to identify and remove the hanging process which prevents you from starting a new VM on that default port.
