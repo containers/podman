@@ -17,12 +17,13 @@ func parseImageSCPArg(arg string) (*entities.ImageScpOptions, []string, error) {
 	cliConnections := []string{}
 
 	switch {
-	case strings.Contains(arg, "@localhost"): // image transfer between users
+	case strings.Contains(arg, "@localhost::"): // image transfer between users
 		location.User = strings.Split(arg, "@")[0]
 		location, err = validateImagePortion(location, arg)
 		if err != nil {
 			return nil, nil, err
 		}
+		cliConnections = append(cliConnections, arg)
 	case strings.Contains(arg, "::"):
 		location, err = validateImagePortion(location, arg)
 		if err != nil {

@@ -146,6 +146,17 @@ func scp(cmd *cobra.Command, args []string) (finalErr error) {
 		return err
 	}
 
+	allLocal := true // if we are all localhost, do not validate connections but if we are using one localhost and one non we need to use sshd
+	for _, val := range cliConnections {
+		if !strings.Contains(val, "@localhost::") {
+			allLocal = false
+			break
+		}
+	}
+	if allLocal {
+		cliConnections = []string{}
+	}
+
 	var serv map[string]config.Destination
 	serv, err = GetServiceInformation(cliConnections, cfg)
 	if err != nil {
