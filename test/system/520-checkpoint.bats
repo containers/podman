@@ -15,6 +15,10 @@ function setup() {
         skip "FIXME: checkpointing broken in Ubuntu 2004, 2104, 2110, ..."
     fi
 
+    if [[ "$(uname -r)" =~ "5.17" ]]; then
+        skip "FIXME: checkpointing broken on kernel 5.17 (#12949)"
+    fi
+
     # None of these tests work rootless....
     if is_rootless; then
         # ...however, is that a genuine cast-in-stone limitation, or one
