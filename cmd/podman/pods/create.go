@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/completion"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/sysinfo"
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/containers"
@@ -71,11 +72,13 @@ func init() {
 	_ = createCommand.RegisterFlagCompletionFunc(nameFlagName, completion.AutocompleteNone)
 
 	infraImageFlagName := "infra-image"
-	var defInfraImage string
+	defInfraImage := ""
 	if !registry.IsRemote() {
-		defInfraImage = containerConfig.Engine.InfraImage
+		if containerConfig.Engine.InfraImage != config.DefaultInfraImage {
+			defInfraImage = containerConfig.Engine.InfraImage
+		}
 	}
-	flags.StringVar(&infraImage, infraImageFlagName, defInfraImage, "The image of the infra container to associate with the pod")
+	flags.StringVar(&infraImage, infraImageFlagName, defInfraImage, "Image to use for infra container, rather than builtin")
 	_ = createCommand.RegisterFlagCompletionFunc(infraImageFlagName, common.AutocompleteImages)
 
 	podIDFileFlagName := "pod-id-file"
