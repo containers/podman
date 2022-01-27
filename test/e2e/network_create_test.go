@@ -356,4 +356,82 @@ var _ = Describe("Podman network create", func() {
 		}
 	})
 
+	It("podman network create with multiple subnets", func() {
+		name := "subnets-" + stringid.GenerateNonCryptoID()
+		subnet1 := "10.10.0.0/24"
+		subnet2 := "10.10.1.0/24"
+		nc := podmanTest.Podman([]string{"network", "create", "--subnet", subnet1, "--subnet", subnet2, name})
+		nc.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(name)
+		Expect(nc).To(Exit(0))
+		Expect(nc.OutputToString()).To(Equal(name))
+
+		inspect := podmanTest.Podman([]string{"network", "inspect", name})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).To(Exit(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`"subnet": "` + subnet1))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`"subnet": "` + subnet2))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`"ipv6_enabled": false`))
+	})
+
+	It("podman network create with multiple subnets dual stack", func() {
+		name := "subnets-" + stringid.GenerateNonCryptoID()
+		subnet1 := "10.10.2.0/24"
+		subnet2 := "fd52:2a5a:747e:3acd::/64"
+		nc := podmanTest.Podman([]string{"network", "create", "--subnet", subnet1, "--subnet", subnet2, name})
+		nc.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(name)
+		Expect(nc).To(Exit(0))
+		Expect(nc.OutputToString()).To(Equal(name))
+
+		inspect := podmanTest.Podman([]string{"network", "inspect", name})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).To(Exit(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`"subnet": "` + subnet1))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`"subnet": "` + subnet2))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`"ipv6_enabled": true`))
+	})
+
+	It("podman network create with multiple subnets dual stack with gateway and range", func() {
+		name := "subnets-" + stringid.GenerateNonCryptoID()
+		subnet1 := "10.10.3.0/24"
+		gw1 := "10.10.3.10"
+		range1 := "10.10.3.0/26"
+		subnet2 := "fd52:2a5a:747e:3acd::/64"
+		gw2 := "fd52:2a5a:747e:3acd::10"
+		nc := podmanTest.Podman([]string{"network", "create", "--subnet", subnet1, "--gateway", gw1, "--ip-range", range1, "--subnet", subnet2, "--gateway", gw2, name})
+		nc.WaitWithDefaultTimeout()
+		defer podmanTest.removeCNINetwork(name)
+		Expect(nc).To(Exit(0))
+		Expect(nc.OutputToString()).To(Equal(name))
+
+		inspect := podmanTest.Podman([]string{"network", "inspect", name})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).To(Exit(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`"subnet": "` + subnet1))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`"gateway": "` + gw1))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`"start_ip": "10.10.3.1",`))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`"end_ip": "10.10.3.63"`))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`"subnet": "` + subnet2))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`"gateway": "` + gw2))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`"ipv6_enabled": true`))
+	})
+
+	It("podman network create invalid options with multiple subnets", func() {
+		name := "subnets-" + stringid.GenerateNonCryptoID()
+		subnet1 := "10.10.3.0/24"
+		gw1 := "10.10.3.10"
+		gw2 := "fd52:2a5a:747e:3acd::10"
+		nc := podmanTest.Podman([]string{"network", "create", "--subnet", subnet1, "--gateway", gw1, "--gateway", gw2, name})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc).To(Exit(125))
+		Expect(nc.ErrorToString()).To(Equal("Error: cannot set more gateways than subnets"))
+
+		range1 := "10.10.3.0/26"
+		range2 := "10.10.3.0/28"
+		nc = podmanTest.Podman([]string{"network", "create", "--subnet", subnet1, "--ip-range", range1, "--ip-range", range2, name})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc).To(Exit(125))
+		Expect(nc.ErrorToString()).To(Equal("Error: cannot set more ranges than subnets"))
+	})
 })

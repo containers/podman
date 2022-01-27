@@ -47,13 +47,13 @@ func networkCreateFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(optFlagName, completion.AutocompleteNone)
 
 	gatewayFlagName := "gateway"
-	flags.IPVar(&networkCreateOptions.Gateway, gatewayFlagName, nil, "IPv4 or IPv6 gateway for the subnet")
+	flags.IPSliceVar(&networkCreateOptions.Gateways, gatewayFlagName, nil, "IPv4 or IPv6 gateway for the subnet")
 	_ = cmd.RegisterFlagCompletionFunc(gatewayFlagName, completion.AutocompleteNone)
 
 	flags.BoolVar(&networkCreateOptions.Internal, "internal", false, "restrict external access from this network")
 
 	ipRangeFlagName := "ip-range"
-	flags.IPNetVar(&networkCreateOptions.Range, ipRangeFlagName, net.IPNet{}, "allocate container IP from range")
+	flags.StringArrayVar(&networkCreateOptions.Ranges, ipRangeFlagName, nil, "allocate container IP from range")
 	_ = cmd.RegisterFlagCompletionFunc(ipRangeFlagName, completion.AutocompleteNone)
 
 	// TODO consider removing this for 4.0
@@ -72,7 +72,7 @@ func networkCreateFlags(cmd *cobra.Command) {
 	flags.BoolVar(&networkCreateOptions.IPv6, "ipv6", false, "enable IPv6 networking")
 
 	subnetFlagName := "subnet"
-	flags.IPNetVar(&networkCreateOptions.Subnet, subnetFlagName, net.IPNet{}, "subnet in CIDR format")
+	flags.StringArrayVar(&networkCreateOptions.Subnets, subnetFlagName, nil, "subnets in CIDR format")
 	_ = cmd.RegisterFlagCompletionFunc(subnetFlagName, completion.AutocompleteNone)
 
 	flags.BoolVar(&networkCreateOptions.DisableDNS, "disable-dns", false, "disable dns plugin")
@@ -125,27 +125,35 @@ func networkCreate(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	if networkCreateOptions.Subnet.IP != nil {
-		s := types.Subnet{
-			Subnet:  types.IPNet{IPNet: networkCreateOptions.Subnet},
-			Gateway: networkCreateOptions.Gateway,
+	if len(networkCreateOptions.Subnets) > 0 {
+		if len(networkCreateOptions.Gateways) > len(networkCreateOptions.Subnets) {
+			return errors.New("cannot set more gateways than subnets")
 		}
-		if networkCreateOptions.Range.IP != nil {
-			startIP, err := util.FirstIPInSubnet(&networkCreateOptions.Range)
-			if err != nil {
-				return errors.Wrap(err, "failed to get first ip in range")
-			}
-			lastIP, err := util.LastIPInSubnet(&networkCreateOptions.Range)
-			if err != nil {
-				return errors.Wrap(err, "failed to get last ip in range")
-			}
-			s.LeaseRange = &types.LeaseRange{
-				StartIP: startIP,
-				EndIP:   lastIP,
-			}
+		if len(networkCreateOptions.Ranges) > len(networkCreateOptions.Subnets) {
+			return errors.New("cannot set more ranges than subnets")
 		}
-		network.Subnets = append(network.Subnets, s)
-	} else if networkCreateOptions.Range.IP != nil || networkCreateOptions.Gateway != nil {
+
+		for i := range networkCreateOptions.Subnets {
+			subnet, err := types.ParseCIDR(networkCreateOptions.Subnets[i])
+			if err != nil {
+				return err
+			}
+			s := types.Subnet{
+				Subnet: subnet,
+			}
+			if len(networkCreateOptions.Ranges) > i {
+				leaseRange, err := parseRange(networkCreateOptions.Ranges[i])
+				if err != nil {
+					return err
+				}
+				s.LeaseRange = leaseRange
+			}
+			if len(networkCreateOptions.Gateways) > i {
+				s.Gateway = networkCreateOptions.Gateways[i]
+			}
+			network.Subnets = append(network.Subnets, s)
+		}
+	} else if len(networkCreateOptions.Ranges) > 0 || len(networkCreateOptions.Gateways) > 0 {
 		return errors.New("cannot set gateway or range without subnet")
 	}
 
@@ -155,4 +163,24 @@ func networkCreate(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Println(response.Name)
 	return nil
+}
+
+func parseRange(iprange string) (*types.LeaseRange, error) {
+	_, subnet, err := net.ParseCIDR(iprange)
+	if err != nil {
+		return nil, err
+	}
+
+	startIP, err := util.FirstIPInSubnet(subnet)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get first ip in range")
+	}
+	lastIP, err := util.LastIPInSubnet(subnet)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get last ip in range")
+	}
+	return &types.LeaseRange{
+		StartIP: startIP,
+		EndIP:   lastIP,
+	}, nil
 }
