@@ -36,7 +36,7 @@ type driverConfig struct {
 	LookupCommand string `mapstructure:"lookup"`
 	// StoreCommand contains a shell command that stores a secret.
 	// The secret id is provided as environment variable SECRET_ID
-	// The secret value itself is provied over stdin
+	// The secret value itself is provided over stdin
 	StoreCommand string `mapstructure:"store"`
 }
 

@@ -95,7 +95,7 @@ func (os *OptionalString) Value() string {
 // newoptionalString
 type optionalStringValue OptionalString
 
-// NewOptionalStringValue returns a pflag.Value fo the string.
+// NewOptionalStringValue returns a pflag.Value for the string.
 func NewOptionalStringValue(p *OptionalString) pflag.Value {
 	p.present = false
 	return (*optionalStringValue)(p)

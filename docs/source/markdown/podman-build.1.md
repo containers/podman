@@ -173,7 +173,7 @@ proportion can be modified by changing the container's CPU share weighting
 relative to the weighting of all other running containers.
 
 To modify the proportion from the default of 1024, use the **--cpu-shares**
-flag to set the weighting to 2 or higher.
+option to set the weighting to 2 or higher.
 
 The proportion will only apply when CPU-intensive processes are running.
 When tasks in one container are idle, other containers can use the
@@ -256,7 +256,7 @@ specifying **--disable-compression=false**.
 #### **--disable-content-trust**
 
 This is a Docker specific option to disable image verification to a container
-registry and is not supported by Podman.  This flag is a NOOP and provided
+registry and is not supported by Podman.  This option is a NOOP and provided
 solely for scripting compatibility. (This option is not available with the remote Podman client)
 
 #### **--dns**=*dns*
@@ -266,7 +266,7 @@ Set custom DNS servers to be used during the build.
 This option can be used to override the DNS configuration passed to the
 container. Typically this is necessary when the host DNS configuration is
 invalid for the container (e.g., 127.0.0.1). When this is the case the `--dns`
-flag is necessary for every run.
+option is necessary for every run.
 
 The special value **none** can be specified to disable creation of
 /etc/resolv.conf in the container by Podman. The /etc/resolv.conf file in the
@@ -343,7 +343,7 @@ another process.
 Controls what type of isolation is used for running processes as part of `RUN`
 instructions.  Recognized types include *oci* (OCI-compatible runtime, the
 default), *rootless* (OCI-compatible runtime invoked using a modified
-configuration and its --rootless flag enabled, with *--no-new-keyring
+configuration and its --rootless option enabled, with *--no-new-keyring
 --no-pivot* added to its *create* invocation, with network and UTS namespaces
 disabled, and IPC, PID, and user namespaces enabled; the default for
 unprivileged users), and *chroot* (an internal wrapper that leans more toward
@@ -405,7 +405,7 @@ trillions).
 #### **--memory-swap**=*LIMIT*
 
 A limit value equal to memory plus swap. Must be used with the  **-m**
-(**--memory**) flag. The swap `LIMIT` should always be larger than **-m**
+(**--memory**) option. The swap `LIMIT` should always be larger than **-m**
 (**--memory**) value.  By default, the swap `LIMIT` will be set to double
 the value of --memory.
 
@@ -424,7 +424,8 @@ Valid _mode_ values are:
 container full access to local system services such as D-bus and is therefore
 considered insecure.
 - **ns:**_path_: path to a network namespace to join.
-- **private**: create a new namespace for the container (default).
+- **private**: create a new namespace for the container (default)
+- **\<network name|ID\>**: Join the network with the given name or ID, e.g. use `--network mynet` to join the network with the name mynet. Only supported for rootful users.
 
 #### **--no-cache**
 
@@ -454,7 +455,7 @@ architecture of the host (for example `linux/arm`). If `--platform` is set,
 then the values of the `--arch`, `--os`, and `--variant` options will be
 overridden.
 
-The `--platform` flag can be specified more than once, or given a
+The `--platform` option can be specified more than once, or given a
 comma-separated list of values as its argument.  When more than one platform is
 specified, the `--manifest` option should be used instead of the `--tag`
 option.
@@ -471,23 +472,21 @@ the help of emulation provided by packages like `qemu-user-static`.
 
 #### **--pull**
 
-When the option is specified or set to "true", pull the image.  Raise an error
-if the image could not be pulled, even if the image is present locally.
+When the option is enabled or set explicitly to `true` (with *--pull=true*)
+pull the image from the first registry it is found in as listed in registries.conf.
+Raise an error if the image could not be pulled, even if the image is present locally.
 
-If the option is disabled (with *--pull=false*) or not specified, pull the
-image from the registry only if the image is not present locally. Raise an
-error if the image is not found in the registries and is not present locally.
+If the option is disabled (with *--pull=false*), pull the image from the
+registry only if the image is not present locally. Raise an error if the image is not
+in the registries and not present locally.
 
-#### **--pull-always**
+If the pull option is set to `always` (with *--pull=always*),
+pull the image from the first registry it is found in as listed in registries.conf.
+Raise an error if not found in the registries, even if the image is present locally.
 
-Pull the image from the first registry it is found in as listed in
-registries.conf. Raise an error if not found in the registries, even if the
-image is present locally.
-
-#### **--pull-never**
-
-Do not pull the image from the registry, use only the local version. Raise an
-error if the image is not present locally.
+If the pull option is set to `never` (with *--pull=never*),
+Do not pull the image from the registry, use only the local version. Raise an error
+if the image is not present locally.
 
 #### **--quiet**, **-q**
 
@@ -513,7 +512,7 @@ Pass secret information to be used in the Containerfile for building images
 in a safe way that will not end up stored in the final image, or be seen in other stages.
 The secret will be mounted in the container at the default location of `/run/secrets/id`.
 
-To later use the secret, use the --mount flag in a `RUN` instruction within a `Containerfile`:
+To later use the secret, use the --mount option in a `RUN` instruction within a `Containerfile`:
 
 `RUN --mount=type=secret,id=mysecret cat /run/secrets/mysecret`
 
@@ -564,7 +563,7 @@ image) into a single new layer.
 SSH agent socket or keys to expose to the build.
 The socket path can be left empty to use the value of `default=$SSH_AUTH_SOCK`
 
-To later use the ssh agent, use the --mount flag in a `RUN` instruction within a `Containerfile`:
+To later use the ssh agent, use the --mount option in a `RUN` instruction within a `Containerfile`:
 
 `RUN --mount=type=ssh,id=id mycmd`
 
@@ -889,6 +888,8 @@ $ podman build --no-cache -t imageName .
 $ podman build --layers --force-rm -t imageName .
 
 $ podman build --no-cache --rm=false -t imageName .
+
+$ podman build --network mynet .
 ```
 
 ### Building a multi-architecture image using the --manifest option (requires emulation software)
@@ -954,7 +955,7 @@ $ podman build -f dev/Containerfile https://10.10.10.1/podman/context.tar.gz
 ### .containerignore/.dockerignore
 
 If the file *.containerignore* or *.dockerignore* exists in the context directory,
-`podman build` reads its contents. Use the `--ignorefile` flag to override the
+`podman build` reads its contents. Use the `--ignorefile` option to override the
 .containerignore path location.
 Podman uses the content to exclude files and directories from the context
 directory, when executing COPY and ADD directives in the

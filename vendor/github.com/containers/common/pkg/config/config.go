@@ -181,11 +181,6 @@ type ContainersConfig struct {
 	// performance implications.
 	PrepareVolumeOnCreate bool `toml:"prepare_volume_on_create,omitempty"`
 
-	// RootlessNetworking depicts the "kind" of networking for rootless
-	// containers.  Valid options are `slirp4netns` and `cni`. Default is
-	// `slirp4netns` on Linux, and `cni` on non-Linux OSes.
-	RootlessNetworking string `toml:"rootless_networking,omitempty"`
-
 	// SeccompProfile is the seccomp.json profile path which is used as the
 	// default for the runtime.
 	SeccompProfile string `toml:"seccomp_profile,omitempty"`
@@ -1193,7 +1188,7 @@ func (c *Config) FindHelperBinary(name string, searchPATH bool) (string, error) 
 	return "", errors.Errorf("could not find %q in one of %v.  %s", name, c.Engine.HelperBinariesDir, configHint)
 }
 
-// ImageCopyTmpDir default directory to store tempory image files during copy
+// ImageCopyTmpDir default directory to store temporary image files during copy
 func (c *Config) ImageCopyTmpDir() (string, error) {
 	if path, found := os.LookupEnv("TMPDIR"); found {
 		return path, nil

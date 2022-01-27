@@ -316,7 +316,7 @@ func GetCacheMount(args []string, store storage.Store, imageMountLabel string, a
 			UID: uid,
 			GID: gid,
 		}
-		//buildkit parity: change uid and gid if specificed otheriwise keep `0`
+		//buildkit parity: change uid and gid if specified otheriwise keep `0`
 		err = idtools.MkdirAllAndChownNew(newMount.Source, os.FileMode(mode), idPair)
 		if err != nil {
 			return newMount, errors.Wrapf(err, "Unable to change uid,gid of cache directory")

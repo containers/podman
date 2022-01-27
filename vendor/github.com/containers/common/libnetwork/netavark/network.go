@@ -25,11 +25,13 @@ type netavarkNetwork struct {
 	// networkRunDir is where temporary files are stored, i.e.the ipam db, aardvark config etc
 	networkRunDir string
 
-	// tells netavark wheather this is rootless mode or rootfull, "true" or "false"
+	// tells netavark whether this is rootless mode or rootfull, "true" or "false"
 	networkRootless bool
 
 	// netavarkBinary is the path to the netavark binary.
 	netavarkBinary string
+	// aardvarkBinary is the path to the aardvark binary.
+	aardvarkBinary string
 
 	// defaultNetwork is the name for the default network.
 	defaultNetwork string
@@ -59,6 +61,8 @@ type InitConfig struct {
 
 	// NetavarkBinary is the path to the netavark binary.
 	NetavarkBinary string
+	// AardvarkBinary is the path to the aardvark binary.
+	AardvarkBinary string
 
 	// NetworkRunDir is where temporary files are stored, i.e.the ipam db, aardvark config
 	NetworkRunDir string
@@ -108,6 +112,7 @@ func NewNetworkInterface(conf *InitConfig) (types.ContainerNetwork, error) {
 		networkConfigDir: conf.NetworkConfigDir,
 		networkRunDir:    conf.NetworkRunDir,
 		netavarkBinary:   conf.NetavarkBinary,
+		aardvarkBinary:   conf.AardvarkBinary,
 		networkRootless:  unshare.IsRootless(),
 		ipamDBPath:       filepath.Join(conf.NetworkRunDir, "ipam.db"),
 		defaultNetwork:   defaultNetworkName,

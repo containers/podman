@@ -31,6 +31,11 @@ const (
 	netavarkConfigDir = "/etc/containers/networks"
 	// netavarkRunDir is the run directory for the rootful temporary network files such as the ipam db
 	netavarkRunDir = "/run/containers/networks"
+
+	// netavarkBinary is the name of the netavark binary
+	netavarkBinary = "netavark"
+	// aardvarkBinary is the name of the aardvark binary
+	aardvarkBinary = "aardvark-dns"
 )
 
 // NetworkBackend returns the network backend name and interface
@@ -51,9 +56,15 @@ func NetworkBackend(store storage.Store, conf *config.Config, syslog bool) (type
 
 	switch backend {
 	case types.Netavark:
-		netavarkBin, err := conf.FindHelperBinary("netavark", false)
+		netavarkBin, err := conf.FindHelperBinary(netavarkBinary, false)
 		if err != nil {
 			return "", nil, err
+		}
+
+		aardvarkBin, err := conf.FindHelperBinary(aardvarkBinary, false)
+		if err != nil {
+			// this is not a fatal error we can still use netavark without dns
+			logrus.Warnf("%s binary not found, container dns will not be enabled", aardvarkBin)
 		}
 
 		confDir := conf.Network.NetworkConfigDir
@@ -74,6 +85,7 @@ func NetworkBackend(store storage.Store, conf *config.Config, syslog bool) (type
 			NetworkConfigDir: confDir,
 			NetworkRunDir:    runDir,
 			NetavarkBinary:   netavarkBin,
+			AardvarkBinary:   aardvarkBin,
 			DefaultNetwork:   conf.Network.DefaultNetwork,
 			DefaultSubnet:    conf.Network.DefaultSubnet,
 			Syslog:           syslog,

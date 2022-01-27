@@ -100,7 +100,7 @@ var _ = Describe("Podman build", func() {
 
 	It("podman build with logfile", func() {
 		logfile := filepath.Join(podmanTest.TempDir, "logfile")
-		session := podmanTest.Podman([]string{"build", "--pull-never", "--tag", "test", "--logfile", logfile, "build/basicalpine"})
+		session := podmanTest.Podman([]string{"build", "--pull=never", "--tag", "test", "--logfile", logfile, "build/basicalpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
@@ -123,7 +123,7 @@ var _ = Describe("Podman build", func() {
 	// If the context directory is pointing at a file and not a directory,
 	// that's a no no, fail out.
 	It("podman build context directory a file", func() {
-		session := podmanTest.Podman([]string{"build", "--pull-never", "build/context_dir_a_file"})
+		session := podmanTest.Podman([]string{"build", "--pull=never", "build/context_dir_a_file"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(125))
 	})
@@ -305,6 +305,30 @@ RUN exit 5`, ALPINE)
 		inspect := podmanTest.Podman([]string{"image", "inspect", "--format", "{{ index .Config.Labels }}", "test"})
 		inspect.WaitWithDefaultTimeout()
 		data := inspect.OutputToString()
+		Expect(data).To(ContainSubstring(buildah.Version))
+	})
+
+	It("podman build and check identity with always", func() {
+		// with --pull=always
+		session := podmanTest.Podman([]string{"build", "--pull=always", "-f", "build/basicalpine/Containerfile.path", "--no-cache", "-t", "test1", "build/basicalpine"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// Verify that OS and Arch are being set
+		inspect := podmanTest.Podman([]string{"image", "inspect", "--format", "{{ index .Config.Labels }}", "test1"})
+		inspect.WaitWithDefaultTimeout()
+		data := inspect.OutputToString()
+		Expect(data).To(ContainSubstring(buildah.Version))
+
+		// with --pull-always
+		session = podmanTest.Podman([]string{"build", "--pull-always", "-f", "build/basicalpine/Containerfile.path", "--no-cache", "-t", "test2", "build/basicalpine"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// Verify that OS and Arch are being set
+		inspect = podmanTest.Podman([]string{"image", "inspect", "--format", "{{ index .Config.Labels }}", "test2"})
+		inspect.WaitWithDefaultTimeout()
+		data = inspect.OutputToString()
 		Expect(data).To(ContainSubstring(buildah.Version))
 	})
 

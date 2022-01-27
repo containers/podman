@@ -165,6 +165,11 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		return err
 	}
 
+	// rootless and networks are not supported
+	if len(configureNetworks) > 0 && isolation == IsolationOCIRootless {
+		return errors.New("cannot use networks as rootless")
+	}
+
 	homeDir, err := b.configureUIDGID(g, mountPoint, options)
 	if err != nil {
 		return err
@@ -800,11 +805,10 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 	runtime := options.Runtime
 	if runtime == "" {
 		runtime = util.Runtime()
-
-		localRuntime := util.FindLocalRuntime(runtime)
-		if localRuntime != "" {
-			runtime = localRuntime
-		}
+	}
+	localRuntime := util.FindLocalRuntime(runtime)
+	if localRuntime != "" {
+		runtime = localRuntime
 	}
 
 	// Default to just passing down our stdio.
@@ -1687,7 +1691,7 @@ func (b *Builder) configureNamespaces(g *generate.Generator, options *RunOptions
 	namespaceOptions.AddOrReplace(options.NamespaceOptions...)
 
 	networkPolicy := options.ConfigureNetwork
-	//Nothing was specified explictily so network policy should be inherited from builder
+	//Nothing was specified explicitly so network policy should be inherited from builder
 	if networkPolicy == NetworkDefault {
 		networkPolicy = b.ConfigureNetwork
 
@@ -1788,7 +1792,7 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 
 	parseMount := func(mountType, host, container string, options []string) (specs.Mount, error) {
 		var foundrw, foundro, foundz, foundZ, foundO, foundU bool
-		var rootProp string
+		var rootProp, upperDir, workDir string
 		for _, opt := range options {
 			switch opt {
 			case "rw":
@@ -1805,6 +1809,19 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 				foundU = true
 			case "private", "rprivate", "slave", "rslave", "shared", "rshared":
 				rootProp = opt
+			}
+
+			if strings.HasPrefix(opt, "upperdir") {
+				splitOpt := strings.SplitN(opt, "=", 2)
+				if len(splitOpt) > 1 {
+					upperDir = splitOpt[1]
+				}
+			}
+			if strings.HasPrefix(opt, "workdir") {
+				splitOpt := strings.SplitN(opt, "=", 2)
+				if len(splitOpt) > 1 {
+					workDir = splitOpt[1]
+				}
 			}
 		}
 		if !foundrw && !foundro {
@@ -1826,6 +1843,10 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 			}
 		}
 		if foundO {
+			if (upperDir != "" && workDir == "") || (workDir != "" && upperDir == "") {
+				return specs.Mount{}, errors.New("if specifying upperdir then workdir must be specified or vice versa")
+			}
+
 			containerDir, err := b.store.ContainerDirectory(b.ContainerID)
 			if err != nil {
 				return specs.Mount{}, err
@@ -1836,7 +1857,14 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 				return specs.Mount{}, errors.Wrapf(err, "failed to create TempDir in the %s directory", containerDir)
 			}
 
-			overlayMount, err := overlay.Mount(contentDir, host, container, rootUID, rootGID, b.store.GraphOptions())
+			overlayOpts := overlay.Options{RootUID: rootUID,
+				RootGID:                rootGID,
+				UpperDirOptionFragment: upperDir,
+				WorkDirOptionFragment:  workDir,
+				GraphOpts:              b.store.GraphOptions(),
+			}
+
+			overlayMount, err := overlay.MountWithOptions(contentDir, host, container, &overlayOpts)
 			if err == nil {
 				b.TempVolumes[contentDir] = true
 			}
@@ -2321,8 +2349,7 @@ func checkAndOverrideIsolationOptions(isolation define.Isolation, options *RunOp
 		if ns := options.NamespaceOptions.Find(string(specs.NetworkNamespace)); ns != nil {
 			hostNetworking = ns.Host
 			networkNamespacePath = ns.Path
-			if !hostNetworking && networkNamespacePath != "" && !filepath.IsAbs(networkNamespacePath) {
-				logrus.Debugf("Disabling network namespace configuration.")
+			if hostNetworking {
 				networkNamespacePath = ""
 			}
 		}

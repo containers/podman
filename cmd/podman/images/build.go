@@ -354,15 +354,18 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		return nil, errors.Errorf("can only set one of 'pull' or 'pull-always' or 'pull-never'")
 	}
 
+	// Allow for --pull, --pull=true, --pull=false, --pull=never, --pull=always
+	// --pull-always and --pull-never.  The --pull-never and --pull-always options
+	// will not be documented.
 	pullPolicy := buildahDefine.PullIfMissing
-	if c.Flags().Changed("pull") && flags.Pull {
+	if c.Flags().Changed("pull") && strings.EqualFold(strings.TrimSpace(flags.Pull), "true") {
 		pullPolicy = buildahDefine.PullAlways
 	}
-	if flags.PullAlways {
+	if flags.PullAlways || strings.EqualFold(strings.TrimSpace(flags.Pull), "always") {
 		pullPolicy = buildahDefine.PullAlways
 	}
 
-	if flags.PullNever {
+	if flags.PullNever || strings.EqualFold(strings.TrimSpace(flags.Pull), "never") {
 		pullPolicy = buildahDefine.PullNever
 	}
 
