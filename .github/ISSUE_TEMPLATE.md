@@ -27,6 +27,14 @@ maintainers are best equipped to handle these bugs.
 
 /kind feature
 
+**Platforms**
+
+/kind linux
+
+/kind macos
+
+/kind windows
+
 **Description**
 
 <!--
