@@ -1,0 +1,10 @@
+# List of labels which should be assigned to issues based on a regex
+windows:
+  - 'Os\/Arch:\s*windows'
+
+macos:
+  - 'Os\/Arch:\s*darwin'
+
+remote:
+  # podman-remote version prints Client:\nVersion:...
+  - 'Client:\sVersion:'
