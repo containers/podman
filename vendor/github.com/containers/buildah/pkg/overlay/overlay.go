@@ -18,6 +18,40 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// Options type holds various configuration options for overlay
+// MountWithOptions accepts following type so it is easier to specify
+// more verbose configuration for overlay mount.
+type Options struct {
+	// The Upper directory is normally writable layer in an overlay mount.
+	// Note!! : Following API does not handles escaping or validates correctness of the values
+	// passed to UpperDirOptionFragment instead API will try to pass values as is it
+	// to the `mount` command. It is user's responsibility to make sure they pre-validate
+	// these values. Invalid inputs may lead to undefined behviour.
+	// This is provided as-is, use it if it works for you, we can/will change/break that in the future.
+	// See discussion here for more context: https://github.com/containers/buildah/pull/3715#discussion_r786036959
+	// TODO: Should we address above comment and handle escaping of metacharacters like
+	// `comma`, `backslash` ,`colon` and any other special characters
+	UpperDirOptionFragment string
+	// The Workdir is used to prepare files as they are switched between the layers.
+	// Note!! : Following API does not handles escaping or validates correctness of the values
+	// passed to WorkDirOptionFragment instead API will try to pass values as is it
+	// to the `mount` command. It is user's responsibility to make sure they pre-validate
+	// these values. Invalid inputs may lead to undefined behviour.
+	// This is provided as-is, use it if it works for you, we can/will change/break that in the future.
+	// See discussion here for more context: https://github.com/containers/buildah/pull/3715#discussion_r786036959
+	// TODO: Should we address above comment and handle escaping of metacharacters like
+	// `comma`, `backslash` ,`colon` and any other special characters
+	WorkDirOptionFragment string
+	// Graph options relayed from podman, will be responsible for choosing mount program
+	GraphOpts []string
+	// Mark if following overlay is read only
+	ReadOnly bool
+	// RootUID is not used yet but keeping it here for legacy reasons.
+	RootUID int
+	// RootGID is not used yet but keeping it here for legacy reasons.
+	RootGID int
+}
+
 // TempDir generates an overlay Temp directory in the container content
 func TempDir(containerDir string, rootUID, rootGID int) (string, error) {
 	contentDir := filepath.Join(containerDir, "overlay")
@@ -65,7 +99,8 @@ func generateOverlayStructure(containerDir string, rootUID, rootGID int) (string
 // from the source system.  It then mounts up the source directory on to the
 // generated mount point and returns the mount point to the caller.
 func Mount(contentDir, source, dest string, rootUID, rootGID int, graphOptions []string) (mount specs.Mount, Err error) {
-	return mountHelper(contentDir, source, dest, rootUID, rootGID, graphOptions, false)
+	overlayOpts := Options{GraphOpts: graphOptions, ReadOnly: false, RootUID: rootUID, RootGID: rootGID}
+	return MountWithOptions(contentDir, source, dest, &overlayOpts)
 }
 
 // MountReadOnly creates a subdir of the contentDir based on the source directory
@@ -73,16 +108,21 @@ func Mount(contentDir, source, dest string, rootUID, rootGID int, graphOptions [
 // generated mount point and returns the mount point to the caller.  Note that no
 // upper layer will be created rendering it a read-only mount
 func MountReadOnly(contentDir, source, dest string, rootUID, rootGID int, graphOptions []string) (mount specs.Mount, Err error) {
-	return mountHelper(contentDir, source, dest, rootUID, rootGID, graphOptions, true)
+	overlayOpts := Options{GraphOpts: graphOptions, ReadOnly: true, RootUID: rootUID, RootGID: rootGID}
+	return MountWithOptions(contentDir, source, dest, &overlayOpts)
 }
 
-// NOTE: rootUID and rootUID are not yet used.
-func mountHelper(contentDir, source, dest string, _, _ int, graphOptions []string, readOnly bool) (mount specs.Mount, Err error) {
+// MountWithOptions creates a subdir of the contentDir based on the source directory
+// from the source system.  It then mounts up the source directory on to the
+// generated mount point and returns the mount point to the caller.
+// But allows api to set custom workdir, upperdir and other overlay options
+// Following API is being used by podman at the moment
+func MountWithOptions(contentDir, source, dest string, opts *Options) (mount specs.Mount, Err error) {
 	mergeDir := filepath.Join(contentDir, "merge")
 
 	// Create overlay mount options for rw/ro.
 	var overlayOptions string
-	if readOnly {
+	if opts.ReadOnly {
 		// Read-only overlay mounts require two lower layer.
 		lowerTwo := filepath.Join(contentDir, "lower")
 		if err := os.Mkdir(lowerTwo, 0755); err != nil {
@@ -93,6 +133,12 @@ func mountHelper(contentDir, source, dest string, _, _ int, graphOptions []strin
 		// Read-write overlay mounts want a lower, upper and a work layer.
 		workDir := filepath.Join(contentDir, "work")
 		upperDir := filepath.Join(contentDir, "upper")
+
+		if opts.WorkDirOptionFragment != "" && opts.UpperDirOptionFragment != "" {
+			workDir = opts.WorkDirOptionFragment
+			upperDir = opts.UpperDirOptionFragment
+		}
+
 		st, err := os.Stat(source)
 		if err != nil {
 			return mount, err
@@ -117,7 +163,7 @@ func mountHelper(contentDir, source, dest string, _, _ int, graphOptions []strin
 			"overlay2.mount_program": true,
 		}
 
-		for _, i := range graphOptions {
+		for _, i := range opts.GraphOpts {
 			s := strings.SplitN(i, "=", 2)
 			if len(s) != 2 {
 				continue

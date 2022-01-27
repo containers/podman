@@ -87,7 +87,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.0.1
 ## explicit
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.23.1-0.20220112160421-d744ebc4b1d5
+# github.com/containers/buildah v1.24.0
 ## explicit
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -109,7 +109,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.46.1-0.20220119203335-0e7aca71d00a
+# github.com/containers/common v0.47.1
 ## explicit
 github.com/containers/common/libimage
 github.com/containers/common/libimage/manifests
@@ -451,7 +451,7 @@ github.com/imdario/mergo
 github.com/inconshreveable/mousetrap
 # github.com/ishidawataru/sctp v0.0.0-20210226210310-f2269e66cdee
 github.com/ishidawataru/sctp
-# github.com/jinzhu/copier v0.3.4
+# github.com/jinzhu/copier v0.3.5
 github.com/jinzhu/copier
 # github.com/json-iterator/go v1.1.12
 ## explicit
@@ -539,7 +539,7 @@ github.com/onsi/ginkgo/reporters/stenographer
 github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable
 github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty
 github.com/onsi/ginkgo/types
-# github.com/onsi/gomega v1.17.0 => github.com/onsi/gomega v1.16.0
+# github.com/onsi/gomega v1.18.0 => github.com/onsi/gomega v1.16.0
 ## explicit
 github.com/onsi/gomega
 github.com/onsi/gomega/format

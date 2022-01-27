@@ -304,9 +304,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 					// and value, or just an argument, since they can be
 					// separated by either "=" or whitespace.
 					list := strings.SplitN(arg.Value, "=", 2)
-					if _, stillUnused := exec.unusedArgs[list[0]]; stillUnused {
-						delete(exec.unusedArgs, list[0])
-					}
+					delete(exec.unusedArgs, list[0])
 				}
 			}
 			break

@@ -29,7 +29,7 @@ env:
     PRIOR_FEDORA_NAME: "fedora-34"
     UBUNTU_NAME: "ubuntu-2110"
 
-    IMAGE_SUFFIX: "c6226133906620416"
+    IMAGE_SUFFIX: "c4560539387953152"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
@@ -128,13 +128,35 @@ vendor_task:
         - './hack/tree_status.sh'
 
 
+# Confirm cross-compile ALL architectures on a Mac OS-X VM.
+cross_build_task:
+    name: "Cross Compile"
+    alias: cross_build
+    only_if: &not_docs $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
+
+    osx_instance:
+        image: 'big-sur-base'
+
+    script:
+        - brew update
+        - brew install go
+        - brew install go-md2man
+        - brew install gpgme
+        - go version
+        - make cross CGO_ENABLED=0
+
+    binary_artifacts:
+        path: ./bin/*
+
+
 unit_task:
     name: 'Unit tests w/ $STORAGE_DRIVER'
     alias: unit
-    only_if: &not_docs $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
-    depends_on:
+    only_if: *not_docs
+    depends_on: &smoke_vendor_cross
       - smoke
       - vendor
+      - cross_build
 
     timeout_in: 1h
 
@@ -156,8 +178,7 @@ conformance_task:
     name: 'Build Conformance w/ $STORAGE_DRIVER'
     alias: conformance
     only_if: *not_docs
-    depends_on:
-      - unit
+    depends_on: *smoke_vendor_cross
 
     gce_instance:
         image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
@@ -174,36 +195,11 @@ conformance_task:
     conformance_test_script: '${SCRIPT_BASE}/test.sh conformance |& ${_TIMESTAMP}'
 
 
-# Confirm cross-compile ALL architectures on a Mac OS-X VM.
-cross_build_task:
-    name: "Cross Compile"
-    alias: cross_build
-    only_if: *not_docs
-    depends_on:
-      - unit
-
-    osx_instance:
-        image: 'big-sur-base'
-
-    script:
-        - brew update
-        - brew install go
-        - brew install go-md2man
-        - brew install gpgme
-        - go version
-        - make cross CGO_ENABLED=0
-
-    binary_artifacts:
-        path: ./bin/*
-
-
 integration_task:
     name: "Integration $DISTRO_NV w/ $STORAGE_DRIVER"
     alias: integration
     only_if: *not_docs
-    depends_on:
-      - smoke
-      - vendor
+    depends_on: *smoke_vendor_cross
 
     matrix:
         # VFS
@@ -259,9 +255,7 @@ in_podman_task:
     name: "Containerized Integration"
     alias: in_podman
     only_if: *not_docs
-    depends_on:
-      - smoke
-      - vendor
+    depends_on: *smoke_vendor_cross
 
     env:
         # This is key, cause the scripts to re-execute themselves inside a container.

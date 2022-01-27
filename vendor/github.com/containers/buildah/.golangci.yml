@@ -7,18 +7,7 @@ run:
   # Don't exceed number of threads available when running under CI
   concurrency: 4
 linters:
-  enable-all: true
-  disable:
-    # All these break for one reason or another
-    - dupl
-    - funlen
-    - gochecknoglobals
-    - gochecknoinits
-    - goconst
-    - gocritic
-    - gocyclo
-    - gosec
-    - lll
-    - maligned
-    - prealloc
-    - scopelint
+  enable:
+    - revive
+    - unconvert
+    - unparam

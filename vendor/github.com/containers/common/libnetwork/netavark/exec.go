@@ -107,7 +107,7 @@ func (n *netavarkNetwork) execNetavark(args []string, stdin, result interface{})
 		logWriter = io.MultiWriter(logWriter, &logrusNetavarkWriter{})
 	}
 
-	cmd := exec.Command(n.netavarkBinary, args...)
+	cmd := exec.Command(n.netavarkBinary, append(n.getCommonNetavarkOptions(), args...)...)
 	// connect the pipes to stdin and stdout
 	cmd.Stdin = stdinR
 	cmd.Stdout = stdoutW

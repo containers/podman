@@ -123,8 +123,8 @@ func isRegistryBlocked(registry string, sc *types.SystemContext) (bool, error) {
 
 // isReferenceSomething checks if the registry part of a reference is insecure or blocked
 func isReferenceSomething(ref types.ImageReference, sc *types.SystemContext, what func(string, *types.SystemContext) (bool, error)) (bool, error) {
-	if ref != nil && ref.DockerReference() != nil {
-		if named, ok := ref.DockerReference().(reference.Named); ok {
+	if ref != nil {
+		if named := ref.DockerReference(); named != nil {
 			if domain := reference.Domain(named); domain != "" {
 				return what(domain, sc)
 			}

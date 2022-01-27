@@ -177,23 +177,22 @@ func DefaultConfig() (*Config, error) {
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 				"TERM=xterm",
 			},
-			EnvHost:            false,
-			HTTPProxy:          true,
-			Init:               false,
-			InitPath:           "",
-			IPCNS:              "private",
-			LogDriver:          defaultLogDriver(),
-			LogSizeMax:         DefaultLogSizeMax,
-			NetNS:              "private",
-			NoHosts:            false,
-			PidsLimit:          DefaultPidsLimit,
-			PidNS:              "private",
-			RootlessNetworking: getDefaultRootlessNetwork(),
-			ShmSize:            DefaultShmSize,
-			TZ:                 "",
-			Umask:              "0022",
-			UTSNS:              "private",
-			UserNSSize:         DefaultUserNSSize,
+			EnvHost:    false,
+			HTTPProxy:  true,
+			Init:       false,
+			InitPath:   "",
+			IPCNS:      "private",
+			LogDriver:  defaultLogDriver(),
+			LogSizeMax: DefaultLogSizeMax,
+			NetNS:      "private",
+			NoHosts:    false,
+			PidsLimit:  DefaultPidsLimit,
+			PidNS:      "private",
+			ShmSize:    DefaultShmSize,
+			TZ:         "",
+			Umask:      "0022",
+			UTSNS:      "private",
+			UserNSSize: DefaultUserNSSize,
 		},
 		Network: NetworkConfig{
 			DefaultNetwork: "podman",
@@ -565,10 +564,4 @@ func (c *Config) LogDriver() string {
 // MachineEnabled returns if podman is running inside a VM or not
 func (c *Config) MachineEnabled() bool {
 	return c.Engine.MachineEnabled
-}
-
-// RootlessNetworking returns the "kind" of networking
-// rootless containers should use
-func (c *Config) RootlessNetworking() string {
-	return c.Containers.RootlessNetworking
 }

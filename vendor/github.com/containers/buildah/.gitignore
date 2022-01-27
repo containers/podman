@@ -4,9 +4,9 @@ docs/*.5
 /buildah
 /imgtype
 /build/
-tests/tools/build
+/tests/tools/build
 Dockerfile*
 !/tests/bud/*/Dockerfile*
 !/tests/conformance/**/Dockerfile*
 *.swp
-result
+/result/

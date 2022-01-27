@@ -441,20 +441,26 @@ func validateIPAddress(val string) (string, error) {
 // SystemContextFromOptions returns a SystemContext populated with values
 // per the input parameters provided by the caller for the use in authentication.
 func SystemContextFromOptions(c *cobra.Command) (*types.SystemContext, error) {
-	certDir, err := c.Flags().GetString("cert-dir")
+	return SystemContextFromFlagSet(c.Flags(), c.Flag)
+}
+
+// SystemContextFromFlagSet returns a SystemContext populated with values
+// per the input parameters provided by the caller for the use in authentication.
+func SystemContextFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name string) *pflag.Flag) (*types.SystemContext, error) {
+	certDir, err := flags.GetString("cert-dir")
 	if err != nil {
 		certDir = ""
 	}
 	ctx := &types.SystemContext{
 		DockerCertPath: certDir,
 	}
-	tlsVerify, err := c.Flags().GetBool("tls-verify")
-	if err == nil && c.Flag("tls-verify").Changed {
+	tlsVerify, err := flags.GetBool("tls-verify")
+	if err == nil && findFlagFunc("tls-verify").Changed {
 		ctx.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!tlsVerify)
 		ctx.OCIInsecureSkipTLSVerify = !tlsVerify
 		ctx.DockerDaemonInsecureSkipTLSVerify = !tlsVerify
 	}
-	disableCompression, err := c.Flags().GetBool("disable-compression")
+	disableCompression, err := flags.GetBool("disable-compression")
 	if err == nil {
 		if disableCompression {
 			ctx.OCIAcceptUncompressedLayers = true
@@ -462,59 +468,59 @@ func SystemContextFromOptions(c *cobra.Command) (*types.SystemContext, error) {
 			ctx.DirForceCompress = true
 		}
 	}
-	creds, err := c.Flags().GetString("creds")
-	if err == nil && c.Flag("creds").Changed {
+	creds, err := flags.GetString("creds")
+	if err == nil && findFlagFunc("creds").Changed {
 		var err error
 		ctx.DockerAuthConfig, err = AuthConfig(creds)
 		if err != nil {
 			return nil, err
 		}
 	}
-	sigPolicy, err := c.Flags().GetString("signature-policy")
-	if err == nil && c.Flag("signature-policy").Changed {
+	sigPolicy, err := flags.GetString("signature-policy")
+	if err == nil && findFlagFunc("signature-policy").Changed {
 		ctx.SignaturePolicyPath = sigPolicy
 	}
-	authfile, err := c.Flags().GetString("authfile")
+	authfile, err := flags.GetString("authfile")
 	if err == nil {
 		ctx.AuthFilePath = getAuthFile(authfile)
 	}
-	regConf, err := c.Flags().GetString("registries-conf")
-	if err == nil && c.Flag("registries-conf").Changed {
+	regConf, err := flags.GetString("registries-conf")
+	if err == nil && findFlagFunc("registries-conf").Changed {
 		ctx.SystemRegistriesConfPath = regConf
 	}
-	regConfDir, err := c.Flags().GetString("registries-conf-dir")
-	if err == nil && c.Flag("registries-conf-dir").Changed {
+	regConfDir, err := flags.GetString("registries-conf-dir")
+	if err == nil && findFlagFunc("registries-conf-dir").Changed {
 		ctx.RegistriesDirPath = regConfDir
 	}
-	shortNameAliasConf, err := c.Flags().GetString("short-name-alias-conf")
-	if err == nil && c.Flag("short-name-alias-conf").Changed {
+	shortNameAliasConf, err := flags.GetString("short-name-alias-conf")
+	if err == nil && findFlagFunc("short-name-alias-conf").Changed {
 		ctx.UserShortNameAliasConfPath = shortNameAliasConf
 	}
 	ctx.DockerRegistryUserAgent = fmt.Sprintf("Buildah/%s", define.Version)
-	if c.Flag("os") != nil && c.Flag("os").Changed {
+	if findFlagFunc("os") != nil && findFlagFunc("os").Changed {
 		var os string
-		if os, err = c.Flags().GetString("os"); err != nil {
+		if os, err = flags.GetString("os"); err != nil {
 			return nil, err
 		}
 		ctx.OSChoice = os
 	}
-	if c.Flag("arch") != nil && c.Flag("arch").Changed {
+	if findFlagFunc("arch") != nil && findFlagFunc("arch").Changed {
 		var arch string
-		if arch, err = c.Flags().GetString("arch"); err != nil {
+		if arch, err = flags.GetString("arch"); err != nil {
 			return nil, err
 		}
 		ctx.ArchitectureChoice = arch
 	}
-	if c.Flag("variant") != nil && c.Flag("variant").Changed {
+	if findFlagFunc("variant") != nil && findFlagFunc("variant").Changed {
 		var variant string
-		if variant, err = c.Flags().GetString("variant"); err != nil {
+		if variant, err = flags.GetString("variant"); err != nil {
 			return nil, err
 		}
 		ctx.VariantChoice = variant
 	}
-	if c.Flag("platform") != nil && c.Flag("platform").Changed {
+	if findFlagFunc("platform") != nil && findFlagFunc("platform").Changed {
 		var specs []string
-		if specs, err = c.Flags().GetStringSlice("platform"); err != nil {
+		if specs, err = flags.GetStringSlice("platform"); err != nil {
 			return nil, err
 		}
 		if len(specs) == 0 || specs[0] == "" {
@@ -664,8 +670,13 @@ func AuthConfig(creds string) (*types.DockerAuthConfig, error) {
 
 // IDMappingOptions parses the build options related to user namespaces and ID mapping.
 func IDMappingOptions(c *cobra.Command, isolation define.Isolation) (usernsOptions define.NamespaceOptions, idmapOptions *define.IDMappingOptions, err error) {
-	user := c.Flag("userns-uid-map-user").Value.String()
-	group := c.Flag("userns-gid-map-group").Value.String()
+	return IDMappingOptionsFromFlagSet(c.Flags(), c.PersistentFlags(), c.Flag)
+}
+
+// IDMappingOptionsFromFlagSet parses the build options related to user namespaces and ID mapping.
+func IDMappingOptionsFromFlagSet(flags *pflag.FlagSet, persistentFlags *pflag.FlagSet, findFlagFunc func(name string) *pflag.Flag) (usernsOptions define.NamespaceOptions, idmapOptions *define.IDMappingOptions, err error) {
+	user := findFlagFunc("userns-uid-map-user").Value.String()
+	group := findFlagFunc("userns-gid-map-group").Value.String()
 	// If only the user or group was specified, use the same value for the
 	// other, since we need both in order to initialize the maps using the
 	// names.
@@ -684,7 +695,7 @@ func IDMappingOptions(c *cobra.Command, isolation define.Isolation) (usernsOptio
 		}
 		mappings = submappings
 	}
-	globalOptions := c.PersistentFlags()
+	globalOptions := persistentFlags
 	// We'll parse the UID and GID mapping options the same way.
 	buildIDMap := func(basemap []idtools.IDMap, option string) ([]specs.LinuxIDMapping, error) {
 		outmap := make([]specs.LinuxIDMapping, 0, len(basemap))
@@ -702,8 +713,8 @@ func IDMappingOptions(c *cobra.Command, isolation define.Isolation) (usernsOptio
 		if globalOptions.Lookup(option) != nil && globalOptions.Lookup(option).Changed {
 			spec, _ = globalOptions.GetStringSlice(option)
 		}
-		if c.Flag(option).Changed {
-			spec, _ = c.Flags().GetStringSlice(option)
+		if findFlagFunc(option).Changed {
+			spec, _ = flags.GetStringSlice(option)
 		}
 		idmap, err := parseIDMap(spec)
 		if err != nil {
@@ -744,8 +755,8 @@ func IDMappingOptions(c *cobra.Command, isolation define.Isolation) (usernsOptio
 	}
 	// If the user specifically requested that we either use or don't use
 	// user namespaces, override that default.
-	if c.Flag("userns").Changed {
-		how := c.Flag("userns").Value.String()
+	if findFlagFunc("userns").Changed {
+		how := findFlagFunc("userns").Value.String()
 		switch how {
 		case "", "container", "private":
 			usernsOption.Host = false
@@ -814,8 +825,6 @@ func NamespaceOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name st
 		if flags.Lookup(what) != nil && findFlagFunc(what).Changed {
 			how := findFlagFunc(what).Value.String()
 			switch what {
-			case "network":
-				what = string(specs.NetworkNamespace)
 			case "cgroupns":
 				what = string(specs.CgroupNamespace)
 			}
@@ -845,8 +854,11 @@ func NamespaceOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name st
 					}
 				}
 				how = strings.TrimPrefix(how, "ns:")
-				if _, err := os.Stat(how); err != nil {
-					return nil, define.NetworkDefault, errors.Wrapf(err, "checking %s namespace", what)
+				// if not a path we assume it is a comma separated network list, see setupNamespaces() in run_linux.go
+				if filepath.IsAbs(how) || what != string(specs.NetworkNamespace) {
+					if _, err := os.Stat(how); err != nil {
+						return nil, define.NetworkDefault, errors.Wrapf(err, "checking %s namespace", what)
+					}
 				}
 				policy = define.NetworkEnabled
 				logrus.Debugf("setting %q namespace to %q", what, how)

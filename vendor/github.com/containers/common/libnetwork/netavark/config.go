@@ -74,7 +74,7 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 	// Therefore the next podman command tries to create the default net again and it would
 	// fail because it thinks the network is used on the host.
 	var usedNetworks []*net.IPNet
-	if !defaultNet {
+	if !defaultNet && newNetwork.Driver == types.BridgeNetworkDriver {
 		usedNetworks, err = internalutil.GetUsedSubnets(n)
 		if err != nil {
 			return nil, err

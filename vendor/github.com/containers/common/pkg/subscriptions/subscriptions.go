@@ -149,14 +149,15 @@ func getMountsMap(path string) (string, string, error) { //nolint
 
 // MountsWithUIDGID copies, adds, and mounts the subscriptions to the container root filesystem
 // mountLabel: MAC/SELinux label for container content
-// containerWorkingDir: Private data for storing subscriptions on the host mounted in container.
+// containerRunDir: Private data for storing subscriptions on the host mounted in container.
 // mountFile: Additional mount points required for the container.
-// mountPoint: Container image mountpoint
+// mountPoint: Container image mountpoint, or the directory from the hosts perspective that
+//   corresponds to `/` in the container.
 // uid: to assign to content created for subscriptions
 // gid: to assign to content created for subscriptions
 // rootless: indicates whether container is running in rootless mode
 // disableFips: indicates whether system should ignore fips mode
-func MountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPoint string, uid, gid int, rootless, disableFips bool) []rspec.Mount {
+func MountsWithUIDGID(mountLabel, containerRunDir, mountFile, mountPoint string, uid, gid int, rootless, disableFips bool) []rspec.Mount {
 	var (
 		subscriptionMounts []rspec.Mount
 		mountFiles         []string
@@ -174,7 +175,7 @@ func MountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPoint str
 	}
 	for _, file := range mountFiles {
 		if _, err := os.Stat(file); err == nil {
-			mounts, err := addSubscriptionsFromMountsFile(file, mountLabel, containerWorkingDir, uid, gid)
+			mounts, err := addSubscriptionsFromMountsFile(file, mountLabel, containerRunDir, uid, gid)
 			if err != nil {
 				logrus.Warnf("Failed to mount subscriptions, skipping entry in %s: %v", file, err)
 			}
@@ -191,7 +192,7 @@ func MountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPoint str
 	_, err := os.Stat("/etc/system-fips")
 	switch {
 	case err == nil:
-		if err := addFIPSModeSubscription(&subscriptionMounts, containerWorkingDir, mountPoint, mountLabel, uid, gid); err != nil {
+		if err := addFIPSModeSubscription(&subscriptionMounts, containerRunDir, mountPoint, mountLabel, uid, gid); err != nil {
 			logrus.Errorf("Adding FIPS mode subscription to container: %v", err)
 		}
 	case os.IsNotExist(err):
@@ -210,7 +211,7 @@ func rchown(chowndir string, uid, gid int) error {
 
 // addSubscriptionsFromMountsFile copies the contents of host directory to container directory
 // and returns a list of mounts
-func addSubscriptionsFromMountsFile(filePath, mountLabel, containerWorkingDir string, uid, gid int) ([]rspec.Mount, error) {
+func addSubscriptionsFromMountsFile(filePath, mountLabel, containerRunDir string, uid, gid int) ([]rspec.Mount, error) {
 	var mounts []rspec.Mount
 	defaultMountsPaths := getMounts(filePath)
 	for _, path := range defaultMountsPaths {
@@ -228,7 +229,7 @@ func addSubscriptionsFromMountsFile(filePath, mountLabel, containerWorkingDir st
 			return nil, err
 		}
 
-		ctrDirOrFileOnHost := filepath.Join(containerWorkingDir, ctrDirOrFile)
+		ctrDirOrFileOnHost := filepath.Join(containerRunDir, ctrDirOrFile)
 
 		// In the event of a restart, don't want to copy subscriptions over again as they already would exist in ctrDirOrFileOnHost
 		_, err = os.Stat(ctrDirOrFileOnHost)
@@ -300,13 +301,17 @@ func addSubscriptionsFromMountsFile(filePath, mountLabel, containerWorkingDir st
 	return mounts, nil
 }
 
-// addFIPSModeSubscription creates /run/secrets/system-fips in the container
-// root filesystem if /etc/system-fips exists on hosts.
-// This enables the container to be FIPS compliant and run openssl in
-// FIPS mode as the host is also in FIPS mode.
-func addFIPSModeSubscription(mounts *[]rspec.Mount, containerWorkingDir, mountPoint, mountLabel string, uid, gid int) error {
+// addFIPSModeSubscription adds mounts to the `mounts` slice that are needed for the container to run openssl in FIPs mode
+// (i.e: be FIPs compliant).
+// It should only be called if /etc/system-fips exists on host.
+// It primarily does two things:
+// - creates /run/secrets/system-fips in the container root filesystem, and adds it to the `mounts` slice.
+// - If `/etc/crypto-policies/back-ends` already exists inside of the container, it creates
+//   `/usr/share/crypto-policies/back-ends/FIPS` inside the container as well.
+//   It is done from within the container to ensure to avoid policy incompatibility between the container and host.
+func addFIPSModeSubscription(mounts *[]rspec.Mount, containerRunDir, mountPoint, mountLabel string, uid, gid int) error {
 	subscriptionsDir := "/run/secrets"
-	ctrDirOnHost := filepath.Join(containerWorkingDir, subscriptionsDir)
+	ctrDirOnHost := filepath.Join(containerRunDir, subscriptionsDir)
 	if _, err := os.Stat(ctrDirOnHost); os.IsNotExist(err) {
 		if err = idtools.MkdirAllAs(ctrDirOnHost, 0755, uid, gid); err != nil { //nolint
 			return err
@@ -322,7 +327,7 @@ func addFIPSModeSubscription(mounts *[]rspec.Mount, containerWorkingDir, mountPo
 		if err != nil {
 			return errors.Wrap(err, "creating system-fips file in container for FIPS mode")
 		}
-		defer file.Close()
+		file.Close()
 	}
 
 	if !mountExists(*mounts, subscriptionsDir) {

@@ -270,7 +270,7 @@ func UnmountMountpoints(mountpoint string, mountpointsToRemove []string) error {
 			}
 			return errors.Wrapf(err, "error checking if %q is mounted", mount.Mountpoint)
 		}
-		if uint64(mount.Major) != uint64(st.Dev) || uint64(mount.Minor) != uint64(st.Dev) { // nolint:unconvert (required for some OS/arch combinations)
+		if uint64(mount.Major) != uint64(st.Dev) || uint64(mount.Minor) != uint64(st.Dev) { //nolint:unconvert // (required for some OS/arch combinations)
 			logrus.Debugf("%q is apparently not really mounted, skipping", mount.Mountpoint)
 			continue
 		}

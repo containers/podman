@@ -11,8 +11,8 @@ require (
 	github.com/container-orchestrated-devices/container-device-interface v0.0.0-20220111162300-46367ec063fd
 	github.com/containernetworking/cni v1.0.1
 	github.com/containernetworking/plugins v1.0.1
-	github.com/containers/buildah v1.23.1-0.20220112160421-d744ebc4b1d5
-	github.com/containers/common v0.46.1-0.20220119203335-0e7aca71d00a
+	github.com/containers/buildah v1.24.0
+	github.com/containers/common v0.47.1
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.19.0
 	github.com/containers/ocicrypt v1.1.2
@@ -44,7 +44,7 @@ require (
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6
 	github.com/mrunalp/fileutils v0.5.0
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.17.0
+	github.com/onsi/gomega v1.18.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.3-0.20220114050600-8b9d41f48198
 	github.com/opencontainers/runc v1.1.0

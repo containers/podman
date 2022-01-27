@@ -55,7 +55,7 @@ func (n *netavarkNetwork) Setup(namespacePath string, options types.SetupOptions
 	}
 
 	result := map[string]types.StatusBlock{}
-	err = n.execNetavark([]string{"--config", n.networkRunDir, "--rootless=" + strconv.FormatBool(n.networkRootless), "setup", namespacePath}, netavarkOpts, &result)
+	err = n.execNetavark([]string{"setup", namespacePath}, netavarkOpts, &result)
 	if err != nil {
 		// lets dealloc ips to prevent leaking
 		if err := n.deallocIPs(&options.NetworkOptions); err != nil {
@@ -95,7 +95,7 @@ func (n *netavarkNetwork) Teardown(namespacePath string, options types.TeardownO
 		return errors.Wrap(err, "failed to convert net opts")
 	}
 
-	retErr := n.execNetavark([]string{"--config", n.networkRunDir, "--rootless=" + strconv.FormatBool(n.networkRootless), "teardown", namespacePath}, netavarkOpts, nil)
+	retErr := n.execNetavark([]string{"teardown", namespacePath}, netavarkOpts, nil)
 
 	// when netavark returned an error we still free the used ips
 	// otherwise we could end up in a state where block the ips forever
@@ -109,6 +109,10 @@ func (n *netavarkNetwork) Teardown(namespacePath string, options types.TeardownO
 	}
 
 	return retErr
+}
+
+func (n *netavarkNetwork) getCommonNetavarkOptions() []string {
+	return []string{"--config", n.networkRunDir, "--rootless=" + strconv.FormatBool(n.networkRootless), "--aardvark-binary=" + n.aardvarkBinary}
 }
 
 func (n *netavarkNetwork) convertNetOpts(opts types.NetworkOptions) (*netavarkOptions, error) {

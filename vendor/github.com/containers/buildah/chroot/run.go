@@ -883,11 +883,14 @@ func setApparmorProfile(spec *specs.Spec) error {
 
 // setCapabilities sets capabilities for ourselves, to be more or less inherited by any processes that we'll start.
 func setCapabilities(spec *specs.Spec, keepCaps ...string) error {
-	currentCaps, err := capability.NewPid(0)
+	currentCaps, err := capability.NewPid2(0)
 	if err != nil {
 		return errors.Wrapf(err, "error reading capabilities of current process")
 	}
-	caps, err := capability.NewPid(0)
+	if err := currentCaps.Load(); err != nil {
+		return errors.Wrapf(err, "error loading capabilities")
+	}
+	caps, err := capability.NewPid2(0)
 	if err != nil {
 		return errors.Wrapf(err, "error reading capabilities of current process")
 	}
@@ -899,7 +902,6 @@ func setCapabilities(spec *specs.Spec, keepCaps ...string) error {
 		capability.AMBIENT:     spec.Process.Capabilities.Ambient,
 	}
 	knownCaps := capability.List()
-	caps.Clear(capability.CAPS | capability.BOUNDS | capability.AMBS)
 	for capType, capList := range capMap {
 		for _, capToSet := range capList {
 			cap := capability.CAP_LAST_CAP

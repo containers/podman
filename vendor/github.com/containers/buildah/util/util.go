@@ -17,7 +17,6 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/pkg/shortnames"
-	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
@@ -48,9 +47,8 @@ var (
 
 // resolveName checks if name is a valid image name, and if that name doesn't
 // include a domain portion, returns a list of the names which it might
-// correspond to in the set of configured registries, the transport used to
-// pull the image, and a boolean which is true iff
-// 1) the list of search registries was used, and 2) it was empty.
+// correspond to in the set of configured registries, and the transport used to
+// pull the image.
 //
 // The returned image names never include a transport: prefix, and if transport != "",
 // (transport, image) should be a valid input to alltransports.ParseImageName.
@@ -59,9 +57,9 @@ var (
 //
 // NOTE: The "list of search registries is empty" check does not count blocked registries,
 // and neither the implied "localhost" nor a possible firstRegistry are counted
-func resolveName(name string, sc *types.SystemContext, store storage.Store) ([]string, string, bool, error) {
+func resolveName(name string, sc *types.SystemContext, store storage.Store) ([]string, string, error) {
 	if name == "" {
-		return nil, "", false, nil
+		return nil, "", nil
 	}
 
 	// Maybe it's a truncated image ID.  Don't prepend a registry name, then.
@@ -69,7 +67,7 @@ func resolveName(name string, sc *types.SystemContext, store storage.Store) ([]s
 		if img, err := store.Image(name); err == nil && img != nil && strings.HasPrefix(img.ID, name) {
 			// It's a truncated version of the ID of an image that's present in local storage;
 			// we need only expand the ID.
-			return []string{img.ID}, "", false, nil
+			return []string{img.ID}, "", nil
 		}
 	}
 	// If we're referring to an image by digest, it *must* be local and we
@@ -77,51 +75,32 @@ func resolveName(name string, sc *types.SystemContext, store storage.Store) ([]s
 	if strings.HasPrefix(name, "sha256:") {
 		d, err := digest.Parse(name)
 		if err != nil {
-			return nil, "", false, err
+			return nil, "", err
 		}
 		img, err := store.Image(d.Encoded())
 		if err != nil {
-			return nil, "", false, err
+			return nil, "", err
 		}
-		return []string{img.ID}, "", false, nil
+		return []string{img.ID}, "", nil
 	}
 
 	// Transports are not supported for local image look ups.
 	srcRef, err := alltransports.ParseImageName(name)
 	if err == nil {
-		return []string{srcRef.StringWithinTransport()}, srcRef.Transport().Name(), false, nil
+		return []string{srcRef.StringWithinTransport()}, srcRef.Transport().Name(), nil
 	}
-
-	// Figure out the list of registries.
-	var registries []string
-	searchRegistries, err := sysregistriesv2.UnqualifiedSearchRegistries(sc)
-	if err != nil {
-		logrus.Debugf("unable to read configured registries to complete %q: %v", name, err)
-		searchRegistries = nil
-	}
-	for _, registry := range searchRegistries {
-		reg, err := sysregistriesv2.FindRegistry(sc, registry)
-		if err != nil {
-			logrus.Debugf("unable to read registry configuration for %#v: %v", registry, err)
-			continue
-		}
-		if reg == nil || !reg.Blocked {
-			registries = append(registries, registry)
-		}
-	}
-	searchRegistriesAreEmpty := len(registries) == 0
 
 	var candidates []string
 	// Local short-name resolution.
 	namedCandidates, err := shortnames.ResolveLocally(sc, name)
 	if err != nil {
-		return nil, "", false, err
+		return nil, "", err
 	}
 	for _, named := range namedCandidates {
 		candidates = append(candidates, named.String())
 	}
 
-	return candidates, DefaultTransport, searchRegistriesAreEmpty, nil
+	return candidates, DefaultTransport, nil
 }
 
 // ExpandNames takes unqualified names, parses them as image names, and returns
@@ -132,7 +111,7 @@ func ExpandNames(names []string, systemContext *types.SystemContext, store stora
 	expanded := make([]string, 0, len(names))
 	for _, n := range names {
 		var name reference.Named
-		nameList, _, _, err := resolveName(n, systemContext, store)
+		nameList, _, err := resolveName(n, systemContext, store)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error parsing name %q", n)
 		}
@@ -183,7 +162,7 @@ func ResolveNameToReferences(
 	systemContext *types.SystemContext,
 	image string,
 ) (refs []types.ImageReference, err error) {
-	names, transport, _, err := resolveName(image, systemContext, store)
+	names, transport, err := resolveName(image, systemContext, store)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error parsing name %q", image)
 	}

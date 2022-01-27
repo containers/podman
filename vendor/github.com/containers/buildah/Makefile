@@ -111,7 +111,6 @@ codespell:
 .PHONY: validate
 validate: install.tools
 	./tests/validate/whitespace.sh
-	./tests/validate/git-validation.sh
 	./hack/xref-helpmsgs-manpages
 	./tests/validate/pr-should-include-tests
 	./tests/validate/buildahimages-are-sane
