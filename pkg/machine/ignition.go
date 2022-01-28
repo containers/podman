@@ -248,6 +248,10 @@ netns="bridge"
 machine_enabled=true
 `
 
+	delegateConf := `[Service]
+Delegate=memory pids cpu io
+`
+
 	// Add a fake systemd service to get the user socket rolling
 	files = append(files, File{
 		Node: Node{
@@ -280,6 +284,24 @@ machine_enabled=true
 			Mode: intToPtr(0744),
 		},
 	})
+
+	// Set delegate.conf so cpu,io subsystem is delegated to non-root users as well for cgroupv2
+	// by default
+	files = append(files, File{
+		Node: Node{
+			Group: getNodeGrp("root"),
+			Path:  "/etc/systemd/system/user@.service.d/delegate.conf",
+			User:  getNodeUsr("root"),
+		},
+		FileEmbedded1: FileEmbedded1{
+			Append: nil,
+			Contents: Resource{
+				Source: encodeDataURLPtr(delegateConf),
+			},
+			Mode: intToPtr(0644),
+		},
+	})
+
 	// Add a file into linger
 	files = append(files, File{
 		Node: Node{
