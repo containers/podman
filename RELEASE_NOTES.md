@@ -6,7 +6,6 @@
 - The `podman network connect` command now supports three new options, `--ip`, `--ip6`, and `--mac-address`, to specify configuration for the new network that will be attached.
 - The `podman network create` command now allows the `--subnet`, `--gateway`, and `--ip-range` options to be specified multiple times, to allow for the creation of dual-stack IPv4 and IPv6 networks with user-specified subnets.
 - The `--network` option to `podman create`, `podman pod create`, `podman run`, and `podman play kube` can now, when specifying a network name, also specify advanced network options such as `alias`, `ip`, `mac`, and `interface_name`, allowing advanced configuration of networks when creating containers connected to more than one network.
-- Root Podman can now forward ports from IPv6 addresses on the host into containers when using the new Netavark network stack.
 - The `podman play kube` command can now specify the `--net` option multiple times, to connect created containers and pods to multiple networks.
 - The `podman create`, `podman pod create`, and `podman run` commands now support a new option, `--ip6`, to specify a static IPv6 address for the created container or pod to use.
 - Macvlan networks can now configure the mode of the network via the `-o mode=` option.
