@@ -25,7 +25,7 @@ man pages.
 ## IMAGE
 
   The image is specified using transport:path format. If no transport is specified, the `docker` (container registry)
-transport will be used by default. For remote Podman, `docker` is the only allowed transport.
+transport will be used by default. For remote Podman, including Mac and Windows (excluding WSL2) machines, `docker` is the only allowed transport.
 
   **dir:**_path_
   An existing local directory _path_ storing the manifest, layer tarballs and signatures as individual files. This
@@ -149,7 +149,7 @@ Write the container ID to the file
 #### **--conmon-pidfile**=*path*
 
 Write the pid of the `conmon` process to a file. `conmon` runs in a separate process than Podman, so this is necessary when using systemd to restart Podman containers.
-(This option is not available with the remote Podman client)
+(This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 #### **--cpu-period**=*limit*
 
@@ -348,7 +348,7 @@ See [**Environment**](#environment) note below for precedence and examples.
 
 #### **--env-host**
 
-Use host environment inside of the container. See **Environment** note below for precedence. (This option is not available with the remote Podman client)
+Use host environment inside of the container. See **Environment** note below for precedence. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 #### **--env-file**=*file*
 
@@ -377,7 +377,7 @@ Allows container to use the user's supplementary group access. If file systems o
 devices are only accessible by the rootless user's group, this flag tells the OCI
 runtime to pass the group access into the container. Currently only available
 with the `crun` OCI runtime. Note: `keep-groups` is exclusive, you cannot add any other groups
-with this flag. (Not available for remote commands)
+with this flag. (Not available for remote commands, including Mac and Windows (excluding WSL2) machines)
 
 #### **--health-cmd**=*"command"* | *'["command", "arg1", ...]'*
 
@@ -432,7 +432,7 @@ the container should not use any proxy. Proxy environment variables specified
 for the container in any other way will override the values that would have
 been passed through from the host. (Other ways to specify the proxy for the
 container include passing the values with the `--env` flag, or hard coding the
-proxy environment at container build time.)  (This option is not available with the remote Podman client)
+proxy environment at container build time.)  (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 For example, to disable passing these environment variables from host to
 container:
@@ -524,7 +524,7 @@ $ podman info --format '{{ .Host.LogDriver }}'
 journald
 ```
 The *passthrough* driver passes down the standard streams (stdin, stdout, stderr) to the
-container.  It is not allowed with the remote Podman client and on a tty, since it is
+container.  It is not allowed with the remote Podman client, including Mac and Windows (excluding WSL2) machines, and on a tty, since it is
 vulnerable to attacks via TIOCSTI.
 
 #### **--log-opt**=*name*=*value*
@@ -1237,7 +1237,7 @@ Create a bind mount. If you specify, ` -v /HOST-DIR:/CONTAINER-DIR`, Podman
 bind mounts `/HOST-DIR` in the host to `/CONTAINER-DIR` in the Podman
 container. Similarly, `-v SOURCE-VOLUME:/CONTAINER-DIR` will mount the volume
 in the host to the container. If no such named volume exists, Podman will
-create one. The `OPTIONS` are a comma-separated list and can be: <sup>[[1]](#Footnote1)</sup>  (Note when using the remote client, the volumes will be mounted from the remote server, not necessarily the client machine.)
+create one. The `OPTIONS` are a comma-separated list and can be: <sup>[[1]](#Footnote1)</sup>  (Note when using the remote client, including Mac and Windows (excluding WSL2) machines, the volumes will be mounted from the remote server, not necessarily the client machine.)
 
 The _options_ is a comma-separated list and can be:
 
@@ -1445,7 +1445,7 @@ can override the working directory by using the **-w** option.
 
 #### **--pidfile**=*path*
 
-When the pidfile location is specified, the container process' PID will be written to the pidfile. (This option is not available with the remote Podman client)
+When the pidfile location is specified, the container process' PID will be written to the pidfile. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 If the pidfile option is not specified, the container process' PID will be written to /run/containers/storage/${storage-driver}-containers/$CID/userdata/pidfile.
 
 After the container is started, the location for the pidfile can be discovered with the following `podman inspect` command:

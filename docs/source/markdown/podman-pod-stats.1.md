@@ -17,7 +17,7 @@ Show all containers.  Only running containers are shown by default
 
 #### **--latest**, **-l**
 
-Instead of providing the pod name or ID, use the last created pod. (This option is not available with the remote Podman client)
+Instead of providing the pod name or ID, use the last created pod. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 #### **--no-reset**
 

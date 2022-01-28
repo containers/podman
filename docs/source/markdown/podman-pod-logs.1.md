@@ -26,7 +26,7 @@ chance that the log file will be removed before `podman pod logs` reads the fina
 
 #### **--latest**, **-l**
 
-Instead of providing the pod name or id, get logs of the last created pod. (This option is not available with the remote Podman client)
+Instead of providing the pod name or id, get logs of the last created pod. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 #### **--since**=*TIMESTAMP*
 
