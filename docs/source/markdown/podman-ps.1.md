@@ -94,7 +94,7 @@ Print the n last created containers (all states)
 
 #### **--latest**, **-l**
 
-Show the latest container created (all states) (This option is not available with the remote Podman client)
+Show the latest container created (all states) (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 #### **--namespace**, **--ns**
 

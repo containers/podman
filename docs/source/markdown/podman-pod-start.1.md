@@ -18,7 +18,7 @@ Starts all pods
 
 #### **--latest**, **-l**
 
-Instead of providing the pod name or ID, start the last created pod. (This option is not available with the remote Podman client)
+Instead of providing the pod name or ID, start the last created pod. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 #### **--pod-id-file**
 

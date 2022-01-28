@@ -10,7 +10,7 @@ podman\-generate\-systemd - Generate systemd unit file(s) for a container or pod
 **podman generate systemd** will create a systemd unit file that can be used to control a container or pod.
 By default, the command will print the content of the unit files to stdout.
 
-_Note: If you use this command with the remote client, you would still have to place the generated units on the remote system.  Moreover, please make sure that the XDG_RUNTIME_DIR environment variable is set.  If unset, you may set it via `export XDG_RUNTIME_DIR=/run/user/$(id -u)`._
+_Note: If you use this command with the remote client, including Mac and Windows (excluding WSL2) machines, you would still have to place the generated units on the remote system.  Moreover, please make sure that the XDG_RUNTIME_DIR environment variable is set.  If unset, you may set it via `export XDG_RUNTIME_DIR=/run/user/$(id -u)`._
 
 ## OPTIONS
 

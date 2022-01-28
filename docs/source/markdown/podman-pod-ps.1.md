@@ -42,7 +42,7 @@ Display the container statuses
 
 #### **--latest**, **-l**
 
-Show the latest pod created (all states) (This option is not available with the remote Podman client)
+Show the latest pod created (all states) (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 #### **--noheading**
 
