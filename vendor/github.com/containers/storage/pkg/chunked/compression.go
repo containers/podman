@@ -87,7 +87,7 @@ func readEstargzChunkedManifest(blobStream ImageSourceSeekable, blobSize int64, 
 	   - 2  bytes  Extra: SI1 = 'S', SI2 = 'G'
 	   - 2  bytes  Extra: LEN = 22 (16 hex digits + len("STARGZ"))
 	   - 22 bytes  Extra: subfield = fmt.Sprintf("%016xSTARGZ", offsetOfTOC)
-	   - 5  bytes  flat header: BFINAL = 1(last block), BTYPE = 0(non-compressed block), LEN = 0
+	   - 5  bytes  flate header: BFINAL = 1(last block), BTYPE = 0(non-compressed block), LEN = 0
 	   - 8  bytes  gzip footer
 	*/
 	tocOffset, err := strconv.ParseInt(string(footer[16:16+22-6]), 16, 64)

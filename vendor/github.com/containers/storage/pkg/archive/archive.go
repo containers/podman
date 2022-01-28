@@ -973,7 +973,10 @@ func Unpack(decompressedArchive io.Reader, dest string, options *TarOptions) err
 	whiteoutConverter := GetWhiteoutConverter(options.WhiteoutFormat, options.WhiteoutData)
 	buffer := make([]byte, 1<<20)
 
+	doChown := !options.NoLchown
 	if options.ForceMask != nil {
+		// if ForceMask is in place, make sure lchown is disabled.
+		doChown = false
 		uid, gid, mode, err := GetFileOwner(dest)
 		if err == nil {
 			value := fmt.Sprintf("%d:%d:0%o", uid, gid, mode)
@@ -1078,7 +1081,7 @@ loop:
 			chownOpts = &idtools.IDPair{UID: hdr.Uid, GID: hdr.Gid}
 		}
 
-		if err := createTarFile(path, dest, hdr, trBuf, !options.NoLchown, chownOpts, options.InUserNS, options.IgnoreChownErrors, options.ForceMask, buffer); err != nil {
+		if err = createTarFile(path, dest, hdr, trBuf, doChown, chownOpts, options.InUserNS, options.IgnoreChownErrors, options.ForceMask, buffer); err != nil {
 			return err
 		}
 
