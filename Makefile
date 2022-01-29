@@ -376,12 +376,22 @@ podman-winpath: .gopathok $(SOURCES) go.mod go.sum
 		./cmd/winpath
 
 .PHONY: podman-remote-darwin
-podman-remote-darwin: ## Build podman-remote for macOS
+podman-remote-darwin: podman-mac-helper ## Build podman-remote for macOS
 	$(MAKE) \
 		CGO_ENABLED=$(DARWIN_GCO) \
 		GOOS=darwin \
 		GOARCH=$(GOARCH) \
 		bin/darwin/podman
+
+.PHONY: podman-mac-helper
+podman-mac-helper: ## Build podman-mac-helper for macOS
+	CGO_ENABLED=0 \
+		GOOS=darwin \
+		GOARCH=$(GOARCH) \
+		$(GO) build \
+		$(BUILDFLAGS) \
+		-o bin/darwin/podman-mac-helper \
+		./cmd/podman-mac-helper
 
 bin/rootlessport: .gopathok $(SOURCES) go.mod go.sum
 	CGO_ENABLED=$(CGO_ENABLED) \
