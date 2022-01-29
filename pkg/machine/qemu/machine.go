@@ -6,10 +6,13 @@ package qemu
 import (
 	"bufio"
 	"encoding/base64"
+	"context"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -39,8 +42,21 @@ func GetQemuProvider() machine.Provider {
 }
 
 const (
-	VolumeTypeVirtfs = "virtfs"
-	MountType9p      = "9p"
+	VolumeTypeVirtfs     = "virtfs"
+	MountType9p          = "9p"
+	dockerSock           = "/var/run/docker.sock"
+	dockerConnectTimeout = 5 * time.Second
+	apiUpTimeout         = 20 * time.Second
+)
+
+type apiForwardingState int
+
+const (
+	noForwarding apiForwardingState = iota
+	claimUnsupported
+	notInstalled
+	machineLocal
+	dockerGlobal
 )
 
 // NewMachine initializes an instance of a virtual machine based on the qemu
@@ -318,7 +334,8 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		wait           time.Duration = time.Millisecond * 500
 	)
 
-	if err := v.startHostNetworking(); err != nil {
+	forwardSock, forwardState, err := v.startHostNetworking()
+	if err != nil {
 		return errors.Errorf("unable to start host networking: %q", err)
 	}
 
@@ -439,6 +456,9 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 			return fmt.Errorf("unknown mount type: %s", mount.Type)
 		}
 	}
+
+	printAPIForwardInstructions(forwardState, forwardSock)
+
 	return nil
 }
 
@@ -869,19 +889,19 @@ func (p *Provider) CheckExclusiveActiveVM() (bool, string, error) {
 
 // startHostNetworking runs a binary on the host system that allows users
 // to setup port forwarding to the podman virtual machine
-func (v *MachineVM) startHostNetworking() error {
+func (v *MachineVM) startHostNetworking() (string, apiForwardingState, error) {
 	cfg, err := config.Default()
 	if err != nil {
-		return err
+		return "", noForwarding, err
 	}
 	binary, err := cfg.FindHelperBinary(machine.ForwarderBinaryName, false)
 	if err != nil {
-		return err
+		return "", noForwarding, err
 	}
 
 	qemuSocket, pidFile, err := v.getSocketandPid()
 	if err != nil {
-		return err
+		return "", noForwarding, err
 	}
 	attr := new(os.ProcAttr)
 	// Pass on stdin, stdout, stderr
@@ -891,12 +911,74 @@ func (v *MachineVM) startHostNetworking() error {
 	cmd = append(cmd, []string{"-listen-qemu", fmt.Sprintf("unix://%s", qemuSocket), "-pid-file", pidFile}...)
 	// Add the ssh port
 	cmd = append(cmd, []string{"-ssh-port", fmt.Sprintf("%d", v.Port)}...)
+
+	cmd, forwardSock, state := v.setupAPIForwarding(cmd)
+
 	if logrus.GetLevel() == logrus.DebugLevel {
 		cmd = append(cmd, "--debug")
 		fmt.Println(cmd)
 	}
 	_, err = os.StartProcess(cmd[0], cmd, attr)
-	return err
+	return forwardSock, state, err
+}
+
+func (v *MachineVM) setupAPIForwarding(cmd []string) ([]string, string, apiForwardingState) {
+	socket, err := v.getForwardSocketPath()
+
+	if err != nil {
+		return cmd, "", noForwarding
+	}
+
+	cmd = append(cmd, []string{"-forward-sock", socket}...)
+	cmd = append(cmd, []string{"-forward-dest", "/run/podman/podman.sock"}...)
+	cmd = append(cmd, []string{"-forward-user", "root"}...)
+	cmd = append(cmd, []string{"-forward-identity", v.IdentityPath}...)
+	link := filepath.Join(filepath.Dir(filepath.Dir(socket)), "podman.sock")
+
+	// The linking pattern is /var/run/docker.sock -> user global sock (link) -> machine sock (socket)
+	// This allows the helper to only have to maintain one constant target to the user, which can be
+	// repositioned without updating docker.sock.
+	if !dockerClaimSupported() {
+		return cmd, socket, claimUnsupported
+	}
+
+	if !dockerClaimHelperInstalled() {
+		return cmd, socket, notInstalled
+	}
+
+	if !alreadyLinked(socket, link) {
+		if checkSockInUse(link) {
+			return cmd, socket, machineLocal
+		}
+
+		_ = os.Remove(link)
+		if err = os.Symlink(socket, link); err != nil {
+			logrus.Warnf("could not create user global API forwarding link: %s", err.Error())
+			return cmd, socket, machineLocal
+		}
+	}
+
+	if !alreadyLinked(link, dockerSock) {
+		if checkSockInUse(dockerSock) {
+			return cmd, socket, machineLocal
+		}
+
+		if !claimDockerSock() {
+			logrus.Warn("podman helper is installed, but was not able to claim the global docker sock")
+			return cmd, socket, machineLocal
+		}
+	}
+
+	return cmd, dockerSock, dockerGlobal
+}
+
+func (v *MachineVM) getForwardSocketPath() (string, error) {
+	path, err := machine.GetDataDir(v.Name)
+	if err != nil {
+		logrus.Errorf("Error resolving data dir: %s", err.Error())
+		return "", nil
+	}
+	return filepath.Join(path, "podman.sock"), nil
 }
 
 func (v *MachineVM) getSocketandPid() (string, string, error) {
@@ -911,4 +993,69 @@ func (v *MachineVM) getSocketandPid() (string, string, error) {
 	pidFile := filepath.Join(socketDir, fmt.Sprintf("%s.pid", v.Name))
 	qemuSocket := filepath.Join(socketDir, fmt.Sprintf("qemu_%s.sock", v.Name))
 	return qemuSocket, pidFile, nil
+}
+
+func checkSockInUse(sock string) bool {
+	if info, err := os.Stat(sock); err == nil && info.Mode()&fs.ModeSocket == fs.ModeSocket {
+		_, err = net.DialTimeout("unix", dockerSock, dockerConnectTimeout)
+		return err == nil
+	}
+
+	return false
+}
+
+func alreadyLinked(target string, link string) bool {
+	read, err := os.Readlink(link)
+	return err == nil && read == target
+}
+
+func waitAndPingAPI(sock string) {
+	client := http.Client{
+		Transport: &http.Transport{
+			DialContext: func(context.Context, string, string) (net.Conn, error) {
+				con, err := net.DialTimeout("unix", sock, apiUpTimeout)
+				if err == nil {
+					con.SetDeadline(time.Now().Add(apiUpTimeout))
+				}
+				return con, err
+			},
+		},
+	}
+
+	resp, err := client.Get("http://host/_ping")
+	if err == nil {
+		defer resp.Body.Close()
+	}
+	if err != nil || resp.StatusCode != 200 {
+		logrus.Warn("API socket failed ping test")
+	}
+}
+
+func printAPIForwardInstructions(forwardState apiForwardingState, forwardSock string) {
+	if forwardState != noForwarding {
+		waitAndPingAPI(forwardSock)
+		fmt.Printf("API forwarding listening on: %s\n", forwardSock)
+		if forwardState == dockerGlobal {
+			fmt.Printf("\nDocker API clients default to this address. You do not need to set DOCKER_HOST.\n\n")
+		} else {
+			stillString := "still "
+			switch forwardState {
+			case notInstalled:
+				fmt.Printf("\nThe system helper service is not installed; the default Docker API socket address can't be used by podman.\n")
+				if helper := findClaimHelper(); len(helper) > 0 {
+					fmt.Printf("If you would like to install it run the following command:\n")
+					fmt.Printf("\n\tsudo %s install\n\n", helper)
+				}
+			case machineLocal:
+				fmt.Printf("\nAnother process was listening on the default Docker API socket address.\n")
+			case claimUnsupported:
+				fallthrough
+			default:
+				stillString = ""
+			}
+			fmt.Printf("You can %sconnect Docker API clients by setting DOCKER HOST using the\n", stillString)
+			fmt.Printf("following command in your terminal session:\n")
+			fmt.Printf("\n\texport DOCKER_HOST='unix://%s'\n\n", forwardSock)
+		}
+	}
 }
