@@ -5,14 +5,15 @@ package qemu
 
 import (
 	"bufio"
-	"encoding/base64"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/fs"
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -166,14 +167,8 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		key string
 	)
 	sshDir := filepath.Join(homedir.Get(), ".ssh")
-	// GetConfDir creates the directory so no need to check for
-	// its existence
-	vmConfigDir, err := machine.GetConfDir(vmtype)
-	if err != nil {
-		return false, err
-	}
-	jsonFile := filepath.Join(vmConfigDir, v.Name) + ".json"
 	v.IdentityPath = filepath.Join(sshDir, v.Name)
+	v.Rootful = opts.Rootful
 
 	switch opts.ImagePath {
 	case "testing", "next", "stable", "":
@@ -256,29 +251,33 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	// This kind of stinks but no other way around this r/n
 	if len(opts.IgnitionPath) < 1 {
 		uri := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/user/1000/podman/podman.sock", strconv.Itoa(v.Port), v.RemoteUsername)
-		if err := machine.AddConnection(&uri, v.Name, filepath.Join(sshDir, v.Name), opts.IsDefault); err != nil {
-			return false, err
+		uriRoot := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/podman/podman.sock", strconv.Itoa(v.Port), "root")
+		identity := filepath.Join(sshDir, v.Name)
+
+		uris := []url.URL{uri, uriRoot}
+		names := []string{v.Name, v.Name + "-root"}
+
+		// The first connection defined when connections is empty will become the default
+		// regardless of IsDefault, so order according to rootful
+		if opts.Rootful {
+			uris[0], names[0], uris[1], names[1] = uris[1], names[1], uris[0], names[0]
 		}
 
-		uriRoot := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/podman/podman.sock", strconv.Itoa(v.Port), "root")
-		if err := machine.AddConnection(&uriRoot, v.Name+"-root", filepath.Join(sshDir, v.Name), opts.IsDefault); err != nil {
-			return false, err
+		for i := 0; i < 2; i++ {
+			if err := machine.AddConnection(&uris[i], names[i], identity, opts.IsDefault && i == 0); err != nil {
+				return false, err
+			}
 		}
 	} else {
 		fmt.Println("An ignition path was provided.  No SSH connection was added to Podman")
 	}
 	// Write the JSON file
-	b, err := json.MarshalIndent(v, "", " ")
-	if err != nil {
-		return false, err
-	}
-	if err := ioutil.WriteFile(jsonFile, b, 0644); err != nil {
-		return false, err
-	}
+	v.writeConfig()
 
 	// User has provided ignition file so keygen
 	// will be skipped.
 	if len(opts.IgnitionPath) < 1 {
+		var err error
 		key, err = machine.CreateSSHKeys(v.IdentityPath)
 		if err != nil {
 			return false, err
@@ -323,6 +322,30 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	}
 	err = machine.NewIgnitionFile(ign)
 	return err == nil, err
+}
+
+func (v *MachineVM) Set(name string, opts machine.SetOptions) error {
+	if v.Rootful == opts.Rootful {
+		return nil
+	}
+
+	changeCon, err := machine.AnyConnectionDefault(v.Name, v.Name+"-root")
+	if err != nil {
+		return err
+	}
+
+	if changeCon {
+		newDefault := v.Name
+		if opts.Rootful {
+			newDefault += "-root"
+		}
+		if err := machine.ChangeDefault(newDefault); err != nil {
+			return err
+		}
+	}
+
+	v.Rootful = opts.Rootful
+	return v.writeConfig()
 }
 
 // Start executes the qemu command line and forks it
@@ -457,7 +480,7 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		}
 	}
 
-	printAPIForwardInstructions(forwardState, forwardSock)
+	waitAPIAndPrintInfo(forwardState, forwardSock, v.Rootful, v.Name)
 
 	return nil
 }
@@ -929,9 +952,17 @@ func (v *MachineVM) setupAPIForwarding(cmd []string) ([]string, string, apiForwa
 		return cmd, "", noForwarding
 	}
 
+	destSock := "/run/user/1000/podman/podman.sock"
+	forwardUser := "core"
+
+	if v.Rootful {
+		destSock = "/run/podman/podman.sock"
+		forwardUser = "root"
+	}
+
 	cmd = append(cmd, []string{"-forward-sock", socket}...)
-	cmd = append(cmd, []string{"-forward-dest", "/run/podman/podman.sock"}...)
-	cmd = append(cmd, []string{"-forward-user", "root"}...)
+	cmd = append(cmd, []string{"-forward-dest", destSock}...)
+	cmd = append(cmd, []string{"-forward-user", forwardUser}...)
 	cmd = append(cmd, []string{"-forward-identity", v.IdentityPath}...)
 	link := filepath.Join(filepath.Dir(filepath.Dir(socket)), "podman.sock")
 
@@ -1031,19 +1062,32 @@ func waitAndPingAPI(sock string) {
 	}
 }
 
-func printAPIForwardInstructions(forwardState apiForwardingState, forwardSock string) {
+func waitAPIAndPrintInfo(forwardState apiForwardingState, forwardSock string, rootFul bool, name string) {
 	if forwardState != noForwarding {
 		waitAndPingAPI(forwardSock)
+		if !rootFul {
+			fmt.Printf("\nThis machine is currently configured in rootless mode. If your containers\n")
+			fmt.Printf("require root permissions (e.g. ports < 1024), or if you run into compatibility\n")
+			fmt.Printf("issues with non-podman clients, you can switch using the following command: \n")
+
+			suffix := ""
+			if name != machine.DefaultMachineName {
+				suffix = " " + name
+			}
+			fmt.Printf("\n\tpodman machine set --rootful%s\n\n", suffix)
+		}
+
 		fmt.Printf("API forwarding listening on: %s\n", forwardSock)
 		if forwardState == dockerGlobal {
-			fmt.Printf("\nDocker API clients default to this address. You do not need to set DOCKER_HOST.\n\n")
+			fmt.Printf("Docker API clients default to this address. You do not need to set DOCKER_HOST.\n\n")
 		} else {
 			stillString := "still "
 			switch forwardState {
 			case notInstalled:
-				fmt.Printf("\nThe system helper service is not installed; the default Docker API socket address can't be used by podman.\n")
+				fmt.Printf("\nThe system helper service is not installed; the default Docker API socket\n")
+				fmt.Printf("address can't be used by podman. ")
 				if helper := findClaimHelper(); len(helper) > 0 {
-					fmt.Printf("If you would like to install it run the following command:\n")
+					fmt.Printf("If you would like to install it run the\nfollowing command:\n")
 					fmt.Printf("\n\tsudo %s install\n\n", helper)
 				}
 			case machineLocal:
@@ -1053,9 +1097,31 @@ func printAPIForwardInstructions(forwardState apiForwardingState, forwardSock st
 			default:
 				stillString = ""
 			}
-			fmt.Printf("You can %sconnect Docker API clients by setting DOCKER HOST using the\n", stillString)
+
+			fmt.Printf("You can %sconnect Docker API clients by setting DOCKER_HOST using the\n", stillString)
 			fmt.Printf("following command in your terminal session:\n")
 			fmt.Printf("\n\texport DOCKER_HOST='unix://%s'\n\n", forwardSock)
 		}
 	}
+}
+
+func (v *MachineVM) writeConfig() error {
+	// GetConfDir creates the directory so no need to check for
+	// its existence
+	vmConfigDir, err := machine.GetConfDir(vmtype)
+	if err != nil {
+		return err
+	}
+
+	jsonFile := filepath.Join(vmConfigDir, v.Name) + ".json"
+	// Write the JSON file
+	b, err := json.MarshalIndent(v, "", " ")
+	if err != nil {
+		return err
+	}
+	if err := ioutil.WriteFile(jsonFile, b, 0644); err != nil {
+		return err
+	}
+
+	return nil
 }
