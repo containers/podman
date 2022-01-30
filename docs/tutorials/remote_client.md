@@ -59,6 +59,9 @@ sudo systemctl enable --now -s sshd
 
 #### Setting up SSH
 Remote Podman uses SSH to communicate between the client and server. The remote client works considerably smoother using SSH keys. To set up your ssh connection, you need to generate an ssh key pair from your client machine. *NOTE:* in some instances, using a `rsa` key will cause connection issues, be sure to create an `ed25519` key.
+
+**Warning:** If you failed to ssh auth with id_rsa key, remember try again with a ed25519 key, it will save your life. **You should know this before feel sad**
+
 ```
 ssh-keygen -t ed25519
 ```
