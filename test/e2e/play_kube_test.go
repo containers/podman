@@ -2984,7 +2984,7 @@ invalid kube kind
 		inspect = podmanTest.Podman([]string{"inspect", podName + "-" + ctr02Name, "--format", "'{{.Config.Labels}}'"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
-		Expect(inspect.OutputToString()).To(ContainSubstring(`map[]`))
+		Expect(inspect.OutputToString()).NotTo(ContainSubstring(autoUpdateRegistry + ":" + autoUpdateRegistryValue))
 	})
 
 	It("podman play kube teardown", func() {

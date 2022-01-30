@@ -189,13 +189,15 @@ func TestEnvVarValue(t *testing.T) {
 	assert.NoError(t, err)
 	defer os.RemoveAll(d)
 	secretsManager := createSecrets(t, d)
+	value := "foo"
+	emptyValue := ""
 
 	tests := []struct {
 		name     string
 		envVar   v1.EnvVar
 		options  CtrSpecGenOptions
 		succeed  bool
-		expected string
+		expected *string
 	}{
 		{
 			"ConfigMapExists",
@@ -214,7 +216,7 @@ func TestEnvVarValue(t *testing.T) {
 				ConfigMaps: configMapList,
 			},
 			true,
-			"foo",
+			&value,
 		},
 		{
 			"ContainerKeyDoesNotExistInConfigMap",
@@ -233,7 +235,7 @@ func TestEnvVarValue(t *testing.T) {
 				ConfigMaps: configMapList,
 			},
 			false,
-			"",
+			nil,
 		},
 		{
 			"OptionalContainerKeyDoesNotExistInConfigMap",
@@ -253,7 +255,7 @@ func TestEnvVarValue(t *testing.T) {
 				ConfigMaps: configMapList,
 			},
 			true,
-			"",
+			nil,
 		},
 		{
 			"ConfigMapDoesNotExist",
@@ -272,7 +274,7 @@ func TestEnvVarValue(t *testing.T) {
 				ConfigMaps: configMapList,
 			},
 			false,
-			"",
+			nil,
 		},
 		{
 			"OptionalConfigMapDoesNotExist",
@@ -292,7 +294,7 @@ func TestEnvVarValue(t *testing.T) {
 				ConfigMaps: configMapList,
 			},
 			true,
-			"",
+			nil,
 		},
 		{
 			"EmptyConfigMapList",
@@ -311,7 +313,7 @@ func TestEnvVarValue(t *testing.T) {
 				ConfigMaps: []v1.ConfigMap{},
 			},
 			false,
-			"",
+			nil,
 		},
 		{
 			"OptionalEmptyConfigMapList",
@@ -331,7 +333,7 @@ func TestEnvVarValue(t *testing.T) {
 				ConfigMaps: []v1.ConfigMap{},
 			},
 			true,
-			"",
+			nil,
 		},
 		{
 			"SecretExists",
@@ -350,7 +352,7 @@ func TestEnvVarValue(t *testing.T) {
 				SecretsManager: secretsManager,
 			},
 			true,
-			"foo",
+			&value,
 		},
 		{
 			"ContainerKeyDoesNotExistInSecret",
@@ -369,7 +371,7 @@ func TestEnvVarValue(t *testing.T) {
 				SecretsManager: secretsManager,
 			},
 			false,
-			"",
+			nil,
 		},
 		{
 			"OptionalContainerKeyDoesNotExistInSecret",
@@ -389,7 +391,7 @@ func TestEnvVarValue(t *testing.T) {
 				SecretsManager: secretsManager,
 			},
 			true,
-			"",
+			nil,
 		},
 		{
 			"SecretDoesNotExist",
@@ -408,7 +410,7 @@ func TestEnvVarValue(t *testing.T) {
 				SecretsManager: secretsManager,
 			},
 			false,
-			"",
+			nil,
 		},
 		{
 			"OptionalSecretDoesNotExist",
@@ -428,7 +430,173 @@ func TestEnvVarValue(t *testing.T) {
 				SecretsManager: secretsManager,
 			},
 			true,
-			"",
+			nil,
+		},
+		{
+			"FieldRefMetadataName",
+			v1.EnvVar{
+				Name: "FOO",
+				ValueFrom: &v1.EnvVarSource{
+					FieldRef: &v1.ObjectFieldSelector{
+						FieldPath: "metadata.name",
+					},
+				},
+			},
+			CtrSpecGenOptions{
+				PodName: value,
+			},
+			true,
+			&value,
+		},
+		{
+			"FieldRefMetadataUID",
+			v1.EnvVar{
+				Name: "FOO",
+				ValueFrom: &v1.EnvVarSource{
+					FieldRef: &v1.ObjectFieldSelector{
+						FieldPath: "metadata.uid",
+					},
+				},
+			},
+			CtrSpecGenOptions{
+				PodID: value,
+			},
+			true,
+			&value,
+		},
+		{
+			"FieldRefMetadataLabelsExist",
+			v1.EnvVar{
+				Name: "FOO",
+				ValueFrom: &v1.EnvVarSource{
+					FieldRef: &v1.ObjectFieldSelector{
+						FieldPath: "metadata.labels['label']",
+					},
+				},
+			},
+			CtrSpecGenOptions{
+				Labels: map[string]string{"label": value},
+			},
+			true,
+			&value,
+		},
+		{
+			"FieldRefMetadataLabelsEmpty",
+			v1.EnvVar{
+				Name: "FOO",
+				ValueFrom: &v1.EnvVarSource{
+					FieldRef: &v1.ObjectFieldSelector{
+						FieldPath: "metadata.labels['label']",
+					},
+				},
+			},
+			CtrSpecGenOptions{
+				Labels: map[string]string{"label": ""},
+			},
+			true,
+			&emptyValue,
+		},
+		{
+			"FieldRefMetadataLabelsNotExist",
+			v1.EnvVar{
+				Name: "FOO",
+				ValueFrom: &v1.EnvVarSource{
+					FieldRef: &v1.ObjectFieldSelector{
+						FieldPath: "metadata.labels['label']",
+					},
+				},
+			},
+			CtrSpecGenOptions{},
+			true,
+			&emptyValue,
+		},
+		{
+			"FieldRefMetadataAnnotationsExist",
+			v1.EnvVar{
+				Name: "FOO",
+				ValueFrom: &v1.EnvVarSource{
+					FieldRef: &v1.ObjectFieldSelector{
+						FieldPath: "metadata.annotations['annotation']",
+					},
+				},
+			},
+			CtrSpecGenOptions{
+				Annotations: map[string]string{"annotation": value},
+			},
+			true,
+			&value,
+		},
+		{
+			"FieldRefMetadataAnnotationsEmpty",
+			v1.EnvVar{
+				Name: "FOO",
+				ValueFrom: &v1.EnvVarSource{
+					FieldRef: &v1.ObjectFieldSelector{
+						FieldPath: "metadata.annotations['annotation']",
+					},
+				},
+			},
+			CtrSpecGenOptions{
+				Annotations: map[string]string{"annotation": ""},
+			},
+			true,
+			&emptyValue,
+		},
+		{
+			"FieldRefMetadataAnnotationsNotExist",
+			v1.EnvVar{
+				Name: "FOO",
+				ValueFrom: &v1.EnvVarSource{
+					FieldRef: &v1.ObjectFieldSelector{
+						FieldPath: "metadata.annotations['annotation']",
+					},
+				},
+			},
+			CtrSpecGenOptions{},
+			true,
+			&emptyValue,
+		},
+		{
+			"FieldRefInvalid1",
+			v1.EnvVar{
+				Name: "FOO",
+				ValueFrom: &v1.EnvVarSource{
+					FieldRef: &v1.ObjectFieldSelector{
+						FieldPath: "metadata.annotations['annotation]",
+					},
+				},
+			},
+			CtrSpecGenOptions{},
+			false,
+			nil,
+		},
+		{
+			"FieldRefInvalid2",
+			v1.EnvVar{
+				Name: "FOO",
+				ValueFrom: &v1.EnvVarSource{
+					FieldRef: &v1.ObjectFieldSelector{
+						FieldPath: "metadata.dummy['annotation']",
+					},
+				},
+			},
+			CtrSpecGenOptions{},
+			false,
+			nil,
+		},
+		{
+			"FieldRefNotSupported",
+			v1.EnvVar{
+				Name: "FOO",
+				ValueFrom: &v1.EnvVarSource{
+					FieldRef: &v1.ObjectFieldSelector{
+						FieldPath: "metadata.namespace",
+					},
+				},
+			},
+			CtrSpecGenOptions{},
+			false,
+			nil,
 		},
 	}
 
