@@ -252,11 +252,11 @@ case "$TEST_FLAVOR" in
                 die "Refusing to config. host-test in container";
             fi
             remove_packaged_podman_files
-            make install PREFIX=/usr ETCDIR=/etc
+            make && make install PREFIX=/usr ETCDIR=/etc
         elif [[ "$TEST_ENVIRON" == "container" ]]; then
             if ((CONTAINER)); then
                 remove_packaged_podman_files
-                make install PREFIX=/usr ETCDIR=/etc
+                make && make install PREFIX=/usr ETCDIR=/etc
             fi
         else
             die "Invalid value for $$TEST_ENVIRON=$TEST_ENVIRON"
@@ -273,7 +273,7 @@ case "$TEST_FLAVOR" in
         # Ref: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27270#note_499585550
 
         remove_packaged_podman_files
-        make install PREFIX=/usr ETCDIR=/etc
+        make && make install PREFIX=/usr ETCDIR=/etc
 
         msg "Installing docker and containerd"
         # N/B: Tests check/expect `docker info` output, and this `!= podman info`
