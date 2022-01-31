@@ -37,7 +37,6 @@ import (
 	pmount "github.com/containers/storage/pkg/mount"
 	"github.com/coreos/go-systemd/v22/daemon"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -1245,7 +1244,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	if restoreOptions != nil {
 		runtimeRestoreStarted = time.Now()
 	}
-	err = startCommandGivenSelinux(cmd, ctr)
+	err = startCommand(cmd, ctr)
 
 	// regardless of whether we errored or not, we no longer need the children pipes
 	childSyncPipe.Close()
@@ -1412,9 +1411,7 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 	return args
 }
 
-// startCommandGivenSelinux starts a container ensuring to set the labels of
-// the process to make sure SELinux doesn't block conmon communication, if SELinux is enabled
-func startCommandGivenSelinux(cmd *exec.Cmd, ctr *Container) error {
+func startCommand(cmd *exec.Cmd, ctr *Container) error {
 	// Make sure to unset the NOTIFY_SOCKET and reset if afterwards if needed.
 	switch ctr.config.SdNotifyMode {
 	case define.SdNotifyModeContainer, define.SdNotifyModeIgnore:
@@ -1431,47 +1428,7 @@ func startCommandGivenSelinux(cmd *exec.Cmd, ctr *Container) error {
 		}
 	}
 
-	if !selinux.GetEnabled() {
-		return cmd.Start()
-	}
-	// Set the label of the conmon process to be level :s0
-	// This will allow the container processes to talk to fifo-files
-	// passed into the container by conmon
-	var (
-		plabel string
-		con    selinux.Context
-		err    error
-	)
-	plabel, err = selinux.CurrentLabel()
-	if err != nil {
-		return errors.Wrapf(err, "failed to get current SELinux label")
-	}
-
-	con, err = selinux.NewContext(plabel)
-	if err != nil {
-		return errors.Wrapf(err, "failed to get new context from SELinux label")
-	}
-
-	runtime.LockOSThread()
-	if con["level"] != "s0" && con["level"] != "" {
-		con["level"] = "s0"
-		if err = label.SetProcessLabel(con.Get()); err != nil {
-			runtime.UnlockOSThread()
-			return err
-		}
-	}
-	err = cmd.Start()
-	// Ignore error returned from SetProcessLabel("") call,
-	// can't recover.
-	if labelErr := label.SetProcessLabel(""); labelErr == nil {
-		// Unlock the thread only if the process label could be restored
-		// successfully.  Otherwise leave the thread locked and the Go runtime
-		// will terminate it once it returns to the threads pool.
-		runtime.UnlockOSThread()
-	} else {
-		logrus.Errorf("Unable to set process label: %q", labelErr)
-	}
-	return err
+	return cmd.Start()
 }
 
 // moveConmonToCgroupAndSignal gets a container's cgroupParent and moves the conmon process to that cgroup
