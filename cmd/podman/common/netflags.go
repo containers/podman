@@ -103,74 +103,86 @@ func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet) (*enti
 		opts = &entities.NetOptions{}
 	}
 
-	opts.AddHosts, err = flags.GetStringSlice("add-host")
-	if err != nil {
-		return nil, err
-	}
-	// Verify the additional hosts are in correct format
-	for _, host := range opts.AddHosts {
-		if _, err := parse.ValidateExtraHost(host); err != nil {
-			return nil, err
-		}
-	}
-
-	servers, err := flags.GetStringSlice("dns")
-	if err != nil {
-		return nil, err
-	}
-	for _, d := range servers {
-		if d == "none" {
-			opts.UseImageResolvConf = true
-			if len(servers) > 1 {
-				return nil, errors.Errorf("%s is not allowed to be specified with other DNS ip addresses", d)
-			}
-			break
-		}
-		dns := net.ParseIP(d)
-		if dns == nil {
-			return nil, errors.Errorf("%s is not an ip address", d)
-		}
-		opts.DNSServers = append(opts.DNSServers, dns)
-	}
-
-	options, err := flags.GetStringSlice("dns-opt")
-	if err != nil {
-		return nil, err
-	}
-	opts.DNSOptions = options
-
-	dnsSearches, err := flags.GetStringSlice("dns-search")
-	if err != nil {
-		return nil, err
-	}
-	// Validate domains are good
-	for _, dom := range dnsSearches {
-		if dom == "." {
-			if len(dnsSearches) > 1 {
-				return nil, errors.Errorf("cannot pass additional search domains when also specifying '.'")
-			}
-			continue
-		}
-		if _, err := parse.ValidateDomain(dom); err != nil {
-			return nil, err
-		}
-	}
-	opts.DNSSearch = dnsSearches
-
-	inputPorts, err := flags.GetStringSlice("publish")
-	if err != nil {
-		return nil, err
-	}
-	if len(inputPorts) > 0 {
-		opts.PublishPorts, err = specgenutil.CreatePortBindings(inputPorts)
+	if flags.Changed("add-hosts") {
+		opts.AddHosts, err = flags.GetStringSlice("add-host")
 		if err != nil {
 			return nil, err
 		}
+		// Verify the additional hosts are in correct format
+		for _, host := range opts.AddHosts {
+			if _, err := parse.ValidateExtraHost(host); err != nil {
+				return nil, err
+			}
+		}
 	}
 
-	opts.NoHosts, err = flags.GetBool("no-hosts")
-	if err != nil {
-		return nil, err
+	if flags.Changed("dns") {
+		servers, err := flags.GetStringSlice("dns")
+		if err != nil {
+			return nil, err
+		}
+		for _, d := range servers {
+			if d == "none" {
+				opts.UseImageResolvConf = true
+				if len(servers) > 1 {
+					return nil, errors.Errorf("%s is not allowed to be specified with other DNS ip addresses", d)
+				}
+				break
+			}
+			dns := net.ParseIP(d)
+			if dns == nil {
+				return nil, errors.Errorf("%s is not an ip address", d)
+			}
+			opts.DNSServers = append(opts.DNSServers, dns)
+		}
+	}
+
+	if flags.Changed("dns-opt") {
+		options, err := flags.GetStringSlice("dns-opt")
+		if err != nil {
+			return nil, err
+		}
+		opts.DNSOptions = options
+	}
+
+	if flags.Changed("dns-search") {
+		dnsSearches, err := flags.GetStringSlice("dns-search")
+		if err != nil {
+			return nil, err
+		}
+		// Validate domains are good
+		for _, dom := range dnsSearches {
+			if dom == "." {
+				if len(dnsSearches) > 1 {
+					return nil, errors.Errorf("cannot pass additional search domains when also specifying '.'")
+				}
+				continue
+			}
+			if _, err := parse.ValidateDomain(dom); err != nil {
+				return nil, err
+			}
+		}
+		opts.DNSSearch = dnsSearches
+	}
+
+	if flags.Changed("publish") {
+		inputPorts, err := flags.GetStringSlice("publish")
+		if err != nil {
+			return nil, err
+		}
+		if len(inputPorts) > 0 {
+			opts.PublishPorts, err = specgenutil.CreatePortBindings(inputPorts)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	if flags.Changed("no-host") {
+		opts.NoHosts, err = flags.GetBool("no-hosts")
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// parse the network only when network was changed
