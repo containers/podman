@@ -227,7 +227,8 @@ validate_task:
 bindings_task:
     name: "Test Bindings"
     alias: bindings
-    only_if: &not_docs $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
+    # Don't run for [CI:DOCS] or [CI:BUILD]
+    only_if: &not_build $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' && $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
     skip: *branches_and_tags
     depends_on:
         - build
@@ -307,7 +308,8 @@ consistency_task:
 alt_build_task:
     name: "$ALT_NAME"
     alias: alt_build
-    only_if: *not_docs
+    # Don't run for [CI:DOCS]; DO run for [CI:BUILD]
+    only_if: &not_docs $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
     depends_on:
         - build
     env:
@@ -336,6 +338,7 @@ alt_build_task:
 osx_alt_build_task:
     name: "OSX Cross"
     alias: osx_alt_build
+    only_if: *not_docs
     depends_on:
         - build
     env:
@@ -361,7 +364,7 @@ docker-py_test_task:
     name: Docker-py Compat.
     alias: docker-py_test
     skip: *tags
-    only_if: *not_docs
+    only_if: *not_build
     depends_on:
         - build
     gce_instance: *standardvm
@@ -382,7 +385,7 @@ unit_test_task:
     name: "Unit tests on $DISTRO_NV"
     alias: unit_test
     skip: *tags
-    only_if: *not_docs
+    only_if: *not_build
     depends_on:
         - validate
     matrix:
@@ -407,7 +410,7 @@ unit_test_task:
 apiv2_test_task:
     name: "APIv2 test on $DISTRO_NV"
     alias: apiv2_test
-    only_if: *not_docs
+    only_if: *not_build
     skip: *tags
     depends_on:
         - validate
@@ -428,7 +431,7 @@ apiv2_test_task:
 compose_test_task:
     name: "compose test on $DISTRO_NV ($PRIV_NAME)"
     alias: compose_test
-    only_if: *not_docs
+    only_if: *not_build
     skip: *tags
     depends_on:
         - validate
@@ -455,7 +458,7 @@ local_integration_test_task: &local_integration_test_task
     # <int.|sys.> <podman|remote> <Distro NV> <root|rootless>
     name: &std_name_fmt "$TEST_FLAVOR $PODBIN_NAME $DISTRO_NV $PRIV_NAME $TEST_ENVIRON"
     alias: local_integration_test
-    only_if: *not_docs
+    only_if: *not_build
     skip: *branches_and_tags
     depends_on:
         - unit_test
@@ -491,7 +494,7 @@ remote_integration_test_task:
 container_integration_test_task:
     name: *std_name_fmt
     alias: container_integration_test
-    only_if: *not_docs
+    only_if: *not_build
     skip: *branches_and_tags
     depends_on:
         - unit_test
@@ -522,7 +525,7 @@ container_integration_test_task:
 netavark_integration_test_task:
     name: "Netavark integration"  # using *std_name_fmt here is unreadable
     alias: netavark_integration_test
-    only_if: *not_docs
+    only_if: *not_build
     skip: *branches_and_tags
     depends_on:
         - unit_test
@@ -567,7 +570,7 @@ netavark_system_test_task:
 rootless_integration_test_task:
     name: *std_name_fmt
     alias: rootless_integration_test
-    only_if: *not_docs
+    only_if: *not_build
     skip: *branches_and_tags
     depends_on:
         - unit_test
@@ -592,7 +595,7 @@ local_system_test_task: &local_system_test_task
     name: *std_name_fmt
     alias: local_system_test
     skip: *tags
-    only_if: *not_docs
+    only_if: *not_build
     depends_on:
       - local_integration_test
     matrix: *platform_axis
@@ -641,7 +644,7 @@ buildah_bud_test_task:
     name: *std_name_fmt
     alias: buildah_bud_test
     skip: *tags
-    only_if: *not_docs
+    only_if: *not_build
     depends_on:
       - local_integration_test
     env:
@@ -670,7 +673,7 @@ rootless_system_test_task:
     name: *std_name_fmt
     alias: rootless_system_test
     skip: *tags
-    only_if: *not_docs
+    only_if: *not_build
     depends_on:
       - rootless_integration_test
     matrix: *platform_axis
@@ -689,7 +692,7 @@ rootless_gitlab_test_task:
     name: *std_name_fmt
     alias: rootless_gitlab_test
     skip: *tags
-    only_if: *not_docs
+    only_if: *not_build
     # Community-maintained downstream test may fail unexpectedly.
     # Ref. repository: https://gitlab.com/gitlab-org/gitlab-runner
     # If necessary, uncomment the next line and file issue(s) with details.
@@ -717,7 +720,7 @@ upgrade_test_task:
     name: "Upgrade test: from $PODMAN_UPGRADE_FROM"
     alias: upgrade_test
     skip: *tags
-    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' || $CIRRUS_CRON != ''
+    only_if: *not_build
     depends_on:
       - local_system_test
     matrix:
@@ -839,7 +842,10 @@ release_task:
 release_test_task:
     name: "Optional Release Test"
     alias: release_test
-    only_if: $CIRRUS_PR != ''
+    # Release-PRs are never ever marked with [CI:DOCS] or [CI:BUILD]
+    only_if: *not_build
+    # Allow running manually as part of release PR preperation
+    # see RELEASE_PROCESS.md
     trigger_type: manual
     depends_on:
         - success
