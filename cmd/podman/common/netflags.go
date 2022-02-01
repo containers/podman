@@ -103,7 +103,7 @@ func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet) (*enti
 		opts = &entities.NetOptions{}
 	}
 
-	if flags.Changed("add-hosts") {
+	if flags.Changed("add-host") {
 		opts.AddHosts, err = flags.GetStringSlice("add-host")
 		if err != nil {
 			return nil, err
@@ -178,11 +178,9 @@ func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet) (*enti
 		}
 	}
 
-	if flags.Changed("no-host") {
-		opts.NoHosts, err = flags.GetBool("no-hosts")
-		if err != nil {
-			return nil, err
-		}
+	opts.NoHosts, err = flags.GetBool("no-hosts")
+	if err != nil {
+		return nil, err
 	}
 
 	// parse the network only when network was changed
