@@ -29,8 +29,7 @@ function teardown() {
 }
 
 @test "podman pod top - containers in different PID namespaces" {
-    # With infra=false, we don't get a /pause container (we also
-    # don't pull k8s.gcr.io/pause )
+    # With infra=false, we don't get a /pause container
     no_infra='--infra=false'
     run_podman pod create $no_infra
     podid="$output"
@@ -148,9 +147,6 @@ EOF
     # Pod no longer exists
     run_podman 1 pod exists $podid
     run_podman 1 pod exists $podname
-
-    # Pause image hasn't been pulled
-    run_podman 1 image exists k8s.gcr.io/pause:3.5
 }
 
 # Random byte
@@ -329,8 +325,6 @@ EOF
     local infra_name="infra_container_$(random_string 10 | tr A-Z a-z)"
     local pod_name="$(random_string 10 | tr A-Z a-z)"
 
-    # Note that the internal pause image is built even when --infra-image is
-    # set to the K8s one.
     run_podman --noout pod create --name $pod_name --infra-name "$infra_name" --infra-image "k8s.gcr.io/pause:3.5"
     is "$output" "" "output should be empty"
     run_podman '?' pod create --infra-name "$infra_name"
@@ -339,9 +333,6 @@ EOF
     fi
     run_podman pod rm -f $pod_name
     run_podman images -a
-
-    # Pause image hasn't been pulled
-    run_podman 1 image exists k8s.gcr.io/pause:3.5
 }
 
 @test "podman pod create --share" {

@@ -1055,17 +1055,22 @@ func (d *Driver) getLower(parent string) (string, error) {
 }
 
 func (d *Driver) dir(id string) string {
+	p, _ := d.dir2(id)
+	return p
+}
+
+func (d *Driver) dir2(id string) (string, bool) {
 	newpath := path.Join(d.home, id)
 	if _, err := os.Stat(newpath); err != nil {
 		for _, p := range d.AdditionalImageStores() {
 			l := path.Join(p, d.name, id)
 			_, err = os.Stat(l)
 			if err == nil {
-				return l
+				return l, true
 			}
 		}
 	}
-	return newpath
+	return newpath, false
 }
 
 func (d *Driver) getLowerDirs(id string) ([]string, error) {
@@ -1260,11 +1265,11 @@ func (d *Driver) Get(id string, options graphdriver.MountOpts) (_ string, retErr
 func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountOpts) (_ string, retErr error) {
 	d.locker.Lock(id)
 	defer d.locker.Unlock(id)
-	dir := d.dir(id)
+	dir, inAdditionalStore := d.dir2(id)
 	if _, err := os.Stat(dir); err != nil {
 		return "", err
 	}
-	readWrite := true
+	readWrite := !inAdditionalStore
 
 	if !d.SupportsShifting() || options.DisableShifting {
 		disableShifting = true
