@@ -40,7 +40,7 @@ A Kubernetes PersistentVolumeClaim represents a Podman named volume. Only the Pe
 - volume.podman.io/mount-options
 
 Play kube is capable of building images on the fly given the correct directory layout and Containerfiles. This
-option is not available for remote clients yet. Consider the following excerpt from a YAML file:
+option is not available for remote clients, including Mac and Windows (excluding WSL2) machines, yet. Consider the following excerpt from a YAML file:
 ```
 apiVersion: v1
 kind: Pod
@@ -120,7 +120,7 @@ Build images even if they are found in the local storage.
 #### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry. (Default: /etc/containers/certs.d)
-Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client)
+Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 #### **--configmap**=*path*
 
@@ -215,7 +215,7 @@ Tears down the pods created by a previous run of `play kube` and recreates the p
 
 #### **--seccomp-profile-root**=*path*
 
-Directory path for seccomp profiles (default: "/var/lib/kubelet/seccomp"). (This option is not available with the remote Podman client)
+Directory path for seccomp profiles (default: "/var/lib/kubelet/seccomp"). (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 #### **--start**
 

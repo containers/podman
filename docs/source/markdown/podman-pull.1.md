@@ -17,7 +17,7 @@ podman pull copies an image from a registry onto the local machine. The command 
 *IMPORTANT: Images are stored in local image storage.*
 
 ## SOURCE
-SOURCE is the location from which the container image is pulled from. It supports all transports from **[containers-transports(5)](https://github.com/containers/image/blob/main/docs/containers-transports.5.md)**. If no transport is specified, the input is subject to short-name resolution and the `docker` (i.e., container registry) transport is used.  For remote clients, `docker` is the only supported transport.
+SOURCE is the location from which the container image is pulled from. It supports all transports from **[containers-transports(5)](https://github.com/containers/image/blob/main/docs/containers-transports.5.md)**. If no transport is specified, the input is subject to short-name resolution and the `docker` (i.e., container registry) transport is used.  For remote clients, including Mac and Windows (excluding WSL2) machines, `docker` is the only supported transport.
 
 ```
 # Pull from a container registry
@@ -63,7 +63,7 @@ Default is `${XDG\_RUNTIME\_DIR}/containers/auth.json`, which is set using `podm
 #### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry. (Default: /etc/containers/certs.d)
-Please refer to **[containers-certs.d(5)](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)** for details. (This option is not available with the remote Podman client)
+Please refer to **[containers-certs.d(5)](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)** for details. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 #### **--creds**=*[username[:password]]*
 

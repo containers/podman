@@ -94,7 +94,7 @@ resulting image's configuration.
 #### **--cache-from**
 
 Images to utilize as potential cache sources. Podman does not currently support
-caching so this is a NOOP. (This option is not available with the remote Podman client)
+caching so this is a NOOP. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 #### **--cap-add**=*CAP\_xxx*
 
@@ -119,7 +119,7 @@ given.
 #### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry. (Default: /etc/containers/certs.d)
-Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client)
+Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 #### **--cgroup-parent**=*path*
 
@@ -138,7 +138,7 @@ that the cgroup namespace in which `buildah` itself is being run should be reuse
 
 This option is added to be aligned with other containers CLIs.
 Podman doesn't communicate with a daemon or a remote server.
-Thus, compressing the data before sending it is irrelevant to Podman. (This option is not available with the remote Podman client)
+Thus, compressing the data before sending it is irrelevant to Podman. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 #### **--cpu-period**=*limit*
 
@@ -257,7 +257,7 @@ specifying **--disable-compression=false**.
 
 This is a Docker specific option to disable image verification to a container
 registry and is not supported by Podman.  This option is a NOOP and provided
-solely for scripting compatibility. (This option is not available with the remote Podman client)
+solely for scripting compatibility. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 #### **--dns**=*dns*
 
@@ -546,7 +546,7 @@ size entirely, the system uses `64m`.
 
 #### **--sign-by**=*fingerprint*
 
-Sign the image using a GPG key with the specified FINGERPRINT. (This option is not available with the remote Podman client)
+Sign the image using a GPG key with the specified FINGERPRINT. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines,)
 
 #### **--squash**
 
@@ -600,7 +600,7 @@ timestamp.
 #### **--tls-verify**
 
 Require HTTPS and verify certificates when talking to container registries
-(defaults to true). (This option is not available with the remote Podman client)
+(defaults to true). (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 #### **--ulimit**=*type*=*soft-limit*[:*hard-limit*]
 
@@ -727,7 +727,7 @@ using the architecture variant of the build host.
 
    Create a bind mount. If you specify, ` -v /HOST-DIR:/CONTAINER-DIR`, Podman
    bind mounts `/HOST-DIR` in the host to `/CONTAINER-DIR` in the Podman
-   container. (This option is not available with the remote Podman client)
+   container. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
    The `OPTIONS` are a comma-separated list and can be: <sup>[[1]](#Footnote1)</sup>
 

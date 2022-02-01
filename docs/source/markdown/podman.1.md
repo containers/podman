@@ -41,7 +41,7 @@ For the netavark backend "/etc/containers/networks" is used as root
 and "$graphroot/networks" as rootless.
 
 #### **--connection**, **-c**
-Connection to use for remote podman (Default connection is configured in `containers.conf`)
+Connection to use for remote podman, including Mac and Windows (excluding WSL2) machines, (Default connection is configured in `containers.conf`)
 Remote connections use local containers.conf for default.
 
 #### **--conmon**
@@ -167,7 +167,7 @@ Storage driver option, Default storage driver options are configured in /etc/con
 
 Output logging information to syslog as well as the console (default *false*).
 
-On remote clients, logging is directed to the file $HOME/.config/containers/podman.log.
+On remote clients, including Mac and Windows (excluding WSL2) machines, logging is directed to the file $HOME/.config/containers/podman.log.
 
 #### **--tmpdir**
 

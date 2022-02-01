@@ -30,7 +30,7 @@ Note: `:` is a restricted character and cannot be part of the file name.
 
 Load the specified input file instead of from stdin.  The file can be on the local file system or on a server (e.g., https://server.com/archive.tar)
 
-The remote client requires the use of this option.
+The remote client, including Mac and Windows (excluding WSL2) machines, requires the use of this option.
 
 NOTE: Use the environment variable `TMPDIR` to change the temporary storage location of container images. Podman defaults to use `/var/tmp`.
 
