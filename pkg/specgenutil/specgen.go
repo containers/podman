@@ -19,6 +19,7 @@ import (
 	"github.com/containers/podman/v4/pkg/specgen"
 	systemdDefine "github.com/containers/podman/v4/pkg/systemd/define"
 	"github.com/containers/podman/v4/pkg/util"
+	"github.com/docker/docker/opts"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -422,11 +423,12 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 
 	// SHM Size
 	if c.ShmSize != "" {
-		shmSize, err := units.FromHumanSize(c.ShmSize)
-		if err != nil {
+		var m opts.MemBytes
+		if err := m.Set(c.ShmSize); err != nil {
 			return errors.Wrapf(err, "unable to translate --shm-size")
 		}
-		s.ShmSize = &shmSize
+		val := m.Value()
+		s.ShmSize = &val
 	}
 
 	if c.Net != nil {
