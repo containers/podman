@@ -834,21 +834,25 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 	return nil
 }
 
-func getContainerNetNS(ctr *Container) (string, error) {
+func getContainerNetNS(ctr *Container) (string, *Container, error) {
 	if ctr.state.NetNS != nil {
-		return ctr.state.NetNS.Path(), nil
+		return ctr.state.NetNS.Path(), nil, nil
 	}
 	if ctr.config.NetNsCtr != "" {
 		c, err := ctr.runtime.GetContainer(ctr.config.NetNsCtr)
 		if err != nil {
-			return "", err
+			return "", nil, err
 		}
 		if err = c.syncContainer(); err != nil {
-			return "", err
+			return "", c, err
 		}
-		return getContainerNetNS(c)
+		netNs, c2, err := getContainerNetNS(c)
+		if c2 != nil {
+			c = c2
+		}
+		return netNs, c, err
 	}
-	return "", nil
+	return "", nil, nil
 }
 
 // isBridgeNetMode checks if the given network mode is bridge.
@@ -919,12 +923,8 @@ func (r *Runtime) reloadContainerNetwork(ctr *Container) (map[string]types.Statu
 
 func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
 	var netStats *netlink.LinkStatistics
-	// With slirp4netns, we can't collect statistics at present.
-	// For now, we allow stats to at least run by returning nil
-	if rootless.IsRootless() || ctr.config.NetMode.IsSlirp4netns() {
-		return netStats, nil
-	}
-	netNSPath, netPathErr := getContainerNetNS(ctr)
+
+	netNSPath, otherCtr, netPathErr := getContainerNetNS(ctr)
 	if netPathErr != nil {
 		return nil, netPathErr
 	}
@@ -933,9 +933,18 @@ func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
 		// this is a valid state and thus return no error, nor any statistics
 		return nil, nil
 	}
+
+	// FIXME get the interface from the container netstatus
+	dev := "eth0"
+	netMode := ctr.config.NetMode
+	if otherCtr != nil {
+		netMode = otherCtr.config.NetMode
+	}
+	if netMode.IsSlirp4netns() {
+		dev = "tap0"
+	}
 	err := ns.WithNetNSPath(netNSPath, func(_ ns.NetNS) error {
-		// FIXME get the interface from the container netstatus
-		link, err := netlink.LinkByName("eth0")
+		link, err := netlink.LinkByName(dev)
 		if err != nil {
 			return err
 		}
