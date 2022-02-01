@@ -98,6 +98,10 @@ ID             NAME           MEM USAGE / LIMIT
 6eae9e25a564   clever_bassi   3.031MB / 16.7GB
 ```
 
+Note: When using a slirp4netns network, the traffic send via the port forwarding will be accounted
+to the `lo` device.  Traffic accounted to `lo` is not accounted in the stats output.
+
+
 ## SEE ALSO
 **[podman(1)](podman.1.md)**
 

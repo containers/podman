@@ -185,6 +185,19 @@ var _ = Describe("Podman stats", func() {
 		Expect(session).Should(Exit(0))
 	})
 
+	It("podman reads slirp4netns network stats", func() {
+		session := podmanTest.Podman([]string{"run", "-d", "--network", "slirp4netns", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		cid := session.OutputToString()
+
+		stats := podmanTest.Podman([]string{"stats", "--format", "'{{.NetIO}}'", "--no-stream", cid})
+		stats.WaitWithDefaultTimeout()
+		Expect(stats).Should(Exit(0))
+		Expect(stats.OutputToString()).To(Not(ContainSubstring("-- / --")))
+	})
+
 	// Regression test for #8265
 	It("podman stats with custom memory limits", func() {
 		// Run three containers. One with a memory limit.  Make sure
