@@ -365,6 +365,11 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		if err != nil {
 			return nil, err
 		}
+
+		for k, v := range podSpec.PodSpecGen.Labels { // add podYAML labels
+			labels[k] = v
+		}
+
 		specgenOpts := kube.CtrSpecGenOptions{
 			Annotations:       annotations,
 			Container:         initCtr,
@@ -405,7 +410,12 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 				return nil, err
 			}
 
+			for k, v := range podSpec.PodSpecGen.Labels { // add podYAML labels
+				labels[k] = v
+			}
+
 			specgenOpts := kube.CtrSpecGenOptions{
+				Annotations:    annotations,
 				Container:      container,
 				Image:          pulledImage,
 				Volumes:        volumes,

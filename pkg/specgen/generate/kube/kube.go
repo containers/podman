@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"regexp"
 	"strings"
 	"time"
 
@@ -291,9 +292,9 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 			return nil, err
 		}
 
-		// Only set the env if the value is not ""
-		if value != "" {
-			envs[env.Name] = value
+		// Only set the env if the value is not nil
+		if value != nil {
+			envs[env.Name] = *value
 		}
 	}
 	for _, envFrom := range opts.Container.EnvFrom {
@@ -609,7 +610,7 @@ func envVarsFrom(envFrom v1.EnvFromSource, opts *CtrSpecGenOptions) (map[string]
 
 // envVarValue returns the environment variable value configured within the container's env setting.
 // It gets the value from a configMap or secret if specified, otherwise returns env.Value
-func envVarValue(env v1.EnvVar, opts *CtrSpecGenOptions) (string, error) {
+func envVarValue(env v1.EnvVar, opts *CtrSpecGenOptions) (*string, error) {
 	if env.ValueFrom != nil {
 		if env.ValueFrom.ConfigMapKeyRef != nil {
 			cmKeyRef := env.ValueFrom.ConfigMapKeyRef
@@ -618,16 +619,16 @@ func envVarValue(env v1.EnvVar, opts *CtrSpecGenOptions) (string, error) {
 			for _, c := range opts.ConfigMaps {
 				if cmKeyRef.Name == c.Name {
 					if value, ok := c.Data[cmKeyRef.Key]; ok {
-						return value, nil
+						return &value, nil
 					}
 					err = errors.Errorf("Cannot set env %v: key %s not found in configmap %v", env.Name, cmKeyRef.Key, cmKeyRef.Name)
 					break
 				}
 			}
 			if cmKeyRef.Optional == nil || !*cmKeyRef.Optional {
-				return "", err
+				return nil, err
 			}
-			return "", nil
+			return nil, nil
 		}
 
 		if env.ValueFrom.SecretKeyRef != nil {
@@ -635,18 +636,56 @@ func envVarValue(env v1.EnvVar, opts *CtrSpecGenOptions) (string, error) {
 			secret, err := k8sSecretFromSecretManager(secKeyRef.Name, opts.SecretsManager)
 			if err == nil {
 				if val, ok := secret[secKeyRef.Key]; ok {
-					return string(val), nil
+					value := string(val)
+					return &value, nil
 				}
 				err = errors.Errorf("Secret %v has not %v key", secKeyRef.Name, secKeyRef.Key)
 			}
 			if secKeyRef.Optional == nil || !*secKeyRef.Optional {
-				return "", errors.Errorf("Cannot set env %v: %v", env.Name, err)
+				return nil, errors.Errorf("Cannot set env %v: %v", env.Name, err)
 			}
-			return "", nil
+			return nil, nil
+		}
+
+		if env.ValueFrom.FieldRef != nil {
+			return envVarValueFieldRef(env, opts)
 		}
 	}
 
-	return env.Value, nil
+	return &env.Value, nil
+}
+
+func envVarValueFieldRef(env v1.EnvVar, opts *CtrSpecGenOptions) (*string, error) {
+	fieldRef := env.ValueFrom.FieldRef
+
+	fieldPathLabelPattern := `^metadata.labels\['(.+)'\]$`
+	fieldPathLabelRegex := regexp.MustCompile(fieldPathLabelPattern)
+	fieldPathAnnotationPattern := `^metadata.annotations\['(.+)'\]$`
+	fieldPathAnnotationRegex := regexp.MustCompile(fieldPathAnnotationPattern)
+
+	fieldPath := fieldRef.FieldPath
+
+	if fieldPath == "metadata.name" {
+		return &opts.PodName, nil
+	}
+	if fieldPath == "metadata.uid" {
+		return &opts.PodID, nil
+	}
+	fieldPathMatches := fieldPathLabelRegex.FindStringSubmatch(fieldPath)
+	if len(fieldPathMatches) == 2 { // 1 for entire regex and 1 for subexp
+		labelValue := opts.Labels[fieldPathMatches[1]] // not existent label is OK
+		return &labelValue, nil
+	}
+	fieldPathMatches = fieldPathAnnotationRegex.FindStringSubmatch(fieldPath)
+	if len(fieldPathMatches) == 2 { // 1 for entire regex and 1 for subexp
+		annotationValue := opts.Annotations[fieldPathMatches[1]] // not existent annotation is OK
+		return &annotationValue, nil
+	}
+
+	return nil, errors.Errorf(
+		"Can not set env %v. Reason: fieldPath %v is either not valid or not supported",
+		env.Name, fieldPath,
+	)
 }
 
 // getPodPorts converts a slice of kube container descriptions to an
