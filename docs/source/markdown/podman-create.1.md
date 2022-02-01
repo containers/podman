@@ -739,6 +739,8 @@ This option conflicts with **--add-host**.
 
 Whether to disable OOM Killer for the container or not.
 
+This flag is not supported on cgroups V2 systems.
+
 #### **--oom-score-adj**=*num*
 
 Tune the host's OOM preferences for containers (accepts -1000 to 1000)
