@@ -77,12 +77,15 @@ BuildRequires: ostree-devel
 BuildRequires: systemd
 BuildRequires: systemd-devel
 Requires: conmon >= 2:2.0.30-2
-Requires: containers-common >= 4:1-30
-Requires: containernetworking-plugins >= 1.0.0-15.1
+# containers-common pulled from podman-next copr for f34,
+# from the distro repos for f35+
+%if 0%{?fedora} <= 35
+Requires: containers-common >= 4:1-39
+%else
+Requires: containers-common >= 4:1-46
+%endif
 Requires: iptables
 Requires: nftables
-Requires: netavark
-Recommends: %{name}-plugins = %{epoch}:%{version}-%{release}
 Recommends: catatonit
 Suggests: qemu-user-static
 
