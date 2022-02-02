@@ -221,9 +221,11 @@ func GetOptions(resolvConf []byte) []string {
 // dnsSearch, and an "options" entry for every element in dnsOptions.
 func Build(path string, dns, dnsSearch, dnsOptions []string) (*File, error) {
 	content := bytes.NewBuffer(nil)
-	for _, search := range dnsSearch {
-		if _, err := content.WriteString("search " + search + "\n"); err != nil {
-			return nil, err
+	if len(dnsSearch) > 0 {
+		if searchString := strings.Join(dnsSearch, " "); strings.Trim(searchString, " ") != "." {
+			if _, err := content.WriteString("search " + searchString + "\n"); err != nil {
+				return nil, err
+			}
 		}
 	}
 	for _, dns := range dns {
