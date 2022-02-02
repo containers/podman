@@ -510,6 +510,9 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		if c.IsReadOnly() && dstPath != "/dev/shm" {
 			newMount.Options = append(newMount.Options, "ro", "nosuid", "noexec", "nodev")
 		}
+		if dstPath == "/dev/shm" && c.state.BindMounts["/dev/shm"] == c.config.ShmDir {
+			newMount.Options = append(newMount.Options, "nosuid", "noexec", "nodev")
+		}
 		if !MountExists(g.Mounts(), dstPath) {
 			g.AddMount(newMount)
 		} else {
@@ -1569,6 +1572,9 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 			}
 			if c.IsReadOnly() && dstPath != "/dev/shm" {
 				newMount.Options = append(newMount.Options, "ro", "nosuid", "noexec", "nodev")
+			}
+			if dstPath == "/dev/shm" && c.state.BindMounts["/dev/shm"] == c.config.ShmDir {
+				newMount.Options = append(newMount.Options, "nosuid", "noexec", "nodev")
 			}
 			if !MountExists(g.Mounts(), dstPath) {
 				g.AddMount(newMount)
