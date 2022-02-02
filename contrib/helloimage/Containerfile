@@ -1,0 +1,8 @@
+FROM registry.access.redhat.com/ubi8-micro:latest
+
+LABEL maintainer="Podman Maintainers"
+LABEL artist="Máirín Ní Ḋuḃṫaiġ, Twitter:@mairin"
+WORKDIR /tmp
+
+COPY podman_hello_world.bash .
+ENTRYPOINT ./podman_hello_world.bash
