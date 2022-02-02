@@ -52,7 +52,7 @@ var _ = Describe("Podman run with --mac-address flag", func() {
 		net := "n1" + stringid.GenerateNonCryptoID()
 		session := podmanTest.Podman([]string{"network", "create", net})
 		session.WaitWithDefaultTimeout()
-		defer podmanTest.removeCNINetwork(net)
+		defer podmanTest.removeNetwork(net)
 		Expect(session).Should(Exit(0))
 
 		result := podmanTest.Podman([]string{"run", "--network", net, "--mac-address", "92:d0:c6:00:29:34", ALPINE, "ip", "addr"})

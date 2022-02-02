@@ -2190,7 +2190,7 @@ spec:
 		net := "playkube" + stringid.GenerateNonCryptoID()
 		session := podmanTest.Podman([]string{"network", "create", "--subnet", "10.25.31.0/24", net})
 		session.WaitWithDefaultTimeout()
-		defer podmanTest.removeCNINetwork(net)
+		defer podmanTest.removeNetwork(net)
 		Expect(session).Should(Exit(0))
 
 		ips := []string{"10.25.31.5", "10.25.31.10", "10.25.31.15"}
@@ -2234,12 +2234,12 @@ spec:
 
 		net := podmanTest.Podman([]string{"network", "create", "--subnet", "10.0.11.0/24", net1})
 		net.WaitWithDefaultTimeout()
-		defer podmanTest.removeCNINetwork(net1)
+		defer podmanTest.removeNetwork(net1)
 		Expect(net).Should(Exit(0))
 
 		net = podmanTest.Podman([]string{"network", "create", "--subnet", "10.0.12.0/24", net2})
 		net.WaitWithDefaultTimeout()
-		defer podmanTest.removeCNINetwork(net2)
+		defer podmanTest.removeNetwork(net2)
 		Expect(net).Should(Exit(0))
 
 		ip1 := "10.0.11.5"
