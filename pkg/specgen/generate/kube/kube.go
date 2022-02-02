@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -650,6 +652,10 @@ func envVarValue(env v1.EnvVar, opts *CtrSpecGenOptions) (*string, error) {
 		if env.ValueFrom.FieldRef != nil {
 			return envVarValueFieldRef(env, opts)
 		}
+
+		if env.ValueFrom.ResourceFieldRef != nil {
+			return envVarValueResourceFieldRef(env, opts)
+		}
 	}
 
 	return &env.Value, nil
@@ -686,6 +692,69 @@ func envVarValueFieldRef(env v1.EnvVar, opts *CtrSpecGenOptions) (*string, error
 		"Can not set env %v. Reason: fieldPath %v is either not valid or not supported",
 		env.Name, fieldPath,
 	)
+}
+
+func envVarValueResourceFieldRef(env v1.EnvVar, opts *CtrSpecGenOptions) (*string, error) {
+	divisor := env.ValueFrom.ResourceFieldRef.Divisor
+	if divisor.IsZero() { // divisor not set, use default
+		divisor.Set(1)
+	}
+
+	var value *resource.Quantity
+	resources := opts.Container.Resources
+	resourceName := env.ValueFrom.ResourceFieldRef.Resource
+	var isValidDivisor bool
+
+	switch resourceName {
+	case "limits.memory":
+		value = resources.Limits.Memory()
+		isValidDivisor = isMemoryDivisor(divisor)
+	case "limits.cpu":
+		value = resources.Limits.Cpu()
+		isValidDivisor = isCPUDivisor(divisor)
+	case "requests.memory":
+		value = resources.Requests.Memory()
+		isValidDivisor = isMemoryDivisor(divisor)
+	case "requests.cpu":
+		value = resources.Requests.Cpu()
+		isValidDivisor = isCPUDivisor(divisor)
+	default:
+		return nil, errors.Errorf(
+			"Can not set env %v. Reason: resource %v is either not valid or not supported",
+			env.Name, resourceName,
+		)
+	}
+
+	if !isValidDivisor {
+		return nil, errors.Errorf(
+			"Can not set env %s. Reason: divisor value %s is not valid",
+			env.Name, divisor.String(),
+		)
+	}
+
+	// k8s rounds up the result to the nearest integer
+	intValue := int(math.Ceil(value.AsApproximateFloat64() / divisor.AsApproximateFloat64()))
+	stringValue := strconv.Itoa(intValue)
+
+	return &stringValue, nil
+}
+
+func isMemoryDivisor(divisor resource.Quantity) bool {
+	switch divisor.String() {
+	case "1", "1k", "1M", "1G", "1T", "1P", "1E", "1Ki", "1Mi", "1Gi", "1Ti", "1Pi", "1Ei":
+		return true
+	default:
+		return false
+	}
+}
+
+func isCPUDivisor(divisor resource.Quantity) bool {
+	switch divisor.String() {
+	case "1", "1m":
+		return true
+	default:
+		return false
+	}
 }
 
 // getPodPorts converts a slice of kube container descriptions to an
