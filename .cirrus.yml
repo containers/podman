@@ -811,9 +811,9 @@ release_task:
 release_test_task:
     name: "Optional Release Test"
     alias: release_test
-    # Release-PRs are never ever marked with [CI:DOCS] or [CI:BUILD]
-    only_if: *not_build
-    # Allow running manually as part of release PR preperation
+    # Release-PRs always include "release" or "Bump" in the title
+    only_if: $CIRRUS_CHANGE_TITLE =~ '.*((release)|(bump)).*'
+    # Allow running manually only as part of release-related builds
     # see RELEASE_PROCESS.md
     trigger_type: manual
     depends_on:
