@@ -6,18 +6,21 @@
 ###############################################################################
 # BEGIN usage message
 
-usage="Usage: $0 [--root] [--rootless] [--filter=filename[:testname]]
+usage="Usage: $0 [--root] [--rootless] [FILENAME-PATTERN[:TEST-PATTERN]]
 
 $0 is a wrapper for invoking podman system tests.
 
    --root         Run only as root
    --rootless     Run only as user (i.e. you)
 
-   --filter=name  Run only test files that match 'test/system/*name*',
-                  e.g. '500' or 'net' will match 500-networking.bats.
-                  If ':pattern' is appended, and you have a modern-enough
-                  version of bats installed, runs with '--filter pattern'
-                  which runs only subtests that match 'pattern'
+   FILENAME-PATTERN Run only test files that match 'test/system/*name*',
+                    e.g. '500' or 'net' will match 500-networking.bats.
+
+   TEST-PATTERN     When appended to a filename-pattern, and you have a
+                    modern-enough version of bats installed (i.e. Fedora
+                    but not RHEL), runs with '--filter TEST-PATTERN' which
+                    runs only subtests within FILENAME-PATTERH whose names
+                    match that string.
 
    -T             Passed on to bats, which will then show timing data
 
