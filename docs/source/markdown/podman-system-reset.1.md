@@ -7,7 +7,7 @@ podman\-system\-reset - Reset storage back to initial state
 **podman system reset** [*options*]
 
 ## DESCRIPTION
-**podman system reset** removes all pods, containers, images and volumes.
+**podman system reset** removes all pods, containers, images, networks and volumes.
 
 This command must be run **before** changing any of the following fields in the
 `containers.conf` or `storage.conf` files: `driver`, `static_dir`, `tmp_dir`
@@ -27,6 +27,17 @@ Do not prompt for confirmation
 Print usage statement
 
 ## EXAMPLES
+
+```
+$ podman system reset
+WARNING! This will remove:
+        - all containers
+        - all pods
+        - all images
+        - all networks
+        - all build cache
+Are you sure you want to continue? [y/N] y
+```
 
 ### Switching rootless user from VFS driver to overlay with fuse-overlayfs
 
