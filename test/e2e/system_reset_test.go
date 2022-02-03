@@ -35,12 +35,14 @@ var _ = Describe("podman system reset", func() {
 	})
 
 	It("podman system reset", func() {
+		Skip("Disabled until Netavark testing added")
 		SkipIfRemote("system reset not supported on podman --remote")
 		// system reset will not remove additional store images, so need to grab length
 
 		// change the network dir so that we do not conflict with other tests
 		// that would use the same network dir and cause unnecessary flakes
-		podmanTest.NetworkConfigDir = tempdir
+		// TODO: Uncomment when we enable Netavark testing in E2E.
+		//podmanTest.NetworkConfigDir = tempdir
 
 		session := podmanTest.Podman([]string{"rmi", "--force", "--all"})
 		session.WaitWithDefaultTimeout()
