@@ -54,6 +54,28 @@ var _ = Describe("Podman healthcheck run", func() {
 		Expect(hc).Should(Exit(125))
 	})
 
+	It("podman run healthcheck and logs should contain healthcheck output", func() {
+		session := podmanTest.Podman([]string{"run", "--name", "test-logs", "-dt", "--health-interval", "1s", "--health-cmd", "echo working", "busybox", "sleep", "3600"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// Buy a little time to get container running
+		for i := 0; i < 5; i++ {
+			hc := podmanTest.Podman([]string{"healthcheck", "run", "test-logs"})
+			hc.WaitWithDefaultTimeout()
+			exitCode := hc.ExitCode()
+			if exitCode == 0 || i == 4 {
+				break
+			}
+			time.Sleep(1 * time.Second)
+		}
+
+		hc := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.State.Healthcheck.Log}}", "test-logs"})
+		hc.WaitWithDefaultTimeout()
+		Expect(hc).Should(Exit(0))
+		Expect(hc.OutputToString()).To(ContainSubstring("working"))
+	})
+
 	It("podman healthcheck from image's config (not container config)", func() {
 		// Regression test for #12226: a health check may be defined in
 		// the container or the container-config of an image.
