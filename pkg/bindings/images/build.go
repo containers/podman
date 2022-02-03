@@ -332,7 +332,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	}
 
 	tarContent := []string{options.ContextDirectory}
-	newContainerFiles := []string{}
+	newContainerFiles := []string{} // dockerfile paths, relative to context dir, ToSlash()ed
 
 	dontexcludes := []string{"!Dockerfile", "!Containerfile", "!.dockerignore", "!.containerignore"}
 	for _, c := range containerFiles {
@@ -380,7 +380,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 				tarContent = append(tarContent, containerfile)
 			}
 		}
-		newContainerFiles = append(newContainerFiles, containerfile)
+		newContainerFiles = append(newContainerFiles, filepath.ToSlash(containerfile))
 	}
 	if len(newContainerFiles) > 0 {
 		cFileJSON, err := json.Marshal(newContainerFiles)
