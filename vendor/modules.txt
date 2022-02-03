@@ -153,7 +153,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.19.0
+# github.com/containers/image/v5 v5.19.1
 ## explicit
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
