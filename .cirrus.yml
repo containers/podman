@@ -24,6 +24,11 @@ env:
     # Runner statistics log file path/name
     STATS_LOGFILE_SFX: 'runner_stats.log'
     STATS_LOGFILE: '$GOSRC/${CIRRUS_TASK_NAME}-${STATS_LOGFILE_SFX}'
+    # Netavark/aardvark location/options when TEST_ENVIRON=host-netavark
+    NETAVARK_URL: "https://api.cirrus-ci.com/v1/artifact/github/containers/netavark/success/binary.zip?branch=${NETAVARK_BRANCH}"
+    NETAVARK_DEBUG: 0  # set non-zero to use the debug-mode binary
+    AARDVARK_URL: "https://api.cirrus-ci.com/v1/artifact/github/containers/aardvark-dns/success/binary.zip?branch=${AARDVARK_BRANCH}"
+    AARDVARK_DEBUG: 0  # set non-zero to use the debug-mode binary
 
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
@@ -515,6 +520,7 @@ container_integration_test_task:
     main_script: *main
     always: *int_logs_artifacts
 
+
 # Run the integration tests using the latest upstream build of netavark.
 netavark_integration_test_task:
     name: "Netavark integration"  # using *std_name_fmt here is unreadable
@@ -531,15 +537,33 @@ netavark_integration_test_task:
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
         TEST_FLAVOR: int
         TEST_ENVIRON: host-netavark
-        NETAVARK_URL: "https://api.cirrus-ci.com/v1/artifact/github/containers/netavark/success/binary.zip?branch=${NETAVARK_BRANCH}"
-        NETAVARK_DEBUG: 0  # set non-zero to use the debug-mode binary
-        AARDVARK_URL: "https://api.cirrus-ci.com/v1/artifact/github/containers/aardvark-dns/success/binary.zip?branch=${AARDVARK_BRANCH}"
-        AARDVARK_DEBUG: 0  # set non-zero to use the debug-mode binary
     clone_script: *noop  # Comes from cache
     gopath_cache: *ro_gopath_cache
     setup_script: *setup
     main_script: *main
     always: *int_logs_artifacts
+
+
+netavark_system_test_task:
+    name: "Netavark system"
+    alias: netavark_system_test
+    skip: *tags
+    only_if: *not_build
+    depends_on:
+      - netavark_integration_test
+    gce_instance: *standardvm
+    env:
+        DISTRO_NV: ${FEDORA_NAME}
+        _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
+        VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
+        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+        TEST_ENVIRON: host-netavark
+        TEST_FLAVOR: sys
+    clone_script: *noop  # Comes from cache
+    gopath_cache: *ro_gopath_cache
+    setup_script: *setup
+    main_script: *main
+    always: *logs_artifacts
 
 
 # Execute most integration tests as a regular (non-root) user.
@@ -594,6 +618,7 @@ remote_system_test_task:
         TEST_FLAVOR: sys
         PODBIN_NAME: remote
 
+
 rootless_remote_system_test_task:
     <<: *local_system_test_task
     alias: rootless_remote_system_test
@@ -613,6 +638,7 @@ rootless_remote_system_test_task:
         TEST_FLAVOR: sys
         PODBIN_NAME: remote
         PRIV_NAME: rootless
+
 
 buildah_bud_test_task:
     name: *std_name_fmt
@@ -642,6 +668,7 @@ buildah_bud_test_task:
     main_script: *main
     always: *int_logs_artifacts
 
+
 rootless_system_test_task:
     name: *std_name_fmt
     alias: rootless_system_test
@@ -659,6 +686,7 @@ rootless_system_test_task:
     setup_script: *setup
     main_script: *main
     always: *logs_artifacts
+
 
 rootless_gitlab_test_task:
     name: *std_name_fmt
@@ -686,6 +714,7 @@ rootless_gitlab_test_task:
             path: gitlab-runner-podman.xml
             type: text/xml
             format: junit
+
 
 upgrade_test_task:
     name: "Upgrade test: from $PODMAN_UPGRADE_FROM"
@@ -715,6 +744,7 @@ upgrade_test_task:
     setup_script: *setup
     main_script: *main
     always: *logs_artifacts
+
 
 # This task is critical.  It updates the "last-used by" timestamp stored
 # in metadata for all VM images.  This mechanism functions in tandem with
@@ -764,9 +794,10 @@ success_task:
         - compose_test
         - local_integration_test
         - remote_integration_test
-        - rootless_integration_test
         - container_integration_test
         - netavark_integration_test
+        - netavark_system_test
+        - rootless_integration_test
         - local_system_test
         - remote_system_test
         - rootless_system_test

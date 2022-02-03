@@ -341,6 +341,15 @@ function is_cgroupsv2() {
     test "$cgroup_type" = "cgroup2fs"
 }
 
+# True if podman is using netavark
+function is_netavark() {
+    run_podman info --format '{{.Host.NetworkBackend}}'
+    if [[ "$output" =~ netavark ]]; then
+        return 0
+    fi
+    return 1
+}
+
 # Returns the OCI runtime *basename* (typically crun or runc). Much as we'd
 # love to cache this result, we probably shouldn't.
 function podman_runtime() {
