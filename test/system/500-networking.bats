@@ -597,7 +597,7 @@ load helpers
     searchIP="100.100.100.100"
     cat >$containersconf <<EOF
 [containers]
-  dns_searches  = [ "example.com", "test1.com"]
+  dns_searches  = [ "example.com"]
   dns_servers = [
     "1.1.1.1",
     "$searchIP",
@@ -605,14 +605,9 @@ load helpers
     "8.8.8.8",
 ]
 EOF
-export searchDNS="search example.com
-search test1.com
-search a.b"
     CONTAINERS_CONF=$containersconf run_podman run --rm $IMAGE grep "example.com" /etc/resolv.conf
     CONTAINERS_CONF=$containersconf run_podman run --rm $IMAGE grep $searchIP /etc/resolv.conf
     is "$output" "nameserver $searchIP" "Should only be one $searchIP not multiple"
-    CONTAINERS_CONF=$containersconf run_podman run --dns-search a.b --rm $IMAGE grep search /etc/resolv.conf
-    is "$output" "$searchDNS" "Searches should be on different lines"
 }
 
 # vim: filetype=sh
