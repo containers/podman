@@ -176,8 +176,17 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 		files = append(files, b.Bytes())
 	}
 
-	if options.JobSemaphore == nil && options.Jobs != nil && *options.Jobs != 0 {
-		options.JobSemaphore = semaphore.NewWeighted(int64(*options.Jobs))
+	if options.JobSemaphore == nil {
+		if options.Jobs != nil {
+			if *options.Jobs < 0 {
+				return "", nil, errors.New("error building: invalid value for jobs.  It must be a positive integer")
+			}
+			if *options.Jobs > 0 {
+				options.JobSemaphore = semaphore.NewWeighted(int64(*options.Jobs))
+			}
+		} else {
+			options.JobSemaphore = semaphore.NewWeighted(1)
+		}
 	}
 
 	manifestList := options.Manifest

@@ -5,10 +5,10 @@ go 1.13
 require (
 	github.com/containerd/containerd v1.5.9
 	github.com/containernetworking/cni v1.0.1
-	github.com/containers/common v0.47.1
-	github.com/containers/image/v5 v5.19.0
+	github.com/containers/common v0.47.3
+	github.com/containers/image/v5 v5.19.1
 	github.com/containers/ocicrypt v1.1.2
-	github.com/containers/storage v1.38.1
+	github.com/containers/storage v1.38.2
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v20.10.12+incompatible
 	github.com/docker/go-units v0.4.0
@@ -20,14 +20,14 @@ require (
 	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.18.0
+	github.com/onsi/gomega v1.18.1
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.3-0.20211202193544-a5463b7f9c84
 	github.com/opencontainers/runc v1.1.0
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/opencontainers/runtime-tools v0.9.0
 	github.com/opencontainers/selinux v1.10.0
-	github.com/openshift/imagebuilder v1.2.2-0.20210415181909-87f3e48c2656
+	github.com/openshift/imagebuilder v1.2.2
 	github.com/pkg/errors v0.9.1
 	github.com/seccomp/libseccomp-golang v0.9.2-0.20210429002308-3879420cc921
 	github.com/sirupsen/logrus v1.8.1
@@ -40,7 +40,6 @@ require (
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b
-	k8s.io/klog v1.0.0 // indirect
 )
 
 replace github.com/sirupsen/logrus => github.com/sirupsen/logrus v1.4.2
