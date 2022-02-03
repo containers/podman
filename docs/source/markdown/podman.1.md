@@ -101,11 +101,10 @@ Path to the command binary to use for setting up a network.  It is currently onl
 
 Redirect stdout to /dev/null. This command will prevent all stdout from the Podman command. The **--noout**  option will not block stderr or stdout from containers.
 
-
 #### **--remote**, **-r**
 When true, access to the Podman service will be remote. Defaults to false.
 Settings can be modified in the containers.conf file. If the CONTAINER_HOST
-environment variable is set, the remote option defaults to true.
+environment variable is set, the **--remote** option defaults to true.
 
 #### **--url**=*value*
 URL to access Podman service (default from `containers.conf`, rootless `unix://run/user/$UID/podman/podman.sock` or as root `unix://run/podman/podman.sock`).
@@ -113,18 +112,31 @@ URL to access Podman service (default from `containers.conf`, rootless `unix://r
  - `CONTAINER_HOST` is of the format `<schema>://[<user[:<password>]@]<host>[:<port>][<path>]`
 
 Details:
- - `user` will default to either `root` or current running user
- - `password` has no default
- - `host` must be provided and is either the IP or name of the machine hosting the Podman service
- - `port` defaults to 22
- - `path` defaults to either `/run/podman/podman.sock`, or `/run/user/<uid>/podman/podman.sock` if running rootless.
+ - `schema` is one of:
+   * `ssh` (default): a local unix(7) socket on the named `host` and `port`, reachable via SSH
+   * `tcp`: an unencrypted, unauthenticated TCP connection to the named `host` and `port`
+   * `unix`: a local unix(7) socket at the specified `path`, or the default for the user
+ - `user` will default to either `root` or the current running user (`ssh` only)
+ - `password` has no default (`ssh` only)
+ - `host` must be provided and is either the IP or name of the machine hosting the Podman service (`ssh` and `tcp`)
+ - `port` defaults to 22 (`ssh` and `tcp`)
+ - `path` defaults to either `/run/podman/podman.sock`, or `/run/user/$UID/podman/podman.sock` if running rootless (`unix`), or must be explicitly specified (`ssh`)
 
 URL value resolution precedence:
  - command line value
  - environment variable `CONTAINER_HOST`
- - `containers.conf`
+ - `containers.conf` `service_destinations` table
  - `unix://run/podman/podman.sock`
+
 Remote connections use local containers.conf for default.
+
+Some example URL values in valid formats:
+ - unix://run/podman/podman.sock
+ - unix://run/user/$UID/podman/podman.sock
+ - ssh://notroot@localhost:22/run/user/$UID/podman/podman.sock
+ - ssh://root@localhost:22/run/podman/podman.sock
+ - tcp://localhost:34451
+ - tcp://127.0.0.1:34451
 
 #### **--root**=*value*
 
