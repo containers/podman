@@ -120,7 +120,6 @@ type Executor struct {
 	terminatedStage         map[string]error
 	stagesLock              sync.Mutex
 	stagesSemaphore         *semaphore.Weighted
-	jobs                    int
 	logRusage               bool
 	rusageLogFile           io.Writer
 	imageInfoLock           sync.Mutex
@@ -186,10 +185,6 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 	sshsources, err := parse.SSH(options.CommonBuildOpts.SSHSources)
 	if err != nil {
 		return nil, err
-	}
-	jobs := 1
-	if options.Jobs != nil {
-		jobs = *options.Jobs
 	}
 
 	writer := options.ReportWriter
@@ -270,7 +265,6 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		ociDecryptConfig:               options.OciDecryptConfig,
 		terminatedStage:                make(map[string]error),
 		stagesSemaphore:                options.JobSemaphore,
-		jobs:                           jobs,
 		logRusage:                      options.LogRusage,
 		rusageLogFile:                  rusageLogFile,
 		imageInfoCache:                 make(map[string]imageTypeAndHistoryAndDiffIDs),
@@ -641,14 +635,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 	ch := make(chan Result, len(stages))
 
 	if b.stagesSemaphore == nil {
-		jobs := int64(b.jobs)
-		if jobs < 0 {
-			return "", nil, errors.New("error building: invalid value for jobs.  It must be a positive integer")
-		} else if jobs == 0 {
-			jobs = int64(len(stages))
-		}
-
-		b.stagesSemaphore = semaphore.NewWeighted(jobs)
+		b.stagesSemaphore = semaphore.NewWeighted(int64(len(stages)))
 	}
 
 	var wg sync.WaitGroup

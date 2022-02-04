@@ -902,29 +902,30 @@ func setCapabilities(spec *specs.Spec, keepCaps ...string) error {
 		capability.AMBIENT:     spec.Process.Capabilities.Ambient,
 	}
 	knownCaps := capability.List()
+	noCap := capability.Cap(-1)
 	for capType, capList := range capMap {
 		for _, capToSet := range capList {
-			cap := capability.CAP_LAST_CAP
+			cap := noCap
 			for _, c := range knownCaps {
 				if strings.EqualFold("CAP_"+c.String(), capToSet) {
 					cap = c
 					break
 				}
 			}
-			if cap == capability.CAP_LAST_CAP {
+			if cap == noCap {
 				return errors.Errorf("error mapping capability %q to a number", capToSet)
 			}
 			caps.Set(capType, cap)
 		}
 		for _, capToSet := range keepCaps {
-			cap := capability.CAP_LAST_CAP
+			cap := noCap
 			for _, c := range knownCaps {
 				if strings.EqualFold("CAP_"+c.String(), capToSet) {
 					cap = c
 					break
 				}
 			}
-			if cap == capability.CAP_LAST_CAP {
+			if cap == noCap {
 				return errors.Errorf("error mapping capability %q to a number", capToSet)
 			}
 			if currentCaps.Get(capType, cap) {
