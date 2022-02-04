@@ -521,51 +521,6 @@ container_integration_test_task:
     always: *int_logs_artifacts
 
 
-# Run the integration tests using the latest upstream build of netavark.
-netavark_integration_test_task:
-    name: "Netavark integration"  # using *std_name_fmt here is unreadable
-    alias: netavark_integration_test
-    only_if: *not_build
-    skip: *branches_and_tags
-    depends_on:
-        - unit_test
-    gce_instance: *standardvm
-    env:
-        DISTRO_NV: ${FEDORA_NAME}
-        _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
-        VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-        TEST_FLAVOR: int
-        TEST_ENVIRON: host-netavark
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
-    setup_script: *setup
-    main_script: *main
-    always: *int_logs_artifacts
-
-
-netavark_system_test_task:
-    name: "Netavark system"
-    alias: netavark_system_test
-    skip: *tags
-    only_if: *not_build
-    depends_on:
-      - netavark_integration_test
-    gce_instance: *standardvm
-    env:
-        DISTRO_NV: ${FEDORA_NAME}
-        _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
-        VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-        TEST_ENVIRON: host-netavark
-        TEST_FLAVOR: sys
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
-    setup_script: *setup
-    main_script: *main
-    always: *logs_artifacts
-
-
 # Execute most integration tests as a regular (non-root) user.
 rootless_integration_test_task:
     name: *std_name_fmt
@@ -580,6 +535,41 @@ rootless_integration_test_task:
     env:
         TEST_FLAVOR: int
         PRIV_NAME: rootless
+    clone_script: *noop  # Comes from cache
+    gopath_cache: *ro_gopath_cache
+    setup_script: *setup
+    main_script: *main
+    always: *int_logs_artifacts
+
+
+# Run various scenarios using upstream netavark/aardvark-dns binaries
+netavark_task:
+    name: "Netavark $TEST_FLAVOR $PODBIN_NAME $PRIV_NAME"
+    alias: netavark
+    only_if: *not_build
+    skip: *branches_and_tags
+    depends_on:
+        - unit_test
+    gce_instance: *standardvm
+    matrix:
+        - env: &nenv
+            DISTRO_NV: ${FEDORA_NAME}
+            _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
+            VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
+            CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+            TEST_FLAVOR: int
+            TEST_ENVIRON: host-netavark
+        - env:
+            <<: *nenv
+            TEST_FLAVOR: int
+            PRIV_NAME: rootless
+        - env:
+            <<: *nenv
+            TEST_FLAVOR: sys
+        - env:
+            <<: *nenv
+            TEST_FLAVOR: sys
+            PRIV_NAME: rootless
     clone_script: *noop  # Comes from cache
     gopath_cache: *ro_gopath_cache
     setup_script: *setup
@@ -795,9 +785,8 @@ success_task:
         - local_integration_test
         - remote_integration_test
         - container_integration_test
-        - netavark_integration_test
-        - netavark_system_test
         - rootless_integration_test
+        - netavark
         - local_system_test
         - remote_system_test
         - rootless_system_test
