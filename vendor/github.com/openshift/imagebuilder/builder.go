@@ -303,6 +303,9 @@ type Builder struct {
 	PendingCopies  []Copy
 
 	Warnings []string
+	// Raw platform string specified with `FROM --platform` of the stage
+	// It's up to the implementation or client to parse and use this field
+	Platform string
 }
 
 func NewBuilder(args map[string]string) *Builder {
@@ -470,7 +473,7 @@ func (b *Builder) FromImage(image *docker.Image, node *parser.Node) error {
 	b.RunConfig.Env = nil
 
 	// Check to see if we have a default PATH, note that windows won't
-	// have one as its set by HCS
+	// have one as it's set by HCS
 	if runtime.GOOS != "windows" && !hasEnvName(b.Env, "PATH") {
 		b.RunConfig.Env = append(b.RunConfig.Env, "PATH="+defaultPathEnv)
 	}

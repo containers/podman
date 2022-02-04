@@ -2727,7 +2727,6 @@ func (b *Builder) getSSHMount(tokens []string, count int, sshsources map[string]
 			gid = uint32(gid64)
 		default:
 			return nil, nil, errInvalidSyntax
-
 		}
 	}
 

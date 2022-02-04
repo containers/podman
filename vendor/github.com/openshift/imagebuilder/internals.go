@@ -52,7 +52,7 @@ func hasSlash(input string) bool {
 
 // makeAbsolute ensures that the provided path is absolute.
 func makeAbsolute(dest, workingDir string) string {
-	// Twiddle the destination when its a relative path - meaning, make it
+	// Twiddle the destination when it's a relative path - meaning, make it
 	// relative to the WORKINGDIR
 	if dest == "." {
 		if !hasSlash(workingDir) {
