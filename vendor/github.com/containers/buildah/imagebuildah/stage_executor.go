@@ -16,6 +16,7 @@ import (
 	"github.com/containers/buildah/define"
 	buildahdocker "github.com/containers/buildah/docker"
 	"github.com/containers/buildah/internal"
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/pkg/rusage"
 	"github.com/containers/buildah/util"
 	cp "github.com/containers/image/v5/copy"
@@ -595,6 +596,22 @@ func (s *StageExecutor) prepare(ctx context.Context, from string, initializeIBCo
 		}
 	}
 
+	builderSystemContext := s.executor.systemContext
+	// get platform string from stage
+	if stage.Builder.Platform != "" {
+		os, arch, variant, err := parse.Platform(stage.Builder.Platform)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to parse platform %q", stage.Builder.Platform)
+		}
+		if arch != "" || variant != "" {
+			builderSystemContext.ArchitectureChoice = arch
+			builderSystemContext.VariantChoice = variant
+		}
+		if os != "" {
+			builderSystemContext.OSChoice = os
+		}
+	}
+
 	builderOptions := buildah.BuilderOptions{
 		Args:                  ib.Args,
 		FromImage:             from,
@@ -604,7 +621,7 @@ func (s *StageExecutor) prepare(ctx context.Context, from string, initializeIBCo
 		BlobDirectory:         s.executor.blobDirectory,
 		SignaturePolicyPath:   s.executor.signaturePolicyPath,
 		ReportWriter:          s.executor.reportWriter,
-		SystemContext:         s.executor.systemContext,
+		SystemContext:         builderSystemContext,
 		Isolation:             s.executor.isolation,
 		NamespaceOptions:      s.executor.namespaceOptions,
 		ConfigureNetwork:      s.executor.configureNetwork,
