@@ -18,7 +18,7 @@ function _check_health {
         # (kludge to deal with parse_table and empty strings)
         if [ "$expect" = "''" ]; then expect=""; fi
 
-        actual=$(jq -r ".$field" <<<"$output")
+        actual=$(jq ".$field" <<<"$output")
         is "$actual" "$expect" "$testname - .State.Healthcheck.$field"
     done
 }
@@ -77,10 +77,10 @@ EOF
     is "$output" "" "output from 'podman healthcheck run'"
 
     _check_health "All healthy" "
-Status           | healthy
+Status           | \"healthy\"
 FailingStreak    | 0
 Log[-1].ExitCode | 0
-Log[-1].Output   |
+Log[-1].Output   | \"Life is Good on stdout\\\nLife is Good on stderr\"
 "
 
     # Force a failure
@@ -88,19 +88,19 @@ Log[-1].Output   |
     sleep 2
 
     _check_health "First failure" "
-Status           | healthy
+Status           | \"healthy\"
 FailingStreak    | [123]
 Log[-1].ExitCode | 1
-Log[-1].Output   |
+Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
 "
 
     # After three successive failures, container should no longer be healthy
     sleep 5
     _check_health "Three or more failures" "
-Status           | unhealthy
+Status           | \"unhealthy\"
 FailingStreak    | [3456]
 Log[-1].ExitCode | 1
-Log[-1].Output   |
+Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
 "
 
     # healthcheck should now fail, with exit status 1 and 'unhealthy' output
