@@ -199,15 +199,6 @@ func Width() int {
 	return int(ws.Col)
 }
 
-// Height gets console height
-func Height() int {
-	ws, err := getWinsize()
-	if err != nil {
-		return -1
-	}
-	return int(ws.Row)
-}
-
 // CurrentHeight gets current height. Line count in Screen buffer.
 func CurrentHeight() int {
 	return strings.Count(Screen.String(), "\n")
