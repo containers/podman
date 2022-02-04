@@ -82,7 +82,7 @@ func pullOrBuildInfraImage(p *entities.PodSpec, rt *libpod.Runtime) error {
 		imageName = rtConfig.Engine.InfraImage
 	}
 
-	if imageName != config.DefaultInfraImage {
+	if imageName != "" {
 		_, err := rt.LibimageRuntime().Pull(context.Background(), imageName, config.PullPolicyMissing, nil)
 		if err != nil {
 			return err
@@ -278,8 +278,6 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 		p.InfraContainerSpec.ConmonPidFile = p.InfraConmonPidFile
 	}
 
-	if p.InfraImage != config.DefaultInfraImage {
-		p.InfraContainerSpec.Image = p.InfraImage
-	}
+	p.InfraContainerSpec.Image = p.InfraImage
 	return p.InfraContainerSpec, nil
 }

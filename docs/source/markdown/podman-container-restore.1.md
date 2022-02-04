@@ -33,7 +33,7 @@ The default is **false**.
 
 Instead of providing the *container ID* or *name*, use the last created *container*. If other tools than Podman are used to run *containers* such as `CRI-O`, the last started *container* could be from either tool.\
 The default is **false**.\
-*IMPORTANT: This OPTION is not available with the remote Podman client. This OPTION does not need a container name or ID as input argument.*
+*IMPORTANT: This OPTION is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines. This OPTION does not need a container name or ID as input argument.*
 
 #### **--ignore-rootfs**
 
@@ -87,7 +87,7 @@ not much the container runtime used for container creation.
 
 Import a pre-checkpoint tar.gz file which was exported by Podman. This option
 must be used with **-i** or **--import**. It only works on `runc 1.0-rc3` or `higher`.
-*IMPORTANT: This OPTION is not supported on the remote client.*
+*IMPORTANT: This OPTION is not supported on the remote client, including Mac and Windows (excluding WSL2) machines.*
 
 #### **--name**, **-n**=*name*
 

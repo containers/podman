@@ -73,6 +73,7 @@
 - The Podman APIs for Manifest List and Network operations have been completely rewritten to address issues and inconsistencies in the previous APIs.
 - The `make install` makefile target no longer implicitly builds Podman, and will fail if `make` was not run prior to it.
 - The `podman rm --depends`, `podman rmi --force`, and `podman network rm --force` commands can now remove pods if a they need to remove an infra container (e.g. `podman rmi --force` on the infra image will remove all pods and infra containers). Previously, any command that tried to remove an infra container would error.
+- The `podman system reset` command now removes all networks on the system, in addition to all volumes, pods, containers, and images.
 - If the `CONTAINER_HOST` environment variable is set, Podman will default to connecting to the remote Podman service specified by the environment variable, instead of running containers locally ([#11196](https://github.com/containers/podman/issues/11196)).
 - Healthcheck information from `podman inspect` on a container has had its JSON tag renamed from `Healthcheck` to `Health` for improved Docker compatibility. An alias has been added so that using the old name with the `--format` option will still work ([#11645](https://github.com/containers/podman/issues/11645)).
 - Secondary IP and IPv6 addresses from `podman inspect` on a container (`SecondaryIPAddresses` and `SecondaryIPv6Addresses`) have been changed from arrays of strings to arrays of structs for improved Docker compatibility (the struct now includes IP address and prefix length).
@@ -85,6 +86,8 @@
 ### Changes
 - Podman containers will now automatically add the container's short ID as a network alias when connected to a supporting network ([#11748](https://github.com/containers/podman/issues/11748)).
 - The `podman machine stop` command will now log when machines are successfully stopped ([#11542](https://github.com/containers/podman/issues/11542)).
+- The `podman machine stop` command now waits until the VM has stopped to return; previously, it returned immediately after the shutdown command was sent, without waiting for the VM to shut down.
+- VMs created by `podman machine` now delegate more cgroup controllers to the rootless user used to run containers, allowing for additional resource limits to be used ([#13054](https://github.com/containers/podman/issues/13054)).
 - The `podman stop` command will now log a warning to the console if the stop timeout expires and `SIGKILL` must be used to stop the container ([#11854](https://github.com/containers/podman/issues/11854)).
 - Several performance optimizations have been implemented that should speed up container and pod creation, and running containers and pods that forward large ranges of ports.
 - The `--no-trunc` argument to the `podman search` command now defaults to true.
@@ -96,7 +99,6 @@
 - The `--cni-config-dir` option to all Podman commands has been renamed to `--network-config-dir` as it will not be used with Netavark as well as CNI. The old name has been aliased to the new one and will still function, but may be removed in a future release.
 - The `--format` option to all Podman commands has been changed to improved functionality and Docker compatibility ([#10974](https://github.com/containers/podman/issues/10974)).
 - The `podman ps --external` flag previously required `--all` to also be specified; this is no longer true
-- The `podman machine stop` command now waits until the VM has stopped to return; previously, it returned immediately after the shutdown command was sent, without waiting for the VM to shut down.
 - The port-forwarding logic previously contined in the `podman-machine-cni` CNI plugin has been integrated directly into Podman. The `podman-machine-cni` plugin is no longer necessary and should be removed.
 - The `--device` flag to `podman create`, `podman run`, and `podman pod create` would previously refuse to mount devices when Podman was run as a non-root user and no permission to access the device was available; it will now mount these devices without checking permissions ([#12704](https://github.com/containers/podman/issues/12704)).
 
@@ -130,6 +132,7 @@
 - Fixed a bug where VMs created by `podman machine` did not match their timezone to the host system ([#11895](https://github.com/containers/podman/issues/11895)).
 - Fixed a bug where container healthchecks were not properly cleaning up generated systemd services, leading to healthcheck failures after containers were restarted.
 - Fixed a bug where the `podman build` command did not properly propagate non-0 exit codes from Buildah when builds failed.
+- Fixed a bug where the remote Podman client's `podman build` command could fail to build images when the remote client was run on Windows and the Containerfile contained `COPY` instructions ([#13119](https://github.com/containers/podman/issues/13119)).
 - Fixed a bug where the remote Podman client's `--secret` option to the `podman build` command was nonfunctional.
 - Fixed a bug where the remote Podman client's `podman build` command would error if given a relative path to a Containerfile ([#12841](https://github.com/containers/podman/issues/12841)).
 - Fixed a bug where the `podman generate kube` command would sometimes omit environment variables set in containers from generated YAML.
@@ -150,6 +153,9 @@
 - Fixed a bug where, when Podman's storage directories were on an NFS filesystem, Podman would leave some unneeded file descriptors open, causing errors when containers were removed.
 - Fixed a bug where, when Podman's storage directories were on an NFS filesystem, cleaning up a container's exec sessions could fail.
 - Fixed a bug where Podman commands that operate on a container could give an incorrect error message if given a partial ID that could refer to 2 or more containers ([#12963](https://github.com/containers/podman/issues/12963)).
+- Fixed a bug where the `podman stats` command would not show network usage statistics on containers using `slirp4netns` for networking ([#11695](https://github.com/containers/podman/issues/11695)).
+- Fixed a bug where the `/dev/shm` mount in the container was not mounted with `nosuid`, `noexec`, and `nodev` mount options.
+- Fixed a bug where the `--shm-size` option to `podman create` and `podman run` interpeted human-readable sizes as KB instead of KiB, and GB instead of GiB (such that a kilobyte was interpreted as 1000 bytes, instead of 1024 bytes) ([#13096](https://github.com/containers/podman/issues/13096)).
 
 ### API
 - The Podman remote API version has been bumped to v4.0.0.

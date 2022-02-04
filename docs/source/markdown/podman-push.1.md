@@ -20,7 +20,7 @@ Images are pushed from those stored in local image storage.
 
 ## DESTINATION
 
- DESTINATION is the location the container image is pushed to. It supports all transports from `containers-transports(5)`. If no transport is specified, the `docker` (i.e., container registry) transport is used.  For remote clients, `docker` is the only supported transport.
+ DESTINATION is the location the container image is pushed to. It supports all transports from `containers-transports(5)`. If no transport is specified, the `docker` (i.e., container registry) transport is used.  For remote clients, including Mac and Windows (excluding WSL2) machines, `docker` is the only supported transport.
 
 ```
 # Push to a container registry
@@ -64,7 +64,7 @@ value can be entered.  The password is entered without echo.
 #### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry. (Default: /etc/containers/certs.d)
-Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client)
+Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 #### **--compress**
 
@@ -77,7 +77,7 @@ Specifies the compression format to use.  Supported values are: `gzip`, `zstd` a
 
 #### **--digestfile** *Digestfile*
 
-After copying the image, write the digest of the resulting image to the file.  (This option is not available with the remote Podman client)
+After copying the image, write the digest of the resulting image to the file.  (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 #### **--disable-content-trust**
 
@@ -95,11 +95,11 @@ When writing the output image, suppress progress output
 
 #### **--remove-signatures**
 
-Discard any pre-existing signatures in the image. (This option is not available with the remote Podman client)
+Discard any pre-existing signatures in the image. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 #### **--sign-by**=*key*
 
-Add a signature at the destination using the specified key. (This option is not available with the remote Podman client)
+Add a signature at the destination using the specified key. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 #### **--tls-verify**
 

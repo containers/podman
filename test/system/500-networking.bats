@@ -589,4 +589,25 @@ load helpers
     run_podman network rm -t 0 -f $netname
 }
 
+@test "podman run CONTAINERS_CONF dns options" {
+    skip_if_remote "CONTAINERS_CONF redirect does not work on remote"
+    # Test on the CLI and via containers.conf
+    containersconf=$PODMAN_TMPDIR/containers.conf
+
+    searchIP="100.100.100.100"
+    cat >$containersconf <<EOF
+[containers]
+  dns_searches  = [ "example.com"]
+  dns_servers = [
+    "1.1.1.1",
+    "$searchIP",
+    "1.0.0.1",
+    "8.8.8.8",
+]
+EOF
+    CONTAINERS_CONF=$containersconf run_podman run --rm $IMAGE grep "example.com" /etc/resolv.conf
+    CONTAINERS_CONF=$containersconf run_podman run --rm $IMAGE grep $searchIP /etc/resolv.conf
+    is "$output" "nameserver $searchIP" "Should only be one $searchIP not multiple"
+}
+
 # vim: filetype=sh

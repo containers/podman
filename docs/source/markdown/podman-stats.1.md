@@ -27,7 +27,7 @@ Show all containers.  Only running containers are shown by default
 #### **--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
-to run containers such as CRI-O, the last started container could be from either of those methods. (This option is not available with the remote Podman client)
+to run containers such as CRI-O, the last started container could be from either of those methods. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 #### **--no-reset**
 
@@ -97,6 +97,12 @@ a9f807ffaacd   frosty_hodgkin   --      3.092MB / 16.7GB    0.02%   -- / --   --
 ID             NAME           MEM USAGE / LIMIT
 6eae9e25a564   clever_bassi   3.031MB / 16.7GB
 ```
+
+Note: When using a slirp4netns network with the rootlesskit port
+handler, the traffic send via the port forwarding will be accounted to
+the `lo` device.  Traffic accounted to `lo` is not accounted in the
+stats output.
+
 
 ## SEE ALSO
 **[podman(1)](podman.1.md)**

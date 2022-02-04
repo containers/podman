@@ -138,6 +138,7 @@ func (gdw *NaiveDiffDriver) Changes(id string, idMappings *idtools.IDMappings, p
 	if parent != "" {
 		options := MountOpts{
 			MountLabel: mountLabel,
+			Options:    []string{"ro"},
 		}
 		parentFs, err = driver.Get(parent, options)
 		if err != nil {

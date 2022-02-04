@@ -52,18 +52,18 @@ var lengthBase = [32]uint8{
 }
 
 // offset code word extra bits.
-var offsetExtraBits = [64]int8{
+var offsetExtraBits = [32]int8{
 	0, 0, 0, 0, 1, 1, 2, 2, 3, 3,
 	4, 4, 5, 5, 6, 6, 7, 7, 8, 8,
 	9, 9, 10, 10, 11, 11, 12, 12, 13, 13,
 	/* extended window */
-	14, 14, 15, 15, 16, 16, 17, 17, 18, 18, 19, 19, 20, 20,
+	14, 14,
 }
 
 var offsetCombined = [32]uint32{}
 
 func init() {
-	var offsetBase = [64]uint32{
+	var offsetBase = [32]uint32{
 		/* normal deflate */
 		0x000000, 0x000001, 0x000002, 0x000003, 0x000004,
 		0x000006, 0x000008, 0x00000c, 0x000010, 0x000018,
@@ -73,9 +73,7 @@ func init() {
 		0x001800, 0x002000, 0x003000, 0x004000, 0x006000,
 
 		/* extended window */
-		0x008000, 0x00c000, 0x010000, 0x018000, 0x020000,
-		0x030000, 0x040000, 0x060000, 0x080000, 0x0c0000,
-		0x100000, 0x180000, 0x200000, 0x300000,
+		0x008000, 0x00c000,
 	}
 
 	for i := range offsetCombined[:] {

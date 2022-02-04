@@ -107,7 +107,7 @@ type Telemetry struct {
 }
 
 // Open opens a stargz file for reading.
-// The behaviour is configurable using options.
+// The behavior is configurable using options.
 //
 // Note that each entry name is normalized as the path that is relative to root.
 func Open(sr *io.SectionReader, opt ...OpenOption) (*Reader, error) {

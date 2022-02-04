@@ -23,7 +23,7 @@ ExecStop directive of a systemd service referencing that pod.
 
 #### **--latest**, **-l**
 
-Instead of providing the pod name or ID, remove the last created pod. (This option is not available with the remote Podman client)
+Instead of providing the pod name or ID, remove the last created pod. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 #### **--force**, **-f**
 

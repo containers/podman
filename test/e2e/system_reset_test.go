@@ -35,8 +35,14 @@ var _ = Describe("podman system reset", func() {
 	})
 
 	It("podman system reset", func() {
+		Skip("Disabled until Netavark testing added")
 		SkipIfRemote("system reset not supported on podman --remote")
 		// system reset will not remove additional store images, so need to grab length
+
+		// change the network dir so that we do not conflict with other tests
+		// that would use the same network dir and cause unnecessary flakes
+		// TODO: Uncomment when we enable Netavark testing in E2E.
+		//podmanTest.NetworkConfigDir = tempdir
 
 		session := podmanTest.Podman([]string{"rmi", "--force", "--all"})
 		session.WaitWithDefaultTimeout()
@@ -56,15 +62,15 @@ var _ = Describe("podman system reset", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
+		session = podmanTest.Podman([]string{"network", "create"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
 		session = podmanTest.Podman([]string{"system", "reset", "-f"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
 		Expect(session.ErrorToString()).To(Not(ContainSubstring("Failed to add pause process")))
-
-		// If remote then the API service should have exited
-		// On local tests this is a noop
-		podmanTest.StartRemoteService()
 
 		session = podmanTest.Podman([]string{"images", "-n"})
 		session.WaitWithDefaultTimeout()
@@ -80,5 +86,11 @@ var _ = Describe("podman system reset", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToStringArray()).To(BeEmpty())
+
+		session = podmanTest.Podman([]string{"network", "ls", "-q"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		// default network should exists
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
 	})
 })

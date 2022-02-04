@@ -84,6 +84,11 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("size=200k"))
+
+		session = podmanTest.Podman([]string{"run", "--shm-size", "1g", ALPINE, "grep", "shm", "/proc/self/mounts"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("size=1048576k"))
 	})
 
 	It("add capabilities", func() {
