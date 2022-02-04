@@ -41,7 +41,7 @@ github.com/beorn7/perks/quantile
 # github.com/blang/semver v3.5.1+incompatible
 ## explicit
 github.com/blang/semver
-# github.com/buger/goterm v1.0.1
+# github.com/buger/goterm v1.0.4
 ## explicit
 github.com/buger/goterm
 # github.com/cespare/xxhash/v2 v2.1.2
