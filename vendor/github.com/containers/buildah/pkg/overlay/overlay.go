@@ -112,6 +112,40 @@ func MountReadOnly(contentDir, source, dest string, rootUID, rootGID int, graphO
 	return MountWithOptions(contentDir, source, dest, &overlayOpts)
 }
 
+// findMountProgram finds if any mount program is specified in the graph options.
+func findMountProgram(graphOptions []string) string {
+	mountMap := map[string]bool{
+		".mount_program":         true,
+		"overlay.mount_program":  true,
+		"overlay2.mount_program": true,
+	}
+
+	for _, i := range graphOptions {
+		s := strings.SplitN(i, "=", 2)
+		if len(s) != 2 {
+			continue
+		}
+		key := s[0]
+		val := s[1]
+		if mountMap[key] {
+			return val
+		}
+	}
+
+	return ""
+}
+
+// mountWithMountProgram mount an overlay at mergeDir using the specified mount program
+// and overlay options.
+func mountWithMountProgram(mountProgram, overlayOptions, mergeDir string) error {
+	cmd := exec.Command(mountProgram, "-o", overlayOptions, mergeDir)
+
+	if err := cmd.Run(); err != nil {
+		return errors.Wrapf(err, "exec %s", mountProgram)
+	}
+	return nil
+}
+
 // MountWithOptions creates a subdir of the contentDir based on the source directory
 // from the source system.  It then mounts up the source directory on to the
 // generated mount point and returns the mount point to the caller.
@@ -154,41 +188,21 @@ func MountWithOptions(contentDir, source, dest string, opts *Options) (mount spe
 		overlayOptions = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s,private", escapeColon(source), upperDir, workDir)
 	}
 
+	mountProgram := findMountProgram(opts.GraphOpts)
+	if mountProgram != "" {
+		if err := mountWithMountProgram(mountProgram, overlayOptions, mergeDir); err != nil {
+			return mount, err
+		}
+
+		mount.Source = mergeDir
+		mount.Destination = dest
+		mount.Type = "bind"
+		mount.Options = []string{"bind", "slave"}
+		return mount, nil
+	}
+
 	if unshare.IsRootless() {
-		mountProgram := ""
-
-		mountMap := map[string]bool{
-			".mount_program":         true,
-			"overlay.mount_program":  true,
-			"overlay2.mount_program": true,
-		}
-
-		for _, i := range opts.GraphOpts {
-			s := strings.SplitN(i, "=", 2)
-			if len(s) != 2 {
-				continue
-			}
-			key := s[0]
-			val := s[1]
-			if mountMap[key] {
-				mountProgram = val
-				break
-			}
-		}
-		if mountProgram != "" {
-			cmd := exec.Command(mountProgram, "-o", overlayOptions, mergeDir)
-
-			if err := cmd.Run(); err != nil {
-				return mount, errors.Wrapf(err, "exec %s", mountProgram)
-			}
-
-			mount.Source = mergeDir
-			mount.Destination = dest
-			mount.Type = "bind"
-			mount.Options = []string{"bind", "slave"}
-			return mount, nil
-		}
-		/* If a mount_program is not specified, fallback to try mount native overlay.  */
+		/* If a mount_program is not specified, fallback to try mounting native overlay.  */
 		overlayOptions = fmt.Sprintf("%s,userxattr", overlayOptions)
 	}
 

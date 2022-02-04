@@ -1,3 +1,18 @@
+- Changelog for v1.24.1 (2022-02-03)
+  * executor: Add support for inline --platform within Dockerfile
+  * caps: fix buildah run --cap-add=all
+  * Update vendor of openshift/imagebuilder
+  * Bump version of containers/image and containers/common
+  * Update vendor of containers/common
+  * System tests: fix accidental vandalism of source dir
+  * build(deps): bump github.com/containers/storage from 1.38.1 to 1.38.2
+  * imagebuildah.BuildDockerfiles(): create the jobs semaphore
+  * build(deps): bump github.com/onsi/gomega from 1.18.0 to 1.18.1
+  * overlay: always honor mountProgram
+  * overlay: move mount program invocation to separate function
+  * overlay: move mount program lookup to separate function
+  * Bump to v1.25.0-dev [NO TESTS NEEDED]
+
 - Changelog for v1.24.0 (2022-01-26)
   * Update vendor of containers/common
   * build(deps): bump github.com/golangci/golangci-lint in /tests/tools
