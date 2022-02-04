@@ -1066,4 +1066,47 @@ ENTRYPOINT ["sleep","99999"]
 
 	})
 
+	It("podman pod create --share-parent test", func() {
+		SkipIfRootlessCgroupsV1("rootless cannot use cgroups with cgroupsv1")
+		podCreate := podmanTest.Podman([]string{"pod", "create", "--share-parent=false"})
+		podCreate.WaitWithDefaultTimeout()
+		Expect(podCreate).Should(Exit(0))
+
+		ctrCreate := podmanTest.Podman([]string{"run", "-dt", "--pod", podCreate.OutputToString(), ALPINE})
+		ctrCreate.WaitWithDefaultTimeout()
+		Expect(ctrCreate).Should(Exit(0))
+
+		inspectPod := podmanTest.Podman([]string{"pod", "inspect", podCreate.OutputToString()})
+		inspectPod.WaitWithDefaultTimeout()
+		Expect(inspectPod).Should(Exit(0))
+		data := inspectPod.InspectPodToJSON()
+
+		inspect := podmanTest.InspectContainer(ctrCreate.OutputToString())
+		Expect(data.CgroupPath).To(HaveLen(0))
+		if podmanTest.CgroupManager == "cgroupfs" || !rootless.IsRootless() {
+			Expect(inspect[0].HostConfig.CgroupParent).To(HaveLen(0))
+		} else if podmanTest.CgroupManager == "systemd" {
+			Expect(inspect[0].HostConfig.CgroupParent).To(Equal("user.slice"))
+		}
+
+		podCreate2 := podmanTest.Podman([]string{"pod", "create", "--share", "cgroup,ipc,net,uts", "--share-parent=false", "--infra-name", "cgroupCtr"})
+		podCreate2.WaitWithDefaultTimeout()
+		Expect(podCreate2).Should(Exit(0))
+
+		ctrCreate2 := podmanTest.Podman([]string{"run", "-dt", "--pod", podCreate2.OutputToString(), ALPINE})
+		ctrCreate2.WaitWithDefaultTimeout()
+		Expect(ctrCreate2).Should(Exit(0))
+
+		inspectInfra := podmanTest.InspectContainer("cgroupCtr")
+
+		inspect2 := podmanTest.InspectContainer(ctrCreate2.OutputToString())
+
+		Expect(inspect2[0].HostConfig.CgroupMode).To(ContainSubstring(inspectInfra[0].ID))
+
+		podCreate3 := podmanTest.Podman([]string{"pod", "create", "--share", "cgroup"})
+		podCreate3.WaitWithDefaultTimeout()
+		Expect(podCreate3).ShouldNot(Exit(0))
+
+	})
+
 })

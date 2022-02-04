@@ -45,6 +45,10 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 		infraOptions.Net = &entities.NetOptions{}
 		infraOptions.Devices = psg.Devices
 		infraOptions.SecurityOpt = psg.SecurityOpt
+		if psg.ShareParent == nil {
+			t := true
+			psg.ShareParent = &t
+		}
 		err = specgenutil.FillOutSpecGen(psg.InfraContainerSpec, &infraOptions, []string{}) // necessary for default values in many cases (userns, idmappings)
 		if err != nil {
 			utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error filling out specgen"))
