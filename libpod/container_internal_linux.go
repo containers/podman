@@ -2099,38 +2099,38 @@ func (c *Container) generateResolvConf() (string, error) {
 	}
 	dnsServers := append(dns, c.config.DNSServer...)
 	// If the user provided dns, it trumps all; then dns masq; then resolv.conf
+	var search []string
 	switch {
 	case len(dnsServers) > 0:
-
 		// We store DNS servers as net.IP, so need to convert to string
 		for _, server := range dnsServers {
 			nameservers = append(nameservers, server.String())
 		}
-	case len(networkNameServers) > 0:
-		nameservers = append(nameservers, networkNameServers...)
 	default:
 		// Make a new resolv.conf
-		nameservers = resolvconf.GetNameservers(resolv.Content)
-		// slirp4netns has a built in DNS server.
+		// first add the nameservers from the networks status
+		nameservers = append(nameservers, networkNameServers...)
+		// when we add network dns server we also have to add the search domains
+		search = networkSearchDomains
+		// slirp4netns has a built in DNS forwarder.
 		if c.config.NetMode.IsSlirp4netns() {
 			slirp4netnsDNS, err := GetSlirp4netnsDNS(c.slirp4netnsSubnet)
 			if err != nil {
 				logrus.Warn("Failed to determine Slirp4netns DNS: ", err.Error())
 			} else {
-				nameservers = append([]string{slirp4netnsDNS.String()}, nameservers...)
+				nameservers = append(nameservers, slirp4netnsDNS.String())
 			}
 		}
+		nameservers = append(nameservers, resolvconf.GetNameservers(resolv.Content)...)
 	}
 
-	var search []string
-	if len(c.config.DNSSearch) > 0 || len(c.runtime.config.Containers.DNSSearches) > 0 || len(networkSearchDomains) > 0 {
+	if len(c.config.DNSSearch) > 0 || len(c.runtime.config.Containers.DNSSearches) > 0 {
 		if !util.StringInSlice(".", c.config.DNSSearch) {
-			search = c.runtime.config.Containers.DNSSearches
+			search = append(search, c.runtime.config.Containers.DNSSearches...)
 			search = append(search, c.config.DNSSearch...)
-			search = append(search, networkSearchDomains...)
 		}
 	} else {
-		search = resolvconf.GetSearchDomains(resolv.Content)
+		search = append(search, resolvconf.GetSearchDomains(resolv.Content)...)
 	}
 
 	var options []string
