@@ -70,8 +70,8 @@ require (
 	golang.org/x/text v0.3.7
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
-	k8s.io/api v0.22.4
-	k8s.io/apimachinery v0.22.4
+	k8s.io/api v0.23.3
+	k8s.io/apimachinery v0.23.3
 )
 
 replace github.com/onsi/gomega => github.com/onsi/gomega v1.16.0
