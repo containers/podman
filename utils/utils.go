@@ -174,7 +174,7 @@ func RunsOnSystemd() bool {
 	return runsOnSystemd
 }
 
-func moveProcessToScope(pidPath, slice, scope string) error {
+func moveProcessPIDFileToScope(pidPath, slice, scope string) error {
 	data, err := ioutil.ReadFile(pidPath)
 	if err != nil {
 		// do not raise an error if the file doesn't exist
@@ -187,16 +187,30 @@ func moveProcessToScope(pidPath, slice, scope string) error {
 	if err != nil {
 		return errors.Wrapf(err, "cannot parse pid file %s", pidPath)
 	}
-	err = RunUnderSystemdScope(int(pid), slice, scope)
 
+	return moveProcessToScope(int(pid), slice, scope)
+}
+
+func moveProcessToScope(pid int, slice, scope string) error {
+	err := RunUnderSystemdScope(int(pid), slice, scope)
 	// If the PID is not valid anymore, do not return an error.
 	if dbusErr, ok := err.(dbus.Error); ok {
 		if dbusErr.Name == "org.freedesktop.DBus.Error.UnixProcessIdUnknown" {
 			return nil
 		}
 	}
-
 	return err
+}
+
+// MoveRootlessNetnsSlirpProcessToUserSlice moves the slirp4netns process for the rootless netns
+// into a different scope so that systemd does not kill it with a container.
+func MoveRootlessNetnsSlirpProcessToUserSlice(pid int) error {
+	randBytes := make([]byte, 4)
+	_, err := rand.Read(randBytes)
+	if err != nil {
+		return err
+	}
+	return moveProcessToScope(pid, "user.slice", fmt.Sprintf("rootless-netns-%x.scope", randBytes))
 }
 
 // MovePauseProcessToScope moves the pause process used for rootless mode to keep the namespaces alive to
@@ -211,7 +225,7 @@ func MovePauseProcessToScope(pausePidPath string) {
 			logrus.Errorf("failed to read random bytes: %v", err)
 			continue
 		}
-		err = moveProcessToScope(pausePidPath, "user.slice", fmt.Sprintf("podman-pause-%x.scope", randBytes))
+		err = moveProcessPIDFileToScope(pausePidPath, "user.slice", fmt.Sprintf("podman-pause-%x.scope", randBytes))
 		if err == nil {
 			return
 		}

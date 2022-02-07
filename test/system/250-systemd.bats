@@ -281,4 +281,34 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
     is "$output" "" "output should be empty"
 }
 
+# https://github.com/containers/podman/issues/13153
+@test "podman rootless-netns slirp4netns process should be in different cgroup" {
+    is_rootless || skip "only meaningful for rootless"
+
+    cname=$(random_string)
+    local netname=testnet-$(random_string 10)
+
+    # create network and container with network
+    run_podman network create $netname
+    run_podman create --name $cname --network $netname $IMAGE top
+
+    # run container in systemd unit
+    service_setup
+
+    # run second container with network
+    cname2=$(random_string)
+    run_podman run -d --name $cname2 --network $netname $IMAGE top
+
+    # stop systemd container
+    service_cleanup
+
+    # now check that the rootless netns slirp4netns process is still alive and working
+    run_podman unshare --rootless-netns ip addr
+    is "$output" ".*tap0.*" "slirp4netns interface exists in the netns"
+    run_podman exec $cname2 nslookup google.com
+
+    run_podman rm -f -t0 $cname2
+    run_podman network rm -f $netname
+}
+
 # vim: filetype=sh
