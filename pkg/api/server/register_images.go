@@ -61,7 +61,10 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    description: Image content if fromSrc parameter was used
 	// responses:
 	//   200:
-	//     $ref: "#/responses/ok"
+	//     description: "no error"
+	//     schema:
+	//       type: "string"
+	//       format: "binary"
 	//   404:
 	//     $ref: "#/responses/NoSuchImage"
 	//   500:
