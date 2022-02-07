@@ -605,8 +605,8 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Send headers and prime client for stream to come
-	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	flush()
 
 	body := w.(io.Writer)

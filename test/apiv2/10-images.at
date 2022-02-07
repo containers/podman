@@ -190,6 +190,11 @@ t POST "libpod/build?dockerfile=containerfile" $CONTAINERFILE_TAR application/js
 t POST "build?dockerfile=containerfile" $CONTAINERFILE_TAR application/json 200 \
   .stream~"STEP 1/1: FROM $IMAGE"
 
+# Build api response header must contain Content-type: application/json
+t POST "build?dockerfile=containerfile" $CONTAINERFILE_TAR application/json 200
+response_headers=$(cat "$WORKDIR/curl.headers.out")
+like "$response_headers" ".*application/json.*" "header does not contains application/json"
+
 # PR #12091: output from compat API must now include {"aux":{"ID":"sha..."}}
 t POST "build?dockerfile=containerfile" $CONTAINERFILE_TAR 200 \
   '.aux|select(has("ID")).ID~^sha256:[0-9a-f]\{64\}$'
