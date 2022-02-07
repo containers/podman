@@ -2,7 +2,6 @@ package libpod
 
 import (
 	"bufio"
-	"bytes"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -21,16 +20,6 @@ const (
 	// MaxHealthCheckLogLength in characters
 	MaxHealthCheckLogLength = 500
 )
-
-// hcWriteCloser allows us to use bufio as a WriteCloser
-type hcWriteCloser struct {
-	*bufio.Writer
-}
-
-// Used to add a closer to bufio
-func (hcwc hcWriteCloser) Close() error {
-	return nil
-}
 
 // HealthCheck verifies the state and validity of the healthcheck configuration
 // on the container and then executes the healthcheck
@@ -51,7 +40,6 @@ func (c *Container) runHealthCheck() (define.HealthCheckStatus, error) {
 	var (
 		newCommand    []string
 		returnCode    int
-		capture       bytes.Buffer
 		inStartPeriod bool
 	)
 	hcCommand := c.HealthCheckConfig().Test
@@ -73,19 +61,29 @@ func (c *Container) runHealthCheck() (define.HealthCheckStatus, error) {
 	if len(newCommand) < 1 || newCommand[0] == "" {
 		return define.HealthCheckNotDefined, errors.Errorf("container %s has no defined healthcheck", c.ID())
 	}
-	captureBuffer := bufio.NewWriter(&capture)
-	hcw := hcWriteCloser{
-		captureBuffer,
+	rPipe, wPipe, err := os.Pipe()
+	if err != nil {
+		return define.HealthCheckInternalError, errors.Wrapf(err, "unable to create pipe for healthcheck session")
 	}
+	defer wPipe.Close()
+	defer rPipe.Close()
+
 	streams := new(define.AttachStreams)
-	streams.OutputStream = hcw
-	streams.ErrorStream = hcw
 
 	streams.InputStream = bufio.NewReader(os.Stdin)
-
+	streams.OutputStream = wPipe
+	streams.ErrorStream = wPipe
 	streams.AttachOutput = true
 	streams.AttachError = true
 	streams.AttachInput = true
+
+	stdout := []string{}
+	go func() {
+		scanner := bufio.NewScanner(rPipe)
+		for scanner.Scan() {
+			stdout = append(stdout, scanner.Text())
+		}
+	}()
 
 	logrus.Debugf("executing health check command %s for %s", strings.Join(newCommand, " "), c.ID())
 	timeStart := time.Now()
@@ -119,7 +117,7 @@ func (c *Container) runHealthCheck() (define.HealthCheckStatus, error) {
 		}
 	}
 
-	eventLog := capture.String()
+	eventLog := strings.Join(stdout, "\n")
 	if len(eventLog) > MaxHealthCheckLogLength {
 		eventLog = eventLog[:MaxHealthCheckLogLength]
 	}
