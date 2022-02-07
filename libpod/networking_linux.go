@@ -28,6 +28,7 @@ import (
 	"github.com/containers/podman/v4/pkg/resolvconf"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
+	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -493,6 +494,12 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 
 		if err := waitForSync(syncR, cmd, logFile, 1*time.Second); err != nil {
 			return nil, err
+		}
+
+		// move to systemd scope to prevent systemd from killing it
+		err = utils.MoveRootlessNetnsSlirpProcessToUserSlice(cmd.Process.Pid)
+		if err != nil {
+			logrus.Errorf("failed to move the rootless netns slirp4netns process to the systemd user.slice: %v", err)
 		}
 
 		// build a new resolv.conf file which uses the slirp4netns dns server address
