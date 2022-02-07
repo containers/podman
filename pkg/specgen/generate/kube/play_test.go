@@ -6,10 +6,12 @@ import (
 	"io/ioutil"
 	"math"
 	"os"
+	"runtime"
 	"strconv"
 	"testing"
 
 	"github.com/containers/common/pkg/secrets"
+	"github.com/docker/docker/pkg/system"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -193,6 +195,11 @@ func TestEnvVarValue(t *testing.T) {
 	assert.NoError(t, err)
 	defer os.RemoveAll(d)
 	secretsManager := createSecrets(t, d)
+	stringNumCPUs := strconv.Itoa(runtime.NumCPU())
+
+	mi, err := system.ReadMemInfo()
+	assert.Nil(t, err)
+	stringMemTotal := strconv.FormatInt(mi.MemTotal, 10)
 
 	tests := []struct {
 		name     string
@@ -693,6 +700,78 @@ func TestEnvVarValue(t *testing.T) {
 			},
 			true,
 			strconv.Itoa(int(float64(cpuInt) / 0.001)),
+		},
+		{
+			"ResourceFieldRefNoLimitMemory",
+			v1.EnvVar{
+				Name: "FOO",
+				ValueFrom: &v1.EnvVarSource{
+					ResourceFieldRef: &v1.ResourceFieldSelector{
+						Resource: "limits.memory",
+					},
+				},
+			},
+			CtrSpecGenOptions{
+				Container: v1.Container{
+					Name: "test",
+				},
+			},
+			true,
+			stringMemTotal,
+		},
+		{
+			"ResourceFieldRefNoRequestMemory",
+			v1.EnvVar{
+				Name: "FOO",
+				ValueFrom: &v1.EnvVarSource{
+					ResourceFieldRef: &v1.ResourceFieldSelector{
+						Resource: "requests.memory",
+					},
+				},
+			},
+			CtrSpecGenOptions{
+				Container: v1.Container{
+					Name: "test",
+				},
+			},
+			true,
+			stringMemTotal,
+		},
+		{
+			"ResourceFieldRefNoLimitCPU",
+			v1.EnvVar{
+				Name: "FOO",
+				ValueFrom: &v1.EnvVarSource{
+					ResourceFieldRef: &v1.ResourceFieldSelector{
+						Resource: "limits.cpu",
+					},
+				},
+			},
+			CtrSpecGenOptions{
+				Container: v1.Container{
+					Name: "test",
+				},
+			},
+			true,
+			stringNumCPUs,
+		},
+		{
+			"ResourceFieldRefNoRequestCPU",
+			v1.EnvVar{
+				Name: "FOO",
+				ValueFrom: &v1.EnvVarSource{
+					ResourceFieldRef: &v1.ResourceFieldSelector{
+						Resource: "requests.cpu",
+					},
+				},
+			},
+			CtrSpecGenOptions{
+				Container: v1.Container{
+					Name: "test",
+				},
+			},
+			true,
+			stringNumCPUs,
 		},
 	}
 

@@ -7,6 +7,7 @@ import (
 	"math"
 	"net"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -22,6 +23,7 @@ import (
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/specgen/generate"
 	"github.com/containers/podman/v4/pkg/util"
+	"github.com/docker/docker/pkg/system"
 	"github.com/docker/go-units"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -700,8 +702,12 @@ func envVarValueResourceFieldRef(env v1.EnvVar, opts *CtrSpecGenOptions) (*strin
 		divisor.Set(1)
 	}
 
+	resources, err := getContainerResources(opts.Container)
+	if err != nil {
+		return nil, err
+	}
+
 	var value *resource.Quantity
-	resources := opts.Container.Resources
 	resourceName := env.ValueFrom.ResourceFieldRef.Resource
 	var isValidDivisor bool
 
@@ -755,6 +761,46 @@ func isCPUDivisor(divisor resource.Quantity) bool {
 	default:
 		return false
 	}
+}
+
+func getContainerResources(container v1.Container) (v1.ResourceRequirements, error) {
+	result := v1.ResourceRequirements{
+		Limits:   v1.ResourceList{},
+		Requests: v1.ResourceList{},
+	}
+
+	limits := container.Resources.Limits
+	requests := container.Resources.Requests
+
+	if limits == nil || limits.Memory().IsZero() {
+		mi, err := system.ReadMemInfo()
+		if err != nil {
+			return result, err
+		}
+		result.Limits[v1.ResourceMemory] = *resource.NewQuantity(mi.MemTotal, resource.DecimalSI)
+	} else {
+		result.Limits[v1.ResourceMemory] = limits[v1.ResourceMemory]
+	}
+
+	if limits == nil || limits.Cpu().IsZero() {
+		result.Limits[v1.ResourceCPU] = *resource.NewQuantity(int64(runtime.NumCPU()), resource.DecimalSI)
+	} else {
+		result.Limits[v1.ResourceCPU] = limits[v1.ResourceCPU]
+	}
+
+	if requests == nil || requests.Memory().IsZero() {
+		result.Requests[v1.ResourceMemory] = result.Limits[v1.ResourceMemory]
+	} else {
+		result.Requests[v1.ResourceMemory] = requests[v1.ResourceMemory]
+	}
+
+	if requests == nil || requests.Cpu().IsZero() {
+		result.Requests[v1.ResourceCPU] = result.Limits[v1.ResourceCPU]
+	} else {
+		result.Requests[v1.ResourceCPU] = requests[v1.ResourceCPU]
+	}
+
+	return result, nil
 }
 
 // getPodPorts converts a slice of kube container descriptions to an
