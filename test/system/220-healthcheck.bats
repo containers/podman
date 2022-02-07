@@ -15,9 +15,6 @@ function _check_health {
     run_podman inspect --format "{{json .State.Healthcheck}}" healthcheck_c
 
     parse_table "$tests" | while read field expect;do
-        # (kludge to deal with parse_table and empty strings)
-        if [ "$expect" = "''" ]; then expect=""; fi
-
         actual=$(jq ".$field" <<<"$output")
         is "$actual" "$expect" "$testname - .State.Healthcheck.$field"
     done
