@@ -257,7 +257,7 @@ func (r *ConmonOCIRuntime) ExecStopContainer(ctr *Container, sessionID string, t
 	}
 
 	// Wait for the PID to stop
-	if err := waitPidStop(pid, killContainerTimeout*time.Second); err != nil {
+	if err := waitPidStop(pid, killContainerTimeout); err != nil {
 		return errors.Wrapf(err, "timed out waiting for container %s exec session %s PID %d to stop after SIGKILL", ctr.ID(), sessionID, pid)
 	}
 
