@@ -82,7 +82,7 @@ func (n *cniNetwork) networkCreate(newNetwork *types.Network, defaultNet bool) (
 		return nil, errors.Wrapf(types.ErrInvalidArg, "unsupported driver %s", newNetwork.Driver)
 	}
 
-	err = internalutil.ValidateSubnets(newNetwork, usedNetworks)
+	err = internalutil.ValidateSubnets(newNetwork, !newNetwork.Internal, usedNetworks)
 	if err != nil {
 		return nil, err
 	}
