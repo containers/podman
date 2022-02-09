@@ -8,7 +8,10 @@ t GET networks/non-existing-network 404 \
 
 t POST libpod/networks/create name='"network1"' 200 \
   .name=network1 \
-  .created~[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}.* \
+  .created~[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}.*
+
+t POST /v3.4.0/libpod/networks/create name='"bad_version"' 400 \
+    .cause='given version is not supported'
 
 # --data '{"name":"network2","subnets":[{"subnet":"10.10.254.0/24"}],"Labels":{"abc":"val"}}'
 t POST libpod/networks/create name='"network2"' \

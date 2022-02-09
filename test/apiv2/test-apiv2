@@ -256,11 +256,11 @@ function t() {
 
     # If given path begins with /, use it as-is; otherwise prepend /version/
     local url=http://$HOST:$PORT
-    if expr "$path" : "/" >/dev/null; then
-        url="$url$path"
-    else
-        url="$url/v1.40/$path"
-    fi
+    case "$path" in
+        /*) url="$url$path" ;;
+        libpod/*) url="$url/v4.0.0/$path" ;;
+        *)  url="$url/v1.41/$path" ;;
+    esac
 
     # Log every action we do
     echo "-------------------------------------------------------------" >>$LOG
