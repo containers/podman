@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/common/libimage/manifests"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/retry"
 	"github.com/containers/image/v5/copy"
@@ -26,8 +27,10 @@ const (
 )
 
 // LookupReferenceFunc return an image reference based on the specified one.
-// This can be used to pass custom blob caches to the copy operation.
-type LookupReferenceFunc func(ref types.ImageReference) (types.ImageReference, error)
+// The returned reference can return custom ImageSource or ImageDestination
+// objects which intercept or filter blobs, manifests, and signatures as
+// they are read and written.
+type LookupReferenceFunc = manifests.LookupReferenceFunc
 
 // CopyOptions allow for customizing image-copy operations.
 type CopyOptions struct {

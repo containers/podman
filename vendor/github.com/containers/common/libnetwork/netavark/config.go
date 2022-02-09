@@ -115,14 +115,11 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 		return nil, errors.Wrapf(types.ErrInvalidArg, "unsupported driver %s", newNetwork.Driver)
 	}
 
-	err = internalutil.ValidateSubnets(newNetwork, usedNetworks)
+	// add gatway when not internal or dns enabled
+	addGateway := !newNetwork.Internal || newNetwork.DNSEnabled
+	err = internalutil.ValidateSubnets(newNetwork, addGateway, usedNetworks)
 	if err != nil {
 		return nil, err
-	}
-
-	// FIXME: If we have a working solution for internal networks with dns this check should be removed.
-	if newNetwork.DNSEnabled && newNetwork.Internal {
-		return nil, errors.New("cannot set internal and dns enabled")
 	}
 
 	newNetwork.Created = time.Now()

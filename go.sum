@@ -325,8 +325,9 @@ github.com/containernetworking/plugins v1.0.1 h1:wwCfYbTCj5FC0EJgyzyjTXmqysOiJE9
 github.com/containernetworking/plugins v1.0.1/go.mod h1:QHCfGpaTwYTbbH+nZXKVTxNBDZcxSOplJT5ico8/FLE=
 github.com/containers/buildah v1.24.1 h1:PlvU0hbUsm1x4H9kPcsmqjViqDGnBpSZT3QtZ00RtgI=
 github.com/containers/buildah v1.24.1/go.mod h1:sE7AaoPQYwAB7dleOOKOpzOO3bA8lRUvZRiZcn/RYi0=
-github.com/containers/common v0.47.3 h1:pRT7gkLrBSQe3075j5hoHYeeKpGTWBJHws+tS5xxfak=
 github.com/containers/common v0.47.3/go.mod h1:/VAV4ibC27Lfyb9cxXM4uTYrJFa/7s+utNB052MJdzY=
+github.com/containers/common v0.47.4 h1:kS202Z/bTQIM/pwyuJ+lF8143Uli6AB9Q9OVR0xa9CM=
+github.com/containers/common v0.47.4/go.mod h1:HgX0mFXyB0Tbe2REEIp9x9CxET6iSzmHfwR6S/t2LZc=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.19.1 h1:g4/+XIuh1kRoRn2MfLDhfHhkNOIO9JtqhSyo55tjpfE=
@@ -402,8 +403,9 @@ github.com/dnaeon/go-vcr v1.0.1/go.mod h1:aBB1+wY4s93YsC3HHjMBMrwTj2R9FHDzUr9KyG
 github.com/docker/cli v0.0.0-20191017083524-a8ff7f821017/go.mod h1:JLrzqnKDaYBop7H2jaqPtU4hHvMKP+vjCwu2uszcLI8=
 github.com/docker/distribution v0.0.0-20190905152932-14b96e55d84c/go.mod h1:0+TTO4EOBfRPhZXAeF1Vu+W3hHZ8eLp8PgKVZlcvtFY=
 github.com/docker/distribution v2.7.1-0.20190205005809-0d3efadf0154+incompatible/go.mod h1:J2gT2udsDAN96Uj4KfcMRqY0/ypR+oyYUYmja8H+y+w=
-github.com/docker/distribution v2.7.1+incompatible h1:a5mlkVzth6W5A4fOsS3D2EO5BUmsJpcB+cRlLU7cSug=
 github.com/docker/distribution v2.7.1+incompatible/go.mod h1:J2gT2udsDAN96Uj4KfcMRqY0/ypR+oyYUYmja8H+y+w=
+github.com/docker/distribution v2.8.0+incompatible h1:l9EaZDICImO1ngI+uTifW+ZYvvz7fKISBAKpg+MbWbY=
+github.com/docker/distribution v2.8.0+incompatible/go.mod h1:J2gT2udsDAN96Uj4KfcMRqY0/ypR+oyYUYmja8H+y+w=
 github.com/docker/docker v1.4.2-0.20190924003213-a8608b5b67c7/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/docker v20.10.12+incompatible h1:CEeNmFM0QZIsJCZKMkZx0ZcahTiewkrgiwfYD+dfl1U=
 github.com/docker/docker v20.10.12+incompatible/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
