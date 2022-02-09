@@ -80,7 +80,7 @@ var _ = Describe("Podman networks", func() {
 
 		// Valid filter params => network should be pruned now.
 		filters = map[string][]string{
-			"until": {"5000000000"}, //June 11, 2128
+			"until": {"5000000000"}, // June 11, 2128
 		}
 		pruneResponse, err = network.Prune(connText, new(network.PruneOptions).WithFilters(filters))
 		Expect(err).To(BeNil())
@@ -105,7 +105,7 @@ var _ = Describe("Podman networks", func() {
 		_, err = network.Create(connText, &net)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
-		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
+		Expect(code).To(BeNumerically("==", http.StatusConflict))
 	})
 
 	It("inspect network", func() {

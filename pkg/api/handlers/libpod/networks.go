@@ -17,22 +17,37 @@ import (
 )
 
 func CreateNetwork(w http.ResponseWriter, r *http.Request) {
+	if v, err := utils.SupportedVersion(r, ">=4.0.0"); err != nil {
+		utils.BadRequest(w, "version", v.String(), err)
+		return
+	}
+
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	network := types.Network{}
 	if err := json.NewDecoder(r.Body).Decode(&network); err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "decode body"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "failed to decode request JSON payload"))
 		return
 	}
 
 	ic := abi.ContainerEngine{Libpod: runtime}
 	report, err := ic.NetworkCreate(r.Context(), network)
 	if err != nil {
-		utils.InternalServerError(w, err)
+		if errors.Is(err, types.ErrNetworkExists) {
+			utils.Error(w, http.StatusConflict, err)
+		} else {
+			utils.InternalServerError(w, err)
+		}
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, report)
 }
+
 func ListNetworks(w http.ResponseWriter, r *http.Request) {
+	if v, err := utils.SupportedVersion(r, ">=4.0.0"); err != nil {
+		utils.BadRequest(w, "version", v.String(), err)
+		return
+	}
+
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
@@ -54,6 +69,11 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 }
 
 func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
+	if v, err := utils.SupportedVersion(r, ">=4.0.0"); err != nil {
+		utils.BadRequest(w, "version", v.String(), err)
+		return
+	}
+
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
@@ -87,21 +107,18 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, reports)
 }
 
+// InspectNetwork reports on given network's details
 func InspectNetwork(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
-	query := struct {
-	}{
-		// override any golang type defaults
-	}
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusInternalServerError,
-			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+	if v, err := utils.SupportedVersion(r, ">=4.0.0"); err != nil {
+		utils.BadRequest(w, "version", v.String(), err)
 		return
 	}
+
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	ic := abi.ContainerEngine{Libpod: runtime}
+
 	name := utils.GetName(r)
 	options := entities.InspectOptions{}
-	ic := abi.ContainerEngine{Libpod: runtime}
 	reports, errs, err := ic.NetworkInspect(r.Context(), []string{name}, options)
 	// If the network cannot be found, we return a 404.
 	if len(errs) > 0 {
@@ -117,14 +134,19 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 
 // Connect adds a container to a network
 func Connect(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	if v, err := utils.SupportedVersion(r, ">=4.0.0"); err != nil {
+		utils.BadRequest(w, "version", v.String(), err)
+		return
+	}
 
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	var netConnect entities.NetworkConnectOptions
 	if err := json.NewDecoder(r.Body).Decode(&netConnect); err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "failed to decode request JSON payload"))
 		return
 	}
 	name := utils.GetName(r)
+
 	err := runtime.ConnectContainerToNetwork(netConnect.Container, name, netConnect.PerNetworkOptions)
 	if err != nil {
 		if errors.Cause(err) == define.ErrNoSuchCtr {
@@ -143,10 +165,15 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 
 // ExistsNetwork check if a network exists
 func ExistsNetwork(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	name := utils.GetName(r)
+	if v, err := utils.SupportedVersion(r, ">=4.0.0"); err != nil {
+		utils.BadRequest(w, "version", v.String(), err)
+		return
+	}
 
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	ic := abi.ContainerEngine{Libpod: runtime}
+
+	name := utils.GetName(r)
 	report, err := ic.NetworkExists(r.Context(), name)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, err)
@@ -161,7 +188,13 @@ func ExistsNetwork(w http.ResponseWriter, r *http.Request) {
 
 // Prune removes unused networks
 func Prune(w http.ResponseWriter, r *http.Request) {
+	if v, err := utils.SupportedVersion(r, ">=4.0.0"); err != nil {
+		utils.BadRequest(w, "version", v.String(), err)
+		return
+	}
+
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	ic := abi.ContainerEngine{Libpod: runtime}
 
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
@@ -172,7 +205,6 @@ func Prune(w http.ResponseWriter, r *http.Request) {
 	pruneOptions := entities.NetworkPruneOptions{
 		Filters: *filterMap,
 	}
-	ic := abi.ContainerEngine{Libpod: runtime}
 	pruneReports, err := ic.NetworkPrune(r.Context(), pruneOptions)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, err)
