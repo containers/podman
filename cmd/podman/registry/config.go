@@ -81,11 +81,6 @@ func newPodmanConfig() {
 		mode = entities.TunnelMode
 	}
 
-	cfg.Network.NetworkConfigDir = cfg.Network.CNIPluginDirs[0]
-	if rootless.IsRootless() {
-		cfg.Network.NetworkConfigDir = ""
-	}
-
 	podmanOptions = entities.PodmanConfig{Config: cfg, EngineMode: mode}
 }
 
