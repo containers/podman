@@ -166,6 +166,8 @@ spelled with complete minutiae.
       `git log -1 $(git tag | sort -V | tail -1)`.
    1. Edit `version/version.go` and bump the `Version` value to the new
       release version.  If there were API changes, also bump `APIVersion` value.
+      Make sure to also bump the version in the swagger.yaml `pkg/api/server/docs.go`
+      and to add a new entry in `docs/source/Reference.rst` for major and minor releases.
    1. Commit this and sign the commit (`git commit -a -s -S`). The commit message
       should be `Bump to vX.Y.Z` (using the actual version numbers).
    1. Push this single change to your github fork, and make a new PR,

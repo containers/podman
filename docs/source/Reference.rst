@@ -3,8 +3,16 @@
 Reference
 =========
 
-To see full screen version please visit: `API documentation <https://docs.podman.io/en/latest/_static/api.html>`_
+Show the API documentation for version:
 
-.. raw:: html
+* `latest (main branch) <_static/api.html>`_
 
-    <iframe src="_static/api.html" allowfullscreen="true" height="600px" width="120%"></iframe>
+* `version 4.0 <_static/api.html?version=v4.0>`_
+
+* `version 3.4 <_static/api.html?version=v3.4>`_
+
+* `version 3.3 <_static/api.html?version=v3.3>`_
+
+* `version 3.2 <_static/api.html?version=v3.2>`_
+
+* `version 3.1 <_static/api.html?version=v3.1>`_
