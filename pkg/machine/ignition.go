@@ -145,7 +145,42 @@ ExecStartPost=/bin/touch /var/lib/%N.stamp
 
 [Install]
 WantedBy=default.target
- `
+`
+	// This service gets environment variables that are provided
+	// through qemu fw_cfg and then sets them into systemd/system.conf.d,
+	// profile.d and environment.d files
+	//
+	// Currently, it is used for propagating
+	// proxy settings e.g. HTTP_PROXY and others, on a start avoiding
+	// a need of re-creating/re-initiating a VM
+	envset := `[Unit]
+Description=Environment setter from QEMU FW_CFG
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+Environment=FWCFGRAW=/sys/firmware/qemu_fw_cfg/by_name/opt/com.coreos/environment/raw
+Environment=SYSTEMD_CONF=/etc/systemd/system.conf.d/default-env.conf
+Environment=ENVD_CONF=/etc/environment.d/default-env.conf
+Environment=PROFILE_CONF=/etc/profile.d/default-env.sh
+ExecStart=/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} &&\
+	echo "[Manager]\n#Got from QEMU FW_CFG\nDefaultEnvironment=$(/usr/bin/base64 -d ${FWCFGRAW} | sed -e "s+|+ +g")\n" > ${SYSTEMD_CONF} ||\
+	echo "[Manager]\n#Got nothing from QEMU FW_CFG\n#DefaultEnvironment=\n" > ${SYSTEMD_CONF}'
+ExecStart=/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} && (\
+	echo "#Got from QEMU FW_CFG"> ${ENVD_CONF};\
+	IFS="|";\
+	for iprxy in $(/usr/bin/base64 -d ${FWCFGRAW}); do\
+		echo "$iprxy" >> ${ENVD_CONF}; done ) || \
+	echo "#Got nothing from QEMU FW_CFG"> ${ENVD_CONF}'
+ExecStart=/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} && (\
+	echo "#Got from QEMU FW_CFG"> ${PROFILE_CONF};\
+	IFS="|";\
+	for iprxy in $(/usr/bin/base64 -d ${FWCFGRAW}); do\
+		echo "export $iprxy" >> ${PROFILE_CONF}; done ) || \
+	echo "#Got nothing from QEMU FW_CFG"> ${PROFILE_CONF}'
+ExecStartPost=/usr/bin/systemctl daemon-reload
+[Install]
+WantedBy=sysinit.target
+`
 	_ = ready
 	ignSystemd := Systemd{
 		Units: []Unit{
@@ -172,6 +207,11 @@ WantedBy=default.target
 				Enabled:  boolToPtr(true),
 				Name:     "remove-moby.service",
 				Contents: &deMoby,
+			},
+			{
+				Enabled:  boolToPtr(true),
+				Name:     "envset-fwcfg.service",
+				Contents: &envset,
 			},
 		}}
 	ignConfig := Config{
@@ -221,6 +261,25 @@ func getDirs(usrName string) []Directory {
 		Node: Node{
 			Group: getNodeGrp("root"),
 			Path:  "/etc/containers/registries.conf.d",
+			User:  getNodeUsr("root"),
+		},
+		DirectoryEmbedded1: DirectoryEmbedded1{Mode: intToPtr(0755)},
+	})
+
+	// The directory is used by envset-fwcfg.service
+	// for propagating environment variables that got
+	// from a host
+	dirs = append(dirs, Directory{
+		Node: Node{
+			Group: getNodeGrp("root"),
+			Path:  "/etc/systemd/system.conf.d",
+			User:  getNodeUsr("root"),
+		},
+		DirectoryEmbedded1: DirectoryEmbedded1{Mode: intToPtr(0755)},
+	}, Directory{
+		Node: Node{
+			Group: getNodeGrp("root"),
+			Path:  "/etc/environment.d",
 			User:  getNodeUsr("root"),
 		},
 		DirectoryEmbedded1: DirectoryEmbedded1{Mode: intToPtr(0755)},
@@ -363,24 +422,6 @@ Delegate=memory pids cpu io
 		},
 	})
 
-	setProxyOpts := getProxyVariables()
-	if setProxyOpts != "" {
-		files = append(files, File{
-			Node: Node{
-				Group: getNodeGrp("root"),
-				Path:  "/etc/profile.d/proxy-opts.sh",
-				User:  getNodeUsr("root"),
-			},
-			FileEmbedded1: FileEmbedded1{
-				Append: nil,
-				Contents: Resource{
-					Source: encodeDataURLPtr(setProxyOpts),
-				},
-				Mode: intToPtr(0644),
-			},
-		})
-	}
-
 	setDockerHost := `export DOCKER_HOST="unix://$(podman info -f "{{.Host.RemoteSocket.Path}}")"
 `
 
@@ -506,11 +547,11 @@ func prepareCertFile(path string, name string) (File, error) {
 	return file, nil
 }
 
-func getProxyVariables() string {
-	proxyOpts := ""
+func GetProxyVariables() map[string]string {
+	proxyOpts := make(map[string]string)
 	for _, variable := range config.ProxyEnv {
 		if value, ok := os.LookupEnv(variable); ok {
-			proxyOpts += fmt.Sprintf("\n export %s=%s", variable, value)
+			proxyOpts[variable] = value
 		}
 	}
 	return proxyOpts
