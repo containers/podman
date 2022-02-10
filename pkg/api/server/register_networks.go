@@ -320,6 +320,8 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NetworkCreateReport"
 	//   400:
 	//     $ref: "#/responses/BadParamError"
+	//   409:
+	//     $ref: "#/responses/ConflictError"
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/networks/create"), s.APIHandler(libpod.CreateNetwork)).Methods(http.MethodPost)
