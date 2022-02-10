@@ -2045,19 +2045,8 @@ func (c *Container) generateResolvConf() (string, error) {
 		}
 	}
 
-	ipv6 := false
-	// If network status is set check for ipv6 and dns namesevers
 	netStatus := c.getNetworkStatus()
 	for _, status := range netStatus {
-		for _, netInt := range status.Interfaces {
-			for _, netAddress := range netInt.Subnets {
-				// Note: only using To16() does not work since it also returns a valid ip for ipv4
-				if netAddress.IPNet.IP.To4() == nil && netAddress.IPNet.IP.To16() != nil {
-					ipv6 = true
-				}
-			}
-		}
-
 		if status.DNSServerIPs != nil {
 			for _, nsIP := range status.DNSServerIPs {
 				networkNameServers = append(networkNameServers, nsIP.String())
@@ -2070,16 +2059,9 @@ func (c *Container) generateResolvConf() (string, error) {
 		}
 	}
 
-	if c.config.NetMode.IsSlirp4netns() {
-		ctrNetworkSlipOpts := []string{}
-		if c.config.NetworkOptions != nil {
-			ctrNetworkSlipOpts = append(ctrNetworkSlipOpts, c.config.NetworkOptions["slirp4netns"]...)
-		}
-		slirpOpts, err := parseSlirp4netnsNetworkOptions(c.runtime, ctrNetworkSlipOpts)
-		if err != nil {
-			return "", err
-		}
-		ipv6 = slirpOpts.enableIPv6
+	ipv6, err := c.checkForIPv6(netStatus)
+	if err != nil {
+		return "", err
 	}
 
 	// Ensure that the container's /etc/resolv.conf is compatible with its
@@ -2158,6 +2140,116 @@ func (c *Container) generateResolvConf() (string, error) {
 	}
 
 	return destPath, nil
+}
+
+// Check if a container uses IPv6.
+func (c *Container) checkForIPv6(netStatus map[string]types.StatusBlock) (bool, error) {
+	for _, status := range netStatus {
+		for _, netInt := range status.Interfaces {
+			for _, netAddress := range netInt.Subnets {
+				// Note: only using To16() does not work since it also returns a valid ip for ipv4
+				if netAddress.IPNet.IP.To4() == nil && netAddress.IPNet.IP.To16() != nil {
+					return true, nil
+				}
+			}
+		}
+	}
+
+	if c.config.NetMode.IsSlirp4netns() {
+		ctrNetworkSlipOpts := []string{}
+		if c.config.NetworkOptions != nil {
+			ctrNetworkSlipOpts = append(ctrNetworkSlipOpts, c.config.NetworkOptions["slirp4netns"]...)
+		}
+		slirpOpts, err := parseSlirp4netnsNetworkOptions(c.runtime, ctrNetworkSlipOpts)
+		if err != nil {
+			return false, err
+		}
+		return slirpOpts.enableIPv6, nil
+	}
+
+	return false, nil
+}
+
+// Add a new nameserver to the container's resolv.conf, ensuring that it is the
+// first nameserver present.
+// Usable only with running containers.
+func (c *Container) addNameserver(ips []string) error {
+	// Take no action if container is not running.
+	if !c.ensureState(define.ContainerStateRunning, define.ContainerStateCreated) {
+		return nil
+	}
+
+	// Do we have a resolv.conf at all?
+	path, ok := c.state.BindMounts["/etc/resolv.conf"]
+	if !ok {
+		return nil
+	}
+
+	// Read in full contents, parse out existing nameservers
+	contents, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	ns := resolvconf.GetNameservers(contents)
+	options := resolvconf.GetOptions(contents)
+	search := resolvconf.GetSearchDomains(contents)
+
+	// We could verify that it doesn't already exist
+	// but extra nameservers shouldn't harm anything.
+	// Ensure we are the first entry in resolv.conf though, otherwise we
+	// might be after user-added servers.
+	ns = append(ips, ns...)
+
+	// We're rewriting the container's resolv.conf as part of this, but we
+	// hold the container lock, so there should be no risk of parallel
+	// modification.
+	if _, err := resolvconf.Build(path, ns, search, options); err != nil {
+		return errors.Wrapf(err, "error adding new nameserver to container %s resolv.conf", c.ID())
+	}
+
+	return nil
+}
+
+// Remove an entry from the existing resolv.conf of the container.
+// Usable only with running containers.
+func (c *Container) removeNameserver(ips []string) error {
+	// Take no action if container is not running.
+	if !c.ensureState(define.ContainerStateRunning, define.ContainerStateCreated) {
+		return nil
+	}
+
+	// Do we have a resolv.conf at all?
+	path, ok := c.state.BindMounts["/etc/resolv.conf"]
+	if !ok {
+		return nil
+	}
+
+	// Read in full contents, parse out existing nameservers
+	contents, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	ns := resolvconf.GetNameservers(contents)
+	options := resolvconf.GetOptions(contents)
+	search := resolvconf.GetSearchDomains(contents)
+
+	toRemove := make(map[string]bool)
+	for _, ip := range ips {
+		toRemove[ip] = true
+	}
+
+	newNS := make([]string, 0, len(ns))
+	for _, server := range ns {
+		if !toRemove[server] {
+			newNS = append(newNS, server)
+		}
+	}
+
+	if _, err := resolvconf.Build(path, newNS, search, options); err != nil {
+		return errors.Wrapf(err, "error removing nameservers from container %s resolv.conf", c.ID())
+	}
+
+	return nil
 }
 
 // updateHosts updates the container's hosts file
