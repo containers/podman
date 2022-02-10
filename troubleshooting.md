@@ -919,3 +919,22 @@ After deleting a client VM on macOS via `podman machine stop` && `podman machine
 ### Solution
 
 You will need to remove the hanging gv-proxy process bound to the port in question. For example, if the port mentioned in the error message is 127.0.0.1:7777, you can use the command `kill -9 $(lsof -i:7777)` in order to identify and remove the hanging process which prevents you from starting a new VM on that default port.
+
+### 32) The sshd process fails to run inside of the container.
+
+#### Symptom
+
+The sshd process running inside the container fails with the error
+"Error writing /proc/self/loginuid".
+
+### Solution
+
+If the `/proc/self/loginuid` file is already initialized then the
+`CAP_AUDIT_CONTROL` capability is required to override it.
+
+This happens when running Podman from a user session since the
+`/proc/self/loginuid` file is already initialized.  The solution is to
+run Podman from a system service, either using the Podman service, and
+then using podman -remote to start the container or simply by running
+something like `systemd-run podman run ...`.  In this case the
+container will only need `CAP_AUDIT_WRITE`.
