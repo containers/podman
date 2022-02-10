@@ -222,14 +222,33 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 		err        error
 	)
 	if len(network.Subnets) > 0 {
+		defIpv4Route := false
+		defIpv6Route := false
 		for _, subnet := range network.Subnets {
-			route, err := newIPAMDefaultRoute(util.IsIPv6(subnet.Subnet.IP))
-			if err != nil {
-				return nil, "", err
-			}
-			routes = append(routes, route)
 			ipam := newIPAMLocalHostRange(subnet.Subnet, subnet.LeaseRange, subnet.Gateway)
 			ipamRanges = append(ipamRanges, []ipamLocalHostRangeConf{*ipam})
+
+			// only add default route for not internal networks
+			if !network.Internal {
+				ipv6 := util.IsIPv6(subnet.Subnet.IP)
+				if !ipv6 && defIpv4Route {
+					continue
+				}
+				if ipv6 && defIpv6Route {
+					continue
+				}
+
+				if ipv6 {
+					defIpv6Route = true
+				} else {
+					defIpv4Route = true
+				}
+				route, err := newIPAMDefaultRoute(ipv6)
+				if err != nil {
+					return nil, "", err
+				}
+				routes = append(routes, route)
+			}
 		}
 		ipamConf = newIPAMHostLocalConf(routes, ipamRanges)
 	} else {

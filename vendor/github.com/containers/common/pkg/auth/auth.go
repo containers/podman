@@ -248,7 +248,7 @@ func getUserAndPass(opts *LoginOptions, password, userFromAuthFile string) (user
 	}
 	if password == "" {
 		fmt.Fprint(opts.Stdout, "Password: ")
-		pass, err := terminal.ReadPassword(0)
+		pass, err := terminal.ReadPassword(int(os.Stdin.Fd()))
 		if err != nil {
 			return "", "", errors.Wrap(err, "reading password")
 		}
