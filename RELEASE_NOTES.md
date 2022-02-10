@@ -23,6 +23,7 @@
 - The `podman pod create` command now supports the `--device` option, allowing devices to be specified that will be mounted automatically to all containers in the pod.
 - The `podman pod create` command now supports the `--volumes-from` option, allowing volumes from an existing Podman container to be mounted automatically to all containers in the pod.
 - The `podman pod create` command now supports the `--security-opt` option, allowing security settings (e.g. disabling SELinux or Seccomp) to be configured automatically for all containers in the pod ([#12173](https://github.com/containers/podman/issues/12173)).
+- The `podman pod create` command now supports the `--share-parent` option, which defaults to true, controlling whether containers in the pod will use a shared cgroup parent.
 - The `podman pod create` command now supports the `--sysctl` option, allowing sysctls to be configured automatically for all containers in the pod.
 - The `podman events` command now supports the `--no-trunc` option, which will allow short container IDs to be displayed instead of the default full IDs. The flag defaults to true, so full IDs remain the default ([#8941](https://github.com/containers/podman/issues/8941)).
 - The `podman machine init` command now supports a new VM type, `wsl`, available only on Windows; this uses WSL as a backend for `podman machine`, instead of creating a separate VM and managing it via QEMU ([#12503](https://github.com/containers/podman/pull/12503)).
@@ -70,7 +71,7 @@
 ### Breaking Changes
 - Podman v4.0 will perform several schema migrations in the Podman database when it is first run. These schema migrations will cause Podman v3.x and earlier to be unable to read certain network configuration information from the database, so downgrading from Podman v4.0 to an earlier version will cause containers to lose their static IP, MAC address, and port bindings.
 - All endpoints of the Docker-compatible API now enforce that all image shortnames will be resolved to the Docker Hub for improved Docker compatibility. This behavior can be turned off via the `compat_api_enforce_docker_hub` option in `containers.conf` ([#12320](https://github.com/containers/podman/issues/12320)).
-- The Podman APIs for Manifest List and Network operations have been completely rewritten to address issues and inconsistencies in the previous APIs.
+- The Podman APIs for Manifest List and Network operations have been completely rewritten to address issues and inconsistencies in the previous APIs. Incompatible APIs should warn if they are used with an older Podman client.
 - The `make install` makefile target no longer implicitly builds Podman, and will fail if `make` was not run prior to it.
 - The `podman rm --depends`, `podman rmi --force`, and `podman network rm --force` commands can now remove pods if a they need to remove an infra container (e.g. `podman rmi --force` on the infra image will remove all pods and infra containers). Previously, any command that tried to remove an infra container would error.
 - The `podman system reset` command now removes all networks on the system, in addition to all volumes, pods, containers, and images.
@@ -113,6 +114,7 @@
 - Fixed a bug where the `podman tag` command on a manifest list could tag an image in the manifest, and not the manifest list itself.
 - Fixed a bug where creating a volume using an invalid volume option that contained a format string would print a nonsensical error.
 - Fixed a bug where Podman would not create a healthcheck for containers created from images that specified a healthcheck in their configuration ([#12226](https://github.com/containers/podman/issues/12226)).
+- Fixed a bug where the output of healthchecks was not shown in `podman inspect` ([#13083](https://github.com/containers/podman/issues/13083)).
 - Fixed a bug where rootless containers that used a custom user namespace (e.g. `--userns=keep-id`) could not have any ports forwarded to them.
 - Fixed a bug where the `podman system connection ls` command would not print any output (including headers) if no connections were present.
 - Fixed a bug where the `--memory-swappiness` option to `podman create` and `podman run` did not accept 0 as a valid value.
@@ -156,6 +158,9 @@
 - Fixed a bug where the `podman stats` command would not show network usage statistics on containers using `slirp4netns` for networking ([#11695](https://github.com/containers/podman/issues/11695)).
 - Fixed a bug where the `/dev/shm` mount in the container was not mounted with `nosuid`, `noexec`, and `nodev` mount options.
 - Fixed a bug where the `--shm-size` option to `podman create` and `podman run` interpeted human-readable sizes as KB instead of KiB, and GB instead of GiB (such that a kilobyte was interpreted as 1000 bytes, instead of 1024 bytes) ([#13096](https://github.com/containers/podman/issues/13096)).
+- Fixed a bug where the `--share=cgroup` option to `podman pod create` controlled whether the pod used a shared Cgroup parent, not whether the Cgroup namespace was shared ([#12765](https://github.com/containers/podman/issues/12765)).
+- Fixed a bug where, when a Podman container using the `slirp4netns` network mode was run inside a systemd unit file, systemd could kill the `slirp4netns` process, which is shared between all containers for a given user (thus causing all `slirp4netns`-mode containers for that user to be unable to connect to the internet) ([#13153](https://github.com/containers/podman/issues/13153)).
+- Fixed a bug where the `podman network connect` and `podman network disconnect` commands would not update `/etc/resolv.conf` in the container to add or remove the DNS servers of the networks that were connected or disconnected ([#9603](https://github.com/containers/podman/issues/9603)).
 
 ### API
 - The Podman remote API version has been bumped to v4.0.0.
@@ -173,6 +178,7 @@
 - Fixed a bug where the Compat Load endpoint for Images would refuse to accept input archives that contained more than one image.
 - Fixed a bug where the Compat Build endpoint for Images ignored the `quiet` query parameter ([#12566](https://github.com/containers/podman/issues/12566)).
 - Fixed a bug where the Compat Build endpoint for Images did not include `aux` JSON (which included the ID of built images) in returned output ([#12063](https://github.com/containers/podman/issues/12063)).
+- Fixed a bug where the Compat Build endpoint for Images did not set the correct `Content-Type` in its responses ([#13148](https://github.com/containers/podman/issues/13148)).
 - Fixed a bug where the Compat and Libpod List endpoints for Networks would sometimes not return networks created on the server by the Podman CLI after the API server had been started ([#11828](https://github.com/containers/podman/issues/11828)).
 - Fixed a bug where the Compat Inspect endpoint for Networks did not include the subnet CIDR in the returned IPv4 and IPv6 addresses.
 - Fixed a bug where the Compat Events endpoint did not properly set the Action field of `Died` events for containers to `die` (previously, `died` was used; this was incompatible with Docker's output).
