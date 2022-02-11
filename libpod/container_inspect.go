@@ -205,6 +205,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 		}
 		data.SizeRw = &rwSize
 	}
+
 	return data, nil
 }
 
