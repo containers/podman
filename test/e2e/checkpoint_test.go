@@ -1081,10 +1081,6 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 
 	namespaceCombination := []string{
-		"cgroup,ipc,net,uts,pid",
-		"cgroup,ipc,net,uts",
-		"cgroup,ipc,net",
-		"cgroup,ipc",
 		"ipc,net,uts,pid",
 		"ipc,net,uts",
 		"ipc,net",
