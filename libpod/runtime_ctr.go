@@ -192,6 +192,11 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 		}
 		// Reset the log path to point to the default
 		ctr.config.LogPath = ""
+		// Later in validate() the check is for nil. JSONDeepCopy sets it to an empty
+		// object. Resetting it to nil if it was nil before.
+		if config.StaticMAC == nil {
+			ctr.config.StaticMAC = nil
+		}
 	}
 
 	ctr.config.Spec = rSpec
