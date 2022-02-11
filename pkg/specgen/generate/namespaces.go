@@ -482,7 +482,7 @@ func GetNamespaceOptions(ns []string, netnsIsHost bool) ([]libpod.PodCreateOptio
 	for _, toShare := range ns {
 		switch toShare {
 		case "cgroup":
-			options = append(options, libpod.WithPodCgroups())
+			options = append(options, libpod.WithPodCgroup())
 		case "net":
 			// share the netns setting with other containers in the pod only when it is not set to host
 			if !netnsIsHost {

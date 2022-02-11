@@ -226,7 +226,7 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 			}
 
 			if formatError != nil {
-				logrus.Errorf("Failed to parse journald log entry: %v", err)
+				logrus.Errorf("Failed to parse journald log entry: %v", formatError)
 				return
 			}
 

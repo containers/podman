@@ -1865,7 +1865,7 @@ func WithPodCgroupParent(path string) PodCreateOption {
 // this pod.
 // This can still be overridden at the container level by explicitly specifying
 // a Cgroup parent.
-func WithPodCgroups() PodCreateOption {
+func WithPodParent() PodCreateOption {
 	return func(pod *Pod) error {
 		if pod.valid {
 			return define.ErrPodFinalized

@@ -132,6 +132,7 @@ type PodCreateOptions struct {
 	Name               string            `json:"name,omitempty"`
 	Net                *NetOptions       `json:"net,omitempty"`
 	Share              []string          `json:"share,omitempty"`
+	ShareParent        *bool             `json:"share_parent,omitempty"`
 	Pid                string            `json:"pid,omitempty"`
 	Cpus               float64           `json:"cpus,omitempty"`
 	CpusetCpus         string            `json:"cpuset_cpus,omitempty"`
@@ -324,6 +325,7 @@ func ToPodSpecGen(s specgen.PodSpecGenerator, p *PodCreateOptions) (*specgen.Pod
 	}
 	s.InfraImage = p.InfraImage
 	s.SharedNamespaces = p.Share
+	s.ShareParent = p.ShareParent
 	s.PodCreateCommand = p.CreateCommand
 	s.VolumesFrom = p.VolumesFrom
 

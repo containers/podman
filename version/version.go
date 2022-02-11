@@ -38,7 +38,7 @@ var Version = semver.MustParse("4.0.0-dev")
 var APIVersion = map[Tree]map[Level]semver.Version{
 	Libpod: {
 		CurrentAPI: Version,
-		MinimalAPI: semver.MustParse("3.1.0"),
+		MinimalAPI: semver.MustParse("3.3.1"),
 	},
 	Compat: {
 		CurrentAPI: semver.MustParse("1.40.0"),

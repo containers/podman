@@ -28,6 +28,7 @@ import (
 	"github.com/containers/podman/v4/pkg/resolvconf"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
+	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -493,6 +494,12 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 
 		if err := waitForSync(syncR, cmd, logFile, 1*time.Second); err != nil {
 			return nil, err
+		}
+
+		// move to systemd scope to prevent systemd from killing it
+		err = utils.MoveRootlessNetnsSlirpProcessToUserSlice(cmd.Process.Pid)
+		if err != nil {
+			logrus.Errorf("failed to move the rootless netns slirp4netns process to the systemd user.slice: %v", err)
 		}
 
 		// build a new resolv.conf file which uses the slirp4netns dns server address
@@ -1163,6 +1170,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 	}
 
 	// update network status if container is running
+	oldStatus, statusExist := networkStatus[netName]
 	delete(networkStatus, netName)
 	c.state.NetworkStatus = networkStatus
 	err = c.save()
@@ -1173,8 +1181,26 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 	// Reload ports when there are still connected networks, maybe we removed the network interface with the child ip.
 	// Reloading without connected networks does not make sense, so we can skip this step.
 	if rootless.IsRootless() && len(networkStatus) > 0 {
-		return c.reloadRootlessRLKPortMapping()
+		if err := c.reloadRootlessRLKPortMapping(); err != nil {
+			return err
+		}
 	}
+
+	// Update resolv.conf if required
+	if statusExist {
+		stringIPs := make([]string, 0, len(oldStatus.DNSServerIPs))
+		for _, ip := range oldStatus.DNSServerIPs {
+			stringIPs = append(stringIPs, ip.String())
+		}
+		if len(stringIPs) == 0 {
+			return nil
+		}
+		logrus.Debugf("Removing DNS Servers %v from resolv.conf", stringIPs)
+		if err := c.removeNameserver(stringIPs); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -1256,11 +1282,36 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 	if err != nil {
 		return err
 	}
+
 	// The first network needs a port reload to set the correct child ip for the rootlessport process.
 	// Adding a second network does not require a port reload because the child ip is still valid.
 	if rootless.IsRootless() && len(networks) == 0 {
-		return c.reloadRootlessRLKPortMapping()
+		if err := c.reloadRootlessRLKPortMapping(); err != nil {
+			return err
+		}
 	}
+
+	ipv6, err := c.checkForIPv6(networkStatus)
+	if err != nil {
+		return err
+	}
+
+	// Update resolv.conf if required
+	stringIPs := make([]string, 0, len(results[netName].DNSServerIPs))
+	for _, ip := range results[netName].DNSServerIPs {
+		if (ip.To4() == nil) && !ipv6 {
+			continue
+		}
+		stringIPs = append(stringIPs, ip.String())
+	}
+	if len(stringIPs) == 0 {
+		return nil
+	}
+	logrus.Debugf("Adding DNS Servers %v to resolv.conf", stringIPs)
+	if err := c.addNameserver(stringIPs); err != nil {
+		return err
+	}
+
 	return nil
 }
 

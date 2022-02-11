@@ -18,7 +18,22 @@
     </style>
   </head>
   <body>
-    <redoc spec-url='https://storage.googleapis.com/libpod-master-releases/swagger-latest.yaml' sort-props-alphabetically sort-operations-alphabetically></redoc>
+    <script>
+      // get version from query (default to latest)
+      var queryString = window.location.search;
+      var query = new URLSearchParams(queryString);
+      var version = "latest";
+      if (query.has("version")) {
+        version = query.get("version");
+      }
+
+      var redoc = document.createElement("redoc");
+      redoc.setAttribute("sort-props-alphabetically","");
+      redoc.setAttribute("sort-operations-alphabetically","");
+      redoc.setAttribute("spec-url","https://storage.googleapis.com/libpod-master-releases/swagger-" + version + ".yaml");
+
+      document.body.appendChild(redoc);
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js"> </script>
   </body>
 </html>
