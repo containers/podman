@@ -633,6 +633,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		exec4.WaitWithDefaultTimeout()
 		Expect(exec4).Should(Exit(0))
 		Expect(exec4.OutputToString()).To(ContainSubstring("192.0.2.2 test1"))
+		Expect(exec4.OutputToString()).To(ContainSubstring(ctrName2))
 	})
 
 	It("podman run /etc/hosts contains --hostname", func() {

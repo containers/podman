@@ -2377,7 +2377,17 @@ func (c *Container) getHosts() string {
 
 		if depCtr != nil {
 			host := ""
+			if depCtr.config.NetMode.IsSlirp4netns() {
+				// When using slirp4netns, the interface gets a static IP
+				if slirp4netnsIP, err := GetSlirp4netnsIP(depCtr.slirp4netnsSubnet); err != nil {
+					logrus.Warnf("Failed to determine slirp4netnsIP: %v", err.Error())
+				} else {
+					return fmt.Sprintf("%s\t%s %s\n", slirp4netnsIP.String(), c.Hostname(), c.config.Name)
+				}
+			}
 		outer:
+			// Paul this is returning nothing, even though I know depctr is up and
+			// running with an IP Address in rootfull mode?
 			for net, status := range depCtr.getNetworkStatus() {
 				network, err := c.runtime.network.NetworkInspect(net)
 				// only add the host entry for bridge networks
