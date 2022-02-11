@@ -330,8 +330,8 @@ var _ = Describe("Podman network create", func() {
 		Expect(nc).To(ExitWithError())
 	})
 
-	It("podman network create with internal should not have dnsname", func() {
-		SkipUntilAardvark(podmanTest)
+	It("podman CNI network create with internal should not have dnsname", func() {
+		SkipIfNetavark(podmanTest)
 		net := "internal-test" + stringid.GenerateNonCryptoID()
 		nc := podmanTest.Podman([]string{"network", "create", "--internal", net})
 		nc.WaitWithDefaultTimeout()
@@ -346,6 +346,24 @@ var _ = Describe("Podman network create", func() {
 		nc.WaitWithDefaultTimeout()
 		Expect(nc).Should(Exit(0))
 		Expect(nc.OutputToString()).ToNot(ContainSubstring("dnsname"))
+	})
+
+	It("podman Netavark network create with internal should have dnsname", func() {
+		SkipIfCNI(podmanTest)
+		net := "internal-test" + stringid.GenerateNonCryptoID()
+		nc := podmanTest.Podman([]string{"network", "create", "--internal", net})
+		nc.WaitWithDefaultTimeout()
+		defer podmanTest.removeNetwork(net)
+		Expect(nc).Should(Exit(0))
+		// Not performing this check on remote tests because it is a logrus error which does
+		// not come back via stderr on the remote client.
+		if !IsRemote() {
+			Expect(nc.ErrorToString()).To(BeEmpty())
+		}
+		nc = podmanTest.Podman([]string{"network", "inspect", net})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc).Should(Exit(0))
+		Expect(nc.OutputToString()).To(ContainSubstring(`"dns_enabled": true`))
 	})
 
 	It("podman network create with invalid name", func() {

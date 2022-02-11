@@ -771,15 +771,15 @@ func SkipIfNotActive(unit string, reason string) {
 	}
 }
 
-func SkipIfNetavark(p *PodmanTestIntegration) {
-	if p.NetworkBackend == Netavark {
-		Skip("This test is not compatible with the netavark network backend")
+func SkipIfCNI(p *PodmanTestIntegration) {
+	if p.NetworkBackend == CNI {
+		Skip("this test is not compatible with the CNI network backend")
 	}
 }
 
-func SkipUntilAardvark(p *PodmanTestIntegration) {
+func SkipIfNetavark(p *PodmanTestIntegration) {
 	if p.NetworkBackend == Netavark {
-		Skip("Re-enable when aardvark is functional")
+		Skip("This test is not compatible with the netavark network backend")
 	}
 }
 
@@ -1037,4 +1037,8 @@ func ncz(port int) bool {
 		timeout++
 	}
 	return false
+}
+
+func createNetworkName(name string) string {
+	return name + stringid.GenerateNonCryptoID()[:10]
 }
