@@ -631,6 +631,14 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"Write the container process ID to the file")
 		_ = cmd.RegisterFlagCompletionFunc(pidFileFlagName, completion.AutocompleteDefault)
 
+		chrootDirsFlagName := "chrootdirs"
+		createFlags.StringSliceVar(
+			&cf.ChrootDirs,
+			chrootDirsFlagName, []string{},
+			"Chroot directories inside the container",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(chrootDirsFlagName, completion.AutocompleteDefault)
+
 		if registry.IsRemote() {
 			_ = createFlags.MarkHidden("env-host")
 			_ = createFlags.MarkHidden("http-proxy")

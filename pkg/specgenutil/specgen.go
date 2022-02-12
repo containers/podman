@@ -819,6 +819,9 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	if !s.UnsetEnvAll {
 		s.UnsetEnvAll = c.UnsetEnvAll
 	}
+	if len(s.ChrootDirs) == 0 || len(c.ChrootDirs) != 0 {
+		s.ChrootDirs = c.ChrootDirs
+	}
 
 	// Initcontainers
 	if len(s.InitContainerType) == 0 || len(c.InitContainerType) != 0 {

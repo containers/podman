@@ -75,6 +75,10 @@ type InspectContainerConfig struct {
 	StopTimeout uint `json:"StopTimeout"`
 	// Passwd determines whether or not podman can add entries to /etc/passwd and /etc/group
 	Passwd *bool `json:"Passwd,omitempty"`
+	// ChrootDirs is an additional set of directories that need to be
+	// treated as root directories. Standard bind mounts will be mounted
+	// into paths relative to these directories.
+	ChrootDirs []string `json:"ChrootDirs,omitempty"`
 }
 
 // InspectRestartPolicy holds information about the container's restart policy.

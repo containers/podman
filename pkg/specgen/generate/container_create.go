@@ -526,6 +526,10 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 		options = append(options, libpod.WithPidFile(s.PidFile))
 	}
 
+	if len(s.ChrootDirs) != 0 {
+		options = append(options, libpod.WithChrootDirs(s.ChrootDirs))
+	}
+
 	options = append(options, libpod.WithSelectedPasswordManagement(s.Passwd))
 
 	return options, nil
