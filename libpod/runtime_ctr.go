@@ -768,6 +768,14 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 				continue
 			}
 			if err := runtime.removeVolume(ctx, volume, false, timeout); err != nil && errors.Cause(err) != define.ErrNoSuchVolume {
+				if errors.Cause(err) == define.ErrVolumeBeingUsed {
+					// Ignore error, since podman will report original error
+					volumesFrom, _ := c.volumesFrom()
+					if len(volumesFrom) > 0 {
+						logrus.Debugf("Cleanup volume not possible since volume is in use (%s)", v)
+						continue
+					}
+				}
 				logrus.Errorf("Cleanup volume (%s): %v", v, err)
 			}
 		}
