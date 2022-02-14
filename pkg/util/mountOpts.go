@@ -45,14 +45,18 @@ func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string
 			}
 		}
 
-		switch splitOpt[0] {
-		case "O":
-			foundOverlay = true
-		case "idmap":
+		if strings.HasPrefix(splitOpt[0], "idmap") {
 			if foundIdmap {
 				return nil, errors.Wrapf(ErrDupeMntOption, "the 'idmap' option can only be set once")
 			}
 			foundIdmap = true
+			newOptions = append(newOptions, opt)
+			continue
+		}
+
+		switch splitOpt[0] {
+		case "O":
+			foundOverlay = true
 		case "exec", "noexec":
 			if foundExec {
 				return nil, errors.Wrapf(ErrDupeMntOption, "only one of 'noexec' and 'exec' can be used")
