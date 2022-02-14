@@ -916,7 +916,7 @@ After deleting a VM on macOS, the initialization of subsequent VMs fails.
 
 After deleting a client VM on macOS via `podman machine stop` && `podman machine rm`, attempting to `podman machine init` a new client VM leads to an error with the 127.0.0.1:7777 port already bound.
 
-### Solution
+#### Solution
 
 You will need to remove the hanging gv-proxy process bound to the port in question. For example, if the port mentioned in the error message is 127.0.0.1:7777, you can use the command `kill -9 $(lsof -i:7777)` in order to identify and remove the hanging process which prevents you from starting a new VM on that default port.
 
@@ -938,3 +938,213 @@ run Podman from a system service, either using the Podman service, and
 then using podman -remote to start the container or simply by running
 something like `systemd-run podman run ...`.  In this case the
 container will only need `CAP_AUDIT_WRITE`.
+
+### 33) Container creates a file that is not owned by the user's regular UID
+
+After running a container with rootless Podman, the non-root user sees a numerical UID and GID instead of a username and groupname.
+
+#### Symptom
+
+When listing file permissions with `ls -l` on the host in a directory that was passed as `--volume /some/dir` to `podman run`,
+the UID and GID are displayed rather than the corresponding username and groupname. The UID and GID numbers displayed are
+from the user's subordinate UID and GID ranges on the host system.
+
+An example
+
+```Text
+$ mkdir dir1
+$ chmod 777 dir1
+$ podman run --rm -v ./dir1:/dir1:Z \
+             --user 2003:2003 \
+             docker.io/library/ubuntu bash -c "touch /dir1/a; chmod 600 /dir1/a"
+$ ls -l dir1/a
+-rw-------. 1 102002 102002 0 Jan 19 19:35 dir1/a
+$ less dir1/a
+less: dir1/a: Permission denied
+```
+
+#### Solution
+
+If you want to read or remove such a file, you can do so by entering a user namespace.
+Instead of running commands such as `less dir1/a` or `rm dir1/a`, you would need to
+prepend the command-line with `podman unshare`, i.e.,
+`podman unshare less dir1/a` or `podman unshare rm dir1/a`. To be able to use Bash
+features, such as variable expansion and globbing, you need to wrap the command with
+`bash -c`, e.g. `podman unshare bash -c 'ls $HOME/dir1/a*'`.
+
+Would it have been possible to run Podman in another way so that your regular
+user would have become the owner of the file? Yes, you can use the options
+__--uidmap__ and __--gidmap__ to change how UIDs and GIDs are mapped
+between the container and the host. Let's try it out.
+
+In the example above `ls -l` shows the UID 102002 and GID 102002. Set shell variables
+
+```Text
+$ uid_from_ls = 102002
+$ gid_from_ls = 102002
+```
+
+Set shell variables to the lowest subordinate UID and GID
+
+```Text
+$ lowest_subuid=$(podman info --format "{{ (index .Host.IDMappings.UIDMap 1).HostID }}")
+$ lowest_subgid=$(podman info --format "{{ (index .Host.IDMappings.GIDMap 1).HostID }}")
+```
+
+Compute the UID and GID inside the container that map to the owner of the created file on the host.
+
+```Text
+$ uid=$(( $uid_from_ls - $lowest_subuid + 1))
+$ gid=$(( $gid_from_ls - $lowest_subgid + 1))
+```
+(In the computation it was assumed that there is only one subuid range and one subgid range)
+
+```Text
+$ echo $uid
+2003
+$ echo $gid
+2003
+```
+
+The computation shows that the UID is _2003_ and the GID is _2003_ inside the container.
+This comes as no surprise as this is what was specified before with `--user=2003:2003`,
+but the same computation could be used whenever a username is specified
+or the __--user__ option is not used.
+
+Run the container again but now with UIDs and GIDs mapped
+
+```Text
+$ subuidSize=$(( $(podman info --format "{{ range .Host.IDMappings.UIDMap }}+{{.Size }}{{end }}" ) - 1 ))
+$ subgidSize=$(( $(podman info --format "{{ range .Host.IDMappings.GIDMap }}+{{.Size }}{{end }}" ) - 1 ))
+$ mkdir dir1
+$ chmod 777 dir1
+$ podman run --rm
+  -v ./dir1:/dir1:Z \
+  --user $uid:$gid \
+  --uidmap $uid:0:1 \
+  --uidmap 0:1:$uid \
+  --uidmap $(($uid+1)):$(($uid+1)):$(($subuidSize-$uid)) \
+  --gidmap $gid:0:1 \
+  --gidmap 0:1:$gid \
+  --gidmap $(($gid+1)):$(($gid+1)):$(($subgidSize-$gid)) \
+     docker.io/library/ubuntu bash -c "touch /dir1/a; chmod 600 /dir1/a"
+$ id -u
+tester
+$ id -g
+tester
+$ ls -l dir1/a
+-rw-------. 1 tester tester 0 Jan 19 20:31 dir1/a
+$
+```
+
+In this example the __--user__ option specified a rootless user in the container.
+As the rootless user could also have been specified in the container image, e.g.,
+
+```Text
+$ podman image inspect --format "user: {{.User}}" IMAGE
+user: hpc
+$
+```
+the same problem could also occur even without specifying __--user__.
+
+Another variant of the same problem could occur when using
+__--user=root:root__ (the default), but where the root user creates non-root owned files
+in some way (e.g by creating them themselves, or switching the effective UID to
+a rootless user and then creates files).
+
+### 34) Passed-in devices or files can't be accessed in rootless container (UID/GID mapping problem)
+
+As a non-root user you have access rights to devices, files and directories that you
+want to pass into a rootless container with `--device=...`, `--volume=...` or `--mount=..`.
+
+Podman by default maps a non-root user inside a container to one of the user's
+subordinate UIDs and subordinate GIDs on the host. When the container user tries to access a
+file, a "Permission denied" error could occur because the container user does not have the
+permissions of the regular user of the host.
+
+#### Symptom
+
+* Any access inside the container is rejected with "Permission denied"
+for files, directories or devices passed in to the container
+with `--device=..`,`--volume=..` or `--mount=..`, e.g.
+
+```Text
+$ mkdir dir1
+$ chmod 700 dir1
+$ podman run --rm -v ./dir1:/dir1:Z \
+             --user 2003:2003 \
+             docker.io/library/ubuntu ls /dir1
+ls: cannot open directory '/dir1': Permission denied
+```
+
+#### Solution
+
+We follow essentialy the same solution as in the previous
+troubleshooting tip:
+ "_Container creates a file that is not owned by the regular UID_"
+but for this problem the container UID and GID can't be as
+easily computed by mere addition and subtraction.
+
+In other words, it might be more challenging to find out the UID and
+the GID inside the container that we want to map to the regular
+user on the host.
+
+If the __--user__ option is used together with a numerical UID and GID
+to specify a rootless user, we already know the answer.
+
+If the __--user__ option is used together with a username and groupname,
+we could look up the UID and GID in the file _/etc/passwd_ of the container.
+
+If the container user is not set via __--user__ but instead from the
+container image, we could inspect the container image
+
+```Text
+$ podman image inspect --format "user: {{.User}}" IMAGE
+user: hpc
+$
+```
+
+and then look it up in _/etc/passwd_ of the container.
+
+If the problem occurs in a container that is started to run as root but later
+switches to an effictive UID of a rootless user, it might be less
+straightforward to find out the UID and the GID. Reading the
+_Containerfile_, _Dockerfile_ or the _/etc/passwd_ could give a clue.
+
+To run the container with the rootless container UID and GID mapped to the
+user's regular UID and GID on the host follow these steps:
+
+Set the _uid_ and _gid_ shell variables in a Bash shell to the UID and GID
+of the user that will be running inside the container, e.g.
+
+```Text
+$ uid=2003
+$ gid=2003
+```
+
+and run
+
+```Text
+$ mkdir dir1
+$ echo hello > dir1/file.txt
+$ chmod 700 dir1/file.txt
+$ subuidSize=$(( $(podman info --format "{{ range .Host.IDMappings.UIDMap }}+{{.Size }}{{end }}" ) - 1 ))
+$ subgidSize=$(( $(podman info --format "{{ range .Host.IDMappings.GIDMap }}+{{.Size }}{{end }}" ) - 1 ))
+$ podman run --rm \
+  -v ./dir1:/dir1:Z \
+  --user $uid:$gid \
+  --uidmap $uid:0:1 \
+  --uidmap 0:1:$uid \
+  --uidmap $(($uid+1)):$(($uid+1)):$(($subuidSize-$uid)) \
+  --gidmap $gid:0:1 \
+  --gidmap 0:1:$gid \
+  --gidmap $(($gid+1)):$(($gid+1)):$(($subgidSize-$gid)) \
+  docker.io/library/alpine cat /dir1/file.txt
+hello
+$
+```
+
+A side-note: Using [__--userns=keep-id__](https://docs.podman.io/en/latest/markdown/podman-run.1.html#userns-mode)
+can sometimes be an alternative solution, but it forces the regular
+user's host UID to be mapped to the same UID inside the container
+so it provides less flexibility than using __--uidmap__ and __--gidmap__.
