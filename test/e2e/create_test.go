@@ -598,7 +598,7 @@ var _ = Describe("Podman create", func() {
 		session := podmanTest.Podman([]string{"network", "create", netName})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		defer podmanTest.removeCNINetwork(netName)
+		defer podmanTest.removeNetwork(netName)
 
 		session = podmanTest.Podman([]string{"create", "--pod", name, "--network", netName, ALPINE, "top"})
 		session.WaitWithDefaultTimeout()

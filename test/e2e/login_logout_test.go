@@ -11,7 +11,6 @@ import (
 
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
@@ -24,7 +23,6 @@ var _ = Describe("Podman login and logout", func() {
 		authPath                 string
 		certPath                 string
 		certDirPath              string
-		port                     int
 		server                   string
 		testImg                  string
 		registriesConfWithSearch []byte
@@ -62,7 +60,7 @@ var _ = Describe("Podman login and logout", func() {
 
 		f.WriteString(session.OutputToString())
 		f.Sync()
-		port = 4999 + config.GinkgoConfig.ParallelNode
+		port := GetPort()
 		server = strings.Join([]string{"localhost", strconv.Itoa(port)}, ":")
 
 		registriesConfWithSearch = []byte(fmt.Sprintf("[registries.search]\nregistries = ['%s']", server))

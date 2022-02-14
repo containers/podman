@@ -130,7 +130,7 @@ esac
 # Required to be defined by caller: The environment where primary testing happens
 # shellcheck disable=SC2154
 case "$TEST_ENVIRON" in
-    host)
+    host*)
         # The e2e tests wrongly guess `--cgroup-manager` option
         # shellcheck disable=SC2154
         if [[ "$CG_FS_TYPE" == "cgroup2fs" ]] || [[ "$PRIV_NAME" == "root" ]]
@@ -140,6 +140,43 @@ case "$TEST_ENVIRON" in
         else
             warn "Forcing CGROUP_MANAGER=cgroupfs"
             echo "CGROUP_MANAGER=cgroupfs" >> /etc/ci_environment
+        fi
+        # TODO: For the foreseeable future, need to support running tests
+        # with and without the latest netavark/aardvark.  Once they're more
+        # stable and widely supported in Fedora, they can be pre-installed
+        # from its RPM at VM image build-time.
+        if [[ "$TEST_ENVIRON" =~ netavark ]]; then
+            for info in "netavark $NETAVARK_BRANCH $NETAVARK_URL $NETAVARK_DEBUG" \
+                        "aardvark-dns $AARDVARK_BRANCH $AARDVARK_URL $AARDVARK_DEBUG"; do
+
+                read _name _branch _url _debug <<<"$info"
+                req_env_vars _name _branch _url _debug
+                msg "Downloading latest $_name from upstream branch '$_branch'"
+                # Use identifiable archive filename in of a get_ci_env.sh environment
+                curl --fail --location -o /tmp/$_name.zip "$_url"
+
+                # Needs to be in a specific location
+                # ref: https://github.com/containers/common/blob/main/pkg/config/config_linux.go#L39
+                _pdir=/usr/local/libexec/podman
+                mkdir -p $_pdir
+                cd $_pdir
+                msg "$PWD"
+                unzip /tmp/$_name.zip
+                if ((_debug)); then
+                    warn "Using debug $_name binary"
+                    mv $_name.debug $_name
+                else
+                    rm $_name.debug
+                fi
+                chmod 0755 $_pdir/$_name
+                cd -
+            done
+
+            restorecon -F -v $_pdir
+            # This is critical, it signals to all tests that netavark
+            # use is expected.
+            msg "Forcing NETWORK_BACKEND=netavark in all subsequent environments."
+            echo "NETWORK_BACKEND=netavark" >> /etc/ci_environment
         fi
         ;;
     container)
@@ -247,19 +284,19 @@ case "$TEST_FLAVOR" in
         # Use existing host bits when testing is to happen inside a container
         # since this script will run again in that environment.
         # shellcheck disable=SC2154
-        if [[ "$TEST_ENVIRON" == "host" ]]; then
+        if [[ "$TEST_ENVIRON" =~ host ]]; then
             if ((CONTAINER)); then
                 die "Refusing to config. host-test in container";
             fi
             remove_packaged_podman_files
-            make install PREFIX=/usr ETCDIR=/etc
+            make && make install PREFIX=/usr ETCDIR=/etc
         elif [[ "$TEST_ENVIRON" == "container" ]]; then
             if ((CONTAINER)); then
                 remove_packaged_podman_files
-                make install PREFIX=/usr ETCDIR=/etc
+                make && make install PREFIX=/usr ETCDIR=/etc
             fi
         else
-            die "Invalid value for $$TEST_ENVIRON=$TEST_ENVIRON"
+            die "Invalid value for \$TEST_ENVIRON=$TEST_ENVIRON"
         fi
 
         install_test_configs
@@ -273,7 +310,7 @@ case "$TEST_FLAVOR" in
         # Ref: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27270#note_499585550
 
         remove_packaged_podman_files
-        make install PREFIX=/usr ETCDIR=/etc
+        make && make install PREFIX=/usr ETCDIR=/etc
 
         msg "Installing docker and containerd"
         # N/B: Tests check/expect `docker info` output, and this `!= podman info`

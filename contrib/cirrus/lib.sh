@@ -214,16 +214,22 @@ setup_rootless() {
 }
 
 install_test_configs() {
-    echo "Installing cni config, policy and registry config"
-    req_env_vars GOSRC SCRIPT_BASE
-    cd $GOSRC || exit 1
-    install -v -D -m 644 ./cni/87-podman-bridge.conflist /etc/cni/net.d/
-    # This config must always sort last in the list of networks (podman picks first one
-    # as the default).  This config prevents allocation of network address space used
-    # by default in google cloud.  https://cloud.google.com/vpc/docs/vpc#ip-ranges
-    install -v -D -m 644 $SCRIPT_BASE/99-do-not-use-google-subnets.conflist /etc/cni/net.d/
-
+    msg "Installing ./test/registries.conf system-wide."
     install -v -D -m 644 ./test/registries.conf /etc/containers/
+    if [[ "$TEST_ENVIRON" =~ netavark ]]; then
+        # belt-and-suspenders: any pre-existing CNI config. will spoil
+        # default use tof netavark (when both are installed).
+        rm -rf /etc/cni/net.d/*
+    else
+        echo "Installing cni config, policy and registry config"
+        req_env_vars GOSRC SCRIPT_BASE
+        cd $GOSRC || exit 1
+        install -v -D -m 644 ./cni/87-podman-bridge.conflist /etc/cni/net.d/
+        # This config must always sort last in the list of networks (podman picks first one
+        # as the default).  This config prevents allocation of network address space used
+        # by default in google cloud.  https://cloud.google.com/vpc/docs/vpc#ip-ranges
+        install -v -D -m 644 $SCRIPT_BASE/99-do-not-use-google-subnets.conflist /etc/cni/net.d/
+    fi
 }
 
 # Remove all files provided by the distro version of podman.

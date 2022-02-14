@@ -74,6 +74,19 @@ case $1 in
         echo "Cgroups: " $(stat -f -c %T /sys/fs/cgroup)
         # Any not-present packages will be listed as such
         $PKG_LST_CMD "${PKG_NAMES[@]}" | sort -u
+
+        # TODO: Remove this once netavark/aardvark-dns packages are used
+        if [[ "$TEST_ENVIRON" =~ netavark ]]; then
+            _npath=/usr/local/libexec/podman/
+            for name in netavark aardvark-dns; do
+                echo "$name binary details:"
+                if [[ -r "$_npath/${name}.info" ]]; then
+                    cat "$_npath/${name}.info"
+                else
+                    echo "WARNING: $_npath/${name}.info not found."
+                fi
+            done
+        fi
         ;;
     time)
         # Assumed to be empty/undefined outside of Cirrus-CI (.cirrus.yml)

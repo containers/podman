@@ -109,7 +109,8 @@ var _ = Describe("Podman pod create", func() {
 
 	It("podman create pod with network portbindings", func() {
 		name := "test"
-		session := podmanTest.Podman([]string{"pod", "create", "--name", name, "-p", "8081:80"})
+		port := GetPort()
+		session := podmanTest.Podman([]string{"pod", "create", "--name", name, "-p", fmt.Sprintf("%d:80", port)})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		pod := session.OutputToString()
@@ -117,24 +118,21 @@ var _ = Describe("Podman pod create", func() {
 		webserver := podmanTest.Podman([]string{"run", "--pod", pod, "-dt", nginx})
 		webserver.WaitWithDefaultTimeout()
 		Expect(webserver).Should(Exit(0))
-
-		check := SystemExec("nc", []string{"-z", "localhost", "8081"})
-		Expect(check).Should(Exit(0))
+		Expect(ncz(port)).To(BeTrue())
 	})
 
 	It("podman create pod with id file with network portbindings", func() {
 		file := filepath.Join(podmanTest.TempDir, "pod.id")
 		name := "test"
-		session := podmanTest.Podman([]string{"pod", "create", "--name", name, "--pod-id-file", file, "-p", "8082:80"})
+		port := GetPort()
+		session := podmanTest.Podman([]string{"pod", "create", "--name", name, "--pod-id-file", file, "-p", fmt.Sprintf("%d:80", port)})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
 		webserver := podmanTest.Podman([]string{"run", "--pod-id-file", file, "-dt", nginx})
 		webserver.WaitWithDefaultTimeout()
 		Expect(webserver).Should(Exit(0))
-
-		check := SystemExec("nc", []string{"-z", "localhost", "8082"})
-		Expect(check).Should(Exit(0))
+		Expect(ncz(port)).To(BeTrue())
 	})
 
 	It("podman create pod with no infra but portbindings should fail", func() {
