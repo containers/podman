@@ -1,9 +1,11 @@
+//go:build (amd64 && !windows) || (arm64 && !windows)
 // +build amd64,!windows arm64,!windows
 
 package qemu
 
 import (
 	"bufio"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -123,6 +125,20 @@ func (p *Provider) LoadVMByName(name string) (machine.VM, error) {
 		return nil, err
 	}
 	err = json.Unmarshal(b, vm)
+
+	// It is here for providing the ability to propagate
+	// proxy settings (e.g. HTTP_PROXY and others) on a start
+	// and avoid a need of re-creating/re-initiating a VM
+	if proxyOpts := machine.GetProxyVariables(); len(proxyOpts) > 0 {
+		proxyStr := "name=opt/com.coreos/environment,string="
+		var proxies string
+		for k, v := range proxyOpts {
+			proxies = fmt.Sprintf("%s%s=\"%s\"|", proxies, k, v)
+		}
+		proxyStr = fmt.Sprintf("%s%s", proxyStr, base64.StdEncoding.EncodeToString([]byte(proxies)))
+		vm.CmdLine = append(vm.CmdLine, "-fw_cfg", proxyStr)
+	}
+
 	logrus.Debug(vm.CmdLine)
 	return vm, err
 }
