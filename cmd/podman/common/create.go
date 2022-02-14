@@ -36,7 +36,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		createFlags.StringSliceVar(
 			&cf.Annotation,
 			annotationFlagName, []string{},
-			"Add annotations to container (key:value)",
+			"Add annotations to container (key=value)",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(annotationFlagName, completion.AutocompleteNone)
 
