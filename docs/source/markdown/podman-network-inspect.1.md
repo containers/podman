@@ -1,7 +1,7 @@
 % podman-network-inspect(1)
 
 ## NAME
-podman\-network\-inspect - Displays the raw CNI network configuration for one or more networks
+podman\-network\-inspect - Displays the raw network configuration for one or more networks
 
 ## SYNOPSIS
 **podman network inspect** [*options*] *network* [*network* ...]
