@@ -1,7 +1,7 @@
 % podman-network-rm(1)
 
 ## NAME
-podman\-network\-rm - Remove one or more CNI networks
+podman\-network\-rm - Remove one or more networks
 
 ## SYNOPSIS
 **podman network rm** [*options*] [*network...*]

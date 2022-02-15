@@ -1,7 +1,7 @@
 % podman-network-create(1)
 
 ## NAME
-podman\-network-create - Create a Podman CNI network
+podman\-network-create - Create a Podman network
 
 ## SYNOPSIS
 **podman network create**  [*options*] name
