@@ -86,25 +86,35 @@ Default: created
 
 #### **--filter**, **-f**=*filter*
 
-Filter output based on conditions given.
-Multiple filters can be given with multiple uses of the --filter flag.
-Filters with the same key work inclusive with the only exception being
-`label` which is exclusive. Filters with different keys always work exclusive.
+Provide filter values.
 
-Valid filters are listed below:
+The *filters* argument format is of `key=value`. If there is more than one *filter*, then pass multiple OPTIONS: **--filter** *foo=bar* **--filter** *bif=baz*.
 
-| **Filter** | **Description**                                                                       |
-| ---------- | ------------------------------------------------------------------------------------- |
-| id         | [ID] Pod's ID (accepts regex)                                                         |
-| name       | [Name] Pod's name (accepts regex)                                                     |
-| label      | [Key] or [Key=Value] Label assigned to a container                                    |
-| until      | Only list pods created before given timestamp                                         |
-| status     | Pod's status: `stopped`, `running`, `paused`, `exited`, `dead`, `created`, `degraded` |
-| network    | [Network] name or full ID of network                                                  |
-| ctr-names  | Container name within the pod (accepts regex)                                         |
-| ctr-ids    | Container ID within the pod (accepts regex)                                           |
-| ctr-status | Container status within the pod                                                       |
-| ctr-number | Number of containers in the pod                                                       |
+Supported filters:
+
+|   Filter    |   Description                                                                                      |
+| ----------  | -------------------------------------------------------------------------------------------------- |
+| *ctr-ids*   | Filter by container ID within the pod.                                                             |
+| *ctr-names* | Filter by container name within the pod.                                                           |
+| *ctr-number*| Filter by number of containers in the pod.                                                         |
+| *ctr-status*| Filter by container status within the pod.                                                         |
+| *id*        | Filter by pod ID.                                                                                  |
+| *label*     | Filter by container with (or without, in the case of label!=[...] is used) the specified labels.   |
+| *name*      | Filter by pod name.                                                                                |
+| *network*   | Filter by network name or full ID of network.                                                      |
+| *status*    | Filter by pod status.                                                                              |
+| *until*     | Filter by pods created before given timestamp.                                                     |
+
+The `ctr-ids`, `ctr-names`, `id`, `name` filters accept `regex` format.
+
+The `ctr-status` filter accepts values: `created`, `running`, `paused`, `stopped`, `exited`, `unknown`.
+
+The `label` *filter* accepts two formats. One is the `label`=*key* or `label`=*key*=*value*, which removes containers with the specified labels. The other format is the `label!`=*key* or `label!`=*key*=*value*, which removes containers without the specified labels.
+
+The `until` *filter* can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. 10m, 1h30m) computed relative to the machine’s time.
+
+The `status` filter accepts values: `stopped`, `running`, `paused`, `exited`, `dead`, `created`, `degraded`.
+
 
 #### **--help**, **-h**
 
