@@ -87,7 +87,8 @@ class TestImages(unittest.TestCase):
     def test_search_image(self):
         """Search for image"""
         for r in self.client.images.search("alpine"):
-            self.assertIn("alpine", r["Name"])
+            # registry matches if string is in either one
+            self.assertIn("alpine", r["Name"]+" "+r["Description"].lower())
 
     def test_search_bogus_image(self):
         """Search for bogus image should throw exception"""
