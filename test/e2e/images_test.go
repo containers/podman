@@ -186,25 +186,21 @@ WORKDIR /test
 		Expect(result.OutputToString()).To(Equal("/test"))
 	})
 
-	It("podman images filter since image", func() {
+	It("podman images filter since/after image", func() {
 		dockerfile := `FROM scratch
 `
 		podmanTest.BuildImage(dockerfile, "foobar.com/one:latest", "false")
 		podmanTest.BuildImage(dockerfile, "foobar.com/two:latest", "false")
 		podmanTest.BuildImage(dockerfile, "foobar.com/three:latest", "false")
+
+		// `since` filter
 		result := podmanTest.PodmanNoCache([]string{"images", "-q", "-f", "since=foobar.com/one:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		Expect(result.OutputToStringArray()).To(HaveLen(2))
-	})
 
-	It("podman image list filter after image", func() {
-		dockerfile := `FROM scratch
-`
-		podmanTest.BuildImage(dockerfile, "foobar.com/one:latest", "false")
-		podmanTest.BuildImage(dockerfile, "foobar.com/two:latest", "false")
-		podmanTest.BuildImage(dockerfile, "foobar.com/three:latest", "false")
-		result := podmanTest.Podman([]string{"image", "list", "-q", "-f", "after=foobar.com/one:latest"})
+		// `after` filter
+		result = podmanTest.Podman([]string{"image", "list", "-q", "-f", "after=foobar.com/one:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		Expect(result.OutputToStringArray()).Should(HaveLen(2), "list filter output: %q", result.OutputToString())
