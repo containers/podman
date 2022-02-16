@@ -33,6 +33,8 @@ type MachineVM struct {
 	QMPMonitor Monitor
 	// RemoteUsername of the vm user
 	RemoteUsername string
+	// Whether this machine should run in a rootful or rootless manner
+	Rootful bool
 }
 
 type Mount struct {
