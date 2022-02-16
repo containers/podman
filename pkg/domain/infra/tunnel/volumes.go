@@ -100,3 +100,11 @@ func (ic *ContainerEngine) VolumeExists(ctx context.Context, nameOrID string) (*
 func (ic *ContainerEngine) VolumeMounted(ctx context.Context, nameOrID string) (*entities.BoolReport, error) {
 	return nil, errors.New("not implemented")
 }
+
+func (ic *ContainerEngine) VolumeMount(ctx context.Context, nameOrIDs []string) ([]*entities.VolumeMountReport, error) {
+	return nil, errors.New("mounting volumes is not supported for remote clients")
+}
+
+func (ic *ContainerEngine) VolumeUnmount(ctx context.Context, nameOrIDs []string) ([]*entities.VolumeUnmountReport, error) {
+	return nil, errors.New("unmounting volumes is not supported for remote clients")
+}

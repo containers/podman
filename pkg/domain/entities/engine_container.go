@@ -99,6 +99,8 @@ type ContainerEngine interface {
 	VolumeMounted(ctx context.Context, namesOrID string) (*BoolReport, error)
 	VolumeInspect(ctx context.Context, namesOrIds []string, opts InspectOptions) ([]*VolumeInspectReport, []error, error)
 	VolumeList(ctx context.Context, opts VolumeListOptions) ([]*VolumeListReport, error)
+	VolumeMount(ctx context.Context, namesOrIds []string) ([]*VolumeMountReport, error)
 	VolumePrune(ctx context.Context, options VolumePruneOptions) ([]*reports.PruneReport, error)
 	VolumeRm(ctx context.Context, namesOrIds []string, opts VolumeRmOptions) ([]*VolumeRmReport, error)
+	VolumeUnmount(ctx context.Context, namesOrIds []string) ([]*VolumeUnmountReport, error)
 }

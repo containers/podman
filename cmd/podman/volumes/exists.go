@@ -10,7 +10,7 @@ var (
 	volumeExistsDescription = `If the given volume exists, podman volume exists exits with 0, otherwise the exit code will be 1.`
 	volumeExistsCommand     = &cobra.Command{
 		Use:               "exists VOLUME",
-		Short:             "volume exists",
+		Short:             "Volume exists",
 		Long:              volumeExistsDescription,
 		RunE:              volumeExists,
 		Example:           `podman volume exists myvol`,
