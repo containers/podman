@@ -335,6 +335,16 @@ func provisionWSLDist(v *MachineVM) (string, error) {
 		return "", errors.Wrap(err, "package upgrade on guest OS failed")
 	}
 
+	fmt.Println("Enabling Copr")
+	if err = runCmdPassThrough("wsl", "-d", dist, "dnf", "install", "-y", "'dnf-command(copr)'"); err != nil {
+		return "", errors.Wrap(err, "enabling copr failed")
+	}
+
+	fmt.Println("Enabling podman4 repo")
+	if err = runCmdPassThrough("wsl", "-d", dist, "dnf", "-y", "copr", "enable", "rhcontainerbot/podman4"); err != nil {
+		return "", errors.Wrap(err, "enabling copr failed")
+	}
+
 	if err = runCmdPassThrough("wsl", "-d", dist, "dnf", "install",
 		"podman", "podman-docker", "openssh-server", "procps-ng", "-y"); err != nil {
 		return "", errors.Wrap(err, "package installation on guest OS failed")
