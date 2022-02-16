@@ -29,6 +29,7 @@
 - The `podman machine init` command now supports a new VM type, `wsl`, available only on Windows; this uses WSL as a backend for `podman machine`, instead of creating a separate VM and managing it via QEMU ([#12503](https://github.com/containers/podman/pull/12503)).
 - The `podman machine init` command now supports a new option, `--now`, to start the VM immediately after creating it.
 - The `podman machine init` command now supports a new option, `--volume`, to mount contents from the host into the created virtual machine.
+- Virtual machines created by `podman machine` now automatically mount the Podman API socket to the host, so consumers of the Podman or Docker APIs can use them directly from the host machine ([#11462](https://github.com/containers/podman/issues/11462)).
 - Virtual machines created by `podman machine` now automatically mount certificates from the host's keychain into the virtual machine ([#11507](https://github.com/containers/podman/issues/11507)).
 - Virtual machines created by `podman machine` now automatically propagate standard proxy environment variables from the host into the virtual machine, including copying any required certificates from `SSL_FILE_CERT` into the VM.
 - The `podman machine ssh` command now supports a new option, `--username`, to specify the username to connect to the VM with.
@@ -136,7 +137,7 @@
 - Fixed a bug where the `podman build` command did not properly propagate non-0 exit codes from Buildah when builds failed.
 - Fixed a bug where the remote Podman client's `podman build` command could fail to build images when the remote client was run on Windows and the Containerfile contained `COPY` instructions ([#13119](https://github.com/containers/podman/issues/13119)).
 - Fixed a bug where the remote Podman client's `--secret` option to the `podman build` command was nonfunctional.
-- Fixed a bug where the remote Podman client's `podman build` command would error if given a relative path to a Containerfile ([#12841](https://github.com/containers/podman/issues/12841)).
+- Fixed a bug where the remote Podman client's `podman build` command would error if given a relative path to a Containerfile ([#12841](https://github.com/containers/podman/issues/12841) and [#12763](https://github.com/containers/podman/issues/12763)).
 - Fixed a bug where the `podman generate kube` command would sometimes omit environment variables set in containers from generated YAML.
 - Fixed a bug where setting `userns=auto` in `containers.conf` was not respected ([#12615](https://github.com/containers/podman/issues/12615)).
 - Fixed a bug where the `podman run` command would fail if the host machine did not have a `/etc/hosts` file ([#12667](https://github.com/containers/podman/issues/12667)).
