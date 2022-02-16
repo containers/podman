@@ -39,7 +39,7 @@ var _ = Describe("Podman trust", func() {
 	})
 
 	It("podman image trust show", func() {
-		session := podmanTest.Podman([]string{"image", "trust", "show", "--registrypath", filepath.Join(INTEGRATION_ROOT, "test"), "--policypath", filepath.Join(INTEGRATION_ROOT, "test/policy.json")})
+		session := podmanTest.Podman([]string{"image", "trust", "show", "-n", "--registrypath", filepath.Join(INTEGRATION_ROOT, "test"), "--policypath", filepath.Join(INTEGRATION_ROOT, "test/policy.json")})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		outArray := session.OutputToStringArray()
@@ -47,21 +47,18 @@ var _ = Describe("Podman trust", func() {
 
 		// Repository order is not guaranteed. So, check that
 		// all expected lines appear in output; we also check total number of lines, so that handles all of them.
-		Expect(string(session.Out.Contents())).To(MatchRegexp(`(?m)^default\s+accept\s*$`))
-		Expect(string(session.Out.Contents())).To(MatchRegexp(`(?m)^docker.io/library/hello-world\s+reject\s*$`))
-		Expect(string(session.Out.Contents())).To(MatchRegexp(`(?m)^registry.access.redhat.com\s+signedBy\s+security@redhat.com, security@redhat.com\s+https://access.redhat.com/webassets/docker/content/sigstore\s*$`))
+		Expect(string(session.Out.Contents())).To(MatchRegexp(`(?m)^all\s+default\s+accept\s*$`))
+		Expect(string(session.Out.Contents())).To(MatchRegexp(`(?m)^repository\s+docker.io/library/hello-world\s+reject\s*$`))
+		Expect(string(session.Out.Contents())).To(MatchRegexp(`(?m)^repository\s+registry.access.redhat.com\s+signed\s+security@redhat.com, security@redhat.com\s+https://access.redhat.com/webassets/docker/content/sigstore\s*$`))
 	})
 
 	It("podman image trust set", func() {
-		path, err := os.Getwd()
-		if err != nil {
-			os.Exit(1)
-		}
-		session := podmanTest.Podman([]string{"image", "trust", "set", "--policypath", filepath.Join(filepath.Dir(path), "trust_set_test.json"), "-t", "accept", "default"})
+		policyJSON := filepath.Join(podmanTest.TempDir, "trust_set_test.json")
+		session := podmanTest.Podman([]string{"image", "trust", "set", "--policypath", policyJSON, "-t", "accept", "default"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		var teststruct map[string][]map[string]string
-		policyContent, err := ioutil.ReadFile(filepath.Join(filepath.Dir(path), "trust_set_test.json"))
+		policyContent, err := ioutil.ReadFile(policyJSON)
 		if err != nil {
 			os.Exit(1)
 		}
@@ -88,25 +85,23 @@ var _ = Describe("Podman trust", func() {
 		}
 		Expect(repoMap).To(Equal(map[string][]map[string]string{
 			"* (default)": {{
+				"type":      "accept",
+				"transport": "all",
 				"name":      "* (default)",
 				"repo_name": "default",
-				"sigstore":  "",
-				"transport": "",
-				"type":      "accept",
 			}},
 			"docker.io/library/hello-world": {{
+				"transport": "repository",
 				"name":      "docker.io/library/hello-world",
 				"repo_name": "docker.io/library/hello-world",
-				"sigstore":  "",
-				"transport": "",
 				"type":      "reject",
 			}},
 			"registry.access.redhat.com": {{
+				"transport": "repository",
 				"name":      "registry.access.redhat.com",
 				"repo_name": "registry.access.redhat.com",
 				"sigstore":  "https://access.redhat.com/webassets/docker/content/sigstore",
-				"transport": "",
-				"type":      "signedBy",
+				"type":      "signed",
 				"gpg_id":    "security@redhat.com, security@redhat.com",
 			}},
 		}))

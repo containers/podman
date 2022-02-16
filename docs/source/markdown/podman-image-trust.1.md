@@ -40,6 +40,8 @@ Trust may be updated using the command **podman image trust set** for an existin
 #### **--help**, **-h**
   Print usage statement.
 
+### set OPTIONS
+
 #### **--pubkeysfile**=*KEY1*, **-f**
   A path to an exported public key on the local system. Key paths
   will be referenced in policy.json. Any path to a file may be used but locating the file in **/etc/pki/containers** is recommended. Options may be used multiple times to
@@ -54,13 +56,16 @@ Trust may be updated using the command **podman image trust set** for an existin
             registry scope
     **reject**: do not accept images for this registry scope
 
-## show OPTIONS
-
-#### **--raw**
-  Output trust policy file as raw JSON
+### show OPTIONS
 
 #### **--json**, **-j**
   Output trust as JSON for machine parsing
+
+#### **--noheading**, **-n**
+  Omit the table headings from the trust listings
+
+#### **--raw**
+  Output trust policy file as raw JSON
 
 ## EXAMPLES
 
@@ -74,15 +79,110 @@ Modify default trust policy
 
 Display system trust policy
 
-    sudo podman image trust show
+    podman image trust show
+```
+TRANSPORT      NAME                        TYPE        ID                   STORE
+all            default                     reject
+repository     docker.io/library           accept
+repository     registry.access.redhat.com  signed      security@redhat.com  https://access.redhat.com/webassets/docker/content/sigstore
+repository     registry.redhat.io          signed      security@redhat.com  https://registry.redhat.io/containers/sigstore
+repository     docker.io                   reject
+docker-daemon                              accept
+```
 
 Display trust policy file
 
-   sudo podman image trust show --raw
+	podman image trust show --raw
+```
+{
+    "default": [
+        {
+            "type": "reject"
+        }
+    ],
+    "transports": {
+        "docker": {
+            "docker.io": [
+                {
+                    "type": "reject"
+                }
+            ],
+            "docker.io/library": [
+                {
+                    "type": "insecureAcceptAnything"
+                }
+            ],
+            "registry.access.redhat.com": [
+                {
+                    "type": "signedBy",
+                    "keyType": "GPGKeys",
+                    "keyPath": "/etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release"
+                }
+            ],
+            "registry.redhat.io": [
+                {
+                    "type": "signedBy",
+                    "keyType": "GPGKeys",
+                    "keyPath": "/etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release"
+                }
+            ]
+        },
+        "docker-daemon": {
+            "": [
+                {
+                    "type": "insecureAcceptAnything"
+                }
+            ]
+        }
+    }
+}
+```
 
 Display trust as JSON
 
-   sudo podman image trust show --json
+	podman image trust show --json
+```
+[
+  {
+    "transport": "all",
+    "name": "* (default)",
+    "repo_name": "default",
+    "type": "reject"
+  },
+  {
+    "transport": "repository",
+    "name": "docker.io",
+    "repo_name": "docker.io",
+    "type": "reject"
+  },
+  {
+    "transport": "repository",
+    "name": "docker.io/library",
+    "repo_name": "docker.io/library",
+    "type": "accept"
+  },
+  {
+    "transport": "repository",
+    "name": "registry.access.redhat.com",
+    "repo_name": "registry.access.redhat.com",
+    "sigstore": "https://access.redhat.com/webassets/docker/content/sigstore",
+    "type": "signed",
+    "gpg_id": "security@redhat.com"
+  },
+  {
+    "transport": "repository",
+    "name": "registry.redhat.io",
+    "repo_name": "registry.redhat.io",
+    "sigstore": "https://registry.redhat.io/containers/sigstore",
+    "type": "signed",
+    "gpg_id": "security@redhat.com"
+  },
+  {
+    "transport": "docker-daemon",
+    "type": "accept"
+  }
+]
+```
 
 ## SEE ALSO
 **[containers-policy.json(5)](https://github.com/containers/image/blob/main/docs/containers-policy.json.5.md)**
