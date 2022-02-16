@@ -649,6 +649,11 @@ USER bin`, BB)
 		session = podmanTest.Podman([]string{"run", "--net", "host", "--rm", "--sysctl", "net.core.somaxconn=65535", ALPINE, "sysctl", "net.core.somaxconn"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(125))
+
+		// network sysctls should fail if --net=none is set
+		session = podmanTest.Podman([]string{"run", "--net", "none", "--rm", "--sysctl", "net.core.somaxconn=65535", ALPINE, "sysctl", "net.core.somaxconn"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(125))
 	})
 
 	It("podman run blkio-weight test", func() {

@@ -208,7 +208,7 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 	g.SetRootReadonly(s.ReadOnlyFilesystem)
 
 	noUseIPC := s.IpcNS.NSMode == specgen.FromContainer || s.IpcNS.NSMode == specgen.FromPod || s.IpcNS.NSMode == specgen.Host
-	noUseNet := s.NetNS.NSMode == specgen.FromContainer || s.NetNS.NSMode == specgen.FromPod || s.NetNS.NSMode == specgen.Host
+	noUseNet := s.NetNS.NSMode == specgen.FromContainer || s.NetNS.NSMode == specgen.FromPod || s.NetNS.NSMode == specgen.Host || s.NetNS.NSMode == specgen.NoNetwork
 	noUseUTS := s.UtsNS.NSMode == specgen.FromContainer || s.UtsNS.NSMode == specgen.FromPod || s.UtsNS.NSMode == specgen.Host
 
 	// Add default sysctls
@@ -224,7 +224,7 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 			continue
 		}
 
-		// Ignore net sysctls if --net=host
+		// Ignore net sysctls if --net=host or --net=none
 		if noUseNet && strings.HasPrefix(sysctlKey, "net.") {
 			logrus.Infof("Sysctl %s=%s ignored in containers.conf, since Network Namespace set to host", sysctlKey, sysctlVal)
 			continue
