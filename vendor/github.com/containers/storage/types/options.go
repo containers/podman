@@ -19,11 +19,11 @@ import (
 // TOML-friendly explicit tables used for conversions.
 type TomlConfig struct {
 	Storage struct {
-		Driver              string            `toml:"driver"`
-		RunRoot             string            `toml:"runroot"`
-		GraphRoot           string            `toml:"graphroot"`
-		RootlessStoragePath string            `toml:"rootless_storage_path"`
-		Options             cfg.OptionsConfig `toml:"options"`
+		Driver              string            `toml:"driver,omitempty"`
+		RunRoot             string            `toml:"runroot,omitempty"`
+		GraphRoot           string            `toml:"graphroot,omitempty"`
+		RootlessStoragePath string            `toml:"rootless_storage_path,omitempty"`
+		Options             cfg.OptionsConfig `toml:"options,omitempty"`
 	} `toml:"storage"`
 }
 
@@ -431,11 +431,12 @@ func Save(conf TomlConfig, rootless bool) error {
 	if err != nil {
 		return err
 	}
-	if err = os.Remove(configFile); !os.IsNotExist(err) {
+
+	if err = os.Remove(configFile); !os.IsNotExist(err) && err != nil {
 		return err
 	}
 
-	f, err := os.Open(configFile)
+	f, err := os.Create(configFile)
 	if err != nil {
 		return err
 	}

@@ -231,7 +231,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.38.2
+# github.com/containers/storage v1.38.3-0.20220214113600-26c561f9a645
 ## explicit
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -491,7 +491,7 @@ github.com/mistifyio/go-zfs
 github.com/mitchellh/mapstructure
 # github.com/moby/sys/mount v0.2.0
 github.com/moby/sys/mount
-# github.com/moby/sys/mountinfo v0.5.0
+# github.com/moby/sys/mountinfo v0.6.0
 github.com/moby/sys/mountinfo
 # github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6
 ## explicit
