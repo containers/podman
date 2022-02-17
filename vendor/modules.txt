@@ -87,7 +87,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.0.1
 ## explicit
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.24.1
+# github.com/containers/buildah v1.24.2
 ## explicit
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -387,7 +387,7 @@ github.com/felixge/httpsnoop
 # github.com/fsnotify/fsnotify v1.5.1
 ## explicit
 github.com/fsnotify/fsnotify
-# github.com/fsouza/go-dockerclient v1.7.7
+# github.com/fsouza/go-dockerclient v1.7.8
 github.com/fsouza/go-dockerclient
 # github.com/ghodss/yaml v1.0.0
 ## explicit
@@ -412,7 +412,7 @@ github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
-# github.com/google/go-cmp v0.5.6
+# github.com/google/go-cmp v0.5.7
 github.com/google/go-cmp/cmp
 github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
