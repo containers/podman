@@ -187,14 +187,6 @@ END_HTML
     print { $out_fh } "<h2>Synopsis</h2>\n<hr/>\n",
         job_synopsis($test_name), "<hr/>\n";
 
-    # FOR DEBUGGING: dump environment, but in HTML comments to not clutter
-    print { $out_fh } "<!-- Environment: -->\n";
-    for my $e (sort keys %ENV) {
-        my $val = escapeHTML($ENV{$e});
-        $val =~ s/--/-&#x002D;/g;       # double dash not valid in comments
-        printf { $out_fh } "<!--  %-20s %s -->\n", $e, $val;
-    }
-
     # State variables
     my $previous_timestamp = '';  # timestamp of previous line
     my $cirrus_task;              # Cirrus task number, used for linking
@@ -204,7 +196,11 @@ END_HTML
     my $after_divider = 0;        # Count of lines after seeing '-----'
     my $current_output;           # for removing duplication
     my $looks_like_bats;          # binary flag: for detecting BATS results
+    my $looks_like_python;        #   " "   "  : for colorizing python tests
     my %bats_count;               # For summary line: count of pass/fail/skip
+
+    # When running in cirrus, we have the commit SHA
+    $git_commit = $ENV{CIRRUS_CHANGE_IN_REPO};
 
     print { $out_fh } "<pre> <!-- begin processed output -->\n";
 
@@ -245,6 +241,11 @@ END_HTML
             #           1  12  3                 34     4 5   526  6
             $line =~ s{^(.*)(\/(containers\/[^/]+)(\/\S+):(\d+))(.*)$}
                       {$1<a class="codelink" href='https://github.com/$3/blob/$git_commit$4#L$5'>$2</a>$6};
+
+            # Same, for python errors
+            #           1  12  3                 34         4             5   526
+            $line =~ s{^(.*)(\/(containers\/[^/]+)(\/\S+\.py).*,\s+line\s+(\d+))(,\s+in.*)$}
+                      {$1<a class="codelink" href='https://github.com/$3/blob/$git_commit$4#L$5'>$2</a>$6};
         }
 
         # Try to identify the cirrus task
@@ -256,13 +257,42 @@ END_HTML
         if ($line =~ /^1\.\.(\d+)$/) {
             $looks_like_bats = 1;
             $bats_count{expected_total} = $1;
+            undef $looks_like_python;
         }
         # Since the number of tests can't always be predicted, recognize
         # some leading text strings that indicate BATS output to come.
         elsif ($line =~ /^TAP\s+version\s/ || $line =~ m!/test-apiv2!) {
             $looks_like_bats = 1;
             $bats_count{expected_total} = -1; # Expect to be overridden at end!
+            undef $looks_like_python;
         }
+
+        # 'python -m unittest' means we're starting some pythony stuff
+        elsif ($line =~ m!/python.*\sunittest\s!) {
+            $looks_like_python = 1;
+            undef $looks_like_bats;
+        }
+        elsif ($looks_like_python && $line =~ m!Ran\s+(\d+)\s+tests\s+in\s!) {
+            # End of python tests. However, we're still likely to see a
+            # summary line saying 'OK' or 'FAILED'. Deal with that by
+            # resetting $looks_like_python to 0, which the next elsif catches
+            $bats_count{expected_total} += $1;
+            $looks_like_python = 0;
+            print { $out_fh } "</div>\n"            if $in_failure;
+            undef $in_failure;
+        }
+        elsif (defined($looks_like_python) && !$looks_like_python) {
+            # The final python summary line. Show it in its appropriate color.
+            if ($line =~ /^\s*(OK|FAILED)\s+\(/) {
+                undef $looks_like_python;
+                my $css = ($1 eq 'OK' ? 'passed' : 'failed');
+                print { $out_fh } "<span class=\"timestamp\">$timestamp</span>"
+                    if $timestamp;
+                print { $out_fh } "<span class='bats-$css'>", $line, "</span>\n";
+                next LINE;
+            }
+        }
+
         if ($looks_like_bats) {
             my $css;
 
@@ -287,6 +317,28 @@ END_HTML
                 $bats_count{$css}++;
             }
 
+            print { $out_fh } "<span class=\"timestamp\">$timestamp</span>"
+                if $timestamp;
+            print { $out_fh } $line, "\n";
+            next LINE;
+        }
+        elsif ($looks_like_python) {
+            my $css;
+
+            if    ($line =~ /\s\.\.\.\sskipped/) { $css = 'skipped' }
+            elsif ($line =~ /\s\.\.\.\sok\s*$/)  { $css = 'passed'  }
+            elsif ($line =~ /\s\.\.\.\sFAIL/)    { $css = 'failed'  }
+            elsif ($line =~ /^\s*={40}/)         {
+                # Begins a block of multiple lines including a stack trace
+                print { $out_fh } "<div class='log-error'>\n" unless $in_failure;
+                $in_failure = 1;
+            }
+
+            if ($css) {
+                $line = "<span class='bats-$css'>$line</span>";
+
+                $bats_count{$css}++;
+            }
             print { $out_fh } "<span class=\"timestamp\">$timestamp</span>"
                 if $timestamp;
             print { $out_fh } $line, "\n";
