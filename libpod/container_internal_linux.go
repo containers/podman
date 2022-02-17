@@ -373,6 +373,14 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		return nil, err
 	}
 
+	if err := c.makeRunHostMount(g); err != nil {
+		return nil, err
+	}
+
+	if err := c.injectContainerUUID(g); err != nil {
+		return nil, err
+	}
+
 	// Get host UID and GID based on the container process UID and GID.
 	hostUID, hostGID, err := butil.GetHostIDs(util.IDtoolsToRuntimeSpec(c.config.IDMappings.UIDMap), util.IDtoolsToRuntimeSpec(c.config.IDMappings.GIDMap), uint32(execUser.Uid), uint32(execUser.Gid))
 	if err != nil {
@@ -512,6 +520,9 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 		if dstPath == "/dev/shm" && c.state.BindMounts["/dev/shm"] == c.config.ShmDir {
 			newMount.Options = append(newMount.Options, "nosuid", "noexec", "nodev")
+		}
+		if dstPath == "/run/host" {
+			newMount.Options = append(newMount.Options, "ro", "nosuid", "noexec", "nodev")
 		}
 		if !MountExists(g.Mounts(), dstPath) {
 			g.AddMount(newMount)
@@ -905,6 +916,72 @@ func (c *Container) mountNotifySocket(g generate.Generator) error {
 
 	// Set the container's notify socket to the proxy socket created by conmon
 	g.AddProcessEnv("NOTIFY_SOCKET", "/run/notify/notify.sock")
+
+	return nil
+}
+
+func (c *Container) runHostDir() string {
+	return filepath.Join(c.state.RunDir, "run-host")
+}
+
+// makeRunHostMount creates the run-host bind mount for the container
+// https://systemd.io/CONTAINER_INTERFACE/#the-runhost-hierarchy
+func (c *Container) makeRunHostMount(g generate.Generator) error {
+	src := c.runHostDir()
+	if _, err := os.Stat(src); err == nil || !os.IsNotExist(err) {
+		return err
+	}
+	oldUmask := umask.Set(0)
+	defer umask.Set(oldUmask)
+
+	if err := os.MkdirAll(src, 0755); err != nil {
+		return err
+	}
+	if err := label.Relabel(src, c.config.MountLabel, false); err != nil {
+		return err
+	}
+	if err := os.Chown(src, c.RootUID(), c.RootGID()); err != nil {
+		return err
+	}
+	c.state.BindMounts["/run/host"] = src
+
+	src = filepath.Join(src, "container-manager")
+	if err := os.Remove(src); err != nil && !os.IsNotExist(err) {
+		return errors.Wrapf(err, "error removing %s for container %s", src, c.ID())
+	}
+	if err := writeStringToPath(src, "podman\n", c.config.MountLabel, c.RootUID(), c.RootGID()); err != nil {
+		return errors.Wrapf(err, "error writing %s for container %s", src, c.ID())
+	}
+	if err := os.Chmod(src, 0444); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Container) injectContainerUUID(g generate.Generator) error {
+	uuid := c.ID()[:32]
+	addEnv := true
+	for _, checkEnv := range g.Config.Process.Env {
+		if strings.SplitN(checkEnv, "=", 2)[0] == "container_uuid" {
+			addEnv = false
+			break
+		}
+	}
+	if addEnv {
+		g.AddProcessEnv("container_uuid", uuid)
+	}
+
+	src := filepath.Join(c.runHostDir(), "container-uuid")
+	if err := os.Remove(src); err != nil && !os.IsNotExist(err) {
+		return errors.Wrapf(err, "error removing %s for container %s", src, c.ID())
+	}
+	if err := writeStringToPath(src, uuid+"\n", c.config.MountLabel, c.RootUID(), c.RootGID()); err != nil {
+		return errors.Wrapf(err, "error writing %s for container %s", src, c.ID())
+	}
+	if err := os.Chmod(src, 0444); err != nil {
+		return err
+	}
 
 	return nil
 }
