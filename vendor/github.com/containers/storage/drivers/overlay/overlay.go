@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package overlay
@@ -1166,6 +1167,9 @@ func (d *Driver) Remove(id string) error {
 // under each layer has a symlink created for it under the linkDir. If the symlink does not
 // exist, it creates them
 func (d *Driver) recreateSymlinks() error {
+	// We have at most 3 corrective actions per layer, so 10 iterations is plenty.
+	const maxIterations = 10
+
 	// List all the directories under the home directory
 	dirs, err := ioutil.ReadDir(d.home)
 	if err != nil {
@@ -1183,6 +1187,7 @@ func (d *Driver) recreateSymlinks() error {
 	// Keep looping as long as we take some corrective action in each iteration
 	var errs *multierror.Error
 	madeProgress := true
+	iterations := 0
 	for madeProgress {
 		errs = nil
 		madeProgress = false
@@ -1233,7 +1238,12 @@ func (d *Driver) recreateSymlinks() error {
 			if len(targetComponents) != 3 || targetComponents[0] != ".." || targetComponents[2] != "diff" {
 				errs = multierror.Append(errs, errors.Errorf("link target of %q looks weird: %q", link, target))
 				// force the link to be recreated on the next pass
-				os.Remove(filepath.Join(linksDir, link.Name()))
+				if err := os.Remove(filepath.Join(linksDir, link.Name())); err != nil {
+					if !os.IsNotExist(err) {
+						errs = multierror.Append(errs, errors.Wrapf(err, "removing link %q", link))
+					} // else don’t report any error, but also don’t set madeProgress.
+					continue
+				}
 				madeProgress = true
 				continue
 			}
@@ -1249,6 +1259,11 @@ func (d *Driver) recreateSymlinks() error {
 				}
 				madeProgress = true
 			}
+		}
+		iterations++
+		if iterations >= maxIterations {
+			errs = multierror.Append(errs, fmt.Errorf("Reached %d iterations in overlay graph driver’s recreateSymlink, giving up", iterations))
+			break
 		}
 	}
 	if errs != nil {

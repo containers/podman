@@ -324,6 +324,12 @@ func (r *containerStore) Create(id string, names []string, image, layer, metadat
 				fmt.Sprintf("the container name \"%s\" is already in use by \"%s\". You have to remove that container to be able to reuse that name.", name, r.byname[name].ID))
 		}
 	}
+	if err := hasOverlappingRanges(options.UIDMap); err != nil {
+		return nil, err
+	}
+	if err := hasOverlappingRanges(options.GIDMap); err != nil {
+		return nil, err
+	}
 	if err == nil {
 		container = &Container{
 			ID:             id,
