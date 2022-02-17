@@ -57,19 +57,19 @@ func init() {
 
 func rm(cmd *cobra.Command, args []string) error {
 	var (
+		vmName   string
 		err      error
 		vm       machine.VM
 		provider machine.Provider
 	)
 
-	provider, err = getProvider(providerType)
-	if err != nil {
-		return err
-	}
-
-	vmName := provider.DefaultVMName()
 	if len(args) > 0 && len(args[0]) > 0 {
 		vmName = args[0]
+	}
+
+	vmName, provider, err = getProviderByVMName(vmName)
+	if err != nil {
+		return err
 	}
 
 	vm, err = provider.LoadVMByName(vmName)

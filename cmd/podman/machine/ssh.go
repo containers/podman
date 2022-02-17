@@ -48,32 +48,31 @@ func init() {
 
 func ssh(cmd *cobra.Command, args []string) error {
 	var (
+		vmName   string
 		err      error
 		validVM  bool
 		vm       machine.VM
 		provider machine.Provider
 	)
 
-	provider, err = getProvider(providerType)
-	if err != nil {
-		return err
-	}
-
-	// Set the VM to default
-	vmName := provider.DefaultVMName()
-
 	// If len is greater than 0, it means we may have been
 	// provided the VM name.  If so, we check.  The VM name,
 	// if provided, must be in args[0].
 	if len(args) > 0 {
-		validVM, err = provider.IsValidVMName(args[0])
+		vmName, provider, err = getProviderByVMName(args[0])
+		if err == nil {
+			validVM = true
+		} else {
+			vmName, provider, err = getProviderByVMName("")
+			if err != nil {
+				return err
+			}
+			sshOpts.Args = append(sshOpts.Args, args[0])
+		}
+	} else {
+		vmName, provider, err = getProviderByVMName("")
 		if err != nil {
 			return err
-		}
-		if validVM {
-			vmName = args[0]
-		} else {
-			sshOpts.Args = append(sshOpts.Args, args[0])
 		}
 	}
 

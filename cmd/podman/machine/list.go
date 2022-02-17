@@ -71,8 +71,7 @@ func init() {
 	_ = lsCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(machineReporter{}))
 	flags.BoolVar(&listFlag.noHeading, "noheading", false, "Do not print headers")
 
-	ProviderTypeFlagName := "type"
-	flags.StringVar(&providerType, ProviderTypeFlagName, "", "Type of VM provider")
+	flags.StringVar(&providerType, ProviderTypeFlagName, "", "Filter by VMType (privider)")
 	_ = lsCmd.RegisterFlagCompletionFunc(ProviderTypeFlagName, completion.AutocompleteNone)
 }
 

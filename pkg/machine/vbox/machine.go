@@ -33,6 +33,9 @@ func (vbm *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	var (
 		key string
 	)
+	if len(opts.Volumes) > 0 {
+		fmt.Println("Sorry, but at now Volumes are not supported by VBox provider")
+	}
 	sshDir := filepath.Join(homedir.Get(), ".ssh")
 	// GetConfDir creates the directory so no need to check for
 	// its existence

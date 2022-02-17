@@ -10,7 +10,6 @@ import (
 )
 
 func getVirtualBoxProvider() machine.Provider {
-	// override default name if non-system provider
 	return vbox.GetVBoxProvider()
 }
 
@@ -26,12 +25,4 @@ func getProviders(filter string) ([]machine.Provider, error) {
 		errMsg := `specified unsupported provider type in --type argument: %s. Supported types are: "system", "vbox"`
 		return nil, errors.Errorf(errMsg, providerType)
 	}
-}
-
-func getProvider(filter string) (machine.Provider, error) {
-	providers, err := getProviders(filter)
-	if len(providers) > 0 {
-		return providers[0], err
-	}
-	return nil, err
 }
