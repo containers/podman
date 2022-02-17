@@ -111,7 +111,6 @@ func Add(ctx context.Context, name string, options *AddOptions) (string, error) 
 func Remove(ctx context.Context, name, digest string, _ *RemoveOptions) (string, error) {
 	optionsv4 := new(ModifyOptions).WithOperation("remove")
 	return Modify(ctx, name, []string{digest}, optionsv4)
-
 }
 
 // Push takes a manifest list and pushes to a destination.  If the destination is not specified,
@@ -203,15 +202,14 @@ func Modify(ctx context.Context, name string, images []string, options *ModifyOp
 			return report.ID, &errModel
 		}
 		return report.ID, nil
-	} else {
-		errModel := errorhandling.ErrorModel{
-			ResponseCode: response.StatusCode,
-		}
-		if err = jsoniter.Unmarshal(data, &errModel); err != nil {
-			return "", errors.Wrap(err, "unable to decode API response")
-		}
-		return "", &errModel
 	}
+	errModel := errorhandling.ErrorModel{
+		ResponseCode: response.StatusCode,
+	}
+	if err = jsoniter.Unmarshal(data, &errModel); err != nil {
+		return "", errors.Wrap(err, "unable to decode API response")
+	}
+	return "", &errModel
 }
 
 // Annotate modifies the given manifest list using options and the optional list of images
