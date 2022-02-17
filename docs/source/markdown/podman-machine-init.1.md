@@ -55,6 +55,14 @@ Memory (in MB).
 
 Start the virtual machine immediately after it has been initialized.
 
+#### **--rootful**=*true|false*
+
+Whether this machine should prefer rootful (`true`) or rootless (`false`)
+container execution. This option will also determine the remote connection default
+if there is no existing remote connection configurations.
+
+API forwarding, if available, will follow this setting.
+
 #### **--timezone**
 
 Set the timezone for the machine and containers.  Valid values are `local` or
@@ -84,6 +92,7 @@ Print usage statement.
 ```
 $ podman machine init
 $ podman machine init myvm
+$ podman machine init --rootful
 $ podman machine init --disk-size 50
 $ podman machine init --memory=1024 myvm
 $ podman machine init -v /Users:/mnt/Users

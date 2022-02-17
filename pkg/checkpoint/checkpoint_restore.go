@@ -140,6 +140,13 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 				return nil, errors.Errorf("pod %s does not share the network namespace", ctrConfig.Pod)
 			}
 			ctrConfig.NetNsCtr = infraContainer.ID()
+			for net, opts := range ctrConfig.Networks {
+				opts.StaticIPs = nil
+				opts.StaticMAC = nil
+				ctrConfig.Networks[net] = opts
+			}
+			ctrConfig.StaticIP = nil
+			ctrConfig.StaticMAC = nil
 		}
 
 		if ctrConfig.PIDNsCtr != "" {

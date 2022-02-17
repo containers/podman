@@ -715,9 +715,34 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(run.OutputToString()).To(ContainSubstring(ipAddr))
 	})
 
-	It("podman cni network works across user ns", func() {
-		SkipUntilAardvark(podmanTest)
+	It("podman CNI network works across user ns", func() {
+		SkipIfNetavark(podmanTest)
 		netName := stringid.GenerateNonCryptoID()
+		create := podmanTest.Podman([]string{"network", "create", netName})
+		create.WaitWithDefaultTimeout()
+		Expect(create).Should(Exit(0))
+		defer podmanTest.removeNetwork(netName)
+
+		name := "nc-server"
+		run := podmanTest.Podman([]string{"run", "--log-driver", "k8s-file", "-d", "--name", name, "--net", netName, ALPINE, "nc", "-l", "-p", "9480"})
+		run.WaitWithDefaultTimeout()
+		Expect(run).Should(Exit(0))
+
+		// NOTE: we force the k8s-file log driver to make sure the
+		// tests are passing inside a container.
+		run = podmanTest.Podman([]string{"run", "--log-driver", "k8s-file", "--rm", "--net", netName, "--uidmap", "0:1:4096", ALPINE, "sh", "-c", fmt.Sprintf("echo podman | nc -w 1 %s.dns.podman 9480", name)})
+		run.WaitWithDefaultTimeout()
+		Expect(run).Should(Exit(0))
+
+		log := podmanTest.Podman([]string{"logs", name})
+		log.WaitWithDefaultTimeout()
+		Expect(log).Should(Exit(0))
+		Expect(log.OutputToString()).To(Equal("podman"))
+	})
+
+	It("podman Netavark network works across user ns", func() {
+		SkipIfCNI(podmanTest)
+		netName := createNetworkName("")
 		create := podmanTest.Podman([]string{"network", "create", netName})
 		create.WaitWithDefaultTimeout()
 		Expect(create).Should(Exit(0))
@@ -814,14 +839,14 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		pingTest("--net=private")
 	})
 
-	It("podman run check dnsname plugin", func() {
-		SkipUntilAardvark(podmanTest)
+	It("podman run check dnsname plugin with CNI", func() {
+		SkipIfNetavark(podmanTest)
 		pod := "testpod"
 		session := podmanTest.Podman([]string{"pod", "create", "--name", pod})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		net := "IntTest" + stringid.GenerateNonCryptoID()
+		net := createNetworkName("IntTest")
 		session = podmanTest.Podman([]string{"network", "create", net})
 		session.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net)
@@ -850,9 +875,59 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(session).Should(Exit(0))
 	})
 
-	It("podman run check dnsname adds dns search domain", func() {
-		SkipUntilAardvark(podmanTest)
-		net := "dnsname" + stringid.GenerateNonCryptoID()
+	It("podman run check dnsname plugin with Netavark", func() {
+		SkipIfCNI(podmanTest)
+		pod := "testpod"
+		session := podmanTest.Podman([]string{"pod", "create", "--name", pod})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		net := createNetworkName("IntTest")
+		session = podmanTest.Podman([]string{"network", "create", net})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeNetwork(net)
+		Expect(session).Should(Exit(0))
+
+		pod2 := "testpod2"
+		session = podmanTest.Podman([]string{"pod", "create", "--network", net, "--name", pod2})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "--name", "con1", "--network", net, ALPINE, "nslookup", "con1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "--name", "con2", "--pod", pod, "--network", net, ALPINE, "nslookup", "con2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "--name", "con3", "--pod", pod2, ALPINE, "nslookup", "con1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(1))
+		Expect(session.ErrorToString()).To(ContainSubstring("can't resolve 'con1'"))
+
+		session = podmanTest.Podman([]string{"run", "--name", "con4", "--network", net, ALPINE, "nslookup", pod2 + ".dns.podman"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+	})
+
+	It("podman run check dnsname adds dns search domain with CNI", func() {
+		SkipIfNetavark(podmanTest)
+		net := createNetworkName("dnsname")
+		session := podmanTest.Podman([]string{"network", "create", net})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeNetwork(net)
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "--network", net, ALPINE, "cat", "/etc/resolv.conf"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("search dns.podman"))
+	})
+
+	It("podman run check dnsname adds dns search domain with Netavark", func() {
+		SkipIfCNI(podmanTest)
+		net := createNetworkName("dnsname")
 		session := podmanTest.Podman([]string{"network", "create", net})
 		session.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net)

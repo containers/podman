@@ -401,7 +401,7 @@ func ManifestModify(w http.ResponseWriter, r *http.Request) {
 	case len(report.Errors) > 0 && len(report.Images) > 0:
 		statusCode = http.StatusConflict
 	case len(report.Errors) > 0:
-		statusCode = http.StatusInternalServerError
+		statusCode = http.StatusBadRequest
 	}
 	utils.WriteResponse(w, statusCode, report)
 }

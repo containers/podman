@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package wsl
@@ -8,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -35,9 +37,6 @@ const (
 	ErrorSuccessRebootRequired  = 3010
 )
 
-// Usermode networking avoids potential nftables compatibility issues between the distro
-// and the WSL Kernel. Additionally it avoids fw rule conflicts between distros, since
-// all instances run under the same Kernel at runtime
 const containersConf = `[containers]
 
 [engine]
@@ -162,6 +161,8 @@ type MachineVM struct {
 	Port int
 	// RemoteUsername of the vm user
 	RemoteUsername string
+	// Whether this machine should run in a rootful or rootless manner
+	Rootful bool
 }
 
 type ExitCodeError struct {
@@ -227,12 +228,13 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	homeDir := homedir.Get()
 	sshDir := filepath.Join(homeDir, ".ssh")
 	v.IdentityPath = filepath.Join(sshDir, v.Name)
+	v.Rootful = opts.Rootful
 
 	if err := downloadDistro(v, opts); err != nil {
 		return false, err
 	}
 
-	if err := writeJSON(v); err != nil {
+	if err := v.writeConfig(); err != nil {
 		return false, err
 	}
 
@@ -282,7 +284,7 @@ func downloadDistro(v *MachineVM, opts machine.InitOptions) error {
 	return machine.DownloadImage(dd)
 }
 
-func writeJSON(v *MachineVM) error {
+func (v *MachineVM) writeConfig() error {
 	vmConfigDir, err := machine.GetConfDir(vmtype)
 	if err != nil {
 		return err
@@ -302,14 +304,26 @@ func writeJSON(v *MachineVM) error {
 }
 
 func setupConnections(v *MachineVM, opts machine.InitOptions, sshDir string) error {
+	uri := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/user/1000/podman/podman.sock", strconv.Itoa(v.Port), v.RemoteUsername)
 	uriRoot := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/podman/podman.sock", strconv.Itoa(v.Port), "root")
-	if err := machine.AddConnection(&uriRoot, v.Name+"-root", filepath.Join(sshDir, v.Name), opts.IsDefault); err != nil {
-		return err
+	identity := filepath.Join(sshDir, v.Name)
+
+	uris := []url.URL{uri, uriRoot}
+	names := []string{v.Name, v.Name + "-root"}
+
+	// The first connection defined when connections is empty will become the default
+	// regardless of IsDefault, so order according to rootful
+	if opts.Rootful {
+		uris[0], names[0], uris[1], names[1] = uris[1], names[1], uris[0], names[0]
 	}
 
-	user := opts.Username
-	uri := machine.SSHRemoteConnection.MakeSSHURL("localhost", withUser("/run/[USER]/1000/podman/podman.sock", user), strconv.Itoa(v.Port), v.RemoteUsername)
-	return machine.AddConnection(&uri, v.Name, filepath.Join(sshDir, v.Name), opts.IsDefault)
+	for i := 0; i < 2; i++ {
+		if err := machine.AddConnection(&uris[i], names[i], identity, opts.IsDefault && i == 0); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func provisionWSLDist(v *MachineVM) (string, error) {
@@ -333,6 +347,16 @@ func provisionWSLDist(v *MachineVM) (string, error) {
 	fmt.Println("Installing packages (this will take awhile)...")
 	if err = runCmdPassThrough("wsl", "-d", dist, "dnf", "upgrade", "-y"); err != nil {
 		return "", errors.Wrap(err, "package upgrade on guest OS failed")
+	}
+
+	fmt.Println("Enabling Copr")
+	if err = runCmdPassThrough("wsl", "-d", dist, "dnf", "install", "-y", "'dnf-command(copr)'"); err != nil {
+		return "", errors.Wrap(err, "enabling copr failed")
+	}
+
+	fmt.Println("Enabling podman4 repo")
+	if err = runCmdPassThrough("wsl", "-d", dist, "dnf", "-y", "copr", "enable", "rhcontainerbot/podman4"); err != nil {
+		return "", errors.Wrap(err, "enabling copr failed")
 	}
 
 	if err = runCmdPassThrough("wsl", "-d", dist, "dnf", "install",
@@ -704,6 +728,30 @@ func pipeCmdPassThrough(name string, input string, arg ...string) error {
 	return cmd.Run()
 }
 
+func (v *MachineVM) Set(name string, opts machine.SetOptions) error {
+	if v.Rootful == opts.Rootful {
+		return nil
+	}
+
+	changeCon, err := machine.AnyConnectionDefault(v.Name, v.Name+"-root")
+	if err != nil {
+		return err
+	}
+
+	if changeCon {
+		newDefault := v.Name
+		if opts.Rootful {
+			newDefault += "-root"
+		}
+		if err := machine.ChangeDefault(newDefault); err != nil {
+			return err
+		}
+	}
+
+	v.Rootful = opts.Rootful
+	return v.writeConfig()
+}
+
 func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 	if v.isRunning() {
 		return errors.Errorf("%q is already running", name)
@@ -714,6 +762,18 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 	err := runCmdPassThrough("wsl", "-d", dist, "/root/bootstrap")
 	if err != nil {
 		return errors.Wrap(err, "WSL bootstrap script failed")
+	}
+
+	if !v.Rootful {
+		fmt.Printf("\nThis machine is currently configured in rootless mode. If your containers\n")
+		fmt.Printf("require root permissions (e.g. ports < 1024), or if you run into compatibility\n")
+		fmt.Printf("issues with non-podman clients, you can switch using the following command: \n")
+
+		suffix := ""
+		if name != machine.DefaultMachineName {
+			suffix = " " + name
+		}
+		fmt.Printf("\n\tpodman machine set --rootful%s\n\n", suffix)
 	}
 
 	globalName, pipeName, err := launchWinProxy(v)

@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/containers/podman/v4/libpod/define"
@@ -151,7 +152,12 @@ func createTempDirInTempDir() (string, error) {
 }
 
 func (b *bindingTest) startAPIService() *gexec.Session {
-	cmd := []string{"--log-level=debug", "system", "service", "--timeout=0", b.sock}
+	logLevel := "debug"
+	if testing.Verbose() {
+		logLevel = "trace"
+	}
+
+	cmd := []string{"--log-level=" + logLevel, "system", "service", "--timeout=0", b.sock}
 	session := b.runPodman(cmd)
 
 	sock := strings.TrimPrefix(b.sock, "unix://")

@@ -2,10 +2,8 @@ package manifests
 
 import (
 	"context"
-	"errors"
-	"fmt"
+	"io/ioutil"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -14,8 +12,10 @@ import (
 	"github.com/containers/podman/v4/pkg/api/handlers"
 	"github.com/containers/podman/v4/pkg/bindings"
 	"github.com/containers/podman/v4/pkg/bindings/images"
-	"github.com/containers/podman/v4/version"
+	"github.com/containers/podman/v4/pkg/domain/entities"
+	"github.com/containers/podman/v4/pkg/errorhandling"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/pkg/errors"
 )
 
 // Create creates a manifest for the given name.  Optional images to be associated with
@@ -91,74 +91,26 @@ func Add(ctx context.Context, name string, options *AddOptions) (string, error) 
 		options = new(AddOptions)
 	}
 
-	if bindings.ServiceVersion(ctx).GTE(semver.MustParse("4.0.0")) {
-		optionsv4 := ModifyOptions{
-			All:         options.All,
-			Annotations: options.Annotation,
-			Arch:        options.Arch,
-			Features:    options.Features,
-			Images:      options.Images,
-			OS:          options.OS,
-			OSFeatures:  nil,
-			OSVersion:   options.OSVersion,
-			Variant:     options.Variant,
-		}
-		optionsv4.WithOperation("update")
-		return Modify(ctx, name, options.Images, &optionsv4)
+	optionsv4 := ModifyOptions{
+		All:         options.All,
+		Annotations: options.Annotation,
+		Arch:        options.Arch,
+		Features:    options.Features,
+		Images:      options.Images,
+		OS:          options.OS,
+		OSFeatures:  nil,
+		OSVersion:   options.OSVersion,
+		Variant:     options.Variant,
 	}
-
-	// API Version < 4.0.0
-	conn, err := bindings.GetClient(ctx)
-	if err != nil {
-		return "", err
-	}
-	opts, err := jsoniter.MarshalToString(options)
-	if err != nil {
-		return "", err
-	}
-	reader := strings.NewReader(opts)
-
-	headers := make(http.Header)
-	v := version.APIVersion[version.Libpod][version.MinimalAPI]
-	headers.Add("API-Version",
-		fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch))
-	response, err := conn.DoRequest(ctx, reader, http.MethodPost, "/manifests/%s/add", nil, headers, name)
-	if err != nil {
-		return "", err
-	}
-	defer response.Body.Close()
-
-	var idr handlers.IDResponse
-	return idr.ID, response.Process(&idr)
+	optionsv4.WithOperation("update")
+	return Modify(ctx, name, options.Images, &optionsv4)
 }
 
 // Remove deletes a manifest entry from a manifest list.  Both name and the digest to be
 // removed are mandatory inputs.  The ID of the new manifest list is returned as a string.
 func Remove(ctx context.Context, name, digest string, _ *RemoveOptions) (string, error) {
-	if bindings.ServiceVersion(ctx).GTE(semver.MustParse("4.0.0")) {
-		optionsv4 := new(ModifyOptions).WithOperation("remove")
-		return Modify(ctx, name, []string{digest}, optionsv4)
-	}
-
-	// API Version < 4.0.0
-	conn, err := bindings.GetClient(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	headers := http.Header{}
-	headers.Add("API-Version", "3.4.0")
-
-	params := url.Values{}
-	params.Set("digest", digest)
-	response, err := conn.DoRequest(ctx, nil, http.MethodDelete, "/manifests/%s", params, headers, name)
-	if err != nil {
-		return "", err
-	}
-	defer response.Body.Close()
-
-	var idr handlers.IDResponse
-	return idr.ID, response.Process(&idr)
+	optionsv4 := new(ModifyOptions).WithOperation("remove")
+	return Modify(ctx, name, []string{digest}, optionsv4)
 }
 
 // Push takes a manifest list and pushes to a destination.  If the destination is not specified,
@@ -229,8 +181,35 @@ func Modify(ctx context.Context, name string, images []string, options *ModifyOp
 	}
 	defer response.Body.Close()
 
-	var idr handlers.IDResponse
-	return idr.ID, response.Process(&idr)
+	data, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return "", errors.Wrap(err, "unable to process API response")
+	}
+
+	if response.IsSuccess() || response.IsRedirection() {
+		var report entities.ManifestModifyReport
+		if err = jsoniter.Unmarshal(data, &report); err != nil {
+			return "", errors.Wrap(err, "unable to decode API response")
+		}
+
+		err = errorhandling.JoinErrors(report.Errors)
+		if err != nil {
+			errModel := errorhandling.ErrorModel{
+				Because:      (errors.Cause(err)).Error(),
+				Message:      err.Error(),
+				ResponseCode: response.StatusCode,
+			}
+			return report.ID, &errModel
+		}
+		return report.ID, nil
+	}
+	errModel := errorhandling.ErrorModel{
+		ResponseCode: response.StatusCode,
+	}
+	if err = jsoniter.Unmarshal(data, &errModel); err != nil {
+		return "", errors.Wrap(err, "unable to decode API response")
+	}
+	return "", &errModel
 }
 
 // Annotate modifies the given manifest list using options and the optional list of images

@@ -27,6 +27,7 @@ type InitOptions struct {
 	URI          url.URL
 	Username     string
 	ReExec       bool
+	Rootful      bool
 }
 
 type QemuMachineStatus = string
@@ -35,7 +36,8 @@ const (
 	// Running indicates the qemu vm is running
 	Running QemuMachineStatus = "running"
 	//	Stopped indicates the vm has stopped
-	Stopped QemuMachineStatus = "stopped"
+	Stopped            QemuMachineStatus = "stopped"
+	DefaultMachineName string            = "podman-machine-default"
 )
 
 type Provider interface {
@@ -89,6 +91,10 @@ type ListResponse struct {
 	IdentityPath   string
 }
 
+type SetOptions struct {
+	Rootful bool
+}
+
 type SSHOptions struct {
 	Username string
 	Args     []string
@@ -107,6 +113,7 @@ type RemoveOptions struct {
 type VM interface {
 	Init(opts InitOptions) (bool, error)
 	Remove(name string, opts RemoveOptions) (string, func() error, error)
+	Set(name string, opts SetOptions) error
 	SSH(name string, opts SSHOptions) error
 	Start(name string, opts StartOptions) error
 	Stop(name string, opts StopOptions) error

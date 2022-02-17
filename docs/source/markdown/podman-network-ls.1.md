@@ -1,7 +1,7 @@
 % podman-network-ls(1)
 
 ## NAME
-podman\-network\-ls - Display a summary of CNI networks
+podman\-network\-ls - Display a summary of networks
 
 ## SYNOPSIS
 **podman network ls**  [*options*]
@@ -12,20 +12,26 @@ Displays a list of existing podman networks.
 ## OPTIONS
 #### **--filter**, **-f**=*filter=value*
 
-Filter output based on conditions given.
-Multiple filters can be given with multiple uses of the --filter option.
-Filters with the same key work inclusive with the only exception being
-`label` which is exclusive. Filters with different keys always work exclusive.
+Provide filter values.
 
-Valid filters are listed below:
+The *filters* argument format is of `key=value`. If there is more than one *filter*, then pass multiple OPTIONS: **--filter** *foo=bar* **--filter** *bif=baz*.
 
-| **Filter** | **Description**                                                   |
-| ---------- | ----------------------------------------------------------------- |
-| name       | [Name] Network name (accepts regex)                               |
-| id         | [ID] Full or partial network ID                                   |
-| label      | [Key] or [Key=Value] Label assigned to a network                  |
-| driver     | [Driver] `bridge` or ,`macvlan` is supported                      |
-| until      | [Until] Show all networks that were created before the given time |
+Supported filters:
+
+| **Filter** | **Description**                                                                                  |
+| ---------- | ------------------------------------------------------------------------------------------------ |
+| driver     | Filter by driver type.                                                                           |
+| id         | Filter by full or partial network ID.                                                            |
+| label      | Filter by network with (or without, in the case of label!=[...] is used) the specified labels.   |
+| name       | Filter by network name (accepts `regex`).                                                        |
+| until      | Filter by networks created before given timestamp.                                               |
+
+
+The `driver` filter accepts values: `bridge`, `macvlan`, `ipvlan`.
+
+The `label` *filter* accepts two formats. One is the `label`=*key* or `label`=*key*=*value*, which shows images with the specified labels. The other format is the `label!`=*key* or `label!`=*key*=*value*, which shows images without the specified labels.
+
+The `until` *filter* can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. 10m, 1h30m) computed relative to the machine’s time.
 
 #### **--format**=*format*
 
