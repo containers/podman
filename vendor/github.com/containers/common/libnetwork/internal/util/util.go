@@ -6,6 +6,7 @@ import (
 	"net"
 
 	"github.com/containers/common/libnetwork/types"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/util"
 	"github.com/sirupsen/logrus"
 )
@@ -79,28 +80,36 @@ func GetUsedSubnets(n NetUtil) ([]*net.IPNet, error) {
 }
 
 // GetFreeIPv4NetworkSubnet returns a unused ipv4 subnet
-func GetFreeIPv4NetworkSubnet(usedNetworks []*net.IPNet) (*types.Subnet, error) {
-	// the default podman network is 10.88.0.0/16
-	// start locking for free /24 networks
-	network := &net.IPNet{
-		IP:   net.IP{10, 89, 0, 0},
-		Mask: net.IPMask{255, 255, 255, 0},
+func GetFreeIPv4NetworkSubnet(usedNetworks []*net.IPNet, subnetPools []config.SubnetPool) (*types.Subnet, error) {
+	var err error
+	for _, pool := range subnetPools {
+		// make sure to copy the netip to prevent overwriting the subnet pool
+		netIP := make(net.IP, net.IPv4len)
+		copy(netIP, pool.Base.IP)
+		network := &net.IPNet{
+			IP:   netIP,
+			Mask: net.CIDRMask(pool.Size, 32),
+		}
+		for pool.Base.Contains(network.IP) {
+			if !NetworkIntersectsWithNetworks(network, usedNetworks) {
+				logrus.Debugf("found free ipv4 network subnet %s", network.String())
+				return &types.Subnet{
+					Subnet: types.IPNet{IPNet: *network},
+				}, nil
+			}
+			network, err = NextSubnet(network)
+			if err != nil {
+				// when error go to next pool, we return the error only when all pools are done
+				break
+			}
+		}
 	}
 
-	// TODO: make sure to not use public subnets
-	for {
-		if intersectsConfig := NetworkIntersectsWithNetworks(network, usedNetworks); !intersectsConfig {
-			logrus.Debugf("found free ipv4 network subnet %s", network.String())
-			return &types.Subnet{
-				Subnet: types.IPNet{IPNet: *network},
-			}, nil
-		}
-		var err error
-		network, err = NextSubnet(network)
-		if err != nil {
-			return nil, err
-		}
+	if err != nil {
+		return nil, err
 	}
+	return nil, errors.New("could not find free subnet from subnet pools")
+
 }
 
 // GetFreeIPv6NetworkSubnet returns a unused ipv6 subnet

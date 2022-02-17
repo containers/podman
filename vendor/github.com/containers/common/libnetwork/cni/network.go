@@ -13,6 +13,7 @@ import (
 
 	"github.com/containernetworking/cni/libcni"
 	"github.com/containers/common/libnetwork/types"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -30,6 +31,9 @@ type cniNetwork struct {
 	defaultNetwork string
 	// defaultSubnet is the default subnet for the default network.
 	defaultSubnet types.IPNet
+
+	// defaultsubnetPools contains the subnets which must be used to allocate a free subnet by network create
+	defaultsubnetPools []config.SubnetPool
 
 	// isMachine describes whenever podman runs in a podman machine environment.
 	isMachine bool
@@ -62,6 +66,9 @@ type InitConfig struct {
 	// DefaultSubnet is the default subnet for the default network.
 	DefaultSubnet string
 
+	// DefaultsubnetPools contains the subnets which must be used to allocate a free subnet by network create
+	DefaultsubnetPools []config.SubnetPool
+
 	// IsMachine describes whenever podman runs in a podman machine environment.
 	IsMachine bool
 }
@@ -89,15 +96,21 @@ func NewCNINetworkInterface(conf *InitConfig) (types.ContainerNetwork, error) {
 		return nil, errors.Wrap(err, "failed to parse default subnet")
 	}
 
+	defaultSubnetPools := conf.DefaultsubnetPools
+	if defaultSubnetPools == nil {
+		defaultSubnetPools = config.DefaultSubnetPools
+	}
+
 	cni := libcni.NewCNIConfig(conf.CNIPluginDirs, &cniExec{})
 	n := &cniNetwork{
-		cniConfigDir:   conf.CNIConfigDir,
-		cniPluginDirs:  conf.CNIPluginDirs,
-		cniConf:        cni,
-		defaultNetwork: defaultNetworkName,
-		defaultSubnet:  defaultNet,
-		isMachine:      conf.IsMachine,
-		lock:           lock,
+		cniConfigDir:       conf.CNIConfigDir,
+		cniPluginDirs:      conf.CNIPluginDirs,
+		cniConf:            cni,
+		defaultNetwork:     defaultNetworkName,
+		defaultSubnet:      defaultNet,
+		defaultsubnetPools: defaultSubnetPools,
+		isMachine:          conf.IsMachine,
+		lock:               lock,
 	}
 
 	return n, nil
