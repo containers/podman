@@ -25,6 +25,10 @@ Only one Podman managed VM can be active at a time. If a VM is already running,
 
 Print usage statement.
 
+#### **--type**=*provider name*
+
+The type of virtualization provider. It allows using a virtualization technology or provider different from the system. By default, the system provider (QEMU for Linux and macOS systems, and WSL for Windows) will be used.
+
 ## EXAMPLES
 
 ```

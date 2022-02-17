@@ -6,6 +6,7 @@ package machine
 import (
 	"fmt"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/spf13/cobra"
@@ -13,7 +14,7 @@ import (
 
 var (
 	stopCmd = &cobra.Command{
-		Use:               "stop [MACHINE]",
+		Use:               "stop [options] [MACHINE]",
 		Short:             "Stop an existing machine",
 		Long:              "Stop a managed virtual machine ",
 		RunE:              stop,
@@ -28,19 +29,30 @@ func init() {
 		Command: stopCmd,
 		Parent:  machineCmd,
 	})
+	ProviderTypeFlagName := "type"
+	flags := stopCmd.Flags()
+	flags.StringVar(&providerType, ProviderTypeFlagName, "", "Type of VM provider")
+	_ = stopCmd.RegisterFlagCompletionFunc(ProviderTypeFlagName, completion.AutocompleteNone)
 }
 
 // TODO  Name shouldn't be required, need to create a default vm
 func stop(cmd *cobra.Command, args []string) error {
 	var (
-		err error
-		vm  machine.VM
+		err      error
+		vm       machine.VM
+		provider machine.Provider
 	)
-	vmName := defaultMachineName
+
+	provider, err = getProvider(providerType)
+	if err != nil {
+		return err
+	}
+
+	vmName := provider.DefaultVMName()
 	if len(args) > 0 && len(args[0]) > 0 {
 		vmName = args[0]
 	}
-	provider := getSystemDefaultProvider()
+
 	vm, err = provider.LoadVMByName(vmName)
 	if err != nil {
 		return err

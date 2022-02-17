@@ -1,3 +1,4 @@
+//go:build amd64 || arm64
 // +build amd64 arm64
 
 package machine
@@ -36,8 +37,7 @@ const (
 	// Running indicates the qemu vm is running
 	Running QemuMachineStatus = "running"
 	//	Stopped indicates the vm has stopped
-	Stopped            QemuMachineStatus = "stopped"
-	DefaultMachineName string            = "podman-machine-default"
+	Stopped QemuMachineStatus = "stopped"
 )
 
 type Provider interface {
@@ -46,6 +46,7 @@ type Provider interface {
 	List(opts ListOptions) ([]*ListResponse, error)
 	IsValidVMName(name string) (bool, error)
 	CheckExclusiveActiveVM() (bool, string, error)
+	DefaultVMName() string
 }
 
 type RemoteConnectionType string

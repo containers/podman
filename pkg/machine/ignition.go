@@ -48,11 +48,12 @@ func getNodeGrp(grpName string) NodeGroup {
 }
 
 type DynamicIgnition struct {
-	Name      string
-	Key       string
-	TimeZone  string
-	VMName    string
-	WritePath string
+	Name             string
+	Key              string
+	TimeZone         string
+	VMName           string
+	WritePath        string
+	ConsumeQemuFWCfg bool
 }
 
 // NewIgnitionFile
@@ -146,41 +147,6 @@ ExecStartPost=/bin/touch /var/lib/%N.stamp
 [Install]
 WantedBy=default.target
 `
-	// This service gets environment variables that are provided
-	// through qemu fw_cfg and then sets them into systemd/system.conf.d,
-	// profile.d and environment.d files
-	//
-	// Currently, it is used for propagating
-	// proxy settings e.g. HTTP_PROXY and others, on a start avoiding
-	// a need of re-creating/re-initiating a VM
-	envset := `[Unit]
-Description=Environment setter from QEMU FW_CFG
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-Environment=FWCFGRAW=/sys/firmware/qemu_fw_cfg/by_name/opt/com.coreos/environment/raw
-Environment=SYSTEMD_CONF=/etc/systemd/system.conf.d/default-env.conf
-Environment=ENVD_CONF=/etc/environment.d/default-env.conf
-Environment=PROFILE_CONF=/etc/profile.d/default-env.sh
-ExecStart=/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} &&\
-	echo "[Manager]\n#Got from QEMU FW_CFG\nDefaultEnvironment=$(/usr/bin/base64 -d ${FWCFGRAW} | sed -e "s+|+ +g")\n" > ${SYSTEMD_CONF} ||\
-	echo "[Manager]\n#Got nothing from QEMU FW_CFG\n#DefaultEnvironment=\n" > ${SYSTEMD_CONF}'
-ExecStart=/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} && (\
-	echo "#Got from QEMU FW_CFG"> ${ENVD_CONF};\
-	IFS="|";\
-	for iprxy in $(/usr/bin/base64 -d ${FWCFGRAW}); do\
-		echo "$iprxy" >> ${ENVD_CONF}; done ) || \
-	echo "#Got nothing from QEMU FW_CFG"> ${ENVD_CONF}'
-ExecStart=/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} && (\
-	echo "#Got from QEMU FW_CFG"> ${PROFILE_CONF};\
-	IFS="|";\
-	for iprxy in $(/usr/bin/base64 -d ${FWCFGRAW}); do\
-		echo "export $iprxy" >> ${PROFILE_CONF}; done ) || \
-	echo "#Got nothing from QEMU FW_CFG"> ${PROFILE_CONF}'
-ExecStartPost=/usr/bin/systemctl daemon-reload
-[Install]
-WantedBy=sysinit.target
-`
 	_ = ready
 	ignSystemd := Systemd{
 		Units: []Unit{
@@ -208,12 +174,51 @@ WantedBy=sysinit.target
 				Name:     "remove-moby.service",
 				Contents: &deMoby,
 			},
-			{
-				Enabled:  boolToPtr(true),
-				Name:     "envset-fwcfg.service",
-				Contents: &envset,
-			},
 		}}
+
+	// QEMU specific part
+	if ign.ConsumeQemuFWCfg {
+		// This service gets environment variables that are provided
+		// through qemu fw_cfg and then sets them into systemd/system.conf.d,
+		// profile.d and environment.d files
+		//
+		// Currently, it is used for propagating
+		// proxy settings e.g. HTTP_PROXY and others, on a start avoiding
+		// a need of re-creating/re-initiating a VM
+		envset := `[Unit]
+Description=Environment setter from QEMU FW_CFG
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+Environment=FWCFGRAW=/sys/firmware/qemu_fw_cfg/by_name/opt/com.coreos/environment/raw
+Environment=SYSTEMD_CONF=/etc/systemd/system.conf.d/default-env.conf
+Environment=ENVD_CONF=/etc/environment.d/default-env.conf
+Environment=PROFILE_CONF=/etc/profile.d/default-env.sh
+ExecStart=/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} &&\
+	echo "[Manager]\n#Got from QEMU FW_CFG\nDefaultEnvironment=$(/usr/bin/base64 -d ${FWCFGRAW} | sed -e "s+|+ +g")\n" > ${SYSTEMD_CONF} ||\
+	echo "[Manager]\n#Got nothing from QEMU FW_CFG\n#DefaultEnvironment=\n" > ${SYSTEMD_CONF}'
+ExecStart=/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} && (\
+	echo "#Got from QEMU FW_CFG"> ${ENVD_CONF};\
+	IFS="|";\
+	for iprxy in $(/usr/bin/base64 -d ${FWCFGRAW}); do\
+		echo "$iprxy" >> ${ENVD_CONF}; done ) || \
+	echo "#Got nothing from QEMU FW_CFG"> ${ENVD_CONF}'
+ExecStart=/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} && (\
+	echo "#Got from QEMU FW_CFG"> ${PROFILE_CONF};\
+	IFS="|";\
+	for iprxy in $(/usr/bin/base64 -d ${FWCFGRAW}); do\
+		echo "export $iprxy" >> ${PROFILE_CONF}; done ) || \
+	echo "#Got nothing from QEMU FW_CFG"> ${PROFILE_CONF}'
+ExecStartPost=/usr/bin/systemctl daemon-reload
+[Install]
+WantedBy=sysinit.target`
+		ignSystemd.Units = append(ignSystemd.Units, Unit{
+			Enabled:  boolToPtr(true),
+			Name:     "envset-fwcfg.service",
+			Contents: &envset,
+		})
+	}
+
 	ignConfig := Config{
 		Ignition: ignVersion,
 		Passwd:   ignPassword,

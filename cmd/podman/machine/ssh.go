@@ -1,3 +1,4 @@
+//go:build amd64 || arm64
 // +build amd64 arm64
 
 package machine
@@ -39,18 +40,27 @@ func init() {
 	usernameFlagName := "username"
 	flags.StringVar(&sshOpts.Username, usernameFlagName, "", "Username to use when ssh-ing into the VM.")
 	_ = sshCmd.RegisterFlagCompletionFunc(usernameFlagName, completion.AutocompleteNone)
+
+	ProviderTypeFlagName := "type"
+	flags.StringVar(&providerType, ProviderTypeFlagName, "", "Type of VM provider")
+	_ = sshCmd.RegisterFlagCompletionFunc(ProviderTypeFlagName, completion.AutocompleteNone)
 }
 
 func ssh(cmd *cobra.Command, args []string) error {
 	var (
-		err     error
-		validVM bool
-		vm      machine.VM
+		err      error
+		validVM  bool
+		vm       machine.VM
+		provider machine.Provider
 	)
 
+	provider, err = getProvider(providerType)
+	if err != nil {
+		return err
+	}
+
 	// Set the VM to default
-	vmName := defaultMachineName
-	provider := getSystemDefaultProvider()
+	vmName := provider.DefaultVMName()
 
 	// If len is greater than 0, it means we may have been
 	// provided the VM name.  If so, we check.  The VM name,

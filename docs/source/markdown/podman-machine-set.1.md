@@ -24,6 +24,10 @@ machine name (or `podman-machine-default` if no name is specified).
 
 API forwarding, if available, will follow this setting.
 
+#### **--type**=*provider name*
+
+The type of virtualization provider. It allows using a virtualization technology or provider different from the system. By default, the system provider (QEMU for Linux and macOS systems, and WSL for Windows) will be used.
+
 #### **--help**
 
 Print usage statement.

@@ -1,3 +1,4 @@
+//go:build amd64 || arm64
 // +build amd64 arm64
 
 package machine
@@ -34,19 +35,29 @@ func init() {
 
 	rootfulFlagName := "rootful"
 	flags.BoolVar(&setOpts.Rootful, rootfulFlagName, false, "Whether this machine should prefer rootful container execution")
+
+	ProviderTypeFlagName := "type"
+	flags.StringVar(&providerType, ProviderTypeFlagName, "", "Type of VM provider")
+	_ = setCmd.RegisterFlagCompletionFunc(ProviderTypeFlagName, completion.AutocompleteNone)
 }
 
 func setMachine(cmd *cobra.Command, args []string) error {
 	var (
-		vm  machine.VM
-		err error
+		vm       machine.VM
+		err      error
+		provider machine.Provider
 	)
 
-	vmName := defaultMachineName
+	provider, err = getProvider(providerType)
+	if err != nil {
+		return err
+	}
+
+	vmName := provider.DefaultVMName()
 	if len(args) > 0 && len(args[0]) > 0 {
 		vmName = args[0]
 	}
-	provider := getSystemDefaultProvider()
+
 	vm, err = provider.LoadVMByName(vmName)
 	if err != nil {
 		return err

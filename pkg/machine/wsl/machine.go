@@ -35,6 +35,7 @@ var (
 const (
 	ErrorSuccessRebootInitiated = 1641
 	ErrorSuccessRebootRequired  = 3010
+	DefaultMachineName          = "podman-machine-default"
 )
 
 const containersConf = `[containers]
@@ -175,6 +176,10 @@ func (e *ExitCodeError) Error() string {
 
 func GetWSLProvider() machine.Provider {
 	return wslProvider
+}
+
+func (p *Provider) DefaultVMName() string {
+	return DefaultMachineName
 }
 
 // NewMachine initializes an instance of a virtual machine based on the qemu
@@ -770,7 +775,7 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		fmt.Printf("issues with non-podman clients, you can switch using the following command: \n")
 
 		suffix := ""
-		if name != machine.DefaultMachineName {
+		if name != DefaultMachineName {
 			suffix = " " + name
 		}
 		fmt.Printf("\n\tpodman machine set --rootful%s\n\n", suffix)

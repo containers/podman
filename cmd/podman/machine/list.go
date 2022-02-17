@@ -70,19 +70,32 @@ func init() {
 	flags.StringVar(&listFlag.format, formatFlagName, "{{.Name}}\t{{.VMType}}\t{{.Created}}\t{{.LastUp}}\t{{.CPUs}}\t{{.Memory}}\t{{.DiskSize}}\n", "Format volume output using JSON or a Go template")
 	_ = lsCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(machineReporter{}))
 	flags.BoolVar(&listFlag.noHeading, "noheading", false, "Do not print headers")
+
+	ProviderTypeFlagName := "type"
+	flags.StringVar(&providerType, ProviderTypeFlagName, "", "Type of VM provider")
+	_ = lsCmd.RegisterFlagCompletionFunc(ProviderTypeFlagName, completion.AutocompleteNone)
 }
 
 func list(cmd *cobra.Command, args []string) error {
 	var (
-		opts         machine.ListOptions
-		listResponse []*machine.ListResponse
-		err          error
+		opts      machine.ListOptions
+		providers []machine.Provider
+		err       error
 	)
 
-	provider := getSystemDefaultProvider()
-	listResponse, err = provider.List(opts)
+	providers, err = getProviders(providerType)
 	if err != nil {
-		return errors.Wrap(err, "error listing vms")
+		return err
+	}
+
+	listResponse := make([]*machine.ListResponse, 0, len(providers))
+
+	for _, p := range providers {
+		pls, err := p.List(opts)
+		if err != nil {
+			return errors.Wrap(err, "error listing vms")
+		}
+		listResponse = append(listResponse, pls...)
 	}
 
 	// Sort by last run

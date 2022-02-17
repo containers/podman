@@ -48,6 +48,7 @@ const (
 	dockerSock           = "/var/run/docker.sock"
 	dockerConnectTimeout = 5 * time.Second
 	apiUpTimeout         = 20 * time.Second
+	DefaultMachineName   = "podman-machine-default"
 )
 
 type apiForwardingState int
@@ -59,6 +60,10 @@ const (
 	machineLocal
 	dockerGlobal
 )
+
+func (p *Provider) DefaultVMName() string {
+	return DefaultMachineName
+}
 
 // NewMachine initializes an instance of a virtual machine based on the qemu
 // virtualization.
@@ -314,11 +319,12 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	}
 	// Write the ignition file
 	ign := machine.DynamicIgnition{
-		Name:      opts.Username,
-		Key:       key,
-		VMName:    v.Name,
-		TimeZone:  opts.TimeZone,
-		WritePath: v.IgnitionFilePath,
+		Name:             opts.Username,
+		Key:              key,
+		VMName:           v.Name,
+		TimeZone:         opts.TimeZone,
+		WritePath:        v.IgnitionFilePath,
+		ConsumeQemuFWCfg: true,
 	}
 	err = machine.NewIgnitionFile(ign)
 	return err == nil, err
@@ -1071,7 +1077,7 @@ func waitAPIAndPrintInfo(forwardState apiForwardingState, forwardSock string, ro
 			fmt.Printf("issues with non-podman clients, you can switch using the following command: \n")
 
 			suffix := ""
-			if name != machine.DefaultMachineName {
+			if name != DefaultMachineName {
 				suffix = " " + name
 			}
 			fmt.Printf("\n\tpodman machine set --rootful%s\n\n", suffix)

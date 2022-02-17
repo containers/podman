@@ -40,6 +40,10 @@ Do not delete the VM image
 Do not delete the SSH keys for the VM.  The system connection is always
 deleted.
 
+#### **--type**=*provider name*
+
+The type of virtualization provider. It allows using a virtualization technology or provider different from the system. By default, the system provider (QEMU for Linux and macOS systems, and WSL for Windows) will be used.
+
 ## EXAMPLES
 
 Remove a VM named "test1"

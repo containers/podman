@@ -49,6 +49,10 @@ Print usage statement.
 
 Omit the table headings from the listing of pods.
 
+#### **--type**=*provider name*
+
+The type of virtualization provider. It allows using a virtualization technology or provider different from the system. By default, virtual machines from all available providers will be shown..
+
 ## EXAMPLES
 
 ```

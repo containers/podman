@@ -69,6 +69,12 @@ Set the timezone for the machine and containers.  Valid values are `local` or
 a `timezone` such as `America/Chicago`.  A value of `local`, which is the default,
 means to use the timezone of the machine host.
 
+#### **--type**=*provider name*
+
+The type of virtualization provider. It allows using a virtualization technology or provider different from the system. By default, the system provider (QEMU for Linux and macOS systems, and WSL for Windows) will be used.
+
+Currently, in addition to the system, there is limited support of VirtualBox.
+
 #### **--volume**, **-v**=*source:target*
 
 Mounts a volume from source to target.

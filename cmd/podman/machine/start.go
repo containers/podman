@@ -6,6 +6,7 @@ package machine
 import (
 	"fmt"
 
+	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/pkg/errors"
@@ -14,7 +15,7 @@ import (
 
 var (
 	startCmd = &cobra.Command{
-		Use:               "start [MACHINE]",
+		Use:               "start [options] [MACHINE]",
 		Short:             "Start an existing machine",
 		Long:              "Start a managed virtual machine ",
 		RunE:              start,
@@ -29,20 +30,32 @@ func init() {
 		Command: startCmd,
 		Parent:  machineCmd,
 	})
+
+	ProviderTypeFlagName := "type"
+	flags := startCmd.Flags()
+	flags.StringVar(&providerType, ProviderTypeFlagName, "", "Type of VM provider")
+	_ = startCmd.RegisterFlagCompletionFunc(ProviderTypeFlagName, completion.AutocompleteNone)
 }
 
 func start(cmd *cobra.Command, args []string) error {
 	var (
-		err error
-		vm  machine.VM
+		err      error
+		vm       machine.VM
+		provider machine.Provider
 	)
-	vmName := defaultMachineName
+
+	provider, err = getProvider(providerType)
+	if err != nil {
+		return err
+	}
+
+	vmName := provider.DefaultVMName()
+
 	if len(args) > 0 && len(args[0]) > 0 {
 		vmName = args[0]
 	}
 
-	provider := getSystemDefaultProvider()
-	vm, err = provider.LoadVMByName(vmName)
+	_, err = provider.LoadVMByName(vmName)
 	if err != nil {
 		return err
 	}
