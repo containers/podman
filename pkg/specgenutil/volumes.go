@@ -356,7 +356,11 @@ func getBindMount(args []string) (spec.Mount, error) {
 			}
 			setOwnership = true
 		case "idmap":
-			newMount.Options = append(newMount.Options, "idmap")
+			if len(kv) > 1 {
+				newMount.Options = append(newMount.Options, fmt.Sprintf("idmap=%s", kv[1]))
+			} else {
+				newMount.Options = append(newMount.Options, "idmap")
+			}
 		case "consistency":
 			// Often used on MACs and mistakenly on Linux platforms.
 			// Since Docker ignores this option so shall we.
