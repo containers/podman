@@ -27,6 +27,7 @@ type playKubeOptionsWrapper struct {
 	TLSVerifyCLI   bool
 	CredentialsCLI string
 	StartCLI       bool
+	BuildCLI       bool
 }
 
 var (
@@ -117,7 +118,7 @@ func init() {
 		_ = kubeCmd.RegisterFlagCompletionFunc(configmapFlagName, completion.AutocompleteDefault)
 
 		buildFlagName := "build"
-		flags.BoolVar(&kubeOptions.Build, buildFlagName, false, "Build all images in a YAML (given Containerfiles exist)")
+		flags.BoolVar(&kubeOptions.BuildCLI, buildFlagName, false, "Build all images in a YAML (given Containerfiles exist)")
 	}
 
 	if !registry.IsRemote() {
@@ -137,6 +138,9 @@ func kube(cmd *cobra.Command, args []string) error {
 	}
 	if cmd.Flags().Changed("start") {
 		kubeOptions.Start = types.NewOptionalBool(kubeOptions.StartCLI)
+	}
+	if cmd.Flags().Changed("build") {
+		kubeOptions.Build = types.NewOptionalBool(kubeOptions.BuildCLI)
 	}
 	if kubeOptions.Authfile != "" {
 		if _, err := os.Stat(kubeOptions.Authfile); err != nil {
