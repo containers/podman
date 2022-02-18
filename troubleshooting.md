@@ -645,16 +645,26 @@ to mount volumes on them.
 Run the container once in read/write mode, Podman will generate all of the FDs on the rootfs, and
 from that point forward you can run with a read-only rootfs.
 
+```
 $ podman run --rm --rootfs /path/to/rootfs true
+```
 
 The command above will create all the missing directories needed to run the container.
 
 After that, it can be used in read only mode, by multiple containers at the same time:
 
+```
 $ podman run --read-only --rootfs /path/to/rootfs ....
+```
 
-Another option would be to create an overlay file system on the directory as a lower and then
-then allow podman to create the files on the upper.
+Another option is to use an Overlay Rootfs Mount:
+
+```
+$ podman run --rootfs /path/to/rootfs:O ....
+```
+
+Modifications to the mount point are destroyed when the container
+finishes executing, similar to a tmpfs mount point being unmounted.
 
 ### 26) Running containers with CPU limits fails with a permissions error
 
