@@ -3,7 +3,6 @@ package pods
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 
 	"github.com/containers/common/pkg/completion"
@@ -53,12 +52,14 @@ func init() {
 }
 
 func kube(cmd *cobra.Command, args []string) error {
+	cmd.OutOrStdout()
+	cmd.Context()
 	report, err := registry.ContainerEngine().GenerateKube(registry.GetContext(), args, kubeOptions)
 	if err != nil {
 		return err
 	}
 
-	content, err := ioutil.ReadAll(report.Reader)
+	content, err := io.ReadAll(report.Reader)
 	if err != nil {
 		return err
 	}
@@ -70,7 +71,7 @@ func kube(cmd *cobra.Command, args []string) error {
 		if _, err := os.Stat(kubeFile); err == nil {
 			return errors.Errorf("cannot write to %q; file exists", kubeFile)
 		}
-		if err := ioutil.WriteFile(kubeFile, content, 0644); err != nil {
+		if err := os.WriteFile(kubeFile, content, 0644); err != nil {
 			return errors.Wrapf(err, "cannot write to %q", kubeFile)
 		}
 		return nil

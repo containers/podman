@@ -23,6 +23,7 @@ import (
 // fields.
 type playKubeOptionsWrapper struct {
 	entities.PlayKubeOptions
+	entities.PlayKubeDownOptions
 
 	TLSVerifyCLI   bool
 	CredentialsCLI string
@@ -165,52 +166,15 @@ func kube(cmd *cobra.Command, args []string) error {
 		kubeOptions.StaticMACs = append(kubeOptions.StaticMACs, m)
 	}
 	if kubeOptions.Down {
-		return teardown(yamlfile)
+		return common.TeardownPlayKube(yamlfile, kubeOptions.PlayKubeDownOptions)
 	}
 	if kubeOptions.Replace {
-		if err := teardown(yamlfile); err != nil && !errorhandling.Contains(err, define.ErrNoSuchPod) {
+		err := common.TeardownPlayKube(yamlfile, kubeOptions.PlayKubeDownOptions)
+		if err != nil && !errorhandling.Contains(err, define.ErrNoSuchPod) {
 			return err
 		}
 	}
 	return playkube(yamlfile)
-}
-
-func teardown(yamlfile string) error {
-	var (
-		podStopErrors utils.OutputErrors
-		podRmErrors   utils.OutputErrors
-	)
-	options := new(entities.PlayKubeDownOptions)
-	reports, err := registry.ContainerEngine().PlayKubeDown(registry.GetContext(), yamlfile, *options)
-	if err != nil {
-		return err
-	}
-
-	// Output stopped pods
-	fmt.Println("Pods stopped:")
-	for _, stopped := range reports.StopReport {
-		if len(stopped.Errs) == 0 {
-			fmt.Println(stopped.Id)
-		} else {
-			podStopErrors = append(podStopErrors, stopped.Errs...)
-		}
-	}
-	// Dump any stop errors
-	lastStopError := podStopErrors.PrintErrors()
-	if lastStopError != nil {
-		fmt.Fprintf(os.Stderr, "Error: %s\n", lastStopError)
-	}
-
-	// Output rm'd pods
-	fmt.Println("Pods removed:")
-	for _, removed := range reports.RmReport {
-		if removed.Err == nil {
-			fmt.Println(removed.Id)
-		} else {
-			podRmErrors = append(podRmErrors, removed.Err)
-		}
-	}
-	return podRmErrors.PrintErrors()
 }
 
 func playkube(yamlfile string) error {

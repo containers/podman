@@ -3001,8 +3001,31 @@ invalid kube kind
 		Expect(ls).Should(Exit(0))
 		Expect(ls.OutputToStringArray()).To(HaveLen(1))
 
-		//	 teardown
 		teardown := podmanTest.Podman([]string{"play", "kube", "--down", kubeYaml})
+		teardown.WaitWithDefaultTimeout()
+		Expect(teardown).Should(Exit(0))
+
+		checkls := podmanTest.Podman([]string{"pod", "ps", "--format", "'{{.ID}}'"})
+		checkls.WaitWithDefaultTimeout()
+		Expect(checkls).Should(Exit(0))
+		Expect(checkls.OutputToStringArray()).To(BeEmpty())
+	})
+
+	It("podman down kube teardown", func() {
+		pod := getPod()
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		ls := podmanTest.Podman([]string{"pod", "ps", "--format", "'{{.ID}}'"})
+		ls.WaitWithDefaultTimeout()
+		Expect(ls).Should(Exit(0))
+		Expect(ls.OutputToStringArray()).To(HaveLen(1))
+
+		teardown := podmanTest.Podman([]string{"down", "kube", kubeYaml})
 		teardown.WaitWithDefaultTimeout()
 		Expect(teardown).Should(Exit(0))
 
@@ -3017,10 +3040,15 @@ invalid kube kind
 		teardown := podmanTest.Podman([]string{"play", "kube", "--down", kubeYaml})
 		teardown.WaitWithDefaultTimeout()
 		Expect(teardown).Should(Exit(125))
+
+		// Repeat the same with `podman down kube`; we should get an identical
+		// result
+		teardown = podmanTest.Podman([]string{"down", "kube", kubeYaml})
+		teardown.WaitWithDefaultTimeout()
+		Expect(teardown).Should(Exit(125))
 	})
 
 	It("podman play kube teardown with volume", func() {
-
 		volName := RandomString(12)
 		volDevice := "tmpfs"
 		volType := "tmpfs"
@@ -3042,6 +3070,17 @@ invalid kube kind
 		Expect(exists).To(Exit(0))
 
 		teardown := podmanTest.Podman([]string{"play", "kube", "--down", kubeYaml})
+		teardown.WaitWithDefaultTimeout()
+		Expect(teardown).To(Exit(0))
+
+		// volume should not be deleted on teardown
+		exists = podmanTest.Podman([]string{"volume", "exists", volName})
+		exists.WaitWithDefaultTimeout()
+		Expect(exists).To(Exit(0))
+
+		// Repeat the same with `podman down kube`; we should get an identical
+		// result
+		teardown = podmanTest.Podman([]string{"down", "kube", kubeYaml})
 		teardown.WaitWithDefaultTimeout()
 		Expect(teardown).To(Exit(0))
 

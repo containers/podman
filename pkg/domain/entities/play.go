@@ -85,7 +85,7 @@ type PlayKubeReport struct {
 // PlayKubeDownOptions are options for tearing down pods
 type PlayKubeDownOptions struct{}
 
-// PlayKubeDownReport contains the results of tearing down play kube
+// PlayKubeTeardown contains the results of tearing down play kube
 type PlayKubeTeardown struct {
 	StopReport []*PodStopReport
 	RmReport   []*PodRmReport
