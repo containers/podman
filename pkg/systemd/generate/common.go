@@ -137,3 +137,17 @@ func removeArg(arg string, args []string) []string {
 	}
 	return newArgs
 }
+
+// This function is used to get name of systemd service from prefix, separator, and
+// container/pod name. If prefix is empty, the service name does not include the
+// separator. This is to avoid a situation where service name starts with the separator
+// which is usually hyphen.
+func getServiceName(prefix string, separator string, name string) string {
+	serviceName := name
+
+	if len(prefix) > 0 {
+		serviceName = prefix + separator + name
+	}
+
+	return serviceName
+}

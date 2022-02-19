@@ -236,7 +236,9 @@ func containerServiceName(ctr *libpod.Container, options entities.GenerateSystem
 	if options.Name {
 		nameOrID = ctr.Name()
 	}
-	serviceName := fmt.Sprintf("%s%s%s", options.ContainerPrefix, options.Separator, nameOrID)
+
+	serviceName := getServiceName(options.ContainerPrefix, options.Separator, nameOrID)
+
 	return nameOrID, serviceName
 }
 
