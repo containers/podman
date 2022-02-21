@@ -119,9 +119,11 @@ func init() {
 
 		buildFlagName := "build"
 		flags.BoolVar(&kubeOptions.BuildCLI, buildFlagName, false, "Build all images in a YAML (given Containerfiles exist)")
-	}
 
-	if !registry.IsRemote() {
+		contextDirFlagName := "context-dir"
+		flags.StringVar(&kubeOptions.ContextDir, contextDirFlagName, "", "Path to top level of context directory")
+		_ = kubeCmd.RegisterFlagCompletionFunc(contextDirFlagName, completion.AutocompleteDefault)
+
 		flags.StringVar(&kubeOptions.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 
 		_ = flags.MarkHidden("signature-policy")
@@ -146,6 +148,9 @@ func kube(cmd *cobra.Command, args []string) error {
 		if _, err := os.Stat(kubeOptions.Authfile); err != nil {
 			return err
 		}
+	}
+	if kubeOptions.ContextDir != "" && kubeOptions.Build != types.OptionalBoolTrue {
+		return errors.New("--build must be specified when using --context-dir option")
 	}
 	if kubeOptions.CredentialsCLI != "" {
 		creds, err := util.ParseRegistryCreds(kubeOptions.CredentialsCLI)

@@ -115,7 +115,7 @@ environment variable. `export REGISTRY_AUTH_FILE=path`
 
 #### **--build**
 
-Build images even if they are found in the local storage. Use `--build=false` to completely disable builds.
+Build images even if they are found in the local storage. Use `--build=false` to completely disable builds. (This option is not available with the remote Podman client)
 
 #### **--cert-dir**=*path*
 
@@ -124,9 +124,13 @@ Please refer to containers-certs.d(5) for details. (This option is not available
 
 #### **--configmap**=*path*
 
-Use Kubernetes configmap YAML at path to provide a source for environment variable values within the containers of the pod.
+Use Kubernetes configmap YAML at path to provide a source for environment variable values within the containers of the pod.  (This option is not available with the remote Podman client)
 
 Note: The *--configmap* option can be used multiple times or a comma-separated list of paths can be used to pass multiple Kubernetes configmap YAMLs.
+
+#### **--context-dir**=*path*
+
+Use *path* as the build context directory for each image. Requires --build option be true. (This option is not available with the remote Podman client)
 
 #### **--creds**
 
