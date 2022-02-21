@@ -12,4 +12,18 @@ load helpers
     run_podman run --rm --label 'true="false"' $IMAGE true
 }
 
+@test "podman flag error" {
+    local name="podman"
+    if is_remote; then
+        name="podman-remote"
+    fi
+    run_podman 125 run -h
+    is "$output" "Error: flag needs an argument: 'h' in -h
+See '$name run --help'" "expected error output"
+
+    run_podman 125 bad --invalid
+    is "$output" "Error: unknown flag: --invalid
+See '$name --help'" "expected error output"
+}
+
 # vim: filetype=sh

@@ -88,7 +88,8 @@ function setup() {
 
     # ...but no matter what, --remote is never allowed after subcommand
     PODMAN="${podman_non_remote} ${podman_args[@]}" run_podman 125 version --remote
-    is "$output" "Error: unknown flag: --remote" "podman version --remote"
+    is "$output" "Error: unknown flag: --remote
+See 'podman version --help'" "podman version --remote"
 }
 
 @test "podman-remote: defaults" {
