@@ -67,7 +67,8 @@ like:
 ```
 
 The build will consider `foobar` to be the context directory for the build. If there is an image in local storage
-called `foobar`, the image will not be built unless the `--build` flag is used.
+called `foobar`, the image will not be built unless the `--build` flag is used. Use `--build=false` to completely
+disable builds.
 
 `Kubernetes ConfigMap`
 
@@ -115,7 +116,7 @@ environment variable. `export REGISTRY_AUTH_FILE=path`
 
 #### **--build**
 
-Build images even if they are found in the local storage.
+Build images even if they are found in the local storage. Use `--build=false` to completely disable builds.
 
 #### **--cert-dir**=*path*
 
