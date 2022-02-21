@@ -33,6 +33,23 @@ function setup() {
     fi
 }
 
+@test "podman info" {
+    # These will be displayed on the test output stream, offering an
+    # at-a-glance overview of important system configuration details
+    local -a want=(
+        'Arch:{{.Host.Arch}}'
+        'OS:{{.Host.Distribution.Distribution}}{{.Host.Distribution.Version}}'
+        'Runtime:{{.Host.OCIRuntime.Name}}'
+        'Rootless:{{.Host.Security.Rootless}}'
+        'Events:{{.Host.EventLogger}}'
+        'Logdriver:{{.Host.LogDriver}}'
+        'Cgroups:{{.Host.CgroupsVersion}}+{{.Host.CgroupManager}}'
+        'Net:{{.Host.NetworkBackend}}'
+    )
+    run_podman info --format "$(IFS='/' echo ${want[@]})"
+    echo "# $output" >&3
+}
+
 
 @test "podman --context emits reasonable output" {
     # All we care about here is that the command passes
