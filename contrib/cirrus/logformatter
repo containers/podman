@@ -37,12 +37,15 @@ table.synopsis { border: none; border-collapse: collapse; margin-left: 2em; marg
 .synopsis td   { font-weight: bold;   font-size: 120%; font-family: monospace; }
 
 /* test results */
+.testname  { font-size: 125%; color: #444; }
 .boring    { color: #999; }
 .timestamp { color: #999; }
 .log-debug { color: #999; }
 .log-info  { color: #333; }
 .log-warn  { color: #f60; }
 .log-error { color: #900; font-weight: bold; }
+.log-skip  { color: #F90; }
+.log-slow  { background: #FF0; color: #000; font-weight: bold; }
 .subtest   { background: #eee; }
 .subsubtest { color: #F39; font-weight: bold; }
 .string    { color: #00c; }
@@ -184,14 +187,6 @@ END_HTML
     print { $out_fh } "<h2>Synopsis</h2>\n<hr/>\n",
         job_synopsis($test_name), "<hr/>\n";
 
-    # FOR DEBUGGING: dump environment, but in HTML comments to not clutter
-    print { $out_fh } "<!-- Environment: -->\n";
-    for my $e (sort keys %ENV) {
-        my $val = escapeHTML($ENV{$e});
-        $val =~ s/--/-&#x002D;/g;       # double dash not valid in comments
-        printf { $out_fh } "<!--  %-20s %s -->\n", $e, $val;
-    }
-
     # State variables
     my $previous_timestamp = '';  # timestamp of previous line
     my $cirrus_task;              # Cirrus task number, used for linking
@@ -201,14 +196,24 @@ END_HTML
     my $after_divider = 0;        # Count of lines after seeing '-----'
     my $current_output;           # for removing duplication
     my $looks_like_bats;          # binary flag: for detecting BATS results
+    my $looks_like_python;        #   " "   "  : for colorizing python tests
     my %bats_count;               # For summary line: count of pass/fail/skip
 
+    # When running in cirrus, we have the commit SHA
+    $git_commit = $ENV{CIRRUS_CHANGE_IN_REPO};
+
     print { $out_fh } "<pre> <!-- begin processed output -->\n";
+
+    # Assume rootful prompt, check for rootless (here and in log itself, below)
+    my $Prompt = '#';
+    $Prompt = '$' if $test_name =~ /rootless/;
 
     # Main loop: read input, one line at a time, and write out reformatted
   LINE:
     while (my $line = <STDIN>) {
         print $line;                    # Immediately dump back to stdout
+
+        $Prompt = '$' if $line =~ /Runner executing .* as rootless /;
 
         # Remain robust in face of errors: always write stdout even if no HTML
         next LINE if ! $out_fh;
@@ -236,6 +241,11 @@ END_HTML
             #           1  12  3                 34     4 5   526  6
             $line =~ s{^(.*)(\/(containers\/[^/]+)(\/\S+):(\d+))(.*)$}
                       {$1<a class="codelink" href='https://github.com/$3/blob/$git_commit$4#L$5'>$2</a>$6};
+
+            # Same, for python errors
+            #           1  12  3                 34         4             5   526
+            $line =~ s{^(.*)(\/(containers\/[^/]+)(\/\S+\.py).*,\s+line\s+(\d+))(,\s+in.*)$}
+                      {$1<a class="codelink" href='https://github.com/$3/blob/$git_commit$4#L$5'>$2</a>$6};
         }
 
         # Try to identify the cirrus task
@@ -247,13 +257,42 @@ END_HTML
         if ($line =~ /^1\.\.(\d+)$/) {
             $looks_like_bats = 1;
             $bats_count{expected_total} = $1;
+            undef $looks_like_python;
         }
         # Since the number of tests can't always be predicted, recognize
         # some leading text strings that indicate BATS output to come.
         elsif ($line =~ /^TAP\s+version\s/ || $line =~ m!/test-apiv2!) {
             $looks_like_bats = 1;
             $bats_count{expected_total} = -1; # Expect to be overridden at end!
+            undef $looks_like_python;
         }
+
+        # 'python -m unittest' means we're starting some pythony stuff
+        elsif ($line =~ m!/python.*\sunittest\s!) {
+            $looks_like_python = 1;
+            undef $looks_like_bats;
+        }
+        elsif ($looks_like_python && $line =~ m!Ran\s+(\d+)\s+tests\s+in\s!) {
+            # End of python tests. However, we're still likely to see a
+            # summary line saying 'OK' or 'FAILED'. Deal with that by
+            # resetting $looks_like_python to 0, which the next elsif catches
+            $bats_count{expected_total} += $1;
+            $looks_like_python = 0;
+            print { $out_fh } "</div>\n"            if $in_failure;
+            undef $in_failure;
+        }
+        elsif (defined($looks_like_python) && !$looks_like_python) {
+            # The final python summary line. Show it in its appropriate color.
+            if ($line =~ /^\s*(OK|FAILED)\s+\(/) {
+                undef $looks_like_python;
+                my $css = ($1 eq 'OK' ? 'passed' : 'failed');
+                print { $out_fh } "<span class=\"timestamp\">$timestamp</span>"
+                    if $timestamp;
+                print { $out_fh } "<span class='bats-$css'>", $line, "</span>\n";
+                next LINE;
+            }
+        }
+
         if ($looks_like_bats) {
             my $css;
 
@@ -278,6 +317,28 @@ END_HTML
                 $bats_count{$css}++;
             }
 
+            print { $out_fh } "<span class=\"timestamp\">$timestamp</span>"
+                if $timestamp;
+            print { $out_fh } $line, "\n";
+            next LINE;
+        }
+        elsif ($looks_like_python) {
+            my $css;
+
+            if    ($line =~ /\s\.\.\.\sskipped/) { $css = 'skipped' }
+            elsif ($line =~ /\s\.\.\.\sok\s*$/)  { $css = 'passed'  }
+            elsif ($line =~ /\s\.\.\.\sFAIL/)    { $css = 'failed'  }
+            elsif ($line =~ /^\s*={40}/)         {
+                # Begins a block of multiple lines including a stack trace
+                print { $out_fh } "<div class='log-error'>\n" unless $in_failure;
+                $in_failure = 1;
+            }
+
+            if ($css) {
+                $line = "<span class='bats-$css'>$line</span>";
+
+                $bats_count{$css}++;
+            }
             print { $out_fh } "<span class=\"timestamp\">$timestamp</span>"
                 if $timestamp;
             print { $out_fh } $line, "\n";
@@ -328,11 +389,11 @@ END_HTML
             next LINE;
         }
         # (bindings test sometimes emits 'Running' with leading bullet char)
-        elsif ($line =~ /^•?Running:/) {
+        elsif ($line =~ s!^•?Running:!<span class="boring">$Prompt</span>!) {
             # Highlight the important (non-boilerplate) podman command.
             $line =~ s/\s+--remote\s+/ /g;      # --remote takes no args
             # Strip out the global podman options, but show them on hover
-            $line =~ s{(\S+\/podman(-remote)?)((\s+--(root|runroot|runtime|tmpdir|storage-opt|conmon|cgroup-manager|cni-config-dir|storage-driver|events-backend|url) \S+)*)(.*)}{
+            $line =~ s{(\S+\/podman(-remote)?)((\s+--(root|runroot|runtime|tmpdir|storage-opt|conmon|cgroup-manager|network-config-dir|storage-driver|events-backend|url) \S+)*)(.*)}{
                 my ($full_path, $remote, $options, $args) = ($1, $2||'', $3, $6);
 
                 $options =~ s/^\s+//;
@@ -365,19 +426,27 @@ END_HTML
         # an anchor so we can link to it later.
         if ($after_divider++ == 2) {
             # Sigh. There is no actual marker. Assume that anything with
-            ## two leading spaces then alpha (not slashes) is a test name.
-            if ($line =~ /^  [a-zA-Z]/) {
+            ## two leading spaces then alpha or hyphen (not slashes) is
+            ## a test name.
+            if ($line =~ /^  [a-zA-Z-]/) {
                 my $id = make_id($line, 'anchor');
 
                 $line = "<a name='t--$id'><h2>$line</h2></a>";
             }
         }
 
+        # Make SKIPPING and SLOW TEST visible
+        $line =~ s!(\[SKIPPING\].*)!<span class="log-skip">$1</span>!;
+        $line =~ s!(\[SLOW TEST.*\])!<span class="log-slow">$1</span>!;
+
+        # Highlight test name when it appears in the middle of commands.
+        # But make it boring, because we already have the test name in large
+        # bold just above. (Except in skipped tests).
+        $line =~ s!^(\s*)(\[It\]\s+.*)!$1<span class="testname">$2</span>!;
+
         # Failure name corresponds to a previously-seen block.
-        ## FIXME: sometimes there are three failures with the same name.
-        ##        ...I have no idea why or how to link to the right ones.
-        #              1  2           2        3             3   14          4
-        if ($line =~ /^(\[(Fail|Panic!)\] .* \[(It|BeforeEach)\] )([A-Za-z].*)/) {
+        #              1  2           2        3             3   14           4
+        if ($line =~ /^(\[(Fail|Panic!)\] .* \[(It|BeforeEach)\] )([A-Za-z-].*)/) {
             my ($lhs, $type, $ginkgo_fluff, $testname) = ($1, $2, $3, $4);
             my $id = make_id($testname, 'link');
 
@@ -486,7 +555,10 @@ sub make_id {
     state %counter;
 
     $name =~ s/^\s+|\s+$//g;            # strip leading/trailing whitespace
+    $name =~ s/\&#\d+;//g;              # 'doesn&#39;t' -> 'doesnt'
+    $name =~ s/\&quot;/-/g;             # '&quot;path&quot;' -> '-path-'
     $name =~ s/[^a-zA-Z0-9_-]/-/g;      # Convert non-alphanumeric to dash
+    $name =~ s/-{3,}/-/g;               # '------' to just '-'
 
     # Keep a running tally of how many times we've seen this identifier
     # for this given type! This lets us cross-match, in the bottom of
