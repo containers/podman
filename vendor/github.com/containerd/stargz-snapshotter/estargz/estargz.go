@@ -27,6 +27,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"hash"
 	"io"
@@ -40,7 +41,6 @@ import (
 
 	"github.com/containerd/stargz-snapshotter/estargz/errorutil"
 	digest "github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
 	"github.com/vbatts/tar-split/archive/tar"
 )
 
@@ -385,8 +385,7 @@ func (r *Reader) Verifiers() (TOCEntryVerifier, error) {
 			if e.Digest != "" {
 				d, err := digest.Parse(e.Digest)
 				if err != nil {
-					return nil, errors.Wrapf(err,
-						"failed to parse regular file digest %q", e.Digest)
+					return nil, fmt.Errorf("failed to parse regular file digest %q: %w", e.Digest, err)
 				}
 				regDigestMap[e.Offset] = d
 			} else {
@@ -401,8 +400,7 @@ func (r *Reader) Verifiers() (TOCEntryVerifier, error) {
 		if e.ChunkDigest != "" {
 			d, err := digest.Parse(e.ChunkDigest)
 			if err != nil {
-				return nil, errors.Wrapf(err,
-					"failed to parse chunk digest %q", e.ChunkDigest)
+				return nil, fmt.Errorf("failed to parse chunk digest %q: %w", e.ChunkDigest, err)
 			}
 			chunkDigestMap[e.Offset] = d
 		} else {
@@ -647,7 +645,7 @@ func Unpack(sr *io.SectionReader, c Decompressor) (io.ReadCloser, error) {
 	}
 	blobPayloadSize, _, _, err := c.ParseFooter(footer)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse footer")
+		return nil, fmt.Errorf("failed to parse footer: %w", err)
 	}
 	return c.Reader(io.LimitReader(sr, blobPayloadSize))
 }

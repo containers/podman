@@ -26,6 +26,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -38,7 +39,6 @@ import (
 	"github.com/containerd/stargz-snapshotter/estargz/errorutil"
 	"github.com/klauspost/compress/zstd"
 	digest "github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -142,7 +142,7 @@ func Build(tarBlob *io.SectionReader, opt ...Option) (_ *Blob, rErr error) {
 	defer func() {
 		if rErr != nil {
 			if err := layerFiles.CleanupAll(); err != nil {
-				rErr = errors.Wrapf(rErr, "failed to cleanup tmp files: %v", err)
+				rErr = fmt.Errorf("failed to cleanup tmp files: %v: %w", err, rErr)
 			}
 		}
 	}()
@@ -307,7 +307,7 @@ func sortEntries(in io.ReaderAt, prioritized []string, missedPrioritized *[]stri
 	// Import tar file.
 	intar, err := importTar(in)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to sort")
+		return nil, fmt.Errorf("failed to sort: %w", err)
 	}
 
 	// Sort the tar file respecting to the prioritized files list.
@@ -318,7 +318,7 @@ func sortEntries(in io.ReaderAt, prioritized []string, missedPrioritized *[]stri
 				*missedPrioritized = append(*missedPrioritized, l)
 				continue // allow not found
 			}
-			return nil, errors.Wrap(err, "failed to sort tar entries")
+			return nil, fmt.Errorf("failed to sort tar entries: %w", err)
 		}
 	}
 	if len(prioritized) == 0 {
@@ -371,7 +371,7 @@ func importTar(in io.ReaderAt) (*tarFile, error) {
 	tf := &tarFile{}
 	pw, err := newCountReader(in)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to make position watcher")
+		return nil, fmt.Errorf("failed to make position watcher: %w", err)
 	}
 	tr := tar.NewReader(pw)
 
@@ -383,7 +383,7 @@ func importTar(in io.ReaderAt) (*tarFile, error) {
 			if err == io.EOF {
 				break
 			} else {
-				return nil, errors.Wrap(err, "failed to parse tar file")
+				return nil, fmt.Errorf("failed to parse tar file, %w", err)
 			}
 		}
 		switch cleanEntryName(h.Name) {
@@ -420,7 +420,7 @@ func moveRec(name string, in *tarFile, out *tarFile) error {
 	_, okIn := in.get(name)
 	_, okOut := out.get(name)
 	if !okIn && !okOut {
-		return errors.Wrapf(errNotFound, "file: %q", name)
+		return fmt.Errorf("file: %q: %w", name, errNotFound)
 	}
 
 	parent, _ := path.Split(strings.TrimSuffix(name, "/"))

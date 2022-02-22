@@ -75,3 +75,5 @@ require (
 )
 
 replace github.com/onsi/gomega => github.com/onsi/gomega v1.16.0
+
+replace github.com/containers/storage => github.com/mtrmac/storage v0.0.0-20220222140939-733574cd6e22

@@ -913,6 +913,20 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, disable
 		rootUID = int(st.UID())
 		rootGID = int(st.GID())
 	}
+
+	// --- Only access "dir" below.
+	d.locker.Lock(id)
+	defer d.locker.Unlock(id)
+
+	if _, err := system.Lstat(dir); err == nil {
+		logrus.Warnf("Trying to create a layer %#v while directory %q already exists; removing it first", id, dir)
+		// Don’t just os.RemoveAll(dir) here; removeLocked also removes the link in linkDir,
+		// so that we can’t end up with two symlinks in linkDir pointing to the same layer.
+		if err := d.removeLocked(id); err != nil {
+			return errors.Wrapf(err, "removing a pre-existing layer directory %q", dir)
+		}
+	}
+
 	if err := idtools.MkdirAllAndChownNew(dir, 0700, idPair); err != nil {
 		return err
 	}
@@ -920,7 +934,9 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, disable
 	defer func() {
 		// Clean up on failure
 		if retErr != nil {
-			os.RemoveAll(dir)
+			if err2 := os.RemoveAll(dir); err2 != nil {
+				logrus.Errorf("While recovering from a failure creating a layer, error deleting %#v: %v", dir, err2)
+			}
 		}
 	}()
 
@@ -1147,6 +1163,10 @@ func (d *Driver) Remove(id string) error {
 	d.locker.Lock(id)
 	defer d.locker.Unlock(id)
 
+	return d.removeLocked(id)
+}
+
+func (d *Driver) removeLocked(id string) error {
 	dir := d.dir(id)
 	lid, err := ioutil.ReadFile(path.Join(dir, "link"))
 	if err == nil {
@@ -1253,6 +1273,8 @@ func (d *Driver) recreateSymlinks() error {
 			linkFile := filepath.Join(d.dir(targetID), "link")
 			data, err := ioutil.ReadFile(linkFile)
 			if err != nil || string(data) != link.Name() {
+				// NOTE: If two or more links point to the same target, we will update linkFile
+				// with every value of link.Name(), and set madeProgress = true every time.
 				if err := ioutil.WriteFile(linkFile, []byte(link.Name()), 0644); err != nil {
 					errs = multierror.Append(errs, errors.Wrapf(err, "correcting link for layer %s", targetID))
 					continue
