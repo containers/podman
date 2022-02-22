@@ -37,9 +37,6 @@ fi
 # while retaining the ability to include these if they so desire.
 
 # Some CI systems set this to runc, overriding the default crun.
-# Although it would be more elegant to override options in run_podman(),
-# we instead override $PODMAN itself because some tests (170-run-userns)
-# have to invoke $PODMAN directly.
 if [[ -n $OCI_RUNTIME ]]; then
     if [[ -z $CONTAINERS_CONF ]]; then
         # FIXME: BATS provides no mechanism for end-of-run cleanup[1]; how
@@ -111,6 +108,7 @@ function basic_teardown() {
     echo "# [teardown]" >&2
     run_podman '?' pod rm -t 0 --all --force --ignore
     run_podman '?'     rm -t 0 --all --force --ignore
+    run_podman '?' network prune --force
 
     command rm -rf $PODMAN_TMPDIR
 }

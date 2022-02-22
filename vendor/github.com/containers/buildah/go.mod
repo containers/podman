@@ -5,15 +5,15 @@ go 1.13
 require (
 	github.com/containerd/containerd v1.5.9
 	github.com/containernetworking/cni v1.0.1
-	github.com/containers/common v0.47.3
+	github.com/containers/common v0.47.4
 	github.com/containers/image/v5 v5.19.1
 	github.com/containers/ocicrypt v1.1.2
 	github.com/containers/storage v1.38.2
-	github.com/docker/distribution v2.7.1+incompatible
+	github.com/docker/distribution v2.8.0+incompatible
 	github.com/docker/docker v20.10.12+incompatible
 	github.com/docker/go-units v0.4.0
 	github.com/docker/libnetwork v0.8.0-dev.2.0.20190625141545-5a177b73e316
-	github.com/fsouza/go-dockerclient v1.7.7
+	github.com/fsouza/go-dockerclient v1.7.8
 	github.com/ghodss/yaml v1.0.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/ishidawataru/sctp v0.0.0-20210226210310-f2269e66cdee // indirect

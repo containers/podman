@@ -87,7 +87,7 @@ error pulling image "fedora": unable to pull fedora: error getting default regis
 ### 4) http: server gave HTTP response to HTTPS client
 
 When doing a Podman command such as `build`, `commit`, `pull`, or `push` to a registry,
-tls verification is turned on by default.  If authentication is not used with
+TLS verification is turned on by default.  If encryption is not used with
 those commands, this error can occur.
 
 #### Symptom
@@ -100,13 +100,13 @@ Get https://localhost:5000/v2/: http: server gave HTTP response to HTTPS client
 
 #### Solution
 
-By default tls verification is turned on when communicating to registries from
-Podman.  If the registry does not require authentication the Podman commands
-such as `build`, `commit`, `pull` and `push` will fail unless tls verification is turned
+By default TLS verification is turned on when communicating to registries from
+Podman.  If the registry does not require encryption the Podman commands
+such as `build`, `commit`, `pull` and `push` will fail unless TLS verification is turned
 off using the `--tls-verify` option.  **NOTE:** It is not at all recommended to
-communicate with a registry and not use tls verification.
+communicate with a registry and not use TLS verification.
 
-  * Turn off tls verification by passing false to the tls-verification option.
+  * Turn off TLS verification by passing false to the tls-verify option.
   * I.e. `podman push --tls-verify=false alpine docker://localhost:5000/myalpine:latest`
 
 ---
@@ -259,7 +259,8 @@ You should ensure that each user has a unique range of uids, because overlapping
 would potentially allow one user to attack another user. In addition, make sure
 that the range of uids you allocate can cover all uids that the container
 requires. For example, if the container has a user with uid 10000, ensure you
-have at least 10001 subuids.
+have at least 10001 subuids, and if the container needs to be run as a user with
+uid 1000000, ensure you have at least 1000001 subuids.
 
 You could also use the usermod program to assign UIDs to a user.
 
@@ -645,16 +646,26 @@ to mount volumes on them.
 Run the container once in read/write mode, Podman will generate all of the FDs on the rootfs, and
 from that point forward you can run with a read-only rootfs.
 
+```
 $ podman run --rm --rootfs /path/to/rootfs true
+```
 
 The command above will create all the missing directories needed to run the container.
 
 After that, it can be used in read only mode, by multiple containers at the same time:
 
+```
 $ podman run --read-only --rootfs /path/to/rootfs ....
+```
 
-Another option would be to create an overlay file system on the directory as a lower and then
-then allow podman to create the files on the upper.
+Another option is to use an Overlay Rootfs Mount:
+
+```
+$ podman run --rootfs /path/to/rootfs:O ....
+```
+
+Modifications to the mount point are destroyed when the container
+finishes executing, similar to a tmpfs mount point being unmounted.
 
 ### 26) Running containers with CPU limits fails with a permissions error
 

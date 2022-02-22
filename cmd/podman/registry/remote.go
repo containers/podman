@@ -30,6 +30,12 @@ func IsRemote() bool {
 		fs.Usage = func() {}
 		fs.SetInterspersed(false)
 		fs.BoolVarP(&remoteFromCLI.Value, "remote", "r", remote, "")
+		connectionFlagName := "connection"
+		ignoredConnection := ""
+		fs.StringVarP(&ignoredConnection, connectionFlagName, "c", "", "")
+		urlFlagName := "url"
+		ignoredURL := ""
+		fs.StringVar(&ignoredURL, urlFlagName, "", "")
 
 		// The shell completion logic will call a command called "__complete" or "__completeNoDesc"
 		// This command will always be the second argument
@@ -39,6 +45,8 @@ func IsRemote() bool {
 			start = 2
 		}
 		_ = fs.Parse(os.Args[start:])
+		// --connection or --url implies --remote
+		remoteFromCLI.Value = remoteFromCLI.Value || fs.Changed(connectionFlagName) || fs.Changed(urlFlagName)
 	})
 	return podmanOptions.EngineMode == entities.TunnelMode || remoteFromCLI.Value
 }

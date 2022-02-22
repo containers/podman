@@ -247,6 +247,7 @@ esac
 case "$TEST_FLAVOR" in
     ext_svc) ;;
     validate)
+        dnf install -y $PACKAGE_DOWNLOAD_DIR/python3*.rpm
         # For some reason, this is also needed for validation
         make .install.pre-commit
         ;;
@@ -257,7 +258,7 @@ case "$TEST_FLAVOR" in
         if [[ "$ALT_NAME" =~ RPM ]]; then
             bigto dnf install -y glibc-minimal-langpack go-rpm-macros rpkg rpm-build shadow-utils-subid-devel
         fi
-        ;&
+        ;;
     docker-py)
         remove_packaged_podman_files
         make install PREFIX=/usr ETCDIR=/etc

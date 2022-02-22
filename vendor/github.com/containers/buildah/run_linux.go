@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package buildah
@@ -874,9 +875,14 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 		}
 	}
 
+	runtimeArgs := options.Args[:]
+	if options.CgroupManager == config.SystemdCgroupsManager {
+		runtimeArgs = append(runtimeArgs, "--systemd-cgroup")
+	}
+
 	// Build the commands that we'll execute.
 	pidFile := filepath.Join(bundlePath, "pid")
-	args := append(append(append(options.Args, "create", "--bundle", bundlePath, "--pid-file", pidFile), moreCreateArgs...), containerName)
+	args := append(append(append(runtimeArgs, "create", "--bundle", bundlePath, "--pid-file", pidFile), moreCreateArgs...), containerName)
 	create := exec.Command(runtime, args...)
 	create.Dir = bundlePath
 	stdin, stdout, stderr := getCreateStdio()

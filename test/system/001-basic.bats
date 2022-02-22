@@ -33,6 +33,23 @@ function setup() {
     fi
 }
 
+@test "podman info" {
+    # These will be displayed on the test output stream, offering an
+    # at-a-glance overview of important system configuration details
+    local -a want=(
+        'Arch:{{.Host.Arch}}'
+        'OS:{{.Host.Distribution.Distribution}}{{.Host.Distribution.Version}}'
+        'Runtime:{{.Host.OCIRuntime.Name}}'
+        'Rootless:{{.Host.Security.Rootless}}'
+        'Events:{{.Host.EventLogger}}'
+        'Logdriver:{{.Host.LogDriver}}'
+        'Cgroups:{{.Host.CgroupsVersion}}+{{.Host.CgroupManager}}'
+        'Net:{{.Host.NetworkBackend}}'
+    )
+    run_podman info --format "$(IFS='/' echo ${want[@]})"
+    echo "# $output" >&3
+}
+
 
 @test "podman --context emits reasonable output" {
     # All we care about here is that the command passes
@@ -88,7 +105,8 @@ function setup() {
 
     # ...but no matter what, --remote is never allowed after subcommand
     PODMAN="${podman_non_remote} ${podman_args[@]}" run_podman 125 version --remote
-    is "$output" "Error: unknown flag: --remote" "podman version --remote"
+    is "$output" "Error: unknown flag: --remote
+See 'podman version --help'" "podman version --remote"
 }
 
 @test "podman-remote: defaults" {
@@ -107,6 +125,17 @@ function setup() {
     CONTAINER_CONNECTION=foobar run_podman --help
     if grep -- " --remote " <<<"$output"; then
         die "podman --help, with CONTAINER_CONNECTION set, is showing --remote"
+    fi
+
+    # When it detects --url or --connection, --remote is not an option
+    run_podman --url foobar --help
+    if grep -- " --remote " <<<"$output"; then
+        die "podman --help, with --url set, is showing --remote"
+    fi
+
+    run_podman --connection foobar --help
+    if grep -- " --remote " <<<"$output"; then
+        die "podman --help, with --connection set, is showing --remote"
     fi
 }
 
