@@ -5,7 +5,7 @@
 
 
 It seems once people master the basics of containers, networking is one of the first
-aspects they begin experimenting with.  And in regards to networking, it takes very
+aspects they begin experimenting with.  And regarding networking, it takes very
 little experimentation before ending up on the deep end of the pool.  The following
 guide shows the most common network setups for Podman rootfull and rootless containers.
 Each setup is supported with an example.
@@ -16,10 +16,10 @@ Each setup is supported with an example.
 One of the guiding factors on networking for containers with Podman is going to be
 whether or not the container is run by a root user or not.  This is because unprivileged
 users cannot create networking interfaces on the host.  Therefore, with rootfull
-containers, the default networking mode is to use the Container Network Interface
-(CNI) plugins and specifically the bridge plugin.  For rootless, the default network
+containers, the default networking mode is to use netavark.
+For rootless, the default network
 mode is slirp4netns. Because of the limited privileges, slirp4netns lacks some of
-the features of CNI networking; for example, slirp4netns cannot give containers a
+the features of networking; for example, slirp4netns cannot give containers a
 routable IP address.
 
 ## Firewalls
@@ -32,7 +32,7 @@ ports being opened automatically due to running a container with a port mapping 
 example).  If container traffic does not seem to work properly, check the firewall
 and allow traffic on ports the container is using. A common problem is that
 reloading the firewall deletes the cni iptables rules resulting in a loss of
-network connectivity for rootful containers. Podman v3 provides the podman
+network connectivity for rootfull containers. Podman v3 provides the podman
 network reload command to restore this without having to restart the container.
 
 ## Basic Network Setups
@@ -51,9 +51,9 @@ traffic.
 
 ### Bridge
 
-CNI defines a bridge network as where an internal network is created where both the
+A bridge network is defined as an internal network is created where both the
 container and host are attached.  Then this network is capable of allowing the containers
-to communicate outside of the host.
+to communicate outside the host.
 
 
 ![bridge_network](podman_bridge.png)
@@ -73,39 +73,32 @@ port be forwarded.
 
 Bridge networking is the default for Podman containers created as root. Podman provides
 a default bridge network, but you can create others using the `podman network create`
-command. Containers can be joined to a CNI network when they are created with the
+command. Containers can be joined to a network when they are created with the
 `--network` flag, or after they are created via the `podman network connect` and
 `podman network disconnect` commands.
 
 As mentioned earlier, slirp4netns is the default network configuration for rootless
-users.  But as of Podman version 3.0, rootless users can also use CNI networking.
-The user experience of rootless CNI is very akin to a rootfull CNI, except that
+users.  But as of Podman version 4.0, rootless users can also use netavark.
+The user experience of rootless netavark is very akin to a rootfull netavark, except that
 there is no default network configuration provided.  You simply need to create a
-network, and the one will be created as a bridge network.
+network, and the one will be created as a bridge network. If you would like to switch from
+CNI networking to netvaark, you must issue the `podman system reset --force` command.
+This will delete all of your images, containers, and custom networks.
 
 ```
 $ podman network create
 ```
 
-When rootless containers are run with a CNI networking configuration, CNI operations
+When rootless containers are run, network operations
 will be executed inside an extra network namespace. To join this namespace, use
-`podman unshare --rootless-cni`. Podman version 3.1 and earlier use a special “side-car”
-container called rootless-cni-infra. Do not remove this container while your rootless
-containers are running. If you remove this container (e.g. by accident), all attached
-containers lose network connectivity. In order to restore the network connectivity, all
-containers with networks must be restarted. This will automatically recreate the "side-car"
-container. When you are using version 3.2 or newer the “side-car” container can be
-safely removed. Therefore, it is no longer used.
-For rootfull containers, there is no extra namespace or “side-car” container
-as rootfull users have the permissions to create and modify network interfaces on
-the host.
+`podman unshare --rootless-netns`.
 
 #### Example
 
-By default, rootfull containers use the CNI bridge plugin for its default configuration.
+By default, rootfull containers use the netavark for its default network if
+you have not migrated from Podman v3.
 In this case, no network name must be passed to Podman.  However, you can create
-additional bridged networks with the podman create command.  In that case, you will
-have to set the network name.
+additional bridged networks with the podman create command.
 
 The following example shows how to set up a web server and expose it to the network
 outside the host as both rootfull and rootless.  It will also show how an outside
@@ -116,12 +109,6 @@ client can connect to the container.
 00f3440c7576aae2d5b193c40513c29c7964e96bf797cf0cc352c2b68ccbe66a
 ```
 
-As mentioned earlier, for rootless containers using CNI, a network must first be
-created.
-```
-$ podman network create
-/home/baude/.config/cni/net.d/cni-podman1.conflist
-```
 Now run the container.
 ```
 $ podman run -dt --name webserver --net cni-podman1 -p 8081:80 quay.io/libpod/banner
@@ -168,7 +155,9 @@ to be made for proper access.
 The following example demonstrates how to set up a web container on a macvlan and
 how to access that container from outside the host.  First, create the macvlan network.
  You need to know the network interface on the host that connects to the routable
-network.  In the example case, it is eth0.
+network.  In the example case, it is eth0.  In Podman v4.0 if you need to use a leasable
+address, you should continue to use CNI instead of netavark.
+
 ```
 $ sudo podman network create -d macvlan -o parent=eth0 webnetwork
 /etc/cni/net.d/webnetwork.conflist
