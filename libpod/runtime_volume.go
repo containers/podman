@@ -22,9 +22,6 @@ type VolumeFilter func(*Volume) bool
 
 // RemoveVolume removes a volumes
 func (r *Runtime) RemoveVolume(ctx context.Context, v *Volume, force bool, timeout *uint) error {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
 	if !r.valid {
 		return define.ErrRuntimeStopped
 	}
@@ -41,9 +38,6 @@ func (r *Runtime) RemoveVolume(ctx context.Context, v *Volume, force bool, timeo
 
 // GetVolume retrieves a volume given its full name.
 func (r *Runtime) GetVolume(name string) (*Volume, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
 	}
@@ -58,9 +52,6 @@ func (r *Runtime) GetVolume(name string) (*Volume, error) {
 
 // LookupVolume retrieves a volume by unambiguous partial name.
 func (r *Runtime) LookupVolume(name string) (*Volume, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
 	}
@@ -75,9 +66,6 @@ func (r *Runtime) LookupVolume(name string) (*Volume, error) {
 
 // HasVolume checks to see if a volume with the given name exists
 func (r *Runtime) HasVolume(name string) (bool, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
 	if !r.valid {
 		return false, define.ErrRuntimeStopped
 	}
@@ -90,9 +78,6 @@ func (r *Runtime) HasVolume(name string) (bool, error) {
 // output. If multiple filters are used, a volume will be returned if
 // any of the filters are matched
 func (r *Runtime) Volumes(filters ...VolumeFilter) ([]*Volume, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
 	}
@@ -123,9 +108,6 @@ func (r *Runtime) Volumes(filters ...VolumeFilter) ([]*Volume, error) {
 
 // GetAllVolumes retrieves all the volumes
 func (r *Runtime) GetAllVolumes() ([]*Volume, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
 	}
