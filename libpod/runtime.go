@@ -11,7 +11,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
@@ -109,7 +108,6 @@ type Runtime struct {
 	// and remains true until the runtime is shut down (rendering its
 	// storage unusable). When valid is false, the runtime cannot be used.
 	valid bool
-	lock  sync.RWMutex
 
 	// mechanism to read and write even logs
 	eventer events.Eventer
@@ -713,9 +711,6 @@ func (r *Runtime) TmpDir() (string, error) {
 // Note that the returned value is not a copy and must hence
 // only be used in a reading fashion.
 func (r *Runtime) GetConfigNoCopy() (*config.Config, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
 	}
@@ -810,9 +805,6 @@ func (r *Runtime) DeferredShutdown(force bool) {
 // cleaning up; if force is false, an error will be returned if there are
 // still containers running or mounted
 func (r *Runtime) Shutdown(force bool) error {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
 	if !r.valid {
 		return define.ErrRuntimeStopped
 	}
@@ -1016,9 +1008,6 @@ func (r *Runtime) RunRoot() string {
 // If the given ID does not correspond to any existing Pod or Container,
 // ErrNoSuchCtr is returned.
 func (r *Runtime) GetName(id string) (string, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
 	if !r.valid {
 		return "", define.ErrRuntimeStopped
 	}

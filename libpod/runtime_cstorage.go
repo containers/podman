@@ -21,9 +21,6 @@ type StorageContainer struct {
 
 // ListStorageContainers lists all containers visible to c/storage.
 func (r *Runtime) ListStorageContainers() ([]*StorageContainer, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
 	finalCtrs := []*StorageContainer{}
 
 	ctrs, err := r.store.Containers()
@@ -61,15 +58,6 @@ func (r *Runtime) StorageContainer(idOrName string) (*storage.Container, error) 
 // Accepts ID or full name of container.
 // If force is set, the container will be unmounted first to ensure removal.
 func (r *Runtime) RemoveStorageContainer(idOrName string, force bool) error {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
-	return r.removeStorageContainer(idOrName, force)
-}
-
-// Internal function to remove the container storage without
-// locking the runtime.
-func (r *Runtime) removeStorageContainer(idOrName string, force bool) error {
 	targetID, err := r.store.Lookup(idOrName)
 	if err != nil {
 		if errors.Cause(err) == storage.ErrLayerUnknown {

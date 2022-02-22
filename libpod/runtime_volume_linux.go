@@ -21,9 +21,6 @@ import (
 
 // NewVolume creates a new empty volume
 func (r *Runtime) NewVolume(ctx context.Context, options ...VolumeCreateOption) (*Volume, error) {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
 	}

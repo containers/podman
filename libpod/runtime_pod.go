@@ -27,9 +27,6 @@ type PodFilter func(*Pod) bool
 // being removed
 // Otherwise, the pod will not be removed if any containers are running
 func (r *Runtime) RemovePod(ctx context.Context, p *Pod, removeCtrs, force bool, timeout *uint) error {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
 	if !r.valid {
 		return define.ErrRuntimeStopped
 	}
@@ -50,9 +47,6 @@ func (r *Runtime) RemovePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 
 // GetPod retrieves a pod by its ID
 func (r *Runtime) GetPod(id string) (*Pod, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
 	}
@@ -62,9 +56,6 @@ func (r *Runtime) GetPod(id string) (*Pod, error) {
 
 // HasPod checks to see if a pod with the given ID exists
 func (r *Runtime) HasPod(id string) (bool, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
 	if !r.valid {
 		return false, define.ErrRuntimeStopped
 	}
@@ -75,9 +66,6 @@ func (r *Runtime) HasPod(id string) (bool, error) {
 // LookupPod retrieves a pod by its name or a partial ID
 // If a partial ID is not unique, an error will be returned
 func (r *Runtime) LookupPod(idOrName string) (*Pod, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
 	}
@@ -111,9 +99,6 @@ func (r *Runtime) Pods(filters ...PodFilter) ([]*Pod, error) {
 
 // GetAllPods retrieves all pods
 func (r *Runtime) GetAllPods() ([]*Pod, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
 	}
@@ -148,9 +133,6 @@ func (r *Runtime) GetRunningPods() ([]*Pod, error) {
 		pods        []string
 		runningPods []*Pod
 	)
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
 	}
