@@ -63,7 +63,7 @@ func init() {
 	})
 	flags := createCommand.Flags()
 	flags.SetInterspersed(false)
-	common.DefineCreateFlags(createCommand, &infraOptions, true)
+	common.DefineCreateFlags(createCommand, &infraOptions, true, false)
 	common.DefineNetFlags(createCommand)
 
 	flags.BoolVar(&createOptions.Infra, "infra", true, "Create an infra container associated with the pod to share namespaces with")

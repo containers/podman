@@ -264,6 +264,7 @@ type ContainerCreateOptions struct {
 	SeccompPolicy     string
 	PidFile           string
 	IsInfra           bool
+	IsClone           bool
 
 	Net *NetOptions `json:"net,omitempty"`
 

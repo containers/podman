@@ -8,6 +8,7 @@ import (
 
 	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	"github.com/containers/common/libimage"
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/namespaces"
@@ -22,7 +23,7 @@ import (
 // MakeContainer creates a container based on the SpecGenerator.
 // Returns the created, container and any warnings resulting from creating the
 // container, or an error.
-func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGenerator) (*spec.Spec, *specgen.SpecGenerator, []libpod.CtrCreateOption, error) {
+func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGenerator, clone bool, c *libpod.Container) (*spec.Spec, *specgen.SpecGenerator, []libpod.CtrCreateOption, error) {
 	rtc, err := rt.GetConfigNoCopy()
 	if err != nil {
 		return nil, nil, nil, err
@@ -170,6 +171,42 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		options = append(options, opts...)
 	}
 	runtimeSpec, err := SpecGenToOCI(ctx, s, rt, rtc, newImage, finalMounts, pod, command, compatibleOptions)
+	if clone { // the container fails to start if cloned due to missing Linux spec entries
+		if c == nil {
+			return nil, nil, nil, errors.New("the given container could not be retrieved")
+		}
+		conf := c.Config()
+		out, err := json.Marshal(conf.Spec.Linux)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		err = json.Unmarshal(out, runtimeSpec.Linux)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		switch {
+		case s.ResourceLimits.CPU != nil:
+			runtimeSpec.Linux.Resources.CPU = s.ResourceLimits.CPU
+		case s.ResourceLimits.Memory != nil:
+			runtimeSpec.Linux.Resources.Memory = s.ResourceLimits.Memory
+		case s.ResourceLimits.BlockIO != nil:
+			runtimeSpec.Linux.Resources.BlockIO = s.ResourceLimits.BlockIO
+		case s.ResourceLimits.Devices != nil:
+			runtimeSpec.Linux.Resources.Devices = s.ResourceLimits.Devices
+		}
+
+		cgroup2, err := cgroups.IsCgroup2UnifiedMode()
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		if cgroup2 && s.ResourceLimits.Memory != nil && s.ResourceLimits.Memory.Swappiness != nil { // conf.Spec.Linux contains memory swappiness established after the spec process we need to remove that
+			s.ResourceLimits.Memory.Swappiness = nil
+			if runtimeSpec.Linux.Resources.Memory != nil {
+				runtimeSpec.Linux.Resources.Memory.Swappiness = nil
+			}
+		}
+	}
 	if err != nil {
 		return nil, nil, nil, err
 	}

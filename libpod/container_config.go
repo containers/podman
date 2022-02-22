@@ -375,8 +375,8 @@ type ContainerMiscConfig struct {
 	IsInfra bool `json:"pause"`
 	// SdNotifyMode tells libpod what to do with a NOTIFY_SOCKET if passed
 	SdNotifyMode string `json:"sdnotifyMode,omitempty"`
-	// Systemd tells libpod to setup the container in systemd mode
-	Systemd bool `json:"systemd"`
+	// Systemd tells libpod to setup the container in systemd mode, a value of nil denotes false
+	Systemd *bool `json:"systemd,omitempty"`
 	// HealthCheckConfig has the health check command and related timings
 	HealthCheckConfig *manifest.Schema2HealthConfig `json:"healthcheck"`
 	// PreserveFDs is a number of additional file descriptors (in addition

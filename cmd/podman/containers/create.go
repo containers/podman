@@ -70,7 +70,7 @@ func createFlags(cmd *cobra.Command) {
 	)
 
 	flags.SetInterspersed(false)
-	common.DefineCreateFlags(cmd, &cliVals, false)
+	common.DefineCreateFlags(cmd, &cliVals, false, false)
 	common.DefineNetFlags(cmd)
 
 	flags.SetNormalizeFunc(utils.AliasFlags)

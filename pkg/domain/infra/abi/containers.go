@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -648,7 +649,7 @@ func (ic *ContainerEngine) ContainerCreate(ctx context.Context, s *specgen.SpecG
 	for _, w := range warn {
 		fmt.Fprintf(os.Stderr, "%s\n", w)
 	}
-	rtSpec, spec, opts, err := generate.MakeContainer(context.Background(), ic.Libpod, s)
+	rtSpec, spec, opts, err := generate.MakeContainer(context.Background(), ic.Libpod, s, false, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -971,7 +972,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 		fmt.Fprintf(os.Stderr, "%s\n", w)
 	}
 
-	rtSpec, spec, optsN, err := generate.MakeContainer(ctx, ic.Libpod, opts.Spec)
+	rtSpec, spec, optsN, err := generate.MakeContainer(ctx, ic.Libpod, opts.Spec, false, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1489,4 +1490,90 @@ func (ic *ContainerEngine) ContainerRename(ctx context.Context, nameOrID string,
 	}
 
 	return nil
+}
+
+func (ic *ContainerEngine) ContainerClone(ctx context.Context, ctrCloneOpts entities.ContainerCloneOptions) (*entities.ContainerCreateReport, error) {
+	spec := specgen.NewSpecGenerator(ctrCloneOpts.Image, ctrCloneOpts.CreateOpts.RootFS)
+	var c *libpod.Container
+	c, err := generate.ConfigToSpec(ic.Libpod, spec, ctrCloneOpts.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = specgenutil.FillOutSpecGen(spec, &ctrCloneOpts.CreateOpts, []string{})
+	if err != nil {
+		return nil, err
+	}
+	out, err := generate.CompleteSpec(ctx, ic.Libpod, spec)
+	if err != nil {
+		return nil, err
+	}
+
+	// Print warnings
+	if len(out) > 0 {
+		for _, w := range out {
+			fmt.Println("Could not properly complete the spec as expected:")
+			fmt.Fprintf(os.Stderr, "%s\n", w)
+		}
+	}
+
+	if len(ctrCloneOpts.CreateOpts.Name) > 0 {
+		spec.Name = ctrCloneOpts.CreateOpts.Name
+	} else {
+		n := c.Name()
+		_, err := ic.Libpod.LookupContainer(c.Name() + "-clone")
+		if err == nil {
+			n += "-clone"
+		}
+		switch {
+		case strings.Contains(n, "-clone"):
+			ind := strings.Index(n, "-clone") + 6
+			num, _ := strconv.Atoi(n[ind:])
+			if num == 0 { // clone1 is hard to get with this logic, just check for it here.
+				_, err = ic.Libpod.LookupContainer(n + "1")
+				if err != nil {
+					spec.Name = n + "1"
+					break
+				}
+			} else {
+				n = n[0:ind]
+			}
+			err = nil
+			count := num
+			for err == nil {
+				count++
+				tempN := n + strconv.Itoa(count)
+				_, err = ic.Libpod.LookupContainer(tempN)
+			}
+			n += strconv.Itoa(count)
+			spec.Name = n
+		default:
+			spec.Name = c.Name() + "-clone"
+		}
+	}
+
+	rtSpec, spec, opts, err := generate.MakeContainer(context.Background(), ic.Libpod, spec, true, c)
+	if err != nil {
+		return nil, err
+	}
+	ctr, err := generate.ExecuteCreate(ctx, ic.Libpod, rtSpec, spec, false, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	if ctrCloneOpts.Destroy {
+		var time *uint
+		err := ic.Libpod.RemoveContainer(context.Background(), c, false, false, time)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if ctrCloneOpts.Run {
+		if err := ctr.Start(ctx, true); err != nil {
+			return nil, err
+		}
+	}
+
+	return &entities.ContainerCreateReport{Id: ctr.ID()}, nil
 }

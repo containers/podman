@@ -392,7 +392,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		if err != nil {
 			return nil, err
 		}
-		rtSpec, spec, opts, err := generate.MakeContainer(ctx, ic.Libpod, specGen)
+		rtSpec, spec, opts, err := generate.MakeContainer(ctx, ic.Libpod, specGen, false, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -435,7 +435,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			if err != nil {
 				return nil, err
 			}
-			rtSpec, spec, opts, err := generate.MakeContainer(ctx, ic.Libpod, specGen)
+			rtSpec, spec, opts, err := generate.MakeContainer(ctx, ic.Libpod, specGen, false, nil)
 			if err != nil {
 				return nil, err
 			}

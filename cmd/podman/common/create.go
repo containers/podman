@@ -28,10 +28,10 @@ func ContainerToPodOptions(containerCreate *entities.ContainerCreateOptions, pod
 }
 
 // DefineCreateFlags declares and instantiates the container create flags
-func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, isInfra bool) {
+func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, isInfra bool, clone bool) {
 	createFlags := cmd.Flags()
 
-	if !isInfra {
+	if !isInfra && !clone { // regular create flags
 		annotationFlagName := "annotation"
 		createFlags.StringSliceVar(
 			&cf.Annotation,
@@ -103,45 +103,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(cgroupsFlagName, AutocompleteCgroupMode)
 
-		cpuPeriodFlagName := "cpu-period"
-		createFlags.Uint64Var(
-			&cf.CPUPeriod,
-			cpuPeriodFlagName, 0,
-			"Limit the CPU CFS (Completely Fair Scheduler) period",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(cpuPeriodFlagName, completion.AutocompleteNone)
-
-		cpuQuotaFlagName := "cpu-quota"
-		createFlags.Int64Var(
-			&cf.CPUQuota,
-			cpuQuotaFlagName, 0,
-			"Limit the CPU CFS (Completely Fair Scheduler) quota",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(cpuQuotaFlagName, completion.AutocompleteNone)
-
-		cpuRtPeriodFlagName := "cpu-rt-period"
-		createFlags.Uint64Var(
-			&cf.CPURTPeriod,
-			cpuRtPeriodFlagName, 0,
-			"Limit the CPU real-time period in microseconds",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(cpuRtPeriodFlagName, completion.AutocompleteNone)
-
-		cpuRtRuntimeFlagName := "cpu-rt-runtime"
-		createFlags.Int64Var(
-			&cf.CPURTRuntime,
-			cpuRtRuntimeFlagName, 0,
-			"Limit the CPU real-time runtime in microseconds",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(cpuRtRuntimeFlagName, completion.AutocompleteNone)
-
-		cpuSharesFlagName := "cpu-shares"
-		createFlags.Uint64Var(
-			&cf.CPUShares,
-			cpuSharesFlagName, 0,
-			"CPU shares (relative weight)",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(cpuSharesFlagName, completion.AutocompleteNone)
 		cidfileFlagName := "cidfile"
 		createFlags.StringVar(
 			&cf.CIDFile,
@@ -149,13 +110,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"Write the container ID to the file",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(cidfileFlagName, completion.AutocompleteDefault)
-		cpusetMemsFlagName := "cpuset-mems"
-		createFlags.StringVar(
-			&cf.CPUSetMems,
-			cpusetMemsFlagName, "",
-			"Memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(cpusetMemsFlagName, completion.AutocompleteNone)
 
 		deviceCgroupRuleFlagName := "device-cgroup-rule"
 		createFlags.StringSliceVar(
@@ -357,14 +311,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"Logging driver options",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(logOptFlagName, AutocompleteLogOpt)
-
-		memoryFlagName := "memory"
-		createFlags.StringVarP(
-			&cf.Memory,
-			memoryFlagName, "m", "",
-			"Memory limit "+sizeWithUnitFormat,
-		)
-		_ = cmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
 
 		memoryReservationFlagName := "memory-reservation"
 		createFlags.StringVar(
@@ -703,84 +649,243 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			`If a container with the same name exists, replace it`,
 		)
 	}
+	if isInfra || (!clone && !isInfra) { // infra container flags, create should also pick these up
+		sysctlFlagName := "sysctl"
+		createFlags.StringSliceVar(
+			&cf.Sysctl,
+			sysctlFlagName, []string{},
+			"Sysctl options",
+		)
+		//TODO: Add function for sysctl completion.
+		_ = cmd.RegisterFlagCompletionFunc(sysctlFlagName, completion.AutocompleteNone)
 
-	sysctlFlagName := "sysctl"
-	createFlags.StringSliceVar(
-		&cf.Sysctl,
-		sysctlFlagName, []string{},
-		"Sysctl options",
-	)
-	//TODO: Add function for sysctl completion.
-	_ = cmd.RegisterFlagCompletionFunc(sysctlFlagName, completion.AutocompleteNone)
+		securityOptFlagName := "security-opt"
+		createFlags.StringArrayVar(
+			&cf.SecurityOpt,
+			securityOptFlagName, []string{},
+			"Security Options",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(securityOptFlagName, AutocompleteSecurityOption)
 
-	securityOptFlagName := "security-opt"
-	createFlags.StringArrayVar(
-		&cf.SecurityOpt,
-		securityOptFlagName, []string{},
-		"Security Options",
-	)
-	_ = cmd.RegisterFlagCompletionFunc(securityOptFlagName, AutocompleteSecurityOption)
+		subgidnameFlagName := "subgidname"
+		createFlags.StringVar(
+			&cf.SubUIDName,
+			subgidnameFlagName, "",
+			"Name of range listed in /etc/subgid for use in user namespace",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(subgidnameFlagName, completion.AutocompleteSubgidName)
 
-	subgidnameFlagName := "subgidname"
-	createFlags.StringVar(
-		&cf.SubUIDName,
-		subgidnameFlagName, "",
-		"Name of range listed in /etc/subgid for use in user namespace",
-	)
-	_ = cmd.RegisterFlagCompletionFunc(subgidnameFlagName, completion.AutocompleteSubgidName)
+		subuidnameFlagName := "subuidname"
+		createFlags.StringVar(
+			&cf.SubGIDName,
+			subuidnameFlagName, "",
+			"Name of range listed in /etc/subuid for use in user namespace",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(subuidnameFlagName, completion.AutocompleteSubuidName)
 
-	subuidnameFlagName := "subuidname"
-	createFlags.StringVar(
-		&cf.SubGIDName,
-		subuidnameFlagName, "",
-		"Name of range listed in /etc/subuid for use in user namespace",
-	)
-	_ = cmd.RegisterFlagCompletionFunc(subuidnameFlagName, completion.AutocompleteSubuidName)
+		gidmapFlagName := "gidmap"
+		createFlags.StringSliceVar(
+			&cf.GIDMap,
+			gidmapFlagName, []string{},
+			"GID map to use for the user namespace",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(gidmapFlagName, completion.AutocompleteNone)
 
-	gidmapFlagName := "gidmap"
-	createFlags.StringSliceVar(
-		&cf.GIDMap,
-		gidmapFlagName, []string{},
-		"GID map to use for the user namespace",
-	)
-	_ = cmd.RegisterFlagCompletionFunc(gidmapFlagName, completion.AutocompleteNone)
+		uidmapFlagName := "uidmap"
+		createFlags.StringSliceVar(
+			&cf.UIDMap,
+			uidmapFlagName, []string{},
+			"UID map to use for the user namespace",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(uidmapFlagName, completion.AutocompleteNone)
 
-	uidmapFlagName := "uidmap"
-	createFlags.StringSliceVar(
-		&cf.UIDMap,
-		uidmapFlagName, []string{},
-		"UID map to use for the user namespace",
-	)
-	_ = cmd.RegisterFlagCompletionFunc(uidmapFlagName, completion.AutocompleteNone)
+		usernsFlagName := "userns"
+		createFlags.String(
+			usernsFlagName, os.Getenv("PODMAN_USERNS"),
+			"User namespace to use",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(usernsFlagName, AutocompleteUserNamespace)
 
-	usernsFlagName := "userns"
-	createFlags.String(
-		usernsFlagName, os.Getenv("PODMAN_USERNS"),
-		"User namespace to use",
-	)
-	_ = cmd.RegisterFlagCompletionFunc(usernsFlagName, AutocompleteUserNamespace)
+		cgroupParentFlagName := "cgroup-parent"
+		createFlags.StringVar(
+			&cf.CgroupParent,
+			cgroupParentFlagName, "",
+			"Optional parent cgroup for the container",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(cgroupParentFlagName, completion.AutocompleteDefault)
+		conmonPidfileFlagName := ""
+		if !isInfra {
+			conmonPidfileFlagName = "conmon-pidfile"
+		} else {
+			conmonPidfileFlagName = "infra-conmon-pidfile"
+		}
+		createFlags.StringVar(
+			&cf.ConmonPIDFile,
+			conmonPidfileFlagName, "",
+			"Path to the file that will receive the PID of conmon",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(conmonPidfileFlagName, completion.AutocompleteDefault)
 
-	cgroupParentFlagName := "cgroup-parent"
-	createFlags.StringVar(
-		&cf.CgroupParent,
-		cgroupParentFlagName, "",
-		"Optional parent cgroup for the container",
-	)
-	_ = cmd.RegisterFlagCompletionFunc(cgroupParentFlagName, completion.AutocompleteDefault)
+		entrypointFlagName := ""
+		if !isInfra {
+			entrypointFlagName = "entrypoint"
+		} else {
+			entrypointFlagName = "infra-command"
+		}
 
-	conmonPidfileFlagName := ""
-	if !isInfra {
-		conmonPidfileFlagName = "conmon-pidfile"
-	} else {
-		conmonPidfileFlagName = "infra-conmon-pidfile"
+		createFlags.String(entrypointFlagName, "",
+			"Overwrite the default ENTRYPOINT of the image",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(entrypointFlagName, completion.AutocompleteNone)
+
+		hostnameFlagName := "hostname"
+		createFlags.StringVarP(
+			&cf.Hostname,
+			hostnameFlagName, "h", "",
+			"Set container hostname",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(hostnameFlagName, completion.AutocompleteNone)
+
+		labelFlagName := "label"
+		createFlags.StringArrayVarP(
+			&cf.Label,
+			labelFlagName, "l", []string{},
+			"Set metadata on container",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(labelFlagName, completion.AutocompleteNone)
+
+		labelFileFlagName := "label-file"
+		createFlags.StringSliceVar(
+			&cf.LabelFile,
+			labelFileFlagName, []string{},
+			"Read in a line delimited file of labels",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(labelFileFlagName, completion.AutocompleteDefault)
+
+		if isInfra {
+			nameFlagName := "infra-name"
+			createFlags.StringVar(
+				&cf.Name,
+				nameFlagName, "",
+				"Assign a name to the container",
+			)
+			_ = cmd.RegisterFlagCompletionFunc(nameFlagName, completion.AutocompleteNone)
+		}
+
+		createFlags.Bool(
+			"help", false, "",
+		)
+
+		pidFlagName := "pid"
+		createFlags.StringVar(
+			&cf.PID,
+			pidFlagName, "",
+			"PID namespace to use",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(pidFlagName, AutocompleteNamespace)
+
+		volumeDesciption := "Bind mount a volume into the container"
+		if registry.IsRemote() {
+			volumeDesciption = "Bind mount a volume into the container. Volume source will be on the server machine, not the client"
+		}
+		volumeFlagName := "volume"
+		createFlags.StringArrayVarP(
+			&cf.Volume,
+			volumeFlagName, "v", volumes(),
+			volumeDesciption,
+		)
+		_ = cmd.RegisterFlagCompletionFunc(volumeFlagName, AutocompleteVolumeFlag)
+
+		deviceFlagName := "device"
+		createFlags.StringSliceVar(
+			&cf.Devices,
+			deviceFlagName, devices(),
+			"Add a host device to the container",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(deviceFlagName, completion.AutocompleteDefault)
+
+		deviceReadBpsFlagName := "device-read-bps"
+		createFlags.StringSliceVar(
+			&cf.DeviceReadBPs,
+			deviceReadBpsFlagName, []string{},
+			"Limit read rate (bytes per second) from a device (e.g. --device-read-bps=/dev/sda:1mb)",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(deviceReadBpsFlagName, completion.AutocompleteDefault)
+
+		volumesFromFlagName := "volumes-from"
+		createFlags.StringArrayVar(
+			&cf.VolumesFrom,
+			volumesFromFlagName, []string{},
+			"Mount volumes from the specified container(s)",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(volumesFromFlagName, AutocompleteContainers)
 	}
-	createFlags.StringVar(
-		&cf.ConmonPIDFile,
-		conmonPidfileFlagName, "",
-		"Path to the file that will receive the PID of conmon",
-	)
-	_ = cmd.RegisterFlagCompletionFunc(conmonPidfileFlagName, completion.AutocompleteDefault)
+	if clone || !isInfra { // clone and create only flags, we need this level of separation so clone does not pick up all of the flags
+		nameFlagName := "name"
+		createFlags.StringVar(
+			&cf.Name,
+			nameFlagName, "",
+			"Assign a name to the container",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(nameFlagName, completion.AutocompleteNone)
 
+		cpuPeriodFlagName := "cpu-period"
+		createFlags.Uint64Var(
+			&cf.CPUPeriod,
+			cpuPeriodFlagName, 0,
+			"Limit the CPU CFS (Completely Fair Scheduler) period",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(cpuPeriodFlagName, completion.AutocompleteNone)
+
+		cpuQuotaFlagName := "cpu-quota"
+		createFlags.Int64Var(
+			&cf.CPUQuota,
+			cpuQuotaFlagName, 0,
+			"Limit the CPU CFS (Completely Fair Scheduler) quota",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(cpuQuotaFlagName, completion.AutocompleteNone)
+
+		cpuRtPeriodFlagName := "cpu-rt-period"
+		createFlags.Uint64Var(
+			&cf.CPURTPeriod,
+			cpuRtPeriodFlagName, 0,
+			"Limit the CPU real-time period in microseconds",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(cpuRtPeriodFlagName, completion.AutocompleteNone)
+
+		cpuRtRuntimeFlagName := "cpu-rt-runtime"
+		createFlags.Int64Var(
+			&cf.CPURTRuntime,
+			cpuRtRuntimeFlagName, 0,
+			"Limit the CPU real-time runtime in microseconds",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(cpuRtRuntimeFlagName, completion.AutocompleteNone)
+
+		cpuSharesFlagName := "cpu-shares"
+		createFlags.Uint64Var(
+			&cf.CPUShares,
+			cpuSharesFlagName, 0,
+			"CPU shares (relative weight)",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(cpuSharesFlagName, completion.AutocompleteNone)
+
+		cpusetMemsFlagName := "cpuset-mems"
+		createFlags.StringVar(
+			&cf.CPUSetMems,
+			cpusetMemsFlagName, "",
+			"Memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(cpusetMemsFlagName, completion.AutocompleteNone)
+
+		memoryFlagName := "memory"
+		createFlags.StringVarP(
+			&cf.Memory,
+			memoryFlagName, "m", "",
+			"Memory limit "+sizeWithUnitFormat,
+		)
+		_ = cmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
+	}
+	//anyone can use these
 	cpusFlagName := "cpus"
 	createFlags.Float64Var(
 		&cf.CPUS,
@@ -796,106 +901,4 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		"CPUs in which to allow execution (0-3, 0,1)",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(cpusetCpusFlagName, completion.AutocompleteNone)
-
-	entrypointFlagName := ""
-	if !isInfra {
-		entrypointFlagName = "entrypoint"
-	} else {
-		entrypointFlagName = "infra-command"
-	}
-
-	createFlags.String(entrypointFlagName, "",
-		"Overwrite the default ENTRYPOINT of the image",
-	)
-	_ = cmd.RegisterFlagCompletionFunc(entrypointFlagName, completion.AutocompleteNone)
-
-	hostnameFlagName := "hostname"
-	createFlags.StringVarP(
-		&cf.Hostname,
-		hostnameFlagName, "h", "",
-		"Set container hostname",
-	)
-	_ = cmd.RegisterFlagCompletionFunc(hostnameFlagName, completion.AutocompleteNone)
-
-	labelFlagName := "label"
-	createFlags.StringArrayVarP(
-		&cf.Label,
-		labelFlagName, "l", []string{},
-		"Set metadata on container",
-	)
-	_ = cmd.RegisterFlagCompletionFunc(labelFlagName, completion.AutocompleteNone)
-
-	labelFileFlagName := "label-file"
-	createFlags.StringSliceVar(
-		&cf.LabelFile,
-		labelFileFlagName, []string{},
-		"Read in a line delimited file of labels",
-	)
-	_ = cmd.RegisterFlagCompletionFunc(labelFileFlagName, completion.AutocompleteDefault)
-
-	nameFlagName := ""
-	if !isInfra {
-		nameFlagName = "name"
-		createFlags.StringVar(
-			&cf.Name,
-			nameFlagName, "",
-			"Assign a name to the container",
-		)
-	} else {
-		nameFlagName = "infra-name"
-		createFlags.StringVar(
-			&cf.Name,
-			nameFlagName, "",
-			"Assign a name to the container",
-		)
-	}
-	_ = cmd.RegisterFlagCompletionFunc(nameFlagName, completion.AutocompleteNone)
-
-	createFlags.Bool(
-		"help", false, "",
-	)
-
-	pidFlagName := "pid"
-	createFlags.StringVar(
-		&cf.PID,
-		pidFlagName, "",
-		"PID namespace to use",
-	)
-	_ = cmd.RegisterFlagCompletionFunc(pidFlagName, AutocompleteNamespace)
-
-	volumeDesciption := "Bind mount a volume into the container"
-	if registry.IsRemote() {
-		volumeDesciption = "Bind mount a volume into the container. Volume source will be on the server machine, not the client"
-	}
-	volumeFlagName := "volume"
-	createFlags.StringArrayVarP(
-		&cf.Volume,
-		volumeFlagName, "v", volumes(),
-		volumeDesciption,
-	)
-	_ = cmd.RegisterFlagCompletionFunc(volumeFlagName, AutocompleteVolumeFlag)
-
-	deviceFlagName := "device"
-	createFlags.StringSliceVar(
-		&cf.Devices,
-		deviceFlagName, devices(),
-		"Add a host device to the container",
-	)
-	_ = cmd.RegisterFlagCompletionFunc(deviceFlagName, completion.AutocompleteDefault)
-
-	deviceReadBpsFlagName := "device-read-bps"
-	createFlags.StringSliceVar(
-		&cf.DeviceReadBPs,
-		deviceReadBpsFlagName, []string{},
-		"Limit read rate (bytes per second) from a device (e.g. --device-read-bps=/dev/sda:1mb)",
-	)
-	_ = cmd.RegisterFlagCompletionFunc(deviceReadBpsFlagName, completion.AutocompleteDefault)
-
-	volumesFromFlagName := "volumes-from"
-	createFlags.StringArrayVar(
-		&cf.VolumesFrom,
-		volumesFromFlagName, []string{},
-		"Mount volumes from the specified container(s)",
-	)
-	_ = cmd.RegisterFlagCompletionFunc(volumesFromFlagName, AutocompleteContainers)
 }

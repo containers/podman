@@ -566,7 +566,8 @@ func WithSystemd() CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		ctr.config.Systemd = true
+		t := true
+		ctr.config.Systemd = &t
 		return nil
 	}
 }

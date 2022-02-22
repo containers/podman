@@ -346,7 +346,7 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 	ctrConfig.Timeout = c.config.Timeout
 	ctrConfig.OpenStdin = c.config.Stdin
 	ctrConfig.Image = c.config.RootfsImageName
-	ctrConfig.SystemdMode = c.config.Systemd
+	ctrConfig.SystemdMode = c.Systemd()
 
 	// Leave empty is not explicitly overwritten by user
 	if len(c.config.Command) != 0 {

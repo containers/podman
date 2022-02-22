@@ -557,7 +557,7 @@ func (c *Container) setupStorage(ctx context.Context) error {
 }
 
 func (c *Container) processLabel(processLabel string) (string, error) {
-	if !c.config.Systemd && !c.ociRuntime.SupportsKVM() {
+	if !c.Systemd() && !c.ociRuntime.SupportsKVM() {
 		return processLabel, nil
 	}
 	ctrSpec, err := c.specFromState()
@@ -569,7 +569,7 @@ func (c *Container) processLabel(processLabel string) (string, error) {
 		switch {
 		case c.ociRuntime.SupportsKVM():
 			return selinux.KVMLabel(processLabel)
-		case c.config.Systemd:
+		case c.Systemd():
 			return selinux.InitLabel(processLabel)
 		}
 	}
