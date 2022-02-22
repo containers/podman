@@ -60,6 +60,11 @@ Set commit message for committed image.\
 Pause the container when creating an image.\
 The default is **false**.
 
+#### **--squash**, **-s**
+
+Squash newly built layers into a single new layer.\
+The default is **false**.
+
 #### **--quiet**, **-q**
 
 Suppresses output.\

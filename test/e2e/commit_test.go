@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -131,6 +132,23 @@ var _ = Describe("Podman commit", func() {
 			}
 		}
 		Expect(foundBlue).To(Equal(true))
+	})
+
+	It("podman commit container with --squash", func() {
+		test := podmanTest.Podman([]string{"run", "--name", "test1", "-d", ALPINE, "ls"})
+		test.WaitWithDefaultTimeout()
+		Expect(test).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+		session := podmanTest.Podman([]string{"commit", "--squash", "test1", "foobar.com/test1-image:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RootFS.Layers}}", "foobar.com/test1-image:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		// Check for one layers
+		Expect(strings.Fields(session.OutputToString())).To(HaveLen(1))
 	})
 
 	It("podman commit container with change flag and JSON entrypoint with =", func() {

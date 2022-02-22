@@ -92,6 +92,21 @@ func (o *CommitOptions) GetPause() bool {
 	return *o.Pause
 }
 
+// WithSquash set field Squash to given value
+func (o *CommitOptions) WithSquash(value bool) *CommitOptions {
+	o.Squash = &value
+	return o
+}
+
+// GetSquash returns value of field Squash
+func (o *CommitOptions) GetSquash() bool {
+	if o.Squash == nil {
+		var z bool
+		return z
+	}
+	return *o.Squash
+}
+
 // WithRepo set field Repo to given value
 func (o *CommitOptions) WithRepo(value string) *CommitOptions {
 	o.Repo = &value

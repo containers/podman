@@ -27,6 +27,7 @@ type ContainerCommitOptions struct {
 	Author         string
 	Message        string
 	Changes        []string
+	Squash         bool
 }
 
 // Commit commits the changes between a container and its image, creating a new
@@ -63,6 +64,7 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 	commitOptions := buildah.CommitOptions{
 		SignaturePolicyPath:   options.SignaturePolicyPath,
 		ReportWriter:          options.ReportWriter,
+		Squash:                options.Squash,
 		SystemContext:         c.runtime.imageContext,
 		PreferredManifestType: options.PreferredManifestType,
 	}
