@@ -34,6 +34,10 @@ func ValidateVolumeOpts(options []string) ([]string, error) {
 			finalOpts = append(finalOpts, opt)
 			continue
 		}
+		if strings.HasPrefix(opt, "idmap") {
+			finalOpts = append(finalOpts, opt)
+			continue
+		}
 
 		switch opt {
 		case "noexec", "exec":
@@ -84,7 +88,6 @@ func ValidateVolumeOpts(options []string) ([]string, error) {
 			// are intended to be always safe to use, even not on OS
 			// X).
 			continue
-		case "idmap":
 		default:
 			return nil, errors.Errorf("invalid option type %q", opt)
 		}

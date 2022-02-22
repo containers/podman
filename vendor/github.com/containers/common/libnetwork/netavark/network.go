@@ -12,6 +12,7 @@ import (
 
 	"github.com/containers/common/libnetwork/internal/util"
 	"github.com/containers/common/libnetwork/types"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/pkg/errors"
@@ -37,6 +38,9 @@ type netavarkNetwork struct {
 	defaultNetwork string
 	// defaultSubnet is the default subnet for the default network.
 	defaultSubnet types.IPNet
+
+	// defaultsubnetPools contains the subnets which must be used to allocate a free subnet by network create
+	defaultsubnetPools []config.SubnetPool
 
 	// ipamDBPath is the path to the ip allocation bolt db
 	ipamDBPath string
@@ -71,6 +75,9 @@ type InitConfig struct {
 	DefaultNetwork string
 	// DefaultSubnet is the default subnet for the default network.
 	DefaultSubnet string
+
+	// DefaultsubnetPools contains the subnets which must be used to allocate a free subnet by network create
+	DefaultsubnetPools []config.SubnetPool
 
 	// Syslog describes whenever the netavark debbug output should be log to the syslog as well.
 	// This will use logrus to do so, make sure logrus is set up to log to the syslog.
@@ -108,17 +115,23 @@ func NewNetworkInterface(conf *InitConfig) (types.ContainerNetwork, error) {
 		return nil, err
 	}
 
+	defaultSubnetPools := conf.DefaultsubnetPools
+	if defaultSubnetPools == nil {
+		defaultSubnetPools = config.DefaultSubnetPools
+	}
+
 	n := &netavarkNetwork{
-		networkConfigDir: conf.NetworkConfigDir,
-		networkRunDir:    conf.NetworkRunDir,
-		netavarkBinary:   conf.NetavarkBinary,
-		aardvarkBinary:   conf.AardvarkBinary,
-		networkRootless:  unshare.IsRootless(),
-		ipamDBPath:       filepath.Join(conf.NetworkRunDir, "ipam.db"),
-		defaultNetwork:   defaultNetworkName,
-		defaultSubnet:    defaultNet,
-		lock:             lock,
-		syslog:           conf.Syslog,
+		networkConfigDir:   conf.NetworkConfigDir,
+		networkRunDir:      conf.NetworkRunDir,
+		netavarkBinary:     conf.NetavarkBinary,
+		aardvarkBinary:     conf.AardvarkBinary,
+		networkRootless:    unshare.IsRootless(),
+		ipamDBPath:         filepath.Join(conf.NetworkRunDir, "ipam.db"),
+		defaultNetwork:     defaultNetworkName,
+		defaultSubnet:      defaultNet,
+		defaultsubnetPools: defaultSubnetPools,
+		lock:               lock,
+		syslog:             conf.Syslog,
 	}
 
 	return n, nil

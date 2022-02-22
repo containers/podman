@@ -3,12 +3,14 @@ package config
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
 
+	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/cgroupv2"
 	"github.com/containers/common/pkg/util"
@@ -85,7 +87,25 @@ var (
 		"/usr/lib/cni",
 		"/opt/cni/bin",
 	}
+	DefaultSubnetPools = []SubnetPool{
+		// 10.89.0.0/24-10.255.255.0/24
+		parseSubnetPool("10.89.0.0/16", 24),
+		parseSubnetPool("10.90.0.0/15", 24),
+		parseSubnetPool("10.92.0.0/14", 24),
+		parseSubnetPool("10.96.0.0/11", 24),
+		parseSubnetPool("10.128.0.0/9", 24),
+	}
 )
+
+// nolint:unparam
+func parseSubnetPool(subnet string, size int) SubnetPool {
+	_, n, _ := net.ParseCIDR(subnet)
+	return SubnetPool{
+		Base: &nettypes.IPNet{IPNet: *n},
+		Size: size,
+	}
+
+}
 
 const (
 	// _etcDir is the sysconfdir where podman should look for system config files.
@@ -111,7 +131,7 @@ const (
 	// DefaultSignaturePolicyPath is the default value for the
 	// policy.json file.
 	DefaultSignaturePolicyPath = "/etc/containers/policy.json"
-	// DefaultSubnet is the subnet that will be used for the default CNI
+	// DefaultSubnet is the subnet that will be used for the default
 	// network.
 	DefaultSubnet = "10.88.0.0/16"
 	// DefaultRootlessSignaturePolicyPath is the location within
@@ -195,9 +215,10 @@ func DefaultConfig() (*Config, error) {
 			UserNSSize: DefaultUserNSSize,
 		},
 		Network: NetworkConfig{
-			DefaultNetwork: "podman",
-			DefaultSubnet:  DefaultSubnet,
-			CNIPluginDirs:  DefaultCNIPluginDirs,
+			DefaultNetwork:     "podman",
+			DefaultSubnet:      DefaultSubnet,
+			DefaultSubnetPools: DefaultSubnetPools,
+			CNIPluginDirs:      DefaultCNIPluginDirs,
 		},
 		Engine:  *defaultEngineConfig,
 		Secrets: defaultSecretConfig(),
@@ -385,15 +406,14 @@ func probeConmon(conmonBinary string) error {
 	cmd := exec.Command(conmonBinary, "--version")
 	var out bytes.Buffer
 	cmd.Stdout = &out
-	err := cmd.Run()
-	if err != nil {
+	if err := cmd.Run(); err != nil {
 		return err
 	}
 	r := regexp.MustCompile(`^conmon version (?P<Major>\d+).(?P<Minor>\d+).(?P<Patch>\d+)`)
 
 	matches := r.FindStringSubmatch(out.String())
 	if len(matches) != 4 {
-		return errors.Wrap(err, _conmonVersionFormatErr)
+		return errors.New(_conmonVersionFormatErr)
 	}
 	major, err := strconv.Atoi(matches[1])
 	if err != nil {

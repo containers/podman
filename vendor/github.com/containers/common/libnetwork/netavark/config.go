@@ -83,7 +83,7 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 
 	switch newNetwork.Driver {
 	case types.BridgeNetworkDriver:
-		err = internalutil.CreateBridge(n, newNetwork, usedNetworks)
+		err = internalutil.CreateBridge(n, newNetwork, usedNetworks, n.defaultsubnetPools)
 		if err != nil {
 			return nil, err
 		}

@@ -12,7 +12,7 @@ require (
 	github.com/containernetworking/cni v1.0.1
 	github.com/containernetworking/plugins v1.0.1
 	github.com/containers/buildah v1.24.2
-	github.com/containers/common v0.47.4
+	github.com/containers/common v0.47.5-0.20220222185251-194ee74231c3
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.19.1
 	github.com/containers/ocicrypt v1.1.2
@@ -70,8 +70,8 @@ require (
 	golang.org/x/text v0.3.7
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
-	k8s.io/api v0.22.4
-	k8s.io/apimachinery v0.22.4
+	k8s.io/api v0.22.5
+	k8s.io/apimachinery v0.22.5
 )
 
 replace github.com/onsi/gomega => github.com/onsi/gomega v1.16.0

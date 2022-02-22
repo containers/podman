@@ -69,7 +69,7 @@ func (n *cniNetwork) networkCreate(newNetwork *types.Network, defaultNet bool) (
 
 	switch newNetwork.Driver {
 	case types.BridgeNetworkDriver:
-		err = internalutil.CreateBridge(n, newNetwork, usedNetworks)
+		err = internalutil.CreateBridge(n, newNetwork, usedNetworks, n.defaultsubnetPools)
 		if err != nil {
 			return nil, err
 		}

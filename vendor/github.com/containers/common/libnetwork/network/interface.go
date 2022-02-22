@@ -82,13 +82,14 @@ func NetworkBackend(store storage.Store, conf *config.Config, syslog bool) (type
 		}
 
 		netInt, err := netavark.NewNetworkInterface(&netavark.InitConfig{
-			NetworkConfigDir: confDir,
-			NetworkRunDir:    runDir,
-			NetavarkBinary:   netavarkBin,
-			AardvarkBinary:   aardvarkBin,
-			DefaultNetwork:   conf.Network.DefaultNetwork,
-			DefaultSubnet:    conf.Network.DefaultSubnet,
-			Syslog:           syslog,
+			NetworkConfigDir:   confDir,
+			NetworkRunDir:      runDir,
+			NetavarkBinary:     netavarkBin,
+			AardvarkBinary:     aardvarkBin,
+			DefaultNetwork:     conf.Network.DefaultNetwork,
+			DefaultSubnet:      conf.Network.DefaultSubnet,
+			DefaultsubnetPools: conf.Network.DefaultSubnetPools,
+			Syslog:             syslog,
 		})
 		return types.Netavark, netInt, err
 	case types.CNI:
@@ -171,11 +172,12 @@ func getCniInterface(conf *config.Config) (types.ContainerNetwork, error) {
 		}
 	}
 	return cni.NewCNINetworkInterface(&cni.InitConfig{
-		CNIConfigDir:   confDir,
-		CNIPluginDirs:  conf.Network.CNIPluginDirs,
-		DefaultNetwork: conf.Network.DefaultNetwork,
-		DefaultSubnet:  conf.Network.DefaultSubnet,
-		IsMachine:      conf.Engine.MachineEnabled,
+		CNIConfigDir:       confDir,
+		CNIPluginDirs:      conf.Network.CNIPluginDirs,
+		DefaultNetwork:     conf.Network.DefaultNetwork,
+		DefaultSubnet:      conf.Network.DefaultSubnet,
+		DefaultsubnetPools: conf.Network.DefaultSubnetPools,
+		IsMachine:          conf.Engine.MachineEnabled,
 	})
 }
 

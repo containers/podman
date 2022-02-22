@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/BurntSushi/toml"
+	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/storage/pkg/unshare"
 	units "github.com/docker/go-units"
@@ -486,18 +487,34 @@ type NetworkConfig struct {
 	// CNIPluginDirs is where CNI plugin binaries are stored.
 	CNIPluginDirs []string `toml:"cni_plugin_dirs,omitempty"`
 
-	// DefaultNetwork is the network name of the default CNI network
+	// DefaultNetwork is the network name of the default network
 	// to attach pods to.
 	DefaultNetwork string `toml:"default_network,omitempty"`
 
-	// DefaultSubnet is the subnet to be used for the default CNI network.
+	// DefaultSubnet is the subnet to be used for the default network.
 	// If a network with the name given in DefaultNetwork is not present
 	// then a new network using this subnet will be created.
 	// Must be a valid IPv4 CIDR block.
 	DefaultSubnet string `toml:"default_subnet,omitempty"`
 
-	// NetworkConfigDir is where CNI network configuration files are stored.
+	// DefaultSubnetPools is a list of subnets and size which are used to
+	// allocate subnets automatically for podman network create.
+	// It will iterate through the list and will pick the first free subnet
+	// with the given size. This is only used for ipv4 subnets, ipv6 subnets
+	// are always assigned randomly.
+	DefaultSubnetPools []SubnetPool `toml:"default_subnet_pools,omitempty"`
+
+	// NetworkConfigDir is where network configuration files are stored.
 	NetworkConfigDir string `toml:"network_config_dir,omitempty"`
+}
+
+type SubnetPool struct {
+	// Base is a bigger subnet which will be used to allocate a subnet with
+	// the given size.
+	Base *types.IPNet `toml:"base,omitempty"`
+	// Size is the CIDR for the new subnet. It must be equal or small
+	// than the CIDR from the base subnet.
+	Size int `toml:"size,omitempty"`
 }
 
 // SecretConfig represents the "secret" TOML config table
@@ -830,6 +847,21 @@ func (c *ContainersConfig) Validate() error {
 // execution checks. It returns an `error` on validation failure, otherwise
 // `nil`.
 func (c *NetworkConfig) Validate() error {
+	if &c.DefaultSubnetPools != &DefaultSubnetPools {
+		for _, pool := range c.DefaultSubnetPools {
+			if pool.Base.IP.To4() == nil {
+				return errors.Errorf("invalid subnet pool ip %q", pool.Base.IP)
+			}
+			ones, _ := pool.Base.IPNet.Mask.Size()
+			if ones > pool.Size {
+				return errors.Errorf("invalid subnet pool, size is bigger than subnet %q", &pool.Base.IPNet)
+			}
+			if pool.Size > 32 {
+				return errors.New("invalid subnet pool size, must be between 0-32")
+			}
+		}
+	}
+
 	if stringsEq(c.CNIPluginDirs, DefaultCNIPluginDirs) {
 		return nil
 	}
