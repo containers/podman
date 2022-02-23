@@ -21,7 +21,7 @@ import (
 // PolicyContent struct for policy.json file
 type PolicyContent struct {
 	Default    []RepoContent     `json:"default"`
-	Transports TransportsContent `json:"transports"`
+	Transports TransportsContent `json:"transports,omitempty"`
 }
 
 // RepoContent struct used under each repo
