@@ -33,6 +33,7 @@ var (
 	validSpecVersions = map[string]struct{}{
 		"0.1.0": {},
 		"0.2.0": {},
+		"0.3.0": {},
 	}
 )
 
@@ -120,14 +121,18 @@ func (s *Spec) GetPriority() int {
 
 // ApplyEdits applies the Spec's global-scope container edits to an OCI Spec.
 func (s *Spec) ApplyEdits(ociSpec *oci.Spec) error {
-	e := ContainerEdits{&s.ContainerEdits}
-	return e.Apply(ociSpec)
+	return s.edits().Apply(ociSpec)
+}
+
+// edits returns the applicable global container edits for this spec.
+func (s *Spec) edits() *ContainerEdits {
+	return &ContainerEdits{&s.ContainerEdits}
 }
 
 // Validate the Spec.
 func (s *Spec) validate() (map[string]*Device, error) {
-	if _, ok := validSpecVersions[s.Version]; !ok {
-		return nil, errors.Errorf("invalid version %q", s.Version)
+	if err := validateVersion(s.Version); err != nil {
+		return nil, err
 	}
 	if err := ValidateVendorName(s.vendor); err != nil {
 		return nil, err
@@ -135,8 +140,7 @@ func (s *Spec) validate() (map[string]*Device, error) {
 	if err := ValidateClassName(s.class); err != nil {
 		return nil, err
 	}
-	edits := &ContainerEdits{&s.ContainerEdits}
-	if err := edits.Validate(); err != nil {
+	if err := s.edits().Validate(); err != nil {
 		return nil, err
 	}
 
@@ -153,6 +157,15 @@ func (s *Spec) validate() (map[string]*Device, error) {
 	}
 
 	return devices, nil
+}
+
+// validateVersion checks whether the specified spec version is supported.
+func validateVersion(version string) error {
+	if _, ok := validSpecVersions[version]; !ok {
+		return errors.Errorf("invalid version %q", version)
+	}
+
+	return nil
 }
 
 // Parse raw CDI Spec file data.
