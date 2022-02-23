@@ -51,6 +51,17 @@ func (c *Container) Inspect(size bool) (*define.InspectContainerData, error) {
 	return c.inspectLocked(size)
 }
 
+func (c *Container) volumesFrom() ([]string, error) {
+	ctrSpec, err := c.specFromState()
+	if err != nil {
+		return nil, err
+	}
+	if ctrs, ok := ctrSpec.Annotations[define.InspectAnnotationVolumesFrom]; ok {
+		return strings.Split(ctrs, ","), nil
+	}
+	return nil, nil
+}
+
 func (c *Container) getContainerInspectData(size bool, driverData *define.DriverData) (*define.InspectContainerData, error) {
 	config := c.config
 	runtimeInfo := c.state
