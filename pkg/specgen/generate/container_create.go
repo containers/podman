@@ -267,7 +267,16 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 				"/usr/sbin/init":       true,
 				"/usr/local/sbin/init": true,
 			}
-			if useSystemdCommands[command[0]] || (filepath.Base(command[0]) == "systemd") {
+			// Grab last command incase this is launched from a shell
+			cmd := command
+			if len(command) > 2 {
+				// Podman build will add "/bin/sh" "-c" to
+				// Entrypoint. Remove and search for systemd
+				if command[0] == "/bin/sh" && command[1] == "-c" {
+					cmd = command[2:]
+				}
+			}
+			if useSystemdCommands[cmd[0]] || (filepath.Base(cmd[0]) == "systemd") {
 				useSystemd = true
 			}
 		}
