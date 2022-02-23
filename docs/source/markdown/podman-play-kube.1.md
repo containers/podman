@@ -72,9 +72,11 @@ disable builds.
 
 `Kubernetes ConfigMap`
 
-Kubernetes ConfigMap can be referred as a source of environment variables in Pods or Deployments.
+Kubernetes ConfigMap can be referred as a source of environment variables or volumes in Pods or Deployments.
+ConfigMaps aren't a standalone object in Podman; instead, when a container uses a ConfigMap, Podman will create environment variables or volumes as needed.
 
-For example ConfigMap defined in following YAML:
+For example, the following YAML document defines a ConfigMap and then uses it in a Pod:
+
 ```
 apiVersion: v1
 kind: ConfigMap
@@ -82,14 +84,11 @@ metadata:
   name: foo
 data:
     FOO: bar
-```
-
-can be referred in a Pod in following way:
-```
+---
 apiVersion: v1
 kind: Pod
 metadata:
-...
+  name: foobar
 spec:
   containers:
   - command:

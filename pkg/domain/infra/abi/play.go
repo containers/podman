@@ -128,6 +128,9 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 	}
 
 	if validKinds == 0 {
+		if len(configMaps) > 0 {
+			return nil, fmt.Errorf("ConfigMaps in podman are not a standalone object and must be used in a container")
+		}
 		return nil, fmt.Errorf("YAML document does not contain any supported kube kind")
 	}
 
