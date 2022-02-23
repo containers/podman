@@ -63,14 +63,17 @@ function teardown() {
 
     run_podman rm -t 0 -f mystty
 
-    # FIXME: the checks below are flaking a lot (see #10710).
-
     # check that the same works for podman exec
-#    run_podman run -d --name mystty $IMAGE top
-#    run_podman exec -it mystty stty size <$PODMAN_TEST_PTY
-#    is "$output" "$rows $cols" "stty under podman exec reads the correct dimensions"
-#
-#    run_podman rm -t 0 -f mystty
+    # FIXME: 2022-02-23: these lines reenabled after months of flaking (#10710,
+    #    "stty: standard input"). Ed can no longer reproduce the failure, so
+    #    we'll try to reenable. If the flake recurs, just comment out all the
+    #    lines below. If it is July 2022 or later, and the flake is gone,
+    #    please remove this comment.
+    run_podman run -d --name mystty $IMAGE top
+    run_podman exec -it mystty stty size <$PODMAN_TEST_PTY
+    is "$output" "$rows $cols$CR" "stty under podman exec reads the correct dimensions"
+
+    run_podman rm -t 0 -f mystty
 }
 
 
