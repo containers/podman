@@ -914,10 +914,25 @@ Error: error creating tmpdir: mkdir /run/user/1000: permission denied
 
 Podman expects a valid login session for the `rootless+cgroupv2` use-case. Podman execution is expected to fail if the login session is not present. In most cases, podman will figure out a solution on its own but if `XDG_RUNTIME_DIR` is pointing to a path that is not writable execution will most fail. Typical scenarious of such cases are seen when users are trying to use Podman with `su - <user> -c '<podman-command>`, or `sudo -l` and badly configured systemd session.
 
-Resolution steps
+Alternatives:
+
+* Execute Podman via __systemd-run__ that will first start a systemd login session:
+
+  ```
+  sudo systemd-run --machine=username@ --quiet --user --collect --pipe --wait podman run --rm docker.io/library/alpine echo hello
+  ```
+* Start an interactive shell in a systemd login session with the command `machinectl shell <username>@`
+  and then run Podman
+
+  ```
+  $ sudo -i
+  # machinectl shell username@
+  Connected to the local host. Press ^] three times within 1s to exit session.
+  $ podman run --rm docker.io/library/alpine echo hello
+  ```
+* Start a new systemd login session by logging in with `ssh` i.e. `ssh <username>@localhost` and then run Podman.
 
 * Before invoking Podman command create a valid login session for your rootless user using `loginctl enable-linger <username>`
-* If `loginctl` is unavailable you can also try logging in via `ssh` i.e `ssh <username>@localhost`.
 
 ### 31) 127.0.0.1:7777 port already bound
 
