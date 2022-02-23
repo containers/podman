@@ -154,6 +154,7 @@ type CommitOptions struct {
 	Message        string
 	Pause          bool
 	Quiet          bool
+	Squash         bool
 	Writer         io.Writer
 }
 

@@ -497,6 +497,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		Container string   `schema:"container"`
 		Format    string   `schema:"format"`
 		Pause     bool     `schema:"pause"`
+		Squash    bool     `schema:"squash"`
 		Repo      string   `schema:"repo"`
 		Tag       string   `schema:"tag"`
 	}{
@@ -543,6 +544,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 	options.Message = query.Comment
 	options.Author = query.Author
 	options.Pause = query.Pause
+	options.Squash = query.Squash
 	options.Changes = query.Changes
 	ctr, err := runtime.LookupContainer(query.Container)
 	if err != nil {

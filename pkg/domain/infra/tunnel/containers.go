@@ -302,7 +302,7 @@ func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrID string,
 			return nil, errors.Errorf("invalid image name %q", opts.ImageName)
 		}
 	}
-	options := new(containers.CommitOptions).WithAuthor(opts.Author).WithChanges(opts.Changes).WithComment(opts.Message)
+	options := new(containers.CommitOptions).WithAuthor(opts.Author).WithChanges(opts.Changes).WithComment(opts.Message).WithSquash(opts.Squash)
 	options.WithFormat(opts.Format).WithPause(opts.Pause).WithRepo(repo).WithTag(tag)
 	response, err := containers.Commit(ic.ClientCtx, nameOrID, options)
 	if err != nil {

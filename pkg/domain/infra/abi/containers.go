@@ -529,6 +529,7 @@ func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrID string,
 		Message:        options.Message,
 		Changes:        options.Changes,
 		Author:         options.Author,
+		Squash:         options.Squash,
 	}
 	newImage, err := ctr.Commit(ctx, options.ImageName, opts)
 	if err != nil {

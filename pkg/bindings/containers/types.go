@@ -30,6 +30,7 @@ type CommitOptions struct {
 	Comment *string
 	Format  *string
 	Pause   *bool
+	Squash  *bool
 	Repo    *string
 	Tag     *string
 }

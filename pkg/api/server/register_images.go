@@ -460,6 +460,10 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: changes
 	//    type: string
 	//    description: instructions to apply while committing in Dockerfile format
+	//  - in: query
+	//    name: squash
+	//    type: boolean
+	//    description: squash newly built layers into a single new layer
 	// produces:
 	// - application/json
 	// responses:
