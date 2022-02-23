@@ -44,6 +44,7 @@ MANDIR ?= ${PREFIX}/share/man
 SHAREDIR_CONTAINERS ?= ${PREFIX}/share/containers
 ETCDIR ?= ${PREFIX}/etc
 TMPFILESDIR ?= ${PREFIX}/lib/tmpfiles.d
+MODULESLOADDIR ?= ${PREFIX}/lib/modules-load.d
 SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
 USERSYSTEMDDIR ?= ${PREFIX}/lib/systemd/user
 REMOTETAGS ?= remote exclude_graphdriver_btrfs btrfs_noversion exclude_graphdriver_devicemapper containers_image_openpgp
@@ -778,6 +779,11 @@ install.bin:
 	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(LIBEXECPODMAN)/rootlessport bin/rootlessport
 	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${TMPFILESDIR}
 	install ${SELINUXOPT} -m 644 contrib/tmpfile/podman.conf ${DESTDIR}${TMPFILESDIR}/podman.conf
+
+.PHONY: install.modules-load
+install.modules-load: # This should only be used by distros which might use iptables-legacy, this is not needed on RHEL
+	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${MODULESLOADDIR}
+	install ${SELINUXOPT} -m 644 contrib/modules-load.d/podman-iptables.conf ${DESTDIR}${MODULESLOADDIR}/podman-iptables.conf
 
 .PHONY: install.man
 install.man:
