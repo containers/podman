@@ -188,23 +188,27 @@ WORKDIR /test
 	})
 
 	It("podman images filter since image", func() {
-		dockerfile := `FROM quay.io/libpod/alpine:latest
+		dockerfile := `FROM scratch
 `
-		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest", "false")
-		result := podmanTest.Podman([]string{"images", "-q", "-f", "since=quay.io/libpod/alpine:latest"})
+		podmanTest.BuildImage(dockerfile, "foobar.com/one:latest", "false")
+		podmanTest.BuildImage(dockerfile, "foobar.com/two:latest", "false")
+		podmanTest.BuildImage(dockerfile, "foobar.com/three:latest", "false")
+		result := podmanTest.PodmanNoCache([]string{"images", "-q", "-f", "since=foobar.com/one:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(9))
+		Expect(result.OutputToStringArray()).To(HaveLen(2))
 	})
 
 	It("podman image list filter after image", func() {
-		dockerfile := `FROM quay.io/libpod/alpine:latest
+		dockerfile := `FROM scratch
 `
-		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest", "false")
-		result := podmanTest.Podman([]string{"image", "list", "-q", "-f", "after=quay.io/libpod/alpine:latest"})
+		podmanTest.BuildImage(dockerfile, "foobar.com/one:latest", "false")
+		podmanTest.BuildImage(dockerfile, "foobar.com/two:latest", "false")
+		podmanTest.BuildImage(dockerfile, "foobar.com/three:latest", "false")
+		result := podmanTest.Podman([]string{"image", "list", "-q", "-f", "after=foobar.com/one:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(result.OutputToStringArray()).Should(HaveLen(9), "list filter output: %q", result.OutputToString())
+		Expect(result.OutputToStringArray()).Should(HaveLen(2), "list filter output: %q", result.OutputToString())
 	})
 
 	It("podman images filter dangling", func() {
