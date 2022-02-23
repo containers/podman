@@ -54,8 +54,12 @@ func (d *Device) GetQualifiedName() string {
 
 // ApplyEdits applies the device-speific container edits to an OCI Spec.
 func (d *Device) ApplyEdits(ociSpec *oci.Spec) error {
-	e := ContainerEdits{&d.ContainerEdits}
-	return e.Apply(ociSpec)
+	return d.edits().Apply(ociSpec)
+}
+
+// edits returns the applicable container edits for this spec.
+func (d *Device) edits() *ContainerEdits {
+	return &ContainerEdits{&d.ContainerEdits}
 }
 
 // Validate the device.
@@ -63,7 +67,7 @@ func (d *Device) validate() error {
 	if err := ValidateDeviceName(d.Name); err != nil {
 		return err
 	}
-	edits := ContainerEdits{&d.ContainerEdits}
+	edits := d.edits()
 	if edits.isEmpty() {
 		return errors.Errorf("invalid device, empty device edits")
 	}
