@@ -42,8 +42,6 @@ type ContainerFilter func(*Container) bool
 
 // NewContainer creates a new container from a given OCI config.
 func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, spec *specgen.SpecGenerator, infra bool, options ...CtrCreateOption) (*Container, error) {
-	r.lock.Lock()
-	defer r.lock.Unlock()
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
 	}
@@ -81,8 +79,6 @@ func (r *Runtime) PrepareVolumeOnCreateContainer(ctx context.Context, ctr *Conta
 
 // RestoreContainer re-creates a container from an imported checkpoint
 func (r *Runtime) RestoreContainer(ctx context.Context, rSpec *spec.Spec, config *ContainerConfig) (*Container, error) {
-	r.lock.Lock()
-	defer r.lock.Unlock()
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
 	}
@@ -545,8 +541,6 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 // be removed also if and only if the container is the sole user
 // Otherwise, RemoveContainer will return an error if the container is running
 func (r *Runtime) RemoveContainer(ctx context.Context, c *Container, force bool, removeVolume bool, timeout *uint) error {
-	r.lock.Lock()
-	defer r.lock.Unlock()
 	return r.removeContainer(ctx, c, force, removeVolume, false, timeout)
 }
 
@@ -768,6 +762,14 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 				continue
 			}
 			if err := runtime.removeVolume(ctx, volume, false, timeout); err != nil && errors.Cause(err) != define.ErrNoSuchVolume {
+				if errors.Cause(err) == define.ErrVolumeBeingUsed {
+					// Ignore error, since podman will report original error
+					volumesFrom, _ := c.volumesFrom()
+					if len(volumesFrom) > 0 {
+						logrus.Debugf("Cleanup volume not possible since volume is in use (%s)", v)
+						continue
+					}
+				}
 				logrus.Errorf("Cleanup volume (%s): %v", v, err)
 			}
 		}
@@ -784,8 +786,6 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 // If removeVolume is specified, named volumes used by the container will
 // be removed also if and only if the container is the sole user.
 func (r *Runtime) EvictContainer(ctx context.Context, idOrName string, removeVolume bool) (string, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
 	return r.evictContainer(ctx, idOrName, removeVolume)
 }
 
@@ -894,7 +894,7 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 	}
 
 	// Remove container from c/storage
-	if err := r.removeStorageContainer(id, true); err != nil {
+	if err := r.RemoveStorageContainer(id, true); err != nil {
 		if cleanupErr == nil {
 			cleanupErr = err
 		}
@@ -972,9 +972,6 @@ func (r *Runtime) RemoveDepend(ctx context.Context, rmCtr *Container, force bool
 
 // GetContainer retrieves a container by its ID
 func (r *Runtime) GetContainer(id string) (*Container, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
 	}
@@ -984,9 +981,6 @@ func (r *Runtime) GetContainer(id string) (*Container, error) {
 
 // HasContainer checks if a container with the given ID is present
 func (r *Runtime) HasContainer(id string) (bool, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
 	if !r.valid {
 		return false, define.ErrRuntimeStopped
 	}
@@ -997,9 +991,6 @@ func (r *Runtime) HasContainer(id string) (bool, error) {
 // LookupContainer looks up a container by its name or a partial ID
 // If a partial ID is not unique, an error will be returned
 func (r *Runtime) LookupContainer(idOrName string) (*Container, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
 	}
@@ -1009,9 +1000,6 @@ func (r *Runtime) LookupContainer(idOrName string) (*Container, error) {
 // LookupContainerId looks up a container id by its name or a partial ID
 // If a partial ID is not unique, an error will be returned
 func (r *Runtime) LookupContainerID(idOrName string) (string, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
 	if !r.valid {
 		return "", define.ErrRuntimeStopped
 	}
@@ -1023,13 +1011,6 @@ func (r *Runtime) LookupContainerID(idOrName string) (string, error) {
 // the output. Multiple filters are handled by ANDing their output, so only
 // containers matching all filters are returned
 func (r *Runtime) GetContainers(filters ...ContainerFilter) ([]*Container, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-	return r.GetContainersWithoutLock(filters...)
-}
-
-// GetContainersWithoutLock is same as GetContainers but without lock
-func (r *Runtime) GetContainersWithoutLock(filters ...ContainerFilter) ([]*Container, error) {
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
 	}
@@ -1107,9 +1088,6 @@ func (r *Runtime) GetLatestContainer() (*Container, error) {
 // GetExecSessionContainer gets the container that a given exec session ID is
 // attached to.
 func (r *Runtime) GetExecSessionContainer(id string) (*Container, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
 	}

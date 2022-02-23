@@ -203,6 +203,9 @@ PODMAN_VERSION=%{version} %{__make} DESTDIR=%{buildroot} PREFIX=%{_prefix} ETCDI
         install.docker \
         install.docker-docs \
         install.remote \
+%if 0%{?fedora} >= 36
+        install.modules-load
+%endif
 
 install -d -p %{buildroot}/%{_datadir}/%{name}/test/system
 cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
@@ -239,6 +242,9 @@ done
 %{_userunitdir}/%{name}.socket
 %{_userunitdir}/%{name}-restart.service
 %{_usr}/lib/tmpfiles.d/%{name}.conf
+%if 0%{?fedora} >= 36
+    %{_usr}/lib/modules-load.d/%{name}-iptables.conf
+%endif
 
 %files docker
 %{_bindir}/docker

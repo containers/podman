@@ -319,7 +319,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 			continue
 		}
 
-		dest, options, err := parseMountPath(volume.MountPath, volume.ReadOnly)
+		dest, options, err := parseMountPath(volume.MountPath, volume.ReadOnly, volume.MountPropagation)
 		if err != nil {
 			return nil, err
 		}
@@ -385,7 +385,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	return s, nil
 }
 
-func parseMountPath(mountPath string, readOnly bool) (string, []string, error) {
+func parseMountPath(mountPath string, readOnly bool, propagationMode *v1.MountPropagationMode) (string, []string, error) {
 	options := []string{}
 	splitVol := strings.Split(mountPath, ":")
 	if len(splitVol) > 2 {
@@ -404,6 +404,18 @@ func parseMountPath(mountPath string, readOnly bool) (string, []string, error) {
 	opts, err := parse.ValidateVolumeOpts(options)
 	if err != nil {
 		return "", opts, errors.Wrapf(err, "parsing MountOptions")
+	}
+	if propagationMode != nil {
+		switch *propagationMode {
+		case v1.MountPropagationNone:
+			opts = append(opts, "private")
+		case v1.MountPropagationHostToContainer:
+			opts = append(opts, "rslave")
+		case v1.MountPropagationBidirectional:
+			opts = append(opts, "rshared")
+		default:
+			return "", opts, errors.Errorf("unknown propagation mode %q", *propagationMode)
+		}
 	}
 	return dest, opts, nil
 }

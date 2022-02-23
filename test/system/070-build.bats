@@ -1016,6 +1016,27 @@ EOF
     run_podman build -t build_test $tmpdir/link
 }
 
+@test "podman build --volumes-from conflict" {
+    rand_content=$(random_string 50)
+
+    tmpdir=$PODMAN_TMPDIR/build-test
+    mkdir -p $tmpdir
+    dockerfile=$tmpdir/Dockerfile
+    cat >$dockerfile <<EOF
+FROM $IMAGE
+VOLUME /vol
+EOF
+
+    run_podman build -t build_test $tmpdir
+    is "$output" ".*COMMIT" "COMMIT seen in log"
+
+    run_podman run -d --name test_ctr build_test  top
+    run_podman run --rm --volumes-from test_ctr $IMAGE  echo $rand_content
+    is "$output"   "$rand_content"   "No error should be thrown about volume in use"
+
+    run_podman rmi -f build_test
+}
+
 function teardown() {
     # A timeout or other error in 'build' can leave behind stale images
     # that podman can't even see and which will cascade into subsequent

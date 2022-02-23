@@ -1,5 +1,12 @@
 # Release Notes
 
+## 4.0.1
+### Bugfixes
+- Fixed a bug where the `podman play kube` command did not honor the `mountPropagation` field in Pod YAML ([#13322](https://github.com/containers/podman/issues/13322)).
+- Fixed a bug where the `--build=false` option to `podman play kube` was not honored ([#13285](https://github.com/containers/podman/issues/13285)).
+- Fixed a bug where a container using volumes from another container (via `--volumes-from`) could, under certain circumstances, exit with errors that it could not delete some volumes if the other container did not exit before it ([#12808](https://github.com/containers/podman/issues/12808)).
+- Fixed a bug where the `CONTAINERS_CONF` environment variable was not propagated to Conmon, which could result in Podman cleanup processes being run with incorrect configurations.
+
 ## 4.0.0
 ### Features
 - Podman has seen an extensive rewrite of its network stack to add support for Netavark, a new tool for configuring container networks, in addition to the existing CNI stack. Netavark will be default on new installations when it is available.

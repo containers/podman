@@ -22,9 +22,6 @@ import (
 
 // NewPod makes a new, empty pod
 func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, options ...PodCreateOption) (_ *Pod, deferredErr error) {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
 	}
@@ -151,9 +148,6 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 
 // AddInfra adds the created infra container to the pod state
 func (r *Runtime) AddInfra(ctx context.Context, pod *Pod, infraCtr *Container) (*Pod, error) {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
 	}
@@ -167,9 +161,6 @@ func (r *Runtime) AddInfra(ctx context.Context, pod *Pod, infraCtr *Container) (
 
 // SavePod is a helper function to save the pod state from outside of libpod
 func (r *Runtime) SavePod(pod *Pod) error {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
 	if !r.valid {
 		return define.ErrRuntimeStopped
 	}

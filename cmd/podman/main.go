@@ -72,6 +72,8 @@ func parseCommands() *cobra.Command {
 		}
 		parent.AddCommand(c.Command)
 
+		c.Command.SetFlagErrorFunc(flagErrorFuncfunc)
+
 		// - templates need to be set here, as PersistentPreRunE() is
 		// not called when --help is used.
 		// - rootCmd uses cobra default template not ours
@@ -84,5 +86,11 @@ func parseCommands() *cobra.Command {
 		os.Exit(1)
 	}
 
+	rootCmd.SetFlagErrorFunc(flagErrorFuncfunc)
 	return rootCmd
+}
+
+func flagErrorFuncfunc(c *cobra.Command, e error) error {
+	e = fmt.Errorf("%w\nSee '%s --help'", e, c.CommandPath())
+	return e
 }

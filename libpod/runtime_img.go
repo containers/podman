@@ -25,9 +25,6 @@ import (
 // we can use the libpod-internal removal logic.
 func (r *Runtime) RemoveContainersForImageCallback(ctx context.Context) libimage.RemoveContainerFunc {
 	return func(imageID string) error {
-		r.lock.Lock()
-		defer r.lock.Unlock()
-
 		if !r.valid {
 			return define.ErrRuntimeStopped
 		}
