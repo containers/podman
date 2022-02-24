@@ -234,6 +234,8 @@ function _run_altbuild() {
             ;;
         *RPM*)
             make package
+            find /tmp/rpkg/podman* -type f -name '*.rpm' -exec \
+                cp --target-directory=$GOSRC '{}' +
             ;;
         Alt*Cross)
             arches=(\
