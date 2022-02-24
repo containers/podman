@@ -15,8 +15,10 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/image"
 	internalblobinfocache "github.com/containers/image/v5/internal/blobinfocache"
+	"github.com/containers/image/v5/internal/imagedestination"
+	"github.com/containers/image/v5/internal/imagesource"
 	"github.com/containers/image/v5/internal/pkg/platform"
-	internalTypes "github.com/containers/image/v5/internal/types"
+	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/blobinfocache"
 	"github.com/containers/image/v5/pkg/compression"
@@ -63,8 +65,8 @@ var expectedCompressionFormats = map[string]*compressiontypes.Algorithm{
 // copier allows us to keep track of diffID values for blobs, and other
 // data shared across one or more images in a possible manifest list.
 type copier struct {
-	dest                          types.ImageDestination
-	rawSource                     types.ImageSource
+	dest                          private.ImageDestination
+	rawSource                     private.ImageSource
 	reportWriter                  io.Writer
 	progressOutput                io.Writer
 	progressInterval              time.Duration
@@ -202,20 +204,22 @@ func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef,
 		reportWriter = options.ReportWriter
 	}
 
-	dest, err := destRef.NewImageDestination(ctx, options.DestinationCtx)
+	publicDest, err := destRef.NewImageDestination(ctx, options.DestinationCtx)
 	if err != nil {
 		return nil, errors.Wrapf(err, "initializing destination %s", transports.ImageName(destRef))
 	}
+	dest := imagedestination.FromPublic(publicDest)
 	defer func() {
 		if err := dest.Close(); err != nil {
 			retErr = errors.Wrapf(retErr, " (dest: %v)", err)
 		}
 	}()
 
-	rawSource, err := srcRef.NewImageSource(ctx, options.SourceCtx)
+	publicRawSource, err := srcRef.NewImageSource(ctx, options.SourceCtx)
 	if err != nil {
 		return nil, errors.Wrapf(err, "initializing source %s", transports.ImageName(srcRef))
 	}
+	rawSource := imagesource.FromPublic(publicRawSource)
 	defer func() {
 		if err := rawSource.Close(); err != nil {
 			retErr = errors.Wrapf(retErr, " (src: %v)", err)
@@ -1225,28 +1229,13 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 		// a failure when we eventually try to update the manifest with the digest and MIME type of the reused blob.
 		// Fixing that will probably require passing more information to TryReusingBlob() than the current version of
 		// the ImageDestination interface lets us pass in.
-		var (
-			blobInfo types.BlobInfo
-			reused   bool
-			err      error
-		)
-		// Note: the storage destination optimizes the committing of
-		// layers which requires passing the index of the layer.
-		// Hence, we need to special case and cast.
-		dest, ok := ic.c.dest.(internalTypes.ImageDestinationWithOptions)
-		if ok {
-			options := internalTypes.TryReusingBlobOptions{
-				Cache:         ic.c.blobInfoCache,
-				CanSubstitute: ic.canSubstituteBlobs,
-				SrcRef:        srcRef,
-				EmptyLayer:    emptyLayer,
-			}
-			options.LayerIndex = &layerIndex
-			reused, blobInfo, err = dest.TryReusingBlobWithOptions(ctx, srcInfo, options)
-		} else {
-			reused, blobInfo, err = ic.c.dest.TryReusingBlob(ctx, srcInfo, ic.c.blobInfoCache, ic.canSubstituteBlobs)
-		}
-
+		reused, blobInfo, err := ic.c.dest.TryReusingBlobWithOptions(ctx, srcInfo, private.TryReusingBlobOptions{
+			Cache:         ic.c.blobInfoCache,
+			CanSubstitute: ic.canSubstituteBlobs,
+			EmptyLayer:    emptyLayer,
+			LayerIndex:    &layerIndex,
+			SrcRef:        srcRef,
+		})
 		if err != nil {
 			return types.BlobInfo{}, "", errors.Wrapf(err, "trying to reuse blob %s at destination", srcInfo.Digest)
 		}
@@ -1286,9 +1275,7 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 	// of the source file are not known yet and must be fetched.
 	// Attempt a partial only when the source allows to retrieve a blob partially and
 	// the destination has support for it.
-	imgSource, okSource := ic.c.rawSource.(internalTypes.ImageSourceSeekable)
-	imgDest, okDest := ic.c.dest.(internalTypes.ImageDestinationPartial)
-	if okSource && okDest && !diffIDIsNeeded {
+	if ic.c.rawSource.SupportsGetBlobAt() && ic.c.dest.SupportsPutBlobPartial() && !diffIDIsNeeded {
 		if reused, blobInfo := func() (bool, types.BlobInfo) { // A scope for defer
 			bar := ic.c.createProgressBar(pool, true, srcInfo, "blob", "done")
 			hideProgressBar := true
@@ -1296,29 +1283,12 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 				bar.Abort(hideProgressBar)
 			}()
 
-			progress := make(chan int64)
-			terminate := make(chan interface{})
-
-			defer close(terminate)
-			defer close(progress)
-
-			proxy := imageSourceSeekableProxy{
-				source:   imgSource,
-				progress: progress,
+			proxy := blobChunkAccessorProxy{
+				wrapped: ic.c.rawSource,
+				bar:     bar,
 			}
-			go func() {
-				for {
-					select {
-					case written := <-progress:
-						bar.IncrInt64(written)
-					case <-terminate:
-						return
-					}
-				}
-			}()
-
 			bar.SetTotal(srcInfo.Size, false)
-			info, err := imgDest.PutBlobPartial(ctx, proxy, srcInfo, ic.c.blobInfoCache)
+			info, err := ic.c.dest.PutBlobPartial(ctx, &proxy, srcInfo, ic.c.blobInfoCache)
 			if err == nil {
 				bar.SetRefill(srcInfo.Size - bar.Current())
 				bar.SetCurrent(srcInfo.Size)
@@ -1658,24 +1628,15 @@ func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, sr
 	}
 
 	// === Finally, send the layer stream to dest.
-	var uploadedInfo types.BlobInfo
-	// Note: the storage destination optimizes the committing of layers
-	// which requires passing the index of the layer.  Hence, we need to
-	// special case and cast.
-	dest, ok := c.dest.(internalTypes.ImageDestinationWithOptions)
-	if ok {
-		options := internalTypes.PutBlobOptions{
-			Cache:      c.blobInfoCache,
-			IsConfig:   isConfig,
-			EmptyLayer: emptyLayer,
-		}
-		if !isConfig {
-			options.LayerIndex = &layerIndex
-		}
-		uploadedInfo, err = dest.PutBlobWithOptions(ctx, &errorAnnotationReader{destStream}, inputInfo, options)
-	} else {
-		uploadedInfo, err = c.dest.PutBlob(ctx, &errorAnnotationReader{destStream}, inputInfo, c.blobInfoCache, isConfig)
+	options := private.PutBlobOptions{
+		Cache:      c.blobInfoCache,
+		IsConfig:   isConfig,
+		EmptyLayer: emptyLayer,
 	}
+	if !isConfig {
+		options.LayerIndex = &layerIndex
+	}
+	uploadedInfo, err := c.dest.PutBlobWithOptions(ctx, &errorAnnotationReader{destStream}, inputInfo, options)
 	if err != nil {
 		return types.BlobInfo{}, errors.Wrap(err, "writing blob")
 	}

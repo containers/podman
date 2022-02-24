@@ -221,7 +221,16 @@ type LayerStore interface {
 
 	// SetNames replaces the list of names associated with a layer with the
 	// supplied values.
+	// Deprecated: Prone to race conditions, suggested alternatives are `AddNames` and `RemoveNames`.
 	SetNames(id string, names []string) error
+
+	// AddNames adds the supplied values to the list of names associated with the layer with the
+	// specified id.
+	AddNames(id string, names []string) error
+
+	// RemoveNames remove the supplied values from the list of names associated with the layer with the
+	// specified id.
+	RemoveNames(id string, names []string) error
 
 	// Delete deletes a layer with the specified name or ID.
 	Delete(id string) error
@@ -399,14 +408,13 @@ func (r *layerStore) Load() error {
 				if layer.Flags == nil {
 					layer.Flags = make(map[string]interface{})
 				}
-				if cleanup, ok := layer.Flags[incompleteFlag]; ok {
-					if b, ok := cleanup.(bool); ok && b {
-						err = r.deleteInternal(layer.ID)
-						if err != nil {
-							break
-						}
-						shouldSave = true
+				if layerHasIncompleteFlag(layer) {
+					logrus.Warnf("Found incomplete layer %#v, deleting it", layer.ID)
+					err = r.deleteInternal(layer.ID)
+					if err != nil {
+						break
 					}
+					shouldSave = true
 				}
 			}
 		}
@@ -742,26 +750,17 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 	}
 	if moreOptions.TemplateLayer != "" {
 		if err = r.driver.CreateFromTemplate(id, moreOptions.TemplateLayer, templateIDMappings, parent, parentMappings, &opts, writeable); err != nil {
-			if id != "" {
-				return nil, -1, errors.Wrapf(err, "error creating copy of template layer %q with ID %q", moreOptions.TemplateLayer, id)
-			}
-			return nil, -1, errors.Wrapf(err, "error creating copy of template layer %q", moreOptions.TemplateLayer)
+			return nil, -1, errors.Wrapf(err, "error creating copy of template layer %q with ID %q", moreOptions.TemplateLayer, id)
 		}
 		oldMappings = templateIDMappings
 	} else {
 		if writeable {
 			if err = r.driver.CreateReadWrite(id, parent, &opts); err != nil {
-				if id != "" {
-					return nil, -1, errors.Wrapf(err, "error creating read-write layer with ID %q", id)
-				}
-				return nil, -1, errors.Wrapf(err, "error creating read-write layer")
+				return nil, -1, errors.Wrapf(err, "error creating read-write layer with ID %q", id)
 			}
 		} else {
 			if err = r.driver.Create(id, parent, &opts); err != nil {
-				if id != "" {
-					return nil, -1, errors.Wrapf(err, "error creating layer with ID %q", id)
-				}
-				return nil, -1, errors.Wrapf(err, "error creating layer")
+				return nil, -1, errors.Wrapf(err, "error creating layer with ID %q", id)
 			}
 		}
 		oldMappings = parentMappings
@@ -770,7 +769,9 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 		if err = r.driver.UpdateLayerIDMap(id, oldMappings, idMappings, mountLabel); err != nil {
 			// We don't have a record of this layer, but at least
 			// try to clean it up underneath us.
-			r.driver.Remove(id)
+			if err2 := r.driver.Remove(id); err2 != nil {
+				logrus.Errorf("While recovering from a failure creating in UpdateLayerIDMap, error deleting layer %#v: %v", id, err2)
+			}
 			return nil, -1, err
 		}
 	}
@@ -795,21 +796,26 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 		for flag, value := range flags {
 			layer.Flags[flag] = value
 		}
+		savedIncompleteLayer := false
 		if diff != nil {
 			layer.Flags[incompleteFlag] = true
 			err = r.Save()
 			if err != nil {
 				// We don't have a record of this layer, but at least
 				// try to clean it up underneath us.
-				r.driver.Remove(id)
+				if err2 := r.driver.Remove(id); err2 != nil {
+					logrus.Errorf("While recovering from a failure saving incomplete layer metadata, error deleting layer %#v: %v", id, err2)
+				}
 				return nil, -1, err
 			}
+			savedIncompleteLayer = true
 			size, err = r.applyDiffWithOptions(layer.ID, moreOptions, diff)
 			if err != nil {
-				if r.Delete(layer.ID) != nil {
+				if err2 := r.Delete(layer.ID); err2 != nil {
 					// Either a driver error or an error saving.
 					// We now have a layer that's been marked for
 					// deletion but which we failed to remove.
+					logrus.Errorf("While recovering from a failure applying layer diff, error deleting layer %#v: %v", layer.ID, err2)
 				}
 				return nil, -1, err
 			}
@@ -817,9 +823,20 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 		}
 		err = r.Save()
 		if err != nil {
-			// We don't have a record of this layer, but at least
-			// try to clean it up underneath us.
-			r.driver.Remove(id)
+			if savedIncompleteLayer {
+				if err2 := r.Delete(layer.ID); err2 != nil {
+					// Either a driver error or an error saving.
+					// We now have a layer that's been marked for
+					// deletion but which we failed to remove.
+					logrus.Errorf("While recovering from a failure saving finished layer metadata, error deleting layer %#v: %v", layer.ID, err2)
+				}
+			} else {
+				// We don't have a record of this layer, but at least
+				// try to clean it up underneath us.
+				if err2 := r.driver.Remove(id); err2 != nil {
+					logrus.Errorf("While recovering from a failure saving finished layer metadata, error deleting layer %#v in graph driver: %v", id, err2)
+				}
+			}
 			return nil, -1, err
 		}
 		layer = copyLayer(layer)
@@ -1032,25 +1049,44 @@ func (r *layerStore) removeName(layer *Layer, name string) {
 	layer.Names = stringSliceWithoutValue(layer.Names, name)
 }
 
+// Deprecated: Prone to race conditions, suggested alternatives are `AddNames` and `RemoveNames`.
 func (r *layerStore) SetNames(id string, names []string) error {
+	return r.updateNames(id, names, setNames)
+}
+
+func (r *layerStore) AddNames(id string, names []string) error {
+	return r.updateNames(id, names, addNames)
+}
+
+func (r *layerStore) RemoveNames(id string, names []string) error {
+	return r.updateNames(id, names, removeNames)
+}
+
+func (r *layerStore) updateNames(id string, names []string, op updateNameOperation) error {
 	if !r.IsReadWrite() {
 		return errors.Wrapf(ErrStoreIsReadOnly, "not allowed to change layer name assignments at %q", r.layerspath())
 	}
-	names = dedupeNames(names)
-	if layer, ok := r.lookup(id); ok {
-		for _, name := range layer.Names {
-			delete(r.byname, name)
-		}
-		for _, name := range names {
-			if otherLayer, ok := r.byname[name]; ok {
-				r.removeName(otherLayer, name)
-			}
-			r.byname[name] = layer
-		}
-		layer.Names = names
-		return r.Save()
+	layer, ok := r.lookup(id)
+	if !ok {
+		return ErrLayerUnknown
 	}
-	return ErrLayerUnknown
+	oldNames := layer.Names
+	newNames, err := applyNameOperation(oldNames, names, op)
+	if err != nil {
+		return err
+	}
+	for _, name := range oldNames {
+		delete(r.byname, name)
+	}
+	names = dedupeNames(newNames)
+	for _, name := range names {
+		if otherLayer, ok := r.byname[name]; ok {
+			r.removeName(otherLayer, name)
+		}
+		r.byname[name] = layer
+	}
+	layer.Names = names
+	return r.Save()
 }
 
 func (r *layerStore) datadir(id string) string {
@@ -1149,6 +1185,17 @@ func (r *layerStore) tspath(id string) string {
 	return filepath.Join(r.layerdir, id+tarSplitSuffix)
 }
 
+// layerHasIncompleteFlag returns true if layer.Flags contains an incompleteFlag set to true
+func layerHasIncompleteFlag(layer *Layer) bool {
+	// layer.Flags[…] is defined to succeed and return ok == false if Flags == nil
+	if flagValue, ok := layer.Flags[incompleteFlag]; ok {
+		if b, ok := flagValue.(bool); ok && b {
+			return true
+		}
+	}
+	return false
+}
+
 func (r *layerStore) deleteInternal(id string) error {
 	if !r.IsReadWrite() {
 		return errors.Wrapf(ErrStoreIsReadOnly, "not allowed to delete layers at %q", r.layerspath())
@@ -1157,6 +1204,18 @@ func (r *layerStore) deleteInternal(id string) error {
 	if !ok {
 		return ErrLayerUnknown
 	}
+	// Ensure that if we are interrupted, the layer will be cleaned up.
+	if !layerHasIncompleteFlag(layer) {
+		if layer.Flags == nil {
+			layer.Flags = make(map[string]interface{})
+		}
+		layer.Flags[incompleteFlag] = true
+		if err := r.Save(); err != nil {
+			return err
+		}
+	}
+	// We never unset incompleteFlag; below, we remove the entire object from r.layers.
+
 	id = layer.ID
 	err := r.driver.Remove(id)
 	if err != nil {
