@@ -106,8 +106,8 @@ var _ NetNS = &netNS{}
 
 const (
 	// https://github.com/torvalds/linux/blob/master/include/uapi/linux/magic.h
-	NSFS_MAGIC   = 0x6e736673
-	PROCFS_MAGIC = 0x9fa0
+	NSFS_MAGIC   = unix.NSFS_MAGIC
+	PROCFS_MAGIC = unix.PROC_SUPER_MAGIC
 )
 
 type NSPathNotExistErr struct{ msg string }
