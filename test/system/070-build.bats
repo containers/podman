@@ -210,6 +210,40 @@ EOF
     run_podman rmi -f build_test
 }
 
+@test "podman parallel build should not race" {
+    rand_filename=$(random_string 20)
+    rand_content=$(random_string 50)
+    #iterator
+    iter=1
+
+    tmpdir=$PODMAN_TMPDIR/build-test
+    mkdir -p $tmpdir
+    mkdir -p $PODMAN_TMPDIR/reldir
+
+    containerfile=$PODMAN_TMPDIR/reldir/Containerfile
+    cat >$containerfile <<EOF
+FROM quay.io/libpod/alpine:latest
+RUN echo $rand_content > /$rand_filename
+EOF
+
+    run_podman rm --all --force --ignore
+    run_podman rmi -af
+    while [ $iter -le 30 ]
+    do
+      run_podman build -t $iter -f $containerfile &> /dev/null
+      iter=$(( $iter + 1 ))
+    done
+
+    # wait for all the builds to complete
+    sleep 5
+
+    images_output_lines=$(run_podman images | wc -l)
+    is "$images_output_lines" "33" \
+       "Number of podman images output must be always equivalent to 33"
+
+    run_podman rmi -af
+}
+
 @test "podman build - URLs" {
     tmpdir=$PODMAN_TMPDIR/build-test
     mkdir -p $tmpdir
