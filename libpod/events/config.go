@@ -60,6 +60,8 @@ type EventerOptions struct {
 	// LogFilePath is the path to where the log file should reside if using
 	// the file logger
 	LogFilePath string
+	// LogFileMaxSize is the default limit used for rotating the log file
+	LogFileMaxSize uint64
 }
 
 // Eventer is the interface for journald or file event logging
@@ -171,6 +173,8 @@ const (
 	Restart Status = "restart"
 	// Restore ...
 	Restore Status = "restore"
+	// Rotate indicates that the log file was rotated
+	Rotate Status = "log-rotation"
 	// Save ...
 	Save Status = "save"
 	// Start ...

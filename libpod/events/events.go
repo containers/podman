@@ -3,11 +3,9 @@ package events
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/containers/storage/pkg/stringid"
-	"github.com/nxadm/tail"
 	"github.com/pkg/errors"
 )
 
@@ -87,7 +85,11 @@ func (e *Event) ToHumanReadable(truncate bool) string {
 	case Image:
 		humanFormat = fmt.Sprintf("%s %s %s %s %s", e.Time, e.Type, e.Status, id, e.Name)
 	case System:
-		humanFormat = fmt.Sprintf("%s %s %s", e.Time, e.Type, e.Status)
+		if e.Name != "" {
+			humanFormat = fmt.Sprintf("%s %s %s %s", e.Time, e.Type, e.Status, e.Name)
+		} else {
+			humanFormat = fmt.Sprintf("%s %s %s", e.Time, e.Type, e.Status)
+		}
 	case Volume:
 		humanFormat = fmt.Sprintf("%s %s %s %s", e.Time, e.Type, e.Status, e.Name)
 	}
@@ -196,6 +198,8 @@ func StringToStatus(name string) (Status, error) {
 		return Restart, nil
 	case Restore.String():
 		return Restore, nil
+	case Rotate.String():
+		return Rotate, nil
 	case Save.String():
 		return Save, nil
 	case Start.String():
@@ -214,15 +218,4 @@ func StringToStatus(name string) (Status, error) {
 		return Untag, nil
 	}
 	return "", errors.Errorf("unknown event status %q", name)
-}
-
-func (e EventLogFile) getTail(options ReadOptions) (*tail.Tail, error) {
-	reopen := true
-	seek := tail.SeekInfo{Offset: 0, Whence: os.SEEK_END}
-	if options.FromStart || !options.Stream {
-		seek.Whence = 0
-		reopen = false
-	}
-	stream := options.Stream
-	return tail.TailFile(e.options.LogFilePath, tail.Config{ReOpen: reopen, Follow: stream, Location: &seek, Logger: tail.DiscardingLogger, Poll: true})
 }
