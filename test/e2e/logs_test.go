@@ -37,7 +37,9 @@ var _ = Describe("Podman logs", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
+		if err := podmanTest.SeedImages(); err != nil {
+			os.Exit(1)
+		}
 	})
 
 	AfterEach(func() {
@@ -411,5 +413,34 @@ var _ = Describe("Podman logs", func() {
 		logs := podmanTest.Podman([]string{"logs", "-f", ctrName})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs).To(Not(Exit(0)))
+	})
+
+	It("podman pod logs with container names", func() {
+		SkipIfRemote("Remote can only process one container at a time")
+		SkipIfInContainer("journalctl inside a container doesn't work correctly")
+		podName := "testPod"
+		containerName1 := "container1"
+		containerName2 := "container2"
+
+		testPod := podmanTest.Podman([]string{"pod", "create", fmt.Sprintf("--name=%s", podName)})
+		testPod.WaitWithDefaultTimeout()
+		Expect(testPod).To(Exit(0))
+
+		log1 := podmanTest.Podman([]string{"run", "--name", containerName1, "-d", "--pod", podName, BB, "/bin/sh", "-c", "echo log1"})
+		log1.WaitWithDefaultTimeout()
+		Expect(log1).To(Exit(0))
+
+		log2 := podmanTest.Podman([]string{"run", "--name", containerName2, "-d", "--pod", podName, BB, "/bin/sh", "-c", "echo log2"})
+		log2.WaitWithDefaultTimeout()
+		Expect(log2).To(Exit(0))
+
+		results := podmanTest.Podman([]string{"pod", "logs", "--names", podName})
+		results.WaitWithDefaultTimeout()
+		Expect(results).To(Exit(0))
+
+		output := results.OutputToStringArray()
+		Expect(output).To(HaveLen(2))
+		Expect(output).To(ContainElement(ContainSubstring(containerName1)))
+		Expect(output).To(ContainElement(ContainSubstring(containerName2)))
 	})
 })

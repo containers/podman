@@ -1,5 +1,5 @@
-//+build linux
-//+build systemd
+//go:build linux && systemd
+// +build linux,systemd
 
 package libpod
 
@@ -234,6 +234,9 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 			if err != nil {
 				logrus.Errorf("Failed parse log line: %v", err)
 				return
+			}
+			if options.UseName {
+				logLine.CName = c.Name()
 			}
 			if doTail {
 				tailQueue = append(tailQueue, logLine)

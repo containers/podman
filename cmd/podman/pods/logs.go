@@ -87,6 +87,7 @@ func logsFlags(cmd *cobra.Command) {
 	flags.Int64Var(&logsPodOptions.Tail, tailFlagName, -1, "Output the specified number of LINES at the end of the logs.")
 	_ = cmd.RegisterFlagCompletionFunc(tailFlagName, completion.AutocompleteNone)
 
+	flags.BoolVarP(&logsPodOptions.Names, "names", "n", false, "Output container names instead of container IDs in the log")
 	flags.BoolVarP(&logsPodOptions.Timestamps, "timestamps", "t", false, "Output the timestamps in the log")
 	flags.SetInterspersed(false)
 	_ = flags.MarkHidden("details")
