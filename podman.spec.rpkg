@@ -244,9 +244,9 @@ done
 %{_userunitdir}/%{name}.service
 %{_userunitdir}/%{name}.socket
 %{_userunitdir}/%{name}-restart.service
-%{_usr}/lib/tmpfiles.d/%{name}.conf
+%{_tmpfilesdir}/%{name}.conf
 %if 0%{?fedora} >= 36
-    %{_usr}/lib/modules-load.d/%{name}-iptables.conf
+%{_modulesloaddir}/%{name}-iptables.conf
 %endif
 
 %files docker
