@@ -3,6 +3,7 @@ package integration
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 
 	. "github.com/containers/podman/v3/test/utils"
@@ -11,6 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/uber/jaeger-client-go/utils"
+	"github.com/vishvananda/netns"
 )
 
 var _ = Describe("Podman run networking", func() {
@@ -639,6 +641,138 @@ var _ = Describe("Podman run networking", func() {
 		session.Wait(90)
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("11.11.11.11"))
+	})
+
+	setupNetworkNs := func(networkNSName string, newns netns.NsHandle) {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+
+		// Save the current network namespace
+		origns, _ := netns.Get()
+		defer origns.Close()
+
+		err = netns.Set(newns)
+		Expect(err).To(BeNil())
+
+		setupNetworkNS := SystemExec("ip", []string{"link", "add", "enp2s0", "type", "veth", "peer", "name", "eth0"})
+		Expect(setupNetworkNS).Should(Exit(0))
+		setupNetworkNS = SystemExec("ip", []string{"addr", "add", "10.0.0.1/24", "dev", "eth0"})
+		Expect(setupNetworkNS).Should(Exit(0))
+		setupNetworkNS = SystemExec("ifconfig", []string{"eth0", "hw", "ether", "46:7f:45:6e:4f:c8"})
+		Expect(setupNetworkNS).Should(Exit(0))
+		setupNetworkNS = SystemExec("ip", []string{"-6", "addr", "add", "2A00:0C98:2060:A000:0001:0000:1d1e:ca75/64", "dev", "eth0"})
+		Expect(setupNetworkNS).Should(Exit(0))
+		setupNetworkNS = SystemExec("ip", []string{"link", "set", "eth0", "up"})
+		Expect(setupNetworkNS).Should(Exit(0))
+
+		setupNetworkNS = SystemExec("ip", []string{"link", "add", "enp2s", "type", "veth", "peer", "name", "eth1"})
+		Expect(setupNetworkNS).Should(Exit(0))
+		setupNetworkNS = SystemExec("ip", []string{"addr", "add", "10.10.10.0/20", "dev", "eth1"})
+		Expect(setupNetworkNS).Should(Exit(0))
+		setupNetworkNS = SystemExec("ip", []string{"addr", "add", "10.20.20.0/16", "dev", "eth1"})
+		Expect(setupNetworkNS).Should(Exit(0))
+		setupNetworkNS = SystemExec("ifconfig", []string{"eth1", "hw", "ether", "56:6e:35:5d:3e:a8"})
+		Expect(setupNetworkNS).Should(Exit(0))
+		setupNetworkNS = SystemExec("ip", []string{"link", "set", "eth1", "up"})
+		Expect(setupNetworkNS).Should(Exit(0))
+
+		setupNetworkNS = SystemExec("ip", []string{"route", "add", "default", "via", "10.10.10.0", "dev", "eth1"})
+		Expect(setupNetworkNS).Should(Exit(0))
+
+		// Switch back to the original namespace
+		netns.Set(origns)
+	}
+
+	checkNetworkNsInspect := func(name string) {
+		inspectOut := podmanTest.InspectContainer(name)
+		Expect(inspectOut[0].NetworkSettings.IPAddress).To(Equal("10.0.0.1"))
+		Expect(inspectOut[0].NetworkSettings.IPPrefixLen).To(Equal(24))
+		Expect(inspectOut[0].NetworkSettings.Gateway).To(Equal("10.10.10.0"))
+		Expect(inspectOut[0].NetworkSettings.MacAddress).To(Equal("46:7f:45:6e:4f:c8"))
+	}
+
+	It("podman run newtork inspect fails gracefully on non-reachable network ns", func() {
+		SkipIfRootless("ip netns is not supported for rootless users")
+		if Containerized() {
+			Skip("Cannot be run within a container.")
+		}
+		networkNSName := "xxx3"
+		newns, _ := netns.NewNamed(networkNSName)
+
+		setupNetworkNs(networkNSName, newns)
+
+		name := "xxx3Container"
+		session := podmanTest.Podman([]string{"run", "-d", "--name", name, "--net", "ns:/run/netns/" + networkNSName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+
+		// delete the named network ns before inspect
+		newns.Close()
+		netns.DeleteNamed(networkNSName)
+
+		inspectOut := podmanTest.InspectContainer(name)
+		Expect(inspectOut[0].NetworkSettings.IPAddress).To(Equal(""))
+		Expect(len(inspectOut[0].NetworkSettings.Networks)).To(Equal(0))
+	})
+
+	It("podman inspect can handle joined network ns with multiple interfaces", func() {
+		SkipIfRootless("ip netns is not supported for rootless users")
+		if Containerized() {
+			Skip("Cannot be run within a container.")
+		}
+
+		networkNSName := "xxx3"
+		newns, _ := netns.NewNamed(networkNSName)
+		defer newns.Close()
+		defer netns.DeleteNamed(networkNSName)
+
+		setupNetworkNs(networkNSName, newns)
+
+		name := "xxx3Container"
+		session := podmanTest.Podman([]string{"run", "--name", name, "--net", "ns:/run/netns/" + networkNSName, ALPINE})
+		session.WaitWithDefaultTimeout()
+
+		session = podmanTest.Podman([]string{"container", "rm", name})
+		session.WaitWithDefaultTimeout()
+
+		// no network teardown should touch joined network ns interfaces
+		session = podmanTest.Podman([]string{"run", "-d", "--replace", "--name", name, "--net", "ns:/run/netns/" + networkNSName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+
+		checkNetworkNsInspect(name)
+	})
+
+	It("podman do not tamper with joined network ns interfaces", func() {
+		SkipIfRootless("ip netns is not supported for rootless users")
+		if Containerized() {
+			Skip("Cannot be run within a container.")
+		}
+
+		networkNSName := "xxx3"
+		newns, _ := netns.NewNamed(networkNSName)
+		defer newns.Close()
+		defer netns.DeleteNamed(networkNSName)
+
+		setupNetworkNs(networkNSName, newns)
+
+		name := "xxx3Container"
+		session := podmanTest.Podman([]string{"run", "--name", name, "--net", "ns:/run/netns/" + networkNSName, ALPINE})
+		session.WaitWithDefaultTimeout()
+
+		checkNetworkNsInspect(name)
+
+		name = "xxx4Container"
+		session = podmanTest.Podman([]string{"run", "--name", name, "--net", "ns:/run/netns/" + networkNSName, ALPINE})
+		session.WaitWithDefaultTimeout()
+
+		checkNetworkNsInspect(name)
+
+		session = podmanTest.Podman([]string{"container", "rm", name})
+		session.WaitWithDefaultTimeout()
+
+		session = podmanTest.Podman([]string{"run", "-d", "--replace", "--name", name, "--net", "ns:/run/netns/" + networkNSName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+
+		checkNetworkNsInspect(name)
 	})
 
 	It("podman run network in bogus user created network namespace", func() {

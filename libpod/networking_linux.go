@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -30,6 +31,7 @@ import (
 	"github.com/containers/podman/v3/pkg/util"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/cri-o/ocicni/pkg/ocicni"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -1028,6 +1030,25 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 		return nil, err
 	}
 
+	for _, namespace := range c.config.Spec.Linux.Namespaces {
+		if namespace.Type == spec.NetworkNamespace {
+			if namespace.Path != "" {
+				result, err := c.inspectJoinedNetworkNS(namespace.Path)
+				// do not propagate error inspecting a joined network ns
+				if err != nil {
+					logrus.Errorf("Error inspecting network namespace: %s of container %s: %v", namespace.Path, c.ID(), err)
+					return settings, nil
+				}
+				basicConfig, err := resultToBasicNetworkConfig(&result)
+				if err != nil {
+					return nil, err
+				}
+				settings.InspectBasicNetworkConfig = basicConfig
+				return settings, nil
+			}
+		}
+	}
+
 	// We can't do more if the network is down.
 	if c.state.NetNS == nil {
 		// We still want to make dummy configurations for each CNI net
@@ -1103,6 +1124,84 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 	}
 
 	return settings, nil
+}
+
+func (c *Container) inspectJoinedNetworkNS(networkns string) (q cnitypes.Result, retErr error) {
+	var (
+		wg sync.WaitGroup
+	)
+	var result cnitypes.Result
+	result.CNIVersion = "none"
+	var err error
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		var f *os.File
+		f, err = os.OpenFile(networkns, os.O_RDONLY, 0755)
+		if err != nil {
+			return
+		}
+		if err = unix.Setns(int(f.Fd()), unix.CLONE_NEWNET); err != nil {
+			return
+		}
+		var ifaces []net.Interface
+		ifaces, err = net.Interfaces()
+		if err != nil {
+			return
+		}
+		var routes []netlink.Route
+		routes, err = netlink.RouteList(nil, netlink.FAMILY_ALL)
+		if err != nil {
+			return
+		}
+		var gateway net.IP
+		for _, route := range routes {
+			// default gateway
+			if route.Dst == nil {
+				gateway = route.Gw
+			}
+		}
+
+		for _, iface := range ifaces {
+			if strings.Contains(iface.Flags.String(), "loopback") {
+				continue
+			}
+			addrs, err := iface.Addrs()
+			if err != nil {
+				continue
+			}
+			if len(addrs) == 0 {
+				continue
+			}
+			result.Interfaces = append(result.Interfaces, &cnitypes.Interface{
+				Name: iface.Name,
+				Mac:  iface.HardwareAddr.String(),
+			})
+			interfaceIndex := len(result.Interfaces) - 1
+			for _, address := range addrs {
+				if ipnet, ok := address.(*net.IPNet); ok {
+					version := "4"
+					if ipnet.IP.To4() == nil {
+						version = "6"
+					}
+					// due to discrepency between SecondaryIPAddresses of libpod
+					// and docker API collecting more IPAddresses will break inspect
+					// as one exports list of strings and other import list of Addresses
+					// it is already fixed in podman 4
+					if len(result.IPs) == 0 {
+						result.IPs = append(result.IPs, &cnitypes.IPConfig{
+							Version:   version,
+							Address:   *ipnet,
+							Gateway:   gateway,
+							Interface: &interfaceIndex,
+						})
+					}
+				}
+			}
+		}
+	}()
+	wg.Wait()
+	return result, err
 }
 
 // setupNetworkDescriptions adds networks and eth values to the container's
