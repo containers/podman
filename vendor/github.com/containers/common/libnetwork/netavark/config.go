@@ -142,9 +142,6 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 }
 
 func createMacvlan(network *types.Network) error {
-	if network.Internal {
-		return errors.New("internal is not supported with macvlan")
-	}
 	if network.NetworkInterface != "" {
 		interfaceNames, err := internalutil.GetLiveNetworkNames()
 		if err != nil {

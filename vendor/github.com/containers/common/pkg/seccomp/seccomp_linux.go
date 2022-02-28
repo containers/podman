@@ -1,3 +1,4 @@
+//go:build seccomp
 // +build seccomp
 
 // SPDX-License-Identifier: Apache-2.0
@@ -119,6 +120,13 @@ func setupSeccomp(config *Seccomp, rs *specs.Spec) (*specs.LinuxSeccomp, error) 
 	if err := getArchitectures(config, newConfig); err != nil {
 		return nil, err
 	}
+
+	for _, flag := range config.Flags {
+		newConfig.Flags = append(newConfig.Flags, specs.LinuxSeccompFlag(flag))
+	}
+
+	newConfig.ListenerPath = config.ListenerPath
+	newConfig.ListenerMetadata = config.ListenerMetadata
 
 	if len(config.ArchMap) != 0 {
 		for _, a := range config.ArchMap {

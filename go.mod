@@ -12,9 +12,9 @@ require (
 	github.com/containernetworking/cni v1.0.1
 	github.com/containernetworking/plugins v1.1.0
 	github.com/containers/buildah v1.24.2
-	github.com/containers/common v0.47.5-0.20220222185251-194ee74231c3
+	github.com/containers/common v0.47.5-0.20220228211119-9880eb424fde
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.19.1
+	github.com/containers/image/v5 v5.19.2-0.20220224100137-1045fb70b094
 	github.com/containers/ocicrypt v1.1.2
 	github.com/containers/psgo v1.7.2
 	github.com/containers/storage v1.38.3-0.20220214113600-26c561f9a645
@@ -31,7 +31,7 @@ require (
 	github.com/dtylman/scp v0.0.0-20181017070807-f3000a34aef4
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/ghodss/yaml v1.0.0
-	github.com/godbus/dbus/v5 v5.0.6
+	github.com/godbus/dbus/v5 v5.1.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/handlers v1.5.1
@@ -66,7 +66,7 @@ require (
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/crypto v0.0.0-20220112180741-5e0467b6c7ce
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9
+	golang.org/x/sys v0.0.0-20220128215802-99c3d69c2c27
 	golang.org/x/text v0.3.7
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b

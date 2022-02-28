@@ -190,6 +190,8 @@ type LookupImageOptions struct {
 	returnManifestIfNoInstance bool
 }
 
+var errNoHexValue = errors.New("invalid format: no 64-byte hexadecimal value")
+
 // Lookup Image looks up `name` in the local container storage.  Returns the
 // image and the name it has been found with.  Note that name may also use the
 // `containers-storage:` prefix used to refer to the containers-storage
@@ -233,12 +235,28 @@ func (r *Runtime) LookupImage(name string, options *LookupImageOptions) (*Image,
 		name = normalizedName
 	}
 
+	byDigest := false
 	originalName := name
-	idByDigest := false
 	if strings.HasPrefix(name, "sha256:") {
-		// Strip off the sha256 prefix so it can be parsed later on.
-		idByDigest = true
+		byDigest = true
 		name = strings.TrimPrefix(name, "sha256:")
+	}
+	byFullID := reference.IsFullIdentifier(name)
+
+	if byDigest && !byFullID {
+		return nil, "", fmt.Errorf("%s: %v", originalName, errNoHexValue)
+	}
+
+	// If the name clearly refers to a local image, try to look it up.
+	if byFullID || byDigest {
+		img, err := r.lookupImageInLocalStorage(originalName, name, options)
+		if err != nil {
+			return nil, "", err
+		}
+		if img != nil {
+			return img, originalName, nil
+		}
+		return nil, "", errors.Wrap(storage.ErrImageUnknown, originalName)
 	}
 
 	// Unless specified, set the platform specified in the system context
@@ -256,27 +274,11 @@ func (r *Runtime) LookupImage(name string, options *LookupImageOptions) (*Image,
 	// Normalize platform to be OCI compatible (e.g., "aarch64" -> "arm64").
 	options.OS, options.Architecture, options.Variant = NormalizePlatform(options.OS, options.Architecture, options.Variant)
 
-	// First, check if we have an exact match in the storage. Maybe an ID
-	// or a fully-qualified image name.
-	img, err := r.lookupImageInLocalStorage(name, name, options)
-	if err != nil {
-		return nil, "", err
-	}
-	if img != nil {
-		return img, originalName, nil
-	}
-
-	// If the name clearly referred to a local image, there's nothing we can
-	// do anymore.
-	if storageRef != nil || idByDigest {
-		return nil, "", errors.Wrap(storage.ErrImageUnknown, originalName)
-	}
-
 	// Second, try out the candidates as resolved by shortnames. This takes
 	// "localhost/" prefixed images into account as well.
 	candidates, err := shortnames.ResolveLocally(&r.systemContext, name)
 	if err != nil {
-		return nil, "", errors.Wrap(storage.ErrImageUnknown, originalName)
+		return nil, "", errors.Wrap(storage.ErrImageUnknown, name)
 	}
 	// Backwards compat: normalize to docker.io as some users may very well
 	// rely on that.
@@ -294,7 +296,17 @@ func (r *Runtime) LookupImage(name string, options *LookupImageOptions) (*Image,
 		}
 	}
 
-	return r.lookupImageInDigestsAndRepoTags(originalName, options)
+	// The specified name may refer to a short ID. Note that this *must*
+	// happen after the short-name expansion as done above.
+	img, err := r.lookupImageInLocalStorage(name, name, options)
+	if err != nil {
+		return nil, "", err
+	}
+	if img != nil {
+		return img, name, err
+	}
+
+	return r.lookupImageInDigestsAndRepoTags(name, options)
 }
 
 // lookupImageInLocalStorage looks up the specified candidate for name in the
