@@ -1281,11 +1281,11 @@ func prepareProcessExec(c *Container, options *ExecOptions, env []string, sessio
 	} else {
 		pspec.Capabilities.Bounding = ctrSpec.Process.Capabilities.Bounding
 	}
+	pspec.Capabilities.Inheritable = []string{}
+	pspec.Capabilities.Ambient = []string{}
 	if execUser.Uid == 0 {
 		pspec.Capabilities.Effective = pspec.Capabilities.Bounding
-		pspec.Capabilities.Inheritable = pspec.Capabilities.Bounding
 		pspec.Capabilities.Permitted = pspec.Capabilities.Bounding
-		pspec.Capabilities.Ambient = pspec.Capabilities.Bounding
 	} else {
 		if user == c.config.User {
 			pspec.Capabilities.Effective = ctrSpec.Process.Capabilities.Effective
