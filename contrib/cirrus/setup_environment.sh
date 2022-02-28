@@ -38,9 +38,6 @@ done
 
 cp hack/podman-registry /bin
 
-# Make sure cni network plugins directory exists
-mkdir -p /etc/cni/net.d
-
 # Some test operations & checks require a git "identity"
 _gc='git config --file /root/.gitconfig'
 $_gc user.email "TMcTestFace@example.com"
@@ -84,13 +81,6 @@ case "$CG_FS_TYPE" in
             else
                 echo "OCI_RUNTIME=runc" >> /etc/ci_environment
             fi
-
-            # As a general policy CGv1 + runc should coincide with the "older"
-            # VM Images in CI.  Verify this is the case.
-            if [[ -n "$VM_IMAGE_NAME" ]] && [[ ! "$VM_IMAGE_NAME" =~ prior ]]
-            then
-                die "Most recent distro. version should never run with CGv1"
-            fi
         fi
         ;;
     cgroup2fs)
@@ -99,13 +89,6 @@ case "$CG_FS_TYPE" in
             # which uses runc as the default.
             warn "Forcing testing with crun instead of runc"
             echo "OCI_RUNTIME=crun" >> /etc/ci_environment
-
-            # As a general policy CGv2 + crun should coincide with the "newer"
-            # VM Images in CI.  Verify this is the case.
-            if [[ -n "$VM_IMAGE_NAME" ]] && [[ "$VM_IMAGE_NAME" =~ prior ]]
-            then
-                die "Least recent distro. version should never run with CGv2"
-            fi
         fi
         ;;
     *) die_unknown CG_FS_TYPE
@@ -130,6 +113,19 @@ case "$OS_RELEASE_ID" in
             msg "Enabling container_manage_cgroup"
             setsebool container_manage_cgroup true
         fi
+
+        # For release 36 and later, netavark/aardvark is the default
+        # networking stack for podman.  All previous releases only have
+        # CNI networking available.  Upgrading from one to the other is
+        # not supported at this time.  Support execution of the upgrade
+        # tests in F36 and later, by disabling Netavark and enabling CNI.
+        if [[ "$OS_RELEASE_VER" -ge 36 ]] && \
+           [[ "$TEST_FLAVOR" != "upgrade_test" ]];
+        then
+            use_netavark
+        else # Fedora < 36, or upgrade testing.
+            use_cni
+        fi
         ;;
     *) die_unknown OS_RELEASE_ID
 esac
@@ -137,7 +133,7 @@ esac
 # Required to be defined by caller: The environment where primary testing happens
 # shellcheck disable=SC2154
 case "$TEST_ENVIRON" in
-    host*)
+    host)
         # The e2e tests wrongly guess `--cgroup-manager` option
         # shellcheck disable=SC2154
         if [[ "$CG_FS_TYPE" == "cgroup2fs" ]] || [[ "$PRIV_NAME" == "root" ]]
@@ -147,43 +143,6 @@ case "$TEST_ENVIRON" in
         else
             warn "Forcing CGROUP_MANAGER=cgroupfs"
             echo "CGROUP_MANAGER=cgroupfs" >> /etc/ci_environment
-        fi
-        # TODO: For the foreseeable future, need to support running tests
-        # with and without the latest netavark/aardvark.  Once they're more
-        # stable and widely supported in Fedora, they can be pre-installed
-        # from its RPM at VM image build-time.
-        if [[ "$TEST_ENVIRON" =~ netavark ]]; then
-            for info in "netavark $NETAVARK_BRANCH $NETAVARK_URL $NETAVARK_DEBUG" \
-                        "aardvark-dns $AARDVARK_BRANCH $AARDVARK_URL $AARDVARK_DEBUG"; do
-
-                read _name _branch _url _debug <<<"$info"
-                req_env_vars _name _branch _url _debug
-                msg "Downloading latest $_name from upstream branch '$_branch'"
-                # Use identifiable archive filename in of a get_ci_env.sh environment
-                curl --fail --location -o /tmp/$_name.zip "$_url"
-
-                # Needs to be in a specific location
-                # ref: https://github.com/containers/common/blob/main/pkg/config/config_linux.go#L39
-                _pdir=/usr/local/libexec/podman
-                mkdir -p $_pdir
-                cd $_pdir
-                msg "$PWD"
-                unzip /tmp/$_name.zip
-                if ((_debug)); then
-                    warn "Using debug $_name binary"
-                    mv $_name.debug $_name
-                else
-                    rm $_name.debug
-                fi
-                chmod 0755 $_pdir/$_name
-                cd -
-            done
-
-            restorecon -F -v $_nvdir
-            # This is critical, it signals to all tests that netavark
-            # use is expected.
-            msg "Forcing NETWORK_BACKEND=netavark in all subsequent environments."
-            echo "NETWORK_BACKEND=netavark" >> /etc/ci_environment
         fi
         ;;
     container)
