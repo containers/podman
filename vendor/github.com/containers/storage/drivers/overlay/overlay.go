@@ -920,7 +920,9 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, disable
 	defer func() {
 		// Clean up on failure
 		if retErr != nil {
-			os.RemoveAll(dir)
+			if err2 := os.RemoveAll(dir); err2 != nil {
+				logrus.Errorf("While recovering from a failure creating a layer, error deleting %#v: %v", dir, err2)
+			}
 		}
 	}()
 
@@ -1253,6 +1255,8 @@ func (d *Driver) recreateSymlinks() error {
 			linkFile := filepath.Join(d.dir(targetID), "link")
 			data, err := ioutil.ReadFile(linkFile)
 			if err != nil || string(data) != link.Name() {
+				// NOTE: If two or more links point to the same target, we will update linkFile
+				// with every value of link.Name(), and set madeProgress = true every time.
 				if err := ioutil.WriteFile(linkFile, []byte(link.Name()), 0644); err != nil {
 					errs = multierror.Append(errs, errors.Wrapf(err, "correcting link for layer %s", targetID))
 					continue
@@ -1458,6 +1462,21 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 
 	workdir := path.Join(dir, "work")
 
+	if d.options.mountProgram == "" && unshare.IsRootless() {
+		optsList = append(optsList, "userxattr")
+	}
+
+	if options.Volatile && !hasVolatileOption(optsList) {
+		supported, err := d.getSupportsVolatile()
+		if err != nil {
+			return "", err
+		}
+		// If "volatile" is not supported by the file system, just ignore the request
+		if supported {
+			optsList = append(optsList, "volatile")
+		}
+	}
+
 	var opts string
 	if readWrite {
 		opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(absLowers, ":"), diffDir, workdir)
@@ -1465,22 +1484,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		opts = fmt.Sprintf("lowerdir=%s:%s", diffDir, strings.Join(absLowers, ":"))
 	}
 	if len(optsList) > 0 {
-		opts = fmt.Sprintf("%s,%s", strings.Join(optsList, ","), opts)
-	}
-
-	if d.options.mountProgram == "" && unshare.IsRootless() {
-		opts = fmt.Sprintf("%s,userxattr", opts)
-	}
-
-	// If "volatile" is not supported by the file system, just ignore the request
-	if options.Volatile && !hasVolatileOption(strings.Split(opts, ",")) {
-		supported, err := d.getSupportsVolatile()
-		if err != nil {
-			return "", err
-		}
-		if supported {
-			opts = fmt.Sprintf("%s,volatile", opts)
-		}
+		opts = fmt.Sprintf("%s,%s", opts, strings.Join(optsList, ","))
 	}
 
 	mountData := label.FormatMountLabel(opts, options.MountLabel)
@@ -1489,10 +1493,6 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 
 	pageSize := unix.Getpagesize()
 
-	// Use relative paths and mountFrom when the mount data has exceeded
-	// the page size. The mount syscall fails if the mount data cannot
-	// fit within a page and relative links make the mount data much
-	// smaller at the expense of requiring a fork exec to chroot.
 	if d.options.mountProgram != "" {
 		mountFunc = func(source string, target string, mType string, flags uintptr, label string) error {
 			if !disableShifting {
@@ -1519,6 +1519,11 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			return nil
 		}
 	} else if len(mountData) > pageSize {
+		// Use relative paths and mountFrom when the mount data has exceeded
+		// the page size. The mount syscall fails if the mount data cannot
+		// fit within a page and relative links make the mount data much
+		// smaller at the expense of requiring a fork exec to chroot.
+
 		workdir = path.Join(id, "work")
 		//FIXME: We need to figure out to get this to work with additional stores
 		if readWrite {
@@ -1526,6 +1531,9 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(relLowers, ":"), diffDir, workdir)
 		} else {
 			opts = fmt.Sprintf("lowerdir=%s", strings.Join(absLowers, ":"))
+		}
+		if len(optsList) > 0 {
+			opts = fmt.Sprintf("%s,%s", opts, strings.Join(optsList, ","))
 		}
 		mountData = label.FormatMountLabel(opts, options.MountLabel)
 		if len(mountData) > pageSize {
