@@ -95,6 +95,10 @@ var (
 		parseSubnetPool("10.96.0.0/11", 24),
 		parseSubnetPool("10.128.0.0/9", 24),
 	}
+	// additionalHelperBinariesDir is an extra helper binaries directory that
+	// should be set during link-time, if different packagers put their
+	// helper binary in a different location
+	additionalHelperBinariesDir string
 )
 
 // nolint:unparam
@@ -277,6 +281,9 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.VolumePath = filepath.Join(storeOpts.GraphRoot, "volumes")
 
 	c.HelperBinariesDir = defaultHelperBinariesDir
+	if additionalHelperBinariesDir != "" {
+		c.HelperBinariesDir = append(c.HelperBinariesDir, additionalHelperBinariesDir)
+	}
 	c.HooksDir = DefaultHooksDirs
 	c.ImageDefaultTransport = _defaultTransport
 	c.StateType = BoltDBStateStore
@@ -286,6 +293,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.CgroupManager = defaultCgroupManager()
 	c.ServiceTimeout = uint(5)
 	c.StopTimeout = uint(10)
+	c.ExitCommandDelay = uint(5 * 60)
 	c.NetworkCmdOptions = []string{
 		"enable_ipv6=true",
 	}
