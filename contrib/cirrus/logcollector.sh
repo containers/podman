@@ -40,32 +40,34 @@ case $1 in
     packages)
         # These names are common to Fedora and Ubuntu
         PKG_NAMES=(\
-                    conmon \
-                    containernetworking-plugins \
-                    containers-common \
-                    criu \
-                    crun \
-                    golang \
-                    podman \
-                    runc \
-                    skopeo \
-                    slirp4netns \
+                    conmon
+                    containernetworking-plugins
+                    containers-common
+                    criu
+                    crun
+                    golang
+                    podman
+                    runc
+                    skopeo
+                    slirp4netns
         )
         case $OS_RELEASE_ID in
             fedora)
                 cat /etc/fedora-release
                 PKG_LST_CMD='rpm -q --qf=%{N}-%{V}-%{R}-%{ARCH}\n'
                 PKG_NAMES+=(\
-                    container-selinux \
-                    libseccomp \
+                    aardvark
+                    container-selinux
+                    libseccomp
+                    netavark
                 )
                 ;;
             ubuntu)
                 cat /etc/issue
                 PKG_LST_CMD='dpkg-query --show --showformat=${Package}-${Version}-${Architecture}\n'
                 PKG_NAMES+=(\
-                    cri-o-runc \
-                    libseccomp2 \
+                    cri-o-runc
+                    libseccomp2
                 )
                 ;;
             *) bad_os_id_ver ;;
@@ -74,19 +76,6 @@ case $1 in
         echo "Cgroups: " $(stat -f -c %T /sys/fs/cgroup)
         # Any not-present packages will be listed as such
         $PKG_LST_CMD "${PKG_NAMES[@]}" | sort -u
-
-        # TODO: Remove this once netavark/aardvark-dns packages are used
-        if [[ "$TEST_ENVIRON" =~ netavark ]]; then
-            _npath=/usr/local/libexec/podman/
-            for name in netavark aardvark-dns; do
-                echo "$name binary details:"
-                if [[ -r "$_npath/${name}.info" ]]; then
-                    cat "$_npath/${name}.info"
-                else
-                    echo "WARNING: $_npath/${name}.info not found."
-                fi
-            done
-        fi
         ;;
     time)
         # Assumed to be empty/undefined outside of Cirrus-CI (.cirrus.yml)
