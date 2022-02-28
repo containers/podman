@@ -758,11 +758,14 @@ func prepareProcessExec(c *Container, options *ExecOptions, env []string, sessio
 	} else {
 		pspec.Capabilities.Bounding = ctrSpec.Process.Capabilities.Bounding
 	}
+
+	// Always unset the inheritable capabilities similarly to what the Linux kernel does
+	// They are used only when using capabilities with uid != 0.
+	pspec.Capabilities.Inheritable = []string{}
+
 	if execUser.Uid == 0 {
 		pspec.Capabilities.Effective = pspec.Capabilities.Bounding
-		pspec.Capabilities.Inheritable = pspec.Capabilities.Bounding
 		pspec.Capabilities.Permitted = pspec.Capabilities.Bounding
-		pspec.Capabilities.Ambient = pspec.Capabilities.Bounding
 	} else {
 		if user == c.config.User {
 			pspec.Capabilities.Effective = ctrSpec.Process.Capabilities.Effective
