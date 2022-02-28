@@ -55,7 +55,11 @@ function _run_unit() {
 }
 
 function _run_apiv2() {
-    make localapiv2 |& logformatter
+    local m="Testing of API was performed using the **PODMAN*** client"
+    warn "$m"
+    if ! make localapiv2 |& logformatter; then
+        die "$m"
+    fi
 }
 
 function _run_compose() {
@@ -96,8 +100,12 @@ function _run_bindings() {
 }
 
 function _run_docker-py() {
+    m="Testing of API was performed using the **DOCKER** client"
+    warn "$m"
     source venv/bin/activate
-    make run-docker-py-tests
+    if ! make run-docker-py-tests; then
+        die "$m"
+    fi
 }
 
 function _run_endpoint() {
