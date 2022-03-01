@@ -42,7 +42,6 @@ and "$graphroot/networks" as rootless.
 
 #### **--connection**, **-c**
 Connection to use for remote podman, including Mac and Windows (excluding WSL2) machines, (Default connection is configured in `containers.conf`)
-Setting this option will switch the **--remote** option to true.
 Remote connections use local containers.conf for default.
 
 #### **--conmon**
@@ -109,7 +108,6 @@ environment variable is set, the **--remote** option defaults to true.
 
 #### **--url**=*value*
 URL to access Podman service (default from `containers.conf`, rootless `unix://run/user/$UID/podman/podman.sock` or as root `unix://run/podman/podman.sock`).
-Setting this option will switch the **--remote** option to true.
 
  - `CONTAINER_HOST` is of the format `<schema>://[<user[:<password>]@]<host>[:<port>][<path>]`
 

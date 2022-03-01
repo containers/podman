@@ -126,17 +126,6 @@ See 'podman version --help'" "podman version --remote"
     if grep -- " --remote " <<<"$output"; then
         die "podman --help, with CONTAINER_CONNECTION set, is showing --remote"
     fi
-
-    # When it detects --url or --connection, --remote is not an option
-    run_podman --url foobar --help
-    if grep -- " --remote " <<<"$output"; then
-        die "podman --help, with --url set, is showing --remote"
-    fi
-
-    run_podman --connection foobar --help
-    if grep -- " --remote " <<<"$output"; then
-        die "podman --help, with --connection set, is showing --remote"
-    fi
 }
 
 # Check that just calling "podman-remote" prints the usage message even
