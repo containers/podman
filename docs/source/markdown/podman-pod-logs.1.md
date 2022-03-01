@@ -28,6 +28,10 @@ chance that the log file will be removed before `podman pod logs` reads the fina
 
 Instead of providing the pod name or id, get logs of the last created pod. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
+#### **--names**, **-n**
+
+Output the container names instead of the container IDs in the log.
+
 #### **--since**=*TIMESTAMP*
 
 Show logs since TIMESTAMP. The --since option can be Unix timestamps, date formatted timestamps, or Go duration
