@@ -41,6 +41,11 @@ cp hack/podman-registry /bin
 # Make sure cni network plugins directory exists
 mkdir -p /etc/cni/net.d
 
+# Some test operations & checks require a git "identity"
+_gc='git config --file /root/.gitconfig'
+$_gc user.email "TMcTestFace@example.com"
+$_gc user.name "Testy McTestface"
+
 # Ensure that all lower-level contexts and child-processes have
 # ready access to higher level orchestration (e.g Cirrus-CI)
 # variables.
