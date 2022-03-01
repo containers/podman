@@ -19,8 +19,10 @@ podman volume is a set of subcommands that manage volumes.
 | import  | [podman-volume-import(1)](podman-volume-import.1.md)   | Import tarball contents into a podman volume.                                  |
 | inspect | [podman-volume-inspect(1)](podman-volume-inspect.1.md) | Get detailed information on one or more volumes.                               |
 | ls      | [podman-volume-ls(1)](podman-volume-ls.1.md)           | List all the available volumes.                                                |
+| mount   | [podman-volume-mount(1)](podman-volume-mount.1.md)     | Mount a volume filesystem.                                                     |
 | prune   | [podman-volume-prune(1)](podman-volume-prune.1.md)     | Remove all unused volumes.                                                     |
 | rm      | [podman-volume-rm(1)](podman-volume-rm.1.md)           | Remove one or more volumes.                                                    |
+| unmount | [podman-volume-unmount(1)](podman-volume-unmount.1.md) | Unmount a volume.                                                     |
 
 ## SEE ALSO
 **[podman(1)](podman.1.md)**

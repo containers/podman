@@ -255,3 +255,16 @@ func (v *Volume) IsDangling() (bool, error) {
 func (v *Volume) UsesVolumeDriver() bool {
 	return !(v.config.Driver == define.VolumeDriverLocal || v.config.Driver == "")
 }
+
+func (v *Volume) Mount() (string, error) {
+	v.lock.Lock()
+	defer v.lock.Unlock()
+	err := v.mount()
+	return v.config.MountPoint, err
+}
+
+func (v *Volume) Unmount() error {
+	v.lock.Lock()
+	defer v.lock.Unlock()
+	return v.unmount(false)
+}
