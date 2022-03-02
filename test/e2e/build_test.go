@@ -259,6 +259,19 @@ var _ = Describe("Podman build", func() {
 		Expect(session.OutputToString()).NotTo(ContainSubstring("io.podman.annotations.seccomp"))
 	})
 
+	It("podman build where workdir is a symlink and run without creating new workdir", func() {
+		session := podmanTest.Podman([]string{
+			"build", "-f", "build/workdir-symlink/Dockerfile", "-t", "test-symlink",
+		})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "--workdir", "/tmp/link", "test-symlink"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("hello"))
+	})
+
 	It("podman build --http_proxy flag", func() {
 		os.Setenv("http_proxy", "1.2.3.4")
 		if IsRemote() {
