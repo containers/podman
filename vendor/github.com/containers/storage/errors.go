@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"errors"
+
 	"github.com/containers/storage/types"
 )
 
@@ -57,4 +59,7 @@ var (
 	ErrNotSupported = types.ErrNotSupported
 	// ErrInvalidMappings is returned when the specified mappings are invalid.
 	ErrInvalidMappings = types.ErrInvalidMappings
+	// ErrInvalidNameOperation is returned when updateName is called with invalid operation.
+	// Internal error
+	errInvalidUpdateNameOperation = errors.New("invalid update name operation")
 )

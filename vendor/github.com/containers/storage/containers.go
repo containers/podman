@@ -84,7 +84,16 @@ type ContainerStore interface {
 
 	// SetNames updates the list of names associated with the container
 	// with the specified ID.
+	// Deprecated: Prone to race conditions, suggested alternatives are `AddNames` and `RemoveNames`.
 	SetNames(id string, names []string) error
+
+	// AddNames adds the supplied values to the list of names associated with the container with
+	// the specified id.
+	AddNames(id string, names []string) error
+
+	// RemoveNames removes the supplied values from the list of names associated with the container with
+	// the specified id.
+	RemoveNames(id string, names []string) error
 
 	// Get retrieves information about a container given an ID or name.
 	Get(id string) (*Container, error)
@@ -377,22 +386,40 @@ func (r *containerStore) removeName(container *Container, name string) {
 	container.Names = stringSliceWithoutValue(container.Names, name)
 }
 
+// Deprecated: Prone to race conditions, suggested alternatives are `AddNames` and `RemoveNames`.
 func (r *containerStore) SetNames(id string, names []string) error {
-	names = dedupeNames(names)
-	if container, ok := r.lookup(id); ok {
-		for _, name := range container.Names {
-			delete(r.byname, name)
-		}
-		for _, name := range names {
-			if otherContainer, ok := r.byname[name]; ok {
-				r.removeName(otherContainer, name)
-			}
-			r.byname[name] = container
-		}
-		container.Names = names
-		return r.Save()
+	return r.updateNames(id, names, setNames)
+}
+
+func (r *containerStore) AddNames(id string, names []string) error {
+	return r.updateNames(id, names, addNames)
+}
+
+func (r *containerStore) RemoveNames(id string, names []string) error {
+	return r.updateNames(id, names, removeNames)
+}
+
+func (r *containerStore) updateNames(id string, names []string, op updateNameOperation) error {
+	container, ok := r.lookup(id)
+	if !ok {
+		return ErrContainerUnknown
 	}
-	return ErrContainerUnknown
+	oldNames := container.Names
+	names, err := applyNameOperation(oldNames, names, op)
+	if err != nil {
+		return err
+	}
+	for _, name := range oldNames {
+		delete(r.byname, name)
+	}
+	for _, name := range names {
+		if otherContainer, ok := r.byname[name]; ok {
+			r.removeName(otherContainer, name)
+		}
+		r.byname[name] = container
+	}
+	container.Names = names
+	return r.Save()
 }
 
 func (r *containerStore) Delete(id string) error {
