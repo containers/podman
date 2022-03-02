@@ -1,5 +1,9 @@
 # Release Notes
 
+## 4.0.2
+### Bugfixes
+- Revert "use GetRuntimeDir() from c/common"
+
 ## 4.0.1
 ### Bugfixes
 - Fixed a bug where the `podman play kube` command did not honor the `mountPropagation` field in Pod YAML ([#13322](https://github.com/containers/podman/issues/13322)).
