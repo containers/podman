@@ -173,6 +173,57 @@ func (c *Container) prepare() error {
 	return nil
 }
 
+// isWorkDirSymlink returns true if resolved workdir is symlink or a chain of symlinks,
+// and final resolved target is present either on  volume, mount or inside of container
+// otherwise it returns false. Following function is meant for internal use only and
+// can change at any point of time.
+func (c *Container) isWorkDirSymlink(resolvedPath string) bool {
+	// We cannot create workdir since explicit --workdir is
+	// set in config but workdir could also be a symlink.
+	// If its a symlink lets check if resolved link is present
+	// on the container or not.
+
+	// If we can resolve symlink and resolved link is present on the container
+	// then return nil cause its a valid use-case.
+
+	maxSymLinks := 0
+	for {
+		// Linux only supports a chain of 40 links.
+		// Reference: https://github.com/torvalds/linux/blob/master/include/linux/namei.h#L13
+		if maxSymLinks > 40 {
+			break
+		}
+		resolvedSymlink, err := os.Readlink(resolvedPath)
+		if err != nil {
+			// End sym-link resolution loop.
+			break
+		}
+		if resolvedSymlink != "" {
+			_, resolvedSymlinkWorkdir, err := c.resolvePath(c.state.Mountpoint, resolvedSymlink)
+			if isPathOnVolume(c, resolvedSymlinkWorkdir) || isPathOnBindMount(c, resolvedSymlinkWorkdir) {
+				// Resolved symlink exists on external volume or mount
+				return true
+			}
+			if err != nil {
+				// Could not resolve path so end sym-link resolution loop.
+				break
+			}
+			if resolvedSymlinkWorkdir != "" {
+				resolvedPath = resolvedSymlinkWorkdir
+				_, err := os.Stat(resolvedSymlinkWorkdir)
+				if err == nil {
+					// Symlink resolved successfully and resolved path exists on container,
+					// this is a valid use-case so return nil.
+					logrus.Debugf("Workdir is a symlink with target to %q and resolved symlink exists on container", resolvedSymlink)
+					return true
+				}
+			}
+		}
+		maxSymLinks++
+	}
+	return false
+}
+
 // resolveWorkDir resolves the container's workdir and, depending on the
 // configuration, will create it, or error out if it does not exist.
 // Note that the container must be mounted before.
@@ -205,6 +256,11 @@ func (c *Container) resolveWorkDir() error {
 		// the path exists on the container.
 		if err != nil {
 			if os.IsNotExist(err) {
+				// If resolved Workdir path gets marked as a valid symlink,
+				// return nil cause this is valid use-case.
+				if c.isWorkDirSymlink(resolvedWorkdir) {
+					return nil
+				}
 				return errors.Errorf("workdir %q does not exist on container %s", workdir, c.ID())
 			}
 			// This might be a serious error (e.g., permission), so
