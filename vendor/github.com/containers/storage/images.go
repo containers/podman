@@ -425,37 +425,36 @@ func (r *imageStore) Create(id string, names []string, layer, metadata string, c
 	if created.IsZero() {
 		created = time.Now().UTC()
 	}
-	if err == nil {
-		image = &Image{
-			ID:             id,
-			Digest:         searchableDigest,
-			Digests:        nil,
-			Names:          names,
-			TopLayer:       layer,
-			Metadata:       metadata,
-			BigDataNames:   []string{},
-			BigDataSizes:   make(map[string]int64),
-			BigDataDigests: make(map[string]digest.Digest),
-			Created:        created,
-			Flags:          make(map[string]interface{}),
-		}
-		err := image.recomputeDigests()
-		if err != nil {
-			return nil, errors.Wrapf(err, "error validating digests for new image")
-		}
-		r.images = append(r.images, image)
-		r.idindex.Add(id)
-		r.byid[id] = image
-		for _, name := range names {
-			r.byname[name] = image
-		}
-		for _, digest := range image.Digests {
-			list := r.bydigest[digest]
-			r.bydigest[digest] = append(list, image)
-		}
-		err = r.Save()
-		image = copyImage(image)
+
+	image = &Image{
+		ID:             id,
+		Digest:         searchableDigest,
+		Digests:        nil,
+		Names:          names,
+		TopLayer:       layer,
+		Metadata:       metadata,
+		BigDataNames:   []string{},
+		BigDataSizes:   make(map[string]int64),
+		BigDataDigests: make(map[string]digest.Digest),
+		Created:        created,
+		Flags:          make(map[string]interface{}),
 	}
+	err = image.recomputeDigests()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error validating digests for new image")
+	}
+	r.images = append(r.images, image)
+	r.idindex.Add(id)
+	r.byid[id] = image
+	for _, name := range names {
+		r.byname[name] = image
+	}
+	for _, digest := range image.Digests {
+		list := r.bydigest[digest]
+		r.bydigest[digest] = append(list, image)
+	}
+	err = r.Save()
+	image = copyImage(image)
 	return image, err
 }
 

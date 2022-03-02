@@ -2532,17 +2532,12 @@ func (s *store) DeleteContainer(id string) error {
 			}()
 
 			var errors []error
-			for {
-				select {
-				case err, ok := <-errChan:
-					if !ok {
-						return multierror.Append(nil, errors...).ErrorOrNil()
-					}
-					if err != nil {
-						errors = append(errors, err)
-					}
+			for err := range errChan {
+				if err != nil {
+					errors = append(errors, err)
 				}
 			}
+			return multierror.Append(nil, errors...).ErrorOrNil()
 		}
 	}
 	return ErrNotAContainer
