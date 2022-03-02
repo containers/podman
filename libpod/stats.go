@@ -3,7 +3,6 @@
 package libpod
 
 import (
-	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -56,8 +55,8 @@ func (c *Container) GetContainerStats(previousStats *ContainerStats) (*Container
 	}
 
 	previousCPU := previousStats.CPUNano
-	previousSystem := previousStats.SystemNano
-	stats.CPU = calculateCPUPercent(cgroupStats, previousCPU, previousSystem)
+	now := uint64(time.Now().UnixNano())
+	stats.CPU = calculateCPUPercent(cgroupStats, previousCPU, now, previousStats.SystemNano)
 	stats.MemUsage = cgroupStats.Memory.Usage.Usage
 	stats.MemLimit = getMemLimit(cgroupStats.Memory.Usage.Limit)
 	stats.MemPerc = (float64(stats.MemUsage) / float64(stats.MemLimit)) * 100
@@ -67,7 +66,7 @@ func (c *Container) GetContainerStats(previousStats *ContainerStats) (*Container
 	}
 	stats.BlockInput, stats.BlockOutput = calculateBlockIO(cgroupStats)
 	stats.CPUNano = cgroupStats.CPU.Usage.Total
-	stats.SystemNano = cgroupStats.CPU.Usage.Kernel
+	stats.SystemNano = now
 	// Handle case where the container is not in a network namespace
 	if netStats != nil {
 		stats.NetInput = netStats.TxBytes
@@ -98,20 +97,19 @@ func getMemLimit(cgroupLimit uint64) uint64 {
 	return cgroupLimit
 }
 
-func calculateCPUPercent(stats *cgroups.Metrics, previousCPU, previousSystem uint64) float64 {
+// calculateCPUPercent calculates the cpu usage using the latest measurement in stats.
+// previousCPU is the last value of stats.CPU.Usage.Total measured at the time previousSystem.
+//  (now - previousSystem) is the time delta in nanoseconds, between the measurement in previousCPU
+// and the updated value in stats.
+func calculateCPUPercent(stats *cgroups.Metrics, previousCPU, now, previousSystem uint64) float64 {
 	var (
 		cpuPercent  = 0.0
 		cpuDelta    = float64(stats.CPU.Usage.Total - previousCPU)
-		systemDelta = float64(uint64(time.Now().UnixNano()) - previousSystem)
+		systemDelta = float64(now - previousSystem)
 	)
 	if systemDelta > 0.0 && cpuDelta > 0.0 {
-		// gets a ratio of container cpu usage total, multiplies it by the number of cores (4 cores running
-		// at 100% utilization should be 400% utilization), and multiplies that by 100 to get a percentage
-		nCPUS := len(stats.CPU.Usage.PerCPU)
-		if nCPUS == 0 {
-			nCPUS = runtime.NumCPU()
-		}
-		cpuPercent = (cpuDelta / systemDelta) * float64(nCPUS) * 100
+		// gets a ratio of container cpu usage total, and multiplies that by 100 to get a percentage
+		cpuPercent = (cpuDelta / systemDelta) * 100
 	}
 	return cpuPercent
 }
