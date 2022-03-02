@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package libpod
@@ -5,6 +6,7 @@ package libpod
 import (
 	"context"
 	"fmt"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -236,7 +238,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 
 		// Don't try if we failed to retrieve the cgroup
 		if err == nil {
-			if err := conmonCgroup.Update(resLimits); err != nil {
+			if err := conmonCgroup.Update(resLimits); err != nil && !os.IsNotExist(err) {
 				logrus.Warnf("Error updating pod %s conmon cgroup PID limit: %v", p.ID(), err)
 			}
 		}
