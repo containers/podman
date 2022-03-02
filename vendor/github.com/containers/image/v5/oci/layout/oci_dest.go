@@ -112,7 +112,7 @@ func (d *ociImageDestination) IgnoresEmbeddedDockerReference() bool {
 
 // HasThreadSafePutBlob indicates whether PutBlob can be executed concurrently.
 func (d *ociImageDestination) HasThreadSafePutBlob() bool {
-	return false
+	return true
 }
 
 // PutBlob writes contents of stream and returns data representing the result.
