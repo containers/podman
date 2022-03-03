@@ -73,7 +73,7 @@ func ExecCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Run the exit command after 5 minutes, to mimic Docker's exec cleanup
 	// behavior.
-	libpodConfig.ExitCommandDelay = 5 * 60
+	libpodConfig.ExitCommandDelay = runtimeConfig.Engine.ExitCommandDelay
 
 	sessID, err := ctr.ExecCreate(libpodConfig)
 	if err != nil {
