@@ -562,6 +562,11 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		inspect = podmanTest.Podman([]string{"inspect", "--format", "{{ .HostConfig.Cgroups }}", result.OutputToString()})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.OutputToString()).To(Equal("disabled"))
+
+		// Check we can also create a pod when cgroups=disabled
+		result = podmanTest.Podman([]string{"pod", "create"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
 	})
 
 	It("podman containers.conf runtime", func() {

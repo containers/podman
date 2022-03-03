@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package libpod
@@ -59,50 +60,52 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 	pod.valid = true
 
 	// Check Cgroup parent sanity, and set it if it was not set
-	switch r.config.Engine.CgroupManager {
-	case config.CgroupfsCgroupsManager:
-		canUseCgroup := !rootless.IsRootless() || isRootlessCgroupSet(pod.config.CgroupParent)
-		if canUseCgroup {
+	if r.config.Cgroups() != "disabled" {
+		switch r.config.Engine.CgroupManager {
+		case config.CgroupfsCgroupsManager:
+			canUseCgroup := !rootless.IsRootless() || isRootlessCgroupSet(pod.config.CgroupParent)
+			if canUseCgroup {
+				if pod.config.CgroupParent == "" {
+					pod.config.CgroupParent = CgroupfsDefaultCgroupParent
+				} else if strings.HasSuffix(path.Base(pod.config.CgroupParent), ".slice") {
+					return nil, errors.Wrapf(define.ErrInvalidArg, "systemd slice received as cgroup parent when using cgroupfs")
+				}
+				// If we are set to use pod cgroups, set the cgroup parent that
+				// all containers in the pod will share
+				// No need to create it with cgroupfs - the first container to
+				// launch should do it for us
+				if pod.config.UsePodCgroup {
+					pod.state.CgroupPath = filepath.Join(pod.config.CgroupParent, pod.ID())
+					if p.InfraContainerSpec != nil {
+						p.InfraContainerSpec.CgroupParent = pod.state.CgroupPath
+					}
+				}
+			}
+		case config.SystemdCgroupsManager:
 			if pod.config.CgroupParent == "" {
-				pod.config.CgroupParent = CgroupfsDefaultCgroupParent
-			} else if strings.HasSuffix(path.Base(pod.config.CgroupParent), ".slice") {
-				return nil, errors.Wrapf(define.ErrInvalidArg, "systemd slice received as cgroup parent when using cgroupfs")
+				if rootless.IsRootless() {
+					pod.config.CgroupParent = SystemdDefaultRootlessCgroupParent
+				} else {
+					pod.config.CgroupParent = SystemdDefaultCgroupParent
+				}
+			} else if len(pod.config.CgroupParent) < 6 || !strings.HasSuffix(path.Base(pod.config.CgroupParent), ".slice") {
+				return nil, errors.Wrapf(define.ErrInvalidArg, "did not receive systemd slice as cgroup parent when using systemd to manage cgroups")
 			}
 			// If we are set to use pod cgroups, set the cgroup parent that
 			// all containers in the pod will share
-			// No need to create it with cgroupfs - the first container to
-			// launch should do it for us
 			if pod.config.UsePodCgroup {
-				pod.state.CgroupPath = filepath.Join(pod.config.CgroupParent, pod.ID())
+				cgroupPath, err := systemdSliceFromPath(pod.config.CgroupParent, fmt.Sprintf("libpod_pod_%s", pod.ID()))
+				if err != nil {
+					return nil, errors.Wrapf(err, "unable to create pod cgroup for pod %s", pod.ID())
+				}
+				pod.state.CgroupPath = cgroupPath
 				if p.InfraContainerSpec != nil {
 					p.InfraContainerSpec.CgroupParent = pod.state.CgroupPath
 				}
 			}
+		default:
+			return nil, errors.Wrapf(define.ErrInvalidArg, "unsupported Cgroup manager: %s - cannot validate cgroup parent", r.config.Engine.CgroupManager)
 		}
-	case config.SystemdCgroupsManager:
-		if pod.config.CgroupParent == "" {
-			if rootless.IsRootless() {
-				pod.config.CgroupParent = SystemdDefaultRootlessCgroupParent
-			} else {
-				pod.config.CgroupParent = SystemdDefaultCgroupParent
-			}
-		} else if len(pod.config.CgroupParent) < 6 || !strings.HasSuffix(path.Base(pod.config.CgroupParent), ".slice") {
-			return nil, errors.Wrapf(define.ErrInvalidArg, "did not receive systemd slice as cgroup parent when using systemd to manage cgroups")
-		}
-		// If we are set to use pod cgroups, set the cgroup parent that
-		// all containers in the pod will share
-		if pod.config.UsePodCgroup {
-			cgroupPath, err := systemdSliceFromPath(pod.config.CgroupParent, fmt.Sprintf("libpod_pod_%s", pod.ID()))
-			if err != nil {
-				return nil, errors.Wrapf(err, "unable to create pod cgroup for pod %s", pod.ID())
-			}
-			pod.state.CgroupPath = cgroupPath
-			if p.InfraContainerSpec != nil {
-				p.InfraContainerSpec.CgroupParent = pod.state.CgroupPath
-			}
-		}
-	default:
-		return nil, errors.Wrapf(define.ErrInvalidArg, "unsupported Cgroup manager: %s - cannot validate cgroup parent", r.config.Engine.CgroupManager)
 	}
 
 	if pod.config.UsePodCgroup {
