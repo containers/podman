@@ -40,3 +40,35 @@ func validateMountOptions(mountOptions []string) error {
 	}
 	return nil
 }
+
+func applyNameOperation(oldNames []string, opParameters []string, op updateNameOperation) ([]string, error) {
+	result := make([]string, 0)
+	switch op {
+	case setNames:
+		// ignore all old names and just return new names
+		return dedupeNames(opParameters), nil
+	case removeNames:
+		// remove given names from old names
+		for _, name := range oldNames {
+			// only keep names in final result which do not intersect with input names
+			// basically `result = oldNames - opParameters`
+			nameShouldBeRemoved := false
+			for _, opName := range opParameters {
+				if name == opName {
+					nameShouldBeRemoved = true
+				}
+			}
+			if !nameShouldBeRemoved {
+				result = append(result, name)
+			}
+		}
+		return dedupeNames(result), nil
+	case addNames:
+		result = append(result, opParameters...)
+		result = append(result, oldNames...)
+		return dedupeNames(result), nil
+	default:
+		return result, errInvalidUpdateNameOperation
+	}
+	return dedupeNames(result), nil
+}
