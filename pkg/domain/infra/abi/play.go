@@ -359,7 +359,13 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		return nil, err
 	}
 
+	ctrNames := make(map[string]string)
 	for _, initCtr := range podYAML.Spec.InitContainers {
+		// Error out if same name is used for more than one container
+		if _, ok := ctrNames[initCtr.Name]; ok {
+			return nil, errors.Errorf("the pod %q is invalid; duplicate container name %q detected", podName, initCtr.Name)
+		}
+		ctrNames[initCtr.Name] = ""
 		// Init containers cannot have either of lifecycle, livenessProbe, readinessProbe, or startupProbe set
 		if initCtr.Lifecycle != nil || initCtr.LivenessProbe != nil || initCtr.ReadinessProbe != nil || initCtr.StartupProbe != nil {
 			return nil, errors.Errorf("cannot create an init container that has either of lifecycle, livenessProbe, readinessProbe, or startupProbe set")
@@ -408,6 +414,11 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	}
 	for _, container := range podYAML.Spec.Containers {
 		if !strings.Contains("infra", container.Name) {
+			// Error out if the same name is used for more than one container
+			if _, ok := ctrNames[container.Name]; ok {
+				return nil, errors.Errorf("the pod %q is invalid; duplicate container name %q detected", podName, container.Name)
+			}
+			ctrNames[container.Name] = ""
 			pulledImage, labels, err := ic.getImageAndLabelInfo(ctx, cwd, annotations, writer, container, options)
 			if err != nil {
 				return nil, err
