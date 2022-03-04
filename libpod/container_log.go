@@ -23,8 +23,8 @@ func init() {
 
 // Log is a runtime function that can read one or more container logs.
 func (r *Runtime) Log(ctx context.Context, containers []*Container, options *logs.LogOptions, logChannel chan *logs.LogLine) error {
-	for _, ctr := range containers {
-		if err := ctr.ReadLog(ctx, options, logChannel); err != nil {
+	for c, ctr := range containers {
+		if err := ctr.ReadLog(ctx, options, logChannel, int64(c)); err != nil {
 			return err
 		}
 	}
@@ -32,26 +32,26 @@ func (r *Runtime) Log(ctx context.Context, containers []*Container, options *log
 }
 
 // ReadLog reads a containers log based on the input options and returns log lines over a channel.
-func (c *Container) ReadLog(ctx context.Context, options *logs.LogOptions, logChannel chan *logs.LogLine) error {
+func (c *Container) ReadLog(ctx context.Context, options *logs.LogOptions, logChannel chan *logs.LogLine, colorID int64) error {
 	switch c.LogDriver() {
 	case define.PassthroughLogging:
 		return errors.Wrapf(define.ErrNoLogs, "this container is using the 'passthrough' log driver, cannot read logs")
 	case define.NoLogging:
 		return errors.Wrapf(define.ErrNoLogs, "this container is using the 'none' log driver, cannot read logs")
 	case define.JournaldLogging:
-		return c.readFromJournal(ctx, options, logChannel)
+		return c.readFromJournal(ctx, options, logChannel, colorID)
 	case define.JSONLogging:
 		// TODO provide a separate implementation of this when Conmon
 		// has support.
 		fallthrough
 	case define.KubernetesLogging, "":
-		return c.readFromLogFile(ctx, options, logChannel)
+		return c.readFromLogFile(ctx, options, logChannel, colorID)
 	default:
 		return errors.Wrapf(define.ErrInternal, "unrecognized log driver %q, cannot read logs", c.LogDriver())
 	}
 }
 
-func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOptions, logChannel chan *logs.LogLine) error {
+func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOptions, logChannel chan *logs.LogLine, colorID int64) error {
 	t, tailLog, err := logs.GetLogFile(c.LogPath(), options)
 	if err != nil {
 		// If the log file does not exist, this is not fatal.
@@ -65,6 +65,7 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 		for _, nll := range tailLog {
 			nll.CID = c.ID()
 			nll.CName = c.Name()
+			nll.ColorID = colorID
 			if nll.Since(options.Since) && nll.Until(options.Until) {
 				logChannel <- nll
 			}
@@ -97,6 +98,7 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 			}
 			nll.CID = c.ID()
 			nll.CName = c.Name()
+			nll.ColorID = colorID
 			if nll.Since(options.Since) && nll.Until(options.Until) {
 				logChannel <- nll
 			}

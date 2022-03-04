@@ -27,6 +27,9 @@ const (
 
 	// FullLogType signifies a log line is full
 	FullLogType = "F"
+
+	//ANSIEscapeResetCode is a code that resets all colors and text effects
+	ANSIEscapeResetCode = "\033[0m"
 )
 
 // LogOptions is the options you can use for logs
@@ -37,6 +40,7 @@ type LogOptions struct {
 	Until      time.Time
 	Tail       int64
 	Timestamps bool
+	Colors     bool
 	Multi      bool
 	WaitGroup  *sync.WaitGroup
 	UseName    bool
@@ -50,6 +54,7 @@ type LogLine struct {
 	Msg          string
 	CID          string
 	CName        string
+	ColorID      int64
 }
 
 // GetLogFile returns an hp tail for a container given options
@@ -162,6 +167,24 @@ func getTailLog(path string, tail int) ([]*LogLine, error) {
 	return tailLog, nil
 }
 
+//getColor returns a ANSI escape code for color based on the colorID
+func getColor(colorID int64) string {
+	colors := map[int64]string{
+		0: "\033[37m", // Light Gray
+		1: "\033[31m", // Red
+		2: "\033[33m", // Yellow
+		3: "\033[34m", // Blue
+		4: "\033[35m", // Magenta
+		5: "\033[36m", // Cyan
+		6: "\033[32m", // Green
+	}
+	return colors[colorID%int64(len(colors))]
+}
+
+func (l *LogLine) colorize(prefix string) string {
+	return getColor(l.ColorID) + prefix + l.Msg + ANSIEscapeResetCode
+}
+
 // String converts a log line to a string for output given whether a detail
 // bool is specified.
 func (l *LogLine) String(options *LogOptions) string {
@@ -177,10 +200,18 @@ func (l *LogLine) String(options *LogOptions) string {
 			out = fmt.Sprintf("%s ", cid)
 		}
 	}
+
 	if options.Timestamps {
 		out += fmt.Sprintf("%s ", l.Time.Format(LogTimeFormat))
 	}
-	return out + l.Msg
+
+	if options.Colors {
+		out = l.colorize(out)
+	} else {
+		out += l.Msg
+	}
+
+	return out
 }
 
 // Since returns a bool as to whether a log line occurred after a given time

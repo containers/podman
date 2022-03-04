@@ -15,6 +15,10 @@ any logs at the time you execute podman logs).
 
 ## OPTIONS
 
+#### **--color**
+
+Output the containers with different colors in the log.
+
 #### **--follow**, **-f**
 
 Follow log output.  Default is false.

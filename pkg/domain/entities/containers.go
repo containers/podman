@@ -257,6 +257,8 @@ type ContainerLogsOptions struct {
 	Tail int64
 	// Show timestamps in the logs.
 	Timestamps bool
+	// Show different colors in the logs.
+	Colors bool
 	// Write the stdout to this Writer.
 	StdoutWriter io.Writer
 	// Write the stderr to this Writer.
