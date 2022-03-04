@@ -1888,6 +1888,26 @@ var _ = Describe("Podman play kube", func() {
 		Expect(kube).Should(Exit(0))
 	})
 
+	It("podman play kube test duplicate container name", func() {
+		p := getPod(withCtr(getCtr(withName("testctr"), withCmd([]string{"echo", "hello"}))), withCtr(getCtr(withName("testctr"), withCmd([]string{"echo", "world"}))))
+
+		err := generateKubeYaml("pod", p, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).To(ExitWithError())
+
+		p = getPod(withPodInitCtr(getCtr(withImage(ALPINE), withCmd([]string{"echo", "hello"}), withInitCtr(), withName("initctr"))), withCtr(getCtr(withImage(ALPINE), withName("initctr"), withCmd([]string{"top"}))))
+
+		err = generateKubeYaml("pod", p, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube = podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).To(ExitWithError())
+	})
+
 	It("podman play kube test hostname", func() {
 		pod := getPod()
 		err := generateKubeYaml("pod", pod, kubeYaml)
