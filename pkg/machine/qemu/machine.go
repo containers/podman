@@ -88,11 +88,16 @@ func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	vm.Memory = opts.Memory
 	vm.DiskSize = opts.DiskSize
 
-	// Look up the executable
-	execPath, err := exec.LookPath(QemuCommand)
+	// Find the qemu executable
+	cfg, err := config.Default()
 	if err != nil {
 		return nil, err
 	}
+	execPath, err := cfg.FindHelperBinary(QemuCommand, true)
+	if err != nil {
+		return nil, err
+	}
+
 	cmd := append([]string{execPath})
 	// Add memory
 	cmd = append(cmd, []string{"-m", strconv.Itoa(int(vm.Memory))}...)
@@ -245,12 +250,13 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		}
 	}
 	v.Mounts = mounts
+	v.UID = os.Getuid()
 
 	// Add location of bootable image
 	v.CmdLine = append(v.CmdLine, "-drive", "if=virtio,file="+v.ImagePath)
 	// This kind of stinks but no other way around this r/n
 	if len(opts.IgnitionPath) < 1 {
-		uri := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/user/1000/podman/podman.sock", strconv.Itoa(v.Port), v.RemoteUsername)
+		uri := machine.SSHRemoteConnection.MakeSSHURL("localhost", fmt.Sprintf("/run/user/%d/podman/podman.sock", v.UID), strconv.Itoa(v.Port), v.RemoteUsername)
 		uriRoot := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/podman/podman.sock", strconv.Itoa(v.Port), "root")
 		identity := filepath.Join(sshDir, v.Name)
 
@@ -296,7 +302,16 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	// only if the virtualdisk size is less than
 	// the given disk size
 	if opts.DiskSize<<(10*3) > originalDiskSize {
-		resize := exec.Command("qemu-img", []string{"resize", v.ImagePath, strconv.Itoa(int(opts.DiskSize)) + "G"}...)
+		// Find the qemu executable
+		cfg, err := config.Default()
+		if err != nil {
+			return false, err
+		}
+		resizePath, err := cfg.FindHelperBinary("qemu-img", true)
+		if err != nil {
+			return false, err
+		}
+		resize := exec.Command(resizePath, []string{"resize", v.ImagePath, strconv.Itoa(int(opts.DiskSize)) + "G"}...)
 		resize.Stdout = os.Stdout
 		resize.Stderr = os.Stderr
 		if err := resize.Run(); err != nil {
@@ -319,6 +334,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		VMName:    v.Name,
 		TimeZone:  opts.TimeZone,
 		WritePath: v.IgnitionFilePath,
+		UID:       v.UID,
 	}
 	err = machine.NewIgnitionFile(ign)
 	return err == nil, err
@@ -459,7 +475,17 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 	for _, mount := range v.Mounts {
 		fmt.Printf("Mounting volume... %s:%s\n", mount.Source, mount.Target)
 		// create mountpoint directory if it doesn't exist
-		err = v.SSH(name, machine.SSHOptions{Args: []string{"-q", "--", "sudo", "mkdir", "-p", mount.Target}})
+		// because / is immutable, we have to monkey around with permissions
+		// if we dont mount in /home or /mnt
+		args := []string{"-q", "--"}
+		if !strings.HasPrefix(mount.Target, "/home") || !strings.HasPrefix(mount.Target, "/mnt") {
+			args = append(args, "sudo", "chattr", "-i", "/", ";")
+		}
+		args = append(args, "sudo", "mkdir", "-p", mount.Target)
+		if !strings.HasPrefix(mount.Target, "/home") || !strings.HasPrefix(mount.Target, "/mnt") {
+			args = append(args, ";", "sudo", "chattr", "+i", "/", ";")
+		}
+		err = v.SSH(name, machine.SSHOptions{Args: args})
 		if err != nil {
 			return err
 		}
@@ -795,7 +821,16 @@ func (v *MachineVM) SSH(name string, opts machine.SSHOptions) error {
 // executes qemu-image info to get the virtual disk size
 // of the diskimage
 func getDiskSize(path string) (uint64, error) {
-	diskInfo := exec.Command("qemu-img", "info", "--output", "json", path)
+	// Find the qemu executable
+	cfg, err := config.Default()
+	if err != nil {
+		return 0, err
+	}
+	qemuPathDir, err := cfg.FindHelperBinary("qemu-img", true)
+	if err != nil {
+		return 0, err
+	}
+	diskInfo := exec.Command(qemuPathDir, "info", "--output", "json", path)
 	stdout, err := diskInfo.StdoutPipe()
 	if err != nil {
 		return 0, err
@@ -957,7 +992,7 @@ func (v *MachineVM) setupAPIForwarding(cmd []string) ([]string, string, apiForwa
 		return cmd, "", noForwarding
 	}
 
-	destSock := "/run/user/1000/podman/podman.sock"
+	destSock := fmt.Sprintf("/run/user/%d/podman/podman.sock", v.UID)
 	forwardUser := "core"
 
 	if v.Rootful {

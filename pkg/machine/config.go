@@ -1,3 +1,4 @@
+//go:build amd64 || arm64
 // +build amd64 arm64
 
 package machine
@@ -28,6 +29,8 @@ type InitOptions struct {
 	Username     string
 	ReExec       bool
 	Rootful      bool
+	// The numberical userid of the user that called machine
+	UID string
 }
 
 type QemuMachineStatus = string

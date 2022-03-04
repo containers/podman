@@ -51,6 +51,7 @@ type DynamicIgnition struct {
 	Name      string
 	Key       string
 	TimeZone  string
+	UID       int
 	VMName    string
 	WritePath string
 }
@@ -63,12 +64,13 @@ func NewIgnitionFile(ign DynamicIgnition) error {
 	ignVersion := Ignition{
 		Version: "3.2.0",
 	}
-
 	ignPassword := Passwd{
 		Users: []PasswdUser{
 			{
 				Name:              ign.Name,
 				SSHAuthorizedKeys: []SSHAuthorizedKey{SSHAuthorizedKey(ign.Key)},
+				// Set the UID of the core user inside the machine
+				UID: intToPtr(ign.UID),
 			},
 			{
 				Name:              "root",
@@ -289,9 +291,7 @@ func getDirs(usrName string) []Directory {
 }
 
 func getFiles(usrName string) []File {
-	var (
-		files []File
-	)
+	files := make([]File, 0)
 
 	lingerExample := `[Unit]
 Description=A systemd user unit demo
@@ -310,6 +310,7 @@ machine_enabled=true
 	delegateConf := `[Service]
 Delegate=memory pids cpu io
 `
+	subUID := `%s:100000:1000000`
 
 	// Add a fake systemd service to get the user socket rolling
 	files = append(files, File{
@@ -343,6 +344,25 @@ Delegate=memory pids cpu io
 			Mode: intToPtr(0744),
 		},
 	})
+
+	// Setup /etc/subuid and /etc/subgid
+	for _, sub := range []string{"/etc/subuid", "/etc/subgid"} {
+		files = append(files, File{
+			Node: Node{
+				Group:     getNodeGrp("root"),
+				Path:      sub,
+				User:      getNodeUsr("root"),
+				Overwrite: boolToPtr(true),
+			},
+			FileEmbedded1: FileEmbedded1{
+				Append: nil,
+				Contents: Resource{
+					Source: encodeDataURLPtr(fmt.Sprintf(subUID, usrName)),
+				},
+				Mode: intToPtr(0744),
+			},
+		})
+	}
 
 	// Set delegate.conf so cpu,io subsystem is delegated to non-root users as well for cgroupv2
 	// by default
