@@ -697,6 +697,11 @@ func (v *MachineVM) Remove(name string, opts machine.RemoveOptions) (string, fun
 	if !opts.SaveImage {
 		files = append(files, v.ImagePath)
 	}
+	socketPath, err := v.getForwardSocketPath()
+	if err != nil {
+		logrus.Error(err)
+	}
+	files = append(files, socketPath)
 	files = append(files, v.archRemovalFiles()...)
 
 	if err := machine.RemoveConnection(v.Name); err != nil {
