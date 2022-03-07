@@ -368,7 +368,7 @@ function start_service() {
         die "Cannot start service on non-localhost ($HOST)"
     fi
 
-    echo $WORKDIR
+    echo "rootdir: "$WORKDIR
     # Some tests use shortnames; force registry override to work around
     # docker.io throttling.
 #    FIXME esm revisit pulling expected images re: shortnames caused tests to fail
@@ -376,7 +376,7 @@ function start_service() {
     $PODMAN_BIN \
         --root $WORKDIR/server_root --syslog=true \
         system service \
-        --time 15 \
+        --time 0 \
         tcp:127.0.0.1:$PORT \
         &> $WORKDIR/server.log &
     service_pid=$!
@@ -443,7 +443,7 @@ function start_registry() {
            -e REGISTRY_HTTP_TLS_KEY=/auth/domain.key \
            ${REGISTRY_IMAGE}
 
-    wait_for_port localhost $REGISTRY_PORT
+    wait_for_port localhost $REGISTRY_PORT 10
 }
 
 function stop_registry() {
@@ -492,13 +492,16 @@ function wait_for_port() {
     local port=$2                      # Numeric port
     local _timeout=${3:-5}             # Optional; default to 5 seconds
 
+    local path=/dev/tcp/$host/$port
+
     # Wait
-    while [ $_timeout -gt 0 ]; do
+    local i=$_timeout
+    while [ $i -gt 0 ]; do
         { exec 3<> /dev/tcp/$host/$port; } &>/dev/null && return
         sleep 1
-        _timeout=$(( $_timeout - 1 ))
+        i=$(( $i - 1 ))
     done
-    die "Timed out waiting for service"
+    die "Timed out (${_timeout}s) waiting for service ($path)"
 }
 
 ############
@@ -543,6 +546,9 @@ done
 ###############################################################################
 # BEGIN entry handler (subtest invoker)
 
+echo '============================= test session starts =============================='
+echo "podman client -- $(curl --version)"
+
 # Identify the tests to run. If called with args, use those as globs.
 tests_to_run=()
 if [ -n "$*" ]; then
@@ -558,6 +564,7 @@ if [ -n "$*" ]; then
 else
     tests_to_run=($TESTS_DIR/*.at)
 fi
+echo -e "collected ${#tests_to_run[@]} items\n"
 
 start_service
 

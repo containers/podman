@@ -265,14 +265,21 @@ case "$TEST_FLAVOR" in
 
         msg "Installing previously downloaded/cached packages"
         dnf install -y $PACKAGE_DOWNLOAD_DIR/python3*.rpm
-        virtualenv venv
-        source venv/bin/activate
+        virtualenv .venv/docker-py
+        source .venv/docker-py/bin/activate
         pip install --upgrade pip
         pip install --requirement $GOSRC/test/python/requirements.txt
         ;;
     build) make clean ;;
     unit) ;;
-    apiv2) ;&  # use next item
+    apiv2)
+        msg "Installing previously downloaded/cached packages"
+        dnf install -y $PACKAGE_DOWNLOAD_DIR/python3*.rpm
+        virtualenv .venv/requests
+        source .venv/requests/bin/activate
+        pip install --upgrade pip
+        pip install --requirement $GOSRC/test/apiv2/python/requirements.txt
+        ;&  # continue with next item
     compose)
         rpm -ivh $PACKAGE_DOWNLOAD_DIR/podman-docker*
         ;&  # continue with next item

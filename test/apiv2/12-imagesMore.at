@@ -26,7 +26,8 @@ t GET libpod/images/$IMAGE/json 200 \
   .RepoTags[1]=localhost:5000/myrepo:mytag
 
 # Run registry container
-podman run -d --name registry -p 5000:5000 quay.io/libpod/registry:2.6 /entrypoint.sh /etc/docker/registry/config.yml
+# FIXME this fails if python tests have been run first...
+podman run -d --name registry -p 5000:5000 quay.io/libpod/registry:2.7 /entrypoint.sh /etc/docker/registry/config.yml
 wait_for_port localhost 5000
 
 # Push to local registry and check output
@@ -58,7 +59,7 @@ t DELETE libpod/containers/registry?force=true 200
 # Remove images
 t DELETE libpod/images/$IMAGE 200 \
   .ExitCode=0
-t DELETE libpod/images/quay.io/libpod/registry:2.6 200 \
+t DELETE libpod/images/quay.io/libpod/registry:2.7 200 \
   .ExitCode=0
 
 if [ -z "${GOT_DIGEST}" ] ; then
