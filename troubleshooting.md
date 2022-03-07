@@ -42,7 +42,7 @@ $ podman run -v ~/mycontent:/content:Z fedora touch /content/file
 
 Make sure the content is private for the container.  Do not relabel system directories and content.
 Relabeling system content might cause other confined services on your machine to fail.  For these
-types of containers we recommend that disable SELinux separation.  The option `--security-opt label=disable`
+types of containers we recommend having SELinux separation disabled.  The option `--security-opt label=disable`
 will disable SELinux separation for the container.
 
 $ podman run --security-opt label=disable -v ~:/home/user fedora touch /home/user/file
@@ -157,7 +157,7 @@ When rootless Podman attempts to execute a container on a non exec home director
 #### Symptom
 
 If you are running Podman or Buildah on a home directory that is mounted noexec,
-then they will fail. With a message like:
+then they will fail with a message like:
 
 ```
 podman run centos:7
@@ -166,7 +166,7 @@ standard_init_linux.go:203: exec user process caused "permission denied"
 
 #### Solution
 
-Since the administrator of the system setup your home directory to be noexec, you will not be allowed to execute containers from storage in your home directory. It is possible to work around this by manually specifying a container storage path that is not on a noexec mount. Simply copy the file /etc/containers/storage.conf to ~/.config/containers/ (creating the directory if necessary). Specify a graphroot directory which is not on a noexec mount point and to which you have read/write privileges.  You will need to modify other fields to writable directories as well.
+Since the administrator of the system set up your home directory to be noexec, you will not be allowed to execute containers from storage in your home directory. It is possible to work around this by manually specifying a container storage path that is not on a noexec mount. Simply copy the file /etc/containers/storage.conf to ~/.config/containers/ (creating the directory if necessary). Specify a graphroot directory which is not on a noexec mount point and to which you have read/write privileges.  You will need to modify other fields to writable directories as well.
 
 For example
 
@@ -229,7 +229,7 @@ Rootless Podman requires the user running it to have a range of UIDs listed in /
 
 #### Symptom
 
-An user, either via --user or through the default configured for the image, is not mapped inside the namespace.
+A user, either via --user or through the default configured for the image, is not mapped inside the namespace.
 
 ```
 podman run --rm -ti --user 1000000 alpine echo hi
@@ -279,7 +279,7 @@ grep johndoe /etc/subuid /etc/subgid
 ### 11) Changing the location of the Graphroot leads to permission denied
 
 When I change the graphroot storage location in storage.conf, the next time I
-run Podman I get an error like:
+run Podman, I get an error like:
 
 ```
 # podman run -p 5000:5000 -it centos bash
@@ -323,7 +323,7 @@ Pulling an anonymous image that doesn't require authentication can result in an
 #### Symptom
 
 If you pull an anonymous image, one that should not require credentials, you can receive
-and `invalid username/password` error if you have credentials established in the
+an `invalid username/password` error if you have credentials established in the
 authentication file for the target container registry that are no longer valid.
 
 ```
