@@ -81,14 +81,14 @@ func (c *cpuHandler) Stat(ctr *CgroupControl, m *Metrics) error {
 			return err
 		}
 		if val, found := values["usage_usec"]; found {
-			usage.Kernel, err = strconv.ParseUint(cleanString(val[0]), 10, 0)
+			usage.Total, err = strconv.ParseUint(cleanString(val[0]), 10, 0)
 			if err != nil {
 				return err
 			}
 			usage.Kernel *= 1000
 		}
 		if val, found := values["system_usec"]; found {
-			usage.Total, err = strconv.ParseUint(cleanString(val[0]), 10, 0)
+			usage.Kernel, err = strconv.ParseUint(cleanString(val[0]), 10, 0)
 			if err != nil {
 				return err
 			}
