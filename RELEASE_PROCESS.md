@@ -241,7 +241,11 @@ spelled with complete minutiae.
 
       ```shell
       $ git checkout vX.Y.Z
-      $ make podman-remote-release-darwin_amd64.zip podman-remote-release-darwin_arm64.zip podman-remote-release-windows_amd64.zip podman.msi podman-remote-static
+      $ make podman-remote-release-darwin_amd64.zip \
+          podman-remote-release-darwin_arm64.zip \
+          podman-remote-release-windows_amd64.zip \
+          podman.msi \
+          podman-remote-static
       $ mv podman-* bin/
       $ cd bin/
       $ tar -cvzf podman-remote-static.tar.gz podman-remote-static
