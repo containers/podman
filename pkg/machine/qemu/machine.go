@@ -42,6 +42,10 @@ func GetQemuProvider() machine.Provider {
 	return qemuProvider
 }
 
+func getCoreOSTargetMountPath(targetMountPath string) string {
+	return "/mnt" + targetMountPath
+}
+
 const (
 	VolumeTypeVirtfs     = "virtfs"
 	MountType9p          = "9p"
@@ -246,7 +250,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 				virtfsOptions += ",readonly"
 			}
 			v.CmdLine = append(v.CmdLine, []string{"-virtfs", virtfsOptions}...)
-			mounts = append(mounts, Mount{Type: MountType9p, Tag: tag, Source: source, Target: target, ReadOnly: readonly})
+			mounts = append(mounts, Mount{Type: MountType9p, Tag: tag, Source: source, Target: getCoreOSTargetMountPath(target), ReadOnly: readonly})
 		}
 	}
 	v.Mounts = mounts

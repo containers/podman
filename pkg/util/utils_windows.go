@@ -41,3 +41,7 @@ func GetRuntimeDir() (string, error) {
 func GetRootlessConfigHomeDir() (string, error) {
 	return "", errors.New("this function is not implemented for windows")
 }
+
+func GetSrcMountPath(absolutePath string) string {
+	return "/mnt" + absolutePath
+}

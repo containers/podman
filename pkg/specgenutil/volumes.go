@@ -126,7 +126,7 @@ func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string, addReadOnlyTmpfs bo
 			if err != nil {
 				return nil, nil, nil, nil, errors.Wrapf(err, "error getting absolute path of %s", mount.Source)
 			}
-			mount.Source = absSrc
+			mount.Source = util.GetSrcMountPath(absSrc)
 		}
 		finalMounts = append(finalMounts, mount)
 	}

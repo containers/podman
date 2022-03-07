@@ -17,6 +17,10 @@ func GetContainerPidInformationDescriptors() ([]string, error) {
 	return psgo.ListDescriptors(), nil
 }
 
+func GetSrcMountPath(absolutePath string) string {
+	return absolutePath
+}
+
 // FindDeviceNodes parses /dev/ into a set of major:minor -> path, where
 // [major:minor] is the device's major and minor numbers formatted as, for
 // example, 2:0 and path is the path to the device node.
