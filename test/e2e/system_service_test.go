@@ -58,6 +58,7 @@ var _ = Describe("podman system service", func() {
 		const magicComment = "pprof service listening on"
 
 		It("are available", func() {
+			Skip("FIXME: Test is too flaky (#12624)")
 			SkipIfRemote("service subcommand not supported remotely")
 
 			address := url.URL{
@@ -97,6 +98,7 @@ var _ = Describe("podman system service", func() {
 		})
 
 		It("are not available", func() {
+			Skip("FIXME: Test is too flaky (#12624)")
 			SkipIfRemote("service subcommand not supported remotely")
 
 			address := url.URL{
