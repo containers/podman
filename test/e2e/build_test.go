@@ -60,7 +60,7 @@ var _ = Describe("Podman build", func() {
 	})
 
 	It("podman build with a secret from file", func() {
-		session := podmanTest.Podman([]string{"build", "-f", "build/Dockerfile.with-secret", "-t", "secret-test", "--secret", "id=mysecret,src=build/secret.txt", "build/"})
+		session := podmanTest.Podman([]string{"build", "-f", "build/Containerfile.with-secret", "-t", "secret-test", "--secret", "id=mysecret,src=build/secret.txt", "build/"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("somesecret"))
@@ -71,7 +71,7 @@ var _ = Describe("Podman build", func() {
 	})
 
 	It("podman build with multiple secrets from files", func() {
-		session := podmanTest.Podman([]string{"build", "-f", "build/Dockerfile.with-multiple-secret", "-t", "multiple-secret-test", "--secret", "id=mysecret,src=build/secret.txt", "--secret", "id=mysecret2,src=build/anothersecret.txt", "build/"})
+		session := podmanTest.Podman([]string{"build", "-f", "build/Containerfile.with-multiple-secret", "-t", "multiple-secret-test", "--secret", "id=mysecret,src=build/secret.txt", "--secret", "id=mysecret2,src=build/anothersecret.txt", "build/"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("somesecret"))
@@ -83,7 +83,7 @@ var _ = Describe("Podman build", func() {
 	})
 
 	It("podman build with a secret from file and verify if secret file is not leaked into image", func() {
-		session := podmanTest.Podman([]string{"build", "-f", "build/Dockerfile.with-secret-verify-leak", "-t", "secret-test-leak", "--secret", "id=mysecret,src=build/secret.txt", "build/"})
+		session := podmanTest.Podman([]string{"build", "-f", "build/secret-verify-leak/Containerfile.with-secret-verify-leak", "-t", "secret-test-leak", "--secret", "id=mysecret,src=build/secret.txt", "build/"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("somesecret"))
