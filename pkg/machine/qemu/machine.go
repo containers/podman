@@ -1104,16 +1104,15 @@ func waitAndPingAPI(sock string) {
 
 func waitAPIAndPrintInfo(forwardState apiForwardingState, forwardSock string, rootFul bool, name string) {
 	if forwardState != noForwarding {
+		suffix := ""
+		if name != machine.DefaultMachineName {
+			suffix = " " + name
+		}
 		waitAndPingAPI(forwardSock)
 		if !rootFul {
 			fmt.Printf("\nThis machine is currently configured in rootless mode. If your containers\n")
 			fmt.Printf("require root permissions (e.g. ports < 1024), or if you run into compatibility\n")
 			fmt.Printf("issues with non-podman clients, you can switch using the following command: \n")
-
-			suffix := ""
-			if name != machine.DefaultMachineName {
-				suffix = " " + name
-			}
 			fmt.Printf("\n\tpodman machine set --rootful%s\n\n", suffix)
 		}
 
@@ -1127,8 +1126,9 @@ func waitAPIAndPrintInfo(forwardState apiForwardingState, forwardSock string, ro
 				fmt.Printf("\nThe system helper service is not installed; the default Docker API socket\n")
 				fmt.Printf("address can't be used by podman. ")
 				if helper := findClaimHelper(); len(helper) > 0 {
-					fmt.Printf("If you would like to install it run the\nfollowing command:\n")
-					fmt.Printf("\n\tsudo %s install\n\n", helper)
+					fmt.Printf("If you would like to install it run the\nfollowing commands:\n")
+					fmt.Printf("\n\tsudo %s install\n", helper)
+					fmt.Printf("\tpodman machine stop%s; podman machine start%s\n\n", suffix, suffix)
 				}
 			case machineLocal:
 				fmt.Printf("\nAnother process was listening on the default Docker API socket address.\n")
