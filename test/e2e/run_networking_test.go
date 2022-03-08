@@ -2,15 +2,19 @@ package integration
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"strings"
+	"syscall"
 
+	"github.com/containernetworking/plugins/pkg/ns"
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/uber/jaeger-client-go/utils"
+	"github.com/vishvananda/netlink"
 )
 
 var _ = Describe("Podman run networking", func() {
@@ -692,6 +696,157 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		session.Wait(90)
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("11.11.11.11"))
+	})
+
+	addAddr := func(cidr string, containerInterface netlink.Link) error {
+		_, ipnet, err := net.ParseCIDR(cidr)
+		Expect(err).To(BeNil())
+		addr := &netlink.Addr{IPNet: ipnet, Label: ""}
+		if err := netlink.AddrAdd(containerInterface, addr); err != nil && err != syscall.EEXIST {
+			return err
+		}
+		return nil
+	}
+
+	loopbackup := func() {
+		lo, err := netlink.LinkByName("lo")
+		Expect(err).To(BeNil())
+		err = netlink.LinkSetUp(lo)
+		Expect(err).To(BeNil())
+	}
+
+	linkup := func(name string, mac string, addresses []string) {
+		linkAttr := netlink.NewLinkAttrs()
+		linkAttr.Name = name
+		m, err := net.ParseMAC(mac)
+		Expect(err).To(BeNil())
+		linkAttr.HardwareAddr = net.HardwareAddr(m)
+		eth := &netlink.Dummy{LinkAttrs: linkAttr}
+		err = netlink.LinkAdd(eth)
+		Expect(err).To(BeNil())
+		err = netlink.LinkSetUp(eth)
+		Expect(err).To(BeNil())
+		for _, address := range addresses {
+			err := addAddr(address, eth)
+			Expect(err).To(BeNil())
+		}
+	}
+
+	routeAdd := func(gateway string) {
+		gw := net.ParseIP(gateway)
+		route := &netlink.Route{Dst: nil, Gw: gw}
+		netlink.RouteAdd(route)
+	}
+
+	setupNetworkNs := func(networkNSName string) {
+		ns.WithNetNSPath("/run/netns/"+networkNSName, func(_ ns.NetNS) error {
+			loopbackup()
+			linkup("eth0", "46:7f:45:6e:4f:c8", []string{"10.25.40.0/24", "fd04:3e42:4a4e:3381::/64"})
+			linkup("eth1", "56:6e:35:5d:3e:a8", []string{"10.88.0.0/16"})
+
+			routeAdd("10.25.40.0")
+			return nil
+		})
+	}
+
+	checkNetworkNsInspect := func(name string) {
+		inspectOut := podmanTest.InspectContainer(name)
+		Expect(inspectOut[0].NetworkSettings.IPAddress).To(Equal("10.25.40.0"))
+		Expect(inspectOut[0].NetworkSettings.IPPrefixLen).To(Equal(24))
+		Expect(len(inspectOut[0].NetworkSettings.SecondaryIPAddresses)).To(Equal(1))
+		Expect(inspectOut[0].NetworkSettings.SecondaryIPAddresses[0].Addr).To(Equal("10.88.0.0"))
+		Expect(inspectOut[0].NetworkSettings.SecondaryIPAddresses[0].PrefixLength).To(Equal(16))
+		Expect(inspectOut[0].NetworkSettings.GlobalIPv6Address).To(Equal("fd04:3e42:4a4e:3381::"))
+		Expect(inspectOut[0].NetworkSettings.GlobalIPv6PrefixLen).To(Equal(64))
+		Expect(len(inspectOut[0].NetworkSettings.SecondaryIPv6Addresses)).To(Equal(0))
+		Expect(inspectOut[0].NetworkSettings.MacAddress).To(Equal("46:7f:45:6e:4f:c8"))
+		Expect(len(inspectOut[0].NetworkSettings.AdditionalMacAddresses)).To(Equal(1))
+		Expect(inspectOut[0].NetworkSettings.AdditionalMacAddresses[0]).To(Equal("56:6e:35:5d:3e:a8"))
+		Expect(inspectOut[0].NetworkSettings.Gateway).To(Equal("10.25.40.0"))
+
+	}
+
+	It("podman run newtork inspect fails gracefully on non-reachable network ns", func() {
+		SkipIfRootless("ip netns is not supported for rootless users")
+
+		networkNSName := RandomString(12)
+		addNamedNetwork := SystemExec("ip", []string{"netns", "add", networkNSName})
+		Expect(addNamedNetwork).Should(Exit(0))
+
+		setupNetworkNs(networkNSName)
+
+		name := RandomString(12)
+		session := podmanTest.Podman([]string{"run", "-d", "--name", name, "--net", "ns:/run/netns/" + networkNSName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+
+		// delete the named network ns before inspect
+		delNetworkNamespace := SystemExec("ip", []string{"netns", "delete", networkNSName})
+		Expect(delNetworkNamespace).Should(Exit(0))
+
+		inspectOut := podmanTest.InspectContainer(name)
+		Expect(inspectOut[0].NetworkSettings.IPAddress).To(Equal(""))
+		Expect(len(inspectOut[0].NetworkSettings.Networks)).To(Equal(0))
+	})
+
+	It("podman inspect can handle joined network ns with multiple interfaces", func() {
+		SkipIfRootless("ip netns is not supported for rootless users")
+
+		networkNSName := RandomString(12)
+		addNamedNetwork := SystemExec("ip", []string{"netns", "add", networkNSName})
+		Expect(addNamedNetwork).Should(Exit(0))
+		defer func() {
+			delNetworkNamespace := SystemExec("ip", []string{"netns", "delete", networkNSName})
+			Expect(delNetworkNamespace).Should(Exit(0))
+		}()
+		setupNetworkNs(networkNSName)
+
+		name := RandomString(12)
+		session := podmanTest.Podman([]string{"run", "--name", name, "--net", "ns:/run/netns/" + networkNSName, ALPINE})
+		session.WaitWithDefaultTimeout()
+
+		session = podmanTest.Podman([]string{"container", "rm", name})
+		session.WaitWithDefaultTimeout()
+
+		// no network teardown should touch joined network ns interfaces
+		session = podmanTest.Podman([]string{"run", "-d", "--replace", "--name", name, "--net", "ns:/run/netns/" + networkNSName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+
+		checkNetworkNsInspect(name)
+	})
+
+	It("podman do not tamper with joined network ns interfaces", func() {
+		SkipIfRootless("ip netns is not supported for rootless users")
+
+		networkNSName := RandomString(12)
+		addNamedNetwork := SystemExec("ip", []string{"netns", "add", networkNSName})
+		Expect(addNamedNetwork).Should(Exit(0))
+		defer func() {
+			delNetworkNamespace := SystemExec("ip", []string{"netns", "delete", networkNSName})
+			Expect(delNetworkNamespace).Should(Exit(0))
+		}()
+
+		setupNetworkNs(networkNSName)
+
+		name := RandomString(12)
+		session := podmanTest.Podman([]string{"run", "--name", name, "--net", "ns:/run/netns/" + networkNSName, ALPINE})
+		session.WaitWithDefaultTimeout()
+
+		checkNetworkNsInspect(name)
+
+		name = RandomString(12)
+		session = podmanTest.Podman([]string{"run", "--name", name, "--net", "ns:/run/netns/" + networkNSName, ALPINE})
+		session.WaitWithDefaultTimeout()
+
+		checkNetworkNsInspect(name)
+
+		// delete container, the network inspect should not change
+		session = podmanTest.Podman([]string{"container", "rm", name})
+		session.WaitWithDefaultTimeout()
+
+		session = podmanTest.Podman([]string{"run", "-d", "--replace", "--name", name, "--net", "ns:/run/netns/" + networkNSName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+
+		checkNetworkNsInspect(name)
 	})
 
 	It("podman run network in bogus user created network namespace", func() {

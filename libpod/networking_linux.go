@@ -30,6 +30,7 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/lockfile"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -990,8 +991,20 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 		return nil, err
 	}
 
-	// We can't do more if the network is down.
 	if c.state.NetNS == nil {
+		if networkNSPath := c.joinedNetworkNSPath(); networkNSPath != "" {
+			if result, err := c.inspectJoinedNetworkNS(networkNSPath); err == nil {
+				if basicConfig, err := resultToBasicNetworkConfig(result); err == nil {
+					// fallback to dummy configuration
+					settings.InspectBasicNetworkConfig = basicConfig
+					return settings, nil
+				}
+			}
+			// do not propagate error inspecting a joined network ns
+			logrus.Errorf("Error inspecting network namespace: %s of container %s: %v", networkNSPath, c.ID(), err)
+		}
+		// We can't do more if the network is down.
+
 		// We still want to make dummy configurations for each CNI net
 		// the container joined.
 		if len(networks) > 0 {
@@ -1065,11 +1078,84 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 	return settings, nil
 }
 
+func (c *Container) joinedNetworkNSPath() string {
+	for _, namespace := range c.config.Spec.Linux.Namespaces {
+		if namespace.Type == spec.NetworkNamespace {
+			return namespace.Path
+		}
+	}
+	return ""
+}
+
+func (c *Container) inspectJoinedNetworkNS(networkns string) (q types.StatusBlock, retErr error) {
+	var result types.StatusBlock
+	err := ns.WithNetNSPath(networkns, func(_ ns.NetNS) error {
+		ifaces, err := net.Interfaces()
+		if err != nil {
+			return err
+		}
+		routes, err := netlink.RouteList(nil, netlink.FAMILY_ALL)
+		if err != nil {
+			return err
+		}
+		var gateway net.IP
+		for _, route := range routes {
+			// default gateway
+			if route.Dst == nil {
+				gateway = route.Gw
+			}
+		}
+		result.Interfaces = make(map[string]types.NetInterface)
+		for _, iface := range ifaces {
+			if iface.Flags&net.FlagLoopback != 0 {
+				continue
+			}
+			addrs, err := iface.Addrs()
+			if err != nil {
+				continue
+			}
+			if len(addrs) == 0 {
+				continue
+			}
+			subnets := make([]types.NetAddress, 0, len(addrs))
+			for _, address := range addrs {
+				if ipnet, ok := address.(*net.IPNet); ok {
+					if ipnet.IP.IsLinkLocalMulticast() || ipnet.IP.IsLinkLocalUnicast() {
+						continue
+					}
+					subnet := types.NetAddress{
+						IPNet: types.IPNet{
+							IPNet: *ipnet,
+						},
+					}
+					if ipnet.Contains(gateway) {
+						subnet.Gateway = gateway
+					}
+					subnets = append(subnets, subnet)
+				}
+			}
+			result.Interfaces[iface.Name] = types.NetInterface{
+				Subnets:    subnets,
+				MacAddress: types.HardwareAddr(iface.HardwareAddr),
+			}
+		}
+		return nil
+	})
+	return result, err
+}
+
 // resultToBasicNetworkConfig produces an InspectBasicNetworkConfig from a CNI
 // result
 func resultToBasicNetworkConfig(result types.StatusBlock) (define.InspectBasicNetworkConfig, error) {
 	config := define.InspectBasicNetworkConfig{}
-	for _, netInt := range result.Interfaces {
+	interfaceNames := make([]string, len(result.Interfaces))
+	for interfaceName := range result.Interfaces {
+		interfaceNames = append(interfaceNames, interfaceName)
+	}
+	// ensure consistent inspect results by sorting
+	sort.Strings(interfaceNames)
+	for _, interfaceName := range interfaceNames {
+		netInt := result.Interfaces[interfaceName]
 		for _, netAddress := range netInt.Subnets {
 			size, _ := netAddress.IPNet.Mask.Size()
 			if netAddress.IPNet.IP.To4() != nil {
