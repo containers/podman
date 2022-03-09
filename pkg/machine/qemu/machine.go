@@ -679,7 +679,7 @@ func (v *MachineVM) Remove(name string, opts machine.RemoveOptions) (string, fun
 	if err != nil {
 		return "", nil, err
 	}
-	if running {
+	if running && !opts.Force {
 		return "", nil, errors.Errorf("running vm %q cannot be destroyed", v.Name)
 	}
 
