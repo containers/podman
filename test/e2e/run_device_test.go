@@ -44,6 +44,11 @@ var _ = Describe("Podman run device", func() {
 		session := podmanTest.Podman([]string{"run", "-q", "--security-opt", "label=disable", "--device", "/dev/kmsg", ALPINE, "test", "-c", "/dev/kmsg"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+		if !isRootless() {
+			session = podmanTest.Podman([]string{"run", "-q", "--security-opt", "label=disable", "--device", "/dev/kmsg", "--cap-add", "SYS_ADMIN", ALPINE, "head", "-n", "1", "/dev/kmsg"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+		}
 	})
 
 	It("podman run device rename test", func() {
