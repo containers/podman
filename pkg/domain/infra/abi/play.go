@@ -28,7 +28,7 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	yamlv3 "gopkg.in/yaml.v3"
+	yamlv2 "gopkg.in/yaml.v2"
 	v1apps "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 )
@@ -655,7 +655,7 @@ func readConfigMapFromFile(r io.Reader) (v1.ConfigMap, error) {
 func splitMultiDocYAML(yamlContent []byte) ([][]byte, error) {
 	var documentList [][]byte
 
-	d := yamlv3.NewDecoder(bytes.NewReader(yamlContent))
+	d := yamlv2.NewDecoder(bytes.NewReader(yamlContent))
 	for {
 		var o interface{}
 		// read individual document
@@ -669,7 +669,7 @@ func splitMultiDocYAML(yamlContent []byte) ([][]byte, error) {
 
 		if o != nil {
 			// back to bytes
-			document, err := yamlv3.Marshal(o)
+			document, err := yamlv2.Marshal(o)
 			if err != nil {
 				return nil, errors.Wrapf(err, "individual doc yaml could not be marshalled")
 			}
