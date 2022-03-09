@@ -991,12 +991,15 @@ less: dir1/a: Permission denied
 
 #### Solution
 
-If you want to read or remove such a file, you can do so by entering a user namespace.
-Instead of running commands such as `less dir1/a` or `rm dir1/a`, you would need to
-prepend the command-line with `podman unshare`, i.e.,
-`podman unshare less dir1/a` or `podman unshare rm dir1/a`. To be able to use Bash
-features, such as variable expansion and globbing, you need to wrap the command with
-`bash -c`, e.g. `podman unshare bash -c 'ls $HOME/dir1/a*'`.
+If you want to read, chown, or remove such a file, enter a user
+namespace. Instead of running commands such as `less dir1/a` or `rm dir1/a`, you
+need to prepend the command-line with `podman unshare`, i.e.,
+`podman unshare less dir1/a` or `podman unshare rm dir1/a`. To change the ownership
+of the file _dir1/a_ to your regular user's UID and GID, run `podman unshare chown 0:0 dir1/a`.
+A file having the ownership _0:0_ in the user namespace is owned by the regular
+user on the host. To use Bash features, such as variable expansion and
+globbing, you need to wrap the command with `bash -c`, e.g.
+`podman unshare bash -c 'ls $HOME/dir1/a*'`.
 
 Would it have been possible to run Podman in another way so that your regular
 user would have become the owner of the file? Yes, you can use the options
