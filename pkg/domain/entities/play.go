@@ -14,6 +14,8 @@ type PlayKubeOptions struct {
 	Build types.OptionalBool
 	// CertDir - to a directory containing TLS certifications and keys.
 	CertDir string
+	// ContextDir - directory containing image contexts used for Build
+	ContextDir string
 	// Down indicates whether to bring contents of a yaml file "down"
 	// as in stop
 	Down bool

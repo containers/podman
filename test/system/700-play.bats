@@ -168,3 +168,55 @@ _EOF
     run_podman pod rm -t 0 -f test_pod
     run_podman rmi -f userimage:latest
 }
+
+@test "podman play --build --context-dir" {
+   skip_if_remote "--build is not supported in context remote"
+   testUserYaml="
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: test
+  name: test_pod
+spec:
+  containers:
+  - command:
+    - id
+    env:
+    - name: PATH
+      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    - name: TERM
+      value: xterm
+    - name: container
+      value: podman
+    image: quay.io/libpod/userimage
+    name: test
+    resources: {}
+status: {}
+"
+
+mkdir -p $PODMAN_TMPDIR/userimage
+cat > $PODMAN_TMPDIR/userimage/Containerfile << _EOF
+from $IMAGE
+USER bin
+_EOF
+
+    echo "$testUserYaml" > $PODMAN_TMPDIR/test.yaml
+    run_podman 125 play kube --build --start=false $PODMAN_TMPDIR/test.yaml
+    run_podman play kube --replace --context-dir=$PODMAN_TMPDIR --build --start=false $PODMAN_TMPDIR/test.yaml
+    run_podman inspect --format "{{ .Config.User }}" test_pod-test
+    is "$output" bin "expect container within pod to run as the bin user"
+
+    run_podman stop -a -t 0
+    run_podman pod rm -t 0 -f test_pod
+    run_podman rmi -f userimage:latest
+
+    cd $PODMAN_TMPDIR
+    run_podman play kube --replace --build --start=false $PODMAN_TMPDIR/test.yaml
+    run_podman inspect --format "{{ .Config.User }}" test_pod-test
+    is "$output" bin "expect container within pod to run as the bin user"
+
+    run_podman stop -a -t 0
+    run_podman pod rm -t 0 -f test_pod
+    run_podman rmi -f userimage:latest
+}

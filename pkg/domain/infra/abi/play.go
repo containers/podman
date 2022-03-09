@@ -354,9 +354,15 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 
 	containers := make([]*libpod.Container, 0, len(podYAML.Spec.Containers))
 	initContainers := make([]*libpod.Container, 0, len(podYAML.Spec.InitContainers))
-	cwd, err := os.Getwd()
-	if err != nil {
-		return nil, err
+
+	var cwd string
+	if options.ContextDir != "" {
+		cwd = options.ContextDir
+	} else {
+		cwd, err = os.Getwd()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	ctrNames := make(map[string]string)
