@@ -220,3 +220,16 @@ _EOF
     run_podman pod rm -t 0 -f test_pod
     run_podman rmi -f userimage:latest
 }
+
+@test "podman play --annotation" {
+    TESTDIR=$PODMAN_TMPDIR/testdir
+    RANDOMSTRING=$(random_string 15)
+    mkdir -p $TESTDIR
+    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
+    run_podman play kube --annotation "name=$RANDOMSTRING" $PODMAN_TMPDIR/test.yaml
+    run_podman inspect --format "{{ .Config.Annotations }}" test_pod-test
+    is "$output" ".*name:$RANDOMSTRING" "Annotation should be added to pod"
+
+    run_podman stop -a -t 0
+    run_podman pod rm -t 0 -f test_pod
+}

@@ -8,6 +8,8 @@ import (
 
 // PlayKubeOptions controls playing kube YAML files.
 type PlayKubeOptions struct {
+	// Annotations - Annotations to add to Pods
+	Annotations map[string]string
 	// Authfile - path to an authentication file.
 	Authfile string
 	// Indicator to build all images with Containerfile or Dockerfile

@@ -16,6 +16,9 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, opts entit
 	if len(opts.LogOptions) > 0 {
 		options.WithLogOptions(opts.LogOptions)
 	}
+	if opts.Annotations != nil {
+		options.WithAnnotations(opts.Annotations)
+	}
 	options.WithNoHosts(opts.NoHosts)
 	if s := opts.SkipTLSVerify; s != types.OptionalBoolUndefined {
 		options.WithSkipTLSVerify(s == types.OptionalBoolTrue)

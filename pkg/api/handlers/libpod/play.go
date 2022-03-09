@@ -23,14 +23,15 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
-		Network    []string `schema:"network"`
-		TLSVerify  bool     `schema:"tlsVerify"`
-		LogDriver  string   `schema:"logDriver"`
-		LogOptions []string `schema:"logOptions"`
-		Start      bool     `schema:"start"`
-		StaticIPs  []string `schema:"staticIPs"`
-		StaticMACs []string `schema:"staticMACs"`
-		NoHosts    bool     `schema:"noHosts"`
+		Annotations map[string]string `schema:"annotations"`
+		Network     []string          `schema:"network"`
+		TLSVerify   bool              `schema:"tlsVerify"`
+		LogDriver   string            `schema:"logDriver"`
+		LogOptions  []string          `schema:"logOptions"`
+		Start       bool              `schema:"start"`
+		StaticIPs   []string          `schema:"staticIPs"`
+		StaticMACs  []string          `schema:"staticMACs"`
+		NoHosts     bool              `schema:"noHosts"`
 	}{
 		TLSVerify: true,
 		Start:     true,
@@ -97,16 +98,17 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
 	options := entities.PlayKubeOptions{
-		Authfile:   authfile,
-		Username:   username,
-		Password:   password,
-		Networks:   query.Network,
-		NoHosts:    query.NoHosts,
-		Quiet:      true,
-		LogDriver:  query.LogDriver,
-		LogOptions: query.LogOptions,
-		StaticIPs:  staticIPs,
-		StaticMACs: staticMACs,
+		Annotations: query.Annotations,
+		Authfile:    authfile,
+		Username:    username,
+		Password:    password,
+		Networks:    query.Network,
+		NoHosts:     query.NoHosts,
+		Quiet:       true,
+		LogDriver:   query.LogDriver,
+		LogOptions:  query.LogOptions,
+		StaticIPs:   staticIPs,
+		StaticMACs:  staticMACs,
 	}
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		options.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
