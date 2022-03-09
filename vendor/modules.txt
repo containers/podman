@@ -683,13 +683,8 @@ github.com/ulikunitz/xz/lzma
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
 github.com/vbatts/tar-split/tar/storage
-# github.com/vbauerster/mpb/v6 v6.0.4
-## explicit
-github.com/vbauerster/mpb/v6
-github.com/vbauerster/mpb/v6/cwriter
-github.com/vbauerster/mpb/v6/decor
-github.com/vbauerster/mpb/v6/internal
 # github.com/vbauerster/mpb/v7 v7.3.2
+## explicit
 github.com/vbauerster/mpb/v7
 github.com/vbauerster/mpb/v7/cwriter
 github.com/vbauerster/mpb/v7/decor
