@@ -11,7 +11,7 @@ import (
 // ErrNotTTY not a TeleTYpewriter error.
 var ErrNotTTY = errors.New("not a terminal")
 
-// http://ascii-table.com/ansi-escape-sequences.php
+// https://github.com/dylanaraps/pure-sh-bible#cursor-movement
 const (
 	escOpen  = "\x1b["
 	cuuAndEd = "A\x1b[J"
