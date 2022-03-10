@@ -325,6 +325,11 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	}
 	// Devices
 
+	// set the default rule at the beginning of device configuration
+	if !inUserNS && !s.Privileged {
+		g.AddLinuxResourcesDevice(false, "", nil, nil, "rwm")
+	}
+
 	var userDevices []spec.LinuxDevice
 	if s.Privileged {
 		// If privileged, we need to add all the host devices to the
@@ -356,7 +361,6 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 
 	// set the devices cgroup when not running in a user namespace
 	if !inUserNS && !s.Privileged {
-		g.AddLinuxResourcesDevice(false, "", nil, nil, "rwm")
 		for _, dev := range s.DeviceCgroupRule {
 			g.AddLinuxResourcesDevice(true, dev.Type, dev.Major, dev.Minor, dev.Access)
 		}
