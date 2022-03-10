@@ -18,6 +18,21 @@ func (o *KubeOptions) ToParams() (url.Values, error) {
 	return util.ToParams(o)
 }
 
+// WithAnnotations set field Annotations to given value
+func (o *KubeOptions) WithAnnotations(value map[string]string) *KubeOptions {
+	o.Annotations = value
+	return o
+}
+
+// GetAnnotations returns value of field Annotations
+func (o *KubeOptions) GetAnnotations() map[string]string {
+	if o.Annotations == nil {
+		var z map[string]string
+		return z
+	}
+	return o.Annotations
+}
+
 // WithAuthfile set field Authfile to given value
 func (o *KubeOptions) WithAuthfile(value string) *KubeOptions {
 	o.Authfile = &value

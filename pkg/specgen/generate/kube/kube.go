@@ -277,7 +277,13 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	}
 
 	annotations := make(map[string]string)
+	if opts.Annotations != nil {
+		annotations = opts.Annotations
+	}
 	if opts.PodInfraID != "" {
+		if annotations == nil {
+
+		}
 		annotations[ann.SandboxID] = opts.PodInfraID
 		annotations[ann.ContainerType] = ann.ContainerTypeContainer
 	}

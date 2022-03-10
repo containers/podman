@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
@@ -31,7 +32,8 @@ type playKubeOptionsWrapper struct {
 }
 
 var (
-	macs []string
+	annotations []string
+	macs        []string
 	// https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/
 	defaultSeccompRoot = "/var/lib/kubelet/seccomp"
 	kubeOptions        = playKubeOptionsWrapper{}
@@ -61,6 +63,13 @@ func init() {
 	flags := kubeCmd.Flags()
 	flags.SetNormalizeFunc(utils.AliasFlags)
 
+	annotationFlagName := "annotation"
+	flags.StringSliceVar(
+		&annotations,
+		annotationFlagName, []string{},
+		"Add annotations to pods (key=value)",
+	)
+	_ = kubeCmd.RegisterFlagCompletionFunc(annotationFlagName, completion.AutocompleteNone)
 	credsFlagName := "creds"
 	flags.StringVar(&kubeOptions.CredentialsCLI, credsFlagName, "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
 	_ = kubeCmd.RegisterFlagCompletionFunc(credsFlagName, completion.AutocompleteNone)
@@ -161,6 +170,16 @@ func kube(cmd *cobra.Command, args []string) error {
 		kubeOptions.Password = creds.Password
 	}
 
+	for _, annotation := range annotations {
+		splitN := strings.SplitN(annotation, "=", 2)
+		if len(splitN) > 2 {
+			return errors.Errorf("annotation %q must include an '=' sign", annotation)
+		}
+		if kubeOptions.Annotations == nil {
+			kubeOptions.Annotations = make(map[string]string)
+		}
+		kubeOptions.Annotations[splitN[0]] = splitN[1]
+	}
 	yamlfile := args[0]
 	if yamlfile == "-" {
 		yamlfile = "/dev/stdin"

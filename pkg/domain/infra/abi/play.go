@@ -79,6 +79,13 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 			podTemplateSpec.ObjectMeta = podYAML.ObjectMeta
 			podTemplateSpec.Spec = podYAML.Spec
 
+			for name, val := range options.Annotations {
+				if podYAML.Annotations == nil {
+					podYAML.Annotations = make(map[string]string)
+				}
+				podYAML.Annotations[name] = val
+			}
+
 			r, err := ic.playKubePod(ctx, podTemplateSpec.ObjectMeta.Name, &podTemplateSpec, options, &ipIndex, podYAML.Annotations, configMaps)
 			if err != nil {
 				return nil, err

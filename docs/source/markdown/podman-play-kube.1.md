@@ -105,6 +105,11 @@ and as a result environment variable `FOO` will be set to `bar` for container `c
 
 ## OPTIONS
 
+#### **--annotation**=*key=value*
+
+Add an annotation to the container or pod. The format is key=value.
+The **--annotation** option can be set multiple times.
+
 #### **--authfile**=*path*
 
 Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
