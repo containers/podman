@@ -37,11 +37,14 @@ type CommonBuildOptions struct {
 	DNSServers []string
 	// DNSOptions is the list of DNS
 	DNSOptions []string
-	// MemorySwap limits the amount of memory and swap together.
-	MemorySwap int64
 	// LabelOpts is the a slice of fields of an SELinux context, given in "field:pair" format, or "disable".
 	// Recognized field names are "role", "type", and "level".
 	LabelOpts []string
+	// MemorySwap limits the amount of memory and swap together.
+	MemorySwap int64
+	// NoHosts tells the builder not to create /etc/hosts content when running
+	// containers.
+	NoHosts bool
 	// OmitTimestamp forces epoch 0 as created timestamp to allow for
 	// deterministic, content-addressable builds.
 	OmitTimestamp bool

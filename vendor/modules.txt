@@ -63,13 +63,13 @@ github.com/container-orchestrated-devices/container-device-interface/pkg/cdi
 github.com/container-orchestrated-devices/container-device-interface/specs-go
 # github.com/containerd/cgroups v1.0.3
 github.com/containerd/cgroups/stats/v1
-# github.com/containerd/containerd v1.6.0
+# github.com/containerd/containerd v1.6.1
 github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/log
 github.com/containerd/containerd/pkg/userns
 github.com/containerd/containerd/platforms
 github.com/containerd/containerd/sys
-# github.com/containerd/stargz-snapshotter/estargz v0.11.1
+# github.com/containerd/stargz-snapshotter/estargz v0.11.2
 github.com/containerd/stargz-snapshotter/estargz
 github.com/containerd/stargz-snapshotter/estargz/errorutil
 # github.com/containernetworking/cni v1.0.1
@@ -87,7 +87,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.1.1
 ## explicit
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.24.2
+# github.com/containers/buildah v1.24.3-0.20220310160415-5ec70bf01ea5
 ## explicit
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -153,7 +153,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.19.2-0.20220302121925-9a9cd9322006
+# github.com/containers/image/v5 v5.20.1-0.20220310094651-0d8056ee346f
 ## explicit
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -182,6 +182,7 @@ github.com/containers/image/v5/oci/internal
 github.com/containers/image/v5/oci/layout
 github.com/containers/image/v5/openshift
 github.com/containers/image/v5/ostree
+github.com/containers/image/v5/pkg/blobcache
 github.com/containers/image/v5/pkg/blobinfocache
 github.com/containers/image/v5/pkg/blobinfocache/boltdb
 github.com/containers/image/v5/pkg/blobinfocache/internal/prioritize
@@ -232,7 +233,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.38.3-0.20220301151551-d06b0f81c0aa
+# github.com/containers/storage v1.38.3-0.20220308085612-93ce26691863
 ## explicit
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -388,7 +389,7 @@ github.com/felixge/httpsnoop
 # github.com/fsnotify/fsnotify v1.5.1
 ## explicit
 github.com/fsnotify/fsnotify
-# github.com/fsouza/go-dockerclient v1.7.8
+# github.com/fsouza/go-dockerclient v1.7.10
 github.com/fsouza/go-dockerclient
 # github.com/ghodss/yaml v1.0.0
 ## explicit
@@ -462,7 +463,7 @@ github.com/jinzhu/copier
 # github.com/json-iterator/go v1.1.12
 ## explicit
 github.com/json-iterator/go
-# github.com/klauspost/compress v1.14.4
+# github.com/klauspost/compress v1.15.0
 github.com/klauspost/compress
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
@@ -658,7 +659,7 @@ github.com/stefanberger/go-pkcs11uri
 ## explicit
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
-# github.com/sylabs/sif/v2 v2.3.2
+# github.com/sylabs/sif/v2 v2.4.0
 github.com/sylabs/sif/v2/pkg/sif
 # github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 ## explicit
@@ -735,7 +736,7 @@ golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/knownhosts
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20220114011407-0dd24b26b47d
+# golang.org/x/net v0.0.0-20220225172249-27dd8689420f
 golang.org/x/net/context
 golang.org/x/net/html
 golang.org/x/net/html/atom
@@ -750,7 +751,7 @@ golang.org/x/net/trace
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20220209214540-3681064d5158
+# golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
@@ -785,9 +786,9 @@ golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 # golang.org/x/tools v0.1.7
 golang.org/x/tools/go/ast/inspector
-# google.golang.org/genproto v0.0.0-20211208223120-3a66f561d7aa
+# google.golang.org/genproto v0.0.0-20220304144024-325a89244dc8
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.43.0
+# google.golang.org/grpc v1.44.0
 google.golang.org/grpc
 google.golang.org/grpc/attributes
 google.golang.org/grpc/backoff

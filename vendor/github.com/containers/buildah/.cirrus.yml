@@ -19,6 +19,8 @@ env:
     CIRRUS_CLONE_DEPTH: 50
     # Unless set by in_podman.sh, default to operating outside of a podman container
     IN_PODMAN: 'false'
+    # root or rootless
+    PRIV_NAME: root
 
     ####
     #### Cache-image names to test with
@@ -250,6 +252,44 @@ integration_task:
         package_versions_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh packages'
         golang_version_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh golang'
 
+integration_rootless_task:
+    name: "Integration rootless $DISTRO_NV w/ $STORAGE_DRIVER"
+    alias: integration_rootless
+    only_if: *not_docs
+    depends_on: *smoke_vendor_cross
+
+    matrix:
+        # Running rootless tests on overlay
+        # OVERLAY
+        - env:
+            DISTRO_NV: "${FEDORA_NAME}"
+            IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
+            STORAGE_DRIVER: 'overlay'
+            PRIV_NAME: rootless
+        - env:
+            DISTRO_NV: "${PRIOR_FEDORA_NAME}"
+            IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+            STORAGE_DRIVER: 'overlay'
+            PRIV_NAME: rootless
+        - env:
+            DISTRO_NV: "${UBUNTU_NAME}"
+            IMAGE_NAME: "${UBUNTU_CACHE_IMAGE_NAME}"
+            STORAGE_DRIVER: 'overlay'
+            PRIV_NAME: rootless
+
+    gce_instance:
+        image_name: "$IMAGE_NAME"
+
+    # Separate scripts for separate outputs, makes debugging easier.
+    setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
+    build_script: '${SCRIPT_BASE}/build.sh |& ${_TIMESTAMP}'
+    integration_test_script: '${SCRIPT_BASE}/test.sh integration |& ${_TIMESTAMP}'
+
+    binary_artifacts:
+        path: ./bin/*
+
+    always:
+        <<: *standardlogs
 
 in_podman_task:
     name: "Containerized Integration"

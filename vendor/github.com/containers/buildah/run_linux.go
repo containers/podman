@@ -210,7 +210,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	namespaceOptions := append(b.NamespaceOptions, options.NamespaceOptions...)
 	volumes := b.Volumes()
 
-	if !contains(volumes, "/etc/hosts") {
+	if !options.NoHosts && !contains(volumes, "/etc/hosts") {
 		hostFile, err := b.generateHosts(path, spec.Hostname, b.CommonBuildOpts.AddHost, rootIDPair)
 		if err != nil {
 			return err

@@ -17,6 +17,12 @@ This package provides various compression algorithms.
 
 # changelog
 
+* Feb 22, 2022 (v1.14.4)
+	* flate: Fix rare huffman only (-2) corruption. [#503](https://github.com/klauspost/compress/pull/503)
+	* zip: Update deprecated CreateHeaderRaw to correctly call CreateRaw by @saracen in [#502](https://github.com/klauspost/compress/pull/502)
+	* zip: don't read data descriptor early by @saracen in [#501](https://github.com/klauspost/compress/pull/501)  #501
+	* huff0: Use static decompression buffer up to 30% faster by @klauspost in [#499](https://github.com/klauspost/compress/pull/499) [#500](https://github.com/klauspost/compress/pull/500)
+
 * Feb 17, 2022 (v1.14.3)
 	* flate: Improve fastest levels compression speed ~10% more throughput. [#482](https://github.com/klauspost/compress/pull/482) [#489](https://github.com/klauspost/compress/pull/489) [#490](https://github.com/klauspost/compress/pull/490) [#491](https://github.com/klauspost/compress/pull/491) [#494](https://github.com/klauspost/compress/pull/494)  [#478](https://github.com/klauspost/compress/pull/478)
 	* flate: Faster decompression speed, ~5-10%. [#483](https://github.com/klauspost/compress/pull/483)

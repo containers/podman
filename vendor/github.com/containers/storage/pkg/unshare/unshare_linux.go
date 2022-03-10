@@ -501,11 +501,11 @@ func ExecRunnable(cmd Runnable, cleanup func()) {
 			if exitError.ProcessState.Exited() {
 				if waitStatus, ok := exitError.ProcessState.Sys().(syscall.WaitStatus); ok {
 					if waitStatus.Exited() {
-						logrus.Errorf("%v", exitError)
+						logrus.Debugf("%v", exitError)
 						exit(waitStatus.ExitStatus())
 					}
 					if waitStatus.Signaled() {
-						logrus.Errorf("%v", exitError)
+						logrus.Debugf("%v", exitError)
 						exit(int(waitStatus.Signal()) + 128)
 					}
 				}

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Sylabs Inc. All rights reserved.
+// Copyright (c) 2021-2022, Sylabs Inc. All rights reserved.
 // This software is licensed under a 3-clause BSD license. Please consult the
 // LICENSE file distributed with the sources of this project regarding your
 // rights to use or distribute this software.
@@ -18,6 +18,7 @@ var (
 	hdrArchMIPS64   archType = [...]byte{'0', '9', '\x00'}
 	hdrArchMIPS64le archType = [...]byte{'1', '0', '\x00'}
 	hdrArchS390x    archType = [...]byte{'1', '1', '\x00'}
+	hdrArchRISCV64  archType = [...]byte{'1', '2', '\x00'}
 )
 
 type archType [3]byte
@@ -36,6 +37,7 @@ func getSIFArch(arch string) archType {
 		"mips64":   hdrArchMIPS64,
 		"mips64le": hdrArchMIPS64le,
 		"s390x":    hdrArchS390x,
+		"riscv64":  hdrArchRISCV64,
 	}
 
 	t, ok := archMap[arch]
@@ -59,6 +61,7 @@ func (t archType) GoArch() string {
 		hdrArchMIPS64:   "mips64",
 		hdrArchMIPS64le: "mips64le",
 		hdrArchS390x:    "s390x",
+		hdrArchRISCV64:  "riscv64",
 	}
 
 	arch, ok := archMap[t]
