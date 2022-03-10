@@ -6,7 +6,7 @@ die() { echo "${1:-No error message given} (from $(basename $0))"; exit 1; }
 
 function install() {
     echo "Installing golangci-lint v$VERSION into $BIN"
-    curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b ./bin v$VERSION
+    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v$VERSION
 }
 
 BIN="./bin/golangci-lint"
