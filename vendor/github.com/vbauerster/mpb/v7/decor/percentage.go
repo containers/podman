@@ -23,12 +23,11 @@ func (s percentageType) Format(st fmt.State, verb rune) {
 		}
 	}
 
-	osw := optimisticStringWriter(st)
-	osw(strconv.FormatFloat(float64(s), 'f', prec, 64))
+	mustWriteString(st, strconv.FormatFloat(float64(s), 'f', prec, 64))
 	if st.Flag(' ') {
-		osw(" ")
+		mustWriteString(st, " ")
 	}
-	osw("%")
+	mustWriteString(st, "%")
 }
 
 // Percentage returns percentage decorator. It's a wrapper of NewPercentage.

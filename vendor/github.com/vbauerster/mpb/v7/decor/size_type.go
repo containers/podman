@@ -49,12 +49,11 @@ func (self SizeB1024) Format(st fmt.State, verb rune) {
 		unit = _iTiB
 	}
 
-	osw := optimisticStringWriter(st)
-	osw(strconv.FormatFloat(float64(self)/float64(unit), 'f', prec, 64))
+	mustWriteString(st, strconv.FormatFloat(float64(self)/float64(unit), 'f', prec, 64))
 	if st.Flag(' ') {
-		osw(" ")
+		mustWriteString(st, " ")
 	}
-	osw(unit.String())
+	mustWriteString(st, unit.String())
 }
 
 const (
@@ -98,10 +97,9 @@ func (self SizeB1000) Format(st fmt.State, verb rune) {
 		unit = _TB
 	}
 
-	osw := optimisticStringWriter(st)
-	osw(strconv.FormatFloat(float64(self)/float64(unit), 'f', prec, 64))
+	mustWriteString(st, strconv.FormatFloat(float64(self)/float64(unit), 'f', prec, 64))
 	if st.Flag(' ') {
-		osw(" ")
+		mustWriteString(st, " ")
 	}
-	osw(unit.String())
+	mustWriteString(st, unit.String())
 }
