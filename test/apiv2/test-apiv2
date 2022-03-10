@@ -194,8 +194,16 @@ function jsonify() {
         local rhs
         IFS='=' read lhs rhs <<<"$i"
 
-        # If right-hand side already includes double quotes, do nothing
-        if [[ ! $rhs =~ \" ]]; then
+        if [[ $rhs =~ \" || $rhs == true || $rhs == false || $rhs =~ ^-?[0-9]+$ ]]; then
+            # rhs has been pre-formatted for JSON or a non-string, do not change it
+            :
+        elif [[ $rhs == False ]]; then
+            # JSON boolean is lowercase only
+            rhs=false
+        elif [[ $rhs == True ]]; then
+            # JSON boolean is lowercase only
+            rhs=true
+        else
             rhs="\"${rhs}\""
         fi
         settings_out+=("\"${lhs}\":${rhs}")
@@ -241,26 +249,30 @@ function t() {
     # entrypoint path can include a descriptive comment; strip it off
     path=${path%% *}
 
-    # path may include JSONish params that curl will barf on; url-encode them
-    path="${path//'['/%5B}"
-    path="${path//']'/%5D}"
-    path="${path//'{'/%7B}"
-    path="${path//'}'/%7D}"
-    path="${path//':'/%3A}"
+    local url=$path
+    if ! [[ $path =~ ^'http://' ]]; then
+        # path may include JSONish params that curl will barf on; url-encode them
+        path="${path//'['/%5B}"
+        path="${path//']'/%5D}"
+        path="${path//'{'/%7B}"
+        path="${path//'}'/%7D}"
+        path="${path//':'/%3A}"
+
+        # If given path begins with /, use it as-is; otherwise prepend /version/
+        url=http://$HOST:$PORT
+        case "$path" in
+        /*) url="$url$path" ;;
+        libpod/*) url="$url/v4.0.0/$path" ;;
+        *)  url="$url/v1.41/$path" ;;
+        esac
+    fi
 
     # curl -X HEAD but without --head seems to wait for output anyway
     if [[ $method == "HEAD" ]]; then
         curl_args="--head"
     fi
-    local expected_code=$1; shift
 
-    # If given path begins with /, use it as-is; otherwise prepend /version/
-    local url=http://$HOST:$PORT
-    case "$path" in
-        /*) url="$url$path" ;;
-        libpod/*) url="$url/v4.0.0/$path" ;;
-        *)  url="$url/v1.41/$path" ;;
-    esac
+    local expected_code=$1; shift
 
     # Log every action we do
     echo "-------------------------------------------------------------" >>$LOG
