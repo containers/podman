@@ -138,6 +138,7 @@ const (
 
 var (
 	// Errors that could happen while parsing a string.
+	// nolint:golint
 	ErrFormatWrong = errors.New("quantities must match the regular expression '" + splitREString + "'")
 	ErrNumeric     = errors.New("unable to parse numeric part of quantity")
 	ErrSuffix      = errors.New("unable to parse quantity's suffix")
@@ -257,6 +258,7 @@ Suffix:
 	// we encountered a non decimal in the Suffix loop, but the last character
 	// was not a valid exponent
 	err = ErrFormatWrong
+	// nolint:nakedret
 	return
 }
 
@@ -386,16 +388,6 @@ func (q Quantity) DeepCopy() Quantity {
 	}
 	return q
 }
-
-// OpenAPISchemaType is used by the kube-openapi generator when constructing
-// the OpenAPI spec of this type.
-//
-// See: https://github.com/kubernetes/kube-openapi/tree/master/pkg/generators
-func (_ Quantity) OpenAPISchemaType() []string { return []string{"string"} }
-
-// OpenAPISchemaFormat is used by the kube-openapi generator when constructing
-// the OpenAPI spec of this type.
-func (_ Quantity) OpenAPISchemaFormat() string { return "" }
 
 // CanonicalizeBytes returns the canonical form of q and its suffix (see comment on Quantity).
 //
@@ -574,7 +566,7 @@ func (q Quantity) MarshalJSON() ([]byte, error) {
 		copy(out[1:], q.s)
 		return out, nil
 	}
-	result := make([]byte, int64QuantityExpectedBytes, int64QuantityExpectedBytes)
+	result := make([]byte, int64QuantityExpectedBytes)
 	result[0] = '"'
 	number, suffix := q.CanonicalizeBytes(result[1:1])
 	// if the same slice was returned to us that we passed in, avoid another allocation by copying number into

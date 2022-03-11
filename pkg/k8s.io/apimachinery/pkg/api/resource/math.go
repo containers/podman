@@ -30,11 +30,10 @@ const (
 
 var (
 	// Commonly needed big.Int values-- treat as read only!
-	bigTen      = big.NewInt(10)
-	bigZero     = big.NewInt(0)
-	bigOne      = big.NewInt(1)
-	bigThousand = big.NewInt(1000)
-	big1024     = big.NewInt(1024)
+	bigTen  = big.NewInt(10)
+	bigZero = big.NewInt(0)
+	bigOne  = big.NewInt(1)
+	big1024 = big.NewInt(1024)
 
 	// Commonly needed inf.Dec values-- treat as read only!
 	decZero = inf.NewDec(0, 0)
@@ -42,11 +41,6 @@ var (
 
 	// Largest (in magnitude) number allowed.
 	maxAllowed = infDecAmount{inf.NewDec((1<<63)-1, 0)} // == max int64
-
-	// The maximum value we can represent milli-units for.
-	// Compare with the return value of Quantity.Value() to
-	// see if it's safe to use Quantity.MilliValue().
-	MaxMilliValue = int64(((1 << 63) - 1) / 1000)
 )
 
 const mostNegative = -(mostPositive + 1)

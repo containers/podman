@@ -160,16 +160,6 @@ func (t MicroTime) MarshalJSON() ([]byte, error) {
 	return json.Marshal(t.UTC().Format(RFC3339Micro))
 }
 
-// OpenAPISchemaType is used by the kube-openapi generator when constructing
-// the OpenAPI spec of this type.
-//
-// See: https://github.com/kubernetes/kube-openapi/tree/master/pkg/generators
-func (_ MicroTime) OpenAPISchemaType() []string { return []string{"string"} }
-
-// OpenAPISchemaFormat is used by the kube-openapi generator when constructing
-// the OpenAPI spec of this type.
-func (_ MicroTime) OpenAPISchemaFormat() string { return "date-time" }
-
 // MarshalQueryParameter converts to a URL query parameter value
 func (t MicroTime) MarshalQueryParameter() (string, error) {
 	if t.IsZero() {
