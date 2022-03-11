@@ -395,6 +395,7 @@ github.com/fsouza/go-dockerclient
 ## explicit
 github.com/ghodss/yaml
 # github.com/go-logr/logr v1.2.2
+## explicit
 github.com/go-logr/logr
 # github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0
 github.com/go-task/slim-sprig
@@ -402,6 +403,7 @@ github.com/go-task/slim-sprig
 ## explicit
 github.com/godbus/dbus/v5
 # github.com/gogo/protobuf v1.3.2
+## explicit
 github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
@@ -415,6 +417,7 @@ github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
 # github.com/google/go-cmp v0.5.7
+## explicit
 github.com/google/go-cmp/cmp
 github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
@@ -423,6 +426,7 @@ github.com/google/go-cmp/cmp/internal/value
 # github.com/google/go-intervals v0.0.2
 github.com/google/go-intervals/intervalset
 # github.com/google/gofuzz v1.2.0
+## explicit
 github.com/google/gofuzz
 github.com/google/gofuzz/bytesource
 # github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
@@ -737,6 +741,7 @@ golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/knownhosts
 golang.org/x/crypto/ssh/terminal
 # golang.org/x/net v0.0.0-20220225172249-27dd8689420f
+## explicit
 golang.org/x/net/context
 golang.org/x/net/html
 golang.org/x/net/html/atom
@@ -869,6 +874,7 @@ google.golang.org/protobuf/types/known/timestamppb
 # gopkg.in/fsnotify.v1 v1.4.7
 gopkg.in/fsnotify.v1
 # gopkg.in/inf.v0 v0.9.1
+## explicit
 gopkg.in/inf.v0
 # gopkg.in/square/go-jose.v2 v2.5.1
 gopkg.in/square/go-jose.v2
@@ -881,36 +887,8 @@ gopkg.in/tomb.v1
 gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 gopkg.in/yaml.v3
-# k8s.io/api v0.22.5
-## explicit
-k8s.io/api/apps/v1
-k8s.io/api/core/v1
-# k8s.io/apimachinery v0.22.5
-## explicit
-k8s.io/apimachinery/pkg/api/resource
-k8s.io/apimachinery/pkg/apis/meta/v1
-k8s.io/apimachinery/pkg/conversion
-k8s.io/apimachinery/pkg/conversion/queryparams
-k8s.io/apimachinery/pkg/fields
-k8s.io/apimachinery/pkg/labels
-k8s.io/apimachinery/pkg/runtime
-k8s.io/apimachinery/pkg/runtime/schema
-k8s.io/apimachinery/pkg/selection
-k8s.io/apimachinery/pkg/types
-k8s.io/apimachinery/pkg/util/errors
-k8s.io/apimachinery/pkg/util/intstr
-k8s.io/apimachinery/pkg/util/json
-k8s.io/apimachinery/pkg/util/naming
-k8s.io/apimachinery/pkg/util/net
-k8s.io/apimachinery/pkg/util/runtime
-k8s.io/apimachinery/pkg/util/sets
-k8s.io/apimachinery/pkg/util/validation
-k8s.io/apimachinery/pkg/util/validation/field
-k8s.io/apimachinery/pkg/watch
-k8s.io/apimachinery/third_party/forked/golang/reflect
-# k8s.io/klog/v2 v2.30.0
-k8s.io/klog/v2
 # sigs.k8s.io/structured-merge-diff/v4 v4.1.2
+## explicit
 sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.3.0
 sigs.k8s.io/yaml

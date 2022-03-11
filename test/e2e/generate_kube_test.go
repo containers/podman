@@ -9,13 +9,13 @@ import (
 
 	"github.com/containers/podman/v4/libpod/define"
 
+	v1 "github.com/containers/podman/v4/pkg/k8s.io/api/core/v1"
 	"github.com/containers/podman/v4/pkg/util"
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/ghodss/yaml"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
-	v1 "k8s.io/api/core/v1"
 )
 
 var _ = Describe("Podman generate kube", func() {

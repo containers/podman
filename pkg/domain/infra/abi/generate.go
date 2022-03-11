@@ -9,10 +9,10 @@ import (
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
+	k8sAPI "github.com/containers/podman/v4/pkg/k8s.io/api/core/v1"
 	"github.com/containers/podman/v4/pkg/systemd/generate"
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
-	k8sAPI "k8s.io/api/core/v1"
 )
 
 func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string, options entities.GenerateSystemdOptions) (*entities.GenerateSystemdReport, error) {

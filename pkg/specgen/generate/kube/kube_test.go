@@ -3,8 +3,8 @@ package kube
 import (
 	"testing"
 
+	v1 "github.com/containers/podman/v4/pkg/k8s.io/api/core/v1"
 	"github.com/stretchr/testify/assert"
-	v1 "k8s.io/api/core/v1"
 	//"github.com/stretchr/testify/require"
 )
 

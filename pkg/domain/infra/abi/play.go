@@ -20,6 +20,8 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/autoupdate"
 	"github.com/containers/podman/v4/pkg/domain/entities"
+	v1apps "github.com/containers/podman/v4/pkg/k8s.io/api/apps/v1"
+	v1 "github.com/containers/podman/v4/pkg/k8s.io/api/core/v1"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/specgen/generate"
 	"github.com/containers/podman/v4/pkg/specgen/generate/kube"
@@ -29,8 +31,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	yamlv2 "gopkg.in/yaml.v2"
-	v1apps "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
 )
 
 func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {

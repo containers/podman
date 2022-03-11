@@ -15,6 +15,10 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/env"
+	v1 "github.com/containers/podman/v4/pkg/k8s.io/api/core/v1"
+	"github.com/containers/podman/v4/pkg/k8s.io/apimachinery/pkg/api/resource"
+	v12 "github.com/containers/podman/v4/pkg/k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/containers/podman/v4/pkg/k8s.io/apimachinery/pkg/util/intstr"
 	"github.com/containers/podman/v4/pkg/lookup"
 	"github.com/containers/podman/v4/pkg/namespaces"
 	"github.com/containers/podman/v4/pkg/specgen"
@@ -23,10 +27,6 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // GenerateForKube takes a slice of libpod containers and generates

@@ -18,7 +18,7 @@ package kubeutils
 
 import (
 	"github.com/containers/podman/v4/libpod/define"
-	"k8s.io/apimachinery/pkg/util/runtime"
+	"github.com/containers/podman/v4/pkg/k8s.io/apimachinery/pkg/util/runtime"
 )
 
 // HandleResizing spawns a goroutine that processes the resize channel, calling resizeFunc for each
