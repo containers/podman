@@ -29,7 +29,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containers/podman/v4/pkg/k8s.io/apimachinery/pkg/runtime"
 	"github.com/containers/podman/v4/pkg/k8s.io/apimachinery/pkg/types"
 )
 
@@ -929,20 +928,6 @@ const (
 	CauseTypeResourceVersionTooLarge CauseType = "ResourceVersionTooLarge"
 )
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// List holds a list of objects, which may not be known by the server.
-type List struct {
-	TypeMeta `json:",inline"`
-	// Standard list metadata.
-	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-	// +optional
-	ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-
-	// List of objects
-	Items []runtime.RawExtension `json:"items" protobuf:"bytes,2,rep,name=items"`
-}
-
 // APIVersions lists the versions that are available, to allow clients to
 // discover the API at /api, which is the root path of the legacy v1 API.
 //
@@ -1218,103 +1203,6 @@ type FieldsV1 struct {
 func (f FieldsV1) String() string {
 	return string(f.Raw)
 }
-
-// TODO: Table does not generate to protobuf because of the interface{} - fix protobuf
-//   generation to support a meta type that can accept any valid JSON. This can be introduced
-//   in a v1 because clients a) receive an error if they try to access proto today, and b)
-//   once introduced they would be able to gracefully switch over to using it.
-
-// Table is a tabular representation of a set of API resources. The server transforms the
-// object into a set of preferred columns for quickly reviewing the objects.
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +protobuf=false
-type Table struct {
-	TypeMeta `json:",inline"`
-	// Standard list metadata.
-	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-	// +optional
-	ListMeta `json:"metadata,omitempty"`
-
-	// columnDefinitions describes each column in the returned items array. The number of cells per row
-	// will always match the number of column definitions.
-	ColumnDefinitions []TableColumnDefinition `json:"columnDefinitions"`
-	// rows is the list of items in the table.
-	Rows []TableRow `json:"rows"`
-}
-
-// TableColumnDefinition contains information about a column returned in the Table.
-// +protobuf=false
-type TableColumnDefinition struct {
-	// name is a human readable name for the column.
-	Name string `json:"name"`
-	// type is an OpenAPI type definition for this column, such as number, integer, string, or
-	// array.
-	// See https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#data-types for more.
-	Type string `json:"type"`
-	// format is an optional OpenAPI type modifier for this column. A format modifies the type and
-	// imposes additional rules, like date or time formatting for a string. The 'name' format is applied
-	// to the primary identifier column which has type 'string' to assist in clients identifying column
-	// is the resource name.
-	// See https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#data-types for more.
-	Format string `json:"format"`
-	// description is a human readable description of this column.
-	Description string `json:"description"`
-	// priority is an integer defining the relative importance of this column compared to others. Lower
-	// numbers are considered higher priority. Columns that may be omitted in limited space scenarios
-	// should be given a higher priority.
-	Priority int32 `json:"priority"`
-}
-
-// TableRow is an individual row in a table.
-// +protobuf=false
-type TableRow struct {
-	// cells will be as wide as the column definitions array and may contain strings, numbers (float64 or
-	// int64), booleans, simple maps, lists, or null. See the type field of the column definition for a
-	// more detailed description.
-	Cells []interface{} `json:"cells"`
-	// conditions describe additional status of a row that are relevant for a human user. These conditions
-	// apply to the row, not to the object, and will be specific to table output. The only defined
-	// condition type is 'Completed', for a row that indicates a resource that has run to completion and
-	// can be given less visual priority.
-	// +optional
-	Conditions []TableRowCondition `json:"conditions,omitempty"`
-	// This field contains the requested additional information about each object based on the includeObject
-	// policy when requesting the Table. If "None", this field is empty, if "Object" this will be the
-	// default serialization of the object for the current API version, and if "Metadata" (the default) will
-	// contain the object metadata. Check the returned kind and apiVersion of the object before parsing.
-	// The media type of the object will always match the enclosing list - if this as a JSON table, these
-	// will be JSON encoded objects.
-	// +optional
-	Object runtime.RawExtension `json:"object,omitempty"`
-}
-
-// TableRowCondition allows a row to be marked with additional information.
-// +protobuf=false
-type TableRowCondition struct {
-	// Type of row condition. The only defined value is 'Completed' indicating that the
-	// object this row represents has reached a completed state and may be given less visual
-	// priority than other rows. Clients are not required to honor any conditions but should
-	// be consistent where possible about handling the conditions.
-	Type RowConditionType `json:"type"`
-	// Status of the condition, one of True, False, Unknown.
-	Status ConditionStatus `json:"status"`
-	// (brief) machine readable reason for the condition's last transition.
-	// +optional
-	Reason string `json:"reason,omitempty"`
-	// Human readable message indicating details about last transition.
-	// +optional
-	Message string `json:"message,omitempty"`
-}
-
-type RowConditionType string
-
-// These are valid conditions of a row. This list is not exhaustive and new conditions may be
-// included by other resources.
-const (
-	// RowCompleted means the underlying resource has reached completion and may be given less
-	// visual priority than other resources.
-	RowCompleted RowConditionType = "Completed"
-)
 
 type ConditionStatus string
 

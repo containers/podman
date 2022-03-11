@@ -18,14 +18,8 @@ package intstr
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"math"
-	"runtime/debug"
 	"strconv"
-	"strings"
-
-	"github.com/containers/podman/v4/pkg/k8s.io/klog"
 )
 
 // IntOrString is a type that can hold an int32 or a string.  When used in
@@ -56,9 +50,6 @@ const (
 // than int32.
 // TODO: convert to (val int32)
 func FromInt(val int) IntOrString {
-	if val > math.MaxInt32 || val < math.MinInt32 {
-		klog.Errorf("value: %d overflows int32\n%s\n", val, debug.Stack())
-	}
 	return IntOrString{Type: Int, IntVal: int32(val)}
 }
 
@@ -119,105 +110,4 @@ func (intstr IntOrString) MarshalJSON() ([]byte, error) {
 	default:
 		return []byte{}, fmt.Errorf("impossible IntOrString.Type")
 	}
-}
-
-// OpenAPISchemaType is used by the kube-openapi generator when constructing
-// the OpenAPI spec of this type.
-//
-// See: https://github.com/kubernetes/kube-openapi/tree/master/pkg/generators
-func (IntOrString) OpenAPISchemaType() []string { return []string{"string"} }
-
-// OpenAPISchemaFormat is used by the kube-openapi generator when constructing
-// the OpenAPI spec of this type.
-func (IntOrString) OpenAPISchemaFormat() string { return "int-or-string" }
-
-func ValueOrDefault(intOrPercent *IntOrString, defaultValue IntOrString) *IntOrString {
-	if intOrPercent == nil {
-		return &defaultValue
-	}
-	return intOrPercent
-}
-
-// GetScaledValueFromIntOrPercent is meant to replace GetValueFromIntOrPercent.
-// This method returns a scaled value from an IntOrString type. If the IntOrString
-// is a percentage string value it's treated as a percentage and scaled appropriately
-// in accordance to the total, if it's an int value it's treated as a a simple value and
-// if it is a string value which is either non-numeric or numeric but lacking a trailing '%' it returns an error.
-func GetScaledValueFromIntOrPercent(intOrPercent *IntOrString, total int, roundUp bool) (int, error) {
-	if intOrPercent == nil {
-		return 0, errors.New("nil value for IntOrString")
-	}
-	value, isPercent, err := getIntOrPercentValueSafely(intOrPercent)
-	if err != nil {
-		return 0, fmt.Errorf("invalid value for IntOrString: %v", err)
-	}
-	if isPercent {
-		if roundUp {
-			value = int(math.Ceil(float64(value) * (float64(total)) / 100))
-		} else {
-			value = int(math.Floor(float64(value) * (float64(total)) / 100))
-		}
-	}
-	return value, nil
-}
-
-// GetValueFromIntOrPercent was deprecated in favor of
-// GetScaledValueFromIntOrPercent. This method was treating all int as a numeric value and all
-// strings with or without a percent symbol as a percentage value.
-// Deprecated
-func GetValueFromIntOrPercent(intOrPercent *IntOrString, total int, roundUp bool) (int, error) {
-	if intOrPercent == nil {
-		return 0, errors.New("nil value for IntOrString")
-	}
-	value, isPercent, err := getIntOrPercentValue(intOrPercent)
-	if err != nil {
-		return 0, fmt.Errorf("invalid value for IntOrString: %v", err)
-	}
-	if isPercent {
-		if roundUp {
-			value = int(math.Ceil(float64(value) * (float64(total)) / 100))
-		} else {
-			value = int(math.Floor(float64(value) * (float64(total)) / 100))
-		}
-	}
-	return value, nil
-}
-
-// getIntOrPercentValue is a legacy function and only meant to be called by GetValueFromIntOrPercent
-// For a more correct implementation call getIntOrPercentSafely
-func getIntOrPercentValue(intOrStr *IntOrString) (int, bool, error) {
-	switch intOrStr.Type {
-	case Int:
-		return intOrStr.IntValue(), false, nil
-	case String:
-		s := strings.Replace(intOrStr.StrVal, "%", "", -1)
-		v, err := strconv.Atoi(s)
-		if err != nil {
-			return 0, false, fmt.Errorf("invalid value %q: %v", intOrStr.StrVal, err)
-		}
-		return int(v), true, nil
-	}
-	return 0, false, fmt.Errorf("invalid type: neither int nor percentage")
-}
-
-func getIntOrPercentValueSafely(intOrStr *IntOrString) (int, bool, error) {
-	switch intOrStr.Type {
-	case Int:
-		return intOrStr.IntValue(), false, nil
-	case String:
-		isPercent := false
-		s := intOrStr.StrVal
-		if strings.HasSuffix(s, "%") {
-			isPercent = true
-			s = strings.TrimSuffix(intOrStr.StrVal, "%")
-		} else {
-			return 0, false, fmt.Errorf("invalid type: string is not a percentage")
-		}
-		v, err := strconv.Atoi(s)
-		if err != nil {
-			return 0, false, fmt.Errorf("invalid value %q: %v", intOrStr.StrVal, err)
-		}
-		return int(v), isPercent, nil
-	}
-	return 0, false, fmt.Errorf("invalid type: neither int nor percentage")
 }

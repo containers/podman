@@ -519,15 +519,6 @@ func (q *Quantity) IsZero() bool {
 	return q.i.value == 0
 }
 
-// Sign returns 0 if the quantity is zero, -1 if the quantity is less than zero, or 1 if the
-// quantity is greater than zero.
-func (q *Quantity) Sign() int {
-	if q.d.Dec != nil {
-		return q.d.Dec.Sign()
-	}
-	return q.i.Sign()
-}
-
 // AsScale returns the current value, rounded up to the provided scale, and returns
 // false if the scale resulted in a loss of precision.
 func (q *Quantity) AsScale(scale Scale) (CanonicalValue, bool) {
@@ -535,56 +526,6 @@ func (q *Quantity) AsScale(scale Scale) (CanonicalValue, bool) {
 		return q.d.AsScale(scale)
 	}
 	return q.i.AsScale(scale)
-}
-
-// RoundUp updates the quantity to the provided scale, ensuring that the value is at
-// least 1. False is returned if the rounding operation resulted in a loss of precision.
-// Negative numbers are rounded away from zero (-9 scale 1 rounds to -10).
-func (q *Quantity) RoundUp(scale Scale) bool {
-	if q.d.Dec != nil {
-		q.s = ""
-		d, exact := q.d.AsScale(scale)
-		q.d = d
-		return exact
-	}
-	// avoid clearing the string value if we have already calculated it
-	if q.i.scale >= scale {
-		return true
-	}
-	q.s = ""
-	i, exact := q.i.AsScale(scale)
-	q.i = i
-	return exact
-}
-
-// Add adds the provide y quantity to the current value. If the current value is zero,
-// the format of the quantity will be updated to the format of y.
-func (q *Quantity) Add(y Quantity) {
-	q.s = ""
-	if q.d.Dec == nil && y.d.Dec == nil {
-		if q.i.value == 0 {
-			q.Format = y.Format
-		}
-		if q.i.Add(y.i) {
-			return
-		}
-	} else if q.IsZero() {
-		q.Format = y.Format
-	}
-	q.ToDec().d.Dec.Add(q.d.Dec, y.AsDec())
-}
-
-// Sub subtracts the provided quantity from the current value in place. If the current
-// value is zero, the format of the quantity will be updated to the format of y.
-func (q *Quantity) Sub(y Quantity) {
-	q.s = ""
-	if q.IsZero() {
-		q.Format = y.Format
-	}
-	if q.d.Dec == nil && y.d.Dec == nil && q.i.Sub(y.i) {
-		return
-	}
-	q.ToDec().d.Dec.Sub(q.d.Dec, y.AsDec())
 }
 
 // Cmp returns 0 if the quantity is equal to y, -1 if the quantity is less than y, or 1 if the
@@ -603,22 +544,6 @@ func (q *Quantity) CmpInt64(y int64) int {
 		return q.d.Dec.Cmp(inf.NewDec(y, inf.Scale(0)))
 	}
 	return q.i.Cmp(int64Amount{value: y})
-}
-
-// Neg sets quantity to be the negative value of itself.
-func (q *Quantity) Neg() {
-	q.s = ""
-	if q.d.Dec == nil {
-		q.i.value = -q.i.value
-		return
-	}
-	q.d.Dec.Neg(q.d.Dec)
-}
-
-// Equal checks equality of two Quantities. This is useful for testing with
-// cmp.Equal.
-func (q Quantity) Equal(v Quantity) bool {
-	return q.Cmp(v) == 0
 }
 
 // int64QuantityExpectedBytes is the expected width in bytes of the canonical string representation

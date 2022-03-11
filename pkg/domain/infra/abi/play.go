@@ -588,7 +588,7 @@ func (ic *ContainerEngine) playKubePVC(ctx context.Context, pvcYAML *v1.Persiste
 
 	// Get pvc name.
 	// This is the only required pvc attribute to create a podman volume.
-	name := pvcYAML.GetName()
+	name := pvcYAML.Name
 	if strings.TrimSpace(name) == "" {
 		return nil, fmt.Errorf("persistent volume claim name can not be empty")
 	}
@@ -596,13 +596,13 @@ func (ic *ContainerEngine) playKubePVC(ctx context.Context, pvcYAML *v1.Persiste
 	// Create podman volume options.
 	volOptions := []libpod.VolumeCreateOption{
 		libpod.WithVolumeName(name),
-		libpod.WithVolumeLabels(pvcYAML.GetLabels()),
+		libpod.WithVolumeLabels(pvcYAML.Labels),
 	}
 
 	// Get pvc annotations and create remaining podman volume options if available.
 	// These are podman volume options that do not match any of the persistent volume claim
 	// attributes, so they can be configured using annotations since they will not affect k8s.
-	for k, v := range pvcYAML.GetAnnotations() {
+	for k, v := range pvcYAML.Annotations {
 		switch k {
 		case util.VolumeDriverAnnotation:
 			volOptions = append(volOptions, libpod.WithVolumeDriver(v))

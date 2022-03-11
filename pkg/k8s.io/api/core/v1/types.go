@@ -5594,9 +5594,6 @@ type EventList struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// List holds a list of objects, which may not be known by the server.
-type List metav1.List
-
 // LimitType is a type of object that is limited
 type LimitType string
 
