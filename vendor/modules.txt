@@ -646,7 +646,7 @@ github.com/seccomp/libseccomp-golang
 ## explicit
 github.com/sirupsen/logrus
 github.com/sirupsen/logrus/hooks/syslog
-# github.com/spf13/cobra v1.3.0
+# github.com/spf13/cobra v1.4.0
 ## explicit
 github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
