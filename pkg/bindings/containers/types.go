@@ -64,7 +64,7 @@ type RestoreOptions struct {
 	IgnoreVolumes   *bool
 	IgnoreStaticIP  *bool
 	IgnoreStaticMAC *bool
-	ImportAchive    *string
+	ImportArchive   *string
 	Keep            *bool
 	Name            *string
 	TCPEstablished  *bool
