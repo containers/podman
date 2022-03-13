@@ -304,7 +304,7 @@ vendor:
 vendor-in-container:
 	podman run --privileged --rm --env HOME=/root \
 		-v $(CURDIR):/src -w /src \
-		docker.io/library/golang:1.16 \
+		docker.io/library/golang:1.17 \
 		make vendor
 
 ###
