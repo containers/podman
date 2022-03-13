@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/containers/buildah/define"
-	"github.com/containers/buildah/pkg/blobcache"
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/image"
@@ -145,13 +144,10 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		pullOptions.OciDecryptConfig = options.OciDecryptConfig
 		pullOptions.SignaturePolicyPath = options.SignaturePolicyPath
 		pullOptions.Writer = options.ReportWriter
+		pullOptions.DestinationLookupReferenceFunc = cacheLookupReferenceFunc(options.BlobDirectory, types.PreserveOriginal)
 
 		maxRetries := uint(options.MaxPullRetries)
 		pullOptions.MaxRetries = &maxRetries
-
-		if options.BlobDirectory != "" {
-			pullOptions.DestinationLookupReferenceFunc = blobcache.CacheLookupReferenceFunc(options.BlobDirectory, types.PreserveOriginal)
-		}
 
 		pulledImages, err := imageRuntime.Pull(ctx, options.FromImage, pullPolicy, &pullOptions)
 		if err != nil {

@@ -1,15 +1,15 @@
-From c18638abfbc1066442cf6ff0b3f012a5c25a918e Mon Sep 17 00:00:00 2001
+From 1a5562929a85074a7498165191558f434bb30bf1 Mon Sep 17 00:00:00 2001
 From: Ed Santiago <santiago@redhat.com>
 Date: Tue, 9 Feb 2021 17:28:05 -0700
 Subject: [PATCH] tweaks for running buildah tests under podman
 
 Signed-off-by: Ed Santiago <santiago@redhat.com>
 ---
- tests/helpers.bash | 72 +++++++++++++++++++++++++++++++++++++++++++---
- 1 file changed, 68 insertions(+), 4 deletions(-)
+ tests/helpers.bash | 73 +++++++++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 69 insertions(+), 4 deletions(-)
 
 diff --git a/tests/helpers.bash b/tests/helpers.bash
-index bd2794c9..ecf6ed7d 100644
+index 2bb6b429..0dc98a85 100644
 --- a/tests/helpers.bash
 +++ b/tests/helpers.bash
 @@ -43,6 +43,23 @@ EOF
@@ -63,8 +63,8 @@ index bd2794c9..ecf6ed7d 100644
 +    ${PODMAN_BINARY} ${ROOTDIR_OPTS} "$@"
  }
  
- #################
-@@ -192,15 +221,41 @@ function run_buildah() {
+ # There are various scenarios where we would like to execute `tests` as rootless user, however certain commands like `buildah mount`
+@@ -221,8 +250,35 @@ function run_buildah() {
          --retry)         retry=3;        shift;;  # retry network flakes
      esac
  
@@ -94,11 +94,14 @@ index bd2794c9..ecf6ed7d 100644
 +    fi
 +    local cmd_basename=$(basename ${podman_or_buildah})
 +
++
      # Remember command args, for possible use in later diagnostic messages
 -    MOST_RECENT_BUILDAH_COMMAND="buildah $*"
 +    MOST_RECENT_BUILDAH_COMMAND="$cmd_basename $*"
  
-     while [ $retry -gt 0 ]; do
+     # If session is rootless and `buildah mount` is invoked, perform unshare,
+     # since normal user cannot mount a filesystem unless they're in a user namespace along with its own mount namespace.
+@@ -236,8 +292,8 @@ function run_buildah() {
          retry=$(( retry - 1 ))
  
          # stdout is only emitted upon error; this echo is to help a debugger
@@ -109,7 +112,7 @@ index bd2794c9..ecf6ed7d 100644
          # without "quotes", multiple lines are glommed together into one
          if [ -n "$output" ]; then
              echo "$output"
-@@ -499,6 +554,15 @@ function skip_if_no_docker() {
+@@ -545,6 +601,15 @@ function skip_if_no_docker() {
    fi
  }
  
@@ -126,5 +129,5 @@ index bd2794c9..ecf6ed7d 100644
    daemondir=${TESTDIR}/git-daemon
    mkdir -p ${daemondir}/repo
 -- 
-2.34.1
+2.31.1
 

@@ -11,20 +11,20 @@ require (
 	github.com/container-orchestrated-devices/container-device-interface v0.3.0
 	github.com/containernetworking/cni v1.0.1
 	github.com/containernetworking/plugins v1.1.1
-	github.com/containers/buildah v1.24.2
+	github.com/containers/buildah v1.24.3-0.20220310160415-5ec70bf01ea5
 	github.com/containers/common v0.47.5-0.20220228211119-9880eb424fde
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.19.2-0.20220302121925-9a9cd9322006
+	github.com/containers/image/v5 v5.20.1-0.20220310094651-0d8056ee346f
 	github.com/containers/ocicrypt v1.1.2
 	github.com/containers/psgo v1.7.2
-	github.com/containers/storage v1.38.3-0.20220301151551-d06b0f81c0aa
+	github.com/containers/storage v1.38.3-0.20220308085612-93ce26691863
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
 	github.com/cyphar/filepath-securejoin v0.2.3
 	github.com/davecgh/go-spew v1.1.1
 	github.com/digitalocean/go-qemu v0.0.0-20210326154740-ac9e0b687001
 	github.com/docker/distribution v2.8.1+incompatible
-	github.com/docker/docker v20.10.13+incompatible
+	github.com/docker/docker v20.10.12+incompatible
 	github.com/docker/go-connections v0.4.1-0.20210727194412-58542c764a11
 	github.com/docker/go-plugins-helpers v0.0.0-20211224144127-6eecb7beb651
 	github.com/docker/go-units v0.4.0
@@ -55,7 +55,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/rootless-containers/rootlesskit v0.14.6
 	github.com/sirupsen/logrus v1.8.1
-	github.com/spf13/cobra v1.4.0
+	github.com/spf13/cobra v1.3.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
@@ -66,7 +66,7 @@ require (
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/crypto v0.0.0-20220112180741-5e0467b6c7ce
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20220209214540-3681064d5158
+	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9
 	golang.org/x/text v0.3.7
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v2 v2.4.0

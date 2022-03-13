@@ -741,6 +741,7 @@ func (d *Decoder) Decompress4X(dst, src []byte) ([]byte, error) {
 	}
 
 	var br [4]bitReaderShifted
+	// Decode "jump table"
 	start := 6
 	for i := 0; i < 3; i++ {
 		length := int(src[i*2]) | (int(src[i*2+1]) << 8)
@@ -865,30 +866,18 @@ func (d *Decoder) Decompress4X(dst, src []byte) ([]byte, error) {
 	}
 
 	// Decode remaining.
+	remainBytes := dstEvery - (decoded / 4)
 	for i := range br {
 		offset := dstEvery * i
+		endsAt := offset + remainBytes
+		if endsAt > len(out) {
+			endsAt = len(out)
+		}
 		br := &br[i]
-		bitsLeft := br.off*8 + uint(64-br.bitsRead)
+		bitsLeft := br.remaining()
 		for bitsLeft > 0 {
 			br.fill()
-			if false && br.bitsRead >= 32 {
-				if br.off >= 4 {
-					v := br.in[br.off-4:]
-					v = v[:4]
-					low := (uint32(v[0])) | (uint32(v[1]) << 8) | (uint32(v[2]) << 16) | (uint32(v[3]) << 24)
-					br.value = (br.value << 32) | uint64(low)
-					br.bitsRead -= 32
-					br.off -= 4
-				} else {
-					for br.off > 0 {
-						br.value = (br.value << 8) | uint64(br.in[br.off-1])
-						br.bitsRead -= 8
-						br.off--
-					}
-				}
-			}
-			// end inline...
-			if offset >= len(out) {
+			if offset >= endsAt {
 				d.bufs.Put(buf)
 				return nil, errors.New("corruption detected: stream overrun 4")
 			}
@@ -901,6 +890,10 @@ func (d *Decoder) Decompress4X(dst, src []byte) ([]byte, error) {
 			bitsLeft -= uint(nBits)
 			out[offset] = uint8(v >> 8)
 			offset++
+		}
+		if offset != endsAt {
+			d.bufs.Put(buf)
+			return nil, fmt.Errorf("corruption detected: short output block %d, end %d != %d", i, offset, endsAt)
 		}
 		decoded += offset - dstEvery*i
 		err = br.close()
@@ -1091,10 +1084,16 @@ func (d *Decoder) decompress4X8bit(dst, src []byte) ([]byte, error) {
 	}
 
 	// Decode remaining.
+	// Decode remaining.
+	remainBytes := dstEvery - (decoded / 4)
 	for i := range br {
 		offset := dstEvery * i
+		endsAt := offset + remainBytes
+		if endsAt > len(out) {
+			endsAt = len(out)
+		}
 		br := &br[i]
-		bitsLeft := int(br.off*8) + int(64-br.bitsRead)
+		bitsLeft := br.remaining()
 		for bitsLeft > 0 {
 			if br.finished() {
 				d.bufs.Put(buf)
@@ -1117,7 +1116,7 @@ func (d *Decoder) decompress4X8bit(dst, src []byte) ([]byte, error) {
 				}
 			}
 			// end inline...
-			if offset >= len(out) {
+			if offset >= endsAt {
 				d.bufs.Put(buf)
 				return nil, errors.New("corruption detected: stream overrun 4")
 			}
@@ -1126,9 +1125,13 @@ func (d *Decoder) decompress4X8bit(dst, src []byte) ([]byte, error) {
 			v := single[uint8(br.value>>shift)].entry
 			nBits := uint8(v)
 			br.advance(nBits)
-			bitsLeft -= int(nBits)
+			bitsLeft -= uint(nBits)
 			out[offset] = uint8(v >> 8)
 			offset++
+		}
+		if offset != endsAt {
+			d.bufs.Put(buf)
+			return nil, fmt.Errorf("corruption detected: short output block %d, end %d != %d", i, offset, endsAt)
 		}
 		decoded += offset - dstEvery*i
 		err = br.close()
@@ -1315,10 +1318,15 @@ func (d *Decoder) decompress4X8bitExactly(dst, src []byte) ([]byte, error) {
 	}
 
 	// Decode remaining.
+	remainBytes := dstEvery - (decoded / 4)
 	for i := range br {
 		offset := dstEvery * i
+		endsAt := offset + remainBytes
+		if endsAt > len(out) {
+			endsAt = len(out)
+		}
 		br := &br[i]
-		bitsLeft := int(br.off*8) + int(64-br.bitsRead)
+		bitsLeft := br.remaining()
 		for bitsLeft > 0 {
 			if br.finished() {
 				d.bufs.Put(buf)
@@ -1341,7 +1349,7 @@ func (d *Decoder) decompress4X8bitExactly(dst, src []byte) ([]byte, error) {
 				}
 			}
 			// end inline...
-			if offset >= len(out) {
+			if offset >= endsAt {
 				d.bufs.Put(buf)
 				return nil, errors.New("corruption detected: stream overrun 4")
 			}
@@ -1350,10 +1358,15 @@ func (d *Decoder) decompress4X8bitExactly(dst, src []byte) ([]byte, error) {
 			v := single[br.peekByteFast()].entry
 			nBits := uint8(v)
 			br.advance(nBits)
-			bitsLeft -= int(nBits)
+			bitsLeft -= uint(nBits)
 			out[offset] = uint8(v >> 8)
 			offset++
 		}
+		if offset != endsAt {
+			d.bufs.Put(buf)
+			return nil, fmt.Errorf("corruption detected: short output block %d, end %d != %d", i, offset, endsAt)
+		}
+
 		decoded += offset - dstEvery*i
 		err = br.close()
 		if err != nil {
