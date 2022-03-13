@@ -62,15 +62,18 @@ BuildRequires: glibc-devel
 BuildRequires: glibc-static
 BuildRequires: git-core
 BuildRequires: go-md2man
+%if 0%{?fedora} || 0%{?rhel} >= 9
 BuildRequires: go-rpm-macros
+%endif
+%if 0%{?rhel} <= 8
+BuildRequires: pkgconfig(devmapper)
+%endif
 BuildRequires: gpgme-devel
 BuildRequires: libassuan-devel
 BuildRequires: libgpg-error-devel
 BuildRequires: libseccomp-devel
 BuildRequires: libselinux-devel
-%if 0%{?fedora} >= 35
 BuildRequires: shadow-utils-subid-devel
-%endif
 BuildRequires: pkgconfig
 BuildRequires: make
 BuildRequires: ostree-devel
@@ -175,22 +178,25 @@ ln -s ../../../../ src/%{import_path}
 popd
 ln -s vendor src
 
+%if 0%{?rhel}
+rm -rf vendor/github.com/containers/storage/drivers/register/register_btrfs.go
+%endif
+
 # build date. FIXME: Makefile uses '/v2/libpod', that doesn't work here?
 LDFLAGS="-X %{import_path}/libpod/define.buildInfo=$(date +%s)"
 
 # build rootlessport first
-%gobuild -o bin/rootlessport %%{import_path}/cmd/rootlessport
+%gobuild -o bin/rootlessport %{import_path}/cmd/rootlessport
+
+# set base buildtags common to both %%{name} and %%{name}-remote
+export BASEBUILDTAGS="seccomp exclude_graphdriver_devicemapper $(hack/selinux_tag.sh) $(hack/systemd_tag.sh) $(hack/libsubid_tag.sh)"
 
 # build %%{name}
-export BUILDTAGS="seccomp exclude_graphdriver_devicemapper $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh) $(hack/libdm_tag.sh) $(hack/selinux_tag.sh) $(hack/systemd_tag.sh)"
-%if 0%{?fedora} >= 35
-export BUILDTAGS+=" $(hack/libsubid_tag.sh)"
-%endif
-
+export BUILDTAGS="$BASEBUILDTAGS $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh)"
 %gobuild -o bin/%{name} %{import_path}/cmd/%{name}
 
 # build %%{name}-remote
-export BUILDTAGS+=" exclude_graphdriver_btrfs btrfs_noversion remote"
+export BUILDTAGS="$BASEBUILDTAGS exclude_graphdriver_btrfs btrfs_noversion remote"
 %gobuild -o bin/%{name}-remote %{import_path}/cmd/%{name}
 
 make docs docker-docs
