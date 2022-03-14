@@ -32,9 +32,9 @@ import (
 // +protobuf.options.(gogoproto.goproto_stringer)=false
 // +k8s:openapi-gen=true
 type IntOrString struct {
-	Type   Type   `protobuf:"varint,1,opt,name=type,casttype=Type"`
-	IntVal int32  `protobuf:"varint,2,opt,name=intVal"`
-	StrVal string `protobuf:"bytes,3,opt,name=strVal"`
+	Type   Type
+	IntVal int32
+	StrVal string
 }
 
 // Type represents the stored type of IntOrString.
