@@ -50,6 +50,18 @@ func filterImages(images []*Image, filters []filterFunc) ([]*Image, error) {
 func (r *Runtime) compileImageFilters(ctx context.Context, filters []string) ([]filterFunc, error) {
 	logrus.Tracef("Parsing image filters %s", filters)
 
+	var tree *layerTree
+	getTree := func() (*layerTree, error) {
+		if tree == nil {
+			t, err := r.layerTree()
+			if err != nil {
+				return nil, err
+			}
+			tree = t
+		}
+		return tree, nil
+	}
+
 	filterFuncs := []filterFunc{}
 	for _, filter := range filters {
 		var key, value string
@@ -88,7 +100,11 @@ func (r *Runtime) compileImageFilters(ctx context.Context, filters []string) ([]
 			if err != nil {
 				return nil, errors.Wrapf(err, "non-boolean value %q for dangling filter", value)
 			}
-			filterFuncs = append(filterFuncs, filterDangling(ctx, dangling))
+			t, err := getTree()
+			if err != nil {
+				return nil, err
+			}
+			filterFuncs = append(filterFuncs, filterDangling(ctx, dangling, t))
 
 		case "id":
 			filterFuncs = append(filterFuncs, filterID(value))
@@ -98,7 +114,11 @@ func (r *Runtime) compileImageFilters(ctx context.Context, filters []string) ([]
 			if err != nil {
 				return nil, errors.Wrapf(err, "non-boolean value %q for intermediate filter", value)
 			}
-			filterFuncs = append(filterFuncs, filterIntermediate(ctx, intermediate))
+			t, err := getTree()
+			if err != nil {
+				return nil, err
+			}
+			filterFuncs = append(filterFuncs, filterIntermediate(ctx, intermediate, t))
 
 		case "label":
 			filterFuncs = append(filterFuncs, filterLabel(ctx, value))
@@ -201,9 +221,9 @@ func filterContainers(value bool) filterFunc {
 }
 
 // filterDangling creates a dangling filter for matching the specified value.
-func filterDangling(ctx context.Context, value bool) filterFunc {
+func filterDangling(ctx context.Context, value bool, tree *layerTree) filterFunc {
 	return func(img *Image) (bool, error) {
-		isDangling, err := img.IsDangling(ctx)
+		isDangling, err := img.isDangling(ctx, tree)
 		if err != nil {
 			return false, err
 		}
@@ -221,9 +241,9 @@ func filterID(value string) filterFunc {
 // filterIntermediate creates an intermediate filter for images.  An image is
 // considered to be an intermediate image if it is dangling (i.e., no tags) and
 // has no children (i.e., no other image depends on it).
-func filterIntermediate(ctx context.Context, value bool) filterFunc {
+func filterIntermediate(ctx context.Context, value bool, tree *layerTree) filterFunc {
 	return func(img *Image) (bool, error) {
-		isIntermediate, err := img.IsIntermediate(ctx)
+		isIntermediate, err := img.isIntermediate(ctx, tree)
 		if err != nil {
 			return false, err
 		}
