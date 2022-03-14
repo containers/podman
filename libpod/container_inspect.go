@@ -411,6 +411,7 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 	}
 
 	ctrConfig.Passwd = c.config.Passwd
+	ctrConfig.ChrootDirs = append(ctrConfig.ChrootDirs, c.config.ChrootDirs...)
 
 	return ctrConfig
 }

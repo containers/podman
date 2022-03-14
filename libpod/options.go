@@ -2036,3 +2036,18 @@ func WithVolatile() CtrCreateOption {
 		return nil
 	}
 }
+
+// WithChrootDirs is an additional set of directories that need to be
+// treated as root directories. Standard bind mounts will be mounted
+// into paths relative to these directories.
+func WithChrootDirs(dirs []string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.ChrootDirs = dirs
+
+		return nil
+	}
+}

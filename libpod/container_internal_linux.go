@@ -1811,6 +1811,17 @@ func (c *Container) getRootNetNsDepCtr() (depCtr *Container, err error) {
 	return depCtr, nil
 }
 
+// Ensure standard bind mounts are mounted into all root directories (including chroot directories)
+func (c *Container) mountIntoRootDirs(mountName string, mountPath string) error {
+	c.state.BindMounts[mountName] = mountPath
+
+	for _, chrootDir := range c.config.ChrootDirs {
+		c.state.BindMounts[filepath.Join(chrootDir, mountName)] = mountPath
+	}
+
+	return nil
+}
+
 // Make standard bind mounts to include in the container
 func (c *Container) makeBindMounts() error {
 	if err := os.Chown(c.state.RunDir, c.RootUID(), c.RootGID()); err != nil {
@@ -1864,7 +1875,11 @@ func (c *Container) makeBindMounts() error {
 			// If it doesn't, don't copy them
 			resolvPath, exists := bindMounts["/etc/resolv.conf"]
 			if !c.config.UseImageResolvConf && exists {
-				c.state.BindMounts["/etc/resolv.conf"] = resolvPath
+				err := c.mountIntoRootDirs("/etc/resolv.conf", resolvPath)
+
+				if err != nil {
+					return errors.Wrapf(err, "error assigning mounts to container %s", c.ID())
+				}
 			}
 
 			// check if dependency container has an /etc/hosts file.
@@ -1884,7 +1899,11 @@ func (c *Container) makeBindMounts() error {
 				depCtr.lock.Unlock()
 
 				// finally, save it in the new container
-				c.state.BindMounts["/etc/hosts"] = hostsPath
+				err := c.mountIntoRootDirs("/etc/hosts", hostsPath)
+
+				if err != nil {
+					return errors.Wrapf(err, "error assigning mounts to container %s", c.ID())
+				}
 			}
 
 			if !hasCurrentUserMapped(c) {
@@ -1901,7 +1920,11 @@ func (c *Container) makeBindMounts() error {
 				if err != nil {
 					return errors.Wrapf(err, "error creating resolv.conf for container %s", c.ID())
 				}
-				c.state.BindMounts["/etc/resolv.conf"] = newResolv
+				err = c.mountIntoRootDirs("/etc/resolv.conf", newResolv)
+
+				if err != nil {
+					return errors.Wrapf(err, "error assigning mounts to container %s", c.ID())
+				}
 			}
 
 			if !c.config.UseImageHosts {
@@ -2329,7 +2352,11 @@ func (c *Container) updateHosts(path string) error {
 	if err != nil {
 		return err
 	}
-	c.state.BindMounts["/etc/hosts"] = newHosts
+
+	if err = c.mountIntoRootDirs("/etc/hosts", newHosts); err != nil {
+		return err
+	}
+
 	return nil
 }
 

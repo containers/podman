@@ -165,6 +165,10 @@ type ContainerRootFSConfig struct {
 	Volatile bool `json:"volatile,omitempty"`
 	// Passwd allows to user to override podman's passwd/group file setup
 	Passwd *bool `json:"passwd,omitempty"`
+	// ChrootDirs is an additional set of directories that need to be
+	// treated as root directories. Standard bind mounts will be mounted
+	// into paths relative to these directories.
+	ChrootDirs []string `json:"chroot_directories,omitempty"`
 }
 
 // ContainerSecurityConfig is an embedded sub-config providing security configuration

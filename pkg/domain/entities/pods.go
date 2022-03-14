@@ -263,6 +263,7 @@ type ContainerCreateOptions struct {
 	Workdir           string
 	SeccompPolicy     string
 	PidFile           string
+	ChrootDirs        []string
 	IsInfra           bool
 	IsClone           bool
 

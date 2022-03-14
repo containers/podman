@@ -706,4 +706,34 @@ var _ = Describe("Podman create", func() {
 		Expect(create.ErrorToString()).To(ContainSubstring("cannot specify a new uid/gid map when entering a pod with an infra container"))
 
 	})
+
+	It("podman create --chrootdirs inspection test", func() {
+		session := podmanTest.Podman([]string{"create", "--chrootdirs", "/var/local/qwerty", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		setup := podmanTest.Podman([]string{"container", "inspect", session.OutputToString()})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup).Should(Exit(0))
+
+		data := setup.InspectContainerToJSON()
+		Expect(data).To(HaveLen(1))
+		Expect(data[0].Config.ChrootDirs).To(HaveLen(1))
+		Expect(data[0].Config.ChrootDirs[0]).To(Equal("/var/local/qwerty"))
+	})
+
+	It("podman create --chrootdirs functionality test", func() {
+		session := podmanTest.Podman([]string{"create", "-t", "--chrootdirs", "/var/local/qwerty", ALPINE, "/bin/cat"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		ctrID := session.OutputToString()
+
+		setup := podmanTest.Podman([]string{"start", ctrID})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup).Should(Exit(0))
+
+		setup = podmanTest.Podman([]string{"exec", ctrID, "cmp", "/etc/resolv.conf", "/var/local/qwerty/etc/resolv.conf"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup).Should(Exit(0))
+	})
 })
