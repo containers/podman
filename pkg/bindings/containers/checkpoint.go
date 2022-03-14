@@ -79,7 +79,7 @@ func Restore(ctx context.Context, nameOrID string, options *RestoreOptions) (*en
 
 	// Open the to-be-imported archive if needed.
 	var r io.Reader
-	if i := options.GetImportAchive(); i != "" {
+	if i := options.GetImportArchive(); i != "" {
 		params.Set("import", "true")
 		r, err = os.Open(i)
 		if err != nil {

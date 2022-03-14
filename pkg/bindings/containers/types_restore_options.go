@@ -77,19 +77,19 @@ func (o *RestoreOptions) GetIgnoreStaticMAC() bool {
 	return *o.IgnoreStaticMAC
 }
 
-// WithImportAchive set field ImportAchive to given value
-func (o *RestoreOptions) WithImportAchive(value string) *RestoreOptions {
-	o.ImportAchive = &value
+// WithImportArchive set field ImportArchive to given value
+func (o *RestoreOptions) WithImportArchive(value string) *RestoreOptions {
+	o.ImportArchive = &value
 	return o
 }
 
-// GetImportAchive returns value of field ImportAchive
-func (o *RestoreOptions) GetImportAchive() string {
-	if o.ImportAchive == nil {
+// GetImportArchive returns value of field ImportArchive
+func (o *RestoreOptions) GetImportArchive() string {
+	if o.ImportArchive == nil {
 		var z string
 		return z
 	}
-	return *o.ImportAchive
+	return *o.ImportArchive
 }
 
 // WithKeep set field Keep to given value

@@ -390,7 +390,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 	options.WithPublishPorts(opts.PublishPorts)
 
 	if opts.Import != "" {
-		options.WithImportAchive(opts.Import)
+		options.WithImportArchive(opts.Import)
 		report, err := containers.Restore(ic.ClientCtx, "", options)
 		return []*entities.RestoreReport{report}, err
 	}
