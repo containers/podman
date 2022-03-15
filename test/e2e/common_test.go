@@ -896,7 +896,7 @@ func removeConf(confPath string) {
 	}
 }
 
-// generateNetworkConfig generates a cni config with a random name
+// generateNetworkConfig generates a CNI or Netavark config with a random name
 // it returns the network name and the filepath
 func generateNetworkConfig(p *PodmanTestIntegration) (string, string) {
 	var (
@@ -1041,4 +1041,28 @@ func ncz(port int) bool {
 
 func createNetworkName(name string) string {
 	return name + stringid.GenerateNonCryptoID()[:10]
+}
+
+var IPRegex = `(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}`
+
+// digShort execs into the given container and does a dig lookup with a timeout
+// backoff.  If it gets a response, it ensures that the output is in the correct
+// format and iterates a string array for match
+func digShort(container, lookupName string, matchNames []string, p *PodmanTestIntegration) string {
+	digInterval := time.Millisecond * 250
+	for i := 0; i < 6; i++ {
+		time.Sleep(digInterval * time.Duration(i))
+		dig := p.Podman([]string{"exec", container, "dig", "+short", lookupName})
+		dig.WaitWithDefaultTimeout()
+		if dig.ExitCode() == 0 {
+			output := dig.OutputToString()
+			Expect(output).To(MatchRegexp(IPRegex))
+			for _, name := range matchNames {
+				Expect(output).To(Equal(name))
+			}
+			return output
+		}
+	}
+	Fail("dns is not responding")
+	return ""
 }
