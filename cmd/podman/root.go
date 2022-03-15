@@ -71,7 +71,7 @@ var (
 		DisableFlagsInUseLine: true,
 	}
 
-	logLevel       = "warn"
+	logLevel       = "warn
 	useSyslog      bool
 	requireCleanup = true
 )
