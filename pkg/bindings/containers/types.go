@@ -64,14 +64,21 @@ type RestoreOptions struct {
 	IgnoreVolumes   *bool
 	IgnoreStaticIP  *bool
 	IgnoreStaticMAC *bool
-	ImportArchive   *string
-	Keep            *bool
-	Name            *string
-	TCPEstablished  *bool
-	Pod             *string
-	PrintStats      *bool
-	PublishPorts    []string
-	FileLocks       *bool
+	// ImportAchive is the path to an archive which contains the checkpoint data.
+	//
+	// Deprecated: Use ImportArchive instead. This field name is a typo and
+	// will be removed in a future major release.
+	ImportAchive *string
+	// ImportArchive is the path to an archive which contains the checkpoint data.
+	// ImportArchive is preferred over ImportAchive when both are set.
+	ImportArchive  *string
+	Keep           *bool
+	Name           *string
+	TCPEstablished *bool
+	Pod            *string
+	PrintStats     *bool
+	PublishPorts   []string
+	FileLocks      *bool
 }
 
 //go:generate go run ../generator/generator.go CreateOptions
