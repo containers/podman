@@ -191,7 +191,7 @@ endif
 # dependencies. This is only used for the Windows installer task (podman.msi), which must
 # include this lightweight helper binary.
 #
-GV_GITURL=git://github.com/containers/gvisor-tap-vsock.git
+GV_GITURL=https://github.com/containers/gvisor-tap-vsock.git
 GV_SHA=e943b1806d94d387c4c38d96719432d50a84bbd0
 
 ###
