@@ -368,6 +368,7 @@ func CreateTempDirInTempDir() (string, error) {
 // SystemExec is used to exec a system command to check its exit code or output
 func SystemExec(command string, args []string) *PodmanSession {
 	c := exec.Command(command, args...)
+	fmt.Println("Execing " + c.String() + "\n")
 	session, err := Start(c, GinkgoWriter, GinkgoWriter)
 	if err != nil {
 		Fail(fmt.Sprintf("unable to run command: %s %s", command, strings.Join(args, " ")))
@@ -379,6 +380,7 @@ func SystemExec(command string, args []string) *PodmanSession {
 // StartSystemExec is used to start exec a system command
 func StartSystemExec(command string, args []string) *PodmanSession {
 	c := exec.Command(command, args...)
+	fmt.Println("Execing " + c.String() + "\n")
 	session, err := Start(c, GinkgoWriter, GinkgoWriter)
 	if err != nil {
 		Fail(fmt.Sprintf("unable to run command: %s %s", command, strings.Join(args, " ")))
