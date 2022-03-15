@@ -140,6 +140,18 @@ errmsg "no such file or directory" \
 skip "N/A under podman" \
      "bud-flags-order-verification"
 
+# TODO
+# Some of the podman tests in CI expects exit code 125, which might not be true
+# since exit code from runtime is relayed as it is without any modification both
+# in `buildah` and `podman`. Following behviour is seen when PR https://github.com/containers/buildah/pull/3809
+# added a test here https://github.com/containers/buildah/blob/main/tests/bud.bats#L3183
+# which relays exit code from runtime as it is, in case of both `podman` and `buildah`.
+# However apart from this test case no other test case was able to trigger this behavior
+# hence marking this test as an anomaly. Since its debatable if we should override this
+# returned error number or not hence adding a note here.
+skip "podman CI expects all exit code to be 125 this test has anomaly behaviour" \
+     "bud with --add-host"
+
 skip "does not work under podman" \
      "bud without any arguments should succeed"
 

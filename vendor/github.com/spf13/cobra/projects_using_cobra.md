@@ -35,7 +35,6 @@
 - [OpenShift](https://www.openshift.com/)
 - [Ory Hydra](https://github.com/ory/hydra)
 - [Ory Kratos](https://github.com/ory/kratos)
-- [Pixie](https://github.com/pixie-io/pixie)
 - [Pouch](https://github.com/alibaba/pouch)
 - [ProjectAtomic (enterprise)](http://www.projectatomic.io/)
 - [Prototool](https://github.com/uber/prototool)

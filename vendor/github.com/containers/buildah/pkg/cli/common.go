@@ -67,6 +67,7 @@ type BudResults struct {
 	Label               []string
 	Logfile             string
 	Manifest            string
+	NoHosts             bool
 	NoCache             bool
 	Timestamp           int64
 	Pull                string
@@ -212,6 +213,7 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 		panic(fmt.Sprintf("error marking the rusage-logfile flag as hidden: %v", err))
 	}
 	fs.StringVar(&flags.Manifest, "manifest", "", "add the image to the specified manifest list. Creates manifest list if it does not exist")
+	fs.BoolVar(&flags.NoHosts, "no-hosts", false, "Do not create the new containers /etc/hosts file, use the one from the current image.")
 	fs.BoolVar(&flags.NoCache, "no-cache", false, "Do not use existing cached images for the container build. Build from the start with a new set of cached layers.")
 	fs.String("os", runtime.GOOS, "set the OS to the provided value instead of the current operating system of the host")
 	fs.StringVar(&flags.Pull, "pull", "true", "pull the image from the registry if newer or not present in store, if false, only pull the image if not present, if always, pull the image even if the named image is present in store, if never, only use the image present in store if available")

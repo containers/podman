@@ -201,6 +201,13 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 		if err != nil {
 			return errors.Wrapf(err, "error determining current working directory")
 		}
+	} else {
+		if !filepath.IsAbs(options.ContextDir) {
+			contextDir, err = filepath.Abs(options.ContextDir)
+			if err != nil {
+				return errors.Wrapf(err, "error converting context directory path %q to an absolute path", options.ContextDir)
+			}
+		}
 	}
 
 	// Figure out what sorts of sources we have.

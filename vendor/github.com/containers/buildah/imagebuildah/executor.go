@@ -96,6 +96,7 @@ type Executor struct {
 	labels                  []string
 	annotations             []string
 	layers                  bool
+	noHosts                 bool
 	useCache                bool
 	removeIntermediateCtrs  bool
 	forceRmIntermediateCtrs bool
@@ -245,6 +246,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		labels:                         append([]string{}, options.Labels...),
 		annotations:                    append([]string{}, options.Annotations...),
 		layers:                         options.Layers,
+		noHosts:                        options.CommonBuildOpts.NoHosts,
 		useCache:                       !options.NoCache,
 		removeIntermediateCtrs:         options.RemoveIntermediateCtrs,
 		forceRmIntermediateCtrs:        options.ForceRmIntermediateCtrs,

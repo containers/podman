@@ -52,7 +52,7 @@ command to see these containers. External containers can be removed with the
 Add a custom host-to-IP mapping (host:ip)
 
 Add a line to /etc/hosts. The format is hostname:ip. The **--add-host** option
-can be set multiple times.
+can be set multiple times. Conflicts with the --no-hosts option.
 
 #### **--all-platforms**
 
@@ -431,6 +431,13 @@ considered insecure.
 
 Do not use existing cached images for the container build. Build from the start
 with a new set of cached layers.
+
+#### **--no-hosts**
+
+Do not create _/etc/hosts_ for the container.
+
+By default, Buildah manages _/etc/hosts_, adding the container's own IP address.
+**--no-hosts** disables this, and the image's _/etc/hosts_ will be preserved unmodified. Conflicts with the --add-host option.
 
 #### **--os**=*string*
 

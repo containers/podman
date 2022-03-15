@@ -86,8 +86,13 @@ func CommonBuildOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name 
 		}
 	}
 
+	noHosts, _ := flags.GetBool("no-hosts")
+
 	addHost, _ := flags.GetStringSlice("add-host")
 	if len(addHost) > 0 {
+		if noHosts {
+			return nil, errors.Errorf("--no-hosts and --add-host conflict, can not be used together")
+		}
 		for _, host := range addHost {
 			if err := validateExtraHost(host); err != nil {
 				return nil, errors.Wrapf(err, "invalid value for add-host")
@@ -159,6 +164,7 @@ func CommonBuildOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name 
 		HTTPProxy:    httpProxy,
 		Memory:       memoryLimit,
 		MemorySwap:   memorySwap,
+		NoHosts:      noHosts,
 		ShmSize:      findFlagFunc("shm-size").Value.String(),
 		Ulimit:       ulimit,
 		Volumes:      volumes,

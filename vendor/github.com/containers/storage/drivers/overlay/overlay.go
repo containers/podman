@@ -1518,7 +1518,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			}
 			return nil
 		}
-	} else if len(mountData) > pageSize {
+	} else if len(mountData) >= pageSize {
 		// Use relative paths and mountFrom when the mount data has exceeded
 		// the page size. The mount syscall fails if the mount data cannot
 		// fit within a page and relative links make the mount data much
@@ -1536,8 +1536,8 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			opts = fmt.Sprintf("%s,%s", opts, strings.Join(optsList, ","))
 		}
 		mountData = label.FormatMountLabel(opts, options.MountLabel)
-		if len(mountData) > pageSize {
-			return "", fmt.Errorf("cannot mount layer, mount label %q too large %d > page size %d", options.MountLabel, len(mountData), pageSize)
+		if len(mountData) >= pageSize {
+			return "", fmt.Errorf("cannot mount layer, mount label %q too large %d >= page size %d", options.MountLabel, len(mountData), pageSize)
 		}
 		mountFunc = func(source string, target string, mType string, flags uintptr, label string) error {
 			return mountFrom(d.home, source, target, mType, flags, label)

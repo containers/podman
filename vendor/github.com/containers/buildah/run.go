@@ -85,6 +85,8 @@ type RunOptions struct {
 	Runtime string
 	// Args adds global arguments for the runtime.
 	Args []string
+	// NoHosts use the images /etc/hosts file
+	NoHosts bool
 	// NoPivot adds the --no-pivot runtime flag.
 	NoPivot bool
 	// Mounts are additional mount points which we want to provide.
