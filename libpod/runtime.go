@@ -210,6 +210,10 @@ func newRuntimeFromConfig(ctx context.Context, conf *config.Config, options ...R
 	}
 
 	if err := shutdown.Register("libpod", func(sig os.Signal) error {
+		// For `systemctl stop podman.service` support, exit code should be 0
+		if sig == syscall.SIGTERM {
+			os.Exit(0)
+		}
 		os.Exit(1)
 		return nil
 	}); err != nil && errors.Cause(err) != shutdown.ErrHandlerExists {
