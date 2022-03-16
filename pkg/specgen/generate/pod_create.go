@@ -56,6 +56,7 @@ ENTRYPOINT ["/catatonit", "-P"]`, catatonitPath)
 		CommonBuildOpts: &buildahDefine.CommonBuildOptions{},
 		Output:          imageName,
 		Quiet:           true,
+		IgnoreFile:      "/dev/null", // makes sure to not read a local .ignorefile (see #13529)
 		IIDFile:         "/dev/null", // prevents Buildah from writing the ID on stdout
 	}
 	if _, _, err := rt.Build(context.Background(), buildOptions, tmpF.Name()); err != nil {
