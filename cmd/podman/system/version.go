@@ -89,9 +89,7 @@ Client:\tPodman Engine
 Version:\t{{.Version}}
 API Version:\t{{.APIVersion}}
 Go Version:\t{{.GoVersion}}
-{{if .GitCommit -}}
-  Git Commit:\t{{.GitCommit}}
-{{- end}}
+{{if .GitCommit -}}Git Commit:\t{{.GitCommit}}\n{{end -}}
 Built:\t{{.BuiltTime}}
 OS/Arch:\t{{.OsArch}}
 {{- end}}
@@ -102,9 +100,7 @@ Server:\tPodman Engine
 Version:\t{{.Version}}
 API Version:\t{{.APIVersion}}
 Go Version:\t{{.GoVersion}}
-{{if .GitCommit -}}
-  Git Commit:\t{{.GitCommit}}
-{{- end}}
+{{if .GitCommit -}}Git Commit:\t{{.GitCommit}}\n{{end -}}
 Built:\t{{.BuiltTime}}
 OS/Arch:\t{{.OsArch}}
 {{- end}}{{- end}}
