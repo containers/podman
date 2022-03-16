@@ -6,13 +6,7 @@ load helpers
 function teardown() {
     run_podman pod rm -f -t 0 -a
     run_podman rm -f -t 0 -a
-    run_podman image list --format '{{.ID}} {{.Repository}}'
-    while read id name; do
-        if [[ "$name" =~ /podman-pause ]]; then
-            run_podman rmi $id
-        fi
-    done <<<"$output"
-
+    run_podman ? rmi $(pause_image)
     basic_teardown
 }
 
