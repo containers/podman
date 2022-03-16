@@ -28,6 +28,10 @@ resolution.
 Driver to manage the network. Currently `bridge`, `macvlan` and `ipvlan` are supported. Defaults to `bridge`.
 As rootless the `macvlan` and `ipvlan` driver have no access to the host network interfaces because rootless networking requires a separate network namespace.
 
+Special considerations for the *netavark* backend:
+- The `macvlan` driver requires the `--subnet` option, DHCP is currently not supported.
+- The `ipvlan` driver is not currently supported.
+
 #### **--opt**=*option*, **-o**
 
 Set driver specific options.
@@ -114,7 +118,7 @@ podman4
 
 Create a Macvlan based network using the host interface eth0. Macvlan networks can only be used as root.
 ```
-# podman network create -d macvlan -o parent=eth0 newnet
+# podman network create -d macvlan -o parent=eth0 --subnet 192.5.0.0/16 newnet
 newnet
 ```
 
