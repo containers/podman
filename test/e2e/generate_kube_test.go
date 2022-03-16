@@ -9,13 +9,13 @@ import (
 
 	"github.com/containers/podman/v4/libpod/define"
 
+	v1 "github.com/containers/podman/v4/pkg/k8s.io/api/core/v1"
 	"github.com/containers/podman/v4/pkg/util"
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/ghodss/yaml"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
-	v1 "k8s.io/api/core/v1"
 )
 
 var _ = Describe("Podman generate kube", func() {
@@ -1018,7 +1018,7 @@ USER test1`
 		pvc := new(v1.PersistentVolumeClaim)
 		err := yaml.Unmarshal(kube.Out.Contents(), pvc)
 		Expect(err).To(BeNil())
-		Expect(pvc.GetName()).To(Equal(vol))
+		Expect(pvc.Name).To(Equal(vol))
 		Expect(pvc.Spec.AccessModes[0]).To(Equal(v1.ReadWriteOnce))
 		Expect(pvc.Spec.Resources.Requests.Storage().String()).To(Equal("1Gi"))
 	})
@@ -1040,11 +1040,11 @@ USER test1`
 		pvc := new(v1.PersistentVolumeClaim)
 		err := yaml.Unmarshal(kube.Out.Contents(), pvc)
 		Expect(err).To(BeNil())
-		Expect(pvc.GetName()).To(Equal(vol))
+		Expect(pvc.Name).To(Equal(vol))
 		Expect(pvc.Spec.AccessModes[0]).To(Equal(v1.ReadWriteOnce))
 		Expect(pvc.Spec.Resources.Requests.Storage().String()).To(Equal("1Gi"))
 
-		for k, v := range pvc.GetAnnotations() {
+		for k, v := range pvc.Annotations {
 			switch k {
 			case util.VolumeDeviceAnnotation:
 				Expect(v).To(Equal(volDevice))
@@ -1069,7 +1069,7 @@ USER test1`
 		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).To(BeNil())
 
-		Expect(pod.GetAnnotations()).To(HaveKeyWithValue("io.containers.autoupdate/top", "local"))
+		Expect(pod.Annotations).To(HaveKeyWithValue("io.containers.autoupdate/top", "local"))
 	})
 
 	It("podman generate kube on pod with auto update labels in all containers", func() {
@@ -1096,8 +1096,8 @@ USER test1`
 		Expect(pod.Spec.Containers[1].WorkingDir).To(Equal("/root"))
 
 		for _, ctr := range []string{"top1", "top2"} {
-			Expect(pod.GetAnnotations()).To(HaveKeyWithValue("io.containers.autoupdate/"+ctr, "registry"))
-			Expect(pod.GetAnnotations()).To(HaveKeyWithValue("io.containers.autoupdate.authfile/"+ctr, "/some/authfile.json"))
+			Expect(pod.Annotations).To(HaveKeyWithValue("io.containers.autoupdate/"+ctr, "registry"))
+			Expect(pod.Annotations).To(HaveKeyWithValue("io.containers.autoupdate.authfile/"+ctr, "/some/authfile.json"))
 		}
 	})
 

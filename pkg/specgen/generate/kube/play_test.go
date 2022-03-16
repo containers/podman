@@ -11,11 +11,11 @@ import (
 	"testing"
 
 	"github.com/containers/common/pkg/secrets"
+	v1 "github.com/containers/podman/v4/pkg/k8s.io/api/core/v1"
+	"github.com/containers/podman/v4/pkg/k8s.io/apimachinery/pkg/api/resource"
+	v12 "github.com/containers/podman/v4/pkg/k8s.io/apimachinery/pkg/apis/meta/v1"
 	"github.com/docker/docker/pkg/system"
 	"github.com/stretchr/testify/assert"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func createSecrets(t *testing.T, d string) *secrets.SecretsManager {
