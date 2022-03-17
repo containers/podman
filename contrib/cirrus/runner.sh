@@ -63,6 +63,10 @@ function _run_compose() {
     ./test/compose/test-compose |& logformatter
 }
 
+function _run_compose_v2() {
+    ./test/compose/test-compose |& logformatter
+}
+
 function _run_int() {
     dotest integration
 }
