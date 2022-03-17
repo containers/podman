@@ -91,6 +91,9 @@ __END__
 ok 1 hi
 ok 2 bye # skip no reason
 not ok 3 fail
+# (from function `assert' in file ./helpers.bash, line 343,
+#  from function `expect_output' in file ./helpers.bash, line 370,
+#  in test file ./run.bats, line 786)
 # $ /path/to/podman foo -bar
 # #| FAIL: exit code is 123; expected 321
 ok 4 blah
@@ -99,6 +102,9 @@ ok 4 blah
 <span class='bats-passed'><a name='t--00001'>ok 1 hi</a></span>
 <span class='bats-skipped'><a name='t--00002'>ok 2 bye # skip no reason</a></span>
 <span class='bats-failed'><a name='t--00003'>not ok 3 fail</a></span>
+<span class='bats-log'># (from function `assert&#39; in file ./<a class="codelink" href="https://github.com/containers/podman/blob/ceci-nest-pas-une-sha/test/system/helpers.bash#L343">helpers.bash, line 343</a>,</span>
+<span class='bats-log'>#  from function `expect_output&#39; in file ./<a class="codelink" href="https://github.com/containers/podman/blob/ceci-nest-pas-une-sha/test/system/helpers.bash#L370">helpers.bash, line 370</a>,</span>
+<span class='bats-log'>#  in test file ./<a class="codelink" href="https://github.com/containers/podman/blob/ceci-nest-pas-une-sha/test/system/run.bats#L786">run.bats, line 786</a>)</span>
 <span class='bats-log'># $ <b><span title="/path/to/podman">podman</span> foo -bar</b></span>
 <span class='bats-log-esm'># #| FAIL: exit code is 123; expected 321</span>
 <span class='bats-passed'><a name='t--00004'>ok 4 blah</a></span>
