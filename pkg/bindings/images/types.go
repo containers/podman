@@ -11,6 +11,8 @@ type RemoveOptions struct {
 	All *bool
 	// Forces removes all containers based on the image
 	Force *bool
+	// Ignore if a specified image does not exist and do not throw an error.
+	Ignore *bool
 }
 
 //go:generate go run ../generator/generator.go DiffOptions

@@ -578,6 +578,7 @@ func (ir *ImageEngine) Remove(ctx context.Context, images []string, opts entitie
 	libimageOptions := &libimage.RemoveImagesOptions{}
 	libimageOptions.Filters = []string{"readonly=false"}
 	libimageOptions.Force = opts.Force
+	libimageOptions.Ignore = opts.Ignore
 	libimageOptions.LookupManifest = opts.LookupManifest
 	if !opts.All {
 		libimageOptions.Filters = append(libimageOptions.Filters, "intermediate=false")

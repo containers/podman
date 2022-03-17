@@ -613,6 +613,7 @@ func ImagesBatchRemove(w http.ResponseWriter, r *http.Request) {
 	query := struct {
 		All    bool     `schema:"all"`
 		Force  bool     `schema:"force"`
+		Ignore bool     `schema:"ignore"`
 		Images []string `schema:"images"`
 	}{}
 
@@ -621,7 +622,7 @@ func ImagesBatchRemove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	opts := entities.ImageRemoveOptions{All: query.All, Force: query.Force}
+	opts := entities.ImageRemoveOptions{All: query.All, Force: query.Force, Ignore: query.Ignore}
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 	rmReport, rmErrors := imageEngine.Remove(r.Context(), query.Images, opts)
 	strErrs := errorhandling.ErrorsToStrings(rmErrors)
