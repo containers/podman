@@ -383,6 +383,15 @@ function journald_unavailable() {
     return 1
 }
 
+# Returns the name of the local pause image.
+function pause_image() {
+    # This function is intended to be used as '$(pause_image)', i.e.
+    # our caller wants our output. run_podman() messes with output because
+    # it emits the command invocation to stdout, hence the redirection.
+    run_podman version --format "{{.Server.Version}}-{{.Server.Built}}" >/dev/null
+    echo "localhost/podman-pause:$output"
+}
+
 ###########################
 #  _add_label_if_missing  #  make sure skip messages include rootless/remote
 ###########################

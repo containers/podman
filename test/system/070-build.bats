@@ -605,7 +605,7 @@ EOF
     done
 }
 
-# Regression test for #9867
+# Regression test for #9867 and #13529
 # Make sure that if you exclude everything in context dir, that
 # the Containerfile/Dockerfile in the context dir are used
 @test "podman build with ignore '*'" {
@@ -619,6 +619,15 @@ EOF
 cat >$tmpdir/.dockerignore <<EOF
 *
 EOF
+
+    # Prior to the fix for #13529, pod-create would fail with 'error building
+    # at STEP COPY .../catatonit' because of the local .dockerignore file was
+    # used.
+    pushd "${tmpdir}"
+    run_podman pod create
+    run_podman pod rm $output
+    run_podman rmi $(pause_image)
+    popd
 
     run_podman build -t build_test $tmpdir
 
