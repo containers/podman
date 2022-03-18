@@ -429,7 +429,7 @@ apiv2_test_task:
 
 
 compose_test_task:
-    name: "compose test on $DISTRO_NV ($PRIV_NAME)"
+    name: "$TEST_FLAVOR test on $DISTRO_NV ($PRIV_NAME)"
     alias: compose_test
     only_if: *not_build
     skip: *tags
@@ -438,11 +438,18 @@ compose_test_task:
     gce_instance: *standardvm
     env:
         <<: *stdenvars
-        TEST_FLAVOR: compose
     matrix:
       - env:
+            TEST_FLAVOR: compose
             PRIV_NAME: root
       - env:
+            TEST_FLAVOR: compose
+            PRIV_NAME: rootless
+      - env:
+            TEST_FLAVOR: compose_v2
+            PRIV_NAME: root
+      - env:
+            TEST_FLAVOR: compose_v2
             PRIV_NAME: rootless
     clone_script: *noop  # Comes from cache
     gopath_cache: *ro_gopath_cache

@@ -272,6 +272,11 @@ case "$TEST_FLAVOR" in
         ;;
     build) make clean ;;
     unit) ;;
+    compose_v2)
+        dnf -y remove docker-compose
+        curl -SL https://github.com/docker/compose/releases/download/v2.2.3/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+        chmod +x /usr/local/bin/docker-compose
+        ;& # Continue with next item
     apiv2)
         msg "Installing previously downloaded/cached packages"
         dnf install -y $PACKAGE_DOWNLOAD_DIR/python3*.rpm

@@ -97,12 +97,21 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *c
 	}
 
 	// mounts type=tmpfs/bind,source=...,target=...=,opt=val
+	volSources := make(map[string]bool)
+	volDestinations := make(map[string]bool)
 	mounts := make([]string, 0, len(cc.HostConfig.Mounts))
 	var builder strings.Builder
 	for _, m := range cc.HostConfig.Mounts {
 		addField(&builder, "type", string(m.Type))
 		addField(&builder, "source", m.Source)
 		addField(&builder, "target", m.Target)
+
+		// Store source/dest so we don't add duplicates if a volume is
+		// also mentioned in cc.Volumes.
+		// Which Docker Compose v2.0 does, for unclear reasons...
+		volSources[m.Source] = true
+		volDestinations[m.Target] = true
+
 		if m.ReadOnly {
 			addField(&builder, "ro", "true")
 		}
@@ -328,8 +337,6 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *c
 	}
 
 	// volumes
-	volSources := make(map[string]bool)
-	volDestinations := make(map[string]bool)
 	for _, vol := range cc.HostConfig.Binds {
 		cliOpts.Volume = append(cliOpts.Volume, vol)
 		// Extract the destination so we don't add duplicate mounts in
@@ -348,6 +355,8 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *c
 	// format of `-v` so we can just append them in there.
 	// Unfortunately, these may be duplicates of existing mounts in Binds.
 	// So... We need to catch that.
+	// This also handles volumes duplicated between cc.HostConfig.Mounts and
+	// cc.Volumes, as seen in compose v2.0.
 	for vol := range cc.Volumes {
 		if _, ok := volDestinations[filepath.Clean(vol)]; ok {
 			continue
