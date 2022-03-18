@@ -18,6 +18,9 @@ on:
   # allows to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   multi:
     name: multi-arch image build
@@ -50,19 +53,19 @@ jobs:
           - 5000:5000
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5 # v2
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@27d0a4f181a40b142cce983c5393082c365d1480 # v1
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@94ab11c41e45d028884a99163086648e898eed25 # v1
         with:
           driver-opts: network=host
           install: true
 
       - name: Build and locally push image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@ac9327eae2b366085ac7f6a2d02df8aa8ead720a # v2
         with:
           context: contrib/${{ env.REPONAME }}image/${{ matrix.source }}
           file: ./contrib/${{ env.REPONAME }}image/${{ matrix.source }}/Dockerfile
@@ -162,7 +165,7 @@ jobs:
 
       # Push to $REPONAME_QUAY_REGISTRY for stable, testing. and upstream
       - name: Login to ${{ env.REPONAME_QUAY_REGISTRY }}
-        uses: docker/login-action@v1
+        uses: docker/login-action@dd4fa0671be5250ee6f50aedf4cb05514abda2c7 # v1
         if: steps.reponame_reg.outputs.push == 'true'
         with:
           registry: ${{ env.REPONAME_QUAY_REGISTRY }}
@@ -172,7 +175,7 @@ jobs:
           password: ${{ secrets.REPONAME_QUAY_PASSWORD }}
 
       - name: Push images to ${{ steps.reponame_reg.outputs.fqin }}
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@ac9327eae2b366085ac7f6a2d02df8aa8ead720a # v2
         if: steps.reponame_reg.outputs.push == 'true'
         with:
           cache-from: type=registry,ref=localhost:5000/${{ env.REPONAME }}/${{ matrix.source }}
@@ -188,7 +191,7 @@ jobs:
       # Push to $CONTAINERS_QUAY_REGISTRY only stable
       - name: Login to ${{ env.CONTAINERS_QUAY_REGISTRY }}
         if: steps.containers_reg.outputs.push == 'true'
-        uses: docker/login-action@v1
+        uses: docker/login-action@dd4fa0671be5250ee6f50aedf4cb05514abda2c7 # v1
         with:
           registry: ${{ env.CONTAINERS_QUAY_REGISTRY}}
           username: ${{ secrets.CONTAINERS_QUAY_USERNAME }}
@@ -196,7 +199,7 @@ jobs:
 
       - name: Push images to ${{ steps.containers_reg.outputs.fqin }}
         if: steps.containers_reg.outputs.push == 'true'
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@ac9327eae2b366085ac7f6a2d02df8aa8ead720a # v2
         with:
           cache-from: type=registry,ref=localhost:5000/${{ env.REPONAME }}/${{ matrix.source }}
           cache-to: type=inline
