@@ -1,3 +1,4 @@
+//go:build linux && !remote
 // +build linux,!remote
 
 package system
