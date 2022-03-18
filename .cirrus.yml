@@ -807,7 +807,59 @@ success_task:
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
         TEST_ENVIRON: container
     clone_script: *noop
-    script: /bin/true
+    script: *noop
+
+
+artifacts_task:
+    name: "Artifacts"
+    alias: artifacts
+    only_if: *not_docs
+    depends_on:
+        - success
+    # This task is a secondary/convenience for downstream consumers, don't
+    # block development progress if there is a failure in a PR, only break
+    # when running on branches or tags.
+    allow_failures: $CIRRUS_PR != ''
+    container: *smallcontainer
+    env:
+        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+        TEST_ENVIRON: container
+        CURL: "curl --fail --location -O https://api.cirrus-ci.com/v1/artifact/build/${CIRRUS_BUILD_ID}"
+    # In order to keep the download URL and Cirrus-CI artifact.zip contents
+    # simple, nothing should exist in $CIRRUS_WORKING_DIR except for artifacts.
+    clone_script: *noop
+    script:
+        # Assume the latest Fedora release build is most useful
+        - $CURL/Build%20for%20$FEDORA_NAME/binary/bin/podman
+        - $CURL/Build%20for%20$FEDORA_NAME/binary/bin/podman-remote
+        - $CURL/Build%20for%20$FEDORA_NAME/binary/bin/rootlessport
+        - chmod +x podman* rootlessport
+        # Architecture in filename & can't use wildcards in a URL
+        - mkdir -p /tmp/alt
+        - cd /tmp/alt
+        - $CURL/Alt%20Arch.%20Cross/gosrc.zip
+        - unzip gosrc.zip
+        - cd $CIRRUS_WORKING_DIR
+        - mv /tmp/alt/*.tar.gz ./
+        # Windows MSI filename has version number
+        - mkdir -p /tmp/win
+        - cd /tmp/win
+        - $CURL/Windows%20Cross/gosrc.zip
+        - unzip gosrc.zip
+        - cd $CIRRUS_WORKING_DIR
+        - mv /tmp/win/podman-remote*.zip /tmp/win/*.msi ./
+        # OSX
+        - $CURL/OSX%20Cross/gosrc/podman-remote-release-darwin_amd64.zip
+        - $CURL/OSX%20Cross/gosrc/podman-remote-release-darwin_arm64.zip
+    # Always show contents to assist in debugging
+    always:
+        contents_script: ls -1 $CIRRUS_WORKING_DIR
+    # Produce downloadable files and an automatic zip-file accessible
+    # by a consistent URL, based on contents of $CIRRUS_WORKING_DIR
+    # Ref: https://cirrus-ci.org/guide/writing-tasks/#latest-build-artifacts
+    binary_artifacts:
+        path: ./*
+        type: application/octet-stream
 
 
 # When a new tag is pushed, confirm that the code and commits
