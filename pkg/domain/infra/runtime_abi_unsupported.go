@@ -1,3 +1,4 @@
+//go:build remote
 // +build remote
 
 package infra

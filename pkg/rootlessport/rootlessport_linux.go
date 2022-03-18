@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 // Package rootlessport provides reexec for RootlessKit-based port forwarder.
