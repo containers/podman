@@ -276,7 +276,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		storeOpts.GraphRoot = _defaultGraphRoot
 	}
 	c.graphRoot = storeOpts.GraphRoot
-	c.ImageCopyTmpDir = "/var/tmp"
+	c.ImageCopyTmpDir = getDefaultTmpDir()
 	c.StaticDir = filepath.Join(storeOpts.GraphRoot, "libpod")
 	c.VolumePath = filepath.Join(storeOpts.GraphRoot, "volumes")
 

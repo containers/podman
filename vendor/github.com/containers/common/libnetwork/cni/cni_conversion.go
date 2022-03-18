@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package cni
@@ -128,15 +129,21 @@ func findPluginByName(plugins []*libcni.NetworkConfig, name string) bool {
 // It returns an array of subnets and an extra bool if dhcp is configured.
 func convertIPAMConfToNetwork(network *types.Network, ipam *ipamConfig, confPath string) error {
 	if ipam.PluginType == types.DHCPIPAMDriver {
-		network.IPAMOptions["driver"] = types.DHCPIPAMDriver
+		network.IPAMOptions[types.Driver] = types.DHCPIPAMDriver
 		return nil
 	}
 
 	if ipam.PluginType != types.HostLocalIPAMDriver {
-		return errors.Errorf("unsupported ipam plugin %s in %s", ipam.PluginType, confPath)
+		// This is not an error. While we only support certain ipam drivers, we
+		// cannot make it fail for unsupported ones. CNI is still able to use them,
+		// just our translation logic cannot convert this into a Network.
+		// For the same reason this is not warning, it would just be annoying for
+		// everyone using a unknown ipam driver.
+		logrus.Infof("unsupported ipam plugin %q in %s", ipam.PluginType, confPath)
+		return nil
 	}
 
-	network.IPAMOptions["driver"] = types.HostLocalIPAMDriver
+	network.IPAMOptions[types.Driver] = types.HostLocalIPAMDriver
 	for _, r := range ipam.Ranges {
 		for _, ipam := range r {
 			s := types.Subnet{}

@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package netavark
@@ -361,7 +362,7 @@ func (n *netavarkNetwork) deallocIPs(opts *types.NetworkOptions) error {
 // it checks the ipam driver and if subnets are set
 func requiresIPAMAlloc(network *types.Network) bool {
 	// only do host allocation when driver is set to HostLocalIPAMDriver or unset
-	switch network.IPAMOptions["driver"] {
+	switch network.IPAMOptions[types.Driver] {
 	case "", types.HostLocalIPAMDriver:
 	default:
 		return false

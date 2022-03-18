@@ -109,7 +109,7 @@ func validatePerNetworkOpts(network *types.Network, netOpts *types.PerNetworkOpt
 	if netOpts.InterfaceName == "" {
 		return errors.Errorf("interface name on network %s is empty", network.Name)
 	}
-	if network.IPAMOptions["driver"] == types.HostLocalIPAMDriver {
+	if network.IPAMOptions[types.Driver] == types.HostLocalIPAMDriver {
 	outer:
 		for _, ip := range netOpts.StaticIPs {
 			for _, s := range network.Subnets {

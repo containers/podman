@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package cni
@@ -197,12 +198,12 @@ func createIPMACVLAN(network *types.Network) error {
 		}
 	}
 	if len(network.Subnets) == 0 {
-		network.IPAMOptions["driver"] = types.DHCPIPAMDriver
+		network.IPAMOptions[types.Driver] = types.DHCPIPAMDriver
 		if network.Internal {
 			return errors.New("internal is not supported with macvlan and dhcp ipam driver")
 		}
 	} else {
-		network.IPAMOptions["driver"] = types.HostLocalIPAMDriver
+		network.IPAMOptions[types.Driver] = types.HostLocalIPAMDriver
 	}
 	return nil
 }
