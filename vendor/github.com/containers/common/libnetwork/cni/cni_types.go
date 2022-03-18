@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package cni
@@ -144,11 +145,13 @@ func newHostLocalBridge(name string, isGateWay, ipMasq bool, mtu, vlan int, ipam
 		MTU:         mtu,
 		HairpinMode: true,
 		Vlan:        vlan,
-		IPAM:        *ipamConf,
 	}
-	// if we use host-local set the ips cap to ensure we can set static ips via runtime config
-	if ipamConf.PluginType == types.HostLocalIPAMDriver {
-		bridge.Capabilities = caps
+	if ipamConf != nil {
+		bridge.IPAM = *ipamConf
+		// if we use host-local set the ips cap to ensure we can set static ips via runtime config
+		if ipamConf.PluginType == types.HostLocalIPAMDriver {
+			bridge.Capabilities = caps
+		}
 	}
 	return &bridge
 }
@@ -258,7 +261,9 @@ func hasDNSNamePlugin(paths []string) bool {
 func newVLANPlugin(pluginType, device, mode string, mtu int, ipam *ipamConfig) VLANConfig {
 	m := VLANConfig{
 		PluginType: pluginType,
-		IPAM:       *ipam,
+	}
+	if ipam != nil {
+		m.IPAM = *ipam
 	}
 	if mtu > 0 {
 		m.MTU = mtu

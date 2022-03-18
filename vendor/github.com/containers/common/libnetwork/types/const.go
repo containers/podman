@@ -11,10 +11,13 @@ const (
 	IPVLANNetworkDriver = "ipvlan"
 
 	// IPAM drivers
-	// HostLocalIPAMDriver store the ip
+	Driver = "driver"
+	// HostLocalIPAMDriver store the ip locally in a db
 	HostLocalIPAMDriver = "host-local"
 	// DHCPIPAMDriver get subnet and ip from dhcp server
 	DHCPIPAMDriver = "dhcp"
+	// NoneIPAMDriver do not provide ipam management
+	NoneIPAMDriver = "none"
 
 	// DefaultSubnet is the name that will be used for the default CNI network.
 	DefaultNetworkName = "podman"

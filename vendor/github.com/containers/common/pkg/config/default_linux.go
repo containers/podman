@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strconv"
 	"strings"
 
@@ -47,4 +48,13 @@ func getDefaultProcessLimits() []string {
 		defaultLimits = append(defaultLimits, fmt.Sprintf("nproc=%d:%d", oldrlim.Cur, oldrlim.Max))
 	}
 	return defaultLimits
+}
+
+// getDefaultTmpDir for linux
+func getDefaultTmpDir() string {
+	// first check the TMPDIR env var
+	if path, found := os.LookupEnv("TMPDIR"); found {
+		return path
+	}
+	return "/var/tmp"
 }

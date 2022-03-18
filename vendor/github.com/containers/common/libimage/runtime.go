@@ -592,6 +592,8 @@ type RemoveImagesOptions struct {
 	// containers using a specific image.  By default, all containers in
 	// the local containers storage will be removed (if Force is set).
 	RemoveContainerFunc RemoveContainerFunc
+	// Ignore if a specified image does not exist and do not throw an error.
+	Ignore bool
 	// IsExternalContainerFunc allows for checking whether the specified
 	// container is an external one (when containers=external filter is
 	// used).  The definition of an external container can be set by
@@ -677,6 +679,9 @@ func (r *Runtime) RemoveImages(ctx context.Context, names []string, options *Rem
 		for _, name := range names {
 			img, resolvedName, err := r.LookupImage(name, lookupOptions)
 			if err != nil {
+				if options.Ignore && errors.Is(err, storage.ErrImageUnknown) {
+					continue
+				}
 				appendError(err)
 				continue
 			}

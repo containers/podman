@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package cni
@@ -124,34 +125,37 @@ func CNIResultToStatus(res cnitypes.Result) (types.StatusBlock, error) {
 	result.DNSSearchDomains = cniResult.DNS.Search
 
 	interfaces := make(map[string]types.NetInterface)
-	for _, ip := range cniResult.IPs {
-		if ip.Interface == nil {
-			// we do no expect ips without an interface
+	for intIndex, netInterface := range cniResult.Interfaces {
+		// we are only interested about interfaces in the container namespace
+		if netInterface.Sandbox == "" {
 			continue
 		}
-		if len(cniResult.Interfaces) <= *ip.Interface {
-			return result, errors.Errorf("invalid cni result, interface index %d out of range", *ip.Interface)
+
+		mac, err := net.ParseMAC(netInterface.Mac)
+		if err != nil {
+			return result, err
 		}
-		cniInt := cniResult.Interfaces[*ip.Interface]
-		netInt, ok := interfaces[cniInt.Name]
-		if ok {
-			netInt.Subnets = append(netInt.Subnets, types.NetAddress{
-				IPNet:   types.IPNet{IPNet: ip.Address},
-				Gateway: ip.Gateway,
-			})
-			interfaces[cniInt.Name] = netInt
-		} else {
-			mac, err := net.ParseMAC(cniInt.Mac)
-			if err != nil {
-				return result, err
+		subnets := make([]types.NetAddress, 0, len(cniResult.IPs))
+		for _, ip := range cniResult.IPs {
+			if ip.Interface == nil {
+				// we do no expect ips without an interface
+				continue
 			}
-			interfaces[cniInt.Name] = types.NetInterface{
-				MacAddress: types.HardwareAddr(mac),
-				Subnets: []types.NetAddress{{
+			if len(cniResult.Interfaces) <= *ip.Interface {
+				return result, errors.Errorf("invalid cni result, interface index %d out of range", *ip.Interface)
+			}
+
+			// when we have a ip for this interface add it to the subnets
+			if *ip.Interface == intIndex {
+				subnets = append(subnets, types.NetAddress{
 					IPNet:   types.IPNet{IPNet: ip.Address},
 					Gateway: ip.Gateway,
-				}},
+				})
 			}
+		}
+		interfaces[netInterface.Name] = types.NetInterface{
+			MacAddress: types.HardwareAddr(mac),
+			Subnets:    subnets,
 		}
 	}
 	result.Interfaces = interfaces

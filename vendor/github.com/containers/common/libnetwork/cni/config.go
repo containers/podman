@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package cni
@@ -48,6 +49,11 @@ func (n *cniNetwork) networkCreate(newNetwork *types.Network, defaultNet bool) (
 	}
 
 	err := internalutil.CommonNetworkCreate(n, newNetwork)
+	if err != nil {
+		return nil, err
+	}
+
+	err = validateIPAMDriver(newNetwork)
 	if err != nil {
 		return nil, err
 	}
@@ -196,13 +202,38 @@ func createIPMACVLAN(network *types.Network) error {
 			return errors.Errorf("parent interface %s does not exist", network.NetworkInterface)
 		}
 	}
-	if len(network.Subnets) == 0 {
-		network.IPAMOptions["driver"] = types.DHCPIPAMDriver
-		if network.Internal {
-			return errors.New("internal is not supported with macvlan and dhcp ipam driver")
+
+	switch network.IPAMOptions[types.Driver] {
+	// set default
+	case "":
+		if len(network.Subnets) == 0 {
+			// if no subnets and no driver choose dhcp
+			network.IPAMOptions[types.Driver] = types.DHCPIPAMDriver
+		} else {
+			network.IPAMOptions[types.Driver] = types.HostLocalIPAMDriver
 		}
-	} else {
-		network.IPAMOptions["driver"] = types.HostLocalIPAMDriver
+	case types.HostLocalIPAMDriver:
+		if len(network.Subnets) == 0 {
+			return errors.New("host-local ipam driver set but no subnets are given")
+		}
+	}
+
+	if network.IPAMOptions[types.Driver] == types.DHCPIPAMDriver && network.Internal {
+		return errors.New("internal is not supported with macvlan and dhcp ipam driver")
+	}
+	return nil
+}
+
+func validateIPAMDriver(n *types.Network) error {
+	ipamDriver := n.IPAMOptions[types.Driver]
+	switch ipamDriver {
+	case "", types.HostLocalIPAMDriver:
+	case types.DHCPIPAMDriver, types.NoneIPAMDriver:
+		if len(n.Subnets) > 0 {
+			return errors.Errorf("%s ipam driver is set but subnets are given", ipamDriver)
+		}
+	default:
+		return errors.Errorf("unsupported ipam driver %q", ipamDriver)
 	}
 	return nil
 }
