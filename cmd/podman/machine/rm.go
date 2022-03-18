@@ -27,7 +27,7 @@ var (
 )
 
 var (
-	destoryOptions machine.RemoveOptions
+	destroyOptions machine.RemoveOptions
 )
 
 func init() {
@@ -38,16 +38,16 @@ func init() {
 
 	flags := rmCmd.Flags()
 	formatFlagName := "force"
-	flags.BoolVarP(&destoryOptions.Force, formatFlagName, "f", false, "Stop and do not prompt before rming")
+	flags.BoolVarP(&destroyOptions.Force, formatFlagName, "f", false, "Stop and do not prompt before rming")
 
 	keysFlagName := "save-keys"
-	flags.BoolVar(&destoryOptions.SaveKeys, keysFlagName, false, "Do not delete SSH keys")
+	flags.BoolVar(&destroyOptions.SaveKeys, keysFlagName, false, "Do not delete SSH keys")
 
 	ignitionFlagName := "save-ignition"
-	flags.BoolVar(&destoryOptions.SaveIgnition, ignitionFlagName, false, "Do not delete ignition file")
+	flags.BoolVar(&destroyOptions.SaveIgnition, ignitionFlagName, false, "Do not delete ignition file")
 
 	imageFlagName := "save-image"
-	flags.BoolVar(&destoryOptions.SaveImage, imageFlagName, false, "Do not delete the image file")
+	flags.BoolVar(&destroyOptions.SaveImage, imageFlagName, false, "Do not delete the image file")
 }
 
 func rm(cmd *cobra.Command, args []string) error {
@@ -65,12 +65,12 @@ func rm(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	confirmationMessage, remove, err := vm.Remove(vmName, destoryOptions)
+	confirmationMessage, remove, err := vm.Remove(vmName, destroyOptions)
 	if err != nil {
 		return err
 	}
 
-	if !destoryOptions.Force {
+	if !destroyOptions.Force {
 		// Warn user
 		fmt.Println(confirmationMessage)
 		reader := bufio.NewReader(os.Stdin)
