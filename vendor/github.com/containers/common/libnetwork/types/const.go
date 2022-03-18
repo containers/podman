@@ -11,6 +11,7 @@ const (
 	IPVLANNetworkDriver = "ipvlan"
 
 	// IPAM drivers
+	Driver = "driver"
 	// HostLocalIPAMDriver store the ip
 	HostLocalIPAMDriver = "host-local"
 	// DHCPIPAMDriver get subnet and ip from dhcp server

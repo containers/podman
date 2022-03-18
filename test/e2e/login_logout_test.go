@@ -417,12 +417,12 @@ var _ = Describe("Podman login and logout", func() {
 		Expect(authInfo).NotTo(HaveKey(testRepos[1]))
 	})
 
-	It("podman login with repository invalid arguments", func() {
+	It("podman login with http{s} prefix", func() {
 		authFile := filepath.Join(podmanTest.TempDir, "auth.json")
 
 		for _, invalidArg := range []string{
 			"https://" + server + "/podmantest",
-			server + "/podmantest/image:latest",
+			"http://" + server + "/podmantest/image:latest",
 		} {
 			session := podmanTest.Podman([]string{
 				"login",
@@ -432,7 +432,7 @@ var _ = Describe("Podman login and logout", func() {
 				invalidArg,
 			})
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(ExitWithError())
+			Expect(session).To(Exit(0))
 		}
 	})
 

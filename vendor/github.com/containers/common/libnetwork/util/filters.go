@@ -29,7 +29,7 @@ func createFilterFuncs(key string, filterValues []string) (types.FilterFunc, err
 			return util.StringMatchRegexSlice(net.Name, filterValues)
 		}, nil
 
-	case "driver":
+	case types.Driver:
 		// matches network driver
 		return func(net types.Network) bool {
 			return util.StringInSlice(net.Driver, filterValues)
