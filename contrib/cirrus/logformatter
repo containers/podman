@@ -307,10 +307,18 @@ END_HTML
             elsif ($line =~ /^#\s#\|\s/)       { $css = 'log-esm' }
             elsif ($line =~ /^#\s/)            { $css = 'log'     }
 
+            # Link to source file. This is ugly: we have to hardcode 'podman'
+            # and 'test/system' because there's no way to get them from log.
+            #
+            #          1  2      2               13     4         43           5
+            $line =~ s{(in(\stest)?\s+file\s+\S+/)(\S+\.(bats|bash)),\s+line\s+(\d+)}{$1<a class="codelink" href="https://github.com/containers/podman/blob/$git_commit/test/system/$3#L$5">$3, line $5</a>};
+
             if ($css) {
                 # Make it linkable, e.g. foo.html#t--00001
-                if ($line =~ /^(not\s+)?ok\s+(\d+)/) {
+                if ($line =~ /^(not\s+)?ok\s+(\d+)\s+(.*)/) {
                     $line = sprintf("<a name='t--%05d'>%s</a>", $2, $line);
+
+                    push @{$bats_count{__fail_list}}, [ $2, $3 ] if $1;
                 }
                 $line = "<span class='bats-$css'>$line</span>";
 
@@ -513,6 +521,15 @@ END_HTML
         else {
             warn "$ME: Error writing $out_tmp: $!\n";
         }
+    }
+
+    # Grumble. Github only shows the last N lines of the log... which is
+    # anti-helpful when you want a quick synopsis of what failed. Write a
+    # summary at the tail, to make it easier for humans to see what went wrong.
+    if (my $fails = $bats_count{__fail_list}) {
+        print  "\n";
+        printf "Failed tests (%d):\n", scalar(@$fails);
+        printf " - %d %s\n", @$_ for @$fails;
     }
 
     # If Cirrus magic envariables are available, write a link to results.
