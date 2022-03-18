@@ -6,7 +6,7 @@ env:
     #### Global variables used for all tasks
     ####
     # Name of the ultimate destination branch for this CI run, PR or post-merge.
-    DEST_BRANCH: "v4.0"
+    DEST_BRANCH: "v4.0-rhel"
     # Netavark branch to use when TEST_ENVIRON=host-netavark
     NETAVARK_BRANCH: "main"  # TODO: This should point to a release branch
     # Aardvark branch to use
