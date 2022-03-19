@@ -23,17 +23,17 @@ is used.
 
 Print usage statement.
 
-#### **--force**
+#### **--force**, **-f**
 
-Delete without confirmation
+Stop and delete without confirmation.
 
 #### **--save-ignition**
 
-Do not delete the generated ignition file
+Do not delete the generated ignition file.
 
 #### **--save-image**
 
-Do not delete the VM image
+Do not delete the VM image.
 
 #### **--save-keys**
 
@@ -42,7 +42,7 @@ deleted.
 
 ## EXAMPLES
 
-Remove a VM named "test1"
+Remove a VM named "test1":
 
 ```
 $ podman machine rm test1
@@ -58,6 +58,10 @@ The following files will be deleted:
 Are you sure you want to continue? [y/N] y
 ```
 
+```
+$ podman machine rm -f test1
+$
+```
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-machine(1)](podman-machine.1.md)**
 

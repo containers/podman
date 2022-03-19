@@ -88,11 +88,16 @@ func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	vm.Memory = opts.Memory
 	vm.DiskSize = opts.DiskSize
 
-	// Look up the executable
-	execPath, err := exec.LookPath(QemuCommand)
+	// Find the qemu executable
+	cfg, err := config.Default()
 	if err != nil {
 		return nil, err
 	}
+	execPath, err := cfg.FindHelperBinary(QemuCommand, true)
+	if err != nil {
+		return nil, err
+	}
+
 	cmd := append([]string{execPath})
 	// Add memory
 	cmd = append(cmd, []string{"-m", strconv.Itoa(int(vm.Memory))}...)
@@ -129,7 +134,7 @@ func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 // LoadByName reads a json file that describes a known qemu vm
 // and returns a vm instance
 func (p *Provider) LoadVMByName(name string) (machine.VM, error) {
-	vm := new(MachineVM)
+	vm := &MachineVM{UID: -1} // posix reserves -1, so use it to signify undefined
 	vmConfigDir, err := machine.GetConfDir(vmtype)
 	if err != nil {
 		return nil, err
@@ -245,12 +250,13 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		}
 	}
 	v.Mounts = mounts
+	v.UID = os.Getuid()
 
 	// Add location of bootable image
 	v.CmdLine = append(v.CmdLine, "-drive", "if=virtio,file="+v.ImagePath)
 	// This kind of stinks but no other way around this r/n
 	if len(opts.IgnitionPath) < 1 {
-		uri := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/user/1000/podman/podman.sock", strconv.Itoa(v.Port), v.RemoteUsername)
+		uri := machine.SSHRemoteConnection.MakeSSHURL("localhost", fmt.Sprintf("/run/user/%d/podman/podman.sock", v.UID), strconv.Itoa(v.Port), v.RemoteUsername)
 		uriRoot := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/podman/podman.sock", strconv.Itoa(v.Port), "root")
 		identity := filepath.Join(sshDir, v.Name)
 
@@ -296,7 +302,16 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	// only if the virtualdisk size is less than
 	// the given disk size
 	if opts.DiskSize<<(10*3) > originalDiskSize {
-		resize := exec.Command("qemu-img", []string{"resize", v.ImagePath, strconv.Itoa(int(opts.DiskSize)) + "G"}...)
+		// Find the qemu executable
+		cfg, err := config.Default()
+		if err != nil {
+			return false, err
+		}
+		resizePath, err := cfg.FindHelperBinary("qemu-img", true)
+		if err != nil {
+			return false, err
+		}
+		resize := exec.Command(resizePath, []string{"resize", v.ImagePath, strconv.Itoa(int(opts.DiskSize)) + "G"}...)
 		resize.Stdout = os.Stdout
 		resize.Stderr = os.Stderr
 		if err := resize.Run(); err != nil {
@@ -319,6 +334,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		VMName:    v.Name,
 		TimeZone:  opts.TimeZone,
 		WritePath: v.IgnitionFilePath,
+		UID:       v.UID,
 	}
 	err = machine.NewIgnitionFile(ign)
 	return err == nil, err
@@ -356,6 +372,10 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		qemuSocketConn net.Conn
 		wait           time.Duration = time.Millisecond * 500
 	)
+
+	if v.isIncompatible() {
+		logrus.Errorf("machine %q is incompatible with this release of podman and needs to be recreated, starting for recovery only", v.Name)
+	}
 
 	forwardSock, forwardState, err := v.startHostNetworking()
 	if err != nil {
@@ -459,7 +479,17 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 	for _, mount := range v.Mounts {
 		fmt.Printf("Mounting volume... %s:%s\n", mount.Source, mount.Target)
 		// create mountpoint directory if it doesn't exist
-		err = v.SSH(name, machine.SSHOptions{Args: []string{"-q", "--", "sudo", "mkdir", "-p", mount.Target}})
+		// because / is immutable, we have to monkey around with permissions
+		// if we dont mount in /home or /mnt
+		args := []string{"-q", "--"}
+		if !strings.HasPrefix(mount.Target, "/home") || !strings.HasPrefix(mount.Target, "/mnt") {
+			args = append(args, "sudo", "chattr", "-i", "/", ";")
+		}
+		args = append(args, "sudo", "mkdir", "-p", mount.Target)
+		if !strings.HasPrefix(mount.Target, "/home") || !strings.HasPrefix(mount.Target, "/mnt") {
+			args = append(args, ";", "sudo", "chattr", "+i", "/", ";")
+		}
+		err = v.SSH(name, machine.SSHOptions{Args: args})
 		if err != nil {
 			return err
 		}
@@ -480,7 +510,7 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		}
 	}
 
-	waitAPIAndPrintInfo(forwardState, forwardSock, v.Rootful, v.Name)
+	v.waitAPIAndPrintInfo(forwardState, forwardSock)
 
 	return nil
 }
@@ -653,7 +683,7 @@ func (v *MachineVM) Remove(name string, opts machine.RemoveOptions) (string, fun
 	if err != nil {
 		return "", nil, err
 	}
-	if running {
+	if running && !opts.Force {
 		return "", nil, errors.Errorf("running vm %q cannot be destroyed", v.Name)
 	}
 
@@ -790,7 +820,16 @@ func (v *MachineVM) SSH(name string, opts machine.SSHOptions) error {
 // executes qemu-image info to get the virtual disk size
 // of the diskimage
 func getDiskSize(path string) (uint64, error) {
-	diskInfo := exec.Command("qemu-img", "info", "--output", "json", path)
+	// Find the qemu executable
+	cfg, err := config.Default()
+	if err != nil {
+		return 0, err
+	}
+	qemuPathDir, err := cfg.FindHelperBinary("qemu-img", true)
+	if err != nil {
+		return 0, err
+	}
+	diskInfo := exec.Command(qemuPathDir, "info", "--output", "json", path)
 	stdout, err := diskInfo.StdoutPipe()
 	if err != nil {
 		return 0, err
@@ -935,7 +974,11 @@ func (v *MachineVM) startHostNetworking() (string, apiForwardingState, error) {
 	// Add the ssh port
 	cmd = append(cmd, []string{"-ssh-port", fmt.Sprintf("%d", v.Port)}...)
 
-	cmd, forwardSock, state := v.setupAPIForwarding(cmd)
+	var forwardSock string
+	var state apiForwardingState
+	if !v.isIncompatible() {
+		cmd, forwardSock, state = v.setupAPIForwarding(cmd)
+	}
 
 	if logrus.GetLevel() == logrus.DebugLevel {
 		cmd = append(cmd, "--debug")
@@ -952,7 +995,7 @@ func (v *MachineVM) setupAPIForwarding(cmd []string) ([]string, string, apiForwa
 		return cmd, "", noForwarding
 	}
 
-	destSock := "/run/user/1000/podman/podman.sock"
+	destSock := fmt.Sprintf("/run/user/%d/podman/podman.sock", v.UID)
 	forwardUser := "core"
 
 	if v.Rootful {
@@ -1001,6 +1044,10 @@ func (v *MachineVM) setupAPIForwarding(cmd []string) ([]string, string, apiForwa
 	}
 
 	return cmd, dockerSock, dockerGlobal
+}
+
+func (v *MachineVM) isIncompatible() bool {
+	return v.UID == -1
 }
 
 func (v *MachineVM) getForwardSocketPath() (string, error) {
@@ -1062,46 +1109,66 @@ func waitAndPingAPI(sock string) {
 	}
 }
 
-func waitAPIAndPrintInfo(forwardState apiForwardingState, forwardSock string, rootFul bool, name string) {
-	if forwardState != noForwarding {
-		waitAndPingAPI(forwardSock)
-		if !rootFul {
-			fmt.Printf("\nThis machine is currently configured in rootless mode. If your containers\n")
-			fmt.Printf("require root permissions (e.g. ports < 1024), or if you run into compatibility\n")
-			fmt.Printf("issues with non-podman clients, you can switch using the following command: \n")
+func (v *MachineVM) waitAPIAndPrintInfo(forwardState apiForwardingState, forwardSock string) {
+	suffix := ""
+	if v.Name != machine.DefaultMachineName {
+		suffix = " " + v.Name
+	}
 
-			suffix := ""
-			if name != machine.DefaultMachineName {
-				suffix = " " + name
+	if v.isIncompatible() {
+		fmt.Fprintf(os.Stderr, "\n!!! ACTION REQUIRED: INCOMPATIBLE MACHINE !!!\n")
+
+		fmt.Fprintf(os.Stderr, "\nThis machine was created by an older podman release that is incompatible\n")
+		fmt.Fprintf(os.Stderr, "with this release of podman. It has been started in a limited operational\n")
+		fmt.Fprintf(os.Stderr, "mode to allow you to copy any necessary files before recreating it. This\n")
+		fmt.Fprintf(os.Stderr, "can be accomplished with the following commands:\n\n")
+		fmt.Fprintf(os.Stderr, "\t# Login and copy desired files (Optional)\n")
+		fmt.Fprintf(os.Stderr, "\t# podman machine ssh%s tar cvPf - /path/to/files > backup.tar\n\n", suffix)
+		fmt.Fprintf(os.Stderr, "\t# Recreate machine (DESTRUCTIVE!) \n")
+		fmt.Fprintf(os.Stderr, "\tpodman machine stop%s\n", suffix)
+		fmt.Fprintf(os.Stderr, "\tpodman machine rm -f%s\n", suffix)
+		fmt.Fprintf(os.Stderr, "\tpodman machine init --now%s\n\n", suffix)
+		fmt.Fprintf(os.Stderr, "\t# Copy back files (Optional)\n")
+		fmt.Fprintf(os.Stderr, "\t# cat backup.tar | podman machine ssh%s tar xvPf - \n\n", suffix)
+	}
+
+	if forwardState == noForwarding {
+		return
+	}
+
+	waitAndPingAPI(forwardSock)
+	if !v.Rootful {
+		fmt.Printf("\nThis machine is currently configured in rootless mode. If your containers\n")
+		fmt.Printf("require root permissions (e.g. ports < 1024), or if you run into compatibility\n")
+		fmt.Printf("issues with non-podman clients, you can switch using the following command: \n")
+		fmt.Printf("\n\tpodman machine set --rootful%s\n\n", suffix)
+	}
+
+	fmt.Printf("API forwarding listening on: %s\n", forwardSock)
+	if forwardState == dockerGlobal {
+		fmt.Printf("Docker API clients default to this address. You do not need to set DOCKER_HOST.\n\n")
+	} else {
+		stillString := "still "
+		switch forwardState {
+		case notInstalled:
+			fmt.Printf("\nThe system helper service is not installed; the default Docker API socket\n")
+			fmt.Printf("address can't be used by podman. ")
+			if helper := findClaimHelper(); len(helper) > 0 {
+				fmt.Printf("If you would like to install it run the\nfollowing commands:\n")
+				fmt.Printf("\n\tsudo %s install\n", helper)
+				fmt.Printf("\tpodman machine stop%s; podman machine start%s\n\n", suffix, suffix)
 			}
-			fmt.Printf("\n\tpodman machine set --rootful%s\n\n", suffix)
+		case machineLocal:
+			fmt.Printf("\nAnother process was listening on the default Docker API socket address.\n")
+		case claimUnsupported:
+			fallthrough
+		default:
+			stillString = ""
 		}
 
-		fmt.Printf("API forwarding listening on: %s\n", forwardSock)
-		if forwardState == dockerGlobal {
-			fmt.Printf("Docker API clients default to this address. You do not need to set DOCKER_HOST.\n\n")
-		} else {
-			stillString := "still "
-			switch forwardState {
-			case notInstalled:
-				fmt.Printf("\nThe system helper service is not installed; the default Docker API socket\n")
-				fmt.Printf("address can't be used by podman. ")
-				if helper := findClaimHelper(); len(helper) > 0 {
-					fmt.Printf("If you would like to install it run the\nfollowing command:\n")
-					fmt.Printf("\n\tsudo %s install\n\n", helper)
-				}
-			case machineLocal:
-				fmt.Printf("\nAnother process was listening on the default Docker API socket address.\n")
-			case claimUnsupported:
-				fallthrough
-			default:
-				stillString = ""
-			}
-
-			fmt.Printf("You can %sconnect Docker API clients by setting DOCKER_HOST using the\n", stillString)
-			fmt.Printf("following command in your terminal session:\n")
-			fmt.Printf("\n\texport DOCKER_HOST='unix://%s'\n\n", forwardSock)
-		}
+		fmt.Printf("You can %sconnect Docker API clients by setting DOCKER_HOST using the\n", stillString)
+		fmt.Printf("following command in your terminal session:\n")
+		fmt.Printf("\n\texport DOCKER_HOST='unix://%s'\n\n", forwardSock)
 	}
 }
 
