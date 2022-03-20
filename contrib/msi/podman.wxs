@@ -13,6 +13,8 @@
 
     <Package Id="*" Keywords="Installer" Description="Red Hat's Podman $(var.VERSION) Installer" Comments="Apache 2.0 License" Manufacturer="Red Hat Inc." InstallScope="perMachine" InstallerVersion="200" Compressed="yes"/>
     <Media Id="1" Cabinet="Podman.cab" EmbedCab="yes"/>
+    <!-- Switch to AllowDowngrades="yes" when msitools is released with commit dde7dd2f -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed. Uninstall first to downgrade."/>
     <Property Id="DiskPrompt" Value="Red Hat's Podman $(var.VERSION) Installation"/>
 
     <Directory Id="TARGETDIR" Name="SourceDir">
