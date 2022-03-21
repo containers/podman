@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"os"
 	"syscall"
 	"time"
 
@@ -20,12 +19,11 @@ var _ = Describe("Podman attach", func() {
 
 	BeforeEach(func() {
 		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
+		Expect(err).To(BeNil())
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
+		err = podmanTest.SeedImages()
+		Expect(err).To(BeNil())
 	})
 
 	AfterEach(func() {

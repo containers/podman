@@ -9,7 +9,7 @@ import (
 
 func benchmarkParsePortMapping(b *testing.B, ports []types.PortMapping) {
 	for n := 0; n < b.N; n++ {
-		ParsePortMapping(ports, nil)
+		_, _ = ParsePortMapping(ports, nil)
 	}
 }
 

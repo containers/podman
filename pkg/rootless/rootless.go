@@ -1,6 +1,8 @@
 package rootless
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"sort"
 	"sync"
@@ -8,7 +10,6 @@ import (
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 )
 
 // TryJoinPauseProcess attempts to join the namespaces of the pause PID via
@@ -16,7 +17,7 @@ import (
 // file.
 func TryJoinPauseProcess(pausePidPath string) (bool, int, error) {
 	if _, err := os.Stat(pausePidPath); err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			return false, -1, nil
 		}
 		return false, -1, err
@@ -34,7 +35,7 @@ func TryJoinPauseProcess(pausePidPath string) (bool, int, error) {
 		if os.IsNotExist(err) {
 			return false, -1, nil
 		}
-		return false, -1, errors.Wrapf(err, "error acquiring lock on %s", pausePidPath)
+		return false, -1, fmt.Errorf("error acquiring lock on %s: %w", pausePidPath, err)
 	}
 
 	pidFileLock.Lock()

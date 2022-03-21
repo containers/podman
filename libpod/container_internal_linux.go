@@ -2740,7 +2740,6 @@ func (c *Container) generateUserPasswdEntry(addedUID int) (string, int, int, err
 	// If a non numeric User, then don't generate passwd
 	uid, err := strconv.ParseUint(userspec, 10, 32)
 	if err != nil {
-		// FIXME: this error should probably be returned
 		return "", 0, 0, nil // nolint: nilerr
 	}
 

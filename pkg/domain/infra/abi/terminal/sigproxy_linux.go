@@ -20,7 +20,7 @@ const signalBufferSize = 2048
 func ProxySignals(ctr *libpod.Container) {
 	// Stop catching the shutdown signals (SIGINT, SIGTERM) - they're going
 	// to the container now.
-	shutdown.Stop()
+	shutdown.Stop() // nolint: errcheck
 
 	sigBuffer := make(chan os.Signal, signalBufferSize)
 	signal.CatchAll(sigBuffer)

@@ -253,9 +253,9 @@ func serve(listener net.Listener, pm rkport.Manager) {
 		ctx := context.TODO()
 		err = handler(ctx, conn, pm)
 		if err != nil {
-			conn.Write([]byte(err.Error()))
+			_, _ = conn.Write([]byte(err.Error()))
 		} else {
-			conn.Write([]byte("OK"))
+			_, _ = conn.Write([]byte("OK"))
 		}
 		conn.Close()
 	}

@@ -809,7 +809,8 @@ func (p *PodmanTestIntegration) RestoreArtifactToCache(image string) error {
 
 func populateCache(podman *PodmanTestIntegration) {
 	for _, image := range CACHE_IMAGES {
-		podman.RestoreArtifactToCache(image)
+		err := podman.RestoreArtifactToCache(image)
+		Expect(err).To(BeNil())
 	}
 	// logformatter uses this to recognize the first test
 	fmt.Printf("-----------------------------\n")

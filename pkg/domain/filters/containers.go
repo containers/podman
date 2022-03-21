@@ -213,7 +213,7 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 		for _, val := range filterValues {
 			net, err := r.Network().NetworkInspect(val)
 			if err != nil {
-				if errors.Cause(err) == define.ErrNoSuchNetwork {
+				if errors.Is(err, define.ErrNoSuchNetwork) {
 					continue
 				}
 				return nil, err

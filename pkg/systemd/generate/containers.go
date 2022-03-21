@@ -362,7 +362,9 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		fs.StringArrayP("env", "e", nil, "")
 		fs.String("sdnotify", "", "")
 		fs.String("restart", "", "")
-		fs.Parse(remainingCmd)
+		if err := fs.Parse(remainingCmd); err != nil {
+			return "", fmt.Errorf("parsing remaining command-line arguments: %w", err)
+		}
 
 		remainingCmd = filterCommonContainerFlags(remainingCmd, fs.NArg())
 		// If the container is in a pod, make sure that the

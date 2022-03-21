@@ -848,13 +848,12 @@ func execPodman(execUser *user.User, command []string) error {
 	if err != nil {
 		return err
 	}
-	defer func() error {
-		err := cmdLogin.Process.Kill()
-		if err != nil {
-			return err
-		}
-		return cmdLogin.Wait()
+
+	defer func() {
+		_ = cmdLogin.Process.Kill()
+		_ = cmdLogin.Wait()
 	}()
+
 	cmd := exec.Command(command[0], command[1:]...)
 	cmd.Env = []string{"PATH=" + os.Getenv("PATH"), "TERM=" + os.Getenv("TERM")}
 	cmd.Stderr = os.Stderr

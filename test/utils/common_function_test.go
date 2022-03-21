@@ -51,7 +51,8 @@ var _ = Describe("Common functions test", func() {
 			txt := fmt.Sprintf("ID=%s\nVERSION_ID=%s", id, ver)
 			if !empty {
 				f, _ := os.Create(path)
-				f.WriteString(txt)
+				_, err := f.WriteString(txt)
+				Expect(err).To(BeNil(), "Failed to write data.")
 				f.Close()
 			}
 
@@ -136,7 +137,8 @@ var _ = Describe("Common functions test", func() {
 			}
 			if createFile {
 				f, _ := os.Create(path)
-				f.WriteString(txt)
+				_, err := f.WriteString(txt)
+				Expect(err).To(BeNil(), "Failed to write data.")
 				f.Close()
 			}
 			ProcessOneCgroupPath = path

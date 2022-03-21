@@ -278,7 +278,9 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		fmt.Println("An ignition path was provided.  No SSH connection was added to Podman")
 	}
 	// Write the JSON file
-	v.writeConfig()
+	if err := v.writeConfig(); err != nil {
+		return false, fmt.Errorf("writing JSON file: %w", err)
+	}
 
 	// User has provided ignition file so keygen
 	// will be skipped.
@@ -1099,10 +1101,13 @@ func waitAndPingAPI(sock string) {
 		Transport: &http.Transport{
 			DialContext: func(context.Context, string, string) (net.Conn, error) {
 				con, err := net.DialTimeout("unix", sock, apiUpTimeout)
-				if err == nil {
-					con.SetDeadline(time.Now().Add(apiUpTimeout))
+				if err != nil {
+					return nil, err
 				}
-				return con, err
+				if err := con.SetDeadline(time.Now().Add(apiUpTimeout)); err != nil {
+					return nil, err
+				}
+				return con, nil
 			},
 		},
 	}

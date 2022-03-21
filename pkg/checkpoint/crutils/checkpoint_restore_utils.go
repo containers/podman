@@ -102,7 +102,7 @@ func CRApplyRootFsDiffTar(baseDirectory, containerRootDirectory string) error {
 	// Only do this if a rootfs-diff.tar actually exists
 	rootfsDiffFile, err := os.Open(rootfsDiffPath)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			return nil
 		}
 		return errors.Wrap(err, "failed to open root file-system diff file")

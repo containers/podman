@@ -215,7 +215,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	// FIXME This is very hard to support properly with a good ux
 	if len(options.StaticIPs) > *ipIndex {
 		if !podOpt.Net.Network.IsBridge() {
-			errors.Wrap(define.ErrInvalidArg, "static ip addresses can only be set when the network mode is bridge")
+			return nil, errors.Wrap(define.ErrInvalidArg, "static ip addresses can only be set when the network mode is bridge")
 		}
 		if len(podOpt.Net.Networks) != 1 {
 			return nil, errors.Wrap(define.ErrInvalidArg, "cannot set static ip addresses for more than network, use netname:ip=<ip> syntax to specify ips for more than network")
@@ -230,7 +230,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	}
 	if len(options.StaticMACs) > *ipIndex {
 		if !podOpt.Net.Network.IsBridge() {
-			errors.Wrap(define.ErrInvalidArg, "static mac address can only be set when the network mode is bridge")
+			return nil, errors.Wrap(define.ErrInvalidArg, "static mac address can only be set when the network mode is bridge")
 		}
 		if len(podOpt.Net.Networks) != 1 {
 			return nil, errors.Wrap(define.ErrInvalidArg, "cannot set static mac address for more than network, use netname:mac=<mac> syntax to specify mac for more than network")

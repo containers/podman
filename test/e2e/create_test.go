@@ -24,12 +24,11 @@ var _ = Describe("Podman create", func() {
 
 	BeforeEach(func() {
 		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
+		Expect(err).To(BeNil())
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
+		err = podmanTest.SeedImages()
+		Expect(err).To(BeNil())
 	})
 
 	AfterEach(func() {
