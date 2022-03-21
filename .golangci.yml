@@ -58,7 +58,6 @@ linters:
     - cyclop
     - errname
     - forcetypeassert
-    - ineffassign
     - ireturn
     - tagliatelle
     - varnamelen
