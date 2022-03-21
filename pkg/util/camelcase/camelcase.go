@@ -51,10 +51,10 @@ func Split(src string) (entries []string) {
 	}
 	entries = []string{}
 	var runes [][]rune
-	lastClass := 0
-	class := 0
+	var lastClass int
 	// split into fields based on class of unicode character
 	for _, r := range src {
+		var class int
 		switch {
 		case unicode.IsLower(r):
 			class = 1

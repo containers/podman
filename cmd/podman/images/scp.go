@@ -105,7 +105,7 @@ func scp(cmd *cobra.Command, args []string) (finalErr error) {
 	}
 	locations := []*entities.ImageScpOptions{}
 	cliConnections := []string{}
-	flipConnections := false
+	var flipConnections bool
 	for _, arg := range args {
 		loc, connect, err := parseImageSCPArg(arg)
 		if err != nil {
@@ -233,7 +233,7 @@ func loadToRemote(localFile string, tag string, url *urlP.URL, iden string) (str
 		errOut := strconv.Itoa(int(n)) + " Bytes copied before error"
 		return " ", errors.Wrapf(err, errOut)
 	}
-	run := ""
+	var run string
 	if tag != "" {
 		return "", errors.Wrapf(define.ErrInvalidArg, "Renaming of an image is currently not supported")
 	}

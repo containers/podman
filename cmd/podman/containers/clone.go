@@ -58,9 +58,8 @@ func clone(cmd *cobra.Command, args []string) error {
 	case 3:
 		ctrClone.CreateOpts.Name = args[1]
 		ctrClone.Image = args[2]
-		rawImageName := ""
 		if !cliVals.RootFS {
-			rawImageName = args[0]
+			rawImageName := args[0]
 			name, err := PullImage(ctrClone.Image, ctrClone.CreateOpts)
 			if err != nil {
 				return err

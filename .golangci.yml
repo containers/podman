@@ -65,7 +65,6 @@ linters:
     - errchkjson
     - maintidx
     - nilerr
-    - wastedassign
     - nilnil
 linters-settings:
   errcheck:
