@@ -24,6 +24,10 @@ Remove all images in the local storage.
 
 This option will cause podman to remove all containers that are using the image before removing the image from the system.
 
+#### **--ignore**, **-i**
+
+If a specified image does not exist in the local storage, ignore it and do not throw an error.
+
 
 Remove an image by its short ID
 ```
@@ -43,6 +47,16 @@ Remove all images and containers.
 ```
 $ podman rmi -a -f
 ```
+
+Remove an absent image with and without the `--ignore` flag.
+```
+$ podman rmi --ignore nothing
+$ podman rmi nothing
+Error: nothing: image not known
+
+```
+
+
 ## Exit Status
   **0**   All specified images removed
 

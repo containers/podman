@@ -303,4 +303,13 @@ Deleted: $pauseID"
     run_podman image exists $IMAGE
 }
 
+@test "podman rmi --ignore" {
+    random_image_name=$(random_string)
+    random_image_name=${random_image_name,,} # name must be lowercase
+    run_podman 1 rmi $random_image_name
+    is "$output" "Error: $random_image_name: image not known.*"
+    run_podman rmi --ignore $random_image_name
+    is "$output" ""
+}
+
 # vim: filetype=sh

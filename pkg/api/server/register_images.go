@@ -944,6 +944,10 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     name: force
 	//     description: Force image removal (including containers using the images).
 	//     type: boolean
+	//   - in: query
+	//     name: ignore
+	//     description: Ignore if a specified image does not exist and do not throw an error.
+	//     type: boolean
 	// produces:
 	// - application/json
 	// responses:
