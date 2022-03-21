@@ -264,7 +264,7 @@ func saveToRemote(image, localFile string, tag string, uri *urlP.URL, iden strin
 	run := podman + " image save " + image + " --format=oci-archive --output=" + remoteFile // run ssh image load of the file copied via scp. Files are reverse in this case...
 	_, err = connection.ExecRemoteCommand(dial, run)
 	if err != nil {
-		return nil
+		return err
 	}
 	n, err := scpD.CopyFrom(dial, remoteFile, localFile)
 	connection.ExecRemoteCommand(dial, "rm "+remoteFile)

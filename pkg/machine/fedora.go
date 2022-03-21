@@ -59,7 +59,10 @@ func (f FedoraDownload) Get() *Download {
 func (f FedoraDownload) HasUsableCache() (bool, error) {
 	info, err := os.Stat(f.LocalPath)
 	if err != nil {
-		return false, nil
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
 	}
 	return info.Size() == f.Size, nil
 }

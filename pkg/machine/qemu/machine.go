@@ -626,7 +626,8 @@ func (v *MachineVM) Stop(name string, _ machine.StopOptions) error {
 	}
 
 	if err := qmpMonitor.Disconnect(); err != nil {
-		return nil
+		// FIXME: this error should probably be returned
+		return nil // nolint: nilerr
 	}
 
 	disconnected = true
@@ -755,7 +756,8 @@ func (v *MachineVM) isRunning() (bool, error) {
 	// Check if we can dial it
 	monitor, err := qmp.NewSocketMonitor(v.QMPMonitor.Network, v.QMPMonitor.Address, v.QMPMonitor.Timeout)
 	if err != nil {
-		return false, nil
+		// FIXME: this error should probably be returned
+		return false, nil // nolint: nilerr
 	}
 	if err := monitor.Connect(); err != nil {
 		return false, err

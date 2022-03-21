@@ -184,7 +184,7 @@ func (matcher *ValidJSONMatcher) Match(actual interface{}) (success bool, err er
 
 	var i interface{}
 	if err := json.Unmarshal([]byte(s), &i); err != nil {
-		return false, nil
+		return false, err
 	}
 	return true, nil
 }

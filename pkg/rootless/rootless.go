@@ -16,12 +16,15 @@ import (
 // file.
 func TryJoinPauseProcess(pausePidPath string) (bool, int, error) {
 	if _, err := os.Stat(pausePidPath); err != nil {
-		return false, -1, nil
+		if os.IsNotExist(err) {
+			return false, -1, nil
+		}
+		return false, -1, err
 	}
 
 	became, ret, err := TryJoinFromFilePaths("", false, []string{pausePidPath})
 	if err == nil {
-		return became, ret, err
+		return became, ret, nil
 	}
 
 	// It could not join the pause process, let's lock the file before trying to delete it.
@@ -46,7 +49,7 @@ func TryJoinPauseProcess(pausePidPath string) (bool, int, error) {
 	if err != nil {
 		// It is still failing.  We can safely remove it.
 		os.Remove(pausePidPath)
-		return false, -1, nil
+		return false, -1, nil // nolint: nilerr
 	}
 	return became, ret, err
 }

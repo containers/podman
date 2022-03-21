@@ -62,7 +62,6 @@ linters:
     - ireturn
     - varnamelen
     - maintidx
-    - nilerr
     - nilnil
 linters-settings:
   errcheck:

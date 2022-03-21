@@ -840,7 +840,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	if eventsErr != nil || lastEvent == nil {
 		logrus.Errorf("Cannot get exit code: %v", err)
 		report.ExitCode = define.ExecErrorCodeNotFound
-		return &report, nil // compat with local client
+		return &report, nil // nolint: nilerr
 	}
 
 	report.ExitCode = lastEvent.ContainerExitCode

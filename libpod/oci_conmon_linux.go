@@ -750,7 +750,7 @@ func openControlFile(ctr *Container, parentDir string) (*os.File, error) {
 	for i := 0; i < 600; i++ {
 		controlFile, err := os.OpenFile(controlPath, unix.O_WRONLY|unix.O_NONBLOCK, 0)
 		if err == nil {
-			return controlFile, err
+			return controlFile, nil
 		}
 		if !isRetryable(err) {
 			return nil, errors.Wrapf(err, "could not open ctl file for terminal resize for container %s", ctr.ID())
@@ -1015,7 +1015,8 @@ func (r *ConmonOCIRuntime) getLogTag(ctr *Container) (string, error) {
 	}
 	data, err := ctr.inspectLocked(false)
 	if err != nil {
-		return "", nil
+		// FIXME: this error should probably be returned
+		return "", nil // nolint: nilerr
 	}
 	tmpl, err := template.New("container").Parse(logTag)
 	if err != nil {
