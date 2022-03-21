@@ -26,7 +26,7 @@ func DefaultEnvVariables() map[string]string {
 // Slice transforms the specified map of environment variables into a
 // slice. If a value is non-empty, the key and value are joined with '='.
 func Slice(m map[string]string) []string {
-	env := make([]string, len(m))
+	env := make([]string, 0, len(m))
 	for k, v := range m {
 		var s string
 		if len(v) > 0 {

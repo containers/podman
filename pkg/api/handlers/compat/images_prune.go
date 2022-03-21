@@ -43,7 +43,7 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	idr := make([]types.ImageDeleteResponseItem, len(imagePruneReports))
+	idr := make([]types.ImageDeleteResponseItem, 0, len(imagePruneReports))
 	var reclaimedSpace uint64
 	var errorMsg bytes.Buffer
 	for _, p := range imagePruneReports {

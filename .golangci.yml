@@ -39,7 +39,6 @@ linters:
     - gofumpt
     - gci
     - godot
-    - makezero
     - dupl
     - funlen
     - gochecknoglobals

@@ -1149,7 +1149,7 @@ func (c *Container) inspectJoinedNetworkNS(networkns string) (q types.StatusBloc
 // result
 func resultToBasicNetworkConfig(result types.StatusBlock) (define.InspectBasicNetworkConfig, error) {
 	config := define.InspectBasicNetworkConfig{}
-	interfaceNames := make([]string, len(result.Interfaces))
+	interfaceNames := make([]string, 0, len(result.Interfaces))
 	for interfaceName := range result.Interfaces {
 		interfaceNames = append(interfaceNames, interfaceName)
 	}
