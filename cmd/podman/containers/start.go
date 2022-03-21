@@ -122,7 +122,7 @@ func start(cmd *cobra.Command, args []string) error {
 		startOptions.Stdout = os.Stdout
 	}
 
-	var containers []string = args
+	containers := args
 	if len(filters) > 0 {
 		for _, f := range filters {
 			split := strings.SplitN(f, "=", 2)

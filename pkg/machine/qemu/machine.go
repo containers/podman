@@ -370,7 +370,7 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		conn           net.Conn
 		err            error
 		qemuSocketConn net.Conn
-		wait           time.Duration = time.Millisecond * 500
+		wait           = time.Millisecond * 500
 	)
 
 	if v.isIncompatible() {
