@@ -13,7 +13,7 @@ linters:
   enable-all: true
   disable:
     # All these break for one reason or another
-    - nolintlint
+    - nolintlint # some linter must be disabled (see `nolint` in the code)
     - tagliatelle # too many JSON keys cannot be changed due to compat
     - gocognit
     - testpackage
