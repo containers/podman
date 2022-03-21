@@ -95,7 +95,8 @@ var _ = Describe("Podman inspect", func() {
 	})
 
 	It("podman inspect container with size", func() {
-		_, ec, _ := podmanTest.RunLsContainer("sizetest")
+		session, ec, _ := podmanTest.RunLsContainer("sizetest")
+		session.WaitWithDefaultTimeout()
 		Expect(ec).To(Equal(0))
 
 		result := podmanTest.Podman([]string{"inspect", "--size", "sizetest"})
@@ -108,6 +109,7 @@ var _ = Describe("Podman inspect", func() {
 
 	It("podman inspect container and image", func() {
 		ls, ec, _ := podmanTest.RunLsContainer("")
+		ls.WaitWithDefaultTimeout()
 		Expect(ec).To(Equal(0))
 		cid := ls.OutputToString()
 
@@ -119,6 +121,7 @@ var _ = Describe("Podman inspect", func() {
 
 	It("podman inspect container and filter for Image{ID}", func() {
 		ls, ec, _ := podmanTest.RunLsContainer("")
+		ls.WaitWithDefaultTimeout()
 		Expect(ec).To(Equal(0))
 		cid := ls.OutputToString()
 
@@ -135,6 +138,7 @@ var _ = Describe("Podman inspect", func() {
 
 	It("podman inspect container and filter for CreateCommand", func() {
 		ls, ec, _ := podmanTest.RunLsContainer("")
+		ls.WaitWithDefaultTimeout()
 		Expect(ec).To(Equal(0))
 		cid := ls.OutputToString()
 
