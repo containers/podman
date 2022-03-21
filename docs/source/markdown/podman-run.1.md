@@ -787,6 +787,12 @@ Override the OS, defaults to hosts, of the image to be pulled. For example, `win
 Allow Podman to add entries to /etc/passwd and /etc/group when used in conjunction with the --user option.
 This is used to override the Podman provided user setup in favor of entrypoint configurations such as libnss-extrausers.
 
+#### **--passwd-entry**=*ENTRY*
+
+Customize the entry that is written to the `/etc/passwd` file within the container when `--passwd` is used.
+
+The variables $USERNAME, $UID, $GID, $NAME, $HOME are automatically replaced with their value at runtime.
+
 #### **--personality**=*persona*
 
 Personality sets the execution domain via Linux personality(2).

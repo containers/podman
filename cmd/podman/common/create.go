@@ -630,6 +630,10 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(chrootDirsFlagName, completion.AutocompleteDefault)
 
+		passwdEntryName := "passwd-entry"
+		createFlags.StringVar(&cf.PasswdEntry, passwdEntryName, "", "Entry to write to /etc/passwd")
+		_ = cmd.RegisterFlagCompletionFunc(passwdEntryName, completion.AutocompleteNone)
+
 		if registry.IsRemote() {
 			_ = createFlags.MarkHidden("env-host")
 			_ = createFlags.MarkHidden("http-proxy")

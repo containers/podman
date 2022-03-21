@@ -832,6 +832,11 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	if s.Passwd == nil {
 		s.Passwd = &t
 	}
+
+	if len(s.PasswdEntry) == 0 || len(c.PasswdEntry) != 0 {
+		s.PasswdEntry = c.PasswdEntry
+	}
+
 	return nil
 }
 

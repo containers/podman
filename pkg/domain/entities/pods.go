@@ -272,6 +272,8 @@ type ContainerCreateOptions struct {
 	Net *NetOptions `json:"net,omitempty"`
 
 	CgroupConf []string
+
+	PasswdEntry string
 }
 
 func NewInfraContainerCreateOptions() ContainerCreateOptions {

@@ -755,6 +755,12 @@ Tune the host's OOM preferences for containers (accepts -1000 to 1000)
 #### **--os**=*OS*
 Override the OS, defaults to hosts, of the image to be pulled. For example, `windows`.
 
+#### **--passwd-entry**=*ENTRY*
+
+Customize the entry that is written to the `/etc/passwd` file within the container when `--passwd` is used.
+
+The variables $USERNAME, $UID, $GID, $NAME, $HOME are automatically replaced with their value at runtime.
+
 #### **--personality**=*persona*
 
 Personality sets the execution domain via Linux personality(2).

@@ -286,6 +286,9 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	if s.Volatile {
 		options = append(options, libpod.WithVolatile())
 	}
+	if s.PasswdEntry != "" {
+		options = append(options, libpod.WithPasswdEntry(s.PasswdEntry))
+	}
 
 	useSystemd := false
 	switch s.Systemd {

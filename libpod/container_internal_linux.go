@@ -2724,6 +2724,9 @@ func (c *Container) userPasswdEntry(u *user.User) (string, error) {
 	if !hasHomeSet {
 		c.config.Spec.Process.Env = append(c.config.Spec.Process.Env, fmt.Sprintf("HOME=%s", homeDir))
 	}
+	if c.config.PasswdEntry != "" {
+		return c.passwdEntry(u.Username, u.Uid, u.Gid, u.Name, homeDir), nil
+	}
 
 	return fmt.Sprintf("%s:*:%s:%s:%s:%s:/bin/sh\n", u.Username, u.Uid, u.Gid, u.Name, homeDir), nil
 }
@@ -2775,7 +2778,23 @@ func (c *Container) generateUserPasswdEntry(addedUID int) (string, int, int, err
 			gid = group.Gid
 		}
 	}
+
+	if c.config.PasswdEntry != "" {
+		entry := c.passwdEntry(fmt.Sprintf("%d", uid), fmt.Sprintf("%d", uid), fmt.Sprintf("%d", gid), "container user", c.WorkingDir())
+		return entry, int(uid), gid, nil
+	}
+
 	return fmt.Sprintf("%d:*:%d:%d:container user:%s:/bin/sh\n", uid, uid, gid, c.WorkingDir()), int(uid), gid, nil
+}
+
+func (c *Container) passwdEntry(username string, uid, gid, name, homeDir string) string {
+	s := c.config.PasswdEntry
+	s = strings.Replace(s, "$USERNAME", username, -1)
+	s = strings.Replace(s, "$UID", uid, -1)
+	s = strings.Replace(s, "$GID", gid, -1)
+	s = strings.Replace(s, "$NAME", name, -1)
+	s = strings.Replace(s, "$HOME", homeDir, -1)
+	return s + "\n"
 }
 
 // generatePasswdAndGroup generates container-specific passwd and group files
