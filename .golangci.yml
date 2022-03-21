@@ -67,7 +67,6 @@ linters:
     - nilerr
     - wastedassign
     - nilnil
-    - interfacer
 linters-settings:
   errcheck:
     check-blank: false
