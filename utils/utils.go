@@ -21,7 +21,7 @@ import (
 )
 
 // ExecCmd executes a command with args and returns its output as a string along
-// with an error, if any
+// with an error, if any.
 func ExecCmd(name string, args ...string) (string, error) {
 	cmd := exec.Command(name, args...)
 	var stdout bytes.Buffer

@@ -14,7 +14,7 @@ const (
 	etcgroup  = "/etc/group"
 )
 
-// Overrides allows you to override defaults in GetUserGroupInfo
+// Overrides allows you to override defaults in GetUserGroupInfo.
 type Overrides struct {
 	DefaultUser            *user.ExecUser
 	ContainerEtcPasswdPath string

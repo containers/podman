@@ -34,7 +34,7 @@ import (
 
 var (
 	qemuProvider = &Provider{}
-	// vmtype refers to qemu (vs libvirt, krun, etc)
+	// vmtype refers to qemu (vs libvirt, krun, etc).
 	vmtype = "qemu"
 )
 

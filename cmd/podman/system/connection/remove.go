@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	// Skip creating engines since this command will obtain connection information to said engines
+	// Skip creating engines since this command will obtain connection information to said engines.
 	rmCmd = &cobra.Command{
 		Use:               "remove [options] NAME",
 		Aliases:           []string{"rm"},

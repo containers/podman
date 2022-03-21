@@ -61,6 +61,6 @@ type Monitor struct {
 
 var (
 	// defaultQMPTimeout is the timeout duration for the
-	// qmp monitor interactions
+	// qmp monitor interactions.
 	defaultQMPTimeout time.Duration = 2 * time.Second
 )

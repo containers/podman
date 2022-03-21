@@ -34,7 +34,7 @@ func (ic *ContainerEngine) Events(ctx context.Context, opts entities.EventsOptio
 }
 
 // GetLastContainerEvent takes a container name or ID and an event status and returns
-// the last occurrence of the container event
+// the last occurrence of the container event.
 func (ic *ContainerEngine) GetLastContainerEvent(ctx context.Context, nameOrID string, containerEvent events.Status) (*events.Event, error) {
 	// check to make sure the event.Status is valid
 	if _, err := events.StringToStatus(containerEvent.String()); err != nil {

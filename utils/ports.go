@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Find a random, open port on the host
+// Find a random, open port on the host.
 func GetRandomPort() (int, error) {
 	l, err := net.Listen("tcp", ":0")
 	if err != nil {
