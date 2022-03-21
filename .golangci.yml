@@ -51,6 +51,23 @@ linters:
     - gocritic
     - gosec
     - maligned
+    - gomoddirectives
+    - revive
+    - containedctx
+    - contextcheck
+    - cyclop
+    - errname
+    - forcetypeassert
+    - ineffassign
+    - ireturn
+    - tagliatelle
+    - varnamelen
+    - errchkjson
+    - maintidx
+    - nilerr
+    - wastedassign
+    - nilnil
+    - interfacer
 linters-settings:
   errcheck:
     check-blank: false
