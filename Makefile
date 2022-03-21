@@ -336,7 +336,10 @@ $(SRCBINDIR)/podman$(BINSFX): $(SRCBINDIR) .gopathok $(SOURCES) go.mod go.sum
 		-o $@ ./cmd/podman
 
 $(SRCBINDIR)/podman-remote-static: $(SRCBINDIR) .gopathok $(SOURCES) go.mod go.sum
-	$(GOCMD) build \
+	CGO_ENABLED=0 \
+	GOOS=$(GOOS) \
+	GOARCH=$(GOARCH) \
+	$(GO) build \
 		$(BUILDFLAGS) \
 		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN_STATIC)' \
 		-tags "${REMOTETAGS}" \
