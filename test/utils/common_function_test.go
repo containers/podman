@@ -102,9 +102,10 @@ var _ = Describe("Common functions test", func() {
 			Item2: []string{"test"},
 		}
 
-		testByte, _ := json.Marshal(testData)
-		err := WriteJSONFile(testByte, "/tmp/testJSON")
+		testByte, err := json.Marshal(testData)
+		Expect(err).To(BeNil(), "Failed to marshal data.")
 
+		err = WriteJSONFile(testByte, "/tmp/testJSON")
 		Expect(err).To(BeNil(), "Failed to write JSON to file.")
 
 		read, err := os.Open("/tmp/testJSON")

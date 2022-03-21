@@ -62,7 +62,6 @@ linters:
     - ireturn
     - tagliatelle
     - varnamelen
-    - errchkjson
     - maintidx
     - nilerr
     - nilnil
