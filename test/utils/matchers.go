@@ -13,7 +13,7 @@ import (
 	"github.com/onsi/gomega/types"
 )
 
-// HaveActiveService verifies the given service is the active service
+// HaveActiveService verifies the given service is the active service.
 func HaveActiveService(name interface{}) OmegaMatcher {
 	return WithTransform(
 		func(cfg *config.Config) string {
@@ -86,7 +86,7 @@ type URLMatcher struct {
 	matchers.EqualMatcher
 }
 
-// VerifyURL matches when actual is a valid URL and matches expected
+// VerifyURL matches when actual is a valid URL and matches expected.
 func VerifyURL(uri interface{}) OmegaMatcher {
 	return &URLMatcher{matchers.EqualMatcher{Expected: uri}}
 }
@@ -129,7 +129,7 @@ func ExitWithError(optionalExitCode ...int) *ExitMatcher {
 	return &ExitMatcher{Expected: exitCode}
 }
 
-// Match follows gexec.Matcher interface
+// Match follows gexec.Matcher interface.
 func (matcher *ExitMatcher) Match(actual interface{}) (success bool, err error) {
 	exiter, ok := actual.(gexec.Exiter)
 	if !ok {
@@ -184,7 +184,7 @@ func (matcher *ValidJSONMatcher) Match(actual interface{}) (success bool, err er
 
 	var i interface{}
 	if err := json.Unmarshal([]byte(s), &i); err != nil {
-		return false, nil
+		return false, err
 	}
 	return true, nil
 }

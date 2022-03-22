@@ -37,12 +37,12 @@ var _ = Describe("Podman checkpoint", func() {
 	BeforeEach(func() {
 		SkipIfRootless("checkpoint not supported in rootless mode")
 		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
+		Expect(err).To(BeNil())
+
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
+		err = podmanTest.SeedImages()
+		Expect(err).To(BeNil())
 		// Check if the runtime implements checkpointing. Currently only
 		// runc's checkpoint/restore implementation is supported.
 		cmd := exec.Command(podmanTest.OCIRuntime, "checkpoint", "--help")

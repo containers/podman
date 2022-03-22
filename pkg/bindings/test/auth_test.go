@@ -40,7 +40,8 @@ var _ = Describe("Podman images", func() {
 	AfterEach(func() {
 		s.Kill()
 		bt.cleanup()
-		registry.Stop()
+		err := registry.Stop()
+		Expect(err).To(BeNil())
 	})
 
 	// Test using credentials.

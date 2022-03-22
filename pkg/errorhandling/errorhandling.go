@@ -28,7 +28,7 @@ func JoinErrors(errs []error) error {
 
 	finalErr := multiE.ErrorOrNil()
 	if finalErr == nil {
-		return finalErr
+		return nil
 	}
 	return errors.New(strings.TrimSpace(finalErr.Error()))
 }

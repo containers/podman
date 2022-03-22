@@ -131,8 +131,10 @@ func GeneratePodFilterFunc(filter string, filterValues []string, r *libpod.Runti
 		for _, val := range filterValues {
 			net, err := r.Network().NetworkInspect(val)
 			if err != nil {
-				// ignore not found errors
-				break
+				if errors.Is(err, define.ErrNoSuchNetwork) {
+					continue
+				}
+				return nil, err
 			}
 			inputNetNames = append(inputNetNames, net.Name)
 		}

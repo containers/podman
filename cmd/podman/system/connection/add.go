@@ -244,7 +244,7 @@ func getUDS(cmd *cobra.Command, uri *url.URL, iden string) (string, error) {
 
 // ValidateAndConfigure will take a ssh url and an identity key (rsa and the like) and ensure the information given is valid
 // iden iden can be blank to mean no identity key
-// once the function validates the information it creates and returns an ssh.ClientConfig
+// once the function validates the information it creates and returns an ssh.ClientConfig.
 func ValidateAndConfigure(uri *url.URL, iden string) (*ssh.ClientConfig, error) {
 	var signers []ssh.Signer
 	passwd, passwdSet := uri.User.Password()

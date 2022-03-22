@@ -60,7 +60,7 @@ func networkCreateFlags(cmd *cobra.Command) {
 	macvlanFlagName := "macvlan"
 	flags.StringVar(&networkCreateOptions.MacVLAN, macvlanFlagName, "", "create a Macvlan connection based on this device")
 	// This option is deprecated
-	flags.MarkHidden(macvlanFlagName)
+	_ = flags.MarkHidden(macvlanFlagName)
 
 	labelFlagName := "label"
 	flags.StringArrayVar(&labels, labelFlagName, nil, "set metadata on a network")

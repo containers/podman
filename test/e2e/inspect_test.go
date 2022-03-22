@@ -86,6 +86,7 @@ var _ = Describe("Podman inspect", func() {
 
 	It("podman inspect container with GO format for ConmonPidFile", func() {
 		session, ec, _ := podmanTest.RunLsContainer("test1")
+		session.WaitWithDefaultTimeout()
 		Expect(ec).To(Equal(0))
 
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.ConmonPidFile}}", "test1"})
@@ -94,7 +95,8 @@ var _ = Describe("Podman inspect", func() {
 	})
 
 	It("podman inspect container with size", func() {
-		_, ec, _ := podmanTest.RunLsContainer("sizetest")
+		session, ec, _ := podmanTest.RunLsContainer("sizetest")
+		session.WaitWithDefaultTimeout()
 		Expect(ec).To(Equal(0))
 
 		result := podmanTest.Podman([]string{"inspect", "--size", "sizetest"})
@@ -107,6 +109,7 @@ var _ = Describe("Podman inspect", func() {
 
 	It("podman inspect container and image", func() {
 		ls, ec, _ := podmanTest.RunLsContainer("")
+		ls.WaitWithDefaultTimeout()
 		Expect(ec).To(Equal(0))
 		cid := ls.OutputToString()
 
@@ -118,6 +121,7 @@ var _ = Describe("Podman inspect", func() {
 
 	It("podman inspect container and filter for Image{ID}", func() {
 		ls, ec, _ := podmanTest.RunLsContainer("")
+		ls.WaitWithDefaultTimeout()
 		Expect(ec).To(Equal(0))
 		cid := ls.OutputToString()
 
@@ -134,6 +138,7 @@ var _ = Describe("Podman inspect", func() {
 
 	It("podman inspect container and filter for CreateCommand", func() {
 		ls, ec, _ := podmanTest.RunLsContainer("")
+		ls.WaitWithDefaultTimeout()
 		Expect(ec).To(Equal(0))
 		cid := ls.OutputToString()
 
@@ -529,6 +534,7 @@ var _ = Describe("Podman inspect", func() {
 	It("podman inspect container with GO format for PidFile", func() {
 		SkipIfRemote("pidfile not handled by remote")
 		session, ec, _ := podmanTest.RunLsContainer("test1")
+		session.WaitWithDefaultTimeout()
 		Expect(ec).To(Equal(0))
 
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.PidFile}}", "test1"})

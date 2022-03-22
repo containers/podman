@@ -921,7 +921,11 @@ func (c *Container) Stat(ctx context.Context, containerPath string) (*define.Fil
 		if err != nil {
 			return nil, err
 		}
-		defer c.unmount(false)
+		defer func() {
+			if err := c.unmount(false); err != nil {
+				logrus.Errorf("Unmounting container %s: %v", c.ID(), err)
+			}
+		}()
 	}
 
 	info, _, _, err := c.stat(ctx, mountPoint, containerPath)

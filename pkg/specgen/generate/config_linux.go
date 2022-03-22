@@ -262,8 +262,8 @@ func addDevice(g *generate.Generator, device string) error {
 
 // ParseDevice parses device mapping string to a src, dest & permissions string
 func ParseDevice(device string) (string, string, string, error) { //nolint
-	src := ""
-	dst := ""
+	var src string
+	var dst string
 	permissions := "rwm"
 	arr := strings.Split(device, ":")
 	switch len(arr) {

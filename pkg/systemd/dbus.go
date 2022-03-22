@@ -24,7 +24,6 @@ func IsSystemdSessionValid(uid int) bool {
 
 	if rootless.IsRootless() {
 		conn, err = GetLogindConnection(rootless.GetRootlessUID())
-		object = conn.Object(dbusDest, godbus.ObjectPath(dbusPath))
 		if err != nil {
 			//unable to fetch systemd object for logind
 			logrus.Debugf("systemd-logind: %s", err)

@@ -279,7 +279,7 @@ func DemuxFrame(r io.Reader, buffer []byte, length int) (frame []byte, err error
 
 	n, err := io.ReadFull(r, buffer[0:length])
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 	if n < length {
 		err = io.ErrUnexpectedEOF

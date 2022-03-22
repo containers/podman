@@ -25,7 +25,7 @@ func ParseSignal(rawSignal string) (syscall.Signal, error) {
 }
 
 // ParseSignalNameOrNumber translates a string to a valid syscall signal.  Input
-// can be a name or number representation i.e. "KILL" "9"
+// can be a name or number representation i.e. "KILL" "9".
 func ParseSignalNameOrNumber(rawSignal string) (syscall.Signal, error) {
 	basename := strings.TrimPrefix(rawSignal, "-")
 	s, err := ParseSignal(basename)

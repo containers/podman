@@ -44,7 +44,8 @@ var _ = Describe("Podman containers attach", func() {
 			timeout := uint(5)
 			err := containers.Stop(bt.conn, id, new(containers.StopOptions).WithTimeout(timeout))
 			if err != nil {
-				GinkgoWriter.Write([]byte(err.Error()))
+				_, writeErr := GinkgoWriter.Write([]byte(err.Error()))
+				Expect(writeErr).ShouldNot(HaveOccurred())
 			}
 		}()
 

@@ -67,7 +67,7 @@ func init() {
 
 	flags.StringVarP(&srvArgs.PProfAddr, "pprof-address", "", "",
 		"Binding network address for pprof profile endpoints, default: do not expose endpoints")
-	flags.MarkHidden("pprof-address")
+	_ = flags.MarkHidden("pprof-address")
 }
 
 func aliasTimeoutFlag(_ *pflag.FlagSet, name string) pflag.NormalizedName {

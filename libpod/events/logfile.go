@@ -9,6 +9,7 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // EventLogFile is the structure for event writing to a logfile. It contains the eventer
@@ -59,7 +60,9 @@ func (e EventLogFile) Read(ctx context.Context, options ReadOptions) error {
 		}
 		go func() {
 			time.Sleep(time.Until(untilTime))
-			t.Stop()
+			if err := t.Stop(); err != nil {
+				logrus.Errorf("Stopping logger: %v", err)
+			}
 		}()
 	}
 	funcDone := make(chan bool)

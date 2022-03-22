@@ -83,7 +83,7 @@ func init() {
 		"reexec", false,
 		"process was rexeced",
 	)
-	flags.MarkHidden("reexec")
+	_ = flags.MarkHidden("reexec")
 
 	ImagePathFlagName := "image-path"
 	flags.StringVar(&initOpts.ImagePath, ImagePathFlagName, cfg.Machine.Image, "Path to qcow image")

@@ -105,7 +105,7 @@ func searchFlags(cmd *cobra.Command) {
 
 // imageSearch implements the command for searching images.
 func imageSearch(cmd *cobra.Command, args []string) error {
-	searchTerm := ""
+	var searchTerm string
 	switch len(args) {
 	case 1:
 		searchTerm = args[0]

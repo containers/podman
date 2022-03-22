@@ -9,7 +9,7 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-// ImageData holds the inspect information of an image
+// ImageData holds the inspect information of an image.
 type ImageData struct {
 	ID           string                        `json:"Id"`
 	Digest       digest.Digest                 `json:"Digest"`
@@ -36,13 +36,13 @@ type ImageData struct {
 	HealthCheck  *manifest.Schema2HealthConfig `json:"Healthcheck,omitempty"`
 }
 
-// RootFS holds the root fs information of an image
+// RootFS holds the root fs information of an image.
 type RootFS struct {
 	Type   string          `json:"Type"`
 	Layers []digest.Digest `json:"Layers"`
 }
 
-// ImageResult is used for podman images for collection and output
+// ImageResult is used for podman images for collection and output.
 type ImageResult struct {
 	Tag          string
 	Repository   string

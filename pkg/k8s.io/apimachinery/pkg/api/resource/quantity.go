@@ -579,9 +579,9 @@ func (q Quantity) MarshalJSON() ([]byte, error) {
 	// if CanonicalizeBytes needed more space than our slice provided, we may need to allocate again so use
 	// append
 	result = result[:1]
-	result = append(result, number...)
-	result = append(result, suffix...)
-	result = append(result, '"')
+	result = append(result, number...) // nolint: makezero
+	result = append(result, suffix...) // nolint: makezero
+	result = append(result, '"')       // nolint: makezero
 	return result, nil
 }
 

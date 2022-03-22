@@ -171,7 +171,7 @@ func printVerbose(cmd *cobra.Command, reports *entities.SystemDfReport) error { 
 		return err
 	}
 	if err := writeTemplate(rpt, hdrs, dfImages); err != nil {
-		return nil
+		return err
 	}
 
 	fmt.Fprint(rpt.Writer(), "\nContainers space usage:\n\n")
@@ -191,7 +191,7 @@ func printVerbose(cmd *cobra.Command, reports *entities.SystemDfReport) error { 
 		return err
 	}
 	if err := writeTemplate(rpt, hdrs, dfContainers); err != nil {
-		return nil
+		return err
 	}
 
 	fmt.Fprint(rpt.Writer(), "\nLocal Volumes space usage:\n\n")

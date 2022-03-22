@@ -322,7 +322,8 @@ var _ = Describe("Podman containers ", func() {
 
 		// a container that has no healthcheck should be a 409
 		var name = "top"
-		bt.RunTopContainer(&name, nil)
+		_, err = bt.RunTopContainer(&name, nil)
+		Expect(err).To(BeNil())
 		_, err = containers.RunHealthCheck(bt.conn, name, nil)
 		Expect(err).ToNot(BeNil())
 		code, _ = bindings.CheckResponseCode(err)

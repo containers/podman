@@ -375,7 +375,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		}
 	}
 
-	cleanTmpFile := false
+	var cleanTmpFile bool
 	flags.Authfile, cleanTmpFile = buildahUtil.MirrorToTempFileIfPathIsDescriptor(flags.Authfile)
 	if cleanTmpFile {
 		defer os.Remove(flags.Authfile)
@@ -474,7 +474,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		return nil, err
 	}
 
-	format := ""
+	var format string
 	flags.Format = strings.ToLower(flags.Format)
 	switch {
 	case strings.HasPrefix(flags.Format, buildahDefine.OCI):

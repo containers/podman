@@ -366,7 +366,7 @@ func (s *BoltState) GetDBConfig() (*DBConfig, error) {
 	err = db.View(func(tx *bolt.Tx) error {
 		configBucket, err := getRuntimeConfigBucket(tx)
 		if err != nil {
-			return nil
+			return err
 		}
 
 		// Some of these may be nil

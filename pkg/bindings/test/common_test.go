@@ -211,7 +211,7 @@ func (b *bindingTest) RunTopContainer(containerName *string, podName *string) (s
 	}
 	ctr, err := containers.CreateWithSpec(b.conn, s, nil)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 	err = containers.Start(b.conn, ctr.ID, nil)
 	if err != nil {

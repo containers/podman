@@ -1,6 +1,8 @@
 package rootless
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"sort"
 	"sync"
@@ -8,7 +10,6 @@ import (
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 )
 
 // TryJoinPauseProcess attempts to join the namespaces of the pause PID via
@@ -16,12 +17,15 @@ import (
 // file.
 func TryJoinPauseProcess(pausePidPath string) (bool, int, error) {
 	if _, err := os.Stat(pausePidPath); err != nil {
-		return false, -1, nil
+		if errors.Is(err, os.ErrNotExist) {
+			return false, -1, nil
+		}
+		return false, -1, err
 	}
 
 	became, ret, err := TryJoinFromFilePaths("", false, []string{pausePidPath})
 	if err == nil {
-		return became, ret, err
+		return became, ret, nil
 	}
 
 	// It could not join the pause process, let's lock the file before trying to delete it.
@@ -31,7 +35,7 @@ func TryJoinPauseProcess(pausePidPath string) (bool, int, error) {
 		if os.IsNotExist(err) {
 			return false, -1, nil
 		}
-		return false, -1, errors.Wrapf(err, "error acquiring lock on %s", pausePidPath)
+		return false, -1, fmt.Errorf("error acquiring lock on %s: %w", pausePidPath, err)
 	}
 
 	pidFileLock.Lock()
@@ -46,7 +50,7 @@ func TryJoinPauseProcess(pausePidPath string) (bool, int, error) {
 	if err != nil {
 		// It is still failing.  We can safely remove it.
 		os.Remove(pausePidPath)
-		return false, -1, nil
+		return false, -1, nil // nolint: nilerr
 	}
 	return became, ret, err
 }

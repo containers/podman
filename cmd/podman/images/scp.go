@@ -105,7 +105,7 @@ func scp(cmd *cobra.Command, args []string) (finalErr error) {
 	}
 	locations := []*entities.ImageScpOptions{}
 	cliConnections := []string{}
-	flipConnections := false
+	var flipConnections bool
 	for _, arg := range args {
 		loc, connect, err := parseImageSCPArg(arg)
 		if err != nil {
@@ -233,7 +233,7 @@ func loadToRemote(localFile string, tag string, url *urlP.URL, iden string) (str
 		errOut := strconv.Itoa(int(n)) + " Bytes copied before error"
 		return " ", errors.Wrapf(err, errOut)
 	}
-	run := ""
+	var run string
 	if tag != "" {
 		return "", errors.Wrapf(define.ErrInvalidArg, "Renaming of an image is currently not supported")
 	}
@@ -264,10 +264,12 @@ func saveToRemote(image, localFile string, tag string, uri *urlP.URL, iden strin
 	run := podman + " image save " + image + " --format=oci-archive --output=" + remoteFile // run ssh image load of the file copied via scp. Files are reverse in this case...
 	_, err = connection.ExecRemoteCommand(dial, run)
 	if err != nil {
-		return nil
+		return err
 	}
 	n, err := scpD.CopyFrom(dial, remoteFile, localFile)
-	connection.ExecRemoteCommand(dial, "rm "+remoteFile)
+	if _, conErr := connection.ExecRemoteCommand(dial, "rm "+remoteFile); conErr != nil {
+		logrus.Errorf("Error removing file on endpoint: %v", conErr)
+	}
 	if err != nil {
 		errOut := strconv.Itoa(int(n)) + " Bytes copied before error"
 		return errors.Wrapf(err, errOut)

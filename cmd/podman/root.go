@@ -402,7 +402,7 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 		networkBackendFlagName := "network-backend"
 		pFlags.StringVar(&cfg.Network.NetworkBackend, networkBackendFlagName, cfg.Network.NetworkBackend, `Network backend to use ("cni"|"netavark")`)
 		_ = cmd.RegisterFlagCompletionFunc(networkBackendFlagName, common.AutocompleteNetworkBackend)
-		pFlags.MarkHidden(networkBackendFlagName)
+		_ = pFlags.MarkHidden(networkBackendFlagName)
 
 		rootFlagName := "root"
 		pFlags.StringVar(&cfg.Engine.StaticDir, rootFlagName, "", "Path to the root directory in which data, including images, is stored")

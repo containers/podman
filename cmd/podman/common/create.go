@@ -721,7 +721,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"Optional parent cgroup for the container",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(cgroupParentFlagName, completion.AutocompleteDefault)
-		conmonPidfileFlagName := ""
+		var conmonPidfileFlagName string
 		if !isInfra {
 			conmonPidfileFlagName = "conmon-pidfile"
 		} else {
@@ -734,7 +734,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(conmonPidfileFlagName, completion.AutocompleteDefault)
 
-		entrypointFlagName := ""
+		var entrypointFlagName string
 		if !isInfra {
 			entrypointFlagName = "entrypoint"
 		} else {
