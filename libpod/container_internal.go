@@ -1261,7 +1261,10 @@ func (c *Container) start() error {
 		}
 	}
 
-	if c.config.HealthCheckConfig != nil {
+	// Check if healthcheck is not nil and --no-healthcheck option is not set.
+	// If --no-healthcheck is set Test will be always set to `[NONE]` so no need
+	// to update status in such case.
+	if c.config.HealthCheckConfig != nil && !(len(c.config.HealthCheckConfig.Test) == 1 && c.config.HealthCheckConfig.Test[0] == "NONE") {
 		if err := c.updateHealthStatus(define.HealthCheckStarting); err != nil {
 			logrus.Error(err)
 		}
