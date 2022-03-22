@@ -126,7 +126,7 @@ func statsCmd(c *cliconfig.StatsValues) error {
 
 	containerStats := map[string]*libpod.ContainerStats{}
 	for _, ctr := range ctrs {
-		initialStats, err := ctr.GetContainerStats(&libpod.ContainerStats{})
+		initialStats, err := ctr.GetContainerStats(nil)
 		if err != nil {
 			// when doing "all", dont worry about containers that are not running
 			cause := errors.Cause(err)
@@ -153,7 +153,7 @@ func statsCmd(c *cliconfig.StatsValues) error {
 		for _, ctr := range ctrs {
 			id := ctr.ID()
 			if _, ok := containerStats[ctr.ID()]; !ok {
-				initialStats, err := ctr.GetContainerStats(&libpod.ContainerStats{})
+				initialStats, err := ctr.GetContainerStats(nil)
 				if errors.Cause(err) == define.ErrCtrRemoved || errors.Cause(err) == define.ErrNoSuchCtr || errors.Cause(err) == define.ErrCtrStateInvalid {
 					// skip dealing with a container that is gone
 					continue
