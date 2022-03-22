@@ -292,6 +292,31 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 		backingFs = fsName
 	}
 
+	runhome := filepath.Join(options.RunRoot, filepath.Base(home))
+	rootUID, rootGID, err := idtools.GetRootUIDGID(options.UIDMaps, options.GIDMaps)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create the driver home dir
+	if err := idtools.MkdirAllAs(path.Join(home, linkDir), 0700, rootUID, rootGID); err != nil {
+		return nil, err
+	}
+
+	if err := idtools.MkdirAllAs(runhome, 0700, rootUID, rootGID); err != nil {
+		return nil, err
+	}
+
+	if opts.mountProgram == "" {
+		if supported, err := SupportsNativeOverlay(home, runhome); err != nil {
+			return nil, err
+		} else if !supported {
+			if path, err := exec.LookPath("fuse-overlayfs"); err == nil {
+				opts.mountProgram = path
+			}
+		}
+	}
+
 	if opts.mountProgram != "" {
 		if unshare.IsRootless() && isNetworkFileSystem(fsMagic) && opts.forceMask == nil {
 			m := os.FileMode(0700)
@@ -314,20 +339,6 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 		if unshare.IsRootless() && isNetworkFileSystem(fsMagic) {
 			return nil, errors.Wrapf(graphdriver.ErrIncompatibleFS, "A network file system with user namespaces is not supported.  Please use a mount_program")
 		}
-	}
-
-	rootUID, rootGID, err := idtools.GetRootUIDGID(options.UIDMaps, options.GIDMaps)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create the driver home dir
-	if err := idtools.MkdirAllAs(path.Join(home, linkDir), 0700, rootUID, rootGID); err != nil {
-		return nil, err
-	}
-	runhome := filepath.Join(options.RunRoot, filepath.Base(home))
-	if err := idtools.MkdirAllAs(runhome, 0700, rootUID, rootGID); err != nil {
-		return nil, err
 	}
 
 	var usingMetacopy bool
@@ -569,13 +580,10 @@ func cachedFeatureRecord(runhome, feature string, supported bool, text string) (
 	return err
 }
 
-func SupportsNativeOverlay(graphroot, rundir string) (bool, error) {
-	if os.Geteuid() != 0 || graphroot == "" || rundir == "" {
+func SupportsNativeOverlay(home, runhome string) (bool, error) {
+	if os.Geteuid() != 0 || home == "" || runhome == "" {
 		return false, nil
 	}
-
-	home := filepath.Join(graphroot, "overlay")
-	runhome := filepath.Join(rundir, "overlay")
 
 	var contents string
 	flagContent, err := ioutil.ReadFile(getMountProgramFlagFile(home))
