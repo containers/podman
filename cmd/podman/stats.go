@@ -125,21 +125,6 @@ func statsCmd(c *cliconfig.StatsValues) error {
 	}
 
 	containerStats := map[string]*libpod.ContainerStats{}
-	for _, ctr := range ctrs {
-		initialStats, err := ctr.GetContainerStats(&libpod.ContainerStats{})
-		if err != nil {
-			// when doing "all", dont worry about containers that are not running
-			cause := errors.Cause(err)
-			if c.All && (cause == define.ErrCtrRemoved || cause == define.ErrNoSuchCtr || cause == define.ErrCtrStateInvalid) {
-				continue
-			}
-			if cause == cgroups.ErrCgroupV1Rootless {
-				err = cause
-			}
-			return err
-		}
-		containerStats[ctr.ID()] = initialStats
-	}
 
 	format := genStatsFormat(c.Format)
 
@@ -152,8 +137,9 @@ func statsCmd(c *cliconfig.StatsValues) error {
 		reportStats := []*libpod.ContainerStats{}
 		for _, ctr := range ctrs {
 			id := ctr.ID()
+			var stats *libpod.ContainerStats
 			if _, ok := containerStats[ctr.ID()]; !ok {
-				initialStats, err := ctr.GetContainerStats(&libpod.ContainerStats{})
+				stats, err = ctr.GetContainerStats(nil)
 				if errors.Cause(err) == define.ErrCtrRemoved || errors.Cause(err) == define.ErrNoSuchCtr || errors.Cause(err) == define.ErrCtrStateInvalid {
 					// skip dealing with a container that is gone
 					continue
@@ -161,11 +147,11 @@ func statsCmd(c *cliconfig.StatsValues) error {
 				if err != nil {
 					return err
 				}
-				containerStats[id] = initialStats
-			}
-			stats, err := ctr.GetContainerStats(containerStats[id])
-			if err != nil && errors.Cause(err) != define.ErrNoSuchCtr {
-				return err
+			} else {
+				stats, err = ctr.GetContainerStats(containerStats[id])
+				if err != nil && errors.Cause(err) != define.ErrNoSuchCtr {
+					return err
+				}
 			}
 			// replace the previous measurement with the current one
 			containerStats[id] = stats

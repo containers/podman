@@ -333,7 +333,7 @@ func (i *LibpodAPI) GetContainerStats(call iopodman.VarlinkCall, name string) er
 	if err != nil {
 		return call.ReplyContainerNotFound(name, err.Error())
 	}
-	containerStats, err := ctr.GetContainerStats(&libpod.ContainerStats{})
+	containerStats, err := ctr.GetContainerStats(nil)
 	if err != nil {
 		if errors.Cause(err) == define.ErrCtrStateInvalid {
 			return call.ReplyNoContainerRunning()
