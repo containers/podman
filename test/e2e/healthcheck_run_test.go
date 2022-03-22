@@ -54,6 +54,16 @@ var _ = Describe("Podman healthcheck run", func() {
 		Expect(hc).Should(Exit(125))
 	})
 
+	It("podman disable healthcheck with --no-healthcheck must not show starting on status", func() {
+		session := podmanTest.Podman([]string{"run", "-dt", "--no-healthcheck", "--name", "hc", healthcheck})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		hc := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.State.Health.Status}}", "hc"})
+		hc.WaitWithDefaultTimeout()
+		Expect(hc).Should(Exit(0))
+		Expect(hc.OutputToString()).To(Not(ContainSubstring("starting")))
+	})
+
 	It("podman run healthcheck and logs should contain healthcheck output", func() {
 		session := podmanTest.Podman([]string{"run", "--name", "test-logs", "-dt", "--health-interval", "1s", "--health-cmd", "echo working", "busybox", "sleep", "3600"})
 		session.WaitWithDefaultTimeout()
