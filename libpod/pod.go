@@ -422,10 +422,6 @@ type PodContainerStats struct {
 
 // GetPodStats returns the stats for each of its containers
 func (p *Pod) GetPodStats(previousContainerStats map[string]*define.ContainerStats) (map[string]*define.ContainerStats, error) {
-	var (
-		ok       bool
-		prevStat *define.ContainerStats
-	)
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -438,10 +434,7 @@ func (p *Pod) GetPodStats(previousContainerStats map[string]*define.ContainerSta
 	}
 	newContainerStats := make(map[string]*define.ContainerStats)
 	for _, c := range containers {
-		if prevStat, ok = previousContainerStats[c.ID()]; !ok {
-			prevStat = &define.ContainerStats{}
-		}
-		newStats, err := c.GetContainerStats(prevStat)
+		newStats, err := c.GetContainerStats(previousContainerStats[c.ID()])
 		// If the container wasn't running, don't include it
 		// but also suppress the error
 		if err != nil && errors.Cause(err) != define.ErrCtrStateInvalid {
