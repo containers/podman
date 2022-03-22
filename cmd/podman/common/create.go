@@ -394,14 +394,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(platformFlagName, completion.AutocompleteNone)
 
-		podFlagName := "pod"
-		createFlags.StringVar(
-			&cf.Pod,
-			podFlagName, "",
-			"Run container in an existing pod",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(podFlagName, AutocompletePods)
-
 		podIDFileFlagName := "pod-id-file"
 		createFlags.StringVar(
 			&cf.PodIDFile,
@@ -836,6 +828,14 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"Assign a name to the container",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(nameFlagName, completion.AutocompleteNone)
+
+		podFlagName := "pod"
+		createFlags.StringVar(
+			&cf.Pod,
+			podFlagName, "",
+			"Run container in an existing pod",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(podFlagName, AutocompletePods)
 
 		cpuPeriodFlagName := "cpu-period"
 		createFlags.Uint64Var(

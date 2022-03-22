@@ -184,4 +184,41 @@ var _ = Describe("Podman container clone", func() {
 		Expect(ctrInspect.InspectContainerToJSON()[0].HostConfig.NetworkMode).Should(Equal(runInspect.InspectContainerToJSON()[0].HostConfig.NetworkMode))
 	})
 
+	It("podman container clone to a pod", func() {
+		createPod := podmanTest.Podman([]string{"pod", "create", "--share", "uts", "--name", "foo-pod"})
+		createPod.WaitWithDefaultTimeout()
+		Expect(createPod).To(Exit(0))
+
+		ctr := podmanTest.RunTopContainer("ctr")
+		ctr.WaitWithDefaultTimeout()
+		Expect(ctr).Should(Exit(0))
+
+		clone := podmanTest.Podman([]string{"container", "clone", "--name", "cloned", "--pod", "foo-pod", "ctr"})
+		clone.WaitWithDefaultTimeout()
+		Expect(clone).To(Exit(0))
+
+		ctrInspect := podmanTest.Podman([]string{"inspect", "cloned"})
+		ctrInspect.WaitWithDefaultTimeout()
+		Expect(ctrInspect).Should(Exit(0))
+
+		Expect(ctrInspect.InspectContainerToJSON()[0].Pod).Should(Equal(createPod.OutputToString()))
+
+		Expect(ctrInspect.InspectContainerToJSON()[0].HostConfig.NetworkMode).Should(Not(ContainSubstring("container:")))
+
+		createPod = podmanTest.Podman([]string{"pod", "create", "--share", "uts,net", "--name", "bar-pod"})
+		createPod.WaitWithDefaultTimeout()
+		Expect(createPod).To(Exit(0))
+
+		clone = podmanTest.Podman([]string{"container", "clone", "--name", "cloned2", "--pod", "bar-pod", "ctr"})
+		clone.WaitWithDefaultTimeout()
+		Expect(clone).To(Exit(0))
+
+		ctrInspect = podmanTest.Podman([]string{"inspect", "cloned2"})
+		ctrInspect.WaitWithDefaultTimeout()
+		Expect(ctrInspect).Should(Exit(0))
+
+		Expect(ctrInspect.InspectContainerToJSON()[0].Pod).Should(Equal(createPod.OutputToString()))
+
+		Expect(ctrInspect.InspectContainerToJSON()[0].HostConfig.NetworkMode).Should(ContainSubstring("container:"))
+	})
 })

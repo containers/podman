@@ -141,6 +141,12 @@ If no memory limits are specified, the original container's will be used.
 
 Set a custom name for the cloned container. The default if not specified is of the syntax: **<ORIGINAL_NAME>-clone**
 
+#### **--pod**=*name*
+
+Clone the container in an existing pod.  It is helpful to move a container to an
+existing pod.  The container will join the pod shared namespaces, losing its configuration
+that conflicts with the shared namespaces.
+
 #### **--run**
 
 When set to true, this flag runs the newly created container after the
