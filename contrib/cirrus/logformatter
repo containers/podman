@@ -401,7 +401,7 @@ END_HTML
             # Highlight the important (non-boilerplate) podman command.
             $line =~ s/\s+--remote\s+/ /g;      # --remote takes no args
             # Strip out the global podman options, but show them on hover
-            $line =~ s{(\S+\/podman(-remote)?)((\s+--(root|runroot|runtime|tmpdir|storage-opt|conmon|cgroup-manager|network-config-dir|storage-driver|events-backend|url) \S+)*)(.*)}{
+            $line =~ s{(\S+\/podman(-remote)?)((\s+--(root|runroot|runtime|tmpdir|storage-opt|conmon|cgroup-manager|network-backend|network-config-dir|storage-driver|events-backend|url) \S+)*)(.*)}{
                 my ($full_path, $remote, $options, $args) = ($1, $2||'', $3, $6);
 
                 $options =~ s/^\s+//;
