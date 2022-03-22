@@ -228,7 +228,17 @@ function _run_altbuild() {
     case "$ALT_NAME" in
         *Each*)
             git fetch origin
-            make build-all-new-commits GIT_BASE_BRANCH=origin/$DEST_BRANCH
+            # The check-size script, introduced 2022-03-22 in #13518,
+            # runs 'make' (the original purpose of this check) against
+            # each commit, then checks image sizes to make sure that
+            # none have grown beyond a given limit. That of course
+            # requires a baseline, which is why we use '^' to start
+            # with the *parent* commit of this PR, not the first commit.
+            context_dir=$(mktemp -d --tmpdir make-size-check.XXXXXXX)
+            make build-all-new-commits \
+                 GIT_BASE_BRANCH=origin/"${DEST_BRANCH}^" \
+                 MAKE="hack/make-and-check-size $context_dir"
+            rm -rf $context_dir
             ;;
         *Windows*)
             make podman-remote-release-windows_amd64.zip
