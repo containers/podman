@@ -367,10 +367,13 @@ func ImagesImport(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
-		Changes   []string `schema:"changes"`
-		Message   string   `schema:"message"`
-		Reference string   `schema:"reference"`
-		URL       string   `schema:"URL"`
+		Changes      []string `schema:"changes"`
+		Message      string   `schema:"message"`
+		Reference    string   `schema:"reference"`
+		URL          string   `schema:"URL"`
+		OS           string   `schema:"OS"`
+		Architecture string   `schema:"Architecture"`
+		Variant      string   `schema:"Variant"`
 	}{
 		// Add defaults here once needed.
 	}
@@ -402,10 +405,13 @@ func ImagesImport(w http.ResponseWriter, r *http.Request) {
 
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 	importOptions := entities.ImageImportOptions{
-		Changes:   query.Changes,
-		Message:   query.Message,
-		Reference: query.Reference,
-		Source:    source,
+		Changes:      query.Changes,
+		Message:      query.Message,
+		Reference:    query.Reference,
+		OS:           query.OS,
+		Architecture: query.Architecture,
+		Variant:      query.Variant,
+		Source:       source,
 	}
 	report, err := imageEngine.Import(r.Context(), importOptions)
 	if err != nil {

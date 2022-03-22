@@ -52,6 +52,26 @@ var _ = Describe("Podman import", func() {
 		Expect(results).Should(Exit(0))
 	})
 
+	It("podman import with custom os, arch and variant", func() {
+		outfile := filepath.Join(podmanTest.TempDir, "container.tar")
+		_, ec, cid := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
+
+		export := podmanTest.Podman([]string{"export", "-o", outfile, cid})
+		export.WaitWithDefaultTimeout()
+		Expect(export).Should(Exit(0))
+
+		importImage := podmanTest.Podman([]string{"import", "--os", "testos", "--arch", "testarch", outfile, "foobar.com/imported-image:latest"})
+		importImage.WaitWithDefaultTimeout()
+		Expect(importImage).Should(Exit(0))
+
+		results := podmanTest.Podman([]string{"inspect", "--type", "image", "foobar.com/imported-image:latest"})
+		results.WaitWithDefaultTimeout()
+		Expect(results).Should(Exit(0))
+		Expect(results.OutputToString()).To(ContainSubstring("testos"))
+		Expect(results.OutputToString()).To(ContainSubstring("testarch"))
+	})
+
 	It("podman import without reference", func() {
 		outfile := filepath.Join(podmanTest.TempDir, "container.tar")
 		_, ec, cid := podmanTest.RunLsContainer("")

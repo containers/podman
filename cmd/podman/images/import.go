@@ -76,6 +76,18 @@ func importFlags(cmd *cobra.Command) {
 	flags.StringVarP(&importOpts.Message, messageFlagName, "m", "", "Set commit message for imported image")
 	_ = cmd.RegisterFlagCompletionFunc(messageFlagName, completion.AutocompleteNone)
 
+	osFlagName := "os"
+	flags.StringVar(&importOpts.OS, osFlagName, "", "Set the OS of the imported image")
+	_ = cmd.RegisterFlagCompletionFunc(osFlagName, completion.AutocompleteNone)
+
+	archFlagName := "arch"
+	flags.StringVar(&importOpts.Architecture, archFlagName, "", "Set the architecture of the imported image")
+	_ = cmd.RegisterFlagCompletionFunc(archFlagName, completion.AutocompleteNone)
+
+	variantFlagName := "variant"
+	flags.StringVar(&importOpts.Variant, variantFlagName, "", "Set the variant of the imported image")
+	_ = cmd.RegisterFlagCompletionFunc(variantFlagName, completion.AutocompleteNone)
+
 	flags.BoolVarP(&importOpts.Quiet, "quiet", "q", false, "Suppress output")
 	if !registry.IsRemote() {
 		flags.StringVar(&importOpts.SignaturePolicy, "signature-policy", "", "Path to a signature-policy file")

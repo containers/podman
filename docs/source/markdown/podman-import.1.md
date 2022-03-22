@@ -19,6 +19,10 @@ Note: `:` is a restricted character and cannot be part of the file name.
 
 ## OPTIONS
 
+#### **--arch**
+
+Set architecture of the imported image.
+
 #### **--change**=*instruction*, **-c**
 
 Apply the following possible instructions to the created image:
@@ -30,9 +34,17 @@ Can be set multiple times
 
 Set commit message for imported image
 
+#### **--os**
+
+Set OS of the imported image.
+
 #### **--quiet**, **-q**
 
 Shows progress on the import
+
+#### **--variant**
+
+Set variant of the imported image.
 
 **--verbose**
 
