@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:generate go run const_generate.go
+
 // Package pkcs11 is a wrapper around the PKCS#11 cryptographic library.
 package pkcs11
 
@@ -14,7 +16,7 @@ package pkcs11
 #cgo windows CFLAGS: -DPACKED_STRUCTURES
 #cgo linux LDFLAGS: -ldl
 #cgo darwin LDFLAGS: -ldl
-#cgo openbsd LDFLAGS: -ldl
+#cgo openbsd LDFLAGS:
 #cgo freebsd LDFLAGS: -ldl
 
 #include <stdlib.h>
@@ -770,9 +772,10 @@ static inline CK_VOID_PTR getAttributePval(CK_ATTRIBUTE_PTR a)
 
 */
 import "C"
-import "strings"
-
-import "unsafe"
+import (
+	"strings"
+	"unsafe"
+)
 
 // Ctx contains the current pkcs11 context.
 type Ctx struct {
