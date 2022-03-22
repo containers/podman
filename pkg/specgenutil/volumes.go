@@ -28,7 +28,7 @@ var (
 // TODO: handle options parsing/processing via containers/storage/pkg/mount
 func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string, addReadOnlyTmpfs bool) ([]spec.Mount, []*specgen.NamedVolume, []*specgen.OverlayVolume, []*specgen.ImageVolume, error) {
 	// Get mounts from the --mounts flag.
-	unifiedMounts, unifiedVolumes, unifiedImageVolumes, err := getMounts(mountFlag)
+	unifiedMounts, unifiedVolumes, unifiedImageVolumes, err := Mounts(mountFlag)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -167,12 +167,12 @@ func findMountType(input string) (mountType string, tokens []string, err error) 
 	return
 }
 
-// getMounts takes user-provided input from the --mount flag and creates OCI
+// Mounts takes user-provided input from the --mount flag and creates OCI
 // spec mounts and Libpod named volumes.
 // podman run --mount type=bind,src=/etc/resolv.conf,target=/etc/resolv.conf ...
 // podman run --mount type=tmpfs,target=/dev/shm ...
 // podman run --mount type=volume,source=test-volume, ...
-func getMounts(mountFlag []string) (map[string]spec.Mount, map[string]*specgen.NamedVolume, map[string]*specgen.ImageVolume, error) {
+func Mounts(mountFlag []string) (map[string]spec.Mount, map[string]*specgen.NamedVolume, map[string]*specgen.ImageVolume, error) {
 	finalMounts := make(map[string]spec.Mount)
 	finalNamedVolumes := make(map[string]*specgen.NamedVolume)
 	finalImageVolumes := make(map[string]*specgen.ImageVolume)

@@ -352,8 +352,8 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 				return nil, err
 			}
 		}
-		if len(compatibleOptions.InfraDevices) > 0 && len(s.Devices) == 0 {
-			userDevices = compatibleOptions.InfraDevices
+		if len(compatibleOptions.HostDeviceList) > 0 && len(s.Devices) == 0 {
+			userDevices = compatibleOptions.HostDeviceList
 		} else {
 			userDevices = s.Devices
 		}

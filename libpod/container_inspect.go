@@ -103,8 +103,8 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 		}
 	}
 
-	namedVolumes, mounts := c.sortUserVolumes(ctrSpec)
-	inspectMounts, err := c.GetInspectMounts(namedVolumes, c.config.ImageVolumes, mounts)
+	namedVolumes, mounts := c.SortUserVolumes(ctrSpec)
+	inspectMounts, err := c.GetMounts(namedVolumes, c.config.ImageVolumes, mounts)
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +222,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 // Get inspect-formatted mounts list.
 // Only includes user-specified mounts. Only includes bind mounts and named
 // volumes, not tmpfs volumes.
-func (c *Container) GetInspectMounts(namedVolumes []*ContainerNamedVolume, imageVolumes []*ContainerImageVolume, mounts []spec.Mount) ([]define.InspectMount, error) {
+func (c *Container) GetMounts(namedVolumes []*ContainerNamedVolume, imageVolumes []*ContainerImageVolume, mounts []spec.Mount) ([]define.InspectMount, error) {
 	inspectMounts := []define.InspectMount{}
 
 	// No mounts, return early

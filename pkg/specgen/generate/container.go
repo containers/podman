@@ -337,11 +337,11 @@ func FinishThrottleDevices(s *specgen.SpecGenerator) error {
 	return nil
 }
 
-// ConfigToSpec takes a completed container config and converts it back into a specgenerator for purposes of cloning an existing container
-func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID string) (*libpod.Container, error) {
-	c, err := rt.LookupContainer(containerID)
+// ConfigToSpec takes a completed container config and converts it back into a specgenerator for purposes of cloning an exisiting container
+func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, contaierID string) (*libpod.Container, *libpod.InfraInherit, error) {
+	c, err := rt.LookupContainer(contaierID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	conf := c.Config()
 
@@ -351,17 +351,22 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID 
 	conf.Systemd = nil
 	conf.Mounts = []string{}
 
+	if specg == nil {
+		specg = &specgen.SpecGenerator{}
+	}
+
 	specg.Pod = conf.Pod
 
 	matching, err := json.Marshal(conf)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = json.Unmarshal(matching, specg)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+
 	conf.Systemd = tmpSystemd
 	conf.Mounts = tmpMounts
 
@@ -481,7 +486,29 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID 
 		}
 	}
 	specg.OverlayVolumes = overlay
-	specg.Mounts = conf.Spec.Mounts
+	_, mounts := c.SortUserVolumes(c.Spec())
+	specg.Mounts = mounts
 	specg.HostDeviceList = conf.DeviceHostSrc
-	return c, nil
+	mapSecurityConfig(conf, specg)
+
+	if c.IsInfra() { // if we are creating this spec for a pod's infra ctr, map the compatible options
+		spec, err := json.Marshal(specg)
+		if err != nil {
+			return nil, nil, err
+		}
+		infraInherit := &libpod.InfraInherit{}
+		err = json.Unmarshal(spec, infraInherit)
+		return c, infraInherit, err
+	}
+	// else just return the container
+	return c, nil, nil
+}
+
+// mapSecurityConfig takes a libpod.ContainerSecurityConfig and converts it to a specgen.ContinerSecurityConfig
+func mapSecurityConfig(c *libpod.ContainerConfig, s *specgen.SpecGenerator) {
+	s.Privileged = c.Privileged
+	s.SelinuxOpts = append(s.SelinuxOpts, c.LabelOpts...)
+	s.User = c.User
+	s.Groups = c.Groups
+	s.HostUsers = c.HostUsers
 }

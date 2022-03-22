@@ -8,6 +8,7 @@ import (
 	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v4/pkg/namespaces"
+	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/storage"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
@@ -405,13 +406,19 @@ type ContainerMiscConfig struct {
 	InitContainerType string `json:"init_container_type,omitempty"`
 }
 
+// InfraInherit contains the compatible options inheritable from the infra container
 type InfraInherit struct {
-	InfraSecurity     ContainerSecurityConfig
-	InfraLabels       []string                  `json:"labelopts,omitempty"`
-	InfraVolumes      []*ContainerNamedVolume   `json:"namedVolumes,omitempty"`
-	InfraOverlay      []*ContainerOverlayVolume `json:"overlayVolumes,omitempty"`
-	InfraImageVolumes []*ContainerImageVolume   `json:"ctrImageVolumes,omitempty"`
-	InfraUserVolumes  []string                  `json:"userVolumes,omitempty"`
-	InfraResources    *spec.LinuxResources      `json:"resources,omitempty"`
-	InfraDevices      []spec.LinuxDevice        `json:"device_host_src,omitempty"`
+	ApparmorProfile    string                   `json:"apparmor_profile,omitempty"`
+	CapAdd             []string                 `json:"cap_add,omitempty"`
+	CapDrop            []string                 `json:"cap_drop,omitempty"`
+	HostDeviceList     []spec.LinuxDevice       `json:"host_device_list,omitempty"`
+	ImageVolumes       []*specgen.ImageVolume   `json:"image_volumes,omitempty"`
+	InfraResources     *spec.LinuxResources     `json:"resource_limits,omitempty"`
+	Mounts             []spec.Mount             `json:"mounts,omitempty"`
+	NoNewPrivileges    bool                     `json:"no_new_privileges,omitempty"`
+	OverlayVolumes     []*specgen.OverlayVolume `json:"overlay_volumes,omitempty"`
+	SeccompPolicy      string                   `json:"seccomp_policy,omitempty"`
+	SeccompProfilePath string                   `json:"seccomp_profile_path,omitempty"`
+	SelinuxOpts        []string                 `json:"selinux_opts,omitempty"`
+	Volumes            []*specgen.NamedVolume   `json:"volumes,omitempty"`
 }
