@@ -131,7 +131,7 @@ $SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}
 [+0103s]   /var/tmp/go/src/github.com/containers/podman/test/e2e/pod_restart_test.go:18
 [+0103s] [It] podman pod restart single empty pod
 [+0103s]   /var/tmp/go/src/github.com/containers/podman/test/e2e/pod_restart_test.go:41
-[+0103s] Running: /var/tmp/go/src/github.com/containers/podman/bin/podman --storage-opt vfs.imagestore=/tmp/podman/imagecachedir --root /tmp/podman_test553496330/crio --runroot /tmp/podman_test553496330/crio-run --runtime /usr/bin/runc --conmon /usr/bin/conmon --network-config-dir /etc/cni/net.d --cgroup-manager systemd --tmpdir /tmp/podman_test553496330 --events-backend file --storage-driver vfs pod create --infra=false --share
+[+0103s] Running: /var/tmp/go/src/github.com/containers/podman/bin/podman --network-backend netavark --storage-opt vfs.imagestore=/tmp/podman/imagecachedir --root /tmp/podman_test553496330/crio --runroot /tmp/podman_test553496330/crio-run --runtime /usr/bin/runc --conmon /usr/bin/conmon --network-config-dir /etc/cni/net.d --cgroup-manager systemd --tmpdir /tmp/podman_test553496330 --events-backend file --storage-driver vfs pod create --infra=false --share
 [+0103s] 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89
 [+0103s] output: 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89
 [+0103s] Running: /var/tmp/go/src/github.com/containers/podman/bin/podman --storage-opt vfs.imagestore=/tmp/podman/imagecachedir --root /tmp/podman_test553496330/crio --runroot /tmp/podman_test553496330/crio-run --runtime /usr/bin/runc --conmon /usr/bin/conmon --network-config-dir /etc/cni/net.d --cgroup-manager systemd --tmpdir /tmp/podman_test553496330 --events-backend file --storage-driver vfs pod restart 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89
@@ -187,7 +187,8 @@ $SCRIPT_BASE/integration_test.sh |&amp; ${TIMESTAMP}
 <span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/pod_restart_test.go#L18'>/containers/podman/test/e2e/pod_restart_test.go:18</a>
 <span class="timestamp">         </span><span class="testname">[It] podman pod restart single empty pod</span>
 <span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/pod_restart_test.go#L41'>/containers/podman/test/e2e/pod_restart_test.go:41</a>
-<span class="timestamp">         </span><span class="boring">#</span> <span title="/var/tmp/go/src/github.com/containers/podman/bin/podman"><b>podman</b></span> <span class="boring" title="--storage-opt vfs.imagestore=/tmp/podman/imagecachedir
+<span class="timestamp">         </span><span class="boring">#</span> <span title="/var/tmp/go/src/github.com/containers/podman/bin/podman"><b>podman</b></span> <span class="boring" title="--network-backend netavark
+--storage-opt vfs.imagestore=/tmp/podman/imagecachedir
 --root /tmp/podman_test553496330/crio
 --runroot /tmp/podman_test553496330/crio-run
 --runtime /usr/bin/runc
