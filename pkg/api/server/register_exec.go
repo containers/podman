@@ -169,7 +169,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   200:
-	//     description: no error
+	//     $ref: "#/responses/InspectExecSession"
 	//   404:
 	//     $ref: "#/responses/NoSuchExecInstance"
 	//   500:

@@ -235,3 +235,12 @@ type swagSystemAuthResponse struct {
 		entities.AuthReport
 	}
 }
+
+// Inspect response
+// swagger:response InspectExecSession
+type swagInspectExecSession struct {
+	// in:body
+	Body struct {
+		define.InspectExecSession
+	}
+}

@@ -242,7 +242,7 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 
 	body := struct {
 		ID      string `json:"Id"`
-		Warning []string
+		Warning string
 	}{
 		ID: newNetwork.ID,
 	}

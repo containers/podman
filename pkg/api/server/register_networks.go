@@ -105,8 +105,15 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//    schema:
 	//      $ref: "#/definitions/NetworkCreateRequest"
 	// responses:
-	//   200:
-	//     $ref: "#/responses/CompatNetworkCreate"
+	//   201:
+	//     description: network created
+	//     schema:
+	//       type: object
+	//       properties:
+	//         Id:
+	//           type: string
+	//         Warning:
+	//           type: string
 	//   400:
 	//     $ref: "#/responses/BadParamError"
 	//   500:
