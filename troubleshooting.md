@@ -1177,3 +1177,18 @@ A side-note: Using [__--userns=keep-id__](https://docs.podman.io/en/latest/markd
 can sometimes be an alternative solution, but it forces the regular
 user's host UID to be mapped to the same UID inside the container
 so it provides less flexibility than using __--uidmap__ and __--gidmap__.
+
+### 35) Images in the additional stores can be deleted even if there are containers using them
+
+When an image in an additional store is used, it is not locked thus it
+can be deleted even if there are containers using it.
+
+#### Symptom
+
+WARN[0000] Can't stat lower layer "/var/lib/containers/storage/overlay/l/7HS76F2P5N73FDUKUQAOJA3WI5" because it does not exist. Going through storage to recreate the missing symlinks.
+
+#### Solution
+
+It is the user responsibility to make sure images in an additional
+store are not deleted while being used by containers in another
+store.
