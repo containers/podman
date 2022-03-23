@@ -185,9 +185,14 @@ func teardown(yamlfile string) error {
 		podRmErrors   utils.OutputErrors
 	)
 	options := new(entities.PlayKubeDownOptions)
-	reports, err := registry.ContainerEngine().PlayKubeDown(registry.GetContext(), yamlfile, *options)
+	f, err := os.Open(yamlfile)
 	if err != nil {
 		return err
+	}
+	defer f.Close()
+	reports, err := registry.ContainerEngine().PlayKubeDown(registry.GetContext(), f, *options)
+	if err != nil {
+		return errors.Wrap(err, yamlfile)
 	}
 
 	// Output stopped pods
@@ -218,9 +223,14 @@ func teardown(yamlfile string) error {
 }
 
 func playkube(yamlfile string) error {
-	report, err := registry.ContainerEngine().PlayKube(registry.GetContext(), yamlfile, kubeOptions.PlayKubeOptions)
+	f, err := os.Open(yamlfile)
 	if err != nil {
 		return err
+	}
+	defer f.Close()
+	report, err := registry.ContainerEngine().PlayKube(registry.GetContext(), f, kubeOptions.PlayKubeOptions)
+	if err != nil {
+		return errors.Wrap(err, yamlfile)
 	}
 	// Print volumes report
 	for i, volume := range report.Volumes {

@@ -2,6 +2,7 @@ package play
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -14,20 +15,25 @@ import (
 )
 
 func Kube(ctx context.Context, path string, options *KubeOptions) (*entities.PlayKubeReport, error) {
-	var report entities.PlayKubeReport
-	if options == nil {
-		options = new(KubeOptions)
-	}
-	conn, err := bindings.GetClient(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
+
+	return KubeWithBody(ctx, f, options)
+}
+
+func KubeWithBody(ctx context.Context, body io.Reader, options *KubeOptions) (*entities.PlayKubeReport, error) {
+	var report entities.PlayKubeReport
+	if options == nil {
+		options = new(KubeOptions)
+	}
+
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	params, err := options.ToParams()
 	if err != nil {
@@ -46,7 +52,7 @@ func Kube(ctx context.Context, path string, options *KubeOptions) (*entities.Pla
 		return nil, err
 	}
 
-	response, err := conn.DoRequest(ctx, f, http.MethodPost, "/play/kube", params, header)
+	response, err := conn.DoRequest(ctx, body, http.MethodPost, "/play/kube", params, header)
 	if err != nil {
 		return nil, err
 	}
@@ -60,12 +66,6 @@ func Kube(ctx context.Context, path string, options *KubeOptions) (*entities.Pla
 }
 
 func KubeDown(ctx context.Context, path string) (*entities.PlayKubeReport, error) {
-	var report entities.PlayKubeReport
-	conn, err := bindings.GetClient(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -75,7 +75,18 @@ func KubeDown(ctx context.Context, path string) (*entities.PlayKubeReport, error
 			logrus.Warn(err)
 		}
 	}()
-	response, err := conn.DoRequest(ctx, f, http.MethodDelete, "/play/kube", nil, nil)
+
+	return KubeDownWithBody(ctx, f)
+}
+
+func KubeDownWithBody(ctx context.Context, body io.Reader) (*entities.PlayKubeReport, error) {
+	var report entities.PlayKubeReport
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := conn.DoRequest(ctx, body, http.MethodDelete, "/play/kube", nil, nil)
 	if err != nil {
 		return nil, err
 	}
