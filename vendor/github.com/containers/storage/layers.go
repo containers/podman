@@ -221,7 +221,16 @@ type LayerStore interface {
 
 	// SetNames replaces the list of names associated with a layer with the
 	// supplied values.
+	// Deprecated: Prone to race conditions, suggested alternatives are `AddNames` and `RemoveNames`.
 	SetNames(id string, names []string) error
+
+	// AddNames adds the supplied values to the list of names associated with the layer with the
+	// specified id.
+	AddNames(id string, names []string) error
+
+	// RemoveNames remove the supplied values from the list of names associated with the layer with the
+	// specified id.
+	RemoveNames(id string, names []string) error
 
 	// Delete deletes a layer with the specified name or ID.
 	Delete(id string) error
@@ -1032,25 +1041,43 @@ func (r *layerStore) removeName(layer *Layer, name string) {
 	layer.Names = stringSliceWithoutValue(layer.Names, name)
 }
 
+// Deprecated: Prone to race conditions, suggested alternatives are `AddNames` and `RemoveNames`.
 func (r *layerStore) SetNames(id string, names []string) error {
+	return r.updateNames(id, names, setNames)
+}
+
+func (r *layerStore) AddNames(id string, names []string) error {
+	return r.updateNames(id, names, addNames)
+}
+
+func (r *layerStore) RemoveNames(id string, names []string) error {
+	return r.updateNames(id, names, removeNames)
+}
+
+func (r *layerStore) updateNames(id string, names []string, op updateNameOperation) error {
 	if !r.IsReadWrite() {
 		return errors.Wrapf(ErrStoreIsReadOnly, "not allowed to change layer name assignments at %q", r.layerspath())
 	}
-	names = dedupeNames(names)
-	if layer, ok := r.lookup(id); ok {
-		for _, name := range layer.Names {
-			delete(r.byname, name)
-		}
-		for _, name := range names {
-			if otherLayer, ok := r.byname[name]; ok {
-				r.removeName(otherLayer, name)
-			}
-			r.byname[name] = layer
-		}
-		layer.Names = names
-		return r.Save()
+	layer, ok := r.lookup(id)
+	if !ok {
+		return ErrLayerUnknown
 	}
-	return ErrLayerUnknown
+	oldNames := layer.Names
+	names, err := applyNameOperation(oldNames, names, op)
+	if err != nil {
+		return err
+	}
+	for _, name := range oldNames {
+		delete(r.byname, name)
+	}
+	for _, name := range names {
+		if otherLayer, ok := r.byname[name]; ok {
+			r.removeName(otherLayer, name)
+		}
+		r.byname[name] = layer
+	}
+	layer.Names = names
+	return r.Save()
 }
 
 func (r *layerStore) datadir(id string) string {
