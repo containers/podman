@@ -169,6 +169,7 @@ func DefaultProfile() *Seccomp {
 				"futex",
 				"futex_time64",
 				"futimesat",
+				"get_mempolicy",
 				"get_robust_list",
 				"get_thread_area",
 				"getcpu",
@@ -184,7 +185,6 @@ func DefaultProfile() *Seccomp {
 				"getgroups",
 				"getgroups32",
 				"getitimer",
-				"get_mempolicy",
 				"getpeername",
 				"getpgid",
 				"getpgrp",
@@ -274,9 +274,9 @@ func DefaultProfile() *Seccomp {
 				"nanosleep",
 				"newfstatat",
 				"open",
+				"open_tree",
 				"openat",
 				"openat2",
-				"open_tree",
 				"pause",
 				"pidfd_getfd",
 				"pidfd_open",
@@ -296,8 +296,11 @@ func DefaultProfile() *Seccomp {
 				"preadv2",
 				"prlimit64",
 				"process_mrelease",
+				"process_vm_readv",
+				"process_vm_writev",
 				"pselect6",
 				"pselect6_time64",
+				"ptrace",
 				"pwrite64",
 				"pwritev",
 				"pwritev2",
@@ -356,7 +359,6 @@ func DefaultProfile() *Seccomp {
 				"sendmmsg",
 				"sendmsg",
 				"sendto",
-				"setns",
 				"set_mempolicy",
 				"set_robust_list",
 				"set_thread_area",
@@ -370,6 +372,7 @@ func DefaultProfile() *Seccomp {
 				"setgroups",
 				"setgroups32",
 				"setitimer",
+				"setns",
 				"setpgid",
 				"setpriority",
 				"setregid",
@@ -527,10 +530,10 @@ func DefaultProfile() *Seccomp {
 			Names: []string{
 				"arm_fadvise64_64",
 				"arm_sync_file_range",
-				"sync_file_range2",
 				"breakpoint",
 				"cacheflush",
 				"set_tls",
+				"sync_file_range2",
 			},
 			Action: ActAllow,
 			Args:   []*Arg{},
@@ -653,8 +656,8 @@ func DefaultProfile() *Seccomp {
 		{
 			Names: []string{
 				"delete_module",
-				"init_module",
 				"finit_module",
+				"init_module",
 				"query_module",
 			},
 			Action: ActAllow,
@@ -666,8 +669,8 @@ func DefaultProfile() *Seccomp {
 		{
 			Names: []string{
 				"delete_module",
-				"init_module",
 				"finit_module",
+				"init_module",
 				"query_module",
 			},
 			Action:   ActErrno,
@@ -704,9 +707,6 @@ func DefaultProfile() *Seccomp {
 			Names: []string{
 				"kcmp",
 				"process_madvise",
-				"process_vm_readv",
-				"process_vm_writev",
-				"ptrace",
 			},
 			Action: ActAllow,
 			Args:   []*Arg{},
@@ -718,9 +718,6 @@ func DefaultProfile() *Seccomp {
 			Names: []string{
 				"kcmp",
 				"process_madvise",
-				"process_vm_readv",
-				"process_vm_writev",
-				"ptrace",
 			},
 			Action:   ActErrno,
 			Errno:    "EPERM",
@@ -732,8 +729,8 @@ func DefaultProfile() *Seccomp {
 		},
 		{
 			Names: []string{
-				"iopl",
 				"ioperm",
+				"iopl",
 			},
 			Action: ActAllow,
 			Args:   []*Arg{},
@@ -743,8 +740,8 @@ func DefaultProfile() *Seccomp {
 		},
 		{
 			Names: []string{
-				"iopl",
 				"ioperm",
+				"iopl",
 			},
 			Action:   ActErrno,
 			Errno:    "EPERM",
@@ -756,10 +753,10 @@ func DefaultProfile() *Seccomp {
 		},
 		{
 			Names: []string{
-				"settimeofday",
-				"stime",
 				"clock_settime",
 				"clock_settime64",
+				"settimeofday",
+				"stime",
 			},
 			Action: ActAllow,
 			Args:   []*Arg{},
@@ -769,10 +766,10 @@ func DefaultProfile() *Seccomp {
 		},
 		{
 			Names: []string{
-				"settimeofday",
-				"stime",
 				"clock_settime",
 				"clock_settime64",
+				"settimeofday",
+				"stime",
 			},
 			Action:   ActErrno,
 			Errno:    "EPERM",

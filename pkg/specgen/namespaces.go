@@ -35,6 +35,10 @@ const (
 	FromPod NamespaceMode = "pod"
 	// Private indicates the namespace is private
 	Private NamespaceMode = "private"
+	// Shareable indicates the namespace is shareable
+	Shareable NamespaceMode = "shareable"
+	// None indicates the IPC namespace is created without mounting /dev/shm
+	None NamespaceMode = "none"
 	// NoNetwork indicates no network namespace should
 	// be joined.  loopback should still exists.
 	// Only used with the network namespace, invalid otherwise.
@@ -75,6 +79,11 @@ func (n *Namespace) IsDefault() bool {
 // IsHost returns a bool if the namespace is host based
 func (n *Namespace) IsHost() bool {
 	return n.NSMode == Host
+}
+
+// IsNone returns a bool if the namespace is set to none
+func (n *Namespace) IsNone() bool {
+	return n.NSMode == None
 }
 
 // IsBridge returns a bool if the namespace is a Bridge
@@ -158,6 +167,17 @@ func validateNetNS(n *Namespace) error {
 	return nil
 }
 
+func validateIPCNS(n *Namespace) error {
+	if n == nil {
+		return nil
+	}
+	switch n.NSMode {
+	case Shareable, None:
+		return nil
+	}
+	return n.validate()
+}
+
 // Validate perform simple validation on the namespace to make sure it is not
 // invalid from the get-go
 func (n *Namespace) validate() error {
@@ -237,12 +257,27 @@ func ParseCgroupNamespace(ns string) (Namespace, error) {
 		case "private", "":
 			toReturn.NSMode = Private
 		default:
-			return toReturn, errors.Errorf("unrecognized namespace mode %s passed", ns)
+			return toReturn, errors.Errorf("unrecognized cgroup namespace mode %s passed", ns)
 		}
 	} else {
 		toReturn.NSMode = Host
 	}
 	return toReturn, nil
+}
+
+// ParseIPCNamespace parses a ipc namespace specification in string
+// form.
+func ParseIPCNamespace(ns string) (Namespace, error) {
+	toReturn := Namespace{}
+	switch {
+	case ns == "shareable", ns == "":
+		toReturn.NSMode = Shareable
+		return toReturn, nil
+	case ns == "none":
+		toReturn.NSMode = None
+		return toReturn, nil
+	}
+	return ParseNamespace(ns)
 }
 
 // ParseUserNamespace parses a user namespace specification in string

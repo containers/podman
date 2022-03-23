@@ -254,7 +254,7 @@ func (n IpcMode) IsHost() bool {
 	return n == hostType
 }
 
-// IsShareable indicates whether the container's ipc namespace can be shared with another container.
+// IsShareable indicates whether the container uses its own shareable ipc namespace which can be shared.
 func (n IpcMode) IsShareable() bool {
 	return n == shareableType
 }
