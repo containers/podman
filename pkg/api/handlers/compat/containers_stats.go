@@ -56,7 +56,7 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stats, err := ctnr.GetContainerStats(&define.ContainerStats{})
+	stats, err := ctnr.GetContainerStats(nil)
 	if err != nil {
 		utils.InternalServerError(w, errors.Wrapf(err, "failed to obtain Container %s stats", name))
 		return
