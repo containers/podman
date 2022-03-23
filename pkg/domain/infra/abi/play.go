@@ -33,12 +33,12 @@ import (
 	yamlv2 "gopkg.in/yaml.v2"
 )
 
-func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {
+func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {
 	report := &entities.PlayKubeReport{}
 	validKinds := 0
 
 	// read yaml document
-	content, err := ioutil.ReadFile(path)
+	content, err := ioutil.ReadAll(body)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 	// sort kube kinds
 	documentList, err = sortKubeKinds(documentList)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to sort kube kinds in %q", path)
+		return nil, errors.Wrap(err, "unable to sort kube kinds")
 	}
 
 	ipIndex := 0
@@ -64,7 +64,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 	for _, document := range documentList {
 		kind, err := getKubeKind(document)
 		if err != nil {
-			return nil, errors.Wrapf(err, "unable to read %q as kube YAML", path)
+			return nil, errors.Wrap(err, "unable to read kube YAML")
 		}
 
 		switch kind {
@@ -73,7 +73,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 			var podTemplateSpec v1.PodTemplateSpec
 
 			if err := yaml.Unmarshal(document, &podYAML); err != nil {
-				return nil, errors.Wrapf(err, "unable to read YAML %q as Kube Pod", path)
+				return nil, errors.Wrap(err, "unable to read YAML as Kube Pod")
 			}
 
 			podTemplateSpec.ObjectMeta = podYAML.ObjectMeta
@@ -97,7 +97,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 			var deploymentYAML v1apps.Deployment
 
 			if err := yaml.Unmarshal(document, &deploymentYAML); err != nil {
-				return nil, errors.Wrapf(err, "unable to read YAML %q as Kube Deployment", path)
+				return nil, errors.Wrap(err, "unable to read YAML as Kube Deployment")
 			}
 
 			r, err := ic.playKubeDeployment(ctx, &deploymentYAML, options, &ipIndex, configMaps)
@@ -111,7 +111,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 			var pvcYAML v1.PersistentVolumeClaim
 
 			if err := yaml.Unmarshal(document, &pvcYAML); err != nil {
-				return nil, errors.Wrapf(err, "unable to read YAML %q as Kube PersistentVolumeClaim", path)
+				return nil, errors.Wrap(err, "unable to read YAML as Kube PersistentVolumeClaim")
 			}
 
 			r, err := ic.playKubePVC(ctx, &pvcYAML, options)
@@ -125,7 +125,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, path string, options en
 			var configMap v1.ConfigMap
 
 			if err := yaml.Unmarshal(document, &configMap); err != nil {
-				return nil, errors.Wrapf(err, "unable to read YAML %q as Kube ConfigMap", path)
+				return nil, errors.Wrap(err, "unable to read YAML as Kube ConfigMap")
 			}
 			configMaps = append(configMaps, configMap)
 		default:
@@ -773,14 +773,14 @@ func getBuildFile(imageName string, cwd string) (string, error) {
 	return "", err
 }
 
-func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, path string, _ entities.PlayKubeDownOptions) (*entities.PlayKubeReport, error) {
+func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, _ entities.PlayKubeDownOptions) (*entities.PlayKubeReport, error) {
 	var (
 		podNames []string
 	)
 	reports := new(entities.PlayKubeReport)
 
 	// read yaml document
-	content, err := ioutil.ReadFile(path)
+	content, err := ioutil.ReadAll(body)
 	if err != nil {
 		return nil, err
 	}
@@ -794,27 +794,27 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, path string, _ enti
 	// sort kube kinds
 	documentList, err = sortKubeKinds(documentList)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to sort kube kinds in %q", path)
+		return nil, errors.Wrap(err, "unable to sort kube kinds")
 	}
 
 	for _, document := range documentList {
 		kind, err := getKubeKind(document)
 		if err != nil {
-			return nil, errors.Wrapf(err, "unable to read %q as kube YAML", path)
+			return nil, errors.Wrap(err, "unable to read as kube YAML")
 		}
 
 		switch kind {
 		case "Pod":
 			var podYAML v1.Pod
 			if err := yaml.Unmarshal(document, &podYAML); err != nil {
-				return nil, errors.Wrapf(err, "unable to read YAML %q as Kube Pod", path)
+				return nil, errors.Wrap(err, "unable to read YAML as Kube Pod")
 			}
 			podNames = append(podNames, podYAML.ObjectMeta.Name)
 		case "Deployment":
 			var deploymentYAML v1apps.Deployment
 
 			if err := yaml.Unmarshal(document, &deploymentYAML); err != nil {
-				return nil, errors.Wrapf(err, "unable to read YAML %q as Kube Deployment", path)
+				return nil, errors.Wrap(err, "unable to read YAML as Kube Deployment")
 			}
 			var numReplicas int32 = 1
 			deploymentName := deploymentYAML.ObjectMeta.Name
