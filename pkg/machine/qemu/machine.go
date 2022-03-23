@@ -782,7 +782,7 @@ func (v *MachineVM) isRunning() (bool, error) {
 
 func (v *MachineVM) isListening() bool {
 	// Check if we can dial it
-	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", "localhost", v.Port), 10*time.Millisecond)
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", "127.0.0.1", v.Port), 10*time.Millisecond)
 	if err != nil {
 		return false
 	}
