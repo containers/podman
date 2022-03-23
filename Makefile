@@ -435,22 +435,6 @@ local-cross: $(CROSS_BUILD_TARGETS) ## Cross compile podman binary for multiple 
 .PHONY: cross
 cross: local-cross
 
-# Update nix/nixpkgs.json its latest stable commit
-.PHONY: nixpkgs
-nixpkgs:
-	@nix run \
-		-f channel:nixos-21.05 nix-prefetch-git \
-		-c nix-prefetch-git \
-		--no-deepClone \
-		https://github.com/nixos/nixpkgs refs/heads/nixos-21.05 > nix/nixpkgs.json
-
-# Build statically linked binary
-.PHONY: static
-static:
-	@nix build -f nix/
-	mkdir -p ./bin
-	cp -rfp ./result/bin/* ./bin/
-
 .PHONY: build-no-cgo
 build-no-cgo:
 	BUILDTAGS="containers_image_openpgp exclude_graphdriver_btrfs \
