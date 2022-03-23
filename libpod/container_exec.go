@@ -341,22 +341,60 @@ func (c *Container) ExecStartAndAttach(sessionID string, streams *define.AttachS
 	}
 	lastErr = tmpErr
 
-	exitCode, err := c.readExecExitCode(session.ID())
-	if err != nil {
+	exitCode, exitCodeErr := c.readExecExitCode(session.ID())
+
+	// Lock again.
+	// Important: we must lock and sync *before* the above error is handled.
+	// We need info from the database to handle the error.
+	if !c.batched {
+		c.lock.Lock()
+	}
+	// We can't reuse the old exec session (things may have changed from
+	// other use, the container was unlocked).
+	// So re-sync and get a fresh copy.
+	// If we can't do this, no point in continuing, any attempt to save
+	// would write garbage to the DB.
+	if err := c.syncContainer(); err != nil {
+		if errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved) {
+			// We can't save status, but since the container has
+			// been entirely removed, we don't have to; exit cleanly
+			return lastErr
+		}
 		if lastErr != nil {
 			logrus.Errorf("Container %s exec session %s error: %v", c.ID(), session.ID(), lastErr)
 		}
-		lastErr = err
+		return errors.Wrapf(err, "error syncing container %s state to update exec session %s", c.ID(), sessionID)
+	}
+
+	// Now handle the error from readExecExitCode above.
+	if exitCodeErr != nil {
+		newSess, ok := c.state.ExecSessions[sessionID]
+		if !ok {
+			// The exec session was removed entirely, probably by
+			// the cleanup process. When it did so, it should have
+			// written an event with the exit code.
+			// Given that, there's nothing more we can do.
+			logrus.Infof("Container %s exec session %s already removed", c.ID(), session.ID())
+			return lastErr
+		}
+
+		if newSess.State == define.ExecStateStopped {
+			// Exec session already cleaned up.
+			// Exit code should be recorded, so it's OK if we were
+			// not able to read it.
+			logrus.Infof("Container %s exec session %s already cleaned up", c.ID(), session.ID())
+			return lastErr
+		}
+
+		if lastErr != nil {
+			logrus.Errorf("Container %s exec session %s error: %v", c.ID(), session.ID(), lastErr)
+		}
+		lastErr = exitCodeErr
 	}
 
 	logrus.Debugf("Container %s exec session %s completed with exit code %d", c.ID(), session.ID(), exitCode)
 
-	// Lock again
-	if !c.batched {
-		c.lock.Lock()
-	}
-
-	if err := writeExecExitCode(c, session.ID(), exitCode); err != nil {
+	if err := justWriteExecExitCode(c, session.ID(), exitCode); err != nil {
 		if lastErr != nil {
 			logrus.Errorf("Container %s exec session %s error: %v", c.ID(), session.ID(), lastErr)
 		}
