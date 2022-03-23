@@ -22,11 +22,6 @@ For more inspection options, see also
 
 ## OPTIONS
 
-#### **--type**, **-t**=*type*
-
-Return JSON for the specified type.  Type can be 'container', 'image', 'volume', 'network', 'pod', or 'all' (default: all)
-(Only meaningful when invoked as *podman inspect*)
-
 #### **--format**, **-f**=*format*
 
 Format the output using the given Go template.
@@ -43,6 +38,10 @@ This option can be used to inspect the latest pod created when used with --type 
 
 In addition to normal output, display the total file size if the type is a container.
 
+#### **--type**, **-t**=*type*
+
+Return JSON for the specified type.  Type can be 'container', 'image', 'volume', 'network', 'pod', or 'all' (default: all)
+(Only meaningful when invoked as *podman inspect*)
 
 ## EXAMPLE
 

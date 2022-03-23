@@ -75,21 +75,6 @@ Set custom DNS search domains in the /etc/resolv.conf file that will be shared b
 
 GID map for the user namespace. Using this flag will run the container with user namespace enabled. It conflicts with the `--userns` and `--subgidname` flags.
 
-#### **--uidmap**=*container_uid*:*from_uid*:*amount*
-
-Run the container in a new user namespace using the supplied mapping. This
-option conflicts with the **--userns** and **--subuidname** options. This
-option provides a way to map host UIDs to container UIDs. It can be passed
-several times to map different ranges.
-
-#### **--subgidname**=*name*
-
-Name for GID map from the `/etc/subgid` file. Using this flag will run the container with user namespace enabled. This flag conflicts with `--userns` and `--gidmap`.
-
-#### **--subuidname**=*name*
-
-Name for UID map from the `/etc/subuid` file. Using this flag will run the container with user namespace enabled. This flag conflicts with `--userns` and `--uidmap`.
-
 #### **--help**, **-h**
 
 Print usage statement.
@@ -102,13 +87,13 @@ Set a hostname to the pod
 
 Create an infra container and associate it with the pod. An infra container is a lightweight container used to coordinate the shared kernel namespace of a pod. Default: true.
 
-#### **--infra-conmon-pidfile**=*file*
-
-Write the pid of the infra container's **conmon** process to a file. As **conmon** runs in a separate process than Podman, this is necessary when using systemd to manage Podman containers and pods.
-
 #### **--infra-command**=*command*
 
 The command that will be run to start the infra container. Default: "/pause".
+
+#### **--infra-conmon-pidfile**=*file*
+
+Write the pid of the infra container's **conmon** process to a file. As **conmon** runs in a separate process than Podman, this is necessary when using systemd to manage Podman containers and pods.
 
 #### **--infra-image**=*image*
 
@@ -282,6 +267,14 @@ This boolean determines whether or not all containers entering the pod will use 
 
 Note: This options conflict with **--share=cgroup** since that would set the pod as the cgroup parent but enter the container into the same cgroupNS as the infra container.
 
+#### **--subgidname**=*name*
+
+Name for GID map from the `/etc/subgid` file. Using this flag will run the container with user namespace enabled. This flag conflicts with `--userns` and `--gidmap`.
+
+#### **--subuidname**=*name*
+
+Name for UID map from the `/etc/subuid` file. Using this flag will run the container with user namespace enabled. This flag conflicts with `--userns` and `--uidmap`.
+
 #### **--sysctl**=_name_=_value_
 
 Configure namespace kernel parameters for all containers in the pod.
@@ -303,6 +296,13 @@ Note: if the ipc namespace is not shared within the pod, these sysctls are not a
 For the network namespace, only sysctls beginning with net.\* are allowed.
 
 Note: if the network namespace is not shared within the pod, these sysctls are not allowed.
+
+#### **--uidmap**=*container_uid*:*from_uid*:*amount*
+
+Run the container in a new user namespace using the supplied mapping. This
+option conflicts with the **--userns** and **--subuidname** options. This
+option provides a way to map host UIDs to container UIDs. It can be passed
+several times to map different ranges.
 
 #### **--userns**=*mode*
 

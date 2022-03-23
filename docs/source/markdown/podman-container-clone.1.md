@@ -11,25 +11,6 @@ podman\-container\-clone - Creates a copy of an existing container
 
 ## OPTIONS
 
-#### **--name**
-
-Set a custom name for the cloned container. The default if not specified is of the syntax: **<ORIGINAL_NAME>-clone**
-
-#### **--destroy**
-
-Remove the original container that we are cloning once used to mimic the configuration.
-
-#### **--cpus**
-
-Set a number of CPUs for the container that overrides the original containers CPU limits. If none are specified, the original container's Nano CPUs are used.
-
-This is shorthand
-for **--cpu-period** and **--cpu-quota**, so only **--cpus** or either both the **--cpu-period** and **--cpu-quota** options can be set.
-
-#### **--cpuset-cpus**
-
-CPUs in which to allow execution (0-3, 0,1). If none are specified, the original container's CPUset is used.
-
 #### **--cpu-period**=*limit*
 
 Set the CPU period for the Completely Fair Scheduler (CFS), which is a
@@ -42,6 +23,43 @@ users. For more details, see
 https://github.com/containers/podman/blob/master/troubleshooting.md#26-running-containers-with-cpu-limits-fails-with-a-permissions-error
 
 If none is specified, the original container's cpu period is used
+
+#### **--cpu-quota**=*limit*
+
+Limit the CPU Completely Fair Scheduler (CFS) quota.
+
+Limit the container's CPU usage. By default, containers run with the full
+CPU resource. The limit is a number in microseconds. If a number is provided,
+the container will be allowed to use that much CPU time until the CPU period
+ends (controllable via **--cpu-period**).
+
+On some systems, changing the CPU limits may not be allowed for non-root
+users. For more details, see
+https://github.com/containers/podman/blob/master/troubleshooting.md#26-running-containers-with-cpu-limits-fails-with-a-permissions-error
+
+If none is specified, the original container's CPU quota are used.
+
+#### **--cpu-rt-period**=*microseconds*
+
+Limit the CPU real-time period in microseconds
+
+Limit the container's Real Time CPU usage. This option tells the kernel to restrict the container's Real Time CPU usage to the period specified.
+
+This option is not supported on cgroups V2 systems.
+
+If none is specified, the original container's CPU runtime period is used.
+
+
+#### **--cpu-rt-runtime**=*microseconds*
+
+Limit the CPU real-time runtime in microseconds.
+
+Limit the containers Real Time CPU usage. This option tells the kernel to limit the amount of time in a given CPU period Real Time tasks may consume. Ex:
+Period of 1,000,000us and Runtime of 950,000us means that this container could consume 95% of available CPU and leave the remaining 5% to normal priority tasks.
+
+The sum of all runtimes across containers cannot exceed the amount allotted to the parent cgroup.
+
+This option is not supported on cgroup V2 systems.
 
 #### **--cpu-shares**=*shares*
 
@@ -82,6 +100,17 @@ PID    container	CPU	CPU share
 
 If none are specified, the original container's CPU shares are used.
 
+#### **--cpus**
+
+Set a number of CPUs for the container that overrides the original containers CPU limits. If none are specified, the original container's Nano CPUs are used.
+
+This is shorthand
+for **--cpu-period** and **--cpu-quota**, so only **--cpus** or either both the **--cpu-period** and **--cpu-quota** options can be set.
+
+#### **--cpuset-cpus**
+
+CPUs in which to allow execution (0-3, 0,1). If none are specified, the original container's CPUset is used.
+
 #### **--cpuset-mems**=*nodes*
 
 Memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.
@@ -92,42 +121,9 @@ two memory nodes.
 
 If none are specified, the original container's CPU memory nodes are used.
 
-#### **--cpu-quota**=*limit*
+#### **--destroy**
 
-Limit the CPU Completely Fair Scheduler (CFS) quota.
-
-Limit the container's CPU usage. By default, containers run with the full
-CPU resource. The limit is a number in microseconds. If a number is provided,
-the container will be allowed to use that much CPU time until the CPU period
-ends (controllable via **--cpu-period**).
-
-On some systems, changing the CPU limits may not be allowed for non-root
-users. For more details, see
-https://github.com/containers/podman/blob/master/troubleshooting.md#26-running-containers-with-cpu-limits-fails-with-a-permissions-error
-
-If none is specified, the original container's CPU quota are used.
-
-#### **--cpu-rt-period**=*microseconds*
-
-Limit the CPU real-time period in microseconds
-
-Limit the container's Real Time CPU usage. This option tells the kernel to restrict the container's Real Time CPU usage to the period specified.
-
-This option is not supported on cgroups V2 systems.
-
-If none is specified, the original container's CPU runtime period is used.
-
-
-#### **--cpu-rt-runtime**=*microseconds*
-
-Limit the CPU real-time runtime in microseconds.
-
-Limit the containers Real Time CPU usage. This option tells the kernel to limit the amount of time in a given CPU period Real Time tasks may consume. Ex:
-Period of 1,000,000us and Runtime of 950,000us means that this container could consume 95% of available CPU and leave the remaining 5% to normal priority tasks.
-
-The sum of all runtimes across containers cannot exceed the amount allotted to the parent cgroup.
-
-This option is not supported on cgroup V2 systems.
+Remove the original container that we are cloning once used to mimic the configuration.
 
 #### **--memory**, **-m**=*limit*
 
@@ -140,6 +136,10 @@ not limited. The actual limit may be rounded up to a multiple of the operating
 system's page size (the value would be very large, that's millions of trillions).
 
 If no memory limits are specified, the original container's will be used.
+
+#### **--name**
+
+Set a custom name for the cloned container. The default if not specified is of the syntax: **<ORIGINAL_NAME>-clone**
 
 #### **--run**
 

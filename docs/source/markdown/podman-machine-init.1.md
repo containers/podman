@@ -32,6 +32,10 @@ Number of CPUs.
 
 Size of the disk for the guest VM in GB.
 
+#### **--help**
+
+Print usage statement.
+
 #### **--ignition-path**
 
 Fully qualified path of the ignition file.
@@ -82,10 +86,6 @@ so mounts must be created under the /mnt directory.
 #### **--volume-driver**
 
 Driver to use for mounting volumes from the host, such as `virtfs`.
-
-#### **--help**
-
-Print usage statement.
 
 ## EXAMPLES
 

@@ -29,6 +29,15 @@ Valid placeholders for the Go template are listed below:
 
 ## OPTIONS
 
+Print the numeric IDs only (default *false*).
+#### **--format**=*format*
+
+Alter the output for a format like 'json' or a Go template.
+
+#### **--help**, **-h**
+
+Print usage statement
+
 #### **--human**, **-H**
 
 Display sizes and dates in human readable format (default *true*).
@@ -38,15 +47,6 @@ Display sizes and dates in human readable format (default *true*).
 Do not truncate the output (default *false*).
 
 #### **--quiet**, **-q**
-
-Print the numeric IDs only (default *false*).
-#### **--format**=*format*
-
-Alter the output for a format like 'json' or a Go template.
-
-#### **--help**, **-h**
-
-Print usage statement
 
 ## EXAMPLES
 

@@ -18,13 +18,13 @@ Running or unusable containers will not be removed without the **-f** option.
 
 Remove all containers.  Can be used in conjunction with **-f** as well.
 
-#### **--depend**
-
-Remove selected container and recursively remove all containers that depend on it.
-
 #### **--cidfile**
 
 Read container ID from the specified file and remove the container.  Can be specified multiple times.
+
+#### **--depend**
+
+Remove selected container and recursively remove all containers that depend on it.
 
 #### **--force**, **-f**
 

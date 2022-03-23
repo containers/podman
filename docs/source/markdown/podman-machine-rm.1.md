@@ -19,13 +19,13 @@ is used.
 
 ## OPTIONS
 
-#### **--help**
-
-Print usage statement.
-
 #### **--force**, **-f**
 
 Stop and delete without confirmation.
+
+#### **--help**
+
+Print usage statement.
 
 #### **--save-ignition**
 

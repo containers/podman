@@ -20,10 +20,6 @@ Secrets will not be committed to an image with `podman commit`, and will not be 
 
 ## OPTIONS
 
-#### **--env**=*false*
-
-Read secret data from environment variable
-
 #### **--driver**=*driver*
 
 Specify the secret driver (default **file**, which is unencrypted).
@@ -31,6 +27,10 @@ Specify the secret driver (default **file**, which is unencrypted).
 #### **--driver-opts**=*key1=val1,key2=val2*
 
 Specify driver specific options
+
+#### **--env**=*false*
+
+Read secret data from environment variable
 
 #### **--help**
 

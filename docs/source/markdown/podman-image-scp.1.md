@@ -20,13 +20,13 @@ Note: `::` is used to specify the image name depending on if you are saving or l
 
 ## OPTIONS
 
-#### **--quiet**, **-q**
-
-Suppress the output
-
 #### **--help**, **-h**
 
 Print usage statement
+
+#### **--quiet**, **-q**
+
+Suppress the output
 
 ## EXAMPLES
 

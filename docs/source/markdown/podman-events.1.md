@@ -70,15 +70,6 @@ The *volume* type will report the following statuses:
 
 ## OPTIONS
 
-#### **--help**
-
-Print usage statement.
-
-#### **--format**
-
-Format the output to JSON Lines or using the given Go template.
-
-
 #### **--filter**=*filter*
 
 Filter events that are displayed.  They must be in the format of "filter=value".  The following
@@ -92,6 +83,14 @@ filters are supported:
  * type=event_type (described above)
 
 In the case where an ID is used, the ID may be in its full or shortened form.
+
+#### **--format**
+
+Format the output to JSON Lines or using the given Go template.
+
+#### **--help**
+
+Print usage statement.
 
 #### **--no-trunc**
 

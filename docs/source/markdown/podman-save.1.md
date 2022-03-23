@@ -29,14 +29,6 @@ Note: `:` is a restricted character and cannot be part of the file name.
 Compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type, compressed or uncompressed, as source)
 Note: This flag can only be set with **--format=docker-dir**.
 
-#### **--uncompressed**
-
-Accept uncompressed layers when using one of the OCI formats.
-
-#### **--output**, **-o**=*file*
-
-Write to a file, default is STDOUT
-
 #### **--format**=*format*
 
 An image format to produce, one of:
@@ -48,18 +40,26 @@ An image format to produce, one of:
 | **oci-dir**        | A directory using the OCI Image Format                                       |
 | **docker-dir**     | **dir** transport (see **containers-transports(5)**) with v2s2 manifest type |
 
+#### **--help**, **-h**
+
+Print usage statement
+
 #### **--multi-image-archive**, **-m**
 
 Allow for creating archives with more than one image.  Additional names will be interpreted as images instead of tags.  Only supported for **--format=docker-archive**.
 The default for this option can be modified via the `multi_image_archive="true"|"false"` flag in containers.conf.
 
+#### **--output**, **-o**=*file*
+
+Write to a file, default is STDOUT
+
 #### **--quiet**, **-q**
 
 Suppress the output
 
-#### **--help**, **-h**
+#### **--uncompressed**
 
-Print usage statement
+Accept uncompressed layers when using one of the OCI formats.
 
 ## EXAMPLES
 

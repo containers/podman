@@ -15,6 +15,10 @@ subset can be changed after machine initialization.
 
 ## OPTIONS
 
+#### **--help**
+
+Print usage statement.
+
 #### **--rootful**=*true|false*
 
 Whether this machine should prefer rootful (`true`) or rootless (`false`)
@@ -23,10 +27,6 @@ remote connection default if it is currently pointing at the specified
 machine name (or `podman-machine-default` if no name is specified).
 
 API forwarding, if available, will follow this setting.
-
-#### **--help**
-
-Print usage statement.
 
 ## EXAMPLES
 

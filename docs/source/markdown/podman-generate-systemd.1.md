@@ -16,6 +16,16 @@ _Note: If you use this command with the remote client, including Mac and Windows
 
 ## OPTIONS
 
+#### **--after**=*dependency_name*
+
+Add the systemd unit after (`After=`) option, that ordering dependencies between the list of dependencies and this service. This option may be specified more than once.
+
+User-defined dependencies will be appended to the generated unit file, but any existing options such as needed or defined by default (e.g. `online.target`) will **not** be removed or overridden.
+
+#### **--container-prefix**=*prefix*
+
+Set the systemd unit name prefix for containers. The default is *container*.
+
 #### **--files**, **-f**
 
 Generate files instead of printing to stdout.  The generated files are named {container,pod}-{ID,name}.service and will be placed in the current working directory.
@@ -40,13 +50,13 @@ Note that `--new` only works on containers and pods created directly via Podman 
 
 Do not generate the header including meta data such as the Podman version and the timestamp.
 
-#### **--start-timeout** =*value*
+#### **--pod-prefix**=*prefix*
 
-Override the default start timeout for the container with the given value in seconds.
+Set the systemd unit name prefix for pods. The default is *pod*.
 
-#### **--stop-timeout** =*value*
+#### **--requires**=*dependency_name*
 
-Override the default stop timeout for the container with the given value in seconds.
+Set the systemd unit requires (`Requires=`) option. Similar to wants, but declares a stronger requirement dependency.
 
 #### **--restart-policy**=*policy*
 
@@ -58,39 +68,29 @@ Set the systemd restart policy.  The restart-policy must be one of: "no", "on-su
 Set the systemd service restartsec value. Configures the time to sleep before restarting a service (as configured with restart-policy).
 Takes a value in seconds.
 
-#### **--container-prefix**=*prefix*
-
-Set the systemd unit name prefix for containers. The default is *container*.
-
-#### **--pod-prefix**=*prefix*
-
-Set the systemd unit name prefix for pods. The default is *pod*.
-
 #### **--separator**=*separator*
 
 Set the systemd unit name separator between the name/id of a container/pod and the prefix. The default is *-*.
 
-#### **--wants**=*dependency_name*
+#### **--start-timeout** =*value*
 
-Add the systemd unit wants (`Wants=`) option, that this service is (weak) dependent on. This option may be specified more than once. This option does not influence the order in which services are started or stopped.
+Override the default start timeout for the container with the given value in seconds.
 
-User-defined dependencies will be appended to the generated unit file, but any existing options such as needed or defined by default (e.g. `online.target`) will **not** be removed or overridden.
+#### **--stop-timeout** =*value*
 
-#### **--after**=*dependency_name*
-
-Add the systemd unit after (`After=`) option, that ordering dependencies between the list of dependencies and this service. This option may be specified more than once.
-
-User-defined dependencies will be appended to the generated unit file, but any existing options such as needed or defined by default (e.g. `online.target`) will **not** be removed or overridden.
-
-#### **--requires**=*dependency_name*
-
-Set the systemd unit requires (`Requires=`) option. Similar to wants, but declares a stronger requirement dependency.
+Override the default stop timeout for the container with the given value in seconds.
 
 #### **--template**
 
 Add template specifiers to run multiple services from the systemd unit file.
 
 Note that if `--new` was not set to true, it is set to true by default. However, if `--new` is set to `false` explicitly the command will fail.
+
+#### **--wants**=*dependency_name*
+
+Add the systemd unit wants (`Wants=`) option, that this service is (weak) dependent on. This option may be specified more than once. This option does not influence the order in which services are started or stopped.
+
+User-defined dependencies will be appended to the generated unit file, but any existing options such as needed or defined by default (e.g. `online.target`) will **not** be removed or overridden.
 
 ## EXAMPLES
 

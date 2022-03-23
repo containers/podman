@@ -54,13 +54,13 @@ Valid placeholders for the Go template are listed below:
 | .NetworkInterface | Name of the network interface on the host |
 | .Subnets          | List of subnets on this network           |
 
-#### **--noheading**
-
-Omit the table headings from the listing of networks.
-
 #### **--no-trunc**
 
 Do not truncate the network ID.
+
+#### **--noheading**
+
+Omit the table headings from the listing of networks.
 
 #### **--quiet**, **-q**
 

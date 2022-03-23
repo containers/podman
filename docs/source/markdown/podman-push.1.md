@@ -55,12 +55,6 @@ If the authorization state is not found there, $HOME/.docker/config.json is chec
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
 environment variable. `export REGISTRY_AUTH_FILE=path`
 
-#### **--creds**=*[username[:password]]*
-
-The [username[:password]] to use to authenticate with the registry if required.
-If one or both values are not supplied, a command line prompt will appear and the
-value can be entered.  The password is entered without echo.
-
 #### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry. (Default: /etc/containers/certs.d)
@@ -74,6 +68,12 @@ Note: This flag can only be set when using the **dir** transport
 #### **--compression-format** *COMPRESSION*
 
 Specifies the compression format to use.  Supported values are: `gzip`, `zstd` and `zstd:chunked`.  The default is `gzip`.
+
+#### **--creds**=*[username[:password]]*
+
+The [username[:password]] to use to authenticate with the registry if required.
+If one or both values are not supplied, a command line prompt will appear and the
+value can be entered.  The password is entered without echo.
 
 #### **--digestfile** *Digestfile*
 

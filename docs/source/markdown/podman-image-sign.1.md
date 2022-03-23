@@ -15,10 +15,6 @@ By default, the signature will be written into `/var/lib/containers/sigstore` fo
 
 ## OPTIONS
 
-#### **--help**, **-h**
-
-Print usage statement.
-
 #### **--all**, **-a**
 
 Sign all the manifests of the multi-architecture image (default false).
@@ -38,6 +34,10 @@ Please refer to containers-certs.d(5) for details. (This option is not available
 #### **--directory**, **-d**=*dir*
 
 Store the signatures in the specified directory.  Default: /var/lib/containers/sigstore
+
+#### **--help**, **-h**
+
+Print usage statement.
 
 #### **--sign-by**=*identity*
 

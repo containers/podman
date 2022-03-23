@@ -70,6 +70,10 @@ Valid placeholders for the Go template are listed below:
 
 Note: use .Tag only if the --list-tags is set.
 
+#### **--help**, **-h**
+
+Print usage statement
+
 #### **--limit**=*limit*
 
 Limit the number of results (default 25).
@@ -94,10 +98,6 @@ Require HTTPS and verify certificates when contacting registries (default: true)
 then TLS verification will be used. If set to false, then TLS verification will not be used if needed. If not specified,
 default registries will be searched through (in /etc/containers/registries.conf), and TLS will be skipped if a default
 registry is listed in the insecure registries.
-
-#### **--help**, **-h**
-
-Print usage statement
 
 ## EXAMPLES
 
