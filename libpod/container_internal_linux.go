@@ -968,6 +968,16 @@ func (c *Container) mountNotifySocket(g generate.Generator) error {
 // systemd expects to have /run, /run/lock and /tmp on tmpfs
 // It also expects to be able to write to /sys/fs/cgroup/systemd and /var/log/journal
 func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) error {
+	var containerUUIDSet bool
+	for _, s := range c.config.Spec.Process.Env {
+		if strings.HasPrefix(s, "container_uuid=") {
+			containerUUIDSet = true
+			break
+		}
+	}
+	if !containerUUIDSet {
+		g.AddProcessEnv("container_uuid", c.ID()[:32])
+	}
 	options := []string{"rw", "rprivate", "nosuid", "nodev"}
 	for _, dest := range []string{"/run", "/run/lock"} {
 		if MountExists(mounts, dest) {

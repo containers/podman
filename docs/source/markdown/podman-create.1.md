@@ -1020,15 +1020,20 @@ Run container in systemd mode. The default is *true*.
 
 The value *always* enforces the systemd mode is enforced without
 looking at the executable name. Otherwise, if set to true and the
-command you are running inside the container is systemd, /usr/sbin/init,
-/sbin/init or /usr/local/sbin/init.
+command you are running inside the container is **systemd**, **/usr/sbin/init**,
+**/sbin/init** or **/usr/local/sbin/init**.
 
-If the command you are running inside of the container is systemd,
-Podman will setup tmpfs mount points in the following directories:
+Running the container in systemd mode causes the following changes:
 
-/run, /run/lock, /tmp, /sys/fs/cgroup/systemd, /var/lib/journal
-
-It will also set the default stop signal to SIGRTMIN+3.
+* Podman mounts tmpfs file systems on the following directories
+  * _/run_
+  * _/run/lock_
+  * _/tmp_
+  * _/sys/fs/cgroup/systemd_
+  * _/var/lib/journal_
+* Podman sets the default stop signal to **SIGRTMIN+3**.
+* Podman sets **container_uuid** environment variable in the container to the
+first 32 characters of the container id.
 
 This allows systemd to run in a confined container without any modifications.
 

@@ -281,6 +281,13 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
     is "$output" "" "output should be empty"
 }
 
+@test "podman --systemd sets container_uuid" {
+    run_podman run --systemd=always --name test $IMAGE printenv container_uuid
+    container_uuid=$output
+    run_podman inspect test --format '{{ .ID }}'
+    is "${container_uuid}" "${output:0:32}" "UUID should be first 32 chars of Container id"
+}
+
 # https://github.com/containers/podman/issues/13153
 @test "podman rootless-netns slirp4netns process should be in different cgroup" {
     is_rootless || skip "only meaningful for rootless"
