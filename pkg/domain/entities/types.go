@@ -20,7 +20,7 @@ type Volume struct {
 }
 
 type Report struct {
-	Id  []string //nolint
+	Id  []string // nolint
 	Err map[string]error
 }
 
@@ -98,8 +98,10 @@ type EventsOptions struct {
 // ContainerCreateResponse is the response struct for creating a container
 type ContainerCreateResponse struct {
 	// ID of the container created
+	// required: true
 	ID string `json:"Id"`
 	// Warnings during container creation
+	// required: true
 	Warnings []string `json:"Warnings"`
 }
 
