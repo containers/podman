@@ -428,7 +428,7 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 
 	// Disable graphic window when not in debug mode
 	// Done in start, so we're not suck with the debug level we used on init
-	if logrus.GetLevel() != logrus.DebugLevel {
+	if !logrus.IsLevelEnabled(logrus.DebugLevel) {
 		cmd = append(cmd, "-display", "none")
 	}
 
