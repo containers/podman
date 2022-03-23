@@ -98,7 +98,7 @@ func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 		return nil, err
 	}
 
-	cmd := append([]string{execPath})
+	cmd := []string{execPath}
 	// Add memory
 	cmd = append(cmd, []string{"-m", strconv.Itoa(int(vm.Memory))}...)
 	// Add cpus
@@ -434,7 +434,23 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 
 	_, err = os.StartProcess(v.CmdLine[0], cmd, attr)
 	if err != nil {
-		return err
+		// check if qemu was not found
+		if !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+		// lookup qemu again maybe the path was changed, https://github.com/containers/podman/issues/13394
+		cfg, err := config.Default()
+		if err != nil {
+			return err
+		}
+		cmd[0], err = cfg.FindHelperBinary(QemuCommand, true)
+		if err != nil {
+			return err
+		}
+		_, err = os.StartProcess(cmd[0], cmd, attr)
+		if err != nil {
+			return err
+		}
 	}
 	fmt.Println("Waiting for VM ...")
 	socketPath, err := getRuntimeDir()
