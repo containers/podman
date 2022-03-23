@@ -12,14 +12,6 @@ Lists all the secrets that exist. The output can be formatted to a Go template u
 
 ## OPTIONS
 
-#### **--format**=*format*
-
-Format secret output using Go template.
-
-#### **--noheading**
-
-Omit the table headings from the listing of secrets.	.
-
 #### **--filter**, **-f**=*filter=value*
 
 Filter output based on conditions given.
@@ -31,6 +23,14 @@ Valid filters are listed below:
 | ---------- | ----------------------------------------------------------------- |
 | name       | [Name] Secret name (accepts regex)                                |
 | id         | [ID] Full or partial secret ID                                    |
+
+#### **--format**=*format*
+
+Format secret output using Go template.
+
+#### **--noheading**
+
+Omit the table headings from the listing of secrets.	.
 
 ## EXAMPLES
 

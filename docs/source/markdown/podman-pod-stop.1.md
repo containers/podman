@@ -25,13 +25,13 @@ ExecStop directive of a systemd service referencing that pod.
 
 Instead of providing the pod name or ID, stop the last created pod. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
-#### **--time**, **-t**=*seconds*
-
-Seconds to wait before forcibly stopping the containers in the pod.
-
 #### **--pod-id-file**
 
 Read pod ID from the specified file and stop the pod.  Can be specified multiple times.
+
+#### **--time**, **-t**=*seconds*
+
+Seconds to wait before forcibly stopping the containers in the pod.
 
 ## EXAMPLE
 

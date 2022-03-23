@@ -148,6 +148,10 @@ value can be entered.  The password is entered without echo.
 Tears down the pods that were created by a previous run of `play kube`.  The pods are stopped and then
 removed.  Any volumes created are left intact.
 
+#### **--help**, **-h**
+
+Print usage statement
+
 #### **--ip**=*IP address*
 
 Assign a static ip address to the pod. This option can be specified several times when play kube creates more than one pod.
@@ -235,10 +239,6 @@ Start the pod after creating it, set to false to only create it.
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
 then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,
 TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf.
-
-#### **--help**, **-h**
-
-Print usage statement
 
 ## EXAMPLES
 

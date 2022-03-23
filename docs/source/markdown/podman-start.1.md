@@ -16,6 +16,10 @@ attach to the container.
 
 ## OPTIONS
 
+#### **--all**
+
+Start all the containers created by Podman, default is only running containers.
+
 #### **--attach**, **-a**
 
 Attach container's STDOUT and STDERR.  The default is false. This option cannot be used when
@@ -24,23 +28,6 @@ starting multiple containers.
 #### **--detach-keys**=*sequence*
 
 Specify the key sequence for detaching a container. Format is a single character `[a-Z]` or one or more `ctrl-<value>` characters where `<value>` is one of: `a-z`, `@`, `^`, `[`, `,` or `_`. Specifying "" will disable this feature. The default is *ctrl-p,ctrl-q*.
-
-#### **--interactive**, **-i**
-
-Attach container's STDIN. The default is false.
-
-#### **--latest**, **-l**
-
-Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
-to run containers such as CRI-O, the last started container could be from either of those methods. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
-
-#### **--sig-proxy**
-
-Proxy received signals to the process (non-TTY mode only). SIGCHLD, SIGSTOP, and SIGKILL are not proxied. The default is *true* when attaching, *false* otherwise.
-
-#### **--all**
-
-Start all the containers created by Podman, default is only running containers.
 
 #### **--filter**, **-f**
 
@@ -66,6 +53,18 @@ Valid filters are listed below:
 | pod             | [Pod] name or full or partial ID of pod                                          |
 | network         | [Network] name or full ID of network                                             |
 
+#### **--interactive**, **-i**
+
+Attach container's STDIN. The default is false.
+
+#### **--latest**, **-l**
+
+Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
+to run containers such as CRI-O, the last started container could be from either of those methods. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+
+#### **--sig-proxy**
+
+Proxy received signals to the process (non-TTY mode only). SIGCHLD, SIGSTOP, and SIGKILL are not proxied. The default is *true* when attaching, *false* otherwise.
 
 ## EXAMPLE
 

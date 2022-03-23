@@ -25,14 +25,6 @@ Note: The default systemd unit files (system and user) change the log-level opti
 
 ## OPTIONS
 
-#### **--time**, **-t**
-
-The time until the session expires in _seconds_. The default is 5
-seconds. A value of `0` means no timeout, therefore the session will not expire.
-
-The default timeout can be changed via the `service_timeout=VALUE` field in containers.conf.
-See **[containers.conf(5)](https://github.com/containers/common/blob/master/docs/containers.conf.5.md)** for more information.
-
 #### **--cors**
 
 CORS headers to inject to the HTTP response. The default value is empty string which disables CORS headers.
@@ -40,6 +32,14 @@ CORS headers to inject to the HTTP response. The default value is empty string w
 #### **--help**, **-h**
 
 Print usage statement.
+
+#### **--time**, **-t**
+
+The time until the session expires in _seconds_. The default is 5
+seconds. A value of `0` means no timeout, therefore the session will not expire.
+
+The default timeout can be changed via the `service_timeout=VALUE` field in containers.conf.
+See **[containers.conf(5)](https://github.com/containers/common/blob/master/docs/containers.conf.5.md)** for more information.
 
 ## EXAMPLES
 

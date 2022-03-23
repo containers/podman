@@ -35,6 +35,14 @@ to import the *container* on another system and thus enabling container live
 migration. This checkpoint archive also includes all changes to the *container's*
 root file-system, if not explicitly disabled using **--ignore-rootfs**.
 
+#### **--file-locks**
+
+Checkpoint a *container* with file locks. If an application running in the container
+is using file locks, this OPTION is required during checkpoint and restore. Otherwise
+checkpointing *containers* with file locks is expected to fail. If file locks are not
+used, this option is ignored.\
+The default is **false**.
+
 #### **--ignore-rootfs**
 
 If a checkpoint is exported to a tar.gz file it is possible with the help of **--ignore-rootfs** to explicitly disable including changes to the root file-system into the checkpoint archive file.\
@@ -117,14 +125,6 @@ Checkpoint a *container* with established TCP connections. If the checkpoint
 image contains established TCP connections, this OPTION is required during
 restore. Defaults to not checkpointing *containers* with established TCP
 connections.\
-The default is **false**.
-
-#### **--file-locks**
-
-Checkpoint a *container* with file locks. If an application running in the container
-is using file locks, this OPTION is required during checkpoint and restore. Otherwise
-checkpointing *containers* with file locks is expected to fail. If file locks are not
-used, this option is ignored.\
 The default is **false**.
 
 #### **--with-previous**

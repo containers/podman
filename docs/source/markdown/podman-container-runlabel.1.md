@@ -35,10 +35,6 @@ Path of the containers-auth.json(5) file. Default is ${XDG\_RUNTIME\_DIR}/contai
 
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE environment variable. `export REGISTRY_AUTH_FILE=path`
 
-#### **--display**
-
-Display the label's value of the image having populated its environment variables.  The runlabel command will not execute if --display is specified.
-
 #### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry. (Default: /etc/containers/certs.d)
@@ -47,6 +43,10 @@ Please refer to containers-certs.d(5) for details. (This option is not available
 #### **--creds**=*[username[:password]]*
 
 The [username[:password]] to use to authenticate with the registry if required.  If one or both values are not supplied, a command line prompt will appear and the value can be entered.  The password is entered without echo.
+
+#### **--display**
+
+Display the label's value of the image having populated its environment variables.  The runlabel command will not execute if --display is specified.
 
 #### **--help**, **-h**
 Print usage statement

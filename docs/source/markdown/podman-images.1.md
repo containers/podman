@@ -73,13 +73,13 @@ Valid placeholders for the Go template are listed below:
 
 Display the history of image names.  If an image gets re-tagged or untagged, then the image name history gets prepended (latest image first).  This is especially useful when undoing a tag operation or an image does not contain any name because it has been untagged.
 
-#### **--noheading**, **-n**
-
-Omit the table headings from the listing of images.
-
 #### **--no-trunc**
 
 Do not truncate the output (default *false*).
+
+#### **--noheading**, **-n**
+
+Omit the table headings from the listing of images.
 
 #### **--quiet**, **-q**
 

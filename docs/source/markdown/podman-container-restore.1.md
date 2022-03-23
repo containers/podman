@@ -16,24 +16,13 @@ Restore all checkpointed *containers*.\
 The default is **false**.\
 *IMPORTANT: This OPTION does not need a container name or ID as input argument.*
 
-#### **--keep**, **-k**
+#### **--file-locks**
 
-Keep all temporary log and statistics files created by `CRIU` during
-checkpointing as well as restoring. These files are not deleted if restoring
-fails for further debugging. If restoring succeeds these files are
-theoretically not needed, but if these files are needed Podman can keep the
-files for further analysis. This includes the checkpoint directory with all
-files created during checkpointing. The size required by the checkpoint
-directory is roughly the same as the amount of memory required by the
-processes in the checkpointed *container*.\
-Without the **--keep**, **-k** option the checkpoint will be consumed and cannot be used again.\
+Restore a *container* with file locks. This option is required to
+restore file locks from a checkpoint image. If the checkpoint image
+does not contain file locks, this option is ignored. Defaults to not
+restoring file locks.\
 The default is **false**.
-
-#### **--latest**, **-l**
-
-Instead of providing the *container ID* or *name*, use the last created *container*. If other tools than Podman are used to run *containers* such as `CRI-O`, the last started *container* could be from either tool.\
-The default is **false**.\
-*IMPORTANT: This OPTION is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines. This OPTION does not need a container name or ID as input argument.*
 
 #### **--ignore-rootfs**
 
@@ -88,6 +77,25 @@ not much the container runtime used for container creation.
 Import a pre-checkpoint tar.gz file which was exported by Podman. This option
 must be used with **-i** or **--import**. It only works on `runc 1.0-rc3` or `higher`.
 *IMPORTANT: This OPTION is not supported on the remote client, including Mac and Windows (excluding WSL2) machines.*
+
+#### **--keep**, **-k**
+
+Keep all temporary log and statistics files created by `CRIU` during
+checkpointing as well as restoring. These files are not deleted if restoring
+fails for further debugging. If restoring succeeds these files are
+theoretically not needed, but if these files are needed Podman can keep the
+files for further analysis. This includes the checkpoint directory with all
+files created during checkpointing. The size required by the checkpoint
+directory is roughly the same as the amount of memory required by the
+processes in the checkpointed *container*.\
+Without the **--keep**, **-k** option the checkpoint will be consumed and cannot be used again.\
+The default is **false**.
+
+#### **--latest**, **-l**
+
+Instead of providing the *container ID* or *name*, use the last created *container*. If other tools than Podman are used to run *containers* such as `CRI-O`, the last started *container* could be from either tool.\
+The default is **false**.\
+*IMPORTANT: This OPTION is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines. This OPTION does not need a container name or ID as input argument.*
 
 #### **--name**, **-n**=*name*
 
@@ -147,14 +155,6 @@ contains established TCP connections, this option is required during restore.
 If the checkpoint image does not contain established TCP connections this
 option is ignored. Defaults to not restoring *containers* with established TCP
 connections.\
-The default is **false**.
-
-#### **--file-locks**
-
-Restore a *container* with file locks. This option is required to
-restore file locks from a checkpoint image. If the checkpoint image
-does not contain file locks, this option is ignored. Defaults to not
-restoring file locks.\
 The default is **false**.
 
 ## EXAMPLE

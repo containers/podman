@@ -130,6 +130,14 @@ Add Linux capabilities.
 
 Drop Linux capabilities.
 
+#### **--cgroup-conf**=*KEY=VALUE*
+
+When running on cgroup v2, specify the cgroup file to write to and its value. For example **--cgroup-conf=memory.high=1073741824** sets the memory.high limit to 1GB.
+
+#### **--cgroup-parent**=*path*
+
+Path to cgroups under which the cgroup for the container will be created. If the path is not absolute, the path is considered to be relative to the cgroups path of the init process. Cgroups will be created if they do not already exist.
+
 #### **--cgroupns**=*mode*
 
 Set the cgroup namespace mode for the container.
@@ -152,13 +160,11 @@ The **disabled** option will force the container to not create CGroups, and thus
 The **no-conmon** option disables a new CGroup only for the **conmon** process.
 The **split** option splits the current CGroup in two sub-cgroups: one for conmon and one for the container payload. It is not possible to set **--cgroup-parent** with **split**.
 
-#### **--cgroup-parent**=*path*
+#### **--chrootdirs**=*path*
 
-Path to cgroups under which the cgroup for the container will be created. If the path is not absolute, the path is considered to be relative to the cgroups path of the init process. Cgroups will be created if they do not already exist.
-
-#### **--cgroup-conf**=*KEY=VALUE*
-
-When running on cgroup v2, specify the cgroup file to write to and its value. For example **--cgroup-conf=memory.high=1073741824** sets the memory.high limit to 1GB.
+Path to a directory inside the container that should be treated as a `chroot` directory.
+Any Podman managed file (e.g., /etc/resolv.conf, /etc/hosts, etc/hostname) that is mounted into the root directory will be mounted into that location as well.
+Multiple directories should be separated with a comma.
 
 #### **--cidfile**=*file*
 
@@ -381,13 +387,13 @@ This option allows arbitrary environment variables that are available for the pr
 
 See [**Environment**](#environment) note below for precedence and examples.
 
-#### **--env-host**
-
-Use host environment inside of the container. See **Environment** note below for precedence. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
-
 #### **--env-file**=*file*
 
 Read in a line delimited file of environment variables. See **Environment** note below for precedence.
+
+#### **--env-host**
+
+Use host environment inside of the container. See **Environment** note below for precedence. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 #### **--expose**=*port*
 
@@ -448,11 +454,6 @@ The initialization time needed for a container to bootstrap. The value can be ex
 The maximum time allowed to complete the healthcheck before an interval is considered failed. Like start-period, the
 value can be expressed in a time format such as **1m22s**. The default value is **30s**.
 
-#### **--hostuser**=*name*
-
-Add a user account to /etc/passwd from the host to the container. The Username
-or UID must exist on the host system.
-
 #### **--help**
 
 Print usage statement
@@ -462,6 +463,11 @@ Print usage statement
 Container host name
 
 Sets the container host name that is available inside the container. Can only be used with a private UTS namespace `--uts=private` (default). If `--pod` is specified and the pod shares the UTS namespace (default) the pod's hostname will be used.
+
+#### **--hostuser**=*name*
+
+Add a user account to /etc/passwd from the host to the container. The Username
+or UID must exist on the host system.
 
 #### **--http-proxy**
 
@@ -794,6 +800,16 @@ The default is to create a private PID namespace for the container.
 - **host**: use the host's PID namespace for the container. Note the host mode gives the container full access to local PID and is therefore considered insecure;
 - **private**: create a new namespace for the container (default)
 - **ns:**_path_: join the specified PID namespace.
+
+#### **--pidfile**=*path*
+
+When the pidfile location is specified, the container process' PID will be written to the pidfile. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+If the pidfile option is not specified, the container process' PID will be written to /run/containers/storage/${storage-driver}-containers/$CID/userdata/pidfile.
+
+After the container is started, the location for the pidfile can be discovered with the following `podman inspect` command:
+
+    $ podman inspect --format '{{ .PidFile }}' $CID
+    /run/containers/storage/${storage-driver}-containers/$CID/userdata/pidfile
 
 #### **--pids-limit**=*limit*
 
@@ -1150,23 +1166,6 @@ echo "asdf" | podman run --rm -i someimage /bin/cat
 Set timezone in container. This flag takes area-based timezones, GMT time, as well as `local`, which sets the timezone in the container to match the host machine. See `/usr/share/zoneinfo/` for valid timezones.
 Remote connections use local containers.conf for defaults
 
-#### **--umask**=*umask*
-
-Set the umask inside the container. Defaults to `0022`.
-Remote connections use local containers.conf for defaults
-
-#### **--unsetenv**=*env*
-
-Unset default environment variables for the container. Default environment
-variables include variables provided natively by Podman, environment variables
-configured by the image, and environment variables from containers.conf.
-
-#### **--unsetenv-all**=*true|false*
-
-Unset all default environment variables for the container. Default environment
-variables include variables provided natively by Podman, environment variables
-configured by the image, and environment variables from containers.conf.
-
 #### **--uidmap**=*container_uid*:*from_uid*:*amount*
 
 Run the container in a new user namespace using the supplied mapping. This
@@ -1250,6 +1249,23 @@ Note: the **--uidmap** flag cannot be called in conjunction with the **--pod** f
 #### **--ulimit**=*option*
 
 Ulimit options. You can use **host** to copy the current configuration from the host.
+
+#### **--umask**=*umask*
+
+Set the umask inside the container. Defaults to `0022`.
+Remote connections use local containers.conf for defaults
+
+#### **--unsetenv**=*env*
+
+Unset default environment variables for the container. Default environment
+variables include variables provided natively by Podman, environment variables
+configured by the image, and environment variables from containers.conf.
+
+#### **--unsetenv-all**=*true|false*
+
+Unset all default environment variables for the container. Default environment
+variables include variables provided natively by Podman, environment variables
+configured by the image, and environment variables from containers.conf.
 
 #### **--user**, **-u**=[_user_ | _user_:_group_ | _uid_ | _uid_:_gid_ | _user_:_gid_ | _uid_:_group_ ]
 
@@ -1518,22 +1534,6 @@ Working directory inside the container.
 The default working directory for running binaries within a container is the root directory (**/**).
 The image developer can set a different default with the WORKDIR instruction. The operator
 can override the working directory by using the **-w** option.
-
-#### **--pidfile**=*path*
-
-When the pidfile location is specified, the container process' PID will be written to the pidfile. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
-If the pidfile option is not specified, the container process' PID will be written to /run/containers/storage/${storage-driver}-containers/$CID/userdata/pidfile.
-
-After the container is started, the location for the pidfile can be discovered with the following `podman inspect` command:
-
-    $ podman inspect --format '{{ .PidFile }}' $CID
-    /run/containers/storage/${storage-driver}-containers/$CID/userdata/pidfile
-
-#### **--chrootdirs**=*path*
-
-Path to a directory inside the container that should be treated as a `chroot` directory.
-Any Podman managed file (e.g., /etc/resolv.conf, /etc/hosts, etc/hostname) that is mounted into the root directory will be mounted into that location as well.
-Multiple directories should be separated with a comma.
 
 ## Exit Status
 

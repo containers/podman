@@ -287,6 +287,7 @@ sub podman_man {
     my $section = '';
     my @most_recent_flags;
     my $previous_subcmd = '';
+    my $previous_flag = '';
     while (my $line = <$fh>) {
         chomp $line;
         next unless $line;		# skip empty lines
@@ -294,6 +295,12 @@ sub podman_man {
         # .md files designate sections with leading double hash
         if ($line =~ /^##\s*(GLOBAL\s+)?OPTIONS/) {
             $section = 'flags';
+            $previous_flag = '';
+        }
+        elsif ($line =~ /^###\s+\w+\s+OPTIONS/) {
+            # poaman image trust has sections for set & show
+            $section = 'flags';
+            $previous_flag = '';
         }
         elsif ($line =~ /^\#\#\s+(SUB)?COMMANDS/) {
             $section = 'commands';
@@ -320,7 +327,7 @@ sub podman_man {
                 # $1 will be changed by recursion _*BEFORE*_ left-hand assignment
                 my $subcmd = $1;
                 if ($previous_subcmd gt $subcmd) {
-                    warn "$ME: $subpath: '$previous_subcmd' and '$subcmd' are out of order\n";
+                    warn "$ME: $subpath:$.: '$previous_subcmd' and '$subcmd' are out of order\n";
                     ++$Errs;
                 }
                 $previous_subcmd = $subcmd;
@@ -342,9 +349,20 @@ sub podman_man {
                 # If option has long and short form, long must come first.
                 # This is a while-loop because there may be multiple long
                 # option names, e.g. --net/--network
+                my $is_first = 1;
                 while ($line =~ s/^\*\*(--[a-z0-9-]+)\*\*(=\*[a-zA-Z0-9-]+\*)?(,\s+)?//g) {
-                    $man{$1} = 1;
-                    push @most_recent_flags, $1;
+                    my $flag = $1;
+                    $man{$flag} = 1;
+                    if ($flag lt $previous_flag && $is_first) {
+                        warn "$ME: $subpath:$.: $flag should precede $previous_flag\n";
+                        ++$Errs;
+                    }
+                    $previous_flag = $flag if $is_first;
+                    push @most_recent_flags, $flag;
+
+                    # Further iterations of /g are allowed to be out of order,
+                    # e.g., it's OK for "--namespace, -ns" to precede --nohead
+                    $is_first = 0;
                 }
                 # Short form
                 if ($line =~ s/^\*\*(-[a-zA-Z0-9])\*\*(=\*[a-zA-Z0-9-]+\*)?//g) {

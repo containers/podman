@@ -28,61 +28,17 @@ By default it lists:
 
 ## OPTIONS
 
-#### **--ctr-names**
-
-Display the container names
-
 #### **--ctr-ids**
 
 Display the container IDs
 
+#### **--ctr-names**
+
+Display the container names
+
 #### **--ctr-status**
 
 Display the container statuses
-
-#### **--latest**, **-l**
-
-Show the latest pod created (all states) (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
-
-#### **--noheading**
-
-Omit the table headings from the listing of pods.
-
-#### **--no-trunc**
-
-Do not truncate the output (default *false*).
-
-#### **--ns**
-
-Display namespace information of the pod
-
-#### **--quiet**, **-q**
-
-Print the numeric IDs of the pods only
-
-#### **--format**=*format*
-
-Pretty-print containers to JSON or using a Go template
-
-Valid placeholders for the Go template are listed below:
-
-|   **Placeholder**   | **Description**                                                                                 |
-| ------------------- | ----------------------------------------------------------------------------------------------- |
-| .ID                 | Container ID                                                                                    |
-| .Name               | Name of pod                                                                                     |
-| .Status             | Status of pod                                                                                   |
-| .Labels             | All the labels assigned to the pod                                                              |
-| .NumberOfContainers | Show the number of containers attached to pod                                                   |
-| .Cgroup             | Cgroup path of pod                                                                              |
-| .Created            | Creation time of pod                                                                            |
-| .InfraID            | Pod infra container ID                                                                          |
-| .Networks           | Show all networks connected to the infra container                                              |
-
-#### **--sort**
-
-Sort by created, ID, name, status, or number of containers
-
-Default: created
 
 #### **--filter**, **-f**=*filter*
 
@@ -115,10 +71,53 @@ The `until` *filter* can be Unix timestamps, date formatted timestamps, or Go du
 
 The `status` filter accepts values: `stopped`, `running`, `paused`, `exited`, `dead`, `created`, `degraded`.
 
+#### **--format**=*format*
+
+Pretty-print containers to JSON or using a Go template
+
+Valid placeholders for the Go template are listed below:
+
+|   **Placeholder**   | **Description**                                                                                 |
+| ------------------- | ----------------------------------------------------------------------------------------------- |
+| .ID                 | Container ID                                                                                    |
+| .Name               | Name of pod                                                                                     |
+| .Status             | Status of pod                                                                                   |
+| .Labels             | All the labels assigned to the pod                                                              |
+| .NumberOfContainers | Show the number of containers attached to pod                                                   |
+| .Cgroup             | Cgroup path of pod                                                                              |
+| .Created            | Creation time of pod                                                                            |
+| .InfraID            | Pod infra container ID                                                                          |
+| .Networks           | Show all networks connected to the infra container                                              |
 
 #### **--help**, **-h**
 
 Print usage statement
+
+#### **--latest**, **-l**
+
+Show the latest pod created (all states) (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+
+#### **--no-trunc**
+
+Do not truncate the output (default *false*).
+
+#### **--noheading**
+
+Omit the table headings from the listing of pods.
+
+#### **--ns**
+
+Display namespace information of the pod
+
+#### **--quiet**, **-q**
+
+Print the numeric IDs of the pods only
+
+#### **--sort**
+
+Sort by created, ID, name, status, or number of containers
+
+Default: created
 
 ## EXAMPLES
 

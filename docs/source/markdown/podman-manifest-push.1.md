@@ -50,13 +50,13 @@ Manifest list type (oci or v2s2) to use when pushing the list (default is oci).
 
 When writing the manifest, suppress progress output
 
-#### **--rm**
-
-Delete the manifest list or image index from local storage if pushing succeeds.
-
 #### **--remove-signatures**
 
 Don't copy signatures when pushing images.
+
+#### **--rm**
+
+Delete the manifest list or image index from local storage if pushing succeeds.
 
 #### **--sign-by**=*fingerprint*
 

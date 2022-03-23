@@ -100,13 +100,13 @@ Show the latest container created (all states) (This option is not available wit
 
 Display namespace information
 
-#### **--noheading**
-
-Omit the table headings from the listing of containers.
-
 #### **--no-trunc**
 
 Do not truncate the output (default *false*).
+
+#### **--noheading**
+
+Omit the table headings from the listing of containers.
 
 #### **--pod**, **-p**
 
@@ -116,14 +116,14 @@ Display the pods the containers are associated with
 
 Print the numeric IDs of the containers only
 
+#### **--size**, **-s**
+
+Display the total file size
+
 #### **--sort**=*created*
 
 Sort by command, created, id, image, names, runningfor, size, or status",
 Note: Choosing size will sort by size of rootFs, not alphabetically like the rest of the options
-
-#### **--size**, **-s**
-
-Display the total file size
 
 #### **--sync**
 

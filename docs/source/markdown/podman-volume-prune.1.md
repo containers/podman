@@ -15,10 +15,6 @@ unused volumes. To bypass the confirmation, use the **--force** flag.
 
 ## OPTIONS
 
-#### **--force**, **-f**
-
-Do not prompt for confirmation.
-
 #### **--filter**
 
 Provide filter values.
@@ -35,6 +31,10 @@ Supported filters:
 The `label` *filter* accepts two formats. One is the `label`=*key* or `label`=*key*=*value*, which removes volumes with the specified labels. The other format is the `label!`=*key* or `label!`=*key*=*value*, which removes volumes without the specified labels.
 
 The `until` *filter* can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. 10m, 1h30m) computed relative to the machine’s time.
+
+#### **--force**, **-f**
+
+Do not prompt for confirmation.
 
 #### **--help**
 

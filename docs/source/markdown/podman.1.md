@@ -32,21 +32,13 @@ The CGroup manager to use for container cgroups. Supported values are cgroupfs o
 Note: Setting this flag can cause certain commands to break when called on containers previously created by the other CGroup manager type.
 Note: CGroup manager is not supported in rootless mode when using CGroups Version V1.
 
-#### **--network-config-dir**=*directory*
-
-Path to the directory where network configuration files are located.
-For the CNI backend the default is "/etc/cni/net.d" as root
-and "$HOME/.config/cni/net.d" as rootless.
-For the netavark backend "/etc/containers/networks" is used as root
-and "$graphroot/networks" as rootless.
+#### **--conmon**
+Path of the conmon binary (Default path is configured in `containers.conf`)
 
 #### **--connection**, **-c**
 Connection to use for remote podman, including Mac and Windows (excluding WSL2) machines, (Default connection is configured in `containers.conf`)
 Setting this option will switch the **--remote** option to true.
 Remote connections use local containers.conf for default.
-
-#### **--conmon**
-Path of the conmon binary (Default path is configured in `containers.conf`)
 
 #### **--events-backend**=*type*
 
@@ -98,6 +90,14 @@ When namespace is set, created containers and pods will join the given namespace
 #### **--network-cmd-path**=*path*
 Path to the command binary to use for setting up a network.  It is currently only used for setting up a slirp4netns network.  If "" is used then the binary is looked up using the $PATH environment variable.
 
+#### **--network-config-dir**=*directory*
+
+Path to the directory where network configuration files are located.
+For the CNI backend the default is "/etc/cni/net.d" as root
+and "$HOME/.config/cni/net.d" as rootless.
+For the netavark backend "/etc/containers/networks" is used as root
+and "$graphroot/networks" as rootless.
+
 #### **--noout**
 
 Redirect stdout to /dev/null. This command will prevent all stdout from the Podman command. The **--noout**  option will not block stderr or stdout from containers.
@@ -106,39 +106,6 @@ Redirect stdout to /dev/null. This command will prevent all stdout from the Podm
 When true, access to the Podman service will be remote. Defaults to false.
 Settings can be modified in the containers.conf file. If the CONTAINER_HOST
 environment variable is set, the **--remote** option defaults to true.
-
-#### **--url**=*value*
-URL to access Podman service (default from `containers.conf`, rootless `unix://run/user/$UID/podman/podman.sock` or as root `unix://run/podman/podman.sock`).
-Setting this option will switch the **--remote** option to true.
-
- - `CONTAINER_HOST` is of the format `<schema>://[<user[:<password>]@]<host>[:<port>][<path>]`
-
-Details:
- - `schema` is one of:
-   * `ssh` (default): a local unix(7) socket on the named `host` and `port`, reachable via SSH
-   * `tcp`: an unencrypted, unauthenticated TCP connection to the named `host` and `port`
-   * `unix`: a local unix(7) socket at the specified `path`, or the default for the user
- - `user` will default to either `root` or the current running user (`ssh` only)
- - `password` has no default (`ssh` only)
- - `host` must be provided and is either the IP or name of the machine hosting the Podman service (`ssh` and `tcp`)
- - `port` defaults to 22 (`ssh` and `tcp`)
- - `path` defaults to either `/run/podman/podman.sock`, or `/run/user/$UID/podman/podman.sock` if running rootless (`unix`), or must be explicitly specified (`ssh`)
-
-URL value resolution precedence:
- - command line value
- - environment variable `CONTAINER_HOST`
- - `containers.conf` `service_destinations` table
- - `unix://run/podman/podman.sock`
-
-Remote connections use local containers.conf for default.
-
-Some example URL values in valid formats:
- - unix://run/podman/podman.sock
- - unix://run/user/$UID/podman/podman.sock
- - ssh://notroot@localhost:22/run/user/$UID/podman/podman.sock
- - ssh://root@localhost:22/run/podman/podman.sock
- - tcp://localhost:34451
- - tcp://127.0.0.1:34451
 
 #### **--root**=*value*
 
@@ -188,6 +155,39 @@ On remote clients, including Mac and Windows (excluding WSL2) machines, logging 
 Path to the tmp directory, for libpod runtime content.
 
 NOTE --tmpdir is not used for the temporary storage of downloaded images.  Use the environment variable `TMPDIR` to change the temporary storage location of downloaded container images. Podman defaults to use `/var/tmp`.
+
+#### **--url**=*value*
+URL to access Podman service (default from `containers.conf`, rootless `unix://run/user/$UID/podman/podman.sock` or as root `unix://run/podman/podman.sock`).
+Setting this option will switch the **--remote** option to true.
+
+ - `CONTAINER_HOST` is of the format `<schema>://[<user[:<password>]@]<host>[:<port>][<path>]`
+
+Details:
+ - `schema` is one of:
+   * `ssh` (default): a local unix(7) socket on the named `host` and `port`, reachable via SSH
+   * `tcp`: an unencrypted, unauthenticated TCP connection to the named `host` and `port`
+   * `unix`: a local unix(7) socket at the specified `path`, or the default for the user
+ - `user` will default to either `root` or the current running user (`ssh` only)
+ - `password` has no default (`ssh` only)
+ - `host` must be provided and is either the IP or name of the machine hosting the Podman service (`ssh` and `tcp`)
+ - `port` defaults to 22 (`ssh` and `tcp`)
+ - `path` defaults to either `/run/podman/podman.sock`, or `/run/user/$UID/podman/podman.sock` if running rootless (`unix`), or must be explicitly specified (`ssh`)
+
+URL value resolution precedence:
+ - command line value
+ - environment variable `CONTAINER_HOST`
+ - `containers.conf` `service_destinations` table
+ - `unix://run/podman/podman.sock`
+
+Remote connections use local containers.conf for default.
+
+Some example URL values in valid formats:
+ - unix://run/podman/podman.sock
+ - unix://run/user/$UID/podman/podman.sock
+ - ssh://notroot@localhost:22/run/user/$UID/podman/podman.sock
+ - ssh://root@localhost:22/run/podman/podman.sock
+ - tcp://localhost:34451
+ - tcp://127.0.0.1:34451
 
 #### **--version**, **-v**
 

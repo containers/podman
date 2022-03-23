@@ -24,13 +24,13 @@ Note: `:` is a restricted character and cannot be part of the file name.
 
 ## OPTIONS
 
-#### **--output**, **-o**
-
-Write to a file, default is STDOUT
-
 #### **--help**, **-h**
 
 Print usage statement
+
+#### **--output**, **-o**
+
+Write to a file, default is STDOUT
 
 ## EXAMPLES
 

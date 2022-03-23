@@ -18,14 +18,13 @@ Note: Following command is not supported by podman-remote.
 
 ## OPTIONS
 
-#### **--output**, **-o**=*file*
-
-Write to a file, default is STDOUT
-
 #### **--help**
 
 Print usage statement
 
+#### **--output**, **-o**=*file*
+
+Write to a file, default is STDOUT
 
 ## EXAMPLES
 

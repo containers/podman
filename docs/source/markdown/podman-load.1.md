@@ -26,6 +26,10 @@ Note: `:` is a restricted character and cannot be part of the file name.
 
 ## OPTIONS
 
+#### **--help**, **-h**
+
+Print usage statement
+
 #### **--input**, **-i**=*input*
 
 Load the specified input file instead of from stdin.  The file can be on the local file system or on a server (e.g., https://server.com/archive.tar)
@@ -37,10 +41,6 @@ NOTE: Use the environment variable `TMPDIR` to change the temporary storage loca
 #### **--quiet**, **-q**
 
 Suppress the progress output
-
-#### **--help**, **-h**
-
-Print usage statement
 
 ## EXAMPLES
 
