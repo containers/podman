@@ -103,6 +103,12 @@ type ImportOptions struct {
 	Reference *string
 	// Url to option image to import. Cannot be used with the reader
 	URL *string
+	// OS for the imported image
+	OS *string
+	// Architecture for the imported image
+	Architecture *string
+	// Variant for the imported image
+	Variant *string
 }
 
 //go:generate go run ../generator/generator.go PushOptions

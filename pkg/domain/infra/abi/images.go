@@ -445,7 +445,8 @@ func (ir *ImageEngine) Import(ctx context.Context, options entities.ImageImportO
 	importOptions.Tag = options.Reference
 	importOptions.SignaturePolicyPath = options.SignaturePolicy
 	importOptions.OS = options.OS
-	importOptions.Architecture = options.Architecture
+	importOptions.Arch = options.Architecture
+	importOptions.Variant = options.Variant
 
 	if !options.Quiet {
 		importOptions.Writer = os.Stderr

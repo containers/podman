@@ -279,6 +279,7 @@ type ImageLoadReport struct {
 
 type ImageImportOptions struct {
 	Architecture    string
+	Variant         string
 	Changes         []string
 	Message         string
 	OS              string

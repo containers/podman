@@ -76,3 +76,48 @@ func (o *ImportOptions) GetURL() string {
 	}
 	return *o.URL
 }
+
+// WithOS set field OS to given value
+func (o *ImportOptions) WithOS(value string) *ImportOptions {
+	o.OS = &value
+	return o
+}
+
+// GetOS returns value of field OS
+func (o *ImportOptions) GetOS() string {
+	if o.OS == nil {
+		var z string
+		return z
+	}
+	return *o.OS
+}
+
+// WithArchitecture set field Architecture to given value
+func (o *ImportOptions) WithArchitecture(value string) *ImportOptions {
+	o.Architecture = &value
+	return o
+}
+
+// GetArchitecture returns value of field Architecture
+func (o *ImportOptions) GetArchitecture() string {
+	if o.Architecture == nil {
+		var z string
+		return z
+	}
+	return *o.Architecture
+}
+
+// WithVariant set field Variant to given value
+func (o *ImportOptions) WithVariant(value string) *ImportOptions {
+	o.Variant = &value
+	return o
+}
+
+// GetVariant returns value of field Variant
+func (o *ImportOptions) GetVariant() string {
+	if o.Variant == nil {
+		var z string
+		return z
+	}
+	return *o.Variant
+}

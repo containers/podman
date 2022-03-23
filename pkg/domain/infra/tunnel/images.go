@@ -230,6 +230,7 @@ func (ir *ImageEngine) Import(ctx context.Context, opts entities.ImageImportOpti
 		f   *os.File
 	)
 	options := new(images.ImportOptions).WithChanges(opts.Changes).WithMessage(opts.Message).WithReference(opts.Reference)
+	options.WithOS(opts.OS).WithArchitecture(opts.Architecture).WithVariant(opts.Variant)
 	if opts.SourceIsURL {
 		options.WithURL(opts.Source)
 	} else {
