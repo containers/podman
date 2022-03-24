@@ -1,4 +1,3 @@
-// +linux
 package libpod
 
 import (
