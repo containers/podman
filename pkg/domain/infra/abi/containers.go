@@ -1496,6 +1496,35 @@ func (ic *ContainerEngine) ContainerClone(ctx context.Context, ctrCloneOpts enti
 		return nil, err
 	}
 
+	if ctrCloneOpts.CreateOpts.Pod != "" {
+		pod, err := ic.Libpod.LookupPod(ctrCloneOpts.CreateOpts.Pod)
+		if err != nil {
+			return nil, err
+		}
+
+		allNamespaces := []struct {
+			isShared bool
+			value    *specgen.Namespace
+		}{
+			{pod.SharesPID(), &spec.PidNS},
+			{pod.SharesNet(), &spec.NetNS},
+			{pod.SharesCgroup(), &spec.CgroupNS},
+			{pod.SharesIPC(), &spec.IpcNS},
+			{pod.SharesUTS(), &spec.UtsNS},
+		}
+
+		printWarning := false
+		for _, n := range allNamespaces {
+			if n.isShared && !n.value.IsDefault() {
+				*n.value = specgen.Namespace{NSMode: specgen.Default}
+				printWarning = true
+			}
+		}
+		if printWarning {
+			logrus.Warning("At least one namespace was reset to the default configuration")
+		}
+	}
+
 	err = specgenutil.FillOutSpecGen(spec, &ctrCloneOpts.CreateOpts, []string{})
 	if err != nil {
 		return nil, err
