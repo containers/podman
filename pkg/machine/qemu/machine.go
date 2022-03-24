@@ -1060,26 +1060,12 @@ func (v *MachineVM) isIncompatible() bool {
 }
 
 func (v *MachineVM) getForwardSocketPath() (string, error) {
-	path, err := machine.GetDataDir(v.Name)
+	qemuSocketDir, _, err := v.getSocketandPid()
 	if err != nil {
-		logrus.Errorf("Error resolving data dir: %s", err.Error())
+		logrus.Errorf("Error resolving socket dir: %s", err.Error())
 		return "", nil
 	}
-	return filepath.Join(path, "podman.sock"), nil
-}
-
-func (v *MachineVM) getSocketandPid() (string, string, error) {
-	rtPath, err := getRuntimeDir()
-	if err != nil {
-		return "", "", err
-	}
-	if !rootless.IsRootless() {
-		rtPath = "/run"
-	}
-	socketDir := filepath.Join(rtPath, "podman")
-	pidFile := filepath.Join(socketDir, fmt.Sprintf("%s.pid", v.Name))
-	qemuSocket := filepath.Join(socketDir, fmt.Sprintf("qemu_%s.sock", v.Name))
-	return qemuSocket, pidFile, nil
+	return filepath.Join(filepath.Dir(qemuSocketDir), "podman.sock"), nil
 }
 
 func checkSockInUse(sock string) bool {
