@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -165,20 +166,21 @@ func Login(ctx context.Context, systemContext *types.SystemContext, opts *LoginO
 // parseCredentialsKey turns the provided argument into a valid credential key
 // and computes the registry part.
 func parseCredentialsKey(arg string, acceptRepositories bool) (key, registry string, err error) {
+	// URL arguments are replaced with their host[:port] parts.
+	key, err = replaceURLByHostPort(arg)
+	if err != nil {
+		return "", "", err
+	}
+
+	split := strings.Split(key, "/")
+	registry = split[0]
+
 	if !acceptRepositories {
-		registry = getRegistryName(arg)
-		key = registry
-		return key, registry, nil
+		return registry, registry, nil
 	}
 
-	key = trimScheme(arg)
-	if key != arg {
-		return "", "", errors.New("credentials key has https[s]:// prefix")
-	}
-
-	registry = getRegistryName(key)
+	// Return early if the key isn't namespaced or uses an http{s} prefix.
 	if registry == key {
-		// The key is not namespaced
 		return key, registry, nil
 	}
 
@@ -202,24 +204,18 @@ func parseCredentialsKey(arg string, acceptRepositories bool) (key, registry str
 	return key, registry, nil
 }
 
-// getRegistryName scrubs and parses the input to get the server name
-func getRegistryName(server string) string {
-	// removes 'http://' or 'https://' from the front of the
-	// server/registry string if either is there.  This will be mostly used
-	// for user input from 'Buildah login' and 'Buildah logout'.
-	server = trimScheme(server)
-	// gets the registry from the input. If the input is of the form
-	// quay.io/myuser/myimage, it will parse it and just return quay.io
-	split := strings.Split(server, "/")
-	return split[0]
-}
-
-// trimScheme removes the HTTP(s) scheme from the provided repository.
-func trimScheme(repository string) string {
-	// removes 'http://' or 'https://' from the front of the
-	// server/registry string if either is there.  This will be mostly used
-	// for user input from 'Buildah login' and 'Buildah logout'.
-	return strings.TrimPrefix(strings.TrimPrefix(repository, "https://"), "http://")
+// If the specified string starts with http{s} it is replaced with it's
+// host[:port] parts; everything else is stripped. Otherwise, the string is
+// returned as is.
+func replaceURLByHostPort(repository string) (string, error) {
+	if !strings.HasPrefix(repository, "https://") && !strings.HasPrefix(repository, "http://") {
+		return repository, nil
+	}
+	u, err := url.Parse(repository)
+	if err != nil {
+		return "", fmt.Errorf("trimming http{s} prefix: %v", err)
+	}
+	return u.Host, nil
 }
 
 // getUserAndPass gets the username and password from STDIN if not given
