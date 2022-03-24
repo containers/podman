@@ -1587,11 +1587,13 @@ func readConmonPipeData(runtimeName string, pipe *os.File, ociLog string) (int, 
 		var si *syncInfo
 		rdr := bufio.NewReader(pipe)
 		b, err := rdr.ReadBytes('\n')
-		if err != nil {
+		// ignore EOF here, error is returned even when data was read
+		// if it is no valid json unmarshal will fail below
+		if err != nil && !errors.Is(err, io.EOF) {
 			ch <- syncStruct{err: err}
 		}
 		if err := json.Unmarshal(b, &si); err != nil {
-			ch <- syncStruct{err: err}
+			ch <- syncStruct{err: fmt.Errorf("conmon bytes %q: %w", string(b), err)}
 			return
 		}
 		ch <- syncStruct{si: si}
