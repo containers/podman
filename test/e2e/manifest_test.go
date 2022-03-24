@@ -309,6 +309,13 @@ var _ = Describe("Podman manifest", func() {
 		Expect(err).To(BeNil())
 	})
 
+	It("push with error", func() {
+		session := podmanTest.Podman([]string{"manifest", "push", "badsrcvalue", "baddestvalue"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError())
+		Expect(session.ErrorToString()).NotTo(BeEmpty())
+	})
+
 	It("push --rm", func() {
 		SkipIfRemote("remote does not support --rm")
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
