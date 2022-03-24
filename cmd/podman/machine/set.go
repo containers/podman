@@ -16,7 +16,7 @@ var (
 		Long:              "Sets an updatable virtual machine setting",
 		RunE:              setMachine,
 		Args:              cobra.MaximumNArgs(1),
-		Example:           `podman machine set --root=false`,
+		Example:           `podman machine set --rootful=false`,
 		ValidArgsFunction: completion.AutocompleteNone,
 	}
 )
