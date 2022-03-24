@@ -292,7 +292,7 @@ validate: gofmt lint .gitvalidation validate.completions man-page-check swagger-
 .PHONY: build-all-new-commits
 build-all-new-commits:
 	# Validate that all the commits build on top of $(GIT_BASE_BRANCH)
-	git rebase $(GIT_BASE_BRANCH) -x make
+	git rebase $(GIT_BASE_BRANCH) -x "$(MAKE)"
 
 .PHONY: vendor
 vendor:
