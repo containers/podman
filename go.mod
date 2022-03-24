@@ -54,6 +54,7 @@ require (
 	github.com/opencontainers/selinux v1.8.5
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0
+	github.com/prometheus/client_golang v1.11.1 // indirect
 	github.com/rootless-containers/rootlesskit v0.14.5
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.2.1
