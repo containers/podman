@@ -36,6 +36,8 @@ do
     fi
 done
 
+cp hack/podman-registry /bin
+
 # Make sure cni network plugins directory exists
 mkdir -p /etc/cni/net.d
 

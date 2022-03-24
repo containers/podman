@@ -50,6 +50,7 @@ func (ir *ImageEngine) ManifestInspect(_ context.Context, name string) ([]byte, 
 func (ir *ImageEngine) ManifestAdd(_ context.Context, name string, imageNames []string, opts entities.ManifestAddOptions) (string, error) {
 	options := new(manifests.AddOptions).WithAll(opts.All).WithArch(opts.Arch).WithVariant(opts.Variant)
 	options.WithFeatures(opts.Features).WithImages(imageNames).WithOS(opts.OS).WithOSVersion(opts.OSVersion)
+	options.WithUsername(opts.Username).WithPassword(opts.Password).WithAuthfile(opts.Authfile)
 	if len(opts.Annotation) != 0 {
 		annotations := make(map[string]string)
 		for _, annotationSpec := range opts.Annotation {
@@ -60,6 +61,13 @@ func (ir *ImageEngine) ManifestAdd(_ context.Context, name string, imageNames []
 			annotations[spec[0]] = spec[1]
 		}
 		options.WithAnnotation(annotations)
+	}
+	if s := opts.SkipTLSVerify; s != types.OptionalBoolUndefined {
+		if s == types.OptionalBoolTrue {
+			options.WithSkipTLSVerify(true)
+		} else {
+			options.WithSkipTLSVerify(false)
+		}
 	}
 
 	id, err := manifests.Add(ir.ClientCtx, name, options)

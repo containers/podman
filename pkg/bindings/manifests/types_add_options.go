@@ -136,3 +136,63 @@ func (o *AddOptions) GetVariant() string {
 	}
 	return *o.Variant
 }
+
+// WithAuthfile set field Authfile to given value
+func (o *AddOptions) WithAuthfile(value string) *AddOptions {
+	o.Authfile = &value
+	return o
+}
+
+// GetAuthfile returns value of field Authfile
+func (o *AddOptions) GetAuthfile() string {
+	if o.Authfile == nil {
+		var z string
+		return z
+	}
+	return *o.Authfile
+}
+
+// WithPassword set field Password to given value
+func (o *AddOptions) WithPassword(value string) *AddOptions {
+	o.Password = &value
+	return o
+}
+
+// GetPassword returns value of field Password
+func (o *AddOptions) GetPassword() string {
+	if o.Password == nil {
+		var z string
+		return z
+	}
+	return *o.Password
+}
+
+// WithUsername set field Username to given value
+func (o *AddOptions) WithUsername(value string) *AddOptions {
+	o.Username = &value
+	return o
+}
+
+// GetUsername returns value of field Username
+func (o *AddOptions) GetUsername() string {
+	if o.Username == nil {
+		var z string
+		return z
+	}
+	return *o.Username
+}
+
+// WithSkipTLSVerify set field SkipTLSVerify to given value
+func (o *AddOptions) WithSkipTLSVerify(value bool) *AddOptions {
+	o.SkipTLSVerify = &value
+	return o
+}
+
+// GetSkipTLSVerify returns value of field SkipTLSVerify
+func (o *AddOptions) GetSkipTLSVerify() bool {
+	if o.SkipTLSVerify == nil {
+		var z bool
+		return z
+	}
+	return *o.SkipTLSVerify
+}
