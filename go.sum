@@ -331,8 +331,9 @@ github.com/containers/common v0.47.5 h1:Qm9o+wVPO9sbggTKubN3xYMtPRaPv7dmcrJQgong
 github.com/containers/common v0.47.5/go.mod h1:HgX0mFXyB0Tbe2REEIp9x9CxET6iSzmHfwR6S/t2LZc=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
-github.com/containers/image/v5 v5.19.1 h1:g4/+XIuh1kRoRn2MfLDhfHhkNOIO9JtqhSyo55tjpfE=
 github.com/containers/image/v5 v5.19.1/go.mod h1:ewoo3u+TpJvGmsz64XgzbyTHwHtM94q7mgK/pX+v2SE=
+github.com/containers/image/v5 v5.19.2 h1:SYdsZN+LivgzoWlsMPGywwybwU8uXbeoa9VqnuelDzA=
+github.com/containers/image/v5 v5.19.2/go.mod h1:4LnzIMS0IclD+4NAzzbryLGcSmrKoyLJmNaZp16ke6A=
 github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b h1:Q8ePgVfHDplZ7U33NwHZkrVELsZP5fYj9pM5WBZB2GE=
 github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b/go.mod h1:9rfv8iPl1ZP7aqh9YA68wnZv2NUDbXdcdPHVz0pFbPY=
 github.com/containers/ocicrypt v1.0.1/go.mod h1:MeJDzk1RJHv89LjsH0Sp5KTY3ZYkjXO/C+bKAeWFIrc=
@@ -344,8 +345,9 @@ github.com/containers/psgo v1.7.2 h1:WbCvsY9w+nCv3j4der0mbD3PSRUv/W8l+G0YrZrdSDc
 github.com/containers/psgo v1.7.2/go.mod h1:SLpqxsPOHtTqRygjutCPXmeU2PoEFzV3gzJplN4BMx0=
 github.com/containers/storage v1.37.0/go.mod h1:kqeJeS0b7DO2ZT1nVWs0XufrmPFbgV3c+Q/45RlH6r4=
 github.com/containers/storage v1.38.0/go.mod h1:lBzt28gAk5ADZuRtwdndRJyqX22vnRaXmlF+7ktfMYc=
-github.com/containers/storage v1.38.2 h1:8bAIxnVBGKzMw5EWCivVj24bztQT6IkDp4uHiyhnzwE=
 github.com/containers/storage v1.38.2/go.mod h1:INP0RPLHWBxx+pTsO5uiHlDUGHDFvWZPWprAbAlQWPQ=
+github.com/containers/storage v1.38.3 h1:GP1JU51sgwuqEu4+Lp8taBsqbkHgHVqzb/uzqZF9HOc=
+github.com/containers/storage v1.38.3/go.mod h1:INP0RPLHWBxx+pTsO5uiHlDUGHDFvWZPWprAbAlQWPQ=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-etcd v2.0.0+incompatible/go.mod h1:Jez6KQU2B/sWsbdaef3ED8NzMklzPG4d5KIOhIy30Tk=
