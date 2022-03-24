@@ -603,7 +603,8 @@ github.com/pkg/errors
 github.com/pmezard/go-difflib/difflib
 # github.com/proglottis/gpgme v0.1.1
 github.com/proglottis/gpgme
-# github.com/prometheus/client_golang v1.11.0
+# github.com/prometheus/client_golang v1.11.1
+## explicit
 github.com/prometheus/client_golang/prometheus
 github.com/prometheus/client_golang/prometheus/internal
 github.com/prometheus/client_golang/prometheus/promhttp
