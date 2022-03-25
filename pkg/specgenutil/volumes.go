@@ -3,7 +3,7 @@ package specgenutil
 import (
 	"encoding/csv"
 	"fmt"
-	"path/filepath"
+	"path"
 	"strings"
 
 	"github.com/containers/common/pkg/parse"
@@ -123,7 +123,7 @@ func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string, addReadOnlyTmpfs bo
 	finalMounts := make([]spec.Mount, 0, len(unifiedMounts))
 	for _, mount := range unifiedMounts {
 		if mount.Type == define.TypeBind {
-			absSrc, err := filepath.Abs(mount.Source)
+			absSrc, err := specgen.ConvertWinMountPath(mount.Source)
 			if err != nil {
 				return nil, nil, nil, nil, errors.Wrapf(err, "error getting absolute path of %s", mount.Source)
 			}
@@ -334,7 +334,7 @@ func getBindMount(args []string) (spec.Mount, error) {
 			if err := parse.ValidateVolumeCtrDir(kv[1]); err != nil {
 				return newMount, err
 			}
-			newMount.Destination = filepath.Clean(kv[1])
+			newMount.Destination = unixPathClean(kv[1])
 			setDest = true
 		case "relabel":
 			if setRelabel {
@@ -456,7 +456,7 @@ func getTmpfsMount(args []string) (spec.Mount, error) {
 			if err := parse.ValidateVolumeCtrDir(kv[1]); err != nil {
 				return newMount, err
 			}
-			newMount.Destination = filepath.Clean(kv[1])
+			newMount.Destination = unixPathClean(kv[1])
 			setDest = true
 		case "U", "chown":
 			if setOwnership {
@@ -507,7 +507,7 @@ func getDevptsMount(args []string) (spec.Mount, error) {
 			if err := parse.ValidateVolumeCtrDir(kv[1]); err != nil {
 				return newMount, err
 			}
-			newMount.Destination = filepath.Clean(kv[1])
+			newMount.Destination = unixPathClean(kv[1])
 			setDest = true
 		default:
 			return newMount, errors.Wrapf(util.ErrBadMntOption, "%s", kv[0])
@@ -572,7 +572,7 @@ func getNamedVolume(args []string) (*specgen.NamedVolume, error) {
 			if err := parse.ValidateVolumeCtrDir(kv[1]); err != nil {
 				return nil, err
 			}
-			newVolume.Dest = filepath.Clean(kv[1])
+			newVolume.Dest = unixPathClean(kv[1])
 			setDest = true
 		case "U", "chown":
 			if setOwnership {
@@ -624,7 +624,7 @@ func getImageVolume(args []string) (*specgen.ImageVolume, error) {
 			if err := parse.ValidateVolumeCtrDir(kv[1]); err != nil {
 				return nil, err
 			}
-			newVolume.Destination = filepath.Clean(kv[1])
+			newVolume.Destination = unixPathClean(kv[1])
 		case "rw", "readwrite":
 			switch kv[1] {
 			case "true":
@@ -670,7 +670,7 @@ func getTmpfsMounts(tmpfsFlag []string) (map[string]spec.Mount, error) {
 		}
 
 		mount := spec.Mount{
-			Destination: filepath.Clean(destPath),
+			Destination: unixPathClean(destPath),
 			Type:        define.TypeTmpfs,
 			Options:     options,
 			Source:      define.TypeTmpfs,
@@ -699,4 +699,9 @@ func validChownFlag(flag string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// Use path instead of filepath to preserve Unix style paths on Windows
+func unixPathClean(p string) string {
+	return path.Clean(p)
 }

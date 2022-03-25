@@ -448,6 +448,10 @@ func configureSystem(v *MachineVM, dist string) error {
 		return errors.Wrap(err, "could not create containers.conf for guest OS")
 	}
 
+	if err := runCmdPassThrough("wsl", "-d", dist, "sh", "-c", "echo wsl > /etc/containers/podman-machine"); err != nil {
+		return errors.Wrap(err, "could not create podman-machine file for guest OS")
+	}
+
 	return nil
 }
 

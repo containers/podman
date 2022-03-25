@@ -63,7 +63,7 @@ const (
 // This is need because a HostIP of 127.0.0.1 would now allow the gvproxy forwarder to reach to open ports.
 // For machine the HostIP must only be used by gvproxy and never in the VM.
 func (c *Container) convertPortMappings() []types.PortMapping {
-	if !machine.IsPodmanMachine() || len(c.config.PortMappings) == 0 {
+	if !machine.IsGvProxyBased() || len(c.config.PortMappings) == 0 {
 		return c.config.PortMappings
 	}
 	// if we run in a machine VM we have to ignore the host IP part

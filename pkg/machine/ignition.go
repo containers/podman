@@ -304,6 +304,8 @@ ExecStart=/usr/bin/sleep infinity
 	containers := `[containers]
 netns="bridge"
 `
+	// Set deprecated machine_enabled until podman package on fcos is
+	// current enough to no longer require it
 	rootContainers := `[engine]
 machine_enabled=true
 `
@@ -392,7 +394,7 @@ Delegate=memory pids cpu io
 		FileEmbedded1: FileEmbedded1{Mode: intToPtr(0644)},
 	})
 
-	// Set machine_enabled to true to indicate we're in a VM
+	// Set deprecated machine_enabled to true to indicate we're in a VM
 	files = append(files, File{
 		Node: Node{
 			Group: getNodeGrp("root"),
@@ -403,6 +405,22 @@ Delegate=memory pids cpu io
 			Append: nil,
 			Contents: Resource{
 				Source: encodeDataURLPtr(rootContainers),
+			},
+			Mode: intToPtr(0644),
+		},
+	})
+
+	// Set machine marker file to indicate podman is in a qemu based machine
+	files = append(files, File{
+		Node: Node{
+			Group: getNodeGrp("root"),
+			Path:  "/etc/containers/podman-machine",
+			User:  getNodeUsr("root"),
+		},
+		FileEmbedded1: FileEmbedded1{
+			Append: nil,
+			Contents: Resource{
+				Source: encodeDataURLPtr("qemu\n"),
 			},
 			Mode: intToPtr(0644),
 		},
