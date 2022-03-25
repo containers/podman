@@ -435,7 +435,7 @@ var _ = Describe("Podman run", func() {
 			session = podmanTest.Podman([]string{"run", "--userns=keep-id", "--privileged", "--rm", ALPINE, "grep", "CapInh", "/proc/self/status"})
 			session.WaitWithDefaultTimeout()
 			Expect(session.ExitCode()).To(Equal(0))
-			Expect(session.OutputToString()).To(ContainSubstring("0000000000000002"))
+			Expect(session.OutputToString()).To(ContainSubstring("0000000000000000"))
 
 			session = podmanTest.Podman([]string{"run", "--userns=keep-id", "--cap-add=DAC_OVERRIDE", "--rm", ALPINE, "grep", "CapInh", "/proc/self/status"})
 			session.WaitWithDefaultTimeout()
