@@ -100,9 +100,7 @@ func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string
 	if p.NetworkBackend == Netavark {
 		runCmd = append(runCmd, []string{"--network-backend", "netavark"}...)
 	}
-	if p.RemoteTest {
-		podmanOptions = append([]string{"--remote", "--url", p.RemoteSocket}, podmanOptions...)
-	}
+
 	if env == nil {
 		fmt.Printf("Running: %s %s\n", strings.Join(runCmd, " "), strings.Join(podmanOptions, " "))
 	} else {

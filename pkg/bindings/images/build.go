@@ -367,20 +367,20 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 			return nil, err
 		}
 
-		// Check if Containerfile is in the context directory, if so truncate the contextdirectory off path
+		// Check if Containerfile is in the context directory, if so truncate the context directory off path
 		// Do NOT add to tarfile
 		if strings.HasPrefix(containerfile, contextDir+string(filepath.Separator)) {
 			containerfile = strings.TrimPrefix(containerfile, contextDir+string(filepath.Separator))
 			dontexcludes = append(dontexcludes, "!"+containerfile)
 		} else {
-			// If Containerfile does not exists assume it is in context directory, do Not add to tarfile
+			// If Containerfile does not exist, assume it is in context directory and do Not add to tarfile
 			if _, err := os.Lstat(containerfile); err != nil {
 				if !os.IsNotExist(err) {
 					return nil, err
 				}
 				containerfile = c
 			} else {
-				// If Containerfile does exists but is not in context directory add it to the tarfile
+				// If Containerfile does exist and not in the context directory, add it to the tarfile
 				tarContent = append(tarContent, containerfile)
 			}
 		}
@@ -586,6 +586,9 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 					return errors.Wrapf(err, "error checking if %q is excluded", name)
 				}
 				if excluded {
+					// Note: filepath.SkipDir is not possible to use given .dockerignore semantics.
+					// An exception to exclusions may include an excluded directory, therefore we
+					// are required to visit all files. :(
 					return nil
 				}
 
