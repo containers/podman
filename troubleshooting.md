@@ -912,7 +912,7 @@ Error: error creating tmpdir: mkdir /run/user/1000: permission denied
 
 #### Solution
 
-Podman expects a valid login session for the `rootless+cgroupv2` use-case. Podman execution is expected to fail if the login session is not present. In most cases, podman will figure out a solution on its own but if `XDG_RUNTIME_DIR` is pointing to a path that is not writable execution will most fail. Typical scenarious of such cases are seen when users are trying to use Podman with `su - <user> -c '<podman-command>`, or `sudo -l` and badly configured systemd session.
+Podman expects a valid login session for the `rootless+cgroupv2` use-case. Podman execution is expected to fail if the login session is not present. In most cases, podman will figure out a solution on its own but if `XDG_RUNTIME_DIR` is pointing to a path that is not writable execution will most fail. Typical scenarios of such cases are seen when users are trying to use Podman with `su - <user> -c '<podman-command>`, or `sudo -l` and badly configured systemd session.
 
 Alternatives:
 
@@ -1108,7 +1108,7 @@ ls: cannot open directory '/dir1': Permission denied
 
 #### Solution
 
-We follow essentialy the same solution as in the previous
+We follow essentially the same solution as in the previous
 troubleshooting tip:
  "_Container creates a file that is not owned by the regular UID_"
 but for this problem the container UID and GID can't be as
