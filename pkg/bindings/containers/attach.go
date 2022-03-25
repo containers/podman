@@ -242,7 +242,7 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 					}
 				}
 			case fd == 3:
-				return fmt.Errorf("error from service from stream: %s", frame)
+				return fmt.Errorf("from service from stream: %s", frame)
 			default:
 				return fmt.Errorf("unrecognized channel '%d' in header, 0-3 supported", fd)
 			}
@@ -562,7 +562,7 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 					}
 				}
 			case fd == 3:
-				return fmt.Errorf("error from service from stream: %s", frame)
+				return fmt.Errorf("from service from stream: %s", frame)
 			default:
 				return fmt.Errorf("unrecognized channel '%d' in header, 0-3 supported", fd)
 			}

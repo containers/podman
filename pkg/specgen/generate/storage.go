@@ -292,7 +292,7 @@ func getVolumesFrom(volumesFrom []string, runtime *libpod.Runtime) (map[string]s
 		// and append them in if we can find them.
 		spec := ctr.Spec()
 		if spec == nil {
-			return nil, nil, errors.Errorf("error retrieving container %s spec for volumes-from", ctr.ID())
+			return nil, nil, errors.Errorf("retrieving container %s spec for volumes-from", ctr.ID())
 		}
 		for _, mnt := range spec.Mounts {
 			if mnt.Type != define.TypeBind {

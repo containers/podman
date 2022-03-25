@@ -146,7 +146,7 @@ func tryMappingTool(uid bool, pid int, hostID int, mappings []idtools.IDMap) err
 	}
 
 	if output, err := cmd.CombinedOutput(); err != nil {
-		logrus.Errorf("error running `%s`: %s", strings.Join(args, " "), output)
+		logrus.Errorf("running `%s`: %s", strings.Join(args, " "), output)
 		return errors.Wrapf(err, "cannot setup namespace using %q", path)
 	}
 	return nil
@@ -174,7 +174,7 @@ func joinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
 
 	ret := C.reexec_in_user_namespace_wait(pidC, 0)
 	if ret < 0 {
-		return false, -1, errors.New("error waiting for the re-exec process")
+		return false, -1, errors.New("waiting for the re-exec process")
 	}
 
 	return true, int(ret), nil
@@ -374,7 +374,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 	if fileOutput != nil {
 		ret := C.reexec_in_user_namespace_wait(pidC, 0)
 		if ret < 0 {
-			return false, -1, errors.New("error waiting for the re-exec process")
+			return false, -1, errors.New("waiting for the re-exec process")
 		}
 
 		return true, 0, nil
@@ -391,11 +391,11 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 				return joinUserAndMountNS(uint(pid), "")
 			}
 		}
-		return false, -1, errors.New("error setting up the process")
+		return false, -1, errors.New("setting up the process")
 	}
 
 	if b[0] != '0' {
-		return false, -1, errors.New("error setting up the process")
+		return false, -1, errors.New("setting up the process")
 	}
 
 	signals := []os.Signal{}
@@ -425,7 +425,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 
 	ret := C.reexec_in_user_namespace_wait(pidC, 0)
 	if ret < 0 {
-		return false, -1, errors.New("error waiting for the re-exec process")
+		return false, -1, errors.New("waiting for the re-exec process")
 	}
 
 	return true, int(ret), nil

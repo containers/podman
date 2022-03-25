@@ -231,7 +231,7 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 				fmt.Fprintf(os.Stderr, "error inspecting object: %v\n", err)
 			}
 		}
-		return errors.Errorf("error inspecting object: %v", errs[0])
+		return errors.Errorf("inspecting object: %v", errs[0])
 	}
 	return nil
 }

@@ -662,7 +662,7 @@ func (r *Runtime) setupRootlessPortMappingViaSlirp(ctr *Container, cmd *exec.Cmd
 			return errors.Wrapf(err, "error parsing error status from slirp4netns")
 		}
 		if e, found := y["error"]; found {
-			return errors.Errorf("error from slirp4netns while setting up port redirection: %v", e)
+			return errors.Errorf("from slirp4netns while setting up port redirection: %v", e)
 		}
 	}
 	logrus.Debug("slirp4netns port-forwarding setup via add_hostfwd is ready")

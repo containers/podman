@@ -76,7 +76,7 @@ func inspect(cmd *cobra.Command, args []string) error {
 				fmt.Fprintf(os.Stderr, "error inspecting secret: %v\n", err)
 			}
 		}
-		return errors.Errorf("error inspecting secret: %v", errs[0])
+		return errors.Errorf("inspecting secret: %v", errs[0])
 	}
 	return nil
 }

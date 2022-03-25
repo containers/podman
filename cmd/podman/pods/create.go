@@ -179,7 +179,7 @@ func create(cmd *cobra.Command, args []string) error {
 			return errors.Errorf("pod id file exists. Ensure another pod is not using it or delete %s", podIDFile)
 		}
 		if err != nil {
-			return errors.Errorf("error opening pod-id-file %s", podIDFile)
+			return errors.Errorf("opening pod-id-file %s", podIDFile)
 		}
 		defer errorhandling.CloseQuiet(podIDFD)
 		defer errorhandling.SyncQuiet(podIDFD)

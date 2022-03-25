@@ -35,7 +35,7 @@ func TryJoinPauseProcess(pausePidPath string) (bool, int, error) {
 		if os.IsNotExist(err) {
 			return false, -1, nil
 		}
-		return false, -1, fmt.Errorf("error acquiring lock on %s: %w", pausePidPath, err)
+		return false, -1, fmt.Errorf("acquiring lock on %s: %w", pausePidPath, err)
 	}
 
 	pidFileLock.Lock()

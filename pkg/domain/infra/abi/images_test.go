@@ -48,7 +48,7 @@ func TestToDomainHistoryLayer(t *testing.T) {
 // 	r := DirectImageRuntime{m}
 // 	err := r.Delete(context.TODO(), actual, "fedora")
 // 	if err != nil {
-// 		t.Errorf("error should be nil, got: %v", err)
+// 		t.Errorf("should be nil, got: %v", err)
 // 	}
 // 	m.AssertExpectations(t)
 // }

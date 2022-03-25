@@ -976,7 +976,7 @@ func parseThrottleIOPsDevices(iopsDevices []string) (map[string]specs.LinuxThrot
 }
 
 func parseSecrets(secrets []string) ([]specgen.Secret, map[string]string, error) {
-	secretParseError := errors.New("error parsing secret")
+	secretParseError := errors.New("parsing secret")
 	var mount []specgen.Secret
 	envs := make(map[string]string)
 	for _, val := range secrets {

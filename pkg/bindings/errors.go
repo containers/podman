@@ -54,6 +54,6 @@ func CheckResponseCode(inError error) (int, error) {
 	case *errorhandling.PodConflictErrorModel:
 		return e.Code(), nil
 	default:
-		return -1, errors.New("error is not type ErrorModel")
+		return -1, errors.New("is not type ErrorModel")
 	}
 }
