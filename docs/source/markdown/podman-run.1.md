@@ -1936,8 +1936,6 @@ $ podman run --network net1:ip=10.89.1.5 --network net2:ip=10.89.10.10 alpine ip
 Podman runs as a non-root user on most systems. This feature requires that a new enough version of **shadow-utils**
 be installed. The **shadow-utils** package must include the **newuidmap**(1) and **newgidmap**(1) executables.
 
-Note: RHEL7 and Centos 7 will not have this feature until RHEL7.7 is released.
-
 In order for users to run rootless, there must be an entry for their username in _/etc/subuid_ and _/etc/subgid_ which lists the UIDs for their user namespace.
 
 Rootless Podman works better if the fuse-overlayfs and slirp4netns packages are installed.
