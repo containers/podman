@@ -883,9 +883,9 @@ func setCapabilities(spec *specs.Spec, keepCaps ...string) error {
 	capMap := map[capability.CapType][]string{
 		capability.BOUNDING:    spec.Process.Capabilities.Bounding,
 		capability.EFFECTIVE:   spec.Process.Capabilities.Effective,
-		capability.INHERITABLE: spec.Process.Capabilities.Inheritable,
+		capability.INHERITABLE: []string{},
 		capability.PERMITTED:   spec.Process.Capabilities.Permitted,
-		capability.AMBIENT:     spec.Process.Capabilities.Ambient,
+		capability.AMBIENT:     []string{},
 	}
 	knownCaps := capability.List()
 	caps.Clear(capability.CAPS | capability.BOUNDS | capability.AMBS)
