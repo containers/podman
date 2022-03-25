@@ -766,7 +766,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 
 	}
 
-	It("podman run newtork inspect fails gracefully on non-reachable network ns", func() {
+	It("podman run network inspect fails gracefully on non-reachable network ns", func() {
 		SkipIfRootless("ip netns is not supported for rootless users")
 
 		networkNSName := RandomString(12)

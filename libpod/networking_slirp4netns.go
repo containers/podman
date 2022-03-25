@@ -338,7 +338,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container, netns ns.NetNS) error {
 					return err
 				}
 
-				// wait until slirp4nets is ready before reseting this value
+				// wait until slirp4nets is ready before resetting this value
 				slirpReadyWg.Wait()
 				return ioutil.WriteFile(ipv6ConfDefaultAcceptDadSysctl, orgValue, 0644)
 			})
