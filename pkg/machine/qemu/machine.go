@@ -111,7 +111,7 @@ func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 		return nil, err
 	}
 	vm.QMPMonitor = monitor
-	cmd = append(cmd, []string{"-qmp", monitor.Network + ":/" + monitor.Address + ",server=on,wait=off"}...)
+	cmd = append(cmd, []string{"-qmp", monitor.Network + ":/" + monitor.Address.GetPath() + ",server=on,wait=off"}...)
 
 	// Add network
 	// Right now the mac address is hardcoded so that the host networking gives it a specific IP address.  This is
@@ -134,7 +134,8 @@ func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 // LoadByName reads a json file that describes a known qemu vm
 // and returns a vm instance
 func (p *Provider) LoadVMByName(name string) (machine.VM, error) {
-	vm := &MachineVM{UID: -1} // posix reserves -1, so use it to signify undefined
+	vm := &MachineVM{Name: name}
+	vm.HostUser = HostUser{UID: -1} // posix reserves -1, so use it to signify undefined
 	vmConfigDir, err := machine.GetConfDir(vmtype)
 	if err != nil {
 		return nil, err
@@ -176,7 +177,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	v.Rootful = opts.Rootful
 
 	switch opts.ImagePath {
-	case "testing", "next", "stable", "":
+	case Testing, Next, Stable, "":
 		// Get image as usual
 		v.ImageStream = opts.ImagePath
 		dd, err := machine.NewFcosDownloader(vmtype, v.Name, opts.ImagePath)
@@ -576,12 +577,12 @@ func (v *MachineVM) checkStatus(monitor *qmp.SocketMonitor) (machine.QemuMachine
 func (v *MachineVM) Stop(name string, _ machine.StopOptions) error {
 	var disconnected bool
 	// check if the qmp socket is there. if not, qemu instance is gone
-	if _, err := os.Stat(v.QMPMonitor.Address); os.IsNotExist(err) {
+	if _, err := os.Stat(v.QMPMonitor.Address.GetPath()); os.IsNotExist(err) {
 		// Right now it is NOT an error to stop a stopped machine
 		logrus.Debugf("QMP monitor socket %v does not exist", v.QMPMonitor.Address)
 		return nil
 	}
-	qmpMonitor, err := qmp.NewSocketMonitor(v.QMPMonitor.Network, v.QMPMonitor.Address, v.QMPMonitor.Timeout)
+	qmpMonitor, err := qmp.NewSocketMonitor(v.QMPMonitor.Network, v.QMPMonitor.Address.GetPath(), v.QMPMonitor.Timeout)
 	if err != nil {
 		return err
 	}
@@ -684,20 +685,25 @@ func NewQMPMonitor(network, name string, timeout time.Duration) (Monitor, error)
 	if timeout == 0 {
 		timeout = defaultQMPTimeout
 	}
+	address, err := NewMachineFile(filepath.Join(rtDir, "qmp+"+name+".sock"), nil)
+	if err != nil {
+		return Monitor{}, err
+	}
 	monitor := Monitor{
 		Network: network,
-		Address: filepath.Join(rtDir, "qmp_"+name+".sock"),
+		Address: *address,
 		Timeout: timeout,
 	}
 	return monitor, nil
 }
 
+// Remove deletes all the files associated with a machine including ssh keys, the image itself
 func (v *MachineVM) Remove(name string, opts machine.RemoveOptions) (string, func() error, error) {
 	var (
 		files []string
 	)
 
-	// cannot remove a running vm
+	// cannot remove a running vm unless --force is used
 	running, err := v.isRunning()
 	if err != nil {
 		return "", nil, err
@@ -768,11 +774,11 @@ func (v *MachineVM) Remove(name string, opts machine.RemoveOptions) (string, fun
 
 func (v *MachineVM) isRunning() (bool, error) {
 	// Check if qmp socket path exists
-	if _, err := os.Stat(v.QMPMonitor.Address); os.IsNotExist(err) {
+	if _, err := os.Stat(v.QMPMonitor.Address.GetPath()); os.IsNotExist(err) {
 		return false, nil
 	}
 	// Check if we can dial it
-	monitor, err := qmp.NewSocketMonitor(v.QMPMonitor.Network, v.QMPMonitor.Address, v.QMPMonitor.Timeout)
+	monitor, err := qmp.NewSocketMonitor(v.QMPMonitor.Network, v.QMPMonitor.Address.GetPath(), v.QMPMonitor.Timeout)
 	if err != nil {
 		// FIXME: this error should probably be returned
 		return false, nil // nolint: nilerr
