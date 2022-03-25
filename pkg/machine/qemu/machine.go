@@ -379,6 +379,10 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		logrus.Errorf("machine %q is incompatible with this release of podman and needs to be recreated, starting for recovery only", v.Name)
 	}
 
+	if err := createCompatTmpLink(); err != nil {
+		return errors.Errorf("could not create temp compatibility directory: %s", err.Error())
+	}
+
 	forwardSock, forwardState, err := v.startHostNetworking()
 	if err != nil {
 		return errors.Errorf("unable to start host networking: %q", err)
@@ -1052,7 +1056,30 @@ func (v *MachineVM) setupAPIForwarding(cmd []string) ([]string, string, apiForwa
 		}
 	}
 
+	if err := v.createCompatLinks(socket); err != nil {
+		logrus.Warnf("Could not create compatibility links: %s", err.Error())
+	}
+
 	return cmd, dockerSock, dockerGlobal
+}
+
+// Maintain old socket locations for compatibility, drop in 5.x
+func (v *MachineVM) createCompatLinks(socket string) error {
+	machineDir, err := machine.GetDataDir(v.Name)
+	if err != nil {
+		return err
+	}
+
+	machineLink := filepath.Join(machineDir, "podman.sock")
+	userLink := filepath.Join(filepath.Dir(machineDir), "podman.sock")
+	_ = os.Remove(machineLink)
+	_ = os.Remove(userLink)
+
+	if err := os.Symlink(socket, machineLink); err != nil {
+		return err
+	}
+
+	return os.Symlink(socket, userLink)
 }
 
 func (v *MachineVM) isIncompatible() bool {
@@ -1060,12 +1087,19 @@ func (v *MachineVM) isIncompatible() bool {
 }
 
 func (v *MachineVM) getForwardSocketPath() (string, error) {
-	qemuSocketDir, _, err := v.getSocketandPid()
+	runtimeDir, err := getRuntimeDir()
 	if err != nil {
 		logrus.Errorf("Error resolving socket dir: %s", err.Error())
 		return "", nil
 	}
-	return filepath.Join(filepath.Dir(qemuSocketDir), "podman.sock"), nil
+
+	// Machine local sockets (avoids name conflict with other socks - e.g.npodman.sock)
+	sockDir := filepath.Join(runtimeDir, "m")
+	if err := os.MkdirAll(sockDir, 0755); err != nil {
+		logrus.Errorf("Error creating socket dir: %s", err.Error())
+	}
+
+	return filepath.Join(sockDir, fmt.Sprintf("%s.sock", v.Name)), nil
 }
 
 func checkSockInUse(sock string) bool {

@@ -2,18 +2,21 @@ package qemu
 
 import (
 	"fmt"
-	"os/user"
+	"os"
 	"path/filepath"
+
+	"github.com/containers/storage/pkg/homedir"
 )
 
 func getRuntimeDir() (string, error) {
 	// Because MacOS can only support 104byte filenames, we abandon the
 	// long directory names and simply use ~/.podman
-	systemUser, err := user.Current()
-	if err != nil {
+	home := homedir.Get()
+	podmanDir := filepath.Join(home, ".podman")
+	if err := os.MkdirAll(podmanDir, 0755); err != nil {
 		return "", err
 	}
-	return systemUser.HomeDir, nil
+	return podmanDir, nil
 }
 
 func (v *MachineVM) getSocketandPid() (string, string, error) {
@@ -21,8 +24,26 @@ func (v *MachineVM) getSocketandPid() (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	socketDir := filepath.Join(rtPath, ".podman")
-	pidFile := filepath.Join(socketDir, fmt.Sprintf("%s.pid", v.Name))
-	qemuSocket := filepath.Join(socketDir, fmt.Sprintf("qemu_%s.pid", v.Name))
+
+	pidFile := filepath.Join(rtPath, fmt.Sprintf("%s.pid", v.Name))
+	qemuSocket := filepath.Join(rtPath, fmt.Sprintf("qemu_%s.sock", v.Name))
 	return qemuSocket, pidFile, nil
+}
+
+// Maintain old socket locations for compatibility, drop in 5.x
+func createCompatTmpLink() error {
+	rtDir, err := getRuntimeDir()
+	if err != nil {
+		return err
+	}
+
+	tmpDir, ok := os.LookupEnv("TMPDIR")
+	if !ok {
+		tmpDir = "/tmp"
+	}
+	tmpPodman := filepath.Join(rtDir, "podman")
+	tmpPodmanLink := filepath.Join(tmpDir, "podman")
+	_ = os.RemoveAll(tmpPodmanLink)
+
+	return os.Symlink(tmpPodman, tmpPodmanLink)
 }

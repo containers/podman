@@ -101,7 +101,7 @@ func install(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	target := filepath.Join(homeDir, ".local", "share", "containers", "podman", "machine", "podman.sock")
+	target := filepath.Join(homeDir, ".podman", "podman.sock")
 	var buf bytes.Buffer
 	t := template.Must(template.New("launchdConfig").Parse(launchConfig))
 	err = t.Execute(&buf, launchParams{prog, userName, uid, target})

@@ -1,6 +1,9 @@
 package qemu
 
 import (
+	"fmt"
+	"path/filepath"
+
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
 )
@@ -24,4 +27,9 @@ func (v *MachineVM) getSocketandPid() (string, string, error) {
 	pidFile := filepath.Join(socketDir, fmt.Sprintf("%s.pid", v.Name))
 	qemuSocket := filepath.Join(socketDir, fmt.Sprintf("qemu_%s.sock", v.Name))
 	return qemuSocket, pidFile, nil
+}
+
+func createCompatTmpLink() error {
+	// Only necessary on Mac
+	return nil
 }
