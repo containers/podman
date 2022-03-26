@@ -99,15 +99,8 @@ func (c *Container) rootFsSize() (int64, error) {
 // rwSize gets the size of the mutable top layer of the container.
 func (c *Container) rwSize() (int64, error) {
 	if c.config.Rootfs != "" {
-		var size int64
-		err := filepath.Walk(c.config.Rootfs, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			size += info.Size()
-			return nil
-		})
-		return size, err
+		size, err := util.SizeOfPath(c.config.Rootfs)
+		return int64(size), err
 	}
 
 	container, err := c.runtime.store.Container(c.ID())

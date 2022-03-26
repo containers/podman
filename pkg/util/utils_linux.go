@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -23,17 +24,21 @@ func GetContainerPidInformationDescriptors() ([]string, error) {
 // Symlinks to nodes are ignored.
 func FindDeviceNodes() (map[string]string, error) {
 	nodes := make(map[string]string)
-	err := filepath.Walk("/dev", func(path string, info os.FileInfo, err error) error {
+	err := filepath.WalkDir("/dev", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			logrus.Warnf("Error descending into path %s: %v", path, err)
 			return filepath.SkipDir
 		}
 
 		// If we aren't a device node, do nothing.
-		if info.Mode()&(os.ModeDevice|os.ModeCharDevice) == 0 {
+		if d.Type()&(os.ModeDevice|os.ModeCharDevice) == 0 {
 			return nil
 		}
 
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
 		// We are a device node. Get major/minor.
 		sysstat, ok := info.Sys().(*syscall.Stat_t)
 		if !ok {
