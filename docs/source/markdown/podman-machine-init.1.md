@@ -87,6 +87,13 @@ so mounts must be created under the /mnt directory.
 
 Driver to use for mounting volumes from the host, such as `virtfs`.
 
+#### **--with-foreign-arch**
+
+Enable running binaries compiled for "foreign" CPUs (e.g., run x86_64 binaries on
+Apple M1 silicon).  This option only works for Qemu machines.  It works by installing
+qemu-static and qemu-binfmt packages on the machine.  The initialization process will
+likely take longer if this option is enabled.
+
 ## EXAMPLES
 
 ```

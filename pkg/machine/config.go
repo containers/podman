@@ -30,7 +30,8 @@ type InitOptions struct {
 	ReExec       bool
 	Rootful      bool
 	// The numerical userid of the user that called machine
-	UID string
+	UID        string
+	QemuStatic bool
 }
 
 type QemuMachineStatus = string

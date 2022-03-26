@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/sirupsen/logrus"
@@ -49,12 +50,13 @@ func getNodeGrp(grpName string) NodeGroup {
 }
 
 type DynamicIgnition struct {
-	Name      string
-	Key       string
-	TimeZone  string
-	UID       int
-	VMName    string
-	WritePath string
+	Name       string
+	Key        string
+	TimeZone   string
+	UID        int
+	VMName     string
+	WritePath  string
+	QemuStatic bool
 }
 
 // NewIgnitionFile
@@ -184,6 +186,39 @@ ExecStartPost=/usr/bin/systemctl daemon-reload
 [Install]
 WantedBy=sysinit.target
 `
+	qemuStatic := `[Unit]
+Description=Layer qemu-user-static & Co with rpm-ostree
+Wants=network-online.target
+After=network-online.target
+After=remove-moby.service
+# We run before 'zincati.service' to avoid conflicting with rpm-ostree
+# transactions.
+Before=zincati.service
+ConditionPathIsDirectory=|!/lib/binfmt.d
+ConditionDirectoryNotEmpty=|!/lib/binfmt.d
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# '--allow-inactive' ensures that rpm-ostree does not return an error
+# if the package is already installed. This is useful if the package is
+# added to the root image in a future Fedora CoreOS release as it will
+# prevent the service from failing.
+ExecStart=/usr/bin/rpm-ostree install --apply-live --allow-inactive qemu qemu-user-static qemu-user-binfmt
+# The 'systetmd-binfmt.service' unit _will_ do this, but it has long completed by the time this service is starting
+# So just run the command to enable the extra formats right away.
+ExecStart=/usr/lib/systemd/systemd-binfmt
+
+[Install]
+WantedBy=multi-user.target
+`
+
+	if ign.QemuStatic {
+		pat := regexp.MustCompile(`(?m)^(After=.*sshd\.service)$`)
+		r := pat.ReplaceAllString(ready, `$1 install-qemu-static.service`)
+		ready = r
+	}
+
 	_ = ready
 	ignSystemd := Systemd{
 		Units: []Unit{
@@ -215,6 +250,11 @@ WantedBy=sysinit.target
 				Enabled:  boolToPtr(true),
 				Name:     "envset-fwcfg.service",
 				Contents: &envset,
+			},
+			{
+				Enabled:  &ign.QemuStatic,
+				Name:     "install-qemu-static.service",
+				Contents: &qemuStatic,
 			},
 		}}
 	ignConfig := Config{
