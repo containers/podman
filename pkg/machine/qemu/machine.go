@@ -331,12 +331,13 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	}
 	// Write the ignition file
 	ign := machine.DynamicIgnition{
-		Name:      opts.Username,
-		Key:       key,
-		VMName:    v.Name,
-		TimeZone:  opts.TimeZone,
-		WritePath: v.IgnitionFilePath,
-		UID:       v.UID,
+		Name:       opts.Username,
+		Key:        key,
+		VMName:     v.Name,
+		TimeZone:   opts.TimeZone,
+		WritePath:  v.IgnitionFilePath,
+		UID:        v.UID,
+		QemuStatic: opts.QemuStatic,
 	}
 	err = machine.NewIgnitionFile(ign)
 	return err == nil, err

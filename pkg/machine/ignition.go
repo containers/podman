@@ -10,18 +10,19 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/sirupsen/logrus"
 )
 
 /*
-	If this file gets too nuts, we can perhaps use existing go code
-	to create ignition files.  At this point, the file is so simple
-	that I chose to use structs and not import any code as I was
-	concerned (unsubstantiated) about too much bloat coming in.
+   If this file gets too nuts, we can perhaps use existing go code
+   to create ignition files.  At this point, the file is so simple
+   that I chose to use structs and not import any code as I was
+   concerned (unsubstantiated) about too much bloat coming in.
 
-	https://github.com/openshift/machine-config-operator/blob/master/pkg/server/server.go
+   https://github.com/openshift/machine-config-operator/blob/master/pkg/server/server.go
 */
 
 // Convenience function to convert int to ptr
@@ -48,12 +49,13 @@ func getNodeGrp(grpName string) NodeGroup {
 }
 
 type DynamicIgnition struct {
-	Name      string
-	Key       string
-	TimeZone  string
-	UID       int
-	VMName    string
-	WritePath string
+	Name       string
+	Key        string
+	TimeZone   string
+	UID        int
+	VMName     string
+	WritePath  string
+	QemuStatic bool
 }
 
 // NewIgnitionFile
@@ -165,24 +167,57 @@ Environment=SYSTEMD_CONF=/etc/systemd/system.conf.d/default-env.conf
 Environment=ENVD_CONF=/etc/environment.d/default-env.conf
 Environment=PROFILE_CONF=/etc/profile.d/default-env.sh
 ExecStart=/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} &&\
-	echo "[Manager]\n#Got from QEMU FW_CFG\nDefaultEnvironment=$(/usr/bin/base64 -d ${FWCFGRAW} | sed -e "s+|+ +g")\n" > ${SYSTEMD_CONF} ||\
-	echo "[Manager]\n#Got nothing from QEMU FW_CFG\n#DefaultEnvironment=\n" > ${SYSTEMD_CONF}'
+        echo "[Manager]\n#Got from QEMU FW_CFG\nDefaultEnvironment=$(/usr/bin/base64 -d ${FWCFGRAW} | sed -e "s+|+ +g")\n" > ${SYSTEMD_CONF} ||\
+        echo "[Manager]\n#Got nothing from QEMU FW_CFG\n#DefaultEnvironment=\n" > ${SYSTEMD_CONF}'
 ExecStart=/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} && (\
-	echo "#Got from QEMU FW_CFG"> ${ENVD_CONF};\
-	IFS="|";\
-	for iprxy in $(/usr/bin/base64 -d ${FWCFGRAW}); do\
-		echo "$iprxy" >> ${ENVD_CONF}; done ) || \
-	echo "#Got nothing from QEMU FW_CFG"> ${ENVD_CONF}'
+        echo "#Got from QEMU FW_CFG"> ${ENVD_CONF};\
+        IFS="|";\
+        for iprxy in $(/usr/bin/base64 -d ${FWCFGRAW}); do\
+                echo "$iprxy" >> ${ENVD_CONF}; done ) || \
+        echo "#Got nothing from QEMU FW_CFG"> ${ENVD_CONF}'
 ExecStart=/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} && (\
-	echo "#Got from QEMU FW_CFG"> ${PROFILE_CONF};\
-	IFS="|";\
-	for iprxy in $(/usr/bin/base64 -d ${FWCFGRAW}); do\
-		echo "export $iprxy" >> ${PROFILE_CONF}; done ) || \
-	echo "#Got nothing from QEMU FW_CFG"> ${PROFILE_CONF}'
+        echo "#Got from QEMU FW_CFG"> ${PROFILE_CONF};\
+        IFS="|";\
+        for iprxy in $(/usr/bin/base64 -d ${FWCFGRAW}); do\
+                echo "export $iprxy" >> ${PROFILE_CONF}; done ) || \
+        echo "#Got nothing from QEMU FW_CFG"> ${PROFILE_CONF}'
 ExecStartPost=/usr/bin/systemctl daemon-reload
 [Install]
 WantedBy=sysinit.target
 `
+	qemuStatic := `[Unit]
+Description=Layer qemu-user-static & Co with rpm-ostree
+Wants=network-online.target
+After=network-online.target
+After=remove-moby.service
+# We run before 'zincati.service' to avoid conflicting with rpm-ostree
+# transactions.
+Before=zincati.service
+ConditionPathIsDirectory=|!/lib/binfmt.d
+ConditionDirectoryNotEmpty=|!/lib/binfmt.d
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# '--allow-inactive' ensures that rpm-ostree does not return an error
+# if the package is already installed. This is useful if the package is
+# added to the root image in a future Fedora CoreOS release as it will
+# prevent the service from failing.
+ExecStart=/usr/bin/rpm-ostree install --apply-live --allow-inactive qemu qemu-user-static qemu-user-binfmt
+# The 'systetmd-binfmt.service' unit _will_ do this, but it has long completed by the time this service is starting
+# So just run the command to enable the extra formats right away.
+ExecStart=/usr/lib/systemd/systemd-binfmt
+
+[Install]
+WantedBy=multi-user.target
+`
+
+	if ign.QemuStatic {
+		pat := regexp.MustCompile(`(?m)^(After=.*sshd\.service)$`)
+		r := pat.ReplaceAllString(ready, `$1 install-qemu-static.service`)
+		ready = r
+	}
+
 	_ = ready
 	ignSystemd := Systemd{
 		Units: []Unit{
@@ -214,6 +249,11 @@ WantedBy=sysinit.target
 				Enabled:  boolToPtr(true),
 				Name:     "envset-fwcfg.service",
 				Contents: &envset,
+			},
+			{
+				Enabled:  &ign.QemuStatic,
+				Name:     "install-qemu-static.service",
+				Contents: &qemuStatic,
 			},
 		}}
 	ignConfig := Config{

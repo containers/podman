@@ -103,6 +103,11 @@ func init() {
 
 	rootfulFlagName := "rootful"
 	flags.BoolVar(&initOpts.Rootful, rootfulFlagName, false, "Whether this machine should prefer rootful container exectution")
+
+	flags.BoolVar(
+		&initOpts.QemuStatic,
+		"with-foreign-arch", false,
+		"Whether to enable running binaries from \"foreign\" CPUs (e.g., run amd64 on Apple M1 silicon). Only for Qemu machines.  Works by installing qemu-static and qemu-binfmt on the machine.  Will probably make the initialization process take longer.")
 }
 
 // TODO should we allow for a users to append to the qemu cmdline?

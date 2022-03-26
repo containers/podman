@@ -29,6 +29,7 @@ type InitOptions struct {
 	Username     string
 	ReExec       bool
 	Rootful      bool
+	QemuStatic   bool
 	// The numberical userid of the user that called machine
 	UID string
 }
