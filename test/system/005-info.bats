@@ -89,7 +89,7 @@ host.slirp4netns.executable | $expr_path
 }
 
 @test "podman info netavark " {
-    # Confirm netavark in use when explicitely required by execution environment.
+    # Confirm netavark in use when explicitly required by execution environment.
     if [[ "$NETWORK_BACKEND" == "netavark" ]]; then
         if ! is_netavark; then
             # Assume is_netavark() will provide debugging feedback.

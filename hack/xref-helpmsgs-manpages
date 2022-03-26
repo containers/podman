@@ -298,7 +298,7 @@ sub podman_man {
             $previous_flag = '';
         }
         elsif ($line =~ /^###\s+\w+\s+OPTIONS/) {
-            # poaman image trust has sections for set & show
+            # podman image trust has sections for set & show
             $section = 'flags';
             $previous_flag = '';
         }

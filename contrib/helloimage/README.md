@@ -12,7 +12,7 @@ Using this image is helpful to:
 
  * Prove that basic Podman operations are working on the host.
  * Shows that the image was pulled from the quay.io container registry.
- * Container creation was successfuly accomplished. (`podman ps -a`)
+ * Container creation was successfully accomplished. (`podman ps -a`)
  * The created container was able to stream output to your terminal.
 
 ## Directory Contents

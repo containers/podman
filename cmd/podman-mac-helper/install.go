@@ -197,7 +197,7 @@ func installExecutable(user string) (string, error) {
 	// suffix. The goal is to help users harden against privilege escalation from loose
 	// filesystem permissions.
 	//
-	// Since userpsace package management tools, such as brew, delegate management of system
+	// Since userspace package management tools, such as brew, delegate management of system
 	// paths to standard unix users, the daemon executable is copied into a separate more
 	// restricted area of the filesystem.
 	if err := verifyRootDeep(installPrefix); err != nil {

@@ -337,7 +337,7 @@ func FinishThrottleDevices(s *specgen.SpecGenerator) error {
 	return nil
 }
 
-// ConfigToSpec takes a completed container config and converts it back into a specgenerator for purposes of cloning an exisiting container
+// ConfigToSpec takes a completed container config and converts it back into a specgenerator for purposes of cloning an existing container
 func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID string) (*libpod.Container, error) {
 	c, err := rt.LookupContainer(containerID)
 	if err != nil {
