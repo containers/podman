@@ -2,6 +2,7 @@ package generate
 
 import (
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"path"
@@ -101,8 +102,8 @@ func DevicesFromPath(g *generate.Generator, devicePath string) error {
 		}
 
 		// mount the internal devices recursively
-		if err := filepath.Walk(resolvedDevicePath, func(dpath string, f os.FileInfo, e error) error {
-			if f.Mode()&os.ModeDevice == os.ModeDevice {
+		if err := filepath.WalkDir(resolvedDevicePath, func(dpath string, d fs.DirEntry, e error) error {
+			if d.Type()&os.ModeDevice == os.ModeDevice {
 				found = true
 				device := fmt.Sprintf("%s:%s", dpath, filepath.Join(dest, strings.TrimPrefix(dpath, src)))
 				if devmode != "" {

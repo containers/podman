@@ -1,13 +1,12 @@
 package libpod
 
 import (
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/lock"
 	"github.com/containers/podman/v4/libpod/plugin"
+	"github.com/containers/podman/v4/pkg/util"
 )
 
 // Volume is a libpod named volume.
@@ -93,14 +92,7 @@ func (v *Volume) Name() string {
 
 // Returns the size on disk of volume
 func (v *Volume) Size() (uint64, error) {
-	var size uint64
-	err := filepath.Walk(v.config.MountPoint, func(path string, info os.FileInfo, err error) error {
-		if err == nil && !info.IsDir() {
-			size += (uint64)(info.Size())
-		}
-		return err
-	})
-	return size, err
+	return util.SizeOfPath(v.config.MountPoint)
 }
 
 // Driver retrieves the volume's driver.
