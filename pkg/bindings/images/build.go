@@ -575,7 +575,7 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 					if err != io.EOF {
 						return nil // non empty root dir, need to return
 					} else if err != nil {
-						logrus.Errorf("Error while reading directory %v: %v", path, err)
+						logrus.Errorf("While reading directory %v: %v", path, err)
 					}
 				}
 				name := filepath.ToSlash(strings.TrimPrefix(path, s+string(filepath.Separator)))

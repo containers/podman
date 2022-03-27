@@ -118,14 +118,14 @@ func importCon(cmd *cobra.Command, args []string) error {
 	if source == "-" {
 		outFile, err := ioutil.TempFile("", "podman")
 		if err != nil {
-			return errors.Errorf("error creating file %v", err)
+			return errors.Errorf("creating file %v", err)
 		}
 		defer os.Remove(outFile.Name())
 		defer outFile.Close()
 
 		_, err = io.Copy(outFile, os.Stdin)
 		if err != nil {
-			return errors.Errorf("error copying file %v", err)
+			return errors.Errorf("copying file %v", err)
 		}
 		source = outFile.Name()
 	}

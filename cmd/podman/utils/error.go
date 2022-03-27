@@ -41,5 +41,5 @@ func ExitCodeFromBuildError(errorMsg string) (int, error) {
 			return buildahCLI.ExecErrorCodeGeneric, err
 		}
 	}
-	return buildahCLI.ExecErrorCodeGeneric, errors.New("error message does not contains a valid exit code")
+	return buildahCLI.ExecErrorCodeGeneric, errors.New("message does not contains a valid exit code")
 }

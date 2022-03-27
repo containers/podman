@@ -57,7 +57,7 @@ func Logs(ctx context.Context, nameOrID string, options *LogOptions, stdoutChan,
 		case 2:
 			stderrChan <- string(frame)
 		case 3:
-			return errors.New("error from service in stream: " + string(frame))
+			return errors.New("from service in stream: " + string(frame))
 		default:
 			return fmt.Errorf("unrecognized input header: %d", fd)
 		}

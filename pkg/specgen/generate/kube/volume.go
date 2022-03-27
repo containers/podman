@@ -76,7 +76,7 @@ func VolumeFromHostPath(hostPath *v1.HostPathVolumeSource) (*KubeVolume, error) 
 				return nil, errors.Wrap(err, "error checking HostPathSocket")
 			}
 			if st.Mode()&os.ModeSocket != os.ModeSocket {
-				return nil, errors.Errorf("error checking HostPathSocket: path %s is not a socket", hostPath.Path)
+				return nil, errors.Errorf("checking HostPathSocket: path %s is not a socket", hostPath.Path)
 			}
 
 		case v1.HostPathDirectory:

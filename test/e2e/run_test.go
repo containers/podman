@@ -1537,7 +1537,7 @@ USER mail`, BB)
 		session := podmanTest.Podman([]string{"run", "--tz", badTZFile, "--rm", ALPINE, "date"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring("error finding timezone for container"))
+		Expect(session.ErrorToString()).To(ContainSubstring("finding timezone for container"))
 
 		err = os.Remove(tzFile)
 		Expect(err).To(BeNil())

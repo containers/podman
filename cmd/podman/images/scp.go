@@ -268,7 +268,7 @@ func saveToRemote(image, localFile string, tag string, uri *urlP.URL, iden strin
 	}
 	n, err := scpD.CopyFrom(dial, remoteFile, localFile)
 	if _, conErr := connection.ExecRemoteCommand(dial, "rm "+remoteFile); conErr != nil {
-		logrus.Errorf("Error removing file on endpoint: %v", conErr)
+		logrus.Errorf("Removing file on endpoint: %v", conErr)
 	}
 	if err != nil {
 		errOut := strconv.Itoa(int(n)) + " Bytes copied before error"

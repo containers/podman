@@ -129,7 +129,7 @@ func DownloadVMImage(downloadURL *url2.URL, localImagePath string) error {
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("error downloading VM image %s: %s", downloadURL, resp.Status)
+		return fmt.Errorf("downloading VM image %s: %s", downloadURL, resp.Status)
 	}
 	size := resp.ContentLength
 	urlSplit := strings.Split(downloadURL.Path, "/")

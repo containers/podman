@@ -88,10 +88,10 @@ func runDialStdio() error {
 func copier(to halfWriteCloser, from halfReadCloser, debugDescription string) error {
 	defer func() {
 		if err := from.CloseRead(); err != nil {
-			logrus.Errorf("error while CloseRead (%s): %v", debugDescription, err)
+			logrus.Errorf("while CloseRead (%s): %v", debugDescription, err)
 		}
 		if err := to.CloseWrite(); err != nil {
-			logrus.Errorf("error while CloseWrite (%s): %v", debugDescription, err)
+			logrus.Errorf("while CloseWrite (%s): %v", debugDescription, err)
 		}
 	}()
 	if _, err := io.Copy(to, from); err != nil {

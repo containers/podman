@@ -317,7 +317,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		resize.Stdout = os.Stdout
 		resize.Stderr = os.Stderr
 		if err := resize.Run(); err != nil {
-			return false, errors.Errorf("error resizing image: %q", err)
+			return false, errors.Errorf("resizing image: %q", err)
 		}
 	}
 	// If the user provides an ignition file, we need to
@@ -1078,7 +1078,7 @@ func (v *MachineVM) isIncompatible() bool {
 func (v *MachineVM) getForwardSocketPath() (string, error) {
 	path, err := machine.GetDataDir(v.Name)
 	if err != nil {
-		logrus.Errorf("Error resolving data dir: %s", err.Error())
+		logrus.Errorf("Resolving data dir: %s", err.Error())
 		return "", nil
 	}
 	return filepath.Join(path, "podman.sock"), nil

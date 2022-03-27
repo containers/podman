@@ -1002,7 +1002,7 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 				}
 			}
 			// do not propagate error inspecting a joined network ns
-			logrus.Errorf("Error inspecting network namespace: %s of container %s: %v", networkNSPath, c.ID(), err)
+			logrus.Errorf("Inspecting network namespace: %s of container %s: %v", networkNSPath, c.ID(), err)
 		}
 		// We can't do more if the network is down.
 

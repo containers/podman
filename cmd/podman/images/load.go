@@ -95,14 +95,14 @@ func load(cmd *cobra.Command, args []string) error {
 		}
 		outFile, err := ioutil.TempFile(util.Tmpdir(), "podman")
 		if err != nil {
-			return errors.Errorf("error creating file %v", err)
+			return errors.Errorf("creating file %v", err)
 		}
 		defer os.Remove(outFile.Name())
 		defer outFile.Close()
 
 		_, err = io.Copy(outFile, os.Stdin)
 		if err != nil {
-			return errors.Errorf("error copying file %v", err)
+			return errors.Errorf("copying file %v", err)
 		}
 		loadOpts.Input = outFile.Name()
 	}

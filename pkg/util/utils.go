@@ -656,7 +656,7 @@ func CreateCidFile(cidfile string, id string) error {
 		if os.IsExist(err) {
 			return errors.Errorf("container id file exists. Ensure another container is not using it or delete %s", cidfile)
 		}
-		return errors.Errorf("error opening cidfile %s", cidfile)
+		return errors.Errorf("opening cidfile %s", cidfile)
 	}
 	if _, err = cidFile.WriteString(id); err != nil {
 		logrus.Error(err)
