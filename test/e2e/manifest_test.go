@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	podmanRegistry "github.com/containers/podman/v4/hack/podman-registry-go"
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -270,6 +271,42 @@ var _ = Describe("Podman manifest", func() {
 				ContainSubstring(strings.TrimPrefix(imageListS390XInstanceDigest, prefix)),
 				ContainSubstring(strings.TrimPrefix(imageListARM64InstanceDigest, prefix)),
 			))
+	})
+
+	It("authenticated push", func() {
+		registry, err := podmanRegistry.Start()
+		Expect(err).To(BeNil())
+
+		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"pull", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"tag", ALPINE, "localhost:" + registry.Port + "/alpine:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--creds=" + registry.User + ":" + registry.Password, "--format=v2s2", "localhost:" + registry.Port + "/alpine:latest"})
+		push.WaitWithDefaultTimeout()
+		Expect(push).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"manifest", "add", "--tls-verify=false", "--creds=" + registry.User + ":" + registry.Password, "foo", "localhost:" + registry.Port + "/alpine:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		push = podmanTest.Podman([]string{"manifest", "push", "--tls-verify=false", "--creds=" + registry.User + ":" + registry.Password, "foo", "localhost:" + registry.Port + "/credstest"})
+		push.WaitWithDefaultTimeout()
+		Expect(push).Should(Exit(0))
+
+		push = podmanTest.Podman([]string{"manifest", "push", "--tls-verify=false", "--creds=podmantest:wrongpasswd", "foo", "localhost:" + registry.Port + "/credstest"})
+		push.WaitWithDefaultTimeout()
+		Expect(push).To(ExitWithError())
+
+		err = registry.Stop()
+		Expect(err).To(BeNil())
 	})
 
 	It("push --rm", func() {
