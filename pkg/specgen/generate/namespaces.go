@@ -59,7 +59,7 @@ func GetDefaultNamespaceMode(nsType string, cfg *config.Config, pod *libpod.Pod)
 	case "pid":
 		return specgen.ParseNamespace(cfg.Containers.PidNS)
 	case "ipc":
-		return specgen.ParseNamespace(cfg.Containers.IPCNS)
+		return specgen.ParseIPCNamespace(cfg.Containers.IPCNS)
 	case "uts":
 		return specgen.ParseNamespace(cfg.Containers.UTSNS)
 	case "user":

@@ -95,9 +95,15 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 	for _, f := range options.Filters {
 		var key, value string
 		var filter filterFunc
-		split := strings.SplitN(f, "=", 2)
-		if len(split) != 2 {
-			return nil, errors.Errorf("invalid image filter %q: must be in the format %q", f, "filter=value")
+		negate := false
+		split := strings.SplitN(f, "!=", 2)
+		if len(split) == 2 {
+			negate = true
+		} else {
+			split = strings.SplitN(f, "=", 2)
+			if len(split) != 2 {
+				return nil, errors.Errorf("invalid image filter %q: must be in the format %q", f, "filter=value or filter!=value")
+			}
 		}
 
 		key = split[0]
@@ -182,10 +188,20 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 		default:
 			return nil, errors.Errorf("unsupported image filter %q", key)
 		}
+		if negate {
+			filter = negateFilter(filter)
+		}
 		filters[key] = append(filters[key], filter)
 	}
 
 	return filters, nil
+}
+
+func negateFilter(f filterFunc) filterFunc {
+	return func(img *Image) (bool, error) {
+		b, err := f(img)
+		return !b, err
+	}
 }
 
 func (r *Runtime) containers(duplicate map[string]string, key, value string, externalFunc IsExternalContainerFunc) error {

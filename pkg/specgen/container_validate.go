@@ -76,8 +76,8 @@ func (s *SpecGenerator) Validate() error {
 			s.ContainerStorageConfig.ImageVolumeMode, strings.Join(ImageVolumeModeValues, ","))
 	}
 	// shmsize conflicts with IPC namespace
-	if s.ContainerStorageConfig.ShmSize != nil && !s.ContainerStorageConfig.IpcNS.IsPrivate() {
-		return errors.New("cannot set shmsize when running in the host IPC Namespace")
+	if s.ContainerStorageConfig.ShmSize != nil && (s.ContainerStorageConfig.IpcNS.IsHost() || s.ContainerStorageConfig.IpcNS.IsNone()) {
+		return errors.Errorf("cannot set shmsize when running in the %s IPC Namespace", s.ContainerStorageConfig.IpcNS)
 	}
 
 	//
@@ -166,7 +166,7 @@ func (s *SpecGenerator) Validate() error {
 	if err := s.UtsNS.validate(); err != nil {
 		return err
 	}
-	if err := s.IpcNS.validate(); err != nil {
+	if err := validateIPCNS(&s.IpcNS); err != nil {
 		return err
 	}
 	if err := s.PidNS.validate(); err != nil {
