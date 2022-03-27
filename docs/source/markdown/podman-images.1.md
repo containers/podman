@@ -27,30 +27,45 @@ Show image digests
 
 Provide filter values.
 
-The *filters* argument format is of `key=value`. If there is more than one *filter*, then pass multiple OPTIONS: **--filter** *foo=bar* **--filter** *bif=baz*.
+The *filters* argument format is of `key=value` or `key!=value`. If there is more than one *filter*, then pass multiple OPTIONS: **--filter** *foo=bar* **--filter** *bif=baz*.
 
 Supported filters:
 
 | Filter             | Description                                                                                   |
 | :----------------: | --------------------------------------------------------------------------------------------- |
+| *id*               | Filter by image id.                                                                           |
 | *before*           | Filter by images created before the given IMAGE (name or tag).                                |
+| *containers*       | Filter by images with a running container.                                                    |
 | *dangling*         | Filter by dangling (unused) images.                                                           |
+| *intermediate*     | Filter by images that are dangling and have no children                                       |
 | *label*            | Filter by images with (or without, in the case of label!=[...] is used) the specified labels. |
+| *manifest*         | Filter by images that are manifest lists.                                                     |
 | *readonly*         | Filter by read-only or read/write images.                                                     |
 | *reference*        | Filter by image name.                                                                         |
-| *since*            | Filter by images created after the given IMAGE (name or tag).                                 |
+| *after*/*since*    | Filter by images created after the given IMAGE (name or tag).                                 |
+| *until*            | Filter by images created until the given duration or time.                                    |
+
+The `id` *filter* accepts the image id string.
 
 The `before` *filter* accepts formats: `<image-name>[:<tag>]`, `<image id>` or `<image@digest>`.
 
+The `containers` *filter* shows images that have a running container based on that image.
+
 The `dangling` *filter* shows images that are taking up disk space and serve no purpose. Dangling image is a file system layer that was used in a previous build of an image and is no longer referenced by any image. They are denoted with the `<none>` tag, consume disk space and serve no active purpose.
 
+The `intermediate` *filter* shows images that are dangling and have no children.
+
 The `label` *filter* accepts two formats. One is the `label`=*key* or `label`=*key*=*value*, which shows images with the specified labels. The other format is the `label!`=*key* or `label!`=*key*=*value*, which shows images without the specified labels.
+
+The `manifest` *filter* shows images that are manifest lists.
 
 The `readonly` *filter* shows, as a default, both read-only and read/write images. Read-only images can be configured by modifying the  `additionalimagestores` in the `/etc/containers/storage.conf` file.
 
 The `reference` *filter* accepts the pattern of an image reference `<image-name>[:<tag>]`.
 
-The `since` *filter* accepts formats: `<image-name>[:<tag>]`, `<image id>` or `<image@digest>`.
+The `after` or `since` *filter* accepts formats: `<image-name>[:<tag>]`, `<image id>` or `<image@digest>`.
+
+The `until` *filter* accepts formats: golang duration, RFC3339 time, or a Unix timestamp and shows all images that are created until that time.
 
 #### **--format**=*format*
 
