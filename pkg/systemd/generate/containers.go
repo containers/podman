@@ -475,7 +475,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 				return "", err
 			}
 		}
-		info.ExecStart = strings.Join(startCommand, " ")
+		info.ExecStart = strings.Join(startCommand, " \\\n\t")
 	}
 
 	info.TimeoutStopSec = minTimeoutStopSec + info.StopTimeout
