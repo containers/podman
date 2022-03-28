@@ -31,6 +31,10 @@ var (
 	now                bool
 )
 
+// maxMachineNameSize is set to thirty to limit huge machine names primarily
+// because macos has a much smaller file size limit.
+const maxMachineNameSize = 30
+
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: initCmd,
@@ -111,10 +115,12 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		vm  machine.VM
 		err error
 	)
-
 	provider := getSystemDefaultProvider()
 	initOpts.Name = defaultMachineName
 	if len(args) > 0 {
+		if len(args[0]) > maxMachineNameSize {
+			return errors.New("machine name must be 30 characters or less")
+		}
 		initOpts.Name = args[0]
 	}
 	if _, err := provider.LoadVMByName(initOpts.Name); err == nil {

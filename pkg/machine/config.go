@@ -29,7 +29,7 @@ type InitOptions struct {
 	Username     string
 	ReExec       bool
 	Rootful      bool
-	// The numberical userid of the user that called machine
+	// The numerical userid of the user that called machine
 	UID string
 }
 
@@ -128,6 +128,7 @@ type DistributionDownload interface {
 }
 
 func (rc RemoteConnectionType) MakeSSHURL(host, path, port, userName string) url.URL {
+	//TODO Should this function have input verification?
 	userInfo := url.User(userName)
 	uri := url.URL{
 		Scheme:     "ssh",
