@@ -7,13 +7,19 @@ on:
   schedule:
   - cron: "0 0 * * *"
 
+permissions:
+  contents: read
+
 jobs:
   stale:
 
+    permissions:
+      issues: write  # for actions/stale to close stale issues
+      pull-requests: write  # for actions/stale to close stale PRs
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/stale@v3
+    - uses: actions/stale@98ed4cb500039dbcccf4bd9bedada4d0187f2757 # v3
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         stale-issue-message: 'A friendly reminder that this issue had no activity for 30 days.'

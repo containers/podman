@@ -11,7 +11,7 @@ jobs:
   update_pr:
     runs-on: ubuntu-latest
     steps:
-    - uses: tzkhan/pr-update-action@v2
+    - uses: tzkhan/pr-update-action@bbd4c9395df8a9c4ef075b8b7fe29f2ca76cdca9 # v2
       with:
         repo-token: "${{ secrets.GITHUB_TOKEN }}"
         base-branch-regex: '^(?!master).*$'
