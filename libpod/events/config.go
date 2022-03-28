@@ -162,6 +162,8 @@ const (
 	Refresh Status = "refresh"
 	// Remove ...
 	Remove Status = "remove"
+	// Rename indicates that a container was renamed
+	Rename Status = "rename"
 	// Renumber indicates that lock numbers were reallocated at user
 	// request.
 	Renumber Status = "renumber"

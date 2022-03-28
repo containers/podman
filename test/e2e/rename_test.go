@@ -74,6 +74,23 @@ var _ = Describe("podman rename", func() {
 		Expect(ps.OutputToString()).To(ContainSubstring(newName))
 	})
 
+	It("Successfully rename a created container and test event generated", func() {
+		ctrName := "testCtr"
+		ctr := podmanTest.Podman([]string{"create", "--name", ctrName, ALPINE, "top"})
+		ctr.WaitWithDefaultTimeout()
+		Expect(ctr).Should(Exit(0))
+
+		newName := "aNewName"
+		rename := podmanTest.Podman([]string{"rename", ctrName, newName})
+		rename.WaitWithDefaultTimeout()
+		Expect(rename).Should(Exit(0))
+
+		result := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "container=aNewName"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(ContainSubstring("rename"))
+	})
+
 	It("Successfully rename a running container", func() {
 		ctrName := "testCtr"
 		ctr := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, ALPINE, "top"})
