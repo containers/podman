@@ -155,6 +155,7 @@ func (r *Runtime) RenameContainer(ctx context.Context, ctr *Container, newName s
 		return nil, err
 	}
 
+	ctr.newContainerEvent(events.Rename)
 	return ctr, nil
 }
 

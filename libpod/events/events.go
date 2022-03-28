@@ -188,6 +188,8 @@ func StringToStatus(name string) (Status, error) {
 		return Refresh, nil
 	case Remove.String():
 		return Remove, nil
+	case Rename.String():
+		return Rename, nil
 	case Renumber.String():
 		return Renumber, nil
 	case Restart.String():
