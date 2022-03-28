@@ -559,6 +559,30 @@ func WithShmDir(dir string) CtrCreateOption {
 	}
 }
 
+// WithNOShmMount tells libpod whether to mount /dev/shm
+func WithNoShm(mount bool) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.NoShm = mount
+		return nil
+	}
+}
+
+// WithNoShmShare tells libpod whether to share containers /dev/shm with other containers
+func WithNoShmShare(share bool) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.NoShmShare = share
+		return nil
+	}
+}
+
 // WithSystemd turns on systemd mode in the container
 func WithSystemd() CtrCreateOption {
 	return func(ctr *Container) error {

@@ -120,6 +120,10 @@ type ContainerRootFSConfig struct {
 	// with the size specified in ShmSize and populate this with the path of
 	// said tmpfs.
 	ShmDir string `json:"ShmDir,omitempty"`
+	// NoShmShare indicates whether /dev/shm can be shared with other containers
+	NoShmShare bool `json:"NOShmShare,omitempty"`
+	// NoShm indicates whether a tmpfs should be created and mounted on  /dev/shm
+	NoShm bool `json:"NoShm,omitempty"`
 	// ShmSize is the size of the container's SHM. Only used if ShmDir was
 	// not set manually at time of creation.
 	ShmSize int64 `json:"shmSize"`

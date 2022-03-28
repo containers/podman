@@ -190,7 +190,7 @@ func setNamespaces(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions)
 		}
 	}
 	if c.IPC != "" {
-		s.IpcNS, err = specgen.ParseNamespace(c.IPC)
+		s.IpcNS, err = specgen.ParseIPCNamespace(c.IPC)
 		if err != nil {
 			return err
 		}

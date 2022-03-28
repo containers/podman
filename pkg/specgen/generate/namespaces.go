@@ -134,8 +134,17 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 		if err != nil {
 			return nil, errors.Wrapf(err, "error looking up container to share ipc namespace with")
 		}
+		if ipcCtr.ConfigNoCopy().NoShmShare {
+			return nil, errors.Errorf("joining IPC of container %s is not allowed: non-shareable IPC (hint: use IpcMode:shareable for the donor container)", ipcCtr.ID())
+		}
 		toReturn = append(toReturn, libpod.WithIPCNSFrom(ipcCtr))
-		toReturn = append(toReturn, libpod.WithShmDir(ipcCtr.ShmDir()))
+		if !ipcCtr.ConfigNoCopy().NoShm {
+			toReturn = append(toReturn, libpod.WithShmDir(ipcCtr.ShmDir()))
+		}
+	case specgen.None:
+		toReturn = append(toReturn, libpod.WithNoShm(true))
+	case specgen.Private:
+		toReturn = append(toReturn, libpod.WithNoShmShare(true))
 	}
 
 	// UTS
