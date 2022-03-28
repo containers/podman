@@ -105,7 +105,7 @@ podman \$opts run -d --name myrunningcontainer --label mylabel=$LABEL_RUNNING \
 
 podman \$opts pod create --name mypod
 
-podman \$opts network create mynetwork
+podman \$opts network create --disable-dns mynetwork
 
 echo READY
 while :;do
@@ -113,7 +113,10 @@ while :;do
         echo STOPPING
         podman \$opts stop -t 0 myrunningcontainer || true
         podman \$opts rm -f     myrunningcontainer || true
-        podman \$opts network rm -f mynetwork
+        # sigh, network rm fails with exec: "ip": executable file not found in $PATH
+        # we cannot change the images afterwards so we remove it manually (#11403)
+        # hardcode /etc/cni/net.d dir for now
+        podman \$opts network rm -f mynetwork || rm -f /etc/cni/net.d/mynetwork.conflist
         exit 0
     fi
     sleep 0.5
@@ -124,17 +127,14 @@ EOF
     # Clean up vestiges of previous run
     $PODMAN rm -f podman_parent || true
 
-
-    local netname=testnet-$(random_string 10)
-    $PODMAN network create $netname
-
     # Not entirely a NOP! This is just so we get the /run/... mount points created on a CI VM
-    # --mac-address is needed to create /run/cni, --network is needed to create /run/containers for dnsname
-    $PODMAN run --rm --mac-address 78:28:a6:8d:24:8a --network $netname $OLD_PODMAN true
-    $PODMAN network rm -f $netname
+    # Also use --network host to prevent any netavark/cni conflicts
+    $PODMAN run --rm --network host $OLD_PODMAN true
 
     # Podman 4.0 might no longer use cni so /run/cni and /run/containers will no be created in this case
-    mkdir -p /run/cni /run/containers
+    # Create directories manually to fix this. Also running with netavark can
+    # cause connectivity issues since cni and netavark should never be mixed.
+    mkdir -p /run/netns /run/cni /run/containers /var/lib/cni /etc/cni/net.d
 
 
     #
@@ -242,6 +242,8 @@ failed    | exited     | 17
 # if we can connect on an existing running container
 @test "network - connect" {
     skip_if_version_older 2.2.0
+    touch $PODMAN_UPGRADE_WORKDIR/ran-network-connect-test
+
     run_podman network connect mynetwork myrunningcontainer
     run_podman network disconnect podman myrunningcontainer
     run curl --max-time 3 -s 127.0.0.1:$HOST_PORT/index.txt
@@ -250,7 +252,26 @@ failed    | exited     | 17
 
 @test "network - restart" {
     # restart the container and check if we can still use the port
+
+    # https://github.com/containers/podman/issues/13679
+    # The upgrade to podman4 changes the network db format.
+    # While it is compatible from 3.X to 4.0 it will fail the other way around.
+    # This can be the case when the cleanup process runs before the stop process
+    # can do the cleanup.
+
+    # Since there is no easy way to fix this and downgrading is not something
+    # we support, just fix this bug in the tests by manually calling
+    # network disconnect to teardown the netns.
+    if test -e $PODMAN_UPGRADE_WORKDIR/ran-network-connect-test; then
+        run_podman network disconnect mynetwork myrunningcontainer
+    fi
+
     run_podman stop -t0 myrunningcontainer
+
+    # now connect again, do this before starting the container
+    if test -e $PODMAN_UPGRADE_WORKDIR/ran-network-connect-test; then
+        run_podman network connect mynetwork myrunningcontainer
+    fi
     run_podman start myrunningcontainer
     run curl --max-time 3 -s 127.0.0.1:$HOST_PORT/index.txt
     is "$output" "$RANDOM_STRING_1" "curl on restarted container"
