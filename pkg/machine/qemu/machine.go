@@ -131,6 +131,75 @@ func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	return vm, nil
 }
 
+// migrateVM takes the old configuration structure and migrates it
+// to the new structure and writes it to the filesystem
+func migrateVM(configPath string, config []byte, vm *MachineVM) error {
+	fmt.Printf("Migrating machine %q\n", vm.Name)
+	var old MachineVMV1
+	err := json.Unmarshal(config, &old)
+	if err != nil {
+		return err
+	}
+	// Looks like we loaded the older structure; now we need to migrate
+	// from the old structure to the new structure
+	_, pidFile, err := vm.getSocketandPid()
+	if err != nil {
+		return err
+	}
+
+	pidFilePath := MachineFile{Path: pidFile}
+	qmpMonitor := Monitor{
+		Address: MachineFile{Path: old.QMPMonitor.Address},
+		Network: old.QMPMonitor.Network,
+		Timeout: old.QMPMonitor.Timeout,
+	}
+	socketPath, err := getRuntimeDir()
+	if err != nil {
+		return err
+	}
+	virtualSocketPath := filepath.Join(socketPath, "podman", vm.Name+"_ready.sock")
+	readySocket := MachineFile{Path: virtualSocketPath}
+
+	vm.HostUser = HostUser{}
+	vm.ImageConfig = ImageConfig{}
+	vm.ResourceConfig = ResourceConfig{}
+	vm.SSHConfig = SSHConfig{}
+
+	vm.CPUs = old.CPUs
+	vm.CmdLine = old.CmdLine
+	vm.DiskSize = old.DiskSize
+	vm.IdentityPath = old.IdentityPath
+	vm.IgnitionFilePath = old.IgnitionFilePath
+	vm.ImagePath = old.ImagePath
+	vm.ImageStream = old.ImageStream
+	vm.Memory = old.Memory
+	vm.Mounts = old.Mounts
+	vm.Name = old.Name
+	vm.PidFilePath = pidFilePath
+	vm.Port = old.Port
+	vm.QMPMonitor = qmpMonitor
+	vm.ReadySocket = readySocket
+	vm.RemoteUsername = old.RemoteUsername
+	vm.Rootful = old.Rootful
+	vm.UID = old.UID
+
+	// Backup the original config file
+	if err := os.Rename(configPath, configPath+".orig"); err != nil {
+		return err
+	}
+	// Write the config file
+	if err := vm.writeConfig(); err != nil {
+		// If the config file fails to be written, put the origina
+		// config file back before erroring
+		if renameError := os.Rename(configPath+".orig", configPath); renameError != nil {
+			logrus.Warn(renameError)
+		}
+		return err
+	}
+	// Remove the backup file
+	return os.Remove(configPath + ".orig")
+}
+
 // LoadByName reads a json file that describes a known qemu vm
 // and returns a vm instance
 func (p *Provider) LoadVMByName(name string) (machine.VM, error) {
@@ -140,7 +209,8 @@ func (p *Provider) LoadVMByName(name string) (machine.VM, error) {
 	if err != nil {
 		return nil, err
 	}
-	b, err := ioutil.ReadFile(filepath.Join(vmConfigDir, name+".json"))
+	path := filepath.Join(vmConfigDir, name+".json")
+	b, err := ioutil.ReadFile(path)
 	if os.IsNotExist(err) {
 		return nil, errors.Wrap(machine.ErrNoSuchVM, name)
 	}
@@ -148,7 +218,13 @@ func (p *Provider) LoadVMByName(name string) (machine.VM, error) {
 		return nil, err
 	}
 	err = json.Unmarshal(b, vm)
-
+	if err != nil {
+		migrateErr := migrateVM(path, b, vm)
+		if migrateErr != nil {
+			return nil, migrateErr
+		}
+		err = migrateErr
+	}
 	// It is here for providing the ability to propagate
 	// proxy settings (e.g. HTTP_PROXY and others) on a start
 	// and avoid a need of re-creating/re-initiating a VM
@@ -911,7 +987,12 @@ func GetVMInfos() ([]*machine.ListResponse, error) {
 			}
 			err = json.Unmarshal(b, vm)
 			if err != nil {
-				return err
+				// Checking if the file did not unmarshal because it is using
+				// the deprecated config file format.
+				migrateErr := migrateVM(fullPath, b, vm)
+				if migrateErr != nil {
+					return migrateErr
+				}
 			}
 			listEntry := new(machine.ListResponse)
 
