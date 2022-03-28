@@ -25,7 +25,6 @@ podman unpause mywebserver
 ```
 
 Unpause a container by a partial container ID.
-
 ```
 podman unpause 860a4b23
 ```

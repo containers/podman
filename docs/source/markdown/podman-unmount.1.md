@@ -47,11 +47,20 @@ started container could be from either of those methods. (This option is not ava
 
 ## EXAMPLE
 
+Unmount container with a given ID
+```
 podman container unmount containerID
+```
 
+Unmount multiple containers with given IDs
+```
 podman unmount containerID1 containerID2 containerID3
+```
 
+Unmount all containers
+```
 podman unmount --all
+```
 
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-container-mount(1)](podman-container-mount.1.md)**, **[podman-image-mount(1)](podman-image-mount.1.md)**
