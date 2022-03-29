@@ -19,9 +19,14 @@ counter reaches zero indicating no other processes are using the mount.
 
 ## EXAMPLE
 
+Unmount volume with a given ID
+```
 podman volume unmount volumeID
+```
 
+Unmount multiple volumes with given IDs
+```
 podman volume unmount volumeID1 volumeID2 volumeID3
-
+```
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-volume(1)](podman-volume.1.md)**, **[podman-volume-mount(1)](podman-volume-mount.1.md)**

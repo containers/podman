@@ -26,7 +26,7 @@ Volumes can be filtered by the following attributes:
 | name       | [Name] Volume name (accepts regex)                                                    |
 | opt        | Matches a storage driver options                                                      |
 | scope      | Filters volume by scope                                                               |
-| until      | Only remove volumes created before given timestamp                                   |
+| until      | Only remove volumes created before given timestamp                                    |
 
 #### **--format**=*format*
 

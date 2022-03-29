@@ -36,11 +36,14 @@ Do not prompt for confirmation
 
 ## EXAMPLE
 Prune networks
-
 ```
 podman network prune
 ```
 
+Prune all networks created before 2h
+```
+podman network prune --filter until=2h
+```
 
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-network(1)](podman-network.1.md)**, **[podman-network-rm(1)](podman-network-rm.1.md)**
