@@ -214,6 +214,7 @@ WantedBy=multi-user.target
 `
 
 	if ign.QemuStatic {
+		// Make the `ready` service wait until `install-qemu-static` has run to completion.
 		pat := regexp.MustCompile(`(?m)^(After=.*sshd\.service)$`)
 		r := pat.ReplaceAllString(ready, `$1 install-qemu-static.service`)
 		ready = r
