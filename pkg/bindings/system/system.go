@@ -120,6 +120,7 @@ func Version(ctx context.Context, options *VersionOptions) (*entities.SystemVers
 		BuiltTime:  time.Unix(b.Unix(), 0).Format(time.ANSIC),
 		Built:      b.Unix(),
 		OsArch:     fmt.Sprintf("%s/%s", component.Os, component.Arch),
+		Os:         component.Os,
 	}
 
 	for _, c := range component.Components {
