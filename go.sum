@@ -271,8 +271,9 @@ github.com/containers/psgo v1.7.1/go.mod h1:mWGpFzW73qWFA+blhF6l7GuKzbrACkYgr/aj
 github.com/containers/storage v1.23.5/go.mod h1:ha26Q6ngehFNhf3AWoXldvAvwI4jFe3ETQAf/CeZPyM=
 github.com/containers/storage v1.35.0/go.mod h1:qzYhasQP2/V9D9XdO+vRwkHBhsBO0oznMLzzRDQ8s20=
 github.com/containers/storage v1.36.0/go.mod h1:vbd3SKVQNHdmU5qQI6hTEcKPxnZkGqydG4f6uwrI5a8=
-github.com/containers/storage v1.37.0 h1:HVhDsur6sx889ZIZ1d1kEiOzv3gsr5q0diX2VZmOdSg=
 github.com/containers/storage v1.37.0/go.mod h1:kqeJeS0b7DO2ZT1nVWs0XufrmPFbgV3c+Q/45RlH6r4=
+github.com/containers/storage v1.37.1 h1:VB34UgJXlanXgT/vdL+F0PXoFLXr5mtkcQqN9WFGHmw=
+github.com/containers/storage v1.37.1/go.mod h1:kqeJeS0b7DO2ZT1nVWs0XufrmPFbgV3c+Q/45RlH6r4=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/etcd v3.3.13+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=

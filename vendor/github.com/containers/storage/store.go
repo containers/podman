@@ -2830,10 +2830,33 @@ func (s *store) Diff(from, to string, options *DiffOptions) (io.ReadCloser, erro
 	if err != nil {
 		return nil, err
 	}
+
+	// NaiveDiff could cause mounts to happen without a lock, so be safe
+	// and treat the .Diff operation as a Mount.
+	s.graphLock.Lock()
+	defer s.graphLock.Unlock()
+
+	modified, err := s.graphLock.Modified()
+	if err != nil {
+		return nil, err
+	}
+
+	// We need to make sure the home mount is present when the Mount is done.
+	if modified {
+		s.graphDriver = nil
+		s.layerStore = nil
+		s.graphDriver, err = s.getGraphDriver()
+		if err != nil {
+			return nil, err
+		}
+		s.lastLoaded = time.Now()
+	}
+
 	for _, s := range append([]ROLayerStore{lstore}, lstores...) {
 		store := s
 		store.RLock()
 		if err := store.ReloadIfChanged(); err != nil {
+			store.Unlock()
 			return nil, err
 		}
 		if store.Exists(to) {
