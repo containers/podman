@@ -51,7 +51,7 @@ require (
 	github.com/opencontainers/runc v1.1.0
 	github.com/opencontainers/runtime-spec v1.0.3-0.20211214071223-8958f93039ab
 	github.com/opencontainers/runtime-tools v0.9.1-0.20220110225228-7e2d60f1e41f
-	github.com/opencontainers/selinux v1.10.0
+	github.com/opencontainers/selinux v1.10.1
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/prometheus/client_golang v1.11.1 // indirect
