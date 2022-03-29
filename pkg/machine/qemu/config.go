@@ -49,7 +49,7 @@ type MachineVMV1 struct {
 	// SSH port for user networking
 	Port int
 	// QMPMonitor is the qemu monitor object for sending commands
-	QMPMonitor Monitor
+	QMPMonitor Monitorv1
 	// RemoteUsername of the vm user
 	RemoteUsername string
 	// Whether this machine should run in a rootful or rootless manner
@@ -132,6 +132,15 @@ type Mount struct {
 	Source   string
 	Target   string
 	ReadOnly bool
+}
+
+type Monitorv1 struct {
+	//	Address portion of the qmp monitor (/tmp/tmp.sock)
+	Address string
+	// Network portion of the qmp monitor (unix)
+	Network string
+	// Timeout in seconds for qmp monitor transactions
+	Timeout time.Duration
 }
 
 type Monitor struct {
