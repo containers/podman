@@ -109,6 +109,7 @@ for bin in bin/*;do
         size_orig=$(< $saved_size_file)
         delta_size=$(( size - size_orig ))
 
+        printf "%-20s size=%9d  delta=%6d\n" $bin $size $delta_size
         if [[ $delta_size -gt $MAX_BIN_GROWTH ]]; then
             separator=$(printf "%.0s*" {1..75})   # row of stars, for highlight
             echo "$separator"
@@ -129,5 +130,6 @@ for bin in bin/*;do
     else
         # First time through: preserve original file size
         echo $size >$saved_size_file
+        printf "%-20s size=%9d\n" $bin $size
     fi
 done
