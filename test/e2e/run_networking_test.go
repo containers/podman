@@ -1119,4 +1119,17 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})
+
+	It("podman run with ipam none driver", func() {
+		net := "ipam" + stringid.GenerateNonCryptoID()
+		session := podmanTest.Podman([]string{"network", "create", "--ipam-driver=none", net})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeNetwork(net)
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "--network", net, ALPINE, "ip", "addr", "show", "eth0"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToStringArray()).To(HaveLen(4), "output should only show link local address")
+	})
 })

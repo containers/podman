@@ -33,6 +33,8 @@ var (
 	networkCreateOptions entities.NetworkCreateOptions
 	labels               []string
 	opts                 []string
+	ipamDriverFlagName   = "ipam-driver"
+	ipamDriver           string
 )
 
 func networkCreateFlags(cmd *cobra.Command) {
@@ -66,8 +68,8 @@ func networkCreateFlags(cmd *cobra.Command) {
 	flags.StringArrayVar(&labels, labelFlagName, nil, "set metadata on a network")
 	_ = cmd.RegisterFlagCompletionFunc(labelFlagName, completion.AutocompleteNone)
 
-	// TODO not supported yet
-	// flags.StringVar(&networkCreateOptions.IPamDriver, "ipam-driver", "",  "IP Address Management Driver")
+	flags.StringVar(&ipamDriver, ipamDriverFlagName, "", "IP Address Management Driver")
+	_ = cmd.RegisterFlagCompletionFunc(ipamDriverFlagName, common.AutocompleteNetworkIPAMDriver)
 
 	flags.BoolVar(&networkCreateOptions.IPv6, "ipv6", false, "enable IPv6 networking")
 
@@ -110,6 +112,12 @@ func networkCreate(cmd *cobra.Command, args []string) error {
 		IPv6Enabled: networkCreateOptions.IPv6,
 		DNSEnabled:  !networkCreateOptions.DisableDNS,
 		Internal:    networkCreateOptions.Internal,
+	}
+
+	if cmd.Flags().Changed(ipamDriverFlagName) {
+		network.IPAMOptions = map[string]string{
+			types.Driver: ipamDriver,
+		}
 	}
 
 	// old --macvlan option
