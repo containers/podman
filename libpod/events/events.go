@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/containers/storage/pkg/stringid"
-	"github.com/hpcloud/tail"
+	"github.com/nxadm/tail"
 	"github.com/pkg/errors"
 )
 

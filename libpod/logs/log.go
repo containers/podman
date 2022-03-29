@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v4/libpod/logs/reversereader"
-	"github.com/hpcloud/tail"
+	"github.com/nxadm/tail"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
