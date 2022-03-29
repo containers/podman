@@ -74,6 +74,7 @@ type BudResults struct {
 	PullAlways          bool
 	PullNever           bool
 	Quiet               bool
+	IdentityLabel       bool
 	Rm                  bool
 	Runtime             string
 	RuntimeFlags        []string
@@ -227,6 +228,7 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 		panic(fmt.Sprintf("error marking the pull-never flag as hidden: %v", err))
 	}
 	fs.BoolVarP(&flags.Quiet, "quiet", "q", false, "refrain from announcing build instructions and image read/write progress")
+	fs.BoolVar(&flags.IdentityLabel, "identity-label", true, "add default identity label (default true)")
 	fs.BoolVar(&flags.Rm, "rm", true, "Remove intermediate containers after a successful build")
 	// "runtime" definition moved to avoid name collision in podman build.  Defined in cmd/buildah/build.go.
 	fs.StringSliceVar(&flags.RuntimeFlags, "runtime-flag", []string{}, "add global flags for the container runtime")

@@ -136,10 +136,6 @@ errmsg "no such file or directory" \
 
 ###############################################################################
 # BEGIN tests that don't make sense under podman due to fundamental differences
-
-skip "N/A under podman" \
-     "bud-flags-order-verification"
-
 # TODO
 # Some of the podman tests in CI expects exit code 125, which might not be true
 # since exit code from runtime is relayed as it is without any modification both
@@ -151,6 +147,9 @@ skip "N/A under podman" \
 # returned error number or not hence adding a note here.
 skip "podman CI expects all exit code to be 125 this test has anomaly behaviour" \
      "bud with --add-host"
+
+skip "podman CI expects all exit code to be 125 this test has anomaly behaviour" \
+     "bud - invalid runtime flags test"
 
 skip "does not work under podman" \
      "bud without any arguments should succeed"
@@ -180,6 +179,9 @@ skip "buildah runs with --cgroup-manager=cgroupfs, podman with systemd" \
 
 ###############################################################################
 # BEGIN tests which are skipped because they make no sense under podman-remote
+
+skip_if_remote "--runtime-flags does not work with podman-remote" \
+               "bud - invalid runtime flags test"
 
 skip_if_remote "--target does not work with podman-remote" \
                "bud-target"

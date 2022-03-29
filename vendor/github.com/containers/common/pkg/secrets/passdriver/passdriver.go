@@ -30,6 +30,8 @@ type driverConfig struct {
 	Root string
 	// KeyID contains the key id that will be used for encryption (i.e. user@domain.tld)
 	KeyID string
+	// GPGHomedir is the homedir where the GPG keys are stored
+	GPGHomedir string
 }
 
 func (cfg *driverConfig) ParseOpts(opts map[string]string) {
@@ -39,6 +41,9 @@ func (cfg *driverConfig) ParseOpts(opts map[string]string) {
 	}
 	if val, ok := opts["key"]; ok {
 		cfg.KeyID = val
+	}
+	if val, ok := opts["gpghomedir"]; ok {
+		cfg.GPGHomedir = val
 	}
 }
 
@@ -156,6 +161,9 @@ func (d *Driver) Delete(id string) error {
 }
 
 func (d *Driver) gpg(ctx context.Context, in io.Reader, out io.Writer, args ...string) error {
+	if d.GPGHomedir != "" {
+		args = append([]string{"--homedir", d.GPGHomedir}, args...)
+	}
 	cmd := exec.CommandContext(ctx, "gpg", args...)
 	cmd.Env = os.Environ()
 	cmd.Stdin = in

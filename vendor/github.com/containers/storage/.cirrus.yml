@@ -24,10 +24,10 @@ env:
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
     # VM Image built in containers/automation_images
-    _BUILT_IMAGE_SUFFIX: "c6431352024203264"
-    FEDORA_CACHE_IMAGE_NAME: "fedora-${_BUILT_IMAGE_SUFFIX}"
-    PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${_BUILT_IMAGE_SUFFIX}"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${_BUILT_IMAGE_SUFFIX}"
+    IMAGE_SUFFIX: "c4512539143831552"
+    FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
+    PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
+    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
 
     ####
     #### Command variables to help avoid duplication
@@ -132,7 +132,7 @@ lint_task:
 meta_task:
 
     container:
-        image: "quay.io/libpod/imgts:${_BUILT_IMAGE_SUFFIX}"
+        image: "quay.io/libpod/imgts:${IMAGE_SUFFIX}"
         cpu: 1
         memory: 1
 

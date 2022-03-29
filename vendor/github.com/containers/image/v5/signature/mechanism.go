@@ -13,6 +13,7 @@ import (
 	// code path, where cryptography is not relevant. For now, continue to
 	// use this frozen deprecated implementation. When mechanism_openpgp.go
 	// migrates to another implementation, this should migrate as well.
+	//lint:ignore SA1019 See above
 	"golang.org/x/crypto/openpgp" //nolint:staticcheck
 )
 

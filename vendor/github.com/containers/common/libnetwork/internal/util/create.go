@@ -3,6 +3,7 @@ package util
 import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 func CommonNetworkCreate(n NetUtil, network *types.Network) error {
@@ -38,4 +39,11 @@ func CommonNetworkCreate(n NetUtil, network *types.Network) error {
 		}
 	}
 	return nil
+}
+
+func IpamNoneDisableDns(network *types.Network) {
+	if network.IPAMOptions[types.Driver] == types.NoneIPAMDriver {
+		logrus.Debugf("dns disabled for network %q because ipam driver is set to none", network.Name)
+		network.DNSEnabled = false
+	}
 }

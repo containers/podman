@@ -431,8 +431,8 @@ func preprocessContainerfileContents(logger *logrus.Logger, containerfile string
 	cppCommand := "cpp"
 	cppPath, err := exec.LookPath(cppCommand)
 	if err != nil {
-		if os.IsNotExist(err) {
-			err = errors.Errorf("error: %s support requires %s to be installed", containerfile, cppPath)
+		if errors.Is(err, exec.ErrNotFound) {
+			err = fmt.Errorf("error: %v: .in support requires %s to be installed", err, cppCommand)
 		}
 		return nil, err
 	}

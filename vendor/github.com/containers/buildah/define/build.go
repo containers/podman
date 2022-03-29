@@ -29,6 +29,8 @@ type CommonBuildOptions struct {
 	CPUSetMems string
 	// HTTPProxy determines whether *_proxy env vars from the build host are passed into the container.
 	HTTPProxy bool
+	// IdentityLabel if set ensures that default `io.buildah.version` label is not applied to build image.
+	IdentityLabel types.OptionalBool
 	// Memory is the upper limit (in bytes) on how much memory running containers can use.
 	Memory int64
 	// DNSSearch is the list of DNS search domains to add to the build container's /etc/resolv.conf

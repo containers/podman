@@ -20,6 +20,7 @@ import (
 	// For this verify-only fallback, we haven't reviewed any of the
 	// existing alternatives to choose; so, for now, continue to
 	// use this frozen deprecated implementation.
+	//lint:ignore SA1019 See above
 	"golang.org/x/crypto/openpgp" //nolint:staticcheck
 )
 

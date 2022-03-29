@@ -13,6 +13,7 @@ import (
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // defaultShortNameMode is the default mode of registries.conf files if the
@@ -315,10 +316,13 @@ func (c *shortNameAliasCache) updateWithConfigurationFrom(updates *shortNameAlia
 func loadShortNameAliasConf(confPath string) (*shortNameAliasConf, *shortNameAliasCache, error) {
 	conf := shortNameAliasConf{}
 
-	_, err := toml.DecodeFile(confPath, &conf)
+	meta, err := toml.DecodeFile(confPath, &conf)
 	if err != nil && !os.IsNotExist(err) {
 		// It's okay if the config doesn't exist.  Other errors are not.
 		return nil, nil, errors.Wrapf(err, "loading short-name aliases config file %q", confPath)
+	}
+	if keys := meta.Undecoded(); len(keys) > 0 {
+		logrus.Debugf("Failed to decode keys %q from %q", keys, confPath)
 	}
 
 	// Even if we don’t always need the cache, doing so validates the machine-generated config.  The
