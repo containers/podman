@@ -194,8 +194,7 @@ After=remove-moby.service
 # We run before 'zincati.service' to avoid conflicting with rpm-ostree
 # transactions.
 Before=zincati.service
-ConditionPathIsDirectory=|!/lib/binfmt.d
-ConditionDirectoryNotEmpty=|!/lib/binfmt.d
+ConditionPathExists=!/var/lib/%N.stamp
 
 [Service]
 Type=oneshot
@@ -208,6 +207,7 @@ ExecStart=/usr/bin/rpm-ostree install --apply-live --allow-inactive qemu qemu-us
 # The 'systetmd-binfmt.service' unit _will_ do this, but it has long completed by the time this service is starting
 # So just run the command to enable the extra formats right away.
 ExecStart=/usr/lib/systemd/systemd-binfmt
+ExecStartPost=/bin/touch /var/lib/%N.stamp
 
 [Install]
 WantedBy=multi-user.target
