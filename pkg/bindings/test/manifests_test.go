@@ -96,7 +96,7 @@ var _ = Describe("podman manifest", func() {
 		Expect(err).To(HaveOccurred())
 
 		code, _ = bindings.CheckResponseCode(err)
-		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
+		Expect(code).To(BeNumerically("==", http.StatusBadRequest))
 	})
 
 	It("remove digest", func() {
