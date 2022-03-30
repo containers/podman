@@ -217,6 +217,11 @@ skip_if_remote "FIXME FIXME FIXME: find a way to clean up their podman calls" \
 skip_if_remote "Do envariables work with -remote? Please look into this." \
                "build proxy"
 
+# FIXME 2022-03-30 flaking way, way too much.
+# Tracked at https://github.com/containers/buildah/issues/3710
+skip "2022-03-30 This test is flaking way too much; see buildah #3710" \
+     "bud-multiple-platform-no-run"
+
 ###############################################################################
 # Done.
 
