@@ -30,6 +30,7 @@
 - Fixed a bug where Podman would not properly detect the use of `systemd` as PID 1 in a container when the entrypoint was prefixed with `/bin/sh -c` ([#13324](https://github.com/containers/podman/issues/13324)).
 - Fixed a bug where rootless Podman could, on systems that do not use `systemd` as init, print a warning message about the rootless network namespace ([#13703](https://github.com/containers/podman/issues/13703)).
 - Fixed a bug where the default systemd unit file for `podman system service` did not delegate all cgroup controllers, resulting in `podman info` queries against the remote API returning incorrect cgroup controllers ([#13710](https://github.com/containers/podman/issues/13710)).
+- Fixed a bug where the `slirp4netns` port forwarder for rootless Podman would only publish the first port of a range ([#13643](https://github.com/containers/podman/issues/13643)).
 
 ### API
 - Fixed a bug where the Compat Create API for containers did not properly handle permissions for tmpfs mounts ([#13108](https://github.com/containers/podman/issues/13108)).
