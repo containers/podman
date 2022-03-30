@@ -27,6 +27,7 @@ type Version struct {
 	BuiltTime  string
 	Built      int64
 	OsArch     string
+	Os         string
 }
 
 // GetVersion returns a VersionOutput struct for API and podman
@@ -49,5 +50,6 @@ func GetVersion() (Version, error) {
 		BuiltTime:  time.Unix(buildTime, 0).Format(time.ANSIC),
 		Built:      buildTime,
 		OsArch:     runtime.GOOS + "/" + runtime.GOARCH,
+		Os:         runtime.GOOS,
 	}, nil
 }
