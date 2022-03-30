@@ -303,6 +303,18 @@ func WithStorageOpts(storageOpts map[string]string) CtrCreateOption {
 	}
 }
 
+// WithSysDevBlock sets the options to create /sys/dev/block symlinks
+// across reboots will be stored.
+func WithSysDevBlock() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.SysDevBlock = true
+		return nil
+	}
+}
+
 // WithDefaultMountsFile sets the file to look at for default mounts (mainly
 // secrets).
 // Note we are not saving this in the database as it is for testing purposes

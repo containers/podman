@@ -415,6 +415,29 @@ func getOverlayUpperAndWorkDir(options []string) (string, string, error) {
 	return upperDir, workDir, nil
 }
 
+// Add bind mounts to container
+func (c *Container) mountBind(g generate.Generator, printWarning bool) {
+	for dstPath, srcPath := range c.state.BindMounts {
+		newMount := spec.Mount{
+			Type:        "bind",
+			Source:      srcPath,
+			Destination: dstPath,
+			Options:     []string{"bind", "rprivate"},
+		}
+		if dstPath == sysDevBlock || (c.IsReadOnly() && dstPath != "/dev/shm") {
+			newMount.Options = append(newMount.Options, "ro", "nosuid", "noexec", "nodev")
+		}
+		if dstPath == "/dev/shm" && c.state.BindMounts["/dev/shm"] == c.config.ShmDir {
+			newMount.Options = append(newMount.Options, "nosuid", "noexec", "nodev")
+		}
+		if !MountExists(g.Mounts(), dstPath) {
+			g.AddMount(newMount)
+		} else if printWarning {
+			logrus.Infof("User mount overriding libpod mount at %q", dstPath)
+		}
+	}
+}
+
 // Generate spec for a container
 // Accepts a map of the container's dependencies
 func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
@@ -580,25 +603,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	g.SetLinuxMountLabel(c.MountLabel())
 
 	// Add bind mounts to container
-	for dstPath, srcPath := range c.state.BindMounts {
-		newMount := spec.Mount{
-			Type:        "bind",
-			Source:      srcPath,
-			Destination: dstPath,
-			Options:     []string{"bind", "rprivate"},
-		}
-		if c.IsReadOnly() && dstPath != "/dev/shm" {
-			newMount.Options = append(newMount.Options, "ro", "nosuid", "noexec", "nodev")
-		}
-		if dstPath == "/dev/shm" && c.state.BindMounts["/dev/shm"] == c.config.ShmDir {
-			newMount.Options = append(newMount.Options, "nosuid", "noexec", "nodev")
-		}
-		if !MountExists(g.Mounts(), dstPath) {
-			g.AddMount(newMount)
-		} else {
-			logrus.Infof("User mount overriding libpod mount at %q", dstPath)
-		}
-	}
+	c.mountBind(g, true)
 
 	// Add overlay volumes
 	for _, overlayVol := range c.config.OverlayVolumes {
@@ -1848,23 +1853,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	}
 
 	if options.TargetFile != "" || options.CheckpointImageID != "" {
-		for dstPath, srcPath := range c.state.BindMounts {
-			newMount := spec.Mount{
-				Type:        "bind",
-				Source:      srcPath,
-				Destination: dstPath,
-				Options:     []string{"bind", "private"},
-			}
-			if c.IsReadOnly() && dstPath != "/dev/shm" {
-				newMount.Options = append(newMount.Options, "ro", "nosuid", "noexec", "nodev")
-			}
-			if dstPath == "/dev/shm" && c.state.BindMounts["/dev/shm"] == c.config.ShmDir {
-				newMount.Options = append(newMount.Options, "nosuid", "noexec", "nodev")
-			}
-			if !MountExists(g.Mounts(), dstPath) {
-				g.AddMount(newMount)
-			}
-		}
+		c.mountBind(g, false)
 	}
 
 	// Restore /dev/shm content
@@ -2247,6 +2236,12 @@ func (c *Container) makeBindMounts() error {
 		}
 	}
 
+	if c.config.SysDevBlock {
+		if err := c.createSysDevBlock(); err != nil {
+			return fmt.Errorf("error creating /sys/dev/block structure for container %s: %w", c.ID(), err)
+		}
+	}
+
 	_, hasRunContainerenv := c.state.BindMounts["/run/.containerenv"]
 	if !hasRunContainerenv {
 		// check in the spec mounts
@@ -2534,6 +2529,32 @@ func (c *Container) createHosts() error {
 	}
 
 	return c.bindMountRootFile(targetFile, config.DefaultHostsFile)
+}
+
+func (c *Container) createSysDevBlock() error {
+	dir := fmt.Sprintf("%s/sysdevblock", c.state.RunDir)
+	c.state.BindMounts[sysDevBlock] = dir
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return err
+	}
+	for _, p := range c.config.Spec.Linux.Devices {
+		logrus.Debugf("Symlink for device %s", p.Path)
+		if err := createSysBlockSymlink(p.Path, dir); err != nil {
+			return err
+		}
+	}
+	for _, m := range c.config.Spec.Mounts {
+		logrus.Debugf("Symlink for mount location %s", m.Source)
+		if err := createSysBlockSymlink(m.Source, dir); err != nil {
+			return err
+		}
+	}
+
+	if err := label.Relabel(dir, c.MountLabel(), false); err != nil {
+		return err
+	}
+
+	return c.mountIntoRootDirs(sysDevBlock, dir)
 }
 
 // bindMountRootFile will chown and relabel the source file to make it usable in the container.

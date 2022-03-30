@@ -174,6 +174,8 @@ type ContainerRootFSConfig struct {
 	// treated as root directories. Standard bind mounts will be mounted
 	// into paths relative to these directories.
 	ChrootDirs []string `json:"chroot_directories,omitempty"`
+	// Expose /sys/dev/block entries for mounts and devices in the container.
+	SysDevBlock bool `json:"sysdevblock,omitempty"`
 }
 
 // ContainerSecurityConfig is an embedded sub-config providing security configuration

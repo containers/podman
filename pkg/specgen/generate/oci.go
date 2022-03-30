@@ -20,6 +20,8 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+const sysDevBlock = "/sys/dev/block"
+
 func setProcOpts(s *specgen.SpecGenerator, g *generate.Generator) {
 	if s.ProcOpts == nil {
 		return

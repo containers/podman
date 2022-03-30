@@ -1,7 +1,8 @@
 #!/usr/bin/env bats   -*- bats -*-
 #
 # Tests #2730 - regular users are not able to read/write container storage
-# Tests #6957 - /sys/dev (et al) are masked from unprivileged containers
+# Tests #6957 - /sys/dev (et al) are masked (excluding volumes/devices #12746)
+#               from unprivileged containers
 #
 
 load helpers
@@ -170,4 +171,23 @@ EOF
     done
 }
 
+@test "explict /sys/dev/block mount is empty" {
+    run_podman '?' run --security-opt=mask=/sys/dev/block --rm $IMAGE sh -c 'ls /sys/dev/block/*'
+    assert $status -ne 2 " exit status: expected !=2 indicating no files in /sys/dev/block"
+}
+
+@test "populate /sys/dev/block with volume major:minor link" {
+    # tmpfs doesn't have a /sys/dev/block link look for something else
+    dir=$(mktemp -d "$PODMAN_TMPDIR"/podmantestXXXXXXXXXX)
+    path=/sys/dev/block/$(stat  -c '%Hd:%Ld' "${dir}")
+    if [ ! -h "$path" ]; then
+        rmdir "$dir"
+        skip "No $path link to copy"
+    fi
+    run_podman '?' run --volume "$dir":/myvol --rm "$IMAGE" readlink "$path"
+    rmdir "$dir"
+    if [ -z $result ]; then
+        die "Missing symlink for $path"
+    fi
+}
 # vim: filetype=sh

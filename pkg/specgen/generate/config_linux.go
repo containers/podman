@@ -85,7 +85,6 @@ func BlockAccessToKernelFilesystems(privileged, pidModeIsHost bool, mask, unmask
 		"/proc/scsi",
 		"/sys/firmware",
 		"/sys/fs/selinux",
-		"/sys/dev/block",
 	}
 
 	if !privileged {

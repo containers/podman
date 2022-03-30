@@ -5,6 +5,7 @@ package libpod
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"syscall"
 
@@ -16,6 +17,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
+
+const sysDevBlock = "/sys/dev/block"
 
 // systemdSliceFromPath makes a new systemd slice under the given parent with
 // the given name.
@@ -137,4 +140,25 @@ func Unmount(mount string) {
 			logrus.Debugf("failed to unmount %s : %v", mount, err)
 		}
 	}
+}
+
+// Copies symlink from /sys/dev/block/DEVICE($path) to the $dir
+func createSysBlockSymlink(path string, dir string) error {
+	statT := unix.Stat_t{}
+	if err := unix.Stat(path, &statT); err == nil {
+		major, minor := unix.Major(uint64(statT.Dev)), unix.Minor(uint64(statT.Dev))
+		if statT.Mode&unix.S_IFBLK == unix.S_IFBLK {
+			// For block, copy what the major/minor the device is, not what fs it is placed on.
+			major, minor = unix.Major(uint64(statT.Rdev)), unix.Minor(uint64(statT.Rdev))
+		}
+		target, errlink := os.Readlink(fmt.Sprintf(sysDevBlock+"/%d:%d", major, minor))
+		if errlink == nil {
+			link := fmt.Sprintf("%s/%d:%d", dir, major, minor)
+			err := os.Symlink(target, link)
+			if errlink != nil {
+				return fmt.Errorf("error creating symlink target %s for %s: %w", target, link, err)
+			}
+		}
+	}
+	return nil
 }

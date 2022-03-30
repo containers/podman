@@ -219,6 +219,10 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 			}
 		}
 	}
+	// If its masked, BlockAccessToKernelFilesystems would have done it, if Unmasked, we don't need to do anything.
+	if !s.Privileged && shouldMask(sysDevBlock, s.Mask) && shouldMask(sysDevBlock, s.Unmask) {
+		options = append(options, libpod.WithSysDevBlock())
+	}
 	if len(s.HostDeviceList) > 0 {
 		options = append(options, libpod.WithHostDevice(s.HostDeviceList))
 	}
