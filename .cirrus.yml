@@ -722,13 +722,11 @@ upgrade_test_task:
       - local_system_test
     matrix:
         - env:
-              PODMAN_UPGRADE_FROM: v1.9.0
-        - env:
-              PODMAN_UPGRADE_FROM: v2.0.6
-        - env:
               PODMAN_UPGRADE_FROM: v2.1.1
         - env:
               PODMAN_UPGRADE_FROM: v3.1.2
+        - env:
+              PODMAN_UPGRADE_FROM: v3.4.4
     gce_instance: *standardvm
     env:
         TEST_FLAVOR: upgrade_test
