@@ -146,6 +146,10 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 
 	configSpec := g.Config
 	configSpec.Process.Capabilities.Ambient = []string{}
+
+	// Always unset the inheritable capabilities similarly to what the Linux kernel does
+	// They are used only when using capabilities with uid != 0.
+	configSpec.Process.Capabilities.Inheritable = []string{}
 	configSpec.Process.Capabilities.Bounding = caplist
 
 	user := strings.Split(s.User, ":")[0]
@@ -153,7 +157,6 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 	if (user == "" && s.UserNS.NSMode != specgen.KeepID) || user == "root" || user == "0" {
 		configSpec.Process.Capabilities.Effective = caplist
 		configSpec.Process.Capabilities.Permitted = caplist
-		configSpec.Process.Capabilities.Inheritable = caplist
 	} else {
 		mergedCaps, err := capabilities.MergeCapabilities(nil, s.CapAdd, nil)
 		if err != nil {
@@ -175,12 +178,12 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 		}
 		configSpec.Process.Capabilities.Effective = userCaps
 		configSpec.Process.Capabilities.Permitted = userCaps
-		configSpec.Process.Capabilities.Inheritable = userCaps
 
 		// Ambient capabilities were added to Linux 4.3.  Set ambient
 		// capabilities only when the kernel supports them.
 		if supportAmbientCapabilities() {
 			configSpec.Process.Capabilities.Ambient = userCaps
+			configSpec.Process.Capabilities.Inheritable = userCaps
 		}
 	}
 

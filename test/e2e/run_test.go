@@ -498,7 +498,7 @@ var _ = Describe("Podman run", func() {
 		session = podmanTest.Podman([]string{"run", "--rm", "--user", "root", ALPINE, "grep", "CapInh", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(ContainSubstring("00000000a80425fb"))
+		Expect(session.OutputToString()).To(ContainSubstring("0000000000000000"))
 
 		session = podmanTest.Podman([]string{"run", "--rm", ALPINE, "grep", "CapBnd", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
@@ -533,7 +533,7 @@ var _ = Describe("Podman run", func() {
 		session = podmanTest.Podman([]string{"run", "--user=0:0", "--cap-add=DAC_OVERRIDE", "--rm", ALPINE, "grep", "CapInh", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(ContainSubstring("00000000a80425fb"))
+		Expect(session.OutputToString()).To(ContainSubstring("0000000000000000"))
 
 		if os.Geteuid() > 0 {
 			if os.Getenv("SKIP_USERNS") != "" {
