@@ -11,7 +11,7 @@ var (
 )
 
 func (v *MachineVM) addArchOptions() []string {
-	ovmfDir := getOvmfDir(v.ImagePath, v.Name)
+	ovmfDir := getOvmfDir(v.ImagePath.GetPath(), v.Name)
 	opts := []string{
 		"-accel", "hvf",
 		"-accel", "tcg",
@@ -23,13 +23,13 @@ func (v *MachineVM) addArchOptions() []string {
 }
 
 func (v *MachineVM) prepare() error {
-	ovmfDir := getOvmfDir(v.ImagePath, v.Name)
+	ovmfDir := getOvmfDir(v.ImagePath.GetPath(), v.Name)
 	cmd := []string{"/bin/dd", "if=/dev/zero", "conv=sync", "bs=1m", "count=64", "of=" + ovmfDir}
 	return exec.Command(cmd[0], cmd[1:]...).Run()
 }
 
 func (v *MachineVM) archRemovalFiles() []string {
-	ovmDir := getOvmfDir(v.ImagePath, v.Name)
+	ovmDir := getOvmfDir(v.ImagePath.GetPath(), v.Name)
 	return []string{ovmDir}
 }
 

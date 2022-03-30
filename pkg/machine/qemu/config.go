@@ -5,6 +5,7 @@ package qemu
 
 import (
 	"errors"
+	"io/ioutil"
 	"os"
 	"time"
 
@@ -59,6 +60,8 @@ type MachineVMV1 struct {
 }
 
 type MachineVM struct {
+	// ConfigPath is the path to the configuration file
+	ConfigPath MachineFile
 	// The command line representation of the qemu command
 	CmdLine []string
 	// HostUser contains info about host user
@@ -83,11 +86,11 @@ type MachineVM struct {
 
 // ImageConfig describes the bootable image for the VM
 type ImageConfig struct {
-	IgnitionFilePath string
+	IgnitionFilePath MachineFile
 	// ImageStream is the update stream for the image
 	ImageStream string
 	// ImagePath is the fq path to
-	ImagePath string
+	ImagePath MachineFile
 }
 
 // HostUser describes the host user
@@ -171,11 +174,19 @@ func (m *MachineFile) GetPath() string {
 // the actual path
 func (m *MachineFile) Delete() error {
 	if m.Symlink != nil {
-		if err := os.Remove(*m.Symlink); err != nil {
+		if err := os.Remove(*m.Symlink); err != nil && !errors.Is(err, os.ErrNotExist) {
 			logrus.Errorf("unable to remove symlink %q", *m.Symlink)
 		}
 	}
-	return os.Remove(m.Path)
+	if err := os.Remove(m.Path); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return nil
+}
+
+// Read the contents of a given file and return in []bytes
+func (m *MachineFile) Read() ([]byte, error) {
+	return ioutil.ReadFile(m.GetPath())
 }
 
 // NewMachineFile is a constructor for MachineFile
