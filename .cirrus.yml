@@ -60,6 +60,37 @@ env:
     VM_IMAGE_NAME:           # One of the "Google-cloud VM Images" (above)
     CTR_FQIN:                # One of the "Container FQIN's" (above)
 
+    # Execution Modes:
+    #
+    # Several modes of execution exist to omit or include certain tasks
+    # based on various conditions or user requests.  In all cases, the
+    # conditions must exist _BEFORE_ the Cirrus-CI Build begins running.
+    # Below is a summary of conditions in use, along with a general
+    # description.
+    #
+    # [ Condition ]             | [ Description ]
+    # Exec. on PR               | Build binaries, docs, verify, cross,
+    #                             run unit, int., and sys. testing.
+    # Exec. on Branch           | Post PR-merge or new branch created,
+    #                             build artifacts & do high-level testing.
+    # Exec. on Tag              | New tag created, build artifacts + docs only.
+    # Exec. on Cron "multiarch" | Only build multi-arch container images
+    # PR Title "[CI:MA]"        | Same as `Exec. on Cron "multiarch"` (above)
+    # PR Title "[CI:DOCS]"      | Build binaries, validate, and docs only.
+    # PR Title "[CI:BUILD]"     | Build binaries, validate, cross-compile,
+    #                             and publish artifacts.
+    # PR Title "release|bump"   | Normal PR testing + release-testing
+    #
+    # N/B: Not all $CIRRUS_* variables behave as you would expect.
+    IS_PR: '($CIRRUS_PR != "" && $CIRRUS_BRANCH == "pull/$CIRRUS_PR")'
+    IS_BR: '($CIRRUS_BRANCH != "" && $CIRRUS_TAG == "" && $CIRRUS_PR == "" && CIRRUS_CRON == "")'
+    IS_TAG: '($CIRRUS_BRANCH == "$CIRRUS_TAG" && $CIRRUS_TAG != "")'
+    IS_CRON: '($CIRRUS_CRON != "")'
+    IS_MA: '($CIRRUS_CRON == "multiarch" || $CIRRUS_CHANGE_TITLE =~ ".*CI:MA.*")'
+    IS_DOCS: '($CIRRUS_CHANGE_TITLE =~ ".*CI:DOCS.*")'
+    IS_BLD: '($CIRRUS_CHANGE_TITLE =~ ".*CI:BUILD.*")'
+    IS_REL: '($CIRRUS_CHANGE_TITLE =~ ".*((release)|(bump)).*")'
+
 
 # Default timeout for each task
 timeout_in: 60m
@@ -73,7 +104,8 @@ gcp_credentials: ENCRYPTED[a28959877b2c9c36f151781b0a05407218cda646c7d047fc556e4
 ext_svc_check_task:
     alias: 'ext_svc_check'  # int. ref. name - required for depends_on reference
     name: "Ext. services"  # Displayed Title - has no other significance
-    skip: &tags "$CIRRUS_TAG != ''"  # Don't run on tags
+    # Block most/all PR testing if critical services are down
+    only_if: "$IS_PR && !$IS_MA"
     # Default/small container image to execute tasks with
     container: &smallcontainer
         image: ${CTR_FQIN}
@@ -116,7 +148,8 @@ ext_svc_check_task:
 automation_task:
     alias: 'automation'
     name: "Check Automation"
-    skip: &branches_and_tags "$CIRRUS_PR == '' || $CIRRUS_TAG != ''" # Don't run on branches/tags
+    # Always run for all PRs except [CI:MA]
+    only_if: "$IS_PR && !$IS_MA"
     container: *smallcontainer
     env:
         TEST_FLAVOR: automation
@@ -139,6 +172,8 @@ automation_task:
 build_task:
     alias: 'build'
     name: 'Build for $DISTRO_NV'
+    # Always run, except for [CI:MA]
+    only_if: "!$IS_MA"
     gce_instance: &standardvm
         image_project: libpod-218412
         zone: "us-central1-a"
@@ -195,12 +230,8 @@ build_task:
 validate_task:
     name: "Validate $DISTRO_NV Build"
     alias: validate
-    # This task is primarily intended to catch human-errors early on, in a
-    # PR.  Skip it for branch-push, branch-create, and tag-push to improve
-    # automation reliability/speed in those contexts.  Any missed errors due
-    # to nonsequential PR merging practices, will be caught on a future PR,
-    # build or test task failures.
-    skip: *branches_and_tags
+    # Run in all PRs to validate build and docs, except [CI:MA]
+    only_if: "$IS_PR && !$IS_MA"
     depends_on:
         - ext_svc_check
         - automation
@@ -227,9 +258,8 @@ validate_task:
 bindings_task:
     name: "Test Bindings"
     alias: bindings
-    # Don't run for [CI:DOCS] or [CI:BUILD]
-    only_if: &not_build $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' && $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
-    skip: *branches_and_tags
+    # Run in all PRs except CI:DOCS, CI:BUILD, and CI:MA
+    only_if: '$IS_PR && (!$IS_DOCS || !$IS_BLD || !$IS_MA)'
     depends_on:
         - build
     gce_instance: *standardvm
@@ -259,6 +289,8 @@ bindings_task:
 swagger_task:
     name: "Test Swagger"
     alias: swagger
+    # Always run except for [CI:MA] or [CI:BUILD]
+    only_if: '!$IS_MA || !$IS_BUILD'
     depends_on:
         - build
     gce_instance: *standardvm
@@ -287,7 +319,8 @@ swagger_task:
 consistency_task:
     name: "Test Code Consistency"
     alias: consistency
-    skip: *tags
+    # Always run for PRs except [CI:DOCS], and [CI:MA]
+    only_if: '$IS_PR && !($IS_DOCS || $IS_MA)'
     depends_on:
         - build
     container: *smallcontainer
@@ -308,8 +341,8 @@ consistency_task:
 alt_build_task:
     name: "$ALT_NAME"
     alias: alt_build
-    # Don't run for [CI:DOCS]; DO run for [CI:BUILD]
-    only_if: &not_docs $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
+    # Always run except for [CI:DOCS] or [CI:MA]
+    only_if: '!($IS_DOCS || $IS_MA)'
     depends_on:
         - build
     env:
@@ -338,7 +371,8 @@ alt_build_task:
 osx_alt_build_task:
     name: "OSX Cross"
     alias: osx_alt_build
-    only_if: *not_docs
+    # Always run except for [CI:DOCS] or [CI:MA]
+    only_if: '!($IS_DOCS || $IS_MA)'
     depends_on:
         - build
     env:
@@ -363,8 +397,8 @@ osx_alt_build_task:
 docker-py_test_task:
     name: Docker-py Compat.
     alias: docker-py_test
-    skip: *tags
-    only_if: *not_build
+    # Run for all PRs, except [CI:DOCS], [CI:BUILD], or [CI:MA]
+    only_if: '$IS_PR && !($IS_DOCS || $IS_BUILD || $IS_MA)'
     depends_on:
         - build
     gce_instance: *standardvm
@@ -384,8 +418,8 @@ docker-py_test_task:
 unit_test_task:
     name: "Unit tests on $DISTRO_NV"
     alias: unit_test
-    skip: *tags
-    only_if: *not_build
+    # Run for all PRs, except [CI:DOCS], [CI:BUILD], or [CI:MA]
+    only_if: '$IS_PR && !($IS_DOCS || $IS_BUILD || $IS_MA)'
     depends_on:
         - validate
     matrix:
@@ -410,8 +444,8 @@ unit_test_task:
 apiv2_test_task:
     name: "APIv2 test on $DISTRO_NV"
     alias: apiv2_test
-    only_if: *not_build
-    skip: *tags
+    # Run for all PRs, except [CI:DOCS], [CI:BUILD], or [CI:MA]
+    only_if: '$IS_PR && !($IS_DOCS || $IS_BUILD || $IS_MA)'
     depends_on:
         - validate
     gce_instance: *standardvm
@@ -431,8 +465,8 @@ apiv2_test_task:
 compose_test_task:
     name: "$TEST_FLAVOR test on $DISTRO_NV ($PRIV_NAME)"
     alias: compose_test
-    only_if: *not_build
-    skip: *tags
+    # Run for all PRs, except [CI:DOCS], [CI:BUILD], or [CI:MA]
+    only_if: '$IS_PR && !($IS_DOCS || $IS_BUILD || $IS_MA)'
     depends_on:
         - validate
     gce_instance: *standardvm
@@ -465,8 +499,8 @@ local_integration_test_task: &local_integration_test_task
     # <int.|sys.> <podman|remote> <Distro NV> <root|rootless>
     name: &std_name_fmt "$TEST_FLAVOR $PODBIN_NAME $DISTRO_NV $PRIV_NAME $TEST_ENVIRON"
     alias: local_integration_test
-    only_if: *not_build
-    skip: *branches_and_tags
+    # Run for all PRs, except [CI:DOCS], [CI:BUILD], or [CI:MA]
+    only_if: '$IS_PR && !($IS_DOCS || $IS_BUILD || $IS_MA)'
     depends_on:
         - unit_test
     matrix: *platform_axis
@@ -501,8 +535,8 @@ remote_integration_test_task:
 container_integration_test_task:
     name: *std_name_fmt
     alias: container_integration_test
-    only_if: *not_build
-    skip: *branches_and_tags
+    # Run for all PRs, except [CI:DOCS], [CI:BUILD], or [CI:MA]
+    only_if: '$IS_PR && !($IS_DOCS || $IS_BUILD || $IS_MA)'
     depends_on:
         - unit_test
     matrix: &fedora_vm_axis
@@ -532,8 +566,8 @@ container_integration_test_task:
 rootless_integration_test_task:
     name: *std_name_fmt
     alias: rootless_integration_test
-    only_if: *not_build
-    skip: *branches_and_tags
+    # Run for all PRs, except [CI:DOCS], [CI:BUILD], or [CI:MA]
+    only_if: '$IS_PR && !($IS_DOCS || $IS_BUILD || $IS_MA)'
     depends_on:
         - unit_test
     matrix: *platform_axis
@@ -553,8 +587,8 @@ rootless_integration_test_task:
 netavark_task:
     name: "Netavark $TEST_FLAVOR $PODBIN_NAME $PRIV_NAME"
     alias: netavark
-    only_if: *not_build
-    skip: *branches_and_tags
+    # Run for all PRs, except [CI:DOCS], [CI:BUILD], or [CI:MA]
+    only_if: '$IS_PR && !($IS_DOCS || $IS_BUILD || $IS_MA)'
     depends_on:
         - unit_test
     gce_instance: *standardvm
@@ -591,8 +625,8 @@ netavark_task:
 local_system_test_task: &local_system_test_task
     name: *std_name_fmt
     alias: local_system_test
-    skip: *tags
-    only_if: *not_build
+    # Run for PRs and branches, never [CI:DOCS], [CI:BUILD], or [CI:MA]
+    only_if: '$IS_PR || $IS_BR && !($IS_DOCS || $IS_BUILD || $IS_MA)'
     depends_on:
       - local_integration_test
     matrix: *platform_axis
@@ -640,8 +674,8 @@ rootless_remote_system_test_task:
 buildah_bud_test_task:
     name: *std_name_fmt
     alias: buildah_bud_test
-    skip: *tags
-    only_if: *not_build
+    # Run for PRs and branches, never [CI:DOCS], [CI:BUILD], or [CI:MA]
+    only_if: '$IS_PR || $IS_BR && !($IS_DOCS || $IS_BUILD || $IS_MA)'
     depends_on:
       - local_integration_test
     env:
@@ -669,8 +703,8 @@ buildah_bud_test_task:
 rootless_system_test_task:
     name: *std_name_fmt
     alias: rootless_system_test
-    skip: *tags
-    only_if: *not_build
+    # Run for PRs and branches, never [CI:DOCS], [CI:BUILD], or [CI:MA]
+    only_if: '$IS_PR || $IS_BR && !($IS_DOCS || $IS_BUILD || $IS_MA)'
     depends_on:
       - rootless_integration_test
     matrix: *platform_axis
@@ -688,8 +722,8 @@ rootless_system_test_task:
 rootless_gitlab_test_task:
     name: *std_name_fmt
     alias: rootless_gitlab_test
-    skip: *tags
-    only_if: *not_build
+    # Run for PRs and branches, never [CI:DOCS], [CI:BUILD], or [CI:MA]
+    only_if: '$IS_PR || $IS_BR && !($IS_DOCS || $IS_BUILD || $IS_MA)'
     # Community-maintained downstream test may fail unexpectedly.
     # Ref. repository: https://gitlab.com/gitlab-org/gitlab-runner
     # If necessary, uncomment the next line and file issue(s) with details.
@@ -716,8 +750,8 @@ rootless_gitlab_test_task:
 upgrade_test_task:
     name: "Upgrade test: from $PODMAN_UPGRADE_FROM"
     alias: upgrade_test
-    skip: *tags
-    only_if: *not_build
+    # Only run for Cron except [CI:MA]
+    only_if: '$IS_CRON && !$IS_MA'
     depends_on:
       - local_system_test
     matrix:
@@ -747,8 +781,9 @@ image_build_task:
     name: "Build multi-arch $CTXDIR"
     alias: image_build
     # Some of these container images take > 1h to build, limit
-    # this task to a specific Cirrus-Cron entry with this name.
-    only_if: $CIRRUS_CRON == 'multiarch'
+    # this task to a specific Cirrus-Cron entry with this name
+    # or in a PR by request.
+    only_if: '$IS_MA'
     depends_on:
         - ext_svc_check
     timeout_in: 120m  # emulation is sssllllooooowwww
@@ -848,7 +883,8 @@ success_task:
 artifacts_task:
     name: "Artifacts"
     alias: artifacts
-    only_if: *not_docs
+    # Always run when binaries are built, never for [CI:DOCS] or [CI:MA]
+    only_if: '!($IS_DOCS || $IS_MA)'
     depends_on:
         - success
     # This task is a secondary/convenience for downstream consumers, don't
@@ -902,7 +938,8 @@ artifacts_task:
 release_task:
     name: "Verify Release"
     alias: release
-    only_if: *tags
+    # Always run for releases and tags
+    only_if: '$IS_TAG || $IS_REL'
     depends_on:
         - success
     gce_instance: *standardvm
@@ -925,8 +962,8 @@ release_task:
 release_test_task:
     name: "Optional Release Test"
     alias: release_test
-    # Release-PRs always include "release" or "Bump" in the title
-    only_if: $CIRRUS_CHANGE_TITLE =~ '.*((release)|(bump)).*'
+    # Only permit running for release PRs
+    only_if: '$IS_PR && $IS_REL'
     # Allow running manually only as part of release-related builds
     # see RELEASE_PROCESS.md
     trigger_type: manual
