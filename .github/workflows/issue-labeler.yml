@@ -3,8 +3,14 @@ on:
   issues:
     types: [opened, edited]
 
+permissions:
+  contents: read
+
 jobs:
   triage:
+    permissions:
+      contents: read  # for github/issue-labeler to get repo contents
+      issues: write  # for github/issue-labeler to create or remove labels
     runs-on: ubuntu-latest
     steps:
     - uses: github/issue-labeler@3ae0e4623c1fda729347ae0d8f1c2e52302ef4c6 # v2.0

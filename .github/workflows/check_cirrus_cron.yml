@@ -25,6 +25,9 @@ env:
     # (must be in $GITHUB_WORKSPACE/artifacts/)
     NAME_ID_FILEPATH: './artifacts/name_id.txt'
 
+permissions:
+  contents: read
+
 jobs:
     cron_failures:
         runs-on: ubuntu-latest
