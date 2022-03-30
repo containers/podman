@@ -67,6 +67,11 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 		return nil, err
 	}
 
+	err = validateIPAMDriver(newNetwork)
+	if err != nil {
+		return nil, err
+	}
+
 	// Only get the used networks for validation if we do not create the default network.
 	// The default network should not be validated against used subnets, we have to ensure
 	// that this network can always be created even when a subnet is already used on the host.
@@ -153,10 +158,19 @@ func createMacvlan(network *types.Network) error {
 			return errors.Errorf("parent interface %s does not exist", network.NetworkInterface)
 		}
 	}
-	if len(network.Subnets) == 0 {
-		return errors.Errorf("macvlan driver needs at least one subnet specified, DHCP is not supported with netavark")
+
+	// we already validated the drivers before so we just have to set the default here
+	switch network.IPAMOptions[types.Driver] {
+	case "":
+		if len(network.Subnets) == 0 {
+			return errors.Errorf("macvlan driver needs at least one subnet specified, DHCP is not yet supported with netavark")
+		}
+		network.IPAMOptions[types.Driver] = types.HostLocalIPAMDriver
+	case types.HostLocalIPAMDriver:
+		if len(network.Subnets) == 0 {
+			return errors.Errorf("macvlan driver needs at least one subnet specified, when the host-local ipam driver is set")
+		}
 	}
-	network.IPAMOptions[types.Driver] = types.HostLocalIPAMDriver
 
 	// validate the given options, we do not need them but just check to make sure they are valid
 	for key, value := range network.Options {
@@ -245,4 +259,20 @@ func (n *netavarkNetwork) NetworkInspect(nameOrID string) (types.Network, error)
 		return types.Network{}, err
 	}
 	return *network, nil
+}
+
+func validateIPAMDriver(n *types.Network) error {
+	ipamDriver := n.IPAMOptions[types.Driver]
+	switch ipamDriver {
+	case "", types.HostLocalIPAMDriver:
+	case types.NoneIPAMDriver:
+		if len(n.Subnets) > 0 {
+			return errors.New("none ipam driver is set but subnets are given")
+		}
+	case types.DHCPIPAMDriver:
+		return errors.New("dhcp ipam driver is not yet supported with netavark")
+	default:
+		return errors.Errorf("unsupported ipam driver %q", ipamDriver)
+	}
+	return nil
 }

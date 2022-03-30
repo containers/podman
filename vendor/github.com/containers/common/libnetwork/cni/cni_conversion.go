@@ -128,76 +128,76 @@ func findPluginByName(plugins []*libcni.NetworkConfig, name string) bool {
 // convertIPAMConfToNetwork converts A cni IPAMConfig to libpod network subnets.
 // It returns an array of subnets and an extra bool if dhcp is configured.
 func convertIPAMConfToNetwork(network *types.Network, ipam *ipamConfig, confPath string) error {
-	if ipam.PluginType == types.DHCPIPAMDriver {
+	switch ipam.PluginType {
+	case "":
+		network.IPAMOptions[types.Driver] = types.NoneIPAMDriver
+	case types.DHCPIPAMDriver:
 		network.IPAMOptions[types.Driver] = types.DHCPIPAMDriver
-		return nil
-	}
+	case types.HostLocalIPAMDriver:
+		network.IPAMOptions[types.Driver] = types.HostLocalIPAMDriver
+		for _, r := range ipam.Ranges {
+			for _, ipam := range r {
+				s := types.Subnet{}
 
-	if ipam.PluginType != types.HostLocalIPAMDriver {
+				// Do not use types.ParseCIDR() because we want the ip to be
+				// the network address and not a random ip in the sub.
+				_, sub, err := net.ParseCIDR(ipam.Subnet)
+				if err != nil {
+					return err
+				}
+				s.Subnet = types.IPNet{IPNet: *sub}
+
+				// gateway
+				var gateway net.IP
+				if ipam.Gateway != "" {
+					gateway = net.ParseIP(ipam.Gateway)
+					if gateway == nil {
+						return errors.Errorf("failed to parse gateway ip %s", ipam.Gateway)
+					}
+					// convert to 4 byte if ipv4
+					util.NormalizeIP(&gateway)
+				} else if !network.Internal {
+					// only add a gateway address if the network is not internal
+					gateway, err = util.FirstIPInSubnet(sub)
+					if err != nil {
+						return errors.Errorf("failed to get first ip in subnet %s", sub.String())
+					}
+				}
+				s.Gateway = gateway
+
+				var rangeStart net.IP
+				var rangeEnd net.IP
+				if ipam.RangeStart != "" {
+					rangeStart = net.ParseIP(ipam.RangeStart)
+					if rangeStart == nil {
+						return errors.Errorf("failed to parse range start ip %s", ipam.RangeStart)
+					}
+				}
+				if ipam.RangeEnd != "" {
+					rangeEnd = net.ParseIP(ipam.RangeEnd)
+					if rangeEnd == nil {
+						return errors.Errorf("failed to parse range end ip %s", ipam.RangeEnd)
+					}
+				}
+				if rangeStart != nil || rangeEnd != nil {
+					s.LeaseRange = &types.LeaseRange{}
+					s.LeaseRange.StartIP = rangeStart
+					s.LeaseRange.EndIP = rangeEnd
+				}
+				if util.IsIPv6(s.Subnet.IP) {
+					network.IPv6Enabled = true
+				}
+				network.Subnets = append(network.Subnets, s)
+			}
+		}
+	default:
 		// This is not an error. While we only support certain ipam drivers, we
 		// cannot make it fail for unsupported ones. CNI is still able to use them,
 		// just our translation logic cannot convert this into a Network.
 		// For the same reason this is not warning, it would just be annoying for
 		// everyone using a unknown ipam driver.
 		logrus.Infof("unsupported ipam plugin %q in %s", ipam.PluginType, confPath)
-		return nil
-	}
-
-	network.IPAMOptions[types.Driver] = types.HostLocalIPAMDriver
-	for _, r := range ipam.Ranges {
-		for _, ipam := range r {
-			s := types.Subnet{}
-
-			// Do not use types.ParseCIDR() because we want the ip to be
-			// the network address and not a random ip in the sub.
-			_, sub, err := net.ParseCIDR(ipam.Subnet)
-			if err != nil {
-				return err
-			}
-			s.Subnet = types.IPNet{IPNet: *sub}
-
-			// gateway
-			var gateway net.IP
-			if ipam.Gateway != "" {
-				gateway = net.ParseIP(ipam.Gateway)
-				if gateway == nil {
-					return errors.Errorf("failed to parse gateway ip %s", ipam.Gateway)
-				}
-				// convert to 4 byte if ipv4
-				util.NormalizeIP(&gateway)
-			} else if !network.Internal {
-				// only add a gateway address if the network is not internal
-				gateway, err = util.FirstIPInSubnet(sub)
-				if err != nil {
-					return errors.Errorf("failed to get first ip in subnet %s", sub.String())
-				}
-			}
-			s.Gateway = gateway
-
-			var rangeStart net.IP
-			var rangeEnd net.IP
-			if ipam.RangeStart != "" {
-				rangeStart = net.ParseIP(ipam.RangeStart)
-				if rangeStart == nil {
-					return errors.Errorf("failed to parse range start ip %s", ipam.RangeStart)
-				}
-			}
-			if ipam.RangeEnd != "" {
-				rangeEnd = net.ParseIP(ipam.RangeEnd)
-				if rangeEnd == nil {
-					return errors.Errorf("failed to parse range end ip %s", ipam.RangeEnd)
-				}
-			}
-			if rangeStart != nil || rangeEnd != nil {
-				s.LeaseRange = &types.LeaseRange{}
-				s.LeaseRange.StartIP = rangeStart
-				s.LeaseRange.EndIP = rangeEnd
-			}
-			if util.IsIPv6(s.Subnet.IP) {
-				network.IPv6Enabled = true
-			}
-			network.Subnets = append(network.Subnets, s)
-		}
+		network.IPAMOptions[types.Driver] = ipam.PluginType
 	}
 	return nil
 }
@@ -225,10 +225,13 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 	var (
 		routes     []ipamRoute
 		ipamRanges [][]ipamLocalHostRangeConf
-		ipamConf   ipamConfig
+		ipamConf   *ipamConfig
 		err        error
 	)
-	if len(network.Subnets) > 0 {
+
+	ipamDriver := network.IPAMOptions[types.Driver]
+	switch ipamDriver {
+	case types.HostLocalIPAMDriver:
 		defIpv4Route := false
 		defIpv6Route := false
 		for _, subnet := range network.Subnets {
@@ -257,46 +260,20 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 				routes = append(routes, route)
 			}
 		}
-		ipamConf = newIPAMHostLocalConf(routes, ipamRanges)
-	} else {
-		ipamConf = ipamConfig{PluginType: "dhcp"}
+		conf := newIPAMHostLocalConf(routes, ipamRanges)
+		ipamConf = &conf
+	case types.DHCPIPAMDriver:
+		ipamConf = &ipamConfig{PluginType: "dhcp"}
+
+	case types.NoneIPAMDriver:
+		// do nothing
+	default:
+		return nil, "", errors.Errorf("unsupported ipam driver %q", ipamDriver)
 	}
 
-	vlan := 0
-	mtu := 0
-	vlanPluginMode := ""
-	for k, v := range network.Options {
-		switch k {
-		case "mtu":
-			mtu, err = internalutil.ParseMTU(v)
-			if err != nil {
-				return nil, "", err
-			}
-
-		case "vlan":
-			vlan, err = internalutil.ParseVlan(v)
-			if err != nil {
-				return nil, "", err
-			}
-
-		case "mode":
-			switch network.Driver {
-			case types.MacVLANNetworkDriver:
-				if !pkgutil.StringInSlice(v, types.ValidMacVLANModes) {
-					return nil, "", errors.Errorf("unknown macvlan mode %q", v)
-				}
-			case types.IPVLANNetworkDriver:
-				if !pkgutil.StringInSlice(v, types.ValidIPVLANModes) {
-					return nil, "", errors.Errorf("unknown ipvlan mode %q", v)
-				}
-			default:
-				return nil, "", errors.Errorf("cannot set option \"mode\" with driver %q", network.Driver)
-			}
-			vlanPluginMode = v
-
-		default:
-			return nil, "", errors.Errorf("unsupported network option %s", k)
-		}
+	opts, err := parseOptions(network.Options, network.Driver)
+	if err != nil {
+		return nil, "", err
 	}
 
 	isGateway := true
@@ -314,7 +291,7 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 
 	switch network.Driver {
 	case types.BridgeNetworkDriver:
-		bridge := newHostLocalBridge(network.NetworkInterface, isGateway, ipMasq, mtu, vlan, &ipamConf)
+		bridge := newHostLocalBridge(network.NetworkInterface, isGateway, ipMasq, opts.mtu, opts.vlan, ipamConf)
 		plugins = append(plugins, bridge, newPortMapPlugin(), newFirewallPlugin(), newTuningPlugin())
 		// if we find the dnsname plugin we add configuration for it
 		if hasDNSNamePlugin(n.cniPluginDirs) && network.DNSEnabled {
@@ -323,10 +300,10 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 		}
 
 	case types.MacVLANNetworkDriver:
-		plugins = append(plugins, newVLANPlugin(types.MacVLANNetworkDriver, network.NetworkInterface, vlanPluginMode, mtu, &ipamConf))
+		plugins = append(plugins, newVLANPlugin(types.MacVLANNetworkDriver, network.NetworkInterface, opts.vlanPluginMode, opts.mtu, ipamConf))
 
 	case types.IPVLANNetworkDriver:
-		plugins = append(plugins, newVLANPlugin(types.IPVLANNetworkDriver, network.NetworkInterface, vlanPluginMode, mtu, &ipamConf))
+		plugins = append(plugins, newVLANPlugin(types.IPVLANNetworkDriver, network.NetworkInterface, opts.vlanPluginMode, opts.mtu, ipamConf))
 
 	default:
 		return nil, "", errors.Errorf("driver %q is not supported by cni", network.Driver)
@@ -401,4 +378,49 @@ func removeMachinePlugin(conf *libcni.NetworkConfigList) *libcni.NetworkConfigLi
 	}
 	conf.Plugins = plugins
 	return conf
+}
+
+type options struct {
+	vlan           int
+	mtu            int
+	vlanPluginMode string
+}
+
+func parseOptions(networkOptions map[string]string, networkDriver string) (*options, error) {
+	opt := &options{}
+	var err error
+	for k, v := range networkOptions {
+		switch k {
+		case "mtu":
+			opt.mtu, err = internalutil.ParseMTU(v)
+			if err != nil {
+				return nil, err
+			}
+
+		case "vlan":
+			opt.vlan, err = internalutil.ParseVlan(v)
+			if err != nil {
+				return nil, err
+			}
+
+		case "mode":
+			switch networkDriver {
+			case types.MacVLANNetworkDriver:
+				if !pkgutil.StringInSlice(v, types.ValidMacVLANModes) {
+					return nil, errors.Errorf("unknown macvlan mode %q", v)
+				}
+			case types.IPVLANNetworkDriver:
+				if !pkgutil.StringInSlice(v, types.ValidIPVLANModes) {
+					return nil, errors.Errorf("unknown ipvlan mode %q", v)
+				}
+			default:
+				return nil, errors.Errorf("cannot set option \"mode\" with driver %q", networkDriver)
+			}
+			opt.vlanPluginMode = v
+
+		default:
+			return nil, errors.Errorf("unsupported network option %s", k)
+		}
+	}
+	return opt, nil
 }
