@@ -26,7 +26,8 @@ class TestCaseBase(unittest.TestCase):
 class TestDependsOn(TestCaseBase):
 
     ALL_TASK_NAMES = None
-    SUCCESS_DEPS_EXCLUDE = set(['success', 'artifacts', 'release', 'release_test'])
+    SUCCESS_DEPS_EXCLUDE = set(['success', 'artifacts',
+        'test_image_build', 'release', 'release_test'])
 
     def setUp(self):
         super().setUp()
