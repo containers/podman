@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"go/build"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -14,6 +13,8 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+
+	"github.com/onsi/gomega/internal/gutil"
 )
 
 var (
@@ -222,11 +223,11 @@ func temporaryDirectory() (string, error) {
 	mu.Lock()
 	defer mu.Unlock()
 	if tmpDir == "" {
-		tmpDir, err = ioutil.TempDir("", "gexec_artifacts")
+		tmpDir, err = gutil.MkdirTemp("", "gexec_artifacts")
 		if err != nil {
 			return "", err
 		}
 	}
 
-	return ioutil.TempDir(tmpDir, "g")
+	return gutil.MkdirTemp(tmpDir, "g")
 }

@@ -66,6 +66,10 @@ func MatchMayChangeInTheFuture(matcher GomegaMatcher, value interface{}) bool {
 type AsyncAssertion interface {
 	Should(matcher GomegaMatcher, optionalDescription ...interface{}) bool
 	ShouldNot(matcher GomegaMatcher, optionalDescription ...interface{}) bool
+
+	WithOffset(offset int) AsyncAssertion
+	WithTimeout(interval time.Duration) AsyncAssertion
+	WithPolling(interval time.Duration) AsyncAssertion
 }
 
 // Assertions are returned by Ω and Expect and enable assertions against Gomega matchers
@@ -76,4 +80,8 @@ type Assertion interface {
 	To(matcher GomegaMatcher, optionalDescription ...interface{}) bool
 	ToNot(matcher GomegaMatcher, optionalDescription ...interface{}) bool
 	NotTo(matcher GomegaMatcher, optionalDescription ...interface{}) bool
+
+	WithOffset(offset int) Assertion
+
+	Error() Assertion
 }

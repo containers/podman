@@ -25,7 +25,7 @@ export GOPROXY=https://proxy.golang.org
 GO ?= go
 GO_LDFLAGS:= $(shell if $(GO) version|grep -q gccgo ; then echo "-gccgoflags"; else echo "-ldflags"; fi)
 GOCMD = CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO)
-COVERAGE_PATH ?= .coverage
+COVERAGE_PATH ?= $(PWD)/.coverage
 DESTDIR ?=
 EPOCH_TEST_COMMIT ?= $(shell git merge-base $${DEST_BRANCH:-main} HEAD)
 HEAD ?= HEAD
@@ -537,13 +537,13 @@ localunit: test/goecho/goecho test/version/version
 	UNIT=1 $(GOBIN)/ginkgo \
 		-r \
 		$(TESTFLAGS) \
-		--skipPackage test/e2e,pkg/apparmor,pkg/bindings,hack \
+		--skip-package test/e2e,pkg/bindings,hack \
 		--cover \
 		--covermode atomic \
 		--coverprofile coverprofile \
-		--outputdir ${COVERAGE_PATH} \
 		--tags "$(BUILDTAGS)" \
 		--succinct
+	mv coverprofile ${COVERAGE_PATH}/coverprofile
 	$(GO) tool cover -html=${COVERAGE_PATH}/coverprofile -o ${COVERAGE_PATH}/coverage.html
 	$(GO) tool cover -func=${COVERAGE_PATH}/coverprofile > ${COVERAGE_PATH}/functions
 	cat ${COVERAGE_PATH}/functions | sed -n 's/\(total:\).*\([0-9][0-9].[0-9]\)/\1 \2/p'
@@ -858,7 +858,7 @@ install.tools: .install.goimports .install.gitvalidation .install.md2man .instal
 .PHONY: .install.ginkgo
 .install.ginkgo: .gopathok
 	if [ ! -x "$(GOBIN)/ginkgo" ]; then \
-		$(GO) install $(BUILDFLAGS) ./vendor/github.com/onsi/ginkgo/ginkgo ; \
+		$(GO) install $(BUILDFLAGS) ./vendor/github.com/onsi/ginkgo/v2/ginkgo ; \
 	fi
 
 .PHONY: .install.gitvalidation

@@ -10,7 +10,7 @@ import (
 	"github.com/containernetworking/plugins/pkg/ns"
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/stringid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/uber/jaeger-client-go/utils"
