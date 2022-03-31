@@ -11,13 +11,13 @@ require (
 	github.com/container-orchestrated-devices/container-device-interface v0.3.0
 	github.com/containernetworking/cni v1.0.1
 	github.com/containernetworking/plugins v1.1.1
-	github.com/containers/buildah v1.24.3-0.20220310160415-5ec70bf01ea5
-	github.com/containers/common v0.47.5-0.20220323125147-7dc6e944d625
+	github.com/containers/buildah v1.25.1
+	github.com/containers/common v0.47.5
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.20.1-0.20220310094651-0d8056ee346f
 	github.com/containers/ocicrypt v1.1.3
 	github.com/containers/psgo v1.7.2
-	github.com/containers/storage v1.38.3-0.20220321121613-8e565392dd91
+	github.com/containers/storage v1.39.0
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
 	github.com/cyphar/filepath-securejoin v0.2.3
@@ -45,7 +45,7 @@ require (
 	github.com/mrunalp/fileutils v0.5.0
 	github.com/nxadm/tail v1.4.8
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.18.1
+	github.com/onsi/gomega v1.19.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.3-0.20220114050600-8b9d41f48198
 	github.com/opencontainers/runc v1.1.0
@@ -54,7 +54,6 @@ require (
 	github.com/opencontainers/selinux v1.10.0
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0
-	github.com/prometheus/client_golang v1.11.1 // indirect
 	github.com/rootless-containers/rootlesskit v1.0.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.4.0
@@ -76,3 +75,5 @@ require (
 )
 
 replace github.com/onsi/gomega => github.com/onsi/gomega v1.16.0
+
+replace github.com/containers/common => github.com/containers/common v0.47.5-0.20220329173946-58162588b778

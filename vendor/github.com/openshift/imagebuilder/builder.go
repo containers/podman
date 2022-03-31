@@ -44,6 +44,7 @@ type Run struct {
 type Executor interface {
 	Preserve(path string) error
 	EnsureContainerPath(path string) error
+	EnsureContainerPathAs(path, user string, mode *os.FileMode) error
 	Copy(excludes []string, copies ...Copy) error
 	Run(run Run, config docker.Config) error
 	UnrecognizedInstruction(step *Step) error
@@ -58,6 +59,15 @@ func (logExecutor) Preserve(path string) error {
 
 func (logExecutor) EnsureContainerPath(path string) error {
 	log.Printf("ENSURE %s", path)
+	return nil
+}
+
+func (logExecutor) EnsureContainerPathAs(path, user string, mode *os.FileMode) error {
+	if mode != nil {
+		log.Printf("ENSURE %s AS %q with MODE=%q", path, user, *mode)
+	} else {
+		log.Printf("ENSURE %s AS %q", path, user)
+	}
 	return nil
 }
 
@@ -85,6 +95,10 @@ func (noopExecutor) Preserve(path string) error {
 }
 
 func (noopExecutor) EnsureContainerPath(path string) error {
+	return nil
+}
+
+func (noopExecutor) EnsureContainerPathAs(path, user string, mode *os.FileMode) error {
 	return nil
 }
 
@@ -378,7 +392,7 @@ func (b *Builder) Run(step *Step, exec Executor, noRunsRemaining bool) error {
 	}
 
 	if len(b.RunConfig.WorkingDir) > 0 {
-		if err := exec.EnsureContainerPath(b.RunConfig.WorkingDir); err != nil {
+		if err := exec.EnsureContainerPathAs(b.RunConfig.WorkingDir, b.RunConfig.User, nil); err != nil {
 			return err
 		}
 	}

@@ -208,9 +208,7 @@ Then to install Buildah on Fedora follow the steps in this example:
 
 ### RHEL, CentOS
 
-In RHEL and CentOS 7, ensure that you are subscribed to the `rhel-7-server-rpms`,
-`rhel-7-server-extras-rpms`, `rhel-7-server-optional-rpms` and `EPEL` repositories, then
-run this command:
+In RHEL and CentOS, run this command to install the build dependencies:
 
 ```
  yum -y install \
@@ -231,11 +229,6 @@ run this command:
 ```
 
 The build steps for Buildah on RHEL or CentOS are the same as for Fedora, above.
-
-*NOTE:* Buildah on RHEL or CentOS version 7.* is not supported running as non-root due to
-these systems not having newuidmap or newgidmap installed.  It is possible to pull
-the shadow-utils source RPM from Fedora 29 and build and install from that in order to
-run Buildah as non-root on these systems.
 
 ### openSUSE
 
