@@ -1312,7 +1312,8 @@ func WithUseImageHosts() CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		ctr.config.UseImageHosts = true
+		UseImageHosts := true
+		ctr.config.UseImageHosts = &UseImageHosts
 
 		return nil
 	}

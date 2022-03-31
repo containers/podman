@@ -84,7 +84,7 @@ func (c *Container) validate() error {
 		return errors.Wrapf(define.ErrInvalidArg, "cannot configure DNS options if using image's resolv.conf")
 	}
 
-	if c.config.UseImageHosts && len(c.config.HostAdd) > 0 {
+	if c.config.UseImageHosts != nil && *c.config.UseImageHosts && len(c.config.HostAdd) > 0 {
 		return errors.Wrapf(define.ErrInvalidArg, "cannot add to /etc/hosts if using image's /etc/hosts")
 	}
 

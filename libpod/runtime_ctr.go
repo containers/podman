@@ -392,6 +392,10 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		ctr.config.Timezone = r.config.Containers.TZ
 	}
 
+	if ctr.config.UseImageHosts == nil {
+		ctr.config.UseImageHosts = &r.config.Containers.NoHosts
+	}
+
 	if ctr.restoreFromCheckpoint {
 		// Remove information about bind mount
 		// for new container from imported checkpoint

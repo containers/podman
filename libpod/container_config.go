@@ -275,7 +275,7 @@ type ContainerNetworkConfig struct {
 	// UseImageHosts indicates that /etc/hosts should not be
 	// bind-mounted inside the container.
 	// Conflicts with HostAdd.
-	UseImageHosts bool
+	UseImageHosts *bool
 	// Hosts to add in container
 	// Will be appended to host's host file
 	HostAdd []string `json:"hostsAdd,omitempty"`

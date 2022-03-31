@@ -593,10 +593,10 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 			return nil, err
 		}
 		infraConfig = new(define.InspectPodInfraConfig)
-		infraConfig.HostNetwork = !infra.config.ContainerNetworkConfig.UseImageHosts
+		infraConfig.HostNetwork = infra.config.ContainerNetworkConfig.UseImageHosts == nil || !*infra.config.ContainerNetworkConfig.UseImageHosts
 		infraConfig.StaticIP = infra.config.ContainerNetworkConfig.StaticIP
 		infraConfig.NoManageResolvConf = infra.config.UseImageResolvConf
-		infraConfig.NoManageHosts = infra.config.UseImageHosts
+		infraConfig.NoManageHosts = infra.config.ContainerNetworkConfig.UseImageHosts != nil && *infra.config.ContainerNetworkConfig.UseImageHosts
 		infraConfig.CPUPeriod = p.CPUPeriod()
 		infraConfig.CPUQuota = p.CPUQuota()
 		infraConfig.CPUSetCPUs = p.ResourceLim().CPU.Cpus

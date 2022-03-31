@@ -1865,7 +1865,7 @@ func (c *Container) makeBindMounts() error {
 			}
 		}
 
-		if c.config.NetNsCtr != "" && (!c.config.UseImageResolvConf || !c.config.UseImageHosts) {
+		if c.config.NetNsCtr != "" && (!c.config.UseImageResolvConf || c.config.UseImageHosts == nil || !*c.config.UseImageHosts) {
 			// We share a net namespace.
 			// We want /etc/resolv.conf and /etc/hosts from the
 			// other container. Unless we're not creating both of
@@ -1895,7 +1895,7 @@ func (c *Container) makeBindMounts() error {
 			// check if dependency container has an /etc/hosts file.
 			// It may not have one, so only use it if it does.
 			hostsPath, exists := bindMounts["/etc/hosts"]
-			if !c.config.UseImageHosts && exists {
+			if (c.config.UseImageHosts == nil || !*c.config.UseImageHosts) && exists {
 				depCtr.lock.Lock()
 				// generate a hosts file for the dependency container,
 				// based on either its old hosts file, or the default,
@@ -1937,7 +1937,7 @@ func (c *Container) makeBindMounts() error {
 				}
 			}
 
-			if !c.config.UseImageHosts {
+			if c.config.UseImageHosts == nil || !*c.config.UseImageHosts {
 				if err := c.updateHosts("/etc/hosts"); err != nil {
 					return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
 				}
@@ -1956,7 +1956,7 @@ func (c *Container) makeBindMounts() error {
 			}
 		}
 	} else {
-		if !c.config.UseImageHosts && c.state.BindMounts["/etc/hosts"] == "" {
+		if (c.config.UseImageHosts == nil || !*c.config.UseImageHosts) && c.state.BindMounts["/etc/hosts"] == "" {
 			if err := c.updateHosts("/etc/hosts"); err != nil {
 				return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
 			}

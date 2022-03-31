@@ -447,3 +447,40 @@ t GET images/$iid/json 200 \
 
 t DELETE containers/$cid 204
 t DELETE images/docker.io/library/newrepo:v3?force=false 200
+
+# test create without default no_hosts
+t POST containers/create \
+  Image=$IMAGE \
+  201 \
+  .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+
+t POST libpod/containers/$cid/init 204
+
+t GET libpod/containers/$cid/json 200
+
+cpid_file=$(jq -r '.ConmonPidFile' <<<"$output")
+userdata_path=$(dirname $cpid_file)
+
+t GET libpod/containers/$cid/json 200 \
+  .HostsPath=$userdata_path/hosts
+
+t DELETE containers/$cid 204
+
+# test create with default no_hosts=true
+stop_service
+CONTAINERS_CONF=$(pwd)/test/apiv2/containers.no_hosts.conf start_service
+t POST containers/create \
+  Image=$IMAGE \
+  201 \
+  .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+
+t POST libpod/containers/$cid/init 204
+
+t GET libpod/containers/$cid/json 200 \
+  .HostsPath=""
+
+t DELETE containers/$cid 204
+stop_service
+start_service
