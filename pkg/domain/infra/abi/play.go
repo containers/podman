@@ -290,7 +290,16 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		if v.Type == kube.KubeVolumeTypeConfigMap && !v.Optional {
 			vol, err := ic.Libpod.NewVolume(ctx, libpod.WithVolumeName(v.Source))
 			if err != nil {
-				return nil, errors.Wrapf(err, "cannot create a local volume for volume from configmap %q", v.Source)
+				if errors.Is(err, define.ErrVolumeExists) {
+					// Volume for this configmap already exists do not
+					// error out instead reuse the current volume.
+					vol, err = ic.Libpod.GetVolume(v.Source)
+					if err != nil {
+						return nil, errors.Wrapf(err, "cannot re-use local volume for volume from configmap %q", v.Source)
+					}
+				} else {
+					return nil, errors.Wrapf(err, "cannot create a local volume for volume from configmap %q", v.Source)
+				}
 			}
 			mountPoint, err := vol.MountPoint()
 			if err != nil || mountPoint == "" {
