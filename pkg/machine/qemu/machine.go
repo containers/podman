@@ -131,10 +131,11 @@ func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	// Add serial port for readiness
 	cmd = append(cmd, []string{
 		"-device", "virtio-serial",
-		"-chardev", "socket,path=" + vm.getReadySocket() + ",server=on,wait=off,id=" + vm.Name + "_ready",
+		// qemu needs to establish the long name; other connections can use the symlink'd
+		"-chardev", "socket,path=" + vm.ReadySocket.Path + ",server=on,wait=off,id=" + vm.Name + "_ready",
 		"-device", "virtserialport,chardev=" + vm.Name + "_ready" + ",name=org.fedoraproject.port.0"}...)
 	vm.CmdLine = cmd
-	if err := vm.setQEMUAndPIDSocket(); err != nil {
+	if err := vm.setPIDSocket(); err != nil {
 		return nil, err
 	}
 	return vm, nil
@@ -487,9 +488,6 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 			return err
 		}
 	}
-	if err := v.setQEMUAndPIDSocket(); err != nil {
-		return err
-	}
 	// If the qemusocketpath exists and the vm is off/down, we should rm
 	// it before the dial as to avoid a segv
 	if err := v.QMPMonitor.Address.Delete(); err != nil {
@@ -700,7 +698,7 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
 		return err
 	}
 
-	if _, err := os.Stat(v.getPidFile()); os.IsNotExist(err) {
+	if _, err := os.Stat(v.PidFilePath.GetPath()); os.IsNotExist(err) {
 		return nil
 	}
 	pidString, err := v.PidFilePath.Read()
@@ -748,7 +746,7 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
 		waitInternal = waitInternal * 2
 	}
 
-	return nil
+	return v.ReadySocket.Delete()
 }
 
 // NewQMPMonitor creates the monitor subsection of our vm
@@ -770,7 +768,7 @@ func NewQMPMonitor(network, name string, timeout time.Duration) (Monitor, error)
 	if timeout == 0 {
 		timeout = defaultQMPTimeout
 	}
-	address, err := NewMachineFile(filepath.Join(rtDir, "qmp+"+name+".sock"), nil)
+	address, err := NewMachineFile(filepath.Join(rtDir, "qmp_"+name+".sock"), nil)
 	if err != nil {
 		return Monitor{}, err
 	}
@@ -807,11 +805,14 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 	if !opts.SaveImage {
 		files = append(files, v.getImageFile())
 	}
-	socketPath, err := v.getForwardSocketPath()
+	socketPath, err := v.forwardSocketPath()
 	if err != nil {
-		logrus.Error(err)
+		return "", nil, err
 	}
-	files = append(files, socketPath)
+	if socketPath.Symlink != nil {
+		files = append(files, *socketPath.Symlink)
+	}
+	files = append(files, socketPath.Path)
 	files = append(files, v.archRemovalFiles()...)
 
 	if err := machine.RemoveConnection(v.Name); err != nil {
@@ -831,7 +832,6 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 		confirmationMessage += msg + "\n"
 	}
 
-	//silently try to delete socket and pid file
 	//remove socket and pid file if any: warn at low priority if things fail
 	// Remove the pidfile
 	if err := v.PidFilePath.Delete(); err != nil {
@@ -1083,7 +1083,7 @@ func (v *MachineVM) startHostNetworking() (string, apiForwardingState, error) {
 	files := []*os.File{os.Stdin, os.Stdout, os.Stderr}
 	attr.Files = files
 	cmd := []string{binary}
-	cmd = append(cmd, []string{"-listen-qemu", fmt.Sprintf("unix://%s", v.getQMPMonitorSocket()), "-pid-file", v.getPidFile()}...)
+	cmd = append(cmd, []string{"-listen-qemu", fmt.Sprintf("unix://%s", v.QMPMonitor.Address.GetPath()), "-pid-file", v.PidFilePath.GetPath()}...)
 	// Add the ssh port
 	cmd = append(cmd, []string{"-ssh-port", fmt.Sprintf("%d", v.Port)}...)
 
@@ -1102,7 +1102,7 @@ func (v *MachineVM) startHostNetworking() (string, apiForwardingState, error) {
 }
 
 func (v *MachineVM) setupAPIForwarding(cmd []string) ([]string, string, apiForwardingState) {
-	socket, err := v.getForwardSocketPath()
+	socket, err := v.forwardSocketPath()
 
 	if err != nil {
 		return cmd, "", noForwarding
@@ -1116,43 +1116,43 @@ func (v *MachineVM) setupAPIForwarding(cmd []string) ([]string, string, apiForwa
 		forwardUser = "root"
 	}
 
-	cmd = append(cmd, []string{"-forward-sock", socket}...)
+	cmd = append(cmd, []string{"-forward-sock", socket.GetPath()}...)
 	cmd = append(cmd, []string{"-forward-dest", destSock}...)
 	cmd = append(cmd, []string{"-forward-user", forwardUser}...)
 	cmd = append(cmd, []string{"-forward-identity", v.IdentityPath}...)
-	link := filepath.Join(filepath.Dir(filepath.Dir(socket)), "podman.sock")
+	link := socket.GetPath()
 
 	// The linking pattern is /var/run/docker.sock -> user global sock (link) -> machine sock (socket)
 	// This allows the helper to only have to maintain one constant target to the user, which can be
 	// repositioned without updating docker.sock.
 	if !dockerClaimSupported() {
-		return cmd, socket, claimUnsupported
+		return cmd, socket.GetPath(), claimUnsupported
 	}
 
 	if !dockerClaimHelperInstalled() {
-		return cmd, socket, notInstalled
+		return cmd, socket.GetPath(), notInstalled
 	}
 
-	if !alreadyLinked(socket, link) {
+	if !alreadyLinked(socket.GetPath(), link) {
 		if checkSockInUse(link) {
-			return cmd, socket, machineLocal
+			return cmd, socket.GetPath(), machineLocal
 		}
 
 		_ = os.Remove(link)
-		if err = os.Symlink(socket, link); err != nil {
+		if err = os.Symlink(socket.GetPath(), link); err != nil {
 			logrus.Warnf("could not create user global API forwarding link: %s", err.Error())
-			return cmd, socket, machineLocal
+			return cmd, socket.GetPath(), machineLocal
 		}
 	}
 
 	if !alreadyLinked(link, dockerSock) {
 		if checkSockInUse(dockerSock) {
-			return cmd, socket, machineLocal
+			return cmd, socket.GetPath(), machineLocal
 		}
 
 		if !claimDockerSock() {
 			logrus.Warn("podman helper is installed, but was not able to claim the global docker sock")
-			return cmd, socket, machineLocal
+			return cmd, socket.GetPath(), machineLocal
 		}
 	}
 
@@ -1163,13 +1163,14 @@ func (v *MachineVM) isIncompatible() bool {
 	return v.UID == -1
 }
 
-func (v *MachineVM) getForwardSocketPath() (string, error) {
+func (v *MachineVM) forwardSocketPath() (*MachineFile, error) {
+	sockName := "podman.sock"
 	path, err := machine.GetDataDir(v.Name)
 	if err != nil {
 		logrus.Errorf("Resolving data dir: %s", err.Error())
-		return "", nil
+		return nil, err
 	}
-	return filepath.Join(path, "podman.sock"), nil
+	return NewMachineFile(filepath.Join(path, sockName), &sockName)
 }
 
 func (v *MachineVM) setConfigPath() error {
@@ -1187,11 +1188,12 @@ func (v *MachineVM) setConfigPath() error {
 }
 
 func (v *MachineVM) setReadySocket() error {
+	readySocketName := v.Name + "_ready.sock"
 	rtPath, err := getRuntimeDir()
 	if err != nil {
 		return err
 	}
-	virtualSocketPath, err := NewMachineFile(filepath.Join(rtPath, "podman", v.Name+"_ready.sock"), nil)
+	virtualSocketPath, err := NewMachineFile(filepath.Join(rtPath, "podman", readySocketName), &readySocketName)
 	if err != nil {
 		return err
 	}
@@ -1199,7 +1201,7 @@ func (v *MachineVM) setReadySocket() error {
 	return nil
 }
 
-func (v *MachineVM) setQEMUAndPIDSocket() error {
+func (v *MachineVM) setPIDSocket() error {
 	rtPath, err := getRuntimeDir()
 	if err != nil {
 		return err
@@ -1207,8 +1209,9 @@ func (v *MachineVM) setQEMUAndPIDSocket() error {
 	if !rootless.IsRootless() {
 		rtPath = "/run"
 	}
+	pidFileName := fmt.Sprintf("%s.pid", v.Name)
 	socketDir := filepath.Join(rtPath, "podman")
-	pidFilePath, err := NewMachineFile(filepath.Join(socketDir, fmt.Sprintf("%s.pid", v.Name)), nil)
+	pidFilePath, err := NewMachineFile(filepath.Join(socketDir, pidFileName), &pidFileName)
 	if err != nil {
 		return err
 	}
@@ -1216,7 +1219,7 @@ func (v *MachineVM) setQEMUAndPIDSocket() error {
 	return nil
 }
 
-// Deprecated: getSocketandPid is being replace by setQEMUAndPIDSocket and
+// Deprecated: getSocketandPid is being replace by setPIDSocket and
 // machinefiles.
 func (v *MachineVM) getSocketandPid() (string, string, error) {
 	rtPath, err := getRuntimeDir()
@@ -1342,7 +1345,7 @@ func (v *MachineVM) update() error {
 	}
 	b, err := v.ConfigPath.Read()
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			return errors.Wrap(machine.ErrNoSuchVM, v.Name)
 		}
 		return err
@@ -1377,30 +1380,13 @@ func (v *MachineVM) writeConfig() error {
 	return nil
 }
 
-// getPidFile gets the file where the machine pid is stored
-func (v *MachineVM) getPidFile() string {
-	return v.PidFilePath.GetPath()
-}
-
-// getQMPMonitorSocket gets the socket used by qemu to interact
-// with the instance
-func (v *MachineVM) getQMPMonitorSocket() string {
-	return v.QMPMonitor.Address.GetPath()
-}
-
-// getReadySocket returns the socket used to communicate
-// with the machinevm and report when it is booted
-func (v *MachineVM) getReadySocket() string {
-	return v.ReadySocket.GetPath()
-}
-
-// getImageFile returns the path to the image used
+// getImageFile wrapper returns the path to the image used
 // to boot the VM
 func (v *MachineVM) getImageFile() string {
 	return v.ImagePath.GetPath()
 }
 
-// getIgnitionFile returns the path to the ignition file
+// getIgnitionFile wrapper returns the path to the ignition file
 func (v *MachineVM) getIgnitionFile() string {
 	return v.IgnitionFilePath.GetPath()
 }

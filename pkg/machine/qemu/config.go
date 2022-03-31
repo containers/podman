@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -20,6 +21,9 @@ const (
 	Next string = "next"
 	// Stable FCOS stream
 	Stable string = "stable"
+
+	// Max length of fully qualified socket path
+	maxSocketPathLength int = 103
 )
 
 type Provider struct{}
@@ -197,8 +201,27 @@ func NewMachineFile(path string, symlink *string) (*MachineFile, error) {
 	if symlink != nil && len(*symlink) < 1 {
 		return nil, errors.New("invalid symlink path")
 	}
-	return &MachineFile{
-		Path:    path,
-		Symlink: symlink,
-	}, nil
+	mf := MachineFile{Path: path}
+	if symlink != nil && len(path) > maxSocketPathLength {
+		if err := mf.makeSymlink(symlink); err != nil && !errors.Is(err, os.ErrExist) {
+			return nil, err
+		}
+	}
+	return &mf, nil
+}
+
+// makeSymlink for macOS creates a symlink in $HOME/.podman/
+// for a machinefile like a socket
+func (m *MachineFile) makeSymlink(symlink *string) error {
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+	sl := filepath.Join(homedir, ".podman", *symlink)
+	// make the symlink dir and throw away if it already exists
+	if err := os.MkdirAll(filepath.Dir(sl), 0700); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	m.Symlink = &sl
+	return os.Symlink(m.Path, sl)
 }
