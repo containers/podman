@@ -1,3 +1,4 @@
+//go:build !windows
 // +build !windows
 
 package graphdriver
@@ -6,17 +7,50 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sync"
 	"syscall"
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/system"
 )
 
-func platformLChown(path string, info os.FileInfo, toHost, toContainer *idtools.IDMappings) error {
+type inode struct {
+	Dev uint64
+	Ino uint64
+}
+
+type platformChowner struct {
+	mutex  sync.Mutex
+	inodes map[inode]bool
+}
+
+func newLChowner() *platformChowner {
+	return &platformChowner{
+		inodes: make(map[inode]bool),
+	}
+}
+
+func (c *platformChowner) LChown(path string, info os.FileInfo, toHost, toContainer *idtools.IDMappings) error {
 	st, ok := info.Sys().(*syscall.Stat_t)
 	if !ok {
 		return nil
 	}
+
+	i := inode{
+		Dev: uint64(st.Dev),
+		Ino: uint64(st.Ino),
+	}
+	c.mutex.Lock()
+	_, found := c.inodes[i]
+	if !found {
+		c.inodes[i] = true
+	}
+	c.mutex.Unlock()
+
+	if found {
+		return nil
+	}
+
 	// Map an on-disk UID/GID pair from host to container
 	// using the first map, then back to the host using the
 	// second map.  Skip that first step if they're 0, to

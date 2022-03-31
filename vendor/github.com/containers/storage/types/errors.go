@@ -55,4 +55,6 @@ var (
 	ErrStoreIsReadOnly = errors.New("called a write method on a read-only store")
 	// ErrNotSupported is returned when the requested functionality is not supported.
 	ErrNotSupported = errors.New("not supported")
+	// ErrInvalidMappings is returned when the specified mappings are invalid.
+	ErrInvalidMappings = errors.New("invalid mappings specified")
 )

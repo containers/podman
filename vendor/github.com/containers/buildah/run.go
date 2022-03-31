@@ -85,6 +85,8 @@ type RunOptions struct {
 	Runtime string
 	// Args adds global arguments for the runtime.
 	Args []string
+	// NoHosts use the images /etc/hosts file
+	NoHosts bool
 	// NoPivot adds the --no-pivot runtime flag.
 	NoPivot bool
 	// Mounts are additional mount points which we want to provide.
@@ -157,6 +159,8 @@ type RunOptions struct {
 	ExternalImageMounts []string
 	// System context of current build
 	SystemContext *types.SystemContext
+	// CgroupManager to use for running OCI containers
+	CgroupManager string
 }
 
 // RunMountArtifacts are the artifacts created when using a run mount.
@@ -171,4 +175,6 @@ type runMountArtifacts struct {
 	Agents []*sshagent.AgentServer
 	// SSHAuthSock is the path to the ssh auth sock inside the container
 	SSHAuthSock string
+	// LockedTargets to be unlocked if there are any.
+	LockedTargets []string
 }

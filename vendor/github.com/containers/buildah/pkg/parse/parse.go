@@ -19,7 +19,6 @@ import (
 	"github.com/containers/buildah/pkg/sshagent"
 	"github.com/containers/common/pkg/parse"
 	"github.com/containers/image/v5/types"
-	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/unshare"
 	units "github.com/docker/go-units"
@@ -46,10 +45,6 @@ const (
 	// mount=type=cache must create a persistent directory on host so its available for all consecutive builds.
 	// Lifecycle of following directory will be inherited from how host machine treats temporary directory
 	BuildahCacheDir = "buildah-cache"
-)
-
-var (
-	errDuplicateDest = errors.Errorf("duplicate mount destination")
 )
 
 // CommonBuildOptions parses the build options from the bud cli
@@ -86,8 +81,13 @@ func CommonBuildOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name 
 		}
 	}
 
+	noHosts, _ := flags.GetBool("no-hosts")
+
 	addHost, _ := flags.GetStringSlice("add-host")
 	if len(addHost) > 0 {
+		if noHosts {
+			return nil, errors.Errorf("--no-hosts and --add-host conflict, can not be used together")
+		}
 		for _, host := range addHost {
 			if err := validateExtraHost(host); err != nil {
 				return nil, errors.Wrapf(err, "invalid value for add-host")
@@ -159,6 +159,7 @@ func CommonBuildOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name 
 		HTTPProxy:    httpProxy,
 		Memory:       memoryLimit,
 		MemorySwap:   memorySwap,
+		NoHosts:      noHosts,
 		ShmSize:      findFlagFunc("shm-size").Value.String(),
 		Ulimit:       ulimit,
 		Volumes:      volumes,
@@ -216,59 +217,12 @@ func parseSecurityOpts(securityOpts []string, commonOpts *define.CommonBuildOpti
 
 // Split string into slice by colon. Backslash-escaped colon (i.e. "\:") will not be regarded as separator
 func SplitStringWithColonEscape(str string) []string {
-	result := make([]string, 0, 3)
-	sb := &strings.Builder{}
-	for idx, r := range str {
-		if r == ':' {
-			// the colon is backslash-escaped
-			if idx-1 > 0 && str[idx-1] == '\\' {
-				sb.WriteRune(r)
-			} else {
-				// os.Stat will fail if path contains escaped colon
-				result = append(result, revertEscapedColon(sb.String()))
-				sb.Reset()
-			}
-		} else {
-			sb.WriteRune(r)
-		}
-	}
-	if sb.Len() > 0 {
-		result = append(result, revertEscapedColon(sb.String()))
-	}
-	return result
-}
-
-// Convert "\:" to ":"
-func revertEscapedColon(source string) string {
-	return strings.ReplaceAll(source, "\\:", ":")
+	return internalParse.SplitStringWithColonEscape(str)
 }
 
 // Volume parses the input of --volume
 func Volume(volume string) (specs.Mount, error) {
-	mount := specs.Mount{}
-	arr := SplitStringWithColonEscape(volume)
-	if len(arr) < 2 {
-		return mount, errors.Errorf("incorrect volume format %q, should be host-dir:ctr-dir[:option]", volume)
-	}
-	if err := validateVolumeMountHostDir(arr[0]); err != nil {
-		return mount, err
-	}
-	if err := parse.ValidateVolumeCtrDir(arr[1]); err != nil {
-		return mount, err
-	}
-	mountOptions := ""
-	if len(arr) > 2 {
-		mountOptions = arr[2]
-		if _, err := parse.ValidateVolumeOpts(strings.Split(arr[2], ",")); err != nil {
-			return mount, err
-		}
-	}
-	mountOpts := strings.Split(mountOptions, ",")
-	mount.Source = arr[0]
-	mount.Destination = arr[1]
-	mount.Type = "rbind"
-	mount.Options = mountOpts
-	return mount, nil
+	return internalParse.Volume(volume)
 }
 
 // Volumes validates the host and container paths passed in to the --volume flag
@@ -284,123 +238,9 @@ func Volumes(volumes []string) error {
 	return nil
 }
 
-func getVolumeMounts(volumes []string) (map[string]specs.Mount, error) {
-	finalVolumeMounts := make(map[string]specs.Mount)
-
-	for _, volume := range volumes {
-		volumeMount, err := Volume(volume)
-		if err != nil {
-			return nil, err
-		}
-		if _, ok := finalVolumeMounts[volumeMount.Destination]; ok {
-			return nil, errors.Wrapf(errDuplicateDest, volumeMount.Destination)
-		}
-		finalVolumeMounts[volumeMount.Destination] = volumeMount
-	}
-	return finalVolumeMounts, nil
-}
-
-// GetVolumes gets the volumes from --volume and --mount
-func GetVolumes(ctx *types.SystemContext, store storage.Store, volumes []string, mounts []string, contextDir string) ([]specs.Mount, []string, error) {
-	unifiedMounts, mountedImages, err := getMounts(ctx, store, mounts, contextDir)
-	if err != nil {
-		return nil, mountedImages, err
-	}
-	volumeMounts, err := getVolumeMounts(volumes)
-	if err != nil {
-		return nil, mountedImages, err
-	}
-	for dest, mount := range volumeMounts {
-		if _, ok := unifiedMounts[dest]; ok {
-			return nil, mountedImages, errors.Wrapf(errDuplicateDest, dest)
-		}
-		unifiedMounts[dest] = mount
-	}
-
-	finalMounts := make([]specs.Mount, 0, len(unifiedMounts))
-	for _, mount := range unifiedMounts {
-		finalMounts = append(finalMounts, mount)
-	}
-	return finalMounts, mountedImages, nil
-}
-
-// getMounts takes user-provided input from the --mount flag and creates OCI
-// spec mounts.
-// buildah run --mount type=bind,src=/etc/resolv.conf,target=/etc/resolv.conf ...
-// buildah run --mount type=tmpfs,target=/dev/shm ...
-func getMounts(ctx *types.SystemContext, store storage.Store, mounts []string, contextDir string) (map[string]specs.Mount, []string, error) {
-	finalMounts := make(map[string]specs.Mount)
-	mountedImages := make([]string, 0)
-
-	errInvalidSyntax := errors.Errorf("incorrect mount format: should be --mount type=<bind|tmpfs>,[src=<host-dir>,]target=<ctr-dir>[,options]")
-
-	// TODO(vrothberg): the manual parsing can be replaced with a regular expression
-	//                  to allow a more robust parsing of the mount format and to give
-	//                  precise errors regarding supported format versus supported options.
-	for _, mount := range mounts {
-		arr := strings.SplitN(mount, ",", 2)
-		if len(arr) < 2 {
-			return nil, mountedImages, errors.Wrapf(errInvalidSyntax, "%q", mount)
-		}
-		kv := strings.Split(arr[0], "=")
-		// TODO: type is not explicitly required in Docker.
-		// If not specified, it defaults to "volume".
-		if len(kv) != 2 || kv[0] != "type" {
-			return nil, mountedImages, errors.Wrapf(errInvalidSyntax, "%q", mount)
-		}
-
-		tokens := strings.Split(arr[1], ",")
-		switch kv[1] {
-		case TypeBind:
-			mount, image, err := internalParse.GetBindMount(ctx, tokens, contextDir, store, "", nil)
-			if err != nil {
-				return nil, mountedImages, err
-			}
-			if _, ok := finalMounts[mount.Destination]; ok {
-				return nil, mountedImages, errors.Wrapf(errDuplicateDest, mount.Destination)
-			}
-			finalMounts[mount.Destination] = mount
-			mountedImages = append(mountedImages, image)
-		case TypeCache:
-			mount, err := internalParse.GetCacheMount(tokens, store, "", nil)
-			if err != nil {
-				return nil, mountedImages, err
-			}
-			if _, ok := finalMounts[mount.Destination]; ok {
-				return nil, mountedImages, errors.Wrapf(errDuplicateDest, mount.Destination)
-			}
-			finalMounts[mount.Destination] = mount
-		case TypeTmpfs:
-			mount, err := internalParse.GetTmpfsMount(tokens)
-			if err != nil {
-				return nil, mountedImages, err
-			}
-			if _, ok := finalMounts[mount.Destination]; ok {
-				return nil, mountedImages, errors.Wrapf(errDuplicateDest, mount.Destination)
-			}
-			finalMounts[mount.Destination] = mount
-		default:
-			return nil, mountedImages, errors.Errorf("invalid filesystem type %q", kv[1])
-		}
-	}
-
-	return finalMounts, mountedImages, nil
-}
-
 // ValidateVolumeHostDir validates a volume mount's source directory
 func ValidateVolumeHostDir(hostDir string) error {
 	return parse.ValidateVolumeHostDir(hostDir)
-}
-
-// validates the host path of buildah --volume
-func validateVolumeMountHostDir(hostDir string) error {
-	if !filepath.IsAbs(hostDir) {
-		return errors.Errorf("invalid host path, must be an absolute path %q", hostDir)
-	}
-	if _, err := os.Stat(hostDir); err != nil {
-		return errors.WithStack(err)
-	}
-	return nil
 }
 
 // ValidateVolumeCtrDir validates a volume mount's destination directory.

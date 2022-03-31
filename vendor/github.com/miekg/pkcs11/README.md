@@ -1,6 +1,6 @@
-# PKCS#11 [![Build Status](https://travis-ci.org/miekg/pkcs11.png?branch=master)](https://travis-ci.org/miekg/pkcs11) [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/miekg/pkcs11)
+# PKCS#11
 
-This is a Go implementation of the PKCS#11 API. It wraps the library closely, but uses Go idiom were
+This is a Go implementation of the PKCS#11 API. It wraps the library closely, but uses Go idiom where
 it makes sense. It has been tested with SoftHSM.
 
 ## SoftHSM
@@ -13,10 +13,10 @@ it makes sense. It has been tested with SoftHSM.
     softhsm --init-token --slot 0 --label test --pin 1234
     ~~~
 
- *  Then use `libsofthsm.so` as the pkcs11 module:
+ *  Then use `libsofthsm2.so` as the pkcs11 module:
 
     ~~~ go
-    p := pkcs11.New("/usr/lib/softhsm/libsofthsm.so")
+    p := pkcs11.New("/usr/lib/softhsm/libsofthsm2.so")
     ~~~
 
 ## Examples
@@ -24,7 +24,7 @@ it makes sense. It has been tested with SoftHSM.
 A skeleton program would look somewhat like this (yes, pkcs#11 is verbose):
 
 ~~~ go
-p := pkcs11.New("/usr/lib/softhsm/libsofthsm.so")
+p := pkcs11.New("/usr/lib/softhsm/libsofthsm2.so")
 err := p.Initialize()
 if err != nil {
     panic(err)

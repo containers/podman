@@ -20,32 +20,6 @@ lags the upstream release.
 sudo yum -y install buildah
 ```
 
-The [Kubic project](https://build.opensuse.org/project/show/devel:kubic:libcontainers:stable)
-provides updated packages for CentOS 8 and CentOS 8 Stream.
-
-```bash
-# CentOS 8
-sudo dnf -y module disable container-tools
-sudo dnf -y install 'dnf-command(copr)'
-sudo dnf -y copr enable rhcontainerbot/container-selinux
-sudo curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/CentOS_8/devel:kubic:libcontainers:stable.repo
-# OPTIONAL FOR RUNC USERS: crun will be installed by default. Install runc first if you prefer runc
-sudo dnf -y --refresh install runc
-# Install Buildah
-sudo dnf -y --refresh install buildah
-
-# CentOS 8 Stream
-sudo dnf -y module disable container-tools
-sudo dnf -y install 'dnf-command(copr)'
-sudo dnf -y copr enable rhcontainerbot/container-selinux
-sudo curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/CentOS_8_Stream/devel:kubic:libcontainers:stable.repo
-# OPTIONAL FOR RUNC USERS: crun will be installed by default. Install runc first if you prefer runc
-sudo dnf -y --refresh install runc
-# Install Buildah
-sudo dnf -y --refresh install buildah
-```
-
-
 #### [Debian](https://debian.org)
 
 The buildah package is available in
@@ -125,26 +99,6 @@ and newer.
 # Ubuntu 20.10 and newer
 sudo apt-get -y update
 sudo apt-get -y install buildah
-```
-
-If you would prefer newer (though not as well-tested) packages,
-the [Kubic project](https://build.opensuse.org/package/show/devel:kubic:libcontainers:stable/buildah)
-provides packages for active Ubuntu releases 20.04 and newer (it should also work with direct derivatives like Pop!\_OS).
-The packages in Kubic project repos are more frequently updated than the one in Ubuntu's official repositories, due to how Debian/Ubuntu works.
-Checkout the Kubic project page for a list of supported Ubuntu version and architecture combinations.
-The build sources for the Kubic packages can be found [here](https://gitlab.com/rhcontainerbot/buildah/-/tree/debian/debian).
-
-CAUTION: On Ubuntu 20.10 and newer, we highly recommend you use Buildah, Podman and Skopeo ONLY from EITHER the Kubic repo
-OR the official Ubuntu repos. Mixing and matching may lead to unpredictable situations including installation conflicts.
-
-
-```bash
-. /etc/os-release
-sudo sh -c "echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/x${ID^}_${VERSION_ID}/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list"
-wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/x${ID^}_${VERSION_ID}/Release.key -O Release.key
-sudo apt-key add - < Release.key
-sudo apt-get update -qq
-sudo apt-get -qq -y install buildah
 ```
 
 # Building from scratch
@@ -254,9 +208,7 @@ Then to install Buildah on Fedora follow the steps in this example:
 
 ### RHEL, CentOS
 
-In RHEL and CentOS 7, ensure that you are subscribed to the `rhel-7-server-rpms`,
-`rhel-7-server-extras-rpms`, `rhel-7-server-optional-rpms` and `EPEL` repositories, then
-run this command:
+In RHEL and CentOS, run this command to install the build dependencies:
 
 ```
  yum -y install \
@@ -277,11 +229,6 @@ run this command:
 ```
 
 The build steps for Buildah on RHEL or CentOS are the same as for Fedora, above.
-
-*NOTE:* Buildah on RHEL or CentOS version 7.* is not supported running as non-root due to
-these systems not having newuidmap or newgidmap installed.  It is possible to pull
-the shadow-utils source RPM from Fedora 29 and build and install from that in order to
-run Buildah as non-root on these systems.
 
 ### openSUSE
 

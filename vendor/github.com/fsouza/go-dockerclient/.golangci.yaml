@@ -5,4 +5,4 @@ linters:
   disable-all: true
   enable:
     - gofumpt
-    - gci
+    - goimports

@@ -12,109 +12,109 @@ type ThinpoolOptionsConfig struct {
 	// grown. This is specified in terms of % of pool size. So a value of
 	// 20 means that when threshold is hit, pool will be grown by 20% of
 	// existing pool size.
-	AutoExtendPercent string `toml:"autoextend_percent"`
+	AutoExtendPercent string `toml:"autoextend_percent,omitempty"`
 
 	// AutoExtendThreshold determines the pool extension threshold in terms
 	// of percentage of pool size. For example, if threshold is 60, that
 	// means when pool is 60% full, threshold has been hit.
-	AutoExtendThreshold string `toml:"autoextend_threshold"`
+	AutoExtendThreshold string `toml:"autoextend_threshold,omitempty"`
 
 	// BaseSize specifies the size to use when creating the base device,
 	// which limits the size of images and containers.
-	BaseSize string `toml:"basesize"`
+	BaseSize string `toml:"basesize,omitempty"`
 
 	// BlockSize specifies a custom blocksize to use for the thin pool.
-	BlockSize string `toml:"blocksize"`
+	BlockSize string `toml:"blocksize,omitempty"`
 
 	// DirectLvmDevice specifies a custom block storage device to use for
 	// the thin pool.
-	DirectLvmDevice string `toml:"directlvm_device"`
+	DirectLvmDevice string `toml:"directlvm_device,omitempty"`
 
 	// DirectLvmDeviceForcewipes device even if device already has a
 	// filesystem
-	DirectLvmDeviceForce string `toml:"directlvm_device_force"`
+	DirectLvmDeviceForce string `toml:"directlvm_device_force,omitempty"`
 
 	// Fs specifies the filesystem type to use for the base device.
-	Fs string `toml:"fs"`
+	Fs string `toml:"fs,omitempty"`
 
 	// log_level sets the log level of devicemapper.
-	LogLevel string `toml:"log_level"`
+	LogLevel string `toml:"log_level,omitempty"`
 
 	// MetadataSize specifies the size of the metadata for the thinpool
 	// It will be used with the `pvcreate --metadata` option.
-	MetadataSize string `toml:"metadatasize"`
+	MetadataSize string `toml:"metadatasize,omitempty"`
 
 	// MinFreeSpace specifies the min free space percent in a thin pool
 	// require for new device creation to
-	MinFreeSpace string `toml:"min_free_space"`
+	MinFreeSpace string `toml:"min_free_space,omitempty"`
 
 	// MkfsArg specifies extra mkfs arguments to be used when creating the
 	// basedevice.
-	MkfsArg string `toml:"mkfsarg"`
+	MkfsArg string `toml:"mkfsarg,omitempty"`
 
 	// MountOpt specifies extra mount options used when mounting the thin
 	// devices.
-	MountOpt string `toml:"mountopt"`
+	MountOpt string `toml:"mountopt,omitempty"`
 
 	// Size
-	Size string `toml:"size"`
+	Size string `toml:"size,omitempty"`
 
 	// UseDeferredDeletion marks device for deferred deletion
-	UseDeferredDeletion string `toml:"use_deferred_deletion"`
+	UseDeferredDeletion string `toml:"use_deferred_deletion,omitempty"`
 
 	// UseDeferredRemoval marks device for deferred removal
-	UseDeferredRemoval string `toml:"use_deferred_removal"`
+	UseDeferredRemoval string `toml:"use_deferred_removal,omitempty"`
 
 	// XfsNoSpaceMaxRetriesFreeSpace specifies the maximum number of
 	// retries XFS should attempt to complete IO when ENOSPC (no space)
 	// error is returned by underlying storage device.
-	XfsNoSpaceMaxRetries string `toml:"xfs_nospace_max_retries"`
+	XfsNoSpaceMaxRetries string `toml:"xfs_nospace_max_retries,omitempty"`
 }
 
 type AufsOptionsConfig struct {
 	// MountOpt specifies extra mount options used when mounting
-	MountOpt string `toml:"mountopt"`
+	MountOpt string `toml:"mountopt,omitempty"`
 }
 
 type BtrfsOptionsConfig struct {
 	// MinSpace is the minimal spaces allocated to the device
-	MinSpace string `toml:"min_space"`
+	MinSpace string `toml:"min_space,omitempty"`
 	// Size
-	Size string `toml:"size"`
+	Size string `toml:"size,omitempty"`
 }
 
 type OverlayOptionsConfig struct {
 	// IgnoreChownErrors is a flag for whether chown errors should be
 	// ignored when building an image.
-	IgnoreChownErrors string `toml:"ignore_chown_errors"`
+	IgnoreChownErrors string `toml:"ignore_chown_errors,omitempty"`
 	// MountOpt specifies extra mount options used when mounting
-	MountOpt string `toml:"mountopt"`
+	MountOpt string `toml:"mountopt,omitempty"`
 	// Alternative program to use for the mount of the file system
-	MountProgram string `toml:"mount_program"`
+	MountProgram string `toml:"mount_program,omitempty"`
 	// Size
-	Size string `toml:"size"`
+	Size string `toml:"size,omitempty"`
 	// Inodes is used to set a maximum inodes of the container image.
-	Inodes string `toml:"inodes"`
+	Inodes string `toml:"inodes,omitempty"`
 	// Do not create a bind mount on the storage home
-	SkipMountHome string `toml:"skip_mount_home"`
+	SkipMountHome string `toml:"skip_mount_home,omitempty"`
 	// ForceMask indicates the permissions mask (e.g. "0755") to use for new
 	// files and directories
-	ForceMask string `toml:"force_mask"`
+	ForceMask string `toml:"force_mask,omitempty"`
 }
 
 type VfsOptionsConfig struct {
 	// IgnoreChownErrors is a flag for whether chown errors should be
 	// ignored when building an image.
-	IgnoreChownErrors string `toml:"ignore_chown_errors"`
+	IgnoreChownErrors string `toml:"ignore_chown_errors,omitempty"`
 }
 
 type ZfsOptionsConfig struct {
 	// MountOpt specifies extra mount options used when mounting
-	MountOpt string `toml:"mountopt"`
+	MountOpt string `toml:"mountopt,omitempty"`
 	// Name is the File System name of the ZFS File system
-	Name string `toml:"fsname"`
+	Name string `toml:"fsname,omitempty"`
 	// Size
-	Size string `toml:"size"`
+	Size string `toml:"size,omitempty"`
 }
 
 // OptionsConfig represents the "storage.options" TOML config table.
@@ -122,82 +122,82 @@ type OptionsConfig struct {
 	// AdditionalImagesStores is the location of additional read/only
 	// Image stores.  Usually used to access Networked File System
 	// for shared image content
-	AdditionalImageStores []string `toml:"additionalimagestores"`
+	AdditionalImageStores []string `toml:"additionalimagestores,omitempty"`
 
 	// AdditionalLayerStores is the location of additional read/only
 	// Layer stores.  Usually used to access Networked File System
 	// for shared image content
 	// This API is experimental and can be changed without bumping the
 	// major version number.
-	AdditionalLayerStores []string `toml:"additionallayerstores"`
+	AdditionalLayerStores []string `toml:"additionallayerstores,omitempty"`
 
 	// Size
-	Size string `toml:"size"`
+	Size string `toml:"size,omitempty"`
 
 	// RemapUIDs is a list of default UID mappings to use for layers.
-	RemapUIDs string `toml:"remap-uids"`
+	RemapUIDs string `toml:"remap-uids,omitempty"`
 	// RemapGIDs is a list of default GID mappings to use for layers.
-	RemapGIDs string `toml:"remap-gids"`
+	RemapGIDs string `toml:"remap-gids,omitempty"`
 	// IgnoreChownErrors is a flag for whether chown errors should be
 	// ignored when building an image.
-	IgnoreChownErrors string `toml:"ignore_chown_errors"`
+	IgnoreChownErrors string `toml:"ignore_chown_errors,omitempty"`
 
 	// ForceMask indicates the permissions mask (e.g. "0755") to use for new
 	// files and directories.
-	ForceMask os.FileMode `toml:"force_mask"`
+	ForceMask os.FileMode `toml:"force_mask,omitempty"`
 
 	// RemapUser is the name of one or more entries in /etc/subuid which
 	// should be used to set up default UID mappings.
-	RemapUser string `toml:"remap-user"`
+	RemapUser string `toml:"remap-user,omitempty"`
 	// RemapGroup is the name of one or more entries in /etc/subgid which
 	// should be used to set up default GID mappings.
-	RemapGroup string `toml:"remap-group"`
+	RemapGroup string `toml:"remap-group,omitempty"`
 
 	// RootAutoUsernsUser is the name of one or more entries in /etc/subuid and
 	// /etc/subgid which should be used to set up automatically a userns.
-	RootAutoUsernsUser string `toml:"root-auto-userns-user"`
+	RootAutoUsernsUser string `toml:"root-auto-userns-user,omitempty"`
 
 	// AutoUsernsMinSize is the minimum size for a user namespace that is
 	// created automatically.
-	AutoUsernsMinSize uint32 `toml:"auto-userns-min-size"`
+	AutoUsernsMinSize uint32 `toml:"auto-userns-min-size,omitempty"`
 
 	// AutoUsernsMaxSize is the maximum size for a user namespace that is
 	// created automatically.
-	AutoUsernsMaxSize uint32 `toml:"auto-userns-max-size"`
+	AutoUsernsMaxSize uint32 `toml:"auto-userns-max-size,omitempty"`
 
 	// Aufs container options to be handed to aufs drivers
-	Aufs struct{ AufsOptionsConfig } `toml:"aufs"`
+	Aufs struct{ AufsOptionsConfig } `toml:"aufs,omitempty"`
 
 	// Btrfs container options to be handed to btrfs drivers
-	Btrfs struct{ BtrfsOptionsConfig } `toml:"btrfs"`
+	Btrfs struct{ BtrfsOptionsConfig } `toml:"btrfs,omitempty"`
 
 	// Thinpool container options to be handed to thinpool drivers
-	Thinpool struct{ ThinpoolOptionsConfig } `toml:"thinpool"`
+	Thinpool struct{ ThinpoolOptionsConfig } `toml:"thinpool,omitempty"`
 
 	// Overlay container options to be handed to overlay drivers
-	Overlay struct{ OverlayOptionsConfig } `toml:"overlay"`
+	Overlay struct{ OverlayOptionsConfig } `toml:"overlay,omitempty"`
 
 	// Vfs container options to be handed to VFS drivers
-	Vfs struct{ VfsOptionsConfig } `toml:"vfs"`
+	Vfs struct{ VfsOptionsConfig } `toml:"vfs,omitempty"`
 
 	// Zfs container options to be handed to ZFS drivers
-	Zfs struct{ ZfsOptionsConfig } `toml:"zfs"`
+	Zfs struct{ ZfsOptionsConfig } `toml:"zfs,omitempty"`
 
 	// Do not create a bind mount on the storage home
-	SkipMountHome string `toml:"skip_mount_home"`
+	SkipMountHome string `toml:"skip_mount_home,omitempty"`
 
 	// Alternative program to use for the mount of the file system
-	MountProgram string `toml:"mount_program"`
+	MountProgram string `toml:"mount_program,omitempty"`
 
 	// MountOpt specifies extra mount options used when mounting
-	MountOpt string `toml:"mountopt"`
+	MountOpt string `toml:"mountopt,omitempty"`
 
 	// PullOptions specifies options to be handed to pull managers
 	// This API is experimental and can be changed without bumping the major version number.
-	PullOptions map[string]string `toml:"pull_options"`
+	PullOptions map[string]string `toml:"pull_options,omitempty"`
 
 	// DisableVolatile doesn't allow volatile mounts when it is set.
-	DisableVolatile bool `toml:"disable-volatile"`
+	DisableVolatile bool `toml:"disable-volatile,omitempty"`
 }
 
 // GetGraphDriverOptions returns the driver specific options

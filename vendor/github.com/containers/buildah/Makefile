@@ -3,7 +3,7 @@ export GOPROXY=https://proxy.golang.org
 APPARMORTAG := $(shell hack/apparmor_tag.sh)
 STORAGETAGS := $(shell ./btrfs_tag.sh) $(shell ./btrfs_installed_tag.sh) $(shell ./libdm_tag.sh) $(shell ./hack/libsubid_tag.sh)
 SECURITYTAGS ?= seccomp $(APPARMORTAG)
-TAGS ?= $(SECURITYTAGS) $(STORAGETAGS)
+TAGS ?= $(SECURITYTAGS) $(STORAGETAGS) $(shell ./hack/systemd_tag.sh)
 BUILDTAGS += $(TAGS)
 PREFIX := /usr/local
 BINDIR := $(PREFIX)/bin
@@ -37,7 +37,7 @@ LIBSECCOMP_COMMIT := release-2.3
 
 EXTRA_LDFLAGS ?=
 BUILDAH_LDFLAGS := $(GO_LDFLAGS) '-X main.GitCommit=$(GIT_COMMIT) -X main.buildInfo=$(SOURCE_DATE_EPOCH) -X main.cniVersion=$(CNI_COMMIT) $(EXTRA_LDFLAGS)'
-SOURCES=*.go imagebuildah/*.go bind/*.go chroot/*.go copier/*.go define/*.go docker/*.go manifests/*.go pkg/blobcache/*.go pkg/chrootuser/*.go pkg/cli/*.go pkg/completion/*.go pkg/formats/*.go pkg/overlay/*.go pkg/parse/*.go pkg/rusage/*.go pkg/sshagent/*.go pkg/umask/*.go pkg/util/*.go util/*.go
+SOURCES=*.go imagebuildah/*.go bind/*.go chroot/*.go copier/*.go define/*.go docker/*.go manifests/*.go pkg/chrootuser/*.go pkg/cli/*.go pkg/completion/*.go pkg/formats/*.go pkg/overlay/*.go pkg/parse/*.go pkg/rusage/*.go pkg/sshagent/*.go pkg/umask/*.go pkg/util/*.go util/*.go
 
 LINTFLAGS ?=
 

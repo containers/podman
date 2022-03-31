@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"os/signal"
 	"os/user"
 	"runtime"
 	"strconv"
@@ -484,6 +485,30 @@ func MaybeReexecUsingUserNamespace(evenForRoot bool) {
 
 	// Finish up.
 	logrus.Debugf("Running %+v with environment %+v, UID map %+v, and GID map %+v", cmd.Cmd.Args, os.Environ(), cmd.UidMappings, cmd.GidMappings)
+
+	// Forward SIGHUP, SIGINT, and SIGTERM to our child process.
+	interrupted := make(chan os.Signal, 100)
+	defer func() {
+		signal.Stop(interrupted)
+		close(interrupted)
+	}()
+	cmd.Hook = func(int) error {
+		go func() {
+			for receivedSignal := range interrupted {
+				cmd.Cmd.Process.Signal(receivedSignal)
+			}
+		}()
+		return nil
+	}
+	signal.Notify(interrupted, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
+
+	// Make sure our child process gets SIGKILLed if we exit, for whatever
+	// reason, before it does.
+	if cmd.Cmd.SysProcAttr == nil {
+		cmd.Cmd.SysProcAttr = &syscall.SysProcAttr{}
+	}
+	cmd.Cmd.SysProcAttr.Pdeathsig = syscall.SIGKILL
+
 	ExecRunnable(cmd, nil)
 }
 
@@ -501,11 +526,11 @@ func ExecRunnable(cmd Runnable, cleanup func()) {
 			if exitError.ProcessState.Exited() {
 				if waitStatus, ok := exitError.ProcessState.Sys().(syscall.WaitStatus); ok {
 					if waitStatus.Exited() {
-						logrus.Errorf("%v", exitError)
+						logrus.Debugf("%v", exitError)
 						exit(waitStatus.ExitStatus())
 					}
 					if waitStatus.Signaled() {
-						logrus.Errorf("%v", exitError)
+						logrus.Debugf("%v", exitError)
 						exit(int(waitStatus.Signal()) + 128)
 					}
 				}

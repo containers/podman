@@ -108,35 +108,32 @@ func (c *layersCache) load() error {
 		}
 
 		bigData, err := c.store.LayerBigData(r.ID, cacheKey)
-		if err != nil {
-			if errors.Cause(err) == os.ErrNotExist {
+		// if the cache areadly exists, read and use it
+		if err == nil {
+			defer bigData.Close()
+			metadata, err := readMetadataFromCache(bigData)
+			if err == nil {
+				c.addLayer(r.ID, metadata)
 				continue
 			}
+			logrus.Warningf("Error reading cache file for layer %q: %v", r.ID, err)
+		} else if errors.Cause(err) != os.ErrNotExist {
 			return err
 		}
-		defer bigData.Close()
 
-		metadata, err := readMetadataFromCache(bigData)
-		if err != nil {
-			logrus.Warningf("Error reading cache file for layer %q: %v", r.ID, err)
-		}
-
-		if metadata != nil {
-			c.addLayer(r.ID, metadata)
-			continue
-		}
-
+		// otherwise create it from the layer TOC.
 		manifestReader, err := c.store.LayerBigData(r.ID, bigDataKey)
 		if err != nil {
 			continue
 		}
 		defer manifestReader.Close()
+
 		manifest, err := ioutil.ReadAll(manifestReader)
 		if err != nil {
 			return fmt.Errorf("open manifest file for layer %q: %w", r.ID, err)
 		}
 
-		metadata, err = writeCache(manifest, r.ID, c.store)
+		metadata, err := writeCache(manifest, r.ID, c.store)
 		if err == nil {
 			c.addLayer(r.ID, metadata)
 		}

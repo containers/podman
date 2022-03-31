@@ -2,6 +2,78 @@
 
 # Changelog
 
+## v1.25.1 (2022-03-30)
+
+    buildah: create WORKDIR with USER permissions
+    vendor: update github.com/openshift/imagebuilder
+    copier: attempt to open the dir before adding it
+    Updated dependabot to get updates for GitHub actions.
+    Switch most calls to filepath.Walk to filepath.WalkDir
+    build: allow --no-cache and --layers so build cache can be overrided
+    build(deps): bump github.com/onsi/gomega from 1.18.1 to 1.19.0
+    Bump to v1.26.0-dev
+    build(deps): bump github.com/golangci/golangci-lint in /tests/tools
+
+## v1.25.0 (2022-03-25)
+
+    install: drop RHEL/CentOS 7 doc
+    build(deps): bump github.com/containers/common from 0.47.4 to 0.47.5
+    Bump c/storage to v1.39.0 in main
+    Add a test for CVE-2022-27651
+    build(deps): bump github.com/docker/docker
+    Bump github.com/prometheus/client_golang to v1.11.1
+    [CI:DOCS] man pages: sort flags, and keep them that way
+    build(deps): bump github.com/containerd/containerd from 1.6.1 to 1.6.2
+    Don't pollute
+    network setup: increase timeout to 4 minutes
+    do not set the inheritable capabilities
+    build(deps): bump github.com/golangci/golangci-lint in /tests/tools
+    build(deps): bump github.com/containers/ocicrypt from 1.1.2 to 1.1.3
+    parse: convert exposed GetVolumes to internal only
+    buildkit: mount=type=cache support locking external cache store
+    .in support: improve error message when cpp is not installed
+    buildah image: install cpp
+    build(deps): bump github.com/stretchr/testify from 1.7.0 to 1.7.1
+    build(deps): bump github.com/spf13/cobra from 1.3.0 to 1.4.0
+    build(deps): bump github.com/docker/docker
+    Add --no-hosts flag to eliminate use of /etc/hosts within containers
+    test: remove skips for rootless users
+    test: unshare mount/umount if test is_rootless
+    tests/copy: read correct containers.conf
+    build(deps): bump github.com/docker/distribution
+    cirrus: add seperate task and matrix for rootless
+    tests: skip tests for rootless which need unshare
+    buildah: test rootless integration
+    vendor: bump c/storage to main/93ce26691863
+    build(deps): bump github.com/fsouza/go-dockerclient from 1.7.9 to 1.7.10
+    tests/copy: initialize the network, too
+    [CI:DOCS] remove references to Kubic for CentOS and Ubuntu
+    build(deps): bump github.com/containerd/containerd from 1.6.0 to 1.6.1
+    use c/image/pkg/blobcache
+    vendor c/image/v5@v5.20.0
+    add: ensure the context directory is an absolute path
+    executor: docker builds must inherit healthconfig from base if any
+    docs: Remove Containerfile and containeringore
+    build(deps): bump github.com/fsouza/go-dockerclient from 1.7.8 to 1.7.9
+    helpers.bash: Use correct syntax
+    speed up combination-namespaces test
+    build(deps): bump github.com/golangci/golangci-lint in /tests/tools
+    Bump back to 1.25.0-dev
+    build(deps): bump github.com/containerd/containerd from 1.5.9 to 1.6.0
+
+## v1.24.2 (2022-02-16)
+
+    Increase subuid/subgid to 65535
+    history: only add proxy vars to history if specified
+    run_linux: use --systemd-cgroup
+    buildah: new global option --cgroup-manager
+    Makefile: build with systemd when available
+    build(deps): bump github.com/fsouza/go-dockerclient from 1.7.7 to 1.7.8
+    Bump c/common to v0.47.4
+    Cirrus: Use updated VM images
+    conformance: add a few "replace-directory-with-symlink" tests
+    Bump back to v1.25.0-dev
+
 ## v1.24.1 (2022-02-03)
 
     executor: Add support for inline --platform within Dockerfile

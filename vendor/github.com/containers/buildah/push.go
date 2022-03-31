@@ -21,6 +21,24 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// cacheLookupReferenceFunc wraps a BlobCache into a
+// libimage.LookupReferenceFunc to allow for using a BlobCache during
+// image-copy operations.
+func cacheLookupReferenceFunc(directory string, compress types.LayerCompression) libimage.LookupReferenceFunc {
+	// Using a closure here allows us to reference a BlobCache without
+	// having to explicitly maintain it in the libimage API.
+	return func(ref types.ImageReference) (types.ImageReference, error) {
+		if directory == "" {
+			return ref, nil
+		}
+		ref, err := blobcache.NewBlobCache(ref, directory, compress)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error using blobcache %q", directory)
+		}
+		return ref, nil
+	}
+}
+
 // PushOptions can be used to alter how an image is copied somewhere.
 type PushOptions struct {
 	// Compression specifies the type of compression which is applied to
@@ -99,13 +117,11 @@ func Push(ctx context.Context, image string, dest types.ImageReference, options 
 		libimageOptions.Writer = nil
 	}
 
-	if options.BlobDirectory != "" {
-		compress := types.PreserveOriginal
-		if options.Compression == archive.Gzip {
-			compress = types.Compress
-		}
-		libimageOptions.SourceLookupReferenceFunc = blobcache.CacheLookupReferenceFunc(options.BlobDirectory, compress)
+	compress := types.PreserveOriginal
+	if options.Compression == archive.Gzip {
+		compress = types.Compress
 	}
+	libimageOptions.SourceLookupReferenceFunc = cacheLookupReferenceFunc(options.BlobDirectory, compress)
 
 	runtime, err := libimage.RuntimeFromStore(options.Store, &libimage.RuntimeOptions{SystemContext: options.SystemContext})
 	if err != nil {

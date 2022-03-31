@@ -16,7 +16,7 @@ import (
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/internal/iolimits"
-	internalTypes "github.com/containers/image/v5/internal/types"
+	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
@@ -145,6 +145,11 @@ func (s *dockerImageSource) Reference() types.ImageReference {
 // Close removes resources associated with an initialized ImageSource, if any.
 func (s *dockerImageSource) Close() error {
 	return nil
+}
+
+// SupportsGetBlobAt() returns true if GetBlobAt (BlobChunkAccessor) is supported.
+func (s *dockerImageSource) SupportsGetBlobAt() bool {
+	return true
 }
 
 // LayerInfosForCopy returns either nil (meaning the values in the manifest are fine), or updated values for the layer
@@ -288,7 +293,7 @@ func (s *dockerImageSource) HasThreadSafeGetBlob() bool {
 }
 
 // splitHTTP200ResponseToPartial splits a 200 response in multiple streams as specified by the chunks
-func splitHTTP200ResponseToPartial(streams chan io.ReadCloser, errs chan error, body io.ReadCloser, chunks []internalTypes.ImageSourceChunk) {
+func splitHTTP200ResponseToPartial(streams chan io.ReadCloser, errs chan error, body io.ReadCloser, chunks []private.ImageSourceChunk) {
 	defer close(streams)
 	defer close(errs)
 	currentOffset := uint64(0)
@@ -322,7 +327,7 @@ func splitHTTP200ResponseToPartial(streams chan io.ReadCloser, errs chan error, 
 }
 
 // handle206Response reads a 206 response and send each part as a separate ReadCloser to the streams chan.
-func handle206Response(streams chan io.ReadCloser, errs chan error, body io.ReadCloser, chunks []internalTypes.ImageSourceChunk, mediaType string, params map[string]string) {
+func handle206Response(streams chan io.ReadCloser, errs chan error, body io.ReadCloser, chunks []private.ImageSourceChunk, mediaType string, params map[string]string) {
 	defer close(streams)
 	defer close(errs)
 	if !strings.HasPrefix(mediaType, "multipart/") {
@@ -357,9 +362,12 @@ func handle206Response(streams chan io.ReadCloser, errs chan error, body io.Read
 	}
 }
 
-// GetBlobAt returns a stream for the specified blob.
+// GetBlobAt returns a sequential channel of readers that contain data for the requested
+// blob chunks, and a channel that might get a single error value.
 // The specified chunks must be not overlapping and sorted by their offset.
-func (s *dockerImageSource) GetBlobAt(ctx context.Context, info types.BlobInfo, chunks []internalTypes.ImageSourceChunk) (chan io.ReadCloser, chan error, error) {
+// The readers must be fully consumed, in the order they are returned, before blocking
+// to read the next chunk.
+func (s *dockerImageSource) GetBlobAt(ctx context.Context, info types.BlobInfo, chunks []private.ImageSourceChunk) (chan io.ReadCloser, chan error, error) {
 	headers := make(map[string][]string)
 
 	var rangeVals []string
@@ -401,7 +409,7 @@ func (s *dockerImageSource) GetBlobAt(ctx context.Context, info types.BlobInfo, 
 		return streams, errs, nil
 	case http.StatusBadRequest:
 		res.Body.Close()
-		return nil, nil, internalTypes.BadPartialRequestError{Status: res.Status}
+		return nil, nil, private.BadPartialRequestError{Status: res.Status}
 	default:
 		err := httpResponseToError(res, "Error fetching partial blob")
 		if err == nil {

@@ -56,6 +56,9 @@ func (v *GVariant) native() *C.GVariant {
 }
 
 func (v *GVariant) Ptr() unsafe.Pointer {
+	if v == nil {
+		return nil
+	}
 	return v.ptr
 }
 

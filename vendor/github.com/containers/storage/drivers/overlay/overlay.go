@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package overlay
@@ -291,6 +292,31 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 		backingFs = fsName
 	}
 
+	runhome := filepath.Join(options.RunRoot, filepath.Base(home))
+	rootUID, rootGID, err := idtools.GetRootUIDGID(options.UIDMaps, options.GIDMaps)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create the driver home dir
+	if err := idtools.MkdirAllAs(path.Join(home, linkDir), 0700, rootUID, rootGID); err != nil {
+		return nil, err
+	}
+
+	if err := idtools.MkdirAllAs(runhome, 0700, rootUID, rootGID); err != nil {
+		return nil, err
+	}
+
+	if opts.mountProgram == "" {
+		if supported, err := SupportsNativeOverlay(home, runhome); err != nil {
+			return nil, err
+		} else if !supported {
+			if path, err := exec.LookPath("fuse-overlayfs"); err == nil {
+				opts.mountProgram = path
+			}
+		}
+	}
+
 	if opts.mountProgram != "" {
 		if unshare.IsRootless() && isNetworkFileSystem(fsMagic) && opts.forceMask == nil {
 			m := os.FileMode(0700)
@@ -313,20 +339,6 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 		if unshare.IsRootless() && isNetworkFileSystem(fsMagic) {
 			return nil, errors.Wrapf(graphdriver.ErrIncompatibleFS, "A network file system with user namespaces is not supported.  Please use a mount_program")
 		}
-	}
-
-	rootUID, rootGID, err := idtools.GetRootUIDGID(options.UIDMaps, options.GIDMaps)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create the driver home dir
-	if err := idtools.MkdirAllAs(path.Join(home, linkDir), 0700, rootUID, rootGID); err != nil {
-		return nil, err
-	}
-	runhome := filepath.Join(options.RunRoot, filepath.Base(home))
-	if err := idtools.MkdirAllAs(runhome, 0700, rootUID, rootGID); err != nil {
-		return nil, err
 	}
 
 	var usingMetacopy bool
@@ -568,13 +580,10 @@ func cachedFeatureRecord(runhome, feature string, supported bool, text string) (
 	return err
 }
 
-func SupportsNativeOverlay(graphroot, rundir string) (bool, error) {
-	if os.Geteuid() != 0 || graphroot == "" || rundir == "" {
+func SupportsNativeOverlay(home, runhome string) (bool, error) {
+	if os.Geteuid() != 0 || home == "" || runhome == "" {
 		return false, nil
 	}
-
-	home := filepath.Join(graphroot, "overlay")
-	runhome := filepath.Join(rundir, "overlay")
 
 	var contents string
 	flagContent, err := ioutil.ReadFile(getMountProgramFlagFile(home))
@@ -919,7 +928,9 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, disable
 	defer func() {
 		// Clean up on failure
 		if retErr != nil {
-			os.RemoveAll(dir)
+			if err2 := os.RemoveAll(dir); err2 != nil {
+				logrus.Errorf("While recovering from a failure creating a layer, error deleting %#v: %v", dir, err2)
+			}
 		}
 	}()
 
@@ -1166,6 +1177,9 @@ func (d *Driver) Remove(id string) error {
 // under each layer has a symlink created for it under the linkDir. If the symlink does not
 // exist, it creates them
 func (d *Driver) recreateSymlinks() error {
+	// We have at most 3 corrective actions per layer, so 10 iterations is plenty.
+	const maxIterations = 10
+
 	// List all the directories under the home directory
 	dirs, err := ioutil.ReadDir(d.home)
 	if err != nil {
@@ -1183,6 +1197,7 @@ func (d *Driver) recreateSymlinks() error {
 	// Keep looping as long as we take some corrective action in each iteration
 	var errs *multierror.Error
 	madeProgress := true
+	iterations := 0
 	for madeProgress {
 		errs = nil
 		madeProgress = false
@@ -1233,7 +1248,12 @@ func (d *Driver) recreateSymlinks() error {
 			if len(targetComponents) != 3 || targetComponents[0] != ".." || targetComponents[2] != "diff" {
 				errs = multierror.Append(errs, errors.Errorf("link target of %q looks weird: %q", link, target))
 				// force the link to be recreated on the next pass
-				os.Remove(filepath.Join(linksDir, link.Name()))
+				if err := os.Remove(filepath.Join(linksDir, link.Name())); err != nil {
+					if !os.IsNotExist(err) {
+						errs = multierror.Append(errs, errors.Wrapf(err, "removing link %q", link))
+					} // else don’t report any error, but also don’t set madeProgress.
+					continue
+				}
 				madeProgress = true
 				continue
 			}
@@ -1243,12 +1263,19 @@ func (d *Driver) recreateSymlinks() error {
 			linkFile := filepath.Join(d.dir(targetID), "link")
 			data, err := ioutil.ReadFile(linkFile)
 			if err != nil || string(data) != link.Name() {
+				// NOTE: If two or more links point to the same target, we will update linkFile
+				// with every value of link.Name(), and set madeProgress = true every time.
 				if err := ioutil.WriteFile(linkFile, []byte(link.Name()), 0644); err != nil {
 					errs = multierror.Append(errs, errors.Wrapf(err, "correcting link for layer %s", targetID))
 					continue
 				}
 				madeProgress = true
 			}
+		}
+		iterations++
+		if iterations >= maxIterations {
+			errs = multierror.Append(errs, fmt.Errorf("Reached %d iterations in overlay graph driver’s recreateSymlink, giving up", iterations))
+			break
 		}
 	}
 	if errs != nil {
@@ -1443,6 +1470,21 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 
 	workdir := path.Join(dir, "work")
 
+	if d.options.mountProgram == "" && unshare.IsRootless() {
+		optsList = append(optsList, "userxattr")
+	}
+
+	if options.Volatile && !hasVolatileOption(optsList) {
+		supported, err := d.getSupportsVolatile()
+		if err != nil {
+			return "", err
+		}
+		// If "volatile" is not supported by the file system, just ignore the request
+		if supported {
+			optsList = append(optsList, "volatile")
+		}
+	}
+
 	var opts string
 	if readWrite {
 		opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(absLowers, ":"), diffDir, workdir)
@@ -1450,22 +1492,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		opts = fmt.Sprintf("lowerdir=%s:%s", diffDir, strings.Join(absLowers, ":"))
 	}
 	if len(optsList) > 0 {
-		opts = fmt.Sprintf("%s,%s", strings.Join(optsList, ","), opts)
-	}
-
-	if d.options.mountProgram == "" && unshare.IsRootless() {
-		opts = fmt.Sprintf("%s,userxattr", opts)
-	}
-
-	// If "volatile" is not supported by the file system, just ignore the request
-	if options.Volatile && !hasVolatileOption(strings.Split(opts, ",")) {
-		supported, err := d.getSupportsVolatile()
-		if err != nil {
-			return "", err
-		}
-		if supported {
-			opts = fmt.Sprintf("%s,volatile", opts)
-		}
+		opts = fmt.Sprintf("%s,%s", opts, strings.Join(optsList, ","))
 	}
 
 	mountData := label.FormatMountLabel(opts, options.MountLabel)
@@ -1474,10 +1501,6 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 
 	pageSize := unix.Getpagesize()
 
-	// Use relative paths and mountFrom when the mount data has exceeded
-	// the page size. The mount syscall fails if the mount data cannot
-	// fit within a page and relative links make the mount data much
-	// smaller at the expense of requiring a fork exec to chroot.
 	if d.options.mountProgram != "" {
 		mountFunc = func(source string, target string, mType string, flags uintptr, label string) error {
 			if !disableShifting {
@@ -1503,18 +1526,26 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			}
 			return nil
 		}
-	} else if len(mountData) > pageSize {
+	} else if len(mountData) >= pageSize {
+		// Use relative paths and mountFrom when the mount data has exceeded
+		// the page size. The mount syscall fails if the mount data cannot
+		// fit within a page and relative links make the mount data much
+		// smaller at the expense of requiring a fork exec to chroot.
+
 		workdir = path.Join(id, "work")
 		//FIXME: We need to figure out to get this to work with additional stores
 		if readWrite {
 			diffDir := path.Join(id, "diff")
 			opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(relLowers, ":"), diffDir, workdir)
 		} else {
-			opts = fmt.Sprintf("lowerdir=%s", strings.Join(absLowers, ":"))
+			opts = fmt.Sprintf("lowerdir=%s", strings.Join(relLowers, ":"))
+		}
+		if len(optsList) > 0 {
+			opts = fmt.Sprintf("%s,%s", opts, strings.Join(optsList, ","))
 		}
 		mountData = label.FormatMountLabel(opts, options.MountLabel)
-		if len(mountData) > pageSize {
-			return "", fmt.Errorf("cannot mount layer, mount label %q too large %d > page size %d", options.MountLabel, len(mountData), pageSize)
+		if len(mountData) >= pageSize {
+			return "", fmt.Errorf("cannot mount layer, mount label %q too large %d >= page size %d", options.MountLabel, len(mountData), pageSize)
 		}
 		mountFunc = func(source string, target string, mType string, flags uintptr, label string) error {
 			return mountFrom(d.home, source, target, mType, flags, label)

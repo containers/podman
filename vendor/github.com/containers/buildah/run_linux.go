@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package buildah
@@ -42,6 +43,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
+	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/containers/storage/pkg/unshare"
@@ -189,16 +191,19 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		return err
 	}
 
-	// Figure out who owns files that will appear to be owned by UID/GID 0 in the container.
-	rootUID, rootGID, err := util.GetHostRootIDs(spec)
-	if err != nil {
-		return err
+	uid, gid := spec.Process.User.UID, spec.Process.User.GID
+	if spec.Linux != nil {
+		uid, gid, err = util.GetHostIDs(spec.Linux.UIDMappings, spec.Linux.GIDMappings, uid, gid)
+		if err != nil {
+			return err
+		}
 	}
-	rootIDPair := &idtools.IDPair{UID: int(rootUID), GID: int(rootGID)}
+
+	idPair := &idtools.IDPair{UID: int(uid), GID: int(gid)}
 
 	mode := os.FileMode(0755)
 	coptions := copier.MkdirOptions{
-		ChownNew: rootIDPair,
+		ChownNew: idPair,
 		ChmodNew: &mode,
 	}
 	if err := copier.Mkdir(mountPoint, filepath.Join(mountPoint, spec.Process.Cwd), coptions); err != nil {
@@ -209,7 +214,14 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	namespaceOptions := append(b.NamespaceOptions, options.NamespaceOptions...)
 	volumes := b.Volumes()
 
-	if !contains(volumes, "/etc/hosts") {
+	// Figure out who owns files that will appear to be owned by UID/GID 0 in the container.
+	rootUID, rootGID, err := util.GetHostRootIDs(spec)
+	if err != nil {
+		return err
+	}
+	rootIDPair := &idtools.IDPair{UID: int(rootUID), GID: int(rootGID)}
+
+	if !options.NoHosts && !contains(volumes, "/etc/hosts") {
 		hostFile, err := b.generateHosts(path, spec.Hostname, b.CommonBuildOpts.AddHost, rootIDPair)
 		if err != nil {
 			return err
@@ -874,9 +886,14 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 		}
 	}
 
+	runtimeArgs := options.Args[:]
+	if options.CgroupManager == config.SystemdCgroupsManager {
+		runtimeArgs = append(runtimeArgs, "--systemd-cgroup")
+	}
+
 	// Build the commands that we'll execute.
 	pidFile := filepath.Join(bundlePath, "pid")
-	args := append(append(append(options.Args, "create", "--bundle", bundlePath, "--pid-file", pidFile), moreCreateArgs...), containerName)
+	args := append(append(append(runtimeArgs, "create", "--bundle", bundlePath, "--pid-file", pidFile), moreCreateArgs...), containerName)
 	create := exec.Command(runtime, args...)
 	create.Dir = bundlePath
 	stdin, stdout, stderr := getCreateStdio()
@@ -1958,9 +1975,6 @@ func setupCapAdd(g *generate.Generator, caps ...string) error {
 		if err := g.AddProcessCapabilityEffective(cap); err != nil {
 			return errors.Wrapf(err, "error adding %q to the effective capability set", cap)
 		}
-		if err := g.AddProcessCapabilityInheritable(cap); err != nil {
-			return errors.Wrapf(err, "error adding %q to the inheritable capability set", cap)
-		}
 		if err := g.AddProcessCapabilityPermitted(cap); err != nil {
 			return errors.Wrapf(err, "error adding %q to the permitted capability set", cap)
 		}
@@ -1978,9 +1992,6 @@ func setupCapDrop(g *generate.Generator, caps ...string) error {
 		}
 		if err := g.DropProcessCapabilityEffective(cap); err != nil {
 			return errors.Wrapf(err, "error removing %q from the effective capability set", cap)
-		}
-		if err := g.DropProcessCapabilityInheritable(cap); err != nil {
-			return errors.Wrapf(err, "error removing %q from the inheritable capability set", cap)
 		}
 		if err := g.DropProcessCapabilityPermitted(cap); err != nil {
 			return errors.Wrapf(err, "error removing %q from the permitted capability set", cap)
@@ -2326,9 +2337,9 @@ func (b *Builder) runUsingRuntimeSubproc(isolation define.Isolation, options Run
 	return err
 }
 
-// waitForSync waits for a maximum of 5 seconds to read something from the file
+// waitForSync waits for a maximum of 4 minutes to read something from the file
 func waitForSync(pipeR *os.File) error {
-	if err := pipeR.SetDeadline(time.Now().Add(5 * time.Second)); err != nil {
+	if err := pipeR.SetDeadline(time.Now().Add(4 * time.Minute)); err != nil {
 		return err
 	}
 	b := make([]byte, 16)
@@ -2442,6 +2453,7 @@ func (b *Builder) runSetupRunMounts(context *imagetypes.SystemContext, mounts []
 	sshCount := 0
 	defaultSSHSock := ""
 	tokens := []string{}
+	lockedTargets := []string{}
 	for _, mount := range mounts {
 		arr := strings.SplitN(mount, ",", 2)
 
@@ -2500,12 +2512,13 @@ func (b *Builder) runSetupRunMounts(context *imagetypes.SystemContext, mounts []
 			finalMounts = append(finalMounts, *mount)
 			mountTargets = append(mountTargets, mount.Destination)
 		case "cache":
-			mount, err := b.getCacheMount(tokens, rootUID, rootGID, processUID, processGID, stageMountPoints)
+			mount, lockedPaths, err := b.getCacheMount(tokens, rootUID, rootGID, processUID, processGID, stageMountPoints)
 			if err != nil {
 				return nil, nil, err
 			}
 			finalMounts = append(finalMounts, *mount)
 			mountTargets = append(mountTargets, mount.Destination)
+			lockedTargets = lockedPaths
 		default:
 			return nil, nil, errors.Errorf("invalid mount type %q", kv[1])
 		}
@@ -2516,6 +2529,7 @@ func (b *Builder) runSetupRunMounts(context *imagetypes.SystemContext, mounts []
 		Agents:          agents,
 		MountedImages:   mountImages,
 		SSHAuthSock:     defaultSSHSock,
+		LockedTargets:   lockedTargets,
 	}
 	return finalMounts, artifacts, nil
 }
@@ -2551,18 +2565,18 @@ func (b *Builder) getTmpfsMount(tokens []string, rootUID, rootGID, processUID, p
 	return &volumes[0], nil
 }
 
-func (b *Builder) getCacheMount(tokens []string, rootUID, rootGID, processUID, processGID int, stageMountPoints map[string]internal.StageMountDetails) (*spec.Mount, error) {
+func (b *Builder) getCacheMount(tokens []string, rootUID, rootGID, processUID, processGID int, stageMountPoints map[string]internal.StageMountDetails) (*spec.Mount, []string, error) {
 	var optionMounts []specs.Mount
-	mount, err := internalParse.GetCacheMount(tokens, b.store, b.MountLabel, stageMountPoints)
+	mount, lockedTargets, err := internalParse.GetCacheMount(tokens, b.store, b.MountLabel, stageMountPoints)
 	if err != nil {
-		return nil, err
+		return nil, lockedTargets, err
 	}
 	optionMounts = append(optionMounts, mount)
 	volumes, err := b.runSetupVolumeMounts(b.MountLabel, nil, optionMounts, rootUID, rootGID, processUID, processGID)
 	if err != nil {
-		return nil, err
+		return nil, lockedTargets, err
 	}
-	return &volumes[0], nil
+	return &volumes[0], lockedTargets, nil
 }
 
 func getSecretMount(tokens []string, secrets map[string]define.Secret, mountlabel string, containerWorkingDir string, uidmap []spec.LinuxIDMapping, gidmap []spec.LinuxIDMapping) (*spec.Mount, string, error) {
@@ -2842,6 +2856,32 @@ func (b *Builder) cleanupRunMounts(context *imagetypes.SystemContext, mountpoint
 				logrus.Error(prevErr)
 			}
 			prevErr = err
+		}
+	}
+	// unlock if any locked files from this RUN statement
+	for _, path := range artifacts.LockedTargets {
+		_, err := os.Stat(path)
+		if err != nil {
+			// Lockfile not found this might be a problem,
+			// since LockedTargets must contain list of all locked files
+			// don't break here since we need to unlock other files but
+			// log so user can take a look
+			logrus.Warnf("Lockfile %q was expected here, stat failed with %v", path, err)
+			continue
+		}
+		lockfile, err := lockfile.GetLockfile(path)
+		if err != nil {
+			// unable to get lockfile
+			// lets log error and continue
+			// unlocking other files
+			logrus.Warn(err)
+			continue
+		}
+		if lockfile.Locked() {
+			lockfile.Unlock()
+		} else {
+			logrus.Warnf("Lockfile %q was expected to be locked, this is unexpected", path)
+			continue
 		}
 	}
 	return prevErr
