@@ -20,6 +20,7 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/inspect"
 	"github.com/containers/podman/v4/pkg/rootless"
+	"github.com/containers/podman/v4/pkg/util"
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
@@ -500,14 +501,12 @@ func (p *PodmanTestIntegration) BuildImageWithLabel(dockerfile, imageName string
 // PodmanPID execs podman and returns its PID
 func (p *PodmanTestIntegration) PodmanPID(args []string) (*PodmanSessionIntegration, int) {
 	podmanOptions := p.MakeOptions(args, false, false)
-	if p.RemoteTest {
-		podmanOptions = append([]string{"--remote", "--url", p.RemoteSocket}, podmanOptions...)
-	}
 	fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
+
 	command := exec.Command(p.PodmanBinary, podmanOptions...)
 	session, err := Start(command, GinkgoWriter, GinkgoWriter)
 	if err != nil {
-		Fail(fmt.Sprintf("unable to run podman command: %s", strings.Join(podmanOptions, " ")))
+		Fail("unable to run podman command: " + strings.Join(podmanOptions, " "))
 	}
 	podmanSession := &PodmanSession{Session: session}
 	return &PodmanSessionIntegration{podmanSession}, command.Process.Pid
@@ -843,11 +842,13 @@ func (p *PodmanTestIntegration) PodmanNoEvents(args []string) *PodmanSessionInte
 // MakeOptions assembles all the podman main options
 func (p *PodmanTestIntegration) makeOptions(args []string, noEvents, noCache bool) []string {
 	if p.RemoteTest {
+		if !util.StringInSlice("--remote", args) {
+			return append([]string{"--remote", "--url", p.RemoteSocket}, args...)
+		}
 		return args
 	}
-	var (
-		debug string
-	)
+
+	var debug string
 	if _, ok := os.LookupEnv("DEBUG"); ok {
 		debug = "--log-level=debug --syslog=true "
 	}

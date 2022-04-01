@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -25,31 +24,28 @@ func IsRemote() bool {
 
 // Podman is the exec call to podman on the filesystem
 func (p *PodmanTestIntegration) Podman(args []string) *PodmanSessionIntegration {
-	var remoteArgs = []string{"--remote", "--url", p.RemoteSocket}
-	remoteArgs = append(remoteArgs, args...)
-	podmanSession := p.PodmanBase(remoteArgs, false, false)
+	args = p.makeOptions(args, false, false)
+	podmanSession := p.PodmanBase(args, false, false)
 	return &PodmanSessionIntegration{podmanSession}
 }
 
 // PodmanSystemdScope runs the podman command in a new systemd scope
 func (p *PodmanTestIntegration) PodmanSystemdScope(args []string) *PodmanSessionIntegration {
-	var remoteArgs = []string{"--remote", "--url", p.RemoteSocket}
-	remoteArgs = append(remoteArgs, args...)
+	args = p.makeOptions(args, false, false)
 
 	wrapper := []string{"systemd-run", "--scope"}
 	if rootless.IsRootless() {
 		wrapper = []string{"systemd-run", "--scope", "--user"}
 	}
 
-	podmanSession := p.PodmanAsUserBase(remoteArgs, 0, 0, "", nil, false, false, wrapper, nil)
+	podmanSession := p.PodmanAsUserBase(args, 0, 0, "", nil, false, false, wrapper, nil)
 	return &PodmanSessionIntegration{podmanSession}
 }
 
 // PodmanExtraFiles is the exec call to podman on the filesystem and passes down extra files
 func (p *PodmanTestIntegration) PodmanExtraFiles(args []string, extraFiles []*os.File) *PodmanSessionIntegration {
-	var remoteArgs = []string{"--remote", "--url", p.RemoteSocket}
-	remoteArgs = append(remoteArgs, args...)
-	podmanSession := p.PodmanAsUserBase(remoteArgs, 0, 0, "", nil, false, false, nil, extraFiles)
+	args = p.makeOptions(args, false, false)
+	podmanSession := p.PodmanAsUserBase(args, 0, 0, "", nil, false, false, nil, extraFiles)
 	return &PodmanSessionIntegration{podmanSession}
 }
 
@@ -96,57 +92,39 @@ func (p *PodmanTestIntegration) StartRemoteService() {
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	p.RemoteCommand = command
 	p.RemoteSession = command.Process
-	err := p.DelayForService()
-	p.RemoteStartErr = err
+	p.RemoteStartErr = p.DelayForService()
 }
 
 func (p *PodmanTestIntegration) StopRemoteService() {
-	var out bytes.Buffer
-	var pids []int
-	remoteSession := p.RemoteSession
-
 	if !rootless.IsRootless() {
-		if err := remoteSession.Kill(); err != nil {
+		if err := p.RemoteSession.Kill(); err != nil {
 			fmt.Fprintf(os.Stderr, "error on remote stop-kill %q", err)
 		}
-		if _, err := remoteSession.Wait(); err != nil {
+		if _, err := p.RemoteSession.Wait(); err != nil {
 			fmt.Fprintf(os.Stderr, "error on remote stop-wait %q", err)
 		}
 	} else {
-		parentPid := fmt.Sprintf("%d", p.RemoteSession.Pid)
-		pgrep := exec.Command("pgrep", "-P", parentPid)
-		fmt.Printf("running: pgrep %s\n", parentPid)
-		pgrep.Stdout = &out
-		err := pgrep.Run()
-		if err != nil {
-			fmt.Fprint(os.Stderr, "unable to find remote pid")
-		}
-
-		for _, s := range strings.Split(out.String(), "\n") {
-			if len(s) == 0 {
-				continue
-			}
-			p, err := strconv.Atoi(s)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "unable to convert %s to int", s)
-			}
-			if p != 0 {
-				pids = append(pids, p)
+		// Stop any children of `podman system service`
+		pkill := exec.Command("pkill", "-P", strconv.Itoa(p.RemoteSession.Pid), "-15")
+		if err := pkill.Run(); err != nil {
+			exitErr := err.(*exec.ExitError)
+			if exitErr.ExitCode() != 1 {
+				fmt.Fprintf(os.Stderr, "pkill unable to clean up service %d children, exit code %d\n",
+					p.RemoteSession.Pid, exitErr.ExitCode())
 			}
 		}
-
-		pids = append(pids, p.RemoteSession.Pid)
-		for _, pid := range pids {
-			syscall.Kill(pid, syscall.SIGKILL)
+		if err := p.RemoteSession.Kill(); err != nil {
+			fmt.Fprintf(os.Stderr, "unable to clean up service %d, %v\n", p.RemoteSession.Pid, err)
 		}
 	}
+
 	socket := strings.Split(p.RemoteSocket, ":")[1]
-	if err := os.Remove(socket); err != nil {
-		fmt.Println(err)
+	if err := os.Remove(socket); err != nil && !errors.Is(err, os.ErrNotExist) {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
 	}
 	if p.RemoteSocketLock != "" {
-		if err := os.Remove(p.RemoteSocketLock); err != nil {
-			fmt.Println(err)
+		if err := os.Remove(p.RemoteSocketLock); err != nil && !errors.Is(err, os.ErrNotExist) {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
 		}
 	}
 }
@@ -185,8 +163,9 @@ func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
 }
 
 func (p *PodmanTestIntegration) DelayForService() error {
+	var session *PodmanSessionIntegration
 	for i := 0; i < 5; i++ {
-		session := p.Podman([]string{"info"})
+		session = p.Podman([]string{"info"})
 		session.WaitWithDefaultTimeout()
 		if session.ExitCode() == 0 {
 			return nil
@@ -195,5 +174,5 @@ func (p *PodmanTestIntegration) DelayForService() error {
 		}
 		time.Sleep(2 * time.Second)
 	}
-	return errors.New("Service not detected")
+	return fmt.Errorf("service not detected, exit code(%d)", session.ExitCode())
 }
