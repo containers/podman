@@ -37,9 +37,10 @@
 
 ### Misc
 - The static binary for Linux is now built with CGo disabled to avoid panics due to a Golang bug ([#13557](https://github.com/containers/podman/issues/13557)).
-- Updated the containers/storage library to 1.38.3
-- Updated the containers/image library to 5.19.2
-- Updated the containers/common library to 0.47.5
+- Updated Buildah to v1.24.3
+- Updated the containers/storage library to v1.38.3
+- Updated the containers/image library to v5.19.2
+- Updated the containers/common library to v0.47.5
 
 ## 4.0.2
 ### Bugfixes
