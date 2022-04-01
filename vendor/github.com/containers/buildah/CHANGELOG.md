@@ -2,6 +2,28 @@
 
 # Changelog
 
+## v1.24.3 (2022-03-01)
+
+    vendor: bump c/common to 0.47.5
+    Add a test for CVE-2022-27651
+    do not set the inheritable capabilities
+    Bump github.com/prometheus/client_golang to v1.11.1
+    vendor: bump c/image to v5.19.2
+    vendor: bump c/storage to v1.38.3
+
+## v1.24.2 (2022-02-16)
+
+    Increase subuid/subgid to 65535
+    history: only add proxy vars to history if specified
+    run_linux: use --systemd-cgroup
+    buildah: new global option --cgroup-manager
+    Makefile: build with systemd when available
+    build(deps): bump github.com/fsouza/go-dockerclient from 1.7.7 to 1.7.8
+    Bump c/common to v0.47.4
+    Cirrus: Use updated VM images
+    conformance: add a few "replace-directory-with-symlink" tests
+    Bump back to v1.25.0-dev
+
 ## v1.24.1 (2022-02-03)
 
     executor: Add support for inline --platform within Dockerfile

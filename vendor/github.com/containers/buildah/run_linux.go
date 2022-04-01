@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package buildah
@@ -874,9 +875,14 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 		}
 	}
 
+	runtimeArgs := options.Args[:]
+	if options.CgroupManager == config.SystemdCgroupsManager {
+		runtimeArgs = append(runtimeArgs, "--systemd-cgroup")
+	}
+
 	// Build the commands that we'll execute.
 	pidFile := filepath.Join(bundlePath, "pid")
-	args := append(append(append(options.Args, "create", "--bundle", bundlePath, "--pid-file", pidFile), moreCreateArgs...), containerName)
+	args := append(append(append(runtimeArgs, "create", "--bundle", bundlePath, "--pid-file", pidFile), moreCreateArgs...), containerName)
 	create := exec.Command(runtime, args...)
 	create.Dir = bundlePath
 	stdin, stdout, stderr := getCreateStdio()
@@ -1958,9 +1964,6 @@ func setupCapAdd(g *generate.Generator, caps ...string) error {
 		if err := g.AddProcessCapabilityEffective(cap); err != nil {
 			return errors.Wrapf(err, "error adding %q to the effective capability set", cap)
 		}
-		if err := g.AddProcessCapabilityInheritable(cap); err != nil {
-			return errors.Wrapf(err, "error adding %q to the inheritable capability set", cap)
-		}
 		if err := g.AddProcessCapabilityPermitted(cap); err != nil {
 			return errors.Wrapf(err, "error adding %q to the permitted capability set", cap)
 		}
@@ -1978,9 +1981,6 @@ func setupCapDrop(g *generate.Generator, caps ...string) error {
 		}
 		if err := g.DropProcessCapabilityEffective(cap); err != nil {
 			return errors.Wrapf(err, "error removing %q from the effective capability set", cap)
-		}
-		if err := g.DropProcessCapabilityInheritable(cap); err != nil {
-			return errors.Wrapf(err, "error removing %q from the inheritable capability set", cap)
 		}
 		if err := g.DropProcessCapabilityPermitted(cap); err != nil {
 			return errors.Wrapf(err, "error removing %q from the permitted capability set", cap)
