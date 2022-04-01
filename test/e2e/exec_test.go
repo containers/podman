@@ -475,10 +475,10 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec preserves container groups with --user and --group-add", func() {
-		dockerfile := `FROM registry.fedoraproject.org/fedora-minimal
+		dockerfile := fmt.Sprintf(`FROM %s
 RUN groupadd -g 4000 first
 RUN groupadd -g 4001 second
-RUN useradd -u 1000 auser`
+RUN useradd -u 1000 auser`, fedoraMinimal)
 		imgName := "testimg"
 		podmanTest.BuildImage(dockerfile, imgName, "false")
 
