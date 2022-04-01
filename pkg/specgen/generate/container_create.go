@@ -49,7 +49,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	compatibleOptions := &libpod.InfraInherit{}
 	var infraSpec *spec.Spec
 	if infra != nil {
-		options, infraSpec, compatibleOptions, err = Inherit(*infra)
+		options, infraSpec, compatibleOptions, err = Inherit(*infra, s, rt)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -152,8 +152,8 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		return nil, nil, nil, err
 	}
 
-	infraVolumes := (len(compatibleOptions.InfraVolumes) > 0 || len(compatibleOptions.InfraUserVolumes) > 0 || len(compatibleOptions.InfraImageVolumes) > 0)
-	opts, err := createContainerOptions(ctx, rt, s, pod, finalVolumes, finalOverlays, imageData, command, infraVolumes, *compatibleOptions)
+	infraVol := (len(compatibleOptions.Mounts) > 0 || len(compatibleOptions.Volumes) > 0 || len(compatibleOptions.ImageVolumes) > 0 || len(compatibleOptions.OverlayVolumes) > 0)
+	opts, err := createContainerOptions(ctx, rt, s, pod, finalVolumes, finalOverlays, imageData, command, infraVol, *compatibleOptions)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -446,7 +446,7 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	if len(s.SelinuxOpts) > 0 {
 		options = append(options, libpod.WithSecLabels(s.SelinuxOpts))
 	} else {
-		if pod != nil && len(compatibleOptions.InfraLabels) == 0 {
+		if pod != nil && len(compatibleOptions.SelinuxOpts) == 0 {
 			// duplicate the security options from the pod
 			processLabel, err := pod.ProcessLabel()
 			if err != nil {
@@ -544,32 +544,23 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	return options, nil
 }
 
-func Inherit(infra libpod.Container) (opts []libpod.CtrCreateOption, infraS *spec.Spec, compat *libpod.InfraInherit, err error) {
+func Inherit(infra libpod.Container, s *specgen.SpecGenerator, rt *libpod.Runtime) (opts []libpod.CtrCreateOption, infraS *spec.Spec, compat *libpod.InfraInherit, err error) {
+	inheritSpec := &specgen.SpecGenerator{}
+	_, compatibleOptions, err := ConfigToSpec(rt, inheritSpec, infra.ID())
+	if err != nil {
+		return nil, nil, nil, err
+	}
 	options := []libpod.CtrCreateOption{}
-	compatibleOptions := &libpod.InfraInherit{}
 	infraConf := infra.Config()
 	infraSpec := infraConf.Spec
 
-	config, err := json.Marshal(infraConf)
+	compatByte, err := json.Marshal(compatibleOptions)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	err = json.Unmarshal(config, compatibleOptions)
+	err = json.Unmarshal(compatByte, s)
 	if err != nil {
 		return nil, nil, nil, err
-	}
-	if infraSpec.Linux != nil && infraSpec.Linux.Resources != nil {
-		resources, err := json.Marshal(infraSpec.Linux.Resources)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		err = json.Unmarshal(resources, &compatibleOptions.InfraResources)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-	}
-	if compatibleOptions != nil {
-		options = append(options, libpod.WithInfraConfig(*compatibleOptions))
 	}
 	return options, infraSpec, compatibleOptions, nil
 }

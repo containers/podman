@@ -874,6 +874,10 @@ ENTRYPOINT ["sleep","99999"]
 		ctr3 := podmanTest.Podman([]string{"run", "--pod", podName, ALPINE, "cat", "/tmp1/test"})
 		ctr3.WaitWithDefaultTimeout()
 		Expect(ctr3.OutputToString()).To(ContainSubstring("hello"))
+
+		ctr4 := podmanTest.Podman([]string{"run", "--pod", podName, ALPINE, "touch", "/tmp1/testing.txt"})
+		ctr4.WaitWithDefaultTimeout()
+		Expect(ctr4).Should(Exit(0))
 	})
 
 	It("podman pod create --device", func() {

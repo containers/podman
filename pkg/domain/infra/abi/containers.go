@@ -1491,7 +1491,7 @@ func (ic *ContainerEngine) ContainerRename(ctx context.Context, nameOrID string,
 func (ic *ContainerEngine) ContainerClone(ctx context.Context, ctrCloneOpts entities.ContainerCloneOptions) (*entities.ContainerCreateReport, error) {
 	spec := specgen.NewSpecGenerator(ctrCloneOpts.Image, ctrCloneOpts.CreateOpts.RootFS)
 	var c *libpod.Container
-	c, err := generate.ConfigToSpec(ic.Libpod, spec, ctrCloneOpts.ID)
+	c, _, err := generate.ConfigToSpec(ic.Libpod, spec, ctrCloneOpts.ID)
 	if err != nil {
 		return nil, err
 	}
