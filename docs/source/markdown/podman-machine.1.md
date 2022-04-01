@@ -11,18 +11,19 @@ podman\-machine - Manage Podman's virtual machine
 
 ## SUBCOMMANDS
 
-| Command | Man Page                                                | Description                       |
-| ------- | ------------------------------------------------------- | --------------------------------- |
-| init    | [podman-machine-init(1)](podman-machine-init.1.md)      | Initialize a new virtual machine  |
-| list    | [podman-machine-list(1)](podman-machine-list.1.md)      | List virtual machines             |
-| rm      | [podman-machine-rm(1)](podman-machine-rm.1.md)          | Remove a virtual machine          |
-| set     | [podman-machine-set(1)](podman-machine-set.1.md)        | Sets a virtual machine setting    |
-| ssh     | [podman-machine-ssh(1)](podman-machine-ssh.1.md)        | SSH into a virtual machine        |
-| start   | [podman-machine-start(1)](podman-machine-start.1.md)    | Start a virtual machine           |
-| stop    | [podman-machine-stop(1)](podman-machine-stop.1.md)      | Stop a virtual machine            |
+| Command | Man Page                                             | Description                       |
+|---------|------------------------------------------------------|-----------------------------------|
+| init    | [podman-machine-init(1)](podman-machine-init.1.md)   | Initialize a new virtual machine  |
+| inspect | [podman-machine-inspect(1)](podman-machine-inspect.1.md)  | Inspect one or more virtual machines |
+| list    | [podman-machine-list(1)](podman-machine-list.1.md)   | List virtual machines             |
+| rm      | [podman-machine-rm(1)](podman-machine-rm.1.md)       | Remove a virtual machine          |
+| set     | [podman-machine-set(1)](podman-machine-set.1.md)     | Sets a virtual machine setting    |
+| ssh     | [podman-machine-ssh(1)](podman-machine-ssh.1.md)     | SSH into a virtual machine        |
+| start   | [podman-machine-start(1)](podman-machine-start.1.md) | Start a virtual machine           |
+| stop    | [podman-machine-stop(1)](podman-machine-stop.1.md)   | Stop a virtual machine            |
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-machine-init(1)](podman-machine-init.1.md)**, **[podman-machine-list(1)](podman-machine-list.1.md)**, **[podman-machine-rm(1)](podman-machine-rm.1.md)**, **[podman-machine-ssh(1)](podman-machine-ssh.1.md)**, **[podman-machine-start(1)](podman-machine-start.1.md)**, **[podman-machine-stop(1)](podman-machine-stop.1.md)**
+**[podman(1)](podman.1.md)**, **[podman-machine-init(1)](podman-machine-init.1.md)**, **[podman-machine-list(1)](podman-machine-list.1.md)**, **[podman-machine-rm(1)](podman-machine-rm.1.md)**, **[podman-machine-ssh(1)](podman-machine-ssh.1.md)**, **[podman-machine-start(1)](podman-machine-start.1.md)**, **[podman-machine-stop(1)](podman-machine-stop.1.md)**, **[podman-machine-inspect(1)](podman-machine-inspect.1.md)**
 
 ## HISTORY
 March 2021, Originally compiled by Ashley Cui <acui@redhat.com>

@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/homedir"
@@ -1011,6 +1012,12 @@ func (v *MachineVM) Stop(name string, _ machine.StopOptions) error {
 	}
 
 	return nil
+}
+
+// TODO: We need to rename isRunning to State(); I do not have a
+// windows system to test this on.
+func (v *MachineVM) State() (machine.Status, error) {
+	return "", define.ErrNotImplemented
 }
 
 func stopWinProxy(v *MachineVM) error {
