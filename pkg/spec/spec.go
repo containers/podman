@@ -719,9 +719,9 @@ func setupCapabilities(config *CreateConfig, configSpec *spec.Spec) error {
 
 	configSpec.Process.Capabilities.Bounding = caplist
 	configSpec.Process.Capabilities.Permitted = caplist
-	configSpec.Process.Capabilities.Inheritable = caplist
+	configSpec.Process.Capabilities.Inheritable = []string{}
 	configSpec.Process.Capabilities.Effective = caplist
-	configSpec.Process.Capabilities.Ambient = caplist
+	configSpec.Process.Capabilities.Ambient = []string{}
 	if useNotRoot(config.User) {
 		caplist, err = caps.TweakCapabilities(bounding, config.CapAdd, config.CapDrop, nil, false)
 		if err != nil {
