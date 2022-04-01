@@ -242,7 +242,8 @@ func generatePodInfo(pod *libpod.Pod, options entities.GenerateSystemdOptions) (
 		nameOrID = pod.Name()
 		ctrNameOrID = infraCtr.Name()
 	}
-	serviceName := fmt.Sprintf("%s%s%s", options.PodPrefix, options.Separator, nameOrID)
+
+	serviceName := getServiceName(options.PodPrefix, options.Separator, nameOrID)
 
 	info := podInfo{
 		ServiceName:       serviceName,

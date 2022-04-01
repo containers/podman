@@ -1,4 +1,4 @@
-// +build !aix,!darwin,!dragonfly,!freebsd,!linux,!netbsd,!openbsd,!solaris,!zos
+// +build aix darwin dragonfly freebsd netbsd openbsd solaris zos
 
 // Signal handling for Linux only.
 package signal
@@ -12,7 +12,7 @@ const (
 	sigrtmin = 34
 	sigrtmax = 64
 
-	SIGWINCH = syscall.Signal(0xff)
+	SIGWINCH = syscall.SIGWINCH
 )
 
 // signalMap is a map of Linux signals.

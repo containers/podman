@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -241,7 +242,9 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 			params.Add("platform", platform)
 		}
 	}
-	if contextDir, err := filepath.EvalSymlinks(options.ContextDirectory); err == nil {
+	var err error
+	var contextDir string
+	if contextDir, err = filepath.EvalSymlinks(options.ContextDirectory); err == nil {
 		options.ContextDirectory = contextDir
 	}
 
@@ -301,7 +304,6 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 
 	var (
 		headers http.Header
-		err     error
 	)
 	if options.SystemContext != nil && options.SystemContext.DockerAuthConfig != nil {
 		headers, err = auth.MakeXRegistryAuthHeader(options.SystemContext, options.SystemContext.DockerAuthConfig.Username, options.SystemContext.DockerAuthConfig.Password)
@@ -325,7 +327,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		}
 	}
 
-	contextDir, err := filepath.Abs(options.ContextDirectory)
+	contextDir, err = filepath.Abs(options.ContextDirectory)
 	if err != nil {
 		logrus.Errorf("Cannot find absolute path of %v: %v", options.ContextDirectory, err)
 		return nil, err
@@ -556,16 +558,27 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 				merr = multierror.Append(merr, err)
 				return
 			}
-
-			err = filepath.Walk(s, func(path string, info os.FileInfo, err error) error {
+			err = filepath.WalkDir(s, func(path string, d fs.DirEntry, err error) error {
 				if err != nil {
 					return err
 				}
 
-				if path == s {
-					return nil // skip root dir
+				// check if what we are given is an empty dir, if so then continue w/ it. Else return.
+				// if we are given a file or a symlink, we do not want to exclude it.
+				if d.IsDir() && s == path {
+					var p *os.File
+					p, err = os.Open(path)
+					if err != nil {
+						return err
+					}
+					defer p.Close()
+					_, err = p.Readdir(1)
+					if err != io.EOF {
+						return nil // non empty root dir, need to return
+					} else if err != nil {
+						logrus.Errorf("Error while reading directory %v: %v", path, err)
+					}
 				}
-
 				name := filepath.ToSlash(strings.TrimPrefix(path, s+string(filepath.Separator)))
 
 				excluded, err := pm.Matches(name) // nolint:staticcheck
@@ -576,7 +589,11 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 					return nil
 				}
 
-				if info.Mode().IsRegular() { // add file item
+				if d.Type().IsRegular() { // add file item
+					info, err := d.Info()
+					if err != nil {
+						return err
+					}
 					di, isHardLink := checkHardLink(info)
 					if err != nil {
 						return err
@@ -612,7 +629,11 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 						seen[di] = name
 					}
 					return err
-				} else if info.Mode().IsDir() { // add folders
+				} else if d.IsDir() { // add folders
+					info, err := d.Info()
+					if err != nil {
+						return err
+					}
 					hdr, lerr := tar.FileInfoHeader(info, name)
 					if lerr != nil {
 						return lerr
@@ -622,8 +643,12 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 					if lerr := tw.WriteHeader(hdr); lerr != nil {
 						return lerr
 					}
-				} else if info.Mode()&os.ModeSymlink != 0 { // add symlinks as it, not content
+				} else if d.Type()&os.ModeSymlink != 0 { // add symlinks as it, not content
 					link, err := os.Readlink(path)
+					if err != nil {
+						return err
+					}
+					info, err := d.Info()
 					if err != nil {
 						return err
 					}

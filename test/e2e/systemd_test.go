@@ -1,8 +1,10 @@
 package integration
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	. "github.com/containers/podman/v4/test/utils"
@@ -119,6 +121,31 @@ WantedBy=default.target
 	It("podman create container with systemd entrypoint triggers systemd mode", func() {
 		ctrName := "testCtr"
 		run := podmanTest.Podman([]string{"create", "--name", ctrName, "--entrypoint", "/sbin/init", UBI_INIT})
+		run.WaitWithDefaultTimeout()
+		Expect(run).Should(Exit(0))
+
+		result := podmanTest.Podman([]string{"inspect", ctrName})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		conData := result.InspectContainerToJSON()
+		Expect(conData).To(HaveLen(1))
+		Expect(conData[0].Config.SystemdMode).To(BeTrue())
+	})
+
+	It("podman systemd in command triggers systemd mode", func() {
+		containerfile := fmt.Sprintf(`FROM %s
+RUN mkdir -p /usr/lib/systemd/; touch /usr/lib/systemd/systemd
+CMD /usr/lib/systemd/systemd`, ALPINE)
+
+		containerfilePath := filepath.Join(podmanTest.TempDir, "Containerfile")
+		err := ioutil.WriteFile(containerfilePath, []byte(containerfile), 0755)
+		Expect(err).To(BeNil())
+		session := podmanTest.Podman([]string{"build", "-t", "systemd", "--file", containerfilePath, podmanTest.TempDir})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		ctrName := "testCtr"
+		run := podmanTest.Podman([]string{"create", "--name", ctrName, "systemd"})
 		run.WaitWithDefaultTimeout()
 		Expect(run).Should(Exit(0))
 

@@ -15,7 +15,7 @@ example *unix:///run/user/1000/podman/podman.sock*)
 
 To access the API service inside a container:
 - mount the socket as a volume
-- run the container with `--security-opt label:disable`
+- run the container with `--security-opt label=disable`
 
 The REST API provided by **podman system service** is split into two parts: a compatibility layer offering support for the Docker v1.40 API, and a Podman-native Libpod layer.
 Documentation for the latter is available at *https://docs.podman.io/en/latest/_static/api.html*.

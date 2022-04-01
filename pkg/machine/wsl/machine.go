@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -1175,10 +1176,10 @@ func GetVMInfos() ([]*machine.ListResponse, error) {
 
 	var listed []*machine.ListResponse
 
-	if err = filepath.Walk(vmConfigDir, func(path string, info os.FileInfo, err error) error {
+	if err = filepath.WalkDir(vmConfigDir, func(path string, d fs.DirEntry, err error) error {
 		vm := new(MachineVM)
-		if strings.HasSuffix(info.Name(), ".json") {
-			fullPath := filepath.Join(vmConfigDir, info.Name())
+		if strings.HasSuffix(d.Name(), ".json") {
+			fullPath := filepath.Join(vmConfigDir, d.Name())
 			b, err := ioutil.ReadFile(fullPath)
 			if err != nil {
 				return err

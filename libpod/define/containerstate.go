@@ -138,7 +138,6 @@ type ContainerStats struct {
 	CPU           float64
 	CPUNano       uint64
 	CPUSystemNano uint64
-	DataPoints    int64
 	SystemNano    uint64
 	MemUsage      uint64
 	MemLimit      uint64

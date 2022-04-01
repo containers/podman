@@ -1199,7 +1199,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	cmd.ExtraFiles = append(cmd.ExtraFiles, childSyncPipe, childStartPipe)
 
 	if r.reservePorts && !rootless.IsRootless() && !ctr.config.NetMode.IsSlirp4netns() {
-		ports, err := bindPorts(ctr.config.PortMappings)
+		ports, err := bindPorts(ctr.convertPortMappings())
 		if err != nil {
 			return 0, err
 		}
@@ -1585,11 +1585,13 @@ func readConmonPipeData(runtimeName string, pipe *os.File, ociLog string) (int, 
 		var si *syncInfo
 		rdr := bufio.NewReader(pipe)
 		b, err := rdr.ReadBytes('\n')
-		if err != nil {
+		// ignore EOF here, error is returned even when data was read
+		// if it is no valid json unmarshal will fail below
+		if err != nil && !errors.Is(err, io.EOF) {
 			ch <- syncStruct{err: err}
 		}
 		if err := json.Unmarshal(b, &si); err != nil {
-			ch <- syncStruct{err: err}
+			ch <- syncStruct{err: fmt.Errorf("conmon bytes %q: %w", string(b), err)}
 			return
 		}
 		ch <- syncStruct{si: si}

@@ -496,10 +496,13 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 			return nil, err
 		}
 
-		// move to systemd scope to prevent systemd from killing it
-		err = utils.MoveRootlessNetnsSlirpProcessToUserSlice(cmd.Process.Pid)
-		if err != nil {
-			logrus.Errorf("failed to move the rootless netns slirp4netns process to the systemd user.slice: %v", err)
+		if utils.RunsOnSystemd() {
+			// move to systemd scope to prevent systemd from killing it
+			err = utils.MoveRootlessNetnsSlirpProcessToUserSlice(cmd.Process.Pid)
+			if err != nil {
+				// only log this, it is not fatal but can lead to issues when running podman inside systemd units
+				logrus.Errorf("failed to move the rootless netns slirp4netns process to the systemd user.slice: %v", err)
+			}
 		}
 
 		// build a new resolv.conf file which uses the slirp4netns dns server address

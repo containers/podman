@@ -138,10 +138,7 @@ Summary: (Experimental) Remote client for managing %{name} containers
 %description remote
 Remote client for managing %{name} containers.
 
-This experimental remote client is under heavy development. Please do not
-run %{name}-remote in production.
-
-%{name}-remote uses the version 2 API to connect to a %{name} client to
+%{name}-remote uses the libpod REST API to connect to a %{name} client to
 manage pods, containers and container images. %{name}-remote supports ssh
 connections as well.
 

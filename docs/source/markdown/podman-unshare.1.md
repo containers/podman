@@ -4,7 +4,7 @@
 podman\-unshare - Run a command inside of a modified user namespace
 
 ## SYNOPSIS
-**podman unshare** [*--*] [*command*]
+**podman unshare** [*options*] [*command*]
 
 ## DESCRIPTION
 Launches a process (by default, *$SHELL*) in a new user namespace. The user
@@ -23,6 +23,8 @@ The unshare session defines two environment variables:
 
 - **CONTAINERS_GRAPHROOT**: the path to the persistent container's data.
 - **CONTAINERS_RUNROOT**: the path to the volatile container's data.
+
+*IMPORTANT: This command is not available with the remote Podman client.*
 
 ## OPTIONS
 

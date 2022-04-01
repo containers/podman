@@ -25,23 +25,35 @@ func GenerateSystemd(w http.ResponseWriter, r *http.Request) {
 		RestartSec       uint     `schema:"restartSec"`
 		StopTimeout      uint     `schema:"stopTimeout"`
 		StartTimeout     uint     `schema:"startTimeout"`
-		ContainerPrefix  string   `schema:"containerPrefix"`
-		PodPrefix        string   `schema:"podPrefix"`
-		Separator        string   `schema:"separator"`
+		ContainerPrefix  *string  `schema:"containerPrefix"`
+		PodPrefix        *string  `schema:"podPrefix"`
+		Separator        *string  `schema:"separator"`
 		Wants            []string `schema:"wants"`
 		After            []string `schema:"after"`
 		Requires         []string `schema:"requires"`
 	}{
-		StartTimeout:    0,
-		StopTimeout:     util.DefaultContainerConfig().Engine.StopTimeout,
-		ContainerPrefix: "container",
-		PodPrefix:       "pod",
-		Separator:       "-",
+		StartTimeout: 0,
+		StopTimeout:  util.DefaultContainerConfig().Engine.StopTimeout,
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
+	}
+
+	var ContainerPrefix = "container"
+	if query.ContainerPrefix != nil {
+		ContainerPrefix = *query.ContainerPrefix
+	}
+
+	var PodPrefix = "pod"
+	if query.PodPrefix != nil {
+		PodPrefix = *query.PodPrefix
+	}
+
+	var Separator = "-"
+	if query.Separator != nil {
+		Separator = *query.Separator
 	}
 
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
@@ -53,9 +65,9 @@ func GenerateSystemd(w http.ResponseWriter, r *http.Request) {
 		RestartPolicy:    query.RestartPolicy,
 		StartTimeout:     &query.StartTimeout,
 		StopTimeout:      &query.StopTimeout,
-		ContainerPrefix:  query.ContainerPrefix,
-		PodPrefix:        query.PodPrefix,
-		Separator:        query.Separator,
+		ContainerPrefix:  ContainerPrefix,
+		PodPrefix:        PodPrefix,
+		Separator:        Separator,
 		RestartSec:       &query.RestartSec,
 		Wants:            query.Wants,
 		After:            query.After,

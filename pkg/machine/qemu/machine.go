@@ -98,7 +98,7 @@ func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 		return nil, err
 	}
 
-	cmd := append([]string{execPath})
+	cmd := []string{execPath}
 	// Add memory
 	cmd = append(cmd, []string{"-m", strconv.Itoa(int(vm.Memory))}...)
 	// Add cpus
@@ -428,13 +428,29 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 
 	// Disable graphic window when not in debug mode
 	// Done in start, so we're not suck with the debug level we used on init
-	if logrus.GetLevel() != logrus.DebugLevel {
+	if !logrus.IsLevelEnabled(logrus.DebugLevel) {
 		cmd = append(cmd, "-display", "none")
 	}
 
 	_, err = os.StartProcess(v.CmdLine[0], cmd, attr)
 	if err != nil {
-		return err
+		// check if qemu was not found
+		if !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+		// lookup qemu again maybe the path was changed, https://github.com/containers/podman/issues/13394
+		cfg, err := config.Default()
+		if err != nil {
+			return err
+		}
+		cmd[0], err = cfg.FindHelperBinary(QemuCommand, true)
+		if err != nil {
+			return err
+		}
+		_, err = os.StartProcess(cmd[0], cmd, attr)
+		if err != nil {
+			return err
+		}
 	}
 	fmt.Println("Waiting for VM ...")
 	socketPath, err := getRuntimeDir()
@@ -697,6 +713,11 @@ func (v *MachineVM) Remove(name string, opts machine.RemoveOptions) (string, fun
 	if !opts.SaveImage {
 		files = append(files, v.ImagePath)
 	}
+	socketPath, err := v.getForwardSocketPath()
+	if err != nil {
+		logrus.Error(err)
+	}
+	files = append(files, socketPath)
 	files = append(files, v.archRemovalFiles()...)
 
 	if err := machine.RemoveConnection(v.Name); err != nil {
@@ -773,7 +794,7 @@ func (v *MachineVM) isRunning() (bool, error) {
 
 func (v *MachineVM) isListening() bool {
 	// Check if we can dial it
-	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", "localhost", v.Port), 10*time.Millisecond)
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", "127.0.0.1", v.Port), 10*time.Millisecond)
 	if err != nil {
 		return false
 	}
@@ -870,10 +891,10 @@ func GetVMInfos() ([]*machine.ListResponse, error) {
 
 	var listed []*machine.ListResponse
 
-	if err = filepath.Walk(vmConfigDir, func(path string, info os.FileInfo, err error) error {
+	if err = filepath.WalkDir(vmConfigDir, func(path string, d fs.DirEntry, err error) error {
 		vm := new(MachineVM)
-		if strings.HasSuffix(info.Name(), ".json") {
-			fullPath := filepath.Join(vmConfigDir, info.Name())
+		if strings.HasSuffix(d.Name(), ".json") {
+			fullPath := filepath.Join(vmConfigDir, d.Name())
 			b, err := ioutil.ReadFile(fullPath)
 			if err != nil {
 				return err

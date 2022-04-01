@@ -22,7 +22,9 @@ container execution. This option will also update the current podman
 remote connection default if it is currently pointing at the specified
 machine name (or `podman-machine-default` if no name is specified).
 
-API forwarding, if available, will follow this setting.
+Unlike [**podman system connection default**](podman-system-connection-default.1.md)
+this option will also make the API socket, if available, forward to the rootful/rootless
+socket in the VM.
 
 #### **--help**
 

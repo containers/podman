@@ -416,8 +416,8 @@ var _ = Describe("Podman network create", func() {
 		subnet1 := "10.10.3.0/24"
 		gw1 := "10.10.3.10"
 		range1 := "10.10.3.0/26"
-		subnet2 := "fd52:2a5a:747e:3acd::/64"
-		gw2 := "fd52:2a5a:747e:3acd::10"
+		subnet2 := "fd52:2a5a:747e:3ace::/64"
+		gw2 := "fd52:2a5a:747e:3ace::10"
 		nc := podmanTest.Podman([]string{"network", "create", "--subnet", subnet1, "--gateway", gw1, "--ip-range", range1, "--subnet", subnet2, "--gateway", gw2, name})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(name)
@@ -440,7 +440,7 @@ var _ = Describe("Podman network create", func() {
 		name := "subnets-" + stringid.GenerateNonCryptoID()
 		subnet1 := "10.10.3.0/24"
 		gw1 := "10.10.3.10"
-		gw2 := "fd52:2a5a:747e:3acd::10"
+		gw2 := "fd52:2a5a:747e:3acf::10"
 		nc := podmanTest.Podman([]string{"network", "create", "--subnet", subnet1, "--gateway", gw1, "--gateway", gw2, name})
 		nc.WaitWithDefaultTimeout()
 		Expect(nc).To(Exit(125))

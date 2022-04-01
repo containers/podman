@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"path/filepath"
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/config"
@@ -269,7 +268,7 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 	}
 
 	dfVolumes := make([]*entities.SystemDfVolumeReport, 0, len(vols))
-	var reclaimableSize int64
+	var reclaimableSize uint64
 	for _, v := range vols {
 		var consInUse int
 		mountPoint, err := v.MountPoint()
@@ -282,7 +281,7 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 			// TODO: fix this.
 			continue
 		}
-		volSize, err := sizeOfPath(mountPoint)
+		volSize, err := util.SizeOfPath(mountPoint)
 		if err != nil {
 			return nil, err
 		}
@@ -301,8 +300,8 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 		report := entities.SystemDfVolumeReport{
 			VolumeName:      v.Name(),
 			Links:           consInUse,
-			Size:            volSize,
-			ReclaimableSize: reclaimableSize,
+			Size:            int64(volSize),
+			ReclaimableSize: int64(reclaimableSize),
 		}
 		dfVolumes = append(dfVolumes, &report)
 	}
@@ -311,19 +310,6 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 		Containers: dfContainers,
 		Volumes:    dfVolumes,
 	}, nil
-}
-
-// sizeOfPath determines the file usage of a given path. it was called volumeSize in v1
-// and now is made to be generic and take a path instead of a libpod volume
-func sizeOfPath(path string) (int64, error) {
-	var size int64
-	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
-		if err == nil && !info.IsDir() {
-			size += info.Size()
-		}
-		return err
-	})
-	return size, err
 }
 
 func (se *SystemEngine) Reset(ctx context.Context) error {

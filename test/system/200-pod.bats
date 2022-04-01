@@ -6,13 +6,7 @@ load helpers
 function teardown() {
     run_podman pod rm -f -t 0 -a
     run_podman rm -f -t 0 -a
-    run_podman image list --format '{{.ID}} {{.Repository}}'
-    while read id name; do
-        if [[ "$name" =~ /podman-pause ]]; then
-            run_podman rmi $id
-        fi
-    done <<<"$output"
-
+    run_podman rmi --ignore $(pause_image)
     basic_teardown
 }
 
@@ -323,16 +317,17 @@ EOF
 
 @test "podman pod create should fail when infra-name is already in use" {
     local infra_name="infra_container_$(random_string 10 | tr A-Z a-z)"
+    local infra_image="k8s.gcr.io/pause:3.5"
     local pod_name="$(random_string 10 | tr A-Z a-z)"
 
-    run_podman --noout pod create --name $pod_name --infra-name "$infra_name" --infra-image "k8s.gcr.io/pause:3.5"
-    is "$output" "" "output should be empty"
+    run_podman --noout pod create --name $pod_name --infra-name "$infra_name" --infra-image "$infra_image"
+    is "$output" "" "output from pod create should be empty"
     run_podman '?' pod create --infra-name "$infra_name"
     if [ $status -eq 0 ]; then
         die "Podman should fail when user try to create two pods with the same infra-name value"
     fi
     run_podman pod rm -f $pod_name
-    run_podman images -a
+    run_podman rmi $infra_image
 }
 
 @test "podman pod create --share" {

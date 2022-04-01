@@ -248,8 +248,7 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
     run_podman inspect --format '{{.ID}}' $IMAGE
     imageID=$output
 
-    run_podman version --format "{{.Server.Version}}-{{.Server.Built}}"
-    pauseImage=localhost/podman-pause:$output
+    pauseImage=$(pause_image)
     run_podman inspect --format '{{.ID}}' $pauseImage
     pauseID=$output
 

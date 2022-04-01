@@ -99,15 +99,8 @@ func (c *Container) rootFsSize() (int64, error) {
 // rwSize gets the size of the mutable top layer of the container.
 func (c *Container) rwSize() (int64, error) {
 	if c.config.Rootfs != "" {
-		var size int64
-		err := filepath.Walk(c.config.Rootfs, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			size += info.Size()
-			return nil
-		})
-		return size, err
+		size, err := util.SizeOfPath(c.config.Rootfs)
+		return int64(size), err
 	}
 
 	container, err := c.runtime.store.Container(c.ID())
@@ -1087,13 +1080,6 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 
 	// With the spec complete, do an OCI create
 	if _, err = c.ociRuntime.CreateContainer(c, nil); err != nil {
-		// Fedora 31 is carrying a patch to display improved error
-		// messages to better handle the V2 transition. This is NOT
-		// upstream in any OCI runtime.
-		// TODO: Remove once runc supports cgroupsv2
-		if strings.Contains(err.Error(), "this version of runc doesn't work on cgroups v2") {
-			logrus.Errorf("Oci runtime %q does not support Cgroups V2: use system migrate to mitigate", c.ociRuntime.Name())
-		}
 		return err
 	}
 
@@ -1268,7 +1254,10 @@ func (c *Container) start() error {
 		}
 	}
 
-	if c.config.HealthCheckConfig != nil {
+	// Check if healthcheck is not nil and --no-healthcheck option is not set.
+	// If --no-healthcheck is set Test will be always set to `[NONE]` so no need
+	// to update status in such case.
+	if c.config.HealthCheckConfig != nil && !(len(c.config.HealthCheckConfig.Test) == 1 && c.config.HealthCheckConfig.Test[0] == "NONE") {
 		if err := c.updateHealthStatus(define.HealthCheckStarting); err != nil {
 			logrus.Error(err)
 		}

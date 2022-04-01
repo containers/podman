@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -302,11 +303,15 @@ func (r *Runtime) setupSlirp4netns(ctr *Container, netns ns.NetNS) error {
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
 
-	var slirpReadyChan (chan struct{})
-
+	var slirpReadyWg, netnsReadyWg *sync.WaitGroup
 	if netOptions.enableIPv6 {
-		slirpReadyChan = make(chan struct{})
-		defer close(slirpReadyChan)
+		// use two wait groups to make sure we set the sysctl before
+		// starting slirp and reset it only after slirp is ready
+		slirpReadyWg = &sync.WaitGroup{}
+		netnsReadyWg = &sync.WaitGroup{}
+		slirpReadyWg.Add(1)
+		netnsReadyWg.Add(1)
+
 		go func() {
 			err := ns.WithNetNSPath(netnsPath, func(_ ns.NetNS) error {
 				// Duplicate Address Detection slows the ipv6 setup down for 1-2 seconds.
@@ -318,23 +323,37 @@ func (r *Runtime) setupSlirp4netns(ctr *Container, netns ns.NetNS) error {
 				// is ready in case users rely on this sysctl.
 				orgValue, err := ioutil.ReadFile(ipv6ConfDefaultAcceptDadSysctl)
 				if err != nil {
+					netnsReadyWg.Done()
+					// on ipv6 disabled systems the sysctl does not exists
+					// so we should not error
+					if errors.Is(err, os.ErrNotExist) {
+						return nil
+					}
 					return err
 				}
 				err = ioutil.WriteFile(ipv6ConfDefaultAcceptDadSysctl, []byte("0"), 0644)
+				netnsReadyWg.Done()
 				if err != nil {
 					return err
 				}
-				// wait for slirp to finish setup
-				<-slirpReadyChan
+
+				// wait until slirp4nets is ready before reseting this value
+				slirpReadyWg.Wait()
 				return ioutil.WriteFile(ipv6ConfDefaultAcceptDadSysctl, orgValue, 0644)
 			})
 			if err != nil {
 				logrus.Warnf("failed to set net.ipv6.conf.default.accept_dad sysctl: %v", err)
 			}
 		}()
+
+		// wait until we set the sysctl
+		netnsReadyWg.Wait()
 	}
 
 	if err := cmd.Start(); err != nil {
+		if netOptions.enableIPv6 {
+			slirpReadyWg.Done()
+		}
 		return errors.Wrapf(err, "failed to start slirp4netns process")
 	}
 	defer func() {
@@ -344,11 +363,12 @@ func (r *Runtime) setupSlirp4netns(ctr *Container, netns ns.NetNS) error {
 		}
 	}()
 
-	if err := waitForSync(syncR, cmd, logFile, 1*time.Second); err != nil {
-		return err
+	err = waitForSync(syncR, cmd, logFile, 1*time.Second)
+	if netOptions.enableIPv6 {
+		slirpReadyWg.Done()
 	}
-	if slirpReadyChan != nil {
-		slirpReadyChan <- struct{}{}
+	if err != nil {
+		return err
 	}
 
 	// Set a default slirp subnet. Parsing a string with the net helper is easier than building the struct myself
@@ -594,57 +614,70 @@ func (r *Runtime) setupRootlessPortMappingViaSlirp(ctr *Container, cmd *exec.Cmd
 
 	// for each port we want to add we need to open a connection to the slirp4netns control socket
 	// and send the add_hostfwd command.
-	for _, i := range ctr.convertPortMappings() {
-		conn, err := net.Dial("unix", apiSocket)
-		if err != nil {
-			return errors.Wrapf(err, "cannot open connection to %s", apiSocket)
-		}
-		defer func() {
-			if err := conn.Close(); err != nil {
-				logrus.Errorf("Unable to close connection: %q", err)
+	for _, port := range ctr.convertPortMappings() {
+		protocols := strings.Split(port.Protocol, ",")
+		for _, protocol := range protocols {
+			hostIP := port.HostIP
+			if hostIP == "" {
+				hostIP = "0.0.0.0"
 			}
-		}()
-		hostIP := i.HostIP
-		if hostIP == "" {
-			hostIP = "0.0.0.0"
-		}
-		apiCmd := slirp4netnsCmd{
-			Execute: "add_hostfwd",
-			Args: slirp4netnsCmdArg{
-				Proto:     i.Protocol,
-				HostAddr:  hostIP,
-				HostPort:  i.HostPort,
-				GuestPort: i.ContainerPort,
-			},
-		}
-		// create the JSON payload and send it.  Mark the end of request shutting down writes
-		// to the socket, as requested by slirp4netns.
-		data, err := json.Marshal(&apiCmd)
-		if err != nil {
-			return errors.Wrapf(err, "cannot marshal JSON for slirp4netns")
-		}
-		if _, err := conn.Write([]byte(fmt.Sprintf("%s\n", data))); err != nil {
-			return errors.Wrapf(err, "cannot write to control socket %s", apiSocket)
-		}
-		if err := conn.(*net.UnixConn).CloseWrite(); err != nil {
-			return errors.Wrapf(err, "cannot shutdown the socket %s", apiSocket)
-		}
-		buf := make([]byte, 2048)
-		readLength, err := conn.Read(buf)
-		if err != nil {
-			return errors.Wrapf(err, "cannot read from control socket %s", apiSocket)
-		}
-		// if there is no 'error' key in the received JSON data, then the operation was
-		// successful.
-		var y map[string]interface{}
-		if err := json.Unmarshal(buf[0:readLength], &y); err != nil {
-			return errors.Wrapf(err, "error parsing error status from slirp4netns")
-		}
-		if e, found := y["error"]; found {
-			return errors.Errorf("error from slirp4netns while setting up port redirection: %v", e)
+			for i := uint16(0); i < port.Range; i++ {
+				if err := openSlirp4netnsPort(apiSocket, protocol, hostIP, port.HostPort+i, port.ContainerPort+i); err != nil {
+					return err
+				}
+			}
 		}
 	}
 	logrus.Debug("slirp4netns port-forwarding setup via add_hostfwd is ready")
+	return nil
+}
+
+// openSlirp4netnsPort sends the slirp4netns pai quey to the given socket
+func openSlirp4netnsPort(apiSocket, proto, hostip string, hostport, guestport uint16) error {
+	conn, err := net.Dial("unix", apiSocket)
+	if err != nil {
+		return errors.Wrapf(err, "cannot open connection to %s", apiSocket)
+	}
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logrus.Errorf("Unable to close slirp4netns connection: %q", err)
+		}
+	}()
+	apiCmd := slirp4netnsCmd{
+		Execute: "add_hostfwd",
+		Args: slirp4netnsCmdArg{
+			Proto:     proto,
+			HostAddr:  hostip,
+			HostPort:  hostport,
+			GuestPort: guestport,
+		},
+	}
+	// create the JSON payload and send it.  Mark the end of request shutting down writes
+	// to the socket, as requested by slirp4netns.
+	data, err := json.Marshal(&apiCmd)
+	if err != nil {
+		return errors.Wrapf(err, "cannot marshal JSON for slirp4netns")
+	}
+	if _, err := conn.Write([]byte(fmt.Sprintf("%s\n", data))); err != nil {
+		return errors.Wrapf(err, "cannot write to control socket %s", apiSocket)
+	}
+	if err := conn.(*net.UnixConn).CloseWrite(); err != nil {
+		return errors.Wrapf(err, "cannot shutdown the socket %s", apiSocket)
+	}
+	buf := make([]byte, 2048)
+	readLength, err := conn.Read(buf)
+	if err != nil {
+		return errors.Wrapf(err, "cannot read from control socket %s", apiSocket)
+	}
+	// if there is no 'error' key in the received JSON data, then the operation was
+	// successful.
+	var y map[string]interface{}
+	if err := json.Unmarshal(buf[0:readLength], &y); err != nil {
+		return errors.Wrapf(err, "error parsing error status from slirp4netns")
+	}
+	if e, found := y["error"]; found {
+		return errors.Errorf("from slirp4netns while setting up port redirection: %v", e)
+	}
 	return nil
 }
 

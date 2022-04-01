@@ -222,7 +222,7 @@ To run the user services placed in `$HOME/.config/systemd/user` on first login o
 ```
 $ systemctl --user enable <.service>
 ```
-The systemd user instance is killed after the last session for the user is closed. The systemd user instance can be kept running ever after the user logs out by enabling `lingering` using
+The systemd user instance is killed after the last session for the user is closed. The systemd user instance can be started at boot and kept running even after the user logs out by enabling `lingering` using
 
 ```
 $ loginctl enable-linger <username>

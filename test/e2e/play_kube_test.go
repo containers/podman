@@ -38,6 +38,21 @@ spec:
   hostname: unknown
 `
 
+var workdirSymlinkPodYaml = `
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: test-symlink
+  name: test-symlink
+spec:
+  containers:
+  - image: test-symlink
+    name: test-symlink
+    resources: {}
+  restartPolicy: Never
+`
+
 var podnameEqualsContainerNameYaml = `
 apiVersion: v1
 kind: Pod
@@ -1332,6 +1347,26 @@ var _ = Describe("Podman play kube", func() {
 		Expect(sharednamespaces).To(ContainSubstring("pid"))
 	})
 
+	It("podman play kube should be able to run image where workdir is a symlink", func() {
+		session := podmanTest.Podman([]string{
+			"build", "-f", "build/workdir-symlink/Dockerfile", "-t", "test-symlink",
+		})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		err := writeYaml(workdirSymlinkPodYaml, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		logs := podmanTest.Podman([]string{"pod", "logs", "-c", "test-symlink-test-symlink", "test-symlink"})
+		logs.WaitWithDefaultTimeout()
+		Expect(logs).Should(Exit(0))
+		Expect(logs.OutputToString()).To(ContainSubstring("hello"))
+	})
+
 	It("podman play kube should not rename pod if container in pod has same name", func() {
 		err := writeYaml(podnameEqualsContainerNameYaml, kubeYaml)
 		Expect(err).To(BeNil())
@@ -1851,6 +1886,26 @@ var _ = Describe("Podman play kube", func() {
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
+	})
+
+	It("podman play kube test duplicate container name", func() {
+		p := getPod(withCtr(getCtr(withName("testctr"), withCmd([]string{"echo", "hello"}))), withCtr(getCtr(withName("testctr"), withCmd([]string{"echo", "world"}))))
+
+		err := generateKubeYaml("pod", p, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).To(ExitWithError())
+
+		p = getPod(withPodInitCtr(getCtr(withImage(ALPINE), withCmd([]string{"echo", "hello"}), withInitCtr(), withName("initctr"))), withCtr(getCtr(withImage(ALPINE), withName("initctr"), withCmd([]string{"top"}))))
+
+		err = generateKubeYaml("pod", p, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube = podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).To(ExitWithError())
 	})
 
 	It("podman play kube test hostname", func() {
