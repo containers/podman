@@ -83,10 +83,6 @@ func (s *SpecGenerator) Validate() error {
 	//
 	// ContainerSecurityConfig
 	//
-	// capadd and privileged are exclusive
-	if len(s.CapAdd) > 0 && s.Privileged {
-		return exclusiveOptions("CapAdd", "privileged")
-	}
 	// userns and idmappings conflict
 	if s.UserNS.IsPrivate() && s.IDMappings == nil {
 		return errors.Wrap(ErrInvalidSpecConfig, "IDMappings are required when not creating a User namespace")

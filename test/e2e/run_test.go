@@ -535,6 +535,11 @@ var _ = Describe("Podman run", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("0000000000000000"))
 
+		session = podmanTest.Podman([]string{"run", "--user=1:1", "--cap-add=DAC_OVERRIDE", "--rm", ALPINE, "grep", "CapEff", "/proc/self/status"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("0000000000000002"))
+
 		if os.Geteuid() > 0 {
 			if os.Getenv("SKIP_USERNS") != "" {
 				Skip("Skip userns tests.")
