@@ -518,7 +518,7 @@ func getDevptsMount(args []string) (spec.Mount, error) {
 func getNamedVolume(args []string) (*specgen.NamedVolume, error) {
 	newVolume := new(specgen.NamedVolume)
 
-	var setSource, setDest, setRORW, setSuid, setDev, setExec, setOwnership bool
+	var setDest, setRORW, setSuid, setDev, setExec, setOwnership bool
 
 	for _, val := range args {
 		kv := strings.SplitN(val, "=", 2)
@@ -554,7 +554,6 @@ func getNamedVolume(args []string) (*specgen.NamedVolume, error) {
 				return nil, errors.Wrapf(optionArgError, kv[0])
 			}
 			newVolume.Name = kv[1]
-			setSource = true
 		case "target", "dst", "destination":
 			if len(kv) == 1 {
 				return nil, errors.Wrapf(optionArgError, kv[0])
@@ -585,9 +584,6 @@ func getNamedVolume(args []string) (*specgen.NamedVolume, error) {
 		}
 	}
 
-	if !setSource {
-		return nil, errors.Errorf("must set source volume")
-	}
 	if !setDest {
 		return nil, noDestError
 	}
