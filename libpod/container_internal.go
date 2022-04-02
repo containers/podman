@@ -2235,9 +2235,9 @@ func (c *Container) prepareCheckpointExport() error {
 	return nil
 }
 
-// sortUserVolumes sorts the volumes specified for a container
+// SortUserVolumes sorts the volumes specified for a container
 // between named and normal volumes
-func (c *Container) sortUserVolumes(ctrSpec *spec.Spec) ([]*ContainerNamedVolume, []spec.Mount) {
+func (c *Container) SortUserVolumes(ctrSpec *spec.Spec) ([]*ContainerNamedVolume, []spec.Mount) {
 	namedUserVolumes := []*ContainerNamedVolume{}
 	userMounts := []spec.Mount{}
 
