@@ -43,7 +43,7 @@ type FcosDownload struct {
 }
 
 func NewFcosDownloader(vmType, vmName, imageStream string) (DistributionDownload, error) {
-	info, err := getFCOSDownload(imageStream)
+	info, err := GetFCOSDownload(imageStream)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func (f FcosDownload) Get() *Download {
 	return &f.Download
 }
 
-type fcosDownloadInfo struct {
+type FcosDownloadInfo struct {
 	CompressionType string
 	Location        string
 	Release         string
@@ -139,7 +139,7 @@ func getStreamURL(streamType string) url2.URL {
 
 // This should get Exported and stay put as it will apply to all fcos downloads
 // getFCOS parses fedoraCoreOS's stream and returns the image download URL and the release version
-func getFCOSDownload(imageStream string) (*fcosDownloadInfo, error) { // nolint:staticcheck,unparam
+func GetFCOSDownload(imageStream string) (*FcosDownloadInfo, error) { //nolint:staticcheck
 	var (
 		fcosstable stream.Stream
 		altMeta    release.Release
@@ -150,8 +150,8 @@ func getFCOSDownload(imageStream string) (*fcosDownloadInfo, error) { // nolint:
 	// fcos trees, we should remove it and re-release at least on
 	// macs.
 	// TODO: remove when podman4.0 is in coreos
-	// nolint:staticcheck
-	imageStream = "podman-testing"
+
+	imageStream = "podman-testing" //nolint:staticcheck
 
 	switch imageStream {
 	case "podman-testing":
@@ -194,7 +194,7 @@ func getFCOSDownload(imageStream string) (*fcosDownloadInfo, error) { // nolint:
 		}
 		disk := qcow2.Disk
 
-		return &fcosDownloadInfo{
+		return &FcosDownloadInfo{
 			Location:        disk.Location,
 			Sha256Sum:       disk.Sha256,
 			CompressionType: "xz",
@@ -228,7 +228,7 @@ func getFCOSDownload(imageStream string) (*fcosDownloadInfo, error) { // nolint:
 	if disk == nil {
 		return nil, fmt.Errorf("unable to pull VM image: no disk in stream")
 	}
-	return &fcosDownloadInfo{
+	return &FcosDownloadInfo{
 		Location:        disk.Location,
 		Release:         qemu.Release,
 		Sha256Sum:       disk.Sha256,
