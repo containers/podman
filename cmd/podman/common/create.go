@@ -348,8 +348,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 
 		oomScoreAdjFlagName := "oom-score-adj"
-		createFlags.IntVar(
-			&cf.OOMScoreAdj,
+		createFlags.Int(
 			oomScoreAdjFlagName, 0,
 			"Tune the host's OOM preferences (-1000 to 1000)",
 		)

@@ -286,7 +286,7 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *c
 		LogDriver:         cc.HostConfig.LogConfig.Type,
 		LogOptions:        stringMaptoArray(cc.HostConfig.LogConfig.Config),
 		Name:              cc.Name,
-		OOMScoreAdj:       cc.HostConfig.OomScoreAdj,
+		OOMScoreAdj:       &cc.HostConfig.OomScoreAdj,
 		Arch:              "",
 		OS:                "",
 		Variant:           "",

@@ -815,4 +815,10 @@ EOF
     run_podman run --uidmap 0:10001:10002 --rm --hostname ${HOST} $IMAGE grep ${HOST} /etc/hosts
     is "${lines[0]}" ".*${HOST}.*"
 }
+
+@test "podman run doesn't override oom-score-adj" {
+    current_oom_score_adj=$(cat /proc/self/oom_score_adj)
+    run_podman run --rm $IMAGE cat /proc/self/oom_score_adj
+    is "$output" "$current_oom_score_adj" "different oom_score_adj in the container"
+}
 # vim: filetype=sh
