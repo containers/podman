@@ -10,6 +10,8 @@ t POST libpod/networks/create name='"network1"' 200 \
   .name=network1 \
   .created~[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}.*
 
+network1_id=$(jq -r '.id' <<<"$output")
+
 t POST /v3.4.0/libpod/networks/create name='"bad_version"' 400 \
     .cause='given version is not supported'
 
@@ -71,10 +73,10 @@ t GET networks?filters='{"label":["abc"]}' 200 \
 # old docker filter type see #9526
 t GET networks?filters='{"label":{"abc":true}}' 200 \
   length=1
-t GET networks?filters='{"id":["a7662f44d65029fd4635c91feea3d720a57cef52e2a9fcc7772b69072cc1ccd1"]}' 200 \
+t GET networks?filters="{\"id\":[\"$network1_id\"]}" 200 \
   length=1 \
   .[0].Name=network1 \
-  .[0].Id=a7662f44d65029fd4635c91feea3d720a57cef52e2a9fcc7772b69072cc1ccd1
+  .[0].Id=$network1_id
 # invalid filter
 t GET networks?filters='{"dangling":["1"]}' 500 \
   .cause='invalid filter "dangling"'
@@ -83,9 +85,9 @@ t GET networks?filters='{"name":["doesnotexists"]}' 200 \
   "[]"
 
 # network inspect docker
-t GET networks/a7662f44d65029fd4635c91feea3d720a57cef52e2a9fcc7772b69072cc1ccd1 200 \
+t GET networks/$network1_id 200 \
   .Name=network1 \
-  .Id=a7662f44d65029fd4635c91feea3d720a57cef52e2a9fcc7772b69072cc1ccd1 \
+  .Id=$network1_id \
   .Scope=local
 
 # network create docker
@@ -158,7 +160,8 @@ t POST networks/prune?filters='{"until":["5000000000"]}' 200
 t GET networks?filters='{"label":["zaq"]}' 200 length=0
 
 # test macvlan network response
-t POST libpod/networks/create name='"macvlan1"' driver="macvlan" 200 \
+# we have to use a static subnet because of netavark does not support dhcp yet
+t POST libpod/networks/create name='"macvlan1"' driver="macvlan" subnets='[{"subnet":"10.10.135.0/24"}]' 200 \
   .name=macvlan1 \
   .driver=macvlan
 
