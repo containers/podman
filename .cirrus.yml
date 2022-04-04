@@ -38,7 +38,7 @@ env:
     UBUNTU_NAME: "ubuntu-2110"
 
     # Google-cloud VM Images
-    IMAGE_SUFFIX: "c6261670816251904"
+    IMAGE_SUFFIX: "c6464310661611520"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
@@ -741,7 +741,7 @@ upgrade_test_task:
     always: *logs_artifacts
 
 
-image_build_task:
+image_build_task: &image-build
     name: "Build multi-arch $CTXDIR"
     alias: image_build
     # Some of these container images take > 1h to build, limit
@@ -772,6 +772,18 @@ image_build_task:
     script:
         - set -a; source /etc/automation_environment; set +a
         - main.sh $CIRRUS_REPO_CLONE_URL $CTXDIR
+
+
+test_image_build_task:
+    <<: *image-build
+    # Allow this to run inside a PR
+    only_if: $CI == $CI
+    # This takes a LONG time, only run when requested.  N/B: Any task
+    # made to depend on this one will block FOREVER unless triggered.
+    trigger_type: manual
+    # Overwrite all 'env', don't push anything, just do the build.
+    env:
+        DRYRUN: 1
 
 
 # This task is critical.  It updates the "last-used by" timestamp stored
