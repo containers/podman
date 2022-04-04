@@ -110,7 +110,7 @@ func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string
 	}
 
 	runCmd := append(wrapper, podmanBinary)
-	if p.NetworkBackend == Netavark {
+	if !p.RemoteTest && p.NetworkBackend == Netavark {
 		runCmd = append(runCmd, []string{"--network-backend", "netavark"}...)
 	}
 
