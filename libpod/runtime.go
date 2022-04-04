@@ -1142,6 +1142,11 @@ func (r *Runtime) getVolumePlugin(name string) (*plugin.VolumePlugin, error) {
 
 // GetSecretsStoreageDir returns the directory that the secrets manager should take
 func (r *Runtime) GetSecretsStorageDir() string {
+	// prevent nil reference exception
+	if r.store == nil {
+		return ""
+	}
+
 	return filepath.Join(r.store.GraphRoot(), "secrets")
 }
 
