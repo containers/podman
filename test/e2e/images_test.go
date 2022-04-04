@@ -144,7 +144,7 @@ var _ = Describe("Podman images", func() {
 		result := podmanTest.Podman([]string{"images", "-q", "-f", "reference=quay.io*"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(8))
+		Expect(len(result.OutputToStringArray())).To(Equal(7))
 
 		retalpine := podmanTest.Podman([]string{"images", "-f", "reference=a*pine"})
 		retalpine.WaitWithDefaultTimeout()
@@ -187,24 +187,24 @@ WORKDIR /test
 		Expect(result.OutputToString()).To(Equal("/test"))
 	})
 
-	It("podman images filter since image", func() {
-		dockerfile := `FROM quay.io/libpod/alpine:latest
+	It("podman images filter since/after image", func() {
+		dockerfile := `FROM scratch
 `
-		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest", "false")
-		result := podmanTest.Podman([]string{"images", "-q", "-f", "since=quay.io/libpod/alpine:latest"})
-		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(8))
-	})
+		podmanTest.BuildImage(dockerfile, "foobar.com/one:latest", "false")
+		podmanTest.BuildImage(dockerfile, "foobar.com/two:latest", "false")
+		podmanTest.BuildImage(dockerfile, "foobar.com/three:latest", "false")
 
-	It("podman image list filter after image", func() {
-		dockerfile := `FROM quay.io/libpod/alpine:latest
-`
-		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest", "false")
-		result := podmanTest.Podman([]string{"image", "list", "-q", "-f", "after=quay.io/libpod/alpine:latest"})
+		// `since` filter
+		result := podmanTest.PodmanNoCache([]string{"images", "-q", "-f", "since=foobar.com/one:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(result.OutputToStringArray()).Should(HaveLen(8), "list filter output: %q", result.OutputToString())
+		Expect(result.OutputToStringArray()).To(HaveLen(2))
+
+		// `after` filter
+		result = podmanTest.Podman([]string{"image", "list", "-q", "-f", "after=foobar.com/one:latest"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(result.OutputToStringArray()).Should(HaveLen(2), "list filter output: %q", result.OutputToString())
 	})
 
 	It("podman images filter dangling", func() {
