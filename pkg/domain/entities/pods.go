@@ -210,7 +210,7 @@ type ContainerCreateOptions struct {
 	Name              string `json:"container_name"`
 	NoHealthCheck     bool
 	OOMKillDisable    bool
-	OOMScoreAdj       int
+	OOMScoreAdj       *int
 	Arch              string
 	OS                string
 	Variant           string

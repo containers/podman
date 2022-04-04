@@ -238,6 +238,13 @@ func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra 
 			vals.GroupAdd = groups
 		}
 
+		if c.Flags().Changed("oom-score-adj") {
+			val, err := c.Flags().GetInt("oom-score-adj")
+			if err != nil {
+				return vals, err
+			}
+			vals.OOMScoreAdj = &val
+		}
 		if c.Flags().Changed("pids-limit") {
 			val := c.Flag("pids-limit").Value.String()
 			// Convert -1 to 0, so that -1 maps to unlimited pids limit

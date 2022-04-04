@@ -753,8 +753,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.PreserveFDs = c.PreserveFDs
 	}
 
-	if s.OOMScoreAdj == nil || c.OOMScoreAdj != 0 {
-		s.OOMScoreAdj = &c.OOMScoreAdj
+	if s.OOMScoreAdj == nil || c.OOMScoreAdj != nil {
+		s.OOMScoreAdj = c.OOMScoreAdj
 	}
 	if c.Restart != "" {
 		splitRestart := strings.Split(c.Restart, ":")
