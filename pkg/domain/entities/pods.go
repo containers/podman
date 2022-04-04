@@ -149,6 +149,8 @@ type PodLogsOptions struct {
 	ContainerLogsOptions
 	// If specified will only fetch the logs of specified container
 	ContainerName string
+	// Show different colors in the logs.
+	Color bool
 }
 
 type ContainerCreateOptions struct {
@@ -482,6 +484,7 @@ func PodLogsOptionsToContainerLogsOptions(options PodLogsOptions) ContainerLogsO
 		Until:        options.Until,
 		Tail:         options.Tail,
 		Timestamps:   options.Timestamps,
+		Colors:       options.Colors,
 		StdoutWriter: options.StdoutWriter,
 		StderrWriter: options.StderrWriter,
 	}

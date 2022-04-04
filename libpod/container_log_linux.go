@@ -45,7 +45,7 @@ func (c *Container) initializeJournal(ctx context.Context) error {
 	return journal.Send("", journal.PriInfo, m)
 }
 
-func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOptions, logChannel chan *logs.LogLine) error {
+func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOptions, logChannel chan *logs.LogLine, colorID int64) error {
 	// We need the container's events in the same journal to guarantee
 	// consistency, see #10323.
 	if options.Follow && c.runtime.config.Engine.EventsLogger != "journald" {
@@ -231,6 +231,7 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 			}
 
 			logLine, err := logs.NewJournaldLogLine(message, options.Multi)
+			logLine.ColorID = colorID
 			if err != nil {
 				logrus.Errorf("Failed parse log line: %v", err)
 				return

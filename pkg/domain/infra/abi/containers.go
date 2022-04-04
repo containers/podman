@@ -1088,6 +1088,7 @@ func (ic *ContainerEngine) ContainerLogs(ctx context.Context, containers []strin
 		Until:      options.Until,
 		Tail:       options.Tail,
 		Timestamps: options.Timestamps,
+		Colors:     options.Colors,
 		UseName:    options.Names,
 		WaitGroup:  &wg,
 	}

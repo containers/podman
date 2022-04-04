@@ -443,4 +443,27 @@ var _ = Describe("Podman logs", func() {
 		Expect(output).To(ContainElement(ContainSubstring(containerName1)))
 		Expect(output).To(ContainElement(ContainSubstring(containerName2)))
 	})
+	It("podman pod logs with different colors", func() {
+		SkipIfRemote("Remote can only process one container at a time")
+		SkipIfInContainer("journalctl inside a container doesn't work correctly")
+		podName := "testPod"
+		containerName1 := "container1"
+		containerName2 := "container2"
+		testPod := podmanTest.Podman([]string{"pod", "create", fmt.Sprintf("--name=%s", podName)})
+		testPod.WaitWithDefaultTimeout()
+		Expect(testPod).To(Exit(0))
+		log1 := podmanTest.Podman([]string{"run", "--name", containerName1, "-d", "--pod", podName, BB, "/bin/sh", "-c", "echo log1"})
+		log1.WaitWithDefaultTimeout()
+		Expect(log1).To(Exit(0))
+		log2 := podmanTest.Podman([]string{"run", "--name", containerName2, "-d", "--pod", podName, BB, "/bin/sh", "-c", "echo log2"})
+		log2.WaitWithDefaultTimeout()
+		Expect(log2).To(Exit(0))
+		results := podmanTest.Podman([]string{"pod", "logs", "--color", podName})
+		results.WaitWithDefaultTimeout()
+		Expect(results).To(Exit(0))
+		output := results.OutputToStringArray()
+		Expect(output).To(HaveLen(2))
+		Expect(output[0]).To(MatchRegexp(`\x1b\[3[0-9a-z ]+\x1b\[0m`))
+		Expect(output[1]).To(MatchRegexp(`\x1b\[3[0-9a-z ]+\x1b\[0m`))
+	})
 })
