@@ -32,19 +32,36 @@ Signal to send to the container. For more information on Linux signals, refer to
 
 ## EXAMPLE
 
+Kill container with a given name
+```
 podman kill mywebserver
+```
 
+Kill container with a given ID
+```
 podman kill 860a4b23
+```
 
+Terminate container by sending `TERM` signal
+```
 podman kill --signal TERM 860a4b23
+```
 
+Kill the latest container created by Podman
+```
 podman kill --latest
+```
 
+Terminate all containers by sending `KILL` signal
+```
 podman kill --signal KILL -a
+```
 
+Kill container using ID specified in a given files
+```
 podman kill --cidfile /home/user/cidfile-1
-
 podman kill --cidfile /home/user/cidfile-1 --cidfile ./cidfile-2
+```
 
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-stop(1)](podman-stop.1.md)**

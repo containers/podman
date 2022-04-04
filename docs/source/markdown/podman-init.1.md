@@ -29,12 +29,20 @@ to run containers such as CRI-O, the last started container could be from either
 
 ## EXAMPLE
 
+Initialize container with a given ID
+```
 podman init 35480fc9d568
+```
 
+Initialize container with a given name
+```
 podman init test1
+```
 
+Initialize the latest container created by Podman
+```
 podman init --latest
-
+```
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-start(1)](podman-start.1.md)**
 
