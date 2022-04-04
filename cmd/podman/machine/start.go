@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/containers/podman/v4/cmd/podman/registry"
+	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -31,7 +32,7 @@ func init() {
 	})
 }
 
-func start(cmd *cobra.Command, args []string) error {
+func start(_ *cobra.Command, args []string) error {
 	var (
 		err error
 		vm  machine.VM
@@ -62,5 +63,6 @@ func start(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	fmt.Printf("Machine %q started successfully\n", vmName)
+	newMachineEvent(events.Start, events.Event{Name: vmName})
 	return nil
 }

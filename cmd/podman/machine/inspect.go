@@ -4,7 +4,6 @@
 package machine
 
 import (
-	"encoding/json"
 	"os"
 
 	"github.com/containers/podman/v4/cmd/podman/common"
