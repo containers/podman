@@ -778,6 +778,13 @@ VOLUME /test/`, ALPINE)
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).Should(Equal("888:888"))
 
+		// anonymous volume mount
+		vol = "type=volume," + "dst=" + dest
+		session = podmanTest.Podman([]string{"run", "--rm", "--user", "888:888", "--mount", vol, ALPINE, "stat", "-c", "%u:%g", dest})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).Should(Equal("888:888"))
+
 		// named volume mount
 		namedVolume := podmanTest.Podman([]string{"volume", "create", "foo"})
 		namedVolume.WaitWithDefaultTimeout()
