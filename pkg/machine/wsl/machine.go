@@ -145,6 +145,8 @@ http://docs.microsoft.com/en-us/windows/wsl/install\
 const (
 	winSShProxy    = "win-sshproxy.exe"
 	winSshProxyTid = "win-sshproxy.tid"
+	pipePrefix     = "npipe:////./pipe/"
+	globalPipe     = "docker_engine"
 )
 
 type Provider struct{}
@@ -801,16 +803,15 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 }
 
 func launchWinProxy(v *MachineVM) (bool, string, error) {
-	globalName := true
-	pipeName := "docker_engine"
-	if !pipeAvailable(pipeName) {
-		pipeName = toDist(v.Name)
-		globalName = false
-		if !pipeAvailable(pipeName) {
-			return globalName, "", errors.Errorf("could not start api proxy since expected pipe is not available: %s", pipeName)
-		}
+	machinePipe := toDist(v.Name)
+	if !pipeAvailable(machinePipe) {
+		return false, "", errors.Errorf("could not start api proxy since expected pipe is not available: %s", machinePipe)
 	}
-	fullPipeName := "npipe:////./pipe/" + pipeName
+
+	globalName := false
+	if pipeAvailable(globalPipe) {
+		globalName = true
+	}
 
 	exe, err := os.Executable()
 	if err != nil {
@@ -829,12 +830,19 @@ func launchWinProxy(v *MachineVM) (bool, string, error) {
 	}
 
 	dest := fmt.Sprintf("ssh://root@localhost:%d/run/podman/podman.sock", v.Port)
-	cmd := exec.Command(command, v.Name, stateDir, fullPipeName, dest, v.IdentityPath)
+	args := []string{v.Name, stateDir, pipePrefix + machinePipe, dest, v.IdentityPath}
+	waitPipe := machinePipe
+	if globalName {
+		args = append(args, pipePrefix+globalPipe, dest, v.IdentityPath)
+		waitPipe = globalPipe
+	}
+
+	cmd := exec.Command(command, args...)
 	if err := cmd.Start(); err != nil {
 		return globalName, "", err
 	}
 
-	return globalName, fullPipeName, waitPipeExists(pipeName, 30, func() error {
+	return globalName, pipePrefix + waitPipe, waitPipeExists(waitPipe, 30, func() error {
 		active, exitCode := getProcessState(cmd.Process.Pid)
 		if !active {
 			return errors.Errorf("win-sshproxy.exe failed to start, exit code: %d (see windows event logs)", exitCode)
