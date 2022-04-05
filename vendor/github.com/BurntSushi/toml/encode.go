@@ -212,7 +212,7 @@ func (enc *Encoder) eElement(rv reflect.Value) {
 		if err != nil {
 			encPanic(err)
 		}
-		enc.writeQuoted(string(s))
+		enc.w.Write(s)
 		return
 	case encoding.TextMarshaler:
 		s, err := v.MarshalText()
@@ -396,6 +396,10 @@ func (enc *Encoder) eStruct(key Key, rv reflect.Value, inline bool) {
 		for i := 0; i < rt.NumField(); i++ {
 			f := rt.Field(i)
 			if f.PkgPath != "" && !f.Anonymous { /// Skip unexported fields.
+				continue
+			}
+			opts := getOptions(f.Tag)
+			if opts.skip {
 				continue
 			}
 

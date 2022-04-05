@@ -10,7 +10,7 @@ import (
 // For example invalid syntax, duplicate keys, etc.
 //
 // In addition to the error message itself, you can also print detailed location
-// information with context by using ErrorWithLocation():
+// information with context by using ErrorWithPosition():
 //
 //     toml: error: Key 'fruit' was already created and cannot be used as an array.
 //

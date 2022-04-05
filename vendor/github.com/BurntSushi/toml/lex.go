@@ -128,6 +128,11 @@ func (lx lexer) getPos() Position {
 }
 
 func (lx *lexer) emit(typ itemType) {
+	// Needed for multiline strings ending with an incomplete UTF-8 sequence.
+	if lx.start > lx.pos {
+		lx.error(errLexUTF8{lx.input[lx.pos]})
+		return
+	}
 	lx.items <- item{typ: typ, pos: lx.getPos(), val: lx.current()}
 	lx.start = lx.pos
 }
