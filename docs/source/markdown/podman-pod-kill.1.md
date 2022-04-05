@@ -26,15 +26,30 @@ Signal to send to the containers in the pod. For more information on Linux signa
 
 ## EXAMPLE
 
+Kill pod with a given name
+```
 podman pod kill mywebserver
+```
 
+Kill pod with a given ID
+```
 podman pod kill 860a4b23
+```
 
+Terminate pod by sending `TERM` signal
+```
 podman pod kill --signal TERM 860a4b23
+```
 
+Kill the latest pod created by Podman
+```
 podman pod kill --latest
+```
 
+Terminate all pods by sending `KILL` signal
+```
 podman pod kill --all
+```
 
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-pod(1)](podman-pod.1.md)**, **[podman-pod-stop(1)](podman-pod-stop.1.md)**
