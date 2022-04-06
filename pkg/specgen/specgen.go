@@ -467,7 +467,13 @@ type ContainerNetworkConfig struct {
 	// UseImageHosts indicates that /etc/hosts should not be managed by
 	// Podman, and instead sourced from the image.
 	// Conflicts with HostAdd.
-	UseImageHosts bool `json:"use_image_hosts,omitempty"`
+	// Do not set omitempty here, if this is false it should be set to not get
+	// the server default.
+	// Ideally this would be a pointer so we could differentiate between an
+	// explicitly false/true and unset (containers.conf default). However
+	// specgen is stable so we can not change this right now.
+	// TODO (5.0): change to pointer
+	UseImageHosts bool `json:"use_image_hosts"`
 	// HostAdd is a set of hosts which will be added to the container's
 	// /etc/hosts file.
 	// Conflicts with UseImageHosts.

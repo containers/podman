@@ -18,7 +18,18 @@ import (
 // the new container ID on success along with any warnings.
 func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	var sg specgen.SpecGenerator
+	conf, err := runtime.GetConfigNoCopy()
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+
+	// we have to set the default before we decode to make sure the correct default is set when the field is unset
+	sg := specgen.SpecGenerator{
+		ContainerNetworkConfig: specgen.ContainerNetworkConfig{
+			UseImageHosts: conf.Containers.NoHosts,
+		},
+	}
 
 	if err := json.NewDecoder(r.Body).Decode(&sg); err != nil {
 		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
