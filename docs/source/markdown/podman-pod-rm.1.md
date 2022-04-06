@@ -39,17 +39,31 @@ Seconds to wait before forcibly stopping running containers within the pod. The 
 
 ## EXAMPLE
 
+Remove pod with a given name
+```
 podman pod rm mywebserverpod
+```
 
+Remove multiple pods with given names and/or IDs
+```
 podman pod rm mywebserverpod myflaskserverpod 860a4b23
+```
 
+Forcefully remove pod with a given ID
+```
 podman pod rm -f 860a4b23
+```
 
+Forcefully remove all pods
+```
 podman pod rm -f -a
-
 podman pod rm -fa
+```
 
+Remove pod using ID specified in a given file
+```
 podman pod rm --pod-id-file /path/to/id/file
+```
 
 ## Exit Status
   **0**   All specified pods removed
