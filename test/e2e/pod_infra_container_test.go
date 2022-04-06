@@ -119,11 +119,11 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session = podmanTest.Podman([]string{"run", "--pod", podID, fedoraMinimal, "curl", "localhost:80"})
+		session = podmanTest.Podman([]string{"run", "--pod", podID, fedoraMinimal, "curl", "-f", "localhost:80"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session = podmanTest.Podman([]string{"run", fedoraMinimal, "curl", "localhost"})
+		session = podmanTest.Podman([]string{"run", fedoraMinimal, "curl", "-f", "localhost"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 	})
@@ -219,7 +219,7 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session = podmanTest.Podman([]string{"run", "--pod", podID, "--network", "bridge", nginx, "curl", "localhost"})
+		session = podmanTest.Podman([]string{"run", "--pod", podID, "--network", "bridge", nginx, "curl", "-f", "localhost"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 	})

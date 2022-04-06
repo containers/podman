@@ -102,22 +102,33 @@ var _ = Describe("Podman run with --ip flag", func() {
 
 	It("Podman run two containers with the same IP", func() {
 		ip := GetRandomIPAddress()
-		result := podmanTest.Podman([]string{"run", "-dt", "--ip", ip, nginx})
+		result := podmanTest.Podman([]string{"run", "-d", "--name", "nginx", "--ip", ip, nginx})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		for i := 0; i < 10; i++ {
-			fmt.Println("Waiting for nginx", err)
-			time.Sleep(1 * time.Second)
+
+		for retries := 20; retries > 0; retries-- {
 			response, err := http.Get(fmt.Sprintf("http://%s", ip))
-			if err != nil {
-				continue
-			}
-			if response.StatusCode == http.StatusOK {
+			if err == nil && response.StatusCode == http.StatusOK {
 				break
 			}
+			if retries == 1 {
+				logps := podmanTest.Podman([]string{"ps", "-a"})
+				logps.WaitWithDefaultTimeout()
+				logps = podmanTest.Podman([]string{"logs", "nginx"})
+				logps.WaitWithDefaultTimeout()
+				Fail("Timed out waiting for nginx container, see ps & log above.")
+			}
+
+			if err != nil {
+				fmt.Printf("nginx not ready yet; error=%v; %d retries left...\n", err, retries)
+			} else {
+				fmt.Printf("nginx not ready yet; response=%v; %d retries left...\n", response.StatusCode, retries)
+			}
+			time.Sleep(1 * time.Second)
 		}
-		result = podmanTest.Podman([]string{"run", "-ti", "--ip", ip, ALPINE, "ip", "addr"})
+		result = podmanTest.Podman([]string{"run", "--ip", ip, ALPINE, "ip", "addr"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).To(ExitWithError())
+		Expect(result.ErrorToString()).To(ContainSubstring(" address %s ", ip))
 	})
 })
