@@ -1,8 +1,12 @@
 package qemu
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/containers/podman/v4/test/utils"
 )
 
 func TestMachineFile_GetPath(t *testing.T) {
@@ -45,9 +49,29 @@ func TestMachineFile_GetPath(t *testing.T) {
 }
 
 func TestNewMachineFile(t *testing.T) {
-	p := "/var/tmp/podman/my.sock"
-	sym := "/tmp/podman/my.sock"
 	empty := ""
+
+	homedir, err := os.MkdirTemp("/tmp", "homedir")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(homedir)
+	longTemp, err := os.MkdirTemp("/tmp", "tmpdir")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(longTemp)
+	oldhome := os.Getenv("HOME")
+	os.Setenv("HOME", homedir) //nolint: tenv
+	defer os.Setenv("HOME", oldhome)
+
+	p := "/var/tmp/podman/my.sock"
+	longp := filepath.Join(longTemp, utils.RandomString(100), "my.sock")
+	os.MkdirAll(filepath.Dir(longp), 0755)
+	f, _ := os.Create(longp)
+	f.Close()
+	sym := "my.sock"
+	longSym := filepath.Join(homedir, ".podman", sym)
 
 	m := MachineFile{
 		Path:    p,
@@ -70,9 +94,9 @@ func TestNewMachineFile(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "Good with Symlink",
+			name:    "Good with short symlink",
 			args:    args{p, &sym},
-			want:    &MachineFile{p, &sym},
+			want:    &MachineFile{p, nil},
 			wantErr: false,
 		},
 		{
@@ -86,6 +110,12 @@ func TestNewMachineFile(t *testing.T) {
 			args:    args{p, &empty},
 			want:    nil,
 			wantErr: true,
+		},
+		{
+			name:    "Good with long symlink",
+			args:    args{longp, &sym},
+			want:    &MachineFile{longp, &longSym},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
