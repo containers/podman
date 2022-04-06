@@ -3,7 +3,7 @@ module github.com/containers/podman/v4
 go 1.16
 
 require (
-	github.com/BurntSushi/toml v1.0.0
+	github.com/BurntSushi/toml v1.1.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/buger/goterm v1.0.4
 	github.com/checkpoint-restore/checkpointctl v0.0.0-20211204171957-54b4ebfdb681

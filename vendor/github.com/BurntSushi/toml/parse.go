@@ -220,7 +220,7 @@ func (p *parser) value(it item, parentIsArray bool) (interface{}, tomlType) {
 	case itemString:
 		return p.replaceEscapes(it, it.val), p.typeOfPrimitive(it)
 	case itemMultilineString:
-		return p.replaceEscapes(it, stripFirstNewline(stripEscapedNewlines(it.val))), p.typeOfPrimitive(it)
+		return p.replaceEscapes(it, stripFirstNewline(p.stripEscapedNewlines(it.val))), p.typeOfPrimitive(it)
 	case itemRawString:
 		return it.val, p.typeOfPrimitive(it)
 	case itemRawMultilineString:
@@ -647,7 +647,7 @@ func stripFirstNewline(s string) string {
 }
 
 // Remove newlines inside triple-quoted strings if a line ends with "\".
-func stripEscapedNewlines(s string) string {
+func (p *parser) stripEscapedNewlines(s string) string {
 	split := strings.Split(s, "\n")
 	if len(split) < 1 {
 		return s
@@ -677,6 +677,10 @@ func stripEscapedNewlines(s string) string {
 		if escBS {
 			split[i] += "\n"
 			continue
+		}
+
+		if i == len(split)-1 {
+			p.panicf("invalid escape: '\\ '")
 		}
 
 		split[i] = line[:len(line)-1] // Remove \
