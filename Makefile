@@ -554,7 +554,7 @@ test: localunit localintegration remoteintegration localsystem remotesystem  ## 
 .PHONY: ginkgo-run
 ginkgo-run:
 	$(GOBIN)/ginkgo version
-	$(GOBIN)/ginkgo -v $(TESTFLAGS) -tags "$(TAGS)" $(GINKGOTIMEOUT) -flakeAttempts 3 -progress -trace -noColor -nodes 3 -debug test/e2e/. $(HACK)
+	$(GOBIN)/ginkgo -v $(TESTFLAGS) -tags "$(TAGS)" $(GINKGOTIMEOUT) -flakeAttempts 3 -progress -trace -noColor -p -debug test/e2e/. $(HACK)
 
 .PHONY: ginkgo
 ginkgo:
