@@ -32,7 +32,6 @@ var _ = Describe("Podman commit", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman commit container", func() {

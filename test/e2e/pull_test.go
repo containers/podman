@@ -33,7 +33,6 @@ var _ = Describe("Podman pull", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman pull multiple images with/without tag/digest", func() {

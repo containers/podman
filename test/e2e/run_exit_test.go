@@ -32,7 +32,6 @@ var _ = Describe("Podman run exit", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman run exit define.ExecErrorCodeGeneric", func() {

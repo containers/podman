@@ -32,7 +32,6 @@ var _ = Describe("Podman mount", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman mount", func() {

@@ -29,7 +29,6 @@ var _ = Describe("Podman untag", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman untag all", func() {

@@ -31,7 +31,6 @@ var _ = Describe("Podman inspect", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman inspect alpine image", func() {

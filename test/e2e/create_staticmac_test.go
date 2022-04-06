@@ -34,7 +34,6 @@ var _ = Describe("Podman run with --mac-address flag", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("Podman run --mac-address", func() {

@@ -33,7 +33,6 @@ var _ = Describe("Podman init containers", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman create init container without --pod should fail", func() {

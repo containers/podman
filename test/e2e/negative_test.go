@@ -27,7 +27,6 @@ var _ = Describe("Podman negative command-line", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman snuffleupagus exits non-zero", func() {

@@ -31,7 +31,6 @@ var _ = Describe("Podman generate systemd", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman generate systemd on bogus container/pod", func() {

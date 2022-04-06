@@ -40,7 +40,6 @@ var _ = Describe("Podman UserNS support", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman uidmapping and gidmapping", func() {

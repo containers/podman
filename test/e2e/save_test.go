@@ -35,7 +35,6 @@ var _ = Describe("Podman save", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman save output flag", func() {

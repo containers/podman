@@ -31,7 +31,6 @@ var _ = Describe("podman rename", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman rename on non-existent container", func() {

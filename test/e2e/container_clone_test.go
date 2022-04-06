@@ -31,7 +31,6 @@ var _ = Describe("Podman container clone", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman container clone basic test", func() {

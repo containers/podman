@@ -33,7 +33,6 @@ var _ = Describe("Podman run memory", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman run memory test", func() {

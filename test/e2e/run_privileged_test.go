@@ -56,7 +56,6 @@ var _ = Describe("Podman privileged container tests", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman privileged make sure sys is mounted rw", func() {

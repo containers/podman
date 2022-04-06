@@ -32,7 +32,6 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("bad network name in disconnect should result in error", func() {

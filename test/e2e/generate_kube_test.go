@@ -39,7 +39,6 @@ var _ = Describe("Podman generate kube", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman generate pod kube on bogus object", func() {

@@ -36,7 +36,6 @@ var _ = Describe("Podman play kube with build", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	var testYAML = `

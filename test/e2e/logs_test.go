@@ -46,7 +46,6 @@ var _ = Describe("Podman logs", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	for _, log := range []string{"k8s-file", "journald", "json-file"} {

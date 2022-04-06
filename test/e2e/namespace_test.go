@@ -30,7 +30,6 @@ var _ = Describe("Podman namespaces", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman namespace test", func() {

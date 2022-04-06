@@ -32,7 +32,6 @@ var _ = Describe("Podman run ns", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman run pidns test", func() {

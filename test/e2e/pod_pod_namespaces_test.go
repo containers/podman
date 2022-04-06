@@ -31,7 +31,6 @@ var _ = Describe("Podman pod create", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman pod container share Namespaces", func() {

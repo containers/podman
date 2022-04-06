@@ -40,7 +40,6 @@ var _ = Describe("Podman run cpu", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman run cpu-period", func() {

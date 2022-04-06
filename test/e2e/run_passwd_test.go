@@ -31,7 +31,6 @@ var _ = Describe("Podman run passwd", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman run no user specified ", func() {

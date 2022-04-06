@@ -37,7 +37,6 @@ var _ = Describe("Podman run with --ip flag", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("Podman run --ip with garbage address", func() {

@@ -33,7 +33,6 @@ var _ = Describe("Podman secret", func() {
 		podmanTest.CleanupSecrets()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman secret create", func() {

@@ -36,7 +36,6 @@ var _ = Describe("Podman healthcheck run", func() {
 		f := CurrentGinkgoTestDescription()
 		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
 		GinkgoWriter.Write([]byte(timedResult))
-
 	})
 
 	It("podman healthcheck run bogus container", func() {

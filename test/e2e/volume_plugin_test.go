@@ -33,6 +33,7 @@ var _ = Describe("Podman volume plugins", func() {
 	})
 
 	AfterEach(func() {
+		podmanTest.Cleanup()
 		podmanTest.CleanupVolume()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)

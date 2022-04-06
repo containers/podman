@@ -32,7 +32,6 @@ var _ = Describe("Podman load", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman load input flag", func() {

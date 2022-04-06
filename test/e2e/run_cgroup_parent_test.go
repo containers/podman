@@ -37,7 +37,6 @@ var _ = Describe("Podman run with --cgroup-parent", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	Specify("valid --cgroup-parent using cgroupfs", func() {

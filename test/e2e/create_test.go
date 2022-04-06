@@ -35,7 +35,6 @@ var _ = Describe("Podman create", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman create container based on a local image", func() {

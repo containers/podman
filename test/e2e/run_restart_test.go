@@ -30,7 +30,6 @@ var _ = Describe("Podman run restart containers", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("Podman start after successful run", func() {

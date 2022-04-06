@@ -41,7 +41,6 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	Specify("signals are forwarded to container using sig-proxy", func() {

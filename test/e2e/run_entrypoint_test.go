@@ -30,7 +30,6 @@ var _ = Describe("Podman run entrypoint", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman run no command, entrypoint, or cmd", func() {

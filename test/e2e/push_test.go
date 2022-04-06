@@ -36,7 +36,6 @@ var _ = Describe("Podman push", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman push to containers/storage", func() {

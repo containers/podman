@@ -33,7 +33,6 @@ var _ = Describe("Podman diff", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman diff of image", func() {

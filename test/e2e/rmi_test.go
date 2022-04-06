@@ -31,7 +31,6 @@ var _ = Describe("Podman rmi", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman rmi bogus image", func() {

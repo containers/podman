@@ -27,10 +27,10 @@ var _ = Describe("Podman volume inspect", func() {
 	})
 
 	AfterEach(func() {
+		podmanTest.Cleanup()
 		podmanTest.CleanupVolume()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman inspect volume", func() {

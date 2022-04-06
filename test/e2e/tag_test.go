@@ -30,7 +30,6 @@ var _ = Describe("Podman tag", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman tag shortname:latest", func() {

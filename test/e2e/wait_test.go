@@ -30,7 +30,6 @@ var _ = Describe("Podman wait", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman wait on bogus container", func() {

@@ -29,7 +29,6 @@ var _ = Describe("Podman image|container exists", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman image exists in local storage by fq name", func() {

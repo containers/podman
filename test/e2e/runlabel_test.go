@@ -44,7 +44,6 @@ var _ = Describe("podman container runlabel", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman container runlabel (podman --version)", func() {

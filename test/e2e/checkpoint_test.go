@@ -69,7 +69,6 @@ var _ = Describe("Podman checkpoint", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman checkpoint bogus container", func() {

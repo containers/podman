@@ -35,8 +35,8 @@ var _ = Describe("Podman pod stats", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
+
 	It("podman pod stats should run with no pods", func() {
 		session := podmanTest.Podman([]string{"pod", "stats", "--no-stream"})
 		session.WaitWithDefaultTimeout()

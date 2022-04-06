@@ -32,7 +32,6 @@ var _ = Describe("Podman port", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman port all and latest", func() {

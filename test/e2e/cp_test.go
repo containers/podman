@@ -38,7 +38,6 @@ var _ = Describe("Podman cp", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	// Copy a file to the container, then back to the host and make sure

@@ -48,7 +48,6 @@ var _ = Describe("podman image scp", func() {
 		}
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman image scp bogus image", func() {

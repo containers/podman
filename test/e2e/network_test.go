@@ -35,7 +35,6 @@ var _ = Describe("Podman network", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman --cni-config-dir backwards compat", func() {

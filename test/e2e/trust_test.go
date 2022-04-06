@@ -35,7 +35,6 @@ var _ = Describe("Podman trust", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman image trust show", func() {

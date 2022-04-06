@@ -31,7 +31,6 @@ var _ = Describe("Podman run device", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman run bad device test", func() {
