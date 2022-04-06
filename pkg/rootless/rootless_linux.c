@@ -215,7 +215,7 @@ can_use_shortcut ()
   bool ret = true;
   int argc;
 
-#ifdef DISABLE_JOIN_SHORTCUT
+#ifndef ENABLE_JOIN_SHORTCUT
   return false;
 #endif
 

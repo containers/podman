@@ -48,7 +48,7 @@ MODULESLOADDIR ?= ${PREFIX}/lib/modules-load.d
 SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
 USERSYSTEMDDIR ?= ${PREFIX}/lib/systemd/user
 REMOTETAGS ?= remote exclude_graphdriver_btrfs btrfs_noversion exclude_graphdriver_devicemapper containers_image_openpgp
-BUILDTAGS ?= \
+BUILDTAGS_NO_ROOTLESS = \
 	$(shell hack/apparmor_tag.sh) \
 	$(shell hack/btrfs_installed_tag.sh) \
 	$(shell hack/btrfs_tag.sh) \
@@ -57,6 +57,9 @@ BUILDTAGS ?= \
 	$(shell hack/libsubid_tag.sh) \
 	exclude_graphdriver_devicemapper \
 	seccomp
+BUILDTAGS ?= \
+	$(BUILDTAGS_NO_ROOTLESS) \
+	native_rootless
 PYTHON ?= $(shell command -v python3 python|head -n1)
 PKG_MANAGER ?= $(shell command -v dnf yum|head -n1)
 # ~/.local/bin is not in PATH on all systems
@@ -558,7 +561,7 @@ ginkgo-run:
 
 .PHONY: ginkgo
 ginkgo:
-	$(MAKE) ginkgo-run TAGS="$(BUILDTAGS)" HACK=hack/.
+	$(MAKE) ginkgo-run TAGS="$(BUILDTAGS_NO_ROOTLESS)" HACK=hack/.
 
 .PHONY: ginkgo-remote
 ginkgo-remote:
