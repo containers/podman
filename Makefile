@@ -616,17 +616,23 @@ remotesystem:
 	fi;\
 	exit $$rc
 
-.PHONY: localapiv2
-localapiv2:
-	# Order is important running python tests first causes the bash tests to fail, see 12-imagesMore
-	# FIXME order of tests should not matter
+.PHONY: localapiv2-bash
+localapiv2-bash:
 	env PODMAN=./bin/podman stdbuf -o0 -e0 ./test/apiv2/test-apiv2
+
+.PHONY: localapiv2-python
+localapiv2-python:
 	env CONTAINERS_CONF=$(CURDIR)/test/apiv2/containers.conf PODMAN=./bin/podman \
-		pytest --disable-warnings ./test/apiv2/python
+		pytest --verbose --disable-warnings ./test/apiv2/python
 	touch test/__init__.py
 	env CONTAINERS_CONF=$(CURDIR)/test/apiv2/containers.conf PODMAN=./bin/podman \
-		pytest --disable-warnings ./test/python/docker
+		pytest --verbose --disable-warnings ./test/python/docker
 	rm -f test/__init__.py
+
+# Order is important running python tests first causes the bash tests
+# to fail, see 12-imagesMore.  FIXME order of tests should not matter
+.PHONY: localapiv2
+localapiv2: localapiv2-bash localapiv2-python
 
 .PHONY: remoteapiv2
 remoteapiv2:
