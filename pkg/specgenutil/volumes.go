@@ -523,6 +523,8 @@ func getNamedVolume(args []string) (*specgen.NamedVolume, error) {
 	for _, val := range args {
 		kv := strings.SplitN(val, "=", 2)
 		switch kv[0] {
+		case "volume-opt":
+			newVolume.Options = append(newVolume.Options, val)
 		case "ro", "rw":
 			if setRORW {
 				return nil, errors.Wrapf(optionArgError, "cannot pass 'ro' and 'rw' options more than once")
