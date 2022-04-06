@@ -1192,21 +1192,13 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 		}
 		logrus.Debugf("saved image metadata %q", string(metadata))
 	}
-	// Set the reference's name on the image.  We don't need to worry about avoiding duplicate
-	// values because SetNames() will deduplicate the list that we pass to it.
-	if name := s.imageRef.DockerReference(); len(oldNames) > 0 || name != nil {
-		names := []string{}
-		if name != nil {
-			names = append(names, name.String())
+	// Adds the reference's name on the image.  We don't need to worry about avoiding duplicate
+	// values because AddNames() will deduplicate the list that we pass to it.
+	if name := s.imageRef.DockerReference(); name != nil {
+		if err := s.imageRef.transport.store.AddNames(img.ID, []string{name.String()}); err != nil {
+			return errors.Wrapf(err, "adding names %v to image %q", name, img.ID)
 		}
-		if len(oldNames) > 0 {
-			names = append(names, oldNames...)
-		}
-		if err := s.imageRef.transport.store.SetNames(img.ID, names); err != nil {
-			logrus.Debugf("error setting names %v on image %q: %v", names, img.ID, err)
-			return errors.Wrapf(err, "setting names %v on image %q", names, img.ID)
-		}
-		logrus.Debugf("set names of image %q to %v", img.ID, names)
+		logrus.Debugf("added name %q to image %q", name, img.ID)
 	}
 
 	commitSucceeded = true
