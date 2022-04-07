@@ -470,7 +470,9 @@ local_integration_test_task: &local_integration_test_task
     depends_on:
         - unit_test
     matrix: *platform_axis
-    gce_instance: *standardvm
+    gce_instance:
+        <<: *standardvm
+        use_ssd: true  # Tests are io-bound, use fast storage.
     timeout_in: 90m
     env:
         TEST_FLAVOR: int
@@ -516,7 +518,9 @@ container_integration_test_task:
         #      _BUILD_CACHE_HANDLE: ${PRIOR_FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
         #      VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
         #      CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
-    gce_instance: *standardvm
+    gce_instance:
+        <<: *standardvm
+        use_ssd: true  # Tests are io-bound, use fast storage.
     timeout_in: 90m
     env:
         TEST_FLAVOR: int
@@ -537,7 +541,9 @@ rootless_integration_test_task:
     depends_on:
         - unit_test
     matrix: *platform_axis
-    gce_instance: *standardvm
+    gce_instance:
+        <<: *standardvm
+        use_ssd: true  # Tests are io-bound, use fast storage.
     timeout_in: 90m
     env:
         TEST_FLAVOR: int
@@ -557,7 +563,9 @@ netavark_task:
     skip: *branches_and_tags
     depends_on:
         - unit_test
-    gce_instance: *standardvm
+    gce_instance:
+        <<: *standardvm
+        use_ssd: true  # Tests are io-bound, use fast storage.
     matrix:
         - env: &nenv
             DISTRO_NV: ${FEDORA_NAME}
