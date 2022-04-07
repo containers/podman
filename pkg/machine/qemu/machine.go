@@ -439,6 +439,19 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) error {
 		return nil
 	}
 
+	running, err := v.isRunning()
+	if err != nil {
+		return err
+	}
+
+	if running {
+		suffix := ""
+		if v.Name != machine.DefaultMachineName {
+			suffix = " " + v.Name
+		}
+		return errors.Errorf("cannot change setting while the vm is running, run 'podman machine stop%s' first", suffix)
+	}
+
 	changeCon, err := machine.AnyConnectionDefault(v.Name, v.Name+"-root")
 	if err != nil {
 		return err
