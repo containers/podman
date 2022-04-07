@@ -70,6 +70,8 @@ func PodmanTestCreate(tempDir string) *PodmanTestIntegration {
 }
 
 func (p *PodmanTestIntegration) StartRemoteService() {
+	PauseOutputInterception()
+	defer ResumeOutputInterception()
 	if os.Geteuid() == 0 {
 		os.MkdirAll("/run/podman", 0755)
 	}
@@ -149,6 +151,8 @@ func (p *PodmanTestIntegration) SeedImages() error {
 
 // RestoreArtifact puts the cached image into our test store
 func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
+	PauseOutputInterception()
+	defer ResumeOutputInterception()
 	tarball := imageTarPath(image)
 	if _, err := os.Stat(tarball); err == nil {
 		fmt.Printf("Restoring %s...\n", image)

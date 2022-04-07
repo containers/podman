@@ -3,6 +3,7 @@ package integration
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"net"
@@ -756,12 +757,11 @@ func SkipIfNotActive(unit string, reason string) {
 	var buffer bytes.Buffer
 	cmd := exec.Command("systemctl", "is-active", unit)
 	cmd.Stdout = &buffer
+	cmd.Stderr = io.Discard
 	err := cmd.Start()
 	Expect(err).ToNot(HaveOccurred())
 
 	err = cmd.Wait()
-	Expect(err).ToNot(HaveOccurred())
-
 	Expect(err).ToNot(HaveOccurred())
 	if strings.TrimSpace(buffer.String()) != "active" {
 		Skip(fmt.Sprintf("[systemd]: unit %s is not active: %s", unit, reason))

@@ -3,6 +3,7 @@ package integration
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"os/exec"
@@ -46,6 +47,8 @@ var _ = Describe("Podman checkpoint", func() {
 		// Check if the runtime implements checkpointing. Currently only
 		// runc's checkpoint/restore implementation is supported.
 		cmd := exec.Command(podmanTest.OCIRuntime, "checkpoint", "--help")
+		cmd.Stderr = io.Discard
+		cmd.Stdout = io.Discard
 		if err := cmd.Start(); err != nil {
 			Skip("OCI runtime does not support checkpoint/restore")
 		}
@@ -1525,11 +1528,7 @@ var _ = Describe("Podman checkpoint", func() {
 		if !strings.Contains(podmanTest.OCIRuntime, "crun") {
 			Skip("Test requires crun and runc")
 		}
-		cmd := exec.Command("runc")
-		if err := cmd.Start(); err != nil {
-			Skip("Test requires crun and runc")
-		}
-		if err := cmd.Wait(); err != nil {
+		if _, err := exec.LookPath("runc"); err != nil {
 			Skip("Test requires crun and runc")
 		}
 		localRunString := getRunString([]string{
