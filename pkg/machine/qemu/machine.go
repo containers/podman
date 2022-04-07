@@ -1133,11 +1133,16 @@ func (v *MachineVM) setupAPIForwarding(cmd []string) ([]string, string, apiForwa
 	cmd = append(cmd, []string{"-forward-dest", destSock}...)
 	cmd = append(cmd, []string{"-forward-user", forwardUser}...)
 	cmd = append(cmd, []string{"-forward-identity", v.IdentityPath}...)
-	link := socket.GetPath()
 
 	// The linking pattern is /var/run/docker.sock -> user global sock (link) -> machine sock (socket)
 	// This allows the helper to only have to maintain one constant target to the user, which can be
 	// repositioned without updating docker.sock.
+
+	link, err := v.userGlobalSocketLink()
+	if err != nil {
+		return cmd, socket.GetPath(), machineLocal
+	}
+
 	if !dockerClaimSupported() {
 		return cmd, socket.GetPath(), claimUnsupported
 	}
@@ -1174,6 +1179,16 @@ func (v *MachineVM) setupAPIForwarding(cmd []string) ([]string, string, apiForwa
 
 func (v *MachineVM) isIncompatible() bool {
 	return v.UID == -1
+}
+
+func (v *MachineVM) userGlobalSocketLink() (string, error) {
+	path, err := machine.GetDataDir(v.Name)
+	if err != nil {
+		logrus.Errorf("Resolving data dir: %s", err.Error())
+		return "", err
+	}
+	// User global socket is located in parent directory of machine dirs (one per user)
+	return filepath.Join(filepath.Dir(path), "podman.sock"), err
 }
 
 func (v *MachineVM) forwardSocketPath() (*MachineFile, error) {
