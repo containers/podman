@@ -11,7 +11,7 @@ require (
 	github.com/container-orchestrated-devices/container-device-interface v0.0.0-20210325223243-f99e8b6c10b9
 	github.com/containernetworking/cni v0.8.1
 	github.com/containernetworking/plugins v0.9.1
-	github.com/containers/buildah v1.23.1
+	github.com/containers/buildah v1.23.4
 	github.com/containers/common v0.44.3
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.16.1-0.20220406192429-8b06d33b562e
@@ -54,7 +54,6 @@ require (
 	github.com/opencontainers/selinux v1.8.5
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0
-	github.com/prometheus/client_golang v1.11.1 // indirect
 	github.com/rootless-containers/rootlesskit v0.14.5
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.2.1
