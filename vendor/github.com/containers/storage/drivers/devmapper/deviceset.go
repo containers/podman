@@ -1,3 +1,4 @@
+//go:build linux && cgo
 // +build linux,cgo
 
 package devmapper
@@ -6,6 +7,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -419,40 +421,35 @@ func (devices *DeviceSet) constructDeviceIDMap() {
 	}
 }
 
-func (devices *DeviceSet) deviceFileWalkFunction(path string, finfo os.FileInfo) error {
+func (devices *DeviceSet) deviceFileWalkFunction(path string, name string) error {
 
 	// Skip some of the meta files which are not device files.
-	if strings.HasSuffix(finfo.Name(), ".migrated") {
+	if strings.HasSuffix(name, ".migrated") {
 		logrus.Debugf("devmapper: Skipping file %s", path)
 		return nil
 	}
 
-	if strings.HasPrefix(finfo.Name(), ".") {
+	if strings.HasPrefix(name, ".") {
 		logrus.Debugf("devmapper: Skipping file %s", path)
 		return nil
 	}
 
-	if finfo.Name() == deviceSetMetaFile {
+	if name == deviceSetMetaFile {
 		logrus.Debugf("devmapper: Skipping file %s", path)
 		return nil
 	}
 
-	if finfo.Name() == transactionMetaFile {
+	if name == transactionMetaFile {
 		logrus.Debugf("devmapper: Skipping file %s", path)
 		return nil
 	}
 
 	logrus.Debugf("devmapper: Loading data for file %s", path)
 
-	hash := finfo.Name()
-	if hash == base {
-		hash = ""
-	}
-
 	// Include deleted devices also as cleanup delete device logic
 	// will go through it and see if there are any deleted devices.
-	if _, err := devices.lookupDevice(hash); err != nil {
-		return fmt.Errorf("devmapper: Error looking up device %s:%v", hash, err)
+	if _, err := devices.lookupDevice(name); err != nil {
+		return fmt.Errorf("devmapper: Error looking up device %s:%v", name, err)
 	}
 
 	return nil
@@ -462,21 +459,21 @@ func (devices *DeviceSet) loadDeviceFilesOnStart() error {
 	logrus.Debug("devmapper: loadDeviceFilesOnStart()")
 	defer logrus.Debug("devmapper: loadDeviceFilesOnStart() END")
 
-	var scan = func(path string, info os.FileInfo, err error) error {
+	var scan = func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			logrus.Debugf("devmapper: Can't walk the file %s", path)
 			return nil
 		}
 
 		// Skip any directories
-		if info.IsDir() {
+		if d.IsDir() {
 			return nil
 		}
 
-		return devices.deviceFileWalkFunction(path, info)
+		return devices.deviceFileWalkFunction(path, d.Name())
 	}
 
-	return filepath.Walk(devices.metadataDir(), scan)
+	return filepath.WalkDir(devices.metadataDir(), scan)
 }
 
 // Should be called with devices.Lock() held.

@@ -117,7 +117,7 @@ lint_task:
     env:
         CIRRUS_WORKING_DIR: "/go/src/github.com/containers/storage"
     container:
-        image: golang:1.15
+        image: golang:1.16
     modules_cache:
         fingerprint_script: cat go.sum
         folder: $GOPATH/pkg/mod
@@ -154,7 +154,7 @@ meta_task:
 
 vendor_task:
     container:
-        image: golang:1.15
+        image: golang:1.16
     modules_cache:
         fingerprint_script: cat go.sum
         folder: $GOPATH/pkg/mod
@@ -172,6 +172,6 @@ success_task:
         - meta
         - vendor
     container:
-        image: golang:1.15
+        image: golang:1.16
     clone_script: 'mkdir -p "$CIRRUS_WORKING_DIR"'  # Source code not needed
     script: /bin/true

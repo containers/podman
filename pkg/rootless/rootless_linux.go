@@ -25,6 +25,7 @@ import (
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/syndtr/gocapability/capability"
 	"golang.org/x/sys/unix"
 )
 
@@ -114,8 +115,14 @@ func GetRootlessGID() int {
 
 func tryMappingTool(uid bool, pid int, hostID int, mappings []idtools.IDMap) error {
 	var tool = "newuidmap"
+	mode := os.ModeSetuid
+	cap := capability.CAP_SETUID
+	idtype := "setuid"
 	if !uid {
 		tool = "newgidmap"
+		mode = os.ModeSetgid
+		cap = capability.CAP_SETGID
+		idtype = "setgid"
 	}
 	path, err := exec.LookPath(tool)
 	if err != nil {
@@ -147,7 +154,13 @@ func tryMappingTool(uid bool, pid int, hostID int, mappings []idtools.IDMap) err
 
 	if output, err := cmd.CombinedOutput(); err != nil {
 		logrus.Errorf("running `%s`: %s", strings.Join(args, " "), output)
-		return errors.Wrapf(err, "cannot setup namespace using %q", path)
+		errorStr := fmt.Sprintf("cannot setup namespace using %q", path)
+		if isSet, err := unshare.IsSetID(cmd.Path, mode, cap); err != nil {
+			logrus.Errorf("Failed to check for %s on %s: %v", idtype, path, err)
+		} else if !isSet {
+			errorStr = fmt.Sprintf("%s: should have %s or have filecaps %s", errorStr, idtype, idtype)
+		}
+		return errors.Wrapf(err, errorStr)
 	}
 	return nil
 }

@@ -378,8 +378,9 @@ github.com/containers/storage v1.38.0/go.mod h1:lBzt28gAk5ADZuRtwdndRJyqX22vnRaX
 github.com/containers/storage v1.38.2/go.mod h1:INP0RPLHWBxx+pTsO5uiHlDUGHDFvWZPWprAbAlQWPQ=
 github.com/containers/storage v1.38.3-0.20220301151551-d06b0f81c0aa/go.mod h1:LkkL34WRi4dI4jt9Cp+ImdZi/P5i36glSHimT5CP5zM=
 github.com/containers/storage v1.39.0/go.mod h1:UAD0cKLouN4BOQRgZut/nMjrh/EnTCjSNPgp4ZuGWMs=
-github.com/containers/storage v1.39.1-0.20220330193934-f3200eb5a5d9 h1:fA/2FemaDv+POCJgg+QGJm84gMEDBwL5H0lDeubDJoE=
 github.com/containers/storage v1.39.1-0.20220330193934-f3200eb5a5d9/go.mod h1:IMa2AfBI+Fxxk2hQqLTGhpJX6z2pZS1/I785QJeUwUY=
+github.com/containers/storage v1.39.1-0.20220406221121-28f3ba9b891d h1:Xapzm11C1zDNPpdb/1TgTqGvnQEnDoFHUwM487r64Eo=
+github.com/containers/storage v1.39.1-0.20220406221121-28f3ba9b891d/go.mod h1:UuYvGSKIdmzkjHbT/PENtxLRVGQ974nyhMbYp0KP19w=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/etcd v3.3.13+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
