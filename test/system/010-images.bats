@@ -312,4 +312,15 @@ Deleted: $pauseID"
     is "$output" ""
 }
 
+@test "podman images --size" {
+    run_podman images
+    is "${lines[0]}" "REPOSITORY.*TAG.*IMAGE ID.*CREATED.*SIZE"
+    run_podman images --noheading --format "{{.Size}}"
+    is "$output" ".* MB"
+    run_podman images --size=false
+    is "${lines[0]}" "REPOSITORY.*TAG.*IMAGE ID.*CREATED"
+    run_podman images --noheading --format "{{.Size}}" --size=false
+    is "$output" "0 B"
+}
+
 # vim: filetype=sh
