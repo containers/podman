@@ -233,7 +233,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.39.1-0.20220330193934-f3200eb5a5d9
+# github.com/containers/storage v1.39.1-0.20220406221121-28f3ba9b891d
 ## explicit
 github.com/containers/storage
 github.com/containers/storage/drivers

@@ -1,9 +1,9 @@
-go 1.14
+go 1.16
 
 module github.com/containers/storage
 
 require (
-	github.com/BurntSushi/toml v1.0.0
+	github.com/BurntSushi/toml v1.1.0
 	github.com/Microsoft/go-winio v0.5.2
 	github.com/Microsoft/hcsshim v0.9.2
 	github.com/containerd/stargz-snapshotter/estargz v0.11.3

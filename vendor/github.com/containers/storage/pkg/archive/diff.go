@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"fmt"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -134,7 +135,7 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 				if err != nil {
 					return 0, err
 				}
-				err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+				err = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 					if err != nil {
 						if os.IsNotExist(err) {
 							err = nil // parent was deleted

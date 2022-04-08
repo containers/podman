@@ -1,9 +1,11 @@
+//go:build !linux
 // +build !linux
 
 package archive
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -41,7 +43,7 @@ func collectFileInfoForChanges(oldDir, newDir string, oldIDMap, newIDMap *idtool
 func collectFileInfo(sourceDir string, idMappings *idtools.IDMappings) (*FileInfo, error) {
 	root := newRootFileInfo(idMappings)
 
-	err := filepath.Walk(sourceDir, func(path string, f os.FileInfo, err error) error {
+	err := filepath.WalkDir(sourceDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}

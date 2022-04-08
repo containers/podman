@@ -1,3 +1,4 @@
+//go:build linux && cgo
 // +build linux,cgo
 
 package btrfs
@@ -16,6 +17,7 @@ import "C"
 
 import (
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"math"
 	"os"
@@ -256,7 +258,7 @@ func subvolDelete(dirpath, name string, quotaEnabled bool) error {
 	var args C.struct_btrfs_ioctl_vol_args
 
 	// walk the btrfs subvolumes
-	walkSubvolumes := func(p string, f os.FileInfo, err error) error {
+	walkSubvolumes := func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			if os.IsNotExist(err) && p != fullPath {
 				// missing most likely because the path was a subvolume that got removed in the previous iteration
@@ -267,20 +269,20 @@ func subvolDelete(dirpath, name string, quotaEnabled bool) error {
 		}
 		// we want to check children only so skip itself
 		// it will be removed after the filepath walk anyways
-		if f.IsDir() && p != fullPath {
+		if d.IsDir() && p != fullPath {
 			sv, err := isSubvolume(p)
 			if err != nil {
 				return fmt.Errorf("Failed to test if %s is a btrfs subvolume: %v", p, err)
 			}
 			if sv {
-				if err := subvolDelete(path.Dir(p), f.Name(), quotaEnabled); err != nil {
+				if err := subvolDelete(path.Dir(p), d.Name(), quotaEnabled); err != nil {
 					return fmt.Errorf("Failed to destroy btrfs child subvolume (%s) of parent (%s): %v", p, dirpath, err)
 				}
 			}
 		}
 		return nil
 	}
-	if err := filepath.Walk(path.Join(dirpath, name), walkSubvolumes); err != nil {
+	if err := filepath.WalkDir(path.Join(dirpath, name), walkSubvolumes); err != nil {
 		return fmt.Errorf("Recursively walking subvolumes for %s failed: %v", dirpath, err)
 	}
 
