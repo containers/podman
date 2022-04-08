@@ -368,7 +368,7 @@ var _ = Describe("Podman pod create", func() {
 		check1 := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Config.Entrypoint}}", data.Containers[0].ID})
 		check1.WaitWithDefaultTimeout()
 		Expect(check1).Should(Exit(0))
-		Expect(check1.OutputToString()).To(Equal("/catatonit -P"))
+		Expect(check1.OutputToString()).To(Equal("[/catatonit -P]"))
 
 		// check the Path and Args
 		check2 := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Path}}:{{.Args}}", data.Containers[0].ID})
@@ -391,7 +391,7 @@ var _ = Describe("Podman pod create", func() {
 		check1 := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Config.Entrypoint}}", data.Containers[0].ID})
 		check1.WaitWithDefaultTimeout()
 		Expect(check1).Should(Exit(0))
-		Expect(check1.OutputToString()).To(Equal("/pause1"))
+		Expect(check1.OutputToString()).To(Equal("[/pause1]"))
 
 		// check the Path and Args
 		check2 := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Path}}:{{.Args}}", data.Containers[0].ID})
@@ -418,7 +418,7 @@ entrypoint ["/fromimage"]
 		check1 := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Config.Entrypoint}}", data.Containers[0].ID})
 		check1.WaitWithDefaultTimeout()
 		Expect(check1).Should(Exit(0))
-		Expect(check1.OutputToString()).To(Equal("/fromimage"))
+		Expect(check1.OutputToString()).To(Equal("[/fromimage]"))
 
 		// check the Path and Args
 		check2 := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Path}}:{{.Args}}", data.Containers[0].ID})
@@ -445,7 +445,7 @@ entrypoint ["/fromimage"]
 		check1 := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Config.Entrypoint}}", data.Containers[0].ID})
 		check1.WaitWithDefaultTimeout()
 		Expect(check1).Should(Exit(0))
-		Expect(check1.OutputToString()).To(Equal("/fromcommand"))
+		Expect(check1.OutputToString()).To(Equal("[/fromcommand]"))
 
 		// check the Path and Args
 		check2 := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Path}}:{{.Args}}", data.Containers[0].ID})
