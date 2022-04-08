@@ -136,7 +136,18 @@ type ImageStore interface {
 	// SetNames replaces the list of names associated with an image with the
 	// supplied values.  The values are expected to be valid normalized
 	// named image references.
+	// Deprecated: Prone to race conditions, suggested alternatives are `AddNames` and `RemoveNames`.
 	SetNames(id string, names []string) error
+
+	// AddNames adds the supplied values to the list of names associated with the image with
+	// the specified id. The values are expected to be valid normalized
+	// named image references.
+	AddNames(id string, names []string) error
+
+	// RemoveNames removes the supplied values from the list of names associated with the image with
+	// the specified id.  The values are expected to be valid normalized
+	// named image references.
+	RemoveNames(id string, names []string) error
 
 	// Delete removes the record of the image.
 	Delete(id string) error
@@ -506,26 +517,44 @@ func (i *Image) addNameToHistory(name string) {
 	i.NamesHistory = dedupeNames(append([]string{name}, i.NamesHistory...))
 }
 
+// Deprecated: Prone to race conditions, suggested alternatives are `AddNames` and `RemoveNames`.
 func (r *imageStore) SetNames(id string, names []string) error {
+	return r.updateNames(id, names, setNames)
+}
+
+func (r *imageStore) AddNames(id string, names []string) error {
+	return r.updateNames(id, names, addNames)
+}
+
+func (r *imageStore) RemoveNames(id string, names []string) error {
+	return r.updateNames(id, names, removeNames)
+}
+
+func (r *imageStore) updateNames(id string, names []string, op updateNameOperation) error {
 	if !r.IsReadWrite() {
 		return errors.Wrapf(ErrStoreIsReadOnly, "not allowed to change image name assignments at %q", r.imagespath())
 	}
-	names = dedupeNames(names)
-	if image, ok := r.lookup(id); ok {
-		for _, name := range image.Names {
-			delete(r.byname, name)
-		}
-		for _, name := range names {
-			if otherImage, ok := r.byname[name]; ok {
-				r.removeName(otherImage, name)
-			}
-			r.byname[name] = image
-			image.addNameToHistory(name)
-		}
-		image.Names = names
-		return r.Save()
+	image, ok := r.lookup(id)
+	if !ok {
+		return errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 	}
-	return errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
+	oldNames := image.Names
+	names, err := applyNameOperation(oldNames, names, op)
+	if err != nil {
+		return err
+	}
+	for _, name := range oldNames {
+		delete(r.byname, name)
+	}
+	for _, name := range names {
+		if otherImage, ok := r.byname[name]; ok {
+			r.removeName(otherImage, name)
+		}
+		r.byname[name] = image
+		image.addNameToHistory(name)
+	}
+	image.Names = names
+	return r.Save()
 }
 
 func (r *imageStore) Delete(id string) error {

@@ -168,6 +168,30 @@ EOF
     run_podman rmi -f build_test $iid
 }
 
+@test "podman parallel build should not race" {
+    skip_if_remote "following test is not supported for remote clients"
+
+    # Run thirty parallel builds using the same Containerfile
+    cat >$PODMAN_TMPDIR/Containerfile <<EOF
+FROM $IMAGE
+RUN echo hi
+EOF
+
+    local count=30
+    for i in $(seq --format '%02g' 1 $count); do
+        timeout --foreground -v --kill=10 60 \
+                $PODMAN build -t i$i $PODMAN_TMPDIR &>/dev/null &
+    done
+
+    # Wait for all background builds to complete. Note that this succeeds
+    # even if some of the individual builds fail! Our actual test is below.
+    wait
+
+    # Now delete all built images. If any image wasn't built, rmi will fail
+    # and test will fail.
+    run_podman rmi $(seq --format 'i%02g' 1 $count)
+}
+
 @test "podman build - URLs" {
     tmpdir=$PODMAN_TMPDIR/build-test
     mkdir -p $tmpdir

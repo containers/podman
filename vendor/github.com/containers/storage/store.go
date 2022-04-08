@@ -30,6 +30,14 @@ import (
 	"github.com/pkg/errors"
 )
 
+type updateNameOperation int
+
+const (
+	setNames updateNameOperation = iota
+	addNames
+	removeNames
+)
+
 var (
 	stores     []*store
 	storesLock sync.Mutex
@@ -367,7 +375,16 @@ type Store interface {
 
 	// SetNames changes the list of names for a layer, image, or container.
 	// Duplicate names are removed from the list automatically.
+	// Deprecated: Prone to race conditions, suggested alternatives are `AddNames` and `RemoveNames`.
 	SetNames(id string, names []string) error
+
+	// AddNames adds the list of names for a layer, image, or container.
+	// Duplicate names are removed from the list automatically.
+	AddNames(id string, names []string) error
+
+	// RemoveNames removes the list of names for a layer, image, or container.
+	// Duplicate names are removed from the list automatically.
+	RemoveNames(id string, names []string) error
 
 	// ListImageBigData retrieves a list of the (possibly large) chunks of
 	// named data associated with an image.
@@ -2048,7 +2065,20 @@ func dedupeNames(names []string) []string {
 	return deduped
 }
 
+// Deprecated: Prone to race conditions, suggested alternatives are `AddNames` and `RemoveNames`.
 func (s *store) SetNames(id string, names []string) error {
+	return s.updateNames(id, names, setNames)
+}
+
+func (s *store) AddNames(id string, names []string) error {
+	return s.updateNames(id, names, addNames)
+}
+
+func (s *store) RemoveNames(id string, names []string) error {
+	return s.updateNames(id, names, removeNames)
+}
+
+func (s *store) updateNames(id string, names []string, op updateNameOperation) error {
 	deduped := dedupeNames(names)
 
 	rlstore, err := s.LayerStore()
@@ -2061,7 +2091,16 @@ func (s *store) SetNames(id string, names []string) error {
 		return err
 	}
 	if rlstore.Exists(id) {
-		return rlstore.SetNames(id, deduped)
+		switch op {
+		case setNames:
+			return rlstore.SetNames(id, deduped)
+		case removeNames:
+			return rlstore.RemoveNames(id, deduped)
+		case addNames:
+			return rlstore.AddNames(id, deduped)
+		default:
+			return errInvalidUpdateNameOperation
+		}
 	}
 
 	ristore, err := s.ImageStore()
@@ -2074,7 +2113,16 @@ func (s *store) SetNames(id string, names []string) error {
 		return err
 	}
 	if ristore.Exists(id) {
-		return ristore.SetNames(id, deduped)
+		switch op {
+		case setNames:
+			return ristore.SetNames(id, deduped)
+		case removeNames:
+			return ristore.RemoveNames(id, deduped)
+		case addNames:
+			return ristore.AddNames(id, deduped)
+		default:
+			return errInvalidUpdateNameOperation
+		}
 	}
 
 	// Check is id refers to a RO Store
@@ -2112,7 +2160,16 @@ func (s *store) SetNames(id string, names []string) error {
 		return err
 	}
 	if rcstore.Exists(id) {
-		return rcstore.SetNames(id, deduped)
+		switch op {
+		case setNames:
+			return rcstore.SetNames(id, deduped)
+		case removeNames:
+			return rcstore.RemoveNames(id, deduped)
+		case addNames:
+			return rcstore.AddNames(id, deduped)
+		default:
+			return errInvalidUpdateNameOperation
+		}
 	}
 	return ErrLayerUnknown
 }

@@ -3,12 +3,12 @@ module github.com/containers/buildah
 go 1.13
 
 require (
-	github.com/containerd/containerd v1.5.5
+	github.com/containerd/containerd v1.5.7
 	github.com/containernetworking/cni v0.8.1
 	github.com/containers/common v0.44.2
-	github.com/containers/image/v5 v5.16.0
+	github.com/containers/image/v5 v5.16.1-0.20220406192429-8b06d33b562e
 	github.com/containers/ocicrypt v1.1.2
-	github.com/containers/storage v1.36.0
+	github.com/containers/storage v1.36.3
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/go-units v0.4.0
 	github.com/docker/libnetwork v0.8.0-dev.2.0.20190625141545-5a177b73e316
@@ -18,6 +18,7 @@ require (
 	github.com/ishidawataru/sctp v0.0.0-20210226210310-f2269e66cdee // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
 	github.com/mattn/go-shellwords v1.0.12
+	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.16.0
 	github.com/opencontainers/go-digest v1.0.0
@@ -28,6 +29,7 @@ require (
 	github.com/opencontainers/selinux v1.8.5
 	github.com/openshift/imagebuilder v1.2.2-0.20210415181909-87f3e48c2656
 	github.com/pkg/errors v0.9.1
+	github.com/prometheus/client_golang v1.11.1 // indirect
 	github.com/seccomp/libseccomp-golang v0.9.2-0.20200616122406-847368b35ebf
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.2.1

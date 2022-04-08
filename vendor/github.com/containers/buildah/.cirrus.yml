@@ -107,6 +107,7 @@ smoke_task:
     binary_artifacts:
         path: ./bin/*
 
+
 # Check that all included go modules from other sources match
 # # what is expected in `vendor/modules.txt` vs `go.mod`.
 vendor_task:
@@ -131,36 +132,11 @@ vendor_task:
         - './hack/tree_status.sh'
 
 
-unit_task:
-    name: 'Unit tests w/ $STORAGE_DRIVER'
-    alias: unit
-    only_if: &not_docs $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
-    depends_on:
-      - smoke
-      - vendor
-
-    timeout_in: 1h
-
-    matrix:
-        - env:
-              STORAGE_DRIVER: 'vfs'
-        - env:
-              STORAGE_DRIVER: 'overlay'
-
-    setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
-    build_script: '${SCRIPT_BASE}/build.sh |& ${_TIMESTAMP}'
-    unit_test_script: '${SCRIPT_BASE}/test.sh unit |& ${_TIMESTAMP}'
-
-    binary_artifacts:
-        path: ./bin/*
-
-
 conformance_task:
     name: 'Build Conformance w/ $STORAGE_DRIVER'
     alias: conformance
-    only_if: *not_docs
     depends_on:
-      - unit
+      - vendor
 
     gce_instance:
         image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
@@ -177,169 +153,6 @@ conformance_task:
     conformance_test_script: '${SCRIPT_BASE}/test.sh conformance |& ${_TIMESTAMP}'
 
 
-# Confirm cross-compile ALL architectures on a Mac OS-X VM.
-cross_build_task:
-    name: "Cross Compile"
-    alias: cross_build
-    only_if: *not_docs
-    depends_on:
-      - unit
-
-    osx_instance:
-        image: 'big-sur-base'
-
-    script:
-        - brew update
-        - brew install go
-        - brew install go-md2man
-        - brew install gpgme
-        - go version
-        - make cross CGO_ENABLED=0
-
-    binary_artifacts:
-        path: ./bin/*
-
-
-static_build_task:
-    name: "Static Build"
-    alias: static_build
-    only_if: *not_docs
-    depends_on:
-      - unit
-
-    gce_instance:
-        image_name: "${FEDORA_CACHE_IMAGE_NAME}"
-        cpu: 8
-        memory: 12
-        disk: 200
-
-    env:
-        NIX_FQIN: "docker.io/nixos/nix:latest"
-
-    init_script: |
-        set -ex
-        setenforce 0
-        growpart /dev/sda 1 || true
-        resize2fs /dev/sda1 || true
-        yum -y install podman
-
-    nix_cache:
-      folder: '.cache'
-      fingerprint_script: cat nix/*
-
-    build_script: |
-        set -ex
-        mkdir -p .cache
-        mv .cache /nix
-        if [[ -z $(ls -A /nix) ]]; then
-            podman run --rm --privileged -i -v /:/mnt \
-                $NIX_FQIN \
-                cp -rfT /nix /mnt/nix
-        fi
-        podman run --rm --privileged -i -v /nix:/nix \
-            -v ${PWD}:${PWD} -w ${PWD} \
-            $NIX_FQIN \
-            nix --print-build-logs --option cores 8 \
-            --option max-jobs 8 build --file nix/
-
-    binaries_artifacts:
-        path: "result/bin/buildah"
-
-    save_cache_script: |
-        mv /nix .cache
-        chown -Rf $(whoami) .cache
-
-
-integration_task:
-    name: "Integration $DISTRO_NV w/ $STORAGE_DRIVER"
-    alias: integration
-    only_if: *not_docs
-    depends_on:
-      - unit
-
-    matrix:
-        # VFS
-        - env:
-            DISTRO_NV: "${FEDORA_NAME}"
-            IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
-            STORAGE_DRIVER: 'vfs'
-        - env:
-            DISTRO_NV: "${PRIOR_FEDORA_NAME}"
-            IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-            STORAGE_DRIVER: 'vfs'
-        - env:
-            DISTRO_NV: "${UBUNTU_NAME}"
-            IMAGE_NAME: "${UBUNTU_CACHE_IMAGE_NAME}"
-            STORAGE_DRIVER: 'vfs'
-        - env:
-            DISTRO_NV: "${PRIOR_UBUNTU_NAME}"
-            IMAGE_NAME: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"
-            STORAGE_DRIVER: 'vfs'
-        # OVERLAY
-        - env:
-            DISTRO_NV: "${FEDORA_NAME}"
-            IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
-            STORAGE_DRIVER: 'overlay'
-        - env:
-            DISTRO_NV: "${PRIOR_FEDORA_NAME}"
-            IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-            STORAGE_DRIVER: 'overlay'
-        - env:
-            DISTRO_NV: "${UBUNTU_NAME}"
-            IMAGE_NAME: "${UBUNTU_CACHE_IMAGE_NAME}"
-            STORAGE_DRIVER: 'overlay'
-        - env:
-            DISTRO_NV: "${PRIOR_UBUNTU_NAME}"
-            IMAGE_NAME: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"
-            STORAGE_DRIVER: 'overlay'
-
-    gce_instance:
-        image_name: "$IMAGE_NAME"
-
-    # Separate scripts for separate outputs, makes debugging easier.
-    setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
-    build_script: '${SCRIPT_BASE}/build.sh |& ${_TIMESTAMP}'
-    integration_test_script: '${SCRIPT_BASE}/test.sh integration |& ${_TIMESTAMP}'
-
-    binary_artifacts:
-        path: ./bin/*
-
-    always: &standardlogs
-        audit_log_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh audit'
-        df_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh df'
-        journal_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh journal'
-        podman_system_info_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh podman'
-        buildah_version_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh buildah_version'
-        buildah_info_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh buildah_info'
-        package_versions_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh packages'
-        golang_version_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh golang'
-
-
-in_podman_task:
-    name: "Containerized Integration"
-    alias: in_podman
-    only_if: *not_docs
-    depends_on:
-        - unit
-
-    env:
-        # This is key, cause the scripts to re-execute themselves inside a container.
-        IN_PODMAN: 'true'
-        BUILDAH_ISOLATION: 'chroot'
-        STORAGE_DRIVER: 'vfs'
-
-    # Separate scripts for separate outputs, makes debugging easier.
-    setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
-    build_script: '${SCRIPT_BASE}/build.sh |& ${_TIMESTAMP}'
-    integration_test_script: '${SCRIPT_BASE}/test.sh integration |& ${_TIMESTAMP}'
-
-    binary_artifacts:
-        path: ./bin/*
-
-    always:
-        <<: *standardlogs
-
-
 # Status aggregator for all tests.  This task simply ensures a defined
 # set of tasks all passed, and allows confirming that based on the status
 # of this task.
@@ -350,13 +163,8 @@ success_task:
     depends_on:
       - meta
       - smoke
-      - unit
-      - conformance
       - vendor
-      - cross_build
-      - integration
-      - in_podman
-      - static_build
+      - conformance
 
     container:
         image: "quay.io/libpod/alpine:latest"
