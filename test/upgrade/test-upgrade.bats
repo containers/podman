@@ -146,6 +146,12 @@ EOF
     # cause connectivity issues since cni and netavark should never be mixed.
     mkdir -p /run/netns /run/cni /run/containers /var/lib/cni /etc/cni/net.d
 
+    # Containers-common around release 1-55 no-longer supplies this file
+    sconf=/etc/containers/storage.conf
+    v_sconf=
+    if [[ -e "$sconf" ]]; then
+        v_sconf="-v $sconf:$sconf"
+    fi
 
     #
     # Use new-podman to run the above script under old-podman.
@@ -165,7 +171,7 @@ EOF
             --net=host \
             --cgroupns=host \
             --pid=host \
-            -v /etc/containers/storage.conf:/etc/containers/storage.conf \
+            $v_sconf \
             -v /dev/fuse:/dev/fuse \
             -v /run/crun:/run/crun \
             -v /run/netns:/run/netns:rshared \
