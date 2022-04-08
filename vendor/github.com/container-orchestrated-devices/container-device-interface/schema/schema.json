@@ -1,0 +1,39 @@
+{
+    "description": "Configuration Schema for the Container Device Interface",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "cdiVersion": {
+            "description": "The version of the Container Device Interface Specification that the document complies with",
+            "type": "string"
+        },
+        "kind": {
+            "description": "The kind of the device usually of the form 'vendor.com/device'",
+            "type": "string"
+        },
+        "devices": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                      "description": "The name of the device",
+                      "type": "string"
+                    },
+                    "containerEdits": {
+                        "$ref": "defs.json#/definitions/containerEdits"
+                    }
+                },
+                "required": [
+                    "name",
+                    "containerEdits"
+                ]
+            }
+        }
+    },
+    "required": [
+        "cdiVersion",
+        "kind",
+        "devices"
+    ]
+}
