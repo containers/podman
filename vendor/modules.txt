@@ -63,7 +63,7 @@ github.com/container-orchestrated-devices/container-device-interface/pkg/cdi
 github.com/container-orchestrated-devices/container-device-interface/specs-go
 # github.com/containerd/cgroups v1.0.3
 github.com/containerd/cgroups/stats/v1
-# github.com/containerd/containerd v1.6.1
+# github.com/containerd/containerd v1.6.2
 github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/log
 github.com/containerd/containerd/pkg/userns
@@ -87,7 +87,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.1.1
 ## explicit
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.24.3-0.20220310160415-5ec70bf01ea5
+# github.com/containers/buildah v1.25.2-0.20220406205807-5b8e79118057
 ## explicit
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -109,7 +109,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.47.5-0.20220323125147-7dc6e944d625
+# github.com/containers/common v0.47.5-0.20220405040919-5d3a1effbf99
 ## explicit
 github.com/containers/common/libimage
 github.com/containers/common/libimage/manifests
@@ -153,7 +153,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.20.1-0.20220310094651-0d8056ee346f
+# github.com/containers/image/v5 v5.21.0
 ## explicit
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -233,7 +233,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.38.3-0.20220321121613-8e565392dd91
+# github.com/containers/storage v1.39.1-0.20220330193934-f3200eb5a5d9
 ## explicit
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -532,7 +532,7 @@ github.com/onsi/ginkgo/reporters/stenographer
 github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable
 github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty
 github.com/onsi/ginkgo/types
-# github.com/onsi/gomega v1.18.1 => github.com/onsi/gomega v1.16.0
+# github.com/onsi/gomega v1.19.0 => github.com/onsi/gomega v1.16.0
 ## explicit
 github.com/onsi/gomega
 github.com/onsi/gomega/format
@@ -554,7 +554,7 @@ github.com/opencontainers/go-digest
 ## explicit
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runc v1.1.0
+# github.com/opencontainers/runc v1.1.1
 ## explicit
 github.com/opencontainers/runc/libcontainer/apparmor
 github.com/opencontainers/runc/libcontainer/cgroups
@@ -574,13 +574,13 @@ github.com/opencontainers/runtime-tools/generate
 github.com/opencontainers/runtime-tools/generate/seccomp
 github.com/opencontainers/runtime-tools/specerror
 github.com/opencontainers/runtime-tools/validate
-# github.com/opencontainers/selinux v1.10.0
+# github.com/opencontainers/selinux v1.10.1
 ## explicit
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalk
 github.com/opencontainers/selinux/pkg/pwalkdir
-# github.com/openshift/imagebuilder v1.2.2
+# github.com/openshift/imagebuilder v1.2.3
 github.com/openshift/imagebuilder
 github.com/openshift/imagebuilder/dockerfile/command
 github.com/openshift/imagebuilder/dockerfile/parser
@@ -598,7 +598,6 @@ github.com/pmezard/go-difflib/difflib
 # github.com/proglottis/gpgme v0.1.1
 github.com/proglottis/gpgme
 # github.com/prometheus/client_golang v1.11.1
-## explicit
 github.com/prometheus/client_golang/prometheus
 github.com/prometheus/client_golang/prometheus/internal
 github.com/prometheus/client_golang/prometheus/promhttp
@@ -646,7 +645,7 @@ github.com/stefanberger/go-pkcs11uri
 ## explicit
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
-# github.com/sylabs/sif/v2 v2.4.0
+# github.com/sylabs/sif/v2 v2.4.2
 github.com/sylabs/sif/v2/pkg/sif
 # github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 ## explicit

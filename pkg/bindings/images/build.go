@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/containers/buildah/define"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/pkg/auth"
 	"github.com/containers/podman/v4/pkg/bindings"
 	"github.com/containers/podman/v4/pkg/domain/entities"
@@ -250,6 +251,12 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 
 	params.Set("pullpolicy", options.PullPolicy.String())
 
+	switch options.CommonBuildOpts.IdentityLabel {
+	case types.OptionalBoolTrue:
+		params.Set("identitylabel", "1")
+	case types.OptionalBoolFalse:
+		params.Set("identitylabel", "0")
+	}
 	if options.Quiet {
 		params.Set("q", "1")
 	}

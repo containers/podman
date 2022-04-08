@@ -49,15 +49,16 @@ func (r *Runtime) Import(ctx context.Context, path string, options *ImportOption
 		ic = config.ImageConfig
 	}
 
-	hist := []v1.History{
+	history := []v1.History{
 		{Comment: options.CommitMessage},
 	}
 
 	config := v1.Image{
 		Config:       ic,
-		History:      hist,
+		History:      history,
 		OS:           options.OS,
 		Architecture: options.Arch,
+		Variant:      options.Variant,
 	}
 
 	u, err := url.ParseRequestURI(path)

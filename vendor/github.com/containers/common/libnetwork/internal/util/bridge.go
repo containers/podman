@@ -27,7 +27,9 @@ func CreateBridge(n NetUtil, network *types.Network, usedNetworks []*net.IPNet, 
 		}
 	}
 
-	if network.IPAMOptions[types.Driver] != types.DHCPIPAMDriver {
+	ipamDriver := network.IPAMOptions[types.Driver]
+	// also do this when the driver is unset
+	if ipamDriver == "" || ipamDriver == types.HostLocalIPAMDriver {
 		if len(network.Subnets) == 0 {
 			freeSubnet, err := GetFreeIPv4NetworkSubnet(usedNetworks, subnetPools)
 			if err != nil {

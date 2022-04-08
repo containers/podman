@@ -95,7 +95,7 @@ func (c *openshiftClient) doRequest(ctx context.Context, method, path string, re
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	logrus.Debugf("%s %s", method, url.String())
+	logrus.Debugf("%s %s", method, url.Redacted())
 	res, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err

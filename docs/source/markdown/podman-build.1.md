@@ -320,6 +320,10 @@ Print usage statement
 
 Pass through HTTP Proxy environment variables.
 
+#### **--identity-label**
+
+Adds default identity label `io.buildah.version` if set. (default true).
+
 #### **--ignorefile**
 
 Path to an alternative .containerignore file.

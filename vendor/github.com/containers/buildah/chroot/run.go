@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -159,9 +160,23 @@ func RunUsingChroot(spec *specs.Spec, bundlePath, homeDir string, stdin io.Reade
 
 	// Start the grandparent subprocess.
 	cmd := unshare.Command(runUsingChrootCommand)
+	setPdeathsig(cmd.Cmd)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = stdin, stdout, stderr
 	cmd.Dir = "/"
 	cmd.Env = []string{fmt.Sprintf("LOGLEVEL=%d", logrus.GetLevel())}
+
+	interrupted := make(chan os.Signal, 100)
+	cmd.Hook = func(int) error {
+		signal.Notify(interrupted, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
+		go func() {
+			for receivedSignal := range interrupted {
+				if err := cmd.Process.Signal(receivedSignal); err != nil {
+					logrus.Infof("%v while attempting to forward %v to child process", err, receivedSignal)
+				}
+			}
+		}()
+		return nil
+	}
 
 	logrus.Debugf("Running %#v in %#v", cmd.Cmd, cmd)
 	confwg.Add(1)
@@ -173,6 +188,8 @@ func RunUsingChroot(spec *specs.Spec, bundlePath, homeDir string, stdin io.Reade
 	cmd.ExtraFiles = append([]*os.File{preader}, cmd.ExtraFiles...)
 	err = cmd.Run()
 	confwg.Wait()
+	signal.Stop(interrupted)
+	close(interrupted)
 	if err == nil {
 		return conferr
 	}
@@ -571,6 +588,7 @@ func runUsingChroot(spec *specs.Spec, bundlePath string, ctty *os.File, stdin io
 
 	// Start the parent subprocess.
 	cmd := unshare.Command(append([]string{runUsingChrootExecCommand}, spec.Process.Args...)...)
+	setPdeathsig(cmd.Cmd)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = stdin, stdout, stderr
 	cmd.Dir = "/"
 	cmd.Env = []string{fmt.Sprintf("LOGLEVEL=%d", logrus.GetLevel())}
@@ -593,10 +611,19 @@ func runUsingChroot(spec *specs.Spec, bundlePath string, ctty *os.File, stdin io
 	}
 	cmd.OOMScoreAdj = spec.Process.OOMScoreAdj
 	cmd.ExtraFiles = append([]*os.File{preader}, cmd.ExtraFiles...)
+	interrupted := make(chan os.Signal, 100)
 	cmd.Hook = func(int) error {
 		for _, f := range closeOnceRunning {
 			f.Close()
 		}
+		signal.Notify(interrupted, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
+		go func() {
+			for receivedSignal := range interrupted {
+				if err := cmd.Process.Signal(receivedSignal); err != nil {
+					logrus.Infof("%v while attempting to forward %v to child process", err, receivedSignal)
+				}
+			}
+		}()
 		return nil
 	}
 
@@ -609,6 +636,8 @@ func runUsingChroot(spec *specs.Spec, bundlePath string, ctty *os.File, stdin io
 	}()
 	err = cmd.Run()
 	confwg.Wait()
+	signal.Stop(interrupted)
+	close(interrupted)
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			if waitStatus, ok := exitError.ProcessState.Sys().(syscall.WaitStatus); ok {
@@ -792,11 +821,27 @@ func runUsingChrootExecMain() {
 
 	// Actually run the specified command.
 	cmd := exec.Command(args[0], args[1:]...)
+	setPdeathsig(cmd)
 	cmd.Env = options.Spec.Process.Env
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	cmd.Dir = cwd
 	logrus.Debugf("Running %#v (PATH = %q)", cmd, os.Getenv("PATH"))
-	if err = cmd.Run(); err != nil {
+	interrupted := make(chan os.Signal, 100)
+	if err = cmd.Start(); err != nil {
+		fmt.Fprintf(os.Stderr, "process failed to start with error: %v", err)
+	}
+	go func() {
+		for range interrupted {
+			if err := cmd.Process.Signal(syscall.SIGKILL); err != nil {
+				logrus.Infof("%v while attempting to send SIGKILL to child process", err)
+			}
+		}
+	}()
+	signal.Notify(interrupted, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
+	err = cmd.Wait()
+	signal.Stop(interrupted)
+	close(interrupted)
+	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			if waitStatus, ok := exitError.ProcessState.Sys().(syscall.WaitStatus); ok {
 				if waitStatus.Exited() {
@@ -897,7 +942,7 @@ func setCapabilities(spec *specs.Spec, keepCaps ...string) error {
 	capMap := map[capability.CapType][]string{
 		capability.BOUNDING:    spec.Process.Capabilities.Bounding,
 		capability.EFFECTIVE:   spec.Process.Capabilities.Effective,
-		capability.INHERITABLE: spec.Process.Capabilities.Inheritable,
+		capability.INHERITABLE: []string{},
 		capability.PERMITTED:   spec.Process.Capabilities.Permitted,
 		capability.AMBIENT:     spec.Process.Capabilities.Ambient,
 	}
@@ -1418,4 +1463,12 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		}
 	}
 	return undoBinds, nil
+}
+
+// setPdeathsig sets a parent-death signal for the process
+func setPdeathsig(cmd *exec.Cmd) {
+	if cmd.SysProcAttr == nil {
+		cmd.SysProcAttr = &syscall.SysProcAttr{}
+	}
+	cmd.SysProcAttr.Pdeathsig = syscall.SIGKILL
 }

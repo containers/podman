@@ -95,6 +95,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		ForceRm                bool     `schema:"forcerm"`
 		From                   string   `schema:"from"`
 		HTTPProxy              bool     `schema:"httpproxy"`
+		IdentityLabel          bool     `schema:"identitylabel"`
 		Ignore                 bool     `schema:"ignore"`
 		Isolation              string   `schema:"isolation"`
 		Jobs                   int      `schema:"jobs"` // nolint
@@ -126,10 +127,11 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		UnsetEnvs              []string `schema:"unsetenv"`
 		Secrets                string   `schema:"secrets"`
 	}{
-		Dockerfile: "Dockerfile",
-		Registry:   "docker.io",
-		Rm:         true,
-		ShmSize:    64 * 1024 * 1024,
+		Dockerfile:    "Dockerfile",
+		IdentityLabel: true,
+		Registry:      "docker.io",
+		Rm:            true,
+		ShmSize:       64 * 1024 * 1024,
 	}
 
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
@@ -522,6 +524,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			DNSSearch:          dnssearch,
 			DNSServers:         dnsservers,
 			HTTPProxy:          query.HTTPProxy,
+			IdentityLabel:      types.NewOptionalBool(query.IdentityLabel),
 			LabelOpts:          labelOpts,
 			Memory:             query.Memory,
 			MemorySwap:         query.MemSwap,

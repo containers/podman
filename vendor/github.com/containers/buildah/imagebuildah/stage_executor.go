@@ -1519,7 +1519,9 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 			s.builder.SetLabel(label[0], "")
 		}
 	}
-	s.builder.SetLabel(buildah.BuilderIdentityAnnotation, define.Version)
+	if s.executor.commonBuildOptions.IdentityLabel == types.OptionalBoolUndefined || s.executor.commonBuildOptions.IdentityLabel == types.OptionalBoolTrue {
+		s.builder.SetLabel(buildah.BuilderIdentityAnnotation, define.Version)
+	}
 	for _, annotationSpec := range s.executor.annotations {
 		annotation := strings.SplitN(annotationSpec, "=", 2)
 		if len(annotation) > 1 {
@@ -1570,5 +1572,9 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 }
 
 func (s *StageExecutor) EnsureContainerPath(path string) error {
-	return copier.Mkdir(s.mountPoint, filepath.Join(s.mountPoint, path), copier.MkdirOptions{})
+	return s.builder.EnsureContainerPathAs(path, "", nil)
+}
+
+func (s *StageExecutor) EnsureContainerPathAs(path, user string, mode *os.FileMode) error {
+	return s.builder.EnsureContainerPathAs(path, user, mode)
 }

@@ -245,7 +245,7 @@ func parseNetwork(network *types.Network) error {
 		return errors.Errorf("invalid network ID %q", network.ID)
 	}
 
-	// add gatway when not internal or dns enabled
+	// add gateway when not internal or dns enabled
 	addGateway := !network.Internal || network.DNSEnabled
 	return util.ValidateSubnets(network, addGateway, nil)
 }

@@ -27,9 +27,9 @@ go get github.com/fatih/camelcase
 ## Usage and examples
 
 ```go
-splitted := camelcase.Split("GolangPackage")
+split := camelcase.Split("GolangPackage")
 
-fmt.Println(splitted[0], splitted[1]) // prints: "Golang", "Package"
+fmt.Println(split[0], split[1]) // prints: "Golang", "Package"
 ```
 
 Both lower camel case and upper camel case are supported. For more info please

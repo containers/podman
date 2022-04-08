@@ -463,7 +463,11 @@ func (c *dockerClient) makeRequest(ctx context.Context, method, path string, hea
 		return nil, err
 	}
 
-	url := fmt.Sprintf("%s://%s%s", c.scheme, c.registry, path)
+	urlString := fmt.Sprintf("%s://%s%s", c.scheme, c.registry, path)
+	url, err := url.Parse(urlString)
+	if err != nil {
+		return nil, err
+	}
 	return c.makeRequestToResolvedURL(ctx, method, url, headers, stream, -1, auth, extraScope)
 }
 
@@ -500,7 +504,7 @@ func parseRetryAfter(res *http.Response, fallbackDelay time.Duration) time.Durat
 // makeRequest should generally be preferred.
 // In case of an HTTP 429 status code in the response, it may automatically retry a few times.
 // TODO(runcom): too many arguments here, use a struct
-func (c *dockerClient) makeRequestToResolvedURL(ctx context.Context, method, url string, headers map[string][]string, stream io.Reader, streamLen int64, auth sendAuth, extraScope *authScope) (*http.Response, error) {
+func (c *dockerClient) makeRequestToResolvedURL(ctx context.Context, method string, url *url.URL, headers map[string][]string, stream io.Reader, streamLen int64, auth sendAuth, extraScope *authScope) (*http.Response, error) {
 	delay := backoffInitialDelay
 	attempts := 0
 	for {
@@ -518,7 +522,7 @@ func (c *dockerClient) makeRequestToResolvedURL(ctx context.Context, method, url
 		if delay > backoffMaxDelay {
 			delay = backoffMaxDelay
 		}
-		logrus.Debugf("Too many requests to %s: sleeping for %f seconds before next attempt", url, delay.Seconds())
+		logrus.Debugf("Too many requests to %s: sleeping for %f seconds before next attempt", url.Redacted(), delay.Seconds())
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
@@ -533,12 +537,12 @@ func (c *dockerClient) makeRequestToResolvedURL(ctx context.Context, method, url
 // streamLen, if not -1, specifies the length of the data expected on stream.
 // makeRequest should generally be preferred.
 // Note that no exponential back off is performed when receiving an http 429 status code.
-func (c *dockerClient) makeRequestToResolvedURLOnce(ctx context.Context, method, url string, headers map[string][]string, stream io.Reader, streamLen int64, auth sendAuth, extraScope *authScope) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, method, url, stream)
+func (c *dockerClient) makeRequestToResolvedURLOnce(ctx context.Context, method string, url *url.URL, headers map[string][]string, stream io.Reader, streamLen int64, auth sendAuth, extraScope *authScope) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, method, url.String(), stream)
 	if err != nil {
 		return nil, err
 	}
-	if streamLen != -1 { // Do not blindly overwrite if streamLen == -1, http.NewRequest above can figure out the length of bytes.Reader and similar objects without us having to compute it.
+	if streamLen != -1 { // Do not blindly overwrite if streamLen == -1, http.NewRequestWithContext above can figure out the length of bytes.Reader and similar objects without us having to compute it.
 		req.ContentLength = streamLen
 	}
 	req.Header.Set("Docker-Distribution-API-Version", "registry/2.0")
@@ -553,7 +557,7 @@ func (c *dockerClient) makeRequestToResolvedURLOnce(ctx context.Context, method,
 			return nil, err
 		}
 	}
-	logrus.Debugf("%s %s", method, url)
+	logrus.Debugf("%s %s", method, url.Redacted())
 	res, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -653,7 +657,7 @@ func (c *dockerClient) getBearerTokenOAuth2(ctx context.Context, challenge chall
 	authReq.Body = ioutil.NopCloser(bytes.NewBufferString(params.Encode()))
 	authReq.Header.Add("User-Agent", c.userAgent)
 	authReq.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	logrus.Debugf("%s %s", authReq.Method, authReq.URL.String())
+	logrus.Debugf("%s %s", authReq.Method, authReq.URL.Redacted())
 	res, err := c.client.Do(authReq)
 	if err != nil {
 		return nil, err
@@ -705,7 +709,7 @@ func (c *dockerClient) getBearerToken(ctx context.Context, challenge challenge,
 	}
 	authReq.Header.Add("User-Agent", c.userAgent)
 
-	logrus.Debugf("%s %s", authReq.Method, authReq.URL.String())
+	logrus.Debugf("%s %s", authReq.Method, authReq.URL.Redacted())
 	res, err := c.client.Do(authReq)
 	if err != nil {
 		return nil, err
@@ -735,14 +739,17 @@ func (c *dockerClient) detectPropertiesHelper(ctx context.Context) error {
 	c.client = &http.Client{Transport: tr}
 
 	ping := func(scheme string) error {
-		url := fmt.Sprintf(resolvedPingV2URL, scheme, c.registry)
+		url, err := url.Parse(fmt.Sprintf(resolvedPingV2URL, scheme, c.registry))
+		if err != nil {
+			return err
+		}
 		resp, err := c.makeRequestToResolvedURL(ctx, http.MethodGet, url, nil, nil, -1, noAuth, nil)
 		if err != nil {
-			logrus.Debugf("Ping %s err %s (%#v)", url, err.Error(), err)
+			logrus.Debugf("Ping %s err %s (%#v)", url.Redacted(), err.Error(), err)
 			return err
 		}
 		defer resp.Body.Close()
-		logrus.Debugf("Ping %s status %d", url, resp.StatusCode)
+		logrus.Debugf("Ping %s status %d", url.Redacted(), resp.StatusCode)
 		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusUnauthorized {
 			return httpResponseToError(resp, "")
 		}
@@ -762,14 +769,17 @@ func (c *dockerClient) detectPropertiesHelper(ctx context.Context) error {
 		}
 		// best effort to understand if we're talking to a V1 registry
 		pingV1 := func(scheme string) bool {
-			url := fmt.Sprintf(resolvedPingV1URL, scheme, c.registry)
+			url, err := url.Parse(fmt.Sprintf(resolvedPingV1URL, scheme, c.registry))
+			if err != nil {
+				return false
+			}
 			resp, err := c.makeRequestToResolvedURL(ctx, http.MethodGet, url, nil, nil, -1, noAuth, nil)
 			if err != nil {
-				logrus.Debugf("Ping %s err %s (%#v)", url, err.Error(), err)
+				logrus.Debugf("Ping %s err %s (%#v)", url.Redacted(), err.Error(), err)
 				return false
 			}
 			defer resp.Body.Close()
-			logrus.Debugf("Ping %s status %d", url, resp.StatusCode)
+			logrus.Debugf("Ping %s status %d", url.Redacted(), resp.StatusCode)
 			if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusUnauthorized {
 				return false
 			}

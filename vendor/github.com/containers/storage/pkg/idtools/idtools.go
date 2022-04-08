@@ -190,7 +190,6 @@ func (i *IDMappings) RootPair() IDPair {
 }
 
 // ToHost returns the host UID and GID for the container uid, gid.
-// Remapping is only performed if the ids aren't already the remapped root ids
 func (i *IDMappings) ToHost(pair IDPair) (IDPair, error) {
 	var err error
 	var target IDPair

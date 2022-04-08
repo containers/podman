@@ -175,4 +175,6 @@ type runMountArtifacts struct {
 	Agents []*sshagent.AgentServer
 	// SSHAuthSock is the path to the ssh auth sock inside the container
 	SSHAuthSock string
+	// LockedTargets to be unlocked if there are any.
+	LockedTargets []string
 }

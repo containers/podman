@@ -82,7 +82,7 @@ func SignatureStorageBaseURL(sys *types.SystemContext, ref types.ImageReference,
 	} else {
 		// returns default directory if no sigstore specified in configuration file
 		url = builtinDefaultSignatureStorageDir(rootless.GetRootlessEUID())
-		logrus.Debugf(" No signature storage configuration found for %s, using built-in default %s", dr.PolicyConfigurationIdentity(), url.String())
+		logrus.Debugf(" No signature storage configuration found for %s, using built-in default %s", dr.PolicyConfigurationIdentity(), url.Redacted())
 	}
 	// NOTE: Keep this in sync with docs/signature-protocols.md!
 	// FIXME? Restrict to explicitly supported schemes?
