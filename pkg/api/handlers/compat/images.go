@@ -415,8 +415,9 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 		All     bool
 		Digests bool
 		Filter  string // Docker 1.24 compatibility
+		Size    bool
 	}{
-		// This is where you can override the golang default value for one of fields
+		Size: true,
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
@@ -443,7 +444,7 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 
-	listOptions := entities.ImageListOptions{All: query.All, Filter: filterList}
+	listOptions := entities.ImageListOptions{All: query.All, Filter: filterList, Size: query.Size}
 	summaries, err := imageEngine.List(r.Context(), listOptions)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, err)

@@ -87,6 +87,7 @@ func imageListFlagSet(cmd *cobra.Command) {
 	flags := cmd.Flags()
 
 	flags.BoolVarP(&listOptions.All, "all", "a", false, "Show all images (default hides intermediate images)")
+	flags.BoolVarP(&listOptions.Size, "size", "", true, "Compute the size of each image")
 
 	filterFlagName := "filter"
 	flags.StringSliceVarP(&listOptions.Filter, filterFlagName, "f", []string{}, "Filter output based on conditions provided (default [])")
@@ -320,7 +321,10 @@ func lsFormatFromFlags(flags listFlagType) string {
 		row = append(row, "{{.Digest}}")
 	}
 
-	row = append(row, "{{.ID}}", "{{.Created}}", "{{.Size}}")
+	row = append(row, "{{.ID}}", "{{.Created}}")
+	if listOptions.Size {
+		row = append(row, "{{.Size}}")
+	}
 
 	if flags.history {
 		row = append(row, "{{if .History}}{{.History}}{{else}}<none>{{end}}")

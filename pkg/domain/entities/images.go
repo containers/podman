@@ -251,6 +251,7 @@ type ImageSearchReport struct {
 type ImageListOptions struct {
 	All    bool     `json:"all" schema:"all"`
 	Filter []string `json:"Filter,omitempty"`
+	Size   bool     `json:"size" schema:"size"`
 }
 
 type ImagePruneOptions struct {
