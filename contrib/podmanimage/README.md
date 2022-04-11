@@ -18,9 +18,10 @@ The container images are:
 
   * `quay.io/containers/podman:<version>` and `quay.io/podman/stable:<version>` -
     These images are built daily.  They are intended to contain an unchanging
-    and stable version of podman. Though for the most recent `<version>` tag,
-    image contents will be updated to incorporate (especially) security upgrades.
-    For build details, please [see the configuration file](stable/Dockerfile).
+    and stable version of podman. For the most recent `<version>` tags (`vX`,
+    `vX.Y`, and `vX.Y.Z`) the image contents will be updated daily to incorporate
+    (especially) security upgrades.  For build details, please [see the
+    configuration file](stable/Dockerfile).
   * `quay.io/containers/podman:latest` and `quay.io/podman/stable:latest` -
     Built daily using the same Dockerfile as above.  The Podman version
     will remain the "latest" available in Fedora, however the other image
