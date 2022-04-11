@@ -99,9 +99,7 @@ EOF
     local t1=$SECONDS
     local delta_t=$((t1 - t0))
     if [[ $delta_t -gt 10 ]]; then
-        # FIXME FIXME FIXME: when buildah issue 3544 gets fixed and vendored,
-        # change 'echo' to 'die'
-        echo "podman build did not get killed within 10 seconds (actual time: $delta_t seconds)"
+        die "podman build did not get killed within 10 seconds (actual time: $delta_t seconds)"
     fi
 
     run_podman ps -a
