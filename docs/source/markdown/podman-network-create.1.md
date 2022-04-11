@@ -49,6 +49,16 @@ Allocate container IP from a range.  The range must be a complete subnet and in 
 must be used with a *subnet* option. Can be specified multiple times.
 The argument order of the **--subnet**, **--gateway** and **--ip-range** options must match.
 
+#### **--ipam-driver**=*driver*
+
+Set the ipam driver (IP Address Management Driver) for the network. When unset podman will choose an
+ipam driver automatically based on the network driver. Valid values are:
+ - `host-local`: IP addresses are assigned locally.
+ - `dhcp`: IP addresses are assigned from a dhcp server on your network. This driver is not yet supported with netavark.
+ - `none`: No ip addresses are assigned to the interfaces.
+
+You can see the driver in the **podman network inspect** output under the `ipam_options` field.
+
 #### **--ipv6**
 
 Enable IPv6 (Dual Stack) networking. If not subnets are given it will allocate a ipv4 and ipv6 subnet.

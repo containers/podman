@@ -1115,6 +1115,13 @@ func AutocompleteNetworkDriver(cmd *cobra.Command, args []string, toComplete str
 	return drivers, cobra.ShellCompDirectiveNoFileComp
 }
 
+// AutocompleteNetworkIPAMDriver - Autocomplete network ipam driver option.
+// -> "bridge", "macvlan"
+func AutocompleteNetworkIPAMDriver(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	drivers := []string{types.HostLocalIPAMDriver, types.DHCPIPAMDriver, types.NoneIPAMDriver}
+	return drivers, cobra.ShellCompDirectiveNoFileComp
+}
+
 // AutocompletePodShareNamespace - Autocomplete pod create --share flag option.
 // -> "ipc", "net", "pid", "user", "uts", "cgroup", "none"
 func AutocompletePodShareNamespace(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
