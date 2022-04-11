@@ -553,8 +553,8 @@ test: localunit localintegration remoteintegration localsystem remotesystem  ## 
 
 .PHONY: ginkgo-run
 ginkgo-run:
-	$(GOBIN)/ginkgo version
-	$(GOBIN)/ginkgo -v $(TESTFLAGS) -tags "$(TAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -nodes 3 -debug test/e2e/. $(HACK)
+	ACK_GINKGO_RC=true $(GOBIN)/ginkgo version
+	ACK_GINKGO_RC=true $(GOBIN)/ginkgo -v $(TESTFLAGS) -tags "$(TAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -nodes 3 -debug test/e2e/. $(HACK)
 
 .PHONY: ginkgo
 ginkgo:
@@ -569,6 +569,14 @@ localintegration: test-binaries ginkgo
 
 .PHONY: remoteintegration
 remoteintegration: test-binaries ginkgo-remote
+
+.PHONY: localbenchmarks
+localbenchmarks: test-binaries
+	ACK_GINKGO_RC=true $(GOBIN)/ginkgo \
+		      -focus "Podman Benchmark Suite" \
+		      -tags "$(BUILDTAGS) benchmarks" -noColor \
+		      -noisySkippings=false -noisyPendings=false \
+		      test/e2e/.
 
 .PHONY: localsystem
 localsystem:

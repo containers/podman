@@ -27,6 +27,8 @@ const (
 	CNI NetworkBackend = iota
 	// Netavark network backend
 	Netavark NetworkBackend = iota
+	// Env variable for creating time files.
+	EnvTimeDir = "_PODMAN_TIME_DIR"
 )
 
 func (n NetworkBackend) ToString() string {
@@ -96,6 +98,17 @@ func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string
 	if p.RemoteTest {
 		podmanBinary = p.RemotePodmanBinary
 	}
+
+	if timeDir := os.Getenv(EnvTimeDir); timeDir != "" {
+		timeFile, err := ioutil.TempFile(timeDir, ".time")
+		if err != nil {
+			Fail(fmt.Sprintf("Error creating time file: %v", err))
+		}
+		timeArgs := []string{"-f", "%M", "-o", timeFile.Name()}
+		timeCmd := append([]string{"/usr/bin/time"}, timeArgs...)
+		wrapper = append(timeCmd, wrapper...)
+	}
+
 	runCmd := append(wrapper, podmanBinary)
 	if p.NetworkBackend == Netavark {
 		runCmd = append(runCmd, []string{"--network-backend", "netavark"}...)
