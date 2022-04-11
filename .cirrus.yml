@@ -776,8 +776,8 @@ image_build_task: &image-build
 
 test_image_build_task:
     <<: *image-build
-    # Allow this to run inside a PR
-    only_if: $CI == $CI
+    # Allow this to run inside a PR w/ [CI:BUILD]
+    only_if: $CIRRUS_PR != '' && $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
     # This takes a LONG time, only run when requested.  N/B: Any task
     # made to depend on this one will block FOREVER unless triggered.
     trigger_type: manual
