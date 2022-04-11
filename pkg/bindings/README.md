@@ -30,6 +30,10 @@ rootful connections is `/run/podman/podman.sock` and for rootless it is `/run/US
 information about the Podman system service, see `man podman-system-service`.
 
 ### Creating a connection
+Ensure the [required dependencies](https://podman.io/getting-started/installation#build-and-run-dependencies) are installed,
+as they will be required to compile a Go program making use of the bindings.
+
+
 The first step for using the bindings is to create a connection to the socket.  As mentioned earlier, the destination
 of the socket depends on the user who owns it. In this case, a rootful connection is made.
 
