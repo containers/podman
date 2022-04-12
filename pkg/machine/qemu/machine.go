@@ -859,6 +859,9 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 	return confirmationMessage, func() error {
 		for _, f := range files {
 			if err := os.Remove(f); err != nil {
+				if errors.Is(err, os.ErrNotExist) {
+					continue
+				}
 				logrus.Error(err)
 			}
 		}
