@@ -209,15 +209,16 @@ func Checkpoint(w http.ResponseWriter, r *http.Request) {
 
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
-		Keep           bool `schema:"keep"`
-		LeaveRunning   bool `schema:"leaveRunning"`
-		TCPEstablished bool `schema:"tcpEstablished"`
-		Export         bool `schema:"export"`
-		IgnoreRootFS   bool `schema:"ignoreRootFS"`
-		PrintStats     bool `schema:"printStats"`
-		PreCheckpoint  bool `schema:"preCheckpoint"`
-		WithPrevious   bool `schema:"withPrevious"`
-		FileLocks      bool `schema:"fileLocks"`
+		Keep           bool   `schema:"keep"`
+		LeaveRunning   bool   `schema:"leaveRunning"`
+		TCPEstablished bool   `schema:"tcpEstablished"`
+		Export         bool   `schema:"export"`
+		IgnoreRootFS   bool   `schema:"ignoreRootFS"`
+		PrintStats     bool   `schema:"printStats"`
+		PreCheckpoint  bool   `schema:"preCheckpoint"`
+		WithPrevious   bool   `schema:"withPrevious"`
+		FileLocks      bool   `schema:"fileLocks"`
+		CreateImage    string `schema:"createImage"`
 	}{
 		// override any golang type defaults
 	}
@@ -243,6 +244,7 @@ func Checkpoint(w http.ResponseWriter, r *http.Request) {
 		PreCheckPoint:  query.PreCheckpoint,
 		WithPrevious:   query.WithPrevious,
 		FileLocks:      query.FileLocks,
+		CreateImage:    query.CreateImage,
 	}
 
 	if query.Export {
@@ -341,8 +343,17 @@ func Restore(w http.ResponseWriter, r *http.Request) {
 	} else {
 		name := utils.GetName(r)
 		if _, err := runtime.LookupContainer(name); err != nil {
-			utils.ContainerNotFound(w, name, err)
-			return
+			// If container was not found, check if this is a checkpoint image
+			ir := abi.ImageEngine{Libpod: runtime}
+			report, err := ir.Exists(r.Context(), name)
+			if err != nil {
+				utils.Error(w, http.StatusNotFound, errors.Wrapf(err, "failed to find container or checkpoint image %s", name))
+				return
+			}
+			if !report.Value {
+				utils.Error(w, http.StatusNotFound, errors.Errorf("failed to find container or checkpoint image %s", name))
+				return
+			}
 		}
 		names = []string{name}
 	}

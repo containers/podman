@@ -22,9 +22,7 @@ import (
 
 // Prefixing the checkpoint/restore related functions with 'cr'
 
-// CRImportCheckpoint it the function which imports the information
-// from checkpoint tarball and re-creates the container from that information
-func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOptions entities.RestoreOptions) ([]*libpod.Container, error) {
+func CRImportCheckpointTar(ctx context.Context, runtime *libpod.Runtime, restoreOptions entities.RestoreOptions) ([]*libpod.Container, error) {
 	// First get the container definition from the
 	// tarball to a temporary directory
 	dir, err := ioutil.TempDir("", "checkpoint")
@@ -39,7 +37,12 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 	if err := crutils.CRImportCheckpointConfigOnly(dir, restoreOptions.Import); err != nil {
 		return nil, err
 	}
+	return CRImportCheckpoint(ctx, runtime, restoreOptions, dir)
+}
 
+// CRImportCheckpoint it the function which imports the information
+// from checkpoint tarball and re-creates the container from that information
+func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOptions entities.RestoreOptions, dir string) ([]*libpod.Container, error) {
 	// Load spec.dump from temporary directory
 	dumpSpec := new(spec.Spec)
 	if _, err := metadata.ReadJSONFile(dumpSpec, dir, metadata.SpecDumpFile); err != nil {
@@ -48,7 +51,7 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 
 	// Load config.dump from temporary directory
 	ctrConfig := new(libpod.ContainerConfig)
-	if _, err = metadata.ReadJSONFile(ctrConfig, dir, metadata.ConfigDumpFile); err != nil {
+	if _, err := metadata.ReadJSONFile(ctrConfig, dir, metadata.ConfigDumpFile); err != nil {
 		return nil, err
 	}
 

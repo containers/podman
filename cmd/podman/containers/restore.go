@@ -10,9 +10,9 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/cmd/podman/validate"
+	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/rootless"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -23,15 +23,16 @@ var (
    Restores a container from a checkpoint. The container name or ID can be used.
 `
 	restoreCommand = &cobra.Command{
-		Use:   "restore [options] CONTAINER [CONTAINER...]",
+		Use:   "restore [options] CONTAINER|IMAGE [CONTAINER|IMAGE...]",
 		Short: "Restores one or more containers from a checkpoint",
 		Long:  restoreDescription,
 		RunE:  restore,
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndCIDFile(cmd, args, true, false)
 		},
-		ValidArgsFunction: common.AutocompleteContainers,
+		ValidArgsFunction: common.AutocompleteContainersAndImages,
 		Example: `podman container restore ctrID
+  podman container restore imageID
   podman container restore --latest
   podman container restore --all`,
 	}
@@ -60,7 +61,7 @@ func init() {
 	_ = restoreCommand.RegisterFlagCompletionFunc(importFlagName, completion.AutocompleteDefault)
 
 	nameFlagName := "name"
-	flags.StringVarP(&restoreOptions.Name, nameFlagName, "n", "", "Specify new name for container restored from exported checkpoint (only works with --import)")
+	flags.StringVarP(&restoreOptions.Name, nameFlagName, "n", "", "Specify new name for container restored from exported checkpoint (only works with image or --import)")
 	_ = restoreCommand.RegisterFlagCompletionFunc(nameFlagName, completion.AutocompleteNone)
 
 	importPreviousFlagName := "import-previous"
@@ -78,7 +79,7 @@ func init() {
 	)
 	_ = restoreCommand.RegisterFlagCompletionFunc("publish", completion.AutocompleteNone)
 
-	flags.StringVar(&restoreOptions.Pod, "pod", "", "Restore container into existing Pod (only works with --import)")
+	flags.StringVar(&restoreOptions.Pod, "pod", "", "Restore container into existing Pod (only works with image or --import)")
 	_ = restoreCommand.RegisterFlagCompletionFunc("pod", common.AutocompletePodsRunning)
 
 	flags.BoolVar(
@@ -95,25 +96,51 @@ func restore(cmd *cobra.Command, args []string) error {
 	var errs utils.OutputErrors
 	podmanStart := time.Now()
 	if rootless.IsRootless() {
-		return errors.New("restoring a container requires root")
+		return fmt.Errorf("restoring a container requires root")
 	}
-	if restoreOptions.Import == "" && restoreOptions.ImportPrevious != "" {
-		return errors.Errorf("--import-previous can only be used with --import")
+
+	// Find out if this is an image
+	inspectOpts := entities.InspectOptions{}
+	imgData, _, err := registry.ImageEngine().Inspect(context.Background(), args, inspectOpts)
+	if err != nil {
+		return err
 	}
-	if restoreOptions.Import == "" && restoreOptions.IgnoreRootFS {
-		return errors.Errorf("--ignore-rootfs can only be used with --import")
+
+	hostInfo, err := registry.ContainerEngine().Info(context.Background())
+	if err != nil {
+		return err
 	}
-	if restoreOptions.Import == "" && restoreOptions.IgnoreVolumes {
-		return errors.Errorf("--ignore-volumes can only be used with --import")
+
+	for i := range imgData {
+		restoreOptions.CheckpointImage = true
+		checkpointRuntimeName, found := imgData[i].Annotations[define.CheckpointAnnotationRuntimeName]
+		if !found {
+			return fmt.Errorf("image is not a checkpoint: %s", imgData[i].ID)
+		}
+		if hostInfo.Host.OCIRuntime.Name != checkpointRuntimeName {
+			return fmt.Errorf("container image \"%s\" requires runtime: \"%s\"", imgData[i].ID, checkpointRuntimeName)
+		}
 	}
-	if restoreOptions.Import == "" && restoreOptions.Name != "" {
-		return errors.Errorf("--name can only be used with --import")
+
+	notImport := (!restoreOptions.CheckpointImage && restoreOptions.Import == "")
+
+	if notImport && restoreOptions.ImportPrevious != "" {
+		return fmt.Errorf("--import-previous can only be used with image or --import")
 	}
-	if restoreOptions.Import == "" && restoreOptions.Pod != "" {
-		return errors.Errorf("--pod can only be used with --import")
+	if notImport && restoreOptions.IgnoreRootFS {
+		return fmt.Errorf("--ignore-rootfs can only be used with image or --import")
+	}
+	if notImport && restoreOptions.IgnoreVolumes {
+		return fmt.Errorf("--ignore-volumes can only be used with image or --import")
+	}
+	if notImport && restoreOptions.Name != "" {
+		return fmt.Errorf("--name can only be used with image or --import")
+	}
+	if notImport && restoreOptions.Pod != "" {
+		return fmt.Errorf("--pod can only be used with image or --import")
 	}
 	if restoreOptions.Name != "" && restoreOptions.TCPEstablished {
-		return errors.Errorf("--tcp-established cannot be used with --name")
+		return fmt.Errorf("--tcp-established cannot be used with --name")
 	}
 
 	inputPorts, err := cmd.Flags().GetStringSlice("publish")
@@ -125,17 +152,20 @@ func restore(cmd *cobra.Command, args []string) error {
 	argLen := len(args)
 	if restoreOptions.Import != "" {
 		if restoreOptions.All || restoreOptions.Latest {
-			return errors.Errorf("Cannot use --import with --all or --latest")
+			return fmt.Errorf("cannot use --import with --all or --latest")
 		}
 		if argLen > 0 {
-			return errors.Errorf("Cannot use --import with positional arguments")
+			return fmt.Errorf("cannot use --import with positional arguments")
 		}
 	}
 	if (restoreOptions.All || restoreOptions.Latest) && argLen > 0 {
-		return errors.Errorf("--all or --latest and containers cannot be used together")
+		return fmt.Errorf("--all or --latest and containers cannot be used together")
 	}
 	if argLen < 1 && !restoreOptions.All && !restoreOptions.Latest && restoreOptions.Import == "" {
-		return errors.Errorf("you must provide at least one name or id")
+		return fmt.Errorf("you must provide at least one name or id")
+	}
+	if argLen > 1 && restoreOptions.Name != "" {
+		return fmt.Errorf("--name can only be used with one checkpoint image")
 	}
 	responses, err := registry.ContainerEngine().ContainerRestore(context.Background(), args, restoreOptions)
 	if err != nil {

@@ -28,6 +28,11 @@ func CheckForCriu(version int) bool {
 	return result
 }
 
+func GetCriuVestion() (int, error) {
+	c := criu.MakeCriu()
+	return c.GetCriuVersion()
+}
+
 func MemTrack() bool {
 	features, err := criu.MakeCriu().FeatureCheck(
 		&rpc.CriuFeatures{

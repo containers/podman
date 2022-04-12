@@ -32,6 +32,21 @@ func (o *CheckpointOptions) GetExport() string {
 	return *o.Export
 }
 
+// WithCreateImage set field CreateImage to given value
+func (o *CheckpointOptions) WithCreateImage(value string) *CheckpointOptions {
+	o.CreateImage = &value
+	return o
+}
+
+// GetCreateImage returns value of field CreateImage
+func (o *CheckpointOptions) GetCreateImage() string {
+	if o.CreateImage == nil {
+		var z string
+		return z
+	}
+	return *o.CreateImage
+}
+
 // WithIgnoreRootfs set field IgnoreRootfs to given value
 func (o *CheckpointOptions) WithIgnoreRootfs(value bool) *CheckpointOptions {
 	o.IgnoreRootfs = &value

@@ -68,6 +68,10 @@ func init() {
 	flags.BoolVarP(&checkpointOptions.PreCheckPoint, "pre-checkpoint", "P", false, "Dump container's memory information only, leave the container running")
 	flags.BoolVar(&checkpointOptions.WithPrevious, "with-previous", false, "Checkpoint container with pre-checkpoint images")
 
+	createImageFlagName := "create-image"
+	flags.StringVarP(&checkpointOptions.CreateImage, createImageFlagName, "", "", "Create checkpoint image with specified name")
+	_ = checkpointCommand.RegisterFlagCompletionFunc(createImageFlagName, completion.AutocompleteNone)
+
 	flags.StringP("compress", "c", "zstd", "Select compression algorithm (gzip, none, zstd) for checkpoint archive.")
 	_ = checkpointCommand.RegisterFlagCompletionFunc("compress", common.AutocompleteCheckpointCompressType)
 

@@ -54,7 +54,6 @@ func CRImportCheckpointConfigOnly(destination, input string) error {
 	options := &archive.TarOptions{
 		// Here we only need the files config.dump and spec.dump
 		ExcludePatterns: []string{
-			"volumes",
 			"ctr.log",
 			"artifacts",
 			stats.StatsDump,
@@ -62,6 +61,7 @@ func CRImportCheckpointConfigOnly(destination, input string) error {
 			metadata.DeletedFilesFile,
 			metadata.NetworkStatusFile,
 			metadata.CheckpointDirectory,
+			metadata.CheckpointVolumesDirectory,
 		},
 	}
 	if err = archive.Untar(archiveFile, destination, options); err != nil {

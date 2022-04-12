@@ -754,6 +754,9 @@ type ContainerCheckpointOptions struct {
 	// TargetFile tells the API to read (or write) the checkpoint image
 	// from (or to) the filename set in TargetFile
 	TargetFile string
+	// CheckpointImageID tells the API to restore the container from
+	// checkpoint image with ID set in CheckpointImageID
+	CheckpointImageID string
 	// Name tells the API that during restore from an exported
 	// checkpoint archive a new name should be used for the
 	// restored container
@@ -781,6 +784,9 @@ type ContainerCheckpointOptions struct {
 	// ImportPrevious tells the API to restore container with two
 	// images. One is TargetFile, the other is ImportPrevious.
 	ImportPrevious string
+	// CreateImage tells Podman to create an OCI image from container
+	// checkpoint in the local image store.
+	CreateImage string
 	// Compression tells the API which compression to use for
 	// the exported checkpoint archive.
 	Compression archive.Compression

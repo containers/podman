@@ -563,6 +563,7 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 		Compression:    options.Compression,
 		PrintStats:     options.PrintStats,
 		FileLocks:      options.FileLocks,
+		CreateImage:    options.CreateImage,
 	}
 
 	if options.All {
@@ -592,8 +593,9 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 
 func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []string, options entities.RestoreOptions) ([]*entities.RestoreReport, error) {
 	var (
-		cons []*libpod.Container
-		err  error
+		containers                  []*libpod.Container
+		checkpointImageImportErrors []error
+		err                         error
 	)
 
 	restoreOptions := libpod.ContainerCheckpointOptions{
@@ -619,17 +621,49 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 
 	switch {
 	case options.Import != "":
-		cons, err = checkpoint.CRImportCheckpoint(ctx, ic.Libpod, options)
+		containers, err = checkpoint.CRImportCheckpointTar(ctx, ic.Libpod, options)
 	case options.All:
-		cons, err = ic.Libpod.GetContainers(filterFuncs...)
+		containers, err = ic.Libpod.GetContainers(filterFuncs...)
+	case options.Latest:
+		containers, err = getContainersByContext(false, options.Latest, namesOrIds, ic.Libpod)
 	default:
-		cons, err = getContainersByContext(false, options.Latest, namesOrIds, ic.Libpod)
+		for _, nameOrID := range namesOrIds {
+			logrus.Debugf("lookup container: %q", nameOrID)
+			ctr, err := ic.Libpod.LookupContainer(nameOrID)
+			if err == nil {
+				containers = append(containers, ctr)
+			} else {
+				// If container was not found, check if this is a checkpoint image
+				logrus.Debugf("lookup image: %q", nameOrID)
+				img, _, err := ic.Libpod.LibimageRuntime().LookupImage(nameOrID, nil)
+				if err != nil {
+					return nil, fmt.Errorf("no such container or image: %s", nameOrID)
+				}
+				restoreOptions.CheckpointImageID = img.ID()
+				mountPoint, err := img.Mount(ctx, nil, "")
+				defer img.Unmount(true)
+				if err != nil {
+					return nil, err
+				}
+				importedContainers, err := checkpoint.CRImportCheckpoint(ctx, ic.Libpod, options, mountPoint)
+				if err != nil {
+					// CRImportCheckpoint is expected to import exactly one container from checkpoint image
+					checkpointImageImportErrors = append(
+						checkpointImageImportErrors,
+						errors.Errorf("unable to import checkpoint from image: %q: %v", nameOrID, err),
+					)
+				} else {
+					containers = append(containers, importedContainers[0])
+				}
+			}
+		}
 	}
 	if err != nil {
 		return nil, err
 	}
-	reports := make([]*entities.RestoreReport, 0, len(cons))
-	for _, con := range cons {
+
+	reports := make([]*entities.RestoreReport, 0, len(containers))
+	for _, con := range containers {
 		criuStatistics, runtimeRestoreDuration, err := con.Restore(ctx, restoreOptions)
 		reports = append(reports, &entities.RestoreReport{
 			Err:             err,
@@ -638,6 +672,13 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 			CRIUStatistics:  criuStatistics,
 		})
 	}
+
+	for _, importErr := range checkpointImageImportErrors {
+		reports = append(reports, &entities.RestoreReport{
+			Err: importErr,
+		})
+	}
+
 	return reports, nil
 }
 
