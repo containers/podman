@@ -1,5 +1,15 @@
 # Release Notes
 
+## 3.4.5
+### Security
+- This release addresses CVE-2022-27649, where Podman would set excess inheritable capabilities for processes in containers.
+
+### Bugfixes
+- Fixed a bug where the `podman images` command could, under some circumstances, take an excessive amount of time to list images ([#11997](https://github.com/containers/podman/issues/11997)).
+
+### Misc
+- Updates the containers/common library to v0.44.5
+
 ## 3.4.4
 ### Bugfixes
 - Fixed a bug where the `podman exec` command would, under some circumstances, print a warning message about failing to move `conmon` to the appropriate cgroup ([#12535](https://github.com/containers/podman/issues/12535)).
