@@ -36,7 +36,7 @@ func (o overlayWhiteoutConverter) ConvertWrite(hdr *tar.Header, path string, fi 
 		// we just rename the file and make it normal
 		dir, filename := filepath.Split(hdr.Name)
 		hdr.Name = filepath.Join(dir, WhiteoutPrefix+filename)
-		hdr.Mode = 0600
+		hdr.Mode = 0
 		hdr.Typeflag = tar.TypeReg
 		hdr.Size = 0
 	}

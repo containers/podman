@@ -109,7 +109,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.47.5-0.20220405040919-5d3a1effbf99
+# github.com/containers/common v0.47.5-0.20220406101255-3dd66c046c25
 ## explicit
 github.com/containers/common/libimage
 github.com/containers/common/libimage/manifests
@@ -153,7 +153,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.21.0
+# github.com/containers/image/v5 v5.21.1-0.20220405081457-d1b64686e1d0
 ## explicit
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -233,7 +233,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.39.1-0.20220406221121-28f3ba9b891d
+# github.com/containers/storage v1.39.1-0.20220412073713-ea4008e14877
 ## explicit
 github.com/containers/storage
 github.com/containers/storage/drivers

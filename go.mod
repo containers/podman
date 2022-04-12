@@ -12,12 +12,12 @@ require (
 	github.com/containernetworking/cni v1.0.1
 	github.com/containernetworking/plugins v1.1.1
 	github.com/containers/buildah v1.25.2-0.20220406205807-5b8e79118057
-	github.com/containers/common v0.47.5-0.20220405040919-5d3a1effbf99
+	github.com/containers/common v0.47.5-0.20220406101255-3dd66c046c25
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.21.0
+	github.com/containers/image/v5 v5.21.1-0.20220405081457-d1b64686e1d0
 	github.com/containers/ocicrypt v1.1.3
 	github.com/containers/psgo v1.7.2
-	github.com/containers/storage v1.39.1-0.20220406221121-28f3ba9b891d
+	github.com/containers/storage v1.39.1-0.20220412073713-ea4008e14877
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
 	github.com/cyphar/filepath-securejoin v0.2.3

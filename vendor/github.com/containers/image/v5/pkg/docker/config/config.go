@@ -15,6 +15,7 @@ import (
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/homedir"
+	"github.com/containers/storage/pkg/ioutils"
 	helperclient "github.com/docker/docker-credential-helpers/client"
 	"github.com/docker/docker-credential-helpers/credentials"
 	"github.com/hashicorp/go-multierror"
@@ -605,7 +606,7 @@ func modifyJSON(sys *types.SystemContext, editor func(auths *dockerConfigFile) (
 			return "", errors.Wrapf(err, "marshaling JSON %q", path)
 		}
 
-		if err = ioutil.WriteFile(path, newData, 0600); err != nil {
+		if err = ioutils.AtomicWriteFile(path, newData, 0600); err != nil {
 			return "", errors.Wrapf(err, "writing to file %q", path)
 		}
 	}
