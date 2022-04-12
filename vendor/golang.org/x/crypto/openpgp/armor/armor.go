@@ -4,6 +4,12 @@
 
 // Package armor implements OpenPGP ASCII Armor, see RFC 4880. OpenPGP Armor is
 // very similar to PEM except that it has an additional CRC checksum.
+//
+// Deprecated: this package is unmaintained except for security fixes. New
+// applications should consider a more focused, modern alternative to OpenPGP
+// for their specific task. If you are required to interoperate with OpenPGP
+// systems and need a maintained package, consider a community fork.
+// See https://golang.org/issue/44226.
 package armor // import "golang.org/x/crypto/openpgp/armor"
 
 import (
@@ -17,12 +23,14 @@ import (
 // A Block represents an OpenPGP armored structure.
 //
 // The encoded form is:
-//    -----BEGIN Type-----
-//    Headers
 //
-//    base64-encoded Bytes
-//    '=' base64 encoded checksum
-//    -----END Type-----
+//	-----BEGIN Type-----
+//	Headers
+//
+//	base64-encoded Bytes
+//	'=' base64 encoded checksum
+//	-----END Type-----
+//
 // where Headers is a possibly empty sequence of Key: Value lines.
 //
 // Since the armored data can be very large, this package presents a streaming

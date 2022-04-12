@@ -8,7 +8,8 @@
 // ssh-agent process using the sample server.
 //
 // References:
-//  [PROTOCOL.agent]: https://tools.ietf.org/html/draft-miller-ssh-agent-00
+//
+//	[PROTOCOL.agent]: https://tools.ietf.org/html/draft-miller-ssh-agent-00
 package agent // import "golang.org/x/crypto/ssh/agent"
 
 import (
@@ -25,7 +26,6 @@ import (
 	"math/big"
 	"sync"
 
-	"crypto"
 	"golang.org/x/crypto/ed25519"
 	"golang.org/x/crypto/ssh"
 )
@@ -771,18 +771,25 @@ func (s *agentKeyringSigner) Sign(rand io.Reader, data []byte) (*ssh.Signature, 
 	return s.agent.Sign(s.pub, data)
 }
 
-func (s *agentKeyringSigner) SignWithOpts(rand io.Reader, data []byte, opts crypto.SignerOpts) (*ssh.Signature, error) {
-	var flags SignatureFlags
-	if opts != nil {
-		switch opts.HashFunc() {
-		case crypto.SHA256:
-			flags = SignatureFlagRsaSha256
-		case crypto.SHA512:
-			flags = SignatureFlagRsaSha512
-		}
+func (s *agentKeyringSigner) SignWithAlgorithm(rand io.Reader, data []byte, algorithm string) (*ssh.Signature, error) {
+	if algorithm == "" || algorithm == s.pub.Type() {
+		return s.Sign(rand, data)
 	}
+
+	var flags SignatureFlags
+	switch algorithm {
+	case ssh.KeyAlgoRSASHA256:
+		flags = SignatureFlagRsaSha256
+	case ssh.KeyAlgoRSASHA512:
+		flags = SignatureFlagRsaSha512
+	default:
+		return nil, fmt.Errorf("agent: unsupported algorithm %q", algorithm)
+	}
+
 	return s.agent.SignWithFlags(s.pub, data, flags)
 }
+
+var _ ssh.AlgorithmSigner = &agentKeyringSigner{}
 
 // Calls an extension method. It is up to the agent implementation as to whether or not
 // any particular extension is supported and may always return an error. Because the
