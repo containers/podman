@@ -328,6 +328,35 @@ class ContainerTestCase(APITestCase):
             self.fail("Server failed to respond in 10s")
         top.join()
 
+    def test_memory(self):
+        r = requests.post(
+            self.podman_url + "/v1.4.0/libpod/containers/create",
+            json={
+                "Name": "memory",
+                "Cmd": ["top"],
+                "Image": "alpine:latest",
+                "Resource_Limits": {
+                    "Memory":{
+                        "Limit": 1000,
+                    },
+                    "CPU":{
+                        "Shares": 200,
+                    },
+                },
+            },
+        )
+        self.assertEqual(r.status_code, 201, r.text)
+        payload = r.json()
+        container_id = payload["Id"]
+        self.assertIsNotNone(container_id)
+
+        r = requests.get(self.podman_url + f"/v1.40/containers/{container_id}/json")
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertId(r.content)
+        out = r.json()
+        self.assertEqual(2000, out["HostConfig"]["MemorySwap"])
+        self.assertEqual(1000, out["HostConfig"]["Memory"])
+
 
 if __name__ == "__main__":
     unittest.main()
