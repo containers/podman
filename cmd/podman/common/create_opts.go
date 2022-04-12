@@ -181,6 +181,7 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *c
 		Network:        nsmode,
 		PublishPorts:   specPorts,
 		NetworkOptions: netOpts,
+		NoHosts:        rtc.Containers.NoHosts,
 	}
 
 	// network names
