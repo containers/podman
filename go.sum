@@ -208,8 +208,8 @@ github.com/cespare/xxhash/v2 v2.1.2 h1:YRXhKfTDauu4ajMg1TPgFO5jnlC2HCbmLXMcTG5cb
 github.com/cespare/xxhash/v2 v2.1.2/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/charithe/durationcheck v0.0.9/go.mod h1:SSbRIBVfMjCi/kEB6K65XEA83D6prSM8ap1UCpNKtgg=
 github.com/chavacava/garif v0.0.0-20210405164556-e8a0a408d6af/go.mod h1:Qjyv4H3//PWVzTeCezG2b9IRn6myJxJSr4TD/xo6ojU=
-github.com/checkpoint-restore/checkpointctl v0.0.0-20211204171957-54b4ebfdb681 h1:Jj8mYL2K6peLJdvT10oGTyYyBPqOynmly37D+iL3xNw=
-github.com/checkpoint-restore/checkpointctl v0.0.0-20211204171957-54b4ebfdb681/go.mod h1:67kWC1PXQLR3lM/mmNnu3Kzn7K4TSWZAGUuQP1JSngk=
+github.com/checkpoint-restore/checkpointctl v0.0.0-20220321135231-33f4a66335f0 h1:txB5jvhzUCSiiQmqmMWpo5CEB7Gj/Hq5Xqi7eaPl8ko=
+github.com/checkpoint-restore/checkpointctl v0.0.0-20220321135231-33f4a66335f0/go.mod h1:67kWC1PXQLR3lM/mmNnu3Kzn7K4TSWZAGUuQP1JSngk=
 github.com/checkpoint-restore/go-criu/v4 v4.1.0/go.mod h1:xUQBLp4RLc5zJtWY++yjOoMoB5lihDt7fai+75m+rGw=
 github.com/checkpoint-restore/go-criu/v5 v5.0.0/go.mod h1:cfwC0EG7HMUenopBsUf9d89JlCLQIfgVcNsNN0t6T2M=
 github.com/checkpoint-restore/go-criu/v5 v5.2.0/go.mod h1:E/eQpaFtUKGOOSEBZgmKAcn+zUUwWxqcaKZlF54wK8E=
