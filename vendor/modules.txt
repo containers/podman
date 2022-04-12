@@ -699,7 +699,7 @@ go.opencensus.io/internal
 go.opencensus.io/trace
 go.opencensus.io/trace/internal
 go.opencensus.io/trace/tracestate
-# golang.org/x/crypto v0.0.0-20220112180741-5e0467b6c7ce
+# golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
 ## explicit
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/cast5
@@ -707,7 +707,6 @@ golang.org/x/crypto/chacha20
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/curve25519/internal/field
 golang.org/x/crypto/ed25519
-golang.org/x/crypto/ed25519/internal/edwards25519
 golang.org/x/crypto/internal/poly1305
 golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/openpgp
