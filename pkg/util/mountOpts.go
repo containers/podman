@@ -57,6 +57,9 @@ func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string
 		switch splitOpt[0] {
 		case "O":
 			foundOverlay = true
+		case "volume-opt":
+			// Volume-opt should be relayed and processed by driver.
+			newOptions = append(newOptions, opt)
 		case "exec", "noexec":
 			if foundExec {
 				return nil, errors.Wrapf(ErrDupeMntOption, "only one of 'noexec' and 'exec' can be used")
@@ -174,4 +177,16 @@ func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string
 	}
 
 	return newOptions, nil
+}
+
+func ParseDriverOpts(option string) (string, string, error) {
+	token := strings.SplitN(option, "=", 2)
+	if len(token) != 2 {
+		return "", "", errors.Wrapf(ErrBadMntOption, "cannot parse driver opts")
+	}
+	opt := strings.SplitN(token[1], "=", 2)
+	if len(opt) != 2 {
+		return "", "", errors.Wrapf(ErrBadMntOption, "cannot parse driver opts")
+	}
+	return opt[0], opt[1], nil
 }

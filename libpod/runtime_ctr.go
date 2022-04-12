@@ -475,6 +475,26 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		if isAnonymous {
 			volOptions = append(volOptions, withSetAnon())
 		}
+
+		// If volume-opts are set parse and add driver opts.
+		if len(vol.Options) > 0 {
+			isDriverOpts := false
+			driverOpts := make(map[string]string)
+			for _, opts := range vol.Options {
+				if strings.HasPrefix(opts, "volume-opt") {
+					isDriverOpts = true
+					driverOptKey, driverOptValue, err := util.ParseDriverOpts(opts)
+					if err != nil {
+						return nil, err
+					}
+					driverOpts[driverOptKey] = driverOptValue
+				}
+			}
+			if isDriverOpts {
+				parsedOptions := []VolumeCreateOption{WithVolumeOptions(driverOpts)}
+				volOptions = append(volOptions, parsedOptions...)
+			}
+		}
 		newVol, err := r.newVolume(ctx, volOptions...)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error creating named volume %q", vol.Name)

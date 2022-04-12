@@ -797,6 +797,19 @@ VOLUME /test/`, ALPINE)
 		Expect(session.OutputToString()).Should(Equal("888:888"))
 	})
 
+	It("podman run with --mount and named volume with driver-opts", func() {
+		// anonymous volume mount with driver opts
+		vol := "type=volume,source=test_vol,dst=/test,volume-opt=type=tmpfs,volume-opt=device=tmpfs,volume-opt=o=nodev"
+		session := podmanTest.Podman([]string{"run", "--rm", "--mount", vol, ALPINE, "echo", "hello"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		inspectVol := podmanTest.Podman([]string{"volume", "inspect", "test_vol"})
+		inspectVol.WaitWithDefaultTimeout()
+		Expect(inspectVol).Should(Exit(0))
+		Expect(inspectVol.OutputToString()).To(ContainSubstring("nodev"))
+	})
+
 	It("volume permissions after run", func() {
 		imgName := "testimg"
 		dockerfile := fmt.Sprintf(`FROM %s
