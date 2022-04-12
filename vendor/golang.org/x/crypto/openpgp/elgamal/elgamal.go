@@ -10,6 +10,12 @@
 // This form of ElGamal embeds PKCS#1 v1.5 padding, which may make it
 // unsuitable for other protocols. RSA should be used in preference in any
 // case.
+//
+// Deprecated: this package was only provided to support ElGamal encryption in
+// OpenPGP. The golang.org/x/crypto/openpgp package is now deprecated (see
+// https://golang.org/issue/44226), and ElGamal in the OpenPGP ecosystem has
+// compatibility and security issues (see https://eprint.iacr.org/2021/923).
+// Moreover, this package doesn't protect against side-channel attacks.
 package elgamal // import "golang.org/x/crypto/openpgp/elgamal"
 
 import (
@@ -71,8 +77,8 @@ func Encrypt(random io.Reader, pub *PublicKey, msg []byte) (c1, c2 *big.Int, err
 // returns the plaintext of the message. An error can result only if the
 // ciphertext is invalid. Users should keep in mind that this is a padding
 // oracle and thus, if exposed to an adaptive chosen ciphertext attack, can
-// be used to break the cryptosystem.  See ``Chosen Ciphertext Attacks
-// Against Protocols Based on the RSA Encryption Standard PKCS #1'', Daniel
+// be used to break the cryptosystem.  See “Chosen Ciphertext Attacks
+// Against Protocols Based on the RSA Encryption Standard PKCS #1”, Daniel
 // Bleichenbacher, Advances in Cryptology (Crypto '98),
 func Decrypt(priv *PrivateKey, c1, c2 *big.Int) (msg []byte, err error) {
 	s := new(big.Int).Exp(c1, priv.X, priv.P)
