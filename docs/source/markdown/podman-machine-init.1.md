@@ -83,6 +83,9 @@ Podman mounts _host-dir_ in the host to _machine-dir_ in the Podman machine.
 The root filesystem is mounted read-only in the default operating system,
 so mounts must be created under the /mnt directory.
 
+Default volume mounts are defined in *containers.conf*.  Unless changed, the default values
+is `$HOME:$HOME`.
+
 #### **--volume-driver**
 
 Driver to use for mounting volumes from the host, such as `virtfs`.
