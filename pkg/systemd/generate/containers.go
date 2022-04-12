@@ -282,6 +282,22 @@ func setContainerNameForTemplate(startCommand []string, info *containerInfo) ([]
 	return startCommand, nil
 }
 
+func formatOptions(options []string) string {
+	var formatted strings.Builder
+	if len(options) == 0 {
+		return ""
+	}
+	formatted.WriteString(options[0])
+	for _, o := range options[1:] {
+		if strings.HasPrefix(o, "-") {
+			formatted.WriteString(" \\\n\t" + o)
+			continue
+		}
+		formatted.WriteString(" " + o)
+	}
+	return formatted.String()
+}
+
 // executeContainerTemplate executes the container template on the specified
 // containerInfo.  Note that the containerInfo is also post processed and
 // completed, which allows for an easier unit testing.
@@ -475,9 +491,8 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 				return "", err
 			}
 		}
-		info.ExecStart = strings.Join(startCommand, " ")
+		info.ExecStart = formatOptions(startCommand)
 	}
-
 	info.TimeoutStopSec = minTimeoutStopSec + info.StopTimeout
 
 	if info.PodmanVersion == "" {
