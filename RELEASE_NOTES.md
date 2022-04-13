@@ -1,5 +1,9 @@
 # Release Notes
 
+## 3.4.6
+### Security
+- This release addresses CVE-2022-27191, where an attacker could potentially cause crashes in remote Podman by using incorrect SSH ciphers.
+
 ## 3.4.5
 ### Security
 - This release addresses CVE-2022-27649, where Podman would set excess inheritable capabilities for processes in containers.
