@@ -3,19 +3,21 @@ package types
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/containers/storage/drivers/overlay"
 	cfg "github.com/containers/storage/pkg/config"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/sirupsen/logrus"
 )
 
 // TOML-friendly explicit tables used for conversions.
-type tomlConfig struct {
+type TomlConfig struct {
 	Storage struct {
 		Driver              string            `toml:"driver"`
 		RunRoot             string            `toml:"runroot"`
@@ -25,20 +27,51 @@ type tomlConfig struct {
 	} `toml:"storage"`
 }
 
+const (
+	// these are default path for run and graph root for rootful users
+	// for rootless path is constructed via getRootlessStorageOpts
+	defaultRunRoot   string = "/run/containers/storage"
+	defaultGraphRoot string = "/var/lib/containers/storage"
+)
+
 // defaultConfigFile path to the system wide storage.conf file
 var (
-	defaultConfigFile    = "/etc/containers/storage.conf"
-	defaultConfigFileSet = false
+	defaultConfigFile         = "/usr/share/containers/storage.conf"
+	defaultOverrideConfigFile = "/etc/containers/storage.conf"
+	defaultConfigFileSet      = false
 	// DefaultStoreOptions is a reasonable default set of options.
 	defaultStoreOptions StoreOptions
 )
 
+const (
+	overlayDriver = "overlay"
+	overlay2      = "overlay2"
+)
+
 func init() {
-	defaultStoreOptions.RunRoot = "/run/containers/storage"
-	defaultStoreOptions.GraphRoot = "/var/lib/containers/storage"
+	defaultStoreOptions.RunRoot = defaultRunRoot
+	defaultStoreOptions.GraphRoot = defaultGraphRoot
 	defaultStoreOptions.GraphDriverName = ""
 
-	ReloadConfigurationFileIfNeeded(defaultConfigFile, &defaultStoreOptions)
+	if _, err := os.Stat(defaultOverrideConfigFile); err == nil {
+		// The DefaultConfigFile(rootless) function returns the path
+		// of the used storage.conf file, by returning defaultConfigFile
+		// If override exists containers/storage uses it by default.
+		defaultConfigFile = defaultOverrideConfigFile
+		ReloadConfigurationFileIfNeeded(defaultOverrideConfigFile, &defaultStoreOptions)
+	} else {
+		if !os.IsNotExist(err) {
+			logrus.Warningf("Attempting to use %s, %v", defaultConfigFile, err)
+		}
+		ReloadConfigurationFileIfNeeded(defaultConfigFile, &defaultStoreOptions)
+	}
+	// reload could set values to empty for run and graph root if config does not contains anything
+	if defaultStoreOptions.RunRoot == "" {
+		defaultStoreOptions.RunRoot = defaultRunRoot
+	}
+	if defaultStoreOptions.GraphRoot == "" {
+		defaultStoreOptions.GraphRoot = defaultGraphRoot
+	}
 }
 
 // defaultStoreOptionsIsolated is an internal implementation detail of DefaultStoreOptions to allow testing.
@@ -166,7 +199,6 @@ func isRootlessDriver(driver string) bool {
 // getRootlessStorageOpts returns the storage opts for containers running as non root
 func getRootlessStorageOpts(rootlessUID int, systemOpts StoreOptions) (StoreOptions, error) {
 	var opts StoreOptions
-	const overlayDriver = "overlay"
 
 	dataDir, rootlessRuntime, err := getRootlessDirInfo(rootlessUID)
 	if err != nil {
@@ -187,6 +219,33 @@ func getRootlessStorageOpts(rootlessUID int, systemOpts StoreOptions) (StoreOpti
 	}
 	if driver := os.Getenv("STORAGE_DRIVER"); driver != "" {
 		opts.GraphDriverName = driver
+	}
+	if opts.GraphDriverName == overlay2 {
+		logrus.Warnf("Switching default driver from overlay2 to the equivalent overlay driver.")
+		opts.GraphDriverName = overlayDriver
+	}
+
+	if opts.GraphDriverName == "" || opts.GraphDriverName == overlayDriver {
+		supported, err := overlay.SupportsNativeOverlay(opts.GraphRoot, rootlessRuntime)
+		if err != nil {
+			return opts, err
+		}
+		if supported {
+			opts.GraphDriverName = overlayDriver
+		} else {
+			if path, err := exec.LookPath("fuse-overlayfs"); err == nil {
+				opts.GraphDriverName = overlayDriver
+				opts.GraphDriverOptions = []string{fmt.Sprintf("overlay.mount_program=%s", path)}
+			}
+		}
+		if opts.GraphDriverName == overlayDriver {
+			for _, o := range systemOpts.GraphDriverOptions {
+				if strings.Contains(o, "ignore_chown_errors") {
+					opts.GraphDriverOptions = append(opts.GraphDriverOptions, o)
+					break
+				}
+			}
+		}
 	}
 	if opts.GraphDriverName == "" {
 		opts.GraphDriverName = "vfs"
@@ -247,7 +306,7 @@ func ReloadConfigurationFileIfNeeded(configFile string, storeOptions *StoreOptio
 // ReloadConfigurationFile parses the specified configuration file and overrides
 // the configuration in storeOptions.
 func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
-	config := new(tomlConfig)
+	config := new(TomlConfig)
 
 	meta, err := toml.DecodeFile(configFile, &config)
 	if err == nil {
@@ -270,6 +329,10 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
 	if os.Getenv("STORAGE_DRIVER") != "" {
 		config.Storage.Driver = os.Getenv("STORAGE_DRIVER")
 		storeOptions.GraphDriverName = config.Storage.Driver
+	}
+	if storeOptions.GraphDriverName == overlay2 {
+		logrus.Warnf("Switching default driver from overlay2 to the equivalent overlay driver.")
+		storeOptions.GraphDriverName = overlayDriver
 	}
 	if storeOptions.GraphDriverName == "" {
 		logrus.Errorf("The storage 'driver' option must be set in %s, guarantee proper operation.", configFile)
@@ -360,4 +423,39 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
 
 func Options() StoreOptions {
 	return defaultStoreOptions
+}
+
+// Save overwrites the tomlConfig in storage.conf with the given conf
+func Save(conf TomlConfig, rootless bool) error {
+	configFile, err := DefaultConfigFile(rootless)
+	if err != nil {
+		return err
+	}
+	if err = os.Remove(configFile); !os.IsNotExist(err) {
+		return err
+	}
+
+	f, err := os.Open(configFile)
+	if err != nil {
+		return err
+	}
+
+	return toml.NewEncoder(f).Encode(conf)
+}
+
+// StorageConfig is used to retreive the storage.conf toml in order to overwrite it
+func StorageConfig(rootless bool) (*TomlConfig, error) {
+	config := new(TomlConfig)
+
+	configFile, err := DefaultConfigFile(rootless)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = toml.DecodeFile(configFile, &config)
+	if err != nil {
+		return nil, err
+	}
+
+	return config, nil
 }

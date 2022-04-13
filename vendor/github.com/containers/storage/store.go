@@ -575,10 +575,11 @@ type ContainerOptions struct {
 	// container's layer will inherit settings from the image's top layer
 	// or, if it is not being created based on an image, the Store object.
 	types.IDMappingOptions
-	LabelOpts []string
-	Flags     map[string]interface{}
-	MountOpts []string
-	Volatile  bool
+	LabelOpts  []string
+	Flags      map[string]interface{}
+	MountOpts  []string
+	Volatile   bool
+	StorageOpt map[string]string
 }
 
 type store struct {
@@ -646,17 +647,21 @@ func GetStore(options types.StoreOptions) (Store, error) {
 	storesLock.Lock()
 	defer storesLock.Unlock()
 
+	// return if BOTH run and graph root are matched, otherwise our run-root can be overriden if the graph is found first
 	for _, s := range stores {
-		if s.graphRoot == options.GraphRoot && (options.GraphDriverName == "" || s.graphDriverName == options.GraphDriverName) {
+		if (s.graphRoot == options.GraphRoot) && (s.runRoot == options.RunRoot) && (options.GraphDriverName == "" || s.graphDriverName == options.GraphDriverName) {
 			return s, nil
 		}
 	}
 
-	if options.GraphRoot == "" {
-		return nil, errors.Wrap(ErrIncompleteOptions, "no storage root specified")
-	}
-	if options.RunRoot == "" {
-		return nil, errors.Wrap(ErrIncompleteOptions, "no storage runroot specified")
+	// if passed a run-root or graph-root alone, the other should be defaulted only error if we have neither.
+	switch {
+	case options.RunRoot == "" && options.GraphRoot == "":
+		return nil, errors.Wrap(ErrIncompleteOptions, "no storage runroot or graphroot specified")
+	case options.GraphRoot == "":
+		options.GraphRoot = types.Options().GraphRoot
+	case options.RunRoot == "":
+		options.RunRoot = types.Options().RunRoot
 	}
 
 	if err := os.MkdirAll(options.RunRoot, 0700); err != nil {
@@ -1384,7 +1389,7 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		options.Flags["MountLabel"] = mountLabel
 	}
 
-	clayer, err := rlstore.Create(layer, imageTopLayer, nil, options.Flags["MountLabel"].(string), nil, layerOptions, true)
+	clayer, err := rlstore.Create(layer, imageTopLayer, nil, options.Flags["MountLabel"].(string), options.StorageOpt, layerOptions, true)
 	if err != nil {
 		return nil, err
 	}
@@ -2370,22 +2375,16 @@ func (s *store) DeleteImage(id string, commit bool) (layers []string, err error)
 		if err != nil {
 			return nil, err
 		}
-		childrenByParent := make(map[string]*[]string)
+		childrenByParent := make(map[string][]string)
 		for _, layer := range layers {
-			parent := layer.Parent
-			if list, ok := childrenByParent[parent]; ok {
-				newList := append(*list, layer.ID)
-				childrenByParent[parent] = &newList
-			} else {
-				childrenByParent[parent] = &([]string{layer.ID})
-			}
+			childrenByParent[layer.Parent] = append(childrenByParent[layer.Parent], layer.ID)
 		}
-		otherImagesByTopLayer := make(map[string]string)
+		otherImagesTopLayers := make(map[string]struct{})
 		for _, img := range images {
 			if img.ID != id {
-				otherImagesByTopLayer[img.TopLayer] = img.ID
+				otherImagesTopLayers[img.TopLayer] = struct{}{}
 				for _, layerID := range img.MappedTopLayers {
-					otherImagesByTopLayer[layerID] = img.ID
+					otherImagesTopLayers[layerID] = struct{}{}
 				}
 			}
 		}
@@ -2395,43 +2394,46 @@ func (s *store) DeleteImage(id string, commit bool) (layers []string, err error)
 			}
 		}
 		layer := image.TopLayer
-		lastRemoved := ""
+		layersToRemoveMap := make(map[string]struct{})
 		for layer != "" {
 			if rcstore.Exists(layer) {
 				break
 			}
-			if _, ok := otherImagesByTopLayer[layer]; ok {
+			if _, used := otherImagesTopLayers[layer]; used {
 				break
 			}
 			parent := ""
 			if l, err := rlstore.Get(layer); err == nil {
 				parent = l.Parent
 			}
-			hasOtherRefs := func() bool {
+			hasChildrenNotBeingRemoved := func() bool {
 				layersToCheck := []string{layer}
 				if layer == image.TopLayer {
 					layersToCheck = append(layersToCheck, image.MappedTopLayers...)
 				}
 				for _, layer := range layersToCheck {
-					if childList, ok := childrenByParent[layer]; ok && childList != nil {
-						children := *childList
-						for _, child := range children {
-							if child != lastRemoved {
-								return true
+					if childList := childrenByParent[layer]; len(childList) > 0 {
+						for _, child := range childList {
+							if _, childIsSlatedForRemoval := layersToRemoveMap[child]; childIsSlatedForRemoval {
+								continue
 							}
+							return true
 						}
 					}
 				}
 				return false
 			}
-			if hasOtherRefs() {
+			if hasChildrenNotBeingRemoved() {
 				break
 			}
-			lastRemoved = layer
 			if layer == image.TopLayer {
 				layersToRemove = append(layersToRemove, image.MappedTopLayers...)
+				for _, mappedTopLayer := range image.MappedTopLayers {
+					layersToRemoveMap[mappedTopLayer] = struct{}{}
+				}
 			}
-			layersToRemove = append(layersToRemove, lastRemoved)
+			layersToRemove = append(layersToRemove, layer)
+			layersToRemoveMap[layer] = struct{}{}
 			layer = parent
 		}
 	} else {
@@ -2499,23 +2501,29 @@ func (s *store) DeleteContainer(id string) error {
 			gcpath := filepath.Join(s.GraphRoot(), middleDir, container.ID)
 			wg.Add(1)
 			go func() {
-				var err error
-				for attempts := 0; attempts < 50; attempts++ {
-					err = os.RemoveAll(gcpath)
-					if err == nil || !system.IsEBUSY(err) {
-						break
-					}
-					time.Sleep(time.Millisecond * 100)
+				defer wg.Done()
+				// attempt a simple rm -rf first
+				err := os.RemoveAll(gcpath)
+				if err == nil {
+					errChan <- nil
+					return
 				}
-				errChan <- err
-				wg.Done()
+				// and if it fails get to the more complicated cleanup
+				errChan <- system.EnsureRemoveAll(gcpath)
 			}()
 
 			rcpath := filepath.Join(s.RunRoot(), middleDir, container.ID)
 			wg.Add(1)
 			go func() {
-				errChan <- os.RemoveAll(rcpath)
-				wg.Done()
+				defer wg.Done()
+				// attempt a simple rm -rf first
+				err := os.RemoveAll(rcpath)
+				if err == nil {
+					errChan <- nil
+					return
+				}
+				// and if it fails get to the more complicated cleanup
+				errChan <- system.EnsureRemoveAll(rcpath)
 			}()
 
 			go func() {

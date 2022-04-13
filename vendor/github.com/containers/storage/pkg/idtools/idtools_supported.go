@@ -12,11 +12,21 @@ import (
 #cgo LDFLAGS: -l subid
 #include <shadow/subid.h>
 #include <stdlib.h>
+#include <stdio.h>
 const char *Prog = "storage";
+FILE *shadow_logfd = NULL;
+
 struct subid_range get_range(struct subid_range *ranges, int i)
 {
-    return ranges[i];
+	shadow_logfd = stderr;
+	return ranges[i];
 }
+
+#if !defined(SUBID_ABI_MAJOR) || (SUBID_ABI_MAJOR < 4)
+# define subid_get_uid_ranges get_subuid_ranges
+# define subid_get_gid_ranges get_subgid_ranges
+#endif
+
 */
 import "C"
 
@@ -32,9 +42,9 @@ func readSubid(username string, isUser bool) (ranges, error) {
 	var nRanges C.int
 	var cRanges *C.struct_subid_range
 	if isUser {
-		nRanges = C.get_subuid_ranges(cUsername, &cRanges)
+		nRanges = C.subid_get_uid_ranges(cUsername, &cRanges)
 	} else {
-		nRanges = C.get_subgid_ranges(cUsername, &cRanges)
+		nRanges = C.subid_get_gid_ranges(cUsername, &cRanges)
 	}
 	if nRanges < 0 {
 		return nil, errors.New("cannot read subids")

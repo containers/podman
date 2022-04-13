@@ -82,7 +82,7 @@ func GetRootUIDGID(uidMap, gidMap []IDMap) (int, int, error) {
 	if len(uidMap) == 1 && uidMap[0].Size == 1 {
 		uid = uidMap[0].HostID
 	} else {
-		uid, err = toHost(0, uidMap)
+		uid, err = RawToHost(0, uidMap)
 		if err != nil {
 			return -1, -1, err
 		}
@@ -90,7 +90,7 @@ func GetRootUIDGID(uidMap, gidMap []IDMap) (int, int, error) {
 	if len(gidMap) == 1 && gidMap[0].Size == 1 {
 		gid = gidMap[0].HostID
 	} else {
-		gid, err = toHost(0, gidMap)
+		gid, err = RawToHost(0, gidMap)
 		if err != nil {
 			return -1, -1, err
 		}
@@ -98,10 +98,14 @@ func GetRootUIDGID(uidMap, gidMap []IDMap) (int, int, error) {
 	return uid, gid, nil
 }
 
-// toContainer takes an id mapping, and uses it to translate a
-// host ID to the remapped ID. If no map is provided, then the translation
-// assumes a 1-to-1 mapping and returns the passed in id
-func toContainer(hostID int, idMap []IDMap) (int, error) {
+// RawToContainer takes an id mapping, and uses it to translate a host ID to
+// the remapped ID. If no map is provided, then the translation assumes a
+// 1-to-1 mapping and returns the passed in id.
+//
+// If you wish to map a (uid,gid) combination you should use the corresponding
+// IDMappings methods, which ensure that you are mapping the correct ID against
+// the correct mapping.
+func RawToContainer(hostID int, idMap []IDMap) (int, error) {
 	if idMap == nil {
 		return hostID, nil
 	}
@@ -114,10 +118,14 @@ func toContainer(hostID int, idMap []IDMap) (int, error) {
 	return -1, fmt.Errorf("Host ID %d cannot be mapped to a container ID", hostID)
 }
 
-// toHost takes an id mapping and a remapped ID, and translates the
-// ID to the mapped host ID. If no map is provided, then the translation
-// assumes a 1-to-1 mapping and returns the passed in id #
-func toHost(contID int, idMap []IDMap) (int, error) {
+// RawToHost takes an id mapping and a remapped ID, and translates the ID to
+// the mapped host ID. If no map is provided, then the translation assumes a
+// 1-to-1 mapping and returns the passed in id.
+//
+// If you wish to map a (uid,gid) combination you should use the corresponding
+// IDMappings methods, which ensure that you are mapping the correct ID against
+// the correct mapping.
+func RawToHost(contID int, idMap []IDMap) (int, error) {
 	if idMap == nil {
 		return contID, nil
 	}
@@ -185,28 +193,24 @@ func (i *IDMappings) RootPair() IDPair {
 // Remapping is only performed if the ids aren't already the remapped root ids
 func (i *IDMappings) ToHost(pair IDPair) (IDPair, error) {
 	var err error
-	target := i.RootPair()
+	var target IDPair
 
-	if pair.UID != target.UID {
-		target.UID, err = toHost(pair.UID, i.uids)
-		if err != nil {
-			return target, err
-		}
+	target.UID, err = RawToHost(pair.UID, i.uids)
+	if err != nil {
+		return target, err
 	}
 
-	if pair.GID != target.GID {
-		target.GID, err = toHost(pair.GID, i.gids)
-	}
+	target.GID, err = RawToHost(pair.GID, i.gids)
 	return target, err
 }
 
 // ToContainer returns the container UID and GID for the host uid and gid
 func (i *IDMappings) ToContainer(pair IDPair) (int, int, error) {
-	uid, err := toContainer(pair.UID, i.uids)
+	uid, err := RawToContainer(pair.UID, i.uids)
 	if err != nil {
 		return -1, -1, err
 	}
-	gid, err := toContainer(pair.GID, i.gids)
+	gid, err := RawToContainer(pair.GID, i.gids)
 	return uid, gid, err
 }
 
@@ -293,7 +297,7 @@ func parseSubidFile(path, username string) (ranges, error) {
 
 func checkChownErr(err error, name string, uid, gid int) error {
 	if e, ok := err.(*os.PathError); ok && e.Err == syscall.EINVAL {
-		return errors.Wrapf(err, "potentially insufficient UIDs or GIDs available in user namespace (requested %d:%d for %s): Check /etc/subuid and /etc/subgid", uid, gid, name)
+		return errors.Wrapf(err, "potentially insufficient UIDs or GIDs available in user namespace (requested %d:%d for %s): Check /etc/subuid and /etc/subgid if configured locally", uid, gid, name)
 	}
 	return err
 }

@@ -23,6 +23,7 @@ import (
 	"github.com/containers/storage/pkg/system"
 	"github.com/containers/storage/pkg/tarlog"
 	"github.com/containers/storage/pkg/truncindex"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/klauspost/pgzip"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -1463,34 +1464,48 @@ func (r *layerStore) Diff(from, to string, options *DiffOptions) (io.ReadCloser,
 		}
 		return maybeCompressReadCloser(diff)
 	}
-	defer tsfile.Close()
 
 	decompressor, err := pgzip.NewReader(tsfile)
 	if err != nil {
-		return nil, err
-	}
-	defer decompressor.Close()
-
-	tsbytes, err := ioutil.ReadAll(decompressor)
-	if err != nil {
+		if e := tsfile.Close(); e != nil {
+			logrus.Debug(e)
+		}
 		return nil, err
 	}
 
-	metadata = storage.NewJSONUnpacker(bytes.NewBuffer(tsbytes))
+	metadata = storage.NewJSONUnpacker(decompressor)
 
 	fgetter, err := r.newFileGetter(to)
 	if err != nil {
-		return nil, err
+		errs := multierror.Append(nil, errors.Wrapf(err, "creating file-getter"))
+		if err := decompressor.Close(); err != nil {
+			errs = multierror.Append(errs, errors.Wrapf(err, "closing decompressor"))
+		}
+		if err := tsfile.Close(); err != nil {
+			errs = multierror.Append(errs, errors.Wrapf(err, "closing tarstream headers"))
+		}
+		return nil, errs.ErrorOrNil()
 	}
 
 	tarstream := asm.NewOutputTarStream(fgetter, metadata)
 	rc := ioutils.NewReadCloserWrapper(tarstream, func() error {
-		err1 := tarstream.Close()
-		err2 := fgetter.Close()
-		if err2 == nil {
-			return err1
+		var errs *multierror.Error
+		if err := decompressor.Close(); err != nil {
+			errs = multierror.Append(errs, errors.Wrapf(err, "closing decompressor"))
 		}
-		return err2
+		if err := tsfile.Close(); err != nil {
+			errs = multierror.Append(errs, errors.Wrapf(err, "closing tarstream headers"))
+		}
+		if err := tarstream.Close(); err != nil {
+			errs = multierror.Append(errs, errors.Wrapf(err, "closing reconstructed tarstream"))
+		}
+		if err := fgetter.Close(); err != nil {
+			errs = multierror.Append(errs, errors.Wrapf(err, "closing file-getter"))
+		}
+		if errs != nil {
+			return errs.ErrorOrNil()
+		}
+		return nil
 	})
 	return maybeCompressReadCloser(rc)
 }
