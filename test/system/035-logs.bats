@@ -30,6 +30,34 @@ load helpers
     run_podman rm $cid
 }
 
+function _log_test_tail() {
+    local driver=$1
+
+    run_podman run -d --log-driver=$driver $IMAGE sh -c "echo test1; echo test2"
+    cid="$output"
+
+    run_podman logs --tail 1 $cid
+    is "$output" "test2"  "logs should only show last line"
+
+    run_podman restart $cid
+
+    run_podman logs --tail 1 $cid
+    is "$output" "test2"  "logs should only show last line after restart"
+
+    run_podman rm $cid
+}
+
+@test "podman logs - tail test, k8s-file" {
+    _log_test_tail k8s-file
+}
+
+@test "podman logs - tail test, journald" {
+    # We can't use journald on RHEL as rootless: rhbz#1895105
+    skip_if_journald_unavailable
+
+    _log_test_tail journald
+}
+
 function _additional_events_backend() {
     local driver=$1
     # Since PR#10431, 'logs -f' with journald driver is only supported with journald events backend.
