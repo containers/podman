@@ -127,4 +127,24 @@
 // The default directories are '/etc/cdi' and '/var/run/cdi'. By putting
 // dynamically generated Spec files under '/var/run/cdi', those take
 // precedence over static ones in '/etc/cdi'.
+//
+// CDI Spec Validation
+//
+// This package performs both syntactic and semantic validation of CDI
+// Spec file data when a Spec file is loaded via the registry or using
+// the ReadSpec API function. As part of the semantic verification, the
+// Spec file is verified against the CDI Spec JSON validation schema.
+//
+// If a valid externally provided JSON validation schema is found in
+// the filesystem at /etc/cdi/schema/schema.json it is loaded and used
+// as the default validation schema. If such a file is not found or
+// fails to load, an embedded no-op schema is used.
+//
+// The used validation schema can also be changed programmatically using
+// the SetSchema API convenience function. This function also accepts
+// the special "builtin" (BuiltinSchemaName) and "none" (NoneSchemaName)
+// schema names which switch the used schema to the in-repo validation
+// schema embedded into the binary or the now default no-op schema
+// correspondingly. Other names are interpreted as the path to the actual
+/// validation schema to load and use.
 package cdi
