@@ -244,8 +244,8 @@ github.com/cockroachdb/datadriven v0.0.0-20190809214429-80d97fb3cbaa/go.mod h1:z
 github.com/cockroachdb/datadriven v0.0.0-20200714090401-bf6692d28da5/go.mod h1:h6jFvWxBdQXxjopDMZyH2UVceIRfR84bdzbkoKrsWNo=
 github.com/cockroachdb/errors v1.2.4/go.mod h1:rQD95gz6FARkaKkQXUksEje/d9a6wBJoCr5oaCLELYA=
 github.com/cockroachdb/logtags v0.0.0-20190617123548-eb05cc24525f/go.mod h1:i/u985jwjWRlyHXQbwatDASoW0RMlZ/3i9yJHE2xLkI=
-github.com/container-orchestrated-devices/container-device-interface v0.3.0 h1:tM2zdVYZY8getsFaTc7Z+v+UqDXhk5alchOHVEADes0=
-github.com/container-orchestrated-devices/container-device-interface v0.3.0/go.mod h1:LGs3yHVe1wZn2XsWl4AxywYQ3NRZ6osTEZozCHQCRSM=
+github.com/container-orchestrated-devices/container-device-interface v0.3.2 h1:vZVaQwmFFddi7Y9mJgQTLPFxTWg81+OIHEMu/Th1wuw=
+github.com/container-orchestrated-devices/container-device-interface v0.3.2/go.mod h1:E1zcucIkq9P3eyNmY+68dBQsTcsXJh9cgRo2IVNScKQ=
 github.com/containerd/aufs v0.0.0-20200908144142-dab0cbea06f4/go.mod h1:nukgQABAEopAHvB6j7cnP5zJ+/3aVcE7hCYqvIwAHyE=
 github.com/containerd/aufs v0.0.0-20201003224125-76a6863f2989/go.mod h1:AkGGQs9NM2vtYHaUen+NljV0/baGCAPELGm2q9ZXpWU=
 github.com/containerd/aufs v0.0.0-20210316121734-20793ff83c97/go.mod h1:kL5kd6KM5TzQjR79jljyi4olc1Vrx6XBlcyj3gNv2PU=

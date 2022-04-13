@@ -35,6 +35,9 @@ var (
 		"0.2.0": {},
 		"0.3.0": {},
 	}
+
+	// Externally set CDI Spec validation function.
+	specValidator func(*cdi.Spec) error
 )
 
 // Spec represents a single CDI Spec. It is usually loaded from a
@@ -68,8 +71,16 @@ func ReadSpec(path string, priority int) (*Spec, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse CDI Spec %q", path)
 	}
+	if raw == nil {
+		return nil, errors.Errorf("failed to parse CDI Spec %q, no Spec data", path)
+	}
 
-	return NewSpec(raw, path, priority)
+	spec, err := NewSpec(raw, path, priority)
+	if err != nil {
+		return nil, err
+	}
+
+	return spec, nil
 }
 
 // NewSpec creates a new Spec from the given CDI Spec data. The
@@ -77,7 +88,10 @@ func ReadSpec(path string, priority int) (*Spec, error) {
 // priority. If Spec data validation fails NewSpec returns a nil
 // Spec and an error.
 func NewSpec(raw *cdi.Spec, path string, priority int) (*Spec, error) {
-	var err error
+	err := validateSpec(raw)
+	if err != nil {
+		return nil, err
+	}
 
 	spec := &Spec{
 		Spec:     raw,
@@ -170,16 +184,29 @@ func validateVersion(version string) error {
 
 // Parse raw CDI Spec file data.
 func parseSpec(data []byte) (*cdi.Spec, error) {
-	raw := &cdi.Spec{}
+	var raw *cdi.Spec
 	err := yaml.UnmarshalStrict(data, &raw)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal CDI Spec")
 	}
-	return raw, validateJSONSchema(raw)
+	return raw, nil
 }
 
-// Validate CDI Spec against JSON Schema.
-func validateJSONSchema(raw *cdi.Spec) error {
-	// TODO
+// SetSpecValidator sets a CDI Spec validator function. This function
+// is used for extra CDI Spec content validation whenever a Spec file
+// loaded (using ReadSpec() or NewSpec()) or written (Spec.Write()).
+func SetSpecValidator(fn func(*cdi.Spec) error) {
+	specValidator = fn
+}
+
+// validateSpec validates the Spec using the extneral validator.
+func validateSpec(raw *cdi.Spec) error {
+	if specValidator == nil {
+		return nil
+	}
+	err := specValidator(raw)
+	if err != nil {
+		return errors.Wrap(err, "Spec validation failed")
+	}
 	return nil
 }
