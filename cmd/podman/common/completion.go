@@ -492,6 +492,11 @@ func AutocompleteImages(cmd *cobra.Command, args []string, toComplete string) ([
 	return getImages(cmd, toComplete)
 }
 
+// AutocompletePodExitPolicy - Autocomplete pod exit policy.
+func AutocompletePodExitPolicy(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return config.PodExitPolicies, cobra.ShellCompDirectiveNoFileComp
+}
+
 // AutocompleteCreateRun - Autocomplete only the fist argument as image and then do file completion.
 func AutocompleteCreateRun(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if !validCurrentCmdLine(cmd, args, toComplete) {

@@ -86,6 +86,10 @@ type Runtime struct {
 	libimageEventsShutdown chan bool
 	lockManager            lock.Manager
 
+	// Worker
+	workerShutdown chan bool
+	workerChannel  chan func()
+
 	// syslog describes whenever logrus should log to the syslog as well.
 	// Note that the syslog hook will be enabled early in cmd/podman/syslog_linux.go
 	// This bool is just needed so that we can set it for netavark interface.
@@ -597,6 +601,8 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 		}
 	}
 
+	runtime.startWorker()
+
 	// Mark the runtime as valid - ready to be used, cannot be modified
 	// further
 	runtime.valid = true
@@ -815,6 +821,14 @@ func (r *Runtime) DeferredShutdown(force bool) {
 func (r *Runtime) Shutdown(force bool) error {
 	if !r.valid {
 		return define.ErrRuntimeStopped
+	}
+
+	if r.workerShutdown != nil {
+		// Signal the worker routine to shutdown.  The routine will
+		// process all pending work items and then read from the
+		// channel; we're blocked until all work items have been
+		// processed.
+		r.workerShutdown <- true
 	}
 
 	r.valid = false

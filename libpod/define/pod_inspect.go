@@ -19,6 +19,8 @@ type InspectPodData struct {
 	// CreateCommand is the full command plus arguments of the process the
 	// container has been created with.
 	CreateCommand []string `json:"CreateCommand,omitempty"`
+	// ExitPolicy of the pod.
+	ExitPolicy string `json:"ExitPolicy,omitempty"`
 	// State represents the current state of the pod.
 	State string `json:"State"`
 	// Hostname is the hostname that the pod will set.

@@ -406,7 +406,76 @@ EOF
     run_podman pod inspect test --format {{.InfraConfig.HostNetwork}}
     is "$output" "true" "Host network sharing with only ipc should be true"
     run_podman pod rm test
+}
 
+# Wait for the pod (1st arg) to transition into the state (2nd arg)
+function _ensure_pod_state() {
+    for i in {0..5}; do
+        run_podman pod inspect $1 --format "{{.State}}"
+        if [[ $output == "$2" ]]; then
+            break
+        fi
+        sleep 0.5
+    done
+
+    is "$output" "$2" "unexpected pod state"
+}
+
+@test "pod exit policies" {
+    # Test setting exit policies
+    run_podman pod create
+    podID="$output"
+    run_podman pod inspect $podID --format "{{.ExitPolicy}}"
+    is "$output" "continue" "default exit policy"
+    run_podman pod rm $podID
+
+    run_podman pod create --exit-policy stop
+    podID="$output"
+    run_podman pod inspect $podID --format "{{.ExitPolicy}}"
+    is "$output" "stop" "custom exit policy"
+    run_podman pod rm $podID
+
+    run_podman 125 pod create --exit-policy invalid
+    is "$output" "Error: .*error running pod create option: invalid pod exit policy: \"invalid\"" "invalid exit policy"
+
+    # Test exit-policy behaviour
+    run_podman pod create --exit-policy continue
+    podID="$output"
+    run_podman run --pod $podID $IMAGE true
+    run_podman pod inspect $podID --format "{{.State}}"
+    _ensure_pod_state $podID Degraded
+    run_podman pod rm $podID
+
+    run_podman pod create --exit-policy stop
+    podID="$output"
+    run_podman run --pod $podID $IMAGE true
+    run_podman pod inspect $podID --format "{{.State}}"
+    _ensure_pod_state $podID Exited
+    run_podman pod rm $podID
+}
+
+@test "pod exit policies - play kube" {
+    # play-kube sets the exit policy to "stop"
+    local name="$(random_string 10 | tr A-Z a-z)"
+
+    kubeFile="apiVersion: v1
+kind: Pod
+metadata:
+  name: $name-pod
+spec:
+  containers:
+  - command:
+    - \"true\"
+    image: $IMAGE
+    name: ctr
+  restartPolicy: OnFailure"
+
+    echo "$kubeFile" > $PODMAN_TMPDIR/test.yaml
+    run_podman play kube $PODMAN_TMPDIR/test.yaml
+    run_podman pod inspect $name-pod --format "{{.ExitPolicy}}"
+    is "$output" "stop" "custom exit policy"
+    _ensure_pod_state $name-pod Exited
+    run_podman pod rm $name-pod
 }
 
 # vim: filetype=sh
