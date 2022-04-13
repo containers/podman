@@ -887,13 +887,6 @@ install.tools: .install.ginkgo .install.golangci-lint .install.bats ## Install n
 		python3 -m pip install --user pre-commit; \
 	fi
 
-# $BUILD_TAGS variable is used in hack/golangci-lint.sh
-.PHONY: install.libseccomp.sudo
-install.libseccomp.sudo:
-	rm -rf ../../seccomp/libseccomp
-	git clone https://github.com/seccomp/libseccomp ../../seccomp/libseccomp
-	cd ../../seccomp/libseccomp && git checkout --detach $(LIBSECCOMP_COMMIT) && ./autogen.sh && ./configure --prefix=/usr && make all && make install
-
 .PHONY: uninstall
 uninstall:
 	for i in $(filter %.1,$(MANPAGES_DEST)); do \
