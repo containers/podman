@@ -33,14 +33,14 @@ type InitOptions struct {
 	UID string
 }
 
-type QemuMachineStatus = string
+type Status = string
 
 const (
 	// Running indicates the qemu vm is running.
-	Running QemuMachineStatus = "running"
+	Running Status = "running"
 	// Stopped indicates the vm has stopped.
-	Stopped            QemuMachineStatus = "stopped"
-	DefaultMachineName string            = "podman-machine-default"
+	Stopped            Status = "stopped"
+	DefaultMachineName string = "podman-machine-default"
 )
 
 type Provider interface {
@@ -113,18 +113,25 @@ type RemoveOptions struct {
 	SaveIgnition bool
 }
 
+type InspectOptions struct{}
+
 type VM interface {
 	Init(opts InitOptions) (bool, error)
 	Remove(name string, opts RemoveOptions) (string, func() error, error)
 	Set(name string, opts SetOptions) error
 	SSH(name string, opts SSHOptions) error
 	Start(name string, opts StartOptions) error
+	State() (Status, error)
 	Stop(name string, opts StopOptions) error
 }
 
 type DistributionDownload interface {
 	HasUsableCache() (bool, error)
 	Get() *Download
+}
+type InspectInfo struct {
+	State Status
+	VM
 }
 
 func (rc RemoteConnectionType) MakeSSHURL(host, path, port, userName string) url.URL {
