@@ -164,8 +164,13 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *c
 		}
 	}
 
-	// netMode
-	nsmode, networks, netOpts, err := specgen.ParseNetworkFlag([]string{string(cc.HostConfig.NetworkMode)})
+	// special case for NetworkMode, the podman default is slirp4netns for
+	// rootless but for better docker compat we want bridge.
+	netmode := string(cc.HostConfig.NetworkMode)
+	if netmode == "" || netmode == "default" {
+		netmode = "bridge"
+	}
+	nsmode, networks, netOpts, err := specgen.ParseNetworkFlag([]string{netmode})
 	if err != nil {
 		return nil, nil, err
 	}

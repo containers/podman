@@ -239,16 +239,11 @@ t GET containers/$cid/json 200 \
 t POST containers/create Image=$IMAGE Entrypoint='["top"]' 201 \
   .Id~[0-9a-f]\\{64\\}
 cid_top=$(jq -r '.Id' <<<"$output")
-# .Network is N/A when rootless
-network_expect=
-if root; then
-    network_expect='.NetworkSettings.Networks.podman.NetworkID=podman'
-fi
 t GET containers/${cid_top}/json 200 \
   .Config.Entrypoint[0]="top" \
   .Config.Cmd='[]' \
   .Path="top" \
-  $network_expect
+  .NetworkSettings.Networks.podman.NetworkID=podman
 t POST  containers/${cid_top}/start 204
 # make sure the container is running
 t GET containers/${cid_top}/json 200 \
@@ -372,15 +367,11 @@ t GET containers/$cid/json 200 \
 t DELETE containers/$cid?v=true 204
 
 # Test Compat Create with default network mode (#10569)
-networkmode=slirp4netns
-if root; then
-    networkmode=bridge
-fi
 t POST containers/create Image=$IMAGE HostConfig='{"NetworkMode":"default"}' 201 \
   .Id~[0-9a-f]\\{64\\}
 cid=$(jq -r '.Id' <<<"$output")
 t GET containers/$cid/json 200 \
-  .HostConfig.NetworkMode="$networkmode"
+  .HostConfig.NetworkMode="bridge"
 
 t DELETE containers/$cid?v=true 204
 
