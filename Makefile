@@ -126,8 +126,6 @@ export GOPATH := $(HOME)/go
 unexport GOBIN
 endif
 FIRST_GOPATH := $(firstword $(subst :, ,$(GOPATH)))
-GOPKGDIR := $(FIRST_GOPATH)/src/$(PROJECT)
-GOPKGBASEDIR ?= $(shell dirname "$(GOPKGDIR)")
 
 GOBIN := $(shell $(GO) env GOBIN)
 ifeq ($(GOBIN),)
@@ -223,15 +221,8 @@ help: ## (Default) Print listing of key targets with their descriptions
 ### Linting/Formatting/Code Validation targets
 ###
 
-.gopathok:
-ifeq ("$(wildcard $(GOPKGDIR))","")
-	mkdir -p "$(GOPKGBASEDIR)"
-	ln -sfn "$(CURDIR)" "$(GOPKGDIR)"
-endif
-	touch $@
-
 .PHONY: .gitvalidation
-.gitvalidation: .gopathok
+.gitvalidation:
 	@echo "Validating vs commit '$(call err_if_empty,EPOCH_TEST_COMMIT)'"
 	GIT_CHECK_EXCLUDE="./vendor:./test/tools/vendor:docs/make.bat:test/buildah-bud/buildah-tests.diff" ./test/tools/build/git-validation -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
 
@@ -245,7 +236,7 @@ endif
 	$(PRE_COMMIT) run -a
 
 .PHONY: golangci-lint
-golangci-lint: .gopathok .install.golangci-lint
+golangci-lint: .install.golangci-lint
 	hack/golangci-lint.sh run
 
 .PHONY: gofmt
@@ -261,11 +252,11 @@ gofmt: ## Verify the source code gofmt
 	git diff --exit-code
 
 .PHONY: test/checkseccomp/checkseccomp
-test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
+test/checkseccomp/checkseccomp: $(wildcard test/checkseccomp/*.go)
 	$(GOCMD) build $(BUILDFLAGS) $(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o $@ ./test/checkseccomp
 
 .PHONY: test/testvol/testvol
-test/testvol/testvol: .gopathok $(wildcard test/testvol/*.go)
+test/testvol/testvol: $(wildcard test/testvol/*.go)
 	$(GOCMD) build $(BUILDFLAGS) $(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' -o $@ ./test/testvol
 
 .PHONY: volume-plugin-test-image
@@ -273,10 +264,10 @@ volume-plugin-test-img:
 	podman build -t quay.io/libpod/volume-plugin-test-img -f Containerfile-testvol .
 
 .PHONY: test/goecho/goecho
-test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
+test/goecho/goecho: $(wildcard test/goecho/*.go)
 	$(GOCMD) build $(BUILDFLAGS) $(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' -o $@ ./test/goecho
 
-test/version/version: .gopathok version/version.go
+test/version/version: version/version.go
 	$(GO) build -o $@ ./test/version/
 
 .PHONY: codespell
@@ -309,7 +300,7 @@ vendor-in-container:
 ###
 
 # Make sure to warn in case we're building without the systemd buildtag.
-bin/podman: .gopathok $(SOURCES) go.mod go.sum
+bin/podman: $(SOURCES) go.mod go.sum
 ifeq (,$(findstring systemd,$(BUILDTAGS)))
 	@echo "Podman is being compiled without the systemd build tag. \
 		Install libsystemd on Ubuntu or systemd-devel on rpm based \
@@ -325,14 +316,14 @@ endif
 $(SRCBINDIR):
 	mkdir -p $(SRCBINDIR)
 
-$(SRCBINDIR)/podman$(BINSFX): $(SRCBINDIR) .gopathok $(SOURCES) go.mod go.sum
+$(SRCBINDIR)/podman$(BINSFX): $(SRCBINDIR) $(SOURCES) go.mod go.sum
 	$(GOCMD) build \
 		$(BUILDFLAGS) \
 		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' \
 		-tags "${REMOTETAGS}" \
 		-o $@ ./cmd/podman
 
-$(SRCBINDIR)/podman-remote-static: $(SRCBINDIR) .gopathok $(SOURCES) go.mod go.sum
+$(SRCBINDIR)/podman-remote-static: $(SRCBINDIR) $(SOURCES) go.mod go.sum
 	CGO_ENABLED=0 \
 	GOOS=$(GOOS) \
 	GOARCH=$(GOARCH) \
@@ -368,7 +359,7 @@ podman-remote-windows: ## Build podman-remote for Windows
 		bin/windows/podman.exe
 
 .PHONY: podman-winpath
-podman-winpath: .gopathok $(SOURCES) go.mod go.sum
+podman-winpath: $(SOURCES) go.mod go.sum
 	CGO_ENABLED=0 \
 		GOOS=windows \
 		$(GO) build \
@@ -395,7 +386,7 @@ podman-mac-helper: ## Build podman-mac-helper for macOS
 		-o bin/darwin/podman-mac-helper \
 		./cmd/podman-mac-helper
 
-bin/rootlessport: .gopathok $(SOURCES) go.mod go.sum
+bin/rootlessport: $(SOURCES) go.mod go.sum
 	CGO_ENABLED=$(CGO_ENABLED) \
 		$(GO) build \
 		$(BUILDFLAGS) \
@@ -415,7 +406,7 @@ ifneq ($(GOOS),darwin)
 endif
 
 # DO NOT USE: use local-cross instead
-bin/podman.cross.%: .gopathok
+bin/podman.cross.%:
 	TARGET="$*"; \
 	GOOS="$${TARGET%%.*}"; \
 	GOARCH="$${TARGET##*.}"; \
@@ -455,7 +446,7 @@ completions: podman podman-remote
 ### Documentation targets
 ###
 
-pkg/api/swagger.yaml: .gopathok
+pkg/api/swagger.yaml:
 	make -C pkg/api
 
 $(MANPAGES): %: %.md .install.md2man docdir
@@ -759,7 +750,7 @@ package-install: package  ## Install rpm packages
 	/usr/bin/podman info  # will catch a broken conmon
 
 .PHONY: install
-install: .gopathok install.bin install.remote install.man install.systemd  ## Install binaries to system locations
+install: install.bin install.remote install.man install.systemd  ## Install binaries to system locations
 
 .PHONY: install.catatonit
 install.catatonit:
@@ -862,13 +853,13 @@ install.tools: .install.ginkgo .install.golangci-lint .install.bats ## Install n
 	make -C test/tools
 
 .PHONY: .install.ginkgo
-.install.ginkgo: .gopathok
+.install.ginkgo:
 	if [ ! -x "$(GOBIN)/ginkgo" ]; then \
 		$(GO) install $(BUILDFLAGS) ./vendor/github.com/onsi/ginkgo/ginkgo ; \
 	fi
 
 .PHONY: .install.golangci-lint
-.install.golangci-lint: .gopathok
+.install.golangci-lint:
 	VERSION=1.45.2 GOBIN=$(GOBIN) ./hack/install_golangci.sh
 
 .PHONY: .install.md2man
@@ -878,7 +869,7 @@ install.tools: .install.ginkgo .install.golangci-lint .install.bats ## Install n
 	fi
 
 .PHONY: .install.bats
-.install.bats: .gopathok
+.install.bats:
 	VERSION=v1.1.0 ./hack/install_bats.sh
 
 .PHONY: .install.pre-commit
@@ -917,7 +908,6 @@ clean-binaries: ## Remove platform/architecture specific binary files
 .PHONY: clean
 clean: clean-binaries ## Clean all make artifacts
 	rm -rf \
-		.gopathok \
 		_output \
 		$(wildcard podman-*.msi) \
 		$(wildcard podman-remote*.zip) \
