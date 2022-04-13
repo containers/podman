@@ -146,6 +146,20 @@ var _ = Describe("Podman container clone", func() {
 		cloneData = cloneInspect.InspectContainerToJSON()
 		Expect(createData[0].HostConfig.NanoCpus).ToNot(Equal(cloneData[0].HostConfig.NanoCpus))
 		Expect(cloneData[0].HostConfig.NanoCpus).To(Equal(nanoCPUs))
+
+		create = podmanTest.Podman([]string{"create", ALPINE})
+		create.WaitWithDefaultTimeout()
+		Expect(create).To(Exit(0))
+		clone = podmanTest.Podman([]string{"container", "clone", "--cpus=4", create.OutputToString()})
+		clone.WaitWithDefaultTimeout()
+		Expect(clone).To(Exit(0))
+
+		cloneInspect = podmanTest.Podman([]string{"inspect", clone.OutputToString()})
+		cloneInspect.WaitWithDefaultTimeout()
+		Expect(cloneInspect).To(Exit(0))
+		cloneData = cloneInspect.InspectContainerToJSON()
+		Expect(cloneData[0].HostConfig.MemorySwappiness).To(Equal(int64(0)))
+
 	})
 
 	It("podman container clone in a pod", func() {

@@ -312,30 +312,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(logOptFlagName, AutocompleteLogOpt)
 
-		memoryReservationFlagName := "memory-reservation"
-		createFlags.StringVar(
-			&cf.MemoryReservation,
-			memoryReservationFlagName, "",
-			"Memory soft limit "+sizeWithUnitFormat,
-		)
-		_ = cmd.RegisterFlagCompletionFunc(memoryReservationFlagName, completion.AutocompleteNone)
-
-		memorySwapFlagName := "memory-swap"
-		createFlags.StringVar(
-			&cf.MemorySwap,
-			memorySwapFlagName, "",
-			"Swap limit equal to memory plus swap: '-1' to enable unlimited swap",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(memorySwapFlagName, completion.AutocompleteNone)
-
-		memorySwappinessFlagName := "memory-swappiness"
-		createFlags.Int64Var(
-			&cf.MemorySwappiness,
-			memorySwappinessFlagName, -1,
-			"Tune container memory swappiness (0 to 100, or -1 for system default)",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(memorySwappinessFlagName, completion.AutocompleteNone)
-
 		createFlags.BoolVar(
 			&cf.NoHealthCheck,
 			"no-healthcheck", false,
@@ -891,6 +867,30 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"Memory limit "+sizeWithUnitFormat,
 		)
 		_ = cmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
+
+		memoryReservationFlagName := "memory-reservation"
+		createFlags.StringVar(
+			&cf.MemoryReservation,
+			memoryReservationFlagName, "",
+			"Memory soft limit "+sizeWithUnitFormat,
+		)
+		_ = cmd.RegisterFlagCompletionFunc(memoryReservationFlagName, completion.AutocompleteNone)
+
+		memorySwapFlagName := "memory-swap"
+		createFlags.StringVar(
+			&cf.MemorySwap,
+			memorySwapFlagName, "",
+			"Swap limit equal to memory plus swap: '-1' to enable unlimited swap",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(memorySwapFlagName, completion.AutocompleteNone)
+
+		memorySwappinessFlagName := "memory-swappiness"
+		createFlags.Int64Var(
+			&cf.MemorySwappiness,
+			memorySwappinessFlagName, -1,
+			"Tune container memory swappiness (0 to 100, or -1 for system default)",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(memorySwappinessFlagName, completion.AutocompleteNone)
 	}
 	//anyone can use these
 	cpusFlagName := "cpus"
