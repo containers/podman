@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 
 	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/apparmor"
@@ -246,6 +247,7 @@ func defaultMachineConfig() MachineConfig {
 		Image:    getDefaultMachineImage(),
 		Memory:   2048,
 		User:     getDefaultMachineUser(),
+		Volumes:  []string{"$HOME:$HOME"},
 	}
 }
 
@@ -592,4 +594,25 @@ func (c *Config) LogDriver() string {
 // MachineEnabled returns if podman is running inside a VM or not
 func (c *Config) MachineEnabled() bool {
 	return c.Engine.MachineEnabled
+}
+
+// MachineVolumes returns volumes to mount into the VM
+func (c *Config) MachineVolumes() ([]string, error) {
+	return machineVolumes(c.Machine.Volumes)
+}
+
+func machineVolumes(volumes []string) ([]string, error) {
+	translatedVolumes := []string{}
+	for _, v := range volumes {
+		vol := os.ExpandEnv(v)
+		split := strings.Split(vol, ":")
+		if len(split) < 2 || len(split) > 3 {
+			return nil, errors.Errorf("invalid machine volume %s, 2 or 3 fields required", v)
+		}
+		if split[0] == "" || split[1] == "" {
+			return nil, errors.Errorf("invalid machine volume %s, fields must container data", v)
+		}
+		translatedVolumes = append(translatedVolumes, vol)
+	}
+	return translatedVolumes, nil
 }
