@@ -1225,6 +1225,15 @@ Without this argument the command will be run as root in the container.
 
 Set the user namespace mode for the container. It defaults to the **PODMAN_USERNS** environment variable. An empty value ("") means user namespaces are disabled unless an explicit mapping is set with the **--uidmap** and **--gidmap** options.
 
+Rootless user --userns=Key mappings:
+
+Key       | Host User |  Container User
+----------|---------------|---------------------
+""        |$UID           |0 (Default User account mapped to root user in container.)
+keep-id   |$UID           |$UID (Map user account to same UID within container.)
+auto      |$UID           | nil (Host User UID is not mapped into container.)
+nomap     |$UID           | nil (Host User UID is not mapped into container.)
+
 Valid _mode_ values are:
 
 **auto**[:_OPTIONS,..._]: automatically create a unique user namespace.
@@ -1246,6 +1255,8 @@ Podman allocates unique ranges of UIDs and GIDs from the `containers` subordinat
 **host**: run in the user namespace of the caller. The processes running in the container will have the same privileges on the host as any other process launched by the calling user (default).
 
 **keep-id**: creates a user namespace where the current rootless user's UID:GID are mapped to the same values in the container. This option is ignored for containers created by the root user.
+
+**nomap**: creates a user namespace where the current rootless user's UID:GID are not mapped into the container. This option is ignored for containers created by the root user.
 
 **ns:**_namespace_: run the container in the given existing user namespace.
 

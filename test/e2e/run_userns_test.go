@@ -78,12 +78,18 @@ var _ = Describe("Podman UserNS support", func() {
 	It("podman --userns=keep-id", func() {
 		session := podmanTest.Podman([]string{"run", "--userns=keep-id", "alpine", "id", "-u"})
 		session.WaitWithDefaultTimeout()
+		if os.Geteuid() == 0 {
+			Expect(session).Should(Exit(125))
+			return
+		}
+
 		Expect(session).Should(Exit(0))
 		uid := fmt.Sprintf("%d", os.Geteuid())
 		Expect(session.OutputToString()).To(ContainSubstring(uid))
 	})
 
 	It("podman --userns=keep-id check passwd", func() {
+		SkipIfNotRootless("keep-id only works in rootless mode")
 		session := podmanTest.Podman([]string{"run", "--userns=keep-id", "alpine", "id", "-un"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -93,6 +99,7 @@ var _ = Describe("Podman UserNS support", func() {
 	})
 
 	It("podman --userns=keep-id root owns /usr", func() {
+		SkipIfNotRootless("keep-id only works in rootless mode")
 		session := podmanTest.Podman([]string{"run", "--userns=keep-id", "alpine", "stat", "-c%u", "/usr"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -100,6 +107,7 @@ var _ = Describe("Podman UserNS support", func() {
 	})
 
 	It("podman --userns=keep-id --user root:root", func() {
+		SkipIfNotRootless("keep-id only works in rootless mode")
 		session := podmanTest.Podman([]string{"run", "--userns=keep-id", "--user", "root:root", "alpine", "id", "-u"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -107,10 +115,7 @@ var _ = Describe("Podman UserNS support", func() {
 	})
 
 	It("podman run --userns=keep-id can add users", func() {
-		if os.Geteuid() == 0 {
-			Skip("Test only runs without root")
-		}
-
+		SkipIfNotRootless("keep-id only works in rootless mode")
 		userName := os.Getenv("USER")
 		if userName == "" {
 			Skip("Can't complete test if no username available")

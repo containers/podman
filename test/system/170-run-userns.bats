@@ -94,3 +94,17 @@ EOF
     is ${output} ${secret_content} "Secrets should work with user namespace"
     run_podman secret rm ${test_name}
 }
+
+@test "podman userns=nomap" {
+    skip_if_not_rootless "--userns=nomap only works in rootless mode"
+    ns_user=$(id -un)
+    baseuid=$(egrep "${ns_user}:" /etc/subuid | cut -f2 -d:)
+    test ! -z ${baseuid} ||  skip "no IDs allocated for user ${ns_user}"
+
+    test_name="test_$(random_string 12)"
+    run_podman run -d --userns=nomap $IMAGE sleep 100
+    cid=${output}
+    run_podman top ${cid} huser
+    is "${output}" "HUSER.*${baseuid}" "Container should start with baseuid from /etc/subuid not user UID"
+    run_podman rm -t 0 --force ${cid}
+}

@@ -160,6 +160,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 	})
 
 	It("podman create --userns=keep-id --user root:root - entrypoint - entrypoint is executed as root", func() {
+		SkipIfNotRootless("only meaningful when run rootless")
 		session := podmanTest.Podman([]string{"run", "--userns=keep-id", "--user", "root:root", ALPINE,
 			"id"})
 		session.WaitWithDefaultTimeout()
@@ -168,6 +169,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 	})
 
 	It("podman create --userns=keep-id + podman exec - correct names of user and group", func() {
+		SkipIfNotRootless("only meaningful when run rootless")
 		var session *PodmanSessionIntegration
 		var err error
 
@@ -199,6 +201,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 	})
 
 	It("podman create --userns=keep-id - entrypoint - adding user with useradd and then removing their password", func() {
+		SkipIfNotRootless("only meaningful when run rootless")
 		var session *PodmanSessionIntegration
 
 		var username string = "testuser"
@@ -238,6 +241,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 	})
 
 	It("podman create --userns=keep-id + podman exec - adding group with groupadd", func() {
+		SkipIfNotRootless("only meaningful when run rootless")
 		var session *PodmanSessionIntegration
 
 		var groupName string = "testgroup"
@@ -268,6 +272,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 	})
 
 	It("podman create --userns=keep-id - entrypoint - modifying existing user with usermod - add to new group, change home/shell/uid", func() {
+		SkipIfNotRootless("only meaningful when run rootless")
 		var session *PodmanSessionIntegration
 		var badHomeDir string = "/home/badtestuser"
 		var badShell string = "/bin/sh"
@@ -315,6 +320,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 	})
 
 	It("podman run --privileged --userns=keep-id --user root:root - entrypoint - (bind)mounting", func() {
+		SkipIfNotRootless("only meaningful when run rootless")
 		var session *PodmanSessionIntegration
 
 		session = podmanTest.Podman([]string{"run", "--privileged", "--userns=keep-id", "--user", "root:root", ALPINE,
@@ -329,6 +335,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 	})
 
 	It("podman create + start - with all needed switches for create - sleep as entry-point", func() {
+		SkipIfNotRootless("only meaningful when run rootless")
 		var session *PodmanSessionIntegration
 
 		// These should be most of the switches that Toolbox uses to create a "toolbox" container
@@ -365,8 +372,8 @@ var _ = Describe("Toolbox-specific testing", func() {
 	})
 
 	It("podman run --userns=keep-id check $HOME", func() {
+		SkipIfNotRootless("only meaningful when run rootless")
 		var session *PodmanSessionIntegration
-
 		currentUser, err := user.Current()
 		Expect(err).To(BeNil())
 

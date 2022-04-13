@@ -347,53 +347,82 @@ func ParseSignal(rawSignal string) (syscall.Signal, error) {
 
 // GetKeepIDMapping returns the mappings and the user to use when keep-id is used
 func GetKeepIDMapping() (*stypes.IDMappingOptions, int, int, error) {
+	if !rootless.IsRootless() {
+		return nil, -1, -1, errors.New("keep-id is only supported in rootless mode")
+	}
 	options := stypes.IDMappingOptions{
-		HostUIDMapping: true,
-		HostGIDMapping: true,
+		HostUIDMapping: false,
+		HostGIDMapping: false,
 	}
-	uid, gid := 0, 0
-	if rootless.IsRootless() {
-		min := func(a, b int) int {
-			if a < b {
-				return a
-			}
-			return b
+	min := func(a, b int) int {
+		if a < b {
+			return a
 		}
-
-		uid = rootless.GetRootlessUID()
-		gid = rootless.GetRootlessGID()
-
-		uids, gids, err := rootless.GetConfiguredMappings()
-		if err != nil {
-			return nil, -1, -1, errors.Wrapf(err, "cannot read mappings")
-		}
-		maxUID, maxGID := 0, 0
-		for _, u := range uids {
-			maxUID += u.Size
-		}
-		for _, g := range gids {
-			maxGID += g.Size
-		}
-
-		options.UIDMap, options.GIDMap = nil, nil
-
-		options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: min(uid, maxUID)})
-		options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: uid, HostID: 0, Size: 1})
-		if maxUID > uid {
-			options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: uid + 1, HostID: uid + 1, Size: maxUID - uid})
-		}
-
-		options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: min(gid, maxGID)})
-		options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: gid, HostID: 0, Size: 1})
-		if maxGID > gid {
-			options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: gid + 1, HostID: gid + 1, Size: maxGID - gid})
-		}
-
-		options.HostUIDMapping = false
-		options.HostGIDMapping = false
+		return b
 	}
-	// Simply ignore the setting and do not setup an inner namespace for root as it is a no-op
+
+	uid := rootless.GetRootlessUID()
+	gid := rootless.GetRootlessGID()
+
+	uids, gids, err := rootless.GetConfiguredMappings()
+	if err != nil {
+		return nil, -1, -1, errors.Wrapf(err, "cannot read mappings")
+	}
+	if len(uids) == 0 || len(gids) == 0 {
+		return nil, -1, -1, errors.Wrapf(err, "keep-id requires additional UIDs or GIDs defined in /etc/subuid and /etc/subgid to function correctly")
+	}
+	maxUID, maxGID := 0, 0
+	for _, u := range uids {
+		maxUID += u.Size
+	}
+	for _, g := range gids {
+		maxGID += g.Size
+	}
+
+	options.UIDMap, options.GIDMap = nil, nil
+
+	options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: min(uid, maxUID)})
+	options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: uid, HostID: 0, Size: 1})
+	if maxUID > uid {
+		options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: uid + 1, HostID: uid + 1, Size: maxUID - uid})
+	}
+
+	options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: min(gid, maxGID)})
+	options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: gid, HostID: 0, Size: 1})
+	if maxGID > gid {
+		options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: gid + 1, HostID: gid + 1, Size: maxGID - gid})
+	}
+
 	return &options, uid, gid, nil
+}
+
+// GetNoMapMapping returns the mappings and the user to use when nomap is used
+func GetNoMapMapping() (*stypes.IDMappingOptions, int, int, error) {
+	if !rootless.IsRootless() {
+		return nil, -1, -1, errors.New("nomap is only supported in rootless mode")
+	}
+	options := stypes.IDMappingOptions{
+		HostUIDMapping: false,
+		HostGIDMapping: false,
+	}
+	uids, gids, err := rootless.GetConfiguredMappings()
+	if err != nil {
+		return nil, -1, -1, errors.Wrapf(err, "cannot read mappings")
+	}
+	if len(uids) == 0 || len(gids) == 0 {
+		return nil, -1, -1, errors.Wrapf(err, "nomap requires additional UIDs or GIDs defined in /etc/subuid and /etc/subgid to function correctly")
+	}
+	options.UIDMap, options.GIDMap = nil, nil
+	uid, gid := 0, 0
+	for _, u := range uids {
+		options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: uid, HostID: uid + 1, Size: u.Size})
+		uid += u.Size
+	}
+	for _, g := range gids {
+		options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: gid, HostID: gid + 1, Size: g.Size})
+		gid += g.Size
+	}
+	return &options, 0, 0, nil
 }
 
 // ParseIDMapping takes idmappings and subuid and subgid maps and returns a storage mapping
@@ -415,7 +444,7 @@ func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []strin
 		options.AutoUserNsOpts = *opts
 		return &options, nil
 	}
-	if mode.IsKeepID() {
+	if mode.IsKeepID() || mode.IsNoMap() {
 		options.HostUIDMapping = false
 		options.HostGIDMapping = false
 		return &options, nil

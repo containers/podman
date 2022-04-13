@@ -96,6 +96,11 @@ func (n UsernsMode) IsKeepID() bool {
 	return n == "keep-id"
 }
 
+// IsNoMap indicates whether container uses a mapping where the (uid, gid) on the host is not present in the namespace.
+func (n UsernsMode) IsNoMap() bool {
+	return n == "nomap"
+}
+
 // IsAuto indicates whether container uses the "auto" userns mode.
 func (n UsernsMode) IsAuto() bool {
 	parts := strings.Split(string(n), ":")
@@ -158,7 +163,7 @@ func (n UsernsMode) IsPrivate() bool {
 func (n UsernsMode) Valid() bool {
 	parts := strings.Split(string(n), ":")
 	switch mode := parts[0]; mode {
-	case "", privateType, hostType, "keep-id", nsType, "auto":
+	case "", privateType, hostType, "keep-id", nsType, "auto", "nomap":
 	case containerType:
 		if len(parts) != 2 || parts[1] == "" {
 			return false

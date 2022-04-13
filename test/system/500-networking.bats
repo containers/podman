@@ -88,6 +88,7 @@ load helpers
 
 # Issue #5466 - port-forwarding doesn't work with this option and -d
 @test "podman networking: port with --userns=keep-id" {
+    skip_if_not_rootless "--userns=keep-id only works in rootless mode"
     for cidr in "" "$(random_rfc1918_subnet).0/24"; do
         myport=$(random_free_port 52000-52999)
         if [[ -z $cidr ]]; then
