@@ -7,7 +7,7 @@ podman\-container\-clone - Creates a copy of an existing container
 **podman container clone** [*options*] *container* *name* *image*
 
 ## DESCRIPTION
-**podman container clone** creates a copy of a container, recreating the original with an identical configuration. This command takes three arguments: the first being the container id or name ot clone, the second argument in this command can change the name of the clone from the default of $ORIGINAL_NAME-clone, and the third is a new image to use in the cloned container.
+**podman container clone** creates a copy of a container, recreating the original with an identical configuration. This command takes three arguments: the first being the container id or name to clone, the second argument in this command can change the name of the clone from the default of $ORIGINAL_NAME-clone, and the third is a new image to use in the cloned container.
 
 ## OPTIONS
 
@@ -59,7 +59,7 @@ Period of 1,000,000us and Runtime of 950,000us means that this container could c
 
 The sum of all runtimes across containers cannot exceed the amount allotted to the parent cgroup.
 
-This option is not supported on cgroup V2 systems.
+This option is not supported on cgroups V2 systems.
 
 #### **--cpu-shares**=*shares*
 
