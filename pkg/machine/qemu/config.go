@@ -86,6 +86,12 @@ type MachineVM struct {
 	ResourceConfig
 	// SSHConfig for accessing the remote vm
 	SSHConfig
+	// Starting tells us whether the machine is running or if we have just dialed it to start it
+	Starting bool
+	// Created contains the original created time instead of querying the file mod time
+	Created time.Time
+	// LastUp contains the last recorded uptime
+	LastUp time.Time
 }
 
 // ImageConfig describes the bootable image for the VM

@@ -121,7 +121,7 @@ type VM interface {
 	Set(name string, opts SetOptions) error
 	SSH(name string, opts SSHOptions) error
 	Start(name string, opts StartOptions) error
-	State() (Status, error)
+	State(bypass bool) (Status, error)
 	Stop(name string, opts StopOptions) error
 }
 

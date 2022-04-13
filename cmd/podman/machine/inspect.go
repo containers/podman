@@ -59,7 +59,7 @@ func inspect(cmd *cobra.Command, args []string) error {
 			errs = append(errs, err)
 			continue
 		}
-		state, err := vm.State()
+		state, err := vm.State(false)
 		if err != nil {
 			errs = append(errs, err)
 			continue
