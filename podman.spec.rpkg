@@ -13,16 +13,8 @@
 %endif
 
 %if ! 0%{?gobuild:1}
-%define gobuild(o:) GO111MODULE=off go build -buildmode pie -compiler gc -tags="rpm_crashtraceback ${BUILDTAGS:-}" -ldflags "${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n') -extldflags '-Wl,-z,relro -Wl,-z,now -specs=/usr/lib/rpm/redhat/redhat-hardened-ld '" -a -v -x %{?**};
+%define gobuild(o:) go build -buildmode pie -compiler gc -tags="rpm_crashtraceback ${BUILDTAGS:-}" -ldflags "${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n') -extldflags '-Wl,-z,relro -Wl,-z,now -specs=/usr/lib/rpm/redhat/redhat-hardened-ld '" -a -v -x %{?**};
 %endif
-
-%global provider github
-%global provider_tld com
-%global project containers
-%global repo %{name}
-# https://github.com/containers/%%{name}
-%global import_path %{provider}.%{provider_tld}/%{project}/%{repo}
-%global git0 https://%{import_path}
 
 # git_dir_name returns repository name derived from remote Git repository URL
 Name:       {{{ git_dir_name }}}
@@ -156,8 +148,7 @@ connections as well.
 # This will invoke `make` command in the directory with the extracted sources.
 %build
 %set_build_flags
-export GO111MODULE=off
-export GOPATH=$(pwd)/_build:$(pwd)
+%global gomodulesmode GO111MODULE=on
 export CGO_CFLAGS=$CFLAGS
 # These extra flags present in $CFLAGS have been skipped for now as they break the build
 CGO_CFLAGS=$(echo $CGO_CFLAGS | sed 's/-flto=auto//g')
@@ -168,33 +159,26 @@ CGO_CFLAGS=$(echo $CGO_CFLAGS | sed 's/-specs=\/usr\/lib\/rpm\/redhat\/redhat-an
 export CGO_CFLAGS+=" -m64 -mtune=generic -fcf-protection=full"
 %endif
 
-mkdir _build
-pushd _build
-mkdir -p src/%{provider}.%{provider_tld}/%{project}
-ln -s ../../../../ src/%{import_path}
-popd
-ln -s vendor src
-
 %if 0%{?rhel}
 rm -rf vendor/github.com/containers/storage/drivers/register/register_btrfs.go
 %endif
 
 # build date. FIXME: Makefile uses '/v2/libpod', that doesn't work here?
-LDFLAGS="-X %{import_path}/libpod/define.buildInfo=$(date +%s)"
+LDFLAGS="-X ./libpod/define.buildInfo=$(date +%s)"
 
 # build rootlessport first
-%gobuild -o bin/rootlessport %{import_path}/cmd/rootlessport
+%gobuild -o bin/rootlessport ./cmd/rootlessport
 
 # set base buildtags common to both %%{name} and %%{name}-remote
 export BASEBUILDTAGS="seccomp exclude_graphdriver_devicemapper $(hack/selinux_tag.sh) $(hack/systemd_tag.sh) $(hack/libsubid_tag.sh)"
 
 # build %%{name}
 export BUILDTAGS="$BASEBUILDTAGS $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh)"
-%gobuild -o bin/%{name} %{import_path}/cmd/%{name}
+%gobuild -o bin/%{name} ./cmd/%{name}
 
 # build %%{name}-remote
 export BUILDTAGS="$BASEBUILDTAGS exclude_graphdriver_btrfs btrfs_noversion remote"
-%gobuild -o bin/%{name}-remote %{import_path}/cmd/%{name}
+%gobuild -o bin/%{name}-remote ./cmd/%{name}
 
 make docs docker-docs
 

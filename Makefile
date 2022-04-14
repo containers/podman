@@ -120,20 +120,10 @@ RELEASE_NUMBER = $(shell echo "$(RELEASE_VERSION)" | sed -e 's/^v\(.*\)/\1/')
 # If non-empty, logs all output from server during remote system testing
 PODMAN_SERVER_LOG ?=
 
-# If GOPATH not specified, use one in the local directory
-ifeq ($(GOPATH),)
-export GOPATH := $(HOME)/go
-unexport GOBIN
-endif
-FIRST_GOPATH := $(firstword $(subst :, ,$(GOPATH)))
-
-GOBIN := $(shell $(GO) env GOBIN)
-ifeq ($(GOBIN),)
-GOBIN := $(FIRST_GOPATH)/bin
-endif
-
+# Ensure GOBIN is not set so the default (`go env GOPATH`/bin) is used.
+override undefine GOBIN
 # This must never include the 'hack' directory
-export PATH := $(PATH):$(GOBIN)
+export PATH := $(shell $(GO) env GOPATH)/bin:$(PATH)
 
 GOMD2MAN ?= $(shell command -v go-md2man || echo './test/tools/build/go-md2man')
 
@@ -522,7 +512,7 @@ run-docker-py-tests:
 .PHONY: localunit
 localunit: test/goecho/goecho test/version/version
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
-	UNIT=1 $(GOBIN)/ginkgo \
+	UNIT=1 ginkgo \
 		-r \
 		$(TESTFLAGS) \
 		--skipPackage test/e2e,pkg/apparmor,pkg/bindings,hack,pkg/machine/e2e \
@@ -541,8 +531,8 @@ test: localunit localintegration remoteintegration localsystem remotesystem  ## 
 
 .PHONY: ginkgo-run
 ginkgo-run:
-	ACK_GINKGO_RC=true $(GOBIN)/ginkgo version
-	ACK_GINKGO_RC=true $(GOBIN)/ginkgo -v $(TESTFLAGS) -tags "$(TAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -nodes 3 -debug test/e2e/. $(HACK)
+	ACK_GINKGO_RC=true ginkgo version
+	ACK_GINKGO_RC=true ginkgo -v $(TESTFLAGS) -tags "$(TAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -nodes 3 -debug test/e2e/. $(HACK)
 
 .PHONY: ginkgo
 ginkgo:
@@ -560,7 +550,7 @@ remoteintegration: test-binaries ginkgo-remote
 
 .PHONY: localbenchmarks
 localbenchmarks: test-binaries
-	PATH=$(PATH):$(shell pwd)/hack ACK_GINKGO_RC=true $(GOBIN)/ginkgo \
+	PATH=$(PATH):$(shell pwd)/hack ACK_GINKGO_RC=true ginkgo \
 		      -focus "Podman Benchmark Suite" \
 		      -tags "$(BUILDTAGS) benchmarks" -noColor \
 		      -noisySkippings=false -noisyPendings=false \
@@ -854,13 +844,11 @@ install.tools: .install.ginkgo .install.golangci-lint .install.bats ## Install n
 
 .PHONY: .install.ginkgo
 .install.ginkgo:
-	if [ ! -x "$(GOBIN)/ginkgo" ]; then \
-		$(GO) install $(BUILDFLAGS) ./vendor/github.com/onsi/ginkgo/ginkgo ; \
-	fi
+	$(GO) install $(BUILDFLAGS) ./vendor/github.com/onsi/ginkgo/ginkgo
 
 .PHONY: .install.golangci-lint
 .install.golangci-lint:
-	VERSION=1.45.2 GOBIN=$(GOBIN) ./hack/install_golangci.sh
+	VERSION=1.45.2 ./hack/install_golangci.sh
 
 .PHONY: .install.md2man
 .install.md2man:

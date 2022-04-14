@@ -9,7 +9,6 @@ env:
     DEST_BRANCH: "main"
     # Overrides default location (/tmp/cirrus) for repo clone
     GOPATH: &gopath "/var/tmp/go"
-    GOBIN: "${GOPATH}/bin"
     GOCACHE: "${GOPATH}/cache"
     GOSRC: &gosrc "/var/tmp/go/src/github.com/containers/podman"
     CIRRUS_WORKING_DIR: *gosrc
