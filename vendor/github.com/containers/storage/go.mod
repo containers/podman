@@ -23,6 +23,7 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 	github.com/tchap/go-patricia v2.3.0+incompatible
+	github.com/ulikunitz/xz v0.5.10
 	github.com/vbatts/tar-split v0.11.1
 	golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
 	golang.org/x/sys v0.0.0-20201201145000-ef89a241ccb3

@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	drivers "github.com/containers/storage/drivers"
@@ -27,6 +28,7 @@ import (
 	digest "github.com/opencontainers/go-digest"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/vbatts/tar-split/archive/tar"
 	"github.com/vbatts/tar-split/tar/asm"
 	"github.com/vbatts/tar-split/tar/storage"
@@ -260,6 +262,7 @@ type layerStore struct {
 	byuncompressedsum map[digest.Digest][]string
 	uidMap            []idtools.IDMap
 	gidMap            []idtools.IDMap
+	loadMut           sync.Mutex
 }
 
 func copyLayer(l *Layer) *Layer {
@@ -1324,6 +1327,9 @@ func (r *layerStore) ApplyDiff(to string, diff io.Reader) (size int64, err error
 	if err != nil {
 		compressor = pgzip.NewWriter(&tsdata)
 	}
+	if err := compressor.SetConcurrency(1024*1024, 1); err != nil { // 1024*1024 is the hard-coded default; we're not changing that
+		logrus.Infof("error setting compression concurrency threads to 1: %v; ignoring", err)
+	}
 	metadata := storage.NewJSONPacker(compressor)
 	uncompressed, err := archive.DecompressStream(defragmented)
 	if err != nil {
@@ -1479,4 +1485,15 @@ func (r *layerStore) TouchedSince(when time.Time) bool {
 
 func (r *layerStore) Locked() bool {
 	return r.lockfile.Locked()
+}
+
+func (r *layerStore) ReloadIfChanged() error {
+	r.loadMut.Lock()
+	defer r.loadMut.Unlock()
+
+	modified, err := r.Modified()
+	if err == nil && modified {
+		return r.Load()
+	}
+	return nil
 }

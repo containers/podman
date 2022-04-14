@@ -15,8 +15,8 @@ require (
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.10.5
 	github.com/containers/ocicrypt v1.0.3
-	github.com/containers/psgo v1.5.2
-	github.com/containers/storage v1.24.8
+	github.com/containers/psgo v1.5.3-0.20220414143135-812ad843e127
+	github.com/containers/storage v1.24.10
 	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/cri-o/ocicni v0.2.1-0.20201204103948-b6cbe99b9756
 	github.com/cyphar/filepath-securejoin v0.2.2
