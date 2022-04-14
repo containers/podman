@@ -725,12 +725,32 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 		parent = parentLayer.ID
 	}
 	var parentMappings, templateIDMappings, oldMappings *idtools.IDMappings
+	var (
+		templateMetadata           string
+		templateCompressedDigest   digest.Digest
+		templateCompressedSize     int64
+		templateUncompressedDigest digest.Digest
+		templateUncompressedSize   int64
+		templateCompressionType    archive.Compression
+		templateUIDs, templateGIDs []uint32
+		templateTSdata             []byte
+	)
 	if moreOptions.TemplateLayer != "" {
+		var tserr error
 		templateLayer, ok := r.lookup(moreOptions.TemplateLayer)
 		if !ok {
 			return nil, -1, ErrLayerUnknown
 		}
+		templateMetadata = templateLayer.Metadata
 		templateIDMappings = idtools.NewIDMappingsFromMaps(templateLayer.UIDMap, templateLayer.GIDMap)
+		templateCompressedDigest, templateCompressedSize = templateLayer.CompressedDigest, templateLayer.CompressedSize
+		templateUncompressedDigest, templateUncompressedSize = templateLayer.UncompressedDigest, templateLayer.UncompressedSize
+		templateCompressionType = templateLayer.CompressionType
+		templateUIDs, templateGIDs = append([]uint32{}, templateLayer.UIDs...), append([]uint32{}, templateLayer.GIDs...)
+		templateTSdata, tserr = ioutil.ReadFile(r.tspath(templateLayer.ID))
+		if tserr != nil && !os.IsNotExist(tserr) {
+			return nil, -1, tserr
+		}
 	} else {
 		templateIDMappings = &idtools.IDMappings{}
 	}
@@ -775,17 +795,43 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 			return nil, -1, err
 		}
 	}
+	if len(templateTSdata) > 0 {
+		if err := os.MkdirAll(filepath.Dir(r.tspath(id)), 0o700); err != nil {
+			// We don't have a record of this layer, but at least
+			// try to clean it up underneath us.
+			if err2 := r.driver.Remove(id); err2 != nil {
+				logrus.Errorf("While recovering from a failure creating in UpdateLayerIDMap, error deleting layer %#v: %v", id, err2)
+			}
+			return nil, -1, err
+		}
+		if err = ioutils.AtomicWriteFile(r.tspath(id), templateTSdata, 0o600); err != nil {
+			// We don't have a record of this layer, but at least
+			// try to clean it up underneath us.
+			if err2 := r.driver.Remove(id); err2 != nil {
+				logrus.Errorf("While recovering from a failure creating in UpdateLayerIDMap, error deleting layer %#v: %v", id, err2)
+			}
+			return nil, -1, err
+		}
+	}
 	if err == nil {
 		layer = &Layer{
-			ID:           id,
-			Parent:       parent,
-			Names:        names,
-			MountLabel:   mountLabel,
-			Created:      time.Now().UTC(),
-			Flags:        make(map[string]interface{}),
-			UIDMap:       copyIDMap(moreOptions.UIDMap),
-			GIDMap:       copyIDMap(moreOptions.GIDMap),
-			BigDataNames: []string{},
+			ID:                 id,
+			Parent:             parent,
+			Names:              names,
+			MountLabel:         mountLabel,
+			Metadata:           templateMetadata,
+			Created:            time.Now().UTC(),
+			CompressedDigest:   templateCompressedDigest,
+			CompressedSize:     templateCompressedSize,
+			UncompressedDigest: templateUncompressedDigest,
+			UncompressedSize:   templateUncompressedSize,
+			CompressionType:    templateCompressionType,
+			UIDs:               templateUIDs,
+			GIDs:               templateGIDs,
+			Flags:              make(map[string]interface{}),
+			UIDMap:             copyIDMap(moreOptions.UIDMap),
+			GIDMap:             copyIDMap(moreOptions.GIDMap),
+			BigDataNames:       []string{},
 		}
 		r.layers = append(r.layers, layer)
 		r.idindex.Add(id)
@@ -872,7 +918,6 @@ func (r *layerStore) Mounted(id string) (int, error) {
 }
 
 func (r *layerStore) Mount(id string, options drivers.MountOpts) (string, error) {
-
 	// check whether options include ro option
 	hasReadOnlyOpt := func(opts []string) bool {
 		for _, item := range opts {

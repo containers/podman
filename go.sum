@@ -325,8 +325,9 @@ github.com/containerd/stargz-snapshotter/estargz v0.9.0/go.mod h1:aE5PCyhFMwR8sb
 github.com/containerd/stargz-snapshotter/estargz v0.10.1/go.mod h1:aE5PCyhFMwR8sbrErO5eM2GcvkyXTTJremG883D4qF0=
 github.com/containerd/stargz-snapshotter/estargz v0.11.0/go.mod h1:/KsZXsJRllMbTKFfG0miFQWViQKdI9+9aSXs+HN0+ac=
 github.com/containerd/stargz-snapshotter/estargz v0.11.1/go.mod h1:6VoPcf4M1wvnogWxqc4TqBWWErCS+R+ucnPZId2VbpQ=
-github.com/containerd/stargz-snapshotter/estargz v0.11.3 h1:k2kN16Px6LYuv++qFqK+JTcYqc8bEVxzGpf8/gFBL5M=
 github.com/containerd/stargz-snapshotter/estargz v0.11.3/go.mod h1:7vRJIcImfY8bpifnMjt+HTJoQxASq7T28MYbP15/Nf0=
+github.com/containerd/stargz-snapshotter/estargz v0.11.4 h1:LjrYUZpyOhiSaU7hHrdR82/RBoxfGWSaC0VeSSMXqnk=
+github.com/containerd/stargz-snapshotter/estargz v0.11.4/go.mod h1:7vRJIcImfY8bpifnMjt+HTJoQxASq7T28MYbP15/Nf0=
 github.com/containerd/ttrpc v0.0.0-20190828154514-0e0f228740de/go.mod h1:PvCDdDGpgqzQIzDW1TphrGLssLDZp2GuS+X5DkEJB8o=
 github.com/containerd/ttrpc v0.0.0-20190828172938-92c8520ef9f8/go.mod h1:PvCDdDGpgqzQIzDW1TphrGLssLDZp2GuS+X5DkEJB8o=
 github.com/containerd/ttrpc v0.0.0-20191028202541-4f1b8fe65a5c/go.mod h1:LPm1u0xBw8r8NOKoOdNMeVHSawSsltak+Ihv+etqsE8=
@@ -379,8 +380,8 @@ github.com/containers/storage v1.38.2/go.mod h1:INP0RPLHWBxx+pTsO5uiHlDUGHDFvWZP
 github.com/containers/storage v1.38.3-0.20220301151551-d06b0f81c0aa/go.mod h1:LkkL34WRi4dI4jt9Cp+ImdZi/P5i36glSHimT5CP5zM=
 github.com/containers/storage v1.39.0/go.mod h1:UAD0cKLouN4BOQRgZut/nMjrh/EnTCjSNPgp4ZuGWMs=
 github.com/containers/storage v1.39.1-0.20220330193934-f3200eb5a5d9/go.mod h1:IMa2AfBI+Fxxk2hQqLTGhpJX6z2pZS1/I785QJeUwUY=
-github.com/containers/storage v1.39.1-0.20220412073713-ea4008e14877 h1:V3aVdbQt9qU6tu4HHAJtro4H8+Hnv6X/hrUNba8dll0=
-github.com/containers/storage v1.39.1-0.20220412073713-ea4008e14877/go.mod h1:UuYvGSKIdmzkjHbT/PENtxLRVGQ974nyhMbYp0KP19w=
+github.com/containers/storage v1.39.1-0.20220414183333-eea4e0f5f1f9 h1:cB2AvqxpfyqyyffXtDN0txJhD0lIaZWktbSRI92WpN4=
+github.com/containers/storage v1.39.1-0.20220414183333-eea4e0f5f1f9/go.mod h1:hFiHLMgNU0r3MiUpE97hEBaEKCN8fEIuEEBXoFC9eN0=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/etcd v3.3.13+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
@@ -1005,8 +1006,9 @@ github.com/moby/sys/mount v0.2.0/go.mod h1:aAivFE2LB3W4bACsUXChRHQ0qKWsetY4Y9V7s
 github.com/moby/sys/mountinfo v0.4.0/go.mod h1:rEr8tzG/lsIZHBtN/JjGG+LMYx9eXgW2JI+6q0qou+A=
 github.com/moby/sys/mountinfo v0.4.1/go.mod h1:rEr8tzG/lsIZHBtN/JjGG+LMYx9eXgW2JI+6q0qou+A=
 github.com/moby/sys/mountinfo v0.5.0/go.mod h1:3bMD3Rg+zkqx8MRYPi7Pyb0Ie97QEBmdxbhnCLlSvSU=
-github.com/moby/sys/mountinfo v0.6.0 h1:gUDhXQx58YNrpHlK4nSL+7y2pxFZkUcXqzFDKWdC0Oo=
 github.com/moby/sys/mountinfo v0.6.0/go.mod h1:3bMD3Rg+zkqx8MRYPi7Pyb0Ie97QEBmdxbhnCLlSvSU=
+github.com/moby/sys/mountinfo v0.6.1 h1:+H/KnGEAGRpTrEAqNVQ2AM3SiwMgJUt/TXj+Z8cmCIc=
+github.com/moby/sys/mountinfo v0.6.1/go.mod h1:3bMD3Rg+zkqx8MRYPi7Pyb0Ie97QEBmdxbhnCLlSvSU=
 github.com/moby/sys/signal v0.6.0/go.mod h1:GQ6ObYZfqacOwTtlXvcmh9A26dVRul/hbOZn88Kg8Tg=
 github.com/moby/sys/symlink v0.1.0/go.mod h1:GGDODQmbFOjFsXvfLVn3+ZRxkch54RkSiGqsZeMYowQ=
 github.com/moby/sys/symlink v0.2.0/go.mod h1:7uZVF2dqJjG/NsClqul95CqKOBRQyYSNnJ6BMgR/gFs=
