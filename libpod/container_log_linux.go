@@ -209,9 +209,6 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 					containerCouldBeLogging = true
 				case events.Exited:
 					containerCouldBeLogging = false
-					if doTail {
-						doTailFunc()
-					}
 				}
 				continue
 			}
