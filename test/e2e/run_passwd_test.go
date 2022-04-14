@@ -137,4 +137,16 @@ USER 1000`, ALPINE)
 		Expect(run).Should(Exit(0))
 		Expect(run.OutputToString()).NotTo((ContainSubstring("1234:1234")))
 	})
+
+	It("podman run --passwd-entry flag", func() {
+		// Test that the line we add doesn't contain anything else than what is specified
+		run := podmanTest.Podman([]string{"run", "--user", "1234:1234", "--passwd-entry=FOO", ALPINE, "grep", "^FOO$", "/etc/passwd"})
+		run.WaitWithDefaultTimeout()
+		Expect(run).Should(Exit(0))
+
+		run = podmanTest.Podman([]string{"run", "--user", "12345:12346", "-w", "/etc", "--passwd-entry=$UID-$GID-$NAME-$HOME-$USERNAME", ALPINE, "cat", "/etc/passwd"})
+		run.WaitWithDefaultTimeout()
+		Expect(run).Should(Exit(0))
+		Expect(run.OutputToString()).To(ContainSubstring("12345-12346-container user-/etc-12345"))
+	})
 })

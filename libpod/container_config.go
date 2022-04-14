@@ -404,6 +404,8 @@ type ContainerMiscConfig struct {
 	// InitContainerType specifies if the container is an initcontainer
 	// and if so, what type: always or once are possible non-nil entries
 	InitContainerType string `json:"init_container_type,omitempty"`
+	// PasswdEntry specifies arbitrary data to append to a file.
+	PasswdEntry string `json:"passwd_entry,omitempty"`
 }
 
 // InfraInherit contains the compatible options inheritable from the infra container

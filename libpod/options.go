@@ -2051,3 +2051,16 @@ func WithChrootDirs(dirs []string) CtrCreateOption {
 		return nil
 	}
 }
+
+// WithPasswdEntry sets the entry to write to the /etc/passwd file.
+func WithPasswdEntry(passwdEntry string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.PasswdEntry = passwdEntry
+
+		return nil
+	}
+}

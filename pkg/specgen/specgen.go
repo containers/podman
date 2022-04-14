@@ -206,6 +206,8 @@ type ContainerBasicConfig struct {
 	UnsetEnvAll bool `json:"unsetenvall,omitempty"`
 	// Passwd is a container run option that determines if we are validating users/groups before running the container
 	Passwd *bool `json:"manage_password,omitempty"`
+	// PasswdEntry specifies arbitrary data to append to a file.
+	PasswdEntry string `json:"passwd_entry,omitempty"`
 }
 
 // ContainerStorageConfig contains information on the storage configuration of a
