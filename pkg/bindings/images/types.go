@@ -31,8 +31,6 @@ type ListOptions struct {
 	All *bool
 	// filters that can be used to get a more specific list of images
 	Filters map[string][]string
-	// Compute the size of each image
-	Size *bool
 }
 
 //go:generate go run ../generator/generator.go GetOptions
