@@ -221,18 +221,6 @@ endif
 golangci-lint: .install.golangci-lint
 	hack/golangci-lint.sh run
 
-.PHONY: gofmt
-gofmt: ## Verify the source code gofmt
-	find . -name '*.go' -type f \
-		-not \( \
-			-name '.golangci.yml' -o \
-			-name 'Makefile' -o \
-			-path './vendor/*' -prune -o \
-			-path './test/tools/vendor/*' -prune -o \
-			-path './contrib/*' -prune \
-		\) -exec gofmt -d -e -s -w {} \+
-	git diff --exit-code
-
 .PHONY: test/checkseccomp/checkseccomp
 test/checkseccomp/checkseccomp: $(wildcard test/checkseccomp/*.go)
 	$(GOCMD) build $(BUILDFLAGS) $(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o $@ ./test/checkseccomp
@@ -257,7 +245,7 @@ codespell:
 	codespell -S bin,vendor,.git,go.sum,.cirrus.yml,"RELEASE_NOTES.md,*.xz,*.gz,*.ps1,*.tar,swagger.yaml,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked,splitted,marge,ERRO,hist,ether -w
 
 .PHONY: validate
-validate: gofmt lint .gitvalidation validate.completions man-page-check swagger-check tests-included tests-expect-exit
+validate: lint .gitvalidation validate.completions man-page-check swagger-check tests-included tests-expect-exit
 
 .PHONY: build-all-new-commits
 build-all-new-commits:
