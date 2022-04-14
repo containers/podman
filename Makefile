@@ -27,8 +27,6 @@ COVERAGE_PATH ?= .coverage
 DESTDIR ?=
 EPOCH_TEST_COMMIT ?= $(shell git merge-base $${DEST_BRANCH:-main} HEAD)
 HEAD ?= HEAD
-CHANGELOG_BASE ?= HEAD~
-CHANGELOG_TARGET ?= HEAD
 PROJECT := github.com/containers/podman
 GIT_BASE_BRANCH ?= origin/main
 GIT_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
@@ -86,10 +84,8 @@ GIT_COMMIT ?= $(if $(shell git status --porcelain --untracked-files=no),${COMMIT
 DATE_FMT = %s
 ifdef SOURCE_DATE_EPOCH
 	BUILD_INFO ?= $(shell date -u -d "@$(SOURCE_DATE_EPOCH)" "+$(DATE_FMT)" 2>/dev/null || date -u -r "$(SOURCE_DATE_EPOCH)" "+$(DATE_FMT)" 2>/dev/null || date -u "+$(DATE_FMT)")
-	ISODATE ?= $(shell date -d "@$(SOURCE_DATE_EPOCH)" --iso-8601)
 else
 	BUILD_INFO ?= $(shell date "+$(DATE_FMT)")
-	ISODATE ?= $(shell date --iso-8601)
 endif
 LIBPOD := ${PROJECT}/v4/libpod
 GOFLAGS ?= -trimpath
