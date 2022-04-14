@@ -9,6 +9,7 @@ require (
 	github.com/checkpoint-restore/checkpointctl v0.0.0-20210301084134-a2024f5584e7
 	github.com/checkpoint-restore/go-criu/v5 v5.1.0
 	github.com/container-orchestrated-devices/container-device-interface v0.0.0-20210325223243-f99e8b6c10b9
+	github.com/containerd/stargz-snapshotter/estargz v0.9.0 // indirect
 	github.com/containernetworking/cni v0.8.1
 	github.com/containernetworking/plugins v0.9.1
 	github.com/containers/buildah v1.23.4
@@ -16,8 +17,8 @@ require (
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.16.1-0.20220406192429-8b06d33b562e
 	github.com/containers/ocicrypt v1.1.2
-	github.com/containers/psgo v1.7.1
-	github.com/containers/storage v1.36.3
+	github.com/containers/psgo v1.7.2-0.20220414140836-649fa840824f
+	github.com/containers/storage v1.36.4
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
 	github.com/cri-o/ocicni v0.2.1-0.20210621164014-d0acc7862283
@@ -40,7 +41,7 @@ require (
 	github.com/gorilla/schema v1.2.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hpcloud/tail v1.0.0
-	github.com/json-iterator/go v1.1.11
+	github.com/json-iterator/go v1.1.12
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6
 	github.com/mrunalp/fileutils v0.5.0
@@ -67,7 +68,7 @@ require (
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210906170528-6f6e22806c34
+	golang.org/x/sys v0.0.0-20211025201205-69cdffdb9359
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/api v0.22.1
 	k8s.io/apimachinery v0.22.1
