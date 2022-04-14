@@ -734,4 +734,28 @@ EOF
     is "$output" "$random_1" "output matches STDIN"
 }
 
+# CVE-2022-1227 : podman top joins container mount NS and uses nsenter from image
+@test "podman top does not use nsenter from image" {
+    tmpdir=$PODMAN_TMPDIR/build-test
+    mkdir -p $tmpdir
+    tmpbuilddir=$tmpdir/build
+    mkdir -p $tmpbuilddir
+    dockerfile=$tmpbuilddir/Dockerfile
+    cat >$dockerfile <<EOF
+FROM $IMAGE
+RUN rm /usr/bin/nsenter; \
+echo -e "#!/bin/sh\nfalse" >> /usr/bin/nsenter; \
+chmod +x /usr/bin/nsenter
+EOF
+
+    test_image="cve_2022_1227_test"
+    run_podman build -t $test_image $tmpbuilddir
+    run_podman run -d --userns=keep-id $test_image top
+    ctr="$output"
+    run_podman top $ctr huser,user
+    run_podman kill $ctr
+    run_podman rm -f $ctr
+    run_podman rmi $test_image
+}
+
 # vim: filetype=sh
