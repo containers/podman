@@ -254,9 +254,9 @@ build-all-new-commits:
 
 .PHONY: vendor
 vendor:
-	GO111MODULE=on $(GO) mod tidy
-	GO111MODULE=on $(GO) mod vendor
-	GO111MODULE=on $(GO) mod verify
+	$(GO) mod tidy
+	$(GO) mod vendor
+	$(GO) mod verify
 
 .PHONY: vendor-in-container
 vendor-in-container:
@@ -372,7 +372,7 @@ rootlessport: bin/rootlessport
 .PHONY: generate-bindings
 generate-bindings:
 ifneq ($(GOOS),darwin)
-	GO111MODULE=off $(GOCMD) generate ./pkg/bindings/... ;
+	$(GOCMD) generate ./pkg/bindings/... ;
 endif
 
 # DO NOT USE: use local-cross instead
