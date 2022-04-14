@@ -60,16 +60,14 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 		}
 		e.Containers = len(ctnrs)
 
-		if opts.Size {
-			sz, err := img.Size()
-			if err != nil {
-				return nil, errors.Wrapf(err, "error retrieving size of image %q: you may need to remove the image to resolve the error", img.ID())
-			}
-			e.Size = sz
-			// This is good enough for now, but has to be
-			// replaced later with correct calculation logic
-			e.VirtualSize = sz
+		sz, err := img.Size()
+		if err != nil {
+			return nil, errors.Wrapf(err, "error retrieving size of image %q: you may need to remove the image to resolve the error", img.ID())
 		}
+		e.Size = sz
+		// This is good enough for now, but has to be
+		// replaced later with correct calculation logic
+		e.VirtualSize = sz
 
 		parent, err := img.Parent(ctx)
 		if err != nil {

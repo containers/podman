@@ -46,18 +46,3 @@ func (o *ListOptions) GetFilters() map[string][]string {
 	}
 	return o.Filters
 }
-
-// WithSize set field Size to given value
-func (o *ListOptions) WithSize(value bool) *ListOptions {
-	o.Size = &value
-	return o
-}
-
-// GetSize returns value of field Size
-func (o *ListOptions) GetSize() bool {
-	if o.Size == nil {
-		var z bool
-		return z
-	}
-	return *o.Size
-}

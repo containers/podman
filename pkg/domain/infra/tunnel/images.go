@@ -38,7 +38,7 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 		f := strings.Split(filter, "=")
 		filters[f[0]] = f[1:]
 	}
-	options := new(images.ListOptions).WithAll(opts.All).WithFilters(filters).WithSize(opts.Size)
+	options := new(images.ListOptions).WithAll(opts.All).WithFilters(filters)
 	psImages, err := images.List(ir.ClientCtx, options)
 	if err != nil {
 		return nil, err

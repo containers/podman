@@ -100,10 +100,6 @@ Omit the table headings from the listing of images.
 
 Lists only the image IDs.
 
-#### **--size**
-
-Compute and display the size of each image.  The default is true.  Computing the size of images can be costly.  If listing images is critical to performance, consider turning off size-computation via `--size=false`.
-
 #### **--sort**=*sort*=*created*
 
 Sort by created, id, repository, size or tag (default: created)

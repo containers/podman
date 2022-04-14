@@ -840,11 +840,6 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//        - `id`=(`<image-id>`)
 	//        - `since`=(`<image-name>[:<tag>]`,  `<image id>` or `<image@digest>`)
 	//     type: string
-	//   - name: size
-	//     in: query
-	//     description: Compute the size of each image
-	//     type: boolean
-	//     default: true
 	// produces:
 	// - application/json
 	// responses:
