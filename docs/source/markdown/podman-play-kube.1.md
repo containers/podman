@@ -24,7 +24,7 @@ Only two volume types are supported by play kube, the *hostPath* and *persistent
 
 Note: When playing a kube YAML with init containers, the init container will be created with init type value `always`.
 
-Note: *hostPath* volume types created by play kube will be given an SELinux private label (Z)
+Note: *hostPath* volume types created by play kube will be given an SELinux shared label (z), bind mounts are not relabeled (use `chcon -t container_file_t -R <directory>`).
 
 Note: If the `:latest` tag is used, Podman will attempt to pull the image from a registry. If the image was built locally with Podman or Buildah, it will have `localhost` as the domain, in that case, Podman will use the image from the local store even if it has the `:latest` tag.
 
