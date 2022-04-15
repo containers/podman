@@ -41,28 +41,18 @@ import (
 	"github.com/containers/psgo/internal/dev"
 	"github.com/containers/psgo/internal/proc"
 	"github.com/containers/psgo/internal/process"
+	"github.com/containers/storage/pkg/idtools"
 	"golang.org/x/sys/unix"
 )
-
-// IDMap specifies a mapping range from the host to the container IDs.
-type IDMap struct {
-	// ContainerID is the first ID in the container.
-	ContainerID int
-	// HostID is the first ID in the host.
-	HostID int
-	// Size specifies how long is the range.  e.g. 1 means a single user
-	// is mapped.
-	Size int
-}
 
 // JoinNamespaceOpts specifies different options for joining the specified namespaces.
 type JoinNamespaceOpts struct {
 	// UIDMap specifies a mapping for UIDs in the container.  If specified
 	// huser will perform the reverse mapping.
-	UIDMap []IDMap
+	UIDMap []idtools.IDMap
 	// GIDMap specifies a mapping for GIDs in the container.  If specified
 	// hgroup will perform the reverse mapping.
-	GIDMap []IDMap
+	GIDMap []idtools.IDMap
 
 	// FillMappings specified whether UIDMap and GIDMap must be initialized
 	// with the current user namespace.
@@ -102,7 +92,7 @@ type aixFormatDescriptor struct {
 }
 
 // findID converts the specified id to the host mapping
-func findID(idStr string, mapping []IDMap, lookupFunc func(uid string) (string, error), overflowFile string) (string, error) {
+func findID(idStr string, mapping []idtools.IDMap, lookupFunc func(uid string) (string, error), overflowFile string) (string, error) {
 	if len(mapping) == 0 {
 		return idStr, nil
 	}
@@ -350,29 +340,16 @@ func JoinNamespaceAndProcessInfo(pid string, descriptors []string) ([][]string, 
 	return JoinNamespaceAndProcessInfoWithOptions(pid, descriptors, &JoinNamespaceOpts{})
 }
 
-func readMappings(path string) ([]IDMap, error) {
-	mappings, err := proc.ReadMappings(path)
-	if err != nil {
-		return nil, err
-	}
-	var res []IDMap
-	for _, i := range mappings {
-		m := IDMap{ContainerID: i.ContainerID, HostID: i.HostID, Size: i.Size}
-		res = append(res, m)
-	}
-	return res, nil
-}
-
 func contextFromOptions(options *JoinNamespaceOpts) (*psContext, error) {
 	ctx := new(psContext)
 	ctx.opts = options
 	if ctx.opts != nil && ctx.opts.FillMappings {
-		uidMappings, err := readMappings("/proc/self/uid_map")
+		uidMappings, err := proc.ReadMappings("/proc/self/uid_map")
 		if err != nil {
 			return nil, err
 		}
 
-		gidMappings, err := readMappings("/proc/self/gid_map")
+		gidMappings, err := proc.ReadMappings("/proc/self/gid_map")
 		if err != nil {
 			return nil, err
 		}
