@@ -137,6 +137,33 @@ system's page size (the value would be very large, that's millions of trillions)
 
 If no memory limits are specified, the original container's will be used.
 
+#### **--memory-reservation**=*limit*
+
+Memory soft limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))
+
+After setting memory reservation, when the system detects memory contention
+or low memory, containers are forced to restrict their consumption to their
+reservation. So you should always set the value below **--memory**, otherwise the
+hard limit will take precedence. By default, memory reservation will be the same
+as memory limit from the container being cloned.
+
+#### **--memory-swap**=*limit*
+
+A limit value equal to memory plus swap. Must be used with the  **-m**
+(**--memory**) flag. The swap `LIMIT` should always be larger than **-m**
+(**--memory**) value. By default, the swap `LIMIT` will be set to double
+the value of --memory if specified. Otherwise, the container being cloned will be used to derive the swap value.
+
+The format of `LIMIT` is `<number>[<unit>]`. Unit can be `b` (bytes),
+`k` (kilobytes), `m` (megabytes), or `g` (gigabytes). If you don't specify a
+unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
+
+#### **--memory-swappiness**=*number*
+
+Tune a container's memory swappiness behavior. Accepts an integer between 0 and 100.
+
+This flag is not supported on cgroups V2 systems.
+
 #### **--name**
 
 Set a custom name for the cloned container. The default if not specified is of the syntax: **<ORIGINAL_NAME>-clone**

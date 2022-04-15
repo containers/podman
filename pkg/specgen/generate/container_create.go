@@ -8,7 +8,6 @@ import (
 
 	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	"github.com/containers/common/libimage"
-	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/namespaces"
@@ -184,31 +183,18 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		if err != nil {
 			return nil, nil, nil, err
 		}
-
-		switch {
-		case s.ResourceLimits.CPU != nil:
-			runtimeSpec.Linux.Resources.CPU = s.ResourceLimits.CPU
-		case s.ResourceLimits.Memory != nil:
-			runtimeSpec.Linux.Resources.Memory = s.ResourceLimits.Memory
-		case s.ResourceLimits.BlockIO != nil:
-			runtimeSpec.Linux.Resources.BlockIO = s.ResourceLimits.BlockIO
-		case s.ResourceLimits.Devices != nil:
-			runtimeSpec.Linux.Resources.Devices = s.ResourceLimits.Devices
-		}
-
-		cgroup2, err := cgroups.IsCgroup2UnifiedMode()
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		if cgroup2 && s.ResourceLimits.Memory != nil && s.ResourceLimits.Memory.Swappiness != nil { // conf.Spec.Linux contains memory swappiness established after the spec process we need to remove that
-			s.ResourceLimits.Memory.Swappiness = nil
-			if runtimeSpec.Linux.Resources.Memory != nil {
-				runtimeSpec.Linux.Resources.Memory.Swappiness = nil
+		if s.ResourceLimits != nil {
+			switch {
+			case s.ResourceLimits.CPU != nil:
+				runtimeSpec.Linux.Resources.CPU = s.ResourceLimits.CPU
+			case s.ResourceLimits.Memory != nil:
+				runtimeSpec.Linux.Resources.Memory = s.ResourceLimits.Memory
+			case s.ResourceLimits.BlockIO != nil:
+				runtimeSpec.Linux.Resources.BlockIO = s.ResourceLimits.BlockIO
+			case s.ResourceLimits.Devices != nil:
+				runtimeSpec.Linux.Resources.Devices = s.ResourceLimits.Devices
 			}
 		}
-	}
-	if err != nil {
-		return nil, nil, nil, err
 	}
 	if len(s.HostDeviceList) > 0 {
 		options = append(options, libpod.WithHostDevice(s.HostDeviceList))
