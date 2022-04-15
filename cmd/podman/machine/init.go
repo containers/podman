@@ -5,6 +5,7 @@ package machine
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/registry"
@@ -94,7 +95,7 @@ func init() {
 	_ = initCmd.RegisterFlagCompletionFunc(ImagePathFlagName, completion.AutocompleteDefault)
 
 	VolumeFlagName := "volume"
-	flags.StringArrayVarP(&initOpts.Volumes, VolumeFlagName, "v", []string{}, "Volumes to mount, source:target")
+	flags.StringArrayVarP(&initOpts.Volumes, VolumeFlagName, "v", cfg.Machine.Volumes, "Volumes to mount, source:target")
 	_ = initCmd.RegisterFlagCompletionFunc(VolumeFlagName, completion.AutocompleteDefault)
 
 	VolumeDriverFlagName := "volume-driver"
@@ -112,9 +113,10 @@ func init() {
 // TODO should we allow for a users to append to the qemu cmdline?
 func initMachine(cmd *cobra.Command, args []string) error {
 	var (
-		vm  machine.VM
 		err error
+		vm  machine.VM
 	)
+
 	provider := getSystemDefaultProvider()
 	initOpts.Name = defaultMachineName
 	if len(args) > 0 {
@@ -126,7 +128,9 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	if _, err := provider.LoadVMByName(initOpts.Name); err == nil {
 		return errors.Wrap(machine.ErrVMAlreadyExists, initOpts.Name)
 	}
-
+	for idx, vol := range initOpts.Volumes {
+		initOpts.Volumes[idx] = os.ExpandEnv(vol)
+	}
 	vm, err = provider.NewMachine(initOpts)
 	if err != nil {
 		return err
