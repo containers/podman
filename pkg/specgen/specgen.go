@@ -536,6 +536,10 @@ type ContainerResourceConfig struct {
 type ContainerHealthCheckConfig struct {
 	HealthConfig               *manifest.Schema2HealthConfig     `json:"healthconfig,omitempty"`
 	HealthCheckOnFailureAction define.HealthCheckOnFailureAction `json:"health_check_on_failure_action,omitempty"`
+	// Startup healthcheck for a container.
+	// Requires that HealthConfig be set.
+	// Optional.
+	StartupHealthConfig *define.StartupHealthCheck `json:"startupHealthConfig,omitempty"`
 }
 
 // SpecGenerator creates an OCI spec and Libpod configuration options to create

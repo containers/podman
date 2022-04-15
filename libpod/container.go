@@ -200,6 +200,18 @@ type ContainerState struct {
 	// (only by restart policy).
 	RestartCount uint `json:"restartCount,omitempty"`
 
+	// StartupHCPassed indicates that the startup healthcheck has
+	// succeeded and the main healthcheck can begin.
+	StartupHCPassed bool `json:"startupHCPassed,omitempty"`
+	// StartupHCSuccessCount indicates the number of successes of the
+	// startup healthcheck. A startup HC can require more than one success
+	// to be marked as passed.
+	StartupHCSuccessCount int `json:"startupHCSuccessCount,omitempty"`
+	// StartupHCFailureCount indicates the number of failures of the startup
+	// healthcheck. The container will be restarted if this exceed a set
+	// number in the startup HC config.
+	StartupHCFailureCount int `json:"startupHCFailureCount,omitempty"`
+
 	// ExtensionStageHooks holds hooks which will be executed by libpod
 	// and not delegated to the OCI runtime.
 	ExtensionStageHooks map[string][]spec.Hook `json:"extensionStageHooks,omitempty"`
@@ -927,6 +939,20 @@ func (c *Container) StoppedByUser() (bool, error) {
 	}
 
 	return c.state.StoppedByUser, nil
+}
+
+// StartupHCPassed returns whether the container's startup healthcheck passed.
+func (c *Container) StartupHCPassed() (bool, error) {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return false, err
+		}
+	}
+
+	return c.state.StartupHCPassed, nil
 }
 
 // Misc Accessors

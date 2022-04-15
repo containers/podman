@@ -25,7 +25,7 @@ const (
 
 // HealthCheck verifies the state and validity of the healthcheck configuration
 // on the container and then executes the healthcheck
-func (r *Runtime) HealthCheck(name string) (define.HealthCheckStatus, error) {
+func (r *Runtime) HealthCheck(ctx context.Context, name string) (define.HealthCheckStatus, error) {
 	container, err := r.LookupContainer(name)
 	if err != nil {
 		return define.HealthCheckContainerNotFound, fmt.Errorf("unable to look up %s to perform a health check: %w", name, err)
@@ -36,21 +36,35 @@ func (r *Runtime) HealthCheck(name string) (define.HealthCheckStatus, error) {
 		return hcStatus, err
 	}
 
-	hcStatus, logStatus, err := container.runHealthCheck()
-	if err := container.processHealthCheckStatus(logStatus); err != nil {
-		return hcStatus, err
+	isStartupHC := false
+	if container.config.StartupHealthCheckConfig != nil {
+		passed, err := container.StartupHCPassed()
+		if err != nil {
+			return define.HealthCheckInternalError, err
+		}
+		isStartupHC = !passed
+	}
+
+	hcStatus, logStatus, err := container.runHealthCheck(ctx, isStartupHC)
+	if !isStartupHC {
+		if err := container.processHealthCheckStatus(logStatus); err != nil {
+			return hcStatus, err
+		}
 	}
 	return hcStatus, err
 }
 
-// runHealthCheck runs the health check as defined by the container
-func (c *Container) runHealthCheck() (define.HealthCheckStatus, string, error) {
+func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.HealthCheckStatus, string, error) {
 	var (
 		newCommand    []string
 		returnCode    int
 		inStartPeriod bool
 	)
 	hcCommand := c.HealthCheckConfig().Test
+	if isStartup {
+		logrus.Debugf("Running startup healthcheck for container %s", c.ID())
+		hcCommand = c.config.StartupHealthCheckConfig.Test
+	}
 	if len(hcCommand) < 1 {
 		return define.HealthCheckNotDefined, "", fmt.Errorf("container %s has no defined healthcheck", c.ID())
 	}
@@ -113,6 +127,18 @@ func (c *Container) runHealthCheck() (define.HealthCheckStatus, string, error) {
 		hcResult = define.HealthCheckFailure
 		returnCode = 1
 	}
+
+	// Handle startup HC
+	if isStartup {
+		inStartPeriod = true
+		if hcErr != nil || exitCode != 0 {
+			hcResult = define.HealthCheckStartup
+			c.incrementStartupHCFailureCounter(ctx)
+		} else {
+			c.incrementStartupHCSuccessCounter(ctx)
+		}
+	}
+
 	timeEnd := time.Now()
 	if c.HealthCheckConfig().StartPeriod > 0 {
 		// there is a start-period we need to honor; we add startPeriod to container start time
@@ -186,6 +212,114 @@ func checkHealthCheckCanBeRun(c *Container) (define.HealthCheckStatus, error) {
 		return define.HealthCheckNotDefined, fmt.Errorf("container %s has no defined healthcheck", c.ID())
 	}
 	return define.HealthCheckDefined, nil
+}
+
+// Increment the current startup healthcheck success counter.
+// Can stop the startup HC and start the regular HC if the startup HC has enough
+// consecutive successes.
+func (c *Container) incrementStartupHCSuccessCounter(ctx context.Context) {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			logrus.Errorf("Error syncing container %s state: %v", c.ID(), err)
+			return
+		}
+	}
+
+	// We don't have a startup HC, can't do anything
+	if c.config.StartupHealthCheckConfig == nil {
+		return
+	}
+
+	// Race: someone else got here first
+	if c.state.StartupHCPassed {
+		return
+	}
+
+	// Increment the success counter
+	c.state.StartupHCSuccessCount++
+
+	logrus.Debugf("Startup healthcheck for container %s succeeded, success counter now %d", c.ID(), c.state.StartupHCSuccessCount)
+
+	// Did we exceed threshold?
+	recreateTimer := false
+	if c.config.StartupHealthCheckConfig.Successes == 0 || c.state.StartupHCSuccessCount >= c.config.StartupHealthCheckConfig.Successes {
+		c.state.StartupHCPassed = true
+		c.state.StartupHCSuccessCount = 0
+		c.state.StartupHCFailureCount = 0
+
+		recreateTimer = true
+	}
+
+	if err := c.save(); err != nil {
+		logrus.Errorf("Error saving container %s state: %v", c.ID(), err)
+		return
+	}
+
+	if recreateTimer {
+		logrus.Infof("Startup healthcheck for container %s passed, recreating timer", c.ID())
+
+		// Create the new, standard healthcheck timer first.
+		if err := c.createTimer(c.HealthCheckConfig().Interval.String(), false); err != nil {
+			logrus.Errorf("Error recreating container %s healthcheck: %v", c.ID(), err)
+			return
+		}
+		if err := c.startTimer(false); err != nil {
+			logrus.Errorf("Error restarting container %s healthcheck timer: %v", c.ID(), err)
+		}
+
+		// This kills the process the healthcheck is running.
+		// Which happens to be us.
+		// So this has to be last - after this, systemd serves us a
+		// SIGTERM and we exit.
+		if err := c.removeTransientFiles(ctx, true); err != nil {
+			logrus.Errorf("Error removing container %s healthcheck: %v", c.ID(), err)
+			return
+		}
+	}
+}
+
+// Increment the current startup healthcheck failure counter.
+// Can restart the container if the HC fails enough times consecutively.
+func (c *Container) incrementStartupHCFailureCounter(ctx context.Context) {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			logrus.Errorf("Error syncing container %s state: %v", c.ID(), err)
+			return
+		}
+	}
+
+	// We don't have a startup HC, can't do anything
+	if c.config.StartupHealthCheckConfig == nil {
+		return
+	}
+
+	// Race: someone else got here first
+	if c.state.StartupHCPassed {
+		return
+	}
+
+	c.state.StartupHCFailureCount++
+
+	logrus.Debugf("Startup healthcheck for container %s failed, failure counter now %d", c.ID(), c.state.StartupHCFailureCount)
+
+	if c.config.StartupHealthCheckConfig.Retries != 0 && c.state.StartupHCFailureCount >= c.config.StartupHealthCheckConfig.Retries {
+		logrus.Infof("Restarting container %s as startup healthcheck failed", c.ID())
+		// Restart the container
+		if err := c.restartWithTimeout(ctx, c.config.StopTimeout); err != nil {
+			logrus.Errorf("Error restarting container %s after healthcheck failure: %v", c.ID(), err)
+		}
+		return
+	}
+
+	if err := c.save(); err != nil {
+		logrus.Errorf("Error saving container %s state: %v", c.ID(), err)
+	}
 }
 
 func newHealthCheckLog(start, end time.Time, exitCode int, log string) define.HealthCheckLog {
@@ -299,12 +433,26 @@ func (c *Container) healthCheckStatus() (string, error) {
 	return results.Status, nil
 }
 
-func (c *Container) disableHealthCheckSystemd() bool {
+func (c *Container) disableHealthCheckSystemd(isStartup bool) bool {
 	if os.Getenv("DISABLE_HC_SYSTEMD") == "true" {
 		return true
+	}
+	if isStartup {
+		if c.config.StartupHealthCheckConfig.Interval == 0 {
+			return true
+		}
 	}
 	if c.config.HealthCheckConfig.Interval == 0 {
 		return true
 	}
 	return false
+}
+
+// Systemd unit name for the healthcheck systemd unit
+func (c *Container) hcUnitName(isStartup bool) string {
+	unitName := c.ID()
+	if isStartup {
+		unitName += "-startup"
+	}
+	return unitName
 }

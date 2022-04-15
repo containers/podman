@@ -204,6 +204,16 @@ See [**Environment**](#environment) note below for precedence and examples.
 
 @@option health-start-period
 
+@@option health-startup-cmd
+
+@@option health-startup-interval
+
+@@option health-startup-retries
+
+@@option health-startup-success
+
+@@option health-startup-timeout
+
 @@option health-timeout
 
 #### **--help**

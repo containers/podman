@@ -1898,6 +1898,21 @@ func WithInfraConfig(compatibleOptions InfraInherit) CtrCreateOption {
 	}
 }
 
+// WithStartupHealthcheck sets a startup healthcheck for the container.
+// Requires that a healthcheck must be set.
+func WithStartupHealthcheck(startupHC *define.StartupHealthCheck) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.StartupHealthCheckConfig = new(define.StartupHealthCheck)
+		if err := JSONDeepCopy(startupHC, ctr.config.StartupHealthCheckConfig); err != nil {
+			return fmt.Errorf("error copying startup healthcheck into container: %w", err)
+		}
+		return nil
+	}
+}
+
 // Pod Creation Options
 
 // WithPodCreateCommand adds the full command plus arguments of the current

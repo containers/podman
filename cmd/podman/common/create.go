@@ -180,7 +180,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		createFlags.StringVar(
 			&cf.HealthInterval,
 			healthIntervalFlagName, define.DefaultHealthCheckInterval,
-			"set an interval for the healthchecks (a value of disable results in no automatic timer setup)",
+			"set an interval for the healthcheck (a value of disable results in no automatic timer setup)",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(healthIntervalFlagName, completion.AutocompleteNone)
 
@@ -427,6 +427,46 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"Add secret to container",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(secretFlagName, AutocompleteSecrets)
+
+		startupHCCmdFlagName := "health-startup-cmd"
+		createFlags.StringVar(
+			&cf.StartupHCCmd,
+			startupHCCmdFlagName, "",
+			"Set a startup healthcheck command for the container",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(startupHCCmdFlagName, completion.AutocompleteNone)
+
+		startupHCIntervalFlagName := "health-startup-interval"
+		createFlags.StringVar(
+			&cf.StartupHCInterval,
+			startupHCIntervalFlagName, define.DefaultHealthCheckInterval,
+			"Set an interval for the startup healthcheck",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(startupHCIntervalFlagName, completion.AutocompleteNone)
+
+		startupHCRetriesFlagName := "health-startup-retries"
+		createFlags.UintVar(
+			&cf.StartupHCRetries,
+			startupHCRetriesFlagName, 0,
+			"Set the maximum number of retries before the startup healthcheck will restart the container",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(startupHCRetriesFlagName, completion.AutocompleteNone)
+
+		startupHCSuccessesFlagName := "health-startup-success"
+		createFlags.UintVar(
+			&cf.StartupHCSuccesses,
+			startupHCSuccessesFlagName, 0,
+			"Set the number of consecutive successes before the startup healthcheck is marked as successful and the normal healthcheck begins (0 indicates any success will start the regular healthcheck)",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(startupHCSuccessesFlagName, completion.AutocompleteNone)
+
+		startupHCTimeoutFlagName := "health-startup-timeout"
+		createFlags.StringVar(
+			&cf.StartupHCTimeout,
+			startupHCTimeoutFlagName, define.DefaultHealthCheckTimeout,
+			"Set the maximum amount of time that the startup healthcheck may take before it is considered failed",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(startupHCTimeoutFlagName, completion.AutocompleteNone)
 
 		stopSignalFlagName := "stop-signal"
 		createFlags.StringVar(

@@ -395,6 +395,10 @@ type ContainerMiscConfig struct {
 	HealthCheckConfig *manifest.Schema2HealthConfig `json:"healthcheck"`
 	// HealthCheckOnFailureAction defines an action to take once the container turns unhealthy.
 	HealthCheckOnFailureAction define.HealthCheckOnFailureAction `json:"healthcheck_on_failure_action"`
+	// StartupHealthCheckConfig is the configuration of the startup
+	// healthcheck for the container. This will run before the regular HC
+	// runs, and when it passes the regular HC will be activated.
+	StartupHealthCheckConfig *define.StartupHealthCheck `json:"startupHealthCheck,omitempty"`
 	// PreserveFDs is a number of additional file descriptors (in addition
 	// to 0, 1, 2) that will be passed to the executed process. The total FDs
 	// passed will be 3 + PreserveFDs.
