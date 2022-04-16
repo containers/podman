@@ -39,7 +39,6 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/vbatts/tar-split/tar/storage"
 	"golang.org/x/sys/unix"
 )
 
@@ -121,6 +120,8 @@ type Driver struct {
 	supportsVolatile *bool
 	usingMetacopy    bool
 	locker           *locker.Locker
+
+	supportsIDMappedMounts *bool
 }
 
 type additionalLayerStore struct {
@@ -203,6 +204,26 @@ func checkSupportVolatile(home, runhome string) (bool, error) {
 		}
 	}
 	return usingVolatile, nil
+}
+
+// checkAndRecordIDMappedSupport checks and stores if the kernel supports mounting overlay on top of a
+// idmapped lower layer.
+func checkAndRecordIDMappedSupport(home, runhome string) (bool, error) {
+	feature := "idmapped-lower-dir"
+	overlayCacheResult, overlayCacheText, err := cachedFeatureCheck(runhome, feature)
+	if err == nil {
+		if overlayCacheResult {
+			logrus.Debugf("Cached value indicated that overlay is supported")
+			return true, nil
+		}
+		logrus.Debugf("Cached value indicated that overlay is not supported")
+		return false, errors.New(overlayCacheText)
+	}
+	supportsIDMappedMounts, err := supportsIdmappedLowerLayers(home)
+	if err2 := cachedFeatureRecord(runhome, feature, supportsIDMappedMounts, ""); err2 != nil {
+		return false, errors.Wrap(err2, "recording overlay idmapped mounts support status")
+	}
+	return supportsIDMappedMounts, err
 }
 
 func checkAndRecordOverlaySupport(fsMagic graphdriver.FsMagic, home, runhome string) (bool, error) {
@@ -1485,6 +1506,51 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		}
 	}
 
+	if d.supportsIDmappedMounts() && len(options.UidMaps) > 0 && len(options.GidMaps) > 0 {
+		var newAbsDir []string
+		mappedRoot := filepath.Join(d.home, id, "mapped")
+		if err := os.MkdirAll(mappedRoot, 0700); err != nil {
+			return "", err
+		}
+
+		pid, cleanupFunc, err := createUsernsProcess(options.UidMaps, options.GidMaps)
+		if err != nil {
+			return "", err
+		}
+		defer cleanupFunc()
+
+		idMappedMounts := make(map[string]string)
+
+		// rewrite the lower dirs to their idmapped mount.
+		c := 0
+		for _, absLower := range absLowers {
+			mappedMountSrc := getMappedMountRoot(absLower)
+
+			root, found := idMappedMounts[mappedMountSrc]
+			if !found {
+				root = filepath.Join(mappedRoot, fmt.Sprintf("%d", c))
+				c++
+				if err := createIDMappedMount(mappedMountSrc, root, int(pid)); err != nil {
+					return "", errors.Wrapf(err, "create mapped mount for %q on %q", mappedMountSrc, root)
+				}
+				idMappedMounts[mappedMountSrc] = root
+
+				// overlay takes a reference on the mount, so it is safe to unmount
+				// the mapped idmounts as soon as the final overlay file system is mounted.
+				defer unix.Unmount(root, unix.MNT_DETACH)
+			}
+
+			// relative path to the layer through the id mapped mount
+			rel, err := filepath.Rel(mappedMountSrc, absLower)
+			if err != nil {
+				return "", err
+			}
+
+			newAbsDir = append(newAbsDir, filepath.Join(root, rel))
+		}
+		absLowers = newAbsDir
+	}
+
 	var opts string
 	if readWrite {
 		opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(absLowers, ":"), diffDir, workdir)
@@ -1587,6 +1653,18 @@ func (d *Driver) Put(id string) error {
 
 	unmounted := false
 
+	mappedRoot := filepath.Join(d.home, id, "mapped")
+	// It should not happen, but cleanup any mapped mount if it was leaked.
+	if _, err := os.Stat(mappedRoot); err == nil {
+		mounts, err := ioutil.ReadDir(mappedRoot)
+		if err == nil {
+			// Go through all of the mapped mounts.
+			for _, m := range mounts {
+				_ = unix.Unmount(filepath.Join(mappedRoot, m.Name()), unix.MNT_DETACH)
+			}
+		}
+	}
+
 	if d.options.mountProgram != "" {
 		// Attempt to unmount the FUSE mount using either fusermount or fusermount3.
 		// If they fail, fallback to unix.Unmount
@@ -1664,11 +1742,24 @@ func (d *Driver) getWhiteoutFormat() archive.WhiteoutFormat {
 	return whiteoutFormat
 }
 
-type fileGetNilCloser struct {
-	storage.FileGetter
+type overlayFileGetter struct {
+	diffDirs []string
 }
 
-func (f fileGetNilCloser) Close() error {
+func (g *overlayFileGetter) Get(path string) (io.ReadCloser, error) {
+	for _, d := range g.diffDirs {
+		f, err := os.Open(filepath.Join(d, path))
+		if err == nil {
+			return f, nil
+		}
+	}
+	if len(g.diffDirs) > 0 {
+		return os.Open(filepath.Join(g.diffDirs[0], path))
+	}
+	return nil, fmt.Errorf("%s: %w", path, os.ErrNotExist)
+}
+
+func (g *overlayFileGetter) Close() error {
 	return nil
 }
 
@@ -1677,13 +1768,18 @@ func (d *Driver) getStagingDir() string {
 }
 
 // DiffGetter returns a FileGetCloser that can read files from the directory that
-// contains files for the layer differences. Used for direct access for tar-split.
+// contains files for the layer differences, either for this layer, or one of our
+// lowers if we're just a template directory. Used for direct access for tar-split.
 func (d *Driver) DiffGetter(id string) (graphdriver.FileGetCloser, error) {
 	p, err := d.getDiffPath(id)
 	if err != nil {
 		return nil, err
 	}
-	return fileGetNilCloser{storage.NewPathFileGetter(p)}, nil
+	paths, err := d.getLowerDiffPaths(id)
+	if err != nil {
+		return nil, err
+	}
+	return &overlayFileGetter{diffDirs: append([]string{p}, paths...)}, nil
 }
 
 // CleanupStagingDirectory cleanups the staging directory.
@@ -1958,12 +2054,31 @@ func (d *Driver) UpdateLayerIDMap(id string, toContainer, toHost *idtools.IDMapp
 	return nil
 }
 
+// supportsIDmappedMounts returns whether the kernel supports using idmapped mounts with
+// overlay lower layers.
+func (d *Driver) supportsIDmappedMounts() bool {
+	if d.supportsIDMappedMounts != nil {
+		return *d.supportsIDMappedMounts
+	}
+
+	supportsIDMappedMounts, err := checkAndRecordIDMappedSupport(d.home, d.runhome)
+	d.supportsIDMappedMounts = &supportsIDMappedMounts
+	if err == nil {
+		return supportsIDMappedMounts
+	}
+	logrus.Debugf("Check for idmapped mounts support %v", err)
+	return false
+}
+
 // SupportsShifting tells whether the driver support shifting of the UIDs/GIDs in an userNS
 func (d *Driver) SupportsShifting() bool {
 	if os.Getenv("_TEST_FORCE_SUPPORT_SHIFTING") == "yes-please" {
 		return true
 	}
-	return d.options.mountProgram != ""
+	if d.options.mountProgram != "" {
+		return true
+	}
+	return d.supportsIDmappedMounts()
 }
 
 // dumbJoin is more or less a dumber version of filepath.Join, but one which
@@ -2131,4 +2246,16 @@ func redirectDiffIfAdditionalLayer(diffPath string) (string, error) {
 		return "", err
 	}
 	return diffPath, nil
+}
+
+// getMappedMountRoot is a heuristic that calculates the parent directory where
+// the idmapped mount should be applied.
+// It is useful to minimize the number of idmapped mounts and at the same time use
+// a common path as long as possible to reduce the length of the mount data argument.
+func getMappedMountRoot(path string) string {
+	dirName := filepath.Dir(path)
+	if filepath.Base(dirName) == linkDir {
+		return filepath.Dir(dirName)
+	}
+	return dirName
 }
