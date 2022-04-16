@@ -428,9 +428,12 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, contaierID s
 			case "cgroup":
 				specg.CgroupNS = specgen.Namespace{NSMode: specgen.Default} //default
 			case "ipc":
-				if conf.ShmDir == "/dev/shm" {
+				switch conf.ShmDir {
+				case "/dev/shm":
 					specg.IpcNS = specgen.Namespace{NSMode: specgen.Host}
-				} else {
+				case "":
+					specg.IpcNS = specgen.Namespace{NSMode: specgen.None}
+				default:
 					specg.IpcNS = specgen.Namespace{NSMode: specgen.Default} //default
 				}
 			case "uts":

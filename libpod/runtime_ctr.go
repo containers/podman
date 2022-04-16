@@ -174,6 +174,8 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 			return nil, errors.Wrapf(err, "converting containers.conf ShmSize %s to an int", r.config.Containers.ShmSize)
 		}
 		ctr.config.ShmSize = size
+		ctr.config.NoShm = false
+		ctr.config.NoShmShare = false
 		ctr.config.StopSignal = 15
 
 		ctr.config.StopTimeout = r.config.Engine.StopTimeout
@@ -514,7 +516,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		}
 	}
 
-	if !MountExists(ctr.config.Spec.Mounts, "/dev/shm") && ctr.config.ShmDir == "" {
+	if !MountExists(ctr.config.Spec.Mounts, "/dev/shm") && ctr.config.ShmDir == "" && !ctr.config.NoShm {
 		ctr.config.ShmDir = filepath.Join(ctr.bundlePath(), "shm")
 		if err := os.MkdirAll(ctr.config.ShmDir, 0700); err != nil {
 			if !os.IsExist(err) {

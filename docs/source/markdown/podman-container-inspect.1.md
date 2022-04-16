@@ -219,7 +219,7 @@ $ podman container inspect foobar
             "DnsSearch": [],
             "ExtraHosts": [],
             "GroupAdd": [],
-            "IpcMode": "private",
+            "IpcMode": "shareable",
             "Cgroup": "",
             "Cgroups": "default",
             "Links": null,

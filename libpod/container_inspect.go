@@ -703,32 +703,31 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	}
 	hostConfig.CapAdd = capAdd
 	hostConfig.CapDrop = capDrop
-
-	// IPC Namespace mode
-	ipcMode := ""
-	if c.config.IPCNsCtr != "" {
-		ipcMode = fmt.Sprintf("container:%s", c.config.IPCNsCtr)
-	} else if ctrSpec.Linux != nil {
+	switch {
+	case c.config.IPCNsCtr != "":
+		hostConfig.IpcMode = fmt.Sprintf("container:%s", c.config.IPCNsCtr)
+	case ctrSpec.Linux != nil:
 		// Locate the spec's IPC namespace.
 		// If there is none, it's ipc=host.
 		// If there is one and it has a path, it's "ns:".
 		// If no path, it's default - the empty string.
-
 		for _, ns := range ctrSpec.Linux.Namespaces {
 			if ns.Type == spec.IPCNamespace {
 				if ns.Path != "" {
-					ipcMode = fmt.Sprintf("ns:%s", ns.Path)
+					hostConfig.IpcMode = fmt.Sprintf("ns:%s", ns.Path)
 				} else {
-					ipcMode = "private"
+					break
 				}
-				break
 			}
 		}
-		if ipcMode == "" {
-			ipcMode = "host"
-		}
+	case c.config.NoShm:
+		hostConfig.IpcMode = "none"
+	case c.config.NoShmShare:
+		hostConfig.IpcMode = "private"
 	}
-	hostConfig.IpcMode = ipcMode
+	if hostConfig.IpcMode == "" {
+		hostConfig.IpcMode = "shareable"
+	}
 
 	// Cgroup namespace mode
 	cgroupMode := ""

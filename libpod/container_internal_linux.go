@@ -1963,8 +1963,10 @@ func (c *Container) makeBindMounts() error {
 		}
 	}
 
-	// SHM is always added when we mount the container
-	c.state.BindMounts["/dev/shm"] = c.config.ShmDir
+	if c.config.ShmDir != "" {
+		// If ShmDir has a value SHM is always added when we mount the container
+		c.state.BindMounts["/dev/shm"] = c.config.ShmDir
+	}
 
 	if c.config.Passwd == nil || *c.config.Passwd {
 		newPasswd, newGroup, err := c.generatePasswdAndGroup()

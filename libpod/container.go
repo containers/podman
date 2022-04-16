@@ -291,6 +291,13 @@ func (c *Container) Config() *ContainerConfig {
 	return returnConfig
 }
 
+// ConfigNoCopy returns the configuration used by the container.
+// Note that the returned value is not a copy and must hence
+// only be used in a reading fashion.
+func (c *Container) ConfigNoCopy() *ContainerConfig {
+	return c.config
+}
+
 // DeviceHostSrc returns the user supplied device to be passed down in the pod
 func (c *Container) DeviceHostSrc() []spec.LinuxDevice {
 	return c.config.DeviceHostSrc

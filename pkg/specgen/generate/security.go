@@ -222,7 +222,7 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 	for sysctlKey, sysctlVal := range defaultSysctls {
 		// Ignore mqueue sysctls if --ipc=host
 		if noUseIPC && strings.HasPrefix(sysctlKey, "fs.mqueue.") {
-			logrus.Infof("Sysctl %s=%s ignored in containers.conf, since IPC Namespace set to host", sysctlKey, sysctlVal)
+			logrus.Infof("Sysctl %s=%s ignored in containers.conf, since IPC Namespace set to %q", sysctlKey, sysctlVal, s.IpcNS.NSMode)
 
 			continue
 		}

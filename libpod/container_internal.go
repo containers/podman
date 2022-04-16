@@ -1507,26 +1507,28 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 		return c.state.Mountpoint, nil
 	}
 
-	mounted, err := mount.Mounted(c.config.ShmDir)
-	if err != nil {
-		return "", errors.Wrapf(err, "unable to determine if %q is mounted", c.config.ShmDir)
-	}
+	if !c.config.NoShm {
+		mounted, err := mount.Mounted(c.config.ShmDir)
+		if err != nil {
+			return "", errors.Wrapf(err, "unable to determine if %q is mounted", c.config.ShmDir)
+		}
 
-	if !mounted && !MountExists(c.config.Spec.Mounts, "/dev/shm") {
-		shmOptions := fmt.Sprintf("mode=1777,size=%d", c.config.ShmSize)
-		if err := c.mountSHM(shmOptions); err != nil {
-			return "", err
-		}
-		if err := os.Chown(c.config.ShmDir, c.RootUID(), c.RootGID()); err != nil {
-			return "", errors.Wrapf(err, "failed to chown %s", c.config.ShmDir)
-		}
-		defer func() {
-			if deferredErr != nil {
-				if err := c.unmountSHM(c.config.ShmDir); err != nil {
-					logrus.Errorf("Unmounting SHM for container %s after mount error: %v", c.ID(), err)
-				}
+		if !mounted && !MountExists(c.config.Spec.Mounts, "/dev/shm") {
+			shmOptions := fmt.Sprintf("mode=1777,size=%d", c.config.ShmSize)
+			if err := c.mountSHM(shmOptions); err != nil {
+				return "", err
 			}
-		}()
+			if err := os.Chown(c.config.ShmDir, c.RootUID(), c.RootGID()); err != nil {
+				return "", errors.Wrapf(err, "failed to chown %s", c.config.ShmDir)
+			}
+			defer func() {
+				if deferredErr != nil {
+					if err := c.unmountSHM(c.config.ShmDir); err != nil {
+						logrus.Errorf("Unmounting SHM for container %s after mount error: %v", c.ID(), err)
+					}
+				}
+			}()
+		}
 	}
 
 	// We need to mount the container before volumes - to ensure the copyup
