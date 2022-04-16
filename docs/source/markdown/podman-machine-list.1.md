@@ -47,7 +47,12 @@ Print usage statement.
 
 #### **--noheading**
 
-Omit the table headings from the listing of pods.
+Omit the table headings from the listing of machines
+
+#### **--quiet**, **-q**
+
+Only print the name of the machine. This also implies no table heading
+is printed.
 
 ## EXAMPLES
 
