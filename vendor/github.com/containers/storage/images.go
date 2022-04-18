@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/containers/storage/pkg/ioutils"
@@ -153,6 +154,7 @@ type imageStore struct {
 	byid     map[string]*Image
 	byname   map[string]*Image
 	bydigest map[digest.Digest][]*Image
+	loadMut  sync.Mutex
 }
 
 func copyImage(i *Image) *Image {
@@ -799,4 +801,15 @@ func (r *imageStore) TouchedSince(when time.Time) bool {
 
 func (r *imageStore) Locked() bool {
 	return r.lockfile.Locked()
+}
+
+func (r *imageStore) ReloadIfChanged() error {
+	r.loadMut.Lock()
+	defer r.loadMut.Unlock()
+
+	modified, err := r.Modified()
+	if err == nil && modified {
+		return r.Load()
+	}
+	return nil
 }
