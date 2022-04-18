@@ -135,7 +135,7 @@ sub xref_by_help {
         }
         else {
             my $man = $man->{_path} || 'man';
-            warn "$ME: podman @subcommand --help lists $k, but $k not in $man\n";
+            warn "$ME: 'podman @subcommand --help' lists '$k', which is not in $man\n";
             ++$Errs;
         }
     }
@@ -186,7 +186,7 @@ sub xref_by_man {
             # Special case: podman completion is a hidden command
             next if $k eq 'completion';
 
-            warn "$ME: podman @subcommand: $k in $man, but not --help\n";
+            warn "$ME: 'podman @subcommand': $k in $man, but not --help\n";
             ++$Errs;
         }
     }
