@@ -22,7 +22,8 @@ Init containers created with type `always` will always be generated in the kube 
 *Note*: When using volumes and generating a Kubernetes YAML for an unprivileged and rootless podman container on an **SELinux enabled system**,  one of the following options must be completed:
   * Add the "privileged: true" option to the pod spec
   * Add `type: spc_t` under the `securityContext` `seLinuxOptions` in the pod spec
-  * Relabel the volume via the CLI command `chcon -t container_file_t context -R <directory>`
+  * Relabel the volume via the CLI command `chcon -t container_file_t -R <directory>`
+
 Once completed, the correct permissions will be in place to access the volume when the pod/container is created in a Kubernetes cluster.
 
 Note that the generated Kubernetes YAML file can be used to re-run the deployment via podman-play-kube(1).
