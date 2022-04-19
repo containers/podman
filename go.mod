@@ -13,8 +13,8 @@ require (
 	github.com/containers/common v0.8.4
 	github.com/containers/conmon v2.0.14+incompatible
 	github.com/containers/image/v5 v5.4.4
-	github.com/containers/psgo v1.4.0
-	github.com/containers/storage v1.19.1
+	github.com/containers/psgo v1.4.1-0.20220419082809-1e1ee011825f
+	github.com/containers/storage v1.19.2-0.20220419082310-31b4b10a7836
 	github.com/coreos/go-systemd/v22 v22.0.0
 	github.com/cri-o/ocicni v0.1.1-0.20190920040751-deac903fd99b
 	github.com/cyphar/filepath-securejoin v0.2.2
