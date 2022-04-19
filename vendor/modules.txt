@@ -114,6 +114,7 @@ github.com/containers/buildah/util
 github.com/containers/common/libimage
 github.com/containers/common/libimage/manifests
 github.com/containers/common/libnetwork/cni
+github.com/containers/common/libnetwork/etchosts
 github.com/containers/common/libnetwork/internal/util
 github.com/containers/common/libnetwork/netavark
 github.com/containers/common/libnetwork/network

@@ -133,14 +133,46 @@ load helpers
     done
 }
 
+@test "podman pod manages /etc/hosts correctly" {
+    local pod_name=pod-$(random_string 10)
+    local infra_name=infra-$(random_string 10)
+    local con1_name=con1-$(random_string 10)
+    local con2_name=con2-$(random_string 10)
+    run_podman pod create --name $pod_name  --infra-name $infra_name
+    pid="$output"
+    run_podman run --pod $pod_name --name $con1_name $IMAGE cat /etc/hosts
+    is "$output" ".*\s$pod_name $infra_name.*" "Pod hostname in /etc/hosts"
+    is "$output" ".*127.0.0.1\s.*$con1_name.*" "Container1 name in /etc/hosts"
+    # get the length of the hosts file
+    old_lines=${#lines[@]}
+
+    # since the first container should be cleaned up now we should only see the
+    # new host entry and the old one should be removed (lines check)
+    run_podman run --pod $pod_name --name $con2_name $IMAGE cat /etc/hosts
+    is "$output" ".*\s$pod_name $infra_name.*" "Pod hostname in /etc/hosts"
+    is "$output" ".*127.0.0.1\s.*$con2_name.*" "Container2 name in /etc/hosts"
+    is "${#lines[@]}" "$old_lines" "Number of hosts lines is equal"
+
+    run_podman pod rm $pod_name
+    is "$output" "$pid" "Only ID in output (no extra errors)"
+}
+
 @test "podman run with slirp4ns assigns correct addresses to /etc/hosts" {
     CIDR="$(random_rfc1918_subnet)"
     IP=$(hostname -I | cut -f 1 -d " ")
     local conname=con-$(random_string 10)
     run_podman run --rm --network slirp4netns:cidr="${CIDR}.0/24" \
                 --name $conname --hostname $conname $IMAGE cat /etc/hosts
-    is "$output"   ".*${IP}	host.containers.internal"   "host.containers.internal should be the cidr+2 address"
+    is "$output"   ".*${IP}	host.containers.internal"   "host.containers.internal should be host address"
     is "$output"   ".*${CIDR}.100	$conname $conname"   "$conname should be the cidr+100 address"
+
+    if is_rootless; then
+    # check the slirp ip also works correct with userns
+        run_podman run --rm --userns keep-id --network slirp4netns:cidr="${CIDR}.0/24" \
+                --name $conname --hostname $conname $IMAGE cat /etc/hosts
+        is "$output"   ".*${IP}	host.containers.internal"   "host.containers.internal should be host address"
+        is "$output"   ".*${CIDR}.100	$conname $conname"   "$conname should be the cidr+100 address"
+    fi
 }
 
 @test "podman run with slirp4ns adds correct dns address to resolv.conf" {
