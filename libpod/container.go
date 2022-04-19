@@ -628,6 +628,15 @@ func (c *Container) RuntimeName() string {
 
 // Hostname gets the container's hostname
 func (c *Container) Hostname() string {
+	if c.config.UTSNsCtr != "" {
+		utsNsCtr, err := c.runtime.GetContainer(c.config.UTSNsCtr)
+		if err != nil {
+			// should we return an error here?
+			logrus.Errorf("unable to lookup uts namespace for container %s: %v", c.ID(), err)
+			return ""
+		}
+		return utsNsCtr.Hostname()
+	}
 	if c.config.Spec.Hostname != "" {
 		return c.config.Spec.Hostname
 	}

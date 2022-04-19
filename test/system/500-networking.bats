@@ -142,7 +142,7 @@ load helpers
     pid="$output"
     run_podman run --pod $pod_name --name $con1_name $IMAGE cat /etc/hosts
     is "$output" ".*\s$pod_name $infra_name.*" "Pod hostname in /etc/hosts"
-    is "$output" ".*127.0.0.1\s.*$con1_name.*" "Container1 name in /etc/hosts"
+    is "$output" ".*127.0.0.1\s$con1_name.*" "Container1 name in /etc/hosts"
     # get the length of the hosts file
     old_lines=${#lines[@]}
 
@@ -150,8 +150,12 @@ load helpers
     # new host entry and the old one should be removed (lines check)
     run_podman run --pod $pod_name --name $con2_name $IMAGE cat /etc/hosts
     is "$output" ".*\s$pod_name $infra_name.*" "Pod hostname in /etc/hosts"
-    is "$output" ".*127.0.0.1\s.*$con2_name.*" "Container2 name in /etc/hosts"
+    is "$output" ".*127.0.0.1\s$con2_name.*" "Container2 name in /etc/hosts"
     is "${#lines[@]}" "$old_lines" "Number of hosts lines is equal"
+
+    run_podman run --pod $pod_name  $IMAGE sh -c  "hostname && cat /etc/hostname"
+    is "${lines[0]}" "$pod_name" "hostname is the pod hostname"
+    is "${lines[1]}" "$pod_name" "/etc/hostname contains correct pod hostname"
 
     run_podman pod rm $pod_name
     is "$output" "$pid" "Only ID in output (no extra errors)"
