@@ -469,8 +469,16 @@ load helpers
     run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").Aliases}}"
     is "$output" "[${cid:0:12}]" "short container id in network aliases"
 
+    # check /etc/hosts for our entry
+    run_podman exec $cid cat /etc/hosts
+    is "$output" ".*$ip.*" "hosts contain expected ip"
+
     run_podman network disconnect $netname $cid
     is "$output" "" "Output should be empty (no errors)"
+
+    # check /etc/hosts again, the entry should be gone now
+    run_podman exec $cid cat /etc/hosts
+    assert "$output" !~ "$ip" "IP ($ip) should no longer be in /etc/hosts"
 
     # check that we cannot curl (timeout after 3 sec)
     run curl --max-time 3 -s $SERVER/index.txt
@@ -487,12 +495,17 @@ load helpers
     # check that we have a new ip and mac
     # if the ip is still the same this whole test turns into a nop
     run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
-    assert "$output" != "$ip" \
+    new_ip="$output"
+    assert "$new_ip" != "$ip" \
            "IP address did not change after podman network disconnect/connect"
 
     run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
     assert "$output" != "$mac" \
            "MAC address did not change after podman network disconnect/connect"
+
+    # check /etc/hosts for the new entry
+    run_podman exec $cid cat /etc/hosts
+    is "$output" ".*$new_ip.*" "hosts contain expected new ip"
 
     # Disconnect/reconnect of a container *with no ports* should succeed quietly
     run_podman network disconnect $netname $background_cid
