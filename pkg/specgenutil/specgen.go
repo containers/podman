@@ -126,6 +126,16 @@ func getIOLimits(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) (
 	return io, nil
 }
 
+func LimitToSwap(memory *specs.LinuxMemory, swap string, ml int64) {
+	if ml > 0 {
+		memory.Limit = &ml
+		if swap == "" {
+			limit := 2 * ml
+			memory.Swap = &(limit)
+		}
+	}
+}
+
 func getMemoryLimits(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) (*specs.LinuxMemory, error) {
 	var err error
 	memory := &specs.LinuxMemory{}
@@ -135,14 +145,8 @@ func getMemoryLimits(s *specgen.SpecGenerator, c *entities.ContainerCreateOption
 		if err != nil {
 			return nil, errors.Wrapf(err, "invalid value for memory")
 		}
-		if ml > 0 {
-			memory.Limit = &ml
-			if c.MemorySwap == "" {
-				limit := 2 * ml
-				memory.Swap = &(limit)
-			}
-			hasLimits = true
-		}
+		LimitToSwap(memory, c.MemorySwap, ml)
+		hasLimits = true
 	}
 	if m := c.MemoryReservation; len(m) > 0 {
 		mr, err := units.RAMInBytes(m)

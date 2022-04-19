@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
@@ -11,6 +12,7 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/specgen/generate"
+	"github.com/containers/podman/v4/pkg/specgenutil"
 	"github.com/pkg/errors"
 )
 
@@ -39,6 +41,20 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		t := true
 		sg.Passwd = &t
 	}
+
+	// need to check for memory limit to adjust swap
+	if sg.ResourceLimits != nil && sg.ResourceLimits.Memory != nil {
+		s := ""
+		var l int64 = 0
+		if sg.ResourceLimits.Memory.Swap != nil {
+			s = strconv.Itoa(int(*sg.ResourceLimits.Memory.Swap))
+		}
+		if sg.ResourceLimits.Memory.Limit != nil {
+			l = *sg.ResourceLimits.Memory.Limit
+		}
+		specgenutil.LimitToSwap(sg.ResourceLimits.Memory, s, l)
+	}
+
 	warn, err := generate.CompleteSpec(r.Context(), runtime, &sg)
 	if err != nil {
 		utils.InternalServerError(w, err)
@@ -54,6 +70,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
+
 	response := entities.ContainerCreateResponse{ID: ctr.ID(), Warnings: warn}
 	utils.WriteJSON(w, http.StatusCreated, response)
 }
