@@ -22,8 +22,12 @@ The *container* event type will report the follow statuses:
  * checkpoint
  * cleanup
  * commit
+ * connect
  * create
+ * disconnect
  * exec
+ * exec_died
+ * exited
  * export
  * import
  * init
@@ -32,6 +36,7 @@ The *container* event type will report the follow statuses:
  * pause
  * prune
  * remove
+ * rename
  * restart
  * restore
  * start
@@ -50,12 +55,14 @@ The *pod* event type will report the follow statuses:
  * unpause
 
 The *image* event type will report the following statuses:
- * prune
+ * loadFromArchive,
+ * mount
  * pull
  * push
  * remove
  * save
  * tag
+ * unmount
  * untag
 
 The *system* type will report the following statuses:

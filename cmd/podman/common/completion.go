@@ -1057,10 +1057,10 @@ func getStructFields(f reflect.Value, prefix string) []string {
 // -> "container=", "event=", "image=", "pod=", "volume=", "type="
 func AutocompleteEventFilter(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	eventTypes := func(_ string) ([]string, cobra.ShellCompDirective) {
-		return []string{"attach", "checkpoint", "cleanup", "commit", "create", "exec",
-			"export", "import", "init", "kill", "mount", "pause", "prune", "remove",
-			"restart", "restore", "start", "stop", "sync", "unmount", "unpause",
-			"pull", "push", "save", "tag", "untag", "refresh", "renumber",
+		return []string{"attach", "checkpoint", "cleanup", "commit", "connect", "create", "disconnect", "exec",
+			"exec_died", "exited", "export", "import", "init", "kill", "loadFromArchive", "mount", "pause",
+			"prune", "pull", "push", "refresh", "remove", "rename", "renumber", "restart", "restore", "save",
+			"start", "stop", "sync", "tag", "unmount", "unpause", "untag",
 		}, cobra.ShellCompDirectiveNoFileComp
 	}
 	kv := keyValueCompletion{
