@@ -13,8 +13,8 @@ require (
 	github.com/containernetworking/plugins v0.8.2
 	github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982
 	github.com/containers/image/v5 v5.0.1-0.20200205124631-82291c45f2b0
-	github.com/containers/psgo v1.3.2
-	github.com/containers/storage v1.13.6
+	github.com/containers/psgo v1.3.3-0.20220420090439-2fed3f2e7714
+	github.com/containers/storage v1.13.8
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
@@ -67,7 +67,7 @@ require (
 	golang.org/x/crypto v0.0.0-20190927123631-a832865fa7ad
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 // indirect
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	golang.org/x/sys v0.0.0-20190902133755-9109b7679e13
+	golang.org/x/sys v0.0.0-20190916202348-b4ddaad3f8a3
 	google.golang.org/appengine v1.6.1 // indirect
 	google.golang.org/genproto v0.0.0-20190620144150-6af8c5fc6601 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect

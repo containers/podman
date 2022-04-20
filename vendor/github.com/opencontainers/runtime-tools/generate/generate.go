@@ -1050,9 +1050,9 @@ func (g *Generator) SetupPrivileged(privileged bool) {
 		g.ClearProcessCapabilities()
 		g.Config.Process.Capabilities.Bounding = append(g.Config.Process.Capabilities.Bounding, finalCapList...)
 		g.Config.Process.Capabilities.Effective = append(g.Config.Process.Capabilities.Effective, finalCapList...)
-		g.Config.Process.Capabilities.Inheritable = []string{}
+		g.Config.Process.Capabilities.Inheritable = append(g.Config.Process.Capabilities.Inheritable, finalCapList...)
 		g.Config.Process.Capabilities.Permitted = append(g.Config.Process.Capabilities.Permitted, finalCapList...)
-		g.Config.Process.Capabilities.Ambient = []string{}
+		g.Config.Process.Capabilities.Ambient = append(g.Config.Process.Capabilities.Ambient, finalCapList...)
 		g.Config.Process.SelinuxLabel = ""
 		g.Config.Process.ApparmorProfile = ""
 		g.Config.Linux.Seccomp = nil
