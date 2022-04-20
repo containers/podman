@@ -162,6 +162,9 @@ case "$PRIV_NAME" in
         # Needs to exist for setup_rootless()
         ROOTLESS_USER="${ROOTLESS_USER:-some${RANDOM}dude}"
         echo "ROOTLESS_USER=$ROOTLESS_USER" >> /etc/ci_environment
+        # load kernel modules since the rootless user has no permission to do so
+        modprobe ip_tables || :
+        modprobe iptable_nat || :
         setup_rootless
         ;;
     *) die_unknown PRIV_NAME
