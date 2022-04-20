@@ -325,6 +325,8 @@ HEALTHCHECK CMD ls -l / 2>&1`, ALPINE)
 		inspect := podmanTest.InspectContainer("hctest")
 		// Check to make sure a default time value was added
 		Expect(inspect[0].Config.Healthcheck.Timeout).To(BeNumerically("==", 30000000000))
+		// Check to make sure a default time interval value was added
+		Expect(inspect[0].Config.Healthcheck.Interval).To(BeNumerically("==", 30000000000))
 		// Check to make sure characters were not coerced to utf8
 		Expect(inspect[0].Config.Healthcheck.Test).To(Equal([]string{"CMD-SHELL", "ls -l / 2>&1"}))
 	})
