@@ -88,6 +88,7 @@ func parseSlirp4netnsNetworkOptions(r *Runtime, extraOptions []string) (*slirp4n
 		disableHostLoopback: true,
 		mtu:                 slirp4netnsMTU,
 		noPivotRoot:         r.config.Engine.NoPivotRoot,
+		enableIPv6:          true,
 	}
 	for _, o := range slirpOptions {
 		parts := strings.SplitN(o, "=", 2)
