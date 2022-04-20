@@ -20,10 +20,6 @@ class Podman:
         cgroupfs = os.getenv("CGROUP_MANAGER", "systemd")
         self.cmd.append(f"--cgroup-manager={cgroupfs}")
 
-        if os.getenv("DEBUG"):
-            self.cmd.append("--log-level=debug")
-            self.cmd.append("--syslog=true")
-
         self.anchor_directory = tempfile.mkdtemp(prefix="podman_restapi_")
         self.cmd.append("--root=" + os.path.join(self.anchor_directory, "crio"))
         self.cmd.append("--runroot=" + os.path.join(self.anchor_directory, "crio-run"))
