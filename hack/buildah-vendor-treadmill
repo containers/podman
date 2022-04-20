@@ -1,0 +1,582 @@
+#!/usr/bin/perl
+#
+# buildah-vendor-treadmill - daily vendor of latest-buildah onto latest-podman
+#
+package Podman::BuildahVendorTreadmill;
+
+use v5.14;
+use utf8;
+use open qw( :encoding(UTF-8) :std );
+
+use strict;
+use warnings;
+
+use File::Temp                  qw(tempfile);
+use JSON;
+use LWP::UserAgent;
+
+(our $ME = $0) =~ s|.*/||;
+our $VERSION = '0.1';
+
+# For debugging, show data structures using DumpTree($var)
+#use Data::TreeDumper; $Data::TreeDumper::Displayaddress = 0;
+
+###############################################################################
+# BEGIN user-customizable section
+
+# github path to buildah
+our $Buildah = 'github.com/containers/buildah';
+
+# FIXME FIXME FIXME: add 'main'? I hope we never need this script for branches.
+our $Treadmill_PR_Title = 'DO NOT MERGE: buildah vendor treadmill';
+
+our $API_URL = 'https://api.github.com/graphql';
+
+# Use colors if available and if stdout is a tty
+our $Highlight = '';
+our $Reset = '';
+eval '
+    use Term::ANSIColor;
+    if (-t 1) {
+        $Highlight = color("green");
+        $Reset     = color("reset");
+    }
+    $SIG{__WARN__} = sub { print STDERR color("bold red"), "@_", $Reset; };
+
+';
+
+# END   user-customizable section
+###############################################################################
+
+###############################################################################
+# BEGIN boilerplate args checking, usage messages
+
+sub usage {
+    print  <<"END_USAGE";
+Usage: $ME [OPTIONS] [--sync | --pick ]
+
+$ME is (2022-04-20) **EXPERIMENTAL**
+
+$ME is intended to solve the problem of vendoring
+buildah into podman.
+
+Call me with one of two options:
+
+    --sync  The usual case. Mostly used by Ed. Called from a
+            development branch, this just updates everything so
+            we vendor in latest-buildah (main) on top of
+            latest-podman (main). With a few sanity checks.
+
+    --pick  Used for really-truly vendoring in a new buildah; will
+            cherry-pick a commit on your buildah-vendor working branch
+
+For latest documentation and best practices, please see:
+
+    https://github.com/containers/podman/wiki/Buildah-Vendor-Treadmill
+
+OPTIONS:
+
+  --help         display this message
+  --version      display program name and version
+END_USAGE
+
+    exit;
+}
+
+# Command-line options.  Note that this operates directly on @ARGV !
+our %action;
+our $debug   = 0;
+our $force   = 0;
+our $verbose = 0;
+our $NOT     = '';              # print "blahing the blah$NOT\n" if $debug
+sub handle_opts {
+    use Getopt::Long;
+    GetOptions(
+        'sync'       => sub { $action{sync}++ },
+        'pick'       => sub { $action{pick}++ },
+
+        'debug!'     => \$debug,
+        'dry-run|n!' => sub { $NOT = ' [NOT]' },
+        'force'      => \$force,
+        'verbose|v'  => \$verbose,
+
+        help         => \&usage,
+        version      => sub { print "$ME version $VERSION\n"; exit 0 },
+    ) or die "Try `$ME --help' for help\n";
+}
+
+# END   boilerplate args checking, usage messages
+###############################################################################
+
+############################## CODE BEGINS HERE ###############################
+
+# The term is "modulino".
+__PACKAGE__->main()                                     unless caller();
+
+# Main code.
+sub main {
+    # Note that we operate directly on @ARGV, not on function parameters.
+    # This is deliberate: it's because Getopt::Long only operates on @ARGV
+    # and there's no clean way to make it use @_.
+    handle_opts();                      # will set package globals
+
+    # Fetch command-line arguments.  Barf if too many.
+    # FIXME: if called with arg, that's the --sync branch?
+    # FIXME: if called with --pick + arg, that's the PR?
+    die "$ME: Too many arguments; try $ME --help\n"                 if @ARGV;
+
+    my @action = keys(%action);
+    die "$ME: Please invoke me with one of --sync or --pick\n"
+        if ! @action;
+    die "$ME: Please invoke me with ONLY one of --sync or --pick\n"
+        if @action > 1;
+
+    my $handler = __PACKAGE__->can("do_@action")
+        or die "$ME: No handler available for --@action\n";
+
+    # We've validated the command-line args. Before running action, check
+    # that repo is clean. None of our actions can be run on a dirty repo.
+    assert_clean_repo();
+
+    $handler->();
+}
+
+###############################################################################
+# BEGIN sync and its helpers
+
+sub do_sync {
+    # Preserve current branch name, so we can come back after switching to main
+    my $current_branch = git_current_branch();
+
+    my $buildah_old = vendored_buildah();
+    print "-> buildah old = $buildah_old\n";
+
+    # If HEAD is a buildah-vendor commit (usual case), drop it now.
+    if (head_is_buildah_vendor_commit()) {
+        if (is_treadmill_commit('HEAD^')) {
+            progress("HEAD is buildah vendor (as expected); dropping it...");
+            git('reset', '--hard', 'HEAD^');
+        }
+        else {
+            die "$ME: HEAD is a buildah commit, but HEAD^ is not a treadmill commit! Cannot continue.\n";
+        }
+    }
+    # HEAD must now be a treadmill commit
+    is_treadmill_commit('HEAD')
+        or die "$ME: HEAD is not a treadmill commit!\n";
+
+    # HEAD is now a change to buildah-tests. Now update main and rebase.
+    pull_main();
+    git('checkout', '-q', $current_branch);
+    my $forkpoint = git('merge-base', '--fork-point', 'main');
+    my $main_commit = git('rev-parse', 'main');
+    my $rebased;
+    if ($forkpoint eq $main_commit) {
+        progress("[Already rebased on podman main]");
+    }
+    else {
+        # --empty=keep may be needed after a --pick commit, when we've
+        # vendored a new buildah into podman and incorporated the treadmill
+        # commit. Since this is a perpetual-motion workflow, in which we
+        # keep an in-progress PR open at all times, we need a baseline
+        # commit even if it's empty.
+        progress("Rebasing on podman main...");
+        git('rebase', '--empty=keep', 'main');
+        # FIXME: rebase can fail after --pick. If it does, offer instructions.
+        $rebased = 1;
+    }
+
+    # We're now back on our treadmill branch, with one commit on top of main.
+    # Now vendor in latest buildah.
+    progress("Vendoring in buildah...");
+    system('go', 'mod', 'edit', '--require' => "${Buildah}\@main") == 0
+        or die "$ME: go mod edit failed\n";
+    system('make', 'vendor') == 0
+        or die "$ME: make vendor failed\n";
+    my $buildah_new = vendored_buildah();
+    print "-> buildah new = $buildah_new\n";
+    git('commit', '-as', '-m', <<"END_COMMIT_MESSAGE");
+[DO NOT MERGE] vendor in buildah \@ $buildah_new
+
+This is a JUNK COMMIT from $ME v$VERSION.
+
+DO NOT MERGE. This is just a way to keep the buildah-podman
+vendoring in sync. See script --help for details.
+END_COMMIT_MESSAGE
+
+    # if buildah is unchanged, and we did not pull main, exit cleanly
+    my $change_message = '';
+    if ($buildah_new eq $buildah_old) {
+        if (! $rebased) {
+            progress("Nothing has changed (same buildah, same podman). Bye!");
+            exit 0;
+        }
+        $change_message = "Podman has bumped, but Buildah is unchanged. There's probably not much point to testing this.";
+    }
+    else {
+        my $samenew = ($rebased ? 'new' : 'same');
+        $change_message = "New buildah, $samenew podman. Good candidate for pushing.";
+    }
+    progress($change_message);
+
+    build_and_check_podman();
+
+    progress("All OK. It's now up to you to 'git push --force'");
+    progress(" --- Reminder: $change_message");
+}
+
+#########################
+#  is_treadmill_commit  #  ARG (HEAD or HEAD^) commit message =~ treadmill
+#########################
+sub is_treadmill_commit {
+    my $commit_message = git('log', '-1', '--format=%s', @_);
+    print "[$commit_message]\n"         if $verbose;
+    $commit_message =~ /buildah.*treadmill/;
+}
+
+###############
+#  pull_main  #  Switch to main, and pull latest from github
+###############
+sub pull_main {
+    progress("Pulling podman main...");
+    git('checkout', '-q', 'main');
+    git('pull', '-r', git_upstream(), 'main');
+}
+
+############################
+#  build_and_check_podman  #  Run quick (local) sanity checks before pushing
+############################
+sub build_and_check_podman {
+    my $errs = 0;
+
+    # Confirm that we can still build podman
+    progress("Running 'make' to confirm that podman builds cleanly...");
+    system('make') == 0
+        or die "$ME: 'make' failed with new buildah. Cannot continue.\n";
+
+    # See if any new options need man pages
+    progress('Cross-checking man pages...');
+    $errs += system('hack/xref-helpmsgs-manpages');
+
+    # Confirm that buildah-bud patches still apply. This requires knowing
+    # the name of the directory created by the bud-tests script.
+    progress("Confirming that buildah-bud-tests patches still apply...");
+    system('rm -rf test-buildah-*');
+    $errs += system('test/buildah-bud/run-buildah-bud-tests', '--no-test');
+    # Clean up
+    system('rm -rf test-buildah-*');
+
+    return if !$errs;
+    warn "$ME: Errors found. Please address, then add to HEAD^ commit\n";
+    die  "    ...see $ME --help for more information.\n";
+}
+
+# END   sync and its helpers
+###############################################################################
+# BEGIN pick and its helpers
+#
+# This is what gets used on a real vendor-new-buildah PR
+
+sub do_pick {
+    my $current_branch = git_current_branch();
+
+    # Confirm that current branch is a buildah-vendor one
+    head_is_buildah_vendor_commit(1);
+    progress("HEAD is a buildah vendor commit. Good.");
+
+    # Identify and pull the treadmill PR
+    my $treadmill_pr = treadmill_pr();
+    my $treadmill_branch = "$ME/pr$treadmill_pr/tmp$$";
+    progress("Fetching treadmill PR $treadmill_pr into $treadmill_branch");
+    git('fetch', git_upstream(), "pull/$treadmill_pr/head:$treadmill_branch");
+
+    # read buildah go.mod from it, and from current tree, and compare
+    my $buildah_on_treadmill = vendored_buildah($treadmill_branch);
+    my $buildah_here         = vendored_buildah();
+    if ($buildah_on_treadmill ne $buildah_here) {
+        warn "$ME: Warning: buildah version mismatch:\n";
+        warn "$ME: on treadmill:   $buildah_on_treadmill\n";
+        warn "$ME: on this branch: $buildah_here\n";
+        # FIXME: should this require --force? A yes/no prompt?
+        # FIXME: I think not, because usual case will be a true tagged version
+        warn "$ME: Continuing anyway\n";
+    }
+
+    cherry_pick($treadmill_pr, $treadmill_branch);
+
+    # Clean up
+    git('branch', '-D', $treadmill_branch);
+
+    build_and_check_podman();
+
+    progress("Looks good! Please 'git commit --amend' before pushing.");
+}
+
+##################
+#  treadmill_pr  #  Returns ID of open podman PR with the desired subject
+##################
+sub treadmill_pr {
+    my $query = <<'END_QUERY';
+{
+  search(
+    query: "buildah vendor treadmill repo:containers/podman",
+    type: ISSUE,
+    first: 10
+  ) {
+    edges { node { ... on PullRequest { number state title } } }
+  }
+}
+END_QUERY
+
+    my $ua = LWP::UserAgent->new;
+    $ua->agent("$ME " . $ua->agent);              # Identify ourself
+
+    my %headers = (
+        'Accept'        => "application/vnd.github.antiope-preview+json",
+        'Content-Type'  => "application/json",
+    );
+
+    # Use github token if available, but don't require it. (All it does is
+    # bump up our throttling limit, which shouldn't be an issue) (unless
+    # someone invokes this script hundreds of times per minute).
+    if (my $token = $ENV{GITHUB_TOKEN}) {
+        $headers{Authorization} = "bearer $token";
+    }
+    $ua->default_header($_ => $headers{$_}) for keys %headers;
+
+    # Massage the query: escape quotes, put it all in one line, collapse spaces
+    $query =~ s/\"/\\"/g;
+    $query =~ s/\n/\\n/g;
+    $query =~ s/\s+/ /g;
+    # ...and now one more massage
+    my $postquery = qq/{ "query": \"$query\" }/;
+
+    print $postquery, "\n"            if $debug;
+    my $res = $ua->post($API_URL, Content => $postquery);
+    if ((my $code = $res->code) != 200) {
+        print $code, " ", $res->message, "\n";
+        exit 1;
+    }
+
+    # Got something. Confirm that it has all our required fields
+    my $content = decode_json($res->content);
+    use Data::Dump; dd $content         if $debug;
+    exists $content->{data}
+        or die "$ME: No '{data}' section in response\n";
+    exists $content->{data}{search}
+        or die "$ME: No '{data}{search}' section in response\n";
+    exists $content->{data}{search}{edges}
+        or die "$ME: No '{data}{search}{edges}' section in response\n";
+
+    # Confirm that there is exactly one such PR
+    my @prs = @{ $content->{data}{search}{edges} };
+    @prs > 0
+        or die "$ME: WEIRD! No 'buildah vendor treadmill' PRs found!\n";
+    @prs = grep { $_->{node}{title} eq $Treadmill_PR_Title } @prs
+        or die "$ME: No PRs found with title '$Treadmill_PR_Title'\n";
+    @prs = grep { $_->{node}{state} eq 'OPEN' } @prs
+        or die "$ME: Found '$Treadmill_PR_Title' PRs, but none are OPEN\n";
+    @prs == 1
+        or die "$ME: Multiple OPEN '$Treadmill_PR_Title' PRs found!\n";
+
+    # Yay. Found exactly one.
+    return $prs[0]{node}{number};
+}
+
+#################
+#  cherry_pick  #  cherry-pick a commit, updating its commit message
+#################
+sub cherry_pick {
+    my $treadmill_pr     = shift;       # e.g., 12345
+    my $treadmill_branch = shift;       # e.g., b-v-p/pr12345/tmpNNN
+
+    progress("Cherry-picking from $treadmill_pr^");
+
+    # Create a temp script. Do so in /var/tmp because sometimes $TMPDIR
+    # (e.g. /tmp) has noexec.
+    my ($fh, $editor) = tempfile( "$ME.edit-commit-message.XXXXXXXX", DIR => "/var/tmp" );
+    printf { $fh } <<'END_EDIT_SCRIPT', $ME, $VERSION, $treadmill_pr;
+#!/bin/bash
+
+if [[ -z "$1" ]]; then
+    echo "FATAL: Did not get called with an arg" >&2
+    exit 1
+fi
+
+msgfile=$1
+if [[ ! -e $msgfile ]]; then
+    echo "FATAL: git-commit file does not exist: $msgfile" >&2
+    exit 1
+fi
+
+tmpfile=$msgfile.tmp
+rm -f $tmpfile
+
+cat >$tmpfile <<EOF
+WIP: Fixes for vendoring Buildah
+
+This commit was automatically cherry-picked
+by %s v%s
+from the buildah vendor treadmill PR, #%s
+
+/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+> The git commit message from that PR is below. Please review it,
+> edit as necessary, then remove this comment block.
+\^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+EOF
+
+# Strip the "DO NOT MERGE" header from the treadmill PR, print only
+# the "Changes as of YYYY-MM-DD" and subsequent lines
+sed -ne '/^Changes as of/,$ p' <$msgfile >>$tmpfile
+mv $tmpfile $msgfile
+
+END_EDIT_SCRIPT
+    close $fh
+        or die "$ME: Error writing $editor: $!\n";
+    chmod 0755 => $editor;
+    local $ENV{EDITOR} = $editor;
+    git('cherry-pick', '--allow-empty', '--edit', "$treadmill_branch^");
+    unlink $editor;
+}
+
+# END   pick and its helpers
+###############################################################################
+# BEGIN general-purpose helpers
+
+##############
+#  progress  #  Progris riport Dr Strauss says I shud rite down what I think
+##############
+sub progress {
+    print $Highlight, "|\n+---> @_\n", $Reset;
+}
+
+#######################
+#  assert_clean_repo  #  Don't even think of running with local changes
+#######################
+sub assert_clean_repo {
+    my @changed = git('status', '--porcelain', '--untracked=no')
+        or return;
+
+    warn "$ME: Modified files in repo:\n";
+    warn "    $_\n" for @changed;
+    exit 1;
+}
+
+########################
+#  git_current_branch  #  e.g., 'vendor_buildah'
+########################
+sub git_current_branch() {
+    my $b = git('rev-parse', '--abbrev-ref=strict', 'HEAD');
+
+    # There is no circumstance in which we can ever be called from main
+    die "$ME: must run from side branch, not main\n" if $b eq 'main';
+    return $b;
+}
+
+##################
+#  git_upstream  #  Name of true github upstream
+##################
+sub git_upstream {
+    for my $line (git('remote', '-v')) {
+        my ($remote, $url, $type) = split(' ', $line);
+        if ($url =~ m!github\.com.*containers/(podman|libpod)!) {
+            if ($type =~ /fetch/) {
+                return $remote;
+            }
+        }
+    }
+
+    die "$ME: did not find a remote with 'github.com/containers/podman'\n";
+}
+
+
+#########
+#  git  #  Run a git command
+#########
+sub git {
+    my @cmd = ('git', @_);
+    print "\$ @cmd\n"                   if $verbose || $debug;
+    open my $fh, '-|', @cmd
+        or die "$ME: Cannot fork: $!\n";
+    my @results;
+    while (my $line = <$fh>) {
+        chomp $line;
+        push @results, $line;
+    }
+    close $fh
+        or die "$ME: command failed: @cmd\n";
+
+    return wantarray ? @results : join("\n", @results);
+}
+
+###################################
+#  head_is_buildah_vendor_commit  #  Returns 1 if HEAD is buildah vendor
+###################################
+sub head_is_buildah_vendor_commit {
+    my $fatal = shift;                  # in: if true, die upon anything missing
+
+    my @deltas = git('diff', '--name-only', 'HEAD^', 'HEAD');
+
+    # It's OK if there are more modified files than just these.
+    # It's not OK if any of these are missing.
+    my @expect = qw(go.mod go.sum vendor/modules.txt);
+    my @missing;
+    for my $expect (@expect) {
+        if (! grep { $_ eq $expect } @deltas) {
+            push @missing, "$expect is unchanged";
+        }
+    }
+
+    if (! grep { m!^vendor/\Q$Buildah\E/! } @deltas) {
+        push @missing, "no changes under $Buildah";
+    }
+
+    if (@missing) {
+        if ($fatal || $verbose) {
+            warn "$ME: HEAD does not look like a buildah vendor commit:\n";
+            warn "$ME:  - $_\n" for @missing;
+            if ($fatal) {
+                die "$ME: Cannot continue\n";
+            }
+            warn "$ME: ...this might be okay, continuing anyway...\n";
+        }
+        return;
+    }
+
+    return 1;
+}
+
+######################
+#  vendored_buildah  #  Returns currently-vendored buildah
+######################
+sub vendored_buildah {
+    my $gomod_file = 'go.mod';
+    my @gomod;
+    if (@_) {
+        # Called with a branch argument; fetch that version of go.mod
+        $gomod_file = "@_:$gomod_file";
+        @gomod = git('show', $gomod_file);
+    }
+    else {
+        # No branch argument, read file
+        open my $fh, '<', $gomod_file
+          or die "$ME: Cannot read $gomod_file: $!\n";
+        while (my $line = <$fh>) {
+            chomp $line;
+            push @gomod, $line;
+        }
+        close $fh;
+    }
+
+    for my $line (@gomod) {
+        if ($line =~ m!^\s+\Q$Buildah\E\s+(\S+)!) {
+            return $1;
+        }
+    }
+
+    die "$ME: Could not find buildah in $gomod_file!\n";
+}
+
+# END   general-purpose helpers
+###############################################################################
