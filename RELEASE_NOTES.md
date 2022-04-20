@@ -1,5 +1,8 @@
 # Release Notes
 
+## 3.4.7
+- This release addresses CVE-2022-1227, where running `podman top` on a container made from a maliciously-crafted image and using a user namespace could allow for code execution in the host context.
+
 ## 3.4.6
 ### Security
 - This release addresses CVE-2022-27191, where an attacker could potentially cause crashes in remote Podman by using incorrect SSH ciphers.
