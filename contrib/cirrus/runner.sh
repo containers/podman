@@ -46,6 +46,8 @@ function _run_validate() {
 }
 
 function _run_unit() {
+    _bail_if_test_can_be_skipped test/goecho test/version
+
     # shellcheck disable=SC2154
     if [[ "$PODBIN_NAME" != "podman" ]]; then
         # shellcheck disable=SC2154
@@ -55,31 +57,45 @@ function _run_unit() {
 }
 
 function _run_apiv2() {
+    _bail_if_test_can_be_skipped test/apiv2
+
     source .venv/requests/bin/activate
     make localapiv2 |& logformatter
 }
 
 function _run_compose() {
+    _bail_if_test_can_be_skipped test/compose
+
     ./test/compose/test-compose |& logformatter
 }
 
 function _run_compose_v2() {
+    _bail_if_test_can_be_skipped test/compose
+
     ./test/compose/test-compose |& logformatter
 }
 
 function _run_int() {
+    _bail_if_test_can_be_skipped test/e2e
+
     dotest integration
 }
 
 function _run_sys() {
+    _bail_if_test_can_be_skipped test/system
+
     dotest system
 }
 
 function _run_upgrade_test() {
+    _bail_if_test_can_be_skipped test/upgrade
+
     bats test/upgrade |& logformatter
 }
 
 function _run_bud() {
+    _bail_if_test_can_be_skipped test/buildah-bud
+
     ./test/buildah-bud/run-buildah-bud-tests |& logformatter
 }
 
@@ -217,6 +233,9 @@ function _run_build() {
 }
 
 function _run_altbuild() {
+    # We can skip all these steps for test-only PRs, but not doc-only ones
+    _bail_if_test_can_be_skipped docs
+
     local -a arches
     local arch
     req_env_vars ALT_NAME
@@ -343,6 +362,54 @@ dotest() {
 
     make ${localremote}${testsuite} PODMAN_SERVER_LOG=$PODMAN_SERVER_LOG \
         |& logformatter
+}
+
+# Optimization: will exit if the only PR diffs are under docs/ or tests/
+# with the exception of any given arguments. E.g., don't run e2e or upgrade
+# or bud tests if the only PR changes are in test/system.
+function _bail_if_test_can_be_skipped() {
+    local head base diffs
+
+    # Cirrus sets these for PRs but not cron. In cron, we never want to skip.
+    for v in CIRRUS_CHANGE_IN_REPO DEST_BRANCH; do
+        if [[ -z "${!v}" ]]; then
+            msg "[ _cannot do selective skip: \$$v is undefined ]"
+            return 0
+        fi
+    done
+    # And if this one *is* defined, it means we're not in PR-land; don't skip.
+    if [[ -n "$CIRRUS_TAG" ]]; then
+        msg "[ _cannot do selective skip: \$CIRRUS_TAG is defined ]"
+        return 0
+    fi
+
+    head=$CIRRUS_CHANGE_IN_REPO
+    base=$(git merge-base $DEST_BRANCH $head)
+    diffs=$(git diff --name-only $base $head)
+
+    # If PR touches any files in an argument directory, we cannot skip
+    for subdir in "$@"; do
+        if egrep -q "^$subdir/" <<<"$diffs"; then
+            return 0
+        fi
+    done
+
+    # PR does not touch any files under our input directories. Now see
+    # if the PR touches files outside of the following directories, by
+    # filtering these out from the diff results.
+    for subdir in docs test; do
+        # || true needed because we're running with set -e
+        diffs=$(egrep -v "^$subdir/" <<<"$diffs" || true)
+    done
+
+    # If we still have diffs, they indicate files outside of docs & test.
+    # It is not safe to skip.
+    if [[ -n "$diffs" ]]; then
+        return 0
+    fi
+
+    msg "SKIPPING: This is a doc- and/or test-only PR with no changes under $*"
+    exit 0
 }
 
 # Nearly every task in .cirrus.yml makes use of this shell script
