@@ -830,7 +830,15 @@ func launchWinProxy(v *MachineVM) (bool, string, error) {
 		return globalName, "", err
 	}
 
-	dest := fmt.Sprintf("ssh://root@localhost:%d/run/podman/podman.sock", v.Port)
+	destSock := "/run/user/1000/podman/podman.sock"
+	forwardUser := v.RemoteUsername
+
+	if v.Rootful {
+		destSock = "/run/podman/podman.sock"
+		forwardUser = "root"
+	}
+
+	dest := fmt.Sprintf("ssh://%s@localhost:%d%s", forwardUser, v.Port, destSock)
 	args := []string{v.Name, stateDir, pipePrefix + machinePipe, dest, v.IdentityPath}
 	waitPipe := machinePipe
 	if globalName {
