@@ -6,16 +6,12 @@
 load helpers
 
 @test "podman network - basic tests" {
-    heading="*NETWORK*ID*NAME*DRIVER*"
+    heading="NETWORK *ID *NAME *DRIVER"
     run_podman network ls
-    if  [[ ${output} != ${heading} ]]; then
-       die "network ls expected heading is not available"
-    fi
+    assert "${lines[0]}" =~ "^$heading\$" "network ls header missing"
 
     run_podman network ls --noheading
-    if  [[ ${output} = ${heading} ]]; then
-       die "network ls --noheading did not remove heading: $output"
-    fi
+    assert "$output" !~ "$heading" "network ls --noheading shows header anyway"
 
     # check deterministic list order
     local net1=a-$(random_string 10)
@@ -174,9 +170,7 @@ load helpers
 
     # (Assert that output is formatted, not a one-line blob: #8011)
     run_podman network inspect $mynetname
-    if [[ "${#lines[*]}" -lt 5 ]]; then
-	die "Output from 'pod inspect' is only ${#lines[*]} lines; see #8011"
-    fi
+    assert "${#lines[*]}" -ge 5 "Output from 'pod inspect'; see #8011"
 
     run_podman run --rm --network $mynetname $IMAGE ip a
     is "$output" ".* inet ${mysubnet}\.2/24 brd ${mysubnet}\.255 " \
@@ -265,9 +259,7 @@ load helpers
 
         # check that we cannot curl (timeout after 5 sec)
         run timeout 5 curl -s $SERVER/index.txt
-        if [ "$status" -ne 124 ]; then
-            die "curl did not timeout, status code: $status"
-        fi
+        assert $status -eq 124 "curl did not time out"
     fi
 
     # reload the network to recreate the iptables rules
@@ -366,16 +358,11 @@ load helpers
 
     # ipv4 slirp
     run_podman run --rm --network slirp4netns:enable_ipv6=false $IMAGE cat /etc/resolv.conf
-    if grep -E "$ipv6_regex" <<< $output; then
-        die "resolv.conf contains a ipv6 nameserver"
-    fi
+    assert "$output" !~ "$ipv6_regex" "resolv.conf should not contain ipv6 nameserver"
 
     # ipv6 slirp
     run_podman run --rm --network slirp4netns:enable_ipv6=true $IMAGE cat /etc/resolv.conf
-    # "is" does not like the ipv6 regex
-    if ! grep -E "$ipv6_regex" <<< $output; then
-        die "resolv.conf does not contain a ipv6 nameserver"
-    fi
+    assert "$output" =~ "$ipv6_regex" "resolv.conf should contain ipv6 nameserver"
 
     # ipv4 cni
     local mysubnet=$(random_rfc1918_subnet)
@@ -385,9 +372,7 @@ load helpers
     is "$output" "$netname" "output of 'network create'"
 
     run_podman run --rm --network $netname $IMAGE cat /etc/resolv.conf
-    if grep -E "$ipv6_regex" <<< $output; then
-        die "resolv.conf contains a ipv6 nameserver"
-    fi
+    assert "$output" !~ "$ipv6_regex" "resolv.conf should not contain ipv6 nameserver"
 
     run_podman network rm -t 0 -f $netname
 
@@ -399,10 +384,7 @@ load helpers
     is "$output" "$netname" "output of 'network create'"
 
     run_podman run --rm --network $netname $IMAGE cat /etc/resolv.conf
-    # "is" does not like the ipv6 regex
-    if ! grep -E "$ipv6_regex" <<< $output; then
-        die "resolv.conf does not contain a ipv6 nameserver"
-    fi
+    assert "$output" =~ "$ipv6_regex" "resolv.conf should contain ipv6 nameserver"
 
     run_podman network rm -t 0 -f $netname
 }
@@ -456,9 +438,8 @@ load helpers
 
     # check that we cannot curl (timeout after 3 sec)
     run curl --max-time 3 -s $SERVER/index.txt
-    if [ "$status" -eq 0 ]; then
-	    die "curl did not fail, it should have timed out or failed with non zero exit code"
-    fi
+    assert $status -ne 0 \
+           "curl did not fail, it should have timed out or failed with non zero exit code"
 
     run_podman network connect $netname $cid
     is "$output" "" "Output should be empty (no errors)"
@@ -470,13 +451,12 @@ load helpers
     # check that we have a new ip and mac
     # if the ip is still the same this whole test turns into a nop
     run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
-    if [[ "$output" == "$ip" ]]; then
-        die "IP address did not change after podman network disconnect/connect"
-    fi
+    assert "$output" != "$ip" \
+           "IP address did not change after podman network disconnect/connect"
+
     run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
-    if [[ "$output" == "$mac" ]]; then
-        die "MAC address did not change after podman network disconnect/connect"
-    fi
+    assert "$output" != "$mac" \
+           "MAC address did not change after podman network disconnect/connect"
 
     # Disconnect/reconnect of a container *with no ports* should succeed quietly
     run_podman network disconnect $netname $background_cid
@@ -552,9 +532,7 @@ load helpers
         while kill -0 $pid; do
             sleep 0.5
             retries=$((retries - 1))
-            if [[ $retries -eq 0 ]]; then
-                die "Process $pid (container $cid) refused to die"
-            fi
+            assert $retries -gt 0 "Process $pid (container $cid) refused to die"
         done
 
         # Wait for container to restart
@@ -563,16 +541,13 @@ load helpers
             run_podman container inspect --format "{{.State.Pid}}" $cid
             # pid is 0 as long as the container is not running
             if [[ $output -ne 0 ]]; then
-                if [[ $output == $pid ]]; then
-                    die "This should never happen! Restarted container has same PID ($output) as killed one!"
-                fi
+                assert "$output" != "$pid" \
+                       "This should never happen! Restarted container has same PID as killed one!"
                 break
             fi
             sleep 0.5
             retries=$((retries - 1))
-            if [[ $retries -eq 0 ]]; then
-                die "Timed out waiting for container to restart"
-            fi
+            assert $retries -gt 0 "Timed out waiting for container to restart"
         done
 
         # Verify http contents again: curl from localhost

@@ -31,7 +31,8 @@ function teardown() {
     losetup -f ${lofile}
 
     run losetup -l --noheadings --output BACK-FILE,NAME,MAJ:MIN
-    is "$output" ".\+" "Empty output from losetup"
+    assert "$status" -eq 0 "losetup: status"
+    assert "$output" != "" "losetup: output"
 
     lodevice=$(awk "\$1 == \"$lofile\" { print \$2 }" <<<"$output")
     lomajmin=$(awk "\$1 == \"$lofile\" { print \$3 }" <<<"$output")

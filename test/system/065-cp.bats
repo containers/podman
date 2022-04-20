@@ -589,20 +589,22 @@ ${randomcontent[1]}" "$description"
     # RUNNING container
     # NOTE: /dest does not exist yet but is expected to be created during copy
     run_podman cp cpcontainer:/tmp/sub/weirdlink $destdir/dest
-    run cat $destdir/dest/containerfile0 $destdir/dest/containerfile1
-    is "${lines[0]}" "${randomcontent[0]}" "eval symlink - running container"
-    is "${lines[1]}" "${randomcontent[1]}" "eval symlink - running container"
+    for i in 0 1; do
+        assert "$(< $destdir/dest/containerfile$i)" = "${randomcontent[$i]}" \
+               "eval symlink - running container - file $i/1"
+    done
 
     run_podman kill cpcontainer
     run_podman rm -t 0 -f cpcontainer
-    run rm -rf $srcdir/dest
+    rm -rf $srcdir/dest
 
     # CREATED container
     run_podman create --name cpcontainer $cpimage
     run_podman cp cpcontainer:/tmp/sub/weirdlink $destdir/dest
-    run cat $destdir/dest/containerfile0 $destdir/dest/containerfile1
-    is "${lines[0]}" "${randomcontent[0]}" "eval symlink - created container"
-    is "${lines[1]}" "${randomcontent[1]}" "eval symlink - created container"
+    for i in 0 1; do
+        assert "$(< $destdir/dest/containerfile$i)" = "${randomcontent[$i]}" \
+               "eval symlink - created container - file $i/1"
+    done
     run_podman rm -t 0 -f cpcontainer
     run_podman rmi $cpimage
 }
@@ -924,20 +926,16 @@ ${randomcontent[1]}" "$description"
 
     # Copy file.
     $PODMAN cp cpcontainer:/tmp/file.txt - > $srcdir/stdout.tar
-    if [ $? -ne 0 ]; then
-        die "Command failed: podman cp ... - | cat"
-    fi
 
     tar xvf $srcdir/stdout.tar -C $srcdir
-    is "$(< $srcdir/file.txt)" "$rand_content"
-    run 1 ls $srcdir/empty.txt
+    is "$(< $srcdir/file.txt)" "$rand_content" "File contents: file.txt"
+    if [[ -e "$srcdir/empty.txt" ]]; then
+        die "File should not exist, but does: empty.txt"
+    fi
     rm -f $srcdir/*
 
     # Copy directory.
     $PODMAN cp cpcontainer:/tmp - > $srcdir/stdout.tar
-    if [ $? -ne 0 ]; then
-        die "Command failed: podman cp ... - | cat : $output"
-    fi
 
     tar xvf $srcdir/stdout.tar -C $srcdir
     is "$(< $srcdir/tmp/file.txt)" "$rand_content"

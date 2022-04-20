@@ -18,9 +18,15 @@ function setup() {
 }
 
 function teardown() {
-    run '?' systemctl stop "$SERVICE_NAME"
-    rm -f "$UNIT_FILE"
-    systemctl daemon-reload
+    if [[ -e "$UNIT_FILE" ]]; then
+        run systemctl stop "$SERVICE_NAME"
+        if [ $status -ne 0 ]; then
+            echo "# WARNING: systemctl stop failed in teardown: $output" >&3
+        fi
+
+        rm -f "$UNIT_FILE"
+        systemctl daemon-reload
+    fi
     run_podman rmi -a
 
     basic_teardown
@@ -36,41 +42,23 @@ function service_setup() {
 
     # Also test enabling services (see #12438).
     run systemctl enable "$SERVICE_NAME"
-    if [ $status -ne 0 ]; then
-        die "Error enabling systemd unit $SERVICE_NAME, output: $output"
-    fi
+    assert $status -eq 0 "Error enabling systemd unit $SERVICE_NAME: $output"
 
     run systemctl start "$SERVICE_NAME"
-    if [ $status -ne 0 ]; then
-        die "Error starting systemd unit $SERVICE_NAME, output: $output"
-    fi
+    assert $status -eq 0 "Error starting systemd unit $SERVICE_NAME: $output"
 
     run systemctl status "$SERVICE_NAME"
-    if [ $status -ne 0 ]; then
-        die "Non-zero status of systemd unit $SERVICE_NAME, output: $output"
-    fi
+    assert $status -eq 0 "systemctl status $SERVICE_NAME: $output"
 }
 
 # Helper to stop a systemd service running a container
 function service_cleanup() {
     local status=$1
     run systemctl stop "$SERVICE_NAME"
-    if [ $status -ne 0 ]; then
-        die "Error stopping systemd unit $SERVICE_NAME, output: $output"
-    fi
+    assert $status -eq 0 "Error stopping systemd unit $SERVICE_NAME: $output"
 
     run systemctl disable "$SERVICE_NAME"
-    if [ $status -ne 0 ]; then
-        die "Error disbling systemd unit $SERVICE_NAME, output: $output"
-    fi
-
-    if [[ -z "$status" ]]; then
-        run systemctl is-active "$SERVICE_NAME"
-        if [ $status -ne 0 ]; then
-            die "Error checking stauts of systemd unit $SERVICE_NAME, output: $output"
-        fi
-        is "$output" "$status" "$SERVICE_NAME not in expected state"
-    fi
+    assert $status -eq 0 "Error disabling systemd unit $SERVICE_NAME: $output"
 
     rm -f "$UNIT_FILE"
     systemctl daemon-reload
@@ -230,27 +218,13 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
 
     INSTANCE="$SERVICE_NAME@1.service"
     run systemctl start "$INSTANCE"
-    if [ $status -ne 0 ]; then
-        die "Error starting systemd unit $INSTANCE, output: $output"
-    fi
+    assert $status -eq 0 "Error starting systemd unit $INSTANCE: $output"
 
     run systemctl status "$INSTANCE"
-    if [ $status -ne 0 ]; then
-        die "Non-zero status of systemd unit $INSTANCE, output: $output"
-    fi
+    assert $status -eq 0 "systemctl status $INSTANCE: $output"
 
     run systemctl stop "$INSTANCE"
-    if [ $status -ne 0 ]; then
-        die "Error stopping systemd unit $INSTANCE, output: $output"
-    fi
-
-    if [[ -z "$status" ]]; then
-        run systemctl is-active "$INSTANCE"
-        if [ $status -ne 0 ]; then
-            die "Error checking stauts of systemd unit $INSTANCE, output: $output"
-        fi
-        is "$output" "$status" "$INSTANCE not in expected state"
-    fi
+    assert $status -eq 0 "Error stopping systemd unit $INSTANCE: $output"
 
     rm -f "$TEMPLATE_FILE_PREFIX@.service"
     systemctl daemon-reload

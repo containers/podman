@@ -60,21 +60,18 @@ EOF
     # Now confirm that each volume got a unique device ID
     run_podman run --rm build_test stat -c '%D' / /a /a/b /a/b/c /\[ /\[/etc /\[/etc/foo, /etc /etc/bar\]
     # First, the non-volumes should all be the same...
-    is "${lines[0]}" "${lines[1]}" "devnum( / ) = devnum( /a )"
-    is "${lines[0]}" "${lines[2]}" "devnum( / ) = devnum( /a/b )"
-    is "${lines[0]}" "${lines[4]}" "devnum( / ) = devnum( /[ )"
-    is "${lines[0]}" "${lines[5]}" "devnum( / ) = devnum( /[etc )"
-    is "${lines[0]}" "${lines[7]}" "devnum( / ) = devnum( /etc )"
-    is "${lines[6]}" "${lines[8]}" "devnum( /[etc/foo, ) = devnum( /etc/bar] )"
+    assert "${lines[0]}" = "${lines[1]}" "devnum( / ) = devnum( /a )"
+    assert "${lines[0]}" = "${lines[2]}" "devnum( / ) = devnum( /a/b )"
+    assert "${lines[0]}" = "${lines[4]}" "devnum( / ) = devnum( /[ )"
+    assert "${lines[0]}" = "${lines[5]}" "devnum( / ) = devnum( /[etc )"
+    assert "${lines[0]}" = "${lines[7]}" "devnum( / ) = devnum( /etc )"
+    assert "${lines[6]}" = "${lines[8]}" "devnum( /[etc/foo, ) = devnum( /etc/bar] )"
     # ...then, each volume should be different
-    if [[ "${lines[0]}" = "${lines[3]}" ]]; then
-        die "devnum( / ) (${lines[0]}) = devnum( volume0 ) (${lines[3]}) -- they should differ"
-    fi
-    if [[ "${lines[0]}" = "${lines[6]}" ]]; then
-        die "devnum( / ) (${lines[0]}) = devnum( volume1 ) (${lines[6]}) -- they should differ"
-    fi
+    assert "${lines[0]}" != "${lines[3]}" "devnum( / ) != devnum( volume0 )"
+    assert "${lines[0]}" != "${lines[6]}" "devnum( / ) != devnum( volume1 )"
+
     # FIXME: is this expected? I thought /a/b/c and /[etc/foo, would differ
-    is "${lines[3]}" "${lines[6]}" "devnum( volume0 ) = devnum( volume1 )"
+    assert "${lines[3]}" = "${lines[6]}" "devnum( volume0 ) = devnum( volume1 )"
 
     run_podman rmi -f build_test
 }
@@ -106,7 +103,7 @@ EOF
     rand_content=$(random_string 50)
 
     tmpdir=$PODMAN_TMPDIR/build-test
-    run mkdir -p $tmpdir
+    mkdir -p $tmpdir
     containerfile=$tmpdir/Containerfile
     cat >$containerfile <<EOF
 FROM $IMAGE
@@ -122,7 +119,7 @@ EOF
     # Test on the CLI and via containers.conf
 
     tmpdir=$PODMAN_TMPDIR/build-test
-    run mkdir -p $tmpdir
+    mkdir -p $tmpdir
     containerfile=$tmpdir/Containerfile
     cat >$containerfile <<EOF
 FROM $IMAGE
@@ -146,10 +143,10 @@ EOF
 @test "podman build - cache (#3920)" {
     # Make an empty test directory, with a subdirectory used for tar
     tmpdir=$PODMAN_TMPDIR/build-test
-    mkdir -p $tmpdir/subtest || die "Could not mkdir $tmpdir/subtest"
+    mkdir -p $tmpdir/subtest
 
     echo "This is the ORIGINAL file" > $tmpdir/subtest/myfile1
-    run tar -C $tmpdir -cJf $tmpdir/myfile.tar.xz subtest
+    tar -C $tmpdir -cJf $tmpdir/myfile.tar.xz subtest
 
     cat >$tmpdir/Dockerfile <<EOF
 FROM $IMAGE
@@ -169,7 +166,7 @@ EOF
 
     # Step 2: Recreate the tarfile, with new content. Rerun podman build.
     echo "This is a NEW file" >| $tmpdir/subtest/myfile2
-    run tar -C $tmpdir -cJf $tmpdir/myfile.tar.xz subtest
+    tar -C $tmpdir -cJf $tmpdir/myfile.tar.xz subtest
 
     run_podman build -t build_test -f $tmpdir/Dockerfile $tmpdir
     is "$output" ".*COMMIT" "COMMIT seen in log"
@@ -371,9 +368,8 @@ EOF
                -t build_test -f build-test/Containerfile build-test
     local iid="${lines[-1]}"
 
-    if [[ $output =~ missing.*build.argument ]]; then
-        die "podman did not see the given --build-arg(s)"
-    fi
+    assert "$output" !~ "missing.*build.argument" \
+           "podman did not see the given --build-arg(s)"
 
     # Make sure 'podman build' had the secret mounted
     is "$output" ".*$secret_contents.*" "podman build has /run/secrets mounted"
@@ -449,9 +445,7 @@ EOF
     run_podman image inspect build_test
 
     # (Assert that output is formatted, not a one-line blob: #8011)
-    if [[ "${#lines[*]}" -lt 10 ]]; then
-        die "Output from 'image inspect' is only ${#lines[*]} lines; see #8011"
-    fi
+    assert "${#lines[*]}" -ge 10 "Output from 'image inspect'; see #8011"
 
     tests="
 Env[1]             | MYENV1=$s_env1
@@ -591,12 +585,11 @@ EOF
         for f in ${files[@]}; do
             if [[ $f =~ ^- ]]; then
                 f=${f##-}
-                if [[ $output =~ $f ]]; then
-                    die "File '$f' found in image; it should have been ignored via $ignorefile"
-                fi
+                assert "$output" !~ "$f" \
+                       "File '$f' should have been ignored via $ignorefile"
             else
-                is "$output" ".*$newdir/$f" \
-                   "File '$f' should exist in container (no match in $ignorefile)"
+                assert "$output" =~ "$newdir/$f" \
+                       "File '$f' should exist in container (no match in $ignorefile)"
             fi
         done
 
@@ -727,7 +720,7 @@ a${random3}z"
 @test "podman build --layers test" {
     rand_content=$(random_string 50)
     tmpdir=$PODMAN_TMPDIR/build-test
-    run mkdir -p $tmpdir
+    mkdir -p $tmpdir
     containerfile=$tmpdir/Containerfile
     cat >$containerfile <<EOF
 FROM $IMAGE
@@ -870,8 +863,7 @@ FROM $IMAGE
 EOF
 
     run_podman build -t build_test --format=docker --logfile=$tmpdir/logfile $tmpbuilddir
-    run cat $tmpdir/logfile
-    is "$output" ".*COMMIT" "COMMIT seen in log"
+    assert "$(< $tmpdir/logfile)" =~ "COMMIT" "COMMIT seen in log"
 
     run_podman rmi -f build_test
 }

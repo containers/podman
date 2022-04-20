@@ -224,9 +224,8 @@ $s_after"
         retries=$((retries - 1))
         sleep 0.1
     done
-    if [[ $retries -eq 0 ]]; then
-        die "Timed out waiting for before&after in podman logs: $output"
-    fi
+    assert $retries -gt 0 \
+           "Timed out waiting for before&after in podman logs: $output"
 
     run_podman logs --until $before test
     is "$output" "" "podman logs --until before"

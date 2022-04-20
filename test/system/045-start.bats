@@ -21,9 +21,8 @@ load helpers
     is "$output" ".*$cid_none_implicit" "started: container with no --restart"
     is "$output" ".*$cid_none_explicit" "started: container with --restart=no"
     is "$output" ".*$cid_on_failure" "started: container with --restart=on-failure"
-    if [[ $output =~ $cid_always ]]; then
-        die "podman start --all restarted a running container"
-    fi
+    assert "$output" !~ "$cid_always" \
+           "podman start --all should not restart a running container"
 
     run_podman wait $cid_none_implicit $cid_none_explicit $cid_on_failure
 

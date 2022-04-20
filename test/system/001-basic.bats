@@ -28,9 +28,7 @@ function setup() {
     # Test that build date is reasonable, e.g. after 2019-01-01
     local built=$(expr "$output" : ".*Built: \+\(.*\)" | head -n1)
     local built_t=$(date --date="$built" +%s)
-    if [ $built_t -lt 1546300800 ]; then
-        die "Preposterous 'Built' time in podman version: '$built'"
-    fi
+    assert "$built_t" -gt 1546300800 "Preposterous 'Built' time in podman version"
 }
 
 @test "podman info" {
@@ -114,29 +112,25 @@ See 'podman version --help'" "podman version --remote"
 
     # By default, podman should include '--remote' in its help output
     run_podman --help
-    is "$output" ".* --remote " "podman --help includes the --remote option"
+    assert "$output" =~ " --remote " "podman --help includes the --remote option"
 
     # When it detects CONTAINER_HOST or _CONNECTION, --remote is not an option
     CONTAINER_HOST=foobar run_podman --help
-    if grep -- " --remote " <<<"$output"; then
-        die "podman --help, with CONTAINER_HOST set, is showing --remote"
-    fi
+    assert "$output" !~ " --remote " \
+           "podman --help, with CONTAINER_HOST set, should not show --remote"
 
     CONTAINER_CONNECTION=foobar run_podman --help
-    if grep -- " --remote " <<<"$output"; then
-        die "podman --help, with CONTAINER_CONNECTION set, is showing --remote"
-    fi
+    assert "$output" !~ " --remote " \
+           "podman --help, with CONTAINER_CONNECTION set, should not show --remote"
 
     # When it detects --url or --connection, --remote is not an option
     run_podman --url foobar --help
-    if grep -- " --remote " <<<"$output"; then
-        die "podman --help, with --url set, is showing --remote"
-    fi
+    assert "$output" !~ " --remote " \
+           "podman --help, with --url set, should not show --remote"
 
     run_podman --connection foobar --help
-    if grep -- " --remote " <<<"$output"; then
-        die "podman --help, with --connection set, is showing --remote"
-    fi
+    assert "$output" !~ " --remote " \
+           "podman --help, with --connection set, should not show --remote"
 }
 
 # Check that just calling "podman-remote" prints the usage message even

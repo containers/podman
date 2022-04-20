@@ -40,7 +40,7 @@ function check_shell_completion() {
 
         # The line immediately after 'Usage:' gives us a 1-line synopsis
         usage=$(echo "$full_help" | grep -A1 '^Usage:' | tail -1)
-        [ -n "$usage" ] || die "podman $cmd: no Usage message found"
+        assert "$usage" != "" "podman $cmd: no Usage message found"
 
         # If usage ends in '[command]', recurse into subcommands
         if expr "$usage" : '.*\[command\]$' >/dev/null; then
@@ -74,7 +74,8 @@ function check_shell_completion() {
                         # If this fails there is most likely a problem with the cobra library
                         is "${lines[0]}" "--.*" \
                            "$* $cmd: flag(s) listed in suggestions"
-                        [ ${#lines[@]} -gt 2 ] || die "$* $cmd: No flag suggestions"
+                        assert "${#lines[@]}" -gt 2 \
+                               "$* $cmd: No flag suggestions"
                         _check_completion_end NoFileComp
                     fi
                     # continue the outer for args loop
@@ -149,7 +150,7 @@ function check_shell_completion() {
                     ### FIXME how can we get the configured registries?
                     _check_completion_end NoFileComp
                     ### FIXME this fails if no registries are configured
-                    [[ ${#lines[@]} -gt 2 ]] || die "$* $cmd: No REGISTRIES found in suggestions"
+                    assert "${#lines[@]}" -gt 2 "$* $cmd: No REGISTRIES found in suggestions"
 
                     match=true
                     # resume
@@ -174,7 +175,7 @@ function check_shell_completion() {
                         _check_completion_end NoSpace
                     else
                         _check_completion_end Default
-                        [[ ${#lines[@]} -eq 2 ]] || die "$* $cmd: Suggestions are in the output"
+                        assert "${#lines[@]}" -eq 2 "$* $cmd: Suggestions are in the output"
                     fi
                     ;;
 
@@ -210,7 +211,7 @@ function check_shell_completion() {
                 i=0
                 length=$(( ${#lines[@]} - 2 ))
                 while [[ i -lt length ]]; do
-                    [[ "${lines[$i]:0:7}" == "[Debug]" ]] || die "Suggestions are in the output"
+                    assert "${lines[$i]:0:7}" == "[Debug]" "Suggestions are in the output"
                     i=$(( i + 1 ))
                 done
             fi
