@@ -67,12 +67,21 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 			// NOTE: the health check is only set for Docker images
 			// but inspect will take care of it.
 			s.HealthConfig = inspectData.HealthCheck
-			if s.HealthConfig != nil && s.HealthConfig.Timeout == 0 {
-				hct, err := time.ParseDuration(define.DefaultHealthCheckTimeout)
-				if err != nil {
-					return nil, err
+			if s.HealthConfig != nil {
+				if s.HealthConfig.Timeout == 0 {
+					hct, err := time.ParseDuration(define.DefaultHealthCheckTimeout)
+					if err != nil {
+						return nil, err
+					}
+					s.HealthConfig.Timeout = hct
 				}
-				s.HealthConfig.Timeout = hct
+				if s.HealthConfig.Interval == 0 {
+					hct, err := time.ParseDuration(define.DefaultHealthCheckInterval)
+					if err != nil {
+						return nil, err
+					}
+					s.HealthConfig.Interval = hct
+				}
 			}
 		}
 
