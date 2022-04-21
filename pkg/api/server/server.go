@@ -79,6 +79,10 @@ func newServer(runtime *libpod.Runtime, listener net.Listener, opts entities.Ser
 			return nil, fmt.Errorf("wrong number of file descriptors for socket activation protocol (%d != 1)", len(listeners))
 		}
 		listener = listeners[0]
+		// note that activation.Listeners() return nil when it cannot listen on the fd (i.e. udp connection)
+		if listener == nil {
+			return nil, fmt.Errorf("unexpected fd received from systemd: cannot listen on it")
+		}
 	}
 	if opts.CorsHeaders == "" {
 		logrus.Debug("CORS Headers were not set")
