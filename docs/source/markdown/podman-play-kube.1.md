@@ -216,7 +216,10 @@ Valid _mode_ values are:
 
 #### **--no-hosts**
 
-Do not create /etc/hosts within the pod's containers, instead use the version from the image
+Do not create /etc/hosts for the pod.
+By default, Podman will manage /etc/hosts, adding the container's own IP address and any hosts from **--add-host**.
+**--no-hosts** disables this, and the image's **/etc/host** will be preserved unmodified.
+This option conflicts with host added in the Kubernetes YAML.
 
 #### **--quiet**, **-q**
 
