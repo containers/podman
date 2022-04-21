@@ -2,6 +2,7 @@ package sysregistriesv2
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -643,17 +644,17 @@ func dropInConfigs(wrapper configWrapper) ([]string, error) {
 		dirPaths = append(dirPaths, wrapper.userConfigDirPath)
 	}
 	for _, dirPath := range dirPaths {
-		err := filepath.Walk(dirPath,
+		err := filepath.WalkDir(dirPath,
 			// WalkFunc to read additional configs
-			func(path string, info os.FileInfo, err error) error {
+			func(path string, d fs.DirEntry, err error) error {
 				switch {
 				case err != nil:
 					// return error (could be a permission problem)
 					return err
-				case info == nil:
+				case d == nil:
 					// this should only happen when err != nil but let's be sure
 					return nil
-				case info.IsDir():
+				case d.IsDir():
 					if path != dirPath {
 						// make sure to not recurse into sub-directories
 						return filepath.SkipDir

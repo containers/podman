@@ -16,7 +16,6 @@ package signature
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -80,7 +79,7 @@ func defaultPolicyPathWithHomeDir(sys *types.SystemContext, homeDir string) stri
 
 // NewPolicyFromFile returns a policy configured in the specified file.
 func NewPolicyFromFile(fileName string) (*Policy, error) {
-	contents, err := ioutil.ReadFile(fileName)
+	contents, err := os.ReadFile(fileName)
 	if err != nil {
 		return nil, err
 	}

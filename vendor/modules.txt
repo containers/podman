@@ -109,7 +109,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.47.5-0.20220421072908-49f1a40067b2
+# github.com/containers/common v0.47.5-0.20220421111103-112a47964ddb
 ## explicit
 github.com/containers/common/libimage
 github.com/containers/common/libimage/manifests
@@ -153,7 +153,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.21.1-0.20220405081457-d1b64686e1d0
+# github.com/containers/image/v5 v5.21.1-0.20220421124950-8527e238867c
 ## explicit
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -233,7 +233,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.39.1-0.20220414183333-eea4e0f5f1f9
+# github.com/containers/storage v1.39.1-0.20220421071128-4899f8265d63
 ## explicit
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -475,8 +475,6 @@ github.com/matttproud/golang_protobuf_extensions/pbutil
 github.com/miekg/pkcs11
 # github.com/mistifyio/go-zfs v2.1.2-0.20190413222219-f784269be439+incompatible
 github.com/mistifyio/go-zfs
-# github.com/mitchellh/mapstructure v1.4.3
-github.com/mitchellh/mapstructure
 # github.com/moby/sys/mount v0.2.0
 github.com/moby/sys/mount
 # github.com/moby/sys/mountinfo v0.6.1
@@ -645,7 +643,7 @@ github.com/stefanberger/go-pkcs11uri
 ## explicit
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
-# github.com/sylabs/sif/v2 v2.4.2
+# github.com/sylabs/sif/v2 v2.6.0
 github.com/sylabs/sif/v2/pkg/sif
 # github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 ## explicit

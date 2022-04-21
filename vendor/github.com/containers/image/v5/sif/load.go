@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -103,7 +102,7 @@ func writeInjectedScript(extractedRootPath string, injectedScript []byte) error 
 	if err := os.MkdirAll(parentDirPath, 0755); err != nil {
 		return fmt.Errorf("creating %s: %w", parentDirPath, err)
 	}
-	if err := ioutil.WriteFile(filePath, injectedScript, 0755); err != nil {
+	if err := os.WriteFile(filePath, injectedScript, 0755); err != nil {
 		return fmt.Errorf("writing %s to %s: %w", injectedScriptTargetPath, filePath, err)
 	}
 	return nil
@@ -121,7 +120,7 @@ func createTarFromSIFInputs(ctx context.Context, tarPath, squashFSPath string, i
 	conversionCommand := fmt.Sprintf("unsquashfs -d %s -f %s && tar --acls --xattrs -C %s -cpf %s ./",
 		extractedRootPath, squashFSPath, extractedRootPath, tarPath)
 	script := "#!/bin/sh\n" + conversionCommand + "\n"
-	if err := ioutil.WriteFile(scriptPath, []byte(script), 0755); err != nil {
+	if err := os.WriteFile(scriptPath, []byte(script), 0755); err != nil {
 		return err
 	}
 	defer os.Remove(scriptPath)
@@ -149,7 +148,7 @@ func createTarFromSIFInputs(ctx context.Context, tarPath, squashFSPath string, i
 // at start, and is exclusively used by the current process (i.e. it is safe
 // to use hard-coded relative paths within it).
 func convertSIFToElements(ctx context.Context, sifImage *sif.FileImage, tempDir string) (string, []string, error) {
-	// We could allocate unique names for all of these using ioutil.Temp*, but tempDir is exclusive,
+	// We could allocate unique names for all of these using os.{CreateTemp,MkdirTemp}, but tempDir is exclusive,
 	// so we can just hard-code a set of unique values here.
 	// We create and/or manage cleanup of these two paths.
 	squashFSPath := filepath.Join(tempDir, "rootfs.squashfs")

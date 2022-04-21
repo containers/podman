@@ -10,7 +10,6 @@ import (
 	stderrors "errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -155,7 +154,7 @@ func (s *storageImageSource) HasThreadSafeGetBlob() bool {
 // May update BlobInfoCache, preferably after it knows for certain that a blob truly exists at a specific location.
 func (s *storageImageSource) GetBlob(ctx context.Context, info types.BlobInfo, cache types.BlobInfoCache) (rc io.ReadCloser, n int64, err error) {
 	if info.Digest == image.GzippedEmptyLayerDigest {
-		return ioutil.NopCloser(bytes.NewReader(image.GzippedEmptyLayer)), int64(len(image.GzippedEmptyLayer)), nil
+		return io.NopCloser(bytes.NewReader(image.GzippedEmptyLayer)), int64(len(image.GzippedEmptyLayer)), nil
 	}
 
 	// NOTE: the blob is first written to a temporary file and subsequently
@@ -167,7 +166,7 @@ func (s *storageImageSource) GetBlob(ctx context.Context, info types.BlobInfo, c
 	}
 	defer rc.Close()
 
-	tmpFile, err := ioutil.TempFile(tmpdir.TemporaryDirectoryForBigFiles(s.systemContext), "")
+	tmpFile, err := os.CreateTemp(tmpdir.TemporaryDirectoryForBigFiles(s.systemContext), "")
 	if err != nil {
 		return nil, 0, err
 	}
@@ -210,7 +209,7 @@ func (s *storageImageSource) getBlobAndLayerID(info types.BlobInfo) (rc io.ReadC
 		}
 		r := bytes.NewReader(b)
 		logrus.Debugf("exporting opaque data as blob %q", info.Digest.String())
-		return ioutil.NopCloser(r), int64(r.Len()), "", nil
+		return io.NopCloser(r), int64(r.Len()), "", nil
 	}
 	// Step through the list of matching layers.  Tests may want to verify that if we have multiple layers
 	// which claim to have the same contents, that we actually do have multiple layers, otherwise we could
@@ -395,7 +394,7 @@ func (s *storageImageSource) GetSignatures(ctx context.Context, instanceDigest *
 // newImageDestination sets us up to write a new image, caching blobs in a temporary directory until
 // it's time to Commit() the image
 func newImageDestination(sys *types.SystemContext, imageRef storageReference) (*storageImageDestination, error) {
-	directory, err := ioutil.TempDir(tmpdir.TemporaryDirectoryForBigFiles(sys), "storage")
+	directory, err := os.MkdirTemp(tmpdir.TemporaryDirectoryForBigFiles(sys), "storage")
 	if err != nil {
 		return nil, errors.Wrapf(err, "creating a temporary directory")
 	}
@@ -791,7 +790,7 @@ func (s *storageImageDestination) getConfigBlob(info types.BlobInfo) ([]byte, er
 	}
 	// Assume it's a file, since we're only calling this from a place that expects to read files.
 	if filename, ok := s.filenames[info.Digest]; ok {
-		contents, err2 := ioutil.ReadFile(filename)
+		contents, err2 := os.ReadFile(filename)
 		if err2 != nil {
 			return nil, errors.Wrapf(err2, `reading blob from file %q`, filename)
 		}
@@ -1136,7 +1135,7 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 		delete(dataBlobs, layerBlob.Digest)
 	}
 	for blob := range dataBlobs {
-		v, err := ioutil.ReadFile(s.filenames[blob])
+		v, err := os.ReadFile(s.filenames[blob])
 		if err != nil {
 			return errors.Wrapf(err, "copying non-layer blob %q to image", blob)
 		}

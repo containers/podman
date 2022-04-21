@@ -4,6 +4,7 @@ import (
 	graphdriver "github.com/containers/storage/drivers"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 func checkRootdirFs(rootDir string) error {
@@ -26,4 +27,8 @@ func checkRootdirFs(rootDir string) error {
 
 func getMountpoint(id string) string {
 	return id
+}
+
+func detachUnmount(mountpoint string) error {
+	return unix.Unmount(mountpoint, unix.MNT_DETACH)
 }

@@ -9,7 +9,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strconv"
 	"strings"
 	"unsafe"
@@ -369,7 +368,7 @@ func (s *ostreeImageSource) GetSignatures(ctx context.Context, instanceDigest *d
 		}
 		defer sigReader.Close()
 
-		sig, err := ioutil.ReadAll(sigReader)
+		sig, err := os.ReadAll(sigReader)
 		if err != nil {
 			return nil, err
 		}

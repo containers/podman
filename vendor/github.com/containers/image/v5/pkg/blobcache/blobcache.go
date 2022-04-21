@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -196,7 +195,7 @@ func (s *blobCacheSource) Close() error {
 func (s *blobCacheSource) GetManifest(ctx context.Context, instanceDigest *digest.Digest) ([]byte, string, error) {
 	if instanceDigest != nil {
 		filename := filepath.Join(s.reference.directory, makeFilename(*instanceDigest, false))
-		manifestBytes, err := ioutil.ReadFile(filename)
+		manifestBytes, err := os.ReadFile(filename)
 		if err == nil {
 			s.cacheHits++
 			return manifestBytes, manifest.GuessMIMEType(manifestBytes), nil
@@ -280,10 +279,10 @@ func (s *blobCacheSource) LayerInfosForCopy(ctx context.Context, instanceDigest 
 			switch s.reference.compress {
 			case types.Compress:
 				alternate = blobFile + compressedNote
-				replaceDigest, err = ioutil.ReadFile(alternate)
+				replaceDigest, err = os.ReadFile(alternate)
 			case types.Decompress:
 				alternate = blobFile + decompressedNote
-				replaceDigest, err = ioutil.ReadFile(alternate)
+				replaceDigest, err = os.ReadFile(alternate)
 			}
 			if err == nil && digest.Digest(replaceDigest).Validate() == nil {
 				alternate = filepath.Join(filepath.Dir(alternate), makeFilename(digest.Digest(replaceDigest), false))
@@ -373,7 +372,7 @@ func saveStream(wg *sync.WaitGroup, decompressReader io.ReadCloser, tempFile *os
 		_, err3 = io.Copy(io.MultiWriter(tempFile, digester.Hash()), decompressed)
 	} else {
 		// Drain the pipe to keep from stalling the PutBlob() thread.
-		if _, err := io.Copy(ioutil.Discard, decompressReader); err != nil {
+		if _, err := io.Copy(io.Discard, decompressReader); err != nil {
 			logrus.Debugf("error draining the pipe: %v", err)
 		}
 	}
@@ -423,7 +422,7 @@ func (d *blobCacheDestination) PutBlob(ctx context.Context, stream io.Reader, in
 	compression := archive.Uncompressed
 	if inputInfo.Digest != "" {
 		filename := filepath.Join(d.reference.directory, makeFilename(inputInfo.Digest, isConfig))
-		tempfile, err = ioutil.TempFile(d.reference.directory, makeFilename(inputInfo.Digest, isConfig))
+		tempfile, err = os.CreateTemp(d.reference.directory, makeFilename(inputInfo.Digest, isConfig))
 		if err == nil {
 			stream = io.TeeReader(stream, tempfile)
 			defer func() {
@@ -457,7 +456,7 @@ func (d *blobCacheDestination) PutBlob(ctx context.Context, stream io.Reader, in
 				if compression == archive.Gzip {
 					// The stream is compressed, so create a file which we'll
 					// use to store a decompressed copy.
-					decompressedTemp, err2 := ioutil.TempFile(d.reference.directory, makeFilename(inputInfo.Digest, isConfig))
+					decompressedTemp, err2 := os.CreateTemp(d.reference.directory, makeFilename(inputInfo.Digest, isConfig))
 					if err2 != nil {
 						logrus.Debugf("error while creating a temporary file under %q to hold decompressed blob %q: %v", d.reference.directory, inputInfo.Digest.String(), err2)
 						decompressedTemp.Close()

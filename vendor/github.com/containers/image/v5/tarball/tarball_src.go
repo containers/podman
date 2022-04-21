@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"runtime"
 	"strings"
@@ -87,7 +86,7 @@ func (r *tarballReference) NewImageSource(ctx context.Context, sys *types.System
 			uncompressed = nil
 		}
 		// TODO: This can take quite some time, and should ideally be cancellable using ctx.Done().
-		n, err := io.Copy(ioutil.Discard, reader)
+		n, err := io.Copy(io.Discard, reader)
 		if err != nil {
 			return nil, fmt.Errorf("error reading %q: %v", filename, err)
 		}
@@ -217,14 +216,14 @@ func (is *tarballImageSource) HasThreadSafeGetBlob() bool {
 func (is *tarballImageSource) GetBlob(ctx context.Context, blobinfo types.BlobInfo, cache types.BlobInfoCache) (io.ReadCloser, int64, error) {
 	// We should only be asked about things in the manifest.  Maybe the configuration blob.
 	if blobinfo.Digest == is.configID {
-		return ioutil.NopCloser(bytes.NewBuffer(is.config)), is.configSize, nil
+		return io.NopCloser(bytes.NewBuffer(is.config)), is.configSize, nil
 	}
 	// Maybe one of the layer blobs.
 	for i := range is.blobIDs {
 		if blobinfo.Digest == is.blobIDs[i] {
 			// We want to read that layer: open the file or memory block and hand it back.
 			if is.filenames[i] == "-" {
-				return ioutil.NopCloser(bytes.NewBuffer(is.reference.stdin)), int64(len(is.reference.stdin)), nil
+				return io.NopCloser(bytes.NewBuffer(is.reference.stdin)), int64(len(is.reference.stdin)), nil
 			}
 			reader, err := os.Open(is.filenames[i])
 			if err != nil {
