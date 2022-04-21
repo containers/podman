@@ -677,4 +677,48 @@ EOF
     done
 }
 
+@test "podman run CONTAINERS_CONF /etc/hosts options" {
+    skip_if_remote "CONTAINERS_CONF redirect does not work on remote"
+
+    containersconf=$PODMAN_TMPDIR/containers.conf
+    basehost=$PODMAN_TMPDIR/host
+
+    ip1="$(random_rfc1918_subnet).$((RANDOM % 256))"
+    name1=host1$(random_string)
+    ip2="$(random_rfc1918_subnet).$((RANDOM % 256))"
+    name2=host2$(random_string)
+
+    cat >$basehost <<EOF
+$ip1 $name1
+$ip2 $name2 #some comment
+EOF
+
+    containersinternal_ip="$(random_rfc1918_subnet).$((RANDOM % 256))"
+    cat >$containersconf <<EOF
+[containers]
+  base_hosts_file = "$basehost"
+  host_containers_internal_ip = "$containersinternal_ip"
+EOF
+
+    ip3="$(random_rfc1918_subnet).$((RANDOM % 256))"
+    name3=host3$(random_string)
+
+    CONTAINERS_CONF=$containersconf run_podman run --rm --add-host $name3:$ip3 $IMAGE cat /etc/hosts
+    is "$output" ".*$ip3[[:blank:]]$name3.*" "--add-host entry in /etc/host"
+    is "$output" ".*$ip1[[:blank:]]$name1.*" "first base entry in /etc/host"
+    is "$output" ".*$ip2[[:blank:]]$name2.*" "second base entry in /etc/host"
+    is "$output" ".*127.0.0.1[[:blank:]]localhost.*" "ipv4 localhost entry added"
+    is "$output" ".*::1[[:blank:]]localhost.*" "ipv6 localhost entry added"
+    is "$output" ".*$containersinternal_ip[[:blank:]]host\.containers\.internal.*" "host.containers.internal ip from config in /etc/host"
+    is "${#lines[@]}" "7" "expect 7 host entries in /etc/hosts"
+
+    # now try again with container name and hostname == host entry name
+    # in this case podman should not add its own entry thus we only have 5 entries (-1 for the removed --add-host)
+    CONTAINERS_CONF=$containersconf run_podman run --rm --name $name1 --hostname $name1 $IMAGE cat /etc/hosts
+    is "$output" ".*$ip1[[:blank:]]$name1.*" "first base entry in /etc/host"
+    is "$output" ".*$ip2[[:blank:]]$name2.*" "second base entry in /etc/host"
+    is "$output" ".*$containersinternal_ip[[:blank:]]host\.containers\.internal.*" "host.containers.internal ip from config in /etc/host"
+    is "${#lines[@]}" "5" "expect 5 host entries in /etc/hosts"
+}
+
 # vim: filetype=sh
