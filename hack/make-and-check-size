@@ -92,9 +92,10 @@ if [[ ! -d $context_dir ]]; then
 fi
 
 # This is the original (and primary) purpose of this check: if 'make' fails,
-# there is no point in continuing
+# there is no point in continuing.  Show at least the commit title since
+# the ID may not match anything human recognisable.
 echo
-echo "Building: $(git rev-parse HEAD)"
+echo "Building: $(git log -n 1 --no-show-signature --oneline)"
 make
 
 # Determine size of each built file.
